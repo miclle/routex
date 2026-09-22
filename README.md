@@ -26,17 +26,17 @@ The target architecture is split into three product domains:
 2. **Control Plane** — configuration, administration, projects, teams, providers, models, credentials, quotas, and policy management.
 3. **Data Platform** — asynchronous usage processing, reporting, analytics, and operational insights.
 
+RouteX is designed with explicit extension points so optional capabilities can be developed and deployed independently without coupling them to the open-source core.
+
 See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for the initial architecture principles.
 
 ## Project status
 
-RouteX is currently in the initial implementation phase. APIs, data models, package boundaries, and deployment topology may change before the first stable release.
+RouteX is currently in the initial implementation phase. APIs, data models, package boundaries, extension interfaces, and deployment topology may change before the first stable release.
 
-## Licensing
+## License
 
-The open-source core of RouteX is licensed under the [MIT License](LICENSE).
-
-Some current or future features may be provided under a separate commercial license. Any content under an `enterprise/` directory, if present, is governed by the license in `enterprise/LICENSE` rather than the MIT License.
+RouteX is licensed under the [Apache License 2.0](LICENSE).
 
 See [NOTICE](NOTICE) for attribution information.
 
