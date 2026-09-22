@@ -1,0 +1,28 @@
+# macOS
+.DS_Store
+
+# IDEs
+.idea/
+.vscode/
+*.swp
+
+# Environment and secrets
+.env
+.env.*
+!.env.example
+
+# Go
+bin/
+coverage.out
+*.test
+
+# Node / web
+node_modules/
+dist/
+.vite/
+coverage/
+
+# Logs and temporary files
+*.log
+tmp/
+temp/
