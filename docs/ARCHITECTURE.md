@@ -78,6 +78,29 @@ The initial model should distinguish at least:
 
 Internal identifiers should remain stable even when public model names change.
 
+## Extension model
+
+RouteX should make optional capabilities extensible without requiring them to be
+compiled into or licensed as part of the core project.
+
+Potential extension points include:
+
+- Authentication and identity providers.
+- Secret stores and credential backends.
+- Policy and authorization engines.
+- Audit and event sinks.
+- Routing strategies.
+- Usage, billing, and analytics exporters.
+- Provider adapters and protocol integrations.
+
+The preferred model is a stable API or RPC boundary. Out-of-process extensions
+should be favored when they improve isolation, independent deployment, version
+compatibility, or security. Language-specific in-process plugin mechanisms
+should not become a prerequisite for extending RouteX.
+
+This extension model is intentionally neutral: extensions may be open source,
+internal to an organization, or distributed separately under other terms.
+
 ## Design principles
 
 ### Keep the hot path small
@@ -106,8 +129,14 @@ mutable administrative tables on every request.
 ### Credentials are secrets
 
 Plaintext provider credentials should never be exposed after creation unless a
-specific workflow requires it. Secret storage must be abstractable so future
-enterprise integrations can use external vault systems.
+specific workflow requires it. Secret storage must be abstractable so external
+vault systems can be integrated without changing core credential semantics.
+
+### Extensions should remain optional
+
+Core RouteX behavior must not depend on proprietary or separately distributed
+extensions. Stable contracts should allow optional capabilities to evolve
+without forcing unrelated changes into the core.
 
 ## Initial implementation sequence
 
@@ -118,8 +147,9 @@ enterprise integrations can use external vault systems.
 5. Add routing and failover.
 6. Add usage events and asynchronous metering.
 7. Add quotas and rate limits.
-8. Build the web control plane on stable APIs.
-9. Expand provider coverage and operational tooling.
+8. Define the first stable extension interfaces where real use cases require them.
+9. Build the web control plane on stable APIs.
+10. Expand provider coverage and operational tooling.
 
 The sequence favors a working data plane and stable contracts before recreating
-the complete management UI.
+the complete management UI or prematurely generalizing a plugin system.
