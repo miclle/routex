@@ -634,3 +634,19 @@ headers/bodies, ordinary/SSE finality, cancellation, malformed terminal usage,
 independent comparison outcomes and bilingual interaction. This phase introduces
 no schema or gateway changes; rendered workbench and external-provider acceptance
 remain separate open gates.
+
+### Administrative audit explorer
+
+The audit log now exposes committed actions with permission-checked, bounded
+pagination, time/category/literal-text filters and a read-only detail drawer.
+Known pricing and limit changes use typed allowlisted projections. Unknown
+historical IP, source, request identity and change metadata remain explicitly
+unrecorded; arbitrary audit payloads are never exposed.
+
+Full check/test passed with 274 Vitest cases, four Node checks, Go race/unit,
+development lifecycle and production assets. After tightening cursor validation,
+full check and focused audit regressions passed; PostgreSQL/MySQL integration
+passed in 469.470 seconds and both process lifecycle suites passed. Controlled
+browser acceptance verified real site/announcement events, filtered search and
+the detail drawer. Failed-attempt recording and broader historical change metadata
+remain open; this read interface does not fabricate them.

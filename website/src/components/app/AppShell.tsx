@@ -100,6 +100,17 @@ const accountNav = [
 ]
 const adminNav = [
   {
+    to: '/admin/audit',
+    get label() {
+      return t('audit:title')
+    },
+    icon: History,
+    permission: 'audit.read',
+    get group() {
+      return t('operations_8e37c')
+    },
+  },
+  {
     to: '/admin/system-info',
     get label() {
       return t('site:information')

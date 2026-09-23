@@ -129,6 +129,7 @@ func (ctrl *Ctrl) RegisterRoutes(r *fox.Engine) {
 	admin.PUT("/members/:user_id/roles", requireAdmin, sameOrigin, requireCSRF, jsonManagementRequest, ctrl.UpdateMemberRoles)
 	admin.GET("/registration", requireAdmin, ctrl.RegistrationStatus)
 	admin.PATCH("/registration", requireAdmin, sameOrigin, requireCSRF, jsonAuthRequest, ctrl.UpdateRegistration)
+	admin.GET("/audit", ctrl.RequirePermission("audit.read"), ctrl.AuditEvents)
 	admin.GET("/runtime", ctrl.RequirePermission("system.read"), ctrl.RuntimeStatus)
 	admin.POST("/runtime/publish", requireAdmin, sameOrigin, requireCSRF, ctrl.PublishRuntime)
 

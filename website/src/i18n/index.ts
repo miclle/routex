@@ -1,3 +1,5 @@
+import enAudit from './locales/en/audit'
+import zhAudit from './locales/zh/audit'
 import enSite from './locales/en/site'
 import zhSite from './locales/zh/site'
 import enAnnouncements from './locales/en/announcements'
@@ -71,6 +73,7 @@ void i18n.use(initReactI18next).init({
   resources: {
     en: {
       common: en,
+      audit: enAudit,
       site: enSite,
       announcements: enAnnouncements,
       playground: enPlayground,
@@ -90,6 +93,7 @@ void i18n.use(initReactI18next).init({
     },
     zh: {
       common: zh,
+      audit: zhAudit,
       site: zhSite,
       announcements: zhAnnouncements,
       playground: zhPlayground,
