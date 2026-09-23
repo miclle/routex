@@ -44,6 +44,9 @@ export function PricePreviewDialog({
     >
       <div className="space-y-5">
         <p className="break-all text-sm">{name}</p>
+        {preview.sheet && (
+          <p className="break-all text-sm">{t('sheet', { name: preview.sheet })}</p>
+        )}
         <p className="rounded-md border bg-muted/30 p-3 text-sm">
           {t('changed', {
             count: preview.changes.filter((row) => row.action !== 'unchanged').length,
@@ -63,6 +66,10 @@ export function PricePreviewDialog({
                   <span className="font-medium">
                     {error.row ? t('row', { row: error.row }) : t('file')}
                     {error.column ? ` · ${error.column}` : ''}
+                    {error.sheet && (
+                      <span className="ml-2">{t('sheet', { name: error.sheet })}</span>
+                    )}
+                    {error.cell && <span className="ml-2">{t('cell', { cell: error.cell })}</span>}
                   </span>
                   : {error.message} <span className="font-mono text-xs">({error.code})</span>
                 </li>

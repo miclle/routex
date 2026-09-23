@@ -34,6 +34,7 @@ type PriceImportPreview struct {
 	Items   []PriceInput        `json:"items"`
 	Changes []PriceImportChange `json:"changes"`
 	Errors  []PriceImportError  `json:"errors"`
+	Sheet   string              `json:"sheet,omitempty"`
 }
 type PriceImportCommit struct {
 	Preview   *PriceImportPreview `json:"preview"`
@@ -49,7 +50,7 @@ func priceImportDigest(etag string, items []PriceInput) string {
 	return hex.EncodeToString(digest[:])
 }
 func validatePriceImport(tx *gorm.DB, parsed parsedPriceCSV, setting entity.PricingSetting) (*PriceImportPreview, error) {
-	result := &PriceImportPreview{ETag: setting.ETag, Items: parsed.Items, Changes: []PriceImportChange{}, Errors: slices.Clone(parsed.Errors)}
+	result := &PriceImportPreview{ETag: setting.ETag, Sheet: parsed.Sheet, Items: parsed.Items, Changes: []PriceImportChange{}, Errors: slices.Clone(parsed.Errors)}
 	if result.Errors == nil {
 		result.Errors = []PriceImportError{}
 	}
@@ -58,7 +59,7 @@ func validatePriceImport(tx *gorm.DB, parsed parsedPriceCSV, setting entity.Pric
 		return nil, err
 	}
 	add := func(row priceImportRow, column, code, message string) {
-		result.Errors = append(result.Errors, PriceImportError{row.Line, column, code, message})
+		result.Errors = append(result.Errors, PriceImportError{Row: row.Line, Column: column, Code: code, Message: message, Sheet: parsed.Sheet, Cell: parsed.cell(row.Line, column)})
 	}
 	auditBefore, auditAfter := []PriceRecord{}, []PriceRecord{}
 	for _, item := range parsed.Items {
@@ -123,7 +124,7 @@ func validatePriceImport(tx *gorm.DB, parsed parsedPriceCSV, setting entity.Pric
 			action := "added"
 			if old != nil {
 				action = "updated"
-				if *old == after && before.ContextThreshold == merged.ContextThreshold && !before.FollowRepository && before.UpdateSource == "csv" {
+				if *old == after && before.ContextThreshold == merged.ContextThreshold && !before.FollowRepository && before.UpdateSource == parsed.Source {
 					action = "unchanged"
 				}
 			}
@@ -139,7 +140,7 @@ func validatePriceImport(tx *gorm.DB, parsed parsedPriceCSV, setting entity.Pric
 		}
 		after := before
 		after.ProviderID, after.UpstreamName = connection.ProviderID, pm.UpstreamName
-		after.ContextThreshold, after.UpdateSource, after.FollowRepository = merged.ContextThreshold, "csv", false
+		after.ContextThreshold, after.UpdateSource, after.FollowRepository = merged.ContextThreshold, parsed.Source, false
 		if after.ID == "" {
 			after.ID = "prc_" + strings.Repeat("0", 26)
 		}
@@ -171,7 +172,7 @@ func validatePriceImport(tx *gorm.DB, parsed parsedPriceCSV, setting entity.Pric
 			Source string     `json:"source"`
 			Before auditState `json:"before"`
 			After  auditState `json:"after"`
-		}{"csv", auditState{setting.ETag, auditBefore}, auditState{strings.Repeat("x", 32), auditAfter}})
+		}{parsed.Source, auditState{setting.ETag, auditBefore}, auditState{strings.Repeat("x", 32), auditAfter}})
 		if err != nil {
 			return nil, err
 		}
@@ -183,12 +184,14 @@ func validatePriceImport(tx *gorm.DB, parsed parsedPriceCSV, setting entity.Pric
 	slices.SortFunc(result.Changes, func(a, b PriceImportChange) int { return a.Row - b.Row })
 	result.Valid = len(result.Errors) == 0
 	if result.Valid {
-		result.Digest = priceImportDigest(setting.ETag, parsed.Items)
+		result.Digest = parsed.digest(setting.ETag)
 	}
 	return result, nil
 }
 func (s *Service) PreviewPriceImport(ctx context.Context, actorID, raw string) (*PriceImportPreview, error) {
-	parsed := parsePriceCSV(raw)
+	return s.previewPriceDocument(ctx, actorID, parsePriceCSV(raw))
+}
+func (s *Service) previewPriceDocument(ctx context.Context, actorID string, parsed parsedPriceCSV) (*PriceImportPreview, error) {
 	var result *PriceImportPreview
 	err := s.authDB(ctx).Transaction(func(tx *gorm.DB) error {
 		if err := authorizeGovernance(tx, actorID, "prices.read"); err != nil {
@@ -205,10 +208,12 @@ func (s *Service) PreviewPriceImport(ctx context.Context, actorID, raw string) (
 	return result, pricingError(err)
 }
 func (s *Service) CommitPriceImport(ctx context.Context, actorID, raw, etag, digest string) (*PriceImportCommit, error) {
+	return s.commitPriceDocument(ctx, actorID, parsePriceCSV(raw), etag, digest)
+}
+func (s *Service) commitPriceDocument(ctx context.Context, actorID string, parsed parsedPriceCSV, etag, digest string) (*PriceImportCommit, error) {
 	if etag == "" || len(etag) > 64 || len(digest) != 64 {
 		return nil, apperrors.ErrBadRequest
 	}
-	parsed := parsePriceCSV(raw)
 	result := &PriceImportCommit{}
 	err := s.authDB(ctx).Transaction(func(tx *gorm.DB) error {
 		if err := lockGovernance(tx); err != nil {
@@ -238,7 +243,7 @@ func (s *Service) CommitPriceImport(ctx context.Context, actorID, raw, etag, dig
 		if err != nil {
 			return err
 		}
-		result.Catalogue, err = applyPriceBatch(tx, actorID, setting, fx, parsed.Items, "csv")
+		result.Catalogue, err = applyPriceBatch(tx, actorID, setting, fx, parsed.Items, parsed.Source)
 		return err
 	})
 	if err == nil && result.Catalogue != nil {

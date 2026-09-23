@@ -1,28 +1,36 @@
 export default {
   title: 'Price management',
-  description: 'Maintain current prices through reviewed CSV changes and management APIs.',
+  description: 'Maintain current prices through reviewed file changes and management APIs.',
   navigation: 'Edit an individual price in its provider model details.',
   providers: 'Open providers',
   uploadTitle: 'Upload prices',
   api: 'Management API',
   downloadStep: '1. Download current prices',
   downloadHelp:
-    'Download the complete current catalogue, edit it, then upload CSV batches within the import limits.',
+    'Download the complete current catalogue as CSV, then upload edited CSV or workbook batches within the import limits.',
   download: 'Download CSV',
   uploadStep: '2. Upload edited prices',
   uploadHelp:
-    'Use UTF-8 CSV. Preserve model identity, charge component, condition, unit, currency and explicit enabled state. Prices change only after preview and confirmation.',
-  drop: 'Click or drop a CSV file here',
-  bounds: 'One file at a time · 32 KiB · 160 data rows · 20 provider models',
-  fileInput: 'Upload price CSV',
+    'Use UTF-8 CSV, XLSX, or supported Excel 97–2003 XLS. Preserve model identity, charge component, condition, unit, currency and explicit enabled state. Prices change only after preview and confirmation.',
+  drop: 'Click or drop a CSV, XLSX or XLS file here',
+  bounds: 'One file · CSV 32 KiB / XLSX or XLS 512 KiB · 160 data rows · 20 provider models',
+  fileInput: 'Upload price file',
   selected: 'Selected file',
   validate: 'Validate file',
   working: 'Working…',
-  fileType: 'Choose a CSV file.',
+  fileType: 'Choose a CSV, XLSX or XLS file.',
   fileSize: 'The CSV exceeds 32 KiB. Split it into smaller batches.',
+  workbookHelp:
+    'Workbooks require exactly one visible sheet. Store every amount as literal text to preserve precision, including zero. Formulas, macros, encrypted files, external links, merged cells and extra/hidden sheets are rejected. XLS supports a bounded BIFF8 subset; unsupported workbooks must be saved as a plain one-sheet workbook or CSV. Normalized text must also fit 32 KiB.',
+  workbookSize: 'The workbook exceeds 512 KiB. Split it into smaller batches.',
+  fileName: 'The workbook filename must not exceed 255 UTF-8 bytes.',
+  sheet: 'Sheet: {{name}}',
+  cell: 'Cell: {{cell}}',
+  apiBinary:
+    'Send exactly one file transport per request. For XLSX/XLS, retain the original filename and standard base64 bytes through preview and commit; do not convert decimal cells in JavaScript. Binary input is limited to 512 KiB, and the JSON body to 1 MiB.',
   fileRead: 'The file could not be read. Select it again.',
   fileEncoding: 'The file must use valid UTF-8 encoding.',
-  oneFile: 'Select one CSV file at a time.',
+  oneFile: 'Select one price file at a time.',
   previewTitle: 'Price change preview',
   previewHelp:
     'Only submitted rates change. Omitted rates, platform currency and exchange rates remain unchanged. Zero explicitly means free; disabled remains disabled.',
@@ -61,13 +69,14 @@ export default {
   invalidCommit:
     'The current catalogue rejects this file. Review all located errors before selecting a corrected file.',
   reviewAgain: 'Reload catalogue and preview again',
-  saved: 'The CSV price changes were applied.',
+  saved: 'The price file changes were applied.',
   downloaded: 'The current CSV download was prepared.',
   apiTitle: 'Price management API',
-  apiHelp: 'Preview the exact CSV before applying its reviewed digest and catalogue ETag.',
+  apiHelp:
+    'Preview the exact original file before applying its reviewed digest and catalogue ETag.',
   apiAuth:
     'Use an authenticated browser session. Both POST endpoints require X-CSRF-Token. Preview/export require prices.read; commit requires prices.write.',
-  headers: 'Required CSV headers (each exactly once; order may vary):',
+  headers: 'Required headers in CSV or workbook row 1 (each exactly once; order may vary):',
   identity:
     'provider_model_id is the sole mapping identity. Optional upstream_name is advisory only. Unknown headers, duplicate model/component/condition rows and unsupported dimensions are rejected. Blank context_threshold preserves the existing threshold; omitted rows stay unchanged.',
 }

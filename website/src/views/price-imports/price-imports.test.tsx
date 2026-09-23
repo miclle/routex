@@ -7,6 +7,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import client from '@/api/client'
 import i18n from '@/i18n'
 import routes from '@/router'
+import { readPriceFile, maxWorkbookBytes } from './file'
 import type { PriceImportPreview } from '@/types/price-imports'
 Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true })
 let root: Root,
@@ -134,6 +135,16 @@ async function until(check: () => void) {
 }
 async function mount() {
   router = createMemoryRouter(routes, { initialEntries: ['/admin/prices'] })
+  if (!router.state.initialized) {
+    await new Promise<void>((resolve) => {
+      const unsubscribe = router.subscribe((state) => {
+        if (state.initialized) {
+          unsubscribe()
+          resolve()
+        }
+      })
+    })
+  }
   await act(async () =>
     root.render(
       <QueryClientProvider client={cache}>
@@ -171,7 +182,141 @@ async function preview() {
   )
 }
 const commits = () => requests.filter((r) => r.url === api + 'commit')
-describe('CSV price maintenance', () => {
+describe('Price file maintenance', () => {
+  it.each(['xls', 'XLSX'])(
+    'keeps original %s bytes and filename through preview, conflict review and exactly one confirmed retry',
+    async (extension) => {
+      // Opaque transport bytes: actual workbook parsing is verified by the backend suite.
+      const bytes = new Uint8Array([0, 255, 128, 1, 19, 254, 65, 66, 67])
+      const filename = `精确价格.${extension}`
+      const document = { filename, content_base64: btoa(String.fromCharCode(...bytes)) }
+      result = {
+        ...result,
+        sheet: 'Rates & <literal>',
+        changes: [
+          {
+            ...result.changes[0],
+            after: { ...result.changes[0].after, amount: '900719925474099123.123456789012345678' },
+          },
+        ],
+      }
+      await mount()
+      expect(host.textContent).toContain('Store every amount as literal text')
+      await select(new File([bytes], filename))
+      await click('Validate file')
+      await until(() =>
+        expect(window.document.querySelector('[role="dialog"]')?.textContent).toContain(
+          'Sheet: Rates & <literal>',
+        ),
+      )
+      expect(window.document.querySelector('[role="dialog"]')?.textContent).toContain(
+        '900719925474099123.123456789012345678 USD',
+      )
+      expect(JSON.parse(requests.find((request) => request.url === api + 'preview')!.data)).toEqual(
+        document,
+      )
+      failure = 409
+      await click('Confirm import')
+      await until(() =>
+        expect(window.document.body.textContent).toContain('The catalogue changed.'),
+      )
+      expect(button('Confirm import').disabled).toBe(true)
+      result = { ...result, etag: 'workbook-revision', preview_digest: 'format-bound-digest' }
+      failure = 0
+      await click('Reload catalogue and preview again')
+      await until(() => expect(button('Confirm import').disabled).toBe(false))
+      expect(
+        requests
+          .filter((request) => request.url === api + 'preview')
+          .map((request) => JSON.parse(request.data)),
+      ).toEqual([document, document])
+      const confirm = button('Confirm import')
+      await act(async () => {
+        confirm.click()
+        confirm.click()
+      })
+      await until(() => expect(host.textContent).toContain('price file changes were applied.'))
+      expect(commits()).toHaveLength(2)
+      expect(JSON.parse(commits()[1].data)).toEqual({
+        ...document,
+        etag: 'workbook-revision',
+        preview_digest: 'format-bound-digest',
+      })
+      expect(commits()[1].headers.get('X-CSRF-Token')).toBe('csrf-import')
+      expect(localStorage.length).toBe(0)
+    },
+  )
+  it('renders every server sheet/cell rejection without partial import and keeps locations through language switching', async () => {
+    result = {
+      ...result,
+      valid: false,
+      preview_digest: '',
+      sheet: 'Prices',
+      errors: [
+        {
+          row: 2,
+          column: 'amount',
+          code: 'numeric_amount',
+          message: 'Amount must be literal text',
+          sheet: 'Prices',
+          cell: 'F2',
+        },
+        {
+          row: 4,
+          column: 'amount',
+          code: 'formula',
+          message: 'Formula cells are not supported',
+          sheet: 'Prices',
+          cell: 'F4',
+        },
+        { row: 0, column: '', code: 'encrypted', message: 'Encrypted workbook is not supported' },
+      ],
+    }
+    await mount()
+    await select(new File([new Uint8Array([0, 255])], 'invalid.xls'))
+    await click('Validate file')
+    await until(() => expect(document.body.textContent).toContain('Cell: F2'))
+    for (const error of result.errors) expect(document.body.textContent).toContain(error.message)
+    expect(document.body.textContent).toContain('Cell: F4')
+    expect(button('Confirm import').disabled).toBe(true)
+    await act(async () => {
+      await i18n.changeLanguage('zh')
+    })
+    expect(document.body.textContent).toContain('工作表：Prices')
+    expect(document.body.textContent).toContain('单元格：F2')
+    expect(document.body.textContent).toContain('Amount must be literal text')
+    expect(commits()).toHaveLength(0)
+  })
+  it('preserves every byte at the workbook size boundary and keeps CSV UTF-8 transport distinct', async () => {
+    const bytes = Uint8Array.from({ length: maxWorkbookBytes }, (_, index) => index % 256)
+    const document = await readPriceFile(new File([bytes], 'boundary.xlsx'))
+    expect('csv' in document).toBe(false)
+    const decoded = atob(document.content_base64!)
+    expect(decoded.length).toBe(maxWorkbookBytes)
+    expect(bytes.every((byte, index) => decoded.charCodeAt(index) === byte)).toBe(true)
+    expect(await readPriceFile(new File([csv], 'plain.csv'))).toEqual({ csv })
+  })
+  it('discards a reviewed workbook before selecting and reviewing replacement CSV', async () => {
+    await mount()
+    await select(new File([new Uint8Array([0, 255])], 'initial.xlsx'))
+    await click('Validate file')
+    await until(() => expect(document.querySelector('[role="dialog"]')).not.toBeNull())
+    await click('Cancel')
+    await select(new File([csv], 'replacement.csv'))
+    expect(document.querySelector('[role="dialog"]')).toBeNull()
+    await click('Validate file')
+    await until(() =>
+      expect(document.querySelector('[role="dialog"]')?.textContent).toContain('replacement.csv'),
+    )
+    await click('Confirm import')
+    await until(() => expect(commits()).toHaveLength(1))
+    expect(JSON.parse(commits()[0].data)).toEqual({
+      csv,
+      etag: 'catalogue-one',
+      preview_digest: 'digest-one',
+    })
+  })
+
   it('guards access and gives readers preview/export without commit or initial writes', async () => {
     permissions = []
     await mount()
@@ -190,8 +335,10 @@ describe('CSV price maintenance', () => {
   it('rejects unsupported, oversized, and malformed UTF-8 files before preview', async () => {
     await mount()
     for (const [file, message] of [
-      [new File(['x'], 'prices.xlsx'), 'Choose a CSV'],
+      [new File(['x'], 'prices.xlsm'), 'Choose a CSV, XLSX or XLS'],
       [new File(['x'.repeat(32769)], 'large.csv'), 'exceeds 32 KiB'],
+      [new File([new Uint8Array(maxWorkbookBytes + 1)], 'large.xlsx'), 'exceeds 512 KiB'],
+      [new File(['x'], '价'.repeat(84) + '.xls'), '255 UTF-8 bytes'],
       [new File([new Uint8Array([0xff])], 'encoding.csv'), 'valid UTF-8'],
     ] as const) {
       await select(file)
@@ -242,7 +389,7 @@ describe('CSV price maintenance', () => {
     await until(() => expect(commits()).toHaveLength(1))
     expect(button('Working…').disabled).toBe(true)
     await act(async () => release())
-    await until(() => expect(host.textContent).toContain('CSV price changes were applied.'))
+    await until(() => expect(host.textContent).toContain('price file changes were applied.'))
     expect(JSON.parse(commits()[0].data)).toEqual({
       csv,
       etag: 'catalogue-one',
@@ -304,7 +451,7 @@ describe('CSV price maintenance', () => {
     )
     await click('Confirm import')
     await until(() => expect(document.body.textContent).toContain('catalogue may have been saved'))
-    expect(document.body.textContent).not.toContain('CSV price changes were applied.')
+    expect(document.body.textContent).not.toContain('price file changes were applied.')
     expect(button('Confirm import').disabled).toBe(true)
   })
   it('replaces file intent only after a new preview and keeps labels reactive while preserving canonical data', async () => {

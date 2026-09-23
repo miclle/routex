@@ -5,8 +5,8 @@ import { Link } from 'react-router'
 import axios from 'axios'
 import { Download, Inbox } from 'lucide-react'
 import {
-  previewPriceCSV,
-  commitPriceCSV,
+  previewPriceDocument,
+  commitPriceDocument,
   exportPriceCSV,
   downloadPriceCSV,
 } from '@/api/price-imports'
@@ -58,8 +58,8 @@ function PriceImports() {
     }
     setBusy('reading')
     try {
-      const csv = await readPriceFile(files[0])
-      if (turn === generation.current) setFile({ name: files[0].name, csv })
+      const document = await readPriceFile(files[0])
+      if (turn === generation.current) setFile({ name: files[0].name, document })
     } catch (error) {
       if (turn === generation.current)
         setIssue(error instanceof PriceFileError ? error.message : 'fileRead')
@@ -78,7 +78,7 @@ function PriceImports() {
     try {
       setPreview({
         file: captured,
-        result: await previewPriceCSV(captured.csv, session.data!.csrf_token),
+        result: await previewPriceDocument(captured.document, session.data!.csrf_token),
       })
     } catch (error) {
       setError(error)
@@ -102,7 +102,7 @@ function PriceImports() {
     setBusy('applying')
     setError(null)
     try {
-      await commitPriceCSV(captured.file.csv, captured.result, session.data!.csrf_token)
+      await commitPriceDocument(captured.file.document, captured.result, session.data!.csrf_token)
       setPreview(null)
       setFile(null)
       setNotice('saved')
@@ -176,6 +176,7 @@ function PriceImports() {
           <div className="space-y-2">
             <h3 className="text-sm font-semibold">{t('uploadStep')}</h3>
             <p className="text-sm text-muted-foreground">{t('uploadHelp')}</p>
+            <p className="text-sm text-muted-foreground">{t('workbookHelp')}</p>
           </div>
           <label
             className="relative flex min-h-44 cursor-pointer flex-col items-center justify-center gap-3 rounded-lg border border-dashed bg-muted/20 p-6 text-center hover:bg-muted/40"
@@ -188,7 +189,7 @@ function PriceImports() {
             <input
               aria-label={t('fileInput')}
               type="file"
-              accept=".csv,text/csv"
+              accept=".csv,.xls,.xlsx,text/csv,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
               disabled={!!busy}
               onChange={change}
               className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
@@ -243,9 +244,10 @@ function PriceImports() {
           <p>{t('apiAuth')}</p>
           <pre className="overflow-auto rounded-md bg-muted p-4 text-xs">
             {
-              'POST /api/v1/admin/prices/import/preview\n{ "csv": "..." }\n\nPOST /api/v1/admin/prices/import/commit\n{ "csv": "...", "etag": "...", "preview_digest": "..." }\n\nGET /api/v1/admin/prices/export.csv'
+              'POST /api/v1/admin/prices/import/preview\n{ "csv": "..." }\n{ "filename": "prices.xlsx", "content_base64": "..." }\n\nPOST /api/v1/admin/prices/import/commit\n{ "csv": "...", "etag": "...", "preview_digest": "..." }\n{ "filename": "prices.xls", "content_base64": "...", "etag": "...", "preview_digest": "..." }\n\nGET /api/v1/admin/prices/export.csv'
             }
           </pre>
+          <p>{t('apiBinary')}</p>
           <p>{t('headers')}</p>
           <p className="font-mono text-xs break-all">
             provider_model_id,metric,tier,unit,currency,amount,enabled,context_threshold

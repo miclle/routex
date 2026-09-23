@@ -1,5 +1,7 @@
 import type { PricePage, PriceRate, PriceWrite } from './pricing'
 export interface PriceImportError {
+  sheet?: string
+  cell?: string
   row: number
   column: string
   code: string
@@ -17,6 +19,7 @@ export interface PriceImportChange {
   stops_following: boolean
 }
 export interface PriceImportPreview {
+  sheet?: string
   etag: string
   preview_digest: string
   valid: boolean
@@ -28,7 +31,10 @@ export interface PriceImportCommit {
   preview: PriceImportPreview
   catalogue: PricePage
 }
+export type PriceImportDocument =
+  | { csv: string; filename?: never; content_base64?: never }
+  | { filename: string; content_base64: string; csv?: never }
 export interface SelectedPriceFile {
   name: string
-  csv: string
+  document: PriceImportDocument
 }

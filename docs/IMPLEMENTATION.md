@@ -459,3 +459,21 @@ retained-row migration/repeat, actual upstream exclusion/restoration, preserved
 weights and audit; focused tests cover old-snapshot denial, zero-weight candidates,
 ETag conflicts, one write per submission and publication reconciliation. Browser
 availability-switch verification remains outstanding.
+
+### Spreadsheet price imports
+
+The Prices upload/review workflow now accepts CSV, XLSX and BIFF8 XLS through the
+same atomic pricing service. Workbook amounts must be text, preserving up to 18
+integer and 18 fractional digits. Preview records the original document and ETag;
+commit repeats server validation and rejects stale reviews. Bounded archive/XML/OLE
+parsers reject formulas, macros, encryption, external references and unsupported
+workbook structures with sheet/cell locations. See [PRICE_IMPORTS](PRICE_IMPORTS.md).
+
+Full check/test passed with 158 Vitest cases, four Node checks, Go race/unit,
+development lifecycle and production assets. PostgreSQL/MySQL integration passed
+in 224.017 seconds, and both process restart/inference/revocation suites passed.
+Tests cover literal workbook formats, continued BIFF8 shared strings, exact decimal
+storage, source audit, stale commits, located formula errors and unchanged state
+after rejected writes. Actual browser upload/download completion remains unverified
+because browser file-access/control was unavailable; automated UI tests separately
+verify reviewed original-byte submission and error presentation.

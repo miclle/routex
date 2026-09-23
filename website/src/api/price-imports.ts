@@ -1,19 +1,25 @@
 import client from './client'
-import type { PriceImportPreview, PriceImportCommit } from '@/types/price-imports'
-export async function previewPriceCSV(csv: string, csrf: string) {
+import type {
+  PriceImportPreview,
+  PriceImportCommit,
+  PriceImportDocument,
+} from '@/types/price-imports'
+export async function previewPriceDocument(document: PriceImportDocument, csrf: string) {
   return (
-    await client.post<PriceImportPreview>(
-      '/admin/prices/import/preview',
-      { csv },
-      { headers: { 'X-CSRF-Token': csrf } },
-    )
+    await client.post<PriceImportPreview>('/admin/prices/import/preview', document, {
+      headers: { 'X-CSRF-Token': csrf },
+    })
   ).data
 }
-export async function commitPriceCSV(csv: string, preview: PriceImportPreview, csrf: string) {
+export async function commitPriceDocument(
+  document: PriceImportDocument,
+  preview: PriceImportPreview,
+  csrf: string,
+) {
   return (
     await client.post<PriceImportCommit>(
       '/admin/prices/import/commit',
-      { csv, etag: preview.etag, preview_digest: preview.preview_digest },
+      { ...document, etag: preview.etag, preview_digest: preview.preview_digest },
       { headers: { 'X-CSRF-Token': csrf } },
     )
   ).data

@@ -25,6 +25,8 @@ type PriceImportError struct {
 	Column  string `json:"column"`
 	Code    string `json:"code"`
 	Message string `json:"message"`
+	Sheet   string `json:"sheet,omitempty"`
+	Cell    string `json:"cell,omitempty"`
 }
 type priceImportRow struct {
 	Line      int
@@ -33,17 +35,20 @@ type priceImportRow struct {
 	Rate      pricing.Rate
 }
 type parsedPriceCSV struct {
-	Rows   []priceImportRow
-	Items  []PriceInput
-	Errors []PriceImportError
+	Source  string
+	Sheet   string
+	Columns map[string]int
+	Rows    []priceImportRow
+	Items   []PriceInput
+	Errors  []PriceImportError
 }
 
 func (p *parsedPriceCSV) add(row int, column, code, message string) {
-	p.Errors = append(p.Errors, PriceImportError{row, column, code, message})
+	p.Errors = append(p.Errors, PriceImportError{Row: row, Column: column, Code: code, Message: message})
 }
 
 func parsePriceCSV(raw string) parsedPriceCSV {
-	result := parsedPriceCSV{Rows: []priceImportRow{}, Items: []PriceInput{}, Errors: []PriceImportError{}}
+	result := parsedPriceCSV{Source: "csv", Rows: []priceImportRow{}, Items: []PriceInput{}, Errors: []PriceImportError{}}
 	if len(raw) > priceImportBytes {
 		result.add(0, "", "file_too_large", "CSV must not exceed 32 KiB.")
 		return result

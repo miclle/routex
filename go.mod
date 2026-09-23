@@ -5,6 +5,7 @@ go 1.27.1
 require (
 	github.com/fox-gonic/fox v0.1.2
 	github.com/oklog/ulid/v2 v2.1.2
+	github.com/richardlehane/mscfb v1.0.8
 	github.com/spf13/viper v1.21.0
 	go.etcd.io/bbolt v1.5.0
 	golang.org/x/crypto v0.56.0
@@ -137,6 +138,7 @@ require (
 	github.com/quic-go/qpack v0.6.0 // indirect
 	github.com/quic-go/quic-go v0.62.0 // indirect
 	github.com/rhysd/actionlint v1.7.11 // indirect
+	github.com/richardlehane/msoleps v1.0.3 // indirect
 	github.com/rivo/uniseg v0.4.7 // indirect
 	github.com/robfig/cron/v3 v3.0.1 // indirect
 	github.com/rs/zerolog v1.35.1 // indirect
