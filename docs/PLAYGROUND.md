@@ -1,6 +1,6 @@
 # Playground
 
-Playground is a single-model text conversation client for native OpenAI Chat Completions and Responses. It makes real requests; it does not synthesize responses or usage statistics. Other protocols, session-based inference, attachments, tools, and model comparison remain separate work packages.
+Playground is a single-model text conversation client for native OpenAI Chat Completions and Responses. It makes real requests; it does not synthesize responses or usage statistics. Other protocols, session-based inference, attachments, and tools remain separate work packages.
 
 ## Workflow
 
@@ -43,3 +43,15 @@ To bound browser memory, an individual buffered SSE event is limited to 1,048,57
 `website/src/views/playground/playground.test.tsx` covers Key verification, model selection, ordinary and streaming invocation, incremental output, request IDs, usage, cancellation, successful-only conversation history, clearing secrets, verification recovery, and unmount abort.
 
 Run `npm --prefix website test`, `npm --prefix website run lint`, and `npm --prefix website run build`. These tests validate the client with controlled responses. They do not establish real-provider compatibility or production readiness; gateway integration and real-provider smoke tests remain separate evidence.
+
+## Model comparison
+
+The Model conversation and Model comparison tabs keep separate transient workbenches. Switching tabs destroys the hidden workbench, aborts its active fetches, and clears its entered Key and history. The conversation workbench retains its existing settings/transcript layout.
+
+Comparison uses a shared credential toolbar, two initial model columns, and one shared message composer. Add comparison creates up to four columns; remove controls appear only above the two-column minimum. Columns scroll horizontally with a 300-pixel minimum width. Each column selects its own currently eligible Chat or Responses protocol and displays the actual endpoint, partial output, terminal status, Request ID, observed elapsed time, and authoritative usage. Verification uses one transient personal or Project Key, and models with explicit empty protocol capabilities are unavailable.
+
+Send captures one message and concurrently dispatches an independent native request to each selected column. The comparison defaults are streaming, Temperature 0.7, Top P 1, and 2,048 maximum output Tokens. Per-column Stop only aborts that column; failure or cancellation does not stop siblings. Removing a column or changing its model/protocol cancels that column's request and clears only its history. Global sending waits until all current requests settle, with a synchronous guard against duplicate dispatch.
+
+Subsequent requests include only the successful text history of their own column. Failed, incomplete, accepted, and canceled turns remain visible but are excluded from later context. Clear all resets all histories; clearing/changing the Key also resets models and drafts. There are no simulated responses, session-inference controls, or nonfunctional attachment actions.
+
+`website/src/views/playground/compare.test.tsx` covers the two-to-four column bounds, eligible protocols, concurrent native bodies, independent histories/errors/cancellation, duplicate sends, per-column resets, credential clearing, tab teardown, and bilingual accessibility/draft preservation. All client tests use controlled mocked transports, separate from paid-provider or real gateway acceptance.

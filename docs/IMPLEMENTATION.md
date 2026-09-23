@@ -571,3 +571,16 @@ development lifecycle and production asset tests. Focused cases cover native
 request bodies, SSE finality, incomplete/error terminals, cancellation, duplicate
 submission and protocol-specific model eligibility. No database change or external
 provider/browser acceptance is claimed by this frontend phase.
+
+### Parallel model comparison
+
+The Playground now has conversation and comparison tabs with two to four native
+model lanes. A shared prompt dispatches concurrently; each lane owns its history,
+terminal usage, error and cancellation. Model/protocol changes reset only that
+lane. Tab disposal aborts requests and clears transient credentials.
+
+Full check/test passed with 211 Vitest cases, four Node checks, Go race/unit,
+development lifecycle and production assets. Focused cases prove independent
+failures/stops, history isolation, request identity, duplicate-send prevention,
+maximum/minimum lanes and tab cleanup. No new database or gateway contract is
+introduced; rendered browser acceptance remains open.

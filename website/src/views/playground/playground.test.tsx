@@ -298,6 +298,6 @@ it('switches native labels without losing draft or protocol and prevents duplica
   expect(runResponses).toHaveBeenCalledTimes(1)
   await act(async () => release())
   expect(container.textContent).toContain('Native partial')
-  expect(localStorage.getItem('routex.language')).toBe('zh')
+  expect(document.documentElement.lang).toBe('zh')
   expect(JSON.stringify(localStorage)).not.toContain('rx_transient')
 })
