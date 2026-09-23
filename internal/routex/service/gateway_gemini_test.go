@@ -125,7 +125,7 @@ func TestGeminiDiscoveryPaginationAndCapabilities(t *testing.T) {
 			}))
 			defer server.Close()
 			svc, _, _ := runtimeFixture(t, server.URL)
-			names, valid := svc.discoverModels(context.Background(), entity.ProviderConnection{Protocol: entity.ProtocolGeminiGenerateContent, BaseURL: server.URL}, "secret")
+			names, valid := svc.discoverModels(context.Background(), entity.ProviderConnection{EgressMode: "direct", Protocol: entity.ProtocolGeminiGenerateContent, BaseURL: server.URL}, "secret")
 			if valid != (mode == "complete") {
 				t.Fatalf("bad discovery %v %v", names, valid)
 			}

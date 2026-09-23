@@ -43,6 +43,10 @@ const routes: RouteObject[] = [
         element: <AppShell />,
         children: [
           {
+            path: 'admin/egress',
+            lazy: async () => ({ Component: (await import('@/views/egress')).default }),
+          },
+          {
             path: 'admin/audit',
             lazy: async () => ({ Component: (await import('@/views/audit')).default }),
           },

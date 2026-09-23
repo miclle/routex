@@ -16,6 +16,8 @@ event_queue_path: "${ROUTEX_EVENT_QUEUE_PATH:-data/calls.db}"
 trusted_proxies: []
 # Explicit opt-in for private/self-hosted upstreams; false by default.
 allow_private_upstreams: "${ROUTEX_ALLOW_PRIVATE_UPSTREAMS:-false}"
+# Independent opt-in for private/localhost proxy endpoints; target policy is unchanged.
+allow_private_egresses: "${ROUTEX_ALLOW_PRIVATE_EGRESSES:-false}"
 
 # Defaults match `go tool task db:up`; credentials are for local development only.
 # Set DATABASE_URL when using another database or a custom Compose host port.

@@ -90,8 +90,9 @@ func newClient(allowPrivate bool, lookup lookupFunc, dial dialFunc) *http.Client
 }
 
 type policyTransport struct {
-	base         *http.Transport
-	allowPrivate bool
+	base            *http.Transport
+	allowPrivate    bool
+	bindDialContext bool
 }
 
 func (t *policyTransport) RoundTrip(req *http.Request) (*http.Response, error) {
@@ -107,6 +108,10 @@ func (t *policyTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 	// Host overrides can change an upstream virtual host after policy validation.
 	if req.Host != "" && req.Host != req.URL.Host {
 		return nil, errURL
+	}
+	if t.bindDialContext {
+		req = req.Clone(context.WithValue(req.Context(), egressRequestContextKey{}, req.Context()))
+		req.Header.Del("Proxy-Authorization")
 	}
 	return t.base.RoundTrip(req)
 }

@@ -25,6 +25,9 @@ type ProviderModelResponse struct {
 	UpstreamName string `json:"upstream_name"`
 }
 type ConnectionResponse struct {
+	EgressMode     string                  `json:"egress_mode"`
+	EgressID       *string                 `json:"egress_id"`
+	ETag           string                  `json:"etag"`
 	ID             string                  `json:"id"`
 	Name           string                  `json:"name"`
 	BaseURL        string                  `json:"base_url"`
@@ -42,20 +45,24 @@ type ProvidersResponse struct {
 }
 
 type CreateProviderRequest struct {
-	Name           string `json:"name"`
-	ConnectionName string `json:"connection_name"`
-	BaseURL        string `json:"base_url"`
-	Protocol       string `json:"protocol"`
-	CredentialName string `json:"credential_name"`
-	Secret         string `json:"secret"`
+	EgressMode     string  `json:"egress_mode"`
+	EgressID       *string `json:"egress_id"`
+	Name           string  `json:"name"`
+	ConnectionName string  `json:"connection_name"`
+	BaseURL        string  `json:"base_url"`
+	Protocol       string  `json:"protocol"`
+	CredentialName string  `json:"credential_name"`
+	Secret         string  `json:"secret"`
 }
 type CreateConnectionRequest struct {
-	ProviderID     string `uri:"provider_id" json:"-"`
-	Name           string `json:"name"`
-	BaseURL        string `json:"base_url"`
-	Protocol       string `json:"protocol"`
-	CredentialName string `json:"credential_name"`
-	Secret         string `json:"secret"`
+	EgressMode     string  `json:"egress_mode"`
+	EgressID       *string `json:"egress_id"`
+	ProviderID     string  `uri:"provider_id" json:"-"`
+	Name           string  `json:"name"`
+	BaseURL        string  `json:"base_url"`
+	Protocol       string  `json:"protocol"`
+	CredentialName string  `json:"credential_name"`
+	Secret         string  `json:"secret"`
 }
 type CreateCredentialRequest struct {
 	ConnectionID string `uri:"connection_id" json:"-"`
@@ -84,7 +91,7 @@ func credentialResponse(item entity.ProviderCredential) CredentialResponse {
 	return CredentialResponse{ID: item.ID, Name: item.Name, Priority: item.Priority, Enabled: item.Enabled, VerificationStatus: item.VerificationStatus, VerifiedAt: item.VerifiedAt}
 }
 func connectionResponse(item service.ConnectionCatalog) ConnectionResponse {
-	result := ConnectionResponse{ID: item.Connection.ID, Name: item.Connection.Name, BaseURL: item.Connection.BaseURL, Protocol: item.Connection.Protocol, Credentials: []CredentialResponse{}, ProviderModels: []ProviderModelResponse{}}
+	result := ConnectionResponse{EgressMode: item.Connection.EgressMode, EgressID: item.Connection.EgressID, ETag: item.Connection.ETag, ID: item.Connection.ID, Name: item.Connection.Name, BaseURL: item.Connection.BaseURL, Protocol: item.Connection.Protocol, Credentials: []CredentialResponse{}, ProviderModels: []ProviderModelResponse{}}
 	for _, credential := range item.Credentials {
 		result.Credentials = append(result.Credentials, credentialResponse(credential))
 	}
@@ -113,7 +120,7 @@ func (ctrl *Ctrl) ListProviders(c *fox.Context) (*ProvidersResponse, error) {
 	return result, nil
 }
 func (ctrl *Ctrl) CreateProvider(c *fox.Context, request CreateProviderRequest) error {
-	result, err := ctrl.service.CreateProvider(c.Request.Context(), currentAuthentication(c).User.ID, request.Name, service.CreateConnectionInput{Name: request.ConnectionName, BaseURL: request.BaseURL, Protocol: request.Protocol, CredentialName: request.CredentialName, Secret: request.Secret})
+	result, err := ctrl.service.CreateProvider(c.Request.Context(), currentAuthentication(c).User.ID, request.Name, service.CreateConnectionInput{EgressMode: request.EgressMode, EgressID: request.EgressID, Name: request.ConnectionName, BaseURL: request.BaseURL, Protocol: request.Protocol, CredentialName: request.CredentialName, Secret: request.Secret})
 	if err != nil {
 		return err
 	}
@@ -121,7 +128,7 @@ func (ctrl *Ctrl) CreateProvider(c *fox.Context, request CreateProviderRequest) 
 	return nil
 }
 func (ctrl *Ctrl) CreateConnection(c *fox.Context, request CreateConnectionRequest) error {
-	result, err := ctrl.service.CreateConnection(c.Request.Context(), currentAuthentication(c).User.ID, request.ProviderID, service.CreateConnectionInput{Name: request.Name, BaseURL: request.BaseURL, Protocol: request.Protocol, CredentialName: request.CredentialName, Secret: request.Secret})
+	result, err := ctrl.service.CreateConnection(c.Request.Context(), currentAuthentication(c).User.ID, request.ProviderID, service.CreateConnectionInput{EgressMode: request.EgressMode, EgressID: request.EgressID, Name: request.Name, BaseURL: request.BaseURL, Protocol: request.Protocol, CredentialName: request.CredentialName, Secret: request.Secret})
 	if err != nil {
 		return err
 	}

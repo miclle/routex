@@ -100,6 +100,17 @@ const accountNav = [
 ]
 const adminNav = [
   {
+    to: '/admin/egress',
+    get label() {
+      return t('egress:title')
+    },
+    icon: ArrowLeftRight,
+    permission: 'egress.read',
+    get group() {
+      return t('service_access_3fa7c')
+    },
+  },
+  {
     to: '/admin/audit',
     get label() {
       return t('audit:title')

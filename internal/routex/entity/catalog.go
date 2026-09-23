@@ -12,11 +12,14 @@ type Provider struct {
 }
 
 type ProviderConnection struct {
-	ID         string `gorm:"primaryKey;size:30"`
-	ProviderID string `gorm:"size:30;not null"`
-	Name       string `gorm:"size:100;not null"`
-	BaseURL    string `gorm:"size:2048;not null"`
-	Protocol   string `gorm:"size:30;not null"`
+	EgressMode string  `gorm:"size:12;not null;default:default"`
+	EgressID   *string `gorm:"size:30"`
+	ETag       string  `gorm:"size:30;not null;default:0"`
+	ID         string  `gorm:"primaryKey;size:30"`
+	ProviderID string  `gorm:"size:30;not null"`
+	Name       string  `gorm:"size:100;not null"`
+	BaseURL    string  `gorm:"size:2048;not null"`
+	Protocol   string  `gorm:"size:30;not null"`
 	CreatedAt  time.Time
 }
 

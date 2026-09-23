@@ -37,6 +37,10 @@ func (s *Service) VerifyCredential(ctx context.Context, actorID, credentialID st
 	if err := db.First(&connection, "id = ?", credential.ConnectionID).Error; err != nil {
 		return nil, catalogError(err)
 	}
+	_, _, transportRevision, err := s.resolveConnectionEgress(db, connection)
+	if err != nil {
+		return nil, err
+	}
 	plaintext, err := s.secrets.Open(credential.ID, credential.Ciphertext)
 	if err != nil {
 		return nil, apperrors.ErrInternal
@@ -48,8 +52,21 @@ func (s *Service) VerifyCredential(ctx context.Context, actorID, credentialID st
 		result.DiscoveredModels = len(names)
 	}
 	err = db.Transaction(func(tx *gorm.DB) error {
+		if err := lockGovernance(tx); err != nil {
+			return err
+		}
+		if err := authorizeGovernance(tx, actorID, "providers.write"); err != nil {
+			return err
+		}
 		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).First(&connection, "id = ?", connection.ID).Error; err != nil {
 			return err
+		}
+		_, _, currentTransport, err := s.resolveConnectionEgress(tx, connection)
+		if err != nil {
+			return err
+		}
+		if currentTransport != transportRevision {
+			return catalogConflict
 		}
 		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).First(&credential, "id = ?", credential.ID).Error; err != nil {
 			return err
@@ -108,11 +125,18 @@ func (s *Service) VerifyCredential(ctx context.Context, actorID, credentialID st
 func (s *Service) discoverModels(ctx context.Context, connection entity.ProviderConnection, plaintext string) ([]string, bool) {
 	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
+	client, _, err := s.clientForConnection(ctx, connection)
+	if err != nil {
+		return nil, false
+	}
+	if client != s.upstream {
+		defer client.CloseIdleConnections()
+	}
 	if connection.Protocol == entity.ProtocolGeminiGenerateContent {
-		return s.discoverGeminiModels(ctx, connection, plaintext)
+		return s.discoverGeminiModels(ctx, connection, plaintext, client)
 	}
 	if connection.Protocol == entity.ProtocolAnthropicMessages {
-		return s.discoverMessagesModels(ctx, connection, plaintext)
+		return s.discoverMessagesModels(ctx, connection, plaintext, client)
 	}
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, connection.BaseURL+"/models", nil)
 	if err != nil {
@@ -120,7 +144,7 @@ func (s *Service) discoverModels(ctx context.Context, connection entity.Provider
 	}
 	req.Header.Set("Authorization", "Bearer "+plaintext)
 	req.Header.Set("Accept", "application/json")
-	resp, err := s.upstream.Do(req)
+	resp, err := client.Do(req)
 	if err != nil {
 		return nil, false
 	}

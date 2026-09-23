@@ -1,3 +1,5 @@
+import { egressSelection } from '@/api/egress'
+import { ConnectionEgressControl, EgressSelect } from '@/views/egress/connection'
 import { protocolLabel, protocolLabels } from '@/lib/protocols'
 import { useTranslation } from 'react-i18next'
 import { useState, type FormEvent } from 'react'
@@ -92,6 +94,7 @@ function Providers() {
           connection_name: value('connection_name'),
           base_url: value('base_url'),
           protocol: value('protocol'),
+          ...egressSelection(value('egress_selection')),
           credential_name: value('credential_name'),
           secret,
         },
@@ -103,6 +106,7 @@ function Providers() {
           name: value('name'),
           base_url: value('base_url'),
           protocol: value('protocol'),
+          ...egressSelection(value('egress_selection')),
           credential_name: value('credential_name'),
           secret,
         },
@@ -263,6 +267,7 @@ function Providers() {
                     <th>{t('common.connectionName')}</th>
                     <th>{t('common.protocolType')}</th>
                     <th>{t('common.baseURL')}</th>
+                    <th>{t('egress:selection')}</th>
                     <th>{t('common.credentials')}</th>
                     <th>{t('common.models')}</th>
                   </tr>
@@ -273,6 +278,9 @@ function Providers() {
                       <td>{c.name}</td>
                       <td>{protocolLabel(c.protocol)}</td>
                       <td className="break-all">{c.base_url}</td>
+                      <td>
+                        <ConnectionEgressControl connection={c} />
+                      </td>
                       <td>{c.credentials.length}</td>
                       <td>{c.provider_models.length}</td>
                     </tr>
@@ -457,6 +465,7 @@ function Providers() {
                     placeholder="https://api.example.com/v1"
                   />
                 </FormField>
+                <EgressSelect />
                 <FormField label={t('common.credentialName')}>
                   <Input name="credential_name" required maxLength={100} />
                 </FormField>

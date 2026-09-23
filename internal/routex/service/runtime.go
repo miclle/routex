@@ -7,6 +7,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
+	"net/http"
 	"sort"
 	"sync"
 	"sync/atomic"
@@ -47,16 +48,17 @@ type gatewayRuntime struct {
 }
 
 type runtimeAuthorization struct {
-	ValidUntil       time.Time
-	LimitPolicies    map[string]limits.Policy
-	LimitRoots       map[string]string
-	Keys             map[string]runtimeKey
-	Names            map[string]entity.ModelName
-	Models           map[string]bool
-	Credentials      map[string]bool
-	ProviderModels   map[string]bool
-	CredentialAccess map[string]map[string]bool
-	ModelCreated     map[string]time.Time
+	ConnectionRevisions map[string]string
+	ValidUntil          time.Time
+	LimitPolicies       map[string]limits.Policy
+	LimitRoots          map[string]string
+	Keys                map[string]runtimeKey
+	Names               map[string]entity.ModelName
+	Models              map[string]bool
+	Credentials         map[string]bool
+	ProviderModels      map[string]bool
+	CredentialAccess    map[string]map[string]bool
+	ModelCreated        map[string]time.Time
 }
 
 type runtimeKey struct {
@@ -129,6 +131,9 @@ func (s *Service) StopRuntime() {
 	if s.runtime != nil && s.runtime.cancel != nil {
 		s.runtime.cancel()
 		<-s.runtime.done
+		if routes := s.runtime.routes.Load(); routes != nil {
+			closeRuntimeClients(routes.Models)
+		}
 	}
 }
 
@@ -178,9 +183,13 @@ func (s *Service) RefreshRuntime(ctx context.Context) error {
 		}
 		snapshotID, err := id.NewPrefixed("cfg")
 		if err != nil {
+			closeRuntimeClients(routes)
 			return runtimeUnavailable
 		}
 		runtime.routes.Store(&runtimeRoutes{ID: snapshotID, Digest: digest, PublishedAt: started, Models: routes})
+		if current != nil {
+			closeRuntimeClients(current.Models)
+		}
 	}
 	s.setRuntimeStatus(ctx, started, "")
 	return nil
@@ -345,7 +354,7 @@ func (s *Service) runtimeProtocolRoute(modelID, protocol string) (*gatewayRoute,
 	for i := range candidates {
 		weights[i] = candidates[i].Route.Weight
 		id := candidates[i].Route.ProviderModelID
-		available[i] = auth.ProviderModels[id] && !runtimeDenied(&runtime.deniedProviderModels, id)
+		available[i] = auth.ProviderModels[id] && !runtimeDenied(&runtime.deniedProviderModels, id) && candidates[i].Route.EgressRevision != "" && auth.ConnectionRevisions[candidates[i].Route.ConnectionID] == candidates[i].Route.EgressRevision && candidates[i].Route.EgressGeneration == s.egressGeneration.Load()
 	}
 	chosen, err := chooseAvailableGatewayRoute(weights, available)
 	if err != nil {
@@ -364,35 +373,41 @@ func (s *Service) runtimeProtocolRoute(modelID, protocol string) (*gatewayRoute,
 }
 
 type runtimeData struct {
-	Limits         []entity.ResourceLimit
-	LimitPolicies  map[string]limits.Policy
-	LimitRoots     map[string]string
-	Pricing        *runtimePricingData
-	ProjectData    *projectRuntimeData
-	Users          []entity.User
-	Keys           []entity.APIKey
-	Scopes         []entity.APIKeyModel
-	Grants         []entity.UserModelGrant
-	Models         []entity.Model
-	Names          []entity.ModelName
-	Connections    []entity.ProviderConnection
-	Credentials    []entity.ProviderCredential
-	ProviderModels []entity.ProviderModel
-	Access         []entity.CredentialModelAccess
-	Bindings       []entity.ModelProviderBinding
+	Egresses         []entity.Egress
+	EgressSetting    entity.EgressSetting
+	EgressGeneration uint64
+	Limits           []entity.ResourceLimit
+	LimitPolicies    map[string]limits.Policy
+	LimitRoots       map[string]string
+	Pricing          *runtimePricingData
+	ProjectData      *projectRuntimeData
+	Users            []entity.User
+	Keys             []entity.APIKey
+	Scopes           []entity.APIKeyModel
+	Grants           []entity.UserModelGrant
+	Models           []entity.Model
+	Names            []entity.ModelName
+	Connections      []entity.ProviderConnection
+	Credentials      []entity.ProviderCredential
+	ProviderModels   []entity.ProviderModel
+	Access           []entity.CredentialModelAccess
+	Bindings         []entity.ModelProviderBinding
 }
 
 func (s *Service) loadRuntimeData(ctx context.Context) (*runtimeData, error) {
-	data := &runtimeData{}
+	data := &runtimeData{EgressGeneration: s.egressGeneration.Load()}
 	err := s.authDB(ctx).Transaction(func(tx *gorm.DB) error {
 		// A repeatable-read transaction prevents mixed entity generations.
 		if err := tx.Select("id", "disabled").Find(&data.Users).Error; err != nil {
 			return err
 		}
-		for _, target := range []any{&data.Limits, &data.Keys, &data.Scopes, &data.Grants, &data.Models, &data.Names, &data.Connections, &data.Credentials, &data.ProviderModels, &data.Access, &data.Bindings} {
+		for _, target := range []any{&data.Limits, &data.Keys, &data.Scopes, &data.Grants, &data.Models, &data.Names, &data.Connections, &data.Credentials, &data.ProviderModels, &data.Access, &data.Bindings, &data.Egresses} {
 			if err := tx.Find(target).Error; err != nil {
 				return err
 			}
+		}
+		if err := tx.First(&data.EgressSetting, 1).Error; err != nil {
+			return err
 		}
 		var err error
 		data.ProjectData, err = loadProjectRuntimeData(tx)
@@ -409,7 +424,7 @@ func (s *Service) loadRuntimeData(ctx context.Context) (*runtimeData, error) {
 }
 
 func buildRuntimeAuthorization(data *runtimeData, until time.Time) *runtimeAuthorization {
-	auth := &runtimeAuthorization{ValidUntil: until, LimitPolicies: data.LimitPolicies, LimitRoots: data.LimitRoots, Keys: map[string]runtimeKey{}, Names: map[string]entity.ModelName{}, Models: map[string]bool{}, Credentials: map[string]bool{}, ProviderModels: map[string]bool{}, CredentialAccess: map[string]map[string]bool{}, ModelCreated: map[string]time.Time{}}
+	auth := &runtimeAuthorization{ConnectionRevisions: runtimeConnectionRevisions(data), ValidUntil: until, LimitPolicies: data.LimitPolicies, LimitRoots: data.LimitRoots, Keys: map[string]runtimeKey{}, Names: map[string]entity.ModelName{}, Models: map[string]bool{}, Credentials: map[string]bool{}, ProviderModels: map[string]bool{}, CredentialAccess: map[string]map[string]bool{}, ModelCreated: map[string]time.Time{}}
 	users := map[string]bool{}
 	for _, user := range data.Users {
 		users[user.ID] = !user.Disabled
@@ -482,15 +497,28 @@ func runtimeDigest(data *runtimeData) (string, error) {
 		}
 		return a.ScopeKind < b.ScopeKind
 	})
+	egresses := append([]entity.Egress(nil), data.Egresses...)
+	sort.Slice(egresses, func(i, j int) bool { return egresses[i].ID < egresses[j].ID })
+	ciphertexts := map[string]string{}
+	for i := range egresses {
+		ciphertexts[egresses[i].ID] = egresses[i].AuthCiphertext
+		egresses[i].LastDiagnostic = ""
+		egresses[i].LastCheckedAt = nil
+		egresses[i].UpdatedAt = time.Time{}
+	}
 	raw, err := json.Marshal(struct {
-		Limits         []entity.ResourceLimit
-		Pricing        *runtimePricingData
-		Connections    []entity.ProviderConnection
-		Credentials    []entity.ProviderCredential
-		ProviderModels []entity.ProviderModel
-		Bindings       []entity.ModelProviderBinding
-		Access         []entity.CredentialModelAccess
-	}{data.Limits, data.Pricing, data.Connections, data.Credentials, data.ProviderModels, data.Bindings, data.Access})
+		Egresses         []entity.Egress
+		EgressSecrets    map[string]string
+		EgressSetting    entity.EgressSetting
+		EgressGeneration uint64
+		Limits           []entity.ResourceLimit
+		Pricing          *runtimePricingData
+		Connections      []entity.ProviderConnection
+		Credentials      []entity.ProviderCredential
+		ProviderModels   []entity.ProviderModel
+		Bindings         []entity.ModelProviderBinding
+		Access           []entity.CredentialModelAccess
+	}{egresses, ciphertexts, data.EgressSetting, data.EgressGeneration, data.Limits, data.Pricing, data.Connections, data.Credentials, data.ProviderModels, data.Bindings, data.Access})
 	if err != nil {
 		return "", err
 	}
@@ -499,6 +527,16 @@ func runtimeDigest(data *runtimeData) (string, error) {
 }
 
 func (s *Service) buildRuntimeRoutes(data *runtimeData) (map[string][]runtimeRoute, error) {
+	clients, err := s.runtimeConnectionClients(data)
+	if err != nil {
+		return nil, err
+	}
+	completed := false
+	defer func() {
+		if !completed {
+			closeEgressClients(clients)
+		}
+	}()
 	connections := map[string]entity.ProviderConnection{}
 	for _, connection := range data.Connections {
 		if !entity.SupportedNativeProtocol(connection.Protocol) {
@@ -559,7 +597,8 @@ func (s *Service) buildRuntimeRoutes(data *runtimeData) (map[string][]runtimeRou
 		if binding.Weight < 0 || binding.Weight > 100 {
 			return nil, runtimeUnavailable
 		}
-		candidate := runtimeRoute{Route: gatewayRoute{Protocol: connection.Protocol, PriceBasis: runtimePriceBasis(data.Pricing, pm.ID, connection.Protocol), BindingID: binding.ID, Weight: binding.Weight, ProviderID: connection.ProviderID, ProviderModelID: pm.ID, ConnectionID: connection.ID, UpstreamName: pm.UpstreamName, BaseURL: connection.BaseURL}}
+		_, egressRevision, _ := runtimeEgressSelection(data, connection)
+		candidate := runtimeRoute{Route: gatewayRoute{Client: clients[connection.ID], EgressGeneration: data.EgressGeneration, EgressRevision: egressRevision, Protocol: connection.Protocol, PriceBasis: runtimePriceBasis(data.Pricing, pm.ID, connection.Protocol), BindingID: binding.ID, Weight: binding.Weight, ProviderID: connection.ProviderID, ProviderModelID: pm.ID, ConnectionID: connection.ID, UpstreamName: pm.UpstreamName, BaseURL: connection.BaseURL}}
 		for _, credential := range credentials[connection.ID] {
 			if access[credential.ID][pm.ID] {
 				candidate.Credentials = append(candidate.Credentials, credential)
@@ -590,5 +629,17 @@ func (s *Service) buildRuntimeRoutes(data *runtimeData) (map[string][]runtimeRou
 		}
 	}
 
+	used := map[*http.Client]bool{}
+	for _, candidates := range result {
+		for _, candidate := range candidates {
+			used[candidate.Route.Client] = true
+		}
+	}
+	for _, client := range clients {
+		if client != nil && !used[client] {
+			client.CloseIdleConnections()
+		}
+	}
+	completed = true
 	return result, nil
 }

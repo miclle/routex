@@ -1,3 +1,5 @@
+import enEgress from './locales/en/egress'
+import zhEgress from './locales/zh/egress'
 import enAudit from './locales/en/audit'
 import zhAudit from './locales/zh/audit'
 import enSite from './locales/en/site'
@@ -73,6 +75,7 @@ void i18n.use(initReactI18next).init({
   resources: {
     en: {
       common: en,
+      egress: enEgress,
       audit: enAudit,
       site: enSite,
       announcements: enAnnouncements,
@@ -93,6 +96,7 @@ void i18n.use(initReactI18next).init({
     },
     zh: {
       common: zh,
+      egress: zhEgress,
       audit: zhAudit,
       site: zhSite,
       announcements: zhAnnouncements,

@@ -123,6 +123,7 @@ beforeEach(() => {
       response.data = {
         items: structuredClone(callableModels),
       }
+    if (route === 'get /admin/egress-options') response.data = { items: [] }
     if (route === 'get /admin/providers') response.data = { items: [structuredClone(provider)] }
     if (route === 'post /admin/models') response.data = structuredClone(model)
     if (route === 'get /admin/models') response.data = { items: [structuredClone(model)] }
@@ -393,6 +394,8 @@ describe('catalog and Key workflows', () => {
     expect(JSON.parse(requests.find((r) => r.method === 'post')!.data)).toEqual({
       name: 'Another Provider',
       connection_name: 'API',
+      egress_mode: 'default',
+      egress_id: null,
       base_url: 'https://api.example.com/v1',
       protocol: 'openai_chat',
       credential_name: 'Primary credential',

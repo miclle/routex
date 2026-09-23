@@ -135,7 +135,7 @@ func TestMessagesBoundedNativeDiscovery(t *testing.T) {
 			}))
 			defer server.Close()
 			svc, _, _ := runtimeFixture(t, server.URL)
-			names, valid := svc.discoverModels(context.Background(), entity.ProviderConnection{Protocol: entity.ProtocolAnthropicMessages, BaseURL: server.URL}, "secret")
+			names, valid := svc.discoverModels(context.Background(), entity.ProviderConnection{EgressMode: "direct", Protocol: entity.ProtocolAnthropicMessages, BaseURL: server.URL}, "secret")
 			if (mode == "complete") != valid {
 				t.Fatalf("discovery %s: %v %v", mode, names, valid)
 			}

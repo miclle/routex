@@ -13,6 +13,9 @@ export interface ProviderModel {
   upstream_name: string
 }
 export interface Connection {
+  egress_mode?: 'default' | 'direct' | 'proxy'
+  egress_id?: string | null
+  etag?: string
   id: string
   name: string
   base_url: string

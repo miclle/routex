@@ -12,7 +12,7 @@ import (
 	"github.com/miclle/routex/internal/routex/entity"
 )
 
-func (s *Service) discoverGeminiModels(ctx context.Context, connection entity.ProviderConnection, plaintext string) ([]string, bool) {
+func (s *Service) discoverGeminiModels(ctx context.Context, connection entity.ProviderConnection, plaintext string, client *http.Client) ([]string, bool) {
 	names := []string{}
 	seen := map[string]bool{}
 	cursors := map[string]bool{}
@@ -35,7 +35,7 @@ func (s *Service) discoverGeminiModels(ctx context.Context, connection entity.Pr
 		}
 		request.Header.Set("x-goog-api-key", plaintext)
 		request.Header.Set("Accept", "application/json")
-		response, err := s.upstream.Do(request)
+		response, err := client.Do(request)
 		if err != nil {
 			return nil, false
 		}

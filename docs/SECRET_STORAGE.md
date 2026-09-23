@@ -39,3 +39,7 @@ go test -race -count=1 ./pkg/secretstore ./pkg/upstream
 ```
 
 Tests cover randomized envelope round trips, key ownership, wrong keys and references, tampering, malformed envelopes, concurrent store access, IPv4/IPv6 policy boundaries, DNS pinning and mixed answers, redirect rejection, ignored proxy environment variables, TLS hostname validation, and request cancellation. HTTP tests use local controlled servers or injected DNS/dial functions and do not require external network access or provider credentials.
+
+## Managed proxy credentials
+
+Managed egress uses the same envelope store for proxy username/password pairs, with an authenticated reference containing the proxy ID and a fresh secret-generation ID. Read APIs expose only whether authentication is configured. Proxy credentials are decrypted while building the runtime transport snapshot, and never forwarded as target headers. The independent proxy endpoint policy and transport/diagnostic contracts are documented in [Managed Egress](EGRESS.md).

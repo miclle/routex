@@ -12,7 +12,7 @@ import (
 )
 
 // Discovery commits no partial pages. Its caller owns the overall timeout.
-func (s *Service) discoverMessagesModels(ctx context.Context, connection entity.ProviderConnection, plaintext string) ([]string, bool) {
+func (s *Service) discoverMessagesModels(ctx context.Context, connection entity.ProviderConnection, plaintext string, client *http.Client) ([]string, bool) {
 	const maxBytes = 2 << 20
 	names := []string{}
 	seen := map[string]bool{}
@@ -37,7 +37,7 @@ func (s *Service) discoverMessagesModels(ctx context.Context, connection entity.
 		req.Header.Set("x-api-key", plaintext)
 		req.Header.Set("anthropic-version", "2023-06-01")
 		req.Header.Set("Accept", "application/json")
-		response, err := s.upstream.Do(req)
+		response, err := client.Do(req)
 		if err != nil {
 			return nil, false
 		}

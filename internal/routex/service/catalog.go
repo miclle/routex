@@ -35,6 +35,8 @@ type ConnectionCatalog struct {
 }
 
 type CreateConnectionInput struct {
+	EgressMode     string
+	EgressID       *string
 	Name           string
 	BaseURL        string
 	Protocol       string
@@ -119,7 +121,14 @@ func loadConnectionCatalog(db *gorm.DB, connectionID string) (*ConnectionCatalog
 }
 
 func (s *Service) prepareConnection(providerID string, input CreateConnectionInput) (entity.ProviderConnection, entity.ProviderCredential, error) {
-	connection := entity.ProviderConnection{ProviderID: providerID, Name: strings.TrimSpace(input.Name), Protocol: input.Protocol}
+	connection := entity.ProviderConnection{EgressMode: input.EgressMode, EgressID: input.EgressID, ETag: "0", ProviderID: providerID, Name: strings.TrimSpace(input.Name), Protocol: input.Protocol}
+	if connection.EgressMode == "" {
+		connection.EgressMode = "default"
+	}
+	if (connection.EgressMode != "default" && connection.EgressMode != "direct" && connection.EgressMode != "proxy") || (connection.EgressMode == "proxy") != (connection.EgressID != nil) || (connection.EgressID != nil && *connection.EgressID == "") {
+		return connection, entity.ProviderCredential{}, apperrors.ErrBadRequest
+	}
+
 	if !validCatalogLabel(connection.Name) || !entity.SupportedNativeProtocol(input.Protocol) {
 		return connection, entity.ProviderCredential{}, apperrors.ErrBadRequest
 	}
@@ -172,6 +181,16 @@ func (s *Service) CreateProvider(ctx context.Context, actorID, name string, inpu
 	}
 	db := s.authDB(ctx)
 	err = db.Transaction(func(tx *gorm.DB) error {
+		if err := lockGovernance(tx); err != nil {
+			return err
+		}
+		if err := authorizeGovernance(tx, actorID, "providers.write"); err != nil {
+			return err
+		}
+		if _, _, _, err := s.resolveConnectionEgress(tx, connection); err != nil {
+			return err
+		}
+
 		if err := tx.Create(&provider).Error; err != nil {
 			return err
 		}
@@ -197,6 +216,16 @@ func (s *Service) CreateConnection(ctx context.Context, actorID, providerID stri
 	}
 	db := s.authDB(ctx)
 	err = db.Transaction(func(tx *gorm.DB) error {
+		if err := lockGovernance(tx); err != nil {
+			return err
+		}
+		if err := authorizeGovernance(tx, actorID, "providers.write"); err != nil {
+			return err
+		}
+		if _, _, _, err := s.resolveConnectionEgress(tx, connection); err != nil {
+			return err
+		}
+
 		var provider entity.Provider
 		if err := tx.First(&provider, "id = ?", providerID).Error; err != nil {
 			return err

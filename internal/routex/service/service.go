@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/netip"
 	"sync"
+	"sync/atomic"
 
 	"github.com/fox-gonic/fox/logger"
 	"gorm.io/gorm"
@@ -25,6 +26,9 @@ type Service struct {
 	secrets              *secretstore.Store
 	upstream             *http.Client
 	allowPrivateUpstream bool
+	allowPrivateEgress   bool
+	egressMu             sync.RWMutex
+	egressGeneration     atomic.Uint64
 }
 
 // Option configures bootstrap dependencies, never mutable business policy.

@@ -684,3 +684,25 @@ usage, cancellation, comparison isolation and bilingual alias guidance. An
 isolated production browser completed a Gemini conversation and a four-protocol
 comparison against controlled local upstreams. This frontend phase adds no schema;
 external-provider acceptance remains open.
+
+### Managed network egress
+
+Connections now select the platform default, explicit direct access, or a named
+SOCKS5/verified HTTPS CONNECT proxy. Frozen migration 18 adds managed proxy
+configuration, encrypted endpoint-bound authentication, permissions, revisioned
+defaults and explicit connection selection. Runtime snapshots pin validated proxy
+and target addresses, prevent fallback to direct access, and reject admissions
+selected before an acknowledged transport change.
+
+The administration interface follows the established RouteX layout with list,
+edit, default-selection, connection-selection and measured diagnostic flows in
+English and Chinese. Tests cover redaction, credential replacement/removal,
+optimistic concurrency, cancellation, IPv4/IPv6 target failover, diagnostics,
+ordinary/SSE routing, disabled-proxy rejection and restart behavior. Review found
+and fixed a draft-test credential redirect and a GORM column-name mismatch before
+landing. Full check/test passed with 335 Vitest cases, four Node checks, Go
+race/unit, development lifecycle and production assets. Serialized PostgreSQL and
+MySQL integration plus both process lifecycle suites passed. A controlled
+production browser saved and selected a local SOCKS5 proxy, then completed a real
+native Gemini stream through that route; the proxy observed the diagnostic and
+gateway tunnels. External proxy services and production performance remain open.

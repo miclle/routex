@@ -184,6 +184,12 @@ func (s *Service) gatewayNative(ctx context.Context, bearer string, body []byte,
 	if err != nil {
 		return result, gatewayError(503, "upstream_unavailable", "No usable upstream is available.")
 	}
+	if s.runtime == nil {
+		if err := s.prepareGatewayEgress(ctx, route); err != nil {
+			return result, gatewayError(503, "upstream_unavailable", "No usable upstream is available.")
+		}
+		defer route.Client.CloseIdleConnections()
+	}
 	result.PriceBasis = clonePriceBasis(route.PriceBasis)
 	result.PricingDimensions = pricingRequestDimensions(payload)
 	if protocol == entity.ProtocolOpenAIResponses {
@@ -264,13 +270,16 @@ func (s *Service) gatewayNative(ctx context.Context, bearer string, body []byte,
 	} else {
 		req.Header.Set("Accept", "application/json")
 	}
-	client := *s.upstream
+	if route.Client == nil {
+		return result, gatewayError(503, "upstream_unavailable", "No usable upstream is available.")
+	}
+	client := *route.Client
 	if stream {
 		// Handler owns the bounded streaming context; a shallow clone preserves
 		// the guarded shared transport while removing the total 30-second limit.
 		client.Timeout = 0
 	}
-	if err := s.admitLimitedGatewayCall(ctx, requestID, result); err != nil {
+	if err := s.admitEgressGatewayCall(ctx, requestID, result, route); err != nil {
 		return result, err
 	}
 	result.AttemptID, err = id.NewPrefixed("att")
@@ -360,19 +369,22 @@ func parseGatewayChat(body []byte) (map[string]json.RawMessage, string, bool, er
 }
 
 type gatewayRoute struct {
-	Protocol        string
-	Disabled        bool
-	PriceBasis      *CallPriceBasis `gorm:"-"`
-	SnapshotID      string
-	BindingID       string
-	Weight          int
-	ProviderID      string
-	ProviderModelID string
-	ConnectionID    string
-	CredentialID    string
-	Ciphertext      string
-	UpstreamName    string
-	BaseURL         string
+	Client           *http.Client `gorm:"-"`
+	EgressGeneration uint64       `gorm:"-"`
+	EgressRevision   string       `gorm:"-"`
+	Protocol         string
+	Disabled         bool
+	PriceBasis       *CallPriceBasis `gorm:"-"`
+	SnapshotID       string
+	BindingID        string
+	Weight           int
+	ProviderID       string
+	ProviderModelID  string
+	ConnectionID     string
+	CredentialID     string
+	Ciphertext       string
+	UpstreamName     string
+	BaseURL          string
 }
 
 func selectGatewayProtocolRoute(db *gorm.DB, modelID, protocol string) (*gatewayRoute, error) {
