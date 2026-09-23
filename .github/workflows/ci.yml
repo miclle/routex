@@ -115,6 +115,9 @@ jobs:
         working-directory: website
         run: npx tsc -b
 
+      - name: Verify snippet execution runtimes
+        run: python3 --version
+
       - name: Test frontend
         working-directory: website
         run: npm run test

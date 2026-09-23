@@ -742,3 +742,20 @@ with 335 Vitest cases, four Node checks, Go race/unit, development lifecycle and
 production assets. This package is not wired into active gateway handlers, so the
 current single-attempt behavior remains unchanged until persistence, quota
 amendment and native error classification are integrated and accepted.
+
+### Executable Playground request examples
+
+Each conversation and comparison lane can now open a shared request-code dialog
+with cURL, Python and JavaScript examples for the selected native protocol. The
+builder captures the current model, parameters, system instruction, successful
+history and draft while reading credentials only from `ROUTEX_API_KEY` in the
+caller's environment. It preserves native routes and authentication for Chat,
+Responses, Messages and Gemini without embedding the transient Playground Key.
+
+Focused tests execute generated shell, Python and JavaScript programs against
+controlled stubs, including Unicode, newlines, apostrophes, literal command
+substitution text, redirect rejection and invalid Gemini identities. Full
+check/test passed with 361 Vitest cases, four Node checks, Go race/unit,
+development lifecycle and production assets; Actionlint also passed with CI
+requiring Python 3 so interpreter cases cannot be silently skipped. Generated
+examples make no automatic retry or external provider request.

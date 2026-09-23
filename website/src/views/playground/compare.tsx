@@ -1,7 +1,9 @@
+import type { SnippetInput } from '@/lib/playground-snippet'
+import CodeDialog from './code-dialog'
 import { isGeminiModelName, protocolLabel } from '@/lib/protocols'
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Plus, Send, Square, Trash2, X } from 'lucide-react'
+import { Code, Plus, Send, Square, Trash2, X } from 'lucide-react'
 import {
   GatewayError,
   getGatewayModels,
@@ -56,6 +58,7 @@ function makeLane(id: number, model?: GatewayModel): Lane {
 const selectClass = 'h-10 min-w-0 flex-1 rounded-md border bg-background px-3 text-sm'
 export default function CompareWorkbench() {
   const { t } = useTranslation('playground')
+  const [codeRequest, setCodeRequest] = useState<SnippetInput | null>(null)
   const [key, setKey] = useState('')
   const [models, setModels] = useState<GatewayModel[]>([])
   const [lanes, setLanes] = useState<Lane[]>([makeLane(1), makeLane(2)])
@@ -125,6 +128,29 @@ export default function CompareWorkbench() {
     active.current.get(id)?.abort()
     active.current.delete(id)
     setLanes((current) => (current.length > 2 ? current.filter((lane) => lane.id !== id) : current))
+  }
+  function showCode(lane: Lane) {
+    if (!protocols(models.find((item) => item.id === lane.model)).includes(lane.protocol) || busy)
+      return
+    setCodeRequest({
+      origin: window.location.origin,
+      protocol: lane.protocol,
+      model: lane.model,
+      stream: true,
+      temperature: 0.7,
+      topP: 1,
+      maxTokens: 2048,
+      system: '',
+      messages: [
+        ...lane.turns
+          .filter((turn) => turn.status === 'completed')
+          .flatMap((turn) => [
+            { role: 'user' as const, content: turn.prompt },
+            { role: 'assistant' as const, content: turn.text },
+          ]),
+        { role: 'user', content: prompt.trim() || t('codePromptPlaceholder') },
+      ],
+    })
   }
   function change(id: number, model: string, protocol?: PlaygroundProtocol) {
     active.current.get(id)?.abort()
@@ -386,6 +412,15 @@ export default function CompareWorkbench() {
                     </option>
                   ))}
                 </select>
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  aria-label={t('laneCode', { count: index + 1 })}
+                  disabled={busy || !lane.model}
+                  onClick={() => showCode(lane)}
+                >
+                  <Code className="size-4" />
+                </Button>
                 {lanes.length > 2 && (
                   <Button
                     size="icon"
@@ -544,6 +579,7 @@ export default function CompareWorkbench() {
           </Button>
         </div>
       </div>
+      {codeRequest && <CodeDialog request={codeRequest} onClose={() => setCodeRequest(null)} />}
     </form>
   )
 }

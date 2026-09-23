@@ -1,4 +1,16 @@
 export default {
+  getCode: '获取代码',
+  requestCode: '请求代码',
+  copyCode: '复制代码',
+  codeLanguage: '代码语言',
+  codeClose: '关闭',
+  codeCopied: '请求代码已复制',
+  codeCopyFailed: '复制失败，请手动选择并复制代码。',
+  codePromptPlaceholder: '替换为你的消息',
+  laneCode: '获取对比 {{count}} 的代码',
+  codeHelp:
+    '代码包含当前设置、已完成的历史和消息草稿。空草稿使用可编辑的消息占位符。请在本地设置 ROUTEX_API_KEY；代码不会包含已输入的 Key。cURL 用于 POSIX Shell，Python 使用标准库，JavaScript 需要支持原生 fetch 的 Node.js。流式示例原样输出原生 SSE。',
+
   invalidGemini: '网关返回的 Gemini 原生响应无效或未完成。已保留收到的内容。',
   geminiAliasRequired:
     'Gemini 需要兼容的公开名称或有效别名：以字母或数字开头，仅包含字母、数字、点、下划线或连字符（最多 128 个字符）。',

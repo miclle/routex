@@ -1,4 +1,16 @@
 export default {
+  getCode: 'Get code',
+  requestCode: 'Request code',
+  copyCode: 'Copy code',
+  codeLanguage: 'Code language',
+  codeClose: 'Close',
+  codeCopied: 'Request code copied',
+  codeCopyFailed: 'Copy failed. Select and copy the code manually.',
+  codePromptPlaceholder: 'REPLACE WITH YOUR MESSAGE',
+  laneCode: 'Get code for comparison {{count}}',
+  codeHelp:
+    'Captured settings, completed history and your current draft. An empty draft uses an editable message placeholder. Set ROUTEX_API_KEY locally; the entered Key is never included. cURL runs in a POSIX shell, Python uses its standard library, and JavaScript runs in Node.js with native fetch. Streaming examples print native SSE unchanged.',
+
   invalidGemini:
     'The gateway returned an invalid or unfinished native Gemini response. Received content has been preserved.',
   geminiAliasRequired:

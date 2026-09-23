@@ -1,8 +1,10 @@
+import type { SnippetInput } from '@/lib/playground-snippet'
+import CodeDialog from './code-dialog'
 import { isGeminiModelName, protocolLabel } from '@/lib/protocols'
 import { t } from '@/i18n'
 import { useTranslation } from 'react-i18next'
 import { useEffect, useRef, useState, type FormEvent } from 'react'
-import { Copy, LoaderCircle, Send, Square, Trash2 } from 'lucide-react'
+import { Code, Copy, LoaderCircle, Send, Square, Trash2 } from 'lucide-react'
 import {
   GatewayError,
   getGatewayModels,
@@ -45,10 +47,12 @@ export default function ChatWorkbench() {
   useTranslation()
 
   const [streamEnabled, setStreamEnabled] = useState(true)
+  const [codeRequest, setCodeRequest] = useState<SnippetInput | null>(null)
   const [key, setKey] = useState('')
   const [models, setModels] = useState<GatewayModel[]>([])
   const [model, setModel] = useState('')
   const [protocol, setProtocol] = useState<PlaygroundProtocol>('openai_chat')
+  const formRef = useRef<HTMLFormElement>(null)
   const lock = useRef(false)
   function protocols(item?: GatewayModel): PlaygroundProtocol[] {
     return (item?.protocols ?? ['openai_chat']).filter(
@@ -271,6 +275,29 @@ export default function ChatWorkbench() {
       if (controller.current === abort) controller.current = null
     }
   }
+  function showCode() {
+    if (!formRef.current || !availableProtocols.includes(protocol) || busy) return
+    const form = new FormData(formRef.current)
+    setCodeRequest({
+      origin: window.location.origin,
+      protocol,
+      model,
+      stream: streamEnabled,
+      temperature: Number(form.get('temperature')),
+      topP: Number(form.get('top_p')),
+      maxTokens: Number(form.get('max_tokens')),
+      system: String(form.get('system') ?? ''),
+      messages: [
+        ...exchanges
+          .filter((exchange) => exchange.status === 'completed')
+          .flatMap((exchange) => [
+            { role: 'user' as const, content: exchange.prompt },
+            { role: 'assistant' as const, content: exchange.text },
+          ]),
+        { role: 'user', content: prompt.trim() || t('playground:codePromptPlaceholder') },
+      ],
+    })
+  }
   async function copy(exchange: Exchange) {
     try {
       await navigator.clipboard.writeText(exchange.text)
@@ -290,6 +317,7 @@ export default function ChatWorkbench() {
         </p>
       )}
       <form
+        ref={formRef}
         onSubmit={(event) => void send(event)}
         className="flex min-h-[640px] min-w-[980px] overflow-hidden rounded-lg border"
         style={{ height: 'calc(100vh - 190px)' }}
@@ -453,18 +481,29 @@ export default function ChatWorkbench() {
         <div className="flex min-w-0 flex-1 flex-col overflow-hidden bg-card">
           <div className="flex items-center justify-between border-b px-5 py-3">
             <h2 className="text-sm font-medium">{t('model_conversation_9e016')}</h2>
-            <Button
-              variant="ghost"
-              size="sm"
-              disabled={busy || !exchanges.length}
-              onClick={() => {
-                setExchanges([])
-                setCopied('')
-              }}
-            >
-              <Trash2 className="size-3.5" aria-hidden="true" />
-              {t('clear_conversation_35c97')}
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="ghost"
+                size="sm"
+                disabled={busy || !exchanges.length}
+                onClick={() => {
+                  setExchanges([])
+                  setCopied('')
+                }}
+              >
+                <Trash2 className="size-3.5" aria-hidden="true" />
+                {t('clear_conversation_35c97')}
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                disabled={busy || !model || !availableProtocols.includes(protocol)}
+                onClick={showCode}
+              >
+                <Code className="size-3.5" />
+                {t('playground:getCode')}
+              </Button>
+            </div>
           </div>
           <div
             role="log"
@@ -606,6 +645,7 @@ export default function ChatWorkbench() {
           </div>
         </div>
       </form>
+      {codeRequest && <CodeDialog request={codeRequest} onClose={() => setCodeRequest(null)} />}
     </>
   )
 }

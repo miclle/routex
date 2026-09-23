@@ -454,3 +454,33 @@ it('localizes the Gemini alias requirement without substituting a protocol or lo
     'gemini_generate_content',
   )
 })
+
+it('captures actual current settings, completed history and draft without the entered Key', async () => {
+  expect(button('Get code').disabled).toBe(true)
+  await ready()
+  await submit()
+  await fill('prompt', 'Current draft')
+  await fill('system', "System\nwith apostrophe: don't")
+  await fill('temperature', '0.4')
+  await fill('top_p', '0.8')
+  await fill('max_tokens', '64')
+  await act(async () => container.querySelector<HTMLInputElement>('[name="stream"]')!.click())
+  await click('Get code')
+  const snippet = document.querySelector('pre')!.textContent!
+  expect(snippet).toContain('Current draft')
+  expect(snippet).toContain('Real response')
+  expect(snippet).toContain('"temperature": 0.4')
+  expect(snippet).toContain('"top_p": 0.8')
+  expect(snippet).toContain('"max_tokens": 64')
+  expect(snippet).toContain('"stream": false')
+  expect(snippet).not.toContain('rx_transient')
+  expect(snippet).toContain('$ROUTEX_API_KEY')
+  expect(runChat).toHaveBeenCalledTimes(1)
+})
+it('uses an explicit message placeholder when the current draft is empty', async () => {
+  await ready()
+  await fill('prompt', '')
+  await click('Get code')
+  expect(document.querySelector('pre')!.textContent).toContain('REPLACE WITH YOUR MESSAGE')
+  expect(runChat).not.toHaveBeenCalled()
+})

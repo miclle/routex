@@ -348,3 +348,19 @@ it('runs Gemini alongside Chat with native model roles and isolates Gemini cance
   expect(runResponses).not.toHaveBeenCalled()
   expect(runMessages).not.toHaveBeenCalled()
 })
+
+it('captures only the selected comparison lane native request, successful history and shared draft', async () => {
+  await ready()
+  await send('Shared history')
+  await fill('comparison_prompt', 'Next draft')
+  await click('Get code for comparison 2')
+  const code = document.querySelector('pre')!.textContent!
+  expect(code).toContain('/v1/responses')
+  expect(code).toContain('native-b')
+  expect(code).toContain('Native answer')
+  expect(code).toContain('Next draft')
+  expect(code).not.toContain('Chat answer')
+  expect(code).not.toContain('rx_comparison_only')
+  expect(code).toContain('"max_output_tokens": 2048')
+  expect(runResponses).toHaveBeenCalledTimes(1)
+})
