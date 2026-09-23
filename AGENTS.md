@@ -6,7 +6,7 @@ Technical specification for AI coding assistants working on this project.
 
 RouteX is an AI gateway and control plane, built as a Go + React single-page application that compiles into a single binary. The backend embeds frontend build output via `//go:embed`, so production deployment requires only one executable plus a database.
 
-The current implementation includes persistent administrator setup, local authentication, revocable sessions, and a protected workspace. Product domains and extension boundaries are defined in `docs/ARCHITECTURE.md`; provider routing, quotas, and metering are being implemented in later work packages. Encrypted provider credentials, stable model catalogs/grants, and personal API Keys are available. Phase scope and acceptance evidence are tracked in `docs/IMPLEMENTATION.md`. Preserve the Gateway, Control Plane, and Data Platform boundaries as features are added.
+The current implementation includes persistent administrator setup, local authentication, revocable sessions, and a protected workspace. Product domains and extension boundaries are defined in `docs/ARCHITECTURE.md`; OpenAI chat routing and call records are available; runtime publication, quotas, and metering are being implemented in subsequent work packages. Encrypted provider credentials, stable model catalogs/grants, and personal API Keys are available. Phase scope and acceptance evidence are tracked in `docs/IMPLEMENTATION.md`. Preserve the Gateway, Control Plane, and Data Platform boundaries as features are added.
 
 ## Tech Stack
 
@@ -37,7 +37,7 @@ go tool task update-tools   # Install GolangCI-Lint if missing
 go tool actionlint          # Validate GitHub Actions workflows
 ```
 
-Task, reflex, staticcheck, and actionlint are versioned as Go tool dependencies in `go.mod`. Invoke them with `go tool task`, `go tool reflex`, `go tool staticcheck`, and `go tool actionlint`; do not rely on globally installed versions. GolangCI-Lint is installed separately at the version specified in `scripts/install-tools.sh` and `.github/workflows/golangci-lint.yml`.
+Task, reflex, staticcheck, and actionlint are versioned as Go tool dependencies in `go.mod`. Invoke them with `go tool task`, `go tool reflex`, `go tool staticcheck`, and `go tool actionlint`; do not rely on globally installed versions. GolangCI-Lint is installed in the ignored checkout-local `bin/tools/` directory at the version specified in `scripts/install-tools.sh` and `.github/workflows/golangci-lint.yml`; checks never depend on a mutable global linter installation.
 
 ## Directory Overview
 
@@ -95,7 +95,21 @@ scripts/                      # Shell helpers invoked by Taskfile (build, check,
 - Configuration files may reference environment variables with `${NAME}` or `${NAME:-fallback}`
 - Expand environment variables after parsing YAML so values cannot alter configuration syntax
 
+### Database portability and migrations (mandatory)
+
+- Use GORM model tags and `Migrator` APIs first for schema changes, including tables, columns, indexes, and foreign keys. Use GORM query builders and transactions for ordinary persistence.
+- Keep numbered migrations immutable after release. Each new version uses private, frozen schema structs; do not use evolving business entities as historical migration definitions. `AutoMigrate` is allowed only against an explicitly bounded frozen schema when its behavior is appropriate; never run it unconditionally against every current entity at startup.
+- Services, handlers, and domain entities must not branch on database dialects or import database drivers. Keep connection setup, error translation, collation compatibility, locking, and unavoidable dialect adapters inside `internal/routex/database/`.
+- Enable GORM error translation and handle portable errors such as `gorm.ErrDuplicatedKey` in business code. Do not inspect PostgreSQL SQLSTATE or MySQL numeric error codes in services.
+- Handwritten SQL is an exception for capabilities GORM cannot correctly express. Document the limitation and rationale beside the database-layer implementation. Parameterize values and cover every supported database; performance-driven exceptions require measured evidence.
+- Every migration must pass empty-database creation, existing-data upgrade, repeat execution, concurrent startup, and relevant constraint/index tests on real PostgreSQL and MySQL. Account for partially applied MySQL DDL; never rely on transactional DDL rollback across drivers.
+- Released SQL migrations remain unchanged. They are historical compatibility records, not a template for new migrations. See `docs/DATABASE.md` for the policy and current justified exceptions.
+
 ### Frontend
+
+- Treat the approved product Mockup as the layout and interaction specification. Reproduce its navigation, page composition, tables, drawers, forms, spacing, and interaction hierarchy; do not invent an alternative layout during implementation.
+- Implement that design using local shadcn/ui components and Base UI wrappers. Do not add Ant Design/antd as a dependency or copy its runtime components.
+- Preserve the specified UI while binding real RouteX APIs and permissions. Any necessary divergence must be explained by a concrete domain/security contract and documented, rather than treated as permission to redesign the page.
 
 - Routing: React Router v8
 - Server state management: React Query (`@tanstack/react-query`)

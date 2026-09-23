@@ -116,11 +116,22 @@ func (s *Service) Login(ctx context.Context, email, password string) (*Authentic
 	if err != nil || passwordErr != nil || user.Disabled {
 		return nil, apperrors.ErrUnauthorized
 	}
-	auth, err := createSession(s.authDB(ctx), user)
-	if err != nil {
-		return nil, apperrors.ErrInternal
-	}
-	return auth, nil
+	var auth *Authentication
+	err = s.authDB(ctx).Transaction(func(tx *gorm.DB) error {
+		var current entity.User
+		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).First(&current, "id = ?", user.ID).Error; err != nil {
+			return err
+		}
+		// Password changes and account deactivation serialize with login, so a
+		// stale password verification cannot create a session afterward.
+		if current.Disabled || current.PasswordHash != user.PasswordHash {
+			return apperrors.ErrUnauthorized
+		}
+		var err error
+		auth, err = createSession(tx, current)
+		return err
+	})
+	return auth, keyServiceError(err)
 }
 
 func createSession(db *gorm.DB, user entity.User) (*Authentication, error) {

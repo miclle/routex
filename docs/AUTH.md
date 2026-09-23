@@ -53,7 +53,7 @@ Authentication database queries disable interpolated SQL logging to avoid exposi
 
 ## Versioned Migrations
 
-`database.Migrate` acquires a PostgreSQL advisory lock or MySQL named lock on a dedicated database connection, then applies fixed SQL steps in `schema_migrations` order. Each successful version records its number and UTC timestamp. Startup no longer runs AutoMigrate against the current business entity definitions.
+`database.Migrate` acquires a PostgreSQL advisory lock or MySQL named lock on a dedicated database connection, then applies immutable migration functions in `schema_migrations` order. Versions 1–4 preserve released SQL; new versions use frozen schema definitions and GORM Migrator APIs. Each successful version records its number and UTC timestamp. Startup no longer runs AutoMigrate against the current business entity definitions.
 
 | Version | Purpose |
 |---|---|

@@ -8,7 +8,6 @@ import (
 	"unicode"
 	"unicode/utf8"
 
-	mysql "github.com/go-sql-driver/mysql"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 
@@ -54,9 +53,7 @@ func catalogError(err error) error {
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		return apperrors.ErrNotFound
 	}
-	var pg interface{ SQLState() string }
-	var my *mysql.MySQLError
-	if (errors.As(err, &pg) && pg.SQLState() == "23505") || (errors.As(err, &my) && my.Number == 1062) {
+	if errors.Is(err, gorm.ErrDuplicatedKey) {
 		return catalogConflict
 	}
 	return apperrors.ErrInternal

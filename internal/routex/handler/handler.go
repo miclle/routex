@@ -28,6 +28,8 @@ func (ctrl *Ctrl) RegisterRoutes(r *fox.Engine) {
 
 	// ── Health check ────────────────────────────────────────────────────
 	r.GET("/health", ctrl.Health)
+	r.GET("/v1/models", ctrl.GatewayModels)
+	r.POST("/v1/chat/completions", ctrl.GatewayChat)
 
 	// ── API routes ──────────────────────────────────────────────────────
 	api := r.Group("/api/v1")
@@ -42,9 +44,17 @@ func (ctrl *Ctrl) RegisterRoutes(r *fox.Engine) {
 	identity.POST("/auth/logout", sameOrigin, ctrl.requireSession, requireCSRF, ctrl.Logout)
 	identity.GET("/admin/status", ctrl.requireSession, requireAdmin, ctrl.AdminStatus)
 
+	identity.GET("/calls", ctrl.requireSession, ctrl.ListPersonalCalls)
+	identity.GET("/calls/:request_id", ctrl.requireSession, ctrl.GetPersonalCall)
+	identity.GET("/account/sessions", ctrl.requireSession, ctrl.ListAccountSessions)
+	identity.PATCH("/account", sameOrigin, ctrl.requireSession, requireCSRF, jsonAuthRequest, ctrl.UpdateProfile)
+	identity.POST("/account/password", sameOrigin, ctrl.requireSession, requireCSRF, jsonAuthRequest, ctrl.ChangePassword)
+	identity.DELETE("/account/sessions/:session_id", sameOrigin, ctrl.requireSession, requireCSRF, ctrl.RevokeAccountSession)
 	identity.GET("/models", ctrl.requireSession, ctrl.ListVisibleModels)
 	admin := identity.Group("/admin")
 	admin.Use(ctrl.requireSession, requireAdmin)
+	admin.GET("/calls", ctrl.ListAdminCalls)
+	admin.GET("/calls/:request_id", ctrl.GetAdminCall)
 	admin.GET("/providers", ctrl.ListProviders)
 	admin.GET("/models", ctrl.ListAdminModels)
 	admin.GET("/model-grantees", ctrl.ListModelGrantees)

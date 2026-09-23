@@ -147,10 +147,11 @@ The following are single-node experimental targets, not measured performance or 
 | P0-01/02 Identity-first contracts | In progress | F01–F30 page/action/permission index, identity schema/API, and migration design established; later domain schemas and detailed cases will be expanded in their work packages |
 | P0-03 Runtime contracts | In progress | Single-node scope, experimental metrics, and external dependencies registered; gateway buffer capacity and full-buffer policy must be decided before P1-04 |
 | P1-01 Complete identity flow (F01 local foundation, F05 minimum permissions) | Accepted | Delivered by the identity bootstrap commit: identity backend/frontend, versioned migrations, dual-database and process-restart tests; resolve the exact commit with `git log -- docs/AUTH.md` |
-| P1-02 Connections and model grants | Implemented; local acceptance passed | Encrypted credential storage, SSRF-resistant upstream client, actual controlled verification, explicit enablement, stable names, atomic weights, and grants; PostgreSQL/MySQL integration passed |
-| P1-03 Personal Keys | Implemented; local acceptance passed | One-time pending delivery, confirmation, digest storage, concurrent rotation, ownership, revocation and audit; PostgreSQL/MySQL integration passed |
-| P1-04/05 | In progress | Parallel implementation of native gateway, Playground, and durable request facts |
-| P2–P6 | Pending | Full goal remains active; organization governance through final acceptance follows P1 |
+| P1-02 Connections and model grants | Delivered (`3cd5305`); controlled local acceptance passed | Encrypted credential storage, SSRF-resistant upstream client, actual controlled verification, explicit enablement, stable names, atomic weights, and grants; PostgreSQL/MySQL integration passed |
+| P1-03 Personal Keys | Delivered (`3cd5305`); controlled local acceptance passed | One-time pending delivery, confirmation, digest storage, concurrent rotation, ownership, revocation and audit; PostgreSQL/MySQL integration passed |
+| P1-04/05 | In progress | Native OpenAI chat ordinary/SSE, Key Playground, isolated personal/admin call queries and request facts have controlled dual-database evidence; immutable runtime snapshots and durable event-buffer acceptance remain open |
+| P2 | In progress | Profile/password/session APIs and UI implemented; member/role/registration governance in parallel |
+| P3–P6 | Pending | Full goal remains active; metering through final acceptance follows the preceding dependencies |
 
 Verification in this iteration:
 
@@ -169,3 +170,13 @@ Required checks: `go tool task check`, `go tool task test`, `go tool task test-i
 ### Catalog and personal Key phase verification
 
 The isolated staged source passed `go tool task check`, `go tool task test` (22 Vitest cases, Go race tests, development lifecycle and production asset tests), `go tool task test-integration` (PostgreSQL/MySQL, 34.967 seconds), and `go tool task test-auth-lifecycle` on both databases. This phase adds provider/model/Key UI and API coverage; the combined browser inference flow follows with P1-04/05. No real provider call has been accepted.
+
+### Gateway, call records, and account work
+
+API and runtime boundaries are documented in [GATEWAY](GATEWAY.md), [CALLS](CALLS.md), and [ACCOUNT](ACCOUNT.md). Controlled gateway tests passed on both databases, including SSE and cancellation, priority selection, no implicit retry, alias expiration, Key/grant revocation, and request/usage facts. The staged backend phase retains the 22 existing frontend cases and adds native proxy coverage. The current request recorder writes synchronously with a bounded detached context; database outages can lose records. Durable buffering and immutable publication remain explicit P1 work and prevent declaring the full P1 milestone accepted. Real-provider acceptance is still pending external test resources and spending authorization.
+
+### Delivery boundary for the gateway backend phase
+
+This phase delivers native inference, durable relational call facts/query APIs, account-security APIs, GORM-first migration policy and implementation, and native endpoint development proxy support. New Playground/call/account screens and the correction of existing screens to the approved layouts are still being implemented and are not included in this backend commit. Functional browser tests of the in-progress screens do not establish acceptance of their design fidelity. Frontend reference alignment is a separate following commit with its own tests and browser evidence. The full goal remains active.
+
+Gateway backend phase verification (isolated staged source, 2026-09-23): `go tool task check` passed with zero backend lint findings; `go tool task test` passed Go race, 22 Vitest, four Vite Host/proxy checks, development lifecycle, and production asset checks. `go tool task test-integration` passed PostgreSQL/MySQL with the handler suite at 43.536 seconds. `go tool task test-auth-lifecycle` passed both databases through provider verification, model publication, Key delivery, ordinary/SSE inference, call queries, process restart, and persistent revocation. On the local Node 26 host, tests used `NODE_OPTIONS=--no-experimental-webstorage` to retain jsdom storage behavior. Test Vite servers use isolated caches. These checks cover the backend phase; the separate UI and runtime phases retain their own acceptance gates.

@@ -61,7 +61,7 @@ The script passes the test database addresses through these environment variable
 
 Ordinary `go test` runs skip database-dependent tests when these variables are absent. If you provide them manually, use dedicated test databases: the tests write data and must never target development or production databases. The integration script generates its own DSNs instead of reusing the caller's values for these variables.
 
-Database integration tests validate the migrations and business behavior implemented so far. They do not establish acceptance for gateway, quota, or external integration features that have not been implemented.
+Database integration tests validate the migrations and business behavior implemented so far, including controlled ordinary/streaming gateway calls and cancellation. The process lifecycle suite also covers encrypted provider persistence, Key confirmation/revocation, inference, and call records across restarts. These results do not establish acceptance for quotas, real external providers, immutable runtime publication, or durable event buffering.
 
 ## Authentication and Process Restart Acceptance
 

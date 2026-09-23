@@ -4,7 +4,6 @@ go 1.27.1
 
 require (
 	github.com/fox-gonic/fox v0.1.2
-	github.com/go-sql-driver/mysql v1.10.1
 	github.com/oklog/ulid/v2 v2.1.2
 	github.com/spf13/viper v1.21.0
 	golang.org/x/crypto v0.56.0
@@ -91,6 +90,7 @@ require (
 	github.com/go-playground/locales v0.14.1 // indirect
 	github.com/go-playground/universal-translator v0.18.1 // indirect
 	github.com/go-playground/validator/v10 v10.30.4 // indirect
+	github.com/go-sql-driver/mysql v1.10.1 // indirect
 	github.com/go-task/slim-sprig/v3 v3.0.0 // indirect
 	github.com/go-task/task/v3 v3.53.1 // indirect
 	github.com/go-task/template v0.2.0 // indirect

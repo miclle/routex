@@ -25,6 +25,7 @@ export default defineConfig({
     host: "0.0.0.0",
     proxy: {
       "/api/v1": apiBaseURL,
+      "/v1": apiBaseURL,
     },
   },
 })

@@ -58,7 +58,7 @@ func Migrate(ctx context.Context, db *gorm.DB) error {
 				}
 			}
 		}()
-		if err := conn.Exec("CREATE TABLE IF NOT EXISTS schema_migrations (version INTEGER PRIMARY KEY, applied_at VARCHAR(40) NOT NULL)").Error; err != nil {
+		if err := migrateTables(conn, &migrationLedger{}); err != nil {
 			return err
 		}
 		steps := migrationSteps(dialect)
@@ -69,7 +69,7 @@ func Migrate(ctx context.Context, db *gorm.DB) error {
 		if unsupported != 0 {
 			return fmt.Errorf("database schema version is not supported by this binary")
 		}
-		for version, statements := range steps {
+		for version, apply := range steps {
 			var count int64
 			if err := conn.Table("schema_migrations").Where("version = ?", version+1).Count(&count).Error; err != nil {
 				return err
@@ -77,12 +77,10 @@ func Migrate(ctx context.Context, db *gorm.DB) error {
 			if count != 0 {
 				continue
 			}
-			for _, statement := range statements {
-				if err := conn.Exec(statement).Error; err != nil {
-					return fmt.Errorf("migration %d: %w", version+1, err)
-				}
+			if err := apply(conn); err != nil {
+				return fmt.Errorf("migration %d: %w", version+1, err)
 			}
-			if err := conn.Exec("INSERT INTO schema_migrations (version, applied_at) VALUES (?, ?)", version+1, time.Now().UTC().Format(time.RFC3339Nano)).Error; err != nil {
+			if err := conn.Create(&migrationLedger{Version: version + 1, AppliedAt: time.Now().UTC().Format(time.RFC3339Nano)}).Error; err != nil {
 				return err
 			}
 		}
@@ -90,9 +88,25 @@ func Migrate(ctx context.Context, db *gorm.DB) error {
 	})
 }
 
-// Each step is frozen SQL rather than the current entity definitions. CREATE IF
-// NOT EXISTS makes initial MySQL DDL retryable after an interrupted startup.
-func migrationSteps(dialect string) [][]string {
+// Released versions 1–4 retain their original SQL for reproducible upgrades.
+// New versions use frozen models and GORM Migrator APIs.
+func migrationSteps(dialect string) []func(*gorm.DB) error {
+	legacy := legacyMigrationSQL(dialect)
+	steps := make([]func(*gorm.DB) error, 0, len(legacy)+3)
+	for _, statements := range legacy {
+		steps = append(steps, func(db *gorm.DB) error {
+			for _, statement := range statements {
+				if err := db.Exec(statement).Error; err != nil {
+					return err
+				}
+			}
+			return nil
+		})
+	}
+	return append(steps, callMigration)
+}
+
+func legacyMigrationSQL(dialect string) [][]string {
 	emailType := "VARCHAR(254)"
 	timestamp, sequence, seed := "TIMESTAMPTZ", "BIGSERIAL", "INSERT INTO installations (id, initialized) VALUES (1, FALSE) ON CONFLICT (id) DO NOTHING"
 	if dialect == "mysql" {

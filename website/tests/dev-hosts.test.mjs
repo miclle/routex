@@ -1,10 +1,15 @@
 import assert from 'node:assert/strict'
 import http from 'node:http'
+import { mkdtemp, rm } from 'node:fs/promises'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 import test from 'node:test'
 import { createServer } from 'vite'
 
 test('development server accepts localhost and rejects untrusted hosts', async (t) => {
+  const cacheDir = await mkdtemp(join(tmpdir(), 'routex-vite-hosts-'))
   const server = await createServer({
+    cacheDir,
     server: { host: '127.0.0.1', port: 0, strictPort: false },
     optimizeDeps: { noDiscovery: true, include: [] },
   })
@@ -28,6 +33,6 @@ test('development server accepts localhost and rejects untrusted hosts', async (
   } finally {
     // Keep the event loop alive while Vite finishes its unreferenced workers.
     const keepAlive = setInterval(() => {}, 100)
-    try { await server.close() } finally { clearInterval(keepAlive) }
+    try { await server.close() } finally { clearInterval(keepAlive); await rm(cacheDir, { recursive: true, force: true }) }
   }
 })

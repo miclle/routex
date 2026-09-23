@@ -17,7 +17,9 @@ These rules describe RouteX application boundaries. Follow `docs/ARCHITECTURE.md
 - Services own business logic and database access.
 - Entities own GORM models, table names, persistence constants, and narrow model helpers.
 - Configuration should stay bootstrap-focused: listen address, database driver, DSN, and similarly necessary startup settings.
-- PostgreSQL and MySQL support must stay explicit; if a feature only works with one driver, reject unsupported drivers early.
+- PostgreSQL and MySQL behavior must be equivalent in business code. Use GORM Migrator APIs and frozen version-specific schema structs for new migrations; confine unavoidable driver differences to `internal/routex/database/`.
+- Business code must use translated GORM errors rather than SQLSTATE/numeric driver errors. Raw SQL exceptions need a documented GORM limitation and real tests on both databases.
+- Follow the mandatory database portability and migration rules in `AGENTS.md` and `docs/DATABASE.md`; preserve released migration history.
 
 ## Frontend Boundaries
 

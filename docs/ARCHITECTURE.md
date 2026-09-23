@@ -13,8 +13,9 @@ is documented in [AUTH.md](AUTH.md); phased capability and acceptance tracking
 is in [IMPLEMENTATION.md](IMPLEMENTATION.md).
 
 Encrypted provider credential storage, explicit verification/enablement, stable
-model names/bindings/grants, and personal API Keys are implemented. Native routing,
-quotas, and usage processing follow in subsequent work packages. The initial single-binary packaging does not require future Gateway,
+model names/bindings/grants, personal API Keys, native OpenAI chat routing, and
+request facts are implemented. Quotas, monetary metering, and additional native
+protocols follow in subsequent work packages. The initial single-binary packaging does not require future Gateway,
 Control Plane, and Data Platform components to share a deployment or availability
 boundary. Identity operations currently require the primary database; this does
 not establish Gateway independence or production HA.
@@ -160,7 +161,8 @@ Identity bootstrap, persistent sessions, the protected web workspace, and the
 database development/test lifecycle are implemented. Provider connections,
 encrypted credentials, stable model identities/grants, and personal API Keys
 are implemented with controlled PostgreSQL/MySQL acceptance. The native gateway
-and request records are the next vertical slice.
+and request records have controlled ordinary/streaming and restart evidence.
+Runtime publication and durable event buffering remain active P1 work.
 
 Organization/project governance, metering and quotas, additional native
 protocols, and enterprise integrations remain later phases. See

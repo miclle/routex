@@ -9,6 +9,8 @@ export default defineConfig({
   },
   test: {
     environment: 'jsdom',
+    // Bound DOM workers so concurrent backend builds do not starve test timers.
+    maxWorkers: 2,
     include: ['src/**/*.test.{ts,tsx}'],
   },
 })
