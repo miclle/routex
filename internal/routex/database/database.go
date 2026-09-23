@@ -9,7 +9,6 @@ import (
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 
-	"github.com/miclle/routex/internal/routex/entity"
 	"github.com/miclle/routex/pkg/gormlog"
 )
 
@@ -47,15 +46,4 @@ func Open(ctx context.Context, driver, dsn string) (*gorm.DB, error) {
 	}
 
 	return db, nil
-}
-
-// Migrate runs AutoMigrate for all persistent entities.
-func Migrate(ctx context.Context, db *gorm.DB) error {
-	if db == nil {
-		return fmt.Errorf("db handle is nil")
-	}
-	if err := db.WithContext(ctx).AutoMigrate(&entity.Example{}); err != nil {
-		return fmt.Errorf("auto migrate: %w", err)
-	}
-	return nil
 }

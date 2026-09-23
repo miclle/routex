@@ -16,12 +16,15 @@ These rules apply to files under `website/src/`.
 - Use React Query for server state.
 - Keep query keys stable and scoped to the resource being fetched.
 - Invalidate or update relevant queries after mutations.
+- Authentication state uses the `auth/setup` and `auth/session` React Query keys. Keep session cookies HttpOnly; never persist session or CSRF tokens in browser storage.
+- Route guards own authentication redirects. API errors must reach forms; protected 401 responses clear private query and mutation caches. Login and logout also clear previous account data.
 - Do not hard-code backend origins in components; use the shared API client and Vite proxy.
 
 ## UI
 
 - Reuse existing shadcn-style primitives, Tailwind tokens, Lucide icons, and local layout patterns.
 - Use Base UI for headless accessible behavior when the interaction is non-trivial, such as tabs, menus, dialogs, comboboxes, or scroll areas.
+- Form inputs use the local Base UI `Input` wrapper with explicit labels, autocomplete, pending/disabled states, and accessible errors.
 - Wrap Base UI components in local `website/src/components/ui/*` modules before pages import them.
 - Keep page components focused on product state and composition instead of repeating primitive styling.
 - Cover loading, empty, pending, success, and error states for user-facing data flows.

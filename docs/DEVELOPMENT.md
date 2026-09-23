@@ -1,8 +1,8 @@
-# 本地开发与数据库测试
+# Local Development and Database Testing
 
-Go 与 Vite 在宿主机运行，保留现有热重载和调试体验；Docker Compose 管理数据库。需要 Go、Node.js、Docker Engine 与 Docker Compose。数据库镜像为 PostgreSQL 18 和 MySQL 8.4。
+Go and Vite run on the host to preserve hot reload and debugging, while Docker Compose manages the databases. Install Go, Node.js, Docker Engine, and Docker Compose before starting. The database images use PostgreSQL 18 and MySQL 8.4.
 
-## 启动 PostgreSQL 开发环境
+## Start Development with PostgreSQL
 
 ```bash
 go tool task install
@@ -10,54 +10,61 @@ go tool task db:up
 go tool task dev
 ```
 
-`db:up` 等待数据库健康后返回。首次 `dev` 从示例创建 `cmd/routex/config.local.yaml`；已有配置不会被覆盖。如果本地配置仍使用旧端口，按下表修改，或设置 `DATABASE_URL`（本地配置的 `dsn` 需使用示例中的环境变量写法）。
+`db:up` waits for the database to become healthy. On its first run, `dev` creates `cmd/routex/config.local.yaml` from the example; it preserves existing configuration files. If your local configuration still uses the old port, update it using the table below or set `DATABASE_URL`. To use that variable, the local `dsn` field must retain the environment variable expression from the example.
 
-| 配置 | PostgreSQL（默认） | MySQL（可选） |
+| Setting | PostgreSQL (default) | MySQL (optional) |
 |---|---|---|
-| 启动命令 | `go tool task db:up` | `go tool task db:mysql` |
-| 地址 | `127.0.0.1:15433` | `127.0.0.1:13306` |
-| 数据库 | `routex` | `routex` |
-| 用户 | `routex` | `routex` |
-| 开发密码 | `routex-local` | `routex-local` |
-| Compose profile | 默认 | `mysql` |
+| Start command | `go tool task db:up` | `go tool task db:mysql` |
+| Address | `127.0.0.1:15433` | `127.0.0.1:13306` |
+| Database | `routex` | `routex` |
+| User | `routex` | `routex` |
+| Development password | `routex-local` | `routex-local` |
+| Compose profile | Default | `mysql` |
 
-这些固定凭证仅供本地开发。数据库端口只绑定 loopback。端口冲突时可以通过 `ROUTEX_POSTGRES_PORT` 或 `ROUTEX_MYSQL_PORT` 修改 Compose 映射，并同步设置应用 `DATABASE_URL`；端口变量不会自动修改已有应用配置。
+These fixed credentials are for local development only. Database ports bind exclusively to loopback. If a port is occupied, change the Compose mapping with `ROUTEX_POSTGRES_PORT` or `ROUTEX_MYSQL_PORT` and update the application's `DATABASE_URL` accordingly. The port variables do not automatically change existing application configuration.
 
 ```bash
-# 使用 MySQL；需使用支持这些环境变量的 config.local.yaml。
+# Use MySQL with a config.local.yaml that supports these environment variables.
 go tool task db:mysql
 ROUTEX_DB_DRIVER=mysql \
 DATABASE_URL='routex:routex-local@tcp(127.0.0.1:13306)/routex?charset=utf8mb4&parseTime=True&loc=UTC' \
 go tool task dev
 ```
 
-应用默认监听 9000，Vite 默认监听 5173，可分别用 `ROUTEX_HTTP_PORT` 和 `ROUTEX_VITE_PORT` 调整。开发服务不会扫描或终止其他项目进程。
+The application listens on port 9000 and Vite on port 5173 by default. Override them with `ROUTEX_HTTP_PORT` and `ROUTEX_VITE_PORT`, respectively. Development services do not scan for or terminate processes belonging to other projects.
 
-## 停止、状态与数据保留
+## Stop Services, Inspect Status, and Preserve Data
 
 ```bash
 go tool task db:status
 go tool task db:down
 ```
 
-`db:down` 停止并移除本项目容器及网络，保留 PostgreSQL 和 MySQL 命名卷。再次启动会保留已有数据。日常操作不要添加 `--volumes` / `-v`，这会删除开发数据库；修改镜像主版本也需要先备份并按数据库升级流程迁移。多个 checkout 同时开发时，为各自设置不同的 `COMPOSE_PROJECT_NAME` 和宿主端口。
+`db:down` stops and removes this project's containers and network while preserving the PostgreSQL and MySQL named volumes. Existing data remains available when the databases restart. Do not add `--volumes` or `-v` during routine shutdown: those options delete the development databases. Before changing a database image's major version, back up the data and follow the database's upgrade procedure. When running multiple checkouts concurrently, assign each a different `COMPOSE_PROJECT_NAME` and different host ports.
 
-## 自动化测试
+## Automated Tests
 
 ```bash
 go tool task check
 go tool task test
 go tool task test-integration
+go tool task test-auth-lifecycle
 go tool actionlint
 ```
 
-`test` 运行 Go race、前端行为、开发进程生命周期及生产资产测试。`test-integration` 单独启动 `compose.test.yaml` 中的 PostgreSQL 和 MySQL，执行未缓存的 Go race 测试，然后清理本次测试容器与网络；CI 也执行相同入口。测试使用唯一 Compose 项目、随机 loopback 端口和内存临时存储，不读取或修改开发数据库命名卷。失败时输出测试数据库容器日志，清理失败会使命令失败。
+`test` runs Go tests with the race detector, frontend behavior tests, development process lifecycle tests, and production asset tests. `test-integration` starts PostgreSQL and MySQL from `compose.test.yaml`, runs uncached Go tests with the race detector, and removes that run's containers and network. CI uses the same entry point. Each run uses a unique Compose project, random loopback ports, and temporary in-memory storage; it does not read or modify development database volumes. Failed runs print test database container logs, and cleanup failures cause the command to fail.
 
-脚本将测试地址传入以下环境变量：
+The script passes the test database addresses through these environment variables:
 
 - `ROUTEX_TEST_POSTGRES_DSN`
 - `ROUTEX_TEST_MYSQL_DSN`
 
-普通 `go test` 未配置变量时跳过需要数据库的测试。手动提供变量时必须使用专用测试数据库，测试会写入数据；不得指向开发或生产数据库。集成脚本自行生成 DSN，不沿用调用者的同名环境变量。
+Ordinary `go test` runs skip database-dependent tests when these variables are absent. If you provide them manually, use dedicated test databases: the tests write data and must never target development or production databases. The integration script generates its own DSNs instead of reusing the caller's values for these variables.
 
-数据库集成测试证明当前已实现的迁移和业务行为；尚未实现的网关、额度及外部系统不由此视为通过验收。
+Database integration tests validate the migrations and business behavior implemented so far. They do not establish acceptance for gateway, quota, or external integration features that have not been implemented.
+
+## Authentication and Process Restart Acceptance
+
+`go tool task test-auth-lifecycle` uses another set of isolated empty databases and a temporarily compiled Go binary. It verifies the following sequence on both PostgreSQL and MySQL: initialize an empty database, read the session, stop the server process, restart it on the same port, confirm that the original session remains valid, log out, confirm that the old cookie receives HTTP 401, and log in again. Persistence is tested through real HTTP requests and actual process restarts. Write requests include a same-origin `Origin` header, and logout uses the CSRF token returned by the server.
+
+This test does not require Vite, read local application configuration, or share storage with `test-integration` or development databases. The server listens on a random loopback port. Completion, failure, and termination signals trigger cleanup of the test's child processes, temporary directory, containers, and network. Logs do not print passwords, cookies, or hashes. Missing dependencies, startup failures, and failed assertions return a nonzero exit code. CI executes this entry point as a separate step.

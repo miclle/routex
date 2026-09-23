@@ -1,20 +1,17 @@
 import axios from 'axios'
 
-// client is the pre-configured axios instance for API calls.
 const client = axios.create({
   baseURL: '/api/v1',
   withCredentials: true,
 })
 
-// Intercept 401 responses to redirect to login page.
+// Guards own navigation. Authentication failures must still reach their forms.
 client.interceptors.response.use(
   (response) => response,
-  (error) => {
-    if (error.response?.status === 401) {
-      const path = window.location.pathname
-      if (path !== '/login') {
-        window.location.href = '/login'
-      }
+  (error: unknown) => {
+    if (axios.isAxiosError(error) && error.response?.status === 401 &&
+      !['/auth/login', '/auth/session', '/setup'].includes(error.config?.url ?? '')) {
+      window.dispatchEvent(new Event('routex:session-expired'))
     }
     return Promise.reject(error)
   },

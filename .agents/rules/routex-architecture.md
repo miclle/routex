@@ -1,12 +1,12 @@
 # RouteX Architecture Rules
 
-These rules describe the RouteX bootstrap. Follow `docs/ARCHITECTURE.md` for product domains, data-plane independence, and extension boundaries.
+These rules describe RouteX application boundaries. Follow `docs/ARCHITECTURE.md` for product domains, data-plane independence, and extension boundaries.
 
 ## Principles
 
 - Preserve the existing `Handler -> Service -> Entity` layering.
 - Keep route registration centralized in `internal/routex/handler/handler.go`.
-- Keep database connection and migration setup in `internal/routex/database/`.
+- Keep database connection and immutable numbered migration steps in `internal/routex/database/`; never edit a released migration or run AutoMigrate against current entities at every startup.
 - Put application models in `internal/routex/entity/`; do not expose entities directly as HTTP contracts.
 - Put reusable, business-agnostic helpers in `pkg/`, with small APIs and tests.
 - Add domain modules and integrations only when a concrete RouteX use case needs them.

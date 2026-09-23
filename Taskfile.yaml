@@ -154,6 +154,11 @@ tasks:
     cmds:
       - ./scripts/test-integration.sh
 
+  test-auth-lifecycle:
+    desc: Verify authentication persistence across real server restarts on both databases
+    cmds:
+      - ./scripts/test-auth-lifecycle.sh
+
   test-production:
     desc: Build web assets and test production asset serving
     cmds:

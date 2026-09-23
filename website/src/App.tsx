@@ -8,7 +8,7 @@ const router = createBrowserRouter(routes)
 // App is the root component wrapping providers and the router.
 function App() {
   return (
-    <AppContext.Provider value={{ appName: 'App' }}>
+    <AppContext.Provider value={{ appName: 'RouteX' }}>
       <RouterProvider router={router} />
     </AppContext.Provider>
   )

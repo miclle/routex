@@ -30,3 +30,8 @@ var (
 	// ErrForbidden indicates insufficient permissions.
 	ErrForbidden = &Error{Code: http.StatusForbidden, Message: "forbidden"}
 )
+
+var (
+	ErrInternal           = &Error{Code: http.StatusInternalServerError, Message: "internal server error"}
+	ErrAlreadyInitialized = &Error{Code: http.StatusConflict, Message: "installation already initialized"}
+)

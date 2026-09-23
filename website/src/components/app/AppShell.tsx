@@ -1,41 +1,33 @@
-import { Server, Sparkles } from 'lucide-react'
-import { NavLink, Outlet } from 'react-router'
-
-import { Badge } from '@/components/ui/badge'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { Route, LogOut } from 'lucide-react'
+import { NavLink, Outlet, useNavigate } from 'react-router'
+import { authError, logout } from '@/api/auth'
+import { useSession, sessionKey, setupKey } from '@/hooks/use-auth'
 import { Button } from '@/components/ui/button'
 
-function AppShell() {
+export default function AppShell() {
+  const session = useSession()
+  const queryClient = useQueryClient()
+  const navigate = useNavigate()
+  const mutation = useMutation({
+    mutationFn: () => logout(session.data!.csrf_token),
+    onSuccess: () => {
+      queryClient.clear()
+      queryClient.setQueryData(setupKey, { initialized: true })
+      queryClient.setQueryData(sessionKey, null)
+      navigate('/login', { replace: true })
+    },
+  })
   return (
-    <div className="min-h-screen bg-background text-foreground">
-      <header className="sticky top-0 z-50 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/75">
-        <div className="mx-auto flex h-14 max-w-6xl items-center justify-between px-4 sm:px-6">
-          <NavLink to="/" className="flex items-center gap-2 text-sm font-semibold no-underline">
-            <span className="flex size-8 items-center justify-center rounded-md bg-primary text-primary-foreground">
-              <Server className="size-4" aria-hidden="true" />
-            </span>
-            RouteX
-          </NavLink>
-          <nav className="flex items-center gap-2">
-            <NavLink to="/">
-              {({ isActive }) => (
-                <Button variant={isActive ? 'secondary' : 'ghost'} size="sm">
-                  Home
-                </Button>
-              )}
-            </NavLink>
-            <Badge variant="outline" className="hidden gap-1 sm:inline-flex">
-              <Sparkles className="size-3" aria-hidden="true" />
-              shadcn + Base UI
-            </Badge>
-          </nav>
+    <div className="min-h-screen bg-muted/20 text-foreground">
+      <header className="border-b bg-background">
+        <div className="mx-auto flex min-h-16 max-w-6xl flex-wrap items-center justify-between gap-3 px-6 py-3">
+          <NavLink to="/" className="flex items-center gap-2 text-base font-semibold"><Route className="size-5" aria-hidden="true" />RouteX<span className="ml-3 border-l pl-3 text-sm font-normal text-muted-foreground">控制台</span></NavLink>
+          <div className="flex items-center gap-3"><span className="max-w-40 truncate text-sm text-muted-foreground">{session.data?.user.name}</span><Button variant="outline" size="sm" disabled={mutation.isPending} onClick={() => mutation.mutate()}><LogOut className="size-3.5" aria-hidden="true" />{mutation.isPending ? '正在退出…' : '退出登录'}</Button></div>
         </div>
       </header>
-
-      <main>
-        <Outlet />
-      </main>
+      {mutation.isError && <p role="alert" className="mx-auto max-w-6xl px-6 pt-4 text-sm text-destructive">退出失败。{authError(mutation.error)}</p>}
+      <main><Outlet /></main>
     </div>
   )
 }
-
-export default AppShell

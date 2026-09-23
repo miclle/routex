@@ -6,7 +6,7 @@ Technical specification for AI coding assistants working on this project.
 
 RouteX is an AI gateway and control plane, built as a Go + React single-page application that compiles into a single binary. The backend embeds frontend build output via `//go:embed`, so production deployment requires only one executable plus a database.
 
-The current implementation is a bootstrap scaffold. Product domains and extension boundaries are defined in `docs/ARCHITECTURE.md`; provider routing, authentication, quotas, and metering are not implemented yet. Preserve the Gateway, Control Plane, and Data Platform boundaries as features are added.
+The current implementation includes persistent administrator setup, local authentication, revocable sessions, and a protected workspace. Product domains and extension boundaries are defined in `docs/ARCHITECTURE.md`; provider routing, API keys, quotas, and metering are not implemented yet. Phase scope and acceptance evidence are tracked in `docs/IMPLEMENTATION.md`. Preserve the Gateway, Control Plane, and Data Platform boundaries as features are added.
 
 ## Tech Stack
 
@@ -21,6 +21,7 @@ The current implementation is a bootstrap scaffold. Product domains and extensio
 
 ```bash
 go tool task install        # Install backend and frontend dependencies
+go tool task db:up          # Start Compose PostgreSQL (db:mysql for MySQL)
 go tool task dev            # Start development environment (hot reload)
 go tool task build          # Build production binary (with embedded frontend)
 go tool task build-all      # Cross-compile for multiple platforms
@@ -28,6 +29,8 @@ go tool task run            # Run in production mode
 go tool task lint           # Auto-fix code style and run checks
 go tool task check          # Full checks (backend + frontend types + mod tidy)
 go tool task test           # Go, frontend, dev lifecycle, and production asset tests
+go tool task test-integration # Isolated PostgreSQL/MySQL migration and auth tests
+go tool task test-auth-lifecycle # Real-process restart and session persistence
 go tool task test-production # Build assets and test production asset serving
 go tool task clean          # Remove build artifacts
 go tool task update-tools   # Install GolangCI-Lint if missing
@@ -86,7 +89,7 @@ scripts/                      # Shell helpers invoked by Taskfile (build, check,
 
 - Follow the `Handler -> Service -> Entity` layering
 - Register all routes in `internal/routex/handler/handler.go`
-- Keep database connection and migration setup in `internal/routex/database/`; services receive a ready `*gorm.DB`
+- Keep database connection and versioned migration setup in `internal/routex/database/`; services receive a ready `*gorm.DB`. Add new immutable migration versions instead of editing released steps or using current entities for startup AutoMigrate.
 - PostgreSQL (default) and MySQL are supported; switch via `driver` in YAML config
 - YAML config contains only bootstrap settings (address, database driver, connection string)
 - Configuration files may reference environment variables with `${NAME}` or `${NAME:-fallback}`
@@ -102,6 +105,8 @@ scripts/                      # Shell helpers invoked by Taskfile (build, check,
 - App-wide layout/composition belongs in `website/src/components/app/`
 - Reusable UI primitives belong in `website/src/components/ui/`
 - Prefer local shadcn-style primitives, Tailwind tokens, Lucide icons, and Base UI wrappers over one-off markup
+- Authentication pages use `/setup` and `/login`; `AuthGate` protects the application shell. Session and setup state are React Query resources; cookies remain HttpOnly and CSRF tokens stay in memory.
+- Use the local Base UI `Input` wrapper for form controls, with labels, autocomplete, validation, and pending states.
 - Wrap Base UI headless components in local `components/ui/*` modules before using them from pages
 
 ### Single Binary Embedding
@@ -115,6 +120,8 @@ scripts/                      # Shell helpers invoked by Taskfile (build, check,
 
 ## Mandatory Rules
 
+- Write documentation, commit titles/bodies, and PR descriptions in English.
+
 - Respect the existing layering and directory structure; do not reshape architecture for local changes
 - Run `go tool task check` before committing
 - When changing frontend structure or UI primitives, update this file and `.agents/rules/frontend.md` together
@@ -124,3 +131,4 @@ scripts/                      # Shell helpers invoked by Taskfile (build, check,
 - Run `go tool task check`; do not commit if it fails
 - Verify whether frontend API calls or types need to be updated accordingly
 - For UI behavior or primitive changes, run the focused Vitest tests or `cd website && npm test`
+- For schema, transaction, or authentication changes, run `go tool task test-integration`; identity persistence changes also run `go tool task test-auth-lifecycle`.

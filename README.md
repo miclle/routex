@@ -2,13 +2,13 @@
 
 RouteX is an open-source AI gateway and control plane for connecting applications to multiple AI providers and models through a governed, observable, and extensible platform.
 
-> RouteX is at an early stage. The application scaffold is ready for development; gateway and control-plane features are not implemented yet. The existing product mockups and design exploration are maintained separately.
+> RouteX is at an early stage. Persistent administrator setup, local login, sessions, and a protected workspace are implemented. Provider routing, API keys, quotas, and metering are still planned. See [the implementation and acceptance index](docs/IMPLEMENTATION.md) for scope and evidence.
 
 ## Development
 
-The scaffold uses Go 1.27.1, fox-gonic/fox, GORM, and PostgreSQL (or MySQL), with React 19, TypeScript 6, Vite 8, Tailwind CSS 4, React Router 8, and React Query 5. Reusable UI components follow shadcn/ui and Base UI patterns.
+The application uses Go 1.27.1, fox-gonic/fox, GORM, and PostgreSQL (or MySQL), with React 19, TypeScript 6, Vite 8, Tailwind CSS 4, React Router 8, and React Query 5. Reusable UI components follow shadcn/ui and Base UI patterns.
 
-Requirements: Go 1.27.1+, Node.js 22.22+, and a running PostgreSQL or MySQL database.
+Requirements: Go 1.27.1+, Node.js 22.22+, and Docker with Compose (or a dedicated PostgreSQL/MySQL database).
 
 Task, reflex, staticcheck, and actionlint are managed by the `tool` directives in `go.mod` and run through `go tool`; global installations are not required. `go tool task update-tools` installs GolangCI-Lint separately if it is missing.
 
@@ -17,16 +17,17 @@ git clone https://github.com/miclle/routex.git
 cd routex
 go tool task install
 go tool task update-tools
+go tool task db:up
 cp cmd/routex/config.example.yaml cmd/routex/config.local.yaml
 ```
 
-Create a dedicated `routex` database and edit `cmd/routex/config.local.yaml` with its connection settings. Local configuration is ignored by Git. The server connects to the database and migrates the template's `Example` entity on startup; it does not create the database itself.
+Compose creates a local PostgreSQL database on `127.0.0.1:15433`, matching the example configuration. Local configuration is ignored by Git. The server applies versioned migrations on startup; it does not create the database itself. Existing local config files are not overwritten. See [local development](docs/DEVELOPMENT.md) for MySQL, port overrides, persistent volumes, and isolated database tests.
 
 ```bash
 go tool task dev
 ```
 
-Open `http://localhost:9000`. Development starts the Go server with hot reload on port 9000 and Vite on port 5173. The home page calls `GET /api/v1/hello`; `GET /health` returns `ok`.
+Open `http://localhost:9000`. Development starts the Go server with hot reload on port 9000 and Vite on port 5173. An empty installation opens `/setup` to create the first administrator; initialized installations require `/login`. Sessions survive application restarts and logout revokes the current session. `GET /health` returns `ok`. See [authentication contracts](docs/AUTH.md) for cookie, CSRF, and deployment boundaries.
 
 Task manages the two development processes together: interrupting the task or a process failure stops its companion. Occupied ports produce an error; startup does not terminate other projects' processes. Vite keeps its default Host validation. Add a specific hostname to `server.allowedHosts` in `website/vite.config.ts` if you use a custom development domain.
 
@@ -43,6 +44,8 @@ ROUTEX_HTTP_PORT=9100 ROUTEX_VITE_PORT=3100 go tool task dev
 ```bash
 go tool task check          # Go formatting/vet/lint, frontend types, module tidiness
 go tool task test           # Go, frontend, dev lifecycle, and production asset tests
+go tool task test-integration # Isolated PostgreSQL + MySQL migration/auth tests
+go tool task test-auth-lifecycle # Real-process auth and restart tests on both databases
 go tool actionlint          # Validate GitHub Actions workflows
 cd website && npm run lint  # Frontend ESLint
 ```
@@ -65,7 +68,7 @@ internal/routex/config/      Bootstrap configuration
 internal/routex/database/    Database connection and migrations
 internal/routex/handler/     HTTP routes and handlers
 internal/routex/service/     Business logic
-internal/routex/entity/      Persistence models (currently a template example)
+internal/routex/entity/      Persistence models for users, sessions, and installation
 internal/routex/errors/      Application errors
 pkg/                         Reusable helpers
 website/                     React SPA and Go asset embedding/development proxy
@@ -96,7 +99,7 @@ The target architecture is split into three product domains:
 
 RouteX is designed with explicit extension points so optional capabilities can be developed and deployed independently without coupling them to the open-source core.
 
-See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for the initial architecture principles.
+See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for the architecture principles and [docs/IMPLEMENTATION.md](docs/IMPLEMENTATION.md) for phased work and acceptance criteria.
 
 ## Project status
 

@@ -81,6 +81,9 @@ jobs:
       - name: Test isolated databases
         run: go tool task test-integration
 
+      - name: Test authentication across process restarts
+        run: go tool task test-auth-lifecycle
+
   frontend:
     name: Frontend Checks
     runs-on: ubuntu-latest

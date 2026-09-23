@@ -5,14 +5,18 @@ starting point rather than a frozen implementation specification.
 
 ## Current implementation
 
-The repository currently contains the Go + React bootstrap: HTTP
-route registration, database connection and example migration, shared helpers,
-an embedded SPA, development tooling, and CI. `/health` and `/api/v1/hello` are
-scaffold endpoints. The product domains below describe the intended architecture;
-provider adapters, routing, access control, and usage processing are not yet
+The repository contains the Go + React application, Docker Compose development
+databases, versioned PostgreSQL/MySQL migrations, first-administrator setup,
+local password authentication, persistent revocable sessions, server-side
+administrator checks, and a protected SPA workspace. The identity API contract
+is documented in [AUTH.md](AUTH.md); phased capability and acceptance tracking
+is in [IMPLEMENTATION.md](IMPLEMENTATION.md).
+
+Provider adapters, routing, API keys, quotas, and usage processing are not yet
 implemented. The initial single-binary packaging does not require future Gateway,
 Control Plane, and Data Platform components to share a deployment or availability
-boundary.
+boundary. Identity operations currently require the primary database; this does
+not establish Gateway independence or production HA.
 
 ## Product boundary
 
@@ -149,18 +153,15 @@ Core RouteX behavior must not depend on proprietary or separately distributed
 extensions. Stable contracts should allow optional capabilities to evolve
 without forcing unrelated changes into the core.
 
-## Initial implementation sequence
+## Implementation sequence
 
-1. Define core domain models and configuration contracts.
-2. Implement a minimal Gateway with one provider adapter.
-3. Add API key authentication and model resolution.
-4. Add provider/model administration APIs.
-5. Add routing and failover.
-6. Add usage events and asynchronous metering.
-7. Add quotas and rate limits.
-8. Define the first stable extension interfaces where real use cases require them.
-9. Build the web control plane on stable APIs.
-10. Expand provider coverage and operational tooling.
+Identity bootstrap, persistent sessions, the protected web workspace, and the
+database development/test lifecycle are implemented. The next vertical slice
+adds provider connections, encrypted credentials, stable model identities, and
+model authorization; personal API keys and the first native gateway follow.
 
-The sequence favors a working data plane and stable contracts before recreating
-the complete management UI or prematurely generalizing a plugin system.
+Organization/project governance, metering and quotas, additional native
+protocols, and enterprise integrations remain later phases. See
+[IMPLEMENTATION.md](IMPLEMENTATION.md) for the dependency order, protocol matrix,
+acceptance cases, and unverified deployment boundaries. Each phase ships its
+API, UI, persistence, and tests together.

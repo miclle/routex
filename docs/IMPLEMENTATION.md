@@ -1,0 +1,164 @@
+# RouteX Implementation and Acceptance Index
+
+Updated: 2026-09-23. This document records engineering contracts, work packages, and acceptance checks. Interfaces, tables, pages, and metrics marked as planned are not necessarily implemented; delivery evidence appears at the end. The current iteration starts with installation on an empty database and the complete local authentication flow. The full product is delivered incrementally through P0–P6.
+
+## Scope and Decisions
+
+- Each deployment serves one enterprise. The first iteration runs one RouteX process, with database dependencies managed by Docker Compose and Go/Vite hot reload on the host. Production multi-node HA is outside the first iteration's commitments.
+- PostgreSQL is the default development database. MySQL has the same persistence compatibility requirements. Migrations and transactions must be verified against both real databases; SQLite is not a substitute.
+- Public and relationship IDs use domain-prefixed ULID strings, such as `usr_…`, `ses_…`, and `mdl_…`. Names can change; IDs remain stable. The singleton installation lock and migration sequence use integer primary keys.
+- Initial roles are `admin` and `member`. Management APIs require an administrator; members can read only their own session. Composite roles and object-level authorization arrive in P2. Hiding a button is not access control.
+- Pages use React Query and React Router with route-based loading. Forms and layouts use local shadcn/ui primitives; complex interactions use local Base UI wrappers. Failures must offer retry or recovery. Unimplemented features must not display buttons that simulate success.
+- Keys belong only to individuals or Projects. A Team is a session interaction context, not a Key resource account. Project management rights come from explicit manager relationships, never from Team membership.
+- Self-registration is disabled by default. P2 adds an administrator-controlled setting and registration flow. Creating the first administrator opens the workspace; enterprise authentication configuration arrives in P5, so initialization must not redirect to an unimplemented page.
+- Local passwords use bcrypt and contain 12–72 UTF-8 bytes. Passphrases are allowed; character-class combinations are not mandatory. Initial setup collects a name, work email, password, and client-side password confirmation.
+- A standalone CLI, response caching, plugin platform, and independently deployed services are outside the current full control-plane scope. Additional requirements need separate work packages.
+
+## Parallel Work and Dependencies
+
+| Work package | Independent ownership | Dependencies / delivery gate |
+|---|---|---|
+| P0-01 Capability inventory | Capability table and stage-specific use cases in this document | Map F01–F30 to pages, actions, permissions, and A acceptance cases; expand each subflow before implementation |
+| P0-02 Identity and persistence contracts | Versioned migrations, identity APIs, entities | Empty databases, repeat execution, and concurrent startup on both databases; establish the P1-01 vertical flow first |
+| P0-03 Runtime and test foundation | Compose, test scripts, CI | Dedicated test databases; test cleanup must not affect development volumes; register metrics and external dependencies |
+| P1-01a Identity service | Entity / Service / Handler / Go tests | Share the contract below with the UI; concurrent first-administrator creation, sessions, logout, unauthorized access, and CSRF |
+| P1-01b Identity UI | API / Types / pages / primitives / Vitest | Can start against the agreed contract; verify jointly with the real backend before merging |
+| P1-02 Connections and models | Provider / Connection / Credential / Model | P1-01 authorization; internal encryption, explicit verification and activation, stable model IDs |
+| P1-03 Personal Keys | Creation / delivery / authorization / revocation | P1-01 identity and P1-02 model authorization; store only digests |
+| P1-04 Native gateway | Snapshots / Chat Completions / streaming | P1-02 and P1-03; controlled-upstream failure matrix; separate acceptance for a real provider |
+| P1-05 Request facts | Durable events / queries / end-to-end flow | P1-04; actor and a single attribution context, query authorization and redaction |
+| P2–P6 | Continue splitting vertical work packages using the table below | Organization governance → metering and limits → protocols and interactions → enterprise integrations → release acceptance |
+
+Each mergeable work package runs relevant tests, `go tool task check`, and documentation checks before an independent commit to `main`. When tasks share a workspace, assign explicit file ownership; the coordinating task stages and commits the combined result. Run database tests through `go tool task test-integration`. Environment-gated skips during the standard `test` task do not count as database acceptance.
+
+## P1 Data and API Contracts
+
+Preserve the Handler → Service → Entity layering. Management APIs live under `/api/v1`, use snake_case JSON, and return DTOs. Native inference routes live under `/v1` and must not fall through to the SPA.
+
+| Entity | Fields and constraints | Lifecycle |
+|---|---|---|
+| User | Stable `id`, normalized unique `email`, `name`, password hash, `role`, enabled state, timestamps | Enabling/disabling takes effect immediately for sessions; identity and Keys remain separate |
+| Session | Stable `id`, `user_id`, random token digest, expiration time | Fixed seven-day lifetime; logout revokes the session; no readable token persisted in browser storage |
+| Installation | Singleton primary key, initialization marker | Created in the same transaction as the first administrator and session; only one concurrent request succeeds |
+| Schema migration | Monotonic version, application timestamp | Database lock on a single connection; fixed historical migration steps rather than blindly running AutoMigrate on the latest business entities at every startup |
+| Provider / Connection / Credential (planned) | Provider identity / protocol, Base URL, network egress / encrypted credentials and storage references | Activation and verification are separate; unknown states never count as verified |
+| Model / ModelName / ProviderModel / Binding (planned) | Stable model ID / current name and expiring aliases / native upstream name / protocol and weight | Preserve historical names; candidate weight is 0; publication validates a total weight of 100 |
+| Personal API Key (planned) | Owner, digest, masked value, state, expiration, model scope, replacement relationship | Pending delivery → confirmed activation → revocation; unconfirmed delivery cannot remain valid indefinitely |
+| Request event (planned) | Request ID, attempt ID, actor, scope, key/model/provider IDs, protocol, configuration ID, status, Tokens, timestamps | One request fact per request; retries record attempts without duplicate metering; price snapshots are added later |
+
+Implemented fields are defined by the migrations and [authentication API](AUTH.md). Add later entities within their work packages instead of creating all future tables upfront.
+
+| API | Authentication / input | Response and errors |
+|---|---|---|
+| `GET /setup` | Public; no sensitive details | `{initialized:boolean}` |
+| `POST /setup` | Same-origin JSON `{email,password,name}` | 201 session response; 409 already initialized; 400 invalid input |
+| `POST /auth/login` | Same-origin JSON `{email,password}` | 200 session response; 401 generic authentication failure |
+| `GET /auth/session` | HttpOnly session cookie | 200 session response; 401 invalid, disabled, revoked, or expired session |
+| `POST /auth/logout` | Cookie + `X-CSRF-Token`, same-origin | 204 revoked; 401 no session; 403 CSRF failure |
+| `GET /admin/status` | Authenticated administrator | `{initialized:true}`; 403 for members, 401 when unauthenticated |
+
+The session response is `{user:{id,email,name,role},csrf_token}`. Cookies use HttpOnly, SameSite=Strict, and Path=/, with Secure on HTTPS. Do not infer a secure connection from arbitrary proxy headers. Production TLS termination and trusted-proxy configuration require release-stage verification. Login and initialization check Origin; authenticated write operations also check CSRF. Errors must be stable and must not contain SQL, passwords, request bodies, or provider credentials. Scope data access to the principal; cross-object access errors must not reveal whether an object exists.
+
+## Capability Mapping: Pages, Actions, Permissions, and Tests
+
+This table describes the target scope, not completed implementation. Every data operation needs loading, empty, failure, pending, and success states. Concurrent edits need conflict recovery. A identifiers refer to business acceptance cases; add concrete test files and evidence when each work package lands. Platform administration, self-service, Team management, and Project management are separate authorization contexts.
+
+| Capability / stage | Pages, tabs, and actions | Permissions / key states and acceptance |
+|---|---|---|
+| F01 · P1/P2 | Initialization, login, registration, registration setting, logout | Public initialization allowed only once; registration requires the setting to be enabled; A01 concurrent first-administrator creation, A02 login, A20 restart |
+| F02 · P2/P5 | Profile; security page with password, two-step verification, recovery codes, session revocation | Current user only; reverify identity for sensitive actions; recovery codes are single-use; A02/A15 |
+| F03 · P5 | Authentication-provider configuration drawers, callback binding, forced-SSO confirmation, emergency recovery | Administrators configure providers; users bind their own identities; success/rejection/cancellation/expiration/replay for each provider; A15 |
+| F04 · P2 | Member filtering, details, activation/deactivation; role, model, quota, and Key tabs | Platform administration; keep pending approval/active/disabled/offboarded states distinct; A02/A05 |
+| F05 · P1/P2 | Role list, create/edit, resource-action grants, composite roles | Platform role management; protect built-in roles and combine permissions on the server; A02 |
+| F06 · P2/P3 | Team list/create/details; members, owner, models, quotas, member rules | Platform or current-Team management; preserve continuity of the sole owner; A02/A04/A05/A11 |
+| F07 · P2/P3 | Administrator and member Project list/create/details; managers, models, Keys, rules, requests | Independent Project management relationships; retain an active manager; A02/A05/A13 |
+| F08 · P1/P2 | Personal/Project Key lists, creation form, one-time result, edit, enable/disable, delete, rotate | Ownership limited to individuals/Projects; creator is an audit fact only; pending delivery/active/revoked/expired; A03 |
+| F09 · P3 | Key rules: 5-hour/7-day/monthly Tokens, monthly amount, RPM/TPM/concurrency, IP | Can only narrow parent rules; validate IPv4/IPv6/CIDR and trusted source addresses; A03/A11/A12 |
+| F10 · P2/P5 | Offboarding asset inventory, successor form, completion confirmation, emergency deactivation | Platform administration; idempotent transaction, personal Key/session revocation, no transfer of personal Keys; A05 |
+| F11 · P1/P4 | Provider workspace, connection and credential drawers, discovered/manual models, verification/rotation | Platform administration; successful verification does not implicitly activate a connection; connection timeouts and credential failures are diagnosable; A07/A14 |
+| F12 · P1/P4 | Model list/create/details; names, provider bindings, protocol weights, catalog assistance | Platform administration; names cannot be reused, zero-weight candidates receive no traffic; A06/A07 |
+| F13 · P1/P4 | Native inference endpoints, runtime state, protocol errors, stream termination | Key or session identity with effective model authorization; preserve each of the four protocols' parameters and errors; A07/A08 |
+| F14 · P4 | Network-egress list/edit/default/direct connection, connection diagnostics | Platform administration; real execution of DNS/TCP/TLS/proxy/API diagnostic stages; A07/A14 |
+| F15 · P3/P5 | Current price catalog, individual editing, Excel/CSV import preview and errors, export, API, synchronization | Platform price management; shared validation/ETag/atomic commit, protect custom zero prices; A09 |
+| F16 · P3 | Currency and exchange-rate page, confirmation dialog, provider-model price details | Platform price management; decimal arithmetic, unit-price snapshots for in-flight requests, reject missing prices; A10 |
+| F17 · P3 | User/Team default-rule tabs; individual overrides/restore defaults, budgets, alerts/stop calls | Management of the corresponding resource; intersect inherited rules with Key rules, reservation/cancellation/settlement; A11 |
+| F18 · P3 | My requests/pending approvals/escalated approvals/platform records; Project model and quota changes | No self-approval; platform records are read-only; pending → first valid decision, withdrawn requests cannot be approved; A13 |
+| F19 · P2/P3/P4 | Member overview, model marketplace, source filters, details, requests, integration examples | Visibility does not imply invocation permission; distinguish personal and individual Team sources; A02/A04/A06 |
+| F20 · P4 | Single-model Playground/2–4 model comparison; session/Key, parameters, images/PDF, code, cancellation | One attribution context; each invocation can fail or be canceled independently; authorized attachment reads; A08/A17 |
+| F21 · P1/P3/P5 | Personal/platform-wide/Project request records, filters, incremental loading, detail drawer, CSV | Server-side principal isolation; redacted member details; prevent CSV formula injection; A02/A18 |
+| F22 · P3/P5 | Usage trends, granularity, Tokens/amounts, filters for principals/Keys/models/providers | Statistics use the same permissions as source facts; late arrivals/deduplication/replay, currencies and data freshness; A10/A14/A18 |
+| F23 · P5 | Administration overview, quality/alerts, notification center, notification settings, email delivery status | Real events, recipient permission isolation, retries without duplicate notifications; A18/A19 |
+| F24 · P5 | Read-only operational analysis, source explanations, saved reports, parameter/CSV export | Both queries and results enforce authorization; the model has no write permissions; malicious-input negative cases; A18 |
+| F25 · P2/P5 | Base layout; site name/URL/Logo/footer/language; announcement creation/editing/closure/history | Platform administration; controlled content, XSS prevention, settings survive restarts; A19 |
+| F26 · P5 | Instance list/details, heartbeats/resources, system tasks, offline cleanup confirmation | Platform operations; authoritative offline detection, no accidental deletion of online instances; A19/A20 |
+| F27 · P4/P5 | S3 configuration/testing, upload/read/cleanup; SMTP configuration/test delivery | Platform configuration, attachment-object authorization, credential redaction, timeout/retry handling; A17/A19 |
+| F28 · P1/P5 | Internal encryption, root-key rotation, Vault integration, provider-storage switching | Separate storage identity, stable references, verification/idempotency/failure compensation; A14/A16 |
+| F29 · P5 | Key delivery policies, application identity/Profile, integration descriptors, coordinator/rotation status | Delivery permissions separate from provider Vault identity; no plaintext fallback; configuration applied ≠ invocation verified; A03/A16 |
+| F30 · P1–P5 | Configuration validation/publication/acknowledgment/rollback, emergency revocation, audit filters and details | Platform administration; last valid snapshot, replay cannot restore revoked access, no secrets in audit records; A14/A18 |
+
+## Protocol and Model Capability Matrix (Planned)
+
+| Stage | Protocol endpoints | Required coverage | Not yet committed |
+|---|---|---|---|
+| P1 | `POST /v1/chat/completions` | Native requests/JSON/errors, SSE, cancellation, timeouts, actual model routing | Other protocols and the complete set of vendor APIs |
+| P4 | `POST /v1/responses` | Text, supported images/PDF, tool-parameter passthrough, native events | Asynchronous background tasks and server-side conversation continuation need separate decisions |
+| P4 | `POST /v1/messages` | Native Anthropic parameters, version headers, errors, stream events, tool parameters | Input types absent from the model's declared capabilities |
+| P4 | `POST /v1beta/models/{model}:generateContent`, `:streamGenerateContent` | Native Gemini content/errors, streaming, authorized model-name mapping | File management and other Gemini APIs |
+| P1/P4 | `GET /v1/models` | Callable model list, stable name resolution, authorization filtering | Catalog visibility does not automatically grant invocation permission |
+
+Before P4 starts, expand every candidate provider, model, protocol, and image/PDF type into explicit test cases. Reject capabilities unsupported by the upstream rather than silently translating between protocols. Model-generated tool-call parameters may pass through; this does not make RouteX responsible for arbitrary tool execution.
+
+## Snapshot, Revocation, and Event Constraints (Resolve Before P1-04)
+
+After validating the full configuration, the control plane atomically replaces an immutable snapshot. Decrypt provider credentials during preparation; the hot path must not access Vault. Invalid configuration must not replace the previous snapshot. Single-node Key revocation persists the state and updates the runtime deny set. All new requests must be rejected after revocation returns successfully. On startup, load revocation state before accepting traffic. Do not return success when revocation application cannot be confirmed.
+
+Deduplicate events by request ID; attempt IDs distinguish only upstream attempts. Each request has exactly one attribution context: individual, Team, or Project. Replay must not charge usage twice. Asynchronous analytics failures do not block already-authorized traffic. Define separate failure policies for an exhausted durable buffer and an unavailable primary database. Current identity APIs depend on the primary database and must fail safely when it is unavailable; they do not provide offline identity operations.
+
+P1-04 must first select durable event-buffer capacity and behavior when full. P3 adds monetary/quota reservations and atomic settlement; quota enforcement must not rely on querying analytics aggregates. Test old snapshots, revocation sets, and the boundaries around in-flight requests.
+
+## Metrics and External Dependencies
+
+The following are single-node experimental targets, not measured performance or production commitments. Fix the benchmark environment at 4 vCPU, 8 GiB, a colocated database, and a controlled low-latency upstream. Record the actual OS, CPU, database version, and container limits. Results from the current development machine do not directly represent this benchmark.
+
+| Metric | Experimental target | Verification stage |
+|---|---|---|
+| Additional gateway latency | 1 KiB requests, 2 KiB non-streaming responses, concurrency 50, 100 RPS for 10 minutes; p95 ≤ 20 ms, p99 ≤ 50 ms, proxy-originated error rate < 0.1% | P1 baseline, P6 acceptance |
+| SSE resources | 200 concurrent connections, 1 KiB/s per connection for 10 minutes; additional RSS ≤ 256 MiB, no accumulating leftover goroutines | P4/P6 |
+| Single-node configuration and revocation | Effective before publication returns successfully; all new requests rejected after revocation returns; operation p99 ≤ 1 second | P1/P3 |
+| Events | Normal-state persistence p95 ≤ 5 seconds; duplicate events do not duplicate metering; buffer limit and power-loss boundary decided in P1-04 | P1/P3 |
+| Restart/recovery | Ready to serve within 30 seconds with 100,000 user/Key configurations; backup recovery targets of RTO 30 minutes and RPO 24 hours require operational verification | P6 |
+
+| External dependency | Current status / responsibility and deadline |
+|---|---|
+| First real-provider credentials and spending authorization | Not provided; deployment owner supplies dedicated test resources before P1 real-provider smoke testing; do not search for credentials from other accounts |
+| IdP / LDAP / OAuth providers | Not provided; deployment owner supplies resources before P5 integration testing; engineering owns controlled-service contract tests |
+| Vault, S3, SMTP | No external accounts provided; test failure paths with locally controlled environments first, then accept real integrations in their respective stages |
+| Price-source URL/Schema/maintainer | Undecided; settle the Schema before P3 import work and supply the URL before P5 network synchronization |
+| AI analysis model/retention/languages | Decide before P5; analysis cannot launch without an authorized query scope |
+| Initial users, production deployment platform, multi-node requirements | Not yet provided; complete single-node development and testing first; do not translate relative weeks into release dates |
+
+## Acceptance and Evidence
+
+2026-09-23, baseline `493cf39`: three parallel subtasks deliver changes, with the coordinating task consolidating acceptance and staged commits.
+
+| Work package | Status | Evidence and limitations |
+|---|---|---|
+| Compose development and test foundation | Accepted | `6b57c94`; PostgreSQL 18.6 / MySQL 8.4.11; check, test, and actionlint passed in an isolated workspace; development volumes preserved |
+| P0-01/02 Identity-first contracts | In progress | F01–F30 page/action/permission index, identity schema/API, and migration design established; later domain schemas and detailed cases will be expanded in their work packages |
+| P0-03 Runtime contracts | In progress | Single-node scope, experimental metrics, and external dependencies registered; gateway buffer capacity and full-buffer policy must be decided before P1-04 |
+| P1-01 Complete identity flow (F01 local foundation, F05 minimum permissions) | Accepted | Delivered by the identity bootstrap commit: identity backend/frontend, versioned migrations, dual-database and process-restart tests; resolve the exact commit with `git log -- docs/AUTH.md` |
+| P1-02–05, P2–P6 | Not started | Connections/models/Keys/gateway/request facts and the remaining full capabilities have not been delivered |
+
+Verification in this iteration:
+
+- `go tool task check`: passed; backend lint reported 0 issues, TypeScript and mod tidy passed.
+- `go tool task test`: passed; Go race tests, 13 Vitest tests, 3 Vite Host tests, 2 development-process lifecycle tests, production asset build, and Go serving tests.
+- `npm --prefix website run lint`: 0 errors; the existing 2 Fast Refresh warnings for badge/button remain.
+- `go tool actionlint`: passed; database and process-restart checks are wired into CI, but no push has triggered remote CI. This does not establish that remote CI passed.
+- `go tool task test-integration`: passed on PostgreSQL 18.6 and MySQL 8.4.11 with the final migration and email-identity fixes; the handler integration suite ran uncached with the race detector (19.771 seconds).
+- `go tool task test-auth-lifecycle`: passed on both databases with the final patch: empty-database installation, real process stop/restart, original session persistence, logout revocation, and new login. Disposable processes, containers, and networks were cleaned up.
+- Browser: embedded production SPA with a dedicated test PostgreSQL database; initialization → home → authenticated after refresh → logout → incorrect password rejected → correct password login passed. The development database was not initialized, and no real enterprise account was used.
+
+A01 is covered on both databases. A02 covers current identity/admin/member boundaries; A20 covers current migration, upgrade, and restart behavior. These partial results do not establish acceptance for every future object's permissions, backup recovery, or the full platform release. Real providers, capacity targets, and external enterprise integrations remain unverified. The next work package is P1-02 connections and models, alongside expansion of the P1-03 Key delivery contract.
+
+Required checks: `go tool task check`, `go tool task test`, `go tool task test-integration`, `go tool task test-auth-lifecycle`, and `cd website && npm run lint`; workflow changes additionally require `go tool actionlint`. The complete identity flow also requires browser verification of empty-database initialization → refresh → logout → login, plus persistence across a process restart. Real providers, all four protocols, pricing, enterprise identity, and production deployment have separate later acceptance gates.
