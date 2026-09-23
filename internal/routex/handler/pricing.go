@@ -1,9 +1,6 @@
 package handler
 
 import (
-	"encoding/json"
-	"io"
-
 	"github.com/fox-gonic/fox"
 	apperrors "github.com/miclle/routex/internal/routex/errors"
 	"github.com/miclle/routex/internal/routex/service"
@@ -49,19 +46,6 @@ type QuotePriceRequest struct {
 	} `json:"usage"`
 }
 
-// Pricing rejects unsupported dimensions and conditions instead of silently
-// ignoring fields that could change the meaning of a submitted rate or quote.
-func decodePricingRequest(c *fox.Context, target any) error {
-	decoder := json.NewDecoder(c.Request.Body)
-	decoder.DisallowUnknownFields()
-	if err := decoder.Decode(target); err != nil {
-		return apperrors.ErrBadRequest
-	}
-	if err := decoder.Decode(new(any)); err != io.EOF {
-		return apperrors.ErrBadRequest
-	}
-	return nil
-}
 func (ctrl *Ctrl) ListPrices(c *fox.Context, request PriceListRequest) (*service.PricePage, error) {
 	return ctrl.service.ListPrices(c.Request.Context(), currentAuthentication(c).User.ID, service.PriceFilter{ProviderModelID: request.ProviderModelID, Cursor: request.Cursor, Limit: request.Limit})
 }
@@ -70,7 +54,7 @@ func (ctrl *Ctrl) GetPrice(c *fox.Context, request PricePath) (*service.PricePag
 }
 func (ctrl *Ctrl) WritePrices(c *fox.Context) (*service.PricePage, error) {
 	var request WritePricesRequest
-	if err := decodePricingRequest(c, &request); err != nil {
+	if err := decodeStrictRequest(c, &request); err != nil {
 		return nil, err
 	}
 	items := make([]service.PriceInput, 0, len(request.Items))
@@ -88,14 +72,14 @@ func (ctrl *Ctrl) WritePrices(c *fox.Context) (*service.PricePage, error) {
 }
 func (ctrl *Ctrl) WritePricingCurrency(c *fox.Context) (*service.PricePage, error) {
 	var request WritePricingCurrencyRequest
-	if err := decodePricingRequest(c, &request); err != nil {
+	if err := decodeStrictRequest(c, &request); err != nil {
 		return nil, err
 	}
 	return ctrl.service.WritePricingCurrency(c.Request.Context(), currentAuthentication(c).User.ID, request.ETag, request.Currency)
 }
 func (ctrl *Ctrl) QuotePrice(c *fox.Context) (*service.PriceQuote, error) {
 	var request QuotePriceRequest
-	if err := decodePricingRequest(c, &request); err != nil {
+	if err := decodeStrictRequest(c, &request); err != nil {
 		return nil, err
 	}
 	usage := request.Usage

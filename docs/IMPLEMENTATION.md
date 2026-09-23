@@ -284,3 +284,22 @@ integration passed in 147.486 seconds, and process restart/inference/revocation
 checks passed for both databases. A GORM field update now uses the mapped `ETag`
 field rather than a guessed database column; a READ COMMITTED regression verifies
 price/FX reads cannot mix catalogue generations on MySQL.
+
+### Project model access requests
+
+Migration 12 stores explicit model additions and their historical grant baseline.
+Current Project managers submit requests; another authorized actor approves or
+rejects them, and applicants can withdraw. Approval revalidates current identities
+and models, adds to the latest grants without restoring removed baseline grants,
+and publishes runtime authorization before reporting success. Existing Key model
+ceilings never expand. A bounded manager-only candidate endpoint exposes requestable
+model identities without global catalogue authority. See [PROJECT_REQUESTS](PROJECT_REQUESTS.md).
+
+The exact final source passed full check, full tests (76 Vitest cases, four Node
+checks, Go race/unit, development lifecycle, production build/assets), and
+PostgreSQL/MySQL integration in 164.392 seconds. The migration-12 process suite
+also passed restart/inference/revocation on both databases. Added HTTP tests caught
+and fixed silently ignored request fields; strict decoding now rejects unknown
+fields and trailing JSON values. HTTP filters, CSRF, candidates, workflow authority,
+terminal decisions, idempotency, and concurrent approval are exercised. Quota and
+rate-limit requests remain separate work.
