@@ -477,3 +477,21 @@ storage, source audit, stale commits, located formula errors and unchanged state
 after rejected writes. Actual browser upload/download completion remains unverified
 because browser file-access/control was unavailable; automated UI tests separately
 verify reviewed original-byte submission and error presentation.
+
+### Canonical usage reports
+
+Personal, Project and platform usage endpoints aggregate deduplicated immutable
+call facts under current authorization in one repeatable-read snapshot. Reports
+include trends, model distributions, Key rankings, explicit comparison ranges,
+reported token coverage and exact historical amounts grouped by currency. Missing
+usage remains unknown; current FX never rewrites old charges. Calendar/timezone
+handling includes DST, and bounded queries reject overflow without partial totals.
+See [USAGE](USAGE.md). Interfaces and broader Team/provider attribution remain open.
+
+Full check/test passed: 158 Vitest cases, four Node checks, Go race/unit,
+development lifecycle and production assets. PostgreSQL/MySQL integration passed
+in 219.103 seconds, covering replay deduplication, Personal/Project/platform
+isolation, archived Project manager access, membership revocation, guessed filters,
+route redaction and combined comparison row limits. This slice adds read-only
+queries without a schema or gateway admission change; the preceding process
+restart/inference/revocation acceptance remains applicable.

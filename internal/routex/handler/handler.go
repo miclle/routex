@@ -78,6 +78,8 @@ func (ctrl *Ctrl) RegisterRoutes(r *fox.Engine) {
 	projectKeys.POST("/:key_id/complete-rotation", sameOrigin, requireCSRF, jsonManagementRequest, ctrl.CompleteProjectKeyRotation)
 	identity.GET("/calls", ctrl.requireSession, ctrl.ListPersonalCalls)
 	identity.GET("/calls/:request_id", ctrl.requireSession, ctrl.GetPersonalCall)
+	identity.GET("/usage", ctrl.requireSession, ctrl.PersonalUsage)
+	identity.GET("/projects/:project_id/usage", ctrl.requireSession, ctrl.ProjectUsage)
 	identity.GET("/account/sessions", ctrl.requireSession, ctrl.ListAccountSessions)
 	identity.PATCH("/account", sameOrigin, ctrl.requireSession, requireCSRF, jsonAuthRequest, ctrl.UpdateProfile)
 	identity.POST("/account/password", sameOrigin, ctrl.requireSession, requireCSRF, jsonAuthRequest, ctrl.ChangePassword)
@@ -130,6 +132,7 @@ func (ctrl *Ctrl) RegisterRoutes(r *fox.Engine) {
 	admin.GET("/prices/export.csv", ctrl.RequirePermission("prices.read"), ctrl.ExportPriceCSV)
 	admin.POST("/prices/quote", sameOrigin, requireCSRF, jsonManagementRequest, ctrl.RequirePermission("prices.read"), ctrl.QuotePrice)
 
+	admin.GET("/usage", ctrl.RequirePermission("calls.read_all"), ctrl.AdminUsage)
 	admin.GET("/calls", ctrl.RequirePermission("calls.read_all"), ctrl.ListAdminCalls)
 	admin.GET("/calls/:request_id", ctrl.RequirePermission("calls.read_all"), ctrl.GetAdminCall)
 	admin.GET("/providers", ctrl.RequirePermission("providers.read"), ctrl.ListProviders)
