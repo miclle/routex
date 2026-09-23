@@ -198,8 +198,8 @@ func testRuntimePublicMutations(t *testing.T, db *gorm.DB, svc *service.Service,
 	if _, err := svc.ConfirmKeyDelivery(ctx, userID, replacement.Record.Key.ID); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := svc.AuthenticateAPIKey(ctx, created.Secret); !errors.Is(err, apperrors.ErrUnauthorized) {
-		t.Fatal("confirmed rotation retained the old key")
+	if _, err := svc.AuthenticateAPIKey(ctx, created.Secret); err != nil {
+		t.Fatal("delivery confirmation prematurely retired the old key")
 	}
 	if _, err := svc.AuthenticateAPIKey(ctx, replacement.Secret); err != nil {
 		t.Fatal("replacement not published")
@@ -325,6 +325,9 @@ func testDisabledKeyOwner(t *testing.T, db *gorm.DB, svc *service.Service) {
 		},
 		"rotate": func() error { _, err := svc.RotatePersonalKey(ctx, user.ID, pending.Record.Key.ID); return err },
 		"revoke": func() error { return svc.RevokePersonalKey(ctx, user.ID, pending.Record.Key.ID) },
+		"complete_rotation": func() error {
+			return svc.CompletePersonalKeyRotation(ctx, user.ID, pending.Record.Key.ID, "key_replacement")
+		},
 	}
 	for name, operation := range operations {
 		if err := operation(); !errors.Is(err, apperrors.ErrUnauthorized) {

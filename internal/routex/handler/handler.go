@@ -91,6 +91,10 @@ func (ctrl *Ctrl) RegisterRoutes(r *fox.Engine) {
 	admin.PUT("/projects/:project_id/managers", sameOrigin, requireCSRF, jsonManagementRequest, ctrl.SetProjectManagers)
 	admin.PUT("/projects/:project_id/models", sameOrigin, requireCSRF, jsonManagementRequest, ctrl.SetProjectModels)
 
+	admin.GET("/members/:user_id/offboarding", ctrl.RequirePermission("members.read"), ctrl.OffboardingInventory)
+	admin.POST("/members/:user_id/offboarding/plans", sameOrigin, requireCSRF, jsonManagementRequest, ctrl.RequirePermission("members.write"), ctrl.CreateOffboardingPlan)
+	admin.POST("/members/:user_id/offboarding/:case_id/complete", sameOrigin, requireCSRF, ctrl.RequirePermission("members.write"), ctrl.CompleteOffboarding)
+	admin.POST("/members/:user_id/offboarding/emergency", requireAdmin, sameOrigin, requireCSRF, jsonManagementRequest, ctrl.EmergencyOffboarding)
 	admin.GET("/members", ctrl.RequirePermission("members.read"), ctrl.ListMembers)
 	admin.GET("/members/:user_id", ctrl.RequirePermission("members.read"), ctrl.GetMember)
 	admin.POST("/members", sameOrigin, requireCSRF, jsonAuthRequest, ctrl.RequirePermission("members.write"), ctrl.CreateMember)
@@ -129,6 +133,7 @@ func (ctrl *Ctrl) RegisterRoutes(r *fox.Engine) {
 	keys.POST("/:key_id/confirm", sameOrigin, requireCSRF, ctrl.ConfirmKeyDelivery)
 	keys.PATCH("/:key_id", sameOrigin, requireCSRF, jsonManagementRequest, ctrl.UpdatePersonalKey)
 	keys.DELETE("/:key_id", sameOrigin, requireCSRF, ctrl.RevokePersonalKey)
+	keys.POST("/:key_id/complete-rotation", sameOrigin, requireCSRF, jsonManagementRequest, ctrl.CompletePersonalKeyRotation)
 	keys.POST("/:key_id/rotate", sameOrigin, requireCSRF, ctrl.RotatePersonalKey)
 }
 

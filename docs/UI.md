@@ -32,3 +32,7 @@ Members use a filtered, paginated table and an addressable detail page with over
 Roles use a table and grouped resource/action editing modal. Built-ins are read-only. The permission picker uses the server's assignable permission list; explicit custom-role assignment never submits built-in IDs. Assigned-role deletion conflicts remain visible and recoverable.
 
 Registration settings use an authentication-method card and right configuration drawer. Public sign-up is shown only while registration is enabled, uses the centered authentication surface, validates the password byte bound, and clears previous private caches when the server establishes the new session. Closed registration remains blocked by the server even if the form was opened earlier.
+
+## Verified personal Key rotation
+
+The personal Key table shows each replacement relationship and whether its original Key has been revoked. Confirming one-time delivery keeps the original Key usable; copying or confirming a secret never marks a call as verified. Once an active replacement exists, the original row exposes an explicit completion dialog that selects the replacement and asks the server to verify its persisted successful call before retirement. An eligibility conflict leaves the dialog open and the original unchanged for retry. Canceling pending delivery revokes only the replacement; emergency revocation remains an independent action. Disabled-source replacements retain their disabled state until explicitly enabled.

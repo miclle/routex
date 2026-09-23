@@ -51,7 +51,11 @@ beforeEach(() => {
     if (route === 'post /admin/models') response.data = structuredClone(model)
     if (route === 'get /admin/models') response.data = { items: [structuredClone(model)] }
     if (route === 'get /admin/model-grantees') response.data = { items: [{ id: 'usr_1', name: 'User', email: 'user@example.com' }, { id: 'usr_2', name: 'Second', email: 'second@example.com' }] }
-    if (route === 'post /keys' || route === 'post /keys/key_1/rotate') { keys.push(makeKey()); response.data = { key: makeKey(), secret } }
+    if (route === 'post /keys') { keys.push(makeKey()); response.data = { key: makeKey(), secret } }
+    if (route === 'post /keys/key_1/rotate') { const replacement = { ...makeKey(), id: 'key_2', replaces_key_id: 'key_1', prefix: 'rx_replacement' }; keys.push(replacement); response.data = { key: replacement, secret } }
+    if (route === 'post /keys/key_2/confirm') { keys[1].status = 'active'; response.data = keys[1] }
+    if (route === 'delete /keys/key_2') keys[1].status = 'revoked'
+    if (route === 'post /keys/key_1/complete-rotation') keys[0].status = 'revoked'
     if (route === 'post /keys/key_1/confirm') { keys[0].status = 'active'; response.data = keys[0] }
     if (route === 'delete /keys/key_1') keys[0].status = 'revoked'
     if (route === 'post /admin/credentials/cre_1/verify') { provider.connections[0].credentials[0].verification_status = 'verified'; response.data = { verified: true, discovered_models: 1 } }
@@ -120,6 +124,55 @@ describe('catalog and Key workflows', () => {
     delete failures['delete /keys/key_1']
     await click('取消并撤销')
     await until(() => expect(document.body.textContent).not.toContain(secret))
+  })
+  it('keeps the original Key active after confirming replacement delivery and requires explicit verified retirement', async () => {
+    keys = [makeKey('active')]
+    await render(<KeysPage />)
+    await until(() => expect(document.body.textContent).toContain('Test Key'))
+    await click('轮换')
+    await until(() => expect(document.body.textContent).toContain(secret))
+    expect(document.body.textContent).toContain('确认交付不代表调用验证通过')
+    await act(async () => { document.querySelector<HTMLInputElement>('[role="dialog"] input[type="checkbox"]')!.click() })
+    await click('确认交付')
+    await until(() => expect(document.body.textContent).not.toContain(secret))
+    expect(keys.map((key) => key.status)).toEqual(['active', 'active'])
+    expect(requests.some((request) => request.url?.endsWith('/complete-rotation'))).toBe(false)
+    await until(() => expect(document.body.textContent).toContain('完成轮换'))
+    await click('完成轮换')
+    failures['post /keys/key_1/complete-rotation'] = 409
+    await submit()
+    await until(() => expect(document.querySelector('[role="dialog"] [role="alert"]')).not.toBeNull())
+    expect(keys[0].status).toBe('active')
+    expect(document.querySelector('[role="dialog"]')).not.toBeNull()
+    delete failures['post /keys/key_1/complete-rotation']
+    await submit()
+    await until(() => expect(document.querySelector('[role="dialog"]')).toBeNull())
+    expect(keys.map((key) => key.status)).toEqual(['revoked', 'active'])
+    const completion = requests.find((request) => request.url === '/keys/key_1/complete-rotation')!
+    expect(completion.headers.get('X-CSRF-Token')).toBe('csrf')
+    expect(JSON.parse(completion.data)).toEqual({ replacement_key_id: 'key_2' })
+    expect(JSON.stringify(cache.getMutationCache().getAll().map((mutation) => mutation.state))).not.toContain(secret)
+  })
+  it('cancels a pending replacement without retiring its original Key', async () => {
+    keys = [makeKey('active')]
+    await render(<KeysPage />)
+    await until(() => expect(document.body.textContent).toContain('Test Key'))
+    await click('轮换')
+    await until(() => expect(document.body.textContent).toContain(secret))
+    await click('取消并撤销')
+    await until(() => expect(document.body.textContent).not.toContain(secret))
+    expect(keys.map((key) => key.status)).toEqual(['active', 'revoked'])
+    expect(requests.some((request) => request.url?.endsWith('/complete-rotation'))).toBe(false)
+  })
+  it('keeps emergency revocation available without any replacement', async () => {
+    keys = [makeKey('active')]
+    await render(<KeysPage />)
+    await until(() => expect(document.body.textContent).toContain('Test Key'))
+    expect(document.body.textContent).not.toContain('完成轮换')
+    await click('撤销')
+    await submit()
+    await until(() => expect(keys[0].status).toBe('revoked'))
+    expect(requests.some((request) => request.method === 'delete' && request.url === '/keys/key_1')).toBe(true)
   })
   it('does not query administrative data for a member', async () => {
     role = 'member'

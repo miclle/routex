@@ -25,13 +25,14 @@ type PermissionResponse struct {
 	Permissions []string `json:"permissions"`
 }
 type MemberResponse struct {
-	ID        string    `json:"id"`
-	Email     string    `json:"email"`
-	Name      string    `json:"name"`
-	Role      string    `json:"role"`
-	Disabled  bool      `json:"disabled"`
-	CreatedAt time.Time `json:"created_at"`
-	RoleIDs   []string  `json:"role_ids"`
+	ID           string     `json:"id"`
+	Email        string     `json:"email"`
+	Name         string     `json:"name"`
+	Role         string     `json:"role"`
+	OffboardedAt *time.Time `json:"offboarded_at"`
+	Disabled     bool       `json:"disabled"`
+	CreatedAt    time.Time  `json:"created_at"`
+	RoleIDs      []string   `json:"role_ids"`
 }
 type MembersResponse struct {
 	Items      []MemberResponse `json:"items"`
@@ -94,7 +95,7 @@ func (ctrl *Ctrl) RequirePermission(permission string) fox.HandlerFunc {
 }
 
 func memberResponse(item service.MemberRecord) *MemberResponse {
-	return &MemberResponse{ID: item.User.ID, Email: item.User.Email, Name: item.User.Name, Role: item.User.Role, Disabled: item.User.Disabled, CreatedAt: item.User.CreatedAt, RoleIDs: item.RoleIDs}
+	return &MemberResponse{ID: item.User.ID, Email: item.User.Email, Name: item.User.Name, Role: item.User.Role, Disabled: item.User.Disabled, OffboardedAt: item.User.OffboardedAt, CreatedAt: item.User.CreatedAt, RoleIDs: item.RoleIDs}
 }
 func roleResponse(item service.RoleRecord) *RoleResponse {
 	return &RoleResponse{ID: item.Role.ID, Name: item.Role.Name, Builtin: item.Role.Builtin, Permissions: item.Permissions}

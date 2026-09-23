@@ -164,9 +164,12 @@ are implemented with controlled PostgreSQL/MySQL acceptance. The native gateway
 and request records have controlled ordinary/streaming and restart evidence.
 Immutable runtime publication, separately leased authorization, and a bounded durable local call journal are implemented. The journal is transport storage; relational domain models remain in GORM-managed PostgreSQL/MySQL.
 
-Member/role/registration and Team/Project governance backends are implemented.
-Their full interfaces, complete credential lifecycle, and offboarding remain in
-progress. Metering and quotas, additional native protocols, and enterprise
+Member/role/registration interfaces and Team/Project governance backends are implemented.
+Project Keys retain Project ownership independently of their creators. Personal and
+Project Key retirement requires a confirmed replacement and a persisted successful
+call. Transactional offboarding preserves resource continuity while removing user
+authority and personal credentials. Resource and offboarding interfaces, automatic
+planned execution, and external delivery integrations remain in progress. Metering and quotas, additional native protocols, and enterprise
 integrations remain later phases. See
 [IMPLEMENTATION.md](IMPLEMENTATION.md) for the dependency order, protocol matrix,
 acceptance cases, and unverified deployment boundaries. A complete capability requires its

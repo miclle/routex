@@ -100,7 +100,8 @@ func testKeyLifecycle(t *testing.T, db *gorm.DB) {
 	if _, err := svc.AuthenticateAPIKey(ctx, original.Secret); err != nil {
 		t.Fatal("canceling rotation revoked original", err)
 	}
-	// Two delivered replacements cannot both activate: old-key lock chooses one winner.
+	// Delivery confirmation may activate multiple replacements; it never proves
+	// application rollout or retires the old credential.
 	a, b := rotate(), rotate()
 	var wg sync.WaitGroup
 	codes := make(chan int, 2)
@@ -122,11 +123,11 @@ func testKeyLifecycle(t *testing.T, db *gorm.DB) {
 			t.Fatalf("concurrent confirmation status %d", code)
 		}
 	}
-	if successes != 1 || conflicts != 1 {
+	if successes != 2 || conflicts != 0 {
 		t.Fatalf("rotation winners %d conflicts %d", successes, conflicts)
 	}
-	if _, err := svc.AuthenticateAPIKey(ctx, original.Secret); err == nil {
-		t.Fatal("rotated original still valid")
+	if _, err := svc.AuthenticateAPIKey(ctx, original.Secret); err != nil {
+		t.Fatal("confirmation prematurely retired original")
 	}
 	for _, key := range []CreatedKeyResponse{a, b} {
 		if _, err := svc.AuthenticateAPIKey(ctx, key.Secret); err != nil {

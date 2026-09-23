@@ -39,7 +39,7 @@ Planned completion requires the replacement to be active and unexpired, to retai
 
 Emergency revocation is independent and available immediately, without waiting for replacement issuance, delivery, or verification. A revoked source Key cannot authorize a still-pending replacement's confirmation. Concurrent revoke/confirm/rotate cannot restore the revoked source.
 
-This verified-retirement contract is the canonical target for planned rotation. The earlier personal-Key implementation currently retires its source during delivery confirmation and still requires alignment in a later personal-Key lifecycle update; Project Keys do not inherit that shortcut. This slice also keeps expiry immutable across rotation; a separately created Key is required for a different lifetime.
+This verified-retirement contract also applies to [personal Keys](KEYS.md). Completion audits identify the exact replacement, whose immutable relation identifies the source. A previously completed retirement stays idempotent even when that replacement is subsequently disabled, expires, or is revoked; current management authorization is still required. This slice keeps expiry immutable across rotation; a separately created Key is required for a different lifetime.
 
 ## API Contract
 

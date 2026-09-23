@@ -186,7 +186,12 @@ func (s *Service) UpdateMember(ctx context.Context, actorID, userID string, disa
 			}
 		}
 		invalidate = nextDisabled || (target.Role == entity.RoleAdmin && nextRole != entity.RoleAdmin)
-		if err := tx.Model(&target).Updates(map[string]any{"disabled": nextDisabled, "role": nextRole}).Error; err != nil {
+		updates := map[string]any{"disabled": nextDisabled, "role": nextRole}
+		reactivating := target.Disabled && !nextDisabled && target.OffboardedAt != nil
+		if reactivating {
+			updates["offboarded_at"] = nil
+		}
+		if err := tx.Model(&target).Updates(updates).Error; err != nil {
 			return err
 		}
 		if nextDisabled {
@@ -196,6 +201,9 @@ func (s *Service) UpdateMember(ctx context.Context, actorID, userID string, disa
 			if err := tx.Model(&entity.APIKey{}).Where("user_id = ? AND status <> ?", userID, entity.KeyRevoked).Update("status", entity.KeyRevoked).Error; err != nil {
 				return err
 			}
+		}
+		if reactivating {
+			return appendAudit(tx, actorID, "member.reactivate", "user", userID)
 		}
 		return appendAudit(tx, actorID, "member.update", "user", userID)
 	})

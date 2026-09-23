@@ -204,12 +204,8 @@ func (s *Service) ConfirmKeyDelivery(ctx context.Context, userID, keyID string) 
 				return errKeyConflict
 			}
 			key.ActivateOnConfirm = old.Status == entity.KeyActive
-			if err := tx.Model(old).Update("status", entity.KeyRevoked).Error; err != nil {
-				return err
-			}
-			if err := appendAudit(tx, userID, "key.revoke", "api_key", old.ID); err != nil {
-				return err
-			}
+			// Delivery is not application verification. Planned retirement is a
+			// separate operation backed by a successful replacement call fact.
 		}
 		key.Status = entity.KeyDisabled
 		if key.ActivateOnConfirm {
@@ -225,9 +221,6 @@ func (s *Service) ConfirmKeyDelivery(ctx context.Context, userID, keyID string) 
 		result = &KeyRecord{Key: *key, ModelIDs: models}
 		return nil
 	})
-	if err == nil && result.Key.ReplacesKeyID != nil {
-		s.InvalidateRuntimeKey(*result.Key.ReplacesKeyID)
-	}
 	return result, s.refreshAfterMutation(ctx, keyServiceError(err))
 }
 

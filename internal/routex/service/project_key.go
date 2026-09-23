@@ -364,7 +364,17 @@ func (s *Service) CompleteProjectKeyRotation(ctx context.Context, actorID, proje
 		if err != nil {
 			return err
 		}
-		if replacement.Key.ReplacesKeyID == nil || *replacement.Key.ReplacesKeyID != keyID || replacement.Key.Status != entity.KeyActive || (replacement.Key.ExpiresAt != nil && !replacement.Key.ExpiresAt.After(time.Now())) {
+		if replacement.Key.ReplacesKeyID == nil || *replacement.Key.ReplacesKeyID != keyID {
+			return errKeyConflict
+		}
+		completed, err := keyRotationCompleted(tx, "project_key.rotation.complete", "project_api_key", replacementID)
+		if err != nil {
+			return err
+		}
+		if completed && old.Key.Status == entity.KeyRevoked {
+			return nil
+		}
+		if replacement.Key.Status != entity.KeyActive || (replacement.Key.ExpiresAt != nil && !replacement.Key.ExpiresAt.After(time.Now())) {
 			return errKeyConflict
 		}
 		if old.Key.Status != entity.KeyActive && old.Key.Status != entity.KeyDisabled && old.Key.Status != entity.KeyRevoked {
@@ -383,13 +393,15 @@ func (s *Service) CompleteProjectKeyRotation(ctx context.Context, actorID, proje
 		if calls == 0 {
 			return errKeyConflict
 		}
-		if old.Key.Status == entity.KeyRevoked {
-			return nil
+		if old.Key.Status != entity.KeyRevoked {
+			if err := tx.Model(&old.Key).Update("status", entity.KeyRevoked).Error; err != nil {
+				return err
+			}
+			if err := appendAudit(tx, actorID, "project_key.revoke", "project_api_key", keyID); err != nil {
+				return err
+			}
 		}
-		if err := tx.Model(&old.Key).Update("status", entity.KeyRevoked).Error; err != nil {
-			return err
-		}
-		return appendAudit(tx, actorID, "project_key.rotation.complete", "project_api_key", keyID)
+		return appendAudit(tx, actorID, "project_key.rotation.complete", "project_api_key", replacementID)
 	})
 	if err == nil {
 		s.InvalidateRuntimeKey(keyID)

@@ -145,12 +145,12 @@ The following are single-node experimental targets, not measured performance or 
 |---|---|---|
 | Compose development and test foundation | Accepted | `6b57c94`; PostgreSQL 18.6 / MySQL 8.4.11; check, test, and actionlint passed in an isolated workspace; development volumes preserved |
 | P0-01/02 Identity-first contracts | In progress | F01–F30 page/action/permission index, identity schema/API, and migration design established; later domain schemas and detailed cases will be expanded in their work packages |
-| P0-03 Runtime contracts | In progress | Single-node scope, experimental metrics, and external dependencies registered; gateway buffer capacity and full-buffer policy must be decided before P1-04 |
+| P0-03 Runtime contracts | In progress | Single-node scope, experimental metrics, and external dependencies registered; gateway buffer capacity and full-buffer policy are documented in RUNTIME.md; measured capacity acceptance remains open |
 | P1-01 Complete identity flow (F01 local foundation, F05 minimum permissions) | Accepted | Delivered by the identity bootstrap commit: identity backend/frontend, versioned migrations, dual-database and process-restart tests; resolve the exact commit with `git log -- docs/AUTH.md` |
 | P1-02 Connections and model grants | Delivered (`3cd5305`); controlled local acceptance passed | Encrypted credential storage, SSRF-resistant upstream client, actual controlled verification, explicit enablement, stable names, atomic weights, and grants; PostgreSQL/MySQL integration passed |
 | P1-03 Personal Keys | Delivered (`3cd5305`); controlled local acceptance passed | One-time pending delivery, confirmation, digest storage, concurrent rotation, ownership, revocation and audit; PostgreSQL/MySQL integration passed |
-| P1-04/05 | In progress | Native OpenAI chat ordinary/SSE, Key Playground, isolated personal/admin call queries and request facts have controlled dual-database evidence; immutable runtime snapshots and durable event-buffer acceptance remain open |
-| P2 | In progress | Profile/password/session APIs and UI delivered; member/role/registration and Team/Project backend implemented with dual-database evidence; governance pages follow |
+| P1-04/05 | In progress | Native OpenAI chat ordinary/SSE, Key Playground, isolated personal/admin call queries and request facts have controlled dual-database evidence; immutable snapshots and bounded durable events have controlled failure/restart evidence; measured capacity and real-provider acceptance remain open |
+| P2 | In progress | Profile/password/session APIs and UI delivered; member/role/registration interfaces and Team/Project backend delivered; Project Keys, offboarding, and resource interfaces advance in separate verified packages |
 | P3–P6 | Pending | Full goal remains active; metering through final acceptance follows the preceding dependencies |
 
 Verification in this iteration:
@@ -204,3 +204,36 @@ The exact v9 backend source passed full check, Go race/unit/asset tests, 49 exis
 Member list/detail/creation and lifecycle actions, custom role permission assignment, and registration configuration/public signup now use the implemented governance APIs. Navigation and page gates query effective permissions; delegated readers cannot gain write controls or administrative routes merely through a role label. The sidebar and all forms/tables/drawers follow the approved layouts with local Base UI primitives.
 
 The frontend passed 62 Vitest and four Node tests, TypeScript, production build, and lint (zero errors, two existing Fast Refresh warnings). A disposable browser verified role creation/assignment, permission changes, registration persistence, restricted delegated navigation, denied direct navigation, and ordinary-member signup. That run found an anonymous-session cleanup race hiding the enabled registration entry; the public query now lives in the retained auth namespace and a real AuthGate regression covers it. Team/Project interfaces, full Key lifecycle UI, and offboarding views continue in the next packages.
+
+### Verified Key retirement and transactional offboarding
+
+Personal Key confirmation activates the replacement while preserving the old Key.
+A separate completion action requires a persisted successful call with the exact
+replacement and attribution, then retires the old Key idempotently. Emergency
+revocation remains independent. The UI exposes these distinct operations and
+recoverable conflicts. Project completion retains the same verified/idempotent
+boundary.
+
+Migration 10 and the offboarding APIs implement reviewed inventory, explicit
+successor assignment, stale-plan conflict detection, and password-verified emergency
+handover. One transaction removes sessions, personal Keys, role assignments, the
+base administrator role, and departing Team/Project relationships while preserving
+Project assets and historical records. Explicit reactivation does not restore
+removed authority. Planned timestamps do not imply an automatic scheduler. See
+[OFFBOARDING](OFFBOARDING.md).
+
+The exact v10 source passed full check, Go race/unit/production tests, 65 Vitest
+cases, four Node checks, frontend lint (zero errors, two existing warnings),
+PostgreSQL/MySQL integration (152.168 seconds), and process-restart inference and
+revocation checks on both databases. Recorder tests additionally prove a full or
+closed journal prevents upstream dispatch. Prior full-suite runs returned a 503
+from runtime refresh during personal Key creation under a materially slower run;
+a focused test, diagnostic full suite, and final unmodified full suite passed.
+Diagnostics found no retained pool usage or lock waits. The initial cause remains
+unproven; production deadlines were not weakened and no retries were added.
+
+A disposable browser verified replacement creation and preservation of the old
+Key. Browser control disconnected before final confirmation/retirement, so complete
+browser retirement remains unverified despite UI and dual-database regression
+coverage. Resource and offboarding interfaces, automatic execution, external Key
+delivery, and full platform acceptance remain separate work.

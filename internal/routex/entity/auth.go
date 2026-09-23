@@ -15,6 +15,7 @@ type User struct {
 	PasswordHash string `gorm:"size:60;not null"`
 	Role         string `gorm:"size:20;not null"`
 	Disabled     bool   `gorm:"not null"`
+	OffboardedAt *time.Time
 	CreatedAt    time.Time
 	UpdatedAt    time.Time
 }

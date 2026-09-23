@@ -227,6 +227,13 @@ func testProjectKeyLifecycle(t *testing.T, db *gorm.DB) {
 	}
 	expectStatus(t, successorRequest("POST", keyPath+"/complete-rotation", completion), 204)
 	expectStatus(t, successorRequest("POST", keyPath+"/complete-rotation", completion), 204)
+	expectStatus(t, successorRequest("PATCH", replacementPath, map[string]any{"enabled": false}), 200)
+	expectStatus(t, successorRequest("POST", keyPath+"/complete-rotation", completion), 204)
+	expectStatus(t, successorRequest("PATCH", replacementPath, map[string]any{"enabled": true}), 200)
+	var completionAudits int64
+	if err := db.Model(&entity.AuditEvent{}).Where("action = ? AND resource_id = ?", "project_key.rotation.complete", replacement.Key.ID).Count(&completionAudits).Error; err != nil || completionAudits != 1 {
+		t.Fatal("Project rotation completion audit was duplicated or misattributed")
+	}
 	if _, err := svc.AuthenticateAPIKey(ctx, created.Secret); err == nil {
 		t.Fatal("old Project Key remained valid after verified retirement")
 	}
