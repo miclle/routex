@@ -384,7 +384,14 @@ function Providers() {
                   {selected.connections.flatMap((c) =>
                     c.provider_models.map((m) => (
                       <tr key={m.id}>
-                        <td>{m.upstream_name}</td>
+                        <td>
+                          <Link
+                            className="text-primary"
+                            to={`/admin/providers/${selected.id}/models/${m.id}`}
+                          >
+                            {m.upstream_name}
+                          </Link>
+                        </td>
                         <td>{c.name}</td>
                         <td>{t('common.openAIChat')}</td>
                       </tr>

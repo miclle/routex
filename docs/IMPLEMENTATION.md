@@ -339,3 +339,20 @@ databases. Controlled HTTP tests verify price publication, old/new exact amounts
 journal reopen before database delivery, concurrent replay idempotency, unsupported
 tier classification, and member/admin receipt visibility. This establishes bounded
 text assessment, not provider invoicing, quota enforcement, or all pricing metrics.
+
+### Provider model prices and Project request interfaces
+
+Provider model rows open stable detail pages with identity, authorized routing,
+and a current-price component table. Editors preserve decimal strings and explicit
+zero/disabled values, and require reloading and reviewing a retained draft after
+an ETag conflict. Project model requests remain within Resource configuration,
+with explicit additions, pending history, nonself decisions, and own withdrawal.
+Pending requests never change effective grants.
+
+The exact final source passed full check/test with 121 Vitest cases, four Node
+checks, Go race/unit, development lifecycle, production build/assets, and only the
+two existing primitive lint warnings. A controlled browser fixture verified exact
+18-digit decimal drafts through conflict/reload/save, read-only price controls,
+Project request submission with unchanged grants, Chinese history/detail, and no
+applicant approval action. These client checks complement the committed database
+contracts; they do not claim a deployed end-to-end environment.

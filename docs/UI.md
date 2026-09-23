@@ -56,3 +56,15 @@ Project call tables reuse the call-record component with Project-specific endpoi
 
 
 Verification includes focused behavior tests for scoped list authorization, Team creation with an owner picker and CSRF, read-only Team membership, manager-only Project settings, scoped manager candidate lookup, full model replacement preserving unseen IDs, recoverable continuity conflicts, disabled-before-archive lifecycle, live language switching, and Project call cache isolation. Quota, budget, and request-policy sections are introduced only when their backing operations are available.
+
+### Provider model prices
+
+Provider model names open a stable detail URL under their provider. The detail
+keeps the identity card, authorized routing relationships, and price settings in
+that order. Price settings use a compact component table and an editor dialog;
+permission to read prices never implies permission to write them. Edits preserve
+decimal strings, require an explicit zero for free rates, and submit the captured
+catalogue ETag. A conflict blocks resubmission until current prices are reloaded
+and the retained draft is reviewed. Only supported text-token conditions are
+available. Import, repository synchronization, and other pricing dimensions are
+separate workflows still under implementation.

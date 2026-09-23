@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import CallsPage from '@/views/calls'
 import ProjectKeysPanel from '@/views/project-keys'
+import ProjectRequestsPanel from '@/views/project-requests'
 import { ResourceSection } from './shared'
 import { ResourcePeople } from './people'
 import { ResourceModels } from './models'
@@ -51,6 +52,9 @@ function ResourceDetail({ kind, resource }: { kind: ResourceKind; resource: Reso
   const canEdit = access.can(`${kind}.write`) || isManager
   const canModels = access.can(`${kind}.models.write`) && resource.status !== 'archived'
   const canCalls = kind === 'projects' && (isManager || access.can('calls.read_all'))
+  const canRequests =
+    kind === 'projects' &&
+    (isManager || access.can('projects.models.write') || access.can('projects.read_all'))
   const tabs =
     kind === 'teams'
       ? ['overview', 'members', 'models', 'settings']
@@ -163,7 +167,10 @@ function ResourceDetail({ kind, resource }: { kind: ResourceKind; resource: Reso
           </TabsContent>
         )}
         <TabsContent value={kind === 'teams' ? 'models' : 'resources'}>
-          <ResourceModels resource={resource} kind={kind} canEdit={canModels} />
+          <div className="space-y-6">
+            <ResourceModels resource={resource} kind={kind} canEdit={canModels} />
+            {canRequests && <ProjectRequestsPanel project={resource} />}
+          </div>
         </TabsContent>
         {kind === 'projects' && canEdit && (
           <TabsContent value="keys">

@@ -240,6 +240,24 @@ describe('Team and Project resource workflows', () => {
     expect(requests.some((r) => r.url === '/projects/prj_1/manager-candidates')).toBe(true)
     expect(requests.some((r) => r.url === '/admin/members')).toBe(false)
   })
+  it('keeps model requests inside Project resource configuration and hides them from unrelated readers', async () => {
+    await mount('/projects/prj_1?tab=resources')
+    await until(() => expect(host.textContent).toContain('Model access requests'))
+    expect(requests.some((request) => request.url === '/projects/prj_1/requests')).toBe(true)
+    expect([...host.querySelectorAll('[role="tab"]')].map((tab) => tab.textContent)).not.toContain(
+      'Requests',
+    )
+    expect(
+      [...host.querySelectorAll('button')].some(
+        (button) => button.textContent === 'Request models',
+      ),
+    ).toBe(true)
+    project = { ...project, managers: [] }
+    await act(async () => {
+      cache.setQueryData(['resources', 'projects', false, 'prj_1'], project)
+    })
+    await until(() => expect(host.textContent).not.toContain('Model access requests'))
+  })
   it('preserves unseen grants while adding a model and leaves rejected changes recoverable', async () => {
     permissions = ['projects.models.write']
     await mount('/projects/prj_1?tab=resources')

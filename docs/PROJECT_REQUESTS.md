@@ -51,3 +51,14 @@ The request baseline is historical evidence, not a replacement policy. Request r
 The isolated PostgreSQL and MySQL lifecycle harness covers manager/approval permissions, idempotency, unchanged pending/rejected/withdrawn grants, stale baseline preservation, immutable key ceilings, immediate runtime publication, account/Project/model/manager revalidation, scoped history, and concurrent terminal decisions. Pure unit tests cover input normalization and decision validation.
 
 Candidate visibility permits requesting access only; it does not grant invocation or expose provider configuration. Inactive Projects cannot request candidates. HTTP integration additionally verifies session/CSRF enforcement, unsupported fields and kinds, bound status/cursor/limit queries, and exclusion of granted models.
+
+
+## Web workflow
+
+The Project resource configuration presents model request history with status filters and cursor pagination. Current managers can search active, ungranted model identities and submit explicit additions with a required reason. The form shows existing grants as context; pending requests leave access unchanged. Historical records retain model and member IDs, including identities that are no longer visible in current selectors.
+
+The detail dialog separates the original baseline, requested additions, applicant, and final decision. Members with `projects.models.write` can approve or reject another member's request; rejection requires a reason. Applicants can withdraw their own pending requests. Inactive Projects disable new requests and approvals while retaining permitted rejection, withdrawal, and history. The UI never treats creator identity or platform administrator status alone as a manager relationship.
+
+Submission retries preserve the caller-generated request ID and reviewed payload. An uncertain mutation outcome locks the intent for an identical retry; HTTP 409 closes the stale review through an explicit history refresh. Successful actions refresh request history, candidates, and Project resource queries. Approval does not expand existing Project Key ceilings. English and Chinese translations cover the workflow; quota and rate limit request controls are intentionally absent until supported by the backend.
+
+Focused frontend tests cover scoped visibility, manager-only submission, explicit-addition payloads, CSRF, stable retries, self-approval prevention, rejection reasons, inactive Project behavior, terminal decision history, conflict recovery, pagination, and both locales. Backend lifecycle tests separately establish transactional and runtime behavior.

@@ -1,10 +1,14 @@
 import i18n from 'i18next'
+import enPricing from './locales/en/pricing'
+import zhPricing from './locales/zh/pricing'
 import { initReactI18next } from 'react-i18next'
 import en from './locales/en/common'
 import enResources from './locales/en/resources'
 import zhResources from './locales/zh/resources'
 import enProjectKeys from './locales/en/projectKeys'
 import zhProjectKeys from './locales/zh/projectKeys'
+import enProjectRequests from './locales/en/projectRequests'
+import zhProjectRequests from './locales/zh/projectRequests'
 import enOffboarding from './locales/en/offboarding'
 import zhOffboarding from './locales/zh/offboarding'
 import zh from './locales/zh/common'
@@ -28,8 +32,10 @@ void i18n.use(initReactI18next).init({
   resources: {
     en: {
       common: en,
+      pricing: enPricing,
       resources: enResources,
       projectKeys: enProjectKeys,
+      projectRequests: enProjectRequests,
       offboarding: enOffboarding,
       catalog: enCatalog,
       activity: enActivity,
@@ -37,8 +43,10 @@ void i18n.use(initReactI18next).init({
     },
     zh: {
       common: zh,
+      pricing: zhPricing,
       resources: zhResources,
       projectKeys: zhProjectKeys,
+      projectRequests: zhProjectRequests,
       offboarding: zhOffboarding,
       catalog: zhCatalog,
       activity: zhActivity,
