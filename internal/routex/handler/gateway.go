@@ -10,6 +10,7 @@ import (
 	"log"
 	"mime"
 	"net/http"
+	"slices"
 	"strings"
 	"time"
 
@@ -113,7 +114,7 @@ func (ctrl *Ctrl) recordGatewayCall(ctx context.Context, requestID string, start
 		status, code = "error", "upstream_timeout"
 	}
 	completed := time.Now().UTC()
-	fact := service.CallFact{RequestID: requestID, SnapshotID: result.SnapshotID, UserID: result.UserID, ProjectID: result.ProjectID, KeyID: result.KeyID, ModelID: result.ModelID, ModelName: result.ModelName, ProviderModelID: result.ProviderModelID, ConnectionID: result.ConnectionID, Protocol: entity.ProtocolOpenAIChat, Status: status, Stream: result.Stream, StartedAt: started, CompletedAt: completed, InputTokens: usage.Input, OutputTokens: usage.Output, ErrorCode: code}
+	fact := service.CallFact{RequestID: requestID, SnapshotID: result.SnapshotID, UserID: result.UserID, ProjectID: result.ProjectID, KeyID: result.KeyID, ModelID: result.ModelID, ModelName: result.ModelName, ProviderModelID: result.ProviderModelID, ConnectionID: result.ConnectionID, Protocol: entity.ProtocolOpenAIChat, Status: status, Stream: result.Stream, StartedAt: started, CompletedAt: completed, InputTokens: usage.Input, OutputTokens: usage.Output, CacheReadTokens: usage.CacheRead, CacheWriteTokens: usage.CacheWrite, UsageComplete: usage.Complete, PricingUnsupported: result.PricingUnsupported || usage.Unsupported, PriceBasis: result.PriceBasis, PricingDimensions: append(append([]string{}, result.PricingDimensions...), usage.UnsupportedDimensions...), ErrorCode: code}
 	if result.AttemptID != "" {
 		httpStatus := 0
 		if result.Response != nil {
@@ -130,26 +131,10 @@ func (ctrl *Ctrl) recordGatewayCall(ctx context.Context, requestID string, start
 	}
 }
 
-type gatewayUsage struct{ Input, Output *int64 }
+type gatewayUsage = service.GatewayUsage
 
 func parseGatewayUsage(raw []byte) gatewayUsage {
-	var payload struct {
-		Usage *struct {
-			Input  *int64 `json:"prompt_tokens"`
-			Output *int64 `json:"completion_tokens"`
-		} `json:"usage"`
-	}
-	if json.Unmarshal(raw, &payload) != nil || payload.Usage == nil {
-		return gatewayUsage{}
-	}
-	usage := gatewayUsage{Input: payload.Usage.Input, Output: payload.Usage.Output}
-	if usage.Input != nil && *usage.Input < 0 {
-		usage.Input = nil
-	}
-	if usage.Output != nil && *usage.Output < 0 {
-		usage.Output = nil
-	}
-	return usage
+	return service.ParseOpenAIUsage(raw, false)
 }
 
 func prepareGateway(c *fox.Context) (string, error) {
@@ -262,13 +247,19 @@ func proxyGatewayStream(ctx context.Context, writer http.ResponseWriter, body io
 			}
 			if len(data) != 0 {
 				if !terminal {
-					observed := parseGatewayUsage(bytes.TrimSpace(bytes.TrimPrefix(data, []byte("data: "))))
-					if observed.Input != nil {
-						usage.Input = observed.Input
+					observed := service.ParseOpenAIUsage(bytes.TrimSpace(bytes.TrimPrefix(data, []byte("data: "))), true)
+					unsupported := usage.Unsupported || observed.Unsupported
+					dimensions := append([]string{}, usage.UnsupportedDimensions...)
+					for _, dimension := range observed.UnsupportedDimensions {
+						if !slices.Contains(dimensions, dimension) {
+							dimensions = append(dimensions, dimension)
+						}
 					}
-					if observed.Output != nil {
-						usage.Output = observed.Output
+					if observed.Present {
+						usage = observed
 					}
+					usage.Unsupported = unsupported
+					usage.UnsupportedDimensions = dimensions
 				}
 				if err := write(data); err != nil {
 					return usage, err

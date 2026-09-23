@@ -7,10 +7,10 @@ existing catalogue. Price records use `prc_` IDs and rate records use `rat_` IDs
 There are no price books, publication stages, effective-time versions, alternate
 supplier/public catalogues, or formula expressions.
 
-This slice is a text pricing core and a control-plane catalogue. The gateway does
-**not** invoke it, and quotes do not create call charges, quota deductions, invoices,
-or financial ledger records. A quote is a deterministic dry run over a captured
-current price and exchange-rate snapshot.
+The control-plane quote API is a deterministic dry run. The gateway also assesses
+supported final text usage against the price and exchange-rate snapshot captured
+before dispatch. These immutable call amounts do not deduct quota, create invoices,
+or post financial ledger records. See [Gateway text assessment](METERING.md).
 
 ## Text pricing adapter
 
@@ -53,8 +53,8 @@ ordinary_input = input_tokens - cache_read_tokens - cache_write_tokens
 ```
 
 Cache categories must not overlap and their sum must not exceed total input.
-Invalid usage is rejected instead of being clamped. A future native usage adapter
-must establish these invariants before submitting a quote.
+Invalid usage is rejected instead of being clamped. The native Chat Completions usage adapter establishes these invariants before
+assessing a call; other protocols require separate adapters.
 
 The long-context tier applies only when total input is strictly greater than the
 configured threshold. Equality uses base. The selected tier applies to the whole
@@ -85,9 +85,9 @@ requires its currency conversion to be configured.
 The quote captures provider-model and price IDs, adapter ID, normalized usage,
 selected tier and threshold, each used rate's identity/amount/currency/unit,
 exchange rates, per-component charges, platform currency, total, and catalogue
-ETag. Later catalogue edits cannot change the returned snapshot. Future persisted
-billing must retain this basis; reading the latest catalogue after a call would
-change historical meaning and is not supported.
+ETag. Later catalogue edits cannot change the returned snapshot. Gateway calls
+retain the same basis and finalized result durably; settlement and replay never
+read the latest catalogue to recalculate historical amounts.
 
 ## Catalogue mutations and exchange rates
 
@@ -96,7 +96,15 @@ concurrency token, not a business version or a retained price history. Writes lo
 the settings row and compare the supplied token in the same transaction. Catalogue
 reads use READ COMMITTED and hold that lock across price and FX reads, preventing
 a new ETag from being paired with an earlier MySQL snapshot. A stale
-token returns `409`; no part of the batch or audit is committed.
+token returns `409`; no part of that rejected batch or audit is committed.
+
+Successful writes synchronously refresh the gateway runtime after the transaction
+commits. A refresh failure returns `503` even though the catalogue change and its
+audit have committed. Retrying the same old ETag returns `409` without another
+write or audit: reload the catalogue and runtime status before retrying. Existing
+in-flight requests retain their original snapshot. A failed route preparation
+retains the last valid route and price generation together; authorization still
+refreshes independently with its existing bounded lease.
 
 A price batch submits 1–20 model aggregates, with 1–8 rates per submitted model.
 Each `(provider_model_id, metric, tier)` is unique. Submitted rates are upserted;
@@ -170,6 +178,6 @@ normalized audits. Invoke it through `go tool task test-integration` after migra
 
 Remaining P3 work includes required non-token metrics and finite conditions,
 CSV/XLS/XLSX import, a documented repository format and sync mechanism, catalogue
-UI, gateway usage normalization and persisted charge snapshots, quota/reservation
-integration, and reconciliation. This slice does not claim completion of P3 or
+UI, additional protocol/usage adapters, quota/reservation integration, and
+reconciliation. This slice does not claim completion of P3 or
 full provider pricing compatibility.

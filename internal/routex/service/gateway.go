@@ -46,20 +46,23 @@ type GatewayModel struct {
 // GatewayResult describes one actual upstream attempt without storing its secret.
 // The caller must close Response.Body when Response is non-nil, including errors.
 type GatewayResult struct {
-	SnapshotID       string
-	Response         *http.Response
-	ProjectID        string
-	UserID           string
-	KeyID            string
-	ModelID          string
-	ModelName        string
-	ProviderID       string
-	ProviderModelID  string
-	ConnectionID     string
-	CredentialID     string
-	Stream           bool
-	AttemptID        string
-	AttemptStartedAt time.Time
+	PriceBasis         *CallPriceBasis
+	PricingUnsupported bool
+	PricingDimensions  []string
+	SnapshotID         string
+	Response           *http.Response
+	ProjectID          string
+	UserID             string
+	KeyID              string
+	ModelID            string
+	ModelName          string
+	ProviderID         string
+	ProviderModelID    string
+	ConnectionID       string
+	CredentialID       string
+	Stream             bool
+	AttemptID          string
+	AttemptStartedAt   time.Time
 }
 
 func (s *Service) GatewayModels(ctx context.Context, bearer string) ([]GatewayModel, error) {
@@ -143,6 +146,15 @@ func (s *Service) GatewayChat(ctx context.Context, bearer string, body []byte, r
 	}
 	if err != nil {
 		return result, gatewayError(503, "upstream_unavailable", "No usable upstream is available.")
+	}
+	result.PriceBasis = clonePriceBasis(route.PriceBasis)
+	result.PricingDimensions = pricingRequestDimensions(payload)
+	result.PricingUnsupported = len(result.PricingDimensions) != 0
+	if s.runtime == nil {
+		result.PriceBasis, err = s.capturePriceBasis(ctx, route.ProviderModelID)
+		if err != nil {
+			return result, gatewayError(503, "service_unavailable", "Pricing configuration is temporarily unavailable.")
+		}
 	}
 	result.SnapshotID = route.SnapshotID
 	result.ProviderID, result.ProviderModelID = route.ProviderID, route.ProviderModelID
@@ -242,10 +254,25 @@ func parseGatewayChat(body []byte) (map[string]json.RawMessage, string, bool, er
 		}
 		stream = bytes.Equal(raw, []byte("true"))
 	}
+	if stream {
+		options := map[string]json.RawMessage{}
+		if raw, exists := payload["stream_options"]; exists && !bytes.Equal(raw, []byte("null")) {
+			if json.Unmarshal(raw, &options) != nil || options == nil {
+				return nil, model, stream, invalid
+			}
+		}
+		options["include_usage"] = json.RawMessage("true")
+		encoded, err := json.Marshal(options)
+		if err != nil {
+			return nil, model, stream, invalid
+		}
+		payload["stream_options"] = encoded
+	}
 	return payload, model, stream, nil
 }
 
 type gatewayRoute struct {
+	PriceBasis      *CallPriceBasis `gorm:"-"`
 	SnapshotID      string
 	BindingID       string
 	Weight          int

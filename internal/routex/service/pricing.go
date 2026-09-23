@@ -274,6 +274,7 @@ func (s *Service) WritePrices(ctx context.Context, actorID, etag string, items [
 			Items []PriceRecord `json:"items"`
 		}{setting.ETag, result.Items})
 	})
+	err = s.refreshAfterMutation(ctx, err)
 	return result, pricingError(err)
 }
 func writePrice(tx *gorm.DB, input PriceInput) (*PriceRecord, *PriceRecord, error) {
@@ -412,5 +413,6 @@ func (s *Service) WritePricingCurrency(ctx context.Context, actorID, etag string
 			Currency pricing.FX `json:"currency"`
 		}{setting.ETag, normalized})
 	})
+	err = s.refreshAfterMutation(ctx, err)
 	return result, pricingError(err)
 }

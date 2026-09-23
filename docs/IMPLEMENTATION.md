@@ -151,7 +151,7 @@ The following are single-node experimental targets, not measured performance or 
 | P1-03 Personal Keys | Delivered (`3cd5305`); controlled local acceptance passed | One-time pending delivery, confirmation, digest storage, concurrent rotation, ownership, revocation and audit; PostgreSQL/MySQL integration passed |
 | P1-04/05 | In progress | Native OpenAI chat ordinary/SSE, Key Playground, isolated personal/admin call queries and request facts have controlled dual-database evidence; immutable snapshots and bounded durable events have controlled failure/restart evidence; measured capacity and real-provider acceptance remain open |
 | P2 | In progress | Profile/password/session APIs and UI delivered; member/role/registration interfaces and Team/Project backend delivered; Project Keys, offboarding, and resource interfaces advance in separate verified packages |
-| P3 | In progress | Current text-price catalogue, exact quotes, and FX administration implemented; persisted billing, quotas, non-token metrics, import, and synchronization remain open |
+| P3 | In progress | Current text prices, FX, and immutable call assessments implemented; quotas, non-token metrics, import, and synchronization remain open |
 | P4–P6 | Pending | Full goal remains active; additional protocols, enterprise integrations, and final acceptance follow the preceding dependencies |
 
 Verification in this iteration:
@@ -322,3 +322,20 @@ Project Key forms and empty states, Project call filters, and bilingual offboard
 review. No warnings or errors were captured. No real Key issuance or offboarding
 completion was submitted in that browser fixture; those behaviors have focused
 client tests and previously delivered dual-database backend coverage.
+
+### Immutable gateway text assessments
+
+Migration 13 adds nullable cache quantities, exact amount/currency, pricing status,
+and a bounded immutable receipt to call facts. Runtime publication captures price
+and FX alongside routes, and journal replay preserves the finalized receipt. Native
+usage frames are never combined into fabricated totals. Complete final usage can
+be assessed despite a later disconnect; unknown or unsupported usage remains null,
+distinct from an explicit free price. See [METERING](METERING.md).
+
+The exact source passed full check, full test (105 Vitest cases, four Node checks,
+Go race/unit, development lifecycle, production assets), PostgreSQL/MySQL
+integration in 266.300 seconds, and process restart/inference/revocation on both
+databases. Controlled HTTP tests verify price publication, old/new exact amounts,
+journal reopen before database delivery, concurrent replay idempotency, unsupported
+tier classification, and member/admin receipt visibility. This establishes bounded
+text assessment, not provider invoicing, quota enforcement, or all pricing metrics.

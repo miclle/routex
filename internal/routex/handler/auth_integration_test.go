@@ -91,7 +91,7 @@ func TestIdentityIntegration(t *testing.T) {
 				t.Fatal(err)
 			}
 			var versions int64
-			if err := db.Table("schema_migrations").Count(&versions).Error; err != nil || versions != 12 {
+			if err := db.Table("schema_migrations").Count(&versions).Error; err != nil || versions != 13 {
 				t.Fatalf("migration ledger: %d, %v", versions, err)
 			}
 			var preserved entity.Example
@@ -141,7 +141,7 @@ func TestIdentityIntegration(t *testing.T) {
 			for _, test := range []struct {
 				name string
 				run  func(*testing.T, *gorm.DB)
-			}{{"catalog", testCatalogLifecycle}, {"keys", testKeyLifecycle}, {"gateway", testGatewayLifecycle}, {"calls", testCallLifecycle}, {"account", testAccountLifecycle}, {"governance", testGovernanceLifecycle}, {"runtime", testRuntimeLifecycle}, {"resources", testResourceLifecycle}, {"recorder", testRecorderLifecycle}, {"project_keys", testProjectKeyLifecycle}, {"personal_key_rotation", testPersonalKeyRotationLifecycle}, {"offboarding", testOffboardingLifecycle}, {"pricing", testPricingLifecycle}, {"project_requests", testProjectRequestLifecycle}} {
+			}{{"catalog", testCatalogLifecycle}, {"keys", testKeyLifecycle}, {"gateway", testGatewayLifecycle}, {"calls", testCallLifecycle}, {"account", testAccountLifecycle}, {"governance", testGovernanceLifecycle}, {"runtime", testRuntimeLifecycle}, {"resources", testResourceLifecycle}, {"recorder", testRecorderLifecycle}, {"project_keys", testProjectKeyLifecycle}, {"personal_key_rotation", testPersonalKeyRotationLifecycle}, {"offboarding", testOffboardingLifecycle}, {"pricing", testPricingLifecycle}, {"project_requests", testProjectRequestLifecycle}, {"call_pricing", testCallPricingLifecycle}} {
 				reset()
 				if err := database.Migrate(context.Background(), db); err != nil {
 					t.Fatal(err)

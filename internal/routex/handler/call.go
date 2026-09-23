@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"encoding/json"
 	"time"
 
 	"github.com/fox-gonic/fox"
@@ -11,18 +12,23 @@ import (
 )
 
 type CallResponse struct {
-	RequestID    string    `json:"request_id"`
-	ModelID      string    `json:"model_id"`
-	ModelName    string    `json:"model_name"`
-	KeyID        string    `json:"key_id"`
-	Protocol     string    `json:"protocol"`
-	Status       string    `json:"status"`
-	Stream       bool      `json:"stream"`
-	StartedAt    time.Time `json:"started_at"`
-	CompletedAt  time.Time `json:"completed_at"`
-	DurationMS   int64     `json:"duration_ms"`
-	InputTokens  *int64    `json:"input_tokens"`
-	OutputTokens *int64    `json:"output_tokens"`
+	RequestID        string    `json:"request_id"`
+	ModelID          string    `json:"model_id"`
+	ModelName        string    `json:"model_name"`
+	KeyID            string    `json:"key_id"`
+	Protocol         string    `json:"protocol"`
+	Status           string    `json:"status"`
+	Stream           bool      `json:"stream"`
+	StartedAt        time.Time `json:"started_at"`
+	CompletedAt      time.Time `json:"completed_at"`
+	DurationMS       int64     `json:"duration_ms"`
+	InputTokens      *int64    `json:"input_tokens"`
+	OutputTokens     *int64    `json:"output_tokens"`
+	CacheReadTokens  *int64    `json:"cache_read_tokens"`
+	CacheWriteTokens *int64    `json:"cache_write_tokens"`
+	PricingStatus    string    `json:"pricing_status"`
+	ChargeAmount     *string   `json:"charge_amount"`
+	ChargeCurrency   *string   `json:"charge_currency"`
 }
 type CallsResponse struct {
 	Items      []CallResponse `json:"items"`
@@ -53,6 +59,8 @@ type AdminCallDetailResponse struct {
 	ConnectionID    string                `json:"connection_id"`
 	ErrorCode       string                `json:"error_code"`
 	Attempts        []CallAttemptResponse `json:"attempts"`
+	PriceETag       string                `json:"price_etag"`
+	PricingSnapshot json.RawMessage       `json:"pricing_snapshot"`
 }
 type ListCallsRequest struct {
 	Cursor  string `query:"cursor"`
@@ -69,7 +77,7 @@ type CallPath struct {
 }
 
 func callResponse(record entity.CallRecord) CallResponse {
-	return CallResponse{RequestID: record.RequestID, ModelID: record.ModelID, ModelName: record.ModelName, KeyID: record.KeyID, Protocol: record.Protocol, Status: record.Status, Stream: record.Stream, StartedAt: record.StartedAt, CompletedAt: record.CompletedAt, DurationMS: record.DurationMS, InputTokens: record.InputTokens, OutputTokens: record.OutputTokens}
+	return CallResponse{RequestID: record.RequestID, ModelID: record.ModelID, ModelName: record.ModelName, KeyID: record.KeyID, Protocol: record.Protocol, Status: record.Status, Stream: record.Stream, StartedAt: record.StartedAt, CompletedAt: record.CompletedAt, DurationMS: record.DurationMS, InputTokens: record.InputTokens, OutputTokens: record.OutputTokens, CacheReadTokens: record.CacheReadTokens, CacheWriteTokens: record.CacheWriteTokens, PricingStatus: record.PricingStatus, ChargeAmount: record.ChargeAmount, ChargeCurrency: record.ChargeCurrency}
 }
 func callFilter(request ListCallsRequest) (service.CallFilter, error) {
 	filter := service.CallFilter{Cursor: request.Cursor, Limit: request.Limit, Status: request.Status, ModelID: request.ModelID, KeyID: request.KeyID, UserID: request.UserID}
@@ -140,6 +148,10 @@ func (ctrl *Ctrl) GetAdminCall(c *fox.Context, request CallPath) (*AdminCallDeta
 		return nil, err
 	}
 	response := &AdminCallDetailResponse{AdminCallResponse: AdminCallResponse{CallResponse: callResponse(result.Record), UserID: result.Record.UserID, ProjectID: result.Record.ProjectID}, ProviderModelID: result.Record.ProviderModelID, ConnectionID: result.Record.ConnectionID, ErrorCode: result.Record.ErrorCode, Attempts: []CallAttemptResponse{}}
+	response.PriceETag = result.Record.PriceETag
+	if result.Record.PricingSnapshotJSON != nil {
+		response.PricingSnapshot = json.RawMessage(*result.Record.PricingSnapshotJSON)
+	}
 	for _, attempt := range result.Attempts {
 		response.Attempts = append(response.Attempts, CallAttemptResponse{ID: attempt.ID, ProviderModelID: attempt.ProviderModelID, ConnectionID: attempt.ConnectionID, Status: attempt.Status, HTTPStatus: attempt.HTTPStatus, ErrorCode: attempt.ErrorCode, StartedAt: attempt.StartedAt, CompletedAt: attempt.CompletedAt})
 	}

@@ -6,7 +6,7 @@ The initial gateway supports `GET /v1/models` and `POST /v1/chat/completions` wi
 
 `GET /v1/models` returns an OpenAI-compatible list of current public names visible to that effective scope. Listing a model does not guarantee that it has a currently usable route. Chat requests accept the current name or an unexpired compatibility alias. Expired aliases and inaccessible models receive the same `model_not_found` response. Routing and authorization use the stable internal model ID.
 
-Chat requests preserve native JSON parameters and replace only the outbound `model` with the selected provider model's name. Returned JSON and SSE chunks replace their `model` field with the caller's public name. The configured connection base URL must include the provider API prefix, such as `https://api.example.com/v1`; the gateway appends `/chat/completions`.
+Chat requests preserve native JSON parameters and replace the outbound `model` with the selected provider model's name. Streaming requests additionally set `stream_options.include_usage` to `true`, preserving other options, to request the native final usage event. Returned JSON and SSE chunks replace their `model` field with the caller's public name. The configured connection base URL must include the provider API prefix, such as `https://api.example.com/v1`; the gateway appends `/chat/completions`.
 
 ## Routing and Credential Selection
 
@@ -26,7 +26,7 @@ Errors use an OpenAI-style `error` object containing `message`, `type`, and `cod
 
 ## Call Facts
 
-Authenticated chat requests record the runtime snapshot ID and stable request, user, key, model, connection, and provider-model identifiers, request and attempt timing, stream mode, completion status, and generic error codes. Ordinary responses and final SSE usage events contribute prompt and completion token counts when explicitly reported. Missing or invalid usage remains unknown rather than becoming zero. Prompts, completions, credential identifiers, secrets, and raw upstream errors are not stored.
+Authenticated chat requests record the runtime snapshot ID and stable request, user, key, model, connection, and provider-model identifiers, request and attempt timing, stream mode, completion status, and generic error codes. Ordinary responses and final SSE usage events contribute prompt and completion token counts when explicitly reported. Missing or invalid usage remains unknown rather than becoming zero. A complete native usage envelope with explicit cache counts can produce an immutable text assessment; incomplete or unsupported usage leaves the amount null. [METERING](METERING.md) defines the finality, snapshot, and cancellation rules. Prompts, completions, credential identifiers, secrets, and raw upstream errors are not stored.
 
 Before an upstream dispatch, the gateway fsyncs a safe fallback fact into its bounded local journal. Completion replaces it with final usage; a background worker commits and acknowledges the fact idempotently. Capacity or admission-write failure returns HTTP 503 before dispatch. Database failure delays delivery; interrupted requests retain unknown usage rather than invented token counts. See [CALLS](CALLS.md#persistence-failure-boundary) for capacity, disk-failure, replay, and shutdown boundaries.
 

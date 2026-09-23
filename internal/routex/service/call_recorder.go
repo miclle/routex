@@ -85,7 +85,8 @@ func (s *Service) AdmitGatewayCall(requestID string, result *GatewayResult) erro
 		return callQueueUnavailable
 	}
 	now := time.Now().UTC()
-	fallback := CallFact{RequestID: requestID, SnapshotID: result.SnapshotID, UserID: result.UserID, ProjectID: result.ProjectID, KeyID: result.KeyID, ModelID: result.ModelID, ModelName: result.ModelName, ProviderModelID: result.ProviderModelID, ConnectionID: result.ConnectionID, Protocol: entity.ProtocolOpenAIChat, Status: "error", Stream: result.Stream, StartedAt: now, CompletedAt: now, ErrorCode: "process_interrupted"}
+	fallback := CallFact{PriceBasis: clonePriceBasis(result.PriceBasis), PricingUnsupported: result.PricingUnsupported, PricingDimensions: result.PricingDimensions, RequestID: requestID, SnapshotID: result.SnapshotID, UserID: result.UserID, ProjectID: result.ProjectID, KeyID: result.KeyID, ModelID: result.ModelID, ModelName: result.ModelName, ProviderModelID: result.ProviderModelID, ConnectionID: result.ConnectionID, Protocol: entity.ProtocolOpenAIChat, Status: "error", Stream: result.Stream, StartedAt: now, CompletedAt: now, ErrorCode: "process_interrupted"}
+	finalizeCallPricing(&fallback)
 	if err := validateCallFact(fallback); err != nil {
 		return callQueueUnavailable
 	}
@@ -100,6 +101,7 @@ func (s *Service) AdmitGatewayCall(requestID string, result *GatewayResult) erro
 }
 
 func (s *Service) PersistGatewayCall(ctx context.Context, fact CallFact) error {
+	finalizeCallPricing(&fact)
 	if s.recorder == nil {
 		return s.RecordCall(ctx, fact)
 	}

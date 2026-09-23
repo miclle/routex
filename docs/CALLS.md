@@ -1,14 +1,14 @@
 # Call Facts and Query API
 
-Call facts record completed gateway requests without storing prompts, responses, credentials, or raw upstream diagnostics. Facts support personal or Project attribution, exactly one per request. Team attribution, monetary calculation, CSV export, and aggregate analytics are separate work packages. Durable event ingestion is implemented for the single-process deployment.
+Call facts record completed gateway requests without storing prompts, responses, credentials, or raw upstream diagnostics. Facts support personal or Project attribution, exactly one per request. Supported text calls include immutable assessed amounts; Team attribution, CSV export, and aggregate analytics are separate work packages. Durable event ingestion is implemented for the single-process deployment.
 
 ## Recording Contract
 
 The gateway assigns a canonical server-generated `RequestID` and records one `service.CallFact` after an authenticated request succeeds, fails, or is canceled. Each upstream attempt has a separate ID. A rejection before dialing an upstream has no attempt. Unauthenticated traffic has no trusted user attribution and is not stored as a personal call fact.
 
-A fact contains stable user, Key, model, provider-model, and connection IDs; the public model name used for attribution; protocol; outcome; streaming flag; start and completion timestamps; duration; optional input/output token counts; a safe error classification; and attempts. It contains no credential ID, Authorization value, plaintext secret, request body, response content, or upstream error text. The current protocol is `openai_chat`; outcomes are `success`, `error`, and `canceled`.
+A fact contains stable user, Key, model, provider-model, and connection IDs; the public model name used for attribution; protocol; outcome; streaming flag; start and completion timestamps; duration; optional input/output and cache token counts; pricing status and nullable exact amount/currency; a safe error classification; and attempts. It contains no credential ID, Authorization value, plaintext secret, request body, response content, or upstream error text. The current protocol is `openai_chat`; outcomes are `success`, `error`, and `canceled`.
 
-Unknown token usage remains `null`. It is not converted to zero or inferred from text length. Monetary values are not calculated in this phase. An error code outside the predefined internal classifications is replaced with `upstream_error`, so an accidental provider message cannot become a stored diagnostic.
+Unknown token usage remains `null`. It is not converted to zero or inferred from text length. Supported complete text usage is assessed from a pre-dispatch price snapshot; unpriced amounts remain null. See [METERING](METERING.md) for completeness and pricing boundaries. An error code outside the predefined internal classifications is replaced with `upstream_error`, so an accidental provider message cannot become a stored diagnostic.
 
 `RecordCall` uses a transaction and a unique request ID. Replaying that ID leaves the first accepted fact and its attempts unchanged. Concurrent duplicate delivery therefore cannot double usage. Attempt ID conflicts roll back the new fact instead of producing an incomplete record. Plain unique inserts establish deduplication independently of MySQL's affected-row behavior.
 
@@ -16,7 +16,7 @@ Storage uses microsecond timestamp precision on both databases. Schema version 5
 
 ## Persistence Failure Boundary
 
-The process opens a private bbolt journal before listening. It synchronously reserves a slot with a safe interruption fact before dispatching an upstream request, then replaces that reservation with the final fact after completion. Default synchronous bbolt commits remain enabled. The journal stores only the same allowlisted attribution and usage fields as the relational fact; it never stores request/response content or provider credentials.
+The process opens a private bbolt journal before listening. It synchronously reserves a slot with a safe interruption fact before dispatching an upstream request, then replaces that reservation with the final fact after completion. Default synchronous bbolt commits remain enabled. The journal stores only the same allowlisted attribution, usage, and immutable pricing fields as the relational fact; it never stores request/response content or provider credentials.
 
 The journal admits at most 4,096 entries, each at most 64 KiB. This bounds logical payload to 256 MiB, not physical file size: page metadata and the file high-water mark require additional disk space. A full or unwritable journal rejects new upstream dispatches with HTTP 503 and `event_buffer_unavailable`. A final journal-write failure cannot change an already sent response; the reserved fallback survives and is recovered as `process_interrupted` with unknown usage after restart. Filesystem or device loss beyond successful durable commits is outside this guarantee.
 
@@ -45,10 +45,11 @@ Member items and details contain:
 
 ```text
 request_id, model_id, model_name, key_id, protocol, status, stream,
-started_at, completed_at, duration_ms, input_tokens, output_tokens
+started_at, completed_at, duration_ms, input_tokens, output_tokens, cache_read_tokens, cache_write_tokens,
+pricing_status, charge_amount, charge_currency
 ```
 
-Administrator list items additionally contain `user_id`. Administrator detail also contains `provider_model_id`, `connection_id`, `error_code`, and `attempts`. Each attempt contains its ID, provider-model and connection IDs, outcome, HTTP status, safe error code, and timestamps. Member DTOs never include upstream route IDs, attempt diagnostics, error codes, or other users' identities.
+Administrator list items additionally contain `user_id`. Administrator detail also contains `provider_model_id`, `connection_id`, `error_code`, `attempts`, `price_etag`, and `pricing_snapshot`. The latter contains normalized rate/FX inputs and the assessed quote, not content or credentials. Each attempt contains its ID, provider-model and connection IDs, outcome, HTTP status, safe error code, and timestamps. Member DTOs never include upstream route IDs, attempt diagnostics, error codes, or other users' identities.
 
 Authentication responses and these protected API responses use the shared no-store policy. Invalid filters return a sanitized `400`; unauthorized access returns `401` or `403`; scoped misses return `404`.
 

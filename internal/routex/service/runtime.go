@@ -345,6 +345,7 @@ func (s *Service) runtimeRoute(modelID string) (*gatewayRoute, string, error) {
 }
 
 type runtimeData struct {
+	Pricing        *runtimePricingData
 	ProjectData    *projectRuntimeData
 	Users          []entity.User
 	Keys           []entity.APIKey
@@ -373,6 +374,10 @@ func (s *Service) loadRuntimeData(ctx context.Context) (*runtimeData, error) {
 		}
 		var err error
 		data.ProjectData, err = loadProjectRuntimeData(tx)
+		if err != nil {
+			return err
+		}
+		data.Pricing, err = loadRuntimePricing(tx)
 		return err
 	}, &sql.TxOptions{Isolation: sql.LevelRepeatableRead, ReadOnly: true})
 	return data, err
@@ -443,12 +448,13 @@ func runtimeDigest(data *runtimeData) (string, error) {
 		return a.CredentialID < b.CredentialID
 	})
 	raw, err := json.Marshal(struct {
+		Pricing        *runtimePricingData
 		Connections    []entity.ProviderConnection
 		Credentials    []entity.ProviderCredential
 		ProviderModels []entity.ProviderModel
 		Bindings       []entity.ModelProviderBinding
 		Access         []entity.CredentialModelAccess
-	}{data.Connections, data.Credentials, data.ProviderModels, data.Bindings, data.Access})
+	}{data.Pricing, data.Connections, data.Credentials, data.ProviderModels, data.Bindings, data.Access})
 	if err != nil {
 		return "", err
 	}
@@ -517,7 +523,7 @@ func (s *Service) buildRuntimeRoutes(data *runtimeData) (map[string][]runtimeRou
 		if binding.Weight < 0 || binding.Weight > 100 {
 			return nil, runtimeUnavailable
 		}
-		candidate := runtimeRoute{Route: gatewayRoute{BindingID: binding.ID, Weight: binding.Weight, ProviderID: connection.ProviderID, ProviderModelID: pm.ID, ConnectionID: connection.ID, UpstreamName: pm.UpstreamName, BaseURL: connection.BaseURL}}
+		candidate := runtimeRoute{Route: gatewayRoute{PriceBasis: runtimePriceBasis(data.Pricing, pm.ID, connection.Protocol), BindingID: binding.ID, Weight: binding.Weight, ProviderID: connection.ProviderID, ProviderModelID: pm.ID, ConnectionID: connection.ID, UpstreamName: pm.UpstreamName, BaseURL: connection.BaseURL}}
 		for _, credential := range credentials[connection.ID] {
 			if access[credential.ID][pm.ID] {
 				candidate.Credentials = append(candidate.Credentials, credential)

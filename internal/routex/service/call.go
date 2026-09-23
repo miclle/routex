@@ -15,24 +15,30 @@ import (
 )
 
 type CallFact struct {
-	SnapshotID      string
-	RequestID       string
-	ProjectID       string
-	UserID          string
-	KeyID           string
-	ModelID         string
-	ModelName       string
-	ProviderModelID string
-	ConnectionID    string
-	Protocol        string
-	Status          string
-	Stream          bool
-	StartedAt       time.Time
-	CompletedAt     time.Time
-	InputTokens     *int64
-	OutputTokens    *int64
-	ErrorCode       string
-	Attempts        []CallAttempt
+	CacheReadTokens, CacheWriteTokens *int64
+	UsageComplete                     bool
+	PricingUnsupported                bool
+	PricingDimensions                 []string
+	PriceBasis                        *CallPriceBasis
+	Pricing                           *CallPricing
+	SnapshotID                        string
+	RequestID                         string
+	ProjectID                         string
+	UserID                            string
+	KeyID                             string
+	ModelID                           string
+	ModelName                         string
+	ProviderModelID                   string
+	ConnectionID                      string
+	Protocol                          string
+	Status                            string
+	Stream                            bool
+	StartedAt                         time.Time
+	CompletedAt                       time.Time
+	InputTokens                       *int64
+	OutputTokens                      *int64
+	ErrorCode                         string
+	Attempts                          []CallAttempt
 }
 
 type CallAttempt struct {
@@ -88,11 +94,12 @@ func safeCallError(code string) string {
 // RecordCall atomically persists one canonical fact and its attempts. Replaying
 // the same RequestID never changes an accepted fact or doubles its usage.
 func (s *Service) RecordCall(ctx context.Context, fact CallFact) error {
+	finalizeCallPricing(&fact)
 	if err := validateCallFact(fact); err != nil {
 		return err
 	}
 	// Normalize to common database precision before building pagination cursors.
-	record := entity.CallRecord{SnapshotID: fact.SnapshotID, RequestID: fact.RequestID, UserID: fact.UserID, ProjectID: fact.ProjectID, KeyID: fact.KeyID, ModelID: fact.ModelID, ModelName: fact.ModelName, ProviderModelID: fact.ProviderModelID, ConnectionID: fact.ConnectionID, Protocol: fact.Protocol, Status: fact.Status, Stream: fact.Stream, StartedAt: fact.StartedAt.UTC().Truncate(time.Microsecond), CompletedAt: fact.CompletedAt.UTC().Truncate(time.Microsecond), DurationMS: fact.CompletedAt.Sub(fact.StartedAt).Milliseconds(), InputTokens: fact.InputTokens, OutputTokens: fact.OutputTokens, ErrorCode: safeCallError(fact.ErrorCode)}
+	record := entity.CallRecord{CallPricingFields: callPricingFields(fact), SnapshotID: fact.SnapshotID, RequestID: fact.RequestID, UserID: fact.UserID, ProjectID: fact.ProjectID, KeyID: fact.KeyID, ModelID: fact.ModelID, ModelName: fact.ModelName, ProviderModelID: fact.ProviderModelID, ConnectionID: fact.ConnectionID, Protocol: fact.Protocol, Status: fact.Status, Stream: fact.Stream, StartedAt: fact.StartedAt.UTC().Truncate(time.Microsecond), CompletedAt: fact.CompletedAt.UTC().Truncate(time.Microsecond), DurationMS: fact.CompletedAt.Sub(fact.StartedAt).Milliseconds(), InputTokens: fact.InputTokens, OutputTokens: fact.OutputTokens, ErrorCode: safeCallError(fact.ErrorCode)}
 	err := s.authDB(ctx).Transaction(func(tx *gorm.DB) error {
 		if err := tx.Create(&record).Error; err != nil {
 			// A plain unique insert remains correct with MySQL clientFoundRows;
@@ -200,6 +207,9 @@ func (s *Service) GetCall(ctx context.Context, ownerID, requestID string) (*Call
 }
 
 func validateCallFact(fact CallFact) error {
+	if err := validateCallPricing(fact); err != nil {
+		return err
+	}
 	if !safeCallID.MatchString(fact.RequestID) || len(fact.SnapshotID) > 30 || (fact.UserID == "") == (fact.ProjectID == "") || len(fact.ProjectID) > 30 || len(fact.UserID) > 30 || len(fact.KeyID) > 30 || len(fact.ModelID) > 30 || len(fact.ModelName) > 128 || len(fact.ProviderModelID) > 30 || len(fact.ConnectionID) > 30 || fact.Protocol != entity.ProtocolOpenAIChat || !validCallStatus(fact.Status) || fact.StartedAt.IsZero() || fact.CompletedAt.Before(fact.StartedAt) || len(fact.Attempts) > 32 {
 		return apperrors.ErrBadRequest
 	}
