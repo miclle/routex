@@ -16,7 +16,7 @@ import (
 
 // AvailablePermissions defines the implemented platform resource/action surface.
 // Personal resource access and model call grants remain independently scoped.
-var AvailablePermissions = []string{"members.read", "members.write", "roles.read", "roles.write", "registration.write", "providers.read", "providers.write", "models.read_all", "models.write", "calls.read_all", "audit.read", "system.read", "teams.read_all", "teams.write", "teams.models.write", "projects.read_all", "projects.write", "projects.models.write", "prices.read", "prices.write", "limits.users.write", "projects.limits.write"}
+var AvailablePermissions = []string{"members.read", "members.write", "roles.read", "roles.write", "registration.write", "providers.read", "providers.write", "models.read_all", "models.write", "calls.read_all", "audit.read", "system.read", "teams.read_all", "teams.write", "teams.models.write", "projects.read_all", "projects.write", "projects.models.write", "prices.read", "prices.write", "limits.users.write", "projects.limits.write", "site.write", "announcements.write"}
 
 type RoleRecord struct {
 	Role        entity.Role

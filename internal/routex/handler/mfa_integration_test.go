@@ -43,7 +43,6 @@ func mfaFixtureCode(t *testing.T, encoded string, offset int64) string {
 func mfaFixtureBody(value any) string { data, _ := json.Marshal(value); return string(data) }
 
 func testMFALifecycle(t *testing.T, db *gorm.DB) {
-	t.Helper()
 	ctx := context.Background()
 	store, err := secretstore.New(bytes.Repeat([]byte{11}, 32))
 	if err != nil {
@@ -83,7 +82,7 @@ func testMFALifecycle(t *testing.T, db *gorm.DB) {
 		t.Fatal("new enrollment reused secret or token")
 	}
 	enable := func(value service.MFAEnrollment) *httptest.ResponseRecorder {
-		return identityRequest(router, "POST", "/api/v1/account/mfa/enable", mfaFixtureBody(MFAEnableRequest{CurrentPassword: password, EnrollmentToken: value.EnrollmentToken, Code: mfaFixtureCode(t, value.Secret, -1)}), cookie, session.CSRFToken)
+		return identityRequest(router, "POST", "/api/v1/account/mfa/enable", mfaFixtureBody(MFAEnableRequest{CurrentPassword: password, EnrollmentToken: value.EnrollmentToken, Code: mfaFixtureCode(t, value.Secret, 0)}), cookie, session.CSRFToken)
 	}
 	expectStatus(t, enable(initial), 401)
 	if err := db.Model(&entity.MFAChallenge{}).Where("user_id = ?", member.ID).Update("expires_at", time.Now().Add(-time.Minute)).Error; err != nil {
@@ -145,7 +144,9 @@ func testMFALifecycle(t *testing.T, db *gorm.DB) {
 	verify := func(token string, proof service.MFAProof) *httptest.ResponseRecorder {
 		return identityRequest(router, "POST", "/api/v1/auth/mfa/verify", mfaFixtureBody(MFALoginRequest{ChallengeToken: token, Code: proof.Code, RecoveryCode: proof.RecoveryCode}), nil, "")
 	}
-	currentCode := mfaFixtureCode(t, enrollment.Secret, 0)
+	// Use the next accepted counter after enrollment, even when bcrypt crosses
+	// a 30-second boundary. Previous-window drift is covered by fixed-clock unit tests.
+	currentCode := mfaFixtureCode(t, enrollment.Secret, 1)
 	verified := verify(challenge.ChallengeToken, service.MFAProof{Code: currentCode})
 	expectStatus(t, verified, 200)
 	expectStatus(t, verify(challenge.ChallengeToken, service.MFAProof{Code: currentCode}), 401)

@@ -1,3 +1,5 @@
+import { SiteLogo, SiteFooter } from '@/components/app/SiteBranding'
+import { useSite } from '@/hooks/use-site'
 import { t } from '@/i18n'
 import { useTranslation } from 'react-i18next'
 import { LanguageSwitcher } from '@/components/app/LanguageSwitcher'
@@ -5,7 +7,7 @@ import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link, useLocation, useNavigate } from 'react-router'
 import axios from 'axios'
-import { ArrowRight, LoaderCircle, Route } from 'lucide-react'
+import { ArrowRight, LoaderCircle } from 'lucide-react'
 import { getRegistration, register } from '@/api/governance'
 import { authError, login, setup } from '@/api/auth'
 import { sessionKey, setupKey } from '@/hooks/use-auth'
@@ -18,6 +20,8 @@ import MFAChallengeForm from './mfa-challenge'
 
 export default function AuthPage({ mode }: { mode: 'login' | 'setup' | 'register' }) {
   useTranslation()
+  const site = useSite()
+  const name = site.data?.name || 'RouteX'
 
   const isSetup = mode === 'setup'
   const isRegister = mode === 'register'
@@ -45,9 +49,10 @@ export default function AuthPage({ mode }: { mode: 'login' | 'setup' | 'register
     [],
   )
   async function complete(session: Session, turn: number) {
-    await queryClient.cancelQueries()
+    await queryClient.cancelQueries({ predicate: (query) => query.queryKey[0] !== 'site' })
     if (turn !== attempt.current) return
-    queryClient.clear()
+    queryClient.removeQueries({ predicate: (query) => query.queryKey[0] !== 'site' })
+    queryClient.getMutationCache().clear()
     queryClient.setQueryData(setupKey, { initialized: true })
     queryClient.setQueryData(sessionKey, session)
     setChallenge(null)
@@ -179,7 +184,7 @@ export default function AuthPage({ mode }: { mode: 'login' | 'setup' | 'register
           <LanguageSwitcher />
         </div>
         <section className="w-full max-w-[500px] space-y-6 rounded-lg border p-6 text-center">
-          <h1 className="text-2xl font-semibold">{t('create_a_routex_account_125c0')}</h1>
+          <h1 className="text-2xl font-semibold">{t('site:join', { name })}</h1>
           <p role={registration.isError ? 'alert' : 'status'}>
             {registration.isPending
               ? t('checking_registration_settings_0ee9f')
@@ -193,6 +198,7 @@ export default function AuthPage({ mode }: { mode: 'login' | 'setup' | 'register
           <Link to="/login" className="block underline">
             {t('back_to_sign_in_f2fe4')}
           </Link>
+          <SiteFooter />
         </section>
       </main>
     )
@@ -203,9 +209,9 @@ export default function AuthPage({ mode }: { mode: 'login' | 'setup' | 'register
         <LanguageSwitcher />
       </div>
       <section className="w-full max-w-[500px] space-y-6">
-        <div aria-label={t('routex_brand_87b96')} className="flex justify-center">
+        <div aria-label={t('site:brand', { name })} className="flex justify-center">
           <span className="flex size-8 items-center justify-center rounded-md bg-primary text-primary-foreground">
-            <Route className="size-5" aria-hidden="true" />
+            <SiteLogo />
           </span>
         </div>
         <div className="space-y-6 rounded-lg border p-6">
@@ -214,10 +220,10 @@ export default function AuthPage({ mode }: { mode: 'login' | 'setup' | 'register
               {challenge
                 ? t('mfa:loginTitle')
                 : isSetup
-                  ? t('set_up_routex_ca2f9')
+                  ? t('site:setup', { name })
                   : isRegister
-                    ? t('join_routex_6a64f')
-                    : t('sign_in_to_your_model_console_ff10a')}
+                    ? t('site:join', { name })
+                    : t('site:signIn', { name })}
             </h1>
             {isSetup && (
               <p className="text-sm leading-6 text-muted-foreground">
@@ -343,6 +349,7 @@ export default function AuthPage({ mode }: { mode: 'login' | 'setup' | 'register
             )}
           </p>
         )}
+        <SiteFooter />
       </section>
     </main>
   )

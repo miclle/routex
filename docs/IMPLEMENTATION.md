@@ -600,3 +600,22 @@ in 235.163 seconds and both process restart/inference/revocation suites passed.
 Controlled tests cover native errors/events, cancellation around final usage,
 cache-token normalization, exact immutable charges, supply revocation and replay.
 External paid-provider calls and rendered browser acceptance remain unverified.
+
+### Site branding and announcements
+
+System information now persists the site name, safe logo/service URLs, plain-text
+footer and default language. Explicit browser language choices retain priority.
+Authorized administrators can publish, edit and close announcements with revision
+checks; members receive the bounded active feed and closed history is retained.
+Schema migration 17 preserves existing deployments and adds separate permissions.
+See [SITE](SITE.md) for the public, administrative and concurrency contracts.
+
+Full check/test passed with 237 Vitest cases, four Node checks, Go race/unit,
+development lifecycle and production assets. PostgreSQL/MySQL integration passed
+in 234.601 seconds, and both process restart/inference/revocation suites passed.
+After the final accessible-label adjustment, full check and 31 focused frontend
+regressions passed and production assets rebuilt. An isolated production browser
+session verified setup, saved branding after restart, literal footer/announcement
+text, publish/close history, language switching and explicit preference precedence.
+Browser findings fixed long-name sidebar overflow and public-site observer loss
+on authentication transitions; malformed public responses now fail recoverably.

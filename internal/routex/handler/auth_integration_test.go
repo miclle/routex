@@ -59,7 +59,7 @@ func TestIdentityIntegration(t *testing.T) {
 				t.Fatal("integration tests require a dedicated database named routex_test")
 			}
 			reset := func() {
-				for _, table := range []string{"mfa_recovery_codes", "mfa_challenges", "user_mfa", "resource_limits", "limit_installation", "project_model_requests", "price_rates", "model_prices", "pricing_exchange_rates", "pricing_settings", "offboarding_cases", "project_api_key_models", "project_api_keys", "project_model_grants", "project_managers", "projects", "team_model_grants", "team_memberships", "teams", "runtime_publications", "user_roles", "role_permissions", "roles", "governance_settings", "call_attempts", "call_records", "api_key_models", "api_keys", "audit_events", "user_model_grants", "model_provider_bindings", "model_names", "credential_model_accesses", "provider_models", "provider_credentials", "provider_connections", "providers", "models", "sessions", "users", "installations", "schema_migrations", "examples"} {
+				for _, table := range []string{"announcements", "site_settings", "mfa_recovery_codes", "mfa_challenges", "user_mfa", "resource_limits", "limit_installation", "project_model_requests", "price_rates", "model_prices", "pricing_exchange_rates", "pricing_settings", "offboarding_cases", "project_api_key_models", "project_api_keys", "project_model_grants", "project_managers", "projects", "team_model_grants", "team_memberships", "teams", "runtime_publications", "user_roles", "role_permissions", "roles", "governance_settings", "call_attempts", "call_records", "api_key_models", "api_keys", "audit_events", "user_model_grants", "model_provider_bindings", "model_names", "credential_model_accesses", "provider_models", "provider_credentials", "provider_connections", "providers", "models", "sessions", "users", "installations", "schema_migrations", "examples"} {
 					if err := db.Migrator().DropTable(table); err != nil {
 						t.Fatal(err)
 					}
@@ -91,7 +91,7 @@ func TestIdentityIntegration(t *testing.T) {
 				t.Fatal(err)
 			}
 			var versions int64
-			if err := db.Table("schema_migrations").Count(&versions).Error; err != nil || versions != 16 {
+			if err := db.Table("schema_migrations").Count(&versions).Error; err != nil || versions != 17 {
 				t.Fatalf("migration ledger: %d, %v", versions, err)
 			}
 			var preserved entity.Example
@@ -141,7 +141,7 @@ func TestIdentityIntegration(t *testing.T) {
 			for _, test := range []struct {
 				name string
 				run  func(*testing.T, *gorm.DB)
-			}{{"catalog", testCatalogLifecycle}, {"keys", testKeyLifecycle}, {"gateway", testGatewayLifecycle}, {"calls", testCallLifecycle}, {"account", testAccountLifecycle}, {"governance", testGovernanceLifecycle}, {"runtime", testRuntimeLifecycle}, {"resources", testResourceLifecycle}, {"recorder", testRecorderLifecycle}, {"project_keys", testProjectKeyLifecycle}, {"personal_key_rotation", testPersonalKeyRotationLifecycle}, {"offboarding", testOffboardingLifecycle}, {"pricing", testPricingLifecycle}, {"project_requests", testProjectRequestLifecycle}, {"call_pricing", testCallPricingLifecycle}, {"price_import", testPriceImportLifecycle}, {"resource_limits", testResourceLimitLifecycle}, {"price_spreadsheet", testPriceSpreadsheetLifecycle}, {"usage", testUsageLifecycle}, {"mfa", testMFALifecycle}, {"responses", testResponsesLifecycle}, {"messages", testMessagesLifecycle}} {
+			}{{"catalog", testCatalogLifecycle}, {"keys", testKeyLifecycle}, {"gateway", testGatewayLifecycle}, {"calls", testCallLifecycle}, {"account", testAccountLifecycle}, {"governance", testGovernanceLifecycle}, {"runtime", testRuntimeLifecycle}, {"resources", testResourceLifecycle}, {"recorder", testRecorderLifecycle}, {"project_keys", testProjectKeyLifecycle}, {"personal_key_rotation", testPersonalKeyRotationLifecycle}, {"offboarding", testOffboardingLifecycle}, {"pricing", testPricingLifecycle}, {"project_requests", testProjectRequestLifecycle}, {"call_pricing", testCallPricingLifecycle}, {"price_import", testPriceImportLifecycle}, {"resource_limits", testResourceLimitLifecycle}, {"price_spreadsheet", testPriceSpreadsheetLifecycle}, {"usage", testUsageLifecycle}, {"mfa", testMFALifecycle}, {"responses", testResponsesLifecycle}, {"messages", testMessagesLifecycle}, {"site", testSiteLifecycle}} {
 				reset()
 				if err := database.Migrate(context.Background(), db); err != nil {
 					t.Fatal(err)

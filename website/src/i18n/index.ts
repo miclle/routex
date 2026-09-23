@@ -1,3 +1,7 @@
+import enSite from './locales/en/site'
+import zhSite from './locales/zh/site'
+import enAnnouncements from './locales/en/announcements'
+import zhAnnouncements from './locales/zh/announcements'
 import enPlayground from './locales/en/playground'
 import zhPlayground from './locales/zh/playground'
 import enUsage from './locales/en/usage'
@@ -33,17 +37,42 @@ import zhCatalog from './locales/zh/catalog'
 
 export const languageStorageKey = 'routex.language'
 export type Language = 'en' | 'zh'
-export function savedLanguage(): Language {
+let memoryPreference: Language | undefined
+export function explicitLanguage(): Language | undefined {
+  if (memoryPreference) return memoryPreference
   try {
-    return window.localStorage.getItem(languageStorageKey) === 'zh' ? 'zh' : 'en'
+    const saved = window.localStorage.getItem(languageStorageKey)
+    return saved === 'en' || saved === 'zh' ? saved : memoryPreference
   } catch {
-    return 'en'
+    return memoryPreference
   }
+}
+export function savedLanguage(): Language {
+  return explicitLanguage() ?? 'en'
+}
+export async function setLanguagePreference(language: Language) {
+  // A user choice is persisted directly; automatic defaults never write storage.
+  try {
+    window.localStorage.setItem(languageStorageKey, language)
+    memoryPreference = undefined
+  } catch {
+    memoryPreference = language
+  }
+  await i18n.changeLanguage(language)
+}
+export async function applyDefaultLanguage(language: Language) {
+  const preferred = explicitLanguage()
+  await i18n.changeLanguage(preferred ?? language)
+  // Preserve a choice made while asynchronous language loading was in flight.
+  const latest = explicitLanguage()
+  if (latest && latest !== i18n.resolvedLanguage) await i18n.changeLanguage(latest)
 }
 void i18n.use(initReactI18next).init({
   resources: {
     en: {
       common: en,
+      site: enSite,
+      announcements: enAnnouncements,
       playground: enPlayground,
       usage: enUsage,
       mfa: enMFA,
@@ -61,6 +90,8 @@ void i18n.use(initReactI18next).init({
     },
     zh: {
       common: zh,
+      site: zhSite,
+      announcements: zhAnnouncements,
       playground: zhPlayground,
       usage: zhUsage,
       mfa: zhMFA,
@@ -87,11 +118,6 @@ void i18n.use(initReactI18next).init({
 i18n.on('languageChanged', (language) => {
   const supported = language === 'zh' ? 'zh' : 'en'
   document.documentElement.lang = supported
-  try {
-    window.localStorage.setItem(languageStorageKey, supported)
-  } catch {
-    /* Language changes remain available when browser storage is blocked. */
-  }
 })
 if (typeof document !== 'undefined')
   document.documentElement.lang = i18n.resolvedLanguage === 'zh' ? 'zh' : 'en'

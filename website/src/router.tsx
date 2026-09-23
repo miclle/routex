@@ -43,6 +43,14 @@ const routes: RouteObject[] = [
         element: <AppShell />,
         children: [
           {
+            path: 'admin/system-info',
+            lazy: async () => ({ Component: (await import('@/views/site')).default }),
+          },
+          {
+            path: 'admin/system-announcements',
+            lazy: async () => ({ Component: (await import('@/views/announcements')).default }),
+          },
+          {
             path: 'admin/prices',
             lazy: async () => {
               const { default: Page } = await import('@/views/price-imports')

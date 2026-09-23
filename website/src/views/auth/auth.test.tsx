@@ -1,3 +1,4 @@
+import { SitePresentation } from '@/components/app/SiteBranding'
 import { limitFixture } from '@/views/resource-limits/fixture'
 import { act } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
@@ -64,6 +65,16 @@ beforeEach(() => {
           'registration.write',
         ],
       }
+    if (key === 'get /site')
+      response.data = {
+        name: 'RouteX',
+        logo_url: '',
+        footer: '',
+        default_language: 'en',
+        service_url: '',
+        etag: 0,
+      }
+    if (key === 'get /announcements') response.data = { items: [] }
     if (key === 'get /auth/registration') response.data = { enabled: registrationEnabled }
     if (key === 'get /setup') response.data = { initialized }
     if (key === 'get /auth/session') response.data = session
@@ -89,11 +100,12 @@ afterEach(async () => {
   vi.restoreAllMocks()
 })
 
-async function mount(path = '/') {
+async function mount(path = '/', presentation = false) {
   router = createMemoryRouter(routes, { initialEntries: [path] })
   await act(async () => {
     root.render(
       <QueryClientProvider client={queryClient}>
+        {presentation && <SitePresentation />}
         <RouterProvider router={router} />
       </QueryClientProvider>,
     )
@@ -137,6 +149,61 @@ async function credentials() {
 }
 
 describe('authentication flows', () => {
+  it('keeps site observers connected after successful authentication', async () => {
+    queryClient.setQueryData(['site'], {
+      name: 'Initial brand',
+      logo_url: '',
+      footer: '',
+      default_language: 'en',
+      service_url: '',
+      etag: '0',
+      updated_at: '2026-09-23T00:00:00Z',
+    })
+    await mount('/login', true)
+    await until(() => expect(container.querySelector('form')).not.toBeNull())
+    await credentials()
+    await submit()
+    await until(() => expect(router.state.location.pathname).toBe('/'))
+    await act(async () => {
+      queryClient.setQueryData(['site'], {
+        name: 'Updated brand',
+        logo_url: '',
+        footer: '',
+        default_language: 'en',
+        service_url: '',
+        etag: '1',
+        updated_at: '2026-09-23T01:00:00Z',
+      })
+    })
+    await until(() => expect(document.title).toBe('Updated brand'))
+    expect(container.querySelector('button[aria-label="Updated brand"]')).not.toBeNull()
+  })
+
+  it('retains public branding while clearing anonymous private caches', async () => {
+    queryClient.setQueryData(['site'], {
+      name: 'Research Console',
+      logo_url: '',
+      footer: 'Research team',
+      default_language: 'en',
+      service_url: '',
+      etag: '0',
+    })
+    queryClient.setQueryData(['private', 'old'], ['old-data'])
+    await mount('/login')
+    await until(() => expect(container.textContent).toContain('Sign in to Research Console'))
+    expect(container.textContent).toContain('Research team')
+    expect(queryClient.getQueryData(['private', 'old'])).toBeUndefined()
+    expect(queryClient.getQueryData(['site'])).toMatchObject({ name: 'Research Console' })
+  })
+  it('hides unauthorized system routes and does not fetch announcement history', async () => {
+    authenticated = true
+    await mount('/admin/system-announcements')
+    await until(() => expect(container.textContent).toContain('permission'))
+    expect(container.querySelector('a[href="/admin/system-info"]')).toBeNull()
+    expect(container.querySelector('a[href="/admin/system-announcements"]')).toBeNull()
+    expect(requests.some((request) => request.url === '/admin/announcements')).toBe(false)
+  })
+
   it('switches an existing validation message and preserves entered form values', async () => {
     initialized = false
     await mount('/setup')
@@ -219,7 +286,7 @@ describe('authentication flows', () => {
 
   it('protects home, displays login errors, and ignores external redirect parameters', async () => {
     await mount('/?next=https://evil.example')
-    await until(() => expect(container.textContent).toContain('Sign in to your model console'))
+    await until(() => expect(container.textContent).toContain('Sign in to RouteX'))
     expect(container.textContent).not.toContain('current account')
     fail['post /auth/login'] = 401
     await credentials()
@@ -306,7 +373,7 @@ describe('authentication flows', () => {
     await act(async () => {
       button.click()
     })
-    await until(() => expect(container.textContent).toContain('Sign in to your model console'))
+    await until(() => expect(container.textContent).toContain('Sign in to RouteX'))
     expect(requests.find((r) => r.url === '/auth/logout')?.headers.get('X-CSRF-Token')).toBe(
       'csrf-test',
     )
@@ -349,7 +416,7 @@ describe('authentication flows', () => {
     await act(async () => {
       await client.get('/protected').catch(() => undefined)
     })
-    await until(() => expect(container.textContent).toContain('Sign in to your model console'))
+    await until(() => expect(container.textContent).toContain('Sign in to RouteX'))
     expect(queryClient.getQueryData(['private', 'records'])).toBeUndefined()
     expect(container.textContent).not.toContain('admin@example.com')
   })
@@ -363,7 +430,7 @@ describe('authentication flows', () => {
     await act(async () => {
       await queryClient.invalidateQueries({ queryKey: ['auth', 'session'] })
     })
-    await until(() => expect(container.textContent).toContain('Sign in to your model console'))
+    await until(() => expect(container.textContent).toContain('Sign in to RouteX'))
     expect(queryClient.getQueryData(['private', 'records'])).toBeUndefined()
   })
 
@@ -379,6 +446,6 @@ describe('authentication flows', () => {
     await act(async () => {
       container.querySelector('button')!.click()
     })
-    await until(() => expect(container.textContent).toContain('Sign in to your model console'))
+    await until(() => expect(container.textContent).toContain('Sign in to RouteX'))
   })
 })

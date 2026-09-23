@@ -16,11 +16,15 @@ export default function AuthGate({ mode }: { mode: 'private' | 'login' | 'setup'
 
   useEffect(() => {
     const expire = () => {
-      void queryClient.cancelQueries().then(() => {
-        queryClient.setQueryData(sessionKey, null)
-        queryClient.removeQueries({ predicate: (query) => query.queryKey[0] !== 'auth' })
-        queryClient.getMutationCache().clear()
-      })
+      void queryClient
+        .cancelQueries({ predicate: (query) => query.queryKey[0] !== 'site' })
+        .then(() => {
+          queryClient.setQueryData(sessionKey, null)
+          queryClient.removeQueries({
+            predicate: (query) => query.queryKey[0] !== 'auth' && query.queryKey[0] !== 'site',
+          })
+          queryClient.getMutationCache().clear()
+        })
     }
     window.addEventListener('routex:session-expired', expire)
     return () => window.removeEventListener('routex:session-expired', expire)
@@ -28,7 +32,9 @@ export default function AuthGate({ mode }: { mode: 'private' | 'login' | 'setup'
 
   useEffect(() => {
     if (session.data === null) {
-      queryClient.removeQueries({ predicate: (query) => query.queryKey[0] !== 'auth' })
+      queryClient.removeQueries({
+        predicate: (query) => query.queryKey[0] !== 'auth' && query.queryKey[0] !== 'site',
+      })
       queryClient.getMutationCache().clear()
     }
   }, [queryClient, session.data])

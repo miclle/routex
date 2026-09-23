@@ -2,7 +2,12 @@ import { act } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { LanguageSwitcher } from '@/components/app/LanguageSwitcher'
-import i18n, { languageStorageKey, savedLanguage } from './index'
+import i18n, {
+  languageStorageKey,
+  savedLanguage,
+  applyDefaultLanguage,
+  setLanguagePreference,
+} from './index'
 
 Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true })
 let container: HTMLDivElement
@@ -74,6 +79,39 @@ describe('localization contract', () => {
     await act(async () => i18n.changeLanguage('zh'))
     expect(i18n.resolvedLanguage).toBe('zh')
     expect(document.documentElement.lang).toBe('zh')
+  })
+
+  it('applies a server default without converting it into a saved preference', async () => {
+    localStorage.clear()
+    await applyDefaultLanguage('zh')
+    expect(i18n.resolvedLanguage).toBe('zh')
+    expect(document.documentElement.lang).toBe('zh')
+    expect(localStorage.getItem(languageStorageKey)).toBeNull()
+    await setLanguagePreference('en')
+    await applyDefaultLanguage('zh')
+    expect(i18n.resolvedLanguage).toBe('en')
+    expect(localStorage.getItem(languageStorageKey)).toBe('en')
+  })
+
+  it('preserves an explicit choice made while a default is being applied', async () => {
+    localStorage.clear()
+    const pending = applyDefaultLanguage('zh')
+    await setLanguagePreference('en')
+    await pending
+    expect(i18n.resolvedLanguage).toBe('en')
+    expect(localStorage.getItem(languageStorageKey)).toBe('en')
+  })
+
+  it('preserves explicit session choices when storage is unavailable', async () => {
+    localStorage.setItem(languageStorageKey, 'en')
+    const blocked = vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+      throw new Error('blocked')
+    })
+    await setLanguagePreference('zh')
+    await applyDefaultLanguage('en')
+    expect(i18n.resolvedLanguage).toBe('zh')
+    blocked.mockRestore()
+    await setLanguagePreference('en')
   })
 
   it('keeps locale keys, interpolation fields, and plural forms aligned', () => {

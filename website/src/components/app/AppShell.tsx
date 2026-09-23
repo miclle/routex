@@ -1,10 +1,12 @@
+import { SiteLogo, SiteFooter } from './SiteBranding'
+import { AnnouncementFeed } from './AnnouncementFeed'
+import { useSite } from '@/hooks/use-site'
 import { t } from '@/i18n'
 import { useTranslation } from 'react-i18next'
 import { LanguageSwitcher } from './LanguageSwitcher'
 import { useEffect, useState } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import {
-  Route,
   LogOut,
   PanelLeftClose,
   Menu as MenuIcon,
@@ -97,6 +99,28 @@ const accountNav = [
   },
 ]
 const adminNav = [
+  {
+    to: '/admin/system-info',
+    get label() {
+      return t('site:information')
+    },
+    icon: Settings,
+    permission: 'system.read',
+    get group() {
+      return t('system_administration_04ca1')
+    },
+  },
+  {
+    to: '/admin/system-announcements',
+    get label() {
+      return t('announcements:title')
+    },
+    icon: History,
+    permission: 'system.read',
+    get group() {
+      return t('system_administration_04ca1')
+    },
+  },
   {
     to: '/admin/teams',
     get label() {
@@ -223,6 +247,8 @@ const adminNav = [
 export default function AppShell() {
   useTranslation()
 
+  const site = useSite()
+  const siteName = site.data?.name || 'RouteX'
   const session = useSession()
   const access = usePermissions()
   const adminItems = adminNav.filter((item) => access.can(item.permission))
@@ -241,7 +267,8 @@ export default function AppShell() {
   const mutation = useMutation({
     mutationFn: () => logout(session.data!.csrf_token),
     onSuccess: () => {
-      queryClient.clear()
+      queryClient.removeQueries({ predicate: (query) => query.queryKey[0] !== 'site' })
+      queryClient.getMutationCache().clear()
       queryClient.setQueryData(setupKey, { initialized: true })
       queryClient.setQueryData(sessionKey, null)
       navigate('/login', { replace: true })
@@ -259,7 +286,7 @@ export default function AppShell() {
             ? t('member_details_e20da')
             : /\/(?:admin\/)?(?:teams|projects)\//.test(pathname)
               ? t(pathname.includes('/teams/') ? 'teams_21d70' : 'projects_22336')
-              : 'RouteX')
+              : siteName)
   const compact = desktop && collapsed
   function links(items: typeof memberNav) {
     return items.map((item) => (
@@ -282,23 +309,25 @@ export default function AppShell() {
     return (
       <div className="flex h-full flex-col">
         <div className="flex h-20 shrink-0 items-center justify-between gap-2 p-5">
-          <div className="flex items-center gap-2">
+          <div className="flex min-w-0 flex-1 items-center gap-2">
             <button
-              aria-label={compact ? t('expand_sidebar_8ab51') : 'RouteX'}
+              aria-label={compact ? t('expand_sidebar_8ab51') : siteName}
               onClick={() => compact && setCollapsed(false)}
               className="flex size-8 shrink-0 items-center justify-center rounded-md bg-primary text-primary-foreground"
             >
-              <Route className="size-5" />
+              <SiteLogo />
             </button>
             {!compact && (
-              <>
-                <span className="text-xl font-semibold">RouteX</span>
+              <div className="min-w-0 flex-1">
+                <span className="block truncate text-xl font-semibold" title={siteName}>
+                  {siteName}
+                </span>
                 {admin && (
-                  <span className="whitespace-nowrap text-xs text-muted-foreground">
+                  <span className="block text-xs text-muted-foreground">
                     {t('administration_3504c')}
                   </span>
                 )}
-              </>
+              </div>
             )}
           </div>
           {desktop && !compact && (
@@ -468,8 +497,10 @@ export default function AppShell() {
               {authError(mutation.error)}
             </p>
           )}
+          <AnnouncementFeed />
           <Outlet />
         </main>
+        <SiteFooter />
       </div>
     </div>
   )
