@@ -16,6 +16,7 @@ let queryClient: QueryClient
 let router: ReturnType<typeof createMemoryRouter>
 let initialized: boolean
 let authenticated: boolean
+let registrationEnabled: boolean
 let requests: InternalAxiosRequestConfig[]
 let fail: Record<string, number>
 let pendingLogin: Promise<void> | undefined
@@ -24,6 +25,7 @@ const oldAdapter = client.defaults.adapter
 beforeEach(() => {
   initialized = true
   authenticated = false
+  registrationEnabled = false
   requests = []
   fail = {}
   pendingLogin = undefined
@@ -38,6 +40,8 @@ beforeEach(() => {
     const status = fail[key] || (config.url === '/auth/session' && !authenticated ? 401 : 200)
     const response = { config, status, statusText: '', headers: new AxiosHeaders(), data: {} as unknown }
     if (status >= 400) throw new AxiosError('Request failed', '', config, undefined, response)
+    if (key === 'get /auth/permissions') response.data = { permissions: ['members.read', 'roles.read', 'providers.read', 'models.read_all', 'calls.read_all', 'registration.write'] }
+    if (key === 'get /auth/registration') response.data = { enabled: registrationEnabled }
     if (key === 'get /setup') response.data = { initialized }
     if (key === 'get /auth/session') response.data = session
     if (key === 'post /setup' || key === 'post /auth/login') {
@@ -90,6 +94,17 @@ async function credentials() {
 }
 
 describe('authentication flows', () => {
+  it('retains public registration policy when the anonymous auth gate clears private caches', async () => {
+    registrationEnabled = true
+    queryClient.setQueryData(['private', 'old'], ['old-data'])
+    await mount('/login')
+    await until(() => expect(container.querySelector('a[href="/register"]')).not.toBeNull())
+    expect(queryClient.getQueryData(['private', 'old'])).toBeUndefined()
+    await act(async () => { await router.navigate('/register') })
+    await until(() => expect(container.querySelector('form[aria-label="注册"]')).not.toBeNull())
+    expect(queryClient.getQueryData(['auth', 'registration'])).toEqual({ enabled: true })
+  })
+
   it('routes an empty installation to setup and creates an authenticated administrator', async () => {
     initialized = false
     await mount('/')

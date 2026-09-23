@@ -4,11 +4,12 @@ import { Link, useNavigate } from 'react-router'
 import { listProviders, writeCatalog } from '@/api/catalog'
 import { useSession } from '@/hooks/use-auth'
 import type { Model } from '@/types/catalog'
-import { AdminOnly, Page, QueryState, FormField, ErrorNotice, SaveButton } from '@/components/app/CatalogUI'
+import { Page, QueryState, FormField, ErrorNotice, SaveButton } from '@/components/app/CatalogUI'
+import { PermissionGate } from '@/components/app/PermissionGate'
 import { Input } from '@/components/ui/input'
 import { buttonVariants } from '@/components/ui/button'
 
-export default function CreateModelPage() { return <AdminOnly><CreateModel /></AdminOnly> }
+export default function CreateModelPage() { return <PermissionGate permission="models.write"><PermissionGate permission="providers.read"><CreateModel /></PermissionGate></PermissionGate> }
 function CreateModel() {
   const { data: session } = useSession()
   const providers = useQuery({ queryKey: ['admin', 'providers'], queryFn: listProviders })

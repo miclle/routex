@@ -9,12 +9,16 @@ const routes: RouteObject[] = [
   },
   {
     element: <AuthGate mode="login" />,
-    children: [{ path: '/login', lazy: async () => { const { default: Page } = await import('@/views/auth'); return { Component: () => <Page mode="login" /> } } }],
+    children: [{ path: '/register', lazy: async () => { const { default: Page } = await import('@/views/auth'); return { Component: () => <Page mode="register" /> } } }, { path: '/login', lazy: async () => { const { default: Page } = await import('@/views/auth'); return { Component: () => <Page mode="login" /> } } }],
   },
   {
     element: <AuthGate mode="private" />,
     children: [{ path: '/', element: <AppShell />, children: [
       { index: true, lazy: async () => ({ Component: (await import('@/views/home')).default }) },
+      { path: 'admin/members', lazy: async () => ({ Component: (await import('@/views/governance/members')).default }) },
+      { path: 'admin/members/:memberId', lazy: async () => ({ Component: (await import('@/views/governance/members')).default }) },
+      { path: 'admin/roles', lazy: async () => ({ Component: (await import('@/views/governance/roles')).default }) },
+      { path: 'admin/auth', lazy: async () => ({ Component: (await import('@/views/governance/registration')).default }) },
       { path: 'account', lazy: async () => ({ Component: (await import('@/views/account')).default }) },
       { path: 'playground', lazy: async () => ({ Component: (await import('@/views/playground')).default }) },
       { path: 'calls', lazy: async () => ({ Component: (await import('@/views/calls')).default }) },

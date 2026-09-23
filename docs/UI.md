@@ -22,3 +22,13 @@ Only supported API fields and operations are exposed. Unavailable pricing, aggre
 `Table` provides shared table styling. `Drawer`, `Menu`, `Dialog`, and `Tabs` wrap Base UI for accessible keyboard and focus behavior. API clients and React Query continue to own server state; private credentials never enter browser storage.
 
 Run frontend type checking, lint, Vitest behavior tests, and the native gateway proxy test after modifying these flows. Browser verification should use disposable database and upstream fixtures and must avoid capturing credentials in screenshots.
+
+## Member Governance
+
+The management sidebar derives its visible entries from `GET /auth/permissions`. Pages check the corresponding read permission before mounting resource queries. Catalog write controls independently check write permissions, so a member with a custom read role can inspect the delegated resource without receiving mutation controls. Protected administrator identity remains required for role definition, role assignment, and registration policy.
+
+Members use a filtered, paginated table and an addressable detail page with overview, role, and settings tabs. Creation requires an explicit initial password and does not claim to send an invitation. Password payloads are removed from retained mutation state after completion or dismissal. Suspension requires confirmation, reports continuity conflicts, and explains that restored accounts do not recover revoked sessions or Keys.
+
+Roles use a table and grouped resource/action editing modal. Built-ins are read-only. The permission picker uses the server's assignable permission list; explicit custom-role assignment never submits built-in IDs. Assigned-role deletion conflicts remain visible and recoverable.
+
+Registration settings use an authentication-method card and right configuration drawer. Public sign-up is shown only while registration is enabled, uses the centered authentication surface, validates the password byte bound, and clears previous private caches when the server establishes the new session. Closed registration remains blocked by the server even if the form was opened earlier.

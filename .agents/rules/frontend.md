@@ -27,7 +27,7 @@ These rules apply to files under `website/src/`.
 - Account password changes replace cached session/CSRF data before subsequent writes. Clear password form values and mutation payloads after success; current-session revocation clears private caches and returns to login.
 - Playground uses abortable native fetch requests with an in-memory Key; leaving the page cancels inference. Do not persist Key values or conversation payloads.
 - Personal and administrative call records have separate cache keys. Only administrative detail views may render upstream attempts and diagnostic identifiers.
-- Catalog mutations send the current session CSRF token and invalidate the affected resource queries. Administrative routes and navigation check the session role; backend authorization remains authoritative.
+- Catalog mutations send the current session CSRF token and invalidate the affected resource queries. Administrative routes, navigation, and write controls use the effective `/auth/permissions` query; built-in administrator checks remain only for reserved role/registration powers. Backend authorization remains authoritative.
 - One-time Key delivery holds secrets only in component state. Confirmation enables the pending Key; dismissing the delivery dialog revokes it before clearing the secret. Never place secret results in query/mutation caches or browser storage.
 - Use the local Base UI `Dialog` wrapper for modal focus, keyboard dismissal, and pending-action locking.
 - Use local `Drawer` for side-panel details and mobile navigation, `Menu` for account actions, and `Table` for resource lists. The sidebar owns workspace/management navigation, collapse behavior, and a bottom account menu.
@@ -50,3 +50,5 @@ These rules apply to files under `website/src/`.
 - Reproduce the approved product Mockup's navigation, page hierarchy, tables, drawers, forms, spacing, and interactions. Do not create a substitute layout.
 - Use local shadcn/ui primitives and Base UI wrappers for that design; Ant Design/antd is prohibited.
 - Keep real API and permission behavior while preserving the specified composition. Document necessary domain/security differences and verify the resulting pages against the reference.
+
+- Governance screens use addressable member detail tabs, grouped role permissions, and a registration configuration drawer. `Switch` wraps Base UI; controlled registration uses the same centered authentication surface. Keep initial passwords out of retained mutation state.

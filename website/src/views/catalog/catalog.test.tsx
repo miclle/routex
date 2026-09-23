@@ -44,6 +44,7 @@ beforeEach(() => {
     const response = { config, status: failures[route] || 200, statusText: '', headers: new AxiosHeaders(), data: {} as unknown }
     if (response.status >= 400) throw new AxiosError('Request failed', '', config, undefined, response)
     if (route === 'get /auth/session') response.data = { user: { id: 'usr_1', name: 'User', email: 'user@example.com', role }, csrf_token: 'csrf' }
+    if (route === 'get /auth/permissions') response.data = { permissions: role === 'admin' ? ['providers.read', 'providers.write', 'models.read_all', 'models.write'] : [] }
     if (route === 'get /keys') response.data = { items: structuredClone(keys) }
     if (route === 'get /models') response.data = { items: [{ id: 'mdl_1', name: 'Model', status: 'active', protocol: 'openai_chat' }] }
     if (route === 'get /admin/providers') response.data = { items: [structuredClone(provider)] }

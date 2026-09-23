@@ -32,6 +32,7 @@ beforeEach(() => {
   client.defaults.adapter = async (config) => {
     requests.push(config)
     const response = { config, status: 200, statusText: '', headers: new AxiosHeaders(), data: {} as unknown }
+    if (config.url === '/auth/permissions') { response.data = { permissions: role === 'admin' ? ['calls.read_all'] : [] }; return response }
     if (config.url === '/auth/session') { response.data = { user: { role, id: 'usr_1' }, csrf_token: 'csrf' }; return response }
     const isDetail = config.url?.endsWith('/req_first')
     if (isDetail && failDetail || config.params?.cursor && failNext) { response.status = 503; throw new AxiosError('Failed', '', config, undefined, response) }

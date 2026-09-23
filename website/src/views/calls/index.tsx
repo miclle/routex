@@ -3,7 +3,8 @@ import { useInfiniteQuery, useQuery } from '@tanstack/react-query'
 import { RefreshCw } from 'lucide-react'
 import { getCall, listCalls } from '@/api/calls'
 import type { AdminCallDetail, CallFilters, CallRecord } from '@/types/calls'
-import { AdminOnly, Page, QueryState, FormField, ErrorNotice } from '@/components/app/CatalogUI'
+import { Page, QueryState, FormField, ErrorNotice } from '@/components/app/CatalogUI'
+import { PermissionGate } from '@/components/app/PermissionGate'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -12,7 +13,7 @@ import { Drawer } from '@/components/ui/drawer'
 const statuses = { success: '成功', error: '失败', canceled: '已取消' }
 const formatTime = (value: string) => new Date(value).toLocaleString()
 export default function CallsPage({ admin = false }: { admin?: boolean }) {
-  return admin ? <AdminOnly><CallRecords admin /></AdminOnly> : <CallRecords admin={false} />
+  return admin ? <PermissionGate permission="calls.read_all"><CallRecords admin /></PermissionGate> : <CallRecords admin={false} />
 }
 function CallRecords({ admin }: { admin: boolean }) {
   const [filters, setFilters] = useState<CallFilters>({})
