@@ -558,3 +558,16 @@ complete-query overflow, comparison, language switching, routed permissions,
 archived current-manager access and Project switching. This frontend phase uses
 the already verified usage APIs; no new schema or gateway behavior is introduced.
 Browser control remained unavailable, so rendered chart/layout acceptance is open.
+
+### Native Responses Playground
+
+The Playground now selects eligible Chat or Responses protocols per model and
+executes native ordinary or streamed calls without translation. Inline conversation
+history, terminal status, usage, cancellation and transient Key handling follow
+each native contract. Stateful response references remain unavailable.
+
+Full check/test passed with 204 Vitest cases, four Node checks, Go race/unit,
+development lifecycle and production asset tests. Focused cases cover native
+request bodies, SSE finality, incomplete/error terminals, cancellation, duplicate
+submission and protocol-specific model eligibility. No database change or external
+provider/browser acceptance is claimed by this frontend phase.

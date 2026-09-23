@@ -1,3 +1,5 @@
+import enPlayground from './locales/en/playground'
+import zhPlayground from './locales/zh/playground'
 import enUsage from './locales/en/usage'
 import zhUsage from './locales/zh/usage'
 import enMFA from './locales/en/mfa'
@@ -42,6 +44,7 @@ void i18n.use(initReactI18next).init({
   resources: {
     en: {
       common: en,
+      playground: enPlayground,
       usage: enUsage,
       mfa: enMFA,
       limits: enLimits,
@@ -58,6 +61,7 @@ void i18n.use(initReactI18next).init({
     },
     zh: {
       common: zh,
+      playground: zhPlayground,
       usage: zhUsage,
       mfa: zhMFA,
       limits: zhLimits,

@@ -2,12 +2,14 @@ import { act } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import PlaygroundPage from './index'
-import { GatewayError, getGatewayModels, runChat } from '@/api/playground'
+import i18n from '@/i18n'
+import { GatewayError, getGatewayModels, runChat, runResponses } from '@/api/playground'
 
 vi.mock('@/api/playground', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@/api/playground')>()),
   getGatewayModels: vi.fn(),
   runChat: vi.fn(),
+  runResponses: vi.fn(),
 }))
 Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true })
 let root: Root
@@ -169,7 +171,7 @@ describe('Playground user behavior', () => {
   })
 })
 
-it('only offers models with a currently eligible Chat route in the chat playground', async () => {
+it('offers eligible native protocols and excludes explicitly unusable models', async () => {
   vi.mocked(getGatewayModels).mockResolvedValue([
     { id: 'responses-only', protocols: ['openai_responses'] },
     { id: 'unavailable', protocols: [] },
@@ -179,6 +181,123 @@ it('only offers models with a currently eligible Chat route in the chat playgrou
   await click('Verify and load models')
   const options = [...container.querySelectorAll('option')].map((option) => option.value)
   expect(options).toContain('both')
-  expect(options).not.toContain('responses-only')
+  expect(options).toContain('responses-only')
   expect(options).not.toContain('unavailable')
+})
+
+async function select(name: string, value: string) {
+  await act(async () => {
+    const input = container.querySelector<HTMLSelectElement>(`select[name="${name}"]`)!
+    input.value = value
+    input.dispatchEvent(new Event('change', { bubbles: true }))
+  })
+}
+it('uses selected native Responses parameters and resets history when changing protocols', async () => {
+  vi.mocked(getGatewayModels).mockResolvedValue([
+    { id: 'native', protocols: ['openai_chat', 'openai_responses'] },
+  ])
+  vi.mocked(runResponses).mockResolvedValue({
+    text: 'Response text',
+    requestId: 'req_native',
+    usage: null,
+    finishReason: 'completed',
+    responseStatus: 'completed',
+    nonTextOutput: false,
+  })
+  await ready()
+  await select('protocol', 'openai_responses')
+  await fill('system', 'Be precise')
+  await submit()
+  expect(vi.mocked(runChat)).not.toHaveBeenCalled()
+  expect(vi.mocked(runResponses).mock.calls[0][1]).toEqual({
+    model: 'native',
+    input: [{ role: 'user', content: 'Hello' }],
+    instructions: 'Be precise',
+    temperature: 0.7,
+    top_p: 1,
+    max_output_tokens: 2048,
+    stream: true,
+  })
+  expect(container.textContent).toContain('POST /v1/responses')
+  await fill('prompt', 'Continue')
+  await submit()
+  expect(vi.mocked(runResponses).mock.calls[1][1].input).toEqual([
+    { role: 'user', content: 'Hello' },
+    { role: 'assistant', content: 'Response text' },
+    { role: 'user', content: 'Continue' },
+  ])
+  await select('protocol', 'openai_chat')
+  expect(container.textContent).not.toContain('Response text')
+  expect(container.textContent).toContain('POST /v1/chat/completions')
+})
+it.each(['incomplete', 'failed', 'queued'] as const)(
+  'keeps Responses %s outside completed conversation history',
+  async (status) => {
+    vi.mocked(getGatewayModels).mockResolvedValue([
+      { id: 'native', protocols: ['openai_responses'] },
+    ])
+    vi.mocked(runResponses).mockResolvedValue({
+      text: 'Partial native',
+      requestId: 'req_native',
+      usage: null,
+      finishReason: status,
+      responseStatus: status,
+      nonTextOutput: false,
+    })
+    await ready()
+    await submit()
+    expect(container.textContent).toContain(
+      status === 'queued'
+        ? 'Accepted, not completed'
+        : status === 'failed'
+          ? 'Call failed'
+          : 'Incomplete',
+    )
+    expect(container.textContent).toContain('Partial native')
+    await fill('prompt', 'Retry')
+    await submit()
+    expect(vi.mocked(runResponses).mock.calls[1][1].input).toEqual([
+      { role: 'user', content: 'Retry' },
+    ])
+    expect(runChat).not.toHaveBeenCalled()
+  },
+)
+
+it('switches native labels without losing draft or protocol and prevents duplicate dispatch', async () => {
+  vi.mocked(getGatewayModels).mockResolvedValue([{ id: 'native', protocols: ['openai_responses'] }])
+  let release!: () => void
+  vi.mocked(runResponses).mockImplementation(async (_key, _request, _signal, update) => {
+    const result = {
+      text: 'Native partial',
+      requestId: 'req_native',
+      usage: null,
+      finishReason: null,
+      responseStatus: null,
+      nonTextOutput: false,
+    }
+    update(result)
+    await new Promise<void>((resolve) => {
+      release = resolve
+    })
+    return { ...result, responseStatus: 'completed' }
+  })
+  await ready()
+  await act(async () => {
+    await i18n.changeLanguage('zh')
+  })
+  expect(container.textContent).toContain('协议类型')
+  expect(container.querySelector<HTMLTextAreaElement>('[name="prompt"]')!.value).toBe('Hello')
+  expect(container.querySelector<HTMLSelectElement>('[name="protocol"]')!.value).toBe(
+    'openai_responses',
+  )
+  await act(async () => {
+    const form = container.querySelector('form')!
+    form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+    form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+  })
+  expect(runResponses).toHaveBeenCalledTimes(1)
+  await act(async () => release())
+  expect(container.textContent).toContain('Native partial')
+  expect(localStorage.getItem('routex.language')).toBe('zh')
+  expect(JSON.stringify(localStorage)).not.toContain('rx_transient')
 })
