@@ -175,6 +175,17 @@ const routes: RouteObject[] = [
             lazy: async () => ({ Component: (await import('@/views/playground')).default }),
           },
           {
+            path: 'usage',
+            lazy: async () => ({ Component: (await import('@/views/usage')).default }),
+          },
+          {
+            path: 'admin/usage',
+            lazy: async () => {
+              const { default: Page } = await import('@/views/usage')
+              return { Component: () => <Page admin /> }
+            },
+          },
+          {
             path: 'calls',
             lazy: async () => ({ Component: (await import('@/views/calls')).default }),
           },

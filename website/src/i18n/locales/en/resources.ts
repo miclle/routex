@@ -1,4 +1,5 @@
 export default {
+  usage: 'Usage',
   overview: 'Overview',
   members: 'Members',
   models: 'Model access',

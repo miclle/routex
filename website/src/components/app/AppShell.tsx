@@ -10,6 +10,7 @@ import {
   Menu as MenuIcon,
   ChevronsUpDown,
   LayoutDashboard,
+  ChartNoAxesCombined,
   KeyRound,
   Bot,
   PlayCircle,
@@ -64,6 +65,13 @@ const memberNav = [
     icon: Bot,
   },
   { to: '/playground', label: 'Playground', icon: PlayCircle },
+  {
+    to: '/usage',
+    get label() {
+      return t('usage:title')
+    },
+    icon: ChartNoAxesCombined,
+  },
   {
     to: '/calls',
     get label() {
@@ -186,6 +194,17 @@ const adminNav = [
     permission: 'prices.read',
     get group() {
       return t('currency:group')
+    },
+  },
+  {
+    to: '/admin/usage',
+    get label() {
+      return t('usage:adminTitle')
+    },
+    icon: ChartNoAxesCombined,
+    permission: 'calls.read_all',
+    get group() {
+      return t('system_administration_04ca1')
     },
   },
   {

@@ -1,4 +1,5 @@
 export default {
+  usage: '用量统计',
   overview: '概览',
   members: '成员',
   models: '模型访问',

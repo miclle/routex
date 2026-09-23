@@ -8,6 +8,7 @@ import { Page, QueryState } from '@/components/app/CatalogUI'
 import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import CallsPage from '@/views/calls'
+import { ProjectUsagePanel } from '@/views/usage'
 import ResourceLimits from '@/views/resource-limits'
 import ProjectKeysPanel from '@/views/project-keys'
 import ProjectRequestsPanel from '@/views/project-requests'
@@ -63,7 +64,7 @@ function ResourceDetail({ kind, resource }: { kind: ResourceKind; resource: Reso
           'overview',
           ...(canEdit ? ['keys'] : []),
           'resources',
-          ...(canCalls ? ['calls'] : []),
+          ...(canCalls ? ['usage', 'calls'] : []),
           'settings',
         ]
   const selected = params.get('tab') ?? 'overview'
@@ -186,6 +187,11 @@ function ResourceDetail({ kind, resource }: { kind: ResourceKind; resource: Reso
         {kind === 'projects' && canEdit && (
           <TabsContent value="keys">
             <ProjectKeysPanel project={resource} />
+          </TabsContent>
+        )}
+        {canCalls && (
+          <TabsContent value="usage">
+            <ProjectUsagePanel projectId={resource.id} />
           </TabsContent>
         )}
         {canCalls && (

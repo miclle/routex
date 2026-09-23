@@ -1,4 +1,5 @@
 import { limitFixture } from '@/views/resource-limits/fixture'
+import { usageFixture } from '@/views/usage/fixture'
 import { act } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { createMemoryRouter, RouterProvider } from 'react-router'
@@ -123,6 +124,7 @@ beforeEach(() => {
       response.data = { items: [project], next_cursor: null }
     else response.data = { items: [], next_cursor: null }
     if (config.url?.endsWith('/limits')) response.data = limitFixture()
+    if (config.url?.endsWith('/usage')) response.data = usageFixture()
     return response
   }
 })
@@ -358,5 +360,56 @@ describe('Team and Project resource workflows', () => {
     })
     expect(host.textContent).toContain('保存设置')
     expect(host.querySelector<HTMLInputElement>('[name="name"]')?.value).toBe('Preserved Project')
+  })
+})
+
+describe('mounted Usage routes and Project access', () => {
+  it('mounts personal usage from its real route and scopes the request', async () => {
+    await mount('/usage')
+    await until(() => expect(host.textContent).toContain('key_usage_resource'))
+    expect(requests.some((request) => request.url === '/usage')).toBe(true)
+    expect(requests.some((request) => request.url === '/admin/usage')).toBe(false)
+    expect(host.querySelector('a[href="/usage"]')).not.toBeNull()
+  })
+  it('does not query administrative usage without calls.read_all', async () => {
+    await mount('/admin/usage')
+    await until(() => expect(host.querySelector('[role="alert"]')).not.toBeNull())
+    expect(requests.some((request) => request.url === '/admin/usage')).toBe(false)
+    expect(host.querySelector('a[href="/admin/usage"]')).toBeNull()
+  })
+  it('mounts administrative usage only after permission resolution', async () => {
+    permissions = ['calls.read_all']
+    await mount('/admin/usage')
+    await until(() => expect(host.textContent).toContain('key_usage_resource'))
+    expect(requests.some((request) => request.url === '/admin/usage')).toBe(true)
+    expect(host.querySelector('[name="connection_id"]')).not.toBeNull()
+  })
+  it('lets a current Project manager read archived history in the Usage tab', async () => {
+    project.status = 'archived'
+    await mount('/projects/prj_1?tab=usage')
+    await until(() => expect(host.textContent).toContain('key_usage_resource'))
+    expect(requests.some((request) => request.url === '/projects/prj_1/usage')).toBe(true)
+    expect(requests.some((request) => request.url === '/usage')).toBe(false)
+    expect(
+      [...host.querySelectorAll('[role="tab"]')].some((tab) => tab.textContent === 'Usage'),
+    ).toBe(true)
+  })
+  it('hides the tab and avoids queries for a former manager even with Project read access', async () => {
+    project.managers = []
+    permissions = ['projects.read_all']
+    await mount('/projects/prj_1?tab=usage')
+    await until(() => expect(host.textContent).toContain('Search Project'))
+    expect(
+      [...host.querySelectorAll('[role="tab"]')].some((tab) => tab.textContent === 'Usage'),
+    ).toBe(false)
+    expect(requests.some((request) => request.url === '/projects/prj_1/usage')).toBe(false)
+  })
+  it('keeps Project history available to platform calls authority without manager membership', async () => {
+    project.managers = []
+    permissions = ['projects.read_all', 'calls.read_all']
+    await mount('/projects/prj_1?tab=usage')
+    await until(() => expect(host.textContent).toContain('key_usage_resource'))
+    expect(requests.some((request) => request.url === '/projects/prj_1/usage')).toBe(true)
+    expect(host.querySelector('[name="connection_id"]')).toBeNull()
   })
 })

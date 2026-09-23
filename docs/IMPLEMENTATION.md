@@ -542,3 +542,19 @@ Controlled upstream tests cover ordinary/SSE/error, cancellation before/after
 terminal usage, supply exclusion with independent Chat availability, exact receipts,
 protocol-filtered usage and durable replay. No paid provider or rendered browser
 acceptance is claimed. Stateful response retrieval and background APIs remain open.
+
+### Usage report interfaces
+
+Personal and platform navigation and the authorized Project Usage tab now render
+real reports using the existing compact filters, four summary cards, trend,
+distributions and Key ranking layout. Currency-separated receipts, unknown token
+coverage, exact values and read freshness remain explicit. Scope/filter changes
+clear the prior visible report; unauthorized routes issue no report request.
+
+Full check/test passed with 187 Vitest cases, four Node checks, Go race/unit,
+development lifecycle and production assets. Focused tests cover exact values
+above JavaScript integer limits, mixed currencies, missing trend gaps, filters,
+complete-query overflow, comparison, language switching, routed permissions,
+archived current-manager access and Project switching. This frontend phase uses
+the already verified usage APIs; no new schema or gateway behavior is introduced.
+Browser control remained unavailable, so rendered chart/layout acceptance is open.
