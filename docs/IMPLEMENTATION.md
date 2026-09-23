@@ -725,3 +725,20 @@ Go race/unit, development lifecycle and production assets. This phase is an
 internal foundation only: existing gateway admission remains unchanged until the
 version-19 policy, protocol-bound reservation and management integration is
 landed and accepted.
+
+### Native route-attempt foundation
+
+The new `pkg/routeattempt` boundary creates immutable, concurrency-safe weighted
+plans for future bounded native failover. It enforces protocol consistency,
+credential priority, request-local exclusions and explicit work-state evidence.
+Unknown work, emitted output or final usage blocks replay; one canonical request
+can be admitted only once while preparation rechecks authorization and reservation
+evidence before every executed attempt.
+
+Focused race tests cover deterministic weight intervals, health renormalization,
+credential and Connection exclusions, cancellation, revocation, attempt-budget
+exhaustion, immutable snapshots and concurrent plan reuse. Full check/test passed
+with 335 Vitest cases, four Node checks, Go race/unit, development lifecycle and
+production assets. This package is not wired into active gateway handlers, so the
+current single-attempt behavior remains unchanged until persistence, quota
+amendment and native error classification are integrated and accepted.
