@@ -380,3 +380,19 @@ reads, denied access, and enabled-versus-disabled conversion requirements.
 Controlled browser checks verified exact 18-digit FX, missing conversions,
 confirmation payloads, read-only controls and Chinese copy. CSV upload interfaces
 and spreadsheet formats follow as separate deliveries.
+
+### CSV price management interface
+
+The Prices page follows the download/edit/upload workflow and opens a paginated
+old/new preview. It reports located row errors, retains the exact reviewed file,
+and submits its ETag/digest only once. A conflict requires another preview;
+uncertain publication responses direct the operator to reconcile current prices.
+Read-only users can preview/export but cannot commit. The API dialog describes
+the supported authenticated endpoints without storing credentials in the browser.
+
+Full check/test passed with 136 Vitest cases, four Node checks, Go race/unit,
+development lifecycle and production assets. Controlled browser checks verified
+navigation, upload-card layout, bounds, the API dialog and Chinese copy. Browser
+file upload was blocked by the extension's file-access permission; browser import
+and download completion are not claimed. Automated file/preview/commit tests and
+the separately verified dual-database import contract cover those workflows.

@@ -19,6 +19,7 @@ import {
   Settings,
   ArrowLeft,
   ArrowLeftRight,
+  Coins,
   ChevronRight,
   Cloud,
   UsersRound,
@@ -163,6 +164,17 @@ const adminNav = [
     permission: 'calls.read_all',
     get group() {
       return t('operations_8e37c')
+    },
+  },
+  {
+    to: '/admin/prices',
+    get label() {
+      return t('priceImports:title')
+    },
+    icon: Coins,
+    permission: 'prices.read',
+    get group() {
+      return t('currency:group')
     },
   },
   {

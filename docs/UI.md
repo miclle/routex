@@ -76,3 +76,11 @@ The currency page keeps the current-configuration card, conversion table, and se
 Selecting a new platform currency clears other draft rates and fixes self-conversion at `1`. Validation requires positive exact decimal strings for all enabled-price currencies. Confirmation states that historical amounts and original model prices remain unchanged. Concurrent catalogue updates, including background refreshes, block saving until current requirements and the ETag are reviewed together; the draft survives that review. Pending confirmation cannot dispatch duplicate writes.
 
 Focused tests cover read-only access, no initial writes, navigation order, currency-switch clearing, required rates, decimal validation and preservation, confirmation, conflict recovery, coherent background refreshes, duplicate dispatch prevention, and live language switching.
+
+### CSV price maintenance
+
+`/admin/prices` provides a price-file maintenance surface, rather than a separate model browser. Its upload card preserves download, edit, select-file, validate, and confirm steps. The management API dialog documents the active authenticated endpoints. Only supported CSV controls are shown. Export downloads the complete server snapshot through an authenticated Blob request and releases the temporary object URL.
+
+The file selector accepts one UTF-8 CSV up to 32 KiB; the server enforces the 160-row and 20-model bounds and all header/semantic rules. Preview uses authoritative stable model identities and displays every located error, exact before/after rates, threshold changes, explicit zero/disabled state, and repository-follow changes. Difference rows paginate eight at a time. Preview/export require read permission; application requires write permission and CSRF.
+
+Commit submits the unchanged captured CSV with the server-returned ETag and digest. Selecting another file discards the prior preview. HTTP 409 requires a fresh preview; 422 displays all returned errors. An uncertain 503 never displays success and instructs the operator to reload and reconcile catalogue/runtime state. Pending operations cannot dispatch duplicate commits, and no CSV content is persisted in browser storage.

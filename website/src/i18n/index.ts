@@ -1,4 +1,6 @@
 import i18n from 'i18next'
+import enPriceImports from './locales/en/priceImports'
+import zhPriceImports from './locales/zh/priceImports'
 import enCurrency from './locales/en/currency'
 import zhCurrency from './locales/zh/currency'
 import enPricing from './locales/en/pricing'
@@ -36,6 +38,7 @@ void i18n.use(initReactI18next).init({
       common: en,
       pricing: enPricing,
       currency: enCurrency,
+      priceImports: enPriceImports,
       resources: enResources,
       projectKeys: enProjectKeys,
       projectRequests: enProjectRequests,
@@ -48,6 +51,7 @@ void i18n.use(initReactI18next).init({
       common: zh,
       pricing: zhPricing,
       currency: zhCurrency,
+      priceImports: zhPriceImports,
       resources: zhResources,
       projectKeys: zhProjectKeys,
       projectRequests: zhProjectRequests,

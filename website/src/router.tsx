@@ -43,6 +43,13 @@ const routes: RouteObject[] = [
         element: <AppShell />,
         children: [
           {
+            path: 'admin/prices',
+            lazy: async () => {
+              const { default: Page } = await import('@/views/price-imports')
+              return { Component: Page }
+            },
+          },
+          {
             path: 'admin/currency',
             lazy: async () => {
               const { default: Page } = await import('@/views/pricing/currency')
