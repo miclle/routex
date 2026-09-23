@@ -41,6 +41,33 @@ func (ctrl *Ctrl) RegisterRoutes(r *fox.Engine) {
 	identity.GET("/auth/session", ctrl.requireSession, ctrl.CurrentSession)
 	identity.POST("/auth/logout", sameOrigin, ctrl.requireSession, requireCSRF, ctrl.Logout)
 	identity.GET("/admin/status", ctrl.requireSession, requireAdmin, ctrl.AdminStatus)
+
+	identity.GET("/models", ctrl.requireSession, ctrl.ListVisibleModels)
+	admin := identity.Group("/admin")
+	admin.Use(ctrl.requireSession, requireAdmin)
+	admin.GET("/providers", ctrl.ListProviders)
+	admin.GET("/models", ctrl.ListAdminModels)
+	admin.GET("/model-grantees", ctrl.ListModelGrantees)
+	admin.POST("/providers", sameOrigin, requireCSRF, jsonManagementRequest, ctrl.CreateProvider)
+	admin.POST("/providers/:provider_id/connections", sameOrigin, requireCSRF, jsonManagementRequest, ctrl.CreateConnection)
+	admin.POST("/connections/:connection_id/credentials", sameOrigin, requireCSRF, jsonManagementRequest, ctrl.CreateCredential)
+	admin.POST("/credentials/:credential_id/verify", sameOrigin, requireCSRF, ctrl.VerifyCredential)
+	admin.PATCH("/credentials/:credential_id", sameOrigin, requireCSRF, jsonManagementRequest, ctrl.UpdateCredential)
+	admin.POST("/connections/:connection_id/models", sameOrigin, requireCSRF, jsonManagementRequest, ctrl.CreateProviderModel)
+	admin.POST("/models", sameOrigin, requireCSRF, jsonManagementRequest, ctrl.CreateModel)
+	admin.POST("/models/:model_id/bindings", sameOrigin, requireCSRF, jsonManagementRequest, ctrl.AddModelBinding)
+	admin.PUT("/models/:model_id/weights", sameOrigin, requireCSRF, jsonManagementRequest, ctrl.UpdateModelWeights)
+	admin.POST("/models/:model_id/rename", sameOrigin, requireCSRF, jsonManagementRequest, ctrl.RenameModel)
+	admin.PUT("/models/:model_id/grants", sameOrigin, requireCSRF, jsonManagementRequest, ctrl.UpdateModelGrants)
+
+	keys := identity.Group("/keys")
+	keys.Use(ctrl.requireSession)
+	keys.GET("", ctrl.ListPersonalKeys)
+	keys.POST("", sameOrigin, requireCSRF, jsonManagementRequest, ctrl.CreatePersonalKey)
+	keys.POST("/:key_id/confirm", sameOrigin, requireCSRF, ctrl.ConfirmKeyDelivery)
+	keys.PATCH("/:key_id", sameOrigin, requireCSRF, jsonManagementRequest, ctrl.UpdatePersonalKey)
+	keys.DELETE("/:key_id", sameOrigin, requireCSRF, ctrl.RevokePersonalKey)
+	keys.POST("/:key_id/rotate", sameOrigin, requireCSRF, ctrl.RotatePersonalKey)
 }
 
 // Health returns a simple health check response.

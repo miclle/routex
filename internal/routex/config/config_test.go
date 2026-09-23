@@ -128,3 +128,22 @@ func TestLoadRequiresAddrAndDSN(t *testing.T) {
 		})
 	}
 }
+
+func TestLoadCredentialBootstrap(t *testing.T) {
+	t.Setenv("ROUTEX_TEST_ROOT", "opaque-bootstrap-key")
+	t.Setenv("ROUTEX_TEST_PRIVATE", "true")
+	cfg, err := Load(writeConfig(t, `addr: localhost:9000
+dsn: test
+encryption_key: "${ROUTEX_TEST_ROOT}"
+allow_private_upstreams: "${ROUTEX_TEST_PRIVATE:-false}"
+`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if cfg.EncryptionKey != "opaque-bootstrap-key" || !cfg.AllowPrivateUpstreams {
+		t.Fatal("bootstrap settings were not expanded")
+	}
+	if _, err := Load(writeConfig(t, "addr: localhost:9000\ndsn: test\nallow_private_upstreams: maybe\n")); err == nil {
+		t.Fatal("invalid private-upstream policy must fail")
+	}
+}

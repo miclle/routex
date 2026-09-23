@@ -6,7 +6,7 @@ Technical specification for AI coding assistants working on this project.
 
 RouteX is an AI gateway and control plane, built as a Go + React single-page application that compiles into a single binary. The backend embeds frontend build output via `//go:embed`, so production deployment requires only one executable plus a database.
 
-The current implementation includes persistent administrator setup, local authentication, revocable sessions, and a protected workspace. Product domains and extension boundaries are defined in `docs/ARCHITECTURE.md`; provider routing, API keys, quotas, and metering are not implemented yet. Phase scope and acceptance evidence are tracked in `docs/IMPLEMENTATION.md`. Preserve the Gateway, Control Plane, and Data Platform boundaries as features are added.
+The current implementation includes persistent administrator setup, local authentication, revocable sessions, and a protected workspace. Product domains and extension boundaries are defined in `docs/ARCHITECTURE.md`; provider routing, quotas, and metering are being implemented in later work packages. Encrypted provider credentials, stable model catalogs/grants, and personal API Keys are available. Phase scope and acceptance evidence are tracked in `docs/IMPLEMENTATION.md`. Preserve the Gateway, Control Plane, and Data Platform boundaries as features are added.
 
 ## Tech Stack
 
@@ -91,7 +91,7 @@ scripts/                      # Shell helpers invoked by Taskfile (build, check,
 - Register all routes in `internal/routex/handler/handler.go`
 - Keep database connection and versioned migration setup in `internal/routex/database/`; services receive a ready `*gorm.DB`. Add new immutable migration versions instead of editing released steps or using current entities for startup AutoMigrate.
 - PostgreSQL (default) and MySQL are supported; switch via `driver` in YAML config
-- YAML config contains only bootstrap settings (address, database driver, connection string)
+- YAML config contains only bootstrap settings (address, database driver, connection string, credential root key, and upstream network policy)
 - Configuration files may reference environment variables with `${NAME}` or `${NAME:-fallback}`
 - Expand environment variables after parsing YAML so values cannot alter configuration syntax
 
@@ -106,6 +106,8 @@ scripts/                      # Shell helpers invoked by Taskfile (build, check,
 - Reusable UI primitives belong in `website/src/components/ui/`
 - Prefer local shadcn-style primitives, Tailwind tokens, Lucide icons, and Base UI wrappers over one-off markup
 - Authentication pages use `/setup` and `/login`; `AuthGate` protects the application shell. Session and setup state are React Query resources; cookies remain HttpOnly and CSRF tokens stay in memory.
+- Catalog routes include `/admin/providers`, `/admin/models`, `/models`, and `/keys`. Administrative views use `AdminOnly` in addition to server authorization; the app navigation follows the session role.
+- One-time Key secrets stay only in component state until confirmed or revoked; never return secrets from a React Query mutation into its cache. Local `Dialog` wraps Base UI for modal focus and keyboard behavior.
 - Use the local Base UI `Input` wrapper for form controls, with labels, autocomplete, validation, and pending states.
 - Wrap Base UI headless components in local `components/ui/*` modules before using them from pages
 

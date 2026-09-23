@@ -3,6 +3,7 @@ package main
 
 import (
 	"context"
+	"encoding/base64"
 	"flag"
 	"log"
 
@@ -12,6 +13,7 @@ import (
 	"github.com/miclle/routex/internal/routex/database"
 	"github.com/miclle/routex/internal/routex/handler"
 	"github.com/miclle/routex/internal/routex/service"
+	"github.com/miclle/routex/pkg/secretstore"
 )
 
 var (
@@ -42,7 +44,18 @@ func main() {
 		log.Fatalf("migrate database: %v", err)
 	}
 
-	svc, err := service.New(ctx, db)
+	var store *secretstore.Store
+	if cfg.EncryptionKey != "" {
+		key, decodeErr := base64.StdEncoding.DecodeString(cfg.EncryptionKey)
+		if decodeErr != nil {
+			log.Fatal("encryption_key must be a base64-encoded 32-byte key")
+		}
+		store, err = secretstore.New(key)
+		if err != nil {
+			log.Fatal("encryption_key must be a base64-encoded 32-byte key")
+		}
+	}
+	svc, err := service.New(ctx, db, service.WithCredentialStorage(store), service.WithUpstreamPolicy(cfg.AllowPrivateUpstreams))
 	if err != nil {
 		log.Fatalf("init service: %v", err)
 	}

@@ -121,5 +121,5 @@ func migrationSteps(dialect string) [][]string {
 		},
 	}
 	steps[1] = append(steps[1], sessionIndexes...)
-	return steps
+	return append(steps, catalogMigration(dialect), apiKeyMigration(dialect))
 }

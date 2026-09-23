@@ -1,13 +1,13 @@
 # RouteX Implementation and Acceptance Index
 
-Updated: 2026-09-23. This document records engineering contracts, work packages, and acceptance checks. Interfaces, tables, pages, and metrics marked as planned are not necessarily implemented; delivery evidence appears at the end. The current iteration starts with installation on an empty database and the complete local authentication flow. The full product is delivered incrementally through P0–P6.
+Updated: 2026-09-23. This document records engineering contracts, work packages, and acceptance checks. Interfaces, tables, pages, and metrics marked as planned are not necessarily implemented; delivery evidence appears at the end. The active goal covers all F01–F30 capabilities and A01–A20 acceptance cases; completed stages do not end implementation. The full product is delivered incrementally through P0–P6.
 
 ## Scope and Decisions
 
 - Each deployment serves one enterprise. The first iteration runs one RouteX process, with database dependencies managed by Docker Compose and Go/Vite hot reload on the host. Production multi-node HA is outside the first iteration's commitments.
 - PostgreSQL is the default development database. MySQL has the same persistence compatibility requirements. Migrations and transactions must be verified against both real databases; SQLite is not a substitute.
 - Public and relationship IDs use domain-prefixed ULID strings, such as `usr_…`, `ses_…`, and `mdl_…`. Names can change; IDs remain stable. The singleton installation lock and migration sequence use integer primary keys.
-- Initial roles are `admin` and `member`. Management APIs require an administrator; members can read only their own session. Composite roles and object-level authorization arrive in P2. Hiding a button is not access control.
+- Initial roles are `admin` and `member`. Management APIs require an administrator; members can manage their own Keys and read their explicitly granted model catalog. Composite roles and object-level authorization arrive in P2. Hiding a button is not access control.
 - Pages use React Query and React Router with route-based loading. Forms and layouts use local shadcn/ui primitives; complex interactions use local Base UI wrappers. Failures must offer retry or recovery. Unimplemented features must not display buttons that simulate success.
 - Keys belong only to individuals or Projects. A Team is a session interaction context, not a Key resource account. Project management rights come from explicit manager relationships, never from Team membership.
 - Self-registration is disabled by default. P2 adds an administrator-controlled setting and registration flow. Creating the first administrator opens the workspace; enterprise authentication configuration arrives in P5, so initialization must not redirect to an unimplemented page.
@@ -41,12 +41,12 @@ Preserve the Handler → Service → Entity layering. Management APIs live under
 | Session | Stable `id`, `user_id`, random token digest, expiration time | Fixed seven-day lifetime; logout revokes the session; no readable token persisted in browser storage |
 | Installation | Singleton primary key, initialization marker | Created in the same transaction as the first administrator and session; only one concurrent request succeeds |
 | Schema migration | Monotonic version, application timestamp | Database lock on a single connection; fixed historical migration steps rather than blindly running AutoMigrate on the latest business entities at every startup |
-| Provider / Connection / Credential (planned) | Provider identity / protocol, Base URL, network egress / encrypted credentials and storage references | Activation and verification are separate; unknown states never count as verified |
-| Model / ModelName / ProviderModel / Binding (planned) | Stable model ID / current name and expiring aliases / native upstream name / protocol and weight | Preserve historical names; candidate weight is 0; publication validates a total weight of 100 |
-| Personal API Key (planned) | Owner, digest, masked value, state, expiration, model scope, replacement relationship | Pending delivery → confirmed activation → revocation; unconfirmed delivery cannot remain valid indefinitely |
+| Provider / Connection / Credential | Provider identity / protocol, Base URL, network egress / encrypted credentials and storage references | Activation and verification are separate; unknown states never count as verified |
+| Model / ModelName / ProviderModel / Binding | Stable model ID / current name and expiring aliases / native upstream name / protocol and weight | Preserve historical names; candidate weight is 0; publication validates a total weight of 100 |
+| Personal API Key | Owner, digest, masked value, state, expiration, model scope, replacement relationship | Pending delivery → confirmed activation → revocation; unconfirmed delivery cannot remain valid indefinitely |
 | Request event (planned) | Request ID, attempt ID, actor, scope, key/model/provider IDs, protocol, configuration ID, status, Tokens, timestamps | One request fact per request; retries record attempts without duplicate metering; price snapshots are added later |
 
-Implemented fields are defined by the migrations and [authentication API](AUTH.md). Add later entities within their work packages instead of creating all future tables upfront.
+Implemented fields are defined by the migrations, [authentication API](AUTH.md), [catalog API](CATALOG.md), and [personal Key API](KEYS.md). Add later entities within their work packages instead of creating all future tables upfront.
 
 | API | Authentication / input | Response and errors |
 |---|---|---|
@@ -147,18 +147,25 @@ The following are single-node experimental targets, not measured performance or 
 | P0-01/02 Identity-first contracts | In progress | F01–F30 page/action/permission index, identity schema/API, and migration design established; later domain schemas and detailed cases will be expanded in their work packages |
 | P0-03 Runtime contracts | In progress | Single-node scope, experimental metrics, and external dependencies registered; gateway buffer capacity and full-buffer policy must be decided before P1-04 |
 | P1-01 Complete identity flow (F01 local foundation, F05 minimum permissions) | Accepted | Delivered by the identity bootstrap commit: identity backend/frontend, versioned migrations, dual-database and process-restart tests; resolve the exact commit with `git log -- docs/AUTH.md` |
-| P1-02–05, P2–P6 | Not started | Connections/models/Keys/gateway/request facts and the remaining full capabilities have not been delivered |
+| P1-02 Connections and model grants | Implemented; local acceptance passed | Encrypted credential storage, SSRF-resistant upstream client, actual controlled verification, explicit enablement, stable names, atomic weights, and grants; PostgreSQL/MySQL integration passed |
+| P1-03 Personal Keys | Implemented; local acceptance passed | One-time pending delivery, confirmation, digest storage, concurrent rotation, ownership, revocation and audit; PostgreSQL/MySQL integration passed |
+| P1-04/05 | In progress | Parallel implementation of native gateway, Playground, and durable request facts |
+| P2–P6 | Pending | Full goal remains active; organization governance through final acceptance follows P1 |
 
 Verification in this iteration:
 
 - `go tool task check`: passed; backend lint reported 0 issues, TypeScript and mod tidy passed.
 - `go tool task test`: passed; Go race tests, 13 Vitest tests, 3 Vite Host tests, 2 development-process lifecycle tests, production asset build, and Go serving tests.
 - `npm --prefix website run lint`: 0 errors; the existing 2 Fast Refresh warnings for badge/button remain.
-- `go tool actionlint`: passed; database and process-restart checks are wired into CI, but no push has triggered remote CI. This does not establish that remote CI passed.
+- `go tool actionlint`: passed. Remote CI, GolangCI-Lint, and Actionlint passed for identity commit `6fd738b` (runs `35825348136`, `35825348215`, and `35825348228`). Later commits require their own verification.
 - `go tool task test-integration`: passed on PostgreSQL 18.6 and MySQL 8.4.11 with the final migration and email-identity fixes; the handler integration suite ran uncached with the race detector (19.771 seconds).
 - `go tool task test-auth-lifecycle`: passed on both databases with the final patch: empty-database installation, real process stop/restart, original session persistence, logout revocation, and new login. Disposable processes, containers, and networks were cleaned up.
 - Browser: embedded production SPA with a dedicated test PostgreSQL database; initialization → home → authenticated after refresh → logout → incorrect password rejected → correct password login passed. The development database was not initialized, and no real enterprise account was used.
 
-A01 is covered on both databases. A02 covers current identity/admin/member boundaries; A20 covers current migration, upgrade, and restart behavior. These partial results do not establish acceptance for every future object's permissions, backup recovery, or the full platform release. Real providers, capacity targets, and external enterprise integrations remain unverified. The next work package is P1-02 connections and models, alongside expansion of the P1-03 Key delivery contract.
+A01 is covered on both databases. A02 covers current identity/admin/member boundaries; A20 covers current migration, upgrade, and restart behavior. These partial results do not establish acceptance for every future object's permissions, backup recovery, or the full platform release. Real providers, capacity targets, and external enterprise integrations remain unverified. P1-02/03 now have controlled dual-database evidence. P1-04/05 are in progress; full P1 acceptance still requires ordinary/streaming calls, request facts, and a separately authorized real-provider smoke test.
 
 Required checks: `go tool task check`, `go tool task test`, `go tool task test-integration`, `go tool task test-auth-lifecycle`, and `cd website && npm run lint`; workflow changes additionally require `go tool actionlint`. The complete identity flow also requires browser verification of empty-database initialization → refresh → logout → login, plus persistence across a process restart. Real providers, all four protocols, pricing, enterprise identity, and production deployment have separate later acceptance gates.
+
+### Catalog and personal Key phase verification
+
+The isolated staged source passed `go tool task check`, `go tool task test` (22 Vitest cases, Go race tests, development lifecycle and production asset tests), `go tool task test-integration` (PostgreSQL/MySQL, 34.967 seconds), and `go tool task test-auth-lifecycle` on both databases. This phase adds provider/model/Key UI and API coverage; the combined browser inference flow follows with P1-04/05. No real provider call has been accepted.

@@ -154,6 +154,16 @@ func jsonAuthRequest(c *fox.Context) error {
 	return nil
 }
 
+// Management payloads include model scopes and encrypted credential inputs.
+func jsonManagementRequest(c *fox.Context) error {
+	if c.ContentType() != "application/json" {
+		return apperrors.ErrBadRequest
+	}
+	c.Request.Body = http.MaxBytesReader(c.Writer, c.Request.Body, 64<<10)
+	c.Next()
+	return nil
+}
+
 func (ctrl *Ctrl) requireSession(c *fox.Context) error {
 	cookie, err := c.Request.Cookie(sessionCookie)
 	if err != nil {

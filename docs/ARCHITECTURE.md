@@ -12,8 +12,9 @@ administrator checks, and a protected SPA workspace. The identity API contract
 is documented in [AUTH.md](AUTH.md); phased capability and acceptance tracking
 is in [IMPLEMENTATION.md](IMPLEMENTATION.md).
 
-Provider adapters, routing, API keys, quotas, and usage processing are not yet
-implemented. The initial single-binary packaging does not require future Gateway,
+Encrypted provider credential storage, explicit verification/enablement, stable
+model names/bindings/grants, and personal API Keys are implemented. Native routing,
+quotas, and usage processing follow in subsequent work packages. The initial single-binary packaging does not require future Gateway,
 Control Plane, and Data Platform components to share a deployment or availability
 boundary. Identity operations currently require the primary database; this does
 not establish Gateway independence or production HA.
@@ -156,9 +157,10 @@ without forcing unrelated changes into the core.
 ## Implementation sequence
 
 Identity bootstrap, persistent sessions, the protected web workspace, and the
-database development/test lifecycle are implemented. The next vertical slice
-adds provider connections, encrypted credentials, stable model identities, and
-model authorization; personal API keys and the first native gateway follow.
+database development/test lifecycle are implemented. Provider connections,
+encrypted credentials, stable model identities/grants, and personal API Keys
+are implemented with controlled PostgreSQL/MySQL acceptance. The native gateway
+and request records are the next vertical slice.
 
 Organization/project governance, metering and quotas, additional native
 protocols, and enterprise integrations remain later phases. See

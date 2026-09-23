@@ -59,7 +59,7 @@ func TestIdentityIntegration(t *testing.T) {
 				t.Fatal("integration tests require a dedicated database named routex_test")
 			}
 			reset := func() {
-				for _, table := range []string{"sessions", "users", "installations", "schema_migrations", "examples"} {
+				for _, table := range []string{"api_key_models", "api_keys", "audit_events", "user_model_grants", "model_provider_bindings", "model_names", "credential_model_accesses", "provider_models", "provider_credentials", "provider_connections", "providers", "models", "sessions", "users", "installations", "schema_migrations", "examples"} {
 					if err := db.Migrator().DropTable(table); err != nil {
 						t.Fatal(err)
 					}
@@ -91,7 +91,7 @@ func TestIdentityIntegration(t *testing.T) {
 				t.Fatal(err)
 			}
 			var versions int64
-			if err := db.Table("schema_migrations").Count(&versions).Error; err != nil || versions != 2 {
+			if err := db.Table("schema_migrations").Count(&versions).Error; err != nil || versions != 4 {
 				t.Fatalf("migration ledger: %d, %v", versions, err)
 			}
 			var preserved entity.Example
@@ -118,6 +118,16 @@ func TestIdentityIntegration(t *testing.T) {
 				t.Fatal("orphan session must be rejected by database FK")
 			}
 			testIdentityLifecycle(t, db)
+			for _, test := range []struct {
+				name string
+				run  func(*testing.T, *gorm.DB)
+			}{{"catalog", testCatalogLifecycle}, {"keys", testKeyLifecycle}} {
+				reset()
+				if err := database.Migrate(context.Background(), db); err != nil {
+					t.Fatal(err)
+				}
+				t.Run(test.name, func(t *testing.T) { test.run(t, db) })
+			}
 		})
 	}
 }

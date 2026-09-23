@@ -4,18 +4,39 @@ package service
 import (
 	"context"
 	"fmt"
+	"net/http"
 
 	"github.com/fox-gonic/fox/logger"
 	"gorm.io/gorm"
+
+	"github.com/miclle/routex/pkg/secretstore"
+	"github.com/miclle/routex/pkg/upstream"
 )
 
 // Service holds the database connection and provides business logic methods.
 type Service struct {
-	db *gorm.DB
+	db                   *gorm.DB
+	secrets              *secretstore.Store
+	upstream             *http.Client
+	allowPrivateUpstream bool
+}
+
+// Option configures bootstrap dependencies, never mutable business policy.
+type Option func(*Service)
+
+func WithCredentialStorage(store *secretstore.Store) Option {
+	return func(s *Service) { s.secrets = store }
+}
+
+func WithUpstreamPolicy(allowPrivate bool) Option {
+	return func(s *Service) {
+		s.allowPrivateUpstream = allowPrivate
+		s.upstream = upstream.NewClient(allowPrivate)
+	}
 }
 
 // New creates a new Service instance with the given database handle.
-func New(ctx context.Context, db *gorm.DB) (*Service, error) {
+func New(ctx context.Context, db *gorm.DB, options ...Option) (*Service, error) {
 	l := logger.NewWithContext(ctx)
 
 	if db == nil {
@@ -24,7 +45,11 @@ func New(ctx context.Context, db *gorm.DB) (*Service, error) {
 
 	l.Info("[Service] initialized")
 
-	return &Service{db: db}, nil
+	svc := &Service{db: db, upstream: upstream.NewClient(false)}
+	for _, option := range options {
+		option(svc)
+	}
+	return svc, nil
 }
 
 // DB returns the underlying GORM database connection.
