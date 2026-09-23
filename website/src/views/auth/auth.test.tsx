@@ -122,7 +122,7 @@ describe('authentication flows', () => {
 
   it('protects home, displays login errors, and ignores external redirect parameters', async () => {
     await mount('/?next=https://evil.example')
-    await until(() => expect(container.textContent).toContain('登录控制台'))
+    await until(() => expect(container.textContent).toContain('登录模型服务控制台'))
     expect(container.textContent).not.toContain('当前账户')
     fail['post /auth/login'] = 401
     await credentials()
@@ -165,14 +165,27 @@ describe('authentication flows', () => {
     await until(() => expect(container.textContent).toContain('站点已完成初始化'))
   })
 
+  it('switches between workspace and management navigation and collapses the sidebar', async () => {
+    authenticated = true
+    await mount()
+    await until(() => expect(container.textContent).toContain('你好，管理员'))
+    expect(container.querySelector('nav[aria-label="主导航"]')?.textContent).toContain('API Keys')
+    await act(async () => { container.querySelector<HTMLButtonElement>('[aria-label="收拢侧边栏"]')!.click() })
+    expect(container.querySelector('[aria-label="展开侧边栏"]')).not.toBeNull()
+    await act(async () => { container.querySelector<HTMLButtonElement>('[aria-label="展开侧边栏"]')!.click() })
+    expect(container.querySelector('nav[aria-label="账户导航"]')?.textContent).toContain('安全设置')
+  })
+
   it('restores a session, logs out with CSRF, and removes private cached data', async () => {
     authenticated = true
     queryClient.setQueryData(['private', 'records'], ['sensitive'])
     await mount('/login')
     await until(() => expect(container.textContent).toContain('你好，管理员'))
-    const button = [...container.querySelectorAll('button')].find((el) => el.textContent === '退出登录')!
+    await act(async () => { container.querySelector<HTMLButtonElement>('[aria-label="管理员 当前账户"]')!.click() })
+    await until(() => expect(document.querySelector('[role="menu"]')).not.toBeNull())
+    const button = [...document.querySelectorAll('[role="menuitem"]')].find((el) => el.textContent === '退出登录') as HTMLElement
     await act(async () => { button.click() })
-    await until(() => expect(container.textContent).toContain('登录控制台'))
+    await until(() => expect(container.textContent).toContain('登录模型服务控制台'))
     expect(requests.find((r) => r.url === '/auth/logout')?.headers.get('X-CSRF-Token')).toBe('csrf-test')
     expect(queryClient.getQueryData(['private', 'records'])).toBeUndefined()
     expect(window.localStorage.length).toBe(0)
@@ -183,7 +196,9 @@ describe('authentication flows', () => {
     fail['post /auth/logout'] = 503
     await mount()
     await until(() => expect(container.textContent).toContain('你好，管理员'))
-    await act(async () => { [...container.querySelectorAll('button')].find((el) => el.textContent === '退出登录')!.click() })
+    await act(async () => { container.querySelector<HTMLButtonElement>('[aria-label="管理员 当前账户"]')!.click() })
+    await until(() => expect(document.querySelector('[role="menu"]')).not.toBeNull())
+    await act(async () => { ([...document.querySelectorAll('[role="menuitem"]')].find((el) => el.textContent === '退出登录') as HTMLElement).click() })
     await until(() => expect(container.querySelector('[role="alert"]')?.textContent).toContain('退出失败'))
     expect(container.textContent).toContain('你好，管理员')
     expect(router.state.location.pathname).toBe('/')
@@ -197,7 +212,7 @@ describe('authentication flows', () => {
     authenticated = false
     fail['get /protected'] = 401
     await act(async () => { await client.get('/protected').catch(() => undefined) })
-    await until(() => expect(container.textContent).toContain('登录控制台'))
+    await until(() => expect(container.textContent).toContain('登录模型服务控制台'))
     expect(queryClient.getQueryData(['private', 'records'])).toBeUndefined()
     expect(container.textContent).not.toContain('admin@example.com')
   })
@@ -209,7 +224,7 @@ describe('authentication flows', () => {
     queryClient.setQueryData(['private', 'records'], ['sensitive'])
     authenticated = false
     await act(async () => { await queryClient.invalidateQueries({ queryKey: ['auth', 'session'] }) })
-    await until(() => expect(container.textContent).toContain('登录控制台'))
+    await until(() => expect(container.textContent).toContain('登录模型服务控制台'))
     expect(queryClient.getQueryData(['private', 'records'])).toBeUndefined()
   })
 
@@ -219,6 +234,6 @@ describe('authentication flows', () => {
     await until(() => expect(container.querySelector('[role="alert"]')?.textContent).toContain('无法确认登录状态'))
     delete fail['get /setup']
     await act(async () => { container.querySelector('button')!.click() })
-    await until(() => expect(container.textContent).toContain('登录控制台'))
+    await until(() => expect(container.textContent).toContain('登录模型服务控制台'))
   })
 })

@@ -1,36 +1,31 @@
+import { useEffect, useState } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { Route, LogOut } from 'lucide-react'
-import { NavLink, Outlet, useNavigate } from 'react-router'
+import { Route, LogOut, PanelLeftClose, Menu as MenuIcon, ChevronsUpDown, LayoutDashboard, KeyRound, Bot, PlayCircle, History, UserRound, ShieldCheck, Settings, ArrowLeft, ChevronRight, Cloud } from 'lucide-react'
+import { NavLink, Outlet, useLocation, useNavigate } from 'react-router'
 import { authError, logout } from '@/api/auth'
 import { useSession, sessionKey, setupKey } from '@/hooks/use-auth'
 import { Button } from '@/components/ui/button'
+import { Drawer } from '@/components/ui/drawer'
+import { Menu, MenuItem } from '@/components/ui/menu'
+
+const memberNav = [{ to: '/', label: '概览', icon: LayoutDashboard }, { to: '/keys', label: 'API Keys', icon: KeyRound }, { to: '/models', label: '模型广场', icon: Bot }, { to: '/playground', label: 'Playground', icon: PlayCircle }, { to: '/calls', label: '调用记录', icon: History }]
+const accountNav = [{ to: '/account', label: '个人资料', icon: UserRound }, { to: '/account/security', label: '安全设置', icon: ShieldCheck }]
+const adminNav = [{ to: '/admin/models', label: '模型', icon: Bot }, { to: '/admin/providers', label: '供应商', icon: Cloud }, { to: '/admin/calls', label: '全平台调用', icon: History }]
 
 export default function AppShell() {
   const session = useSession()
   const queryClient = useQueryClient()
   const navigate = useNavigate()
-  const mutation = useMutation({
-    mutationFn: () => logout(session.data!.csrf_token),
-    onSuccess: () => {
-      queryClient.clear()
-      queryClient.setQueryData(setupKey, { initialized: true })
-      queryClient.setQueryData(sessionKey, null)
-      navigate('/login', { replace: true })
-    },
-  })
-  return (
-    <div className="min-h-screen bg-muted/20 text-foreground">
-      <header className="border-b bg-background">
-        <div className="mx-auto flex min-h-16 max-w-6xl flex-wrap items-center justify-between gap-3 px-6 py-3">
-          <NavLink to="/" className="flex items-center gap-2 text-base font-semibold"><Route className="size-5" aria-hidden="true" />RouteX<span className="ml-3 border-l pl-3 text-sm font-normal text-muted-foreground">控制台</span></NavLink>
-          <div className="flex items-center gap-3"><span className="max-w-40 truncate text-sm text-muted-foreground">{session.data?.user.name}</span><Button variant="outline" size="sm" disabled={mutation.isPending} onClick={() => mutation.mutate()}><LogOut className="size-3.5" aria-hidden="true" />{mutation.isPending ? '正在退出…' : '退出登录'}</Button></div>
-        </div>
-        <nav aria-label="主导航" className="mx-auto flex max-w-6xl flex-wrap gap-1 px-6 pb-3">
-          {[{ to: '/', label: '概览' }, { to: '/models', label: '我的模型' }, { to: '/keys', label: '我的 Key' }, ...(session.data?.user.role === 'admin' ? [{ to: '/admin/providers', label: '供应商' }, { to: '/admin/models', label: '模型管理' }] : [])].map((item) => <NavLink key={item.to} to={item.to} end className={({ isActive }) => `rounded-md px-3 py-2 text-sm ${isActive ? 'bg-secondary font-medium text-foreground' : 'text-muted-foreground hover:bg-accent'}`}>{item.label}</NavLink>)}
-        </nav>
-      </header>
-      {mutation.isError && <p role="alert" className="mx-auto max-w-6xl px-6 pt-4 text-sm text-destructive">退出失败。{authError(mutation.error)}</p>}
-      <main><Outlet /></main>
-    </div>
-  )
+  const { pathname } = useLocation()
+  const admin = pathname.startsWith('/admin/')
+  const [collapsed, setCollapsed] = useState(false)
+  const [mobileOpen, setMobileOpen] = useState(false)
+  const [desktop, setDesktop] = useState(() => window.innerWidth >= 992)
+  useEffect(() => { const update = () => setDesktop(window.innerWidth >= 992); window.addEventListener('resize', update); return () => window.removeEventListener('resize', update) }, [])
+  const mutation = useMutation({ mutationFn: () => logout(session.data!.csrf_token), onSuccess: () => { queryClient.clear(); queryClient.setQueryData(setupKey, { initialized: true }); queryClient.setQueryData(sessionKey, null); navigate('/login', { replace: true }) } })
+  const title = [...accountNav, ...memberNav, ...adminNav].find((item) => item.to === pathname)?.label ?? (pathname === '/admin/models/new' ? '添加模型' : pathname.startsWith('/admin/providers/') ? '供应商详情' : pathname.startsWith('/admin/models/') ? '模型详情' : 'RouteX')
+  const compact = desktop && collapsed
+  function links(items: typeof memberNav) { return items.map((item) => <NavLink key={item.to} to={item.to} end={item.to === '/' || item.to === '/account'} title={compact ? item.label : undefined} onClick={() => setMobileOpen(false)} className={({ isActive }) => `mx-1 my-1 flex h-10 items-center gap-3 rounded-md px-5 text-sm ${compact ? 'justify-center px-0' : ''} ${isActive ? 'bg-accent font-medium text-primary' : 'text-foreground hover:bg-muted'}`}><item.icon className="size-4 shrink-0" aria-hidden="true" />{!compact && <span>{item.label}</span>}</NavLink>) }
+  function sidebar() { return <div className="flex h-full flex-col"><div className="flex h-20 shrink-0 items-center justify-between gap-2 p-5"><div className="flex items-center gap-2"><button aria-label={compact ? '展开侧边栏' : 'RouteX'} onClick={() => compact && setCollapsed(false)} className="flex size-8 shrink-0 items-center justify-center rounded-md bg-primary text-primary-foreground"><Route className="size-5" /></button>{!compact && <><span className="text-xl font-semibold">RouteX</span>{admin && <span className="whitespace-nowrap text-xs text-muted-foreground">管理后台</span>}</>}</div>{desktop && !compact && <Button variant="ghost" size="icon" aria-label="收拢侧边栏" onClick={() => setCollapsed(true)}><PanelLeftClose className="size-4" /></Button>}</div><div className="min-h-0 flex-1 overflow-auto"><nav aria-label="主导航">{admin ? <>{links([{ to: '/', label: '返回工作空间', icon: ArrowLeft }])}{!compact && <p className="px-6 pt-5 pb-2 text-xs text-muted-foreground">服务接入</p>}{links(adminNav)}</> : links(memberNav)}</nav>{!admin && <><hr className="mx-4 my-2" /><nav aria-label="账户导航">{links(accountNav)}{session.data?.user.role === 'admin' && <NavLink to="/admin/providers" onClick={() => setMobileOpen(false)} className="mx-1 flex h-10 items-center gap-3 rounded-md px-5 text-sm hover:bg-muted"><Settings className="size-4 shrink-0" />{!compact && <><span className="flex-1">平台管理</span><ChevronRight className="size-3" /></>}</NavLink>}</nav></>}</div><div className="border-t p-3"><Menu label={`${session.data?.user.name} 当前账户`} trigger={<><span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-muted text-xs">{session.data?.user.name.slice(0, 2).toUpperCase()}</span>{!compact && <><span className="min-w-0 flex-1 truncate">{session.data?.user.name}</span><ChevronsUpDown className="size-3" /></>}</>}><div className="border-b px-3 py-2 text-sm"><p className="font-medium">{session.data?.user.name}</p><p className="text-muted-foreground">{session.data?.user.email}</p></div><MenuItem onClick={() => navigate('/account')}><UserRound className="size-4" />个人资料</MenuItem><MenuItem onClick={() => navigate('/account/security')}><ShieldCheck className="size-4" />安全设置</MenuItem>{admin && <MenuItem onClick={() => navigate('/')}><ArrowLeft className="size-4" />返回工作空间</MenuItem>}<MenuItem disabled={mutation.isPending} onClick={() => mutation.mutate()}><LogOut className="size-4" />{mutation.isPending ? '正在退出…' : '退出登录'}</MenuItem></Menu></div></div> }
+  return <div className="flex h-dvh overflow-hidden bg-background text-foreground">{desktop && <aside style={{ width: compact ? 80 : 248 }} className="h-full shrink-0 border-r">{sidebar()}</aside>}<Drawer open={mobileOpen} onOpenChange={setMobileOpen} title="导航" side="left" width={280} bodyClassName="p-0">{sidebar()}</Drawer><div className="flex min-w-0 flex-1 flex-col"><header aria-label="页面导航栏" className="flex h-16 shrink-0 items-center gap-2 border-b px-4 min-[992px]:px-6">{!desktop && <Button variant="ghost" size="icon" aria-label="打开侧边栏" onClick={() => setMobileOpen(true)}><MenuIcon className="size-4" /></Button>}<div className="flex min-w-0 items-center gap-3">{(pathname.startsWith('/admin/providers/') || pathname.startsWith('/admin/models/')) && <><NavLink to={pathname.startsWith('/admin/providers/') ? '/admin/providers' : '/admin/models'} className="text-base">{pathname.startsWith('/admin/providers/') ? '供应商' : '模型'}</NavLink><ChevronRight className="size-4 text-muted-foreground" /></>}<h1 className="truncate text-base font-semibold">{title}</h1></div></header><main className="min-h-0 flex-1 overflow-auto p-4 min-[992px]:p-6">{mutation.isError && <p role="alert" className="mb-4 text-sm text-destructive">退出失败。{authError(mutation.error)}</p>}<Outlet /></main></div></div>
 }

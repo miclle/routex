@@ -2,7 +2,7 @@ import { useState, type FormEvent } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useLocation, useNavigate } from 'react-router'
 import axios from 'axios'
-import { ArrowRight, LoaderCircle, Route, ShieldCheck } from 'lucide-react'
+import { ArrowRight, LoaderCircle, Route } from 'lucide-react'
 import { authError, login, setup } from '@/api/auth'
 import { sessionKey, setupKey } from '@/hooks/use-auth'
 import { Button } from '@/components/ui/button'
@@ -51,24 +51,13 @@ export default function AuthPage({ mode }: { mode: 'login' | 'setup' }) {
   const error = validation || (mutation.isError ? authError(mutation.error) : '')
 
   return (
-    <main className="grid min-h-screen bg-background lg:grid-cols-[0.9fr_1.1fr]">
-      <aside className="relative hidden flex-col justify-between border-r bg-muted/40 p-12 lg:flex xl:p-16">
-        <div className="flex items-center gap-3 text-xl font-semibold"><Route className="size-7" aria-hidden="true" />RouteX</div>
-        <div className="max-w-md space-y-6">
-          <div className="h-px w-12 bg-foreground" />
-          <p className="text-xs font-medium tracking-[0.2em] text-muted-foreground">企业 AI 控制面</p>
-          <h1 className="text-4xl leading-snug font-semibold tracking-tight">让每一次 AI 调用，<br />有据可循。</h1>
-          <p className="max-w-sm text-base leading-7 text-muted-foreground">从一个可信的身份开始，建立企业的 AI 访问边界。</p>
-        </div>
-        <p className="flex items-center gap-2 text-xs text-muted-foreground"><ShieldCheck className="size-4" aria-hidden="true" />企业自主管理 · 统一访问入口</p>
-      </aside>
-      <section className="flex items-center justify-center px-6 py-12 sm:px-12">
-        <div className="w-full max-w-sm space-y-8">
-          <div className="flex items-center gap-2 text-lg font-semibold lg:hidden"><Route aria-hidden="true" />RouteX</div>
-          <header className="space-y-3">
-            <p className="text-xs font-medium tracking-widest text-muted-foreground">{isSetup ? '首次使用' : '欢迎回来'}</p>
-            <h2 className="text-2xl font-semibold tracking-tight">{isSetup ? '初始化 RouteX' : '登录控制台'}</h2>
-            <p className="text-sm leading-6 text-muted-foreground">{isSetup ? '创建首个管理员账户。完成后将自动登录。' : '使用你的账户访问 RouteX。'}</p>
+    <main className="flex min-h-screen items-center justify-center bg-background p-6">
+      <section className="w-full max-w-[500px] space-y-6">
+        <div aria-label="RouteX 品牌" className="flex justify-center"><span className="flex size-8 items-center justify-center rounded-md bg-primary text-primary-foreground"><Route className="size-5" aria-hidden="true" /></span></div>
+        <div className="space-y-6 rounded-lg border p-6">
+          <header className="space-y-3 text-center">
+            <h1 className="text-[30px] font-semibold leading-[38px]">{isSetup ? '初始化 RouteX' : '登录模型服务控制台'}</h1>
+            {isSetup && <p className="text-sm leading-6 text-muted-foreground">创建首个管理员账户。完成后将自动登录。</p>}
           </header>
           {notice && <p role="status" className="rounded-md border bg-muted/40 p-3 text-sm leading-6">{notice}</p>}
           <form aria-label={isSetup ? '创建管理员' : '登录'} onSubmit={submit} className="space-y-5">
@@ -85,8 +74,8 @@ export default function AuthPage({ mode }: { mode: 'login' | 'setup' }) {
               {!mutation.isPending && <ArrowRight className="size-4" aria-hidden="true" />}
             </Button>
           </form>
-          <p className="border-t pt-5 text-xs leading-5 text-muted-foreground">{isSetup ? '每个站点仅能初始化一次，请妥善保存管理员账户。' : '没有账户？请联系你所在企业的管理员。'}</p>
         </div>
+          <p className="text-center text-sm leading-5 text-muted-foreground">{isSetup ? '每个站点仅能初始化一次，请妥善保存管理员账户。' : '没有账户？请联系你所在企业的管理员。'}</p>
       </section>
     </main>
   )

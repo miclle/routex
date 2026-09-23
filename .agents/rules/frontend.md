@@ -30,6 +30,8 @@ These rules apply to files under `website/src/`.
 - Catalog mutations send the current session CSRF token and invalidate the affected resource queries. Administrative routes and navigation check the session role; backend authorization remains authoritative.
 - One-time Key delivery holds secrets only in component state. Confirmation enables the pending Key; dismissing the delivery dialog revokes it before clearing the secret. Never place secret results in query/mutation caches or browser storage.
 - Use the local Base UI `Dialog` wrapper for modal focus, keyboard dismissal, and pending-action locking.
+- Use local `Drawer` for side-panel details and mobile navigation, `Menu` for account actions, and `Table` for resource lists. The sidebar owns workspace/management navigation, collapse behavior, and a bottom account menu.
+- Keep provider/model details addressable through resource routes. Profile and security are separate pages; model weights are edited within the routing table.
 - Form inputs use the local Base UI `Input` wrapper with explicit labels, autocomplete, pending/disabled states, and accessible errors.
 - Wrap Base UI components in local `website/src/components/ui/*` modules before pages import them.
 - Keep page components focused on product state and composition instead of repeating primitive styling.

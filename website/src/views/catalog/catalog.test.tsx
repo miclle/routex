@@ -1,3 +1,4 @@
+import { MemoryRouter, Route, Routes } from 'react-router'
 import { act, type ReactNode } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
@@ -6,6 +7,8 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import KeysPage from '@/views/keys'
 import ProvidersPage from '@/views/providers'
 import AdminModelsPage from '@/views/models/admin'
+import CreateModelPage from '@/views/models/create'
+import ModelsPage from '@/views/models'
 import client from '@/api/client'
 import type { Model, PersonalKey, Provider } from '@/types/catalog'
 
@@ -44,6 +47,7 @@ beforeEach(() => {
     if (route === 'get /keys') response.data = { items: structuredClone(keys) }
     if (route === 'get /models') response.data = { items: [{ id: 'mdl_1', name: 'Model', status: 'active', protocol: 'openai_chat' }] }
     if (route === 'get /admin/providers') response.data = { items: [structuredClone(provider)] }
+    if (route === 'post /admin/models') response.data = structuredClone(model)
     if (route === 'get /admin/models') response.data = { items: [structuredClone(model)] }
     if (route === 'get /admin/model-grantees') response.data = { items: [{ id: 'usr_1', name: 'User', email: 'user@example.com' }, { id: 'usr_2', name: 'Second', email: 'second@example.com' }] }
     if (route === 'post /keys' || route === 'post /keys/key_1/rotate') { keys.push(makeKey()); response.data = { key: makeKey(), secret } }
@@ -60,7 +64,7 @@ afterEach(async () => {
   client.defaults.adapter = originalAdapter
   container.remove()
 })
-async function render(ui: ReactNode) { await act(async () => { root.render(<QueryClientProvider client={cache}>{ui}</QueryClientProvider>) }) }
+async function render(ui: ReactNode, path = '/') { await act(async () => { root.render(<QueryClientProvider client={cache}><MemoryRouter initialEntries={[path]}><Routes><Route path="/" element={ui} /><Route path="/admin/providers/:providerId" element={ui} /><Route path="/admin/models/:modelId" element={<AdminModelsPage />} /></Routes></MemoryRouter></QueryClientProvider>) }) }
 async function until(assert: () => void) {
   for (let i = 0; i < 60; i++) {
     await act(async () => { await new Promise((resolve) => setTimeout(resolve, 10)) })
@@ -123,7 +127,7 @@ describe('catalog and Key workflows', () => {
     expect(requests.filter((r) => r.url?.startsWith('/admin'))).toHaveLength(0)
   })
   it('verifies a credential before allowing a separate enable action', async () => {
-    await render(<ProvidersPage />)
+    await render(<ProvidersPage />, '/admin/providers/prv_1?tab=credentials')
     await until(() => expect(document.body.textContent).toContain('Credential'))
     expect(button('启用').disabled).toBe(true)
     await click('验证')
@@ -151,18 +155,38 @@ describe('catalog and Key workflows', () => {
     await until(() => expect(document.querySelector('[role="dialog"]')).toBeNull())
     await until(() => expect(JSON.stringify(cache.getMutationCache().getAll().map((m) => m.state))).not.toContain('upstream_secret'))
   })
+  it('creates a model from the dedicated form and opens its routing detail', async () => {
+    await render(<CreateModelPage />)
+    await until(() => expect(document.querySelector('option[value="con_1"]')).not.toBeNull())
+    await act(async () => { const select = container.querySelector('select')!; select.value = 'con_1'; select.dispatchEvent(new Event('change', { bubbles: true })) })
+    await until(() => expect(document.querySelector('select[name="provider_model_id"]')).not.toBeNull())
+    await act(async () => { const select = container.querySelector<HTMLSelectElement>('select[name="provider_model_id"]')!; select.value = 'pm_1'; select.dispatchEvent(new Event('change', { bubbles: true })) })
+    await fill('name', 'Public Model')
+    await act(async () => { container.querySelector('form')!.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })) })
+    await until(() => expect(container.textContent).toContain('保存路由权重'))
+    expect(JSON.parse(requests.find((r) => r.method === 'post' && r.url === '/admin/models')!.data)).toEqual({ name: 'Public Model', provider_model_id: 'pm_1' })
+  })
+  it('switches catalog views and opens API access in a drawer', async () => {
+    await render(<ModelsPage />)
+    await until(() => expect(container.querySelector('[aria-label="打开 Model API 接入"]')).not.toBeNull())
+    await click('表格')
+    expect(container.querySelector('table[aria-label="模型广场列表"]')).not.toBeNull()
+    await click('API 接入')
+    await until(() => expect(document.querySelector('[role="dialog"]')?.textContent).toContain('Model API 接入'))
+    expect(document.querySelector('[role="dialog"]')?.textContent).toContain('$ROUTEX_API_KEY')
+    expect(document.querySelector('[role="dialog"]')?.textContent).toContain('/v1/chat/completions')
+  })
   it('sends all binding weights and shows server validation failures', async () => {
-    await render(<AdminModelsPage />)
+    await render(<AdminModelsPage />, '/admin/models/mdl_1')
     await until(() => expect(document.body.textContent).toContain('upstream-model'))
-    await click('调整权重')
     await fill('bind_1', '50')
     failures['put /admin/models/mdl_1/weights'] = 400
-    await submit()
-    await until(() => expect(document.querySelector('[role="dialog"] [role="alert"]')).not.toBeNull())
+    await act(async () => { container.querySelector('form[aria-label="供应商路由权重"]')!.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })) })
+    await until(() => expect(container.querySelector('[role="alert"]')).not.toBeNull())
     expect(JSON.parse(requests.find((r) => r.method === 'put')!.data)).toEqual({ weights: [{ binding_id: 'bind_1', weight: 50 }] })
   })
   it('updates explicit grants without granting every administrator implicitly', async () => {
-    await render(<AdminModelsPage />)
+    await render(<AdminModelsPage />, '/admin/models/mdl_1')
     await until(() => expect(document.body.textContent).toContain('upstream-model'))
     await click('授权')
     await until(() => expect(document.querySelector('input[value="usr_2"]')).not.toBeNull())

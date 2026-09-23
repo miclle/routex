@@ -11,7 +11,7 @@ function TabsList({ className, ...props }: React.ComponentProps<typeof BaseTabs.
   return (
     <BaseTabs.List
       className={cn(
-        'inline-flex h-10 w-fit items-center justify-center rounded-lg bg-muted p-1 text-muted-foreground',
+        'inline-flex h-12 w-full items-center gap-8 border-b text-muted-foreground',
         className,
       )}
       {...props}
@@ -23,7 +23,7 @@ function TabsTrigger({ className, ...props }: React.ComponentProps<typeof BaseTa
   return (
     <BaseTabs.Tab
       className={cn(
-        'inline-flex h-8 items-center justify-center rounded-md px-3 text-sm font-medium whitespace-nowrap transition-colors outline-none hover:text-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 data-[selected]:bg-background data-[selected]:text-foreground data-[selected]:shadow-xs',
+        'inline-flex h-12 items-center justify-center border-b-2 border-transparent text-sm font-medium whitespace-nowrap transition-colors outline-none hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring/50 data-[selected]:border-primary data-[selected]:text-primary',
         className,
       )}
       {...props}
