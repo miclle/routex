@@ -8,6 +8,7 @@ import { Page, QueryState } from '@/components/app/CatalogUI'
 import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import CallsPage from '@/views/calls'
+import ResourceLimits from '@/views/resource-limits'
 import ProjectKeysPanel from '@/views/project-keys'
 import ProjectRequestsPanel from '@/views/project-requests'
 import { ResourceSection } from './shared'
@@ -169,6 +170,16 @@ function ResourceDetail({ kind, resource }: { kind: ResourceKind; resource: Reso
         <TabsContent value={kind === 'teams' ? 'models' : 'resources'}>
           <div className="space-y-6">
             <ResourceModels resource={resource} kind={kind} canEdit={canModels} />
+            {kind === 'projects' &&
+              (isManager ||
+                access.can('projects.read_all') ||
+                access.can('projects.limits.write')) && (
+                <ResourceLimits
+                  key={resource.id}
+                  path={`/projects/${resource.id}`}
+                  canEdit={access.can('projects.limits.write') && resource.status === 'active'}
+                />
+              )}
             {canRequests && <ProjectRequestsPanel project={resource} />}
           </div>
         </TabsContent>

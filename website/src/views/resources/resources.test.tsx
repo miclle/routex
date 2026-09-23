@@ -1,3 +1,4 @@
+import { limitFixture } from '@/views/resource-limits/fixture'
 import { act } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { createMemoryRouter, RouterProvider } from 'react-router'
@@ -121,6 +122,7 @@ beforeEach(() => {
     else if (config.url?.endsWith('/projects'))
       response.data = { items: [project], next_cursor: null }
     else response.data = { items: [], next_cursor: null }
+    if (config.url?.endsWith('/limits')) response.data = limitFixture()
     return response
   }
 })
@@ -133,6 +135,17 @@ afterEach(async () => {
 })
 async function mount(path: string) {
   router = createMemoryRouter(routes, { initialEntries: [path] })
+  // Route modules must finish loading before polling rendered resource state.
+  if (!router.state.initialized) {
+    await new Promise<void>((resolve) => {
+      const unsubscribe = router.subscribe((state) => {
+        if (state.initialized) {
+          unsubscribe()
+          resolve()
+        }
+      })
+    })
+  }
   await act(async () =>
     root.render(
       <QueryClientProvider client={cache}>
@@ -180,6 +193,31 @@ async function submit(selector = 'form') {
 }
 
 describe('Team and Project resource workflows', () => {
+  it('allows managers to inspect aggregate limits without platform write authority', async () => {
+    await mount('/projects/prj_1?tab=resources')
+    await until(() => expect(host.textContent).toContain('user_usr_fixture'))
+    expect(host.textContent).not.toContain('Edit limits')
+    expect(requests.some((request) => request.url === '/projects/prj_1/limits')).toBe(true)
+    expect(
+      requests.some((request) => request.url?.endsWith('/limits') && request.method === 'put'),
+    ).toBe(false)
+  })
+  it('edits active Project limits inline only with projects.limits.write', async () => {
+    permissions = ['projects.limits.write']
+    await mount('/projects/prj_1?tab=resources')
+    await until(() => expect(host.textContent).toContain('Edit limits'))
+    await click('Edit limits')
+    expect(host.querySelector('form[aria-label="Proposed policy"]')).not.toBeNull()
+    expect(document.querySelector('[role="dialog"]')).toBeNull()
+  })
+  it('keeps inactive Project aggregate limits read-only even with write permission', async () => {
+    permissions = ['projects.limits.write']
+    project.status = 'disabled'
+    await mount('/projects/prj_1?tab=resources')
+    await until(() => expect(host.textContent).toContain('user_usr_fixture'))
+    expect(host.textContent).not.toContain('Edit limits')
+  })
+
   it('does not fetch global resource lists without the read permission', async () => {
     await mount('/admin/teams')
     await until(() => expect(host.textContent).toContain('Access denied'))

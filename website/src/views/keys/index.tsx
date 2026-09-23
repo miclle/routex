@@ -1,3 +1,4 @@
+import ResourceLimits from '@/views/resource-limits'
 import { t, locale } from '@/i18n'
 import { useTranslation } from 'react-i18next'
 import { useState, type FormEvent } from 'react'
@@ -214,6 +215,9 @@ export default function KeysPage() {
                 </td>
                 <td>
                   <div className="flex gap-1">
+                    <Button size="sm" variant="ghost" onClick={() => setViewing(key)}>
+                      {t('limits:title')}
+                    </Button>
                     {(key.status === 'active' || key.status === 'disabled') && (
                       <>
                         <Button
@@ -293,7 +297,7 @@ export default function KeysPage() {
         onOpenChange={(open) => {
           if (!open) setViewing(null)
         }}
-        title={t('value_model_scope_f970e', { v0: viewing?.name ?? '' })}
+        title={t('limits:keyDetails', { name: viewing?.name ?? '' })}
         width={720}
       >
         <Table>
@@ -317,6 +321,16 @@ export default function KeysPage() {
             })}
           </tbody>
         </Table>
+        {viewing && (
+          <div className="mt-6">
+            <ResourceLimits
+              key={viewing.id}
+              path={`/keys/${viewing.id}`}
+              child
+              canEdit={viewing.status === 'active' || viewing.status === 'disabled'}
+            />
+          </div>
+        )}
       </Drawer>
       <Dialog
         width={800}

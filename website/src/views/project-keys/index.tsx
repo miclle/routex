@@ -1,3 +1,4 @@
+import ResourceLimits from '@/views/resource-limits'
 import { useEffect, useState, type FormEvent } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query'
@@ -269,6 +270,9 @@ function ProjectKeys({ project }: { project: ResourceRecord }) {
               <td className="whitespace-nowrap">{date(key.expires_at)}</td>
               <td>
                 <div className="flex flex-wrap gap-1">
+                  <Button size="sm" variant="ghost" onClick={() => setViewing(key)}>
+                    {t('limits:title')}
+                  </Button>
                   {(key.status === 'active' || key.status === 'disabled') && (
                     <>
                       <Button
@@ -556,7 +560,7 @@ function ProjectKeys({ project }: { project: ResourceRecord }) {
         onOpenChange={(open) => {
           if (!open) setViewing(null)
         }}
-        title={viewing?.name ?? t('scope')}
+        title={t('limits:keyDetails', { name: viewing?.name ?? '' })}
         description={t('immutable')}
         width={520}
       >
@@ -585,6 +589,18 @@ function ProjectKeys({ project }: { project: ResourceRecord }) {
             </li>
           ))}
         </ul>
+        {viewing && (
+          <div className="mt-6">
+            <ResourceLimits
+              key={viewing.id}
+              path={`/projects/${project.id}/keys/${viewing.id}`}
+              child
+              canEdit={
+                active && writable && (viewing.status === 'active' || viewing.status === 'disabled')
+              }
+            />
+          </div>
+        )}
       </Drawer>
     </section>
   )

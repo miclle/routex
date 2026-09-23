@@ -422,3 +422,20 @@ ordinary calls, SSE cancellation, inherited restrictions, forged forwarding
 headers, interrupted journal initialization and retained RPM after SQL delivery.
 This is single-process enforcement; distributed limits and full quota acceptance
 remain open. The corresponding configuration interfaces are being implemented.
+
+### Scoped resource-limit interfaces
+
+Personal/member Settings and Project Resource configuration now expose stored and
+effective RPM/concurrency/IP rules. Personal and Project Key detail drawers provide
+an explicit restrictions editor; no new top-level layout is introduced. Inherited
+null values remain distinct from zero, parent IP predicates are shown separately,
+and effective publication state is visible. Writes require a reason and reviewed
+ETag, guard double submission and preserve exact intent through uncertain retries.
+
+Full check/test passed with 148 Vitest cases, four Node checks, Go race/unit,
+development lifecycle and production assets. The first full run found a test
+checking a lazy-route fallback before initialization; an event-driven router-ready
+wait fixed it without relaxing assertions or timeouts, and the complete suite then
+passed. Browser verification remains outstanding because the available browser
+surfaces were disconnected; source tests and backend acceptance are separate
+from browser or deployment proof.

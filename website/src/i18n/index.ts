@@ -1,3 +1,5 @@
+import enLimits from './locales/en/limits'
+import zhLimits from './locales/zh/limits'
 import i18n from 'i18next'
 import enPriceImports from './locales/en/priceImports'
 import zhPriceImports from './locales/zh/priceImports'
@@ -36,6 +38,7 @@ void i18n.use(initReactI18next).init({
   resources: {
     en: {
       common: en,
+      limits: enLimits,
       pricing: enPricing,
       currency: enCurrency,
       priceImports: enPriceImports,
@@ -49,6 +52,7 @@ void i18n.use(initReactI18next).init({
     },
     zh: {
       common: zh,
+      limits: zhLimits,
       pricing: zhPricing,
       currency: zhCurrency,
       priceImports: zhPriceImports,

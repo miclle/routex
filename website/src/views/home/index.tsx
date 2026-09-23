@@ -1,3 +1,4 @@
+import ResourceLimits from '@/views/resource-limits'
 import { t } from '@/i18n'
 import { useTranslation } from 'react-i18next'
 import { useSession } from '@/hooks/use-auth'
@@ -31,6 +32,7 @@ export default function Home() {
         </div>
         <Badge variant="outline">{t('active_f78d0')}</Badge>
       </section>
+      <ResourceLimits path={`/admin/members/${session.user.id}`} canEdit={false} />
     </section>
   )
 }

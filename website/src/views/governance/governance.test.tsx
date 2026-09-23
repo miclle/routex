@@ -1,3 +1,4 @@
+import { limitFixture } from '@/views/resource-limits/fixture'
 import { act } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { createMemoryRouter, RouterProvider } from 'react-router'
@@ -119,6 +120,7 @@ beforeEach(() => {
     }
     if (key === 'get /admin/providers')
       response.data = { items: [{ id: 'prv_1', name: 'Provider', connections: [] }] }
+    if (config.url?.endsWith('/limits')) response.data = limitFixture()
     return response
   }
 })
@@ -197,11 +199,26 @@ async function submit(label?: string) {
 }
 
 describe('member governance', () => {
+  it('requires limits.users.write for member aggregate changes, independently of members.write', async () => {
+    permissions = ['members.read', 'members.write']
+    await mount('/admin/members/usr_target?tab=settings')
+    await until(() => expect(container.textContent).toContain('user_usr_fixture'))
+    expect(container.textContent).not.toContain('Edit limits')
+    permissions = ['members.read', 'limits.users.write']
+    await act(async () => {
+      await cache.invalidateQueries({ queryKey: ['permissions'] })
+    })
+    await until(() => expect(container.textContent).toContain('Edit limits'))
+    await click('Edit limits')
+    expect(container.querySelector('form[aria-label="Proposed policy"]')).not.toBeNull()
+  })
+
   it('distinguishes completed offboarding from suspension and offers the review entry', async () => {
     target.disabled = true
     target.offboarded_at = '2026-09-23T01:00:00Z'
     await mount('/admin/members/usr_target?tab=settings')
     await until(() => expect(container.textContent).toContain('Offboarded'))
+    expect(container.textContent).not.toContain('Edit limits')
     expect(
       [...container.querySelectorAll('button')].some(
         (button) => button.textContent === 'Review offboarding',

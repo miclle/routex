@@ -1,0 +1,58 @@
+export default {
+  title: 'Request limits',
+  keyDetails: '{{name}} · Key details',
+  edit: 'Edit limits',
+  keyEdit: 'Edit restrictions',
+  save: 'Save limits',
+  cancel: 'Cancel',
+  requests: 'Request limits',
+  ip: 'IP source restrictions',
+  rpm: 'RPM',
+  concurrency: 'Maximum concurrency',
+  none: 'No local IP restriction',
+  allowlist: 'Allow listed sources only',
+  denylist: 'Deny listed sources',
+  ranges: 'IP addresses or networks',
+  rangesHelp:
+    'Enter one IPv4, IPv6 or CIDR per line, or separate entries with commas. Maximum 128 entries. The server validates and normalizes networks.',
+  reason: 'Reason for change',
+  reasonHelp: 'Required for the audit record. Changes apply immediately after publication.',
+  inherited: 'Inherit parent',
+  unlimited: 'Unrestricted',
+  unknown: 'Unavailable',
+  aggregateHelp:
+    'Leave blank for no local numeric limit. Zero blocks admission. Saving never resets usage.',
+  childHelp:
+    'Leave blank to inherit the current parent. Explicit values can only narrow it. Parent and Key IP rules must both permit the source. Rotation shares this policy and its counters.',
+  stored: 'Stored',
+  effective: 'Effective',
+  parent: 'Parent policy',
+  local: 'Local policy',
+  parentMaximum: 'Current parent maximum: {{value}}',
+  usage: 'Admitted in the rolling minute',
+  active: 'Active requests',
+  account: 'Limit account',
+  published: 'Enforced by the gateway',
+  unpublished: 'Runtime application is not confirmed. Do not treat this policy as enforced.',
+  applied: 'Limits saved and applied.',
+  pending: 'Saved, but runtime application is not confirmed.',
+  invalidNumber:
+    'Use a nonnegative safe integer, or leave the field blank. Zero is a closed allowance.',
+  aboveParent: 'An explicit Key limit cannot exceed its current parent maximum.',
+  requiredReason: 'Provide a reason of at most 2,000 UTF-8 bytes.',
+  requiredRanges: 'Provide between 1 and 128 IP addresses or networks.',
+  conflict:
+    'The policy or resource changed. Reload the current policy and review it before saving. Your draft is retained.',
+  uncertain:
+    'The change may already be stored, but application is not confirmed. Retry the exact submitted change or reload to reconcile. Your draft is locked until reconciliation.',
+  failed:
+    'Unable to save the policy. Review the current policy and your draft before trying again.',
+  reload: 'Reload current policy',
+  retry: 'Retry application',
+  loading: 'Applying…',
+  conjunction:
+    'All policies below must allow the source; an unrestricted local policy does not remove a parent restriction.',
+  noIP: 'No IP ranges',
+  current: 'Current policy',
+  draft: 'Proposed policy',
+}

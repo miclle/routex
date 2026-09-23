@@ -1,3 +1,4 @@
+import ResourceLimits from '@/views/resource-limits'
 import { useTranslation } from 'react-i18next'
 import { useState, type FormEvent } from 'react'
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
@@ -411,6 +412,11 @@ function Members() {
                 </TabsContent>
                 <TabsContent value="settings">
                   <div className="space-y-6">
+                    <ResourceLimits
+                      key={current.id}
+                      path={`/admin/members/${current.id}`}
+                      canEdit={access.can('limits.users.write') && !current.disabled}
+                    />
                     <section className="rounded-lg border">
                       <h3 className="border-b p-4 font-medium">{t('members.basicInfo')}</h3>
                       <form

@@ -1,3 +1,4 @@
+import { limitFixture } from '@/views/resource-limits/fixture'
 import { act } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
@@ -127,6 +128,7 @@ beforeEach(() => {
       }
       if (route === `post ${path}/complete-rotation`) key.status = 'revoked'
     }
+    if (config.url?.endsWith('/limits')) response.data = limitFixture()
     return response
   }
 })

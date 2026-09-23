@@ -1,3 +1,4 @@
+import { limitFixture } from '@/views/resource-limits/fixture'
 import { act } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
@@ -72,6 +73,7 @@ beforeEach(() => {
       response.data = session
     }
     if (key === 'post /auth/logout') authenticated = false
+    if (config.url?.endsWith('/limits')) response.data = limitFixture()
     return response
   }
 })
