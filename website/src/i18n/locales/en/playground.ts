@@ -1,6 +1,6 @@
 export default {
   description:
-    'Make native Chat Completions or Responses calls using a personal or Project API key.',
+    'Make native Chat Completions, Responses or Messages calls using a personal or Project API key.',
   protocol: 'Protocol',
   key: 'API key',
   keyPlaceholder: 'Paste an enabled personal or Project key',
@@ -53,4 +53,13 @@ export default {
   state_failed: 'Call failed',
   state_incomplete: 'Incomplete',
   state_accepted: 'Accepted, not completed',
+  invalidMessages:
+    'The gateway returned an invalid native Messages event or response. Received content has been preserved.',
+  handoff: 'Action required',
+  refused: 'Refused',
+  handoffHelp:
+    'The upstream stopped for a tool or continuation action. This text-only page does not execute tools; this turn is excluded from later context.',
+  refusedHelp: 'The upstream refused this request. This turn is excluded from later context.',
+  state_handoff: 'Action required',
+  state_refused: 'Refused',
 }

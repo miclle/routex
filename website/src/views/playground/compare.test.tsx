@@ -1,7 +1,13 @@
 import { act } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { GatewayError, getGatewayModels, runChat, runResponses } from '@/api/playground'
+import {
+  GatewayError,
+  getGatewayModels,
+  runChat,
+  runResponses,
+  runMessages,
+} from '@/api/playground'
 import i18n from '@/i18n'
 import CompareWorkbench from './compare'
 import PlaygroundPage from './index'
@@ -10,6 +16,7 @@ vi.mock('@/api/playground', async (original) => ({
   getGatewayModels: vi.fn(),
   runChat: vi.fn(),
   runResponses: vi.fn(),
+  runMessages: vi.fn(),
 }))
 Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true })
 let root: Root, host: HTMLDivElement
@@ -246,4 +253,38 @@ describe('model comparison workbench', () => {
     )
     expect(JSON.stringify(localStorage)).not.toContain('rx_comparison_only')
   })
+})
+
+it('runs a native Messages lane alongside Chat and preserves sibling success after handoff', async () => {
+  vi.mocked(getGatewayModels).mockResolvedValue([
+    { id: 'chat-a', protocols: ['openai_chat'] },
+    { id: 'messages-b', protocols: ['anthropic_messages'] },
+  ])
+  vi.mocked(runMessages).mockResolvedValue({
+    text: 'Tool handoff',
+    requestId: 'req_messages',
+    usage: { prompt_tokens: 6, completion_tokens: 4, total_tokens: 10 },
+    finishReason: 'tool_use',
+    messageStatus: 'handoff',
+    nonTextOutput: true,
+  })
+  await ready()
+  await send('Native comparison')
+  expect(lane(2).textContent).toContain('Anthropic Messages')
+  expect(lane(2).textContent).toContain('/v1/messages')
+  expect(lane(2).textContent).toContain('Action required')
+  expect(lane(2).textContent).toContain('req_messages')
+  expect(lane(2).textContent).toContain('Total 10 Tokens')
+  expect(lane(1).textContent).toContain('Chat answer')
+  expect(vi.mocked(runMessages).mock.calls[0][1]).toMatchObject({
+    model: 'messages-b',
+    messages: [{ role: 'user', content: 'Native comparison' }],
+    max_tokens: 2048,
+    stream: true,
+  })
+  await send('Next')
+  expect(vi.mocked(runMessages).mock.calls[1][1].messages).toEqual([
+    { role: 'user', content: 'Next' },
+  ])
+  expect(vi.mocked(runChat).mock.calls[1][1].messages).toHaveLength(3)
 })

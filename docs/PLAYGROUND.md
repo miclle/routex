@@ -1,6 +1,6 @@
 # Playground
 
-Playground is a single-model text conversation client for native OpenAI Chat Completions and Responses. It makes real requests; it does not synthesize responses or usage statistics. Other protocols, session-based inference, attachments, and tools remain separate work packages.
+Playground is a native text conversation and model comparison client for native OpenAI Chat Completions, OpenAI Responses, and Anthropic Messages. It makes real requests; it does not synthesize responses or usage statistics. Other protocols, session-based inference, attachments, and tools remain separate work packages.
 
 ## Workflow
 
@@ -15,7 +15,7 @@ Only successfully completed exchanges are included in later conversation context
 
 ## Transport and Secret Handling
 
-- Native requests use `Authorization: Bearer <key>` against same-origin `/v1/models` , `/v1/chat/completions`, and `/v1/responses`.
+- Model discovery, Chat, and Responses use `Authorization: Bearer <key>` against same-origin endpoints. Messages uses only `x-api-key: <key>` with `anthropic-version: 2023-06-01` against `/v1/messages`; the two authentication forms are never combined.
 - Requests omit browser cookies and reject redirects. Gateway authentication is independent of the control-plane session that protects access to the page.
 - The Key remains only in component memory and the password input while the page is mounted. The client never writes it to localStorage, sessionStorage, React Query caches, logs, or generated request examples.
 - The native client uses `fetch` and an `AbortController`, not React Query mutations, so request arguments and secrets are not retained in a mutation cache.
@@ -48,10 +48,20 @@ Run `npm --prefix website test`, `npm --prefix website run lint`, and `npm --pre
 
 The Model conversation and Model comparison tabs keep separate transient workbenches. Switching tabs destroys the hidden workbench, aborts its active fetches, and clears its entered Key and history. The conversation workbench retains its existing settings/transcript layout.
 
-Comparison uses a shared credential toolbar, two initial model columns, and one shared message composer. Add comparison creates up to four columns; remove controls appear only above the two-column minimum. Columns scroll horizontally with a 300-pixel minimum width. Each column selects its own currently eligible Chat or Responses protocol and displays the actual endpoint, partial output, terminal status, Request ID, observed elapsed time, and authoritative usage. Verification uses one transient personal or Project Key, and models with explicit empty protocol capabilities are unavailable.
+Comparison uses a shared credential toolbar, two initial model columns, and one shared message composer. Add comparison creates up to four columns; remove controls appear only above the two-column minimum. Columns scroll horizontally with a 300-pixel minimum width. Each column selects its own currently eligible Chat, Responses, or Messages protocol and displays the actual endpoint, partial output, terminal status, Request ID, observed elapsed time, and authoritative usage. Verification uses one transient personal or Project Key, and models with explicit empty protocol capabilities are unavailable.
 
 Send captures one message and concurrently dispatches an independent native request to each selected column. The comparison defaults are streaming, Temperature 0.7, Top P 1, and 2,048 maximum output Tokens. Per-column Stop only aborts that column; failure or cancellation does not stop siblings. Removing a column or changing its model/protocol cancels that column's request and clears only its history. Global sending waits until all current requests settle, with a synchronous guard against duplicate dispatch.
 
 Subsequent requests include only the successful text history of their own column. Failed, incomplete, accepted, and canceled turns remain visible but are excluded from later context. Clear all resets all histories; clearing/changing the Key also resets models and drafts. There are no simulated responses, session-inference controls, or nonfunctional attachment actions.
 
 `website/src/views/playground/compare.test.tsx` covers the two-to-four column bounds, eligible protocols, concurrent native bodies, independent histories/errors/cancellation, duplicate sends, per-column resets, credential clearing, tab teardown, and bilingual accessibility/draft preservation. All client tests use controlled mocked transports, separate from paid-provider or real gateway acceptance.
+
+## Native Messages
+
+Both workbenches select `anthropic_messages` only when the model advertises that eligible protocol. Requests preserve the native `messages`, top-level `system`, `max_tokens`, and stream fields; there is no Chat/Responses fallback or adapter. The single-model maximum-output field permits native zero-token warm-up and limits Temperature to the native 0–1 range. Version selection is fixed at the gateway-supported discovery version.
+
+Ordinary responses require a native Message with a stop reason. Streaming tracks message start, indexed content-block lifecycles, text deltas, cumulative usage, final stop reason, and `message_stop`. Neither bare EOF nor Chat `[DONE]` is completion. Errors retain already received text and the RouteX request identity. Stop reasons distinguish successful completion, incomplete output, refusal, and tool/continuation handoff. The text interface never executes a tool or silently replays incomplete native state; only completed text turns enter subsequent history.
+
+Displayed input Tokens normalize the native disjoint uncached/cache-read/cache-creation categories. All categories must be present and safe nonnegative integers; omitted/invalid categories remain unknown. Stream output uses the latest cumulative value, never a sum of deltas. An omitted or invalid final output count cannot inherit a previous count. Usage becomes final only after `message_stop`, and valid terminal usage remains visible for refusal, handoff, or truncation outcomes.
+
+Shared transport logic owns same-origin authentication, redirect/cookie exclusion, sanitized native errors, and bounded output helpers. Dedicated protocol parsers retain separate finality and accounting rules. `playground-messages.test.ts` covers native headers and parameters, ordinary/streaming response shapes, lifecycle errors, cumulative and unknown counters, native 529/errors, cancellation, and text-only output handling. Single and comparison workbench tests cover Messages-only discovery, system/history shape, native endpoint labeling, and independent handoff/refusal/incomplete states.

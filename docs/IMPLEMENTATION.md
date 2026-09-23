@@ -619,3 +619,18 @@ session verified setup, saved branding after restart, literal footer/announcemen
 text, publish/close history, language switching and explicit preference precedence.
 Browser findings fixed long-name sidebar overflow and public-site observer loss
 on authentication transitions; malformed public responses now fail recoverably.
+
+### Native Messages Playground
+
+The conversation and comparison workbenches now issue native Messages requests
+with inline system/history fields and transient Key credentials. Separate parsers
+preserve native block lifecycles, terminal stop reasons, cache-token accounting and
+unknown usage. Refused, incomplete and tool-handoff turns remain visible without
+being silently replayed as completed text context.
+
+Full check/test passed with 266 Vitest cases, four Node checks, Go race/unit,
+development lifecycle and production assets. Focused coverage includes native
+headers/bodies, ordinary/SSE finality, cancellation, malformed terminal usage,
+independent comparison outcomes and bilingual interaction. This phase introduces
+no schema or gateway changes; rendered workbench and external-provider acceptance
+remain separate open gates.

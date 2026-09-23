@@ -27,7 +27,7 @@ export interface ChatResult {
   finishReason: string | null
 }
 
-export type PlaygroundProtocol = 'openai_chat' | 'openai_responses'
+export type PlaygroundProtocol = 'openai_chat' | 'openai_responses' | 'anthropic_messages'
 export interface ResponsesRequest {
   model: string
   input: { role: 'user' | 'assistant'; content: string }[]
@@ -40,5 +40,19 @@ export interface ResponsesRequest {
 export type ResponseStatus = 'completed' | 'failed' | 'incomplete' | 'queued' | 'in_progress'
 export interface ResponsesResult extends ChatResult {
   responseStatus: ResponseStatus | null
+  nonTextOutput: boolean
+}
+
+export interface MessagesRequest {
+  model: string
+  messages: { role: 'user' | 'assistant'; content: string }[]
+  system?: string
+  stream: boolean
+  temperature: number
+  top_p: number
+  max_tokens: number
+}
+export interface MessagesResult extends ChatResult {
+  messageStatus: 'completed' | 'incomplete' | 'handoff' | 'refused'
   nonTextOutput: boolean
 }

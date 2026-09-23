@@ -2,7 +2,13 @@ import { t } from '@/i18n'
 import { useTranslation } from 'react-i18next'
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { Copy, LoaderCircle, Send, Square, Trash2 } from 'lucide-react'
-import { GatewayError, getGatewayModels, runChat, runResponses } from '@/api/playground'
+import {
+  GatewayError,
+  getGatewayModels,
+  runChat,
+  runResponses,
+  runMessages,
+} from '@/api/playground'
 import type {
   ChatMessage,
   ChatResult,
@@ -20,7 +26,15 @@ type Exchange = ChatResult & {
   id: string
   prompt: string
   model: string
-  status: 'running' | 'completed' | 'cancelled' | 'failed' | 'incomplete' | 'accepted'
+  status:
+    | 'running'
+    | 'completed'
+    | 'cancelled'
+    | 'failed'
+    | 'incomplete'
+    | 'accepted'
+    | 'handoff'
+    | 'refused'
   responseStatus?: ResponseStatus | null
   nonTextOutput?: boolean
   error: string | GatewayError
@@ -36,7 +50,7 @@ export default function ChatWorkbench() {
   function protocols(item?: GatewayModel): PlaygroundProtocol[] {
     return (item?.protocols ?? ['openai_chat']).filter(
       (value): value is PlaygroundProtocol =>
-        value === 'openai_chat' || value === 'openai_responses',
+        value === 'openai_chat' || value === 'openai_responses' || value === 'anthropic_messages',
     )
   }
   const availableProtocols = protocols(models.find((item) => item.id === model))
@@ -152,7 +166,23 @@ export default function ChatWorkbench() {
         temperature: Number(form.get('temperature')),
         top_p: Number(form.get('top_p')),
       }
-      if (protocol === 'openai_responses') {
+      if (protocol === 'anthropic_messages') {
+        const result = await runMessages(
+          key.trim(),
+          {
+            ...parameters,
+            messages: messages.filter(
+              (message): message is ChatMessage & { role: 'user' | 'assistant' } =>
+                message.role !== 'system',
+            ),
+            ...(system ? { system } : {}),
+            max_tokens: Number(form.get('max_tokens')),
+          },
+          abort.signal,
+          update,
+        )
+        update({ ...result, status: result.messageStatus })
+      } else if (protocol === 'openai_responses') {
         const result = await runResponses(
           key.trim(),
           {
@@ -309,7 +339,11 @@ export default function ChatWorkbench() {
                 >
                   {availableProtocols.map((value) => (
                     <option key={value} value={value}>
-                      {value === 'openai_chat' ? 'OpenAI Chat' : 'OpenAI Responses'}
+                      {value === 'anthropic_messages'
+                        ? 'Anthropic Messages'
+                        : value === 'openai_chat'
+                          ? 'OpenAI Chat'
+                          : 'OpenAI Responses'}
                     </option>
                   ))}
                 </select>
@@ -322,10 +356,19 @@ export default function ChatWorkbench() {
             )}
             <div className="border-t pt-4">
               <Badge variant="outline">
-                {protocol === 'openai_chat' ? 'OpenAI Chat' : 'OpenAI Responses'}
+                {protocol === 'anthropic_messages'
+                  ? 'Anthropic Messages'
+                  : protocol === 'openai_chat'
+                    ? 'OpenAI Chat'
+                    : 'OpenAI Responses'}
               </Badge>
               <p className="mt-2 break-all font-mono text-xs text-muted-foreground">
-                POST {protocol === 'openai_chat' ? '/v1/chat/completions' : '/v1/responses'}
+                POST{' '}
+                {protocol === 'anthropic_messages'
+                  ? '/v1/messages'
+                  : protocol === 'openai_chat'
+                    ? '/v1/chat/completions'
+                    : '/v1/responses'}
               </p>
             </div>
             <FormField label={t('temperature')}>
@@ -333,7 +376,7 @@ export default function ChatWorkbench() {
                 name="temperature"
                 type="number"
                 min={0}
-                max={2}
+                max={protocol === 'anthropic_messages' ? 1 : 2}
                 step={0.1}
                 defaultValue={0.7}
                 required
@@ -354,7 +397,7 @@ export default function ChatWorkbench() {
               <Input
                 name="max_tokens"
                 type="number"
-                min={1}
+                min={protocol === 'anthropic_messages' ? 0 : 1}
                 max={32768}
                 step={1}
                 defaultValue={2048}
@@ -411,17 +454,21 @@ export default function ChatWorkbench() {
                   <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
                     <span>{exchange.model}</span>
                     <span>
-                      {exchange.status === 'running'
-                        ? t('generating_3a98d')
-                        : exchange.status === 'cancelled'
-                          ? t('stopped_75ddd')
-                          : exchange.status === 'incomplete'
-                            ? t('playground:incomplete')
-                            : exchange.status === 'accepted'
-                              ? t('playground:accepted')
-                              : exchange.status === 'failed'
-                                ? t('call_failed_1d1d8')
-                                : t('completed_e99b4')}
+                      {exchange.status === 'handoff'
+                        ? t('playground:handoff')
+                        : exchange.status === 'refused'
+                          ? t('playground:refused')
+                          : exchange.status === 'running'
+                            ? t('generating_3a98d')
+                            : exchange.status === 'cancelled'
+                              ? t('stopped_75ddd')
+                              : exchange.status === 'incomplete'
+                                ? t('playground:incomplete')
+                                : exchange.status === 'accepted'
+                                  ? t('playground:accepted')
+                                  : exchange.status === 'failed'
+                                    ? t('call_failed_1d1d8')
+                                    : t('completed_e99b4')}
                     </span>
                   </div>
                   <p className="whitespace-pre-wrap break-words text-sm leading-7">
@@ -432,14 +479,20 @@ export default function ChatWorkbench() {
                   </p>
                   {(exchange.status === 'incomplete' ||
                     exchange.status === 'accepted' ||
+                    exchange.status === 'handoff' ||
+                    exchange.status === 'refused' ||
                     exchange.nonTextOutput) && (
                     <p role="status" className="text-xs text-muted-foreground">
                       {t(
-                        exchange.status === 'incomplete'
-                          ? 'playground:incompleteHelp'
-                          : exchange.status === 'accepted'
-                            ? 'playground:acceptedHelp'
-                            : 'playground:textOnly',
+                        exchange.status === 'handoff'
+                          ? 'playground:handoffHelp'
+                          : exchange.status === 'refused'
+                            ? 'playground:refusedHelp'
+                            : exchange.status === 'incomplete'
+                              ? 'playground:incompleteHelp'
+                              : exchange.status === 'accepted'
+                                ? 'playground:acceptedHelp'
+                                : 'playground:textOnly',
                       )}
                     </p>
                   )}

@@ -1,7 +1,13 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Plus, Send, Square, Trash2, X } from 'lucide-react'
-import { GatewayError, getGatewayModels, runChat, runResponses } from '@/api/playground'
+import {
+  GatewayError,
+  getGatewayModels,
+  runChat,
+  runResponses,
+  runMessages,
+} from '@/api/playground'
 import type {
   ChatMessage,
   ChatResult,
@@ -18,7 +24,15 @@ import { FormField } from '@/components/app/CatalogUI'
 type Turn = ChatResult & {
   id: string
   prompt: string
-  status: 'running' | 'completed' | 'cancelled' | 'failed' | 'incomplete' | 'accepted'
+  status:
+    | 'running'
+    | 'completed'
+    | 'cancelled'
+    | 'failed'
+    | 'incomplete'
+    | 'accepted'
+    | 'handoff'
+    | 'refused'
   responseStatus?: ResponseStatus | null
   nonTextOutput?: boolean
   error?: string | GatewayError
@@ -27,7 +41,8 @@ type Turn = ChatResult & {
 type Lane = { id: number; model: string; protocol: PlaygroundProtocol; turns: Turn[] }
 function protocols(model?: GatewayModel): PlaygroundProtocol[] {
   return (model?.protocols ?? ['openai_chat']).filter(
-    (value): value is PlaygroundProtocol => value === 'openai_chat' || value === 'openai_responses',
+    (value): value is PlaygroundProtocol =>
+      value === 'openai_chat' || value === 'openai_responses' || value === 'anthropic_messages',
   )
 }
 function makeLane(id: number, model?: GatewayModel): Lane {
@@ -161,7 +176,23 @@ export default function CompareWorkbench() {
     ]
     const parameters = { model: lane.model, stream: true, temperature: 0.7, top_p: 1 }
     try {
-      if (lane.protocol === 'openai_responses') {
+      if (lane.protocol === 'anthropic_messages') {
+        const result = await runMessages(
+          key.trim(),
+          {
+            ...parameters,
+            messages: messages as { role: 'user' | 'assistant'; content: string }[],
+            max_tokens: 2048,
+          },
+          abort.signal,
+          update,
+        )
+        update({
+          ...result,
+          status: result.messageStatus,
+          duration: Math.round(performance.now() - started),
+        })
+      } else if (lane.protocol === 'openai_responses') {
         const result = await runResponses(
           key.trim(),
           {
@@ -347,7 +378,11 @@ export default function CompareWorkbench() {
                 >
                   {protocols(models.find((item) => item.id === lane.model)).map((protocol) => (
                     <option key={protocol} value={protocol}>
-                      {protocol === 'openai_chat' ? 'OpenAI Chat' : 'OpenAI Responses'}
+                      {protocol === 'anthropic_messages'
+                        ? 'Anthropic Messages'
+                        : protocol === 'openai_chat'
+                          ? 'OpenAI Chat'
+                          : 'OpenAI Responses'}
                     </option>
                   ))}
                 </select>
@@ -355,14 +390,20 @@ export default function CompareWorkbench() {
               <div className="flex flex-wrap items-center gap-2">
                 <Badge variant="outline">
                   {lane.model
-                    ? lane.protocol === 'openai_chat'
-                      ? 'OpenAI Chat'
-                      : 'OpenAI Responses'
+                    ? lane.protocol === 'anthropic_messages'
+                      ? 'Anthropic Messages'
+                      : lane.protocol === 'openai_chat'
+                        ? 'OpenAI Chat'
+                        : 'OpenAI Responses'
                     : t('selectModel')}
                 </Badge>
                 {lane.model && (
                   <span className="text-xs text-muted-foreground">
-                    {lane.protocol === 'openai_chat' ? '/v1/chat/completions' : '/v1/responses'}
+                    {lane.protocol === 'anthropic_messages'
+                      ? '/v1/messages'
+                      : lane.protocol === 'openai_chat'
+                        ? '/v1/chat/completions'
+                        : '/v1/responses'}
                   </span>
                 )}
               </div>
@@ -405,14 +446,20 @@ export default function CompareWorkbench() {
                   )}
                   {(turn.status === 'incomplete' ||
                     turn.status === 'accepted' ||
+                    turn.status === 'handoff' ||
+                    turn.status === 'refused' ||
                     turn.nonTextOutput) && (
                     <p className="text-xs text-muted-foreground">
                       {t(
-                        turn.status === 'incomplete'
-                          ? 'incompleteHelp'
-                          : turn.status === 'accepted'
-                            ? 'acceptedHelp'
-                            : 'textOnly',
+                        turn.status === 'handoff'
+                          ? 'handoffHelp'
+                          : turn.status === 'refused'
+                            ? 'refusedHelp'
+                            : turn.status === 'incomplete'
+                              ? 'incompleteHelp'
+                              : turn.status === 'accepted'
+                                ? 'acceptedHelp'
+                                : 'textOnly',
                       )}
                     </p>
                   )}

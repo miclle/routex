@@ -1,5 +1,5 @@
 export default {
-  description: '使用个人或项目 API Key 发起原生 Chat Completions 或 Responses 调用。',
+  description: '使用个人或项目 API Key 发起原生 Chat Completions、Responses 或 Messages 调用。',
   protocol: '协议类型',
   key: 'API Key',
   keyPlaceholder: '粘贴已启用的个人或项目 Key',
@@ -46,4 +46,11 @@ export default {
   state_failed: '调用失败',
   state_incomplete: '未完成',
   state_accepted: '已接受，尚未完成',
+  invalidMessages: '网关返回了无效的原生 Messages 事件或响应，已接收内容已保留。',
+  handoff: '需要操作',
+  refused: '已拒绝',
+  handoffHelp: '上游停止并等待工具或后续操作。此文本页面不执行工具，本轮不会进入后续上下文。',
+  refusedHelp: '上游拒绝了此请求，本轮不会进入后续上下文。',
+  state_handoff: '需要操作',
+  state_refused: '已拒绝',
 }

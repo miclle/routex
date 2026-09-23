@@ -3,13 +3,20 @@ import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import PlaygroundPage from './index'
 import i18n from '@/i18n'
-import { GatewayError, getGatewayModels, runChat, runResponses } from '@/api/playground'
+import {
+  GatewayError,
+  getGatewayModels,
+  runChat,
+  runResponses,
+  runMessages,
+} from '@/api/playground'
 
 vi.mock('@/api/playground', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@/api/playground')>()),
   getGatewayModels: vi.fn(),
   runChat: vi.fn(),
   runResponses: vi.fn(),
+  runMessages: vi.fn(),
 }))
 Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true })
 let root: Root
@@ -301,3 +308,64 @@ it('switches native labels without losing draft or protocol and prevents duplica
   expect(document.documentElement.lang).toBe('zh')
   expect(JSON.stringify(localStorage)).not.toContain('rx_transient')
 })
+
+it('sends Messages-only models through the native endpoint with top-level system and no Chat fallback', async () => {
+  vi.mocked(getGatewayModels).mockResolvedValue([
+    { id: 'messages-native', protocols: ['anthropic_messages'] },
+  ])
+  vi.mocked(runMessages).mockResolvedValue({
+    text: 'Messages answer',
+    requestId: 'req_messages',
+    usage: { prompt_tokens: 2, completion_tokens: 3, total_tokens: 5 },
+    finishReason: 'end_turn',
+    messageStatus: 'completed',
+    nonTextOutput: false,
+  })
+  await ready()
+  await fill('system', 'Be precise')
+  await fill('max_tokens', '0')
+  await submit()
+  expect(container.textContent).toContain('Anthropic Messages')
+  expect(container.textContent).toContain('POST /v1/messages')
+  expect(vi.mocked(runMessages).mock.calls[0][1]).toEqual({
+    model: 'messages-native',
+    messages: [{ role: 'user', content: 'Hello' }],
+    system: 'Be precise',
+    stream: true,
+    temperature: 0.7,
+    top_p: 1,
+    max_tokens: 0,
+  })
+  expect(runChat).not.toHaveBeenCalled()
+  expect(runResponses).not.toHaveBeenCalled()
+  await fill('prompt', 'Continue')
+  await submit()
+  expect(vi.mocked(runMessages).mock.calls[1][1].messages).toHaveLength(3)
+  expect(JSON.stringify(localStorage)).not.toContain('rx_transient')
+})
+it.each(['handoff', 'refused', 'incomplete'] as const)(
+  'keeps Messages %s explicit and out of follow-up history',
+  async (status) => {
+    vi.mocked(getGatewayModels).mockResolvedValue([
+      { id: 'messages-native', protocols: ['anthropic_messages'] },
+    ])
+    vi.mocked(runMessages).mockResolvedValue({
+      text: 'Partial native',
+      requestId: 'req_messages',
+      usage: null,
+      finishReason: 'tool_use',
+      messageStatus: status,
+      nonTextOutput: false,
+    })
+    await ready()
+    await submit()
+    expect(container.textContent).toContain(
+      status === 'handoff' ? 'Action required' : status === 'refused' ? 'Refused' : 'Incomplete',
+    )
+    await fill('prompt', 'Retry')
+    await submit()
+    expect(vi.mocked(runMessages).mock.calls[1][1].messages).toEqual([
+      { role: 'user', content: 'Retry' },
+    ])
+  },
+)
