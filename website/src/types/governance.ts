@@ -4,6 +4,7 @@ export interface Member {
   name: string
   role: 'admin' | 'member'
   disabled: boolean
+  offboarded_at?: string | null
   created_at: string
   role_ids: string[]
 }

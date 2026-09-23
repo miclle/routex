@@ -43,12 +43,93 @@ const routes: RouteObject[] = [
         element: <AppShell />,
         children: [
           {
+            path: 'teams',
+            lazy: async () => {
+              const { default: Page } = await import('@/views/resources/list')
+              return { Component: () => <Page kind="teams" /> }
+            },
+          },
+          {
+            path: 'teams/:resourceId',
+            lazy: async () => {
+              const { default: Page } = await import('@/views/resources/detail')
+              return { Component: () => <Page kind="teams" /> }
+            },
+          },
+          {
+            path: 'admin/teams',
+            lazy: async () => {
+              const { default: Page } = await import('@/views/resources/list')
+              return { Component: () => <Page kind="teams" admin /> }
+            },
+          },
+          {
+            path: 'admin/teams/new',
+            lazy: async () => {
+              const { default: Page } = await import('@/views/resources/create')
+              return { Component: () => <Page kind="teams" admin /> }
+            },
+          },
+          {
+            path: 'admin/teams/:resourceId',
+            lazy: async () => {
+              const { default: Page } = await import('@/views/resources/detail')
+              return { Component: () => <Page kind="teams" admin /> }
+            },
+          },
+          {
+            path: 'projects',
+            lazy: async () => {
+              const { default: Page } = await import('@/views/resources/list')
+              return { Component: () => <Page kind="projects" /> }
+            },
+          },
+          {
+            path: 'projects/new',
+            lazy: async () => {
+              const { default: Page } = await import('@/views/resources/create')
+              return { Component: () => <Page kind="projects" /> }
+            },
+          },
+          {
+            path: 'projects/:resourceId',
+            lazy: async () => {
+              const { default: Page } = await import('@/views/resources/detail')
+              return { Component: () => <Page kind="projects" /> }
+            },
+          },
+          {
+            path: 'admin/projects',
+            lazy: async () => {
+              const { default: Page } = await import('@/views/resources/list')
+              return { Component: () => <Page kind="projects" admin /> }
+            },
+          },
+          {
+            path: 'admin/projects/new',
+            lazy: async () => {
+              const { default: Page } = await import('@/views/resources/create')
+              return { Component: () => <Page kind="projects" admin /> }
+            },
+          },
+          {
+            path: 'admin/projects/:resourceId',
+            lazy: async () => {
+              const { default: Page } = await import('@/views/resources/detail')
+              return { Component: () => <Page kind="projects" admin /> }
+            },
+          },
+          {
             index: true,
             lazy: async () => ({ Component: (await import('@/views/home')).default }),
           },
           {
             path: 'admin/members',
             lazy: async () => ({ Component: (await import('@/views/governance/members')).default }),
+          },
+          {
+            path: 'admin/members/:memberId/offboarding',
+            lazy: async () => ({ Component: (await import('@/views/offboarding')).default }),
           },
           {
             path: 'admin/members/:memberId',

@@ -16,6 +16,7 @@ let requests: InternalAxiosRequestConfig[]
 let role: 'admin' | 'member'
 let failNext: boolean
 let failDetail: boolean
+let projectOwned: boolean
 const originalAdapter = client.defaults.adapter
 const detail: AdminCallDetail = {
   request_id: 'req_first',
@@ -53,6 +54,7 @@ beforeEach(async () => {
   requests = []
   failNext = false
   failDetail = false
+  projectOwned = false
   container = document.createElement('div')
   document.body.append(container)
   root = createRoot(container)
@@ -79,10 +81,11 @@ beforeEach(async () => {
       response.status = 503
       throw new AxiosError('Failed', '', config, undefined, response)
     }
+    const record = projectOwned ? { ...detail, user_id: '', project_id: 'prj_owned' } : detail
     response.data = isDetail
-      ? detail
+      ? record
       : {
-          items: [{ ...detail, request_id: config.params?.cursor ? 'req_second' : 'req_first' }],
+          items: [{ ...record, request_id: config.params?.cursor ? 'req_second' : 'req_first' }],
           next_cursor: config.params?.cursor ? null : 'next-page',
         }
     return response
@@ -96,11 +99,11 @@ afterEach(async () => {
   client.defaults.adapter = originalAdapter
   container.remove()
 })
-async function render(admin = false) {
+async function render(admin = false, projectId?: string) {
   await act(async () => {
     root.render(
       <QueryClientProvider client={cache}>
-        <CallsPage admin={admin} />
+        <CallsPage admin={admin} projectId={projectId} />
       </QueryClientProvider>,
     )
   })
@@ -132,6 +135,41 @@ async function fill(name: string, value: string) {
 }
 
 describe('call records', () => {
+  it('attributes administrative Project calls to the Project instead of an empty user', async () => {
+    projectOwned = true
+    await render(true)
+    await until(() => expect(container.textContent).toContain('prj_owned'))
+    expect(container.textContent).toContain('User / Project')
+    await click('Details')
+    await until(() =>
+      expect(document.querySelector('[role="dialog"]')?.textContent).toContain('Project ID'),
+    )
+    expect(document.querySelector('[role="dialog"]')?.textContent).toContain('prj_owned')
+  })
+
+  it('uses isolated Project queries and never shows administrative diagnostics', async () => {
+    cache.setQueryData(['calls', 'self', {}], {
+      pages: [{ items: [{ ...detail, request_id: 'personal_secret_record' }], next_cursor: null }],
+      pageParams: [null],
+    })
+    await render(false, 'prj_1')
+    await until(() => expect(container.textContent).toContain('req_first'))
+    expect(container.textContent).toContain('Project call records')
+    expect(container.textContent).not.toContain('personal_secret_record')
+    expect(container.querySelector('[name="user_id"]')).toBeNull()
+    await click('Details')
+    await until(() =>
+      expect(document.querySelector('[role="dialog"]')?.textContent).toContain('req_first'),
+    )
+    expect(document.querySelector('[role="dialog"]')?.textContent).not.toContain('conn_private')
+    expect(requests.some((request) => request.url === '/projects/prj_1/calls')).toBe(true)
+    expect(requests.some((request) => request.url === '/projects/prj_1/calls/req_first')).toBe(true)
+    expect(
+      requests.some((request) => request.url === '/calls' || request.url?.startsWith('/admin')),
+    ).toBe(false)
+    expect(cache.getQueryData(['calls', 'project', 'prj_1', {}])).toBeDefined()
+  })
+
   it('switches visible status and accessibility labels without changing request identity', async () => {
     await render()
     await until(() => expect(container.textContent).toContain('req_first'))
@@ -226,6 +264,7 @@ describe('call records', () => {
       expect(document.querySelector('[role="dialog"] [role="alert"]')).not.toBeNull(),
     )
     failDetail = false
+    projectOwned = false
     await click('Retry')
     await until(() =>
       expect(document.querySelector('[role="dialog"]')?.textContent).toContain('req_first'),

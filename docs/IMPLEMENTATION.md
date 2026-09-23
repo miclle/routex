@@ -303,3 +303,22 @@ and fixed silently ignored request fields; strict decoding now rejects unknown
 fields and trailing JSON values. HTTP filters, CSRF, candidates, workflow authority,
 terminal decisions, idempotency, and concurrent approval are exercised. Quota and
 rate-limit requests remain separate work.
+
+### Team, Project, Key, and offboarding interfaces
+
+Scoped and administrative resource lists now lead to addressable detail tabs,
+real membership/model/manager updates, metadata and lifecycle actions, Project Key
+delivery/rotation/revocation, Project call history, and reviewed offboarding.
+Selectors retain bounded-search selections and exclude already-assigned people.
+An active Project without model grants explains why Key creation is unavailable.
+Offboarding dates remain informational; execution requires an explicit action.
+Emergency passwords bypass mutation caches and are cleared before dispatch.
+
+The isolated final source passed full check and full test with 105 Vitest cases,
+four Node checks, Go race/unit, development lifecycle, production build/assets,
+and only the two existing primitive Fast Refresh warnings. Controlled browser
+checks covered compact lists and detail tabs, membership/model/metadata edits,
+Project Key forms and empty states, Project call filters, and bilingual offboarding
+review. No warnings or errors were captured. No real Key issuance or offboarding
+completion was submitted in that browser fixture; those behaviors have focused
+client tests and previously delivered dual-database backend coverage.

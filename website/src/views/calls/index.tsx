@@ -11,31 +11,38 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Drawer } from '@/components/ui/drawer'
 
-export default function CallsPage({ admin = false }: { admin?: boolean }) {
+export default function CallsPage({
+  admin = false,
+  projectId,
+}: {
+  admin?: boolean
+  projectId?: string
+}) {
   return admin ? (
     <PermissionGate permission="calls.read_all">
       <CallRecords admin />
     </PermissionGate>
   ) : (
-    <CallRecords admin={false} />
+    <CallRecords admin={false} projectId={projectId} />
   )
 }
-function CallRecords({ admin }: { admin: boolean }) {
+function CallRecords({ admin, projectId }: { admin: boolean; projectId?: string }) {
   const { t, i18n } = useTranslation('activity')
   const formatTime = (value: string) =>
     new Date(value).toLocaleString(i18n.resolvedLanguage === 'zh' ? 'zh-CN' : 'en-US')
+  const scope = projectId ? ['project', projectId] : [admin ? 'admin' : 'self']
   const [filters, setFilters] = useState<CallFilters>({})
   const [selected, setSelected] = useState<string | null>(null)
   const [validation, setValidation] = useState('')
   const calls = useInfiniteQuery({
-    queryKey: ['calls', admin ? 'admin' : 'self', filters],
-    queryFn: ({ pageParam, signal }) => listCalls(admin, filters, pageParam, signal),
+    queryKey: ['calls', ...scope, filters],
+    queryFn: ({ pageParam, signal }) => listCalls(admin, filters, pageParam, signal, projectId),
     initialPageParam: null as string | null,
     getNextPageParam: (page) => page.next_cursor ?? undefined,
   })
   const detail = useQuery({
-    queryKey: ['call', admin ? 'admin' : 'self', selected],
-    queryFn: ({ signal }) => getCall(admin, selected!, signal),
+    queryKey: ['call', ...scope, selected],
+    queryFn: ({ signal }) => getCall(admin, selected!, signal, projectId),
     enabled: selected !== null,
   })
   function filter(event: FormEvent<HTMLFormElement>) {
@@ -61,8 +68,14 @@ function CallRecords({ admin }: { admin: boolean }) {
   const items = calls.data?.pages.flatMap((page) => page.items) ?? []
   return (
     <Page
-      title={admin ? t('calls.allCalls') : t('calls.myCalls')}
-      description={admin ? t('calls.adminDescription') : t('calls.description')}
+      title={projectId ? t('calls.projectCalls') : admin ? t('calls.allCalls') : t('calls.myCalls')}
+      description={
+        projectId
+          ? t('calls.projectDescription')
+          : admin
+            ? t('calls.adminDescription')
+            : t('calls.description')
+      }
       action={
         <Button variant="outline" disabled={calls.isFetching} onClick={() => void calls.refetch()}>
           <RefreshCw className="size-4" aria-hidden="true" />
@@ -137,7 +150,7 @@ function CallRecords({ admin }: { admin: boolean }) {
             <thead className="border-b bg-muted/40 text-xs text-muted-foreground">
               <tr>
                 <th className="px-3 py-2 font-medium">{t('calls.modelRequest')}</th>
-                {admin && <th className="px-3 py-2 font-medium">{t('calls.user')}</th>}
+                {admin && <th className="px-3 py-2 font-medium">{t('calls.owner')}</th>}
                 <th className="px-3 py-2 font-medium">{t('calls.status')}</th>
                 <th className="px-3 py-2 font-medium">{t('calls.from')}</th>
                 <th className="px-3 py-2 font-medium">{t('calls.duration')}</th>
@@ -158,7 +171,11 @@ function CallRecords({ admin }: { admin: boolean }) {
                   </td>
                   {admin && (
                     <td className="px-3 py-2 font-mono text-xs">
-                      {'user_id' in call ? call.user_id : '—'}
+                      {'project_id' in call && call.project_id
+                        ? call.project_id
+                        : 'user_id' in call
+                          ? call.user_id || '—'
+                          : '—'}
                     </td>
                   )}
                   <td className="whitespace-nowrap px-3 py-2">
@@ -254,8 +271,10 @@ function CallDetail({ call, admin }: { call: CallRecord | AdminCallDetail; admin
           <h3 className="text-sm font-medium">{t('calls.upstreamDiagnostics')}</h3>
           <dl className="grid grid-cols-2 gap-3 text-xs">
             <div>
-              <dt className="text-muted-foreground">{t('calls.user')}</dt>
-              <dd className="mt-1 break-all">{call.user_id}</dd>
+              <dt className="text-muted-foreground">
+                {call.project_id ? t('calls.projectID') : t('calls.user')}
+              </dt>
+              <dd className="mt-1 break-all">{call.project_id || call.user_id || '—'}</dd>
             </div>
             <div>
               <dt className="text-muted-foreground">{t('calls.errorCode')}</dt>

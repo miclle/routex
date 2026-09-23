@@ -1,5 +1,6 @@
 export default {
   common: {
+    offboarded: '已离职',
     member: '成员',
     admin: '管理员',
     role: '角色',
@@ -16,6 +17,9 @@ export default {
     listSeparator: '、',
   },
   members: {
+    offboarding: '离职交接',
+    offboardingHelp: '先检查职责与凭证清单，再制定或完成离职交接。',
+    reviewOffboarding: '查看离职交接',
     title: '成员',
     detailTitle: '成员详情',
     description: '管理成员身份、访问状态和平台角色。',

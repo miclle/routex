@@ -6,22 +6,31 @@ export async function listCalls(
   filters: CallFilters,
   cursor: string | null,
   signal?: AbortSignal,
+  projectId?: string,
 ): Promise<CallPage> {
   return (
-    await client.get<CallPage>(admin ? '/admin/calls' : '/calls', {
-      params: { ...filters, cursor: cursor ?? undefined, limit: 40 },
-      signal,
-    })
+    await client.get<CallPage>(
+      projectId
+        ? `/projects/${encodeURIComponent(projectId)}/calls`
+        : admin
+          ? '/admin/calls'
+          : '/calls',
+      {
+        params: { ...filters, cursor: cursor ?? undefined, limit: 40 },
+        signal,
+      },
+    )
   ).data
 }
 export async function getCall(
   admin: boolean,
   requestId: string,
   signal?: AbortSignal,
+  projectId?: string,
 ): Promise<CallRecord | AdminCallDetail> {
   return (
     await client.get<CallRecord | AdminCallDetail>(
-      `${admin ? '/admin/calls' : '/calls'}/${encodeURIComponent(requestId)}`,
+      `${projectId ? `/projects/${encodeURIComponent(projectId)}/calls` : admin ? '/admin/calls' : '/calls'}/${encodeURIComponent(requestId)}`,
       { signal },
     )
   ).data

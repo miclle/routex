@@ -197,6 +197,23 @@ async function submit(label?: string) {
 }
 
 describe('member governance', () => {
+  it('distinguishes completed offboarding from suspension and offers the review entry', async () => {
+    target.disabled = true
+    target.offboarded_at = '2026-09-23T01:00:00Z'
+    await mount('/admin/members/usr_target?tab=settings')
+    await until(() => expect(container.textContent).toContain('Offboarded'))
+    expect(
+      [...container.querySelectorAll('button')].some(
+        (button) => button.textContent === 'Review offboarding',
+      ),
+    ).toBe(true)
+    await act(async () => {
+      await i18n.changeLanguage('zh')
+    })
+    expect(container.textContent).toContain('已离职')
+    expect(container.textContent).toContain('查看离职交接')
+  })
+
   it('does not fetch member data when effective permissions deny access', async () => {
     permissions = []
     await mount('/admin/members')

@@ -20,6 +20,8 @@ import {
   ArrowLeft,
   ChevronRight,
   Cloud,
+  UsersRound,
+  FolderKanban,
 } from 'lucide-react'
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router'
 import { authError, logout } from '@/api/auth'
@@ -36,6 +38,20 @@ const memberNav = [
       return t('overview_50604')
     },
     icon: LayoutDashboard,
+  },
+  {
+    to: '/teams',
+    get label() {
+      return t('teams_21d70')
+    },
+    icon: UsersRound,
+  },
+  {
+    to: '/projects',
+    get label() {
+      return t('projects_22336')
+    },
+    icon: FolderKanban,
   },
   { to: '/keys', label: 'API Keys', icon: KeyRound },
   {
@@ -71,6 +87,28 @@ const accountNav = [
   },
 ]
 const adminNav = [
+  {
+    to: '/admin/teams',
+    get label() {
+      return t('teams_21d70')
+    },
+    icon: UsersRound,
+    permission: 'teams.read_all',
+    get group() {
+      return t('members_and_access_34488')
+    },
+  },
+  {
+    to: '/admin/projects',
+    get label() {
+      return t('projects_22336')
+    },
+    icon: FolderKanban,
+    permission: 'projects.read_all',
+    get group() {
+      return t('members_and_access_34488')
+    },
+  },
   {
     to: '/admin/members',
     get label() {
@@ -176,7 +214,9 @@ export default function AppShell() {
           ? t('model_details_84b34')
           : pathname.startsWith('/admin/members/')
             ? t('member_details_e20da')
-            : 'RouteX')
+            : /\/(?:admin\/)?(?:teams|projects)\//.test(pathname)
+              ? t(pathname.includes('/teams/') ? 'teams_21d70' : 'projects_22336')
+              : 'RouteX')
   const compact = desktop && collapsed
   function links(items: typeof memberNav) {
     return items.map((item) => (

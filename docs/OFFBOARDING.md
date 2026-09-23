@@ -63,3 +63,13 @@ go tool task test-integration
 ```
 
 This implementation revokes local sessions. External identity-provider sessions, external credential access profiles, notification delivery, scheduled execution, and a durable notification outbox are not implemented by this workflow. The control-plane transaction and local runtime publication do not establish multi-node or external-identity revocation guarantees.
+
+## Web workflow
+
+The member offboarding page presents personal access revocation separately from preserved Project assets. It requires `members.read`; actionable controls additionally enforce `members.write`, self-target and last-administrator protection, and the platform-administrator requirement for administrator targets and emergency handling.
+
+The planned flow searches enabled members with pagination, allows multiple successors, and requires an explicit membership acknowledgment for Team successors who are not already active members. Saving a reviewed plan does not execute it. A separate confirmation applies the plan. The intended date is informational and never schedules execution. Stale inventories return a review-and-refresh action that clears old assignments before a new plan is prepared.
+
+Emergency handling explains interim Project management and Team continuity. Its password input is cleared before dispatch and removed on dismissal. Reauthentication runs through a direct API call; neither password-bearing variables nor Axios request/error objects enter the query or mutation cache. A rejected password refreshes console session state without treating the password failure itself as proof that the session expired.
+
+Uncertain transport or publication failures retain the same request identifier and reviewed intent for an explicit retry. The UI never retries mutations automatically. Successful completion refreshes member status and history and reports that personal access was revoked while Project keys and history were preserved. All workflow copy is available in English and Chinese.

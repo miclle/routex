@@ -1,5 +1,6 @@
 export default {
   common: {
+    offboarded: 'Offboarded',
     member: 'Member',
     admin: 'Administrator',
     role: 'Role',
@@ -16,6 +17,10 @@ export default {
     listSeparator: ', ',
   },
   members: {
+    offboarding: 'Offboarding',
+    offboardingHelp:
+      'Review responsibilities and credential inventory before planning or completing an offboarding.',
+    reviewOffboarding: 'Review offboarding',
     title: 'Members',
     detailTitle: 'Member details',
     description: 'Manage member identities, access status, and platform roles.',

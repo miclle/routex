@@ -204,7 +204,11 @@ function Members() {
                     <td>{item.role === 'admin' ? t('common.admin') : t('common.member')}</td>
                     <td>
                       <Badge variant="outline">
-                        {item.disabled ? t('common.disabled') : t('common.active')}
+                        {item.offboarded_at
+                          ? t('common.offboarded')
+                          : item.disabled
+                            ? t('common.disabled')
+                            : t('common.active')}
                       </Badge>
                     </td>
                     <td>
@@ -270,7 +274,11 @@ function Members() {
                   </p>
                 </div>
                 <Badge variant="outline">
-                  {current.disabled ? t('common.disabled') : t('common.active')}
+                  {current.offboarded_at
+                    ? t('common.offboarded')
+                    : current.disabled
+                      ? t('common.disabled')
+                      : t('common.active')}
                 </Badge>
               </section>
               <Tabs
@@ -302,7 +310,13 @@ function Members() {
                       </div>
                       <div>
                         <dt className="text-muted-foreground">{t('common.status')}</dt>
-                        <dd>{current.disabled ? t('common.disabled') : t('common.active')}</dd>
+                        <dd>
+                          {current.offboarded_at
+                            ? t('common.offboarded')
+                            : current.disabled
+                              ? t('common.disabled')
+                              : t('common.active')}
+                        </dd>
                       </div>
                       <div>
                         <dt className="text-muted-foreground">{t('members.joined')}</dt>
@@ -430,6 +444,18 @@ function Members() {
                           </SaveButton>
                         )}
                       </form>
+                    </section>
+                    <section className="rounded-lg border p-4">
+                      <h3 className="mb-3 font-medium">{t('members.offboarding')}</h3>
+                      <p className="mb-4 text-sm text-muted-foreground">
+                        {t('members.offboardingHelp')}
+                      </p>
+                      <Button
+                        variant="outline"
+                        onClick={() => navigate(`/admin/members/${current.id}/offboarding`)}
+                      >
+                        {t('members.reviewOffboarding')}
+                      </Button>
                     </section>
                     {canChange(current) && (
                       <section className="rounded-lg border p-4">

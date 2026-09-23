@@ -37,6 +37,10 @@ export default {
     sessionDates: '创建于 {{created}} · 到期 {{expires}}',
   },
   calls: {
+    owner: '用户 / 项目',
+    projectID: '项目 ID',
+    projectCalls: '项目调用记录',
+    projectDescription: '此项目的调用记录与个人调用记录相互独立。',
     invalidRange: '开始时间不能晚于结束时间。',
     allCalls: '全平台调用记录',
     myCalls: '我的调用记录',

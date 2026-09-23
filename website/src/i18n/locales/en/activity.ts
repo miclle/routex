@@ -44,6 +44,10 @@ export default {
     sessionDates: 'Created {{created}} · Expires {{expires}}',
   },
   calls: {
+    owner: 'User / Project',
+    projectID: 'Project ID',
+    projectCalls: 'Project call records',
+    projectDescription: 'Calls made by this Project remain separate from personal call history.',
     invalidRange: 'Start time cannot be later than end time.',
     allCalls: 'All call records',
     myCalls: 'My call records',

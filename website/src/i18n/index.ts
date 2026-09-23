@@ -1,6 +1,12 @@
 import i18n from 'i18next'
 import { initReactI18next } from 'react-i18next'
 import en from './locales/en/common'
+import enResources from './locales/en/resources'
+import zhResources from './locales/zh/resources'
+import enProjectKeys from './locales/en/projectKeys'
+import zhProjectKeys from './locales/zh/projectKeys'
+import enOffboarding from './locales/en/offboarding'
+import zhOffboarding from './locales/zh/offboarding'
 import zh from './locales/zh/common'
 import enGovernance from './locales/en/governance'
 import zhGovernance from './locales/zh/governance'
@@ -20,8 +26,24 @@ export function savedLanguage(): Language {
 }
 void i18n.use(initReactI18next).init({
   resources: {
-    en: { common: en, catalog: enCatalog, activity: enActivity, governance: enGovernance },
-    zh: { common: zh, catalog: zhCatalog, activity: zhActivity, governance: zhGovernance },
+    en: {
+      common: en,
+      resources: enResources,
+      projectKeys: enProjectKeys,
+      offboarding: enOffboarding,
+      catalog: enCatalog,
+      activity: enActivity,
+      governance: enGovernance,
+    },
+    zh: {
+      common: zh,
+      resources: zhResources,
+      projectKeys: zhProjectKeys,
+      offboarding: zhOffboarding,
+      catalog: zhCatalog,
+      activity: zhActivity,
+      governance: zhGovernance,
+    },
   },
   lng: savedLanguage(),
   fallbackLng: 'en',
