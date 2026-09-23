@@ -26,6 +26,26 @@ tasks:
 
   # ---------- Development ----------
 
+  db:up:
+    desc: Start the local PostgreSQL database and wait for readiness
+    cmds:
+      - docker compose up --detach --wait postgres
+
+  db:mysql:
+    desc: Start the optional local MySQL database and wait for readiness
+    cmds:
+      - docker compose --profile mysql up --detach --wait mysql
+
+  db:down:
+    desc: Stop local databases while preserving named data volumes
+    cmds:
+      - docker compose --profile mysql down
+
+  db:status:
+    desc: Show local database container status
+    cmds:
+      - docker compose --profile mysql ps
+
   dev:
     desc: Start Vite dev server and Go server with hot-reload
     deps: [init-config]
@@ -128,6 +148,11 @@ tasks:
       - cd {{.WEBSITE_DIR}} && npm test
       - node --test scripts/dev.test.mjs
       - task: test-production
+
+  test-integration:
+    desc: Run uncached Go integration tests against isolated PostgreSQL and MySQL containers
+    cmds:
+      - ./scripts/test-integration.sh
 
   test-production:
     desc: Build web assets and test production asset serving

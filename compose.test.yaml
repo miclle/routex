@@ -1,0 +1,36 @@
+# Separate from development: ephemeral storage and random loopback ports.
+services:
+  postgres:
+    image: postgres:18-alpine
+    environment:
+      POSTGRES_DB: routex_test
+      POSTGRES_USER: routex
+      POSTGRES_PASSWORD: routex-test
+    ports:
+      - "127.0.0.1::5432"
+    tmpfs:
+      - /var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U routex -d routex_test"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+      start_period: 10s
+
+  mysql:
+    image: mysql:8.4
+    environment:
+      MYSQL_DATABASE: routex_test
+      MYSQL_USER: routex
+      MYSQL_PASSWORD: routex-test
+      MYSQL_ROOT_PASSWORD: routex-root-test
+    ports:
+      - "127.0.0.1::3306"
+    tmpfs:
+      - /var/lib/mysql
+    healthcheck:
+      test: ["CMD-SHELL", "MYSQL_PWD=$$MYSQL_PASSWORD mysql -h 127.0.0.1 -u routex -D routex_test -e 'SELECT 1'"]
+      interval: 2s
+      timeout: 3s
+      retries: 45
+      start_period: 20s

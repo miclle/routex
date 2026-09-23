@@ -1,12 +1,11 @@
 addr: "0.0.0.0:${ROUTEX_HTTP_PORT:-9000}"
 
 # Database driver: "postgres" (default) or "mysql"
-driver: postgres
-dsn: "host=localhost port=5432 user=postgres password=postgres dbname=routex sslmode=disable"
+driver: "${ROUTEX_DB_DRIVER:-postgres}"
+dsn: "${DATABASE_URL:-host=127.0.0.1 port=15433 user=routex password=routex-local dbname=routex sslmode=disable}"
 
-# Environment variables are supported:
-# dsn: "${DATABASE_URL:-host=localhost port=5432 user=postgres password=postgres dbname=routex sslmode=disable}"
-
-# MySQL example:
-# driver: mysql
-# dsn: "root:password@tcp(localhost:3306)/routex?charset=utf8mb4&parseTime=True&loc=Local"
+# Defaults match `go tool task db:up`; credentials are for local development only.
+# Set DATABASE_URL when using another database or a custom Compose host port.
+# MySQL: run `go tool task db:mysql`, then set:
+# ROUTEX_DB_DRIVER=mysql
+# DATABASE_URL='routex:routex-local@tcp(127.0.0.1:13306)/routex?charset=utf8mb4&parseTime=True&loc=UTC'

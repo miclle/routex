@@ -1,0 +1,41 @@
+# Local development only. Application and Vite run on the host for hot reload.
+services:
+  postgres:
+    image: postgres:18-alpine
+    environment:
+      POSTGRES_DB: routex
+      POSTGRES_USER: routex
+      POSTGRES_PASSWORD: routex-local
+    ports:
+      - "127.0.0.1:${ROUTEX_POSTGRES_PORT:-15433}:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U routex -d routex"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+      start_period: 10s
+
+  mysql:
+    image: mysql:8.4
+    profiles: [mysql]
+    environment:
+      MYSQL_DATABASE: routex
+      MYSQL_USER: routex
+      MYSQL_PASSWORD: routex-local
+      MYSQL_ROOT_PASSWORD: routex-root-local
+    ports:
+      - "127.0.0.1:${ROUTEX_MYSQL_PORT:-13306}:3306"
+    volumes:
+      - mysql-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD-SHELL", "MYSQL_PWD=$$MYSQL_PASSWORD mysql -h 127.0.0.1 -u routex -D routex -e 'SELECT 1'"]
+      interval: 2s
+      timeout: 3s
+      retries: 45
+      start_period: 20s
+
+volumes:
+  postgres-data:
+  mysql-data:
