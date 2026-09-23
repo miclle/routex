@@ -174,3 +174,162 @@ func TestRuntimeNamesExpiryAndCredentialAccessReduction(t *testing.T) {
 		t.Fatal("removed credential model access retained through an old route")
 	}
 }
+
+func projectRuntimeFixture(t *testing.T) (*Service, *runtimeData, string, string) {
+	t.Helper()
+	s, data, personalBearer := runtimeFixture(t, "http://127.0.0.1")
+	projectBearer := "rxp_" + strings.Repeat("p", 43)
+	data.Users = append(data.Users, entity.User{ID: "usr_creator", Disabled: true})
+	data.Models = append(data.Models,
+		entity.Model{ID: "mdl_disabled", Status: "disabled"},
+		entity.Model{ID: "mdl_ungranted", Status: "active"},
+		entity.Model{ID: "mdl_outside_scope", Status: "active"},
+	)
+	data.ProjectData = &projectRuntimeData{
+		Projects: []entity.Project{{ID: "prj_one", Status: entity.ResourceActive, CreatorID: "usr_creator"}},
+		Managers: []entity.ProjectManager{{ProjectID: "prj_one", UserID: "usr_one"}},
+		Keys:     []entity.ProjectKey{{ID: "pky_one", ProjectID: "prj_one", CreatorID: "usr_creator", TokenHash: secret.SHA256Hex(projectBearer), Status: entity.KeyActive}},
+		Scopes: []entity.ProjectKeyModel{
+			{KeyID: "pky_one", ModelID: "mdl_one"},
+			{KeyID: "pky_one", ModelID: "mdl_disabled"},
+			{KeyID: "pky_one", ModelID: "mdl_ungranted"},
+		},
+		Grants: []entity.ProjectModelGrant{
+			{ProjectID: "prj_one", ModelID: "mdl_one"},
+			{ProjectID: "prj_one", ModelID: "mdl_disabled"},
+			{ProjectID: "prj_one", ModelID: "mdl_outside_scope"},
+		},
+	}
+	s.runtime.auth.Store(buildRuntimeAuthorization(data, time.Now().Add(time.Minute)))
+	return s, data, projectBearer, personalBearer
+}
+
+func TestProjectRuntimeAuthorizationOwnershipAndIntersection(t *testing.T) {
+	s, _, projectBearer, personalBearer := projectRuntimeFixture(t)
+	// Runtime lookup has no database handle and needs no external secret store.
+	s.secrets = nil
+	key, err := s.AuthenticateAPIKey(context.Background(), projectBearer)
+	if err != nil || key.ProjectID != "prj_one" || key.Key.UserID != "" || len(key.ModelIDs) != 1 || key.ModelIDs[0] != "mdl_one" {
+		t.Fatal("project authorization did not preserve ownership and explicit scope intersection")
+	}
+	personal, err := s.AuthenticateAPIKey(context.Background(), personalBearer)
+	if err != nil || personal.ProjectID != "" || personal.Key.UserID != "usr_one" {
+		t.Fatal("project-key support changed personal ownership")
+	}
+	models, err := s.GatewayModels(context.Background(), projectBearer)
+	if err != nil || len(models) != 1 || models[0].ID != "public-model" {
+		t.Fatal("project model listing did not use the memory snapshot")
+	}
+	// Neither the creator nor a manager is the project's key owner. The current
+	// manager lifecycle is evaluated by the project authorization publication.
+	s.InvalidateRuntimeUser("usr_creator")
+	s.InvalidateRuntimeUser("usr_one")
+	if _, err := s.AuthenticateAPIKey(context.Background(), projectBearer); err != nil {
+		t.Fatal("a user tombstone was incorrectly treated as project ownership")
+	}
+	if _, err := s.AuthenticateAPIKey(context.Background(), personalBearer); !errors.Is(err, apperrors.ErrUnauthorized) {
+		t.Fatal("personal owner tombstone was bypassed")
+	}
+}
+
+func TestProjectRuntimeLifecycleAndManagerChanges(t *testing.T) {
+	for _, kind := range []string{"disabled", "archived", "no_manager", "disabled_manager", "disabled_key", "pending_key", "revoked_key", "expired_key", "grant_removed", "model_tombstone", "key_tombstone", "project_tombstone", "expired_lease"} {
+		t.Run(kind, func(t *testing.T) {
+			s, data, bearer, personalBearer := projectRuntimeFixture(t)
+			expired := time.Now().Add(-time.Second)
+			until := time.Now().Add(time.Minute)
+			switch kind {
+			case "disabled":
+				data.ProjectData.Projects[0].Status = entity.ResourceDisabled
+			case "archived":
+				data.ProjectData.Projects[0].Status = entity.ResourceArchived
+			case "no_manager":
+				data.ProjectData.Managers = nil
+			case "disabled_manager":
+				data.Users[0].Disabled = true
+			case "disabled_key":
+				data.ProjectData.Keys[0].Status = entity.KeyDisabled
+			case "pending_key":
+				data.ProjectData.Keys[0].Status = entity.KeyPending
+			case "revoked_key":
+				data.ProjectData.Keys[0].Status = entity.KeyRevoked
+			case "expired_key":
+				data.ProjectData.Keys[0].ExpiresAt = &expired
+			case "grant_removed":
+				data.ProjectData.Grants = nil
+			case "model_tombstone":
+				s.InvalidateRuntimeModel("mdl_one")
+			case "key_tombstone":
+				s.InvalidateRuntimeKey("pky_one")
+			case "project_tombstone":
+				s.InvalidateRuntimeProject("prj_one")
+			case "expired_lease":
+				until = expired
+			}
+			s.runtime.auth.Store(buildRuntimeAuthorization(data, until))
+			key, err := s.AuthenticateAPIKey(context.Background(), bearer)
+			switch kind {
+			case "grant_removed", "model_tombstone":
+				if err != nil || len(key.ModelIDs) != 0 {
+					t.Fatal("project model reduction did not remove inference access")
+				}
+			case "expired_lease":
+				if !errors.Is(err, runtimeUnavailable) {
+					t.Fatal("project key bypassed authorization lease expiry")
+				}
+			default:
+				if !errors.Is(err, apperrors.ErrUnauthorized) {
+					t.Fatal("unavailable project or key remained authorized")
+				}
+			}
+			if kind == "project_tombstone" {
+				if _, err := s.AuthenticateAPIKey(context.Background(), personalBearer); err != nil {
+					t.Fatal("project tombstone revoked an unrelated personal key")
+				}
+			}
+		})
+	}
+	s, data, bearer, _ := projectRuntimeFixture(t)
+	data.Users[0].Disabled = true
+	data.Users = append(data.Users, entity.User{ID: "usr_new_manager"})
+	data.ProjectData.Managers = []entity.ProjectManager{{ProjectID: "prj_one", UserID: "usr_new_manager"}}
+	s.runtime.auth.Store(buildRuntimeAuthorization(data, time.Now().Add(time.Minute)))
+	if _, err := s.AuthenticateAPIKey(context.Background(), bearer); err != nil {
+		t.Fatal("replacing the current manager unexpectedly revoked project-owned keys")
+	}
+}
+
+func TestProjectRuntimeTombstoneGenerations(t *testing.T) {
+	s, data, bearer, _ := projectRuntimeFixture(t)
+	prior := s.runtime.epoch.Load()
+	s.InvalidateRuntimeProject("prj_one")
+	clearRuntimeTombstones(&s.runtime.deniedProjects, prior)
+	if _, err := s.AuthenticateAPIKey(context.Background(), bearer); !errors.Is(err, apperrors.ErrUnauthorized) {
+		t.Fatal("stale publication erased newer project invalidation")
+	}
+	data.ProjectData.Projects[0].Status = entity.ResourceDisabled
+	s.runtime.auth.Store(buildRuntimeAuthorization(data, time.Now().Add(time.Minute)))
+	clearRuntimeTombstones(&s.runtime.deniedProjects, s.runtime.epoch.Load())
+	if _, err := s.AuthenticateAPIKey(context.Background(), bearer); !errors.Is(err, apperrors.ErrUnauthorized) {
+		t.Fatal("fresh authorization restored a disabled project after clearing its tombstone")
+	}
+}
+
+func TestRuntimeBearerKindsMatchKeyOwnership(t *testing.T) {
+	s, _, projectBearer, personalBearer := projectRuntimeFixture(t)
+	for _, invalid := range []string{"", "rxp_", "rx_", "rxp_" + strings.Repeat("p", 42), "rx_" + strings.Repeat("a", 44)} {
+		if _, err := s.AuthenticateAPIKey(context.Background(), invalid); !errors.Is(err, apperrors.ErrUnauthorized) {
+			t.Fatal("malformed bearer accepted")
+		}
+	}
+	auth := s.runtime.auth.Load()
+	project := auth.Keys[secret.SHA256Hex(projectBearer)]
+	personal := auth.Keys[secret.SHA256Hex(personalBearer)]
+	auth.Keys[secret.SHA256Hex(projectBearer)] = personal
+	auth.Keys[secret.SHA256Hex(personalBearer)] = project
+	for _, bearer := range []string{projectBearer, personalBearer} {
+		if _, err := s.AuthenticateAPIKey(context.Background(), bearer); !errors.Is(err, apperrors.ErrUnauthorized) {
+			t.Fatal("bearer kind accepted mismatched ownership metadata")
+		}
+	}
+}

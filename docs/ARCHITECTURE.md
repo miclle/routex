@@ -162,10 +162,13 @@ database development/test lifecycle are implemented. Provider connections,
 encrypted credentials, stable model identities/grants, and personal API Keys
 are implemented with controlled PostgreSQL/MySQL acceptance. The native gateway
 and request records have controlled ordinary/streaming and restart evidence.
-Runtime publication and durable event buffering remain active P1 work.
+Immutable runtime publication, separately leased authorization, and a bounded durable local call journal are implemented. The journal is transport storage; relational domain models remain in GORM-managed PostgreSQL/MySQL.
 
-Organization/project governance, metering and quotas, additional native
-protocols, and enterprise integrations remain later phases. See
+Member/role/registration and Team/Project governance backends are implemented.
+Their full interfaces, complete credential lifecycle, and offboarding remain in
+progress. Metering and quotas, additional native protocols, and enterprise
+integrations remain later phases. See
 [IMPLEMENTATION.md](IMPLEMENTATION.md) for the dependency order, protocol matrix,
-acceptance cases, and unverified deployment boundaries. Each phase ships its
-API, UI, persistence, and tests together.
+acceptance cases, and unverified deployment boundaries. A complete capability requires its
+API, UI, persistence, and tests; separate backend and UI commits do not establish
+full capability acceptance on their own.

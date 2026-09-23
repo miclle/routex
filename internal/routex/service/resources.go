@@ -322,5 +322,11 @@ func (s *Service) UpdateResource(ctx context.Context, actorID string, kind Resou
 		result, err = resourceRecord(tx, kind, resourceID, false)
 		return err
 	})
+	if kind == ProjectResource {
+		if err == nil && input.Status != nil && *input.Status != entity.ResourceActive {
+			s.InvalidateRuntimeProject(resourceID)
+		}
+		return result, s.refreshAfterMutation(ctx, catalogError(err))
+	}
 	return result, catalogError(err)
 }

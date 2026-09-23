@@ -2,7 +2,7 @@
 
 RouteX is an open-source AI gateway and control plane for connecting applications to multiple AI providers and models through a governed, observable, and extensible platform.
 
-> RouteX is at an early stage. Persistent administrator setup, local login, sessions, and a protected workspace are implemented. Provider routing, API keys, quotas, and metering are still planned. See [the implementation and acceptance index](docs/IMPLEMENTATION.md) for scope and evidence.
+> RouteX is at an early stage. Local identity and sessions, encrypted providers, model grants, personal Keys, native OpenAI chat/SSE, scoped call records, and account-security pages are implemented. Prepared runtime snapshots and a bounded durable call journal support the gateway. Member/role/Team/Project backends are available; their full interfaces and remaining governance flows are in progress. Quotas, monetary metering, additional protocols, and enterprise integrations remain planned. See [the implementation and acceptance index](docs/IMPLEMENTATION.md) for scope and evidence.
 
 ## Development
 
@@ -10,7 +10,7 @@ The application uses Go 1.27.1, fox-gonic/fox, GORM, and PostgreSQL (or MySQL), 
 
 Requirements: Go 1.27.1+, Node.js 22.22+, and Docker with Compose (or a dedicated PostgreSQL/MySQL database).
 
-Task, reflex, staticcheck, and actionlint are managed by the `tool` directives in `go.mod` and run through `go tool`; global installations are not required. `go tool task update-tools` installs GolangCI-Lint separately if it is missing.
+Task, reflex, staticcheck, and actionlint are managed by the `tool` directives in `go.mod` and run through `go tool`; global installations are not required. `go tool task update-tools` installs the pinned GolangCI-Lint in the checkout-local `bin/tools/` directory.
 
 ```bash
 git clone https://github.com/miclle/routex.git
@@ -44,8 +44,8 @@ ROUTEX_HTTP_PORT=9100 ROUTEX_VITE_PORT=3100 go tool task dev
 ```bash
 go tool task check          # Go formatting/vet/lint, frontend types, module tidiness
 go tool task test           # Go, frontend, dev lifecycle, and production asset tests
-go tool task test-integration # Isolated PostgreSQL + MySQL migration/auth tests
-go tool task test-auth-lifecycle # Real-process auth and restart tests on both databases
+go tool task test-integration # Isolated PostgreSQL + MySQL domain integration tests
+go tool task test-auth-lifecycle # Real-process identity/inference/restart tests on both databases
 go tool actionlint          # Validate GitHub Actions workflows
 cd website && npm run lint  # Frontend ESLint
 ```
@@ -68,7 +68,7 @@ internal/routex/config/      Bootstrap configuration
 internal/routex/database/    Database connection and migrations
 internal/routex/handler/     HTTP routes and handlers
 internal/routex/service/     Business logic
-internal/routex/entity/      Persistence models for users, sessions, and installation
+internal/routex/entity/      Identity, catalog, governance, and request-fact models
 internal/routex/errors/      Application errors
 pkg/                         Reusable helpers
 website/                     React SPA and Go asset embedding/development proxy
@@ -118,3 +118,5 @@ Contributions are welcome. See [CONTRIBUTING.md](CONTRIBUTING.md) before submitt
 ## Product implementation
 
 The active implementation goal covers the complete capability and acceptance inventory in [the implementation index](docs/IMPLEMENTATION.md). Current catalog and personal Key contracts are documented in [CATALOG](docs/CATALOG.md) and [KEYS](docs/KEYS.md). Configure [encrypted credential storage and upstream network policy](docs/SECRET_STORAGE.md) before adding provider credentials.
+
+Gateway and delivery contracts: [native inference](docs/GATEWAY.md), [runtime publication](docs/RUNTIME.md), [durable call records](docs/CALLS.md), [governance](docs/GOVERNANCE.md), [Teams and Projects](docs/RESOURCES.md), and [account security](docs/ACCOUNT.md). Preserve the encryption root key and the configured local call-journal file across restarts. The journal requires persistent writable storage; production remains one process, with external integration and performance acceptance still open.

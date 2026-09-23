@@ -79,6 +79,21 @@ func testResourceLifecycle(t *testing.T, db *gorm.DB) {
 	}
 	expectStatus(t, secondRequest("GET", projectPath, nil), 404)
 	expectStatus(t, outsiderRequest("GET", projectPath, nil), 404)
+	// Resource-scoped pickers do not require or grant full directory access.
+	expectStatus(t, ownerRequest("GET", "/api/v1/admin/members", nil), 403)
+	candidates := decodeCatalogResponse[ResourceCandidatesResponse](t, ownerRequest("GET", projectPath+"/manager-candidates?q=second", nil), 200)
+	if len(candidates.Items) != 1 || candidates.Items[0].ID != second.User.ID || candidates.Items[0].Email != "second@example.com" {
+		t.Fatal("manager search returned incorrect candidates")
+	}
+	expectStatus(t, outsiderRequest("GET", projectPath+"/manager-candidates", nil), 404)
+	expectStatus(t, ownerRequest("GET", "/api/v1/admin/team-member-candidates", nil), 403)
+	expectStatus(t, request("GET", "/api/v1/admin/team-member-candidates?q=owner", nil), 200)
+	literal := decodeCatalogResponse[ResourceCandidatesResponse](t, request("GET", "/api/v1/admin/team-member-candidates?q=%25", nil), 200)
+	if len(literal.Items) != 0 {
+		t.Fatal("candidate search treated literal percent as wildcard")
+	}
+	expectStatus(t, ownerRequest("GET", "/api/v1/admin/resource-model-candidates?kind=projects", nil), 403)
+	expectStatus(t, request("GET", "/api/v1/admin/resource-model-candidates?kind=invalid", nil), 400)
 	expectStatus(t, ownerRequest("PATCH", projectPath, map[string]any{"name": "Renamed project"}), 200)
 	expectStatus(t, ownerRequest("PATCH", projectPath, map[string]any{"status": "disabled"}), 403)
 	expectStatus(t, ownerRequest("PUT", projectPath+"/models", map[string]any{"model_ids": []string{}}), 403)
@@ -108,6 +123,10 @@ func testResourceLifecycle(t *testing.T, db *gorm.DB) {
 	}
 	if err := db.Create(&entity.ModelName{Name: "resource-model", ModelID: model.ID, CurrentModelID: &model.ID}).Error; err != nil {
 		t.Fatal(err)
+	}
+	modelCandidates := decodeCatalogResponse[ResourceCandidatesResponse](t, request("GET", "/api/v1/admin/resource-model-candidates?kind=projects&q=resource", nil), 200)
+	if len(modelCandidates.Items) != 1 || modelCandidates.Items[0].ID != model.ID || modelCandidates.Items[0].Email != "" {
+		t.Fatal("model picker returned invalid fields")
 	}
 	for _, path := range []string{teamPath + "/models", projectPath + "/models"} {
 		expectStatus(t, request("PUT", path, map[string]any{"model_ids": []string{model.ID}}), 200)

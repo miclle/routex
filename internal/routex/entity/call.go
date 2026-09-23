@@ -7,6 +7,7 @@ import "time"
 type CallRecord struct {
 	SnapshotID      string    `gorm:"size:30;not null"`
 	RequestID       string    `gorm:"primaryKey;size:64"`
+	ProjectID       string    `gorm:"size:30;not null;default:''"`
 	UserID          string    `gorm:"size:30;not null"`
 	KeyID           string    `gorm:"size:30;not null"`
 	ModelID         string    `gorm:"size:30;not null"`

@@ -22,8 +22,9 @@ var errKeyConflict = &apperrors.Error{Code: http.StatusConflict, Message: "key s
 
 // KeyRecord separates a Key's stable model scope from its verification secret.
 type KeyRecord struct {
-	Key      entity.APIKey
-	ModelIDs []string
+	ProjectID string
+	Key       entity.APIKey
+	ModelIDs  []string
 }
 
 type CreatedKey struct {
@@ -351,6 +352,9 @@ func (s *Service) RotatePersonalKey(ctx context.Context, userID, keyID string) (
 func (s *Service) AuthenticateAPIKey(ctx context.Context, bearer string) (*KeyRecord, error) {
 	if s.runtime != nil {
 		return s.authenticateRuntimeKey(bearer)
+	}
+	if strings.HasPrefix(bearer, "rxp_") {
+		return s.authenticateProjectKey(ctx, bearer)
 	}
 	if len(bearer) != 46 || !strings.HasPrefix(bearer, "rx_") {
 		return nil, apperrors.ErrUnauthorized

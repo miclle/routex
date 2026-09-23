@@ -85,7 +85,7 @@ func (s *Service) AdmitGatewayCall(requestID string, result *GatewayResult) erro
 		return callQueueUnavailable
 	}
 	now := time.Now().UTC()
-	fallback := CallFact{RequestID: requestID, SnapshotID: result.SnapshotID, UserID: result.UserID, KeyID: result.KeyID, ModelID: result.ModelID, ModelName: result.ModelName, ProviderModelID: result.ProviderModelID, ConnectionID: result.ConnectionID, Protocol: entity.ProtocolOpenAIChat, Status: "error", Stream: result.Stream, StartedAt: now, CompletedAt: now, ErrorCode: "process_interrupted"}
+	fallback := CallFact{RequestID: requestID, SnapshotID: result.SnapshotID, UserID: result.UserID, ProjectID: result.ProjectID, KeyID: result.KeyID, ModelID: result.ModelID, ModelName: result.ModelName, ProviderModelID: result.ProviderModelID, ConnectionID: result.ConnectionID, Protocol: entity.ProtocolOpenAIChat, Status: "error", Stream: result.Stream, StartedAt: now, CompletedAt: now, ErrorCode: "process_interrupted"}
 	if err := validateCallFact(fallback); err != nil {
 		return callQueueUnavailable
 	}

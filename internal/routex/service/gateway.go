@@ -48,6 +48,7 @@ type GatewayModel struct {
 type GatewayResult struct {
 	SnapshotID       string
 	Response         *http.Response
+	ProjectID        string
 	UserID           string
 	KeyID            string
 	ModelID          string
@@ -105,7 +106,7 @@ func (s *Service) GatewayChat(ctx context.Context, bearer string, body []byte, r
 		return nil, gatewayAuthError(err)
 	}
 	payload, publicName, stream, err := parseGatewayChat(body)
-	result := &GatewayResult{UserID: key.Key.UserID, KeyID: key.Key.ID, ModelName: publicName, Stream: stream}
+	result := &GatewayResult{UserID: key.Key.UserID, ProjectID: key.ProjectID, KeyID: key.Key.ID, ModelName: publicName, Stream: stream}
 	if err != nil {
 		return result, err
 	}

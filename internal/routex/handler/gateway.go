@@ -95,7 +95,7 @@ func (ctrl *Ctrl) GatewayChat(c *fox.Context) {
 }
 
 func (ctrl *Ctrl) recordGatewayCall(ctx context.Context, requestID string, started time.Time, result *service.GatewayResult, usage gatewayUsage, callErr error) {
-	if result == nil || result.UserID == "" {
+	if result == nil || (result.UserID == "" && result.ProjectID == "") {
 		return
 	}
 	status, code := "success", ""
@@ -113,7 +113,7 @@ func (ctrl *Ctrl) recordGatewayCall(ctx context.Context, requestID string, start
 		status, code = "error", "upstream_timeout"
 	}
 	completed := time.Now().UTC()
-	fact := service.CallFact{RequestID: requestID, SnapshotID: result.SnapshotID, UserID: result.UserID, KeyID: result.KeyID, ModelID: result.ModelID, ModelName: result.ModelName, ProviderModelID: result.ProviderModelID, ConnectionID: result.ConnectionID, Protocol: entity.ProtocolOpenAIChat, Status: status, Stream: result.Stream, StartedAt: started, CompletedAt: completed, InputTokens: usage.Input, OutputTokens: usage.Output, ErrorCode: code}
+	fact := service.CallFact{RequestID: requestID, SnapshotID: result.SnapshotID, UserID: result.UserID, ProjectID: result.ProjectID, KeyID: result.KeyID, ModelID: result.ModelID, ModelName: result.ModelName, ProviderModelID: result.ProviderModelID, ConnectionID: result.ConnectionID, Protocol: entity.ProtocolOpenAIChat, Status: status, Stream: result.Stream, StartedAt: started, CompletedAt: completed, InputTokens: usage.Input, OutputTokens: usage.Output, ErrorCode: code}
 	if result.AttemptID != "" {
 		httpStatus := 0
 		if result.Response != nil {

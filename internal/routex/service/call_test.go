@@ -1,6 +1,9 @@
 package service
 
-import "testing"
+import (
+	"testing"
+	"time"
+)
 
 func TestCallClassifications(t *testing.T) {
 	for _, status := range []string{"success", "error", "canceled"} {
@@ -24,6 +27,19 @@ func TestCallClassifications(t *testing.T) {
 	for _, value := range []string{"", "../../secret", "request\nheader"} {
 		if safeCallID.MatchString(value) {
 			t.Errorf("invalid ID accepted: %q", value)
+		}
+	}
+}
+
+func TestCallHasOneAttribution(t *testing.T) {
+	now := time.Now()
+	for _, owner := range []struct {
+		user, project string
+		valid         bool
+	}{{"usr_test", "", true}, {"", "prj_test", true}, {"", "", false}, {"usr_test", "prj_test", false}} {
+		fact := CallFact{RequestID: "req_attribution", UserID: owner.user, ProjectID: owner.project, Protocol: "openai_chat", Status: "success", StartedAt: now, CompletedAt: now}
+		if (validateCallFact(fact) == nil) != owner.valid {
+			t.Errorf("incorrect attribution result for %+v", owner)
 		}
 	}
 }

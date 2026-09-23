@@ -30,7 +30,8 @@ type CallsResponse struct {
 }
 type AdminCallResponse struct {
 	CallResponse
-	UserID string `json:"user_id"`
+	UserID    string `json:"user_id"`
+	ProjectID string `json:"project_id,omitempty"`
 }
 type AdminCallsResponse struct {
 	Items      []AdminCallResponse `json:"items"`
@@ -129,7 +130,7 @@ func (ctrl *Ctrl) ListAdminCalls(c *fox.Context, request ListCallsRequest) (*Adm
 	}
 	result := &AdminCallsResponse{Items: []AdminCallResponse{}, NextCursor: callCursor(page.NextCursor)}
 	for _, record := range page.Records {
-		result.Items = append(result.Items, AdminCallResponse{CallResponse: callResponse(record), UserID: record.UserID})
+		result.Items = append(result.Items, AdminCallResponse{CallResponse: callResponse(record), UserID: record.UserID, ProjectID: record.ProjectID})
 	}
 	return result, nil
 }
@@ -138,7 +139,7 @@ func (ctrl *Ctrl) GetAdminCall(c *fox.Context, request CallPath) (*AdminCallDeta
 	if err != nil {
 		return nil, err
 	}
-	response := &AdminCallDetailResponse{AdminCallResponse: AdminCallResponse{CallResponse: callResponse(result.Record), UserID: result.Record.UserID}, ProviderModelID: result.Record.ProviderModelID, ConnectionID: result.Record.ConnectionID, ErrorCode: result.Record.ErrorCode, Attempts: []CallAttemptResponse{}}
+	response := &AdminCallDetailResponse{AdminCallResponse: AdminCallResponse{CallResponse: callResponse(result.Record), UserID: result.Record.UserID, ProjectID: result.Record.ProjectID}, ProviderModelID: result.Record.ProviderModelID, ConnectionID: result.Record.ConnectionID, ErrorCode: result.Record.ErrorCode, Attempts: []CallAttemptResponse{}}
 	for _, attempt := range result.Attempts {
 		response.Attempts = append(response.Attempts, CallAttemptResponse{ID: attempt.ID, ProviderModelID: attempt.ProviderModelID, ConnectionID: attempt.ConnectionID, Status: attempt.Status, HTTPStatus: attempt.HTTPStatus, ErrorCode: attempt.ErrorCode, StartedAt: attempt.StartedAt, CompletedAt: attempt.CompletedAt})
 	}

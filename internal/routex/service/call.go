@@ -17,6 +17,7 @@ import (
 type CallFact struct {
 	SnapshotID      string
 	RequestID       string
+	ProjectID       string
 	UserID          string
 	KeyID           string
 	ModelID         string
@@ -46,14 +47,15 @@ type CallAttempt struct {
 }
 
 type CallFilter struct {
-	Cursor  string
-	Limit   int
-	Status  string
-	ModelID string
-	KeyID   string
-	UserID  string
-	From    *time.Time
-	To      *time.Time
+	ProjectID string
+	Cursor    string
+	Limit     int
+	Status    string
+	ModelID   string
+	KeyID     string
+	UserID    string
+	From      *time.Time
+	To        *time.Time
 }
 
 type CallPage struct {
@@ -90,7 +92,7 @@ func (s *Service) RecordCall(ctx context.Context, fact CallFact) error {
 		return err
 	}
 	// Normalize to common database precision before building pagination cursors.
-	record := entity.CallRecord{SnapshotID: fact.SnapshotID, RequestID: fact.RequestID, UserID: fact.UserID, KeyID: fact.KeyID, ModelID: fact.ModelID, ModelName: fact.ModelName, ProviderModelID: fact.ProviderModelID, ConnectionID: fact.ConnectionID, Protocol: fact.Protocol, Status: fact.Status, Stream: fact.Stream, StartedAt: fact.StartedAt.UTC().Truncate(time.Microsecond), CompletedAt: fact.CompletedAt.UTC().Truncate(time.Microsecond), DurationMS: fact.CompletedAt.Sub(fact.StartedAt).Milliseconds(), InputTokens: fact.InputTokens, OutputTokens: fact.OutputTokens, ErrorCode: safeCallError(fact.ErrorCode)}
+	record := entity.CallRecord{SnapshotID: fact.SnapshotID, RequestID: fact.RequestID, UserID: fact.UserID, ProjectID: fact.ProjectID, KeyID: fact.KeyID, ModelID: fact.ModelID, ModelName: fact.ModelName, ProviderModelID: fact.ProviderModelID, ConnectionID: fact.ConnectionID, Protocol: fact.Protocol, Status: fact.Status, Stream: fact.Stream, StartedAt: fact.StartedAt.UTC().Truncate(time.Microsecond), CompletedAt: fact.CompletedAt.UTC().Truncate(time.Microsecond), DurationMS: fact.CompletedAt.Sub(fact.StartedAt).Milliseconds(), InputTokens: fact.InputTokens, OutputTokens: fact.OutputTokens, ErrorCode: safeCallError(fact.ErrorCode)}
 	err := s.authDB(ctx).Transaction(func(tx *gorm.DB) error {
 		if err := tx.Create(&record).Error; err != nil {
 			// A plain unique insert remains correct with MySQL clientFoundRows;
@@ -129,6 +131,9 @@ func (s *Service) ListCalls(ctx context.Context, ownerID string, filter CallFilt
 		db = db.Where("user_id = ?", ownerID)
 	} else if filter.UserID != "" {
 		db = db.Where("user_id = ?", filter.UserID)
+	}
+	if filter.ProjectID != "" {
+		db = db.Where("project_id = ?", filter.ProjectID)
 	}
 	if filter.Status != "" {
 		db = db.Where("status = ?", filter.Status)
@@ -195,7 +200,7 @@ func (s *Service) GetCall(ctx context.Context, ownerID, requestID string) (*Call
 }
 
 func validateCallFact(fact CallFact) error {
-	if !safeCallID.MatchString(fact.RequestID) || len(fact.SnapshotID) > 30 || fact.UserID == "" || len(fact.UserID) > 30 || len(fact.KeyID) > 30 || len(fact.ModelID) > 30 || len(fact.ModelName) > 128 || len(fact.ProviderModelID) > 30 || len(fact.ConnectionID) > 30 || fact.Protocol != entity.ProtocolOpenAIChat || !validCallStatus(fact.Status) || fact.StartedAt.IsZero() || fact.CompletedAt.Before(fact.StartedAt) || len(fact.Attempts) > 32 {
+	if !safeCallID.MatchString(fact.RequestID) || len(fact.SnapshotID) > 30 || (fact.UserID == "") == (fact.ProjectID == "") || len(fact.ProjectID) > 30 || len(fact.UserID) > 30 || len(fact.KeyID) > 30 || len(fact.ModelID) > 30 || len(fact.ModelName) > 128 || len(fact.ProviderModelID) > 30 || len(fact.ConnectionID) > 30 || fact.Protocol != entity.ProtocolOpenAIChat || !validCallStatus(fact.Status) || fact.StartedAt.IsZero() || fact.CompletedAt.Before(fact.StartedAt) || len(fact.Attempts) > 32 {
 		return apperrors.ErrBadRequest
 	}
 	if (fact.InputTokens != nil && *fact.InputTokens < 0) || (fact.OutputTokens != nil && *fact.OutputTokens < 0) {

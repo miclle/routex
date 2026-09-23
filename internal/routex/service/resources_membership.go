@@ -145,7 +145,7 @@ func (s *Service) SetProjectManagers(ctx context.Context, actorID, projectID str
 		result, err = resourceRecord(tx, ProjectResource, projectID, false)
 		return err
 	})
-	return result, catalogError(err)
+	return result, s.refreshAfterMutation(ctx, catalogError(err))
 }
 func (s *Service) SetResourceModels(ctx context.Context, actorID string, kind ResourceKind, resourceID string, modelIDs []string) (*ResourceRecord, error) {
 	if !resourceKindValid(kind) || len(modelIDs) > 1000 {
@@ -159,6 +159,7 @@ func (s *Service) SetResourceModels(ctx context.Context, actorID string, kind Re
 		seen[modelID] = true
 	}
 	var result *ResourceRecord
+	reduced := false
 	err := s.authDB(ctx).Transaction(func(tx *gorm.DB) error {
 		if err := lockGovernance(tx); err != nil {
 			return err
@@ -172,6 +173,11 @@ func (s *Service) SetResourceModels(ctx context.Context, actorID string, kind Re
 		}
 		if current.Status == entity.ResourceArchived {
 			return catalogConflict
+		}
+		for _, modelID := range current.ModelIDs {
+			if !seen[modelID] {
+				reduced = true
+			}
 		}
 		if len(modelIDs) > 0 {
 			var count int64
@@ -207,6 +213,12 @@ func (s *Service) SetResourceModels(ctx context.Context, actorID string, kind Re
 		result, err = resourceRecord(tx, kind, resourceID, false)
 		return err
 	})
+	if kind == ProjectResource {
+		if err == nil && reduced {
+			s.InvalidateRuntimeProject(resourceID)
+		}
+		return result, s.refreshAfterMutation(ctx, catalogError(err))
+	}
 	return result, catalogError(err)
 }
 

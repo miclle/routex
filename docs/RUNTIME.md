@@ -26,6 +26,14 @@ Personal key creation, confirmation, updates, revocation, and rotation lock the 
 
 The one-second background poll handles changes made outside the process. It is not a substitute for synchronous mutation publication. During a database outage, external changes cannot be observed; the five-second authorization lease is the fail-closed bound. Requests already authorized and in progress are not retroactively replayed or terminated by a later key revocation.
 
+## Project-Owned Keys
+
+The same repeatable-read publication loads project keys, their immutable model scopes, project grants, project lifecycle state, and current managers. A Project Key requires an active project and at least one enabled current manager. Its effective model access is the intersection of the key scope, current project grants, and active models. The creator is audit metadata and does not become the inference owner; replacing a manager does not transfer key ownership or silently broaden its scope.
+
+Project bearers use the `rxp_` prefix and retain their stable project ID in the gateway authorization result. Personal bearers keep the `rx_` prefix and personal owner rules. Runtime lookup checks that the bearer kind matches the cached ownership metadata. Both kinds enforce current expiry, the five-second authorization lease, key revocation, and model reductions without database reads.
+
+Project lifecycle and grant mutations use generation-tagged project tombstones before synchronous publication. A stale refresh cannot clear a newer project invalidation. User tombstones are not treated as project ownership: enabled-manager eligibility comes from the published project authorization state, while direct project tombstones deny affected project keys immediately.
+
 ## Administration and Evidence
 
 Administrators can read `GET /api/v1/admin/runtime` and request publication with `POST /api/v1/admin/runtime/publish`. The publication action uses the existing session, administrator, same-origin, and CSRF controls. Status exposes only readiness, snapshot ID, publication time, authorization lease deadline, refresh time, and generic error classifications.

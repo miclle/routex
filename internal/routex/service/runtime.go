@@ -37,6 +37,7 @@ type gatewayRuntime struct {
 	epoch             atomic.Uint64
 	deniedKeys        sync.Map
 	deniedUsers       sync.Map
+	deniedProjects    sync.Map
 	deniedModels      sync.Map
 	deniedCredentials sync.Map
 	lastRecordedState string
@@ -53,8 +54,9 @@ type runtimeAuthorization struct {
 }
 
 type runtimeKey struct {
-	Key    entity.APIKey
-	Models []string
+	Key       entity.APIKey
+	ProjectID string
+	Models    []string
 }
 
 type runtimeRoutes struct {
@@ -149,6 +151,7 @@ func (s *Service) RefreshRuntime(ctx context.Context) error {
 	runtime.auth.Store(auth)
 	clearRuntimeTombstones(&runtime.deniedKeys, generation)
 	clearRuntimeTombstones(&runtime.deniedUsers, generation)
+	clearRuntimeTombstones(&runtime.deniedProjects, generation)
 	clearRuntimeTombstones(&runtime.deniedModels, generation)
 	// Credential revocations are also checked against the freshly published
 	// eligibility map, so clearing older tombstones cannot restore disabled keys.
@@ -278,11 +281,16 @@ func (s *Service) authenticateRuntimeKey(bearer string) (*KeyRecord, error) {
 	if auth == nil || !time.Now().Before(auth.ValidUntil) {
 		return nil, runtimeUnavailable
 	}
-	if len(bearer) != 46 || bearer[:3] != "rx_" {
+	personal := len(bearer) == 46 && bearer[:3] == "rx_"
+	project := len(bearer) == 47 && bearer[:4] == "rxp_"
+	if !personal && !project {
 		return nil, apperrors.ErrUnauthorized
 	}
 	key, exists := auth.Keys[secret.SHA256Hex(bearer)]
-	if !exists || runtimeDenied(&runtime.deniedKeys, key.Key.ID) || runtimeDenied(&runtime.deniedUsers, key.Key.UserID) || (key.Key.ExpiresAt != nil && !time.Now().Before(*key.Key.ExpiresAt)) {
+	if !exists || project != (key.ProjectID != "") || runtimeDenied(&runtime.deniedKeys, key.Key.ID) || (key.Key.ExpiresAt != nil && !time.Now().Before(*key.Key.ExpiresAt)) {
+		return nil, apperrors.ErrUnauthorized
+	}
+	if (project && runtimeDenied(&runtime.deniedProjects, key.ProjectID)) || (personal && runtimeDenied(&runtime.deniedUsers, key.Key.UserID)) {
 		return nil, apperrors.ErrUnauthorized
 	}
 	models := make([]string, 0, len(key.Models))
@@ -291,7 +299,7 @@ func (s *Service) authenticateRuntimeKey(bearer string) (*KeyRecord, error) {
 			models = append(models, modelID)
 		}
 	}
-	return &KeyRecord{Key: key.Key, ModelIDs: models}, nil
+	return &KeyRecord{Key: key.Key, ProjectID: key.ProjectID, ModelIDs: models}, nil
 }
 
 func (s *Service) runtimeModelName(name string) (entity.ModelName, bool) {
@@ -337,6 +345,7 @@ func (s *Service) runtimeRoute(modelID string) (*gatewayRoute, string, error) {
 }
 
 type runtimeData struct {
+	ProjectData    *projectRuntimeData
 	Users          []entity.User
 	Keys           []entity.APIKey
 	Scopes         []entity.APIKeyModel
@@ -362,7 +371,9 @@ func (s *Service) loadRuntimeData(ctx context.Context) (*runtimeData, error) {
 				return err
 			}
 		}
-		return nil
+		var err error
+		data.ProjectData, err = loadProjectRuntimeData(tx)
+		return err
 	}, &sql.TxOptions{Isolation: sql.LevelRepeatableRead, ReadOnly: true})
 	return data, err
 }
@@ -404,6 +415,7 @@ func buildRuntimeAuthorization(data *runtimeData, until time.Time) *runtimeAutho
 		sort.Strings(allowed)
 		auth.Keys[key.TokenHash] = runtimeKey{Key: key, Models: allowed}
 	}
+	addProjectRuntimeAuthorization(auth, data.ProjectData, users)
 	for _, credential := range data.Credentials {
 		auth.Credentials[credential.ID] = credential.Enabled && credential.VerificationStatus == "verified"
 	}

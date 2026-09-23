@@ -1,6 +1,6 @@
 # Call Facts and Query API
 
-Call facts record completed gateway requests without storing prompts, responses, credentials, or raw upstream diagnostics. This phase covers individual users and personal API Keys. Team and Project attribution, monetary calculation, CSV export, and aggregate analytics are separate work packages. Durable event ingestion is implemented for the single-process deployment.
+Call facts record completed gateway requests without storing prompts, responses, credentials, or raw upstream diagnostics. Facts support personal or Project attribution, exactly one per request. Team attribution, monetary calculation, CSV export, and aggregate analytics are separate work packages. Durable event ingestion is implemented for the single-process deployment.
 
 ## Recording Contract
 
@@ -59,3 +59,7 @@ Authentication responses and these protected API responses use the shared no-sto
 Gateway tests separately establish that real controlled-upstream success, failure, stream completion, and cancellation produce the corresponding facts. Data-store tests alone do not prove gateway recording behavior. Run `go tool task test-integration` for the real database lifecycle and consult [the implementation record](IMPLEMENTATION.md) for current evidence and remaining acceptance work.
 
 `testRecorderLifecycle` verifies database-outage buffering, process reopen, pending interruption recovery, commit-before-acknowledgment replay, private file permissions, secret exclusion, and exact-once accepted facts on both databases. Journal unit tests cover capacity, concurrent admission, process locking, and atomic completion. These correctness tests do not establish the production event-latency target.
+
+## Project history
+
+`GET /projects/:project_id/calls` and `GET /projects/:project_id/calls/:request_id` expose sanitized facts to current Project managers or holders of `calls.read_all`. Lists use the existing filters and pagination, with the Project forced by the path. A former creator or unrelated user receives the same 404 as a missing resource. Disabled and archived Projects retain readable history for authorized readers. Project facts contain a Project ID and an empty user ID; they never appear in the creator's personal history. Administrative fact DTOs include `project_id` when applicable. Migration 9 adds this historical attribution column without altering accepted personal facts.

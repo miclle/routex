@@ -28,7 +28,7 @@ All successful mutations append an audit event in the same transaction. Audit re
 
 Team and Project model assignments use independent grant tables. Assignment validates the complete list against active logical models; duplicate or unknown IDs abort the whole replacement. An empty list means no assigned models.
 
-These grants do not create `user_model_grants`, expand personal API Key scope, or grant platform permissions. The current gateway continues to use its existing direct-user and personal-Key authorization rules. Interactive Team/Project invocation contexts, Project Keys, resource requests, budgets, quotas, and their enforcement are later work; this phase exposes no placeholder quota fields and does not claim those runtime capabilities.
+These grants do not create `user_model_grants`, expand personal API Key scope, or grant platform permissions. The current gateway continues to use its existing direct-user and personal-Key authorization rules. [Project Keys](PROJECT_KEYS.md) use their own fixed scopes intersected with current Project model grants. Interactive Team/Project session contexts, resource requests, budgets, quotas, and their enforcement remain later work; this phase exposes no placeholder quota fields and does not claim those runtime capabilities.
 
 ## HTTP Contract
 
@@ -66,3 +66,7 @@ Invalid input returns `400`, insufficient mutation authority returns `403`, unav
 Schema version 8 uses private frozen GORM definitions, explicit belongs-to relations, foreign keys, unique membership constraints, state checks, and indexes for user/model lookups. It creates no recursive changes to user or model tables. The shared migration helper reconciles constraints and indexes on retry, and permission seeds use conflict-safe inserts.
 
 `testResourceLifecycle` runs in the shared fresh-database integration harness for PostgreSQL and MySQL. It checks explicit identities, scoped reads, owner and manager privilege limits, cross-resource isolation, atomic relationship/model replacement, personal-Key scope separation, pagination/search, terminal archival, foreign keys, transactional audit, and concurrent suspension continuity. Run `go tool task test-integration`; ordinary tests skip the database lifecycle when dedicated test DSNs are absent.
+
+## Scoped selection APIs
+
+`GET /projects/:project_id/manager-candidates?q=...` is limited to current managers and holders of `projects.write`; it returns enabled users for that Project's manager form. `GET /admin/team-member-candidates?q=...` requires `teams.write`. `GET /admin/resource-model-candidates?kind=teams|projects&q=...` requires the corresponding `*.models.write` permission and returns active logical models. Results are bounded to 50 items, sorted by stable ID, with literal case-insensitive name/email search. User items contain only ID, name, and email; model items contain ID and current name. These endpoints do not grant general member-directory or model-administration access. Archived Projects cannot use mutation pickers.
