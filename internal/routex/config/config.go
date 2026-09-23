@@ -22,6 +22,7 @@ type Config struct {
 	DSN                   string   `mapstructure:"dsn"`    // database connection string
 	EncryptionKey         string   `mapstructure:"encryption_key"`
 	EventQueuePath        string   `mapstructure:"event_queue_path"`
+	AllowPrivateSMTP      bool     `mapstructure:"-"`
 	AllowPrivateEgresses  bool     `mapstructure:"-"`
 	AllowPrivateUpstreams bool     `mapstructure:"-"`
 }
@@ -81,6 +82,14 @@ func Load(path string) (*Config, error) {
 		cfg.AllowPrivateEgresses, err = strconv.ParseBool(raw)
 		if err != nil {
 			return nil, fmt.Errorf("allow_private_egresses must be a boolean")
+		}
+	}
+
+	if raw := expandEnv(v.GetString("allow_private_smtp")); raw != "" {
+		var err error
+		cfg.AllowPrivateSMTP, err = strconv.ParseBool(raw)
+		if err != nil {
+			return nil, fmt.Errorf("allow_private_smtp must be a boolean")
 		}
 	}
 

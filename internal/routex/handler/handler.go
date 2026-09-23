@@ -139,6 +139,10 @@ func (ctrl *Ctrl) RegisterRoutes(r *fox.Engine) {
 	admin.POST("/runtime/publish", requireAdmin, sameOrigin, requireCSRF, ctrl.PublishRuntime)
 	admin.GET("/quota-settings", ctrl.GetQuotaSettings)
 	admin.PUT("/quota-settings", sameOrigin, requireCSRF, jsonManagementRequest, ctrl.RequirePermission("limits.settings.write"), ctrl.WriteQuotaSettings)
+	admin.GET("/smtp", ctrl.RequirePermission("smtp.read"), ctrl.SMTPSettings)
+	admin.PUT("/smtp", sameOrigin, requireCSRF, jsonManagementRequest, ctrl.RequirePermission("smtp.write"), ctrl.WriteSMTPSettings)
+	admin.PUT("/smtp/sender", sameOrigin, requireCSRF, jsonManagementRequest, ctrl.RequirePermission("smtp.write"), ctrl.WriteSMTPSender)
+	admin.POST("/smtp/test", sameOrigin, requireCSRF, jsonManagementRequest, ctrl.RequirePermission("smtp.test"), ctrl.TestSMTP)
 
 	admin.GET("/egresses", ctrl.RequirePermission("egress.read"), ctrl.ListEgresses)
 	admin.POST("/egresses", sameOrigin, requireCSRF, jsonManagementRequest, ctrl.RequirePermission("egress.write"), ctrl.CreateEgress)

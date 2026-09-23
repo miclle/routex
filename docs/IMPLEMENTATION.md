@@ -152,7 +152,7 @@ The following are single-node experimental targets, not measured performance or 
 | P1-04/05 | In progress | Native OpenAI chat ordinary/SSE, Key Playground, isolated personal/admin call queries and request facts have controlled dual-database evidence; immutable snapshots and bounded durable events have controlled failure/restart evidence; measured capacity and real-provider acceptance remain open |
 | P2 | In progress | Profile/password/session APIs and UI delivered; member/role/registration interfaces and Team/Project backend delivered; Project Keys, offboarding, and resource interfaces advance in separate verified packages |
 | P3 | In progress | Current text prices, FX, immutable call assessments, atomic CSV/XLS/XLSX imports, CSV exports, and single-process Personal/Project/Key token and monetary quota admission are implemented; Team quotas, templates, approvals, alerts, distributed enforcement, non-token metrics, and synchronization remain open |
-| P4–P6 | Pending | Full goal remains active; additional protocols, enterprise integrations, and final acceptance follow the preceding dependencies |
+| P4–P6 | In progress | Four native inference protocols and SMTP configuration/test delivery are implemented; object storage, durable notifications, remaining enterprise integrations, and final acceptance remain open |
 
 Verification in this iteration:
 
@@ -753,6 +753,32 @@ initialization, restart persistence, ordinary and streaming inference, reporting
 logout and revocation. This phase remains single-process; Team quotas, templates,
 approvals, alerts, distributed enforcement and production capacity evidence remain
 open.
+
+### SMTP configuration and controlled test delivery
+
+Frozen migration 20 adds one revisioned SMTP configuration, encrypted optional
+authentication, a separately editable system sender, bounded test-attempt receipts,
+and independent `smtp.read`, `smtp.write`, and `smtp.test` permissions. Private
+SMTP destinations require their own bootstrap opt-in and do not broaden provider
+or proxy address policy. Configuration writes verify changed enabled endpoints
+before commit and never expose saved credentials.
+
+The administration interface follows the existing RouteX settings layout using
+local shadcn-style primitives and Base UI wrappers. English and Chinese resources
+cover saved transport and sender summaries, configuration drawers, explicit
+credential keep/replace/remove intent, revision review, and fixed test-mail status.
+The test endpoint accepts only one recipient and server-defined content; it records
+admission before network work, prevents duplicate submissions by request identity,
+and distinguishes relay acceptance from inbox delivery.
+
+Controlled SMTP tests cover plaintext private relay, verified STARTTLS and implicit
+TLS, authentication, every submission stage, cancellation, ambiguous acceptance,
+cooldown and restart recovery without contacting external mail services. Full
+check/test passed with 378 Vitest cases, Go race/unit coverage, development
+lifecycle checks and production assets. The serialized PostgreSQL/MySQL lifecycle
+suite passed in 264.903 seconds, and both database process suites passed. Durable
+notification jobs, recipient policy, retries, delivery tracking, external-service
+acceptance and production capacity remain open.
 
 ### Native route-attempt foundation
 

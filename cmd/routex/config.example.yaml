@@ -24,3 +24,6 @@ allow_private_egresses: "${ROUTEX_ALLOW_PRIVATE_EGRESSES:-false}"
 # MySQL: run `go tool task db:mysql`, then set:
 # ROUTEX_DB_DRIVER=mysql
 # DATABASE_URL='routex:routex-local@tcp(127.0.0.1:13306)/routex?charset=utf8mb4&parseTime=True&loc=UTC'
+
+# Independently permit trusted private SMTP hosts; never enables plaintext AUTH.
+allow_private_smtp: "${ROUTEX_ALLOW_PRIVATE_SMTP:-false}"

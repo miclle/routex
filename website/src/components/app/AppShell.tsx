@@ -25,6 +25,7 @@ import {
   Coins,
   ChevronRight,
   Cloud,
+  Mail,
   UsersRound,
   FolderKanban,
 } from 'lucide-react'
@@ -99,6 +100,17 @@ const accountNav = [
   },
 ]
 const adminNav = [
+  {
+    to: '/admin/smtp',
+    get label() {
+      return t('smtp:title')
+    },
+    icon: Mail,
+    permission: 'smtp.read',
+    get group() {
+      return t('system_administration_04ca1')
+    },
+  },
   {
     to: '/admin/egress',
     get label() {
