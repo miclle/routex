@@ -79,12 +79,12 @@ func finalizeCallPricing(fact *CallFact) {
 var chargeAmountPattern = regexp.MustCompile(`^(0|[1-9][0-9]{0,59})(\.[0-9]{1,18})?$`)
 
 func validateCallPricing(fact CallFact) error {
-	if len(fact.PricingDimensions) > 6 {
+	if len(fact.PricingDimensions) > 7 {
 		return apperrors.ErrBadRequest
 	}
 	for _, dimension := range fact.PricingDimensions {
 		switch dimension {
-		case "request_non_text", "response_non_text", "request_service_tier", "response_service_tier", "cache_retention", "external_tool":
+		case "request_non_text", "response_non_text", "request_service_tier", "response_service_tier", "cache_retention", "external_tool", "request_condition":
 		default:
 			return apperrors.ErrBadRequest
 		}

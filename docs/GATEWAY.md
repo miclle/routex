@@ -1,6 +1,6 @@
 # OpenAI Chat Gateway
 
-Foreground native Responses has a separate [protocol contract](RESPONSES.md). The details below describe Chat Completions.
+Foreground native [Responses](RESPONSES.md) and [Messages](MESSAGES.md) have separate protocol contracts. The details below describe Chat Completions.
 
 ## Supported Endpoints
 

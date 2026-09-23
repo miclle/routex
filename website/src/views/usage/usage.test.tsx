@@ -180,28 +180,31 @@ describe('usage reports', () => {
     expect(container.querySelector('svg[aria-labelledby]')).not.toBeNull()
     expect(container.textContent).toContain('key_rotated')
   })
-  it('submits real model/key/timezone/compare filters and renders previous data', async () => {
-    await render()
-    await input('key_id', 'key_rotated')
-    await input('model_id', 'mdl_historical')
-    await input('timezone', 'Asia/Shanghai')
-    await act(async () => {
-      const protocol = container.querySelector<HTMLSelectElement>('[name="protocol"]')!
-      protocol.value = 'openai_responses'
-      protocol.dispatchEvent(new Event('change', { bubbles: true }))
-    })
-    await act(async () => container.querySelector<HTMLButtonElement>('[role="switch"]')!.click())
-    await submit()
-    expect(usageRequests().at(-1)?.params).toMatchObject({
-      key_id: 'key_rotated',
-      model_id: 'mdl_historical',
-      timezone: 'Asia/Shanghai',
-      protocol: 'openai_responses',
-      compare: true,
-    })
-    expect(container.querySelector('[data-series="previous"]')).not.toBeNull()
-    expect(container.textContent).toContain('Previous period')
-  })
+  it.each(['openai_responses', 'anthropic_messages'])(
+    'submits real %s model/key/timezone/compare filters and renders previous data',
+    async (protocolValue) => {
+      await render()
+      await input('key_id', 'key_rotated')
+      await input('model_id', 'mdl_historical')
+      await input('timezone', 'Asia/Shanghai')
+      await act(async () => {
+        const protocol = container.querySelector<HTMLSelectElement>('[name="protocol"]')!
+        protocol.value = protocolValue
+        protocol.dispatchEvent(new Event('change', { bubbles: true }))
+      })
+      await act(async () => container.querySelector<HTMLButtonElement>('[role="switch"]')!.click())
+      await submit()
+      expect(usageRequests().at(-1)?.params).toMatchObject({
+        key_id: 'key_rotated',
+        model_id: 'mdl_historical',
+        timezone: 'Asia/Shanghai',
+        protocol: protocolValue,
+        compare: true,
+      })
+      expect(container.querySelector('[data-series="previous"]')).not.toBeNull()
+      expect(container.textContent).toContain('Previous period')
+    },
+  )
   it('isolates Project cache and requests from personal attribution', async () => {
     await render(<ProjectUsagePanel projectId="prj_owned" />)
     expect(usageRequests()[0].url).toBe('/projects/prj_owned/usage')

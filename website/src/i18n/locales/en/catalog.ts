@@ -54,7 +54,7 @@ export default {
     enable: 'Enable',
     modelIdentifier: 'Model identifier',
     dialogDescription:
-      'Connections use native OpenAI Chat Completions or Responses. Credential secrets are accepted only when writing and never returned in lists.',
+      'Connections use native OpenAI Chat Completions, Responses or Anthropic Messages. Credential secrets are accepted only when writing and never returned in lists.',
     verifiedNotice:
       'Verification succeeded. Discovered {{count}} upstream models. Enable the credential separately.',
     providerCount: '{{count}} providers',

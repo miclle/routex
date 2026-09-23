@@ -486,28 +486,33 @@ describe('catalog and Key workflows', () => {
 })
 
 describe('native protocol catalog', () => {
-  it('sends the selected protocol when creating a provider connection', async () => {
-    await render(<ProvidersPage />)
-    await until(() => expect(document.body.textContent).toContain('Provider'))
-    await click('Add provider')
-    await fill('name', 'Responses provider')
-    await fill('connection_name', 'Responses')
-    await fill('base_url', 'https://api.example.com/v1')
-    await fill('credential_name', 'Primary')
-    await fill('secret', 'upstream_secret')
-    await act(async () => {
-      const select = document.querySelector<HTMLSelectElement>('select[name="protocol"]')!
-      select.value = 'openai_responses'
-      select.dispatchEvent(new Event('change', { bubbles: true }))
-    })
-    await submit()
-    await until(() =>
-      expect(requests.some((r) => r.url === '/admin/providers' && r.method === 'post')).toBe(true),
-    )
-    expect(JSON.parse(requests.find((r) => r.method === 'post')!.data).protocol).toBe(
-      'openai_responses',
-    )
-  })
+  it.each(['openai_responses', 'anthropic_messages'])(
+    'sends selected %s when creating a provider connection',
+    async (protocol) => {
+      await render(<ProvidersPage />)
+      await until(() => expect(document.body.textContent).toContain('Provider'))
+      await click('Add provider')
+      await fill('name', 'Responses provider')
+      await fill('connection_name', 'Responses')
+      await fill('base_url', 'https://api.example.com/v1')
+      await fill('credential_name', 'Primary')
+      await fill('secret', 'upstream_secret')
+      await act(async () => {
+        const select = document.querySelector<HTMLSelectElement>('select[name="protocol"]')!
+        select.value = protocol
+        select.dispatchEvent(new Event('change', { bubbles: true }))
+      })
+      await submit()
+      await until(() =>
+        expect(requests.some((r) => r.url === '/admin/providers' && r.method === 'post')).toBe(
+          true,
+        ),
+      )
+      const request = requests.find((r) => r.method === 'post')!
+      expect(JSON.parse(request.data).protocol).toBe(protocol)
+      expect(request.headers.get('X-CSRF-Token')).toBe('csrf')
+    },
+  )
 
   it('shows actual model protocols and switches native request examples', async () => {
     callableModels = [
@@ -562,4 +567,34 @@ describe('native protocol catalog', () => {
     expect(document.querySelector('[role="dialog"] select')).toBeNull()
     expect(document.querySelector('[role="dialog"]')!.textContent).not.toContain('OpenAI Chat')
   })
+})
+
+it('uses native Messages authentication and parameters for a Messages-only model', async () => {
+  callableModels = [
+    {
+      id: 'mdl_messages',
+      name: 'Messages Model',
+      status: 'active',
+      protocol: 'anthropic_messages',
+      protocols: ['anthropic_messages'],
+    },
+  ]
+  await render(<ModelsPage />)
+  await until(() => expect(document.body.textContent).toContain('Messages Model'))
+  await act(async () => {
+    container.querySelector<HTMLButtonElement>('button[aria-label*="Messages Model"]')!.click()
+  })
+  await until(() =>
+    expect(document.querySelector('[role="dialog"] pre')?.textContent).toContain('/v1/messages'),
+  )
+  const example = document.querySelector('[role="dialog"] pre')!.textContent!
+  expect(example).toContain('x-api-key: $ROUTEX_API_KEY')
+  expect(example).toContain('anthropic-version: 2023-06-01')
+  expect(example).toContain('"max_tokens":1024')
+  expect(example).toContain('"messages":[{"role":"user","content":"Hello"}]')
+  expect(example).not.toContain('Authorization:')
+  expect(example).not.toContain('/chat/completions')
+  expect(example).not.toContain('/responses')
+  expect(document.querySelector('[role="dialog"] select')).toBeNull()
+  expect(document.querySelector('[role="dialog"]')!.textContent).toContain('Anthropic Messages')
 })

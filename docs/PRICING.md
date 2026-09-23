@@ -53,8 +53,12 @@ ordinary_input = input_tokens - cache_read_tokens - cache_write_tokens
 ```
 
 Cache categories must not overlap and their sum must not exceed total input.
-Invalid usage is rejected instead of being clamped. Dedicated Chat Completions and [Responses](RESPONSES.md) adapters establish these
-invariants before assessing a call; other protocols require separate adapters.
+Invalid usage is rejected instead of being clamped. Dedicated Chat Completions, [Responses](RESPONSES.md) and [Messages](MESSAGES.md)
+adapters establish these invariants before assessing a call. Messages sums native
+uncached input, cache creation and cache reads into inclusive input and treats
+thinking as part of native output. Unsupported cache lifetimes, hosted tools and
+request conditions remain explicitly unpriced; other protocols require separate
+adapters.
 
 The long-context tier applies only when total input is strictly greater than the
 configured threshold. Equality uses base. The selected tier applies to the whole

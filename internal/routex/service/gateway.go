@@ -125,7 +125,7 @@ func (result *GatewayResult) NativeProtocol() string {
 	}
 	return result.Protocol
 }
-func (s *Service) gatewayNative(ctx context.Context, bearer string, body []byte, requestID, protocol string) (*GatewayResult, error) {
+func (s *Service) gatewayNative(ctx context.Context, bearer string, body []byte, requestID, protocol string, nativeHeaders ...MessagesHeaders) (*GatewayResult, error) {
 	key, err := s.AuthenticateAPIKey(ctx, bearer)
 	if err != nil {
 		return nil, gatewayAuthError(err)
@@ -133,6 +133,9 @@ func (s *Service) gatewayNative(ctx context.Context, bearer string, body []byte,
 	parse := parseGatewayChat
 	if protocol == entity.ProtocolOpenAIResponses {
 		parse = parseGatewayResponses
+	}
+	if protocol == entity.ProtocolAnthropicMessages {
+		parse = parseGatewayMessages
 	}
 	payload, publicName, stream, err := parse(body)
 	result := &GatewayResult{Protocol: protocol, UserID: key.Key.UserID, ProjectID: key.ProjectID, KeyID: key.Key.ID, ModelName: publicName, Stream: stream}
@@ -178,6 +181,9 @@ func (s *Service) gatewayNative(ctx context.Context, bearer string, body []byte,
 	if protocol == entity.ProtocolOpenAIResponses {
 		result.PricingDimensions = responsesPricingDimensions(payload)
 	}
+	if protocol == entity.ProtocolAnthropicMessages {
+		result.PricingDimensions = messagesPricingDimensions(payload)
+	}
 	result.PricingUnsupported = len(result.PricingDimensions) != 0
 	if s.runtime == nil {
 		result.PriceBasis, err = s.capturePriceBasis(ctx, route.ProviderModelID, protocol)
@@ -197,6 +203,9 @@ func (s *Service) gatewayNative(ctx context.Context, bearer string, body []byte,
 	if protocol == entity.ProtocolOpenAIResponses {
 		suffix = "/responses"
 	}
+	if protocol == entity.ProtocolAnthropicMessages {
+		suffix = "/messages"
+	}
 	endpoint := strings.TrimRight(base.String(), "/") + suffix
 	payload["model"], err = json.Marshal(route.UpstreamName)
 	if err != nil {
@@ -212,6 +221,17 @@ func (s *Service) gatewayNative(ctx context.Context, bearer string, body []byte,
 	}
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+credential)
+	if protocol == entity.ProtocolAnthropicMessages {
+		if len(nativeHeaders) != 1 {
+			return result, gatewayError(400, "invalid_request_error", "Native headers are required.")
+		}
+		req.Header.Del("Authorization")
+		req.Header.Set("x-api-key", credential)
+		req.Header.Set("anthropic-version", nativeHeaders[0].Version)
+		if nativeHeaders[0].Beta != "" {
+			req.Header.Set("anthropic-beta", nativeHeaders[0].Beta)
+		}
+	}
 	req.Header.Set("X-Request-ID", requestID)
 	if stream {
 		req.Header.Set("Accept", "text/event-stream")
@@ -242,6 +262,9 @@ func (s *Service) gatewayNative(ctx context.Context, bearer string, body []byte,
 		return result, gatewayError(502, "upstream_error", "The upstream request failed.")
 	}
 	if response.StatusCode < 200 || response.StatusCode >= 300 {
+		if protocol == entity.ProtocolAnthropicMessages {
+			return result, nativeMessagesHTTPError(response)
+		}
 		if protocol == entity.ProtocolOpenAIResponses {
 			return result, nativeResponsesHTTPError(response)
 		}

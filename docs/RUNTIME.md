@@ -53,6 +53,6 @@ go tool task test-integration
 
 Correctness tests establish the control-flow and revocation ordering contracts. They do not establish a production p99 latency, capacity target, multi-node guarantee, or real-provider acceptance. Those require measured workloads and the relevant external environment.
 
-Chat Completions and Responses use independent `(model_id, protocol)` route groups.
+Chat Completions, Responses and Messages use independent `(model_id, protocol)` route groups.
 The Key-scoped model list exposes currently eligible protocols without provider
 identities; native requests never fall back across protocol groups.

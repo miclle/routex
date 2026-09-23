@@ -31,6 +31,7 @@ func (ctrl *Ctrl) RegisterRoutes(r *fox.Engine) {
 	r.GET("/v1/models", ctrl.GatewayModels)
 	r.POST("/v1/chat/completions", ctrl.GatewayChat)
 	r.POST("/v1/responses", ctrl.GatewayResponses)
+	r.POST("/v1/messages", ctrl.GatewayMessages)
 
 	// ── API routes ──────────────────────────────────────────────────────
 	api := r.Group("/api/v1")

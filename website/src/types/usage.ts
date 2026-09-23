@@ -10,7 +10,7 @@ export interface UsageFilters {
   model_id?: string
   key_id?: string
   status?: 'success' | 'error' | 'canceled'
-  protocol?: 'openai_chat' | 'openai_responses'
+  protocol?: 'openai_chat' | 'openai_responses' | 'anthropic_messages'
   stream?: boolean
   user_id?: string
   project_id?: string

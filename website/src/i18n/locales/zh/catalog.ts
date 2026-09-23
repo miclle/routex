@@ -53,7 +53,7 @@ export default {
     enable: '启用',
     modelIdentifier: '模型标识',
     dialogDescription:
-      '接入使用原生 OpenAI Chat Completions 或 Responses 协议。凭证只作为写入输入，不会返回到列表。',
+      '接入使用原生 OpenAI Chat Completions、Responses 或 Anthropic Messages 协议。凭证只作为写入输入，不会返回到列表。',
     verifiedNotice: '验证成功，发现 {{count}} 个上游模型。凭证仍需单独启用。',
     providerCount: '{{count}} 个供应商',
     credentialCount: '{{count}} 个有效凭证',

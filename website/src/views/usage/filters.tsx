@@ -152,6 +152,7 @@ export default function UsageFiltersForm({
               <option value="">{t('all')}</option>
               <option value="openai_chat">{t('chat')}</option>
               <option value="openai_responses">{t('responses')}</option>
+              <option value="anthropic_messages">Anthropic Messages</option>
             </select>
           </FormField>
           {admin &&

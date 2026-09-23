@@ -22,7 +22,7 @@ type CredentialVerification struct {
 	Message          string
 }
 
-// VerifyCredential performs real OpenAI model discovery without relaying any
+// VerifyCredential performs real protocol-specific model discovery without relaying any
 // upstream response bodies or error text to clients or logs.
 func (s *Service) VerifyCredential(ctx context.Context, actorID, credentialID string) (*CredentialVerification, error) {
 	if s.secrets == nil {
@@ -54,8 +54,12 @@ func (s *Service) VerifyCredential(ctx context.Context, actorID, credentialID st
 		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).First(&credential, "id = ?", credential.ID).Error; err != nil {
 			return err
 		}
-		if err := tx.Where("credential_id = ?", credential.ID).Delete(&entity.CredentialModelAccess{}).Error; err != nil {
-			return err
+		// Failed native pagination preserves last-success discovery evidence,
+		// while current verification and runtime authorization are revoked.
+		if verified || connection.Protocol != entity.ProtocolAnthropicMessages {
+			if err := tx.Where("credential_id = ?", credential.ID).Delete(&entity.CredentialModelAccess{}).Error; err != nil {
+				return err
+			}
 		}
 		updates := map[string]any{"verification_status": "failed", "verified_at": nil, "enabled": false}
 		if verified {
@@ -104,6 +108,9 @@ func (s *Service) VerifyCredential(ctx context.Context, actorID, credentialID st
 func (s *Service) discoverModels(ctx context.Context, connection entity.ProviderConnection, plaintext string) ([]string, bool) {
 	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
+	if connection.Protocol == entity.ProtocolAnthropicMessages {
+		return s.discoverMessagesModels(ctx, connection, plaintext)
+	}
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, connection.BaseURL+"/models", nil)
 	if err != nil {
 		return nil, false

@@ -28,12 +28,33 @@ export default function ModelsPage() {
   const endpoint = `${window.location.origin}/v1`
   const protocols = selected ? modelProtocols(selected) : []
   const activeProtocol = protocols.includes(exampleProtocol) ? exampleProtocol : protocols[0]
-  const requestPath = activeProtocol === 'openai_responses' ? 'responses' : 'chat/completions'
+  const requestPath =
+    activeProtocol === 'anthropic_messages'
+      ? 'messages'
+      : activeProtocol === 'openai_responses'
+        ? 'responses'
+        : 'chat/completions'
   const requestBody =
     activeProtocol === 'openai_responses'
       ? { model: selected?.name, input: 'Hello' }
-      : { model: selected?.name, messages: [{ role: 'user', content: 'Hello' }] }
-  const example = `curl ${endpoint}/${requestPath} \\\n  -H "Authorization: Bearer $ROUTEX_API_KEY" \\\n  -H "Content-Type: application/json" \\\n  -d '${JSON.stringify(requestBody)}'`
+      : {
+          model: selected?.name,
+          ...(activeProtocol === 'anthropic_messages' ? { max_tokens: 1024 } : {}),
+          messages: [{ role: 'user', content: 'Hello' }],
+        }
+  const headers =
+    activeProtocol === 'anthropic_messages'
+      ? [
+          'x-api-key: $ROUTEX_API_KEY',
+          'anthropic-version: 2023-06-01',
+          'Content-Type: application/json',
+        ]
+      : ['Authorization: Bearer $ROUTEX_API_KEY', 'Content-Type: application/json']
+  const example = [
+    `curl ${endpoint}/${requestPath}`,
+    ...headers.map((header) => `  -H "${header}"`),
+    `  -d '${JSON.stringify(requestBody)}'`,
+  ].join(' \\\n')
   async function copy(value: string) {
     try {
       await navigator.clipboard.writeText(value)

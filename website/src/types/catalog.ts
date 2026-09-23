@@ -16,7 +16,7 @@ export interface Connection {
   id: string
   name: string
   base_url: string
-  protocol: 'openai_chat' | 'openai_responses'
+  protocol: 'openai_chat' | 'openai_responses' | 'anthropic_messages'
   credentials: Credential[]
   provider_models: ProviderModel[]
 }

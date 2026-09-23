@@ -584,3 +584,19 @@ development lifecycle and production assets. Focused cases prove independent
 failures/stops, history isolation, request identity, duplicate-send prevention,
 maximum/minimum lanes and tab cleanup. No new database or gateway contract is
 introduced; rendered browser acceptance remains open.
+
+### Native Messages protocol
+
+Messages has an independent native route, version/beta header validation, bounded
+model discovery, ordinary/SSE handling, ownership guards and protocol-specific
+usage/price assessment. Native parameters and events are preserved; credential
+selection and caller authorization remain separate from Chat and Responses.
+Connection forms, model examples and usage filters expose the actual protocol.
+See [MESSAGES](MESSAGES.md) for supported content and explicit pricing exclusions.
+
+Full check/test passed with 214 Vitest cases, four Node checks, Go race/unit,
+development lifecycle and production assets. PostgreSQL/MySQL integration passed
+in 235.163 seconds and both process restart/inference/revocation suites passed.
+Controlled tests cover native errors/events, cancellation around final usage,
+cache-token normalization, exact immutable charges, supply revocation and replay.
+External paid-provider calls and rendered browser acceptance remain unverified.
