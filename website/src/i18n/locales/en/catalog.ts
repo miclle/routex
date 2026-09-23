@@ -78,6 +78,9 @@ export default {
     modelCount_one: '{{count}} model',
   },
   memberModels: {
+    modelPath: 'Model path name',
+    geminiAliasRequired:
+      'Gemini requires a public name or active alias containing only letters, digits, dots, underscores, or hyphens, starting with a letter or digit (maximum 128 characters). Ask a model administrator for a compatible name.',
     title: 'Model catalogue',
     description: 'View protocols and API connection settings for your authorized models.',
     statisticsLabel: 'Model catalogue statistics',

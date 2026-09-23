@@ -56,7 +56,7 @@ func (s *Service) VerifyCredential(ctx context.Context, actorID, credentialID st
 		}
 		// Failed native pagination preserves last-success discovery evidence,
 		// while current verification and runtime authorization are revoked.
-		if verified || connection.Protocol != entity.ProtocolAnthropicMessages {
+		if verified || (connection.Protocol != entity.ProtocolAnthropicMessages && connection.Protocol != entity.ProtocolGeminiGenerateContent) {
 			if err := tx.Where("credential_id = ?", credential.ID).Delete(&entity.CredentialModelAccess{}).Error; err != nil {
 				return err
 			}
@@ -108,6 +108,9 @@ func (s *Service) VerifyCredential(ctx context.Context, actorID, credentialID st
 func (s *Service) discoverModels(ctx context.Context, connection entity.ProviderConnection, plaintext string) ([]string, bool) {
 	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
+	if connection.Protocol == entity.ProtocolGeminiGenerateContent {
+		return s.discoverGeminiModels(ctx, connection, plaintext)
+	}
 	if connection.Protocol == entity.ProtocolAnthropicMessages {
 		return s.discoverMessagesModels(ctx, connection, plaintext)
 	}

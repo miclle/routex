@@ -4,6 +4,7 @@ go 1.27.1
 
 require (
 	github.com/fox-gonic/fox v0.1.2
+	github.com/gin-gonic/gin v1.12.0
 	github.com/oklog/ulid/v2 v2.1.2
 	github.com/richardlehane/mscfb v1.0.8
 	github.com/spf13/viper v1.21.0
@@ -85,7 +86,6 @@ require (
 	github.com/gabriel-vasile/mimetype v1.4.15 // indirect
 	github.com/gin-contrib/cors v1.7.8 // indirect
 	github.com/gin-contrib/sse v1.1.2 // indirect
-	github.com/gin-gonic/gin v1.12.0 // indirect
 	github.com/go-jose/go-jose/v4 v4.1.4 // indirect
 	github.com/go-logr/logr v1.4.4 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect

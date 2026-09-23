@@ -125,7 +125,7 @@ func (result *GatewayResult) NativeProtocol() string {
 	}
 	return result.Protocol
 }
-func (s *Service) gatewayNative(ctx context.Context, bearer string, body []byte, requestID, protocol string, nativeHeaders ...MessagesHeaders) (*GatewayResult, error) {
+func (s *Service) gatewayNative(ctx context.Context, bearer string, body []byte, requestID, protocol string, options ...gatewayNativeOptions) (*GatewayResult, error) {
 	key, err := s.AuthenticateAPIKey(ctx, bearer)
 	if err != nil {
 		return nil, gatewayAuthError(err)
@@ -136,6 +136,14 @@ func (s *Service) gatewayNative(ctx context.Context, bearer string, body []byte,
 	}
 	if protocol == entity.ProtocolAnthropicMessages {
 		parse = parseGatewayMessages
+	}
+	if protocol == entity.ProtocolGeminiGenerateContent {
+		parse = func(raw []byte) (map[string]json.RawMessage, string, bool, error) {
+			if len(options) != 1 {
+				return nil, "", false, gatewayError(400, "invalid_request_error", "Native model path is required.")
+			}
+			return parseGatewayGemini(raw, options[0].GeminiModel, options[0].GeminiStream)
+		}
 	}
 	payload, publicName, stream, err := parse(body)
 	result := &GatewayResult{Protocol: protocol, UserID: key.Key.UserID, ProjectID: key.ProjectID, KeyID: key.Key.ID, ModelName: publicName, Stream: stream}
@@ -184,6 +192,9 @@ func (s *Service) gatewayNative(ctx context.Context, bearer string, body []byte,
 	if protocol == entity.ProtocolAnthropicMessages {
 		result.PricingDimensions = messagesPricingDimensions(payload)
 	}
+	if protocol == entity.ProtocolGeminiGenerateContent {
+		result.PricingDimensions = geminiPricingDimensions(payload)
+	}
 	result.PricingUnsupported = len(result.PricingDimensions) != 0
 	if s.runtime == nil {
 		result.PriceBasis, err = s.capturePriceBasis(ctx, route.ProviderModelID, protocol)
@@ -206,8 +217,19 @@ func (s *Service) gatewayNative(ctx context.Context, bearer string, body []byte,
 	if protocol == entity.ProtocolAnthropicMessages {
 		suffix = "/messages"
 	}
+	if protocol == entity.ProtocolGeminiGenerateContent {
+		if !geminiModelSegment.MatchString(route.UpstreamName) {
+			return result, gatewayError(503, "upstream_unavailable", "The upstream model path is unavailable.")
+		}
+		suffix = "/models/" + route.UpstreamName + ":generateContent"
+		if stream {
+			suffix = "/models/" + route.UpstreamName + ":streamGenerateContent?alt=sse"
+		}
+	}
 	endpoint := strings.TrimRight(base.String(), "/") + suffix
-	payload["model"], err = json.Marshal(route.UpstreamName)
+	if protocol != entity.ProtocolGeminiGenerateContent {
+		payload["model"], err = json.Marshal(route.UpstreamName)
+	}
 	if err != nil {
 		return result, gatewayError(500, "internal_error", "The request could not be prepared.")
 	}
@@ -222,15 +244,19 @@ func (s *Service) gatewayNative(ctx context.Context, bearer string, body []byte,
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+credential)
 	if protocol == entity.ProtocolAnthropicMessages {
-		if len(nativeHeaders) != 1 {
+		if len(options) != 1 {
 			return result, gatewayError(400, "invalid_request_error", "Native headers are required.")
 		}
 		req.Header.Del("Authorization")
 		req.Header.Set("x-api-key", credential)
-		req.Header.Set("anthropic-version", nativeHeaders[0].Version)
-		if nativeHeaders[0].Beta != "" {
-			req.Header.Set("anthropic-beta", nativeHeaders[0].Beta)
+		req.Header.Set("anthropic-version", options[0].Messages.Version)
+		if options[0].Messages.Beta != "" {
+			req.Header.Set("anthropic-beta", options[0].Messages.Beta)
 		}
+	}
+	if protocol == entity.ProtocolGeminiGenerateContent {
+		req.Header.Del("Authorization")
+		req.Header.Set("x-goog-api-key", credential)
 	}
 	req.Header.Set("X-Request-ID", requestID)
 	if stream {
@@ -262,6 +288,9 @@ func (s *Service) gatewayNative(ctx context.Context, bearer string, body []byte,
 		return result, gatewayError(502, "upstream_error", "The upstream request failed.")
 	}
 	if response.StatusCode < 200 || response.StatusCode >= 300 {
+		if protocol == entity.ProtocolGeminiGenerateContent {
+			return result, nativeGeminiHTTPError(response)
+		}
 		if protocol == entity.ProtocolAnthropicMessages {
 			return result, nativeMessagesHTTPError(response)
 		}

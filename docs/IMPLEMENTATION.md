@@ -650,3 +650,21 @@ passed in 469.470 seconds and both process lifecycle suites passed. Controlled
 browser acceptance verified real site/announcement events, filtered search and
 the detail drawer. Failed-attempt recording and broader historical change metadata
 remain open; this read interface does not fabricate them.
+
+### Native Gemini protocol
+
+Gemini Generate Content now has independent native discovery, authentication,
+ordinary and SSE routes, error handling, model-name guards, usage normalization
+and immutable pricing assessment. The catalog, Provider workspace and usage
+filters expose the actual protocol without translating requests through another
+native API. See [GEMINI](GEMINI.md) for the supported native surface and explicit
+exclusions.
+
+Full check/test passed with 282 Vitest cases, four Node checks, Go race/unit,
+development lifecycle and production assets. PostgreSQL/MySQL integration passed
+in 463.184 seconds and both process restart/inference/revocation suites passed.
+Controlled tests cover discovery bounds, query credential removal before logging,
+ordinary/SSE finality, native errors, cancellation, usage/price settlement and
+revocation. An isolated production browser completed a real local Gemini stream
+through RouteX and the four-protocol comparison. Paid external-provider calls,
+stateful APIs and production performance remain open.

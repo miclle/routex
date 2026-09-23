@@ -486,7 +486,7 @@ describe('catalog and Key workflows', () => {
 })
 
 describe('native protocol catalog', () => {
-  it.each(['openai_responses', 'anthropic_messages'])(
+  it.each(['openai_responses', 'anthropic_messages', 'gemini_generate_content'])(
     'sends selected %s when creating a provider connection',
     async (protocol) => {
       await render(<ProvidersPage />)
@@ -598,3 +598,62 @@ it('uses native Messages authentication and parameters for a Messages-only model
   expect(document.querySelector('[role="dialog"] select')).toBeNull()
   expect(document.querySelector('[role="dialog"]')!.textContent).toContain('Anthropic Messages')
 })
+
+it('shows Gemini native path, header and contents without synthetic model or stream fields', async () => {
+  callableModels = [
+    {
+      id: 'mdl_gemini',
+      name: 'gemini-2.5_flash',
+      status: 'active',
+      protocol: 'gemini_generate_content',
+      protocols: ['gemini_generate_content'],
+    },
+  ]
+  await render(<ModelsPage />)
+  await until(() =>
+    expect(container.querySelector('button[aria-label*="gemini-2.5_flash"]')).not.toBeNull(),
+  )
+  await act(async () =>
+    container.querySelector<HTMLButtonElement>('button[aria-label*="gemini-2.5_flash"]')!.click(),
+  )
+  await until(() => expect(document.querySelector('[role="dialog"] pre')).not.toBeNull())
+  const example = document.querySelector('[role="dialog"] pre')!.textContent!
+  expect(example).toContain('/v1beta/models/gemini-2.5_flash:generateContent')
+  expect(example).toContain('x-goog-api-key: $ROUTEX_API_KEY')
+  expect(example).toContain('"contents":[{"role":"user","parts":[{"text":"Hello"}]}]')
+  expect(example).not.toMatch(
+    /Authorization:|"model":|"stream":|chat\/completions|\/responses|\/messages/,
+  )
+})
+
+it.each(['vendor/model', 'model:latest', 'unsafe name', '-invalid', 'a'.repeat(129)])(
+  'does not fabricate a callable Gemini path for %s',
+  async (name) => {
+    callableModels = [
+      {
+        id: 'mdl_gemini',
+        name,
+        status: 'active',
+        protocol: 'gemini_generate_content',
+        protocols: ['gemini_generate_content'],
+      },
+    ]
+    await render(<ModelsPage />)
+    await until(() =>
+      expect(container.querySelector('button[aria-label^="Open API access"]')).not.toBeNull(),
+    )
+    await act(async () =>
+      container.querySelector<HTMLButtonElement>('button[aria-label^="Open API access"]')!.click(),
+    )
+    await until(() =>
+      expect(document.querySelector('[role="dialog"]')?.textContent).toContain(
+        'Ask a model administrator',
+      ),
+    )
+    expect(document.querySelector('[role="dialog"] pre')).toBeNull()
+    const copy = [...document.querySelectorAll<HTMLButtonElement>('[role="dialog"] button')].find(
+      (button) => button.textContent === 'Copy',
+    )!
+    expect(copy.disabled).toBe(true)
+  },
+)

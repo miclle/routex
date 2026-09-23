@@ -1,4 +1,4 @@
-import { modelProtocols, protocolLabel, protocolLabels } from '@/lib/protocols'
+import { isGeminiModelName, modelProtocols, protocolLabel, protocolLabels } from '@/lib/protocols'
 import { useTranslation } from 'react-i18next'
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
@@ -25,25 +25,30 @@ export default function ModelsPage() {
   )
   const items =
     models.data?.filter((model) => model.name.toLowerCase().includes(query.toLowerCase())) ?? []
-  const endpoint = `${window.location.origin}/v1`
   const protocols = selected ? modelProtocols(selected) : []
   const activeProtocol = protocols.includes(exampleProtocol) ? exampleProtocol : protocols[0]
-  const requestPath =
-    activeProtocol === 'anthropic_messages'
+  const gemini = activeProtocol === 'gemini_generate_content'
+  const invalidGeminiName = gemini && !isGeminiModelName(selected?.name ?? '')
+  const endpoint = `${window.location.origin}/${gemini ? 'v1beta' : 'v1'}`
+  const requestPath = gemini
+    ? `models/${encodeURIComponent(selected?.name ?? '')}:generateContent`
+    : activeProtocol === 'anthropic_messages'
       ? 'messages'
       : activeProtocol === 'openai_responses'
         ? 'responses'
         : 'chat/completions'
-  const requestBody =
-    activeProtocol === 'openai_responses'
+  const requestBody = gemini
+    ? { contents: [{ role: 'user', parts: [{ text: 'Hello' }] }] }
+    : activeProtocol === 'openai_responses'
       ? { model: selected?.name, input: 'Hello' }
       : {
           model: selected?.name,
           ...(activeProtocol === 'anthropic_messages' ? { max_tokens: 1024 } : {}),
           messages: [{ role: 'user', content: 'Hello' }],
         }
-  const headers =
-    activeProtocol === 'anthropic_messages'
+  const headers = gemini
+    ? ['x-goog-api-key: $ROUTEX_API_KEY', 'Content-Type: application/json']
+    : activeProtocol === 'anthropic_messages'
       ? [
           'x-api-key: $ROUTEX_API_KEY',
           'anthropic-version: 2023-06-01',
@@ -191,7 +196,9 @@ export default function ModelsPage() {
                 <code className="break-all text-sm">{endpoint}</code>
               </div>
               <div>
-                <p className="text-sm text-muted-foreground">{t('memberModels.modelParameter')}</p>
+                <p className="text-sm text-muted-foreground">
+                  {t(gemini ? 'memberModels.modelPath' : 'memberModels.modelParameter')}
+                </p>
                 <code>{selected?.name}</code>
               </div>
               <Link to="/keys" className="text-sm underline">
@@ -202,7 +209,12 @@ export default function ModelsPage() {
           <section className="rounded-lg border">
             <div className="flex items-center justify-between border-b px-4 py-2">
               <h3 className="text-sm font-semibold">{t('memberModels.requestExample')}</h3>
-              <Button size="sm" variant="ghost" onClick={() => void copy(example)}>
+              <Button
+                size="sm"
+                variant="ghost"
+                disabled={invalidGeminiName}
+                onClick={() => void copy(example)}
+              >
                 <Copy className="size-3" />
                 {t('common.copy')}
               </Button>
@@ -223,7 +235,13 @@ export default function ModelsPage() {
                 </select>
               </label>
             )}
-            <pre className="overflow-auto p-4 text-xs leading-6">{example}</pre>
+            {invalidGeminiName ? (
+              <p role="status" className="p-4 text-sm text-muted-foreground">
+                {t('memberModels.geminiAliasRequired')}
+              </p>
+            ) : (
+              <pre className="overflow-auto p-4 text-xs leading-6">{example}</pre>
+            )}
           </section>
           {notice && (
             <p role="status" className="text-sm">

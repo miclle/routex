@@ -23,6 +23,10 @@ func New(svc *service.Service) *Ctrl {
 // RegisterRoutes registers all API routes on the given engine.
 func (ctrl *Ctrl) RegisterRoutes(r *fox.Engine) {
 	r.RenderErrorFunc = renderAPIError
+	// Native query credentials must never be reflected by pre-middleware redirects.
+	r.RedirectTrailingSlash = false
+	r.RedirectFixedPath = false
+	r.Engine.Use(GeminiQueryCredentials)
 	// embed website assets
 	website.EmbedAssets(r)
 
@@ -32,6 +36,7 @@ func (ctrl *Ctrl) RegisterRoutes(r *fox.Engine) {
 	r.POST("/v1/chat/completions", ctrl.GatewayChat)
 	r.POST("/v1/responses", ctrl.GatewayResponses)
 	r.POST("/v1/messages", ctrl.GatewayMessages)
+	r.POST("/v1beta/models/:model_action", ctrl.GatewayGemini)
 
 	// ── API routes ──────────────────────────────────────────────────────
 	api := r.Group("/api/v1")

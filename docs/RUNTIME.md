@@ -56,3 +56,5 @@ Correctness tests establish the control-flow and revocation ordering contracts. 
 Chat Completions, Responses and Messages use independent `(model_id, protocol)` route groups.
 The Key-scoped model list exposes currently eligible protocols without provider
 identities; native requests never fall back across protocol groups.
+
+Gemini uses the independent `gemini_generate_content` route group and never falls back to another native protocol.

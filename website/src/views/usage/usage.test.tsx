@@ -180,7 +180,7 @@ describe('usage reports', () => {
     expect(container.querySelector('svg[aria-labelledby]')).not.toBeNull()
     expect(container.textContent).toContain('key_rotated')
   })
-  it.each(['openai_responses', 'anthropic_messages'])(
+  it.each(['openai_responses', 'anthropic_messages', 'gemini_generate_content'])(
     'submits real %s model/key/timezone/compare filters and renders previous data',
     async (protocolValue) => {
       await render()

@@ -446,6 +446,7 @@ function Providers() {
                     <option value="openai_chat">OpenAI Chat</option>
                     <option value="openai_responses">OpenAI Responses</option>
                     <option value="anthropic_messages">Anthropic Messages</option>
+                    <option value="gemini_generate_content">Gemini Generate Content</option>
                   </select>
                 </FormField>
                 <FormField label={t('common.baseURL')}>

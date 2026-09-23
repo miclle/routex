@@ -74,6 +74,9 @@ export default {
     modelCount_other: '{{count}} 个模型',
   },
   memberModels: {
+    modelPath: '模型路径名称',
+    geminiAliasRequired:
+      'Gemini 需要以字母或数字开头、仅包含字母、数字、点、下划线或连字符的公开名称或有效别名（最多 128 个字符）。请联系模型管理员配置兼容名称。',
     title: '模型广场',
     description: '查看已授权模型的协议与 API 接入配置。',
     statisticsLabel: '模型广场统计',

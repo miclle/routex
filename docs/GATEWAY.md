@@ -48,3 +48,5 @@ go tool task test-integration
 ```
 
 The isolated PostgreSQL/MySQL lifecycle tests cover discovery and credential verification, explicit grants and confirmed keys, real ordinary and streaming HTTP proxying, response sanitization, aliases and expiry, client cancellation, disabled credentials, grant revocation, key revocation, and persisted usage facts. Unit tests cover zero-weight exclusion, valid totals, native request parameters, malformed streams, bounded events, and secret-safe error responses.
+
+Native [Gemini generation](GEMINI.md) uses its own `/v1beta/models/:action` contract. Unknown native paths do not redirect query credentials.

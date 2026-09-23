@@ -35,7 +35,7 @@ func (s *Service) GatewayMessages(ctx context.Context, bearer string, body []byt
 	if err := ValidateMessagesHeaders(headers); err != nil {
 		return nil, err
 	}
-	return s.gatewayNative(ctx, bearer, body, requestID, entity.ProtocolAnthropicMessages, headers)
+	return s.gatewayNative(ctx, bearer, body, requestID, entity.ProtocolAnthropicMessages, gatewayNativeOptions{Messages: headers})
 }
 func parseGatewayMessages(body []byte) (map[string]json.RawMessage, string, bool, error) {
 	invalid := gatewayError(400, "invalid_request_error", "A public model, native messages and nonnegative max_tokens are required.")

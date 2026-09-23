@@ -186,3 +186,5 @@ a documented repository format and sync mechanism, additional protocol/usage
 adapters, quota/reservation integration, and
 reconciliation. This slice does not claim completion of P3 or
 full provider pricing compatibility.
+
+The [Gemini adapter](GEMINI.md) normalizes native candidate, thought and cached input counters. Missing counters, hosted-tool conditions and unsupported modalities remain explicitly unpriced.

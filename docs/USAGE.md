@@ -59,3 +59,5 @@ The bilingual Personal, Project and platform interfaces provide filters, summary
 Pure tests cover exact decimal/token sums, mixed currencies, free and unknown charges, partial token counters, zero-filled buckets, historical labels, scope-safe filters, strict query parsing, DST hour/day boundaries, leap months, equal-duration comparison, and cardinality/range rejection. `testUsageLifecycle` is part of the coordinated PostgreSQL/MySQL harness: it exercises canonical replay, Personal/Project/platform isolation, creator-versus-manager history access, live membership/account revocation, guessed Key/model filters, archived Project history, route redaction, and complete-versus-overflow boundaries including comparison rows.
 
 Protocol filtering also accepts `anthropic_messages` for native Messages calls.
+
+Protocol filtering accepts `gemini_generate_content` for native Gemini calls.
