@@ -25,6 +25,7 @@ var (
 type Queue struct {
 	db                   *bolt.DB
 	capacity, maxPayload int
+	quotaCapacity        int
 }
 type Entry struct {
 	ID      string
@@ -45,7 +46,7 @@ func Open(path string, capacity, maxPayload int) (*Queue, error) {
 	if err != nil {
 		return nil, err
 	}
-	q := &Queue{db: db, capacity: capacity, maxPayload: maxPayload}
+	q := &Queue{db: db, capacity: capacity, maxPayload: maxPayload, quotaCapacity: quotaHistoryCapacity}
 	err = db.Update(func(tx *bolt.Tx) error {
 		if err := initLimits(tx); err != nil {
 			return err
@@ -56,6 +57,9 @@ func Open(path string, capacity, maxPayload int) (*Queue, error) {
 		}
 		ready, err := tx.CreateBucketIfNotExists(readyBucket)
 		if err != nil {
+			return err
+		}
+		if err := q.recoverQuota(tx); err != nil {
 			return err
 		}
 		keys := [][]byte{}
@@ -100,6 +104,9 @@ func (q *Queue) Reserve(id string, fallback []byte) error {
 	return q.db.Update(func(tx *bolt.Tx) error {
 		pending, ready := tx.Bucket(pendingBucket), tx.Bucket(readyBucket)
 		key := []byte(id)
+		if bucket := tx.Bucket(quotaEntryBucket); bucket != nil && bucket.Get(key) != nil {
+			return ErrQuotaConflict
+		}
 		if pending.Get(key) != nil || ready.Get(key) != nil {
 			return ErrInvalid
 		}
@@ -117,22 +124,28 @@ func (q *Queue) Complete(id string, payload []byte) error {
 		return ErrInvalid
 	}
 	return q.db.Update(func(tx *bolt.Tx) error {
-		pending, ready := tx.Bucket(pendingBucket), tx.Bucket(readyBucket)
-		key := []byte(id)
-		if ready.Get(key) != nil {
-			return nil
+		if bucket := tx.Bucket(quotaEntryBucket); bucket != nil && bucket.Get([]byte(id)) != nil {
+			return ErrQuotaRequired
 		}
-		if pending.Get(key) == nil {
-			return ErrMissing
-		}
-		if err := ready.Put(key, payload); err != nil {
-			return err
-		}
-		if err := releaseLimits(tx, key); err != nil {
-			return err
-		}
-		return pending.Delete(key)
+		return q.complete(tx, id, payload)
 	})
+}
+func (q *Queue) complete(tx *bolt.Tx, id string, payload []byte) error {
+	pending, ready := tx.Bucket(pendingBucket), tx.Bucket(readyBucket)
+	key := []byte(id)
+	if ready.Get(key) != nil {
+		return nil
+	}
+	if pending.Get(key) == nil {
+		return ErrMissing
+	}
+	if err := ready.Put(key, payload); err != nil {
+		return err
+	}
+	if err := releaseLimits(tx, key); err != nil {
+		return err
+	}
+	return pending.Delete(key)
 }
 
 // Read returns independent copies without holding a transaction during delivery.

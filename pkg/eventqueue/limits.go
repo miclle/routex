@@ -47,7 +47,7 @@ func (q *Queue) BindInstallation(identity string, established bool) error {
 }
 func initLimits(tx *bolt.Tx) error {
 	if metadata := tx.Bucket(limitMetaBucket); metadata != nil {
-		if version := metadata.Get([]byte("version")); string(version) != "1" {
+		if version := metadata.Get([]byte("version")); string(version) != "1" && string(version) != "2" {
 			return ErrInvalid
 		}
 		if clock := metadata.Get([]byte("clock")); clock != nil && len(clock) != 8 {
@@ -65,8 +65,10 @@ func initLimits(tx *bolt.Tx) error {
 			return err
 		}
 	}
-	if err := tx.Bucket(limitMetaBucket).Put([]byte("version"), []byte("1")); err != nil {
-		return err
+	if tx.Bucket(limitMetaBucket).Get([]byte("version")) == nil {
+		if err := tx.Bucket(limitMetaBucket).Put([]byte("version"), []byte("1")); err != nil {
+			return err
+		}
 	}
 	// Rebuild indexes from durable events once at startup, validating each entry.
 	for _, name := range [][]byte{leaseBucket, rpmCountBucket, activeCountBucket} {
@@ -193,74 +195,80 @@ func (q *Queue) ReserveWithLimits(id string, payload []byte, limits []Limit, now
 		return ErrInvalid
 	}
 	return q.db.Update(func(tx *bolt.Tx) error {
-		pending, ready := tx.Bucket(pendingBucket), tx.Bucket(readyBucket)
-		if pending.Get([]byte(id)) != nil || ready.Get([]byte(id)) != nil {
+		if string(tx.Bucket(limitMetaBucket).Get([]byte("version"))) == "2" {
+			return ErrQuotaRequired
+		}
+		return q.reserveWithLimits(tx, id, payload, limits, now)
+	})
+}
+func (q *Queue) reserveWithLimits(tx *bolt.Tx, id string, payload []byte, limits []Limit, now time.Time) error {
+	pending, ready := tx.Bucket(pendingBucket), tx.Bucket(readyBucket)
+	if pending.Get([]byte(id)) != nil || ready.Get([]byte(id)) != nil {
+		return ErrInvalid
+	}
+	if pending.Stats().KeyN+ready.Stats().KeyN >= q.capacity {
+		return ErrFull
+	}
+	instant, err := logicalLimitTime(tx, now)
+	if err != nil {
+		return err
+	}
+	if err := pruneLimits(tx, instant); err != nil {
+		return err
+	}
+	events := tx.Bucket(rpmBucket)
+	if events.Sequence()+uint64(len(limits)) > limitHistoryCapacity {
+		return ErrFull
+	}
+	leases := tx.Bucket(leaseBucket)
+	seen := map[string]bool{}
+	accounts := []string{}
+	for _, limit := range limits {
+		if !validKey.MatchString(limit.Account) || seen[limit.Account] {
 			return ErrInvalid
 		}
-		if pending.Stats().KeyN+ready.Stats().KeyN >= q.capacity {
-			return ErrFull
-		}
-		instant, err := logicalLimitTime(tx, now)
+		seen[limit.Account] = true
+		rpm, err := countValue(tx.Bucket(rpmCountBucket), []byte(limit.Account))
 		if err != nil {
 			return err
 		}
-		if err := pruneLimits(tx, instant); err != nil {
-			return err
-		}
-		events := tx.Bucket(rpmBucket)
-		if events.Sequence()+uint64(len(limits)) > limitHistoryCapacity {
-			return ErrFull
-		}
-		leases := tx.Bucket(leaseBucket)
-		seen := map[string]bool{}
-		accounts := []string{}
-		for _, limit := range limits {
-			if !validKey.MatchString(limit.Account) || seen[limit.Account] {
-				return ErrInvalid
-			}
-			seen[limit.Account] = true
-			rpm, err := countValue(tx.Bucket(rpmCountBucket), []byte(limit.Account))
-			if err != nil {
-				return err
-			}
-			active, err := countValue(tx.Bucket(activeCountBucket), []byte(limit.Account))
-			if err != nil {
-				return err
-			}
-			if limit.RPM != nil && (*limit.RPM < 0 || rpm >= *limit.RPM) {
-				return ErrRateLimit
-			}
-			if limit.Concurrency != nil && (*limit.Concurrency < 0 || active >= *limit.Concurrency) {
-				return ErrConcurrency
-			}
-			accounts = append(accounts, limit.Account)
-		}
-		for _, account := range accounts {
-			if err := changeCount(tx.Bucket(rpmCountBucket), []byte(account), 1); err != nil {
-				return err
-			}
-			if err := changeCount(tx.Bucket(activeCountBucket), []byte(account), 1); err != nil {
-				return err
-			}
-			key := make([]byte, 8)
-			binary.BigEndian.PutUint64(key, uint64(instant))
-			key = append(key, []byte(id+":"+account)...)
-			if err := events.Put(key, []byte(account)); err != nil {
-				return err
-			}
-		}
-		if err := events.SetSequence(events.Sequence() + uint64(len(accounts))); err != nil {
-			return err
-		}
-		encoded, err := json.Marshal(accounts)
+		active, err := countValue(tx.Bucket(activeCountBucket), []byte(limit.Account))
 		if err != nil {
 			return err
 		}
-		if err := leases.Put([]byte(id), encoded); err != nil {
+		if limit.RPM != nil && (*limit.RPM < 0 || rpm >= *limit.RPM) {
+			return ErrRateLimit
+		}
+		if limit.Concurrency != nil && (*limit.Concurrency < 0 || active >= *limit.Concurrency) {
+			return ErrConcurrency
+		}
+		accounts = append(accounts, limit.Account)
+	}
+	for _, account := range accounts {
+		if err := changeCount(tx.Bucket(rpmCountBucket), []byte(account), 1); err != nil {
 			return err
 		}
-		return pending.Put([]byte(id), payload)
-	})
+		if err := changeCount(tx.Bucket(activeCountBucket), []byte(account), 1); err != nil {
+			return err
+		}
+		key := make([]byte, 8)
+		binary.BigEndian.PutUint64(key, uint64(instant))
+		key = append(key, []byte(id+":"+account)...)
+		if err := events.Put(key, []byte(account)); err != nil {
+			return err
+		}
+	}
+	if err := events.SetSequence(events.Sequence() + uint64(len(accounts))); err != nil {
+		return err
+	}
+	encoded, err := json.Marshal(accounts)
+	if err != nil {
+		return err
+	}
+	if err := leases.Put([]byte(id), encoded); err != nil {
+		return err
+	}
+	return pending.Put([]byte(id), payload)
 }
 
 // AccountUsage reads local enforcement state, independent of SQL report lag.

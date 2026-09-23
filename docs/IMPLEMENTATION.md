@@ -706,3 +706,22 @@ MySQL integration plus both process lifecycle suites passed. A controlled
 production browser saved and selected a local SOCKS5 proxy, then completed a real
 native Gemini stream through that route; the proxy observed the diagnostic and
 gateway tunnels. External proxy services and production performance remain open.
+
+### Durable quota-ledger foundation
+
+The local call journal now has an explicit version-2 quota format that can reserve
+aggregate and child RPM, concurrency, rolling token windows, calendar-month token
+and monetary limits in one synchronous bbolt transaction. Admission receipts bind
+immutable policies, proven capacity bounds and pricing evidence; settlement handles
+known usage, independent unknown token or money dimensions, overrun debt,
+idempotent retries and crash recovery without treating asynchronous SQL reports as
+enforcement authority.
+
+Focused race and property tests cover 7,500 exact-rational price combinations,
+aggregate rollback, historical coverage, time-zone and DST boundaries, clock
+rollback, incompatible currencies, independent queue capacity, process kills and
+corrupt history. Full check/test passed with 335 Vitest cases, four Node checks,
+Go race/unit, development lifecycle and production assets. This phase is an
+internal foundation only: existing gateway admission remains unchanged until the
+version-19 policy, protocol-bound reservation and management integration is
+landed and accepted.
