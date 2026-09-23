@@ -19,6 +19,8 @@ type CredentialResponse struct {
 	VerifiedAt         *time.Time `json:"verified_at"`
 }
 type ProviderModelResponse struct {
+	Enabled      bool   `json:"enabled"`
+	ETag         string `json:"etag"`
 	ID           string `json:"id"`
 	UpstreamName string `json:"upstream_name"`
 }
@@ -87,7 +89,7 @@ func connectionResponse(item service.ConnectionCatalog) ConnectionResponse {
 		result.Credentials = append(result.Credentials, credentialResponse(credential))
 	}
 	for _, model := range item.Models {
-		result.ProviderModels = append(result.ProviderModels, ProviderModelResponse{ID: model.ID, UpstreamName: model.UpstreamName})
+		result.ProviderModels = append(result.ProviderModels, ProviderModelResponse{ID: model.ID, UpstreamName: model.UpstreamName, Enabled: !model.Disabled, ETag: model.ETag})
 	}
 	return result
 }
@@ -157,6 +159,6 @@ func (ctrl *Ctrl) CreateProviderModel(c *fox.Context, request CreateProviderMode
 	if err != nil {
 		return err
 	}
-	c.JSON(http.StatusCreated, ProviderModelResponse{ID: result.ID, UpstreamName: result.UpstreamName})
+	c.JSON(http.StatusCreated, ProviderModelResponse{ID: result.ID, UpstreamName: result.UpstreamName, Enabled: !result.Disabled, ETag: result.ETag})
 	return nil
 }

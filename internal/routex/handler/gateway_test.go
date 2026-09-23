@@ -198,6 +198,7 @@ func testGatewayLifecycle(t *testing.T, db *gorm.DB) {
 	if ordinaryFact.Status != "success" || ordinaryFact.InputTokens == nil || *ordinaryFact.InputTokens != 3 || ordinaryFact.OutputTokens == nil || *ordinaryFact.OutputTokens != 2 {
 		t.Fatal("ordinary usage fact was not persisted")
 	}
+	testProviderModelState(t, db, router, store, pm, body, created.Secret, &chatCalls)
 	mode.Store("stream")
 	streamed := request("POST", "/v1/chat/completions", strings.Replace(body, `"temperature":0.125`, `"stream":true`, 1), created.Secret)
 	expectStatus(t, streamed, 200)

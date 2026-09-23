@@ -277,6 +277,7 @@ func parseGatewayChat(body []byte) (map[string]json.RawMessage, string, bool, er
 }
 
 type gatewayRoute struct {
+	Disabled        bool
 	PriceBasis      *CallPriceBasis `gorm:"-"`
 	SnapshotID      string
 	BindingID       string
@@ -292,15 +293,17 @@ type gatewayRoute struct {
 
 func selectGatewayRoute(db *gorm.DB, modelID string) (*gatewayRoute, error) {
 	var routes []gatewayRoute
-	err := db.Table("model_provider_bindings AS b").Select("b.id AS binding_id, b.weight, p.id AS provider_model_id, p.upstream_name, c.id AS connection_id, c.provider_id, c.base_url").Joins("JOIN provider_models p ON p.id = b.provider_model_id").Joins("JOIN provider_connections c ON c.id = p.connection_id").Where("b.model_id = ? AND c.protocol = ?", modelID, entity.ProtocolOpenAIChat).Order("b.id").Scan(&routes).Error
+	err := db.Table("model_provider_bindings AS b").Select("b.id AS binding_id, b.weight, p.id AS provider_model_id, p.upstream_name, p.disabled, c.id AS connection_id, c.provider_id, c.base_url").Joins("JOIN provider_models p ON p.id = b.provider_model_id").Joins("JOIN provider_connections c ON c.id = p.connection_id").Where("b.model_id = ? AND c.protocol = ?", modelID, entity.ProtocolOpenAIChat).Order("b.id").Scan(&routes).Error
 	if err != nil {
 		return nil, gatewayError(503, "upstream_unavailable", "Routing is temporarily unavailable.")
 	}
 	weights := make([]int, len(routes))
+	available := make([]bool, len(routes))
 	for i := range routes {
 		weights[i] = routes[i].Weight
+		available[i] = !routes[i].Disabled
 	}
-	choice, err := chooseGatewayRoute(weights)
+	choice, err := chooseAvailableGatewayRoute(weights, available)
 	if err != nil {
 		return nil, err
 	}
@@ -315,6 +318,18 @@ func selectGatewayRoute(db *gorm.DB, modelID string) (*gatewayRoute, error) {
 }
 
 func chooseGatewayRoute(weights []int) (int, error) {
+	available := make([]bool, len(weights))
+	for i := range available {
+		available[i] = true
+	}
+	return chooseAvailableGatewayRoute(weights, available)
+}
+
+// Keep configured weights intact, drawing only among explicitly enabled supply.
+func chooseAvailableGatewayRoute(weights []int, available []bool) (int, error) {
+	if len(weights) != len(available) {
+		return 0, gatewayError(503, "upstream_unavailable", "No valid route is configured.")
+	}
 	total := 0
 	for _, weight := range weights {
 		if weight < 0 || weight > 100 {
@@ -325,12 +340,24 @@ func chooseGatewayRoute(weights []int) (int, error) {
 	if total != 100 {
 		return 0, gatewayError(503, "upstream_unavailable", "No valid route is configured.")
 	}
-	draw, err := rand.Int(rand.Reader, big.NewInt(int64(total)))
+	eligible := 0
+	for i, weight := range weights {
+		if available[i] {
+			eligible += weight
+		}
+	}
+	if eligible == 0 {
+		return 0, gatewayError(503, "upstream_unavailable", "No usable upstream is available.")
+	}
+	draw, err := rand.Int(rand.Reader, big.NewInt(int64(eligible)))
 	if err != nil {
 		return 0, gatewayError(503, "upstream_unavailable", "Routing is temporarily unavailable.")
 	}
 	position := int(draw.Int64())
 	for i, weight := range weights {
+		if !available[i] {
+			continue
+		}
 		if position < weight {
 			return i, nil
 		}

@@ -29,20 +29,21 @@ const runtimeRefreshTimeout = 3 * time.Second
 var runtimeUnavailable = &apperrors.Error{Code: 503, Message: "runtime configuration is temporarily unavailable"}
 
 type gatewayRuntime struct {
-	cancel            context.CancelFunc
-	done              chan struct{}
-	mu                sync.Mutex
-	auth              atomic.Pointer[runtimeAuthorization]
-	routes            atomic.Pointer[runtimeRoutes]
-	status            atomic.Pointer[RuntimeStatus]
-	epoch             atomic.Uint64
-	deniedKeys        sync.Map
-	deniedLimits      sync.Map
-	deniedUsers       sync.Map
-	deniedProjects    sync.Map
-	deniedModels      sync.Map
-	deniedCredentials sync.Map
-	lastRecordedState string
+	cancel               context.CancelFunc
+	done                 chan struct{}
+	mu                   sync.Mutex
+	auth                 atomic.Pointer[runtimeAuthorization]
+	routes               atomic.Pointer[runtimeRoutes]
+	status               atomic.Pointer[RuntimeStatus]
+	epoch                atomic.Uint64
+	deniedKeys           sync.Map
+	deniedLimits         sync.Map
+	deniedUsers          sync.Map
+	deniedProjects       sync.Map
+	deniedModels         sync.Map
+	deniedProviderModels sync.Map
+	deniedCredentials    sync.Map
+	lastRecordedState    string
 }
 
 type runtimeAuthorization struct {
@@ -53,6 +54,7 @@ type runtimeAuthorization struct {
 	Names            map[string]entity.ModelName
 	Models           map[string]bool
 	Credentials      map[string]bool
+	ProviderModels   map[string]bool
 	CredentialAccess map[string]map[string]bool
 	ModelCreated     map[string]time.Time
 }
@@ -161,6 +163,7 @@ func (s *Service) RefreshRuntime(ctx context.Context) error {
 	// Credential revocations are also checked against the freshly published
 	// eligibility map, so clearing older tombstones cannot restore disabled keys.
 	clearRuntimeTombstones(&runtime.deniedCredentials, generation)
+	clearRuntimeTombstones(&runtime.deniedProviderModels, generation)
 	digest, err := runtimeDigest(data)
 	if err != nil {
 		s.setRuntimeStatus(ctx, started, "invalid_configuration")
@@ -330,10 +333,13 @@ func (s *Service) runtimeRoute(modelID string) (*gatewayRoute, string, error) {
 	}
 	candidates := routes.Models[modelID]
 	weights := make([]int, len(candidates))
+	available := make([]bool, len(candidates))
 	for i := range candidates {
 		weights[i] = candidates[i].Route.Weight
+		id := candidates[i].Route.ProviderModelID
+		available[i] = auth.ProviderModels[id] && !runtimeDenied(&runtime.deniedProviderModels, id)
 	}
-	chosen, err := chooseGatewayRoute(weights)
+	chosen, err := chooseAvailableGatewayRoute(weights, available)
 	if err != nil {
 		return nil, "", err
 	}
@@ -395,7 +401,7 @@ func (s *Service) loadRuntimeData(ctx context.Context) (*runtimeData, error) {
 }
 
 func buildRuntimeAuthorization(data *runtimeData, until time.Time) *runtimeAuthorization {
-	auth := &runtimeAuthorization{ValidUntil: until, LimitPolicies: data.LimitPolicies, LimitRoots: data.LimitRoots, Keys: map[string]runtimeKey{}, Names: map[string]entity.ModelName{}, Models: map[string]bool{}, Credentials: map[string]bool{}, CredentialAccess: map[string]map[string]bool{}, ModelCreated: map[string]time.Time{}}
+	auth := &runtimeAuthorization{ValidUntil: until, LimitPolicies: data.LimitPolicies, LimitRoots: data.LimitRoots, Keys: map[string]runtimeKey{}, Names: map[string]entity.ModelName{}, Models: map[string]bool{}, Credentials: map[string]bool{}, ProviderModels: map[string]bool{}, CredentialAccess: map[string]map[string]bool{}, ModelCreated: map[string]time.Time{}}
 	users := map[string]bool{}
 	for _, user := range data.Users {
 		users[user.ID] = !user.Disabled
@@ -432,6 +438,9 @@ func buildRuntimeAuthorization(data *runtimeData, until time.Time) *runtimeAutho
 		auth.Keys[key.TokenHash] = runtimeKey{Key: key, Models: allowed}
 	}
 	addProjectRuntimeAuthorization(auth, data.ProjectData, users)
+	for _, model := range data.ProviderModels {
+		auth.ProviderModels[model.ID] = !model.Disabled
+	}
 	for _, credential := range data.Credentials {
 		auth.Credentials[credential.ID] = credential.Enabled && credential.VerificationStatus == "verified"
 	}

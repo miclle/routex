@@ -7,6 +7,7 @@ import { Page, QueryState } from '@/components/app/CatalogUI'
 import { usePermissions } from '@/hooks/use-permissions'
 import { Badge } from '@/components/ui/badge'
 import ModelPriceTable from './model-price-table'
+import ProviderModelState from './provider-model-state'
 
 export default function ProviderModelPage() {
   return (
@@ -50,7 +51,12 @@ function ProviderModelDetail() {
       {model && provider && connection && (
         <>
           <section className="space-y-5 rounded-lg border p-6">
-            <h2 className="text-2xl font-semibold">{model.upstream_name}</h2>
+            <div className="flex items-start justify-between gap-4">
+              <h2 className="text-2xl font-semibold">{model.upstream_name}</h2>
+              <Badge variant="outline">
+                {t(model.enabled ? 'supplyEnabled' : 'supplyDisabled')}
+              </Badge>
+            </div>
             <dl className="grid gap-5 text-sm sm:grid-cols-3">
               {[
                 ['provider', provider.name],
@@ -95,6 +101,19 @@ function ProviderModelDetail() {
               ))}
             </section>
           )}
+          <ProviderModelState
+            key={model.id}
+            model={model}
+            reload={async () => {
+              const result = await providers.refetch()
+              if (result.isError) throw result.error
+              return result.data
+                ?.flatMap((provider) =>
+                  provider.connections.flatMap((connection) => connection.provider_models),
+                )
+                .find((item) => item.id === model.id)
+            }}
+          />
           {access.can('prices.read') && (
             <section className="space-y-4 rounded-lg border p-6">
               <h3 className="font-semibold">{t('title')}</h3>

@@ -55,4 +55,19 @@ export default {
   manageModel: 'Manage {{name}}',
   ready: 'Ready',
   pending: 'Not ready',
+  supplyState: 'Provider-side availability',
+  supplyStateHelp:
+    'Disabling preserves routing bindings and prices but excludes this supply from new requests. Enabled alternatives keep their relative routing weights.',
+  supplyEnabled: 'Enabled',
+  supplyDisabled: 'Disabled',
+  enableSupply: 'Enable model',
+  saveState: 'Save status',
+  stateSaved: 'Availability saved and published.',
+  stateStale:
+    'Availability changed. Reload the current status and review your selection before saving.',
+  stateReviewed: 'Current availability loaded. Review your selection before saving.',
+  stateUncertain:
+    'Publication could not be confirmed. Reload the current state before another change.',
+  stateRetry:
+    'Current status loaded. Save again to retry publication without changing availability.',
 }

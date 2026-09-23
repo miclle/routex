@@ -36,6 +36,8 @@ type ProviderModel struct {
 	ID           string `gorm:"primaryKey;size:30"`
 	ConnectionID string `gorm:"size:30;not null"`
 	UpstreamName string `gorm:"size:255;not null"`
+	Disabled     bool   `gorm:"not null;default:false"`
+	ETag         string `gorm:"size:64;not null;default:0"`
 	CreatedAt    time.Time
 }
 

@@ -60,7 +60,9 @@ beforeEach(() => {
             verified_at: null,
           },
         ],
-        provider_models: [{ id: 'pm_1', upstream_name: 'upstream-model' }],
+        provider_models: [
+          { id: 'pm_1', upstream_name: 'upstream-model', enabled: true, etag: '0' },
+        ],
       },
     ],
   }

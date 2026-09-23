@@ -7,6 +7,8 @@ export interface Credential {
   verified_at: string | null
 }
 export interface ProviderModel {
+  enabled: boolean
+  etag: string
   id: string
   upstream_name: string
 }

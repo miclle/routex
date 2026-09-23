@@ -439,3 +439,23 @@ wait fixed it without relaxing assertions or timeouts, and the complete suite th
 passed. Browser verification remains outstanding because the available browser
 surfaces were disconnected; source tests and backend acceptance are separate
 from browser or deployment proof.
+
+### Provider model availability
+
+Migration 15 preserves existing supply as enabled and adds optimistic state edits.
+Provider details expose a reviewed availability switch before prices, with English
+and Chinese copy. Disabling preserves bindings, weights and prices while excluding
+supply from prepared and direct route selection. Remaining enabled positive
+weights retain their relative proportions. No eligible supply fails before dispatch.
+A denial and current authorization prevent older snapshots restoring disabled
+supply; explicit reconciliation supports uncertain publication retries.
+See [PROVIDER_MODELS](PROVIDER_MODELS.md).
+
+Full checks and tests passed with the preceding limit interfaces included:
+153 Vitest cases, four Node checks, Go race/unit, development lifecycle and
+production assets. PostgreSQL/MySQL integration passed in 409.126 seconds and
+both process restart/inference/revocation suites passed. The database tests include
+retained-row migration/repeat, actual upstream exclusion/restoration, preserved
+weights and audit; focused tests cover old-snapshot denial, zero-weight candidates,
+ETag conflicts, one write per submission and publication reconciliation. Browser
+availability-switch verification remains outstanding.

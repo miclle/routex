@@ -1,7 +1,14 @@
 import { t } from '@/i18n'
 import axios from 'axios'
 import client from './client'
-import type { CallableModel, KeyDelivery, Model, PersonalKey, Provider } from '@/types/catalog'
+import type {
+  CallableModel,
+  KeyDelivery,
+  Model,
+  PersonalKey,
+  Provider,
+  ProviderModel,
+} from '@/types/catalog'
 
 export async function listProviders() {
   return (await client.get<{ items: Provider[] }>('/admin/providers')).data.items
@@ -59,4 +66,18 @@ export function catalogError(error: unknown) {
     }
   }
   return t('the_action_failed_check_the_service_connection_and_65fc1')
+}
+
+export async function setProviderModelState(
+  id: string,
+  etag: string,
+  enabled: boolean,
+  csrf: string,
+) {
+  return writeCatalog<ProviderModel>(
+    'patch',
+    `/admin/provider-models/${id}`,
+    { etag, enabled },
+    csrf,
+  )
 }
