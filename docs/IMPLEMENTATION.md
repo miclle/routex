@@ -151,7 +151,8 @@ The following are single-node experimental targets, not measured performance or 
 | P1-03 Personal Keys | Delivered (`3cd5305`); controlled local acceptance passed | One-time pending delivery, confirmation, digest storage, concurrent rotation, ownership, revocation and audit; PostgreSQL/MySQL integration passed |
 | P1-04/05 | In progress | Native OpenAI chat ordinary/SSE, Key Playground, isolated personal/admin call queries and request facts have controlled dual-database evidence; immutable snapshots and bounded durable events have controlled failure/restart evidence; measured capacity and real-provider acceptance remain open |
 | P2 | In progress | Profile/password/session APIs and UI delivered; member/role/registration interfaces and Team/Project backend delivered; Project Keys, offboarding, and resource interfaces advance in separate verified packages |
-| P3–P6 | Pending | Full goal remains active; metering through final acceptance follows the preceding dependencies |
+| P3 | In progress | Current text-price catalogue, exact quotes, and FX administration implemented; persisted billing, quotas, non-token metrics, import, and synchronization remain open |
+| P4–P6 | Pending | Full goal remains active; additional protocols, enterprise integrations, and final acceptance follow the preceding dependencies |
 
 Verification in this iteration:
 
@@ -266,3 +267,20 @@ using the production assets and a disposable controlled auth HTTP fixture. No
 browser errors or warnings were captured. This browser check verifies rendering
 and client behavior; it does not replace database-backed identity acceptance.
 Unregistered resource interfaces remain in the following work package.
+
+### Current text prices and exchange rates
+
+Migration 11 adds one current price aggregate per provider model, finite text-token
+rates, explicit currency conversion, and an optimistic catalogue ETag. The
+`routex_text_v1` adapter calculates decimal quotes without floating-point rounding,
+retains the exact price/FX basis, and rejects missing or unsupported usage. Scoped
+read/write permissions, atomic updates, and bounded before/after audits are covered
+by both supported databases. Quotes remain dry runs; gateway charges and quotas
+are subsequent work. See [PRICING](PRICING.md).
+
+The final source passed full check, Go race/unit tests, 76 Vitest cases, four Node
+checks, development lifecycle, and production build/assets. PostgreSQL/MySQL
+integration passed in 147.486 seconds, and process restart/inference/revocation
+checks passed for both databases. A GORM field update now uses the mapped `ETag`
+field rather than a guessed database column; a READ COMMITTED regression verifies
+price/FX reads cannot mix catalogue generations on MySQL.

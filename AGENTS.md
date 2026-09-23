@@ -142,6 +142,8 @@ scripts/                      # Shell helpers invoked by Taskfile (build, check,
 
 ## Mandatory Rules
 
+- Describe RouteX independently. Keep competitor comparisons and implementation research outside the project repository; preserve any required third-party licensing notices.
+
 - Write documentation, commit titles/bodies, and PR descriptions in English.
 
 - Respect the existing layering and directory structure; do not reshape architecture for local changes

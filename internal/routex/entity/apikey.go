@@ -36,10 +36,11 @@ func (APIKeyModel) TableName() string { return "api_key_models" }
 
 // AuditEvent captures business actions without secret values or request bodies.
 type AuditEvent struct {
-	ID           string `gorm:"primaryKey;size:30"`
-	ActorID      string `gorm:"size:30;not null"`
-	Action       string `gorm:"size:80;not null"`
-	ResourceType string `gorm:"size:40;not null"`
-	ResourceID   string `gorm:"size:30;not null"`
+	DetailsJSON  *string `gorm:"type:text"`
+	ID           string  `gorm:"primaryKey;size:30"`
+	ActorID      string  `gorm:"size:30;not null"`
+	Action       string  `gorm:"size:80;not null"`
+	ResourceType string  `gorm:"size:40;not null"`
+	ResourceID   string  `gorm:"size:30;not null"`
 	CreatedAt    time.Time
 }

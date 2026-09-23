@@ -109,6 +109,12 @@ func (ctrl *Ctrl) RegisterRoutes(r *fox.Engine) {
 	admin.GET("/runtime", ctrl.RequirePermission("system.read"), ctrl.RuntimeStatus)
 	admin.POST("/runtime/publish", requireAdmin, sameOrigin, requireCSRF, ctrl.PublishRuntime)
 
+	admin.GET("/prices", ctrl.RequirePermission("prices.read"), ctrl.ListPrices)
+	admin.GET("/provider-models/:provider_model_id/price", ctrl.RequirePermission("prices.read"), ctrl.GetPrice)
+	admin.PUT("/prices", sameOrigin, requireCSRF, jsonManagementRequest, ctrl.RequirePermission("prices.write"), ctrl.WritePrices)
+	admin.PUT("/prices/currency", sameOrigin, requireCSRF, jsonManagementRequest, ctrl.RequirePermission("prices.write"), ctrl.WritePricingCurrency)
+	admin.POST("/prices/quote", sameOrigin, requireCSRF, jsonManagementRequest, ctrl.RequirePermission("prices.read"), ctrl.QuotePrice)
+
 	admin.GET("/calls", ctrl.RequirePermission("calls.read_all"), ctrl.ListAdminCalls)
 	admin.GET("/calls/:request_id", ctrl.RequirePermission("calls.read_all"), ctrl.GetAdminCall)
 	admin.GET("/providers", ctrl.RequirePermission("providers.read"), ctrl.ListProviders)
