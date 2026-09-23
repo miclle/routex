@@ -1,0 +1,144 @@
+version: "3"
+
+vars:
+  WEBSITE_DIR: website
+
+tasks:
+  default:
+    desc: Print task list
+    cmds:
+      - go tool task --list-all --sort none
+    silent: true
+
+  init-config:
+    internal: true
+    cmds:
+      - cp cmd/routex/config.example.yaml cmd/routex/config.local.yaml
+      - echo "Created cmd/routex/config.local.yaml from config.example.yaml"
+    status:
+      - test -f cmd/routex/config.local.yaml
+
+  install:
+    desc: Install all dependencies (Go modules + frontend)
+    cmds:
+      - go mod download
+      - cd {{.WEBSITE_DIR}} && npm install
+
+  # ---------- Development ----------
+
+  dev:
+    desc: Start Vite dev server and Go server with hot-reload
+    deps: [init-config]
+    cmds:
+      - |
+        export ROUTEX_HTTP_PORT="${ROUTEX_HTTP_PORT:-9000}"
+        export ROUTEX_VITE_PORT="${ROUTEX_VITE_PORT:-5173}"
+        export ROUTEX_API_BASE_URL="${ROUTEX_API_BASE_URL:-http://127.0.0.1:${ROUTEX_HTTP_PORT}}"
+        export ROUTEX_VITE_DEV_SERVER_URL="${ROUTEX_VITE_DEV_SERVER_URL:-http://localhost:${ROUTEX_VITE_PORT}}"
+
+        echo "Starting Vite on ${ROUTEX_VITE_DEV_SERVER_URL}"
+        echo "Starting Go server on port ${ROUTEX_HTTP_PORT}"
+
+        go tool task --parallel --failfast dev:frontend dev:backend
+
+  dev:frontend:
+    desc: Start the Vite development server
+    dir: '{{.WEBSITE_DIR}}'
+    cmds:
+      - npm run dev
+
+  dev:backend:
+    desc: Start the Go development server with hot reload
+    cmds:
+      - |
+        go tool reflex \
+          -d none -s \
+          -r '\.go$' \
+          -R 'website/' \
+          -R 'tmp' \
+          -- go run -trimpath -tags development ./cmd/routex/ -c cmd/routex/config.local.yaml
+
+  run:
+    desc: Run the server (production mode, requires build first)
+    deps: [init-config]
+    cmds:
+      - go run ./cmd/routex/ -c cmd/routex/config.local.yaml
+
+  # ---------- Build ----------
+
+  build:
+    desc: Build the server binary for the current platform
+    cmds:
+      - cd {{.WEBSITE_DIR}} && npm install && npm run build
+      - ./scripts/build.sh
+
+  build-all:
+    desc: Build server binaries for all supported platforms
+    cmds:
+      - cd {{.WEBSITE_DIR}} && npm install && npm run build
+      - ./scripts/build-all.sh
+
+  clean:
+    desc: Clean build artifacts
+    cmds:
+      - rm -rf bin/
+      - go clean ./...
+
+  # ---------- Code Quality ----------
+
+  lint:
+    desc: Auto-fix code style (go mod tidy + gofmt + vet + staticcheck + frontend eslint)
+    cmds:
+      - go mod tidy
+      - gofmt -w .
+      - go vet -tags development $(./scripts/go-packages.sh)
+      - go tool staticcheck -tags development $(./scripts/go-packages.sh)
+      - cd {{.WEBSITE_DIR}} && npm run lint
+
+  check:
+    desc: Run all checks without modifying files (CI-friendly)
+    cmds:
+      - task: check-backend
+      - task: check-frontend-types
+      - task: check-mod-tidy
+
+  check-backend:
+    internal: true
+    cmds:
+      - gofmt -l .
+      - go vet -tags development $(./scripts/go-packages.sh)
+      - ./scripts/check-lint.sh
+
+  check-frontend-types:
+    internal: true
+    cmds:
+      - cd {{.WEBSITE_DIR}} && npx tsc -b
+
+  check-mod-tidy:
+    internal: true
+    cmds:
+      - ./scripts/check-mod-tidy.sh
+
+  # ---------- Testing ----------
+
+  test:
+    desc: Run Go, frontend, development lifecycle, and production asset tests
+    cmds:
+      - go test -trimpath -race -tags development -coverprofile=coverage.out $(./scripts/go-packages.sh)
+      - cd {{.WEBSITE_DIR}} && npm test
+      - node --test scripts/dev.test.mjs
+      - task: test-production
+
+  test-production:
+    desc: Build web assets and test production asset serving
+    cmds:
+      - cd {{.WEBSITE_DIR}} && npm run build
+      - go test -trimpath -race ./website
+
+  # ---------- Internal ----------
+
+  update-tools:
+    desc: Install GolangCI-Lint if missing
+    run: once
+    cmds:
+      - ./scripts/install-tools.sh

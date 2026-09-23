@@ -1,0 +1,137 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend:
+    name: Backend Checks
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup Go
+        uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+          cache-dependency-path: go.sum
+
+      - name: Verify gofmt
+        shell: bash
+        run: |
+          mapfile -t files < <(find . -type f -name '*.go' -not -path './website/node_modules/*')
+          if [ "${#files[@]}" -eq 0 ]; then
+            exit 0
+          fi
+          unformatted="$(gofmt -l "${files[@]}")"
+          if [ -n "$unformatted" ]; then
+            echo "The following Go files are not formatted:"
+            echo "$unformatted"
+            exit 1
+          fi
+
+      - name: Verify Go modules are tidy
+        run: |
+          go mod tidy
+          git diff --exit-code -- go.mod go.sum
+
+      - name: Vet backend
+        run: ./scripts/go-packages.sh | xargs go vet -tags development
+
+      - name: Run staticcheck
+        run: ./scripts/go-packages.sh | xargs go tool staticcheck -tags development
+
+      - name: Test backend
+        run: ./scripts/go-packages.sh | xargs go test -trimpath -tags development
+
+  frontend:
+    name: Frontend Checks
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22.22.0
+          cache: npm
+          cache-dependency-path: website/package-lock.json
+
+      - name: Install frontend dependencies
+        working-directory: website
+        run: npm ci
+
+      - name: Lint frontend
+        working-directory: website
+        run: npm run lint
+
+      - name: Type-check frontend
+        working-directory: website
+        run: npx tsc -b
+
+      - name: Test frontend
+        working-directory: website
+        run: npm run test
+
+      - name: Build frontend
+        working-directory: website
+        run: npm run build
+
+  build:
+    name: Build Artifacts
+    runs-on: ubuntu-latest
+    needs:
+      - backend
+      - frontend
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup Go
+        uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+          cache-dependency-path: go.sum
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22.22.0
+          cache: npm
+          cache-dependency-path: website/package-lock.json
+
+      - name: Install frontend dependencies
+        working-directory: website
+        run: npm ci
+
+      - name: Build embedded web assets
+        working-directory: website
+        run: npm run build
+
+      - name: Build server binary
+        run: ./scripts/build.sh
+
+      - name: Test production asset serving
+        run: go test -trimpath ./website
+
+      - name: Test development task lifecycle
+        run: node --test scripts/dev.test.mjs
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: routex-build-${{ github.sha }}
+          path: bin/

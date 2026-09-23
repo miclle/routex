@@ -3,6 +3,17 @@
 This document records the initial architecture direction for RouteX. It is a
 starting point rather than a frozen implementation specification.
 
+## Current implementation
+
+The repository currently contains the Go + React bootstrap: HTTP
+route registration, database connection and example migration, shared helpers,
+an embedded SPA, development tooling, and CI. `/health` and `/api/v1/hello` are
+scaffold endpoints. The product domains below describe the intended architecture;
+provider adapters, routing, access control, and usage processing are not yet
+implemented. The initial single-binary packaging does not require future Gateway,
+Control Plane, and Data Platform components to share a deployment or availability
+boundary.
+
 ## Product boundary
 
 RouteX is an AI gateway and control plane for organizations that need to manage

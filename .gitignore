@@ -26,3 +26,19 @@ coverage/
 *.log
 tmp/
 temp/
+
+# Template build and local development artifacts
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.out
+coverage.*
+*.coverprofile
+profile.cov
+go.work
+go.work.sum
+.task/
+config.local.yaml
+.claude/settings.local.json

@@ -2,6 +2,12 @@
 
 Thanks for your interest in RouteX.
 
+## Local verification
+
+Follow the [development setup](README.md#development) to install dependencies and tools. Before submitting changes, run `go tool task check`, `go tool task test`, `npm --prefix website run lint`, and `go tool task build`. The automated unit tests do not require a running database; starting the application does.
+
+See [AGENTS.md](AGENTS.md) and `.agents/rules/` for code organization and API, frontend, security, and testing conventions.
+
 ## Development principles
 
 - Keep the gateway data plane independent from asynchronous analytics.
