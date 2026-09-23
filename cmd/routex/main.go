@@ -75,7 +75,7 @@ func run(ctx context.Context, configPath string) (runErr error) {
 	if err != nil {
 		return errors.New("invalid trusted proxy configuration")
 	}
-	svc, err := service.New(ctx, db, service.WithTrustedProxies(trustedProxies), service.WithCredentialStorage(store), service.WithUpstreamPolicy(cfg.AllowPrivateUpstreams), service.WithEgressPolicy(cfg.AllowPrivateEgresses), service.WithSMTPPolicy(cfg.AllowPrivateSMTP))
+	svc, err := service.New(ctx, db, service.WithTrustedProxies(trustedProxies), service.WithCredentialStorage(store), service.WithUpstreamPolicy(cfg.AllowPrivateUpstreams), service.WithEgressPolicy(cfg.AllowPrivateEgresses), service.WithSMTPPolicy(cfg.AllowPrivateSMTP), service.WithStoragePolicy(cfg.AllowPrivateStorage))
 	if err != nil {
 		return errors.New("initialize service failed")
 	}
@@ -101,6 +101,11 @@ func run(ctx context.Context, configPath string) (runErr error) {
 	if ctx.Err() != nil {
 		return nil
 	}
+	stopStorageCleanup, err := svc.StartStorageCleanup(lifecycle)
+	if err != nil {
+		return errors.New("start storage cleanup failed")
+	}
+	defer stopStorageCleanup()
 	engine := fox.Default()
 	handler.New(svc).RegisterRoutes(engine)
 	listener, err := net.Listen("tcp", cfg.Addr)

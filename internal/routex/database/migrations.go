@@ -103,7 +103,7 @@ func migrationSteps(dialect string) []func(*gorm.DB) error {
 			return nil
 		})
 	}
-	return append(steps, callMigration, governanceMigration, runtimeMigration, resourcesMigration, projectKeyMigration, offboardingMigration, pricingMigration, projectRequestMigration, callPricingMigration, resourceLimitMigration, providerModelStateMigration, mfaMigration, siteMigration, egressMigration, quotaMigration, smtpMigration)
+	return append(steps, callMigration, governanceMigration, runtimeMigration, resourcesMigration, projectKeyMigration, offboardingMigration, pricingMigration, projectRequestMigration, callPricingMigration, resourceLimitMigration, providerModelStateMigration, mfaMigration, siteMigration, egressMigration, quotaMigration, smtpMigration, storageMigration)
 }
 
 func legacyMigrationSQL(dialect string) [][]string {

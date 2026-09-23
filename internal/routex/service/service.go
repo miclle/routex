@@ -27,6 +27,7 @@ type Service struct {
 	upstream             *http.Client
 	allowPrivateUpstream bool
 	allowPrivateSMTP     bool
+	allowPrivateStorage  bool
 	allowPrivateEgress   bool
 	egressMu             sync.RWMutex
 	egressGeneration     atomic.Uint64

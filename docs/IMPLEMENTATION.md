@@ -152,7 +152,7 @@ The following are single-node experimental targets, not measured performance or 
 | P1-04/05 | In progress | Native OpenAI chat ordinary/SSE, Key Playground, isolated personal/admin call queries and request facts have controlled dual-database evidence; immutable snapshots and bounded durable events have controlled failure/restart evidence; measured capacity and real-provider acceptance remain open |
 | P2 | In progress | Profile/password/session APIs and UI delivered; member/role/registration interfaces and Team/Project backend delivered; Project Keys, offboarding, and resource interfaces advance in separate verified packages |
 | P3 | In progress | Current text prices, FX, immutable call assessments, atomic CSV/XLS/XLSX imports, CSV exports, and single-process Personal/Project/Key token and monetary quota admission are implemented; Team quotas, templates, approvals, alerts, distributed enforcement, non-token metrics, and synchronization remain open |
-| P4–P6 | In progress | Four native inference protocols and SMTP configuration/test delivery are implemented; object storage, durable notifications, remaining enterprise integrations, and final acceptance remain open |
+| P4–P6 | In progress | Four native inference protocols, SMTP configuration/test delivery, and the object-storage/owned-attachment backend are implemented; storage interfaces, durable notifications, remaining enterprise integrations, and final acceptance remain open |
 
 Verification in this iteration:
 
@@ -779,6 +779,31 @@ lifecycle checks and production assets. The serialized PostgreSQL/MySQL lifecycl
 suite passed in 264.903 seconds, and both database process suites passed. Durable
 notification jobs, recipient policy, retries, delivery tracking, external-service
 acceptance and production capacity remain open.
+
+### Object storage and owned attachment backend
+
+Frozen migration 21 adds revisioned S3-compatible configuration, encrypted static
+credentials, owner-scoped attachment metadata, durable cleanup intent, and
+independent `storage.read`, `storage.write`, and `storage.test` permissions. Private
+storage endpoints require a separate bootstrap opt-in. The client pins validated
+addresses, forbids redirects and ambient credentials, signs path-style requests,
+and uses conditional writes with exact-version reads and deletion.
+
+Session APIs accept one bounded PNG, JPEG or PDF multipart upload, return owner-only
+metadata or verified bytes, and record deletion intent before cleanup. A background
+worker resumes expired leases and uncertain uploads without bucket-wide discovery.
+Configuration changes verify a candidate before publication, retain historical
+credentials for existing objects, and support explicit rollback to verified
+revisions. Storage authority never grants attachment-content access.
+
+Controlled tests cover signed operations, format and size limits, DNS policy,
+cancellation, encrypted revision binding, a real 70 KiB multipart upload, CSRF,
+owner isolation, revision changes, rollback and cleanup replay. Full check/test
+passed with 378 Vitest cases, Go race/unit coverage, development lifecycle checks
+and production assets. The serialized PostgreSQL/MySQL lifecycle suite passed in
+275.269 seconds, and both database process suites passed. This phase delivers the
+backend only; administration and attachment web interfaces, public delivery, gateway
+file resolution, external-service acceptance and production capacity remain open.
 
 ### Native route-attempt foundation
 

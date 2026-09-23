@@ -27,3 +27,6 @@ allow_private_egresses: "${ROUTEX_ALLOW_PRIVATE_EGRESSES:-false}"
 
 # Independently permit trusted private SMTP hosts; never enables plaintext AUTH.
 allow_private_smtp: "${ROUTEX_ALLOW_PRIVATE_SMTP:-false}"
+
+# Independently permit trusted private S3-compatible endpoints.
+allow_private_storage: "${ROUTEX_ALLOW_PRIVATE_STORAGE:-false}"
