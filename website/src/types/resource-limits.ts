@@ -1,4 +1,10 @@
 export interface LimitPolicy {
+  tokens_5h?: number | null
+  tokens_7d?: number | null
+  tokens_month?: number | null
+  tpm?: number | null
+  money_month?: string | null
+  currency?: string
   rpm: number | null
   concurrency: number | null
   ip_mode: 'none' | 'allowlist' | 'denylist'

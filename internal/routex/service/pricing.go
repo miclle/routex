@@ -375,6 +375,8 @@ func (s *Service) WritePricingCurrency(ctx context.Context, actorID, etag string
 	for currency, rate := range fx.Rates {
 		normalized.Rates[currency], _ = pricing.Decimal(rate)
 	}
+	s.limitMu.Lock()
+	defer s.limitMu.Unlock()
 	result := &PricePage{Items: []PriceRecord{}, Currency: normalized}
 	err := s.authDB(ctx).Transaction(func(tx *gorm.DB) error {
 		if err := lockGovernance(tx); err != nil {
@@ -389,6 +391,11 @@ func (s *Service) WritePricingCurrency(ctx context.Context, actorID, etag string
 		}
 		if setting.ETag != etag {
 			return pricingStale
+		}
+		if setting.PlatformCurrency != normalized.PlatformCurrency {
+			if err := s.guardQuotaCurrencyChange(tx); err != nil {
+				return err
+			}
 		}
 		before, err := pricingFX(tx, setting)
 		if err != nil {

@@ -92,7 +92,7 @@ func TestCallPriceJournalRestartsWithAcceptedReceipt(t *testing.T) {
 	}
 	svc := &Service{recorder: &callRecorder{queue: queue}}
 	basis := testPriceBasis()
-	result := &GatewayResult{UserID: "usr_one", KeyID: "key_one", ModelID: "mdl_one", ModelName: "public-model", ProviderModelID: "pmd_one", PriceBasis: basis}
+	result := &GatewayResult{quotaTimeZone: "UTC", admissionQuota: []eventqueue.QuotaLimit{{Limit: eventqueue.Limit{Account: "user_usr_one"}, Revision: "0"}, {Limit: eventqueue.Limit{Account: "key_key_one"}, Revision: "0"}}, UserID: "usr_one", KeyID: "key_one", ModelID: "mdl_one", ModelName: "public-model", ProviderModelID: "pmd_one", PriceBasis: basis}
 	if err := svc.AdmitGatewayCall("req_crash", result); err != nil {
 		t.Fatal(err)
 	}

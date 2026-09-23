@@ -12,6 +12,12 @@ var ErrInvalid = errors.New("invalid admission policy")
 const MaxInteger int64 = 9007199254740991
 
 type Policy struct {
+	Tokens5H    *int64   `json:"tokens_5h"`
+	Tokens7D    *int64   `json:"tokens_7d"`
+	TokensMonth *int64   `json:"tokens_month"`
+	TPM         *int64   `json:"tpm"`
+	MoneyMonth  *string  `json:"money_month"`
+	Currency    string   `json:"currency"`
 	RPM         *int64   `json:"rpm"`
 	Concurrency *int64   `json:"concurrency"`
 	IPMode      string   `json:"ip_mode"`
@@ -46,7 +52,7 @@ func Normalize(p Policy) (Policy, error) {
 		p.IPRanges = append(p.IPRanges, value)
 	}
 	sort.Strings(p.IPRanges)
-	return p, nil
+	return normalizeQuota(p)
 }
 func ParseNetwork(raw string) (netip.Prefix, error) {
 	if addr, err := netip.ParseAddr(raw); err == nil {
@@ -96,5 +102,5 @@ func Narrower(parent, child Policy) bool {
 			return false
 		}
 	}
-	return true
+	return narrowerQuota(parent, child)
 }

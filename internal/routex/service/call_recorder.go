@@ -18,12 +18,13 @@ const callQueuePayloadLimit = 64 << 10
 var callQueueUnavailable = &GatewayError{Status: 503, Code: "event_buffer_unavailable", Message: "Request recording is temporarily unavailable."}
 
 type callRecorder struct {
-	queue     *eventqueue.Queue
-	cancel    context.CancelFunc
-	done      chan struct{}
-	flush     sync.Mutex
-	closeOnce sync.Once
-	closeErr  error
+	queue           *eventqueue.Queue
+	cancel          context.CancelFunc
+	done            chan struct{}
+	flush           sync.Mutex
+	quotaActivation sync.Mutex
+	closeOnce       sync.Once
+	closeErr        error
 }
 
 // StartCallRecorder replays fsynced facts independently of the gateway hot path.
@@ -39,6 +40,10 @@ func (s *Service) StartCallRecorder(ctx context.Context, path string) error {
 	if err := s.bindLimitJournal(ctx, queue); err != nil {
 		_ = queue.Close()
 		return errors.New("bind durable call buffer failed")
+	}
+	if err := s.validateQuotaJournal(ctx, queue); err != nil {
+		_ = queue.Close()
+		return errors.New("validate quota journal failed")
 	}
 	runCtx, cancel := context.WithCancel(ctx)
 	recorder := &callRecorder{queue: queue, cancel: cancel, done: make(chan struct{})}
@@ -83,6 +88,11 @@ func (s *Service) StopCallRecorder() error {
 func (s *Service) AdmitGatewayCall(requestID string, result *GatewayResult) error {
 	if s.recorder == nil {
 		if result != nil {
+			for _, policy := range result.admissionQuota {
+				if policy.Tokens5H != nil || policy.Tokens7D != nil || policy.TokensMonth != nil || policy.TPM != nil || policy.MoneyMonth != nil {
+					return callQueueUnavailable
+				}
+			}
 			for _, limit := range result.admissionLimits {
 				if limit.RPM != nil || limit.Concurrency != nil {
 					return callQueueUnavailable
@@ -104,8 +114,23 @@ func (s *Service) AdmitGatewayCall(requestID string, result *GatewayResult) erro
 	if err != nil {
 		return callQueueUnavailable
 	}
-	if err := s.recorder.queue.ReserveWithLimits(requestID, payload, result.admissionLimits, now); err != nil {
-		return gatewayLimitError(err)
+	if len(result.admissionQuota) == 0 {
+		// Compatibility for callers preparing legacy format1 facts. Native gateway
+		// dispatch always prepares quota scopes, including before first activation.
+		// The journal atomically rejects this entry point once format2 is active.
+		if err := s.recorder.queue.ReserveWithLimits(requestID, payload, result.admissionLimits, now); err != nil {
+			return quotaGatewayError(err)
+		}
+		return nil
+	}
+	if result.quotaTimeZone == "" {
+		return callQueueUnavailable
+	}
+	if err := s.ensureQuotaActive(result.quotaTimeZone, now); err != nil {
+		return quotaGatewayError(err)
+	}
+	if err := s.recorder.queue.ReserveWithQuota(requestID, payload, result.admissionQuota, result.quotaBound, now); err != nil {
+		return quotaGatewayError(err)
 	}
 	return nil
 }
@@ -122,7 +147,18 @@ func (s *Service) PersistGatewayCall(ctx context.Context, fact CallFact) error {
 	if err != nil {
 		return apperrors.ErrInternal
 	}
-	err = s.recorder.queue.Complete(fact.RequestID, payload)
+	status, statusErr := s.recorder.queue.QuotaStatus()
+	if statusErr != nil {
+		return callQueueUnavailable
+	}
+	if status.Active {
+		_, err = s.recorder.queue.CompleteQuota(fact.RequestID, payload, quotaCallSettlement(fact), time.Now().UTC())
+	} else {
+		err = s.recorder.queue.Complete(fact.RequestID, payload)
+	}
+	if errors.Is(err, eventqueue.ErrMissing) {
+		err = s.recorder.queue.Complete(fact.RequestID, payload)
+	}
 	if errors.Is(err, eventqueue.ErrMissing) {
 		// Rejected requests may finish before the upstream admission boundary.
 		// Their final fact can be queued directly without pretending a dispatch ran.

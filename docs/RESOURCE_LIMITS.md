@@ -1,10 +1,10 @@
 # Resource limits and admission policy
 
-Status: the first implementation slice covers Personal/Project aggregate and Key RPM, concurrency, and IP restrictions. The broader Token/money/TPM, Team context, defaults, approvals and alerts below remain a proposal for F09/F17/F18 and A04/A11/A12. Database and process acceptance evidence must be recorded separately from this source-level implementation description.
+Status: Personal/Project aggregate and Key policies support RPM, concurrency, IP restrictions, rolling five-hour/seven-day tokens, monthly tokens/money, and TPM. Version 19 source integrates conservative native text reservations and independent settlement; its precise API and remaining limitations are in [QUOTAS.md](QUOTAS.md). Team/session contexts, defaults, approvals, alerts, and reset-to-template remain planned extensions for F09/F17/F18 and A04/A11/A12. Database and process acceptance evidence is recorded separately from source implementation.
 
 ## Implemented slice
 
-Migration 14 adds `resource_limits` and the singleton `limit_installation`; it does not change released migrations. Policy rows contain only supported `rpm`, `concurrency`, `ip_mode`, and `ip_ranges` fields, plus ETag, reason, actor and timestamps. Token, money, TPM, defaults and Team policy writes are not accepted. Existing accounts are unrestricted until explicitly configured.
+Migration 14 adds `resource_limits` and the singleton `limit_installation`. Additive migration 19 extends the same policy rows with `tokens_5h`, `tokens_7d`, `tokens_month`, `tpm`, `money_month`, and `currency`, and creates `quota_settings` and `reservation_bounds`. Released migrations are unchanged. Existing accounts remain unrestricted until configured; applying a finite quota also requires complete historical coverage and supported capacity/price evidence. Defaults, Team limits, approvals, and alert controls are not accepted by these APIs.
 
 The following routes use session authorization. PUT additionally requires CSRF, a same-origin request, a strong `If-Match` value from the latest read, and a nonempty reason. A first read returns ETag `"0"`. Successful writes publish before acknowledgment; retries of the same actor, prior ETag, normalized body and reason replay publication without an additional audit event.
 
@@ -21,7 +21,7 @@ Example PUT body:
 {"rpm":60,"concurrency":4,"ip_mode":"allowlist","ip_ranges":["192.0.2.0/24"],"reason":"Application admission policy"}
 ```
 
-GET returns `stored`, numeric `effective`, the conjunction in `ip_policies`, `account_id`, `etag`, optional parent ETag, live `rpm_used`/`active` and `enforced`. Null numeric fields mean unrestricted aggregate or inherited child. Limits are checked on inference; IP restrictions also protect `/v1/models`, whose metadata reads do not consume RPM or inference concurrency. HTTP 429 distinguishes `rate_limit_exceeded` and `concurrency_limit_exceeded`; IP rejection is 403 `ip_not_allowed`. Rejected calls reach no upstream and consume no limiter capacity.
+GET returns `stored`, numeric/decimal `effective`, the conjunction in `ip_policies`, `account_id`, `etag`, optional parent ETag, live `rpm_used`/`active`, `quota_usage`, and `enforced`. Quota windows include a coverage flag, settled values, conservative holds, and unknown counts; counters before coverage must not be presented as a complete balance. Null numeric fields mean unrestricted aggregate or inherited child. Limits are checked on inference; IP restrictions also protect `/v1/models`, whose metadata reads do not consume RPM or inference concurrency. HTTP 429 distinguishes `rate_limit_exceeded` and `concurrency_limit_exceeded`; IP rejection is 403 `ip_not_allowed`. Rejected calls reach no upstream and consume no limiter capacity.
 
 The stable Key account is derived from its oldest retained immutable rotation ancestor. Both overlapping credentials share policy and counters. Cycles, missing ancestors or cross-owner ancestry fail closed. No new Key ownership column or backfill is needed in this slice. PUT on either active credential edits that shared account. Parent reductions apply immediately to every descendant; setting a child field to null does not erase its counters.
 
@@ -63,20 +63,21 @@ A parent and each child retain distinct counters. For example, a Project's 100-t
 
 Rotation preserves a Key's immutable `limit_account_id`, restrictions, and used/reserved counters across the old/new overlap. A new unrelated Key receives a new limit account but still shares its owner aggregate. Revocation, disabling, edits, model grant changes, and reset-to-default never clear accounting history.
 
-## Minimal relational policy schema
+## Delivered schema and planned extensions
 
 Use frozen GORM models and explicit table names in the new migration. Decimal amounts are canonical strings and integer quantities use signed 64-bit fields with checked arithmetic. API Token and rate values are nonnegative safe JSON integers (at most `9007199254740991`); negative, fractional, exponent-encoded money, unknown fields and duplicate scope identities are rejected.
 
 | Table or extension | Fields and invariants |
 | --- | --- |
-| `limit_settings` singleton | Organization IANA `time_zone` (initially `UTC`), revision/ETag. No counter storage here. |
-| `limit_defaults` | Unique `kind=user|team`; revision; all numeric fields below; currency; quota behavior; alert thresholds. |
-| `resource_limit_policies` | Unique `(scope_kind, scope_id, subject_id)`; `scope_kind=user|team|project|team_member|key`; empty subject except Team/member user ID; revision/ETag; source default revision where copied; numeric fields; currency; behavior; timestamps. Existence and scope authorization checked under the governance transaction lock. |
+| `quota_settings` singleton (delivered) | Organization IANA `time_zone` (initially `UTC`), revision/ETag and first-activation intent. No counter storage here. |
+| `limit_defaults` (planned) | Unique `kind=user|team`; revision; all numeric fields below; currency; quota behavior; alert thresholds. |
+| `resource_limits` (delivered) | Unique `(scope_kind, scope_id)` with `user`, `project`, or `key`; ETag, actor, reason, numeric fields, currency, IP policy, timestamps. Team/member associations and copied default revisions remain planned. Scope authorization is checked under the governance transaction lock. |
+| `reservation_bounds` (delivered) | One provider-model capacity attestation, derived native protocol, finite input/output maxima, evidence, actor, reason, ETag. No model-name inference. |
 | Numeric fields | Nullable `tokens_5h`, `tokens_7d`, `tokens_month`, `money_month`, `rpm`, `tpm`, `concurrency`. `money_month` is a decimal string; configured money has an explicit currency matching the platform currency. |
 | IP fields | `ip_mode=none|allowlist|denylist` and normalized CIDR entries in a versioned JSON field. All entries use canonical network addresses. No hostname/DNS policy. |
-| Alert fields | Quota warning percentages, initially 80 and 95, and per-threshold enabled flags. Thresholds do not change allowance. |
+| Alert fields (planned) | Quota warning percentages, initially 80 and 95, and per-threshold enabled flags. Thresholds do not change allowance. |
 | Key account identity | Derive the immutable accounting ID from the oldest retained rotation ancestor; reject missing, cyclic or cross-owner ancestry. Policies refer to this accounting ID without changing Key ownership columns. |
-| Call extensions | Context kind/ID, Team ID where relevant, limit admission ID, policy revision, reservation/settlement status. Keep exact actual price facts separate from conservative quota holds. |
+| Call extensions (partly planned; durable quota receipts already retain scope/revision/bounds) | Context kind/ID, Team ID where relevant, limit admission ID, policy revision, reservation/settlement status. Keep exact actual price facts separate from conservative quota holds. |
 
 The policy table is a bounded discriminated resource association, not an arbitrary policy engine. Each kind has explicit service validation and authorization; a Project ID cannot be used with a personal-Key endpoint. Domain resource IDs remain stable historical identifiers. Database dialect differences belong only in migration/database code.
 
@@ -106,9 +107,9 @@ The runtime store must commit the applicable aggregate and child checks, RPM uni
 
 If a crash occurs after admission commit but before dispatch, recovery cannot prove that no work ran. It conservatively retains the reservation and records `process_interrupted`; it does not refund merely because SQL has no call row. A caught local failure before dispatch may release future economic reservations through an idempotent cancellation operation, but an already committed RPM admission remains counted.
 
-A reservation freezes the request ID, scope account IDs, policy revision, price basis, upper bounds, admitted timestamp, monthly period and terminal state. A duplicate settlement with identical facts is a no-op; a conflicting settlement is rejected and audited without replacing the first accepted result. No prompts, outputs, bearer tokens or provider credentials enter the quota journal.
+A reservation freezes the request ID, scope account IDs, policy revision, price basis, upper bounds, admitted timestamp, monthly period and terminal state. A duplicate settlement with identical facts is a no-op; a conflicting settlement is rejected without replacing the first accepted result. No prompts, outputs, bearer tokens or provider credentials enter the quota journal.
 
-Confirmed complete usage replaces reserved amounts with actual values. Missing/invalid usage, timeout after dispatch, cancellation, broken SSE or process interruption retains the full conservative Token/money hold until its applicable windows expire. Actual usage and charge remain null/unknown in reporting. An initial implementation offers no manual release or refund action; reconciliation requires separate authorized evidence and audit. Concurrent leases can be released on process recovery because no previous process owns local streams, while economic holds remain durable.
+Confirmed complete usage replaces reserved amounts with actual values independently per dimension, including canceled or failed requests whose authoritative final usage is available. Missing/invalid final usage, broken SSE, and process interruption retain the affected conservative hold until its applicable windows expire. Unknown actual quantities remain null; known tokens can settle while money remains unknown. An initial implementation offers no manual release or refund action; reconciliation requires separate authorized evidence and audit. Concurrent leases can be released on process recovery because no previous process owns local streams, while economic holds remain durable.
 
 If actual usage exceeds the reserved bound, persist the full observed debt and mark the adapter/model bound invalid; deny further constrained admissions through that route. Do not clamp usage to the reservation or claim a zero-overrun guarantee after provider contract violation. Successful bounded-adapter acceptance establishes zero local oversubscription under the declared upstream bound, not a guarantee against arbitrary provider misreporting.
 
@@ -116,13 +117,13 @@ Startup acquires the journal's exclusive lock, validates version and account ide
 
 The store prunes only terminal entries older than every affected retention window and without undelivered facts or unresolved holds. Exact rolling-window indexes need an explicit capacity bound and measurements; reaching capacity rejects new admission rather than evicting accounting state. The current 4096 pending event slots bound delivery backlog, not seven-day usage history, and must not be reused as quota retention capacity.
 
-A SQL outage can defer reporting while existing runtime authorization is still leased; it does not refund or lose quota. The existing five-second authorization lease still expires safely. This proposal does not extend authorization during a database outage or claim HA availability. Runtime policy reductions install a scope deny marker before refresh and complete synchronous publication before a successful mutation acknowledgment. Already admitted bounded work settles against its frozen basis; the new policy applies to every subsequent admission. Failed refresh returns 503 and leaves the affected scope blocked rather than serving an old broader policy.
+A SQL outage can defer reporting while existing runtime authorization is still leased; it does not refund or lose quota. The existing five-second authorization lease still expires safely. This implementation does not extend authorization during a database outage or claim HA availability. Runtime policy reductions install a scope deny marker before refresh and complete synchronous publication before a successful mutation acknowledgment. Already admitted bounded work settles against its frozen basis; the new policy applies to every subsequent admission. Failed refresh returns 503 and leaves the affected scope blocked rather than serving an old broader policy.
 
 ## Reservation bounds: required implementation gate
 
-Current route metadata has no verified input/output capacity, and the gateway accepts native request extensions. The pricing adapter can assess complete text usage after a call; this does not establish a pre-call upper bound. Therefore a finite Token/TPM/money policy must not be advertised as implemented solely because a database column or a Token estimate exists.
+Version 19 adds explicit provider-model capacity attestations. Discovery still supplies no proven input/output bound, and unconstrained gateway requests retain native extensions. The post-call pricing adapter alone cannot establish a reservation. Constrained traffic requires both a capacity attestation and a supported native cap; see [QUOTAS.md](QUOTAS.md).
 
-The minimal conservative supported adapter requires validated provider-model capacity metadata and documented request semantics: maximum billable input, maximum billable output, a recognized and enforced native output cap, choice count, cache dimensions and applicable pricing tiers. Restrict the first hard-budget path to supported text requests and one output choice. Reject unsupported tools, audio, images, reasoning parameters, arbitrary extra billing dimensions, absent/contradictory output caps, and unknown model capacity before dispatch when a hard quantity constraint applies. Unconstrained existing calls retain their native behavior.
+The minimal conservative supported adapter requires validated provider-model capacity metadata and documented request semantics: maximum billable input, maximum billable output, a recognized and enforced native output cap, choice count, cache dimensions and applicable pricing tiers. Restrict the first hard-budget path to supported text requests and one output choice. Reject hosted tools, audio, images, unknown billing dimensions, absent/contradictory output caps, and unknown model capacity before dispatch when a hard quantity constraint applies. Unconstrained existing calls retain their native behavior.
 
 Without a verified tokenizer, reserve the full declared maximum billable input plus the enforced output cap. This is deliberately conservative and can reject a small request when less than the model's full input capacity remains. The UI must explain the reservation requirement rather than silently shrink native parameters. A later verified protocol/model tokenizer may tighten the bound without changing ledger semantics. A raw byte count is not a proven substitute.
 
@@ -138,7 +139,7 @@ For each applicable policy, `none` contributes true; `allowlist` requires member
 
 ## Management and approval contracts
 
-Proposed management routes follow the existing `/api/v1` namespace. These are proposed, not yet registered APIs.
+The following table describes planned extensions and the intended authority of shared endpoint families. Delivered Personal/Project/Key routes are listed above; separate defaults, Team, approval, and `/limits/effective` endpoints are not implemented.
 
 | Endpoint family | Read authority | Write authority |
 | --- | --- | --- |

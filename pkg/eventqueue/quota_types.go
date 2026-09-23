@@ -91,6 +91,7 @@ type QuotaUsage struct {
 	MoneyUnknown                          int64
 }
 type AccountQuotaUsage struct {
+	AsOf                                time.Time
 	CoverageStart                       time.Time
 	TimeZone                            string
 	Active                              QuotaUsage

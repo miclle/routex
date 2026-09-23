@@ -137,6 +137,8 @@ func (ctrl *Ctrl) RegisterRoutes(r *fox.Engine) {
 	admin.GET("/audit", ctrl.RequirePermission("audit.read"), ctrl.AuditEvents)
 	admin.GET("/runtime", ctrl.RequirePermission("system.read"), ctrl.RuntimeStatus)
 	admin.POST("/runtime/publish", requireAdmin, sameOrigin, requireCSRF, ctrl.PublishRuntime)
+	admin.GET("/quota-settings", ctrl.GetQuotaSettings)
+	admin.PUT("/quota-settings", sameOrigin, requireCSRF, jsonManagementRequest, ctrl.RequirePermission("limits.settings.write"), ctrl.WriteQuotaSettings)
 
 	admin.GET("/egresses", ctrl.RequirePermission("egress.read"), ctrl.ListEgresses)
 	admin.POST("/egresses", sameOrigin, requireCSRF, jsonManagementRequest, ctrl.RequirePermission("egress.write"), ctrl.CreateEgress)
@@ -149,6 +151,8 @@ func (ctrl *Ctrl) RegisterRoutes(r *fox.Engine) {
 	admin.PATCH("/connections/:connection_id/egress", sameOrigin, requireCSRF, jsonManagementRequest, ctrl.RequirePermission("providers.write"), ctrl.SetConnectionEgress)
 	admin.GET("/prices", ctrl.RequirePermission("prices.read"), ctrl.ListPrices)
 	admin.PATCH("/provider-models/:provider_model_id", sameOrigin, requireCSRF, jsonManagementRequest, ctrl.RequirePermission("providers.write"), ctrl.SetProviderModelState)
+	admin.GET("/provider-models/:provider_model_id/reservation-bound", ctrl.RequirePermission("providers.read"), ctrl.GetReservationBound)
+	admin.PUT("/provider-models/:provider_model_id/reservation-bound", sameOrigin, requireCSRF, jsonManagementRequest, ctrl.RequirePermission("providers.write"), ctrl.WriteReservationBound)
 	admin.PUT("/site", ctrl.RequirePermission("site.write"), sameOrigin, requireCSRF, jsonManagementRequest, ctrl.UpdateSiteSettings)
 	admin.GET("/announcements", ctrl.RequirePermission("system.read"), ctrl.AdminAnnouncements)
 	admin.POST("/announcements", ctrl.RequirePermission("announcements.write"), sameOrigin, requireCSRF, jsonManagementRequest, ctrl.PublishAnnouncement)

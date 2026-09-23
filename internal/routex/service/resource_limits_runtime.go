@@ -237,5 +237,16 @@ func (s *Service) admitLimitedGatewayCall(ctx context.Context, requestID string,
 		return err
 	}
 	result.admissionLimits = policies
+	quotaPolicies, quotaData, err := s.gatewayQuotaPolicies(ctx, result, policies)
+	if err != nil {
+		return err
+	}
+	bound, err := prepareQuotaBound(result, quotaPolicies, quotaData)
+	if err != nil {
+		return err
+	}
+	result.admissionQuota = quotaPolicies
+	result.quotaBound = bound
+	result.quotaTimeZone = quotaData.Setting.TimeZone
 	return s.AdmitGatewayCall(requestID, result)
 }

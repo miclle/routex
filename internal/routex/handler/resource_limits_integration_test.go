@@ -166,7 +166,7 @@ func testResourceLimitLifecycle(t *testing.T, db *gorm.DB) {
 	}
 	expectStatus(t, identityRequest(router, "PUT", userPath, `{"rpm":0,"reason":"No CSRF"}`, cookie, ""), 403)
 	expectStatus(t, request("PUT", userPath, map[string]any{"rpm": 1, "reason": "No ETag"}, ""), 400)
-	expectStatus(t, request("PUT", userPath, map[string]any{"tokens_month": 100, "reason": "Unsupported"}, "0"), 400)
+	expectStatus(t, request("PUT", userPath, map[string]any{"tokens_week": 100, "reason": "Unsupported"}, "0"), 400)
 	write(userPath, 2, nil, "none", []string{})
 	expectStatus(t, request("PUT", userPath, map[string]any{"rpm": 3, "reason": "Stale"}, "0"), 409)
 	child := write(keyPath, 1, nil, "none", []string{})

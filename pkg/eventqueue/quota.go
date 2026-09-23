@@ -431,6 +431,7 @@ func (q *Queue) AccountQuotaUsage(account string, now time.Time) (*AccountQuotaU
 		if err != nil {
 			return err
 		}
+		result.AsOf = time.Unix(0, instant).UTC()
 		result.TimeZone = metadata.TimeZone
 		result.CoverageStart = time.Unix(0, metadata.CoverageStart).UTC()
 		for _, item := range []struct {

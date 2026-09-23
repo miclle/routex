@@ -48,6 +48,7 @@ type gatewayRuntime struct {
 }
 
 type runtimeAuthorization struct {
+	Quota               *runtimeQuotaData
 	ConnectionRevisions map[string]string
 	ValidUntil          time.Time
 	LimitPolicies       map[string]limits.Policy
@@ -373,6 +374,7 @@ func (s *Service) runtimeProtocolRoute(modelID, protocol string) (*gatewayRoute,
 }
 
 type runtimeData struct {
+	Quota            *runtimeQuotaData
 	Egresses         []entity.Egress
 	EgressSetting    entity.EgressSetting
 	EgressGeneration uint64
@@ -398,7 +400,7 @@ func (s *Service) loadRuntimeData(ctx context.Context) (*runtimeData, error) {
 	data := &runtimeData{EgressGeneration: s.egressGeneration.Load()}
 	err := s.authDB(ctx).Transaction(func(tx *gorm.DB) error {
 		// A repeatable-read transaction prevents mixed entity generations.
-		if err := tx.Select("id", "disabled").Find(&data.Users).Error; err != nil {
+		if err := tx.Select("id", "disabled", "created_at").Find(&data.Users).Error; err != nil {
 			return err
 		}
 		for _, target := range []any{&data.Limits, &data.Keys, &data.Scopes, &data.Grants, &data.Models, &data.Names, &data.Connections, &data.Credentials, &data.ProviderModels, &data.Access, &data.Bindings, &data.Egresses} {
@@ -418,13 +420,17 @@ func (s *Service) loadRuntimeData(ctx context.Context) (*runtimeData, error) {
 		if err != nil {
 			return err
 		}
+		data.Quota, err = loadRuntimeQuota(tx, data)
+		if err != nil {
+			return err
+		}
 		return compileRuntimeLimits(data)
 	}, &sql.TxOptions{Isolation: sql.LevelRepeatableRead, ReadOnly: true})
 	return data, err
 }
 
 func buildRuntimeAuthorization(data *runtimeData, until time.Time) *runtimeAuthorization {
-	auth := &runtimeAuthorization{ConnectionRevisions: runtimeConnectionRevisions(data), ValidUntil: until, LimitPolicies: data.LimitPolicies, LimitRoots: data.LimitRoots, Keys: map[string]runtimeKey{}, Names: map[string]entity.ModelName{}, Models: map[string]bool{}, Credentials: map[string]bool{}, ProviderModels: map[string]bool{}, CredentialAccess: map[string]map[string]bool{}, ModelCreated: map[string]time.Time{}}
+	auth := &runtimeAuthorization{Quota: data.Quota, ConnectionRevisions: runtimeConnectionRevisions(data), ValidUntil: until, LimitPolicies: data.LimitPolicies, LimitRoots: data.LimitRoots, Keys: map[string]runtimeKey{}, Names: map[string]entity.ModelName{}, Models: map[string]bool{}, Credentials: map[string]bool{}, ProviderModels: map[string]bool{}, CredentialAccess: map[string]map[string]bool{}, ModelCreated: map[string]time.Time{}}
 	users := map[string]bool{}
 	for _, user := range data.Users {
 		users[user.ID] = !user.Disabled
@@ -507,6 +513,7 @@ func runtimeDigest(data *runtimeData) (string, error) {
 		egresses[i].UpdatedAt = time.Time{}
 	}
 	raw, err := json.Marshal(struct {
+		Quota            *runtimeQuotaData
 		Egresses         []entity.Egress
 		EgressSecrets    map[string]string
 		EgressSetting    entity.EgressSetting
@@ -518,7 +525,7 @@ func runtimeDigest(data *runtimeData) (string, error) {
 		ProviderModels   []entity.ProviderModel
 		Bindings         []entity.ModelProviderBinding
 		Access           []entity.CredentialModelAccess
-	}{egresses, ciphertexts, data.EgressSetting, data.EgressGeneration, data.Limits, data.Pricing, data.Connections, data.Credentials, data.ProviderModels, data.Bindings, data.Access})
+	}{data.Quota, egresses, ciphertexts, data.EgressSetting, data.EgressGeneration, data.Limits, data.Pricing, data.Connections, data.Credentials, data.ProviderModels, data.Bindings, data.Access})
 	if err != nil {
 		return "", err
 	}

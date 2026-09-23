@@ -36,7 +36,18 @@ beforeEach(async () => {
     account_id: 'key_original',
     etag: 'old',
     parent_etag: 'parent1',
-    stored: { rpm: null, concurrency: 2, ip_mode: 'none', ip_ranges: [] },
+    stored: {
+      tokens_5h: 1000,
+      tokens_7d: null,
+      tokens_month: 5000,
+      tpm: 250,
+      money_month: '12.500000000000000001',
+      currency: 'USD',
+      rpm: null,
+      concurrency: 2,
+      ip_mode: 'none',
+      ip_ranges: [],
+    },
     effective: { rpm: 60, concurrency: 2 },
     ip_policies: [parent, { rpm: null, concurrency: 2, ip_mode: 'none', ip_ranges: [] }],
     rpm_used: 3,
@@ -69,6 +80,12 @@ beforeEach(async () => {
         }
         const payload = JSON.parse(config.data)
         const policy = {
+          tokens_5h: payload.tokens_5h,
+          tokens_7d: payload.tokens_7d,
+          tokens_month: payload.tokens_month,
+          tpm: payload.tpm,
+          money_month: payload.money_month,
+          currency: payload.currency,
           rpm: payload.rpm,
           concurrency: payload.concurrency,
           ip_mode: payload.ip_mode,
@@ -169,6 +186,12 @@ describe('Resource admission controls', () => {
     })
     await until(() => expect(writes()).toHaveLength(1))
     expect(JSON.parse(writes()[0].data)).toEqual({
+      tokens_5h: 1000,
+      tokens_7d: null,
+      tokens_month: 5000,
+      tpm: 250,
+      money_month: '12.500000000000000001',
+      currency: 'USD',
       rpm: 0,
       concurrency: null,
       ip_mode: 'none',

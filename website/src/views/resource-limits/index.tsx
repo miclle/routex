@@ -214,6 +214,12 @@ function LimitEditor({
       intent.current = {
         etag: reviewed.etag,
         input: {
+          tokens_5h: reviewed.stored.tokens_5h ?? null,
+          tokens_7d: reviewed.stored.tokens_7d ?? null,
+          tokens_month: reviewed.stored.tokens_month ?? null,
+          tpm: reviewed.stored.tpm ?? null,
+          money_month: reviewed.stored.money_month ?? null,
+          currency: reviewed.stored.currency ?? '',
           rpm: numeric[0]!,
           concurrency: numeric[1]!,
           ip_mode: mode,

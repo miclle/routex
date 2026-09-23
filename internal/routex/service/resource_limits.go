@@ -25,10 +25,17 @@ type LimitInput struct {
 	Reason string `json:"reason"`
 }
 type EffectiveLimitValues struct {
-	RPM         *int64 `json:"rpm"`
-	Concurrency *int64 `json:"concurrency"`
+	Tokens5H    *int64  `json:"tokens_5h"`
+	Tokens7D    *int64  `json:"tokens_7d"`
+	TokensMonth *int64  `json:"tokens_month"`
+	TPM         *int64  `json:"tpm"`
+	MoneyMonth  *string `json:"money_month"`
+	Currency    string  `json:"currency"`
+	RPM         *int64  `json:"rpm"`
+	Concurrency *int64  `json:"concurrency"`
 }
 type LimitRecord struct {
+	QuotaUsage *QuotaUsageRecord    `json:"quota_usage"`
 	Kind       string               `json:"kind"`
 	ID         string               `json:"id"`
 	AccountID  string               `json:"account_id"`
@@ -44,7 +51,7 @@ type LimitRecord struct {
 type resolvedLimitTarget struct{ kind, id, parentKind, parentID string }
 
 func policyFromRow(row entity.ResourceLimit) (limits.Policy, error) {
-	policy := limits.Policy{RPM: row.RPM, Concurrency: row.Concurrency, IPMode: row.IPMode}
+	policy := limits.Policy{Tokens5H: row.Tokens5H, Tokens7D: row.Tokens7D, TokensMonth: row.TokensMonth, TPM: row.TPM, MoneyMonth: row.MoneyMonth, Currency: row.Currency, RPM: row.RPM, Concurrency: row.Concurrency, IPMode: row.IPMode}
 	if row.IPRangesJSON != "" {
 		if json.Unmarshal([]byte(row.IPRangesJSON), &policy.IPRanges) != nil {
 			return policy, limits.ErrInvalid
@@ -170,15 +177,14 @@ func (s *Service) resourceLimitRecord(db *gorm.DB, target LimitTarget, resolved 
 	if err != nil {
 		return nil, err
 	}
-	result := &LimitRecord{Kind: target.Kind, ID: target.ID, AccountID: limitAccount(resolved.kind, resolved.id), ETag: row.ETag, Stored: stored, Effective: EffectiveLimitValues{RPM: stored.RPM, Concurrency: stored.Concurrency}, IPPolicies: []limits.Policy{stored}, Enforced: s.recorder != nil && s.runtime != nil && s.RuntimeStatus().Ready}
+	result := &LimitRecord{Kind: target.Kind, ID: target.ID, AccountID: limitAccount(resolved.kind, resolved.id), ETag: row.ETag, Stored: stored, Effective: effectiveQuotaValues(stored, limits.Policy{}), IPPolicies: []limits.Policy{stored}, Enforced: s.recorder != nil && s.runtime != nil && s.RuntimeStatus().Ready}
 	if resolved.parentKind != "" {
 		parentRow, parent, err := readLimitPolicy(db, resolved.parentKind, resolved.parentID)
 		if err != nil {
 			return nil, err
 		}
 		result.ParentETag = parentRow.ETag
-		result.Effective.RPM = limits.Minimum(parent.RPM, stored.RPM)
-		result.Effective.Concurrency = limits.Minimum(parent.Concurrency, stored.Concurrency)
+		result.Effective = effectiveQuotaValues(stored, parent)
 		result.IPPolicies = []limits.Policy{parent, stored}
 	}
 	if result.Enforced {
@@ -207,6 +213,11 @@ func (s *Service) resourceLimitRecord(db *gorm.DB, target LimitTarget, resolved 
 		}
 		result.RPMUsed = &rpm
 		result.Active = &active
+		quota, err := s.resourceQuotaUsage(db, resolved)
+		if err != nil {
+			return nil, err
+		}
+		result.QuotaUsage = quota
 	}
 	return result, nil
 }
@@ -241,6 +252,15 @@ func (s *Service) SetResourceLimit(ctx context.Context, actor string, target Lim
 			}
 			return errLimitConflict
 		}
+		if policy.MoneyMonth != nil {
+			var setting entity.PricingSetting
+			if err := tx.First(&setting, 1).Error; err != nil {
+				return err
+			}
+			if policy.Currency != setting.PlatformCurrency {
+				return apperrors.ErrBadRequest
+			}
+		}
 		if resolved.parentKind != "" {
 			_, parent, err := readLimitPolicy(tx, resolved.parentKind, resolved.parentID)
 			if err != nil {
@@ -258,7 +278,7 @@ func (s *Service) SetResourceLimit(ctx context.Context, actor string, target Lim
 		if err != nil {
 			return err
 		}
-		row = entity.ResourceLimit{ScopeKind: resolved.kind, ScopeID: resolved.id, ETag: revision, PreviousETag: etag, ActorID: actor, Reason: reason, RPM: policy.RPM, Concurrency: policy.Concurrency, IPMode: policy.IPMode, IPRangesJSON: string(ranges)}
+		row = entity.ResourceLimit{ScopeKind: resolved.kind, ScopeID: resolved.id, ETag: revision, PreviousETag: etag, ActorID: actor, Reason: reason, Tokens5H: policy.Tokens5H, Tokens7D: policy.Tokens7D, TokensMonth: policy.TokensMonth, TPM: policy.TPM, MoneyMonth: policy.MoneyMonth, Currency: policy.Currency, RPM: policy.RPM, Concurrency: policy.Concurrency, IPMode: policy.IPMode, IPRangesJSON: string(ranges)}
 		if err := tx.Save(&row).Error; err != nil {
 			return err
 		}

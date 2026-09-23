@@ -32,6 +32,7 @@ func runtimeFixture(t *testing.T, baseURL string) (*Service, *runtimeData, strin
 	modelID := "mdl_one"
 	bearer := "rx_" + strings.Repeat("a", 43)
 	data := &runtimeData{
+		Quota:          &runtimeQuotaData{Setting: entity.QuotaSetting{TimeZone: "UTC", ETag: "0"}, Bounds: map[string]entity.ReservationBound{}, Created: map[string]time.Time{}, Revisions: map[string]string{}},
 		Users:          []entity.User{{ID: "usr_one"}},
 		Keys:           []entity.APIKey{{ID: "key_one", UserID: "usr_one", TokenHash: secret.SHA256Hex(bearer), Status: entity.KeyActive}},
 		Scopes:         []entity.APIKeyModel{{KeyID: "key_one", ModelID: modelID}},

@@ -1,6 +1,6 @@
 # Durable quota ledger foundation
 
-This module is an internal foundation. The gateway continues to use its existing RPM, concurrency, and IP policies until quota-aware admission and policy management are wired and accepted. Adding these files does not activate token or monetary limits, establish historical coverage, or complete the resource-limit roadmap.
+This document describes the independently testable journal and arithmetic foundation. The version 19 gateway and policy integration is specified in [QUOTAS.md](QUOTAS.md); source availability and acceptance evidence remain separate. Opening a journal never establishes quota history by itself. Team contexts, templates, approvals, and alerts remain separate resource-limit roadmap slices.
 
 ## Authority and activation
 
@@ -52,7 +52,7 @@ The ready queue retains its existing configured capacity. Quota receipts have a 
 
 The calculation considers every reachable context tier and applicable input/cache rate, takes a conservative converted rate maximum, and adds an upper rounding allowance for separately rounded settlement components. It then rounds upward to 18 decimal places. Actual settlement continues to use the existing half-even rounding policy. A wholly configured zero-price schedule reserves zero. Missing potentially applicable rates or FX fails closed.
 
-This arithmetic is not proof of a provider's token capacity or a native request's output cap. The protocol adapter must establish those bounds. It must reject unsupported constrained requests rather than substitute bytes, an approximate tokenizer, a guessed cache fraction, or an unrelated protocol's limits. No gateway adapters or capacity claims are enabled by this foundation alone.
+This arithmetic is not proof of a provider's token capacity or a native request's output cap. The protocol adapter must establish those bounds. It must reject unsupported constrained requests rather than substitute bytes, an approximate tokenizer, a guessed cache fraction, or an unrelated protocol's limits. The foundation alone enables no adapter or capacity claim. Version 19 supplies the conservative native adapters described in [QUOTAS.md](QUOTAS.md).
 
 ## Verification
 

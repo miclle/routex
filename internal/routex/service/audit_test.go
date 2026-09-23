@@ -23,7 +23,7 @@ func TestAuditDetailsAllowlist(t *testing.T) {
 	raw := `{"before":{"rpm":1,"secret":"do-not-leak"},"after":{"rpm":2,"password":"do-not-leak"},"reason":"reviewed","etag":"revision","credential":"do-not-leak"}`
 	row := auditRecord(entity.AuditEvent{Action: "limits.update", DetailsJSON: &raw})
 	encoded, _ := json.Marshal(row)
-	if strings.Contains(string(encoded), "do-not-leak") || !strings.Contains(string(row.Changes), `"before":{"rpm":1`) {
+	if strings.Contains(string(encoded), "do-not-leak") || !strings.Contains(string(row.Changes), `"rpm":1`) || !strings.Contains(string(row.Changes), `"rpm":2`) {
 		t.Fatalf("unexpected safe projection %s", encoded)
 	}
 	if row.Source != nil || row.IP != nil || row.RequestID != nil || row.Result != "committed" {

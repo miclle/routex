@@ -151,7 +151,7 @@ The following are single-node experimental targets, not measured performance or 
 | P1-03 Personal Keys | Delivered (`3cd5305`); controlled local acceptance passed | One-time pending delivery, confirmation, digest storage, concurrent rotation, ownership, revocation and audit; PostgreSQL/MySQL integration passed |
 | P1-04/05 | In progress | Native OpenAI chat ordinary/SSE, Key Playground, isolated personal/admin call queries and request facts have controlled dual-database evidence; immutable snapshots and bounded durable events have controlled failure/restart evidence; measured capacity and real-provider acceptance remain open |
 | P2 | In progress | Profile/password/session APIs and UI delivered; member/role/registration interfaces and Team/Project backend delivered; Project Keys, offboarding, and resource interfaces advance in separate verified packages |
-| P3 | In progress | Current text prices, FX, immutable call assessments, and atomic CSV import/export APIs implemented; quotas, non-token metrics, spreadsheet formats, and synchronization remain open; RPM/concurrency/IP admission implemented |
+| P3 | In progress | Current text prices, FX, immutable call assessments, atomic CSV/XLS/XLSX imports, CSV exports, and single-process Personal/Project/Key token and monetary quota admission are implemented; Team quotas, templates, approvals, alerts, distributed enforcement, non-token metrics, and synchronization remain open |
 | P4–P6 | Pending | Full goal remains active; additional protocols, enterprise integrations, and final acceptance follow the preceding dependencies |
 
 Verification in this iteration:
@@ -725,6 +725,34 @@ Go race/unit, development lifecycle and production assets. This phase is an
 internal foundation only: existing gateway admission remains unchanged until the
 version-19 policy, protocol-bound reservation and management integration is
 landed and accepted.
+
+### Native quota admission and settlement
+
+Frozen migration 19 extends Personal, Project and Key resource policies with
+rolling five-hour and seven-day token limits, monthly token and money limits,
+TPM, and an explicit policy currency. Administrators can set the installation
+calendar and attest immutable provider-model capacity bounds through permissioned,
+CSRF-protected and revisioned APIs. The first native admission freezes the
+calendar and activates the version-2 journal without treating older asynchronous
+reports as complete history.
+
+All four native inference protocols now reserve aggregate and Key allowances in
+the durable journal before dispatch. Admission uses protocol-specific output caps,
+attested input capacity, immutable pricing and currency evidence, and conservative
+holds. Completion settles independently proven token and money dimensions; unknown
+or incomplete evidence retains a visible hold or blocks finite-policy admission.
+The existing resource-limit interface preserves these fields during complete
+policy replacement; dedicated quota controls remain a later interface phase.
+
+Focused tests cover protocol classification, arithmetic, scope attribution,
+policy reduction, retained unknowns, restart recovery and audit projection. Full
+check/test passed with 361 Vitest cases, Go race/unit coverage, development
+lifecycle checks and production assets. The serialized PostgreSQL/MySQL lifecycle
+suite passed in 257.255 seconds, and both database process suites passed
+initialization, restart persistence, ordinary and streaming inference, reporting,
+logout and revocation. This phase remains single-process; Team quotas, templates,
+approvals, alerts, distributed enforcement and production capacity evidence remain
+open.
 
 ### Native route-attempt foundation
 

@@ -50,6 +50,10 @@ type GatewayModel struct {
 // The caller must close Response.Body when Response is non-nil, including errors.
 type GatewayResult struct {
 	Protocol           string
+	admissionQuota     []eventqueue.QuotaLimit
+	quotaBound         eventqueue.QuotaBound
+	quotaTimeZone      string
+	quotaRequest       quotaRequest
 	admissionLimits    []eventqueue.Limit
 	PriceBasis         *CallPriceBasis
 	PricingUnsupported bool
@@ -189,6 +193,10 @@ func (s *Service) gatewayNative(ctx context.Context, bearer string, body []byte,
 			return result, gatewayError(503, "upstream_unavailable", "No usable upstream is available.")
 		}
 		defer route.Client.CloseIdleConnections()
+	}
+	result.quotaRequest = inspectQuotaRequest(protocol, payload)
+	if protocol == entity.ProtocolAnthropicMessages && (len(options) != 1 || options[0].Messages.Version != "2023-06-01" || options[0].Messages.Beta != "") {
+		result.quotaRequest.Supported = false
 	}
 	result.PriceBasis = clonePriceBasis(route.PriceBasis)
 	result.PricingDimensions = pricingRequestDimensions(payload)
