@@ -1,0 +1,61 @@
+export default {
+  title: 'Two-step verification',
+  enabled: 'Authenticator enabled',
+  disabled: 'Add an authenticator check when signing in',
+  enable: 'Enable two-step verification',
+  disable: 'Disable two-step verification',
+  begin: 'Set up authenticator',
+  verifyEnable: 'Confirm enable',
+  confirmDisable: 'Confirm disable',
+  regenerate: 'Regenerate recovery codes',
+  confirmRegenerate: 'Replace recovery codes',
+  currentPassword: 'Current password',
+  code: '6-digit authenticator code',
+  recoveryCode: 'Recovery code',
+  useRecovery: 'Use a recovery code',
+  useAuthenticator: 'Use authenticator',
+  proofHelp:
+    'Use a fresh authenticator code or one unused recovery code. Each proof can be used only once.',
+  loginTitle: 'Verify your sign-in',
+  loginHelp: 'Enter a current authenticator code or one unused recovery code to finish signing in.',
+  verify: 'Verify and sign in',
+  restart: 'Back to password sign-in',
+  expired: 'This verification has expired. Start again.',
+  invalid:
+    'Verification failed. Check your password or proof, or start a new sign-in after a lockout has elapsed.',
+  invalidCode: 'Enter exactly six digits.',
+  invalidRecovery: 'Enter a recovery code.',
+  passwordRequired: 'Enter your current password.',
+  conflict: 'Your security settings changed. Reload the current state before trying again.',
+  unavailable: 'Authenticator enrollment is unavailable. Contact an administrator.',
+  failed:
+    'Unable to confirm this action. Reload your security status before retrying; a successful response or fresh sign-in is required to confirm the outcome.',
+  cancel: 'Cancel',
+  cancelEnrollment: 'Cancel pending enrollment',
+  cancelFailed:
+    'The setup secret was cleared, but cancellation could not be confirmed. Reload security status before starting again.',
+  working: 'Working…',
+  setupHelp:
+    'Scan this QR code in your authenticator app, or enter the setup secret manually. RouteX generates this QR locally and sends no secret to another service.',
+  secret: 'Setup secret',
+  qr: 'Authenticator enrollment QR code',
+  expiry: 'Expires at {{time}}',
+  pending: 'An enrollment is pending. Cancel it before starting a new setup.',
+  disableHelp:
+    'Disabling removes authenticator protection and all recovery codes. Confirm with your password and a fresh proof. Every existing session will be revoked.',
+  regenerateHelp:
+    'New codes immediately replace all previous recovery codes. Confirm with your password and a fresh proof. Every existing session will be revoked.',
+  enrollmentHelp:
+    'Confirm your current password to create a five-minute enrollment. Enable only after verifying a code from that authenticator.',
+  recoveryTitle: 'Save your recovery codes',
+  recoveryHelp:
+    'Each code works once. Store them securely now; these complete codes cannot be displayed again. Closing clears this one-time display.',
+  saved: 'I have saved these codes',
+  remaining_one: '{{count}} unused recovery code',
+  remaining_other: '{{count}} unused recovery codes',
+  enabledNotice: 'Two-step verification is enabled. Other sessions were revoked.',
+  disabledNotice: 'Two-step verification is disabled. Other sessions were revoked.',
+  regeneratedNotice: 'Recovery codes were replaced. Other sessions were revoked.',
+  canceled: 'Pending enrollment canceled.',
+  reload: 'Reload security status',
+}

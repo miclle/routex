@@ -1,6 +1,6 @@
 # Local Identity, Sessions, and Initialization
 
-This phase implements first administrator creation, local login, persistent sessions, logout, and the minimum authorization boundary between `admin` and `member`. Registration, member management, custom roles, password recovery, two-factor authentication, and enterprise identity providers belong to later phases.
+This phase implements first administrator creation, local login, persistent sessions, logout, and the minimum authorization boundary between `admin` and `member`. [Registration and role administration](GOVERNANCE.md) and [two-step verification](MFA.md) extend this foundation. Password recovery and enterprise identity providers remain separate work.
 
 ## Data and Initialization
 
@@ -18,7 +18,7 @@ Management APIs use `snake_case` JSON. Authentication responses include `Cache-C
 |---|---|---|---|
 | `GET /api/v1/setup` | None | `200 {"initialized": false}` before initialization; `true` afterward | Public |
 | `POST /api/v1/setup` | `{email,password,name}` | `201`, session response and a session cookie | Before initialization only |
-| `POST /api/v1/auth/login` | `{email,password}` | `200`, session response and a session cookie | Public |
+| `POST /api/v1/auth/login` | `{email,password}` | `200` session and cookie, or `202` MFA challenge without a new session | Public |
 | `GET /api/v1/auth/session` | Session cookie | `200`, session response | Authenticated |
 | `POST /api/v1/auth/logout` | Session cookie and `X-CSRF-Token` | `204`, session revoked and cookie cleared | Authenticated |
 | `GET /api/v1/admin/status` | Session cookie | `200 {"initialized": true}` | `admin` |
@@ -39,7 +39,7 @@ Session responses contain only public profile fields and a CSRF token:
 
 Errors use the shape `{ "code": 401, "message": "unauthorized" }`. Binding errors and invalid input return `400`; missing, invalid, expired, or revoked sessions return `401`; insufficient administrator privileges or invalid CSRF/Origin checks return `403`; repeated initialization returns `409`; database failures return a sanitized `500`. Responses never expose underlying SQL, passwords, or detailed binding errors.
 
-Initialization and login accept only `application/json`, with a maximum request body size of 4 KiB. Automatic DTO rendering in fox v0.1.2 always uses `200`, so initialization explicitly renders its typed DTO to preserve `201`. Other JSON routes use fox request binding and return-value rendering.
+Initialization and login accept only `application/json`, with a maximum request body size of 4 KiB. Automatic DTO rendering in fox v0.1.2 always uses `200`, so initialization explicitly renders its typed DTO to preserve `201`. MFA login challenges explicitly render `202`; new MFA proof payloads use strict single-object decoding. Other JSON routes use fox request binding and return-value rendering.
 
 ## Cookies, CSRF, and Deployment Boundaries
 

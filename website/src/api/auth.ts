@@ -1,6 +1,7 @@
 import { t } from '@/i18n'
 import axios from 'axios'
 import client from './client'
+import type { LoginResult, MFAChallenge } from '@/types/mfa'
 import type { LoginInput, Session, SetupInput } from '@/types/auth'
 
 export async function getSetup() {
@@ -20,8 +21,21 @@ export async function setup(input: SetupInput) {
   return (await client.post<Session>('/setup', input)).data
 }
 
-export async function login(input: LoginInput) {
-  return (await client.post<Session>('/auth/login', input)).data
+export async function login(input: LoginInput, signal?: AbortSignal): Promise<LoginResult> {
+  const response = await client.post<Session | MFAChallenge>('/auth/login', input, { signal })
+  if (response.status === 202) {
+    const challenge = response.data as MFAChallenge
+    if (
+      challenge.mfa_required !== true ||
+      !challenge.challenge_token ||
+      !Number.isFinite(Date.parse(challenge.expires_at))
+    )
+      throw new Error('Invalid login challenge')
+    return { kind: 'challenge', challenge }
+  }
+  if (response.status !== 200 || !('user' in response.data) || !response.data.csrf_token)
+    throw new Error('Invalid login session')
+  return { kind: 'session', session: response.data }
 }
 
 export async function logout(csrfToken: string) {
@@ -34,8 +48,9 @@ export async function logout(csrfToken: string) {
 }
 
 export function authError(error: unknown): string {
-  if (!axios.isAxiosError(error)) return t('the_request_failed_try_again_later_81390')
-  switch (error.response?.status) {
+  if (typeof error !== 'number' && !axios.isAxiosError(error))
+    return t('the_request_failed_try_again_later_81390')
+  switch (typeof error === 'number' ? error : error.response?.status) {
     case 401:
       return t('the_email_or_password_is_incorrect_try_again_59a4d')
     case 403:

@@ -23,4 +23,4 @@ Session lists exclude bearer digests and expired records. Revoking the current s
 
 `testAccountLifecycle` in the shared PostgreSQL/MySQL integration harness covers CSRF, name validation/persistence, safe session listing, cross-user revocation denial, individual revocation, incorrect password, cookie/CSRF rotation, invalidation of old sessions, and old/new password login behavior. Frontend tests cover password confirmation, transient form cleanup, session query refresh, and current-session logout.
 
-Two-step verification, recovery codes, external identity bindings, and administrative offboarding are separate work packages and are not implied by this basic account flow.
+[Two-step verification and recovery codes](MFA.md) extend this account flow with encrypted TOTP enrollment and session rotation. Password changes invalidate pending MFA challenges while retaining the enrolled factor. [Administrative offboarding](OFFBOARDING.md) has a separate transactional lifecycle. External identity bindings remain separate work.

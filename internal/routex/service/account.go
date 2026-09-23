@@ -63,6 +63,9 @@ func (s *Service) ChangePassword(ctx context.Context, userID, currentPassword, n
 			return err
 		}
 		user.PasswordHash = string(hash)
+		if err := invalidateMFAChallenges(tx, userID); err != nil {
+			return err
+		}
 		if err := tx.Where("user_id = ?", userID).Delete(&entity.Session{}).Error; err != nil {
 			return err
 		}

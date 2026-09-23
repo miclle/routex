@@ -82,13 +82,18 @@ func (ctrl *Ctrl) Initialize(c *fox.Context, request SetupRequest) error {
 	return nil
 }
 
-func (ctrl *Ctrl) Login(c *fox.Context, request LoginRequest) (*SessionResponse, error) {
-	auth, err := ctrl.service.Login(c.Request.Context(), request.Email, request.Password)
+func (ctrl *Ctrl) Login(c *fox.Context, request LoginRequest) error {
+	auth, challenge, err := ctrl.service.BeginLogin(c.Request.Context(), request.Email, request.Password)
 	if err != nil {
-		return nil, err
+		return err
+	}
+	if challenge != nil {
+		c.JSON(http.StatusAccepted, challenge)
+		return nil
 	}
 	setSessionCookie(c, auth)
-	return sessionResponse(auth), nil
+	c.JSON(http.StatusOK, sessionResponse(auth))
+	return nil
 }
 
 func (ctrl *Ctrl) CurrentSession(c *fox.Context) *SessionResponse {

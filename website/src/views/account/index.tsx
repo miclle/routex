@@ -1,3 +1,4 @@
+import AccountMFA from './mfa'
 import { useTranslation } from 'react-i18next'
 import { useRef, useState, type FormEvent } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
@@ -167,6 +168,7 @@ export default function AccountPage({ security = false }: { security?: boolean }
               </Button>
             </CardContent>
           </Card>
+          <AccountMFA key={session.user.id} />
           <Card>
             <CardHeader>
               <CardTitle>{t('account.sessions')}</CardTitle>

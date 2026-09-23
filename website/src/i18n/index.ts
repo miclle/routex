@@ -1,3 +1,5 @@
+import enMFA from './locales/en/mfa'
+import zhMFA from './locales/zh/mfa'
 import enLimits from './locales/en/limits'
 import zhLimits from './locales/zh/limits'
 import i18n from 'i18next'
@@ -38,6 +40,7 @@ void i18n.use(initReactI18next).init({
   resources: {
     en: {
       common: en,
+      mfa: enMFA,
       limits: enLimits,
       pricing: enPricing,
       currency: enCurrency,
@@ -52,6 +55,7 @@ void i18n.use(initReactI18next).init({
     },
     zh: {
       common: zh,
+      mfa: zhMFA,
       limits: zhLimits,
       pricing: zhPricing,
       currency: zhCurrency,

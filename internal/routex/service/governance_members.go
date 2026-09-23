@@ -195,6 +195,9 @@ func (s *Service) UpdateMember(ctx context.Context, actorID, userID string, disa
 			return err
 		}
 		if nextDisabled {
+			if err := invalidateMFAChallenges(tx, userID); err != nil {
+				return err
+			}
 			if err := tx.Where("user_id = ?", userID).Delete(&entity.Session{}).Error; err != nil {
 				return err
 			}

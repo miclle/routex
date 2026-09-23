@@ -495,3 +495,27 @@ isolation, archived Project manager access, membership revocation, guessed filte
 route redaction and combined comparison row limits. This slice adds read-only
 queries without a schema or gateway admission change; the preceding process
 restart/inference/revocation acceptance remains applicable.
+
+### Authenticator and recovery verification
+
+Frozen GORM migration 16 stores encrypted TOTP factors, expiring login/enrollment
+challenges and single-use recovery digests. Password-only login cannot issue a
+session for an enabled factor. Codes have persistent replay protection and failed
+proofs share a durable cooldown across challenges. Password changes, account
+disablement and completed offboarding invalidate challenges transactionally.
+Enable/disable/regenerate rotate browser sessions and current CSRF state.
+
+The existing login card and security dialogs now implement the complete challenge,
+local QR/manual enrollment, one-time recovery and disable flows in English/Chinese.
+Secrets remain transient component state, outside caches and browser storage.
+See [MFA](MFA.md) for contracts, retention and recovery boundaries.
+
+Full check/test passed with 168 Vitest cases, four Node checks, Go race/unit,
+development lifecycle and production assets. PostgreSQL/MySQL integration passed
+in 323.558 seconds; both process restart/inference/revocation suites passed.
+Tests cover wrong/expired/replayed proofs, strict payloads, concurrent recovery
+consumption, encryption-key mismatch, durable cooldown, lifecycle invalidation,
+current-session rotation, login HTTP202, transient secret cleanup and local QR.
+Browser control remained unavailable: browser inventory was visible, but creating
+an isolated fixture tab failed. No rendered authenticator-app or external identity
+acceptance is claimed; deterministic verifier and UI evidence are separate.

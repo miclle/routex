@@ -96,15 +96,25 @@ func (s *Service) Initialize(ctx context.Context, email, password, name string) 
 	return auth, nil
 }
 
+// Login never bypasses enabled MFA. Interactive callers use BeginLogin and
+// CompleteMFALogin; password-only internal callers receive an explicit error.
 func (s *Service) Login(ctx context.Context, email, password string) (*Authentication, error) {
+	auth, _, err := s.beginLogin(ctx, email, password, false)
+	return auth, err
+}
+func (s *Service) BeginLogin(ctx context.Context, email, password string) (*Authentication, *MFALoginChallenge, error) {
+	return s.beginLogin(ctx, email, password, true)
+}
+
+func (s *Service) beginLogin(ctx context.Context, email, password string, challengeAllowed bool) (*Authentication, *MFALoginChallenge, error) {
 	email, valid := normalizeEmail(email)
 	if !valid || !validPassword(password) {
-		return nil, apperrors.ErrUnauthorized
+		return nil, nil, apperrors.ErrUnauthorized
 	}
 	var user entity.User
 	err := s.authDB(ctx).Where("email = ?", email).First(&user).Error
 	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
-		return nil, apperrors.ErrInternal
+		return nil, nil, apperrors.ErrInternal
 	}
 	// Unknown users still perform bcrypt verification to avoid a fast email
 	// existence oracle. This fixed hash is not an account credential.
@@ -114,9 +124,10 @@ func (s *Service) Login(ctx context.Context, email, password string) (*Authentic
 	}
 	passwordErr := bcrypt.CompareHashAndPassword([]byte(hash), []byte(password))
 	if err != nil || passwordErr != nil || user.Disabled {
-		return nil, apperrors.ErrUnauthorized
+		return nil, nil, apperrors.ErrUnauthorized
 	}
 	var auth *Authentication
+	var challenge *MFALoginChallenge
 	err = s.authDB(ctx).Transaction(func(tx *gorm.DB) error {
 		var current entity.User
 		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).First(&current, "id = ?", user.ID).Error; err != nil {
@@ -127,11 +138,21 @@ func (s *Service) Login(ctx context.Context, email, password string) (*Authentic
 		if current.Disabled || current.PasswordHash != user.PasswordHash {
 			return apperrors.ErrUnauthorized
 		}
-		var err error
+		state, err := mfaState(tx, current.ID)
+		if err != nil {
+			return err
+		}
+		if state.Enabled {
+			if !challengeAllowed {
+				return errMFARequired
+			}
+			challenge, err = issueMFALoginChallenge(tx, current, state)
+			return err
+		}
 		auth, err = createSession(tx, current)
 		return err
 	})
-	return auth, keyServiceError(err)
+	return auth, challenge, keyServiceError(err)
 }
 
 func createSession(db *gorm.DB, user entity.User) (*Authentication, error) {
