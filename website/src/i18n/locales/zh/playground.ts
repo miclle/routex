@@ -1,5 +1,9 @@
 export default {
-  description: '使用个人或项目 API Key 发起原生 Chat Completions、Responses 或 Messages 调用。',
+  invalidGemini: '网关返回的 Gemini 原生响应无效或未完成。已保留收到的内容。',
+  geminiAliasRequired:
+    'Gemini 需要兼容的公开名称或有效别名：以字母或数字开头，仅包含字母、数字、点、下划线或连字符（最多 128 个字符）。',
+  description:
+    '使用个人或项目 API Key 发起原生 Chat Completions、Responses、Messages 或 Gemini 调用。',
   protocol: '协议类型',
   key: 'API Key',
   keyPlaceholder: '粘贴已启用的个人或项目 Key',

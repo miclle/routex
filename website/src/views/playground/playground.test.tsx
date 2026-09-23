@@ -9,6 +9,7 @@ import {
   runChat,
   runResponses,
   runMessages,
+  runGemini,
 } from '@/api/playground'
 
 vi.mock('@/api/playground', async (importOriginal) => ({
@@ -17,6 +18,7 @@ vi.mock('@/api/playground', async (importOriginal) => ({
   runChat: vi.fn(),
   runResponses: vi.fn(),
   runMessages: vi.fn(),
+  runGemini: vi.fn(),
 }))
 Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true })
 let root: Root
@@ -369,3 +371,86 @@ it.each(['handoff', 'refused', 'incomplete'] as const)(
     ])
   },
 )
+
+it('runs Gemini-only models with native contents, system instructions and successful inline model history', async () => {
+  vi.mocked(getGatewayModels).mockResolvedValue([
+    { id: 'gemini-native', protocols: ['gemini_generate_content'] },
+  ])
+  vi.mocked(runGemini).mockResolvedValue({
+    text: 'Gemini answer',
+    requestId: 'req_gemini',
+    usage: { prompt_tokens: 2, completion_tokens: 3, total_tokens: 5 },
+    finishReason: 'STOP',
+    generationStatus: 'completed',
+    nonTextOutput: false,
+  })
+  await ready()
+  await fill('system', 'Be precise')
+  await submit()
+  expect(container.textContent).toContain('Gemini Generate Content')
+  expect(container.textContent).toContain('/v1beta/models/gemini-native:streamGenerateContent')
+  expect(vi.mocked(runGemini).mock.calls[0][1]).toEqual({
+    model: 'gemini-native',
+    stream: true,
+    contents: [{ role: 'user', parts: [{ text: 'Hello' }] }],
+    systemInstruction: { parts: [{ text: 'Be precise' }] },
+    generationConfig: { temperature: 0.7, topP: 1, maxOutputTokens: 2048, candidateCount: 1 },
+  })
+  expect(runChat).not.toHaveBeenCalled()
+  expect(runResponses).not.toHaveBeenCalled()
+  expect(runMessages).not.toHaveBeenCalled()
+  await fill('prompt', 'Continue')
+  await submit()
+  expect(vi.mocked(runGemini).mock.calls[1][1].contents).toEqual([
+    { role: 'user', parts: [{ text: 'Hello' }] },
+    { role: 'model', parts: [{ text: 'Gemini answer' }] },
+    { role: 'user', parts: [{ text: 'Continue' }] },
+  ])
+  await act(async () => container.querySelector<HTMLInputElement>('[name="stream"]')!.click())
+  expect(container.textContent).toContain('/v1beta/models/gemini-native:generateContent')
+  await fill('prompt', 'Ordinary')
+  await submit()
+  expect(vi.mocked(runGemini).mock.calls[2][1].stream).toBe(false)
+  expect(JSON.stringify(localStorage)).not.toContain('rx_transient')
+})
+
+it.each(['incomplete', 'refused', 'handoff'] as const)(
+  'excludes Gemini %s from later history',
+  async (status) => {
+    vi.mocked(getGatewayModels).mockResolvedValue([
+      { id: 'gemini-native', protocols: ['gemini_generate_content'] },
+    ])
+    vi.mocked(runGemini).mockResolvedValue({
+      text: 'Partial Gemini',
+      requestId: 'req_gemini',
+      usage: null,
+      finishReason: 'MAX_TOKENS',
+      generationStatus: status,
+      nonTextOutput: false,
+    })
+    await ready()
+    await submit()
+    await fill('prompt', 'Retry')
+    await submit()
+    expect(vi.mocked(runGemini).mock.calls[1][1].contents).toEqual([
+      { role: 'user', parts: [{ text: 'Retry' }] },
+    ])
+    expect(runChat).not.toHaveBeenCalled()
+  },
+)
+
+it('localizes the Gemini alias requirement without substituting a protocol or losing the draft', async () => {
+  vi.mocked(getGatewayModels).mockResolvedValue([
+    { id: 'vendor/model', protocols: ['gemini_generate_content'] },
+  ])
+  await ready()
+  expect(container.textContent).toContain('compatible public name')
+  await act(async () => {
+    await i18n.changeLanguage('zh')
+  })
+  expect(container.textContent).toContain('兼容的公开名称')
+  expect(container.querySelector<HTMLTextAreaElement>('[name="prompt"]')!.value).toBe('Hello')
+  expect(container.querySelector<HTMLSelectElement>('[name="protocol"]')!.value).toBe(
+    'gemini_generate_content',
+  )
+})

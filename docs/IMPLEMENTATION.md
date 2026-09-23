@@ -668,3 +668,19 @@ ordinary/SSE finality, native errors, cancellation, usage/price settlement and
 revocation. An isolated production browser completed a real local Gemini stream
 through RouteX and the four-protocol comparison. Paid external-provider calls,
 stateful APIs and production performance remain open.
+
+### Native Gemini Playground
+
+Conversation and comparison workbenches now send native Gemini contents,
+system instructions and generation configuration to ordinary or SSE routes.
+Protocol-specific parsing requires a valid finish reason or prompt block plus
+clean stream completion. Only completed text enters later history; tool calls,
+thoughts, safety blocks, malformed counters and interrupted output remain explicit.
+
+Full check/test passed with 316 Vitest cases, four Node checks, Go race/unit,
+development lifecycle and production assets. Focused cases cover native paths,
+headers/bodies, split UTF-8, finality, candidate and safety outcomes, exact/unknown
+usage, cancellation, comparison isolation and bilingual alias guidance. An
+isolated production browser completed a Gemini conversation and a four-protocol
+comparison against controlled local upstreams. This frontend phase adds no schema;
+external-provider acceptance remains open.

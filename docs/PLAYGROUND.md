@@ -1,6 +1,6 @@
 # Playground
 
-Playground is a native text conversation and model comparison client for native OpenAI Chat Completions, OpenAI Responses, and Anthropic Messages. It makes real requests; it does not synthesize responses or usage statistics. Other protocols, session-based inference, attachments, and tools remain separate work packages.
+Playground is a native text conversation and model comparison client for native OpenAI Chat Completions, OpenAI Responses, Anthropic Messages, and Gemini Generate Content. It makes real requests; it does not synthesize responses or usage statistics. Other protocols, session-based inference, attachments, and tools remain separate work packages.
 
 ## Workflow
 
@@ -15,7 +15,7 @@ Only successfully completed exchanges are included in later conversation context
 
 ## Transport and Secret Handling
 
-- Model discovery, Chat, and Responses use `Authorization: Bearer <key>` against same-origin endpoints. Messages uses only `x-api-key: <key>` with `anthropic-version: 2023-06-01` against `/v1/messages`; the two authentication forms are never combined.
+- Model discovery, Chat, and Responses use `Authorization: Bearer <key>` against same-origin endpoints. Messages uses only `x-api-key: <key>` with `anthropic-version: 2023-06-01` against `/v1/messages`; Gemini uses only `x-goog-api-key` against the native `/v1beta/models/{name}` action. Authentication forms are never combined, and the client never places credentials in query parameters.
 - Requests omit browser cookies and reject redirects. Gateway authentication is independent of the control-plane session that protects access to the page.
 - The Key remains only in component memory and the password input while the page is mounted. The client never writes it to localStorage, sessionStorage, React Query caches, logs, or generated request examples.
 - The native client uses `fetch` and an `AbortController`, not React Query mutations, so request arguments and secrets are not retained in a mutation cache.
@@ -48,7 +48,7 @@ Run `npm --prefix website test`, `npm --prefix website run lint`, and `npm --pre
 
 The Model conversation and Model comparison tabs keep separate transient workbenches. Switching tabs destroys the hidden workbench, aborts its active fetches, and clears its entered Key and history. The conversation workbench retains its existing settings/transcript layout.
 
-Comparison uses a shared credential toolbar, two initial model columns, and one shared message composer. Add comparison creates up to four columns; remove controls appear only above the two-column minimum. Columns scroll horizontally with a 300-pixel minimum width. Each column selects its own currently eligible Chat, Responses, or Messages protocol and displays the actual endpoint, partial output, terminal status, Request ID, observed elapsed time, and authoritative usage. Verification uses one transient personal or Project Key, and models with explicit empty protocol capabilities are unavailable.
+Comparison uses a shared credential toolbar, two initial model columns, and one shared message composer. Add comparison creates up to four columns; remove controls appear only above the two-column minimum. Columns scroll horizontally with a 300-pixel minimum width. Each column selects its own currently eligible Chat, Responses, Messages, or Gemini protocol and displays the actual endpoint, partial output, terminal status, Request ID, observed elapsed time, and authoritative usage. Verification uses one transient personal or Project Key, and models with explicit empty protocol capabilities are unavailable.
 
 Send captures one message and concurrently dispatches an independent native request to each selected column. The comparison defaults are streaming, Temperature 0.7, Top P 1, and 2,048 maximum output Tokens. Per-column Stop only aborts that column; failure or cancellation does not stop siblings. Removing a column or changing its model/protocol cancels that column's request and clears only its history. Global sending waits until all current requests settle, with a synchronous guard against duplicate dispatch.
 
@@ -65,3 +65,13 @@ Ordinary responses require a native Message with a stop reason. Streaming tracks
 Displayed input Tokens normalize the native disjoint uncached/cache-read/cache-creation categories. All categories must be present and safe nonnegative integers; omitted/invalid categories remain unknown. Stream output uses the latest cumulative value, never a sum of deltas. An omitted or invalid final output count cannot inherit a previous count. Usage becomes final only after `message_stop`, and valid terminal usage remains visible for refusal, handoff, or truncation outcomes.
 
 Shared transport logic owns same-origin authentication, redirect/cookie exclusion, sanitized native errors, and bounded output helpers. Dedicated protocol parsers retain separate finality and accounting rules. `playground-messages.test.ts` covers native headers and parameters, ordinary/streaming response shapes, lifecycle errors, cumulative and unknown counters, native 529/errors, cancellation, and text-only output handling. Single and comparison workbench tests cover Messages-only discovery, system/history shape, native endpoint labeling, and independent handoff/refusal/incomplete states.
+
+## Native Gemini
+
+Both workbenches select `gemini_generate_content` only when advertised for the selected model. The single-model workbench supports ordinary `generateContent` and SSE `streamGenerateContent`; comparison uses the streaming action. Path identity must match `[A-Za-z0-9][A-Za-z0-9._-]{0,127}` and is encoded as one segment. Discovery currently exposes current public names rather than alias rows. An incompatible selected name receives a localized explanation and is rejected before dispatch; the interface never invents an alias or switches protocol.
+
+Requests contain native `contents` with user/model roles and text parts, optional `systemInstruction`, and `generationConfig` with Temperature, Top P, output limit, and exactly one candidate. The model name and streaming flag determine the URL and are excluded from JSON. Completed text history remains inline and transient. Thoughts, thought signatures, function calls, and other non-text parts are neither rendered nor replayed; a tool handoff is explicit and excluded from future history. Unknown finish reasons remain incomplete, while native safety blocks are shown as refusals.
+
+Gemini has no global terminal SSE event. The client therefore requires clean EOF plus a candidate finish reason or explicit prompt block. It keeps usage unavailable until that boundary and never treats Chat `[DONE]`, a finish frame alone, cancellation, or interrupted transport as completion. Each later usage snapshot replaces the previous snapshot; a malformed or incomplete final snapshot cannot inherit preliminary values. Input is the reported prompt count, which already includes cached input. Output is candidates plus thoughts; missing thought counts remain unknown. Counters must be exact safe nonnegative integers, and a reported total must agree. The RouteX `X-Request-ID` remains separate from native `responseId`.
+
+`playground-gemini.test.ts` covers exclusive authentication, exact native bodies, unsafe paths, split UTF-8, ordinary and SSE finality, final usage replacement and unknown counters, native usage aliases, refusal/truncation/tool outcomes, cancellation before EOF, duplicate candidates, malformed frames, and sanitized errors. Workbench tests cover Gemini-only discovery, system/history mappings, ordinary versus streaming paths, comparison cancellation isolation, successful-only context, and bilingual alias guidance. These are controlled client tests; database and provider acceptance are separate gates.

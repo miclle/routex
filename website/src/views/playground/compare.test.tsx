@@ -7,6 +7,7 @@ import {
   runChat,
   runResponses,
   runMessages,
+  runGemini,
 } from '@/api/playground'
 import i18n from '@/i18n'
 import CompareWorkbench from './compare'
@@ -17,6 +18,7 @@ vi.mock('@/api/playground', async (original) => ({
   runChat: vi.fn(),
   runResponses: vi.fn(),
   runMessages: vi.fn(),
+  runGemini: vi.fn(),
 }))
 Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true })
 let root: Root, host: HTMLDivElement
@@ -287,4 +289,62 @@ it('runs a native Messages lane alongside Chat and preserves sibling success aft
     { role: 'user', content: 'Next' },
   ])
   expect(vi.mocked(runChat).mock.calls[1][1].messages).toHaveLength(3)
+})
+
+it('runs Gemini alongside Chat with native model roles and isolates Gemini cancellation', async () => {
+  vi.mocked(getGatewayModels).mockResolvedValue([
+    { id: 'chat-a', protocols: ['openai_chat'] },
+    { id: 'gemini-b', protocols: ['gemini_generate_content'] },
+  ])
+  let currentSignal: AbortSignal | undefined
+  vi.mocked(runGemini).mockImplementation(
+    (_key, _request, signal, update) =>
+      new Promise((_resolve, reject) => {
+        currentSignal = signal
+        update({
+          text: 'Partial Gemini',
+          requestId: 'req_gemini',
+          usage: null,
+          finishReason: null,
+          generationStatus: 'incomplete',
+          nonTextOutput: false,
+        })
+        signal.addEventListener('abort', () => reject(new DOMException('Aborted', 'AbortError')))
+      }),
+  )
+  await ready()
+  await send('Shared')
+  expect(lane(1).textContent).toContain('Chat answer')
+  expect(lane(2).textContent).toContain('Partial Gemini')
+  expect(lane(2).textContent).toContain('/v1beta/models/gemini-b:streamGenerateContent')
+  expect(vi.mocked(runGemini).mock.calls[0][1]).toEqual({
+    model: 'gemini-b',
+    stream: true,
+    contents: [{ role: 'user', parts: [{ text: 'Shared' }] }],
+    generationConfig: { temperature: 0.7, topP: 1, maxOutputTokens: 2048, candidateCount: 1 },
+  })
+  await click('Stop comparison 2')
+  expect(currentSignal?.aborted).toBe(true)
+  expect(lane(2).textContent).toContain('Stopped')
+  expect(lane(1).textContent).toContain('Chat answer')
+  vi.mocked(runGemini).mockResolvedValue({
+    text: 'Complete Gemini',
+    requestId: 'req_next',
+    usage: null,
+    finishReason: 'STOP',
+    generationStatus: 'completed',
+    nonTextOutput: false,
+  })
+  await send('Next')
+  expect(vi.mocked(runGemini).mock.calls[1][1].contents).toEqual([
+    { role: 'user', parts: [{ text: 'Next' }] },
+  ])
+  expect(vi.mocked(runChat).mock.calls[1][1].messages).toHaveLength(3)
+  await send('Continue')
+  expect(vi.mocked(runGemini).mock.calls[2][1].contents[1]).toEqual({
+    role: 'model',
+    parts: [{ text: 'Complete Gemini' }],
+  })
+  expect(runResponses).not.toHaveBeenCalled()
+  expect(runMessages).not.toHaveBeenCalled()
 })

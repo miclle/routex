@@ -27,7 +27,8 @@ export interface ChatResult {
   finishReason: string | null
 }
 
-export type PlaygroundProtocol = 'openai_chat' | 'openai_responses' | 'anthropic_messages'
+export type PlaygroundProtocol =
+  'openai_chat' | 'openai_responses' | 'anthropic_messages' | 'gemini_generate_content'
 export interface ResponsesRequest {
   model: string
   input: { role: 'user' | 'assistant'; content: string }[]
@@ -54,5 +55,22 @@ export interface MessagesRequest {
 }
 export interface MessagesResult extends ChatResult {
   messageStatus: 'completed' | 'incomplete' | 'handoff' | 'refused'
+  nonTextOutput: boolean
+}
+
+export interface GeminiRequest {
+  model: string
+  stream: boolean
+  contents: { role: 'user' | 'model'; parts: { text: string }[] }[]
+  systemInstruction?: { parts: { text: string }[] }
+  generationConfig: {
+    temperature: number
+    topP: number
+    maxOutputTokens: number
+    candidateCount: 1
+  }
+}
+export interface GeminiResult extends ChatResult {
+  generationStatus: 'completed' | 'incomplete' | 'handoff' | 'refused'
   nonTextOutput: boolean
 }

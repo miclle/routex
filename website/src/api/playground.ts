@@ -1,3 +1,4 @@
+export { runGemini } from './playground-gemini'
 import { t } from '@/i18n'
 import type {
   ChatRequest,

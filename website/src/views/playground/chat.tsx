@@ -1,3 +1,4 @@
+import { isGeminiModelName, protocolLabel } from '@/lib/protocols'
 import { t } from '@/i18n'
 import { useTranslation } from 'react-i18next'
 import { useEffect, useRef, useState, type FormEvent } from 'react'
@@ -8,6 +9,7 @@ import {
   runChat,
   runResponses,
   runMessages,
+  runGemini,
 } from '@/api/playground'
 import type {
   ChatMessage,
@@ -42,6 +44,7 @@ type Exchange = ChatResult & {
 export default function ChatWorkbench() {
   useTranslation()
 
+  const [streamEnabled, setStreamEnabled] = useState(true)
   const [key, setKey] = useState('')
   const [models, setModels] = useState<GatewayModel[]>([])
   const [model, setModel] = useState('')
@@ -50,7 +53,10 @@ export default function ChatWorkbench() {
   function protocols(item?: GatewayModel): PlaygroundProtocol[] {
     return (item?.protocols ?? ['openai_chat']).filter(
       (value): value is PlaygroundProtocol =>
-        value === 'openai_chat' || value === 'openai_responses' || value === 'anthropic_messages',
+        value === 'openai_chat' ||
+        value === 'openai_responses' ||
+        value === 'anthropic_messages' ||
+        value === 'gemini_generate_content',
     )
   }
   const availableProtocols = protocols(models.find((item) => item.id === model))
@@ -166,7 +172,31 @@ export default function ChatWorkbench() {
         temperature: Number(form.get('temperature')),
         top_p: Number(form.get('top_p')),
       }
-      if (protocol === 'anthropic_messages') {
+      if (protocol === 'gemini_generate_content') {
+        const result = await runGemini(
+          key.trim(),
+          {
+            model,
+            stream,
+            contents: messages
+              .filter((message) => message.role !== 'system')
+              .map((message) => ({
+                role: message.role === 'assistant' ? ('model' as const) : ('user' as const),
+                parts: [{ text: message.content }],
+              })),
+            ...(system ? { systemInstruction: { parts: [{ text: system }] } } : {}),
+            generationConfig: {
+              temperature: parameters.temperature,
+              topP: parameters.top_p,
+              maxOutputTokens: Number(form.get('max_tokens')),
+              candidateCount: 1,
+            },
+          },
+          abort.signal,
+          update,
+        )
+        update({ ...result, status: result.generationStatus })
+      } else if (protocol === 'anthropic_messages') {
         const result = await runMessages(
           key.trim(),
           {
@@ -339,11 +369,7 @@ export default function ChatWorkbench() {
                 >
                   {availableProtocols.map((value) => (
                     <option key={value} value={value}>
-                      {value === 'anthropic_messages'
-                        ? 'Anthropic Messages'
-                        : value === 'openai_chat'
-                          ? 'OpenAI Chat'
-                          : 'OpenAI Responses'}
+                      {protocolLabel(value)}
                     </option>
                   ))}
                 </select>
@@ -355,22 +381,25 @@ export default function ChatWorkbench() {
               </p>
             )}
             <div className="border-t pt-4">
-              <Badge variant="outline">
-                {protocol === 'anthropic_messages'
-                  ? 'Anthropic Messages'
-                  : protocol === 'openai_chat'
-                    ? 'OpenAI Chat'
-                    : 'OpenAI Responses'}
-              </Badge>
+              <Badge variant="outline">{protocolLabel(protocol)}</Badge>
               <p className="mt-2 break-all font-mono text-xs text-muted-foreground">
                 POST{' '}
-                {protocol === 'anthropic_messages'
-                  ? '/v1/messages'
-                  : protocol === 'openai_chat'
-                    ? '/v1/chat/completions'
-                    : '/v1/responses'}
+                {protocol === 'gemini_generate_content'
+                  ? isGeminiModelName(model)
+                    ? `/v1beta/models/${encodeURIComponent(model)}:${streamEnabled ? 'streamGenerateContent' : 'generateContent'}`
+                    : '—'
+                  : protocol === 'anthropic_messages'
+                    ? '/v1/messages'
+                    : protocol === 'openai_chat'
+                      ? '/v1/chat/completions'
+                      : '/v1/responses'}
               </p>
             </div>
+            {protocol === 'gemini_generate_content' && !isGeminiModelName(model) && (
+              <p role="status" className="text-sm text-muted-foreground">
+                {t('playground:geminiAliasRequired')}
+              </p>
+            )}
             <FormField label={t('temperature')}>
               <Input
                 name="temperature"
@@ -411,7 +440,12 @@ export default function ChatWorkbench() {
               />
             </FormField>
             <label className="flex items-center gap-2 text-sm">
-              <input type="checkbox" name="stream" defaultChecked />
+              <input
+                type="checkbox"
+                name="stream"
+                checked={streamEnabled}
+                onChange={(event) => setStreamEnabled(event.target.checked)}
+              />
               {t('stream_output_5b6aa')}
             </label>
           </fieldset>

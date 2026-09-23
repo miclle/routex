@@ -42,16 +42,18 @@ export async function nativeRequest(
   key: string,
   signal: AbortSignal,
   body?: unknown,
-  authentication: 'bearer' | 'messages' = 'bearer',
+  authentication: 'bearer' | 'messages' | 'gemini' = 'bearer',
 ) {
   const response = await fetch(path, {
     method: body === undefined ? 'GET' : 'POST',
     credentials: 'omit',
     redirect: 'error',
     headers: {
-      ...(authentication === 'messages'
-        ? { 'x-api-key': key, 'anthropic-version': '2023-06-01' }
-        : { Authorization: `Bearer ${key}` }),
+      ...(authentication === 'gemini'
+        ? { 'x-goog-api-key': key }
+        : authentication === 'messages'
+          ? { 'x-api-key': key, 'anthropic-version': '2023-06-01' }
+          : { Authorization: `Bearer ${key}` }),
       ...(body === undefined ? {} : { 'Content-Type': 'application/json' }),
     },
     body: body === undefined ? undefined : JSON.stringify(body),

@@ -1,3 +1,4 @@
+import { isGeminiModelName, protocolLabel } from '@/lib/protocols'
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Plus, Send, Square, Trash2, X } from 'lucide-react'
@@ -7,6 +8,7 @@ import {
   runChat,
   runResponses,
   runMessages,
+  runGemini,
 } from '@/api/playground'
 import type {
   ChatMessage,
@@ -42,7 +44,10 @@ type Lane = { id: number; model: string; protocol: PlaygroundProtocol; turns: Tu
 function protocols(model?: GatewayModel): PlaygroundProtocol[] {
   return (model?.protocols ?? ['openai_chat']).filter(
     (value): value is PlaygroundProtocol =>
-      value === 'openai_chat' || value === 'openai_responses' || value === 'anthropic_messages',
+      value === 'openai_chat' ||
+      value === 'openai_responses' ||
+      value === 'anthropic_messages' ||
+      value === 'gemini_generate_content',
   )
 }
 function makeLane(id: number, model?: GatewayModel): Lane {
@@ -176,7 +181,32 @@ export default function CompareWorkbench() {
     ]
     const parameters = { model: lane.model, stream: true, temperature: 0.7, top_p: 1 }
     try {
-      if (lane.protocol === 'anthropic_messages') {
+      if (lane.protocol === 'gemini_generate_content') {
+        const result = await runGemini(
+          key.trim(),
+          {
+            model: lane.model,
+            stream: true,
+            contents: messages.map((message) => ({
+              role: message.role === 'assistant' ? ('model' as const) : ('user' as const),
+              parts: [{ text: message.content }],
+            })),
+            generationConfig: {
+              temperature: 0.7,
+              topP: 1,
+              maxOutputTokens: 2048,
+              candidateCount: 1,
+            },
+          },
+          abort.signal,
+          update,
+        )
+        update({
+          ...result,
+          status: result.generationStatus,
+          duration: Math.round(performance.now() - started),
+        })
+      } else if (lane.protocol === 'anthropic_messages') {
         const result = await runMessages(
           key.trim(),
           {
@@ -378,35 +408,34 @@ export default function CompareWorkbench() {
                 >
                   {protocols(models.find((item) => item.id === lane.model)).map((protocol) => (
                     <option key={protocol} value={protocol}>
-                      {protocol === 'anthropic_messages'
-                        ? 'Anthropic Messages'
-                        : protocol === 'openai_chat'
-                          ? 'OpenAI Chat'
-                          : 'OpenAI Responses'}
+                      {protocolLabel(protocol)}
                     </option>
                   ))}
                 </select>
               )}
               <div className="flex flex-wrap items-center gap-2">
                 <Badge variant="outline">
-                  {lane.model
-                    ? lane.protocol === 'anthropic_messages'
-                      ? 'Anthropic Messages'
-                      : lane.protocol === 'openai_chat'
-                        ? 'OpenAI Chat'
-                        : 'OpenAI Responses'
-                    : t('selectModel')}
+                  {lane.model ? protocolLabel(lane.protocol) : t('selectModel')}
                 </Badge>
                 {lane.model && (
                   <span className="text-xs text-muted-foreground">
-                    {lane.protocol === 'anthropic_messages'
-                      ? '/v1/messages'
-                      : lane.protocol === 'openai_chat'
-                        ? '/v1/chat/completions'
-                        : '/v1/responses'}
+                    {lane.protocol === 'gemini_generate_content'
+                      ? isGeminiModelName(lane.model)
+                        ? `/v1beta/models/${encodeURIComponent(lane.model)}:streamGenerateContent`
+                        : '—'
+                      : lane.protocol === 'anthropic_messages'
+                        ? '/v1/messages'
+                        : lane.protocol === 'openai_chat'
+                          ? '/v1/chat/completions'
+                          : '/v1/responses'}
                   </span>
                 )}
               </div>
+              {lane.protocol === 'gemini_generate_content' && !isGeminiModelName(lane.model) && (
+                <p role="status" className="text-sm text-muted-foreground">
+                  {t('geminiAliasRequired')}
+                </p>
+              )}
               {lane.turns.some((turn) => turn.status === 'running') && (
                 <Button
                   size="sm"

@@ -1,6 +1,10 @@
 export default {
+  invalidGemini:
+    'The gateway returned an invalid or unfinished native Gemini response. Received content has been preserved.',
+  geminiAliasRequired:
+    'Gemini needs a compatible public name or active alias: start with a letter or digit, then use only letters, digits, dots, underscores or hyphens (maximum 128 characters).',
   description:
-    'Make native Chat Completions, Responses or Messages calls using a personal or Project API key.',
+    'Make native Chat Completions, Responses, Messages or Gemini calls using a personal or Project API key.',
   protocol: 'Protocol',
   key: 'API key',
   keyPlaceholder: 'Paste an enabled personal or Project key',
