@@ -74,14 +74,18 @@ func clonePriceBasis(basis *CallPriceBasis) *CallPriceBasis {
 	copy.Currency.Rates = maps.Clone(basis.Currency.Rates)
 	return &copy
 }
-func (s *Service) capturePriceBasis(ctx context.Context, providerModelID string) (*CallPriceBasis, error) {
+func (s *Service) capturePriceBasis(ctx context.Context, providerModelID string, protocols ...string) (*CallPriceBasis, error) {
 	var result *CallPriceBasis
 	err := s.authDB(ctx).Transaction(func(tx *gorm.DB) error {
 		data, err := loadRuntimePricing(tx)
 		if err != nil {
 			return err
 		}
-		result = runtimePriceBasis(data, providerModelID, entity.ProtocolOpenAIChat)
+		protocol := entity.ProtocolOpenAIChat
+		if len(protocols) > 0 {
+			protocol = protocols[0]
+		}
+		result = runtimePriceBasis(data, providerModelID, protocol)
 		return nil
 	}, &sql.TxOptions{Isolation: sql.LevelRepeatableRead, ReadOnly: true})
 	return result, err

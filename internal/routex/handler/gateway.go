@@ -16,7 +16,6 @@ import (
 
 	"github.com/fox-gonic/fox"
 
-	"github.com/miclle/routex/internal/routex/entity"
 	"github.com/miclle/routex/internal/routex/service"
 	"github.com/miclle/routex/pkg/id"
 )
@@ -116,6 +115,9 @@ func (ctrl *Ctrl) recordGatewayCall(ctx context.Context, requestID string, start
 		var public *service.GatewayError
 		if errors.As(callErr, &public) {
 			code = public.Code
+			if code == "canceled" {
+				status = "canceled"
+			}
 		}
 	}
 	if errors.Is(ctx.Err(), context.Canceled) {
@@ -125,7 +127,7 @@ func (ctrl *Ctrl) recordGatewayCall(ctx context.Context, requestID string, start
 		status, code = "error", "upstream_timeout"
 	}
 	completed := time.Now().UTC()
-	fact := service.CallFact{RequestID: requestID, SnapshotID: result.SnapshotID, UserID: result.UserID, ProjectID: result.ProjectID, KeyID: result.KeyID, ModelID: result.ModelID, ModelName: result.ModelName, ProviderModelID: result.ProviderModelID, ConnectionID: result.ConnectionID, Protocol: entity.ProtocolOpenAIChat, Status: status, Stream: result.Stream, StartedAt: started, CompletedAt: completed, InputTokens: usage.Input, OutputTokens: usage.Output, CacheReadTokens: usage.CacheRead, CacheWriteTokens: usage.CacheWrite, UsageComplete: usage.Complete, PricingUnsupported: result.PricingUnsupported || usage.Unsupported, PriceBasis: result.PriceBasis, PricingDimensions: append(append([]string{}, result.PricingDimensions...), usage.UnsupportedDimensions...), ErrorCode: code}
+	fact := service.CallFact{RequestID: requestID, SnapshotID: result.SnapshotID, UserID: result.UserID, ProjectID: result.ProjectID, KeyID: result.KeyID, ModelID: result.ModelID, ModelName: result.ModelName, ProviderModelID: result.ProviderModelID, ConnectionID: result.ConnectionID, Protocol: result.NativeProtocol(), Status: status, Stream: result.Stream, StartedAt: started, CompletedAt: completed, InputTokens: usage.Input, OutputTokens: usage.Output, CacheReadTokens: usage.CacheRead, CacheWriteTokens: usage.CacheWrite, UsageComplete: usage.Complete, PricingUnsupported: result.PricingUnsupported || usage.Unsupported, PriceBasis: result.PriceBasis, PricingDimensions: append(append([]string{}, result.PricingDimensions...), usage.UnsupportedDimensions...), ErrorCode: code}
 	if result.AttemptID != "" {
 		httpStatus := 0
 		if result.Response != nil {
@@ -179,6 +181,9 @@ func gatewayErrorBody(err error) (int, map[string]any) {
 	var known *service.GatewayError
 	if errors.As(err, &known) {
 		public = known
+	}
+	if public.NativeError != nil {
+		return public.Status, public.NativeError
 	}
 	kind := "api_error"
 	if public.Status < 500 {

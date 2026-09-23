@@ -9,7 +9,6 @@ import (
 	"net/http/httputil"
 	"net/url"
 	"os"
-	"strings"
 
 	"github.com/fox-gonic/fox"
 	"github.com/fox-gonic/fox/httperrors"
@@ -86,7 +85,7 @@ func EmbedAssets(router *fox.Engine) {
 			return httperrors.ErrNotFound
 		}
 
-		if strings.HasPrefix(c.Request.URL.Path, "/api") {
+		if isAPIPath(c.Request.URL.Path) {
 			return httperrors.ErrNotFound
 		}
 

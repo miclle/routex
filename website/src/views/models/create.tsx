@@ -1,3 +1,4 @@
+import { protocolLabel } from '@/lib/protocols'
 import { useTranslation } from 'react-i18next'
 import { useState, type FormEvent } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
@@ -88,7 +89,7 @@ function CreateModel() {
                   <Input value={provider?.name ?? ''} disabled />
                 </FormField>
                 <FormField label={t('common.protocolType')}>
-                  <Input value={t('common.openAIChat')} disabled />
+                  <Input value={protocolLabel(connection.protocol)} disabled />
                 </FormField>
                 <FormField label={t('createModel.upstreamBaseURL')}>
                   <Input value={connection.base_url} disabled />

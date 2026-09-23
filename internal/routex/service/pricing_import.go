@@ -84,7 +84,7 @@ func validatePriceImport(tx *gorm.DB, parsed parsedPriceCSV, setting entity.Pric
 		if err := tx.First(&connection, "id = ?", pm.ConnectionID).Error; err != nil {
 			return nil, err
 		}
-		if connection.Protocol != entity.ProtocolOpenAIChat {
+		if !entity.SupportedNativeProtocol(connection.Protocol) {
 			for _, row := range rows {
 				add(row, "provider_model_id", "unsupported_protocol", "The provider model does not use supported text pricing.")
 			}

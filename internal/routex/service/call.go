@@ -210,7 +210,7 @@ func validateCallFact(fact CallFact) error {
 	if err := validateCallPricing(fact); err != nil {
 		return err
 	}
-	if !safeCallID.MatchString(fact.RequestID) || len(fact.SnapshotID) > 30 || (fact.UserID == "") == (fact.ProjectID == "") || len(fact.ProjectID) > 30 || len(fact.UserID) > 30 || len(fact.KeyID) > 30 || len(fact.ModelID) > 30 || len(fact.ModelName) > 128 || len(fact.ProviderModelID) > 30 || len(fact.ConnectionID) > 30 || fact.Protocol != entity.ProtocolOpenAIChat || !validCallStatus(fact.Status) || fact.StartedAt.IsZero() || fact.CompletedAt.Before(fact.StartedAt) || len(fact.Attempts) > 32 {
+	if !safeCallID.MatchString(fact.RequestID) || len(fact.SnapshotID) > 30 || (fact.UserID == "") == (fact.ProjectID == "") || len(fact.ProjectID) > 30 || len(fact.UserID) > 30 || len(fact.KeyID) > 30 || len(fact.ModelID) > 30 || len(fact.ModelName) > 128 || len(fact.ProviderModelID) > 30 || len(fact.ConnectionID) > 30 || !entity.SupportedNativeProtocol(fact.Protocol) || !validCallStatus(fact.Status) || fact.StartedAt.IsZero() || fact.CompletedAt.Before(fact.StartedAt) || len(fact.Attempts) > 32 {
 		return apperrors.ErrBadRequest
 	}
 	if (fact.InputTokens != nil && *fact.InputTokens < 0) || (fact.OutputTokens != nil && *fact.OutputTokens < 0) {

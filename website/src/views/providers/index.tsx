@@ -1,3 +1,4 @@
+import { protocolLabel, protocolLabels } from '@/lib/protocols'
 import { useTranslation } from 'react-i18next'
 import { useState, type FormEvent } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
@@ -90,7 +91,7 @@ function Providers() {
           name: value('name'),
           connection_name: value('connection_name'),
           base_url: value('base_url'),
-          protocol: 'openai_chat',
+          protocol: value('protocol'),
           credential_name: value('credential_name'),
           secret,
         },
@@ -101,7 +102,7 @@ function Providers() {
         data: {
           name: value('name'),
           base_url: value('base_url'),
-          protocol: 'openai_chat',
+          protocol: value('protocol'),
           credential_name: value('credential_name'),
           secret,
         },
@@ -194,7 +195,9 @@ function Providers() {
                   </Link>
                 </td>
                 <td>{provider.connections.length}</td>
-                <td>{t('common.openAIChat')}</td>
+                <td>
+                  {protocolLabels(provider.connections.map((connection) => connection.protocol))}
+                </td>
                 <td>
                   {
                     provider.connections
@@ -222,7 +225,9 @@ function Providers() {
               </span>
               <h2 className="text-2xl font-semibold">{selected.name}</h2>
             </div>
-            <Badge variant="outline">{t('common.openAIChat')}</Badge>
+            <Badge variant="outline">
+              {protocolLabels(selected.connections.map((connection) => connection.protocol))}
+            </Badge>
           </div>
           <Tabs
             value={tab}
@@ -266,7 +271,7 @@ function Providers() {
                   {selected.connections.map((c) => (
                     <tr key={c.id}>
                       <td>{c.name}</td>
-                      <td>{t('common.openAIChat')}</td>
+                      <td>{protocolLabel(c.protocol)}</td>
                       <td className="break-all">{c.base_url}</td>
                       <td>{c.credentials.length}</td>
                       <td>{c.provider_models.length}</td>
@@ -393,7 +398,7 @@ function Providers() {
                           </Link>
                         </td>
                         <td>{c.name}</td>
-                        <td>{t('common.openAIChat')}</td>
+                        <td>{protocolLabel(c.protocol)}</td>
                       </tr>
                     )),
                   )}
@@ -432,6 +437,16 @@ function Providers() {
             )}
             {(action?.kind === 'provider' || action?.kind === 'connection') && (
               <>
+                <FormField label={t('common.protocolType')}>
+                  <select
+                    name="protocol"
+                    defaultValue="openai_chat"
+                    className="h-10 w-full rounded-md border bg-background px-3"
+                  >
+                    <option value="openai_chat">OpenAI Chat</option>
+                    <option value="openai_responses">OpenAI Responses</option>
+                  </select>
+                </FormField>
                 <FormField label={t('common.baseURL')}>
                   <Input
                     name="base_url"

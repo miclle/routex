@@ -135,7 +135,7 @@ scripts/                      # Shell helpers invoked by Taskfile (build, check,
 
 - `website/assets_development.go` (`//go:build development`) reverse-proxies to Vite dev server
 - `website/assets_production.go` (`//go:build !development`) serves assets via `//go:embed build/*`
-- NotFound handler: `/api` prefix returns JSON 404; all other routes fall back to SPA index
+- NotFound handler: `/api`, `/v1`, and `/v1beta` API paths return JSON 404; other GET/HEAD routes fall back to the SPA index
 - `go tool task test` covers development and production asset serving; CI runs production tests after building frontend assets
 - Development services run under Task with fail-fast cancellation; never scan and kill unrelated processes to free ports
 - Keep Vite Host validation enabled; permit custom development hostnames explicitly
@@ -189,3 +189,5 @@ Admission controls use `views/resource-limits` within member Settings, Project R
 Provider-model availability belongs in the existing detail page before prices. Keep stored state separate from routing weights, preserve exact ETags through explicit review, and reconcile uncertain publication before retrying.
 
 Two-step verification uses the existing sign-in card and security settings card/dialogs. A login HTTP 202 is a transient challenge, never a Session or authenticated navigation. Keep challenges, proofs, enrollment material, and one-time recovery codes in component state only; sensitive operations must not use mutation caches or browser storage. Render the server-issued authenticator URI locally with the pinned QR library, without external QR services. Clear sensitive state on completion, dismissal, expiry, and unmount. Handle generic proof failures locally, refresh the real session when appropriate, and replace the current Session/CSRF while resetting private queries after successful MFA changes. Keep paired `mfa` translations and license notices.
+
+Native protocol catalog controls display actual connection and model protocols. Create connections with an explicit protocol, preserve per-protocol binding weights, and generate matching member API examples. The current Chat Playground only offers models with eligible Chat routes from the Key-scoped model list. Unsupported `/v1` and `/v1beta` paths return JSON 404 rather than SPA HTML.

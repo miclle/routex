@@ -298,7 +298,7 @@ func writePrice(tx *gorm.DB, input PriceInput, source string) (*PriceRecord, *Pr
 	if err := tx.First(&connection, "id = ?", providerModel.ConnectionID).Error; err != nil {
 		return nil, nil, err
 	}
-	if connection.Protocol != entity.ProtocolOpenAIChat {
+	if !entity.SupportedNativeProtocol(connection.Protocol) {
 		return nil, nil, apperrors.ErrBadRequest
 	}
 	var model entity.ModelPrice

@@ -21,7 +21,7 @@ inputs. Unsupported pricing dimensions are rejected rather than inferred.
 
 The supported adapter has these explicit boundaries:
 
-- Protocol: `openai_chat`; quotes contain normalized **text token** usage only.
+- Protocols: `openai_chat` and `openai_responses`; quotes contain normalized **text token** usage only.
   The connection protocol is checked from the existing provider model. Unsupported
   native protocols are rejected. Multimodal usage is not inferred from model names
   and must not be submitted as text-token pricing. Native protocols with different
@@ -53,8 +53,8 @@ ordinary_input = input_tokens - cache_read_tokens - cache_write_tokens
 ```
 
 Cache categories must not overlap and their sum must not exceed total input.
-Invalid usage is rejected instead of being clamped. The native Chat Completions usage adapter establishes these invariants before
-assessing a call; other protocols require separate adapters.
+Invalid usage is rejected instead of being clamped. Dedicated Chat Completions and [Responses](RESPONSES.md) adapters establish these
+invariants before assessing a call; other protocols require separate adapters.
 
 The long-context tier applies only when total input is strictly greater than the
 configured threshold. Equality uses base. The selected tier applies to the whole
@@ -178,7 +178,7 @@ normalized audits. Invoke it through `go tool task test-integration` after migra
 11 and route registration are wired.
 
 Remaining P3 work includes required non-token metrics and finite conditions,
-CSV/XLS/XLSX import, a documented repository format and sync mechanism, catalogue
-UI, additional protocol/usage adapters, quota/reservation integration, and
+a documented repository format and sync mechanism, additional protocol/usage
+adapters, quota/reservation integration, and
 reconciliation. This slice does not claim completion of P3 or
 full provider pricing compatibility.

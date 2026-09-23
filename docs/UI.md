@@ -102,3 +102,7 @@ Enabled accounts can disable the factor or regenerate recovery codes using their
 Sign-in HTTP 202 keeps the existing centered card on the sign-in route and offers authenticator or recovery-code verification. The challenge expires, can be restarted, and never enters the session cache. Successful verification alone completes authentication. Passwords, challenges, proof values, enrollment tokens/secrets, and recovery codes never enter React Query mutation state or browser storage. English/Chinese labels, validation, and expiry dates use the selected locale.
 
 Focused tests cover HTTP status discrimination, challenge expiry/navigation cancellation, proof failure and retry, real SVG generation from the server URI, enrollment cancellation, one-time recovery delivery, duplicate dispatch protection, CSRF rotation/private cache reset, failure cleanup, and live language switching. Browser rendering and real backend TOTP verification remain separate acceptance checks.
+
+## Native protocol catalog
+
+Native protocol catalog controls display actual connection and model protocols. Create connections with an explicit protocol, preserve per-protocol binding weights, and generate matching member API examples. The current Chat Playground only offers models with eligible Chat routes from the Key-scoped model list. Unsupported `/v1` and `/v1beta` paths return JSON 404 rather than SPA HTML.

@@ -1,3 +1,4 @@
+import { protocolLabel, protocolLabels } from '@/lib/protocols'
 import { useTranslation } from 'react-i18next'
 import { useState, type FormEvent } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
@@ -173,7 +174,9 @@ function AdminModels() {
                         </Link>
                       </td>
                       <td>
-                        <Badge variant="outline">{t('common.openAIChat')}</Badge>
+                        <Badge variant="outline">
+                          {protocolLabels(model.bindings.map((binding) => binding.protocol))}
+                        </Badge>
                       </td>
                       <td>
                         {[
@@ -234,7 +237,7 @@ function AdminModels() {
                 </div>
                 <div>
                   <dt className="text-muted-foreground">{t('common.protocolType')}</dt>
-                  <dd>{t('common.openAIChat')}</dd>
+                  <dd>{protocolLabels(selected.bindings.map((binding) => binding.protocol))}</dd>
                 </div>
                 <div>
                   <dt className="text-muted-foreground">{t('adminModels.bindings')}</dt>
@@ -306,7 +309,7 @@ function AdminModels() {
                           binding.provider_id}
                       </td>
                       <td>{binding.upstream_name}</td>
-                      <td>{t('common.openAIChat')}</td>
+                      <td>{protocolLabel(binding.protocol)}</td>
                       <td>
                         {binding.ready
                           ? t('adminModels.connectionReady')

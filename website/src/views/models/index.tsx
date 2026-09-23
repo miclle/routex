@@ -1,3 +1,4 @@
+import { modelProtocols, protocolLabel, protocolLabels } from '@/lib/protocols'
 import { useTranslation } from 'react-i18next'
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
@@ -15,6 +16,7 @@ import type { CallableModel } from '@/types/catalog'
 export default function ModelsPage() {
   const { t } = useTranslation('catalog')
   const models = useQuery({ queryKey: ['models'], queryFn: listModels })
+  const [exampleProtocol, setExampleProtocol] = useState('openai_chat')
   const [query, setQuery] = useState('')
   const [view, setView] = useState('card')
   const [selected, setSelected] = useState<CallableModel | null>(null)
@@ -24,7 +26,14 @@ export default function ModelsPage() {
   const items =
     models.data?.filter((model) => model.name.toLowerCase().includes(query.toLowerCase())) ?? []
   const endpoint = `${window.location.origin}/v1`
-  const example = `curl ${endpoint}/chat/completions \\\n  -H "Authorization: Bearer $ROUTEX_API_KEY" \\\n  -H "Content-Type: application/json" \\\n  -d '${JSON.stringify({ model: selected?.name, messages: [{ role: 'user', content: 'Hello' }] })}'`
+  const protocols = selected ? modelProtocols(selected) : []
+  const activeProtocol = protocols.includes(exampleProtocol) ? exampleProtocol : protocols[0]
+  const requestPath = activeProtocol === 'openai_responses' ? 'responses' : 'chat/completions'
+  const requestBody =
+    activeProtocol === 'openai_responses'
+      ? { model: selected?.name, input: 'Hello' }
+      : { model: selected?.name, messages: [{ role: 'user', content: 'Hello' }] }
+  const example = `curl ${endpoint}/${requestPath} \\\n  -H "Authorization: Bearer $ROUTEX_API_KEY" \\\n  -H "Content-Type: application/json" \\\n  -d '${JSON.stringify(requestBody)}'`
   async function copy(value: string) {
     try {
       await navigator.clipboard.writeText(value)
@@ -42,7 +51,7 @@ export default function ModelsPage() {
         {[
           [t('memberModels.total'), models.data?.length],
           [t('memberModels.available'), models.data?.length],
-          [t('common.protocolType'), new Set(models.data?.map((m) => m.protocol)).size],
+          [t('common.protocolType'), new Set(models.data?.flatMap(modelProtocols)).size],
         ].map(([label, value]) => (
           <div key={label}>
             <p className="text-sm text-muted-foreground">{label}</p>
@@ -107,7 +116,7 @@ export default function ModelsPage() {
                 <h2 className="truncate text-sm font-semibold">{model.name}</h2>
               </div>
               <div className="flex gap-2">
-                <Badge variant="outline">{t('common.openAIChat')}</Badge>
+                <Badge variant="outline">{protocolLabels(modelProtocols(model))}</Badge>
                 <Badge variant="secondary">{t('memberModels.personalGrant')}</Badge>
               </div>
             </button>
@@ -128,7 +137,7 @@ export default function ModelsPage() {
               <tr key={model.id}>
                 <td>{model.name}</td>
                 <td>{t('memberModels.personalGrant')}</td>
-                <td>{t('common.openAIChat')}</td>
+                <td>{protocolLabels(modelProtocols(model))}</td>
                 <td>
                   <Button size="sm" variant="ghost" onClick={() => setSelected(model)}>
                     {t('common.apiAccess')}
@@ -151,7 +160,7 @@ export default function ModelsPage() {
           <div className="flex items-center gap-3 rounded-lg border p-4">
             <Bot className="size-5" />
             <h2 className="font-semibold">{selected?.name}</h2>
-            <Badge variant="outline">{t('common.openAIChat')}</Badge>
+            <Badge variant="outline">{protocolLabels(protocols)}</Badge>
           </div>
           <section className="rounded-lg border">
             <h3 className="border-b p-4 text-sm font-semibold">{t('common.connectionSettings')}</h3>
@@ -177,6 +186,22 @@ export default function ModelsPage() {
                 {t('common.copy')}
               </Button>
             </div>
+            {protocols.length > 1 && (
+              <label className="flex items-center gap-3 px-4 pt-4 text-sm">
+                {t('common.protocolType')}
+                <select
+                  value={activeProtocol}
+                  onChange={(event) => setExampleProtocol(event.target.value)}
+                  className="h-9 rounded-md border bg-background px-3"
+                >
+                  {protocols.map((protocol) => (
+                    <option key={protocol} value={protocol}>
+                      {protocolLabel(protocol)}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            )}
             <pre className="overflow-auto p-4 text-xs leading-6">{example}</pre>
           </section>
           {notice && (

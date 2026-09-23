@@ -1,10 +1,12 @@
 # OpenAI Chat Gateway
 
+Foreground native Responses has a separate [protocol contract](RESPONSES.md). The details below describe Chat Completions.
+
 ## Supported Endpoints
 
 The initial gateway supports `GET /v1/models` and `POST /v1/chat/completions` with `Authorization: Bearer <personal-api-key>`. Browser session cookies do not authorize these endpoints. Keys must be confirmed, active, unexpired, and owned by an enabled user. Effective model access is the intersection of the key's stable model scope and the owner's current grants; an administrator has no implicit inference bypass.
 
-`GET /v1/models` returns an OpenAI-compatible list of current public names visible to that effective scope. Listing a model does not guarantee that it has a currently usable route. Chat requests accept the current name or an unexpired compatibility alias. Expired aliases and inaccessible models receive the same `model_not_found` response. Routing and authorization use the stable internal model ID.
+`GET /v1/models` returns an OpenAI-compatible list of current public names visible to that effective scope. Each item also includes `protocols`, the currently eligible native protocol names; an empty array means no currently usable route. Listing a model does not guarantee a later request will remain eligible. Chat requests accept the current name or an unexpired compatibility alias. Expired aliases and inaccessible models receive the same `model_not_found` response. Routing and authorization use the stable internal model ID.
 
 Chat requests preserve native JSON parameters and replace the outbound `model` with the selected provider model's name. Streaming requests additionally set `stream_options.include_usage` to `true`, preserving other options, to request the native final usage event. Returned JSON and SSE chunks replace their `model` field with the caller's public name. The configured connection base URL must include the provider API prefix, such as `https://api.example.com/v1`; the gateway appends `/chat/completions`.
 
@@ -14,7 +16,7 @@ The gateway reads all bindings for the requested model and OpenAI Chat protocol.
 
 The selected credential is prepared against its immutable credential reference during runtime publication and sent only in the intended upstream request. The shared outbound client enforces URL, DNS/IP, TLS, proxy, and redirect restrictions described in [Credential Storage and Upstream Network Policy](SECRET_STORAGE.md). Client headers, cookies, and authorization are not forwarded. Each request receives a generated `X-Request-ID`, which is also sent to the upstream.
 
-This initial version makes exactly one attempt. An unavailable selected connection returns an error; it does not silently redistribute configured weights, switch protocols, retry a request, or replay a partial stream. Dynamic health-based failover and credential retry remain separate work.
+This initial version makes exactly one attempt. Disabled supply is excluded before selection while remaining eligible positive weights keep their relative proportions. A failure after selection returns an error; it does not switch protocols, retry a request, or replay a partial stream. Dynamic health-based failover and credential retry remain separate work.
 
 ## Streaming, Cancellation, and Errors
 

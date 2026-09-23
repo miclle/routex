@@ -38,10 +38,11 @@ type ModelWeight struct {
 }
 
 type VisibleModel struct {
-	ID       string
-	Name     string
-	Status   string
-	Protocol string
+	Protocols []string `gorm:"-"`
+	ID        string
+	Name      string
+	Status    string
+	Protocol  string
 }
 
 func loadModelCatalog(db *gorm.DB, modelID string) (*ModelCatalog, error) {
@@ -340,10 +341,25 @@ func (s *Service) SetModelGrants(ctx context.Context, actorID, modelID string, u
 func (s *Service) ListVisibleModels(ctx context.Context, userID string) ([]VisibleModel, error) {
 	result := []VisibleModel{}
 	err := s.authDB(ctx).Table("models m").Select("m.id, n.name, m.status").Joins("JOIN model_names n ON n.current_model_id = m.id").Joins("JOIN user_model_grants g ON g.model_id = m.id").Where("g.user_id = ? AND m.status = ?", userID, "active").Order("n.name").Scan(&result).Error
-	for i := range result {
-		result[i].Protocol = entity.ProtocolOpenAIChat
+	if err != nil || len(result) == 0 {
+		return result, catalogError(err)
 	}
-	return result, catalogError(err)
+	ids := make([]string, len(result))
+	for index := range result {
+		ids[index] = result[index].ID
+		result[index].Protocols = []string{}
+	}
+	protocols, err := s.gatewayProtocols(ctx, ids)
+	if err != nil {
+		return nil, catalogError(err)
+	}
+	for index := range result {
+		result[index].Protocols = protocols[result[index].ID]
+		if len(result[index].Protocols) > 0 {
+			result[index].Protocol = result[index].Protocols[0]
+		}
+	}
+	return result, nil
 }
 
 func (s *Service) ListModelGrantees(ctx context.Context) ([]entity.User, error) {

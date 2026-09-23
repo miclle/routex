@@ -76,7 +76,7 @@ func ValidateRate(r Rate) error {
 	return err
 }
 func ValidateSchedule(s Schedule) error {
-	if s.Protocol != "openai_chat" || (s.ContextThreshold != 0 && s.ContextThreshold != 128000 && s.ContextThreshold != 200000) {
+	if (s.Protocol != "openai_chat" && s.Protocol != "openai_responses") || (s.ContextThreshold != 0 && s.ContextThreshold != 128000 && s.ContextThreshold != 200000) {
 		return ErrInvalid
 	}
 	seen := map[string]bool{}

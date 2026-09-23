@@ -10,7 +10,7 @@ import AdminModelsPage from '@/views/models/admin'
 import CreateModelPage from '@/views/models/create'
 import ModelsPage from '@/views/models'
 import client from '@/api/client'
-import type { Model, PersonalKey, Provider } from '@/types/catalog'
+import type { CallableModel, Model, PersonalKey, Provider } from '@/types/catalog'
 
 Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true })
 let root: Root
@@ -22,6 +22,7 @@ let failures: Record<string, number>
 let keys: PersonalKey[]
 let provider: Provider
 let model: Model
+let callableModels: CallableModel[]
 const secret = 'rx_test_one_time_secret'
 const originalAdapter = client.defaults.adapter
 const makeKey = (status: PersonalKey['status'] = 'pending'): PersonalKey => ({
@@ -37,6 +38,7 @@ const makeKey = (status: PersonalKey['status'] = 'pending'): PersonalKey => ({
 })
 
 beforeEach(() => {
+  callableModels = [{ id: 'mdl_1', name: 'Model', status: 'active', protocol: 'openai_chat' }]
   role = 'admin'
   requests = []
   failures = {}
@@ -119,7 +121,7 @@ beforeEach(() => {
     if (route === 'get /keys') response.data = { items: structuredClone(keys) }
     if (route === 'get /models')
       response.data = {
-        items: [{ id: 'mdl_1', name: 'Model', status: 'active', protocol: 'openai_chat' }],
+        items: structuredClone(callableModels),
       }
     if (route === 'get /admin/providers') response.data = { items: [structuredClone(provider)] }
     if (route === 'post /admin/models') response.data = structuredClone(model)
@@ -480,5 +482,84 @@ describe('catalog and Key workflows', () => {
     expect(JSON.parse(requests.find((r) => r.method === 'put')!.data)).toEqual({
       user_ids: ['usr_2'],
     })
+  })
+})
+
+describe('native protocol catalog', () => {
+  it('sends the selected protocol when creating a provider connection', async () => {
+    await render(<ProvidersPage />)
+    await until(() => expect(document.body.textContent).toContain('Provider'))
+    await click('Add provider')
+    await fill('name', 'Responses provider')
+    await fill('connection_name', 'Responses')
+    await fill('base_url', 'https://api.example.com/v1')
+    await fill('credential_name', 'Primary')
+    await fill('secret', 'upstream_secret')
+    await act(async () => {
+      const select = document.querySelector<HTMLSelectElement>('select[name="protocol"]')!
+      select.value = 'openai_responses'
+      select.dispatchEvent(new Event('change', { bubbles: true }))
+    })
+    await submit()
+    await until(() =>
+      expect(requests.some((r) => r.url === '/admin/providers' && r.method === 'post')).toBe(true),
+    )
+    expect(JSON.parse(requests.find((r) => r.method === 'post')!.data).protocol).toBe(
+      'openai_responses',
+    )
+  })
+
+  it('shows actual model protocols and switches native request examples', async () => {
+    callableModels = [
+      {
+        id: 'mdl_1',
+        name: 'Native Model',
+        status: 'active',
+        protocol: 'openai_chat',
+        protocols: ['openai_chat', 'openai_responses'],
+      },
+    ]
+    await render(<ModelsPage />)
+    await until(() => expect(document.body.textContent).toContain('Native Model'))
+    await act(async () => {
+      container.querySelector<HTMLButtonElement>('button[aria-label*="Native Model"]')!.click()
+    })
+    await until(() =>
+      expect(document.querySelector('[role="dialog"] pre')?.textContent).toContain(
+        '/chat/completions',
+      ),
+    )
+    await act(async () => {
+      const select = document.querySelector<HTMLSelectElement>('[role="dialog"] select')!
+      select.value = 'openai_responses'
+      select.dispatchEvent(new Event('change', { bubbles: true }))
+    })
+    const example = document.querySelector('[role="dialog"] pre')!.textContent!
+    expect(example).toContain('/v1/responses')
+    expect(example).toContain('"input":"Hello"')
+    expect(example).not.toContain('messages')
+    expect(example).toContain('$ROUTEX_API_KEY')
+  })
+
+  it('uses Responses immediately for a Responses-only model', async () => {
+    callableModels = [
+      {
+        id: 'mdl_1',
+        name: 'Responses Model',
+        status: 'active',
+        protocol: 'openai_responses',
+        protocols: ['openai_responses'],
+      },
+    ]
+    await render(<ModelsPage />)
+    await until(() => expect(document.body.textContent).toContain('Responses Model'))
+    await act(async () => {
+      container.querySelector<HTMLButtonElement>('button[aria-label*="Responses Model"]')!.click()
+    })
+    await until(() =>
+      expect(document.querySelector('[role="dialog"] pre')?.textContent).toContain('/v1/responses'),
+    )
+    expect(document.querySelector('[role="dialog"] select')).toBeNull()
+    expect(document.querySelector('[role="dialog"]')!.textContent).not.toContain('OpenAI Chat')
   })
 })

@@ -120,7 +120,7 @@ func loadConnectionCatalog(db *gorm.DB, connectionID string) (*ConnectionCatalog
 
 func (s *Service) prepareConnection(providerID string, input CreateConnectionInput) (entity.ProviderConnection, entity.ProviderCredential, error) {
 	connection := entity.ProviderConnection{ProviderID: providerID, Name: strings.TrimSpace(input.Name), Protocol: input.Protocol}
-	if !validCatalogLabel(connection.Name) || input.Protocol != entity.ProtocolOpenAIChat {
+	if !validCatalogLabel(connection.Name) || !entity.SupportedNativeProtocol(input.Protocol) {
 		return connection, entity.ProviderCredential{}, apperrors.ErrBadRequest
 	}
 	baseURL, err := upstream.ValidateBaseURL(input.BaseURL, s.allowPrivateUpstream)

@@ -62,7 +62,18 @@ async function nativeRequest(path: string, key: string, signal: AbortSignal, bod
 export async function getGatewayModels(key: string, signal: AbortSignal): Promise<GatewayModel[]> {
   const response = await nativeRequest('/v1/models', key, signal)
   const body = record(await response.json())
-  if (!Array.isArray(body.data) || !body.data.every((item) => typeof record(item).id === 'string'))
+  if (
+    !Array.isArray(body.data) ||
+    !body.data.every((item) => {
+      const model = record(item)
+      return (
+        typeof model.id === 'string' &&
+        (model.protocols === undefined ||
+          (Array.isArray(model.protocols) &&
+            model.protocols.every((protocol) => typeof protocol === 'string')))
+      )
+    })
+  )
     throw new GatewayError(
       () => t('the_model_list_format_is_invalid_b03c8'),
       response.headers.get('X-Request-ID') ?? '',

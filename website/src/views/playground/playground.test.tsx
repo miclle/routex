@@ -168,3 +168,17 @@ describe('Playground user behavior', () => {
     expect(requestSignal?.aborted).toBe(true)
   })
 })
+
+it('only offers models with a currently eligible Chat route in the chat playground', async () => {
+  vi.mocked(getGatewayModels).mockResolvedValue([
+    { id: 'responses-only', protocols: ['openai_responses'] },
+    { id: 'unavailable', protocols: [] },
+    { id: 'both', protocols: ['openai_chat', 'openai_responses'] },
+  ])
+  await fill('api_key', 'rx_transient')
+  await click('Verify and load models')
+  const options = [...container.querySelectorAll('option')].map((option) => option.value)
+  expect(options).toContain('both')
+  expect(options).not.toContain('responses-only')
+  expect(options).not.toContain('unavailable')
+})

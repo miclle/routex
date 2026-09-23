@@ -1,5 +1,6 @@
 export interface GatewayModel {
   id: string
+  protocols?: string[]
 }
 export interface ChatMessage {
   role: 'system' | 'user' | 'assistant'

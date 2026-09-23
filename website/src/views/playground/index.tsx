@@ -54,7 +54,10 @@ export default function PlaygroundPage() {
     setLoading(true)
     setError('')
     try {
-      const items = await getGatewayModels(key.trim(), abort.signal)
+      const available = await getGatewayModels(key.trim(), abort.signal)
+      const items = available.filter(
+        (item) => item.protocols === undefined || item.protocols.includes('openai_chat'),
+      )
       if (mounted.current) {
         setModels(items)
         setModel(items[0]?.id ?? '')

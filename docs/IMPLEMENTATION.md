@@ -519,3 +519,26 @@ current-session rotation, login HTTP202, transient secret cleanup and local QR.
 Browser control remained unavailable: browser inventory was visible, but creating
 an isolated fixture tab failed. No rendered authenticator-app or external identity
 acceptance is claimed; deterministic verifier and UI evidence are separate.
+
+### Native Responses protocol
+
+Foreground native Responses now has its own connection protocol, route group,
+ordinary/SSE handling, finality and usage adapter. The gateway preserves native
+parameters and events, rewrites model identity, rejects foreign resource access,
+and never translates or falls back to Chat. Native terminal usage uses the
+captured price basis; unknown/unsupported usage remains unpriced. Key-scoped model
+metadata includes currently eligible protocols without exposing provider identities.
+See [RESPONSES](RESPONSES.md) for precise supported and deferred endpoints.
+
+Connection forms and catalog badges now reflect actual protocols, and member API
+examples select the corresponding native endpoint/body. The existing Chat
+Playground filters to eligible Chat routes pending its native Responses interface.
+Unknown native API paths return JSON404 rather than SPA assets in both builds.
+
+Full check/test passed: 172 Vitest cases, four Node checks, Go race/unit,
+development lifecycle and production assets. PostgreSQL/MySQL integration passed
+in 283.324 seconds, and both process restart/inference/revocation suites passed.
+Controlled upstream tests cover ordinary/SSE/error, cancellation before/after
+terminal usage, supply exclusion with independent Chat availability, exact receipts,
+protocol-filtered usage and durable replay. No paid provider or rendered browser
+acceptance is claimed. Stateful response retrieval and background APIs remain open.

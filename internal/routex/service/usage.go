@@ -37,7 +37,7 @@ func validateUsageFilter(filter UsageFilter, admin bool) error {
 	if filter.Status != "" && filter.Status != "success" && filter.Status != "error" && filter.Status != "canceled" {
 		return apperrors.ErrBadRequest
 	}
-	if filter.Protocol != "" && filter.Protocol != entity.ProtocolOpenAIChat {
+	if filter.Protocol != "" && !entity.SupportedNativeProtocol(filter.Protocol) {
 		return apperrors.ErrBadRequest
 	}
 	return nil

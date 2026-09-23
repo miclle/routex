@@ -326,12 +326,20 @@ func (s *Service) runtimeModelName(name string) (entity.ModelName, bool) {
 }
 
 func (s *Service) runtimeRoute(modelID string) (*gatewayRoute, string, error) {
+	return s.runtimeProtocolRoute(modelID, entity.ProtocolOpenAIChat)
+}
+func (s *Service) runtimeProtocolRoute(modelID, protocol string) (*gatewayRoute, string, error) {
 	runtime := s.runtime
 	auth, routes := runtime.auth.Load(), runtime.routes.Load()
 	if auth == nil || !time.Now().Before(auth.ValidUntil) || routes == nil {
 		return nil, "", runtimeUnavailable
 	}
-	candidates := routes.Models[modelID]
+	candidates := []runtimeRoute{}
+	for _, candidate := range routes.Models[modelID] {
+		if candidate.Route.Protocol == protocol {
+			candidates = append(candidates, candidate)
+		}
+	}
 	weights := make([]int, len(candidates))
 	available := make([]bool, len(candidates))
 	for i := range candidates {
@@ -493,7 +501,7 @@ func runtimeDigest(data *runtimeData) (string, error) {
 func (s *Service) buildRuntimeRoutes(data *runtimeData) (map[string][]runtimeRoute, error) {
 	connections := map[string]entity.ProviderConnection{}
 	for _, connection := range data.Connections {
-		if connection.Protocol != entity.ProtocolOpenAIChat {
+		if !entity.SupportedNativeProtocol(connection.Protocol) {
 			continue
 		}
 		if _, err := upstream.ValidateBaseURL(connection.BaseURL, s.allowPrivateUpstream); err != nil {
@@ -551,7 +559,7 @@ func (s *Service) buildRuntimeRoutes(data *runtimeData) (map[string][]runtimeRou
 		if binding.Weight < 0 || binding.Weight > 100 {
 			return nil, runtimeUnavailable
 		}
-		candidate := runtimeRoute{Route: gatewayRoute{PriceBasis: runtimePriceBasis(data.Pricing, pm.ID, connection.Protocol), BindingID: binding.ID, Weight: binding.Weight, ProviderID: connection.ProviderID, ProviderModelID: pm.ID, ConnectionID: connection.ID, UpstreamName: pm.UpstreamName, BaseURL: connection.BaseURL}}
+		candidate := runtimeRoute{Route: gatewayRoute{Protocol: connection.Protocol, PriceBasis: runtimePriceBasis(data.Pricing, pm.ID, connection.Protocol), BindingID: binding.ID, Weight: binding.Weight, ProviderID: connection.ProviderID, ProviderModelID: pm.ID, ConnectionID: connection.ID, UpstreamName: pm.UpstreamName, BaseURL: connection.BaseURL}}
 		for _, credential := range credentials[connection.ID] {
 			if access[credential.ID][pm.ID] {
 				candidate.Credentials = append(candidate.Credentials, credential)
@@ -560,17 +568,27 @@ func (s *Service) buildRuntimeRoutes(data *runtimeData) (map[string][]runtimeRou
 		result[binding.ModelID] = append(result[binding.ModelID], candidate)
 	}
 	for modelID, candidates := range result {
-		total := 0
+		totals := map[string]int{}
 		for _, candidate := range candidates {
-			total += candidate.Route.Weight
+			totals[candidate.Route.Protocol] += candidate.Route.Weight
 		}
-		if total == 0 {
+		for _, total := range totals {
+			if total != 0 && total != 100 {
+				return nil, runtimeUnavailable
+			}
+		}
+		active := make([]runtimeRoute, 0, len(candidates))
+		for _, candidate := range candidates {
+			if totals[candidate.Route.Protocol] > 0 {
+				active = append(active, candidate)
+			}
+		}
+		if len(active) == 0 {
 			delete(result, modelID)
-			continue
-		}
-		if total != 100 {
-			return nil, runtimeUnavailable
+		} else {
+			result[modelID] = active
 		}
 	}
+
 	return result, nil
 }

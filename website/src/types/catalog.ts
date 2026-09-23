@@ -16,7 +16,7 @@ export interface Connection {
   id: string
   name: string
   base_url: string
-  protocol: 'openai_chat'
+  protocol: 'openai_chat' | 'openai_responses'
   credentials: Credential[]
   provider_models: ProviderModel[]
 }
@@ -47,6 +47,7 @@ export interface CallableModel {
   name: string
   status: Model['status']
   protocol: string
+  protocols?: string[]
 }
 export interface PersonalKey {
   id: string
