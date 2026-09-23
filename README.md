@@ -2,7 +2,7 @@
 
 RouteX is an open-source AI gateway and control plane for connecting applications to multiple AI providers and models through a governed, observable, and extensible platform.
 
-> RouteX is at an early stage. Local identity and sessions, encrypted providers, model grants, personal Keys, native OpenAI chat/SSE, scoped call records, and account-security pages are implemented. Prepared runtime snapshots and a bounded durable call journal support the gateway. Member/role/registration interfaces, Team/Project backends, Project Keys, verified personal Key retirement, and transactional offboarding APIs are available; resource and offboarding interfaces remain in progress. Quotas, monetary metering, additional protocols, and enterprise integrations remain planned. See [the implementation and acceptance index](docs/IMPLEMENTATION.md) for scope and evidence.
+> RouteX is at an early stage. Identity, sessions, member/role administration, Team/Project management, personal and Project Keys, and offboarding have persistent APIs and interfaces. Native OpenAI chat/SSE uses prepared runtime snapshots and a bounded durable journal. Current text prices, exact currency conversion, immutable call assessments, atomic CSV import/export APIs, and bilingual currency configuration are available. Broader quotas, additional protocols, and enterprise integrations remain in progress. See [the implementation and acceptance index](docs/IMPLEMENTATION.md) for scope and evidence.
 
 ## Development
 
@@ -42,12 +42,13 @@ ROUTEX_HTTP_PORT=9100 ROUTEX_VITE_PORT=3100 go tool task dev
 ### Commands
 
 ```bash
-go tool task check          # Go formatting/vet/lint, frontend types, module tidiness
+go tool task check          # Go checks, frontend formatting/lint/types, module tidiness
 go tool task test           # Go, frontend, dev lifecycle, and production asset tests
 go tool task test-integration # Isolated PostgreSQL + MySQL domain integration tests
 go tool task test-auth-lifecycle # Real-process identity/inference/restart tests on both databases
 go tool actionlint          # Validate GitHub Actions workflows
-cd website && npm run lint  # Frontend ESLint
+npm --prefix website run lint   # Frontend ESLint
+npm --prefix website run format # Format frontend source with Prettier
 ```
 
 From the repository root:

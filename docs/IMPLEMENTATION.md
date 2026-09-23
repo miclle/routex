@@ -151,7 +151,7 @@ The following are single-node experimental targets, not measured performance or 
 | P1-03 Personal Keys | Delivered (`3cd5305`); controlled local acceptance passed | One-time pending delivery, confirmation, digest storage, concurrent rotation, ownership, revocation and audit; PostgreSQL/MySQL integration passed |
 | P1-04/05 | In progress | Native OpenAI chat ordinary/SSE, Key Playground, isolated personal/admin call queries and request facts have controlled dual-database evidence; immutable snapshots and bounded durable events have controlled failure/restart evidence; measured capacity and real-provider acceptance remain open |
 | P2 | In progress | Profile/password/session APIs and UI delivered; member/role/registration interfaces and Team/Project backend delivered; Project Keys, offboarding, and resource interfaces advance in separate verified packages |
-| P3 | In progress | Current text prices, FX, and immutable call assessments implemented; quotas, non-token metrics, import, and synchronization remain open |
+| P3 | In progress | Current text prices, FX, immutable call assessments, and atomic CSV import/export APIs implemented; quotas, non-token metrics, spreadsheet formats, and synchronization remain open |
 | P4–P6 | Pending | Full goal remains active; additional protocols, enterprise integrations, and final acceptance follow the preceding dependencies |
 
 Verification in this iteration:
@@ -356,3 +356,27 @@ two existing primitive lint warnings. A controlled browser fixture verified exac
 Project request submission with unchanged grants, Chinese history/detail, and no
 applicant approval action. These client checks complement the committed database
 contracts; they do not claim a deployed end-to-end environment.
+
+### Atomic CSV price imports and explicit currency configuration
+
+Price CSV preview validates all bounded rows without writes. Commit revalidates
+captured source, catalogue ETag and preview digest atomically, preserves omitted
+rates and explicit zero/disabled values, and records the import source. Export
+fails rather than returning a silently truncated catalogue, and protects formula
+cells. See [PRICE_IMPORTS](PRICE_IMPORTS.md) for the schema and limits.
+
+The bilingual Currency page reviews a coherent FX generation and all enabled
+pricing currencies, independently of catalogue pagination. Decimal strings remain
+exact; currency switches clear old conversions and retain the self-rate of one.
+Missing required conversions, stale generations and double submission are guarded.
+Historical assessment amounts remain unchanged. See [CURRENCY](CURRENCY.md).
+
+The source passed full check/test (128 Vitest cases, four Node checks, Go race/unit,
+development lifecycle and production assets), PostgreSQL/MySQL integration in
+167.654 seconds, and both process restart/inference/revocation suites. The first
+integration run caught duplicate names in the bulk export fixture; the fixture
+was corrected before the final passing run. Currency HTTP tests cover delegated
+reads, denied access, and enabled-versus-disabled conversion requirements.
+Controlled browser checks verified exact 18-digit FX, missing conversions,
+confirmation payloads, read-only controls and Chinese copy. CSV upload interfaces
+and spreadsheet formats follow as separate deliveries.

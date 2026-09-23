@@ -68,3 +68,11 @@ catalogue ETag. A conflict blocks resubmission until current prices are reloaded
 and the retained draft is reviewed. Only supported text-token conditions are
 available. Import, repository synchronization, and other pricing dimensions are
 separate workflows still under implementation.
+
+### Platform currency and exchange rates
+
+The currency page keeps the current-configuration card, conversion table, and separate confirmation dialog. It appears in the Prices and exchange rates navigation group. Readers can inspect configuration; `prices.write` is required for edits. Required currencies come from the entire enabled price catalogue through one coherent metadata response, rather than a paginated price-table sample.
+
+Selecting a new platform currency clears other draft rates and fixes self-conversion at `1`. Validation requires positive exact decimal strings for all enabled-price currencies. Confirmation states that historical amounts and original model prices remain unchanged. Concurrent catalogue updates, including background refreshes, block saving until current requirements and the ETag are reviewed together; the draft survives that review. Pending confirmation cannot dispatch duplicate writes.
+
+Focused tests cover read-only access, no initial writes, navigation order, currency-switch clearing, required rates, decimal validation and preservation, confirmation, conflict recovery, coherent background refreshes, duplicate dispatch prevention, and live language switching.

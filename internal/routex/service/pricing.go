@@ -172,11 +172,14 @@ func (s *Service) QuotePrice(ctx context.Context, actorID, providerModelID strin
 // appendPricingAudit accepts normalized catalogue values only, never arbitrary
 // request payloads. The bounded batch (20 models, 8 rates each) limits volume.
 func appendPricingAudit(tx *gorm.DB, actorID, action, resourceID string, before, after any) error {
+	return appendPricingSourceAudit(tx, actorID, action, resourceID, "api", before, after)
+}
+func appendPricingSourceAudit(tx *gorm.DB, actorID, action, resourceID, source string, before, after any) error {
 	details, err := json.Marshal(struct {
 		Source string `json:"source"`
 		Before any    `json:"before"`
 		After  any    `json:"after"`
-	}{"api", before, after})
+	}{source, before, after})
 	if err != nil {
 		return err
 	}
@@ -247,37 +250,46 @@ func (s *Service) WritePrices(ctx context.Context, actorID, etag string, items [
 		if err != nil {
 			return err
 		}
-		before := []PriceRecord{}
-		for _, item := range items {
-			old, updated, err := writePrice(tx, item)
-			if err != nil {
-				return err
-			}
-			if old != nil {
-				before = append(before, *old)
-			}
-			result.Items = append(result.Items, *updated)
-		}
-		if err = validateEnabledPriceFX(tx, fx); err != nil {
-			return err
-		}
-		if err = updatePricingETag(tx, &setting); err != nil {
-			return err
-		}
-		result.ETag = setting.ETag
-		result.Currency = fx
-		return appendPricingAudit(tx, actorID, "prices.update", "pricing_catalogue", struct {
-			ETag  string        `json:"etag"`
-			Items []PriceRecord `json:"items"`
-		}{etag, before}, struct {
-			ETag  string        `json:"etag"`
-			Items []PriceRecord `json:"items"`
-		}{setting.ETag, result.Items})
+		result, err = applyPriceBatch(tx, actorID, setting, fx, items, "api")
+		return err
 	})
 	err = s.refreshAfterMutation(ctx, err)
 	return result, pricingError(err)
 }
-func writePrice(tx *gorm.DB, input PriceInput) (*PriceRecord, *PriceRecord, error) {
+
+func applyPriceBatch(tx *gorm.DB, actorID string, setting entity.PricingSetting, fx pricing.FX, items []PriceInput, source string) (*PricePage, error) {
+	result := &PricePage{Items: []PriceRecord{}}
+	oldETag := setting.ETag
+	var err error
+	before := []PriceRecord{}
+	for _, item := range items {
+		old, updated, err := writePrice(tx, item, source)
+		if err != nil {
+			return nil, err
+		}
+		if old != nil {
+			before = append(before, *old)
+		}
+		result.Items = append(result.Items, *updated)
+	}
+	if err = validateEnabledPriceFX(tx, fx); err != nil {
+		return nil, err
+	}
+	if err = updatePricingETag(tx, &setting); err != nil {
+		return nil, err
+	}
+	result.ETag = setting.ETag
+	result.Currency = fx
+	return result, appendPricingSourceAudit(tx, actorID, "prices.update", "pricing_catalogue", source, struct {
+		ETag  string        `json:"etag"`
+		Items []PriceRecord `json:"items"`
+	}{oldETag, before}, struct {
+		ETag  string        `json:"etag"`
+		Items []PriceRecord `json:"items"`
+	}{setting.ETag, result.Items})
+}
+
+func writePrice(tx *gorm.DB, input PriceInput, source string) (*PriceRecord, *PriceRecord, error) {
 	var providerModel entity.ProviderModel
 	var connection entity.ProviderConnection
 	if err := tx.First(&providerModel, "id = ?", input.ProviderModelID).Error; err != nil {
@@ -310,7 +322,7 @@ func writePrice(tx *gorm.DB, input PriceInput) (*PriceRecord, *PriceRecord, erro
 	if input.ContextThreshold != nil {
 		model.ContextThreshold = *input.ContextThreshold
 	}
-	model.UpdateSource = "api"
+	model.UpdateSource = source
 	model.FollowRepository = false
 	if err = tx.Save(&model).Error; err != nil {
 		return nil, nil, err

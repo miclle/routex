@@ -52,6 +52,8 @@ func testPricingLifecycle(t *testing.T, db *gorm.DB) {
 	path := "/api/v1/admin/prices"
 	expectStatus(t, identityRequest(router, "GET", path, "", nil, ""), 401)
 	expectStatus(t, memberRequest("GET", path, nil), 403)
+	expectStatus(t, identityRequest(router, "GET", path+"/currency", "", nil, ""), 401)
+	expectStatus(t, memberRequest("GET", path+"/currency", nil), 403)
 	page := decodeCatalogResponse[service.PricePage](t, request("GET", path, nil), 200)
 	if page.ETag == "" || page.Currency.PlatformCurrency != "USD" || len(page.Items) != 0 {
 		t.Fatal("invalid initial pricing catalogue")
@@ -80,6 +82,10 @@ func testPricingLifecycle(t *testing.T, db *gorm.DB) {
 		t.Fatal("invalid batch partially persisted")
 	}
 	page = decodeCatalogResponse[service.PricePage](t, request("PUT", path, initial), 200)
+	currencyView := decodeCatalogResponse[service.PricingCurrencyPage](t, request("GET", path+"/currency", nil), 200)
+	if currencyView.ETag != page.ETag || currencyView.Currency.PlatformCurrency != "USD" || len(currencyView.RequiredCurrencies) != 1 || currencyView.RequiredCurrencies[0] != "USD" {
+		t.Fatal("currency view omitted complete enabled-rate requirements")
+	}
 	firstID, firstRateID := page.Items[0].ID, page.Items[0].Rates[0].ID
 	if page.Items[0].ProviderID != "prv_price" || page.Items[0].Protocol != entity.ProtocolOpenAIChat || page.Items[0].FollowRepository || page.Items[0].UpdateSource != "api" {
 		t.Fatal("incorrect derived identity or provenance")
@@ -168,6 +174,7 @@ func testPricingLifecycle(t *testing.T, db *gorm.DB) {
 		}
 	}
 	expectStatus(t, memberRequest("GET", path, nil), 200)
+	expectStatus(t, memberRequest("GET", path+"/currency", nil), 200)
 	expectStatus(t, memberRequest("GET", "/api/v1/admin/providers", nil), 403)
 	expectStatus(t, memberRequest("PUT", path, batch(page.ETag, item("pmo_price_a", changed))), 403)
 	var audits []entity.AuditEvent
@@ -183,6 +190,7 @@ func testPricingLifecycle(t *testing.T, db *gorm.DB) {
 		}
 	}
 	testPricingReadSnapshot(t, db, admin.User.ID)
+	testPricingCurrencyRequirements(t, db, admin.User.ID)
 }
 
 // Pausing after authorization's first SELECT recreates a MySQL repeatable-read

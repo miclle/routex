@@ -148,6 +148,7 @@ session's `X-CSRF-Token`. Management JSON bodies are limited to 64 KiB.
 | `GET /admin/prices` | `{etag,currency,items,next_cursor}`; filters `provider_model_id`, `cursor`, `limit` (default 50, maximum 100) |
 | `GET /admin/provider-models/:provider_model_id/price` | Same envelope with one item; `404` if not configured |
 | `PUT /admin/prices` | `{etag,items:[{provider_model_id,context_threshold?,rates:[{metric,tier,unit,currency,amount,enabled}]}]}`; returns the changed items and new ETag |
+| `GET /admin/prices/currency` | `{etag,currency,required_currencies}` across all enabled catalogue rates; see [CURRENCY](CURRENCY.md) |
 | `PUT /admin/prices/currency` | `{etag,currency:{platform_currency,rates:{USD:"7.1"}}}`; returns new ETag and currency configuration |
 | `POST /admin/prices/quote` | `{provider_model_id,usage:{input_tokens,output_tokens,cache_read_tokens,cache_write_tokens}}`; returns `{etag,quote}` |
 

@@ -117,6 +117,10 @@ func (ctrl *Ctrl) RegisterRoutes(r *fox.Engine) {
 	admin.GET("/provider-models/:provider_model_id/price", ctrl.RequirePermission("prices.read"), ctrl.GetPrice)
 	admin.PUT("/prices", sameOrigin, requireCSRF, jsonManagementRequest, ctrl.RequirePermission("prices.write"), ctrl.WritePrices)
 	admin.PUT("/prices/currency", sameOrigin, requireCSRF, jsonManagementRequest, ctrl.RequirePermission("prices.write"), ctrl.WritePricingCurrency)
+	admin.GET("/prices/currency", ctrl.RequirePermission("prices.read"), ctrl.GetPricingCurrency)
+	admin.POST("/prices/import/preview", sameOrigin, requireCSRF, jsonManagementRequest, ctrl.RequirePermission("prices.read"), ctrl.PreviewPriceImport)
+	admin.POST("/prices/import/commit", sameOrigin, requireCSRF, jsonManagementRequest, ctrl.RequirePermission("prices.write"), ctrl.CommitPriceImport)
+	admin.GET("/prices/export.csv", ctrl.RequirePermission("prices.read"), ctrl.ExportPriceCSV)
 	admin.POST("/prices/quote", sameOrigin, requireCSRF, jsonManagementRequest, ctrl.RequirePermission("prices.read"), ctrl.QuotePrice)
 
 	admin.GET("/calls", ctrl.RequirePermission("calls.read_all"), ctrl.ListAdminCalls)

@@ -18,6 +18,7 @@ import {
   ShieldCheck,
   Settings,
   ArrowLeft,
+  ArrowLeftRight,
   ChevronRight,
   Cloud,
   UsersRound,
@@ -165,6 +166,17 @@ const adminNav = [
     },
   },
   {
+    to: '/admin/currency',
+    get label() {
+      return t('currency:title')
+    },
+    icon: ArrowLeftRight,
+    permission: 'prices.read',
+    get group() {
+      return t('currency:group')
+    },
+  },
+  {
     to: '/admin/auth',
     get label() {
       return t('authentication_0ff9a')
@@ -278,6 +290,7 @@ export default function AppShell() {
                   t('operations_8e37c'),
                   t('members_and_access_34488'),
                   t('service_access_3fa7c'),
+                  t('currency:group'),
                   t('system_administration_04ca1'),
                 ]
                   .filter((group) => adminItems.some((item) => item.group === group))
