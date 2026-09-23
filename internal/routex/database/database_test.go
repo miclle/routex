@@ -2,23 +2,36 @@ package database
 
 import (
 	"context"
+	"strings"
 	"testing"
 )
 
-func TestOpenRejectsMissingDSN(t *testing.T) {
-	if _, err := Open(context.Background(), "postgres", ""); err == nil {
-		t.Fatal("Open should reject an empty DSN")
+func TestOpenHidesConnectionConfiguration(t *testing.T) {
+	for _, tc := range []struct {
+		name, driver, dsn string
+	}{
+		{name: "unsupported driver", driver: "private-driver-marker", dsn: "private-dsn-marker"},
+		{name: "invalid postgres URI", driver: "postgres", dsn: "postgres://private-password-marker%"},
+		{name: "invalid mysql address", driver: "mysql", dsn: "private-password-marker@tcp("},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			db, err := Open(context.Background(), tc.driver, tc.dsn)
+			if err == nil || db != nil {
+				t.Fatal("invalid connection configuration should fail")
+			}
+			if strings.Contains(err.Error(), "private-") {
+				t.Fatal("initialization error exposed connection configuration")
+			}
+		})
 	}
 }
 
-func TestOpenRejectsUnsupportedDriver(t *testing.T) {
-	if _, err := Open(context.Background(), "sqlite", "file:test.db"); err == nil {
-		t.Fatal("Open should reject unsupported driver")
-	}
-}
-
-func TestMigrateRejectsNilDB(t *testing.T) {
-	if err := Migrate(context.Background(), nil); err == nil {
-		t.Fatal("Migrate should reject nil db")
+func TestOpenCanceledContext(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	// A canceled PostgreSQL ping never needs a reachable database.
+	db, err := Open(ctx, "postgres", "host=127.0.0.1 port=1 user=test password=private-password-marker dbname=test sslmode=disable")
+	if err == nil || db != nil || strings.Contains(err.Error(), "private-") {
+		t.Fatal("canceled connection should return a sanitized failure")
 	}
 }

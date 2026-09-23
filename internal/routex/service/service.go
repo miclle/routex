@@ -16,6 +16,8 @@ import (
 // Service holds the database connection and provides business logic methods.
 type Service struct {
 	db                   *gorm.DB
+	runtime              *gatewayRuntime
+	recorder             *callRecorder
 	secrets              *secretstore.Store
 	upstream             *http.Client
 	allowPrivateUpstream bool

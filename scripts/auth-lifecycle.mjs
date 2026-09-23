@@ -78,6 +78,16 @@ async function request(origin, path, status, { cookie, csrf, body, method = 'GET
   return response
 }
 
+async function waitForCall(origin, requestID, cookie) {
+  for (let attempt = 0; attempt < 60; attempt++) {
+    const response = await fetch(`${origin}/api/v1/calls/${requestID}`, { headers: { Cookie: cookie }, signal: AbortSignal.timeout(1000) })
+    if (response.status === 200) return response.json()
+    assert.equal(response.status, 404, 'Call query failed while waiting for asynchronous delivery')
+    await delay(100)
+  }
+  throw new Error('Durable call delivery timed out')
+}
+
 async function verifyGatewayLifecycle(origin, config, driver, cookie, csrf) {
   const credential = randomBytes(24).toString('hex')
   const upstream = createHTTPServer(async (req, res) => {
@@ -135,13 +145,18 @@ async function verifyGatewayLifecycle(origin, config, driver, cookie, csrf) {
     const answer = await ordinary.json()
     assert.equal(answer.model, 'gateway-test', 'Public model name was not preserved')
     assert.equal(answer.choices[0].message.content, 'Hello', 'Ordinary response was lost')
-    const stream = await (await inference(true)).text()
+    const streamed = await inference(true)
+    const streamRequestID = streamed.headers.get('X-Request-ID')
+    const stream = await streamed.text()
     assert.ok(stream.includes('Hello') && stream.includes('[DONE]'), 'Streaming response was incomplete')
     assert.ok(!stream.includes('native-model'), 'Native model name leaked through streaming response')
-    const record = await (await request(origin, `/calls/${requestID}`, 200, { cookie })).json()
+    const record = await waitForCall(origin, requestID, cookie)
     assert.ok(!JSON.stringify(record).includes(credential), 'Call record disclosed secret')
     await stopServer()
     await startServer(config, origin, driver)
+    const restored = await waitForCall(origin, streamRequestID, cookie)
+    assert.equal(restored.input_tokens, 3, 'Restart changed accepted streaming usage')
+    assert.equal(restored.output_tokens, 2, 'Restart changed accepted streaming usage')
     await inference(false)
     await write(`/keys/${key.key.id}`, undefined, 204, 'DELETE')
     await stopServer()
@@ -166,7 +181,7 @@ try {
     const origin = `http://127.0.0.1:${await unusedPort()}`
     const config = join(fixture, `${driver}.yaml`)
     // The DSN stays in the subprocess environment, outside the temporary file.
-    await writeFile(config, `addr: "${new URL(origin).host}"\ndriver: ${driver}\ndsn: "\${ROUTEX_LIFECYCLE_DSN}"\nencryption_key: "\${ROUTEX_LIFECYCLE_ENCRYPTION_KEY}"\nallow_private_upstreams: true\n`, { mode: 0o600 })
+    await writeFile(config, `addr: "${new URL(origin).host}"\ndriver: ${driver}\ndsn: "\${ROUTEX_LIFECYCLE_DSN}"\nencryption_key: "\${ROUTEX_LIFECYCLE_ENCRYPTION_KEY}"\nallow_private_upstreams: true\nevent_queue_path: "${driver}-calls.db"\n`, { mode: 0o600 })
     const credentials = { email: 'restart@example.invalid', password: 'test-only-restart-password' }
     try {
       await startServer(config, origin, driver)

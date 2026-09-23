@@ -33,6 +33,14 @@ go tool task dev
 
 The application listens on port 9000 and Vite on port 5173 by default. Override them with `ROUTEX_HTTP_PORT` and `ROUTEX_VITE_PORT`, respectively. Development services do not scan for or terminate processes belonging to other projects.
 
+## Runtime Bootstrap and Event Storage
+
+Before opening the HTTP listener, RouteX applies database migrations, publishes the initial in-memory gateway runtime, and opens its durable call-event buffer. A failed initial publication or unavailable buffer stops startup. `SIGINT` and `SIGTERM` stop new HTTP requests and allow active requests up to 15 seconds to finish before canceling their upstream work. The runtime publisher and recorder stop after HTTP shutdown, then the database pool closes. Interrupted admissions retain their durable fallback facts for recovery.
+
+The optional `event_queue_path` bootstrap setting defaults to `data/calls.db` relative to the directory containing the supplied configuration file. An explicit relative path uses the same directory; an absolute path is used directly. Values expand `${NAME}` and `${NAME:-fallback}` after YAML parsing, as the other string settings do. The example supports `ROUTEX_EVENT_QUEUE_PATH`; separate configuration directories therefore get separate default buffers. Temporary lifecycle-test configurations keep their buffers inside the test's temporary directory.
+
+Keep the buffer's directory on a persistent writable volume, including in container deployments. The file is private to its OS user and exclusively locked by one RouteX process; concurrent processes need separate files. Preserve it across application restarts so completed and interrupted call facts can be replayed after database recovery. Moving or deleting the file discards undelivered records. The buffer is separate from the database volumes managed by Compose.
+
 ## Stop Services, Inspect Status, and Preserve Data
 
 ```bash

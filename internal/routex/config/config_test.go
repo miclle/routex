@@ -147,3 +147,70 @@ allow_private_upstreams: "${ROUTEX_TEST_PRIVATE:-false}"
 		t.Fatal("invalid private-upstream policy must fail")
 	}
 }
+
+func TestLoadEventQueuePath(t *testing.T) {
+	for _, tc := range []struct {
+		name  string
+		value string
+	}{
+		{name: "default"},
+		{name: "relative", value: "journal/events.db"},
+		{name: "absolute", value: filepath.Join(t.TempDir(), "absolute.db")},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Setenv("ROUTEX_TEST_EVENT_QUEUE", tc.value)
+			path := writeConfig(t, "addr: localhost:9000\ndsn: test\nevent_queue_path: '${ROUTEX_TEST_EVENT_QUEUE}'\n")
+			cfg, err := Load(path)
+			if err != nil {
+				t.Fatal(err)
+			}
+			want := tc.value
+			if want == "" {
+				want = filepath.Join("data", "calls.db")
+			}
+			if !filepath.IsAbs(want) {
+				want = filepath.Join(filepath.Dir(path), want)
+			}
+			if cfg.EventQueuePath != want {
+				t.Fatalf("queue path = %q, want %q", cfg.EventQueuePath, want)
+			}
+		})
+	}
+}
+
+func TestEventQueueDefaultsIsolateConfigurationDirectories(t *testing.T) {
+	firstPath := writeConfig(t, "addr: localhost:9000\ndsn: test\n")
+	secondPath := writeConfig(t, "addr: localhost:9000\ndsn: test\n")
+	cwd, err := os.Getwd()
+	if err != nil {
+		t.Fatal(err)
+	}
+	relative, err := filepath.Rel(cwd, firstPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	first, err := Load(relative)
+	if err != nil {
+		t.Fatal(err)
+	}
+	second, err := Load(secondPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if first.EventQueuePath == second.EventQueuePath || first.EventQueuePath != filepath.Join(filepath.Dir(firstPath), "data", "calls.db") {
+		t.Fatal("relative configuration paths did not preserve isolated queue directories")
+	}
+}
+
+func TestEventQueueEnvironmentRemainsData(t *testing.T) {
+	value := "journal/quotes\"-backslash\\-newline\n-literal${UNCHANGED}.db"
+	t.Setenv("ROUTEX_TEST_EVENT_QUEUE", value)
+	path := writeConfig(t, "addr: localhost:9000\ndsn: test\nevent_queue_path: '${ROUTEX_TEST_EVENT_QUEUE:-fallback.db}'\n")
+	cfg, err := Load(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if cfg.EventQueuePath != filepath.Join(filepath.Dir(path), value) || cfg.Addr != "localhost:9000" {
+		t.Fatal("queue path environment expansion changed YAML structure or expanded twice")
+	}
+}

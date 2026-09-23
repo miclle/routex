@@ -147,8 +147,8 @@ func (s *Service) CreateModel(ctx context.Context, actorID, name, providerModelI
 		}
 		return appendAudit(tx, actorID, "model.grant", "model", modelID)
 	})
-	if err != nil {
-		return nil, catalogError(err)
+	if err := s.refreshAfterMutation(ctx, catalogError(err)); err != nil {
+		return nil, err
 	}
 	result, err := loadModelCatalog(db, modelID)
 	return result, catalogError(err)
@@ -174,8 +174,8 @@ func (s *Service) AddModelBinding(ctx context.Context, actorID, modelID, provide
 		}
 		return appendAudit(tx, actorID, "model.binding.create", "model", modelID)
 	})
-	if err != nil {
-		return nil, catalogError(err)
+	if err := s.refreshAfterMutation(ctx, catalogError(err)); err != nil {
+		return nil, err
 	}
 	result, err := loadModelCatalog(db, modelID)
 	return result, catalogError(err)
@@ -240,8 +240,11 @@ func (s *Service) SetModelWeights(ctx context.Context, actorID, modelID string, 
 		}
 		return appendAudit(tx, actorID, "model.weights.update", "model", modelID)
 	})
-	if err != nil {
-		return nil, catalogError(err)
+	if err == nil {
+		s.InvalidateRuntimeModel(modelID)
+	}
+	if err := s.refreshAfterMutation(ctx, catalogError(err)); err != nil {
+		return nil, err
 	}
 	result, err := loadModelCatalog(db, modelID)
 	return result, catalogError(err)
@@ -276,8 +279,11 @@ func (s *Service) RenameModel(ctx context.Context, actorID, modelID, name string
 		}
 		return appendAudit(tx, actorID, "model.rename", "model", modelID)
 	})
-	if err != nil {
-		return nil, catalogError(err)
+	if err == nil {
+		s.InvalidateRuntimeModel(modelID)
+	}
+	if err := s.refreshAfterMutation(ctx, catalogError(err)); err != nil {
+		return nil, err
 	}
 	result, err := loadModelCatalog(db, modelID)
 	return result, catalogError(err)
@@ -296,18 +302,20 @@ func (s *Service) SetModelGrants(ctx context.Context, actorID, modelID string, u
 	}
 	db := s.authDB(ctx)
 	err := db.Transaction(func(tx *gorm.DB) error {
+		// Key issuance locks its owner before foreign-key checks on the model.
+		// Grant insertion must use the same order to avoid an owner/model cycle.
+		if len(userIDs) > 0 {
+			var users []entity.User
+			if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).Select("id").Where("id IN ? AND disabled = ?", userIDs, false).Order("id").Find(&users).Error; err != nil {
+				return err
+			}
+			if len(users) != len(userIDs) {
+				return apperrors.ErrBadRequest
+			}
+		}
 		var model entity.Model
 		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).First(&model, "id = ?", modelID).Error; err != nil {
 			return err
-		}
-		if len(userIDs) > 0 {
-			var count int64
-			if err := tx.Model(&entity.User{}).Where("id IN ? AND disabled = ?", userIDs, false).Count(&count).Error; err != nil {
-				return err
-			}
-			if count != int64(len(userIDs)) {
-				return apperrors.ErrBadRequest
-			}
 		}
 		if err := tx.Where("model_id = ?", modelID).Delete(&entity.UserModelGrant{}).Error; err != nil {
 			return err
@@ -319,8 +327,11 @@ func (s *Service) SetModelGrants(ctx context.Context, actorID, modelID string, u
 		}
 		return appendAudit(tx, actorID, "model.grants.update", "model", modelID)
 	})
-	if err != nil {
-		return nil, catalogError(err)
+	if err == nil {
+		s.InvalidateRuntimeModel(modelID)
+	}
+	if err := s.refreshAfterMutation(ctx, catalogError(err)); err != nil {
+		return nil, err
 	}
 	result, err := loadModelCatalog(db, modelID)
 	return result, catalogError(err)

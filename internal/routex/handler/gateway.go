@@ -113,7 +113,7 @@ func (ctrl *Ctrl) recordGatewayCall(ctx context.Context, requestID string, start
 		status, code = "error", "upstream_timeout"
 	}
 	completed := time.Now().UTC()
-	fact := service.CallFact{RequestID: requestID, UserID: result.UserID, KeyID: result.KeyID, ModelID: result.ModelID, ModelName: result.ModelName, ProviderModelID: result.ProviderModelID, ConnectionID: result.ConnectionID, Protocol: entity.ProtocolOpenAIChat, Status: status, Stream: result.Stream, StartedAt: started, CompletedAt: completed, InputTokens: usage.Input, OutputTokens: usage.Output, ErrorCode: code}
+	fact := service.CallFact{RequestID: requestID, SnapshotID: result.SnapshotID, UserID: result.UserID, KeyID: result.KeyID, ModelID: result.ModelID, ModelName: result.ModelName, ProviderModelID: result.ProviderModelID, ConnectionID: result.ConnectionID, Protocol: entity.ProtocolOpenAIChat, Status: status, Stream: result.Stream, StartedAt: started, CompletedAt: completed, InputTokens: usage.Input, OutputTokens: usage.Output, ErrorCode: code}
 	if result.AttemptID != "" {
 		httpStatus := 0
 		if result.Response != nil {
@@ -123,7 +123,7 @@ func (ctrl *Ctrl) recordGatewayCall(ctx context.Context, requestID string, start
 	}
 	recordCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 3*time.Second)
 	defer cancel()
-	if err := ctrl.service.RecordCall(recordCtx, fact); err != nil {
+	if err := ctrl.service.PersistGatewayCall(recordCtx, fact); err != nil {
 		// The response may already be streaming. A bounded failure cannot be
 		// reported as successful persistence or change the completed response.
 		log.Printf("gateway call recording failed (request_id=%s)", requestID)

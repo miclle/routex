@@ -10,6 +10,7 @@ import (
 	"mime"
 	"net/http"
 	"slices"
+	"sort"
 	"strings"
 	"time"
 
@@ -45,6 +46,7 @@ type GatewayModel struct {
 // GatewayResult describes one actual upstream attempt without storing its secret.
 // The caller must close Response.Body when Response is non-nil, including errors.
 type GatewayResult struct {
+	SnapshotID       string
 	Response         *http.Response
 	UserID           string
 	KeyID            string
@@ -66,6 +68,19 @@ func (s *Service) GatewayModels(ctx context.Context, bearer string) ([]GatewayMo
 	}
 	models := []GatewayModel{}
 	if len(key.ModelIDs) == 0 {
+		return models, nil
+	}
+	if s.runtime != nil {
+		auth := s.runtime.auth.Load()
+		if auth == nil || !time.Now().Before(auth.ValidUntil) {
+			return nil, gatewayError(503, "service_unavailable", "Authorization is temporarily unavailable.")
+		}
+		for _, name := range auth.Names {
+			if name.CurrentModelID != nil && auth.Models[name.ModelID] && slices.Contains(key.ModelIDs, name.ModelID) {
+				models = append(models, GatewayModel{ID: name.Name, Object: "model", Created: auth.ModelCreated[name.ModelID].Unix(), OwnedBy: "routex"})
+			}
+		}
+		sort.Slice(models, func(i, j int) bool { return models[i].ID < models[j].ID })
 		return models, nil
 	}
 	var rows []struct {
@@ -94,9 +109,16 @@ func (s *Service) GatewayChat(ctx context.Context, bearer string, body []byte, r
 	if err != nil {
 		return result, err
 	}
-	db := s.authDB(ctx)
 	var name entity.ModelName
-	err = db.Where("name = ? AND (current_model_id IS NOT NULL OR expires_at > ?)", publicName, time.Now().UTC()).First(&name).Error
+	if s.runtime != nil {
+		var exists bool
+		name, exists = s.runtimeModelName(publicName)
+		if !exists {
+			err = gorm.ErrRecordNotFound
+		}
+	} else {
+		err = s.authDB(ctx).Where("name = ? AND (current_model_id IS NOT NULL OR expires_at > ?)", publicName, time.Now().UTC()).First(&name).Error
+	}
 	if errors.Is(err, gorm.ErrRecordNotFound) || (err == nil && !slices.Contains(key.ModelIDs, name.ModelID)) {
 		return result, gatewayError(404, "model_not_found", "The requested model is unavailable or not permitted.")
 	}
@@ -104,19 +126,26 @@ func (s *Service) GatewayChat(ctx context.Context, bearer string, body []byte, r
 		return result, gatewayError(503, "service_unavailable", "Model catalog is unavailable.")
 	}
 	result.ModelID = name.ModelID
-	route, err := selectGatewayRoute(db, name.ModelID)
-	if err != nil {
-		return result, err
+	var route *gatewayRoute
+	var credential string
+	if s.runtime != nil {
+		route, credential, err = s.runtimeRoute(name.ModelID)
+	} else {
+		route, err = selectGatewayRoute(s.authDB(ctx), name.ModelID)
+		if err == nil {
+			if s.secrets == nil {
+				err = runtimeUnavailable
+			} else {
+				credential, err = s.secrets.Open(route.CredentialID, route.Ciphertext)
+			}
+		}
 	}
+	if err != nil {
+		return result, gatewayError(503, "upstream_unavailable", "No usable upstream is available.")
+	}
+	result.SnapshotID = route.SnapshotID
 	result.ProviderID, result.ProviderModelID = route.ProviderID, route.ProviderModelID
 	result.ConnectionID, result.CredentialID = route.ConnectionID, route.CredentialID
-	if s.secrets == nil {
-		return result, gatewayError(503, "upstream_unavailable", "No usable upstream is available.")
-	}
-	credential, err := s.secrets.Open(route.CredentialID, route.Ciphertext)
-	if err != nil {
-		return result, gatewayError(503, "upstream_unavailable", "No usable upstream is available.")
-	}
 	base, err := upstream.ValidateBaseURL(route.BaseURL, s.allowPrivateUpstream)
 	if err != nil {
 		return result, gatewayError(503, "upstream_unavailable", "No usable upstream is available.")
@@ -148,6 +177,9 @@ func (s *Service) GatewayChat(ctx context.Context, bearer string, body []byte, r
 		// Handler owns the bounded streaming context; a shallow clone preserves
 		// the guarded shared transport while removing the total 30-second limit.
 		client.Timeout = 0
+	}
+	if err := s.AdmitGatewayCall(requestID, result); err != nil {
+		return result, err
 	}
 	result.AttemptID, err = id.NewPrefixed("att")
 	if err != nil {
@@ -213,6 +245,7 @@ func parseGatewayChat(body []byte) (map[string]json.RawMessage, string, bool, er
 }
 
 type gatewayRoute struct {
+	SnapshotID      string
 	BindingID       string
 	Weight          int
 	ProviderID      string

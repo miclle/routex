@@ -95,7 +95,10 @@ func (s *Service) VerifyCredential(ctx context.Context, actorID, credentialID st
 		}
 		return appendAudit(tx, actorID, "credential.verify", "credential", credential.ID)
 	})
-	return result, catalogError(err)
+	if err == nil {
+		s.InvalidateRuntimeCredential(credentialID)
+	}
+	return result, s.refreshAfterMutation(ctx, catalogError(err))
 }
 
 func (s *Service) discoverModels(ctx context.Context, connection entity.ProviderConnection, plaintext string) ([]string, bool) {

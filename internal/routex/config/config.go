@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"fmt"
 	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 
@@ -17,6 +18,7 @@ type Config struct {
 	Driver                string `mapstructure:"driver"` // database driver: "postgres" (default) or "mysql"
 	DSN                   string `mapstructure:"dsn"`    // database connection string
 	EncryptionKey         string `mapstructure:"encryption_key"`
+	EventQueuePath        string `mapstructure:"event_queue_path"`
 	AllowPrivateUpstreams bool   `mapstructure:"-"`
 }
 
@@ -42,6 +44,20 @@ func Load(path string) (*Config, error) {
 	cfg.Driver = expandEnv(cfg.Driver)
 	cfg.DSN = expandEnv(cfg.DSN)
 	cfg.EncryptionKey = expandEnv(cfg.EncryptionKey)
+	cfg.EventQueuePath = expandEnv(cfg.EventQueuePath)
+	if cfg.EventQueuePath == "" {
+		cfg.EventQueuePath = filepath.Join("data", "calls.db")
+	}
+	if strings.ContainsRune(cfg.EventQueuePath, 0) {
+		return nil, fmt.Errorf("event_queue_path contains an invalid character")
+	}
+	if !filepath.IsAbs(cfg.EventQueuePath) {
+		cfg.EventQueuePath = filepath.Join(filepath.Dir(path), cfg.EventQueuePath)
+	}
+	cfg.EventQueuePath, err = filepath.Abs(cfg.EventQueuePath)
+	if err != nil {
+		return nil, fmt.Errorf("resolve event_queue_path failed")
+	}
 	if raw := expandEnv(v.GetString("allow_private_upstreams")); raw != "" {
 		var err error
 		cfg.AllowPrivateUpstreams, err = strconv.ParseBool(raw)

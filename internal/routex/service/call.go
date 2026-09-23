@@ -76,7 +76,7 @@ func validCallStatus(status string) bool {
 // Error codes are machine-owned classifications, never upstream error messages.
 func safeCallError(code string) string {
 	switch code {
-	case "", "invalid_request", "invalid_request_error", "invalid_api_key", "rate_limit_exceeded", "service_unavailable", "unauthorized", "forbidden", "model_not_found", "no_route", "upstream_error", "upstream_timeout", "upstream_unavailable", "invalid_upstream_response", "canceled", "internal_error":
+	case "", "process_interrupted", "event_buffer_unavailable", "invalid_request", "invalid_request_error", "invalid_api_key", "rate_limit_exceeded", "service_unavailable", "unauthorized", "forbidden", "model_not_found", "no_route", "upstream_error", "upstream_timeout", "upstream_unavailable", "invalid_upstream_response", "canceled", "internal_error":
 		return code
 	default:
 		return "upstream_error"
@@ -86,18 +86,8 @@ func safeCallError(code string) string {
 // RecordCall atomically persists one canonical fact and its attempts. Replaying
 // the same RequestID never changes an accepted fact or doubles its usage.
 func (s *Service) RecordCall(ctx context.Context, fact CallFact) error {
-	if !safeCallID.MatchString(fact.RequestID) || len(fact.SnapshotID) > 30 || fact.UserID == "" || len(fact.UserID) > 30 || len(fact.KeyID) > 30 || len(fact.ModelID) > 30 || len(fact.ModelName) > 128 || len(fact.ProviderModelID) > 30 || len(fact.ConnectionID) > 30 || fact.Protocol != entity.ProtocolOpenAIChat || !validCallStatus(fact.Status) || fact.StartedAt.IsZero() || fact.CompletedAt.Before(fact.StartedAt) || len(fact.Attempts) > 32 {
-		return apperrors.ErrBadRequest
-	}
-	if (fact.InputTokens != nil && *fact.InputTokens < 0) || (fact.OutputTokens != nil && *fact.OutputTokens < 0) {
-		return apperrors.ErrBadRequest
-	}
-	seen := map[string]bool{}
-	for _, attempt := range fact.Attempts {
-		if !safeCallID.MatchString(attempt.ID) || seen[attempt.ID] || len(attempt.ProviderModelID) > 30 || len(attempt.ConnectionID) > 30 || !validCallStatus(attempt.Status) || attempt.StartedAt.IsZero() || attempt.CompletedAt.Before(attempt.StartedAt) || attempt.HTTPStatus < 0 || attempt.HTTPStatus > 599 {
-			return apperrors.ErrBadRequest
-		}
-		seen[attempt.ID] = true
+	if err := validateCallFact(fact); err != nil {
+		return err
 	}
 	// Normalize to common database precision before building pagination cursors.
 	record := entity.CallRecord{SnapshotID: fact.SnapshotID, RequestID: fact.RequestID, UserID: fact.UserID, KeyID: fact.KeyID, ModelID: fact.ModelID, ModelName: fact.ModelName, ProviderModelID: fact.ProviderModelID, ConnectionID: fact.ConnectionID, Protocol: fact.Protocol, Status: fact.Status, Stream: fact.Stream, StartedAt: fact.StartedAt.UTC().Truncate(time.Microsecond), CompletedAt: fact.CompletedAt.UTC().Truncate(time.Microsecond), DurationMS: fact.CompletedAt.Sub(fact.StartedAt).Milliseconds(), InputTokens: fact.InputTokens, OutputTokens: fact.OutputTokens, ErrorCode: safeCallError(fact.ErrorCode)}
@@ -202,4 +192,21 @@ func (s *Service) GetCall(ctx context.Context, ownerID, requestID string) (*Call
 		}
 	}
 	return result, nil
+}
+
+func validateCallFact(fact CallFact) error {
+	if !safeCallID.MatchString(fact.RequestID) || len(fact.SnapshotID) > 30 || fact.UserID == "" || len(fact.UserID) > 30 || len(fact.KeyID) > 30 || len(fact.ModelID) > 30 || len(fact.ModelName) > 128 || len(fact.ProviderModelID) > 30 || len(fact.ConnectionID) > 30 || fact.Protocol != entity.ProtocolOpenAIChat || !validCallStatus(fact.Status) || fact.StartedAt.IsZero() || fact.CompletedAt.Before(fact.StartedAt) || len(fact.Attempts) > 32 {
+		return apperrors.ErrBadRequest
+	}
+	if (fact.InputTokens != nil && *fact.InputTokens < 0) || (fact.OutputTokens != nil && *fact.OutputTokens < 0) {
+		return apperrors.ErrBadRequest
+	}
+	seen := map[string]bool{}
+	for _, attempt := range fact.Attempts {
+		if !safeCallID.MatchString(attempt.ID) || seen[attempt.ID] || len(attempt.ProviderModelID) > 30 || len(attempt.ConnectionID) > 30 || !validCallStatus(attempt.Status) || attempt.StartedAt.IsZero() || attempt.CompletedAt.Before(attempt.StartedAt) || attempt.HTTPStatus < 0 || attempt.HTTPStatus > 599 {
+			return apperrors.ErrBadRequest
+		}
+		seen[attempt.ID] = true
+	}
+	return nil
 }

@@ -101,6 +101,9 @@ func (s *Service) CreatePersonalKey(ctx context.Context, userID, name string, mo
 	}
 	var result *CreatedKey
 	err := s.authDB(ctx).Transaction(func(tx *gorm.DB) error {
+		if err := lockActiveKeyOwner(tx, userID); err != nil {
+			return err
+		}
 		if err := validateKeyModels(tx, userID, modelIDs); err != nil {
 			return err
 		}
@@ -108,7 +111,7 @@ func (s *Service) CreatePersonalKey(ctx context.Context, userID, name string, mo
 		result, err = createPendingKey(tx, userID, name, modelIDs, expiresAt, nil, true)
 		return err
 	})
-	return result, keyServiceError(err)
+	return result, s.refreshAfterMutation(ctx, keyServiceError(err))
 }
 
 func createPendingKey(tx *gorm.DB, userID, name string, modelIDs []string, expiresAt *time.Time, replaces *string, activate bool) (*CreatedKey, error) {
@@ -137,6 +140,17 @@ func createPendingKey(tx *gorm.DB, userID, name string, modelIDs []string, expir
 	return &CreatedKey{Record: KeyRecord{Key: key, ModelIDs: slices.Clone(modelIDs)}, Secret: bearer}, nil
 }
 
+// lockActiveKeyOwner serializes key issuance with account disable/revocation.
+// Take this lock before every key lock, including replacement confirmation.
+func lockActiveKeyOwner(tx *gorm.DB, userID string) error {
+	var owner entity.User
+	err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).Select("id", "disabled").First(&owner, "id = ?", userID).Error
+	if errors.Is(err, gorm.ErrRecordNotFound) || (err == nil && owner.Disabled) {
+		return apperrors.ErrUnauthorized
+	}
+	return err
+}
+
 func lockOwnedKey(tx *gorm.DB, userID, keyID string) (*entity.APIKey, error) {
 	var key entity.APIKey
 	err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).Where("id = ? AND user_id = ?", keyID, userID).First(&key).Error
@@ -152,6 +166,9 @@ func lockOwnedKey(tx *gorm.DB, userID, keyID string) (*entity.APIKey, error) {
 func (s *Service) ConfirmKeyDelivery(ctx context.Context, userID, keyID string) (*KeyRecord, error) {
 	var result *KeyRecord
 	err := s.authDB(ctx).Transaction(func(tx *gorm.DB) error {
+		if err := lockActiveKeyOwner(tx, userID); err != nil {
+			return err
+		}
 		key, err := lockOwnedKey(tx, userID, keyID)
 		if err != nil {
 			return err
@@ -207,7 +224,10 @@ func (s *Service) ConfirmKeyDelivery(ctx context.Context, userID, keyID string) 
 		result = &KeyRecord{Key: *key, ModelIDs: models}
 		return nil
 	})
-	return result, keyServiceError(err)
+	if err == nil && result.Key.ReplacesKeyID != nil {
+		s.InvalidateRuntimeKey(*result.Key.ReplacesKeyID)
+	}
+	return result, s.refreshAfterMutation(ctx, keyServiceError(err))
 }
 
 func sameExpiry(a, b *time.Time) bool {
@@ -230,6 +250,9 @@ func (s *Service) UpdatePersonalKey(ctx context.Context, userID, keyID string, n
 	}
 	var result *KeyRecord
 	err := s.authDB(ctx).Transaction(func(tx *gorm.DB) error {
+		if err := lockActiveKeyOwner(tx, userID); err != nil {
+			return err
+		}
 		key, err := lockOwnedKey(tx, userID, keyID)
 		if err != nil {
 			return err
@@ -265,11 +288,17 @@ func (s *Service) UpdatePersonalKey(ctx context.Context, userID, keyID string, n
 		result = &KeyRecord{Key: *key, ModelIDs: models}
 		return nil
 	})
-	return result, keyServiceError(err)
+	if err == nil && enabled != nil && !*enabled {
+		s.InvalidateRuntimeKey(keyID)
+	}
+	return result, s.refreshAfterMutation(ctx, keyServiceError(err))
 }
 
 func (s *Service) RevokePersonalKey(ctx context.Context, userID, keyID string) error {
-	return keyServiceError(s.authDB(ctx).Transaction(func(tx *gorm.DB) error {
+	err := s.authDB(ctx).Transaction(func(tx *gorm.DB) error {
+		if err := lockActiveKeyOwner(tx, userID); err != nil {
+			return err
+		}
 		key, err := lockOwnedKey(tx, userID, keyID)
 		if err != nil {
 			return err
@@ -281,12 +310,19 @@ func (s *Service) RevokePersonalKey(ctx context.Context, userID, keyID string) e
 			return err
 		}
 		return appendAudit(tx, userID, "key.revoke", "api_key", key.ID)
-	}))
+	})
+	if err == nil {
+		s.InvalidateRuntimeKey(keyID)
+	}
+	return s.refreshAfterMutation(ctx, keyServiceError(err))
 }
 
 func (s *Service) RotatePersonalKey(ctx context.Context, userID, keyID string) (*CreatedKey, error) {
 	var result *CreatedKey
 	err := s.authDB(ctx).Transaction(func(tx *gorm.DB) error {
+		if err := lockActiveKeyOwner(tx, userID); err != nil {
+			return err
+		}
 		key, err := lockOwnedKey(tx, userID, keyID)
 		if err != nil {
 			return err
@@ -307,12 +343,15 @@ func (s *Service) RotatePersonalKey(ctx context.Context, userID, keyID string) (
 		result, err = createPendingKey(tx, userID, key.Name, models, key.ExpiresAt, &key.ID, key.Status == entity.KeyActive)
 		return err
 	})
-	return result, keyServiceError(err)
+	return result, s.refreshAfterMutation(ctx, keyServiceError(err))
 }
 
 // AuthenticateAPIKey verifies current revocation, expiry, account, and grant
 // state. Gateway runtime snapshots will preserve the same effective contract.
 func (s *Service) AuthenticateAPIKey(ctx context.Context, bearer string) (*KeyRecord, error) {
+	if s.runtime != nil {
+		return s.authenticateRuntimeKey(bearer)
+	}
 	if len(bearer) != 46 || !strings.HasPrefix(bearer, "rx_") {
 		return nil, apperrors.ErrUnauthorized
 	}

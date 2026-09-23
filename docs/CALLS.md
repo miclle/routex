@@ -1,6 +1,6 @@
 # Call Facts and Query API
 
-Call facts record completed gateway requests without storing prompts, responses, credentials, or raw upstream diagnostics. This phase covers individual users and personal API Keys. Team and Project attribution, monetary calculation, CSV export, aggregate analytics, and durable asynchronous event ingestion are separate work packages.
+Call facts record completed gateway requests without storing prompts, responses, credentials, or raw upstream diagnostics. This phase covers individual users and personal API Keys. Team and Project attribution, monetary calculation, CSV export, and aggregate analytics are separate work packages. Durable event ingestion is implemented for the single-process deployment.
 
 ## Recording Contract
 
@@ -16,7 +16,15 @@ Storage uses microsecond timestamp precision on both databases. Schema version 5
 
 ## Persistence Failure Boundary
 
-Recording must use a bounded context that survives client cancellation. The gateway records after completion using a separate timeout, so a disconnected client does not automatically cancel persistence. A recording failure cannot rewrite an already streamed response. This first synchronous implementation has no durable outbox or replay spool: if the database is unavailable during recording, that fact may be lost and a sanitized operational error must be logged. This is an explicit release limitation, not a claim of lossless ingestion.
+The process opens a private bbolt journal before listening. It synchronously reserves a slot with a safe interruption fact before dispatching an upstream request, then replaces that reservation with the final fact after completion. Default synchronous bbolt commits remain enabled. The journal stores only the same allowlisted attribution and usage fields as the relational fact; it never stores request/response content or provider credentials.
+
+The journal admits at most 4,096 entries, each at most 64 KiB. This bounds logical payload to 256 MiB, not physical file size: page metadata and the file high-water mark require additional disk space. A full or unwritable journal rejects new upstream dispatches with HTTP 503 and `event_buffer_unavailable`. A final journal-write failure cannot change an already sent response; the reserved fallback survives and is recovered as `process_interrupted` with unknown usage after restart. Filesystem or device loss beyond successful durable commits is outside this guarantee.
+
+A background worker delivers up to 64 facts per cycle, with a three-second timeout per fact and a one-second interval. It acknowledges a journal entry only after an idempotent relational transaction commits. A crash between commit and acknowledgment replays the entry without replacing accepted usage or duplicating attempts. Database outages retain ready facts for retry. Pending admissions left by a stopped process become explicit interruption facts during journal reopening.
+
+The HTTP shutdown drains requests before closing the journal. Ready facts do not need to finish delivery before shutdown because they remain on disk. Configure `event_queue_path` on persistent local writable storage; one process exclusively owns each journal file. Do not share a journal between instances or delete it during an outage. Journal files are created with mode 0600 and new directories with mode 0700. Relational schemas and business data continue to use GORM with PostgreSQL/MySQL; bbolt is only the bounded local transport journal.
+
+Authorization during a primary-database outage is separately bounded by the five-second lease in [RUNTIME](RUNTIME.md). Buffering does not extend authorization indefinitely.
 
 ## Access and HTTP API
 
@@ -49,3 +57,5 @@ Authentication responses and these protected API responses use the shared no-sto
 `testCallLifecycle` runs against PostgreSQL and MySQL through the single isolated database integration lifecycle. It covers concurrent duplicate delivery, immutable accepted facts, attempt conflict rollback, fresh-service persistence, unknown usage, ownership filtering, indistinguishable cross-user misses, member/admin DTO boundaries, safe error classification, deterministic cursor pagination, and time/status/model/Key/user filters.
 
 Gateway tests separately establish that real controlled-upstream success, failure, stream completion, and cancellation produce the corresponding facts. Data-store tests alone do not prove gateway recording behavior. Run `go tool task test-integration` for the real database lifecycle and consult [the implementation record](IMPLEMENTATION.md) for current evidence and remaining acceptance work.
+
+`testRecorderLifecycle` verifies database-outage buffering, process reopen, pending interruption recovery, commit-before-acknowledgment replay, private file permissions, secret exclusion, and exact-once accepted facts on both databases. Journal unit tests cover capacity, concurrent admission, process locking, and atomic completion. These correctness tests do not establish the production event-latency target.

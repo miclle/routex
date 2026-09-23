@@ -183,8 +183,8 @@ func (s *Service) CreateProvider(ctx context.Context, actorID, name string, inpu
 		}
 		return appendAudit(tx, actorID, "provider.create", "provider", providerID)
 	})
-	if err != nil {
-		return nil, catalogError(err)
+	if err := s.refreshAfterMutation(ctx, catalogError(err)); err != nil {
+		return nil, err
 	}
 	result, err := loadProviderCatalog(db, providerID)
 	return result, catalogError(err)
@@ -209,8 +209,8 @@ func (s *Service) CreateConnection(ctx context.Context, actorID, providerID stri
 		}
 		return appendAudit(tx, actorID, "connection.create", "connection", connection.ID)
 	})
-	if err != nil {
-		return nil, catalogError(err)
+	if err := s.refreshAfterMutation(ctx, catalogError(err)); err != nil {
+		return nil, err
 	}
 	result, err := loadConnectionCatalog(db, connection.ID)
 	return result, catalogError(err)
@@ -232,7 +232,7 @@ func (s *Service) CreateCredential(ctx context.Context, actorID, connectionID, n
 		return appendAudit(tx, actorID, "credential.create", "credential", credential.ID)
 	})
 	credential.Ciphertext = ""
-	return &credential, catalogError(err)
+	return &credential, s.refreshAfterMutation(ctx, catalogError(err))
 }
 
 func (s *Service) SetCredentialEnabled(ctx context.Context, actorID, credentialID string, enabled bool) (*entity.ProviderCredential, error) {
@@ -265,8 +265,11 @@ func (s *Service) SetCredentialEnabled(ctx context.Context, actorID, credentialI
 		}
 		return appendAudit(tx, actorID, "credential.update", "credential", credentialID)
 	})
+	if err == nil && !enabled {
+		s.InvalidateRuntimeCredential(credentialID)
+	}
 	credential.Ciphertext = ""
-	return &credential, catalogError(err)
+	return &credential, s.refreshAfterMutation(ctx, catalogError(err))
 }
 
 func (s *Service) CreateProviderModel(ctx context.Context, actorID, connectionID, upstreamName string) (*entity.ProviderModel, error) {
@@ -288,5 +291,5 @@ func (s *Service) CreateProviderModel(ctx context.Context, actorID, connectionID
 		}
 		return appendAudit(tx, actorID, "provider_model.create", "provider_model", modelID)
 	})
-	return &model, catalogError(err)
+	return &model, s.refreshAfterMutation(ctx, catalogError(err))
 }

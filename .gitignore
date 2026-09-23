@@ -42,3 +42,8 @@ go.work.sum
 .task/
 config.local.yaml
 .claude/settings.local.json
+.gstack/
+
+# Local durable call journals
+/data/
+/cmd/routex/data/

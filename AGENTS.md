@@ -6,7 +6,7 @@ Technical specification for AI coding assistants working on this project.
 
 RouteX is an AI gateway and control plane, built as a Go + React single-page application that compiles into a single binary. The backend embeds frontend build output via `//go:embed`, so production deployment requires only one executable plus a database.
 
-The current implementation includes persistent administrator setup, local authentication, revocable sessions, and a protected workspace. Product domains and extension boundaries are defined in `docs/ARCHITECTURE.md`; OpenAI chat routing and call records are available; runtime publication, quotas, and metering are being implemented in subsequent work packages. Encrypted provider credentials, stable model catalogs/grants, and personal API Keys are available. Phase scope and acceptance evidence are tracked in `docs/IMPLEMENTATION.md`. Preserve the Gateway, Control Plane, and Data Platform boundaries as features are added.
+The current implementation includes persistent administrator setup, local authentication, revocable sessions, and a protected workspace. Product domains and extension boundaries are defined in `docs/ARCHITECTURE.md`; OpenAI chat routing and call records are available; immutable runtime publication, bounded durable call buffering, and governance backends are available; quotas and monetary metering remain subsequent work packages. Encrypted provider credentials, stable model catalogs/grants, and personal API Keys are available. Phase scope and acceptance evidence are tracked in `docs/IMPLEMENTATION.md`. Preserve the Gateway, Control Plane, and Data Platform boundaries as features are added.
 
 ## Tech Stack
 

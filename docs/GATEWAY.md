@@ -12,7 +12,7 @@ Chat requests preserve native JSON parameters and replace only the outbound `mod
 
 The gateway reads all bindings for the requested model and OpenAI Chat protocol. Weights must be nonnegative and total exactly 100. A cryptographically random weighted choice selects one binding; zero-weight candidates cannot receive traffic. Within that connection, only enabled, verified credentials with discovery evidence for the selected provider model are eligible. Lower numeric priority wins, followed by creation time and stable credential ID.
 
-The selected credential is decrypted against its immutable credential reference and sent only in the intended upstream request. The shared outbound client enforces URL, DNS/IP, TLS, proxy, and redirect restrictions described in [Credential Storage and Upstream Network Policy](SECRET_STORAGE.md). Client headers, cookies, and authorization are not forwarded. Each request receives a generated `X-Request-ID`, which is also sent to the upstream.
+The selected credential is prepared against its immutable credential reference during runtime publication and sent only in the intended upstream request. The shared outbound client enforces URL, DNS/IP, TLS, proxy, and redirect restrictions described in [Credential Storage and Upstream Network Policy](SECRET_STORAGE.md). Client headers, cookies, and authorization are not forwarded. Each request receives a generated `X-Request-ID`, which is also sent to the upstream.
 
 This initial version makes exactly one attempt. An unavailable selected connection returns an error; it does not silently redistribute configured weights, switch protocols, retry a request, or replay a partial stream. Dynamic health-based failover and credential retry remain separate work.
 
@@ -26,13 +26,15 @@ Errors use an OpenAI-style `error` object containing `message`, `type`, and `cod
 
 ## Call Facts
 
-Authenticated chat requests record stable request, user, key, model, connection, and provider-model identifiers, request and attempt timing, stream mode, completion status, and generic error codes. Ordinary responses and final SSE usage events contribute prompt and completion token counts when explicitly reported. Missing or invalid usage remains unknown rather than becoming zero. Prompts, completions, credential identifiers, secrets, and raw upstream errors are not stored.
+Authenticated chat requests record the runtime snapshot ID and stable request, user, key, model, connection, and provider-model identifiers, request and attempt timing, stream mode, completion status, and generic error codes. Ordinary responses and final SSE usage events contribute prompt and completion token counts when explicitly reported. Missing or invalid usage remains unknown rather than becoming zero. Prompts, completions, credential identifiers, secrets, and raw upstream errors are not stored.
 
-Call recording uses a separate context with a three-second timeout so client cancellation does not cancel persistence. Request ID deduplication prevents repeated accepted facts from doubling usage. Recording failure is logged with the generated request ID; a response already sent cannot be changed retroactively. A durable spool and recovery after database failure are not implemented yet, so this version cannot promise lossless metering during storage outages.
+Before an upstream dispatch, the gateway fsyncs a safe fallback fact into its bounded local journal. Completion replaces it with final usage; a background worker commits and acknowledges the fact idempotently. Capacity or admission-write failure returns HTTP 503 before dispatch. Database failure delays delivery; interrupted requests retain unknown usage rather than invented token counts. See [CALLS](CALLS.md#persistence-failure-boundary) for capacity, disk-failure, replay, and shutdown boundaries.
 
 ## Current Phase Boundary
 
-This implementation reads current key/grant/routing state from the database and decrypts the selected credential while preparing each request. It does not yet publish or retain a last-valid runtime snapshot. A database outage can therefore block authorization and routing. Snapshot publication, secret preparation outside the hot path, explicit revocation propagation, and outage recovery remain open P1 requirements; the complete P1 stage must not be marked accepted on the basis of these endpoints alone.
+The application now uses the [gateway runtime](RUNTIME.md) for in-memory authorization and routing, prepared credentials, last-valid routing publication, synchronous mutation revocation, and a bounded authorization lease. A direct database path remains available only when a service has not started its runtime, as used by focused integration fixtures. Database outages preserve runtime authorization for at most its remaining five-second lease before new requests fail closed.
+
+The full P1 acceptance still requires the measured revocation/latency targets and real-provider evidence. Runtime snapshots do not establish unlimited database-outage availability or multi-node HA.
 
 Real-provider acceptance also remains separate from controlled-upstream tests. No external provider credentials are required by the local integration suite.
 
