@@ -5,6 +5,8 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"net/netip"
+	"sync"
 
 	"github.com/fox-gonic/fox/logger"
 	"gorm.io/gorm"
@@ -16,6 +18,8 @@ import (
 // Service holds the database connection and provides business logic methods.
 type Service struct {
 	db                   *gorm.DB
+	limitMu              sync.RWMutex
+	trustedProxies       []netip.Prefix
 	runtime              *gatewayRuntime
 	recorder             *callRecorder
 	secrets              *secretstore.Store

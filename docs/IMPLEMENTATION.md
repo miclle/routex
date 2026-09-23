@@ -151,7 +151,7 @@ The following are single-node experimental targets, not measured performance or 
 | P1-03 Personal Keys | Delivered (`3cd5305`); controlled local acceptance passed | One-time pending delivery, confirmation, digest storage, concurrent rotation, ownership, revocation and audit; PostgreSQL/MySQL integration passed |
 | P1-04/05 | In progress | Native OpenAI chat ordinary/SSE, Key Playground, isolated personal/admin call queries and request facts have controlled dual-database evidence; immutable snapshots and bounded durable events have controlled failure/restart evidence; measured capacity and real-provider acceptance remain open |
 | P2 | In progress | Profile/password/session APIs and UI delivered; member/role/registration interfaces and Team/Project backend delivered; Project Keys, offboarding, and resource interfaces advance in separate verified packages |
-| P3 | In progress | Current text prices, FX, immutable call assessments, and atomic CSV import/export APIs implemented; quotas, non-token metrics, spreadsheet formats, and synchronization remain open |
+| P3 | In progress | Current text prices, FX, immutable call assessments, and atomic CSV import/export APIs implemented; quotas, non-token metrics, spreadsheet formats, and synchronization remain open; RPM/concurrency/IP admission implemented |
 | P4–P6 | Pending | Full goal remains active; additional protocols, enterprise integrations, and final acceptance follow the preceding dependencies |
 
 Verification in this iteration:
@@ -396,3 +396,29 @@ navigation, upload-card layout, bounds, the API dialog and Chinese copy. Browser
 file upload was blocked by the extension's file-access permission; browser import
 and download completion are not claimed. Automated file/preview/commit tests and
 the separately verified dual-database import contract cover those workflows.
+
+### Durable RPM, concurrency and source-IP enforcement
+
+Migration 14 adds scoped Personal/Project aggregate and Key policies. Actual
+gateway admission checks parent and child restrictions atomically with durable
+call recording. Rotation retains the accounting identity; database acknowledgment
+and restart cannot reset the rolling minute. Completion releases concurrency once.
+Trusted proxy configuration defaults to no trusted proxies; forged forwarded
+addresses cannot bypass the direct socket source policy. Policy writes require
+current authority, ETag and reason, and publish before acknowledgment.
+
+The database durably records its journal identity before the first filesystem
+binding. Interrupted initialization can retry the same identity; established
+installations reject missing or foreign journals instead of clearing usage.
+Operate one gateway process and restore the matching database/journal pair.
+See [RESOURCE_LIMITS](RESOURCE_LIMITS.md) for the implemented subset and later
+Token/money/TPM, defaults, Team-context and approval work.
+
+Full check/test passed (136 Vitest, four Node, Go race/unit, development lifecycle,
+production assets), as did PostgreSQL/MySQL integration in 259.553 seconds and
+both process restart/inference/revocation suites. Tests cover real HTTP policy
+permissions/CSRF/ETags, actual upstream rejection, both rotation families, held
+ordinary calls, SSE cancellation, inherited restrictions, forged forwarding
+headers, interrupted journal initialization and retained RPM after SQL delivery.
+This is single-process enforcement; distributed limits and full quota acceptance
+remain open. The corresponding configuration interfaces are being implemented.

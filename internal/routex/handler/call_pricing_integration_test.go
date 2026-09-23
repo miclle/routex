@@ -97,12 +97,13 @@ func testCallPricingLifecycle(t *testing.T, db *gorm.DB) {
 	defer svc.StopRuntime()
 	// Pause automatic delivery, not journal admission/completion. This simulates
 	// database delivery lag while catalogue edits and a process restart occur.
-	stopped, stop := context.WithCancel(ctx)
-	stop()
+	recorderCtx, stop := context.WithCancel(ctx)
+	defer stop()
 	path := filepath.Join(t.TempDir(), "pricing-journal.db")
-	if err := svc.StartCallRecorder(stopped, path); err != nil {
+	if err := svc.StartCallRecorder(recorderCtx, path); err != nil {
 		t.Fatal(err)
 	}
+	stop()
 	defer func() { _ = svc.StopCallRecorder() }()
 	invoke := func(extra string) *httptest.ResponseRecorder {
 		req := httptest.NewRequest("POST", "/v1/chat/completions", strings.NewReader(`{"model":"metered-text","messages":[{"role":"user","content":"test"}]`+extra+`}`))
@@ -132,9 +133,12 @@ func testCallPricingLifecycle(t *testing.T, db *gorm.DB) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := restarted.StartCallRecorder(stopped, path); err != nil {
+	restartCtx, stopRestart := context.WithCancel(ctx)
+	defer stopRestart()
+	if err := restarted.StartCallRecorder(restartCtx, path); err != nil {
 		t.Fatal(err)
 	}
+	stopRestart()
 	defer func() { _ = restarted.StopCallRecorder() }()
 	if err := restarted.FlushCallRecorder(ctx); err != nil {
 		t.Fatal(err)

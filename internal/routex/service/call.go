@@ -84,7 +84,7 @@ func validCallStatus(status string) bool {
 // Error codes are machine-owned classifications, never upstream error messages.
 func safeCallError(code string) string {
 	switch code {
-	case "", "process_interrupted", "event_buffer_unavailable", "invalid_request", "invalid_request_error", "invalid_api_key", "rate_limit_exceeded", "service_unavailable", "unauthorized", "forbidden", "model_not_found", "no_route", "upstream_error", "upstream_timeout", "upstream_unavailable", "invalid_upstream_response", "canceled", "internal_error":
+	case "", "process_interrupted", "event_buffer_unavailable", "invalid_request", "invalid_request_error", "invalid_api_key", "rate_limit_exceeded", "concurrency_limit_exceeded", "ip_not_allowed", "service_unavailable", "unauthorized", "forbidden", "model_not_found", "no_route", "upstream_error", "upstream_timeout", "upstream_unavailable", "invalid_upstream_response", "canceled", "internal_error":
 		return code
 	default:
 		return "upstream_error"

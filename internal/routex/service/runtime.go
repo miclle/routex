@@ -17,6 +17,7 @@ import (
 	"github.com/miclle/routex/internal/routex/entity"
 	apperrors "github.com/miclle/routex/internal/routex/errors"
 	"github.com/miclle/routex/pkg/id"
+	"github.com/miclle/routex/pkg/limits"
 	"github.com/miclle/routex/pkg/secret"
 	"github.com/miclle/routex/pkg/upstream"
 )
@@ -36,6 +37,7 @@ type gatewayRuntime struct {
 	status            atomic.Pointer[RuntimeStatus]
 	epoch             atomic.Uint64
 	deniedKeys        sync.Map
+	deniedLimits      sync.Map
 	deniedUsers       sync.Map
 	deniedProjects    sync.Map
 	deniedModels      sync.Map
@@ -45,6 +47,8 @@ type gatewayRuntime struct {
 
 type runtimeAuthorization struct {
 	ValidUntil       time.Time
+	LimitPolicies    map[string]limits.Policy
+	LimitRoots       map[string]string
 	Keys             map[string]runtimeKey
 	Names            map[string]entity.ModelName
 	Models           map[string]bool
@@ -150,6 +154,7 @@ func (s *Service) RefreshRuntime(ctx context.Context) error {
 	auth := buildRuntimeAuthorization(data, started.Add(runtimeAuthorizationLease))
 	runtime.auth.Store(auth)
 	clearRuntimeTombstones(&runtime.deniedKeys, generation)
+	clearRuntimeTombstones(&runtime.deniedLimits, generation)
 	clearRuntimeTombstones(&runtime.deniedUsers, generation)
 	clearRuntimeTombstones(&runtime.deniedProjects, generation)
 	clearRuntimeTombstones(&runtime.deniedModels, generation)
@@ -345,6 +350,9 @@ func (s *Service) runtimeRoute(modelID string) (*gatewayRoute, string, error) {
 }
 
 type runtimeData struct {
+	Limits         []entity.ResourceLimit
+	LimitPolicies  map[string]limits.Policy
+	LimitRoots     map[string]string
 	Pricing        *runtimePricingData
 	ProjectData    *projectRuntimeData
 	Users          []entity.User
@@ -367,7 +375,7 @@ func (s *Service) loadRuntimeData(ctx context.Context) (*runtimeData, error) {
 		if err := tx.Select("id", "disabled").Find(&data.Users).Error; err != nil {
 			return err
 		}
-		for _, target := range []any{&data.Keys, &data.Scopes, &data.Grants, &data.Models, &data.Names, &data.Connections, &data.Credentials, &data.ProviderModels, &data.Access, &data.Bindings} {
+		for _, target := range []any{&data.Limits, &data.Keys, &data.Scopes, &data.Grants, &data.Models, &data.Names, &data.Connections, &data.Credentials, &data.ProviderModels, &data.Access, &data.Bindings} {
 			if err := tx.Find(target).Error; err != nil {
 				return err
 			}
@@ -378,13 +386,16 @@ func (s *Service) loadRuntimeData(ctx context.Context) (*runtimeData, error) {
 			return err
 		}
 		data.Pricing, err = loadRuntimePricing(tx)
-		return err
+		if err != nil {
+			return err
+		}
+		return compileRuntimeLimits(data)
 	}, &sql.TxOptions{Isolation: sql.LevelRepeatableRead, ReadOnly: true})
 	return data, err
 }
 
 func buildRuntimeAuthorization(data *runtimeData, until time.Time) *runtimeAuthorization {
-	auth := &runtimeAuthorization{ValidUntil: until, Keys: map[string]runtimeKey{}, Names: map[string]entity.ModelName{}, Models: map[string]bool{}, Credentials: map[string]bool{}, CredentialAccess: map[string]map[string]bool{}, ModelCreated: map[string]time.Time{}}
+	auth := &runtimeAuthorization{ValidUntil: until, LimitPolicies: data.LimitPolicies, LimitRoots: data.LimitRoots, Keys: map[string]runtimeKey{}, Names: map[string]entity.ModelName{}, Models: map[string]bool{}, Credentials: map[string]bool{}, CredentialAccess: map[string]map[string]bool{}, ModelCreated: map[string]time.Time{}}
 	users := map[string]bool{}
 	for _, user := range data.Users {
 		users[user.ID] = !user.Disabled
@@ -447,14 +458,22 @@ func runtimeDigest(data *runtimeData) (string, error) {
 		}
 		return a.CredentialID < b.CredentialID
 	})
+	sort.Slice(data.Limits, func(i, j int) bool {
+		a, b := data.Limits[i], data.Limits[j]
+		if a.ScopeKind == b.ScopeKind {
+			return a.ScopeID < b.ScopeID
+		}
+		return a.ScopeKind < b.ScopeKind
+	})
 	raw, err := json.Marshal(struct {
+		Limits         []entity.ResourceLimit
 		Pricing        *runtimePricingData
 		Connections    []entity.ProviderConnection
 		Credentials    []entity.ProviderCredential
 		ProviderModels []entity.ProviderModel
 		Bindings       []entity.ModelProviderBinding
 		Access         []entity.CredentialModelAccess
-	}{data.Pricing, data.Connections, data.Credentials, data.ProviderModels, data.Bindings, data.Access})
+	}{data.Limits, data.Pricing, data.Connections, data.Credentials, data.ProviderModels, data.Bindings, data.Access})
 	if err != nil {
 		return "", err
 	}

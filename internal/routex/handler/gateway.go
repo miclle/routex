@@ -31,7 +31,12 @@ func (ctrl *Ctrl) GatewayModels(c *fox.Context) {
 		writeGatewayError(c, err)
 		return
 	}
-	models, err := ctrl.service.GatewayModels(c.Request.Context(), gatewayBearer(c.Request))
+	clientIP, ipErr := ctrl.service.GatewayClientIP(c.Request)
+	if ipErr != nil {
+		writeGatewayError(c, &service.GatewayError{Status: 400, Code: "invalid_request_error", Message: "A valid client network address is required."})
+		return
+	}
+	models, err := ctrl.service.GatewayModels(service.WithGatewayClientIP(c.Request.Context(), clientIP), gatewayBearer(c.Request))
 	if err != nil {
 		writeGatewayError(c, err)
 		return
@@ -41,9 +46,15 @@ func (ctrl *Ctrl) GatewayModels(c *fox.Context) {
 
 func (ctrl *Ctrl) GatewayChat(c *fox.Context) {
 	started := time.Now().UTC()
+
 	requestID, err := prepareGateway(c)
 	if err != nil {
 		writeGatewayError(c, err)
+		return
+	}
+	clientIP, ipErr := ctrl.service.GatewayClientIP(c.Request)
+	if ipErr != nil {
+		writeGatewayError(c, &service.GatewayError{Status: 400, Code: "invalid_request_error", Message: "A valid client network address is required."})
 		return
 	}
 	mediaType, _, err := mime.ParseMediaType(c.Request.Header.Get("Content-Type"))
@@ -61,7 +72,7 @@ func (ctrl *Ctrl) GatewayChat(c *fox.Context) {
 		writeGatewayError(c, &service.GatewayError{Status: status, Code: "invalid_request_error", Message: "The request body is invalid or too large."})
 		return
 	}
-	ctx, cancel := context.WithTimeout(c.Request.Context(), 5*time.Minute)
+	ctx, cancel := context.WithTimeout(service.WithGatewayClientIP(c.Request.Context(), clientIP), 5*time.Minute)
 	defer cancel()
 	result, callErr := ctrl.service.GatewayChat(ctx, gatewayBearer(c.Request), body, requestID)
 	var usage gatewayUsage

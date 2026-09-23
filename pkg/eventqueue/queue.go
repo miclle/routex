@@ -47,6 +47,9 @@ func Open(path string, capacity, maxPayload int) (*Queue, error) {
 	}
 	q := &Queue{db: db, capacity: capacity, maxPayload: maxPayload}
 	err = db.Update(func(tx *bolt.Tx) error {
+		if err := initLimits(tx); err != nil {
+			return err
+		}
 		pending, err := tx.CreateBucketIfNotExists(pendingBucket)
 		if err != nil {
 			return err
@@ -123,6 +126,9 @@ func (q *Queue) Complete(id string, payload []byte) error {
 			return ErrMissing
 		}
 		if err := ready.Put(key, payload); err != nil {
+			return err
+		}
+		if err := releaseLimits(tx, key); err != nil {
 			return err
 		}
 		return pending.Delete(key)

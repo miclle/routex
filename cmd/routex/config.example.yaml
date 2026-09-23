@@ -10,6 +10,10 @@ encryption_key: "${ROUTEX_ENCRYPTION_KEY}"
 # Durable call-event buffer. Relative paths resolve against this config's directory.
 # Keep its directory on a persistent writable volume; one running process per file.
 event_queue_path: "${ROUTEX_EVENT_QUEUE_PATH:-data/calls.db}"
+# Forwarding headers are ignored unless the direct peer is explicitly trusted.
+# Example: trusted_proxies: ["${ROUTEX_TRUSTED_PROXY:-10.0.0.0/8}"]
+# Trust only the actual reverse proxy networks; an empty list is the safe default.
+trusted_proxies: []
 # Explicit opt-in for private/self-hosted upstreams; false by default.
 allow_private_upstreams: "${ROUTEX_ALLOW_PRIVATE_UPSTREAMS:-false}"
 

@@ -20,6 +20,7 @@ import (
 	"github.com/miclle/routex/internal/routex/database"
 	"github.com/miclle/routex/internal/routex/handler"
 	"github.com/miclle/routex/internal/routex/service"
+	"github.com/miclle/routex/pkg/limits"
 	"github.com/miclle/routex/pkg/secretstore"
 )
 
@@ -70,7 +71,11 @@ func run(ctx context.Context, configPath string) (runErr error) {
 	if err := database.Migrate(ctx, db); err != nil {
 		return errors.New("migrate database failed")
 	}
-	svc, err := service.New(ctx, db, service.WithCredentialStorage(store), service.WithUpstreamPolicy(cfg.AllowPrivateUpstreams))
+	trustedProxies, err := limits.ParseTrustedProxies(cfg.TrustedProxies)
+	if err != nil {
+		return errors.New("invalid trusted proxy configuration")
+	}
+	svc, err := service.New(ctx, db, service.WithTrustedProxies(trustedProxies), service.WithCredentialStorage(store), service.WithUpstreamPolicy(cfg.AllowPrivateUpstreams))
 	if err != nil {
 		return errors.New("initialize service failed")
 	}

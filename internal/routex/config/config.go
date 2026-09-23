@@ -10,16 +10,19 @@ import (
 	"strings"
 
 	"github.com/spf13/viper"
+
+	"github.com/miclle/routex/pkg/limits"
 )
 
 // Config represents the application configuration.
 type Config struct {
-	Addr                  string `mapstructure:"addr"`   // listen address, e.g. "0.0.0.0:9000"
-	Driver                string `mapstructure:"driver"` // database driver: "postgres" (default) or "mysql"
-	DSN                   string `mapstructure:"dsn"`    // database connection string
-	EncryptionKey         string `mapstructure:"encryption_key"`
-	EventQueuePath        string `mapstructure:"event_queue_path"`
-	AllowPrivateUpstreams bool   `mapstructure:"-"`
+	TrustedProxies        []string `mapstructure:"trusted_proxies"`
+	Addr                  string   `mapstructure:"addr"`   // listen address, e.g. "0.0.0.0:9000"
+	Driver                string   `mapstructure:"driver"` // database driver: "postgres" (default) or "mysql"
+	DSN                   string   `mapstructure:"dsn"`    // database connection string
+	EncryptionKey         string   `mapstructure:"encryption_key"`
+	EventQueuePath        string   `mapstructure:"event_queue_path"`
+	AllowPrivateUpstreams bool     `mapstructure:"-"`
 }
 
 // Load reads configuration from the given file path.
@@ -40,6 +43,12 @@ func Load(path string) (*Config, error) {
 	}
 	// Expand parsed values so quotes, backslashes, and newlines from the
 	// environment remain data rather than becoming YAML syntax.
+	for i := range cfg.TrustedProxies {
+		cfg.TrustedProxies[i] = expandEnv(cfg.TrustedProxies[i])
+	}
+	if _, err := limits.ParseTrustedProxies(cfg.TrustedProxies); err != nil {
+		return nil, fmt.Errorf("trusted_proxies must contain literal IP addresses or CIDRs")
+	}
 	cfg.Addr = expandEnv(cfg.Addr)
 	cfg.Driver = expandEnv(cfg.Driver)
 	cfg.DSN = expandEnv(cfg.DSN)

@@ -214,3 +214,16 @@ func TestEventQueueEnvironmentRemainsData(t *testing.T) {
 		t.Fatal("queue path environment expansion changed YAML structure or expanded twice")
 	}
 }
+
+func TestTrustedProxyConfiguration(t *testing.T) {
+	t.Setenv("ROUTEX_TEST_PROXY", "10.0.0.0/8")
+	cfg, err := Load(writeConfig(t, "addr: 127.0.0.1:9000\ndsn: test-only\ntrusted_proxies:\n  - '${ROUTEX_TEST_PROXY}'\n  - '2001:db8::/32'\n"))
+	if err != nil || len(cfg.TrustedProxies) != 2 || cfg.TrustedProxies[0] != "10.0.0.0/8" {
+		t.Fatal("proxy expansion failed", err)
+	}
+	for _, raw := range []string{"example.invalid", "10.0.0.1/33", "fe80::1%en0"} {
+		if _, err := Load(writeConfig(t, "addr: 127.0.0.1:9000\ndsn: test-only\ntrusted_proxies: ['"+raw+"']\n")); err == nil {
+			t.Fatal("invalid trusted proxy accepted")
+		}
+	}
+}

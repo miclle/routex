@@ -44,6 +44,9 @@ func runtimeFixture(t *testing.T, baseURL string) (*Service, *runtimeData, strin
 		Access:         []entity.CredentialModelAccess{{CredentialID: "crd_one", ProviderModelID: "pmd_one"}},
 		Bindings:       []entity.ModelProviderBinding{{ID: "bnd_one", ModelID: modelID, ProviderModelID: "pmd_one", Weight: 100}},
 	}
+	if err := compileRuntimeLimits(data); err != nil {
+		t.Fatal(err)
+	}
 	s := &Service{secrets: store, upstream: upstream.NewClient(true), allowPrivateUpstream: true, runtime: &gatewayRuntime{}}
 	s.runtime.auth.Store(buildRuntimeAuthorization(data, time.Now().Add(time.Minute)))
 	routes, err := s.buildRuntimeRoutes(data)
@@ -199,6 +202,9 @@ func projectRuntimeFixture(t *testing.T) (*Service, *runtimeData, string, string
 			{ProjectID: "prj_one", ModelID: "mdl_disabled"},
 			{ProjectID: "prj_one", ModelID: "mdl_outside_scope"},
 		},
+	}
+	if err := compileRuntimeLimits(data); err != nil {
+		t.Fatal(err)
 	}
 	s.runtime.auth.Store(buildRuntimeAuthorization(data, time.Now().Add(time.Minute)))
 	return s, data, projectBearer, personalBearer

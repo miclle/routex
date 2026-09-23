@@ -18,6 +18,7 @@ import (
 
 	"github.com/miclle/routex/internal/routex/entity"
 	apperrors "github.com/miclle/routex/internal/routex/errors"
+	"github.com/miclle/routex/pkg/eventqueue"
 	"github.com/miclle/routex/pkg/id"
 	"github.com/miclle/routex/pkg/upstream"
 )
@@ -46,6 +47,7 @@ type GatewayModel struct {
 // GatewayResult describes one actual upstream attempt without storing its secret.
 // The caller must close Response.Body when Response is non-nil, including errors.
 type GatewayResult struct {
+	admissionLimits    []eventqueue.Limit
 	PriceBasis         *CallPriceBasis
 	PricingUnsupported bool
 	PricingDimensions  []string
@@ -69,6 +71,9 @@ func (s *Service) GatewayModels(ctx context.Context, bearer string) ([]GatewayMo
 	key, err := s.AuthenticateAPIKey(ctx, bearer)
 	if err != nil {
 		return nil, gatewayAuthError(err)
+	}
+	if _, err := s.gatewayLimits(ctx, &GatewayResult{UserID: key.Key.UserID, ProjectID: key.ProjectID, KeyID: key.Key.ID}); err != nil {
+		return nil, err
 	}
 	models := []GatewayModel{}
 	if len(key.ModelIDs) == 0 {
@@ -191,7 +196,7 @@ func (s *Service) GatewayChat(ctx context.Context, bearer string, body []byte, r
 		// the guarded shared transport while removing the total 30-second limit.
 		client.Timeout = 0
 	}
-	if err := s.AdmitGatewayCall(requestID, result); err != nil {
+	if err := s.admitLimitedGatewayCall(ctx, requestID, result); err != nil {
 		return result, err
 	}
 	result.AttemptID, err = id.NewPrefixed("att")

@@ -2,7 +2,7 @@
 
 RouteX is an open-source AI gateway and control plane for connecting applications to multiple AI providers and models through a governed, observable, and extensible platform.
 
-> RouteX is at an early stage. Identity, sessions, member/role administration, Team/Project management, personal and Project Keys, and offboarding have persistent APIs and interfaces. Native OpenAI chat/SSE uses prepared runtime snapshots and a bounded durable journal. Current text prices, exact currency conversion, immutable call assessments, atomic CSV import/export APIs, and bilingual currency configuration are available. Broader quotas, additional protocols, and enterprise integrations remain in progress. See [the implementation and acceptance index](docs/IMPLEMENTATION.md) for scope and evidence.
+> RouteX is at an early stage. Identity, sessions, member/role administration, Team/Project management, personal and Project Keys, and offboarding have persistent APIs and interfaces. Native OpenAI chat/SSE uses prepared runtime snapshots and a bounded durable journal. Current text prices, exact currency conversion, immutable call assessments, atomic CSV import/export APIs, and bilingual currency configuration are available. Personal/Project aggregate and Key RPM, concurrency and source-IP restrictions are enforced with durable admission accounting. Broader quotas, additional protocols, and enterprise integrations remain in progress. See [the implementation and acceptance index](docs/IMPLEMENTATION.md) for scope and evidence.
 
 ## Development
 

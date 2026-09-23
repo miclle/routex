@@ -37,6 +37,10 @@ func (s *Service) StartCallRecorder(ctx context.Context, path string) error {
 	if err != nil {
 		return errors.New("open durable call buffer failed")
 	}
+	if err := s.bindLimitJournal(ctx, queue); err != nil {
+		_ = queue.Close()
+		return errors.New("bind durable call buffer failed")
+	}
 	runCtx, cancel := context.WithCancel(ctx)
 	recorder := &callRecorder{queue: queue, cancel: cancel, done: make(chan struct{})}
 	s.recorder = recorder
@@ -79,6 +83,13 @@ func (s *Service) StopCallRecorder() error {
 // filesystem failures reject the request before consuming provider resources.
 func (s *Service) AdmitGatewayCall(requestID string, result *GatewayResult) error {
 	if s.recorder == nil {
+		if result != nil {
+			for _, limit := range result.admissionLimits {
+				if limit.RPM != nil || limit.Concurrency != nil {
+					return callQueueUnavailable
+				}
+			}
+		}
 		return nil
 	}
 	if result == nil {
@@ -94,8 +105,8 @@ func (s *Service) AdmitGatewayCall(requestID string, result *GatewayResult) erro
 	if err != nil {
 		return callQueueUnavailable
 	}
-	if err := s.recorder.queue.Reserve(requestID, payload); err != nil {
-		return callQueueUnavailable
+	if err := s.recorder.queue.ReserveWithLimits(requestID, payload, result.admissionLimits, now); err != nil {
+		return gatewayLimitError(err)
 	}
 	return nil
 }
