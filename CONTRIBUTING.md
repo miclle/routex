@@ -8,6 +8,20 @@ Follow the [development setup](README.md#development) to install dependencies an
 
 See [AGENTS.md](AGENTS.md) and `.agents/rules/` for code organization and API, frontend, security, and testing conventions.
 
+## Formatting and linting
+
+Frontend formatting is enforced by the pinned Prettier version and
+`website/.prettierrc.json`. Run `npm --prefix website run format` to format source,
+tests, styles, and configuration. Run `npm --prefix website run lint:fix` to apply
+ESLint fixes and then format. `go tool task lint` includes both frontend fixes.
+Generated assets, dependencies, coverage, and the npm lockfile are excluded.
+
+`npm --prefix website run format:check` verifies formatting without changing files.
+`go tool task check` and CI require both this check and ESLint. Format before
+reviewing and committing each change; do not compress JSX, handlers, or tests into
+single lines or bypass the formatter with broad ignore directives. Formatting
+changes preserve behavior and still require the normal type, test, and build gates.
+
 ## Development principles
 
 - Keep the gateway data plane independent from asynchronous analytics.

@@ -9,8 +9,11 @@ const client = axios.create({
 client.interceptors.response.use(
   (response) => response,
   (error: unknown) => {
-    if (axios.isAxiosError(error) && error.response?.status === 401 &&
-      !['/auth/login', '/auth/session', '/setup'].includes(error.config?.url ?? '')) {
+    if (
+      axios.isAxiosError(error) &&
+      error.response?.status === 401 &&
+      !['/auth/login', '/auth/session', '/setup'].includes(error.config?.url ?? '')
+    ) {
       window.dispatchEvent(new Event('routex:session-expired'))
     }
     return Promise.reject(error)

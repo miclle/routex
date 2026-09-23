@@ -1,3 +1,4 @@
+import { t } from '@/i18n'
 import axios from 'axios'
 import client from './client'
 import type { LoginInput, Session, SetupInput } from '@/types/auth'
@@ -33,13 +34,19 @@ export async function logout(csrfToken: string) {
 }
 
 export function authError(error: unknown): string {
-  if (!axios.isAxiosError(error)) return '请求失败，请稍后重试。'
+  if (!axios.isAxiosError(error)) return t('the_request_failed_try_again_later_81390')
   switch (error.response?.status) {
-    case 401: return '邮箱或密码不正确，请重新输入。'
-    case 403: return '操作未获授权，请刷新页面后重试。'
-    case 409: return '站点已完成初始化，请使用已有账户登录。'
-    case 429: return '尝试次数过多，请稍后再试。'
-    case 400: return '提交的信息不符合要求，请检查后重试。'
-    default: return '暂时无法连接服务，请稍后重试。'
+    case 401:
+      return t('the_email_or_password_is_incorrect_try_again_59a4d')
+    case 403:
+      return t('this_action_is_not_authorized_refresh_and_retry_31fa7')
+    case 409:
+      return t('this_site_is_already_set_up_sign_in_337e8')
+    case 429:
+      return t('too_many_attempts_try_again_later_0a703')
+    case 400:
+      return t('the_submitted_information_is_invalid_check_it_and_86ba8')
+    default:
+      return t('unable_to_connect_to_the_service_try_again_0cdbc')
   }
 }

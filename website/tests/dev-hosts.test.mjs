@@ -16,15 +16,25 @@ test('development server accepts localhost and rejects untrusted hosts', async (
   try {
     await server.listen()
     const port = server.httpServer.address().port
-    for (const [host, status] of [['localhost', 200], ['untrusted.example', 403]]) {
+    for (const [host, status] of [
+      ['localhost', 200],
+      ['untrusted.example', 403],
+    ]) {
       await t.test(host, async () => {
         const response = await new Promise((resolve, reject) => {
-          http.get({ hostname: '127.0.0.1', port, path: '/src/api/client.ts', headers: { Host: host } }, (res) => {
-            let body = ''
-            res.on('data', (chunk) => { body += chunk })
-            res.on('end', () => resolve({ status: res.statusCode, body }))
-            res.on('error', reject)
-          }).on('error', reject)
+          http
+            .get(
+              { hostname: '127.0.0.1', port, path: '/src/api/client.ts', headers: { Host: host } },
+              (res) => {
+                let body = ''
+                res.on('data', (chunk) => {
+                  body += chunk
+                })
+                res.on('end', () => resolve({ status: res.statusCode, body }))
+                res.on('error', reject)
+              },
+            )
+            .on('error', reject)
         })
         assert.equal(response.status, status)
         assert.equal(response.body.includes('axios.create'), status === 200)
@@ -33,6 +43,11 @@ test('development server accepts localhost and rejects untrusted hosts', async (
   } finally {
     // Keep the event loop alive while Vite finishes its unreferenced workers.
     const keepAlive = setInterval(() => {}, 100)
-    try { await server.close() } finally { clearInterval(keepAlive); await rm(cacheDir, { recursive: true, force: true }) }
+    try {
+      await server.close()
+    } finally {
+      clearInterval(keepAlive)
+      await rm(cacheDir, { recursive: true, force: true })
+    }
   }
 })

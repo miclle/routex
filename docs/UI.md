@@ -36,3 +36,12 @@ Registration settings use an authentication-method card and right configuration 
 ## Verified personal Key rotation
 
 The personal Key table shows each replacement relationship and whether its original Key has been revoked. Confirming one-time delivery keeps the original Key usable; copying or confirming a secret never marks a call as verified. Once an active replacement exists, the original row exposes an explicit completion dialog that selects the replacement and asks the server to verify its persisted successful call before retirement. An eligibility conflict leaves the dialog open and the original unchanged for retry. Canceling pending delivery revokes only the replacement; emergency revocation remains an independent action. Disabled-source replacements retain their disabled state until explicitly enabled.
+
+
+## English and Chinese Interface
+
+The application initializes `i18next` with English as its default. The authentication surfaces and app header expose a compact language selector without changing the approved page composition. Choosing English or Chinese updates labels, validation, notices, status text, accessible names, and locale-sensitive dates immediately. The non-sensitive `routex.language` preference survives reloads; unsupported saved values fall back to English. Switching remains usable when browser storage is unavailable.
+
+Translation catalogs live under `website/src/i18n/locales/{en,zh}`. The `common`, `catalog`, `governance`, and `activity` namespaces cover shared surfaces, provider/model workflows, member governance, and account/call records. User-entered content, IDs, protocol identifiers, and sanitized server error messages retain their original values. Existing form drafts and sensitive in-memory state are not reset by language changes; no credential or conversation data is added to browser storage.
+
+Vitest checks locale key and interpolation parity, literal-key resolution, plural handling, default English, persisted language selection, blocked-storage fallback, and live-switch behavior on authentication, governance, account, and calls. Workflow tests use English by default. Prettier provides automatic formatting through `npm run format`; `npm run format:check` and ESLint are mandatory checks. Resource pages under development remain unregistered until their functional acceptance is complete.

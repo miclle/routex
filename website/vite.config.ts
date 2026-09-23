@@ -4,8 +4,7 @@ import tailwindcss from '@tailwindcss/vite'
 
 const vitePort = Number.parseInt(process.env.ROUTEX_VITE_PORT ?? '5173', 10)
 const apiBaseURL =
-  process.env.ROUTEX_API_BASE_URL ??
-  `http://127.0.0.1:${process.env.ROUTEX_HTTP_PORT ?? '9000'}`
+  process.env.ROUTEX_API_BASE_URL ?? `http://127.0.0.1:${process.env.ROUTEX_HTTP_PORT ?? '9000'}`
 
 // https://vitejs.dev/config/
 export default defineConfig({
@@ -15,17 +14,17 @@ export default defineConfig({
   },
   resolve: {
     alias: {
-      "@": "/src",
-      src: "/src",
+      '@': '/src',
+      src: '/src',
     },
   },
   server: {
     port: vitePort,
     strictPort: true,
-    host: "0.0.0.0",
+    host: '0.0.0.0',
     proxy: {
-      "/api/v1": apiBaseURL,
-      "/v1": apiBaseURL,
+      '/api/v1': apiBaseURL,
+      '/v1': apiBaseURL,
     },
   },
 })

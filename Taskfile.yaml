@@ -107,18 +107,19 @@ tasks:
   # ---------- Code Quality ----------
 
   lint:
-    desc: Auto-fix code style (go mod tidy + gofmt + vet + staticcheck + frontend eslint)
+    desc: Auto-fix code style (go mod tidy + gofmt + vet + staticcheck + frontend ESLint + Prettier)
     cmds:
       - go mod tidy
       - gofmt -w .
       - go vet -tags development $(./scripts/go-packages.sh)
       - go tool staticcheck -tags development $(./scripts/go-packages.sh)
-      - cd {{.WEBSITE_DIR}} && npm run lint
+      - cd {{.WEBSITE_DIR}} && npm run lint:fix
 
   check:
     desc: Run all checks without modifying files (CI-friendly)
     cmds:
       - task: check-backend
+      - task: check-frontend-style
       - task: check-frontend-types
       - task: check-mod-tidy
 
@@ -128,6 +129,12 @@ tasks:
       - gofmt -l .
       - go vet -tags development $(./scripts/go-packages.sh)
       - ./scripts/check-lint.sh
+
+  check-frontend-style:
+    internal: true
+    cmds:
+      - cd {{.WEBSITE_DIR}} && npm run format:check
+      - cd {{.WEBSITE_DIR}} && npm run lint
 
   check-frontend-types:
     internal: true

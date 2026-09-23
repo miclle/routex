@@ -237,3 +237,32 @@ Key. Browser control disconnected before final confirmation/retirement, so compl
 browser retirement remains unverified despite UI and dual-database regression
 coverage. Resource and offboarding interfaces, automatic execution, external Key
 delivery, and full platform acceptance remain separate work.
+
+### Bilingual interfaces and enforced frontend formatting
+
+The implemented web surfaces use i18next/react-i18next with English as the initial
+language and Chinese as the second supported locale. Authentication and workspace
+selectors persist only the language preference. Labels, notices, validation,
+accessible names, and date formatting update without discarding form state. Paired
+catalog checks cover keys, interpolation, and plurals; user content and protocol
+identifiers are preserved.
+
+Prettier 3.9.9 formats frontend source, tests, styles, and configuration. The npm
+`format`, `format:check`, and `lint:fix` commands provide automatic fixes and
+read-only checks. Both `go tool task check` and CI enforce formatting and ESLint.
+The initial check rejected 77 unformatted files; the formatted source passes.
+Contributor and agent instructions require the same gate for subsequent work.
+
+The exact staged source passed full check (including formatting, lint, types, and
+module consistency), Go race/unit tests, 76 Vitest cases, four Node proxy/host
+checks, development lifecycle, production build/assets, and actionlint. ESLint
+retains only the two existing badge/button Fast Refresh warnings. A navigation
+test now waits for permission-derived navigation itself, avoiding a race with the
+independently rendered page title.
+
+Chrome verified default English, Chinese switching and reload persistence, live
+validation translation, retained form drafts, and workspace/header/account labels
+using the production assets and a disposable controlled auth HTTP fixture. No
+browser errors or warnings were captured. This browser check verifies rendering
+and client behavior; it does not replace database-backed identity acceptance.
+Unregistered resource interfaces remain in the following work package.
