@@ -139,6 +139,76 @@ The following are single-node experimental targets, not measured performance or 
 
 ## Acceptance and Evidence
 
+### Capability delivery status
+
+Status terms in this section are deliberately strict:
+
+- **Completed** means the complete capability definition has current implementation and controlled acceptance evidence.
+- **Partially completed** means material implementation exists, but one or more required behaviors or acceptance gates remain open. It does not mean that work has not started.
+- **Not started** means no material implementation of the capability exists. A prerequisite or design note may still be present.
+
+The binary capability count is 6 completed, 20 partially completed, and 4 not started. This is a completion count, not an effort percentage: several partially completed capabilities contain substantial delivered work. All implementation work that had not started was paused on 2026-09-23; this table records the resume inventory without authorizing another work package.
+
+| ID | Capability | Status | Delivered and remaining scope |
+|---|---|---|---|
+| F01 | Initialization, local identity, registration, and logout | Completed | Concurrent one-time setup, administrator creation, local login, registration control, durable sessions, and logout are implemented and tested. |
+| F02 | Profile, password, MFA, recovery codes, and session revocation | Completed | Profile and password changes, authenticator enrollment, single-use recovery codes, and individual-session revocation are implemented. |
+| F03 | Enterprise SSO, LDAP, OAuth, and emergency recovery | Not started | Provider configuration, callbacks, identity binding, enforced SSO, and enterprise recovery remain unimplemented. |
+| F04 | Member administration, direct grants, roles, and resource policies | Partially completed | Member and role workflows plus scoped resource-limit interfaces exist; the complete cross-domain resource-policy surface remains open. |
+| F05 | Built-in and custom roles with composed permissions | Partially completed | Current-domain role and permission management is implemented; later enterprise and operations domains still require permission integration and negative acceptance. |
+| F06 | Team membership, ownership, models, quotas, and member rules | Partially completed | Team creation, membership, ownership, and model relationships exist; Team aggregate quotas and member-rule enforcement remain open. |
+| F07 | Project lifecycle, managers, models, Keys, and requests | Partially completed | Project management, managers, model grants, Project Keys, resource limits, and model requests exist; the complete Project request and lifecycle surface remains open. |
+| F08 | Personal and Project Key lifecycle | Completed | One-time delivery, confirmation, editing, rotation, revocation, expiration, scope, and history are implemented with controlled dual-database evidence. |
+| F09 | Key Token, money, RPM, TPM, concurrency, and IP restrictions | Completed | Personal, Project, and Key admission policies are enforced in the native gateway for the documented single-node architecture. Multi-node enforcement remains a separate release-architecture gate. |
+| F10 | Offboarding, inventory, handover, and emergency disable | Partially completed | Transactional local-account offboarding and continuity workflows exist; external-identity and complete enterprise continuity behavior remain open. |
+| F11 | Provider, Connection, Credential, discovery, and rotation | Partially completed | The management workspace, encrypted credentials, controlled verification, and activation boundaries exist; real-provider acceptance and complete pool operations remain open. |
+| F12 | Model catalog, names, bindings, weights, and catalog assistance | Partially completed | Stable models, renames, bindings, weights, grants, and availability controls exist; complete public-catalog assistance and final routing acceptance remain open. |
+| F13 | Four native protocols, streaming, health, retries, and failover | Partially completed | Chat Completions, Responses, Messages, and Gemini ordinary/streaming paths exist. Active retry, health routing, and failover are not wired; the route-attempt package is foundation only. |
+| F14 | Managed egress and staged network diagnostics | Partially completed | Direct, default, SOCKS5, verified CONNECT, and diagnostics exist. Saved-auth endpoint protection and multi-address proxy dialing require remediation before production acceptance. |
+| F15 | Prices, spreadsheet/CSV workflows, API, and repository sync | Partially completed | Current prices, ETags, CSV/XLS/XLSX import, preview, commit, and export exist; external price-repository synchronization is not implemented. |
+| F16 | Platform currency, exchange rates, and historical price snapshots | Completed | Decimal-string currency/rate management, exact quoting, and immutable per-call assessment are implemented. |
+| F17 | User and Team defaults, overrides, budgets, alerts, and stop policy | Partially completed | Personal, Project, and Key enforcement exists; Team defaults, templates, alerts, and stop-calling policy remain open. |
+| F18 | Quota, model, and request-limit approvals | Partially completed | Project model requests exist; Team quota approval, escalation, and Project quota/request-limit workflows remain open. |
+| F19 | Member overview, model sources, requests, and examples | Partially completed | Catalog, callable-model views, Project requests, and native examples exist; complete Team-source attribution and request coverage remain open. |
+| F20 | Playground, comparison, attachments, and code examples | Partially completed | Four native conversation paths, two-to-four-lane comparison, cancellation, and executable examples exist; image/PDF UI and gateway attachment integration remain open. |
+| F21 | Personal, Project, and platform call records and CSV | Partially completed | Isolated list/detail queries and interfaces exist; complete CSV and later diagnostic/export acceptance remain open. |
+| F22 | Usage trends, amounts, and multidimensional filters | Partially completed | Personal, Project, and platform usage interfaces exist; Team/provider attribution and complete freshness/capacity acceptance remain open. |
+| F23 | Operations overview, quality, alerts, and notifications | Partially completed | SMTP configuration and controlled test delivery exist; durable notification jobs, retry, recipient policy, settings, and status center remain open. |
+| F24 | Read-only AI operations analysis and saved reports | Not started | Authorized analysis queries, saved definitions, evaluation, exports, and hostile-input acceptance are not implemented. |
+| F25 | Site presentation, language, and announcements | Completed | Durable site name, URL, logo, footer, default language, bilingual UI behavior, and announcement lifecycle are implemented. |
+| F26 | Instances, heartbeats, resources, jobs, and offline cleanup | Not started | Authoritative instance and system-job management are not implemented. |
+| F27 | S3, owned attachments, SMTP, and notifications | Partially completed | S3-compatible configuration, owned attachment APIs, cleanup recovery, SMTP administration, and test delivery exist. Storage UI, durable notifications, and external-service acceptance remain open. |
+| F28 | Internal encryption, root-key rotation, and Vault switching | Partially completed | Internal provider, egress, SMTP, and storage secrets are encrypted. Root-key rotation, Vault identities, compensation, and storage switching remain open. |
+| F29 | API Key Vault delivery and application identities | Not started | Application identities, Profiles, descriptors, coordinator state, and no-plaintext-fallback delivery are not implemented. |
+| F30 | Configuration publication, acknowledgement, rollback, revocation, and audit | Partially completed | Immutable runtime publication, durable events, current revocation, and audit foundations exist; node acknowledgement, complete rollback, and distributed emergency-revocation acceptance remain open. |
+
+### Acceptance-case status
+
+Only A01 is fully accepted across its defined scope. Every other case remains incomplete even when a delivered work package provides useful controlled evidence; final acceptance must cover the complete objects, integrations, and failure boundaries named by that case.
+
+| ID | Acceptance case | Status | Current boundary |
+|---|---|---|---|
+| A01 | Concurrent first initialization | Completed | PostgreSQL and MySQL evidence confirms exactly one first administrator. |
+| A02 | Unauthorized API, object, and export access | Partially completed | Current identity and delivered resource boundaries are covered; future enterprise and operations objects remain. |
+| A03 | Key creation, delivery closure, rotation, revocation, and expiry | Partially completed | Controlled Personal and Project Key evidence exists; full release-flow acceptance remains open. |
+| A04 | One model across Personal and multiple Team contexts | Partially completed | Explicit complete Team invocation context and unique debit behavior remain open. |
+| A05 | Sole-manager offboarding and emergency disable | Partially completed | Local-account continuity is covered; external-identity continuity remains open. |
+| A06 | Model rename, alias expiry, and historical-name reuse | Partially completed | Controlled model-name tests exist; final end-to-end release acceptance remains open. |
+| A07 | Weights, new candidates, no healthy target, and credential failure | Partially completed | Weight and credential behavior exists; active health routing and failover do not. |
+| A08 | Stream failure, cancellation, and timeout | Partially completed | Controlled four-protocol evidence exists; real-provider and production-load evidence do not. |
+| A09 | Invalid price files, stale ETags, and repository synchronization | Partially completed | File and ETag behavior exists; network synchronization does not. |
+| A10 | In-flight price changes and historical reporting | Partially completed | Immutable assessments exist; final reporting and release acceptance remain open. |
+| A11 | Concurrent quota, TPM, RPM, and concurrency contention | Partially completed | Single-process controlled enforcement exists; distributed and capacity bounds remain open. |
+| A12 | IPv4, IPv6, CIDR, and forged forwarding headers | Partially completed | Controlled source-address enforcement exists; production proxy-topology acceptance remains open. |
+| A13 | Self, repeated, concurrent approval and Team overflow | Not started | The complete approval system is not implemented. |
+| A14 | Control Plane, Vault, analytics failure, invalid snapshots, and replay | Partially completed | Runtime and durable replay foundations exist; Vault and the complete failure matrix remain open. |
+| A15 | SSO, OAuth, LDAP, MFA, and recovery | Partially completed | MFA is implemented; enterprise identity is not. |
+| A16 | Vault compensation, rotation, and cleanup failure | Not started | Vault integration is not implemented. |
+| A17 | Images/PDF, object authorization, and model comparison | Partially completed | Object backend and comparison exist; attachment UI and inference integration remain open. |
+| A18 | Call queries, CSV, reports, and hostile analysis inputs | Partially completed | Call queries and usage views exist; AI analysis and complete safe-export acceptance remain open. |
+| A19 | S3, SMTP, site, announcements, instances, and jobs | Partially completed | S3, SMTP, and site work exists; instances and system jobs do not. |
+| A20 | Fresh install, upgrade, backup/restore, and production SPA | Partially completed | Installation, migrations, restart, and SPA evidence exists; backup/restore and production release acceptance remain open. |
+
 2026-09-23, baseline `493cf39`: three parallel subtasks deliver changes, with the coordinating task consolidating acceptance and staged commits.
 
 | Work package | Status | Evidence and limitations |
