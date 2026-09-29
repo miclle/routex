@@ -153,6 +153,9 @@ func testGatewayLifecycle(t *testing.T, db *gorm.DB) {
 	if err := db.First(&pm, "connection_id = ?", provider.Connections[0].Connection.ID).Error; err != nil {
 		t.Fatal(err)
 	}
+	if err := db.Model(&pm).Updates(map[string]any{"supports_image_input": true, "supports_pdf_input": true}).Error; err != nil {
+		t.Fatal(err)
+	}
 	model, err := svc.CreateModel(ctx, admin.User.ID, "public-model", pm.ID)
 	if err != nil {
 		t.Fatal(err)
@@ -182,8 +185,14 @@ func testGatewayLifecycle(t *testing.T, db *gorm.DB) {
 	body := `{"model":"public-model","messages":[{"role":"user","content":"Hello"}],"temperature":0.125}`
 	list := request("GET", "/v1/models", "", created.Secret)
 	expectStatus(t, list, 200)
-	if !strings.Contains(list.Body.String(), "public-model") {
+	var modelList struct {
+		Data []service.GatewayModel `json:"data"`
+	}
+	if json.Unmarshal(list.Body.Bytes(), &modelList) != nil || len(modelList.Data) != 1 || modelList.Data[0].ID != "public-model" {
 		t.Fatal("authorized model missing")
+	}
+	if capabilities := modelList.Data[0].InputCapabilities[entity.ProtocolOpenAIChat]; len(capabilities) != 2 || capabilities[0] != "image" || capabilities[1] != "pdf" {
+		t.Fatalf("input capabilities = %v, want stable image and pdf order", modelList.Data[0].InputCapabilities)
 	}
 	expectStatus(t, request("GET", "/v1/models", "", ""), 401)
 	ordinary := request("POST", "/v1/chat/completions", body, created.Secret)

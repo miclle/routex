@@ -170,7 +170,7 @@ The binary capability count is 6 completed, 20 partially completed, and 4 not st
 | F17 | User and Team defaults, overrides, budgets, alerts, and stop policy | Partially completed | Personal, Project, and Key enforcement exists; Team defaults, templates, alerts, and stop-calling policy remain open. |
 | F18 | Quota, model, and request-limit approvals | Partially completed | Project model requests exist; Team quota approval, escalation, and Project quota/request-limit workflows remain open. |
 | F19 | Member overview, model sources, requests, and examples | Partially completed | Catalog, callable-model views, Project requests, and native examples exist; complete Team-source attribution and request coverage remain open. |
-| F20 | Playground, comparison, attachments, and code examples | Partially completed | Four native conversation paths, two-to-four-lane comparison, cancellation, and executable examples exist; image/PDF UI and gateway attachment integration remain open. |
+| F20 | Playground, comparison, attachments, and code examples | Partially completed | Four native conversation paths, two-to-four-lane comparison, cancellation, executable examples, and explicit per-protocol image/PDF capability discovery exist; attachment lifecycle UI and gateway byte resolution remain open. |
 | F21 | Personal, Project, and platform call records and CSV | Partially completed | Isolated list/detail queries and interfaces exist; complete CSV and later diagnostic/export acceptance remain open. |
 | F22 | Usage trends, amounts, and multidimensional filters | Partially completed | Personal, Project, and platform usage interfaces exist; Team/provider attribution and complete freshness/capacity acceptance remain open. |
 | F23 | Operations overview, quality, alerts, and notifications | Partially completed | SMTP configuration and controlled test delivery exist; durable notification jobs, retry, recipient policy, settings, and status center remain open. |
@@ -204,7 +204,7 @@ Only A01 is fully accepted across its defined scope. Every other case remains in
 | A14 | Control Plane, Vault, analytics failure, invalid snapshots, and replay | Partially completed | Runtime and durable replay foundations exist; Vault and the complete failure matrix remain open. |
 | A15 | SSO, OAuth, LDAP, MFA, and recovery | Partially completed | MFA is implemented; enterprise identity is not. |
 | A16 | Vault compensation, rotation, and cleanup failure | Not started | Vault integration is not implemented. |
-| A17 | Images/PDF, object authorization, and model comparison | Partially completed | Object backend and comparison exist; attachment UI and inference integration remain open. |
+| A17 | Images/PDF, object authorization, and model comparison | Partially completed | Object backend, comparison, and conservative route capability discovery exist; attachment UI, personal-Key byte resolution, multimodal bounds, and external acceptance remain open. |
 | A18 | Call queries, CSV, reports, and hostile analysis inputs | Partially completed | Call queries and usage views exist; AI analysis and complete safe-export acceptance remain open. |
 | A19 | S3, SMTP, site, announcements, instances, and jobs | Partially completed | S3, SMTP, and site work exists; instances and system jobs do not. |
 | A20 | Fresh install, upgrade, backup/restore, and production SPA | Partially completed | Installation, migrations, restart, and SPA evidence exists; backup/restore and production release acceptance remain open. |
@@ -222,7 +222,7 @@ Only A01 is fully accepted across its defined scope. Every other case remains in
 | P1-04/05 | In progress | Native OpenAI chat ordinary/SSE, Key Playground, isolated personal/admin call queries and request facts have controlled dual-database evidence; immutable snapshots and bounded durable events have controlled failure/restart evidence; measured capacity and real-provider acceptance remain open |
 | P2 | In progress | Profile/password/session APIs and UI delivered; member/role/registration interfaces and Team/Project backend delivered; Project Keys, offboarding, and resource interfaces advance in separate verified packages |
 | P3 | In progress | Current text prices, FX, immutable call assessments, atomic CSV/XLS/XLSX imports, CSV exports, and single-process Personal/Project/Key token and monetary quota admission are implemented; Team quotas, templates, approvals, alerts, distributed enforcement, non-token metrics, and synchronization remain open |
-| P4–P6 | In progress | Four native inference protocols, SMTP configuration/test delivery, and object-storage administration/owned-attachment backend are implemented; attachment interfaces, durable notifications, remaining enterprise integrations, and final acceptance remain open |
+| P4–P6 | In progress | Four native inference protocols, conservative image/PDF capability discovery, SMTP configuration/test delivery, and object-storage administration/owned-attachment backend are implemented; attachment resolution/interfaces, durable notifications, remaining enterprise integrations, and final acceptance remain open |
 
 Verification in this iteration:
 
@@ -529,6 +529,34 @@ retained-row migration/repeat, actual upstream exclusion/restoration, preserved
 weights and audit; focused tests cover old-snapshot denial, zero-weight candidates,
 ETag conflicts, one write per submission and publication reconciliation. Browser
 availability-switch verification remains outstanding.
+
+### Provider model input capabilities
+
+Migration 22 adds explicit default-false image and PDF input declarations to each
+provider model using a frozen GORM schema. The existing provider-model detail
+configuration now reviews availability and both input capabilities together,
+submits them atomically with one ETag, publishes the resulting runtime digest, and
+reconciles conflicts or uncertain publication before another write. Management,
+member, and Key-scoped model responses expose the stored or effective capability
+metadata without inferring support from provider, protocol, or model names.
+
+Effective `input_capabilities` are keyed by native protocol and intersect every
+currently ready, enabled, positive-weight route. A zero-weight, unavailable, or
+disabled route cannot expand the declaration, while every route that can actually
+receive weighted traffic must support a capability before RouteX advertises it.
+This package establishes the safe discovery boundary only. Personal-Key-owned
+attachment resolution, Project ownership, Playground controls, native inline byte
+mapping, lifecycle expiry, multimodal quota bounds, and real-provider acceptance
+remain separate F20/A17 packages.
+
+Verification passed with `go tool task check`, `go tool task test` (Go race/unit,
+396 Vitest cases, four Node checks, development lifecycle, and production assets),
+and the isolated PostgreSQL/MySQL integration matrix (264.100 seconds). A focused
+dual-database gateway and migration rerun passed in 71.835 seconds after the
+upgrade fixture confirmed the historical GORM `e_tag` column and the new default-
+false capability columns. An independent code review found no blocking issue.
+External multimodal provider calls and browser attachment behavior remain
+unverified because those later packages have not been implemented.
 
 ### Spreadsheet price imports
 

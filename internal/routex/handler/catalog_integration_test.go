@@ -108,6 +108,13 @@ func testCatalogLifecycle(t *testing.T, db *gorm.DB) {
 	credentialPath := "/api/v1/admin/credentials/" + credential.ID
 	expectStatus(t, request("PATCH", credentialPath, map[string]bool{"enabled": true}), 409)
 	pm := decodeCatalogResponse[ProviderModelResponse](t, request("POST", "/api/v1/admin/connections/"+connection.ID+"/models", map[string]string{"upstream_name": "upstream-model"}), 201)
+	if pm.SupportsImageInput || pm.SupportsPDFInput {
+		t.Fatal("manually created provider model received implicit input capabilities")
+	}
+	pm = decodeCatalogResponse[ProviderModelResponse](t, request("PATCH", "/api/v1/admin/provider-models/"+pm.ID, map[string]any{"etag": pm.ETag, "supports_image_input": true, "supports_pdf_input": true}), 200)
+	if !pm.SupportsImageInput || !pm.SupportsPDFInput {
+		t.Fatal("provider model input capabilities were not returned")
+	}
 	model := decodeCatalogResponse[ModelResponse](t, request("POST", "/api/v1/admin/models", map[string]string{"name": "gateway-model", "provider_model_id": pm.ID}), 201)
 	if model.Bindings[0].Weight != 0 || model.Bindings[0].Ready || len(model.GrantedUserIDs) != 1 || model.GrantedUserIDs[0] != admin.User.ID {
 		t.Fatal("new model must have a zero-weight candidate and explicit creator grant")
@@ -138,11 +145,19 @@ func testCatalogLifecycle(t *testing.T, db *gorm.DB) {
 	if err := db.Where("connection_id = ?", connection.ID).Find(&discovered).Error; err != nil || len(discovered) != 2 {
 		t.Fatalf("case-sensitive upstream names not preserved: %v", err)
 	}
-	var secondModelID string
+	var secondModelID, secondModelETag string
 	for _, item := range discovered {
 		if item.UpstreamName == "UPSTREAM-model" {
 			secondModelID = item.ID
+			secondModelETag = item.ETag
 		}
+		if item.ID != pm.ID && (item.SupportsImageInput || item.SupportsPDFInput) {
+			t.Fatal("discovered provider model received implicit input capabilities")
+		}
+	}
+	secondModel := decodeCatalogResponse[ProviderModelResponse](t, request("PATCH", "/api/v1/admin/provider-models/"+secondModelID, map[string]any{"etag": secondModelETag, "supports_image_input": true, "supports_pdf_input": true}), 200)
+	if !secondModel.SupportsImageInput || !secondModel.SupportsPDFInput {
+		t.Fatal("discovered provider model capabilities were not updated")
 	}
 	model = decodeCatalogResponse[ModelResponse](t, request("POST", modelPath+"/bindings", map[string]string{"provider_model_id": secondModelID}), 201)
 	if len(model.Bindings) != 2 || model.Bindings[1].Weight != 0 {
@@ -236,6 +251,10 @@ func testCatalogLifecycle(t *testing.T, db *gorm.DB) {
 	memberAfter := decodeCatalogResponse[VisibleModelsResponse](t, identityRequest(router, "GET", "/api/v1/models", "", memberCookie, ""), 200)
 	if len(memberAfter.Items) != 1 || memberAfter.Items[0].ID != model.ID || memberAfter.Items[0].Name != "renamed-model" {
 		t.Fatal("member grant or stable rename not reflected")
+	}
+	capabilities := memberAfter.Items[0].InputCapabilities[entity.ProtocolOpenAIChat]
+	if len(capabilities) != 2 || capabilities[0] != "image" || capabilities[1] != "pdf" {
+		t.Fatal("effective input capabilities not reflected", memberAfter.Items[0].InputCapabilities)
 	}
 	expectStatus(t, request("PUT", modelPath+"/grants", map[string]any{"user_ids": []string{"usr_missing"}}), 400)
 	var remaining int64

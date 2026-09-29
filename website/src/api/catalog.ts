@@ -70,14 +70,8 @@ export function catalogError(error: unknown) {
 
 export async function setProviderModelState(
   id: string,
-  etag: string,
-  enabled: boolean,
+  input: Pick<ProviderModel, 'etag' | 'enabled' | 'supports_image_input' | 'supports_pdf_input'>,
   csrf: string,
 ) {
-  return writeCatalog<ProviderModel>(
-    'patch',
-    `/admin/provider-models/${id}`,
-    { etag, enabled },
-    csrf,
-  )
+  return writeCatalog<ProviderModel>('patch', `/admin/provider-models/${id}`, input, csrf)
 }

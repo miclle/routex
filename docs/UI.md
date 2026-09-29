@@ -60,8 +60,12 @@ Verification includes focused behavior tests for scoped list authorization, Team
 ### Provider model prices
 
 Provider model names open a stable detail URL under their provider. The detail
-keeps the identity card, authorized routing relationships, and price settings in
-that order. Price settings use a compact component table and an editor dialog;
+keeps the identity card, reviewed availability/input capabilities, authorized
+routing relationships, and price settings in that order. Image and PDF input
+support are explicit provider-model declarations, never inferred from model names
+or protocols. The detail submits availability and both capability switches with
+one exact ETag and requires review after conflicts or uncertain publication.
+Price settings use a compact component table and an editor dialog;
 permission to read prices never implies permission to write them. Edits preserve
 decimal strings, require an explicit zero for free rates, and submit the captured
 catalogue ETag. A conflict blocks resubmission until current prices are reloaded

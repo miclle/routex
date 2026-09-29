@@ -63,7 +63,14 @@ beforeEach(() => {
           },
         ],
         provider_models: [
-          { id: 'pm_1', upstream_name: 'upstream-model', enabled: true, etag: '0' },
+          {
+            id: 'pm_1',
+            upstream_name: 'upstream-model',
+            enabled: true,
+            supports_image_input: false,
+            supports_pdf_input: false,
+            etag: '0',
+          },
         ],
       },
     ],

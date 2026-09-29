@@ -1,9 +1,29 @@
 package service
 
 import (
+	"context"
 	"testing"
 	"time"
 )
+
+func TestProviderModelUpdateValidation(t *testing.T) {
+	var svc Service
+	for _, tc := range []struct {
+		name  string
+		etag  string
+		input ProviderModelUpdate
+	}{
+		{name: "missing etag", input: ProviderModelUpdate{Enabled: new(bool)}},
+		{name: "oversized etag", etag: string(make([]byte, 65)), input: ProviderModelUpdate{Enabled: new(bool)}},
+		{name: "missing fields", etag: "0"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			if _, err := svc.UpdateProviderModel(context.Background(), "usr_one", "pmd_one", tc.etag, tc.input); err == nil {
+				t.Fatal("invalid provider model update accepted")
+			}
+		})
+	}
+}
 
 func TestDisabledProviderSupply(t *testing.T) {
 	for range 100 {

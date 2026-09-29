@@ -36,12 +36,14 @@ type ProviderCredential struct {
 }
 
 type ProviderModel struct {
-	ID           string `gorm:"primaryKey;size:30"`
-	ConnectionID string `gorm:"size:30;not null"`
-	UpstreamName string `gorm:"size:255;not null"`
-	Disabled     bool   `gorm:"not null;default:false"`
-	ETag         string `gorm:"size:64;not null;default:0"`
-	CreatedAt    time.Time
+	ID                 string `gorm:"primaryKey;size:30"`
+	ConnectionID       string `gorm:"size:30;not null"`
+	UpstreamName       string `gorm:"size:255;not null"`
+	Disabled           bool   `gorm:"not null;default:false"`
+	SupportsImageInput bool   `gorm:"not null;default:false"`
+	SupportsPDFInput   bool   `gorm:"not null;default:false"`
+	ETag               string `gorm:"size:64;not null;default:0"`
+	CreatedAt          time.Time
 }
 
 // CredentialModelAccess records actual discovery results for one credential.

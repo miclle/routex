@@ -18,7 +18,14 @@ beforeEach(async () => {
   document.body.append(container)
   root = createRoot(container)
   cache = new QueryClient({ defaultOptions: { queries: { retry: false } } })
-  model = { id: 'pmd_state', upstream_name: 'text-model', enabled: true, etag: '0' }
+  model = {
+    id: 'pmd_state',
+    upstream_name: 'text-model',
+    enabled: true,
+    supports_image_input: false,
+    supports_pdf_input: true,
+    etag: '0',
+  }
   permissions = ['providers.read', 'providers.write']
   writes = []
   failure = 0
@@ -35,12 +42,26 @@ beforeEach(async () => {
     if (config.url === '/auth/permissions') response.data = { permissions }
     if (config.method === 'patch') {
       writes.push(config)
+      const input = JSON.parse(config.data)
       if (failure) {
-        if (failure === 503) model = { ...model, enabled: false, etag: 'uncertain' }
+        if (failure === 503)
+          model = {
+            ...model,
+            enabled: input.enabled,
+            supports_image_input: input.supports_image_input,
+            supports_pdf_input: input.supports_pdf_input,
+            etag: 'uncertain',
+          }
         response.status = failure
         throw new AxiosError('State conflict', '', config, undefined, response)
       }
-      model = { ...model, enabled: JSON.parse(config.data).enabled, etag: 'saved' }
+      model = {
+        ...model,
+        enabled: input.enabled,
+        supports_image_input: input.supports_image_input,
+        supports_pdf_input: input.supports_pdf_input,
+        etag: 'saved',
+      }
       response.data = model
     }
     return response
@@ -94,62 +115,97 @@ function button(text: string) {
   return result
 }
 async function disable() {
-  await until(() => expect(container.querySelector('[role="switch"]')).not.toBeNull())
-  await act(async () => (container.querySelector('[role="switch"]') as HTMLButtonElement).click())
+  await toggle('Enable model')
+}
+async function toggle(label: string) {
+  await until(() =>
+    expect(container.querySelector(`[role="switch"][aria-label="${label}"]`)).not.toBeNull(),
+  )
+  await act(async () =>
+    (
+      container.querySelector(`[role="switch"][aria-label="${label}"]`) as HTMLButtonElement
+    ).click(),
+  )
 }
 describe('provider model availability', () => {
-  it('submits exact reviewed state, ETag and CSRF once', async () => {
+  it('submits availability and input capabilities atomically with the exact reviewed ETag', async () => {
     await render()
     await disable()
+    await toggle('Image input')
+    await toggle('PDF input')
     await act(async () => {
       const form = container.querySelector('form')!
       form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
       form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
     })
-    await until(() => expect(container.textContent).toContain('Availability saved and published.'))
+    await until(() =>
+      expect(container.textContent).toContain(
+        'Availability and input capabilities saved and published.',
+      ),
+    )
     expect(writes).toHaveLength(1)
-    expect(JSON.parse(writes[0].data)).toEqual({ etag: '0', enabled: false })
+    expect(JSON.parse(writes[0].data)).toEqual({
+      etag: '0',
+      enabled: false,
+      supports_image_input: true,
+      supports_pdf_input: false,
+    })
     expect(writes[0].headers.get('X-CSRF-Token')).toBe('csrf-state')
-    expect(button('Save status').disabled).toBe(true)
+    expect(button('Save configuration').disabled).toBe(true)
   })
   it('requires a fresh review after conflict and retains the selection', async () => {
     failure = 409
     await render()
-    await disable()
-    await act(async () => button('Save status').click())
-    await until(() => expect(button('Save status').disabled).toBe(true))
-    model = { ...model, etag: 'current' }
+    await toggle('Image input')
+    await act(async () => button('Save configuration').click())
+    await until(() => expect(button('Save configuration').disabled).toBe(true))
+    model = { ...model, supports_pdf_input: false, etag: 'current' }
     failure = 0
     await act(async () => button('Reload and review').click())
-    await until(() => expect(button('Save status').disabled).toBe(false))
-    await act(async () => button('Save status').click())
-    expect(JSON.parse(writes[1].data)).toEqual({ etag: 'current', enabled: false })
+    await until(() => expect(button('Save configuration').disabled).toBe(false))
+    await act(async () => button('Save configuration').click())
+    expect(JSON.parse(writes[1].data)).toEqual({
+      etag: 'current',
+      enabled: true,
+      supports_image_input: true,
+      supports_pdf_input: true,
+    })
   })
   it('reconciles an uncertain saved change without blindly resubmitting', async () => {
     failure = 503
     await render()
     await disable()
-    await act(async () => button('Save status').click())
+    await act(async () => button('Save configuration').click())
     await until(() => expect(container.textContent).toContain('Publication could not be confirmed'))
     await act(async () => button('Reload and review').click())
-    expect(button('Save status').disabled).toBe(false)
+    expect(button('Save configuration').disabled).toBe(false)
     expect(writes).toHaveLength(1)
     failure = 0
-    await act(async () => button('Save status').click())
-    expect(JSON.parse(writes[1].data)).toEqual({ etag: 'uncertain', enabled: false })
-    expect(button('Save status').disabled).toBe(true)
+    await act(async () => button('Save configuration').click())
+    expect(JSON.parse(writes[1].data)).toEqual({
+      etag: 'uncertain',
+      enabled: false,
+      supports_image_input: false,
+      supports_pdf_input: true,
+    })
+    expect(button('Save configuration').disabled).toBe(true)
   })
-  it('shows availability without editing for read-only users', async () => {
+  it('shows availability and capabilities without editing for read-only users', async () => {
     permissions = ['providers.read']
     await render()
     expect(container.querySelector('[role="switch"]')).toBeNull()
     expect(container.textContent).toContain('Enabled')
+    expect(container.textContent).toContain('Image input')
+    expect(container.textContent).toContain('Not supported')
+    expect(container.textContent).toContain('PDF input')
+    expect(container.textContent).toContain('Supported')
   })
   it('updates labels when switching to Chinese', async () => {
     await render()
     await disable()
     await act(async () => i18n.changeLanguage('zh'))
     expect(container.textContent).toContain('供应商侧启用状态')
-    expect(button('保存状态')).toBeTruthy()
+    expect(container.textContent).toContain('图片输入')
+    expect(button('保存配置')).toBeTruthy()
   })
 })

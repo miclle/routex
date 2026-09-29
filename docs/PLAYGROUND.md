@@ -13,6 +13,12 @@ Playground is a native text conversation and model comparison client for native 
 
 Only successfully completed exchanges are included in later conversation context. Failed or canceled partial answers remain visible but are excluded from future requests. Changing the protocol, model, or Key clears the conversation. Clearing the Key also clears the model selection and conversation. Copy output copies only the selected answer; clipboard failures provide a manual-copy fallback message.
 
+Model discovery also returns effective protocol-specific image and PDF input
+capabilities. The current text workbench validates and retains that metadata but
+does not render attachment controls yet. A later attachment package will use these
+declarations together with personal-Key ownership and server-side byte resolution;
+it will not infer support or pass RouteX object identifiers to an upstream.
+
 ## Transport and Secret Handling
 
 - Model discovery, Chat, and Responses use `Authorization: Bearer <key>` against same-origin endpoints. Messages uses only `x-api-key: <key>` with `anthropic-version: 2023-06-01` against `/v1/messages`; Gemini uses only `x-goog-api-key` against the native `/v1beta/models/{name}` action. Authentication forms are never combined, and the client never places credentials in query parameters.

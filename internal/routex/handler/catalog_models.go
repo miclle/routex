@@ -64,11 +64,12 @@ type UpdateModelGrantsRequest struct {
 	UserIDs *[]string `json:"user_ids"`
 }
 type VisibleModelResponse struct {
-	Protocols []string `json:"protocols"`
-	ID        string   `json:"id"`
-	Name      string   `json:"name"`
-	Status    string   `json:"status"`
-	Protocol  string   `json:"protocol"`
+	Protocols         []string            `json:"protocols"`
+	InputCapabilities map[string][]string `json:"input_capabilities"`
+	ID                string              `json:"id"`
+	Name              string              `json:"name"`
+	Status            string              `json:"status"`
+	Protocol          string              `json:"protocol"`
 }
 type VisibleModelsResponse struct {
 	Items []VisibleModelResponse `json:"items"`
@@ -154,7 +155,7 @@ func (ctrl *Ctrl) ListVisibleModels(c *fox.Context) (*VisibleModelsResponse, err
 	}
 	result := &VisibleModelsResponse{Items: []VisibleModelResponse{}}
 	for _, item := range items {
-		result.Items = append(result.Items, VisibleModelResponse{ID: item.ID, Name: item.Name, Status: item.Status, Protocol: item.Protocol, Protocols: item.Protocols})
+		result.Items = append(result.Items, VisibleModelResponse{ID: item.ID, Name: item.Name, Status: item.Status, Protocol: item.Protocol, Protocols: item.Protocols, InputCapabilities: item.InputCapabilities})
 	}
 	return result, nil
 }

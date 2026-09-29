@@ -19,10 +19,12 @@ type CredentialResponse struct {
 	VerifiedAt         *time.Time `json:"verified_at"`
 }
 type ProviderModelResponse struct {
-	Enabled      bool   `json:"enabled"`
-	ETag         string `json:"etag"`
-	ID           string `json:"id"`
-	UpstreamName string `json:"upstream_name"`
+	Enabled            bool   `json:"enabled"`
+	SupportsImageInput bool   `json:"supports_image_input"`
+	SupportsPDFInput   bool   `json:"supports_pdf_input"`
+	ETag               string `json:"etag"`
+	ID                 string `json:"id"`
+	UpstreamName       string `json:"upstream_name"`
 }
 type ConnectionResponse struct {
 	EgressMode     string                  `json:"egress_mode"`
@@ -90,13 +92,16 @@ type CreateProviderModelRequest struct {
 func credentialResponse(item entity.ProviderCredential) CredentialResponse {
 	return CredentialResponse{ID: item.ID, Name: item.Name, Priority: item.Priority, Enabled: item.Enabled, VerificationStatus: item.VerificationStatus, VerifiedAt: item.VerifiedAt}
 }
+func providerModelResponse(item entity.ProviderModel) ProviderModelResponse {
+	return ProviderModelResponse{ID: item.ID, UpstreamName: item.UpstreamName, Enabled: !item.Disabled, SupportsImageInput: item.SupportsImageInput, SupportsPDFInput: item.SupportsPDFInput, ETag: item.ETag}
+}
 func connectionResponse(item service.ConnectionCatalog) ConnectionResponse {
 	result := ConnectionResponse{EgressMode: item.Connection.EgressMode, EgressID: item.Connection.EgressID, ETag: item.Connection.ETag, ID: item.Connection.ID, Name: item.Connection.Name, BaseURL: item.Connection.BaseURL, Protocol: item.Connection.Protocol, Credentials: []CredentialResponse{}, ProviderModels: []ProviderModelResponse{}}
 	for _, credential := range item.Credentials {
 		result.Credentials = append(result.Credentials, credentialResponse(credential))
 	}
 	for _, model := range item.Models {
-		result.ProviderModels = append(result.ProviderModels, ProviderModelResponse{ID: model.ID, UpstreamName: model.UpstreamName, Enabled: !model.Disabled, ETag: model.ETag})
+		result.ProviderModels = append(result.ProviderModels, providerModelResponse(model))
 	}
 	return result
 }
@@ -166,6 +171,6 @@ func (ctrl *Ctrl) CreateProviderModel(c *fox.Context, request CreateProviderMode
 	if err != nil {
 		return err
 	}
-	c.JSON(http.StatusCreated, ProviderModelResponse{ID: result.ID, UpstreamName: result.UpstreamName, Enabled: !result.Disabled, ETag: result.ETag})
+	c.JSON(http.StatusCreated, providerModelResponse(*result))
 	return nil
 }

@@ -10,6 +10,8 @@ export interface ProviderModel {
   enabled: boolean
   etag: string
   id: string
+  supports_image_input: boolean
+  supports_pdf_input: boolean
   upstream_name: string
 }
 export interface Connection {
@@ -51,6 +53,7 @@ export interface CallableModel {
   status: Model['status']
   protocol: string
   protocols?: string[]
+  input_capabilities?: Record<string, ('image' | 'pdf')[]>
 }
 export interface PersonalKey {
   id: string

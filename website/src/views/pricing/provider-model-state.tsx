@@ -21,6 +21,8 @@ export default function ProviderModelState({
   const session = useSession()
   const [reviewed, setReviewed] = useState(model)
   const [enabled, setEnabled] = useState(model.enabled)
+  const [supportsImageInput, setSupportsImageInput] = useState(model.supports_image_input)
+  const [supportsPdfInput, setSupportsPdfInput] = useState(model.supports_pdf_input)
   const [busy, setBusy] = useState(false)
   const lock = useRef(false)
   const [conflict, setConflict] = useState(false)
@@ -28,6 +30,10 @@ export default function ProviderModelState({
   const [error, setError] = useState<unknown>(null)
   const [notice, setNotice] = useState('')
   const stale = conflict || reviewed.etag !== model.etag
+  const changed =
+    enabled !== reviewed.enabled ||
+    supportsImageInput !== reviewed.supports_image_input ||
+    supportsPdfInput !== reviewed.supports_pdf_input
   async function refresh() {
     if (lock.current) return
     lock.current = true
@@ -52,7 +58,7 @@ export default function ProviderModelState({
     if (
       lock.current ||
       stale ||
-      (enabled === reviewed.enabled && !uncertain) ||
+      (!changed && !uncertain) ||
       !session.data ||
       !access.can('providers.write')
     )
@@ -64,12 +70,18 @@ export default function ProviderModelState({
     try {
       const result = await setProviderModelState(
         model.id,
-        reviewed.etag,
-        enabled,
+        {
+          etag: reviewed.etag,
+          enabled,
+          supports_image_input: supportsImageInput,
+          supports_pdf_input: supportsPdfInput,
+        },
         session.data.csrf_token,
       )
       setReviewed(result)
       setEnabled(result.enabled)
+      setSupportsImageInput(result.supports_image_input)
+      setSupportsPdfInput(result.supports_pdf_input)
       await reload()
       setUncertain(false)
       setNotice('stateSaved')
@@ -89,7 +101,20 @@ export default function ProviderModelState({
     <section className="space-y-4 rounded-lg border p-6" aria-label={t('supplyState')}>
       <h3 className="font-semibold">{t('supplyState')}</h3>
       <p className="text-sm text-muted-foreground">{t('supplyStateHelp')}</p>
-      <p className="text-sm">{t(model.enabled ? 'supplyEnabled' : 'supplyDisabled')}</p>
+      <dl className="grid gap-3 text-sm sm:grid-cols-3">
+        <div>
+          <dt className="text-muted-foreground">{t('supplyState')}</dt>
+          <dd>{t(model.enabled ? 'supplyEnabled' : 'supplyDisabled')}</dd>
+        </div>
+        <div>
+          <dt className="text-muted-foreground">{t('supportsImageInput')}</dt>
+          <dd>{t(model.supports_image_input ? 'supported' : 'unsupported')}</dd>
+        </div>
+        <div>
+          <dt className="text-muted-foreground">{t('supportsPdfInput')}</dt>
+          <dd>{t(model.supports_pdf_input ? 'supported' : 'unsupported')}</dd>
+        </div>
+      </dl>
       {access.can('providers.write') && (
         <form onSubmit={(event) => void save(event)} className="space-y-4">
           <label className="flex items-center gap-3 text-sm">
@@ -101,6 +126,27 @@ export default function ProviderModelState({
             />
             {t('enableSupply')}
           </label>
+          <fieldset className="space-y-3">
+            <legend className="text-sm font-medium">{t('inputCapabilities')}</legend>
+            <label className="flex items-center gap-3 text-sm">
+              <Switch
+                aria-label={t('supportsImageInput')}
+                checked={supportsImageInput}
+                onCheckedChange={setSupportsImageInput}
+                disabled={busy}
+              />
+              {t('supportsImageInput')}
+            </label>
+            <label className="flex items-center gap-3 text-sm">
+              <Switch
+                aria-label={t('supportsPdfInput')}
+                checked={supportsPdfInput}
+                onCheckedChange={setSupportsPdfInput}
+                disabled={busy}
+              />
+              {t('supportsPdfInput')}
+            </label>
+          </fieldset>
           <ErrorNotice error={error} />
           {stale && (
             <p role="alert" className="text-sm">
@@ -115,9 +161,7 @@ export default function ProviderModelState({
           <div className="flex gap-2">
             <Button
               type="submit"
-              disabled={
-                busy || stale || (enabled === reviewed.enabled && !uncertain) || !session.data
-              }
+              disabled={busy || stale || (!changed && !uncertain) || !session.data}
             >
               {t('saveState')}
             </Button>

@@ -38,11 +38,12 @@ type ModelWeight struct {
 }
 
 type VisibleModel struct {
-	Protocols []string `gorm:"-"`
-	ID        string
-	Name      string
-	Status    string
-	Protocol  string
+	Protocols         []string            `gorm:"-"`
+	InputCapabilities map[string][]string `gorm:"-"`
+	ID                string
+	Name              string
+	Status            string
+	Protocol          string
 }
 
 func loadModelCatalog(db *gorm.DB, modelID string) (*ModelCatalog, error) {
@@ -348,13 +349,16 @@ func (s *Service) ListVisibleModels(ctx context.Context, userID string) ([]Visib
 	for index := range result {
 		ids[index] = result[index].ID
 		result[index].Protocols = []string{}
+		result[index].InputCapabilities = map[string][]string{}
 	}
-	protocols, err := s.gatewayProtocols(ctx, ids)
+	metadata, err := s.gatewayModelMetadata(ctx, ids)
 	if err != nil {
 		return nil, catalogError(err)
 	}
 	for index := range result {
-		result[index].Protocols = protocols[result[index].ID]
+		item := metadata[result[index].ID]
+		result[index].Protocols = item.Protocols
+		result[index].InputCapabilities = item.InputCapabilities
 		if len(result[index].Protocols) > 0 {
 			result[index].Protocol = result[index].Protocols[0]
 		}

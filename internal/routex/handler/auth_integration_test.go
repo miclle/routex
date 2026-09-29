@@ -91,7 +91,7 @@ func TestIdentityIntegration(t *testing.T) {
 				t.Fatal(err)
 			}
 			var versions int64
-			if err := db.Table("schema_migrations").Count(&versions).Error; err != nil || versions != 21 {
+			if err := db.Table("schema_migrations").Count(&versions).Error; err != nil || versions != 22 {
 				t.Fatalf("migration ledger: %d, %v", versions, err)
 			}
 			var preserved entity.Example

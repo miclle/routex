@@ -9,7 +9,7 @@ This phase implements persistent provider configuration, encrypted credential st
 | `Provider` (`prv_`) | Stable supplier identity and display name |
 | `ProviderConnection` (`con_`) | Supplier-specific Base URL, protocol, and connection name |
 | `ProviderCredential` (`crd_`) | Encrypted secret, priority, verification state, and explicit enabled state for one connection |
-| `ProviderModel` (`pmd_`) | Exact upstream model identifier accepted by one connection |
+| `ProviderModel` (`pmd_`) | Exact upstream model identifier and declared input capabilities accepted by one connection |
 | `CredentialModelAccess` | Models actually returned by discovery using one credential |
 | `Model` (`mdl_`) | Stable authorized identity and lifecycle status |
 | `ModelName` | Globally reserved current, compatibility, and historical public names |
@@ -55,6 +55,7 @@ All paths below are relative to `/api/v1`. Administrator endpoints require a ses
 | `POST /admin/credentials/:credential_id/verify` | `{}` | `{verified,discovered_models,message}` |
 | `PATCH /admin/credentials/:credential_id` | `{enabled}` | Credential metadata |
 | `POST /admin/connections/:connection_id/models` | `{upstream_name}` | `{id,upstream_name}` |
+| `PATCH /admin/provider-models/:provider_model_id` | `{etag,enabled?,supports_image_input?,supports_pdf_input?}` | Provider-model configuration |
 | `GET /admin/models` | None | `{items: Model[]}` |
 | `POST /admin/models` | `{name,provider_model_id}` | Model |
 | `POST /admin/models/:model_id/bindings` | `{provider_model_id}` | Model with the new zero-weight binding |
@@ -62,11 +63,20 @@ All paths below are relative to `/api/v1`. Administrator endpoints require a ses
 | `POST /admin/models/:model_id/rename` | `{name,alias_expires_at?}` | Model |
 | `PUT /admin/models/:model_id/grants` | `{user_ids:[]}` | Model |
 | `GET /admin/model-grantees` | None | `{items:[{id,email,name}]}` for active users |
-| `GET /models` | None | `{items:[{id,name,status,protocol}]}` for the current user's grants; any authenticated role |
+| `GET /models` | None | `{items:[{id,name,status,protocol,protocols,input_capabilities}]}` for the current user's grants; any authenticated role |
 
-The only connection protocol in this phase is `openai_chat`. Credential secrets contain 1–2,048 bytes and cannot contain CR/LF. Priority is an integer from 0 to 10,000. Labels contain 1–100 Unicode characters after trimming.
+Connections support the native `openai_chat`, `openai_responses`,
+`anthropic_messages`, and `gemini_generate_content` protocols. Credential secrets
+contain 1–2,048 bytes and cannot contain CR/LF. Priority is an integer from 0 to
+10,000. Labels contain 1–100 Unicode characters after trimming.
 
-Provider responses contain `{id,name,connections}`. Connections contain `{id,name,base_url,protocol,credentials,provider_models}`. Credential metadata contains `{id,name,priority,enabled,verification_status,verified_at}`; the verification timestamp is nullable.
+Provider responses contain `{id,name,connections}`. Connections contain `{id,name,base_url,protocol,credentials,provider_models}`. Provider-model entries contain `{id,upstream_name,enabled,supports_image_input,supports_pdf_input,etag}`. Input capabilities default to false and are changed atomically with availability through the exact-ETag provider-model update endpoint. Credential metadata contains `{id,name,priority,enabled,verification_status,verified_at}`; the verification timestamp is nullable.
+
+Member model responses include the currently eligible native `protocols` and an
+`input_capabilities` map for those protocols. RouteX advertises `image` or `pdf`
+only when every ready, enabled, positive-weight route for that protocol declares
+the capability. Disabled, unready, and zero-weight routes cannot expand the
+effective set. The stable value order is `image`, then `pdf`.
 
 Administrator model responses contain `{id,name,status,names,bindings,granted_user_ids}`. Name entries contain `{name,is_current,expires_at}`. Binding entries contain `{id,provider_model_id,provider_id,connection_id,upstream_name,protocol,weight,ready}`. `ready` is derived from current credential coverage, not a persisted success flag.
 

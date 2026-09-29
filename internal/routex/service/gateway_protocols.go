@@ -2,88 +2,193 @@ package service
 
 import (
 	"context"
-	"github.com/miclle/routex/internal/routex/entity"
 	"sort"
 	"time"
+
+	"github.com/miclle/routex/internal/routex/entity"
 )
 
-// gatewayProtocols reports only protocol identities, never upstream topology.
-func (s *Service) gatewayProtocols(ctx context.Context, modelIDs []string) (map[string][]string, error) {
-	result := make(map[string][]string, len(modelIDs))
+const (
+	inputCapabilityImage = "image"
+	inputCapabilityPDF   = "pdf"
+)
+
+type gatewayModelMetadata struct {
+	Protocols         []string
+	InputCapabilities map[string][]string
+}
+
+type inputCapabilityIntersection struct {
+	initialized bool
+	image       bool
+	pdf         bool
+}
+
+func (c *inputCapabilityIntersection) include(route gatewayRoute) {
+	if !c.initialized {
+		c.initialized = true
+		c.image = route.SupportsImageInput
+		c.pdf = route.SupportsPDFInput
+		return
+	}
+	c.image = c.image && route.SupportsImageInput
+	c.pdf = c.pdf && route.SupportsPDFInput
+}
+
+func (c inputCapabilityIntersection) values() []string {
+	result := []string{}
+	if c.image {
+		result = append(result, inputCapabilityImage)
+	}
+	if c.pdf {
+		result = append(result, inputCapabilityPDF)
+	}
+	return result
+}
+
+// gatewayModelMetadata reports effective protocols and their safe input
+// capabilities without exposing provider topology. A capability is advertised
+// only when every currently ready positive-weight route for that protocol has it.
+func (s *Service) gatewayModelMetadata(ctx context.Context, modelIDs []string) (map[string]gatewayModelMetadata, error) {
+	result := make(map[string]gatewayModelMetadata, len(modelIDs))
 	for _, modelID := range modelIDs {
-		result[modelID] = []string{}
+		result[modelID] = gatewayModelMetadata{Protocols: []string{}, InputCapabilities: map[string][]string{}}
 	}
 	if len(modelIDs) == 0 {
 		return result, nil
 	}
 	if s.runtime != nil {
-		auth, routes := s.runtime.auth.Load(), s.runtime.routes.Load()
-		if auth == nil || !time.Now().Before(auth.ValidUntil) {
-			return nil, runtimeUnavailable
-		}
-		if routes == nil {
-			return result, nil
-		}
-		for _, modelID := range modelIDs {
-			totals, available := map[string]int{}, map[string]bool{}
-			for _, candidate := range routes.Models[modelID] {
-				route := candidate.Route
-				totals[route.Protocol] += route.Weight
-				if route.Weight <= 0 || !auth.ProviderModels[route.ProviderModelID] || runtimeDenied(&s.runtime.deniedProviderModels, route.ProviderModelID) {
-					continue
-				}
-				for _, credential := range candidate.Credentials {
-					if auth.Credentials[credential.ID] && auth.CredentialAccess[credential.ID][route.ProviderModelID] && !runtimeDenied(&s.runtime.deniedCredentials, credential.ID) {
-						available[route.Protocol] = true
-					}
-				}
-			}
-			for protocol, total := range totals {
-				if entity.SupportedNativeProtocol(protocol) && total == 100 && available[protocol] {
-					result[modelID] = append(result[modelID], protocol)
-				}
-			}
-			sort.Strings(result[modelID])
-		}
+		return s.runtimeGatewayModelMetadata(modelIDs, result)
+	}
+	return s.databaseGatewayModelMetadata(ctx, modelIDs, result)
+}
+
+func (s *Service) runtimeGatewayModelMetadata(modelIDs []string, result map[string]gatewayModelMetadata) (map[string]gatewayModelMetadata, error) {
+	auth, routes := s.runtime.auth.Load(), s.runtime.routes.Load()
+	if auth == nil || !time.Now().Before(auth.ValidUntil) {
+		return nil, runtimeUnavailable
+	}
+	if routes == nil {
 		return result, nil
 	}
+	for _, modelID := range modelIDs {
+		totals := map[string]int{}
+		available := map[string]bool{}
+		capabilities := map[string]*inputCapabilityIntersection{}
+		for _, candidate := range routes.Models[modelID] {
+			route := candidate.Route
+			totals[route.Protocol] += route.Weight
+			if !s.runtimeRouteReadyForDiscovery(auth, candidate) {
+				continue
+			}
+			available[route.Protocol] = true
+			intersection := capabilities[route.Protocol]
+			if intersection == nil {
+				intersection = &inputCapabilityIntersection{}
+				capabilities[route.Protocol] = intersection
+			}
+			intersection.include(route)
+		}
+		item := result[modelID]
+		for protocol, total := range totals {
+			if !entity.SupportedNativeProtocol(protocol) || total != 100 || !available[protocol] {
+				continue
+			}
+			item.Protocols = append(item.Protocols, protocol)
+			item.InputCapabilities[protocol] = capabilities[protocol].values()
+		}
+		sort.Strings(item.Protocols)
+		result[modelID] = item
+	}
+	return result, nil
+}
+
+func (s *Service) runtimeRouteReadyForDiscovery(auth *runtimeAuthorization, candidate runtimeRoute) bool {
+	route := candidate.Route
+	if route.Weight <= 0 || !auth.ProviderModels[route.ProviderModelID] || runtimeDenied(&s.runtime.deniedProviderModels, route.ProviderModelID) {
+		return false
+	}
+	for _, credential := range candidate.Credentials {
+		if auth.Credentials[credential.ID] && auth.CredentialAccess[credential.ID][route.ProviderModelID] && !runtimeDenied(&s.runtime.deniedCredentials, credential.ID) {
+			return true
+		}
+	}
+	return false
+}
+
+type databaseGatewayRoute struct {
+	Route gatewayRoute
+	Ready bool
+}
+
+type databaseGatewayProtocol struct {
+	Total  int
+	Routes map[string]*databaseGatewayRoute
+}
+
+func (s *Service) databaseGatewayModelMetadata(ctx context.Context, modelIDs []string, result map[string]gatewayModelMetadata) (map[string]gatewayModelMetadata, error) {
 	var rows []struct {
 		ModelID, BindingID, Protocol, CredentialID string
 		Weight                                     int
 		Disabled                                   bool
+		SupportsImageInput                         bool
+		SupportsPDFInput                           bool
 	}
-	err := s.authDB(ctx).Table("model_provider_bindings b").Select("b.model_id, b.id AS binding_id, b.weight, p.disabled, c.protocol, k.id AS credential_id").Joins("JOIN provider_models p ON p.id = b.provider_model_id").Joins("JOIN provider_connections c ON c.id = p.connection_id").Joins("LEFT JOIN credential_model_accesses a ON a.provider_model_id = p.id").Joins("LEFT JOIN provider_credentials k ON k.id = a.credential_id AND k.connection_id = c.id AND k.enabled = ? AND k.verification_status = ?", true, "verified").Where("b.model_id IN ?", modelIDs).Scan(&rows).Error
+	err := s.authDB(ctx).Table("model_provider_bindings b").
+		Select("b.model_id, b.id AS binding_id, b.weight, p.disabled, p.supports_image_input, p.supports_pdf_input, c.protocol, k.id AS credential_id").
+		Joins("JOIN provider_models p ON p.id = b.provider_model_id").
+		Joins("JOIN provider_connections c ON c.id = p.connection_id").
+		Joins("LEFT JOIN credential_model_accesses a ON a.provider_model_id = p.id").
+		Joins("LEFT JOIN provider_credentials k ON k.id = a.credential_id AND k.connection_id = c.id AND k.enabled = ? AND k.verification_status = ?", true, "verified").
+		Where("b.model_id IN ?", modelIDs).
+		Scan(&rows).Error
 	if err != nil {
 		return nil, runtimeUnavailable
 	}
-	type group struct {
-		total     int
-		available bool
-		bindings  map[string]bool
-	}
-	groups := map[string]map[string]*group{}
+	groups := map[string]map[string]*databaseGatewayProtocol{}
 	for _, row := range rows {
 		if groups[row.ModelID] == nil {
-			groups[row.ModelID] = map[string]*group{}
+			groups[row.ModelID] = map[string]*databaseGatewayProtocol{}
 		}
 		item := groups[row.ModelID][row.Protocol]
 		if item == nil {
-			item = &group{bindings: map[string]bool{}}
+			item = &databaseGatewayProtocol{Routes: map[string]*databaseGatewayRoute{}}
 			groups[row.ModelID][row.Protocol] = item
 		}
-		if !item.bindings[row.BindingID] {
-			item.total += row.Weight
-			item.bindings[row.BindingID] = true
+		route := item.Routes[row.BindingID]
+		if route == nil {
+			route = &databaseGatewayRoute{Route: gatewayRoute{
+				Protocol:           row.Protocol,
+				Weight:             row.Weight,
+				Disabled:           row.Disabled,
+				SupportsImageInput: row.SupportsImageInput,
+				SupportsPDFInput:   row.SupportsPDFInput,
+			}}
+			item.Routes[row.BindingID] = route
+			item.Total += row.Weight
 		}
-		item.available = item.available || (row.Weight > 0 && !row.Disabled && row.CredentialID != "")
+		route.Ready = route.Ready || row.CredentialID != ""
 	}
 	for modelID, protocols := range groups {
-		for protocol, item := range protocols {
-			if entity.SupportedNativeProtocol(protocol) && item.total == 100 && item.available {
-				result[modelID] = append(result[modelID], protocol)
+		item := result[modelID]
+		for protocol, group := range protocols {
+			available := false
+			intersection := inputCapabilityIntersection{}
+			for _, route := range group.Routes {
+				if route.Route.Weight <= 0 || route.Route.Disabled || !route.Ready {
+					continue
+				}
+				available = true
+				intersection.include(route.Route)
 			}
+			if !entity.SupportedNativeProtocol(protocol) || group.Total != 100 || !available {
+				continue
+			}
+			item.Protocols = append(item.Protocols, protocol)
+			item.InputCapabilities[protocol] = intersection.values()
 		}
-		sort.Strings(result[modelID])
+		sort.Strings(item.Protocols)
+		result[modelID] = item
 	}
 	return result, nil
 }

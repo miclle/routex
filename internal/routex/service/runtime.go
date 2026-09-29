@@ -605,7 +605,7 @@ func (s *Service) buildRuntimeRoutes(data *runtimeData) (map[string][]runtimeRou
 			return nil, runtimeUnavailable
 		}
 		_, egressRevision, _ := runtimeEgressSelection(data, connection)
-		candidate := runtimeRoute{Route: gatewayRoute{Client: clients[connection.ID], EgressGeneration: data.EgressGeneration, EgressRevision: egressRevision, Protocol: connection.Protocol, PriceBasis: runtimePriceBasis(data.Pricing, pm.ID, connection.Protocol), BindingID: binding.ID, Weight: binding.Weight, ProviderID: connection.ProviderID, ProviderModelID: pm.ID, ConnectionID: connection.ID, UpstreamName: pm.UpstreamName, BaseURL: connection.BaseURL}}
+		candidate := runtimeRoute{Route: gatewayRoute{Client: clients[connection.ID], EgressGeneration: data.EgressGeneration, EgressRevision: egressRevision, Protocol: connection.Protocol, PriceBasis: runtimePriceBasis(data.Pricing, pm.ID, connection.Protocol), BindingID: binding.ID, Weight: binding.Weight, ProviderID: connection.ProviderID, ProviderModelID: pm.ID, ConnectionID: connection.ID, UpstreamName: pm.UpstreamName, BaseURL: connection.BaseURL, SupportsImageInput: pm.SupportsImageInput, SupportsPDFInput: pm.SupportsPDFInput}}
 		for _, credential := range credentials[connection.ID] {
 			if access[credential.ID][pm.ID] {
 				candidate.Credentials = append(candidate.Credentials, credential)

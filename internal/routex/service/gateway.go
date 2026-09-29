@@ -39,11 +39,12 @@ func gatewayError(status int, code, message string) *GatewayError {
 
 // GatewayModel is the public model identity, independent of a provider name.
 type GatewayModel struct {
-	ID        string   `json:"id"`
-	Object    string   `json:"object"`
-	Created   int64    `json:"created"`
-	OwnedBy   string   `json:"owned_by"`
-	Protocols []string `json:"protocols"`
+	ID                string              `json:"id"`
+	Object            string              `json:"object"`
+	Created           int64               `json:"created"`
+	OwnedBy           string              `json:"owned_by"`
+	Protocols         []string            `json:"protocols"`
+	InputCapabilities map[string][]string `json:"input_capabilities"`
 }
 
 // GatewayResult describes one actual upstream attempt without storing its secret.
@@ -86,7 +87,7 @@ func (s *Service) GatewayModels(ctx context.Context, bearer string) ([]GatewayMo
 	if len(key.ModelIDs) == 0 {
 		return models, nil
 	}
-	protocols, err := s.gatewayProtocols(ctx, key.ModelIDs)
+	metadata, err := s.gatewayModelMetadata(ctx, key.ModelIDs)
 	if err != nil {
 		return nil, gatewayAuthError(err)
 	}
@@ -97,7 +98,8 @@ func (s *Service) GatewayModels(ctx context.Context, bearer string) ([]GatewayMo
 		}
 		for _, name := range auth.Names {
 			if name.CurrentModelID != nil && auth.Models[name.ModelID] && slices.Contains(key.ModelIDs, name.ModelID) {
-				models = append(models, GatewayModel{ID: name.Name, Object: "model", Created: auth.ModelCreated[name.ModelID].Unix(), OwnedBy: "routex", Protocols: protocols[name.ModelID]})
+				item := metadata[name.ModelID]
+				models = append(models, GatewayModel{ID: name.Name, Object: "model", Created: auth.ModelCreated[name.ModelID].Unix(), OwnedBy: "routex", Protocols: item.Protocols, InputCapabilities: item.InputCapabilities})
 			}
 		}
 		sort.Slice(models, func(i, j int) bool { return models[i].ID < models[j].ID })
@@ -113,7 +115,8 @@ func (s *Service) GatewayModels(ctx context.Context, bearer string) ([]GatewayMo
 		return nil, gatewayError(503, "service_unavailable", "Model catalog is unavailable.")
 	}
 	for _, row := range rows {
-		models = append(models, GatewayModel{ID: row.Name, Object: "model", Created: row.CreatedAt.Unix(), OwnedBy: "routex", Protocols: protocols[row.ID]})
+		item := metadata[row.ID]
+		models = append(models, GatewayModel{ID: row.Name, Object: "model", Created: row.CreatedAt.Unix(), OwnedBy: "routex", Protocols: item.Protocols, InputCapabilities: item.InputCapabilities})
 	}
 	return models, nil
 }
@@ -377,27 +380,29 @@ func parseGatewayChat(body []byte) (map[string]json.RawMessage, string, bool, er
 }
 
 type gatewayRoute struct {
-	Client           *http.Client `gorm:"-"`
-	EgressGeneration uint64       `gorm:"-"`
-	EgressRevision   string       `gorm:"-"`
-	Protocol         string
-	Disabled         bool
-	PriceBasis       *CallPriceBasis `gorm:"-"`
-	SnapshotID       string
-	BindingID        string
-	Weight           int
-	ProviderID       string
-	ProviderModelID  string
-	ConnectionID     string
-	CredentialID     string
-	Ciphertext       string
-	UpstreamName     string
-	BaseURL          string
+	Client             *http.Client `gorm:"-"`
+	EgressGeneration   uint64       `gorm:"-"`
+	EgressRevision     string       `gorm:"-"`
+	Protocol           string
+	Disabled           bool
+	PriceBasis         *CallPriceBasis `gorm:"-"`
+	SnapshotID         string
+	BindingID          string
+	Weight             int
+	ProviderID         string
+	ProviderModelID    string
+	ConnectionID       string
+	CredentialID       string
+	Ciphertext         string
+	UpstreamName       string
+	BaseURL            string
+	SupportsImageInput bool
+	SupportsPDFInput   bool
 }
 
 func selectGatewayProtocolRoute(db *gorm.DB, modelID, protocol string) (*gatewayRoute, error) {
 	var routes []gatewayRoute
-	err := db.Table("model_provider_bindings AS b").Select("b.id AS binding_id, b.weight, p.id AS provider_model_id, p.upstream_name, p.disabled, c.id AS connection_id, c.provider_id, c.base_url, c.protocol").Joins("JOIN provider_models p ON p.id = b.provider_model_id").Joins("JOIN provider_connections c ON c.id = p.connection_id").Where("b.model_id = ? AND c.protocol = ?", modelID, protocol).Order("b.id").Scan(&routes).Error
+	err := db.Table("model_provider_bindings AS b").Select("b.id AS binding_id, b.weight, p.id AS provider_model_id, p.upstream_name, p.disabled, p.supports_image_input, p.supports_pdf_input, c.id AS connection_id, c.provider_id, c.base_url, c.protocol").Joins("JOIN provider_models p ON p.id = b.provider_model_id").Joins("JOIN provider_connections c ON c.id = p.connection_id").Where("b.model_id = ? AND c.protocol = ?", modelID, protocol).Order("b.id").Scan(&routes).Error
 	if err != nil {
 		return nil, gatewayError(503, "upstream_unavailable", "Routing is temporarily unavailable.")
 	}

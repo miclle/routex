@@ -55,6 +55,62 @@ describe('native playground client', () => {
     expect(options.headers.Authorization).toBe(`Bearer ${key}`)
     expect(JSON.parse(options.body)).toEqual(request)
   })
+  it('strictly validates model input capabilities by advertised native protocol', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(
+        Response.json({
+          data: [
+            {
+              id: 'multimodal-model',
+              protocols: ['openai_responses', 'anthropic_messages'],
+              input_capabilities: {
+                openai_responses: ['image', 'pdf'],
+                anthropic_messages: ['image'],
+              },
+            },
+          ],
+        }),
+      ),
+    )
+    await expect(getGatewayModels(key, controller().signal)).resolves.toEqual([
+      {
+        id: 'multimodal-model',
+        protocols: ['openai_responses', 'anthropic_messages'],
+        input_capabilities: {
+          openai_responses: ['image', 'pdf'],
+          anthropic_messages: ['image'],
+        },
+      },
+    ])
+  })
+  it.each([
+    [{ id: ' ' }],
+    [{ id: 'model', protocols: ['unknown'] }],
+    [{ id: 'model', protocols: ['openai_chat', 'openai_chat'] }],
+    [{ id: 'model', input_capabilities: [] }],
+    [{ id: 'model', input_capabilities: { openai_chat: ['audio'] } }],
+    [{ id: 'model', input_capabilities: { openai_chat: ['image', 'image'] } }],
+    [
+      {
+        id: 'model',
+        protocols: ['openai_responses'],
+        input_capabilities: { openai_chat: ['image'] },
+      },
+    ],
+    [
+      {
+        id: 'model',
+        protocols: ['openai_responses', 'anthropic_messages'],
+        input_capabilities: { openai_responses: ['image'] },
+      },
+    ],
+  ])('rejects malformed model capability metadata %#', async (models) => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(Response.json({ data: models })))
+    await expect(getGatewayModels(key, controller().signal)).rejects.toThrow(
+      'The model list format is invalid',
+    )
+  })
   it('decodes split UTF-8 and CRLF stream frames, incrementally reports text, and preserves usage', async () => {
     vi.stubGlobal(
       'fetch',

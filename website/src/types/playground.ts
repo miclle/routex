@@ -1,6 +1,10 @@
+export type PlaygroundProtocol =
+  'openai_chat' | 'openai_responses' | 'anthropic_messages' | 'gemini_generate_content'
+export type InputCapability = 'image' | 'pdf'
 export interface GatewayModel {
   id: string
-  protocols?: string[]
+  protocols?: PlaygroundProtocol[]
+  input_capabilities?: Partial<Record<PlaygroundProtocol, InputCapability[]>>
 }
 export interface ChatMessage {
   role: 'system' | 'user' | 'assistant'
@@ -27,8 +31,6 @@ export interface ChatResult {
   finishReason: string | null
 }
 
-export type PlaygroundProtocol =
-  'openai_chat' | 'openai_responses' | 'anthropic_messages' | 'gemini_generate_content'
 export interface ResponsesRequest {
   model: string
   input: { role: 'user' | 'assistant'; content: string }[]

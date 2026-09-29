@@ -4,6 +4,8 @@ import type {
   ChatRequest,
   ChatResult,
   GatewayModel,
+  InputCapability,
+  PlaygroundProtocol,
   ResponsesRequest,
   ResponsesResult,
   ResponseStatus,
@@ -21,21 +23,61 @@ import {
 export { GatewayError } from './playground-transport'
 export { runMessages } from './playground-messages'
 
+const gatewayProtocols = [
+  'openai_chat',
+  'openai_responses',
+  'anthropic_messages',
+  'gemini_generate_content',
+] as const satisfies readonly PlaygroundProtocol[]
+const inputCapabilities = ['image', 'pdf'] as const satisfies readonly InputCapability[]
+
+function gatewayModel(value: unknown): value is GatewayModel {
+  if (value === null || typeof value !== 'object' || Array.isArray(value)) return false
+  const model = value as Record<string, unknown>
+  if (typeof model.id !== 'string' || !model.id.trim()) return false
+  if (
+    model.protocols !== undefined &&
+    (!Array.isArray(model.protocols) ||
+      !model.protocols.every(
+        (protocol, index, values) =>
+          typeof protocol === 'string' &&
+          gatewayProtocols.includes(protocol as PlaygroundProtocol) &&
+          values.indexOf(protocol) === index,
+      ))
+  )
+    return false
+  if (model.input_capabilities === undefined) return true
+  if (
+    model.input_capabilities === null ||
+    typeof model.input_capabilities !== 'object' ||
+    Array.isArray(model.input_capabilities)
+  )
+    return false
+  const protocols = (model.protocols as PlaygroundProtocol[] | undefined) ?? ['openai_chat']
+  const capabilitiesByProtocol = model.input_capabilities as Record<string, unknown>
+  const entries = Object.entries(capabilitiesByProtocol)
+  return (
+    entries.length === protocols.length &&
+    protocols.every((protocol) => Object.hasOwn(capabilitiesByProtocol, protocol)) &&
+    entries.every(
+      ([protocol, capabilities]) =>
+        gatewayProtocols.includes(protocol as PlaygroundProtocol) &&
+        protocols.includes(protocol as PlaygroundProtocol) &&
+        Array.isArray(capabilities) &&
+        capabilities.every(
+          (capability, index, values) =>
+            typeof capability === 'string' &&
+            inputCapabilities.includes(capability as InputCapability) &&
+            values.indexOf(capability) === index,
+        ),
+    )
+  )
+}
+
 export async function getGatewayModels(key: string, signal: AbortSignal): Promise<GatewayModel[]> {
   const response = await nativeRequest('/v1/models', key, signal)
   const body = record(await response.json())
-  if (
-    !Array.isArray(body.data) ||
-    !body.data.every((item) => {
-      const model = record(item)
-      return (
-        typeof model.id === 'string' &&
-        (model.protocols === undefined ||
-          (Array.isArray(model.protocols) &&
-            model.protocols.every((protocol) => typeof protocol === 'string')))
-      )
-    })
-  )
+  if (!Array.isArray(body.data) || !body.data.every(gatewayModel))
     throw new GatewayError(
       () => t('the_model_list_format_is_invalid_b03c8'),
       response.headers.get('X-Request-ID') ?? '',

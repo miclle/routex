@@ -57,17 +57,22 @@ export default {
   pending: 'Not ready',
   supplyState: 'Provider-side availability',
   supplyStateHelp:
-    'Disabling preserves routing bindings and prices but excludes this supply from new requests. Enabled alternatives keep their relative routing weights.',
+    'Availability and accepted input types are published together. Disabling preserves routing bindings and prices but excludes this supply from new requests.',
   supplyEnabled: 'Enabled',
   supplyDisabled: 'Disabled',
   enableSupply: 'Enable model',
-  saveState: 'Save status',
-  stateSaved: 'Availability saved and published.',
+  inputCapabilities: 'Accepted input types',
+  supportsImageInput: 'Image input',
+  supportsPdfInput: 'PDF input',
+  supported: 'Supported',
+  unsupported: 'Not supported',
+  saveState: 'Save configuration',
+  stateSaved: 'Availability and input capabilities saved and published.',
   stateStale:
-    'Availability changed. Reload the current status and review your selection before saving.',
-  stateReviewed: 'Current availability loaded. Review your selection before saving.',
+    'Provider model configuration changed. Reload the current values and review your selection before saving.',
+  stateReviewed: 'Current configuration loaded. Review your selection before saving.',
   stateUncertain:
     'Publication could not be confirmed. Reload the current state before another change.',
   stateRetry:
-    'Current status loaded. Save again to retry publication without changing availability.',
+    'Current configuration loaded. Save again to retry publication without changing your selection.',
 }
