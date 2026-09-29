@@ -1,13 +1,13 @@
 # Current Work Handoff
 
 - **Status:** active; roadmap resumed and phased implementation in progress
-- **Updated:** 2026-09-29T15:16:06+08:00
+- **Updated:** 2026-09-29T16:04:00+08:00
 - **Repository:** `/Users/miclle/github/miclle/routex`
 - **Branch:** `main`
 - **Base:** `main`
-- **Implementation HEAD:** `aa33b5a28da10c9860703d5642100b36ade57015`
+- **Implementation HEAD:** `1e4af763304bbd426dcc884d3444c1d854c2d8d3`
 - **Upstream:** `origin/main`, zero commits ahead and zero behind at capture
-- **Last pushed implementation state:** `aa33b5a28da10c9860703d5642100b36ade57015`
+- **Last pushed implementation state:** `1e4af763304bbd426dcc884d3444c1d854c2d8d3`
 - **Current owner:** Codex phased implementation
 - **Next owner:** current task until the full objective closes or a later handoff supersedes this file
 - **Transfer state:** active; transferable at a clean verified phase boundary
@@ -27,10 +27,11 @@ Implement every valid RouteX capability represented by F01–F30 and close every
 - Four native inference protocols, durable call facts, usage interfaces, Playground conversation/comparison, executable examples, managed egress, price maintenance, quotas, SMTP administration/test delivery, and the storage/owned-attachment backend have substantial delivered foundations.
 - Storage administration is delivered by `26763e8` (`feat(storage): add administration interface`) with the approved overview-card and large-drawer composition, independent read/write/test permissions, transient credentials, exact ETag review, diagnostics, and verified rollback.
 - Provider-model input capability metadata is delivered by `3b5e642` (`feat(models): declare input capabilities`). Image and PDF support default to false, update atomically with availability, participate in runtime publication, and are exposed as a conservative intersection across ready, enabled, positive-weight routes for each native protocol.
-- F20-B personal-Key attachment resolution is delivered by `652cb44` (`feat(gateway): resolve owned attachments`). The gateway recognizes bounded RouteX attachment references only in protocol-owned image/PDF positions, rejects Project Keys and unsupported selected routes before storage access, verifies owner-bound ready objects, deduplicates reads, rewrites native inline data, and performs final admission and upstream dispatch once.
+- F20-B personal-Key attachment resolution is delivered by `652cb44` (`feat(gateway): resolve owned attachments`). That initial slice recognized bounded RouteX attachment references only in protocol-owned image/PDF positions, rejected unsupported selected routes before storage access, verified owner-bound ready objects, deduplicated reads, rewrote native inline data, and performed final admission and upstream dispatch once. F20-F extends the same guarantees to Project ownership and Project Keys.
 - F20-C single-model Playground attachment input is delivered by `7fa25d7` (`feat(playground): add attachment input`). The existing Mockup composition now supports bounded PNG, JPEG, and PDF selection, session/CSRF upload and cleanup, effective per-protocol capability gates, transient personal-Key inference, and exact native payload construction for Chat Completions, Responses, Messages, and Gemini. Ready attachment objects expire after one hour through the existing durable cleanup lifecycle, and read access enforces the same deadline even while the cleanup worker is unavailable.
 - F20-D comparison attachment input is delivered by `ccb6255` (`feat(playground): add comparison attachments`). The comparison workbench preserves the Mockup's single shared bottom composer, intersects every selected lane's personal-attachment and per-protocol media capabilities, sends the shared owner-bound references through each lane's exact native current turn, keeps requests and cancellation independent, and starts cleanup only after every lane settles without blocking later submissions.
 - F20-E conservative multimodal quota admission is delivered by `aa33b5a` (`feat(quotas): bound attachment token admission`). Structurally validated Personal-Key image/PDF requests can use finite token and TPM policies through the selected provider model's full attested input capacity plus the native output cap. A side-effect-free durable preflight rejects exhausted token, RPM, concurrency, unavailable journal, and unsupported money cases before storage reads; final admission repeats every check atomically after owner-bound resolution. Native terminal usage settles exact tokens, incomplete usage retains the hold, overruns invalidate the bound revision, and multimodal monetary pricing remains unsupported.
+- F20-F Project-owned attachment identity and lifecycle is delivered by `1e4af76` (`feat(storage): add project-owned attachments`). Frozen migration V23 introduces explicit user/Project ownership with portable GORM migration paths and dual-database recovery coverage. Current enabled Project managers govern session upload, metadata, content, deletion, and cleanup; ownership survives manager replacement, disabled or archived Projects remain recoverable without becoming inference-eligible, and Project Keys resolve only their Project objects across all four native protocols. The existing Project Overview links into the unchanged Playground composition, which verifies the Key scope before uploading and never sends the Key to control-plane attachment APIs.
 - `docs/IMPLEMENTATION.md` contains the authoritative per-capability and per-acceptance status snapshot. The cross-task roadmap is `/Users/miclle/dotfiles/projects/routex/implementation-plan.md`.
 
 ### In Progress
@@ -39,22 +40,22 @@ Implement every valid RouteX capability represented by F01–F30 and close every
 - A02–A12, A14–A15, and A17–A20 have partial controlled evidence but are not fully accepted.
 - F14 protects saved credentials from endpoint changes and now retries the complete TLS/CONNECT or SOCKS5 negotiation across every validated proxy endpoint address. External proxy and production performance acceptance remain open.
 - F13 has a replay-safe route-attempt foundation, but active retry, health routing, and failover are not wired into gateway execution.
-- F27 now includes storage administration, the owned attachment backend, the gateway resolver, both Playground upload controls, and durable abandoned-object expiry. Project-owned attachment identity remains open.
-- F20 now includes explicit provider-model image/PDF declarations, effective per-protocol discovery, personal-Key-owned server-side byte resolution, both approved Playground attachment compositions, and conservative token/TPM admission and settlement. Multimodal monetary pricing, Project-owned attachment identity, and external-provider acceptance remain open.
+- F27 now includes storage administration, explicit user/Project ownership, the gateway resolver, both Playground upload controls, and durable abandoned-object expiry. Durable notifications and external-service acceptance remain open.
+- F20 now includes explicit provider-model image/PDF declarations, effective per-protocol discovery, user/Project server-side byte resolution, both approved Playground attachment compositions, and conservative token/TPM admission and settlement. Multimodal monetary pricing and external-provider acceptance remain open.
 
 ### Not Started or Out of Scope
 
 - F03 enterprise identity, F24 AI operations analysis, F26 instance/system-job management, and F29 API Key Vault delivery are not started.
 - A13 complete approval contention and A16 Vault compensation are not started.
 - Real external-provider, IdP/LDAP/OAuth, Vault, S3, SMTP, price-source, production deployment, backup/restore, multi-node, and measured-capacity acceptance remain open because the required environments or decisions have not been supplied.
-- The roadmap is active. The next bounded package is F20-F: define Project-owned attachment identity and lifecycle so Project Keys never borrow personal objects and current Project managers govern durable Project assets. External S3/provider acceptance and multimodal monetary pricing remain separate gates.
+- The roadmap is active. The next bounded package is F20-G: define persisted multimodal monetary pricing and settlement without weakening the existing conservative pre-read admission guarantees. External S3/provider acceptance remains a separate gate because no dedicated external environment or spending limit has been supplied.
 
 ## Working Tree
 
 - **Staged:** none
 - **Modified:** only this handoff refresh before its documentation checkpoint
 - **Untracked:** none
-- **Unpushed commits:** `aa33b5a` is pushed; commit and push this handoff refresh separately
+- **Unpushed commits:** `1e4af76` is pushed; commit and push this handoff refresh separately
 - **Do not overwrite:** preserve any new user or concurrent-task changes discovered by the receiver; re-run the state checks before editing
 
 ## Decisions and Rationale
@@ -117,11 +118,17 @@ Implement every valid RouteX capability represented by F01–F30 and close every
 | Focused PostgreSQL/MySQL attachment-quota settlement | pass | Both databases proved authoritative token settlement, retained incomplete holds, overrun invalidation, pre-dispatch rejection, and unsupported pricing in 50.821 seconds |
 | Independent F20-E implementation review | pass | Final review reported zero critical findings, warnings, or actionable suggestions after the durable preflight fix |
 | `go tool actionlint` on F20-E source | pass | Workflow syntax remained valid |
+| `go tool task check` on F20-F source | pass | Backend lint, Prettier, TypeScript, ESLint, and module checks passed; ESLint retained two existing Fast Refresh warnings |
+| `go tool task test` on F20-F source | pass | Go race/unit coverage, 441 Vitest cases in 41 files, four Node checks, development lifecycle, production build, and embedded production assets passed |
+| `go tool task test-integration` on F20-F source | pass | The complete PostgreSQL/MySQL matrix passed with the Handler package at 348.771 seconds and Service package at 5.259 seconds; disposable Compose resources were removed |
+| Focused PostgreSQL/MySQL Project attachment lifecycle | pass | Both databases covered empty/concurrent V23 migration, V22 upgrade, interrupted DDL recovery, exact scope indexes and constraints, manager replacement races, disabled/archived recovery, quota ordering, and four native protocols |
+| Independent F20-F implementation review | pass | Final review found no code-level correctness, authorization, migration, Key-secrecy, Mockup-conformance, i18n, or test defects; the only warning was this now-resolved handoff refresh |
+| `go tool actionlint` on F20-F source | pass | Workflow syntax remained valid |
 
 ## Blockers, Risks, and Unknowns
 
 - **Blockers:** no blocker prevents the next local package; external provider, enterprise identity, Vault, object-storage, mail, production, and capacity environments are not supplied for their acceptance gates.
-- **Risks:** single-process quota evidence does not prove multi-node correctness; multimodal monetary pricing and Project-owned attachment identity remain open; partial milestones must not be presented as full release acceptance.
+- **Risks:** single-process quota evidence does not prove multi-node correctness; multimodal monetary pricing remains open; partial milestones must not be presented as full release acceptance.
 - **Unknowns:** production topology, multi-node requirement, initial provider, spending limit, capacity targets, backup/restore procedure, IdP choices, Vault layout, price-source contract, and AI-analysis scope remain undecided or unverified.
 
 ## Files to Read First
@@ -134,15 +141,16 @@ Implement every valid RouteX capability represented by F01–F30 and close every
 | `docs/STORAGE.md` | Delivered object/owner boundary, attachment expiry, and gateway resolver contract |
 | `docs/PLAYGROUND.md` | Native-protocol, transient-credential, and single-model attachment behavior |
 | `docs/PROVIDER_MODELS.md` | Effective image/PDF capability contract delivered by the latest implementation |
-| `internal/routex/service/attachments.go` | Existing owner-only validated byte reads to reuse for gateway resolution |
+| `internal/routex/database/storage_owner_migration.go` | Frozen V23 user/Project ownership migration and portability boundary |
+| `internal/routex/service/attachments.go` | Current-manager Project lifecycle and owner-scoped validated byte reads |
 | `internal/routex/service/gateway*.go` | Native parsing, admission ordering, route selection, and dispatch boundaries |
 | `/Users/miclle/dotfiles/projects/routex/implementation-plan.md` | Cross-task schedule, dependency, acceptance, and pause coordination entry |
 
 ## Next Actions
 
-1. Audit the approved Project attachment flows and current Team/Project authority model, then define an immutable Project-owned object identity that never reuses a manager's personal ownership.
-2. Implement F20-F Project attachment upload, authorization, cleanup, native resolution, and Project-Key Playground behavior with current-manager governance and no creator-departure revocation.
-3. Verify PostgreSQL/MySQL ownership continuity, scoped permissions, finite quota ordering, secret/object isolation, and native protocol behavior before the next commit and push.
+1. Audit the current immutable price snapshot, native usage facts, quota reservation, and provider-model price interfaces to define the smallest portable multimodal pricing contract; complete when every media input has explicit units, revision identity, and unsupported-shape behavior.
+2. Implement F20-G persisted multimodal price administration, immutable publication, pre-read conservative money bounds, and exact or explicitly incomplete settlement across all supported native protocols without inspecting attachment bytes during admission.
+3. Verify PostgreSQL/MySQL migration/reentry, decimal preservation, currency/ETag conflicts, zero-read rejection, native usage settlement, bilingual UI behavior, and unchanged text pricing before the next commit and push.
 
 ## Environment and Access
 
@@ -154,6 +162,6 @@ Implement every valid RouteX capability represented by F01–F30 and close every
 
 ## Handoff History
 
-- **Continues from:** storage administration at `26763e8`, provider-model input capabilities at `3b5e642`, personal-Key attachment resolution at `652cb44`, single-model attachment input at `7fa25d7`, comparison attachment input at `ccb6255`, and conservative multimodal quota admission at `aa33b5a`
+- **Continues from:** storage administration at `26763e8`, provider-model input capabilities at `3b5e642`, personal-Key attachment resolution at `652cb44`, single-model attachment input at `7fa25d7`, comparison attachment input at `ccb6255`, conservative multimodal quota admission at `aa33b5a`, and Project-owned attachment lifecycle at `1e4af76`
 - **Supersedes:** the storage-administration-next checkpoint at `bcc663a`
 - **Closeout condition:** all F01–F30 capabilities and A01–A20 acceptance cases are completed with current evidence, or a later handoff replaces this document with an equally verifiable resume point
