@@ -172,7 +172,7 @@ The binary capability count is 7 completed, 19 partially completed, and 4 not st
 | F19 | Member overview, model sources, requests, and examples | Partially completed | Catalog, callable-model views, Project requests, and native examples exist; complete Team-source attribution and request coverage remain open. |
 | F20 | Playground, comparison, attachments, and code examples | Partially completed | Four native conversation paths, two-to-four-lane comparison, cancellation, executable examples, per-protocol image/PDF discovery, user/Project attachment resolution, single/comparison attachment lifecycle interfaces, and conservative token/TPM/money admission with exact per-occurrence media prices exist; external acceptance remains open. |
 | F21 | Personal, Project, and platform call records and CSV | Completed | Isolated list/detail queries, incremental loading, redacted drawers, bounded server-side CSV export, filter parity, formula protection, and bilingual download actions are implemented with dual-database evidence. |
-| F22 | Usage trends, amounts, and multidimensional filters | Partially completed | Personal, Project, and platform usage interfaces exist; Team/provider attribution and complete freshness/capacity acceptance remain open. |
+| F22 | Usage trends, amounts, and multidimensional filters | Partially completed | Personal, Project, and platform usage interfaces plus immutable Provider attribution exist; Team attribution and complete freshness/capacity acceptance remain open. |
 | F23 | Operations overview, quality, alerts, and notifications | Partially completed | SMTP configuration and controlled test delivery exist; durable notification jobs, retry, recipient policy, settings, and status center remain open. |
 | F24 | Read-only AI operations analysis and saved reports | Not started | Authorized analysis queries, saved definitions, evaluation, exports, and hostile-input acceptance are not implemented. |
 | F25 | Site presentation, language, and announcements | Completed | Durable site name, URL, logo, footer, default language, bilingual UI behavior, and announcement lifecycle are implemented. |
@@ -663,6 +663,31 @@ complete-query overflow, comparison, language switching, routed permissions,
 archived current-manager access and Project switching. This frontend phase uses
 the already verified usage APIs; no new schema or gateway behavior is introduced.
 Browser control remained unavailable, so rendered chart/layout acceptance is open.
+
+### Immutable Provider usage attribution
+
+Call facts now snapshot the final attempted route's Provider ID and name,
+Connection name, and upstream model name. Admission failures and cancellation
+before the first attempt retain empty topology; a retry or failover records the
+last route that actually entered execution. Frozen GORM migration 26 adds the
+four fields and a Provider/time/request index without a catalog backfill, so
+legacy rows remain explicit unknowns and historical reports do not depend on
+mutable Provider, Connection, or provider-model names.
+
+The platform usage endpoint accepts an exact `provider_id` filter and returns
+Provider, provider-model, and Connection distributions with immutable historical
+labels. Personal and Project endpoints reject that filter and omit all upstream
+topology. The existing bilingual layout adds the Provider filter and distribution
+only to the platform workspace, retains stable raw IDs when a legacy label is
+missing, and renders empty IDs as localized unknown groups.
+
+Focused service, handler, runtime, recorder, migration, and frontend tests cover
+final-attempt failover, pre-attempt cancellation, legacy journal payloads,
+rename-stable labels, invalid and unauthorized filters, topology redaction,
+English/Chinese switching, empty-database creation, existing-data upgrade,
+partial-DDL recovery, repeat execution, concurrent startup, and schema/index
+restoration on PostgreSQL and MySQL. Team attribution, background rollups,
+measured capacity, and a global ingestion watermark remain open.
 
 ### Native Responses Playground
 

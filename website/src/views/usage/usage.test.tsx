@@ -63,7 +63,14 @@ function fixture(): UsageReport {
       ? []
       : [{ id: 'mdl_historical', name: 'Historical model', unknown: false, stats }],
     keys: empty ? [] : [{ id: 'key_rotated', unknown: false, stats }],
-    connections: [{ id: 'con_historical', unknown: false, stats }],
+    providers: [
+      { id: 'prv_historical', name: 'Historical provider', unknown: false, stats },
+      { id: '', unknown: true, stats: { ...stats, tokens: zero.tokens } },
+    ],
+    provider_models: [
+      { id: 'pmdl_historical', name: 'Historical provider model', unknown: false, stats },
+    ],
+    connections: [{ id: 'con_historical', name: 'Historical connection', unknown: false, stats }],
   }
   return {
     timezone: 'UTC',
@@ -85,7 +92,7 @@ function fixture(): UsageReport {
           })),
         }
       : undefined,
-    available_dimensions: ['model', 'key', 'connection'],
+    available_dimensions: ['model', 'key', 'provider', 'provider_model', 'connection'],
   }
 }
 beforeEach(async () => {
@@ -170,12 +177,14 @@ describe('usage reports', () => {
     await render()
     expect(usageRequests()[0].url).toBe('/usage')
     expect(usageRequests()[0].signal).toBeDefined()
+    expect(usageRequests()[0].params).not.toHaveProperty('provider_id')
     expect(container.textContent).toContain('Unknown')
     expect(container.textContent).toContain('Known subtotal: 14')
     expect(container.textContent).toContain('USD 12,345,678,901,234,567,890.000000000000000001')
     expect(container.textContent).toContain('CNY 0')
     expect(container.textContent).not.toContain('con_historical')
     expect(container.querySelector('[name="user_id"]')).toBeNull()
+    expect(container.querySelector('[name="provider_id"]')).toBeNull()
     expect(container.textContent).not.toContain('Provider usage')
     expect(container.querySelector('svg[aria-labelledby]')).not.toBeNull()
     expect(container.textContent).toContain('key_rotated')
@@ -208,12 +217,14 @@ describe('usage reports', () => {
   it('isolates Project cache and requests from personal attribution', async () => {
     await render(<ProjectUsagePanel projectId="prj_owned" />)
     expect(usageRequests()[0].url).toBe('/projects/prj_owned/usage')
+    expect(usageRequests()[0].params).not.toHaveProperty('provider_id')
     expect(usageRequests().some((request) => request.url === '/usage')).toBe(false)
     expect(cache.getQueryCache().findAll({ queryKey: ['usage'] })[0].queryKey).toContainEqual([
       'project',
       'prj_owned',
     ])
     expect(container.querySelector('[name="user_id"]')).toBeNull()
+    expect(container.querySelector('[name="provider_id"]')).toBeNull()
     errorCode = 404
     await render(<ProjectUsagePanel projectId="prj_next" />)
     expect(usageRequests().at(-1)?.url).toBe('/projects/prj_next/usage')
@@ -230,6 +241,52 @@ describe('usage reports', () => {
     await settle()
     expect(usageRequests()[0]?.url).toBe('/admin/usage')
     expect(container.querySelector('[name="connection_id"]')).not.toBeNull()
+    expect(container.querySelector('[name="provider_id"]')).not.toBeNull()
+  })
+  it('filters platform usage by provider and renders historical dimension names with localized unknowns', async () => {
+    await render(<UsagePage admin />)
+    await input('provider_id', 'prv_historical')
+    await submit()
+    expect(usageRequests().at(-1)?.params).toMatchObject({ provider_id: 'prv_historical' })
+    expect(
+      cache
+        .getQueryCache()
+        .findAll({ queryKey: ['usage'] })
+        .some((query) =>
+          query.queryKey.some(
+            (value) =>
+              typeof value === 'object' &&
+              value !== null &&
+              'provider_id' in value &&
+              value.provider_id === 'prv_historical',
+          ),
+        ),
+    ).toBe(true)
+
+    const dimension = Array.from(container.querySelectorAll('select')).find((select) =>
+      Array.from(select.options).some((option) => option.value === 'providers'),
+    )!
+    await act(async () => {
+      dimension.value = 'providers'
+      dimension.dispatchEvent(new Event('change', { bubbles: true }))
+    })
+    expect(container.textContent).toContain('Historical provider')
+    expect(container.textContent).toContain('Unknown provider')
+
+    await act(async () => i18n.changeLanguage('zh'))
+    expect(container.textContent).toContain('供应商用量')
+    expect(container.textContent).toContain('未知供应商')
+
+    await act(async () => {
+      dimension.value = 'provider_models'
+      dimension.dispatchEvent(new Event('change', { bubbles: true }))
+    })
+    expect(container.textContent).toContain('Historical provider model')
+    await act(async () => {
+      dimension.value = 'connections'
+      dimension.dispatchEvent(new Event('change', { bubbles: true }))
+    })
+    expect(container.textContent).toContain('Historical connection')
   })
   it('handles complete-report overflow and recovers without fabricating totals', async () => {
     errorCode = 422

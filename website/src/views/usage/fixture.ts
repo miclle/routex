@@ -54,8 +54,19 @@ export function usageFixture(): UsageReport {
       ],
       models: [{ id: 'mdl_usage_resource', name: 'Historical model', unknown: false, stats }],
       keys: [{ id: 'key_usage_resource', unknown: false, stats }],
-      connections: [{ id: 'con_usage_resource', unknown: false, stats }],
+      providers: [{ id: 'prv_usage_resource', name: 'Historical provider', unknown: false, stats }],
+      provider_models: [
+        {
+          id: 'pmdl_usage_resource',
+          name: 'Historical provider model',
+          unknown: false,
+          stats,
+        },
+      ],
+      connections: [
+        { id: 'con_usage_resource', name: 'Historical connection', unknown: false, stats },
+      ],
     },
-    available_dimensions: ['model', 'key', 'connection'],
+    available_dimensions: ['model', 'key', 'provider', 'provider_model', 'connection'],
   }
 }

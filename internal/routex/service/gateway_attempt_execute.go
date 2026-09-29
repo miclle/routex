@@ -103,7 +103,6 @@ func (s *Service) gatewayNativeAttempts(ctx context.Context, requestID string, r
 				return prepareErr
 			}
 			current = prepared
-			applyGatewayAttemptRoute(result, route)
 			return nil
 		},
 		Admit: func(ctx context.Context, attempt routeattempt.Attempt) error {
@@ -424,8 +423,11 @@ func prepareGatewayHTTPRequest(ctx context.Context, requestID string, result *Ga
 func applyGatewayAttemptRoute(result *GatewayResult, route *gatewayRoute) {
 	result.SnapshotID = route.SnapshotID
 	result.ProviderID = route.ProviderID
+	result.ProviderName = route.ProviderName
 	result.ProviderModelID = route.ProviderModelID
 	result.ConnectionID = route.ConnectionID
+	result.ConnectionName = route.ConnectionName
+	result.UpstreamModelName = route.UpstreamName
 	result.CredentialID = route.CredentialID
 	result.PriceBasis = clonePriceBasis(route.PriceBasis)
 }
@@ -435,6 +437,7 @@ func (s *Service) executeGatewayAttempt(ctx context.Context, requestID string, r
 	if result.AttemptID == "" {
 		return routeattempt.Outcome{Failure: routeattempt.PermanentFailure, Work: routeattempt.NotSent}, gatewayError(http.StatusInternalServerError, "internal_error", "The request could not be initialized."), routeattempt.ErrExecution
 	}
+	applyGatewayAttemptRoute(result, prepared.route)
 	result.AttemptStartedAt = s.gatewayAttemptClock()
 	if err := s.CheckpointGatewayCall(requestID, result); err != nil {
 		return routeattempt.Outcome{Failure: routeattempt.PermanentFailure, Work: routeattempt.NotSent}, err, routeattempt.ErrExecution

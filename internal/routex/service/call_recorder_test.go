@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"io"
 	"net/http"
@@ -9,9 +10,62 @@ import (
 	"path/filepath"
 	"sync/atomic"
 	"testing"
+	"time"
 
+	"github.com/miclle/routex/internal/routex/entity"
 	"github.com/miclle/routex/pkg/eventqueue"
 )
+
+func TestCallJournalLegacyPayloadKeepsProviderAttributionUnknown(t *testing.T) {
+	now := time.Now().UTC()
+	legacy := CallFact{RequestID: "req_legacy_journal", UserID: "usr_legacy", KeyID: "key_legacy", ModelID: "mdl_legacy", ModelName: "legacy", ProviderModelID: "pmd_legacy", ConnectionID: "con_legacy", Protocol: entity.ProtocolOpenAIChat, Status: "error", StartedAt: now, CompletedAt: now, ErrorCode: "process_interrupted"}
+	raw, err := json.Marshal(legacy)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var payload map[string]any
+	if err := json.Unmarshal(raw, &payload); err != nil {
+		t.Fatal(err)
+	}
+	for _, field := range []string{"ProviderID", "ProviderName", "ConnectionName", "UpstreamModelName"} {
+		delete(payload, field)
+	}
+	raw, err = json.Marshal(payload)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var recovered CallFact
+	if err := json.Unmarshal(raw, &recovered); err != nil {
+		t.Fatal(err)
+	}
+	if err := validateCallFact(recovered); err != nil {
+		t.Fatalf("legacy call journal fact rejected: %v", err)
+	}
+	if recovered.ProviderID != "" || recovered.ProviderName != "" || recovered.ConnectionName != "" || recovered.UpstreamModelName != "" {
+		t.Fatalf("legacy call journal gained provider attribution: %+v", recovered)
+	}
+}
+
+func TestGatewayFallbackOmitsPreparedButUnattemptedRoute(t *testing.T) {
+	now := time.Now().UTC()
+	result := &GatewayResult{
+		UserID: "usr_prepared", KeyID: "key_prepared", ModelID: "mdl_prepared", ModelName: "prepared",
+		ProviderID: "prv_prepared", ProviderName: "Prepared Provider", ProviderModelID: "pmd_prepared",
+		ConnectionID: "con_prepared", ConnectionName: "Prepared Connection", UpstreamModelName: "prepared-model",
+		Protocol: entity.ProtocolOpenAIChat,
+	}
+	raw, err := gatewayFallbackPayload("req_prepared", result, now)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var fallback CallFact
+	if err := json.Unmarshal(raw, &fallback); err != nil {
+		t.Fatal(err)
+	}
+	if fallback.ProviderID != "" || fallback.ProviderName != "" || fallback.ProviderModelID != "" || fallback.ConnectionID != "" || fallback.ConnectionName != "" || fallback.UpstreamModelName != "" {
+		t.Fatalf("prepared route became immutable attribution: %+v", fallback)
+	}
+}
 
 func TestGatewayRejectsDispatchWhenJournalUnavailable(t *testing.T) {
 	for _, failure := range []string{"full", "closed"} {

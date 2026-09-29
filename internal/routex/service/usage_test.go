@@ -17,11 +17,14 @@ func TestUsageExactCoverage(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	base := entity.CallRecord{RequestID: "req_a", ModelID: "mdl_same", ModelName: "Old", KeyID: "key_a", Status: "success", StartedAt: start, DurationMS: 100, InputTokens: usageTestPointer(int64(math.MaxInt64)), OutputTokens: usageTestPointer(int64(0)), CallPricingFields: entity.CallPricingFields{PricingStatus: "priced", ChargeAmount: usageTestPointer("0.1"), ChargeCurrency: usageTestPointer("USD")}}
+	base := entity.CallRecord{RequestID: "req_a", ModelID: "mdl_same", ModelName: "Old", KeyID: "key_a", ProviderID: "prv_same", ProviderName: "Historical provider", ProviderModelID: "pmd_same", UpstreamModelName: "Historical upstream", ConnectionID: "con_same", ConnectionName: "Historical connection", Status: "success", StartedAt: start, DurationMS: 100, InputTokens: usageTestPointer(int64(math.MaxInt64)), OutputTokens: usageTestPointer(int64(0)), CallPricingFields: entity.CallPricingFields{PricingStatus: "priced", ChargeAmount: usageTestPointer("0.1"), ChargeCurrency: usageTestPointer("USD")}}
 	second := base
 	second.RequestID = "req_b"
 	second.StartedAt = start.Add(time.Hour)
 	second.ModelName = "New"
+	second.ProviderName = "Renamed provider"
+	second.UpstreamModelName = "Renamed upstream"
+	second.ConnectionName = "Renamed connection"
 	second.InputTokens = usageTestPointer(int64(2))
 	second.ChargeAmount = usageTestPointer("0.2")
 	third := base
@@ -40,6 +43,12 @@ func TestUsageExactCoverage(t *testing.T) {
 	fourth.KeyID = ""
 	fourth.ModelID = ""
 	fourth.ModelName = ""
+	fourth.ProviderID = ""
+	fourth.ProviderName = ""
+	fourth.ProviderModelID = ""
+	fourth.UpstreamModelName = ""
+	fourth.ConnectionID = ""
+	fourth.ConnectionName = ""
 	report, err := aggregateUsage([]entity.CallRecord{base, second, third, fourth}, plan.current, plan, true)
 	if err != nil {
 		t.Fatal(err)
@@ -57,11 +66,20 @@ func TestUsageExactCoverage(t *testing.T) {
 	if len(report.Models) != 2 || report.Models[0].ID != "mdl_same" || report.Models[0].Name != "New" || !report.Models[1].Unknown || report.Models[0].Stats.Requests != 3 {
 		t.Fatalf("historical model grouping changed: %+v", report.Models)
 	}
+	if len(report.Providers) != 2 || report.Providers[0].ID != "prv_same" || report.Providers[0].Name != "Renamed provider" || !report.Providers[1].Unknown || report.Providers[0].Stats.Requests != 3 {
+		t.Fatalf("historical provider grouping changed: %+v", report.Providers)
+	}
+	if len(report.ProviderModels) != 2 || report.ProviderModels[0].ID != "pmd_same" || report.ProviderModels[0].Name != "Renamed upstream" || !report.ProviderModels[1].Unknown {
+		t.Fatalf("historical provider-model labels changed: %+v", report.ProviderModels)
+	}
+	if len(report.Connections) != 2 || report.Connections[0].ID != "con_same" || report.Connections[0].Name != "Renamed connection" || !report.Connections[1].Unknown {
+		t.Fatalf("historical connection labels changed: %+v", report.Connections)
+	}
 	if len(report.Trend) != 3 || report.Trend[2].Stats.Requests != 0 || report.Trend[2].Stats.Tokens.Total.Value == nil || *report.Trend[2].Stats.Tokens.Total.Value != "0" || report.Trend[2].Stats.SuccessRate != nil || len(report.Trend[2].Stats.Amounts) != 0 {
 		t.Fatal("empty bucket differs from known zero contract")
 	}
 	personal, err := aggregateUsage([]entity.CallRecord{base}, plan.current, plan, false)
-	if err != nil || len(personal.ProviderModels) != 0 || len(personal.Connections) != 0 {
+	if err != nil || len(personal.Providers) != 0 || len(personal.ProviderModels) != 0 || len(personal.Connections) != 0 {
 		t.Fatal("personal aggregate exposed routes")
 	}
 	negative := base
@@ -156,13 +174,16 @@ func TestUsageBoundsAndFilters(t *testing.T) {
 	if _, err := planUsage(UsageFilter{From: &from, To: &to}, to); err != nil {
 		t.Fatal(err)
 	}
-	for _, filter := range []UsageFilter{{UserID: "usr_other"}, {ProjectID: "prj_other"}, {ConnectionID: "con_other"}, {ProviderModelID: "pmd_other"}, {Status: "failed"}, {Protocol: "anything"}, {KeyID: "key_%"}} {
+	for _, filter := range []UsageFilter{{UserID: "usr_other"}, {ProjectID: "prj_other"}, {ProviderID: "prv_other"}, {ConnectionID: "con_other"}, {ProviderModelID: "pmd_other"}, {Status: "failed"}, {Protocol: "anything"}, {KeyID: "key_%"}} {
 		if err := validateUsageFilter(filter, false); err == nil {
 			t.Fatal("unsafe personal filter accepted")
 		}
 	}
 	if err := validateUsageFilter(UsageFilter{UserID: "usr_a", ProjectID: "prj_a"}, true); err == nil {
 		t.Fatal("ambiguous principal accepted")
+	}
+	if err := validateUsageFilter(UsageFilter{ProviderID: "prv_%"}, true); err == nil {
+		t.Fatal("unsafe provider filter accepted")
 	}
 	end := from.Add(time.Hour)
 	plan, err := planUsage(UsageFilter{From: &from, To: &end}, end)

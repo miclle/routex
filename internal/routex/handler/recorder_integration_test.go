@@ -53,7 +53,8 @@ func testRecorderLifecycle(t *testing.T, db *gorm.DB) {
 	fact := service.CallFact{
 		SnapshotID: "cfg_recorder", RequestID: "req_recorder_outage", UserID: "usr_recorder_historical",
 		KeyID: "key_recorder_historical", ModelID: "mdl_recorder_historical", ModelName: "recorded-model",
-		ProviderModelID: "pmd_recorder_historical", ConnectionID: "con_recorder_historical",
+		ProviderID: "prv_recorder_historical", ProviderName: "Historical Provider",
+		ProviderModelID: "pmd_recorder_historical", ConnectionID: "con_recorder_historical", ConnectionName: "Historical Connection", UpstreamModelName: "historical-upstream",
 		Protocol: entity.ProtocolOpenAIChat, Status: "success", StartedAt: started, CompletedAt: started.Add(100 * time.Millisecond),
 		InputTokens: &inputTokens, OutputTokens: &outputTokens,
 		Attempts: []service.CallAttempt{{ID: "att_recorder_outage", ProviderModelID: "pmd_recorder_historical", ConnectionID: "con_recorder_historical", Status: "success", StartedAt: started, CompletedAt: started.Add(100 * time.Millisecond), HTTPStatus: 200}},
@@ -136,7 +137,7 @@ func testRecorderLifecycle(t *testing.T, db *gorm.DB) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		if detail.Record.Status != "success" || detail.Record.SnapshotID != expected.SnapshotID || detail.Record.InputTokens == nil || *detail.Record.InputTokens != *expected.InputTokens || detail.Record.OutputTokens == nil || *detail.Record.OutputTokens != *expected.OutputTokens || len(detail.Attempts) != 1 {
+		if detail.Record.Status != "success" || detail.Record.SnapshotID != expected.SnapshotID || detail.Record.ProviderID != expected.ProviderID || detail.Record.ProviderName != expected.ProviderName || detail.Record.ConnectionName != expected.ConnectionName || detail.Record.UpstreamModelName != expected.UpstreamModelName || detail.Record.InputTokens == nil || *detail.Record.InputTokens != *expected.InputTokens || detail.Record.OutputTokens == nil || *detail.Record.OutputTokens != *expected.OutputTokens || len(detail.Attempts) != 1 {
 			t.Fatal("recovery changed the canonical fact or doubled its attempt/usage")
 		}
 	}
@@ -159,7 +160,8 @@ func admitRecorderFixture(t *testing.T, svc *service.Service, requestID string, 
 	result := &service.GatewayResult{
 		SnapshotID: fact.SnapshotID, Response: response, UserID: fact.UserID, KeyID: fact.KeyID,
 		ModelID: fact.ModelID, ModelName: fact.ModelName, ProviderModelID: fact.ProviderModelID,
-		ConnectionID: fact.ConnectionID, CredentialID: "test-only-recorder-credential-id",
+		ProviderID: fact.ProviderID, ProviderName: fact.ProviderName, ConnectionID: fact.ConnectionID,
+		ConnectionName: fact.ConnectionName, UpstreamModelName: fact.UpstreamModelName, CredentialID: "test-only-recorder-credential-id",
 		Stream: fact.Stream, AttemptID: fact.Attempts[0].ID, AttemptStartedAt: fact.StartedAt,
 	}
 	if err := svc.AdmitGatewayCall(requestID, result); err != nil {

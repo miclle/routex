@@ -135,6 +135,7 @@ func (ctrl *Ctrl) recordGatewayCall(ctx context.Context, requestID string, start
 		usage.Complete = true
 	}
 	imageInputs, pdfInputs := result.ImageInputs, result.PDFInputs
+	attribution := result.ProviderAttribution()
 	attempts := append([]service.CallAttempt(nil), result.Attempts...)
 	routeStopReason := result.RouteStopReason
 	if result.AttemptID != "" && status != "success" {
@@ -143,7 +144,7 @@ func (ctrl *Ctrl) recordGatewayCall(ctx context.Context, requestID string, start
 			routeStopReason = "canceled"
 		}
 	}
-	fact := service.CallFact{RequestID: requestID, SnapshotID: result.SnapshotID, UserID: result.UserID, ProjectID: result.ProjectID, KeyID: result.KeyID, ModelID: result.ModelID, ModelName: result.ModelName, ProviderModelID: result.ProviderModelID, ConnectionID: result.ConnectionID, RouteStopReason: routeStopReason, Protocol: result.NativeProtocol(), Status: status, Stream: result.Stream, StartedAt: started, CompletedAt: completed, InputTokens: usage.Input, OutputTokens: usage.Output, CacheReadTokens: usage.CacheRead, CacheWriteTokens: usage.CacheWrite, ImageInputs: &imageInputs, PDFInputs: &pdfInputs, UsageComplete: usage.Complete, NoWork: noWork, PricingUnsupported: result.PricingUnsupported || usage.Unsupported, PriceBasis: result.PriceBasis, PricingDimensions: append(append([]string{}, result.PricingDimensions...), usage.UnsupportedDimensions...), ErrorCode: code, Attempts: attempts}
+	fact := service.CallFact{RequestID: requestID, SnapshotID: result.SnapshotID, UserID: result.UserID, ProjectID: result.ProjectID, KeyID: result.KeyID, ModelID: result.ModelID, ModelName: result.ModelName, ProviderID: attribution.ProviderID, ProviderName: attribution.ProviderName, ProviderModelID: attribution.ProviderModelID, ConnectionID: attribution.ConnectionID, ConnectionName: attribution.ConnectionName, UpstreamModelName: attribution.UpstreamModelName, RouteStopReason: routeStopReason, Protocol: result.NativeProtocol(), Status: status, Stream: result.Stream, StartedAt: started, CompletedAt: completed, InputTokens: usage.Input, OutputTokens: usage.Output, CacheReadTokens: usage.CacheRead, CacheWriteTokens: usage.CacheWrite, ImageInputs: &imageInputs, PDFInputs: &pdfInputs, UsageComplete: usage.Complete, NoWork: noWork, PricingUnsupported: result.PricingUnsupported || usage.Unsupported, PriceBasis: result.PriceBasis, PricingDimensions: append(append([]string{}, result.PricingDimensions...), usage.UnsupportedDimensions...), ErrorCode: code, Attempts: attempts}
 	if result.AttemptID != "" {
 		httpStatus := 0
 		if result.Response != nil {

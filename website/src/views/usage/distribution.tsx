@@ -14,9 +14,11 @@ const colors = [
 export default function UsageDistribution({
   title,
   groups,
+  unknownLabel,
 }: {
   title: string
   groups: UsageGroup[]
+  unknownLabel?: string
 }) {
   const { t, i18n } = useTranslation('usage')
   const locale = i18n.resolvedLanguage === 'zh' ? 'zh-CN' : 'en-US'
@@ -27,7 +29,7 @@ export default function UsageDistribution({
   })
   const total = sorted.reduce((sum, group) => sum + BigInt(group.stats.tokens.total.known), 0n)
   const items = sorted.slice(0, 5).map((group) => ({
-    name: group.name || group.id || t('unknownIdentity'),
+    name: group.name || group.id || unknownLabel || t('unknownIdentity'),
     value: group.stats.tokens.total.known,
   }))
   if (sorted.length > 5)

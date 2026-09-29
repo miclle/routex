@@ -13,8 +13,12 @@ type CallRecord struct {
 	KeyID             string    `gorm:"size:30;not null"`
 	ModelID           string    `gorm:"size:30;not null"`
 	ModelName         string    `gorm:"size:128;not null"`
+	ProviderID        string    `gorm:"size:30;not null;default:''"`
+	ProviderName      string    `gorm:"size:100;not null;default:''"`
 	ProviderModelID   string    `gorm:"size:30;not null"`
 	ConnectionID      string    `gorm:"size:30;not null"`
+	ConnectionName    string    `gorm:"size:100;not null;default:''"`
+	UpstreamModelName string    `gorm:"size:255;not null;default:''"`
 	RouteStopReason   string    `gorm:"size:40;not null;default:''"`
 	Protocol          string    `gorm:"size:30;not null"`
 	Status            string    `gorm:"size:20;not null"`

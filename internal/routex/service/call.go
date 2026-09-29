@@ -30,8 +30,12 @@ type CallFact struct {
 	KeyID                             string
 	ModelID                           string
 	ModelName                         string
+	ProviderID                        string
+	ProviderName                      string
 	ProviderModelID                   string
 	ConnectionID                      string
+	ConnectionName                    string
+	UpstreamModelName                 string
 	RouteStopReason                   string
 	Protocol                          string
 	Status                            string
@@ -147,7 +151,7 @@ func (s *Service) RecordCall(ctx context.Context, fact CallFact) error {
 		return err
 	}
 	// Normalize to common database precision before building pagination cursors.
-	record := entity.CallRecord{CallPricingFields: callPricingFields(fact), SnapshotID: fact.SnapshotID, RequestID: fact.RequestID, UserID: fact.UserID, ProjectID: fact.ProjectID, KeyID: fact.KeyID, ModelID: fact.ModelID, ModelName: fact.ModelName, ProviderModelID: fact.ProviderModelID, ConnectionID: fact.ConnectionID, RouteStopReason: fact.RouteStopReason, Protocol: fact.Protocol, Status: fact.Status, Stream: fact.Stream, StartedAt: fact.StartedAt.UTC().Truncate(time.Microsecond), CompletedAt: fact.CompletedAt.UTC().Truncate(time.Microsecond), DurationMS: fact.CompletedAt.Sub(fact.StartedAt).Milliseconds(), InputTokens: fact.InputTokens, OutputTokens: fact.OutputTokens, ImageInputs: fact.ImageInputs, PDFInputs: fact.PDFInputs, ErrorCode: safeCallError(fact.ErrorCode)}
+	record := entity.CallRecord{CallPricingFields: callPricingFields(fact), SnapshotID: fact.SnapshotID, RequestID: fact.RequestID, UserID: fact.UserID, ProjectID: fact.ProjectID, KeyID: fact.KeyID, ModelID: fact.ModelID, ModelName: fact.ModelName, ProviderID: fact.ProviderID, ProviderName: fact.ProviderName, ProviderModelID: fact.ProviderModelID, ConnectionID: fact.ConnectionID, ConnectionName: fact.ConnectionName, UpstreamModelName: fact.UpstreamModelName, RouteStopReason: fact.RouteStopReason, Protocol: fact.Protocol, Status: fact.Status, Stream: fact.Stream, StartedAt: fact.StartedAt.UTC().Truncate(time.Microsecond), CompletedAt: fact.CompletedAt.UTC().Truncate(time.Microsecond), DurationMS: fact.CompletedAt.Sub(fact.StartedAt).Milliseconds(), InputTokens: fact.InputTokens, OutputTokens: fact.OutputTokens, ImageInputs: fact.ImageInputs, PDFInputs: fact.PDFInputs, ErrorCode: safeCallError(fact.ErrorCode)}
 	err := s.authDB(ctx).Transaction(func(tx *gorm.DB) error {
 		if err := tx.Create(&record).Error; err != nil {
 			// A plain unique insert remains correct with MySQL clientFoundRows;
@@ -261,7 +265,7 @@ func validateCallFact(fact CallFact) error {
 	if err := validateCallPricing(fact); err != nil {
 		return err
 	}
-	if !safeCallID.MatchString(fact.RequestID) || len(fact.SnapshotID) > 30 || (fact.UserID == "") == (fact.ProjectID == "") || len(fact.ProjectID) > 30 || len(fact.UserID) > 30 || len(fact.KeyID) > 30 || len(fact.ModelID) > 30 || len(fact.ModelName) > 128 || len(fact.ProviderModelID) > 30 || len(fact.ConnectionID) > 30 || !callRouteStopReasons[fact.RouteStopReason] || !entity.SupportedNativeProtocol(fact.Protocol) || !validCallStatus(fact.Status) || fact.StartedAt.IsZero() || fact.CompletedAt.Before(fact.StartedAt) || len(fact.Attempts) > 32 {
+	if !safeCallID.MatchString(fact.RequestID) || len(fact.SnapshotID) > 30 || (fact.UserID == "") == (fact.ProjectID == "") || len(fact.ProjectID) > 30 || len(fact.UserID) > 30 || len(fact.KeyID) > 30 || len(fact.ModelID) > 30 || len(fact.ModelName) > 128 || len(fact.ProviderID) > 30 || len(fact.ProviderName) > 100 || len(fact.ProviderModelID) > 30 || len(fact.ConnectionID) > 30 || len(fact.ConnectionName) > 100 || len(fact.UpstreamModelName) > 255 || !callRouteStopReasons[fact.RouteStopReason] || !entity.SupportedNativeProtocol(fact.Protocol) || !validCallStatus(fact.Status) || fact.StartedAt.IsZero() || fact.CompletedAt.Before(fact.StartedAt) || len(fact.Attempts) > 32 {
 		return apperrors.ErrBadRequest
 	}
 	if (fact.InputTokens != nil && *fact.InputTokens < 0) || (fact.OutputTokens != nil && *fact.OutputTokens < 0) || (fact.ImageInputs != nil && *fact.ImageInputs < 0) || (fact.PDFInputs != nil && *fact.PDFInputs < 0) {

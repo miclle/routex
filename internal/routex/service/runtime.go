@@ -390,6 +390,7 @@ type runtimeData struct {
 	Grants           []entity.UserModelGrant
 	Models           []entity.Model
 	Names            []entity.ModelName
+	Providers        []entity.Provider
 	Connections      []entity.ProviderConnection
 	Credentials      []entity.ProviderCredential
 	ProviderModels   []entity.ProviderModel
@@ -404,7 +405,7 @@ func (s *Service) loadRuntimeData(ctx context.Context) (*runtimeData, error) {
 		if err := tx.Select("id", "disabled", "created_at").Find(&data.Users).Error; err != nil {
 			return err
 		}
-		for _, target := range []any{&data.Limits, &data.Keys, &data.Scopes, &data.Grants, &data.Models, &data.Names, &data.Connections, &data.Credentials, &data.ProviderModels, &data.Access, &data.Bindings, &data.Egresses} {
+		for _, target := range []any{&data.Limits, &data.Keys, &data.Scopes, &data.Grants, &data.Models, &data.Names, &data.Providers, &data.Connections, &data.Credentials, &data.ProviderModels, &data.Access, &data.Bindings, &data.Egresses} {
 			if err := tx.Find(target).Error; err != nil {
 				return err
 			}
@@ -489,6 +490,7 @@ func buildRuntimeAuthorization(data *runtimeData, until time.Time) *runtimeAutho
 func runtimeDigest(data *runtimeData) (string, error) {
 	// Serialize sorted rows so query order cannot trigger a spurious publication.
 	// Ciphertexts are hashed only; plaintext is never part of this source object.
+	sort.Slice(data.Providers, func(i, j int) bool { return data.Providers[i].ID < data.Providers[j].ID })
 	sort.Slice(data.Connections, func(i, j int) bool { return data.Connections[i].ID < data.Connections[j].ID })
 	sort.Slice(data.Credentials, func(i, j int) bool { return data.Credentials[i].ID < data.Credentials[j].ID })
 	sort.Slice(data.ProviderModels, func(i, j int) bool { return data.ProviderModels[i].ID < data.ProviderModels[j].ID })
@@ -524,12 +526,13 @@ func runtimeDigest(data *runtimeData) (string, error) {
 		EgressGeneration uint64
 		Limits           []entity.ResourceLimit
 		Pricing          *runtimePricingData
+		Providers        []entity.Provider
 		Connections      []entity.ProviderConnection
 		Credentials      []entity.ProviderCredential
 		ProviderModels   []entity.ProviderModel
 		Bindings         []entity.ModelProviderBinding
 		Access           []entity.CredentialModelAccess
-	}{data.Quota, egresses, ciphertexts, data.EgressSetting, data.EgressGeneration, data.Limits, data.Pricing, data.Connections, data.Credentials, data.ProviderModels, data.Bindings, data.Access})
+	}{data.Quota, egresses, ciphertexts, data.EgressSetting, data.EgressGeneration, data.Limits, data.Pricing, data.Providers, data.Connections, data.Credentials, data.ProviderModels, data.Bindings, data.Access})
 	if err != nil {
 		return "", err
 	}
@@ -549,6 +552,10 @@ func (s *Service) buildRuntimeRoutes(data *runtimeData) (map[string][]runtimeRou
 		}
 	}()
 	connections := map[string]entity.ProviderConnection{}
+	providers := map[string]entity.Provider{}
+	for _, provider := range data.Providers {
+		providers[provider.ID] = provider
+	}
 	for _, connection := range data.Connections {
 		if !entity.SupportedNativeProtocol(connection.Protocol) {
 			continue
@@ -605,11 +612,15 @@ func (s *Service) buildRuntimeRoutes(data *runtimeData) (map[string][]runtimeRou
 		if !exists {
 			continue
 		}
+		provider, exists := providers[connection.ProviderID]
+		if !exists {
+			return nil, runtimeUnavailable
+		}
 		if binding.Weight < 0 || binding.Weight > 100 {
 			return nil, runtimeUnavailable
 		}
 		_, egressRevision, _ := runtimeEgressSelection(data, connection)
-		candidate := runtimeRoute{Route: gatewayRoute{Client: clients[connection.ID], EgressGeneration: data.EgressGeneration, EgressRevision: egressRevision, Protocol: connection.Protocol, PriceBasis: runtimePriceBasis(data.Pricing, pm.ID, connection.Protocol), BindingID: binding.ID, Weight: binding.Weight, ProviderID: connection.ProviderID, ProviderModelID: pm.ID, ConnectionID: connection.ID, UpstreamName: pm.UpstreamName, BaseURL: connection.BaseURL, SupportsImageInput: pm.SupportsImageInput, SupportsPDFInput: pm.SupportsPDFInput}}
+		candidate := runtimeRoute{Route: gatewayRoute{Client: clients[connection.ID], EgressGeneration: data.EgressGeneration, EgressRevision: egressRevision, Protocol: connection.Protocol, PriceBasis: runtimePriceBasis(data.Pricing, pm.ID, connection.Protocol), BindingID: binding.ID, Weight: binding.Weight, ProviderID: connection.ProviderID, ProviderName: provider.Name, ProviderModelID: pm.ID, ConnectionID: connection.ID, ConnectionName: connection.Name, UpstreamName: pm.UpstreamName, BaseURL: connection.BaseURL, SupportsImageInput: pm.SupportsImageInput, SupportsPDFInput: pm.SupportsPDFInput}}
 		for _, credential := range credentials[connection.ID] {
 			if access[credential.ID][pm.ID] {
 				candidate.Credentials = append(candidate.Credentials, credential)

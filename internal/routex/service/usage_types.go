@@ -4,12 +4,12 @@ import "time"
 
 // UsageFilter selects persisted canonical facts, never live quota counters.
 type UsageFilter struct {
-	Period, Granularity, Timezone                    string
-	From, To                                         *time.Time
-	Compare                                          bool
-	ModelID, KeyID, Status, Protocol                 string
-	Stream                                           *bool
-	UserID, ProjectID, ProviderModelID, ConnectionID string
+	Period, Granularity, Timezone                                string
+	From, To                                                     *time.Time
+	Compare                                                      bool
+	ModelID, KeyID, Status, Protocol                             string
+	Stream                                                       *bool
+	UserID, ProjectID, ProviderID, ProviderModelID, ConnectionID string
 }
 type UsageCount struct {
 	Value        *string `json:"value"`
@@ -56,6 +56,7 @@ type UsagePeriod struct {
 	Trend          []UsageBucket `json:"trend"`
 	Models         []UsageGroup  `json:"models"`
 	Keys           []UsageGroup  `json:"keys"`
+	Providers      []UsageGroup  `json:"providers,omitempty"`
 	ProviderModels []UsageGroup  `json:"provider_models,omitempty"`
 	Connections    []UsageGroup  `json:"connections,omitempty"`
 }

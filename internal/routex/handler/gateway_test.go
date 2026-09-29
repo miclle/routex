@@ -430,6 +430,21 @@ func testGatewayLifecycle(t *testing.T, db *gorm.DB) {
 	if retryRecord.RouteStopReason != "succeeded" || len(retryAttempts) != 2 || retryAttempts[0].FailureClass != "rate_limited" || retryAttempts[0].WorkEvidence != "rejected_without_work" || retryAttempts[1].FailureClass != "success" || retryAttempts[1].WorkEvidence != "completed" {
 		t.Fatalf("retry diagnostics: record=%+v attempts=%+v", retryRecord, retryAttempts)
 	}
+	var finalConnection entity.ProviderConnection
+	if err := db.First(&finalConnection, "id = ?", retryAttempts[1].ConnectionID).Error; err != nil {
+		t.Fatal(err)
+	}
+	var finalProvider entity.Provider
+	if err := db.First(&finalProvider, "id = ?", finalConnection.ProviderID).Error; err != nil {
+		t.Fatal(err)
+	}
+	var finalProviderModel entity.ProviderModel
+	if err := db.First(&finalProviderModel, "connection_id = ?", finalConnection.ID).Error; err != nil {
+		t.Fatal(err)
+	}
+	if retryRecord.ConnectionID != retryAttempts[1].ConnectionID || retryRecord.ProviderID != finalProvider.ID || retryRecord.ProviderName != finalProvider.Name || retryRecord.ConnectionName != finalConnection.Name || retryRecord.UpstreamModelName != finalProviderModel.UpstreamName {
+		t.Fatalf("retry record did not retain the final successful route: record=%+v attempts=%+v", retryRecord, retryAttempts)
+	}
 	for _, streamMode := range []string{"stream_empty", "stream_incomplete"} {
 		mode.Store(streamMode)
 		beforeStreamFailure := chatCalls.Load()

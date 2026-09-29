@@ -68,12 +68,21 @@ function UsageContent({ scope, userId }: { scope: UsageScope; userId: string }) 
           ? 'denied'
           : 'unavailable'
   const dimensions = [
-    { id: 'keys', label: 'keys' },
+    { id: 'keys', label: 'keys', unknownLabel: 'unknownIdentity' },
+    ...(scope.admin && report?.available_dimensions.includes('provider')
+      ? [{ id: 'providers', label: 'providers', unknownLabel: 'unknownProvider' }]
+      : []),
     ...(scope.admin && report?.available_dimensions.includes('connection')
-      ? [{ id: 'connections', label: 'connections' }]
+      ? [{ id: 'connections', label: 'connections', unknownLabel: 'unknownConnection' }]
       : []),
     ...(scope.admin && report?.available_dimensions.includes('provider_model')
-      ? [{ id: 'provider_models', label: 'providerModels' }]
+      ? [
+          {
+            id: 'provider_models',
+            label: 'providerModels',
+            unknownLabel: 'unknownProviderModel',
+          },
+        ]
       : []),
   ]
   const selected = dimensions.find((value) => value.id === dimension) ?? dimensions[0]
@@ -154,8 +163,11 @@ function UsageContent({ scope, userId }: { scope: UsageScope; userId: string }) 
               )}
               <UsageDistribution
                 title={t(selected.label)}
+                unknownLabel={t(selected.unknownLabel)}
                 groups={
-                  report.current[selected.id as 'keys' | 'connections' | 'provider_models'] ?? []
+                  report.current[
+                    selected.id as 'keys' | 'providers' | 'connections' | 'provider_models'
+                  ] ?? []
                 }
               />
             </div>

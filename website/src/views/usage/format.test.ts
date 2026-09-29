@@ -66,11 +66,21 @@ describe('usage precision and calendar positioning', () => {
     data.set('timezone', 'UTC')
     data.set('user_id', 'usr_other')
     data.set('project_id', 'prj_other')
+    data.set('provider_id', 'prv_private')
     data.set('connection_id', 'con_private')
     const filters = readUsageFilters(data, false)
     expect(filters).not.toHaveProperty('user_id')
     expect(filters).not.toHaveProperty('project_id')
+    expect(filters).not.toHaveProperty('provider_id')
     expect(filters).not.toHaveProperty('connection_id')
     expect(readUsageFilters(data, true)).toBe('invalidPrincipal')
+
+    data.delete('user_id')
+    data.delete('project_id')
+    const adminFilters = readUsageFilters(data, true)
+    expect(adminFilters).toMatchObject({
+      provider_id: 'prv_private',
+      connection_id: 'con_private',
+    })
   })
 })

@@ -167,7 +167,7 @@ func aggregateUsage(rows []entity.CallRecord, period usageRange, plan usagePlan,
 	}
 	summary := usageAccumulator{}
 	trend := make([]usageAccumulator, len(buckets))
-	models, keys, providerModels, connections := map[string]*usageGrouped{}, map[string]*usageGrouped{}, map[string]*usageGrouped{}, map[string]*usageGrouped{}
+	models, keys, providers, providerModels, connections := map[string]*usageGrouped{}, map[string]*usageGrouped{}, map[string]*usageGrouped{}, map[string]*usageGrouped{}, map[string]*usageGrouped{}
 	for _, row := range rows {
 		if row.StartedAt.Before(period.from) || !row.StartedAt.Before(period.to) {
 			continue
@@ -189,10 +189,13 @@ func aggregateUsage(rows []entity.CallRecord, period usageRange, plan usagePlan,
 			return UsagePeriod{}, err
 		}
 		if admin {
-			if err := addUsageGroup(providerModels, row.ProviderModelID, "", row); err != nil {
+			if err := addUsageGroup(providers, row.ProviderID, row.ProviderName, row); err != nil {
 				return UsagePeriod{}, err
 			}
-			if err := addUsageGroup(connections, row.ConnectionID, "", row); err != nil {
+			if err := addUsageGroup(providerModels, row.ProviderModelID, row.UpstreamModelName, row); err != nil {
+				return UsagePeriod{}, err
+			}
+			if err := addUsageGroup(connections, row.ConnectionID, row.ConnectionName, row); err != nil {
 				return UsagePeriod{}, err
 			}
 		}
@@ -202,6 +205,7 @@ func aggregateUsage(rows []entity.CallRecord, period usageRange, plan usagePlan,
 	}
 	result := UsagePeriod{From: period.from, To: period.to, Summary: summary.result(), Trend: buckets, Models: usageGroups(models), Keys: usageGroups(keys)}
 	if admin {
+		result.Providers = usageGroups(providers)
 		result.ProviderModels = usageGroups(providerModels)
 		result.Connections = usageGroups(connections)
 	}

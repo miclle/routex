@@ -14,6 +14,7 @@ export interface UsageFilters {
   stream?: boolean
   user_id?: string
   project_id?: string
+  provider_id?: string
   provider_model_id?: string
   connection_id?: string
 }
@@ -57,6 +58,7 @@ export interface UsagePeriod {
   trend: UsageBucket[]
   models: UsageGroup[]
   keys: UsageGroup[]
+  providers?: UsageGroup[]
   provider_models?: UsageGroup[]
   connections?: UsageGroup[]
 }

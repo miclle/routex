@@ -185,6 +185,7 @@ func zeroQuotaSettlement(bound eventqueue.QuotaBound) eventqueue.QuotaSettlement
 
 func gatewayFallbackPayload(requestID string, result *GatewayResult, now time.Time) ([]byte, error) {
 	imageInputs, pdfInputs := result.ImageInputs, result.PDFInputs
+	attribution := result.ProviderAttribution()
 	attempts := append([]CallAttempt(nil), result.Attempts...)
 	if result.AttemptID != "" {
 		attempts = append(attempts, CallAttempt{
@@ -200,7 +201,7 @@ func gatewayFallbackPayload(requestID string, result *GatewayResult, now time.Ti
 			ErrorCode:       "process_interrupted",
 		})
 	}
-	fallback := CallFact{PriceBasis: clonePriceBasis(result.PriceBasis), PricingUnsupported: result.PricingUnsupported, PricingDimensions: result.PricingDimensions, NoWork: result.AttemptID == "" && callAttemptsProveNoWork(attempts), RequestID: requestID, SnapshotID: result.SnapshotID, UserID: result.UserID, ProjectID: result.ProjectID, KeyID: result.KeyID, ModelID: result.ModelID, ModelName: result.ModelName, ProviderModelID: result.ProviderModelID, ConnectionID: result.ConnectionID, RouteStopReason: result.RouteStopReason, Protocol: result.NativeProtocol(), Status: "error", Stream: result.Stream, StartedAt: now, CompletedAt: now, ImageInputs: &imageInputs, PDFInputs: &pdfInputs, ErrorCode: "process_interrupted", Attempts: attempts}
+	fallback := CallFact{PriceBasis: clonePriceBasis(result.PriceBasis), PricingUnsupported: result.PricingUnsupported, PricingDimensions: result.PricingDimensions, NoWork: result.AttemptID == "" && callAttemptsProveNoWork(attempts), RequestID: requestID, SnapshotID: result.SnapshotID, UserID: result.UserID, ProjectID: result.ProjectID, KeyID: result.KeyID, ModelID: result.ModelID, ModelName: result.ModelName, ProviderID: attribution.ProviderID, ProviderName: attribution.ProviderName, ProviderModelID: attribution.ProviderModelID, ConnectionID: attribution.ConnectionID, ConnectionName: attribution.ConnectionName, UpstreamModelName: attribution.UpstreamModelName, RouteStopReason: result.RouteStopReason, Protocol: result.NativeProtocol(), Status: "error", Stream: result.Stream, StartedAt: now, CompletedAt: now, ImageInputs: &imageInputs, PDFInputs: &pdfInputs, ErrorCode: "process_interrupted", Attempts: attempts}
 	if len(attempts) > 0 {
 		fallback.StartedAt = attempts[0].StartedAt
 	}

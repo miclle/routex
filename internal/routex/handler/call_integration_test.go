@@ -39,7 +39,7 @@ func testCallLifecycle(t *testing.T, db *gorm.DB) {
 	}
 	started := time.Now().UTC().Truncate(time.Microsecond).Add(-time.Hour)
 	inputTokens, outputTokens := int64(12), int64(34)
-	fact := service.CallFact{RequestID: "req_calls_dedup", UserID: admin.User.ID, KeyID: "key_historical", ModelID: "mdl_historical", ModelName: "historical-model", ProviderModelID: "pmd_historical", ConnectionID: "con_historical", Protocol: "openai_chat", Status: "success", StartedAt: started, CompletedAt: started.Add(150 * time.Millisecond), InputTokens: &inputTokens, OutputTokens: &outputTokens, Attempts: []service.CallAttempt{{ID: "att_calls_dedup", ProviderModelID: "pmd_historical", ConnectionID: "con_historical", Status: "success", StartedAt: started, CompletedAt: started.Add(150 * time.Millisecond), HTTPStatus: 200}}}
+	fact := service.CallFact{RequestID: "req_calls_dedup", UserID: admin.User.ID, KeyID: "key_historical", ModelID: "mdl_historical", ModelName: "historical-model", ProviderID: "prv_historical", ProviderName: "Historical Provider", ProviderModelID: "pmd_historical", ConnectionID: "con_historical", ConnectionName: "Historical Connection", UpstreamModelName: "historical-upstream", Protocol: "openai_chat", Status: "success", StartedAt: started, CompletedAt: started.Add(150 * time.Millisecond), InputTokens: &inputTokens, OutputTokens: &outputTokens, Attempts: []service.CallAttempt{{ID: "att_calls_dedup", ProviderModelID: "pmd_historical", ConnectionID: "con_historical", Status: "success", StartedAt: started, CompletedAt: started.Add(150 * time.Millisecond), HTTPStatus: 200}}}
 	errorsCh := make(chan error, 4)
 	var wg sync.WaitGroup
 	for range 4 {
@@ -66,11 +66,14 @@ func testCallLifecycle(t *testing.T, db *gorm.DB) {
 	changed.Status = "error"
 	changed.InputTokens = nil
 	changed.ErrorCode = "upstream-secret-must-not-leak"
+	changed.ProviderName = "Renamed Provider"
+	changed.ConnectionName = "Renamed Connection"
+	changed.UpstreamModelName = "renamed-upstream"
 	if err := svc.RecordCall(context.Background(), changed); err != nil {
 		t.Fatal(err)
 	}
 	original, err := svc.GetCall(context.Background(), "", fact.RequestID)
-	if err != nil || original.Record.Status != "success" || original.Record.InputTokens == nil || *original.Record.InputTokens != 12 {
+	if err != nil || original.Record.Status != "success" || original.Record.ProviderName != fact.ProviderName || original.Record.ConnectionName != fact.ConnectionName || original.Record.UpstreamModelName != fact.UpstreamModelName || original.Record.InputTokens == nil || *original.Record.InputTokens != 12 {
 		t.Fatal("replay overwrote accepted fact")
 	}
 	for index, status := range []string{"error", "canceled"} {
@@ -102,6 +105,12 @@ func testCallLifecycle(t *testing.T, db *gorm.DB) {
 	memberFact.ErrorCode = "no_route"
 	memberFact.InputTokens = nil
 	memberFact.OutputTokens = nil
+	memberFact.ProviderID = ""
+	memberFact.ProviderName = ""
+	memberFact.ProviderModelID = ""
+	memberFact.ConnectionID = ""
+	memberFact.ConnectionName = ""
+	memberFact.UpstreamModelName = ""
 	if err := svc.RecordCall(context.Background(), memberFact); err != nil {
 		t.Fatal(err)
 	}

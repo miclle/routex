@@ -39,7 +39,8 @@ func runtimeFixture(t *testing.T, baseURL string) (*Service, *runtimeData, strin
 		Grants:         []entity.UserModelGrant{{UserID: "usr_one", ModelID: modelID}},
 		Models:         []entity.Model{{ID: modelID, Status: "active", CreatedAt: time.Now().UTC()}},
 		Names:          []entity.ModelName{{Name: "public-model", ModelID: modelID, CurrentModelID: &modelID}},
-		Connections:    []entity.ProviderConnection{{ID: "con_one", ProviderID: "prv_one", BaseURL: baseURL, Protocol: entity.ProtocolOpenAIChat}},
+		Providers:      []entity.Provider{{ID: "prv_one", Name: "Provider One"}},
+		Connections:    []entity.ProviderConnection{{ID: "con_one", ProviderID: "prv_one", Name: "Primary", BaseURL: baseURL, Protocol: entity.ProtocolOpenAIChat}},
 		ProviderModels: []entity.ProviderModel{{ID: "pmd_one", ConnectionID: "con_one", UpstreamName: "provider-model"}},
 		Credentials:    []entity.ProviderCredential{{ID: "crd_one", ConnectionID: "con_one", Ciphertext: ciphertext, Enabled: true, VerificationStatus: "verified"}},
 		Access:         []entity.CredentialModelAccess{{CredentialID: "crd_one", ProviderModelID: "pmd_one"}},
@@ -80,6 +81,9 @@ func TestRuntimeHotPathWithoutDatabaseOrSecretStore(t *testing.T) {
 	}
 	if err := result.Response.Body.Close(); err != nil {
 		t.Error(err)
+	}
+	if result.ProviderID != "prv_one" || result.ProviderName != "Provider One" || result.ConnectionID != "con_one" || result.ConnectionName != "Primary" || result.UpstreamModelName != "provider-model" {
+		t.Fatalf("published route attribution = %+v", result)
 	}
 	s.upstream.CloseIdleConnections()
 }

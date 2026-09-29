@@ -86,8 +86,11 @@ type GatewayResult struct {
 	ModelID            string
 	ModelName          string
 	ProviderID         string
+	ProviderName       string
 	ProviderModelID    string
 	ConnectionID       string
+	ConnectionName     string
+	UpstreamModelName  string
 	CredentialID       string
 	Stream             bool
 	AttemptID          string
@@ -95,6 +98,29 @@ type GatewayResult struct {
 	Attempts           []CallAttempt
 	RouteStopReason    string
 	Admitted           bool
+}
+
+type CallProviderAttribution struct {
+	ProviderID        string
+	ProviderName      string
+	ProviderModelID   string
+	ConnectionID      string
+	ConnectionName    string
+	UpstreamModelName string
+}
+
+// ProviderAttribution returns topology only after an attempt entered Execute.
+// Admission and preparation may inspect a route, but they do not make that
+// route an immutable historical attribution.
+func (result *GatewayResult) ProviderAttribution() CallProviderAttribution {
+	if result == nil || result.AttemptID == "" && len(result.Attempts) == 0 {
+		return CallProviderAttribution{}
+	}
+	return CallProviderAttribution{
+		ProviderID: result.ProviderID, ProviderName: result.ProviderName,
+		ProviderModelID: result.ProviderModelID, ConnectionID: result.ConnectionID,
+		ConnectionName: result.ConnectionName, UpstreamModelName: result.UpstreamModelName,
+	}
 }
 
 // NoUpstreamWork reports an admitted logical call whose durable evidence proves
@@ -225,8 +251,9 @@ func (s *Service) gatewayNative(ctx context.Context, bearer string, body []byte,
 		return result, gatewayError(503, "upstream_unavailable", "No usable upstream is available.")
 	}
 	result.SnapshotID = route.SnapshotID
-	result.ProviderID, result.ProviderModelID = route.ProviderID, route.ProviderModelID
-	result.ConnectionID, result.CredentialID = route.ConnectionID, route.CredentialID
+	result.ProviderID, result.ProviderName, result.ProviderModelID = route.ProviderID, route.ProviderName, route.ProviderModelID
+	result.ConnectionID, result.ConnectionName, result.CredentialID = route.ConnectionID, route.ConnectionName, route.CredentialID
+	result.UpstreamModelName = route.UpstreamName
 	if err := validateGatewayAttachmentRoute(attachmentPlan, route); err != nil {
 		return result, err
 	}
@@ -451,8 +478,10 @@ type gatewayRoute struct {
 	BindingID          string
 	Weight             int
 	ProviderID         string
+	ProviderName       string
 	ProviderModelID    string
 	ConnectionID       string
+	ConnectionName     string
 	CredentialID       string
 	Ciphertext         string
 	UpstreamName       string
@@ -463,7 +492,7 @@ type gatewayRoute struct {
 
 func selectGatewayProtocolRoute(db *gorm.DB, modelID, protocol string) (*gatewayRoute, error) {
 	var routes []gatewayRoute
-	err := db.Table("model_provider_bindings AS b").Select("b.id AS binding_id, b.weight, p.id AS provider_model_id, p.upstream_name, p.disabled, p.supports_image_input, p.supports_pdf_input, c.id AS connection_id, c.provider_id, c.base_url, c.protocol").Joins("JOIN provider_models p ON p.id = b.provider_model_id").Joins("JOIN provider_connections c ON c.id = p.connection_id").Where("b.model_id = ? AND c.protocol = ?", modelID, protocol).Order("b.id").Scan(&routes).Error
+	err := db.Table("model_provider_bindings AS b").Select("b.id AS binding_id, b.weight, p.id AS provider_model_id, p.upstream_name, p.disabled, p.supports_image_input, p.supports_pdf_input, c.id AS connection_id, c.provider_id, c.name AS connection_name, c.base_url, c.protocol, pr.name AS provider_name").Joins("JOIN provider_models p ON p.id = b.provider_model_id").Joins("JOIN provider_connections c ON c.id = p.connection_id").Joins("JOIN providers pr ON pr.id = c.provider_id").Where("b.model_id = ? AND c.protocol = ?", modelID, protocol).Order("b.id").Scan(&routes).Error
 	if err != nil {
 		return nil, gatewayError(503, "upstream_unavailable", "Routing is temporarily unavailable.")
 	}

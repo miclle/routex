@@ -125,7 +125,11 @@ func validateCallPricing(fact CallFact) error {
 		return apperrors.ErrBadRequest
 	}
 	if fact.PriceBasis != nil {
-		if fact.PriceBasis.Schedule.ProviderModelID != fact.ProviderModelID || len(fact.PriceBasis.ETag) > 64 || len(fact.PriceBasis.Schedule.Rates) > 10 || len(fact.PriceBasis.Currency.Rates) > 7 {
+		providerMismatch := fact.PriceBasis.Schedule.ProviderModelID != fact.ProviderModelID
+		// Admission can reserve against a priced route before any attempt enters
+		// Execute. Its pricing snapshot retains that reservation evidence while the
+		// immutable provider topology correctly remains unknown.
+		if (providerMismatch && (!fact.NoWork || fact.ProviderModelID != "")) || len(fact.PriceBasis.ETag) > 64 || len(fact.PriceBasis.Schedule.Rates) > 10 || len(fact.PriceBasis.Currency.Rates) > 7 {
 			return apperrors.ErrBadRequest
 		}
 		if size := pricingBasisSize(fact.PriceBasis); size < 0 || size > callPricingSnapshotLimit {

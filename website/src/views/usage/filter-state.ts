@@ -44,7 +44,9 @@ export function readUsageFilters(
     'model_id',
     'status',
     'protocol',
-    ...(admin ? ['user_id', 'project_id', 'provider_model_id', 'connection_id'] : []),
+    ...(admin
+      ? ['user_id', 'project_id', 'provider_id', 'provider_model_id', 'connection_id']
+      : []),
   ]) {
     if (value(key)) Object.assign(next, { [key]: value(key) })
   }

@@ -161,6 +161,7 @@ export default function UsageFiltersForm({
               [
                 ['user_id', 'user'],
                 ['project_id', 'project'],
+                ['provider_id', 'provider'],
                 ['connection_id', 'connection'],
                 ['provider_model_id', 'providerModel'],
               ] as const

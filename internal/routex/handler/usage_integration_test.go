@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -51,7 +52,7 @@ func testUsageLifecycle(t *testing.T, db *gorm.DB) {
 	started := time.Date(2026, 8, 2, 12, 0, 0, 0, time.UTC)
 	input, output := int64(10), int64(2)
 	amount, currency, snapshot := "0.1", "USD", "{}"
-	fact := service.CallFact{RequestID: "req_usage_personal", UserID: users[0].ID, KeyID: "key_usage", ModelID: "mdl_usage", ModelName: "Historical name", ProviderModelID: "pmd_usage", ConnectionID: "con_usage", Protocol: entity.ProtocolOpenAIChat, Status: "success", StartedAt: started, CompletedAt: started.Add(150 * time.Millisecond), InputTokens: &input, OutputTokens: &output, Pricing: &service.CallPricing{Status: "priced", Amount: &amount, Currency: &currency, SnapshotJSON: &snapshot}}
+	fact := service.CallFact{RequestID: "req_usage_personal", UserID: users[0].ID, KeyID: "key_usage", ModelID: "mdl_usage", ModelName: "Historical name", ProviderID: "prv_usage", ProviderName: "Historical provider", ProviderModelID: "pmd_usage", UpstreamModelName: "Historical upstream", ConnectionID: "con_usage", ConnectionName: "Historical connection", Protocol: entity.ProtocolOpenAIChat, Status: "success", StartedAt: started, CompletedAt: started.Add(150 * time.Millisecond), InputTokens: &input, OutputTokens: &output, Pricing: &service.CallPricing{Status: "priced", Amount: &amount, Currency: &currency, SnapshotJSON: &snapshot}}
 	for range 2 {
 		if err := svc.RecordCall(context.Background(), fact); err != nil {
 			t.Fatal(err)
@@ -85,7 +86,19 @@ func testUsageLifecycle(t *testing.T, db *gorm.DB) {
 	other.UserID = users[1].ID
 	other.KeyID = "key_other"
 	other.ModelID = "mdl_other"
+	other.ProviderID = "prv_legacy"
+	other.ProviderName = "Legacy provider"
+	other.ProviderModelID = "pmd_legacy"
+	other.UpstreamModelName = "Legacy upstream"
+	other.ConnectionID = "con_legacy"
+	other.ConnectionName = "Legacy connection"
 	if err := svc.RecordCall(context.Background(), other); err != nil {
+		t.Fatal(err)
+	}
+	if err := db.Model(&entity.CallRecord{}).Where("request_id = ?", other.RequestID).Updates(map[string]any{"provider_name": "", "upstream_model_name": "", "connection_name": ""}).Error; err != nil {
+		t.Fatal(err)
+	}
+	if err := db.Create(&entity.Provider{ID: fact.ProviderID, Name: "Live renamed provider"}).Error; err != nil {
 		t.Fatal(err)
 	}
 	query := "?from=2026-08-02T00%3A00%3A00Z&to=2026-08-03T00%3A00%3A00Z&granularity=hour&compare=true"
@@ -102,7 +115,7 @@ func testUsageLifecycle(t *testing.T, db *gorm.DB) {
 		t.Fatal("query range/freshness metadata missing")
 	}
 	personalBody := read("/api/v1/usage"+query, managerCookie).Body.String()
-	for _, private := range []string{"pmd_usage", "con_usage", "provider_models", "connections", "snapshot_json"} {
+	for _, private := range []string{"prv_usage", "Historical provider", "pmd_usage", "Historical upstream", "con_usage", "Historical connection", "providers", "provider_models", "connections", "snapshot_json"} {
 		if strings.Contains(personalBody, private) {
 			t.Fatalf("personal statistics exposed %s", private)
 		}
@@ -120,23 +133,74 @@ func testUsageLifecycle(t *testing.T, db *gorm.DB) {
 		t.Fatal("stream filter ignored")
 	}
 	expectStatus(t, read("/api/v1/usage"+query+"&user_id="+users[1].ID, managerCookie), 400)
+	expectStatus(t, read("/api/v1/usage"+query+"&provider_id=prv_usage", managerCookie), 400)
 	expectStatus(t, read("/api/v1/usage"+query+"&team_id=team_hidden", managerCookie), 400)
 	expectStatus(t, read("/api/v1/usage"+query+"&timezone=invalid", managerCookie), 400)
 	projectPath := "/api/v1/projects/" + projectID + "/usage"
-	projectReport := decodeCatalogResponse[service.UsageReport](t, read(projectPath+query, managerCookie), 200)
+	projectResponse := read(projectPath+query, managerCookie)
+	projectReport := decodeCatalogResponse[service.UsageReport](t, projectResponse, 200)
 	if projectReport.Current.Summary.Requests != 1 {
 		t.Fatal("current manager cannot read archived Project history")
 	}
+	for _, private := range []string{"prv_usage", "Historical provider", "pmd_usage", "Historical upstream", "con_usage", "Historical connection", "providers", "provider_models", "connections"} {
+		if strings.Contains(projectResponse.Body.String(), private) {
+			t.Fatalf("Project statistics exposed %s", private)
+		}
+	}
+	expectStatus(t, read(projectPath+query+"&provider_id=prv_usage", managerCookie), 400)
 	expectStatus(t, read(projectPath+query, otherCookie), 404) // The creator is not implicitly a manager.
 	expectStatus(t, read("/api/v1/projects/prj_missing/usage"+query, adminCookie), 404)
-	adminReport := decodeCatalogResponse[service.UsageReport](t, read("/api/v1/admin/usage"+query, adminCookie), 200)
-	if adminReport.Current.Summary.Requests != 4 || len(adminReport.Current.Connections) != 1 || adminReport.Current.Connections[0].ID != "con_usage" {
+	adminResponse := read("/api/v1/admin/usage"+query, adminCookie)
+	adminReport := decodeCatalogResponse[service.UsageReport](t, adminResponse, 200)
+	if adminReport.Current.Summary.Requests != 4 || len(adminReport.Current.Providers) != 2 || len(adminReport.Current.Connections) != 2 {
 		t.Fatal("platform aggregation lost canonical route snapshots")
+	}
+	if !slices.Contains(adminReport.AvailableDimensions, "provider") || !strings.Contains(adminResponse.Body.String(), `"providers"`) {
+		t.Fatal("platform report omitted the provider dimension")
+	}
+	var historicalProvider, legacyProvider *service.UsageGroup
+	for index := range adminReport.Current.Providers {
+		group := &adminReport.Current.Providers[index]
+		switch group.ID {
+		case fact.ProviderID:
+			historicalProvider = group
+		case other.ProviderID:
+			legacyProvider = group
+		}
+	}
+	if historicalProvider == nil || historicalProvider.Name != fact.ProviderName || historicalProvider.Name == "Live renamed provider" || historicalProvider.Stats.Requests != 3 {
+		t.Fatalf("provider history was not snapshot-stable: %+v", historicalProvider)
+	}
+	if legacyProvider == nil || legacyProvider.Name != "" || legacyProvider.Unknown {
+		t.Fatalf("legacy provider ID/name semantics changed: %+v", legacyProvider)
+	}
+	findGroup := func(groups []service.UsageGroup, id string) *service.UsageGroup {
+		for index := range groups {
+			if groups[index].ID == id {
+				return &groups[index]
+			}
+		}
+		return nil
+	}
+	historicalProviderModel := findGroup(adminReport.Current.ProviderModels, fact.ProviderModelID)
+	historicalConnection := findGroup(adminReport.Current.Connections, fact.ConnectionID)
+	if historicalProviderModel == nil || historicalProviderModel.Name != fact.UpstreamModelName || historicalConnection == nil || historicalConnection.Name != fact.ConnectionName {
+		t.Fatal("historical provider-model or connection labels were omitted")
+	}
+	legacyProviderModel := findGroup(adminReport.Current.ProviderModels, other.ProviderModelID)
+	legacyConnection := findGroup(adminReport.Current.Connections, other.ConnectionID)
+	if legacyProviderModel == nil || legacyProviderModel.Name != "" || legacyProviderModel.Unknown || legacyConnection == nil || legacyConnection.Name != "" || legacyConnection.Unknown {
+		t.Fatalf("legacy topology IDs/names changed: provider_model=%+v connection=%+v", legacyProviderModel, legacyConnection)
 	}
 	filtered := decodeCatalogResponse[service.UsageReport](t, read("/api/v1/admin/usage"+query+"&project_id="+projectID+"&connection_id=con_usage", adminCookie), 200)
 	if filtered.Current.Summary.Requests != 1 {
 		t.Fatal("admin Project/connection filters lost")
 	}
+	providerFiltered := decodeCatalogResponse[service.UsageReport](t, read("/api/v1/admin/usage"+query+"&provider_id="+fact.ProviderID, adminCookie), 200)
+	if providerFiltered.Current.Summary.Requests != 3 || len(providerFiltered.Current.Providers) != 1 || providerFiltered.Current.Providers[0].ID != fact.ProviderID {
+		t.Fatal("admin provider filter or grouping lost")
+	}
+	expectStatus(t, read("/api/v1/admin/usage"+query+"&provider_id=prv_%25", adminCookie), 400)
 	// Legacy inconsistent creator attribution must not leak Project calls into personal totals.
 	if err := db.Model(&entity.CallRecord{}).Where("request_id = ?", project.RequestID).Update("user_id", users[0].ID).Error; err != nil {
 		t.Fatal(err)

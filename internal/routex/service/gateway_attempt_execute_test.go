@@ -59,6 +59,15 @@ func TestGatewayAttemptExecutionRetriesOnlyProvenRejections(t *testing.T) {
 				if err != nil || result.Response == nil || result.AttemptID == "" || result.Attempts[0].AttemptNumber != 1 {
 					t.Fatalf("retry result = %+v, error = %v", result, err)
 				}
+				if result.ConnectionID == result.Attempts[0].ConnectionID || result.ProviderName == "" || result.ConnectionName == "" || result.UpstreamModelName == "" {
+					t.Fatalf("final route attribution did not follow failover: %+v", result)
+				}
+				if result.ConnectionID == "con_one" && (result.ProviderID != "prv_one" || result.ProviderName != "Provider One" || result.ConnectionName != "Primary" || result.UpstreamModelName != "provider-model") {
+					t.Fatalf("primary route attribution mismatch: %+v", result)
+				}
+				if result.ConnectionID == "con_two" && (result.ProviderID != "prv_two" || result.ProviderName != "Provider Two" || result.ConnectionName != "Secondary" || result.UpstreamModelName != "provider-model-two") {
+					t.Fatalf("secondary route attribution mismatch: %+v", result)
+				}
 				_ = result.Response.Body.Close()
 				return
 			}
@@ -203,6 +212,9 @@ func TestGatewayCancellationAfterAdmissionPersistsNoWorkEconomics(t *testing.T) 
 	if callErr == nil || result == nil || calls.Load() != 0 || !result.Admitted || result.AttemptID != "" || len(result.Attempts) != 0 || result.RouteStopReason != "canceled" || !result.NoUpstreamWork() {
 		t.Fatalf("admitted cancellation = %+v, calls = %d, error = %v", result, calls.Load(), callErr)
 	}
+	if attribution := result.ProviderAttribution(); attribution != (CallProviderAttribution{}) {
+		t.Fatalf("unattempted cancellation gained provider attribution: %+v", attribution)
+	}
 	fact := CallFact{RequestID: "req_admitted_cancel", SnapshotID: result.SnapshotID, UserID: result.UserID, KeyID: result.KeyID, ModelID: result.ModelID, ModelName: result.ModelName, ProviderModelID: result.ProviderModelID, ConnectionID: result.ConnectionID, RouteStopReason: result.RouteStopReason, Protocol: result.NativeProtocol(), Status: "canceled", StartedAt: started, CompletedAt: time.Now().UTC(), NoWork: result.NoUpstreamWork(), PricingUnsupported: result.PricingUnsupported, PricingDimensions: result.PricingDimensions, PriceBasis: result.PriceBasis, ErrorCode: "canceled"}
 	if err := svc.PersistGatewayCall(context.Background(), fact); err != nil {
 		t.Fatal(err)
@@ -216,7 +228,7 @@ func TestGatewayCancellationAfterAdmissionPersistsNoWorkEconomics(t *testing.T) 
 		t.Fatalf("entries = %+v, error = %v", entries, err)
 	}
 	var persisted CallFact
-	if err := json.Unmarshal(entries[0].Payload, &persisted); err != nil || !persisted.NoWork || persisted.Pricing == nil || persisted.Pricing.Status != "no_work" || !zeroCounter(persisted.InputTokens) || !zeroCounter(persisted.OutputTokens) || !zeroCounter(persisted.CacheReadTokens) || !zeroCounter(persisted.CacheWriteTokens) {
+	if err := json.Unmarshal(entries[0].Payload, &persisted); err != nil || !persisted.NoWork || persisted.Pricing == nil || persisted.Pricing.Status != "no_work" || !zeroCounter(persisted.InputTokens) || !zeroCounter(persisted.OutputTokens) || !zeroCounter(persisted.CacheReadTokens) || !zeroCounter(persisted.CacheWriteTokens) || persisted.ProviderID != "" || persisted.ProviderName != "" || persisted.ProviderModelID != "" || persisted.ConnectionID != "" || persisted.ConnectionName != "" || persisted.UpstreamModelName != "" {
 		t.Fatalf("persisted no-work fact = %+v, error = %v", persisted, err)
 	}
 	if err := queue.Close(); err != nil {
@@ -261,7 +273,7 @@ func TestGatewayAttemptFinalizesOneReceiptAfterRetry(t *testing.T) {
 	completed := time.Now().UTC()
 	attempts := append([]CallAttempt(nil), result.Attempts...)
 	attempts = append(attempts, CallAttempt{ID: result.AttemptID, ProviderModelID: result.ProviderModelID, ConnectionID: result.ConnectionID, AttemptNumber: 2, Status: "success", FailureClass: "success", WorkEvidence: "completed", StartedAt: result.AttemptStartedAt, CompletedAt: completed, HTTPStatus: http.StatusOK})
-	fact := CallFact{RequestID: "req_attempt_final", SnapshotID: result.SnapshotID, UserID: result.UserID, KeyID: result.KeyID, ModelID: result.ModelID, ModelName: result.ModelName, ProviderModelID: result.ProviderModelID, ConnectionID: result.ConnectionID, RouteStopReason: "succeeded", Protocol: result.NativeProtocol(), Status: "success", StartedAt: attempts[0].StartedAt, CompletedAt: completed, Attempts: attempts}
+	fact := CallFact{RequestID: "req_attempt_final", SnapshotID: result.SnapshotID, UserID: result.UserID, KeyID: result.KeyID, ModelID: result.ModelID, ModelName: result.ModelName, ProviderID: result.ProviderID, ProviderName: result.ProviderName, ProviderModelID: result.ProviderModelID, ConnectionID: result.ConnectionID, ConnectionName: result.ConnectionName, UpstreamModelName: result.UpstreamModelName, RouteStopReason: "succeeded", Protocol: result.NativeProtocol(), Status: "success", StartedAt: attempts[0].StartedAt, CompletedAt: completed, Attempts: attempts}
 	if err := svc.PersistGatewayCall(context.Background(), fact); err != nil {
 		t.Fatal(err)
 	}
@@ -274,7 +286,7 @@ func TestGatewayAttemptFinalizesOneReceiptAfterRetry(t *testing.T) {
 		t.Fatalf("entries = %+v, error = %v", entries, err)
 	}
 	var persisted CallFact
-	if err := json.Unmarshal(entries[0].Payload, &persisted); err != nil || len(persisted.Attempts) != 2 {
+	if err := json.Unmarshal(entries[0].Payload, &persisted); err != nil || len(persisted.Attempts) != 2 || persisted.ProviderID != result.ProviderID || persisted.ProviderName != result.ProviderName || persisted.ConnectionName != result.ConnectionName || persisted.UpstreamModelName != result.UpstreamModelName {
 		t.Fatalf("persisted = %+v, error = %v", persisted, err)
 	}
 }
@@ -416,7 +428,8 @@ func addSecondGatewayAttemptRoute(t *testing.T, svc *Service, data *runtimeData,
 		t.Fatal(err)
 	}
 	data.Bindings[0].Weight = 50
-	data.Connections = append(data.Connections, entity.ProviderConnection{ID: "con_two", ProviderID: "prv_two", BaseURL: baseURL, Protocol: entity.ProtocolOpenAIChat})
+	data.Providers = append(data.Providers, entity.Provider{ID: "prv_two", Name: "Provider Two"})
+	data.Connections = append(data.Connections, entity.ProviderConnection{ID: "con_two", ProviderID: "prv_two", Name: "Secondary", BaseURL: baseURL, Protocol: entity.ProtocolOpenAIChat})
 	data.ProviderModels = append(data.ProviderModels, entity.ProviderModel{ID: "pmd_two", ConnectionID: "con_two", UpstreamName: "provider-model-two"})
 	data.Credentials = append(data.Credentials, entity.ProviderCredential{ID: "crd_two", ConnectionID: "con_two", Ciphertext: ciphertext, Enabled: true, VerificationStatus: "verified"})
 	data.Access = append(data.Access, entity.CredentialModelAccess{CredentialID: "crd_two", ProviderModelID: "pmd_two"})

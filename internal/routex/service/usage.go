@@ -23,10 +23,10 @@ func (s *Service) AdminUsage(ctx context.Context, actorID string, filter UsageFi
 	return s.queryUsage(ctx, actorID, "admin", "", filter)
 }
 func validateUsageFilter(filter UsageFilter, admin bool) error {
-	if !admin && (filter.UserID != "" || filter.ProjectID != "" || filter.ProviderModelID != "" || filter.ConnectionID != "") {
+	if !admin && (filter.UserID != "" || filter.ProjectID != "" || filter.ProviderID != "" || filter.ProviderModelID != "" || filter.ConnectionID != "") {
 		return apperrors.ErrBadRequest
 	}
-	for _, value := range []string{filter.ModelID, filter.KeyID, filter.UserID, filter.ProjectID, filter.ProviderModelID, filter.ConnectionID} {
+	for _, value := range []string{filter.ModelID, filter.KeyID, filter.UserID, filter.ProjectID, filter.ProviderID, filter.ProviderModelID, filter.ConnectionID} {
 		if value != "" && !safeCallID.MatchString(value) {
 			return apperrors.ErrBadRequest
 		}
@@ -43,7 +43,7 @@ func validateUsageFilter(filter UsageFilter, admin bool) error {
 	return nil
 }
 func usageQueryFilters(query *gorm.DB, filter UsageFilter) *gorm.DB {
-	for _, item := range []struct{ column, value string }{{"model_id", filter.ModelID}, {"key_id", filter.KeyID}, {"status", filter.Status}, {"protocol", filter.Protocol}, {"user_id", filter.UserID}, {"project_id", filter.ProjectID}, {"provider_model_id", filter.ProviderModelID}, {"connection_id", filter.ConnectionID}} {
+	for _, item := range []struct{ column, value string }{{"model_id", filter.ModelID}, {"key_id", filter.KeyID}, {"status", filter.Status}, {"protocol", filter.Protocol}, {"user_id", filter.UserID}, {"project_id", filter.ProjectID}, {"provider_id", filter.ProviderID}, {"provider_model_id", filter.ProviderModelID}, {"connection_id", filter.ConnectionID}} {
 		if item.value != "" {
 			query = query.Where(item.column+" = ?", item.value)
 		}
@@ -108,7 +108,7 @@ func (s *Service) queryUsage(ctx context.Context, actorID, scope, projectID stri
 		if err := authorizeUsage(tx, actorID, scope, projectID); err != nil {
 			return err
 		}
-		query := tx.Model(&entity.CallRecord{}).Select([]string{"request_id", "key_id", "model_id", "model_name", "provider_model_id", "connection_id", "status", "started_at", "completed_at", "duration_ms", "input_tokens", "output_tokens", "pricing_status", "charge_amount", "charge_currency"}).Where("started_at >= ? AND started_at < ?", from, plan.current.to)
+		query := tx.Model(&entity.CallRecord{}).Select([]string{"request_id", "key_id", "model_id", "model_name", "provider_id", "provider_name", "provider_model_id", "upstream_model_name", "connection_id", "connection_name", "status", "started_at", "completed_at", "duration_ms", "input_tokens", "output_tokens", "pricing_status", "charge_amount", "charge_currency"}).Where("started_at >= ? AND started_at < ?", from, plan.current.to)
 		switch scope {
 		case "personal":
 			query = query.Where("user_id = ? AND project_id = ?", actorID, "")
@@ -147,7 +147,7 @@ func (s *Service) queryUsage(ctx context.Context, actorID, scope, projectID stri
 		result.Previous = &previous
 	}
 	if admin {
-		result.AvailableDimensions = append(result.AvailableDimensions, "provider_model", "connection")
+		result.AvailableDimensions = append(result.AvailableDimensions, "provider", "provider_model", "connection")
 	}
 	for _, row := range rows {
 		if result.LatestCompletedAt == nil || row.CompletedAt.After(*result.LatestCompletedAt) {
