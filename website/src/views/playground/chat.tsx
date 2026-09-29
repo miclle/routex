@@ -213,11 +213,12 @@ export default function ChatWorkbench() {
             .catch(() => undefined)
           return
         }
-        const storedCapability = attachment.mime.startsWith('image/')
-          ? 'image'
-          : attachment.mime === 'application/pdf'
-            ? 'pdf'
-            : null
+        const storedCapability =
+          attachment.mime === 'image/png' || attachment.mime === 'image/jpeg'
+            ? 'image'
+            : attachment.mime === 'application/pdf'
+              ? 'pdf'
+              : null
         if (!storedCapability || !inputCapabilities.includes(storedCapability)) {
           setError('playground:attachmentType')
           await deleteAttachment(attachment.id, csrf)

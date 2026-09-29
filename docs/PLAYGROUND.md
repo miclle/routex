@@ -1,6 +1,6 @@
 # Playground
 
-Playground is a native conversation and model comparison client for native OpenAI Chat Completions, OpenAI Responses, Anthropic Messages, and Gemini Generate Content. The single-model conversation supports personally owned PNG, JPEG, and PDF attachments. It makes real requests; it does not synthesize responses or usage statistics. Other protocols, session-based inference, comparison attachments, and tools remain separate work packages.
+Playground is a native conversation and model comparison client for native OpenAI Chat Completions, OpenAI Responses, Anthropic Messages, and Gemini Generate Content. Both workbenches support personally owned PNG, JPEG, and PDF attachments. It makes real requests; it does not synthesize responses or usage statistics. Other protocols, session-based inference, and tools remain separate work packages.
 
 ## Workflow
 
@@ -70,7 +70,7 @@ To bound browser memory, an individual buffered SSE event is limited to 1,048,57
 
 `website/src/api/playground-responses.test.ts` additionally covers native Responses bodies, accepted HTTP 202, typed terminal states, authoritative usage, refusals, malformed/truncated streams, non-text output, secret redaction, and cancellation.
 
-`website/src/api/attachments.test.ts`, `website/src/lib/playground-attachments.test.ts`, and `website/src/views/playground/playground.test.tsx` cover the isolated session/CSRF upload boundary, all four native reference shapes, capability and Personal-Key gating, type/size/count validation, deduplication, chip removal, filename transcript rendering, settlement cleanup, bilingual pending state, late upload cleanup after navigation, Key isolation, cancellation, successful-only conversation history, and active-inference unmount abort.
+`website/src/api/attachments.test.ts`, `website/src/lib/playground-attachments.test.ts`, `website/src/views/playground/playground.test.tsx`, and `website/src/views/playground/compare.test.tsx` cover the isolated session/CSRF upload boundary, all four native reference shapes, capability and Personal-Key gating, exact returned MIME validation, type/size/count validation, deduplication, chip removal, filename transcript rendering, settlement cleanup, bilingual pending state, late multi-file upload cleanup after navigation, Key isolation, cancellation, successful-only conversation history, and active-inference unmount abort.
 
 Run `npm --prefix website test`, `npm --prefix website run lint`, and `npm --prefix website run build`. These tests validate the client with controlled responses. They do not establish real-provider compatibility or production readiness; gateway integration and real-provider smoke tests remain separate evidence.
 
@@ -80,11 +80,13 @@ The Model conversation and Model comparison tabs keep separate transient workben
 
 Comparison uses a shared credential toolbar, two initial model columns, and one shared message composer. Add comparison creates up to four columns; remove controls appear only above the two-column minimum. Columns scroll horizontally with a 300-pixel minimum width. Each column selects its own currently eligible Chat, Responses, Messages, or Gemini protocol and displays the actual endpoint, partial output, terminal status, Request ID, observed elapsed time, and authoritative usage. Verification uses one transient personal or Project Key, and models with explicit empty protocol capabilities are unavailable.
 
+The shared composer preserves the approved chips-above-textarea layout, lower-left paperclip, and lower-right send action. Attachment types are the conservative intersection of every selected column's effective protocol capabilities, and every selected model must permit personal attachments. One session/CSRF upload creates the shared transient draft; the same owner-bound references are encoded into each column's native current turn while requests and cancellation remain independent. Changing the Key, a model, a protocol, or the column set invalidates and deletes the draft. After submission, object deletion starts only after every column settles and cannot block the next message; the durable one-hour expiry covers failed or interrupted cleanup.
+
 Send captures one message and concurrently dispatches an independent native request to each selected column. The comparison defaults are streaming, Temperature 0.7, Top P 1, and 2,048 maximum output Tokens. Per-column Stop only aborts that column; failure or cancellation does not stop siblings. Removing a column or changing its model/protocol cancels that column's request and clears only its history. Global sending waits until all current requests settle, with a synchronous guard against duplicate dispatch.
 
-Subsequent requests include only the successful text history of their own column. Failed, incomplete, accepted, and canceled turns remain visible but are excluded from later context. Clear all resets all histories; clearing/changing the Key also resets models and drafts. There are no simulated responses or session-inference controls. Comparison attachment controls remain a separate package.
+Subsequent requests include only the successful text history of their own column. Failed, incomplete, accepted, and canceled turns remain visible but are excluded from later context. Submitted filenames remain visible under each column's user message without replaying object references. Clear all resets all histories; clearing/changing the Key also resets models and drafts. There are no simulated responses or session-inference controls.
 
-`website/src/views/playground/compare.test.tsx` covers the two-to-four column bounds, eligible protocols, concurrent native bodies, independent histories/errors/cancellation, duplicate sends, per-column resets, credential clearing, tab teardown, and bilingual accessibility/draft preservation. All client tests use controlled mocked transports, separate from paid-provider or real gateway acceptance.
+`website/src/views/playground/compare.test.tsx` covers the two-to-four column bounds, eligible protocols, shared-composer placement, capability intersection, concurrent native attachment bodies, independent histories/errors/cancellation, non-blocking cleanup, duplicate sends, context invalidation, credential clearing, stale multi-file upload termination, tab teardown, and bilingual accessibility/draft preservation. All client tests use controlled mocked transports, separate from paid-provider or real gateway acceptance.
 
 ## Native Messages
 

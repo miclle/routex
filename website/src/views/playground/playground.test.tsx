@@ -416,15 +416,15 @@ describe('Playground user behavior', () => {
     expect(uploadAttachment).not.toHaveBeenCalled()
 
     vi.mocked(uploadAttachment).mockResolvedValueOnce({
-      id: 'obj_server_pdf',
+      id: 'obj_server_gif',
       name: 'spoofed.png',
-      mime: 'application/pdf',
+      mime: 'image/gif',
       size: 8,
       state: 'ready',
       created_at: '2026-09-29T12:00:00Z',
     })
     await chooseFiles([new File(['spoof'], 'spoofed.png', { type: 'image/png' })])
-    expect(deleteAttachment).toHaveBeenCalledWith('obj_server_pdf', 'csrf-playground')
+    expect(deleteAttachment).toHaveBeenCalledWith('obj_server_gif', 'csrf-playground')
     expect(container.textContent).not.toContain('spoofed.png')
 
     await chooseFiles([

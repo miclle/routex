@@ -1,9 +1,17 @@
 import type { SnippetInput } from '@/lib/playground-snippet'
 import CodeDialog from './code-dialog'
+import { AttachmentChips, AttachmentPicker } from './attachments'
 import { isGeminiModelName, protocolLabel } from '@/lib/protocols'
+import {
+  buildChatAttachmentContent,
+  buildGeminiAttachmentParts,
+  buildMessagesAttachmentContent,
+  buildResponsesAttachmentContent,
+} from '@/lib/playground-attachments'
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Code, Plus, Send, Square, Trash2, X } from 'lucide-react'
+import { AttachmentError, deleteAttachment, uploadAttachment } from '@/api/attachments'
 import {
   GatewayError,
   getGatewayModels,
@@ -13,12 +21,19 @@ import {
   runGemini,
 } from '@/api/playground'
 import type {
+  ChatCurrentTurnMessage,
   ChatMessage,
   ChatResult,
   GatewayModel,
+  MessagesCurrentTurnMessage,
+  MessagesHistoryMessage,
   PlaygroundProtocol,
+  ResponsesCurrentTurnItem,
+  ResponsesHistoryItem,
   ResponseStatus,
 } from '@/types/playground'
+import type { Attachment } from '@/types/attachments'
+import { useSession } from '@/hooks/use-auth'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
@@ -28,6 +43,7 @@ import { FormField } from '@/components/app/CatalogUI'
 type Turn = ChatResult & {
   id: string
   prompt: string
+  attachments: string[]
   status:
     | 'running'
     | 'completed'
@@ -43,6 +59,23 @@ type Turn = ChatResult & {
   duration?: number
 }
 type Lane = { id: number; model: string; protocol: PlaygroundProtocol; turns: Turn[] }
+
+const maxAttachmentBytes = 2 << 20
+const maxAttachments = 4
+
+function attachmentCapability(file: File): 'image' | 'pdf' | null {
+  const name = file.name.toLowerCase()
+  if (
+    file.type === 'image/png' ||
+    file.type === 'image/jpeg' ||
+    name.endsWith('.png') ||
+    name.endsWith('.jpg') ||
+    name.endsWith('.jpeg')
+  )
+    return 'image'
+  if (file.type === 'application/pdf' || name.endsWith('.pdf')) return 'pdf'
+  return null
+}
 function protocols(model?: GatewayModel): PlaygroundProtocol[] {
   return (model?.protocols ?? ['openai_chat']).filter(
     (value): value is PlaygroundProtocol =>
@@ -58,31 +91,184 @@ function makeLane(id: number, model?: GatewayModel): Lane {
 const selectClass = 'h-10 min-w-0 flex-1 rounded-md border bg-background px-3 text-sm'
 export default function CompareWorkbench() {
   const { t } = useTranslation('playground')
+  const session = useSession()
   const [codeRequest, setCodeRequest] = useState<SnippetInput | null>(null)
   const [key, setKey] = useState('')
   const [models, setModels] = useState<GatewayModel[]>([])
   const [lanes, setLanes] = useState<Lane[]>([makeLane(1), makeLane(2)])
   const [prompt, setPrompt] = useState('')
+  const [attachments, setAttachments] = useState<Attachment[]>([])
+  const [uploadingNames, setUploadingNames] = useState<string[]>([])
+  const [attachmentError, setAttachmentError] = useState('')
   const [loading, setLoading] = useState(false)
   const [checked, setChecked] = useState(false)
   const [error, setError] = useState<string | GatewayError>('')
   const nextID = useRef(3)
   const active = useRef(new Map<number, AbortController>())
   const verification = useRef<AbortController | null>(null)
+  const attachmentGeneration = useRef(0)
+  const attachmentRef = useRef<Attachment[]>([])
+  const ownedAttachmentIDs = useRef(new Set<string>())
+  const csrfRef = useRef('')
   const lock = useRef(false)
   const mounted = useRef(true)
-  const busy = loading || lanes.some((lane) => lane.turns.some((turn) => turn.status === 'running'))
+  const requestRunning = lanes.some((lane) => lane.turns.some((turn) => turn.status === 'running'))
+  const busy = loading || uploadingNames.length > 0 || requestRunning
+  const laneCapabilities = lanes.map((lane) => {
+    const selected = models.find((item) => item.id === lane.model)
+    return {
+      personal: selected?.personal_attachments === true,
+      values: selected?.input_capabilities?.[lane.protocol] ?? [],
+    }
+  })
+  const inputCapabilities = (['image', 'pdf'] as const).filter((capability) =>
+    laneCapabilities.every((item) => item.values.includes(capability)),
+  )
+  const attachmentAccept = [
+    ...(inputCapabilities.includes('image') ? ['image/png', 'image/jpeg'] : []),
+    ...(inputCapabilities.includes('pdf') ? ['application/pdf'] : []),
+  ].join(',')
+  const canAttach =
+    !!session.data &&
+    lanes.every((lane) => !!lane.model) &&
+    laneCapabilities.every((item) => item.personal) &&
+    inputCapabilities.length > 0
+
+  function replaceAttachments(update: (current: Attachment[]) => Attachment[]) {
+    setAttachments((current) => {
+      const next = update(current)
+      attachmentRef.current = next
+      return next
+    })
+  }
+
+  async function releaseAttachments(items: Attachment[], csrf = csrfRef.current) {
+    if (!csrf) return
+    const owned = items.filter((attachment) => ownedAttachmentIDs.current.has(attachment.id))
+    const results = await Promise.allSettled(
+      owned.map(async (attachment) => {
+        await deleteAttachment(attachment.id, csrf)
+        ownedAttachmentIDs.current.delete(attachment.id)
+      }),
+    )
+    if (mounted.current && results.some((result) => result.status === 'rejected'))
+      setAttachmentError('attachmentDeleteFailed')
+  }
+
+  function clearDraftAttachments() {
+    attachmentGeneration.current += 1
+    const current = attachmentRef.current
+    attachmentRef.current = []
+    setAttachments([])
+    setUploadingNames([])
+    setAttachmentError('')
+    void releaseAttachments(current)
+  }
+
+  useEffect(() => {
+    csrfRef.current = session.data?.csrf_token ?? ''
+  }, [session.data?.csrf_token])
   useEffect(() => {
     mounted.current = true
     const controllers = active.current
+    const activeOwnedAttachmentIDs = ownedAttachmentIDs.current
     return () => {
       mounted.current = false
+      attachmentGeneration.current += 1
       verification.current?.abort()
       for (const controller of controllers.values()) controller.abort()
       controllers.clear()
+      attachmentRef.current = []
+      const csrf = csrfRef.current
+      const ownedIDs = [...activeOwnedAttachmentIDs]
+      activeOwnedAttachmentIDs.clear()
+      if (csrf) for (const id of ownedIDs) void deleteAttachment(id, csrf).catch(() => undefined)
     }
   }, [])
+
+  async function selectAttachments(files: File[]) {
+    if (!session.data || !canAttach || busy) return
+    setAttachmentError('')
+    const csrf = session.data.csrf_token
+    const generation = attachmentGeneration.current
+    const knownNames = new Set([
+      ...attachmentRef.current.map((attachment) => attachment.name),
+      ...uploadingNames,
+    ])
+    let remaining = maxAttachments - knownNames.size
+    for (const file of files) {
+      if (!mounted.current || attachmentGeneration.current !== generation) return
+      if (knownNames.has(file.name)) {
+        setAttachmentError('attachmentDuplicate')
+        continue
+      }
+      if (remaining <= 0) {
+        setAttachmentError('attachmentLimit')
+        break
+      }
+      const capability = attachmentCapability(file)
+      if (!capability || !inputCapabilities.includes(capability)) {
+        setAttachmentError('attachmentType')
+        continue
+      }
+      if (file.size <= 0 || file.size > maxAttachmentBytes) {
+        setAttachmentError('attachmentSize')
+        continue
+      }
+      knownNames.add(file.name)
+      remaining -= 1
+      setUploadingNames((current) => [...current, file.name])
+      try {
+        const attachment = await uploadAttachment(file, csrf)
+        ownedAttachmentIDs.current.add(attachment.id)
+        if (!mounted.current || attachmentGeneration.current !== generation) {
+          await deleteAttachment(attachment.id, csrf)
+            .then(() => ownedAttachmentIDs.current.delete(attachment.id))
+            .catch(() => undefined)
+          return
+        }
+        const storedCapability =
+          attachment.mime === 'image/png' || attachment.mime === 'image/jpeg'
+            ? 'image'
+            : attachment.mime === 'application/pdf'
+              ? 'pdf'
+              : null
+        if (!storedCapability || !inputCapabilities.includes(storedCapability)) {
+          setAttachmentError('attachmentType')
+          await deleteAttachment(attachment.id, csrf)
+            .then(() => ownedAttachmentIDs.current.delete(attachment.id))
+            .catch(() => undefined)
+          continue
+        }
+        replaceAttachments((current) => [...current, attachment])
+      } catch (failure) {
+        if (mounted.current && attachmentGeneration.current === generation) {
+          setAttachmentError(
+            failure instanceof AttachmentError && failure.status === 429
+              ? 'attachmentStorageLimit'
+              : failure instanceof AttachmentError && failure.status === 503
+                ? 'attachmentStorageUnavailable'
+                : 'attachmentUploadFailed',
+          )
+        }
+      } finally {
+        if (mounted.current && attachmentGeneration.current === generation)
+          setUploadingNames((current) => current.filter((name) => name !== file.name))
+      }
+    }
+  }
+
+  function removeAttachment(attachment: Attachment) {
+    replaceAttachments((current) => current.filter((item) => item.id !== attachment.id))
+    void deleteAttachment(attachment.id, csrfRef.current)
+      .then(() => ownedAttachmentIDs.current.delete(attachment.id))
+      .catch(() => {
+        if (mounted.current) setAttachmentError('attachmentDeleteFailed')
+      })
+  }
+
   function changeKey(value: string) {
+    clearDraftAttachments()
     setKey(value)
     setModels([])
     setLanes([makeLane(1), makeLane(2)])
@@ -103,6 +289,7 @@ export default function CompareWorkbench() {
         (item) => protocols(item).length,
       )
       if (!mounted.current || abort.signal.aborted) return
+      clearDraftAttachments()
       setModels(available)
       setLanes([makeLane(1, available[0]), makeLane(2, available[1] ?? available[0])])
       nextID.current = 3
@@ -118,6 +305,7 @@ export default function CompareWorkbench() {
   }
   function add() {
     if (busy || lanes.length >= 4 || !models.length) return
+    clearDraftAttachments()
     const selected = new Set(lanes.map((lane) => lane.model))
     const model = models.find((item) => !selected.has(item.id)) ?? models[0]
     const id = nextID.current++
@@ -125,12 +313,17 @@ export default function CompareWorkbench() {
   }
   function remove(id: number) {
     if (lanes.length <= 2) return
+    clearDraftAttachments()
     active.current.get(id)?.abort()
     active.current.delete(id)
     setLanes((current) => (current.length > 2 ? current.filter((lane) => lane.id !== id) : current))
   }
   function showCode(lane: Lane) {
-    if (!protocols(models.find((item) => item.id === lane.model)).includes(lane.protocol) || busy)
+    if (
+      !protocols(models.find((item) => item.id === lane.model)).includes(lane.protocol) ||
+      busy ||
+      attachments.length > 0
+    )
       return
     setCodeRequest({
       origin: window.location.origin,
@@ -153,6 +346,7 @@ export default function CompareWorkbench() {
     })
   }
   function change(id: number, model: string, protocol?: PlaygroundProtocol) {
+    clearDraftAttachments()
     active.current.get(id)?.abort()
     active.current.delete(id)
     const next = models.find((item) => item.id === model)
@@ -164,7 +358,7 @@ export default function CompareWorkbench() {
       ),
     )
   }
-  async function run(lane: Lane, text: string) {
+  async function run(lane: Lane, text: string, submittedAttachments: Attachment[]) {
     const abort = new AbortController()
     active.current.set(lane.id, abort)
     const id = crypto.randomUUID(),
@@ -172,6 +366,7 @@ export default function CompareWorkbench() {
     const initial: Turn = {
       id,
       prompt: text,
+      attachments: submittedAttachments.map((attachment) => attachment.name),
       status: 'running',
       text: '',
       requestId: '',
@@ -203,7 +398,6 @@ export default function CompareWorkbench() {
           { role: 'user', content: turn.prompt },
           { role: 'assistant', content: turn.text },
         ]),
-      { role: 'user', content: text },
     ]
     const parameters = { model: lane.model, stream: true, temperature: 0.7, top_p: 1 }
     try {
@@ -213,10 +407,16 @@ export default function CompareWorkbench() {
           {
             model: lane.model,
             stream: true,
-            contents: messages.map((message) => ({
-              role: message.role === 'assistant' ? ('model' as const) : ('user' as const),
-              parts: [{ text: message.content }],
-            })),
+            contents: [
+              ...messages.map((message) => ({
+                role: message.role === 'assistant' ? ('model' as const) : ('user' as const),
+                parts: [{ text: message.content }],
+              })),
+              {
+                role: 'user' as const,
+                parts: buildGeminiAttachmentParts(text, submittedAttachments),
+              },
+            ],
             generationConfig: {
               temperature: 0.7,
               topP: 1,
@@ -233,11 +433,18 @@ export default function CompareWorkbench() {
           duration: Math.round(performance.now() - started),
         })
       } else if (lane.protocol === 'anthropic_messages') {
+        const currentMessage: MessagesHistoryMessage | MessagesCurrentTurnMessage =
+          submittedAttachments.length > 0
+            ? {
+                role: 'user',
+                content: buildMessagesAttachmentContent(text, submittedAttachments),
+              }
+            : { role: 'user', content: text }
         const result = await runMessages(
           key.trim(),
           {
             ...parameters,
-            messages: messages as { role: 'user' | 'assistant'; content: string }[],
+            messages: [...(messages as MessagesHistoryMessage[]), currentMessage],
             max_tokens: 2048,
           },
           abort.signal,
@@ -249,11 +456,18 @@ export default function CompareWorkbench() {
           duration: Math.round(performance.now() - started),
         })
       } else if (lane.protocol === 'openai_responses') {
+        const currentItem: ResponsesHistoryItem | ResponsesCurrentTurnItem =
+          submittedAttachments.length > 0
+            ? {
+                role: 'user',
+                content: buildResponsesAttachmentContent(text, submittedAttachments),
+              }
+            : { role: 'user', content: text }
         const result = await runResponses(
           key.trim(),
           {
             ...parameters,
-            input: messages as { role: 'user' | 'assistant'; content: string }[],
+            input: [...(messages as ResponsesHistoryItem[]), currentItem],
             max_output_tokens: 2048,
           },
           abort.signal,
@@ -273,9 +487,21 @@ export default function CompareWorkbench() {
           duration: Math.round(performance.now() - started),
         })
       } else {
+        const currentMessage: ChatMessage | ChatCurrentTurnMessage =
+          submittedAttachments.length > 0
+            ? {
+                role: 'user',
+                content: buildChatAttachmentContent(text, submittedAttachments),
+              }
+            : { role: 'user', content: text }
         const result = await runChat(
           key.trim(),
-          { ...parameters, messages, max_tokens: 2048, stream_options: { include_usage: true } },
+          {
+            ...parameters,
+            messages: [...messages, currentMessage],
+            max_tokens: 2048,
+            stream_options: { include_usage: true },
+          },
           abort.signal,
           update,
         )
@@ -318,11 +544,18 @@ export default function CompareWorkbench() {
       return
     lock.current = true
     const captured = prompt.trim()
+    const submittedAttachments = attachmentRef.current
+    attachmentGeneration.current += 1
+    attachmentRef.current = []
+    setAttachments([])
+    setUploadingNames([])
+    setAttachmentError('')
     setPrompt('')
     try {
-      await Promise.allSettled(lanes.map((lane) => run(lane, captured)))
+      await Promise.allSettled(lanes.map((lane) => run(lane, captured, submittedAttachments)))
     } finally {
       lock.current = false
+      void releaseAttachments(submittedAttachments)
     }
   }
   return (
@@ -416,7 +649,7 @@ export default function CompareWorkbench() {
                   size="icon"
                   variant="ghost"
                   aria-label={t('laneCode', { count: index + 1 })}
-                  disabled={busy || !lane.model}
+                  disabled={busy || attachments.length > 0 || !lane.model}
                   onClick={() => showCode(lane)}
                 >
                   <Code className="size-4" />
@@ -499,6 +732,11 @@ export default function CompareWorkbench() {
                   <p className="ml-auto max-w-[88%] whitespace-pre-wrap rounded-lg border p-2.5 text-sm">
                     {turn.prompt}
                   </p>
+                  {turn.attachments.length > 0 && (
+                    <p className="ml-auto max-w-[88%] text-right text-xs text-muted-foreground">
+                      {turn.attachments.join(' · ')}
+                    </p>
+                  )}
                   <Badge variant="outline">{t(`state_${turn.status}`)}</Badge>
                   <p className="whitespace-pre-wrap break-words text-sm leading-7">
                     {turn.text || t(turn.status === 'running' ? 'waitingOutput' : 'noText')}
@@ -553,6 +791,19 @@ export default function CompareWorkbench() {
         ))}
       </div>
       <div className="space-y-3 border-t p-4">
+        <AttachmentChips
+          attachments={attachments}
+          uploadingNames={uploadingNames}
+          disabled={busy}
+          removeLabel={(name) => t('removeAttachment', { name })}
+          uploadingLabel={(name) => t('attachmentUploadingLabel', { name })}
+          onRemove={removeAttachment}
+        />
+        {attachmentError && (
+          <p role="alert" className="text-sm text-destructive">
+            {t(attachmentError)}
+          </p>
+        )}
         <Textarea
           name="comparison_prompt"
           aria-label={t('comparisonPrompt')}
@@ -568,15 +819,33 @@ export default function CompareWorkbench() {
             }
           }}
         />
-        <div className="flex justify-end">
-          <Button
-            type="submit"
-            aria-label={t('sendAll')}
-            disabled={busy || !prompt.trim() || !lanes.every((lane) => lane.model)}
-          >
-            <Send className="size-4" aria-hidden="true" />
-            {t(busy ? 'sending' : 'sendAll')}
-          </Button>
+        <div className="flex items-center justify-between gap-2">
+          <AttachmentPicker
+            accept={attachmentAccept}
+            disabled={busy || !canAttach || attachments.length >= maxAttachments}
+            label={
+              canAttach
+                ? t('attachFiles')
+                : lanes.some(
+                      (lane) =>
+                        models.find((item) => item.id === lane.model)?.personal_attachments ===
+                        false,
+                    )
+                  ? t('attachmentPersonalKeyOnly')
+                  : t('attachmentUnsupported')
+            }
+            onFiles={(files) => void selectAttachments(files)}
+          />
+          <div className="flex justify-end">
+            <Button
+              type="submit"
+              aria-label={t('sendAll')}
+              disabled={busy || !prompt.trim() || !lanes.every((lane) => lane.model)}
+            >
+              <Send className="size-4" aria-hidden="true" />
+              {t(busy ? 'sending' : 'sendAll')}
+            </Button>
+          </div>
         </div>
       </div>
       {codeRequest && <CodeDialog request={codeRequest} onClose={() => setCodeRequest(null)} />}

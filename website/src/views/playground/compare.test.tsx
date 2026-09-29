@@ -9,6 +9,7 @@ import {
   runMessages,
   runGemini,
 } from '@/api/playground'
+import { AttachmentError, deleteAttachment, uploadAttachment } from '@/api/attachments'
 import i18n from '@/i18n'
 import CompareWorkbench from './compare'
 import PlaygroundPage from './index'
@@ -19,6 +20,11 @@ vi.mock('@/api/playground', async (original) => ({
   runResponses: vi.fn(),
   runMessages: vi.fn(),
   runGemini: vi.fn(),
+}))
+vi.mock('@/api/attachments', async (original) => ({
+  ...(await original<typeof import('@/api/attachments')>()),
+  uploadAttachment: vi.fn(),
+  deleteAttachment: vi.fn(),
 }))
 vi.mock('@/hooks/use-auth', () => ({
   useSession: () => ({
@@ -45,6 +51,7 @@ const nativeResult = {
   nonTextOutput: false,
 }
 beforeEach(async () => {
+  await i18n.changeLanguage('en')
   host = document.createElement('div')
   document.body.append(host)
   root = createRoot(host)
@@ -56,6 +63,22 @@ beforeEach(async () => {
   ])
   vi.mocked(runChat).mockResolvedValue(chatResult)
   vi.mocked(runResponses).mockResolvedValue(nativeResult)
+  vi.mocked(uploadAttachment).mockImplementation(async (file) => ({
+    id: `obj_${file.name.replaceAll(/[^a-z0-9]/gi, '_')}`,
+    name: file.name,
+    mime: file.type,
+    size: file.size,
+    state: 'ready',
+    created_at: '2026-09-29T12:00:00Z',
+  }))
+  vi.mocked(deleteAttachment).mockImplementation(async (id) => ({
+    id,
+    name: 'deleted',
+    mime: 'image/png',
+    size: 1,
+    state: 'delete_pending',
+    created_at: '2026-09-29T12:00:00Z',
+  }))
   await act(async () => root.render(<CompareWorkbench />))
 })
 afterEach(async () => {
@@ -107,6 +130,16 @@ async function send(text = 'Same prompt') {
 function lane(n: number) {
   return host.querySelector<HTMLElement>(`section[aria-label="Comparison ${n}"]`)!
 }
+async function chooseFiles(files: File[]) {
+  const input = host.querySelector<HTMLInputElement>('input[type="file"]')!
+  await act(async () => {
+    Object.defineProperty(input, 'files', { configurable: true, value: files })
+    input.dispatchEvent(new Event('change', { bubbles: true }))
+    await new Promise((resolve) => setTimeout(resolve, 0))
+  })
+}
+const image = (name = 'diagram.png') => new File(['png'], name, { type: 'image/png' })
+const pdf = (name = 'report.pdf') => new File(['%PDF-1\n%%EOF'], name, { type: 'application/pdf' })
 describe('model comparison workbench', () => {
   it('requires verification and keeps two to four independent model columns', async () => {
     expect(host.querySelectorAll('section')).toHaveLength(2)
@@ -231,6 +264,401 @@ describe('model comparison workbench', () => {
     expect(host.querySelector<HTMLInputElement>('[name="comparison_key"]')!.value).toBe('')
     expect(host.textContent).not.toContain('Native answer')
     expect(button('Send to all models').disabled).toBe(true)
+  })
+  it('keeps one shared composer picker and gates it by the selected-lane capability intersection', async () => {
+    vi.mocked(getGatewayModels).mockResolvedValue([
+      {
+        id: 'image-and-pdf',
+        protocols: ['openai_chat', 'openai_responses'],
+        personal_attachments: true,
+        input_capabilities: {
+          openai_chat: ['image', 'pdf'],
+          openai_responses: ['image', 'pdf'],
+        },
+      },
+      {
+        id: 'image-only',
+        protocols: ['openai_chat'],
+        personal_attachments: true,
+        input_capabilities: { openai_chat: ['image'] },
+      },
+      {
+        id: 'project-media',
+        protocols: ['openai_chat'],
+        personal_attachments: false,
+        input_capabilities: { openai_chat: ['image', 'pdf'] },
+      },
+    ])
+    await ready()
+
+    expect(host.querySelectorAll('input[type="file"]')).toHaveLength(1)
+    expect(host.querySelector('section input[type="file"]')).toBeNull()
+    const picker = host.querySelector<HTMLInputElement>('input[type="file"]')!
+    expect(picker.disabled).toBe(false)
+    expect(picker.accept).toBe('image/png,image/jpeg')
+
+    await chooseFiles([pdf()])
+    expect(host.textContent).toContain('Choose a supported PNG, JPEG or PDF')
+    expect(uploadAttachment).not.toHaveBeenCalled()
+    await chooseFiles([image()])
+    expect(host.textContent).toContain('diagram.png')
+
+    await select('Comparison model 2', 'project-media')
+    expect(picker.disabled).toBe(true)
+    expect(deleteAttachment).toHaveBeenCalledWith('obj_diagram_png', 'csrf-playground')
+  })
+
+  it.each([
+    [
+      'openai_chat',
+      [
+        { type: 'text', text: 'Shared media' },
+        { type: 'image_url', image_url: { url: 'routex://attachments/obj_diagram_png' } },
+        {
+          type: 'file',
+          file: {
+            file_data: 'routex://attachments/obj_report_pdf',
+            filename: 'report.pdf',
+          },
+        },
+      ],
+    ],
+    [
+      'openai_responses',
+      [
+        { type: 'input_text', text: 'Shared media' },
+        { type: 'input_image', image_url: 'routex://attachments/obj_diagram_png' },
+        {
+          type: 'input_file',
+          file_data: 'routex://attachments/obj_report_pdf',
+          filename: 'report.pdf',
+        },
+      ],
+    ],
+    [
+      'anthropic_messages',
+      [
+        { type: 'text', text: 'Shared media' },
+        {
+          type: 'image',
+          source: {
+            type: 'base64',
+            media_type: 'image/png',
+            data: 'routex://attachments/obj_diagram_png',
+          },
+        },
+        {
+          type: 'document',
+          source: {
+            type: 'base64',
+            media_type: 'application/pdf',
+            data: 'routex://attachments/obj_report_pdf',
+          },
+        },
+      ],
+    ],
+    [
+      'gemini_generate_content',
+      [
+        { text: 'Shared media' },
+        {
+          inlineData: {
+            mimeType: 'image/png',
+            data: 'routex://attachments/obj_diagram_png',
+          },
+        },
+        {
+          inlineData: {
+            mimeType: 'application/pdf',
+            data: 'routex://attachments/obj_report_pdf',
+          },
+        },
+      ],
+    ],
+  ] as const)(
+    'sends the shared attachment draft to every %s lane with native payloads',
+    async (protocol, expectedContent) => {
+      const firstModel = protocol === 'gemini_generate_content' ? 'gemini-media-a' : 'media-a'
+      const secondModel = protocol === 'gemini_generate_content' ? 'gemini-media-b' : 'media-b'
+      vi.mocked(getGatewayModels).mockResolvedValue([
+        {
+          id: firstModel,
+          protocols: [protocol],
+          personal_attachments: true,
+          input_capabilities: { [protocol]: ['image', 'pdf'] },
+        },
+        {
+          id: secondModel,
+          protocols: [protocol],
+          personal_attachments: true,
+          input_capabilities: { [protocol]: ['image', 'pdf'] },
+        },
+      ])
+      vi.mocked(runMessages).mockResolvedValue({
+        text: 'Messages answer',
+        requestId: 'req_messages',
+        usage: null,
+        finishReason: 'end_turn',
+        messageStatus: 'completed',
+        nonTextOutput: false,
+      })
+      vi.mocked(runGemini).mockResolvedValue({
+        text: 'Gemini answer',
+        requestId: 'req_gemini',
+        usage: null,
+        finishReason: 'STOP',
+        generationStatus: 'completed',
+        nonTextOutput: false,
+      })
+
+      await ready()
+      await chooseFiles([image(), pdf()])
+      expect(
+        [
+          ...host.querySelectorAll<HTMLButtonElement>(
+            'button[aria-label^="Get code for comparison"]',
+          ),
+        ].every((item) => item.disabled),
+      ).toBe(true)
+      await send('Shared media')
+
+      const requests =
+        protocol === 'openai_chat'
+          ? vi.mocked(runChat).mock.calls.map((call) => call[1].messages.at(-1)?.content)
+          : protocol === 'openai_responses'
+            ? vi.mocked(runResponses).mock.calls.map((call) => call[1].input.at(-1)?.content)
+            : protocol === 'anthropic_messages'
+              ? vi.mocked(runMessages).mock.calls.map((call) => call[1].messages.at(-1)?.content)
+              : vi.mocked(runGemini).mock.calls.map((call) => call[1].contents.at(-1)?.parts)
+      expect(requests).toEqual([expectedContent, expectedContent])
+      expect(lane(1).textContent).toContain('diagram.png · report.pdf')
+      expect(lane(2).textContent).toContain('diagram.png · report.pdf')
+      expect(deleteAttachment).toHaveBeenCalledTimes(2)
+      expect(localStorage.length).toBe(0)
+      expect(sessionStorage.length).toBe(0)
+      expect(JSON.stringify(localStorage) + JSON.stringify(sessionStorage)).not.toContain(
+        'rx_comparison_only',
+      )
+      expect(JSON.stringify(localStorage) + JSON.stringify(sessionStorage)).not.toContain('obj_')
+    },
+  )
+
+  it('keeps successful uploads after a sibling upload failure and removes shared chips', async () => {
+    vi.mocked(getGatewayModels).mockResolvedValue([
+      {
+        id: 'media-a',
+        protocols: ['openai_chat'],
+        personal_attachments: true,
+        input_capabilities: { openai_chat: ['image'] },
+      },
+      {
+        id: 'media-b',
+        protocols: ['openai_chat'],
+        personal_attachments: true,
+        input_capabilities: { openai_chat: ['image'] },
+      },
+    ])
+    vi.mocked(uploadAttachment).mockRejectedValueOnce(new AttachmentError(503))
+    await ready()
+    await chooseFiles([image('unavailable.png'), image('kept.png')])
+
+    expect(host.querySelector('[role="alert"]')?.textContent).toContain(
+      'Attachment storage is temporarily unavailable.',
+    )
+    expect(host.textContent).not.toContain('unavailable.png')
+    expect(host.textContent).toContain('kept.png')
+    await act(async () => {
+      host.querySelector<HTMLButtonElement>('button[aria-label="Remove kept.png"]')!.click()
+      await Promise.resolve()
+    })
+    expect(deleteAttachment).toHaveBeenCalledWith('obj_kept_png', 'csrf-playground')
+    expect(host.textContent).not.toContain('kept.png')
+  })
+
+  it('invalidates a shared draft on model, protocol, lane-set and key changes', async () => {
+    vi.mocked(getGatewayModels).mockResolvedValue([
+      {
+        id: 'both-a',
+        protocols: ['openai_chat', 'openai_responses'],
+        personal_attachments: true,
+        input_capabilities: {
+          openai_chat: ['image'],
+          openai_responses: ['image'],
+        },
+      },
+      {
+        id: 'chat-b',
+        protocols: ['openai_chat'],
+        personal_attachments: true,
+        input_capabilities: { openai_chat: ['image'] },
+      },
+      {
+        id: 'chat-c',
+        protocols: ['openai_chat'],
+        personal_attachments: true,
+        input_capabilities: { openai_chat: ['image'] },
+      },
+    ])
+    await ready()
+
+    await chooseFiles([image('model.png')])
+    await select('Comparison model 1', 'chat-c')
+    expect(deleteAttachment).toHaveBeenCalledWith('obj_model_png', 'csrf-playground')
+    expect(host.textContent).not.toContain('model.png')
+
+    await select('Comparison model 1', 'both-a')
+    await chooseFiles([image('protocol.png')])
+    await select('Comparison protocol 1', 'openai_responses')
+    expect(deleteAttachment).toHaveBeenCalledWith('obj_protocol_png', 'csrf-playground')
+    expect(host.textContent).not.toContain('protocol.png')
+
+    await chooseFiles([image('add.png')])
+    await click('Add comparison')
+    expect(deleteAttachment).toHaveBeenCalledWith('obj_add_png', 'csrf-playground')
+    expect(host.textContent).not.toContain('add.png')
+
+    await chooseFiles([image('remove.png')])
+    await click('Remove comparison 3')
+    expect(deleteAttachment).toHaveBeenCalledWith('obj_remove_png', 'csrf-playground')
+    expect(host.textContent).not.toContain('remove.png')
+
+    await chooseFiles([image('key.png')])
+    await fill('comparison_key', 'rx_replaced')
+    expect(deleteAttachment).toHaveBeenCalledWith('obj_key_png', 'csrf-playground')
+    expect(host.textContent).not.toContain('key.png')
+  })
+
+  it('keeps shared objects until every lane settles, including independent cancellation', async () => {
+    vi.mocked(getGatewayModels).mockResolvedValue([
+      {
+        id: 'media-a',
+        protocols: ['openai_chat'],
+        personal_attachments: true,
+        input_capabilities: { openai_chat: ['image'] },
+      },
+      {
+        id: 'media-b',
+        protocols: ['openai_chat'],
+        personal_attachments: true,
+        input_capabilities: { openai_chat: ['image'] },
+      },
+    ])
+    let firstSignal: AbortSignal | undefined
+    let finishSecond!: () => void
+    vi.mocked(runChat).mockImplementation((_key, request, signal) => {
+      if (request.model === 'media-a') {
+        firstSignal = signal
+        return new Promise((_resolve, reject) => {
+          signal.addEventListener('abort', () => reject(new DOMException('Aborted', 'AbortError')))
+        })
+      }
+      return new Promise((resolve) => {
+        finishSecond = () => resolve(chatResult)
+      })
+    })
+    await ready()
+    await chooseFiles([image('shared.png')])
+    await send('Cancel one')
+    await click('Stop comparison 1')
+
+    expect(firstSignal?.aborted).toBe(true)
+    expect(lane(1).textContent).toContain('Stopped')
+    expect(deleteAttachment).not.toHaveBeenCalled()
+    await act(async () => finishSecond())
+    expect(lane(2).textContent).toContain('Chat answer')
+    expect(deleteAttachment).toHaveBeenCalledWith('obj_shared_png', 'csrf-playground')
+  })
+
+  it('allows the next send while settled attachment deletion is still pending', async () => {
+    vi.mocked(getGatewayModels).mockResolvedValue([
+      {
+        id: 'media-a',
+        protocols: ['openai_chat'],
+        personal_attachments: true,
+        input_capabilities: { openai_chat: ['image'] },
+      },
+      {
+        id: 'media-b',
+        protocols: ['openai_chat'],
+        personal_attachments: true,
+        input_capabilities: { openai_chat: ['image'] },
+      },
+    ])
+    await ready()
+    await chooseFiles([image('pending-delete.png')])
+    vi.mocked(deleteAttachment).mockImplementation(() => new Promise(() => undefined))
+
+    await send('First shared prompt')
+    expect(runChat).toHaveBeenCalledTimes(2)
+    expect(deleteAttachment).toHaveBeenCalledWith('obj_pending_delete_png', 'csrf-playground')
+
+    await send('Second prompt')
+    expect(runChat).toHaveBeenCalledTimes(4)
+    expect(vi.mocked(runChat).mock.calls[2][1].messages.at(-1)).toEqual({
+      role: 'user',
+      content: 'Second prompt',
+    })
+    expect(vi.mocked(runChat).mock.calls[3][1].messages.at(-1)).toEqual({
+      role: 'user',
+      content: 'Second prompt',
+    })
+  })
+
+  it('cleans ready and late shared uploads when the comparison tab exits', async () => {
+    vi.mocked(getGatewayModels).mockResolvedValue([
+      {
+        id: 'media-a',
+        protocols: ['openai_chat'],
+        personal_attachments: true,
+        input_capabilities: { openai_chat: ['image'] },
+      },
+      {
+        id: 'media-b',
+        protocols: ['openai_chat'],
+        personal_attachments: true,
+        input_capabilities: { openai_chat: ['image'] },
+      },
+    ])
+    await act(async () => root.render(<PlaygroundPage />))
+    await click('Model comparison')
+    await ready()
+    await chooseFiles([image('ready.png')])
+    let finishUpload!: (attachment: Awaited<ReturnType<typeof uploadAttachment>>) => void
+    vi.mocked(uploadAttachment).mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          finishUpload = resolve
+        }),
+    )
+    await chooseFiles([image('late.png'), image('not-started.png')])
+    expect(vi.mocked(uploadAttachment).mock.calls.map(([file]) => file.name)).toEqual([
+      'ready.png',
+      'late.png',
+    ])
+    await click('Model conversation')
+
+    expect(deleteAttachment).toHaveBeenCalledWith('obj_ready_png', 'csrf-playground')
+    await act(async () => {
+      finishUpload({
+        id: 'obj_late_upload',
+        name: 'late.png',
+        mime: 'image/png',
+        size: 3,
+        state: 'ready',
+        created_at: '2026-09-29T12:00:00Z',
+      })
+      await Promise.resolve()
+    })
+    expect(deleteAttachment).toHaveBeenCalledWith('obj_late_upload', 'csrf-playground')
+    expect(vi.mocked(uploadAttachment).mock.calls.map(([file]) => file.name)).toEqual([
+      'ready.png',
+      'late.png',
+    ])
+    await click('Model comparison')
+    expect(host.querySelector<HTMLInputElement>('[name="comparison_key"]')!.value).toBe('')
+    expect(host.textContent).not.toContain('ready.png')
+    expect(host.textContent).not.toContain('late.png')
+    expect(host.textContent).not.toContain('not-started.png')
   })
   it('aborts hidden workbench requests and discards its key when switching tabs', async () => {
     await act(async () => root.render(<PlaygroundPage />))
