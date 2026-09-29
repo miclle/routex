@@ -1,6 +1,6 @@
 # Call Facts and Query API
 
-Call facts record completed gateway requests without storing prompts, responses, credentials, or raw upstream diagnostics. Facts support personal or Project attribution, exactly one per request. Supported text calls include immutable assessed amounts; Team attribution, CSV export, and aggregate analytics are separate work packages. Durable event ingestion is implemented for the single-process deployment.
+Call facts record completed gateway requests without storing prompts, responses, credentials, or raw upstream diagnostics. Facts support personal or Project attribution, exactly one per request. Supported text calls include immutable assessed amounts and bounded CSV export; Team attribution and aggregate analytics remain separate work packages. Durable event ingestion is implemented for the single-process deployment.
 
 ## Recording Contract
 
@@ -28,16 +28,21 @@ Authorization during a primary-database outage is separately bounded by the five
 
 ## Access and HTTP API
 
-All paths are relative to `/api/v1` and require a valid session. Member endpoints always add the current user ID to the database query. Administrator endpoints additionally require the `admin` role. A request for another user's fact returns the same `404` as a missing fact.
+All paths are relative to `/api/v1` and require a valid session. Personal endpoints always add the current user ID and exclude Project-attributed rows. Platform endpoints require `calls.read_all`, which may come from a built-in or custom role. A request for another user's fact returns the same `404` as a missing fact.
 
 | Endpoint | Result |
 |---|---|
 | `GET /calls` | Current user's call facts |
+| `GET /calls/export.csv` | Complete bounded CSV for the current user's filtered facts |
 | `GET /calls/:request_id` | Current user's safe call detail |
 | `GET /admin/calls` | All users' call facts, with actor IDs |
+| `GET /admin/calls/export.csv` | Complete bounded platform CSV, with user/Project attribution |
 | `GET /admin/calls/:request_id` | Administrator detail with safe routing and attempt metadata |
+| `GET /projects/:project_id/calls` | Authorized Project call facts |
+| `GET /projects/:project_id/calls/export.csv` | Complete bounded CSV for an authorized Project |
+| `GET /projects/:project_id/calls/:request_id` | Authorized Project safe call detail |
 
-Lists return `{items: [...], next_cursor: string | null}`. Supported filters are `status`, `model_id`, `key_id`, `from`, and `to`. Timestamps use RFC 3339 and bounds are inclusive. Administrators may also filter by `user_id`. A member cannot use that parameter to select another user.
+Lists return `{items: [...], next_cursor: string | null}`. Supported filters are `status`, `model_id`, `key_id`, `from`, and `to`. Timestamps use RFC 3339 and bounds are inclusive. Platform queries may also filter Personal attribution by `user_id`. Personal and Project queries reject that parameter.
 
 `limit` defaults to 40 and must be between 1 and 100. `cursor` is opaque to clients. Pagination orders by `started_at DESC, request_id DESC`, so equal timestamps have deterministic order. Filters apply on the server before pagination. Clients must preserve the same filters while following a cursor.
 
@@ -46,16 +51,22 @@ Member items and details contain:
 ```text
 request_id, model_id, model_name, key_id, protocol, status, stream,
 started_at, completed_at, duration_ms, input_tokens, output_tokens, cache_read_tokens, cache_write_tokens,
-pricing_status, charge_amount, charge_currency
+image_inputs, pdf_inputs, pricing_status, charge_amount, charge_currency
 ```
 
-Administrator list items additionally contain `user_id`. Administrator detail also contains `provider_model_id`, `connection_id`, `error_code`, `route_stop_reason`, `attempts`, `price_etag`, and `pricing_snapshot`. The latter contains normalized rate/FX inputs and the assessed quote, not content or credentials. Each attempt contains its ID, ordinal, provider-model and connection IDs, outcome, failure class, replay work evidence, actual output/final-usage flags, an allowlisted evidence code, HTTP status, safe error code, and timestamps. Member DTOs never include upstream route IDs, attempt diagnostics, error codes, or other users' identities.
+Platform list items additionally contain `user_id` and `project_id` when applicable. Platform detail also contains `provider_model_id`, `connection_id`, `error_code`, `route_stop_reason`, `attempts`, `price_etag`, and `pricing_snapshot`. The latter contains normalized rate/FX inputs and the assessed quote, not content or credentials. Each attempt contains its ID, ordinal, provider-model and connection IDs, outcome, failure class, replay work evidence, actual output/final-usage flags, an allowlisted evidence code, HTTP status, safe error code, and timestamps. Member DTOs never include upstream route IDs, attempt diagnostics, error codes, or other users' identities.
+
+CSV export applies the same filters without a cursor or page limit and orders the captured rows by `started_at DESC, request_id DESC`. Personal and Project files use exactly the member-safe fields above. Platform files add only `user_id` and `project_id`; detail-only route and attempt diagnostics remain excluded. Nullable usage and amounts stay empty, explicit zero remains `0`, decimal strings remain exact, booleans use `true` or `false`, and timestamps use UTC RFC 3339 with nanosecond precision.
+
+Export authorization and row selection share one read-only repeatable-read transaction. Generation has a five-second execution bound, a 10,000-row limit, and an 8 MiB encoded limit. The server builds the complete file before writing the response; an overflow returns `422` rather than a truncated download. Empty results return a header-only file. Every string cell is checked after leading Unicode whitespace and control characters; values beginning with `=`, `+`, `-`, or `@` receive an apostrophe before standard CSV quoting. Downloads use fixed RouteX filenames, UTF-8 without a BOM, `private, no-store`, and `nosniff`.
 
 Authentication responses and these protected API responses use the shared no-store policy. Invalid filters return a sanitized `400`; unauthorized access returns `401` or `403`; scoped misses return `404`.
 
 ## Verification
 
-`testCallLifecycle` runs against PostgreSQL and MySQL through the single isolated database integration lifecycle. It covers concurrent duplicate delivery, immutable accepted facts, attempt conflict rollback, V25 upgrade/reentry, ordered diagnostics, fresh-service persistence, unknown usage, ownership filtering, indistinguishable cross-user misses, member/admin DTO boundaries, safe error classification, deterministic cursor pagination, and time/status/model/Key/user filters.
+`testCallLifecycle` runs against PostgreSQL and MySQL through the single isolated database integration lifecycle. It covers concurrent duplicate delivery, immutable accepted facts, attempt conflict rollback, V25 upgrade/reentry, ordered diagnostics, fresh-service persistence, unknown usage, ownership filtering, indistinguishable cross-user misses, member/platform DTO boundaries, safe error classification, deterministic cursor pagination, and time/status/model/Key/user filters.
+
+`testCallExportLifecycle` covers all three authenticated export scopes on PostgreSQL and MySQL, including delegated platform permission, Project-manager isolation, filter parity, formula protection, exact headers, fixed download metadata, header-only empty results, and rejection of cursor/page inputs. Unit tests cover nullable versus zero encoding, exact decimals and timestamps, safe member/platform columns, CSV syntax, formula prefixes after control or Unicode whitespace, and complete failure at row or byte limits.
 
 Gateway tests separately establish that real controlled-upstream success, failure, stream completion, and cancellation produce the corresponding facts. Data-store tests alone do not prove gateway recording behavior. Run `go tool task test-integration` for the real database lifecycle and consult [the implementation record](IMPLEMENTATION.md) for current evidence and remaining acceptance work.
 

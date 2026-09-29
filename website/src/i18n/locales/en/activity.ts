@@ -56,6 +56,9 @@ export default {
     description:
       'View your actual call records. Missing usage is marked explicitly and is never replaced with zero.',
     refresh: 'Refresh',
+    exportCSV: 'Export CSV',
+    exporting: 'Preparing CSV…',
+    exportReady: 'CSV download was prepared.',
     filters: 'Call record filters',
     status: 'Status',
     allStatuses: 'All statuses',

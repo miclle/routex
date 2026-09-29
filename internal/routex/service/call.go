@@ -109,6 +109,24 @@ func validCallStatus(status string) bool {
 	return status == "success" || status == "error" || status == "canceled"
 }
 
+func validateCallFilter(filter CallFilter, admin bool) error {
+	if !admin && filter.UserID != "" {
+		return apperrors.ErrBadRequest
+	}
+	if filter.Status != "" && !validCallStatus(filter.Status) {
+		return apperrors.ErrBadRequest
+	}
+	for _, value := range []string{filter.ModelID, filter.KeyID, filter.UserID} {
+		if value != "" && !safeCallID.MatchString(value) {
+			return apperrors.ErrBadRequest
+		}
+	}
+	if filter.From != nil && filter.To != nil && filter.From.After(*filter.To) {
+		return apperrors.ErrBadRequest
+	}
+	return nil
+}
+
 // Error codes are machine-owned classifications, never upstream error messages.
 func safeCallError(code string) string {
 	switch code {
@@ -157,10 +175,11 @@ func (s *Service) ListCalls(ctx context.Context, ownerID string, filter CallFilt
 	if filter.Limit == 0 {
 		filter.Limit = 40
 	}
-	if filter.Limit < 1 || filter.Limit > 100 || (filter.Status != "" && !validCallStatus(filter.Status)) || len(filter.Cursor) > 512 || (filter.From != nil && filter.To != nil && filter.From.After(*filter.To)) {
-		return nil, apperrors.ErrBadRequest
+	admin := ownerID == "" && filter.ProjectID == ""
+	if err := validateCallFilter(filter, admin); err != nil {
+		return nil, err
 	}
-	if ownerID != "" && filter.UserID != "" && filter.UserID != ownerID {
+	if filter.Limit < 1 || filter.Limit > 100 || len(filter.Cursor) > 512 {
 		return nil, apperrors.ErrBadRequest
 	}
 	db := s.authDB(ctx).Model(&entity.CallRecord{})

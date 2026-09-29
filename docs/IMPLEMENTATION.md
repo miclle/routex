@@ -147,7 +147,7 @@ Status terms in this section are deliberately strict:
 - **Partially completed** means material implementation exists, but one or more required behaviors or acceptance gates remain open. It does not mean that work has not started.
 - **Not started** means no material implementation of the capability exists. A prerequisite or design note may still be present.
 
-The binary capability count is 6 completed, 20 partially completed, and 4 not started. This is a completion count, not an effort percentage: several partially completed capabilities contain substantial delivered work. All implementation work that had not started was paused on 2026-09-23; this table records the resume inventory without authorizing another work package.
+The binary capability count is 7 completed, 19 partially completed, and 4 not started. This is a completion count, not an effort percentage: several partially completed capabilities contain substantial delivered work. All implementation work that had not started was paused on 2026-09-23; this table records the resume inventory without authorizing another work package.
 
 | ID | Capability | Status | Delivered and remaining scope |
 |---|---|---|---|
@@ -171,7 +171,7 @@ The binary capability count is 6 completed, 20 partially completed, and 4 not st
 | F18 | Quota, model, and request-limit approvals | Partially completed | Project model requests exist; Team quota approval, escalation, and Project quota/request-limit workflows remain open. |
 | F19 | Member overview, model sources, requests, and examples | Partially completed | Catalog, callable-model views, Project requests, and native examples exist; complete Team-source attribution and request coverage remain open. |
 | F20 | Playground, comparison, attachments, and code examples | Partially completed | Four native conversation paths, two-to-four-lane comparison, cancellation, executable examples, per-protocol image/PDF discovery, user/Project attachment resolution, single/comparison attachment lifecycle interfaces, and conservative token/TPM/money admission with exact per-occurrence media prices exist; external acceptance remains open. |
-| F21 | Personal, Project, and platform call records and CSV | Partially completed | Isolated list/detail queries and interfaces exist; complete CSV and later diagnostic/export acceptance remain open. |
+| F21 | Personal, Project, and platform call records and CSV | Completed | Isolated list/detail queries, incremental loading, redacted drawers, bounded server-side CSV export, filter parity, formula protection, and bilingual download actions are implemented with dual-database evidence. |
 | F22 | Usage trends, amounts, and multidimensional filters | Partially completed | Personal, Project, and platform usage interfaces exist; Team/provider attribution and complete freshness/capacity acceptance remain open. |
 | F23 | Operations overview, quality, alerts, and notifications | Partially completed | SMTP configuration and controlled test delivery exist; durable notification jobs, retry, recipient policy, settings, and status center remain open. |
 | F24 | Read-only AI operations analysis and saved reports | Not started | Authorized analysis queries, saved definitions, evaluation, exports, and hostile-input acceptance are not implemented. |
@@ -205,7 +205,7 @@ Only A01 is fully accepted across its defined scope. Every other case remains in
 | A15 | SSO, OAuth, LDAP, MFA, and recovery | Partially completed | MFA is implemented; enterprise identity is not. |
 | A16 | Vault compensation, rotation, and cleanup failure | Not started | Vault integration is not implemented. |
 | A17 | Images/PDF, object authorization, and model comparison | Partially completed | Object backend, comparison, conservative route capability discovery, owner-bound user/Project byte reads, current-manager Project lifecycle, native inline rewriting, both Playground attachment interfaces, and attested token/TPM/money reservation with exact media occurrence settlement exist; external acceptance remains open. |
-| A18 | Call queries, CSV, reports, and hostile analysis inputs | Partially completed | Call queries and usage views exist; AI analysis and complete safe-export acceptance remain open. |
+| A18 | Call queries, CSV, reports, and hostile analysis inputs | Partially completed | Call queries, usage views, and safe scoped call-record CSV exports have controlled evidence; AI analysis, saved reports, and their hostile-input acceptance remain open. |
 | A19 | S3, SMTP, site, announcements, instances, and jobs | Partially completed | S3, SMTP, and site work exists; instances and system jobs do not. |
 | A20 | Fresh install, upgrade, backup/restore, and production SPA | Partially completed | Installation, migrations, restart, and SPA evidence exists; backup/restore and production release acceptance remain open. |
 
@@ -245,6 +245,12 @@ The isolated staged source passed `go tool task check`, `go tool task test` (22 
 ### Gateway, call records, and account work
 
 API and runtime boundaries are documented in [GATEWAY](GATEWAY.md), [CALLS](CALLS.md), and [ACCOUNT](ACCOUNT.md). Controlled gateway tests passed on both databases, including SSE and cancellation, priority selection, no implicit retry, alias expiration, Key/grant revocation, and request/usage facts. The staged backend phase retains the 22 existing frontend cases and adds native proxy coverage. The process now uses immutable runtime publication with a five-second authorization lease and a bounded durable local call journal. See RUNTIME.md and CALLS.md for capacity, revocation, replay, and outage boundaries. Measured capacity and external provider evidence still prevent declaring full P1 acceptance. Real-provider acceptance is still pending external test resources and spending authorization.
+
+### Safe call-record CSV export
+
+Personal, Project, and platform call workspaces export the complete applied filter through dedicated authenticated Blob requests; the browser never reconstructs a file from loaded cursor pages. The export action remains the final right-aligned control in the approved filter row and uses paired English/Chinese progress and result copy. Personal and Project files contain only the member-safe fact fields. Platform files add user and Project attribution while retaining route attempts, provider/connection identifiers, pricing snapshots, request/response content, and credentials behind the detail-only boundary.
+
+Authorization and row selection share one read-only repeatable-read transaction. Personal scope excludes Project attribution, Project scope rechecks current-manager or delegated `calls.read_all` authority, and platform scope rechecks that permission even after route middleware. Export preserves null versus explicit zero, exact decimal strings, and UTC timestamps; every string cell receives spreadsheet formula protection before standard CSV quoting. Five-second, 10,000-row, and 8 MiB bounds fail as a complete `422` response rather than a partial download. Focused unit, UI, and PostgreSQL/MySQL lifecycle tests cover formula/control-prefix attacks, exact columns, all three scopes, delegated authority, filter parity, fixed headers and filenames, empty results, transient Blob cleanup, duplicate dispatch prevention, and live language switching.
 
 ### Delivery boundary for the gateway backend phase
 

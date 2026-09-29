@@ -35,3 +35,36 @@ export async function getCall(
     )
   ).data
 }
+
+export async function exportCalls(
+  admin: boolean,
+  filters: CallFilters,
+  signal?: AbortSignal,
+  projectId?: string,
+): Promise<Blob> {
+  return (
+    await client.get<Blob>(
+      projectId
+        ? `/projects/${encodeURIComponent(projectId)}/calls/export.csv`
+        : admin
+          ? '/admin/calls/export.csv'
+          : '/calls/export.csv',
+      { params: filters, responseType: 'blob', signal },
+    )
+  ).data
+}
+
+export function downloadCallsCSV(blob: Blob, admin: boolean, projectId?: string) {
+  const url = URL.createObjectURL(blob)
+  const anchor = document.createElement('a')
+  anchor.href = url
+  anchor.download = projectId
+    ? 'routex-project-calls.csv'
+    : admin
+      ? 'routex-platform-calls.csv'
+      : 'routex-personal-calls.csv'
+  document.body.append(anchor)
+  anchor.click()
+  anchor.remove()
+  setTimeout(() => URL.revokeObjectURL(url), 0)
+}

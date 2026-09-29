@@ -6,18 +6,22 @@ import (
 
 	"github.com/miclle/routex/internal/routex/entity"
 	apperrors "github.com/miclle/routex/internal/routex/errors"
+	"gorm.io/gorm"
 )
 
 func (s *Service) authorizeProjectCalls(ctx context.Context, actorID, projectID string) error {
-	db := s.authDB(ctx)
+	return catalogError(authorizeProjectCallsDB(s.authDB(ctx), actorID, projectID))
+}
+
+func authorizeProjectCallsDB(db *gorm.DB, actorID, projectID string) error {
 	permissions, err := permissionsFor(db, actorID)
 	if err != nil {
-		return catalogError(err)
+		return err
 	}
 	if !slices.Contains(permissions, "calls.read_all") {
 		manager, err := resourceManager(db, actorID, projectID)
 		if err != nil {
-			return catalogError(err)
+			return err
 		}
 		if !manager {
 			return apperrors.ErrNotFound
@@ -25,7 +29,7 @@ func (s *Service) authorizeProjectCalls(ctx context.Context, actorID, projectID 
 	}
 	var count int64
 	if err := db.Model(&entity.Project{}).Where("id = ?", projectID).Count(&count).Error; err != nil {
-		return catalogError(err)
+		return err
 	}
 	if count != 1 {
 		return apperrors.ErrNotFound
@@ -36,6 +40,9 @@ func (s *Service) authorizeProjectCalls(ctx context.Context, actorID, projectID 
 // Project histories remain readable after disable/archive, but never become
 // personal history merely because the reader created or managed the resource.
 func (s *Service) ListProjectCalls(ctx context.Context, actorID, projectID string, filter CallFilter) (*CallPage, error) {
+	if err := validateCallFilter(filter, false); err != nil {
+		return nil, err
+	}
 	if err := s.authorizeProjectCalls(ctx, actorID, projectID); err != nil {
 		return nil, err
 	}

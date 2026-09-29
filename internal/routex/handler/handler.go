@@ -61,6 +61,7 @@ func (ctrl *Ctrl) RegisterRoutes(r *fox.Engine) {
 	identity.GET("/teams/:team_id", ctrl.requireSession, ctrl.GetTeam)
 	identity.GET("/projects", ctrl.requireSession, ctrl.ListProjects)
 	identity.GET("/projects/:project_id/calls", ctrl.requireSession, ctrl.ListProjectCalls)
+	identity.GET("/projects/:project_id/calls/export.csv", ctrl.requireSession, ctrl.ExportProjectCalls)
 	identity.GET("/projects/:project_id/calls/:request_id", ctrl.requireSession, ctrl.GetProjectCall)
 	identity.GET("/projects/:project_id/manager-candidates", ctrl.requireSession, ctrl.ProjectManagerCandidates)
 	identity.GET("/projects/:project_id/limits", ctrl.requireSession, ctrl.GetResourceLimit)
@@ -93,6 +94,7 @@ func (ctrl *Ctrl) RegisterRoutes(r *fox.Engine) {
 	identity.GET("/usage", ctrl.requireSession, ctrl.PersonalUsage)
 	identity.GET("/projects/:project_id/usage", ctrl.requireSession, ctrl.ProjectUsage)
 	identity.GET("/calls", ctrl.requireSession, ctrl.ListPersonalCalls)
+	identity.GET("/calls/export.csv", ctrl.requireSession, ctrl.ExportPersonalCalls)
 	identity.GET("/calls/:request_id", ctrl.requireSession, ctrl.GetPersonalCall)
 	identity.GET("/account/mfa", ctrl.requireSession, ctrl.AccountMFA)
 	identity.POST("/account/mfa/enrollment", sameOrigin, ctrl.requireSession, requireCSRF, jsonAuthRequest, ctrl.BeginMFAEnrollment)
@@ -185,6 +187,7 @@ func (ctrl *Ctrl) RegisterRoutes(r *fox.Engine) {
 	admin.POST("/prices/quote", sameOrigin, requireCSRF, jsonManagementRequest, ctrl.RequirePermission("prices.read"), ctrl.QuotePrice)
 
 	admin.GET("/calls", ctrl.RequirePermission("calls.read_all"), ctrl.ListAdminCalls)
+	admin.GET("/calls/export.csv", ctrl.RequirePermission("calls.read_all"), ctrl.ExportAdminCalls)
 	admin.GET("/calls/:request_id", ctrl.RequirePermission("calls.read_all"), ctrl.GetAdminCall)
 	admin.GET("/providers", ctrl.RequirePermission("providers.read"), ctrl.ListProviders)
 	admin.GET("/models", ctrl.RequirePermission("models.read_all"), ctrl.ListAdminModels)

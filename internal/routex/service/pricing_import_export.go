@@ -7,8 +7,6 @@ import (
 	"encoding/csv"
 	"net/http"
 	"strconv"
-	"strings"
-	"unicode"
 
 	"github.com/miclle/routex/internal/routex/entity"
 	apperrors "github.com/miclle/routex/internal/routex/errors"
@@ -26,13 +24,7 @@ type PriceCSVExport struct {
 	CSV  []byte
 }
 
-func safePriceCSVName(value string) string {
-	visible := strings.TrimLeftFunc(value, func(r rune) bool { return unicode.IsSpace(r) || unicode.IsControl(r) })
-	if visible != "" && strings.ContainsRune("=+-@", rune(visible[0])) {
-		return "'" + value
-	}
-	return value
-}
+func safePriceCSVName(value string) string { return safeCSVCell(value) }
 func (s *Service) ExportPriceCSV(ctx context.Context, actorID string) (*PriceCSVExport, error) {
 	result := &PriceCSVExport{}
 	err := s.authDB(ctx).Transaction(func(tx *gorm.DB) error {

@@ -106,6 +106,12 @@ func callFilter(request ListCallsRequest) (service.CallFilter, error) {
 	}
 	return filter, nil
 }
+func callExportFilter(request ListCallsRequest, admin bool) (service.CallFilter, error) {
+	if request.Cursor != "" || request.Limit != 0 || (!admin && request.UserID != "") {
+		return service.CallFilter{}, apperrors.ErrBadRequest
+	}
+	return callFilter(request)
+}
 func callCursor(cursor string) *string {
 	if cursor == "" {
 		return nil

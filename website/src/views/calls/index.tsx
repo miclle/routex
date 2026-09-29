@@ -1,8 +1,8 @@
 import { useTranslation } from 'react-i18next'
-import { useState, type FormEvent } from 'react'
+import { useRef, useState, type FormEvent } from 'react'
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query'
-import { RefreshCw } from 'lucide-react'
-import { getCall, listCalls } from '@/api/calls'
+import { Download, RefreshCw } from 'lucide-react'
+import { downloadCallsCSV, exportCalls, getCall, listCalls } from '@/api/calls'
 import type { AdminCallDetail, CallFilters, CallRecord } from '@/types/calls'
 import { Page, QueryState, FormField, ErrorNotice } from '@/components/app/CatalogUI'
 import { PermissionGate } from '@/components/app/PermissionGate'
@@ -35,6 +35,10 @@ function CallRecords({ admin, projectId }: { admin: boolean; projectId?: string 
   const [filters, setFilters] = useState<CallFilters>({})
   const [selected, setSelected] = useState<string | null>(null)
   const [validation, setValidation] = useState('')
+  const exportLock = useRef(false)
+  const [exporting, setExporting] = useState(false)
+  const [exportError, setExportError] = useState<unknown>(null)
+  const [exportReady, setExportReady] = useState(false)
   const calls = useInfiniteQuery({
     queryKey: ['calls', ...scope, filters],
     queryFn: ({ pageParam, signal }) => listCalls(admin, filters, pageParam, signal, projectId),
@@ -65,6 +69,24 @@ function CallRecords({ admin, projectId }: { admin: boolean; projectId?: string 
     setValidation('')
     setSelected(null)
     setFilters(next)
+    setExportError(null)
+    setExportReady(false)
+  }
+  async function exportCSV() {
+    if (exportLock.current) return
+    exportLock.current = true
+    setExporting(true)
+    setExportError(null)
+    setExportReady(false)
+    try {
+      downloadCallsCSV(await exportCalls(admin, filters, undefined, projectId), admin, projectId)
+      setExportReady(true)
+    } catch (error) {
+      setExportError(error)
+    } finally {
+      exportLock.current = false
+      setExporting(false)
+    }
   }
   const items = calls.data?.pages.flatMap((page) => page.items) ?? []
   return (
@@ -128,6 +150,8 @@ function CallRecords({ admin, projectId }: { admin: boolean; projectId?: string 
               setFilters({})
               setSelected(null)
               setValidation('')
+              setExportError(null)
+              setExportReady(false)
             }}
           >
             {t('calls.reset')}
@@ -138,7 +162,24 @@ function CallRecords({ admin, projectId }: { admin: boolean; projectId?: string 
             {t(validation)}
           </p>
         )}
+        <div className="ml-auto">
+          <Button
+            type="button"
+            variant="outline"
+            disabled={exporting}
+            onClick={() => void exportCSV()}
+          >
+            <Download className="size-4" aria-hidden="true" />
+            {t(exporting ? 'calls.exporting' : 'calls.exportCSV')}
+          </Button>
+        </div>
       </form>
+      <ErrorNotice error={exportError} />
+      {exportReady && (
+        <p role="status" className="text-sm text-muted-foreground">
+          {t('calls.exportReady')}
+        </p>
+      )}
       <QueryState
         pending={calls.isPending}
         error={calls.isFetchNextPageError ? null : calls.error}
