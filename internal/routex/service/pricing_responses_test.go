@@ -71,3 +71,18 @@ func TestResponsesPricingUnsupportedDimensions(t *testing.T) {
 		}
 	}
 }
+
+func TestResponsesUsageAllowsOnlyExpectedInputMedia(t *testing.T) {
+	raw := []byte(`{"object":"response","status":"completed","output":[{"type":"message","content":[{"type":"output_text","text":"answer"}]}],"usage":{"input_tokens":10,"output_tokens":2,"input_tokens_details":{"cached_tokens":0,"cache_write_tokens":0,"image_tokens":4}}}`)
+	usage := ParseResponsesUsage(raw)
+	if !usage.Unsupported || !usage.WithExpectedInputMedia(false).Unsupported {
+		t.Fatalf("unplanned input media classification = %+v", usage)
+	}
+	if allowed := usage.WithExpectedInputMedia(true); allowed.Unsupported {
+		t.Fatalf("validated input media remained unsupported: %+v", allowed)
+	}
+	raw = []byte(`{"object":"response","status":"completed","output":[{"type":"message","content":[{"type":"output_text","text":"answer"}]}],"usage":{"input_tokens":10,"output_tokens":2,"input_tokens_details":{"cached_tokens":0,"cache_write_tokens":0},"output_tokens_details":{"image_tokens":1}}}`)
+	if usage := ParseResponsesUsage(raw).WithExpectedInputMedia(true); !usage.Unsupported {
+		t.Fatal("output media became priceable as an input attachment")
+	}
+}

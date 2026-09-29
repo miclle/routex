@@ -48,11 +48,11 @@ four unique objects, 8 MiB of raw bytes and 12 MiB after inline expansion. A
 finite token or TPM policy admits only validated owner-scoped attachment references
 with the route's administrator-attested input capacity and the protocol's explicit
 output cap. The reservation uses that full input capacity and never estimates
-media tokens from file properties. A finite monetary policy still rejects an
-otherwise supported attachment request before object storage access because the
-text price adapter does not claim image/PDF prices. Requests that also contain an
-unsupported native tool, tier, cache, or media shape fail the stricter request
-shape check first.
+media tokens from file properties. A finite monetary policy also requires an
+enabled base image/PDF rate for every validated occurrence kind and adds the exact
+occurrence components before object storage access. Missing prices or FX fail
+without reading bytes. Requests that also contain an unsupported native tool,
+tier, cache, or media shape fail the stricter request-shape check first.
 
 ## Transport and Secret Handling
 

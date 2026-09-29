@@ -26,6 +26,8 @@ type CallResponse struct {
 	OutputTokens     *int64    `json:"output_tokens"`
 	CacheReadTokens  *int64    `json:"cache_read_tokens"`
 	CacheWriteTokens *int64    `json:"cache_write_tokens"`
+	ImageInputs      *int64    `json:"image_inputs"`
+	PDFInputs        *int64    `json:"pdf_inputs"`
 	PricingStatus    string    `json:"pricing_status"`
 	ChargeAmount     *string   `json:"charge_amount"`
 	ChargeCurrency   *string   `json:"charge_currency"`
@@ -77,7 +79,7 @@ type CallPath struct {
 }
 
 func callResponse(record entity.CallRecord) CallResponse {
-	return CallResponse{RequestID: record.RequestID, ModelID: record.ModelID, ModelName: record.ModelName, KeyID: record.KeyID, Protocol: record.Protocol, Status: record.Status, Stream: record.Stream, StartedAt: record.StartedAt, CompletedAt: record.CompletedAt, DurationMS: record.DurationMS, InputTokens: record.InputTokens, OutputTokens: record.OutputTokens, CacheReadTokens: record.CacheReadTokens, CacheWriteTokens: record.CacheWriteTokens, PricingStatus: record.PricingStatus, ChargeAmount: record.ChargeAmount, ChargeCurrency: record.ChargeCurrency}
+	return CallResponse{RequestID: record.RequestID, ModelID: record.ModelID, ModelName: record.ModelName, KeyID: record.KeyID, Protocol: record.Protocol, Status: record.Status, Stream: record.Stream, StartedAt: record.StartedAt, CompletedAt: record.CompletedAt, DurationMS: record.DurationMS, InputTokens: record.InputTokens, OutputTokens: record.OutputTokens, CacheReadTokens: record.CacheReadTokens, CacheWriteTokens: record.CacheWriteTokens, ImageInputs: record.ImageInputs, PDFInputs: record.PDFInputs, PricingStatus: record.PricingStatus, ChargeAmount: record.ChargeAmount, ChargeCurrency: record.ChargeCurrency}
 }
 func callFilter(request ListCallsRequest) (service.CallFilter, error) {
 	filter := service.CallFilter{Cursor: request.Cursor, Limit: request.Limit, Status: request.Status, ModelID: request.ModelID, KeyID: request.KeyID, UserID: request.UserID}

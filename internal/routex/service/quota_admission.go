@@ -131,8 +131,10 @@ func prepareQuotaBound(result *GatewayResult, policies []eventqueue.QuotaLimit, 
 	}
 	total := capacity.MaxInputTokens + result.quotaRequest.MaxOutput
 	bound := eventqueue.QuotaBound{Tokens: &total, Revision: capacity.ETag}
-	if !result.PricingUnsupported && result.PriceBasis != nil && result.PriceBasis.Adapter == "routex_text_v1" && result.PriceBasis.Schedule.ProviderModelID == result.ProviderModelID && result.PriceBasis.Schedule.Protocol == result.NativeProtocol() {
-		quote, err := pricing.ReserveBound(result.PriceBasis.Schedule, result.PriceBasis.Currency, pricing.Capacity{Input: capacity.MaxInputTokens, Output: result.quotaRequest.MaxOutput, CacheRead: result.quotaRequest.CacheRead, CacheWrite: result.quotaRequest.CacheWrite})
+	if !result.PricingUnsupported && result.PriceBasis != nil &&
+		(result.PriceBasis.Adapter == pricing.TextAdapter || result.PriceBasis.Adapter == pricing.MultimodalAdapter) &&
+		result.PriceBasis.Schedule.ProviderModelID == result.ProviderModelID && result.PriceBasis.Schedule.Protocol == result.NativeProtocol() {
+		quote, err := pricing.ReserveBound(result.PriceBasis.Schedule, result.PriceBasis.Currency, pricing.Capacity{Input: capacity.MaxInputTokens, Output: result.quotaRequest.MaxOutput, CacheRead: result.quotaRequest.CacheRead, CacheWrite: result.quotaRequest.CacheWrite, ImageInputs: result.ImageInputs, PDFInputs: result.PDFInputs})
 		if err == nil {
 			bound.Money = &quote.Amount
 			bound.Currency = quote.Currency

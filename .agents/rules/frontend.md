@@ -74,6 +74,11 @@ Project call tables reuse the call-record component with Project-specific endpoi
 Provider model price editing belongs in the provider-model detail view. Reuse the
 local price table and Base UI dialog wrapper, preserve decimal strings through
 API submission, and require explicit conflict review before replacing an ETag.
+Media input prices reuse that table as base-only `IMAGE_INPUT / 1_IMAGE` and
+`PDF_INPUT / 1_PDF` rows. Render each row's actual unit, treat enabled zero as an
+explicit configured rate, preserve the token context threshold, and do not add
+page, pixel, byte, or provider-specific media controls without a supported backend
+contract.
 
 Project model requests belong inside Resource configuration. Keep scoped history, additions-only submission, current-manager checks, and independent reviewer permissions in `views/project-requests`; register paired `projectRequests` translations. Pending requests never change effective grants.
 

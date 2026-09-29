@@ -43,6 +43,8 @@ type QuotePriceRequest struct {
 		OutputTokens     *int64 `json:"output_tokens"`
 		CacheReadTokens  *int64 `json:"cache_read_tokens"`
 		CacheWriteTokens *int64 `json:"cache_write_tokens"`
+		ImageInputs      *int64 `json:"image_inputs"`
+		PDFInputs        *int64 `json:"pdf_inputs"`
 	} `json:"usage"`
 }
 
@@ -83,8 +85,8 @@ func (ctrl *Ctrl) QuotePrice(c *fox.Context) (*service.PriceQuote, error) {
 		return nil, err
 	}
 	usage := request.Usage
-	if request.ProviderModelID == "" || usage.InputTokens == nil || usage.OutputTokens == nil || usage.CacheReadTokens == nil || usage.CacheWriteTokens == nil {
+	if request.ProviderModelID == "" || usage.InputTokens == nil || usage.OutputTokens == nil || usage.CacheReadTokens == nil || usage.CacheWriteTokens == nil || usage.ImageInputs == nil || usage.PDFInputs == nil {
 		return nil, apperrors.ErrBadRequest
 	}
-	return ctrl.service.QuotePrice(c.Request.Context(), currentAuthentication(c).User.ID, request.ProviderModelID, pricing.Usage{InputTokens: *usage.InputTokens, OutputTokens: *usage.OutputTokens, CacheReadTokens: *usage.CacheReadTokens, CacheWriteTokens: *usage.CacheWriteTokens})
+	return ctrl.service.QuotePrice(c.Request.Context(), currentAuthentication(c).User.ID, request.ProviderModelID, pricing.Usage{InputTokens: *usage.InputTokens, OutputTokens: *usage.OutputTokens, CacheReadTokens: *usage.CacheReadTokens, CacheWriteTokens: *usage.CacheWriteTokens, ImageInputs: *usage.ImageInputs, PDFInputs: *usage.PDFInputs})
 }

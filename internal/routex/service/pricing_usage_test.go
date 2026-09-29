@@ -16,6 +16,7 @@ func TestOpenAIUsagePreservesNativeCacheAndFinality(t *testing.T) {
 		{"omitted caches", `{"object":"chat.completion","choices":[{"finish_reason":"stop"}],"usage":{"prompt_tokens":100,"completion_tokens":20}}`, false, true, true, false},
 		{"null cache", `{"object":"chat.completion","choices":[{"finish_reason":"stop"}],"usage":{"prompt_tokens":100,"completion_tokens":20,"prompt_tokens_details":{"cached_tokens":null,"cache_write_tokens":10}}}`, false, true, true, false},
 		{"audio", `{"object":"chat.completion","choices":[{"finish_reason":"stop"}],"usage":{"prompt_tokens":100,"completion_tokens":20,"prompt_tokens_details":{"cached_tokens":30,"cache_write_tokens":10,"audio_tokens":2}}}`, false, true, false, true},
+		{"input image", `{"object":"chat.completion","choices":[{"finish_reason":"stop"}],"usage":{"prompt_tokens":100,"completion_tokens":20,"prompt_tokens_details":{"cached_tokens":30,"cache_write_tokens":10,"image_tokens":12}}}`, false, true, false, true},
 		{"priority", `{"object":"chat.completion","service_tier":"priority","choices":[{"finish_reason":"stop"}],"usage":{"prompt_tokens":100,"completion_tokens":20,"prompt_tokens_details":{"cached_tokens":30,"cache_write_tokens":10}}}`, false, true, false, true},
 	} {
 		t.Run(test.name, func(t *testing.T) {
@@ -30,6 +31,17 @@ func TestOpenAIUsagePreservesNativeCacheAndFinality(t *testing.T) {
 				t.Fatal("native cache counts lost")
 			}
 		})
+	}
+	media := ParseOpenAIUsage([]byte(`{"object":"chat.completion","choices":[{"finish_reason":"stop"}],"usage":{"prompt_tokens":100,"completion_tokens":20,"prompt_tokens_details":{"cached_tokens":30,"cache_write_tokens":10,"image_tokens":12}}}`), false)
+	if allowed := media.WithExpectedInputMedia(true); allowed.Unsupported || len(allowed.UnsupportedDimensions) != 0 {
+		t.Fatalf("validated input media remained unsupported: %+v", allowed)
+	}
+	if unexpected := media.WithExpectedInputMedia(false); !unexpected.Unsupported || len(unexpected.UnsupportedDimensions) != 1 || unexpected.UnsupportedDimensions[0] != "response_non_text" {
+		t.Fatalf("unplanned native input media was not durably classified: %+v", unexpected)
+	}
+	outputMedia := ParseOpenAIUsage([]byte(`{"object":"chat.completion","choices":[{"finish_reason":"stop"}],"usage":{"prompt_tokens":100,"completion_tokens":20,"prompt_tokens_details":{"cached_tokens":30,"cache_write_tokens":10},"completion_tokens_details":{"image_tokens":1}}}`), false)
+	if allowed := outputMedia.WithExpectedInputMedia(true); !allowed.Unsupported {
+		t.Fatal("output media became priceable as an input attachment")
 	}
 	for _, raw := range []string{`{}`, `{"usage":null}`} {
 		if ParseOpenAIUsage([]byte(raw), true).Present {

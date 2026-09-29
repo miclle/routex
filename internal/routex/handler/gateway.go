@@ -127,7 +127,9 @@ func (ctrl *Ctrl) recordGatewayCall(ctx context.Context, requestID string, start
 		status, code = "error", "upstream_timeout"
 	}
 	completed := time.Now().UTC()
-	fact := service.CallFact{RequestID: requestID, SnapshotID: result.SnapshotID, UserID: result.UserID, ProjectID: result.ProjectID, KeyID: result.KeyID, ModelID: result.ModelID, ModelName: result.ModelName, ProviderModelID: result.ProviderModelID, ConnectionID: result.ConnectionID, Protocol: result.NativeProtocol(), Status: status, Stream: result.Stream, StartedAt: started, CompletedAt: completed, InputTokens: usage.Input, OutputTokens: usage.Output, CacheReadTokens: usage.CacheRead, CacheWriteTokens: usage.CacheWrite, UsageComplete: usage.Complete, PricingUnsupported: result.PricingUnsupported || usage.Unsupported, PriceBasis: result.PriceBasis, PricingDimensions: append(append([]string{}, result.PricingDimensions...), usage.UnsupportedDimensions...), ErrorCode: code}
+	usage = usage.WithExpectedInputMedia(result.ImageInputs+result.PDFInputs > 0)
+	imageInputs, pdfInputs := result.ImageInputs, result.PDFInputs
+	fact := service.CallFact{RequestID: requestID, SnapshotID: result.SnapshotID, UserID: result.UserID, ProjectID: result.ProjectID, KeyID: result.KeyID, ModelID: result.ModelID, ModelName: result.ModelName, ProviderModelID: result.ProviderModelID, ConnectionID: result.ConnectionID, Protocol: result.NativeProtocol(), Status: status, Stream: result.Stream, StartedAt: started, CompletedAt: completed, InputTokens: usage.Input, OutputTokens: usage.Output, CacheReadTokens: usage.CacheRead, CacheWriteTokens: usage.CacheWrite, ImageInputs: &imageInputs, PDFInputs: &pdfInputs, UsageComplete: usage.Complete, PricingUnsupported: result.PricingUnsupported || usage.Unsupported, PriceBasis: result.PriceBasis, PricingDimensions: append(append([]string{}, result.PricingDimensions...), usage.UnsupportedDimensions...), ErrorCode: code}
 	if result.AttemptID != "" {
 		httpStatus := 0
 		if result.Response != nil {

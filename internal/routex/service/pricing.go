@@ -170,7 +170,7 @@ func (s *Service) QuotePrice(ctx context.Context, actorID, providerModelID strin
 }
 
 // appendPricingAudit accepts normalized catalogue values only, never arbitrary
-// request payloads. The bounded batch (20 models, 8 rates each) limits volume.
+// request payloads. The bounded batch (20 models, 10 rates each) limits volume.
 func appendPricingAudit(tx *gorm.DB, actorID, action, resourceID string, before, after any) error {
 	return appendPricingSourceAudit(tx, actorID, action, resourceID, "api", before, after)
 }
@@ -221,7 +221,7 @@ func (s *Service) WritePrices(ctx context.Context, actorID, etag string, items [
 	}
 	seen := map[string]bool{}
 	for _, item := range items {
-		if item.ProviderModelID == "" || seen[item.ProviderModelID] || len(item.Rates) > 8 || len(item.Rates) == 0 {
+		if item.ProviderModelID == "" || seen[item.ProviderModelID] || len(item.Rates) > pricing.MaxRates || len(item.Rates) == 0 {
 			return nil, apperrors.ErrBadRequest
 		}
 		seen[item.ProviderModelID] = true

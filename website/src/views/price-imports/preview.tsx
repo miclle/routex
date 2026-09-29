@@ -29,7 +29,7 @@ export function PricePreviewDialog({
   const pageCount = Math.max(1, Math.ceil(preview.changes.length / 8))
   const price = (rate: PriceRate | null) =>
     rate
-      ? `${rate.amount} ${rate.currency} / ${t('million')} · ${t(rate.enabled ? 'enabled' : 'disabled')}`
+      ? `${rate.amount} ${rate.currency} / ${t(`pricing:${rate.unit}`)} · ${t(rate.enabled ? 'enabled' : 'disabled')}`
       : t('none')
   return (
     <Dialog

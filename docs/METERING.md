@@ -1,10 +1,10 @@
-# Gateway text assessment
+# Gateway monetary assessment
 
-RouteX records an exact, nullable monetary assessment for supported text calls.
+RouteX records an exact, nullable monetary assessment for supported native calls.
 It is a call fact, not an invoice, quota deduction, reservation, or financial
 ledger entry. Prices are operator-configured and do not establish what a provider
 will ultimately invoice. This bounded implementation does not complete all P3
-metrics, protocol adapters, finite pricing conditions, or reconciliation.
+provider-specific dimensions, finite pricing conditions, or reconciliation.
 
 ## One immutable basis per request
 
@@ -33,17 +33,16 @@ re-running pricing. The canonical request ID makes duplicate delivery idempotent
 
 ## Native usage and completeness
 
-The supported protocol is native OpenAI Chat Completions (`openai_chat`) with the
-`routex_text_v1` adapter. The mapping follows the official
-[Chat Completions API](https://developers.openai.com/api/reference/resources/chat/subresources/completions/methods/create)
-and [typed usage schema](https://github.com/openai/openai-python/blob/main/src/openai/types/completion_usage.py):
+Dedicated adapters normalize complete native usage for Chat Completions,
+Responses, Messages, and Gemini. The token contract is inclusive input, output,
+cache-read input, and cache-write input:
 
 | Native field | Stored normalized quantity |
 | --- | --- |
-| `usage.prompt_tokens` | Total input, including cache categories |
-| `usage.completion_tokens` | Total output |
-| `usage.prompt_tokens_details.cached_tokens` | Cache-read input |
-| `usage.prompt_tokens_details.cache_write_tokens` | Cache-write input |
+| Chat `prompt_tokens` / `completion_tokens` | Inclusive input / output |
+| Responses `input_tokens` / `output_tokens` | Inclusive input / output |
+| Messages ordinary input plus cache-read/cache-creation | Inclusive input; native output remains output |
+| Gemini prompt / cached input / candidates plus thoughts | Inclusive input, cache-read input, and output |
 
 Reasoning and rejected-prediction detail counts are already part of native output;
 they are not added again. Ordinary input is total input minus both cache categories.
@@ -52,13 +51,12 @@ and null counters are not treated as zero. In particular, compatible providers
 that omit cache-write counts remain unpriced even if they report total tokens.
 No tokenizer estimate or assumption fills a missing counter.
 
-For a non-streaming response, an authoritative final envelope must identify
-`chat.completion` and contain nonempty choices with nonempty finish reasons. For
-streaming, it must identify `chat.completion.chunk`, include usage, and contain the
-native final empty choices array. A chunk with only one finished choice cannot
-establish completion of a multi-choice request. The gateway requests
-`stream_options.include_usage=true`; an interrupted stream may still never supply
-that event. Usage from separate frames is never merged into fabricated totals.
+Each protocol requires its own native terminal evidence. Chat requires completed
+choices or the final usage chunk; Responses requires a terminal response status;
+Messages requires the final message/delta lifecycle; Gemini requires clean EOF
+with a native finish or prompt-block outcome. Usage from unrelated or preliminary
+frames is never merged into fabricated totals. See the protocol-specific documents
+for the exact ordinary and SSE contracts.
 
 Assessment depends on complete authoritative usage, independently of the final
 HTTP/call outcome. If final usage arrives before a client disconnect, write error,
@@ -70,11 +68,18 @@ non-success upstream error bodies are not parsed as completion envelopes.
 
 ## Supported dimensions and null amounts
 
-Text messages, function tools, standard/default service tier, and the finite
-configured context tiers are supported. Explicit image/audio/video content,
-nonzero native modality counters, non-default service tiers, cache-retention/TTL
-options, and external-tool pricing are outside this adapter. Requests may still
-be forwarded, but their amount is null. Bounded classifications such as
+Text messages, supported function tools, standard/default service tiers, and the
+finite configured context tiers are supported. Strictly validated owner-authorized
+RouteX image/PDF attachment inputs are also supported when the captured schedule
+contains an enabled base `IMAGE_INPUT / 1_IMAGE` or `PDF_INPUT / 1_PDF` rate for
+every media kind present. The immutable occurrence counts are combined with the
+authoritative aggregate token usage; repeated forwarded references count
+repeatedly even when storage reads are deduplicated.
+
+Remote or caller-inline media, output image/audio/video, non-default service tiers,
+unsupported cache-retention/TTL options, hosted tools, page/pixel/byte rates, and
+unknown provider conditions remain outside the adapters. Requests may still be
+forwarded without a finite money policy, but their amount is null. Bounded classifications such as
 `request_non_text`, `response_non_text`, `request_service_tier`,
 `response_service_tier`, `cache_retention`, and `external_tool` explain unsupported
 dimensions without retaining request content or arbitrary provider strings.
@@ -87,7 +92,7 @@ Each call exposes `pricing_status`:
 | --- | --- |
 | `priced` | Complete supported usage, sufficient enabled rates and FX; exact amount may be `"0"` |
 | `not_captured` | No price basis, such as an early rejection or a legacy journal fact |
-| `unsupported` | A dimension or adapter lies outside supported text pricing |
+| `unsupported` | A dimension or adapter lies outside supported native pricing |
 | `not_final` | No authoritative final usage envelope was observed |
 | `unknown_usage` | Final envelope exists but at least one required count is unknown |
 | `invalid_usage` | Cache categories exceed total input |
@@ -103,17 +108,22 @@ silent rate or currency fallback.
 
 Additive migration 13 adds nullable cache counts, pricing status, catalogue ETag,
 nullable exact decimal amount/currency, and a bounded JSON receipt to call records.
-Historical rows default to `not_captured`. Amounts are decimal strings, not binary
-floating point. Receipt JSON is bounded to 16 KiB within the existing 64 KiB journal
-entry limit and contains no prompts, completions, credentials, or raw diagnostics.
+Migration 24 adds nullable image/PDF occurrence counts. Historical rows retain
+null counts as unknown; every new parsed request records an explicit zero or
+positive count. Amounts are decimal strings, not binary floating point. Receipt
+JSON is bounded to 16 KiB within the existing 64 KiB journal entry limit and
+contains no prompts, completions, attachment identifiers, credentials, or raw
+diagnostics.
 
-Personal and Project call DTOs expose safe counts, pricing status, amount, and
-currency. Only administrative call detail exposes the provider-model rate and FX
-snapshot plus ETag. Existing ownership and permission checks remain authoritative.
+Personal and Project call DTOs expose safe token/media counts, pricing status,
+amount, and currency. Only administrative call detail exposes the provider-model
+rate and FX snapshot plus ETag. Existing ownership and permission checks remain
+authoritative.
 
-Focused tests cover native cache mapping, finality, unsupported dimensions,
-whole-frame parsing, final-usage client disconnects, unknown versus zero,
-immutable in-flight price generations, exact receipts, and journal reopen.
+Focused tests cover all four native cache/finality mappings, unsupported
+dimensions, media occurrence counts, repeated references, whole-frame parsing,
+final-usage client disconnects, unknown versus zero, immutable in-flight price
+generations, exact receipts, and journal reopen.
 `testCallPricingLifecycle` is registered in the shared PostgreSQL/MySQL harness;
 it verifies actual HTTP dispatch, price mutation publication, delayed delivery
 and restart, old/new exact amounts, unsupported-tier null amounts, concurrent

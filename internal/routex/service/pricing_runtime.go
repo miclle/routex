@@ -47,7 +47,7 @@ func runtimePriceBasis(data *runtimePricingData, providerModelID, protocol strin
 	if data == nil {
 		return nil
 	}
-	basis := &CallPriceBasis{Adapter: "routex_text_v1", ETag: data.Setting.ETag, Schedule: pricing.Schedule{ProviderModelID: providerModelID, Protocol: protocol, Rates: []pricing.Rate{}}, Currency: pricing.FX{PlatformCurrency: data.Setting.PlatformCurrency, Rates: map[string]string{data.Setting.PlatformCurrency: "1"}}}
+	basis := &CallPriceBasis{Adapter: pricing.TextAdapter, ETag: data.Setting.ETag, Schedule: pricing.Schedule{ProviderModelID: providerModelID, Protocol: protocol, Rates: []pricing.Rate{}}, Currency: pricing.FX{PlatformCurrency: data.Setting.PlatformCurrency, Rates: map[string]string{data.Setting.PlatformCurrency: "1"}}}
 	for _, fx := range data.FX {
 		basis.Currency.Rates[fx.Currency] = fx.Rate
 	}
@@ -63,6 +63,7 @@ func runtimePriceBasis(data *runtimePricingData, providerModelID, protocol strin
 			basis.Schedule.Rates = append(basis.Schedule.Rates, pricing.Rate{ID: rate.ID, Metric: rate.Metric, Tier: rate.Tier, Unit: rate.Unit, Currency: rate.Currency, Amount: rate.Amount, Enabled: rate.Enabled})
 		}
 	}
+	basis.Adapter = pricing.ScheduleAdapter(basis.Schedule)
 	return basis
 }
 func clonePriceBasis(basis *CallPriceBasis) *CallPriceBasis {

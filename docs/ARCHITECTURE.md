@@ -13,9 +13,11 @@ is documented in [AUTH.md](AUTH.md); phased capability and acceptance tracking
 is in [IMPLEMENTATION.md](IMPLEMENTATION.md).
 
 Encrypted provider credential storage, explicit verification/enablement, stable
-model names/bindings/grants, personal API Keys, native OpenAI chat routing, and
-request facts are implemented. Quotas, monetary metering, and additional native
-protocols follow in subsequent work packages. The initial single-binary packaging does not require future Gateway,
+model names/bindings/grants, personal and Project API Keys, four native inference
+protocols, immutable request facts, current token/media pricing, and single-node
+quota admission are implemented. Distributed enforcement, provider-specific
+pricing, and remaining enterprise integrations follow in subsequent work packages.
+The initial single-binary packaging does not require future Gateway,
 Control Plane, and Data Platform components to share a deployment or availability
 boundary. Identity operations currently require the primary database; this does
 not establish Gateway independence or production HA.

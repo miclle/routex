@@ -13,6 +13,34 @@ type GatewayUsage struct {
 	UnsupportedDimensions                []string
 }
 
+const inputMediaPricingDimension = "input_media"
+
+// WithExpectedInputMedia resolves the parser-only input-media marker before a
+// durable call fact is built. A validated RouteX attachment makes the marker
+// expected; otherwise it becomes the durable response_non_text classification.
+// Output media and unknown modalities keep their normal unsupported dimensions
+// and therefore cannot receive additive input prices.
+func (usage GatewayUsage) WithExpectedInputMedia(expected bool) GatewayUsage {
+	dimensions := make([]string, 0, len(usage.UnsupportedDimensions))
+	resolved := false
+	for _, dimension := range usage.UnsupportedDimensions {
+		if dimension == inputMediaPricingDimension {
+			resolved = true
+			if !expected {
+				dimensions = appendDimension(dimensions, "response_non_text")
+			}
+			continue
+		}
+		dimensions = appendDimension(dimensions, dimension)
+	}
+	if !resolved {
+		return usage
+	}
+	usage.UnsupportedDimensions = dimensions
+	usage.Unsupported = len(dimensions) != 0
+	return usage
+}
+
 func usageCounter(raw json.RawMessage) *int64 {
 	if len(raw) == 0 || bytes.Equal(raw, []byte("null")) {
 		return nil
@@ -58,17 +86,20 @@ func ParseOpenAIUsage(raw []byte, stream bool) GatewayUsage {
 	completion := usageObject(usage["completion_tokens_details"])
 	result.CacheRead = usageCounter(prompt["cached_tokens"])
 	result.CacheWrite = usageCounter(prompt["cache_write_tokens"])
-	for _, details := range []map[string]json.RawMessage{prompt, completion} {
-		for _, key := range []string{"audio_tokens", "image_tokens", "video_tokens"} {
-			if raw, ok := details[key]; ok && !bytes.Equal(raw, []byte("null")) {
-				count := usageCounter(raw)
-				if count == nil || *count != 0 {
-					result.Unsupported = true
-					result.UnsupportedDimensions = appendDimension(result.UnsupportedDimensions, "response_non_text")
-				}
-			}
+	if nonzeroUsageCounter(prompt["image_tokens"]) {
+		result.UnsupportedDimensions = appendDimension(result.UnsupportedDimensions, inputMediaPricingDimension)
+	}
+	for _, name := range []string{"audio_tokens", "video_tokens"} {
+		if nonzeroUsageCounter(prompt[name]) {
+			result.UnsupportedDimensions = appendDimension(result.UnsupportedDimensions, "response_non_text")
 		}
 	}
+	for _, name := range []string{"audio_tokens", "image_tokens", "video_tokens"} {
+		if nonzeroUsageCounter(completion[name]) {
+			result.UnsupportedDimensions = appendDimension(result.UnsupportedDimensions, "response_non_text")
+		}
+	}
+	result.Unsupported = len(result.UnsupportedDimensions) != 0
 	// Native completion_tokens already includes reasoning and rejected prediction
 	// tokens. Adding those detail counters would count the same output twice.
 	var kind string
@@ -94,6 +125,14 @@ func ParseOpenAIUsage(raw []byte, stream bool) GatewayUsage {
 	}
 	result.Complete = true
 	return result
+}
+
+func nonzeroUsageCounter(raw json.RawMessage) bool {
+	if len(raw) == 0 || bytes.Equal(raw, []byte("null")) {
+		return false
+	}
+	count := usageCounter(raw)
+	return count == nil || *count != 0
 }
 
 // supportsTextPricing examines only request structure and pricing dimensions;

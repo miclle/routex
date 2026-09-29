@@ -65,6 +65,40 @@ func TestPricingMissingAndDisabled(t *testing.T) {
 		t.Fatalf("unconfigured zero: %v", err)
 	}
 }
+
+func TestMultimodalPricingUsesExplicitOccurrenceRates(t *testing.T) {
+	s := fixtureSchedule()
+	s.Rates = append(s.Rates,
+		Rate{Metric: ImageInput, Tier: Base, Unit: ImageUnit, Currency: "USD", Amount: "0", Enabled: true},
+		Rate{Metric: PDFInput, Tier: Base, Unit: PDFUnit, Currency: "USD", Amount: "1.25", Enabled: true},
+	)
+	q, err := Calculate(s, FX{PlatformCurrency: "USD"}, Usage{InputTokens: 1000000, ImageInputs: 2, PDFInputs: 2})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if q.Adapter != MultimodalAdapter || q.Total != "4.5" || len(q.Components) != 3 {
+		t.Fatalf("multimodal quote = %+v", q)
+	}
+	if q.Components[1].Rate.Metric != ImageInput || q.Components[1].Quantity != 2 || q.Components[1].Charge != "0" {
+		t.Fatalf("image component = %+v", q.Components[1])
+	}
+	if q.Components[2].Rate.Metric != PDFInput || q.Components[2].Quantity != 2 || q.Components[2].Charge != "2.5" {
+		t.Fatalf("PDF component = %+v", q.Components[2])
+	}
+
+	missing := fixtureSchedule()
+	if _, err := Calculate(missing, FX{PlatformCurrency: "USD"}, Usage{ImageInputs: 1}); !errors.Is(err, ErrUnpriced) {
+		t.Fatalf("missing image price = %v", err)
+	}
+	invalid := Rate{Metric: ImageInput, Tier: Long, Unit: ImageUnit, Currency: "USD", Amount: "1", Enabled: true}
+	if ValidateRate(invalid) == nil {
+		t.Fatal("long-context media rate accepted")
+	}
+	invalid.Tier, invalid.Unit = Base, Unit
+	if ValidateRate(invalid) == nil {
+		t.Fatal("token unit accepted for image rate")
+	}
+}
 func TestPricingExactFXAndSnapshot(t *testing.T) {
 	s := fixtureSchedule()
 	s.Rates = s.Rates[:1]
@@ -98,7 +132,7 @@ func TestPricingRejectsUnsupportedOrAmbiguous(t *testing.T) {
 	}
 	s := fixtureSchedule()
 	f := FX{PlatformCurrency: "USD"}
-	for _, u := range []Usage{{InputTokens: -1}, {InputTokens: 10, CacheReadTokens: 8, CacheWriteTokens: 3}, {OutputTokens: -1}} {
+	for _, u := range []Usage{{InputTokens: -1}, {InputTokens: 10, CacheReadTokens: 8, CacheWriteTokens: 3}, {OutputTokens: -1}, {ImageInputs: -1}, {PDFInputs: -1}} {
 		if _, err := Calculate(s, f, u); !errors.Is(err, ErrInvalid) {
 			t.Fatalf("invalid usage: %v", err)
 		}

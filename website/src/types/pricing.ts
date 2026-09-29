@@ -3,15 +3,30 @@ export const metrics = [
   'OUTPUT_TOKEN',
   'CACHE_READ_TOKEN',
   'CACHE_WRITE_TOKEN',
+  'IMAGE_INPUT',
+  'PDF_INPUT',
 ] as const
+export const units = ['1M_TOKEN', '1_IMAGE', '1_PDF'] as const
 export const currencies = ['USD', 'CNY', 'EUR', 'GBP', 'JPY', 'HKD', 'SGD'] as const
 export type PriceMetric = (typeof metrics)[number]
+export type PriceUnit = (typeof units)[number]
 export type PriceCurrency = (typeof currencies)[number]
+export const metricUnits: Record<PriceMetric, PriceUnit> = {
+  INPUT_TOKEN: '1M_TOKEN',
+  OUTPUT_TOKEN: '1M_TOKEN',
+  CACHE_READ_TOKEN: '1M_TOKEN',
+  CACHE_WRITE_TOKEN: '1M_TOKEN',
+  IMAGE_INPUT: '1_IMAGE',
+  PDF_INPUT: '1_PDF',
+}
+export function isMediaPriceMetric(metric: PriceMetric) {
+  return metric === 'IMAGE_INPUT' || metric === 'PDF_INPUT'
+}
 export interface PriceRate {
   id?: string
   metric: PriceMetric
   tier: 'base' | 'long_context'
-  unit: '1M_TOKEN'
+  unit: PriceUnit
   currency: PriceCurrency
   amount: string
   enabled: boolean

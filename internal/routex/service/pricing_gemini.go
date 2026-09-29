@@ -55,7 +55,7 @@ func ParseGeminiUsage(raw []byte, complete bool) GatewayUsage {
 			add("response_service_tier")
 		}
 	}
-	for _, names := range [][2]string{{"promptTokensDetails", "prompt_tokens_details"}, {"cacheTokensDetails", "cache_tokens_details"}, {"candidatesTokensDetails", "candidates_tokens_details"}, {"toolUsePromptTokensDetails", "tool_use_prompt_tokens_details"}} {
+	for index, names := range [][2]string{{"promptTokensDetails", "prompt_tokens_details"}, {"cacheTokensDetails", "cache_tokens_details"}, {"candidatesTokensDetails", "candidates_tokens_details"}, {"toolUsePromptTokensDetails", "tool_use_prompt_tokens_details"}} {
 		if raw := geminiField(object, names[0], names[1]); nativePresent(raw) {
 			var details []map[string]json.RawMessage
 			if json.Unmarshal(raw, &details) != nil {
@@ -64,7 +64,15 @@ func ParseGeminiUsage(raw []byte, complete bool) GatewayUsage {
 			}
 			for _, detail := range details {
 				var modality string
-				if json.Unmarshal(detail["modality"], &modality) != nil || modality != "TEXT" {
+				if json.Unmarshal(detail["modality"], &modality) != nil {
+					add("response_non_text")
+					continue
+				}
+				switch {
+				case modality == "TEXT":
+				case index < 2 && (modality == "IMAGE" || modality == "DOCUMENT"):
+					add(inputMediaPricingDimension)
+				default:
 					add("response_non_text")
 				}
 			}

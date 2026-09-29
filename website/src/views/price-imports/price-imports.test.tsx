@@ -183,6 +183,35 @@ async function preview() {
 }
 const commits = () => requests.filter((r) => r.url === api + 'commit')
 describe('Price file maintenance', () => {
+  it('renders server-provided media units and translates them without changing reviewed data', async () => {
+    const rate = {
+      metric: 'IMAGE_INPUT' as const,
+      tier: 'base' as const,
+      unit: '1_IMAGE' as const,
+      currency: 'USD' as const,
+      amount: '0',
+      enabled: true,
+    }
+    result = {
+      ...result,
+      changes: [
+        {
+          ...result.changes[0],
+          before: null,
+          after: rate,
+          threshold_before: 128000,
+          threshold_after: 128000,
+        },
+      ],
+    }
+    await mount()
+    await preview()
+    expect(document.querySelector('[role="dialog"]')?.textContent).toContain('0 USD / 1 image')
+    await act(async () => i18n.changeLanguage('zh'))
+    expect(document.querySelector('[role="dialog"]')?.textContent).toContain('0 USD / 1 张图片')
+    expect(result.changes[0].after).toEqual(rate)
+  })
+
   it.each(['xls', 'XLSX'])(
     'keeps original %s bytes and filename through preview, conflict review and exactly one confirmed retry',
     async (extension) => {

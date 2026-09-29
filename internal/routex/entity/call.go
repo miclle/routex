@@ -23,6 +23,8 @@ type CallRecord struct {
 	DurationMS        int64     `gorm:"not null"`
 	InputTokens       *int64
 	OutputTokens      *int64
+	ImageInputs       *int64
+	PDFInputs         *int64
 	ErrorCode         string `gorm:"size:40;not null"`
 }
 

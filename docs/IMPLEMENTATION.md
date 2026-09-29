@@ -170,7 +170,7 @@ The binary capability count is 6 completed, 20 partially completed, and 4 not st
 | F17 | User and Team defaults, overrides, budgets, alerts, and stop policy | Partially completed | Personal, Project, and Key enforcement exists; Team defaults, templates, alerts, and stop-calling policy remain open. |
 | F18 | Quota, model, and request-limit approvals | Partially completed | Project model requests exist; Team quota approval, escalation, and Project quota/request-limit workflows remain open. |
 | F19 | Member overview, model sources, requests, and examples | Partially completed | Catalog, callable-model views, Project requests, and native examples exist; complete Team-source attribution and request coverage remain open. |
-| F20 | Playground, comparison, attachments, and code examples | Partially completed | Four native conversation paths, two-to-four-lane comparison, cancellation, executable examples, per-protocol image/PDF discovery, user/Project attachment resolution, single/comparison attachment lifecycle interfaces, and conservative token/TPM admission exist; multimodal monetary pricing and external acceptance remain open. |
+| F20 | Playground, comparison, attachments, and code examples | Partially completed | Four native conversation paths, two-to-four-lane comparison, cancellation, executable examples, per-protocol image/PDF discovery, user/Project attachment resolution, single/comparison attachment lifecycle interfaces, and conservative token/TPM/money admission with exact per-occurrence media prices exist; external acceptance remains open. |
 | F21 | Personal, Project, and platform call records and CSV | Partially completed | Isolated list/detail queries and interfaces exist; complete CSV and later diagnostic/export acceptance remain open. |
 | F22 | Usage trends, amounts, and multidimensional filters | Partially completed | Personal, Project, and platform usage interfaces exist; Team/provider attribution and complete freshness/capacity acceptance remain open. |
 | F23 | Operations overview, quality, alerts, and notifications | Partially completed | SMTP configuration and controlled test delivery exist; durable notification jobs, retry, recipient policy, settings, and status center remain open. |
@@ -204,7 +204,7 @@ Only A01 is fully accepted across its defined scope. Every other case remains in
 | A14 | Control Plane, Vault, analytics failure, invalid snapshots, and replay | Partially completed | Runtime and durable replay foundations exist; Vault and the complete failure matrix remain open. |
 | A15 | SSO, OAuth, LDAP, MFA, and recovery | Partially completed | MFA is implemented; enterprise identity is not. |
 | A16 | Vault compensation, rotation, and cleanup failure | Not started | Vault integration is not implemented. |
-| A17 | Images/PDF, object authorization, and model comparison | Partially completed | Object backend, comparison, conservative route capability discovery, owner-bound user/Project byte reads, current-manager Project lifecycle, native inline rewriting, both Playground attachment interfaces, and attested token/TPM reservation exist; multimodal monetary pricing and external acceptance remain open. |
+| A17 | Images/PDF, object authorization, and model comparison | Partially completed | Object backend, comparison, conservative route capability discovery, owner-bound user/Project byte reads, current-manager Project lifecycle, native inline rewriting, both Playground attachment interfaces, and attested token/TPM/money reservation with exact media occurrence settlement exist; external acceptance remains open. |
 | A18 | Call queries, CSV, reports, and hostile analysis inputs | Partially completed | Call queries and usage views exist; AI analysis and complete safe-export acceptance remain open. |
 | A19 | S3, SMTP, site, announcements, instances, and jobs | Partially completed | S3, SMTP, and site work exists; instances and system jobs do not. |
 | A20 | Fresh install, upgrade, backup/restore, and production SPA | Partially completed | Installation, migrations, restart, and SPA evidence exists; backup/restore and production release acceptance remain open. |
@@ -221,8 +221,8 @@ Only A01 is fully accepted across its defined scope. Every other case remains in
 | P1-03 Personal Keys | Delivered (`3cd5305`); controlled local acceptance passed | One-time pending delivery, confirmation, digest storage, concurrent rotation, ownership, revocation and audit; PostgreSQL/MySQL integration passed |
 | P1-04/05 | In progress | Native OpenAI chat ordinary/SSE, Key Playground, isolated personal/admin call queries and request facts have controlled dual-database evidence; immutable snapshots and bounded durable events have controlled failure/restart evidence; measured capacity and real-provider acceptance remain open |
 | P2 | In progress | Profile/password/session APIs and UI delivered; member/role/registration interfaces and Team/Project backend delivered; Project Keys, offboarding, and resource interfaces advance in separate verified packages |
-| P3 | In progress | Current text prices, FX, immutable call assessments, atomic CSV/XLS/XLSX imports, CSV exports, and single-process Personal/Project/Key token and monetary quota admission are implemented; Team quotas, templates, approvals, alerts, distributed enforcement, non-token metrics, and synchronization remain open |
-| P4–P6 | In progress | Four native inference protocols, conservative image/PDF capability discovery, user/Project attachment resolution, single/comparison attachment interfaces, attested token/TPM reservation, SMTP configuration/test delivery, and object-storage administration/owned-attachment backend are implemented; multimodal monetary pricing, durable notifications, remaining enterprise integrations, and final acceptance remain open |
+| P3 | In progress | Current token and image/PDF occurrence prices, FX, immutable call assessments, atomic CSV/XLS/XLSX imports, CSV exports, and single-process Personal/Project/Key token and monetary quota admission are implemented; Team quotas, templates, approvals, alerts, distributed enforcement, additional billing dimensions, and synchronization remain open |
+| P4–P6 | In progress | Four native inference protocols, conservative image/PDF capability discovery, user/Project attachment resolution, single/comparison attachment interfaces, attested token/TPM/money reservation with exact media occurrence settlement, SMTP configuration/test delivery, and object-storage administration/owned-attachment backend are implemented; provider-specific media pricing, durable notifications, remaining enterprise integrations, and final acceptance remain open |
 
 Verification in this iteration:
 
@@ -997,8 +997,8 @@ non-blocking deletion, late-batch cleanup, and browser-storage absence.
 
 ### Conservative multimodal quota admission
 
-Validated personal- and Project-Key image/PDF attachment requests now separate token
-boundability from monetary priceability. Each native protocol still requires its
+The F20-E checkpoint separated token boundability from monetary priceability for
+validated personal- and Project-Key image/PDF attachment requests. Each native protocol still requires its
 explicit output cap and exact supported request shape. When a finite token or TPM
 policy applies, the gateway reserves the selected provider model's complete
 administrator-attested input maximum plus that output cap. The attachment plan is
@@ -1008,8 +1008,8 @@ audio/video, hosted tools, unknown billing fields, and unsupported cache/tier
 shapes do not inherit this allowance. No file size, page count,
 dimensions, model name, or tokenizer estimate becomes quota evidence.
 
-The existing text price adapter remains text-only. Attachment requests subject to
-any finite monetary policy fail with `quota_price_unavailable` during the
+At that checkpoint, the existing text price adapter remained text-only. Attachment requests subject to
+any finite monetary policy failed with `quota_price_unavailable` during the
 non-reserving preflight, before storage bytes are read or an upstream request is
 admitted. Complete authoritative native terminal input/output totals still settle
 the token dimension independently on success, error, or cancellation. Missing or
@@ -1025,7 +1025,8 @@ reads or upstream calls. The PostgreSQL/MySQL handler lifecycle follows a real
 Chat attachment through owner-bound storage resolution, native terminal parsing,
 immutable call persistence, exact token settlement, incomplete-usage hold
 retention, overrun invalidation, and a subsequent pre-dispatch bound rejection.
-Persisted multimodal pricing remains `unsupported` with a null charge.
+Persisted multimodal pricing remained `unsupported` with a null charge until the
+F20-G extension described below.
 
 ### Project-owned attachment identity and lifecycle
 
@@ -1063,6 +1064,40 @@ denial, disabled/archived recovery, manager-removal upload cleanup, all four
 native protocols, cross-scope zero-read rejection, Project finite-money zero-read
 rejection, Project lifecycle changes during storage reads, deduplication, and one
 dispatch. External S3 and provider acceptance remain open.
+
+### Exact image/PDF occurrence pricing and settlement
+
+F20-G extends the current provider-model price catalogue with base-only
+`IMAGE_INPUT / 1_IMAGE` and `PDF_INPUT / 1_PDF` rates. The quantity is the exact
+number of strictly validated RouteX attachment references forwarded upstream;
+repeated references are billed repeatedly while their object bytes remain
+deduplicated during storage reads. An enabled zero rate is an explicit
+administrator declaration that the provider's aggregate input-token price already
+covers that media kind. Missing or disabled rates do not become free usage.
+
+The gateway records only image and PDF occurrence counts, never attachment IDs,
+names, hashes, storage coordinates, bytes, pages, pixels, or dimensions. It builds
+the immutable request plan and captures the price/FX basis before storage access.
+A finite monetary policy reserves the maximum attested token price plus exact
+media components, and rejects missing media rates or FX with zero storage reads
+and zero upstream dispatches. Final settlement combines authoritative native
+terminal token/cache usage with the immutable occurrence counts. Missing or
+nonfinal usage retains the conservative money hold.
+
+`routex_text_v1` remains compatible for legacy and token-only price snapshots;
+schedules containing media rates produce `routex_multimodal_v1` quotes. Frozen
+GORM migration 24 adds nullable image/PDF counts to call records so historical
+rows remain explicitly unknown while every new parsed request stores a known
+zero or positive count. The provider-model price table and file maintenance flow
+reuse the existing layout, ETag review, decimal-string inputs, currency contract,
+local shadcn/Base UI components, and paired English/Chinese catalogues.
+
+Controlled coverage exercises exact arithmetic and rounding, explicit-free media,
+rate/FX/ETag conflicts, immutable snapshot replay, all four ordinary/streaming
+native usage adapters, image/PDF/mixed requests, repeated references, pre-read
+failure, retained incomplete holds, and PostgreSQL/MySQL migration and lifecycle
+behavior. Per-page, per-pixel, per-byte, provider-specific media-token splits and
+paid external-provider equivalence remain open acceptance gates.
 
 ### Native route-attempt foundation
 

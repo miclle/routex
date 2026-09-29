@@ -2,7 +2,7 @@
 
 RouteX supports local CSV, XLSX, and bounded BIFF8 XLS preview, atomic commit, and
 current-catalogue CSV export.
-These endpoints reuse the current text-price catalogue, exact decimal validation,
+These endpoints reuse the current token/media price catalogue, exact decimal validation,
 ETag concurrency, audit, and runtime-publication boundary. No separate price book,
 file database, or migration is introduced. File imports do not modify invocation grants,
 model lifecycle, credentials, platform currency, or exchange rates.
@@ -22,9 +22,9 @@ lines are ignored. Values are not silently trimmed or case-folded.
 | Column | Required header | Value |
 | --- | --- | --- |
 | `provider_model_id` | Yes | Existing stable provider-model ID; the sole mapping identity |
-| `metric` | Yes | `INPUT_TOKEN`, `OUTPUT_TOKEN`, `CACHE_READ_TOKEN`, or `CACHE_WRITE_TOKEN` |
-| `tier` | Yes | `base` or `long_context` |
-| `unit` | Yes | `1M_TOKEN` |
+| `metric` | Yes | `INPUT_TOKEN`, `OUTPUT_TOKEN`, `CACHE_READ_TOKEN`, `CACHE_WRITE_TOKEN`, `IMAGE_INPUT`, or `PDF_INPUT` |
+| `tier` | Yes | `base` or `long_context`; media metrics require `base` |
+| `unit` | Yes | `1M_TOKEN` for token metrics, `1_IMAGE` for `IMAGE_INPUT`, or `1_PDF` for `PDF_INPUT` |
 | `currency` | Yes | `USD`, `CNY`, `EUR`, `GBP`, `JPY`, `HKD`, or `SGD` |
 | `amount` | Yes | Nonnegative plain decimal string; up to 18 integer and 18 fractional digits |
 | `enabled` | Yes | Explicit lowercase `true` or `false` |
@@ -34,15 +34,19 @@ lines are ignored. Values are not silently trimmed or case-folded.
 A new model-price aggregate with blank threshold starts at zero. Every row for the
 same provider model must specify the same threshold, including blank. A duplicate
 `(provider_model_id, metric, tier)` rejects the file even when values agree. Models
-must already exist on an `openai_chat` connection. Unsupported dimensions such as
-batch, cache TTL, image, audio, or arbitrary conditions are rejected as unknown
-columns or unsupported values; they are never silently reduced to ordinary text.
+must already exist on a supported native-protocol connection. Unsupported dimensions
+such as batch, cache TTL, page, pixel, byte, remote media, audio, video, or arbitrary
+provider-specific conditions are rejected as unknown columns or unsupported values;
+they are never silently reduced to ordinary token rates. An enabled zero media rate
+explicitly declares that aggregate native input tokens already cover that media kind.
 
 ```csv
 provider_model_id,metric,tier,unit,currency,amount,enabled,context_threshold
 pmo_example,INPUT_TOKEN,base,1M_TOKEN,USD,0,true,128000
 pmo_example,OUTPUT_TOKEN,base,1M_TOKEN,USD,2.5,true,128000
 pmo_example,CACHE_READ_TOKEN,base,1M_TOKEN,USD,0.25,false,128000
+pmo_example,IMAGE_INPUT,base,1_IMAGE,USD,0,true,128000
+pmo_example,PDF_INPUT,base,1_PDF,USD,0.01,true,128000
 ```
 
 The example ID must be replaced with an existing provider-model ID. A zero price
@@ -52,7 +56,7 @@ validation: setting threshold zero while retaining enabled long-context rates is
 invalid. Configure required currency conversions through the currency API before
 enabling rates that use them.
 
-Import bounds are 32 KiB of CSV text, 160 data rows, and 20 distinct provider models.
+Import bounds are 32 KiB of CSV text, 200 data rows, and 20 distinct provider models.
 The import request body is limited to 1 MiB, including JSON escaping or base64.
 The normalized before/after audit must fit the existing 60 KiB audit bound; preview
 reports a file-level error if the changes require a smaller batch. No files are
@@ -87,11 +91,11 @@ This is not a general-purpose Excel compatibility engine; unsupported workbooks
 must be saved as a plain one-sheet workbook or CSV before import.
 
 Bounds apply before database writes: 512 KiB binary file, 4 MiB total expanded
-XLSX contents, 128 ZIP entries or OLE directory entries, at most 161 worksheet rows
-including the header, nine columns, and 1,449 shared strings. XML depth is at most
+XLSX contents, 128 ZIP entries or OLE directory entries, at most 201 worksheet rows
+including the header, nine columns, and 1,809 shared strings. XML depth is at most
 64 with a bounded token count. OLE sector counts, chain traversal, and read work
 are bounded by the physical file; cyclic or truncated containers are rejected.
-The normalized text must still fit 32 KiB, 160 rate rows, and 20 models. Sheet names
+The normalized text must still fit 32 KiB, 200 rate rows, and 20 models. Sheet names
 and cell addresses are error locations only and never determine catalogue identity.
 Malformed containers produce a file-level error rather than guessed row values.
 

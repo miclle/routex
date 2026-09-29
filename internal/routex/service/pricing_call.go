@@ -40,14 +40,20 @@ func finalizeCallPricing(fact *CallFact) {
 	result.ETag = fact.PriceBasis.ETag
 	snapshot := callPricingSnapshot{Basis: clonePriceBasis(fact.PriceBasis), UnsupportedDimensions: slices.Clone(fact.PricingDimensions)}
 	switch {
-	case fact.PricingUnsupported || fact.PriceBasis.Adapter != "routex_text_v1":
+	case fact.PricingUnsupported || (fact.PriceBasis.Adapter != pricing.TextAdapter && fact.PriceBasis.Adapter != pricing.MultimodalAdapter):
+		result.Status = "unsupported"
+	case fact.PriceBasis.Adapter != pricing.ScheduleAdapter(fact.PriceBasis.Schedule):
+		result.Status = "invalid_configuration"
+	case fact.PriceBasis.Adapter == pricing.TextAdapter && (pricingCountValue(fact.ImageInputs) != 0 || pricingCountValue(fact.PDFInputs) != 0):
 		result.Status = "unsupported"
 	case !fact.UsageComplete:
 		result.Status = "not_final"
 	case fact.InputTokens == nil || fact.OutputTokens == nil || fact.CacheReadTokens == nil || fact.CacheWriteTokens == nil:
 		result.Status = "unknown_usage"
+	case fact.PriceBasis.Adapter == pricing.MultimodalAdapter && (fact.ImageInputs == nil || fact.PDFInputs == nil):
+		result.Status = "unknown_usage"
 	default:
-		usage := pricing.Usage{InputTokens: *fact.InputTokens, OutputTokens: *fact.OutputTokens, CacheReadTokens: *fact.CacheReadTokens, CacheWriteTokens: *fact.CacheWriteTokens}
+		usage := pricing.Usage{InputTokens: *fact.InputTokens, OutputTokens: *fact.OutputTokens, CacheReadTokens: *fact.CacheReadTokens, CacheWriteTokens: *fact.CacheWriteTokens, ImageInputs: pricingCountValue(fact.ImageInputs), PDFInputs: pricingCountValue(fact.PDFInputs)}
 		if usage.CacheReadTokens > usage.InputTokens || usage.CacheWriteTokens > usage.InputTokens-usage.CacheReadTokens {
 			result.Status = "invalid_usage"
 			break
@@ -76,6 +82,13 @@ func finalizeCallPricing(fact *CallFact) {
 	result.SnapshotJSON = &encoded
 }
 
+func pricingCountValue(value *int64) int64 {
+	if value == nil {
+		return 0
+	}
+	return *value
+}
+
 var chargeAmountPattern = regexp.MustCompile(`^(0|[1-9][0-9]{0,59})(\.[0-9]{1,18})?$`)
 
 func validateCallPricing(fact CallFact) error {
@@ -90,11 +103,11 @@ func validateCallPricing(fact CallFact) error {
 		}
 	}
 
-	if (fact.CacheReadTokens != nil && *fact.CacheReadTokens < 0) || (fact.CacheWriteTokens != nil && *fact.CacheWriteTokens < 0) {
+	if (fact.CacheReadTokens != nil && *fact.CacheReadTokens < 0) || (fact.CacheWriteTokens != nil && *fact.CacheWriteTokens < 0) || (fact.ImageInputs != nil && *fact.ImageInputs < 0) || (fact.PDFInputs != nil && *fact.PDFInputs < 0) {
 		return apperrors.ErrBadRequest
 	}
 	if fact.PriceBasis != nil {
-		if fact.PriceBasis.Schedule.ProviderModelID != fact.ProviderModelID || len(fact.PriceBasis.ETag) > 64 || len(fact.PriceBasis.Schedule.Rates) > 8 || len(fact.PriceBasis.Currency.Rates) > 7 {
+		if fact.PriceBasis.Schedule.ProviderModelID != fact.ProviderModelID || len(fact.PriceBasis.ETag) > 64 || len(fact.PriceBasis.Schedule.Rates) > 10 || len(fact.PriceBasis.Currency.Rates) > 7 {
 			return apperrors.ErrBadRequest
 		}
 		if size := pricingBasisSize(fact.PriceBasis); size < 0 || size > callPricingSnapshotLimit {

@@ -54,6 +54,24 @@ type gatewayAttachmentPlan struct {
 	scanError   error
 }
 
+// MediaInputs counts forwarded occurrences rather than unique stored objects.
+// One stored object referenced twice is read once but is sent, and therefore
+// billed, twice by the native request.
+func (plan *gatewayAttachmentPlan) MediaInputs() (images, pdfs int64) {
+	if plan == nil {
+		return 0, 0
+	}
+	for _, occurrence := range plan.Occurrences {
+		switch occurrence.Kind {
+		case gatewayAttachmentImage:
+			images++
+		case gatewayAttachmentPDF:
+			pdfs++
+		}
+	}
+	return images, pdfs
+}
+
 func planGatewayAttachments(protocol string, payload map[string]json.RawMessage) (*gatewayAttachmentPlan, error) {
 	raw, err := json.Marshal(payload)
 	if err != nil {

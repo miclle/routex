@@ -12,6 +12,7 @@ import (
 
 	"github.com/miclle/routex/internal/routex/entity"
 	apperrors "github.com/miclle/routex/internal/routex/errors"
+	"github.com/miclle/routex/pkg/pricing"
 	"gorm.io/gorm"
 )
 
@@ -64,7 +65,7 @@ func (s *Service) ExportPriceCSV(ctx context.Context, actorID string) (*PriceCSV
 			}
 			for _, rate := range record.Rates {
 				rows++
-				if rows > priceExportModels*8 {
+				if rows > priceExportModels*pricing.MaxRates {
 					return priceExportTooLarge
 				}
 				if err := writer.Write([]string{record.ProviderModelID, rate.Metric, rate.Tier, rate.Unit, rate.Currency, rate.Amount, strconv.FormatBool(rate.Enabled), strconv.FormatInt(record.ContextThreshold, 10), safePriceCSVName(record.UpstreamName)}); err != nil {

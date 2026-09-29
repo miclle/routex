@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"strings"
 	"testing"
+
+	"github.com/miclle/routex/pkg/pricing"
 )
 
 func priceCSV(rows ...string) string {
@@ -28,6 +30,26 @@ func TestPriceCSVNormalizesDecimalsAndBindsSemanticContent(t *testing.T) {
 	b.Items[0].Rates[0].Amount = "2"
 	if priceImportDigest("etag", a.Items) == priceImportDigest("etag", b.Items) {
 		t.Fatal("edited amount kept preview digest")
+	}
+}
+func TestPriceCSVAcceptsBaseMediaOccurrenceRates(t *testing.T) {
+	parsed := parsePriceCSV(priceCSV(
+		"pmo_a,IMAGE_INPUT,base,1_IMAGE,USD,0,true,",
+		"pmo_a,PDF_INPUT,base,1_PDF,USD,1.2500,true,",
+	))
+	if len(parsed.Errors) != 0 || len(parsed.Items) != 1 || len(parsed.Items[0].Rates) != 2 {
+		t.Fatalf("valid media rates rejected: %+v", parsed.Errors)
+	}
+	if parsed.Items[0].Rates[0].Metric != pricing.ImageInput || parsed.Items[0].Rates[0].Amount != "0" || parsed.Items[0].Rates[1].Metric != pricing.PDFInput || parsed.Items[0].Rates[1].Amount != "1.25" {
+		t.Fatalf("media rates not normalized: %+v", parsed.Items[0].Rates)
+	}
+
+	invalid := parsePriceCSV(priceCSV(
+		"pmo_a,IMAGE_INPUT,long_context,1M_TOKEN,USD,1,true,",
+		"pmo_a,PDF_INPUT,base,1_IMAGE,USD,1,true,",
+	))
+	if len(invalid.Errors) != 3 {
+		t.Fatalf("invalid media dimensions were not located: %+v", invalid.Errors)
 	}
 }
 func TestPriceCSVReportsAllIndependentRowErrors(t *testing.T) {

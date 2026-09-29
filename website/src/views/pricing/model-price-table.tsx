@@ -12,7 +12,14 @@ import { Dialog } from '@/components/ui/dialog'
 import { Table } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
 import { Switch } from '@/components/ui/switch'
-import { currencies, metrics, type ModelPrice, type PriceRate } from '@/types/pricing'
+import {
+  currencies,
+  isMediaPriceMetric,
+  metrics,
+  metricUnits,
+  type ModelPrice,
+  type PriceRate,
+} from '@/types/pricing'
 
 interface Editor {
   etag: string
@@ -91,12 +98,26 @@ export default function ModelPriceTable({
     setEditor((current) => current && { ...current, rate: { ...current.rate, ...change } })
     setValidation('')
   }
+  function changeMetric(metric: PriceRate['metric']) {
+    change({
+      metric,
+      unit: metricUnits[metric],
+      ...(isMediaPriceMetric(metric) ? { tier: 'base' as const } : {}),
+    })
+  }
   function save(event: FormEvent) {
     event.preventDefault()
     if (!editor || mutation.isPending || stale || !access.can('prices.write')) return
     const rate = editor.rate
     if (!/^\d{1,18}(\.\d{1,18})?$/.test(rate.amount)) {
       setValidation('decimalError')
+      return
+    }
+    if (
+      rate.unit !== metricUnits[rate.metric] ||
+      (isMediaPriceMetric(rate.metric) && rate.tier !== 'base')
+    ) {
+      setValidation('dimensionError')
       return
     }
     if (
@@ -171,7 +192,7 @@ export default function ModelPriceTable({
                   {t(rate.tier)}
                   {rate.tier === 'long_context' && ` > ${price.context_threshold}`}
                 </td>
-                <td>{t('unitLabel')}</td>
+                <td>{t(rate.unit)}</td>
                 <td className="text-right tabular-nums">
                   {rate.amount} {rate.currency}
                 </td>
@@ -228,9 +249,7 @@ export default function ModelPriceTable({
                   className={selectClass}
                   value={editor.rate.metric}
                   disabled={!!editor.rate.id}
-                  onChange={(event) =>
-                    change({ metric: event.target.value as PriceRate['metric'] })
-                  }
+                  onChange={(event) => changeMetric(event.target.value as PriceRate['metric'])}
                 >
                   {metrics.map((metric) => (
                     <option key={metric} value={metric}>
@@ -243,10 +262,13 @@ export default function ModelPriceTable({
                 <select
                   className={selectClass}
                   value={editor.rate.tier}
-                  disabled={!!editor.rate.id}
+                  disabled={!!editor.rate.id || isMediaPriceMetric(editor.rate.metric)}
                   onChange={(event) => change({ tier: event.target.value as PriceRate['tier'] })}
                 >
-                  {['base', 'long_context'].map((tier) => (
+                  {(isMediaPriceMetric(editor.rate.metric)
+                    ? (['base'] as const)
+                    : (['base', 'long_context'] as const)
+                  ).map((tier) => (
                     <option key={tier} value={tier}>
                       {t(tier)}
                     </option>
@@ -269,7 +291,9 @@ export default function ModelPriceTable({
                   <option value={200000}>200000</option>
                 </select>
               </FormField>
-              <p className="text-xs text-muted-foreground">{t('thresholdHint')}</p>
+              <p className="text-xs text-muted-foreground">
+                {t(isMediaPriceMetric(editor.rate.metric) ? 'mediaThresholdHint' : 'thresholdHint')}
+              </p>
               <FormField label={t('currency')}>
                 <select
                   className={selectClass}
@@ -283,7 +307,7 @@ export default function ModelPriceTable({
                   ))}
                 </select>
               </FormField>
-              <FormField label={`${t('amount')} · ${t('unitLabel')}`}>
+              <FormField label={`${t('amount')} · ${t(editor.rate.unit)}`}>
                 <Input
                   value={editor.rate.amount}
                   inputMode="decimal"

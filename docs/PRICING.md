@@ -1,4 +1,4 @@
-# Current price catalogue and text pricing
+# Current price catalogue and native pricing
 
 RouteX has one current price aggregate per actual provider model. It is identified
 by the stable `ProviderModelID`, independently of the upstream name or platform
@@ -8,45 +8,53 @@ There are no price books, publication stages, effective-time versions, alternate
 supplier/public catalogues, or formula expressions.
 
 The control-plane quote API is a deterministic dry run. The gateway also assesses
-supported final text usage against the price and exchange-rate snapshot captured
+supported final native usage against the price and exchange-rate snapshot captured
 before dispatch. These immutable call amounts do not deduct quota, create invoices,
-or post financial ledger records. See [Gateway text assessment](METERING.md).
+or post financial ledger records. See [Gateway assessment](METERING.md).
 
-## Text pricing adapter
+## Token and media pricing adapters
 
-RouteX uses a finite Go text-pricing adapter identified as `routex_text_v1`.
-It calculates quotes with exact rational arithmetic and explicit validation.
-The current RouteX catalogue and configured exchange rates are the authoritative
+RouteX keeps the finite Go text-pricing adapter `routex_text_v1` and adds
+`routex_multimodal_v1` when a schedule contains an image or PDF input rate. Both
+calculate quotes with exact rational arithmetic and explicit validation. The
+current RouteX catalogue and configured exchange rates are the authoritative
 inputs. Unsupported pricing dimensions are rejected rather than inferred.
 
 The supported adapter has these explicit boundaries:
 
-- Protocols: `openai_chat` and `openai_responses`; quotes contain normalized **text token** usage only.
-  The connection protocol is checked from the existing provider model. Unsupported
-  native protocols are rejected. Multimodal usage is not inferred from model names
-  and must not be submitted as text-token pricing. Native protocols with different
-  usage definitions need their own normalization adapter before gateway billing.
-- Metrics: `INPUT_TOKEN`, `OUTPUT_TOKEN`, `CACHE_READ_TOKEN`, `CACHE_WRITE_TOKEN`.
-- Unit: `1M_TOKEN`, meaning the price for one million tokens.
+- Protocols: `openai_chat`, `openai_responses`, `anthropic_messages`, and
+  `gemini_generate_content`. Dedicated native adapters normalize their terminal
+  token counters before gateway assessment.
+- Token metrics: `INPUT_TOKEN`, `OUTPUT_TOKEN`, `CACHE_READ_TOKEN`, and
+  `CACHE_WRITE_TOKEN`, each with unit `1M_TOKEN`.
+- Media metrics: `IMAGE_INPUT` with unit `1_IMAGE`, and `PDF_INPUT` with unit
+  `1_PDF`. They count strictly validated RouteX attachment-reference occurrences
+  that are forwarded upstream. Reusing the same object twice counts twice while
+  object storage still reads it once.
 - Tiers: `base` and `long_context`; one optional threshold, either `128000` or
   `200000` tokens. Zero disables the threshold. Enabled long-context rates require
-  a threshold. Disabled old long-context rates may remain stored after disabling it.
+  a threshold. Media rates are base-only. Disabled old long-context rates may
+  remain stored after disabling it.
 - Currency: `USD`, `CNY`, `EUR`, `GBP`, `JPY`, `HKD`, or `SGD`. Different rates for
   the same model may use different currencies.
 
 There is no silent rate fallback. Missing or disabled rates are errors when their
 quantity is nonzero. Unlike upstream convenience defaults, a cache price does not
 fall back to ordinary input, and a missing long-context price does not fall back to
-base. Inclusive thresholds, arbitrary/multiple tiers, provider-specific cache TTL,
-batch modifiers, image, request, character, audio, video, and other conditions are
-not supported in this slice. Unknown request fields are rejected so these meanings
-cannot silently be discarded.
+base. An enabled media rate with amount `0` is the explicit declaration that the
+native aggregate input-token price already covers that media kind. RouteX never
+derives a price from bytes, image dimensions, pixels, PDF pages, object metadata,
+model names, or sample calls. Inclusive thresholds, arbitrary/multiple tiers,
+provider-specific cache TTL, batch modifiers, request, character, audio, video,
+and other conditions remain unsupported. Unknown request fields are rejected so
+these meanings cannot silently be discarded.
 
 ## Normalized usage and calculation
 
-Every quote requires all four nonnegative integer usage counts, including explicit
-zero cache counts. Missing counts do not mean zero. `input_tokens` is the **total
-input including cache-read and cache-write tokens**:
+Every quote requires all six nonnegative integer usage counts, including explicit
+zero cache and media counts. Missing counts do not mean zero. `input_tokens` is the
+**total input including cache-read, cache-write, and provider-reported media input
+tokens**:
 
 ```text
 ordinary_input = input_tokens - cache_read_tokens - cache_write_tokens
@@ -65,10 +73,16 @@ configured threshold. Equality uses base. The selected tier applies to the whole
 request, including output and both cache categories, rather than charging only the
 portion above the threshold. Output length never selects the tier.
 
-For each nonzero quantity:
+For each nonzero token quantity:
 
 ```text
 component = quantity × rate_amount ÷ 1,000,000 × source_to_platform_exchange_rate
+```
+
+For each nonzero media occurrence quantity:
+
+```text
+component = quantity × rate_amount × source_to_platform_exchange_rate
 ```
 
 Amounts and exchange rates are plain decimal strings with at most 18 integer and
@@ -110,7 +124,7 @@ in-flight requests retain their original snapshot. A failed route preparation
 retains the last valid route and price generation together; authorization still
 refreshes independently with its existing bounded lease.
 
-A price batch submits 1–20 model aggregates, with 1–8 rates per submitted model.
+A price batch submits 1–20 model aggregates, with 1–10 rates per submitted model.
 Each `(provider_model_id, metric, tier)` is unique. Submitted rates are upserted;
 omitted rates remain unchanged. `enabled` is mandatory and explicitly setting it
 to `false` disables that rate. Existing IDs remain stable. An omitted
@@ -118,11 +132,11 @@ to `false` disables that rate. Existing IDs remain stable. An omitted
 zero. A threshold change must leave the resulting aggregate valid. For example,
 disable retained long-context rates when setting the threshold to zero.
 
-All writes currently originate from the authenticated API and set
-`update_source: "api"` and `follow_repository: false` on affected aggregates.
-Clients cannot claim repository provenance. Manual/import/repository features must
-ultimately reuse the same validated catalogue transaction boundary; they are not
-implemented here.
+Authenticated detail edits and reviewed CSV/XLS/XLSX imports reuse the same
+validated catalogue transaction boundary and set `follow_repository: false`.
+Clients cannot claim repository provenance. Import preview is server-derived and
+commit replays only the captured file bytes, catalogue ETag, and preview digest.
+Repository synchronization remains separate work.
 
 A currency write replaces the finite FX map and platform currency atomically.
 Rates express source currency to the selected platform currency. Self-conversion
@@ -154,7 +168,7 @@ session's `X-CSRF-Token`. Management JSON bodies are limited to 64 KiB.
 | `PUT /admin/prices` | `{etag,items:[{provider_model_id,context_threshold?,rates:[{metric,tier,unit,currency,amount,enabled}]}]}`; returns the changed items and new ETag |
 | `GET /admin/prices/currency` | `{etag,currency,required_currencies}` across all enabled catalogue rates; see [CURRENCY](CURRENCY.md) |
 | `PUT /admin/prices/currency` | `{etag,currency:{platform_currency,rates:{USD:"7.1"}}}`; returns new ETag and currency configuration |
-| `POST /admin/prices/quote` | `{provider_model_id,usage:{input_tokens,output_tokens,cache_read_tokens,cache_write_tokens}}`; returns `{etag,quote}` |
+| `POST /admin/prices/quote` | `{provider_model_id,usage:{input_tokens,output_tokens,cache_read_tokens,cache_write_tokens,image_inputs,pdf_inputs}}`; returns `{etag,quote}` |
 
 Each item includes `id`, `provider_id`, `provider_model_id`, `upstream_name`,
 `protocol`, `context_threshold`, `update_source`, `follow_repository`, and `rates`.
@@ -169,10 +183,11 @@ upstream credentials or connection secrets.
 ## Verification and remaining scope
 
 `go test ./pkg/pricing` exercises exact arithmetic, half-even rounding, FX, explicit
-free pricing, missing and disabled rates, missing overall configuration with known
-zero usage, strict threshold equality, cache-inclusive tier selection, output tier
-selection, invalid cache overlap, unsupported units/protocols, and immutable quote
-results. The same fixed semantics cover both 128k and 200k thresholds.
+free pricing, missing and disabled token/media rates, repeated media occurrences,
+missing overall configuration with known zero usage, strict threshold equality,
+cache-inclusive tier selection, output tier selection, invalid cache overlap,
+unsupported units/protocols, and immutable quote results. The same fixed semantics
+cover both 128k and 200k thresholds.
 
 The shared PostgreSQL/MySQL integration helper `testPricingLifecycle` covers atomic
 batch rollback, partial upserts and stable IDs, permission delegation, CSRF,
@@ -181,10 +196,10 @@ price/FX concurrency, exact quotes, missing FX rollback, cursor pagination, and
 normalized audits. Invoke it through `go tool task test-integration` after migration
 11 and route registration are wired.
 
-Remaining P3 work includes required non-token metrics and finite conditions,
-a documented repository format and sync mechanism, additional protocol/usage
-adapters, quota/reservation integration, and
-reconciliation. This slice does not claim completion of P3 or
-full provider pricing compatibility.
+Per-page, per-pixel, per-byte, provider-specific media-token splits, audio/video,
+and other native billing dimensions remain unsupported until an authoritative
+provider contract and controlled fixture establish their quantities. External
+paid-provider equivalence remains a separate acceptance gate. This slice does not
+claim full provider pricing compatibility.
 
 The [Gemini adapter](GEMINI.md) normalizes native candidate, thought and cached input counters. Missing counters, hosted-tool conditions and unsupported modalities remain explicitly unpriced.

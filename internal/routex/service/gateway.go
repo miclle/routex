@@ -74,6 +74,8 @@ type GatewayResult struct {
 	PriceBasis         *CallPriceBasis
 	PricingUnsupported bool
 	PricingDimensions  []string
+	ImageInputs        int64
+	PDFInputs          int64
 	SnapshotID         string
 	Response           *http.Response
 	ProjectID          string
@@ -176,6 +178,7 @@ func (s *Service) gatewayNative(ctx context.Context, bearer string, body []byte,
 	if err != nil {
 		return result, err
 	}
+	result.ImageInputs, result.PDFInputs = attachmentPlan.MediaInputs()
 	var name entity.ModelName
 	if s.runtime != nil {
 		var exists bool
@@ -227,15 +230,23 @@ func (s *Service) gatewayNative(ctx context.Context, bearer string, body []byte,
 		result.quotaRequest.Supported = false
 	}
 	result.PriceBasis = clonePriceBasis(route.PriceBasis)
-	result.PricingDimensions = pricingRequestDimensions(payload)
+	pricingPayload := payload
+	if len(attachmentPlan.Occurrences) != 0 {
+		// Only the strict RouteX attachment shape receives additive media
+		// pricing. The detached view preserves every other request condition.
+		if detached, ok := quotaAttachmentPayload(protocol, attachmentPlan); ok {
+			pricingPayload = detached
+		}
+	}
+	result.PricingDimensions = pricingRequestDimensions(pricingPayload)
 	if protocol == entity.ProtocolOpenAIResponses {
-		result.PricingDimensions = responsesPricingDimensions(payload)
+		result.PricingDimensions = responsesPricingDimensions(pricingPayload)
 	}
 	if protocol == entity.ProtocolAnthropicMessages {
-		result.PricingDimensions = messagesPricingDimensions(payload)
+		result.PricingDimensions = messagesPricingDimensions(pricingPayload)
 	}
 	if protocol == entity.ProtocolGeminiGenerateContent {
-		result.PricingDimensions = geminiPricingDimensions(payload)
+		result.PricingDimensions = geminiPricingDimensions(pricingPayload)
 	}
 	result.PricingUnsupported = len(result.PricingDimensions) != 0
 	if s.runtime == nil {

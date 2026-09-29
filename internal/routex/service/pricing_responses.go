@@ -48,17 +48,20 @@ func ParseResponsesUsage(raw []byte) GatewayUsage {
 	details := usageObject(usage["input_tokens_details"])
 	result.CacheRead = usageCounter(details["cached_tokens"])
 	result.CacheWrite = usageCounter(details["cache_write_tokens"])
-	for _, part := range []map[string]json.RawMessage{details, usageObject(usage["output_tokens_details"])} {
-		for _, name := range []string{"audio_tokens", "image_tokens", "video_tokens"} {
-			if raw := part[name]; nativePresent(raw) {
-				n := usageCounter(raw)
-				if n == nil || *n != 0 {
-					result.Unsupported = true
-					result.UnsupportedDimensions = appendDimension(result.UnsupportedDimensions, "response_non_text")
-				}
-			}
+	if nonzeroUsageCounter(details["image_tokens"]) {
+		result.UnsupportedDimensions = appendDimension(result.UnsupportedDimensions, inputMediaPricingDimension)
+	}
+	for _, name := range []string{"audio_tokens", "video_tokens"} {
+		if nonzeroUsageCounter(details[name]) {
+			result.UnsupportedDimensions = appendDimension(result.UnsupportedDimensions, "response_non_text")
 		}
 	}
+	for _, name := range []string{"audio_tokens", "image_tokens", "video_tokens"} {
+		if nonzeroUsageCounter(usageObject(usage["output_tokens_details"])[name]) {
+			result.UnsupportedDimensions = appendDimension(result.UnsupportedDimensions, "response_non_text")
+		}
+	}
+	result.Unsupported = len(result.UnsupportedDimensions) != 0
 	result.Complete = kind == "response" && slices.Contains([]string{"completed", "failed", "incomplete", "cancelled"}, status)
 	return result
 }

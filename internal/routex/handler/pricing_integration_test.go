@@ -65,13 +65,16 @@ func testPricingLifecycle(t *testing.T, db *gorm.DB) {
 	rate := func(metric, tier, amount string) map[string]any {
 		return map[string]any{"metric": metric, "tier": tier, "amount": amount, "unit": pricing.Unit, "currency": "USD", "enabled": true}
 	}
+	mediaRate := func(metric, unit, amount string) map[string]any {
+		return map[string]any{"metric": metric, "tier": pricing.Base, "amount": amount, "unit": unit, "currency": "USD", "enabled": true}
+	}
 	item := func(model string, rates ...map[string]any) map[string]any {
 		return map[string]any{"provider_model_id": model, "context_threshold": 200000, "rates": rates}
 	}
 	batch := func(etag string, items ...map[string]any) map[string]any {
 		return map[string]any{"etag": etag, "items": items}
 	}
-	rates := []map[string]any{rate(pricing.Input, pricing.Base, "1.00"), rate(pricing.Output, pricing.Base, "2"), rate(pricing.CacheRead, pricing.Base, "0.1"), rate(pricing.CacheWrite, pricing.Base, "1.25"), rate(pricing.Input, pricing.Long, "2"), rate(pricing.Output, pricing.Long, "4"), rate(pricing.CacheRead, pricing.Long, "0.2"), rate(pricing.CacheWrite, pricing.Long, "2.5")}
+	rates := []map[string]any{rate(pricing.Input, pricing.Base, "1.00"), rate(pricing.Output, pricing.Base, "2"), rate(pricing.CacheRead, pricing.Base, "0.1"), rate(pricing.CacheWrite, pricing.Base, "1.25"), rate(pricing.Input, pricing.Long, "2"), rate(pricing.Output, pricing.Long, "4"), rate(pricing.CacheRead, pricing.Long, "0.2"), rate(pricing.CacheWrite, pricing.Long, "2.5"), mediaRate(pricing.ImageInput, pricing.ImageUnit, "0"), mediaRate(pricing.PDFInput, pricing.PDFUnit, "1.25")}
 	initial := batch(page.ETag, item("pmo_price_a", rates...))
 	expectStatus(t, send(cookie, "", "PUT", path, initial), 403)
 	expectStatus(t, memberRequest("PUT", path, initial), 403)
@@ -95,6 +98,12 @@ func testPricingLifecycle(t *testing.T, db *gorm.DB) {
 	if quote.Quote.Total != "0.270006" || quote.Quote.Tier != pricing.Long {
 		t.Fatalf("incorrect tier charge: %+v", quote)
 	}
+	mediaQuote := quoteInput("pmo_price_a", 200001, 1, 100000, 100000)
+	mediaQuote["usage"] = pricing.Usage{InputTokens: 200001, OutputTokens: 1, CacheReadTokens: 100000, CacheWriteTokens: 100000, ImageInputs: 2, PDFInputs: 1}
+	media := decodeCatalogResponse[service.PriceQuote](t, request("POST", path+"/quote", mediaQuote), 200)
+	if media.Quote.Adapter != pricing.MultimodalAdapter || media.Quote.Total != "1.520006" {
+		t.Fatalf("incorrect media charge: %+v", media)
+	}
 	expectStatus(t, request("POST", path+"/quote", map[string]any{"provider_model_id": "pmo_price_a", "usage": map[string]any{"input_tokens": 1, "output_tokens": 0}}), 400)
 	badQuote := quoteInput("pmo_price_a", 1, 0, 0, 0)
 	badQuote["batch"] = true
@@ -106,7 +115,7 @@ func testPricingLifecycle(t *testing.T, db *gorm.DB) {
 	// A submitted metric is replaced, while omitted metrics and stable IDs survive.
 	changed := rate(pricing.Input, pricing.Base, "3")
 	page = decodeCatalogResponse[service.PricePage](t, request("PUT", path, batch(page.ETag, item("pmo_price_a", changed))), 200)
-	if page.Items[0].ID != firstID || page.Items[0].Rates[0].ID != firstRateID || len(page.Items[0].Rates) != 8 {
+	if page.Items[0].ID != firstID || page.Items[0].Rates[0].ID != firstRateID || len(page.Items[0].Rates) != pricing.MaxRates {
 		t.Fatal("partial upsert replaced unrelated data")
 	}
 	if quote.Quote.Total != "0.270006" {

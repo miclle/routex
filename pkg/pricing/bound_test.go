@@ -84,3 +84,31 @@ func TestReservationBoundMissingTiersCacheAndExplicitZero(t *testing.T) {
 		t.Fatal("missing configuration became free")
 	}
 }
+
+func TestReservationBoundIncludesExactMediaOccurrences(t *testing.T) {
+	schedule := boundSchedule()
+	schedule.Rates = append(schedule.Rates,
+		Rate{Metric: ImageInput, Tier: Base, Unit: ImageUnit, Currency: "USD", Amount: "0", Enabled: true},
+		Rate{Metric: PDFInput, Tier: Base, Unit: PDFUnit, Currency: "USD", Amount: "1.25", Enabled: true},
+	)
+	fx := FX{PlatformCurrency: "USD", Rates: map[string]string{"USD": "1"}}
+	cap := Capacity{Input: 1000000, Output: 1000000, ImageInputs: 3, PDFInputs: 2}
+	bound, err := ReserveBound(schedule, fx, cap)
+	if err != nil {
+		t.Fatal(err)
+	}
+	actual, err := Calculate(schedule, fx, Usage{InputTokens: cap.Input, OutputTokens: cap.Output, ImageInputs: cap.ImageInputs, PDFInputs: cap.PDFInputs})
+	if err != nil {
+		t.Fatal(err)
+	}
+	maximum, _ := new(big.Rat).SetString(bound.Amount)
+	charge, _ := new(big.Rat).SetString(actual.Total)
+	if charge.Cmp(maximum) > 0 || bound.Capacity.ImageInputs != 3 || bound.Capacity.PDFInputs != 2 {
+		t.Fatalf("actual %s exceeds bound %+v", actual.Total, bound)
+	}
+
+	schedule.Rates = schedule.Rates[:len(schedule.Rates)-1]
+	if _, err := ReserveBound(schedule, fx, cap); !errors.Is(err, ErrUnpriced) {
+		t.Fatalf("missing PDF rate = %v", err)
+	}
+}

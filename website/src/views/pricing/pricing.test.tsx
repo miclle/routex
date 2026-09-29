@@ -129,6 +129,14 @@ async function amount(value: string) {
     amountInput().dispatchEvent(new Event('input', { bubbles: true }))
   })
 }
+async function choose(index: number, value: string) {
+  const select = document.querySelectorAll<HTMLSelectElement>('[role="dialog"] select')[index]
+  expect(select).toBeDefined()
+  await act(async () => {
+    Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value')!.set!.call(select, value)
+    select.dispatchEvent(new Event('change', { bubbles: true }))
+  })
+}
 async function submit() {
   await act(async () =>
     document
@@ -138,6 +146,76 @@ async function submit() {
 }
 const writes = () => requests.filter((item) => item.method === 'put')
 describe('current model price editing', () => {
+  it('renders text and media rates with their exact pricing units', async () => {
+    page.items[0].rates.push(
+      {
+        id: 'rat_image',
+        metric: 'IMAGE_INPUT',
+        tier: 'base',
+        unit: '1_IMAGE',
+        amount: '0',
+        currency: 'USD',
+        enabled: true,
+      },
+      {
+        id: 'rat_pdf',
+        metric: 'PDF_INPUT',
+        tier: 'base',
+        unit: '1_PDF',
+        amount: '2.5',
+        currency: 'USD',
+        enabled: true,
+      },
+    )
+    await render()
+    expect(container.textContent).toContain('1 million tokens')
+    expect(container.textContent).toContain('1 image')
+    expect(container.textContent).toContain('1 PDF')
+  })
+
+  it.each([
+    ['IMAGE_INPUT', '1_IMAGE', '1 image'],
+    ['PDF_INPUT', '1_PDF', '1 PDF'],
+  ] as const)(
+    'forces %s to its base-only unit and preserves the token threshold in the write',
+    async (metric, unit, label) => {
+      page.items[0].context_threshold = 128000
+      await render()
+      await click('Add charge component')
+      await choose(1, 'long_context')
+      await choose(0, metric)
+      const selects = document.querySelectorAll<HTMLSelectElement>('[role="dialog"] select')
+      expect(selects[1].value).toBe('base')
+      expect(selects[1].disabled).toBe(true)
+      expect(document.querySelector('[role="dialog"]')?.textContent).toContain(label)
+      expect(document.querySelector('[role="dialog"]')?.textContent).toContain(
+        'threshold is preserved for token rates',
+      )
+      await amount('0')
+      await submit()
+      await until(() => expect(document.querySelector('[role="dialog"]')).toBeNull())
+      expect(JSON.parse(writes()[0].data)).toEqual({
+        etag: 'initial-etag',
+        items: [
+          {
+            provider_model_id: 'pmo_one',
+            context_threshold: 128000,
+            rates: [
+              {
+                metric,
+                tier: 'base',
+                unit,
+                currency: 'USD',
+                amount: '0',
+                enabled: true,
+              },
+            ],
+          },
+        ],
+      })
+    },
+  )
+
   it('reads only the selected model and respects delegated read-only permission', async () => {
     permissions = ['prices.read']
     await render()

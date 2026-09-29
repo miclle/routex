@@ -2,12 +2,14 @@ package pricing
 
 import "math/big"
 
-// Capacity describes proven billable token limits for a supported request. Input
+// Capacity describes proven billable limits for a supported request. Input
 // includes caches; output includes every billed output token, including thoughts.
-// The caller must establish these semantics before using this arithmetic.
+// Media counts are validated forwarded occurrences. The caller must establish
+// these semantics before using this arithmetic.
 type Capacity struct {
-	Input, Output         int64
-	CacheRead, CacheWrite bool
+	Input, Output          int64
+	ImageInputs, PDFInputs int64
+	CacheRead, CacheWrite  bool
 }
 
 type BoundQuote struct {
@@ -22,7 +24,7 @@ type BoundQuote struct {
 // maximum half-unit rounding error of each separately rounded actual component.
 // This is a reservation, never an actual charge or a replacement pricing engine.
 func ReserveBound(schedule Schedule, fx FX, cap Capacity) (*BoundQuote, error) {
-	if cap.Input < 0 || cap.Output < 0 || ValidateSchedule(schedule) != nil || ValidateFX(fx) != nil {
+	if cap.Input < 0 || cap.Output < 0 || cap.ImageInputs < 0 || cap.PDFInputs < 0 || ValidateSchedule(schedule) != nil || ValidateFX(fx) != nil {
 		return nil, ErrInvalid
 	}
 	configured := false
@@ -95,6 +97,44 @@ func ReserveBound(schedule Schedule, fx FX, cap Capacity) (*BoundQuote, error) {
 	}
 	exact := new(big.Rat).Mul(maxInput, big.NewRat(cap.Input, 1000000))
 	exact.Add(exact, new(big.Rat).Mul(maxOutput, big.NewRat(cap.Output, 1000000)))
+	for _, item := range []struct {
+		metric   string
+		quantity int64
+	}{{ImageInput, cap.ImageInputs}, {PDFInput, cap.PDFInputs}} {
+		if item.quantity == 0 {
+			continue
+		}
+		components++
+		var selected *Rate
+		for index := range schedule.Rates {
+			rate := &schedule.Rates[index]
+			if rate.Metric == item.metric && rate.Tier == Base && rate.Enabled {
+				selected = rate
+				break
+			}
+		}
+		if selected == nil {
+			return nil, ErrUnpriced
+		}
+		exchange := "1"
+		if selected.Currency != fx.PlatformCurrency {
+			var ok bool
+			exchange, ok = fx.Rates[selected.Currency]
+			if !ok {
+				return nil, ErrUnpriced
+			}
+		}
+		rate, err := rational(selected.Amount)
+		if err != nil {
+			return nil, err
+		}
+		conversion, err := rational(exchange)
+		if err != nil {
+			return nil, err
+		}
+		rate.Mul(rate, conversion)
+		exact.Add(exact, new(big.Rat).Mul(rate, big.NewRat(item.quantity, 1)))
+	}
 	result := &BoundQuote{Amount: "0", Currency: fx.PlatformCurrency, Capacity: cap, Components: components}
 	if exact.Sign() == 0 {
 		return result, nil

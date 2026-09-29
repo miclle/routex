@@ -157,6 +157,10 @@ func TestGatewayAttachmentPlanDeduplicatesReadsAndPreservesOccurrences(t *testin
 	if len(plan.Occurrences) != 2 || len(plan.UniqueObjectIDs()) != 1 || plan.UniqueObjectIDs()[0] != testAttachmentImageID {
 		t.Fatalf("deduplication plan = %+v, unique = %v", plan.Occurrences, plan.UniqueObjectIDs())
 	}
+	images, pdfs := plan.MediaInputs()
+	if images != 2 || pdfs != 0 {
+		t.Fatalf("media occurrence counts = image:%d pdf:%d", images, pdfs)
+	}
 	rewritten, err := plan.Rewrite(map[string]gatewayAttachmentData{testAttachmentImageID: {MIME: "image/jpeg", Data: []byte("same")}})
 	if err != nil {
 		t.Fatal(err)

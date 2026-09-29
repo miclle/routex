@@ -18,6 +18,17 @@ func testPriceBasis() *CallPriceBasis {
 func pricedFact() CallFact {
 	return CallFact{ProviderModelID: "pmd_one", PriceBasis: testPriceBasis(), InputTokens: pricingCount(1000000), OutputTokens: pricingCount(500000), CacheReadTokens: pricingCount(200000), CacheWriteTokens: pricingCount(100000), UsageComplete: true}
 }
+func multimodalPricedFact() CallFact {
+	fact := pricedFact()
+	fact.PriceBasis.Adapter = pricing.MultimodalAdapter
+	fact.PriceBasis.Schedule.Rates = append(fact.PriceBasis.Schedule.Rates,
+		pricing.Rate{ID: "image", Metric: pricing.ImageInput, Tier: pricing.Base, Unit: pricing.ImageUnit, Currency: "USD", Amount: "0", Enabled: true},
+		pricing.Rate{ID: "pdf", Metric: pricing.PDFInput, Tier: pricing.Base, Unit: pricing.PDFUnit, Currency: "USD", Amount: "1.25", Enabled: true},
+	)
+	fact.ImageInputs = pricingCount(2)
+	fact.PDFInputs = pricingCount(2)
+	return fact
+}
 func TestCallPriceFinalityAndUnknownAmounts(t *testing.T) {
 	for _, test := range []struct {
 		name, status string
@@ -98,5 +109,47 @@ func TestCallPriceZeroIsNotMissing(t *testing.T) {
 	finalizeCallPricing(&fact)
 	if fact.Pricing.Status != "missing_price" || fact.Pricing.Amount != nil {
 		t.Fatal("absent configuration became free")
+	}
+}
+
+func TestCallPricePersistsMultimodalOccurrenceQuote(t *testing.T) {
+	fact := multimodalPricedFact()
+	finalizeCallPricing(&fact)
+	if fact.Pricing.Status != "priced" || fact.Pricing.Amount == nil || *fact.Pricing.Amount != "44.1" {
+		t.Fatalf("wrong multimodal charge: %+v", fact.Pricing)
+	}
+	var snapshot callPricingSnapshot
+	if fact.Pricing.SnapshotJSON == nil || json.Unmarshal([]byte(*fact.Pricing.SnapshotJSON), &snapshot) != nil || snapshot.Quote == nil {
+		t.Fatal("multimodal quote was not captured")
+	}
+	if snapshot.Basis.Adapter != pricing.MultimodalAdapter || snapshot.Quote.Adapter != pricing.MultimodalAdapter || snapshot.Quote.Usage.ImageInputs != 2 || snapshot.Quote.Usage.PDFInputs != 2 {
+		t.Fatalf("multimodal receipt lost occurrence facts: %+v", snapshot)
+	}
+}
+
+func TestCallPriceRequiresKnownMediaCountsAndMatchingAdapter(t *testing.T) {
+	for _, test := range []struct {
+		name, status string
+		mutate       func(*CallFact)
+	}{
+		{"unknown image count", "unknown_usage", func(f *CallFact) { f.ImageInputs = nil }},
+		{"unknown PDF count", "unknown_usage", func(f *CallFact) { f.PDFInputs = nil }},
+		{"text adapter with media usage", "unsupported", func(f *CallFact) {
+			f.PriceBasis.Adapter = pricing.TextAdapter
+			f.PriceBasis.Schedule.Rates = f.PriceBasis.Schedule.Rates[:4]
+		}},
+		{"multimodal adapter without media schedule", "invalid_configuration", func(f *CallFact) { f.PriceBasis.Schedule.Rates = f.PriceBasis.Schedule.Rates[:4] }},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			fact := multimodalPricedFact()
+			test.mutate(&fact)
+			finalizeCallPricing(&fact)
+			if fact.Pricing.Status != test.status || fact.Pricing.Amount != nil {
+				t.Fatalf("pricing status = %+v, want %s", fact.Pricing, test.status)
+			}
+			if err := validateCallPricing(fact); err != nil {
+				t.Fatal(err)
+			}
+		})
 	}
 }

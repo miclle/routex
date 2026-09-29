@@ -20,6 +20,7 @@ import (
 
 	"github.com/miclle/routex/internal/routex/entity"
 	"github.com/miclle/routex/pkg/eventqueue"
+	"github.com/miclle/routex/pkg/pricing"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
@@ -53,6 +54,9 @@ func TestGatewayProjectAttachmentQuotaAdmissionAndDispatch(t *testing.T) {
 			}
 			if reads(testAttachmentImageID) != 1 || reads(testAttachmentPDFID) != 1 {
 				t.Fatalf("storage reads = image %d, PDF %d, want one per unique Project object", reads(testAttachmentImageID), reads(testAttachmentPDFID))
+			}
+			if result.ImageInputs != 2 || result.PDFInputs != 1 || result.PricingUnsupported {
+				t.Fatalf("Project media pricing facts = image:%d PDF:%d unsupported:%t", result.ImageInputs, result.PDFInputs, result.PricingUnsupported)
 			}
 			receipt, err := svc.recorder.queue.QuotaReceipt(requestID)
 			if err != nil || receipt.Bound.Tokens == nil || *receipt.Bound.Tokens != 110 {
@@ -177,6 +181,9 @@ func TestGatewayAttachmentQuotaAdmissionAndDispatch(t *testing.T) {
 					if reads(testAttachmentImageID) != 1 || reads(testAttachmentPDFID) != 1 {
 						t.Fatalf("storage reads = image %d, PDF %d, want one per unique object", reads(testAttachmentImageID), reads(testAttachmentPDFID))
 					}
+					if result.ImageInputs != 2 || result.PDFInputs != 1 || result.PricingUnsupported {
+						t.Fatalf("media pricing facts = image:%d PDF:%d unsupported:%t", result.ImageInputs, result.PDFInputs, result.PricingUnsupported)
+					}
 					receipt, err := svc.recorder.queue.QuotaReceipt(requestID)
 					if err != nil || receipt.Bound.Tokens == nil || *receipt.Bound.Tokens != 110 {
 						t.Fatalf("reservation = %+v, error = %v, want 110 tokens", receipt, err)
@@ -232,6 +239,82 @@ func TestGatewayAttachmentMoneyPolicyRejectsBeforeStorage(t *testing.T) {
 						t.Fatal("monetary preflight rejection read attachment storage")
 					}
 				})
+			}
+		})
+	}
+}
+
+func TestGatewayAttachmentMoneyPricingAdmission(t *testing.T) {
+	for _, test := range gatewayAttachmentQuotaCases() {
+		t.Run(test.name, func(t *testing.T) {
+			var upstreamCalls atomic.Int32
+			upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+				upstreamCalls.Add(1)
+				w.Header().Set("Content-Type", "application/json")
+				_, _ = io.WriteString(w, `{}`)
+			}))
+			defer upstream.Close()
+			svc, data, bearer := runtimeFixture(t, upstream.URL+"/v1")
+			reads := configureGatewayAttachmentStorage(t, svc)
+			runtimePriceFixture(data)
+			data.Pricing.Rates = append(data.Pricing.Rates,
+				entity.PriceRate{ID: "ptr_image", ModelPriceID: "prc_one", Metric: pricing.ImageInput, Tier: pricing.Base, Unit: pricing.ImageUnit, Currency: "USD", Amount: "0", Enabled: true},
+				entity.PriceRate{ID: "ptr_pdf", ModelPriceID: "prc_one", Metric: pricing.PDFInput, Tier: pricing.Base, Unit: pricing.PDFUnit, Currency: "USD", Amount: "0", Enabled: true},
+			)
+			configureGatewayAttachmentQuota(t, svc, data, test.protocol, entity.ResourceLimit{ScopeKind: "user", ScopeID: "usr_one", ETag: "policy_attachment_money", MoneyMonth: quotaTestString("20"), Currency: "CNY"})
+
+			requestID := "req_attachment_money_" + strings.ReplaceAll(test.name, " ", "_")
+			result, err := test.invoke(svc, bearer, []byte(test.body), requestID)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if err := result.Response.Body.Close(); err != nil {
+				t.Fatal(err)
+			}
+			if result.ImageInputs != 2 || result.PDFInputs != 1 || result.PriceBasis == nil || result.PriceBasis.Adapter != pricing.MultimodalAdapter {
+				t.Fatalf("media pricing result = %+v", result)
+			}
+			if upstreamCalls.Load() != 1 || reads(testAttachmentImageID) != 1 || reads(testAttachmentPDFID) != 1 {
+				t.Fatalf("dispatch/read counts = upstream:%d image:%d PDF:%d", upstreamCalls.Load(), reads(testAttachmentImageID), reads(testAttachmentPDFID))
+			}
+			receipt, err := svc.recorder.queue.QuotaReceipt(requestID)
+			if err != nil || receipt.Bound.Money == nil || receipt.Bound.Currency != "CNY" || receipt.Bound.PriceRevision != result.PriceBasis.ETag {
+				t.Fatalf("media money reservation = %+v, error = %v", receipt, err)
+			}
+		})
+	}
+}
+
+func TestGatewayAttachmentMoneyPricingRequiresEveryMediaRateBeforeStorage(t *testing.T) {
+	test := gatewayAttachmentQuotaCases()[0]
+	for _, disabled := range []bool{false, true} {
+		name := "missing PDF rate"
+		if disabled {
+			name = "disabled PDF rate"
+		}
+		t.Run(name, func(t *testing.T) {
+			var upstreamCalls atomic.Int32
+			upstream := httptest.NewServer(http.HandlerFunc(func(http.ResponseWriter, *http.Request) {
+				upstreamCalls.Add(1)
+			}))
+			defer upstream.Close()
+			svc, data, bearer := runtimeFixture(t, upstream.URL+"/v1")
+			reads := configureGatewayAttachmentStorage(t, svc)
+			runtimePriceFixture(data)
+			data.Pricing.Rates = append(data.Pricing.Rates,
+				entity.PriceRate{ID: "ptr_image", ModelPriceID: "prc_one", Metric: pricing.ImageInput, Tier: pricing.Base, Unit: pricing.ImageUnit, Currency: "USD", Amount: "0", Enabled: true},
+			)
+			if disabled {
+				data.Pricing.Rates = append(data.Pricing.Rates,
+					entity.PriceRate{ID: "ptr_pdf", ModelPriceID: "prc_one", Metric: pricing.PDFInput, Tier: pricing.Base, Unit: pricing.PDFUnit, Currency: "USD", Amount: "0", Enabled: false},
+				)
+			}
+			configureGatewayAttachmentQuota(t, svc, data, test.protocol, entity.ResourceLimit{ScopeKind: "user", ScopeID: "usr_one", ETag: "policy_attachment_money", MoneyMonth: quotaTestString("20"), Currency: "CNY"})
+
+			_, err := test.invoke(svc, bearer, []byte(test.body), "req_attachment_missing_media_rate")
+			assertGatewayResolutionError(t, err, http.StatusServiceUnavailable, "quota_price_unavailable")
+			if upstreamCalls.Load() != 0 || reads(testAttachmentImageID) != 0 || reads(testAttachmentPDFID) != 0 {
+				t.Fatalf("missing media rate reached side effects: upstream:%d image:%d PDF:%d", upstreamCalls.Load(), reads(testAttachmentImageID), reads(testAttachmentPDFID))
 			}
 		})
 	}

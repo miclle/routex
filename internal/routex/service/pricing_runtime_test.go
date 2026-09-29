@@ -12,6 +12,7 @@ import (
 
 	"github.com/miclle/routex/internal/routex/entity"
 	"github.com/miclle/routex/pkg/eventqueue"
+	"github.com/miclle/routex/pkg/pricing"
 )
 
 func runtimePriceFixture(data *runtimeData) {
@@ -19,6 +20,20 @@ func runtimePriceFixture(data *runtimeData) {
 	data.Pricing = &runtimePricingData{Setting: entity.PricingSetting{ID: 1, ETag: basis.ETag, PlatformCurrency: basis.Currency.PlatformCurrency}, FX: []entity.PricingExchangeRate{{Currency: "USD", Rate: "7"}}, Prices: []entity.ModelPrice{{ID: basis.Schedule.PriceID, ProviderModelID: "pmd_one"}}}
 	for _, rate := range basis.Schedule.Rates {
 		data.Pricing.Rates = append(data.Pricing.Rates, entity.PriceRate{ID: rate.ID, ModelPriceID: basis.Schedule.PriceID, Metric: rate.Metric, Tier: rate.Tier, Unit: rate.Unit, Currency: rate.Currency, Amount: rate.Amount, Enabled: rate.Enabled})
+	}
+}
+func TestRuntimePriceBasisPublishesMultimodalAdapter(t *testing.T) {
+	data := &runtimeData{}
+	runtimePriceFixture(data)
+	data.Pricing.Rates = append(data.Pricing.Rates, entity.PriceRate{ID: "image", ModelPriceID: "prc_one", Metric: pricing.ImageInput, Tier: pricing.Base, Unit: pricing.ImageUnit, Currency: "USD", Amount: "0", Enabled: true})
+	basis := runtimePriceBasis(data.Pricing, "pmd_one", entity.ProtocolOpenAIChat)
+	if basis.Adapter != pricing.MultimodalAdapter || len(basis.Schedule.Rates) != 5 {
+		t.Fatalf("media schedule published with wrong adapter: %+v", basis)
+	}
+
+	plain := runtimePriceBasis(data.Pricing, "pmd_missing", entity.ProtocolOpenAIChat)
+	if plain.Adapter != pricing.TextAdapter || len(plain.Schedule.Rates) != 0 {
+		t.Fatalf("empty legacy schedule changed adapter: %+v", plain)
 	}
 }
 func TestRuntimeCapturesPriceBeforeDispatchWithoutDatabase(t *testing.T) {
@@ -92,7 +107,12 @@ func TestCallPriceJournalRestartsWithAcceptedReceipt(t *testing.T) {
 	}
 	svc := &Service{recorder: &callRecorder{queue: queue}}
 	basis := testPriceBasis()
-	result := &GatewayResult{quotaTimeZone: "UTC", admissionQuota: []eventqueue.QuotaLimit{{Limit: eventqueue.Limit{Account: "user_usr_one"}, Revision: "0"}, {Limit: eventqueue.Limit{Account: "key_key_one"}, Revision: "0"}}, UserID: "usr_one", KeyID: "key_one", ModelID: "mdl_one", ModelName: "public-model", ProviderModelID: "pmd_one", PriceBasis: basis}
+	basis.Adapter = pricing.MultimodalAdapter
+	basis.Schedule.Rates = append(basis.Schedule.Rates,
+		pricing.Rate{ID: "image", Metric: pricing.ImageInput, Tier: pricing.Base, Unit: pricing.ImageUnit, Currency: "USD", Amount: "0", Enabled: true},
+		pricing.Rate{ID: "pdf", Metric: pricing.PDFInput, Tier: pricing.Base, Unit: pricing.PDFUnit, Currency: "USD", Amount: "0", Enabled: true},
+	)
+	result := &GatewayResult{quotaTimeZone: "UTC", admissionQuota: []eventqueue.QuotaLimit{{Limit: eventqueue.Limit{Account: "user_usr_one"}, Revision: "0"}, {Limit: eventqueue.Limit{Account: "key_key_one"}, Revision: "0"}}, UserID: "usr_one", KeyID: "key_one", ModelID: "mdl_one", ModelName: "public-model", ProviderModelID: "pmd_one", PriceBasis: basis, ImageInputs: 2, PDFInputs: 1}
 	if err := svc.AdmitGatewayCall("req_crash", result); err != nil {
 		t.Fatal(err)
 	}
@@ -134,8 +154,8 @@ func TestCallPriceJournalRestartsWithAcceptedReceipt(t *testing.T) {
 			t.Fatal("crash/replay lost captured price")
 		}
 		if entry.ID == "req_crash" {
-			if recovered.Pricing.Status != "not_final" || recovered.Pricing.Amount != nil {
-				t.Fatal("crash invented a charge")
+			if recovered.Pricing.Status != "not_final" || recovered.Pricing.Amount != nil || recovered.ImageInputs == nil || *recovered.ImageInputs != 2 || recovered.PDFInputs == nil || *recovered.PDFInputs != 1 {
+				t.Fatalf("crash fallback lost media counts or invented a charge: %+v", recovered)
 			}
 		} else if recovered.Pricing.Amount == nil || *recovered.Pricing.Amount != "26.6" || recovered.Status != "canceled" {
 			t.Fatal("final canceled receipt not durable")

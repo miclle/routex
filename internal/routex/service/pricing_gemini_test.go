@@ -65,3 +65,21 @@ func TestGeminiExactChargeAndFinality(t *testing.T) {
 		t.Fatal("omitted cache counter charged")
 	}
 }
+
+func TestGeminiUsageAllowsOnlyExpectedInputMedia(t *testing.T) {
+	input := ParseGeminiUsage([]byte(`{"usageMetadata":{"promptTokenCount":10,"cachedContentTokenCount":0,"candidatesTokenCount":2,"thoughtsTokenCount":0,"totalTokenCount":12,"promptTokensDetails":[{"modality":"IMAGE","tokenCount":4},{"modality":"TEXT","tokenCount":6}]}}`), true)
+	if !input.Unsupported || !input.WithExpectedInputMedia(false).Unsupported {
+		t.Fatalf("unplanned input media classification = %+v", input)
+	}
+	if allowed := input.WithExpectedInputMedia(true); allowed.Unsupported {
+		t.Fatalf("validated input media remained unsupported: %+v", allowed)
+	}
+	output := ParseGeminiUsage([]byte(`{"usageMetadata":{"promptTokenCount":10,"cachedContentTokenCount":0,"candidatesTokenCount":2,"thoughtsTokenCount":0,"totalTokenCount":12,"candidatesTokensDetails":[{"modality":"IMAGE","tokenCount":2}]}}`), true)
+	if allowed := output.WithExpectedInputMedia(true); !allowed.Unsupported {
+		t.Fatal("output media became priceable as an input attachment")
+	}
+	unknown := ParseGeminiUsage([]byte(`{"usageMetadata":{"promptTokenCount":10,"cachedContentTokenCount":0,"candidatesTokenCount":2,"thoughtsTokenCount":0,"totalTokenCount":12,"promptTokensDetails":[{"modality":"AUDIO","tokenCount":4}]}}`), true)
+	if allowed := unknown.WithExpectedInputMedia(true); !allowed.Unsupported {
+		t.Fatal("unknown input modality became priceable")
+	}
+}

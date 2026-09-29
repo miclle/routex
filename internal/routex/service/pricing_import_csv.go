@@ -14,7 +14,7 @@ import (
 )
 
 const priceImportBytes = 32 << 10
-const priceImportRows = 160
+const priceImportRows = 200
 const priceImportModels = 20
 
 var priceCSVColumns = []string{"provider_model_id", "metric", "tier", "unit", "currency", "amount", "enabled", "context_threshold"}
@@ -102,7 +102,7 @@ func parsePriceCSV(raw string) parsedPriceCSV {
 		}
 		line, _ := reader.FieldPos(0)
 		if count >= priceImportRows {
-			result.add(line, "", "too_many_rows", "CSV must contain at most 160 rate rows.")
+			result.add(line, "", "too_many_rows", "CSV must contain at most 200 rate rows.")
 			break
 		}
 		if len(cells) != len(header) {
@@ -115,14 +115,36 @@ func parsePriceCSV(raw string) parsedPriceCSV {
 		if !priceCSVIdentity.MatchString(row.ModelID) {
 			result.add(line, "provider_model_id", "invalid_identity", "A stable provider model ID is required.")
 		}
-		if !slices.Contains([]string{pricing.Input, pricing.Output, pricing.CacheRead, pricing.CacheWrite}, row.Rate.Metric) {
-			result.add(line, "metric", "unsupported_metric", "Use one of the four supported text-token metrics.")
-		}
-		if row.Rate.Tier != pricing.Base && row.Rate.Tier != pricing.Long {
-			result.add(line, "tier", "unsupported_tier", "Use base or long_context.")
-		}
-		if row.Rate.Unit != pricing.Unit {
-			result.add(line, "unit", "unsupported_unit", "The supported unit is 1M_TOKEN.")
+		switch row.Rate.Metric {
+		case pricing.Input, pricing.Output, pricing.CacheRead, pricing.CacheWrite:
+			if row.Rate.Tier != pricing.Base && row.Rate.Tier != pricing.Long {
+				result.add(line, "tier", "unsupported_tier", "Text-token rates use base or long_context.")
+			}
+			if row.Rate.Unit != pricing.Unit {
+				result.add(line, "unit", "unsupported_unit", "Text-token rates use 1M_TOKEN.")
+			}
+		case pricing.ImageInput:
+			if row.Rate.Tier != pricing.Base {
+				result.add(line, "tier", "unsupported_tier", "Image input rates use base only.")
+			}
+			if row.Rate.Unit != pricing.ImageUnit {
+				result.add(line, "unit", "unsupported_unit", "Image input rates use 1_IMAGE.")
+			}
+		case pricing.PDFInput:
+			if row.Rate.Tier != pricing.Base {
+				result.add(line, "tier", "unsupported_tier", "PDF input rates use base only.")
+			}
+			if row.Rate.Unit != pricing.PDFUnit {
+				result.add(line, "unit", "unsupported_unit", "PDF input rates use 1_PDF.")
+			}
+		default:
+			result.add(line, "metric", "unsupported_metric", "Use a supported token, image input, or PDF input metric.")
+			if row.Rate.Tier != pricing.Base && row.Rate.Tier != pricing.Long {
+				result.add(line, "tier", "unsupported_tier", "Use base or long_context where supported by the metric.")
+			}
+			if row.Rate.Unit != pricing.Unit && row.Rate.Unit != pricing.ImageUnit && row.Rate.Unit != pricing.PDFUnit {
+				result.add(line, "unit", "unsupported_unit", "Use a unit supported by the metric.")
+			}
 		}
 		if !pricing.Currency(row.Rate.Currency) {
 			result.add(line, "currency", "unsupported_currency", "The currency is not supported.")
@@ -178,6 +200,9 @@ func parsePriceCSV(raw string) parsedPriceCSV {
 	slices.Sort(order)
 	for _, modelID := range order {
 		item := models[modelID]
+		if len(item.Rates) > pricing.MaxRates {
+			result.add(0, "metric", "too_many_rates", "A provider model may contain at most 10 rates.")
+		}
 		slices.SortFunc(item.Rates, func(a, b pricing.Rate) int { return strings.Compare(a.Metric+"/"+a.Tier, b.Metric+"/"+b.Tier) })
 		result.Items = append(result.Items, *item)
 	}

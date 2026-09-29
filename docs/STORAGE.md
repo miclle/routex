@@ -101,10 +101,13 @@ manager's personal objects. Every media occurrence must match the selected route
 explicit image or PDF declaration. A non-reserving preflight uses the selected
 provider-model/protocol capacity attestation to compute and check the complete
 input maximum plus the request's explicit output cap before storage access. It
-never derives a token bound from object bytes or media properties. A finite
-monetary policy still fails before storage access because no multimodal price
-adapter is available. The final rate, concurrency and quota admission repeats all
-checks and reserves once, after resolution and immediately before the single
+also counts the exact validated image and PDF reference occurrences. A finite
+monetary policy requires an enabled base media rate for every kind present and
+adds those exact occurrence components to the conservative token price bound;
+missing rates or FX fail before object storage access. RouteX never derives token
+or money bounds from object bytes, pages, dimensions, object metadata, model
+names, or sample calls. The final rate, concurrency and quota admission repeats
+all checks and reserves once, after resolution and immediately before the single
 upstream dispatch.
 
 Each unique object is read once per request with the authenticated Key's immutable
@@ -134,4 +137,4 @@ cannot leave a permanent ready object or consume the owner limit indefinitely.
 
 Focused tests use controlled loopback HTTP services only. They cover signed requests, conditional creation, version-aware deletion, foreign metadata protection, redirect rejection, bounded reads, cancellation, secret-envelope revision binding, configuration policy isolation, and accepted/rejected formats. The dual-database lifecycle helper covers personal and Project HTTP upload/download, CSRF, manager and owner isolation, manager-removal upload races, successor access, disabled/archived recovery, revision changes and rollback, failed verification preserving active state, and cleanup replay including a late accepted ambiguous upload. Migration coverage exercises empty creation, a V22 existing-row upgrade, partially applied DDL recovery, repeat execution, concurrent startup, constraints, and both owner indexes on PostgreSQL and MySQL.
 
-The `/admin/storage` web interface exposes the saved status card and configuration drawer, independent read/write/test authority, transient credential actions, exact ETag conflict review, saved-descriptor probe stages, cleanup-pending state, and verified revision rollback in English and Chinese. It refetches complete history after writes and never treats an uncertain response as success. User/Project native inference resolution, single-model and comparison attachment lifecycles, and conservative token/TPM admission are implemented separately from administration. Multimodal monetary pricing and external-service acceptance remain open.
+The `/admin/storage` web interface exposes the saved status card and configuration drawer, independent read/write/test authority, transient credential actions, exact ETag conflict review, saved-descriptor probe stages, cleanup-pending state, and verified revision rollback in English and Chinese. It refetches complete history after writes and never treats an uncertain response as success. User/Project native inference resolution, single-model and comparison attachment lifecycles, conservative token/TPM admission, and explicit per-occurrence media monetary pricing are implemented separately from administration. Per-page, per-pixel, per-byte and external-service acceptance remain open.
