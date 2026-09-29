@@ -1,13 +1,13 @@
 # Current Work Handoff
 
 - **Status:** active; roadmap resumed and phased implementation in progress
-- **Updated:** 2026-09-29T17:00:00+08:00
+- **Updated:** 2026-09-29T18:16:27+08:00
 - **Repository:** `/Users/miclle/github/miclle/routex`
 - **Branch:** `main`
 - **Base:** `main`
-- **Implementation HEAD:** `0c445e11ddd5805bf99422e11d89206e9a1e45e3`
+- **Implementation HEAD:** `17358dec64e4b9d65951c50194d60a900b958dcf`
 - **Upstream:** `origin/main`, zero commits ahead and zero behind at capture
-- **Last pushed implementation state:** `0c445e11ddd5805bf99422e11d89206e9a1e45e3`
+- **Last pushed implementation state:** `17358dec64e4b9d65951c50194d60a900b958dcf`
 - **Current owner:** Codex phased implementation
 - **Next owner:** current task until the full objective closes or a later handoff supersedes this file
 - **Transfer state:** active; transferable at a clean verified phase boundary
@@ -33,6 +33,7 @@ Implement every valid RouteX capability represented by F01–F30 and close every
 - F20-E conservative multimodal quota admission is delivered by `aa33b5a` (`feat(quotas): bound attachment token admission`). Structurally validated Personal-Key image/PDF requests can use finite token and TPM policies through the selected provider model's full attested input capacity plus the native output cap. A side-effect-free durable preflight rejects exhausted token, RPM, concurrency, unavailable journal, and unsupported money cases before storage reads; final admission repeats every check atomically after owner-bound resolution. Native terminal usage settles exact tokens, incomplete usage retains the hold, and overruns invalidate the bound revision. F20-G supersedes the earlier monetary limitation.
 - F20-F Project-owned attachment identity and lifecycle is delivered by `1e4af76` (`feat(storage): add project-owned attachments`). Frozen migration V23 introduces explicit user/Project ownership with portable GORM migration paths and dual-database recovery coverage. Current enabled Project managers govern session upload, metadata, content, deletion, and cleanup; ownership survives manager replacement, disabled or archived Projects remain recoverable without becoming inference-eligible, and Project Keys resolve only their Project objects across all four native protocols. The existing Project Overview links into the unchanged Playground composition, which verifies the Key scope before uploading and never sends the Key to control-plane attachment APIs.
 - F20-G exact attachment input pricing is delivered by `0c445e1` (`feat(pricing): add attachment input charges`). Base-only `IMAGE_INPUT / 1_IMAGE` and `PDF_INPUT / 1_PDF` rates apply to strictly validated forwarded occurrences while storage reads remain deduplicated. The gateway reserves token maxima plus exact media components before storage reads, settles authoritative native token/cache usage with immutable occurrence counts, and durably classifies unexpected provider media without retaining quota leases. Frozen GORM migration V24 adds nullable historical media counts; new calls persist explicit zero or positive counts. The existing provider-model price and import interfaces now expose bilingual media rows and preserve decimal/ETag/currency behavior.
+- F13 active native failover is delivered by `17358de` (`feat(gateway): add bounded route failover`). Published-runtime Chat Completions, Responses, Messages, and Gemini requests now execute at most four replay-safe same-protocol attempts with credential priority, process-local Connection and credential health, current authorization/egress/policy/price rechecks, one durable admission and quota settlement, and no retry after a usable response. Frozen GORM migration V25 stores ordered administrator-only attempt diagnostics. Atomic pre-dispatch recovery and the `no_work` pricing state preserve exact zero economics only when durable evidence proves no provider work.
 - `docs/IMPLEMENTATION.md` contains the authoritative per-capability and per-acceptance status snapshot. The cross-task roadmap is `/Users/miclle/dotfiles/projects/routex/implementation-plan.md`.
 
 ### In Progress
@@ -40,7 +41,7 @@ Implement every valid RouteX capability represented by F01–F30 and close every
 - F04–F07, F10–F15, F17–F23, F27, F28, and F30 are partially completed. Their exact delivered boundaries and remaining conditions are listed in `docs/IMPLEMENTATION.md`.
 - A02–A12, A14–A15, and A17–A20 have partial controlled evidence but are not fully accepted.
 - F14 protects saved credentials from endpoint changes and now retries the complete TLS/CONNECT or SOCKS5 negotiation across every validated proxy endpoint address. External proxy and production performance acceptance remain open.
-- F13 has a replay-safe route-attempt foundation, but active retry, health routing, and failover are not wired into gateway execution.
+- F13 now has active bounded failover and controlled A07/A08 evidence. Real-provider behavior, measured capacity, and multi-node health coordination remain open acceptance gates.
 - F27 now includes storage administration, explicit user/Project ownership, the gateway resolver, both Playground upload controls, and durable abandoned-object expiry. Durable notifications and external-service acceptance remain open.
 - F20 now includes explicit provider-model image/PDF declarations, effective per-protocol discovery, user/Project server-side byte resolution, both approved Playground attachment compositions, conservative token/TPM/money admission, and exact per-occurrence media settlement. Provider-specific billing dimensions and external-provider acceptance remain open.
 
@@ -49,14 +50,14 @@ Implement every valid RouteX capability represented by F01–F30 and close every
 - F03 enterprise identity, F24 AI operations analysis, F26 instance/system-job management, and F29 API Key Vault delivery are not started.
 - A13 complete approval contention and A16 Vault compensation are not started.
 - Real external-provider, IdP/LDAP/OAuth, Vault, S3, SMTP, price-source, production deployment, backup/restore, multi-node, and measured-capacity acceptance remain open because the required environments or decisions have not been supplied.
-- The roadmap is active. The next bounded package is F13 active route execution: connect the existing replay-safe route-attempt foundation to bounded health-aware retry and failover without retrying after streamed output or duplicating call facts, quota settlement, or metering. Real-provider acceptance remains a separate gate because no dedicated external environment or spending limit has been supplied.
+- The roadmap is active. The next bounded package is F21 safe call-record CSV export for Personal, Project, and platform scopes, including server-side authorization, filter parity, formula-injection protection, bounded generation, bilingual UI actions, and controlled A18 evidence.
 
 ## Working Tree
 
 - **Staged:** none
 - **Modified:** only this handoff refresh before its documentation checkpoint
 - **Untracked:** none
-- **Unpushed commits:** `0c445e1` is pushed; commit and push this handoff refresh separately
+- **Unpushed commits:** `17358de` is pushed; commit and push this handoff refresh separately
 - **Do not overwrite:** preserve any new user or concurrent-task changes discovered by the receiver; re-run the state checks before editing
 
 ## Decisions and Rationale
@@ -133,11 +134,17 @@ Implement every valid RouteX capability represented by F01–F30 and close every
 | Remote CI run `36545093687` | pass | Backend, frontend, PostgreSQL/MySQL, real-process restart, production asset, development lifecycle, and artifact jobs passed for `0c445e1` |
 | Remote Actionlint run `36545093588` | pass | Workflow syntax passed for `0c445e1` |
 | Remote GolangCI-Lint run `36545093642` | pass | Go lint passed for `0c445e1` |
+| Focused F13 race suites | pass | Route planning, strict native classification, pre-request transport proof, health cooldowns, durable checkpoints, atomic zero-work recovery, cancellation after admission, diagnostics, and partial-write output evidence passed across service, handler, eventqueue, routeattempt, and upstream packages |
+| `go tool task check` on F13 source | pass | Backend lint, Prettier, TypeScript, ESLint, and module checks passed; ESLint retained two existing Fast Refresh warnings |
+| `go tool task test` on F13 source | pass | Go race/unit coverage, 445 Vitest cases in 41 files, four Node checks, two development lifecycle checks, production build, and embedded production assets passed |
+| `go tool task test-integration` on F13 source | pass | The complete PostgreSQL/MySQL matrix passed with the Handler package at 493.026 seconds and Service package at 6.018 seconds; disposable Compose resources were removed |
+| Independent F13 reviews | pass | Backend correctness, diagnostic safety, and test-gap reviews reported no remaining actionable findings after zero-work recovery, partial-write evidence, and integration-race fixes |
+| `go tool actionlint` and `git diff --check` on F13 source | pass | Workflow syntax and staged whitespace checks passed |
 
 ## Blockers, Risks, and Unknowns
 
 - **Blockers:** no blocker prevents the next local package; external provider, enterprise identity, Vault, object-storage, mail, production, and capacity environments are not supplied for their acceptance gates.
-- **Risks:** single-process quota evidence does not prove multi-node correctness; provider-specific media billing remains open; active retries must preserve stream, quota, metering, and attempt idempotency; partial milestones must not be presented as full release acceptance.
+- **Risks:** single-process quota evidence does not prove multi-node correctness; provider-specific media billing remains open; real-provider retry/error contracts and production capacity remain unverified; partial milestones must not be presented as full release acceptance.
 - **Unknowns:** production topology, multi-node requirement, initial provider, spending limit, capacity targets, backup/restore procedure, IdP choices, Vault layout, price-source contract, and AI-analysis scope remain undecided or unverified.
 
 ## Files to Read First
@@ -152,16 +159,16 @@ Implement every valid RouteX capability represented by F01–F30 and close every
 | `docs/PRICING.md` | Current token/media metrics, exact arithmetic, adapter, quote, and unsupported-dimension contract |
 | `docs/PROVIDER_MODELS.md` | Effective image/PDF capability contract used by attachment routing |
 | `internal/routex/database/call_media_pricing_migration.go` | Frozen V24 nullable media-count migration and portability boundary |
-| `pkg/routeattempt/` | Existing replay-safe attempt-selection foundation for the next F13 package |
+| `docs/ROUTE_ATTEMPTS.md` | Active failover, evidence, health, quota, and diagnostics contract |
 | `internal/routex/service/attachments.go` | Current-manager Project lifecycle and owner-scoped validated byte reads |
 | `internal/routex/service/gateway*.go` | Native parsing, admission ordering, route selection, and dispatch boundaries |
 | `/Users/miclle/dotfiles/projects/routex/implementation-plan.md` | Cross-task schedule, dependency, acceptance, and pause coordination entry |
 
 ## Next Actions
 
-1. Audit `pkg/routeattempt/`, `internal/routex/service/gateway*.go`, runtime route publication, call attempts, and stream forwarding against F13/A07/A08; complete when retryable phases, health evidence, attempt limits, and no-retry-after-output behavior are explicit.
-2. Implement the smallest active health-aware retry/failover slice across the four native protocols while preserving one logical request fact, one quota admission/settlement, independent attempt records, cancellation, and exact native response semantics.
-3. Add controlled ordinary/streaming failure matrices, race coverage, and PostgreSQL/MySQL attempt persistence; run the full required checks, update English documentation, then commit and push the verified phase.
+1. Derive the Personal, Project, and administrator CSV contracts from the existing call filters and A18, including column redaction, cursor-independent range bounds, row limits, UTF-8 encoding, and spreadsheet formula protection.
+2. Implement server-authorized export endpoints and add bilingual export actions to the existing call-record pages without changing their approved layout.
+3. Add focused authorization, filtering, hostile-cell, limit, and browser-download tests; run the full required checks, update English documentation, then commit and push the verified phase.
 
 ## Environment and Access
 
@@ -173,6 +180,6 @@ Implement every valid RouteX capability represented by F01–F30 and close every
 
 ## Handoff History
 
-- **Continues from:** storage administration at `26763e8`, provider-model input capabilities at `3b5e642`, personal-Key attachment resolution at `652cb44`, single-model attachment input at `7fa25d7`, comparison attachment input at `ccb6255`, conservative multimodal quota admission at `aa33b5a`, Project-owned attachment lifecycle at `1e4af76`, and attachment input pricing at `0c445e1`
+- **Continues from:** storage administration at `26763e8`, provider-model input capabilities at `3b5e642`, personal-Key attachment resolution at `652cb44`, single-model attachment input at `7fa25d7`, comparison attachment input at `ccb6255`, conservative multimodal quota admission at `aa33b5a`, Project-owned attachment lifecycle at `1e4af76`, attachment input pricing at `0c445e1`, and bounded native failover at `17358de`
 - **Supersedes:** the storage-administration-next checkpoint at `bcc663a`
 - **Closeout condition:** all F01–F30 capabilities and A01–A20 acceptance cases are completed with current evidence, or a later handoff replaces this document with an equally verifiable resume point
