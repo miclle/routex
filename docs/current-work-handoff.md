@@ -1,22 +1,22 @@
 # Current Work Handoff
 
-- **Status:** active; implementation paused by user instruction
-- **Updated:** 2026-09-24T14:46:19+08:00
+- **Status:** active; roadmap resumed and phased implementation in progress
+- **Updated:** 2026-09-29T11:17:19+08:00
 - **Repository:** `/Users/miclle/github/miclle/routex`
 - **Branch:** `main`
 - **Base:** `main`
-- **Implementation HEAD:** `d6863aaf86076474e6272b82e8a25106b12c41a1`
+- **Implementation HEAD:** `f230d6dc6b5ba7d385fc84c2d3a5cc299657e6f8`
 - **Upstream:** `origin/main`, zero commits ahead and zero behind at capture
-- **Last pushed implementation state:** `d6863aaf86076474e6272b82e8a25106b12c41a1`
-- **Current owner:** Codex documentation checkpoint
-- **Next owner:** unassigned
-- **Transfer state:** transferable after the documentation commit is present on `origin/main`
+- **Last pushed implementation state:** `f230d6dc6b5ba7d385fc84c2d3a5cc299657e6f8`
+- **Current owner:** Codex phased implementation
+- **Next owner:** current task until the full objective closes or a later handoff supersedes this file
+- **Transfer state:** active; transferable at a clean verified phase boundary
 - **Transport:** `origin/main`; resolve the exact handoff commit with `git log -1 -- docs/current-work-handoff.md`
 - **Receiver access:** RouteX repository, this document, `docs/IMPLEMENTATION.md`, and the cross-repository roadmap described below
 
 ## Objective
 
-Implement every valid RouteX capability represented by F01–F30 and close every A01–A20 acceptance case, while preserving the existing Go/React architecture, PostgreSQL/MySQL portability, GORM-first migrations, the approved product layout, shadcn/ui and Base UI primitives, English project documentation, bilingual English/Chinese UI copy, phased verification, and incremental main-branch delivery. This handoff records the deliberate pause after the storage backend delivery; it does not authorize another implementation package.
+Implement every valid RouteX capability represented by F01–F30 and close every A01–A20 acceptance case, while preserving the existing Go/React architecture, PostgreSQL/MySQL portability, GORM-first migrations, the approved product layout, shadcn/ui and Base UI primitives, English project documentation, bilingual English/Chinese UI copy, phased verification, and incremental main-branch delivery. The user resumed this objective on 2026-09-29; bounded packages continue until the full objective closes or an external dependency blocks a specific acceptance gate.
 
 ## Current State
 
@@ -25,14 +25,14 @@ Implement every valid RouteX capability represented by F01–F30 and close every
 - The Compose development and isolated PostgreSQL/MySQL test foundation is delivered.
 - F01 local initialization and identity, F02 account security, F08 Personal/Project Key lifecycle, F09 current single-node admission controls, F16 currency and immutable price snapshots, and F25 site presentation/announcements meet their current capability definitions.
 - Four native inference protocols, durable call facts, usage interfaces, Playground conversation/comparison, executable examples, managed egress, price maintenance, quotas, SMTP administration/test delivery, and the storage/owned-attachment backend have substantial delivered foundations.
-- The latest implementation commit is `d6863aa` (`feat(storage): add owned attachment backend`). Its CI, PostgreSQL/MySQL integration, artifact build, Actionlint, and GolangCI-Lint runs passed.
+- The latest implementation commit is `f230d6d` (`fix(egress): retry complete proxy tunnels`). Local full checks and PostgreSQL/MySQL integration passed; remote Actionlint and GolangCI-Lint passed, and the remote CI run is recorded below.
 - `docs/IMPLEMENTATION.md` contains the authoritative per-capability and per-acceptance status snapshot. The cross-task roadmap is `/Users/miclle/dotfiles/projects/routex/implementation-plan.md`.
 
 ### In Progress
 
 - F04–F07, F10–F15, F17–F23, F27, F28, and F30 are partially completed. Their exact delivered boundaries and remaining conditions are listed in `docs/IMPLEMENTATION.md`.
 - A02–A12, A14–A15, and A17–A20 have partial controlled evidence but are not fully accepted.
-- F14 has two unresolved production-safety findings: changing a proxy endpoint must not allow saved credentials to be retained and sent to the new endpoint, and proxy tunneling must try later validated DNS addresses when the first address cannot connect.
+- F14 protects saved credentials from endpoint changes and now retries the complete TLS/CONNECT or SOCKS5 negotiation across every validated proxy endpoint address. External proxy and production performance acceptance remain open.
 - F13 has a replay-safe route-attempt foundation, but active retry, health routing, and failover are not wired into gateway execution.
 - F27 delivers the storage backend and owned attachment APIs only. Storage administration and attachment web interfaces were not started.
 
@@ -41,14 +41,14 @@ Implement every valid RouteX capability represented by F01–F30 and close every
 - F03 enterprise identity, F24 AI operations analysis, F26 instance/system-job management, and F29 API Key Vault delivery are not started.
 - A13 complete approval contention and A16 Vault compensation are not started.
 - Real external-provider, IdP/LDAP/OAuth, Vault, S3, SMTP, price-source, production deployment, backup/restore, multi-node, and measured-capacity acceptance remain open because the required environments or decisions have not been supplied.
-- Work that had not started is paused. No implementation task is active and no new package may begin until the user resumes the roadmap.
+- The roadmap is active. F27 storage administration UI is the next bounded package; attachment selection and gateway file resolution remain separate later work.
 
 ## Working Tree
 
-- **Staged:** none after the documentation delivery commit
-- **Modified:** none after the documentation delivery commit
-- **Untracked:** none after the documentation delivery commit
-- **Unpushed commits:** none after the documentation delivery commit is pushed
+- **Staged:** none after the resumed checkpoint commit
+- **Modified:** none after the resumed checkpoint commit
+- **Untracked:** none after the resumed checkpoint commit
+- **Unpushed commits:** none after the resumed checkpoint commit is pushed
 - **Do not overwrite:** preserve any new user or concurrent-task changes discovered by the receiver; re-run the state checks before editing
 
 ## Decisions and Rationale
@@ -61,7 +61,7 @@ Implement every valid RouteX capability represented by F01–F30 and close every
 | Follow the approved product layout with local shadcn/ui and Base UI wrappers | The product interaction specification is already established | Do not redesign pages or introduce Ant Design |
 | Keep English as the default UI language and project-document language | This is an explicit project requirement | Pair all visible copy in `en` and `zh`; keep documentation and commit text in English |
 | Keep competitor names and comparisons outside RouteX | RouteX must be described independently | Do not introduce reference-project names into code, UI, docs, commits, or PRs |
-| Keep the roadmap paused | The user explicitly stopped unstarted work | Documentation and read-only inspection are allowed; implementation requires an explicit resume instruction |
+| Resume in bounded verified packages | The user explicitly resumed the full objective | Complete, test, document, commit, push, and verify each package before advancing |
 
 ## Verification Evidence
 
@@ -76,11 +76,17 @@ Implement every valid RouteX capability represented by F01–F30 and close every
 | Remote GolangCI-Lint run `35863119455` | pass | Go lint passed for `d6863aa` |
 | Documentation `git diff --check` | pass | RouteX and dotfiles documentation diffs contain no whitespace errors |
 | Full code/test suite for this documentation-only refresh | not run | No implementation code changed; use document checks only |
+| `go tool task check` on `f230d6d` source | pass | Backend lint, formatting, TypeScript, ESLint, and module checks passed; ESLint retained two existing Fast Refresh warnings |
+| `go tool task test` on `f230d6d` source | pass | Go race/unit, 378 Vitest cases, four Node checks, development lifecycle, and production assets passed |
+| `go tool task test-integration` on `f230d6d` source | pass | PostgreSQL/MySQL handler matrix passed in 397.124 seconds and disposable Compose resources were removed |
+| Remote CI run `36516007979` | pass | Backend, frontend, PostgreSQL/MySQL, process restart, embedded assets, development lifecycle, and artifact build passed for `f230d6d` |
+| Remote Actionlint run `36516007944` | pass | Workflow syntax passed for `f230d6d` |
+| Remote GolangCI-Lint run `36516007929` | pass | Go lint passed for `f230d6d` |
 
 ## Blockers, Risks, and Unknowns
 
-- **Blockers:** implementation is paused by user instruction; external provider, enterprise identity, Vault, object-storage, mail, production, and capacity environments are not supplied.
-- **Risks:** the two F14 egress findings must be fixed before production use; single-process quota evidence does not prove multi-node correctness; storage has no administration or attachment UI; partial milestones must not be presented as full release acceptance.
+- **Blockers:** no blocker prevents the next local package; external provider, enterprise identity, Vault, object-storage, mail, production, and capacity environments are not supplied for their acceptance gates.
+- **Risks:** single-process quota evidence does not prove multi-node correctness; storage has no administration or attachment UI; partial milestones must not be presented as full release acceptance.
 - **Unknowns:** production topology, multi-node requirement, initial provider, spending limit, capacity targets, backup/restore procedure, IdP choices, Vault layout, price-source contract, and AI-analysis scope remain undecided or unverified.
 
 ## Files to Read First
@@ -98,9 +104,9 @@ Implement every valid RouteX capability represented by F01–F30 and close every
 
 ## Next Actions
 
-1. After the user explicitly resumes implementation, run `git status --short --branch`, `git rev-parse HEAD`, `git rev-list --left-right --count HEAD...@{upstream}`, and read `docs/IMPLEMENTATION.md`; continue only when the repository and pause inventory are reconciled.
-2. Use `internal/routex/service/egress.go` and `pkg/upstream/egress.go` as the first bounded safety package: reject saved-auth retention across endpoint changes and try every validated target address before reporting connection failure. Completion requires focused race tests, current egress HTTP/service tests, `go tool task check`, and relevant PostgreSQL/MySQL integration coverage.
-3. Update `docs/EGRESS.md`, `docs/IMPLEMENTATION.md`, and this handoff with the exact delivered boundary and verification. Commit and push only under the session's active authorization, then verify remote CI before selecting another package.
+1. Complete the `/admin/storage` administration package with the approved overview-card and large-drawer composition, local shadcn/ui and Base UI wrappers, `storage.read`/`storage.write`/`storage.test` separation, transient credentials, exact ETag review, saved-descriptor probes, verified rollback, and paired English/Chinese copy.
+2. Run focused frontend/i18n tests, format, `go tool task check`, and `go tool task test`; use the existing backend integration evidence unless implementation changes a server contract. Verify the real browser at desktop and mobile widths against a disposable database.
+3. Update `AGENTS.md`, `.agents/rules/frontend.md`, `docs/UI.md`, `docs/STORAGE.md`, `docs/IMPLEMENTATION.md`, this handoff, and the cross-task roadmap with the exact delivered boundary and remaining attachment/gateway gaps. Commit and push only after all applicable checks pass, then verify remote CI before advancing.
 
 ## Environment and Access
 
@@ -112,6 +118,6 @@ Implement every valid RouteX capability represented by F01–F30 and close every
 
 ## Handoff History
 
-- **Continues from:** no earlier repository-local handoff
-- **Supersedes:** none
+- **Continues from:** the paused checkpoint at `045af6f`
+- **Supersedes:** the 2026-09-24 paused status in this file
 - **Closeout condition:** all F01–F30 capabilities and A01–A20 acceptance cases are completed with current evidence, or a later handoff replaces this document with an equally verifiable resume point
