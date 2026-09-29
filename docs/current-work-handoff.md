@@ -1,22 +1,22 @@
 # Current Work Handoff
 
-- **Status:** active; roadmap resumed and phased implementation in progress
-- **Updated:** 2026-09-29T20:18:55+08:00
+- **Status:** paused at a clean verified F26 boundary for computer handoff
+- **Updated:** 2026-09-29T20:21:00+08:00
 - **Repository:** `/Users/miclle/github/miclle/routex`
 - **Branch:** `main`
 - **Base:** `main`
 - **Implementation HEAD:** `fa71c2e20756cfdf35d196a6d7f9eaf8fc0297bd`
 - **Upstream:** `origin/main`, zero commits ahead and zero behind at capture
 - **Last pushed implementation state:** `fa71c2e20756cfdf35d196a6d7f9eaf8fc0297bd`
-- **Current owner:** Codex phased implementation
-- **Next owner:** current task until the full objective closes or a later handoff supersedes this file
-- **Transfer state:** active; transferable at a clean verified phase boundary
+- **Current owner:** none while paused
+- **Next owner:** the next Codex task after the user synchronizes both repositories on the other computer
+- **Transfer state:** paused; clean and transferable after remote checks converge
 - **Transport:** `origin/main`; resolve the exact handoff commit with `git log -1 -- docs/current-work-handoff.md`
 - **Receiver access:** RouteX repository, this document, `docs/IMPLEMENTATION.md`, and the cross-repository roadmap described below
 
 ## Objective
 
-Implement every valid RouteX capability represented by F01–F30 and close every A01–A20 acceptance case, while preserving the existing Go/React architecture, PostgreSQL/MySQL portability, GORM-first migrations, the approved product layout, shadcn/ui and Base UI primitives, English project documentation, bilingual English/Chinese UI copy, phased verification, and incremental main-branch delivery. The user resumed this objective on 2026-09-29; bounded packages continue until the full objective closes or an external dependency blocks a specific acceptance gate.
+Implement every valid RouteX capability represented by F01–F30 and close every A01–A20 acceptance case, while preserving the existing Go/React architecture, PostgreSQL/MySQL portability, GORM-first migrations, the approved product layout, shadcn/ui and Base UI primitives, English project documentation, bilingual English/Chinese UI copy, phased verification, and incremental main-branch delivery. The user paused after the complete F26 package on 2026-09-29 to continue from another computer. Do not start the next package until the user resumes.
 
 ## Current State
 
@@ -197,11 +197,12 @@ Implement every valid RouteX capability represented by F01–F30 and close every
 | `internal/routex/service/gateway*.go` | Native parsing, admission ordering, route selection, and dispatch boundaries |
 | `/Users/miclle/dotfiles/projects/routex/implementation-plan.md` | Cross-task schedule, dependency, acceptance, and pause coordination entry |
 
-## Next Actions
+## Resume Actions
 
-1. Reconcile the approved F23 notification-center and notification-settings Mockup with the delivered SMTP boundary, current permissions, audit events, and actual platform events.
-2. Implement the smallest durable notification-delivery package with frozen GORM-first schemas, recipient isolation, idempotent retry, explicit terminal states, and no simulated successes or raw provider errors.
-3. Bind the real APIs into the existing Mockup composition with local shadcn/Base UI primitives and paired English/Chinese copy, then prove both databases, restart/retry behavior, permission isolation, browser interaction, full checks, independent review, and a pushed main-branch checkpoint.
+1. Synchronize RouteX `main` and dotfiles `main`, then confirm the RouteX implementation, handoff, and roadmap SHAs recorded here before changing code.
+2. Reconcile the approved F23 notification-center and notification-settings Mockup with the delivered SMTP boundary, current permissions, audit events, and actual platform events.
+3. Implement the smallest durable notification-delivery package with frozen GORM-first schemas, recipient isolation, idempotent retry, explicit terminal states, and no simulated successes or raw provider errors.
+4. Bind the real APIs into the existing Mockup composition with local shadcn/Base UI primitives and paired English/Chinese copy, then prove both databases, restart/retry behavior, permission isolation, browser interaction, full checks, independent review, and a pushed main-branch checkpoint.
 
 ## Environment and Access
 
