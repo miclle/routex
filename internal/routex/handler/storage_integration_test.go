@@ -175,6 +175,19 @@ func testStorageLifecycle(t *testing.T, db *gorm.DB) {
 	if object.State != "ready" || object.MIME != "application/pdf" {
 		t.Fatal("unverified attachment published")
 	}
+	var storedObject entity.StorageObject
+	if err := db.First(&storedObject, "id = ?", object.ID).Error; err != nil {
+		t.Fatal(err)
+	}
+	if !storedObject.UploadConfirmed || storedObject.VersionID == "" || !storedObject.NextCleanupAt.After(time.Now().Add(50*time.Minute)) {
+		t.Fatal("ready attachment does not have a durable expiry")
+	}
+	if err := svc.FlushStorageCleanup(ctx, 32); err != nil {
+		t.Fatal(err)
+	}
+	if current, err := svc.Attachment(ctx, auth.User.ID, object.ID); err != nil || current.State != "ready" {
+		t.Fatal("attachment was cleaned before its deadline")
+	}
 	download := request("GET", "/api/v1/attachments/"+object.ID+"/content", nil)
 	expectStatus(t, download, 200)
 	if !bytes.Equal(download.Body.Bytes(), body) || download.Header().Get("Cache-Control") != "private, no-store" || !strings.HasPrefix(download.Header().Get("Content-Disposition"), "attachment;") {
@@ -207,6 +220,46 @@ func testStorageLifecycle(t *testing.T, db *gorm.DB) {
 	}
 	if _, data, err := svc.AttachmentContent(ctx, auth.User.ID, object.ID); err != nil || !bytes.Equal(data, body) {
 		t.Fatal("configuration change broke historical attachment")
+	}
+	expiring := decodeCatalogResponse[service.AttachmentView](t, upload(body, auth.CSRFToken), 201)
+	if err := db.Model(&entity.StorageObject{}).Where("id = ?", expiring.ID).Updates(map[string]any{"next_cleanup_at": time.Now().Add(-time.Minute), "created_at": time.Now().Add(-2 * time.Hour)}).Error; err != nil {
+		t.Fatal(err)
+	}
+	if _, _, err := svc.AttachmentContent(ctx, auth.User.ID, expiring.ID); err == nil {
+		t.Fatal("expired attachment remained readable before cleanup")
+	}
+	probe := entity.StorageObject{ID: "obj_ready_probe", OwnerID: auth.User.ID, RevisionID: enabled.Revision.ID, Purpose: "probe", State: "ready", UploadConfirmed: true, VersionID: "probe-version", NextCleanupAt: time.Now().Add(-time.Minute), CreatedAt: time.Now().Add(-2 * time.Hour)}
+	if err := db.Create(&probe).Error; err != nil {
+		t.Fatal(err)
+	}
+	fixture.mu.Lock()
+	fixture.failDelete = true
+	fixture.mu.Unlock()
+	if err := svc.FlushStorageCleanup(ctx, 32); err != nil {
+		t.Fatal(err)
+	}
+	var expiredRow entity.StorageObject
+	if err := db.First(&expiredRow, "id = ?", expiring.ID).Error; err != nil || expiredRow.State != "delete_pending" || expiredRow.CleanupCode != "delete_failed" {
+		t.Fatal("failed expiry deletion did not preserve retry intent")
+	}
+	if err := db.First(&probe, "id = ?", probe.ID).Error; err != nil || probe.State != "ready" {
+		t.Fatal("ready non-attachment was claimed by attachment expiry")
+	}
+	fixture.mu.Lock()
+	fixture.failDelete = false
+	fixture.mu.Unlock()
+	if err := db.Model(&entity.StorageObject{}).Where("id = ?", expiring.ID).Update("next_cleanup_at", time.Now().Add(-time.Minute)).Error; err != nil {
+		t.Fatal(err)
+	}
+	if err := svc.FlushStorageCleanup(ctx, 32); err != nil {
+		t.Fatal(err)
+	}
+	expired, err := svc.Attachment(ctx, auth.User.ID, expiring.ID)
+	if err != nil || expired.State != "deleted" {
+		t.Fatal("expired ready attachment was not cleaned")
+	}
+	if _, _, err := svc.AttachmentContent(ctx, auth.User.ID, expiring.ID); err == nil {
+		t.Fatal("expired attachment remained readable")
 	}
 	expectStatus(t, request("POST", "/api/v1/admin/storage/rollback", service.StorageRollbackInput{RevisionID: enabled.Revision.ID, ETag: enabled.ETag, Enabled: true}), 409)
 	rollback := decodeCatalogResponse[service.StorageView](t, request("POST", "/api/v1/admin/storage/rollback", service.StorageRollbackInput{RevisionID: enabled.Revision.ID, ETag: changed.ETag, Enabled: true}), 200)

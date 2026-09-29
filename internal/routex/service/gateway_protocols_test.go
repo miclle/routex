@@ -29,6 +29,9 @@ func TestGatewayModelInputCapabilitiesIntersectReadyRoutes(t *testing.T) {
 	if err != nil || len(models) != 1 {
 		t.Fatalf("list models: %+v %v", models, err)
 	}
+	if !models[0].PersonalAttachments {
+		t.Fatal("personal Key model did not advertise personal attachment references")
+	}
 	protocol := entity.ProtocolOpenAIChat
 	if !slices.Equal(models[0].InputCapabilities[protocol], []string{inputCapabilityImage, inputCapabilityPDF}) {
 		t.Fatalf("single-route capabilities = %v, want image and pdf", models[0].InputCapabilities)

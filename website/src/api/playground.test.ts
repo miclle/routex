@@ -63,6 +63,7 @@ describe('native playground client', () => {
           data: [
             {
               id: 'multimodal-model',
+              personal_attachments: true,
               protocols: ['openai_responses', 'anthropic_messages'],
               input_capabilities: {
                 openai_responses: ['image', 'pdf'],
@@ -76,6 +77,7 @@ describe('native playground client', () => {
     await expect(getGatewayModels(key, controller().signal)).resolves.toEqual([
       {
         id: 'multimodal-model',
+        personal_attachments: true,
         protocols: ['openai_responses', 'anthropic_messages'],
         input_capabilities: {
           openai_responses: ['image', 'pdf'],
@@ -87,6 +89,7 @@ describe('native playground client', () => {
   it.each([
     [{ id: ' ' }],
     [{ id: 'model', protocols: ['unknown'] }],
+    [{ id: 'model', personal_attachments: 'yes' }],
     [{ id: 'model', protocols: ['openai_chat', 'openai_chat'] }],
     [{ id: 'model', input_capabilities: [] }],
     [{ id: 'model', input_capabilities: { openai_chat: ['audio'] } }],

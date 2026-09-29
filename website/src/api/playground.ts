@@ -35,6 +35,8 @@ function gatewayModel(value: unknown): value is GatewayModel {
   if (value === null || typeof value !== 'object' || Array.isArray(value)) return false
   const model = value as Record<string, unknown>
   if (typeof model.id !== 'string' || !model.id.trim()) return false
+  if (model.personal_attachments !== undefined && typeof model.personal_attachments !== 'boolean')
+    return false
   if (
     model.protocols !== undefined &&
     (!Array.isArray(model.protocols) ||

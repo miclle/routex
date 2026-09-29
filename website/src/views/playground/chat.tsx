@@ -1,10 +1,18 @@
 import type { SnippetInput } from '@/lib/playground-snippet'
 import CodeDialog from './code-dialog'
+import { AttachmentChips, AttachmentPicker } from './attachments'
 import { isGeminiModelName, protocolLabel } from '@/lib/protocols'
+import {
+  buildChatAttachmentContent,
+  buildGeminiAttachmentParts,
+  buildMessagesAttachmentContent,
+  buildResponsesAttachmentContent,
+} from '@/lib/playground-attachments'
 import { t } from '@/i18n'
 import { useTranslation } from 'react-i18next'
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { Code, Copy, LoaderCircle, Send, Square, Trash2 } from 'lucide-react'
+import { AttachmentError, deleteAttachment, uploadAttachment } from '@/api/attachments'
 import {
   GatewayError,
   getGatewayModels,
@@ -14,12 +22,19 @@ import {
   runGemini,
 } from '@/api/playground'
 import type {
+  ChatCurrentTurnMessage,
   ChatMessage,
   ChatResult,
   GatewayModel,
+  MessagesCurrentTurnMessage,
+  MessagesHistoryMessage,
   PlaygroundProtocol,
+  ResponsesCurrentTurnItem,
+  ResponsesHistoryItem,
   ResponseStatus,
 } from '@/types/playground'
+import type { Attachment } from '@/types/attachments'
+import { useSession } from '@/hooks/use-auth'
 import { FormField } from '@/components/app/CatalogUI'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -29,6 +44,7 @@ import { Badge } from '@/components/ui/badge'
 type Exchange = ChatResult & {
   id: string
   prompt: string
+  attachments: string[]
   model: string
   status:
     | 'running'
@@ -43,9 +59,28 @@ type Exchange = ChatResult & {
   nonTextOutput?: boolean
   error: string | GatewayError
 }
+
+const maxAttachmentBytes = 2 << 20
+const maxAttachments = 4
+
+function attachmentCapability(file: File): 'image' | 'pdf' | null {
+  const name = file.name.toLowerCase()
+  if (
+    file.type === 'image/png' ||
+    file.type === 'image/jpeg' ||
+    name.endsWith('.png') ||
+    name.endsWith('.jpg') ||
+    name.endsWith('.jpeg')
+  )
+    return 'image'
+  if (file.type === 'application/pdf' || name.endsWith('.pdf')) return 'pdf'
+  return null
+}
+
 export default function ChatWorkbench() {
   useTranslation()
 
+  const session = useSession()
   const [streamEnabled, setStreamEnabled] = useState(true)
   const [codeRequest, setCodeRequest] = useState<SnippetInput | null>(null)
   const [key, setKey] = useState('')
@@ -69,18 +104,156 @@ export default function ChatWorkbench() {
   const [keyChecked, setKeyChecked] = useState(false)
   const [exchanges, setExchanges] = useState<Exchange[]>([])
   const [prompt, setPrompt] = useState('')
+  const [attachments, setAttachments] = useState<Attachment[]>([])
+  const [uploadingNames, setUploadingNames] = useState<string[]>([])
   const [copied, setCopied] = useState('')
   const controller = useRef<AbortController | null>(null)
+  const attachmentGeneration = useRef(0)
+  const attachmentRef = useRef<Attachment[]>([])
+  const ownedAttachmentIDs = useRef(new Set<string>())
+  const csrfRef = useRef('')
   const mounted = useRef(true)
-  const busy = loading || exchanges.some((exchange) => exchange.status === 'running')
+  const selectedModel = models.find((item) => item.id === model)
+  const inputCapabilities = selectedModel?.input_capabilities?.[protocol] ?? []
+  const attachmentAccept = [
+    ...(inputCapabilities.includes('image') ? ['image/png', 'image/jpeg'] : []),
+    ...(inputCapabilities.includes('pdf') ? ['application/pdf'] : []),
+  ].join(',')
+  const canAttach =
+    selectedModel?.personal_attachments === true && inputCapabilities.length > 0 && !!session.data
+  const requestRunning = exchanges.some((exchange) => exchange.status === 'running')
+  const busy = loading || uploadingNames.length > 0 || requestRunning
+
+  function replaceAttachments(update: (current: Attachment[]) => Attachment[]) {
+    setAttachments((current) => {
+      const next = update(current)
+      attachmentRef.current = next
+      return next
+    })
+  }
+
+  async function releaseAttachments(items: Attachment[], csrf = csrfRef.current) {
+    if (!csrf) return
+    const results = await Promise.allSettled(
+      items.map(async (attachment) => {
+        await deleteAttachment(attachment.id, csrf)
+        ownedAttachmentIDs.current.delete(attachment.id)
+      }),
+    )
+    if (mounted.current && results.some((result) => result.status === 'rejected'))
+      setError('playground:attachmentDeleteFailed')
+  }
+
+  function clearDraftAttachments() {
+    attachmentGeneration.current += 1
+    const current = attachmentRef.current
+    attachmentRef.current = []
+    setAttachments([])
+    setUploadingNames([])
+    void releaseAttachments(current)
+  }
+
   useEffect(() => {
+    csrfRef.current = session.data?.csrf_token ?? ''
+  }, [session.data?.csrf_token])
+
+  useEffect(() => {
+    const activeOwnedAttachmentIDs = ownedAttachmentIDs.current
     mounted.current = true
     return () => {
       mounted.current = false
+      attachmentGeneration.current += 1
       controller.current?.abort()
+      attachmentRef.current = []
+      const csrf = csrfRef.current
+      const ownedIDs = [...activeOwnedAttachmentIDs]
+      activeOwnedAttachmentIDs.clear()
+      if (csrf) for (const id of ownedIDs) void deleteAttachment(id, csrf).catch(() => undefined)
     }
   }, [])
+
+  async function selectAttachments(files: File[]) {
+    if (!session.data || !canAttach || busy) return
+    setError('')
+    const csrf = session.data.csrf_token
+    const generation = attachmentGeneration.current
+    const knownNames = new Set([
+      ...attachmentRef.current.map((attachment) => attachment.name),
+      ...uploadingNames,
+    ])
+    let remaining = maxAttachments - knownNames.size
+    for (const file of files) {
+      if (!mounted.current || attachmentGeneration.current !== generation) return
+      if (knownNames.has(file.name)) {
+        setError('playground:attachmentDuplicate')
+        continue
+      }
+      if (remaining <= 0) {
+        setError('playground:attachmentLimit')
+        break
+      }
+      const capability = attachmentCapability(file)
+      if (!capability || !inputCapabilities.includes(capability)) {
+        setError('playground:attachmentType')
+        continue
+      }
+      if (file.size <= 0 || file.size > maxAttachmentBytes) {
+        setError('playground:attachmentSize')
+        continue
+      }
+      knownNames.add(file.name)
+      remaining -= 1
+      setUploadingNames((current) => [...current, file.name])
+      try {
+        const attachment = await uploadAttachment(file, csrf)
+        ownedAttachmentIDs.current.add(attachment.id)
+        if (!mounted.current || attachmentGeneration.current !== generation) {
+          await deleteAttachment(attachment.id, csrf)
+            .then(() => ownedAttachmentIDs.current.delete(attachment.id))
+            .catch(() => undefined)
+          return
+        }
+        const storedCapability = attachment.mime.startsWith('image/')
+          ? 'image'
+          : attachment.mime === 'application/pdf'
+            ? 'pdf'
+            : null
+        if (!storedCapability || !inputCapabilities.includes(storedCapability)) {
+          setError('playground:attachmentType')
+          await deleteAttachment(attachment.id, csrf)
+            .then(() => ownedAttachmentIDs.current.delete(attachment.id))
+            .catch(() => undefined)
+          continue
+        }
+        replaceAttachments((current) => [...current, attachment])
+      } catch (failure) {
+        if (mounted.current && attachmentGeneration.current === generation) {
+          setError(
+            failure instanceof AttachmentError && failure.status === 429
+              ? 'playground:attachmentStorageLimit'
+              : failure instanceof AttachmentError && failure.status === 503
+                ? 'playground:attachmentStorageUnavailable'
+                : 'playground:attachmentUploadFailed',
+          )
+        }
+      } finally {
+        if (mounted.current && attachmentGeneration.current === generation)
+          setUploadingNames((current) => current.filter((name) => name !== file.name))
+      }
+    }
+  }
+
+  function removeAttachment(attachment: Attachment) {
+    replaceAttachments((current) => current.filter((item) => item.id !== attachment.id))
+    void deleteAttachment(attachment.id, csrfRef.current)
+      .then(() => ownedAttachmentIDs.current.delete(attachment.id))
+      .catch(() => {
+        if (mounted.current) setError('playground:attachmentDeleteFailed')
+      })
+  }
+
   function changeKey(value: string) {
+    clearDraftAttachments()
     setKey(value)
     setModels([])
     setModel('')
@@ -131,6 +304,10 @@ export default function ChatWorkbench() {
     lock.current = true
     const form = new FormData(event.currentTarget)
     const text = prompt.trim()
+    const submittedAttachments = attachmentRef.current
+    attachmentGeneration.current += 1
+    attachmentRef.current = []
+    setAttachments([])
     const system = String(form.get('system') ?? '').trim()
     const stream = form.get('stream') === 'on'
     const messages: ChatMessage[] = [
@@ -141,7 +318,6 @@ export default function ChatWorkbench() {
           { role: 'user', content: exchange.prompt },
           { role: 'assistant', content: exchange.text },
         ]),
-      { role: 'user', content: text },
     ]
     const id = crypto.randomUUID()
     const abort = new AbortController()
@@ -154,6 +330,7 @@ export default function ChatWorkbench() {
       {
         id,
         prompt: text,
+        attachments: submittedAttachments.map((attachment) => attachment.name),
         model,
         status: 'running',
         text: '',
@@ -182,12 +359,18 @@ export default function ChatWorkbench() {
           {
             model,
             stream,
-            contents: messages
-              .filter((message) => message.role !== 'system')
-              .map((message) => ({
-                role: message.role === 'assistant' ? ('model' as const) : ('user' as const),
-                parts: [{ text: message.content }],
-              })),
+            contents: [
+              ...messages
+                .filter((message) => message.role !== 'system')
+                .map((message) => ({
+                  role: message.role === 'assistant' ? ('model' as const) : ('user' as const),
+                  parts: [{ text: message.content }],
+                })),
+              {
+                role: 'user' as const,
+                parts: buildGeminiAttachmentParts(text, submittedAttachments),
+              },
+            ],
             ...(system ? { systemInstruction: { parts: [{ text: system }] } } : {}),
             generationConfig: {
               temperature: parameters.temperature,
@@ -201,14 +384,24 @@ export default function ChatWorkbench() {
         )
         update({ ...result, status: result.generationStatus })
       } else if (protocol === 'anthropic_messages') {
+        const currentMessage: MessagesHistoryMessage | MessagesCurrentTurnMessage =
+          submittedAttachments.length > 0
+            ? {
+                role: 'user',
+                content: buildMessagesAttachmentContent(text, submittedAttachments),
+              }
+            : { role: 'user', content: text }
         const result = await runMessages(
           key.trim(),
           {
             ...parameters,
-            messages: messages.filter(
-              (message): message is ChatMessage & { role: 'user' | 'assistant' } =>
-                message.role !== 'system',
-            ),
+            messages: [
+              ...messages.filter(
+                (message): message is ChatMessage & { role: 'user' | 'assistant' } =>
+                  message.role !== 'system',
+              ),
+              currentMessage,
+            ],
             ...(system ? { system } : {}),
             max_tokens: Number(form.get('max_tokens')),
           },
@@ -217,14 +410,24 @@ export default function ChatWorkbench() {
         )
         update({ ...result, status: result.messageStatus })
       } else if (protocol === 'openai_responses') {
+        const currentItem: ResponsesHistoryItem | ResponsesCurrentTurnItem =
+          submittedAttachments.length > 0
+            ? {
+                role: 'user',
+                content: buildResponsesAttachmentContent(text, submittedAttachments),
+              }
+            : { role: 'user', content: text }
         const result = await runResponses(
           key.trim(),
           {
             ...parameters,
-            input: messages.filter(
-              (message): message is ChatMessage & { role: 'user' | 'assistant' } =>
-                message.role !== 'system',
-            ),
+            input: [
+              ...messages.filter(
+                (message): message is ChatMessage & { role: 'user' | 'assistant' } =>
+                  message.role !== 'system',
+              ),
+              currentItem,
+            ],
             ...(system ? { instructions: system } : {}),
             max_output_tokens: Number(form.get('max_tokens')),
           },
@@ -244,11 +447,18 @@ export default function ChatWorkbench() {
           error: result.responseStatus === 'failed' ? 'playground:failedHelp' : '',
         })
       } else {
+        const currentMessage: ChatMessage | ChatCurrentTurnMessage =
+          submittedAttachments.length > 0
+            ? {
+                role: 'user',
+                content: buildChatAttachmentContent(text, submittedAttachments),
+              }
+            : { role: 'user', content: text }
         const result = await runChat(
           key.trim(),
           {
             ...parameters,
-            messages,
+            messages: [...messages, currentMessage],
             max_tokens: Number(form.get('max_tokens')),
             ...(stream ? { stream_options: { include_usage: true } } : {}),
           },
@@ -273,10 +483,17 @@ export default function ChatWorkbench() {
     } finally {
       lock.current = false
       if (controller.current === abort) controller.current = null
+      void releaseAttachments(submittedAttachments, csrfRef.current)
     }
   }
   function showCode() {
-    if (!formRef.current || !availableProtocols.includes(protocol) || busy) return
+    if (
+      !formRef.current ||
+      !availableProtocols.includes(protocol) ||
+      busy ||
+      attachments.length > 0
+    )
+      return
     const form = new FormData(formRef.current)
     setCodeRequest({
       origin: window.location.origin,
@@ -358,6 +575,7 @@ export default function ChatWorkbench() {
                 aria-label={t('choose_a_model_4e769')}
                 value={model}
                 onChange={(e) => {
+                  clearDraftAttachments()
                   setModel(e.target.value)
                   setProtocol(
                     protocols(models.find((item) => item.id === e.target.value))[0] ??
@@ -390,6 +608,7 @@ export default function ChatWorkbench() {
                   value={protocol}
                   className="h-11 w-full rounded-md border bg-background px-3 text-sm"
                   onChange={(event) => {
+                    clearDraftAttachments()
                     setProtocol(event.target.value as PlaygroundProtocol)
                     setExchanges([])
                     setCopied('')
@@ -487,6 +706,7 @@ export default function ChatWorkbench() {
                 size="sm"
                 disabled={busy || !exchanges.length}
                 onClick={() => {
+                  clearDraftAttachments()
                   setExchanges([])
                   setCopied('')
                 }}
@@ -497,7 +717,9 @@ export default function ChatWorkbench() {
               <Button
                 variant="ghost"
                 size="sm"
-                disabled={busy || !model || !availableProtocols.includes(protocol)}
+                disabled={
+                  busy || attachments.length > 0 || !model || !availableProtocols.includes(protocol)
+                }
                 onClick={showCode}
               >
                 <Code className="size-3.5" />
@@ -522,6 +744,11 @@ export default function ChatWorkbench() {
               <article key={exchange.id} className="space-y-3">
                 <div className="ml-auto max-w-[90%] whitespace-pre-wrap rounded-lg bg-secondary px-4 py-3 text-sm leading-6">
                   {exchange.prompt}
+                  {exchange.attachments.length > 0 && (
+                    <div className="mt-2 text-xs text-muted-foreground">
+                      {exchange.attachments.join(' · ')}
+                    </div>
+                  )}
                 </div>
                 <div className="space-y-3 border-l-2 pl-4">
                   <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
@@ -607,40 +834,59 @@ export default function ChatWorkbench() {
               </article>
             ))}
           </div>
-          <div className="space-y-3 border-t p-5">
+          <div className="space-y-3 border-t p-4">
+            <AttachmentChips
+              attachments={attachments}
+              uploadingNames={uploadingNames}
+              disabled={busy}
+              removeLabel={(name) => t('playground:removeAttachment', { name })}
+              uploadingLabel={(name) => t('playground:attachmentUploadingLabel', { name })}
+              onRemove={removeAttachment}
+            />
             <Textarea
               aria-label={t('message_dc6de')}
               name="prompt"
+              rows={4}
               value={prompt}
               onChange={(e) => setPrompt(e.target.value)}
               disabled={busy}
-              placeholder={t('enter_a_message_ctrl_enter_to_send_4419c')}
+              placeholder={t('playground:messagePlaceholder')}
               onKeyDown={(event) => {
-                if (
-                  event.key === 'Enter' &&
-                  (event.ctrlKey || event.metaKey) &&
-                  !event.nativeEvent.isComposing
-                ) {
+                if (event.key === 'Enter' && !event.shiftKey && !event.nativeEvent.isComposing) {
                   event.preventDefault()
                   event.currentTarget.form?.requestSubmit()
                 }
               }}
             />
-            <div className="flex justify-end gap-2">
-              {busy && !loading && (
-                <Button variant="outline" onClick={() => controller.current?.abort()}>
-                  <Square className="size-4" aria-hidden="true" />
-                  {t('stop_generation_76349')}
-                </Button>
-              )}
-              <Button type="submit" disabled={busy || !model || !prompt.trim()}>
-                {busy ? (
-                  <LoaderCircle className="size-4 animate-spin" aria-hidden="true" />
-                ) : (
-                  <Send className="size-4" aria-hidden="true" />
+            <div className="flex items-center justify-between gap-2">
+              <AttachmentPicker
+                accept={attachmentAccept}
+                disabled={busy || !canAttach || attachments.length >= maxAttachments}
+                label={
+                  canAttach
+                    ? t('playground:attachFiles')
+                    : selectedModel?.personal_attachments === false
+                      ? t('playground:attachmentPersonalKeyOnly')
+                      : t('playground:attachmentUnsupported')
+                }
+                onFiles={(files) => void selectAttachments(files)}
+              />
+              <div className="flex justify-end gap-2">
+                {requestRunning && (
+                  <Button variant="outline" onClick={() => controller.current?.abort()}>
+                    <Square className="size-4" aria-hidden="true" />
+                    {t('stop_generation_76349')}
+                  </Button>
                 )}
-                {busy ? t('request_in_progress_fbfed') : t('send_message_94306')}
-              </Button>
+                <Button type="submit" disabled={busy || !model || !prompt.trim()}>
+                  {busy ? (
+                    <LoaderCircle className="size-4 animate-spin" aria-hidden="true" />
+                  ) : (
+                    <Send className="size-4" aria-hidden="true" />
+                  )}
+                  {busy ? t('request_in_progress_fbfed') : t('send_message_94306')}
+                </Button>
+              </div>
             </div>
           </div>
         </div>

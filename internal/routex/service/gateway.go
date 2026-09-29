@@ -39,12 +39,13 @@ func gatewayError(status int, code, message string) *GatewayError {
 
 // GatewayModel is the public model identity, independent of a provider name.
 type GatewayModel struct {
-	ID                string              `json:"id"`
-	Object            string              `json:"object"`
-	Created           int64               `json:"created"`
-	OwnedBy           string              `json:"owned_by"`
-	Protocols         []string            `json:"protocols"`
-	InputCapabilities map[string][]string `json:"input_capabilities"`
+	ID                  string              `json:"id"`
+	Object              string              `json:"object"`
+	Created             int64               `json:"created"`
+	OwnedBy             string              `json:"owned_by"`
+	Protocols           []string            `json:"protocols"`
+	InputCapabilities   map[string][]string `json:"input_capabilities"`
+	PersonalAttachments bool                `json:"personal_attachments"`
 }
 
 // GatewayResult describes one actual upstream attempt without storing its secret.
@@ -99,7 +100,7 @@ func (s *Service) GatewayModels(ctx context.Context, bearer string) ([]GatewayMo
 		for _, name := range auth.Names {
 			if name.CurrentModelID != nil && auth.Models[name.ModelID] && slices.Contains(key.ModelIDs, name.ModelID) {
 				item := metadata[name.ModelID]
-				models = append(models, GatewayModel{ID: name.Name, Object: "model", Created: auth.ModelCreated[name.ModelID].Unix(), OwnedBy: "routex", Protocols: item.Protocols, InputCapabilities: item.InputCapabilities})
+				models = append(models, GatewayModel{ID: name.Name, Object: "model", Created: auth.ModelCreated[name.ModelID].Unix(), OwnedBy: "routex", Protocols: item.Protocols, InputCapabilities: item.InputCapabilities, PersonalAttachments: key.ProjectID == ""})
 			}
 		}
 		sort.Slice(models, func(i, j int) bool { return models[i].ID < models[j].ID })
@@ -116,7 +117,7 @@ func (s *Service) GatewayModels(ctx context.Context, bearer string) ([]GatewayMo
 	}
 	for _, row := range rows {
 		item := metadata[row.ID]
-		models = append(models, GatewayModel{ID: row.Name, Object: "model", Created: row.CreatedAt.Unix(), OwnedBy: "routex", Protocols: item.Protocols, InputCapabilities: item.InputCapabilities})
+		models = append(models, GatewayModel{ID: row.Name, Object: "model", Created: row.CreatedAt.Unix(), OwnedBy: "routex", Protocols: item.Protocols, InputCapabilities: item.InputCapabilities, PersonalAttachments: key.ProjectID == ""})
 	}
 	return models, nil
 }

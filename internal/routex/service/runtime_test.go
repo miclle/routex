@@ -227,6 +227,9 @@ func TestProjectRuntimeAuthorizationOwnershipAndIntersection(t *testing.T) {
 	if err != nil || len(models) != 1 || models[0].ID != "public-model" {
 		t.Fatal("project model listing did not use the memory snapshot")
 	}
+	if models[0].PersonalAttachments {
+		t.Fatal("project Key model advertised personal attachment references")
+	}
 	// Neither the creator nor a manager is the project's key owner. The current
 	// manager lifecycle is evaluated by the project authorization publication.
 	s.InvalidateRuntimeUser("usr_creator")

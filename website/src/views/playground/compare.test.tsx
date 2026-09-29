@@ -20,6 +20,14 @@ vi.mock('@/api/playground', async (original) => ({
   runMessages: vi.fn(),
   runGemini: vi.fn(),
 }))
+vi.mock('@/hooks/use-auth', () => ({
+  useSession: () => ({
+    data: {
+      user: { id: 'usr_playground', role: 'member' },
+      csrf_token: 'csrf-playground',
+    },
+  }),
+}))
 Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true })
 let root: Root, host: HTMLDivElement
 const chatResult = {

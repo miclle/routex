@@ -108,10 +108,13 @@ Messages and Gemini, and a sanitized stored filename for OpenAI PDF fields.
 Cancellation stops remaining reads and prevents upstream dispatch.
 
 Stored attachments do not bypass model capabilities or finite quota policy and do
-not supply guessed token costs. The current Playground still has no attachment
-picker; its later interface must use the session upload API while keeping the
-personal API Key and object references transient.
+not supply guessed token costs. The single-model Playground uses the session upload
+API while keeping the personal API Key and object references transient. Known
+one-invocation objects are deleted when the draft is removed, its context changes,
+the workbench closes, or inference settles. Every ready attachment also expires
+after one hour through the existing durable cleanup worker, so a terminated client
+cannot leave a permanent ready object or consume the owner limit indefinitely.
 
 Focused tests use controlled loopback HTTP services only. They cover signed requests, conditional creation, version-aware deletion, foreign metadata protection, redirect rejection, bounded reads, cancellation, secret-envelope revision binding, configuration policy isolation, and accepted/rejected formats. The dual-database lifecycle helper covers HTTP upload/download, CSRF, owner isolation, revision changes and rollback, failed verification preserving active state, and cleanup replay including a late accepted ambiguous upload. The completed phase passed the full check and test suite with 387 Vitest cases, Go race coverage, development lifecycle checks, and production asset serving. The PostgreSQL/MySQL lifecycle suite passed in 275.269 seconds, and both database process suites passed initialization, restart persistence, ordinary and streaming native inference, reporting, logout, and revocation.
 
-The `/admin/storage` web interface now exposes the saved status card and configuration drawer, independent read/write/test authority, transient credential actions, exact ETag conflict review, saved-descriptor probe stages, cleanup-pending state, and verified revision rollback in English and Chinese. It refetches complete history after writes and never treats an uncertain response as success. Personal-Key native inference resolution is implemented separately from administration. Attachment selection and lifecycle interfaces remain open.
+The `/admin/storage` web interface now exposes the saved status card and configuration drawer, independent read/write/test authority, transient credential actions, exact ETag conflict review, saved-descriptor probe stages, cleanup-pending state, and verified revision rollback in English and Chinese. It refetches complete history after writes and never treats an uncertain response as success. Personal-Key native inference resolution and the single-model attachment lifecycle are implemented separately from administration. Comparison attachment selection remains open.

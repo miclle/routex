@@ -1,26 +1,38 @@
 # Playground
 
-Playground is a native text conversation and model comparison client for native OpenAI Chat Completions, OpenAI Responses, Anthropic Messages, and Gemini Generate Content. It makes real requests; it does not synthesize responses or usage statistics. Other protocols, session-based inference, attachment controls, and tools remain separate work packages.
+Playground is a native conversation and model comparison client for native OpenAI Chat Completions, OpenAI Responses, Anthropic Messages, and Gemini Generate Content. The single-model conversation supports personally owned PNG, JPEG, and PDF attachments. It makes real requests; it does not synthesize responses or usage statistics. Other protocols, session-based inference, comparison attachments, and tools remain separate work packages.
 
 ## Workflow
 
 1. Create a personal or Project API Key, save its one-time secret, and confirm delivery to enable it.
 2. Open Playground and enter the Key. Select **Verify and load models** to request `GET /v1/models` using that Key.
 3. Select a model and one of its currently eligible native protocols. The gateway list reflects effective Key/owner/Project grants. Missing legacy protocol metadata implies Chat support; an explicit empty protocol list does not. Switching protocol clears conversation history.
-4. Optionally adjust Temperature, Top P, maximum output Tokens, and the system prompt. Choose streaming or ordinary JSON output.
-5. Send a message. The page displays incremental text when streaming, the gateway Request ID, and upstream usage when supplied.
-6. Stop an active request to abort the browser fetch and close the response stream. Leaving the page also aborts active requests.
+4. When the model, protocol, and entered credential explicitly allow personal attachments, use the lower-left paperclip to upload up to four PNG, JPEG, or PDF files. Each file is limited to 2 MiB. Selected files appear as removable chips immediately above the message field.
+5. Optionally adjust Temperature, Top P, maximum output Tokens, and the system prompt. Choose streaming or ordinary JSON output.
+6. Send a message. The page displays the submitted filenames under the user message, incremental text when streaming, the gateway Request ID, and upstream usage when supplied.
+7. Stop an active request to abort the browser fetch and close the response stream. Leaving the page also aborts active requests.
 
 Only successfully completed exchanges are included in later conversation context. Failed or canceled partial answers remain visible but are excluded from future requests. Changing the protocol, model, or Key clears the conversation. Clearing the Key also clears the model selection and conversation. Copy output copies only the selected answer; clipboard failures provide a manual-copy fallback message.
 
-Model discovery also returns effective protocol-specific image and PDF input
-capabilities. The current text workbench validates and retains that metadata but
-does not render attachment controls yet. The gateway already resolves personally
-owned `routex://attachments/<object-id>` references from the supported native
-media fields after selecting and checking the actual route. It inlines validated
-bytes and never passes RouteX object identifiers to an upstream. Project Keys
-cannot consume personally owned attachments. The later interface package will
-bind this contract to the existing composer with transient browser state.
+Model discovery returns effective protocol-specific image and PDF input
+capabilities plus whether the entered credential can use personally owned
+attachments. Missing metadata remains text-only. The composer follows the
+approved chips-above-textarea layout, with the paperclip at lower left and
+send/stop actions at lower right. Project Keys cannot consume personally owned
+attachments, so their picker stays disabled even when the selected route accepts
+inline media.
+
+Uploads use the authenticated session and CSRF token. Inference continues to use
+only the transient personal API Key and never sends session cookies. File objects,
+returned object IDs, and native references stay in component memory. Removing a
+draft, changing the Key/model/protocol, clearing the draft, leaving the workbench,
+or settling the inference request triggers deletion of known one-invocation
+objects. An upload already accepted by the server is allowed to return after
+navigation so the client can delete its object. Ready attachments also carry a
+durable one-hour expiry consumed by the storage cleanup worker, which covers a
+terminated browser that can no longer receive the object ID. Submitted filenames
+remain as non-sensitive transcript labels, while later context contains only
+completed text turns.
 
 Direct API callers upload with the session and CSRF-protected attachment API, then
 place the returned object URI only in a native image/PDF position described in
@@ -34,6 +46,7 @@ multimodal token bound is currently available.
 
 - Model discovery, Chat, and Responses use `Authorization: Bearer <key>` against same-origin endpoints. Messages uses only `x-api-key: <key>` with `anthropic-version: 2023-06-01` against `/v1/messages`; Gemini uses only `x-goog-api-key` against the native `/v1beta/models/{name}` action. Authentication forms are never combined, and the client never places credentials in query parameters.
 - Requests omit browser cookies and reject redirects. Gateway authentication is independent of the control-plane session that protects access to the page.
+- Attachment upload and deletion are the only Playground calls that use the session cookie and CSRF token. They never receive the entered inference Key. Returned object identifiers and selected `File` objects are not stored in React Query or browser storage.
 - The Key remains only in component memory and the password input while the page is mounted. The client never writes it to localStorage, sessionStorage, React Query caches, logs, or generated request examples.
 - The native client uses `fetch` and an `AbortController`, not React Query mutations, so request arguments and secrets are not retained in a mutation cache.
 - Native error messages retain useful gateway context, with the supplied Key redacted if it appears in a message. Output is rendered as plain text, not executable HTML.
@@ -57,7 +70,7 @@ To bound browser memory, an individual buffered SSE event is limited to 1,048,57
 
 `website/src/api/playground-responses.test.ts` additionally covers native Responses bodies, accepted HTTP 202, typed terminal states, authoritative usage, refusals, malformed/truncated streams, non-text output, secret redaction, and cancellation.
 
-`website/src/views/playground/playground.test.tsx` covers Key verification, model selection, ordinary and streaming invocation, incremental output, request IDs, usage, cancellation, successful-only conversation history, clearing secrets, verification recovery, and unmount abort.
+`website/src/api/attachments.test.ts`, `website/src/lib/playground-attachments.test.ts`, and `website/src/views/playground/playground.test.tsx` cover the isolated session/CSRF upload boundary, all four native reference shapes, capability and Personal-Key gating, type/size/count validation, deduplication, chip removal, filename transcript rendering, settlement cleanup, bilingual pending state, late upload cleanup after navigation, Key isolation, cancellation, successful-only conversation history, and active-inference unmount abort.
 
 Run `npm --prefix website test`, `npm --prefix website run lint`, and `npm --prefix website run build`. These tests validate the client with controlled responses. They do not establish real-provider compatibility or production readiness; gateway integration and real-provider smoke tests remain separate evidence.
 
@@ -69,7 +82,7 @@ Comparison uses a shared credential toolbar, two initial model columns, and one 
 
 Send captures one message and concurrently dispatches an independent native request to each selected column. The comparison defaults are streaming, Temperature 0.7, Top P 1, and 2,048 maximum output Tokens. Per-column Stop only aborts that column; failure or cancellation does not stop siblings. Removing a column or changing its model/protocol cancels that column's request and clears only its history. Global sending waits until all current requests settle, with a synchronous guard against duplicate dispatch.
 
-Subsequent requests include only the successful text history of their own column. Failed, incomplete, accepted, and canceled turns remain visible but are excluded from later context. Clear all resets all histories; clearing/changing the Key also resets models and drafts. There are no simulated responses, session-inference controls, or nonfunctional attachment actions.
+Subsequent requests include only the successful text history of their own column. Failed, incomplete, accepted, and canceled turns remain visible but are excluded from later context. Clear all resets all histories; clearing/changing the Key also resets models and drafts. There are no simulated responses or session-inference controls. Comparison attachment controls remain a separate package.
 
 `website/src/views/playground/compare.test.tsx` covers the two-to-four column bounds, eligible protocols, concurrent native bodies, independent histories/errors/cancellation, duplicate sends, per-column resets, credential clearing, tab teardown, and bilingual accessibility/draft preservation. All client tests use controlled mocked transports, separate from paid-provider or real gateway acceptance.
 
@@ -96,6 +109,10 @@ Gemini has no global terminal SSE event. The client therefore requires clean EOF
 ## Request code
 
 Get code sits beside the single conversation's Clear action. Each comparison lane has a compact code action in its header. The shared dialog provides functional cURL, Python, and JavaScript tabs, a Copy code action, and a manual-copy fallback. Opening it captures the selected model/protocol, current parameters, system instruction, completed history, and current draft. An empty draft uses an explicit message placeholder for the caller to replace. Incomplete and failed turns are excluded, and a comparison example contains only that lane's successful history.
+
+Get code is disabled while a transient attachment draft is selected. RouteX does
+not export short-lived object identifiers into an example that may outlive their
+one-invocation cleanup boundary.
 
 The request builder has no credential input. Every generated language reads `ROUTEX_API_KEY` from the caller's local environment; the transient Key entered in Playground is never substituted. Examples preserve native authentication, routes, parameters, streaming selection, and history roles. Gemini's model identity remains in its validated single-segment path, with no synthetic model/stream body fields. Unsupported paths do not produce copyable examples.
 

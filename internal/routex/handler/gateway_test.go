@@ -224,6 +224,9 @@ func testGatewayLifecycle(t *testing.T, db *gorm.DB) {
 	if capabilities := modelList.Data[0].InputCapabilities[entity.ProtocolOpenAIChat]; len(capabilities) != 2 || capabilities[0] != "image" || capabilities[1] != "pdf" {
 		t.Fatalf("input capabilities = %v, want stable image and pdf order", modelList.Data[0].InputCapabilities)
 	}
+	if !modelList.Data[0].PersonalAttachments {
+		t.Fatal("personal Key model did not advertise session-owned attachment references")
+	}
 	storageFixture.mu.Lock()
 	attachmentReads := storageFixture.getCalls
 	storageFixture.mu.Unlock()

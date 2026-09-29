@@ -15,6 +15,8 @@ import (
 	"gorm.io/gorm"
 )
 
+const attachmentReadyTTL = time.Hour
+
 type AttachmentView struct {
 	ID        string    `json:"id"`
 	Name      string    `json:"name"`
@@ -48,7 +50,8 @@ func (s *Service) UploadAttachment(ctx context.Context, actor, name string, data
 		return nil, apperrors.ErrInternal
 	}
 	sum := sha256.Sum256(data)
-	row := entity.StorageObject{ID: objectID, OwnerID: actor, Purpose: "attachment", State: "uploading", Name: name, MIME: mime, Size: int64(len(data)), SHA256: hex.EncodeToString(sum[:]), NextCleanupAt: time.Now().UTC()}
+	createdAt := time.Now().UTC()
+	row := entity.StorageObject{ID: objectID, OwnerID: actor, Purpose: "attachment", State: "uploading", Name: name, MIME: mime, Size: int64(len(data)), SHA256: hex.EncodeToString(sum[:]), NextCleanupAt: createdAt.Add(attachmentReadyTTL), CreatedAt: createdAt}
 	var revision entity.StorageRevision
 	err = s.authDB(ctx).Transaction(func(tx *gorm.DB) error {
 		if err := lockGovernance(tx); err != nil {
@@ -177,7 +180,7 @@ func (s *Service) readOwnedAttachment(ctx context.Context, ownerID, objectID str
 	if err != nil {
 		return entity.StorageObject{}, nil, err
 	}
-	if row.State != "ready" {
+	if !attachmentReadableAt(row, time.Now().UTC()) {
 		return entity.StorageObject{}, nil, apperrors.ErrNotFound
 	}
 	var revision entity.StorageRevision
@@ -206,10 +209,17 @@ func (s *Service) readOwnedAttachment(ctx context.Context, ownerID, objectID str
 	if err != nil {
 		return entity.StorageObject{}, nil, err
 	}
-	if current.State != "ready" {
+	if !attachmentReadableAt(current, time.Now().UTC()) {
 		return entity.StorageObject{}, nil, apperrors.ErrNotFound
 	}
 	return current, object.Data, nil
+}
+
+func attachmentReadableAt(row entity.StorageObject, now time.Time) bool {
+	if row.State != "ready" {
+		return false
+	}
+	return row.Purpose != "attachment" || row.NextCleanupAt.After(now) || row.CreatedAt.After(now.Add(-attachmentReadyTTL))
 }
 
 func storedAttachmentMatches(row entity.StorageObject, object objectstore.Object) bool {
