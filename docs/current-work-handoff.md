@@ -1,18 +1,20 @@
 # Current Work Handoff
 
 - **Status:** paused at a clean verified F26 boundary for computer handoff
-- **Updated:** 2026-09-29T20:21:00+08:00
+- **Updated:** 2026-09-29T20:36:43+08:00
 - **Repository:** `/Users/miclle/github/miclle/routex`
 - **Branch:** `main`
 - **Base:** `main`
+- **Verified repository HEAD:** `e6ca370560f060e65c7fa07bac4141ec705c9154`
 - **Implementation HEAD:** `fa71c2e20756cfdf35d196a6d7f9eaf8fc0297bd`
 - **Upstream:** `origin/main`, zero commits ahead and zero behind at capture
+- **Last pushed repository state:** `e6ca370560f060e65c7fa07bac4141ec705c9154`
 - **Last pushed implementation state:** `fa71c2e20756cfdf35d196a6d7f9eaf8fc0297bd`
 - **Current owner:** none while paused
 - **Next owner:** the next Codex task after the user synchronizes both repositories on the other computer
-- **Transfer state:** paused; clean and transferable after remote checks converge
+- **Transfer state:** transferable; the implementation, pause checkpoint, roadmap, and remote checks are published
 - **Transport:** `origin/main`; resolve the exact handoff commit with `git log -1 -- docs/current-work-handoff.md`
-- **Receiver access:** RouteX repository, this document, `docs/IMPLEMENTATION.md`, and the cross-repository roadmap described below
+- **Receiver access:** RouteX `origin/main`, this document, `docs/IMPLEMENTATION.md`, and dotfiles `origin/main` at roadmap checkpoint `a7f99af8d2160e6fa028ce2d79e19f9867fc1880`
 
 ## Objective
 
@@ -54,15 +56,15 @@ Implement every valid RouteX capability represented by F01–F30 and close every
 - F03 enterprise identity, F24 AI operations analysis, and F29 API Key Vault delivery are not started. F23 durable notification delivery is the next locally executable package.
 - A13 complete approval contention and A16 Vault compensation are not started.
 - Real external-provider, IdP/LDAP/OAuth, Vault, S3, SMTP, price-source, production deployment, backup/restore, multi-node, and measured-capacity acceptance remain open because the required environments or decisions have not been supplied.
-- The roadmap is active. The next bounded package is F26-A authoritative instance status: establish the process registry, heartbeat/resource contract, read/write permission split, revision-checked offline cleanup, and approved administrative workspace before extending to actual system jobs in F26-B. Team attribution remains a separate prerequisite-driven package because explicit Team inference context is incomplete.
+- No new package is active. F23 durable notification delivery is the next bounded local package, but it must not start until the user resumes the paused objective.
 
 ## Working Tree
 
-- **Staged:** none
-- **Modified:** only this handoff refresh before its documentation checkpoint
+- **Staged:** none at capture
+- **Modified:** RouteX was clean at `e6ca370` before this handoff-only refresh; this document is the only file changed during preparation
 - **Untracked:** none
-- **Unpushed commits:** `d24997a` is pushed; commit and push this handoff refresh separately
-- **Do not overwrite:** preserve any new user or concurrent-task changes discovered by the receiver; re-run the state checks before editing
+- **Unpushed commits:** none at capture; `e6ca370` is on `origin/main`
+- **Do not overwrite:** dotfiles has an unrelated local modification at `zsh/.zshrc`; preserve it. Also preserve any new user or concurrent-task changes discovered after synchronization.
 
 ## Decisions and Rationale
 
@@ -75,6 +77,7 @@ Implement every valid RouteX capability represented by F01–F30 and close every
 | Keep English as the default UI language and project-document language | This is an explicit project requirement | Pair all visible copy in `en` and `zh`; keep documentation and commit text in English |
 | Keep competitor names and comparisons outside RouteX | RouteX must be described independently | Do not introduce reference-project names into code, UI, docs, commits, or PRs |
 | Resume in bounded verified packages | The user explicitly resumed the full objective | Complete, test, document, commit, push, and verify each package before advancing |
+| Keep the objective paused after F26 | The user is transferring work to another computer | Do not begin F23 or any other package until the user explicitly resumes |
 
 ## Verification Evidence
 
@@ -168,6 +171,11 @@ Implement every valid RouteX capability represented by F01–F30 and close every
 | Independent F26 reviews | pass | Final backend and frontend reviews reported zero critical findings, warnings, or suggestions after pruning, reconciliation, cleanup-audit, bounded-review, and uncertain-result fixes |
 | Browser verification on F26 source | pass | The System Status workspace displayed authoritative online/offline registrations and actual jobs in the approved two-card composition and switched live between paired English/Chinese copy before restoring English |
 | `go tool actionlint` and `git diff --check` on F26 source | pass | Workflow syntax and whitespace checks passed |
+| Remote CI `36567593919` on `e6ca370` | pass | Frontend, backend, PostgreSQL/MySQL integration, real-process restart, production/development assets, and artifact builds passed |
+| Remote Actionlint `36567593880` on `e6ca370` | pass | Workflow syntax passed |
+| Remote GolangCI-Lint `36567593927` on `e6ca370` | pass | Go lint passed |
+| Handoff receiver probe | pass | Referenced files and commits exist, RouteX and dotfiles remote `main` refs match the recorded checkpoints, the first resume action has an explicit command and completion condition, and no placeholder or secret is present |
+| Full code/test suite for this handoff-only refresh | not run | No implementation code changed; final `e6ca370` remote CI and the recorded F26 local suites cover the transferred source |
 
 ## Blockers, Risks, and Unknowns
 
@@ -199,10 +207,10 @@ Implement every valid RouteX capability represented by F01–F30 and close every
 
 ## Resume Actions
 
-1. Synchronize RouteX `main` and dotfiles `main`, then confirm the RouteX implementation, handoff, and roadmap SHAs recorded here before changing code.
-2. Reconcile the approved F23 notification-center and notification-settings Mockup with the delivered SMTP boundary, current permissions, audit events, and actual platform events.
-3. Implement the smallest durable notification-delivery package with frozen GORM-first schemas, recipient isolation, idempotent retry, explicit terminal states, and no simulated successes or raw provider errors.
-4. Bind the real APIs into the existing Mockup composition with local shadcn/Base UI primitives and paired English/Chinese copy, then prove both databases, restart/retry behavior, permission isolation, browser interaction, full checks, independent review, and a pushed main-branch checkpoint.
+1. Run `git -C ~/github/miclle/routex fetch origin && git -C ~/github/miclle/routex status --short --branch` and `git -C ~/dotfiles fetch origin && git -C ~/dotfiles status --short --branch`; finish this step only when both repositories are on synchronized `main` and any local changes, including `zsh/.zshrc`, are identified and preserved.
+2. Read `docs/IMPLEMENTATION.md`, this handoff, and `~/dotfiles/projects/routex/implementation-plan.md`; verify F26 remains completed, the goal remains paused, and the next package has not already changed before editing.
+3. After the user explicitly resumes, reconcile the approved F23 notification-center and notification-settings Mockup with the delivered SMTP boundary, current permissions, audit events, and actual platform events.
+4. Implement the smallest durable notification-delivery package with frozen GORM-first schemas, recipient isolation, idempotent retry, explicit terminal states, real event sources, Mockup-faithful local shadcn/Base UI composition, paired English/Chinese copy, both-database/restart/browser verification, independent review, and a pushed main-branch checkpoint.
 
 ## Environment and Access
 
@@ -214,6 +222,6 @@ Implement every valid RouteX capability represented by F01–F30 and close every
 
 ## Handoff History
 
-- **Continues from:** storage administration at `26763e8`, provider-model input capabilities at `3b5e642`, personal-Key attachment resolution at `652cb44`, single-model attachment input at `7fa25d7`, comparison attachment input at `ccb6255`, conservative multimodal quota admission at `aa33b5a`, Project-owned attachment lifecycle at `1e4af76`, attachment input pricing at `0c445e1`, bounded native failover at `17358de`, safe call-record CSV export at `dc99f35`, immutable Provider usage attribution at `d24997a`, and authoritative System Status at `6213cc7` plus `fa71c2e`
+- **Continues from:** storage administration at `26763e8`, provider-model input capabilities at `3b5e642`, personal-Key attachment resolution at `652cb44`, single-model attachment input at `7fa25d7`, comparison attachment input at `ccb6255`, conservative multimodal quota admission at `aa33b5a`, Project-owned attachment lifecycle at `1e4af76`, attachment input pricing at `0c445e1`, bounded native failover at `17358de`, safe call-record CSV export at `dc99f35`, immutable Provider usage attribution at `d24997a`, authoritative System Status at `6213cc7` plus `fa71c2e`, RouteX pause checkpoint `e6ca370`, and dotfiles roadmap checkpoint `a7f99af`
 - **Supersedes:** the storage-administration-next checkpoint at `bcc663a`
 - **Closeout condition:** all F01–F30 capabilities and A01–A20 acceptance cases are completed with current evidence, or a later handoff replaces this document with an equally verifiable resume point
