@@ -29,7 +29,7 @@ type storageFixtureObject struct {
 type storageFixture struct {
 	mu                  sync.Mutex
 	objects             map[string]storageFixtureObject
-	sequence            int
+	sequence, getCalls  int
 	failGet, failDelete bool
 }
 
@@ -72,6 +72,7 @@ func newStorageFixture(t *testing.T) (*httptest.Server, *storageFixture) {
 		w.Header().Set("X-Amz-Meta-Routex-Id", object.owner)
 		switch r.Method {
 		case "GET":
+			fixture.getCalls++
 			if fixture.failGet {
 				w.WriteHeader(503)
 				return

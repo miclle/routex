@@ -1,6 +1,7 @@
 package service
 
 import (
+	"context"
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
@@ -11,6 +12,24 @@ import (
 	"github.com/miclle/routex/pkg/eventqueue"
 	"github.com/miclle/routex/pkg/pricing"
 )
+
+// preflightGatewayQuota rejects request shapes that cannot be bounded by an
+// active token or monetary policy without reserving rate, concurrency, or quota
+// capacity. Final admission repeats the policy read and performs the reservation.
+func (s *Service) preflightGatewayQuota(ctx context.Context, result *GatewayResult) error {
+	s.limitMu.RLock()
+	defer s.limitMu.RUnlock()
+	limits, err := s.gatewayLimits(ctx, result)
+	if err != nil {
+		return err
+	}
+	policies, data, err := s.gatewayQuotaPolicies(ctx, result, limits)
+	if err != nil {
+		return err
+	}
+	_, err = prepareQuotaBound(result, policies, data)
+	return err
+}
 
 // quotaRequest retains only finite classification and output capacity. It never
 // stores messages, schemas, user metadata, or other native request content.

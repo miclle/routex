@@ -72,6 +72,7 @@ func TestGatewayStreamSafety(t *testing.T) {
 func testGatewayLifecycle(t *testing.T, db *gorm.DB) {
 	t.Helper()
 	ctx := context.Background()
+	storageServer, storageFixture := newStorageFixture(t)
 	store, err := secretstore.New(bytes.Repeat([]byte{17}, 32))
 	if err != nil {
 		t.Fatal(err)
@@ -105,6 +106,12 @@ func testGatewayLifecycle(t *testing.T, db *gorm.DB) {
 		if string(payload["model"]) != `"provider-model"` {
 			t.Error("public model was not routed")
 		}
+		if mode.Load().(string) == "attachment" {
+			encoded, _ := json.Marshal(payload)
+			if strings.Count(string(encoded), "data:application/pdf;base64,") != 2 || strings.Contains(string(encoded), "routex://attachments/") {
+				t.Errorf("attachment references were not rewritten exactly once per occurrence: %s", encoded)
+			}
+		}
 		if !strings.HasPrefix(r.Header.Get("X-Request-ID"), "req_") {
 			t.Error("request ID missing upstream")
 		}
@@ -128,11 +135,34 @@ func testGatewayLifecycle(t *testing.T, db *gorm.DB) {
 		}
 	}))
 	defer upstream.Close()
-	svc, err := service.New(ctx, db, service.WithCredentialStorage(store), service.WithUpstreamPolicy(true))
+	svc, err := service.New(ctx, db, service.WithCredentialStorage(store), service.WithUpstreamPolicy(true), service.WithStoragePolicy(true))
 	if err != nil {
 		t.Fatal(err)
 	}
 	admin, err := svc.Initialize(ctx, "gateway@example.invalid", "test-only-gateway-password", "Gateway Test")
+	if err != nil {
+		t.Fatal(err)
+	}
+	storage, err := svc.StorageSettings(ctx, admin.User.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := svc.WriteStorageSettings(ctx, admin.User.ID, service.StorageInput{
+		Enabled:  true,
+		Endpoint: storageServer.URL,
+		Region:   "us-east-1",
+		Bucket:   "routex-test",
+		Prefix:   "gateway",
+		ETag:     storage.ETag,
+		Auth: service.StorageAuthInput{
+			Action:    "replace",
+			AccessKey: "test-only-access",
+			SecretKey: "test-only-secret",
+		},
+	}); err != nil {
+		t.Fatal(err)
+	}
+	attachment, err := svc.UploadAttachment(ctx, admin.User.ID, "request.pdf", []byte("%PDF-1.7\ncontrolled attachment\n%%EOF"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -194,6 +224,18 @@ func testGatewayLifecycle(t *testing.T, db *gorm.DB) {
 	if capabilities := modelList.Data[0].InputCapabilities[entity.ProtocolOpenAIChat]; len(capabilities) != 2 || capabilities[0] != "image" || capabilities[1] != "pdf" {
 		t.Fatalf("input capabilities = %v, want stable image and pdf order", modelList.Data[0].InputCapabilities)
 	}
+	storageFixture.mu.Lock()
+	attachmentReads := storageFixture.getCalls
+	storageFixture.mu.Unlock()
+	mode.Store("attachment")
+	attachmentBody := `{"model":"public-model","messages":[{"role":"user","content":[{"type":"text","text":"summarize"},{"type":"file","file":{"file_data":"routex://attachments/` + attachment.ID + `"}},{"type":"file","file":{"file_data":"routex://attachments/` + attachment.ID + `"}}]}]}`
+	expectStatus(t, request("POST", "/v1/chat/completions", attachmentBody, created.Secret), 200)
+	storageFixture.mu.Lock()
+	if storageFixture.getCalls != attachmentReads+1 {
+		t.Fatalf("duplicate attachment caused %d storage reads, want one", storageFixture.getCalls-attachmentReads)
+	}
+	storageFixture.mu.Unlock()
+	mode.Store("ordinary")
 	expectStatus(t, request("GET", "/v1/models", "", ""), 401)
 	ordinary := request("POST", "/v1/chat/completions", body, created.Secret)
 	expectStatus(t, ordinary, 200)

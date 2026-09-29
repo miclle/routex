@@ -16,7 +16,7 @@ func TestCallClassifications(t *testing.T) {
 			t.Errorf("unexpected status %s accepted", status)
 		}
 	}
-	if safeCallError("Bearer supersecret") != "upstream_error" || safeCallError("upstream_timeout") != "upstream_timeout" {
+	if safeCallError("Bearer supersecret") != "upstream_error" || safeCallError("upstream_timeout") != "upstream_timeout" || safeCallError("attachment_not_found") != "attachment_not_found" {
 		t.Fatal("call error classification exposed arbitrary data")
 	}
 	for _, value := range []string{"req_01abc", "att_test"} {

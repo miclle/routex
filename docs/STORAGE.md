@@ -71,10 +71,47 @@ Interrupted uploads become cleanup candidates after one minute. Confirmed upload
 
 If the request is canceled, cleanup intent is persisted with a separate bounded context. A worker crash leaves a lease that expires, allowing another run to resume. A failed cleanup never changes a model grant, API Key, routing snapshot, or attachment owner. Object Lock, legal hold, revoked credentials, and provider outages can keep deletion pending; RouteX does not bypass those policies.
 
-## Gateway boundary and validation
+## Gateway resolution and validation
 
-This slice provides storage and session-authorized bytes. It does not add arbitrary remote-file fetching to the gateway or accept attachment IDs as provider file IDs. A later client integration must fetch owned bytes and construct supported native protocol content. Models and APIs continue to enforce their own image/PDF capabilities. Finite token, monetary, or TPM policies must reject requests whose multimodal usage cannot be safely bounded; stored attachments do not bypass that requirement or supply guessed token costs.
+Personal API Keys can reference an owned ready object with the exact URI
+`routex://attachments/<object-id>` in supported native media scalar positions:
+
+- Chat Completions: `image_url.url` and `file.file_data`
+- Responses: `input_image.image_url` and `input_file.file_data`
+- Messages: base64 image/document `source.data`
+- Gemini: `inlineData.data` or its accepted protobuf JSON alias
+
+The reserved URI is inert in text, tool arguments, schemas and unknown fields.
+RouteX never fetches arbitrary remote URLs and never forwards an object ID as a
+provider file ID.
+
+Resolution authenticates the Key, parses an immutable occurrence plan, authorizes
+the public model, and selects one route. Project Keys are rejected before an
+object lookup. Every media occurrence must match the selected route's explicit
+image or PDF declaration. An active finite token, TPM or monetary policy rejects
+the currently unbounded multimodal shape before storage access. The final rate,
+concurrency and quota admission still runs once, after resolution and immediately
+before the single upstream dispatch.
+
+Each unique object is read once per request with the personal Key's immutable
+`UserID`. The read repeats the session API's owner, ready-state, storage revision,
+exact version, object metadata, size and SHA-256 checks, then rechecks ownership
+and readiness. Missing, foreign, deleting and non-ready objects share the same
+safe not-found response. Storage and descriptor failures return one generic
+unavailable response without endpoint, bucket or credential details.
+
+One request permits at most four reference occurrences and four unique objects,
+8 MiB of unique raw bytes and 12 MiB of rewritten JSON. Each uploaded object is
+still limited to 2 MiB. Rewriting preserves native occurrence order, uses data
+URLs for OpenAI image/file fields, raw base64 plus canonical MIME metadata for
+Messages and Gemini, and a sanitized stored filename for OpenAI PDF fields.
+Cancellation stops remaining reads and prevents upstream dispatch.
+
+Stored attachments do not bypass model capabilities or finite quota policy and do
+not supply guessed token costs. The current Playground still has no attachment
+picker; its later interface must use the session upload API while keeping the
+personal API Key and object references transient.
 
 Focused tests use controlled loopback HTTP services only. They cover signed requests, conditional creation, version-aware deletion, foreign metadata protection, redirect rejection, bounded reads, cancellation, secret-envelope revision binding, configuration policy isolation, and accepted/rejected formats. The dual-database lifecycle helper covers HTTP upload/download, CSRF, owner isolation, revision changes and rollback, failed verification preserving active state, and cleanup replay including a late accepted ambiguous upload. The completed phase passed the full check and test suite with 387 Vitest cases, Go race coverage, development lifecycle checks, and production asset serving. The PostgreSQL/MySQL lifecycle suite passed in 275.269 seconds, and both database process suites passed initialization, restart persistence, ordinary and streaming native inference, reporting, logout, and revocation.
 
-The `/admin/storage` web interface now exposes the saved status card and configuration drawer, independent read/write/test authority, transient credential actions, exact ETag conflict review, saved-descriptor probe stages, cleanup-pending state, and verified revision rollback in English and Chinese. It refetches complete history after writes and never treats an uncertain response as success. Attachment selection, attachment lifecycle interfaces, and native inference integration remain outside this administration phase.
+The `/admin/storage` web interface now exposes the saved status card and configuration drawer, independent read/write/test authority, transient credential actions, exact ETag conflict review, saved-descriptor probe stages, cleanup-pending state, and verified revision rollback in English and Chinese. It refetches complete history after writes and never treats an uncertain response as success. Personal-Key native inference resolution is implemented separately from administration. Attachment selection and lifecycle interfaces remain open.

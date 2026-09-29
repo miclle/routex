@@ -84,7 +84,7 @@ func validCallStatus(status string) bool {
 // Error codes are machine-owned classifications, never upstream error messages.
 func safeCallError(code string) string {
 	switch code {
-	case "quota_exceeded", "quota_history_incomplete", "quota_usage_unknown", "quota_currency_mismatch", "quota_bound_unavailable", "quota_price_unavailable", "quota_request_unsupported", "", "process_interrupted", "event_buffer_unavailable", "invalid_request", "invalid_request_error", "invalid_api_key", "rate_limit_exceeded", "concurrency_limit_exceeded", "ip_not_allowed", "service_unavailable", "unauthorized", "forbidden", "model_not_found", "no_route", "upstream_error", "upstream_timeout", "upstream_unavailable", "invalid_upstream_response", "canceled", "internal_error":
+	case "quota_exceeded", "quota_history_incomplete", "quota_usage_unknown", "quota_currency_mismatch", "quota_bound_unavailable", "quota_price_unavailable", "quota_request_unsupported", "", "process_interrupted", "event_buffer_unavailable", "invalid_request", "invalid_request_error", "invalid_api_key", "rate_limit_exceeded", "concurrency_limit_exceeded", "ip_not_allowed", "service_unavailable", "unauthorized", "forbidden", "model_not_found", "no_route", "upstream_error", "upstream_timeout", "upstream_unavailable", "invalid_upstream_response", "canceled", "internal_error", "invalid_attachment_reference", "unsupported_attachment_reference", "attachment_limit_exceeded", "project_attachment_unsupported", "attachment_type_unsupported", "attachment_not_found", "attachment_storage_unavailable", "attachment_storage_timeout":
 		return code
 	default:
 		return "upstream_error"

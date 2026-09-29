@@ -160,45 +160,65 @@ func (s *Service) Attachment(ctx context.Context, actor, objectID string) (*Atta
 	return &view, nil
 }
 func (s *Service) AttachmentContent(ctx context.Context, actor, objectID string) (*AttachmentView, []byte, error) {
-	row, err := s.ownedAttachment(ctx, actor, objectID)
+	row, data, err := s.readOwnedAttachment(ctx, actor, objectID)
 	if err != nil {
 		return nil, nil, err
 	}
+	view := attachmentView(row)
+	return &view, data, nil
+}
+
+// readOwnedAttachment resolves immutable storage metadata for a personal owner,
+// verifies the exact stored object, and rechecks readiness after the remote read.
+// Callers pass the authenticated personal owner from the session or Key record,
+// never an owner identifier supplied by request data.
+func (s *Service) readOwnedAttachment(ctx context.Context, ownerID, objectID string) (entity.StorageObject, []byte, error) {
+	row, err := s.ownedAttachment(ctx, ownerID, objectID)
+	if err != nil {
+		return entity.StorageObject{}, nil, err
+	}
 	if row.State != "ready" {
-		return nil, nil, apperrors.ErrNotFound
+		return entity.StorageObject{}, nil, apperrors.ErrNotFound
 	}
 	var revision entity.StorageRevision
 	if err := s.authDB(ctx).First(&revision, "id = ?", row.RevisionID).Error; err != nil {
-		return nil, nil, catalogError(err)
+		return entity.StorageObject{}, nil, catalogError(err)
 	}
 	config, err := s.storageConfig(revision)
 	if err != nil {
-		return nil, nil, err
+		return entity.StorageObject{}, nil, err
 	}
 	client, err := objectstore.New(config, s.allowPrivateStorage)
 	if err != nil {
-		return nil, nil, runtimeUnavailable
+		return entity.StorageObject{}, nil, runtimeUnavailable
 	}
 	defer client.Close()
 	run, cancel := context.WithTimeout(ctx, 20*time.Second)
 	defer cancel()
 	object, err := client.Get(run, row.ID, row.VersionID)
 	if err != nil {
-		return nil, nil, runtimeUnavailable
+		return entity.StorageObject{}, nil, runtimeUnavailable
 	}
-	sum := sha256.Sum256(object.Data)
-	if object.OwnerID != row.ID || int64(len(object.Data)) != row.Size || hex.EncodeToString(sum[:]) != row.SHA256 {
-		return nil, nil, runtimeUnavailable
+	if !storedAttachmentMatches(row, object) {
+		return entity.StorageObject{}, nil, runtimeUnavailable
 	}
-	current, err := s.ownedAttachment(ctx, actor, objectID)
+	current, err := s.ownedAttachment(ctx, ownerID, objectID)
 	if err != nil {
-		return nil, nil, err
+		return entity.StorageObject{}, nil, err
 	}
 	if current.State != "ready" {
-		return nil, nil, apperrors.ErrNotFound
+		return entity.StorageObject{}, nil, apperrors.ErrNotFound
 	}
-	view := attachmentView(current)
-	return &view, object.Data, nil
+	return current, object.Data, nil
+}
+
+func storedAttachmentMatches(row entity.StorageObject, object objectstore.Object) bool {
+	sum := sha256.Sum256(object.Data)
+	return object.OwnerID == row.ID &&
+		object.VersionID == row.VersionID &&
+		object.Size == row.Size &&
+		int64(len(object.Data)) == row.Size &&
+		hex.EncodeToString(sum[:]) == row.SHA256
 }
 func (s *Service) DeleteAttachment(ctx context.Context, actor, objectID string) (*AttachmentView, error) {
 	var row entity.StorageObject

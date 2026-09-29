@@ -157,6 +157,13 @@ func (s *Service) gatewayNative(ctx context.Context, bearer string, body []byte,
 	if err != nil {
 		return result, err
 	}
+	attachmentPlan, err := planGatewayAttachments(protocol, payload)
+	if err != nil {
+		return result, err
+	}
+	if len(attachmentPlan.Occurrences) != 0 && key.ProjectID != "" {
+		return result, gatewayError(400, "project_attachment_unsupported", "Personal attachments cannot be used with a Project API key.")
+	}
 	var name entity.ModelName
 	if s.runtime != nil {
 		var exists bool
@@ -191,6 +198,12 @@ func (s *Service) gatewayNative(ctx context.Context, bearer string, body []byte,
 	if err != nil {
 		return result, gatewayError(503, "upstream_unavailable", "No usable upstream is available.")
 	}
+	result.SnapshotID = route.SnapshotID
+	result.ProviderID, result.ProviderModelID = route.ProviderID, route.ProviderModelID
+	result.ConnectionID, result.CredentialID = route.ConnectionID, route.CredentialID
+	if err := validateGatewayAttachmentRoute(attachmentPlan, route); err != nil {
+		return result, err
+	}
 	if s.runtime == nil {
 		if err := s.prepareGatewayEgress(ctx, route); err != nil {
 			return result, gatewayError(503, "upstream_unavailable", "No usable upstream is available.")
@@ -219,9 +232,6 @@ func (s *Service) gatewayNative(ctx context.Context, bearer string, body []byte,
 			return result, gatewayError(503, "service_unavailable", "Pricing configuration is temporarily unavailable.")
 		}
 	}
-	result.SnapshotID = route.SnapshotID
-	result.ProviderID, result.ProviderModelID = route.ProviderID, route.ProviderModelID
-	result.ConnectionID, result.CredentialID = route.ConnectionID, route.CredentialID
 	base, err := upstream.ValidateBaseURL(route.BaseURL, s.allowPrivateUpstream)
 	if err != nil {
 		return result, gatewayError(503, "upstream_unavailable", "No usable upstream is available.")
@@ -244,6 +254,19 @@ func (s *Service) gatewayNative(ctx context.Context, bearer string, body []byte,
 		}
 	}
 	endpoint := strings.TrimRight(base.String(), "/") + suffix
+	if len(attachmentPlan.Occurrences) != 0 {
+		if err := s.preflightGatewayQuota(ctx, result); err != nil {
+			return result, err
+		}
+		resolved, err := s.resolveGatewayAttachments(ctx, key.Key.UserID, attachmentPlan)
+		if err != nil {
+			return result, err
+		}
+		payload, err = attachmentPlan.Rewrite(resolved)
+		if err != nil {
+			return result, err
+		}
+	}
 	if protocol != entity.ProtocolGeminiGenerateContent {
 		payload["model"], err = json.Marshal(route.UpstreamName)
 	}

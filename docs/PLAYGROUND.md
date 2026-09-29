@@ -1,6 +1,6 @@
 # Playground
 
-Playground is a native text conversation and model comparison client for native OpenAI Chat Completions, OpenAI Responses, Anthropic Messages, and Gemini Generate Content. It makes real requests; it does not synthesize responses or usage statistics. Other protocols, session-based inference, attachments, and tools remain separate work packages.
+Playground is a native text conversation and model comparison client for native OpenAI Chat Completions, OpenAI Responses, Anthropic Messages, and Gemini Generate Content. It makes real requests; it does not synthesize responses or usage statistics. Other protocols, session-based inference, attachment controls, and tools remain separate work packages.
 
 ## Workflow
 
@@ -15,9 +15,20 @@ Only successfully completed exchanges are included in later conversation context
 
 Model discovery also returns effective protocol-specific image and PDF input
 capabilities. The current text workbench validates and retains that metadata but
-does not render attachment controls yet. A later attachment package will use these
-declarations together with personal-Key ownership and server-side byte resolution;
-it will not infer support or pass RouteX object identifiers to an upstream.
+does not render attachment controls yet. The gateway already resolves personally
+owned `routex://attachments/<object-id>` references from the supported native
+media fields after selecting and checking the actual route. It inlines validated
+bytes and never passes RouteX object identifiers to an upstream. Project Keys
+cannot consume personally owned attachments. The later interface package will
+bind this contract to the existing composer with transient browser state.
+
+Direct API callers upload with the session and CSRF-protected attachment API, then
+place the returned object URI only in a native image/PDF position described in
+[Object storage and owned attachments](STORAGE.md). References in text or tool
+arguments are ordinary user content. Requests are limited to four occurrences,
+four unique objects, 8 MiB of raw bytes and 12 MiB after inline expansion. Active
+finite token, TPM or monetary policies reject multimodal input because no verified
+multimodal token bound is currently available.
 
 ## Transport and Secret Handling
 

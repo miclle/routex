@@ -1,6 +1,6 @@
 # RouteX Implementation and Acceptance Index
 
-Updated: 2026-09-23. This document records engineering contracts, work packages, and acceptance checks. Interfaces, tables, pages, and metrics marked as planned are not necessarily implemented; delivery evidence appears at the end. The active goal covers all F01–F30 capabilities and A01–A20 acceptance cases; completed stages do not end implementation. The full product is delivered incrementally through P0–P6.
+Updated: 2026-09-29. This document records engineering contracts, work packages, and acceptance checks. Interfaces, tables, pages, and metrics marked as planned are not necessarily implemented; delivery evidence appears at the end. The active goal covers all F01–F30 capabilities and A01–A20 acceptance cases; completed stages do not end implementation. The full product is delivered incrementally through P0–P6.
 
 ## Scope and Decisions
 
@@ -170,14 +170,14 @@ The binary capability count is 6 completed, 20 partially completed, and 4 not st
 | F17 | User and Team defaults, overrides, budgets, alerts, and stop policy | Partially completed | Personal, Project, and Key enforcement exists; Team defaults, templates, alerts, and stop-calling policy remain open. |
 | F18 | Quota, model, and request-limit approvals | Partially completed | Project model requests exist; Team quota approval, escalation, and Project quota/request-limit workflows remain open. |
 | F19 | Member overview, model sources, requests, and examples | Partially completed | Catalog, callable-model views, Project requests, and native examples exist; complete Team-source attribution and request coverage remain open. |
-| F20 | Playground, comparison, attachments, and code examples | Partially completed | Four native conversation paths, two-to-four-lane comparison, cancellation, executable examples, and explicit per-protocol image/PDF capability discovery exist; attachment lifecycle UI and gateway byte resolution remain open. |
+| F20 | Playground, comparison, attachments, and code examples | Partially completed | Four native conversation paths, two-to-four-lane comparison, cancellation, executable examples, per-protocol image/PDF discovery, and personal-Key native attachment resolution exist; attachment lifecycle UI, comparison attachments, complete multimodal quotas and external acceptance remain open. |
 | F21 | Personal, Project, and platform call records and CSV | Partially completed | Isolated list/detail queries and interfaces exist; complete CSV and later diagnostic/export acceptance remain open. |
 | F22 | Usage trends, amounts, and multidimensional filters | Partially completed | Personal, Project, and platform usage interfaces exist; Team/provider attribution and complete freshness/capacity acceptance remain open. |
 | F23 | Operations overview, quality, alerts, and notifications | Partially completed | SMTP configuration and controlled test delivery exist; durable notification jobs, retry, recipient policy, settings, and status center remain open. |
 | F24 | Read-only AI operations analysis and saved reports | Not started | Authorized analysis queries, saved definitions, evaluation, exports, and hostile-input acceptance are not implemented. |
 | F25 | Site presentation, language, and announcements | Completed | Durable site name, URL, logo, footer, default language, bilingual UI behavior, and announcement lifecycle are implemented. |
 | F26 | Instances, heartbeats, resources, jobs, and offline cleanup | Not started | Authoritative instance and system-job management are not implemented. |
-| F27 | S3, owned attachments, SMTP, and notifications | Partially completed | S3-compatible configuration and administration UI, owned attachment APIs, cleanup recovery, SMTP administration, and test delivery exist. Attachment UI/inference integration, durable notifications, and external-service acceptance remain open. |
+| F27 | S3, owned attachments, SMTP, and notifications | Partially completed | S3-compatible configuration and administration UI, owned attachment APIs, cleanup recovery, personal-Key inference reads, SMTP administration, and test delivery exist. Attachment UI, durable notifications, and external-service acceptance remain open. |
 | F28 | Internal encryption, root-key rotation, and Vault switching | Partially completed | Internal provider, egress, SMTP, and storage secrets are encrypted. Root-key rotation, Vault identities, compensation, and storage switching remain open. |
 | F29 | API Key Vault delivery and application identities | Not started | Application identities, Profiles, descriptors, coordinator state, and no-plaintext-fallback delivery are not implemented. |
 | F30 | Configuration publication, acknowledgement, rollback, revocation, and audit | Partially completed | Immutable runtime publication, durable events, current revocation, and audit foundations exist; node acknowledgement, complete rollback, and distributed emergency-revocation acceptance remain open. |
@@ -204,7 +204,7 @@ Only A01 is fully accepted across its defined scope. Every other case remains in
 | A14 | Control Plane, Vault, analytics failure, invalid snapshots, and replay | Partially completed | Runtime and durable replay foundations exist; Vault and the complete failure matrix remain open. |
 | A15 | SSO, OAuth, LDAP, MFA, and recovery | Partially completed | MFA is implemented; enterprise identity is not. |
 | A16 | Vault compensation, rotation, and cleanup failure | Not started | Vault integration is not implemented. |
-| A17 | Images/PDF, object authorization, and model comparison | Partially completed | Object backend, comparison, and conservative route capability discovery exist; attachment UI, personal-Key byte resolution, multimodal bounds, and external acceptance remain open. |
+| A17 | Images/PDF, object authorization, and model comparison | Partially completed | Object backend, comparison, conservative route capability discovery, owner-bound personal-Key byte reads and native inline rewriting exist; attachment UI, comparison attachments, complete multimodal quota bounds, and external acceptance remain open. |
 | A18 | Call queries, CSV, reports, and hostile analysis inputs | Partially completed | Call queries and usage views exist; AI analysis and complete safe-export acceptance remain open. |
 | A19 | S3, SMTP, site, announcements, instances, and jobs | Partially completed | S3, SMTP, and site work exists; instances and system jobs do not. |
 | A20 | Fresh install, upgrade, backup/restore, and production SPA | Partially completed | Installation, migrations, restart, and SPA evidence exists; backup/restore and production release acceptance remain open. |
@@ -222,7 +222,7 @@ Only A01 is fully accepted across its defined scope. Every other case remains in
 | P1-04/05 | In progress | Native OpenAI chat ordinary/SSE, Key Playground, isolated personal/admin call queries and request facts have controlled dual-database evidence; immutable snapshots and bounded durable events have controlled failure/restart evidence; measured capacity and real-provider acceptance remain open |
 | P2 | In progress | Profile/password/session APIs and UI delivered; member/role/registration interfaces and Team/Project backend delivered; Project Keys, offboarding, and resource interfaces advance in separate verified packages |
 | P3 | In progress | Current text prices, FX, immutable call assessments, atomic CSV/XLS/XLSX imports, CSV exports, and single-process Personal/Project/Key token and monetary quota admission are implemented; Team quotas, templates, approvals, alerts, distributed enforcement, non-token metrics, and synchronization remain open |
-| P4–P6 | In progress | Four native inference protocols, conservative image/PDF capability discovery, SMTP configuration/test delivery, and object-storage administration/owned-attachment backend are implemented; attachment resolution/interfaces, durable notifications, remaining enterprise integrations, and final acceptance remain open |
+| P4–P6 | In progress | Four native inference protocols, conservative image/PDF capability discovery, personal-Key attachment resolution, SMTP configuration/test delivery, and object-storage administration/owned-attachment backend are implemented; attachment interfaces, durable notifications, remaining enterprise integrations, and final acceptance remain open |
 
 Verification in this iteration:
 
@@ -913,8 +913,33 @@ passed with 387 Vitest cases, Go race/unit coverage, development lifecycle check
 and production assets. The serialized PostgreSQL/MySQL lifecycle suite passed in
 275.269 seconds, and both database process suites passed. The administration UI has
 focused permission, secret-lifetime, conflict, probe, rollback, and language-switch
-coverage. Attachment selection and lifecycle interfaces, public delivery, gateway
-file resolution, external-service acceptance and production capacity remain open.
+coverage. Attachment selection and lifecycle interfaces, public delivery,
+external-service acceptance and production capacity remain open.
+
+### Personal-Key native attachment resolution
+
+The gateway now recognizes the reserved `routex://attachments/<object-id>` URI
+only in protocol-owned image/PDF scalar positions for Chat Completions, Responses,
+Messages and Gemini. It authenticates one personal Key owner, selects one route,
+checks that route's explicit capability, performs a non-reserving finite-quota
+preflight, reads each unique ready object once with exact storage integrity checks,
+and rewrites every occurrence to native inline data before the single final
+admission and dispatch. Project Keys are rejected before object lookup. Text,
+tool arguments, schemas and unknown fields remain opaque.
+
+The resolver caps requests at four occurrences, four unique objects, 8 MiB of raw
+bytes and 12 MiB of expanded JSON. Missing, foreign, deleting and non-ready
+objects share one safe not-found contract; storage failures remain redacted.
+Focused service tests cover all four native mappings, opaque fields, malformed
+references, media and size bounds, filename safety, Project identity, route
+capability and quota ordering. The dual-database gateway lifecycle also exercises
+real signed storage reads, repeated-reference deduplication and upstream inline
+payloads. Exact source passed `go tool task check`, the full Go race/unit and
+frontend suite with 396 Vitest cases, four Node checks, development lifecycle and
+production assets, plus the PostgreSQL/MySQL integration matrix with the handler
+package at 260.257 seconds and service package at 4.245 seconds. Playground controls, comparison attachments, verified
+multimodal token bounds and external-provider/object-storage acceptance remain
+open.
 
 ### Native route-attempt foundation
 
