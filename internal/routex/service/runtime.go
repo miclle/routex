@@ -256,6 +256,11 @@ func (s *Service) setRuntimeStatus(ctx context.Context, now time.Time, code stri
 	// mutation transaction and are not replaced by this operational history.
 	if s.authDB(ctx).Create(&row).Error == nil {
 		runtime.lastRecordedState = state
+		jobStatus, detailCode, completed := systemJobCompleted, "published", 1
+		if code != "" {
+			jobStatus, detailCode, completed = systemJobFailed, code, 0
+		}
+		s.recordSystemJobOutcome(SystemJobRuntimePublication, jobStatus, detailCode, completed, 1)
 	}
 }
 

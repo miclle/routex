@@ -129,6 +129,13 @@ func testRecorderLifecycle(t *testing.T, db *gorm.DB) {
 	if err := live.FlushCallRecorder(ctx); err != nil {
 		t.Fatal("repeated flush was not idempotent")
 	}
+	var deliveryJobs []entity.SystemJob
+	if err := db.Where("code = ?", service.SystemJobCallRecordDelivery).Order("started_at").Find(&deliveryJobs).Error; err != nil {
+		t.Fatal(err)
+	}
+	if len(deliveryJobs) != 1 || deliveryJobs[0].Status != "completed" || deliveryJobs[0].DetailCode != "delivered" || deliveryJobs[0].ItemsTotal != 3 || deliveryJobs[0].ItemsCompleted != 3 {
+		t.Fatalf("real durable delivery was not reported accurately: %+v", deliveryJobs)
+	}
 	if err := db.Model(&entity.CallRecord{}).Count(&count).Error; err != nil || count != 3 {
 		t.Fatalf("recovery must retain exactly three request facts, got %d", count)
 	}

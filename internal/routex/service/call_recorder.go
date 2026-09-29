@@ -251,7 +251,7 @@ func (s *Service) PersistGatewayCall(ctx context.Context, fact CallFact) error {
 
 // FlushCallRecorder acknowledges only after an idempotent primary transaction.
 // A failed delivery remains durable and is retried by the next cycle or restart.
-func (s *Service) FlushCallRecorder(ctx context.Context) error {
+func (s *Service) FlushCallRecorder(ctx context.Context) (runErr error) {
 	if s.recorder == nil {
 		return nil
 	}
@@ -259,28 +259,47 @@ func (s *Service) FlushCallRecorder(ctx context.Context) error {
 	defer s.recorder.flush.Unlock()
 	entries, err := s.recorder.queue.Read(64)
 	if err != nil {
+		s.recordSystemJobOutcome(SystemJobCallRecordDelivery, systemJobFailed, "buffer_read_failed", 0, 0)
 		return errors.New("read durable call buffer failed")
 	}
+	if len(entries) == 0 {
+		return nil
+	}
+	jobID := s.beginSystemJob(SystemJobCallRecordDelivery, len(entries))
+	completed, detailCode := 0, "delivered"
+	defer func() {
+		status := systemJobCompleted
+		if runErr != nil {
+			status = systemJobFailed
+		}
+		s.finishSystemJob(jobID, SystemJobCallRecordDelivery, status, detailCode, completed, len(entries))
+	}()
 	for _, entry := range entries {
 		if ctx.Err() != nil {
+			detailCode = "canceled"
 			return ctx.Err()
 		}
 		var fact CallFact
 		if err := json.Unmarshal(entry.Payload, &fact); err != nil {
+			detailCode = "invalid_fact"
 			return errors.New("invalid durable call fact")
 		}
 		if fact.RequestID != entry.ID {
+			detailCode = "identity_mismatch"
 			return errors.New("durable call fact identity mismatch")
 		}
 		deliveryCtx, cancel := context.WithTimeout(ctx, 3*time.Second)
 		err := s.RecordCall(deliveryCtx, fact)
 		cancel()
 		if err != nil {
+			detailCode = "persistence_failed"
 			return errors.New("deliver durable call fact failed")
 		}
 		if err := s.recorder.queue.Ack(entry.ID); err != nil {
+			detailCode = "acknowledge_failed"
 			return errors.New("acknowledge durable call fact failed")
 		}
+		completed++
 	}
 	return nil
 }

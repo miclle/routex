@@ -52,10 +52,23 @@ func (s *Service) StartStorageCleanup(ctx context.Context) (func(), error) {
 
 // FlushStorageCleanup only acts on durable, generated object identities. It does
 // not list buckets or discover/delete objects outside recorded cleanup intent.
-func (s *Service) FlushStorageCleanup(ctx context.Context, limit int) error {
+func (s *Service) FlushStorageCleanup(ctx context.Context, limit int) (runErr error) {
 	if limit < 1 || limit > 32 {
 		return objectstore.ErrConfig
 	}
+	jobID := ""
+	claimedCount, completedCount := 0, 0
+	jobFailed, detailCode := false, "cleaned"
+	defer func() {
+		if jobID == "" {
+			return
+		}
+		status := systemJobCompleted
+		if runErr != nil || jobFailed {
+			status = systemJobFailed
+		}
+		s.finishSystemJob(jobID, SystemJobStorageCleanup, status, detailCode, completedCount, claimedCount)
+	}()
 	for range limit {
 		var row entity.StorageObject
 		claimed := false
@@ -91,16 +104,25 @@ func (s *Service) FlushStorageCleanup(ctx context.Context, limit int) error {
 			return nil
 		})
 		if err != nil {
+			detailCode = "claim_failed"
+			if jobID == "" {
+				s.recordSystemJobOutcome(SystemJobStorageCleanup, systemJobFailed, detailCode, 0, 0)
+			}
 			return catalogError(err)
 		}
 		if !claimed {
 			return nil
+		}
+		claimedCount++
+		if jobID == "" {
+			jobID = s.beginSystemJob(SystemJobStorageCleanup, limit)
 		}
 		run, cancel := context.WithTimeout(ctx, 20*time.Second)
 		err = s.deleteStorageObject(run, row)
 		cancel()
 		updates := map[string]any{"lease_token": "", "lease_until": nil, "cleanup_code": "", "state": "deleted"}
 		if err != nil {
+			jobFailed, detailCode = true, "delete_failed"
 			updates["state"] = "delete_pending"
 			updates["cleanup_code"] = "delete_failed"
 			if !row.UploadConfirmed && errors.Is(err, objectstore.ErrNotFound) {
@@ -112,9 +134,14 @@ func (s *Service) FlushStorageCleanup(ctx context.Context, limit int) error {
 		saveErr := s.authDB(persist).Model(&entity.StorageObject{}).Where("id = ? AND lease_token = ?", row.ID, row.LeaseToken).Updates(updates).Error
 		cancel()
 		if saveErr != nil {
+			detailCode = "state_update_failed"
 			return catalogError(saveErr)
 		}
+		if err == nil {
+			completedCount++
+		}
 		if ctx.Err() != nil {
+			detailCode = "canceled"
 			return ctx.Err()
 		}
 	}

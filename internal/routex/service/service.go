@@ -35,6 +35,13 @@ type Service struct {
 	attemptHealth         gatewayAttemptHealth
 	attemptNow            func() time.Time
 	afterGatewayAdmission func()
+	instanceMu            sync.RWMutex
+	instance              *systemInstanceLease
+	instanceNow           func() time.Time
+	instanceResources     func(string) entitySystemInstanceResources
+	instanceHeartbeat     time.Duration
+	instanceLeaseDuration time.Duration
+	instanceCleanupAfter  time.Duration
 }
 
 // Option configures bootstrap dependencies, never mutable business policy.
@@ -61,7 +68,12 @@ func New(ctx context.Context, db *gorm.DB, options ...Option) (*Service, error) 
 
 	l.Info("[Service] initialized")
 
-	svc := &Service{db: db, upstream: upstream.NewClient(false), attemptNow: time.Now}
+	svc := &Service{
+		db: db, upstream: upstream.NewClient(false), attemptNow: time.Now,
+		instanceNow: time.Now, instanceResources: collectSystemInstanceResources,
+		instanceHeartbeat: 10 * time.Second, instanceLeaseDuration: 35 * time.Second,
+		instanceCleanupAfter: 5 * time.Minute,
+	}
 	for _, option := range options {
 		option(svc)
 	}

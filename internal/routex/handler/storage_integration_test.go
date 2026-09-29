@@ -476,4 +476,16 @@ func testStorageLifecycle(t *testing.T, db *gorm.DB) {
 	if err := db.First(&uncertain, "id = ?", uncertain.ID).Error; err != nil || uncertain.State != "deleted" {
 		t.Fatal("late accepted upload was not cleaned")
 	}
+	var cleanupJobs []entity.SystemJob
+	if err := db.Where("code = ?", service.SystemJobStorageCleanup).Order("started_at").Find(&cleanupJobs).Error; err != nil {
+		t.Fatal(err)
+	}
+	seenCompleted, seenFailed := false, false
+	for _, job := range cleanupJobs {
+		seenCompleted = seenCompleted || (job.Status == "completed" && job.DetailCode == "cleaned" && job.ItemsCompleted > 0)
+		seenFailed = seenFailed || (job.Status == "failed" && job.DetailCode == "delete_failed")
+	}
+	if !seenCompleted || !seenFailed {
+		t.Fatalf("real storage cleanup outcomes were not reported accurately: %+v", cleanupJobs)
+	}
 }

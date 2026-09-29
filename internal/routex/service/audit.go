@@ -45,6 +45,7 @@ var auditCategories = map[string][]string{
 	"pricing":     {"pricing"},
 	"identity":    {"user", "role", "session", "mfa", "installation", "registration", "offboarding_case"},
 	"site":        {"site", "announcement"},
+	"system":      {"system_instance"},
 }
 
 func validateAuditFilter(f AuditFilter) (AuditFilter, time.Duration, error) {
@@ -121,6 +122,14 @@ func auditRecord(row entity.AuditEvent) AuditRecord {
 			ETag   string        `json:"etag"`
 		}
 		if json.Unmarshal([]byte(*row.DetailsJSON), &detail) != nil {
+			return result
+		}
+		changes = detail
+	case "system.instance.cleanup":
+		var detail struct {
+			Revision uint64 `json:"revision"`
+		}
+		if json.Unmarshal([]byte(*row.DetailsJSON), &detail) != nil || detail.Revision == 0 {
 			return result
 		}
 		changes = detail

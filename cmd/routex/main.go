@@ -83,6 +83,20 @@ func run(ctx context.Context, configPath string) (runErr error) {
 	// Their explicit stop methods run only after serveHTTP has shut the listener.
 	lifecycle, cancel := context.WithCancel(context.WithoutCancel(ctx))
 	defer cancel()
+	instanceMetadata, err := service.RuntimeSystemInstanceMetadata(CommitID, BuildTime, cfg.EventQueuePath)
+	if err != nil {
+		return errors.New("read system instance metadata failed")
+	}
+	if err := svc.StartSystemInstance(lifecycle, instanceMetadata); err != nil {
+		return errors.New("register system instance failed")
+	}
+	defer func() {
+		stop, stopCancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer stopCancel()
+		if err := svc.StopSystemInstance(stop); err != nil && runErr == nil {
+			runErr = errors.New("stop system instance failed")
+		}
+	}()
 	defer func() {
 		svc.StopRuntime()
 		if err := svc.StopCallRecorder(); err != nil && runErr == nil {

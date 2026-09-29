@@ -38,4 +38,14 @@ func TestAuditDetailsAllowlist(t *testing.T) {
 	if row.Changes != nil {
 		t.Fatal("malformed detail exposed")
 	}
+	raw = `{"revision":7,"hostname":"do-not-leak","database_url":"do-not-leak"}`
+	row = auditRecord(entity.AuditEvent{Action: "system.instance.cleanup", ResourceID: "ins_retired", DetailsJSON: &raw})
+	encoded, _ = json.Marshal(row)
+	if strings.Contains(string(encoded), "do-not-leak") || !strings.Contains(string(row.Changes), `"revision":7`) || row.ResourceID != "ins_retired" {
+		t.Fatalf("unexpected system cleanup projection %s", encoded)
+	}
+	raw = `{"revision":0}`
+	if auditRecord(entity.AuditEvent{Action: "system.instance.cleanup", DetailsJSON: &raw}).Changes != nil {
+		t.Fatal("invalid cleanup revision exposed")
+	}
 }
