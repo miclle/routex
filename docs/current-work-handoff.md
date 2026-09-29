@@ -1,13 +1,13 @@
 # Current Work Handoff
 
 - **Status:** active; roadmap resumed and phased implementation in progress
-- **Updated:** 2026-09-29T18:56:47+08:00
+- **Updated:** 2026-09-29T19:24:33+08:00
 - **Repository:** `/Users/miclle/github/miclle/routex`
 - **Branch:** `main`
 - **Base:** `main`
-- **Implementation HEAD:** `dc99f354310bdff2cd450ce0b7c96c31faea7e7f`
+- **Implementation HEAD:** `d24997a192f2b4dff537aa416f289e920a909cf2`
 - **Upstream:** `origin/main`, zero commits ahead and zero behind at capture
-- **Last pushed implementation state:** `dc99f354310bdff2cd450ce0b7c96c31faea7e7f`
+- **Last pushed implementation state:** `d24997a192f2b4dff537aa416f289e920a909cf2`
 - **Current owner:** Codex phased implementation
 - **Next owner:** current task until the full objective closes or a later handoff supersedes this file
 - **Transfer state:** active; transferable at a clean verified phase boundary
@@ -35,6 +35,7 @@ Implement every valid RouteX capability represented by F01–F30 and close every
 - F20-G exact attachment input pricing is delivered by `0c445e1` (`feat(pricing): add attachment input charges`). Base-only `IMAGE_INPUT / 1_IMAGE` and `PDF_INPUT / 1_PDF` rates apply to strictly validated forwarded occurrences while storage reads remain deduplicated. The gateway reserves token maxima plus exact media components before storage reads, settles authoritative native token/cache usage with immutable occurrence counts, and durably classifies unexpected provider media without retaining quota leases. Frozen GORM migration V24 adds nullable historical media counts; new calls persist explicit zero or positive counts. The existing provider-model price and import interfaces now expose bilingual media rows and preserve decimal/ETag/currency behavior.
 - F13 active native failover is delivered by `17358de` (`feat(gateway): add bounded route failover`). Published-runtime Chat Completions, Responses, Messages, and Gemini requests now execute at most four replay-safe same-protocol attempts with credential priority, process-local Connection and credential health, current authorization/egress/policy/price rechecks, one durable admission and quota settlement, and no retry after a usable response. Frozen GORM migration V25 stores ordered administrator-only attempt diagnostics. Atomic pre-dispatch recovery and the `no_work` pricing state preserve exact zero economics only when durable evidence proves no provider work.
 - F21 safe call-record CSV export is delivered by `dc99f35` (`feat(calls): add safe CSV exports`). Personal, Project, and platform workspaces export the complete applied filter through dedicated server-authorized endpoints. Generation is bounded to five seconds, 10,000 rows, and 8 MiB; authorization and selection share one repeatable-read transaction; member files retain safe columns while platform files add only user/Project attribution. UTF-8 files protect formula-capable cells, preserve exact decimals and null-versus-zero values, and are downloaded through bilingual transient Blob actions in the approved filter layout.
+- F22-A immutable Provider-attributed usage is delivered by `d24997a` (`feat(usage): add provider attribution`). Frozen GORM migration V26 snapshots Provider IDs/names, Connection names, and upstream model names only after an attempt enters execution; failover keeps the final attempted route while legacy and pre-attempt calls remain explicit unknowns. Platform reports add Provider filtering and Provider/provider-model/Connection distributions with historical labels; Personal and Project reports retain topology isolation.
 - `docs/IMPLEMENTATION.md` contains the authoritative per-capability and per-acceptance status snapshot. The cross-task roadmap is `/Users/miclle/dotfiles/projects/routex/implementation-plan.md`.
 
 ### In Progress
@@ -45,21 +46,21 @@ Implement every valid RouteX capability represented by F01–F30 and close every
 - F13 now has active bounded failover and controlled A07/A08 evidence. Real-provider behavior, measured capacity, and multi-node health coordination remain open acceptance gates.
 - F27 now includes storage administration, explicit user/Project ownership, the gateway resolver, both Playground upload controls, and durable abandoned-object expiry. Durable notifications and external-service acceptance remain open.
 - F20 now includes explicit provider-model image/PDF declarations, effective per-protocol discovery, user/Project server-side byte resolution, both approved Playground attachment compositions, conservative token/TPM/money admission, and exact per-occurrence media settlement. Provider-specific billing dimensions and external-provider acceptance remain open.
-- F22 has Personal, Project, and platform usage views, but durable Provider attribution, Team attribution, and complete freshness/capacity acceptance remain open. The next package addresses only the Provider-attribution slice.
+- F22 has Personal, Project, and platform usage views plus durable Provider attribution. Team attribution and complete freshness/capacity acceptance remain open.
 
 ### Not Started or Out of Scope
 
-- F03 enterprise identity, F24 AI operations analysis, F26 instance/system-job management, and F29 API Key Vault delivery are not started.
+- F03 enterprise identity, F24 AI operations analysis, F26 instance/system-job management, and F29 API Key Vault delivery are not started. F26 is the next locally executable package under active contract review.
 - A13 complete approval contention and A16 Vault compensation are not started.
 - Real external-provider, IdP/LDAP/OAuth, Vault, S3, SMTP, price-source, production deployment, backup/restore, multi-node, and measured-capacity acceptance remain open because the required environments or decisions have not been supplied.
-- The roadmap is active. The next bounded package is F22-A durable Provider-attributed usage. It snapshots the final route Provider and display labels into immutable call facts, keeps legacy rows in an explicit unknown group, exposes Provider filters/distributions only to platform reports, and preserves Personal/Project topology redaction. Team attribution remains a separate prerequisite-driven package.
+- The roadmap is active. The next bounded package is F26-A authoritative instance status: establish the process registry, heartbeat/resource contract, read/write permission split, revision-checked offline cleanup, and approved administrative workspace before extending to actual system jobs in F26-B. Team attribution remains a separate prerequisite-driven package because explicit Team inference context is incomplete.
 
 ## Working Tree
 
 - **Staged:** none
 - **Modified:** only this handoff refresh before its documentation checkpoint
 - **Untracked:** none
-- **Unpushed commits:** `dc99f35` is pushed; commit and push this handoff refresh separately
+- **Unpushed commits:** `d24997a` is pushed; commit and push this handoff refresh separately
 - **Do not overwrite:** preserve any new user or concurrent-task changes discovered by the receiver; re-run the state checks before editing
 
 ## Decisions and Rationale
@@ -151,6 +152,14 @@ Implement every valid RouteX capability represented by F01–F30 and close every
 | Remote CI `36557525798` | pass | Frontend, backend, PostgreSQL/MySQL Integration, and artifact-build jobs passed for `dc99f35` |
 | Remote Actionlint `36557525834` | pass | Workflow syntax passed for `dc99f35` |
 | Remote GolangCI-Lint `36557525816` | pass | Go lint passed for `dc99f35` |
+| `NODE_OPTIONS=--no-experimental-webstorage go tool task check` on F22-A source | pass | Backend formatting/vet/lint, Prettier, ESLint, TypeScript, and module checks passed; ESLint retained two existing Fast Refresh warnings |
+| `NODE_OPTIONS=--no-experimental-webstorage go tool task test` on F22-A source | pass | Go race/unit coverage, 450 Vitest cases in 41 files, four Node checks, two development lifecycle checks, production build, and embedded assets passed |
+| `go tool task test-integration` on F22-A source | pass | PostgreSQL/MySQL Handler passed in 361.029 seconds and Service in 6.971 seconds; disposable Compose resources were removed |
+| Independent F22-A review | pass | Final review reported zero open critical findings, warnings, or suggestions after pre-attempt topology stripping and final-failover persistence fixes |
+| Browser verification on F22-A source | pass | The platform Usage workspace exposed Provider distribution, retained the approved composition, and switched live between paired English/Chinese copy |
+| Remote Actionlint `36561248224` | pass | Workflow syntax passed for `d24997a` |
+| Remote GolangCI-Lint `36561248208` | pass | Go lint passed for `d24997a` |
+| Remote CI `36561248202` | pass | Backend, frontend, PostgreSQL/MySQL integration, process restart, production assets, development lifecycle, and artifact build passed for `d24997a` |
 
 ## Blockers, Risks, and Unknowns
 
@@ -169,7 +178,7 @@ Implement every valid RouteX capability represented by F01–F30 and close every
 | `docs/PLAYGROUND.md` | Native-protocol, transient-credential, and single-model attachment behavior |
 | `docs/PRICING.md` | Current token/media metrics, exact arithmetic, adapter, quote, and unsupported-dimension contract |
 | `docs/PROVIDER_MODELS.md` | Effective image/PDF capability contract used by attachment routing |
-| `internal/routex/database/call_media_pricing_migration.go` | Frozen V24 nullable media-count migration and portability boundary |
+| `internal/routex/database/call_provider_attribution_migration.go` | Frozen V26 Provider attribution migration and portability boundary |
 | `docs/ROUTE_ATTEMPTS.md` | Active failover, evidence, health, quota, and diagnostics contract |
 | `docs/CALLS.md` | Completed scoped call-query and safe CSV contract that supplies immutable facts to the next usage slice |
 | `docs/USAGE.md` | Current usage scopes, filters, aggregation, decimal, and unknown-coverage behavior |
@@ -179,9 +188,9 @@ Implement every valid RouteX capability represented by F01–F30 and close every
 
 ## Next Actions
 
-1. Define the F22-A immutable Provider-attribution snapshot in `internal/routex/entity/call.go`, the next frozen GORM migration, and the call-recorder/runtime DTOs; completion requires legacy rows to remain explicit unknowns and final failover routes to own attribution.
-2. Extend platform-only usage filters, aggregations, handler DTOs, and `website/src/views/usage/` so Provider names are historical snapshots, Personal/Project responses never expose topology, and the approved usage composition gains paired English/Chinese Provider controls.
-3. Prove fresh/upgrade/repeat/concurrent migration, recorder replay, final-route attribution, rename stability, unknown legacy rows, permission isolation, both databases, UI behavior, browser interaction, full project checks, independent review, English documentation, and a pushed main-branch checkpoint before selecting the following package.
+1. Reconcile the approved F26 administration Mockup with current runtime, permission, audit, and persistence boundaries; freeze the smallest authoritative instance-status API and UI contract without fabricating process or resource data.
+2. Implement F26-A as a bounded backend/frontend package with a frozen GORM-first schema where persistence is required, platform-only authorization, bilingual copy, Mockup-faithful shadcn/Base UI composition, and explicit stale/offline behavior.
+3. Prove PostgreSQL/MySQL migration and concurrency behavior, permission isolation, heartbeat freshness, cleanup races, browser interaction, full project checks, independent review, English documentation, and a pushed main-branch checkpoint before extending F26 to actual system jobs.
 
 ## Environment and Access
 
@@ -193,6 +202,6 @@ Implement every valid RouteX capability represented by F01–F30 and close every
 
 ## Handoff History
 
-- **Continues from:** storage administration at `26763e8`, provider-model input capabilities at `3b5e642`, personal-Key attachment resolution at `652cb44`, single-model attachment input at `7fa25d7`, comparison attachment input at `ccb6255`, conservative multimodal quota admission at `aa33b5a`, Project-owned attachment lifecycle at `1e4af76`, attachment input pricing at `0c445e1`, bounded native failover at `17358de`, and safe call-record CSV export at `dc99f35`
+- **Continues from:** storage administration at `26763e8`, provider-model input capabilities at `3b5e642`, personal-Key attachment resolution at `652cb44`, single-model attachment input at `7fa25d7`, comparison attachment input at `ccb6255`, conservative multimodal quota admission at `aa33b5a`, Project-owned attachment lifecycle at `1e4af76`, attachment input pricing at `0c445e1`, bounded native failover at `17358de`, safe call-record CSV export at `dc99f35`, and immutable Provider usage attribution at `d24997a`
 - **Supersedes:** the storage-administration-next checkpoint at `bcc663a`
 - **Closeout condition:** all F01–F30 capabilities and A01–A20 acceptance cases are completed with current evidence, or a later handoff replaces this document with an equally verifiable resume point
