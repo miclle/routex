@@ -460,7 +460,7 @@ export default function ChatWorkbench() {
           {
             ...parameters,
             messages: [...messages, currentMessage],
-            max_tokens: Number(form.get('max_tokens')),
+            max_completion_tokens: Number(form.get('max_tokens')),
             ...(stream ? { stream_options: { include_usage: true } } : {}),
           },
           abort.signal,

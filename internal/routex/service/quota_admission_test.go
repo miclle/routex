@@ -72,6 +72,75 @@ func TestQuotaTokenAndMoneyEvidenceIndependent(t *testing.T) {
 		t.Fatal("unconstrained traffic fabricated bound", bound, err)
 	}
 }
+
+func TestQuotaAttachmentTokenAndMoneyPoliciesRemainIndependent(t *testing.T) {
+	result := &GatewayResult{
+		ProviderModelID:    "pmd_one",
+		Protocol:           entity.ProtocolOpenAIChat,
+		PricingUnsupported: true,
+		quotaRequest:       quotaRequest{Supported: true, MaxOutput: 10, CacheRead: true, CacheWrite: true},
+	}
+	data := &runtimeQuotaData{Bounds: map[string]entity.ReservationBound{
+		"pmd_one": {
+			Protocol:        entity.ProtocolOpenAIChat,
+			MaxInputTokens:  100,
+			MaxOutputTokens: 20,
+			ETag:            "bnd_proven",
+		},
+	}}
+	for name, policy := range map[string]eventqueue.QuotaLimit{
+		"tokens": {Tokens5H: limitNumber(200)},
+		"tpm":    {TPM: limitNumber(200)},
+	} {
+		t.Run(name, func(t *testing.T) {
+			bound, err := prepareQuotaBound(result, []eventqueue.QuotaLimit{policy}, data)
+			if err != nil || bound.Tokens == nil || *bound.Tokens != 110 || bound.Money != nil || bound.Revision != "bnd_proven" {
+				t.Fatalf("attachment token capacity was not reserved: %+v, %v", bound, err)
+			}
+		})
+	}
+	for name, policy := range map[string]eventqueue.QuotaLimit{
+		"money": {
+			MoneyMonth: quotaTestString("10"),
+			Currency:   "USD",
+		},
+		"mixed": {
+			Tokens5H:   limitNumber(200),
+			MoneyMonth: quotaTestString("10"),
+			Currency:   "USD",
+		},
+	} {
+		t.Run(name, func(t *testing.T) {
+			_, err := prepareQuotaBound(result, []eventqueue.QuotaLimit{policy}, data)
+			var gateway *GatewayError
+			if !errors.As(err, &gateway) || gateway.Status != 503 || gateway.Code != "quota_price_unavailable" {
+				t.Fatalf("unsupported attachment price did not fail closed: %v", err)
+			}
+		})
+	}
+}
+
+func TestQuotaUnsupportedShapePrecedesAttachmentPriceFailure(t *testing.T) {
+	result := &GatewayResult{
+		ProviderModelID:    "pmd_one",
+		Protocol:           entity.ProtocolOpenAIChat,
+		PricingUnsupported: true,
+		quotaRequest:       quotaRequest{},
+	}
+	for name, policy := range map[string]eventqueue.QuotaLimit{
+		"money": {MoneyMonth: quotaTestString("10"), Currency: "USD"},
+		"mixed": {Tokens5H: limitNumber(200), MoneyMonth: quotaTestString("10"), Currency: "USD"},
+	} {
+		t.Run(name, func(t *testing.T) {
+			_, err := prepareQuotaBound(result, []eventqueue.QuotaLimit{policy}, &runtimeQuotaData{})
+			var gateway *GatewayError
+			if !errors.As(err, &gateway) || gateway.Status != 400 || gateway.Code != "quota_request_unsupported" {
+				t.Fatalf("unsupported request error = %v", err)
+			}
+		})
+	}
+}
+
 func TestQuotaKnownUsageSettlesCanceledRequestsIndependently(t *testing.T) {
 	for _, status := range []string{"success", "error", "canceled"} {
 		fact := CallFact{Status: status, UsageComplete: true, InputTokens: limitNumber(11), OutputTokens: limitNumber(7)}

@@ -202,48 +202,63 @@ func (q *Queue) ReserveWithLimits(id string, payload []byte, limits []Limit, now
 	})
 }
 func (q *Queue) reserveWithLimits(tx *bolt.Tx, id string, payload []byte, limits []Limit, now time.Time) error {
-	pending, ready := tx.Bucket(pendingBucket), tx.Bucket(readyBucket)
-	if pending.Get([]byte(id)) != nil || ready.Get([]byte(id)) != nil {
-		return ErrInvalid
-	}
-	if pending.Stats().KeyN+ready.Stats().KeyN >= q.capacity {
-		return ErrFull
-	}
-	instant, err := logicalLimitTime(tx, now)
+	instant, accounts, err := q.checkLimitAdmission(tx, id, limits, now)
 	if err != nil {
 		return err
 	}
+	return q.applyLimitAdmission(tx, id, payload, instant, accounts)
+}
+
+// checkLimitAdmission performs every durable capacity, RPM, and concurrency
+// check without consuming an event or creating a lease. Callers that admit must
+// apply the returned accounts in the same write transaction.
+func (q *Queue) checkLimitAdmission(tx *bolt.Tx, id string, limits []Limit, now time.Time) (int64, []string, error) {
+	pending, ready := tx.Bucket(pendingBucket), tx.Bucket(readyBucket)
+	if pending.Get([]byte(id)) != nil || ready.Get([]byte(id)) != nil {
+		return 0, nil, ErrInvalid
+	}
+	if pending.Stats().KeyN+ready.Stats().KeyN >= q.capacity {
+		return 0, nil, ErrFull
+	}
+	instant, err := logicalLimitTime(tx, now)
+	if err != nil {
+		return 0, nil, err
+	}
 	if err := pruneLimits(tx, instant); err != nil {
-		return err
+		return 0, nil, err
 	}
 	events := tx.Bucket(rpmBucket)
 	if events.Sequence()+uint64(len(limits)) > limitHistoryCapacity {
-		return ErrFull
+		return 0, nil, ErrFull
 	}
-	leases := tx.Bucket(leaseBucket)
 	seen := map[string]bool{}
 	accounts := []string{}
 	for _, limit := range limits {
 		if !validKey.MatchString(limit.Account) || seen[limit.Account] {
-			return ErrInvalid
+			return 0, nil, ErrInvalid
 		}
 		seen[limit.Account] = true
 		rpm, err := countValue(tx.Bucket(rpmCountBucket), []byte(limit.Account))
 		if err != nil {
-			return err
+			return 0, nil, err
 		}
 		active, err := countValue(tx.Bucket(activeCountBucket), []byte(limit.Account))
 		if err != nil {
-			return err
+			return 0, nil, err
 		}
 		if limit.RPM != nil && (*limit.RPM < 0 || rpm >= *limit.RPM) {
-			return ErrRateLimit
+			return 0, nil, ErrRateLimit
 		}
 		if limit.Concurrency != nil && (*limit.Concurrency < 0 || active >= *limit.Concurrency) {
-			return ErrConcurrency
+			return 0, nil, ErrConcurrency
 		}
 		accounts = append(accounts, limit.Account)
 	}
+	return instant, accounts, nil
+}
+
+func (q *Queue) applyLimitAdmission(tx *bolt.Tx, id string, payload []byte, instant int64, accounts []string) error {
+	events := tx.Bucket(rpmBucket)
 	for _, account := range accounts {
 		if err := changeCount(tx.Bucket(rpmCountBucket), []byte(account), 1); err != nil {
 			return err
@@ -265,10 +280,10 @@ func (q *Queue) reserveWithLimits(tx *bolt.Tx, id string, payload []byte, limits
 	if err != nil {
 		return err
 	}
-	if err := leases.Put([]byte(id), encoded); err != nil {
+	if err := tx.Bucket(leaseBucket).Put([]byte(id), encoded); err != nil {
 		return err
 	}
-	return pending.Put([]byte(id), payload)
+	return tx.Bucket(pendingBucket).Put([]byte(id), payload)
 }
 
 // AccountUsage reads local enforcement state, independent of SQL report lag.

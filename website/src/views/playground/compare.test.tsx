@@ -161,6 +161,7 @@ describe('model comparison workbench', () => {
     expect(vi.mocked(runChat).mock.calls[0][1]).toMatchObject({
       model: 'chat-a',
       messages: [{ role: 'user', content: 'Same prompt' }],
+      max_completion_tokens: 2048,
       stream: true,
       stream_options: { include_usage: true },
     })

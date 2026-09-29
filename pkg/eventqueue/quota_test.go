@@ -8,6 +8,8 @@ import (
 	"sync/atomic"
 	"testing"
 	"time"
+
+	bolt "go.etcd.io/bbolt"
 )
 
 func moneyPtr(value string) *string { return &value }
@@ -54,6 +56,216 @@ func requireUsage(t *testing.T, q *Queue, account string, now time.Time) *Accoun
 		t.Fatal(err)
 	}
 	return value
+}
+
+func TestQuotaPreflightHasNoReservationSideEffects(t *testing.T) {
+	q, _ := newQuotaTest(t, "UTC")
+	policy := quotaPolicy("key_preview")
+	policy.RPM = limitPtr(2)
+	policy.Concurrency = limitPtr(1)
+	policy.Tokens5H = limitPtr(20)
+
+	if err := q.PreflightWithQuota("preview", []QuotaLimit{policy}, tokenBound(10), "UTC", quotaTestTime); err != nil {
+		t.Fatal(err)
+	}
+	if rpm, active, err := q.AccountUsage(policy.Account, quotaTestTime); err != nil || rpm != 0 || active != 0 {
+		t.Fatalf("preview changed rate state: rpm=%d active=%d err=%v", rpm, active, err)
+	}
+	if depth, err := q.Depth(); err != nil || depth != 0 {
+		t.Fatalf("preview created a pending fact: depth=%d err=%v", depth, err)
+	}
+	if _, err := q.QuotaReceipt("preview"); !errors.Is(err, ErrMissing) {
+		t.Fatalf("preview created a quota receipt: %v", err)
+	}
+	usage := requireUsage(t, q, policy.Account, quotaTestTime)
+	if usage.Active.TokensHeld != 0 || usage.FiveHours.TokensHeld != 0 {
+		t.Fatalf("preview created an economic hold: %+v", usage)
+	}
+	if err := q.db.View(func(tx *bolt.Tx) error {
+		if tx.Bucket(quotaAccountBucket).Get([]byte(policy.Account)) != nil {
+			return errors.New("preview created quota account state")
+		}
+		return nil
+	}); err != nil {
+		t.Fatal(err)
+	}
+
+	requireReserve(t, q, "preview", []QuotaLimit{policy}, tokenBound(10), quotaTestTime)
+	if rpm, active, err := q.AccountUsage(policy.Account, quotaTestTime); err != nil || rpm != 1 || active != 1 {
+		t.Fatalf("final reservation did not repeat and apply checks: rpm=%d active=%d err=%v", rpm, active, err)
+	}
+}
+
+func TestQuotaPreflightMatchesActiveRateAndQuotaRejections(t *testing.T) {
+	for _, test := range []struct {
+		name string
+		set  func(*QuotaLimit)
+		want error
+	}{
+		{name: "RPM", set: func(policy *QuotaLimit) { policy.RPM = limitPtr(1) }, want: ErrRateLimit},
+		{name: "concurrency", set: func(policy *QuotaLimit) { policy.Concurrency = limitPtr(1) }, want: ErrConcurrency},
+		{name: "TPM", set: func(policy *QuotaLimit) { policy.TPM = limitPtr(15) }, want: ErrQuotaTokens},
+		{name: "five hour tokens", set: func(policy *QuotaLimit) { policy.Tokens5H = limitPtr(15) }, want: ErrQuotaTokens},
+		{name: "monthly tokens", set: func(policy *QuotaLimit) { policy.TokensMonth = limitPtr(15) }, want: ErrQuotaTokens},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			q, _ := newQuotaTest(t, "UTC")
+			policy := quotaPolicy("key_exhausted")
+			test.set(&policy)
+			requireReserve(t, q, "held", []QuotaLimit{policy}, tokenBound(10), quotaTestTime)
+
+			before := requireUsage(t, q, policy.Account, quotaTestTime)
+			err := q.PreflightWithQuota("preview", []QuotaLimit{policy}, tokenBound(10), "UTC", quotaTestTime)
+			if !errors.Is(err, test.want) {
+				t.Fatalf("preview error = %v, want %v", err, test.want)
+			}
+			after := requireUsage(t, q, policy.Account, quotaTestTime)
+			if rpm, active, usageErr := q.AccountUsage(policy.Account, quotaTestTime); usageErr != nil || rpm != 1 || active != 1 {
+				t.Fatalf("rejected preview changed rate state: rpm=%d active=%d err=%v", rpm, active, usageErr)
+			}
+			if before.Active.TokensHeld != after.Active.TokensHeld || before.Minute.TokensHeld != after.Minute.TokensHeld || before.FiveHours.TokensHeld != after.FiveHours.TokensHeld || before.Month.TokensHeld != after.Month.TokensHeld {
+				t.Fatalf("rejected preview changed quota holds: before=%+v after=%+v", before, after)
+			}
+			if _, receiptErr := q.QuotaReceipt("preview"); !errors.Is(receiptErr, ErrMissing) {
+				t.Fatalf("rejected preview created receipt: %v", receiptErr)
+			}
+		})
+	}
+}
+
+func TestQuotaPreflightModelsInactiveJournalWithoutActivation(t *testing.T) {
+	q, err := Open(filepath.Join(t.TempDir(), "inactive.db"), 100, 1024)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = q.Close() }()
+	policy := quotaPolicy("key_inactive")
+	policy.Tokens5H = limitPtr(20)
+	if err := q.PreflightWithQuota("preview", []QuotaLimit{policy}, tokenBound(10), "UTC", quotaTestTime); err != nil {
+		t.Fatal(err)
+	}
+	status, err := q.QuotaStatus()
+	if err != nil || status.Active {
+		t.Fatalf("preview activated quota accounting: %+v, %v", status, err)
+	}
+	if err := q.db.View(func(tx *bolt.Tx) error {
+		if tx.Bucket(quotaAccountBucket) != nil {
+			return errors.New("preview created quota buckets")
+		}
+		return nil
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if err := q.ReserveWithQuota("preview", []byte("fallback"), []QuotaLimit{policy}, tokenBound(10), quotaTestTime); !errors.Is(err, ErrQuotaInactive) {
+		t.Fatalf("preview changed final activation boundary: %v", err)
+	}
+	if err := q.EnableQuota("UTC", quotaTestTime); err != nil {
+		t.Fatal(err)
+	}
+	requireReserve(t, q, "preview", []QuotaLimit{policy}, tokenBound(10), quotaTestTime)
+}
+
+func TestQuotaPreflightEconomicRejections(t *testing.T) {
+	for _, test := range []struct {
+		name  string
+		setup func(*QuotaLimit, *QuotaBound)
+		want  error
+	}{
+		{
+			name: "request exceeds token policy",
+			setup: func(policy *QuotaLimit, _ *QuotaBound) {
+				policy.Tokens5H = limitPtr(5)
+			},
+			want: ErrQuotaTokens,
+		},
+		{
+			name: "request exceeds money policy",
+			setup: func(policy *QuotaLimit, bound *QuotaBound) {
+				policy.MoneyMonth, policy.Currency = moneyPtr("1"), "USD"
+				bound.Money, bound.Currency = moneyPtr("2"), "USD"
+			},
+			want: ErrQuotaMoney,
+		},
+		{
+			name: "currency mismatch",
+			setup: func(policy *QuotaLimit, bound *QuotaBound) {
+				policy.MoneyMonth, policy.Currency = moneyPtr("10"), "USD"
+				bound.Money, bound.Currency = moneyPtr("1"), "EUR"
+			},
+			want: ErrQuotaCurrency,
+		},
+		{
+			name: "missing bound revision",
+			setup: func(policy *QuotaLimit, bound *QuotaBound) {
+				policy.Tokens5H = limitPtr(20)
+				bound.Revision = ""
+			},
+			want: ErrQuotaBound,
+		},
+		{
+			name: "incomplete history",
+			setup: func(policy *QuotaLimit, _ *QuotaBound) {
+				policy.CreatedAt = quotaTestTime.Add(-time.Hour)
+				policy.Tokens7D = limitPtr(20)
+			},
+			want: ErrQuotaCoverage,
+		},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			q, _ := newQuotaTest(t, "UTC")
+			policy := quotaPolicy("key_economic")
+			bound := tokenBound(10)
+			test.setup(&policy, &bound)
+			err := q.PreflightWithQuota("preview", []QuotaLimit{policy}, bound, "UTC", quotaTestTime)
+			if !errors.Is(err, test.want) {
+				t.Fatalf("preview error = %v, want %v", err, test.want)
+			}
+			if depth, depthErr := q.Depth(); depthErr != nil || depth != 0 {
+				t.Fatalf("rejected preview created a pending fact: depth=%d err=%v", depth, depthErr)
+			}
+		})
+	}
+}
+
+func TestQuotaPreflightRejectsInvalidatedBound(t *testing.T) {
+	q, _ := newQuotaTest(t, "UTC")
+	policy := quotaPolicy("key_invalid_bound")
+	policy.Tokens5H = limitPtr(100)
+	bound := tokenBound(10)
+	requireReserve(t, q, "overrun", []QuotaLimit{policy}, bound, quotaTestTime)
+	requireComplete(t, q, "overrun", QuotaSettlement{Tokens: limitPtr(20)}, quotaTestTime)
+	if err := q.PreflightWithQuota("preview", []QuotaLimit{policy}, bound, "UTC", quotaTestTime); !errors.Is(err, ErrQuotaBound) {
+		t.Fatalf("invalidated bound accepted by preview: %v", err)
+	}
+}
+
+func TestQuotaPreflightRejectsUnknownHistoryAndFullJournal(t *testing.T) {
+	t.Run("unknown history", func(t *testing.T) {
+		q, _ := newQuotaTest(t, "UTC")
+		policy := quotaPolicy("key_unknown")
+		requireReserve(t, q, "unbounded", []QuotaLimit{policy}, QuotaBound{}, quotaTestTime)
+		policy.Tokens5H = limitPtr(100)
+		if err := q.PreflightWithQuota("preview", []QuotaLimit{policy}, tokenBound(10), "UTC", quotaTestTime); !errors.Is(err, ErrQuotaUnknown) {
+			t.Fatalf("unknown history accepted by preview: %v", err)
+		}
+	})
+
+	t.Run("full journal", func(t *testing.T) {
+		path := filepath.Join(t.TempDir(), "full.db")
+		q, err := Open(path, 1, 1024)
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer func() { _ = q.Close() }()
+		if err := q.EnableQuota("UTC", quotaTestTime); err != nil {
+			t.Fatal(err)
+		}
+		policy := quotaPolicy("key_full")
+		requireReserve(t, q, "held", []QuotaLimit{policy}, tokenBound(1), quotaTestTime)
+		if err := q.PreflightWithQuota("preview", []QuotaLimit{policy}, tokenBound(1), "UTC", quotaTestTime); !errors.Is(err, ErrFull) {
+			t.Fatalf("full journal accepted by preview: %v", err)
+		}
+	})
 }
 
 func TestQuotaConcurrentAggregateAtomicAdmission(t *testing.T) {

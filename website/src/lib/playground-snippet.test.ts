@@ -40,7 +40,7 @@ describe('native request code generation', () => {
       stream: true,
       temperature: 0.4,
       top_p: 0.8,
-      max_tokens: 42,
+      max_completion_tokens: 42,
       messages: [{ role: 'system', content: input.system }, ...input.messages],
       stream_options: { include_usage: true },
     })

@@ -211,7 +211,7 @@ func (s *Service) gatewayNative(ctx context.Context, bearer string, body []byte,
 		}
 		defer route.Client.CloseIdleConnections()
 	}
-	result.quotaRequest = inspectQuotaRequest(protocol, payload)
+	result.quotaRequest = inspectQuotaRequest(protocol, payload, attachmentPlan)
 	if protocol == entity.ProtocolAnthropicMessages && (len(options) != 1 || options[0].Messages.Version != "2023-06-01" || options[0].Messages.Beta != "") {
 		result.quotaRequest.Supported = false
 	}
@@ -256,7 +256,7 @@ func (s *Service) gatewayNative(ctx context.Context, bearer string, body []byte,
 	}
 	endpoint := strings.TrimRight(base.String(), "/") + suffix
 	if len(attachmentPlan.Occurrences) != 0 {
-		if err := s.preflightGatewayQuota(ctx, result); err != nil {
+		if err := s.preflightGatewayQuota(ctx, requestID, result); err != nil {
 			return result, err
 		}
 		resolved, err := s.resolveGatewayAttachments(ctx, key.Key.UserID, attachmentPlan)

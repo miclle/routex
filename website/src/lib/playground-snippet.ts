@@ -33,7 +33,7 @@ export function nativeSnippetRequest(input: SnippetInput) {
       body = {
         ...parameters,
         messages: [...(system ? [{ role: 'system', content: system }] : []), ...input.messages],
-        max_tokens: input.maxTokens,
+        max_completion_tokens: input.maxTokens,
         ...(input.stream ? { stream_options: { include_usage: true } } : {}),
       }
       break

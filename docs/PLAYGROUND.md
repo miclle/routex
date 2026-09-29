@@ -38,9 +38,15 @@ Direct API callers upload with the session and CSRF-protected attachment API, th
 place the returned object URI only in a native image/PDF position described in
 [Object storage and owned attachments](STORAGE.md). References in text or tool
 arguments are ordinary user content. Requests are limited to four occurrences,
-four unique objects, 8 MiB of raw bytes and 12 MiB after inline expansion. Active
-finite token, TPM or monetary policies reject multimodal input because no verified
-multimodal token bound is currently available.
+four unique objects, 8 MiB of raw bytes and 12 MiB after inline expansion. A
+finite token or TPM policy admits only validated personal attachment references
+with the route's administrator-attested input capacity and the protocol's explicit
+output cap. The reservation uses that full input capacity and never estimates
+media tokens from file properties. A finite monetary policy still rejects an
+otherwise supported attachment request before object storage access because the
+text price adapter does not claim image/PDF prices. Requests that also contain an
+unsupported native tool, tier, cache, or media shape fail the stricter request
+shape check first.
 
 ## Transport and Secret Handling
 

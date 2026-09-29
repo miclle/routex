@@ -7,16 +7,17 @@ import (
 	"encoding/json"
 	"errors"
 	"math"
+	"time"
 
 	"github.com/miclle/routex/internal/routex/entity"
 	"github.com/miclle/routex/pkg/eventqueue"
 	"github.com/miclle/routex/pkg/pricing"
 )
 
-// preflightGatewayQuota rejects request shapes that cannot be bounded by an
-// active token or monetary policy without reserving rate, concurrency, or quota
-// capacity. Final admission repeats the policy read and performs the reservation.
-func (s *Service) preflightGatewayQuota(ctx context.Context, result *GatewayResult) error {
+// preflightGatewayQuota checks the durable journal before attachment storage
+// reads without consuming RPM, creating a lease/fact, or holding quota. Final
+// admission repeats the policy read and every check in one atomic reservation.
+func (s *Service) preflightGatewayQuota(ctx context.Context, requestID string, result *GatewayResult) error {
 	s.limitMu.RLock()
 	defer s.limitMu.RUnlock()
 	limits, err := s.gatewayLimits(ctx, result)
@@ -27,8 +28,22 @@ func (s *Service) preflightGatewayQuota(ctx context.Context, result *GatewayResu
 	if err != nil {
 		return err
 	}
-	_, err = prepareQuotaBound(result, policies, data)
-	return err
+	bound, err := prepareQuotaBound(result, policies, data)
+	if err != nil {
+		return err
+	}
+	if s.recorder == nil {
+		for _, policy := range policies {
+			if policy.Tokens5H != nil || policy.Tokens7D != nil || policy.TokensMonth != nil || policy.TPM != nil || policy.MoneyMonth != nil || policy.RPM != nil || policy.Concurrency != nil {
+				return callQueueUnavailable
+			}
+		}
+		return nil
+	}
+	if err := s.recorder.queue.PreflightWithQuota(requestID, policies, bound, data.Setting.TimeZone, time.Now().UTC()); err != nil {
+		return quotaGatewayError(err)
+	}
+	return nil
 }
 
 // quotaRequest retains only finite classification and output capacity. It never
@@ -39,7 +54,12 @@ type quotaRequest struct {
 	CacheRead, CacheWrite bool
 }
 
-func inspectQuotaRequest(protocol string, payload map[string]json.RawMessage) quotaRequest {
+func inspectQuotaRequest(protocol string, payload map[string]json.RawMessage, plans ...*gatewayAttachmentPlan) quotaRequest {
+	if len(plans) == 1 && plans[0] != nil && len(plans[0].Occurrences) > 0 {
+		if detached, ok := quotaAttachmentPayload(protocol, plans[0]); ok {
+			payload = detached
+		}
+	}
 	switch protocol {
 	case entity.ProtocolOpenAIChat:
 		return inspectChatQuotaRequest(payload)
@@ -79,18 +99,22 @@ func inspectChatQuotaRequest(payload map[string]json.RawMessage) quotaRequest {
 	return quotaRequest{Supported: true, MaxOutput: *maximum, CacheRead: true, CacheWrite: true}
 }
 func prepareQuotaBound(result *GatewayResult, policies []eventqueue.QuotaLimit, data *runtimeQuotaData) (eventqueue.QuotaBound, error) {
-	constrained, moneyConstrained := false, false
+	tokenConstrained, moneyConstrained := false, false
 	for _, policy := range policies {
 		hasTokens := policy.Tokens5H != nil || policy.Tokens7D != nil || policy.TokensMonth != nil || policy.TPM != nil
+		tokenConstrained = tokenConstrained || hasTokens
 		moneyConstrained = moneyConstrained || policy.MoneyMonth != nil
-		constrained = constrained || hasTokens || policy.MoneyMonth != nil
 	}
+	constrained := tokenConstrained || moneyConstrained
 	empty := eventqueue.QuotaBound{}
-	if !result.quotaRequest.Supported || result.PricingUnsupported {
+	if !result.quotaRequest.Supported {
 		if constrained {
 			return empty, gatewayError(400, "quota_request_unsupported", "The request cannot be bounded under the active resource policy.")
 		}
 		return empty, nil
+	}
+	if result.PricingUnsupported && moneyConstrained {
+		return empty, gatewayError(503, "quota_price_unavailable", "A complete reservation price is unavailable.")
 	}
 	capacity, exists := data.Bounds[result.ProviderModelID]
 	if !exists || capacity.Protocol != result.NativeProtocol() || capacity.ETag == "" || capacity.MaxInputTokens <= 0 || capacity.MaxOutputTokens <= 0 {
@@ -107,7 +131,7 @@ func prepareQuotaBound(result *GatewayResult, policies []eventqueue.QuotaLimit, 
 	}
 	total := capacity.MaxInputTokens + result.quotaRequest.MaxOutput
 	bound := eventqueue.QuotaBound{Tokens: &total, Revision: capacity.ETag}
-	if result.PriceBasis != nil && result.PriceBasis.Adapter == "routex_text_v1" && result.PriceBasis.Schedule.ProviderModelID == result.ProviderModelID && result.PriceBasis.Schedule.Protocol == result.NativeProtocol() {
+	if !result.PricingUnsupported && result.PriceBasis != nil && result.PriceBasis.Adapter == "routex_text_v1" && result.PriceBasis.Schedule.ProviderModelID == result.ProviderModelID && result.PriceBasis.Schedule.Protocol == result.NativeProtocol() {
 		quote, err := pricing.ReserveBound(result.PriceBasis.Schedule, result.PriceBasis.Currency, pricing.Capacity{Input: capacity.MaxInputTokens, Output: result.quotaRequest.MaxOutput, CacheRead: result.quotaRequest.CacheRead, CacheWrite: result.quotaRequest.CacheWrite})
 		if err == nil {
 			bound.Money = &quote.Amount

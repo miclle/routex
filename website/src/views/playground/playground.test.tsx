@@ -137,6 +137,7 @@ describe('Playground user behavior', () => {
     expect(request).toMatchObject({
       model: 'key-authorized-model',
       stream: true,
+      max_completion_tokens: 2048,
       stream_options: { include_usage: true },
       messages: [{ role: 'user', content: 'Hello' }],
     })
@@ -814,7 +815,8 @@ it('captures actual current settings, completed history and draft without the en
   expect(snippet).toContain('Real response')
   expect(snippet).toContain('"temperature": 0.4')
   expect(snippet).toContain('"top_p": 0.8')
-  expect(snippet).toContain('"max_tokens": 64')
+  expect(snippet).toContain('"max_completion_tokens": 64')
+  expect(snippet).not.toContain('"max_tokens": 64')
   expect(snippet).toContain('"stream": false')
   expect(snippet).not.toContain('rx_transient')
   expect(snippet).toContain('$ROUTEX_API_KEY')

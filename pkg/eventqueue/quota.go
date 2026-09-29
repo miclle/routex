@@ -155,56 +155,103 @@ func (q *Queue) ReserveWithQuota(id string, payload []byte, policies []QuotaLimi
 		return err
 	}
 	return q.db.Update(func(tx *bolt.Tx) error {
-		metadata, err := readQuotaMetadata(tx)
+		entry, limitAccounts, err := q.checkQuotaAdmission(tx, id, policies, bound, "", now, true)
 		if err != nil {
 			return err
 		}
-		if tx.Bucket(quotaEntryBucket).Get([]byte(id)) != nil {
-			return ErrQuotaConflict
-		}
-		legacy := make([]Limit, len(policies))
-		for index, policy := range policies {
-			legacy[index] = policy.Limit
-		}
-		if err := q.reserveWithLimits(tx, id, payload, legacy, now); err != nil {
+		if err := q.applyLimitAdmission(tx, id, payload, entry.AdmittedAt, limitAccounts); err != nil {
 			return err
-		}
-		instant, err := logicalLimitTime(tx, now)
-		if err != nil {
-			return err
-		}
-		if err := pruneQuota(tx, instant); err != nil {
-			return err
-		}
-		if tx.Bucket(quotaEntryBucket).Sequence() >= uint64(q.quotaCapacity) {
-			return ErrFull
-		}
-		start, end, err := quotaMonth(instant, metadata.TimeZone)
-		if err != nil {
-			return err
-		}
-		if instant > math.MaxInt64-int64(7*24*time.Hour) {
-			return ErrInvalid
-		}
-		entry := QuotaReceipt{RequestID: id, AdmittedAt: instant, MonthStart: start, MonthEnd: end, Bound: bound, State: "active"}
-		for _, policy := range policies {
-			if err := checkQuota(tx, policy, bound, metadata, instant, start); err != nil {
-				return err
-			}
-			entry.Accounts = append(entry.Accounts, quotaAccount{Account: policy.Account, Revision: policy.Revision})
 		}
 		for _, account := range entry.Accounts {
-			if err := applyQuotaCounter(tx, account.Account, "active", entry, 1); err != nil {
+			if err := applyQuotaCounter(tx, account.Account, "active", *entry, 1); err != nil {
 				return err
 			}
 		}
-		if err := storeQuotaReceipt(tx, entry); err != nil {
+		if err := storeQuotaReceipt(tx, *entry); err != nil {
 			return err
 		}
 		return tx.Bucket(quotaEntryBucket).SetSequence(tx.Bucket(quotaEntryBucket).Sequence() + 1)
 	})
 }
-func checkQuota(tx *bolt.Tx, policy QuotaLimit, bound QuotaBound, metadata quotaMetadata, instant, monthStart int64) error {
+
+// PreflightWithQuota durably checks whether an admission would definitely be
+// rejected without consuming RPM, creating a lease/fact, or holding quota. An
+// inactive quota journal is modeled at its future activation boundary; only
+// final ReserveWithQuota activates accounting and establishes account state.
+func (q *Queue) PreflightWithQuota(id string, policies []QuotaLimit, bound QuotaBound, zone string, now time.Time) error {
+	if !validKey.MatchString(id) || len(policies) == 0 || len(policies) > 8 || zone == "" {
+		return ErrInvalid
+	}
+	if _, err := time.LoadLocation(zone); err != nil {
+		return ErrInvalid
+	}
+	if err := validQuotaBound(bound); err != nil {
+		return err
+	}
+	return q.db.Update(func(tx *bolt.Tx) error {
+		_, _, err := q.checkQuotaAdmission(tx, id, policies, bound, zone, now, false)
+		return err
+	})
+}
+
+func (q *Queue) checkQuotaAdmission(tx *bolt.Tx, id string, policies []QuotaLimit, bound QuotaBound, previewZone string, now time.Time, establish bool) (*QuotaReceipt, []string, error) {
+	version := string(tx.Bucket(limitMetaBucket).Get([]byte("version")))
+	if version != "1" && version != "2" {
+		return nil, nil, ErrInvalid
+	}
+	active := version == "2"
+	metadata := quotaMetadata{}
+	if active {
+		var err error
+		metadata, err = readQuotaMetadata(tx)
+		if err != nil {
+			return nil, nil, err
+		}
+		if previewZone != "" && metadata.TimeZone != previewZone {
+			return nil, nil, ErrQuotaConflict
+		}
+	} else if previewZone == "" {
+		return nil, nil, ErrQuotaInactive
+	}
+	if entries := tx.Bucket(quotaEntryBucket); entries != nil && entries.Get([]byte(id)) != nil {
+		return nil, nil, ErrQuotaConflict
+	}
+	legacy := make([]Limit, len(policies))
+	for index, policy := range policies {
+		legacy[index] = policy.Limit
+	}
+	instant, limitAccounts, err := q.checkLimitAdmission(tx, id, legacy, now)
+	if err != nil {
+		return nil, nil, err
+	}
+	if active {
+		if err := pruneQuota(tx, instant); err != nil {
+			return nil, nil, err
+		}
+		if tx.Bucket(quotaEntryBucket).Sequence() >= uint64(q.quotaCapacity) {
+			return nil, nil, ErrFull
+		}
+	} else {
+		metadata = quotaMetadata{TimeZone: previewZone, CoverageStart: instant}
+	}
+	start, end, err := quotaMonth(instant, metadata.TimeZone)
+	if err != nil {
+		return nil, nil, err
+	}
+	if instant > math.MaxInt64-int64(7*24*time.Hour) {
+		return nil, nil, ErrInvalid
+	}
+	entry := &QuotaReceipt{RequestID: id, AdmittedAt: instant, MonthStart: start, MonthEnd: end, Bound: bound, State: "active"}
+	for _, policy := range policies {
+		if err := checkQuota(tx, policy, bound, metadata, instant, start, active, establish); err != nil {
+			return nil, nil, err
+		}
+		entry.Accounts = append(entry.Accounts, quotaAccount{Account: policy.Account, Revision: policy.Revision})
+	}
+	return entry, limitAccounts, nil
+}
+
+func checkQuota(tx *bolt.Tx, policy QuotaLimit, bound QuotaBound, metadata quotaMetadata, instant, monthStart int64, activeJournal, establish bool) error {
 	if !validKey.MatchString(policy.Revision) {
 		return ErrInvalid
 	}
@@ -215,21 +262,27 @@ func checkQuota(tx *bolt.Tx, policy QuotaLimit, bound QuotaBound, metadata quota
 			return ErrInvalid
 		}
 	}
-	accountBucket := tx.Bucket(quotaAccountBucket)
-	var prior int64
-	if raw := accountBucket.Get([]byte(policy.Account)); raw != nil {
-		if json.Unmarshal(raw, &prior) != nil || prior != created {
-			return ErrQuotaConflict
-		}
-	} else {
-		raw, _ := json.Marshal(created)
-		if err := accountBucket.Put([]byte(policy.Account), raw); err != nil {
-			return err
+	if activeJournal {
+		accountBucket := tx.Bucket(quotaAccountBucket)
+		var prior int64
+		if raw := accountBucket.Get([]byte(policy.Account)); raw != nil {
+			if json.Unmarshal(raw, &prior) != nil || prior != created {
+				return ErrQuotaConflict
+			}
+		} else if establish {
+			raw, _ := json.Marshal(created)
+			if err := accountBucket.Put([]byte(policy.Account), raw); err != nil {
+				return err
+			}
 		}
 	}
-	active, err := readQuotaCounter(tx, policy.Account, "active")
-	if err != nil {
-		return err
+	active := quotaCounter{MoneyUsed: map[string]string{}, MoneyHeld: map[string]string{}}
+	if activeJournal {
+		var err error
+		active, err = readQuotaCounter(tx, policy.Account, "active")
+		if err != nil {
+			return err
+		}
 	}
 	constrained := false
 	for _, window := range []struct {
@@ -253,9 +306,13 @@ func checkQuota(tx *bolt.Tx, policy QuotaLimit, bound QuotaBound, metadata quota
 		if bound.Tokens == nil {
 			return ErrQuotaBound
 		}
-		used, err := readQuotaCounter(tx, policy.Account, window.name)
-		if err != nil {
-			return err
+		used := quotaCounter{MoneyUsed: map[string]string{}, MoneyHeld: map[string]string{}}
+		if activeJournal {
+			var err error
+			used, err = readQuotaCounter(tx, policy.Account, window.name)
+			if err != nil {
+				return err
+			}
 		}
 		if used.TokensUnknown > 0 || active.TokensUnknown > 0 {
 			return ErrQuotaUnknown
@@ -289,9 +346,13 @@ func checkQuota(tx *bolt.Tx, policy QuotaLimit, bound QuotaBound, metadata quota
 		if bound.Currency != policy.Currency {
 			return ErrQuotaCurrency
 		}
-		used, err := readQuotaCounter(tx, policy.Account, monthWindow(monthStart))
-		if err != nil {
-			return err
+		used := quotaCounter{MoneyUsed: map[string]string{}, MoneyHeld: map[string]string{}}
+		if activeJournal {
+			var err error
+			used, err = readQuotaCounter(tx, policy.Account, monthWindow(monthStart))
+			if err != nil {
+				return err
+			}
 		}
 		if used.MoneyUnknown > 0 || active.MoneyUnknown > 0 {
 			return ErrQuotaUnknown
@@ -314,7 +375,8 @@ func checkQuota(tx *bolt.Tx, policy QuotaLimit, bound QuotaBound, metadata quota
 		}
 	}
 	if constrained {
-		if bound.Revision == "" || tx.Bucket(quotaInvalidBoundBucket).Get([]byte(bound.Revision)) != nil {
+		invalidBound := activeJournal && tx.Bucket(quotaInvalidBoundBucket).Get([]byte(bound.Revision)) != nil
+		if bound.Revision == "" || invalidBound {
 			return ErrQuotaBound
 		}
 	}

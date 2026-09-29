@@ -41,7 +41,7 @@ export interface ChatRequest {
   stream: boolean
   temperature: number
   top_p: number
-  max_tokens: number
+  max_completion_tokens: number
   stream_options?: { include_usage: boolean }
 }
 export interface ChatResult {

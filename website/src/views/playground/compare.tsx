@@ -499,7 +499,7 @@ export default function CompareWorkbench() {
           {
             ...parameters,
             messages: [...messages, currentMessage],
-            max_tokens: 2048,
+            max_completion_tokens: 2048,
             stream_options: { include_usage: true },
           },
           abort.signal,

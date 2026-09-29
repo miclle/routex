@@ -1,0 +1,215 @@
+package handler
+
+import (
+	"bytes"
+	"context"
+	"crypto/sha256"
+	"encoding/hex"
+	"encoding/json"
+	"io"
+	"net/http"
+	"net/http/httptest"
+	"path/filepath"
+	"strings"
+	"sync/atomic"
+	"testing"
+	"time"
+
+	"github.com/fox-gonic/fox"
+	"github.com/miclle/routex/internal/routex/entity"
+	"github.com/miclle/routex/internal/routex/service"
+	"github.com/miclle/routex/pkg/eventqueue"
+	"github.com/miclle/routex/pkg/secret"
+	"github.com/miclle/routex/pkg/secretstore"
+	"gorm.io/gorm"
+)
+
+func testGatewayAttachmentQuotaSettlementLifecycle(t *testing.T, db *gorm.DB) {
+	t.Helper()
+	ctx := context.Background()
+	secrets, err := secretstore.New(bytes.Repeat([]byte{83}, 32))
+	if err != nil {
+		t.Fatal(err)
+	}
+	storage, stored := newStorageFixture(t)
+	const objectID = "obj_01arz3ndektsv4rrffq69g5fav"
+	attachment := []byte("attachment image")
+	version := "attachment-version"
+	stored.objects["/routex-test/routex/"+objectID] = storageFixtureObject{data: attachment, owner: objectID, version: version}
+
+	var responseMode atomic.Int32
+	var dispatches atomic.Int32
+	upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		dispatches.Add(1)
+		w.Header().Set("Content-Type", "application/json")
+		switch responseMode.Load() {
+		case 1:
+			_, _ = io.WriteString(w, `{"object":"chat.completion","model":"native-attachment","choices":[{"finish_reason":"stop"}]}`)
+		case 2:
+			_, _ = io.WriteString(w, `{"object":"chat.completion","model":"native-attachment","choices":[{"finish_reason":"stop"}],"usage":{"prompt_tokens":15,"completion_tokens":10,"prompt_tokens_details":{"cached_tokens":0,"cache_write_tokens":0}}}`)
+		default:
+			_, _ = io.WriteString(w, `{"object":"chat.completion","model":"native-attachment","choices":[{"finish_reason":"stop"}],"usage":{"prompt_tokens":4,"completion_tokens":1,"prompt_tokens_details":{"cached_tokens":0,"cache_write_tokens":0}}}`)
+		}
+	}))
+	defer upstream.Close()
+
+	svc, err := service.New(ctx, db, service.WithCredentialStorage(secrets), service.WithUpstreamPolicy(true), service.WithStoragePolicy(true))
+	if err != nil {
+		t.Fatal(err)
+	}
+	router := fox.New()
+	New(svc).RegisterRoutes(router)
+	setup := identityRequest(router, http.MethodPost, "/api/v1/setup", `{"email":"attachment-quota@example.invalid","password":"attachment-quota-password","name":"Attachment quota"}`, nil, "")
+	expectStatus(t, setup, http.StatusCreated)
+	admin, _ := readIdentity(t, setup)
+
+	providerCiphertext, err := secrets.Seal("crd_attachment_quota", "provider-secret")
+	if err != nil {
+		t.Fatal(err)
+	}
+	storageAuth, _ := json.Marshal(map[string]string{"AccessKey": "test-only-access", "SecretKey": "test-only-secret"})
+	storageCiphertext, err := secrets.Seal("storage:str_attachment_quota:generation-one", string(storageAuth))
+	if err != nil {
+		t.Fatal(err)
+	}
+	now := time.Now().UTC()
+	digest := sha256.Sum256(attachment)
+	bearer := "rx_" + strings.Repeat("z", 43)
+	for _, row := range []any{
+		&entity.Provider{ID: "prv_attachment_quota", Name: "Attachment quota provider"},
+		&entity.ProviderConnection{ID: "con_attachment_quota", ProviderID: "prv_attachment_quota", Name: "Native", Protocol: entity.ProtocolOpenAIChat, BaseURL: upstream.URL + "/v1"},
+		&entity.ProviderCredential{ID: "crd_attachment_quota", ConnectionID: "con_attachment_quota", Name: "Verified", Ciphertext: providerCiphertext, Enabled: true, VerificationStatus: "verified"},
+		&entity.ProviderModel{ID: "pmd_attachment_quota", ConnectionID: "con_attachment_quota", UpstreamName: "native-attachment", SupportsImageInput: true},
+		&entity.CredentialModelAccess{CredentialID: "crd_attachment_quota", ProviderModelID: "pmd_attachment_quota"},
+		&entity.Model{ID: "mdl_attachment_quota", Status: "active", CreatedAt: now},
+		&entity.ModelName{Name: "attachment-model", ModelID: "mdl_attachment_quota", CurrentModelID: stringPointer("mdl_attachment_quota")},
+		&entity.ModelProviderBinding{ID: "bnd_attachment_quota", ModelID: "mdl_attachment_quota", ProviderModelID: "pmd_attachment_quota", Weight: 100},
+		&entity.UserModelGrant{UserID: admin.User.ID, ModelID: "mdl_attachment_quota"},
+		&entity.APIKey{ID: "key_attachment_quota", UserID: admin.User.ID, Name: "Attachment", Prefix: "rx_masked", TokenHash: secret.SHA256Hex(bearer), Status: entity.KeyActive, CreatedAt: now},
+		&entity.APIKeyModel{KeyID: "key_attachment_quota", ModelID: "mdl_attachment_quota"},
+		&entity.ReservationBound{ProviderModelID: "pmd_attachment_quota", Protocol: entity.ProtocolOpenAIChat, MaxInputTokens: 10, MaxOutputTokens: 10, Evidence: "Controlled attachment quota fixture", ETag: "bound_attachment_quota", Reason: "Integration coverage", UpdatedAt: now},
+		&entity.ResourceLimit{ScopeKind: "user", ScopeID: admin.User.ID, ETag: "limit_attachment_quota", Reason: "Integration coverage", Tokens5H: int64Pointer(100)},
+		&entity.StorageRevision{ID: "str_attachment_quota", Endpoint: storage.URL, Region: "us-east-1", Bucket: "routex-test", SecretGeneration: "generation-one", AuthCiphertext: storageCiphertext, VerifiedAt: &now, CreatedBy: admin.User.ID, CreatedAt: now},
+		&entity.StorageObject{ID: objectID, OwnerID: admin.User.ID, RevisionID: "str_attachment_quota", Purpose: "attachment", State: "ready", Name: "image.png", MIME: "image/png", Size: int64(len(attachment)), SHA256: hex.EncodeToString(digest[:]), VersionID: version, NextCleanupAt: now.Add(time.Hour), CreatedAt: now},
+	} {
+		if err := db.Create(row).Error; err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err := db.Model(&entity.User{}).Where("id = ?", admin.User.ID).Update("created_at", now).Error; err != nil {
+		t.Fatal(err)
+	}
+	if err := svc.StartRuntime(ctx); err != nil {
+		t.Fatal(err)
+	}
+	spool := filepath.Join(t.TempDir(), "attachment-quota.db")
+	bootstrapJournal, err := eventqueue.Open(spool, 4096, 64<<10)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := bootstrapJournal.EnableQuota("UTC", now.Add(-time.Minute)); err != nil {
+		_ = bootstrapJournal.Close()
+		t.Fatal(err)
+	}
+	if err := bootstrapJournal.Close(); err != nil {
+		t.Fatal(err)
+	}
+	if err := svc.StartCallRecorder(ctx, spool); err != nil {
+		t.Fatal(err)
+	}
+	defer svc.StopRuntime()
+	defer func() { _ = svc.StopCallRecorder() }()
+
+	call := func() (string, *httptest.ResponseRecorder) {
+		body := `{"model":"attachment-model","messages":[{"role":"user","content":[{"type":"image_url","image_url":{"url":"routex://attachments/` + objectID + `"}}]}],"max_completion_tokens":10}`
+		req := httptest.NewRequest(http.MethodPost, "/v1/chat/completions", strings.NewReader(body))
+		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Authorization", "Bearer "+bearer)
+		res := httptest.NewRecorder()
+		router.ServeHTTP(res, req)
+		return res.Header().Get("X-Request-ID"), res
+	}
+
+	completeID, complete := call()
+	expectStatus(t, complete, http.StatusOK)
+	responseMode.Store(1)
+	incompleteID, incomplete := call()
+	expectStatus(t, incomplete, http.StatusOK)
+	responseMode.Store(2)
+	overrunID, overrun := call()
+	expectStatus(t, overrun, http.StatusOK)
+	beforeRejected := dispatches.Load()
+	_, rejected := call()
+	expectStatus(t, rejected, http.StatusServiceUnavailable)
+	if dispatches.Load() != beforeRejected {
+		t.Fatal("invalidated reservation bound dispatched another request")
+	}
+	if !strings.Contains(rejected.Body.String(), `"code":"quota_bound_unavailable"`) {
+		t.Fatalf("unexpected invalidated-bound response: %s", rejected.Body.String())
+	}
+
+	if err := svc.FlushCallRecorder(ctx); err != nil {
+		t.Fatal(err)
+	}
+	for _, test := range []struct {
+		requestID       string
+		input, output   *int64
+		pricingStatus   string
+		chargeMustBeNil bool
+	}{
+		{requestID: completeID, input: int64Pointer(4), output: int64Pointer(1), pricingStatus: "unsupported", chargeMustBeNil: true},
+		{requestID: incompleteID, pricingStatus: "unsupported", chargeMustBeNil: true},
+		{requestID: overrunID, input: int64Pointer(15), output: int64Pointer(10), pricingStatus: "unsupported", chargeMustBeNil: true},
+	} {
+		var fact entity.CallRecord
+		if err := db.First(&fact, "request_id = ?", test.requestID).Error; err != nil {
+			t.Fatal(err)
+		}
+		if !equalOptionalInt64(fact.InputTokens, test.input) || !equalOptionalInt64(fact.OutputTokens, test.output) || fact.PricingStatus != test.pricingStatus || test.chargeMustBeNil && fact.ChargeAmount != nil {
+			t.Fatalf("call fact %s = %+v", test.requestID, fact)
+		}
+	}
+
+	svc.StopRuntime()
+	if err := svc.StopCallRecorder(); err != nil {
+		t.Fatal(err)
+	}
+	journal, err := eventqueue.Open(spool, 4096, 64<<10)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = journal.Close() }()
+	assertAttachmentQuotaReceipt(t, journal, completeID, 5, false, false)
+	assertAttachmentQuotaReceipt(t, journal, incompleteID, 0, true, false)
+	assertAttachmentQuotaReceipt(t, journal, overrunID, 25, false, true)
+}
+
+func assertAttachmentQuotaReceipt(t *testing.T, journal *eventqueue.Queue, requestID string, actual int64, actualUnknown, overrun bool) {
+	t.Helper()
+	receipt, err := journal.QuotaReceipt(requestID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if receipt.State != "complete" || receipt.Bound.Tokens == nil || *receipt.Bound.Tokens != 20 || receipt.Overrun != overrun {
+		t.Fatalf("quota receipt %s = %+v", requestID, receipt)
+	}
+	if actualUnknown {
+		if receipt.Actual.Tokens != nil {
+			t.Fatalf("incomplete usage fabricated actual tokens: %+v", receipt)
+		}
+		return
+	}
+	if receipt.Actual.Tokens == nil || *receipt.Actual.Tokens != actual {
+		t.Fatalf("quota receipt %s actual = %+v, want %d", requestID, receipt.Actual, actual)
+	}
+}
+
+func equalOptionalInt64(actual, expected *int64) bool {
+	if actual == nil || expected == nil {
+		return actual == nil && expected == nil
+	}
+	return *actual == *expected
+}
+
+func int64Pointer(value int64) *int64    { return &value }
+func stringPointer(value string) *string { return &value }

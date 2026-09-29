@@ -88,10 +88,14 @@ provider file ID.
 Resolution authenticates the Key, parses an immutable occurrence plan, authorizes
 the public model, and selects one route. Project Keys are rejected before an
 object lookup. Every media occurrence must match the selected route's explicit
-image or PDF declaration. An active finite token, TPM or monetary policy rejects
-the currently unbounded multimodal shape before storage access. The final rate,
-concurrency and quota admission still runs once, after resolution and immediately
-before the single upstream dispatch.
+image or PDF declaration. A non-reserving preflight uses the selected
+provider-model/protocol capacity attestation to compute and check the complete
+input maximum plus the request's explicit output cap before storage access. It
+never derives a token bound from object bytes or media properties. A finite
+monetary policy still fails before storage access because no multimodal price
+adapter is available. The final rate, concurrency and quota admission repeats all
+checks and reserves once, after resolution and immediately before the single
+upstream dispatch.
 
 Each unique object is read once per request with the personal Key's immutable
 `UserID`. The read repeats the session API's owner, ready-state, storage revision,
@@ -117,4 +121,4 @@ cannot leave a permanent ready object or consume the owner limit indefinitely.
 
 Focused tests use controlled loopback HTTP services only. They cover signed requests, conditional creation, version-aware deletion, foreign metadata protection, redirect rejection, bounded reads, cancellation, secret-envelope revision binding, configuration policy isolation, and accepted/rejected formats. The dual-database lifecycle helper covers HTTP upload/download, CSRF, owner isolation, revision changes and rollback, failed verification preserving active state, and cleanup replay including a late accepted ambiguous upload. The completed phase passed the full check and test suite with 387 Vitest cases, Go race coverage, development lifecycle checks, and production asset serving. The PostgreSQL/MySQL lifecycle suite passed in 275.269 seconds, and both database process suites passed initialization, restart persistence, ordinary and streaming native inference, reporting, logout, and revocation.
 
-The `/admin/storage` web interface now exposes the saved status card and configuration drawer, independent read/write/test authority, transient credential actions, exact ETag conflict review, saved-descriptor probe stages, cleanup-pending state, and verified revision rollback in English and Chinese. It refetches complete history after writes and never treats an uncertain response as success. Personal-Key native inference resolution and the single-model attachment lifecycle are implemented separately from administration. Comparison attachment selection remains open.
+The `/admin/storage` web interface exposes the saved status card and configuration drawer, independent read/write/test authority, transient credential actions, exact ETag conflict review, saved-descriptor probe stages, cleanup-pending state, and verified revision rollback in English and Chinese. It refetches complete history after writes and never treats an uncertain response as success. Personal-Key native inference resolution, single-model and comparison attachment lifecycles, and conservative token/TPM admission are implemented separately from administration. Multimodal monetary pricing and external-service acceptance remain open.

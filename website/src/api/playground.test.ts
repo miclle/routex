@@ -9,7 +9,7 @@ const request: ChatRequest = {
   stream: false,
   temperature: 0.7,
   top_p: 1,
-  max_tokens: 2048,
+  max_completion_tokens: 2048,
 }
 const controller = () => new AbortController()
 function sse(text: string) {
