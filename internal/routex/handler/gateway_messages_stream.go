@@ -156,7 +156,11 @@ func proxyMessagesStream(ctx context.Context, writer http.ResponseWriter, body i
 		if err := control.SetWriteDeadline(time.Now().Add(30 * time.Second)); err != nil && !errors.Is(err, http.ErrNotSupported) {
 			return err
 		}
-		if _, err := writer.Write(raw); err != nil {
+		written, err := writer.Write(raw)
+		if written > 0 {
+			usage.OutputStarted = true
+		}
+		if err != nil {
 			return err
 		}
 		return control.Flush()

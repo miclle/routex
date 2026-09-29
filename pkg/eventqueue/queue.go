@@ -117,6 +117,23 @@ func (q *Queue) Reserve(id string, fallback []byte) error {
 	})
 }
 
+// UpdatePending atomically replaces the fallback for an existing reservation.
+// It does not alter admission counters, leases, or quota receipts. Ready and
+// missing entries cannot be changed because they may already be in delivery.
+func (q *Queue) UpdatePending(id string, fallback []byte) error {
+	if !q.valid(id, fallback) {
+		return ErrInvalid
+	}
+	return q.db.Update(func(tx *bolt.Tx) error {
+		pending, ready := tx.Bucket(pendingBucket), tx.Bucket(readyBucket)
+		key := []byte(id)
+		if ready.Get(key) != nil || pending.Get(key) == nil {
+			return ErrMissing
+		}
+		return pending.Put(key, fallback)
+	})
+}
+
 // Complete atomically replaces a reservation with the final fact. Repeated
 // completion cannot overwrite a fact already accepted for delivery.
 func (q *Queue) Complete(id string, payload []byte) error {

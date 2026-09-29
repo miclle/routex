@@ -2,6 +2,7 @@ package service
 
 import (
 	"encoding/json"
+	"strings"
 	"testing"
 
 	"github.com/miclle/routex/pkg/pricing"
@@ -109,6 +110,23 @@ func TestCallPriceZeroIsNotMissing(t *testing.T) {
 	finalizeCallPricing(&fact)
 	if fact.Pricing.Status != "missing_price" || fact.Pricing.Amount != nil {
 		t.Fatal("absent configuration became free")
+	}
+}
+
+func TestCallPriceRecordsProvenNoWorkWithoutLosingDiagnostics(t *testing.T) {
+	fact := pricedFact()
+	fact.NoWork = true
+	fact.UsageComplete = false
+	fact.InputTokens, fact.OutputTokens = nil, nil
+	fact.CacheReadTokens, fact.CacheWriteTokens = nil, nil
+	fact.PricingUnsupported = true
+	fact.PricingDimensions = []string{"request_non_text"}
+	finalizeCallPricing(&fact)
+	if fact.Pricing.Status != "no_work" || fact.Pricing.ETag != "etag_old" || fact.Pricing.Amount != nil || !fact.UsageComplete || !zeroCounter(fact.InputTokens) || !zeroCounter(fact.OutputTokens) || !zeroCounter(fact.CacheReadTokens) || !zeroCounter(fact.CacheWriteTokens) {
+		t.Fatalf("no-work economics = %+v, pricing = %+v", fact, fact.Pricing)
+	}
+	if fact.Pricing.SnapshotJSON == nil || !strings.Contains(*fact.Pricing.SnapshotJSON, "request_non_text") {
+		t.Fatal("no-work receipt lost diagnostic pricing dimensions")
 	}
 }
 

@@ -18,6 +18,7 @@ type CallFact struct {
 	CacheReadTokens, CacheWriteTokens *int64
 	ImageInputs, PDFInputs            *int64
 	UsageComplete                     bool
+	NoWork                            bool
 	PricingUnsupported                bool
 	PricingDimensions                 []string
 	PriceBasis                        *CallPriceBasis
@@ -31,6 +32,7 @@ type CallFact struct {
 	ModelName                         string
 	ProviderModelID                   string
 	ConnectionID                      string
+	RouteStopReason                   string
 	Protocol                          string
 	Status                            string
 	Stream                            bool
@@ -46,7 +48,13 @@ type CallAttempt struct {
 	ID              string
 	ProviderModelID string
 	ConnectionID    string
+	AttemptNumber   int
 	Status          string
+	FailureClass    string
+	WorkEvidence    string
+	OutputStarted   bool
+	FinalUsageKnown bool
+	EvidenceCode    string
 	StartedAt       time.Time
 	CompletedAt     time.Time
 	HTTPStatus      int
@@ -78,6 +86,25 @@ var errCallAlreadyRecorded = errors.New("call already recorded")
 
 var safeCallID = regexp.MustCompile(`^[A-Za-z0-9_-]{1,64}$`)
 
+var callRouteStopReasons = map[string]bool{
+	"": true, "succeeded": true, "unsafe_to_replay": true, "permanent_failure": true,
+	"attempt_budget_exhausted": true, "no_candidates": true, "canceled": true, "blocked": true,
+}
+
+var callAttemptFailures = map[string]bool{
+	"success": true, "credential_rejected": true, "connection_failure": true,
+	"rate_limited": true, "permanent_failure": true,
+}
+
+var callAttemptWorkEvidence = map[string]bool{
+	"not_sent": true, "rejected_without_work": true, "unknown": true, "completed": true,
+}
+
+var callAttemptEvidenceCodes = map[string]bool{
+	"": true, "pre_request_connection": true, "native_auth_rejection": true,
+	"native_rate_rejection": true, "upstream_response": true, "transport_ambiguous": true,
+}
+
 func validCallStatus(status string) bool {
 	return status == "success" || status == "error" || status == "canceled"
 }
@@ -95,12 +122,14 @@ func safeCallError(code string) string {
 // RecordCall atomically persists one canonical fact and its attempts. Replaying
 // the same RequestID never changes an accepted fact or doubles its usage.
 func (s *Service) RecordCall(ctx context.Context, fact CallFact) error {
+	fact.Attempts = append([]CallAttempt(nil), fact.Attempts...)
+	normalizeCallAttemptEvidence(&fact)
 	finalizeCallPricing(&fact)
 	if err := validateCallFact(fact); err != nil {
 		return err
 	}
 	// Normalize to common database precision before building pagination cursors.
-	record := entity.CallRecord{CallPricingFields: callPricingFields(fact), SnapshotID: fact.SnapshotID, RequestID: fact.RequestID, UserID: fact.UserID, ProjectID: fact.ProjectID, KeyID: fact.KeyID, ModelID: fact.ModelID, ModelName: fact.ModelName, ProviderModelID: fact.ProviderModelID, ConnectionID: fact.ConnectionID, Protocol: fact.Protocol, Status: fact.Status, Stream: fact.Stream, StartedAt: fact.StartedAt.UTC().Truncate(time.Microsecond), CompletedAt: fact.CompletedAt.UTC().Truncate(time.Microsecond), DurationMS: fact.CompletedAt.Sub(fact.StartedAt).Milliseconds(), InputTokens: fact.InputTokens, OutputTokens: fact.OutputTokens, ImageInputs: fact.ImageInputs, PDFInputs: fact.PDFInputs, ErrorCode: safeCallError(fact.ErrorCode)}
+	record := entity.CallRecord{CallPricingFields: callPricingFields(fact), SnapshotID: fact.SnapshotID, RequestID: fact.RequestID, UserID: fact.UserID, ProjectID: fact.ProjectID, KeyID: fact.KeyID, ModelID: fact.ModelID, ModelName: fact.ModelName, ProviderModelID: fact.ProviderModelID, ConnectionID: fact.ConnectionID, RouteStopReason: fact.RouteStopReason, Protocol: fact.Protocol, Status: fact.Status, Stream: fact.Stream, StartedAt: fact.StartedAt.UTC().Truncate(time.Microsecond), CompletedAt: fact.CompletedAt.UTC().Truncate(time.Microsecond), DurationMS: fact.CompletedAt.Sub(fact.StartedAt).Milliseconds(), InputTokens: fact.InputTokens, OutputTokens: fact.OutputTokens, ImageInputs: fact.ImageInputs, PDFInputs: fact.PDFInputs, ErrorCode: safeCallError(fact.ErrorCode)}
 	err := s.authDB(ctx).Transaction(func(tx *gorm.DB) error {
 		if err := tx.Create(&record).Error; err != nil {
 			// A plain unique insert remains correct with MySQL clientFoundRows;
@@ -111,7 +140,7 @@ func (s *Service) RecordCall(ctx context.Context, fact CallFact) error {
 			return err
 		}
 		for _, attempt := range fact.Attempts {
-			row := entity.CallAttempt{ID: attempt.ID, RequestID: fact.RequestID, ProviderModelID: attempt.ProviderModelID, ConnectionID: attempt.ConnectionID, Status: attempt.Status, HTTPStatus: attempt.HTTPStatus, ErrorCode: safeCallError(attempt.ErrorCode), StartedAt: attempt.StartedAt.UTC().Truncate(time.Microsecond), CompletedAt: attempt.CompletedAt.UTC().Truncate(time.Microsecond)}
+			row := entity.CallAttempt{ID: attempt.ID, RequestID: fact.RequestID, ProviderModelID: attempt.ProviderModelID, ConnectionID: attempt.ConnectionID, AttemptNumber: attempt.AttemptNumber, Status: attempt.Status, FailureClass: attempt.FailureClass, WorkEvidence: attempt.WorkEvidence, OutputStarted: attempt.OutputStarted, FinalUsageKnown: attempt.FinalUsageKnown, EvidenceCode: attempt.EvidenceCode, HTTPStatus: attempt.HTTPStatus, ErrorCode: safeCallError(attempt.ErrorCode), StartedAt: attempt.StartedAt.UTC().Truncate(time.Microsecond), CompletedAt: attempt.CompletedAt.UTC().Truncate(time.Microsecond)}
 			if err := tx.Create(&row).Error; err != nil {
 				return err
 			}
@@ -200,7 +229,7 @@ func (s *Service) GetCall(ctx context.Context, ownerID, requestID string) (*Call
 	}
 	// Only administrators need upstream attempt diagnostics.
 	if ownerID == "" {
-		if err := db.Where("request_id = ?", requestID).Order("started_at, id").Find(&result.Attempts).Error; err != nil {
+		if err := db.Where("request_id = ?", requestID).Order("attempt_number, started_at, id").Find(&result.Attempts).Error; err != nil {
 			return nil, catalogError(err)
 		}
 	}
@@ -208,21 +237,54 @@ func (s *Service) GetCall(ctx context.Context, ownerID, requestID string) (*Call
 }
 
 func validateCallFact(fact CallFact) error {
+	fact.Attempts = append([]CallAttempt(nil), fact.Attempts...)
+	normalizeCallAttemptEvidence(&fact)
 	if err := validateCallPricing(fact); err != nil {
 		return err
 	}
-	if !safeCallID.MatchString(fact.RequestID) || len(fact.SnapshotID) > 30 || (fact.UserID == "") == (fact.ProjectID == "") || len(fact.ProjectID) > 30 || len(fact.UserID) > 30 || len(fact.KeyID) > 30 || len(fact.ModelID) > 30 || len(fact.ModelName) > 128 || len(fact.ProviderModelID) > 30 || len(fact.ConnectionID) > 30 || !entity.SupportedNativeProtocol(fact.Protocol) || !validCallStatus(fact.Status) || fact.StartedAt.IsZero() || fact.CompletedAt.Before(fact.StartedAt) || len(fact.Attempts) > 32 {
+	if !safeCallID.MatchString(fact.RequestID) || len(fact.SnapshotID) > 30 || (fact.UserID == "") == (fact.ProjectID == "") || len(fact.ProjectID) > 30 || len(fact.UserID) > 30 || len(fact.KeyID) > 30 || len(fact.ModelID) > 30 || len(fact.ModelName) > 128 || len(fact.ProviderModelID) > 30 || len(fact.ConnectionID) > 30 || !callRouteStopReasons[fact.RouteStopReason] || !entity.SupportedNativeProtocol(fact.Protocol) || !validCallStatus(fact.Status) || fact.StartedAt.IsZero() || fact.CompletedAt.Before(fact.StartedAt) || len(fact.Attempts) > 32 {
 		return apperrors.ErrBadRequest
 	}
 	if (fact.InputTokens != nil && *fact.InputTokens < 0) || (fact.OutputTokens != nil && *fact.OutputTokens < 0) || (fact.ImageInputs != nil && *fact.ImageInputs < 0) || (fact.PDFInputs != nil && *fact.PDFInputs < 0) {
 		return apperrors.ErrBadRequest
 	}
+	if fact.NoWork && (!fact.UsageComplete || !zeroCounter(fact.InputTokens) || !zeroCounter(fact.OutputTokens) || !zeroCounter(fact.CacheReadTokens) || !zeroCounter(fact.CacheWriteTokens) || !callAttemptsProveNoWork(fact.Attempts)) {
+		return apperrors.ErrBadRequest
+	}
 	seen := map[string]bool{}
+	numbers := map[int]bool{}
 	for _, attempt := range fact.Attempts {
-		if !safeCallID.MatchString(attempt.ID) || seen[attempt.ID] || len(attempt.ProviderModelID) > 30 || len(attempt.ConnectionID) > 30 || !validCallStatus(attempt.Status) || attempt.StartedAt.IsZero() || attempt.CompletedAt.Before(attempt.StartedAt) || attempt.HTTPStatus < 0 || attempt.HTTPStatus > 599 {
+		if !safeCallID.MatchString(attempt.ID) || seen[attempt.ID] || attempt.AttemptNumber < 1 || attempt.AttemptNumber > 32 || numbers[attempt.AttemptNumber] || len(attempt.ProviderModelID) > 30 || len(attempt.ConnectionID) > 30 || !validCallStatus(attempt.Status) || !callAttemptFailures[attempt.FailureClass] || !callAttemptWorkEvidence[attempt.WorkEvidence] || !callAttemptEvidenceCodes[attempt.EvidenceCode] || attempt.StartedAt.IsZero() || attempt.CompletedAt.Before(attempt.StartedAt) || attempt.HTTPStatus < 0 || attempt.HTTPStatus > 599 {
+			return apperrors.ErrBadRequest
+		}
+		if (attempt.FailureClass == "success") != (attempt.Status == "success") || attempt.Status == "success" && attempt.WorkEvidence != "completed" || (attempt.OutputStarted || attempt.FinalUsageKnown) && (attempt.WorkEvidence == "not_sent" || attempt.WorkEvidence == "rejected_without_work") {
 			return apperrors.ErrBadRequest
 		}
 		seen[attempt.ID] = true
+		numbers[attempt.AttemptNumber] = true
 	}
 	return nil
+}
+
+func zeroCounter(value *int64) bool { return value != nil && *value == 0 }
+
+func normalizeCallAttemptEvidence(fact *CallFact) {
+	for index := range fact.Attempts {
+		attempt := &fact.Attempts[index]
+		if attempt.AttemptNumber == 0 {
+			attempt.AttemptNumber = index + 1
+		}
+		if attempt.FailureClass == "" {
+			attempt.FailureClass = "permanent_failure"
+			if attempt.Status == "success" {
+				attempt.FailureClass = "success"
+			}
+		}
+		if attempt.WorkEvidence == "" {
+			attempt.WorkEvidence = "unknown"
+			if attempt.Status == "success" {
+				attempt.WorkEvidence = "completed"
+			}
+		}
+	}
 }

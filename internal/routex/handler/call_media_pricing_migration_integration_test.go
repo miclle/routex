@@ -51,8 +51,8 @@ func testCallMediaPricingMigration(t *testing.T, db *gorm.DB) {
 		t.Fatal(err)
 	}
 	assertCallMediaPricingSchema(t, db)
-	var upgraded entity.CallRecord
-	if err := db.First(&upgraded, "request_id = ?", legacy.RequestID).Error; err != nil {
+	var upgraded callMediaPricingV24Integration
+	if err := db.Select("request_id", "image_inputs", "pdf_inputs").First(&upgraded, "request_id = ?", legacy.RequestID).Error; err != nil {
 		t.Fatal(err)
 	}
 	if upgraded.ImageInputs != nil || upgraded.PDFInputs != nil {
@@ -71,8 +71,8 @@ func testCallMediaPricingMigration(t *testing.T, db *gorm.DB) {
 		t.Fatal(err)
 	}
 	assertCallMediaPricingSchema(t, db)
-	upgraded = entity.CallRecord{}
-	if err := db.First(&upgraded, "request_id = ?", legacy.RequestID).Error; err != nil || upgraded.ImageInputs == nil || *upgraded.ImageInputs != images || upgraded.PDFInputs != nil {
+	upgraded = callMediaPricingV24Integration{}
+	if err := db.Select("request_id", "image_inputs", "pdf_inputs").First(&upgraded, "request_id = ?", legacy.RequestID).Error; err != nil || upgraded.ImageInputs == nil || *upgraded.ImageInputs != images || upgraded.PDFInputs != nil {
 		t.Fatalf("partial media migration changed facts: %+v err=%v", upgraded, err)
 	}
 
@@ -84,8 +84,8 @@ func testCallMediaPricingMigration(t *testing.T, db *gorm.DB) {
 	if err := database.Migrate(context.Background(), db); err != nil {
 		t.Fatal(err)
 	}
-	upgraded = entity.CallRecord{}
-	if err := db.First(&upgraded, "request_id = ?", legacy.RequestID).Error; err != nil || upgraded.ImageInputs == nil || *upgraded.ImageInputs != images || upgraded.PDFInputs == nil || *upgraded.PDFInputs != pdfs {
+	upgraded = callMediaPricingV24Integration{}
+	if err := db.Select("request_id", "image_inputs", "pdf_inputs").First(&upgraded, "request_id = ?", legacy.RequestID).Error; err != nil || upgraded.ImageInputs == nil || *upgraded.ImageInputs != images || upgraded.PDFInputs == nil || *upgraded.PDFInputs != pdfs {
 		t.Fatalf("repeated media migration changed facts: %+v err=%v", upgraded, err)
 	}
 }

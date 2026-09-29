@@ -75,6 +75,9 @@ func (a *usageAccumulator) add(row entity.CallRecord) error {
 	}
 	state := usagePricingStatus(row.PricingStatus)
 	a.priceStates[state]++
+	if state == "no_work" {
+		return nil
+	}
 	if state != "priced" || row.ChargeAmount == nil || row.ChargeCurrency == nil {
 		a.unknownMoney++
 		return nil
@@ -207,7 +210,7 @@ func aggregateUsage(rows []entity.CallRecord, period usageRange, plan usagePlan,
 
 func usagePricingStatus(status string) string {
 	switch status {
-	case "not_captured", "unsupported", "not_final", "unknown_usage", "invalid_usage", "missing_price", "invalid_configuration", "priced":
+	case "not_captured", "no_work", "unsupported", "not_final", "unknown_usage", "invalid_usage", "missing_price", "invalid_configuration", "priced":
 		return status
 	default:
 		return "not_captured"

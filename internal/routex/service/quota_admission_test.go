@@ -22,6 +22,46 @@ func quotaPayload(t *testing.T, raw string) map[string]json.RawMessage {
 	}
 	return payload
 }
+
+func TestGatewayNoWorkAttemptSettlement(t *testing.T) {
+	fact := CallFact{PriceBasis: testPriceBasis(), Attempts: []CallAttempt{
+		{WorkEvidence: "not_sent"},
+		{WorkEvidence: "rejected_without_work"},
+	}}
+	settlement := quotaCallSettlement(fact)
+	if settlement.Tokens == nil || *settlement.Tokens != 0 || settlement.Money == nil || *settlement.Money != "0" || settlement.Currency != fact.PriceBasis.Currency.PlatformCurrency {
+		t.Fatalf("no-work settlement = %+v", settlement)
+	}
+	fact.Attempts[1].WorkEvidence = "unknown"
+	settlement = quotaCallSettlement(fact)
+	if settlement.Tokens != nil || settlement.Money != nil {
+		t.Fatalf("unknown work settled as zero: %+v", settlement)
+	}
+	fact.Attempts = nil
+	fact.NoWork = true
+	settlement = quotaCallSettlement(fact)
+	if settlement.Tokens == nil || *settlement.Tokens != 0 || settlement.Money == nil || *settlement.Money != "0" {
+		t.Fatalf("admitted zero-attempt settlement = %+v", settlement)
+	}
+
+	zeroTokens, zeroMoney := int64(10), "12"
+	result := &GatewayResult{
+		Attempts:        []CallAttempt{{WorkEvidence: "not_sent"}},
+		quotaBound:      eventqueue.QuotaBound{Tokens: &zeroTokens, Money: &zeroMoney, Currency: "USD"},
+		AttemptID:       "",
+		PriceBasis:      fact.PriceBasis,
+		RouteStopReason: "no_candidates",
+	}
+	interrupted := gatewayInterruptedSettlement(result)
+	if interrupted.Tokens == nil || *interrupted.Tokens != 0 || interrupted.Money == nil || *interrupted.Money != "0" || interrupted.Currency != "USD" {
+		t.Fatalf("interrupted no-work settlement = %+v", interrupted)
+	}
+	result.AttemptID = "att_active"
+	interrupted = gatewayInterruptedSettlement(result)
+	if interrupted.Tokens != nil || interrupted.Money != nil {
+		t.Fatalf("active attempt received a zero recovery settlement: %+v", interrupted)
+	}
+}
 func TestQuotaBoundedChatRequiresNativeCapAndFiniteShape(t *testing.T) {
 	for _, raw := range []string{
 		`{"messages":[{"role":"user","content":"text"}],"max_completion_tokens":10,"n":1}`,

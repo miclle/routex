@@ -108,6 +108,7 @@ export default {
   more: '{{count}} groups',
   pricingStatuses: {
     not_captured: 'Not captured',
+    no_work: 'No provider work',
     unsupported: 'Unsupported pricing',
     not_final: 'Not final',
     unknown_usage: 'Unknown usage',

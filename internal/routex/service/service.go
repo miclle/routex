@@ -8,6 +8,7 @@ import (
 	"net/netip"
 	"sync"
 	"sync/atomic"
+	"time"
 
 	"github.com/fox-gonic/fox/logger"
 	"gorm.io/gorm"
@@ -18,19 +19,22 @@ import (
 
 // Service holds the database connection and provides business logic methods.
 type Service struct {
-	db                   *gorm.DB
-	limitMu              sync.RWMutex
-	trustedProxies       []netip.Prefix
-	runtime              *gatewayRuntime
-	recorder             *callRecorder
-	secrets              *secretstore.Store
-	upstream             *http.Client
-	allowPrivateUpstream bool
-	allowPrivateSMTP     bool
-	allowPrivateStorage  bool
-	allowPrivateEgress   bool
-	egressMu             sync.RWMutex
-	egressGeneration     atomic.Uint64
+	db                    *gorm.DB
+	limitMu               sync.RWMutex
+	trustedProxies        []netip.Prefix
+	runtime               *gatewayRuntime
+	recorder              *callRecorder
+	secrets               *secretstore.Store
+	upstream              *http.Client
+	allowPrivateUpstream  bool
+	allowPrivateSMTP      bool
+	allowPrivateStorage   bool
+	allowPrivateEgress    bool
+	egressMu              sync.RWMutex
+	egressGeneration      atomic.Uint64
+	attemptHealth         gatewayAttemptHealth
+	attemptNow            func() time.Time
+	afterGatewayAdmission func()
 }
 
 // Option configures bootstrap dependencies, never mutable business policy.
@@ -57,7 +61,7 @@ func New(ctx context.Context, db *gorm.DB, options ...Option) (*Service, error) 
 
 	l.Info("[Service] initialized")
 
-	svc := &Service{db: db, upstream: upstream.NewClient(false)}
+	svc := &Service{db: db, upstream: upstream.NewClient(false), attemptNow: time.Now}
 	for _, option := range options {
 		option(svc)
 	}

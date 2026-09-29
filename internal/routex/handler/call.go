@@ -49,7 +49,13 @@ type CallAttemptResponse struct {
 	ID              string    `json:"id"`
 	ProviderModelID string    `json:"provider_model_id"`
 	ConnectionID    string    `json:"connection_id"`
+	AttemptNumber   int       `json:"attempt_number"`
 	Status          string    `json:"status"`
+	FailureClass    string    `json:"failure_class"`
+	WorkEvidence    string    `json:"work_evidence"`
+	OutputStarted   bool      `json:"output_started"`
+	FinalUsageKnown bool      `json:"final_usage_known"`
+	EvidenceCode    string    `json:"evidence_code"`
 	HTTPStatus      int       `json:"http_status"`
 	ErrorCode       string    `json:"error_code"`
 	StartedAt       time.Time `json:"started_at"`
@@ -60,6 +66,7 @@ type AdminCallDetailResponse struct {
 	ProviderModelID string                `json:"provider_model_id"`
 	ConnectionID    string                `json:"connection_id"`
 	ErrorCode       string                `json:"error_code"`
+	RouteStopReason string                `json:"route_stop_reason"`
 	Attempts        []CallAttemptResponse `json:"attempts"`
 	PriceETag       string                `json:"price_etag"`
 	PricingSnapshot json.RawMessage       `json:"pricing_snapshot"`
@@ -149,13 +156,13 @@ func (ctrl *Ctrl) GetAdminCall(c *fox.Context, request CallPath) (*AdminCallDeta
 	if err != nil {
 		return nil, err
 	}
-	response := &AdminCallDetailResponse{AdminCallResponse: AdminCallResponse{CallResponse: callResponse(result.Record), UserID: result.Record.UserID, ProjectID: result.Record.ProjectID}, ProviderModelID: result.Record.ProviderModelID, ConnectionID: result.Record.ConnectionID, ErrorCode: result.Record.ErrorCode, Attempts: []CallAttemptResponse{}}
+	response := &AdminCallDetailResponse{AdminCallResponse: AdminCallResponse{CallResponse: callResponse(result.Record), UserID: result.Record.UserID, ProjectID: result.Record.ProjectID}, ProviderModelID: result.Record.ProviderModelID, ConnectionID: result.Record.ConnectionID, ErrorCode: result.Record.ErrorCode, RouteStopReason: result.Record.RouteStopReason, Attempts: []CallAttemptResponse{}}
 	response.PriceETag = result.Record.PriceETag
 	if result.Record.PricingSnapshotJSON != nil {
 		response.PricingSnapshot = json.RawMessage(*result.Record.PricingSnapshotJSON)
 	}
 	for _, attempt := range result.Attempts {
-		response.Attempts = append(response.Attempts, CallAttemptResponse{ID: attempt.ID, ProviderModelID: attempt.ProviderModelID, ConnectionID: attempt.ConnectionID, Status: attempt.Status, HTTPStatus: attempt.HTTPStatus, ErrorCode: attempt.ErrorCode, StartedAt: attempt.StartedAt, CompletedAt: attempt.CompletedAt})
+		response.Attempts = append(response.Attempts, CallAttemptResponse{ID: attempt.ID, ProviderModelID: attempt.ProviderModelID, ConnectionID: attempt.ConnectionID, AttemptNumber: attempt.AttemptNumber, Status: attempt.Status, FailureClass: attempt.FailureClass, WorkEvidence: attempt.WorkEvidence, OutputStarted: attempt.OutputStarted, FinalUsageKnown: attempt.FinalUsageKnown, EvidenceCode: attempt.EvidenceCode, HTTPStatus: attempt.HTTPStatus, ErrorCode: attempt.ErrorCode, StartedAt: attempt.StartedAt, CompletedAt: attempt.CompletedAt})
 	}
 	return response, nil
 }

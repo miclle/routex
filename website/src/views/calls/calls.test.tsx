@@ -35,15 +35,54 @@ const detail: AdminCallDetail = {
   provider_model_id: 'pm_private',
   connection_id: 'conn_private',
   error_code: 'diagnostic_private',
+  route_stop_reason: 'succeeded',
   attempts: [
     {
       id: 'attempt_private',
       provider_model_id: 'pm_private',
       connection_id: 'conn_private',
+      attempt_number: 1,
+      failure_class: 'connection_failure',
+      work_evidence: 'not_sent',
+      output_started: false,
+      final_usage_known: false,
+      evidence_code: 'pre_request_connection',
+      status: 'error',
+      http_status: 0,
+      error_code: 'upstream_error',
+      started_at: '2026-09-23T00:00:00Z',
+      completed_at: '2026-09-23T00:00:00.100Z',
+    },
+    {
+      id: 'attempt_second',
+      provider_model_id: 'pm_second',
+      connection_id: 'conn_second',
+      attempt_number: 2,
+      failure_class: 'rate_limited',
+      work_evidence: 'rejected_without_work',
+      output_started: false,
+      final_usage_known: false,
+      evidence_code: 'native_rate_rejection',
+      status: 'error',
+      http_status: 429,
+      error_code: 'rate_limit_exceeded',
+      started_at: '2026-09-23T00:00:00.100Z',
+      completed_at: '2026-09-23T00:00:00.200Z',
+    },
+    {
+      id: 'attempt_third',
+      provider_model_id: 'pm_private',
+      connection_id: 'conn_private',
+      attempt_number: 3,
+      failure_class: 'success',
+      work_evidence: 'completed',
+      output_started: true,
+      final_usage_known: true,
+      evidence_code: 'upstream_response',
       status: 'success',
       http_status: 200,
       error_code: '',
-      started_at: '2026-09-23T00:00:00Z',
+      started_at: '2026-09-23T00:00:00.200Z',
       completed_at: '2026-09-23T00:00:01Z',
     },
   ],
@@ -194,6 +233,9 @@ describe('call records', () => {
     )
     expect(document.querySelector('[role="dialog"]')?.textContent).not.toContain('conn_private')
     expect(document.querySelector('[role="dialog"]')?.textContent).not.toContain('attempt_private')
+    expect(document.querySelector('[role="dialog"]')?.textContent).not.toContain(
+      'Connection failed before request transmission',
+    )
     expect(requests.some((r) => r.url === '/calls/req_first')).toBe(true)
     expect(requests.some((r) => r.url?.startsWith('/admin'))).toBe(false)
   })
@@ -206,6 +248,14 @@ describe('call records', () => {
       expect(document.querySelector('[role="dialog"]')?.textContent).toContain('attempt_private'),
     )
     expect(document.querySelector('[role="dialog"]')?.textContent).toContain('conn_private')
+    const table = document.querySelector('[aria-label="Upstream attempt diagnostics"]')
+    expect(table).not.toBeNull()
+    const content = table?.textContent ?? ''
+    expect(content).toContain('Connection failed before request transmission')
+    expect(content).toContain('Native rate rejection')
+    expect(content).toContain('Final usage known: Yes')
+    expect(content.indexOf('attempt_private')).toBeLessThan(content.indexOf('attempt_second'))
+    expect(content.indexOf('attempt_second')).toBeLessThan(content.indexOf('attempt_third'))
     expect(requests.some((r) => r.url === '/admin/calls/req_first')).toBe(true)
   })
   it('does not fetch the administrative list for members', async () => {

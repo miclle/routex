@@ -111,6 +111,89 @@ func TestQuotaKilledProcessDurableBoundary(t *testing.T) {
 		})
 	}
 }
+
+func TestQuotaRecoveryUsesLatestInterruptedSettlementCheckpoint(t *testing.T) {
+	q, path := newQuotaTest(t, "UTC")
+	policy := quotaPolicy("key_checkpoint")
+	policy.Tokens5H = limitPtr(20)
+	requireReserve(t, q, "checkpoint", []QuotaLimit{policy}, tokenBound(10), quotaTestTime)
+	zero := int64(0)
+	if err := q.UpdatePendingQuota("checkpoint", []byte("safe-fallback"), QuotaSettlement{Tokens: &zero}); err != nil {
+		t.Fatal(err)
+	}
+	if err := q.Close(); err != nil {
+		t.Fatal(err)
+	}
+	reopened, err := Open(path, 100, 1024)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = reopened.Close() }()
+	receipt, err := reopened.QuotaReceipt("checkpoint")
+	if err != nil || receipt.State != "interrupted" || receipt.Actual.Tokens == nil || *receipt.Actual.Tokens != 0 {
+		t.Fatalf("recovered receipt = %+v, error = %v", receipt, err)
+	}
+	usage := requireUsage(t, reopened, "key_checkpoint", quotaTestTime)
+	if usage.FiveHours.TokensUsed != 0 || usage.FiveHours.TokensHeld != 0 || usage.FiveHours.TokensUnknown != 0 {
+		t.Fatalf("safe checkpoint recovered as unknown work: %+v", usage)
+	}
+	entries, err := reopened.Read(10)
+	if err != nil || len(entries) != 1 || string(entries[0].Payload) != "safe-fallback" {
+		t.Fatalf("recovered entries = %+v, error = %v", entries, err)
+	}
+}
+
+func TestQuotaAdmissionRecoveryIsAtomicBeforeFirstCheckpoint(t *testing.T) {
+	q, path := newQuotaTest(t, "UTC")
+	policy := quotaPolicy("key_admission")
+	policy.Tokens5H = limitPtr(20)
+	zero := int64(0)
+	if err := q.ReserveWithQuotaRecovery("admitted", []byte("zero-work-fallback"), []QuotaLimit{policy}, tokenBound(10), QuotaSettlement{Tokens: &zero}, quotaTestTime); err != nil {
+		t.Fatal(err)
+	}
+	if err := q.Close(); err != nil {
+		t.Fatal(err)
+	}
+	reopened, err := Open(path, 100, 1024)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = reopened.Close() }()
+	receipt, err := reopened.QuotaReceipt("admitted")
+	if err != nil || receipt.State != "interrupted" || receipt.Actual.Tokens == nil || *receipt.Actual.Tokens != 0 {
+		t.Fatalf("pre-dispatch recovery = %+v, error = %v", receipt, err)
+	}
+	usage := requireUsage(t, reopened, "key_admission", quotaTestTime)
+	if usage.FiveHours.TokensUsed != 0 || usage.FiveHours.TokensHeld != 0 || usage.FiveHours.TokensUnknown != 0 {
+		t.Fatalf("pre-dispatch crash retained an unknown hold: %+v", usage)
+	}
+}
+
+func TestQuotaRecoveryMustFitTheAdmittedBound(t *testing.T) {
+	q, _ := newQuotaTest(t, "UTC")
+	defer func() { _ = q.Close() }()
+	policy := quotaPolicy("key_recovery_bound")
+	policy.Tokens5H = limitPtr(20)
+	policy.MoneyMonth = moneyPtr("20")
+	policy.Currency = "USD"
+	bound := QuotaBound{Tokens: limitPtr(10), Money: moneyPtr("10"), Currency: "USD", Revision: "bound", PriceRevision: "price", BasisDigest: strings.Repeat("a", 64)}
+	if err := q.ReserveWithQuotaRecovery("currency", []byte("fallback"), []QuotaLimit{policy}, bound, QuotaSettlement{Money: moneyPtr("0"), Currency: "EUR"}, quotaTestTime); !errors.Is(err, ErrQuotaCurrency) {
+		t.Fatalf("mismatched recovery currency = %v", err)
+	}
+	if err := q.ReserveWithQuotaRecovery("tokens", []byte("fallback"), []QuotaLimit{policy}, bound, QuotaSettlement{Tokens: limitPtr(11)}, quotaTestTime); !errors.Is(err, ErrQuotaBound) {
+		t.Fatalf("over-bound recovery tokens = %v", err)
+	}
+	if err := q.ReserveWithQuotaRecovery("money", []byte("fallback"), []QuotaLimit{policy}, bound, QuotaSettlement{Money: moneyPtr("11"), Currency: "USD"}, quotaTestTime); !errors.Is(err, ErrQuotaBound) {
+		t.Fatalf("over-bound recovery money = %v", err)
+	}
+	if err := q.ReserveWithQuotaRecovery("update", []byte("fallback"), []QuotaLimit{policy}, bound, QuotaSettlement{}, quotaTestTime); err != nil {
+		t.Fatal(err)
+	}
+	if err := q.UpdatePendingQuota("update", []byte("changed"), QuotaSettlement{Money: moneyPtr("0"), Currency: "EUR"}); !errors.Is(err, ErrQuotaCurrency) {
+		t.Fatalf("updated mismatched recovery currency = %v", err)
+	}
+}
+
 func TestQuotaMissingOrCorruptHistoryFailsClosed(t *testing.T) {
 	for _, damage := range []string{"missing_bucket", "invalid_receipt", "invalid_fact", "unknown_version"} {
 		t.Run(damage, func(t *testing.T) {

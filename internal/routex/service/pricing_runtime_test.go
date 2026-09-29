@@ -154,7 +154,7 @@ func TestCallPriceJournalRestartsWithAcceptedReceipt(t *testing.T) {
 			t.Fatal("crash/replay lost captured price")
 		}
 		if entry.ID == "req_crash" {
-			if recovered.Pricing.Status != "not_final" || recovered.Pricing.Amount != nil || recovered.ImageInputs == nil || *recovered.ImageInputs != 2 || recovered.PDFInputs == nil || *recovered.PDFInputs != 1 {
+			if !recovered.NoWork || recovered.Pricing.Status != "no_work" || recovered.Pricing.Amount != nil || !zeroCounter(recovered.InputTokens) || !zeroCounter(recovered.OutputTokens) || recovered.ImageInputs == nil || *recovered.ImageInputs != 2 || recovered.PDFInputs == nil || *recovered.PDFInputs != 1 {
 				t.Fatalf("crash fallback lost media counts or invented a charge: %+v", recovered)
 			}
 		} else if recovered.Pricing.Amount == nil || *recovered.Pricing.Amount != "26.6" || recovered.Status != "canceled" {

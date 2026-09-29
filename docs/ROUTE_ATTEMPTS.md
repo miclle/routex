@@ -1,6 +1,6 @@
 # Native attempt planning
 
-`pkg/routeattempt` is a tested planning and execution boundary for future bounded gateway failover. It is not yet wired into the gateway. Active protocol handlers continue to make one upstream attempt; the package alone does not enable retries, persistent health tracking, multi-attempt pricing, or additional quota reservations.
+`pkg/routeattempt` is the tested planning and execution boundary for bounded native gateway failover. The published runtime now uses it for Chat Completions, Responses, Messages, and Gemini. Direct database routing remains a single-attempt compatibility path for tests and bootstrap conditions where no runtime is active.
 
 ## Immutable request plan
 
@@ -23,7 +23,23 @@ Hooks run in this order:
 
 Cancellation is checked between hooks and before every execution. An admitted request can therefore return zero executed attempts; the caller must still finalize its durable reservation. Revocation during selection must be caught by the authoritative preparation boundary. A revoked authorization or failed budget amendment stops execution instead of selecting another route to bypass it. Caller-owned per-attempt dispatch tickets or lock boundaries must make this guarantee concrete when integrating the module.
 
-The caller owns native payload construction, guarded transport selection, attempt IDs/timestamps, response cleanup, price snapshots, and final settlement. The planner never parses HTTP status or retries inside an individual execution callback. It performs no backoff sleeps and never switches protocols or models.
+The caller owns native payload construction, guarded transport selection, attempt IDs/timestamps, response cleanup, price snapshots, and final settlement. The planner never parses HTTP status or retries inside an individual execution callback. It performs no backoff sleeps and never switches protocols or public models.
+
+## Active gateway policy
+
+One logical request may execute at most four attempts. The first candidate is selected from currently eligible positive-weight routes; credential priority is evaluated inside the selected route. RouteX retries only when it has positive replay-safety evidence:
+
+- a guarded transport failure proves that application request bytes were not sent;
+- a protocol-native authentication envelope proves credential rejection without upstream work; or
+- a protocol-native rate-limit envelope proves rejection without upstream work.
+
+Bare or malformed `401`/`429` responses, `403`, `408`, `5xx`, target TLS failures, response resets, timeouts after a possible write, invalid successful responses, stream/parser/finality failures, cancellation, emitted output, final usage, and every unknown-work outcome stop replay. A valid `2xx` response is returned to the protocol handler exactly once. Any later body or stream failure is final for routing purposes.
+
+Connection failures with proven `not_sent` evidence place that Connection in a bounded process-local cooldown. Explicit native authentication rejection places only that credential in a separate cooldown. A native rate rejection affects the current request's route selection without creating a persistent health penalty. Successful response admission clears prior cooldown evidence for that Connection and credential. These cooldowns are routing hints within one process, not durable provider-health history.
+
+Before reading attachment storage or dispatching an attempt, the gateway filters candidates through current authorization, runtime snapshot, egress revision, capability, health, and quota evidence. Token and monetary policies reserve the maximum supported capacity and exact decimal price across all retained candidates. The request receives one durable admission, one RPM/concurrency debit, one quota hold, and one final settlement regardless of attempt count.
+
+The durable journal stores a zero-work recovery settlement atomically with admission, then checkpoints the ordered evidence before each dispatch. Entering an active attempt clears the pre-dispatch zero assumption. A restart therefore recovers exact zero economics before dispatch or after only proven work-free failures, while active and ambiguous attempts remain unknown. The interruption fact contains completed attempts plus any active attempt, without exposing credential IDs or provider response text. Schema version 25 stores the route stop reason and normalized attempt number, failure class, work evidence, output/finality flags, and allowlisted evidence code. Administrators can inspect this evidence in the existing call drawer; member call APIs remain redacted.
 
 ## Evidence required for replay
 
@@ -44,14 +60,14 @@ The stop reasons distinguish success, unsafe replay, permanent failure, exhauste
 
 ## Metering integration requirements
 
-Use one canonical request ID and one durable admission for the whole run, plus unique internal IDs for executed attempts. Finalize the request once, including cancellation and hook failures after admission. Every next target requires an appropriate immutable price basis and a reservation bound before execution; a preparation failure cannot release an already consumed or uncertain prior reservation. Preserve prior attempt outcomes without treating them as separate successful calls or aggregating unknown usage as zero.
+Use one canonical request ID and one durable admission for the whole run, plus unique internal IDs for executed attempts. Finalize the request once, including cancellation and hook failures after admission. Every next target requires an appropriate immutable price basis and a reservation bound before execution; a preparation failure cannot release an already consumed or uncertain prior reservation. Preserve prior attempt outcomes without treating them as separate successful calls. Only an admitted call with durable proof that every attempt was work-free may record explicit zero tokens and the `no_work` pricing state; unknown usage must remain unknown.
 
-The package deliberately blocks retry after uncertain execution or final usage. This avoids pretending that a different target or credential makes a possibly charged request safe to replay. A future integration must prove journal restart deduplication, price-bound updates, candidate/current-policy checks, response cleanup, native protocol error classification, and final call/attempt persistence before enabling gateway retries.
+The package deliberately blocks retry after uncertain execution or final usage. This avoids pretending that a different target or credential makes a possibly charged request safe to replay. Controlled tests prove journal restart deduplication, aggregate price/capacity bounds, current candidate checks, failed-response cleanup, native classifiers, and ordered attempt persistence. Real-provider behavior and multi-node health coordination remain separate acceptance gates.
 
 ## Focused validation
 
 ```bash
-go test -race -count=1 ./pkg/routeattempt
+go test -race -count=1 ./pkg/routeattempt ./pkg/eventqueue ./pkg/upstream ./internal/routex/service
 ```
 
-Tests cover exact deterministic weight intervals, credential priority independent of route weights, health-based renormalization, credential versus Connection exclusions, output/finality/unknown-work safety, one durable admission across retries, preparation failures without fabricated attempts, cancellation after admission and execution, current revocation before the next attempt, explicit attempt exhaustion, malformed randomness, immutable snapshots/results, and concurrent independent runs. These pure tests do not replace gateway, quota, or dual-database acceptance.
+Tests cover exact deterministic weight intervals, credential priority independent of route weights, health-based renormalization, credential versus Connection exclusions, output/finality/unknown-work safety, one durable admission across retries, preparation failures without fabricated attempts, cancellation after admission and execution, current revocation before the next attempt, explicit attempt exhaustion, malformed randomness, immutable snapshots/results, and concurrent independent runs. Gateway tests cover strict versus ambiguous native errors, pre-request connection proof, single-admission crash recovery, aggregate quota bounds, and cooldowns. PostgreSQL/MySQL integration covers the additive migration and ordered diagnostic persistence. These tests do not replace real-provider, capacity, or multi-node acceptance.

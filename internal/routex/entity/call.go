@@ -15,6 +15,7 @@ type CallRecord struct {
 	ModelName         string    `gorm:"size:128;not null"`
 	ProviderModelID   string    `gorm:"size:30;not null"`
 	ConnectionID      string    `gorm:"size:30;not null"`
+	RouteStopReason   string    `gorm:"size:40;not null;default:''"`
 	Protocol          string    `gorm:"size:30;not null"`
 	Status            string    `gorm:"size:20;not null"`
 	Stream            bool      `gorm:"not null"`
@@ -33,7 +34,13 @@ type CallAttempt struct {
 	RequestID       string    `gorm:"size:64;not null"`
 	ProviderModelID string    `gorm:"size:30;not null"`
 	ConnectionID    string    `gorm:"size:30;not null"`
+	AttemptNumber   int       `gorm:"not null;default:0"`
 	Status          string    `gorm:"size:20;not null"`
+	FailureClass    string    `gorm:"size:40;not null;default:permanent_failure"`
+	WorkEvidence    string    `gorm:"size:40;not null;default:unknown"`
+	OutputStarted   bool      `gorm:"not null;default:false"`
+	FinalUsageKnown bool      `gorm:"not null;default:false"`
+	EvidenceCode    string    `gorm:"size:40;not null;default:''"`
 	HTTPStatus      int       `gorm:"not null"`
 	ErrorCode       string    `gorm:"size:40;not null"`
 	StartedAt       time.Time `gorm:"not null"`

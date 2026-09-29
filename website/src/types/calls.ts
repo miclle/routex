@@ -16,7 +16,20 @@ export interface CallAttempt {
   id: string
   provider_model_id: string
   connection_id: string
+  attempt_number: number
   status: string
+  failure_class:
+    'success' | 'credential_rejected' | 'connection_failure' | 'rate_limited' | 'permanent_failure'
+  work_evidence: 'not_sent' | 'rejected_without_work' | 'unknown' | 'completed'
+  output_started: boolean
+  final_usage_known: boolean
+  evidence_code:
+    | ''
+    | 'pre_request_connection'
+    | 'native_auth_rejection'
+    | 'native_rate_rejection'
+    | 'upstream_response'
+    | 'transport_ambiguous'
   http_status: number
   error_code: string
   started_at: string
@@ -30,6 +43,15 @@ export interface AdminCallDetail extends AdminCallRecord {
   provider_model_id: string
   connection_id: string
   error_code: string
+  route_stop_reason:
+    | ''
+    | 'succeeded'
+    | 'unsafe_to_replay'
+    | 'permanent_failure'
+    | 'attempt_budget_exhausted'
+    | 'no_candidates'
+    | 'canceled'
+    | 'blocked'
   attempts: CallAttempt[]
 }
 export interface CallFilters {

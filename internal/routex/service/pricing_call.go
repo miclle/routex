@@ -34,10 +34,28 @@ func finalizeCallPricing(fact *CallFact) {
 	}
 	result := &CallPricing{Status: "not_captured"}
 	fact.Pricing = result
+	if fact.PriceBasis != nil {
+		result.ETag = fact.PriceBasis.ETag
+	}
+	if fact.NoWork {
+		zero := int64(0)
+		fact.InputTokens, fact.OutputTokens = &zero, &zero
+		fact.CacheReadTokens, fact.CacheWriteTokens = &zero, &zero
+		fact.UsageComplete = true
+		result.Status = "no_work"
+		snapshot := callPricingSnapshot{Basis: clonePriceBasis(fact.PriceBasis), UnsupportedDimensions: slices.Clone(fact.PricingDimensions)}
+		raw, err := json.Marshal(snapshot)
+		if err != nil || len(raw) > callPricingSnapshotLimit {
+			result.Status = "invalid_configuration"
+			return
+		}
+		encoded := string(raw)
+		result.SnapshotJSON = &encoded
+		return
+	}
 	if fact.PriceBasis == nil {
 		return
 	}
-	result.ETag = fact.PriceBasis.ETag
 	snapshot := callPricingSnapshot{Basis: clonePriceBasis(fact.PriceBasis), UnsupportedDimensions: slices.Clone(fact.PricingDimensions)}
 	switch {
 	case fact.PricingUnsupported || (fact.PriceBasis.Adapter != pricing.TextAdapter && fact.PriceBasis.Adapter != pricing.MultimodalAdapter):
@@ -119,7 +137,7 @@ func validateCallPricing(fact CallFact) error {
 		return nil
 	}
 	switch receipt.Status {
-	case "not_captured", "unsupported", "not_final", "unknown_usage", "invalid_usage", "missing_price", "invalid_configuration", "priced":
+	case "not_captured", "no_work", "unsupported", "not_final", "unknown_usage", "invalid_usage", "missing_price", "invalid_configuration", "priced":
 	default:
 		return apperrors.ErrBadRequest
 	}

@@ -128,14 +128,38 @@ func (ctrl *Ctrl) recordGatewayCall(ctx context.Context, requestID string, start
 	}
 	completed := time.Now().UTC()
 	usage = usage.WithExpectedInputMedia(result.ImageInputs+result.PDFInputs > 0)
+	noWork := result.NoUpstreamWork()
+	if noWork {
+		zero := int64(0)
+		usage.Input, usage.Output, usage.CacheRead, usage.CacheWrite = &zero, &zero, &zero, &zero
+		usage.Complete = true
+	}
 	imageInputs, pdfInputs := result.ImageInputs, result.PDFInputs
-	fact := service.CallFact{RequestID: requestID, SnapshotID: result.SnapshotID, UserID: result.UserID, ProjectID: result.ProjectID, KeyID: result.KeyID, ModelID: result.ModelID, ModelName: result.ModelName, ProviderModelID: result.ProviderModelID, ConnectionID: result.ConnectionID, Protocol: result.NativeProtocol(), Status: status, Stream: result.Stream, StartedAt: started, CompletedAt: completed, InputTokens: usage.Input, OutputTokens: usage.Output, CacheReadTokens: usage.CacheRead, CacheWriteTokens: usage.CacheWrite, ImageInputs: &imageInputs, PDFInputs: &pdfInputs, UsageComplete: usage.Complete, PricingUnsupported: result.PricingUnsupported || usage.Unsupported, PriceBasis: result.PriceBasis, PricingDimensions: append(append([]string{}, result.PricingDimensions...), usage.UnsupportedDimensions...), ErrorCode: code}
+	attempts := append([]service.CallAttempt(nil), result.Attempts...)
+	routeStopReason := result.RouteStopReason
+	if result.AttemptID != "" && status != "success" {
+		routeStopReason = "unsafe_to_replay"
+		if status == "canceled" {
+			routeStopReason = "canceled"
+		}
+	}
+	fact := service.CallFact{RequestID: requestID, SnapshotID: result.SnapshotID, UserID: result.UserID, ProjectID: result.ProjectID, KeyID: result.KeyID, ModelID: result.ModelID, ModelName: result.ModelName, ProviderModelID: result.ProviderModelID, ConnectionID: result.ConnectionID, RouteStopReason: routeStopReason, Protocol: result.NativeProtocol(), Status: status, Stream: result.Stream, StartedAt: started, CompletedAt: completed, InputTokens: usage.Input, OutputTokens: usage.Output, CacheReadTokens: usage.CacheRead, CacheWriteTokens: usage.CacheWrite, ImageInputs: &imageInputs, PDFInputs: &pdfInputs, UsageComplete: usage.Complete, NoWork: noWork, PricingUnsupported: result.PricingUnsupported || usage.Unsupported, PriceBasis: result.PriceBasis, PricingDimensions: append(append([]string{}, result.PricingDimensions...), usage.UnsupportedDimensions...), ErrorCode: code, Attempts: attempts}
 	if result.AttemptID != "" {
 		httpStatus := 0
 		if result.Response != nil {
 			httpStatus = result.Response.StatusCode
 		}
-		fact.Attempts = []service.CallAttempt{{ID: result.AttemptID, ProviderModelID: result.ProviderModelID, ConnectionID: result.ConnectionID, Status: status, StartedAt: result.AttemptStartedAt, CompletedAt: completed, HTTPStatus: httpStatus, ErrorCode: code}}
+		failureClass, workEvidence, evidenceCode := "success", "completed", ""
+		if status != "success" {
+			failureClass, workEvidence, evidenceCode = "permanent_failure", "unknown", "upstream_response"
+		}
+		fact.Attempts = append(fact.Attempts, service.CallAttempt{
+			ID: result.AttemptID, ProviderModelID: result.ProviderModelID, ConnectionID: result.ConnectionID,
+			AttemptNumber: len(fact.Attempts) + 1, Status: status, FailureClass: failureClass,
+			WorkEvidence: workEvidence, OutputStarted: status == "success" || usage.OutputStarted, FinalUsageKnown: usage.Complete,
+			EvidenceCode: evidenceCode, StartedAt: result.AttemptStartedAt, CompletedAt: completed,
+			HTTPStatus: httpStatus, ErrorCode: code,
+		})
 	}
 	recordCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 3*time.Second)
 	defer cancel()
@@ -233,7 +257,11 @@ func proxyGatewayStream(ctx context.Context, writer http.ResponseWriter, body io
 		if err := controller.SetWriteDeadline(time.Now().Add(30 * time.Second)); err != nil && !errors.Is(err, http.ErrNotSupported) {
 			return err
 		}
-		if _, err := writer.Write(data); err != nil {
+		written, err := writer.Write(data)
+		if written > 0 {
+			usage.OutputStarted = true
+		}
+		if err != nil {
 			return err
 		}
 		return controller.Flush()

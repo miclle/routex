@@ -84,6 +84,8 @@ func (q *Queue) recoverQuota(tx *bolt.Tx) error {
 				return ErrInvalid
 			}
 			entry.State = "interrupted"
+			entry.Actual = entry.Recovery
+			entry.Recovery = QuotaSettlement{}
 			entry.SettlementDigest = quotaSettlementDigest(entry.Actual, fallback)
 			interrupted = append(interrupted, entry)
 		}

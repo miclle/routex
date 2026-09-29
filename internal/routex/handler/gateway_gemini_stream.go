@@ -125,22 +125,32 @@ func proxyGeminiStream(ctx context.Context, writer http.ResponseWriter, body io.
 	scanner.Buffer(make([]byte, 4096), gatewayEventLimit)
 	state := geminiStreamState{expected: candidates}
 	var event bytes.Buffer
+	outputStarted := false
 	write := func(raw []byte) error {
 		control := http.NewResponseController(writer)
 		if err := control.SetWriteDeadline(time.Now().Add(30 * time.Second)); err != nil && !errors.Is(err, http.ErrNotSupported) {
 			return err
 		}
-		if _, err := writer.Write(raw); err != nil {
+		written, err := writer.Write(raw)
+		if written > 0 {
+			outputStarted = true
+		}
+		if err != nil {
 			return err
 		}
 		return control.Flush()
 	}
+	result := func(complete bool) gatewayUsage {
+		usage := state.result(complete)
+		usage.OutputStarted = outputStarted
+		return usage
+	}
 	fail := func() (gatewayUsage, error) {
 		if ctx.Err() != nil {
-			return state.result(false), ctx.Err()
+			return result(false), ctx.Err()
 		}
 		_ = write(append(append([]byte("data: "), mustJSON(map[string]any{"error": service.SanitizeGeminiError(nil, 502)})...), '\n', '\n'))
-		return state.result(false), invalidGatewayResponse()
+		return result(false), invalidGatewayResponse()
 	}
 	process := func(raw []byte) error {
 		lines := strings.Split(strings.TrimSuffix(string(raw), "\n"), "\n")
@@ -181,7 +191,7 @@ func proxyGeminiStream(ctx context.Context, writer http.ResponseWriter, body io.
 	}
 	for scanner.Scan() {
 		if ctx.Err() != nil {
-			return state.result(false), ctx.Err()
+			return result(false), ctx.Err()
 		}
 		line := scanner.Bytes()
 		if len(line) != 0 {
@@ -202,7 +212,7 @@ func proxyGeminiStream(ctx context.Context, writer http.ResponseWriter, body io.
 			if errors.As(err, &native) && native.Code == "invalid_upstream_response" {
 				return fail()
 			}
-			return state.result(false), err
+			return result(false), err
 		}
 	}
 	if scanner.Err() != nil || ctx.Err() != nil {
@@ -210,11 +220,11 @@ func proxyGeminiStream(ctx context.Context, writer http.ResponseWriter, body io.
 	}
 	if event.Len() > 0 {
 		if err := process(event.Bytes()); err != nil {
-			return state.result(false), err
+			return result(false), err
 		}
 	}
 	if !state.finished() {
 		return fail()
 	}
-	return state.result(true), nil
+	return result(true), nil
 }

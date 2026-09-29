@@ -4,6 +4,7 @@ package upstream
 import (
 	"context"
 	"errors"
+	"fmt"
 	"net"
 	"net/http"
 	"net/netip"
@@ -18,6 +19,34 @@ var (
 	errAddress  = errors.New("upstream address is not permitted")
 	errRedirect = errors.New("upstream redirects are not permitted")
 )
+
+// PreRequestError is implemented only by failures for which this package can
+// prove application request bytes did not reach the provider. Response, target
+// TLS, and arbitrary RoundTrip failures do not implement it.
+type PreRequestError interface {
+	error
+	preRequestFailure()
+}
+
+type preRequestError struct{ cause error }
+
+func (e *preRequestError) Error() string      { return e.cause.Error() }
+func (e *preRequestError) Unwrap() error      { return e.cause }
+func (e *preRequestError) preRequestFailure() {}
+
+// IsPreRequestFailure reports whether err carries proof that provider request
+// bytes were not sent. Callers must still honor context cancellation first.
+func IsPreRequestFailure(err error) bool {
+	var target PreRequestError
+	return errors.As(err, &target)
+}
+
+func preRequestFailure(err error) error {
+	if err == nil || IsPreRequestFailure(err) {
+		return err
+	}
+	return &preRequestError{cause: err}
+}
 
 // ValidateBaseURL checks URL syntax and literal addresses without performing DNS
 // lookups. NewClient additionally checks DNS results at connection time.
@@ -97,17 +126,17 @@ type policyTransport struct {
 
 func (t *policyTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 	if req.URL == nil || req.URL.User != nil || req.URL.Fragment != "" || req.URL.Opaque != "" {
-		return nil, errURL
+		return nil, preRequestFailure(errURL)
 	}
 	// Request paths may include provider query parameters. Base URLs may not.
 	base := *req.URL
 	base.RawQuery, base.ForceQuery = "", false
 	if _, err := ValidateBaseURL(base.String(), t.allowPrivate); err != nil {
-		return nil, err
+		return nil, preRequestFailure(err)
 	}
 	// Host overrides can change an upstream virtual host after policy validation.
 	if req.Host != "" && req.Host != req.URL.Host {
-		return nil, errURL
+		return nil, preRequestFailure(errURL)
 	}
 	if t.bindDialContext {
 		req = req.Clone(context.WithValue(req.Context(), egressRequestContextKey{}, req.Context()))
@@ -121,11 +150,11 @@ func (t *policyTransport) CloseIdleConnections() { t.base.CloseIdleConnections()
 func safeDial(allowPrivate bool, lookup lookupFunc, dial dialFunc) dialFunc {
 	return func(ctx context.Context, network, address string) (net.Conn, error) {
 		if network != "tcp" && network != "tcp4" && network != "tcp6" {
-			return nil, errAddress
+			return nil, preRequestFailure(errAddress)
 		}
 		host, port, err := net.SplitHostPort(address)
 		if err != nil {
-			return nil, errAddress
+			return nil, preRequestFailure(errAddress)
 		}
 		var ips []netip.Addr
 		if ip, ok := parseIP(host); ok {
@@ -134,23 +163,24 @@ func safeDial(allowPrivate bool, lookup lookupFunc, dial dialFunc) dialFunc {
 			ips, err = lookup(ctx, "ip", host)
 			if err != nil {
 				if ctx.Err() != nil {
-					return nil, ctx.Err()
+					return nil, preRequestFailure(ctx.Err())
 				}
-				return nil, errAddress
+				return nil, preRequestFailure(errAddress)
 			}
 		}
 		if len(ips) == 0 {
-			return nil, errAddress
+			return nil, preRequestFailure(errAddress)
 		}
 		// Reject a mixed public/private answer rather than relying on answer order.
 		for _, ip := range ips {
 			if !allowedIP(ip, allowPrivate) || (strings.EqualFold(host, "localhost") && !ip.Unmap().IsLoopback()) {
-				return nil, errAddress
+				return nil, preRequestFailure(errAddress)
 			}
 		}
+		var lastErr error
 		for _, ip := range ips {
 			if err := ctx.Err(); err != nil {
-				return nil, err
+				return nil, preRequestFailure(err)
 			}
 			// Dial the numeric address, never the hostname, to prevent a second DNS
 			// resolution from rebinding the validated name to an internal address.
@@ -158,11 +188,12 @@ func safeDial(allowPrivate bool, lookup lookupFunc, dial dialFunc) dialFunc {
 			if err == nil {
 				return conn, nil
 			}
+			lastErr = err
 		}
 		if ctx.Err() != nil {
-			return nil, ctx.Err()
+			return nil, preRequestFailure(ctx.Err())
 		}
-		return nil, errors.New("cannot connect to upstream")
+		return nil, preRequestFailure(fmt.Errorf("cannot connect to upstream: %w", lastErr))
 	}
 }
 

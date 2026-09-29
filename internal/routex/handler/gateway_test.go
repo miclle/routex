@@ -82,9 +82,12 @@ func testGatewayLifecycle(t *testing.T, db *gorm.DB) {
 	var expectedCredential atomic.Value
 	expectedCredential.Store("Bearer upstream-test-secret")
 	var chatCalls atomic.Int32
+	var retryCalls atomic.Int32
 	canceled := make(chan struct{}, 1)
 	upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path != "/v1/models" && r.Header.Get("Authorization") != expectedCredential.Load().(string) {
+		activeMode := mode.Load().(string)
+		multiRouteMode := activeMode == "retry" || activeMode == "stream_incomplete" || activeMode == "stream_empty"
+		if r.URL.Path != "/v1/models" && !multiRouteMode && r.Header.Get("Authorization") != expectedCredential.Load().(string) {
 			t.Error("wrong upstream credential priority")
 		}
 		w.Header().Set("Content-Type", "application/json")
@@ -115,16 +118,29 @@ func testGatewayLifecycle(t *testing.T, db *gorm.DB) {
 		if !strings.HasPrefix(r.Header.Get("X-Request-ID"), "req_") {
 			t.Error("request ID missing upstream")
 		}
-		switch mode.Load().(string) {
+		switch activeMode {
 		case "error":
 			w.Header().Set("Set-Cookie", "provider-secret=secret")
 			w.WriteHeader(401)
 			_, _ = io.WriteString(w, `{"error":{"message":"upstream-test-secret"}}`)
-		case "stream", "cancel":
+		case "retry":
+			if retryCalls.Add(1) == 1 {
+				w.WriteHeader(http.StatusTooManyRequests)
+				_, _ = io.WriteString(w, `{"error":{"code":"rate_limit_exceeded"}}`)
+				return
+			}
+			_, _ = io.WriteString(w, `{"id":"chat-1","object":"chat.completion","model":"provider-model","choices":[],"usage":{"prompt_tokens":3,"completion_tokens":2}}`)
+		case "stream", "cancel", "stream_incomplete", "stream_empty":
 			w.Header().Set("Content-Type", "text/event-stream")
+			if activeMode == "stream_empty" {
+				return
+			}
 			_, _ = io.WriteString(w, "data: {\"id\":\"chat-1\",\"model\":\"provider-model\",\"choices\":[{\"delta\":{\"content\":\"Hello\"}}]}\n\n")
 			w.(http.Flusher).Flush()
-			if mode.Load().(string) == "cancel" {
+			if activeMode == "stream_incomplete" {
+				return
+			}
+			if activeMode == "cancel" {
 				<-r.Context().Done()
 				canceled <- struct{}{}
 				return
@@ -357,6 +373,87 @@ func testGatewayLifecycle(t *testing.T, db *gorm.DB) {
 		}
 		time.Sleep(10 * time.Millisecond)
 	}
+	retryProvider, err := svc.CreateProvider(ctx, admin.User.ID, "Retry Provider", service.CreateConnectionInput{Name: "Retry", BaseURL: upstream.URL + "/v1", Protocol: entity.ProtocolOpenAIChat, CredentialName: "Retry", Secret: "retry-upstream-secret"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	retryCredentialID := retryProvider.Connections[0].Credentials[0].ID
+	if verified, err := svc.VerifyCredential(ctx, admin.User.ID, retryCredentialID); err != nil || !verified.Verified {
+		t.Fatal("retry credential verification failed")
+	}
+	if _, err := svc.SetCredentialEnabled(ctx, admin.User.ID, retryCredentialID, true); err != nil {
+		t.Fatal(err)
+	}
+	var retryProviderModel entity.ProviderModel
+	if err := db.First(&retryProviderModel, "connection_id = ?", retryProvider.Connections[0].Connection.ID).Error; err != nil {
+		t.Fatal(err)
+	}
+	withRetry, err := svc.AddModelBinding(ctx, admin.User.ID, model.Model.ID, retryProviderModel.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	primaryBindingID, retryBindingID := "", ""
+	for _, binding := range withRetry.Bindings {
+		if binding.Binding.ProviderModelID == pm.ID {
+			primaryBindingID = binding.Binding.ID
+		}
+		if binding.Binding.ProviderModelID == retryProviderModel.ID {
+			retryBindingID = binding.Binding.ID
+		}
+	}
+	if primaryBindingID == "" || retryBindingID == "" {
+		t.Fatal("retry bindings missing")
+	}
+	if _, err := svc.SetModelWeights(ctx, admin.User.ID, model.Model.ID, []service.ModelWeight{{BindingID: primaryBindingID, Weight: 50}, {BindingID: retryBindingID, Weight: 50}}); err != nil {
+		t.Fatal(err)
+	}
+	if err := svc.StartRuntime(ctx); err != nil {
+		t.Fatal(err)
+	}
+	defer svc.StopRuntime()
+	mode.Store("retry")
+	retryCalls.Store(0)
+	beforeRetry := chatCalls.Load()
+	retried := request("POST", "/v1/chat/completions", body, created.Secret)
+	expectStatus(t, retried, http.StatusOK)
+	if chatCalls.Load() != beforeRetry+2 {
+		t.Fatalf("retry dispatches = %d, want 2", chatCalls.Load()-beforeRetry)
+	}
+	var retryRecord entity.CallRecord
+	if err := db.First(&retryRecord, "request_id = ?", retried.Header().Get("X-Request-ID")).Error; err != nil {
+		t.Fatal(err)
+	}
+	var retryAttempts []entity.CallAttempt
+	if err := db.Where("request_id = ?", retryRecord.RequestID).Order("attempt_number").Find(&retryAttempts).Error; err != nil {
+		t.Fatal(err)
+	}
+	if retryRecord.RouteStopReason != "succeeded" || len(retryAttempts) != 2 || retryAttempts[0].FailureClass != "rate_limited" || retryAttempts[0].WorkEvidence != "rejected_without_work" || retryAttempts[1].FailureClass != "success" || retryAttempts[1].WorkEvidence != "completed" {
+		t.Fatalf("retry diagnostics: record=%+v attempts=%+v", retryRecord, retryAttempts)
+	}
+	for _, streamMode := range []string{"stream_empty", "stream_incomplete"} {
+		mode.Store(streamMode)
+		beforeStreamFailure := chatCalls.Load()
+		failedStream := request("POST", "/v1/chat/completions", strings.Replace(body, `"temperature":0.125`, `"stream":true`, 1), created.Secret)
+		expectStatus(t, failedStream, http.StatusOK)
+		if chatCalls.Load() != beforeStreamFailure+1 {
+			t.Fatalf("%s dispatched a fallback after 2xx", streamMode)
+		}
+		var failedRecord entity.CallRecord
+		if err := db.First(&failedRecord, "request_id = ?", failedStream.Header().Get("X-Request-ID")).Error; err != nil {
+			t.Fatal(err)
+		}
+		var failedAttempts []entity.CallAttempt
+		if err := db.Where("request_id = ?", failedRecord.RequestID).Find(&failedAttempts).Error; err != nil {
+			t.Fatal(err)
+		}
+		if failedRecord.RouteStopReason != "unsafe_to_replay" || len(failedAttempts) != 1 || failedAttempts[0].WorkEvidence != "unknown" || !failedAttempts[0].OutputStarted {
+			t.Fatalf("%s diagnostics: record=%+v attempts=%+v", streamMode, failedRecord, failedAttempts)
+		}
+	}
+	if _, err := svc.SetModelWeights(ctx, admin.User.ID, model.Model.ID, []service.ModelWeight{{BindingID: primaryBindingID, Weight: 100}, {BindingID: retryBindingID, Weight: 0}}); err != nil {
+		t.Fatal(err)
+	}
+	mode.Store("ordinary")
 	before := chatCalls.Load()
 	if _, err := svc.SetCredentialEnabled(ctx, admin.User.ID, credentialID, false); err != nil {
 		t.Fatal(err)

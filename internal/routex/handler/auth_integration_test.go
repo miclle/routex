@@ -91,7 +91,7 @@ func TestIdentityIntegration(t *testing.T) {
 				t.Fatal(err)
 			}
 			var versions int64
-			if err := db.Table("schema_migrations").Count(&versions).Error; err != nil || versions != 24 {
+			if err := db.Table("schema_migrations").Count(&versions).Error; err != nil || versions != 25 {
 				t.Fatalf("migration ledger: %d, %v", versions, err)
 			}
 			var preserved entity.Example
@@ -115,6 +115,7 @@ func TestIdentityIntegration(t *testing.T) {
 			}
 			testStorageOwnerMigration(t, db)
 			testCallMediaPricingMigration(t, db)
+			testCallAttemptDiagnosticsMigration(t, db)
 			orphan := entity.Session{ID: "ses_orphan", UserID: "usr_missing", TokenHash: strings.Repeat("a", 64), ExpiresAt: time.Now().Add(time.Hour)}
 			if err := db.Create(&orphan).Error; err == nil {
 				t.Fatal("orphan session must be rejected by database FK")
@@ -124,7 +125,9 @@ func TestIdentityIntegration(t *testing.T) {
 			if err := db.Migrator().DropTable(&entity.CallAttempt{}); err != nil {
 				t.Fatal(err)
 			}
-			if err := db.Table("schema_migrations").Where("version = ?", 5).Delete(&struct{}{}).Error; err != nil {
+			// Reapply the later additive attempt diagnostics after reconstructing the
+			// version 5 table, matching an interruption before either ledger advanced.
+			if err := db.Table("schema_migrations").Where("version IN ?", []int{5, 25}).Delete(&struct{}{}).Error; err != nil {
 				t.Fatal(err)
 			}
 			if err := database.Migrate(context.Background(), db); err != nil {

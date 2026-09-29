@@ -278,7 +278,7 @@ func TestGatewayAttachmentMoneyPricingAdmission(t *testing.T) {
 				t.Fatalf("dispatch/read counts = upstream:%d image:%d PDF:%d", upstreamCalls.Load(), reads(testAttachmentImageID), reads(testAttachmentPDFID))
 			}
 			receipt, err := svc.recorder.queue.QuotaReceipt(requestID)
-			if err != nil || receipt.Bound.Money == nil || receipt.Bound.Currency != "CNY" || receipt.Bound.PriceRevision != result.PriceBasis.ETag {
+			if err != nil || receipt.Bound.Money == nil || receipt.Bound.Currency != "CNY" || receipt.Bound.PriceRevision == "" || receipt.Bound.BasisDigest == "" {
 				t.Fatalf("media money reservation = %+v, error = %v", receipt, err)
 			}
 		})

@@ -1,6 +1,6 @@
 # Native Gemini generation
 
-RouteX implements the `gemini_generate_content` protocol through native `POST /v1beta/models/{public-name}:generateContent` and `POST /v1beta/models/{public-name}:streamGenerateContent` endpoints. Streaming uses SSE; `alt=sse` is optional on the RouteX streaming endpoint and always added upstream. The configured connection base URL includes the API prefix, for example `https://generativelanguage.googleapis.com/v1beta`. No protocol translation, cross-protocol fallback, or automatic retry occurs.
+RouteX implements the `gemini_generate_content` protocol through native `POST /v1beta/models/{public-name}:generateContent` and `POST /v1beta/models/{public-name}:streamGenerateContent` endpoints. Streaming uses SSE; `alt=sse` is optional on the RouteX streaming endpoint and always added upstream. The configured connection base URL includes the API prefix, for example `https://generativelanguage.googleapis.com/v1beta`. No protocol translation or cross-protocol fallback occurs. Bounded same-protocol failover is allowed only before a usable response and only with the replay-safety evidence defined in [Native attempt planning](ROUTE_ATTEMPTS.md).
 
 ## Identity, transport, and requests
 

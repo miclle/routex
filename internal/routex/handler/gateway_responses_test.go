@@ -108,6 +108,33 @@ func (w *cancelResponseWriter) Write(raw []byte) (int, error) {
 	}
 	return w.ResponseRecorder.Write(raw)
 }
+
+type partialResponseWriter struct {
+	*httptest.ResponseRecorder
+}
+
+func (w *partialResponseWriter) Write(raw []byte) (int, error) {
+	written := len(raw) / 2
+	if written == 0 && len(raw) > 0 {
+		written = 1
+	}
+	_, _ = w.ResponseRecorder.Write(raw[:written])
+	return written, errors.New("partial write")
+}
+
+func TestResponsesStreamRecordsPartialOutputBeforeWriteFailure(t *testing.T) {
+	writer := &partialResponseWriter{ResponseRecorder: httptest.NewRecorder()}
+	usage, err := proxyResponsesStream(
+		context.Background(),
+		writer,
+		strings.NewReader(responseEventFixture("response.completed", "completed", responsesFinalUsage, 1)),
+		"public",
+	)
+	if err == nil || !usage.OutputStarted || writer.Body.Len() == 0 {
+		t.Fatalf("partial output evidence lost: usage=%+v body=%q err=%v", usage, writer.Body.String(), err)
+	}
+}
+
 func TestResponsesCancelBeforeAndAfterFinalUsage(t *testing.T) {
 	for _, final := range []bool{false, true} {
 		ctx, cancel := context.WithCancel(context.Background())

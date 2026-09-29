@@ -163,7 +163,7 @@ The binary capability count is 6 completed, 20 partially completed, and 4 not st
 | F10 | Offboarding, inventory, handover, and emergency disable | Partially completed | Transactional local-account offboarding and continuity workflows exist; external-identity and complete enterprise continuity behavior remain open. |
 | F11 | Provider, Connection, Credential, discovery, and rotation | Partially completed | The management workspace, encrypted credentials, controlled verification, and activation boundaries exist; real-provider acceptance and complete pool operations remain open. |
 | F12 | Model catalog, names, bindings, weights, and catalog assistance | Partially completed | Stable models, renames, bindings, weights, grants, and availability controls exist; complete public-catalog assistance and final routing acceptance remain open. |
-| F13 | Four native protocols, streaming, health, retries, and failover | Partially completed | Chat Completions, Responses, Messages, and Gemini ordinary/streaming paths exist. Active retry, health routing, and failover are not wired; the route-attempt package is foundation only. |
+| F13 | Four native protocols, streaming, health, retries, and failover | Partially completed | Chat Completions, Responses, Messages, and Gemini now use bounded replay-safe same-protocol failover with process-local health, one admission/settlement, durable ordered diagnostics, and no retry after a usable response. Real-provider and measured multi-node health acceptance remain open. |
 | F14 | Managed egress and staged network diagnostics | Partially completed | Direct, default, SOCKS5, verified CONNECT, endpoint-bound saved authentication, complete-tunnel proxy-address fallback, and diagnostics exist. External proxy and production performance acceptance remain open. |
 | F15 | Prices, spreadsheet/CSV workflows, API, and repository sync | Partially completed | Current prices, ETags, CSV/XLS/XLSX import, preview, commit, and export exist; external price-repository synchronization is not implemented. |
 | F16 | Platform currency, exchange rates, and historical price snapshots | Completed | Decimal-string currency/rate management, exact quoting, and immutable per-call assessment are implemented. |
@@ -194,7 +194,7 @@ Only A01 is fully accepted across its defined scope. Every other case remains in
 | A04 | One model across Personal and multiple Team contexts | Partially completed | Explicit complete Team invocation context and unique debit behavior remain open. |
 | A05 | Sole-manager offboarding and emergency disable | Partially completed | Local-account continuity is covered; external-identity continuity remains open. |
 | A06 | Model rename, alias expiry, and historical-name reuse | Partially completed | Controlled model-name tests exist; final end-to-end release acceptance remains open. |
-| A07 | Weights, new candidates, no healthy target, and credential failure | Partially completed | Weight and credential behavior exists; active health routing and failover do not. |
+| A07 | Weights, new candidates, no healthy target, and credential failure | Partially completed | Active weights, credential priority, health cooldowns, current-policy rechecks, safe failover, exhaustion, and diagnostics have controlled coverage. Real-provider failure behavior and multi-node health remain open. |
 | A08 | Stream failure, cancellation, and timeout | Partially completed | Controlled four-protocol evidence exists; real-provider and production-load evidence do not. |
 | A09 | Invalid price files, stale ETags, and repository synchronization | Partially completed | File and ETag behavior exists; network synchronization does not. |
 | A10 | In-flight price changes and historical reporting | Partially completed | Immutable assessments exist; final reporting and release acceptance remain open. |
@@ -1099,22 +1099,32 @@ failure, retained incomplete holds, and PostgreSQL/MySQL migration and lifecycle
 behavior. Per-page, per-pixel, per-byte, provider-specific media-token splits and
 paid external-provider equivalence remain open acceptance gates.
 
-### Native route-attempt foundation
+### Active native route attempts
 
-The new `pkg/routeattempt` boundary creates immutable, concurrency-safe weighted
-plans for future bounded native failover. It enforces protocol consistency,
-credential priority, request-local exclusions and explicit work-state evidence.
-Unknown work, emitted output or final usage blocks replay; one canonical request
-can be admitted only once while preparation rechecks authorization and reservation
-evidence before every executed attempt.
+The immutable `pkg/routeattempt` plan is now active for published-runtime Chat
+Completions, Responses, Messages, and Gemini requests. One logical request can
+execute at most four same-protocol attempts. Credential rejection remains on the
+same target when a lower-priority credential is eligible; proven pre-request
+Connection failure and strict native rate rejection move to another Connection.
+Bare HTTP status, timeouts, target TLS failure, reset, `5xx`, missing finality,
+emitted output, final usage, and unknown work never authorize replay.
 
-Focused race tests cover deterministic weight intervals, health renormalization,
-credential and Connection exclusions, cancellation, revocation, attempt-budget
-exhaustion, immutable snapshots and concurrent plan reuse. Full check/test passed
-with 335 Vitest cases, four Node checks, Go race/unit, development lifecycle and
-production assets. This package is not wired into active gateway handlers, so the
-current single-attempt behavior remains unchanged until persistence, quota
-amendment and native error classification are integrated and accepted.
+Preparation rechecks the current Key/owner/model grant, supply authorization,
+snapshot and egress revision, process-local health, limits, quota capacity, and
+price evidence before every dispatch. Candidate-wide maximum token and exact
+decimal money bounds are reserved once. The durable journal checkpoints ordered
+attempt evidence without another RPM/concurrency debit or quota receipt, and
+zero-work evidence releases held dimensions on finalization or recovery between
+attempts. Schema version 25 stores normalized stop/evidence fields; the existing
+administrator call drawer renders them while member APIs remain redacted.
+
+Focused race and controlled-upstream tests cover deterministic weights, same-target
+credential fallback, Connection failover, strict and ambiguous native errors,
+revocation and policy changes between attempts, cooldown recovery, crash
+checkpoints, one final receipt, no replay after a valid streaming response, and
+ordered final facts. PostgreSQL/MySQL migration and persistence coverage remains
+part of the isolated integration suite. Paid real-provider behavior, measured
+capacity, and multi-node health coordination remain open acceptance gates.
 
 ### Executable Playground request examples
 

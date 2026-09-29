@@ -16,6 +16,14 @@ Routing preparation validates connection URLs, model relationships, credential c
 
 Gateway authentication, name resolution, route selection, and credential selection do not read the database or secret store when the runtime is active. Existing routes continue to enforce the latest authorization and credential eligibility snapshot. In-memory credentials remain sensitive process memory; the runtime does not claim protection against arbitrary code execution or memory disclosure.
 
+## Bounded active routing
+
+Every native request captures a detached route plan from one immutable routing snapshot. Before each dispatch, RouteX rechecks the current Key, personal or Project owner, model grant, provider-model and credential authorization, route snapshot, egress generation/revision, limit policy, quota capacity, price evidence, and process-local health. A revocation or changed admission boundary stops the run; it never selects another route to bypass current policy.
+
+Positive-weight eligible routes retain their configured proportions. Credential priority applies inside a selected route. Proven pre-request Connection failures and explicit native credential rejection create bounded process-local cooldowns; a successful response admission clears the relevant health evidence. Native rate rejection excludes that Connection only within the current request. Health is intentionally not persisted or coordinated between nodes.
+
+A valid `2xx` response transfers ownership to the protocol handler and ends route selection. Ordinary parsing, streaming finality, client writes, usage parsing, and cancellation after that boundary cannot trigger another attempt. See [Native attempt planning](ROUTE_ATTEMPTS.md) for the exact evidence matrix, attempt limit, and durable checkpoint contract.
+
 ## Revocation Before Acknowledgment
 
 Supported control-plane mutation paths publish synchronously after their database transaction and before returning a successful response. Reduction and revocation paths first install an in-memory tombstone for the affected key, user, model, or credential. If refreshing fails, the mutation returns HTTP 503 and the reduction remains enforced by its tombstone or the newly published authorization snapshot. The database transaction may already have committed, so callers should refresh resource state before retrying a create operation.

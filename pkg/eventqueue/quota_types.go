@@ -66,6 +66,7 @@ type QuotaReceipt struct {
 	Bound            QuotaBound      `json:"bound"`
 	State            string          `json:"state"`
 	Actual           QuotaSettlement `json:"actual"`
+	Recovery         QuotaSettlement `json:"recovery"`
 	SettlementDigest string          `json:"settlement_digest"`
 	Overrun          bool            `json:"overrun"`
 }

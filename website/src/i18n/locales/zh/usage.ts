@@ -105,6 +105,7 @@ export default {
   more: '{{count}} 个分组',
   pricingStatuses: {
     not_captured: '未记录',
+    no_work: '未产生上游工作',
     unsupported: '暂不支持计价',
     not_final: '未最终确认',
     unknown_usage: '用量未知',

@@ -75,6 +75,20 @@ func TestUsageExactCoverage(t *testing.T) {
 		t.Fatal("invalid receipt was accepted")
 	}
 }
+
+func TestUsageTreatsNoWorkAsKnownZero(t *testing.T) {
+	zero := int64(0)
+	row := entity.CallRecord{RequestID: "req_no_work", Status: "error", DurationMS: 1, InputTokens: &zero, OutputTokens: &zero, CallPricingFields: entity.CallPricingFields{PricingStatus: "no_work"}}
+	var accumulator usageAccumulator
+	if err := accumulator.add(row); err != nil {
+		t.Fatal(err)
+	}
+	stats := accumulator.result()
+	if stats.UnknownAmountCalls != 0 || stats.Tokens.Total.Value == nil || *stats.Tokens.Total.Value != "0" || stats.PricingStatuses["no_work"] != 1 {
+		t.Fatalf("no-work usage became unknown: %+v", stats)
+	}
+}
+
 func TestUsageCalendarBoundaries(t *testing.T) {
 	for _, test := range []struct {
 		name, from, to string

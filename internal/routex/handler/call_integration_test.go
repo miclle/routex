@@ -82,6 +82,14 @@ func testCallLifecycle(t *testing.T, db *gorm.DB) {
 		next.OutputTokens = nil
 		next.ErrorCode = "private upstream body"
 		next.Attempts = []service.CallAttempt{{ID: fmt.Sprintf("att_calls_%d", index), ProviderModelID: "pmd_historical", ConnectionID: "con_historical", Status: status, StartedAt: started, CompletedAt: started.Add(time.Second), HTTPStatus: 502, ErrorCode: "private upstream body"}}
+		if index == 0 {
+			next.RouteStopReason = "permanent_failure"
+			next.Attempts = []service.CallAttempt{
+				{ID: "att_calls_0_third", ProviderModelID: "pmd_third", ConnectionID: "con_third", AttemptNumber: 3, Status: "error", FailureClass: "permanent_failure", WorkEvidence: "unknown", EvidenceCode: "upstream_response", StartedAt: started.Add(20 * time.Millisecond), CompletedAt: started.Add(30 * time.Millisecond), HTTPStatus: 500, ErrorCode: "private upstream body"},
+				{ID: "att_calls_0_first", ProviderModelID: "pmd_first", ConnectionID: "con_first", AttemptNumber: 1, Status: "error", FailureClass: "connection_failure", WorkEvidence: "not_sent", EvidenceCode: "pre_request_connection", StartedAt: started, CompletedAt: started.Add(10 * time.Millisecond), ErrorCode: "upstream_error"},
+				{ID: "att_calls_0_second", ProviderModelID: "pmd_second", ConnectionID: "con_second", AttemptNumber: 2, Status: "error", FailureClass: "rate_limited", WorkEvidence: "rejected_without_work", EvidenceCode: "native_rate_rejection", StartedAt: started.Add(10 * time.Millisecond), CompletedAt: started.Add(20 * time.Millisecond), HTTPStatus: 429, ErrorCode: "rate_limit_exceeded"},
+			}
+		}
 		if err := svc.RecordCall(context.Background(), next); err != nil {
 			t.Fatal(err)
 		}
@@ -124,7 +132,7 @@ func testCallLifecycle(t *testing.T, db *gorm.DB) {
 	}
 	memberDetail := identityRequest(router, "GET", "/api/v1/calls/"+memberFact.RequestID, "", memberCookie, "")
 	expectStatus(t, memberDetail, 200)
-	for _, forbidden := range []string{"provider_model_id", "connection_id", "attempts", "error_code", "user_id", "credential"} {
+	for _, forbidden := range []string{"provider_model_id", "connection_id", "attempts", "error_code", "route_stop_reason", "failure_class", "work_evidence", "evidence_code", "user_id", "credential"} {
 		if strings.Contains(memberDetail.Body.String(), forbidden) {
 			t.Fatalf("member detail exposed %s", forbidden)
 		}
@@ -134,7 +142,7 @@ func testCallLifecycle(t *testing.T, db *gorm.DB) {
 		t.Fatalf("administrator sees %d records, want4", len(all.Items))
 	}
 	adminDetail := decodeCatalogResponse[AdminCallDetailResponse](t, identityRequest(router, "GET", "/api/v1/admin/calls/req_calls_0", "", adminCookie, ""), 200)
-	if len(adminDetail.Attempts) != 1 || adminDetail.ErrorCode != "upstream_error" || adminDetail.Attempts[0].ErrorCode != "upstream_error" {
+	if len(adminDetail.Attempts) != 3 || adminDetail.ErrorCode != "upstream_error" || adminDetail.RouteStopReason != "permanent_failure" || adminDetail.Attempts[0].AttemptNumber != 1 || adminDetail.Attempts[0].FailureClass != "connection_failure" || adminDetail.Attempts[0].WorkEvidence != "not_sent" || adminDetail.Attempts[0].EvidenceCode != "pre_request_connection" || adminDetail.Attempts[2].AttemptNumber != 3 || adminDetail.Attempts[2].ErrorCode != "upstream_error" {
 		t.Fatal("admin diagnostic classification not sanitized")
 	}
 	first := decodeCatalogResponse[CallsResponse](t, identityRequest(router, "GET", "/api/v1/calls?limit=2", "", adminCookie, ""), 200)

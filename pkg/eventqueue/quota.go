@@ -82,6 +82,12 @@ func readQuotaReceipt(tx *bolt.Tx, id string) (QuotaReceipt, error) {
 	if err := validQuotaSettlement(entry.Actual); err != nil {
 		return entry, err
 	}
+	if err := validQuotaSettlement(entry.Recovery); err != nil {
+		return entry, err
+	}
+	if err := validQuotaRecovery(entry.Bound, entry.Recovery); err != nil {
+		return entry, err
+	}
 	seen := map[string]bool{}
 	for _, account := range entry.Accounts {
 		if !validKey.MatchString(account.Account) || !validKey.MatchString(account.Revision) || seen[account.Account] {
@@ -95,7 +101,7 @@ func readQuotaReceipt(tx *bolt.Tx, id string) (QuotaReceipt, error) {
 			return entry, ErrInvalid
 		}
 	case "complete", "interrupted":
-		if entry.State == "interrupted" && (entry.Actual.Tokens != nil || entry.Actual.Money != nil) {
+		if entry.Recovery.Tokens != nil || entry.Recovery.Money != nil || entry.Recovery.Currency != "" {
 			return entry, ErrInvalid
 		}
 		if !quotaDigest.MatchString(entry.SettlementDigest) {
@@ -148,10 +154,23 @@ func storeQuotaReceipt(tx *bolt.Tx, entry QuotaReceipt) error {
 // ReserveWithQuota commits all parent/child checks, economic holds, RPM, leases
 // and the fallback fact in one synchronous transaction. No partial debit occurs.
 func (q *Queue) ReserveWithQuota(id string, payload []byte, policies []QuotaLimit, bound QuotaBound, now time.Time) error {
+	return q.ReserveWithQuotaRecovery(id, payload, policies, bound, QuotaSettlement{}, now)
+}
+
+// ReserveWithQuotaRecovery also stores the settlement that is safe if the
+// process stops before the first dispatch checkpoint. Admission, fallback,
+// economic holds, and recovery evidence are committed atomically.
+func (q *Queue) ReserveWithQuotaRecovery(id string, payload []byte, policies []QuotaLimit, bound QuotaBound, recovery QuotaSettlement, now time.Time) error {
 	if !q.valid(id, payload) || len(policies) == 0 || len(policies) > 8 {
 		return ErrInvalid
 	}
 	if err := validQuotaBound(bound); err != nil {
+		return err
+	}
+	if err := validQuotaSettlement(recovery); err != nil {
+		return err
+	}
+	if err := validQuotaRecovery(bound, recovery); err != nil {
 		return err
 	}
 	return q.db.Update(func(tx *bolt.Tx) error {
@@ -167,11 +186,64 @@ func (q *Queue) ReserveWithQuota(id string, payload []byte, policies []QuotaLimi
 				return err
 			}
 		}
+		entry.Recovery = recovery
 		if err := storeQuotaReceipt(tx, *entry); err != nil {
 			return err
 		}
 		return tx.Bucket(quotaEntryBucket).SetSequence(tx.Bucket(quotaEntryBucket).Sequence() + 1)
 	})
+}
+
+// UpdatePendingQuota replaces the crash fallback and the settlement that is
+// safe only if the active process stops before its next checkpoint. It never
+// completes the admission or changes its counters while the process is alive.
+func (q *Queue) UpdatePendingQuota(id string, fallback []byte, interrupted QuotaSettlement) error {
+	if !q.valid(id, fallback) {
+		return ErrInvalid
+	}
+	if err := validQuotaSettlement(interrupted); err != nil {
+		return err
+	}
+	return q.db.Update(func(tx *bolt.Tx) error {
+		pending, ready := tx.Bucket(pendingBucket), tx.Bucket(readyBucket)
+		key := []byte(id)
+		if ready.Get(key) != nil || pending.Get(key) == nil {
+			return ErrMissing
+		}
+		entry, err := readQuotaReceipt(tx, id)
+		if err != nil {
+			return err
+		}
+		if entry.State != "active" {
+			return ErrQuotaConflict
+		}
+		if err := validQuotaRecovery(entry.Bound, interrupted); err != nil {
+			return err
+		}
+		entry.Recovery = interrupted
+		if err := storeQuotaReceipt(tx, entry); err != nil {
+			return err
+		}
+		return pending.Put(key, fallback)
+	})
+}
+
+func validQuotaRecovery(bound QuotaBound, recovery QuotaSettlement) error {
+	if recovery.Tokens != nil && bound.Tokens != nil && *recovery.Tokens > *bound.Tokens {
+		return ErrQuotaBound
+	}
+	if recovery.Money == nil || bound.Money == nil {
+		return nil
+	}
+	if recovery.Currency != bound.Currency {
+		return ErrQuotaCurrency
+	}
+	observed, _ := quotaUnits(*recovery.Money)
+	reserved, _ := quotaUnits(*bound.Money)
+	if observed.Cmp(reserved) > 0 {
+		return ErrQuotaBound
+	}
+	return nil
 }
 
 // PreflightWithQuota durably checks whether an admission would definitely be
@@ -424,6 +496,7 @@ func (q *Queue) CompleteQuota(id string, payload []byte, actual QuotaSettlement,
 		}
 		entry.State = "complete"
 		entry.Actual = actual
+		entry.Recovery = QuotaSettlement{}
 		entry.SettlementDigest = digest
 		if actual.Tokens != nil && entry.Bound.Tokens != nil && *actual.Tokens > *entry.Bound.Tokens {
 			entry.Overrun = true

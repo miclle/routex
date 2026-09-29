@@ -56,13 +56,14 @@ func NewEgressClient(targetPrivate, proxyPrivate bool, config EgressConfig) (*ht
 
 func newEgressClient(targetPrivate, proxyPrivate bool, config EgressConfig, lookup lookupFunc, dial dialFunc, proxyTLS *tls.Config, observe stageObserver) (*http.Client, error) {
 	if err := ValidateEgress(config, proxyPrivate); err != nil {
-		return nil, err
+		return nil, preRequestFailure(err)
 	}
 	client := newClient(targetPrivate, lookup, dial)
 	policy := client.Transport.(*policyTransport)
 	policy.bindDialContext = true
 	transport := policy.base
-	transport.DialContext = func(ctx context.Context, network, address string) (net.Conn, error) {
+	transport.DialContext = func(ctx context.Context, network, address string) (conn net.Conn, resultErr error) {
+		defer func() { resultErr = preRequestFailure(resultErr) }()
 		// net/http detaches cancellation while dialing to permit reuse. Tunnel
 		// negotiation must still stop when the requesting caller goes away.
 		if requestCtx, ok := ctx.Value(egressRequestContextKey{}).(context.Context); ok {

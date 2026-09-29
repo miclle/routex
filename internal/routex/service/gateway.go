@@ -71,6 +71,8 @@ type GatewayResult struct {
 	quotaTimeZone      string
 	quotaRequest       quotaRequest
 	admissionLimits    []eventqueue.Limit
+	attemptEvidence    map[string]gatewayAttemptBoundEvidence
+	admissionAllowed   map[string]bool
 	PriceBasis         *CallPriceBasis
 	PricingUnsupported bool
 	PricingDimensions  []string
@@ -90,6 +92,16 @@ type GatewayResult struct {
 	Stream             bool
 	AttemptID          string
 	AttemptStartedAt   time.Time
+	Attempts           []CallAttempt
+	RouteStopReason    string
+	Admitted           bool
+}
+
+// NoUpstreamWork reports an admitted logical call whose durable evidence proves
+// that no provider work began. It includes cancellation after admission and
+// before the first dispatch.
+func (result *GatewayResult) NoUpstreamWork() bool {
+	return result != nil && result.Admitted && result.AttemptID == "" && callAttemptsProveNoWork(result.Attempts)
 }
 
 func (s *Service) GatewayModels(ctx context.Context, bearer string) ([]GatewayModel, error) {
@@ -196,18 +208,17 @@ func (s *Service) gatewayNative(ctx context.Context, bearer string, body []byte,
 		return result, gatewayError(503, "service_unavailable", "Model catalog is unavailable.")
 	}
 	result.ModelID = name.ModelID
+	if s.runtime != nil {
+		return s.gatewayNativeAttempts(ctx, requestID, result, payload, attachmentPlan, options...)
+	}
 	var route *gatewayRoute
 	var credential string
-	if s.runtime != nil {
-		route, credential, err = s.runtimeProtocolRoute(name.ModelID, protocol)
-	} else {
-		route, err = selectGatewayProtocolRoute(s.authDB(ctx), name.ModelID, protocol)
-		if err == nil {
-			if s.secrets == nil {
-				err = runtimeUnavailable
-			} else {
-				credential, err = s.secrets.Open(route.CredentialID, route.Ciphertext)
-			}
+	route, err = selectGatewayProtocolRoute(s.authDB(ctx), name.ModelID, protocol)
+	if err == nil {
+		if s.secrets == nil {
+			err = runtimeUnavailable
+		} else {
+			credential, err = s.secrets.Open(route.CredentialID, route.Ciphertext)
 		}
 	}
 	if err != nil {

@@ -105,13 +105,7 @@ func (s *Service) AdmitGatewayCall(requestID string, result *GatewayResult) erro
 		return callQueueUnavailable
 	}
 	now := time.Now().UTC()
-	imageInputs, pdfInputs := result.ImageInputs, result.PDFInputs
-	fallback := CallFact{PriceBasis: clonePriceBasis(result.PriceBasis), PricingUnsupported: result.PricingUnsupported, PricingDimensions: result.PricingDimensions, RequestID: requestID, SnapshotID: result.SnapshotID, UserID: result.UserID, ProjectID: result.ProjectID, KeyID: result.KeyID, ModelID: result.ModelID, ModelName: result.ModelName, ProviderModelID: result.ProviderModelID, ConnectionID: result.ConnectionID, Protocol: result.NativeProtocol(), Status: "error", Stream: result.Stream, StartedAt: now, CompletedAt: now, ImageInputs: &imageInputs, PDFInputs: &pdfInputs, ErrorCode: "process_interrupted"}
-	finalizeCallPricing(&fallback)
-	if err := validateCallFact(fallback); err != nil {
-		return callQueueUnavailable
-	}
-	payload, err := json.Marshal(fallback)
+	payload, err := gatewayFallbackPayload(requestID, result, now)
 	if err != nil {
 		return callQueueUnavailable
 	}
@@ -130,10 +124,91 @@ func (s *Service) AdmitGatewayCall(requestID string, result *GatewayResult) erro
 	if err := s.ensureQuotaActive(result.quotaTimeZone, now); err != nil {
 		return quotaGatewayError(err)
 	}
-	if err := s.recorder.queue.ReserveWithQuota(requestID, payload, result.admissionQuota, result.quotaBound, now); err != nil {
+	if err := s.recorder.queue.ReserveWithQuotaRecovery(requestID, payload, result.admissionQuota, result.quotaBound, zeroQuotaSettlement(result.quotaBound), now); err != nil {
 		return quotaGatewayError(err)
 	}
 	return nil
+}
+
+// CheckpointGatewayCall fsyncs the latest ordered attempt evidence without
+// changing the single logical admission, quota receipt, RPM, or concurrency.
+func (s *Service) CheckpointGatewayCall(requestID string, result *GatewayResult) error {
+	if s.recorder == nil {
+		return nil
+	}
+	payload, err := gatewayFallbackPayload(requestID, result, time.Now().UTC())
+	if err != nil {
+		return callQueueUnavailable
+	}
+	if len(result.admissionQuota) != 0 {
+		if err := s.recorder.queue.UpdatePendingQuota(requestID, payload, gatewayInterruptedSettlement(result)); err != nil {
+			return callQueueUnavailable
+		}
+		return nil
+	}
+	if s.recorder.queue.UpdatePending(requestID, payload) != nil {
+		return callQueueUnavailable
+	}
+	return nil
+}
+
+func gatewayInterruptedSettlement(result *GatewayResult) eventqueue.QuotaSettlement {
+	settlement := eventqueue.QuotaSettlement{}
+	if result == nil || result.AttemptID != "" || !callAttemptsProveNoWork(result.Attempts) {
+		return settlement
+	}
+	if result.quotaBound.Tokens != nil {
+		zero := int64(0)
+		settlement.Tokens = &zero
+	}
+	if result.quotaBound.Money != nil {
+		zero := "0"
+		settlement.Money = &zero
+		settlement.Currency = result.quotaBound.Currency
+	}
+	return settlement
+}
+
+func zeroQuotaSettlement(bound eventqueue.QuotaBound) eventqueue.QuotaSettlement {
+	settlement := eventqueue.QuotaSettlement{}
+	if bound.Tokens != nil {
+		zero := int64(0)
+		settlement.Tokens = &zero
+	}
+	if bound.Money != nil {
+		zero := "0"
+		settlement.Money = &zero
+		settlement.Currency = bound.Currency
+	}
+	return settlement
+}
+
+func gatewayFallbackPayload(requestID string, result *GatewayResult, now time.Time) ([]byte, error) {
+	imageInputs, pdfInputs := result.ImageInputs, result.PDFInputs
+	attempts := append([]CallAttempt(nil), result.Attempts...)
+	if result.AttemptID != "" {
+		attempts = append(attempts, CallAttempt{
+			ID:              result.AttemptID,
+			ProviderModelID: result.ProviderModelID,
+			ConnectionID:    result.ConnectionID,
+			AttemptNumber:   len(attempts) + 1,
+			Status:          "error",
+			FailureClass:    "permanent_failure",
+			WorkEvidence:    "unknown",
+			StartedAt:       result.AttemptStartedAt,
+			CompletedAt:     now,
+			ErrorCode:       "process_interrupted",
+		})
+	}
+	fallback := CallFact{PriceBasis: clonePriceBasis(result.PriceBasis), PricingUnsupported: result.PricingUnsupported, PricingDimensions: result.PricingDimensions, NoWork: result.AttemptID == "" && callAttemptsProveNoWork(attempts), RequestID: requestID, SnapshotID: result.SnapshotID, UserID: result.UserID, ProjectID: result.ProjectID, KeyID: result.KeyID, ModelID: result.ModelID, ModelName: result.ModelName, ProviderModelID: result.ProviderModelID, ConnectionID: result.ConnectionID, RouteStopReason: result.RouteStopReason, Protocol: result.NativeProtocol(), Status: "error", Stream: result.Stream, StartedAt: now, CompletedAt: now, ImageInputs: &imageInputs, PDFInputs: &pdfInputs, ErrorCode: "process_interrupted", Attempts: attempts}
+	if len(attempts) > 0 {
+		fallback.StartedAt = attempts[0].StartedAt
+	}
+	finalizeCallPricing(&fallback)
+	if err := validateCallFact(fallback); err != nil {
+		return nil, err
+	}
+	return json.Marshal(fallback)
 }
 
 func (s *Service) PersistGatewayCall(ctx context.Context, fact CallFact) error {

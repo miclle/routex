@@ -54,6 +54,7 @@ type runtimeAuthorization struct {
 	LimitPolicies       map[string]limits.Policy
 	LimitRoots          map[string]string
 	Keys                map[string]runtimeKey
+	KeysByID            map[string]runtimeKey
 	Names               map[string]entity.ModelName
 	Models              map[string]bool
 	Credentials         map[string]bool
@@ -430,7 +431,7 @@ func (s *Service) loadRuntimeData(ctx context.Context) (*runtimeData, error) {
 }
 
 func buildRuntimeAuthorization(data *runtimeData, until time.Time) *runtimeAuthorization {
-	auth := &runtimeAuthorization{Quota: data.Quota, ConnectionRevisions: runtimeConnectionRevisions(data), ValidUntil: until, LimitPolicies: data.LimitPolicies, LimitRoots: data.LimitRoots, Keys: map[string]runtimeKey{}, Names: map[string]entity.ModelName{}, Models: map[string]bool{}, Credentials: map[string]bool{}, ProviderModels: map[string]bool{}, CredentialAccess: map[string]map[string]bool{}, ModelCreated: map[string]time.Time{}}
+	auth := &runtimeAuthorization{Quota: data.Quota, ConnectionRevisions: runtimeConnectionRevisions(data), ValidUntil: until, LimitPolicies: data.LimitPolicies, LimitRoots: data.LimitRoots, Keys: map[string]runtimeKey{}, KeysByID: map[string]runtimeKey{}, Names: map[string]entity.ModelName{}, Models: map[string]bool{}, Credentials: map[string]bool{}, ProviderModels: map[string]bool{}, CredentialAccess: map[string]map[string]bool{}, ModelCreated: map[string]time.Time{}}
 	users := map[string]bool{}
 	for _, user := range data.Users {
 		users[user.ID] = !user.Disabled
@@ -467,6 +468,9 @@ func buildRuntimeAuthorization(data *runtimeData, until time.Time) *runtimeAutho
 		auth.Keys[key.TokenHash] = runtimeKey{Key: key, Models: allowed}
 	}
 	addProjectRuntimeAuthorization(auth, data.ProjectData, users)
+	for _, key := range auth.Keys {
+		auth.KeysByID[key.Key.ID] = key
+	}
 	for _, model := range data.ProviderModels {
 		auth.ProviderModels[model.ID] = !model.Disabled
 	}

@@ -10,6 +10,7 @@ import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Drawer } from '@/components/ui/drawer'
+import { Table } from '@/components/ui/table'
 
 export default function CallsPage({
   admin = false,
@@ -288,26 +289,78 @@ function CallDetail({ call, admin }: { call: CallRecord | AdminCallDetail; admin
               <dt className="text-muted-foreground">{t('calls.connection')}</dt>
               <dd className="mt-1 break-all">{call.connection_id || '—'}</dd>
             </div>
+            <div>
+              <dt className="text-muted-foreground">{t('calls.routeStopReason')}</dt>
+              <dd className="mt-1 break-all">
+                {call.route_stop_reason
+                  ? t(`calls.stopReasons.${call.route_stop_reason}`)
+                  : t('calls.notRecorded')}
+              </dd>
+            </div>
           </dl>
           <h4 className="text-xs font-medium">{t('calls.attempts')}</h4>
           {call.attempts.length === 0 && (
             <p className="text-xs text-muted-foreground">{t('calls.noAttempts')}</p>
           )}
-          {call.attempts.map((attempt) => (
-            <div key={attempt.id} className="space-y-1 rounded-md border p-3 text-xs">
-              <p className="break-all font-mono">{attempt.id}</p>
-              <p>
-                {t(`calls.${attempt.status}`, { defaultValue: attempt.status })} · HTTP{' '}
-                {attempt.http_status || '—'} · {attempt.error_code || t('calls.noErrorCode')}
-              </p>
-              <p className="break-all text-muted-foreground">
-                {attempt.connection_id} / {attempt.provider_model_id}
-              </p>
-              <p className="text-muted-foreground">
-                {formatTime(attempt.started_at)} → {formatTime(attempt.completed_at)}
-              </p>
-            </div>
-          ))}
+          {call.attempts.length > 0 && (
+            <Table aria-label={t('calls.attemptDiagnosticsTable')} className="text-xs">
+              <thead>
+                <tr>
+                  <th>{t('calls.attemptNumber')}</th>
+                  <th>{t('calls.attemptOutcome')}</th>
+                  <th>{t('calls.replayEvidence')}</th>
+                  <th>{t('calls.upstreamRoute')}</th>
+                  <th>{t('calls.timing')}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {call.attempts.map((attempt) => (
+                  <tr key={attempt.id}>
+                    <td>
+                      <p className="font-medium">
+                        {attempt.attempt_number > 0 ? `#${attempt.attempt_number}` : '—'}
+                      </p>
+                      <p className="break-all font-mono text-muted-foreground">{attempt.id}</p>
+                    </td>
+                    <td>
+                      <p>{t(`calls.failureClasses.${attempt.failure_class}`)}</p>
+                      <p className="text-muted-foreground">
+                        {t(`calls.${attempt.status}`, { defaultValue: attempt.status })} · HTTP{' '}
+                        {attempt.http_status || '—'}
+                      </p>
+                      <p className="text-muted-foreground">
+                        {attempt.error_code || t('calls.noErrorCode')}
+                      </p>
+                    </td>
+                    <td>
+                      <p>{t(`calls.workEvidence.${attempt.work_evidence}`)}</p>
+                      <p className="text-muted-foreground">
+                        {attempt.evidence_code
+                          ? t(`calls.evidenceCodes.${attempt.evidence_code}`)
+                          : t('calls.noEvidenceCode')}
+                      </p>
+                      <p className="text-muted-foreground">
+                        {t('calls.outputStarted', {
+                          value: t(attempt.output_started ? 'calls.yes' : 'calls.no'),
+                        })}
+                      </p>
+                      <p className="text-muted-foreground">
+                        {t('calls.finalUsageKnown', {
+                          value: t(attempt.final_usage_known ? 'calls.yes' : 'calls.no'),
+                        })}
+                      </p>
+                    </td>
+                    <td className="break-all">
+                      {attempt.connection_id} / {attempt.provider_model_id}
+                    </td>
+                    <td className="whitespace-nowrap text-muted-foreground">
+                      {formatTime(attempt.started_at)} → {formatTime(attempt.completed_at)}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </Table>
+          )}
         </section>
       )}
     </div>

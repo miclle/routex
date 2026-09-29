@@ -10,6 +10,7 @@ import (
 type GatewayUsage struct {
 	Input, Output, CacheRead, CacheWrite *int64
 	Present, Complete, Unsupported       bool
+	OutputStarted                        bool
 	UnsupportedDimensions                []string
 }
 

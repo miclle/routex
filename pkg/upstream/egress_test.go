@@ -240,7 +240,7 @@ func TestSOCKS5IPv4IPv6AndAuthentication(t *testing.T) {
 	client, _ := NewEgressClient(true, true, config)
 	defer client.CloseIdleConnections()
 	_, err := client.Get("http://127.0.0.1:8080/v1/models")
-	if err == nil || strings.Contains(err.Error(), "proxy-test-only") {
+	if err == nil || !IsPreRequestFailure(err) || strings.Contains(err.Error(), "proxy-test-only") {
 		t.Fatal("authentication failure was accepted or exposed credentials")
 	}
 }
