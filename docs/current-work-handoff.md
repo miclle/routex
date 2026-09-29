@@ -1,13 +1,13 @@
 # Current Work Handoff
 
 - **Status:** active; roadmap resumed and phased implementation in progress
-- **Updated:** 2026-09-29T13:07:34+08:00
+- **Updated:** 2026-09-29T13:16:04+08:00
 - **Repository:** `/Users/miclle/github/miclle/routex`
 - **Branch:** `main`
 - **Base:** `main`
-- **Implementation HEAD:** F20-B source is complete in the working tree based on `067ea41506197312ad613df780e45dad071004f7`; record the exact implementation commit after verification
+- **Implementation HEAD:** `652cb4401a90b4b1303859bab70de590c764f47c`
 - **Upstream:** `origin/main`, zero commits ahead and zero behind at capture
-- **Last pushed implementation state:** `3b5e642d387891ac54e8ca5aef2f9dde5ceed62a`; `067ea41506197312ad613df780e45dad071004f7` is the latest pushed documentation checkpoint
+- **Last pushed implementation state:** `652cb4401a90b4b1303859bab70de590c764f47c`
 - **Current owner:** Codex phased implementation
 - **Next owner:** current task until the full objective closes or a later handoff supersedes this file
 - **Transfer state:** active; transferable at a clean verified phase boundary
@@ -27,7 +27,7 @@ Implement every valid RouteX capability represented by F01–F30 and close every
 - Four native inference protocols, durable call facts, usage interfaces, Playground conversation/comparison, executable examples, managed egress, price maintenance, quotas, SMTP administration/test delivery, and the storage/owned-attachment backend have substantial delivered foundations.
 - Storage administration is delivered by `26763e8` (`feat(storage): add administration interface`) with the approved overview-card and large-drawer composition, independent read/write/test permissions, transient credentials, exact ETag review, diagnostics, and verified rollback.
 - Provider-model input capability metadata is delivered by `3b5e642` (`feat(models): declare input capabilities`). Image and PDF support default to false, update atomically with availability, participate in runtime publication, and are exposed as a conservative intersection across ready, enabled, positive-weight routes for each native protocol.
-- F20-B personal-Key attachment resolution is complete in the active source. The gateway recognizes bounded RouteX attachment references only in protocol-owned image/PDF positions, rejects Project Keys and unsupported selected routes before storage access, verifies owner-bound ready objects, deduplicates reads, rewrites native inline data, and performs final admission and upstream dispatch once.
+- F20-B personal-Key attachment resolution is delivered by `652cb44` (`feat(gateway): resolve owned attachments`). The gateway recognizes bounded RouteX attachment references only in protocol-owned image/PDF positions, rejects Project Keys and unsupported selected routes before storage access, verifies owner-bound ready objects, deduplicates reads, rewrites native inline data, and performs final admission and upstream dispatch once.
 - `docs/IMPLEMENTATION.md` contains the authoritative per-capability and per-acceptance status snapshot. The cross-task roadmap is `/Users/miclle/dotfiles/projects/routex/implementation-plan.md`.
 
 ### In Progress
@@ -48,10 +48,10 @@ Implement every valid RouteX capability represented by F01–F30 and close every
 
 ## Working Tree
 
-- **Staged:** none before the F20-B implementation commit
-- **Modified:** F20-B gateway, storage-read, quota preflight, handler integration, project rules, implementation status, Playground, storage, and this handoff documentation
-- **Untracked:** focused F20-B attachment resolver and scanner source/tests
-- **Unpushed commits:** none; source changes remain uncommitted until final review and required checks pass
+- **Staged:** none
+- **Modified:** only this handoff refresh before its documentation checkpoint
+- **Untracked:** none
+- **Unpushed commits:** `652cb44` is pushed; commit and push this handoff refresh separately
 - **Do not overwrite:** preserve any new user or concurrent-task changes discovered by the receiver; re-run the state checks before editing
 
 ## Decisions and Rationale
@@ -120,9 +120,9 @@ Implement every valid RouteX capability represented by F01–F30 and close every
 
 ## Next Actions
 
-1. Finish the F20-B phase gate: run final full checks and PostgreSQL/MySQL integration, commit and push the verified source, replace this handoff's pending source marker with the exact commit, and update the cross-task roadmap.
-2. Implement F20-C attachment controls in the existing single-model Playground composition. Follow the approved chip/paperclip interaction, keep upload/session state and one-time object identifiers transient, gate controls from effective model capabilities, and use paired English/Chinese copy through i18next.
-3. Cover selection, upload, removal, cancellation, capability changes, navigation cleanup, validation, accessible names, and native payload construction with focused frontend tests, then run the required phase checks before the next commit and push.
+1. Implement F20-C attachment controls in the existing single-model Playground composition. Follow the approved chip/paperclip interaction, keep upload/session state and one-time object identifiers transient, gate controls from effective model capabilities, and use paired English/Chinese copy through i18next.
+2. Cover selection, upload, removal, cancellation, capability changes, navigation cleanup, validation, accessible names, and native payload construction with focused frontend tests, then run the required phase checks before the next commit and push.
+3. After the single-model flow is verified, extend the same transient attachment contract to comparison lanes without sharing credentials, requests, or mutable attachment state between lanes.
 
 ## Environment and Access
 
@@ -134,6 +134,6 @@ Implement every valid RouteX capability represented by F01–F30 and close every
 
 ## Handoff History
 
-- **Continues from:** storage administration at `26763e8`, provider-model input capabilities at `3b5e642`, and F20-B source based on `067ea41`
+- **Continues from:** storage administration at `26763e8`, provider-model input capabilities at `3b5e642`, and personal-Key attachment resolution at `652cb44`
 - **Supersedes:** the storage-administration-next checkpoint at `bcc663a`
 - **Closeout condition:** all F01–F30 capabilities and A01–A20 acceptance cases are completed with current evidence, or a later handoff replaces this document with an equally verifiable resume point
