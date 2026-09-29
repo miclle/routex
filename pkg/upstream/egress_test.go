@@ -318,6 +318,202 @@ func TestSOCKS5TriesEveryValidatedTargetAddress(t *testing.T) {
 	}
 }
 
+func TestSOCKS5TriesEveryValidatedProxyAddress(t *testing.T) {
+	listener, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = listener.Close() })
+	application := make(chan string, 1)
+	firstReceivedApplication := make(chan bool, 1)
+	go func() {
+		for attempt := 0; attempt < 2; attempt++ {
+			conn, acceptErr := listener.Accept()
+			if acceptErr != nil {
+				return
+			}
+			func() {
+				defer func() { _ = conn.Close() }()
+				_ = conn.SetDeadline(time.Now().Add(3 * time.Second))
+				greeting := make([]byte, 3)
+				if _, readErr := io.ReadFull(conn, greeting); readErr != nil {
+					return
+				}
+				_, _ = conn.Write([]byte{5, 0})
+				head := make([]byte, 4)
+				if _, readErr := io.ReadFull(conn, head); readErr != nil {
+					return
+				}
+				size := 4
+				if head[3] == 4 {
+					size = 16
+				}
+				if _, readErr := io.CopyN(io.Discard, conn, int64(size+2)); readErr != nil {
+					return
+				}
+				if attempt == 0 {
+					_, _ = conn.Write([]byte{5, 4, 0, 1, 127, 0, 0, 1, 0, 0})
+					buffer := make([]byte, 1)
+					n, _ := conn.Read(buffer)
+					firstReceivedApplication <- n != 0
+					return
+				}
+				_, _ = conn.Write([]byte{5, 0, 0, 1, 127, 0, 0, 1, 0, 80})
+				line, _ := bufio.NewReader(conn).ReadString('\n')
+				application <- line
+			}()
+		}
+	}()
+
+	_, proxyPort, _ := net.SplitHostPort(listener.Addr().String())
+	portNumber, _ := strconv.Atoi(proxyPort)
+	lookup := func(_ context.Context, _ string, host string) ([]netip.Addr, error) {
+		switch host {
+		case "proxy.example.com":
+			return []netip.Addr{netip.MustParseAddr("93.184.216.35"), netip.MustParseAddr("93.184.216.36")}, nil
+		case "target.example.com":
+			return []netip.Addr{netip.MustParseAddr("93.184.216.34")}, nil
+		default:
+			return nil, errors.New("unexpected lookup")
+		}
+	}
+	var dialed []string
+	dialer := &net.Dialer{}
+	dial := func(ctx context.Context, network, address string) (net.Conn, error) {
+		dialed = append(dialed, address)
+		return dialer.DialContext(ctx, network, listener.Addr().String())
+	}
+	client, err := newEgressClient(false, false, EgressConfig{Kind: "socks5", Host: "proxy.example.com", Port: portNumber}, lookup, dial, nil, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer client.CloseIdleConnections()
+	conn, err := client.Transport.(*policyTransport).base.DialContext(context.Background(), "tcp", "target.example.com:8080")
+	if err != nil {
+		t.Fatalf("second validated proxy address was not attempted: %v", err)
+	}
+	if _, err := io.WriteString(conn, "GET /models HTTP/1.1\r\n"); err != nil {
+		t.Fatal(err)
+	}
+	_ = conn.Close()
+	if got := <-firstReceivedApplication; got {
+		t.Fatal("application request was sent before a proxy tunnel succeeded")
+	}
+	if got := <-application; got != "GET /models HTTP/1.1\r\n" {
+		t.Fatalf("application request = %q", got)
+	}
+	want := []string{"93.184.216.35:" + proxyPort, "93.184.216.36:" + proxyPort}
+	if len(dialed) != len(want) || dialed[0] != want[0] || dialed[1] != want[1] {
+		t.Fatalf("proxy dials = %v, want %v", dialed, want)
+	}
+}
+
+func TestProxyTunnelFailsAfterEveryValidatedProxyAddress(t *testing.T) {
+	var dialed []string
+	dial := func(_ context.Context, _ string, address string) (net.Conn, error) {
+		dialed = append(dialed, address)
+		client, server := net.Pipe()
+		go func() {
+			defer func() { _ = server.Close() }()
+			greeting := make([]byte, 3)
+			if _, err := io.ReadFull(server, greeting); err != nil {
+				return
+			}
+			_, _ = server.Write([]byte{5, 0})
+			head := make([]byte, 4)
+			if _, err := io.ReadFull(server, head); err != nil {
+				return
+			}
+			size := 4
+			if head[3] == 4 {
+				size = 16
+			}
+			if _, err := io.CopyN(io.Discard, server, int64(size+2)); err != nil {
+				return
+			}
+			_, _ = server.Write([]byte{5, 4, 0, 1, 127, 0, 0, 1, 0, 0})
+		}()
+		return client, nil
+	}
+	proxyIPs := []netip.Addr{netip.MustParseAddr("93.184.216.35"), netip.MustParseAddr("93.184.216.36")}
+	_, err := openEgressTunnel(context.Background(), "tcp", "443", netip.MustParseAddr("93.184.216.34"), proxyIPs, EgressConfig{Kind: "socks5", Port: 1080}, dial, nil, nil)
+	if !errors.Is(err, errProxy) {
+		t.Fatalf("tunnel error = %v, want %v", err, errProxy)
+	}
+	want := []string{"93.184.216.35:1080", "93.184.216.36:1080"}
+	if len(dialed) != len(want) || dialed[0] != want[0] || dialed[1] != want[1] {
+		t.Fatalf("proxy dials = %v, want %v", dialed, want)
+	}
+}
+
+func TestHTTPSProxyTriesEveryValidatedProxyAddress(t *testing.T) {
+	application := make(chan string, 1)
+	var connects atomic.Int32
+	proxy := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodConnect {
+			t.Errorf("proxy method = %s, want CONNECT", r.Method)
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+		if connects.Add(1) == 1 {
+			w.WriteHeader(http.StatusBadGateway)
+			return
+		}
+		conn, _, err := w.(http.Hijacker).Hijack()
+		if err != nil {
+			t.Error(err)
+			return
+		}
+		defer func() { _ = conn.Close() }()
+		_, _ = io.WriteString(conn, "HTTP/1.1 200 Connection Established\r\n\r\n")
+		line, _ := bufio.NewReader(conn).ReadString('\n')
+		application <- line
+	}))
+	defer proxy.Close()
+	proxyURL, _ := url.Parse(proxy.URL)
+	_, proxyPort, _ := net.SplitHostPort(proxyURL.Host)
+	portNumber, _ := strconv.Atoi(proxyPort)
+	roots := x509.NewCertPool()
+	roots.AddCert(proxy.Certificate())
+	lookup := func(_ context.Context, _ string, host string) ([]netip.Addr, error) {
+		switch host {
+		case "proxy.example.com":
+			return []netip.Addr{netip.MustParseAddr("93.184.216.35"), netip.MustParseAddr("93.184.216.36")}, nil
+		case "target.example.com":
+			return []netip.Addr{netip.MustParseAddr("93.184.216.34")}, nil
+		default:
+			return nil, errors.New("unexpected lookup")
+		}
+	}
+	var dialed []string
+	dialer := &net.Dialer{}
+	dial := func(ctx context.Context, network, address string) (net.Conn, error) {
+		dialed = append(dialed, address)
+		return dialer.DialContext(ctx, network, proxyURL.Host)
+	}
+	config := EgressConfig{Kind: "https", Host: "proxy.example.com", Port: portNumber}
+	client, err := newEgressClient(false, false, config, lookup, dial, &tls.Config{RootCAs: roots, MinVersion: tls.VersionTLS12}, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer client.CloseIdleConnections()
+	conn, err := client.Transport.(*policyTransport).base.DialContext(context.Background(), "tcp", "target.example.com:443")
+	if err != nil {
+		t.Fatalf("second validated proxy address was not attempted: %v", err)
+	}
+	if _, err := io.WriteString(conn, "GET /models HTTP/1.1\r\n"); err != nil {
+		t.Fatal(err)
+	}
+	_ = conn.Close()
+	if got := <-application; got != "GET /models HTTP/1.1\r\n" {
+		t.Fatalf("application request = %q", got)
+	}
+	want := []string{"93.184.216.35:" + proxyPort, "93.184.216.36:" + proxyPort}
+	if len(dialed) != len(want) || dialed[0] != want[0] || dialed[1] != want[1] || connects.Load() != 2 {
+		t.Fatalf("proxy dials = %v, CONNECT attempts = %d; want %v and 2", dialed, connects.Load(), want)
+	}
+}
+
 func TestProxyPolicyCannotBypassTargetPolicy(t *testing.T) {
 	config, _ := runSOCKSFixture(t, "", "", false)
 	client, err := NewEgressClient(false, true, config)

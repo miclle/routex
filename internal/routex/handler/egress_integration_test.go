@@ -189,6 +189,30 @@ func testEgressLifecycle(t *testing.T, db *gorm.DB) {
 	if strings.Contains(stored.AuthCiphertext, "test-only") || stored.AuthCiphertext == "" {
 		t.Fatal("proxy credentials not encrypted")
 	}
+	redirect := input
+	redirect.ETag = row.ETag
+	redirect.Host = "attacker.example.invalid"
+	redirect.Auth = service.EgressAuthInput{Action: "keep"}
+	expectStatus(t, request("PATCH", "/api/v1/admin/egresses/"+row.ID, redirect), 400)
+	draft := map[string]any{
+		"egress_id":            row.ID,
+		"name":                 redirect.Name,
+		"kind":                 redirect.Kind,
+		"host":                 redirect.Host,
+		"port":                 redirect.Port,
+		"enabled":              redirect.Enabled,
+		"etag":                 redirect.ETag,
+		"auth":                 redirect.Auth,
+		"test_target_base_url": redirect.TestTargetBaseURL,
+	}
+	expectStatus(t, request("POST", "/api/v1/admin/egresses/test", draft), 400)
+	var unchanged entity.Egress
+	if err := db.First(&unchanged, "id = ?", row.ID).Error; err != nil {
+		t.Fatal(err)
+	}
+	if unchanged.ETag != row.ETag || unchanged.Host != stored.Host || unchanged.AuthCiphertext != stored.AuthCiphertext {
+		t.Fatal("rejected credential redirect mutated the saved egress")
+	}
 	listed := request("GET", "/api/v1/admin/egresses", nil)
 	expectStatus(t, listed, 200)
 	if strings.Contains(listed.Body.String(), "proxy-user") || strings.Contains(listed.Body.String(), "test-only-proxy-password") {

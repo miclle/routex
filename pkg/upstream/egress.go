@@ -109,19 +109,27 @@ func newEgressClient(targetPrivate, proxyPrivate bool, config EgressConfig, look
 }
 
 func openEgressTunnel(ctx context.Context, network, port string, target netip.Addr, proxyIPs []netip.Addr, config EgressConfig, dial dialFunc, proxyTLS *tls.Config, observe stageObserver) (net.Conn, error) {
+	for _, proxyIP := range proxyIPs {
+		if err := ctx.Err(); err != nil {
+			return nil, err
+		}
+		conn, err := openEgressTunnelAddress(ctx, network, port, target, proxyIP, config, dial, proxyTLS, observe)
+		if err == nil {
+			return conn, nil
+		}
+		if err := ctx.Err(); err != nil {
+			return nil, err
+		}
+	}
+	return nil, errProxy
+}
+
+func openEgressTunnelAddress(ctx context.Context, network, port string, target, proxyIP netip.Addr, config EgressConfig, dial dialFunc, proxyTLS *tls.Config, observe stageObserver) (net.Conn, error) {
 	var conn net.Conn
 	err := observe.run("tcp", func() error {
-		for _, ip := range proxyIPs {
-			if ctx.Err() != nil {
-				return ctx.Err()
-			}
-			var dialErr error
-			conn, dialErr = dial(ctx, network, net.JoinHostPort(ip.String(), strconv.Itoa(config.Port)))
-			if dialErr == nil {
-				return nil
-			}
-		}
-		return errProxy
+		var dialErr error
+		conn, dialErr = dial(ctx, network, net.JoinHostPort(proxyIP.String(), strconv.Itoa(config.Port)))
+		return dialErr
 	})
 	if err != nil {
 		return nil, err

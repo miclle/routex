@@ -164,7 +164,7 @@ The binary capability count is 6 completed, 20 partially completed, and 4 not st
 | F11 | Provider, Connection, Credential, discovery, and rotation | Partially completed | The management workspace, encrypted credentials, controlled verification, and activation boundaries exist; real-provider acceptance and complete pool operations remain open. |
 | F12 | Model catalog, names, bindings, weights, and catalog assistance | Partially completed | Stable models, renames, bindings, weights, grants, and availability controls exist; complete public-catalog assistance and final routing acceptance remain open. |
 | F13 | Four native protocols, streaming, health, retries, and failover | Partially completed | Chat Completions, Responses, Messages, and Gemini ordinary/streaming paths exist. Active retry, health routing, and failover are not wired; the route-attempt package is foundation only. |
-| F14 | Managed egress and staged network diagnostics | Partially completed | Direct, default, SOCKS5, verified CONNECT, and diagnostics exist. Saved-auth endpoint protection and multi-address proxy dialing require remediation before production acceptance. |
+| F14 | Managed egress and staged network diagnostics | Partially completed | Direct, default, SOCKS5, verified CONNECT, endpoint-bound saved authentication, complete-tunnel proxy-address fallback, and diagnostics exist. External proxy and production performance acceptance remain open. |
 | F15 | Prices, spreadsheet/CSV workflows, API, and repository sync | Partially completed | Current prices, ETags, CSV/XLS/XLSX import, preview, commit, and export exist; external price-repository synchronization is not implemented. |
 | F16 | Platform currency, exchange rates, and historical price snapshots | Completed | Decimal-string currency/rate management, exact quoting, and immutable per-call assessment are implemented. |
 | F17 | User and Team defaults, overrides, budgets, alerts, and stop policy | Partially completed | Personal, Project, and Key enforcement exists; Team defaults, templates, alerts, and stop-calling policy remain open. |
@@ -766,16 +766,24 @@ selected before an acknowledged transport change.
 
 The administration interface follows the established RouteX layout with list,
 edit, default-selection, connection-selection and measured diagnostic flows in
-English and Chinese. Tests cover redaction, credential replacement/removal,
-optimistic concurrency, cancellation, IPv4/IPv6 target failover, diagnostics,
-ordinary/SSE routing, disabled-proxy rejection and restart behavior. Review found
-and fixed a draft-test credential redirect and a GORM column-name mismatch before
-landing. Full check/test passed with 335 Vitest cases, four Node checks, Go
-race/unit, development lifecycle and production assets. Serialized PostgreSQL and
-MySQL integration plus both process lifecycle suites passed. A controlled
-production browser saved and selected a local SOCKS5 proxy, then completed a real
-native Gemini stream through that route; the proxy observed the diagnostic and
-gateway tunnels. External proxy services and production performance remain open.
+English and Chinese. Saved authentication is bound to its existing proxy kind,
+host and port; updates and draft tests must explicitly remove or replace it before
+changing that endpoint. Tunnel establishment tries every validated proxy address,
+including failures during HTTPS TLS/CONNECT and SOCKS5 negotiation, while keeping
+application bytes behind the successful tunnel. Tests cover those boundaries plus
+redaction, credential replacement/removal, optimistic concurrency, cancellation,
+IPv4/IPv6 target failover, diagnostics, ordinary/SSE routing, disabled-proxy
+rejection and restart behavior. The original delivery passed full check/test with
+335 Vitest cases, four Node checks, Go race/unit, development lifecycle and
+production assets. Serialized PostgreSQL and MySQL integration plus both process
+lifecycle suites passed. A controlled production browser saved and selected a
+local SOCKS5 proxy, then completed a real native Gemini stream through that route;
+the proxy observed the diagnostic and gateway tunnels. The endpoint-binding and
+complete-tunnel proxy-address regressions were added during the resumed roadmap
+work. That remediation passed focused race tests, the full check/test gate with
+378 Vitest cases, four Node checks, development lifecycle and production assets,
+and the PostgreSQL/MySQL integration suite with the handler matrix at 397.124
+seconds. External proxy services and production performance remain open.
 
 ### Durable quota-ledger foundation
 

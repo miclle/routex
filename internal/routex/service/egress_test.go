@@ -52,15 +52,34 @@ func TestEgressPreparationRejectsCredentialRedirect(t *testing.T) {
 		SecretGeneration: "sec_one",
 		AuthCiphertext:   "encrypted",
 	}
-	input := EgressInput{
-		Name: "Proxy", Kind: "socks5", Host: "attacker.example.com", Port: 1080,
-		Auth: EgressAuthInput{Action: "keep"},
+	tests := []struct {
+		name   string
+		kind   string
+		host   string
+		port   int
+		action string
+	}{
+		{name: "host", kind: row.Kind, host: "attacker.example.com", port: row.Port, action: "keep"},
+		{name: "port", kind: row.Kind, host: row.Host, port: 1081, action: "keep"},
+		{name: "kind", kind: "https", host: row.Host, port: row.Port, action: "keep"},
+		{name: "implicit keep", kind: row.Kind, host: "attacker.example.com", port: row.Port},
 	}
-	if _, _, _, err := svc.prepareEgress(row, input); err != apperrors.ErrBadRequest {
-		t.Fatalf("credential redirect error = %v, want bad request", err)
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			input := EgressInput{
+				Name: "Proxy", Kind: test.kind, Host: test.host, Port: test.port,
+				Auth: EgressAuthInput{Action: test.action},
+			}
+			if _, _, _, err := svc.prepareEgress(row, input); err != apperrors.ErrBadRequest {
+				t.Fatalf("credential redirect error = %v, want bad request", err)
+			}
+		})
 	}
 
-	input.Auth.Action = "remove"
+	input := EgressInput{
+		Name: "Proxy", Kind: "socks5", Host: "attacker.example.com", Port: 1080,
+		Auth: EgressAuthInput{Action: "remove"},
+	}
 	updated, _, changed, err := svc.prepareEgress(row, input)
 	if err != nil || !changed || updated.AuthCiphertext != "" {
 		t.Fatalf("explicit credential removal failed: changed=%v err=%v", changed, err)
