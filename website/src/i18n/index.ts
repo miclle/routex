@@ -1,5 +1,7 @@
 import enEgress from './locales/en/egress'
 import zhEgress from './locales/zh/egress'
+import enStorage from './locales/en/storage'
+import zhStorage from './locales/zh/storage'
 import enSMTP from './locales/en/smtp'
 import zhSMTP from './locales/zh/smtp'
 import enAudit from './locales/en/audit'
@@ -78,6 +80,7 @@ void i18n.use(initReactI18next).init({
     en: {
       common: en,
       egress: enEgress,
+      storage: enStorage,
       smtp: enSMTP,
       audit: enAudit,
       site: enSite,
@@ -100,6 +103,7 @@ void i18n.use(initReactI18next).init({
     zh: {
       common: zh,
       egress: zhEgress,
+      storage: zhStorage,
       smtp: zhSMTP,
       audit: zhAudit,
       site: zhSite,

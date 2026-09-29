@@ -47,6 +47,10 @@ const routes: RouteObject[] = [
             lazy: async () => ({ Component: (await import('@/views/egress')).default }),
           },
           {
+            path: 'admin/storage',
+            lazy: async () => ({ Component: (await import('@/views/storage')).default }),
+          },
+          {
             path: 'admin/smtp',
             lazy: async () => ({ Component: (await import('@/views/smtp')).default }),
           },

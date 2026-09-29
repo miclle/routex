@@ -26,6 +26,7 @@ import {
   ChevronRight,
   Cloud,
   Mail,
+  Database,
   UsersRound,
   FolderKanban,
 } from 'lucide-react'
@@ -101,17 +102,6 @@ const accountNav = [
 ]
 const adminNav = [
   {
-    to: '/admin/smtp',
-    get label() {
-      return t('smtp:title')
-    },
-    icon: Mail,
-    permission: 'smtp.read',
-    get group() {
-      return t('system_administration_04ca1')
-    },
-  },
-  {
     to: '/admin/egress',
     get label() {
       return t('egress:title')
@@ -151,6 +141,28 @@ const adminNav = [
     },
     icon: History,
     permission: 'system.read',
+    get group() {
+      return t('system_administration_04ca1')
+    },
+  },
+  {
+    to: '/admin/storage',
+    get label() {
+      return t('storage:navTitle')
+    },
+    icon: Database,
+    permission: 'storage.read',
+    get group() {
+      return t('system_administration_04ca1')
+    },
+  },
+  {
+    to: '/admin/smtp',
+    get label() {
+      return t('smtp:title')
+    },
+    icon: Mail,
+    permission: 'smtp.read',
     get group() {
       return t('system_administration_04ca1')
     },
