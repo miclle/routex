@@ -31,6 +31,8 @@ type storageFixture struct {
 	objects             map[string]storageFixtureObject
 	sequence, getCalls  int
 	failGet, failDelete bool
+	blockGetStarted     chan struct{}
+	blockGetContinue    chan struct{}
 }
 
 func newStorageFixture(t *testing.T) (*httptest.Server, *storageFixture) {
@@ -73,6 +75,12 @@ func newStorageFixture(t *testing.T) (*httptest.Server, *storageFixture) {
 		switch r.Method {
 		case "GET":
 			fixture.getCalls++
+			if fixture.blockGetStarted != nil {
+				close(fixture.blockGetStarted)
+				fixture.blockGetStarted = nil
+				<-fixture.blockGetContinue
+				fixture.blockGetContinue = nil
+			}
 			if fixture.failGet {
 				w.WriteHeader(503)
 				return
@@ -209,6 +217,126 @@ func testStorageLifecycle(t *testing.T, db *gorm.DB) {
 	}
 	if _, err := svc.StorageSettings(ctx, member.User.ID); err == nil {
 		t.Fatal("unprivileged storage configuration read")
+	}
+	projectManager, err := svc.CreateMember(ctx, auth.User.ID, "project-storage-manager@example.invalid", "project-manager-password", "Project manager", "member")
+	if err != nil {
+		t.Fatal(err)
+	}
+	successor, err := svc.CreateMember(ctx, auth.User.ID, "project-storage-successor@example.invalid", "project-successor-password", "Project successor", "member")
+	if err != nil {
+		t.Fatal(err)
+	}
+	managerAuth, managerCookie := readIdentity(t, identityRequest(router, "POST", "/api/v1/auth/login", `{"email":"project-storage-manager@example.invalid","password":"project-manager-password"}`, nil, ""))
+	successorAuth, successorCookie := readIdentity(t, identityRequest(router, "POST", "/api/v1/auth/login", `{"email":"project-storage-successor@example.invalid","password":"project-successor-password"}`, nil, ""))
+	managerRequest := func(method, path string, input any) *httptest.ResponseRecorder {
+		encoded, _ := json.Marshal(input)
+		return identityRequest(router, method, path, string(encoded), managerCookie, managerAuth.CSRFToken)
+	}
+	successorRequest := func(method, path string, input any) *httptest.ResponseRecorder {
+		encoded, _ := json.Marshal(input)
+		return identityRequest(router, method, path, string(encoded), successorCookie, successorAuth.CSRFToken)
+	}
+	project := decodeCatalogResponse[ProjectResponse](t, managerRequest("POST", "/api/v1/projects", map[string]any{"name": "Project attachment scope"}), 201)
+	if len(project.Managers) != 1 || project.Managers[0].UserID != projectManager.User.ID {
+		t.Fatal("Project was not created under the authenticated manager")
+	}
+	projectUpload := func(projectID, filename string, payload []byte, sessionCookie *http.Cookie, csrf string) *httptest.ResponseRecorder {
+		var content bytes.Buffer
+		writer := multipart.NewWriter(&content)
+		part, e := writer.CreateFormFile("file", filename)
+		if e != nil {
+			t.Fatal(e)
+		}
+		_, _ = part.Write(payload)
+		if e := writer.Close(); e != nil {
+			t.Fatal(e)
+		}
+		req := httptest.NewRequest("POST", "/api/v1/projects/"+projectID+"/attachments", &content)
+		req.Header.Set("Content-Type", writer.FormDataContentType())
+		req.Header.Set("Origin", "http://example.com")
+		req.Header.Set("X-CSRF-Token", csrf)
+		req.AddCookie(sessionCookie)
+		result := httptest.NewRecorder()
+		router.ServeHTTP(result, req)
+		return result
+	}
+	projectObject := decodeCatalogResponse[service.AttachmentView](t, projectUpload(project.ID, "project-document.pdf", body, managerCookie, managerAuth.CSRFToken), 201)
+	var projectStoredObject entity.StorageObject
+	if err := db.First(&projectStoredObject, "id = ? AND owner_kind = ? AND owner_id = ?", projectObject.ID, entity.StorageOwnerProject, project.ID).Error; err != nil {
+		t.Fatalf("Project attachment ownership was not durable: %v", err)
+	}
+	projectPath := "/api/v1/projects/" + project.ID + "/attachments/" + projectObject.ID
+	expectStatus(t, managerRequest("GET", projectPath+"/content", nil), 200)
+	expectStatus(t, request("GET", projectPath, nil), 404)
+	expectStatus(t, request("GET", projectPath+"/content", nil), 404)
+	expectStatus(t, request("DELETE", projectPath, nil), 404)
+	expectStatus(t, projectUpload(project.ID, "admin-document.pdf", body, cookie, auth.CSRFToken), 404)
+	expectStatus(t, managerRequest("GET", "/api/v1/attachments/"+projectObject.ID, nil), 404)
+	expectStatus(t, managerRequest("GET", "/api/v1/projects/"+project.ID+"/attachments/"+object.ID, nil), 404)
+	otherProject := decodeCatalogResponse[ProjectResponse](t, managerRequest("POST", "/api/v1/projects", map[string]any{"name": "Other Project attachment scope"}), 201)
+	expectStatus(t, managerRequest("GET", "/api/v1/projects/"+otherProject.ID+"/attachments/"+projectObject.ID, nil), 404)
+
+	fixture.mu.Lock()
+	fixture.blockGetStarted = make(chan struct{})
+	fixture.blockGetContinue = make(chan struct{})
+	started, resume := fixture.blockGetStarted, fixture.blockGetContinue
+	fixture.mu.Unlock()
+	racingUpload := make(chan *httptest.ResponseRecorder, 1)
+	go func() {
+		racingUpload <- projectUpload(project.ID, "racing-document.pdf", body, managerCookie, managerAuth.CSRFToken)
+	}()
+	<-started
+	if _, err := svc.SetProjectManagers(ctx, auth.User.ID, project.ID, []string{successor.User.ID}); err != nil {
+		t.Fatal(err)
+	}
+	close(resume)
+	expectStatus(t, <-racingUpload, 404)
+	var raced entity.StorageObject
+	if err := db.Where("owner_kind = ? AND owner_id = ? AND name = ?", entity.StorageOwnerProject, project.ID, "racing-document.pdf").First(&raced).Error; err != nil || raced.State != "delete_pending" {
+		t.Fatalf("manager removal published in-flight Project upload: state=%q err=%v", raced.State, err)
+	}
+	expectStatus(t, managerRequest("GET", projectPath+"/content", nil), 404)
+	successorContent := successorRequest("GET", projectPath+"/content", nil)
+	expectStatus(t, successorContent, 200)
+	if !bytes.Equal(successorContent.Body.Bytes(), body) {
+		t.Fatal("successor manager could not read the existing Project object")
+	}
+	fixture.mu.Lock()
+	fixture.blockGetStarted = make(chan struct{})
+	fixture.blockGetContinue = make(chan struct{})
+	started, resume = fixture.blockGetStarted, fixture.blockGetContinue
+	fixture.mu.Unlock()
+	racingContent := make(chan *httptest.ResponseRecorder, 1)
+	go func() {
+		racingContent <- successorRequest("GET", projectPath+"/content", nil)
+	}()
+	<-started
+	if _, err := svc.SetProjectManagers(ctx, auth.User.ID, project.ID, []string{projectManager.User.ID}); err != nil {
+		t.Fatal(err)
+	}
+	close(resume)
+	expectStatus(t, <-racingContent, 404)
+	expectStatus(t, successorRequest("GET", projectPath+"/content", nil), 404)
+	expectStatus(t, managerRequest("GET", projectPath+"/content", nil), 200)
+	disabledStatus := entity.ResourceDisabled
+	if _, err := svc.UpdateResource(ctx, auth.User.ID, service.ProjectResource, project.ID, service.ResourceUpdate{Status: &disabledStatus}); err != nil {
+		t.Fatal(err)
+	}
+	expectStatus(t, projectUpload(project.ID, "disabled-document.pdf", body, managerCookie, managerAuth.CSRFToken), 404)
+	expectStatus(t, managerRequest("GET", projectPath, nil), 200)
+	expectStatus(t, managerRequest("GET", projectPath+"/content", nil), 200)
+	archived := entity.ResourceArchived
+	if _, err := svc.UpdateResource(ctx, auth.User.ID, service.ProjectResource, project.ID, service.ResourceUpdate{Status: &archived}); err != nil {
+		t.Fatal(err)
+	}
+	expectStatus(t, managerRequest("GET", projectPath, nil), 200)
+	expectStatus(t, managerRequest("GET", projectPath+"/content", nil), 200)
+	expectStatus(t, managerRequest("DELETE", projectPath, nil), 200)
+	if err := db.Model(&entity.StorageObject{}).Where("owner_kind = ? AND owner_id = ? AND state = ?", entity.StorageOwnerProject, project.ID, "delete_pending").Update("next_cleanup_at", time.Now().Add(-time.Minute)).Error; err != nil {
+		t.Fatal(err)
+	}
+	if err := svc.FlushStorageCleanup(ctx, 32); err != nil {
+		t.Fatal(err)
 	}
 	// Changing the active prefix never changes the descriptor of old attachments.
 	input.ETag = enabled.ETag

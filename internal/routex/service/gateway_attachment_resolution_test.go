@@ -24,10 +24,102 @@ import (
 	"gorm.io/gorm"
 )
 
-func TestGatewayAttachmentRejectsProjectKeyBeforeResolution(t *testing.T) {
-	svc, _, projectBearer, _ := projectRuntimeFixture(t)
-	_, err := svc.GatewayChat(context.Background(), projectBearer, attachmentChatBody(testAttachmentImageID), "req_project_attachment")
-	assertGatewayResolutionError(t, err, http.StatusBadRequest, "project_attachment_unsupported")
+func TestGatewayProjectAttachmentQuotaAdmissionAndDispatch(t *testing.T) {
+	for _, test := range gatewayAttachmentQuotaCases() {
+		t.Run(test.name, func(t *testing.T) {
+			var upstreamCalls atomic.Int32
+			upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+				upstreamCalls.Add(1)
+				w.Header().Set("Content-Type", "application/json")
+				_, _ = io.WriteString(w, `{}`)
+			}))
+			defer upstream.Close()
+
+			svc, data, projectBearer, _ := projectRuntimeFixture(t)
+			data.Connections[0].BaseURL = upstream.URL + "/v1"
+			reads := configureGatewayAttachmentStorageScope(t, svc, entity.StorageOwnerProject, "prj_one")
+			configureGatewayAttachmentQuota(t, svc, data, test.protocol, entity.ResourceLimit{ScopeKind: "project", ScopeID: "prj_one", ETag: "policy_project_attachment", Tokens5H: limitNumber(500)})
+
+			requestID := "req_project_attachment_" + strings.ReplaceAll(test.name, " ", "_")
+			result, err := test.invoke(svc, projectBearer, []byte(test.body), requestID)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if err := result.Response.Body.Close(); err != nil {
+				t.Fatal(err)
+			}
+			if upstreamCalls.Load() != 1 {
+				t.Fatalf("upstream dispatches = %d, want 1", upstreamCalls.Load())
+			}
+			if reads(testAttachmentImageID) != 1 || reads(testAttachmentPDFID) != 1 {
+				t.Fatalf("storage reads = image %d, PDF %d, want one per unique Project object", reads(testAttachmentImageID), reads(testAttachmentPDFID))
+			}
+			receipt, err := svc.recorder.queue.QuotaReceipt(requestID)
+			if err != nil || receipt.Bound.Tokens == nil || *receipt.Bound.Tokens != 110 {
+				t.Fatalf("Project reservation = %+v, error = %v, want one 110-token admission", receipt, err)
+			}
+		})
+	}
+}
+
+func TestGatewayProjectAttachmentRejectsPersonalObjectBeforeStorage(t *testing.T) {
+	test := gatewayAttachmentQuotaCases()[0]
+	var upstreamCalls atomic.Int32
+	upstream := httptest.NewServer(http.HandlerFunc(func(http.ResponseWriter, *http.Request) { upstreamCalls.Add(1) }))
+	defer upstream.Close()
+	svc, data, projectBearer, _ := projectRuntimeFixture(t)
+	data.Connections[0].BaseURL = upstream.URL + "/v1"
+	reads := configureGatewayAttachmentStorage(t, svc)
+	configureGatewayAttachmentQuota(t, svc, data, test.protocol, entity.ResourceLimit{ScopeKind: "project", ScopeID: "prj_one", ETag: "policy_project_attachment", Tokens5H: limitNumber(500)})
+
+	_, err := test.invoke(svc, projectBearer, []byte(test.body), "req_project_foreign_attachment")
+	assertGatewayResolutionError(t, err, http.StatusNotFound, "attachment_not_found")
+	if reads(testAttachmentImageID) != 0 || reads(testAttachmentPDFID) != 0 {
+		t.Fatal("cross-scope rejection read attachment storage")
+	}
+	if upstreamCalls.Load() != 0 {
+		t.Fatal("cross-scope rejection reached upstream")
+	}
+}
+
+func TestGatewayProjectAttachmentMoneyPolicyRejectsBeforeStorage(t *testing.T) {
+	test := gatewayAttachmentQuotaCases()[0]
+	var upstreamCalls atomic.Int32
+	upstream := httptest.NewServer(http.HandlerFunc(func(http.ResponseWriter, *http.Request) { upstreamCalls.Add(1) }))
+	defer upstream.Close()
+	svc, data, projectBearer, _ := projectRuntimeFixture(t)
+	data.Connections[0].BaseURL = upstream.URL + "/v1"
+	reads := configureGatewayAttachmentStorageScope(t, svc, entity.StorageOwnerProject, "prj_one")
+	configureGatewayAttachmentQuota(t, svc, data, test.protocol, entity.ResourceLimit{ScopeKind: "project", ScopeID: "prj_one", ETag: "policy_project_money", MoneyMonth: quotaTestString("20"), Currency: "USD"})
+
+	_, err := test.invoke(svc, projectBearer, []byte(test.body), "req_project_attachment_money")
+	assertGatewayResolutionError(t, err, http.StatusServiceUnavailable, "quota_price_unavailable")
+	if reads(testAttachmentImageID) != 0 || reads(testAttachmentPDFID) != 0 {
+		t.Fatal("Project monetary preflight rejection read attachment storage")
+	}
+	if upstreamCalls.Load() != 0 {
+		t.Fatal("Project monetary preflight rejection reached upstream")
+	}
+}
+
+func TestGatewayProjectAttachmentRechecksProjectAfterStorage(t *testing.T) {
+	test := gatewayAttachmentQuotaCases()[0]
+	var upstreamCalls atomic.Int32
+	upstream := httptest.NewServer(http.HandlerFunc(func(http.ResponseWriter, *http.Request) { upstreamCalls.Add(1) }))
+	defer upstream.Close()
+	svc, data, projectBearer, _ := projectRuntimeFixture(t)
+	data.Connections[0].BaseURL = upstream.URL + "/v1"
+	reads := configureGatewayAttachmentStorageScopeStatuses(t, svc, entity.StorageOwnerProject, "prj_one", []string{entity.ResourceActive, entity.ResourceDisabled})
+	configureGatewayAttachmentQuota(t, svc, data, test.protocol, entity.ResourceLimit{ScopeKind: "project", ScopeID: "prj_one", ETag: "policy_project_lifecycle", Tokens5H: limitNumber(500)})
+
+	_, err := test.invoke(svc, projectBearer, []byte(test.body), "req_project_attachment_disabled_during_read")
+	assertGatewayResolutionError(t, err, http.StatusNotFound, "attachment_not_found")
+	if reads(testAttachmentImageID) != 1 || reads(testAttachmentPDFID) != 0 {
+		t.Fatalf("storage reads = image %d, PDF %d, want one read before Project lifecycle recheck", reads(testAttachmentImageID), reads(testAttachmentPDFID))
+	}
+	if upstreamCalls.Load() != 0 {
+		t.Fatal("Project disabled during attachment read reached upstream")
+	}
 }
 
 func TestGatewayAttachmentRequiresSelectedRouteCapability(t *testing.T) {
@@ -379,7 +471,7 @@ func configureGatewayAttachmentQuota(t *testing.T, svc *Service, data *runtimeDa
 	data.Quota.Bounds = map[string]entity.ReservationBound{
 		"pmd_one": {ProviderModelID: "pmd_one", Protocol: protocol, MaxInputTokens: 100, MaxOutputTokens: 20, ETag: "bound_attachment"},
 	}
-	data.Quota.Created = map[string]time.Time{"user_usr_one": now, "key_key_one": now}
+	data.Quota.Created = map[string]time.Time{"user_usr_one": now, "project_prj_one": now, "key_key_one": now, "key_pky_one": now}
 	if err := compileRuntimeLimits(data); err != nil {
 		t.Fatal(err)
 	}
@@ -408,11 +500,21 @@ type attachmentStorageObject struct {
 }
 
 type attachmentStorageQueryFixture struct {
-	objects  map[string]attachmentStorageObject
-	revision entity.StorageRevision
+	objects        map[string]attachmentStorageObject
+	revision       entity.StorageRevision
+	projectStatus  []string
+	projectQueries int
 }
 
 func configureGatewayAttachmentStorage(t *testing.T, svc *Service) func(string) int {
+	return configureGatewayAttachmentStorageScope(t, svc, entity.StorageOwnerUser, "usr_one")
+}
+
+func configureGatewayAttachmentStorageScope(t *testing.T, svc *Service, ownerKind, ownerID string) func(string) int {
+	return configureGatewayAttachmentStorageScopeStatuses(t, svc, ownerKind, ownerID, nil)
+}
+
+func configureGatewayAttachmentStorageScopeStatuses(t *testing.T, svc *Service, ownerKind, ownerID string, projectStatus []string) func(string) int {
 	t.Helper()
 	var mu sync.Mutex
 	reads := map[string]int{}
@@ -428,7 +530,8 @@ func configureGatewayAttachmentStorage(t *testing.T, svc *Service) func(string) 
 		objects[input.id] = attachmentStorageObject{
 			row: entity.StorageObject{
 				ID:            input.id,
-				OwnerID:       "usr_one",
+				OwnerKind:     ownerKind,
+				OwnerID:       ownerID,
 				RevisionID:    "str_attachment",
 				Purpose:       "attachment",
 				State:         "ready",
@@ -472,7 +575,7 @@ func configureGatewayAttachmentStorage(t *testing.T, svc *Service) func(string) 
 		t.Fatal(err)
 	}
 	revision := entity.StorageRevision{ID: "str_attachment", Endpoint: server.URL, Region: "us-east-1", Bucket: "routex-test", Prefix: "", SecretGeneration: "generation-one", AuthCiphertext: ciphertext}
-	fixture := &attachmentStorageQueryFixture{objects: objects, revision: revision}
+	fixture := &attachmentStorageQueryFixture{objects: objects, revision: revision, projectStatus: projectStatus}
 	sqlDB := sql.OpenDB(attachmentStorageConnector{fixture: fixture})
 	t.Cleanup(func() { _ = sqlDB.Close() })
 	db, err := gorm.Open(postgres.New(postgres.Config{Conn: sqlDB, PreferSimpleProtocol: true, WithoutReturning: true}), &gorm.Config{})
@@ -526,6 +629,22 @@ func (connection *attachmentStorageConnection) QueryContext(_ context.Context, q
 	switch {
 	case strings.Contains(query, `FROM "users"`):
 		return &attachmentStorageRows{columns: []string{"id", "disabled"}, values: [][]driver.Value{{"usr_one", false}}}, nil
+	case strings.Contains(query, `FROM "projects"`):
+		now := time.Now()
+		status := entity.ResourceActive
+		if connection.fixture.projectQueries < len(connection.fixture.projectStatus) {
+			status = connection.fixture.projectStatus[connection.fixture.projectQueries]
+		}
+		connection.fixture.projectQueries++
+		if status != entity.ResourceActive && attachmentFixtureHasArgument(args, entity.ResourceActive) {
+			return &attachmentStorageRows{columns: []string{"id"}}, nil
+		}
+		return &attachmentStorageRows{
+			columns: []string{"id", "name", "description", "status", "creator_id", "created_at", "updated_at"},
+			values:  [][]driver.Value{{"prj_one", "Project", "", status, "usr_creator", now, now}},
+		}, nil
+	case strings.Contains(query, `FROM project_managers m`):
+		return &attachmentStorageRows{columns: []string{"count"}, values: [][]driver.Value{{int64(1)}}}, nil
 	case strings.Contains(query, `FROM "storage_objects"`):
 		var objectID string
 		for _, arg := range args {
@@ -536,13 +655,16 @@ func (connection *attachmentStorageConnection) QueryContext(_ context.Context, q
 			}
 		}
 		object, ok := connection.fixture.objects[objectID]
+		if ok && (!attachmentFixtureHasArgument(args, object.row.OwnerKind) || !attachmentFixtureHasArgument(args, object.row.OwnerID)) {
+			ok = false
+		}
 		if !ok {
 			return &attachmentStorageRows{columns: []string{"id"}}, nil
 		}
 		row := object.row
 		return &attachmentStorageRows{
-			columns: []string{"id", "owner_id", "revision_id", "purpose", "state", "name", "mime", "size", "sha256", "version_id", "next_cleanup_at", "created_at"},
-			values:  [][]driver.Value{{row.ID, row.OwnerID, row.RevisionID, row.Purpose, row.State, row.Name, row.MIME, row.Size, row.SHA256, row.VersionID, row.NextCleanupAt, row.CreatedAt}},
+			columns: []string{"id", "owner_kind", "owner_id", "revision_id", "purpose", "state", "name", "mime", "size", "sha256", "version_id", "next_cleanup_at", "created_at"},
+			values:  [][]driver.Value{{row.ID, row.OwnerKind, row.OwnerID, row.RevisionID, row.Purpose, row.State, row.Name, row.MIME, row.Size, row.SHA256, row.VersionID, row.NextCleanupAt, row.CreatedAt}},
 		}, nil
 	case strings.Contains(query, `FROM "storage_revisions"`):
 		row := connection.fixture.revision
@@ -553,6 +675,15 @@ func (connection *attachmentStorageConnection) QueryContext(_ context.Context, q
 	default:
 		return nil, fmt.Errorf("unexpected attachment fixture query: %s", query)
 	}
+}
+
+func attachmentFixtureHasArgument(args []driver.NamedValue, expected string) bool {
+	for _, arg := range args {
+		if value, ok := arg.Value.(string); ok && value == expected {
+			return true
+		}
+	}
+	return false
 }
 
 type attachmentStorageRows struct {

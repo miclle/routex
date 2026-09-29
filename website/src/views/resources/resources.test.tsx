@@ -195,6 +195,22 @@ async function submit(selector = 'form') {
 }
 
 describe('Team and Project resource workflows', () => {
+  it('keeps the six Project tabs and opens the Playground with only the Project ID', async () => {
+    await mount('/projects/prj_1')
+    await until(() => expect(host.textContent).toContain('Open in Playground'))
+    expect([...host.querySelectorAll('[role="tab"]')].map((tab) => tab.textContent)).toEqual([
+      'Overview',
+      'Project API keys',
+      'Resource configuration',
+      'Usage',
+      'Call records',
+      'Settings',
+    ])
+    expect(
+      host.querySelector<HTMLAnchorElement>('a[href="/playground?project=prj_1"]'),
+    ).not.toBeNull()
+    expect(host.textContent).not.toContain('rx_')
+  })
   it('allows managers to inspect aggregate limits without platform write authority', async () => {
     await mount('/projects/prj_1?tab=resources')
     await until(() => expect(host.textContent).toContain('user_usr_fixture'))

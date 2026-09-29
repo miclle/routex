@@ -1,8 +1,11 @@
 export type PlaygroundProtocol =
   'openai_chat' | 'openai_responses' | 'anthropic_messages' | 'gemini_generate_content'
 export type InputCapability = 'image' | 'pdf'
+export type AttachmentScope = 'user' | 'project'
 export interface GatewayModel {
   id: string
+  attachment_scope?: AttachmentScope
+  attachment_project_id?: string
   personal_attachments?: boolean
   protocols?: PlaygroundProtocol[]
   input_capabilities?: Partial<Record<PlaygroundProtocol, InputCapability[]>>

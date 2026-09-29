@@ -2,6 +2,11 @@ package entity
 
 import "time"
 
+const (
+	StorageOwnerUser    = "user"
+	StorageOwnerProject = "project"
+)
+
 type StorageSetting struct {
 	ID               int     `gorm:"primaryKey;autoIncrement:false"`
 	Enabled          bool    `gorm:"not null"`
@@ -29,7 +34,8 @@ func (StorageRevision) TableName() string { return "storage_revisions" }
 
 type StorageObject struct {
 	ID              string    `gorm:"primaryKey;size:30"`
-	OwnerID         string    `gorm:"size:30;not null;index:idx_storage_objects_owner"`
+	OwnerKind       string    `gorm:"size:16;not null;default:user;index:idx_storage_objects_scope,priority:1;check:ck_storage_objects_owner_kind,owner_kind IN ('user','project')"`
+	OwnerID         string    `gorm:"size:30;not null;index:idx_storage_objects_owner;index:idx_storage_objects_scope,priority:2"`
 	RevisionID      string    `gorm:"size:30;not null"`
 	Purpose         string    `gorm:"size:16;not null"`
 	State           string    `gorm:"size:20;not null;index:idx_storage_objects_state"`

@@ -35,7 +35,26 @@ function gatewayModel(value: unknown): value is GatewayModel {
   if (value === null || typeof value !== 'object' || Array.isArray(value)) return false
   const model = value as Record<string, unknown>
   if (typeof model.id !== 'string' || !model.id.trim()) return false
+  if (
+    model.attachment_scope !== undefined &&
+    model.attachment_scope !== 'user' &&
+    model.attachment_scope !== 'project'
+  )
+    return false
+  if (
+    model.attachment_project_id !== undefined &&
+    (typeof model.attachment_project_id !== 'string' || !model.attachment_project_id.trim())
+  )
+    return false
+  if ((model.attachment_scope === 'project') !== (typeof model.attachment_project_id === 'string'))
+    return false
   if (model.personal_attachments !== undefined && typeof model.personal_attachments !== 'boolean')
+    return false
+  if (
+    model.attachment_scope !== undefined &&
+    model.personal_attachments !== undefined &&
+    model.personal_attachments !== (model.attachment_scope === 'user')
+  )
     return false
   if (
     model.protocols !== undefined &&
@@ -84,7 +103,21 @@ export async function getGatewayModels(key: string, signal: AbortSignal): Promis
       () => t('the_model_list_format_is_invalid_b03c8'),
       response.headers.get('X-Request-ID') ?? '',
     )
-  return body.data as GatewayModel[]
+  const models = body.data as GatewayModel[]
+  const first = models[0]
+  if (
+    first &&
+    models.some(
+      (model) =>
+        model.attachment_scope !== first.attachment_scope ||
+        model.attachment_project_id !== first.attachment_project_id,
+    )
+  )
+    throw new GatewayError(
+      () => t('the_model_list_format_is_invalid_b03c8'),
+      response.headers.get('X-Request-ID') ?? '',
+    )
+  return models
 }
 
 export async function runChat(

@@ -1,6 +1,6 @@
 import axios from 'axios'
 import client from './client'
-import type { Attachment } from '@/types/attachments'
+import type { Attachment, AttachmentTarget } from '@/types/attachments'
 
 export class AttachmentError extends Error {
   constructor(public readonly status: number) {
@@ -30,18 +30,30 @@ async function requestAttachment(
   }
 }
 
-export function uploadAttachment(file: File, csrf: string, signal?: AbortSignal) {
-  const data = new FormData()
-  data.append('file', file, file.name)
-  return requestAttachment('post', '/attachments', data, csrf, signal)
+function attachmentPath(target: AttachmentTarget, id?: string) {
+  const prefix =
+    target.scope === 'project'
+      ? `/projects/${encodeURIComponent(target.projectId)}/attachments`
+      : '/attachments'
+  return id ? `${prefix}/${encodeURIComponent(id)}` : prefix
 }
 
-export function deleteAttachment(id: string, csrf: string, signal?: AbortSignal) {
-  return requestAttachment(
-    'delete',
-    `/attachments/${encodeURIComponent(id)}`,
-    undefined,
-    csrf,
-    signal,
-  )
+export function uploadAttachment(
+  file: File,
+  csrf: string,
+  signal?: AbortSignal,
+  target: AttachmentTarget = { scope: 'user' },
+) {
+  const data = new FormData()
+  data.append('file', file, file.name)
+  return requestAttachment('post', attachmentPath(target), data, csrf, signal)
+}
+
+export function deleteAttachment(
+  id: string,
+  csrf: string,
+  signal?: AbortSignal,
+  target: AttachmentTarget = { scope: 'user' },
+) {
+  return requestAttachment('delete', attachmentPath(target, id), undefined, csrf, signal)
 }

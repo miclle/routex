@@ -69,4 +69,5 @@ export default {
   searchName: '搜索{{kind}}名称',
   projectCalls: '项目调用记录',
   projectCallsHelp: '此项目的调用记录与个人调用记录相互独立。',
+  openInPlayground: '在 Playground 中打开',
 }

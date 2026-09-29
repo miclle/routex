@@ -63,7 +63,9 @@ describe('native playground client', () => {
           data: [
             {
               id: 'multimodal-model',
-              personal_attachments: true,
+              attachment_scope: 'project',
+              attachment_project_id: 'prj_1',
+              personal_attachments: false,
               protocols: ['openai_responses', 'anthropic_messages'],
               input_capabilities: {
                 openai_responses: ['image', 'pdf'],
@@ -77,7 +79,9 @@ describe('native playground client', () => {
     await expect(getGatewayModels(key, controller().signal)).resolves.toEqual([
       {
         id: 'multimodal-model',
-        personal_attachments: true,
+        attachment_scope: 'project',
+        attachment_project_id: 'prj_1',
+        personal_attachments: false,
         protocols: ['openai_responses', 'anthropic_messages'],
         input_capabilities: {
           openai_responses: ['image', 'pdf'],
@@ -90,6 +94,17 @@ describe('native playground client', () => {
     [{ id: ' ' }],
     [{ id: 'model', protocols: ['unknown'] }],
     [{ id: 'model', personal_attachments: 'yes' }],
+    [{ id: 'model', attachment_scope: 'other' }],
+    [{ id: 'model', attachment_scope: 'project' }],
+    [{ id: 'model', attachment_scope: 'user', attachment_project_id: 'prj_1' }],
+    [
+      {
+        id: 'model',
+        attachment_scope: 'project',
+        attachment_project_id: 'prj_1',
+        personal_attachments: true,
+      },
+    ],
     [{ id: 'model', protocols: ['openai_chat', 'openai_chat'] }],
     [{ id: 'model', input_capabilities: [] }],
     [{ id: 'model', input_capabilities: { openai_chat: ['audio'] } }],
@@ -110,6 +125,22 @@ describe('native playground client', () => {
     ],
   ])('rejects malformed model capability metadata %#', async (models) => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(Response.json({ data: models })))
+    await expect(getGatewayModels(key, controller().signal)).rejects.toThrow(
+      'The model list format is invalid',
+    )
+  })
+  it('rejects model lists that disagree about their verified attachment scope', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(
+        Response.json({
+          data: [
+            { id: 'first', attachment_scope: 'project', attachment_project_id: 'prj_1' },
+            { id: 'second', attachment_scope: 'project', attachment_project_id: 'prj_2' },
+          ],
+        }),
+      ),
+    )
     await expect(getGatewayModels(key, controller().signal)).rejects.toThrow(
       'The model list format is invalid',
     )

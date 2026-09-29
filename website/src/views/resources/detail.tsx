@@ -1,11 +1,13 @@
 import { useTranslation } from 'react-i18next'
 import { useQuery } from '@tanstack/react-query'
-import { useParams, useSearchParams } from 'react-router'
+import { Link, useParams, useSearchParams } from 'react-router'
+import { ArrowUpRight } from 'lucide-react'
 import { getResource } from '@/api/resources'
 import { useSession } from '@/hooks/use-auth'
 import { usePermissions } from '@/hooks/use-permissions'
 import { Page, QueryState } from '@/components/app/CatalogUI'
 import { Badge } from '@/components/ui/badge'
+import { buttonVariants } from '@/components/ui/button'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import CallsPage from '@/views/calls'
 import { ProjectUsagePanel } from '@/views/usage'
@@ -136,6 +138,15 @@ function ResourceDetail({ kind, resource }: { kind: ResourceKind; resource: Reso
                   <dd className="mt-1 text-sm">{resource.model_ids.length}</dd>
                 </div>
               </dl>
+              {kind === 'projects' && isManager && resource.status === 'active' && (
+                <Link
+                  className={buttonVariants({ variant: 'outline' })}
+                  to={`/playground?project=${encodeURIComponent(resource.id)}`}
+                >
+                  {t('openInPlayground')}
+                  <ArrowUpRight className="size-4" aria-hidden="true" />
+                </Link>
+              )}
             </ResourceSection>
             <ResourceSection title={kind === 'teams' ? t('owners') : t('managers')}>
               <div className="space-y-3">

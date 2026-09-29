@@ -48,7 +48,9 @@ Successful writes retain `VersionId` when supplied. Cleanup checks the object's 
 
 ## Attachment API
 
-Attachment ownership is personal and immutable. A currently active account can access only its own object IDs; administrators receive no content-reading bypass. Team or Project attachment ownership is not inferred from a creator relationship.
+Attachment ownership is explicit and immutable. `owner_kind=user` binds a personal object to one user ID; `owner_kind=project` binds a Project object to one Project ID. Existing rows were backfilled to `user` by frozen GORM migration 23, which also adds the portable owner-kind constraint and `(owner_kind, owner_id)` index while retaining the released owner-ID index. Ownership is never inferred from an ID prefix, uploader, creator, manager, or Key ID.
+
+A currently active account can access only its personal object IDs. Project routes require a current enabled manager and never grant a bypass through `projects.read_all`, `projects.write`, or `storage.*`. Active Projects permit upload, metadata, content, and deletion. Disabled or archived Projects reject new uploads and gateway inference while current managers retain metadata/content access and idempotent deletion for recovery and data minimization.
 
 | Method and path | Behavior |
 | --- | --- |
@@ -56,10 +58,16 @@ Attachment ownership is personal and immutable. A currently active account can a
 | `GET /api/v1/attachments/:attachment_id` | Owner-only metadata and lifecycle state |
 | `GET /api/v1/attachments/:attachment_id/content` | Owner-only bounded bytes for a ready attachment |
 | `DELETE /api/v1/attachments/:attachment_id` | Idempotently records deletion intent and immediately blocks further content reads |
+| `POST /api/v1/projects/:project_id/attachments` | Current-manager upload into the active Project's immutable scope |
+| `GET /api/v1/projects/:project_id/attachments/:attachment_id` | Current-manager metadata for one Project-owned object |
+| `GET /api/v1/projects/:project_id/attachments/:attachment_id/content` | Current-manager bounded bytes for a ready Project-owned object |
+| `DELETE /api/v1/projects/:project_id/attachments/:attachment_id` | Current-manager deletion intent, including disabled or archived recovery |
 
 All routes require a session. Mutations require same-origin protection and CSRF. Upload middleware accepts multipart rather than JSON and caps the entire request at 2 MiB plus 64 KiB of framing. File contents are limited to 2 MiB. Filename length is 1–200 Unicode characters with path separators and control terminators rejected. PNG and JPEG headers/dimensions are validated (maximum 8192 on either side and 32 million pixels); PDF requires its header and terminal marker. This is bounded format validation, not malware scanning or a complete PDF parser. PDFs are never executed or rendered by the backend. Caller-provided MIME labels do not decide the accepted type.
 
-Metadata contains `id`, `name`, `mime`, `size`, `state`, and `created_at`. It contains no bucket key, storage credential, or version identifier. Returned content uses attachment disposition, `private, no-store`, `nosniff`, and a sandbox policy. Reads verify recorded size, SHA-256 digest, and storage ownership metadata, then recheck current account and object state before returning bytes. The implementation caps each account at 128 non-deleted attachments, including pending cleanup, to bound retained content.
+Metadata contains `id`, `name`, `mime`, `size`, `state`, and `created_at`. It contains no owner identifier, bucket key, storage credential, or version identifier. Returned content uses attachment disposition, `private, no-store`, `nosniff`, and a sandbox policy. Reads verify recorded size, SHA-256 digest, and storage ownership metadata, then recheck current user or Project authority and object state after remote I/O before returning bytes. The implementation caps each immutable user or Project scope at 128 non-deleted attachments, including pending cleanup, to bound retained content.
+
+Project upload creation holds the governance lock and locks the Project row before recording intent. It verifies the Project is active and the uploader is a current enabled manager before the remote write, then repeats those checks before publishing the verified object as ready. Manager removal or Project disablement during upload records cleanup intent instead of publishing. Once ready, the object remains Project-owned across creator departure, Key rotation, and manager replacement; a successor manager can govern it without transferring ownership.
 
 Disabling storage stops new uploads. Existing owned content remains readable through its original descriptor; deletion and cleanup continue. Switching bucket, prefix, or credentials never reassigns historical objects to the new descriptor.
 
@@ -73,7 +81,7 @@ If the request is canceled, cleanup intent is persisted with a separate bounded 
 
 ## Gateway resolution and validation
 
-Personal API Keys can reference an owned ready object with the exact URI
+Personal and Project API Keys can reference an owned ready object with the exact URI
 `routex://attachments/<object-id>` in supported native media scalar positions:
 
 - Chat Completions: `image_url.url` and `file.file_data`
@@ -85,10 +93,12 @@ The reserved URI is inert in text, tool arguments, schemas and unknown fields.
 RouteX never fetches arbitrary remote URLs and never forwards an object ID as a
 provider file ID.
 
-Resolution authenticates the Key, parses an immutable occurrence plan, authorizes
-the public model, and selects one route. Project Keys are rejected before an
-object lookup. Every media occurrence must match the selected route's explicit
-image or PDF declaration. A non-reserving preflight uses the selected
+Resolution authenticates the Key, derives its immutable `user` or `project`
+attachment scope, parses an immutable occurrence plan, authorizes the public
+model, and selects one route. Personal Keys can resolve only their user's objects;
+Project Keys can resolve only objects owned by their exact Project and never a
+manager's personal objects. Every media occurrence must match the selected route's
+explicit image or PDF declaration. A non-reserving preflight uses the selected
 provider-model/protocol capacity attestation to compute and check the complete
 input maximum plus the request's explicit output cap before storage access. It
 never derives a token bound from object bytes or media properties. A finite
@@ -97,12 +107,14 @@ adapter is available. The final rate, concurrency and quota admission repeats al
 checks and reserves once, after resolution and immediately before the single
 upstream dispatch.
 
-Each unique object is read once per request with the personal Key's immutable
-`UserID`. The read repeats the session API's owner, ready-state, storage revision,
-exact version, object metadata, size and SHA-256 checks, then rechecks ownership
-and readiness. Missing, foreign, deleting and non-ready objects share the same
-safe not-found response. Storage and descriptor failures return one generic
-unavailable response without endpoint, bucket or credential details.
+Each unique object is read once per request with the authenticated Key's immutable
+owner kind and owner ID. The read repeats the session API's owner, ready-state,
+storage revision, exact version, object metadata, size and SHA-256 checks, then
+rechecks ownership and readiness. Project reads also recheck that the Project is
+active and retains an enabled current manager after remote I/O. Missing, foreign,
+cross-scope, deleting and non-ready objects share the same safe not-found response.
+Storage and descriptor failures return one generic unavailable response without
+endpoint, bucket or credential details.
 
 One request permits at most four reference occurrences and four unique objects,
 8 MiB of unique raw bytes and 12 MiB of rewritten JSON. Each uploaded object is
@@ -112,13 +124,14 @@ Messages and Gemini, and a sanitized stored filename for OpenAI PDF fields.
 Cancellation stops remaining reads and prevents upstream dispatch.
 
 Stored attachments do not bypass model capabilities or finite quota policy and do
-not supply guessed token costs. The single-model Playground uses the session upload
-API while keeping the personal API Key and object references transient. Known
+not supply guessed token costs. The single-model and comparison Playgrounds use
+the user or Project session upload API while keeping the API Key and object
+references transient. Known
 one-invocation objects are deleted when the draft is removed, its context changes,
 the workbench closes, or inference settles. Every ready attachment also expires
 after one hour through the existing durable cleanup worker, so a terminated client
 cannot leave a permanent ready object or consume the owner limit indefinitely.
 
-Focused tests use controlled loopback HTTP services only. They cover signed requests, conditional creation, version-aware deletion, foreign metadata protection, redirect rejection, bounded reads, cancellation, secret-envelope revision binding, configuration policy isolation, and accepted/rejected formats. The dual-database lifecycle helper covers HTTP upload/download, CSRF, owner isolation, revision changes and rollback, failed verification preserving active state, and cleanup replay including a late accepted ambiguous upload. The completed phase passed the full check and test suite with 387 Vitest cases, Go race coverage, development lifecycle checks, and production asset serving. The PostgreSQL/MySQL lifecycle suite passed in 275.269 seconds, and both database process suites passed initialization, restart persistence, ordinary and streaming native inference, reporting, logout, and revocation.
+Focused tests use controlled loopback HTTP services only. They cover signed requests, conditional creation, version-aware deletion, foreign metadata protection, redirect rejection, bounded reads, cancellation, secret-envelope revision binding, configuration policy isolation, and accepted/rejected formats. The dual-database lifecycle helper covers personal and Project HTTP upload/download, CSRF, manager and owner isolation, manager-removal upload races, successor access, disabled/archived recovery, revision changes and rollback, failed verification preserving active state, and cleanup replay including a late accepted ambiguous upload. Migration coverage exercises empty creation, a V22 existing-row upgrade, partially applied DDL recovery, repeat execution, concurrent startup, constraints, and both owner indexes on PostgreSQL and MySQL.
 
-The `/admin/storage` web interface exposes the saved status card and configuration drawer, independent read/write/test authority, transient credential actions, exact ETag conflict review, saved-descriptor probe stages, cleanup-pending state, and verified revision rollback in English and Chinese. It refetches complete history after writes and never treats an uncertain response as success. Personal-Key native inference resolution, single-model and comparison attachment lifecycles, and conservative token/TPM admission are implemented separately from administration. Multimodal monetary pricing and external-service acceptance remain open.
+The `/admin/storage` web interface exposes the saved status card and configuration drawer, independent read/write/test authority, transient credential actions, exact ETag conflict review, saved-descriptor probe stages, cleanup-pending state, and verified revision rollback in English and Chinese. It refetches complete history after writes and never treats an uncertain response as success. User/Project native inference resolution, single-model and comparison attachment lifecycles, and conservative token/TPM admission are implemented separately from administration. Multimodal monetary pricing and external-service acceptance remain open.

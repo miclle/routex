@@ -13,6 +13,7 @@ import (
 	"github.com/miclle/routex/pkg/id"
 	"github.com/miclle/routex/pkg/objectstore"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 const attachmentReadyTTL = time.Hour
@@ -26,20 +27,80 @@ type AttachmentView struct {
 	CreatedAt time.Time `json:"created_at"`
 }
 
+type attachmentOwner struct {
+	Kind string
+	ID   string
+}
+
+type attachmentAuthorization func(*gorm.DB) error
+
 func attachmentView(row entity.StorageObject) AttachmentView {
 	return AttachmentView{ID: row.ID, Name: row.Name, MIME: row.MIME, Size: row.Size, State: row.State, CreatedAt: row.CreatedAt}
 }
+
 func activeAttachmentOwner(db *gorm.DB, actor string) error {
 	var user entity.User
 	if err := db.First(&user, "id = ? AND disabled = ?", actor, false).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return apperrors.ErrUnauthorized
 		}
-		return apperrors.ErrInternal
+		return err
 	}
 	return nil
 }
+
+func projectAttachmentManager(db *gorm.DB, actor, projectID string, requireActive, lock bool) error {
+	var managers int64
+	if err := db.Table("project_managers m").Joins("JOIN users u ON u.id = m.user_id").Where("m.project_id = ? AND m.user_id = ? AND u.disabled = ?", projectID, actor, false).Count(&managers).Error; err != nil {
+		return err
+	}
+	if managers != 1 {
+		return apperrors.ErrNotFound
+	}
+	var project entity.Project
+	query := db
+	if lock {
+		query = query.Clauses(clause.Locking{Strength: "UPDATE"})
+	}
+	if err := query.First(&project, "id = ?", projectID).Error; err != nil {
+		return err
+	}
+	if requireActive && project.Status != entity.ResourceActive {
+		return apperrors.ErrNotFound
+	}
+	return nil
+}
+
+func activeProjectAttachmentOwner(db *gorm.DB, projectID string) error {
+	var project entity.Project
+	if err := db.First(&project, "id = ? AND status = ?", projectID, entity.ResourceActive).Error; err != nil {
+		return err
+	}
+	var managers int64
+	if err := db.Table("project_managers m").Joins("JOIN users u ON u.id = m.user_id").Where("m.project_id = ? AND u.disabled = ?", projectID, false).Count(&managers).Error; err != nil {
+		return err
+	}
+	if managers == 0 {
+		return apperrors.ErrNotFound
+	}
+	return nil
+}
+
 func (s *Service) UploadAttachment(ctx context.Context, actor, name string, data []byte) (*AttachmentView, error) {
+	owner := attachmentOwner{Kind: entity.StorageOwnerUser, ID: actor}
+	return s.uploadAttachment(ctx, actor, owner, name, data, func(tx *gorm.DB) error {
+		return lockActiveKeyOwner(tx, actor)
+	})
+}
+
+func (s *Service) UploadProjectAttachment(ctx context.Context, actor, projectID, name string, data []byte) (*AttachmentView, error) {
+	owner := attachmentOwner{Kind: entity.StorageOwnerProject, ID: projectID}
+	return s.uploadAttachment(ctx, actor, owner, name, data, func(tx *gorm.DB) error {
+		return projectAttachmentManager(tx, actor, projectID, true, true)
+	})
+}
+
+func (s *Service) uploadAttachment(ctx context.Context, actor string, owner attachmentOwner, name string, data []byte, authorize attachmentAuthorization) (*AttachmentView, error) {
 	name = strings.TrimSpace(name)
 	mime, err := objectstore.ValidateAttachment(name, data)
 	if err != nil {
@@ -51,13 +112,13 @@ func (s *Service) UploadAttachment(ctx context.Context, actor, name string, data
 	}
 	sum := sha256.Sum256(data)
 	createdAt := time.Now().UTC()
-	row := entity.StorageObject{ID: objectID, OwnerID: actor, Purpose: "attachment", State: "uploading", Name: name, MIME: mime, Size: int64(len(data)), SHA256: hex.EncodeToString(sum[:]), NextCleanupAt: createdAt.Add(attachmentReadyTTL), CreatedAt: createdAt}
+	row := entity.StorageObject{ID: objectID, OwnerKind: owner.Kind, OwnerID: owner.ID, Purpose: "attachment", State: "uploading", Name: name, MIME: mime, Size: int64(len(data)), SHA256: hex.EncodeToString(sum[:]), NextCleanupAt: createdAt.Add(attachmentReadyTTL), CreatedAt: createdAt}
 	var revision entity.StorageRevision
 	err = s.authDB(ctx).Transaction(func(tx *gorm.DB) error {
 		if err := lockGovernance(tx); err != nil {
 			return err
 		}
-		if err := lockActiveKeyOwner(tx, actor); err != nil {
+		if err := authorize(tx); err != nil {
 			return err
 		}
 		var setting entity.StorageSetting
@@ -71,7 +132,7 @@ func (s *Service) UploadAttachment(ctx context.Context, actor, name string, data
 			return err
 		}
 		var count int64
-		if err := tx.Model(&entity.StorageObject{}).Where("owner_id = ? AND purpose = ? AND state <> ?", actor, "attachment", "deleted").Count(&count).Error; err != nil {
+		if err := tx.Model(&entity.StorageObject{}).Where("owner_kind = ? AND owner_id = ? AND purpose = ? AND state <> ?", owner.Kind, owner.ID, "attachment", "deleted").Count(&count).Error; err != nil {
 			return err
 		}
 		if count >= 128 {
@@ -107,7 +168,6 @@ func (s *Service) UploadAttachment(ctx context.Context, actor, name string, data
 	if err := s.confirmStorageUpload(ctx, row.ID, version); err != nil {
 		return nil, runtimeUnavailable
 	}
-	// Verify stored bytes and ownership before publishing a readable attachment.
 	object, err := client.Get(run, row.ID, version)
 	if err == nil {
 		actual := sha256.Sum256(object.Data)
@@ -123,10 +183,10 @@ func (s *Service) UploadAttachment(ctx context.Context, actor, name string, data
 		if err := lockGovernance(tx); err != nil {
 			return err
 		}
-		if err := lockActiveKeyOwner(tx, actor); err != nil {
+		if err := authorize(tx); err != nil {
 			return err
 		}
-		result := tx.Model(&entity.StorageObject{}).Where("id = ? AND state = ?", row.ID, "uploading").Updates(map[string]any{"state": "ready", "version_id": version})
+		result := tx.Model(&entity.StorageObject{}).Where("id = ? AND owner_kind = ? AND owner_id = ? AND state = ?", row.ID, owner.Kind, owner.ID, "uploading").Updates(map[string]any{"state": "ready", "version_id": version})
 		if result.Error != nil {
 			return result.Error
 		}
@@ -143,27 +203,44 @@ func (s *Service) UploadAttachment(ctx context.Context, actor, name string, data
 	view := attachmentView(row)
 	return &view, nil
 }
-func (s *Service) ownedAttachment(ctx context.Context, actor, objectID string) (entity.StorageObject, error) {
+
+func (s *Service) scopedAttachment(ctx context.Context, owner attachmentOwner, objectID string, authorize attachmentAuthorization) (entity.StorageObject, error) {
 	db := s.authDB(ctx)
-	if err := activeAttachmentOwner(db, actor); err != nil {
-		return entity.StorageObject{}, err
+	if err := authorize(db); err != nil {
+		return entity.StorageObject{}, catalogError(err)
 	}
 	var row entity.StorageObject
-	if err := db.First(&row, "id = ? AND owner_id = ? AND purpose = ?", objectID, actor, "attachment").Error; err != nil {
+	if err := db.First(&row, "id = ? AND owner_kind = ? AND owner_id = ? AND purpose = ?", objectID, owner.Kind, owner.ID, "attachment").Error; err != nil {
 		return row, catalogError(err)
 	}
 	return row, nil
 }
+
 func (s *Service) Attachment(ctx context.Context, actor, objectID string) (*AttachmentView, error) {
-	row, err := s.ownedAttachment(ctx, actor, objectID)
+	owner := attachmentOwner{Kind: entity.StorageOwnerUser, ID: actor}
+	row, err := s.scopedAttachment(ctx, owner, objectID, func(db *gorm.DB) error { return activeAttachmentOwner(db, actor) })
 	if err != nil {
 		return nil, err
 	}
 	view := attachmentView(row)
 	return &view, nil
 }
+
+func (s *Service) ProjectAttachment(ctx context.Context, actor, projectID, objectID string) (*AttachmentView, error) {
+	owner := attachmentOwner{Kind: entity.StorageOwnerProject, ID: projectID}
+	row, err := s.scopedAttachment(ctx, owner, objectID, func(db *gorm.DB) error {
+		return projectAttachmentManager(db, actor, projectID, false, false)
+	})
+	if err != nil {
+		return nil, err
+	}
+	view := attachmentView(row)
+	return &view, nil
+}
+
 func (s *Service) AttachmentContent(ctx context.Context, actor, objectID string) (*AttachmentView, []byte, error) {
-	row, data, err := s.readOwnedAttachment(ctx, actor, objectID)
+	owner := attachmentOwner{Kind: entity.StorageOwnerUser, ID: actor}
+	row, data, err := s.readScopedAttachment(ctx, owner, objectID, func(db *gorm.DB) error { return activeAttachmentOwner(db, actor) })
 	if err != nil {
 		return nil, nil, err
 	}
@@ -171,12 +248,22 @@ func (s *Service) AttachmentContent(ctx context.Context, actor, objectID string)
 	return &view, data, nil
 }
 
-// readOwnedAttachment resolves immutable storage metadata for a personal owner,
-// verifies the exact stored object, and rechecks readiness after the remote read.
-// Callers pass the authenticated personal owner from the session or Key record,
-// never an owner identifier supplied by request data.
-func (s *Service) readOwnedAttachment(ctx context.Context, ownerID, objectID string) (entity.StorageObject, []byte, error) {
-	row, err := s.ownedAttachment(ctx, ownerID, objectID)
+func (s *Service) ProjectAttachmentContent(ctx context.Context, actor, projectID, objectID string) (*AttachmentView, []byte, error) {
+	owner := attachmentOwner{Kind: entity.StorageOwnerProject, ID: projectID}
+	row, data, err := s.readScopedAttachment(ctx, owner, objectID, func(db *gorm.DB) error {
+		return projectAttachmentManager(db, actor, projectID, false, false)
+	})
+	if err != nil {
+		return nil, nil, err
+	}
+	view := attachmentView(row)
+	return &view, data, nil
+}
+
+// readScopedAttachment resolves immutable storage metadata, verifies the exact
+// stored object, and repeats current scope authorization after remote I/O.
+func (s *Service) readScopedAttachment(ctx context.Context, owner attachmentOwner, objectID string, authorize attachmentAuthorization) (entity.StorageObject, []byte, error) {
+	row, err := s.scopedAttachment(ctx, owner, objectID, authorize)
 	if err != nil {
 		return entity.StorageObject{}, nil, err
 	}
@@ -205,7 +292,7 @@ func (s *Service) readOwnedAttachment(ctx context.Context, ownerID, objectID str
 	if !storedAttachmentMatches(row, object) {
 		return entity.StorageObject{}, nil, runtimeUnavailable
 	}
-	current, err := s.ownedAttachment(ctx, ownerID, objectID)
+	current, err := s.scopedAttachment(ctx, owner, objectID, authorize)
 	if err != nil {
 		return entity.StorageObject{}, nil, err
 	}
@@ -230,16 +317,29 @@ func storedAttachmentMatches(row entity.StorageObject, object objectstore.Object
 		int64(len(object.Data)) == row.Size &&
 		hex.EncodeToString(sum[:]) == row.SHA256
 }
+
 func (s *Service) DeleteAttachment(ctx context.Context, actor, objectID string) (*AttachmentView, error) {
+	owner := attachmentOwner{Kind: entity.StorageOwnerUser, ID: actor}
+	return s.deleteAttachment(ctx, actor, owner, objectID, func(tx *gorm.DB) error { return lockActiveKeyOwner(tx, actor) })
+}
+
+func (s *Service) DeleteProjectAttachment(ctx context.Context, actor, projectID, objectID string) (*AttachmentView, error) {
+	owner := attachmentOwner{Kind: entity.StorageOwnerProject, ID: projectID}
+	return s.deleteAttachment(ctx, actor, owner, objectID, func(tx *gorm.DB) error {
+		return projectAttachmentManager(tx, actor, projectID, false, true)
+	})
+}
+
+func (s *Service) deleteAttachment(ctx context.Context, actor string, owner attachmentOwner, objectID string, authorize attachmentAuthorization) (*AttachmentView, error) {
 	var row entity.StorageObject
 	err := s.authDB(ctx).Transaction(func(tx *gorm.DB) error {
 		if err := lockGovernance(tx); err != nil {
 			return err
 		}
-		if err := lockActiveKeyOwner(tx, actor); err != nil {
+		if err := authorize(tx); err != nil {
 			return err
 		}
-		if err := tx.First(&row, "id = ? AND owner_id = ? AND purpose = ?", objectID, actor, "attachment").Error; err != nil {
+		if err := tx.First(&row, "id = ? AND owner_kind = ? AND owner_id = ? AND purpose = ?", objectID, owner.Kind, owner.ID, "attachment").Error; err != nil {
 			return err
 		}
 		if row.State == "deleted" || row.State == "delete_pending" {

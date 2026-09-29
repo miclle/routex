@@ -60,6 +60,24 @@ A safe Key contains `{id,project_id,creator_id,name,prefix,status,model_ids,expi
 
 No endpoint accepts a new personal owner or Project owner for an existing Key. Migrating from a personal credential requires separately creating a Project Key, changing the caller configuration, and revoking the former personal Key.
 
+## Project-owned attachments
+
+Project Keys advertise a non-secret Project attachment scope in `GET /v1/models`.
+The Playground keeps the bearer in component memory and uses the authenticated
+session plus CSRF token for `/api/v1/projects/:project_id/attachments`; the Key is
+never sent to that control-plane route. Only a current enabled manager can upload,
+inspect, read, or delete Project objects. Broad Project or storage permissions do
+not grant attachment-content access.
+
+The storage row belongs to the immutable Project ID rather than the uploader,
+creator, manager, or one Key. Any active Key for that exact Project can resolve a
+ready object in a supported native image/PDF position. Personal Keys and Keys for
+another Project receive the same safe not-found result before object bytes or an
+upstream request are used. Key rotation, creator departure, and manager
+replacement do not transfer or revoke an already-ready object. A disabled or
+archived Project cannot upload or dispatch attachments; current managers retain
+existing content access and deletion for recovery.
+
 ## Call Attribution and Storage
 
 Project calls carry `project_id` and an empty `user_id`; personal calls carry `user_id` and an empty `project_id`. A call fact must have exactly one owner. The creator is never copied into personal usage attribution. Project facts are excluded from personal call queries and retained through Project archival or manager changes. Stable Project and Key IDs remain historical facts rather than live cascading ownership relations.
@@ -68,4 +86,4 @@ Schema version 9 creates `project_api_keys` and `project_api_key_models` through
 
 `testProjectKeyLifecycle` exercises the real router, HTTP upstream fixture, durable call recorder, and runtime snapshot against PostgreSQL and MySQL. Coverage includes one-time secret safety, pending/expired/revoked rejection, authorization intersections, Project disable/reactivation, independent creator departure, accurate call ownership, verified replacement retirement, and manager-removal, Project-disable, and revoke races. The shared isolated harness owns database reset and migration; run `go tool task test-integration` after registering the helper.
 
-Project/Key token budgets, money limits, RPM/TPM/concurrency, IP restrictions, approval workflows, Vault integration, and corresponding UI remain explicitly outside this slice. The implemented model/lifecycle checks do not stand in for those later controls.
+Project/Key token and money limits, RPM/TPM/concurrency, and IP restrictions are implemented separately from Key lifecycle. Approval workflows, Vault integration, and managed delivery coordination remain outside this slice. The implemented model/lifecycle and attachment checks do not stand in for those later controls.

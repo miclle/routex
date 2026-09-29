@@ -34,6 +34,12 @@ export default {
   attachmentUploadFailed: 'The attachment could not be uploaded.',
   attachmentDeleteFailed: 'The attachment could not be removed from storage.',
   attachmentPersonalKeyOnly: 'Attachments require a personal API key.',
+  attachmentProjectMismatch:
+    'This API key does not belong to the Project that opened the Playground. Verify a matching Project key.',
+  attachmentProjectContextChanged:
+    'The Project context changed. Verify the API key again before continuing.',
+  attachmentProjectUnavailable:
+    'Verify a matching Project key and use an active Project you currently manage.',
   attachmentUnsupported: 'This model and protocol do not support image or PDF input.',
   invalidResponse:
     'The gateway returned an invalid native Responses payload. Received content has been preserved.',

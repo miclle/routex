@@ -33,7 +33,7 @@ import type {
   ResponsesHistoryItem,
   ResponseStatus,
 } from '@/types/playground'
-import type { Attachment } from '@/types/attachments'
+import type { Attachment, AttachmentTarget } from '@/types/attachments'
 import { useSession } from '@/hooks/use-auth'
 import { FormField } from '@/components/app/CatalogUI'
 import { Button } from '@/components/ui/button'
@@ -77,7 +77,19 @@ function attachmentCapability(file: File): 'image' | 'pdf' | null {
   return null
 }
 
-export default function ChatWorkbench() {
+function uploadScopedAttachment(file: File, csrf: string, target: AttachmentTarget) {
+  return target.scope === 'user'
+    ? uploadAttachment(file, csrf)
+    : uploadAttachment(file, csrf, undefined, target)
+}
+
+function deleteScopedAttachment(id: string, csrf: string, target: AttachmentTarget) {
+  return target.scope === 'user'
+    ? deleteAttachment(id, csrf)
+    : deleteAttachment(id, csrf, undefined, target)
+}
+
+export default function ChatWorkbench({ projectId = '' }: { projectId?: string }) {
   useTranslation()
 
   const session = useSession()
@@ -110,17 +122,24 @@ export default function ChatWorkbench() {
   const controller = useRef<AbortController | null>(null)
   const attachmentGeneration = useRef(0)
   const attachmentRef = useRef<Attachment[]>([])
-  const ownedAttachmentIDs = useRef(new Set<string>())
+  const ownedAttachmentTargets = useRef(new Map<string, AttachmentTarget>())
   const csrfRef = useRef('')
   const mounted = useRef(true)
   const selectedModel = models.find((item) => item.id === model)
+  const attachmentTarget: AttachmentTarget | null =
+    selectedModel?.attachment_scope === 'user' && !projectId
+      ? { scope: 'user' }
+      : selectedModel?.attachment_scope === 'project' &&
+          !!selectedModel.attachment_project_id &&
+          (!projectId || selectedModel.attachment_project_id === projectId)
+        ? { scope: 'project', projectId: selectedModel.attachment_project_id }
+        : null
   const inputCapabilities = selectedModel?.input_capabilities?.[protocol] ?? []
   const attachmentAccept = [
     ...(inputCapabilities.includes('image') ? ['image/png', 'image/jpeg'] : []),
     ...(inputCapabilities.includes('pdf') ? ['application/pdf'] : []),
   ].join(',')
-  const canAttach =
-    selectedModel?.personal_attachments === true && inputCapabilities.length > 0 && !!session.data
+  const canAttach = !!attachmentTarget && inputCapabilities.length > 0 && !!session.data
   const requestRunning = exchanges.some((exchange) => exchange.status === 'running')
   const busy = loading || uploadingNames.length > 0 || requestRunning
 
@@ -136,8 +155,10 @@ export default function ChatWorkbench() {
     if (!csrf) return
     const results = await Promise.allSettled(
       items.map(async (attachment) => {
-        await deleteAttachment(attachment.id, csrf)
-        ownedAttachmentIDs.current.delete(attachment.id)
+        const target = ownedAttachmentTargets.current.get(attachment.id)
+        if (!target) return
+        await deleteScopedAttachment(attachment.id, csrf, target)
+        ownedAttachmentTargets.current.delete(attachment.id)
       }),
     )
     if (mounted.current && results.some((result) => result.status === 'rejected'))
@@ -158,7 +179,7 @@ export default function ChatWorkbench() {
   }, [session.data?.csrf_token])
 
   useEffect(() => {
-    const activeOwnedAttachmentIDs = ownedAttachmentIDs.current
+    const activeOwnedAttachmentTargets = ownedAttachmentTargets.current
     mounted.current = true
     return () => {
       mounted.current = false
@@ -166,14 +187,18 @@ export default function ChatWorkbench() {
       controller.current?.abort()
       attachmentRef.current = []
       const csrf = csrfRef.current
-      const ownedIDs = [...activeOwnedAttachmentIDs]
-      activeOwnedAttachmentIDs.clear()
-      if (csrf) for (const id of ownedIDs) void deleteAttachment(id, csrf).catch(() => undefined)
+      const owned = [...activeOwnedAttachmentTargets]
+      activeOwnedAttachmentTargets.clear()
+      if (csrf)
+        for (const [id, target] of owned)
+          void deleteScopedAttachment(id, csrf, target).catch(() => undefined)
     }
   }, [])
 
   async function selectAttachments(files: File[]) {
     if (!session.data || !canAttach || busy) return
+    const target = attachmentTarget
+    if (!target) return
     setError('')
     const csrf = session.data.csrf_token
     const generation = attachmentGeneration.current
@@ -205,11 +230,11 @@ export default function ChatWorkbench() {
       remaining -= 1
       setUploadingNames((current) => [...current, file.name])
       try {
-        const attachment = await uploadAttachment(file, csrf)
-        ownedAttachmentIDs.current.add(attachment.id)
+        const attachment = await uploadScopedAttachment(file, csrf, target)
+        ownedAttachmentTargets.current.set(attachment.id, target)
         if (!mounted.current || attachmentGeneration.current !== generation) {
-          await deleteAttachment(attachment.id, csrf)
-            .then(() => ownedAttachmentIDs.current.delete(attachment.id))
+          await deleteScopedAttachment(attachment.id, csrf, target)
+            .then(() => ownedAttachmentTargets.current.delete(attachment.id))
             .catch(() => undefined)
           return
         }
@@ -221,8 +246,8 @@ export default function ChatWorkbench() {
               : null
         if (!storedCapability || !inputCapabilities.includes(storedCapability)) {
           setError('playground:attachmentType')
-          await deleteAttachment(attachment.id, csrf)
-            .then(() => ownedAttachmentIDs.current.delete(attachment.id))
+          await deleteScopedAttachment(attachment.id, csrf, target)
+            .then(() => ownedAttachmentTargets.current.delete(attachment.id))
             .catch(() => undefined)
           continue
         }
@@ -232,9 +257,13 @@ export default function ChatWorkbench() {
           setError(
             failure instanceof AttachmentError && failure.status === 429
               ? 'playground:attachmentStorageLimit'
-              : failure instanceof AttachmentError && failure.status === 503
-                ? 'playground:attachmentStorageUnavailable'
-                : 'playground:attachmentUploadFailed',
+              : failure instanceof AttachmentError &&
+                  failure.status === 404 &&
+                  target.scope === 'project'
+                ? 'playground:attachmentProjectUnavailable'
+                : failure instanceof AttachmentError && failure.status === 503
+                  ? 'playground:attachmentStorageUnavailable'
+                  : 'playground:attachmentUploadFailed',
           )
         }
       } finally {
@@ -246,8 +275,10 @@ export default function ChatWorkbench() {
 
   function removeAttachment(attachment: Attachment) {
     replaceAttachments((current) => current.filter((item) => item.id !== attachment.id))
-    void deleteAttachment(attachment.id, csrfRef.current)
-      .then(() => ownedAttachmentIDs.current.delete(attachment.id))
+    const target = ownedAttachmentTargets.current.get(attachment.id)
+    if (!target) return
+    void deleteScopedAttachment(attachment.id, csrfRef.current, target)
+      .then(() => ownedAttachmentTargets.current.delete(attachment.id))
       .catch(() => {
         if (mounted.current) setError('playground:attachmentDeleteFailed')
       })
@@ -271,6 +302,22 @@ export default function ChatWorkbench() {
     setError('')
     try {
       const available = await getGatewayModels(key.trim(), abort.signal)
+      const verifiedScope = available[0]?.attachment_scope
+      const verifiedProjectId = available[0]?.attachment_project_id ?? ''
+      if (
+        mounted.current &&
+        projectId &&
+        available.length > 0 &&
+        (verifiedScope !== 'project' || verifiedProjectId !== projectId)
+      ) {
+        clearDraftAttachments()
+        setModels([])
+        setModel('')
+        setKeyChecked(false)
+        setExchanges([])
+        setError('playground:attachmentProjectMismatch')
+        return
+      }
       const items = available.filter((item) => protocols(item).length > 0)
       if (mounted.current) {
         setModels(items)
@@ -866,9 +913,11 @@ export default function ChatWorkbench() {
                 label={
                   canAttach
                     ? t('playground:attachFiles')
-                    : selectedModel?.personal_attachments === false
-                      ? t('playground:attachmentPersonalKeyOnly')
-                      : t('playground:attachmentUnsupported')
+                    : attachmentTarget && selectedModel
+                      ? t('playground:attachmentUnsupported')
+                      : selectedModel?.attachment_scope === 'project' || projectId
+                        ? t('playground:attachmentProjectUnavailable')
+                        : t('playground:attachmentUnsupported')
                 }
                 onFiles={(files) => void selectAttachments(files)}
               />

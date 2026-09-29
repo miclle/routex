@@ -170,14 +170,14 @@ The binary capability count is 6 completed, 20 partially completed, and 4 not st
 | F17 | User and Team defaults, overrides, budgets, alerts, and stop policy | Partially completed | Personal, Project, and Key enforcement exists; Team defaults, templates, alerts, and stop-calling policy remain open. |
 | F18 | Quota, model, and request-limit approvals | Partially completed | Project model requests exist; Team quota approval, escalation, and Project quota/request-limit workflows remain open. |
 | F19 | Member overview, model sources, requests, and examples | Partially completed | Catalog, callable-model views, Project requests, and native examples exist; complete Team-source attribution and request coverage remain open. |
-| F20 | Playground, comparison, attachments, and code examples | Partially completed | Four native conversation paths, two-to-four-lane comparison, cancellation, executable examples, per-protocol image/PDF discovery, personal-Key native attachment resolution, single/comparison attachment lifecycle interfaces, and conservative token/TPM admission exist; multimodal monetary pricing and external acceptance remain open. |
+| F20 | Playground, comparison, attachments, and code examples | Partially completed | Four native conversation paths, two-to-four-lane comparison, cancellation, executable examples, per-protocol image/PDF discovery, user/Project attachment resolution, single/comparison attachment lifecycle interfaces, and conservative token/TPM admission exist; multimodal monetary pricing and external acceptance remain open. |
 | F21 | Personal, Project, and platform call records and CSV | Partially completed | Isolated list/detail queries and interfaces exist; complete CSV and later diagnostic/export acceptance remain open. |
 | F22 | Usage trends, amounts, and multidimensional filters | Partially completed | Personal, Project, and platform usage interfaces exist; Team/provider attribution and complete freshness/capacity acceptance remain open. |
 | F23 | Operations overview, quality, alerts, and notifications | Partially completed | SMTP configuration and controlled test delivery exist; durable notification jobs, retry, recipient policy, settings, and status center remain open. |
 | F24 | Read-only AI operations analysis and saved reports | Not started | Authorized analysis queries, saved definitions, evaluation, exports, and hostile-input acceptance are not implemented. |
 | F25 | Site presentation, language, and announcements | Completed | Durable site name, URL, logo, footer, default language, bilingual UI behavior, and announcement lifecycle are implemented. |
 | F26 | Instances, heartbeats, resources, jobs, and offline cleanup | Not started | Authoritative instance and system-job management are not implemented. |
-| F27 | S3, owned attachments, SMTP, and notifications | Partially completed | S3-compatible configuration and administration UI, owned attachment APIs, cleanup recovery, personal-Key inference reads, single/comparison attachment interfaces, SMTP administration, and test delivery exist. Durable notifications and external-service acceptance remain open. |
+| F27 | S3, owned attachments, SMTP, and notifications | Partially completed | S3-compatible configuration and administration UI, explicit user/Project attachment APIs, cleanup recovery, Key-scoped inference reads, single/comparison attachment interfaces, SMTP administration, and test delivery exist. Durable notifications and external-service acceptance remain open. |
 | F28 | Internal encryption, root-key rotation, and Vault switching | Partially completed | Internal provider, egress, SMTP, and storage secrets are encrypted. Root-key rotation, Vault identities, compensation, and storage switching remain open. |
 | F29 | API Key Vault delivery and application identities | Not started | Application identities, Profiles, descriptors, coordinator state, and no-plaintext-fallback delivery are not implemented. |
 | F30 | Configuration publication, acknowledgement, rollback, revocation, and audit | Partially completed | Immutable runtime publication, durable events, current revocation, and audit foundations exist; node acknowledgement, complete rollback, and distributed emergency-revocation acceptance remain open. |
@@ -204,7 +204,7 @@ Only A01 is fully accepted across its defined scope. Every other case remains in
 | A14 | Control Plane, Vault, analytics failure, invalid snapshots, and replay | Partially completed | Runtime and durable replay foundations exist; Vault and the complete failure matrix remain open. |
 | A15 | SSO, OAuth, LDAP, MFA, and recovery | Partially completed | MFA is implemented; enterprise identity is not. |
 | A16 | Vault compensation, rotation, and cleanup failure | Not started | Vault integration is not implemented. |
-| A17 | Images/PDF, object authorization, and model comparison | Partially completed | Object backend, comparison, conservative route capability discovery, owner-bound personal-Key byte reads, native inline rewriting, both Playground attachment interfaces, and attested token/TPM reservation exist; multimodal monetary pricing and external acceptance remain open. |
+| A17 | Images/PDF, object authorization, and model comparison | Partially completed | Object backend, comparison, conservative route capability discovery, owner-bound user/Project byte reads, current-manager Project lifecycle, native inline rewriting, both Playground attachment interfaces, and attested token/TPM reservation exist; multimodal monetary pricing and external acceptance remain open. |
 | A18 | Call queries, CSV, reports, and hostile analysis inputs | Partially completed | Call queries and usage views exist; AI analysis and complete safe-export acceptance remain open. |
 | A19 | S3, SMTP, site, announcements, instances, and jobs | Partially completed | S3, SMTP, and site work exists; instances and system jobs do not. |
 | A20 | Fresh install, upgrade, backup/restore, and production SPA | Partially completed | Installation, migrations, restart, and SPA evidence exists; backup/restore and production release acceptance remain open. |
@@ -222,7 +222,7 @@ Only A01 is fully accepted across its defined scope. Every other case remains in
 | P1-04/05 | In progress | Native OpenAI chat ordinary/SSE, Key Playground, isolated personal/admin call queries and request facts have controlled dual-database evidence; immutable snapshots and bounded durable events have controlled failure/restart evidence; measured capacity and real-provider acceptance remain open |
 | P2 | In progress | Profile/password/session APIs and UI delivered; member/role/registration interfaces and Team/Project backend delivered; Project Keys, offboarding, and resource interfaces advance in separate verified packages |
 | P3 | In progress | Current text prices, FX, immutable call assessments, atomic CSV/XLS/XLSX imports, CSV exports, and single-process Personal/Project/Key token and monetary quota admission are implemented; Team quotas, templates, approvals, alerts, distributed enforcement, non-token metrics, and synchronization remain open |
-| P4–P6 | In progress | Four native inference protocols, conservative image/PDF capability discovery, personal-Key attachment resolution, single/comparison attachment interfaces, attested token/TPM reservation, SMTP configuration/test delivery, and object-storage administration/owned-attachment backend are implemented; multimodal monetary pricing, durable notifications, remaining enterprise integrations, and final acceptance remain open |
+| P4–P6 | In progress | Four native inference protocols, conservative image/PDF capability discovery, user/Project attachment resolution, single/comparison attachment interfaces, attested token/TPM reservation, SMTP configuration/test delivery, and object-storage administration/owned-attachment backend are implemented; multimodal monetary pricing, durable notifications, remaining enterprise integrations, and final acceptance remain open |
 
 Verification in this iteration:
 
@@ -545,10 +545,10 @@ currently ready, enabled, positive-weight route. A zero-weight, unavailable, or
 disabled route cannot expand the declaration, while every route that can actually
 receive weighted traffic must support a capability before RouteX advertises it.
 This package established the safe discovery boundary. Later packages now provide
-personal-Key-owned attachment resolution, native inline byte mapping, the
-single-model Playground controls, and durable expiry of abandoned ready objects.
-Project-owned attachments, comparison controls, multimodal quota bounds, and
-real-provider acceptance remain separate F20/A17 work.
+user- and Project-owned attachment resolution, native inline byte mapping, both
+Playground workbenches, conservative token/TPM bounds, and durable expiry of
+abandoned ready objects. Multimodal monetary pricing and real-provider acceptance
+remain separate F20/A17 work.
 
 Verification passed with `go tool task check`, `go tool task test` (Go race/unit,
 396 Vitest cases, four Node checks, development lifecycle, and production assets),
@@ -918,30 +918,27 @@ coverage. The single-model attachment lifecycle is delivered separately;
 comparison attachments, public delivery, external-service acceptance and
 production capacity remain open.
 
-### Personal-Key native attachment resolution
+### Key-scoped native attachment resolution
 
 The gateway now recognizes the reserved `routex://attachments/<object-id>` URI
 only in protocol-owned image/PDF scalar positions for Chat Completions, Responses,
-Messages and Gemini. It authenticates one personal Key owner, selects one route,
-checks that route's explicit capability, performs a non-reserving finite-quota
-preflight, reads each unique ready object once with exact storage integrity checks,
-and rewrites every occurrence to native inline data before the single final
-admission and dispatch. Project Keys are rejected before object lookup. Text,
-tool arguments, schemas and unknown fields remain opaque.
+Messages and Gemini. It authenticates one Key, derives an immutable user or
+Project owner scope, selects one route, checks that route's explicit capability,
+performs a non-reserving finite-quota preflight, reads each unique ready object
+once with exact storage integrity checks, and rewrites every occurrence to native
+inline data before the single final admission and dispatch. A Project Key cannot
+borrow a manager's personal object or another Project's object. Text, tool
+arguments, schemas and unknown fields remain opaque.
 
 The resolver caps requests at four occurrences, four unique objects, 8 MiB of raw
 bytes and 12 MiB of expanded JSON. Missing, foreign, deleting and non-ready
 objects share one safe not-found contract; storage failures remain redacted.
 Focused service tests cover all four native mappings, opaque fields, malformed
-references, media and size bounds, filename safety, Project identity, route
-capability and quota ordering. The dual-database gateway lifecycle also exercises
-real signed storage reads, repeated-reference deduplication and upstream inline
-payloads. Exact source passed `go tool task check`, the full Go race/unit and
-frontend suite with 396 Vitest cases, four Node checks, development lifecycle and
-production assets, plus the PostgreSQL/MySQL integration matrix with the handler
-package at 260.257 seconds and service package at 4.245 seconds. Comparison
-attachments, verified multimodal token bounds and external-provider/object-storage
-acceptance remain open.
+references, media and size bounds, filename safety, user/Project isolation,
+Project lifecycle changes during a remote read, route capability, quota ordering,
+deduplication, and one dispatch. The dual-database gateway lifecycle exercises
+real signed storage reads and native inline payloads. External-provider and
+external-object-storage acceptance remain open.
 
 ### Single-model Playground attachment interface
 
@@ -949,13 +946,18 @@ The existing conversation composer now matches the approved attachment
 composition: selected chips sit above a four-row message field, the paperclip is
 at lower left, send/stop remains at lower right, and submitted filenames appear
 under the user message. The picker accepts only the image/PDF types explicitly
-advertised for the selected model and protocol, requires a personal API Key, caps
+advertised for the selected model and protocol, requires a verified user or
+Project attachment scope, caps
 the draft at four files and 2 MiB per file, and keeps missing capability metadata
 text-only.
 
 Uploads and deletions use the current session and CSRF token through a dedicated
-Axios boundary. Native inference still omits cookies and uses only the entered
-Key. Files, object IDs, and references stay out of React Query and browser storage.
+Axios boundary. User objects use the personal endpoint; Project objects use a
+Project-scoped endpoint that requires a current manager. Native inference still
+omits cookies and uses only the entered Key. The Key never enters the session
+request, query string, React Query, or browser storage. An optional Project
+Overview link supplies only an expected Project ID and rejects a mismatched Key.
+Files, object IDs, and references stay out of React Query and browser storage.
 Pure builders create the exact Chat, Responses, Messages, and Gemini media
 positions. Draft removal, context changes, unmount, cancellation, failure, and
 successful settlement delete known one-invocation objects. Uploads accepted during
@@ -964,18 +966,20 @@ has a durable one-hour cleanup deadline for terminated clients. Completed histor
 remains text-only. Code export is disabled while a transient attachment draft is
 selected.
 
-Focused frontend coverage verifies multipart/CSRF isolation, all native shapes,
-capability and Key-kind gating, validation, deduplication, removal, filenames,
-cleanup, language switching, and browser-storage absence. Multimodal quota
-accounting, real S3/provider behavior, and browser visual acceptance remain open.
+Focused frontend coverage verifies multipart/CSRF isolation, typed user/Project
+scope agreement, optional Project-context matching, neutral empty/unroutable model
+lists, all native shapes, capability gating, validation, deduplication, removal,
+filenames, cleanup, language switching, and browser-storage absence. Real
+S3/provider behavior and browser visual acceptance remain open.
 
 ### Comparison Playground attachment interface
 
 The existing shared comparison composer now reproduces the approved attachment
 composition without moving controls into individual columns. Its accepted media
-is the intersection of every selected model/protocol capability, and all selected
-models must allow personally owned attachments. One shared session/CSRF upload
-draft is encoded into each independent native column request. Per-column
+is the intersection of every selected model/protocol capability, and every model
+uses the verified Key's one user or Project attachment scope. One shared
+session/CSRF upload draft is encoded into each independent native column request.
+Per-column
 execution, cancellation, status, usage, and completed text history remain
 isolated; object references are never replayed.
 
@@ -987,21 +991,21 @@ block later messages. Late multi-file batches stop after context invalidation,
 and server-returned media types are accepted only for PNG, JPEG, or PDF.
 
 Focused comparison coverage verifies shared-composer placement, capability and
-Personal-Key intersection, all four native payloads, partial upload failure,
+owner-scope intersection, all four native payloads, partial upload failure,
 chip removal, context invalidation, independent cancellation, all-lane settlement,
 non-blocking deletion, late-batch cleanup, and browser-storage absence.
 
 ### Conservative multimodal quota admission
 
-Validated Personal-Key image/PDF attachment requests now separate token
+Validated personal- and Project-Key image/PDF attachment requests now separate token
 boundability from monetary priceability. Each native protocol still requires its
 explicit output cap and exact supported request shape. When a finite token or TPM
 policy applies, the gateway reserves the selected provider model's complete
 administrator-attested input maximum plus that output cap. The attachment plan is
 the structural classification boundary, while the subsequent owner-bound storage
 resolution is the authorization boundary. Arbitrary remote or inline media,
-audio/video, hosted tools, unknown billing fields, unsupported cache/tier shapes,
-and Project-owned objects do not inherit this allowance. No file size, page count,
+audio/video, hosted tools, unknown billing fields, and unsupported cache/tier
+shapes do not inherit this allowance. No file size, page count,
 dimensions, model name, or tokenizer estimate becomes quota evidence.
 
 The existing text price adapter remains text-only. Attachment requests subject to
@@ -1022,6 +1026,43 @@ Chat attachment through owner-bound storage resolution, native terminal parsing,
 immutable call persistence, exact token settlement, incomplete-usage hold
 retention, overrun invalidation, and a subsequent pre-dispatch bound rejection.
 Persisted multimodal pricing remains `unsupported` with a null charge.
+
+### Project-owned attachment identity and lifecycle
+
+Frozen GORM migration 23 adds an explicit `owner_kind` discriminator to storage
+objects, backfills every released row to `user`, enforces the `user`/`project`
+domain, and adds a composite owner-scope index without replacing the released
+owner-ID index. Business code queries every attachment by object ID, owner kind,
+owner ID, and purpose. It never infers ownership from an identifier prefix,
+creator, uploader, manager, or Key.
+
+Project attachment session routes live under
+`/api/v1/projects/:project_id/attachments`. A current enabled manager can upload
+into an active Project and can inspect, read, or delete existing Project objects.
+Broad Project and storage permissions do not grant content access. Upload
+publication repeats manager and active-Project authorization after the verified
+remote write; manager removal or Project disablement during upload records cleanup
+intent instead of publishing. Disabled and archived Projects reject new uploads
+and gateway inference while current managers retain recovery reads and deletion.
+Ready objects survive creator departure, Key rotation, and manager replacement
+because the immutable Project owns them.
+
+Gateway model discovery exposes only `attachment_scope` and, for Project Keys,
+`attachment_project_id`. The gateway derives the same scope from the authenticated
+Key, performs finite-quota preflight before storage, reads each unique matching
+object once, rechecks active Project continuity after remote I/O, rewrites every
+native occurrence, and performs one final admission and dispatch. Personal,
+cross-Project, foreign, and stale references share a safe not-found boundary.
+Call facts and audits retain no attachment filename, URI, hash, bytes, or storage
+coordinate.
+
+Controlled coverage includes PostgreSQL/MySQL empty and concurrent migration,
+V22 existing-data upgrade, partial-DDL recovery, repeat execution, constraint and
+index checks, current/former/successor manager behavior, broad-administrator
+denial, disabled/archived recovery, manager-removal upload cleanup, all four
+native protocols, cross-scope zero-read rejection, Project finite-money zero-read
+rejection, Project lifecycle changes during storage reads, deduplication, and one
+dispatch. External S3 and provider acceptance remain open.
 
 ### Native route-attempt foundation
 

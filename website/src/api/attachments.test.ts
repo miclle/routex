@@ -59,6 +59,32 @@ describe('attachment API', () => {
     expect(persist).not.toHaveBeenCalled()
   })
 
+  it('uses the Project session scope without sending or persisting the API key', async () => {
+    const request = vi.spyOn(client, 'request').mockResolvedValue({ data: readyAttachment })
+    const persist = vi.spyOn(Storage.prototype, 'setItem')
+    const file = new File(['png-data'], 'diagram.png', { type: 'image/png' })
+    const target = { scope: 'project' as const, projectId: 'prj/name?revision=1' }
+
+    await uploadAttachment(file, 'csrf-project', undefined, target)
+    await deleteAttachment('obj/name', 'csrf-project', undefined, target)
+
+    expect(request.mock.calls[0][0]).toMatchObject({
+      method: 'post',
+      url: '/projects/prj%2Fname%3Frevision%3D1/attachments',
+      headers: { 'X-CSRF-Token': 'csrf-project' },
+    })
+    expect(request.mock.calls[1][0]).toMatchObject({
+      method: 'delete',
+      url: '/projects/prj%2Fname%3Frevision%3D1/attachments/obj%2Fname',
+      headers: { 'X-CSRF-Token': 'csrf-project' },
+    })
+    for (const [config] of request.mock.calls) {
+      expect(config.headers).not.toHaveProperty('Authorization')
+      expect(JSON.stringify(config.data) ?? '').not.toContain('rx_')
+    }
+    expect(persist).not.toHaveBeenCalled()
+  })
+
   it('reduces failed responses to a status-only attachment error', async () => {
     vi.spyOn(client, 'request').mockRejectedValue({
       isAxiosError: true,

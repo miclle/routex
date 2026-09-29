@@ -8,3 +8,5 @@ export interface Attachment {
   state: AttachmentState
   created_at: string
 }
+
+export type AttachmentTarget = { scope: 'user' } | { scope: 'project'; projectId: string }

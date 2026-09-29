@@ -32,6 +32,9 @@ func TestGatewayModelInputCapabilitiesIntersectReadyRoutes(t *testing.T) {
 	if !models[0].PersonalAttachments {
 		t.Fatal("personal Key model did not advertise personal attachment references")
 	}
+	if models[0].AttachmentScope != entity.StorageOwnerUser || models[0].AttachmentProjectID != "" {
+		t.Fatalf("personal attachment scope metadata = %q/%q", models[0].AttachmentScope, models[0].AttachmentProjectID)
+	}
 	protocol := entity.ProtocolOpenAIChat
 	if !slices.Equal(models[0].InputCapabilities[protocol], []string{inputCapabilityImage, inputCapabilityPDF}) {
 		t.Fatalf("single-route capabilities = %v, want image and pdf", models[0].InputCapabilities)

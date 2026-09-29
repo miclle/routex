@@ -45,7 +45,21 @@ type GatewayModel struct {
 	OwnedBy             string              `json:"owned_by"`
 	Protocols           []string            `json:"protocols"`
 	InputCapabilities   map[string][]string `json:"input_capabilities"`
+	AttachmentScope     string              `json:"attachment_scope"`
+	AttachmentProjectID string              `json:"attachment_project_id,omitempty"`
 	PersonalAttachments bool                `json:"personal_attachments"`
+}
+
+func gatewayModel(key *KeyRecord, id string, created int64, metadata gatewayModelMetadata) GatewayModel {
+	result := GatewayModel{ID: id, Object: "model", Created: created, OwnedBy: "routex", Protocols: metadata.Protocols, InputCapabilities: metadata.InputCapabilities}
+	if key.ProjectID != "" {
+		result.AttachmentScope = entity.StorageOwnerProject
+		result.AttachmentProjectID = key.ProjectID
+		return result
+	}
+	result.AttachmentScope = entity.StorageOwnerUser
+	result.PersonalAttachments = true
+	return result
 }
 
 // GatewayResult describes one actual upstream attempt without storing its secret.
@@ -100,7 +114,7 @@ func (s *Service) GatewayModels(ctx context.Context, bearer string) ([]GatewayMo
 		for _, name := range auth.Names {
 			if name.CurrentModelID != nil && auth.Models[name.ModelID] && slices.Contains(key.ModelIDs, name.ModelID) {
 				item := metadata[name.ModelID]
-				models = append(models, GatewayModel{ID: name.Name, Object: "model", Created: auth.ModelCreated[name.ModelID].Unix(), OwnedBy: "routex", Protocols: item.Protocols, InputCapabilities: item.InputCapabilities, PersonalAttachments: key.ProjectID == ""})
+				models = append(models, gatewayModel(key, name.Name, auth.ModelCreated[name.ModelID].Unix(), item))
 			}
 		}
 		sort.Slice(models, func(i, j int) bool { return models[i].ID < models[j].ID })
@@ -117,7 +131,7 @@ func (s *Service) GatewayModels(ctx context.Context, bearer string) ([]GatewayMo
 	}
 	for _, row := range rows {
 		item := metadata[row.ID]
-		models = append(models, GatewayModel{ID: row.Name, Object: "model", Created: row.CreatedAt.Unix(), OwnedBy: "routex", Protocols: item.Protocols, InputCapabilities: item.InputCapabilities, PersonalAttachments: key.ProjectID == ""})
+		models = append(models, gatewayModel(key, row.Name, row.CreatedAt.Unix(), item))
 	}
 	return models, nil
 }
@@ -161,9 +175,6 @@ func (s *Service) gatewayNative(ctx context.Context, bearer string, body []byte,
 	attachmentPlan, err := planGatewayAttachments(protocol, payload)
 	if err != nil {
 		return result, err
-	}
-	if len(attachmentPlan.Occurrences) != 0 && key.ProjectID != "" {
-		return result, gatewayError(400, "project_attachment_unsupported", "Personal attachments cannot be used with a Project API key.")
 	}
 	var name entity.ModelName
 	if s.runtime != nil {
@@ -259,7 +270,11 @@ func (s *Service) gatewayNative(ctx context.Context, bearer string, body []byte,
 		if err := s.preflightGatewayQuota(ctx, requestID, result); err != nil {
 			return result, err
 		}
-		resolved, err := s.resolveGatewayAttachments(ctx, key.Key.UserID, attachmentPlan)
+		owner := attachmentOwner{Kind: entity.StorageOwnerUser, ID: key.Key.UserID}
+		if key.ProjectID != "" {
+			owner = attachmentOwner{Kind: entity.StorageOwnerProject, ID: key.ProjectID}
+		}
+		resolved, err := s.resolveGatewayAttachments(ctx, owner, attachmentPlan)
 		if err != nil {
 			return result, err
 		}

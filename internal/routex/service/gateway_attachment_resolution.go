@@ -5,7 +5,9 @@ import (
 	"errors"
 	"net/http"
 
+	"github.com/miclle/routex/internal/routex/entity"
 	apperrors "github.com/miclle/routex/internal/routex/errors"
+	"gorm.io/gorm"
 )
 
 func validateGatewayAttachmentRoute(plan *gatewayAttachmentPlan, route *gatewayRoute) error {
@@ -26,13 +28,17 @@ func validateGatewayAttachmentRoute(plan *gatewayAttachmentPlan, route *gatewayR
 	return nil
 }
 
-func (s *Service) resolveGatewayAttachments(ctx context.Context, ownerID string, plan *gatewayAttachmentPlan) (map[string]gatewayAttachmentData, error) {
+func (s *Service) resolveGatewayAttachments(ctx context.Context, owner attachmentOwner, plan *gatewayAttachmentPlan) (map[string]gatewayAttachmentData, error) {
+	authorize := func(db *gorm.DB) error { return activeAttachmentOwner(db, owner.ID) }
+	if owner.Kind == entity.StorageOwnerProject {
+		authorize = func(db *gorm.DB) error { return activeProjectAttachmentOwner(db, owner.ID) }
+	}
 	resolved := make(map[string]gatewayAttachmentData, len(plan.Occurrences))
 	for _, objectID := range plan.UniqueObjectIDs() {
 		if err := ctx.Err(); err != nil {
 			return nil, gatewayAttachmentContextError(err)
 		}
-		row, data, err := s.readOwnedAttachment(ctx, ownerID, objectID)
+		row, data, err := s.readScopedAttachment(ctx, owner, objectID, authorize)
 		if err != nil {
 			if contextErr := ctx.Err(); contextErr != nil {
 				return nil, gatewayAttachmentContextError(contextErr)
@@ -59,7 +65,7 @@ func gatewayAttachmentContextError(err error) error {
 func gatewayAttachmentReadError(err error) error {
 	var app *apperrors.Error
 	if errors.As(err, &app) && (app.Code == http.StatusNotFound || app.Code == http.StatusUnauthorized) {
-		return gatewayError(http.StatusNotFound, "attachment_not_found", "The attachment is unavailable or does not belong to this API key owner.")
+		return gatewayError(http.StatusNotFound, "attachment_not_found", "The attachment is unavailable or does not belong to this API key scope.")
 	}
 	return gatewayError(http.StatusServiceUnavailable, "attachment_storage_unavailable", "The attachment could not be read from storage.")
 }

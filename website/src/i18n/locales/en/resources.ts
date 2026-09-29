@@ -73,4 +73,5 @@ export default {
   searchName: 'Search {{kind}} name',
   projectCalls: 'Project call records',
   projectCallsHelp: 'Calls made by this Project remain separate from personal call history.',
+  openInPlayground: 'Open in Playground',
 }

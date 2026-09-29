@@ -1,6 +1,7 @@
 import { act } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { MemoryRouter } from 'react-router'
 import {
   GatewayError,
   getGatewayModels,
@@ -271,6 +272,7 @@ describe('model comparison workbench', () => {
       {
         id: 'image-and-pdf',
         protocols: ['openai_chat', 'openai_responses'],
+        attachment_scope: 'user',
         personal_attachments: true,
         input_capabilities: {
           openai_chat: ['image', 'pdf'],
@@ -280,14 +282,16 @@ describe('model comparison workbench', () => {
       {
         id: 'image-only',
         protocols: ['openai_chat'],
+        attachment_scope: 'user',
         personal_attachments: true,
         input_capabilities: { openai_chat: ['image'] },
       },
       {
-        id: 'project-media',
+        id: 'text-only',
         protocols: ['openai_chat'],
-        personal_attachments: false,
-        input_capabilities: { openai_chat: ['image', 'pdf'] },
+        attachment_scope: 'user',
+        personal_attachments: true,
+        input_capabilities: { openai_chat: [] },
       },
     ])
     await ready()
@@ -304,9 +308,124 @@ describe('model comparison workbench', () => {
     await chooseFiles([image()])
     expect(host.textContent).toContain('diagram.png')
 
-    await select('Comparison model 2', 'project-media')
+    await select('Comparison model 2', 'text-only')
     expect(picker.disabled).toBe(true)
     expect(deleteAttachment).toHaveBeenCalledWith('obj_diagram_png', 'csrf-playground')
+  })
+
+  it('derives one Project target for shared comparison attachments without a URL context', async () => {
+    vi.mocked(getGatewayModels).mockResolvedValue([
+      {
+        id: 'project-a',
+        protocols: ['openai_chat'],
+        attachment_scope: 'project',
+        attachment_project_id: 'prj_1',
+        personal_attachments: false,
+        input_capabilities: { openai_chat: ['image'] },
+      },
+      {
+        id: 'project-b',
+        protocols: ['openai_chat'],
+        attachment_scope: 'project',
+        attachment_project_id: 'prj_1',
+        personal_attachments: false,
+        input_capabilities: { openai_chat: ['image'] },
+      },
+    ])
+    await act(async () => root.render(<CompareWorkbench />))
+    await ready()
+    await chooseFiles([image('project.png')])
+    expect(uploadAttachment).toHaveBeenCalledWith(
+      expect.objectContaining({ name: 'project.png' }),
+      'csrf-playground',
+      undefined,
+      { scope: 'project', projectId: 'prj_1' },
+    )
+    await send('Shared Project prompt')
+    expect(runChat).toHaveBeenCalledTimes(2)
+    expect(deleteAttachment).toHaveBeenCalledWith('obj_project_png', 'csrf-playground', undefined, {
+      scope: 'project',
+      projectId: 'prj_1',
+    })
+  })
+
+  it('rejects a comparison key outside the expected Project context', async () => {
+    vi.mocked(getGatewayModels).mockResolvedValue([
+      {
+        id: 'foreign-project-model',
+        protocols: ['openai_chat'],
+        attachment_scope: 'project',
+        attachment_project_id: 'prj_foreign',
+        personal_attachments: false,
+      },
+    ])
+    await act(async () => root.render(<CompareWorkbench projectId="prj_expected" />))
+    await ready()
+
+    expect(host.textContent).toContain(
+      'This API key does not belong to the Project that opened the Playground',
+    )
+    expect(host.querySelector('option[value="foreign-project-model"]')).toBeNull()
+    expect(button('Send to all models').disabled).toBe(true)
+    expect(uploadAttachment).not.toHaveBeenCalled()
+  })
+
+  it('shows unsupported for a matched Project comparison with no shared media capability', async () => {
+    vi.mocked(getGatewayModels).mockResolvedValue([
+      {
+        id: 'project-a',
+        protocols: ['openai_chat'],
+        attachment_scope: 'project',
+        attachment_project_id: 'prj_expected',
+        personal_attachments: false,
+        input_capabilities: { openai_chat: [] },
+      },
+      {
+        id: 'project-b',
+        protocols: ['openai_chat'],
+        attachment_scope: 'project',
+        attachment_project_id: 'prj_expected',
+        personal_attachments: false,
+        input_capabilities: { openai_chat: ['image'] },
+      },
+    ])
+    await act(async () => root.render(<CompareWorkbench projectId="prj_expected" />))
+    await ready()
+
+    expect(button('This model and protocol do not support image or PDF input.').disabled).toBe(true)
+    expect(host.textContent).not.toContain(
+      'Verify a matching Project key and use an active Project you currently manage.',
+    )
+  })
+
+  it('keeps a matching Project comparison with no routable models in the neutral empty state', async () => {
+    vi.mocked(getGatewayModels).mockResolvedValue([
+      {
+        id: 'unroutable-project-model',
+        protocols: [],
+        attachment_scope: 'project',
+        attachment_project_id: 'prj_expected',
+        personal_attachments: false,
+      },
+    ])
+    await act(async () => root.render(<CompareWorkbench projectId="prj_expected" />))
+    await ready()
+
+    expect(host.textContent).toContain('This key has no currently callable models.')
+    expect(host.textContent).not.toContain(
+      'This API key does not belong to the Project that opened the Playground',
+    )
+  })
+
+  it('keeps an empty comparison model response neutral when a Project context is expected', async () => {
+    vi.mocked(getGatewayModels).mockResolvedValue([])
+    await act(async () => root.render(<CompareWorkbench projectId="prj_expected" />))
+    await ready()
+
+    expect(host.textContent).toContain('This key has no currently callable models.')
+    expect(host.textContent).not.toContain(
+      'This API key does not belong to the Project that opened the Playground',
+    )
   })
 
   it.each([
@@ -385,12 +504,14 @@ describe('model comparison workbench', () => {
         {
           id: firstModel,
           protocols: [protocol],
+          attachment_scope: 'user',
           personal_attachments: true,
           input_capabilities: { [protocol]: ['image', 'pdf'] },
         },
         {
           id: secondModel,
           protocols: [protocol],
+          attachment_scope: 'user',
           personal_attachments: true,
           input_capabilities: { [protocol]: ['image', 'pdf'] },
         },
@@ -449,12 +570,14 @@ describe('model comparison workbench', () => {
       {
         id: 'media-a',
         protocols: ['openai_chat'],
+        attachment_scope: 'user',
         personal_attachments: true,
         input_capabilities: { openai_chat: ['image'] },
       },
       {
         id: 'media-b',
         protocols: ['openai_chat'],
+        attachment_scope: 'user',
         personal_attachments: true,
         input_capabilities: { openai_chat: ['image'] },
       },
@@ -481,6 +604,7 @@ describe('model comparison workbench', () => {
       {
         id: 'both-a',
         protocols: ['openai_chat', 'openai_responses'],
+        attachment_scope: 'user',
         personal_attachments: true,
         input_capabilities: {
           openai_chat: ['image'],
@@ -490,12 +614,14 @@ describe('model comparison workbench', () => {
       {
         id: 'chat-b',
         protocols: ['openai_chat'],
+        attachment_scope: 'user',
         personal_attachments: true,
         input_capabilities: { openai_chat: ['image'] },
       },
       {
         id: 'chat-c',
         protocols: ['openai_chat'],
+        attachment_scope: 'user',
         personal_attachments: true,
         input_capabilities: { openai_chat: ['image'] },
       },
@@ -534,12 +660,14 @@ describe('model comparison workbench', () => {
       {
         id: 'media-a',
         protocols: ['openai_chat'],
+        attachment_scope: 'user',
         personal_attachments: true,
         input_capabilities: { openai_chat: ['image'] },
       },
       {
         id: 'media-b',
         protocols: ['openai_chat'],
+        attachment_scope: 'user',
         personal_attachments: true,
         input_capabilities: { openai_chat: ['image'] },
       },
@@ -575,12 +703,14 @@ describe('model comparison workbench', () => {
       {
         id: 'media-a',
         protocols: ['openai_chat'],
+        attachment_scope: 'user',
         personal_attachments: true,
         input_capabilities: { openai_chat: ['image'] },
       },
       {
         id: 'media-b',
         protocols: ['openai_chat'],
+        attachment_scope: 'user',
         personal_attachments: true,
         input_capabilities: { openai_chat: ['image'] },
       },
@@ -610,17 +740,25 @@ describe('model comparison workbench', () => {
       {
         id: 'media-a',
         protocols: ['openai_chat'],
+        attachment_scope: 'user',
         personal_attachments: true,
         input_capabilities: { openai_chat: ['image'] },
       },
       {
         id: 'media-b',
         protocols: ['openai_chat'],
+        attachment_scope: 'user',
         personal_attachments: true,
         input_capabilities: { openai_chat: ['image'] },
       },
     ])
-    await act(async () => root.render(<PlaygroundPage />))
+    await act(async () =>
+      root.render(
+        <MemoryRouter>
+          <PlaygroundPage />
+        </MemoryRouter>,
+      ),
+    )
     await click('Model comparison')
     await ready()
     await chooseFiles([image('ready.png')])
@@ -662,7 +800,13 @@ describe('model comparison workbench', () => {
     expect(host.textContent).not.toContain('not-started.png')
   })
   it('aborts hidden workbench requests and discards its key when switching tabs', async () => {
-    await act(async () => root.render(<PlaygroundPage />))
+    await act(async () =>
+      root.render(
+        <MemoryRouter>
+          <PlaygroundPage />
+        </MemoryRouter>,
+      ),
+    )
     await click('Model comparison')
     let signal: AbortSignal | undefined
     vi.mocked(runChat).mockImplementation(

@@ -91,7 +91,7 @@ func TestIdentityIntegration(t *testing.T) {
 				t.Fatal(err)
 			}
 			var versions int64
-			if err := db.Table("schema_migrations").Count(&versions).Error; err != nil || versions != 22 {
+			if err := db.Table("schema_migrations").Count(&versions).Error; err != nil || versions != 23 {
 				t.Fatalf("migration ledger: %d, %v", versions, err)
 			}
 			var preserved entity.Example
@@ -113,6 +113,7 @@ func TestIdentityIntegration(t *testing.T) {
 					t.Fatalf("missing session index %s", index)
 				}
 			}
+			testStorageOwnerMigration(t, db)
 			orphan := entity.Session{ID: "ses_orphan", UserID: "usr_missing", TokenHash: strings.Repeat("a", 64), ExpiresAt: time.Now().Add(time.Hour)}
 			if err := db.Create(&orphan).Error; err == nil {
 				t.Fatal("orphan session must be rejected by database FK")

@@ -1,6 +1,7 @@
 import { act } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { MemoryRouter } from 'react-router'
 import PlaygroundPage from './index'
 import i18n from '@/i18n'
 import {
@@ -11,7 +12,7 @@ import {
   runMessages,
   runGemini,
 } from '@/api/playground'
-import { deleteAttachment, uploadAttachment } from '@/api/attachments'
+import { AttachmentError, deleteAttachment, uploadAttachment } from '@/api/attachments'
 
 vi.mock('@/api/playground', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@/api/playground')>()),
@@ -69,7 +70,11 @@ beforeEach(async () => {
     created_at: '2026-09-29T12:00:00Z',
   }))
   await act(async () => {
-    root.render(<PlaygroundPage />)
+    root.render(
+      <MemoryRouter>
+        <PlaygroundPage />
+      </MemoryRouter>,
+    )
   })
 })
 afterEach(async () => {
@@ -194,6 +199,7 @@ describe('Playground user behavior', () => {
       {
         id: 'image-model',
         protocols: ['openai_chat'],
+        attachment_scope: 'user',
         personal_attachments: true,
         input_capabilities: { openai_chat: ['image'] },
       },
@@ -235,6 +241,7 @@ describe('Playground user behavior', () => {
       {
         id: 'image-model',
         protocols: ['openai_chat'],
+        attachment_scope: 'user',
         personal_attachments: true,
         input_capabilities: { openai_chat: ['image'] },
       },
@@ -323,6 +330,7 @@ describe('Playground user behavior', () => {
         {
           id: 'media-model',
           protocols: [protocol],
+          attachment_scope: 'user',
           personal_attachments: true,
           input_capabilities: { [protocol]: ['image', 'pdf'] },
         },
@@ -383,22 +391,161 @@ describe('Playground user behavior', () => {
       expect(sessionStorage.length).toBe(0)
     },
   )
-  it('keeps Project-key and missing-capability attachment controls disabled', async () => {
+  it('keeps attachment controls disabled without a verified attachment scope', async () => {
     vi.mocked(getGatewayModels).mockResolvedValue([
       {
         id: 'project-model',
         protocols: ['openai_chat'],
-        personal_attachments: false,
         input_capabilities: { openai_chat: ['image', 'pdf'] },
       },
     ])
     await ready()
     expect(
       container.querySelector<HTMLButtonElement>(
-        'button[aria-label="Attachments require a personal API key."]',
+        'button[aria-label="This model and protocol do not support image or PDF input."]',
       )!.disabled,
     ).toBe(true)
     expect(uploadAttachment).not.toHaveBeenCalled()
+  })
+
+  it('distinguishes a matched Project model without media capability from Project availability', async () => {
+    vi.mocked(getGatewayModels).mockResolvedValue([
+      {
+        id: 'project-text-model',
+        protocols: ['openai_chat'],
+        attachment_scope: 'project',
+        attachment_project_id: 'prj_expected',
+        personal_attachments: false,
+        input_capabilities: { openai_chat: [] },
+      },
+    ])
+    await act(async () => {
+      root.render(
+        <MemoryRouter
+          key="project-capability"
+          initialEntries={['/playground?project=prj_expected']}
+        >
+          <PlaygroundPage />
+        </MemoryRouter>,
+      )
+    })
+    await ready()
+
+    expect(
+      container.querySelector<HTMLButtonElement>(
+        'button[aria-label="This model and protocol do not support image or PDF input."]',
+      )!.disabled,
+    ).toBe(true)
+    expect(container.textContent).not.toContain(
+      'Verify a matching Project key and use an active Project you currently manage.',
+    )
+  })
+
+  it('keeps a matching Project key with no routable models in the neutral empty state', async () => {
+    vi.mocked(getGatewayModels).mockResolvedValue([
+      {
+        id: 'unroutable-project-model',
+        protocols: [],
+        attachment_scope: 'project',
+        attachment_project_id: 'prj_expected',
+        personal_attachments: false,
+      },
+    ])
+    await act(async () => {
+      root.render(
+        <MemoryRouter key="project-empty" initialEntries={['/playground?project=prj_expected']}>
+          <PlaygroundPage />
+        </MemoryRouter>,
+      )
+    })
+    await ready()
+
+    expect(container.textContent).toContain(
+      'This key has no available models. Check its scope and your model grants.',
+    )
+    expect(container.textContent).not.toContain(
+      'This API key does not belong to the Project that opened the Playground',
+    )
+  })
+
+  it('keeps an empty model response neutral when a Project context is expected', async () => {
+    vi.mocked(getGatewayModels).mockResolvedValue([])
+    await act(async () => {
+      root.render(
+        <MemoryRouter
+          key="project-empty-response"
+          initialEntries={['/playground?project=prj_expected']}
+        >
+          <PlaygroundPage />
+        </MemoryRouter>,
+      )
+    })
+    await ready()
+
+    expect(container.textContent).toContain(
+      'This key has no available models. Check its scope and your model grants.',
+    )
+    expect(container.textContent).not.toContain(
+      'This API key does not belong to the Project that opened the Playground',
+    )
+  })
+
+  it('uses a matched Project context for session uploads and clears mismatched model data', async () => {
+    vi.mocked(getGatewayModels).mockResolvedValue([
+      {
+        id: 'project-model',
+        protocols: ['openai_chat'],
+        attachment_scope: 'project',
+        attachment_project_id: 'prj_expected',
+        personal_attachments: false,
+        input_capabilities: { openai_chat: ['image'] },
+      },
+    ])
+    await act(async () => {
+      root.render(
+        <MemoryRouter key="project-context" initialEntries={['/playground?project=prj_expected']}>
+          <PlaygroundPage />
+        </MemoryRouter>,
+      )
+    })
+    await ready()
+    await chooseFiles([image()])
+    expect(uploadAttachment).toHaveBeenCalledWith(
+      expect.objectContaining({ name: 'diagram.png' }),
+      'csrf-playground',
+      undefined,
+      { scope: 'project', projectId: 'prj_expected' },
+    )
+    await submit()
+    expect(deleteAttachment).toHaveBeenCalledWith('obj_diagram_png', 'csrf-playground', undefined, {
+      scope: 'project',
+      projectId: 'prj_expected',
+    })
+    vi.mocked(uploadAttachment).mockRejectedValueOnce(new AttachmentError(404))
+    await chooseFiles([new File(['png'], 'inactive.png', { type: 'image/png' })])
+    expect(container.textContent).toContain(
+      'Verify a matching Project key and use an active Project you currently manage.',
+    )
+
+    vi.mocked(getGatewayModels).mockResolvedValueOnce([
+      {
+        id: 'other-project-model',
+        protocols: ['openai_chat'],
+        attachment_scope: 'project',
+        attachment_project_id: 'prj_other',
+        personal_attachments: false,
+      },
+    ])
+    await fill('api_key', 'rx_other_project')
+    await click('Verify and load models')
+    expect(container.textContent).toContain(
+      'This API key does not belong to the Project that opened the Playground',
+    )
+    expect(
+      container.querySelectorAll('select[name="model"] option[value="other-project-model"]'),
+    ).toHaveLength(0)
+    expect(localStorage.length).toBe(0)
+    expect(sessionStorage.length).toBe(0)
   })
 
   it('validates, deduplicates, removes, localizes, and cleans transient draft files', async () => {
@@ -406,6 +553,7 @@ describe('Playground user behavior', () => {
       {
         id: 'image-model',
         protocols: ['openai_chat'],
+        attachment_scope: 'user',
         personal_attachments: true,
         input_capabilities: { openai_chat: ['image'] },
       },

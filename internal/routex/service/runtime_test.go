@@ -230,6 +230,9 @@ func TestProjectRuntimeAuthorizationOwnershipAndIntersection(t *testing.T) {
 	if models[0].PersonalAttachments {
 		t.Fatal("project Key model advertised personal attachment references")
 	}
+	if models[0].AttachmentScope != entity.StorageOwnerProject || models[0].AttachmentProjectID != "prj_one" {
+		t.Fatalf("project attachment scope metadata = %q/%q", models[0].AttachmentScope, models[0].AttachmentProjectID)
+	}
 	// Neither the creator nor a manager is the project's key owner. The current
 	// manager lifecycle is evaluated by the project authorization publication.
 	s.InvalidateRuntimeUser("usr_creator")

@@ -32,7 +32,7 @@ import type {
   ResponsesHistoryItem,
   ResponseStatus,
 } from '@/types/playground'
-import type { Attachment } from '@/types/attachments'
+import type { Attachment, AttachmentTarget } from '@/types/attachments'
 import { useSession } from '@/hooks/use-auth'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -76,6 +76,18 @@ function attachmentCapability(file: File): 'image' | 'pdf' | null {
   if (file.type === 'application/pdf' || name.endsWith('.pdf')) return 'pdf'
   return null
 }
+
+function uploadScopedAttachment(file: File, csrf: string, target: AttachmentTarget) {
+  return target.scope === 'user'
+    ? uploadAttachment(file, csrf)
+    : uploadAttachment(file, csrf, undefined, target)
+}
+
+function deleteScopedAttachment(id: string, csrf: string, target: AttachmentTarget) {
+  return target.scope === 'user'
+    ? deleteAttachment(id, csrf)
+    : deleteAttachment(id, csrf, undefined, target)
+}
 function protocols(model?: GatewayModel): PlaygroundProtocol[] {
   return (model?.protocols ?? ['openai_chat']).filter(
     (value): value is PlaygroundProtocol =>
@@ -89,7 +101,7 @@ function makeLane(id: number, model?: GatewayModel): Lane {
   return { id, model: model?.id ?? '', protocol: protocols(model)[0] ?? 'openai_chat', turns: [] }
 }
 const selectClass = 'h-10 min-w-0 flex-1 rounded-md border bg-background px-3 text-sm'
-export default function CompareWorkbench() {
+export default function CompareWorkbench({ projectId = '' }: { projectId?: string }) {
   const { t } = useTranslation('playground')
   const session = useSession()
   const [codeRequest, setCodeRequest] = useState<SnippetInput | null>(null)
@@ -108,7 +120,7 @@ export default function CompareWorkbench() {
   const verification = useRef<AbortController | null>(null)
   const attachmentGeneration = useRef(0)
   const attachmentRef = useRef<Attachment[]>([])
-  const ownedAttachmentIDs = useRef(new Set<string>())
+  const ownedAttachmentTargets = useRef(new Map<string, AttachmentTarget>())
   const csrfRef = useRef('')
   const lock = useRef(false)
   const mounted = useRef(true)
@@ -117,10 +129,18 @@ export default function CompareWorkbench() {
   const laneCapabilities = lanes.map((lane) => {
     const selected = models.find((item) => item.id === lane.model)
     return {
-      personal: selected?.personal_attachments === true,
       values: selected?.input_capabilities?.[lane.protocol] ?? [],
     }
   })
+  const attachmentScope = models[0]?.attachment_scope
+  const attachmentTarget: AttachmentTarget | null =
+    attachmentScope === 'user' && !projectId
+      ? { scope: 'user' }
+      : attachmentScope === 'project' &&
+          !!models[0]?.attachment_project_id &&
+          (!projectId || models[0].attachment_project_id === projectId)
+        ? { scope: 'project', projectId: models[0].attachment_project_id }
+        : null
   const inputCapabilities = (['image', 'pdf'] as const).filter((capability) =>
     laneCapabilities.every((item) => item.values.includes(capability)),
   )
@@ -130,8 +150,8 @@ export default function CompareWorkbench() {
   ].join(',')
   const canAttach =
     !!session.data &&
+    !!attachmentTarget &&
     lanes.every((lane) => !!lane.model) &&
-    laneCapabilities.every((item) => item.personal) &&
     inputCapabilities.length > 0
 
   function replaceAttachments(update: (current: Attachment[]) => Attachment[]) {
@@ -144,11 +164,13 @@ export default function CompareWorkbench() {
 
   async function releaseAttachments(items: Attachment[], csrf = csrfRef.current) {
     if (!csrf) return
-    const owned = items.filter((attachment) => ownedAttachmentIDs.current.has(attachment.id))
+    const owned = items.filter((attachment) => ownedAttachmentTargets.current.has(attachment.id))
     const results = await Promise.allSettled(
       owned.map(async (attachment) => {
-        await deleteAttachment(attachment.id, csrf)
-        ownedAttachmentIDs.current.delete(attachment.id)
+        const target = ownedAttachmentTargets.current.get(attachment.id)
+        if (!target) return
+        await deleteScopedAttachment(attachment.id, csrf, target)
+        ownedAttachmentTargets.current.delete(attachment.id)
       }),
     )
     if (mounted.current && results.some((result) => result.status === 'rejected'))
@@ -171,7 +193,7 @@ export default function CompareWorkbench() {
   useEffect(() => {
     mounted.current = true
     const controllers = active.current
-    const activeOwnedAttachmentIDs = ownedAttachmentIDs.current
+    const activeOwnedAttachmentTargets = ownedAttachmentTargets.current
     return () => {
       mounted.current = false
       attachmentGeneration.current += 1
@@ -180,14 +202,18 @@ export default function CompareWorkbench() {
       controllers.clear()
       attachmentRef.current = []
       const csrf = csrfRef.current
-      const ownedIDs = [...activeOwnedAttachmentIDs]
-      activeOwnedAttachmentIDs.clear()
-      if (csrf) for (const id of ownedIDs) void deleteAttachment(id, csrf).catch(() => undefined)
+      const owned = [...activeOwnedAttachmentTargets]
+      activeOwnedAttachmentTargets.clear()
+      if (csrf)
+        for (const [id, target] of owned)
+          void deleteScopedAttachment(id, csrf, target).catch(() => undefined)
     }
   }, [])
 
   async function selectAttachments(files: File[]) {
     if (!session.data || !canAttach || busy) return
+    const target = attachmentTarget
+    if (!target) return
     setAttachmentError('')
     const csrf = session.data.csrf_token
     const generation = attachmentGeneration.current
@@ -219,11 +245,11 @@ export default function CompareWorkbench() {
       remaining -= 1
       setUploadingNames((current) => [...current, file.name])
       try {
-        const attachment = await uploadAttachment(file, csrf)
-        ownedAttachmentIDs.current.add(attachment.id)
+        const attachment = await uploadScopedAttachment(file, csrf, target)
+        ownedAttachmentTargets.current.set(attachment.id, target)
         if (!mounted.current || attachmentGeneration.current !== generation) {
-          await deleteAttachment(attachment.id, csrf)
-            .then(() => ownedAttachmentIDs.current.delete(attachment.id))
+          await deleteScopedAttachment(attachment.id, csrf, target)
+            .then(() => ownedAttachmentTargets.current.delete(attachment.id))
             .catch(() => undefined)
           return
         }
@@ -235,8 +261,8 @@ export default function CompareWorkbench() {
               : null
         if (!storedCapability || !inputCapabilities.includes(storedCapability)) {
           setAttachmentError('attachmentType')
-          await deleteAttachment(attachment.id, csrf)
-            .then(() => ownedAttachmentIDs.current.delete(attachment.id))
+          await deleteScopedAttachment(attachment.id, csrf, target)
+            .then(() => ownedAttachmentTargets.current.delete(attachment.id))
             .catch(() => undefined)
           continue
         }
@@ -246,9 +272,13 @@ export default function CompareWorkbench() {
           setAttachmentError(
             failure instanceof AttachmentError && failure.status === 429
               ? 'attachmentStorageLimit'
-              : failure instanceof AttachmentError && failure.status === 503
-                ? 'attachmentStorageUnavailable'
-                : 'attachmentUploadFailed',
+              : failure instanceof AttachmentError &&
+                  failure.status === 404 &&
+                  target.scope === 'project'
+                ? 'attachmentProjectUnavailable'
+                : failure instanceof AttachmentError && failure.status === 503
+                  ? 'attachmentStorageUnavailable'
+                  : 'attachmentUploadFailed',
           )
         }
       } finally {
@@ -260,8 +290,10 @@ export default function CompareWorkbench() {
 
   function removeAttachment(attachment: Attachment) {
     replaceAttachments((current) => current.filter((item) => item.id !== attachment.id))
-    void deleteAttachment(attachment.id, csrfRef.current)
-      .then(() => ownedAttachmentIDs.current.delete(attachment.id))
+    const target = ownedAttachmentTargets.current.get(attachment.id)
+    if (!target) return
+    void deleteScopedAttachment(attachment.id, csrfRef.current, target)
+      .then(() => ownedAttachmentTargets.current.delete(attachment.id))
       .catch(() => {
         if (mounted.current) setAttachmentError('attachmentDeleteFailed')
       })
@@ -285,9 +317,24 @@ export default function CompareWorkbench() {
     const abort = new AbortController()
     verification.current = abort
     try {
-      const available = (await getGatewayModels(key.trim(), abort.signal)).filter(
-        (item) => protocols(item).length,
-      )
+      const raw = await getGatewayModels(key.trim(), abort.signal)
+      const verifiedScope = raw[0]?.attachment_scope
+      const verifiedProjectId = raw[0]?.attachment_project_id ?? ''
+      if (!mounted.current || abort.signal.aborted) return
+      if (
+        projectId &&
+        raw.length > 0 &&
+        (verifiedScope !== 'project' || verifiedProjectId !== projectId)
+      ) {
+        clearDraftAttachments()
+        setModels([])
+        setLanes([makeLane(1), makeLane(2)])
+        nextID.current = 3
+        setChecked(false)
+        setError('attachmentProjectMismatch')
+        return
+      }
+      const available = raw.filter((item) => protocols(item).length)
       if (!mounted.current || abort.signal.aborted) return
       clearDraftAttachments()
       setModels(available)
@@ -826,13 +873,11 @@ export default function CompareWorkbench() {
             label={
               canAttach
                 ? t('attachFiles')
-                : lanes.some(
-                      (lane) =>
-                        models.find((item) => item.id === lane.model)?.personal_attachments ===
-                        false,
-                    )
-                  ? t('attachmentPersonalKeyOnly')
-                  : t('attachmentUnsupported')
+                : attachmentTarget && models.length > 0
+                  ? t('attachmentUnsupported')
+                  : attachmentScope === 'project' || projectId
+                    ? t('attachmentProjectUnavailable')
+                    : t('attachmentUnsupported')
             }
             onFiles={(files) => void selectAttachments(files)}
           />
