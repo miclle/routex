@@ -113,3 +113,13 @@ Managed egress uses the `/admin/egress` workspace and `egress` translation names
 Storage administration uses `/admin/storage` with the approved overview card and large configuration drawer. Keep `storage.read`, `storage.write`, and `storage.test` independent; keep credentials transient and require explicit keep/replace/remove actions. Preserve exact ETags through conflict review, run probes only against saved descriptors, and report rollback success only after the target revision is verified and published.
 
 Playground code dialogs expose working cURL, Python and JavaScript examples from the current native request in single or comparison mode. Shared snippet builders never accept an API Key; generated programs read an environment variable. Completed text history and current parameters are preserved, and an empty prompt uses an explicit editable placeholder.
+
+System Status uses `/admin/system-status` with the approved Instances and System
+jobs cards. Keep `system.read` and `system.write` independent, derive online and
+cleanup eligibility from server-owned leases, and submit the exact reviewed
+instance IDs and heartbeat revisions through the Base UI confirmation dialog.
+Never infer state from the browser clock, remove rows optimistically, invent
+resource percentages, process roles, or demonstration jobs, or report uncertain
+cleanup as success. Only actual runtime publication, durable call delivery, and
+storage cleanup work may appear as system jobs. Register paired `systemStatus`
+translations and preserve independent refresh/error/empty states for both cards.

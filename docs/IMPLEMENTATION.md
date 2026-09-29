@@ -176,7 +176,7 @@ The binary capability count is 7 completed, 19 partially completed, and 4 not st
 | F23 | Operations overview, quality, alerts, and notifications | Partially completed | SMTP configuration and controlled test delivery exist; durable notification jobs, retry, recipient policy, settings, and status center remain open. |
 | F24 | Read-only AI operations analysis and saved reports | Not started | Authorized analysis queries, saved definitions, evaluation, exports, and hostile-input acceptance are not implemented. |
 | F25 | Site presentation, language, and announcements | Completed | Durable site name, URL, logo, footer, default language, bilingual UI behavior, and announcement lifecycle are implemented. |
-| F26 | Instances, heartbeats, resources, jobs, and offline cleanup | Not started | Authoritative instance and system-job management are not implemented. |
+| F26 | Instances, heartbeats, resources, jobs, and offline cleanup | Completed | Distinct process generations, server-owned leases, nullable resource facts, bounded real system jobs, executor-loss reconciliation, revision-checked cleanup, audit evidence, and the bilingual administrative workspace are implemented. |
 | F27 | S3, owned attachments, SMTP, and notifications | Partially completed | S3-compatible configuration and administration UI, explicit user/Project attachment APIs, cleanup recovery, Key-scoped inference reads, single/comparison attachment interfaces, SMTP administration, and test delivery exist. Durable notifications and external-service acceptance remain open. |
 | F28 | Internal encryption, root-key rotation, and Vault switching | Partially completed | Internal provider, egress, SMTP, and storage secrets are encrypted. Root-key rotation, Vault identities, compensation, and storage switching remain open. |
 | F29 | API Key Vault delivery and application identities | Not started | Application identities, Profiles, descriptors, coordinator state, and no-plaintext-fallback delivery are not implemented. |
@@ -206,7 +206,7 @@ Only A01 is fully accepted across its defined scope. Every other case remains in
 | A16 | Vault compensation, rotation, and cleanup failure | Not started | Vault integration is not implemented. |
 | A17 | Images/PDF, object authorization, and model comparison | Partially completed | Object backend, comparison, conservative route capability discovery, owner-bound user/Project byte reads, current-manager Project lifecycle, native inline rewriting, both Playground attachment interfaces, and attested token/TPM/money reservation with exact media occurrence settlement exist; external acceptance remains open. |
 | A18 | Call queries, CSV, reports, and hostile analysis inputs | Partially completed | Call queries, usage views, and safe scoped call-record CSV exports have controlled evidence; AI analysis, saved reports, and their hostile-input acceptance remain open. |
-| A19 | S3, SMTP, site, announcements, instances, and jobs | Partially completed | S3, SMTP, and site work exists; instances and system jobs do not. |
+| A19 | S3, SMTP, site, announcements, instances, and jobs | Partially completed | Controlled local coverage now includes storage, SMTP, site/announcements, authoritative instances, and actual system jobs. External services, production clock/capacity assumptions, and release acceptance remain open. |
 | A20 | Fresh install, upgrade, backup/restore, and production SPA | Partially completed | Installation, migrations, restart, and SPA evidence exists; backup/restore and production release acceptance remain open. |
 
 2026-09-23, baseline `493cf39`: three parallel subtasks deliver changes, with the coordinating task consolidating acceptance and staged commits.
@@ -222,7 +222,7 @@ Only A01 is fully accepted across its defined scope. Every other case remains in
 | P1-04/05 | In progress | Native OpenAI chat ordinary/SSE, Key Playground, isolated personal/admin call queries and request facts have controlled dual-database evidence; immutable snapshots and bounded durable events have controlled failure/restart evidence; measured capacity and real-provider acceptance remain open |
 | P2 | In progress | Profile/password/session APIs and UI delivered; member/role/registration interfaces and Team/Project backend delivered; Project Keys, offboarding, and resource interfaces advance in separate verified packages |
 | P3 | In progress | Current token and image/PDF occurrence prices, FX, immutable call assessments, atomic CSV/XLS/XLSX imports, CSV exports, and single-process Personal/Project/Key token and monetary quota admission are implemented; Team quotas, templates, approvals, alerts, distributed enforcement, additional billing dimensions, and synchronization remain open |
-| P4–P6 | In progress | Four native inference protocols, conservative image/PDF capability discovery, user/Project attachment resolution, single/comparison attachment interfaces, attested token/TPM/money reservation with exact media occurrence settlement, SMTP configuration/test delivery, and object-storage administration/owned-attachment backend are implemented; provider-specific media pricing, durable notifications, remaining enterprise integrations, and final acceptance remain open |
+| P4–P6 | In progress | Four native inference protocols, conservative image/PDF capability discovery, user/Project attachment resolution, single/comparison attachment interfaces, attested token/TPM/money reservation with exact media occurrence settlement, SMTP configuration/test delivery, object-storage administration/owned-attachment backend, and authoritative process/system-job operations are implemented; provider-specific media pricing, durable notifications, remaining enterprise integrations, and final acceptance remain open |
 
 Verification in this iteration:
 
@@ -1173,3 +1173,43 @@ check/test passed with 361 Vitest cases, four Node checks, Go race/unit,
 development lifecycle and production assets; Actionlint also passed with CI
 requiring Python 3 so interpreter cases cannot be silently skipped. Generated
 examples make no automatic retry or external provider request.
+
+### Authoritative system status and actual operational jobs
+
+Frozen GORM migrations 27 and 28 add process-generation registrations and a
+bounded operational-job history on PostgreSQL and MySQL. Every process start
+creates a new `ins_` identity with a private lease token, server-owned heartbeat
+revision, truthful `combined` role, bounded build/runtime metadata, and nullable
+CPU, memory, and durable-journal-filesystem samples. Graceful shutdown marks the
+generation stopped after request and background-worker drain. Expired leases are
+offline; the client does not infer liveness or fabricate resource percentages.
+
+`system.read` protects the combined instance/job workspace and both list APIs.
+`system.write` independently protects cleanup and is seeded only for the built-in
+administrator role. Cleanup locks the exact reviewed IDs and heartbeat revisions
+in one transaction, rejects current, live, recent, retired, missing, or changed
+candidates without partial work, and emits one target-addressable allowlisted
+audit event per retired instance in that transaction. A valid
+lease-token heartbeat can recover a registration if a surviving process resumes
+after retirement.
+
+Only runtime publication, durable call delivery, and storage cleanup create
+system jobs. Codes, outcomes, counts, and details are constrained or allowlisted;
+request content, local paths, credentials, and raw errors are excluded. Running
+jobs whose executor is missing, stopped, retired, or lease-expired reconcile to
+the safe `executor_lost` failure. The `/admin/system-status` page reproduces the
+approved Instances and System jobs cards with independent query states,
+permission-aware cleanup, exact revision review, bounded batches, conflict and
+uncertain-result handling, English/Chinese copy, and locale-sensitive dates.
+Known cleanup audit details render through the existing read-only audit workspace
+without exposing arbitrary JSON. See [SYSTEM_STATUS.md](SYSTEM_STATUS.md) for the
+complete contract and remaining production assumptions.
+
+The final source passed `go tool task check`, `go tool task test` with 458 Vitest
+cases in 42 files and four Node checks, `go tool task test-integration` on
+PostgreSQL and MySQL, `go tool task test-auth-lifecycle` on both databases,
+`go tool actionlint`, and `git diff --check`. Focused dual-database job tests and
+independent backend and frontend reviews closed with no remaining findings.
+Browser verification confirmed both cards, authoritative live/offline and job
+data, the approved table hierarchy, and live English/Chinese switching before
+restoring English.

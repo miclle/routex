@@ -152,3 +152,29 @@ The drawer uses local shadcn-style presentation and Base UI wrappers. Credential
 Measured probe results render only the returned put, get, and delete stages plus cleanup-pending state. The verified revision table stays inside the same drawer and requires explicit rollback confirmation. Rollback submits the selected immutable revision, current ETag, and desired enabled state, then refetches the complete server history. English and Chinese copy switch without discarding non-secret form fields. Attachment selection and native request construction belong to the Playground workbenches rather than this administration page; comparison mode keeps the Mockup's shared bottom composer and uses the selected columns' capability intersection.
 
 Playground code dialogs expose working cURL, Python and JavaScript examples from the current native request in single or comparison mode. Shared snippet builders never accept an API Key; generated programs read an environment variable. Completed text history and current parameters are preserved, and an empty prompt uses an explicit editable placeholder.
+
+## System status
+
+`/admin/system-status` is the first System administration destination and keeps
+the approved two-card composition. The Instances card shows the authoritative
+online count, explicit offline warning, on-demand refresh, and the Instance,
+Status, Role, CPU, Memory, Storage, Version, Runtime, Started, and Last heartbeat
+columns. The System jobs card independently lists real runtime publication,
+durable call delivery, and storage cleanup runs with Job, Status, Progress,
+Executor instance, Updated, and Details columns.
+
+`system.read` controls navigation, page mounting, and both queries.
+`system.write` independently reveals offline cleanup. Cleanup opens the local
+Base UI dialog with the exact eligible IDs and heartbeat revisions returned by
+the server. Each deterministic review is capped at 100 and discloses the
+remaining eligible count. It does not remove rows optimistically: success
+requires an exact response plus an authoritative refetch, while a conflict or
+uncertain transport result blocks another submission until the operator reloads
+and reviews the new state.
+
+Resource values remain unknown when the server lacks an authoritative used/total
+pair. Offline samples are visibly stale. Job and detail codes are translated
+through the paired `systemStatus` catalogues, while unknown stable codes remain
+verbatim. The two cards retain independent loading, empty, error, retry, and
+refresh states. See [SYSTEM_STATUS.md](SYSTEM_STATUS.md) for the complete data
+and verification boundary.

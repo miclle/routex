@@ -180,7 +180,9 @@ describe('read-only audit records', () => {
     await click('Open audit event aud_2')
     const drawer = document.querySelector('[role="dialog"]')!
     expect(drawer.textContent).toContain(first.actor_name)
-    expect(drawer.textContent).toContain(first.changes!.reason)
+    expect(drawer.textContent).toContain(
+      first.changes && 'reason' in first.changes ? first.changes.reason : '',
+    )
     expect(drawer.textContent).toContain('aud_2')
     expect(drawer.textContent).toContain('usr_actor')
     expect(drawer.textContent).toContain('usr_target')
@@ -215,6 +217,25 @@ describe('read-only audit records', () => {
         q: 'literal_%',
       }),
     )
+  })
+  it('filters and renders the allowlisted system cleanup audit schema', async () => {
+    entry = {
+      ...first,
+      action: 'system.instance.cleanup',
+      resource_type: 'system_instance',
+      resource_id: 'ins_retired',
+      changes: {
+        revision: 7,
+      },
+    }
+    await mount()
+    await until(() => expect(host.textContent).toContain('1 offline instance registration retired'))
+    await select('Audit category', 'system')
+    await until(() => expect(audits().at(-1)?.params.category).toBe('system'))
+    await click('Open audit event aud_2')
+    const drawer = document.querySelector('[role="dialog"]')!
+    expect(drawer.textContent).toContain('ins_retired at revision 7')
+    expect(drawer.textContent).not.toContain('undefined')
   })
   it('aborts stale filter reads and does not display a late response from an older search', async () => {
     await mount()

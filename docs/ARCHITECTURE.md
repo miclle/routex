@@ -166,6 +166,24 @@ are implemented with controlled PostgreSQL/MySQL acceptance. The native gateway
 and request records have controlled ordinary/streaming and restart evidence.
 Immutable runtime publication, separately leased authorization, and a bounded durable local call journal are implemented. The journal is transport storage; relational domain models remain in GORM-managed PostgreSQL/MySQL.
 
+Each running RouteX process also registers a distinct process generation in the
+primary database. Server-owned heartbeats and leases provide the authoritative
+liveness boundary; the browser receives the evaluated state and never derives
+it from local time. Registration captures bounded build and runtime metadata plus
+nullable resource samples. The current single-binary deployment reports the
+truthful `combined` role and does not imply leader election or separate worker
+roles.
+
+Recent runtime publication, durable call delivery, and storage cleanup runs are
+persisted as bounded, allowlisted system jobs. Operational reporting is
+best-effort and cannot change the outcome of the work it observes. A read-time
+reconciliation converts work whose executor has stopped or lost its lease into a
+safe failed state instead of presenting it as active indefinitely. Revision-
+checked offline cleanup retires only reviewed stale registrations; current and
+live generations are protected, and a surviving process can recover its own
+registration on a later heartbeat. See [SYSTEM_STATUS.md](SYSTEM_STATUS.md) for
+the API, authority, and failure contracts.
+
 Member/role/registration interfaces and Team/Project governance backends are implemented.
 Project Keys retain Project ownership independently of their creators. Personal and
 Project Key retirement requires a confirmed replacement and a persisted successful

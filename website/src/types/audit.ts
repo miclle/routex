@@ -3,7 +3,7 @@ import type { LimitPolicy } from './resource-limits'
 
 export type AuditRange = '24h' | '7d' | '30d'
 export type AuditCategory =
-  'all' | 'models' | 'keys' | 'limits' | 'credentials' | 'pricing' | 'identity' | 'site'
+  'all' | 'models' | 'keys' | 'limits' | 'credentials' | 'pricing' | 'identity' | 'site' | 'system'
 export interface AuditFilters {
   range: AuditRange
   category: AuditCategory
@@ -13,12 +13,16 @@ type AuditValues =
   | LimitPolicy
   | { etag: string; items: ModelPrice[] }
   | { etag: string; currency: PricePage['currency'] }
-export interface AuditChanges {
+export interface AuditBeforeAfterChanges {
   before: AuditValues
   after: AuditValues
   reason?: string
   etag?: string
 }
+export interface SystemInstanceCleanupAuditChanges {
+  revision: number
+}
+export type AuditChanges = AuditBeforeAfterChanges | SystemInstanceCleanupAuditChanges
 export interface AuditRecord {
   id: string
   actor_id: string

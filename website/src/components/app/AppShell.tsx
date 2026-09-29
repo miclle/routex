@@ -29,6 +29,7 @@ import {
   Database,
   UsersRound,
   FolderKanban,
+  ServerCog,
 } from 'lucide-react'
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router'
 import { authError, logout } from '@/api/auth'
@@ -121,6 +122,17 @@ const adminNav = [
     permission: 'audit.read',
     get group() {
       return t('operations_8e37c')
+    },
+  },
+  {
+    to: '/admin/system-status',
+    get label() {
+      return t('systemStatus:navTitle')
+    },
+    icon: ServerCog,
+    permission: 'system.read',
+    get group() {
+      return t('system_administration_04ca1')
     },
   },
   {

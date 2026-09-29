@@ -3,7 +3,14 @@ import { useTranslation } from 'react-i18next'
 import { useInfiniteQuery } from '@tanstack/react-query'
 import { Search, X } from 'lucide-react'
 import { listAudit } from '@/api/audit'
-import type { AuditCategory, AuditFilters, AuditRange, AuditRecord } from '@/types/audit'
+import type {
+  AuditCategory,
+  AuditChanges,
+  AuditFilters,
+  AuditRange,
+  AuditRecord,
+  SystemInstanceCleanupAuditChanges,
+} from '@/types/audit'
 import { Page, QueryState, ErrorNotice } from '@/components/app/CatalogUI'
 import { PermissionGate } from '@/components/app/PermissionGate'
 import { Input } from '@/components/ui/input'
@@ -19,7 +26,11 @@ const categories: AuditCategory[] = [
   'pricing',
   'identity',
   'site',
+  'system',
 ]
+function isCleanupChanges(changes: AuditChanges): changes is SystemInstanceCleanupAuditChanges {
+  return 'revision' in changes
+}
 export default function AuditPage() {
   return (
     <PermissionGate permission="audit.read">
@@ -49,9 +60,9 @@ function AuditRecords() {
     setFilters((current) => ({ ...current, ...patch }))
   }
   function summary(record: AuditRecord) {
-    return record.changes
-      ? `${JSON.stringify(record.changes.before)} → ${JSON.stringify(record.changes.after)}`
-      : missing
+    if (!record.changes) return missing
+    if (isCleanupChanges(record.changes)) return t('cleanupSummary', { count: 1 })
+    return `${JSON.stringify(record.changes.before)} → ${JSON.stringify(record.changes.after)}`
   }
   const descriptionRows = selected
     ? [
@@ -68,6 +79,7 @@ function AuditRecords() {
         ['time', date(selected.created_at)],
       ]
     : []
+  const selectedChanges = selected?.changes ?? null
   return (
     <Page title={t('title')} description={t('scope')}>
       <div className="flex flex-wrap items-center gap-3" role="search" aria-label={t('filters')}>
@@ -227,23 +239,33 @@ function AuditRecords() {
             <div className="grid grid-cols-[150px_minmax(0,1fr)] text-sm">
               <dt className="border-r bg-muted/30 p-3 font-medium">{t('changes')}</dt>
               <dd className="min-w-0 p-3">
-                {selected.changes ? (
+                {selectedChanges && isCleanupChanges(selectedChanges) ? (
+                  <div className="space-y-3">
+                    <p>{t('cleanupSummary', { count: 1 })}</p>
+                    <p className="break-all font-mono text-xs">
+                      {t('cleanupInstance', {
+                        id: selected.resource_id,
+                        revision: selectedChanges.revision,
+                      })}
+                    </p>
+                  </div>
+                ) : selectedChanges ? (
                   <div className="space-y-3">
                     {(['before', 'after'] as const).map((field) => (
                       <div key={field}>
                         <p className="mb-1 font-medium">{t(field)}</p>
                         <pre className="whitespace-pre-wrap break-all font-mono text-xs">
-                          {JSON.stringify(selected.changes![field], null, 2)}
+                          {JSON.stringify(selectedChanges[field], null, 2)}
                         </pre>
                       </div>
                     ))}
-                    {selected.changes.reason !== undefined && (
+                    {selectedChanges.reason !== undefined && (
                       <p className="whitespace-pre-wrap break-all">
-                        {t('reason')}: {selected.changes.reason}
+                        {t('reason')}: {selectedChanges.reason}
                       </p>
                     )}
-                    {selected.changes.etag !== undefined && (
-                      <p className="break-all font-mono text-xs">ETag: {selected.changes.etag}</p>
+                    {selectedChanges.etag !== undefined && (
+                      <p className="break-all font-mono text-xs">ETag: {selectedChanges.etag}</p>
                     )}
                   </div>
                 ) : (

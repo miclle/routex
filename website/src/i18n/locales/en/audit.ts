@@ -18,6 +18,7 @@ export default {
   category_pricing: 'Pricing',
   category_identity: 'Identity',
   category_site: 'Site',
+  category_system: 'System',
   table: 'Audit events',
   actor: 'Actor',
   actorID: 'Actor ID',
@@ -43,4 +44,7 @@ export default {
   loadMore: 'Load more',
   loadingMore: 'Loading more…',
   retryMore: 'Retry loading more',
+  cleanupSummary_one: '{{count}} offline instance registration retired',
+  cleanupSummary_other: '{{count}} offline instance registrations retired',
+  cleanupInstance: '{{id}} at revision {{revision}}',
 }

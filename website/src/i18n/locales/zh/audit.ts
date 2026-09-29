@@ -17,6 +17,7 @@ export default {
   category_pricing: '价格',
   category_identity: '身份',
   category_site: '站点',
+  category_system: '系统',
   table: '审计事件列表',
   actor: '操作者',
   actorID: '操作者 ID',
@@ -42,4 +43,7 @@ export default {
   loadMore: '加载更多',
   loadingMore: '正在加载…',
   retryMore: '重试加载更多',
+  cleanupSummary_one: '已清理 {{count}} 个失联实例注册',
+  cleanupSummary_other: '已清理 {{count}} 个失联实例注册',
+  cleanupInstance: '{{id}}，版本 {{revision}}',
 }
