@@ -147,7 +147,7 @@ Status terms in this section are deliberately strict:
 - **Partially completed** means material implementation exists, but one or more required behaviors or acceptance gates remain open. It does not mean that work has not started.
 - **Not started** means no material implementation of the capability exists. A prerequisite or design note may still be present.
 
-The binary capability count is 7 completed, 19 partially completed, and 4 not started. This is a completion count, not an effort percentage: several partially completed capabilities contain substantial delivered work. All implementation work that had not started was paused on 2026-09-23; this table records the resume inventory without authorizing another work package.
+The binary capability count is 8 completed, 19 partially completed, and 3 not started. This is a completion count, not an effort percentage: several partially completed capabilities contain substantial delivered work. All implementation work that had not started was paused on 2026-09-23; this table records the resume inventory without authorizing another work package.
 
 | ID | Capability | Status | Delivered and remaining scope |
 |---|---|---|---|
