@@ -1,20 +1,23 @@
 # Current Work Handoff
 
-- **Status:** selected quota and Provider interface package delivered; implementation paused at a verified local checkpoint, remote checkpoint verification pending
-- **Updated:** 2026-09-30T17:16:00+08:00
+- **Status:** selected quota and Provider interface package complete with local and remote verification; overall implementation paused
+- **Updated:** 2026-09-30T18:05:00+08:00
 - **Repository:** RouteX
 - **Branch / base:** `main`
 - **Verified implementation HEAD:** `ce79699a4ca1a287dd6f07279fbb344bac2817b9`
+- **Verified pushed checkpoint:** `e181b779fc4d645532a0a110149a79644a0be4a4`; `main` and `origin/main` matched at refresh
 - **Pushed implementation commits:** `6d41bf6` (`feat(limits): expose scoped budget currency`), `c402ad0` (`feat(quotas): add policy and capacity controls`), `a3e9c2a` (`feat(quotas): add installation calendar`), `ce79699` (`feat(providers): filter credential pools`)
-- **Current owner:** no implementation worker is active; coordinating task verifies the remote checkpoint before ending the window
-- **Transfer:** `origin/main`; resolve the final checkpoint using `git log -1 -- docs/current-work-handoff.md`
+- **Current owner:** no implementation worker is active
+- **Next owner:** unassigned; resume requires a new user instruction
+- **Transfer state:** transferable through `origin/main`; code, documentation, and verification links are remotely available
+- **Transfer:** the checkpoint above is the verified baseline; this documentation refresh is a subsequent commit on `origin/main`. Identify the refresh commit with `git log -1 -- docs/current-work-handoff.md`, then verify its upstream independently
 - **Coordination plan:** `~/dotfiles/projects/routex/implementation-plan.md`; synchronize dotfiles separately and preserve unrelated changes
 
 ## Objective and authorization
 
 Implement every valid F01–F30 capability and close every A01–A20 acceptance case. Preserve the Go/React architecture, Gateway/Control Plane/Data Platform boundaries, PostgreSQL/MySQL portability, immutable GORM-first migrations, approved layout, shadcn/ui and Base UI, bilingual English-default interfaces, English documentation and commits, parallel ownership, tests, and phased main-branch commits and pushes.
 
-The latest user authorization is a two-hour local window on 2026-09-30, from approximately 15:47 to 17:47 Asia/Shanghai. The selected partial-capability package covers existing Personal/Project/Key quota interfaces (F04/F17), Provider-model capacity attestations (F11), the installation quota calendar (F17), and credential-pool filtering (F11). Partial delivery does not complete the overall objective.
+The implementation window on 2026-09-30, from approximately 15:47 to 17:47 Asia/Shanghai, ended with the selected package delivered and the goal paused. The package covers existing Personal/Project/Key quota interfaces (F04/F17), Provider-model capacity attestations (F11), the installation quota calendar (F17), and credential-pool filtering (F11). The subsequent user request authorizes documentation refresh, handoff, commit, and push only; it does not resume feature development. Partial delivery does not complete the overall objective.
 
 ## Current delivery
 
@@ -36,6 +39,13 @@ Delivered foundations include local identity/MFA, durable sessions and Keys, gov
 
 F11 remains partial for real-provider acceptance and complete pool operations. F17 remains partial for Team/default rules, templates, approvals, configurable stop policy, and quota alerts. Explicit Team invocation context is still absent; do not add Team attribution or debit by guessing from membership. Enterprise identity, Vault, distributed enforcement, external price synchronization, saved reports, AI analysis, backup/restore, and final production acceptance remain open.
 
+## Working tree and transport
+
+- **RouteX baseline:** no staged, modified, or untracked files and no unpushed commits at refresh; `HEAD...origin/main` was `0 0`. This refresh changes only `README.md` and this handoff before its checked commit and push.
+- **Coordination baseline:** dotfiles `main` and `origin/main` matched `27a1af5325855985e856bd9a54c42f86fa350de1`; the associated refresh changes only `projects/routex/implementation-plan.md`.
+- **Preserve:** unrelated dotfiles `zsh/.zshrc` is modified and must not be staged, overwritten, or discarded.
+- **Receiver access:** clone or fetch the two repositories' `main` branches. Local databases, ignored configuration, process state, and temporary logs are not transferred; recreate the development environment using `docs/DEVELOPMENT.md`.
+
 ## Verification
 
 | Check | Result and boundary |
@@ -51,6 +61,7 @@ F11 remains partial for real-provider acceptance and complete pool operations. F
 | Browser capacity workflow | An isolated fixture saved explicit Chat capacity 128000/16384 with controlled evidence/reason. No external verification or inference occurred. |
 | Browser calendar workflow | An isolated fixture confirmed and saved Asia/Shanghai, displayed runtime-application confirmation, switched live English/Chinese, and restored English. |
 | Remote verification for `c402ad0` | CI `36689900695`, Actionlint `36689900904`, and GolangCI-Lint `36689900833` passed; CI includes dual databases, authentication restarts, frontend/backend, production assets, development lifecycle and build artifacts. Superseded `6d41bf6` CI was cancelled by its next push; its completed jobs are not a complete CI pass. |
+| Remote verification for `e181b779` | [CI `36695515339`](https://github.com/miclle/routex/actions/runs/36695515339), [Actionlint `36695515506`](https://github.com/miclle/routex/actions/runs/36695515506), and [GolangCI-Lint `36695515358`](https://github.com/miclle/routex/actions/runs/36695515358) passed for the exact full checkpoint SHA. CI passed frontend/backend checks, PostgreSQL/MySQL integration and authentication restart coverage, and build artifacts with embedded assets and development lifecycle checks. This is evidence for the checkpoint, not automatically for later documentation commits. |
 
 Verification caveats:
 
@@ -60,7 +71,7 @@ Verification caveats:
 - Simultaneous final Vitest testing timed out in existing audit/governance/egress cases and cascaded. A separate Node 24 run passed 530/531 with one existing System Status five-second timeout. The unchanged implementation passed all 531 on Node 22.23.2; no production timeout or assertion was relaxed.
 - The first 20-minute database run failed at MySQL attachment-fixture runtime startup, before recorder or settlement. Its generic error did not distinguish deadline expiry from invalid configuration. A bounded, sanitized test-only diagnostic now records startup elapsed and publication status/error code on recurrence. The complete isolated matrix passed afterward. Contention is plausible, not a proven root cause or repaired production defect.
 
-Final-source and remote results are separate evidence. Refresh the latest checkpoint's CI state at resumption; a cancelled superseded run is not a complete pass.
+Final-source and remote results are separate evidence. The latest verified checkpoint is `e181b779`; refresh CI for any later commit at resumption. A cancelled superseded run is not a complete pass.
 
 ## Decisions and constraints
 
@@ -73,8 +84,8 @@ Final-source and remote results are separate evidence. Refresh the latest checkp
 
 ## Resume actions
 
-1. The selected package is checkpointed and implementation is paused. Start another package only after the user resumes the objective; completing this window does not complete RouteX.
-2. Synchronize RouteX and dotfiles `main`, verify upstream SHAs, and preserve unrelated dotfiles `zsh/.zshrc` changes.
+1. When the user resumes, run `git status --short --branch`, `git fetch origin`, `git rev-parse HEAD origin/main`, and `git rev-list --left-right --count HEAD...origin/main` in RouteX and dotfiles. Read `docs/current-work-handoff.md` at the fetched RouteX checkpoint. This step is complete when the local/remote commits and any dirty work are identified, the recorded checkpoint is reachable, and new drift is reconciled without overwriting unrelated changes. Do not automatically reset or switch branches.
+2. Until that resume instruction, there is no active feature task. Preserve unrelated dotfiles `zsh/.zshrc` changes; completing this window does not complete RouteX.
 3. Read this handoff, `docs/IMPLEMENTATION.md`, `docs/QUOTAS.md`, and the coordination plan. Historical evidence is not a current runtime guarantee.
 4. Reassess the next bounded local package: credential metadata editing (name/priority) is an observed missing Provider action, but needs a real service/API contract, audit, concurrency/publication behavior, dual-database tests, and the existing dialog grammar. Do not fold secret replacement, deletion, or external validation into a metadata-only package. Team quotas/defaults require explicit invocation/debit contracts; real-provider and external-mail acceptance require supplied environments.
 5. Continue independent file ownership, GORM-first dual-database validation, scoped permission/i18n/browser evidence, English docs, checked commits, pushes, and remote CI.
