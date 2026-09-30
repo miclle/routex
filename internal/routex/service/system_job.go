@@ -44,11 +44,12 @@ type SystemJobPage struct {
 
 func (s *Service) ListSystemJobs(ctx context.Context, actorID string) (*SystemJobPage, error) {
 	page := &SystemJobPage{Items: []SystemJobRecord{}, ObservedAt: time.Now().UTC()}
-	err := s.authDB(ctx).Transaction(func(tx *gorm.DB) error {
+	db := s.authDB(ctx)
+	err := db.Transaction(func(tx *gorm.DB) error {
 		if err := authorizeGovernance(tx, actorID, "system.read"); err != nil {
 			return err
 		}
-		if err := reconcileSystemJobs(tx, page.ObservedAt); err != nil {
+		if err := s.reconcileSystemJobs(tx, page.ObservedAt); err != nil {
 			return err
 		}
 		var rows []entity.SystemJob
@@ -63,13 +64,22 @@ func (s *Service) ListSystemJobs(ctx context.Context, actorID string) (*SystemJo
 	if err != nil {
 		return nil, catalogError(err)
 	}
+	// Notification publication runs in a separate transaction so a missing or
+	// unavailable notification table cannot abort the authoritative job read.
+	// Reconciliation is idempotent and may succeed on a later read/worker pass.
+	_ = db.Transaction(func(tx *gorm.DB) error {
+		if err := s.reconcileFailedSystemJobNotifications(tx); err != nil {
+			return err
+		}
+		return pruneSystemJobs(tx)
+	})
 	return page, nil
 }
 
 // reconcileSystemJobs turns abandoned runs into durable failures before they
 // are returned. The instance row is locked while its server-owned lease is
 // checked so a concurrent heartbeat cannot be mistaken for an expired worker.
-func reconcileSystemJobs(tx *gorm.DB, observedAt time.Time) error {
+func (s *Service) reconcileSystemJobs(tx *gorm.DB, observedAt time.Time) error {
 	// Keyset batches keep lock sets bounded without allowing a fixed first page
 	// of healthy work to starve abandoned jobs ordered later.
 	afterID := ""
@@ -122,7 +132,7 @@ func reconcileSystemJobs(tx *gorm.DB, observedAt time.Time) error {
 			break
 		}
 	}
-	return pruneSystemJobs(tx)
+	return nil
 }
 
 func systemJobRecord(row entity.SystemJob) SystemJobRecord {
@@ -202,9 +212,19 @@ func (s *Service) finishSystemJob(jobID, code, status, detailCode string, itemsC
 		"updated_at":      now,
 		"completed_at":    now,
 	})
-	if result.Error == nil && result.RowsAffected == 1 {
-		_ = pruneSystemJobs(db)
+	if result.Error != nil || result.RowsAffected != 1 {
+		return
 	}
+	if status == systemJobFailed {
+		_ = db.Transaction(func(tx *gorm.DB) error {
+			if err := s.reconcileFailedSystemJobNotifications(tx); err != nil {
+				return err
+			}
+			return pruneSystemJobs(tx)
+		})
+		return
+	}
+	_ = pruneSystemJobs(db)
 }
 
 func (s *Service) recordSystemJobOutcome(code, status, detailCode string, itemsCompleted, itemsTotal int) {
@@ -213,10 +233,19 @@ func (s *Service) recordSystemJobOutcome(code, status, detailCode string, itemsC
 }
 
 func pruneSystemJobs(db *gorm.DB) error {
+	alertableFailures := db.Model(&entity.SystemJob{}).Select("id").
+		Where("status = ?", systemJobFailed).
+		Where("(code = ? AND detail_code IN ?) OR (code = ? AND detail_code IN ?) OR (code = ? AND detail_code IN ?)",
+			SystemJobRuntimePublication, []string{"database_unavailable", "invalid_configuration", "publication_failed", "executor_lost"},
+			SystemJobCallRecordDelivery, []string{"buffer_read_failed", "invalid_fact", "identity_mismatch", "persistence_failed", "acknowledge_failed", "executor_lost"},
+			SystemJobStorageCleanup, []string{"claim_failed", "delete_failed", "state_update_failed", "executor_lost"})
+	reconciledSources := db.Model(&entity.OperationalAlertOccurrence{}).Select("source_id").Where("source_type = ?", notificationSourceSystemJob)
+	unreconciledAlertableFailures := alertableFailures.Where("id NOT IN (?)", reconciledSources)
 	for {
 		var staleIDs []string
 		err := db.Model(&entity.SystemJob{}).
 			Where("status IN ?", []string{systemJobCompleted, systemJobFailed}).
+			Where("id NOT IN (?)", unreconciledAlertableFailures).
 			Order("updated_at DESC, id DESC").
 			Offset(systemJobRetention).
 			Limit(systemJobRetention).

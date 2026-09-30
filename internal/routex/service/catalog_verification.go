@@ -51,6 +51,10 @@ func (s *Service) VerifyCredential(ctx context.Context, actorID, credentialID st
 		result.Message = "Credential verified"
 		result.DiscoveredModels = len(names)
 	}
+	auditID, err := id.NewPrefixed("aud")
+	if err != nil {
+		return nil, apperrors.ErrInternal
+	}
 	err = db.Transaction(func(tx *gorm.DB) error {
 		if err := lockGovernance(tx); err != nil {
 			return err
@@ -114,10 +118,22 @@ func (s *Service) VerifyCredential(ctx context.Context, actorID, credentialID st
 		if err := tx.Model(&credential).Updates(updates).Error; err != nil {
 			return err
 		}
-		return appendAudit(tx, actorID, "credential.verify", "credential", credential.ID)
+		action := "credential.verify"
+		if !verified {
+			action = "credential.verify.failed"
+		}
+		return tx.Create(&entity.AuditEvent{ID: auditID, ActorID: actorID, Action: action, ResourceType: "credential", ResourceID: credential.ID}).Error
 	})
 	if err == nil {
 		s.InvalidateRuntimeCredential(credentialID)
+		if !verified {
+			// Delivery observability cannot change the authoritative credential
+			// result. The durable failed audit event is reconciled automatically if
+			// this best-effort enqueue is interrupted.
+			_ = db.Transaction(func(tx *gorm.DB) error {
+				return s.recordOperationalAlertOccurrence(tx, notificationSourceCredentialVerification, auditID, "credential_verification:"+credential.ID, notificationKindCredentialFailure, "high", "verification_failed", time.Now().UTC())
+			})
+		}
 	}
 	return result, s.refreshAfterMutation(ctx, catalogError(err))
 }

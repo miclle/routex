@@ -79,7 +79,7 @@ func run(ctx context.Context, configPath string) (runErr error) {
 	if err != nil {
 		return errors.New("initialize service failed")
 	}
-	// Publishers and the recorder remain available while HTTP requests drain.
+	// Publishers, durable workers, and the recorder remain available while HTTP requests drain.
 	// Their explicit stop methods run only after serveHTTP has shut the listener.
 	lifecycle, cancel := context.WithCancel(context.WithoutCancel(ctx))
 	defer cancel()
@@ -120,6 +120,11 @@ func run(ctx context.Context, configPath string) (runErr error) {
 		return errors.New("start storage cleanup failed")
 	}
 	defer stopStorageCleanup()
+	stopNotificationDelivery, err := svc.StartNotificationDelivery(lifecycle)
+	if err != nil {
+		return errors.New("start notification delivery failed")
+	}
+	defer stopNotificationDelivery()
 	engine := fox.Default()
 	handler.New(svc).RegisterRoutes(engine)
 	listener, err := net.Listen("tcp", cfg.Addr)
