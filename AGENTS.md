@@ -127,7 +127,7 @@ scripts/                      # Shell helpers invoked by Taskfile (build, check,
 - One-time Key secrets stay only in component state until confirmed or revoked; never return secrets from a React Query mutation into its cache. Local `Dialog` wraps Base UI for modal focus and keyboard behavior.
 - Use the local Base UI `Input` wrapper for form controls, with labels, autocomplete, validation, and pending states.
 - Wrap Base UI headless components in local `components/ui/*` modules before using them from pages
-- `AppShell` owns the 248px desktop sidebar, 80px collapsed state, mobile navigation drawer, 64px page bar, workspace/management navigation, and account menu. Local `Table`, Base UI `Drawer`, and Base UI `Menu` primitives support list/detail workflows.
+- `AppShell` owns the 248px desktop sidebar, 80px collapsed state, mobile navigation drawer, 64px page bar, workspace/management navigation, account menu, and recipient-scoped notification menu. Local `Table`, Base UI `Drawer`, and Base UI `Menu` primitives support list/detail workflows; `Menu` exposes side/alignment options for both sidebar and header placement.
 - Governance uses effective permission queries for page gates and navigation, member detail tabs, role permission dialogs, and a registration configuration drawer. `Switch` wraps Base UI.
 - Provider and model detail pages use resource URLs. Profile and security settings use separate routes; inference configuration and conversation remain inside one split workbench.
 

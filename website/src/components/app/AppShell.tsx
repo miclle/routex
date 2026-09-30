@@ -38,6 +38,7 @@ import { usePermissions } from '@/hooks/use-permissions'
 import { Button } from '@/components/ui/button'
 import { Drawer } from '@/components/ui/drawer'
 import { Menu, MenuItem } from '@/components/ui/menu'
+import { NotificationMenu } from './NotificationMenu'
 
 const memberNav = [
   {
@@ -102,6 +103,17 @@ const accountNav = [
   },
 ]
 const adminNav = [
+  {
+    to: '/admin/overview',
+    get label() {
+      return t('notifications:overview.navTitle')
+    },
+    icon: LayoutDashboard,
+    permission: 'system.read',
+    get group() {
+      return t('operations_8e37c')
+    },
+  },
   {
     to: '/admin/egress',
     get label() {
@@ -544,7 +556,8 @@ export default function AppShell() {
             )}
             <h1 className="truncate text-base font-semibold">{title}</h1>
           </div>
-          <div className="ml-auto">
+          <div className="ml-auto flex items-center gap-2">
+            <NotificationMenu />
             <LanguageSwitcher />
           </div>
         </header>

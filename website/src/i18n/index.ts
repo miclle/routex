@@ -44,6 +44,8 @@ import enActivity from './locales/en/activity'
 import zhActivity from './locales/zh/activity'
 import enCatalog from './locales/en/catalog'
 import zhCatalog from './locales/zh/catalog'
+import enNotifications from './locales/en/notifications'
+import zhNotifications from './locales/zh/notifications'
 
 export const languageStorageKey = 'routex.language'
 export type Language = 'en' | 'zh'
@@ -102,6 +104,7 @@ void i18n.use(initReactI18next).init({
       catalog: enCatalog,
       activity: enActivity,
       governance: enGovernance,
+      notifications: enNotifications,
     },
     zh: {
       common: zh,
@@ -126,6 +129,7 @@ void i18n.use(initReactI18next).init({
       catalog: zhCatalog,
       activity: zhActivity,
       governance: zhGovernance,
+      notifications: zhNotifications,
     },
   },
   lng: savedLanguage(),
