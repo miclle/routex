@@ -14,6 +14,7 @@ import { Card, CardHeader, CardContent, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { normalizeSite, validSite } from './validation'
+import QuotaCalendar from './quota-calendar'
 const fields = ['name', 'service_url', 'logo_url', 'footer', 'default_language'] as const
 const labels = {
   name: 'name',
@@ -34,17 +35,26 @@ function values(site: SiteInput) {
 }
 export default function SitePage() {
   return (
-    <PermissionGate permission="system.read">
+    <PermissionGate permission={['system.read', 'limits.settings.write']}>
       <SiteSettingsView />
     </PermissionGate>
   )
 }
 function SiteSettingsView() {
   const { t } = useTranslation('site')
+  const access = usePermissions()
+  return (
+    <Page title={t('title')} description={t('information')}>
+      {access.can('system.read') && <SiteInformation />}
+      <QuotaCalendar />
+    </Page>
+  )
+}
+function SiteInformation() {
   const site = useSite()
   const session = useSession()
   return (
-    <Page title={t('title')} description={t('information')}>
+    <>
       <QueryState pending={site.isPending} error={site.error} retry={() => void site.refetch()} />
       {site.data && (
         <Editor
@@ -56,7 +66,7 @@ function SiteSettingsView() {
           }}
         />
       )}
-    </Page>
+    </>
   )
 }
 function Editor({

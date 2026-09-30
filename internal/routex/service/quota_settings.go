@@ -53,7 +53,8 @@ func (s *Service) GetQuotaSettings(ctx context.Context, actor string) (*QuotaSet
 }
 func (s *Service) WriteQuotaSettings(ctx context.Context, actor, etag string, input QuotaSettingsInput) (*QuotaSettingsRecord, error) {
 	zone, reason := strings.TrimSpace(input.TimeZone), strings.TrimSpace(input.Reason)
-	if _, err := time.LoadLocation(zone); err != nil || zone == "" || len(zone) > 100 || len(reason) == 0 || len(reason) > 2000 || etag == "" {
+	// Local resolves from the host environment and cannot define a stable installation calendar.
+	if _, err := time.LoadLocation(zone); err != nil || zone == "Local" || zone == "" || len(zone) > 100 || len(reason) == 0 || len(reason) > 2000 || etag == "" {
 		return nil, apperrors.ErrBadRequest
 	}
 	s.limitMu.Lock()

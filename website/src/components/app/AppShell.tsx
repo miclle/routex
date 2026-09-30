@@ -39,6 +39,7 @@ import { Button } from '@/components/ui/button'
 import { Drawer } from '@/components/ui/drawer'
 import { Menu, MenuItem } from '@/components/ui/menu'
 import { NotificationMenu } from './NotificationMenu'
+import { allowsPermission } from './permissions'
 
 const memberNav = [
   {
@@ -153,7 +154,7 @@ const adminNav = [
       return t('site:information')
     },
     icon: Settings,
-    permission: 'system.read',
+    permission: ['system.read', 'limits.settings.write'],
     get group() {
       return t('system_administration_04ca1')
     },
@@ -321,7 +322,7 @@ export default function AppShell() {
   const siteName = site.data?.name || 'RouteX'
   const session = useSession()
   const access = usePermissions()
-  const adminItems = adminNav.filter((item) => access.can(item.permission))
+  const adminItems = adminNav.filter((item) => allowsPermission(item.permission, access.can))
   const queryClient = useQueryClient()
   const navigate = useNavigate()
   const { pathname } = useLocation()

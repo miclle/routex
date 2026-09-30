@@ -3,11 +3,12 @@ import { useTranslation } from 'react-i18next'
 import type { ReactNode } from 'react'
 import { usePermissions } from '@/hooks/use-permissions'
 import { Page, QueryState } from './CatalogUI'
+import { allowsPermission, type PermissionRequirement } from './permissions'
 export function PermissionGate({
   permission,
   children,
 }: {
-  permission: string
+  permission: PermissionRequirement
   children: ReactNode
 }) {
   useTranslation()
@@ -21,7 +22,7 @@ export function PermissionGate({
         retry={() => void access.refetch()}
       />
     )
-  return access.can(permission) ? (
+  return allowsPermission(permission, access.can) ? (
     children
   ) : (
     <Page

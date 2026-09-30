@@ -27,4 +27,6 @@ mysql_address=$("${compose[@]}" port mysql 3306)
 export ROUTEX_TEST_POSTGRES_DSN="host=127.0.0.1 port=${postgres_address##*:} user=routex password=routex-test dbname=routex_test sslmode=disable"
 export ROUTEX_TEST_MYSQL_DSN="routex:routex-test@tcp(${mysql_address})/routex_test?charset=utf8mb4&parseTime=True&loc=UTC"
 
-go test -trimpath -race -count=1 -tags development ./internal/routex/...
+# The complete dual-database handler matrix approaches Go's default 10-minute
+# package limit under the race detector. Keep a finite bound for the full suite.
+go test -trimpath -race -count=1 -timeout 20m -tags development ./internal/routex/...

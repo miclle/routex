@@ -107,8 +107,21 @@ func testGatewayAttachmentQuotaSettlementLifecycle(t *testing.T, db *gorm.DB) {
 	if err := db.Model(&entity.User{}).Where("id = ?", admin.User.ID).Update("created_at", now).Error; err != nil {
 		t.Fatal(err)
 	}
+	startupStarted := time.Now()
 	if err := svc.StartRuntime(ctx); err != nil {
-		t.Fatal(err)
+		elapsed := time.Since(startupStarted).Round(time.Millisecond)
+		diagnosticCtx, cancel := context.WithTimeout(context.Background(), time.Second)
+		var publication struct {
+			Status    string
+			ErrorCode string
+		}
+		diagnosticErr := db.WithContext(diagnosticCtx).Model(&entity.RuntimePublication{}).
+			Select("status", "error_code").Order("created_at DESC").Take(&publication).Error
+		cancel()
+		if diagnosticErr != nil {
+			t.Fatalf("runtime startup failed after %s: %v; publication metadata unavailable", elapsed, err)
+		}
+		t.Fatalf("runtime startup failed after %s: %v; publication status=%q error_code=%q", elapsed, err, publication.Status, publication.ErrorCode)
 	}
 	spool := filepath.Join(t.TempDir(), "attachment-quota.db")
 	bootstrapJournal, err := eventqueue.Open(spool, 4096, 64<<10)

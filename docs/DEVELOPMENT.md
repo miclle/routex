@@ -64,7 +64,7 @@ go tool task test-auth-lifecycle
 go tool actionlint
 ```
 
-`test` runs Go tests with the race detector, frontend behavior tests, development process lifecycle tests, and production asset tests. `test-integration` starts PostgreSQL and MySQL from `compose.test.yaml`, runs uncached Go tests with the race detector, and removes that run's containers and network. CI uses the same entry point. Each run uses a unique Compose project, random loopback ports, and temporary in-memory storage; it does not read or modify development database volumes. Failed runs print test database container logs, and cleanup failures cause the command to fail.
+`test` runs Go tests with the race detector, frontend behavior tests, development process lifecycle tests, and production asset tests. `test-integration` starts PostgreSQL and MySQL from `compose.test.yaml`, runs uncached Go tests with the race detector and an explicit 20-minute package timeout, and removes that run's containers and network. The complete dual-database handler matrix can exceed Go's default ten-minute limit under the race detector; assertions and race checks remain unchanged. CI uses the same entry point. Each run uses a unique Compose project, random loopback ports, and temporary in-memory storage; it does not read or modify development database volumes. Failed runs print test database container logs, and cleanup failures cause the command to fail.
 
 The script passes the test database addresses through these environment variables:
 

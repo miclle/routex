@@ -113,6 +113,13 @@ func testQuotaLifecycle(t *testing.T, db *gorm.DB) {
 	if !setting.Editable || setting.Activated || setting.CoverageStart != nil {
 		t.Fatal("migration fabricated quota history")
 	}
+	for _, zone := range []string{"Local", " Local "} {
+		expectStatus(t, request("PUT", settingPath, map[string]any{"time_zone": zone, "reason": "Reject host-dependent calendar"}, setting.ETag), 400)
+		after := decodeCatalogResponse[service.QuotaSettingsRecord](t, request("GET", settingPath, nil, ""), 200)
+		if after.ETag != setting.ETag || after.TimeZone != setting.TimeZone || !after.Editable || after.Activated || after.CoverageStart != nil {
+			t.Fatal("invalid calendar changed the revision or accounting state")
+		}
+	}
 	setting = decodeCatalogResponse[service.QuotaSettingsRecord](t, request("PUT", settingPath, map[string]any{"time_zone": "America/New_York", "reason": "Organization calendar"}, setting.ETag), 200)
 	boundBody := map[string]any{"max_input_tokens": 10, "max_output_tokens": 10, "evidence": "Controlled upstream enforces this finite test capacity", "reason": "Acceptance fixture"}
 	expectStatus(t, identityRequest(router, "PUT", boundPath, `{"max_input_tokens":10,"max_output_tokens":10,"evidence":"test","reason":"missing CSRF"}`, cookie, ""), 403)
