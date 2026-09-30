@@ -1,6 +1,6 @@
 # Provider and Model Catalog
 
-This phase implements persistent provider configuration, encrypted credential storage, real OpenAI model discovery, stable model identities, explicit user grants, and validated routing weights. It is the foundation for the first gateway protocol; catalog verification does not prove that inference requests have succeeded.
+RouteX implements persistent provider configuration, encrypted credential storage, native connection protocols, controlled model discovery, stable model identities, explicit user grants, and validated routing weights. Catalog verification does not prove that inference requests have succeeded.
 
 ## Domain Boundaries
 
@@ -16,7 +16,7 @@ This phase implements persistent provider configuration, encrypted credential st
 | `ModelProviderBinding` (`bnd_`) | A model's explicit supplier model relationship and weight |
 | `UserModelGrant` | Explicit user-to-model permission by stable IDs |
 
-Providers do not own transport details or secrets directly. Prices will belong to provider models in a later phase. Credential priority does not change supplier binding weights.
+Providers do not own transport details or secrets directly. Prices belong to provider models through the current price catalogue. Credential priority does not change supplier binding weights.
 
 Schema version 3 adds these tables without changing the published authentication migrations. Foreign keys protect their relationships. Public names and upstream names use exact, case-sensitive comparison on both databases; MySQL explicitly uses `utf8mb4_bin`. Model names accept 1–128 ASCII letters, digits, `.`, `_`, `:`, `/`, and `-`, starting with a letter or digit. Upstream identifiers retain their original Unicode spelling and case.
 
@@ -32,6 +32,12 @@ Enabling a credential requires successful verification and coverage of every mod
 
 Base URLs and outbound connections follow the upstream client's SSRF policy. Public HTTPS is the default. Private or local test endpoints require explicit development configuration. Redirects and DNS resolution follow the same policy; credentials must not be forwarded to an unvalidated destination. Missing root-key configuration returns `503` when credential storage is required, without preventing local identity operations.
 
+## Credential workspace
+
+The Provider Credentials tab preserves the existing table, add dialogs, verification, and enabled-state actions. Its compact toolbar filters the complete authorized Provider response by literal trimmed case-insensitive name, Connection, verification state, and enabled state; conditions intersect. Connection selection appears only for multiple Connections. Filtered counts and empty results never imply that credentials were deleted. Changing Provider clears the previous filter state.
+
+The table displays the actual nullable `verified_at` value using the selected language. Missing timestamps remain explicitly not recorded; no secret, masked secret, inferred last-use time, or demonstration failure statistic is exposed. Read access requires `providers.read`; add, verification, and enabled-state actions continue to require `providers.write`. A filter never changes a mutation's exact credential ID. English/Chinese copy and behavior tests cover filtering, state reset, language changes, and permission isolation.
+
 ## Models, Names, Grants, and Weights
 
 Creating a model requires a provider model and creates an initial binding with weight `0`. The creating administrator receives an explicit persisted grant in the same transaction. This is a convenience for the first configured route, not a role-based bypass: removing that grant removes the administrator's member-facing model visibility and eligibility for model-scoped access.
@@ -44,7 +50,7 @@ Grant replacement validates all supplied users before deleting old grants, then 
 
 ## HTTP API
 
-All paths below are relative to `/api/v1`. Administrator endpoints require a session and the `admin` role. Mutations also require same-origin validation, `X-CSRF-Token`, and JSON input. Errors use the shared sanitized `{code,message}` contract. All create operations return `201`; other successful operations return `200`.
+All paths below are relative to `/api/v1`. Management endpoints require a session and their independent permissions: `providers.read` for the Provider catalogue, `providers.write` for Provider/Connection/Credential changes and verification, `models.read_all` for the administrative Model catalogue, and `models.write` for Model changes and grantee candidates. Mutations also require same-origin validation, `X-CSRF-Token`, and JSON input. Errors use the shared sanitized `{code,message}` contract. All create operations return `201`; other successful operations return `200`.
 
 | Method and path | Request | Response |
 |---|---|---|

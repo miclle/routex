@@ -6,6 +6,7 @@ import { useState, type FormEvent } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Plus } from 'lucide-react'
 import { listProviders, writeCatalog } from '@/api/catalog'
+import type { Credential, Provider } from '@/types/catalog'
 import { useSession } from '@/hooks/use-auth'
 import { Page, QueryState, ErrorNotice, FormField, SaveButton } from '@/components/app/CatalogUI'
 import { PermissionGate } from '@/components/app/PermissionGate'
@@ -28,6 +29,164 @@ function providerTab(value: string | null): ProviderTab {
     value === 'settings'
     ? value
     : 'overview'
+}
+
+function CredentialTable({
+  provider,
+  canWrite,
+  pending,
+  onVerify,
+  onToggle,
+}: {
+  provider: Provider
+  canWrite: boolean
+  pending: boolean
+  onVerify: (credential: Credential) => void
+  onToggle: (credential: Credential) => void
+}) {
+  const { t, i18n } = useTranslation('catalog')
+  const [query, setQuery] = useState('')
+  const [connection, setConnection] = useState('all')
+  const [verification, setVerification] = useState('all')
+  const [enabled, setEnabled] = useState('all')
+  const credentials = provider.connections.flatMap((item) =>
+    item.credentials.map((credential) => ({ connection: item, credential })),
+  )
+  const normalizedQuery = query.trim().toLowerCase()
+  const rows = credentials.filter(
+    (row) =>
+      (!normalizedQuery || row.credential.name.toLowerCase().includes(normalizedQuery)) &&
+      (connection === 'all' || row.connection.id === connection) &&
+      (verification === 'all' || row.credential.verification_status === verification) &&
+      (enabled === 'all' || row.credential.enabled === (enabled === 'enabled')),
+  )
+  const selectClass = 'h-10 rounded-md border bg-background px-3 text-sm'
+  return (
+    <div className="space-y-4">
+      <div
+        role="group"
+        aria-label={t('providers.credentialFilters')}
+        className="flex flex-wrap items-center gap-2"
+      >
+        <Input
+          type="search"
+          autoComplete="off"
+          aria-label={t('providers.searchCredentials')}
+          placeholder={t('providers.searchCredentials')}
+          value={query}
+          onChange={(event) => setQuery(event.target.value)}
+          className="h-10 w-full sm:w-[220px]"
+        />
+        {provider.connections.length > 1 && (
+          <select
+            aria-label={t('providers.credentialConnectionFilter')}
+            value={connection}
+            onChange={(event) => setConnection(event.target.value)}
+            className={selectClass}
+          >
+            <option value="all">{t('providers.allConnections')}</option>
+            {provider.connections.map((item) => (
+              <option key={item.id} value={item.id}>
+                {item.name}
+              </option>
+            ))}
+          </select>
+        )}
+        <select
+          aria-label={t('providers.credentialVerificationFilter')}
+          value={verification}
+          onChange={(event) => setVerification(event.target.value)}
+          className={selectClass}
+        >
+          <option value="all">{t('providers.allVerificationStates')}</option>
+          <option value="verified">{t('providers.verified')}</option>
+          <option value="pending">{t('providers.pending')}</option>
+          <option value="failed">{t('providers.failed')}</option>
+        </select>
+        <select
+          aria-label={t('providers.credentialEnabledFilter')}
+          value={enabled}
+          onChange={(event) => setEnabled(event.target.value)}
+          className={selectClass}
+        >
+          <option value="all">{t('providers.allEnabledStates')}</option>
+          <option value="enabled">{t('providers.enabled')}</option>
+          <option value="disabled">{t('common.disabled')}</option>
+        </select>
+      </div>
+      <p role="status" className="text-sm text-muted-foreground">
+        {t('providers.filteredCredentials', { count: rows.length, total: credentials.length })}
+      </p>
+      <Table aria-label={t('providers.credentialListLabel')}>
+        <thead>
+          <tr>
+            <th>{t('common.credentialName')}</th>
+            <th>{t('providers.connection')}</th>
+            <th>{t('providers.verification')}</th>
+            <th>{t('providers.verifiedAt')}</th>
+            <th>{t('providers.enabledStatus')}</th>
+            <th>{t('common.priority')}</th>
+            <th>{t('common.actions')}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map(({ connection: item, credential }) => (
+            <tr key={credential.id}>
+              <td>{credential.name}</td>
+              <td>{item.name}</td>
+              <td>
+                <Badge variant="outline">{t(`providers.${credential.verification_status}`)}</Badge>
+              </td>
+              <td>
+                {credential.verified_at ? (
+                  <time dateTime={credential.verified_at}>
+                    {new Date(credential.verified_at).toLocaleString(
+                      i18n.resolvedLanguage === 'zh' ? 'zh-CN' : 'en-US',
+                    )}
+                  </time>
+                ) : (
+                  t('providers.verificationNotRecorded')
+                )}
+              </td>
+              <td>{credential.enabled ? t('providers.enabled') : t('common.disabled')}</td>
+              <td>{credential.priority}</td>
+              <td>
+                <div className="flex gap-2">
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    disabled={pending || !canWrite}
+                    onClick={() => onVerify(credential)}
+                  >
+                    {t('providers.verify')}
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    disabled={
+                      pending ||
+                      !canWrite ||
+                      (!credential.enabled && credential.verification_status !== 'verified')
+                    }
+                    onClick={() => onToggle(credential)}
+                  >
+                    {t(credential.enabled ? 'providers.disable' : 'providers.enable')}
+                  </Button>
+                </div>
+              </td>
+            </tr>
+          ))}
+          {!rows.length && (
+            <tr>
+              <td colSpan={7} className="py-8 text-center text-muted-foreground">
+                {t('providers.noMatchingCredentials')}
+              </td>
+            </tr>
+          )}
+        </tbody>
+      </Table>
+    </div>
+  )
 }
 export default function ProvidersPage() {
   return (
@@ -314,78 +473,26 @@ function Providers() {
                   </Button>
                 ))}
               </div>
-              <Table>
-                <thead>
-                  <tr>
-                    <th>{t('common.credentialName')}</th>
-                    <th>{t('providers.connection')}</th>
-                    <th>{t('providers.verification')}</th>
-                    <th>{t('providers.enabledStatus')}</th>
-                    <th>{t('common.priority')}</th>
-                    <th>{t('common.actions')}</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {selected.connections.flatMap((c) =>
-                    c.credentials.map((credential) => (
-                      <tr key={credential.id}>
-                        <td>{credential.name}</td>
-                        <td>{c.name}</td>
-                        <td>
-                          <Badge variant="outline">
-                            {credential.verification_status === 'verified'
-                              ? t('providers.verified')
-                              : credential.verification_status === 'failed'
-                                ? t('providers.failed')
-                                : t('providers.pending')}
-                          </Badge>
-                        </td>
-                        <td>
-                          {credential.enabled ? t('providers.enabled') : t('common.disabled')}
-                        </td>
-                        <td>{credential.priority}</td>
-                        <td>
-                          <div className="flex gap-2">
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              disabled={mutation.isPending || !access.can('providers.write')}
-                              onClick={() => {
-                                setNotice(null)
-                                mutation.mutate({
-                                  path: `/admin/credentials/${credential.id}/verify`,
-                                  data: {},
-                                })
-                              }}
-                            >
-                              {t('providers.verify')}
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              disabled={
-                                mutation.isPending ||
-                                !access.can('providers.write') ||
-                                (!credential.enabled &&
-                                  credential.verification_status !== 'verified')
-                              }
-                              onClick={() =>
-                                mutation.mutate({
-                                  path: `/admin/credentials/${credential.id}`,
-                                  method: 'patch',
-                                  data: { enabled: !credential.enabled },
-                                })
-                              }
-                            >
-                              {credential.enabled ? t('providers.disable') : t('providers.enable')}
-                            </Button>
-                          </div>
-                        </td>
-                      </tr>
-                    )),
-                  )}
-                </tbody>
-              </Table>
+              <CredentialTable
+                key={selected.id}
+                provider={selected}
+                canWrite={access.can('providers.write')}
+                pending={mutation.isPending}
+                onVerify={(credential) => {
+                  setNotice(null)
+                  mutation.mutate({
+                    path: `/admin/credentials/${credential.id}/verify`,
+                    data: {},
+                  })
+                }}
+                onToggle={(credential) =>
+                  mutation.mutate({
+                    path: `/admin/credentials/${credential.id}`,
+                    method: 'patch',
+                    data: { enabled: !credential.enabled },
+                  })
+                }
+              />
             </TabsContent>
             <TabsContent value="models">
               <div className="mb-4 flex flex-wrap justify-end gap-2">
