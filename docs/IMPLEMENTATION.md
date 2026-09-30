@@ -173,11 +173,11 @@ The binary capability count is 8 completed, 19 partially completed, and 3 not st
 | F20 | Playground, comparison, attachments, and code examples | Partially completed | Four native conversation paths, two-to-four-lane comparison, cancellation, executable examples, per-protocol image/PDF discovery, user/Project attachment resolution, single/comparison attachment lifecycle interfaces, and conservative token/TPM/money admission with exact per-occurrence media prices exist; external acceptance remains open. |
 | F21 | Personal, Project, and platform call records and CSV | Completed | Isolated list/detail queries, incremental loading, redacted drawers, bounded server-side CSV export, filter parity, formula protection, and bilingual download actions are implemented with dual-database evidence. |
 | F22 | Usage trends, amounts, and multidimensional filters | Partially completed | Personal, Project, and platform usage interfaces plus immutable Provider attribution exist; Team attribution and complete freshness/capacity acceptance remain open. |
-| F23 | Operations overview, quality, alerts, and notifications | Partially completed | SMTP configuration and controlled test delivery exist; durable notification jobs, retry, recipient policy, settings, and status center remain open. |
+| F23 | Operations overview, quality, alerts, and notifications | Partially completed | The real-data operations overview, grouped alerts, recipient-isolated inbox, personal settings, and bounded durable SMTP delivery are implemented for failed system jobs and credential verification. Provider quality metrics, threshold policies, additional event sources, and external-service acceptance remain open. |
 | F24 | Read-only AI operations analysis and saved reports | Not started | Authorized analysis queries, saved definitions, evaluation, exports, and hostile-input acceptance are not implemented. |
 | F25 | Site presentation, language, and announcements | Completed | Durable site name, URL, logo, footer, default language, bilingual UI behavior, and announcement lifecycle are implemented. |
 | F26 | Instances, heartbeats, resources, jobs, and offline cleanup | Completed | Distinct process generations, server-owned leases, nullable resource facts, bounded real system jobs, executor-loss reconciliation, revision-checked cleanup, audit evidence, and the bilingual administrative workspace are implemented. |
-| F27 | S3, owned attachments, SMTP, and notifications | Partially completed | S3-compatible configuration and administration UI, explicit user/Project attachment APIs, cleanup recovery, Key-scoped inference reads, single/comparison attachment interfaces, SMTP administration, and test delivery exist. Durable notifications and external-service acceptance remain open. |
+| F27 | S3, owned attachments, SMTP, and notifications | Partially completed | S3-compatible configuration and administration UI, explicit user/Project attachment APIs, cleanup recovery, Key-scoped inference reads, single/comparison attachment interfaces, SMTP administration/test delivery, and durable operational email intents exist. External storage/mail acceptance, bounce handling, and inbox tracking remain open. |
 | F28 | Internal encryption, root-key rotation, and Vault switching | Partially completed | Internal provider, egress, SMTP, and storage secrets are encrypted. Root-key rotation, Vault identities, compensation, and storage switching remain open. |
 | F29 | API Key Vault delivery and application identities | Not started | Application identities, Profiles, descriptors, coordinator state, and no-plaintext-fallback delivery are not implemented. |
 | F30 | Configuration publication, acknowledgement, rollback, revocation, and audit | Partially completed | Immutable runtime publication, durable events, current revocation, and audit foundations exist; node acknowledgement, complete rollback, and distributed emergency-revocation acceptance remain open. |
@@ -206,7 +206,7 @@ Only A01 is fully accepted across its defined scope. Every other case remains in
 | A16 | Vault compensation, rotation, and cleanup failure | Not started | Vault integration is not implemented. |
 | A17 | Images/PDF, object authorization, and model comparison | Partially completed | Object backend, comparison, conservative route capability discovery, owner-bound user/Project byte reads, current-manager Project lifecycle, native inline rewriting, both Playground attachment interfaces, and attested token/TPM/money reservation with exact media occurrence settlement exist; external acceptance remains open. |
 | A18 | Call queries, CSV, reports, and hostile analysis inputs | Partially completed | Call queries, usage views, and safe scoped call-record CSV exports have controlled evidence; AI analysis, saved reports, and their hostile-input acceptance remain open. |
-| A19 | S3, SMTP, site, announcements, instances, and jobs | Partially completed | Controlled local coverage now includes storage, SMTP, site/announcements, authoritative instances, and actual system jobs. External services, production clock/capacity assumptions, and release acceptance remain open. |
+| A19 | S3, SMTP, site, announcements, instances, and jobs | Partially completed | Controlled local coverage now includes storage, SMTP configuration/test and durable notification delivery, site/announcements, authoritative instances, and actual system jobs. External services, bounce/inbox behavior, production clock/capacity assumptions, and release acceptance remain open. |
 | A20 | Fresh install, upgrade, backup/restore, and production SPA | Partially completed | Installation, migrations, restart, and SPA evidence exists; backup/restore and production release acceptance remain open. |
 
 2026-09-23, baseline `493cf39`: three parallel subtasks deliver changes, with the coordinating task consolidating acceptance and staged commits.
@@ -222,7 +222,7 @@ Only A01 is fully accepted across its defined scope. Every other case remains in
 | P1-04/05 | In progress | Native OpenAI chat ordinary/SSE, Key Playground, isolated personal/admin call queries and request facts have controlled dual-database evidence; immutable snapshots and bounded durable events have controlled failure/restart evidence; measured capacity and real-provider acceptance remain open |
 | P2 | In progress | Profile/password/session APIs and UI delivered; member/role/registration interfaces and Team/Project backend delivered; Project Keys, offboarding, and resource interfaces advance in separate verified packages |
 | P3 | In progress | Current token and image/PDF occurrence prices, FX, immutable call assessments, atomic CSV/XLS/XLSX imports, CSV exports, and single-process Personal/Project/Key token and monetary quota admission are implemented; Team quotas, templates, approvals, alerts, distributed enforcement, additional billing dimensions, and synchronization remain open |
-| P4–P6 | In progress | Four native inference protocols, conservative image/PDF capability discovery, user/Project attachment resolution, single/comparison attachment interfaces, attested token/TPM/money reservation with exact media occurrence settlement, SMTP configuration/test delivery, object-storage administration/owned-attachment backend, and authoritative process/system-job operations are implemented; provider-specific media pricing, durable notifications, remaining enterprise integrations, and final acceptance remain open |
+| P4–P6 | In progress | Four native inference protocols, conservative image/PDF capability discovery, user/Project attachment resolution, single/comparison attachment interfaces, attested token/TPM/money reservation with exact media occurrence settlement, SMTP configuration/test and durable operational delivery, object-storage administration/owned-attachment backend, and authoritative process/system-job operations are implemented; provider-specific media pricing, broader alert policy, remaining enterprise integrations, and final acceptance remain open |
 
 Verification in this iteration:
 
@@ -914,9 +914,42 @@ TLS, authentication, every submission stage, cancellation, ambiguous acceptance,
 cooldown and restart recovery without contacting external mail services. Full
 check/test passed with 378 Vitest cases, Go race/unit coverage, development
 lifecycle checks and production assets. The serialized PostgreSQL/MySQL lifecycle
-suite passed in 264.903 seconds, and both database process suites passed. Durable
-notification jobs, recipient policy, retries, delivery tracking, external-service
-acceptance and production capacity remain open.
+suite passed in 264.903 seconds, and both database process suites passed. External
+relay acceptance, bounce handling, inbox tracking and production capacity remain
+open.
+
+### Operations overview and durable notifications
+
+Frozen migration 29 adds grouped operational alerts, immutable source
+occurrences, recipient-isolated inbox rows, personal external-email settings and
+one immutable SMTP intent per occurrence and recipient. The GORM-first migration
+uses private frozen structs, restrictive foreign keys and no demonstration data.
+Source failures remain authoritative when notification publication fails; the
+worker reconciles missing occurrences from durable failed system jobs and
+credential-verification audit facts.
+
+Only current enabled users with `system.read` receive notifications. Inbox APIs
+derive the recipient from the session, and the delivery worker rechecks the same
+permission before network work. External email is disabled until an authorized
+user explicitly saves severity choices. Delivery uses a database lease, at most
+three attempts, and explicit `accepted`, `failed` and `unknown` terminal states;
+an expired sending lease becomes unknown and is never replayed. Relay acceptance
+does not claim recipient-inbox delivery.
+
+The `/admin/overview` interface follows the approved four-card, trend/readiness,
+top-models/alerts composition using real call facts and catalog state. Decimal
+token strings and unknown coverage are preserved. The application header inbox,
+alert details and revision-reviewed settings use local shadcn-style primitives,
+Base UI wrappers and paired English/Chinese `notifications` resources. Read-only
+operators cannot see write controls.
+
+Controlled service, handler, migration and frontend tests cover source replay,
+recipient isolation, permission changes, ETag conflicts, safe allowlisted
+payloads, retry/lease uncertainty, dual-database schema behavior and live locale
+switching. See [Operational alerts and notifications](NOTIFICATIONS.md) for the
+API and delivery contract. Provider quality metrics, configurable thresholds,
+broader event sources, external SMTP acceptance, bounce handling and inbox
+tracking remain open, so F23 and A19 remain partially completed.
 
 ### Object storage and owned attachment backend
 

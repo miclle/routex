@@ -128,6 +128,12 @@ Authentication, route selection, policy enforcement, and request forwarding
 belong on the hot path. Reporting, analytics, notifications, and expensive
 aggregation do not.
 
+Operational notification publication starts from durable, server-owned facts.
+Source writes never depend on notification success. A bounded background worker
+reconciles missing occurrences, claims immutable SMTP intents with leases, and
+records explicit terminal outcomes outside the Gateway request path. See
+[Operational alerts and notifications](NOTIFICATIONS.md).
+
 ### Fail explicitly
 
 Unsupported provider capabilities or pricing combinations should return clear

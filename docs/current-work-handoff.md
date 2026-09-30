@@ -1,24 +1,23 @@
 # Current Work Handoff
 
-- **Status:** paused at a clean verified F26 boundary for computer handoff
-- **Updated:** 2026-09-29T20:36:43+08:00
+- **Status:** F23 durable operational-notification package delivered; the full RouteX objective remains active
+- **Updated:** 2026-09-30T11:54:49+08:00
 - **Repository:** `/Users/miclle/github/miclle/routex`
 - **Branch:** `main`
 - **Base:** `main`
-- **Verified repository HEAD:** `e6ca370560f060e65c7fa07bac4141ec705c9154`
-- **Implementation HEAD:** `fa71c2e20756cfdf35d196a6d7f9eaf8fc0297bd`
+- **Verified implementation HEAD:** `e5f189c4f9902c250c6236bc64c69b434e1fb77f`
+- **Implementation commits:** `d5ae09f` (`feat(notifications): add durable operational alerts`) and `e5f189c` (`feat(overview): add operations workspace`)
 - **Upstream:** `origin/main`, zero commits ahead and zero behind at capture
-- **Last pushed repository state:** `e6ca370560f060e65c7fa07bac4141ec705c9154`
-- **Last pushed implementation state:** `fa71c2e20756cfdf35d196a6d7f9eaf8fc0297bd`
-- **Current owner:** none while paused
-- **Next owner:** the next Codex task after the user synchronizes both repositories on the other computer
-- **Transfer state:** transferable; the implementation, pause checkpoint, roadmap, and remote checks are published
+- **Last pushed implementation state:** `e5f189c4f9902c250c6236bc64c69b434e1fb77f`
+- **Current owner:** the active local Codex task continuing the full objective in bounded packages
+- **Next owner:** the next local task after synchronizing RouteX and dotfiles `main`
+- **Transfer state:** transferable after this documentation checkpoint; implementation, validation, browser evidence, and remote source commits are published
 - **Transport:** `origin/main`; resolve the exact handoff commit with `git log -1 -- docs/current-work-handoff.md`
-- **Receiver access:** RouteX `origin/main`, this document, `docs/IMPLEMENTATION.md`, and dotfiles `origin/main` at roadmap checkpoint `a7f99af8d2160e6fa028ce2d79e19f9867fc1880`
+- **Receiver access:** RouteX `origin/main`, this document, `docs/IMPLEMENTATION.md`, and dotfiles `origin/main`; resolve the latest roadmap checkpoint with `git log -1 -- projects/routex/implementation-plan.md`
 
 ## Objective
 
-Implement every valid RouteX capability represented by F01–F30 and close every A01–A20 acceptance case, while preserving the existing Go/React architecture, PostgreSQL/MySQL portability, GORM-first migrations, the approved product layout, shadcn/ui and Base UI primitives, English project documentation, bilingual English/Chinese UI copy, phased verification, and incremental main-branch delivery. The user paused after the complete F26 package on 2026-09-29 to continue from another computer. Do not start the next package until the user resumes.
+Implement every valid RouteX capability represented by F01–F30 and close every A01–A20 acceptance case, while preserving the existing Go/React architecture, PostgreSQL/MySQL portability, GORM-first migrations, the approved product layout, shadcn/ui and Base UI primitives, English project documentation, bilingual English/Chinese UI copy, phased verification, and incremental main-branch delivery. The user resumed the objective locally on 2026-09-30; F23 is the active bounded package.
 
 ## Current State
 
@@ -39,6 +38,7 @@ Implement every valid RouteX capability represented by F01–F30 and close every
 - F21 safe call-record CSV export is delivered by `dc99f35` (`feat(calls): add safe CSV exports`). Personal, Project, and platform workspaces export the complete applied filter through dedicated server-authorized endpoints. Generation is bounded to five seconds, 10,000 rows, and 8 MiB; authorization and selection share one repeatable-read transaction; member files retain safe columns while platform files add only user/Project attribution. UTF-8 files protect formula-capable cells, preserve exact decimals and null-versus-zero values, and are downloaded through bilingual transient Blob actions in the approved filter layout.
 - F22-A immutable Provider-attributed usage is delivered by `d24997a` (`feat(usage): add provider attribution`). Frozen GORM migration V26 snapshots Provider IDs/names, Connection names, and upstream model names only after an attempt enters execution; failover keeps the final attempted route while legacy and pre-attempt calls remain explicit unknowns. Platform reports add Provider filtering and Provider/provider-model/Connection distributions with historical labels; Personal and Project reports retain topology isolation.
 - F26 authoritative System Status is delivered by `6213cc7` (`feat(system): track instances and operational jobs`) and `fa71c2e` (`feat(system): add status administration workspace`). Frozen GORM migrations V27 and V28 persist process generations and bounded actual-job history on PostgreSQL and MySQL. Server-owned leases, nullable resource facts, executor-loss reconciliation, revision-checked transactional cleanup, one target-addressable audit event per retired instance, and the bilingual Mockup-faithful administration workspace are implemented.
+- The bounded F23 operational-notification package is delivered by `d5ae09f` (`feat(notifications): add durable operational alerts`) and `e5f189c` (`feat(overview): add operations workspace`). Frozen GORM migration V29, durable grouped occurrences, recipient-isolated inbox projections, atomic personal settings, bounded SMTP intents, failed-job and credential-verification sources, real persisted overview aggregates, the Mockup-aligned operations workspace, and paired English/Chinese copy are implemented.
 - `docs/IMPLEMENTATION.md` contains the authoritative per-capability and per-acceptance status snapshot. The cross-task roadmap is `/Users/miclle/dotfiles/projects/routex/implementation-plan.md`.
 
 ### In Progress
@@ -47,23 +47,23 @@ Implement every valid RouteX capability represented by F01–F30 and close every
 - A02–A12, A14–A15, and A17–A20 have partial controlled evidence but are not fully accepted.
 - F14 protects saved credentials from endpoint changes and now retries the complete TLS/CONNECT or SOCKS5 negotiation across every validated proxy endpoint address. External proxy and production performance acceptance remain open.
 - F13 now has active bounded failover and controlled A07/A08 evidence. Real-provider behavior, measured capacity, and multi-node health coordination remain open acceptance gates.
-- F27 now includes storage administration, explicit user/Project ownership, the gateway resolver, both Playground upload controls, and durable abandoned-object expiry. Durable notifications and external-service acceptance remain open.
+- F23 now includes the real-data operations overview, grouped failed-job and credential-verification alerts, recipient-isolated in-app notifications, atomic personal settings, and bounded durable SMTP intents. Provider quality metrics, configurable thresholds, broader event sources, and external mail acceptance remain open.
+- F27 now includes storage administration, explicit user/Project ownership, the gateway resolver, both Playground upload controls, durable abandoned-object expiry, SMTP administration/test delivery, and durable operational email intents. External-service acceptance remains open.
 - F20 now includes explicit provider-model image/PDF declarations, effective per-protocol discovery, user/Project server-side byte resolution, both approved Playground attachment compositions, conservative token/TPM/money admission, and exact per-occurrence media settlement. Provider-specific billing dimensions and external-provider acceptance remain open.
 - F22 has Personal, Project, and platform usage views plus durable Provider attribution. Team attribution and complete freshness/capacity acceptance remain open.
 
 ### Not Started or Out of Scope
 
-- F03 enterprise identity, F24 AI operations analysis, and F29 API Key Vault delivery are not started. F23 durable notification delivery is the next locally executable package.
+- F03 enterprise identity, F24 AI operations analysis, and F29 API Key Vault delivery are not started.
 - A13 complete approval contention and A16 Vault compensation are not started.
 - Real external-provider, IdP/LDAP/OAuth, Vault, S3, SMTP, price-source, production deployment, backup/restore, multi-node, and measured-capacity acceptance remain open because the required environments or decisions have not been supplied.
-- No new package is active. F23 durable notification delivery is the next bounded local package, but it must not start until the user resumes the paused objective.
+- F23 remains active at its documented partial boundary. Continue its next locally executable package before selecting an unrelated capability unless the authoritative plan changes.
 
 ## Working Tree
 
-- **Staged:** none at capture
-- **Modified:** RouteX was clean at `e6ca370` before this handoff-only refresh; this document is the only file changed during preparation
-- **Untracked:** none
-- **Unpushed commits:** none at capture; `e6ca370` is on `origin/main`
+- **Staged:** none after the phased commits
+- **Modified/untracked:** none expected after this documentation checkpoint; verify with `git status --short`
+- **Unpushed commits:** none expected; verify RouteX `HEAD` equals `origin/main`
 - **Do not overwrite:** dotfiles has an unrelated local modification at `zsh/.zshrc`; preserve it. Also preserve any new user or concurrent-task changes discovered after synchronization.
 
 ## Decisions and Rationale
@@ -77,7 +77,8 @@ Implement every valid RouteX capability represented by F01–F30 and close every
 | Keep English as the default UI language and project-document language | This is an explicit project requirement | Pair all visible copy in `en` and `zh`; keep documentation and commit text in English |
 | Keep competitor names and comparisons outside RouteX | RouteX must be described independently | Do not introduce reference-project names into code, UI, docs, commits, or PRs |
 | Resume in bounded verified packages | The user explicitly resumed the full objective | Complete, test, document, commit, push, and verify each package before advancing |
-| Keep the objective paused after F26 | The user is transferring work to another computer | Do not begin F23 or any other package until the user explicitly resumes |
+| Deliver F23 as grouped operational facts plus per-recipient projections | Repeated source failures must not create duplicate alerts or cross recipient boundaries | Persist immutable source occurrences, current grouped state, and exact delivery intents |
+| Treat uncertain SMTP completion as terminal unknown | Replaying after DATA may send duplicate email | Expired sending leases and ambiguous acceptance are never retried automatically |
 
 ## Verification Evidence
 
@@ -176,6 +177,15 @@ Implement every valid RouteX capability represented by F01–F30 and close every
 | Remote GolangCI-Lint `36567593927` on `e6ca370` | pass | Go lint passed |
 | Handoff receiver probe | pass | Referenced files and commits exist, RouteX and dotfiles remote `main` refs match the recorded checkpoints, the first resume action has an explicit command and completion condition, and no placeholder or secret is present |
 | Full code/test suite for this handoff-only refresh | not run | No implementation code changed; final `e6ca370` remote CI and the recorded F26 local suites cover the transferred source |
+| Focused F23 Go and frontend suites | pass | Notification migration, service, handler, SMTP, and overview tests passed; the overview suite contains 11 focused Vitest cases |
+| Focused MySQL notification lifecycle | pass | The real MySQL migration and notification lifecycle suite passed in 78.877 seconds |
+| `go tool task test-integration` on final F23 source | pass | The complete race-enabled PostgreSQL/MySQL matrix passed; the Handler package completed in 400.732 seconds and disposable Compose resources were removed |
+| `go tool task test-auth-lifecycle` on final F23 source | pass | PostgreSQL and MySQL passed empty initialization, restart, session persistence, logout/login, encrypted catalog and Key confirmation, ordinary/streaming inference, call facts, and revocation |
+| `go tool task test` on final F23 source | pass | Go race/unit coverage, 469 Vitest cases in 43 files, four Node checks, two development lifecycle checks, the production build, and embedded assets passed |
+| `go tool task check` on final F23 source | pass | GolangCI-Lint reported zero issues; Prettier, TypeScript, module tidiness, and ESLint passed with only the two existing Fast Refresh warnings |
+| `go tool actionlint` and `git diff --check` on final F23 source | pass | Workflow syntax and whitespace checks passed |
+| Independent F23 reviews | pass | Final review found no production blocker after authoritative-read isolation, pruning recovery, canonical occurrence ordering, MySQL reserved-column portability, and SMTP ambiguity fixes |
+| Built-in browser verification on final F23 source | pass | `/admin/overview`, the recipient-isolated notification menu, notification settings dialog, and live English/Chinese switching passed; English was restored and the verified page remained open |
 
 ## Blockers, Risks, and Unknowns
 
@@ -199,6 +209,8 @@ Implement every valid RouteX capability represented by F01–F30 and close every
 | `docs/CALLS.md` | Completed scoped call-query and safe CSV contract that supplies immutable facts to the next usage slice |
 | `docs/USAGE.md` | Current usage scopes, filters, aggregation, decimal, and unknown-coverage behavior |
 | `docs/SYSTEM_STATUS.md` | Delivered instance, lease, resource, job, cleanup, audit, and UI contract |
+| `docs/NOTIFICATIONS.md` | Delivered alert grouping, recipient isolation, settings, SMTP delivery, retention, and failure-state contract |
+| `internal/routex/service/notification*.go` | Durable occurrence projection, inbox/settings, delivery leasing, and source reconciliation |
 | `internal/routex/service/system_instance.go` | Server-owned process-generation lifecycle and cleanup boundary |
 | `internal/routex/service/system_job.go` | Allowlisted actual-job lifecycle, reconciliation, and retention boundary |
 | `internal/routex/service/attachments.go` | Current-manager Project lifecycle and owner-scoped validated byte reads |
@@ -207,10 +219,10 @@ Implement every valid RouteX capability represented by F01–F30 and close every
 
 ## Resume Actions
 
-1. Run `git -C ~/github/miclle/routex fetch origin && git -C ~/github/miclle/routex status --short --branch` and `git -C ~/dotfiles fetch origin && git -C ~/dotfiles status --short --branch`; finish this step only when both repositories are on synchronized `main` and any local changes, including `zsh/.zshrc`, are identified and preserved.
-2. Read `docs/IMPLEMENTATION.md`, this handoff, and `~/dotfiles/projects/routex/implementation-plan.md`; verify F26 remains completed, the goal remains paused, and the next package has not already changed before editing.
-3. After the user explicitly resumes, reconcile the approved F23 notification-center and notification-settings Mockup with the delivered SMTP boundary, current permissions, audit events, and actual platform events.
-4. Implement the smallest durable notification-delivery package with frozen GORM-first schemas, recipient isolation, idempotent retry, explicit terminal states, real event sources, Mockup-faithful local shadcn/Base UI composition, paired English/Chinese copy, both-database/restart/browser verification, independent review, and a pushed main-branch checkpoint.
+1. Synchronize RouteX and dotfiles `main`, verify both upstream SHAs, and preserve the unrelated dotfiles `zsh/.zshrc` modification.
+2. Read `docs/IMPLEMENTATION.md`, `docs/NOTIFICATIONS.md`, this handoff, and the dotfiles roadmap before selecting the next bounded package.
+3. Continue the remaining locally executable F23 scope with durable Provider-quality facts, configurable alert thresholds, and additional real event sources; keep external SMTP acceptance open until an environment is supplied.
+4. Preserve the same GORM-first dual-database, restart, permission, i18n, Mockup, browser, independent-review, phased-commit, push, and remote-CI gates before advancing again.
 
 ## Environment and Access
 
@@ -222,6 +234,6 @@ Implement every valid RouteX capability represented by F01–F30 and close every
 
 ## Handoff History
 
-- **Continues from:** storage administration at `26763e8`, provider-model input capabilities at `3b5e642`, personal-Key attachment resolution at `652cb44`, single-model attachment input at `7fa25d7`, comparison attachment input at `ccb6255`, conservative multimodal quota admission at `aa33b5a`, Project-owned attachment lifecycle at `1e4af76`, attachment input pricing at `0c445e1`, bounded native failover at `17358de`, safe call-record CSV export at `dc99f35`, immutable Provider usage attribution at `d24997a`, authoritative System Status at `6213cc7` plus `fa71c2e`, RouteX pause checkpoint `e6ca370`, and dotfiles roadmap checkpoint `a7f99af`
+- **Continues from:** storage administration at `26763e8`, provider-model input capabilities at `3b5e642`, personal-Key attachment resolution at `652cb44`, single-model attachment input at `7fa25d7`, comparison attachment input at `ccb6255`, conservative multimodal quota admission at `aa33b5a`, Project-owned attachment lifecycle at `1e4af76`, attachment input pricing at `0c445e1`, bounded native failover at `17358de`, safe call-record CSV export at `dc99f35`, immutable Provider usage attribution at `d24997a`, authoritative System Status at `6213cc7` plus `fa71c2e`, and durable operational notifications at `d5ae09f` plus `e5f189c`
 - **Supersedes:** the storage-administration-next checkpoint at `bcc663a`
 - **Closeout condition:** all F01–F30 capabilities and A01–A20 acceptance cases are completed with current evidence, or a later handoff replaces this document with an equally verifiable resume point

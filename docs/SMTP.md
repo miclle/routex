@@ -1,6 +1,6 @@
 # SMTP configuration and test delivery
 
-RouteX persists one SMTP transport and one system sender identity. Transport and sender settings have separate forms/API writes but share a revision, so changes cannot silently overwrite one another. This implementation provides real connection verification and fixed test-message delivery. It does not yet schedule application notifications or provide a durable notification queue, automatic delivery retries, bounce processing, or inbox-delivery tracking.
+RouteX persists one SMTP transport and one system sender identity. Transport and sender settings have separate forms/API writes but share a revision, so changes cannot silently overwrite one another. This implementation provides real connection verification, fixed test-message delivery, and the transport used by durable operational notifications. Bounce processing and inbox-delivery tracking remain outside the current boundary.
 
 ## Security and persistence
 
@@ -62,7 +62,7 @@ Retained test rows contain the actor ID, configuration revision, recipient diges
 
 Controlled local SMTP fixtures exercise real plaintext private relay, verified STARTTLS and implicit TLS, encrypted AUTH, fixed message content, each SMTP rejection stage, cancellation/deadline, untrusted TLS rejection, and ambiguous final acceptance. All recipient addresses use reserved test domains; tests do not contact external email services.
 
-The serialized dual-database helper covers configuration/credential persistence, host-change credential protection, failed-save preservation, strict HTTP and permissions, one real test message, exact replay deduplication, cooldown, interrupted receipt recovery, restart persistence, and disabled dispatch rejection. The completed phase passed the full check and test suite with 378 Vitest cases, Go race coverage, development lifecycle checks, and production asset serving. The PostgreSQL/MySQL lifecycle suite passed in 264.903 seconds, and both database process suites passed initialization, restart persistence, ordinary and streaming native inference, reporting, logout, and revocation. The current feature must not be presented as durable notification delivery until notification job persistence, retry policy, recipient policy, and delivery tracking are implemented and tested separately.
+The serialized dual-database helper covers configuration/credential persistence, host-change credential protection, failed-save preservation, strict HTTP and permissions, one real test message, exact replay deduplication, cooldown, interrupted receipt recovery, restart persistence, and disabled dispatch rejection. The completed SMTP administration phase passed its recorded full check, test, PostgreSQL/MySQL, and real-process lifecycle suites. Durable operational delivery now adds immutable intents, recipient policy, bounded retry, and explicit terminal states as documented in [Operational alerts and notifications](NOTIFICATIONS.md). External relay acceptance, bounce processing, and inbox delivery remain separate acceptance work.
 
 ## Control-plane interface
 
