@@ -8,6 +8,7 @@ import { usePermissions } from '@/hooks/use-permissions'
 import { Badge } from '@/components/ui/badge'
 import ModelPriceTable from './model-price-table'
 import ProviderModelState from './provider-model-state'
+import ProviderModelCapacity from './provider-model-capacity'
 
 export default function ProviderModelPage() {
   return (
@@ -114,6 +115,7 @@ function ProviderModelDetail() {
                 .find((item) => item.id === model.id)
             }}
           />
+          <ProviderModelCapacity key={model.id} modelId={model.id} />
           {access.can('prices.read') && (
             <section className="space-y-4 rounded-lg border p-6">
               <h3 className="font-semibold">{t('title')}</h3>

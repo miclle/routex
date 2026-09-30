@@ -8,6 +8,8 @@ export function limitFixture(): LimitRecord {
     id: 'usr_fixture',
     account_id: 'user_usr_fixture',
     etag: 'fixture',
+    platform_currency: 'USD',
+    quota_usage: null,
     stored: policy,
     effective: { rpm: null, concurrency: null },
     ip_policies: [policy],

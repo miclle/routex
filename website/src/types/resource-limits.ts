@@ -10,14 +10,36 @@ export interface LimitPolicy {
   ip_mode: 'none' | 'allowlist' | 'denylist'
   ip_ranges: string[]
 }
+export interface QuotaWindow {
+  covered: boolean
+  tokens_used: number
+  tokens_held: number
+  tokens_unknown: number
+  money_used: Record<string, string>
+  money_held: Record<string, string>
+  money_unknown: number
+}
+export interface QuotaUsage {
+  as_of: string | null
+  activated: boolean
+  coverage_start: string | null
+  time_zone: string
+  active: QuotaWindow | null
+  minute: QuotaWindow | null
+  five_hours: QuotaWindow | null
+  seven_days: QuotaWindow | null
+  month: QuotaWindow | null
+}
 export interface LimitRecord {
   kind: 'user' | 'project' | 'personal_key' | 'project_key'
   id: string
   account_id: string
   etag: string
   parent_etag?: string
+  platform_currency: string
   stored: LimitPolicy
-  effective: Pick<LimitPolicy, 'rpm' | 'concurrency'>
+  effective: Omit<LimitPolicy, 'ip_mode' | 'ip_ranges'>
+  quota_usage: QuotaUsage | null
   ip_policies: LimitPolicy[]
   rpm_used: number | null
   active: number | null

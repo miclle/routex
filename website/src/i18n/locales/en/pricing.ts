@@ -83,4 +83,36 @@ export default {
     'Publication could not be confirmed. Reload the current state before another change.',
   stateRetry:
     'Current configuration loaded. Save again to retry publication without changing your selection.',
+  capacityTitle: 'Capacity attestation',
+  capacityHelp:
+    'Record verified provider capacity for bounded quota reservations. This requires explicit evidence of the native provider contract.',
+  capacityConfigured: 'Attestation recorded',
+  capacityUnconfigured: 'No attestation recorded',
+  capacityValidityHelp:
+    'A saved attestation does not certify current admission eligibility. Usage above the attested capacity invalidates that revision; verify the provider contract before recording a corrected attestation.',
+  capacityInput: 'Maximum billable input tokens',
+  capacityOutput: 'Maximum billable output tokens',
+  capacityEvidence: 'Capacity evidence',
+  capacityReason: 'Reason for attestation',
+  capacityRevision: 'Saved revision',
+  capacityUpdated: 'Updated',
+  capacityEdit: 'Edit capacity attestation',
+  capacityEditorHelp:
+    'Attest only verified capacity. Model names, discovery responses and sample calls do not establish these limits.',
+  capacityTokenHelp:
+    'Input includes caches and tool schemas. Output includes reasoning and thought tokens. Both maxima must cover all billable tokens.',
+  capacityReviewedRevision: 'Reviewed revision: {{revision}} · Protocol: {{protocol}}',
+  capacityProtocol: 'Protocol: {{protocol}}',
+  capacityNumberError: 'Enter positive safe integers for both token maxima.',
+  capacityTextError: 'Provide evidence and a reason, each no more than 2,000 UTF-8 bytes.',
+  capacitySave: 'Save attestation',
+  capacitySaved: 'Capacity attestation saved and published.',
+  capacityStale:
+    'The attestation changed. Load the current revision and review your draft before saving.',
+  capacityReviewed:
+    'Current attestation loaded. Review your retained draft before saving. Reading saved values does not confirm runtime publication.',
+  capacityUncertain:
+    'Publication could not be confirmed. The attestation may already be stored. Retry the exact change or load the current revision for review.',
+  capacityRetry: 'Retry publication',
+  capacityReview: 'Load current attestation',
 }

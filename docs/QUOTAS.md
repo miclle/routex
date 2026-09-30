@@ -32,6 +32,12 @@ GET includes `platform_currency` under the existing resource read authority, eve
 
 GET adds `quota_usage`, with `activated`, `time_zone`, `coverage_start`, `as_of`, and `active`, `minute`, `five_hours`, `seven_days`, and `month` windows. Windows are null before activation. Each populated window has `covered`, `tokens_used`, `tokens_held`, `tokens_unknown`, `money_used`, `money_held`, and `money_unknown`. Money maps use explicit currency codes and decimal values. Active holds are separate from terminal window counters and must be included when presenting available allowance. An uncovered window is incomplete history, not a zero historical balance.
 
+## Resource interfaces
+
+Member Settings, Project Resource configuration, and Personal/Project Key restriction dialogs expose budget and token quota controls alongside the existing rate and IP controls. Blank numeric or budget inputs mean unrestricted aggregate or inherited Key values; zero closes the corresponding allowance. Whole token values and exact decimal money survive complete-policy submission without unit conversion or floating-point rounding. Key values may only narrow reviewed parent limits.
+
+The interface shows stored and effective values separately. The quota snapshot reports its server timestamp and calendar, incomplete coverage, settled values, retained holds, unknown calls, and historical amounts grouped by their recorded currency. An unavailable or inactive ledger is not displayed as zero usage, and the browser does not derive a remaining allowance. Changed resource, parent, or denomination revisions require explicit review; resource navigation clears the previous draft and retry intent. Uncertain writes retain the exact previous ETag and full request for identical-intent publication retries.
+
 ## Installation calendar
 
 | Endpoint | Authority |
@@ -66,6 +72,8 @@ A first read returns `configured:false` and ETag `"0"`. The write body is:
 The protocol is derived from the provider connection. Both maxima must be positive safe integers. Evidence and reason are trimmed nonempty strings of at most 2,000 bytes. The stored revision, actor, reason, and normalized before/after audit are transactional. Publication failures are retryable with the same prior ETag and body.
 
 This is an administrator's explicit capacity attestation, not an inferred property of a name, a discovered model, a tokenizer estimate, or a successful sample call. The attested input maximum covers all billable input including caches and tool schemas. The output maximum covers all billable generation including reasoning/thought tokens. Deployments must verify that their actual compatible upstream enforces the native contract. The gateway rejects a request above the attested output maximum. If authoritative actual usage exceeds a reservation, it persists the full debt and invalidates that bound revision. A corrected attestation needs a new revision.
+
+The Provider-model detail page includes a capacity card and Base UI editor before prices. `providers.read` and `providers.write` independently govern the summary and editor. The form requires explicit input/output maxima, evidence, and reason; it never derives capacity from a model name or discovery. A configured response means a saved attestation only: GET does not expose durable overrun invalidation, so the summary cannot prove current validity or gateway eligibility. Conflicts preserve drafts for explicit review, uncertain writes lock the captured request for identical retries, and switching models clears prior drafts. This installation contract adds a focused control within the existing detail composition rather than a new workspace.
 
 ## Supported native reservation shapes
 

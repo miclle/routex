@@ -35,6 +35,8 @@ beforeEach(async () => {
     id: 'key_test',
     account_id: 'key_original',
     etag: 'old',
+    platform_currency: 'USD',
+    quota_usage: null,
     parent_etag: 'parent1',
     stored: {
       tokens_5h: 1000,
@@ -321,5 +323,261 @@ describe('Resource admission controls', () => {
     expect(document.body.textContent).toContain('请填写不超过 2,000')
     expect((document.querySelector('[aria-label="RPM"]') as HTMLInputElement).value).toBe('5')
     expect(document.body.textContent).toContain('key_original')
+  })
+})
+
+describe('Resource quota controls', () => {
+  it('edits every token period, TPM and exact-decimal budget while preserving null and zero', async () => {
+    await mount()
+    await click('Edit restrictions')
+    await fill('5-hour token quota', '0')
+    await fill('7-day token quota', '9007199254740991')
+    await fill('Monthly token quota', '')
+    await fill('TPM', '0')
+    await fill('Monthly budget', '999999999999999999.000000000000000001')
+    await fill('Reason for change', 'Reviewed quotas')
+    await click('Save limits')
+    await until(() => expect(writes()).toHaveLength(1))
+    expect(JSON.parse(writes()[0].data)).toMatchObject({
+      tokens_5h: 0,
+      tokens_7d: 9007199254740991,
+      tokens_month: null,
+      tpm: 0,
+      money_month: '999999999999999999.000000000000000001',
+      currency: 'USD',
+    })
+  })
+  it('clears the local currency with an inherited budget and preserves an explicit zero budget', async () => {
+    await mount()
+    await click('Edit restrictions')
+    await fill('Monthly budget', '')
+    await fill('Reason for change', 'Inherit budget')
+    await click('Save limits')
+    await until(() => expect(host.textContent).toContain('Limits saved and applied.'))
+    expect(JSON.parse(writes()[0].data)).toMatchObject({ money_month: null, currency: '' })
+    await click('Edit restrictions')
+    await fill('Monthly budget', '0')
+    await fill('Reason for change', 'Close budget')
+    await click('Save limits')
+    await until(() => expect(writes()).toHaveLength(2))
+    expect(JSON.parse(writes()[1].data)).toMatchObject({ money_month: '0', currency: 'USD' })
+  })
+  it('rejects invalid decimal amounts and unsafe integers in every quota field without writing', async () => {
+    await mount()
+    await click('Edit restrictions')
+    await fill('Reason for change', 'Validate quota')
+    for (const label of ['5-hour token quota', '7-day token quota', 'Monthly token quota', 'TPM']) {
+      const input = document.querySelector<HTMLInputElement>(`[aria-label="${label}"]`)!
+      const original = input.value
+      await fill(label, '9007199254740992')
+      await click('Save limits')
+      expect(document.body.textContent).toContain('nonnegative safe integer')
+      await fill(label, original)
+    }
+    for (const value of [
+      '1e3',
+      '01',
+      '-1',
+      '1,000',
+      '.1',
+      '1.',
+      '1000000000000000000',
+      '0.0000000000000000001',
+    ]) {
+      await fill('Monthly budget', value)
+      await click('Save limits')
+      expect(document.body.textContent).toContain('nonnegative decimal')
+    }
+    expect(writes()).toHaveLength(0)
+  })
+  it('narrows parent token and budget limits using exact decimal comparison', async () => {
+    record.ip_policies[0] = {
+      ...record.ip_policies[0],
+      tokens_5h: 1000,
+      tokens_7d: 2000,
+      tokens_month: 5000,
+      tpm: 250,
+      money_month: '12.500000000000000001',
+      currency: 'USD',
+    }
+    await mount()
+    await click('Edit restrictions')
+    await fill('Reason for change', 'Narrow parent')
+    for (const [label, amount, original] of [
+      ['5-hour token quota', '1001', '1000'],
+      ['7-day token quota', '2001', ''],
+      ['Monthly token quota', '5001', '5000'],
+      ['TPM', '251', '250'],
+      ['Monthly budget', '12.500000000000000002', '12.500000000000000001'],
+    ]) {
+      await fill(label, amount)
+      await click('Save limits')
+      expect(document.body.textContent).toContain('cannot exceed')
+      await fill(label, original)
+    }
+    expect(writes()).toHaveLength(0)
+    await click('Save limits')
+    await until(() => expect(writes()).toHaveLength(1))
+    expect(JSON.parse(writes()[0].data).money_month).toBe('12.500000000000000001')
+  })
+  it('retains drafts while requiring explicit review of a changed platform currency', async () => {
+    record.stored = { ...record.stored, money_month: null, currency: '' }
+    await mount()
+    await click('Edit restrictions')
+    await fill('Monthly budget', '0.000000000000000001')
+    await fill('Reason for change', 'Set budget')
+    record = { ...record, platform_currency: 'EUR' }
+    await act(async () => {
+      cache.setQueryData(['resource-limits', '/keys/key_test'], structuredClone(record))
+    })
+    await until(() => expect(button('Save limits').disabled).toBe(true))
+    expect(document.querySelector<HTMLInputElement>('[aria-label="Monthly budget"]')!.value).toBe(
+      '0.000000000000000001',
+    )
+    await click('Reload current policy')
+    await until(() => expect(button('Save limits').disabled).toBe(false))
+    expect(document.body.textContent).toContain('Platform currency: EUR')
+    expect(document.querySelector<HTMLInputElement>('[aria-label="Monthly budget"]')!.value).toBe(
+      '0.000000000000000001',
+    )
+    await click('Save limits')
+    await until(() => expect(writes()).toHaveLength(1))
+    expect(JSON.parse(writes()[0].data)).toMatchObject({
+      money_month: '0.000000000000000001',
+      currency: 'EUR',
+    })
+  })
+  it('blocks monetary writes when the authorized response has no platform currency', async () => {
+    record.platform_currency = ''
+    await mount()
+    await click('Edit restrictions')
+    await fill('Reason for change', 'Budget')
+    await click('Save limits')
+    expect(document.body.textContent).toContain('platform currency is unavailable')
+    expect(writes()).toHaveLength(0)
+    expect(requests.every((request) => !request.url?.includes('/admin/currency'))).toBe(true)
+  })
+  it('shows absence and inactive accounting as unknown rather than zero usage', async () => {
+    await mount(false)
+    expect(host.textContent).toContain(
+      'Quota usage is unavailable. It must not be treated as zero.',
+    )
+    record = {
+      ...record,
+      quota_usage: {
+        as_of: null,
+        activated: false,
+        coverage_start: null,
+        time_zone: 'UTC',
+        active: null,
+        minute: null,
+        five_hours: null,
+        seven_days: null,
+        month: null,
+      },
+    }
+    await act(async () =>
+      cache.setQueryData(['resource-limits', '/keys/key_test'], structuredClone(record)),
+    )
+    await until(() => expect(host.textContent).toContain('Historical usage is unknown, not zero.'))
+    expect(host.textContent).not.toContain('Known tokens used: 0')
+  })
+  it('shows coverage gaps, unknown calls, active reservations and exact historical currencies separately', async () => {
+    const window = {
+      covered: false,
+      tokens_used: 23,
+      tokens_held: 5,
+      tokens_unknown: 2,
+      money_used: { USD: '0.123456789012345678', EUR: '999999999999999999.000000000000000001' },
+      money_held: { USD: '1.000000000000000001' },
+      money_unknown: 3,
+    }
+    record.quota_usage = {
+      as_of: '2026-09-30T08:00:00Z',
+      activated: true,
+      coverage_start: '2026-09-29T08:00:00Z',
+      time_zone: 'UTC',
+      active: { ...window, covered: true, tokens_used: 0, tokens_held: 50 },
+      minute: null,
+      five_hours: window,
+      seven_days: window,
+      month: window,
+    }
+    await mount(false)
+    expect(host.textContent).toContain('Incomplete accounting coverage')
+    expect(host.textContent).toContain('Complete accounting coverage')
+    expect(host.textContent).toContain('Known tokens used: 23')
+    expect(host.textContent).toContain('Tokens reserved: 50')
+    expect(host.textContent).toContain('Calls with unknown tokens: 2')
+    expect(host.textContent).toContain('Calls with unknown amounts: 3')
+    expect(host.textContent).toContain('999999999999999999.000000000000000001 EUR')
+    expect(host.textContent).toContain('0.123456789012345678 USD')
+    expect(host.textContent).toContain('1.000000000000000001 USD')
+    expect(host.textContent).not.toContain('Remaining:')
+    await act(async () => {
+      await i18n.changeLanguage('zh')
+    })
+    expect(host.textContent).toContain('记账覆盖不完整')
+    expect(host.textContent).toContain('预留 Token：50')
+    expect(host.textContent).toContain('金额未知的调用：3')
+    expect(host.textContent).toContain('999999999999999999.000000000000000001 EUR')
+  })
+  it('retries a quota write with the same exact amount and denomination after an uncertain result', async () => {
+    await mount()
+    await click('Edit restrictions')
+    await fill('Monthly budget', '0.000000000000000001')
+    await fill('Reason for change', 'Precise budget')
+    failure = 503
+    await click('Save limits')
+    await until(() => expect(button('Retry application')).toBeDefined())
+    record = { ...record, platform_currency: 'EUR' }
+    await act(async () => {
+      cache.setQueryData(['resource-limits', '/keys/key_test'], structuredClone(record))
+    })
+    failure = 0
+    await click('Retry application')
+    await until(() => expect(writes()).toHaveLength(2))
+    expect(writes()[1].data).toBe(writes()[0].data)
+    expect(JSON.parse(writes()[1].data)).toMatchObject({
+      money_month: '0.000000000000000001',
+      currency: 'USD',
+    })
+  })
+})
+
+describe('Scoped limit drafts', () => {
+  it('destroys the old resource draft and submission intent when switching the resource path', async () => {
+    await mount()
+    await click('Edit restrictions')
+    await fill('Monthly budget', '0.000000000000000001')
+    await fill('Reason for change', 'Old resource')
+    failure = 503
+    await click('Save limits')
+    await until(() => expect(button('Retry application')).toBeDefined())
+    failure = 0
+    record = { ...record, id: 'key_second', account_id: 'key_second_account', etag: 'second' }
+    await act(async () =>
+      root.render(
+        <QueryClientProvider client={cache}>
+          <ResourceLimits path="/keys/key_second" canEdit child />
+        </QueryClientProvider>,
+      ),
+    )
+    await until(() => expect(host.textContent).toContain('key_second_account'))
+    expect(document.querySelector('[role="dialog"]')).toBeNull()
+    expect(document.body.textContent).not.toContain('Retry application')
+    await click('Edit restrictions')
+    expect(document.querySelector<HTMLInputElement>('[aria-label="Monthly budget"]')!.value).toBe(
+      '12.500000000000000001',
+    )
+    expect(
+      document.querySelector<HTMLInputElement>('[aria-label="Reason for change"]')!.value,
+    ).toBe('')
+    await fill('Reason for change', 'New resource')
+    await click('Save limits')
+    await until(() => expect(writes()).toHaveLength(2))
+    expect(writes()[1].url).toBe('/keys/key_second/limits')
+    expect(writes()[1].headers.get('If-Match')).toBe('"second"')
+    expect(JSON.parse(writes()[1].data).money_month).toBe('12.500000000000000001')
   })
 })

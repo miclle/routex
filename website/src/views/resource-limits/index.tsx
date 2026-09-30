@@ -9,9 +9,22 @@ import { Input } from '@/components/ui/input'
 import { Dialog } from '@/components/ui/dialog'
 import { FormField, QueryState } from '@/components/app/CatalogUI'
 import type { LimitInput, LimitRecord } from '@/types/resource-limits'
+import {
+  integerDraft,
+  integerFields,
+  moneyAbove,
+  parseInteger,
+  quotaFields,
+  rateFields,
+  validMoney,
+} from './quota-values'
+import { QuotaUsageSummary } from './quota-usage'
 
 type Props = { path: string; canEdit: boolean; child?: boolean }
 export default function ResourceLimits(props: Props) {
+  return <ResourceLimitContent key={props.path} {...props} />
+}
+function ResourceLimitContent(props: Props) {
   const { t } = useTranslation('limits')
   const cache = useQueryClient()
   const query = useQuery({
@@ -88,15 +101,15 @@ export default function ResourceLimits(props: Props) {
 }
 function LimitSummary({ record, child }: { record: LimitRecord; child?: boolean }) {
   const { t, i18n } = useTranslation('limits')
-  const format = (value: number | null, fallback: string) =>
-    value === null ? t(fallback) : value.toLocaleString(i18n.resolvedLanguage)
+  const format = (value: number | null | undefined, fallback: string) =>
+    value == null ? t(fallback) : value.toLocaleString(i18n.resolvedLanguage)
   return (
     <div className="space-y-4 text-sm">
       <p role="status" className={record.enforced ? 'text-muted-foreground' : 'text-destructive'}>
         {t(record.enforced ? 'published' : 'unpublished')}
       </p>
       <dl className="grid gap-4 sm:grid-cols-2">
-        {(['rpm', 'concurrency'] as const).map((field) => (
+        {integerFields.map((field) => (
           <div key={field}>
             <dt className="text-muted-foreground">{t(field)}</dt>
             <dd>
@@ -108,6 +121,21 @@ function LimitSummary({ record, child }: { record: LimitRecord; child?: boolean 
           </div>
         ))}
         <div>
+          <dt className="text-muted-foreground">{t('money_month')}</dt>
+          <dd>
+            {t('stored')}:{' '}
+            {record.stored.money_month == null
+              ? t(child ? 'inherited' : 'unlimited')
+              : `${record.stored.money_month} ${record.stored.currency}`}
+          </dd>
+          <dd>
+            {t('effective')}:{' '}
+            {record.effective.money_month == null
+              ? t('unlimited')
+              : `${record.effective.money_month} ${record.effective.currency}`}
+          </dd>
+        </div>
+        <div>
           <dt className="text-muted-foreground">{t('usage')}</dt>
           <dd>{format(record.rpm_used, 'unknown')}</dd>
         </div>
@@ -116,6 +144,7 @@ function LimitSummary({ record, child }: { record: LimitRecord; child?: boolean 
           <dd>{format(record.active, 'unknown')}</dd>
         </div>
       </dl>
+      <QuotaUsageSummary usage={record.quota_usage} />
       <div>
         <h4 className="font-medium">{t('ip')}</h4>
         <p className="mt-1 text-xs text-muted-foreground">{t('conjunction')}</p>
@@ -157,8 +186,8 @@ function LimitEditor({
   const { t } = useTranslation('limits')
   const session = useSession()
   const [reviewed, setReviewed] = useState(current)
-  const [rpm, setRPM] = useState(current.stored.rpm?.toString() ?? '')
-  const [concurrency, setConcurrency] = useState(current.stored.concurrency?.toString() ?? '')
+  const [numbers, setNumbers] = useState(() => integerDraft(current.stored))
+  const [money, setMoney] = useState(current.stored.money_month ?? '')
   const [mode, setMode] = useState(current.stored.ip_mode)
   const [ranges, setRanges] = useState(current.stored.ip_ranges.join('\n'))
   const [reason, setReason] = useState('')
@@ -166,32 +195,42 @@ function LimitEditor({
   const [busy, setBusy] = useState(false)
   const lock = useRef(false)
   const intent = useRef<{ etag: string; input: LimitInput } | null>(null)
-  const stale = current.etag !== reviewed.etag || current.parent_etag !== reviewed.parent_etag
+  const stale =
+    current.etag !== reviewed.etag ||
+    current.parent_etag !== reviewed.parent_etag ||
+    current.platform_currency !== reviewed.platform_currency
   const uncertain = issue === 'uncertain'
   const blocked = stale || issue === 'conflict' || issue === 'failed'
   async function dispatch(retry = false) {
     if (!canEdit || lock.current || !session.data || (!retry && (blocked || uncertain))) return
     if (!retry) {
-      const numeric = [rpm, concurrency].map((value) =>
-        value.trim() === '' ? null : Number(value),
+      const numeric = Object.fromEntries(
+        integerFields.map((field) => [field, parseInteger(numbers[field])]),
       )
-      if (
-        [rpm, concurrency].some(
-          (value, index) =>
-            value.trim() !== '' &&
-            (!/^\d+$/.test(value.trim()) || !Number.isSafeInteger(numeric[index])),
-        )
-      ) {
+      if (integerFields.some((field) => numeric[field] === undefined)) {
         setIssue('invalidNumber')
+        return
+      }
+      const amount = money.trim() || null
+      if (amount !== null && !validMoney(amount)) {
+        setIssue('invalidMoney')
+        return
+      }
+      if (amount !== null && !reviewed.platform_currency) {
+        setIssue('currencyUnavailable')
         return
       }
       const parent = child ? reviewed.ip_policies[0] : undefined
       if (
         parent &&
-        (['rpm', 'concurrency'] as const).some(
-          (field, index) =>
-            numeric[index] !== null && parent[field] !== null && numeric[index]! > parent[field]!,
-        )
+        (integerFields.some(
+          (field) =>
+            numeric[field] != null && parent[field] != null && numeric[field]! > parent[field]!,
+        ) ||
+          (amount !== null &&
+            parent.money_month != null &&
+            (parent.currency !== reviewed.platform_currency ||
+              moneyAbove(amount, parent.money_month))))
       ) {
         setIssue('aboveParent')
         return
@@ -214,14 +253,14 @@ function LimitEditor({
       intent.current = {
         etag: reviewed.etag,
         input: {
-          tokens_5h: reviewed.stored.tokens_5h ?? null,
-          tokens_7d: reviewed.stored.tokens_7d ?? null,
-          tokens_month: reviewed.stored.tokens_month ?? null,
-          tpm: reviewed.stored.tpm ?? null,
-          money_month: reviewed.stored.money_month ?? null,
-          currency: reviewed.stored.currency ?? '',
-          rpm: numeric[0]!,
-          concurrency: numeric[1]!,
+          tokens_5h: numeric.tokens_5h!,
+          tokens_7d: numeric.tokens_7d!,
+          tokens_month: numeric.tokens_month!,
+          tpm: numeric.tpm!,
+          money_month: amount,
+          currency: amount === null ? '' : reviewed.platform_currency,
+          rpm: numeric.rpm!,
+          concurrency: numeric.concurrency!,
           ip_mode: mode,
           ip_ranges: entries,
           reason: reason.trim(),
@@ -280,16 +319,66 @@ function LimitEditor({
       )}
       <fieldset disabled={busy || uncertain} className="space-y-4">
         <details open className="rounded-lg border p-4">
-          <summary className="cursor-pointer font-medium">{t('requests')}</summary>
+          <summary className="cursor-pointer font-medium">{t('budgetQuotas')}</summary>
+          <p className="mt-2 text-xs text-muted-foreground">{t('quotaHelp')}</p>
           <div className="mt-4 grid gap-4 sm:grid-cols-2">
-            {(['rpm', 'concurrency'] as const).map((field, index) => (
+            <div>
+              <FormField label={t('money_month')}>
+                <Input
+                  aria-label={t('money_month')}
+                  inputMode="decimal"
+                  value={money}
+                  onValueChange={setMoney}
+                  placeholder={t(child ? 'inherited' : 'unlimited')}
+                />
+              </FormField>
+              <p className="mt-2 text-xs text-muted-foreground">
+                {t('platformCurrency', { value: reviewed.platform_currency || t('unknown') })}
+              </p>
+              {child && (
+                <p className="mt-2 text-xs text-muted-foreground">
+                  {t('parentMaximum', {
+                    value:
+                      reviewed.ip_policies[0]?.money_month == null
+                        ? t('unlimited')
+                        : `${reviewed.ip_policies[0].money_month} ${reviewed.ip_policies[0].currency}`,
+                  })}
+                </p>
+              )}
+            </div>
+            {quotaFields.map((field) => (
               <div key={field}>
                 <FormField label={t(field)}>
                   <Input
                     aria-label={t(field)}
                     inputMode="numeric"
-                    value={index ? concurrency : rpm}
-                    onValueChange={index ? setConcurrency : setRPM}
+                    value={numbers[field]}
+                    onValueChange={(value) => setNumbers((draft) => ({ ...draft, [field]: value }))}
+                    placeholder={t(child ? 'inherited' : 'unlimited')}
+                  />
+                </FormField>
+                {child && (
+                  <p className="mt-2 text-xs text-muted-foreground">
+                    {t('parentMaximum', {
+                      value: reviewed.ip_policies[0]?.[field] ?? t('unlimited'),
+                    })}
+                  </p>
+                )}
+              </div>
+            ))}
+          </div>
+        </details>
+        <details open className="rounded-lg border p-4">
+          <summary className="cursor-pointer font-medium">{t('requests')}</summary>
+          <div className="mt-4 grid gap-4 sm:grid-cols-2">
+            {rateFields.map((field) => (
+              <div key={field}>
+                <FormField label={t(field)}>
+                  <Input
+                    aria-label={t(field)}
+                    inputMode="numeric"
+                    value={numbers[field]}
+                    onValueChange={(value) => setNumbers((draft) => ({ ...draft, [field]: value }))}
                     placeholder={t(child ? 'inherited' : 'unlimited')}
                   />
                 </FormField>
