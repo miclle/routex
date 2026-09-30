@@ -173,7 +173,7 @@ The binary capability count is 8 completed, 19 partially completed, and 3 not st
 | F20 | Playground, comparison, attachments, and code examples | Partially completed | Four native conversation paths, two-to-four-lane comparison, cancellation, executable examples, per-protocol image/PDF discovery, user/Project attachment resolution, single/comparison attachment lifecycle interfaces, and conservative token/TPM/money admission with exact per-occurrence media prices exist; external acceptance remains open. |
 | F21 | Personal, Project, and platform call records and CSV | Completed | Isolated list/detail queries, incremental loading, redacted drawers, bounded server-side CSV export, filter parity, formula protection, and bilingual download actions are implemented with dual-database evidence. |
 | F22 | Usage trends, amounts, and multidimensional filters | Partially completed | Personal, Project, and platform usage interfaces plus immutable Provider attribution exist; Team attribution and complete freshness/capacity acceptance remain open. |
-| F23 | Operations overview, quality, alerts, and notifications | Partially completed | The real-data operations overview, grouped alerts, recipient-isolated inbox, personal settings, and bounded durable SMTP delivery are implemented for failed system jobs and credential verification. Provider quality metrics, threshold policies, additional event sources, and external-service acceptance remain open. |
+| F23 | Operations overview, quality, alerts, and notifications | Partially completed | The real-data operations overview, immutable Provider-attempt quality, revisioned success/P95 thresholds, grouped Provider-quality and route-unavailable alerts, recipient-isolated history, independent severity settings, and bounded durable SMTP delivery are implemented. External mail acceptance, bounce/inbox tracking, real-Provider quality acceptance, and broader quota/enterprise sources remain open. |
 | F24 | Read-only AI operations analysis and saved reports | Not started | Authorized analysis queries, saved definitions, evaluation, exports, and hostile-input acceptance are not implemented. |
 | F25 | Site presentation, language, and announcements | Completed | Durable site name, URL, logo, footer, default language, bilingual UI behavior, and announcement lifecycle are implemented. |
 | F26 | Instances, heartbeats, resources, jobs, and offline cleanup | Completed | Distinct process generations, server-owned leases, nullable resource facts, bounded real system jobs, executor-loss reconciliation, revision-checked cleanup, audit evidence, and the bilingual administrative workspace are implemented. |
@@ -946,10 +946,30 @@ operators cannot see write controls.
 Controlled service, handler, migration and frontend tests cover source replay,
 recipient isolation, permission changes, ETag conflicts, safe allowlisted
 payloads, retry/lease uncertainty, dual-database schema behavior and live locale
-switching. See [Operational alerts and notifications](NOTIFICATIONS.md) for the
-API and delivery contract. Provider quality metrics, configurable thresholds,
-broader event sources, external SMTP acceptance, bounce handling and inbox
-tracking remain open, so F23 and A19 remain partially completed.
+switching.
+
+Frozen GORM migration 30 extends immutable upstream attempts with Provider,
+Connection, upstream-model and full-duration snapshots, while legacy attempts
+remain explicitly unattributed. The Provider detail hierarchy now defaults to
+Overview and adds real configured-window attempt quality, coverage and lag facts plus a
+separate Settings tab. Revisioned Provider policies evaluate aligned closed
+windows for minimum success rate and optional P95 duration. The first degraded
+window opens one typed Provider alert, continued bad windows do not spam, a
+healthy window resolves the group and inbox projection, and a later breach
+reopens it. Terminal `no_candidates` and `attempt_budget_exhausted` calls add a
+separate typed Model alert source.
+
+The operations overview now includes measured Provider quality and P95. Alert
+details and delivery history carry bounded affected-resource snapshots; the
+header inbox provides unread and complete cursor-based history. Users can enable
+high- and medium-severity email independently or disable both with an empty
+address. See [Provider quality](PROVIDER_QUALITY.md) and
+[Operational alerts and notifications](NOTIFICATIONS.md) for the current
+contracts.
+
+External SMTP acceptance, bounce handling, inbox tracking, real-Provider
+availability and latency acceptance, and broader quota/enterprise alert sources
+remain open, so F23 and A19 remain partially completed.
 
 ### Object storage and owned attachment backend
 

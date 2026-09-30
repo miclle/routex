@@ -130,6 +130,7 @@ scripts/                      # Shell helpers invoked by Taskfile (build, check,
 - `AppShell` owns the 248px desktop sidebar, 80px collapsed state, mobile navigation drawer, 64px page bar, workspace/management navigation, account menu, and recipient-scoped notification menu. Local `Table`, Base UI `Drawer`, and Base UI `Menu` primitives support list/detail workflows; `Menu` exposes side/alignment options for both sidebar and header placement.
 - Governance uses effective permission queries for page gates and navigation, member detail tabs, role permission dialogs, and a registration configuration drawer. `Switch` wraps Base UI.
 - Provider and model detail pages use resource URLs. Profile and security settings use separate routes; inference configuration and conversation remain inside one split workbench.
+- Provider detail defaults to the addressable Overview and preserves the Overview, Connections, Credentials, Models, and Settings hierarchy. Quality cards use immutable attempt facts and full-attempt duration; never infer Provider attribution from a final logical call or mutable catalog record. Policy controls require independent `system.read`/`system.write` gates, an exact reviewed ETag, and a non-empty reason. Preserve drafts through explicit conflict review.
 
 ### Single Binary Embedding
 

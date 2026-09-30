@@ -134,6 +134,12 @@ reconciles missing occurrences, claims immutable SMTP intents with leases, and
 records explicit terminal outcomes outside the Gateway request path. See
 [Operational alerts and notifications](NOTIFICATIONS.md).
 
+Provider quality reads immutable upstream-attempt snapshots. Historical rows
+without a Provider snapshot remain unattributed and are never joined to the
+mutable catalog or final logical-call route. A bounded evaluator persists closed
+quality windows and publishes only durable state transitions. See
+[Provider quality](PROVIDER_QUALITY.md).
+
 ### Fail explicitly
 
 Unsupported provider capabilities or pricing combinations should return clear

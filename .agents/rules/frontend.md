@@ -33,6 +33,7 @@ These rules apply to files under `website/src/`.
 - Use the local Base UI `Dialog` wrapper for modal focus, keyboard dismissal, and pending-action locking.
 - Use local `Drawer` for side-panel details and mobile navigation, `Menu` for account and header notification actions, and `Table` for resource lists. Use the `Menu` side/alignment options instead of importing Base UI directly for different placements. The sidebar owns workspace/management navigation, collapse behavior, and a bottom account menu.
 - Keep provider/model details addressable through resource routes. Profile and security are separate pages; model weights are edited within the routing table.
+- Provider detail defaults to the addressable Overview and preserves the Overview, Connections, Credentials, Models, and Settings hierarchy. Quality cards use immutable attempt facts and full-attempt duration; never infer Provider attribution from a final logical call or mutable catalog record. Policy controls require independent `system.read`/`system.write` gates, an exact reviewed ETag, and a non-empty reason. Preserve drafts through explicit conflict review.
 - Form inputs use the local Base UI `Input` wrapper with explicit labels, autocomplete, pending/disabled states, and accessible errors.
 - Wrap Base UI components in local `website/src/components/ui/*` modules before pages import them.
 - Keep page components focused on product state and composition instead of repeating primitive styling.
