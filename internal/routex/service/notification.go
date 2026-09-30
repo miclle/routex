@@ -32,6 +32,9 @@ type NotificationRecord struct {
 	Kind              string     `json:"kind"`
 	Severity          string     `json:"severity"`
 	DetailCode        string     `json:"detail_code"`
+	SubjectType       string     `json:"subject_type,omitempty"`
+	SubjectID         string     `json:"subject_id,omitempty"`
+	SubjectName       string     `json:"subject_name,omitempty"`
 	OccurrenceCount   int        `json:"occurrence_count"`
 	Read              bool       `json:"read"`
 	FirstSeenAt       time.Time  `json:"first_seen_at"`
@@ -75,6 +78,9 @@ type OperationalAlertRecord struct {
 	Kind            string    `json:"kind"`
 	Severity        string    `json:"severity"`
 	DetailCode      string    `json:"detail_code"`
+	SubjectType     string    `json:"subject_type,omitempty"`
+	SubjectID       string    `json:"subject_id,omitempty"`
+	SubjectName     string    `json:"subject_name,omitempty"`
 	State           string    `json:"state"`
 	ETag            string    `json:"etag"`
 	OccurrenceCount int       `json:"occurrence_count"`
@@ -187,7 +193,8 @@ func (s *Service) ListNotifications(ctx context.Context, actor string, filter No
 func notificationRecord(row entity.Notification) NotificationRecord {
 	return NotificationRecord{
 		ID: row.ID, AlertID: row.AlertID, Kind: row.Kind, Severity: row.Severity,
-		DetailCode: row.DetailCode, OccurrenceCount: row.OccurrenceCount, Read: row.Read,
+		DetailCode: row.DetailCode, SubjectType: row.SubjectType, SubjectID: row.SubjectID, SubjectName: row.SubjectName,
+		OccurrenceCount: row.OccurrenceCount, Read: row.Read,
 		FirstSeenAt: row.FirstSeenAt, LastSeenAt: row.LastSeenAt, ReadAt: row.ReadAt,
 	}
 }
@@ -260,7 +267,7 @@ func (s *Service) GetNotificationSettings(ctx context.Context, actor string) (*N
 
 func (s *Service) WriteNotificationSettings(ctx context.Context, actor string, input NotificationSettingsInput) (*NotificationSettingsView, error) {
 	input.ExternalEmail = strings.TrimSpace(input.ExternalEmail)
-	if input.ETag == "" || !smtpclient.ValidAddress(input.ExternalEmail) {
+	if input.ETag == "" || (input.EmailHigh || input.EmailMedium) && !smtpclient.ValidAddress(input.ExternalEmail) || input.ExternalEmail != "" && !smtpclient.ValidAddress(input.ExternalEmail) {
 		return nil, apperrors.ErrBadRequest
 	}
 	var saved entity.NotificationSetting
@@ -315,7 +322,7 @@ func (s *Service) WriteNotificationSettings(ctx context.Context, actor string, i
 }
 
 func operationalAlertRecord(row entity.OperationalAlert) OperationalAlertRecord {
-	return OperationalAlertRecord{ID: row.ID, Kind: row.Kind, Severity: row.Severity, DetailCode: row.DetailCode, State: row.State, ETag: row.ETag, OccurrenceCount: row.OccurrenceCount, FirstSeenAt: row.FirstSeenAt, LastSeenAt: row.LastSeenAt, UpdatedAt: row.UpdatedAt}
+	return OperationalAlertRecord{ID: row.ID, Kind: row.Kind, Severity: row.Severity, DetailCode: row.DetailCode, SubjectType: row.SubjectType, SubjectID: row.SubjectID, SubjectName: row.SubjectName, State: row.State, ETag: row.ETag, OccurrenceCount: row.OccurrenceCount, FirstSeenAt: row.FirstSeenAt, LastSeenAt: row.LastSeenAt, UpdatedAt: row.UpdatedAt}
 }
 
 func (s *Service) ListOperationalAlerts(ctx context.Context, actor string, filter OperationalAlertFilter) (*OperationalAlertPage, error) {

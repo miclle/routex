@@ -1,6 +1,11 @@
 package service
 
-import "testing"
+import (
+	"strings"
+	"testing"
+
+	"github.com/miclle/routex/internal/routex/entity"
+)
 
 func TestNotificationPolicyAllowlist(t *testing.T) {
 	if !notificationEventAllowed(notificationSourceSystemJob, notificationKindSystemJobFailure, "high", "persistence_failed") {
@@ -41,5 +46,23 @@ func TestNotificationDeliveryResultCodesAreRedacted(t *testing.T) {
 	}
 	if got := notificationDeliveryResultCode("550 private mailbox detail"); got != "delivery_failed" {
 		t.Fatalf("raw SMTP response escaped redaction: %q", got)
+	}
+}
+
+func TestNotificationDeliveryBodyIncludesOnlyValidatedSubjectSnapshot(t *testing.T) {
+	intent := entity.NotificationDeliveryIntent{
+		Kind: "provider_quality_degraded", Severity: "high", DetailCode: "success_rate_below_threshold",
+		SubjectType: "provider", SubjectID: "prv_quality", SubjectName: "Quality provider",
+	}
+	body := notificationDeliveryBody(intent)
+	for _, want := range []string{"Subject type: provider", "Subject ID: prv_quality", "Subject name: Quality provider"} {
+		if !strings.Contains(body, want) {
+			t.Fatalf("delivery body %q omitted %q", body, want)
+		}
+	}
+	intent.SubjectName = "Quality provider\nBcc: attacker@example.invalid"
+	body = notificationDeliveryBody(intent)
+	if strings.Contains(body, "Subject type:") || strings.Contains(body, "Bcc:") {
+		t.Fatalf("delivery body included an invalid subject snapshot: %q", body)
 	}
 }

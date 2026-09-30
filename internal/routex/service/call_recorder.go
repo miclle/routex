@@ -189,16 +189,20 @@ func gatewayFallbackPayload(requestID string, result *GatewayResult, now time.Ti
 	attempts := append([]CallAttempt(nil), result.Attempts...)
 	if result.AttemptID != "" {
 		attempts = append(attempts, CallAttempt{
-			ID:              result.AttemptID,
-			ProviderModelID: result.ProviderModelID,
-			ConnectionID:    result.ConnectionID,
-			AttemptNumber:   len(attempts) + 1,
-			Status:          "error",
-			FailureClass:    "permanent_failure",
-			WorkEvidence:    "unknown",
-			StartedAt:       result.AttemptStartedAt,
-			CompletedAt:     now,
-			ErrorCode:       "process_interrupted",
+			ID:                result.AttemptID,
+			ProviderID:        result.ProviderID,
+			ProviderName:      result.ProviderName,
+			ProviderModelID:   result.ProviderModelID,
+			ConnectionID:      result.ConnectionID,
+			ConnectionName:    result.ConnectionName,
+			UpstreamModelName: result.UpstreamModelName,
+			AttemptNumber:     len(attempts) + 1,
+			Status:            "error",
+			FailureClass:      "permanent_failure",
+			WorkEvidence:      "unknown",
+			StartedAt:         result.AttemptStartedAt,
+			CompletedAt:       now,
+			ErrorCode:         "process_interrupted",
 		})
 	}
 	fallback := CallFact{PriceBasis: clonePriceBasis(result.PriceBasis), PricingUnsupported: result.PricingUnsupported, PricingDimensions: result.PricingDimensions, NoWork: result.AttemptID == "" && callAttemptsProveNoWork(attempts), RequestID: requestID, SnapshotID: result.SnapshotID, UserID: result.UserID, ProjectID: result.ProjectID, KeyID: result.KeyID, ModelID: result.ModelID, ModelName: result.ModelName, ProviderID: attribution.ProviderID, ProviderName: attribution.ProviderName, ProviderModelID: attribution.ProviderModelID, ConnectionID: attribution.ConnectionID, ConnectionName: attribution.ConnectionName, UpstreamModelName: attribution.UpstreamModelName, RouteStopReason: result.RouteStopReason, Protocol: result.NativeProtocol(), Status: "error", Stream: result.Stream, StartedAt: now, CompletedAt: now, ImageInputs: &imageInputs, PDFInputs: &pdfInputs, ErrorCode: "process_interrupted", Attempts: attempts}

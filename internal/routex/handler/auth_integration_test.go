@@ -59,7 +59,7 @@ func TestIdentityIntegration(t *testing.T) {
 				t.Fatal("integration tests require a dedicated database named routex_test")
 			}
 			reset := func() {
-				for _, table := range []string{"notification_delivery_intents", "notifications", "operational_alert_occurrences", "operational_alerts", "notification_settings", "system_jobs", "system_instances", "storage_objects", "storage_settings", "storage_revisions", "smtp_tests", "smtp_settings", "quota_settings", "egress_settings", "announcements", "site_settings", "mfa_recovery_codes", "mfa_challenges", "user_mfa", "resource_limits", "limit_installation", "project_model_requests", "price_rates", "model_prices", "pricing_exchange_rates", "pricing_settings", "offboarding_cases", "project_api_key_models", "project_api_keys", "project_model_grants", "project_managers", "projects", "team_model_grants", "team_memberships", "teams", "runtime_publications", "user_roles", "role_permissions", "roles", "governance_settings", "call_attempts", "call_records", "api_key_models", "api_keys", "audit_events", "user_model_grants", "model_provider_bindings", "model_names", "credential_model_accesses", "reservation_bounds", "provider_models", "provider_credentials", "provider_connections", "egresses", "providers", "models", "sessions", "users", "installations", "schema_migrations", "examples"} {
+				for _, table := range []string{"provider_quality_states", "provider_quality_windows", "provider_quality_policies", "notification_delivery_intents", "notifications", "operational_alert_occurrences", "operational_alerts", "notification_settings", "system_jobs", "system_instances", "storage_objects", "storage_settings", "storage_revisions", "smtp_tests", "smtp_settings", "quota_settings", "egress_settings", "announcements", "site_settings", "mfa_recovery_codes", "mfa_challenges", "user_mfa", "resource_limits", "limit_installation", "project_model_requests", "price_rates", "model_prices", "pricing_exchange_rates", "pricing_settings", "offboarding_cases", "project_api_key_models", "project_api_keys", "project_model_grants", "project_managers", "projects", "team_model_grants", "team_memberships", "teams", "runtime_publications", "user_roles", "role_permissions", "roles", "governance_settings", "call_attempts", "call_records", "api_key_models", "api_keys", "audit_events", "user_model_grants", "model_provider_bindings", "model_names", "credential_model_accesses", "reservation_bounds", "provider_models", "provider_credentials", "provider_connections", "egresses", "providers", "models", "sessions", "users", "installations", "schema_migrations", "examples"} {
 					if err := db.Migrator().DropTable(table); err != nil {
 						t.Fatal(err)
 					}
@@ -91,7 +91,7 @@ func TestIdentityIntegration(t *testing.T) {
 				t.Fatal(err)
 			}
 			var versions int64
-			if err := db.Table("schema_migrations").Count(&versions).Error; err != nil || versions != 29 {
+			if err := db.Table("schema_migrations").Count(&versions).Error; err != nil || versions != 30 {
 				t.Fatalf("migration ledger: %d, %v", versions, err)
 			}
 			var preserved entity.Example
@@ -119,6 +119,7 @@ func TestIdentityIntegration(t *testing.T) {
 			testCallProviderAttributionMigration(t, db)
 			testSystemStatusMigration(t, db)
 			testNotificationMigration(t, db)
+			testProviderQualityMigration(t, db)
 			orphan := entity.Session{ID: "ses_orphan", UserID: "usr_missing", TokenHash: strings.Repeat("a", 64), ExpiresAt: time.Now().Add(time.Hour)}
 			if err := db.Create(&orphan).Error; err == nil {
 				t.Fatal("orphan session must be rejected by database FK")
@@ -130,7 +131,7 @@ func TestIdentityIntegration(t *testing.T) {
 			}
 			// Reapply the later additive attempt diagnostics after reconstructing the
 			// version 5 table, matching an interruption before either ledger advanced.
-			if err := db.Table("schema_migrations").Where("version IN ?", []int{5, 25}).Delete(&struct{}{}).Error; err != nil {
+			if err := db.Table("schema_migrations").Where("version IN ?", []int{5, 25, 30}).Delete(&struct{}{}).Error; err != nil {
 				t.Fatal(err)
 			}
 			if err := database.Migrate(context.Background(), db); err != nil {
@@ -149,7 +150,7 @@ func TestIdentityIntegration(t *testing.T) {
 			for _, test := range []struct {
 				name string
 				run  func(*testing.T, *gorm.DB)
-			}{{"catalog", testCatalogLifecycle}, {"keys", testKeyLifecycle}, {"gateway", testGatewayLifecycle}, {"calls", testCallLifecycle}, {"call_export", testCallExportLifecycle}, {"account", testAccountLifecycle}, {"governance", testGovernanceLifecycle}, {"runtime", testRuntimeLifecycle}, {"system_status", testSystemStatusLifecycle}, {"resources", testResourceLifecycle}, {"recorder", testRecorderLifecycle}, {"project_keys", testProjectKeyLifecycle}, {"personal_key_rotation", testPersonalKeyRotationLifecycle}, {"offboarding", testOffboardingLifecycle}, {"pricing", testPricingLifecycle}, {"project_requests", testProjectRequestLifecycle}, {"call_pricing", testCallPricingLifecycle}, {"price_import", testPriceImportLifecycle}, {"resource_limits", testResourceLimitLifecycle}, {"price_spreadsheet", testPriceSpreadsheetLifecycle}, {"usage", testUsageLifecycle}, {"mfa", testMFALifecycle}, {"responses", testResponsesLifecycle}, {"messages", testMessagesLifecycle}, {"gemini", testGeminiLifecycle}, {"site", testSiteLifecycle}, {"audit", testAuditLifecycle}, {"egress", testEgressLifecycle}, {"quota", testQuotaLifecycle}, {"attachment_quota_settlement", testGatewayAttachmentQuotaSettlementLifecycle}, {"smtp", testSMTPLifecycle}, {"storage", testStorageLifecycle}, {"notification_http", testNotificationHTTPLifecycle}} {
+			}{{"catalog", testCatalogLifecycle}, {"keys", testKeyLifecycle}, {"gateway", testGatewayLifecycle}, {"calls", testCallLifecycle}, {"call_export", testCallExportLifecycle}, {"account", testAccountLifecycle}, {"governance", testGovernanceLifecycle}, {"runtime", testRuntimeLifecycle}, {"system_status", testSystemStatusLifecycle}, {"resources", testResourceLifecycle}, {"recorder", testRecorderLifecycle}, {"project_keys", testProjectKeyLifecycle}, {"personal_key_rotation", testPersonalKeyRotationLifecycle}, {"offboarding", testOffboardingLifecycle}, {"pricing", testPricingLifecycle}, {"project_requests", testProjectRequestLifecycle}, {"call_pricing", testCallPricingLifecycle}, {"price_import", testPriceImportLifecycle}, {"resource_limits", testResourceLimitLifecycle}, {"price_spreadsheet", testPriceSpreadsheetLifecycle}, {"usage", testUsageLifecycle}, {"mfa", testMFALifecycle}, {"responses", testResponsesLifecycle}, {"messages", testMessagesLifecycle}, {"gemini", testGeminiLifecycle}, {"site", testSiteLifecycle}, {"audit", testAuditLifecycle}, {"egress", testEgressLifecycle}, {"quota", testQuotaLifecycle}, {"attachment_quota_settlement", testGatewayAttachmentQuotaSettlementLifecycle}, {"smtp", testSMTPLifecycle}, {"storage", testStorageLifecycle}, {"notification_http", testNotificationHTTPLifecycle}, {"provider_quality_http", testProviderQualityHTTPLifecycle}} {
 				reset()
 				if err := database.Migrate(context.Background(), db); err != nil {
 					t.Fatal(err)

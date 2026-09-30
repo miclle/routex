@@ -488,20 +488,24 @@ func (s *Service) executeGatewayAttempt(ctx context.Context, requestID string, r
 
 func (s *Service) finishGatewayFailedAttempt(requestID string, result *GatewayResult, attempt routeattempt.Attempt, outcome routeattempt.Outcome, evidence string, status int, code string) error {
 	result.Attempts = append(result.Attempts, CallAttempt{
-		ID:              result.AttemptID,
-		ProviderModelID: result.ProviderModelID,
-		ConnectionID:    result.ConnectionID,
-		AttemptNumber:   attempt.Number,
-		Status:          "error",
-		FailureClass:    string(outcome.Failure),
-		WorkEvidence:    string(outcome.Work),
-		OutputStarted:   outcome.OutputStarted,
-		FinalUsageKnown: outcome.FinalUsageKnown,
-		EvidenceCode:    evidence,
-		StartedAt:       result.AttemptStartedAt,
-		CompletedAt:     s.gatewayAttemptClock(),
-		HTTPStatus:      status,
-		ErrorCode:       safeCallError(code),
+		ID:                result.AttemptID,
+		ProviderID:        result.ProviderID,
+		ProviderName:      result.ProviderName,
+		ProviderModelID:   result.ProviderModelID,
+		ConnectionID:      result.ConnectionID,
+		ConnectionName:    result.ConnectionName,
+		UpstreamModelName: result.UpstreamModelName,
+		AttemptNumber:     attempt.Number,
+		Status:            "error",
+		FailureClass:      string(outcome.Failure),
+		WorkEvidence:      string(outcome.Work),
+		OutputStarted:     outcome.OutputStarted,
+		FinalUsageKnown:   outcome.FinalUsageKnown,
+		EvidenceCode:      evidence,
+		StartedAt:         result.AttemptStartedAt,
+		CompletedAt:       s.gatewayAttemptClock(),
+		HTTPStatus:        status,
+		ErrorCode:         safeCallError(code),
 	})
 	result.AttemptID = ""
 	result.AttemptStartedAt = time.Time{}

@@ -151,7 +151,7 @@ func testCallLifecycle(t *testing.T, db *gorm.DB) {
 		t.Fatalf("administrator sees %d records, want4", len(all.Items))
 	}
 	adminDetail := decodeCatalogResponse[AdminCallDetailResponse](t, identityRequest(router, "GET", "/api/v1/admin/calls/req_calls_0", "", adminCookie, ""), 200)
-	if len(adminDetail.Attempts) != 3 || adminDetail.ErrorCode != "upstream_error" || adminDetail.RouteStopReason != "permanent_failure" || adminDetail.Attempts[0].AttemptNumber != 1 || adminDetail.Attempts[0].FailureClass != "connection_failure" || adminDetail.Attempts[0].WorkEvidence != "not_sent" || adminDetail.Attempts[0].EvidenceCode != "pre_request_connection" || adminDetail.Attempts[2].AttemptNumber != 3 || adminDetail.Attempts[2].ErrorCode != "upstream_error" {
+	if len(adminDetail.Attempts) != 3 || adminDetail.ErrorCode != "upstream_error" || adminDetail.RouteStopReason != "permanent_failure" || adminDetail.Attempts[0].AttemptNumber != 1 || adminDetail.Attempts[0].FailureClass != "connection_failure" || adminDetail.Attempts[0].WorkEvidence != "not_sent" || adminDetail.Attempts[0].EvidenceCode != "pre_request_connection" || adminDetail.Attempts[0].DurationMS == nil || *adminDetail.Attempts[0].DurationMS != 10 || adminDetail.Attempts[2].AttemptNumber != 3 || adminDetail.Attempts[2].ErrorCode != "upstream_error" {
 		t.Fatal("admin diagnostic classification not sanitized")
 	}
 	first := decodeCatalogResponse[CallsResponse](t, identityRequest(router, "GET", "/api/v1/calls?limit=2", "", adminCookie, ""), 200)

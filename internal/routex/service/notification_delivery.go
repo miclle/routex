@@ -31,6 +31,9 @@ type NotificationDeliveryRecord struct {
 	Kind        string     `json:"kind"`
 	Severity    string     `json:"severity"`
 	DetailCode  string     `json:"detail_code"`
+	SubjectType string     `json:"subject_type,omitempty"`
+	SubjectID   string     `json:"subject_id,omitempty"`
+	SubjectName string     `json:"subject_name,omitempty"`
 	Status      string     `json:"status"`
 	ResultCode  string     `json:"result_code"`
 	Attempts    int        `json:"attempts"`
@@ -47,7 +50,8 @@ type NotificationDeliveryPage struct {
 func notificationDeliveryRecord(row entity.NotificationDeliveryIntent) NotificationDeliveryRecord {
 	return NotificationDeliveryRecord{
 		ID: row.ID, RecipientID: row.RecipientID, Kind: row.Kind, Severity: row.Severity,
-		DetailCode: row.DetailCode, Status: row.Status, ResultCode: row.ResultCode,
+		DetailCode: row.DetailCode, SubjectType: row.SubjectType, SubjectID: row.SubjectID, SubjectName: row.SubjectName,
+		Status: row.Status, ResultCode: row.ResultCode,
 		Attempts: row.Attempts, CreatedAt: row.CreatedAt, UpdatedAt: row.UpdatedAt, CompletedAt: row.CompletedAt,
 	}
 }
@@ -195,7 +199,7 @@ func (s *Service) executeNotificationDelivery(ctx context.Context, intent entity
 	message := smtpclient.Message{
 		From: smtp.SenderEmail, Name: smtp.SenderName, ReplyTo: smtp.ReplyTo, To: intent.RecipientEmail,
 		RequestID: intent.ID, Subject: "RouteX operational alert: " + intent.Severity,
-		Body: fmt.Sprintf("Kind: %s\nDetail: %s\nSeverity: %s", intent.Kind, intent.DetailCode, intent.Severity),
+		Body: notificationDeliveryBody(intent),
 	}
 	result := smtpclient.New(s.allowPrivateSMTP).Send(ctx, config, message)
 	now = time.Now().UTC()
@@ -210,6 +214,14 @@ func (s *Service) executeNotificationDelivery(ctx context.Context, intent entity
 		}
 		return s.finishNotificationDelivery(ctx, intent, "retry", notificationDeliveryResultCode(result.Code), now, false)
 	}
+}
+
+func notificationDeliveryBody(intent entity.NotificationDeliveryIntent) string {
+	body := fmt.Sprintf("Kind: %s\nDetail: %s\nSeverity: %s", intent.Kind, intent.DetailCode, intent.Severity)
+	if validNotificationSubject(intent.SubjectType, intent.SubjectID, intent.SubjectName) && intent.SubjectType != "" {
+		body += fmt.Sprintf("\nSubject type: %s\nSubject ID: %s\nSubject name: %s", intent.SubjectType, intent.SubjectID, intent.SubjectName)
+	}
+	return body
 }
 
 func notificationDeliveryResultCode(code string) string {

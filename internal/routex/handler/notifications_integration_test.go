@@ -366,6 +366,12 @@ func testNotificationHTTPLifecycle(t *testing.T, db *gorm.DB) {
 	if savedSettings.ExternalEmail != "alerts@example.invalid" || !savedSettings.EmailHigh || !savedSettings.EmailMedium || savedSettings.ETag == settings.ETag {
 		t.Fatalf("notification settings were not saved: %+v", savedSettings)
 	}
+	disabledSettings := decodeCatalogResponse[service.NotificationSettingsView](t, adminRequest(http.MethodPut, "/api/v1/notification-settings", map[string]any{"external_email": "", "email_high": false, "email_medium": false, "etag": savedSettings.ETag}), http.StatusOK)
+	if disabledSettings.ExternalEmail != "" || disabledSettings.EmailHigh || disabledSettings.EmailMedium {
+		t.Fatalf("notification email was not disabled: %+v", disabledSettings)
+	}
+	expectStatus(t, adminRequest(http.MethodPut, "/api/v1/notification-settings", map[string]any{"external_email": "", "email_high": true, "email_medium": false, "etag": disabledSettings.ETag}), http.StatusBadRequest)
+	savedSettings = disabledSettings
 	settingsStart := make(chan struct{})
 	settingsResponses := make(chan int, 2)
 	var settingsRace sync.WaitGroup
@@ -474,7 +480,7 @@ func testNotificationHTTPLifecycle(t *testing.T, db *gorm.DB) {
 	if err := db.Model(&entity.SystemJob{}).Where("id = ? OR id LIKE ?", terminal.ID, "job_ntf_outage_%").Count(&outageSources).Error; err != nil || outageSources != 270 {
 		t.Fatalf("retention removed unreconciled alert sources during notification outage: count=%d err=%v", outageSources, err)
 	}
-	if err := db.Table("schema_migrations").Where("version = ?", 29).Delete(&struct{}{}).Error; err != nil {
+	if err := db.Table("schema_migrations").Where("version IN ?", []int{29, 30}).Delete(&struct{}{}).Error; err != nil {
 		t.Fatal(err)
 	}
 	if err := database.Migrate(ctx, db); err != nil {
@@ -516,7 +522,7 @@ func testNotificationHTTPLifecycle(t *testing.T, db *gorm.DB) {
 	if err := db.First(&persisted, "id = ?", occurrenceOutageJob.ID).Error; err != nil || persisted.Status != "failed" {
 		t.Fatalf("notification metadata outage hid or removed the authoritative source: %+v err=%v", persisted, err)
 	}
-	if err := db.Table("schema_migrations").Where("version = ?", 29).Delete(&struct{}{}).Error; err != nil {
+	if err := db.Table("schema_migrations").Where("version IN ?", []int{29, 30}).Delete(&struct{}{}).Error; err != nil {
 		t.Fatal(err)
 	}
 	if err := database.Migrate(ctx, db); err != nil {

@@ -4,7 +4,10 @@ import (
 	"errors"
 	"fmt"
 	"slices"
+	"strings"
 	"time"
+	"unicode"
+	"unicode/utf8"
 
 	"github.com/miclle/routex/internal/routex/entity"
 	"github.com/miclle/routex/pkg/id"
@@ -16,8 +19,12 @@ import (
 const (
 	notificationSourceSystemJob              = "system_job"
 	notificationSourceCredentialVerification = "credential_verification"
+	notificationSourceProviderQuality        = "provider_quality_window"
+	notificationSourceGatewayCall            = "gateway_call"
 	notificationKindSystemJobFailure         = "system_job_failure"
 	notificationKindCredentialFailure        = "credential_verification_failure"
+	notificationKindProviderQuality          = "provider_quality_degraded"
+	notificationKindRouteUnavailable         = "route_unavailable"
 )
 
 func notificationEventAllowed(sourceType, kind, severity, detailCode string) bool {
@@ -36,6 +43,10 @@ func notificationEventAllowed(sourceType, kind, severity, detailCode string) boo
 		}, detailCode)
 	case notificationSourceCredentialVerification:
 		return kind == notificationKindCredentialFailure && severity == "high" && detailCode == "verification_failed"
+	case notificationSourceProviderQuality:
+		return kind == notificationKindProviderQuality && severity == "high" && slices.Contains([]string{"success_rate_below_threshold", "p95_duration_above_threshold", "multiple_thresholds_breached"}, detailCode)
+	case notificationSourceGatewayCall:
+		return kind == notificationKindRouteUnavailable && severity == "medium" && slices.Contains([]string{"no_candidates", "attempt_budget_exhausted"}, detailCode)
 	default:
 		return false
 	}
@@ -45,7 +56,19 @@ func notificationEventAllowed(sourceType, kind, severity, detailCode string) boo
 // and allowlisted codes. Callers run it in a transaction after the source fact
 // is durable; source uniqueness makes every reconciliation replay an exact no-op.
 func (s *Service) recordOperationalAlertOccurrence(tx *gorm.DB, sourceType, sourceID, groupKey, kind, severity, detailCode string, occurredAt time.Time) error {
-	if tx == nil || sourceID == "" || len(sourceID) > 80 || groupKey == "" || len(groupKey) > 120 || !notificationEventAllowed(sourceType, kind, severity, detailCode) {
+	return s.recordOperationalAlertOccurrenceForSubject(tx, sourceType, sourceID, groupKey, kind, severity, detailCode, "", "", "", occurredAt)
+}
+
+func validNotificationSubject(subjectType, subjectID, subjectName string) bool {
+	if subjectType == "" {
+		return subjectID == "" && subjectName == ""
+	}
+	return slices.Contains([]string{"provider", "model"}, subjectType) && subjectID != "" && len(subjectID) <= 64 && safeCallID.MatchString(subjectID) &&
+		subjectName != "" && strings.TrimSpace(subjectName) == subjectName && utf8.ValidString(subjectName) && utf8.RuneCountInString(subjectName) <= 128 && !strings.ContainsFunc(subjectName, unicode.IsControl)
+}
+
+func (s *Service) recordOperationalAlertOccurrenceForSubject(tx *gorm.DB, sourceType, sourceID, groupKey, kind, severity, detailCode, subjectType, subjectID, subjectName string, occurredAt time.Time) error {
+	if tx == nil || sourceID == "" || len(sourceID) > 80 || groupKey == "" || len(groupKey) > 120 || !notificationEventAllowed(sourceType, kind, severity, detailCode) || !validNotificationSubject(subjectType, subjectID, subjectName) {
 		return fmt.Errorf("invalid operational notification event")
 	}
 	var existing entity.OperationalAlertOccurrence
@@ -65,6 +88,7 @@ func (s *Service) recordOperationalAlertOccurrence(tx *gorm.DB, sourceType, sour
 	}
 	alert := entity.OperationalAlert{
 		ID: alertID, GroupKey: groupKey, Kind: kind, Severity: severity, DetailCode: detailCode,
+		SubjectType: subjectType, SubjectID: subjectID, SubjectName: subjectName,
 		State: "open", OccurrenceCount: 1, FirstSeenAt: occurredAt, LastSeenAt: occurredAt, ETag: etag, UpdatedAt: occurredAt,
 	}
 	created := tx.Clauses(clause.OnConflict{Columns: []clause.Column{{Name: "group_key"}}, DoNothing: true}).Create(&alert)
@@ -81,7 +105,7 @@ func (s *Service) recordOperationalAlertOccurrence(tx *gorm.DB, sourceType, sour
 	if err != nil {
 		return err
 	}
-	occurrence := entity.OperationalAlertOccurrence{ID: occurrenceID, AlertID: alert.ID, SourceType: sourceType, SourceID: sourceID, DetailCode: detailCode, OccurredAt: occurredAt}
+	occurrence := entity.OperationalAlertOccurrence{ID: occurrenceID, AlertID: alert.ID, SourceType: sourceType, SourceID: sourceID, DetailCode: detailCode, SubjectType: subjectType, SubjectID: subjectID, SubjectName: subjectName, OccurredAt: occurredAt}
 	inserted := tx.Clauses(clause.OnConflict{Columns: []clause.Column{{Name: "source_type"}, {Name: "source_id"}}, DoNothing: true}).Create(&occurrence)
 	if inserted.Error != nil {
 		return inserted.Error
@@ -110,6 +134,10 @@ func (s *Service) recordOperationalAlertOccurrence(tx *gorm.DB, sourceType, sour
 		if isLatest {
 			updates["last_seen_at"] = occurredAt
 			updates["state"] = "open"
+			updates["detail_code"] = detailCode
+			updates["subject_type"] = subjectType
+			updates["subject_id"] = subjectID
+			updates["subject_name"] = subjectName
 		}
 		if err := tx.Model(&alert).Updates(updates).Error; err != nil {
 			return err
@@ -117,7 +145,8 @@ func (s *Service) recordOperationalAlertOccurrence(tx *gorm.DB, sourceType, sour
 		alert.OccurrenceCount++
 		alert.FirstSeenAt, alert.ETag, alert.UpdatedAt = firstSeenAt, etag, maxTime(alert.UpdatedAt, occurredAt)
 		if isLatest {
-			alert.LastSeenAt, alert.State = occurredAt, "open"
+			alert.LastSeenAt, alert.State, alert.DetailCode = occurredAt, "open", detailCode
+			alert.SubjectType, alert.SubjectID, alert.SubjectName = subjectType, subjectID, subjectName
 		}
 	}
 	return s.publishOperationalAlert(tx, alert, occurrence, latestOccurrence, isLatest)
@@ -154,11 +183,12 @@ func (s *Service) publishOperationalAlert(tx *gorm.DB, alert entity.OperationalA
 		}
 		notification := entity.Notification{
 			ID: notificationID, RecipientID: user.ID, AlertID: alert.ID, LatestOccurrenceID: latestOccurrence.ID, Kind: alert.Kind,
-			Severity: alert.Severity, DetailCode: alert.DetailCode, OccurrenceCount: alert.OccurrenceCount,
+			Severity: alert.Severity, DetailCode: alert.DetailCode, SubjectType: alert.SubjectType, SubjectID: alert.SubjectID, SubjectName: alert.SubjectName, OccurrenceCount: alert.OccurrenceCount,
 			Read: false, FirstSeenAt: alert.FirstSeenAt, LastSeenAt: alert.LastSeenAt,
 		}
 		assignments := map[string]any{
 			"kind": alert.Kind, "severity": alert.Severity, "detail_code": alert.DetailCode,
+			"subject_type": alert.SubjectType, "subject_id": alert.SubjectID, "subject_name": alert.SubjectName,
 			"occurrence_count": alert.OccurrenceCount, "first_seen_at": alert.FirstSeenAt,
 		}
 		if isLatest {
@@ -187,7 +217,8 @@ func (s *Service) publishOperationalAlert(tx *gorm.DB, alert entity.OperationalA
 		}
 		intent := entity.NotificationDeliveryIntent{
 			ID: intentID, OccurrenceID: occurrence.ID, RecipientID: user.ID, RecipientEmail: settings.ExternalEmail,
-			Kind: alert.Kind, Severity: alert.Severity, DetailCode: alert.DetailCode, SMTPETag: smtp.ETag,
+			Kind: alert.Kind, Severity: alert.Severity, DetailCode: alert.DetailCode,
+			SubjectType: alert.SubjectType, SubjectID: alert.SubjectID, SubjectName: alert.SubjectName, SMTPETag: smtp.ETag,
 			Status: "pending", NextAttemptAt: occurrence.OccurredAt, CreatedAt: occurrence.OccurredAt, UpdatedAt: occurrence.OccurredAt,
 		}
 		if err := tx.Clauses(clause.OnConflict{Columns: []clause.Column{{Name: "occurrence_id"}, {Name: "recipient_id"}}, DoNothing: true}).Create(&intent).Error; err != nil {
@@ -267,5 +298,11 @@ func (s *Service) reconcileNotificationSources(tx *gorm.DB) error {
 	if err := s.reconcileFailedSystemJobNotifications(tx); err != nil {
 		return err
 	}
-	return s.reconcileFailedCredentialNotifications(tx)
+	if err := s.reconcileFailedCredentialNotifications(tx); err != nil {
+		return err
+	}
+	if err := s.reconcileProviderQualityNotifications(tx); err != nil {
+		return err
+	}
+	return s.reconcileRouteUnavailableNotifications(tx)
 }

@@ -46,20 +46,25 @@ type AdminCallsResponse struct {
 	NextCursor *string             `json:"next_cursor"`
 }
 type CallAttemptResponse struct {
-	ID              string    `json:"id"`
-	ProviderModelID string    `json:"provider_model_id"`
-	ConnectionID    string    `json:"connection_id"`
-	AttemptNumber   int       `json:"attempt_number"`
-	Status          string    `json:"status"`
-	FailureClass    string    `json:"failure_class"`
-	WorkEvidence    string    `json:"work_evidence"`
-	OutputStarted   bool      `json:"output_started"`
-	FinalUsageKnown bool      `json:"final_usage_known"`
-	EvidenceCode    string    `json:"evidence_code"`
-	HTTPStatus      int       `json:"http_status"`
-	ErrorCode       string    `json:"error_code"`
-	StartedAt       time.Time `json:"started_at"`
-	CompletedAt     time.Time `json:"completed_at"`
+	ID                string    `json:"id"`
+	ProviderID        string    `json:"provider_id"`
+	ProviderName      string    `json:"provider_name"`
+	ProviderModelID   string    `json:"provider_model_id"`
+	ConnectionID      string    `json:"connection_id"`
+	ConnectionName    string    `json:"connection_name"`
+	UpstreamModelName string    `json:"upstream_model_name"`
+	DurationMS        *int64    `json:"duration_ms"`
+	AttemptNumber     int       `json:"attempt_number"`
+	Status            string    `json:"status"`
+	FailureClass      string    `json:"failure_class"`
+	WorkEvidence      string    `json:"work_evidence"`
+	OutputStarted     bool      `json:"output_started"`
+	FinalUsageKnown   bool      `json:"final_usage_known"`
+	EvidenceCode      string    `json:"evidence_code"`
+	HTTPStatus        int       `json:"http_status"`
+	ErrorCode         string    `json:"error_code"`
+	StartedAt         time.Time `json:"started_at"`
+	CompletedAt       time.Time `json:"completed_at"`
 }
 type AdminCallDetailResponse struct {
 	AdminCallResponse
@@ -168,7 +173,7 @@ func (ctrl *Ctrl) GetAdminCall(c *fox.Context, request CallPath) (*AdminCallDeta
 		response.PricingSnapshot = json.RawMessage(*result.Record.PricingSnapshotJSON)
 	}
 	for _, attempt := range result.Attempts {
-		response.Attempts = append(response.Attempts, CallAttemptResponse{ID: attempt.ID, ProviderModelID: attempt.ProviderModelID, ConnectionID: attempt.ConnectionID, AttemptNumber: attempt.AttemptNumber, Status: attempt.Status, FailureClass: attempt.FailureClass, WorkEvidence: attempt.WorkEvidence, OutputStarted: attempt.OutputStarted, FinalUsageKnown: attempt.FinalUsageKnown, EvidenceCode: attempt.EvidenceCode, HTTPStatus: attempt.HTTPStatus, ErrorCode: attempt.ErrorCode, StartedAt: attempt.StartedAt, CompletedAt: attempt.CompletedAt})
+		response.Attempts = append(response.Attempts, CallAttemptResponse{ID: attempt.ID, ProviderID: attempt.ProviderID, ProviderName: attempt.ProviderName, ProviderModelID: attempt.ProviderModelID, ConnectionID: attempt.ConnectionID, ConnectionName: attempt.ConnectionName, UpstreamModelName: attempt.UpstreamModelName, DurationMS: attempt.DurationMS, AttemptNumber: attempt.AttemptNumber, Status: attempt.Status, FailureClass: attempt.FailureClass, WorkEvidence: attempt.WorkEvidence, OutputStarted: attempt.OutputStarted, FinalUsageKnown: attempt.FinalUsageKnown, EvidenceCode: attempt.EvidenceCode, HTTPStatus: attempt.HTTPStatus, ErrorCode: attempt.ErrorCode, StartedAt: attempt.StartedAt, CompletedAt: attempt.CompletedAt})
 	}
 	return response, nil
 }

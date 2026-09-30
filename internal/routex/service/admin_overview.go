@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"math/big"
 	"sort"
 	"time"
@@ -11,7 +12,13 @@ import (
 	"gorm.io/gorm"
 )
 
-const adminOverviewDays = 14
+const (
+	adminOverviewDays                       = 14
+	adminOverviewProviderQualityQueryLimit  = 100
+	providerQualityUnavailableQueryBudget   = "query_budget"
+	providerQualityUnavailableRangeTooLarge = "range_too_large"
+	providerQualityUnavailableInvalidPolicy = "invalid_policy"
+)
 
 // AdminOverview presents persisted operational facts for the administration
 // home page. Unknown token coverage remains explicit rather than being folded
@@ -46,13 +53,15 @@ type AdminProviderReadiness struct {
 }
 
 type AdminProviderReadinessItem struct {
-	ProviderID           string `json:"provider_id"`
-	Name                 string `json:"name"`
-	ConnectionCount      int64  `json:"connection_count"`
-	ReadyConnectionCount int64  `json:"ready_connection_count"`
-	CredentialCount      int64  `json:"credential_count"`
-	ModelCount           int64  `json:"model_count"`
-	Status               string `json:"status"`
+	ProviderID               string           `json:"provider_id"`
+	Name                     string           `json:"name"`
+	ConnectionCount          int64            `json:"connection_count"`
+	ReadyConnectionCount     int64            `json:"ready_connection_count"`
+	CredentialCount          int64            `json:"credential_count"`
+	ModelCount               int64            `json:"model_count"`
+	Status                   string           `json:"status"`
+	Quality                  *ProviderQuality `json:"quality"`
+	QualityUnavailableReason string           `json:"quality_unavailable_reason,omitempty"`
 }
 
 type AdminOverviewModel struct {
@@ -152,7 +161,7 @@ func (s *Service) AdministrationOverview(ctx context.Context, actorID string) (*
 			result.TokenTrend = append(result.TokenTrend, AdminOverviewTrendPoint{Date: from.Format("2006-01-02"), Tokens: overviewUsageCount(aggregate.InputKnown, aggregate.OutputKnown, aggregate.UnknownCalls)})
 		}
 
-		if err := populateProviderReadiness(tx, &result.ProviderReadiness); err != nil {
+		if err := populateProviderReadiness(tx, &result.ProviderReadiness, now); err != nil {
 			return err
 		}
 		models, err := topOverviewModels(tx, firstDay, now)
@@ -173,7 +182,7 @@ func (s *Service) AdministrationOverview(ctx context.Context, actorID string) (*
 	return result, nil
 }
 
-func populateProviderReadiness(db *gorm.DB, result *AdminProviderReadiness) error {
+func populateProviderReadiness(db *gorm.DB, result *AdminProviderReadiness, observedAt time.Time) error {
 	var providers []entity.Provider
 	if err := db.Order("created_at, id").Find(&providers).Error; err != nil {
 		return err
@@ -182,6 +191,19 @@ func populateProviderReadiness(db *gorm.DB, result *AdminProviderReadiness) erro
 	if err := db.Order("created_at, id").Find(&connections).Error; err != nil {
 		return err
 	}
+	var policyRows []entity.ProviderQualityPolicy
+	if err := db.Order("provider_id").Find(&policyRows).Error; err != nil {
+		return err
+	}
+	policies := make(map[string]entity.ProviderQualityPolicy, len(policyRows))
+	for _, policy := range policyRows {
+		policies[policy.ProviderID] = policy
+	}
+	mayLag, err := providerQualityMayLag(db)
+	if err != nil {
+		return err
+	}
+	unknownByWindow := map[int]int64{}
 	type connectionCount struct {
 		ConnectionID string
 		Count        int64
@@ -213,8 +235,31 @@ func populateProviderReadiness(db *gorm.DB, result *AdminProviderReadiness) erro
 	credentialCounts, modelCounts, readyCounts := counts(credentialRows), counts(modelRows), counts(readyRows)
 	result.Providers = int64(len(providers))
 	result.Connections = int64(len(connections))
-	for _, provider := range providers {
+	for providerIndex, provider := range providers {
 		item := AdminProviderReadinessItem{ProviderID: provider.ID, Name: provider.Name}
+		policy := policies[provider.ID]
+		windowMinutes, validWindow := qualitySummaryWindowMinutes(policy)
+		// Readiness remains complete for every provider. Quality is nullable and
+		// capped so this overview cannot issue an unbounded set of aggregate and
+		// percentile queries as the catalogue grows.
+		item.QualityUnavailableReason = overviewProviderQualityUnavailableReason(validWindow, providerIndex)
+		if item.QualityUnavailableReason == "" {
+			unknownAttribution, ok := unknownByWindow[windowMinutes]
+			if !ok {
+				unknownAttribution, err = providerQualityUnknownAttribution(db, observedAt.Add(-time.Duration(windowMinutes)*time.Minute), observedAt)
+				if err != nil {
+					return err
+				}
+				unknownByWindow[windowMinutes] = unknownAttribution
+			}
+			quality, qualityErr := providerQualityRangeWithContext(db, provider, observedAt.Add(-time.Duration(windowMinutes)*time.Minute), observedAt, observedAt, unknownAttribution, mayLag)
+			if err := assignOverviewProviderQuality(&item, quality, qualityErr); err != nil {
+				return err
+			}
+			if item.Quality != nil {
+				quality.Status, _ = qualityState(quality, policy)
+			}
+		}
 		for _, connection := range connections {
 			if connection.ProviderID != provider.ID {
 				continue
@@ -238,6 +283,34 @@ func populateProviderReadiness(db *gorm.DB, result *AdminProviderReadiness) erro
 		result.Items = append(result.Items, item)
 	}
 	result.UnreadyConnections = result.Connections - result.ReadyConnections
+	return nil
+}
+
+func overviewProviderQualityInQueryBudget(providerIndex int) bool {
+	return providerIndex >= 0 && providerIndex < adminOverviewProviderQualityQueryLimit
+}
+
+func overviewProviderQualityUnavailableReason(validPolicy bool, providerIndex int) string {
+	if !validPolicy {
+		return providerQualityUnavailableInvalidPolicy
+	}
+	if !overviewProviderQualityInQueryBudget(providerIndex) {
+		return providerQualityUnavailableQueryBudget
+	}
+	return ""
+}
+
+func assignOverviewProviderQuality(item *AdminProviderReadinessItem, quality *ProviderQuality, err error) error {
+	if errors.Is(err, providerQualityTooLarge) {
+		item.Quality = nil
+		item.QualityUnavailableReason = providerQualityUnavailableRangeTooLarge
+		return nil
+	}
+	if err != nil {
+		return err
+	}
+	item.Quality = quality
+	item.QualityUnavailableReason = ""
 	return nil
 }
 

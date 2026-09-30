@@ -34,19 +34,24 @@ type CallRecord struct {
 }
 
 type CallAttempt struct {
-	ID              string    `gorm:"primaryKey;size:64"`
-	RequestID       string    `gorm:"size:64;not null"`
-	ProviderModelID string    `gorm:"size:30;not null"`
-	ConnectionID    string    `gorm:"size:30;not null"`
-	AttemptNumber   int       `gorm:"not null;default:0"`
-	Status          string    `gorm:"size:20;not null"`
-	FailureClass    string    `gorm:"size:40;not null;default:permanent_failure"`
-	WorkEvidence    string    `gorm:"size:40;not null;default:unknown"`
-	OutputStarted   bool      `gorm:"not null;default:false"`
-	FinalUsageKnown bool      `gorm:"not null;default:false"`
-	EvidenceCode    string    `gorm:"size:40;not null;default:''"`
-	HTTPStatus      int       `gorm:"not null"`
-	ErrorCode       string    `gorm:"size:40;not null"`
-	StartedAt       time.Time `gorm:"not null"`
-	CompletedAt     time.Time `gorm:"not null"`
+	ID                string `gorm:"primaryKey;size:64;index:idx_attempts_provider_time,priority:3;index:idx_attempts_connection_time,priority:3;index:idx_attempts_provider_model_time,priority:3"`
+	RequestID         string `gorm:"size:64;not null"`
+	ProviderID        string `gorm:"size:30;not null;default:'';index:idx_attempts_provider_time,priority:1"`
+	ProviderName      string `gorm:"size:100;not null;default:''"`
+	ProviderModelID   string `gorm:"size:30;not null;index:idx_attempts_provider_model_time,priority:1"`
+	ConnectionID      string `gorm:"size:30;not null;index:idx_attempts_connection_time,priority:1"`
+	ConnectionName    string `gorm:"size:100;not null;default:''"`
+	UpstreamModelName string `gorm:"size:255;not null;default:''"`
+	DurationMS        *int64
+	AttemptNumber     int       `gorm:"not null;default:0"`
+	Status            string    `gorm:"size:20;not null"`
+	FailureClass      string    `gorm:"size:40;not null;default:permanent_failure"`
+	WorkEvidence      string    `gorm:"size:40;not null;default:unknown"`
+	OutputStarted     bool      `gorm:"not null;default:false"`
+	FinalUsageKnown   bool      `gorm:"not null;default:false"`
+	EvidenceCode      string    `gorm:"size:40;not null;default:''"`
+	HTTPStatus        int       `gorm:"not null"`
+	ErrorCode         string    `gorm:"size:40;not null"`
+	StartedAt         time.Time `gorm:"not null"`
+	CompletedAt       time.Time `gorm:"not null;index:idx_attempts_provider_time,priority:2;index:idx_attempts_connection_time,priority:2;index:idx_attempts_provider_model_time,priority:2"`
 }

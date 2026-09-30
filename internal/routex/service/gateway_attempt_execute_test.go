@@ -272,7 +272,10 @@ func TestGatewayAttemptFinalizesOneReceiptAfterRetry(t *testing.T) {
 	_ = result.Response.Body.Close()
 	completed := time.Now().UTC()
 	attempts := append([]CallAttempt(nil), result.Attempts...)
-	attempts = append(attempts, CallAttempt{ID: result.AttemptID, ProviderModelID: result.ProviderModelID, ConnectionID: result.ConnectionID, AttemptNumber: 2, Status: "success", FailureClass: "success", WorkEvidence: "completed", StartedAt: result.AttemptStartedAt, CompletedAt: completed, HTTPStatus: http.StatusOK})
+	if len(attempts) != 1 || attempts[0].ProviderID == "" || attempts[0].ProviderName == "" || attempts[0].ConnectionName == "" || attempts[0].UpstreamModelName == "" {
+		t.Fatalf("failed attempt lost immutable route snapshots: %+v", attempts)
+	}
+	attempts = append(attempts, CallAttempt{ID: result.AttemptID, ProviderID: result.ProviderID, ProviderName: result.ProviderName, ProviderModelID: result.ProviderModelID, ConnectionID: result.ConnectionID, ConnectionName: result.ConnectionName, UpstreamModelName: result.UpstreamModelName, AttemptNumber: 2, Status: "success", FailureClass: "success", WorkEvidence: "completed", StartedAt: result.AttemptStartedAt, CompletedAt: completed, HTTPStatus: http.StatusOK})
 	fact := CallFact{RequestID: "req_attempt_final", SnapshotID: result.SnapshotID, UserID: result.UserID, KeyID: result.KeyID, ModelID: result.ModelID, ModelName: result.ModelName, ProviderID: result.ProviderID, ProviderName: result.ProviderName, ProviderModelID: result.ProviderModelID, ConnectionID: result.ConnectionID, ConnectionName: result.ConnectionName, UpstreamModelName: result.UpstreamModelName, RouteStopReason: "succeeded", Protocol: result.NativeProtocol(), Status: "success", StartedAt: attempts[0].StartedAt, CompletedAt: completed, Attempts: attempts}
 	if err := svc.PersistGatewayCall(context.Background(), fact); err != nil {
 		t.Fatal(err)
@@ -286,7 +289,7 @@ func TestGatewayAttemptFinalizesOneReceiptAfterRetry(t *testing.T) {
 		t.Fatalf("entries = %+v, error = %v", entries, err)
 	}
 	var persisted CallFact
-	if err := json.Unmarshal(entries[0].Payload, &persisted); err != nil || len(persisted.Attempts) != 2 || persisted.ProviderID != result.ProviderID || persisted.ProviderName != result.ProviderName || persisted.ConnectionName != result.ConnectionName || persisted.UpstreamModelName != result.UpstreamModelName {
+	if err := json.Unmarshal(entries[0].Payload, &persisted); err != nil || len(persisted.Attempts) != 2 || persisted.ProviderID != result.ProviderID || persisted.ProviderName != result.ProviderName || persisted.ConnectionName != result.ConnectionName || persisted.UpstreamModelName != result.UpstreamModelName || persisted.Attempts[1].ProviderID != result.ProviderID || persisted.Attempts[1].ConnectionName != result.ConnectionName {
 		t.Fatalf("persisted = %+v, error = %v", persisted, err)
 	}
 }
