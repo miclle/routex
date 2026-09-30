@@ -35,18 +35,19 @@ type EffectiveLimitValues struct {
 	Concurrency *int64  `json:"concurrency"`
 }
 type LimitRecord struct {
-	QuotaUsage *QuotaUsageRecord    `json:"quota_usage"`
-	Kind       string               `json:"kind"`
-	ID         string               `json:"id"`
-	AccountID  string               `json:"account_id"`
-	ETag       string               `json:"etag"`
-	Stored     limits.Policy        `json:"stored"`
-	Effective  EffectiveLimitValues `json:"effective"`
-	IPPolicies []limits.Policy      `json:"ip_policies"`
-	ParentETag string               `json:"parent_etag,omitempty"`
-	RPMUsed    *int64               `json:"rpm_used"`
-	Active     *int64               `json:"active"`
-	Enforced   bool                 `json:"enforced"`
+	PlatformCurrency string               `json:"platform_currency"`
+	QuotaUsage       *QuotaUsageRecord    `json:"quota_usage"`
+	Kind             string               `json:"kind"`
+	ID               string               `json:"id"`
+	AccountID        string               `json:"account_id"`
+	ETag             string               `json:"etag"`
+	Stored           limits.Policy        `json:"stored"`
+	Effective        EffectiveLimitValues `json:"effective"`
+	IPPolicies       []limits.Policy      `json:"ip_policies"`
+	ParentETag       string               `json:"parent_etag,omitempty"`
+	RPMUsed          *int64               `json:"rpm_used"`
+	Active           *int64               `json:"active"`
+	Enforced         bool                 `json:"enforced"`
 }
 type resolvedLimitTarget struct{ kind, id, parentKind, parentID string }
 
@@ -178,6 +179,13 @@ func (s *Service) resourceLimitRecord(db *gorm.DB, target LimitTarget, resolved 
 		return nil, err
 	}
 	result := &LimitRecord{Kind: target.Kind, ID: target.ID, AccountID: limitAccount(resolved.kind, resolved.id), ETag: row.ETag, Stored: stored, Effective: effectiveQuotaValues(stored, limits.Policy{}), IPPolicies: []limits.Policy{stored}, Enforced: s.recorder != nil && s.runtime != nil && s.RuntimeStatus().Ready}
+	// Resource readers need the denomination for a new budget, even when the
+	// local policy is unlimited. Do not expose the protected price catalogue.
+	var pricingSetting entity.PricingSetting
+	if err := db.Select("platform_currency").First(&pricingSetting, 1).Error; err != nil {
+		return nil, err
+	}
+	result.PlatformCurrency = pricingSetting.PlatformCurrency
 	if resolved.parentKind != "" {
 		parentRow, parent, err := readLimitPolicy(db, resolved.parentKind, resolved.parentID)
 		if err != nil {

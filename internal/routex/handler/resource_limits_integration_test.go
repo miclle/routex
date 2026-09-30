@@ -19,6 +19,7 @@ import (
 
 	"github.com/miclle/routex/internal/routex/entity"
 	"github.com/miclle/routex/internal/routex/service"
+	"github.com/miclle/routex/pkg/pricing"
 	"github.com/miclle/routex/pkg/secret"
 	"github.com/miclle/routex/pkg/secretstore"
 )
@@ -80,7 +81,6 @@ func testResourceLimitLifecycle(t *testing.T, db *gorm.DB) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	_ = member
 	ciphertext, err := store.Seal("crd_limits", "test-only-provider")
 	if err != nil {
 		t.Fatal(err)
@@ -139,6 +139,35 @@ func testResourceLimitLifecycle(t *testing.T, db *gorm.DB) {
 	projectKeyPath := "/api/v1/projects/prj_limits/keys/pky_limits/limits"
 	read := func(path string) service.LimitRecord {
 		return decodeCatalogResponse[service.LimitRecord](t, request("GET", path, nil, ""), 200)
+	}
+	_, memberCookie := readIdentity(t, identityRequest(router, "POST", "/api/v1/auth/login", `{"email":"outsider@example.invalid","password":"test-only-limit-password"}`, nil, ""))
+	memberPath := "/api/v1/admin/members/" + member.User.ID + "/limits"
+	readMember := func() service.LimitRecord {
+		return decodeCatalogResponse[service.LimitRecord](t, identityRequest(router, "GET", memberPath, "", memberCookie, ""), 200)
+	}
+	if record := readMember(); record.PlatformCurrency != "USD" || record.Stored.Currency != "" || record.Stored.MoneyMonth != nil {
+		t.Fatal("unlimited member policy omitted platform denomination or invented a budget")
+	}
+	expectStatus(t, identityRequest(router, "GET", "/api/v1/admin/prices/currency", "", memberCookie, ""), 403)
+	expectStatus(t, identityRequest(router, "GET", userPath, "", memberCookie, ""), 403)
+	priceSettings, err := svc.GetPricingCurrency(ctx, admin.User.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	changedCurrency, err := svc.WritePricingCurrency(ctx, admin.User.ID, priceSettings.ETag, pricing.FX{PlatformCurrency: "CNY", Rates: map[string]string{"USD": "7"}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, path := range []string{userPath, keyPath, projectPath, projectKeyPath} {
+		if record := read(path); record.PlatformCurrency != "CNY" {
+			t.Fatalf("%s did not reflect platform currency change", path)
+		}
+	}
+	if record := readMember(); record.PlatformCurrency != "CNY" || record.Stored.Currency != "" {
+		t.Fatal("scoped member read did not preserve the unlimited policy after currency change")
+	}
+	if _, err := svc.WritePricingCurrency(ctx, admin.User.ID, changedCurrency.ETag, pricing.FX{PlatformCurrency: "USD", Rates: map[string]string{"USD": "1"}}); err != nil {
+		t.Fatal(err)
 	}
 	write := func(path string, rpm, concurrency any, mode string, ranges []string) service.LimitRecord {
 		before := read(path)

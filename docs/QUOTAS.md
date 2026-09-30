@@ -28,6 +28,8 @@ Integers are nonnegative safe JSON integers. Money is an exact nonnegative decim
 
 A personal call checks user plus Key accounts. A Project call checks Project plus Key accounts, independently of its creator or managers' personal accounts. Policy edits, grants, disabling, re-enabling, and Key rotation do not clear history.
 
+GET includes `platform_currency` under the existing resource read authority, even when the local monetary policy is unlimited and its `currency` is empty. This field reveals only the current denomination, not exchange rates or the administrative price catalogue. Readers must review a changed denomination before submitting a retained monetary draft.
+
 GET adds `quota_usage`, with `activated`, `time_zone`, `coverage_start`, `as_of`, and `active`, `minute`, `five_hours`, `seven_days`, and `month` windows. Windows are null before activation. Each populated window has `covered`, `tokens_used`, `tokens_held`, `tokens_unknown`, `money_used`, `money_held`, and `money_unknown`. Money maps use explicit currency codes and decimal values. Active holds are separate from terminal window counters and must be included when presenting available allowance. An uncovered window is incomplete history, not a zero historical balance.
 
 ## Installation calendar
