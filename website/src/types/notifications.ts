@@ -18,6 +18,9 @@ export interface Notification {
   delivery_code: string | null
   delivery_attempts: number
   delivery_updated_at: string | null
+  subject_type?: string | null
+  subject_id?: string | null
+  subject_name?: string | null
 }
 
 export interface NotificationsPage {

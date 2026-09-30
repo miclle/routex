@@ -31,6 +31,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Dialog } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
+import { Switch } from '@/components/ui/switch'
 import { Table } from '@/components/ui/table'
 import { useSession } from '@/hooks/use-auth'
 import { usePermissions } from '@/hooks/use-permissions'
@@ -38,6 +39,7 @@ import type {
   AdminOverview,
   OperationalAlert,
   OperationalAlertState,
+  ProviderQualityUnavailableReason,
   OverviewTrendPoint,
 } from '@/types/overview'
 import { chartRatio, exactNumber } from '@/views/usage/format'
@@ -46,6 +48,17 @@ function alertText(alert: OperationalAlert, t: ReturnType<typeof useTranslation>
   return t(`items.${alert.kind}.${alert.detail_code}`, {
     defaultValue: t(`items.${alert.kind}.default`, { defaultValue: t('unknownItem') }),
   })
+}
+
+function alertCategory(alert: OperationalAlert, t: ReturnType<typeof useTranslation>['t']) {
+  return t(`categories.${alert.kind}`, { defaultValue: t('categories.unknown') })
+}
+
+function alertSubject(alert: OperationalAlert, t: ReturnType<typeof useTranslation>['t']) {
+  if (alert.subject_type !== 'provider' && alert.subject_type !== 'model')
+    return t('overview.scopeUnknown')
+  const value = alert.subject_name?.trim() || alert.subject_id?.trim()
+  return value ? t(`subject.${alert.subject_type}`, { name: value }) : t('overview.scopeUnknown')
 }
 
 function formatNumber(value: number, locale: string) {
@@ -157,7 +170,8 @@ function TrendChart({ points }: { points: OverviewTrendPoint[] }) {
 }
 
 function ProviderStatus({ overview }: { overview: AdminOverview }) {
-  const { t } = useTranslation('notifications')
+  const { t, i18n } = useTranslation('notifications')
+  const locale = i18n.resolvedLanguage === 'zh' ? 'zh-CN' : 'en-US'
   const readiness = overview.provider_readiness
   return (
     <Card className="h-full">
@@ -189,14 +203,50 @@ function ProviderStatus({ overview }: { overview: AdminOverview }) {
                 })}
               </p>
             </div>
-            <Badge variant={provider.status === 'ready' ? 'success' : 'outline'}>
-              {t(`overview.providerStates.${provider.status}`)}
-            </Badge>
+            <div className="shrink-0 space-y-1 text-right">
+              <Badge variant={provider.status === 'ready' ? 'success' : 'outline'}>
+                {t(`overview.providerStates.${provider.status}`)}
+              </Badge>
+              {provider.quality && (
+                <p className="text-xs text-muted-foreground">
+                  {t(`overview.qualityStates.${provider.quality.status}`)} ·{' '}
+                  {provider.quality.p95_duration_ms === null
+                    ? t('overview.p95Unknown')
+                    : t('overview.p95Value', {
+                        value: new Intl.NumberFormat(locale).format(
+                          provider.quality.p95_duration_ms,
+                        ),
+                      })}
+                </p>
+              )}
+              {!provider.quality && provider.quality_unavailable_reason && (
+                <p className="max-w-64 text-xs text-muted-foreground">
+                  {t('overview.qualityUnavailable', {
+                    reason: t(
+                      `overview.qualityUnavailableReasons.${qualityUnavailableReasonKey(
+                        provider.quality_unavailable_reason,
+                      )}`,
+                    ),
+                  })}
+                </p>
+              )}
+            </div>
           </div>
         ))}
       </CardContent>
     </Card>
   )
+}
+
+function qualityUnavailableReasonKey(reason: ProviderQualityUnavailableReason) {
+  switch (reason) {
+    case 'query_budget':
+      return 'query_budget'
+    case 'range_too_large':
+      return 'range_too_large'
+    case 'invalid_policy':
+      return 'invalid_policy'
+  }
 }
 
 function TopModels({ overview }: { overview: AdminOverview }) {
@@ -285,8 +335,12 @@ function AlertDetails({
       <div className="space-y-5">
         <dl className="grid gap-3 rounded-lg border p-4 text-sm sm:grid-cols-2">
           <div className="sm:col-span-2">
-            <dt className="text-muted-foreground">{t('overview.alert')}</dt>
-            <dd className="mt-1 font-medium">{alertText(alert, t)}</dd>
+            <dt className="text-muted-foreground">{t('overview.category')}</dt>
+            <dd className="mt-1 font-medium">{alertCategory(alert, t)}</dd>
+          </div>
+          <div className="sm:col-span-2">
+            <dt className="text-muted-foreground">{t('overview.affectedScope')}</dt>
+            <dd className="mt-1 font-medium">{alertSubject(alert, t)}</dd>
           </div>
           <div>
             <dt className="text-muted-foreground">{t('overview.severity')}</dt>
@@ -359,6 +413,8 @@ function NotificationSettingsDialog({
     retry: false,
   })
   const [email, setEmail] = useState('')
+  const [emailHigh, setEmailHigh] = useState(false)
+  const [emailMedium, setEmailMedium] = useState(false)
   const [seedEtag, setSeedEtag] = useState('')
   const [conflict, setConflict] = useState(false)
   const [conflictReviewed, setConflictReviewed] = useState(false)
@@ -374,6 +430,8 @@ function NotificationSettingsDialog({
     }
     if (query.data && seedEtag === '') {
       setEmail(query.data.external_email)
+      setEmailHigh(query.data.email_high)
+      setEmailMedium(query.data.email_medium)
       setSeedEtag(query.data.etag)
     }
   }, [open, query.data, seedEtag])
@@ -382,8 +440,8 @@ function NotificationSettingsDialog({
       updateNotificationSettings(
         {
           external_email: email.trim(),
-          email_high: true,
-          email_medium: true,
+          email_high: emailHigh,
+          email_medium: emailMedium,
           etag: seedEtag,
         },
         session.data!.csrf_token,
@@ -401,7 +459,8 @@ function NotificationSettingsDialog({
       }
     },
   })
-  const validEmail = /^\S+@\S+\.\S+$/.test(email.trim())
+  const emailRequired = emailHigh || emailMedium
+  const validEmail = !emailRequired || /^\S+@\S+\.\S+$/.test(email.trim())
   const conflictReady =
     conflict &&
     !query.isFetching &&
@@ -411,6 +470,8 @@ function NotificationSettingsDialog({
   const close = () => {
     if (query.data) {
       setEmail(query.data.external_email)
+      setEmailHigh(query.data.email_high)
+      setEmailMedium(query.data.email_medium)
     }
     onOpenChange(false)
   }
@@ -455,6 +516,7 @@ function NotificationSettingsDialog({
               autoComplete="email"
               value={email}
               aria-invalid={!validEmail}
+              required={emailRequired}
               onChange={(event) => setEmail(event.target.value)}
             />
             <span className="block text-xs font-normal text-muted-foreground">
@@ -466,6 +528,34 @@ function NotificationSettingsDialog({
               {t('overview.invalidEmail')}
             </p>
           )}
+          <div className="space-y-3 rounded-lg border p-4">
+            <label className="flex items-start justify-between gap-4 text-sm">
+              <span>
+                <span className="block font-medium">{t('overview.emailHigh')}</span>
+                <span className="mt-1 block text-muted-foreground">
+                  {t('overview.emailHighHelp')}
+                </span>
+              </span>
+              <Switch
+                checked={emailHigh}
+                onCheckedChange={setEmailHigh}
+                aria-label={t('overview.emailHigh')}
+              />
+            </label>
+            <label className="flex items-start justify-between gap-4 border-t pt-3 text-sm">
+              <span>
+                <span className="block font-medium">{t('overview.emailMedium')}</span>
+                <span className="mt-1 block text-muted-foreground">
+                  {t('overview.emailMediumHelp')}
+                </span>
+              </span>
+              <Switch
+                checked={emailMedium}
+                onCheckedChange={setEmailMedium}
+                aria-label={t('overview.emailMedium')}
+              />
+            </label>
+          </div>
           {conflict && (
             <div className="space-y-3 rounded-lg border border-amber-300 bg-amber-50 p-4 text-sm text-amber-950">
               <p className="font-medium">{t('overview.conflictTitle')}</p>
@@ -491,6 +581,8 @@ function NotificationSettingsDialog({
                   disabled={!conflictReady}
                   onClick={() => {
                     setEmail(query.data!.external_email)
+                    setEmailHigh(query.data!.email_high)
+                    setEmailMedium(query.data!.email_medium)
                     setSeedEtag(query.data!.etag)
                     setConflictReviewed(true)
                   }}

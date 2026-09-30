@@ -1,4 +1,5 @@
 import type { NotificationSeverity } from './notifications'
+import type { ProviderQualitySummary } from './provider-quality'
 import type { UsageCount } from './usage'
 
 export interface OverviewToday {
@@ -14,6 +15,7 @@ export interface OverviewTrendPoint {
 }
 
 export type ProviderReadinessStatus = 'ready' | 'degraded' | 'unconfigured'
+export type ProviderQualityUnavailableReason = 'query_budget' | 'range_too_large' | 'invalid_policy'
 
 export interface OverviewProvider {
   provider_id: string
@@ -23,6 +25,8 @@ export interface OverviewProvider {
   credential_count: number
   model_count: number
   status: ProviderReadinessStatus
+  quality?: ProviderQualitySummary | null
+  quality_unavailable_reason?: ProviderQualityUnavailableReason | null
 }
 
 export interface OverviewProviderReadiness {
@@ -53,6 +57,9 @@ export interface OperationalAlert {
   last_seen_at: string
   updated_at: string
   etag: string
+  subject_type?: string | null
+  subject_id?: string | null
+  subject_name?: string | null
 }
 
 export interface AdminOverview {

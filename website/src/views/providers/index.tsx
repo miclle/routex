@@ -17,8 +17,18 @@ import { Badge } from '@/components/ui/badge'
 import { Link, useParams, useSearchParams } from 'react-router'
 import { Table } from '@/components/ui/table'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
+import { ProviderOverview, ProviderSettings } from './detail'
 
 type Action = { kind: 'provider' | 'connection' | 'credential' | 'model'; id?: string }
+type ProviderTab = 'overview' | 'connections' | 'credentials' | 'models' | 'settings'
+function providerTab(value: string | null): ProviderTab {
+  return value === 'connections' ||
+    value === 'credentials' ||
+    value === 'models' ||
+    value === 'settings'
+    ? value
+    : 'overview'
+}
 export default function ProvidersPage() {
   return (
     <PermissionGate permission="providers.read">
@@ -37,7 +47,9 @@ function Providers() {
   const { providerId } = useParams()
   const [params, setParams] = useSearchParams()
   const selected = providers.data?.find((provider) => provider.id === providerId)
-  const tab = params.get('tab') || 'connections'
+  const tab = providerTab(params.get('tab'))
+  const selectTab = (value: ProviderTab) =>
+    setParams(value === 'overview' ? {} : { tab: value }, { replace: true })
   const mutation = useMutation({
     mutationFn: ({
       path,
@@ -233,11 +245,9 @@ function Providers() {
               {protocolLabels(selected.connections.map((connection) => connection.protocol))}
             </Badge>
           </div>
-          <Tabs
-            value={tab}
-            onValueChange={(value) => setParams({ tab: String(value) }, { replace: true })}
-          >
+          <Tabs value={tab} onValueChange={(value) => selectTab(providerTab(String(value)))}>
             <TabsList aria-label={t('providers.managementLabel', { name: selected.name })}>
+              <TabsTrigger value="overview">{t('providers.overviewTab')}</TabsTrigger>
               <TabsTrigger value="connections">
                 {t('providers.connectionsTab', { count: selected.connections.length })}
               </TabsTrigger>
@@ -251,7 +261,11 @@ function Providers() {
                   count: selected.connections.flatMap((c) => c.provider_models).length,
                 })}
               </TabsTrigger>
+              <TabsTrigger value="settings">{t('providers.settingsTab')}</TabsTrigger>
             </TabsList>
+            <TabsContent value="overview">
+              <ProviderOverview provider={selected} onSelectTab={selectTab} />
+            </TabsContent>
             <TabsContent value="connections">
               <div className="mb-4 flex justify-end">
                 <Button
@@ -412,6 +426,9 @@ function Providers() {
                   )}
                 </tbody>
               </Table>
+            </TabsContent>
+            <TabsContent value="settings">
+              <ProviderSettings provider={selected} />
             </TabsContent>
           </Tabs>
         </>

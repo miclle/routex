@@ -22,10 +22,14 @@ function statusOf(error: unknown) {
   return axios.isAxiosError(error) ? (error.response?.status ?? 0) : 0
 }
 
-export async function getNotifications(status: NotificationReadStatus, signal?: AbortSignal) {
+export async function getNotifications(
+  status: NotificationReadStatus,
+  cursor?: string | null,
+  signal?: AbortSignal,
+) {
   return (
     await client.get<NotificationsPage>('/notifications', {
-      params: { status },
+      params: { status, cursor: cursor || undefined },
       signal,
     })
   ).data

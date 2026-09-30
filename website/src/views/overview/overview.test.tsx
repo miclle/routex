@@ -10,7 +10,7 @@ import i18n from '@/i18n'
 import en from '@/i18n/locales/en/notifications'
 import zh from '@/i18n/locales/zh/notifications'
 import { sessionKey } from '@/hooks/use-auth'
-import type { AdminOverview } from '@/types/overview'
+import type { AdminOverview, ProviderQualityUnavailableReason } from '@/types/overview'
 import type { NotificationSettings, NotificationsPage } from '@/types/notifications'
 import AdminOverviewPage from './index'
 
@@ -47,6 +47,30 @@ const overview: AdminOverview = {
         credential_count: 2,
         model_count: 3,
         status: 'degraded',
+        quality: {
+          provider_id: 'prv_1',
+          name: 'Provider One',
+          window_start: '2026-09-29T06:00:00Z',
+          window_end: '2026-09-30T06:00:00Z',
+          evaluated_at: '2026-09-30T06:00:00Z',
+          latest_completed_at: '2026-09-30T05:59:00Z',
+          data_through: '2026-09-30T05:59:00Z',
+          requests: 100,
+          eligible_attempts: 90,
+          excluded_attempts: 10,
+          credential_rejected_attempts: 0,
+          unknown_attribution_attempts: 0,
+          successes: 89,
+          success_rate: 89 / 90,
+          success_rate_bps: 9888,
+          p95_duration_ms: 1500,
+          known_duration_attempts: 90,
+          unknown_duration_attempts: 0,
+          rate_limited_attempts: 1,
+          server_error_attempts: 0,
+          may_lag: false,
+          status: 'healthy',
+        },
       },
     ],
   },
@@ -70,6 +94,24 @@ const overview: AdminOverview = {
       last_seen_at: '2026-09-30T05:00:00Z',
       updated_at: '2026-09-30T05:00:00Z',
       etag: 'alert-1',
+      subject_type: 'provider',
+      subject_id: 'prv_1',
+      subject_name: 'Provider One',
+    },
+    {
+      id: 'alt_2',
+      kind: 'provider_quality_degraded',
+      detail_code: 'success_rate_below_threshold',
+      severity: 'medium',
+      state: 'open',
+      occurrence_count: 1,
+      first_seen_at: '2026-09-30T05:30:00Z',
+      last_seen_at: '2026-09-30T05:30:00Z',
+      updated_at: '2026-09-30T05:30:00Z',
+      etag: 'alert-2',
+      subject_type: 'provider',
+      subject_id: 'prv_1',
+      subject_name: 'Provider One',
     },
   ],
 }
@@ -92,6 +134,9 @@ const notifications: NotificationsPage = {
       delivery_code: 'relay_accepted',
       delivery_attempts: 1,
       delivery_updated_at: '2026-09-30T05:01:00Z',
+      subject_type: 'provider',
+      subject_id: 'prv_1',
+      subject_name: 'Provider One',
     },
   ],
 }
@@ -105,6 +150,7 @@ let conflictOnce: boolean
 let settingsReadFailureOnce: boolean
 let settingsReadGate: Promise<void> | null
 let releaseSettingsRead: (() => void) | null
+let qualityUnavailableReason: ProviderQualityUnavailableReason | null
 
 beforeEach(async () => {
   i18n.addResourceBundle('en', 'notifications', en, true, true)
@@ -124,6 +170,7 @@ beforeEach(async () => {
   settingsReadFailureOnce = false
   settingsReadGate = null
   releaseSettingsRead = null
+  qualityUnavailableReason = null
   host = document.createElement('div')
   document.body.append(host)
   root = createRoot(host)
@@ -140,9 +187,38 @@ beforeEach(async () => {
     }
     if (config.url === '/auth/session') response.data = session
     else if (config.url === '/auth/permissions') response.data = { permissions }
-    else if (config.url === '/admin/overview') response.data = structuredClone(overview)
-    else if (config.url === '/notifications') response.data = structuredClone(notifications)
-    else if (config.url === '/notification-settings' && config.method === 'get') {
+    else if (config.url === '/admin/overview') {
+      const data = structuredClone(overview)
+      if (qualityUnavailableReason) {
+        data.provider_readiness.items[0].quality = null
+        data.provider_readiness.items[0].quality_unavailable_reason = qualityUnavailableReason
+      }
+      response.data = data
+    } else if (config.url === '/notifications') {
+      if (config.params?.status === 'all' && config.params?.cursor) {
+        response.data = {
+          unread_count: 1,
+          next_cursor: null,
+          items: [
+            {
+              ...structuredClone(notifications.items[0]),
+              id: 'ntf_2',
+              alert_id: 'alt_route',
+              kind: 'route_unavailable',
+              detail_code: 'no_candidates',
+              read: true,
+              read_at: '2026-09-30T05:30:00Z',
+              delivery_status: null,
+              subject_type: 'model',
+              subject_id: 'mdl_1',
+              subject_name: 'model-one',
+            },
+          ],
+        }
+      } else if (config.params?.status === 'all') {
+        response.data = { ...structuredClone(notifications), next_cursor: 'next-notification' }
+      } else response.data = structuredClone(notifications)
+    } else if (config.url === '/notification-settings' && config.method === 'get') {
       if (settingsReadGate) await settingsReadGate
       if (settingsReadFailureOnce) {
         settingsReadFailureOnce = false
@@ -228,6 +304,7 @@ describe('F23 operations overview and notifications', () => {
   it('renders the Mockup hierarchy from real response states without inventing unknown totals', async () => {
     await render(<AdminOverviewPage />)
     await until(() => expect(document.body.textContent).toContain('Provider One'))
+    expect(document.body.textContent).toContain('P95 1,500 ms')
     expect(document.body.textContent).toContain('Calls today')
     expect(document.body.textContent).toContain('Tokens today')
     expect(document.body.textContent).toContain('Unknown')
@@ -235,6 +312,19 @@ describe('F23 operations overview and notifications', () => {
     expect(document.body.textContent).toContain('Top models by token use')
     expect(document.body.textContent).toContain('Runtime publication failed.')
     expect(document.querySelector('table[aria-label="Operational alerts"]')).toBeTruthy()
+  })
+
+  it('renders a bounded localized reason when provider quality is unavailable', async () => {
+    qualityUnavailableReason = 'query_budget'
+    await render(<AdminOverviewPage />)
+    await until(() =>
+      expect(document.body.textContent).toContain(
+        'Quality unavailable: the query budget was exhausted',
+      ),
+    )
+    expect(document.body.textContent).not.toContain('P95 1,500 ms')
+    await act(async () => void (await i18n.changeLanguage('zh')))
+    expect(document.body.textContent).toContain('质量数据不可用：查询预算已用尽')
   })
 
   it('gates the administration overview with system.read', async () => {
@@ -273,6 +363,26 @@ describe('F23 operations overview and notifications', () => {
     await until(() =>
       expect(requests.some((request) => request.url === '/notifications/ntf_1/read')).toBe(true),
     )
+  })
+
+  it('loads bounded all-notification history by cursor and localizes affected scope', async () => {
+    await render(<NotificationMenu />)
+    await until(() =>
+      expect(cache.getQueryData(notificationsKey('usr_operator', 'unread'))).toBeTruthy(),
+    )
+    await click('Notifications')
+    await click('All')
+    await until(() => expect(document.body.textContent).toContain('Provider: Provider One'))
+    await click('Load more notifications')
+    await until(() => expect(document.body.textContent).toContain('Model: model-one'))
+    expect(document.body.textContent).toContain(
+      'No eligible provider route was available for the model.',
+    )
+    const historyRequests = requests.filter(
+      (request) => request.url === '/notifications' && request.params?.status === 'all',
+    )
+    expect(historyRequests).toHaveLength(2)
+    expect(historyRequests[1].params?.cursor).toBe('next-notification')
   })
 
   it('keeps the bell empty without fetching notifications when system.read is absent', async () => {
@@ -314,6 +424,55 @@ describe('F23 operations overview and notifications', () => {
       email_medium: true,
       etag: 'settings-2',
     })
+  })
+
+  it('allows both external email severities off without requiring an email address', async () => {
+    await render(<AdminOverviewPage />)
+    await until(() => expect(document.body.textContent).toContain('Provider One'))
+    await click('Notification settings')
+    await until(() => expect(document.querySelector('input[type="email"]')).toBeTruthy())
+    await act(async () =>
+      document
+        .querySelector<HTMLElement>('[role="switch"][aria-label="Email high-severity alerts"]')!
+        .click(),
+    )
+    await act(async () =>
+      document
+        .querySelector<HTMLElement>('[role="switch"][aria-label="Email medium-severity alerts"]')!
+        .click(),
+    )
+    await setInput(document.querySelector<HTMLInputElement>('input[type="email"]')!, '')
+    expect(button('Save settings').disabled).toBe(false)
+    await click('Save settings')
+    await until(() => expect(document.querySelector('[role="dialog"]')).toBeNull())
+    const write = requests.find(
+      (request) => request.url === '/notification-settings' && request.method === 'put',
+    )
+    expect(JSON.parse(write!.data)).toMatchObject({
+      external_email: '',
+      email_high: false,
+      email_medium: false,
+    })
+  })
+
+  it('renders localized alert category and bounded Provider scope without repeating its title', async () => {
+    await render(<AdminOverviewPage />)
+    await until(() => expect(document.body.textContent).toContain('Provider One'))
+    const reviewButtons = [...document.querySelectorAll<HTMLButtonElement>('button')].filter(
+      (item) => item.textContent?.trim() === 'Review alert',
+    )
+    expect(reviewButtons).toHaveLength(2)
+    await act(async () => reviewButtons[1].click())
+    await until(() => expect(document.querySelector('[role="dialog"]')).not.toBeNull())
+    const dialog = document.querySelector('[role="dialog"]')!
+    expect(dialog.textContent).toContain('Provider quality')
+    expect(dialog.textContent).toContain('Provider: Provider One')
+    expect(
+      dialog.textContent?.match(/Provider success rate fell below its threshold\./g),
+    ).toHaveLength(1)
+    await act(async () => void (await i18n.changeLanguage('zh')))
+    expect(dialog.textContent).toContain('供应商质量')
+    expect(dialog.textContent).toContain('供应商：Provider One')
   })
 
   it('waits for fresh settings before enabling conflict review', async () => {
