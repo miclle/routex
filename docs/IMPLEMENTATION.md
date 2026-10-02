@@ -1535,3 +1535,19 @@ Readiness baseline `a9d8dc3` remote CI 36984325423, Actionlint 36984325353 and
 GolangCI-Lint 36984325458 all subsequently succeeded, including dual databases,
 independent-process session restart and build artifacts. Those results are separate
 from this retirement package.
+
+
+### F19 current native availability correction
+
+The member catalogue now counts actual supported eligible protocols separately
+from visible models. Explicit empty/unknown protocols and disabled/archived models
+show localized unavailable guidance and no fabricated Chat endpoint or cURL. Copy
+is disabled and unavailable models do not suggest Key creation as a routing fix.
+The drawer selects a stable model ID from refreshed data, so eligibility/status
+changes remove stale examples. Four native request shapes, legacy supported
+protocol fallback only when the plural field is absent, and Gemini name checks
+remain. Fifteen dedicated tests and complete format/check/test passed (665 Vitest
+cases in 54 files, Go race/unit, Node checks, development lifecycle and embedded
+production assets). No new schema/API, Team invocation or source directory is
+delivered by this correction. F19 remains partial; actor-scoped source/detail
+work follows separately.

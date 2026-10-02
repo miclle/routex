@@ -371,6 +371,9 @@ export default {
     modelCount_one: '{{count}} model',
   },
   memberModels: {
+    unavailableProtocol: 'Unavailable',
+    protocolUnavailable:
+      'No supported inference protocol is currently available for this model. Creating a Key does not make unavailable routes callable.',
     modelPath: 'Model path name',
     geminiAliasRequired:
       'Gemini requires a public name or active alias containing only letters, digits, dots, underscores, or hyphens, starting with a letter or digit (maximum 128 characters). Ask a model administrator for a compatible name.',

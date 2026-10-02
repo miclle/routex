@@ -327,6 +327,9 @@ export default {
     modelCount_other: '{{count}} 个模型',
   },
   memberModels: {
+    unavailableProtocol: '不可用',
+    protocolUnavailable:
+      '此模型当前没有可用的受支持推理协议。创建 Key 不会让不可用路由变得可调用。',
     modelPath: '模型路径名称',
     geminiAliasRequired:
       'Gemini 需要以字母或数字开头、仅包含字母、数字、点、下划线或连字符的公开名称或有效别名（最多 128 个字符）。请联系模型管理员配置兼容名称。',

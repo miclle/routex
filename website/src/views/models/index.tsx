@@ -13,23 +13,41 @@ import { Table } from '@/components/ui/table'
 import { Drawer } from '@/components/ui/drawer'
 import type { CallableModel } from '@/types/catalog'
 
+const supportedProtocols = [
+  'openai_chat',
+  'openai_responses',
+  'anthropic_messages',
+  'gemini_generate_content',
+]
+
+function availableProtocols(model: CallableModel) {
+  return model.status === 'active'
+    ? [...new Set(modelProtocols(model))].filter((protocol) =>
+        supportedProtocols.includes(protocol),
+      )
+    : []
+}
+
 export default function ModelsPage() {
   const { t } = useTranslation('catalog')
   const models = useQuery({ queryKey: ['models'], queryFn: listModels })
   const [exampleProtocol, setExampleProtocol] = useState('openai_chat')
   const [query, setQuery] = useState('')
   const [view, setView] = useState('card')
-  const [selected, setSelected] = useState<CallableModel | null>(null)
+  const [selectedID, setSelectedID] = useState<string | null>(null)
   const [notice, setNotice] = useState<'memberModels.copied' | 'memberModels.copyFailed' | null>(
     null,
   )
   const items =
     models.data?.filter((model) => model.name.toLowerCase().includes(query.toLowerCase())) ?? []
-  const protocols = selected ? modelProtocols(selected) : []
+  const selected = models.data?.find((model) => model.id === selectedID) ?? null
+  const protocols = selected ? availableProtocols(selected) : []
   const activeProtocol = protocols.includes(exampleProtocol) ? exampleProtocol : protocols[0]
   const gemini = activeProtocol === 'gemini_generate_content'
   const invalidGeminiName = gemini && !isGeminiModelName(selected?.name ?? '')
-  const endpoint = `${window.location.origin}/${gemini ? 'v1beta' : 'v1'}`
+  const endpoint = activeProtocol
+    ? `${window.location.origin}/${gemini ? 'v1beta' : 'v1'}`
+    : undefined
   const requestPath = gemini
     ? `models/${encodeURIComponent(selected?.name ?? '')}:generateContent`
     : activeProtocol === 'anthropic_messages'
@@ -55,11 +73,14 @@ export default function ModelsPage() {
           'Content-Type: application/json',
         ]
       : ['Authorization: Bearer $ROUTEX_API_KEY', 'Content-Type: application/json']
-  const example = [
-    `curl ${endpoint}/${requestPath}`,
-    ...headers.map((header) => `  -H "${header}"`),
-    `  -d '${JSON.stringify(requestBody)}'`,
-  ].join(' \\\n')
+  const example =
+    activeProtocol && !invalidGeminiName
+      ? [
+          `curl ${endpoint}/${requestPath}`,
+          ...headers.map((header) => `  -H "${header}"`),
+          `  -d '${JSON.stringify(requestBody)}'`,
+        ].join(' \\\n')
+      : undefined
   async function copy(value: string) {
     try {
       await navigator.clipboard.writeText(value)
@@ -76,8 +97,11 @@ export default function ModelsPage() {
       >
         {[
           [t('memberModels.total'), models.data?.length],
-          [t('memberModels.available'), models.data?.length],
-          [t('common.protocolType'), new Set(models.data?.flatMap(modelProtocols)).size],
+          [
+            t('memberModels.available'),
+            models.data?.filter((model) => availableProtocols(model).length > 0).length,
+          ],
+          [t('common.protocolType'), new Set(models.data?.flatMap(availableProtocols)).size],
         ].map(([label, value]) => (
           <div key={label}>
             <p className="text-sm text-muted-foreground">{label}</p>
@@ -129,7 +153,7 @@ export default function ModelsPage() {
             <button
               key={model.id}
               onClick={() => {
-                setSelected(model)
+                setSelectedID(model.id)
                 setNotice(null)
               }}
               aria-label={t('memberModels.openAPI', { name: model.name })}
@@ -142,7 +166,10 @@ export default function ModelsPage() {
                 <h2 className="truncate text-sm font-semibold">{model.name}</h2>
               </div>
               <div className="flex gap-2">
-                <Badge variant="outline">{protocolLabels(modelProtocols(model))}</Badge>
+                <Badge variant="outline">
+                  {protocolLabels(availableProtocols(model)) ||
+                    t('memberModels.unavailableProtocol')}
+                </Badge>
                 <Badge variant="secondary">{t('memberModels.personalGrant')}</Badge>
               </div>
             </button>
@@ -163,9 +190,19 @@ export default function ModelsPage() {
               <tr key={model.id}>
                 <td>{model.name}</td>
                 <td>{t('memberModels.personalGrant')}</td>
-                <td>{protocolLabels(modelProtocols(model))}</td>
                 <td>
-                  <Button size="sm" variant="ghost" onClick={() => setSelected(model)}>
+                  {protocolLabels(availableProtocols(model)) ||
+                    t('memberModels.unavailableProtocol')}
+                </td>
+                <td>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => {
+                      setSelectedID(model.id)
+                      setNotice(null)
+                    }}
+                  >
                     {t('common.apiAccess')}
                   </Button>
                 </td>
@@ -177,7 +214,10 @@ export default function ModelsPage() {
       <Drawer
         open={!!selected}
         onOpenChange={(open) => {
-          if (!open) setSelected(null)
+          if (!open) {
+            setSelectedID(null)
+            setNotice(null)
+          }
         }}
         title={t('memberModels.apiTitle', { name: selected?.name ?? '' })}
         width={520}
@@ -186,14 +226,18 @@ export default function ModelsPage() {
           <div className="flex items-center gap-3 rounded-lg border p-4">
             <Bot className="size-5" />
             <h2 className="font-semibold">{selected?.name}</h2>
-            <Badge variant="outline">{protocolLabels(protocols)}</Badge>
+            <Badge variant="outline">
+              {protocolLabels(protocols) || t('memberModels.unavailableProtocol')}
+            </Badge>
           </div>
           <section className="rounded-lg border">
             <h3 className="border-b p-4 text-sm font-semibold">{t('common.connectionSettings')}</h3>
             <div className="space-y-4 p-4">
               <div>
                 <p className="text-sm text-muted-foreground">{t('common.baseURL')}</p>
-                <code className="break-all text-sm">{endpoint}</code>
+                <code className="break-all text-sm">
+                  {endpoint ?? t('memberModels.unavailableProtocol')}
+                </code>
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">
@@ -201,9 +245,11 @@ export default function ModelsPage() {
                 </p>
                 <code>{selected?.name}</code>
               </div>
-              <Link to="/keys" className="text-sm underline">
-                {t('memberModels.manageKeys')}
-              </Link>
+              {activeProtocol && (
+                <Link to="/keys" className="text-sm underline">
+                  {t('memberModels.manageKeys')}
+                </Link>
+              )}
             </div>
           </section>
           <section className="rounded-lg border">
@@ -212,8 +258,10 @@ export default function ModelsPage() {
               <Button
                 size="sm"
                 variant="ghost"
-                disabled={invalidGeminiName}
-                onClick={() => void copy(example)}
+                disabled={!example}
+                onClick={() => {
+                  if (example) void copy(example)
+                }}
               >
                 <Copy className="size-3" />
                 {t('common.copy')}
@@ -235,7 +283,11 @@ export default function ModelsPage() {
                 </select>
               </label>
             )}
-            {invalidGeminiName ? (
+            {!activeProtocol ? (
+              <p role="status" className="p-4 text-sm text-muted-foreground">
+                {t('memberModels.protocolUnavailable')}
+              </p>
+            ) : invalidGeminiName ? (
               <p role="status" className="p-4 text-sm text-muted-foreground">
                 {t('memberModels.geminiAliasRequired')}
               </p>

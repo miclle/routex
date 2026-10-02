@@ -1,9 +1,9 @@
 # Current Work Handoff
 
-- **Status:** implementation active; F08 Key proof hardening pushed; F11 readiness pushed; receipt-backed retirement checked; member model directory is next
-- **Updated:** 2026-10-02T17:35:52+08:00
+- **Status:** implementation active; F08 Key proof hardening pushed; F11 readiness pushed; receipt-backed retirement pushed; member model availability correction checked; source directory next
+- **Updated:** 2026-10-02T17:52:03+08:00
 - **Repository / branch:** RouteX / `main`
-- **Previous checked source baseline:** `a9d8dc3e89bf15e22a898095bee8e5006ec44d48`, pushed and read back from `origin/main`
+- **Previous checked source baseline:** `4ee1a0236330de57b8b64c4858ab97e328744be0`, pushed and read back from `origin/main`
 - **Current owner:** coordinating task; independent backend/runtime owners delivered retirement; coordinating task owns UI, audit projection, docs and phased delivery
 - **Next owner:** current task continues the resumed goal
 - **Transport:** identify this checked delivery with `git log -1 -- docs/current-work-handoff.md` and independently verify its upstream
@@ -356,7 +356,7 @@ runtime/DB lock inversion and commit races. Phase7 source passed local acceptanc
 backend owns the frozen V34 receipt/transaction/POST and controlled dual-database
 fixtures; runtime owns publication pinning, exact reviewed proof and current
 application reconciliation; root owns the existing dialog controls, safe audit
-projection, paired copy and documentation. Source is checked and ready for its scoped commit/push. Continue under the resumed full objective.
+projection, paired copy and documentation. Source is checked and pushed at `4ee1a0236330de57b8b64c4858ab97e328744be0`; exact remote main SHA was verified. Continue under the resumed full objective.
 
 - Readiness is pushed at `a9d8dc3e89bf15e22a898095bee8e5006ec44d48`, verified
   against remote main. Its Actionlint 36984325353 and GolangCI-Lint 36984325458
@@ -378,7 +378,7 @@ projection, paired copy and documentation. Source is checked and ready for its s
   The owned browser tab, process and Compose resources were removed. No supplier
   or fleet proof is claimed.
 
-## Next partial capability: F19 member model directory
+## Current partial capability: F19 member model directory
 
 First fix the existing available count and fabricated Chat example for models
 without eligible protocols. Preserve the direct personal `/api/v1/models` and
@@ -391,3 +391,25 @@ Cover literal/intersected filters, revocation, scoped sources, unavailable route
 capability intersections and bounded overflow with UI and real dual-database
 acceptance. The inventory stays 8 complete/19 partial/3 not started; only A01 is
 fully accepted. Continue the full objective after phased delivery.
+
+
+### F19 first bounded correction
+
+The existing member catalogue counts an active model as available only when it
+has a supported eligible native protocol. An explicit empty protocol list, unknown
+protocol, disabled or archived model must not fabricate a Chat endpoint or cURL
+example. The existing drawer displays localized unavailable guidance, disables
+copy and withholds a misleading Key-management suggestion. Supported native
+examples and the Gemini path guard remain. Dedicated frontend tests passed 15
+cases; full format/check/test passed (665 Vitest cases in 54 files, Go race/unit,
+four Node checks, development lifecycle and embedded production assets). No
+expanded catalogue endpoint or Team invocation is delivered by this correction.
+
+
+Credential retirement `4ee1a02` exact remote CI completed successfully:
+[CI](https://github.com/miclle/routex/actions/runs/36990759345),
+[Actionlint](https://github.com/miclle/routex/actions/runs/36990759328) and
+[GolangCI-Lint](https://github.com/miclle/routex/actions/runs/36990759313), including
+dual databases, independent process authentication restart and build artifacts.
+Its coordination checkpoint is separately pushed at `87ffd86`. Those remote
+checks remain evidence for that package, separate from this UI correction.

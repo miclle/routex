@@ -361,3 +361,21 @@ errors; owned resources were removed. First durable admission activates quota
 accounting and can publish a new configuration, so the controlled fixture obtained
 its actual successor completion after that publication. No supplier/fleet
 acceptance or whole-F11 completion is claimed.
+
+
+## Member model availability and examples
+
+The member catalogue separates visibility from current API availability. Its
+available statistic counts active models with at least one eligible supported
+native protocol. Explicit empty protocol lists remain empty; unknown protocols and
+disabled/archived models never select an implicit Chat fallback. The API drawer
+retains the existing native examples for eligible routes and the Gemini public
+name guard. Without a usable protocol it shows English/Chinese unavailable
+guidance, with no fabricated endpoint/example, enabled copy action or suggestion
+that creating a Key repairs routing. This frontend correction does not expand
+`GET /api/v1/models`, direct grants, Personal Keys or Team invocation.
+
+The focused correction passed 15 dedicated UI tests and complete format/check/test
+(665 Vitest cases in 54 files, Go race/unit, Node checks, development lifecycle
+and embedded production assets). Open drawers follow refreshed catalogue
+eligibility instead of retaining a copied model object.

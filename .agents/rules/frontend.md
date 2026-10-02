@@ -184,3 +184,10 @@ intent through uncertain or rejected retries; refreshing readiness never resolve
 uncertainty. A durable receipt confirms historical commit independently of current
 runtime application. Never optimistically disable rows, treat a re-enabled or
 missing predecessor as currently applied, or claim supplier/fleet revocation.
+
+
+Member catalogue availability counts only active models with eligible supported
+native protocols. Explicit empty protocols and unknown/disabled models must never
+fabricate a Chat endpoint or cURL example. Keep localized unavailable guidance,
+disabled copy and the native Gemini name guard; Key creation cannot repair route
+availability. Team visibility and Personal Key authority remain separate.
