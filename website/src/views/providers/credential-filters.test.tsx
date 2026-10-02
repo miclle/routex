@@ -303,7 +303,7 @@ describe('provider credential filters', () => {
       'Actions for Alpha.Primary',
     )
     await act(async () => table().querySelector<HTMLButtonElement>('button')!.click())
-    await until(() => expect(document.querySelectorAll('[role="menuitem"]')).toHaveLength(4))
+    await until(() => expect(document.querySelectorAll('[role="menuitem"]')).toHaveLength(5))
     expect(
       [...document.querySelectorAll('[role="menuitem"]')].every(
         (item) => item.getAttribute('aria-disabled') === 'true',

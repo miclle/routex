@@ -93,3 +93,42 @@ func TestCredentialDeletionAuditProjection(t *testing.T) {
 		t.Fatal("deletion audit attributed to an unrelated resource")
 	}
 }
+
+func TestCredentialReplacementAuditProjection(t *testing.T) {
+	resultID := "crd_01m36yee4gkbns18pfcqqc75a3"
+	sourceID := "crd_01m36yee4gkbns18pfcqqc75a4"
+	raw := `{"source_id":"` + sourceID + `","connection_id":"con_recorded","name":"Replacement","priority":0,"reason":"Reviewed replacement","secret":"do-not-leak","ciphertext":"do-not-leak","request_hash":"do-not-leak","request_body":"do-not-leak"}`
+	row := entity.AuditEvent{Action: "credential.replacement.create", ResourceType: "credential", ResourceID: resultID, DetailsJSON: &raw}
+	record := auditRecord(row)
+	expected := `{"before":{"absent":true},"after":{"source_id":"` + sourceID + `","connection_id":"con_recorded","name":"Replacement","priority":0},"reason":"Reviewed replacement"}`
+	if string(record.Changes) != expected {
+		t.Fatalf("unexpected replacement projection %s", record.Changes)
+	}
+	if record.Source != nil || record.IP != nil || record.RequestID != nil {
+		t.Fatal("replacement projection invented request facts")
+	}
+	for _, invalid := range []string{
+		strings.Replace(raw, sourceID, resultID, 1),
+		strings.Replace(raw, sourceID, "crd_unknown", 1),
+		strings.Replace(raw, `"priority":0`, `"priority":10001`, 1),
+		strings.Replace(raw, `"priority":0,`, "", 1),
+		strings.Replace(raw, `"reason":"Reviewed replacement"`, `"reason":"bad\nreason"`, 1),
+		strings.Replace(raw, `"connection_id":"con_recorded"`, `"connection_id":""`, 1),
+		strings.Replace(raw, `"name":"Replacement"`, `"name":""`, 1),
+	} {
+		row.DetailsJSON = &invalid
+		if auditRecord(row).Changes != nil {
+			t.Fatal("malformed replacement audit exposed")
+		}
+	}
+	row.DetailsJSON = &raw
+	row.ResourceType = "api_key"
+	if auditRecord(row).Changes != nil {
+		t.Fatal("replacement audit attributed to wrong resource type")
+	}
+	row.ResourceType = "credential"
+	row.ResourceID = "crd_unknown"
+	if auditRecord(row).Changes != nil {
+		t.Fatal("replacement audit attributed to invalid result")
+	}
+}

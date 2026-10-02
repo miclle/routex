@@ -13,6 +13,7 @@ type AuditValues =
   | LimitPolicy
   | { name: string; priority: number }
   | { id: string; connection_id: string; name: string; priority: number }
+  | { source_id: string; connection_id: string; name: string; priority: number }
   | { absent: true }
   | { etag: string; items: ModelPrice[] }
   | { etag: string; currency: PricePage['currency'] }

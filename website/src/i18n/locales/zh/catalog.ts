@@ -1,4 +1,31 @@
 export default {
+  credentialReplacement: {
+    title: '创建替代凭证',
+    action: '创建替代凭证',
+    description: '为此接入保存一个独立的新凭证。原凭证保持当前状态。',
+    stepsTitle: '先保存，再验证并启用',
+    steps:
+      '新记录初始为待验证、已停用。请从凭证列表发起验证，再单独启用。确认新凭证可用后，再单独停用原凭证。',
+    source: '原凭证',
+    connection: '所属接入',
+    newState: '新记录状态',
+    pending: '待验证 · 已停用',
+    name: '新凭证名称',
+    secret: '新 API Key',
+    reason: '替代原因',
+    create: '创建替代凭证',
+    created: '替代凭证已保存，当前为待验证、已停用。请另行验证并启用。',
+    lineage: '替代凭证 {{id}}',
+    secretError: '填写 1–2,048 个 UTF-8 字节的密钥，不得包含换行符。',
+    stale: '原凭证信息已变更。请先检查最新记录，再提交保留的草稿。',
+    review: '检查原凭证',
+    reviewed: '已检查原凭证。草稿已保留，请检查后再创建替代凭证。',
+    reviewFailed: '无法检查原凭证。草稿已保留。',
+    uncertain:
+      '创建结果尚未确认。请重试原请求以确认回执，或关闭对话框，不视为成功。检查原凭证无法确认此结果。',
+    retry: '重试原创建请求',
+    failed: '无法创建替代凭证。请检查权限和草稿，再重试。',
+  },
   credentialDelete: {
     title: '删除凭证？',
     action: '删除凭证',

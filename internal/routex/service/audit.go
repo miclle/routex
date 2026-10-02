@@ -169,6 +169,36 @@ func auditRecord(row entity.AuditEvent) AuditRecord {
 			return result
 		}
 		changes = detail
+	case "credential.replacement.create":
+		var detail struct {
+			SourceID     string `json:"source_id"`
+			ConnectionID string `json:"connection_id"`
+			Name         string `json:"name"`
+			Priority     *int   `json:"priority"`
+			Reason       string `json:"reason"`
+		}
+		if json.Unmarshal([]byte(*row.DetailsJSON), &detail) != nil ||
+			row.ResourceType != "credential" || !credentialDeleteID.MatchString(row.ResourceID) ||
+			!credentialDeleteID.MatchString(detail.SourceID) || detail.SourceID == row.ResourceID ||
+			!validCatalogLabel(detail.ConnectionID) || !validCatalogLabel(detail.Name) ||
+			detail.Priority == nil || *detail.Priority < 0 || *detail.Priority > 10000 ||
+			strings.TrimSpace(detail.Reason) != detail.Reason || !validCredentialMetadataReason(detail.Reason) {
+			return result
+		}
+		type absence struct {
+			Absent bool `json:"absent"`
+		}
+		type replacement struct {
+			SourceID     string `json:"source_id"`
+			ConnectionID string `json:"connection_id"`
+			Name         string `json:"name"`
+			Priority     int    `json:"priority"`
+		}
+		changes = struct {
+			Before absence     `json:"before"`
+			After  replacement `json:"after"`
+			Reason string      `json:"reason"`
+		}{absence{true}, replacement{detail.SourceID, detail.ConnectionID, detail.Name, *detail.Priority}, detail.Reason}
 	case "system.instance.cleanup":
 		var detail struct {
 			Revision uint64 `json:"revision"`

@@ -113,6 +113,64 @@ removes a row optimistically. No migration or secret decryption is needed by the
 deletion transaction; remaining runtime configuration still follows its normal
 credential-storage requirements.
 
+### Staged replacement preparation
+
+The existing row menu opens the approved replacement-dialog composition with
+source/Connection context, the inherited priority, a new name and secret, and a
+required reason. This step creates a separate pending disabled Credential and
+retains the predecessor unchanged. The interface describes the saved preparation
+step accurately; it cannot simulate verification or claim completed rotation.
+Actual Verify and explicit Enable remain separate existing operations.
+
+`POST /admin/credentials/:credential_id/replacements` requires `providers.write`,
+same-origin validation, CSRF, a reviewed source metadata `If-Match`, and strict
+JSON `{request_id,name,secret,reason}`. Request IDs are lowercase canonical UUIDv4
+values. Name and reason follow metadata bounds; the new secret follows the
+existing 1–2,048-byte/no-CRLF contract. Connection identity and priority derive from
+the reviewed source, without caller-controlled routing or lifecycle fields.
+
+Frozen GORM schema version 31 adds nullable immutable `replaces_credential_id`
+lineage and a durable creation-receipt table. Historical IDs have no live foreign
+keys to deletable Credential records. A governance-authorized transaction locks
+Connection then source, checks the reviewed representation and portable name
+uniqueness, encrypts the new secret under its own new ID, and creates the new
+Credential, receipt and typed `credential.replacement.create` audit together.
+No discovery coverage is copied. Preparation does not refresh runtime: a pending
+disabled record with no coverage cannot expand active routes or authorization.
+
+A new preparation returns `201`; an exact repeat returns `200`. Both return only
+`{id,connection_id,replaces_credential_id}`, acknowledging saved preparation,
+without claiming routing application. The receipt binds actor/source/Connection/
+result identities and a canonical hash of non-secret intent. It never stores a
+secret, an unkeyed secret hash, or ciphertext copies. Before retry reconciliation,
+the server reauthorizes the actor and checks the receipt, then compares the
+submitted secret to the result's immutable encrypted secret inside the authorized
+service. Comparison uses fixed-length in-memory digests only. The same request ID
+cannot identify another actor, source, reviewed ETag, name, reason or secret.
+
+Receipts survive source and result deletion. An exact retry may return an existing
+result after source deletion; a deleted result or unavailable Secret Store cannot
+create another Credential. Distinct request IDs with distinct Connection-local
+names are independent preparations; there is no single-successor restriction.
+Catalogue rows expose historical predecessor IDs even when the source no longer
+exists, without revealing secret fragments or fetching another resource.
+
+The browser retains the new secret and captured request only in component state.
+Transport errors, unavailable storage, and malformed success receipts remain
+uncertain; retry the original UUID/body/ETag. Every rejected uncertain retry keeps
+that original uncertainty. Reading or reviewing the source cannot prove whether a
+replacement was created and cannot unlock another intent. Normal source conflicts
+require explicit review before a fresh request ID. Dismissal, success, navigation
+and unmount clear sensitive state; no mutation cache or browser storage is used.
+
+Complete planned retirement remains separate unfinished scope. It requires exact
+new-Credential configuration application and an authoritative successful inference
+using that new Credential. Current call/attempt facts do not persist Credential
+IDs, and global runtime readiness, discovery or a model's success cannot establish
+those facts. Equal priority does not prove the new Credential receives traffic.
+The existing emergency disable action remains independently available; supplier-
+side revocation is outside this preparation endpoint.
+
 ## Models, Names, Grants, and Weights
 
 Creating a model requires a provider model and creates an initial binding with weight `0`. The creating administrator receives an explicit persisted grant in the same transaction. This is a convenience for the first configured route, not a role-based bypass: removing that grant removes the administrator's member-facing model visibility and eligibility for model-scoped access.
@@ -125,7 +183,7 @@ Grant replacement validates all supplied users before deleting old grants, then 
 
 ## HTTP API
 
-All paths below are relative to `/api/v1`. Management endpoints require a session and their independent permissions: `providers.read` for the Provider catalogue, `providers.write` for Provider/Connection/Credential changes and verification, `models.read_all` for the administrative Model catalogue, and `models.write` for Model changes and grantee candidates. Mutations also require same-origin validation, `X-CSRF-Token`, and JSON input. Errors use the shared sanitized `{code,message}` contract. All create operations return `201`; other successful operations return `200`.
+All paths below are relative to `/api/v1`. Management endpoints require a session and their independent permissions: `providers.read` for the Provider catalogue, `providers.write` for Provider/Connection/Credential changes and verification, `models.read_all` for the administrative Model catalogue, and `models.write` for Model changes and grantee candidates. Mutations also require same-origin validation, `X-CSRF-Token`, and JSON input. Errors use the shared sanitized `{code,message}` contract. New create operations return `201`; an exact persisted replacement-creation retry returns `200`. Other successful operations return `200`.
 
 | Method and path | Request | Response |
 |---|---|---|
@@ -137,6 +195,7 @@ All paths below are relative to `/api/v1`. Management endpoints require a sessio
 | `PATCH /admin/credentials/:credential_id` | `{enabled}` | Credential metadata |
 | `GET /admin/credentials/:credential_id/metadata` | None | Non-secret Credential metadata, `connection_id`, `etag`; quoted ETag header |
 | `PUT /admin/credentials/:credential_id/metadata` | `{name,priority,reason}` and quoted `If-Match` | Current authoritative metadata after runtime publication |
+| `POST /admin/credentials/:credential_id/replacements` | `{request_id,name,secret,reason}` and reviewed source `If-Match` | Saved preparation `{id,connection_id,replaces_credential_id}` |
 | `DELETE /admin/credentials/:credential_id` | `{reason}` and quoted metadata `If-Match` | `{id,absent:true,runtime_applied:true}` after current absence and publication |
 | `POST /admin/connections/:connection_id/models` | `{upstream_name}` | `{id,upstream_name}` |
 | `PATCH /admin/provider-models/:provider_model_id` | `{etag,enabled?,supports_image_input?,supports_pdf_input?}` | Provider-model configuration |
@@ -154,7 +213,7 @@ Connections support the native `openai_chat`, `openai_responses`,
 contain 1–2,048 bytes and cannot contain CR/LF. Priority is an integer from 0 to
 10,000. Labels contain 1–100 Unicode characters after trimming.
 
-Provider responses contain `{id,name,connections}`. Connections contain `{id,name,base_url,protocol,credentials,provider_models}`. Provider-model entries contain `{id,upstream_name,enabled,supports_image_input,supports_pdf_input,etag}`. Input capabilities default to false and are changed atomically with availability through the exact-ETag provider-model update endpoint. Credential metadata contains `{id,name,priority,enabled,verification_status,verified_at}`; the verification timestamp is nullable.
+Provider responses contain `{id,name,connections}`. Connections contain `{id,name,base_url,protocol,credentials,provider_models}`. Provider-model entries contain `{id,upstream_name,enabled,supports_image_input,supports_pdf_input,etag}`. Input capabilities default to false and are changed atomically with availability through the exact-ETag provider-model update endpoint. Catalogue Credential metadata contains `{id,name,priority,enabled,verification_status,verified_at,replaces_credential_id}`; the verification timestamp and historical predecessor ID are nullable. The dedicated reviewed metadata response retains its eight-field representation and does not include lineage.
 
 Member model responses include the currently eligible native `protocols` and an
 `input_capabilities` map for those protocols. RouteX advertises `image` or `pdf`

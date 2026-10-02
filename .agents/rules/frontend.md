@@ -75,6 +75,18 @@ confirming current absence and runtime application completes the workflow. Never
 remove rows optimistically. Explain loss of availability after deleting the last
 ready credential and preserve already dispatched requests and immutable history.
 
+Credential replacement preparation keeps the approved dialog composition and
+existing row menu. The new secret and UUIDv4/body/If-Match intent stay in component
+state only. Validate the exact saved-result DTO and 201/200 status; pending disabled
+creation never claims runtime application or completed rotation. Preserve the
+predecessor, Connection and priority; real Verify and explicit Enable remain
+separate. Normal conflicts require explicit source review and a new intent.
+Uncertain retries retain the original intent after every rejection; source GET
+cannot prove creation absent or permit another intent. Clear sensitive state on
+success, dismissal, resource change and unmount. Show historical predecessor IDs
+in the existing name-cell composition without secret fragments or new resource
+queries. Keep paired `catalog` translations and independent read/write authority.
+
 ## Internationalization and Formatting
 
 - Use `i18next` and `react-i18next` for every visible label, validation message, status, empty state, and accessible name. Supported languages are `en` and `zh`; English is the default regardless of browser locale.

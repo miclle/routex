@@ -1,10 +1,10 @@
 # Current Work Handoff
 
-- **Status:** implementation active; F11 Credential metadata/deletion checked; staged replacement preparation is next
-- **Updated:** 2026-10-02T13:12:00+08:00
+- **Status:** implementation active; F11 replacement preparation checked; per-attempt attribution is the next package
+- **Updated:** 2026-10-02T13:53:00+08:00
 - **Repository / branch:** RouteX / `main`
-- **Verified source baseline:** `66874aa2ac444831dfcd74888dde4273c4dc864e`, equal to `origin/main` before this package
-- **Current owner:** coordinating task; independent Credential backend and frontend workers have finished their assigned changes
+- **Previous checked source baseline:** `1d3e430a0fefb726481638d3c1f0151eab1e5b5f`, pushed and read back from `origin/main`
+- **Current owner:** coordinating task; replacement workers frozen after acceptance; independent persistence/runtime owners prepared for the next package
 - **Next owner:** current task continues the resumed goal
 - **Transport:** identify this checked delivery with `git log -1 -- docs/current-work-handoff.md` and independently verify its upstream
 - **Coordination plan:** `~/dotfiles/projects/routex/implementation-plan.md`; synchronize separately and preserve unrelated changes
@@ -22,7 +22,7 @@ The 2026-09-30 two-hour implementation window and its pause are historical. On
 implemented capabilities. No new two-hour limit or pause was requested. Completing
 one package does not complete the objective or authorize marking it paused.
 
-## Current package: F11 Credential metadata and deletion
+## Previous checked delivery: F11 Credential metadata and deletion
 
 | Area | Implementation and boundary |
 | --- | --- |
@@ -36,6 +36,62 @@ The next package assessment covers staged rotation: predecessor lineage,
 concurrent/uncertain creation, explicit activation/publication, migration and
 negative acceptance. Verification of a new Credential never implicitly enables it.
 No paid upstream calls or external credentials have been used.
+
+## Latest checked package: staged replacement preparation
+
+Backend and frontend own separate files. New pending disabled Credentials receive
+immutable historical predecessor IDs; frozen GORM V31 adds that nullable column
+and durable non-FK creation receipts. The strict replacement endpoint uses reviewed
+source If-Match, required name/secret/reason and a stable UUIDv4 request ID. Its
+three-field 201/200 response acknowledges saved preparation only. Pending additions
+do not refresh runtime or change active routes; actual verification and explicit
+enablement remain separate. Old Credential state and discovered coverage stay
+intact. Multiple distinct named successors are allowed; an identical request ID
+still identifies only one creation.
+
+An authorized retry checks the durable actor/source/non-secret intent receipt and
+compares the submitted secret to the exact result's immutable ciphertext within
+the service. No unkeyed secret digest is stored. Deleted result, changed actor/body/
+secret, or unavailable storage cannot create another result. Source GET cannot
+resolve creation uncertainty. The UI freezes original UUID/body/ETag through every
+rejected uncertain retry, keeps secrets out of caches/storage, shows lineage in
+the existing name cell, and clears sensitive state on completion/dismissal/unmount.
+
+Focused UI tests passed **128/128**, including 35 new replacement cases and existing
+metadata/deletion/filter/catalog/i18n flows; TypeScript and scoped ESLint passed.
+Full check and test passed (619 Vitest cases in 51 files, Go race/unit, four Node
+checks, development lifecycle and embedded production assets). Independent
+contract review reported no actionable finding. The first real database matrix
+failed in the new PostgreSQL upgrade fixture because the pinned GORM DropIndex
+emitted invalid `CURRENT_SCHEMA()` syntax. Two fixed allowlisted test-only index
+statements correct this fixture while MySQL retains Migrator.DropIndex. Focused
+real PostgreSQL/MySQL migration plus replacement lifecycle tests passed under
+the race detector (127.168 seconds), and mandatory check passed after correction.
+The final complete PostgreSQL/MySQL matrix passed (Handler 404.327 seconds,
+Service 5.012 seconds). Owned Compose containers/network were removed. Production V31 uses GORM AddColumn/CreateIndex/table
+operations and is unchanged by this test-only correction.
+
+An independent production binary restart with an isolated PostgreSQL database and
+unchanged root key reconciled the same request (201 before restart, 200 after,
+same result ID). Both rows remained unchanged/pending/disabled; changed-secret
+reuse returned 409. The embedded browser confirmed lineage, English/Chinese
+preparation fields/state and cancellation without a write. English was restored,
+and the owned temporary tab/process/database/network/config/journal were removed.
+Independent-process and browser evidence remain separate from the complete
+dual-database matrix; all required local checks passed before this delivery.
+
+## Current-package verification
+
+| Check | Result |
+| --- | --- |
+| Focused UI | 128/128 cases, including 35 replacement cases, plus TypeScript/scoped ESLint |
+| Mandatory full check | Passed after final fixture correction; zero errors, two existing Fast Refresh warnings |
+| Full test | 619 Vitest cases in 51 files, Go race/unit, four Node checks, development lifecycle, production build/embedded assets |
+| Focused dual databases | V31 prefix migration and replacement lifecycle under race detection, 127.168 seconds |
+| Full dual databases | PostgreSQL/MySQL passed: Handler 404.327 seconds, Service 5.012 seconds; owned resources removed |
+| Process restart | New preparation 201, exact retry from independent restarted binary 200/same ID, changed-secret reuse 409 |
+| Embedded browser | English/Chinese original table/menu, historical lineage, preparation fields/state and cancellation; no browser write/upstream call; English restored and fixture removed |
+| Review and docs | Independent focused review: no actionable finding; whitespace and 68 local Markdown references passed |
 
 ## Overall status and other partial work
 
@@ -70,13 +126,13 @@ open. Never infer Team attribution or debit from membership alone.
 
 | Check | Result and boundary |
 | --- | --- |
-| Source baseline remote checks | [CI 36700399323](https://github.com/miclle/routex/actions/runs/36700399323), [Actionlint 36700399389](https://github.com/miclle/routex/actions/runs/36700399389), and [GolangCI-Lint 36700399452](https://github.com/miclle/routex/actions/runs/36700399452) passed for `66874aa`; they do not establish acceptance of this new package. |
-| Focused frontend | 68 Credential metadata/deletion/filter/i18n cases passed; TypeScript and scoped ESLint passed. |
-| Focused backend | Metadata/deletion validation and typed audit projection tests passed; independent contract review reported no remaining finding. |
-| Exact combined `go tool task check` | Passed after formatting, with no lint errors and two existing Fast Refresh warnings. |
-| Exact combined `go tool task test` | Passed: 584 Vitest cases, Go race/unit, four Node checks, development lifecycle and production build/embedded assets. |
-| Full PostgreSQL/MySQL matrix | Passed after physical-pool isolation: Handler 386.887 seconds, Service 5.144 seconds. Both databases, complete frozen migrations and lifecycle assertions ran; disposable containers/network were removed. |
-| Browser | Isolated PostgreSQL fixture confirmed the original Credentials table/action menu, English editing fields and cancelled draft, Chinese deletion preview/reason and cancellation with the row intact. No browser write or real upstream call was submitted. Final embedded assets were rebuilt, reloaded, and observed in English and Chinese; English was restored. The temporary tab, service, Compose database/network and fixture files were removed. |
+| Metadata/deletion remote checks | [CI 36967885700](https://github.com/miclle/routex/actions/runs/36967885700), [Actionlint 36967885686](https://github.com/miclle/routex/actions/runs/36967885686), and [GolangCI-Lint 36967885754](https://github.com/miclle/routex/actions/runs/36967885754) passed for exact `1d3e430`, including dual databases, process restarts and embedded artifacts. They do not establish acceptance of uncommitted replacement preparation. |
+| Previous focused frontend | 68 Credential metadata/deletion/filter/i18n cases passed; TypeScript and scoped ESLint passed. |
+| Previous focused backend | Metadata/deletion validation and typed audit projection tests passed; independent contract review reported no remaining finding. |
+| Metadata/deletion `go tool task check` | Passed after formatting, with no lint errors and two existing Fast Refresh warnings. |
+| Metadata/deletion `go tool task test` | Passed: 584 Vitest cases, Go race/unit, four Node checks, development lifecycle and production build/embedded assets. |
+| Metadata/deletion database matrix | Passed after physical-pool isolation: Handler 386.887 seconds, Service 5.144 seconds. Both databases, complete frozen migrations and lifecycle assertions ran; disposable containers/network were removed. |
+| Metadata/deletion browser | Isolated PostgreSQL fixture confirmed the original Credentials table/action menu, English editing fields and cancelled draft, Chinese deletion preview/reason and cancellation with the row intact. No browser write or real upstream call was submitted. Final embedded assets were rebuilt, reloaded, and observed in English and Chinese; English was restored. The temporary tab, service, Compose database/network and fixture files were removed. |
 
 The first full check exposed a staticcheck Boolean simplification in a new test;
 the equivalent condition was fixed. The first full frontend run passed 583/584:
@@ -100,17 +156,17 @@ be reported separately.
 
 ## Working tree and transfer
 
-- RouteX baseline was clean and equal to `origin/main`; current changes belong to this F11 package and its tests/docs/rules.
-- Dotfiles baseline was `dc9cf2288fee21aa8935aa7e2458bc68183b8568`, equal to `origin/main`; stage only the RouteX coordination record for its separate commit.
+- The preparation delivery contains only its backend/UI/tests/docs/rules. Its checked commit is the commit carrying this handoff; read it from Git history rather than guessing a self-referential SHA. Per-attempt attribution has not begun at the preparation freeze. Metadata/deletion was previously pushed as `1d3e430` with a clean tree.
+- Dotfiles baseline was `67e7e0d5170a4004ebe8c7b6f2800bdb72945c8c`, pushed to `origin/main`; stage only the RouteX coordination record for later updates.
 - Preserve unrelated modified dotfiles `zsh/.zshrc`; never stage, overwrite or discard it.
 - Fetch both repositories' `main` branches to transfer checked commits. Ignored configuration, databases, processes and temporary logs do not transfer; recreate them from `docs/DEVELOPMENT.md`.
 
 ## Next actions
 
-1. The complete isolated PostgreSQL/MySQL matrix passed; preserve its exact-source evidence.
-2. Finish scoped README, catalogue, implementation-index and handoff/coordination updates; check whitespace and local links, then commit and push the checked package to `main`.
-3. Verify remote SHA and exact CI outcomes. Do not attribute baseline CI to a later commit.
-4. Continue the next bounded partial-capability package, starting with the staged Credential rotation assessment. Keep separate backend/frontend ownership, reviewed API contracts and meaningful tests.
+1. Identify this checked preparation delivery with `git log -1 -- docs/current-work-handoff.md`; verify `origin/main` and its exact CI outcomes. Preserve unrelated dotfiles changes and never attribute old CI to new code.
+2. Begin per-attempt attribution in `service/call.go` and `entity/call.go`, with a frozen V32 migration. The persistence owner implements bounded optional CredentialID/SnapshotID and exact RecordCall copies; the runtime owner populates failed/final/interrupted attempts in `gateway_attempt_execute.go`, `call_recorder.go`, and `handler/gateway.go`. No public call DTO change is needed.
+3. Keep old database/journal values unknown; never infer an attempt snapshot from its parent logical call. Validate same-Connection Credential fallback, cross-Provider failover, four native ordinary/stream outcomes, interruption/replay, idempotent delivery, and both-database migration preservation/partial recovery. Run mandatory check/test/matrix before the next commit/push.
+4. Follow with independent parser-owned native completion evidence and scoped current-configuration readback before a server-gated planned retirement operation. HTTP/call success can include empty Chat payloads or Gemini prompt blocks; discovery/global readiness/usage completeness cannot authorize retirement. Emergency disable stays independent.
 5. Real-provider, SMTP, IdP/LDAP, Vault, S3, price-source and production acceptance require supplied environments and resources; do not search other accounts for credentials.
 
 ## Files to read first
@@ -119,8 +175,8 @@ be reported separately.
 | --- | --- |
 | `AGENTS.md`, `.agents/rules/frontend.md` | Mandatory architecture, UI, localization, formatting and verification |
 | `docs/IMPLEMENTATION.md`, `docs/CATALOG.md` | Full F/A inventory and Credential lifecycle contracts |
-| `internal/routex/service/credential_metadata.go`, `credential_delete.go` | Persistence, audit, authorization and publication boundaries |
-| `website/src/views/providers/credential-metadata.tsx`, `credential-delete.tsx` | Draft, conflict and retry behavior |
+| `internal/routex/service/credential_replacements.go`, `credential_metadata.go`, `credential_delete.go` | Durable preparation receipts, persistence, audit, authorization and publication boundaries |
+| `website/src/views/providers/credential-replacements.tsx`, `credential-metadata.tsx`, `credential-delete.tsx` | Transient secrets, reviewed drafts, conflict and retry behavior |
 | `docs/QUOTAS.md`, `docs/QUOTA_LEDGER.md`, `docs/RESOURCE_LIMITS.md` | Scoped policy, unknown-history and accounting contracts |
 | `docs/NOTIFICATIONS.md` | Existing source/recipient/delivery boundaries before quota reminders |
 | `~/dotfiles/projects/routex/implementation-plan.md` | Cross-task scope, dependencies, acceptance and evidence |

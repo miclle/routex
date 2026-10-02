@@ -23,3 +23,29 @@ MySQL can commit DDL implicitly. Design retryable steps and advance the migratio
 An exception requires a GORM capability gap or measured performance need, a local rationale, parameterized inputs, and tests for each supported driver. Do not create parallel PostgreSQL/MySQL implementations of ordinary CRUD or table definitions.
 
 Current exceptions are the database-level migration locks (`pg_advisory_lock` and `GET_LOCK`) and their release operations. GORM does not expose a portable connection-scoped advisory lock. These operations are contained in the database package, run on the same dedicated connection, and have concurrent-startup tests on both databases. Failed unlocks discard the physical connection to prevent a locked session from returning to the pool. Historical released DDL retains its existing dialect-specific collation and schema behavior for upgrade compatibility.
+
+
+## Credential replacement preparation (version 31)
+
+Version 31 adds a nullable historical predecessor ID to `provider_credentials`
+and a dedicated `credential_replacement_receipts` table. The frozen production
+schema uses GORM column/index/table operations, with no new
+handwritten SQL or driver branch. The upgrade fixture uses two fixed allowlisted
+PostgreSQL index-removal statements because the pinned GORM PostgreSQL Migrator
+generates invalid `DROP INDEX CURRENT_SCHEMA().name` syntax; MySQL retains
+`Migrator.DropIndex`. This exception is test-only and verifies index removal before
+partial-DDL recovery; production and released steps are unchanged.
+Lineage and receipt identities intentionally have no live foreign keys to
+Credential rows: source deletion must preserve the replacement's historical
+lineage, and result deletion must preserve creation deduplication.
+
+The UUIDv4 request ID is the receipt primary key; result Credential IDs are unique,
+while predecessor indexes are nonunique. Different named preparation intents may
+share a predecessor. Receipts contain only actor/source/Connection/result IDs and
+non-secret intent hashes. Secret comparison uses the original encrypted result
+inside the authorized service, never a persisted unkeyed secret digest.
+
+Real PostgreSQL/MySQL acceptance covers version-30 upgrades and old-row
+preservation, empty and repeated migration, concurrent startup, interrupted
+DDL/index reconciliation, receipt uniqueness and deletion durability. Do not
+edit earlier released schema steps or use current entities as frozen definitions.

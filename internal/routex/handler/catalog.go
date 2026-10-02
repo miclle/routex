@@ -11,12 +11,13 @@ import (
 )
 
 type CredentialResponse struct {
-	ID                 string     `json:"id"`
-	Name               string     `json:"name"`
-	Priority           int        `json:"priority"`
-	Enabled            bool       `json:"enabled"`
-	VerificationStatus string     `json:"verification_status"`
-	VerifiedAt         *time.Time `json:"verified_at"`
+	ReplacesCredentialID *string    `json:"replaces_credential_id"`
+	ID                   string     `json:"id"`
+	Name                 string     `json:"name"`
+	Priority             int        `json:"priority"`
+	Enabled              bool       `json:"enabled"`
+	VerificationStatus   string     `json:"verification_status"`
+	VerifiedAt           *time.Time `json:"verified_at"`
 }
 type ProviderModelResponse struct {
 	Enabled            bool   `json:"enabled"`
@@ -90,7 +91,7 @@ type CreateProviderModelRequest struct {
 }
 
 func credentialResponse(item entity.ProviderCredential) CredentialResponse {
-	return CredentialResponse{ID: item.ID, Name: item.Name, Priority: item.Priority, Enabled: item.Enabled, VerificationStatus: item.VerificationStatus, VerifiedAt: item.VerifiedAt}
+	return CredentialResponse{ID: item.ID, Name: item.Name, Priority: item.Priority, Enabled: item.Enabled, VerificationStatus: item.VerificationStatus, VerifiedAt: item.VerifiedAt, ReplacesCredentialID: item.ReplacesCredentialID}
 }
 func providerModelResponse(item entity.ProviderModel) ProviderModelResponse {
 	return ProviderModelResponse{ID: item.ID, UpstreamName: item.UpstreamName, Enabled: !item.Disabled, SupportsImageInput: item.SupportsImageInput, SupportsPDFInput: item.SupportsPDFInput, ETag: item.ETag}

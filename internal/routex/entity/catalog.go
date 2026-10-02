@@ -24,15 +24,28 @@ type ProviderConnection struct {
 }
 
 type ProviderCredential struct {
-	ID                 string `gorm:"primaryKey;size:30"`
-	ConnectionID       string `gorm:"size:30;not null"`
-	Name               string `gorm:"size:100;not null"`
-	Ciphertext         string `gorm:"type:text;not null"`
-	Priority           int    `gorm:"not null"`
-	Enabled            bool   `gorm:"not null"`
-	VerificationStatus string `gorm:"size:20;not null"`
-	VerifiedAt         *time.Time
-	CreatedAt          time.Time
+	ReplacesCredentialID *string `gorm:"size:30;index:idx_credentials_replaces"`
+	ID                   string  `gorm:"primaryKey;size:30"`
+	ConnectionID         string  `gorm:"size:30;not null"`
+	Name                 string  `gorm:"size:100;not null"`
+	Ciphertext           string  `gorm:"type:text;not null"`
+	Priority             int     `gorm:"not null"`
+	Enabled              bool    `gorm:"not null"`
+	VerificationStatus   string  `gorm:"size:20;not null"`
+	VerifiedAt           *time.Time
+	CreatedAt            time.Time
+}
+
+// CredentialReplacementReceipt retains non-secret creation identity even when
+// the source or result is deleted. Historical IDs deliberately have no live FKs.
+type CredentialReplacementReceipt struct {
+	RequestID          string    `gorm:"primaryKey;size:36"`
+	ActorID            string    `gorm:"size:30;not null"`
+	SourceCredentialID string    `gorm:"size:30;not null;index:idx_credential_replacement_source"`
+	ConnectionID       string    `gorm:"size:30;not null"`
+	ResultCredentialID string    `gorm:"size:30;not null;uniqueIndex:idx_credential_replacement_result"`
+	RequestHash        string    `gorm:"size:64;not null"`
+	CreatedAt          time.Time `gorm:"precision:6;not null"`
 }
 
 type ProviderModel struct {

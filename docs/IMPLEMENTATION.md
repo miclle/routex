@@ -161,7 +161,7 @@ The binary capability count is 8 completed, 19 partially completed, and 3 not st
 | F08 | Personal and Project Key lifecycle | Completed | One-time delivery, confirmation, editing, rotation, revocation, expiration, scope, and history are implemented with controlled dual-database evidence. |
 | F09 | Key Token, money, RPM, TPM, concurrency, and IP restrictions | Completed | Personal, Project, and Key admission policies are enforced in the native gateway for the documented single-node architecture. Multi-node enforcement remains a separate release-architecture gate. |
 | F10 | Offboarding, inventory, handover, and emergency disable | Partially completed | Transactional local-account offboarding and continuity workflows exist; external-identity and complete enterprise continuity behavior remain open. |
-| F11 | Provider, Connection, Credential, discovery, and rotation | Partially completed | The management workspace, encrypted credentials, controlled verification, and activation boundaries exist; explicit provider-model capacity attestations, credential-pool filtering/verification timestamps, reviewed name/priority editing, and reviewed deletion are available; staged rotation, real-provider acceptance, and complete pool operations remain open. |
+| F11 | Provider, Connection, Credential, discovery, and rotation | Partially completed | The management workspace, encrypted credentials, controlled verification, and activation boundaries exist; explicit provider-model capacity attestations, credential-pool filtering/verification timestamps, reviewed name/priority editing, reviewed deletion, and staged replacement preparation are available; evidence-gated predecessor retirement, real-provider acceptance, and complete pool operations remain open. |
 | F12 | Model catalog, names, bindings, weights, and catalog assistance | Partially completed | Stable models, renames, bindings, weights, grants, and availability controls exist; complete public-catalog assistance and final routing acceptance remain open. |
 | F13 | Four native protocols, streaming, health, retries, and failover | Partially completed | Chat Completions, Responses, Messages, and Gemini now use bounded replay-safe same-protocol failover with process-local health, one admission/settlement, durable ordered diagnostics, and no retry after a usable response. Real-provider and measured multi-node health acceptance remain open. |
 | F14 | Managed egress and staged network diagnostics | Partially completed | Direct, default, SOCKS5, verified CONNECT, endpoint-bound saved authentication, complete-tunnel proxy-address fallback, and diagnostics exist. External proxy and production performance acceptance remain open. |
@@ -1301,7 +1301,52 @@ confirmed table/menu layout, English/Chinese edit fields, draft cancellation and
 Chinese deletion preview/reason/cancellation in an isolated database; no browser
 write or real upstream call was submitted. Fixture resources were removed.
 
-F11 remains partial. Staged replacement creation, durable new-Credential invocation
+F11 remains partial. Durable new-Credential invocation
 and configuration evidence, complete pool operations, and real-provider acceptance
 remain separate work. Discovery, model success or a globally ready runtime cannot
 establish that a replacement Credential has successfully served an inference.
+
+
+### Staged Credential replacement preparation
+
+A replacement creates a distinct encrypted Credential in the reviewed source
+Connection, with inherited priority, immutable historical predecessor identity,
+and pending/disabled state. It never overwrites, disables or copies discovery
+coverage from the source. Frozen GORM version 31 adds nullable lineage and durable
+creation receipts with no live foreign keys to deletable Credentials.
+
+The independently authorized strict endpoint requires reviewed source If-Match,
+a stable UUIDv4 request ID, name, secret and reason. A transaction writes the new
+record, non-secret intent receipt and typed audit together. First creation returns
+201; an exact retry returns 200 with the same three-field identity receipt. Current
+write authority is rechecked before reconciliation, and the exact result's
+immutable encrypted secret is compared inside the service. Changed actor/body/
+secret or a deleted result cannot create another record. Source deletion does not
+prevent reconciliation of the still-existing result. Distinct named successors
+are allowed. Preparation does not refresh runtime or claim invocation readiness.
+
+The existing Credential table/menu and local Base UI dialog retain reviewed
+drafts, component-only secret state, explicit conflict review and immutable
+uncertain UUID/body/ETag retries. A rejected retry never clears original creation
+uncertainty; source readback cannot resolve it. Lineage appears in the existing
+name cell. Verification and enablement remain separate operations, and no
+predecessor retirement is inferred from discovery or global runtime readiness.
+
+Focused interface tests passed 128 cases, including 35 new replacement cases.
+The full check and test passed with 619 Vitest cases in 51 files, Go race/unit,
+four Node checks, development lifecycle and embedded production assets.
+Independent contract review found no remaining defect. An isolated production
+binary created one record (201), then reconciled the exact request after an
+independent process restart with the same database and root key (200, same ID).
+Changed-secret reuse returned 409. Both rows and historical lineage were confirmed
+in the embedded English/Chinese interface; dialog cancellation preserved the
+rows, English was restored, and fixture resources were removed. No real-provider
+request was made. Focused real PostgreSQL/MySQL V31 migration and replacement lifecycle tests
+passed under the race detector (127.168 seconds). The first full matrix exposed
+a pinned GORM PostgreSQL index-removal syntax issue in the upgrade fixture. Two
+fixed allowlisted test-only index statements correct the fault injection, without
+changing production/released migrations or weakening assertions. The final full
+PostgreSQL/MySQL matrix passed (Handler 404.327 seconds, Service 5.012 seconds),
+with owned Compose containers/network removed. No timeout or assertion was
+relaxed. F11 remains partial: per-Credential invocation/configuration evidence,
+native completion proof and planned predecessor retirement remain separate work.

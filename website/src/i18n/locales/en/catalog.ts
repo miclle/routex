@@ -1,4 +1,36 @@
 export default {
+  credentialReplacement: {
+    title: 'Create replacement credential',
+    action: 'Create replacement',
+    description:
+      'Save a separate credential for this connection. The original credential keeps its current state.',
+    stepsTitle: 'Save first, then verify and enable',
+    steps:
+      'The new record starts pending and disabled. Verify it from the credential list, then explicitly enable it. Confirm it works before separately disabling the original credential.',
+    source: 'Original credential',
+    connection: 'Connection',
+    newState: 'New record state',
+    pending: 'Pending · Disabled',
+    name: 'New credential name',
+    secret: 'New API Key',
+    reason: 'Replacement reason',
+    create: 'Create replacement',
+    created:
+      'Replacement credential saved as pending and disabled. Verify and enable it separately.',
+    lineage: 'Replaces credential {{id}}',
+    secretError: 'Enter a secret of 1–2,048 UTF-8 bytes without line breaks.',
+    stale:
+      'Original credential metadata changed. Review the latest record before submitting your retained draft.',
+    review: 'Review original credential',
+    reviewed:
+      'Original credential reviewed. Your draft is preserved; review it before creating a replacement.',
+    reviewFailed: 'The original credential could not be reviewed. Your draft is preserved.',
+    uncertain:
+      'The creation result is uncertain. Retry the exact request to confirm its receipt, or dismiss this dialog without claiming success. Reviewing the original credential cannot resolve this result.',
+    retry: 'Retry exact creation',
+    failed:
+      'Replacement could not be created. Check your permissions and draft before trying again.',
+  },
   credentialDelete: {
     title: 'Delete credential?',
     action: 'Delete credential',

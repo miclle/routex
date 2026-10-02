@@ -1,4 +1,5 @@
 export interface Credential {
+  replaces_credential_id?: string | null
   id: string
   name: string
   priority: number

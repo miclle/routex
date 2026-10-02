@@ -22,6 +22,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { ProviderOverview, ProviderSettings } from './detail'
 import CredentialMetadataDialog from './credential-metadata'
 import CredentialDeleteDialog from './credential-delete'
+import CredentialReplacementDialog from './credential-replacements'
 
 type Action = { kind: 'provider' | 'connection' | 'credential' | 'model'; id?: string }
 type ProviderTab = 'overview' | 'connections' | 'credentials' | 'models' | 'settings'
@@ -42,6 +43,7 @@ function CredentialTable({
   onToggle,
   onEdit,
   onDelete,
+  onReplace,
 }: {
   provider: Provider
   canWrite: boolean
@@ -50,6 +52,7 @@ function CredentialTable({
   onToggle: (credential: Credential) => void
   onEdit: (credential: Credential, connectionId: string, connectionName: string) => void
   onDelete: (credential: Credential, connectionId: string, connectionName: string) => void
+  onReplace: (credential: Credential, connectionId: string, connectionName: string) => void
 }) {
   const { t, i18n } = useTranslation('catalog')
   const [query, setQuery] = useState('')
@@ -139,7 +142,14 @@ function CredentialTable({
         <tbody>
           {rows.map(({ connection: item, credential }) => (
             <tr key={credential.id}>
-              <td>{credential.name}</td>
+              <td>
+                <span>{credential.name}</span>
+                {credential.replaces_credential_id && (
+                  <p className="mt-1 break-all text-xs text-muted-foreground">
+                    {t('credentialReplacement.lineage', { id: credential.replaces_credential_id })}
+                  </p>
+                )}
+              </td>
               <td>{item.name}</td>
               <td>
                 <Badge variant="outline">{t(`providers.${credential.verification_status}`)}</Badge>
@@ -186,6 +196,12 @@ function CredentialTable({
                   </MenuItem>
                   <MenuItem
                     disabled={pending || !canWrite}
+                    onClick={() => onReplace(credential, item.id, item.name)}
+                  >
+                    {t('credentialReplacement.action')}
+                  </MenuItem>
+                  <MenuItem
+                    disabled={pending || !canWrite}
                     onClick={() => onDelete(credential, item.id, item.name)}
                   >
                     <span className="text-destructive">{t('credentialDelete.action')}</span>
@@ -228,6 +244,12 @@ function Providers() {
     connectionName: string
   } | null>(null)
   const [deletingCredential, setDeletingCredential] = useState<{
+    providerId: string
+    credentialId: string
+    connectionId: string
+    connectionName: string
+  } | null>(null)
+  const [replacingCredential, setReplacingCredential] = useState<{
     providerId: string
     credentialId: string
     connectionId: string
@@ -518,6 +540,15 @@ function Providers() {
                     connectionName,
                   })
                 }}
+                onReplace={(credential, connectionId, connectionName) => {
+                  setNotice(null)
+                  setReplacingCredential({
+                    providerId: selected.id,
+                    credentialId: credential.id,
+                    connectionId,
+                    connectionName,
+                  })
+                }}
                 onDelete={(credential, connectionId, connectionName) => {
                   setNotice(null)
                   setDeletingCredential({
@@ -588,6 +619,17 @@ function Providers() {
             </TabsContent>
           </Tabs>
         </>
+      )}
+      {replacingCredential && selected?.id === replacingCredential.providerId && (
+        <CredentialReplacementDialog
+          {...replacingCredential}
+          onClose={() => setReplacingCredential(null)}
+          onCreated={() => {
+            setReplacingCredential(null)
+            setNotice({ key: 'credentialReplacement.created' })
+            void cache.invalidateQueries({ queryKey: ['admin', 'providers'] })
+          }}
+        />
       )}
       {deletingCredential && selected?.id === deletingCredential.providerId && (
         <CredentialDeleteDialog

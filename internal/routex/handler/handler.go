@@ -214,6 +214,7 @@ func (ctrl *Ctrl) RegisterRoutes(r *fox.Engine) {
 	admin.GET("/credentials/:credential_id/metadata", ctrl.RequirePermission("providers.read"), ctrl.GetCredentialMetadata)
 	admin.PUT("/credentials/:credential_id/metadata", sameOrigin, requireCSRF, jsonManagementRequest, ctrl.RequirePermission("providers.write"), ctrl.WriteCredentialMetadata)
 	admin.DELETE("/credentials/:credential_id", sameOrigin, requireCSRF, jsonManagementRequest, ctrl.RequirePermission("providers.write"), ctrl.DeleteCredential)
+	admin.POST("/credentials/:credential_id/replacements", sameOrigin, requireCSRF, jsonManagementRequest, ctrl.RequirePermission("providers.write"), ctrl.CreateCredentialReplacement)
 	admin.POST("/connections/:connection_id/models", sameOrigin, requireCSRF, jsonManagementRequest, ctrl.RequirePermission("providers.write"), ctrl.CreateProviderModel)
 	admin.POST("/models", sameOrigin, requireCSRF, jsonManagementRequest, ctrl.RequirePermission("models.write"), ctrl.CreateModel)
 	admin.POST("/models/:model_id/bindings", sameOrigin, requireCSRF, jsonManagementRequest, ctrl.RequirePermission("models.write"), ctrl.AddModelBinding)
