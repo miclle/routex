@@ -10,6 +10,7 @@ import AdminModelsPage from '@/views/models/admin'
 import CreateModelPage from '@/views/models/create'
 import ModelsPage from '@/views/models'
 import client from '@/api/client'
+import i18n from '@/i18n'
 import type { CallableModel, Model, PersonalKey, Provider } from '@/types/catalog'
 
 Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true })
@@ -321,6 +322,17 @@ describe('catalog and Key workflows', () => {
     expect(requests.some((request) => request.url?.endsWith('/complete-rotation'))).toBe(false)
     await until(() => expect(document.body.textContent).toContain('Complete rotation'))
     await click('Complete rotation')
+    expect(document.body.textContent).toContain(
+      'Tool handoffs, blocked or truncated responses do not count',
+    )
+    await act(async () => {
+      await i18n.changeLanguage('zh')
+    })
+    expect(document.body.textContent).toContain('工具交接、被拦截或被截断的响应不计入验证')
+    expect(requests.some((request) => request.url?.endsWith('/complete-rotation'))).toBe(false)
+    await act(async () => {
+      await i18n.changeLanguage('en')
+    })
     failures['post /keys/key_1/complete-rotation'] = 409
     await submit()
     await until(() =>

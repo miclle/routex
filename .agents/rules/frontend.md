@@ -87,6 +87,12 @@ success, dismissal, resource change and unmount. Show historical predecessor IDs
 in the existing name-cell composition without secret fragments or new resource
 queries. Keep paired `catalog` translations and independent read/write authority.
 
+Personal and Project Key rotation dialogs explain the native-completion gate.
+Delivery, HTTP acceptance, known usage, tool handoff, blocked/truncated responses
+and unknown history do not verify a replacement. The server owns eligibility;
+keep secrets transient, retain the selected replacement across language changes
+and preserve historical completion retries and current authorization.
+
 ## Internationalization and Formatting
 
 - Use `i18next` and `react-i18next` for every visible label, validation message, status, empty state, and accessible name. Supported languages are `en` and `zh`; English is the default regardless of browser locale.

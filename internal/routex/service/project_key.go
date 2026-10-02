@@ -386,11 +386,11 @@ func (s *Service) CompleteProjectKeyRotation(ctx context.Context, actorID, proje
 		if err := validateProjectKeyModels(tx, projectID, replacement.ModelIDs); err != nil {
 			return err
 		}
-		var calls int64
-		if err := tx.Model(&entity.CallRecord{}).Where("project_id = ? AND key_id = ? AND status = ? AND started_at >= ?", projectID, replacementID, "success", replacement.Key.CreatedAt).Count(&calls).Error; err != nil {
+		verified, err := hasCompletedReplacementKeyCall(tx, "", projectID, replacementID, replacement.Key.CreatedAt)
+		if err != nil {
 			return err
 		}
-		if calls == 0 {
+		if !verified {
 			return errKeyConflict
 		}
 		if old.Key.Status != entity.KeyRevoked {

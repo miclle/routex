@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -28,12 +29,22 @@ func testProjectKeyLifecycle(t *testing.T, db *gorm.DB) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	var finish atomic.Value
+	finish.Store("stop")
 	upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Header.Get("Authorization") != "Bearer project-provider-secret" {
 			t.Error("unexpected upstream credential")
 		}
 		w.Header().Set("Content-Type", "application/json")
-		_, _ = io.WriteString(w, `{"model":"project-upstream","choices":[],"usage":{"prompt_tokens":3,"completion_tokens":5}}`)
+		if finish.Load().(string) == "weak" {
+			_, _ = io.WriteString(w, `{"model":"project-upstream","choices":[],"usage":{"prompt_tokens":3,"completion_tokens":5}}`)
+			return
+		}
+		message := `{"role":"assistant","content":"Project result"}`
+		if finish.Load().(string) == "tool_calls" {
+			message = `{"role":"assistant","content":null,"tool_calls":[{"id":"call_1","type":"function","function":{"name":"weather","arguments":"{}"}}]}`
+		}
+		_, _ = io.WriteString(w, chatCompletionFixture(finish.Load().(string), message, `{"prompt_tokens":3,"completion_tokens":5}`, false, 0))
 	}))
 	defer upstream.Close()
 	svc, err := service.New(ctx, db, service.WithCredentialStorage(store), service.WithUpstreamPolicy(true))
@@ -215,17 +226,59 @@ func testProjectKeyLifecycle(t *testing.T, db *gorm.DB) {
 		t.Fatal("delivery confirmation prematurely retired old Key")
 	}
 	completion := map[string]any{"replacement_key_id": replacement.Key.ID}
+	expectStatus(t, outsiderRequest("POST", keyPath+"/complete-rotation", completion), 404)
 	expectStatus(t, successorRequest("POST", keyPath+"/complete-rotation", completion), 409)
 	expectStatus(t, call(replacement.Secret, "other-project-model"), 404)
 	if err := svc.FlushCallRecorder(ctx); err != nil {
 		t.Fatal(err)
 	}
 	expectStatus(t, successorRequest("POST", keyPath+"/complete-rotation", completion), 409)
-	expectStatus(t, call(replacement.Secret, "project-model"), 200)
+	// HTTP success and token counters alone never authorize retiring the old Key.
+	for _, outcome := range []struct{ finish, evidence string }{
+		{"weak", "unknown"}, {"refusal", "blocked"}, {"tool_calls", "handoff"}, {"length", "incomplete"},
+	} {
+		finish.Store(outcome.finish)
+		response := call(replacement.Secret, "project-model")
+		expectStatus(t, response, 200)
+		if err := svc.FlushCallRecorder(ctx); err != nil {
+			t.Fatal(err)
+		}
+		assertStoredNativeCompletion(t, db, response.Header().Get("X-Request-ID"), outcome.evidence)
+		expectStatus(t, successorRequest("POST", keyPath+"/complete-rotation", completion), 409)
+		if _, err := svc.AuthenticateAPIKey(ctx, created.Secret); err != nil {
+			t.Fatal("noncompleted replacement call retired the predecessor")
+		}
+	}
+	testProjectRotationHostileFacts(t, svc, replacement.Key, project.ID, creator.User.ID, modelID, func() {
+		expectStatus(t, successorRequest("POST", keyPath+"/complete-rotation", completion), 409)
+	})
+	finish.Store("stop")
+	proof := call(replacement.Secret, "project-model")
+	expectStatus(t, proof, 200)
 	if err := svc.FlushCallRecorder(ctx); err != nil {
 		t.Fatal(err)
 	}
+	assertStoredNativeCompletion(t, db, proof.Header().Get("X-Request-ID"), "completed")
+	// Native proof does not bypass current Project authority or effective grants.
+	expectStatus(t, request("PATCH", projectPath, map[string]any{"status": "disabled"}), 200)
+	expectStatus(t, successorRequest("POST", keyPath+"/complete-rotation", completion), 409)
+	expectStatus(t, request("PATCH", projectPath, map[string]any{"status": "active"}), 200)
+	expectStatus(t, request("PUT", projectPath+"/models", map[string]any{"model_ids": []string{otherID}}), 200)
+	expectStatus(t, successorRequest("POST", keyPath+"/complete-rotation", completion), 403)
+	expectStatus(t, request("PUT", projectPath+"/models", map[string]any{"model_ids": []string{modelID, otherID}}), 200)
+	if err := db.Model(&entity.ProjectKey{}).Where("id = ?", replacement.Key.ID).Update("expires_at", time.Now().UTC().Add(-time.Minute)).Error; err != nil {
+		t.Fatal(err)
+	}
+	expectStatus(t, successorRequest("POST", keyPath+"/complete-rotation", completion), 409)
+	if err := db.Model(&entity.ProjectKey{}).Where("id = ?", replacement.Key.ID).Update("expires_at", nil).Error; err != nil {
+		t.Fatal(err)
+	}
 	expectStatus(t, successorRequest("POST", keyPath+"/complete-rotation", completion), 204)
+	var rotationWG sync.WaitGroup
+	for range 2 {
+		rotationWG.Go(func() { expectStatus(t, successorRequest("POST", keyPath+"/complete-rotation", completion), 204) })
+	}
+	rotationWG.Wait()
 	expectStatus(t, successorRequest("POST", keyPath+"/complete-rotation", completion), 204)
 	expectStatus(t, successorRequest("PATCH", replacementPath, map[string]any{"enabled": false}), 200)
 	expectStatus(t, successorRequest("POST", keyPath+"/complete-rotation", completion), 204)
@@ -243,6 +296,7 @@ func testProjectKeyLifecycle(t *testing.T, db *gorm.DB) {
 	expectStatus(t, creatorRequest("PUT", projectPath+"/managers", map[string]any{"user_ids": []string{successor.User.ID}}), 200)
 	expectStatus(t, creatorRequest("GET", keysPath, nil), 404)
 	expectStatus(t, creatorRequest("GET", projectPath+"/calls", nil), 404)
+	expectStatus(t, creatorRequest("POST", keyPath+"/complete-rotation", completion), 404)
 	expectStatus(t, request("PATCH", "/api/v1/admin/members/"+creator.User.ID, map[string]any{"disabled": true}), 200)
 	expectStatus(t, call(replacement.Secret, "project-model"), 200)
 	expectStatus(t, call(survivor.Secret, "project-model"), 200)
@@ -254,6 +308,19 @@ func testProjectKeyLifecycle(t *testing.T, db *gorm.DB) {
 	if remaining.ProjectID != project.ID || remaining.CreatorID != successor.User.ID {
 		t.Fatal("creator departure transferred Project Key")
 	}
+	// The Project, rather than either creator, owns the replacement proof.
+	survivorPath := keysPath + "/" + survivor.Key.ID
+	departedReplacement := decodeCatalogResponse[CreatedProjectKeyResponse](t, successorRequest("POST", survivorPath+"/rotate", map[string]any{"delivery_mode": "manual"}), 201)
+	expectStatus(t, successorRequest("POST", keysPath+"/"+departedReplacement.Key.ID+"/confirm", nil), 200)
+	expectStatus(t, call(departedReplacement.Secret, "project-model"), 200)
+	if err := svc.FlushCallRecorder(ctx); err != nil {
+		t.Fatal(err)
+	}
+	departedCompletion := map[string]any{"replacement_key_id": departedReplacement.Key.ID}
+	expectStatus(t, creatorRequest("POST", survivorPath+"/complete-rotation", departedCompletion), 401)
+	expectStatus(t, successorRequest("POST", survivorPath+"/complete-rotation", departedCompletion), 204)
+	expectStatus(t, successorRequest("DELETE", keysPath+"/"+departedReplacement.Key.ID, nil), 204)
+	expectStatus(t, successorRequest("POST", survivorPath+"/complete-rotation", departedCompletion), 204)
 	// Expiry and unconfirmed delivery deadlines remain hard authorization gates.
 	expiring := decodeCatalogResponse[CreatedProjectKeyResponse](t, successorRequest("POST", keysPath, keyBody), 201)
 	deadline := time.Now().UTC().Add(-time.Minute)
@@ -343,5 +410,34 @@ func testProjectKeyRevocationRaces(t *testing.T, db *gorm.DB, svc *service.Servi
 			replacement := decodeCatalogResponse[CreatedProjectKeyResponse](t, response, 201)
 			expectStatus(t, request("POST", keysPath+"/"+replacement.Key.ID+"/confirm", nil), 409)
 		}
+	}
+}
+
+// Hostile immutable facts must not substitute personal ownership, another
+// Project, old chronology, or a nonterminal attempt for the actual Project proof.
+func testProjectRotationHostileFacts(t *testing.T, svc *service.Service, key ProjectKeyResponse, projectID, creatorID, modelID string, rejected func()) {
+	t.Helper()
+	for _, sample := range []struct {
+		name, userID, projectID string
+		before, later           bool
+	}{
+		{"personal_context", creatorID, "", false, false},
+		{"wrong_project", "", "prj_wrong_context", false, false},
+		{"before_creation", "", projectID, true, false},
+		{"later_canceled_attempt", "", projectID, false, true},
+	} {
+		started := key.CreatedAt.Add(time.Millisecond)
+		if sample.before {
+			started = key.CreatedAt.Add(-time.Second)
+		}
+		requestID := "req_project_rotation_" + sample.name
+		fact := service.CallFact{RequestID: requestID, UserID: sample.userID, ProjectID: sample.projectID, KeyID: key.ID, ModelID: modelID, ModelName: "project-model", Protocol: entity.ProtocolOpenAIChat, Status: "success", StartedAt: started, CompletedAt: started.Add(time.Millisecond), Attempts: []service.CallAttempt{{ID: requestID + "_1", AttemptNumber: 1, Status: "success", NativeCompletionEvidence: "completed", HTTPStatus: 200, StartedAt: started, CompletedAt: started.Add(time.Millisecond)}}}
+		if sample.later {
+			fact.Attempts = append(fact.Attempts, service.CallAttempt{ID: requestID + "_2", AttemptNumber: 2, Status: "canceled", NativeCompletionEvidence: "unknown", StartedAt: started, CompletedAt: started.Add(time.Millisecond)})
+		}
+		if err := svc.RecordCall(context.Background(), fact); err != nil {
+			t.Fatalf("persist %s hostile fact: %v", sample.name, err)
+		}
+		rejected()
 	}
 }

@@ -9,7 +9,7 @@ export default {
   rotation_complete_the_original_key_has_been_revoked_e319c:
     'Rotation complete. The original key has been revoked.',
   replacement_delivery_confirmed_the_original_key_remains_usable_a698e:
-    'Replacement delivery confirmed. The original key remains usable. Switch your application, make a successful call, then complete rotation separately.',
+    'Replacement delivery confirmed. The original key remains usable. Switch your application, successfully complete a model response, then complete rotation separately.',
   my_api_keys_9df22: 'My API keys',
   keys_authorize_your_personal_calls_secrets_appear_once_a36c1:
     'Keys authorize your personal calls. Secrets appear once and require delivery confirmation; their scope cannot exceed your effective model grants.',
@@ -51,7 +51,7 @@ export default {
   create_and_reveal_key_5bf84: 'Create and reveal key',
   save_your_key_77b9f: 'Save your key',
   this_secret_appears_once_confirm_that_you_saved_131d0:
-    'This secret appears once. Confirm that you saved it before use; closing or canceling revokes this new key. During rotation, the original remains usable until you separately complete rotation after a successful call with the replacement.',
+    'This secret appears once. Confirm that you saved it before use; closing or canceling revokes this new key. During rotation, the original remains usable until you separately complete rotation after a completed model response with the replacement.',
   one_time_secret_8b246: 'One-time secret',
   store_it_in_your_secret_manager_do_not_0e9d8:
     'Store it in your secret manager. Do not share it with others.',
@@ -63,11 +63,11 @@ export default {
   cancel_and_revoke_176bb: 'Cancel and revoke',
   complete_key_rotation_e8920: 'Complete key rotation',
   switch_your_application_to_the_replacement_and_make_71853:
-    'Switch your application to the replacement and make a successful model call. The server revokes the original only after verifying that call was recorded. Saving a secret does not verify a call.',
+    'Switch your application to the replacement and successfully complete a model response. Tool handoffs, blocked or truncated responses do not count. Retirement waits for recorded completion; saving a secret does not verify a response.',
   replacement_key_b3c07: 'Replacement key',
   original_key_bef53: 'Original key: ',
   if_a_successful_call_has_not_been_recorded_df32d:
-    '… If a successful call has not been recorded or verification fails, the original stays unchanged. Retry later. For a compromised key, use immediate revocation.',
+    '… If a completed response has not been recorded or verification fails, the original stays unchanged. Retry later. For a compromised key, use immediate revocation.',
   verify_call_and_revoke_original_ab13d: 'Verify call and revoke original',
   rename_key_91684: 'Rename key',
   revoke_key_a9725: 'Revoke key',

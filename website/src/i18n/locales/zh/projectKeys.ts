@@ -43,7 +43,7 @@ export default {
   replacementOf: '替换 {{id}}',
   deliveryTitle: '保存一次性凭证',
   deliveryDescription: '完整凭证仅在此展示一次。确认前不能调用；关闭此窗口将撤销待交付的 Key。',
-  rotationNotice: '确认交付不会撤销旧 Key。请部署新凭证并完成一次成功调用，再显式完成轮换。',
+  rotationNotice: '确认交付不会撤销旧 Key。请部署新凭证并成功完成一次模型响应，再显式完成轮换。',
   savedCheck: '我已安全保存此凭证',
   confirm: '确认交付',
   discard: '取消并撤销',
@@ -56,7 +56,7 @@ export default {
   revokeDescription: '撤销立即生效且不可恢复，无需创建替换 Key 或等待调用验证。',
   confirmRevoke: '确认撤销',
   completeDescription:
-    '只有同一项目的替换 Key 完成真实成功调用并持久化记录后才能撤销旧 Key。若记录仍在处理，请稍后重试。',
+    '只有同一项目的替换 Key 成功完成模型响应并保存完成记录后才能撤销旧 Key。工具交接、被拦截或被截断的响应不计入验证。若记录仍在处理，请稍后重试。',
   replacement: '已确认的替换 Key',
   selectReplacement: '选择替换 Key',
   noReplacement: '尚无已启用的替换 Key。请先轮换并确认交付。',

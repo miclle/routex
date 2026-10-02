@@ -11,8 +11,8 @@ import (
 	apperrors "github.com/miclle/routex/internal/routex/errors"
 )
 
-// CompletePersonalKeyRotation retires an old credential only after a successful
-// call made with its delivered replacement. Emergency revocation stays separate.
+// CompletePersonalKeyRotation retires an old Key only after a native-completed
+// terminal call made with its delivered replacement. Emergency revocation stays separate.
 func (s *Service) CompletePersonalKeyRotation(ctx context.Context, userID, keyID, replacementID string) error {
 	if replacementID == "" || replacementID == keyID {
 		return apperrors.ErrBadRequest
@@ -59,11 +59,11 @@ func (s *Service) CompletePersonalKeyRotation(ctx context.Context, userID, keyID
 		if err := validateKeyModels(tx, userID, replacementModels); err != nil {
 			return err
 		}
-		var calls int64
-		if err := tx.Model(&entity.CallRecord{}).Where("user_id = ? AND project_id = ? AND key_id = ? AND status = ? AND started_at >= ?", userID, "", replacementID, "success", replacement.CreatedAt).Count(&calls).Error; err != nil {
+		completedCall, err := hasCompletedReplacementKeyCall(tx, userID, "", replacementID, replacement.CreatedAt)
+		if err != nil {
 			return err
 		}
-		if calls == 0 {
+		if !completedCall {
 			return errKeyConflict
 		}
 		if old.Status != entity.KeyRevoked {

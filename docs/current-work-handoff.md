@@ -1,10 +1,10 @@
 # Current Work Handoff
 
-- **Status:** implementation active; F11 attribution pushed; native completion evidence checked; Key proof hardening next
-- **Updated:** 2026-10-02T15:14:00+08:00
+- **Status:** implementation active; F11 native completion evidence pushed; F08 Key retirement proof hardening checked for phased commit
+- **Updated:** 2026-10-02T15:44:00+08:00
 - **Repository / branch:** RouteX / `main`
-- **Previous checked source baseline:** `c7f80d9f30dcd5b7eed66374a6eb59fc3ef5913b`, pushed and read back from `origin/main`
-- **Current owner:** coordinating task; independent persistence/schema and native-parser owners preparing the next scoped Key proof hardening
+- **Previous checked source baseline:** `cbfbd6dd38cc720966357c687397bd03542a04cf`, pushed and read back from `origin/main`
+- **Current owner:** coordinating task; independent Personal/Project owners finished Key proof hardening; coordinating task owns UI guidance, full acceptance and documents
 - **Next owner:** current task continues the resumed goal
 - **Transport:** identify this checked delivery with `git log -1 -- docs/current-work-handoff.md` and independently verify its upstream
 - **Coordination plan:** `~/dotfiles/projects/routex/implementation-plan.md`; synchronize separately and preserve unrelated changes
@@ -269,3 +269,36 @@ to free ports. The isolated browser fixture used backend `19001` and its own tem
 PostgreSQL database. Its tab, service, database/network and temporary fixture files
 were removed after preview/cancellation checks; no browser write or real upstream
 request was submitted.
+
+
+## Active package: existing Key retirement proof hardening
+
+Personal and Project gates now require an exact immutable successful replacement
+call after Key creation and its successful last attempt with native completed
+evidence. A portable bounded GORM projection performs exact Go comparisons of
+owner/Key/request/status/marker/timing/ordinal and excludes later attempts. HTTP
+200 empty/refused/tool/limited output, unknown/failed/canceled/missing facts,
+misattribution and raw case-folded candidates cannot qualify. Historical completed
+audit replay, current authority/scope/expiry, emergency revocation and runtime
+invalidation remain intact. No migration or public API change.
+
+Service and real-HTTP fixtures are frozen. Independent read-only review found no
+actionable issue. English/Chinese existing-dialog guidance and live-switch tests
+passed 44/44. Full format/check/test passed (619 Vitest cases in 51 files, Go race/
+unit, four Node checks, dev lifecycle and production assets). Focused PostgreSQL/
+MySQL lifecycle race acceptance passed in 146.174 seconds and removed all owned
+Compose resources. The final complete matrix passed (Handler 417.693 seconds, Service 5.211
+seconds); owned Compose resources were removed. Whitespace and local Markdown
+references passed. This delivery is ready for a scoped commit/push. Identify its
+commit through the handoff file log and read back main and its own CI. Synchronize
+the coordination plan separately, then continue F11 scoped readiness and durable
+retirement receipt.
+
+The preceding native-proof commit's exact remote checks all succeeded:
+[CI](https://github.com/miclle/routex/actions/runs/36977642453),
+[Actionlint](https://github.com/miclle/routex/actions/runs/36977642519), and
+[GolangCI-Lint](https://github.com/miclle/routex/actions/runs/36977642469).
+The separately pushed coordination baseline is
+`53a5ba9e7c6b1f701f0be61b6cb95afe4ee9a72b`. These earlier remote results do not accept the
+current Key package. The inventory remains 8 complete, 19 partial and
+3 not started; only A01 is fully accepted. The overall objective remains active.

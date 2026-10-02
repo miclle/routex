@@ -7,14 +7,17 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
 	"github.com/fox-gonic/fox"
 	"gorm.io/gorm"
 
+	"github.com/miclle/routex/internal/routex/database"
 	"github.com/miclle/routex/internal/routex/entity"
 	"github.com/miclle/routex/internal/routex/service"
 	"github.com/miclle/routex/pkg/secretstore"
@@ -26,12 +29,15 @@ func testPersonalKeyRotationLifecycle(t *testing.T, db *gorm.DB) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	completedBody := chatCompletionFixture("stop", `{"role":"assistant","content":"Ready"}`, `{"prompt_tokens":2,"completion_tokens":4}`, false, 0)
+	var responseBody atomic.Value
+	responseBody.Store(completedBody)
 	upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Header.Get("Authorization") != "Bearer rotation-upstream-secret" {
 			t.Error("wrong upstream credential")
 		}
 		w.Header().Set("Content-Type", "application/json")
-		_, _ = io.WriteString(w, `{"model":"rotation-upstream","choices":[],"usage":{"prompt_tokens":2,"completion_tokens":4}}`)
+		_, _ = io.WriteString(w, responseBody.Load().(string))
 	}))
 	defer upstream.Close()
 	svc, err := service.New(ctx, db, service.WithCredentialStorage(store), service.WithUpstreamPolicy(true))
@@ -104,27 +110,117 @@ func testPersonalKeyRotationLifecycle(t *testing.T, db *gorm.DB) {
 	expectStatus(t, request("POST", oldPath+"/complete-rotation", completion), 409)
 	expectStatus(t, call(replacement.Secret, "unknown-model"), 404)
 	expectStatus(t, request("POST", oldPath+"/complete-rotation", completion), 409)
-	// Hostile historical fixtures prove that another owner or Project attribution
-	// cannot qualify. Successful acceptance below still requires a real HTTP call.
-	now := time.Now().UTC()
-	for _, fact := range []entity.CallRecord{
-		{RequestID: "req_wrong_rotation_owner", UserID: "usr_other_history", KeyID: replacement.Key.ID, Protocol: entity.ProtocolOpenAIChat, Status: "success", StartedAt: now, CompletedAt: now},
-		{RequestID: "req_wrong_rotation_project", ProjectID: "prj_other_history", KeyID: replacement.Key.ID, Protocol: entity.ProtocolOpenAIChat, Status: "success", StartedAt: now, CompletedAt: now},
+	// Hostile history otherwise contains native-completed evidence, so scope
+	// checks cannot pass merely because another exclusion happened to apply.
+	var replacementRow entity.APIKey
+	if err := db.First(&replacementRow, "id = ?", replacement.Key.ID).Error; err != nil {
+		t.Fatal(err)
+	}
+	now := time.Now().UTC().Truncate(time.Microsecond)
+	for _, test := range []struct {
+		name   string
+		mutate func(*entity.CallRecord, *[]entity.CallAttempt)
+	}{
+		{"wrong_owner", func(call *entity.CallRecord, _ *[]entity.CallAttempt) { call.UserID = "usr_other_history" }},
+		{"wrong_project", func(call *entity.CallRecord, _ *[]entity.CallAttempt) {
+			call.UserID, call.ProjectID = "", "prj_other_history"
+		}},
+		{"wrong_key", func(call *entity.CallRecord, _ *[]entity.CallAttempt) { call.KeyID = original.Key.ID }},
+		{"precreation", func(call *entity.CallRecord, _ *[]entity.CallAttempt) {
+			call.StartedAt = replacementRow.CreatedAt.Add(-time.Second)
+		}},
+		{"absent_attempt", func(_ *entity.CallRecord, attempts *[]entity.CallAttempt) { *attempts = nil }},
+		{"canceled_terminal", func(_ *entity.CallRecord, attempts *[]entity.CallAttempt) { (*attempts)[0].Status = "canceled" }},
+		{"error_terminal", func(_ *entity.CallRecord, attempts *[]entity.CallAttempt) { (*attempts)[0].Status = "error" }},
+		{"failed_logical", func(call *entity.CallRecord, _ *[]entity.CallAttempt) { call.Status = "error" }},
+		{"earlier_completed", func(call *entity.CallRecord, attempts *[]entity.CallAttempt) {
+			*attempts = append(*attempts, entity.CallAttempt{ID: "att_rotation_later_error", RequestID: call.RequestID, AttemptNumber: 2, Status: "error", NativeCompletionEvidence: "unknown", StartedAt: now, CompletedAt: now})
+		}},
+		{"call_status_case", func(call *entity.CallRecord, _ *[]entity.CallAttempt) { call.Status = "SUCCESS" }},
+		{"attempt_status_case", func(_ *entity.CallRecord, attempts *[]entity.CallAttempt) { (*attempts)[0].Status = "SUCCESS" }},
 	} {
+		fact := entity.CallRecord{RequestID: "req_rotation_" + test.name, UserID: auth.User.ID, KeyID: replacement.Key.ID, Protocol: entity.ProtocolOpenAIChat, Status: "success", StartedAt: now, CompletedAt: now}
+		attempts := []entity.CallAttempt{{ID: "att_rotation_" + test.name, RequestID: fact.RequestID, AttemptNumber: 1, Status: "success", FailureClass: "success", WorkEvidence: "completed", NativeCompletionEvidence: "completed", FinalUsageKnown: true, StartedAt: now, CompletedAt: now}}
+		test.mutate(&fact, &attempts)
 		if err := db.Create(&fact).Error; err != nil {
 			t.Fatal(err)
 		}
+		for _, attempt := range attempts {
+			if err := db.Create(&attempt).Error; err != nil {
+				t.Fatal(err)
+			}
+		}
+		expectStatus(t, request("POST", oldPath+"/complete-rotation", completion), 409)
+	}
+	// The DB domain check can reject uppercase, or its collation can accept it.
+	// If accepted, exact Go marker comparison must still refuse retirement.
+	caseFact := entity.CallRecord{RequestID: "req_rotation_marker_case", UserID: auth.User.ID, KeyID: replacement.Key.ID, Protocol: entity.ProtocolOpenAIChat, Status: "success", StartedAt: now, CompletedAt: now}
+	caseAttempt := entity.CallAttempt{ID: "att_rotation_marker_case", RequestID: caseFact.RequestID, AttemptNumber: 1, Status: "success", NativeCompletionEvidence: "unknown", StartedAt: now, CompletedAt: now}
+	if err := db.Create(&caseFact).Error; err != nil {
+		t.Fatal(err)
+	}
+	if err := db.Create(&caseAttempt).Error; err != nil {
+		t.Fatal(err)
+	}
+	caseUpdateErr := db.Model(&caseAttempt).Update("native_completion_evidence", "COMPLETED").Error
+	var persistedCase entity.CallAttempt
+	if err := db.Select("id", "native_completion_evidence").First(&persistedCase, "id = ?", caseAttempt.ID).Error; err != nil {
+		t.Fatal(err)
+	}
+	if caseUpdateErr == nil && persistedCase.NativeCompletionEvidence != "COMPLETED" || caseUpdateErr != nil && persistedCase.NativeCompletionEvidence != "unknown" {
+		t.Fatal("case-domain probe did not retain the expected stored value")
 	}
 	expectStatus(t, request("POST", oldPath+"/complete-rotation", completion), 409)
 	unrelated := create()
 	expectStatus(t, request("POST", "/api/v1/keys/"+unrelated.Key.ID+"/confirm", nil), 200)
 	expectStatus(t, call(unrelated.Secret, "rotation-model"), 200)
 	expectStatus(t, request("POST", oldPath+"/complete-rotation", map[string]any{"replacement_key_id": unrelated.Key.ID}), 409)
+	for _, test := range []struct{ name, body, marker string }{
+		{"empty", `{"choices":[],"usage":{"prompt_tokens":2,"completion_tokens":4}}`, "unknown"},
+		{"blocked", chatCompletionFixture("content_filter", `{"role":"assistant","content":"Declined"}`, `{"prompt_tokens":2,"completion_tokens":4}`, false, 0), "blocked"},
+		{"tool", chatCompletionFixture("tool_calls", `{"role":"assistant","content":null,"tool_calls":[{"type":"function","function":{"name":"lookup","arguments":"{}"}}]}`, `{"prompt_tokens":2,"completion_tokens":4}`, false, 0), "handoff"},
+		{"length", chatCompletionFixture("length", `{"role":"assistant","content":"Partial"}`, `{"prompt_tokens":2,"completion_tokens":4}`, false, 0), "incomplete"},
+	} {
+		responseBody.Store(test.body)
+		response := call(replacement.Secret, "rotation-model")
+		expectStatus(t, response, 200)
+		var attempt entity.CallAttempt
+		if err := db.Where("request_id = ?", response.Header().Get("X-Request-ID")).First(&attempt).Error; err != nil || attempt.Status != "success" || attempt.NativeCompletionEvidence != test.marker {
+			t.Fatalf("actual %s call did not record its native outcome: %+v %v", test.name, attempt, err)
+		}
+		expectStatus(t, request("POST", oldPath+"/complete-rotation", completion), 409)
+	}
+	responseBody.Store(completedBody)
 	expectStatus(t, call(replacement.Secret, "rotation-model"), 200)
+	// Reopen an independent real pool: completion evidence is durable rather
+	// than retained by the gateway or the original Service instance.
+	freshDB, err := database.Open(ctx, db.Name(), os.Getenv("ROUTEX_TEST_"+strings.ToUpper(db.Name())+"_DSN"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	freshPool, err := freshDB.DB()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = freshPool.Close() }()
+	fresh, err := service.New(ctx, freshDB)
+	if err != nil {
+		t.Fatal(err)
+	}
 	var wg sync.WaitGroup
 	codes := make(chan int, 2)
-	for range 2 {
-		wg.Go(func() { codes <- request("POST", oldPath+"/complete-rotation", completion).Code })
+	for index := range 2 {
+		wg.Go(func() {
+			if index == 0 {
+				if err := fresh.CompletePersonalKeyRotation(ctx, auth.User.ID, original.Key.ID, replacement.Key.ID); err != nil {
+					codes <- 500
+					return
+				}
+				codes <- 204
+				return
+			}
+			codes <- request("POST", oldPath+"/complete-rotation", completion).Code
+		})
 	}
 	wg.Wait()
 	close(codes)

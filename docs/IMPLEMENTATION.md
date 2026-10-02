@@ -1438,3 +1438,33 @@ Key retirement gates still count generic successful calls; a separate next fix
 will require successful terminal completed attempts while preserving historical
 rotation replay and current ownership/scope/expiry checks. This package does not
 claim that gate is hardened or that F11 is fully accepted.
+
+
+### Personal and Project Key retirement proof hardening
+
+The existing F08 retirement gates now use a shared bounded GORM projection of
+immutable logical calls and their last attempt. New retirement requires exact
+Personal or Project ownership, replacement Key and request IDs, the creation
+boundary, successful call/attempt statuses and exact native completed evidence.
+HTTP success, empty/unknown results, handoff, blocking, truncation, cancellation,
+missing or superseded attempts and case-folded/corrupt facts cannot qualify.
+A corrupt latest candidate conservatively requires fresh proof. No schema, public
+API or native forwarding contract changes. Current scope/expiry/authority and
+historical completed-audit retry behavior are preserved; emergency revocation
+remains independent.
+
+Independent Personal and Project owners implemented and froze the service/real-
+HTTP fixture changes. Read-only review found no actionable defect. Existing dialog
+copy now explains the gate in English and Chinese; live language switching keeps
+the chosen Project replacement and does not dispatch. Focused UI tests passed
+44/44. Full format/check/test passed with 619 Vitest cases in 51 files, Go race/
+unit, four Node checks, development lifecycle and embedded production assets.
+Focused real PostgreSQL/MySQL lifecycle acceptance passed under race detection
+in 146.174 seconds, including actual HTTP 200 exclusions, adversarial immutable
+facts, independent-pool concurrent completion, one durable audit and historical
+retries. Owned Compose resources were removed. The final complete PostgreSQL/MySQL race matrix passed (Handler 417.693
+seconds, Service 5.211 seconds), and all owned Compose resources were removed.
+Final whitespace and local Markdown-reference checks passed.
+
+This repairs an existing proof gap without changing capability inventory counts.
+F11 scoped readiness and receipt-backed Provider retirement remain open.

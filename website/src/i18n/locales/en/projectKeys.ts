@@ -50,7 +50,7 @@ export default {
   deliveryDescription:
     'The complete credential appears here only once. It cannot make calls before confirmation. Closing this window revokes the pending key.',
   rotationNotice:
-    'Confirming delivery does not revoke the original key. Deploy the replacement, make a successful call, then explicitly complete rotation.',
+    'Confirming delivery does not revoke the original key. Deploy the replacement, successfully complete a model response, then explicitly complete rotation.',
   savedCheck: 'I have securely saved this credential',
   confirm: 'Confirm delivery',
   discard: 'Cancel and revoke',
@@ -64,7 +64,7 @@ export default {
     'Revocation takes effect immediately and cannot be undone. No replacement or verified call is required.',
   confirmRevoke: 'Confirm revocation',
   completeDescription:
-    'The replacement must complete a successful call attributed to this project, with its call record persisted, before the original can be retired. Retry if the record is still being processed.',
+    'The replacement must successfully complete a model response in this project, with completion recorded. Tool handoffs, blocked or truncated responses do not count. Retry if recording is still pending.',
   replacement: 'Confirmed replacement key',
   selectReplacement: 'Select a replacement key',
   noReplacement: 'No active replacement is available. Rotate and confirm delivery first.',

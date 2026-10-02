@@ -8,7 +8,7 @@ export default {
   revoked_61063: '已撤销',
   rotation_complete_the_original_key_has_been_revoked_e319c: '轮换已完成，旧 Key 已撤销。',
   replacement_delivery_confirmed_the_original_key_remains_usable_a698e:
-    '替代 Key 已确认交付，旧 Key 仍保留。请切换应用并完成一次真实调用，再单独完成轮换。',
+    '替代 Key 已确认交付，旧 Key 仍保留。请切换应用并成功完成一次模型响应，再单独完成轮换。',
   my_api_keys_9df22: '我的 API Key',
   keys_authorize_your_personal_calls_secrets_appear_once_a36c1:
     'Key 仅用于你的个人调用。密钥只展示一次，确认保存后才启用；模型范围不会超出你的有效授权。',
@@ -50,7 +50,7 @@ export default {
   create_and_reveal_key_5bf84: '创建并查看密钥',
   save_your_key_77b9f: '保存你的密钥',
   this_secret_appears_once_confirm_that_you_saved_131d0:
-    '此密钥仅展示一次。确认已保存后才可使用；关闭或取消会撤销这次创建的 Key。轮换时旧 Key 继续保留，需在新 Key 真实调用成功后单独完成轮换。',
+    '此密钥仅展示一次。确认已保存后才可使用；关闭或取消会撤销这次创建的 Key。轮换时旧 Key 继续保留，需在新 Key 成功完成模型响应后单独完成轮换。',
   one_time_secret_8b246: '一次性密钥',
   store_it_in_your_secret_manager_do_not_0e9d8: '请存入你的密钥管理工具，不要发送给他人。',
   i_have_stored_this_key_securely_cc546: '我已安全保存密钥',
@@ -61,11 +61,11 @@ export default {
   cancel_and_revoke_176bb: '取消并撤销',
   complete_key_rotation_e8920: '完成 Key 轮换',
   switch_your_application_to_the_replacement_and_make_71853:
-    '请先将应用切换到替代 Key，并用它完成一次真实模型调用。服务器确认成功调用已记录后才会撤销旧 Key；确认保存密钥不等于调用验证。',
+    '请先将应用切换到替代 Key，并成功完成一次模型响应。工具交接、被拦截或被截断的响应不计入验证。完成记录保存后才会撤销旧 Key；保存密钥不等于响应验证。',
   replacement_key_b3c07: '替代 Key',
   original_key_bef53: '旧 Key：',
   if_a_successful_call_has_not_been_recorded_df32d:
-    '…。成功记录尚未落库或验证不满足时，旧 Key 保持原状态，可稍后重试。紧急泄露请直接使用撤销操作。',
+    '…。响应完成记录尚未保存或验证不满足时，旧 Key 保持原状态，可稍后重试。紧急泄露请直接使用撤销操作。',
   verify_call_and_revoke_original_ab13d: '验证调用并撤销旧 Key',
   rename_key_91684: '重命名 Key',
   revoke_key_a9725: '撤销 Key',

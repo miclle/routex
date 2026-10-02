@@ -285,6 +285,20 @@ describe('Project key lifecycle', () => {
       select.value = 'pky_replacement'
       select.dispatchEvent(new Event('change', { bubbles: true }))
     })
+    expect(document.body.textContent).toContain(
+      'Tool handoffs, blocked or truncated responses do not count',
+    )
+    await act(async () => {
+      await i18n.changeLanguage('zh')
+    })
+    expect(document.body.textContent).toContain('工具交接、被拦截或被截断的响应不计入验证')
+    expect(
+      document.querySelector<HTMLSelectElement>('select[name="replacement_key_id"]')?.value,
+    ).toBe('pky_replacement')
+    expect(requests.some((request) => request.url?.endsWith('/complete-rotation'))).toBe(false)
+    await act(async () => {
+      await i18n.changeLanguage('en')
+    })
     failures[`post ${base}/pky_old/complete-rotation`] = 409
     await submit()
     await until(() =>
