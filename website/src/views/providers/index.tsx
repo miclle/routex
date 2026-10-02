@@ -4,7 +4,7 @@ import { protocolLabel, protocolLabels } from '@/lib/protocols'
 import { useTranslation } from 'react-i18next'
 import { useState, type FormEvent } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Plus } from 'lucide-react'
+import { MoreHorizontal, Plus } from 'lucide-react'
 import { listProviders, writeCatalog } from '@/api/catalog'
 import type { Credential, Provider } from '@/types/catalog'
 import { useSession } from '@/hooks/use-auth'
@@ -17,8 +17,11 @@ import { Dialog } from '@/components/ui/dialog'
 import { Badge } from '@/components/ui/badge'
 import { Link, useParams, useSearchParams } from 'react-router'
 import { Table } from '@/components/ui/table'
+import { Menu, MenuItem } from '@/components/ui/menu'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { ProviderOverview, ProviderSettings } from './detail'
+import CredentialMetadataDialog from './credential-metadata'
+import CredentialDeleteDialog from './credential-delete'
 
 type Action = { kind: 'provider' | 'connection' | 'credential' | 'model'; id?: string }
 type ProviderTab = 'overview' | 'connections' | 'credentials' | 'models' | 'settings'
@@ -37,12 +40,16 @@ function CredentialTable({
   pending,
   onVerify,
   onToggle,
+  onEdit,
+  onDelete,
 }: {
   provider: Provider
   canWrite: boolean
   pending: boolean
   onVerify: (credential: Credential) => void
   onToggle: (credential: Credential) => void
+  onEdit: (credential: Credential, connectionId: string, connectionName: string) => void
+  onDelete: (credential: Credential, connectionId: string, connectionName: string) => void
 }) {
   const { t, i18n } = useTranslation('catalog')
   const [query, setQuery] = useState('')
@@ -151,18 +158,17 @@ function CredentialTable({
               <td>{credential.enabled ? t('providers.enabled') : t('common.disabled')}</td>
               <td>{credential.priority}</td>
               <td>
-                <div className="flex gap-2">
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    disabled={pending || !canWrite}
-                    onClick={() => onVerify(credential)}
-                  >
+                <Menu
+                  label={t('credentialMetadata.actions', { name: credential.name })}
+                  trigger={<MoreHorizontal className="size-4" aria-hidden="true" />}
+                  side="bottom"
+                  align="end"
+                  triggerClassName="h-8 w-8 justify-center px-0"
+                >
+                  <MenuItem disabled={pending || !canWrite} onClick={() => onVerify(credential)}>
                     {t('providers.verify')}
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="ghost"
+                  </MenuItem>
+                  <MenuItem
                     disabled={
                       pending ||
                       !canWrite ||
@@ -171,8 +177,20 @@ function CredentialTable({
                     onClick={() => onToggle(credential)}
                   >
                     {t(credential.enabled ? 'providers.disable' : 'providers.enable')}
-                  </Button>
-                </div>
+                  </MenuItem>
+                  <MenuItem
+                    disabled={pending || !canWrite}
+                    onClick={() => onEdit(credential, item.id, item.name)}
+                  >
+                    {t('credentialMetadata.edit')}
+                  </MenuItem>
+                  <MenuItem
+                    disabled={pending || !canWrite}
+                    onClick={() => onDelete(credential, item.id, item.name)}
+                  >
+                    <span className="text-destructive">{t('credentialDelete.action')}</span>
+                  </MenuItem>
+                </Menu>
               </td>
             </tr>
           ))}
@@ -189,9 +207,10 @@ function CredentialTable({
   )
 }
 export default function ProvidersPage() {
+  const { providerId } = useParams()
   return (
     <PermissionGate permission="providers.read">
-      <Providers />
+      <Providers key={providerId ?? 'directory'} />
     </PermissionGate>
   )
 }
@@ -202,6 +221,18 @@ function Providers() {
   const access = usePermissions()
   const providers = useQuery({ queryKey: ['admin', 'providers'], queryFn: listProviders })
   const [action, setAction] = useState<Action | null>(null)
+  const [editingMetadata, setEditingMetadata] = useState<{
+    providerId: string
+    credentialId: string
+    connectionId: string
+    connectionName: string
+  } | null>(null)
+  const [deletingCredential, setDeletingCredential] = useState<{
+    providerId: string
+    credentialId: string
+    connectionId: string
+    connectionName: string
+  } | null>(null)
   const [notice, setNotice] = useState<{ key: string; count?: number } | null>(null)
   const { providerId } = useParams()
   const [params, setParams] = useSearchParams()
@@ -478,6 +509,24 @@ function Providers() {
                 provider={selected}
                 canWrite={access.can('providers.write')}
                 pending={mutation.isPending}
+                onEdit={(credential, connectionId, connectionName) => {
+                  setNotice(null)
+                  setEditingMetadata({
+                    providerId: selected.id,
+                    credentialId: credential.id,
+                    connectionId,
+                    connectionName,
+                  })
+                }}
+                onDelete={(credential, connectionId, connectionName) => {
+                  setNotice(null)
+                  setDeletingCredential({
+                    providerId: selected.id,
+                    credentialId: credential.id,
+                    connectionId,
+                    connectionName,
+                  })
+                }}
                 onVerify={(credential) => {
                   setNotice(null)
                   mutation.mutate({
@@ -539,6 +588,42 @@ function Providers() {
             </TabsContent>
           </Tabs>
         </>
+      )}
+      {deletingCredential && selected?.id === deletingCredential.providerId && (
+        <CredentialDeleteDialog
+          key={`${deletingCredential.providerId}:${deletingCredential.credentialId}`}
+          {...deletingCredential}
+          onClose={() => setDeletingCredential(null)}
+          onDeleted={() => {
+            setDeletingCredential(null)
+            setNotice({ key: 'credentialDelete.deleted' })
+            void cache.invalidateQueries({ queryKey: ['admin', 'providers'] })
+            void cache.invalidateQueries({
+              queryKey: [
+                'admin',
+                'credential-metadata',
+                selected.id,
+                deletingCredential.credentialId,
+              ],
+            })
+          }}
+        />
+      )}
+      {editingMetadata && selected?.id === editingMetadata.providerId && (
+        <CredentialMetadataDialog
+          key={`${editingMetadata.providerId}:${editingMetadata.credentialId}`}
+          {...editingMetadata}
+          providerName={selected.name}
+          onClose={() => setEditingMetadata(null)}
+          onSaved={() => {
+            setEditingMetadata(null)
+            setNotice({ key: 'credentialMetadata.saved' })
+            void cache.invalidateQueries({ queryKey: ['admin', 'providers'] })
+            void cache.invalidateQueries({
+              queryKey: ['admin', 'credential-metadata', selected.id, editingMetadata.credentialId],
+            })
+          }}
+        />
       )}
       <Dialog
         width={640}

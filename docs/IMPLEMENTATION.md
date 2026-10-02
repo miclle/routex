@@ -147,7 +147,7 @@ Status terms in this section are deliberately strict:
 - **Partially completed** means material implementation exists, but one or more required behaviors or acceptance gates remain open. It does not mean that work has not started.
 - **Not started** means no material implementation of the capability exists. A prerequisite or design note may still be present.
 
-The binary capability count is 8 completed, 19 partially completed, and 3 not started. This is a completion count, not an effort percentage: several partially completed capabilities contain substantial delivered work. All implementation work that had not started was paused on 2026-09-23; this table records the resume inventory without authorizing another work package.
+The binary capability count is 8 completed, 19 partially completed, and 3 not started. This is a completion count, not an effort percentage: several partially completed capabilities contain substantial delivered work. The user resumed implementation on 2026-10-02 and prioritized partially completed capabilities. Status changes require current implementation and acceptance evidence; a package delivery alone does not complete an entire capability.
 
 | ID | Capability | Status | Delivered and remaining scope |
 |---|---|---|---|
@@ -161,7 +161,7 @@ The binary capability count is 8 completed, 19 partially completed, and 3 not st
 | F08 | Personal and Project Key lifecycle | Completed | One-time delivery, confirmation, editing, rotation, revocation, expiration, scope, and history are implemented with controlled dual-database evidence. |
 | F09 | Key Token, money, RPM, TPM, concurrency, and IP restrictions | Completed | Personal, Project, and Key admission policies are enforced in the native gateway for the documented single-node architecture. Multi-node enforcement remains a separate release-architecture gate. |
 | F10 | Offboarding, inventory, handover, and emergency disable | Partially completed | Transactional local-account offboarding and continuity workflows exist; external-identity and complete enterprise continuity behavior remain open. |
-| F11 | Provider, Connection, Credential, discovery, and rotation | Partially completed | The management workspace, encrypted credentials, controlled verification, and activation boundaries exist; explicit provider-model capacity attestations and credential-pool filtering/verification timestamps are available; real-provider acceptance and complete pool operations remain open. |
+| F11 | Provider, Connection, Credential, discovery, and rotation | Partially completed | The management workspace, encrypted credentials, controlled verification, and activation boundaries exist; explicit provider-model capacity attestations, credential-pool filtering/verification timestamps, reviewed name/priority editing, and reviewed deletion are available; staged rotation, real-provider acceptance, and complete pool operations remain open. |
 | F12 | Model catalog, names, bindings, weights, and catalog assistance | Partially completed | Stable models, renames, bindings, weights, grants, and availability controls exist; complete public-catalog assistance and final routing acceptance remain open. |
 | F13 | Four native protocols, streaming, health, retries, and failover | Partially completed | Chat Completions, Responses, Messages, and Gemini now use bounded replay-safe same-protocol failover with process-local health, one admission/settlement, durable ordered diagnostics, and no retry after a usable response. Real-provider and measured multi-node health acceptance remain open. |
 | F14 | Managed egress and staged network diagnostics | Partially completed | Direct, default, SOCKS5, verified CONNECT, endpoint-bound saved authentication, complete-tunnel proxy-address fallback, and diagnostics exist. External proxy and production performance acceptance remain open. |
@@ -1266,3 +1266,42 @@ independent backend and frontend reviews closed with no remaining findings.
 Browser verification confirmed both cards, authoritative live/offline and job
 data, the approved table hierarchy, and live English/Chinese switching before
 restoring English.
+
+
+### Reviewed Credential metadata and deletion
+
+The existing Provider Credentials table now offers a compact row menu with
+verification, separate enablement, name/priority editing, and deletion. Metadata
+reads and writes retain independent authority, exact resource identities, a
+strong non-secret representation ETag, strict Unicode/integer/reason validation,
+portable connection-local name comparison, and a transactional typed audit event.
+Ciphertext, Connection identity, verification and discovery coverage stay intact.
+Matching targets reconcile current state and publication without claiming a
+historical operation receipt.
+
+Deletion uses the reviewed metadata ETag and required reason. One GORM transaction
+removes the exact Credential and its discovery references and records an
+allowlisted audit event. A post-commit tombstone excludes the deleted ID from new
+dispatch before runtime refresh. Only confirmed current absence and runtime
+application return success; missing runtime, failed publication and failed retries
+remain uncertain. Existing calls/attempts, models, weights and grants are retained;
+last-ready deletion can make routes unavailable. No migration or dependency was
+added. Local Base UI dialogs retain conflict drafts and original uncertain intent,
+with no secret fields in metadata editing and no optimistic deletion.
+
+Exact final source passed `go tool task check`, `go tool task test` (584 Vitest
+cases in 50 files, Go race/unit, four Node checks, development lifecycle and
+production embedded assets), and `go tool task test-integration` on PostgreSQL and
+MySQL (Handler 386.887 seconds, Service 5.144 seconds). An initial database run
+failed before deletion because pgx retained a cached `SELECT *` shape across
+schema-reset fixtures; the harness now reopens its production-configured pool
+between lifecycles. Migration and behavioral assertions remain intact. Independent
+backend review reported no remaining finding. Final embedded browser assets
+confirmed table/menu layout, English/Chinese edit fields, draft cancellation and
+Chinese deletion preview/reason/cancellation in an isolated database; no browser
+write or real upstream call was submitted. Fixture resources were removed.
+
+F11 remains partial. Staged replacement creation, durable new-Credential invocation
+and configuration evidence, complete pool operations, and real-provider acceptance
+remain separate work. Discovery, model success or a globally ready runtime cannot
+establish that a replacement Credential has successfully served an inference.

@@ -56,6 +56,25 @@ These rules apply to files under `website/src/`.
 
 - Governance screens use addressable member detail tabs, grouped role permissions, and a registration configuration drawer. `Switch` wraps Base UI; controlled registration uses the same centered authentication surface. Keep initial passwords out of retained mutation state.
 
+Credential metadata editing stays in the existing Provider Credentials table and
+local Base UI dialog. Use the resource-scoped metadata query, trimmed Unicode
+name, integer priority from 0 to 10,000, and a required reason bounded to 1,024
+UTF-8 bytes. Submit the reviewed strong If-Match, preserve drafts through explicit
+conflict review, and retry uncertain publication with the captured original
+request. Rejected retries leave the original uncertainty unresolved. Current
+target reconciliation confirms current name/priority and runtime publication,
+not who applied a historical operation. Keep secret material, verification,
+enablement, and discovered model coverage outside the edit form; reset the form
+on Credential or Provider change and use paired `catalog` translations.
+
+Credential deletion uses the existing row action menu and a Base UI danger
+confirmation with reviewed metadata and a required reason. Keep exact-ID,
+If-Match, and reason intent across uncertain retries, including rejected retries.
+Metadata GET 404 alone is never success; only an authorized DELETE response
+confirming current absence and runtime application completes the workflow. Never
+remove rows optimistically. Explain loss of availability after deleting the last
+ready credential and preserve already dispatched requests and immutable history.
+
 ## Internationalization and Formatting
 
 - Use `i18next` and `react-i18next` for every visible label, validation message, status, empty state, and accessible name. Supported languages are `en` and `zh`; English is the default regardless of browser locale.

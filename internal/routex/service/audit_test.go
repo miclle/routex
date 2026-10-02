@@ -49,3 +49,47 @@ func TestAuditDetailsAllowlist(t *testing.T) {
 		t.Fatal("invalid cleanup revision exposed")
 	}
 }
+
+func TestCredentialMetadataAuditProjection(t *testing.T) {
+	raw := `{"before":{"name":"Original","priority":10,"ciphertext":"do-not-leak"},"after":{"name":"Renamed","priority":0,"secret":"do-not-leak","enabled":true},"reason":"Reviewed ordering","provider_response":"do-not-leak"}`
+	record := auditRecord(entity.AuditEvent{Action: "credential.metadata.update", DetailsJSON: &raw})
+	if string(record.Changes) != `{"before":{"name":"Original","priority":10},"after":{"name":"Renamed","priority":0},"reason":"Reviewed ordering"}` {
+		t.Fatalf("unexpected metadata projection %s", record.Changes)
+	}
+	if record.Source != nil || record.IP != nil || record.RequestID != nil {
+		t.Fatal("metadata projection invented unrecorded request facts")
+	}
+	for _, invalid := range []string{
+		`{"before":{"name":"Original"},"after":{"name":"Renamed","priority":0},"reason":"Reviewed"}`,
+		`{"before":{"name":"Original","priority":0},"after":{"name":"Renamed","priority":10001},"reason":"Reviewed"}`,
+		`{"before":{"name":"Original","priority":0},"after":{"name":"Renamed","priority":0},"reason":""}`,
+		`{"before":{"name":"Original","priority":0},"after":{"name":"Renamed","priority":0},"reason":"bad\nreason"}`,
+		`{"before":{"name":"Original","priority":0},"after":{"name":"Renamed","priority":0},"reason":42}`,
+	} {
+		if auditRecord(entity.AuditEvent{Action: "credential.metadata.update", DetailsJSON: &invalid}).Changes != nil {
+			t.Fatalf("accepted malformed metadata audit %s", invalid)
+		}
+	}
+}
+
+func TestCredentialDeletionAuditProjection(t *testing.T) {
+	credentialID := "crd_01m36yee4gkbns18pfcqqc75a3"
+	raw := `{"before":{"id":"` + credentialID + `","connection_id":"con_recorded","name":"Retired","priority":0,"ciphertext":"do-not-leak"},"after":{"absent":true,"secret":"do-not-leak"},"reason":"Retired configuration","request_body":"do-not-leak"}`
+	record := auditRecord(entity.AuditEvent{Action: "credential.delete", ResourceID: credentialID, DetailsJSON: &raw})
+	if record.Changes == nil || strings.Contains(string(record.Changes), "do-not-leak") || !strings.Contains(string(record.Changes), `"absent":true`) {
+		t.Fatalf("unsafe or missing deletion audit %s", record.Changes)
+	}
+	for _, invalid := range []string{
+		strings.Replace(raw, `"absent":true`, `"absent":false`, 1),
+		strings.Replace(raw, `"priority":0`, `"priority":-1`, 1),
+		strings.Replace(raw, `"reason":"Retired configuration"`, `"reason":""`, 1),
+		strings.Replace(raw, credentialID, "crd_unknown", 1),
+	} {
+		if auditRecord(entity.AuditEvent{Action: "credential.delete", ResourceID: credentialID, DetailsJSON: &invalid}).Changes != nil {
+			t.Fatal("accepted malformed deletion audit")
+		}
+	}
+	if auditRecord(entity.AuditEvent{Action: "credential.delete", ResourceID: "another_resource", DetailsJSON: &raw}).Changes != nil {
+		t.Fatal("deletion audit attributed to an unrelated resource")
+	}
+}

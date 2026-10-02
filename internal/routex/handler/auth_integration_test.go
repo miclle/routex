@@ -150,8 +150,23 @@ func TestIdentityIntegration(t *testing.T) {
 			for _, test := range []struct {
 				name string
 				run  func(*testing.T, *gorm.DB)
-			}{{"catalog", testCatalogLifecycle}, {"keys", testKeyLifecycle}, {"gateway", testGatewayLifecycle}, {"calls", testCallLifecycle}, {"call_export", testCallExportLifecycle}, {"account", testAccountLifecycle}, {"governance", testGovernanceLifecycle}, {"runtime", testRuntimeLifecycle}, {"system_status", testSystemStatusLifecycle}, {"resources", testResourceLifecycle}, {"recorder", testRecorderLifecycle}, {"project_keys", testProjectKeyLifecycle}, {"personal_key_rotation", testPersonalKeyRotationLifecycle}, {"offboarding", testOffboardingLifecycle}, {"pricing", testPricingLifecycle}, {"project_requests", testProjectRequestLifecycle}, {"call_pricing", testCallPricingLifecycle}, {"price_import", testPriceImportLifecycle}, {"resource_limits", testResourceLimitLifecycle}, {"price_spreadsheet", testPriceSpreadsheetLifecycle}, {"usage", testUsageLifecycle}, {"mfa", testMFALifecycle}, {"responses", testResponsesLifecycle}, {"messages", testMessagesLifecycle}, {"gemini", testGeminiLifecycle}, {"site", testSiteLifecycle}, {"audit", testAuditLifecycle}, {"egress", testEgressLifecycle}, {"quota", testQuotaLifecycle}, {"attachment_quota_settlement", testGatewayAttachmentQuotaSettlementLifecycle}, {"smtp", testSMTPLifecycle}, {"storage", testStorageLifecycle}, {"notification_http", testNotificationHTTPLifecycle}, {"provider_quality_http", testProviderQualityHTTPLifecycle}} {
+			}{{"catalog", testCatalogLifecycle}, {"credential_metadata", testCredentialMetadataLifecycle}, {"credential_delete", testCredentialDeleteLifecycle}, {"keys", testKeyLifecycle}, {"gateway", testGatewayLifecycle}, {"calls", testCallLifecycle}, {"call_export", testCallExportLifecycle}, {"account", testAccountLifecycle}, {"governance", testGovernanceLifecycle}, {"runtime", testRuntimeLifecycle}, {"system_status", testSystemStatusLifecycle}, {"resources", testResourceLifecycle}, {"recorder", testRecorderLifecycle}, {"project_keys", testProjectKeyLifecycle}, {"personal_key_rotation", testPersonalKeyRotationLifecycle}, {"offboarding", testOffboardingLifecycle}, {"pricing", testPricingLifecycle}, {"project_requests", testProjectRequestLifecycle}, {"call_pricing", testCallPricingLifecycle}, {"price_import", testPriceImportLifecycle}, {"resource_limits", testResourceLimitLifecycle}, {"price_spreadsheet", testPriceSpreadsheetLifecycle}, {"usage", testUsageLifecycle}, {"mfa", testMFALifecycle}, {"responses", testResponsesLifecycle}, {"messages", testMessagesLifecycle}, {"gemini", testGeminiLifecycle}, {"site", testSiteLifecycle}, {"audit", testAuditLifecycle}, {"egress", testEgressLifecycle}, {"quota", testQuotaLifecycle}, {"attachment_quota_settlement", testGatewayAttachmentQuotaSettlementLifecycle}, {"smtp", testSMTPLifecycle}, {"storage", testStorageLifecycle}, {"notification_http", testNotificationHTTPLifecycle}, {"provider_quality_http", testProviderQualityHTTPLifecycle}} {
 				reset()
+				// Schema-reset fixtures must not reuse driver statement caches from
+				// earlier schema generations. Keep the production connection setup.
+				if err := sqlDB.Close(); err != nil {
+					t.Fatal(err)
+				}
+				nextDB, err := database.Open(context.Background(), driver, dsn)
+				if err != nil {
+					t.Fatal(err)
+				}
+				nextPool, err := nextDB.DB()
+				if err != nil {
+					t.Fatal(err)
+				}
+				db = nextDB.Session(&gorm.Session{Logger: logger.Discard})
+				sqlDB = nextPool
 				if err := database.Migrate(context.Background(), db); err != nil {
 					t.Fatal(err)
 				}

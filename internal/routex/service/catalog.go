@@ -251,8 +251,17 @@ func (s *Service) CreateCredential(ctx context.Context, actorID, connectionID, n
 		return nil, err
 	}
 	err = s.authDB(ctx).Transaction(func(tx *gorm.DB) error {
+		if err := lockGovernance(tx); err != nil {
+			return err
+		}
+		if err := authorizeGovernance(tx, actorID, "providers.write"); err != nil {
+			return err
+		}
 		var connection entity.ProviderConnection
-		if err := tx.First(&connection, "id = ?", connectionID).Error; err != nil {
+		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).First(&connection, "id = ?", connectionID).Error; err != nil {
+			return err
+		}
+		if err := checkCredentialName(tx, connectionID, "", credential.Name); err != nil {
 			return err
 		}
 		if err := tx.Create(&credential).Error; err != nil {

@@ -265,22 +265,28 @@ describe('provider credential filters', () => {
   it('keeps verification and enable mutations attached to the exact filtered credential with CSRF', async () => {
     await mount()
     await search('alpha secondary')
-    const verify = table().querySelectorAll('button')[0]
+    await act(async () => table().querySelector<HTMLButtonElement>('button')!.click())
+    const action = (label: string) =>
+      [...document.querySelectorAll<HTMLElement>('[role="menuitem"]')].find(
+        (item) => item.textContent === label,
+      )!
+    await until(() => expect(action('Verify')).toBeDefined())
     let release!: () => void
     hold = new Promise((resolve) => {
       release = resolve
     })
-    await act(async () => verify.click())
+    await act(async () => action('Verify').click())
     await until(() => expect(writes()).toHaveLength(1))
     expect(writes()[0].url).toBe('/admin/credentials/crd_secondary/verify')
     expect(writes()[0].headers.get('X-CSRF-Token')).toBe('credential-csrf')
-    expect(table().querySelectorAll('button')[1].disabled).toBe(true)
+    await act(async () => table().querySelector<HTMLButtonElement>('button')!.click())
+    await until(() => expect(action('Enable')).toBeDefined())
+    expect(action('Enable').getAttribute('aria-disabled')).toBe('true')
     await act(async () => release())
-    await until(() => expect(table().querySelectorAll('button')[1].disabled).toBe(false))
+    await until(() => expect(action('Enable').getAttribute('aria-disabled')).not.toBe('true'))
     expect(writes()).toHaveLength(1)
-    expect(table().querySelectorAll('button')[1].textContent).toBe('Enable')
     hold = undefined
-    await act(async () => table().querySelectorAll('button')[1].click())
+    await act(async () => action('Enable').click())
     await until(() => expect(writes()).toHaveLength(2))
     expect(writes()[1].url).toBe('/admin/credentials/crd_secondary')
     expect(writes()[1].method).toBe('patch')
@@ -293,7 +299,19 @@ describe('provider credential filters', () => {
     await search('alpha')
     await filter('Credential verification filter', 'verified')
     expect(names()).toEqual(['Alpha.Primary', 'alpha secondary'])
-    expect([...table().querySelectorAll('button')].every((button) => button.disabled)).toBe(true)
+    expect(table().querySelector<HTMLButtonElement>('button')?.getAttribute('aria-label')).toBe(
+      'Actions for Alpha.Primary',
+    )
+    await act(async () => table().querySelector<HTMLButtonElement>('button')!.click())
+    await until(() => expect(document.querySelectorAll('[role="menuitem"]')).toHaveLength(4))
+    expect(
+      [...document.querySelectorAll('[role="menuitem"]')].every(
+        (item) => item.getAttribute('aria-disabled') === 'true',
+      ),
+    ).toBe(true)
+    await act(async () => {
+      document.querySelectorAll<HTMLElement>('[role="menuitem"]').forEach((item) => item.click())
+    })
     expect(
       [...host.querySelectorAll('button')]
         .filter((button) => button.textContent?.startsWith('Add credential'))

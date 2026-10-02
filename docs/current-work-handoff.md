@@ -1,117 +1,142 @@
 # Current Work Handoff
 
-- **Status:** selected quota and Provider interface package complete with local and remote verification; overall implementation paused
-- **Updated:** 2026-09-30T18:05:00+08:00
-- **Repository:** RouteX
-- **Branch / base:** `main`
-- **Verified implementation HEAD:** `ce79699a4ca1a287dd6f07279fbb344bac2817b9`
-- **Verified pushed checkpoint:** `e181b779fc4d645532a0a110149a79644a0be4a4`; `main` and `origin/main` matched at refresh
-- **Pushed implementation commits:** `6d41bf6` (`feat(limits): expose scoped budget currency`), `c402ad0` (`feat(quotas): add policy and capacity controls`), `a3e9c2a` (`feat(quotas): add installation calendar`), `ce79699` (`feat(providers): filter credential pools`)
-- **Current owner:** no implementation worker is active
-- **Next owner:** unassigned; resume requires a new user instruction
-- **Transfer state:** transferable through `origin/main`; code, documentation, and verification links are remotely available
-- **Transfer:** the checkpoint above is the verified baseline; this documentation refresh is a subsequent commit on `origin/main`. Identify the refresh commit with `git log -1 -- docs/current-work-handoff.md`, then verify its upstream independently
-- **Coordination plan:** `~/dotfiles/projects/routex/implementation-plan.md`; synchronize dotfiles separately and preserve unrelated changes
+- **Status:** implementation active; F11 Credential metadata/deletion checked; staged replacement preparation is next
+- **Updated:** 2026-10-02T13:12:00+08:00
+- **Repository / branch:** RouteX / `main`
+- **Verified source baseline:** `66874aa2ac444831dfcd74888dde4273c4dc864e`, equal to `origin/main` before this package
+- **Current owner:** coordinating task; independent Credential backend and frontend workers have finished their assigned changes
+- **Next owner:** current task continues the resumed goal
+- **Transport:** identify this checked delivery with `git log -1 -- docs/current-work-handoff.md` and independently verify its upstream
+- **Coordination plan:** `~/dotfiles/projects/routex/implementation-plan.md`; synchronize separately and preserve unrelated changes
 
 ## Objective and authorization
 
-Implement every valid F01–F30 capability and close every A01–A20 acceptance case. Preserve the Go/React architecture, Gateway/Control Plane/Data Platform boundaries, PostgreSQL/MySQL portability, immutable GORM-first migrations, approved layout, shadcn/ui and Base UI, bilingual English-default interfaces, English documentation and commits, parallel ownership, tests, and phased main-branch commits and pushes.
+Implement every valid F01–F30 capability and close every A01–A20 acceptance case.
+Preserve the Go/React architecture, Gateway/Control Plane/Data Platform boundaries,
+PostgreSQL/MySQL portability, immutable GORM-first migrations, approved layout,
+shadcn/ui and Base UI, English-default bilingual interfaces, English documentation
+and commits, parallel ownership, tests, and phased main-branch commits and pushes.
 
-The implementation window on 2026-09-30, from approximately 15:47 to 17:47 Asia/Shanghai, ended with the selected package delivered and the goal paused. The package covers existing Personal/Project/Key quota interfaces (F04/F17), Provider-model capacity attestations (F11), the installation quota calendar (F17), and credential-pool filtering (F11). The subsequent user request authorizes documentation refresh, handoff, commit, and push only; it does not resume feature development. Partial delivery does not complete the overall objective.
+The 2026-09-30 two-hour implementation window and its pause are historical. On
+2026-10-02 the user resumed the full objective and prioritized partially
+implemented capabilities. No new two-hour limit or pause was requested. Completing
+one package does not complete the objective or authorize marking it paused.
 
-## Current delivery
+## Current package: F11 Credential metadata and deletion
 
-| Package | Implementation and boundary |
+| Area | Implementation and boundary |
 | --- | --- |
-| Resource denomination | `6d41bf6` exposes `platform_currency` through already authorized limits reads. Members need no administrator price access. Real PostgreSQL/MySQL tests cover all four resource paths, currency changes, and cross-resource denial. |
-| Quota policies and usage | `c402ad0` adds rolling five-hour/seven-day tokens, monthly tokens and exact-decimal budget, TPM, stored/effective/parent values, and server-owned quota windows. Keep zero distinct from null, unknown history distinct from zero usage, historical currency maps intact, and remaining allowance uninferred. Complete-policy writes preserve every control, reason, ETag, and retry intent. |
-| Capacity attestation | `c402ad0` adds a Provider-model detail card and Base UI dialog with positive input/output maxima, evidence, reason, protocol, and reviewed revisions. Configured means saved only; the read contract cannot establish overrun validity or gateway eligibility. Conflicts require review; uncertain writes retry the original request. |
-| Credential pool inspection | `ce79699` adds compact conjunctive name/Connection/verification/enabled filters to the existing Credentials table, resets filters across Providers, and renders recorded nullable verification timestamps using the selected language. Existing exact-ID actions and permissions remain intact. |
-| Installation calendar | `a3e9c2a` adds a Quota calendar card to System information, independent read/write authority, server-owned freeze status, exact revision/reason, explicit confirmation, preserved drafts and identical retries. Calendar-only writers do not mount the site editor or initiate its page query; public site presentation remains available in the shell. The server rejects host-dependent `Local` without changing legacy read/runtime handling. |
+| Metadata | Independently authorized GET/PUT metadata endpoints, reviewed strong representation ETags, strict name/priority/reason validation, Connection-scoped portable name comparison, transactional typed audit, current-target publication reconciliation. Ciphertext, Connection identity, enablement, verification, and discovery coverage are unchanged. |
+| Deletion | Independently authorized DELETE with a reviewed metadata ETag and reason. One transaction removes only the exact Credential and its discovery-access rows and records a typed audit event. A post-commit tombstone excludes the removed ID from new dispatch before publication. Success confirms current absence and runtime application; a repeat does not assert a historical operation receipt. |
+| Interface | Existing compact Credentials table and row action menu, independent read/write authority, local Base UI dialogs, resource-bound drafts, explicit conflict review, immutable uncertain retries, paired English/Chinese labels, and no optimistic deletion. |
+| Database | GORM queries and transactions, governance/Connection/Credential locks, portable duplicate comparison, no new migration or dependency. Provider/Connection/models/weights/grants and immutable call/attempt history remain intact. |
+| Remaining F11 | Staged rotation, complete pool operations, and real-provider acceptance remain open. New rotation must create a separate pending disabled Credential, verify and explicitly activate it before separately disabling its predecessor; do not overwrite the predecessor's encrypted secret in place. |
 
-The calendar is an installation-scoped contract extension within the existing settings composition. It does not invent a Team/default-policy workspace. No new migration, dependency, or native upstream request is introduced by this package.
+The next package assessment covers staged rotation: predecessor lineage,
+concurrent/uncertain creation, explicit activation/publication, migration and
+negative acceptance. Verification of a new Credential never implicitly enables it.
+No paid upstream calls or external credentials have been used.
 
-## Overall status
+## Overall status and other partial work
 
-`docs/IMPLEMENTATION.md` remains the authoritative inventory: **8 completed, 19 partially completed, 3 not started**. This is a binary completion count, not an effort percentage. A01 is fully accepted; A02–A12, A14–A15, and A17–A20 have partial evidence; A13 and A16 are not started.
+`docs/IMPLEMENTATION.md` remains the authoritative inventory: **8 completed, 19
+partially completed, 3 not started**. This counts completed capabilities, not effort.
+A01 is fully accepted; A02–A12, A14–A15, and A17–A20 have partial evidence; A13 and
+A16 are not started.
 
-Delivered foundations include local identity/MFA, durable sessions and Keys, governance and Team/Project management, four native protocols and bounded same-protocol failover, immutable call/price/Provider-attempt facts, safe CSV and price workbook workflows, currency administration, scoped usage, managed egress, durable quotas, owned image/PDF attachments and Playground compositions, SMTP configuration, storage administration, site/announcements, authoritative System Status, and operational/Provider-quality notifications. Their complete contracts and external boundaries remain in the domain documents and implementation index.
+Delivered foundations include local identity/MFA, durable sessions and Keys,
+governance and Team/Project management, four native protocols and bounded
+same-protocol failover, immutable call/price/Provider-attempt facts, safe CSV and
+price workbook workflows, currency administration, scoped usage, managed egress,
+durable quotas, owned image/PDF attachments and Playground compositions, SMTP,
+storage, site/announcements, authoritative System Status, operational/Provider
+quality notifications, resource quota interfaces, capacity attestation, installation
+calendar controls, and Credential filtering. Complete contracts and external
+boundaries remain in the domain documents and implementation index.
 
-F11 remains partial for real-provider acceptance and complete pool operations. F17 remains partial for Team/default rules, templates, approvals, configurable stop policy, and quota alerts. Explicit Team invocation context is still absent; do not add Team attribution or debit by guessing from membership. Enterprise identity, Vault, distributed enforcement, external price synchronization, saved reports, AI analysis, backup/restore, and final production acceptance remain open.
+F17 reminders were assessed, but are not delivered by this package. Current
+notifications authorize platform operators only. Personal/Project recipients,
+thresholds, durable resource/dimension/window decisions, dedupe and policy/period
+transitions need explicit contracts. A reservation rejection does not prove
+settled quota exhaustion; unknown usage and conservative holds must not fabricate
+exhaustion. Operator-only observations are not member/Project reminder delivery.
 
-## Working tree and transport
-
-- **RouteX baseline:** no staged, modified, or untracked files and no unpushed commits at refresh; `HEAD...origin/main` was `0 0`. This refresh changes only `README.md` and this handoff before its checked commit and push.
-- **Coordination baseline:** dotfiles `main` and `origin/main` matched `27a1af5325855985e856bd9a54c42f86fa350de1`; the associated refresh changes only `projects/routex/implementation-plan.md`.
-- **Preserve:** unrelated dotfiles `zsh/.zshrc` is modified and must not be staged, overwritten, or discarded.
-- **Receiver access:** clone or fetch the two repositories' `main` branches. Local databases, ignored configuration, process state, and temporary logs are not transferred; recreate the development environment using `docs/DEVELOPMENT.md`.
+Team invocation context/defaults, templates, approvals, configurable quota stop
+policy, enterprise identity, Vault, distributed enforcement, external price sync,
+saved reports, AI analysis, backup/restore, and final production acceptance remain
+open. Never infer Team attribution or debit from membership alone.
 
 ## Verification
 
 | Check | Result and boundary |
 | --- | --- |
-| Exact resource-contract snapshot `go tool task check` / `go tool task test` | Passed before `6d41bf6`; 478 Vitest cases plus Go race, Node, development lifecycle, and production assets. |
-| Exact quota/capacity snapshot `go tool task check` / `go tool task test` | Passed before `c402ad0`; 500 Vitest cases in 45 files plus Go race, Node, lifecycle, and embedded assets. |
-| Resource-contract full database matrix | Passed on PostgreSQL/MySQL; Handler 549.579 seconds, Service 10.187 seconds; disposable containers/network removed. |
-| Final combined `go tool task check` | Passed; no lint errors, two existing Fast Refresh warnings. |
-| Final combined `go tool task test` | Passed; 531 Vitest cases in 48 files, Go race/unit, four Node checks, development lifecycle, production build/assets. |
-| Final combined database matrix | Passed separately on PostgreSQL/MySQL; Handler 459.145 seconds, Service 6.000 seconds, with stable timezone rejection, unchanged accounting state, attachment settlement, and complete migration/lifecycle coverage; disposable containers/network removed. |
-| Independent reviews | Quota/capacity: no remaining finding. Calendar: rejected uncertain retry bug fixed; final review has no remaining finding. |
-| Browser quota workflow | Member Settings reproduced the inline editor, preserved a live bilingual draft, and saved tokens/TPM plus `12.500000000000000001 USD` without rounding in an isolated database. |
-| Browser capacity workflow | An isolated fixture saved explicit Chat capacity 128000/16384 with controlled evidence/reason. No external verification or inference occurred. |
-| Browser calendar workflow | An isolated fixture confirmed and saved Asia/Shanghai, displayed runtime-application confirmation, switched live English/Chinese, and restored English. |
-| Remote verification for `c402ad0` | CI `36689900695`, Actionlint `36689900904`, and GolangCI-Lint `36689900833` passed; CI includes dual databases, authentication restarts, frontend/backend, production assets, development lifecycle and build artifacts. Superseded `6d41bf6` CI was cancelled by its next push; its completed jobs are not a complete CI pass. |
-| Remote verification for `e181b779` | [CI `36695515339`](https://github.com/miclle/routex/actions/runs/36695515339), [Actionlint `36695515506`](https://github.com/miclle/routex/actions/runs/36695515506), and [GolangCI-Lint `36695515358`](https://github.com/miclle/routex/actions/runs/36695515358) passed for the exact full checkpoint SHA. CI passed frontend/backend checks, PostgreSQL/MySQL integration and authentication restart coverage, and build artifacts with embedded assets and development lifecycle checks. This is evidence for the checkpoint, not automatically for later documentation commits. |
+| Source baseline remote checks | [CI 36700399323](https://github.com/miclle/routex/actions/runs/36700399323), [Actionlint 36700399389](https://github.com/miclle/routex/actions/runs/36700399389), and [GolangCI-Lint 36700399452](https://github.com/miclle/routex/actions/runs/36700399452) passed for `66874aa`; they do not establish acceptance of this new package. |
+| Focused frontend | 68 Credential metadata/deletion/filter/i18n cases passed; TypeScript and scoped ESLint passed. |
+| Focused backend | Metadata/deletion validation and typed audit projection tests passed; independent contract review reported no remaining finding. |
+| Exact combined `go tool task check` | Passed after formatting, with no lint errors and two existing Fast Refresh warnings. |
+| Exact combined `go tool task test` | Passed: 584 Vitest cases, Go race/unit, four Node checks, development lifecycle and production build/embedded assets. |
+| Full PostgreSQL/MySQL matrix | Passed after physical-pool isolation: Handler 386.887 seconds, Service 5.144 seconds. Both databases, complete frozen migrations and lifecycle assertions ran; disposable containers/network were removed. |
+| Browser | Isolated PostgreSQL fixture confirmed the original Credentials table/action menu, English editing fields and cancelled draft, Chinese deletion preview/reason and cancellation with the row intact. No browser write or real upstream call was submitted. Final embedded assets were rebuilt, reloaded, and observed in English and Chinese; English was restored. The temporary tab, service, Compose database/network and fixture files were removed. |
 
-Verification caveats:
+The first full check exposed a staticcheck Boolean simplification in a new test;
+the equivalent condition was fixed. The first full frontend run passed 583/584:
+an existing Verify/Enable workflow still queried inline buttons after the approved
+row menu was restored. It now exercises menu items and preserves verification-before-
+enablement assertions. The final full check/test passed without relaxed timeouts or
+assertions, using installed Node 22.23.2, matching the CI major (22).
 
-- Earlier Node 26 snapshots used `NODE_OPTIONS=--no-experimental-webstorage` for jsdom compatibility. The shell later resolved Node 24.21.0. Final combined checks passed on installed Node 22.23.2, matching the CI Node 22 major (CI pins 22.22.0).
-- The first local database run failed with truncated diagnostics; an unchanged-source rerun passed, but its original cause was not established. An isolated quota/capacity Vitest run also timed out in a price-import test and cascaded; its full rerun passed all 500 cases. Neither earlier failure is claimed diagnosed or fixed.
-- The first calendar matrix reached Go's default ten-minute package alarm while a newly started unit test had run for zero seconds. The integration entry now uses a finite 20-minute package bound, preserving all assertions and race checks.
-- Simultaneous final Vitest testing timed out in existing audit/governance/egress cases and cascaded. A separate Node 24 run passed 530/531 with one existing System Status five-second timeout. The unchanged implementation passed all 531 on Node 22.23.2; no production timeout or assertion was relaxed.
-- The first 20-minute database run failed at MySQL attachment-fixture runtime startup, before recorder or settlement. Its generic error did not distinguish deadline expiry from invalid configuration. A bounded, sanitized test-only diagnostic now records startup elapsed and publication status/error code on recurrence. The complete isolated matrix passed afterward. Contention is plausible, not a proven root cause or repaired production defect.
+The first database matrix failed with PostgreSQL `cached plan must not change
+result type` on an initial `CallAttempt` read, before the first deletion. Earlier
+migration fixtures drop/re-add columns and prepare the same `SELECT *`; rebuilding
+the schema while retaining the physical pgx pool preserved an incompatible cached
+result shape. Each lifecycle fixture now closes/reopens the pool after schema
+reset, retaining production connection settings, migrations and all assertions.
+An independent read-only diagnosis confirmed this boundary.
 
-Final-source and remote results are separate evidence. The latest verified checkpoint is `e181b779`; refresh CI for any later commit at resumption. A cancelled superseded run is not a complete pass.
+Prior exact checkpoints and transient test diagnostics remain recoverable from
+`66874aa` and earlier handoff revisions; cancelled runs are not complete passes.
+Final-source checks, real database acceptance, browser evidence and remote CI must
+be reported separately.
 
-## Decisions and constraints
+## Working tree and transfer
 
-- Keep scoped authority and query keys; no administrator catalogue fetch solely to render a member quota currency.
-- Preserve exact decimal strings, safe whole-token values, full-policy replacement, parent narrowing, and native authoritative usage.
-- Configured capacity is an attestation, never a proof from discovery or a successful sample call.
-- A failed retry cannot resolve an earlier unknown publication outcome. Preserve the captured body/ETag until successful reconciliation or explicit current-state review.
-- Calendar boundaries are server-owned and freeze at first accounting intent. Changing a calendar cannot reset usage.
-- External paid Provider, SMTP, IdP/LDAP, Vault, S3, price-source and production acceptance require their corresponding supplied environments; no external credentials or spending authorization have been supplied.
+- RouteX baseline was clean and equal to `origin/main`; current changes belong to this F11 package and its tests/docs/rules.
+- Dotfiles baseline was `dc9cf2288fee21aa8935aa7e2458bc68183b8568`, equal to `origin/main`; stage only the RouteX coordination record for its separate commit.
+- Preserve unrelated modified dotfiles `zsh/.zshrc`; never stage, overwrite or discard it.
+- Fetch both repositories' `main` branches to transfer checked commits. Ignored configuration, databases, processes and temporary logs do not transfer; recreate them from `docs/DEVELOPMENT.md`.
 
-## Resume actions
+## Next actions
 
-1. When the user resumes, run `git status --short --branch`, `git fetch origin`, `git rev-parse HEAD origin/main`, and `git rev-list --left-right --count HEAD...origin/main` in RouteX and dotfiles. Read `docs/current-work-handoff.md` at the fetched RouteX checkpoint. This step is complete when the local/remote commits and any dirty work are identified, the recorded checkpoint is reachable, and new drift is reconciled without overwriting unrelated changes. Do not automatically reset or switch branches.
-2. Until that resume instruction, there is no active feature task. Preserve unrelated dotfiles `zsh/.zshrc` changes; completing this window does not complete RouteX.
-3. Read this handoff, `docs/IMPLEMENTATION.md`, `docs/QUOTAS.md`, and the coordination plan. Historical evidence is not a current runtime guarantee.
-4. Reassess the next bounded local package: credential metadata editing (name/priority) is an observed missing Provider action, but needs a real service/API contract, audit, concurrency/publication behavior, dual-database tests, and the existing dialog grammar. Do not fold secret replacement, deletion, or external validation into a metadata-only package. Team quotas/defaults require explicit invocation/debit contracts; real-provider and external-mail acceptance require supplied environments.
-5. Continue independent file ownership, GORM-first dual-database validation, scoped permission/i18n/browser evidence, English docs, checked commits, pushes, and remote CI.
+1. The complete isolated PostgreSQL/MySQL matrix passed; preserve its exact-source evidence.
+2. Finish scoped README, catalogue, implementation-index and handoff/coordination updates; check whitespace and local links, then commit and push the checked package to `main`.
+3. Verify remote SHA and exact CI outcomes. Do not attribute baseline CI to a later commit.
+4. Continue the next bounded partial-capability package, starting with the staged Credential rotation assessment. Keep separate backend/frontend ownership, reviewed API contracts and meaningful tests.
+5. Real-provider, SMTP, IdP/LDAP, Vault, S3, price-source and production acceptance require supplied environments and resources; do not search other accounts for credentials.
 
 ## Files to read first
 
 | Path | Purpose |
 | --- | --- |
-| `AGENTS.md`, `.agents/rules/frontend.md` | Mandatory architecture, UI, localization, formatting and verification rules |
-| `docs/IMPLEMENTATION.md` | Complete F/A inventory and unfinished boundaries |
-| `docs/QUOTAS.md`, `docs/QUOTA_LEDGER.md` | Policy, calendar, capacity, admission and unknown-history contracts |
-| `docs/RESOURCE_LIMITS.md` | Resource ownership and complete-policy replacement |
-| `docs/PROVIDER_MODELS.md`, `docs/PROVIDER_QUALITY.md` | Provider-model capabilities and immutable attempt quality |
-| `docs/NOTIFICATIONS.md` | Existing operational source and delivery boundaries before adding quota alerts |
-| `website/src/views/resource-limits/` | Shared quota editor, usage rendering and exact-decimal narrowing |
-| `website/src/views/pricing/provider-model-capacity.tsx` | Capacity read/editor/conflict/retry behavior |
-| `website/src/views/site/quota-calendar.tsx` | Calendar read/write, confirmation, freeze and retry behavior |
-| `internal/routex/service/quota_settings.go` | Durable calendar validation and publication boundary |
+| `AGENTS.md`, `.agents/rules/frontend.md` | Mandatory architecture, UI, localization, formatting and verification |
+| `docs/IMPLEMENTATION.md`, `docs/CATALOG.md` | Full F/A inventory and Credential lifecycle contracts |
+| `internal/routex/service/credential_metadata.go`, `credential_delete.go` | Persistence, audit, authorization and publication boundaries |
+| `website/src/views/providers/credential-metadata.tsx`, `credential-delete.tsx` | Draft, conflict and retry behavior |
+| `docs/QUOTAS.md`, `docs/QUOTA_LEDGER.md`, `docs/RESOURCE_LIMITS.md` | Scoped policy, unknown-history and accounting contracts |
+| `docs/NOTIFICATIONS.md` | Existing source/recipient/delivery boundaries before quota reminders |
 | `~/dotfiles/projects/routex/implementation-plan.md` | Cross-task scope, dependencies, acceptance and evidence |
 
-## Environment and cleanup
+## Environment
 
-Go 1.27.1, module-managed tools, project Node/npm, Docker Compose, PostgreSQL 18 and MySQL 8.4 are required. Secrets remain in ignored local configuration or process environment; never put them in this handoff.
+Go 1.27.1, module-managed tools, Node/npm, Docker Compose, PostgreSQL 18 and MySQL
+8.4 are required. Secrets stay in ignored configuration or process environment.
+The shell resolves Node 24.21.0; checks for this package use installed Node 22.23.2.
+Docker was started for isolated validation. The integration script owns and
+removes its fresh containers/network without touching the developer database.
 
-The development service uses backend `19000`, Vite `15173`, and Compose PostgreSQL `15433`. Check `/health` rather than assuming a process survived transfer. Default ports belong to unrelated local services; never kill them to free ports.
-
-Browser write verification uses a separately created disposable PostgreSQL database and localhost backend `19001`; it sends no real upstream requests and leaves the user's development database unchanged. The owned fixture service/database/tab and both validation worktrees have been removed. The development service/database remain available. Older unrelated/prunable worktree registrations are outside this cleanup.
-
-This checkpoint continues from Provider quality at `9ef78f6` / `b201b08` and its documentation checkpoint `d8b4d1c`. Historical detailed verification remains recoverable from that handoff revision. Completion of the selected package does not complete F01–F30 or A01–A20.
+Development normally uses backend `19000`, Vite `15173`, and Compose PostgreSQL
+`15433`. No development service/database was started or verified in this package;
+check `/health` before relying on an older process. Never kill unrelated processes
+to free ports. The isolated browser fixture used backend `19001` and its own temporary Compose
+PostgreSQL database. Its tab, service, database/network and temporary fixture files
+were removed after preview/cancellation checks; no browser write or real upstream
+request was submitted.

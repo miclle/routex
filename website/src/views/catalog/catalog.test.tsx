@@ -376,11 +376,26 @@ describe('catalog and Key workflows', () => {
   it('verifies a credential before allowing a separate enable action', async () => {
     await render(<ProvidersPage />, '/admin/providers/prv_1?tab=credentials')
     await until(() => expect(document.body.textContent).toContain('Credential'))
-    expect(button('Enable').disabled).toBe(true)
-    await click('Verify')
-    await until(() => expect(button('Enable').disabled).toBe(false))
+    const openActions = async () => {
+      await act(async () => {
+        document.querySelector<HTMLButtonElement>('[aria-label="Actions for Credential"]')!.click()
+      })
+    }
+    const action = (label: string) =>
+      [...document.querySelectorAll<HTMLElement>('[role="menuitem"]')].find(
+        (item) => item.textContent === label,
+      )!
+    await openActions()
+    await until(() => expect(action('Enable')).toBeDefined())
+    expect(action('Enable').getAttribute('aria-disabled')).toBe('true')
+    await act(async () => action('Verify').click())
+    await until(() =>
+      expect(provider.connections[0].credentials[0].verification_status).toBe('verified'),
+    )
+    await openActions()
+    await until(() => expect(action('Enable').getAttribute('aria-disabled')).not.toBe('true'))
     expect(provider.connections[0].credentials[0].enabled).toBe(false)
-    await click('Enable')
+    await act(async () => action('Enable').click())
     await until(() => expect(document.body.textContent).toContain('Enabled'))
     expect(requests.find((r) => r.method === 'patch')?.headers.get('X-CSRF-Token')).toBe('csrf')
   })

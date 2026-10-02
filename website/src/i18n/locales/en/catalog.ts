@@ -1,4 +1,53 @@
 export default {
+  credentialDelete: {
+    title: 'Delete credential?',
+    action: 'Delete credential',
+    description:
+      'Confirm removal of this saved credential configuration. The supplier and connection remain.',
+    connection: 'Connection: {{name}} · {{id}}',
+    warningTitle: 'Credential configuration cannot be restored',
+    warning:
+      'Ensure another usable credential exists for this connection. Removing its last usable credential can make new requests unavailable. Already dispatched requests and historical records remain.',
+    reason: 'Deletion reason',
+    confirm: 'Confirm deletion',
+    deleted: 'Credential is absent and runtime publication is confirmed.',
+    reasonError: 'Enter a reason of up to 1,024 UTF-8 bytes without control characters.',
+    stale:
+      'Credential metadata changed. Review the current record before confirming deletion again.',
+    uncertain:
+      'The deletion result is uncertain. Retry the exact request or explicitly review the current record before starting a new deletion.',
+    retry: 'Retry exact deletion',
+    review: 'Review current credential',
+    reviewed:
+      'Current credential reviewed. Your reason is retained; confirm deletion against this record.',
+    absenceUnconfirmed:
+      'The credential could not be read. This does not confirm runtime publication or the original deletion. Retry the exact deletion to verify current absence and publication.',
+  },
+  credentialMetadata: {
+    actions: 'Actions for {{name}}',
+    currentPriority: 'Current priority: {{priority}}',
+    title: 'Edit credential',
+    edit: 'Edit',
+    description:
+      'Update the name and priority. The supplier secret, connection, verification and enabled state remain unchanged.',
+    context: '{{provider}} · {{connection}}',
+    connectionId: 'Connection: {{id}}',
+    priorityHelp:
+      'Whole number from 0 to 10,000. Lower values take precedence within this connection. Equal values retain the existing selection order.',
+    reason: 'Change reason',
+    save: 'Save changes',
+    saved: 'Credential metadata saved and runtime publication confirmed.',
+    nameError: 'Enter a name of 1–100 characters without control characters.',
+    priorityError: 'Enter a whole-number priority from 0 to 10,000.',
+    reasonError: 'Enter a reason of up to 1,024 UTF-8 bytes without control characters.',
+    stale:
+      'Credential metadata changed. Review the latest record before submitting your retained draft.',
+    uncertain:
+      'The save result is uncertain. Retry the exact request or explicitly review the latest record before starting a new change.',
+    retry: 'Retry exact request',
+    review: 'Review latest metadata',
+    reviewed: 'Latest metadata reviewed. Your draft is preserved; review it before saving.',
+  },
   common: {
     provider: 'Provider',
     protocolType: 'Protocol type',

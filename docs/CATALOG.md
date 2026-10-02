@@ -38,6 +38,81 @@ The Provider Credentials tab preserves the existing table, add dialogs, verifica
 
 The table displays the actual nullable `verified_at` value using the selected language. Missing timestamps remain explicitly not recorded; no secret, masked secret, inferred last-use time, or demonstration failure statistic is exposed. Read access requires `providers.read`; add, verification, and enabled-state actions continue to require `providers.write`. A filter never changes a mutation's exact credential ID. English/Chinese copy and behavior tests cover filtering, state reset, language changes, and permission isolation.
 
+### Credential metadata edits
+
+The existing Credentials table opens a local dialog to edit a credential's name
+and priority. Connection context is immutable, and the dialog explains that the
+secret remains unchanged. Metadata persistence never decrypts credentials,
+calls upstream verification, replaces secrets, changes enablement or verification,
+or rewrites discovered model coverage. Priority affects only that Connection's
+credential order; supplier binding weights remain unchanged.
+
+Read `GET /admin/credentials/:credential_id/metadata` with `providers.read`.
+The response includes the non-secret Credential fields, `connection_id`, and
+`etag`; the response header is the quoted ETag. Submit a strict JSON
+`{name,priority,reason}` to `PUT` on the same path with `providers.write`,
+CSRF, and the reviewed quoted `If-Match`. Names are trimmed valid Unicode labels
+of 1–100 characters without control characters. Priority is an explicitly
+supplied integer from 0 to 10,000; zero is valid. The trimmed non-empty reason
+allows at most 1,024 UTF-8 bytes and no control characters. Additional fields,
+including `secret` or `enabled`, are rejected.
+
+New or renamed labels are unique under trimmed case-insensitive comparison within
+a Connection. Go case folding under the Connection lock
+provides the same behavior on PostgreSQL and MySQL. Existing historical
+duplicates are retained, may change priority without renaming, and remain
+eligible for unchanged-target publication reconciliation. The write rechecks
+authority and locks Connection then Credential;
+only name and priority change. Changed metadata and the typed
+`credential.metadata.update` audit event commit together. Audit details expose
+only bounded before/after name and priority plus the reason.
+
+The strong ETag represents the current non-secret resource, including recorded
+verification and enabled state. It is not a monotonic revision or historical
+operation receipt. A stale ETag with a different target returns `409` and requires
+explicit review of the current record while retaining the draft. If the requested
+name and priority already match, the server performs no mutation or duplicate
+audit and refreshes runtime before returning the authoritative current record.
+This confirms the current target, not the identity or outcome of an original
+historical write. `503` or a transport failure can leave a persisted change whose
+publication is uncertain; retain the exact request and ETag for retry, or fetch
+and explicitly review current state before preparing another intent. A failed
+retry does not resolve the original uncertainty. No new schema migration is
+required.
+
+### Credential deletion
+
+The same row action menu offers a danger confirmation using the reviewed
+metadata record and a required reason. `DELETE /admin/credentials/:credential_id`
+requires `providers.write`, same-origin validation, CSRF, a quoted metadata
+`If-Match`, and strict JSON `{reason}` with the same 1,024-byte reason bounds.
+The target must be a canonical `crd_` identifier and its validator a 64-hex
+metadata ETag. A changed existing record returns `409` and requires explicit
+review before another deletion intent.
+
+Under governance, Connection, and Credential locks, deletion removes only the
+Credential's discovery-access rows and then its configuration row in one GORM
+transaction, together with the typed `credential.delete` audit event. Provider,
+Connection, provider models, weights, grants, and immutable call/attempt history
+remain intact. Deleting the last ready credential is allowed and can make its
+routes unavailable; no hidden replacement, fallback credential, or weight change
+is introduced. Existing calls do not persist Credential IDs, so deletion does not
+invent per-credential historical attribution.
+
+After commit, the server installs a credential tombstone before refreshing the
+runtime. New dispatch cannot use that removed credential even if publication
+fails. Already dispatched requests are not actively cancelled. Only a `200`
+response `{id,absent:true,runtime_applied:true}` confirms current absence and
+runtime application. If runtime is not initialized or publication fails, the
+response remains uncertain rather than claiming enforcement. Repeating the exact
+authorized DELETE can establish that the ID is absent and complete publication
+without another audit event. This does not prove who performed an earlier
+deletion. An ordinary metadata GET `404`, a permission failure, or a failed retry
+cannot establish completion. The client preserves the original intent and never
+removes a row optimistically. No migration or secret decryption is needed by the
+deletion transaction; remaining runtime configuration still follows its normal
+credential-storage requirements.
+
 ## Models, Names, Grants, and Weights
 
 Creating a model requires a provider model and creates an initial binding with weight `0`. The creating administrator receives an explicit persisted grant in the same transaction. This is a convenience for the first configured route, not a role-based bypass: removing that grant removes the administrator's member-facing model visibility and eligibility for model-scoped access.
@@ -60,6 +135,9 @@ All paths below are relative to `/api/v1`. Management endpoints require a sessio
 | `POST /admin/connections/:connection_id/credentials` | `{name,secret,priority}` | Credential metadata |
 | `POST /admin/credentials/:credential_id/verify` | `{}` | `{verified,discovered_models,message}` |
 | `PATCH /admin/credentials/:credential_id` | `{enabled}` | Credential metadata |
+| `GET /admin/credentials/:credential_id/metadata` | None | Non-secret Credential metadata, `connection_id`, `etag`; quoted ETag header |
+| `PUT /admin/credentials/:credential_id/metadata` | `{name,priority,reason}` and quoted `If-Match` | Current authoritative metadata after runtime publication |
+| `DELETE /admin/credentials/:credential_id` | `{reason}` and quoted metadata `If-Match` | `{id,absent:true,runtime_applied:true}` after current absence and publication |
 | `POST /admin/connections/:connection_id/models` | `{upstream_name}` | `{id,upstream_name}` |
 | `PATCH /admin/provider-models/:provider_model_id` | `{etag,enabled?,supports_image_input?,supports_pdf_input?}` | Provider-model configuration |
 | `GET /admin/models` | None | `{items: Model[]}` |
@@ -91,6 +169,22 @@ Administrator model responses contain `{id,name,status,names,bindings,granted_us
 Provider, connection, credential, provider-model, binding, name, weight, and grant changes write audit events in their database transactions. Audit records contain actor, action, resource type, and stable resource ID, without secrets or request bodies. Credential verification also writes an audit event.
 
 `testCatalogLifecycle` runs through the real router against each isolated PostgreSQL/MySQL database under `go tool task test-integration`. It uses a controlled HTTP upstream to verify actual bearer authentication and model discovery. Tests cover encryption references, response redaction, verification and enablement gates, limited credential coverage, exact name comparisons, zero-weight candidates, atomic concurrent weight updates, name compatibility and expiry, historical-name reservation, explicit grant visibility, failed grant rollback, member authorization failures, CSRF enforcement, failed reverification, and audit persistence.
+
+The Credential metadata and deletion lifecycle cases add reviewed ETag conflicts,
+portable connection-local names, strict input and independent permissions,
+transactional audit rollback/redaction, unchanged ciphertext and discovery state,
+priority-zero updates, publication failure and exact retries, absent-target
+reconciliation, removed discovery references, retained immutable call/attempt
+history, last-ready-credential unavailability, and already dispatched call
+completion. The full integration harness opens a fresh production-configured
+connection pool after each schema reset, so driver statement caches cannot retain
+result shapes from earlier frozen-migration fixtures.
+
+Frontend tests cover the existing row menu, verification-before-enablement,
+metadata and deletion dialogs, draft/conflict/retry boundaries, malformed success
+responses, resource changes, independent permissions and paired English/Chinese
+copy. Browser preview/cancellation evidence is separate from actual API mutation
+and runtime-enforcement acceptance.
 
 Controlled upstream tests do not replace a real supplier smoke test. Provider credentials supplied for production, complete protocol support, per-model inference validation, gateway execution, rotation workflows, and full provider lifecycle management have separate acceptance requirements. See [the implementation record](IMPLEMENTATION.md) for current phase evidence and remaining scope.
 

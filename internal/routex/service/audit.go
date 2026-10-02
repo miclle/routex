@@ -6,6 +6,7 @@ import (
 	"regexp"
 	"strings"
 	"time"
+	"unicode"
 	"unicode/utf8"
 
 	"github.com/miclle/routex/internal/routex/entity"
@@ -122,6 +123,49 @@ func auditRecord(row entity.AuditEvent) AuditRecord {
 			ETag   string        `json:"etag"`
 		}
 		if json.Unmarshal([]byte(*row.DetailsJSON), &detail) != nil {
+			return result
+		}
+		changes = detail
+	case "credential.metadata.update":
+		type values struct {
+			Name     string `json:"name"`
+			Priority *int   `json:"priority"`
+		}
+		var detail struct {
+			Before values `json:"before"`
+			After  values `json:"after"`
+			Reason string `json:"reason"`
+		}
+		if json.Unmarshal([]byte(*row.DetailsJSON), &detail) != nil ||
+			!validCatalogLabel(detail.Before.Name) || !validCatalogLabel(detail.After.Name) ||
+			detail.Before.Priority == nil || detail.After.Priority == nil ||
+			*detail.Before.Priority < 0 || *detail.Before.Priority > 10000 ||
+			*detail.After.Priority < 0 || *detail.After.Priority > 10000 ||
+			detail.Reason == "" || strings.TrimSpace(detail.Reason) != detail.Reason ||
+			!utf8.ValidString(detail.Reason) || len(detail.Reason) > 1024 ||
+			strings.ContainsFunc(detail.Reason, unicode.IsControl) {
+			return result
+		}
+		changes = detail
+	case "credential.delete":
+		var detail struct {
+			Before struct {
+				ID           string `json:"id"`
+				ConnectionID string `json:"connection_id"`
+				Name         string `json:"name"`
+				Priority     *int   `json:"priority"`
+			} `json:"before"`
+			After struct {
+				Absent *bool `json:"absent"`
+			} `json:"after"`
+			Reason string `json:"reason"`
+		}
+		if json.Unmarshal([]byte(*row.DetailsJSON), &detail) != nil ||
+			!credentialDeleteID.MatchString(detail.Before.ID) || detail.Before.ID != row.ResourceID ||
+			detail.Before.ConnectionID == "" || !validCatalogLabel(detail.Before.Name) ||
+			detail.Before.Priority == nil || *detail.Before.Priority < 0 || *detail.Before.Priority > 10000 ||
+			detail.After.Absent == nil || !*detail.After.Absent ||
+			strings.TrimSpace(detail.Reason) != detail.Reason || !validCredentialMetadataReason(detail.Reason) {
 			return result
 		}
 		changes = detail
