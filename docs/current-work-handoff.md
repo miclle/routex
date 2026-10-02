@@ -1,10 +1,10 @@
 # Current Work Handoff
 
-- **Status:** implementation active; F08 Key proof hardening pushed; F11 readiness pushed; receipt-backed retirement pushed; member model availability correction checked; source directory next
-- **Updated:** 2026-10-02T17:52:03+08:00
+- **Status:** implementation active; F08 Key proof hardening pushed; F11 readiness pushed; receipt-backed retirement pushed; member model availability correction pushed; source directory checked; phased delivery in progress
+- **Updated:** 2026-10-02T18:30:22+08:00
 - **Repository / branch:** RouteX / `main`
-- **Previous checked source baseline:** `4ee1a0236330de57b8b64c4858ab97e328744be0`, pushed and read back from `origin/main`
-- **Current owner:** coordinating task; independent backend/runtime owners delivered retirement; coordinating task owns UI, audit projection, docs and phased delivery
+- **Previous checked source baseline:** `ccd5a081f34fecea9e911be914d67783fd0399c4`, pushed and read back from `origin/main`
+- **Current owner:** coordinating task; source owners are frozen; complete validation, docs and phased delivery are in progress
 - **Next owner:** current task continues the resumed goal
 - **Transport:** identify this checked delivery with `git log -1 -- docs/current-work-handoff.md` and independently verify its upstream
 - **Coordination plan:** `~/dotfiles/projects/routex/implementation-plan.md`; synchronize separately and preserve unrelated changes
@@ -413,3 +413,34 @@ Credential retirement `4ee1a02` exact remote CI completed successfully:
 dual databases, independent process authentication restart and build artifacts.
 Its coordination checkpoint is separately pushed at `87ffd86`. Those remote
 checks remain evidence for that package, separate from this UI correction.
+
+
+### Current F19 source/detail package
+
+The native-availability correction is pushed at `ccd5a081f34fecea9e911be914d67783fd0399c4`,
+with exact remote main readback and a clean tree before this package. Its own
+CI 36992315572, Actionlint 36992315568 and GolangCI-Lint 36992315770 all succeeded. The external coordination checkpoint
+is pushed at `f44c253`. Two independent owners now implement the actor-scoped
+`model-catalog` list/detail, exact personal/active-Team sources, bounded complete
+reads and actual native protocol/capability metadata, plus the approved filters,
+source overflow and independently reauthorized drawer. The coordinating task
+owns the shared identity integration registration and existing catalogue UI
+fixture adaptation, documentation and complete acceptance. No new migration or
+Personal Key authority is added. Current directory source is frozen and uncommitted. Complete check/test passed
+(677 Vitest cases in 54 files, Go race/unit, Node/development/production checks);
+focused dual-database source acceptance passed (Handler 160.920 seconds). The
+complete PostgreSQL/MySQL race matrix passed (Handler 488.717 seconds, Service
+5.727 seconds); its owned containers/network were cleaned. Final check passed.
+Independent backend review found no remaining actionable production defect.
+All 69 checked local Markdown references and whitespace checks passed. The disposable production browser
+passed source overflow, ready Team-only denial, personal native examples, revoked
+detail freshness, table/image filtering and bilingual switching without console
+errors. Owned browser/production process/Compose resources were cleaned. Full F19
+and the overall objective remain active.
+
+The next partial-capability assessment is F23 aggregate quota exhaustion inbox
+notifications. Existing operational alerts cannot safely fan Personal/Project
+quota facts to all system operators. Scope needs durable observed settled-use
+facts, exact currency/coverage, deduplication and current-owner/Project-manager
+authorization. Threshold warnings, Team quotas and external SMTP acceptance are
+not inferred. No F23 implementation has started.

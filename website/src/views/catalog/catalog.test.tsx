@@ -131,6 +131,20 @@ beforeEach(() => {
       response.data = {
         items: structuredClone(callableModels),
       }
+    const memberCatalog = callableModels.map((item) => ({
+      id: item.id,
+      name: item.name,
+      status: item.status,
+      created_at: '2026-09-23T00:00:00Z',
+      protocols: item.protocols ?? [item.protocol],
+      input_capabilities: item.input_capabilities ?? {},
+      personal_available:
+        item.status === 'active' && (item.protocols ?? [item.protocol]).length > 0,
+      sources: [{ type: 'personal', team_id: null, team_name: null, invocation_supported: true }],
+    }))
+    if (route === 'get /model-catalog') response.data = { items: memberCatalog }
+    if (config.method === 'get' && path.startsWith('/model-catalog/'))
+      response.data = memberCatalog.find((item) => item.id === path.split('/').pop())
     if (route === 'get /admin/egress-options') response.data = { items: [] }
     if (route === 'get /admin/providers') response.data = { items: [structuredClone(provider)] }
     if (route === 'post /admin/models') response.data = structuredClone(model)

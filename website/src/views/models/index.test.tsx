@@ -2,32 +2,59 @@ import { act } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { MemoryRouter } from 'react-router'
-import { AxiosHeaders, type InternalAxiosRequestConfig } from 'axios'
+import { AxiosError, AxiosHeaders, CanceledError, type InternalAxiosRequestConfig } from 'axios'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import client from '@/api/client'
 import i18n from '@/i18n'
-import type { CallableModel } from '@/types/catalog'
+import type { ModelAccessSource, ModelCatalogRecord } from '@/types/model-catalog'
 import ModelsPage from './index'
 
 Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true })
 const originalAdapter = client.defaults.adapter
 const clipboardDescriptor = Object.getOwnPropertyDescriptor(navigator, 'clipboard')
+const personal: ModelAccessSource = {
+  type: 'personal',
+  team_id: null,
+  team_name: null,
+  invocation_supported: true,
+}
 let root: Root, host: HTMLDivElement, cache: QueryClient
-let models: CallableModel[], requests: InternalAxiosRequestConfig[]
+let models: ModelCatalogRecord[], requests: InternalAxiosRequestConfig[]
+let actorID: string,
+  failures: Record<string, number>,
+  detailOverrides: Record<string, ModelCatalogRecord>
+let detailBarrier: { promise: Promise<void>; release: () => void } | undefined
 const writeText = vi.fn<(value: string) => Promise<void>>()
 
+function team(id: string, name: string): ModelAccessSource {
+  return { type: 'team', team_id: id, team_name: name, invocation_supported: false }
+}
 function model(
   name: string,
-  protocols?: string[],
-  status: CallableModel['status'] = 'active',
-): CallableModel {
+  protocols = ['openai_chat'],
+  sources: ModelAccessSource[] = [personal],
+): ModelCatalogRecord {
   return {
     id: `mdl_${name}`,
     name,
-    status,
-    protocol: 'openai_chat',
-    ...(protocols === undefined ? {} : { protocols }),
+    status: 'active',
+    created_at: '2026-09-01T10:00:00Z',
+    protocols,
+    input_capabilities: {},
+    sources,
+    personal_available:
+      sources.some((source) => source.type === 'personal') && protocols.length > 0,
   }
+}
+function holdDetails() {
+  let release!: () => void
+  detailBarrier = {
+    promise: new Promise<void>((resolve) => {
+      release = resolve
+    }),
+    release: () => release(),
+  }
+  return detailBarrier
 }
 
 beforeEach(async () => {
@@ -38,22 +65,55 @@ beforeEach(async () => {
   cache = new QueryClient({ defaultOptions: { queries: { retry: false } } })
   models = []
   requests = []
+  failures = {}
+  detailOverrides = {}
+  detailBarrier = undefined
+  actorID = 'usr_current'
   writeText.mockReset().mockResolvedValue(undefined)
   Object.defineProperty(navigator, 'clipboard', { configurable: true, value: { writeText } })
   client.defaults.adapter = async (config) => {
     requests.push(config)
-    if (config.url !== '/models') throw new Error(`Unexpected request ${config.url}`)
-    return {
+    const response = {
       config,
       status: 200,
       statusText: '',
       headers: new AxiosHeaders(),
-      data: { items: models },
+      data: {} as unknown,
     }
+    if (config.url?.startsWith('/model-catalog/') && detailBarrier) {
+      await new Promise<void>((resolve, reject) => {
+        const abort = () => reject(new CanceledError('Cancelled model detail', config))
+        config.signal?.addEventListener?.('abort', abort)
+        void detailBarrier!.promise.then(() => {
+          config.signal?.removeEventListener?.('abort', abort)
+          resolve()
+        })
+      })
+    }
+    const status = failures[config.url!] ?? 200
+    if (status !== 200)
+      throw new AxiosError('rejected', '', config, undefined, {
+        ...response,
+        status,
+        data: { code: status, message: 'sanitized failure' },
+      })
+    if (config.url === '/auth/session')
+      response.data = {
+        user: { id: actorID, name: 'Member', email: 'member@example.com', role: 'member' },
+        csrf_token: 'csrf-test',
+      }
+    else if (config.url === '/model-catalog') response.data = { items: structuredClone(models) }
+    else if (config.url?.startsWith('/model-catalog/')) {
+      const id = decodeURIComponent(config.url.slice('/model-catalog/'.length))
+      const record = detailOverrides[id] ?? models.find((item) => item.id === id)
+      if (!record) throw new Error(`Unexpected detail ${id}`)
+      response.data = structuredClone(record)
+    } else throw new Error(`Unexpected request ${config.url}`)
+    return response
   }
 })
-
 afterEach(async () => {
+  detailBarrier?.release()
   await act(async () => root.unmount())
   cache.clear()
   host.remove()
@@ -62,7 +122,6 @@ afterEach(async () => {
   else Reflect.deleteProperty(navigator, 'clipboard')
   await i18n.changeLanguage('en')
 })
-
 async function until(assert: () => void) {
   for (let attempt = 0; attempt < 100; attempt++) {
     await act(async () => new Promise((resolve) => setTimeout(resolve, 5)))
@@ -74,8 +133,7 @@ async function until(assert: () => void) {
     }
   }
 }
-
-async function mount() {
+async function mount(waitForModels = true) {
   await act(async () =>
     root.render(
       <QueryClientProvider client={cache}>
@@ -85,90 +143,192 @@ async function mount() {
       </QueryClientProvider>,
     ),
   )
-  await until(() => expect(host.querySelector('[aria-label^="Open API access"]')).not.toBeNull())
+  if (waitForModels)
+    await until(() => expect(host.querySelector('[aria-label^="Open API access"]')).not.toBeNull())
 }
-
 function button(label: string) {
   return [...document.querySelectorAll<HTMLButtonElement>('button')].find(
     (item) => item.textContent === label || item.getAttribute('aria-label') === label,
   )!
 }
-
-async function open(name: string) {
-  await act(async () => button(`Open API access for ${name}`).click())
-  await until(() => expect(document.querySelector('[role="dialog"]')).not.toBeNull())
+function drawer() {
+  return document.querySelector('[role="dialog"]')!
 }
-
+async function open(name: string, waitForDetails = true) {
+  await act(async () => button(`Open API access for ${name}`).click())
+  await until(() => expect(drawer()).not.toBeNull())
+  if (waitForDetails)
+    await until(() => expect(drawer().querySelector('h2.break-words')?.textContent).toBe(name))
+}
 function statistic(label: string) {
   const region = host.querySelector('[aria-label="Model catalogue statistics"]')!
   const item = [...region.children].find((child) => child.querySelector('p')?.textContent === label)
   return item?.lastElementChild?.textContent
 }
+async function select(label: string, value: string) {
+  const input = host.querySelector<HTMLSelectElement>(`select[aria-label="${label}"]`)!
+  await act(async () => {
+    input.value = value
+    input.dispatchEvent(new Event('change', { bubbles: true }))
+  })
+}
+async function search(value: string) {
+  const input = host.querySelector<HTMLInputElement>('input[type="search"]')!
+  await act(async () => {
+    Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!.call(input, value)
+    input.dispatchEvent(new Event('input', { bubbles: true }))
+  })
+}
+function visibleNames() {
+  return [...host.querySelectorAll('article h2')].map((item) => item.textContent)
+}
 
-describe('Member model availability and native examples', () => {
-  it('counts the full catalogue separately from active models with supported eligible protocols', async () => {
+describe('Authorized member model catalogue', () => {
+  it('counts personal availability and real unique sources separately from the full and filtered catalogue', async () => {
+    const alpha = team('team_alpha', 'Alpha')
     models = [
-      model('multi', ['openai_chat', 'openai_responses']),
+      model('multi', ['openai_chat', 'openai_responses'], [personal, alpha]),
       model('messages', ['anthropic_messages']),
       model('gemini', ['gemini_generate_content']),
       model('unavailable', []),
       model('future', ['future_native']),
-      model('disabled', ['openai_chat'], 'disabled'),
-      model('archived', ['openai_chat'], 'archived'),
+      model('team-only', ['openai_chat'], [alpha, team('team_beta', 'Beta')]),
     ]
     await mount()
-    expect(statistic('Total models')).toBe('7')
-    expect(statistic('Available models')).toBe('3')
+    expect(statistic('Total models')).toBe('6')
+    expect(statistic('Personally available models')).toBe('3')
     expect(statistic('Protocol type')).toBe('4')
-    const search = host.querySelector<HTMLInputElement>('input[type="search"]')!
-    await act(async () => {
-      Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!.call(
-        search,
-        'unavailable',
-      )
-      search.dispatchEvent(new Event('input', { bubbles: true }))
-    })
-    expect(host.querySelectorAll('[aria-label^="Open API access"]')).toHaveLength(1)
-    expect(statistic('Total models')).toBe('7')
-    expect(statistic('Available models')).toBe('3')
+    expect(statistic('Access sources')).toBe('3')
+    await search('unavailable')
+    expect(visibleNames()).toEqual(['unavailable'])
+    expect(statistic('Total models')).toBe('6')
+    expect(statistic('Personally available models')).toBe('3')
+    expect(requests.map((request) => request.url)).toEqual(['/auth/session', '/model-catalog'])
+  })
+
+  it('uses conjunctive literal name, exact source, protocol and explicit per-protocol input filters', async () => {
+    const alpha = team('team_alpha', 'Alpha')
+    const declared = model(
+      'Image [.*] native',
+      ['openai_chat', 'openai_responses'],
+      [personal, alpha],
+    )
+    declared.input_capabilities = { openai_chat: ['image'], openai_responses: ['pdf'] }
+    const teamImage = model('Image other', ['openai_chat'], [alpha])
+    teamImage.input_capabilities = { openai_chat: ['image'] }
+    models = [
+      declared,
+      teamImage,
+      model('Image PDF by name', ['openai_chat']),
+      model('no-input', ['openai_responses']),
+    ]
+    await mount()
+    await select('Input capabilities', 'image')
+    expect(visibleNames()).toEqual(['Image [.*] native', 'Image other'])
+    await select('Access source', 'personal')
+    expect(visibleNames()).toEqual(['Image [.*] native'])
+    await select('Protocol type', 'openai_responses')
+    expect(visibleNames()).toEqual([])
+    await select('Input capabilities', 'pdf')
+    expect(visibleNames()).toEqual(['Image [.*] native'])
+    await search('[.*]')
+    expect(visibleNames()).toEqual(['Image [.*] native'])
+    await search('image other')
+    expect(visibleNames()).toEqual([])
+    expect(statistic('Total models')).toBe('4')
+    expect(requests).toHaveLength(2)
+  })
+
+  it('shows two source chips and expands all actual sources without opening API access or nesting buttons', async () => {
+    models = [
+      model(
+        'many-sources',
+        ['openai_chat'],
+        [team('team_c', 'Gamma'), personal, team('team_a', 'Alpha'), team('team_b', 'Beta')],
+      ),
+    ]
+    await mount()
+    const card = host.querySelector('article')!
+    expect(card.textContent).toContain('Personal grant')
+    expect(card.textContent).toContain('Alpha')
+    expect(card.textContent).not.toContain('Gamma')
+    expect(card.querySelector('button button')).toBeNull()
+    await act(async () => button('View 2 more access sources for many-sources').click())
+    await until(() => expect(document.querySelector('[role="menu"]')).not.toBeNull())
+    const popup = document.querySelector('[role="menu"]')!
+    for (const name of ['Personal grant', 'Alpha', 'Beta', 'Gamma'])
+      expect(popup.textContent).toContain(name)
+    expect(popup.querySelectorAll('[role="menuitem"]')).toHaveLength(4)
+    expect(popup.textContent).toContain('Team invocation is not supported')
+    expect(document.querySelector('[role="dialog"]')).toBeNull()
+    expect(document.querySelector('a[href="/keys"]')).toBeNull()
+    expect(requests).toHaveLength(2)
+    await act(async () =>
+      popup.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })),
+    )
+    await until(() => expect(document.querySelector('[role="menu"]')).toBeNull())
+  })
+
+  it('preserves the table composition with actual creation dates and explicit unknown price and usage fields', async () => {
+    const item = model('table-model', ['openai_chat'], [personal, team('team_a', 'Alpha')])
+    item.input_capabilities = { openai_chat: ['image', 'pdf'] }
+    models = [item]
+    await mount()
+    await act(async () => button('Table').click())
+    const table = host.querySelector('table')!
+    expect(table.getAttribute('aria-label')).toBe('Model catalogue list')
+    expect(table.textContent).toContain('Alpha')
+    expect(table.textContent).toContain('Image input · PDF input')
+    expect(table.textContent).toContain('2026')
+    expect(table.textContent).toContain('Unknown')
+    expect(host.textContent).toContain('Prices, member usage and monthly requests are not provided')
+    await act(async () => button('API access').click())
+    await until(() =>
+      expect(drawer().querySelector('pre')?.textContent).toContain('/v1/chat/completions'),
+    )
+    expect(requests.every((request) => request.method === 'get')).toBe(true)
   })
 
   it.each([
     ['explicit empty protocols', model('unavailable', [])],
     ['unknown protocols', model('future', ['future_native'])],
-    ['disabled with stale protocols', model('disabled', ['openai_chat'], 'disabled')],
-    ['archived with stale protocols', model('archived', ['openai_chat'], 'archived')],
-  ])('never fabricates an example or Key availability for %s', async (_, item) => {
+  ])('never fabricates an example for %s', async (_, item) => {
     models = [item]
     await mount()
-    expect(statistic('Total models')).toBe('1')
-    expect(statistic('Available models')).toBe('0')
-    expect(statistic('Protocol type')).toBe('0')
     await open(item.name)
-    const drawer = document.querySelector('[role="dialog"]')!
-    expect(drawer.textContent).toContain('No supported inference protocol is currently available')
-    expect(drawer.textContent).toContain(
-      'Creating a Key does not make unavailable routes callable.',
-    )
-    expect(drawer.querySelector('pre')).toBeNull()
-    expect(drawer.textContent).not.toContain('curl')
-    expect(drawer.textContent).not.toContain(`${window.location.origin}/v1`)
-    expect(drawer.querySelector('a[href="/keys"]')).toBeNull()
+    expect(statistic('Personally available models')).toBe('0')
+    expect(drawer().textContent).toContain('No supported inference protocol is currently available')
+    expect(drawer().querySelector('pre')).toBeNull()
+    expect(drawer().textContent).not.toContain('curl')
+    expect(drawer().querySelector('a[href="/keys"]')).toBeNull()
     expect(button('Copy').disabled).toBe(true)
     await act(async () => button('Copy').click())
     expect(writeText).not.toHaveBeenCalled()
-    expect(requests.every((request) => request.url === '/models' && request.method === 'get')).toBe(
-      true,
-    )
   })
 
-  it('keeps the known legacy protocol fallback only when protocols are absent', async () => {
-    models = [model('legacy'), { ...model('legacy-future'), protocol: 'future_native' }]
+  it('shows Team-only metadata without treating visibility as personal invocation', async () => {
+    models = [model('team-visible', ['openai_chat'], [team('team_a', 'Alpha')])]
     await mount()
-    expect(statistic('Available models')).toBe('1')
-    await open('legacy')
-    expect(document.querySelector('pre')?.textContent).toContain('/v1/chat/completions')
-    expect(button('Copy').disabled).toBe(false)
+    await open('team-visible')
+    expect(statistic('Total models')).toBe('1')
+    expect(statistic('Personally available models')).toBe('0')
+    expect(drawer().textContent).toContain('Alpha')
+    expect(drawer().textContent).toContain('A personal Key cannot use this Team grant')
+    expect(drawer().querySelector('pre')).toBeNull()
+    expect(drawer().querySelector('a[href="/keys"]')).toBeNull()
+    expect(button('Copy').disabled).toBe(true)
+    expect(host.textContent).not.toContain('Personal grant')
+  })
+
+  it('requires both current personal availability and a supported personal source', async () => {
+    const item = model('inconsistent', ['openai_chat'], [team('team_a', 'Alpha')])
+    item.personal_available = true
+    models = [item]
+    await mount()
+    await open(item.name)
+    expect(statistic('Personally available models')).toBe('0')
+    expect(button('Copy').disabled).toBe(true)
+    expect(drawer().querySelector('a[href="/keys"]')).toBeNull()
   })
 
   it.each([
@@ -186,90 +346,232 @@ describe('Member model availability and native examples', () => {
       'x-goog-api-key: $ROUTEX_API_KEY',
       '"contents"',
     ],
-  ])('preserves and copies the valid %s native example', async (protocol, path, header, body) => {
-    models = [model('native-model', [protocol])]
-    await mount()
-    await open('native-model')
-    const example = document.querySelector('pre')!.textContent!
-    expect(example).toContain(`curl ${window.location.origin}${path}`)
-    expect(example).toContain(header)
-    expect(example).toContain(body)
-    if (protocol === 'anthropic_messages')
-      expect(example).toContain('anthropic-version: 2023-06-01')
-    expect(button('Copy').disabled).toBe(false)
-    await act(async () => button('Copy').click())
-    expect(writeText).toHaveBeenCalledExactlyOnceWith(example)
-    expect(document.body.textContent).toContain('Copied.')
-  })
+  ])(
+    'preserves the %s native example after a fresh resource read',
+    async (protocol, path, header, body) => {
+      models = [model('native-model', [protocol])]
+      await mount()
+      await open('native-model')
+      const example = drawer().querySelector('pre')!.textContent!
+      expect(example).toContain(`curl ${window.location.origin}${path}`)
+      expect(example).toContain(header)
+      expect(example).toContain(body)
+      if (protocol === 'anthropic_messages')
+        expect(example).toContain('anthropic-version: 2023-06-01')
+      expect(button('Copy').disabled).toBe(false)
+      expect(drawer().querySelector('a[href="/keys"]')).not.toBeNull()
+      await act(async () => button('Copy').click())
+      expect(writeText).toHaveBeenCalledExactlyOnceWith(example)
+      expect(drawer().textContent).toContain('Copied.')
+      expect(requests.map((request) => request.url)).toEqual([
+        '/auth/session',
+        '/model-catalog',
+        '/model-catalog/mdl_native-model',
+      ])
+      expect(cache.getQueryData(['model-catalog', 'detail', actorID, models[0].id])).toEqual(
+        models[0],
+      )
+    },
+  )
 
-  it('filters unknown protocols and duplicate options without selecting a fallback for them', async () => {
+  it('filters unknown and duplicate protocol options and changes native requests explicitly', async () => {
     models = [model('mixed', ['future_native', 'openai_responses', 'openai_chat', 'openai_chat'])]
     await mount()
     await open('mixed')
-    const select = document.querySelector<HTMLSelectElement>('select')!
-    expect([...select.options].map((option) => option.value)).toEqual([
+    const input = drawer().querySelector<HTMLSelectElement>('select')!
+    expect([...input.options].map((option) => option.value)).toEqual([
       'openai_responses',
       'openai_chat',
     ])
     await act(async () => {
-      select.value = 'openai_responses'
-      select.dispatchEvent(new Event('change', { bubbles: true }))
+      input.value = 'openai_responses'
+      input.dispatchEvent(new Event('change', { bubbles: true }))
     })
-    expect(document.querySelector('pre')?.textContent).toContain('/v1/responses')
-    expect(document.querySelector('[role="dialog"]')?.textContent).not.toContain('future_native')
+    expect(drawer().querySelector('pre')?.textContent).toContain('/v1/responses')
+    expect(drawer().textContent).not.toContain('future_native')
   })
 
-  it('preserves the Gemini public-name guard and disables copying an unsafe path', async () => {
+  it('preserves the Gemini public-name guard and blocks Copy and Key links for unsafe aliases', async () => {
     models = [model('unsafe/name', ['gemini_generate_content'])]
     await mount()
     await open('unsafe/name')
-    expect(document.body.textContent).toContain('Gemini requires a public name or active alias')
-    expect(document.querySelector('pre')).toBeNull()
+    expect(drawer().textContent).toContain('Gemini requires a public name or active alias')
+    expect(drawer().querySelector('pre')).toBeNull()
     expect(button('Copy').disabled).toBe(true)
+    expect(drawer().querySelector('a[href="/keys"]')).toBeNull()
     expect(writeText).not.toHaveBeenCalled()
   })
 
-  it.each([
-    ['removed eligibility', [] as string[], 'active' as const],
-    ['disabled model', ['openai_chat'], 'disabled' as const],
-  ])(
-    'updates an open drawer after a catalogue refresh reports %s',
-    async (_, protocols, status) => {
-      models = [model('current-model', ['openai_chat'])]
+  it('shell-quotes apostrophes in native model names without changing JSON content', async () => {
+    models = [model("model'name", ['openai_chat'])]
+    await mount()
+    await open("model'name")
+    expect(drawer().querySelector('pre')?.textContent).toContain("model'\\''name")
+  })
+
+  it.each([403, 404, 503])(
+    'hides saved detail during refresh and after a %s rejection',
+    async (status) => {
+      models = [model('current-model')]
       await mount()
       await open('current-model')
-      expect(document.querySelector('pre')?.textContent).toContain('/v1/chat/completions')
-      expect(button('Copy').disabled).toBe(false)
-
-      models = [model('current-model', protocols, status)]
-      await act(async () => cache.invalidateQueries({ queryKey: ['models'] }))
-      await until(() => expect(statistic('Available models')).toBe('0'))
-
-      const drawer = document.querySelector('[role="dialog"]')!
-      expect(drawer.textContent).toContain('current-model API access')
-      expect(drawer.textContent).toContain('No supported inference protocol is currently available')
-      expect(drawer.querySelector('pre')).toBeNull()
-      expect(drawer.querySelector('a[href="/keys"]')).toBeNull()
-      expect(button('Copy').disabled).toBe(true)
-      expect(writeText).not.toHaveBeenCalled()
-      expect(requests.map((request) => request.url)).toEqual(['/models', '/models'])
+      const barrier = holdDetails()
+      failures['/model-catalog/mdl_current-model'] = status
+      await act(async () => {
+        button('Refresh details').click()
+      })
+      await until(() => expect(drawer().textContent).toContain('Checking current model access'))
+      expect(drawer().querySelector('h2.break-words')).toBeNull()
+      expect(drawer().querySelector('pre')).toBeNull()
+      expect(drawer().querySelector('a[href="/keys"]')).toBeNull()
+      await act(async () => barrier.release())
+      await until(() => expect(drawer().querySelector('[role="alert"]')).not.toBeNull())
+      expect(drawer().querySelector('pre')).toBeNull()
+      expect(drawer().textContent).not.toContain('$ROUTEX_API_KEY')
+      expect(drawer().textContent).not.toContain('sanitized failure')
     },
   )
 
-  it('starts in English and updates unavailable guidance live without changing the selected model', async () => {
-    models = [model('unavailable', [])]
+  it('hides preseeded detail until a fresh resource-authorized request completes and uses that response', async () => {
+    const item = model('cached-model')
+    models = [item]
+    cache.setQueryData(['model-catalog', 'detail', actorID, item.id], item)
+    detailOverrides[item.id] = {
+      ...item,
+      personal_available: false,
+      sources: [team('team_a', 'Alpha')],
+    }
+    const barrier = holdDetails()
     await mount()
-    await open('unavailable')
-    expect(document.body.textContent).toContain(
-      'No supported inference protocol is currently available',
+    await open(item.name, false)
+    expect(drawer().querySelector('pre')).toBeNull()
+    expect(drawer().querySelector('a[href="/keys"]')).toBeNull()
+    await act(async () => barrier.release())
+    await until(() => expect(drawer().querySelector('h2.break-words')?.textContent).toBe(item.name))
+    expect(drawer().textContent).toContain('A personal Key cannot use this Team grant')
+    expect(drawer().querySelector('pre')).toBeNull()
+    expect(button('Copy').disabled).toBe(true)
+  })
+
+  it('rejects a detail response for a different resource without showing its metadata or example', async () => {
+    const item = model('expected')
+    models = [item]
+    detailOverrides[item.id] = model('wrong-resource')
+    await mount()
+    await open(item.name, false)
+    await until(() => expect(drawer().querySelector('[role="alert"]')).not.toBeNull())
+    expect(drawer().textContent).not.toContain('wrong-resource')
+    expect(drawer().querySelector('pre')).toBeNull()
+    expect(drawer().querySelector('a[href="/keys"]')).toBeNull()
+  })
+
+  it('requires fresh detail again after closing and reopening the same model', async () => {
+    models = [model('reopened')]
+    await mount()
+    await open('reopened')
+    await act(async () => button('Close').click())
+    await until(() => expect(document.querySelector('[role="dialog"]')).toBeNull())
+    models = [{ ...models[0], personal_available: false }]
+    await open('reopened')
+    expect(drawer().querySelector('pre')).toBeNull()
+    expect(button('Copy').disabled).toBe(true)
+    expect(
+      requests.filter((request) => request.url === '/model-catalog/mdl_reopened'),
+    ).toHaveLength(2)
+  })
+
+  it('rechecks selected detail when the catalogue is explicitly refreshed', async () => {
+    const item = model('refreshed-list')
+    models = [item]
+    await mount()
+    await open(item.name)
+    const current = { ...item, personal_available: false, sources: [team('team_a', 'Alpha')] }
+    models = [current]
+    detailOverrides[item.id] = current
+    await act(async () => button('Refresh catalogue').click())
+    await until(() =>
+      expect(drawer().textContent).toContain('A personal Key cannot use this Team grant'),
     )
+    expect(drawer().querySelector('pre')).toBeNull()
+    expect(drawer().querySelector('a[href="/keys"]')).toBeNull()
+    expect(statistic('Personally available models')).toBe('0')
+    expect(
+      requests.filter((request) => request.url === '/model-catalog/mdl_refreshed-list'),
+    ).toHaveLength(2)
+  })
+
+  it('cancels an abandoned resource request and keeps the next model independent', async () => {
+    models = [model('first'), model('second', ['openai_responses'])]
+    const barrier = holdDetails()
+    await mount()
+    await open('first', false)
+    const firstRequest = requests.find((request) => request.url === '/model-catalog/mdl_first')!
+    await act(async () => button('Close').click())
+    await until(() => expect(firstRequest.signal?.aborted).toBe(true))
+    detailBarrier = undefined
+    await open('second')
+    expect(drawer().querySelector('pre')?.textContent).toContain('/v1/responses')
+    expect(drawer().textContent).not.toContain('first')
+    barrier.release()
+  })
+
+  it('keys lists and details by the current actor and removes prior content after session rejection', async () => {
+    models = [model('actor-model')]
+    await mount()
+    await open('actor-model')
+    expect(cache.getQueryData(['model-catalog', 'list', 'usr_current'])).toEqual(models)
+    actorID = 'usr_other'
+    models = [{ ...models[0], personal_available: false }]
+    await act(async () => cache.invalidateQueries({ queryKey: ['auth', 'session'] }))
+    await until(() =>
+      expect(cache.getQueryData(['model-catalog', 'detail', 'usr_other', models[0].id])).toEqual(
+        models[0],
+      ),
+    )
+    await until(() => expect(button('Copy')?.disabled).toBe(true))
+    expect(drawer().querySelector('pre')).toBeNull()
+    expect(button('Copy').disabled).toBe(true)
+    failures['/auth/session'] = 401
+    await act(async () => cache.invalidateQueries({ queryKey: ['auth', 'session'] }))
+    await until(() => expect(document.querySelector('[role="dialog"]')).toBeNull())
+    expect(host.querySelector('article')).toBeNull()
+    expect(cache.getQueryData(['auth', 'session'])).toBeNull()
+  })
+
+  it.each(['list', 'detail'])(
+    'shows a localized explicit overflow on %s without partial rows or cached examples',
+    async (scope) => {
+      models = [model('overflow')]
+      if (scope === 'list') {
+        failures['/model-catalog'] = 422
+        await mount(false)
+        await until(() => expect(host.querySelector('[role="alert"]')).not.toBeNull())
+      } else {
+        await mount()
+        failures['/model-catalog/mdl_overflow'] = 422
+        await open('overflow', false)
+        await until(() => expect(drawer().querySelector('[role="alert"]')).not.toBeNull())
+      }
+      expect(document.body.textContent).toContain('The server did not return a partial catalogue')
+      expect(document.querySelector('pre')).toBeNull()
+      if (scope === 'list') expect(host.querySelector('article')).toBeNull()
+      await act(async () => i18n.changeLanguage('zh'))
+      expect(document.body.textContent).toContain('服务器未返回不完整的目录')
+    },
+  )
+
+  it('starts in English and switches filters, Team guidance and detail copy live', async () => {
+    models = [model('team-language', ['openai_chat'], [team('team_a', 'Alpha')])]
+    await mount()
+    await open('team-language')
+    expect(drawer().textContent).toContain('A personal Key cannot use this Team grant')
     await act(async () => i18n.changeLanguage('zh'))
-    const drawer = document.querySelector('[role="dialog"]')!
-    expect(drawer.textContent).toContain('unavailable API 接入')
-    expect(drawer.textContent).toContain('此模型当前没有可用的受支持推理协议')
-    expect(drawer.textContent).toContain('创建 Key 不会让不可用路由变得可调用')
+    expect(drawer().textContent).toContain('team-language API 接入')
+    expect(drawer().textContent).toContain('个人 Key 不能使用此 Team 授权')
     expect(button('复制').disabled).toBe(true)
-    expect(drawer.querySelector('pre')).toBeNull()
-    expect(requests).toHaveLength(1)
+    expect(drawer().querySelector('pre')).toBeNull()
+    expect(host.querySelector('select[aria-label="输入能力"]')).not.toBeNull()
+    expect(host.textContent).toContain('个人可接入模型')
+    expect(requests).toHaveLength(3)
   })
 })

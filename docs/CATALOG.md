@@ -211,6 +211,8 @@ All paths below are relative to `/api/v1`. Management endpoints require a sessio
 | `PUT /admin/models/:model_id/grants` | `{user_ids:[]}` | Model |
 | `GET /admin/model-grantees` | None | `{items:[{id,email,name}]}` for active users |
 | `GET /models` | None | `{items:[{id,name,status,protocol,protocols,input_capabilities}]}` for the current user's grants; any authenticated role |
+| `GET /model-catalog` | None | Actor-scoped `{items: MemberModelCatalogRecord[]}`; personal and active Team visibility |
+| `GET /model-catalog/:model_id` | None | Freshly authorized `MemberModelCatalogRecord`; unavailable visibility returns `404` |
 
 Connections support the native `openai_chat`, `openai_responses`,
 `anthropic_messages`, and `gemini_generate_content` protocols. Credential secrets
@@ -379,3 +381,66 @@ The focused correction passed 15 dedicated UI tests and complete format/check/te
 (665 Vitest cases in 54 files, Go race/unit, Node checks, development lifecycle
 and embedded production assets). Open drawers follow refreshed catalogue
 eligibility instead of retaining a copied model object.
+
+
+## Actor-scoped member model directory
+
+`GET /api/v1/model-catalog` combines explicit direct personal grants with explicit
+model grants from active Teams and the actor's active memberships. It returns
+each active logical model once, preserving each actual source. Empty Team grants
+confer no access; platform administration does not imply a personal grant or an
+unscoped catalogue. The existing `/api/v1/models`, Personal Key creation ceiling
+and inference authorization remain unchanged.
+
+Each record contains only `id`, current `name`, `status`, authoritative UTC
+`created_at`, eligible native `protocols`, per-protocol `input_capabilities`,
+`personal_available` and `sources`. Personal sources have null Team fields and
+`invocation_supported: true` for the implemented personal authentication path.
+Team sources contain their authorized Team ID/name and
+`invocation_supported: false`; Team visibility does not implement native Team
+execution. Personal availability requires a direct grant and an eligible route,
+and does not promise that a particular Key, quota or request will be accepted.
+No Provider topology, credentials, global member counts, price assumption or
+other users' grants appear.
+
+List queries have complete-result bounds of 1,000 distinct models, 100 distinct
+grant-bearing Team sources and 5,000 source rows. Overflow returns sanitized
+HTTP `422`; no partial list or fabricated count is returned. Detail applies
+bounds only to the requested model's sources and reauthorizes current visibility
+on each GET, returning `404` after the last grant/membership is revoked. Unsupported
+query parameters return `400`. Source reads use one read-only repeatable-read
+transaction and exact identity checks, including Model name ownership, before
+borrowing a connection for route metadata; a single-connection pool must remain
+usable. Native capability intersection follows the existing discovery contract.
+
+The existing member page keeps its card/table/520px drawer composition. Four
+statistics describe actual models, personally available models, native protocols
+and grant sources. Name, source, protocol and explicitly declared image/PDF
+capability filters are conjunctive; name search is literal. Two source labels and
+an all-source overflow preserve the exact deduplicated source set. Team sources
+never imply a Team Key. Drawer data comes from an independently authorized
+actor/model query, never from the list as a permission fallback; cached detail
+is hidden during refresh, error or revoked access. Working native examples and
+Key navigation require confirmed current personal availability. Historical
+creation time is known; route-dependent prices and global member/request facts
+remain unknown where the layout displays them.
+
+Parallel backend/UI ownership delivered this scope. Dedicated frontend coverage
+passed 27 cases plus eight i18n cases. Complete format/check/test passed (677
+Vitest cases in 54 files, Go race/unit, Node checks, development lifecycle and
+embedded production assets). Focused real PostgreSQL/MySQL acceptance passed
+(Handler 160.920 seconds), covering source deduplication, a ready Team-only model,
+Personal Key denial, revocation, exact identity/case-folding defenses, all three
+overflow bounds, detail isolation and single-connection metadata reads.
+
+A disposable production process with PostgreSQL and a controlled native upstream
+passed browser source overflow, ready Team-only denial, Personal native examples,
+authorization revocation with fresh inaccessible details, image filtering, table
+composition and English/Chinese switching. No console errors were recorded.
+Owned test processes, tab and Compose resources were removed. Personal/Team model
+permission requests, explicit Team invocation and broader price/usage contracts
+remain unfinished; full F19 and external-provider acceptance are not established.
+
+The complete PostgreSQL/MySQL race integration matrix also passed (Handler
+488.717 seconds, Service 5.727 seconds). This does not establish external-provider
+or full-platform acceptance.

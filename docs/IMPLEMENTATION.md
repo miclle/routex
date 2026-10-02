@@ -169,7 +169,7 @@ The binary capability count is 8 completed, 19 partially completed, and 3 not st
 | F16 | Platform currency, exchange rates, and historical price snapshots | Completed | Decimal-string currency/rate management, exact quoting, and immutable per-call assessment are implemented. |
 | F17 | User and Team defaults, overrides, budgets, alerts, and stop policy | Partially completed | Personal, Project, and Key enforcement plus budget/token/TPM controls, authoritative quota snapshots, and installation-calendar configuration exist; Team defaults, templates, alerts, and configurable stop-calling policy remain open. |
 | F18 | Quota, model, and request-limit approvals | Partially completed | Project model requests exist; Team quota approval, escalation, and Project quota/request-limit workflows remain open. |
-| F19 | Member overview, model sources, requests, and examples | Partially completed | Catalog, callable-model views, Project requests, and native examples exist; complete Team-source attribution and request coverage remain open. |
+| F19 | Member overview, model sources, requests, and examples | Partially completed | Actor-scoped Personal/Team source attribution, native metadata, filters, details and examples are available; Project requests exist, while Personal/Team requests, Team invocation and broader price/usage facts remain open. |
 | F20 | Playground, comparison, attachments, and code examples | Partially completed | Four native conversation paths, two-to-four-lane comparison, cancellation, executable examples, per-protocol image/PDF discovery, user/Project attachment resolution, single/comparison attachment lifecycle interfaces, and conservative token/TPM/money admission with exact per-occurrence media prices exist; external acceptance remains open. |
 | F21 | Personal, Project, and platform call records and CSV | Completed | Isolated list/detail queries, incremental loading, redacted drawers, bounded server-side CSV export, filter parity, formula protection, and bilingual download actions are implemented with dual-database evidence. |
 | F22 | Usage trends, amounts, and multidimensional filters | Partially completed | Personal, Project, and platform usage interfaces plus immutable Provider attribution exist; Team attribution and complete freshness/capacity acceptance remain open. |
@@ -1551,3 +1551,37 @@ cases in 54 files, Go race/unit, Node checks, development lifecycle and embedded
 production assets). No new schema/API, Team invocation or source directory is
 delivered by this correction. F19 remains partial; actor-scoped source/detail
 work follows separately.
+
+
+### F19 actor-scoped source directory and details
+
+Added session-authorized model-catalog list/detail APIs without changing native
+model discovery or Personal Key grant ceilings. Explicit direct grants and active
+Team membership/grants produce deduplicated source records; platform operators
+receive no implicit personal grants. Complete lists fail closed beyond 1,000
+models, 100 grant-bearing Teams or 5,000 source rows. Details bound only the
+requested model and reauthorize each read. Exact identity/name ownership checks,
+read-only repeatable-read snapshots and connection release before metadata reads
+preserve authority and single-connection safety on both supported databases.
+
+The approved cards/table/drawer now show actual source/protocol/availability
+statistics, literal name search, conjunctive source/protocol/image/PDF filters,
+two source labels with complete overflow, recorded creation time and explicit
+unknown price/global usage slots. Independently keyed actor/model details hide
+stale data during refresh or error. A ready Team-only model remains visible with
+real protocol/capability metadata but has no personal cURL, copy or Key suggestion.
+No new schema, dependency or implicit Team invocation is introduced.
+
+Dedicated frontend tests passed 27 cases plus eight i18n cases. Complete
+format/check/test passed (677 Vitest cases in 54 files, Go race/unit, four Node
+checks, development lifecycle and production assets). Focused PostgreSQL/MySQL
+acceptance passed in 160.920 seconds. A disposable production browser flow passed
+source overflow, Team-only denial, personal native examples, revoked-detail
+freshness, table/image filters and bilingual switching with no console errors.
+Full F19 remains partial: Personal/Team requests, explicit Team invocation and
+broader price/usage contracts are still open.
+
+The complete PostgreSQL/MySQL race matrix passed (Handler 488.717 seconds,
+Service 5.727 seconds), including migration/upgrade and existing lifecycle cases.
+Independent backend review found no remaining actionable production defect.
+Local Markdown references and whitespace checks passed.

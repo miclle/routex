@@ -112,6 +112,8 @@ func (ctrl *Ctrl) RegisterRoutes(r *fox.Engine) {
 	identity.POST("/account/password", sameOrigin, ctrl.requireSession, requireCSRF, jsonAuthRequest, ctrl.ChangePassword)
 	identity.DELETE("/account/sessions/:session_id", sameOrigin, ctrl.requireSession, requireCSRF, ctrl.RevokeAccountSession)
 	identity.GET("/models", ctrl.requireSession, ctrl.ListVisibleModels)
+	identity.GET("/model-catalog", ctrl.requireSession, ctrl.ListMemberModelCatalog)
+	identity.GET("/model-catalog/:model_id", ctrl.requireSession, ctrl.GetMemberModelCatalog)
 	identity.POST("/attachments", ctrl.requireSession, sameOrigin, requireCSRF, ctrl.UploadAttachment)
 	identity.GET("/attachments/:attachment_id", ctrl.requireSession, ctrl.Attachment)
 	identity.GET("/attachments/:attachment_id/content", ctrl.requireSession, ctrl.AttachmentContent)

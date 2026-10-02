@@ -191,3 +191,13 @@ native protocols. Explicit empty protocols and unknown/disabled models must neve
 fabricate a Chat endpoint or cURL example. Keep localized unavailable guidance,
 disabled copy and the native Gemini name guard; Key creation cannot repair route
 availability. Team visibility and Personal Key authority remain separate.
+
+
+Member source visibility uses actor-scoped `model-catalog` queries, separate from
+the direct personal `/models` Key selector. Deduplicate models and actual sources;
+Team visibility never grants Personal Key or Team invocation authority. Keep
+conjunctive literal/source/protocol/explicit image-PDF filters, two-plus-all source
+labels, and the existing card/table/520px drawer. Detail cache keys include actor
+and Model IDs; hide cached records during refresh, errors or revocation. Enable
+examples and Key navigation only after current personal availability is confirmed.
+Render missing price/member/request facts as unknown, with paired catalog copy.
