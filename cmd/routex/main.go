@@ -130,6 +130,11 @@ func run(ctx context.Context, configPath string) (runErr error) {
 		return errors.New("start provider quality evaluation failed")
 	}
 	defer stopProviderQuality()
+	stopQuotaNotifications, err := svc.StartQuotaNotifications(lifecycle)
+	if err != nil {
+		return errors.New("start monthly quota notifications failed")
+	}
+	defer stopQuotaNotifications()
 	engine := fox.Default()
 	handler.New(svc).RegisterRoutes(engine)
 	listener, err := net.Listen("tcp", cfg.Addr)

@@ -1,6 +1,6 @@
 # Operational alerts and notifications
 
-RouteX turns a bounded set of durable operational failures into grouped alerts and recipient-isolated notifications. Delivered sources are failed system jobs, failed Provider credential verification, Provider quality transitions, and terminal route-unavailable calls. RouteX does not create demonstration alerts or infer incidents from browser state.
+RouteX turns a bounded set of durable operational failures into grouped alerts and recipient-isolated notifications. Operational sources are failed system jobs, failed Provider credential verification, Provider quality transitions, and terminal route-unavailable calls. Separate Personal/Project inbox records observe current-policy monthly settled-use exhaustion. RouteX does not create demonstration alerts or infer incidents from browser state.
 
 ## Persistence and event model
 
@@ -25,19 +25,39 @@ missing occurrences from durable source rows and audit facts on later passes.
 
 ## Authorization and privacy
 
-Only enabled users with the current `system.read` permission receive or read notifications. Inbox operations derive the recipient from the authenticated session; clients cannot select another recipient. The worker rechecks `system.read` immediately before SMTP network work and terminates the intent when the recipient is no longer eligible.
+Every enabled, non-offboarded authenticated user can open their own inbox; an
+ordinary user with no visible records receives HTTP 200 with an empty list.
+Inbox operations derive the recipient from the session, and clients cannot
+select another recipient. Operational records additionally require current
+`system.read`. Personal quota records require the exact personal owner; Project
+quota records require an exact current enabled manager of an active Project and
+a recorded recipient projection. Platform permissions and Project creation do
+not substitute for those quota scopes. Manager removal or Project inactivity
+suppresses historical rows from lists, unread counts and read actions. A new
+manager receives no historical projection when an observation is replayed.
 
-`system.read` permits the operations overview, alerts, inbox, and personal settings read. `system.write` is additionally required to change alert state or save personal external-email settings. Notification payloads contain only allowlisted kinds and detail codes. SMTP credentials, raw upstream errors, arbitrary audit JSON, and another recipient's email are never exposed through notification APIs.
+The same source predicates apply before pagination, counts and updates. Exact
+identity/association checks prevent case-folded database aliases from granting
+access. Read mutations serialize with governance and reauthorize inside the
+transaction; inaccessible notification IDs return HTTP 404. Each source reads
+at most `limit + 1` rows, then merges descending timestamp/ID order into one page
+of at most 100 records and one shared cursor. Current-manager scope discovery
+fails closed beyond 1,000 eligible rows rather than returning a partial inbox.
+
+Only eligible `system.read` users receive operational fanout. The SMTP worker
+rechecks that permission before network work and terminates intents for an
+ineligible recipient. `system.read` permits the operations overview, alerts,
+operational inbox records, and personal delivery-settings read. `system.write` is additionally required to change alert state or save personal external-email settings. Notification payloads contain only allowlisted kinds and detail codes. SMTP credentials, raw upstream errors, arbitrary audit JSON, and another recipient's email are never exposed through notification APIs.
 
 ## API
 
-Paths are relative to `/api/v1`. Writes require session authentication, CSRF, same-origin checks, strict JSON fields, and current server-side permissions.
+Paths are relative to `/api/v1`. Writes require session authentication, CSRF, same-origin checks and current server-side authority. Settings and alert-state JSON writes reject unknown fields; inbox read actions need no JSON payload.
 
 | Method and path | Permission | Purpose |
 | --- | --- | --- |
-| `GET /notifications?status=unread\|all` | `system.read` | List the authenticated user's notifications |
-| `POST /notifications/{notification_id}/read` | `system.read` | Mark one owned notification read |
-| `POST /notifications/read-all` | `system.read` | Mark all owned notifications read |
+| `GET /notifications?status=unread\|all` | Enabled current recipient; source-specific authority | List visible owned quota and operational notifications |
+| `POST /notifications/{notification_id}/read` | Enabled current recipient; source-specific authority | Mark one currently accessible owned notification read |
+| `POST /notifications/read-all` | Enabled current recipient; source-specific authority | Mark only currently accessible owned notifications read |
 | `GET /notification-settings` | `system.read` | Read personal delivery settings and revision |
 | `PUT /notification-settings` | `system.write` | Save the external address and severity choices with an exact ETag |
 | `GET /admin/overview` | `system.read` | Read current-day metrics, the 14-day token trend, Provider readiness and quality, top models, and alerts |
@@ -53,7 +73,7 @@ persisted policy is invalid; the API returns one fixed reason and the UI renders
 paired localized copy. The interface does not invent resource percentages,
 thresholds, or example incidents.
 
-## Delivery lifecycle
+## Operational email delivery lifecycle
 
 Email is opt-in. A default settings read may suggest the account email as an editable value, but both severity flags remain disabled until an authorized user explicitly saves settings. An enabled and complete SMTP configuration must also exist when the occurrence is published.
 
@@ -96,3 +116,62 @@ read actions, conflict review, quality coverage, and live English/Chinese
 switching.
 
 Controlled SMTP fixtures prove application delivery behavior without contacting an external mail service. Production relay acceptance, bounce handling, and inbox delivery remain unverified.
+
+## Monthly aggregate exhaustion inbox
+
+The observer reads current applied-policy/current-month exhaustion for Personal
+and Project aggregate accounts. Journal-settled tokens or exact monetary amounts
+must have complete coverage since the later of the resource creation time and
+the current month start. The journal supplies observation time, time zone and
+calendar boundaries; unknown usage in the observed dimension, incomplete
+coverage and mismatched currencies cannot establish exhaustion. Monetary evidence requires the policy,
+platform denomination and all settled currency groups to match. A fresh runtime
+authority must attest the exact saved policy revision before publication.
+
+Holds remain reservations rather than settled usage. Null means unlimited and
+produces no notice; a finite zero limit can establish a covered limit-reached
+observation without fabricating spend. No threshold crossing, historical
+backfill, 80%/90% warning, Team/Key aggregate notice, SMTP delivery or additional
+admission/stop-calling policy is introduced. The background observer scans finite
+monthly policies in bounded keyset batches of 32, advancing past ordinary skips
+and wrapping after the complete scope range so later accounts are not starved.
+
+Frozen GORM migration 35 adds `quota_notification_observations` and
+`quota_notification_inboxes`. It preserves the existing operational tables and
+restrictive `notifications.alert_id` foreign key. An observation freezes scope,
+policy revision, month boundaries, time zone, observation time, limit, settled
+amount, currency and coverage basis; a Project name is a validated immutable
+snapshot. Observation and current eligible recipient projections commit
+atomically. Identity is deduplicated by scope, dimension, month, policy revision
+and currency. Replays never change a snapshot, reset read state or add recipients;
+a new current policy revision or month has a separate identity. No current
+usage or current policy claim is inferred from historical inbox records.
+
+Quota records use `kind: monthly_quota_exhausted`, `severity: high`, and
+`detail_code: tokens_month_exhausted` or `money_month_exhausted`. They omit
+`alert_id` and operational delivery fields, and add `quota_observation_id` plus a
+`quota` object containing `scope_kind`, `scope_id`, `dimension`,
+`policy_revision`, `month_start`, `month_end`, `time_zone`, `as_of`, `limit`,
+`settled` and `currency`. Amounts and revisions are strings; token currency is
+null, while money retains its exact recorded currency. Scope is `user` or
+`project`, with optional frozen Project subject metadata. Quota facts never fan
+out to platform operators or create operational alerts or SMTP intents.
+
+The existing bell menu retains its layout, English-default bilingual copy and
+recipient/status cache keys for all signed-in users. Recorded values remain
+exact strings, and month/currency come from the server. Cached notices are hidden
+during refresh or errors; removed authority cannot be repaired by stale data.
+Operational settings retain their independent permission gates.
+
+Focused Go race tests and staticcheck passed. The isolated PostgreSQL/MySQL race
+suite passed in 173.349 seconds, covering all migration prefixes through V35,
+empty/upgrade/repeat/concurrent/partial schema paths, native settled evidence,
+held and unknown usage exclusions, zero versus unlimited, new revisions, exact
+money, deduplication, current/removed/new managers, frozen scope snapshots,
+merged pagination, case-aliased authority, read isolation, restart and a
+single-connection pool. Final format/check/test passed (724 Vitest cases in 56 files plus Go/Node,
+development and production checks). The disposable production browser passed
+Personal/Project settlement snapshots, English/Chinese switching and revoked
+Project authority refresh. Its owned resources were removed. The complete PostgreSQL/MySQL race matrix passed (Handler 499.925 seconds,
+Service 5.851 seconds), and its owned containers/network were removed; external mail and broader quota/enterprise alert
+acceptance remain open.

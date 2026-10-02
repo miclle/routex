@@ -77,6 +77,7 @@ beforeEach(() => {
     if (key === 'get /announcements') response.data = { items: [] }
     if (key === 'get /auth/registration') response.data = { enabled: registrationEnabled }
     if (key === 'get /setup') response.data = { initialized }
+    if (key === 'get /notifications') response.data = { items: [], unread_count: 0 }
     if (key === 'get /auth/session') response.data = session
     if (key === 'post /setup' || key === 'post /auth/login') {
       initialized = true

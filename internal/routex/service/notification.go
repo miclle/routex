@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"database/sql"
 	"encoding/base64"
 	"errors"
 	"slices"
@@ -9,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/miclle/routex/internal/routex/database"
 	"github.com/miclle/routex/internal/routex/entity"
 	apperrors "github.com/miclle/routex/internal/routex/errors"
 	"github.com/miclle/routex/pkg/id"
@@ -26,24 +28,40 @@ type NotificationFilter struct {
 	Limit      int
 }
 
+type QuotaNotificationSnapshot struct {
+	ScopeKind      string    `json:"scope_kind"`
+	ScopeID        string    `json:"scope_id"`
+	Dimension      string    `json:"dimension"`
+	PolicyRevision string    `json:"policy_revision"`
+	MonthStart     time.Time `json:"month_start"`
+	MonthEnd       time.Time `json:"month_end"`
+	TimeZone       string    `json:"time_zone"`
+	AsOf           time.Time `json:"as_of"`
+	Limit          string    `json:"limit"`
+	Settled        string    `json:"settled"`
+	Currency       *string   `json:"currency"`
+}
+
 type NotificationRecord struct {
-	ID                string     `json:"id"`
-	AlertID           string     `json:"alert_id"`
-	Kind              string     `json:"kind"`
-	Severity          string     `json:"severity"`
-	DetailCode        string     `json:"detail_code"`
-	SubjectType       string     `json:"subject_type,omitempty"`
-	SubjectID         string     `json:"subject_id,omitempty"`
-	SubjectName       string     `json:"subject_name,omitempty"`
-	OccurrenceCount   int        `json:"occurrence_count"`
-	Read              bool       `json:"read"`
-	FirstSeenAt       time.Time  `json:"first_seen_at"`
-	LastSeenAt        time.Time  `json:"last_seen_at"`
-	ReadAt            *time.Time `json:"read_at"`
-	DeliveryStatus    string     `json:"delivery_status,omitempty"`
-	DeliveryCode      string     `json:"delivery_code,omitempty"`
-	DeliveryAttempts  int        `json:"delivery_attempts,omitempty"`
-	DeliveryUpdatedAt *time.Time `json:"delivery_updated_at,omitempty"`
+	QuotaObservationID string                     `json:"quota_observation_id,omitempty"`
+	Quota              *QuotaNotificationSnapshot `json:"quota,omitempty"`
+	ID                 string                     `json:"id"`
+	AlertID            string                     `json:"alert_id,omitempty"`
+	Kind               string                     `json:"kind"`
+	Severity           string                     `json:"severity"`
+	DetailCode         string                     `json:"detail_code"`
+	SubjectType        string                     `json:"subject_type,omitempty"`
+	SubjectID          string                     `json:"subject_id,omitempty"`
+	SubjectName        string                     `json:"subject_name,omitempty"`
+	OccurrenceCount    int                        `json:"occurrence_count"`
+	Read               bool                       `json:"read"`
+	FirstSeenAt        time.Time                  `json:"first_seen_at"`
+	LastSeenAt         time.Time                  `json:"last_seen_at"`
+	ReadAt             *time.Time                 `json:"read_at"`
+	DeliveryStatus     string                     `json:"delivery_status,omitempty"`
+	DeliveryCode       string                     `json:"delivery_code,omitempty"`
+	DeliveryAttempts   int                        `json:"delivery_attempts,omitempty"`
+	DeliveryUpdatedAt  *time.Time                 `json:"delivery_updated_at,omitempty"`
 }
 
 type NotificationPage struct {
@@ -139,55 +157,109 @@ func (s *Service) ListNotifications(ctx context.Context, actor string, filter No
 	if err != nil {
 		return nil, err
 	}
-	db := s.authDB(ctx)
-	if err := authorizeGovernance(db, actor, "system.read"); err != nil {
-		return nil, catalogError(err)
-	}
-	query := db.Where("recipient_id = ?", actor)
-	if filter.UnreadOnly {
-		query = query.Where(clause.Eq{Column: clause.Column{Name: "read"}, Value: false})
-	}
-	if filter.Severity != "" {
-		query = query.Where("severity = ?", filter.Severity)
-	}
-	if filter.Cursor != "" {
-		query = query.Where("last_seen_at < ? OR (last_seen_at = ? AND id < ?)", cursorTime, cursorTime, cursorID)
-	}
-	var rows []entity.Notification
-	if err := query.Order("last_seen_at DESC, id DESC").Limit(limit + 1).Find(&rows).Error; err != nil {
-		return nil, catalogError(err)
-	}
-	page := &NotificationPage{Items: make([]NotificationRecord, 0, min(limit, len(rows)))}
-	if len(rows) > limit {
-		page.NextCursor = encodeNotificationCursor(rows[limit-1].LastSeenAt, rows[limit-1].ID)
-		rows = rows[:limit]
-	}
-	occurrenceIDs := make([]string, 0, len(rows))
-	for _, row := range rows {
-		occurrenceIDs = append(occurrenceIDs, row.LatestOccurrenceID)
-	}
-	deliveriesByOccurrence := map[string]entity.NotificationDeliveryIntent{}
-	if len(occurrenceIDs) > 0 {
-		var deliveries []entity.NotificationDeliveryIntent
-		if err := db.Where("recipient_id = ? AND occurrence_id IN ?", actor, occurrenceIDs).Find(&deliveries).Error; err != nil {
-			return nil, catalogError(err)
+	page := &NotificationPage{Items: []NotificationRecord{}}
+	err = s.authDB(ctx).Transaction(func(tx *gorm.DB) error {
+		access, err := loadQuotaInboxAccess(tx, actor)
+		if err != nil {
+			return err
 		}
-		for _, delivery := range deliveries {
-			deliveriesByOccurrence[delivery.OccurrenceID] = delivery
+		records := make([]NotificationRecord, 0, 2*(limit+1))
+		if access.Operational {
+			query := operationalInboxQuery(tx, actor)
+			if filter.UnreadOnly {
+				query = query.Where(clause.Eq{Column: clause.Column{Name: "read"}, Value: false})
+			}
+			if filter.Severity != "" {
+				query = query.Where("severity = ?", filter.Severity)
+			}
+			if filter.Cursor != "" {
+				query = query.Where("last_seen_at < ? OR (last_seen_at = ? AND id < ?)", cursorTime, cursorTime, cursorID)
+			}
+			var rows []entity.Notification
+			if err := query.Order("last_seen_at DESC, id DESC").Limit(limit + 1).Find(&rows).Error; err != nil {
+				return err
+			}
+			occurrenceIDs := make([]string, 0, len(rows))
+			for _, row := range rows {
+				if row.RecipientID == actor {
+					occurrenceIDs = append(occurrenceIDs, row.LatestOccurrenceID)
+				}
+			}
+			deliveriesByOccurrence := map[string]entity.NotificationDeliveryIntent{}
+			if len(occurrenceIDs) > 0 {
+				var deliveries []entity.NotificationDeliveryIntent
+				if err := tx.Where(database.ExactText(tx, clause.Column{Name: "recipient_id"}, actor)).Where("occurrence_id IN ?", occurrenceIDs).Find(&deliveries).Error; err != nil {
+					return err
+				}
+				for _, delivery := range deliveries {
+					if delivery.RecipientID == actor && slices.Contains(occurrenceIDs, delivery.OccurrenceID) {
+						deliveriesByOccurrence[delivery.OccurrenceID] = delivery
+					}
+				}
+			}
+			for _, row := range rows {
+				if row.RecipientID != actor {
+					continue
+				}
+				record := notificationRecord(row)
+				if delivery := deliveriesByOccurrence[row.LatestOccurrenceID]; delivery.ID != "" {
+					record.DeliveryStatus, record.DeliveryCode = delivery.Status, delivery.ResultCode
+					record.DeliveryAttempts, record.DeliveryUpdatedAt = delivery.Attempts, &delivery.UpdatedAt
+				}
+				records = append(records, record)
+			}
+			if err := operationalInboxQuery(tx, actor).Where(clause.Eq{Column: clause.Column{Name: "read"}, Value: false}).Count(&page.UnreadCount).Error; err != nil {
+				return err
+			}
 		}
-	}
-	for _, row := range rows {
-		record := notificationRecord(row)
-		if delivery := deliveriesByOccurrence[row.LatestOccurrenceID]; delivery.ID != "" {
-			record.DeliveryStatus, record.DeliveryCode = delivery.Status, delivery.ResultCode
-			record.DeliveryAttempts, record.DeliveryUpdatedAt = delivery.Attempts, &delivery.UpdatedAt
+		if filter.Severity != "medium" {
+			query := quotaInboxQuery(tx, access)
+			if filter.UnreadOnly {
+				query = query.Where("quota_notification_inboxes.read_at IS NULL")
+			}
+			if filter.Cursor != "" {
+				query = query.Where("quota_notification_inboxes.created_at < ? OR (quota_notification_inboxes.created_at = ? AND quota_notification_inboxes.id < ?)", cursorTime, cursorTime, cursorID)
+			}
+			var rows []quotaInboxRow
+			if err := query.Select(quotaInboxSelect).Order("quota_notification_inboxes.created_at DESC, quota_notification_inboxes.id DESC").Limit(limit + 1).Scan(&rows).Error; err != nil {
+				return err
+			}
+			for _, row := range rows {
+				if validQuotaInboxRow(row, access) {
+					records = append(records, quotaNotificationRecord(row))
+				}
+			}
 		}
-		page.Items = append(page.Items, record)
-	}
-	if err := db.Model(&entity.Notification{}).Where("recipient_id = ?", actor).Where(clause.Eq{Column: clause.Column{Name: "read"}, Value: false}).Count(&page.UnreadCount).Error; err != nil {
+		var quotaUnread int64
+		if err := quotaInboxQuery(tx, access).Where("quota_notification_inboxes.read_at IS NULL").Count(&quotaUnread).Error; err != nil {
+			return err
+		}
+		page.UnreadCount += quotaUnread
+		page.Items, page.NextCursor = mergeNotificationRecords(records, limit)
+		return nil
+	}, &sql.TxOptions{Isolation: sql.LevelRepeatableRead, ReadOnly: true})
+	if err != nil {
 		return nil, catalogError(err)
 	}
 	return page, nil
+}
+
+func operationalInboxQuery(tx *gorm.DB, actor string) *gorm.DB {
+	return tx.Model(&entity.Notification{}).Where(database.ExactText(tx, clause.Column{Name: "recipient_id"}, actor))
+}
+
+func mergeNotificationRecords(records []NotificationRecord, limit int) ([]NotificationRecord, string) {
+	slices.SortFunc(records, func(a, b NotificationRecord) int {
+		if compared := b.LastSeenAt.Compare(a.LastSeenAt); compared != 0 {
+			return compared
+		}
+		return strings.Compare(b.ID, a.ID)
+	})
+	if len(records) > limit {
+		last := records[limit-1]
+		return records[:limit], encodeNotificationCursor(last.LastSeenAt, last.ID)
+	}
+	return records, ""
 }
 
 func notificationRecord(row entity.Notification) NotificationRecord {
@@ -203,33 +275,76 @@ func (s *Service) MarkNotificationRead(ctx context.Context, actor, notificationI
 	if notificationID == "" || len(notificationID) > 30 {
 		return nil, apperrors.ErrBadRequest
 	}
-	now := time.Now().UTC()
-	db := s.authDB(ctx)
-	if err := authorizeGovernance(db, actor, "system.read"); err != nil {
+	var record NotificationRecord
+	err := s.authDB(ctx).Transaction(func(tx *gorm.DB) error {
+		if err := lockGovernance(tx); err != nil {
+			return err
+		}
+		access, err := loadQuotaInboxAccess(tx, actor)
+		if err != nil {
+			return err
+		}
+		var quotaRow quotaInboxRow
+		err = quotaInboxQuery(tx, access).Where(database.ExactText(tx, clause.Column{Table: "quota_notification_inboxes", Name: "id"}, notificationID)).Select(quotaInboxSelect).Take(&quotaRow).Error
+		if err == nil && validQuotaInboxRow(quotaRow, access) {
+			if quotaRow.ReadAt == nil {
+				now := time.Now().UTC()
+				if err := tx.Model(&entity.QuotaNotificationInbox{}).Where(database.ExactText(tx, clause.Column{Name: "id"}, notificationID)).Where(database.ExactText(tx, clause.Column{Name: "recipient_id"}, actor)).Update("read_at", now).Error; err != nil {
+					return err
+				}
+				quotaRow.ReadAt = &now
+			}
+			record = quotaNotificationRecord(quotaRow)
+			return nil
+		}
+		if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+			return err
+		}
+		if !access.Operational {
+			return apperrors.ErrNotFound
+		}
+		var row entity.Notification
+		err = operationalInboxQuery(tx, actor).Where(database.ExactText(tx, clause.Column{Name: "id"}, notificationID)).First(&row).Error
+		if errors.Is(err, gorm.ErrRecordNotFound) || err == nil && (row.ID != notificationID || row.RecipientID != actor) {
+			return apperrors.ErrNotFound
+		}
+		if err != nil {
+			return err
+		}
+		if !row.Read {
+			now := time.Now().UTC()
+			if err := operationalInboxQuery(tx, actor).Where(database.ExactText(tx, clause.Column{Name: "id"}, notificationID)).Updates(map[string]any{"read": true, "read_at": now}).Error; err != nil {
+				return err
+			}
+			row.Read, row.ReadAt = true, &now
+		}
+		record = notificationRecord(row)
+		return nil
+	}, &sql.TxOptions{Isolation: sql.LevelReadCommitted})
+	if err != nil {
 		return nil, catalogError(err)
 	}
-	result := db.Model(&entity.Notification{}).Where("id = ? AND recipient_id = ?", notificationID, actor).Updates(map[string]any{"read": true, "read_at": now})
-	if result.Error != nil {
-		return nil, catalogError(result.Error)
-	}
-	if result.RowsAffected == 0 {
-		return nil, apperrors.ErrNotFound
-	}
-	var row entity.Notification
-	if err := db.Where("id = ? AND recipient_id = ?", notificationID, actor).First(&row).Error; err != nil {
-		return nil, catalogError(err)
-	}
-	record := notificationRecord(row)
 	return &record, nil
 }
 
 func (s *Service) MarkAllNotificationsRead(ctx context.Context, actor string) error {
-	db := s.authDB(ctx)
-	if err := authorizeGovernance(db, actor, "system.read"); err != nil {
-		return catalogError(err)
-	}
-	now := time.Now().UTC()
-	return catalogError(db.Model(&entity.Notification{}).Where("recipient_id = ?", actor).Where(clause.Eq{Column: clause.Column{Name: "read"}, Value: false}).Updates(map[string]any{"read": true, "read_at": now}).Error)
+	err := s.authDB(ctx).Transaction(func(tx *gorm.DB) error {
+		if err := lockGovernance(tx); err != nil {
+			return err
+		}
+		access, err := loadQuotaInboxAccess(tx, actor)
+		if err != nil {
+			return err
+		}
+		now := time.Now().UTC()
+		if access.Operational {
+			if err := operationalInboxQuery(tx, actor).Where(clause.Eq{Column: clause.Column{Name: "read"}, Value: false}).Updates(map[string]any{"read": true, "read_at": now}).Error; err != nil {
+				return err
+			}
+		}
+		return quotaInboxMutationQuery(tx, access).Where("read_at IS NULL").Update("read_at", now).Error
+	}, &sql.TxOptions{Isolation: sql.LevelReadCommitted})
+	return catalogError(err)
 }
 
 func notificationSettingsView(row entity.NotificationSetting) NotificationSettingsView {

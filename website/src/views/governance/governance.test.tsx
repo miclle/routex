@@ -77,6 +77,7 @@ beforeEach(() => {
       data: {} as unknown,
     }
     if (response.status >= 400) throw new AxiosError('Failure', '', config, undefined, response)
+    if (key === 'get /notifications') response.data = { items: [], unread_count: 0 }
     if (key === 'get /auth/session') response.data = structuredClone(session)
     if (key === 'get /auth/permissions') response.data = { permissions: [...permissions] }
     if (key === 'get /admin/members')

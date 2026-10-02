@@ -1,10 +1,10 @@
 # Current Work Handoff
 
-- **Status:** implementation active; F08 Key proof hardening pushed; F11 readiness pushed; receipt-backed retirement pushed; member model availability correction pushed; source directory checked; phased delivery in progress
-- **Updated:** 2026-10-02T18:30:22+08:00
+- **Status:** implementation active; F08 Key proof hardening pushed; F11 readiness pushed; receipt-backed retirement pushed; member model availability correction pushed; source directory pushed; monthly quota exhaustion inbox checked for phased delivery; Project quota requests assessed next
+- **Updated:** 2026-10-02T19:15:23+08:00
 - **Repository / branch:** RouteX / `main`
-- **Previous checked source baseline:** `ccd5a081f34fecea9e911be914d67783fd0399c4`, pushed and read back from `origin/main`
-- **Current owner:** coordinating task; source owners are frozen; complete validation, docs and phased delivery are in progress
+- **Previous checked source baseline:** `13c1b0880a7e0f5fef2558016561015cf683ce31`, pushed and read back from `origin/main`
+- **Current owner:** coordinating task; three implementation owners have frozen quota observation/migration/worker, scoped inbox and UI; coordinator completes full database acceptance and delivery; next partial-capability assessment covers Project quota requests
 - **Next owner:** current task continues the resumed goal
 - **Transport:** identify this checked delivery with `git log -1 -- docs/current-work-handoff.md` and independently verify its upstream
 - **Coordination plan:** `~/dotfiles/projects/routex/implementation-plan.md`; synchronize separately and preserve unrelated changes
@@ -132,7 +132,7 @@ The CI includes backend/frontend checks, dual databases, real-process session
 lifecycle and build artifacts; it does not cover the subsequent V32 attribution
 package. Inspect that package's exact remote checks separately.
 
-## Latest checked package: parser-owned native completion evidence
+## Previous checked package: parser-owned native completion evidence
 
 The persistence owner added an internal `NativeCompletionEvidence` attempt field
 with exact values unknown/completed/handoff/blocked/incomplete, frozen GORM V33,
@@ -161,9 +161,10 @@ separate evidence. The final complete PostgreSQL/MySQL matrix passed (Handler 41
 Service 5.164 seconds), including native fixtures, replay and migration
 constraints. Owned Compose resources were removed. Thirty local Markdown
 references and whitespace checks passed. No scoped
-retirement-readiness endpoint or predecessor retirement is implemented. A later
-separate receipt must distinguish committed retirement from current application
-and avoid disabling a source that was subsequently enabled.
+retirement-readiness endpoint or predecessor retirement was part of that parser
+package. Subsequent checked packages below add exact readiness and receipt-backed
+retirement, separating historical commitment from current application and
+preserving a predecessor that was subsequently enabled.
 
 ## Overall status and other partial work
 
@@ -182,8 +183,9 @@ quality notifications, resource quota interfaces, capacity attestation, installa
 calendar controls, and Credential filtering. Complete contracts and external
 boundaries remain in the domain documents and implementation index.
 
-F17 reminders were assessed, but are not delivered by this package. Current
-notifications authorize platform operators only. Personal/Project recipients,
+F17 reminders were assessed, but are not delivered by this package. The earlier checked
+notifications authorized platform operators only; the current quota package adds
+separate scoped recipients and remains under validation. Personal/Project recipients,
 thresholds, durable resource/dimension/window decisions, dedupe and policy/period
 transitions need explicit contracts. A reservation rejection does not prove
 settled quota exhaustion; unknown usage and conservative holds must not fabricate
@@ -415,7 +417,7 @@ Its coordination checkpoint is separately pushed at `87ffd86`. Those remote
 checks remain evidence for that package, separate from this UI correction.
 
 
-### Current F19 source/detail package
+### Checked F19 source/detail package
 
 The native-availability correction is pushed at `ccd5a081f34fecea9e911be914d67783fd0399c4`,
 with exact remote main readback and a clean tree before this package. Its own
@@ -426,7 +428,7 @@ reads and actual native protocol/capability metadata, plus the approved filters,
 source overflow and independently reauthorized drawer. The coordinating task
 owns the shared identity integration registration and existing catalogue UI
 fixture adaptation, documentation and complete acceptance. No new migration or
-Personal Key authority is added. Current directory source is frozen and uncommitted. Complete check/test passed
+Personal Key authority is added. The directory source was frozen, checked, committed and pushed. Complete check/test passed
 (677 Vitest cases in 54 files, Go race/unit, Node/development/production checks);
 focused dual-database source acceptance passed (Handler 160.920 seconds). The
 complete PostgreSQL/MySQL race matrix passed (Handler 488.717 seconds, Service
@@ -443,4 +445,65 @@ notifications. Existing operational alerts cannot safely fan Personal/Project
 quota facts to all system operators. Scope needs durable observed settled-use
 facts, exact currency/coverage, deduplication and current-owner/Project-manager
 authorization. Threshold warnings, Team quotas and external SMTP acceptance are
-not inferred. No F23 implementation has started.
+not inferred. F23 implementation is now active under those three owners. Frozen V35 uses
+separate quota observation/inbox tables; existing operational history/FKs, alert
+fanout, SMTP and settings permissions remain. The existing inbox endpoints merge
+currently authorized sources; ordinary enabled members may read their own quota
+notices without gaining operational authority. Root owns worker startup/shutdown,
+shared migration/lifecycle registrations, documentation, full checks and delivery.
+Focused actual PostgreSQL/MySQL acceptance has passed; final local evidence is recorded below.
+
+
+### F19 source-directory transport and CI
+
+Exact RouteX main `13c1b0880a7e0f5fef2558016561015cf683ce31` was pushed and
+read back with a clean source tree. External coordination checkpoint
+`ae4d36ac5ec6ecec06018abb3bae543e5242d3c8` was pushed independently, preserving
+unrelated dotfiles changes. Own Actionlint 36995869572 and GolangCI-Lint
+36995869624 and CI 36995869421 all succeeded, including dual databases, independent-process
+authentication restart and artifact builds.
+Keep these remote results separate from the next quota-notification source.
+
+
+## Current package: F23 monthly settled-exhaustion inbox
+
+Frozen GORM V35 adds separate observation and recipient tables, leaving released
+steps and operational notification foreign keys unchanged. The bounded worker
+requires a fresh exact applied policy and covered current-month settled usage.
+It freezes scope, revision, window, denomination and amounts, creates immutable
+recipient projections atomically, and preserves read state through replay. Holds
+and unknown amounts cannot establish exhaustion. No crossing, warning threshold,
+Team/Key quota source, historical backfill, quota email or additional admission
+rule is claimed.
+
+Enabled recipients can read their own empty inbox. Exact Personal ownership and
+recorded/current active Project management govern quota history; operational rows
+still require system.read. Exact byte comparisons before pagination, counts and
+read mutations reject MySQL collation aliases. Settings retain independent
+permissions. The existing bilingual bell validates response envelopes and hides
+stale rows/counts on refresh, actor changes or malformed responses.
+
+Final format and mandatory check passed, with zero errors and two existing Fast
+Refresh warnings. Full test passed: 724 Vitest cases in 56 files, Go race/unit,
+four Node checks, development lifecycle and production embedded assets. Focused
+actual PostgreSQL/MySQL migration and lifecycle race acceptance passed in
+173.349 seconds. The complete PostgreSQL/MySQL race matrix passed: Handler 499.925 seconds,
+Service 5.851 seconds. Its isolated containers and network were removed.
+Local whitespace and all 67 checked Markdown references passed. This package
+is ready for its phased main-branch commit; exact transport and remote CI are
+verified separately after publication.
+
+The disposable production binary and isolated PostgreSQL browser fixture
+published real Personal/Project notices after controlled native Chat settlement
+(5 settled tokens, limit 5). English and Chinese rendering preserved the exact
+policy/month/time-zone snapshot. Revoking Project management through the real
+API caused an old notification read to fail and refreshed the menu to only the
+Personal notice, with one unread record. English was restored. The owned tab,
+binary process, upstream process, database container and network were removed.
+Browser evidence is separate from the complete database matrix and external
+provider or email acceptance.
+
+F17/F23 and full RouteX acceptance remain open. The next assessed partial package
+is Project monthly quota requests and independent approval, using the existing
+resource configuration and request history. Team/request-rate approvals and
+broader sources remain separate unfinished scope.

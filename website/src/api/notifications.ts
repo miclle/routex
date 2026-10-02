@@ -1,6 +1,7 @@
 import axios from 'axios'
 import client from './client'
 import type {
+  Notification,
   NotificationReadStatus,
   NotificationSettings,
   NotificationsPage,
@@ -22,17 +23,54 @@ function statusOf(error: unknown) {
   return axios.isAxiosError(error) ? (error.response?.status ?? 0) : 0
 }
 
+function validNotification(value: unknown): value is Notification {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return false
+  const item = value as Record<string, unknown>
+  return (
+    ['id', 'kind', 'detail_code', 'first_seen_at', 'last_seen_at'].every(
+      (field) => typeof item[field] === 'string',
+    ) &&
+    item.id !== '' &&
+    ['high', 'medium', 'low'].includes(item.severity as string) &&
+    typeof item.read === 'boolean' &&
+    Number.isSafeInteger(item.occurrence_count) &&
+    (item.occurrence_count as number) >= 0 &&
+    [
+      'alert_id',
+      'quota_observation_id',
+      'read_at',
+      'subject_type',
+      'subject_id',
+      'subject_name',
+      'delivery_status',
+      'delivery_code',
+      'delivery_updated_at',
+    ].every((field) => item[field] == null || typeof item[field] === 'string') &&
+    (item.quota == null || (typeof item.quota === 'object' && !Array.isArray(item.quota)))
+  )
+}
+
 export async function getNotifications(
   status: NotificationReadStatus,
   cursor?: string | null,
   signal?: AbortSignal,
 ) {
-  return (
+  const data = (
     await client.get<NotificationsPage>('/notifications', {
       params: { status, cursor: cursor || undefined },
       signal,
     })
   ).data
+  if (
+    !data ||
+    !Array.isArray(data.items) ||
+    !data.items.every(validNotification) ||
+    !Number.isSafeInteger(data.unread_count) ||
+    data.unread_count < 0 ||
+    (data.next_cursor != null && typeof data.next_cursor !== 'string')
+  )
+    throw new Error('Invalid notification response')
+  return { ...data, next_cursor: data.next_cursor ?? null }
 }
 
 export async function markNotificationRead(id: string, csrf: string) {

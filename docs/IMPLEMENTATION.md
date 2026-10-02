@@ -167,13 +167,13 @@ The binary capability count is 8 completed, 19 partially completed, and 3 not st
 | F14 | Managed egress and staged network diagnostics | Partially completed | Direct, default, SOCKS5, verified CONNECT, endpoint-bound saved authentication, complete-tunnel proxy-address fallback, and diagnostics exist. External proxy and production performance acceptance remain open. |
 | F15 | Prices, spreadsheet/CSV workflows, API, and repository sync | Partially completed | Current prices, ETags, CSV/XLS/XLSX import, preview, commit, and export exist; external price-repository synchronization is not implemented. |
 | F16 | Platform currency, exchange rates, and historical price snapshots | Completed | Decimal-string currency/rate management, exact quoting, and immutable per-call assessment are implemented. |
-| F17 | User and Team defaults, overrides, budgets, alerts, and stop policy | Partially completed | Personal, Project, and Key enforcement plus budget/token/TPM controls, authoritative quota snapshots, and installation-calendar configuration exist; Team defaults, templates, alerts, and configurable stop-calling policy remain open. |
+| F17 | User and Team defaults, overrides, budgets, alerts, and stop policy | Partially completed | Personal, Project, and Key enforcement plus budget/token/TPM controls, authoritative quota snapshots, and installation-calendar configuration exist; current-policy Personal/Project monthly settled-exhaustion inboxes have focused acceptance, while Team defaults, templates, broader alerts, and configurable stop-calling policy remain open. |
 | F18 | Quota, model, and request-limit approvals | Partially completed | Project model requests exist; Team quota approval, escalation, and Project quota/request-limit workflows remain open. |
 | F19 | Member overview, model sources, requests, and examples | Partially completed | Actor-scoped Personal/Team source attribution, native metadata, filters, details and examples are available; Project requests exist, while Personal/Team requests, Team invocation and broader price/usage facts remain open. |
 | F20 | Playground, comparison, attachments, and code examples | Partially completed | Four native conversation paths, two-to-four-lane comparison, cancellation, executable examples, per-protocol image/PDF discovery, user/Project attachment resolution, single/comparison attachment lifecycle interfaces, and conservative token/TPM/money admission with exact per-occurrence media prices exist; external acceptance remains open. |
 | F21 | Personal, Project, and platform call records and CSV | Completed | Isolated list/detail queries, incremental loading, redacted drawers, bounded server-side CSV export, filter parity, formula protection, and bilingual download actions are implemented with dual-database evidence. |
 | F22 | Usage trends, amounts, and multidimensional filters | Partially completed | Personal, Project, and platform usage interfaces plus immutable Provider attribution exist; Team attribution and complete freshness/capacity acceptance remain open. |
-| F23 | Operations overview, quality, alerts, and notifications | Partially completed | The real-data operations overview, immutable Provider-attempt quality, revisioned success/P95 thresholds, grouped Provider-quality and route-unavailable alerts, recipient-isolated history, independent severity settings, and bounded durable SMTP delivery are implemented. External mail acceptance, bounce/inbox tracking, real-Provider quality acceptance, and broader quota/enterprise sources remain open. |
+| F23 | Operations overview, quality, alerts, and notifications | Partially completed | The real-data operations overview, immutable Provider-attempt quality, revisioned success/P95 thresholds, grouped Provider-quality and route-unavailable alerts, recipient-isolated history, independent severity settings, and bounded durable operational SMTP delivery are implemented. Current-policy Personal/Project monthly settled-exhaustion inboxes have focused acceptance; external mail acceptance, bounce/inbox tracking, real-Provider quality acceptance, and broader quota/enterprise sources remain open. |
 | F24 | Read-only AI operations analysis and saved reports | Not started | Authorized analysis queries, saved definitions, evaluation, exports, and hostile-input acceptance are not implemented. |
 | F25 | Site presentation, language, and announcements | Completed | Durable site name, URL, logo, footer, default language, bilingual UI behavior, and announcement lifecycle are implemented. |
 | F26 | Instances, heartbeats, resources, jobs, and offline cleanup | Completed | Distinct process generations, server-owned leases, nullable resource facts, bounded real system jobs, executor-loss reconciliation, revision-checked cleanup, audit evidence, and the bilingual administrative workspace are implemented. |
@@ -928,7 +928,7 @@ Source failures remain authoritative when notification publication fails; the
 worker reconciles missing occurrences from durable failed system jobs and
 credential-verification audit facts.
 
-Only current enabled users with `system.read` receive notifications. Inbox APIs
+Only current enabled users with `system.read` receive these operational notifications. Inbox APIs
 derive the recipient from the session, and the delivery worker rechecks the same
 permission before network work. External email is disabled until an authorized
 user explicitly saves severity choices. Delivery uses a database lease, at most
@@ -1585,3 +1585,50 @@ The complete PostgreSQL/MySQL race matrix passed (Handler 488.717 seconds,
 Service 5.727 seconds), including migration/upgrade and existing lifecycle cases.
 Independent backend review found no remaining actionable production defect.
 Local Markdown references and whitespace checks passed.
+
+
+### F23 monthly settled-exhaustion inbox: focused acceptance
+
+Three owners implemented separate durable quota observations/projections, scoped
+merged inbox APIs, and the existing bilingual bell menu. Frozen GORM V35 keeps
+the operational notification foreign key unchanged. Current finite Personal and
+Project aggregate policies can produce an immutable monthly limit-reached
+snapshot only from covered journal-settled usage and a fresh exact applied
+policy revision. Unknown dimensions, incomplete coverage, holds and denomination
+mismatch do not establish exhaustion. Zero and unlimited remain distinct; no
+crossing, warning threshold, historical backfill, Team/Key quota source, quota
+SMTP intent or additional admission rule is claimed.
+
+Observation and recipient projection commit atomically with deduplication by
+scope/dimension/month/revision/currency. Recorded scope, policy, calendar,
+amounts, currency and Project name remain historical snapshots. Replay never
+resets read state or adds a new manager. The bounded keyset worker advances
+through finite policies rather than repeatedly scanning only the first batch.
+
+Enabled current recipients can read an empty inbox without `system.read`.
+Personal quota records require the exact owner; Project records require both a
+recorded recipient and current enabled management of an active Project.
+Operational records still require exact current `system.read` authority, and
+delivery settings keep their existing read/write permissions. Source predicates
+apply before merged pagination, unread counts and governance-serialized read
+mutations. Exact recipient, role, permission and association checks reject
+case-folded aliases. Removed managers, Project creators, global operators and
+newly appointed managers receive no implicit historical quota access. Typed
+quota snapshots preserve decimal strings and token currency null; no quota
+source is projected into an operational alert or external email.
+
+Focused Go race tests and staticcheck passed. Isolated actual PostgreSQL/MySQL
+race acceptance passed in 173.349 seconds, including every migration prefix
+through V35 and existing operational HTTP behavior. The new lifecycle covers
+native authoritative settlement, held/unknown exclusions, exact money, zero/new
+revision identity, deduplication, frozen Project metadata, current-recipient
+privacy, mixed-source cursors/counts, raw collation aliases, read isolation,
+restart persistence and `MaxOpenConns=1`. Owned Compose resources were removed.
+Final format/check/test passed (724 Vitest cases in 56 files plus Go/Node,
+development and production checks). The production browser passed real
+Personal/Project settled snapshots, bilingual rendering and revoked-Project
+read failure with refreshed scoped history; owned resources were removed.
+The complete PostgreSQL/MySQL race matrix passed (Handler 499.925 seconds,
+Service 5.851 seconds); its owned containers/network were removed. F23 and F17 remain partially completed;
+the capability inventory stays 8 completed / 19 partially completed / 3 not
+started, and A01 remains the only fully accepted case.

@@ -201,3 +201,15 @@ labels, and the existing card/table/520px drawer. Detail cache keys include acto
 and Model IDs; hide cached records during refresh, errors or revocation. Enable
 examples and Key navigation only after current personal availability is confirmed.
 Render missing price/member/request facts as unknown, with paired catalog copy.
+
+
+Monthly quota exhaustion uses the existing notification menu and recipient-scoped
+inbox routes. Enabled members may read their own Personal notices; Project
+notices require current enabled manager authority and an active Project at each
+read/count/action. Operational visibility still requires `system.read`; delivery
+settings and SMTP permissions remain independent. Display only typed server-owned
+settled amounts, limits, currency, calendar boundaries and observation times,
+with exact strings and paired `notifications` translations. Never infer threshold
+crossings, percentages, remaining allowance or exhaustion from holds. Hide stale
+rows, unread counts and actions during refresh or authorization failure, and bind
+read retries/cache invalidation to the captured actor.

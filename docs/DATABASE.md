@@ -22,7 +22,7 @@ MySQL can commit DDL implicitly. Design retryable steps and advance the migratio
 
 An exception requires a GORM capability gap or measured performance need, a local rationale, parameterized inputs, and tests for each supported driver. Do not create parallel PostgreSQL/MySQL implementations of ordinary CRUD or table definitions.
 
-Current exceptions are the database-level migration locks (`pg_advisory_lock` and `GET_LOCK`) and their release operations. GORM does not expose a portable connection-scoped advisory lock. These operations are contained in the database package, run on the same dedicated connection, and have concurrent-startup tests on both databases. Failed unlocks discard the physical connection to prevent a locked session from returning to the pool. Historical released DDL retains its existing dialect-specific collation and schema behavior for upgrade compatibility.
+Current exceptions include byte-exact authority comparison through the database-layer GORM expressions described below, and the database-level migration locks (`pg_advisory_lock` and `GET_LOCK`) and their release operations. GORM does not expose a portable connection-scoped advisory lock. These operations are contained in the database package, run on the same dedicated connection, and have concurrent-startup tests on both databases. Failed unlocks discard the physical connection to prevent a locked session from returning to the pool. Historical released DDL retains its existing dialect-specific collation and schema behavior for upgrade compatibility.
 
 
 ## Credential replacement preparation (version 31)
@@ -108,3 +108,40 @@ Actual PostgreSQL/MySQL acceptance passed, including the complete race matrix
 concurrent intents, typed-audit rollback, deleted proof preservation, independent
 single-connection restart, re-enabled predecessor protection and bounded
 publication-pin lock waits passed. Owned Compose resources were removed.
+
+
+## Exact authority identifiers
+
+GORM equality follows the database column collation. MySQL default collations
+can equate distinct case, accents or trailing spaces, which is unsuitable for
+recipient and resource authority predicates used before pagination, counts and
+updates. The database-layer `ExactText` and `ExactTextColumns` adapters use
+parameterized GORM expressions with quoted server-owned columns. PostgreSQL uses
+ordinary equality; MySQL uses binary casts for byte-exact comparison. GORM has
+no portable collation-independent equality operator, so this bounded expression
+is a justified database-layer exception. Services never branch on drivers.
+Values remain bound independently; exact Go identity checks remain a second
+guard. Dry-run parameterization tests pass. Actual PostgreSQL/MySQL acceptance
+covers recipient, scope, observation join, role assignment and permission aliases
+before list limits, counts and read updates; the focused race run passed in
+173.349 seconds.
+
+## Monthly quota observation and inbox (version 35)
+
+Two separate frozen GORM tables retain immutable current-month observations and
+recipient projections. Scope/dimension/month/policy/currency uniqueness prevents
+reconciliation from duplicating a notice; observation/recipient uniqueness
+preserves read state. Existing operational notification foreign keys and released
+migrations remain unchanged. Neither table has a live identity, resource or
+observation foreign key: historical observations and recipients survive resource
+removal, and authorized reads require an exact observation join.
+
+Actual PostgreSQL/MySQL focused acceptance passed under race detection in
+173.349 seconds, including empty creation, V34 upgrade preserving data, repeat
+and concurrent startup, interrupted DDL repair, required columns, six-field
+uniqueness, recipient uniqueness, indexes and historical preservation. The fixture
+uses three fixed allowlisted PostgreSQL index-removal statements because the
+pinned GORM Migrator generates invalid CURRENT_SCHEMA syntax; MySQL uses
+Migrator.DropIndex. This is test-only; production V35 remains GORM-only.
+The complete PostgreSQL/MySQL race matrix also passed (Handler 499.925 seconds,
+Service 5.851 seconds); its owned containers/network were removed.

@@ -180,7 +180,7 @@ describe('system information navigation', () => {
     await shell()
     await until(() => expect(adminLinks()).toContain('/admin/system-info'))
     expect(adminLinks()).toEqual(['/', '/admin/system-info'])
-    expect(requests.some((item) => item.url === '/notifications')).toBe(false)
+    await until(() => expect(requests.some((item) => item.url === '/notifications')).toBe(true))
   })
   it('keeps existing system-reader links independently accessible', async () => {
     permissions = ['system.read']

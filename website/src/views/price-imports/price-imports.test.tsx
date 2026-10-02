@@ -97,6 +97,8 @@ beforeEach(() => {
         csrf_token: 'csrf-import',
       }
     else if (config.url === '/auth/permissions') response.data = { permissions }
+    else if (config.url === '/notifications' && config.method === 'get')
+      response.data = { items: [], unread_count: 0 }
     else if (config.url === api + 'preview') response.data = structuredClone(result)
     else if (config.url === api + 'commit') {
       if (hold) await hold

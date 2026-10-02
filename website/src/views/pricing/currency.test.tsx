@@ -51,6 +51,8 @@ beforeEach(() => {
         csrf_token: 'csrf-currency',
       }
     else if (config.url === '/auth/permissions') response.data = { permissions }
+    else if (config.url === '/notifications' && config.method === 'get')
+      response.data = { items: [], unread_count: 0 }
     else if (config.url === '/admin/prices/currency') {
       if (config.method === 'put') {
         if (hold) await hold

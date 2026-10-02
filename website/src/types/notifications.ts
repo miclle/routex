@@ -3,9 +3,25 @@ export type NotificationReadStatus = 'unread' | 'all'
 export type NotificationDeliveryStatus =
   'pending' | 'retry' | 'sending' | 'accepted' | 'failed' | 'unknown'
 
+export interface MonthlyQuotaNotificationSnapshot {
+  scope_kind: 'user' | 'project'
+  scope_id: string
+  dimension: 'tokens' | 'money'
+  policy_revision: string
+  month_start: string
+  month_end: string
+  time_zone: string
+  as_of: string
+  limit: string
+  settled: string
+  currency: string | null
+}
+
 export interface Notification {
   id: string
-  alert_id: string
+  alert_id?: string
+  quota_observation_id?: string
+  quota?: MonthlyQuotaNotificationSnapshot
   kind: string
   detail_code: string
   severity: NotificationSeverity
@@ -14,10 +30,10 @@ export interface Notification {
   first_seen_at: string
   last_seen_at: string
   read_at: string | null
-  delivery_status: NotificationDeliveryStatus | null
-  delivery_code: string | null
-  delivery_attempts: number
-  delivery_updated_at: string | null
+  delivery_status?: NotificationDeliveryStatus | null
+  delivery_code?: string | null
+  delivery_attempts?: number
+  delivery_updated_at?: string | null
   subject_type?: string | null
   subject_id?: string | null
   subject_name?: string | null

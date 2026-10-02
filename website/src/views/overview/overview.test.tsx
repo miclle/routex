@@ -195,7 +195,9 @@ beforeEach(async () => {
       }
       response.data = data
     } else if (config.url === '/notifications') {
-      if (config.params?.status === 'all' && config.params?.cursor) {
+      if (!permissions.includes('system.read')) {
+        response.data = { items: [], unread_count: 0, next_cursor: null }
+      } else if (config.params?.status === 'all' && config.params?.cursor) {
         response.data = {
           unread_count: 1,
           next_cursor: null,
@@ -385,15 +387,17 @@ describe('F23 operations overview and notifications', () => {
     expect(historyRequests[1].params?.cursor).toBe('next-notification')
   })
 
-  it('keeps the bell empty without fetching notifications when system.read is absent', async () => {
+  it('loads the recipient inbox without system.read while the server excludes operational notifications', async () => {
     permissions = []
     await render(<NotificationMenu />)
     await until(() =>
-      expect(requests.some((request) => request.url === '/auth/permissions')).toBe(true),
+      expect(cache.getQueryData(notificationsKey('usr_operator', 'unread'))).toBeTruthy(),
     )
-    expect(requests.some((request) => request.url === '/notifications')).toBe(false)
+    expect(requests.some((request) => request.url === '/notifications')).toBe(true)
     await click('Notifications')
     await until(() => expect(document.body.textContent).toContain('No new notifications'))
+    expect(document.body.textContent).not.toContain('Runtime publication failed.')
+    expect(requests.some((request) => request.url === '/notification-settings')).toBe(false)
   })
 
   it('preserves the draft until an ETag conflict is explicitly reviewed', async () => {
