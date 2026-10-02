@@ -44,6 +44,9 @@ export default {
     sessionDates: 'Created {{created}} · Expires {{expires}}',
   },
   calls: {
+    teamCalls: 'Your Team call records',
+    teamDescription:
+      "Only your own calls in this Team are shown. Current active membership is required; Team owners do not see other members' calls here.",
     owner: 'User / Project',
     projectID: 'Project ID',
     projectCalls: 'Project call records',

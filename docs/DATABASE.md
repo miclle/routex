@@ -188,3 +188,18 @@ uniqueness. Focused actual PostgreSQL/MySQL race acceptance passed in 210.144
 seconds; the full matrix passed (Handler 529.867 seconds, Service 5.063 seconds).
 Native rate enforcement and receipt/restart acceptance are recorded in
 [Project requests](PROJECT_REQUESTS.md).
+
+
+## Immutable Team call attribution (version 38)
+
+Frozen additive GORM V38 adds empty-default Team and Team membership IDs, a
+Team/User/started-at/Request-ID cursor index and a subject guard. A Team fact
+requires Team, membership and User IDs with blank Project and Key IDs; legacy
+non-Team rows retain empty Team fields. There are no live resource foreign keys.
+Released V1–V37 remain unchanged. Both missing-column prefixes and a missing
+guard/index are retryable through GORM Migrator APIs.
+
+Real-database fixtures preserve legacy facts and persisted timestamps, exercise
+empty/upgraded/repeated/concurrent/partially applied migrations and reject mixed
+subjects. The test-only PostgreSQL index-removal helper retains the documented
+pinned-GORM exception used by earlier migration fixtures; production V38 is GORM-only.

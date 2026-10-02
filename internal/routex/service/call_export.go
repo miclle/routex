@@ -37,7 +37,7 @@ var callCSVColumns = []string{
 }
 
 var callExportSelect = []string{
-	"request_id", "user_id", "project_id", "model_id", "model_name", "key_id", "protocol", "status", "stream",
+	"request_id", "user_id", "project_id", "team_id", "team_membership_id", "model_id", "model_name", "key_id", "protocol", "status", "stream",
 	"started_at", "completed_at", "duration_ms", "input_tokens", "output_tokens",
 	"cache_read_tokens", "cache_write_tokens", "image_inputs", "pdf_inputs",
 	"pricing_status", "charge_amount", "charge_currency",
@@ -100,7 +100,7 @@ func encodeCallCSV(records []entity.CallRecord, platform bool) ([]byte, error) {
 	writer := csv.NewWriter(&buffer)
 	header := append([]string(nil), callCSVColumns...)
 	if platform {
-		header = append(header, "user_id", "project_id")
+		header = append(header, "user_id", "project_id", "team_id", "team_membership_id")
 	}
 	if err := writeSafeCSVRecord(writer, header); err != nil {
 		return nil, err
@@ -128,7 +128,7 @@ func encodeCallCSV(records []entity.CallRecord, platform bool) ([]byte, error) {
 			exportString(record.ChargeCurrency),
 		}
 		if platform {
-			row = append(row, record.UserID, record.ProjectID)
+			row = append(row, record.UserID, record.ProjectID, record.TeamID, record.TeamMembershipID)
 		}
 		if err := writeSafeCSVRecord(writer, row); err != nil {
 			return nil, err
@@ -196,12 +196,12 @@ func (s *Service) exportCalls(ctx context.Context, actorID, scope, projectID str
 		query := callExportQuery(tx, filter)
 		switch scope {
 		case "personal":
-			query = query.Where("user_id = ? AND project_id = ?", actorID, "")
+			query = query.Where("user_id = ? AND project_id = ? AND team_id = ?", actorID, "", "")
 		case "project":
 			query = query.Where("project_id = ?", projectID)
 		case "admin":
 			if filter.UserID != "" {
-				query = query.Where("user_id = ? AND project_id = ?", filter.UserID, "")
+				query = query.Where("user_id = ? AND project_id = ? AND team_id = ?", filter.UserID, "", "")
 			}
 		}
 

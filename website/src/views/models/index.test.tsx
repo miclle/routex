@@ -26,7 +26,7 @@ let actorID: string,
 let detailBarrier: { promise: Promise<void>; release: () => void } | undefined
 const writeText = vi.fn<(value: string) => Promise<void>>()
 
-function team(id: string, name: string): ModelAccessSource {
+function team(id: string, name: string): Extract<ModelAccessSource, { type: 'team' }> {
   return { type: 'team', team_id: id, team_name: name, invocation_supported: false }
 }
 function model(
@@ -267,6 +267,29 @@ describe('Authorized member model catalogue', () => {
       popup.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })),
     )
     await until(() => expect(document.querySelector('[role="menu"]')).toBeNull())
+  })
+
+  it('opens only a freshly authorized named Team Chat source without offering a personal Key', async () => {
+    models = [
+      model(
+        'Team Chat model',
+        ['openai_chat'],
+        [{ ...team('tea_live', 'Live Team'), invocation_protocols: ['openai_chat'] }],
+      ),
+    ]
+    await mount()
+    await open('Team Chat model')
+    const link = drawer().querySelector<HTMLAnchorElement>('a[href^="/playground?"]')!
+    expect(link.getAttribute('href')).toBe(
+      `/playground?team=tea_live&model=${encodeURIComponent(models[0].id)}`,
+    )
+    expect(link.textContent).toContain('Live Team')
+    expect(drawer().textContent).toContain('text Chat through the named Team Session')
+    expect(drawer().textContent).not.toContain('Team inference are not available')
+    expect(drawer().querySelector('a[href="/keys"]')).toBeNull()
+    expect(button('Copy').disabled).toBe(true)
+    await act(async () => i18n.changeLanguage('zh'))
+    expect(link.textContent).toContain('打开 Live Team Chat')
   })
 
   it('preserves the table composition with actual creation dates and explicit unknown price and usage fields', async () => {

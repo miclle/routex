@@ -207,3 +207,19 @@ integrations remain later phases. See
 acceptance cases, and unverified deployment boundaries. A complete capability requires its
 API, UI, persistence, and tests; separate backend and UI commits do not establish
 full capability acceptance on their own.
+
+
+## Explicit Team Session inference boundary
+
+[Team Session inference](TEAM_INFERENCE.md) uses a typed Session identity alongside
+the existing Key identity in the native attempt pipeline. Private short-leased
+Session hashes, current exact membership and Team model grants are published
+without changing Provider configuration digests. Per-attempt authorization and
+local revocation tombstones preserve Control Plane failure isolation; absent or
+expired publication fails closed.
+
+Text-only Chat retains one immutable Team subject and stable Team/User journal
+accounts. Personal/Project Key authority and ledgers remain separate. Current
+members can read only their own Team call facts. Finite Team policies and approval,
+additional Session protocols and fleet-wide immediate revocation remain separate
+acceptance boundaries.

@@ -38,6 +38,8 @@ export interface CallAttempt {
 export interface AdminCallRecord extends CallRecord {
   user_id: string
   project_id?: string
+  team_id?: string
+  team_membership_id?: string
 }
 export interface AdminCallDetail extends AdminCallRecord {
   provider_model_id: string

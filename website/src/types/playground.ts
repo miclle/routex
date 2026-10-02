@@ -3,8 +3,9 @@ export type PlaygroundProtocol =
 export type InputCapability = 'image' | 'pdf'
 export type AttachmentScope = 'user' | 'project'
 export interface GatewayModel {
+  model_id?: string
   id: string
-  attachment_scope?: AttachmentScope
+  attachment_scope?: AttachmentScope | 'team'
   attachment_project_id?: string
   personal_attachments?: boolean
   protocols?: PlaygroundProtocol[]
@@ -36,7 +37,7 @@ export interface ChatCurrentTurnMessage {
 export interface ChatUsage {
   prompt_tokens: number
   completion_tokens: number
-  total_tokens: number
+  total_tokens: number | null
 }
 export interface ChatRequest {
   model: string
@@ -48,6 +49,7 @@ export interface ChatRequest {
   stream_options?: { include_usage: boolean }
 }
 export interface ChatResult {
+  refused?: boolean
   text: string
   requestId: string
   usage: ChatUsage | null

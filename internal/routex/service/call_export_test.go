@@ -133,7 +133,7 @@ func TestEncodeCallCSVPreservesSafeFieldsAndRedaction(t *testing.T) {
 		t.Fatal(err)
 	}
 	platform := parseCallExport(t, platformCSV)
-	platformColumns := append(append([]string{}, callExportTestMemberColumns...), "user_id", "project_id")
+	platformColumns := append(append([]string{}, callExportTestMemberColumns...), "user_id", "project_id", "team_id", "team_membership_id")
 	if len(platform) != 2 || !slices.Equal(platform[0], platformColumns) {
 		t.Fatalf("platform CSV shape = %v", platform)
 	}

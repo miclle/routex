@@ -116,15 +116,22 @@ func offboardingDigest(value any) (string, error) {
 	return hex.EncodeToString(sum[:]), nil
 }
 func offboardingActor(tx *gorm.DB, actorID, userID string, emergency bool) error {
-	if err := authorizeGovernance(tx, actorID, "members.write"); err != nil {
-		return err
-	}
 	var actor, target entity.User
 	if err := tx.Select("id", "role", "disabled").First(&actor, "id = ?", actorID).Error; err != nil {
 		return err
 	}
+	if actor.ID != actorID {
+		return apperrors.ErrForbidden
+	}
+	if err := authorizeGovernance(tx, actorID, "members.write"); err != nil {
+		return err
+	}
+
 	if err := tx.Select("id", "role", "disabled").First(&target, "id = ?", userID).Error; err != nil {
 		return err
+	}
+	if target.ID != userID {
+		return apperrors.ErrNotFound
 	}
 	if emergency && actor.Role != entity.RoleAdmin {
 		return apperrors.ErrForbidden

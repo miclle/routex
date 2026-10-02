@@ -1,10 +1,10 @@
 # Current Work Handoff
 
-- **Status:** implementation active; F08 Key proof hardening pushed; F11 readiness pushed; receipt-backed retirement pushed; member model availability correction pushed; source directory pushed; monthly quota exhaustion inbox checked and pushed; Project monthly quota requests pushed; Project request-rate approval checked; Team session foundation assessed
-- **Updated:** 2026-10-02T21:10:00+08:00
+- **Status:** implementation active; F08 Key proof hardening pushed; F11 readiness pushed; receipt-backed retirement pushed; member model availability correction pushed; source directory pushed; monthly quota exhaustion inbox checked and pushed; Project monthly quota requests pushed; Project request-rate approval pushed; Team Session foundation checked locally
+- **Updated:** 2026-10-02T22:00:00+08:00
 - **Repository / branch:** RouteX / `main`
-- **Previous checked source baseline:** `7c0d41053f14c546eab9106a27beaad8327d41c6`, pushed and read back from `origin/main`
-- **Current owner:** coordinating task; three independent owners completed Project rate constraints, shared limit-request services/HTTP acceptance and UI; coordinator owns shared fixtures, docs, final validation and delivery
+- **Previous checked source baseline:** `85730293c22e50a311c463ab62dbf4d4b6902b3a`, pushed and read back from `origin/main`
+- **Current owner:** coordinating task; three independent owners completed Team Session publication/revocation, native attempt integration and UI; coordinator owns shared fixtures, docs, final validation and delivery
 - **Next owner:** current task continues the resumed goal
 - **Transport:** identify this checked delivery with `git log -1 -- docs/current-work-handoff.md` and independently verify its upstream
 - **Coordination plan:** `~/dotfiles/projects/routex/implementation-plan.md`; synchronize separately and preserve unrelated changes
@@ -170,8 +170,8 @@ preserving a predecessor that was subsequently enabled.
 
 `docs/IMPLEMENTATION.md` remains the authoritative inventory: **8 completed, 19
 partially completed, 3 not started**. This counts completed capabilities, not effort.
-A01 is fully accepted; A02–A12, A14–A15, and A17–A20 have partial evidence; A13 and
-A16 are not started.
+A01 is fully accepted; A02–A15 and A17–A20 have partial evidence. A13 includes
+Project approvals; its Team overflow boundary remains open. A16 is not started.
 
 Delivered foundations include local identity/MFA, durable sessions and Keys,
 governance and Team/Project management, four native protocols and bounded
@@ -637,3 +637,59 @@ Sessions, separate CSRF/cookie transport, and bilingual text-only limitations.
 Reject attachments/comparison/code export until supported rather than falling back
 to Personal credentials. Validate both databases, revocation/lease/replay boundaries
 and owned native/browser workflows before the next main commit and push.
+
+## Published rate checkpoint and active Team foundation
+
+RouteX `85730293c22e50a311c463ab62dbf4d4b6902b3a` is pushed and the exact
+origin/main SHA was read back before Team edits. External coordination
+`699b68a937fb1bbd344e7767a62f3226d883685d` was independently pushed/read back;
+only the plan was staged and unrelated zsh work remains preserved. Actionlint
+37011327393 and GolangCI-Lint 37011327464 succeeded. CI 37011327474 also succeeded, including its real database/restart
+acceptance and build artifacts. These runs apply to the rate commit only.
+
+Team foundation implementation is now active. Ownership: runtime Session/member
+publication and local revocation; typed native invocation and separate journal
+accounts; approved bilingual Playground source selection and own-actor Team calls.
+The coordinator owns frozen V38 call attribution, scoped history, Personal
+history/usage/export exclusions, documentation and final acceptance. Source is
+uncommitted until focused/full checks, real dual-database and browser proof pass.
+This phase does not implement finite Team policies or approvals. Do not extend
+read authority from directory administration or treat Team owners as readers of
+other actors' calls. Pair journal identity remains stable through membership
+replacement; current authority and historical membership attribution are distinct.
+
+
+## Checked Team Session foundation and next finite-policy package
+
+Current source implements the contract in TEAM_INFERENCE.md. All implementation
+owners are frozen; the coordinator completed V38, history/report isolation,
+canonical member-ID validation, shared query helper, final Chat partial-usage
+correction and documentation. Final check/test passed with 843 Vitest cases in
+61 files. Actual focused dual-database race acceptance passed in 261.152 seconds;
+full matrix passed (Handler 610.579 seconds, Service 5.598 seconds). Real-process
+Session/Key lifecycle and Actionlint passed. Owned production/browser proof covers
+English/Chinese native usage, current-member own history, removal denial, rejoin
+and durable restart. Owned runtime/database/browser resources were removed.
+
+Corrections during acceptance: fixed test-only GORM index removal/cached column
+projection and valid usage-only SSE fixtures; fixed mutable callback registration
+racing a background recorder using fixed registration plus atomic failure switches;
+fixed stale frontend caches and canonical actor IDs. Production native finality and
+all released migrations remain intact. Missing Chat total usage is unknown while
+reported input/output remains visible. None of these results claims finite Team
+quota enforcement or real-provider acceptance.
+
+Next action: inspect resource_limit.go, resource_limits.go, resource_limits_runtime.go,
+quota_runtime.go and the existing stable Team/User account helper. Add a new frozen
+GORM migration for bounded Team policy scope IDs and independent permissions, then
+extend aggregate/member policy resolution, authoritative usage and native finite
+admission. Reuse Resource limits within the existing Team settings/member workflow.
+Do not use membership IDs as durable account identity, reset use on rejoin, grant
+owners implicit platform mutation, or build quota approvals before real finite
+Team enforcement. Keep Team overflow/assigned/escalated approvals as a subsequent
+bounded package. The full objective remains active; capability totals are unchanged.
+
+Delivery transport: this document travels with its checked main commit. Resolve
+that delivery using git log -1 -- docs/current-work-handoff.md and verify upstream
+before resuming. Remote CI for this new commit must be checked independently;
+successful runs listed above apply to the earlier Project rate commit.

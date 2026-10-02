@@ -44,6 +44,7 @@ func (s *Service) gatewayNativeAttempts(ctx context.Context, requestID string, r
 		return result, gatewayPublicAttemptError(err)
 	}
 	plan.userID, plan.projectID, plan.keyID = result.UserID, result.ProjectID, result.KeyID
+	plan.team = result.identity.team
 	plan, err = gatewayAttachmentAttemptPlan(plan, attachmentPlan)
 	if err != nil {
 		return result, err
@@ -433,6 +434,11 @@ func applyGatewayAttemptRoute(result *GatewayResult, route *gatewayRoute) {
 }
 
 func (s *Service) executeGatewayAttempt(ctx context.Context, requestID string, result *GatewayResult, attempt routeattempt.Attempt, prepared *preparedGatewayAttempt) (routeattempt.Outcome, error, error) {
+	if result.identity.team != nil {
+		if err := s.ReauthorizeTeamSession(ctx, result.identity.team, result.ModelID); err != nil {
+			return routeattempt.Outcome{Failure: routeattempt.PermanentFailure, Work: routeattempt.NotSent}, err, routeattempt.ErrExecution
+		}
+	}
 	result.AttemptID, _ = id.NewPrefixed("att")
 	if result.AttemptID == "" {
 		return routeattempt.Outcome{Failure: routeattempt.PermanentFailure, Work: routeattempt.NotSent}, gatewayError(http.StatusInternalServerError, "internal_error", "The request could not be initialized."), routeattempt.ErrExecution
@@ -441,6 +447,16 @@ func (s *Service) executeGatewayAttempt(ctx context.Context, requestID string, r
 	result.AttemptStartedAt = s.gatewayAttemptClock()
 	if err := s.CheckpointGatewayCall(requestID, result); err != nil {
 		return routeattempt.Outcome{Failure: routeattempt.PermanentFailure, Work: routeattempt.NotSent}, err, routeattempt.ErrExecution
+	}
+	if result.identity.team != nil {
+		if err := s.ReauthorizeTeamSession(ctx, result.identity.team, result.ModelID); err != nil {
+			result.AttemptID = ""
+			result.AttemptStartedAt = time.Time{}
+			if checkpointErr := s.CheckpointGatewayCall(requestID, result); checkpointErr != nil {
+				return routeattempt.Outcome{Failure: routeattempt.PermanentFailure, Work: routeattempt.NotSent}, checkpointErr, routeattempt.ErrExecution
+			}
+			return routeattempt.Outcome{Failure: routeattempt.PermanentFailure, Work: routeattempt.NotSent}, err, routeattempt.ErrExecution
+		}
 	}
 	response, requestErr := prepared.client.Do(prepared.request)
 	result.Response = response

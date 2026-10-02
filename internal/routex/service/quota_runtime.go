@@ -104,10 +104,22 @@ func (s *Service) gatewayQuotaPolicies(ctx context.Context, result *GatewayResul
 	for _, item := range base {
 		policy := policies[item.Account]
 		revision := data.Revisions[item.Account]
+		createdAt := data.Created[item.Account]
+		if result.TeamID != "" {
+			// Team Session accounts are immutable identity projections, with no
+			// editable or inherited personal policy in this phase.
+			policy = limits.Policy{}
+			revision = "0"
+			if result.identity.team == nil {
+				return nil, nil, runtimeUnavailable
+			}
+			createdAt = result.identity.team.teamCreatedAt
+		}
+
 		if revision == "" {
 			revision = "0"
 		}
-		output = append(output, eventqueue.QuotaLimit{Limit: item, Revision: revision, CreatedAt: data.Created[item.Account], Tokens5H: policy.Tokens5H, Tokens7D: policy.Tokens7D, TokensMonth: policy.TokensMonth, TPM: policy.TPM, MoneyMonth: policy.MoneyMonth, Currency: policy.Currency})
+		output = append(output, eventqueue.QuotaLimit{Limit: item, Revision: revision, CreatedAt: createdAt, Tokens5H: policy.Tokens5H, Tokens7D: policy.Tokens7D, TokensMonth: policy.TokensMonth, TPM: policy.TPM, MoneyMonth: policy.MoneyMonth, Currency: policy.Currency})
 	}
 	return output, data, nil
 }

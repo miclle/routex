@@ -236,3 +236,14 @@ Omitted fields preserve the current control, zero is a cap, and explicit null is
 unsupported. Use coherent manager-authorized request-limits context, actor-scoped
 queries, exact decision receipts and current same-actor CSRF. Preserve model/quota
 compatibility and distinguish historical approval from actual current application.
+
+Team Session Playground controls retain the approved credential-source selector
+position with API Key as the default and explicit named current active Teams.
+Discover eligible Chat models from the exact Team runtime endpoint, using stable
+model_id only for verified navigation and native model names for invocation.
+Separate cookie/current-CSRF Session transport from Key credentials:omit; never
+fallback across sources. The first slice disables Team attachments, comparison
+and code export with localized explanations. Source/Team/model/actor changes and
+unmount abort and clear sensitive state; late callbacks must check the current
+actor/Team/generation. Team Calls uses current-member own-actor endpoints and
+separate actor/Team cache keys, with cached rows/details hidden on refresh failure.

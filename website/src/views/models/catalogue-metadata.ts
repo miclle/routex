@@ -46,3 +46,11 @@ export function declaredCapabilities(model: ModelCatalogRecord, protocol = 'all'
     protocols.some((candidate) => model.input_capabilities[candidate]?.includes(capability)),
   )
 }
+
+export function teamChatSupported(source: import('@/types/model-catalog').ModelAccessSource) {
+  return (
+    source.type === 'team' &&
+    source.invocation_protocols?.length === 1 &&
+    source.invocation_protocols[0] === 'openai_chat'
+  )
+}

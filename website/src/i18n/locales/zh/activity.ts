@@ -37,6 +37,9 @@ export default {
     sessionDates: '创建于 {{created}} · 到期 {{expires}}',
   },
   calls: {
+    teamCalls: '你的 Team 调用记录',
+    teamDescription:
+      '仅展示你在此 Team 中的调用，需要当前有效成员资格。Team 所有者也无法在此查看其他成员的调用。',
     owner: '用户 / 项目',
     projectID: '项目 ID',
     projectCalls: '项目调用记录',

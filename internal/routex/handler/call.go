@@ -38,8 +38,10 @@ type CallsResponse struct {
 }
 type AdminCallResponse struct {
 	CallResponse
-	UserID    string `json:"user_id"`
-	ProjectID string `json:"project_id,omitempty"`
+	UserID           string `json:"user_id"`
+	ProjectID        string `json:"project_id,omitempty"`
+	TeamID           string `json:"team_id,omitempty"`
+	TeamMembershipID string `json:"team_membership_id,omitempty"`
 }
 type AdminCallsResponse struct {
 	Items      []AdminCallResponse `json:"items"`
@@ -158,7 +160,7 @@ func (ctrl *Ctrl) ListAdminCalls(c *fox.Context, request ListCallsRequest) (*Adm
 	}
 	result := &AdminCallsResponse{Items: []AdminCallResponse{}, NextCursor: callCursor(page.NextCursor)}
 	for _, record := range page.Records {
-		result.Items = append(result.Items, AdminCallResponse{CallResponse: callResponse(record), UserID: record.UserID, ProjectID: record.ProjectID})
+		result.Items = append(result.Items, AdminCallResponse{CallResponse: callResponse(record), UserID: record.UserID, ProjectID: record.ProjectID, TeamID: record.TeamID, TeamMembershipID: record.TeamMembershipID})
 	}
 	return result, nil
 }
@@ -167,7 +169,7 @@ func (ctrl *Ctrl) GetAdminCall(c *fox.Context, request CallPath) (*AdminCallDeta
 	if err != nil {
 		return nil, err
 	}
-	response := &AdminCallDetailResponse{AdminCallResponse: AdminCallResponse{CallResponse: callResponse(result.Record), UserID: result.Record.UserID, ProjectID: result.Record.ProjectID}, ProviderModelID: result.Record.ProviderModelID, ConnectionID: result.Record.ConnectionID, ErrorCode: result.Record.ErrorCode, RouteStopReason: result.Record.RouteStopReason, Attempts: []CallAttemptResponse{}}
+	response := &AdminCallDetailResponse{AdminCallResponse: AdminCallResponse{CallResponse: callResponse(result.Record), UserID: result.Record.UserID, ProjectID: result.Record.ProjectID, TeamID: result.Record.TeamID, TeamMembershipID: result.Record.TeamMembershipID}, ProviderModelID: result.Record.ProviderModelID, ConnectionID: result.Record.ConnectionID, ErrorCode: result.Record.ErrorCode, RouteStopReason: result.Record.RouteStopReason, Attempts: []CallAttemptResponse{}}
 	response.PriceETag = result.Record.PriceETag
 	if result.Record.PricingSnapshotJSON != nil {
 		response.PricingSnapshot = json.RawMessage(*result.Record.PricingSnapshotJSON)

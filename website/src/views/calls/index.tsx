@@ -1,6 +1,7 @@
 import { useTranslation } from 'react-i18next'
 import { useRef, useState, type FormEvent } from 'react'
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query'
+import { useSession } from '@/hooks/use-auth'
 import { Download, RefreshCw } from 'lucide-react'
 import { downloadCallsCSV, exportCalls, getCall, listCalls } from '@/api/calls'
 import type { AdminCallDetail, CallFilters, CallRecord } from '@/types/calls'
@@ -15,23 +16,53 @@ import { Table } from '@/components/ui/table'
 export default function CallsPage({
   admin = false,
   projectId,
+  teamId,
 }: {
   admin?: boolean
   projectId?: string
+  teamId?: string
 }) {
   return admin ? (
     <PermissionGate permission="calls.read_all">
       <CallRecords admin />
     </PermissionGate>
+  ) : teamId ? (
+    <TeamCallRecords teamId={teamId} />
   ) : (
-    <CallRecords admin={false} projectId={projectId} />
+    <CallRecords admin={false} projectId={projectId} teamId={teamId} />
   )
 }
-function CallRecords({ admin, projectId }: { admin: boolean; projectId?: string }) {
+function TeamCallRecords({ teamId }: { teamId: string }) {
+  const session = useSession()
+  if (!session.data || session.isError)
+    return (
+      <QueryState
+        pending={session.isPending}
+        error={session.error}
+        retry={() => void session.refetch()}
+      />
+    )
+  return <CallRecords key={`${session.data.user.id}:${teamId}`} admin={false} teamId={teamId} />
+}
+function CallRecords({
+  admin,
+  projectId,
+  teamId,
+}: {
+  admin: boolean
+  projectId?: string
+  teamId?: string
+}) {
   const { t, i18n } = useTranslation('activity')
   const formatTime = (value: string) =>
     new Date(value).toLocaleString(i18n.resolvedLanguage === 'zh' ? 'zh-CN' : 'en-US')
-  const scope = projectId ? ['project', projectId] : [admin ? 'admin' : 'self']
+  const session = useSession(!!teamId)
+  const actor = session.isError ? '' : (session.data?.user.id ?? '')
+  const scope = teamId
+    ? ['team', actor, teamId]
+    : projectId
+      ? ['project', projectId]
+      : [admin ? 'admin' : 'self']
   const [filters, setFilters] = useState<CallFilters>({})
   const [selected, setSelected] = useState<string | null>(null)
   const [validation, setValidation] = useState('')
@@ -41,14 +72,18 @@ function CallRecords({ admin, projectId }: { admin: boolean; projectId?: string 
   const [exportReady, setExportReady] = useState(false)
   const calls = useInfiniteQuery({
     queryKey: ['calls', ...scope, filters],
-    queryFn: ({ pageParam, signal }) => listCalls(admin, filters, pageParam, signal, projectId),
+    queryFn: ({ pageParam, signal }) =>
+      listCalls(admin, filters, pageParam, signal, projectId, teamId),
+    enabled: !teamId || !!actor,
+    ...(teamId ? { retry: false, staleTime: 0, gcTime: 0, refetchOnMount: 'always' as const } : {}),
     initialPageParam: null as string | null,
     getNextPageParam: (page) => page.next_cursor ?? undefined,
   })
   const detail = useQuery({
     queryKey: ['call', ...scope, selected],
-    queryFn: ({ signal }) => getCall(admin, selected!, signal, projectId),
-    enabled: selected !== null,
+    queryFn: ({ signal }) => getCall(admin, selected!, signal, projectId, teamId),
+    enabled: selected !== null && (!teamId || !!actor),
+    ...(teamId ? { retry: false, staleTime: 0, gcTime: 0, refetchOnMount: 'always' as const } : {}),
   })
   function filter(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -88,16 +123,29 @@ function CallRecords({ admin, projectId }: { admin: boolean; projectId?: string 
       setExporting(false)
     }
   }
-  const items = calls.data?.pages.flatMap((page) => page.items) ?? []
+  const items =
+    teamId && (calls.isFetching || calls.isError || !actor)
+      ? []
+      : (calls.data?.pages.flatMap((page) => page.items) ?? [])
   return (
     <Page
-      title={projectId ? t('calls.projectCalls') : admin ? t('calls.allCalls') : t('calls.myCalls')}
+      title={
+        teamId
+          ? t('calls.teamCalls')
+          : projectId
+            ? t('calls.projectCalls')
+            : admin
+              ? t('calls.allCalls')
+              : t('calls.myCalls')
+      }
       description={
-        projectId
-          ? t('calls.projectDescription')
-          : admin
-            ? t('calls.adminDescription')
-            : t('calls.description')
+        teamId
+          ? t('calls.teamDescription')
+          : projectId
+            ? t('calls.projectDescription')
+            : admin
+              ? t('calls.adminDescription')
+              : t('calls.description')
       }
       action={
         <Button variant="outline" disabled={calls.isFetching} onClick={() => void calls.refetch()}>
@@ -125,9 +173,11 @@ function CallRecords({ admin, projectId }: { admin: boolean; projectId?: string 
         <FormField label={t('calls.modelID')}>
           <Input name="model_id" placeholder={t('calls.optional')} />
         </FormField>
-        <FormField label={t('calls.keyID')}>
-          <Input name="key_id" placeholder={t('calls.optional')} />
-        </FormField>
+        {!teamId && (
+          <FormField label={t('calls.keyID')}>
+            <Input name="key_id" placeholder={t('calls.optional')} />
+          </FormField>
+        )}
         {admin && (
           <FormField label={t('calls.userID')}>
             <Input name="user_id" placeholder={t('calls.optional')} />
@@ -162,17 +212,19 @@ function CallRecords({ admin, projectId }: { admin: boolean; projectId?: string 
             {t(validation)}
           </p>
         )}
-        <div className="ml-auto">
-          <Button
-            type="button"
-            variant="outline"
-            disabled={exporting}
-            onClick={() => void exportCSV()}
-          >
-            <Download className="size-4" aria-hidden="true" />
-            {t(exporting ? 'calls.exporting' : 'calls.exportCSV')}
-          </Button>
-        </div>
+        {!teamId && (
+          <div className="ml-auto">
+            <Button
+              type="button"
+              variant="outline"
+              disabled={exporting}
+              onClick={() => void exportCSV()}
+            >
+              <Download className="size-4" aria-hidden="true" />
+              {t(exporting ? 'calls.exporting' : 'calls.exportCSV')}
+            </Button>
+          </div>
+        )}
       </form>
       <ErrorNotice error={exportError} />
       {exportReady && (
@@ -276,12 +328,26 @@ function CallRecords({ admin, projectId }: { admin: boolean; projectId?: string 
           error={detail.error}
           retry={() => void detail.refetch()}
         />
-        {detail.data && <CallDetail call={detail.data} admin={admin} />}
+        {detail.data &&
+          (!teamId ||
+            (!!actor &&
+              !detail.isFetching &&
+              !detail.isError &&
+              !calls.isFetching &&
+              !calls.isError)) && <CallDetail call={detail.data} admin={admin} team={!!teamId} />}
       </Drawer>
     </Page>
   )
 }
-function CallDetail({ call, admin }: { call: CallRecord | AdminCallDetail; admin: boolean }) {
+function CallDetail({
+  call,
+  admin,
+  team = false,
+}: {
+  call: CallRecord | AdminCallDetail
+  admin: boolean
+  team?: boolean
+}) {
   const { t, i18n } = useTranslation('activity')
   const formatTime = (value: string) =>
     new Date(value).toLocaleString(i18n.resolvedLanguage === 'zh' ? 'zh-CN' : 'en-US')
@@ -292,7 +358,7 @@ function CallDetail({ call, admin }: { call: CallRecord | AdminCallDetail; admin
           [t('calls.requestID'), call.request_id],
           [t('calls.model'), call.model_name],
           [t('calls.modelID'), call.model_id],
-          [t('calls.keyID'), call.key_id],
+          ...(!team ? [[t('calls.keyID'), call.key_id]] : []),
           [t('calls.protocol'), call.protocol],
           [t('calls.status'), t(`calls.${call.status}`)],
           [t('calls.responseMode'), call.stream ? t('calls.stream') : t('calls.ordinary')],

@@ -19,6 +19,7 @@ export type ModelAccessSource =
       team_id: string
       team_name: string
       invocation_supported: false
+      invocation_protocols?: string[]
     }
 
 export interface ModelCatalogRecord {

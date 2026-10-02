@@ -321,6 +321,9 @@ func (s *Service) UpdateResource(ctx context.Context, actorID string, kind Resou
 		if err != nil {
 			return err
 		}
+		if kind == TeamResource && current.ID != resourceID {
+			return apperrors.ErrNotFound
+		}
 		if current.Status == entity.ResourceArchived {
 			return catalogConflict
 		}
@@ -352,5 +355,8 @@ func (s *Service) UpdateResource(ctx context.Context, actorID string, kind Resou
 		}
 		return result, s.refreshAfterMutation(ctx, catalogError(err))
 	}
-	return result, catalogError(err)
+	if err == nil {
+		s.invalidateRuntimeTeam(result.ID)
+	}
+	return result, s.refreshAfterMutation(ctx, catalogError(err))
 }

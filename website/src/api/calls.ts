@@ -7,14 +7,17 @@ export async function listCalls(
   cursor: string | null,
   signal?: AbortSignal,
   projectId?: string,
+  teamId?: string,
 ): Promise<CallPage> {
   return (
     await client.get<CallPage>(
-      projectId
-        ? `/projects/${encodeURIComponent(projectId)}/calls`
-        : admin
-          ? '/admin/calls'
-          : '/calls',
+      teamId
+        ? `/teams/${encodeURIComponent(teamId)}/calls`
+        : projectId
+          ? `/projects/${encodeURIComponent(projectId)}/calls`
+          : admin
+            ? '/admin/calls'
+            : '/calls',
       {
         params: { ...filters, cursor: cursor ?? undefined, limit: 40 },
         signal,
@@ -27,10 +30,11 @@ export async function getCall(
   requestId: string,
   signal?: AbortSignal,
   projectId?: string,
+  teamId?: string,
 ): Promise<CallRecord | AdminCallDetail> {
   return (
     await client.get<CallRecord | AdminCallDetail>(
-      `${projectId ? `/projects/${encodeURIComponent(projectId)}/calls` : admin ? '/admin/calls' : '/calls'}/${encodeURIComponent(requestId)}`,
+      `${teamId ? `/teams/${encodeURIComponent(teamId)}/calls` : projectId ? `/projects/${encodeURIComponent(projectId)}/calls` : admin ? '/admin/calls' : '/calls'}/${encodeURIComponent(requestId)}`,
       { signal },
     )
   ).data

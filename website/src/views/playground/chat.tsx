@@ -1,4 +1,6 @@
 import type { SnippetInput } from '@/lib/playground-snippet'
+import TeamPicker from './team-picker'
+import { getTeamModels, runTeamChat } from '@/api/playground-team'
 import CodeDialog from './code-dialog'
 import { AttachmentChips, AttachmentPicker } from './attachments'
 import { isGeminiModelName, protocolLabel } from '@/lib/protocols'
@@ -10,7 +12,7 @@ import {
 } from '@/lib/playground-attachments'
 import { t } from '@/i18n'
 import { useTranslation } from 'react-i18next'
-import { useEffect, useRef, useState, type FormEvent } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useRef, useState, type FormEvent } from 'react'
 import { Code, Copy, LoaderCircle, Send, Square, Trash2 } from 'lucide-react'
 import { AttachmentError, deleteAttachment, uploadAttachment } from '@/api/attachments'
 import {
@@ -89,10 +91,29 @@ function deleteScopedAttachment(id: string, csrf: string, target: AttachmentTarg
     : deleteAttachment(id, csrf, undefined, target)
 }
 
-export default function ChatWorkbench({ projectId = '' }: { projectId?: string }) {
+export default function ChatWorkbench({
+  projectId = '',
+  source = 'key',
+  teamId = '',
+  expectedModel = '',
+  onSource,
+  onTeam,
+}: {
+  projectId?: string
+  source?: 'key' | 'team'
+  teamId?: string
+  expectedModel?: string
+  onSource?: (source: 'key' | 'team') => void
+  onTeam?: (id: string) => void
+}) {
   useTranslation()
 
   const session = useSession()
+  const [teamConfirmed, setTeamConfirmed] = useState(false)
+  const liveSession = useRef(session.data)
+  useLayoutEffect(() => {
+    liveSession.current = session.isError ? undefined : session.data
+  }, [session.data, session.isError])
   const [streamEnabled, setStreamEnabled] = useState(true)
   const [codeRequest, setCodeRequest] = useState<SnippetInput | null>(null)
   const [key, setKey] = useState('')
@@ -139,7 +160,8 @@ export default function ChatWorkbench({ projectId = '' }: { projectId?: string }
     ...(inputCapabilities.includes('image') ? ['image/png', 'image/jpeg'] : []),
     ...(inputCapabilities.includes('pdf') ? ['application/pdf'] : []),
   ].join(',')
-  const canAttach = !!attachmentTarget && inputCapabilities.length > 0 && !!session.data
+  const canAttach =
+    source === 'key' && !!attachmentTarget && inputCapabilities.length > 0 && !!session.data
   const requestRunning = exchanges.some((exchange) => exchange.status === 'running')
   const busy = loading || uploadingNames.length > 0 || requestRunning
 
@@ -178,7 +200,7 @@ export default function ChatWorkbench({ projectId = '' }: { projectId?: string }
     csrfRef.current = session.data?.csrf_token ?? ''
   }, [session.data?.csrf_token])
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     const activeOwnedAttachmentTargets = ownedAttachmentTargets.current
     mounted.current = true
     return () => {
@@ -194,6 +216,21 @@ export default function ChatWorkbench({ projectId = '' }: { projectId?: string }
           void deleteScopedAttachment(id, csrf, target).catch(() => undefined)
     }
   }, [])
+
+  const confirmTeam = useCallback(
+    (value: boolean) => {
+      setTeamConfirmed(value)
+      if (source === 'team' && !value) {
+        controller.current?.abort()
+        setModels([])
+        setModel('')
+        setKeyChecked(false)
+        setExchanges([])
+        setCodeRequest(null)
+      }
+    },
+    [source],
+  )
 
   async function selectAttachments(files: File[]) {
     if (!session.data || !canAttach || busy) return
@@ -294,18 +331,28 @@ export default function ChatWorkbench({ projectId = '' }: { projectId?: string }
     setExchanges([])
   }
   async function loadModels() {
-    if (!key.trim() || busy || lock.current) return
+    if (
+      (source === 'key' ? !key.trim() : !teamConfirmed || !liveSession.current) ||
+      busy ||
+      lock.current
+    )
+      return
     lock.current = true
     const abort = new AbortController()
     controller.current = abort
     setLoading(true)
     setError('')
     try {
-      const available = await getGatewayModels(key.trim(), abort.signal)
+      const available =
+        source === 'team'
+          ? await getTeamModels(teamId, abort.signal)
+          : await getGatewayModels(key.trim(), abort.signal)
+      if (!mounted.current || abort.signal.aborted) return
       const verifiedScope = available[0]?.attachment_scope
       const verifiedProjectId = available[0]?.attachment_project_id ?? ''
       if (
         mounted.current &&
+        source === 'key' &&
         projectId &&
         available.length > 0 &&
         (verifiedScope !== 'project' || verifiedProjectId !== projectId)
@@ -321,8 +368,14 @@ export default function ChatWorkbench({ projectId = '' }: { projectId?: string }
       const items = available.filter((item) => protocols(item).length > 0)
       if (mounted.current) {
         setModels(items)
-        setModel(items[0]?.id ?? '')
-        setProtocol(protocols(items[0])[0] ?? 'openai_chat')
+        const selected =
+          source === 'team' && expectedModel
+            ? items.find((item) => item.model_id === expectedModel)
+            : items[0]
+        setModel(selected?.id ?? '')
+        if (source === 'team' && expectedModel && !selected)
+          setError('playground:teamExpectedModelUnavailable')
+        setProtocol(protocols(selected)[0] ?? 'openai_chat')
         setKeyChecked(true)
       }
     } catch (failure) {
@@ -345,7 +398,9 @@ export default function ChatWorkbench({ projectId = '' }: { projectId?: string }
       lock.current ||
       !prompt.trim() ||
       !model ||
-      !key.trim() ||
+      (source === 'key'
+        ? !key.trim()
+        : !teamConfirmed || !liveSession.current || protocol !== 'openai_chat') ||
       !availableProtocols.includes(protocol)
     )
       return
@@ -388,8 +443,8 @@ export default function ChatWorkbench({ projectId = '' }: { projectId?: string }
         error: '',
       },
     ])
-    const update = (patch: Partial<Exchange>) => {
-      if (mounted.current)
+    const update = (patch: Partial<Exchange>, allowAborted = false) => {
+      if (mounted.current && (!abort.signal.aborted || allowAborted))
         setExchanges((current) =>
           current.map((exchange) => (exchange.id === id ? { ...exchange, ...patch } : exchange)),
         )
@@ -502,8 +557,19 @@ export default function ChatWorkbench({ projectId = '' }: { projectId?: string }
                 content: buildChatAttachmentContent(text, submittedAttachments),
               }
             : { role: 'user', content: text }
-        const result = await runChat(
-          key.trim(),
+        const executeChat =
+          source === 'team'
+            ? (
+                request: Parameters<typeof runChat>[1],
+                signal: AbortSignal,
+                onUpdate: Parameters<typeof runChat>[3],
+              ) => runTeamChat(teamId, liveSession.current!.csrf_token, request, signal, onUpdate)
+            : (
+                request: Parameters<typeof runChat>[1],
+                signal: AbortSignal,
+                onUpdate: Parameters<typeof runChat>[3],
+              ) => runChat(key.trim(), request, signal, onUpdate)
+        const result = await executeChat(
           {
             ...parameters,
             messages: [...messages, currentMessage],
@@ -513,10 +579,24 @@ export default function ChatWorkbench({ projectId = '' }: { projectId?: string }
           abort.signal,
           update,
         )
-        update({ ...result, status: 'completed' })
+        update({
+          ...result,
+          status:
+            source === 'key'
+              ? 'completed'
+              : result.refused
+                ? 'refused'
+                : result.finishReason === 'stop' && !!result.text.trim()
+                  ? 'completed'
+                  : result.finishReason === 'tool_calls' || result.finishReason === 'function_call'
+                    ? 'handoff'
+                    : result.finishReason === 'content_filter'
+                      ? 'refused'
+                      : 'incomplete',
+        })
       }
     } catch (failure) {
-      if (abort.signal.aborted) update({ status: 'cancelled', error: '' })
+      if (abort.signal.aborted) update({ status: 'cancelled', error: '' }, true)
       else
         update({
           status: 'failed',
@@ -536,6 +616,7 @@ export default function ChatWorkbench({ projectId = '' }: { projectId?: string }
   }
   function showCode() {
     if (
+      source === 'team' ||
       !formRef.current ||
       !availableProtocols.includes(protocol) ||
       busy ||
@@ -588,34 +669,65 @@ export default function ChatWorkbench({ projectId = '' }: { projectId?: string }
         style={{ height: 'calc(100vh - 190px)' }}
       >
         <aside className="w-80 shrink-0 space-y-5 overflow-auto border-r bg-muted/30 p-5">
-          <fieldset disabled={busy} className="space-y-5">
-            <FormField label={t('playground:key')}>
-              <Input
-                name="api_key"
-                type="password"
-                autoComplete="off"
-                value={key}
-                onValueChange={changeKey}
-                placeholder={t('playground:keyPlaceholder')}
+          <FormField label={t('playground:source')}>
+            <select
+              name="source"
+              aria-label={t('playground:source')}
+              value={source}
+              onChange={(event) => onSource?.(event.target.value as 'key' | 'team')}
+              className="h-11 w-full rounded-md border bg-background px-3 text-sm"
+            >
+              <option value="key">{t('playground:keySource')}</option>
+              <option value="team">{t('playground:teamSource')}</option>
+            </select>
+          </FormField>
+          {source === 'team' && (
+            <>
+              <TeamPicker
+                actor={session.isError ? '' : (session.data?.user.id ?? '')}
+                value={teamId}
+                onChange={(id) => onTeam?.(id)}
+                onConfirmed={confirmTeam}
               />
-            </FormField>
+              <p className="text-xs text-muted-foreground">{t('playground:teamTextOnly')}</p>
+            </>
+          )}
+          <fieldset disabled={busy} className="space-y-5">
+            {source === 'key' && (
+              <FormField label={t('playground:key')}>
+                <Input
+                  name="api_key"
+                  type="password"
+                  autoComplete="off"
+                  value={key}
+                  onValueChange={changeKey}
+                  placeholder={t('playground:keyPlaceholder')}
+                />
+              </FormField>
+            )}
             <div className="flex flex-wrap gap-2">
               <Button
                 size="sm"
                 variant="outline"
-                disabled={!key.trim() || busy}
+                disabled={(source === 'key' ? !key.trim() : !teamConfirmed) || busy}
                 onClick={() => void loadModels()}
               >
-                {loading ? t('verifying_36a20') : t('verify_and_load_models_ea3bf')}
+                {loading
+                  ? t('verifying_36a20')
+                  : source === 'team'
+                    ? t('playground:teamLoadModels')
+                    : t('verify_and_load_models_ea3bf')}
               </Button>
-              <Button
-                size="sm"
-                variant="ghost"
-                disabled={!key || busy}
-                onClick={() => changeKey('')}
-              >
-                {t('clear_key_b9655')}
-              </Button>
+              {source === 'key' && (
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  disabled={!key || busy}
+                  onClick={() => changeKey('')}
+                >
+                  {t('clear_key_b9655')}
+                </Button>
+              )}
             </div>
             <FormField label={t('choose_a_model_4e769')}>
               <select
@@ -625,6 +737,7 @@ export default function ChatWorkbench({ projectId = '' }: { projectId?: string }
                 onChange={(e) => {
                   clearDraftAttachments()
                   setModel(e.target.value)
+                  setCodeRequest(null)
                   setProtocol(
                     protocols(models.find((item) => item.id === e.target.value))[0] ??
                       'openai_chat',
@@ -638,8 +751,16 @@ export default function ChatWorkbench({ projectId = '' }: { projectId?: string }
                   {models.length
                     ? t('choose_a_model_4e769')
                     : keyChecked
-                      ? t('no_callable_models_d38ff')
-                      : t('verify_your_key_first_5592a')}
+                      ? t(
+                          source === 'team'
+                            ? 'playground:teamNoModels'
+                            : 'no_callable_models_d38ff',
+                        )
+                      : t(
+                          source === 'team'
+                            ? 'playground:teamLoadFirst'
+                            : 'verify_your_key_first_5592a',
+                        )}
                 </option>
                 {models.map((item) => (
                   <option key={item.id} value={item.id}>
@@ -658,6 +779,7 @@ export default function ChatWorkbench({ projectId = '' }: { projectId?: string }
                   onChange={(event) => {
                     clearDraftAttachments()
                     setProtocol(event.target.value as PlaygroundProtocol)
+                    setCodeRequest(null)
                     setExchanges([])
                     setCopied('')
                   }}
@@ -672,22 +794,28 @@ export default function ChatWorkbench({ projectId = '' }: { projectId?: string }
             )}
             {keyChecked && models.length === 0 && (
               <p role="status" className="text-xs leading-5 text-muted-foreground">
-                {t('this_key_has_no_available_models_check_its_45322')}
+                {t(
+                  source === 'team'
+                    ? 'playground:teamNoModels'
+                    : 'this_key_has_no_available_models_check_its_45322',
+                )}
               </p>
             )}
             <div className="border-t pt-4">
               <Badge variant="outline">{protocolLabel(protocol)}</Badge>
               <p className="mt-2 break-all font-mono text-xs text-muted-foreground">
                 POST{' '}
-                {protocol === 'gemini_generate_content'
-                  ? isGeminiModelName(model)
-                    ? `/v1beta/models/${encodeURIComponent(model)}:${streamEnabled ? 'streamGenerateContent' : 'generateContent'}`
-                    : '—'
-                  : protocol === 'anthropic_messages'
-                    ? '/v1/messages'
-                    : protocol === 'openai_chat'
-                      ? '/v1/chat/completions'
-                      : '/v1/responses'}
+                {source === 'team'
+                  ? `/api/v1/teams/${encodeURIComponent(teamId)}/chat/completions`
+                  : protocol === 'gemini_generate_content'
+                    ? isGeminiModelName(model)
+                      ? `/v1beta/models/${encodeURIComponent(model)}:${streamEnabled ? 'streamGenerateContent' : 'generateContent'}`
+                      : '—'
+                    : protocol === 'anthropic_messages'
+                      ? '/v1/messages'
+                      : protocol === 'openai_chat'
+                        ? '/v1/chat/completions'
+                        : '/v1/responses'}
               </p>
             </div>
             {protocol === 'gemini_generate_content' && !isGeminiModelName(model) && (
@@ -766,7 +894,11 @@ export default function ChatWorkbench({ projectId = '' }: { projectId?: string }
                 variant="ghost"
                 size="sm"
                 disabled={
-                  busy || attachments.length > 0 || !model || !availableProtocols.includes(protocol)
+                  source === 'team' ||
+                  busy ||
+                  attachments.length > 0 ||
+                  !model ||
+                  !availableProtocols.includes(protocol)
                 }
                 onClick={showCode}
               >
@@ -783,7 +915,9 @@ export default function ChatWorkbench({ projectId = '' }: { projectId?: string }
           >
             {exchanges.length === 0 && (
               <div className="flex min-h-60 items-center justify-center text-center text-sm leading-7 text-muted-foreground">
-                {t('verify_a_key_and_select_a_model_to_7733d')}
+                {source === 'team'
+                  ? t('playground:teamConversationStart')
+                  : t('verify_a_key_and_select_a_model_to_7733d')}
                 <br />
                 {t('playground:context')}
               </div>
@@ -864,7 +998,7 @@ export default function ChatWorkbench({ projectId = '' }: { projectId?: string }
                         {t('output_f8ba7')}
                         {exchange.usage.completion_tokens}
                         {t('total_6ea55')}
-                        {exchange.usage.total_tokens} Tokens
+                        {exchange.usage.total_tokens ?? t('playground:unknownUsage')} Tokens
                       </span>
                     ) : (
                       exchange.status !== 'running' && (
@@ -911,13 +1045,15 @@ export default function ChatWorkbench({ projectId = '' }: { projectId?: string }
                 accept={attachmentAccept}
                 disabled={busy || !canAttach || attachments.length >= maxAttachments}
                 label={
-                  canAttach
-                    ? t('playground:attachFiles')
-                    : attachmentTarget && selectedModel
-                      ? t('playground:attachmentUnsupported')
-                      : selectedModel?.attachment_scope === 'project' || projectId
-                        ? t('playground:attachmentProjectUnavailable')
-                        : t('playground:attachmentUnsupported')
+                  source === 'team'
+                    ? t('playground:teamAttachmentsUnavailable')
+                    : canAttach
+                      ? t('playground:attachFiles')
+                      : attachmentTarget && selectedModel
+                        ? t('playground:attachmentUnsupported')
+                        : selectedModel?.attachment_scope === 'project' || projectId
+                          ? t('playground:attachmentProjectUnavailable')
+                          : t('playground:attachmentUnsupported')
                 }
                 onFiles={(files) => void selectAttachments(files)}
               />

@@ -108,16 +108,16 @@ func (s *Service) queryUsage(ctx context.Context, actorID, scope, projectID stri
 		if err := authorizeUsage(tx, actorID, scope, projectID); err != nil {
 			return err
 		}
-		query := tx.Model(&entity.CallRecord{}).Select([]string{"request_id", "key_id", "model_id", "model_name", "provider_id", "provider_name", "provider_model_id", "upstream_model_name", "connection_id", "connection_name", "status", "started_at", "completed_at", "duration_ms", "input_tokens", "output_tokens", "pricing_status", "charge_amount", "charge_currency"}).Where("started_at >= ? AND started_at < ?", from, plan.current.to)
+		query := tx.Model(&entity.CallRecord{}).Select([]string{"request_id", "key_id", "team_id", "model_id", "model_name", "provider_id", "provider_name", "provider_model_id", "upstream_model_name", "connection_id", "connection_name", "status", "started_at", "completed_at", "duration_ms", "input_tokens", "output_tokens", "pricing_status", "charge_amount", "charge_currency"}).Where("started_at >= ? AND started_at < ?", from, plan.current.to)
 		switch scope {
 		case "personal":
-			query = query.Where("user_id = ? AND project_id = ?", actorID, "")
+			query = query.Where("user_id = ? AND project_id = ? AND team_id = ?", actorID, "", "")
 		case "project":
 			query = query.Where("project_id = ?", projectID)
 		}
-		// An admin user filter also means personal attribution, not Project creator.
+		// An admin user filter selects Personal attribution, not Team actors or Project creators.
 		if filter.UserID != "" {
-			query = query.Where("project_id = ?", "")
+			query = query.Where("project_id = ? AND team_id = ?", "", "")
 		}
 		query = usageQueryFilters(query, filter)
 		if err := query.Order("started_at ASC").Order("request_id ASC").Limit(usageRowLimit + 1).Find(&rows).Error; err != nil {

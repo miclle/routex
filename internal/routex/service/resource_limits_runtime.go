@@ -122,6 +122,16 @@ func WithGatewayClientIP(ctx context.Context, ip netip.Addr) context.Context {
 	return context.WithValue(ctx, gatewayIPKey{}, ip)
 }
 func (s *Service) gatewayLimits(ctx context.Context, result *GatewayResult) ([]eventqueue.Limit, error) {
+	if result.TeamID != "" {
+		if result.identity.team == nil || result.UserID != result.identity.team.UserID || result.TeamID != result.identity.team.TeamID || result.TeamMembershipID != result.identity.team.TeamMembershipID || result.KeyID != "" || result.ProjectID != "" {
+			return nil, runtimeUnavailable
+		}
+		if err := s.ReauthorizeTeamSession(ctx, result.identity.team, result.ModelID); err != nil {
+			return nil, err
+		}
+		return []eventqueue.Limit{{Account: limitAccount("team", result.TeamID)}, {Account: teamMemberLimitAccount(result.TeamID, result.UserID)}}, nil
+	}
+
 	parentKind, parentID := "user", result.UserID
 	if result.ProjectID != "" {
 		parentKind, parentID = "project", result.ProjectID

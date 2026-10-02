@@ -7,9 +7,11 @@ import "time"
 type CallRecord struct {
 	CallPricingFields `gorm:"embedded"`
 	SnapshotID        string    `gorm:"size:30;not null"`
-	RequestID         string    `gorm:"primaryKey;size:64"`
+	RequestID         string    `gorm:"primaryKey;size:64;index:idx_calls_team_actor_time,priority:4"`
 	ProjectID         string    `gorm:"size:30;not null;default:''"`
-	UserID            string    `gorm:"size:30;not null"`
+	TeamID            string    `gorm:"size:30;not null;default:'';index:idx_calls_team_actor_time,priority:1"`
+	TeamMembershipID  string    `gorm:"size:30;not null;default:''"`
+	UserID            string    `gorm:"size:30;not null;index:idx_calls_team_actor_time,priority:2"`
 	KeyID             string    `gorm:"size:30;not null"`
 	ModelID           string    `gorm:"size:30;not null"`
 	ModelName         string    `gorm:"size:128;not null"`
@@ -23,7 +25,7 @@ type CallRecord struct {
 	Protocol          string    `gorm:"size:30;not null"`
 	Status            string    `gorm:"size:20;not null"`
 	Stream            bool      `gorm:"not null"`
-	StartedAt         time.Time `gorm:"not null"`
+	StartedAt         time.Time `gorm:"not null;index:idx_calls_team_actor_time,priority:3"`
 	CompletedAt       time.Time `gorm:"not null"`
 	DurationMS        int64     `gorm:"not null"`
 	InputTokens       *int64

@@ -185,8 +185,10 @@ func aggregateUsage(rows []entity.CallRecord, period usageRange, plan usagePlan,
 		if err := addUsageGroup(models, row.ModelID, row.ModelName, row); err != nil {
 			return UsagePeriod{}, err
 		}
-		if err := addUsageGroup(keys, row.KeyID, "", row); err != nil {
-			return UsagePeriod{}, err
+		if row.TeamID == "" {
+			if err := addUsageGroup(keys, row.KeyID, "", row); err != nil {
+				return UsagePeriod{}, err
+			}
 		}
 		if admin {
 			if err := addUsageGroup(providers, row.ProviderID, row.ProviderName, row); err != nil {

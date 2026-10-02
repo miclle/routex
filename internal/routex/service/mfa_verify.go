@@ -141,6 +141,8 @@ func (s *Service) EnableMFA(ctx context.Context, auth *Authentication, password,
 	if rejected {
 		return nil, apperrors.ErrUnauthorized
 	}
+	s.invalidateRuntimeSessionUser(result.Authentication.User.ID)
+	s.publishSessionMutation(ctx)
 	return result, nil
 }
 func (s *Service) ChangeMFA(ctx context.Context, auth *Authentication, password string, proof MFAProof, disable bool) (*MFAMutation, error) {
@@ -215,6 +217,8 @@ func (s *Service) ChangeMFA(ctx context.Context, auth *Authentication, password 
 	if rejected {
 		return nil, apperrors.ErrUnauthorized
 	}
+	s.invalidateRuntimeSessionUser(result.Authentication.User.ID)
+	s.publishSessionMutation(ctx)
 	return result, nil
 }
 func (s *Service) CompleteMFALogin(ctx context.Context, token string, proof MFAProof) (*Authentication, error) {
@@ -284,6 +288,7 @@ func (s *Service) CompleteMFALogin(ctx context.Context, token string, proof MFAP
 	if rejected {
 		return nil, apperrors.ErrUnauthorized
 	}
+	s.publishSessionMutation(ctx)
 	return auth, nil
 }
 func issueMFALoginChallenge(tx *gorm.DB, user entity.User, state entity.UserMFA) (*MFALoginChallenge, error) {

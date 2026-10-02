@@ -24,10 +24,11 @@ const (
 var ErrModelCatalogOverflow = &apperrors.Error{Code: http.StatusUnprocessableEntity, Message: "model catalogue exceeds supported bounds"}
 
 type MemberModelCatalogSource struct {
-	Type                string  `json:"type"`
-	TeamID              *string `json:"team_id"`
-	TeamName            *string `json:"team_name"`
-	InvocationSupported bool    `json:"invocation_supported"`
+	Type                string   `json:"type"`
+	TeamID              *string  `json:"team_id"`
+	TeamName            *string  `json:"team_name"`
+	InvocationSupported bool     `json:"invocation_supported"`
+	InvocationProtocols []string `json:"invocation_protocols"`
 }
 
 type MemberModelCatalogRecord struct {
@@ -94,9 +95,9 @@ func memberCatalogRecords(personal, teams []memberCatalogGrant, actorID, modelID
 					continue
 				}
 				teamID, name := row.TeamID, row.TeamName
-				item.Sources = append(item.Sources, MemberModelCatalogSource{Type: "team", TeamID: &teamID, TeamName: &name})
+				item.Sources = append(item.Sources, MemberModelCatalogSource{Type: "team", TeamID: &teamID, TeamName: &name, InvocationProtocols: []string{}})
 			} else if !slices.ContainsFunc(item.Sources, func(source MemberModelCatalogSource) bool { return source.Type == "personal" }) {
-				item.Sources = append(item.Sources, MemberModelCatalogSource{Type: "personal", InvocationSupported: true})
+				item.Sources = append(item.Sources, MemberModelCatalogSource{Type: "personal", InvocationSupported: true, InvocationProtocols: []string{}})
 			}
 		}
 	}
@@ -192,6 +193,13 @@ func (s *Service) memberModelCatalog(ctx context.Context, actorID, modelID strin
 	for i := range items {
 		items[i].Protocols = metadata[items[i].ID].Protocols
 		items[i].InputCapabilities = metadata[items[i].ID].InputCapabilities
+		for j := range items[i].Sources {
+			if items[i].Sources[j].Type == "personal" {
+				items[i].Sources[j].InvocationProtocols = append([]string{}, items[i].Protocols...)
+			} else if s.runtime != nil && slices.Contains(items[i].Protocols, entity.ProtocolOpenAIChat) {
+				items[i].Sources[j].InvocationProtocols = []string{entity.ProtocolOpenAIChat}
+			}
+		}
 		items[i].PersonalAvailable = len(items[i].Protocols) > 0 && slices.ContainsFunc(items[i].Sources, func(source MemberModelCatalogSource) bool { return source.Type == "personal" })
 	}
 	return items, nil

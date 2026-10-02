@@ -28,7 +28,7 @@ export function usage(value: unknown): ChatUsage | null {
 export function errorMessage(body: unknown, key: string, status = 0) {
   const message = record(record(body).error).message
   if (typeof message === 'string' && message.trim())
-    return message.split(key).join('[REDACTED]').slice(0, 500)
+    return (key ? message.split(key).join('[REDACTED]') : message).slice(0, 500)
   if (status === 401) return () => t('the_api_key_is_invalid_disabled_or_expired_1240a')
   if (status === 403) return () => t('this_key_does_not_have_permission_to_call_8d536')
   if (status === 429) return () => t('the_request_exceeds_a_limit_try_again_later_aeea3')

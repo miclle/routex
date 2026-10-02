@@ -36,10 +36,12 @@ export default function ResourceDetailPage({
     queryFn: ({ signal }) => getResource(kind, admin, resourceId, signal),
     enabled: !!actor,
     retry: false,
+    ...(kind === 'teams' ? { staleTime: 0, gcTime: 0, refetchOnMount: 'always' as const } : {}),
   })
   if (
     !resource.data ||
-    (resource.data.request_workspace_only && (resource.isFetching || resource.isError))
+    ((resource.data.request_workspace_only || kind === 'teams') &&
+      (resource.isFetching || resource.isError))
   )
     return (
       <Page title={t('details', { kind: t(kind === 'teams' ? 'team' : 'project') })} description="">
@@ -50,7 +52,7 @@ export default function ResourceDetailPage({
         />
       </Page>
     )
-  return <ResourceDetail key={resourceId} kind={kind} resource={resource.data} />
+  return <ResourceDetail key={`${actor}:${resourceId}`} kind={kind} resource={resource.data} />
 }
 function ResourceDetail({ kind, resource }: { kind: ResourceKind; resource: ResourceRecord }) {
   const { t, i18n } = useTranslation('resources')
@@ -62,6 +64,12 @@ function ResourceDetail({ kind, resource }: { kind: ResourceKind; resource: Reso
     !!resource.managers?.some((person) => person.user_id === session.data?.user.id)
   const canEdit = access.can(`${kind}.write`) || isManager
   const canModels = access.can(`${kind}.models.write`) && resource.status !== 'archived'
+  const ownTeam =
+    kind === 'teams' &&
+    resource.status === 'active' &&
+    !!resource.members?.some(
+      (person) => person.user_id === session.data?.user.id && person.status === 'active',
+    )
   const canCalls = kind === 'projects' && (isManager || access.can('calls.read_all'))
   const canRequests =
     kind === 'projects' &&
@@ -95,7 +103,7 @@ function ResourceDetail({ kind, resource }: { kind: ResourceKind; resource: Reso
     )
   const tabs =
     kind === 'teams'
-      ? ['overview', 'members', 'models', 'settings']
+      ? ['overview', 'members', 'models', ...(ownTeam ? ['calls'] : []), 'settings']
       : [
           'overview',
           ...(canEdit ? ['keys'] : []),
@@ -172,10 +180,10 @@ function ResourceDetail({ kind, resource }: { kind: ResourceKind; resource: Reso
                   <dd className="mt-1 text-sm">{resource.model_ids.length}</dd>
                 </div>
               </dl>
-              {kind === 'projects' && isManager && resource.status === 'active' && (
+              {((kind === 'projects' && isManager && resource.status === 'active') || ownTeam) && (
                 <Link
                   className={buttonVariants({ variant: 'outline' })}
-                  to={`/playground?project=${encodeURIComponent(resource.id)}`}
+                  to={`/playground?${ownTeam ? 'team' : 'project'}=${encodeURIComponent(resource.id)}`}
                 >
                   {t('openInPlayground')}
                   <ArrowUpRight className="size-4" aria-hidden="true" />
@@ -239,9 +247,12 @@ function ResourceDetail({ kind, resource }: { kind: ResourceKind; resource: Reso
             <ProjectUsagePanel projectId={resource.id} />
           </TabsContent>
         )}
-        {canCalls && (
+        {(canCalls || ownTeam) && (
           <TabsContent value="calls">
-            <CallsPage projectId={resource.id} />
+            <CallsPage
+              projectId={kind === 'projects' ? resource.id : undefined}
+              teamId={ownTeam ? resource.id : undefined}
+            />
           </TabsContent>
         )}
         <TabsContent value="settings">

@@ -8,7 +8,7 @@ import {
   buildMessagesAttachmentContent,
   buildResponsesAttachmentContent,
 } from '@/lib/playground-attachments'
-import { useEffect, useRef, useState, type FormEvent } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState, type FormEvent } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Code, Plus, Send, Square, Trash2, X } from 'lucide-react'
 import { AttachmentError, deleteAttachment, uploadAttachment } from '@/api/attachments'
@@ -101,7 +101,13 @@ function makeLane(id: number, model?: GatewayModel): Lane {
   return { id, model: model?.id ?? '', protocol: protocols(model)[0] ?? 'openai_chat', turns: [] }
 }
 const selectClass = 'h-10 min-w-0 flex-1 rounded-md border bg-background px-3 text-sm'
-export default function CompareWorkbench({ projectId = '' }: { projectId?: string }) {
+export default function CompareWorkbench({
+  projectId = '',
+  onSource,
+}: {
+  projectId?: string
+  onSource?: (source: 'key' | 'team') => void
+}) {
   const { t } = useTranslation('playground')
   const session = useSession()
   const [codeRequest, setCodeRequest] = useState<SnippetInput | null>(null)
@@ -190,7 +196,7 @@ export default function CompareWorkbench({ projectId = '' }: { projectId?: strin
   useEffect(() => {
     csrfRef.current = session.data?.csrf_token ?? ''
   }, [session.data?.csrf_token])
-  useEffect(() => {
+  useLayoutEffect(() => {
     mounted.current = true
     const controllers = active.current
     const activeOwnedAttachmentTargets = ownedAttachmentTargets.current
@@ -612,32 +618,53 @@ export default function CompareWorkbench({ projectId = '' }: { projectId?: strin
       style={{ height: 'calc(100vh - 190px)' }}
     >
       <div className="flex flex-wrap items-end justify-between gap-4 border-b px-[18px] py-4">
-        <fieldset disabled={busy} className="min-w-[280px] space-y-2">
-          <FormField label={t('key')}>
-            <Input
-              aria-label={t('comparisonKey')}
-              name="comparison_key"
-              type="password"
-              autoComplete="off"
-              value={key}
-              onValueChange={changeKey}
-              placeholder={t('keyPlaceholder')}
-            />
-          </FormField>
-          <div className="flex gap-2">
-            <Button
-              size="sm"
-              variant="outline"
-              disabled={!key.trim() || busy}
-              onClick={() => void verify()}
-            >
-              {t(loading ? 'verifying' : 'verify')}
-            </Button>
-            <Button size="sm" variant="ghost" disabled={!key || busy} onClick={() => changeKey('')}>
-              {t('clearKey')}
-            </Button>
-          </div>
-        </fieldset>
+        <div className="space-y-2">
+          {onSource && (
+            <FormField label={t('source')}>
+              <select
+                name="comparison_source"
+                aria-label={t('source')}
+                value="key"
+                onChange={(event) => onSource(event.target.value as 'key' | 'team')}
+                className="h-11 w-full rounded-md border bg-background px-3 text-sm"
+              >
+                <option value="key">{t('keySource')}</option>
+                <option value="team">{t('teamSource')}</option>
+              </select>
+            </FormField>
+          )}
+          <fieldset disabled={busy} className="min-w-[280px] space-y-2">
+            <FormField label={t('key')}>
+              <Input
+                aria-label={t('comparisonKey')}
+                name="comparison_key"
+                type="password"
+                autoComplete="off"
+                value={key}
+                onValueChange={changeKey}
+                placeholder={t('keyPlaceholder')}
+              />
+            </FormField>
+            <div className="flex gap-2">
+              <Button
+                size="sm"
+                variant="outline"
+                disabled={!key.trim() || busy}
+                onClick={() => void verify()}
+              >
+                {t(loading ? 'verifying' : 'verify')}
+              </Button>
+              <Button
+                size="sm"
+                variant="ghost"
+                disabled={!key || busy}
+                onClick={() => changeKey('')}
+              >
+                {t('clearKey')}
+              </Button>
+            </div>
+          </fieldset>
+        </div>
         <div className="flex gap-2">
           <Button
             variant="outline"
@@ -824,7 +851,7 @@ export default function CompareWorkbench({ projectId = '' }: { projectId?: strin
                         {t('usage', {
                           input: turn.usage.prompt_tokens,
                           output: turn.usage.completion_tokens,
-                          total: turn.usage.total_tokens,
+                          total: turn.usage.total_tokens ?? t('playground:unknownUsage'),
                         })}
                       </span>
                     ) : (

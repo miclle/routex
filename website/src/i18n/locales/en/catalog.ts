@@ -378,7 +378,11 @@ export default {
     moreSources_one: 'View {{count}} more access source for {{name}}',
     moreSources_other: 'View {{count}} more access sources for {{name}}',
     noAccessSource: 'No access source',
+    teamChatAvailable: 'Text Chat via Team Session',
+    openTeamChat: 'Open {{name}} Chat in Playground',
     teamInvocationUnsupported: 'Team invocation is not supported',
+    teamOnlyChatGuidance:
+      'This Team grant supports text Chat through the named Team Session. A personal Key cannot use it. Other protocols and media are not available through this Team path.',
     teamOnlyGuidance:
       'This model is visible through a Team grant. Team Keys and Team inference are not available. A personal Key cannot use this Team grant.',
     personalInvocationUnavailable:

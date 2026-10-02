@@ -158,7 +158,7 @@ func testCallExportLifecycle(t *testing.T, db *gorm.DB) {
 	expectStatus(t, get("/api/v1/projects/prj_missing/calls/export.csv", otherCookie), http.StatusNotFound)
 
 	expectStatus(t, get(adminPath, otherCookie), http.StatusForbidden)
-	platformColumns := append(append([]string{}, callExportMemberColumns...), "user_id", "project_id")
+	platformColumns := append(append([]string{}, callExportMemberColumns...), "user_id", "project_id", "team_id", "team_membership_id")
 	adminResponse := get(adminPath, adminCookie)
 	adminRows := readCallCSV(t, adminResponse, http.StatusOK)
 	if len(adminRows) != 5 || !slices.Equal(adminRows[0], platformColumns) {

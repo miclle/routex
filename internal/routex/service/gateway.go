@@ -39,6 +39,7 @@ func gatewayError(status int, code, message string) *GatewayError {
 
 // GatewayModel is the public model identity, independent of a provider name.
 type GatewayModel struct {
+	ModelID             string              `json:"model_id,omitempty"`
 	ID                  string              `json:"id"`
 	Object              string              `json:"object"`
 	Created             int64               `json:"created"`
@@ -66,6 +67,9 @@ func gatewayModel(key *KeyRecord, id string, created int64, metadata gatewayMode
 // The caller must close Response.Body when Response is non-nil, including errors.
 type GatewayResult struct {
 	Protocol           string
+	identity           gatewayIdentity
+	TeamID             string
+	TeamMembershipID   string
 	admissionQuota     []eventqueue.QuotaLimit
 	quotaBound         eventqueue.QuotaBound
 	quotaTimeZone      string
@@ -192,6 +196,10 @@ func (s *Service) gatewayNative(ctx context.Context, bearer string, body []byte,
 	if err != nil {
 		return nil, gatewayAuthError(err)
 	}
+	return s.gatewayNativeIdentity(ctx, gatewayIdentity{key: key}, body, requestID, protocol, options...)
+}
+
+func (s *Service) gatewayNativeIdentity(ctx context.Context, identity gatewayIdentity, body []byte, requestID, protocol string, options ...gatewayNativeOptions) (*GatewayResult, error) {
 	parse := parseGatewayChat
 	if protocol == entity.ProtocolOpenAIResponses {
 		parse = parseGatewayResponses
@@ -208,9 +216,14 @@ func (s *Service) gatewayNative(ctx context.Context, bearer string, body []byte,
 		}
 	}
 	payload, publicName, stream, err := parse(body)
-	result := &GatewayResult{Protocol: protocol, UserID: key.Key.UserID, ProjectID: key.ProjectID, KeyID: key.Key.ID, ModelName: publicName, Stream: stream}
+	result := identity.result(protocol, publicName, stream)
 	if err != nil {
 		return result, err
+	}
+	if identity.team != nil {
+		if err := validateTeamChatText(payload); err != nil {
+			return result, err
+		}
 	}
 	attachmentPlan, err := planGatewayAttachments(protocol, payload)
 	if err != nil {
@@ -227,7 +240,7 @@ func (s *Service) gatewayNative(ctx context.Context, bearer string, body []byte,
 	} else {
 		err = s.authDB(ctx).Where("name = ? AND (current_model_id IS NOT NULL OR expires_at > ?)", publicName, time.Now().UTC()).First(&name).Error
 	}
-	if errors.Is(err, gorm.ErrRecordNotFound) || (err == nil && !slices.Contains(key.ModelIDs, name.ModelID)) {
+	if errors.Is(err, gorm.ErrRecordNotFound) || (err == nil && !slices.Contains(identity.modelIDs(), name.ModelID)) {
 		return result, gatewayError(404, "model_not_found", "The requested model is unavailable or not permitted.")
 	}
 	if err != nil {
@@ -319,9 +332,9 @@ func (s *Service) gatewayNative(ctx context.Context, bearer string, body []byte,
 		if err := s.preflightGatewayQuota(ctx, requestID, result); err != nil {
 			return result, err
 		}
-		owner := attachmentOwner{Kind: entity.StorageOwnerUser, ID: key.Key.UserID}
-		if key.ProjectID != "" {
-			owner = attachmentOwner{Kind: entity.StorageOwnerProject, ID: key.ProjectID}
+		owner := attachmentOwner{Kind: entity.StorageOwnerUser, ID: result.UserID}
+		if result.ProjectID != "" {
+			owner = attachmentOwner{Kind: entity.StorageOwnerProject, ID: result.ProjectID}
 		}
 		resolved, err := s.resolveGatewayAttachments(ctx, owner, attachmentPlan)
 		if err != nil {

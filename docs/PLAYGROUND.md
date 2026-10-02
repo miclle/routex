@@ -1,6 +1,6 @@
 # Playground
 
-Playground is a native conversation and model comparison client for native OpenAI Chat Completions, OpenAI Responses, Anthropic Messages, and Gemini Generate Content. Both workbenches support user-owned and Project-owned PNG, JPEG, and PDF attachments. It makes real requests; it does not synthesize responses or usage statistics. Other protocols, session-based inference, and tools remain separate work packages.
+Playground is a native conversation and model comparison client for native OpenAI Chat Completions, OpenAI Responses, Anthropic Messages, and Gemini Generate Content. Both workbenches support user-owned and Project-owned PNG, JPEG, and PDF attachments. It makes real requests; it does not synthesize responses or usage statistics. An explicit Team Session source additionally supports text-only native Chat Completions in the existing conversation workbench. Other Session protocols, Team comparison, Team attachments, Team code export and tools remain separate work packages.
 
 ## Workflow
 
@@ -26,8 +26,9 @@ personal object.
 Uploads use the authenticated session and CSRF token. Personal uploads call
 `/api/v1/attachments`; Project uploads call
 `/api/v1/projects/:project_id/attachments` and require a current enabled manager.
-Inference continues to use only the transient API Key and never sends session
-cookies. The optional `?project=` value from Project Overview contains only an
+API Key inference continues to use only the transient Key and never sends session
+cookies. Explicit Team Session Chat uses its separate same-origin cookie/CSRF
+transport and cannot borrow Personal or Project attachment authority. The optional `?project=` value from Project Overview contains only an
 expected Project ID; a mismatched verified Key clears models and drafts. Direct
 Playground use derives the target from verified model metadata. File objects,
 returned object IDs, and native references stay in component memory. Removing a
@@ -57,8 +58,8 @@ tier, cache, or media shape fail the stricter request-shape check first.
 ## Transport and Secret Handling
 
 - Model discovery, Chat, and Responses use `Authorization: Bearer <key>` against same-origin endpoints. Messages uses only `x-api-key: <key>` with `anthropic-version: 2023-06-01` against `/v1/messages`; Gemini uses only `x-goog-api-key` against the native `/v1beta/models/{name}` action. Authentication forms are never combined, and the client never places credentials in query parameters.
-- Requests omit browser cookies and reject redirects. Gateway authentication is independent of the control-plane session that protects access to the page.
-- Attachment upload and deletion are the only Playground calls that use the session cookie and CSRF token. Project routes receive only the non-secret Project path ID after server authorization; they never receive the entered inference Key. Returned object identifiers and selected `File` objects are not stored in React Query or browser storage.
+- API Key requests omit browser cookies and reject redirects. Team Session model discovery and Chat use separate current-Session cookie/CSRF authentication against the exact Team path. Both sources reject redirects; changing sources destroys transient state.
+- Attachment upload/deletion and explicit Team Session discovery/Chat use separate Session transports. Team Sessions cannot upload or invoke attachments in this slice. Project routes receive only the non-secret Project path ID after server authorization; they never receive the entered inference Key. Returned object identifiers and selected `File` objects are not stored in React Query or browser storage.
 - The Key remains only in component memory and the password input while the page is mounted. The client never writes it to localStorage, sessionStorage, React Query caches, logs, or generated request examples.
 - The native client uses `fetch` and an `AbortController`, not React Query mutations, so request arguments and secrets are not retained in a mutation cache.
 - Native error messages retain useful gateway context, with the supplied Key redacted if it appears in a message. Output is rendered as plain text, not executable HTML.
@@ -66,7 +67,7 @@ tier, cache, or media shape fail the stricter request-shape check first.
 
 ## Response Handling
 
-Chat Completions ordinary responses consume `choices[0].message.content` or a textual refusal. Streaming responses consume SSE `data:` events, decode UTF-8 across transport chunks, support LF and CRLF frame boundaries, and append `choices[0].delta.content` or textual refusal deltas. Empty usage-only chunks are supported. `[DONE]` completes a stream.
+Chat Completions ordinary responses consume `choices[0].message.content` or a textual refusal. Streaming responses consume SSE `data:` events, decode UTF-8 across transport chunks, support LF and CRLF frame boundaries, and append `choices[0].delta.content` or textual refusal deltas. Empty usage-only chunks are supported. Recorded input/output counters remain visible when Chat omits total usage; the total is explicitly unknown and is never synthesized. `[DONE]` completes a stream.
 
 A stream that closes without `[DONE]`, a malformed event, an unexpected content type, or a native error event is reported as a failure while preserving already received text. The client never silently retries a request after output has started. The page displays `X-Request-ID` when available. Missing usage remains explicitly unavailable; it is not estimated from text.
 
@@ -96,7 +97,7 @@ The shared composer preserves the approved chips-above-textarea layout, lower-le
 
 Send captures one message and concurrently dispatches an independent native request to each selected column. The comparison defaults are streaming, Temperature 0.7, Top P 1, and 2,048 maximum output Tokens. Per-column Stop only aborts that column; failure or cancellation does not stop siblings. Removing a column or changing its model/protocol cancels that column's request and clears only its history. Global sending waits until all current requests settle, with a synchronous guard against duplicate dispatch.
 
-Subsequent requests include only the successful text history of their own column. Failed, incomplete, accepted, and canceled turns remain visible but are excluded from later context. Submitted filenames remain visible under each column's user message without replaying object references. Clear all resets all histories; clearing/changing the Key also resets models and drafts. There are no simulated responses or session-inference controls.
+Subsequent requests include only the successful text history of their own column. Failed, incomplete, accepted, and canceled turns remain visible but are excluded from later context. Submitted filenames remain visible under each column's user message without replaying object references. Clear all resets all histories; clearing/changing the Key also resets models and drafts. There are no simulated responses. Team Session inference is limited to the separate conversation tab and cannot enter comparison lanes.
 
 `website/src/views/playground/compare.test.tsx` covers the two-to-four column bounds, eligible protocols, shared-composer placement, capability intersection, concurrent native attachment bodies, independent histories/errors/cancellation, non-blocking cleanup, duplicate sends, context invalidation, credential clearing, stale multi-file upload termination, tab teardown, and bilingual accessibility/draft preservation. All client tests use controlled mocked transports, separate from paid-provider or real gateway acceptance.
 
@@ -135,3 +136,19 @@ cURL examples target POSIX shells and quote URLs/JSON as literal shell arguments
 Focused tests execute generated commands against a shell function, a stub Python opener, and a stub JavaScript fetch. They verify native bodies and headers, Unicode/newlines/apostrophes, literal command-substitution text, environment-key expansion, redirects, unsafe Gemini names, and absence of transient credentials. Dialog and workbench tests cover three language tabs, clipboard errors, captured settings/history/drafts, localized notices, and lane isolation. These local execution checks make no live gateway or provider request.
 
 Python 3 is optional for local frontend development: only the Python execution cases are explicitly skipped when `python3` is unavailable. Structural native-payload assertions and all other client checks still run. CI must provide Python 3 and verify it before invoking this test so that interpreter execution is never silently omitted from release evidence.
+
+
+## Explicit Team Session conversation
+
+API Key is the default credential source. Selecting Team Session loads only the
+signed-in actor's own active Teams, followed by independently authorized native
+Team model discovery. A `?team=` or `?model=` value is expected navigation context
+only; it never grants access. The source selector preserves the existing left
+configuration panel. Text-only restrictions and empty guidance are bilingual.
+
+Team discovery and Chat use the current Session and CSRF without an entered Key.
+Changing actor, source, Team, model or page aborts requests and clears history,
+credentials, attachments and code drafts. Late callbacks cannot restore the old
+authority. Own-Team pickers and history are revalidated on remount, and denied
+responses hide stale rows and selected details. See [Team Session inference](TEAM_INFERENCE.md)
+for endpoint, publication, attribution and unfinished scope.

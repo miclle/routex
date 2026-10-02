@@ -76,6 +76,10 @@ func (s *Service) ChangePassword(ctx context.Context, userID, currentPassword, n
 		}
 		return appendAudit(tx, userID, "account.password.change", "user", userID)
 	})
+	if err == nil {
+		s.invalidateRuntimeSessionUser(userID)
+		s.publishSessionMutation(ctx)
+	}
 	return auth, keyServiceError(err)
 }
 
@@ -86,14 +90,21 @@ func (s *Service) ListAccountSessions(ctx context.Context, userID string) ([]ent
 }
 
 func (s *Service) RevokeAccountSession(ctx context.Context, userID, sessionID string) error {
-	return keyServiceError(s.authDB(ctx).Transaction(func(tx *gorm.DB) error {
+	var revokedID string
+	err := s.authDB(ctx).Transaction(func(tx *gorm.DB) error {
 		var session entity.Session
 		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).Where("id = ? AND user_id = ?", sessionID, userID).First(&session).Error; err != nil {
 			return catalogError(err)
 		}
+		revokedID = session.ID
 		if err := tx.Delete(&session).Error; err != nil {
 			return err
 		}
 		return appendAudit(tx, userID, "account.session.revoke", "session", sessionID)
-	}))
+	})
+	if err == nil {
+		s.invalidateRuntimeSession(revokedID)
+		s.publishSessionMutation(ctx)
+	}
+	return keyServiceError(err)
 }

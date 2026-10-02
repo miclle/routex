@@ -8,7 +8,9 @@ import (
 	"strings"
 	"time"
 
+	"github.com/miclle/routex/internal/routex/database"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 
 	"github.com/miclle/routex/internal/routex/entity"
 	apperrors "github.com/miclle/routex/internal/routex/errors"
@@ -26,6 +28,8 @@ type CallFact struct {
 	SnapshotID                        string
 	RequestID                         string
 	ProjectID                         string
+	TeamID                            string
+	TeamMembershipID                  string
 	UserID                            string
 	KeyID                             string
 	ModelID                           string
@@ -77,6 +81,7 @@ type CallAttempt struct {
 }
 
 type CallFilter struct {
+	TeamID    string
 	ProjectID string
 	Cursor    string
 	Limit     int
@@ -149,7 +154,7 @@ func validateCallFilter(filter CallFilter, admin bool) error {
 // Error codes are machine-owned classifications, never upstream error messages.
 func safeCallError(code string) string {
 	switch code {
-	case "quota_exceeded", "quota_history_incomplete", "quota_usage_unknown", "quota_currency_mismatch", "quota_bound_unavailable", "quota_price_unavailable", "quota_request_unsupported", "", "process_interrupted", "event_buffer_unavailable", "invalid_request", "invalid_request_error", "invalid_api_key", "rate_limit_exceeded", "concurrency_limit_exceeded", "ip_not_allowed", "service_unavailable", "unauthorized", "forbidden", "model_not_found", "no_route", "upstream_error", "upstream_timeout", "upstream_unavailable", "invalid_upstream_response", "canceled", "internal_error", "invalid_attachment_reference", "unsupported_attachment_reference", "attachment_limit_exceeded", "project_attachment_unsupported", "attachment_type_unsupported", "attachment_not_found", "attachment_storage_unavailable", "attachment_storage_timeout":
+	case "invalid_session", "session_access_denied", "unsupported_input", "quota_exceeded", "quota_history_incomplete", "quota_usage_unknown", "quota_currency_mismatch", "quota_bound_unavailable", "quota_price_unavailable", "quota_request_unsupported", "", "process_interrupted", "event_buffer_unavailable", "invalid_request", "invalid_request_error", "invalid_api_key", "rate_limit_exceeded", "concurrency_limit_exceeded", "ip_not_allowed", "service_unavailable", "unauthorized", "forbidden", "model_not_found", "no_route", "upstream_error", "upstream_timeout", "upstream_unavailable", "invalid_upstream_response", "canceled", "internal_error", "invalid_attachment_reference", "unsupported_attachment_reference", "attachment_limit_exceeded", "project_attachment_unsupported", "attachment_type_unsupported", "attachment_not_found", "attachment_storage_unavailable", "attachment_storage_timeout":
 		return code
 	default:
 		return "upstream_error"
@@ -166,7 +171,7 @@ func (s *Service) RecordCall(ctx context.Context, fact CallFact) error {
 		return err
 	}
 	// Normalize to common database precision before building pagination cursors.
-	record := entity.CallRecord{CallPricingFields: callPricingFields(fact), SnapshotID: fact.SnapshotID, RequestID: fact.RequestID, UserID: fact.UserID, ProjectID: fact.ProjectID, KeyID: fact.KeyID, ModelID: fact.ModelID, ModelName: fact.ModelName, ProviderID: fact.ProviderID, ProviderName: fact.ProviderName, ProviderModelID: fact.ProviderModelID, ConnectionID: fact.ConnectionID, ConnectionName: fact.ConnectionName, UpstreamModelName: fact.UpstreamModelName, RouteStopReason: fact.RouteStopReason, Protocol: fact.Protocol, Status: fact.Status, Stream: fact.Stream, StartedAt: fact.StartedAt.UTC().Truncate(time.Microsecond), CompletedAt: fact.CompletedAt.UTC().Truncate(time.Microsecond), DurationMS: fact.CompletedAt.Sub(fact.StartedAt).Milliseconds(), InputTokens: fact.InputTokens, OutputTokens: fact.OutputTokens, ImageInputs: fact.ImageInputs, PDFInputs: fact.PDFInputs, ErrorCode: safeCallError(fact.ErrorCode)}
+	record := entity.CallRecord{CallPricingFields: callPricingFields(fact), SnapshotID: fact.SnapshotID, RequestID: fact.RequestID, UserID: fact.UserID, ProjectID: fact.ProjectID, TeamID: fact.TeamID, TeamMembershipID: fact.TeamMembershipID, KeyID: fact.KeyID, ModelID: fact.ModelID, ModelName: fact.ModelName, ProviderID: fact.ProviderID, ProviderName: fact.ProviderName, ProviderModelID: fact.ProviderModelID, ConnectionID: fact.ConnectionID, ConnectionName: fact.ConnectionName, UpstreamModelName: fact.UpstreamModelName, RouteStopReason: fact.RouteStopReason, Protocol: fact.Protocol, Status: fact.Status, Stream: fact.Stream, StartedAt: fact.StartedAt.UTC().Truncate(time.Microsecond), CompletedAt: fact.CompletedAt.UTC().Truncate(time.Microsecond), DurationMS: fact.CompletedAt.Sub(fact.StartedAt).Milliseconds(), InputTokens: fact.InputTokens, OutputTokens: fact.OutputTokens, ImageInputs: fact.ImageInputs, PDFInputs: fact.PDFInputs, ErrorCode: safeCallError(fact.ErrorCode)}
 	err := s.authDB(ctx).Transaction(func(tx *gorm.DB) error {
 		if err := tx.Create(&record).Error; err != nil {
 			// A plain unique insert remains correct with MySQL clientFoundRows;
@@ -192,6 +197,10 @@ func (s *Service) RecordCall(ctx context.Context, fact CallFact) error {
 }
 
 func (s *Service) ListCalls(ctx context.Context, ownerID string, filter CallFilter) (*CallPage, error) {
+	return listCallsDB(s.authDB(ctx), ownerID, filter)
+}
+
+func listCallsDB(query *gorm.DB, ownerID string, filter CallFilter) (*CallPage, error) {
 	if filter.Limit == 0 {
 		filter.Limit = 40
 	}
@@ -202,11 +211,14 @@ func (s *Service) ListCalls(ctx context.Context, ownerID string, filter CallFilt
 	if filter.Limit < 1 || filter.Limit > 100 || len(filter.Cursor) > 512 {
 		return nil, apperrors.ErrBadRequest
 	}
-	db := s.authDB(ctx).Model(&entity.CallRecord{})
+	db := query.Model(&entity.CallRecord{})
 	if ownerID != "" {
-		db = db.Where("user_id = ?", ownerID)
+		db = db.Where("user_id = ? AND team_id = ?", ownerID, "")
 	} else if filter.UserID != "" {
-		db = db.Where("user_id = ?", filter.UserID)
+		db = db.Where(database.ExactText(db, clause.Column{Name: "user_id"}, filter.UserID))
+	}
+	if filter.TeamID != "" {
+		db = db.Where(database.ExactText(db, clause.Column{Name: "team_id"}, filter.TeamID))
 	}
 	if filter.ProjectID != "" {
 		db = db.Where("project_id = ?", filter.ProjectID)
@@ -260,7 +272,7 @@ func (s *Service) GetCall(ctx context.Context, ownerID, requestID string) (*Call
 	db := s.authDB(ctx)
 	query := db.Where("request_id = ?", requestID)
 	if ownerID != "" {
-		query = query.Where("user_id = ?", ownerID)
+		query = query.Where("user_id = ? AND team_id = ?", ownerID, "")
 	}
 	result := &CallDetail{Attempts: []entity.CallAttempt{}}
 	if err := query.First(&result.Record).Error; err != nil {
@@ -281,7 +293,7 @@ func validateCallFact(fact CallFact) error {
 	if err := validateCallPricing(fact); err != nil {
 		return err
 	}
-	if !safeCallID.MatchString(fact.RequestID) || len(fact.SnapshotID) > 30 || (fact.UserID == "") == (fact.ProjectID == "") || len(fact.ProjectID) > 30 || len(fact.UserID) > 30 || len(fact.KeyID) > 30 || len(fact.ModelID) > 30 || len(fact.ModelName) > 128 || len(fact.ProviderID) > 30 || len(fact.ProviderName) > 100 || len(fact.ProviderModelID) > 30 || len(fact.ConnectionID) > 30 || len(fact.ConnectionName) > 100 || len(fact.UpstreamModelName) > 255 || !callRouteStopReasons[fact.RouteStopReason] || !entity.SupportedNativeProtocol(fact.Protocol) || !validCallStatus(fact.Status) || fact.StartedAt.IsZero() || fact.CompletedAt.Before(fact.StartedAt) || len(fact.Attempts) > 32 {
+	if !validCallTeamAttribution(fact) || !safeCallID.MatchString(fact.RequestID) || len(fact.SnapshotID) > 30 || (fact.UserID == "") == (fact.ProjectID == "") || len(fact.ProjectID) > 30 || len(fact.UserID) > 30 || len(fact.KeyID) > 30 || len(fact.ModelID) > 30 || len(fact.ModelName) > 128 || len(fact.ProviderID) > 30 || len(fact.ProviderName) > 100 || len(fact.ProviderModelID) > 30 || len(fact.ConnectionID) > 30 || len(fact.ConnectionName) > 100 || len(fact.UpstreamModelName) > 255 || !callRouteStopReasons[fact.RouteStopReason] || !entity.SupportedNativeProtocol(fact.Protocol) || !validCallStatus(fact.Status) || fact.StartedAt.IsZero() || fact.CompletedAt.Before(fact.StartedAt) || len(fact.Attempts) > 32 {
 		return apperrors.ErrBadRequest
 	}
 	if (fact.InputTokens != nil && *fact.InputTokens < 0) || (fact.OutputTokens != nil && *fact.OutputTokens < 0) || (fact.ImageInputs != nil && *fact.ImageInputs < 0) || (fact.PDFInputs != nil && *fact.PDFInputs < 0) {

@@ -297,3 +297,14 @@ Omitted fields preserve the current control, zero is a cap, and explicit null is
 unsupported. Use coherent manager-authorized request-limits context, actor-scoped
 queries, exact decision receipts and current same-actor CSRF. Preserve model/quota
 compatibility and distinguish historical approval from actual current application.
+
+Team Session invocation uses explicit Team-scoped native Chat endpoints and a
+short-leased runtime Session/member/grant projection. Keep Session CSRF/cookie
+transport separate from API Key transport, with exact Team/member checks on every
+attempt and immediate local revocation after committed authority changes. Do not
+synthesize Team Keys, borrow Personal attachments or debit Personal/Key ledgers.
+The initial source supports text Chat only; unsupported attachment, comparison
+and code export controls remain explicit. Team call tables show only the current
+active member's own immutable actor facts; directory permissions do not broaden
+that route. Preserve actor/Team query keys, fail-closed refreshes and transient
+state cleanup. Historical Team membership IDs never define accounting identities.

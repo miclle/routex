@@ -1706,3 +1706,31 @@ rejection, later policy preservation through original retries and restart, and
 English/Chinese details. All owned resources were removed. Team session invocation
 and immutable call attribution are the next assessed prerequisite before Team
 limits and approval. F18/A13 remain partial; totals and full acceptance are unchanged.
+
+### Checked partial package: explicit Team Session invocation
+
+The typed Session identity shares the native text-only Chat attempt pipeline with
+Key inference while retaining exact active Team/member/model authority from private
+short-leased publication. Local revocation tombstones cover committed Session,
+account, membership, Team and grant changes. Frozen additive GORM V38 retains
+immutable Team/member/User call facts; separate Team and stable Team/User journal
+accounts never debit Personal or Key use. Own-Team call list/detail requires current
+active membership and exposes only the actor's own facts, including for owners and
+administrators. Personal history, usage and CSV exclude Team calls.
+
+The approved Playground source selector uses explicit named Team Sessions and
+separate cookie/CSRF transport. Source/actor/context changes cancel requests and
+clear transient state; refreshed authority failures hide cached histories. Team
+comparison, attachments, code export and additional Session protocols remain open.
+Recorded Chat input/output stays visible when upstream omits total usage; total is
+unknown rather than estimated. See [Team Session inference](TEAM_INFERENCE.md).
+
+Final check/test passed with 843 frontend cases in 61 files, Go race/unit, Node,
+development lifecycle and production embedded assets. Focused actual dual-database
+race acceptance passed in 261.152 seconds; complete matrix: Handler 610.579 seconds,
+Service 5.598 seconds. Real-process authentication lifecycle and Actionlint passed.
+Owned production/browser acceptance verified native SSE, bilingual exact/unknown
+usage, own history/detail, removal denial, rejoin and persistent restart; owned
+resources were removed. Finite Team aggregate/member policies and subsequent Team
+approval are the next partial package. Capability totals remain 8 complete,
+19 partial and 3 not started; A01 remains the only fully accepted case.

@@ -27,6 +27,28 @@ function sse(text: string) {
 afterEach(() => vi.unstubAllGlobals())
 
 describe('native playground client', () => {
+  it.each([false, true])(
+    'preserves recorded Chat counters without inventing total usage (stream=%s)',
+    async (stream) => {
+      const nativeUsage = { prompt_tokens: 4, completion_tokens: 1 }
+      const response = stream
+        ? sse(
+            'data: {"choices":[{"index":0,"delta":{"content":"Native text"},"finish_reason":"stop"}]}\n\ndata: {"choices":[],"usage":{"prompt_tokens":4,"completion_tokens":1}}\n\ndata: [DONE]\n\n',
+          )
+        : Response.json({
+            choices: [{ index: 0, message: { content: 'Native text' }, finish_reason: 'stop' }],
+            usage: nativeUsage,
+          })
+      vi.stubGlobal('fetch', vi.fn().mockResolvedValue(response))
+      expect(
+        await runChat(key, { ...request, stream }, controller().signal, vi.fn()),
+      ).toMatchObject({
+        text: 'Native text',
+        usage: { ...nativeUsage, total_tokens: null },
+        finishReason: 'stop',
+      })
+    },
+  )
   it('loads models with only the typed bearer Key and parses a normal response', async () => {
     const fetch = vi
       .fn()

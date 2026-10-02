@@ -2,6 +2,7 @@ import { useTranslation } from 'react-i18next'
 import { Badge } from '@/components/ui/badge'
 import { Menu, MenuItem } from '@/components/ui/menu'
 import type { ModelAccessSource } from '@/types/model-catalog'
+import { teamChatSupported } from './catalogue-metadata'
 import { modelSourceKey, orderedModelSources } from './catalogue-metadata'
 
 export default function ModelAccessSources({
@@ -28,7 +29,12 @@ export default function ModelAccessSources({
       {expanded && source.type === 'team' && (
         <span className="text-muted-foreground">
           {' '}
-          — {t('memberModels.teamInvocationUnsupported')}
+          —{' '}
+          {t(
+            teamChatSupported(source)
+              ? 'memberModels.teamChatAvailable'
+              : 'memberModels.teamInvocationUnsupported',
+          )}
         </span>
       )}
     </Badge>
@@ -52,7 +58,13 @@ export default function ModelAccessSources({
               <span className="flex flex-col gap-1">
                 <span>{label(source)}</span>
                 {source.type === 'team' && (
-                  <span className="text-xs">{t('memberModels.teamInvocationUnsupported')}</span>
+                  <span className="text-xs">
+                    {t(
+                      teamChatSupported(source)
+                        ? 'memberModels.teamChatAvailable'
+                        : 'memberModels.teamInvocationUnsupported',
+                    )}
+                  </span>
                 )}
               </span>
             </MenuItem>

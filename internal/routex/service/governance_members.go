@@ -141,23 +141,32 @@ func (s *Service) UpdateMember(ctx context.Context, actorID, userID string, disa
 	}
 	db := s.authDB(ctx)
 	invalidate := false
+	var canonicalUserID string
 	err := db.Transaction(func(tx *gorm.DB) error {
 		// Every administrator lifecycle change takes this singleton lock before
 		// counting active admins, so concurrent removals cannot both pass.
 		if err := lockGovernance(tx); err != nil {
 			return err
 		}
-		if err := authorizeGovernance(tx, actorID, "members.write"); err != nil {
-			return err
-		}
 		var actor entity.User
 		if err := tx.First(&actor, "id = ?", actorID).Error; err != nil {
 			return err
 		}
+		if actor.ID != actorID {
+			return apperrors.ErrForbidden
+		}
+		if err := authorizeGovernance(tx, actorID, "members.write"); err != nil {
+			return err
+		}
+
 		var target entity.User
 		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).First(&target, "id = ?", userID).Error; err != nil {
 			return err
 		}
+		if target.ID != userID {
+			return apperrors.ErrNotFound
+		}
+		canonicalUserID = target.ID
 		if actor.Role != entity.RoleAdmin && (actorID == userID || target.Role == entity.RoleAdmin || role != nil) {
 			return apperrors.ErrForbidden
 		}
@@ -214,7 +223,7 @@ func (s *Service) UpdateMember(ctx context.Context, actorID, userID string, disa
 		return nil, catalogError(err)
 	}
 	if invalidate {
-		s.InvalidateRuntimeUser(userID)
+		s.InvalidateRuntimeUser(canonicalUserID)
 	}
 	if err := s.refreshAfterMutation(ctx, nil); err != nil {
 		return nil, err

@@ -1,4 +1,31 @@
 export default {
+  teamConversationStart: 'Select your Team and load its models to start a real conversation.',
+  unknownUsage: 'Unknown',
+  source: 'Credential source',
+  keySource: 'API Key',
+  teamSource: 'Team Session',
+  team: 'Team',
+  selectTeam: 'Select your Team',
+  teamLoading: 'Loading your active Teams…',
+  teamUnavailable: 'This Team is unavailable or your membership could not be confirmed.',
+  teamNone: 'You have no active Teams.',
+  teamRefresh: 'Refresh Teams',
+  teamMore: 'Load more Teams',
+  teamLoadModels: 'Load Team models',
+  teamLoadFirst: 'Select a Team and load its models',
+  teamNoModels: 'This Team has no currently callable Chat models.',
+  teamExpectedModelUnavailable:
+    'The requested model is not currently callable in this Team. Select an available model.',
+  teamInvalidModels: 'The Team model or membership response is invalid.',
+  teamRequestFailed:
+    'Team session request failed (HTTP {{status}}). Refresh your session or Team access before retrying.',
+  teamTextOnly:
+    'Team Sessions support text-only Chat Completions. Attachments, comparison and code export are unavailable. Your own Team calls are recorded separately.',
+  teamAttachmentsUnavailable: 'Team Sessions do not support attachments',
+  teamComparisonUnavailable:
+    'Team Sessions do not support model comparison. Return to conversation or explicitly use an API Key.',
+  useKey: 'Use an API Key',
+
   getCode: 'Get code',
   requestCode: 'Request code',
   copyCode: 'Copy code',
@@ -16,7 +43,7 @@ export default {
   geminiAliasRequired:
     'Gemini needs a compatible public name or active alias: start with a letter or digit, then use only letters, digits, dots, underscores or hyphens (maximum 128 characters).',
   description:
-    'Make native Chat Completions, Responses, Messages or Gemini calls using a personal or Project API key.',
+    'Make native calls using a personal or Project API Key, or text Chat using an explicit Team Session.',
   protocol: 'Protocol',
   key: 'API key',
   keyPlaceholder: 'Paste an enabled personal or Project key',

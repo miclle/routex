@@ -45,6 +45,10 @@ type gatewayRuntime struct {
 	deniedModels         sync.Map
 	deniedProviderModels sync.Map
 	deniedCredentials    sync.Map
+	deniedSessions       sync.Map
+	deniedSessionUsers   sync.Map
+	deniedTeams          sync.Map
+	deniedTeamMembers    sync.Map
 	lastRecordedState    string
 }
 
@@ -65,6 +69,8 @@ type runtimeAuthorization struct {
 	ProviderModels         map[string]bool
 	CredentialAccess       map[string]map[string]bool
 	ModelCreated           map[string]time.Time
+	TeamSessions           map[string]runtimeTeamSession
+	Teams                  map[string]runtimeTeam
 }
 
 type runtimeKey struct {
@@ -181,6 +187,10 @@ func (s *Service) RefreshRuntime(ctx context.Context) error {
 	// eligibility map, so clearing older tombstones cannot restore disabled keys.
 	clearRuntimeTombstones(&runtime.deniedCredentials, generation)
 	clearRuntimeTombstones(&runtime.deniedProviderModels, generation)
+	clearRuntimeTombstones(&runtime.deniedSessions, generation)
+	clearRuntimeTombstones(&runtime.deniedSessionUsers, generation)
+	clearRuntimeTombstones(&runtime.deniedTeams, generation)
+	clearRuntimeTombstones(&runtime.deniedTeamMembers, generation)
 	if digestErr != nil {
 		s.setRuntimeStatus(ctx, started, "invalid_configuration")
 		return runtimeUnavailable
@@ -398,6 +408,7 @@ type runtimeData struct {
 	LimitRoots       map[string]string
 	Pricing          *runtimePricingData
 	ProjectData      *projectRuntimeData
+	TeamSessionData  *teamSessionRuntimeData
 	Users            []entity.User
 	Keys             []entity.APIKey
 	Scopes           []entity.APIKeyModel
@@ -416,7 +427,7 @@ func (s *Service) loadRuntimeData(ctx context.Context) (*runtimeData, error) {
 	data := &runtimeData{EgressGeneration: s.egressGeneration.Load()}
 	err := s.authDB(ctx).Transaction(func(tx *gorm.DB) error {
 		// A repeatable-read transaction prevents mixed entity generations.
-		if err := tx.Select("id", "disabled", "created_at").Find(&data.Users).Error; err != nil {
+		if err := tx.Select("id", "disabled", "offboarded_at", "created_at").Find(&data.Users).Error; err != nil {
 			return err
 		}
 		for _, target := range []any{&data.Limits, &data.Keys, &data.Scopes, &data.Grants, &data.Models, &data.Names, &data.Providers, &data.Connections, &data.Credentials, &data.ProviderModels, &data.Access, &data.Bindings, &data.Egresses} {
@@ -429,6 +440,10 @@ func (s *Service) loadRuntimeData(ctx context.Context) (*runtimeData, error) {
 		}
 		var err error
 		data.ProjectData, err = loadProjectRuntimeData(tx)
+		if err != nil {
+			return err
+		}
+		data.TeamSessionData, err = loadTeamSessionRuntimeData(tx)
 		if err != nil {
 			return err
 		}
@@ -462,6 +477,8 @@ func buildRuntimeAuthorization(data *runtimeData, until time.Time) *runtimeAutho
 		ProviderModels:         map[string]bool{},
 		CredentialAccess:       map[string]map[string]bool{},
 		ModelCreated:           map[string]time.Time{},
+		TeamSessions:           map[string]runtimeTeamSession{},
+		Teams:                  map[string]runtimeTeam{},
 	}
 	users := map[string]bool{}
 	for _, user := range data.Users {
@@ -499,6 +516,7 @@ func buildRuntimeAuthorization(data *runtimeData, until time.Time) *runtimeAutho
 		auth.Keys[key.TokenHash] = runtimeKey{Key: key, Models: allowed}
 	}
 	addProjectRuntimeAuthorization(auth, data.ProjectData, users)
+	addTeamSessionRuntimeAuthorization(auth, data.TeamSessionData, data.Users)
 	for _, key := range auth.Keys {
 		auth.KeysByID[key.Key.ID] = key
 	}

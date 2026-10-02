@@ -334,7 +334,11 @@ export default {
     moreSources_one: '查看 {{name}} 的其他 {{count}} 个授权来源',
     moreSources_other: '查看 {{name}} 的其他 {{count}} 个授权来源',
     noAccessSource: '无授权来源',
+    teamChatAvailable: '通过 Team 会话调用文本 Chat',
+    openTeamChat: '在 Playground 中打开 {{name}} Chat',
     teamInvocationUnsupported: '暂不支持 Team 调用',
+    teamOnlyChatGuidance:
+      '此 Team 授权可通过指定 Team 会话调用文本 Chat，个人 Key 无法使用此授权。此 Team 路径暂不支持其他协议和媒体。',
     teamOnlyGuidance:
       '此模型通过 Team 授权可见。目前尚不支持 Team Key 和 Team 推理调用。个人 Key 不能使用此 Team 授权。',
     personalInvocationUnavailable:

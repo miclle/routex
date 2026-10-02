@@ -93,6 +93,7 @@ func (s *Service) Initialize(ctx context.Context, email, password, name string) 
 	if err != nil {
 		return nil, apperrors.ErrInternal
 	}
+	s.publishSessionMutation(ctx)
 	return auth, nil
 }
 
@@ -152,6 +153,9 @@ func (s *Service) beginLogin(ctx context.Context, email, password string, challe
 		auth, err = createSession(tx, current)
 		return err
 	})
+	if err == nil && auth != nil {
+		s.publishSessionMutation(ctx)
+	}
 	return auth, challenge, keyServiceError(err)
 }
 
@@ -206,5 +210,7 @@ func (s *Service) Logout(ctx context.Context, auth *Authentication) error {
 	if err := s.authDB(ctx).Where("id = ?", auth.Session.ID).Delete(&entity.Session{}).Error; err != nil {
 		return apperrors.ErrInternal
 	}
+	s.invalidateRuntimeSession(auth.Session.ID)
+	s.publishSessionMutation(ctx)
 	return nil
 }

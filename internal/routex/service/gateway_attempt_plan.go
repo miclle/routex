@@ -21,6 +21,7 @@ type gatewayAttemptPlan struct {
 	userID     string
 	projectID  string
 	keyID      string
+	team       *TeamSessionIdentity
 	candidates []gatewayAttemptCandidate
 	draw       func(int) (int, error)
 	allowed    map[string]bool
@@ -121,6 +122,11 @@ func (s *Service) gatewayAttemptEligible(ctx context.Context, plan *gatewayAttem
 	if auth == nil || !now.Before(auth.ValidUntil) || routes == nil {
 		return false, runtimeUnavailable
 	}
+	if plan.team != nil {
+		if err := s.ReauthorizeTeamSession(ctx, plan.team, plan.modelID); err != nil {
+			return false, err
+		}
+	}
 	if plan.keyID != "" {
 		key, exists := auth.KeysByID[plan.keyID]
 		if !exists || key.Key.UserID != plan.userID || key.ProjectID != plan.projectID || runtimeDenied(&s.runtime.deniedKeys, plan.keyID) || key.Key.ExpiresAt != nil && !now.Before(*key.Key.ExpiresAt) {
@@ -183,5 +189,5 @@ func (p *gatewayAttemptPlan) filtered(candidates []gatewayAttemptCandidate) (*ga
 	for _, candidate := range candidates {
 		allowed[gatewayAttemptKey(candidate.attempt)] = true
 	}
-	return &gatewayAttemptPlan{Plan: plan, modelID: p.modelID, protocol: p.protocol, snapshotID: p.snapshotID, userID: p.userID, projectID: p.projectID, keyID: p.keyID, candidates: append([]gatewayAttemptCandidate(nil), candidates...), draw: p.draw, allowed: allowed}, nil
+	return &gatewayAttemptPlan{Plan: plan, modelID: p.modelID, protocol: p.protocol, snapshotID: p.snapshotID, userID: p.userID, projectID: p.projectID, keyID: p.keyID, team: p.team, candidates: append([]gatewayAttemptCandidate(nil), candidates...), draw: p.draw, allowed: allowed}, nil
 }

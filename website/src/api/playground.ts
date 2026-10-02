@@ -127,6 +127,38 @@ export async function runChat(
   onUpdate: (result: ChatResult) => void,
 ): Promise<ChatResult> {
   const response = await nativeRequest('/v1/chat/completions', key, signal, request)
+  return readChatResponse(response, request, signal, onUpdate, key)
+}
+
+function chatUsage(value: unknown): ChatResult['usage'] {
+  const complete = usage(value)
+  if (complete) return complete
+  const data = record(value)
+  if (
+    Object.hasOwn(data, 'total_tokens') ||
+    !['prompt_tokens', 'completion_tokens'].every(
+      (name) =>
+        typeof data[name] === 'number' &&
+        Number.isFinite(data[name]) &&
+        (data[name] as number) >= 0,
+    )
+  )
+    return null
+  return {
+    prompt_tokens: data.prompt_tokens as number,
+    completion_tokens: data.completion_tokens as number,
+    total_tokens: null,
+  }
+}
+
+export async function readChatResponse(
+  response: Response,
+  request: ChatRequest,
+  signal: AbortSignal,
+  onUpdate: (result: ChatResult) => void,
+  key = '',
+): Promise<ChatResult> {
+  if (signal.aborted) throw new DOMException('Aborted', 'AbortError')
   let result: ChatResult = {
     text: '',
     requestId: response.headers.get('X-Request-ID') ?? '',
@@ -154,8 +186,9 @@ export async function runChat(
       )
     result = {
       ...result,
+      ...(typeof message.refusal === 'string' && message.refusal.trim() ? { refused: true } : {}),
       text,
-      usage: usage(payload.usage) ?? result.usage,
+      usage: chatUsage(payload.usage) ?? result.usage,
       finishReason:
         typeof choice.finish_reason === 'string' ? choice.finish_reason : result.finishReason,
     }

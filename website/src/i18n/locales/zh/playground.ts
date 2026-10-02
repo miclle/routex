@@ -1,4 +1,28 @@
 export default {
+  teamConversationStart: '选择你的团队并加载模型，开始一次真实对话。',
+  unknownUsage: '未知',
+  source: '凭证来源',
+  keySource: 'API Key',
+  teamSource: 'Team 会话',
+  team: 'Team',
+  selectTeam: '选择你的 Team',
+  teamLoading: '正在加载你的有效 Team…',
+  teamUnavailable: '此 Team 不可用，或无法确认你的成员资格。',
+  teamNone: '你没有有效的 Team。',
+  teamRefresh: '刷新 Team',
+  teamMore: '加载更多 Team',
+  teamLoadModels: '加载 Team 模型',
+  teamLoadFirst: '选择 Team 并加载其模型',
+  teamNoModels: '此 Team 当前没有可调用的 Chat 模型。',
+  teamExpectedModelUnavailable: '此 Team 当前无法调用指定模型，请选择可用模型。',
+  teamInvalidModels: 'Team 模型或成员资格响应无效。',
+  teamRequestFailed: 'Team 会话请求失败（HTTP {{status}}）。请刷新会话或 Team 访问权限后重试。',
+  teamTextOnly:
+    'Team 会话仅支持文本 Chat Completions，暂不支持附件、模型比较和代码导出。你的 Team 调用记录单独保存。',
+  teamAttachmentsUnavailable: 'Team 会话不支持附件',
+  teamComparisonUnavailable: 'Team 会话暂不支持模型比较。请返回模型对话，或明确选择 API Key。',
+  useKey: '使用 API Key',
+
   getCode: '获取代码',
   requestCode: '请求代码',
   copyCode: '复制代码',
@@ -14,8 +38,7 @@ export default {
   invalidGemini: '网关返回的 Gemini 原生响应无效或未完成。已保留收到的内容。',
   geminiAliasRequired:
     'Gemini 需要兼容的公开名称或有效别名：以字母或数字开头，仅包含字母、数字、点、下划线或连字符（最多 128 个字符）。',
-  description:
-    '使用个人或项目 API Key 发起原生 Chat Completions、Responses、Messages 或 Gemini 调用。',
+  description: '使用个人或项目 API Key 发起原生调用，或通过明确选择的 Team 会话调用文本 Chat。',
   protocol: '协议类型',
   key: 'API Key',
   keyPlaceholder: '粘贴已启用的个人或项目 Key',

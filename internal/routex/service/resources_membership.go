@@ -33,6 +33,7 @@ func (s *Service) SetTeamMembers(ctx context.Context, actorID, teamID string, me
 		return nil, catalogConflict
 	}
 	var result *ResourceRecord
+	var removedUsers []string
 	err := s.authDB(ctx).Transaction(func(tx *gorm.DB) error {
 		if err := lockGovernance(tx); err != nil {
 			return err
@@ -43,6 +44,9 @@ func (s *Service) SetTeamMembers(ctx context.Context, actorID, teamID string, me
 		current, err := resourceRecord(tx, TeamResource, teamID, true)
 		if err != nil {
 			return err
+		}
+		if current.ID != teamID {
+			return apperrors.ErrNotFound
 		}
 		if current.Status == entity.ResourceArchived {
 			return catalogConflict
@@ -62,8 +66,15 @@ func (s *Service) SetTeamMembers(ctx context.Context, actorID, teamID string, me
 			return apperrors.ErrBadRequest
 		}
 		existing := map[string]string{}
+		desiredActive := map[string]bool{}
+		for _, member := range members {
+			desiredActive[member.UserID] = member.Status == entity.ResourceActive
+		}
 		for _, member := range current.Members {
 			existing[member.UserID] = member.ID
+			if !desiredActive[member.UserID] {
+				removedUsers = append(removedUsers, member.UserID)
+			}
 		}
 		if err := tx.Where("team_id = ?", teamID).Delete(&entity.TeamMembership{}).Error; err != nil {
 			return err
@@ -86,7 +97,12 @@ func (s *Service) SetTeamMembers(ctx context.Context, actorID, teamID string, me
 		result, err = resourceRecord(tx, TeamResource, teamID, false)
 		return err
 	})
-	return result, catalogError(err)
+	if err == nil {
+		for _, userID := range removedUsers {
+			s.invalidateRuntimeTeamMember(result.ID, userID)
+		}
+	}
+	return result, s.refreshAfterMutation(ctx, catalogError(err))
 }
 func (s *Service) SetProjectManagers(ctx context.Context, actorID, projectID string, userIDs []string) (*ResourceRecord, error) {
 	if len(userIDs) == 0 {
@@ -171,6 +187,9 @@ func (s *Service) SetResourceModels(ctx context.Context, actorID string, kind Re
 		if err != nil {
 			return err
 		}
+		if kind == TeamResource && current.ID != resourceID {
+			return apperrors.ErrNotFound
+		}
 		if current.Status == entity.ResourceArchived {
 			return catalogConflict
 		}
@@ -219,7 +238,10 @@ func (s *Service) SetResourceModels(ctx context.Context, actorID string, kind Re
 		}
 		return result, s.refreshAfterMutation(ctx, catalogError(err))
 	}
-	return result, catalogError(err)
+	if err == nil && reduced {
+		s.invalidateRuntimeTeam(result.ID)
+	}
+	return result, s.refreshAfterMutation(ctx, catalogError(err))
 }
 
 // The caller must hold the governance singleton lock. All owner/manager changes

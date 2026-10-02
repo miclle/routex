@@ -380,6 +380,31 @@ describe('Team and Project resource workflows', () => {
 })
 
 describe('mounted Usage routes and Project access', () => {
+  it('mounts the addressable Team Calls tab for the current member using only own Team endpoints', async () => {
+    await mount('/teams/tea_1?tab=calls')
+    await until(() => expect(host.textContent).toContain('Your Team call records'))
+    expect(requests.some((request) => request.url === '/teams/tea_1/calls')).toBe(true)
+    expect(
+      requests.some((request) =>
+        ['/calls', '/admin/calls', '/teams/tea_1/usage'].includes(request.url ?? ''),
+      ),
+    ).toBe(false)
+    expect(host.textContent).toContain('Only your own calls')
+    expect(host.querySelector('[name="key_id"]')).toBeNull()
+    expect(host.textContent).not.toContain('Export CSV')
+  })
+  it('does not grant Team call history to a nonmember with platform call authority', async () => {
+    team.members = []
+    permissions = ['teams.read_all', 'calls.read_all']
+    await mount('/admin/teams/tea_1?tab=calls')
+    await until(() => expect(host.textContent).toContain('Research Team'))
+    expect(
+      [...host.querySelectorAll('[role="tab"]')].some(
+        (item) => item.textContent === 'Call records',
+      ),
+    ).toBe(false)
+    expect(requests.some((request) => request.url === '/teams/tea_1/calls')).toBe(false)
+  })
   it('mounts personal usage from its real route and scopes the request', async () => {
     await mount('/usage')
     await until(() => expect(host.textContent).toContain('key_usage_resource'))

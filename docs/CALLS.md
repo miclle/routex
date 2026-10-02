@@ -1,6 +1,6 @@
 # Call Facts and Query API
 
-Call facts record completed gateway requests without storing prompts, responses, credential secrets, or raw upstream diagnostics. Facts support personal or Project attribution, exactly one per request. Supported text calls include immutable assessed amounts and bounded CSV export; Team attribution and aggregate analytics remain separate work packages. Durable event ingestion is implemented for the single-process deployment.
+Call facts record completed gateway requests without storing prompts, responses, credential secrets, or raw upstream diagnostics. Facts support Personal, Project or explicit Team Session attribution, exactly one subject per request. Supported text calls include immutable assessed amounts and bounded Personal/Project/platform CSV export. Team Session history has its own current-member own-actor list and detail endpoints; Team CSV and Team aggregate report interfaces remain separate work packages. Durable event ingestion is implemented for the single-process deployment.
 
 ## Recording Contract
 
@@ -133,3 +133,18 @@ Gateway tests separately establish that real controlled-upstream success, failur
 ## Project history
 
 `GET /projects/:project_id/calls` and `GET /projects/:project_id/calls/:request_id` expose sanitized facts to current Project managers or holders of `calls.read_all`. Lists use the existing filters and pagination, with the Project forced by the path. A former creator or unrelated user receives the same 404 as a missing resource. Disabled and archived Projects retain readable history for authorized readers. Project facts contain a Project ID and an empty user ID; they never appear in the creator's personal history. Administrative fact DTOs include `project_id` when applicable. Migration 9 adds this historical attribution column without altering accepted personal facts.
+
+
+## Team Session attribution and history
+
+Frozen V38 preserves optional historical Team and membership IDs with the acting
+User ID. Team facts have blank Project and Key IDs and cannot mix subjects. No live
+Team or membership foreign key rewrites or deletes immutable facts. Personal
+history, usage and CSV exclude Team calls; platform call DTOs and CSV retain the
+recorded Team IDs. Existing unknown historical Key attribution remains unknown.
+
+Team list and detail endpoints require a current enabled active exact member and
+expose only that member's own acting User ID in that Team. Owners and directory
+administrators have the same own-actor boundary. User/Key filter expansion is
+rejected; model/status/time filters and cursor pagination remain scoped. Membership
+removal stops new reads without rewriting history. See [Team Session inference](TEAM_INFERENCE.md).

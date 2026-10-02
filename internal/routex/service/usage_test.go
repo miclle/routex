@@ -107,6 +107,22 @@ func TestUsageTreatsNoWorkAsKnownZero(t *testing.T) {
 	}
 }
 
+func TestUsageTeamSessionsDoNotInventKeyGroups(t *testing.T) {
+	start := time.Date(2026, 10, 2, 12, 0, 0, 0, time.UTC)
+	end := start.Add(time.Hour)
+	plan, err := planUsage(UsageFilter{From: &start, To: &end}, end)
+	if err != nil {
+		t.Fatal(err)
+	}
+	team := entity.CallRecord{RequestID: "req_team_usage", TeamID: "tem_usage", UserID: "usr_actor", TeamMembershipID: "tmm_history", ModelID: "mdl_usage", Status: "success", StartedAt: start, InputTokens: usageTestPointer(int64(4)), OutputTokens: usageTestPointer(int64(1))}
+	legacy := team
+	legacy.RequestID, legacy.TeamID, legacy.TeamMembershipID = "req_unknown_legacy_key", "", ""
+	report, err := aggregateUsage([]entity.CallRecord{team, legacy}, plan.current, plan, true)
+	if err != nil || report.Summary.Requests != 2 || len(report.Keys) != 1 || !report.Keys[0].Unknown || report.Keys[0].Stats.Requests != 1 || report.Summary.Tokens.Total.Known != "10" {
+		t.Fatal("Team Session became an unknown or fabricated Key while legacy facts changed", report, err)
+	}
+}
+
 func TestUsageCalendarBoundaries(t *testing.T) {
 	for _, test := range []struct {
 		name, from, to string

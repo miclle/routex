@@ -74,6 +74,10 @@ func (ctrl *Ctrl) GatewayChat(c *fox.Context) {
 	ctx, cancel := context.WithTimeout(service.WithGatewayClientIP(c.Request.Context(), clientIP), 5*time.Minute)
 	defer cancel()
 	result, callErr := ctrl.service.GatewayChat(ctx, gatewayBearer(c.Request), body, requestID)
+	ctrl.finishGatewayChat(c, ctx, requestID, started, body, result, callErr)
+}
+
+func (ctrl *Ctrl) finishGatewayChat(c *fox.Context, ctx context.Context, requestID string, started time.Time, body []byte, result *service.GatewayResult, callErr error) {
 	usage := observeGatewayUsage(service.GatewayUsage{})
 	defer func() { ctrl.recordGatewayCall(ctx, requestID, started, result, usage, callErr) }()
 	if result != nil && result.Response != nil {
@@ -144,7 +148,7 @@ func (ctrl *Ctrl) recordGatewayCall(ctx context.Context, requestID string, start
 			routeStopReason = "canceled"
 		}
 	}
-	fact := service.CallFact{RequestID: requestID, SnapshotID: result.SnapshotID, UserID: result.UserID, ProjectID: result.ProjectID, KeyID: result.KeyID, ModelID: result.ModelID, ModelName: result.ModelName, ProviderID: attribution.ProviderID, ProviderName: attribution.ProviderName, ProviderModelID: attribution.ProviderModelID, ConnectionID: attribution.ConnectionID, ConnectionName: attribution.ConnectionName, UpstreamModelName: attribution.UpstreamModelName, RouteStopReason: routeStopReason, Protocol: result.NativeProtocol(), Status: status, Stream: result.Stream, StartedAt: started, CompletedAt: completed, InputTokens: usage.Input, OutputTokens: usage.Output, CacheReadTokens: usage.CacheRead, CacheWriteTokens: usage.CacheWrite, ImageInputs: &imageInputs, PDFInputs: &pdfInputs, UsageComplete: usage.Complete, NoWork: noWork, PricingUnsupported: result.PricingUnsupported || usage.Unsupported, PriceBasis: result.PriceBasis, PricingDimensions: append(append([]string{}, result.PricingDimensions...), usage.UnsupportedDimensions...), ErrorCode: code, Attempts: attempts}
+	fact := service.CallFact{TeamID: result.TeamID, TeamMembershipID: result.TeamMembershipID, RequestID: requestID, SnapshotID: result.SnapshotID, UserID: result.UserID, ProjectID: result.ProjectID, KeyID: result.KeyID, ModelID: result.ModelID, ModelName: result.ModelName, ProviderID: attribution.ProviderID, ProviderName: attribution.ProviderName, ProviderModelID: attribution.ProviderModelID, ConnectionID: attribution.ConnectionID, ConnectionName: attribution.ConnectionName, UpstreamModelName: attribution.UpstreamModelName, RouteStopReason: routeStopReason, Protocol: result.NativeProtocol(), Status: status, Stream: result.Stream, StartedAt: started, CompletedAt: completed, InputTokens: usage.Input, OutputTokens: usage.Output, CacheReadTokens: usage.CacheRead, CacheWriteTokens: usage.CacheWrite, ImageInputs: &imageInputs, PDFInputs: &pdfInputs, UsageComplete: usage.Complete, NoWork: noWork, PricingUnsupported: result.PricingUnsupported || usage.Unsupported, PriceBasis: result.PriceBasis, PricingDimensions: append(append([]string{}, result.PricingDimensions...), usage.UnsupportedDimensions...), ErrorCode: code, Attempts: attempts}
 	if result.AttemptID != "" {
 		httpStatus := 0
 		if result.Response != nil {
