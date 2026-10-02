@@ -75,7 +75,8 @@ func TestCallJournalLegacyAttemptsKeepCredentialAndSnapshotUnknown(t *testing.T)
 	if err := validateCallFact(recovered); err != nil {
 		t.Fatalf("legacy attempt rejected: %v", err)
 	}
-	if len(recovered.Attempts) != 1 || recovered.Attempts[0].CredentialID != "" || recovered.Attempts[0].SnapshotID != "" || recovered.Attempts[0].Status != "error" {
+	normalizeCallAttemptEvidence(&recovered)
+	if len(recovered.Attempts) != 1 || recovered.Attempts[0].CredentialID != "" || recovered.Attempts[0].SnapshotID != "" || recovered.Attempts[0].Status != "error" || recovered.Attempts[0].NativeCompletionEvidence != "unknown" {
 		t.Fatalf("legacy attempt gained inferred credential/configuration or success: %+v", recovered.Attempts)
 	}
 }
@@ -128,8 +129,9 @@ func TestGatewayFallbackPreservesEachAttemptAttribution(t *testing.T) {
 	if len(fallback.Attempts) != 2 || fallback.Attempts[0].CredentialID != previous.CredentialID || fallback.Attempts[0].SnapshotID != previous.SnapshotID {
 		t.Fatalf("current route overwrote previous attempt attribution: %+v", fallback.Attempts)
 	}
+	normalizeCallAttemptEvidence(&fallback)
 	active := fallback.Attempts[1]
-	if active.CredentialID != result.CredentialID || active.SnapshotID != result.SnapshotID || active.Status != "error" || active.WorkEvidence != "unknown" || active.ErrorCode != "process_interrupted" {
+	if active.CredentialID != result.CredentialID || active.SnapshotID != result.SnapshotID || active.Status != "error" || active.WorkEvidence != "unknown" || active.ErrorCode != "process_interrupted" || active.NativeCompletionEvidence != "unknown" {
 		t.Fatalf("active interruption lost exact attribution or became success: %+v", active)
 	}
 	if len(result.Attempts) != 1 || result.Attempts[0] != previous {

@@ -57,6 +57,33 @@ are unchanged. No Credential secret, ciphertext or request/response content is
 recorded. Full checks and the PostgreSQL/MySQL matrix passed for this package;
 see the [implementation record](IMPLEMENTATION.md) for exact evidence.
 
+## Native completion evidence
+
+The internal attempt field `NativeCompletionEvidence` records one exact
+server-owned value: unknown, completed, handoff, blocked or incomplete. It is
+independent of HTTP/call status, work evidence, output delivery and final token
+usage. Legacy database and journal fields normalize to unknown; no successful
+status or complete usage can backfill a native terminal. Public DTOs/CSV stay
+unchanged, and no native content is retained.
+
+Protocol parsers own these observations. Chat requires a recognized assistant
+choice and finish reason for every requested bounded choice; empty objects,
+missing finishes, usage-only frames and a bare `[DONE]` remain unknown. Responses
+uses its native terminal status and bounded recognized output semantics: refusal
+remains blocked, tool handoff remains handoff, and weak/future outputs stay unknown.
+Messages requires its validated message-stop
+sequence. Gemini records evidence only after clean EOF and complete candidate or
+prompt-block semantics; transport failure or cancellation cannot convert an
+earlier finish into completion proof. Tool handoff, blocking and output limits
+remain distinct from normal completion. Unknown future reasons preserve existing
+forwarding behavior and remain unknown evidence.
+
+A recorded terminal does not override the actual final attempt status. Any future
+planned-retirement gate must independently require a successful completed attempt
+for the exact successor Credential and current publication, plus scoped eligibility.
+The complete format/check/test and PostgreSQL/MySQL matrix passed for this
+package; see the [implementation record](IMPLEMENTATION.md) for exact evidence.
+
 ## Access and HTTP API
 
 All paths are relative to `/api/v1` and require a valid session. Personal endpoints always add the current user ID and exclude Project-attributed rows. Platform endpoints require `calls.read_all`, which may come from a built-in or custom role. A request for another user's fact returns the same `404` as a missing fact.

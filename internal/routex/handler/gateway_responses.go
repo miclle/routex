@@ -44,7 +44,7 @@ func (ctrl *Ctrl) GatewayResponses(c *fox.Context) {
 	ctx, cancel := context.WithTimeout(service.WithGatewayClientIP(c.Request.Context(), clientIP), 5*time.Minute)
 	defer cancel()
 	result, callErr := ctrl.service.GatewayResponses(ctx, gatewayBearer(c.Request), body, requestID)
-	var usage gatewayUsage
+	usage := observeGatewayUsage(service.GatewayUsage{})
 	defer func() { ctrl.recordGatewayCall(ctx, requestID, started, result, usage, callErr) }()
 	if result != nil && result.Response != nil {
 		defer func() { _ = result.Response.Body.Close() }()
@@ -72,7 +72,8 @@ func (ctrl *Ctrl) GatewayResponses(c *fox.Context) {
 		writeGatewayError(c, callErr)
 		return
 	}
-	usage = service.ParseResponsesUsage(encoded)
+	usage = observeGatewayUsage(service.ParseResponsesUsage(encoded))
+	usage.NativeCompletionEvidence = responsesCompletionEvidence(encoded, status)
 	callErr = responsesTerminalError(status)
 	c.Data(result.Response.StatusCode, "application/json", encoded)
 }

@@ -237,6 +237,13 @@ func testGeminiLifecycle(t *testing.T, db *gorm.DB) {
 		if err := db.Model(&entity.CallRecord{}).Where("request_id = ?", requestID).Count(&count).Error; err != nil || count != 1 {
 			t.Fatal("duplicate call fact")
 		}
+		if item.attempts > 0 {
+			completion := "unknown"
+			if item.response == ordinary || item.response == stream {
+				completion = "completed"
+			}
+			assertStoredNativeCompletion(t, db, requestID, completion)
+		}
 		assertNativeAttemptAttribution(t, db, requestID, provider.Connections[0].Credentials[0].ID, expectedSnapshots[requestID], item.status, int(item.attempts))
 		if err := db.Model(&entity.CallAttempt{}).Where("request_id = ?", requestID).Count(&count).Error; err != nil || count != item.attempts {
 			t.Fatal("wrong attempt count")

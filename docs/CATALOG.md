@@ -168,8 +168,9 @@ and unmount clear sensitive state; no mutation cache or browser storage is used.
 Complete planned retirement remains separate unfinished scope. It requires exact
 new-Credential configuration application and an authoritative successful inference
 using that new Credential. Exact internal attempt Credential/publication IDs are
-available, but parser-owned native completion evidence and scoped current runtime
-readback remain unfinished. HTTP success, global runtime readiness, discovery or
+available, and parser-owned native terminal evidence now distinguishes completed,
+handoff, blocked, incomplete and unknown outcomes. Scoped current runtime
+readback and the receipt-backed predecessor retirement gate remain unfinished. HTTP success, global runtime readiness, discovery or
 a model's success cannot establish the complete retirement gate. Equal priority does not prove the new Credential receives traffic.
 The existing emergency disable action remains independently available; supplier-
 side revocation is outside this preparation endpoint.

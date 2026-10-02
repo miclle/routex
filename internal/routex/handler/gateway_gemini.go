@@ -83,7 +83,7 @@ func (ctrl *Ctrl) GatewayGemini(c *fox.Context) {
 	ctx, cancel := context.WithTimeout(service.WithGatewayClientIP(c.Request.Context(), clientIP), 5*time.Minute)
 	defer cancel()
 	result, callErr := ctrl.service.GatewayGemini(ctx, bearer, body, requestID, model, stream)
-	var usage gatewayUsage
+	usage := observeGatewayUsage(service.GatewayUsage{})
 	defer func() { ctrl.recordGatewayCall(ctx, requestID, started, result, usage, callErr) }()
 	if result != nil && result.Response != nil {
 		defer func() { _ = result.Response.Body.Close() }()
@@ -116,6 +116,7 @@ func (ctrl *Ctrl) GatewayGemini(c *fox.Context) {
 		writeGeminiError(c, callErr, requestID)
 		return
 	}
-	usage = service.ParseGeminiUsage(encoded, true)
+	usage = observeGatewayUsage(service.ParseGeminiUsage(encoded, true))
+	usage.NativeCompletionEvidence = state.completionEvidence()
 	c.Data(result.Response.StatusCode, "application/json", encoded)
 }

@@ -39,6 +39,13 @@ func TestMessagesNativeSSEAndCancellation(t *testing.T) {
 		writer := &cancelResponseWriter{httptest.NewRecorder(), cancel, trigger}
 		usage, err := proxyMessagesStream(ctx, writer, strings.NewReader(body), "public", "req_one")
 		cancel()
+		completion := "unknown"
+		if final {
+			completion = "completed"
+		}
+		if usage.NativeCompletionEvidence != completion {
+			t.Fatalf("terminal cancellation lost independent native evidence: %+v, want %s", usage, completion)
+		}
 		if !errors.Is(err, context.Canceled) || usage.Complete != final {
 			t.Fatalf("cancellation finality %+v %v", usage, err)
 		}

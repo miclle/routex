@@ -89,7 +89,7 @@ scripts/                      # Shell helpers invoked by Taskfile (build, check,
 ### Backend
 
 - Follow the `Handler -> Service -> Entity` layering
-- Preserve exact Credential and published snapshot IDs on each internal call attempt, including failed and interrupted attempts. Legacy missing attribution stays unknown; never substitute the logical call's final route or current catalog. Keep public call DTOs separate, and do not treat HTTP success or usage completeness as native completion proof.
+- Preserve exact Credential and published snapshot IDs on each internal call attempt, including failed and interrupted attempts. Legacy missing attribution stays unknown; never substitute the logical call's final route or current catalog. Keep public call DTOs separate, and do not treat HTTP success or usage completeness as native completion proof. Parser-owned `NativeCompletionEvidence` uses exact unknown/completed/handoff/blocked/incomplete values; legacy blanks remain unknown, and terminal evidence never overrides final attempt status.
 - Register all routes in `internal/routex/handler/handler.go`
 - Keep database connection and versioned migration setup in `internal/routex/database/`; services receive a ready `*gorm.DB`. Add new immutable migration versions instead of editing released steps or using current entities for startup AutoMigrate.
 - PostgreSQL (default) and MySQL are supported; switch via `driver` in YAML config

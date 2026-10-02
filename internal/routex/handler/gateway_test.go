@@ -121,6 +121,18 @@ func testGatewayLifecycle(t *testing.T, db *gorm.DB) {
 		if !strings.HasPrefix(r.Header.Get("X-Request-ID"), "req_") {
 			t.Error("request ID missing upstream")
 		}
+		if strings.HasPrefix(activeMode, "completion_") {
+			finish := strings.TrimPrefix(activeMode, "completion_")
+			streaming := strings.HasSuffix(finish, "_stream")
+			finish = strings.TrimSuffix(finish, "_stream")
+			if streaming {
+				w.Header().Set("Content-Type", "text/event-stream")
+				_, _ = io.WriteString(w, "data: "+chatCompletionFixture(finish, `{"role":"assistant","content":"Hello"}`, "null", true, 0)+"\n\ndata: [DONE]\n\n")
+			} else {
+				_, _ = io.WriteString(w, chatCompletionFixture(finish, `{"role":"assistant","content":"Hello"}`, "null", false, 0))
+			}
+			return
+		}
 		switch activeMode {
 		case "error":
 			w.Header().Set("Set-Cookie", "provider-secret=secret")
@@ -290,6 +302,25 @@ func testGatewayLifecycle(t *testing.T, db *gorm.DB) {
 		t.Fatal("stream usage fact was not persisted")
 	}
 	assertNativeAttemptAttribution(t, db, streamFact.RequestID, credentialID, "", "success", 1)
+	assertStoredNativeCompletion(t, db, ordinaryFact.RequestID, "unknown")
+	assertStoredNativeCompletion(t, db, streamFact.RequestID, "unknown")
+	for _, outcome := range []struct{ finish, want string }{
+		{"stop", "completed"}, {"tool_calls", "handoff"}, {"function_call", "handoff"},
+		{"length", "incomplete"}, {"content_filter", "blocked"}, {"refusal", "blocked"}, {"future_reason", "unknown"},
+	} {
+		for _, streaming := range []bool{false, true} {
+			fixtureMode, fixtureBody := "completion_"+outcome.finish, body
+			if streaming {
+				fixtureMode += "_stream"
+				fixtureBody = strings.Replace(body, `"temperature":0.125`, `"stream":true`, 1)
+			}
+			mode.Store(fixtureMode)
+			response := request("POST", "/v1/chat/completions", fixtureBody, created.Secret)
+			expectStatus(t, response, 200)
+			assertNativeAttemptAttribution(t, db, response.Header().Get("X-Request-ID"), credentialID, "", "success", 1)
+			assertStoredNativeCompletion(t, db, response.Header().Get("X-Request-ID"), outcome.want)
+		}
+	}
 	mode.Store("error")
 	beforeFailure := chatCalls.Load()
 	failure := request("POST", "/v1/chat/completions", body, created.Secret)
@@ -459,6 +490,7 @@ func testGatewayLifecycle(t *testing.T, db *gorm.DB) {
 			t.Fatalf("retry attempt lost its exact credential/configuration: %+v", attempt)
 		}
 	}
+	assertStoredNativeCompletion(t, db, retryRecord.RequestID, "unknown")
 	if retryAttempts[0].CredentialID == retryAttempts[1].CredentialID {
 		t.Fatal("cross-Provider retry merged distinct credential identities")
 	}
@@ -479,6 +511,7 @@ func testGatewayLifecycle(t *testing.T, db *gorm.DB) {
 			t.Fatal(err)
 		}
 		assertNativeAttemptAttribution(t, db, failedRecord.RequestID, credentialByConnection[failedRecord.ConnectionID], expectedSnapshots[failedRecord.RequestID], "error", 1)
+		assertStoredNativeCompletion(t, db, failedRecord.RequestID, "unknown")
 		if failedRecord.RouteStopReason != "unsafe_to_replay" || len(failedAttempts) != 1 || failedAttempts[0].WorkEvidence != "unknown" || !failedAttempts[0].OutputStarted {
 			t.Fatalf("%s diagnostics: record=%+v attempts=%+v", streamMode, failedRecord, failedAttempts)
 		}
@@ -677,7 +710,27 @@ func testDirectGatewayRecorderCheckpoint(t *testing.T, db *gorm.DB, actorID stri
 		t.Fatal(err)
 	}
 	stored, err := restarted.GetCall(ctx, "", "req_direct_interrupted")
-	if err != nil || len(stored.Attempts) != 1 || stored.Attempts[0].CredentialID != credentialID || stored.Attempts[0].SnapshotID != "" || stored.Attempts[0].Status != "error" {
+	if err != nil || len(stored.Attempts) != 1 || stored.Attempts[0].CredentialID != credentialID || stored.Attempts[0].SnapshotID != "" || stored.Attempts[0].Status != "error" || stored.Attempts[0].NativeCompletionEvidence != "unknown" {
 		t.Fatalf("direct interrupted attempt did not survive replay: %+v, error = %v", stored, err)
+	}
+}
+
+func assertStoredNativeCompletion(t *testing.T, db *gorm.DB, requestID, want string) {
+	t.Helper()
+	var attempts []entity.CallAttempt
+	if err := db.Where("request_id = ?", requestID).Order("attempt_number").Find(&attempts).Error; err != nil {
+		t.Fatal(err)
+	}
+	if len(attempts) == 0 {
+		t.Fatal("native completion fixture has no actual attempt")
+	}
+	for index, attempt := range attempts {
+		expected := "unknown"
+		if index == len(attempts)-1 {
+			expected = want
+		}
+		if attempt.NativeCompletionEvidence != expected {
+			t.Fatalf("attempt %d completion evidence = %s, want %s", index, attempt.NativeCompletionEvidence, expected)
+		}
 	}
 }

@@ -66,11 +66,14 @@ type CallAttempt struct {
 	WorkEvidence      string
 	OutputStarted     bool
 	FinalUsageKnown   bool
-	EvidenceCode      string
-	StartedAt         time.Time
-	CompletedAt       time.Time
-	HTTPStatus        int
-	ErrorCode         string
+	// NativeCompletionEvidence is an independently observed protocol terminal
+	// outcome. It never derives from success status, usage, or work evidence.
+	NativeCompletionEvidence string
+	EvidenceCode             string
+	StartedAt                time.Time
+	CompletedAt              time.Time
+	HTTPStatus               int
+	ErrorCode                string
 }
 
 type CallFilter struct {
@@ -110,6 +113,10 @@ var callAttemptFailures = map[string]bool{
 
 var callAttemptWorkEvidence = map[string]bool{
 	"not_sent": true, "rejected_without_work": true, "unknown": true, "completed": true,
+}
+
+var callAttemptNativeCompletionEvidence = map[string]bool{
+	"unknown": true, "completed": true, "handoff": true, "blocked": true, "incomplete": true,
 }
 
 var callAttemptEvidenceCodes = map[string]bool{
@@ -171,7 +178,7 @@ func (s *Service) RecordCall(ctx context.Context, fact CallFact) error {
 		}
 		for _, attempt := range fact.Attempts {
 			durationMS := attempt.CompletedAt.Sub(attempt.StartedAt).Milliseconds()
-			row := entity.CallAttempt{ID: attempt.ID, CredentialID: attempt.CredentialID, SnapshotID: attempt.SnapshotID, RequestID: fact.RequestID, ProviderID: attempt.ProviderID, ProviderName: attempt.ProviderName, ProviderModelID: attempt.ProviderModelID, ConnectionID: attempt.ConnectionID, ConnectionName: attempt.ConnectionName, UpstreamModelName: attempt.UpstreamModelName, DurationMS: &durationMS, AttemptNumber: attempt.AttemptNumber, Status: attempt.Status, FailureClass: attempt.FailureClass, WorkEvidence: attempt.WorkEvidence, OutputStarted: attempt.OutputStarted, FinalUsageKnown: attempt.FinalUsageKnown, EvidenceCode: attempt.EvidenceCode, HTTPStatus: attempt.HTTPStatus, ErrorCode: safeCallError(attempt.ErrorCode), StartedAt: attempt.StartedAt.UTC().Truncate(time.Microsecond), CompletedAt: attempt.CompletedAt.UTC().Truncate(time.Microsecond)}
+			row := entity.CallAttempt{ID: attempt.ID, CredentialID: attempt.CredentialID, SnapshotID: attempt.SnapshotID, RequestID: fact.RequestID, ProviderID: attempt.ProviderID, ProviderName: attempt.ProviderName, ProviderModelID: attempt.ProviderModelID, ConnectionID: attempt.ConnectionID, ConnectionName: attempt.ConnectionName, UpstreamModelName: attempt.UpstreamModelName, DurationMS: &durationMS, AttemptNumber: attempt.AttemptNumber, Status: attempt.Status, FailureClass: attempt.FailureClass, WorkEvidence: attempt.WorkEvidence, OutputStarted: attempt.OutputStarted, FinalUsageKnown: attempt.FinalUsageKnown, EvidenceCode: attempt.EvidenceCode, NativeCompletionEvidence: attempt.NativeCompletionEvidence, HTTPStatus: attempt.HTTPStatus, ErrorCode: safeCallError(attempt.ErrorCode), StartedAt: attempt.StartedAt.UTC().Truncate(time.Microsecond), CompletedAt: attempt.CompletedAt.UTC().Truncate(time.Microsecond)}
 			if err := tx.Create(&row).Error; err != nil {
 				return err
 			}
@@ -286,7 +293,7 @@ func validateCallFact(fact CallFact) error {
 	seen := map[string]bool{}
 	numbers := map[int]bool{}
 	for _, attempt := range fact.Attempts {
-		if !safeCallID.MatchString(attempt.ID) || seen[attempt.ID] || attempt.AttemptNumber < 1 || attempt.AttemptNumber > 32 || numbers[attempt.AttemptNumber] || !validCallAttemptSnapshot(attempt) || !validCallStatus(attempt.Status) || !callAttemptFailures[attempt.FailureClass] || !callAttemptWorkEvidence[attempt.WorkEvidence] || !callAttemptEvidenceCodes[attempt.EvidenceCode] || attempt.StartedAt.IsZero() || attempt.CompletedAt.Before(attempt.StartedAt) || attempt.HTTPStatus < 0 || attempt.HTTPStatus > 599 {
+		if !safeCallID.MatchString(attempt.ID) || seen[attempt.ID] || attempt.AttemptNumber < 1 || attempt.AttemptNumber > 32 || numbers[attempt.AttemptNumber] || !validCallAttemptSnapshot(attempt) || !validCallStatus(attempt.Status) || !callAttemptFailures[attempt.FailureClass] || !callAttemptWorkEvidence[attempt.WorkEvidence] || !callAttemptEvidenceCodes[attempt.EvidenceCode] || !callAttemptNativeCompletionEvidence[attempt.NativeCompletionEvidence] || attempt.StartedAt.IsZero() || attempt.CompletedAt.Before(attempt.StartedAt) || attempt.HTTPStatus < 0 || attempt.HTTPStatus > 599 {
 			return apperrors.ErrBadRequest
 		}
 		if (attempt.FailureClass == "success") != (attempt.Status == "success") || attempt.Status == "success" && attempt.WorkEvidence != "completed" || (attempt.OutputStarted || attempt.FinalUsageKnown) && (attempt.WorkEvidence == "not_sent" || attempt.WorkEvidence == "rejected_without_work") {
@@ -318,6 +325,9 @@ func zeroCounter(value *int64) bool { return value != nil && *value == 0 }
 func normalizeCallAttemptEvidence(fact *CallFact) {
 	for index := range fact.Attempts {
 		attempt := &fact.Attempts[index]
+		if attempt.NativeCompletionEvidence == "" {
+			attempt.NativeCompletionEvidence = "unknown"
+		}
 		if attempt.AttemptNumber == 0 {
 			attempt.AttemptNumber = index + 1
 		}

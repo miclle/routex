@@ -10,8 +10,14 @@ import (
 	"testing"
 )
 
+const responsesTextOutput = `[{"id":"msg_1","type":"message","role":"assistant","status":"completed","content":[{"type":"output_text","text":"hello"}]}]`
+
 func responseFixture(status string, usage string) string {
-	return `{"id":"resp_1","object":"response","model":"private-model","status":"` + status + `","output":[{"type":"message","content":[{"type":"output_text","text":"hello"}]}],"usage":` + usage + `}`
+	return responseOutputFixture(status, usage, responsesTextOutput)
+}
+
+func responseOutputFixture(status, usage, output string) string {
+	return `{"id":"resp_1","object":"response","model":"private-model","status":"` + status + `","output":` + output + `,"usage":` + usage + `}`
 }
 
 const responsesFinalUsage = `{"input_tokens":10,"output_tokens":4,"input_tokens_details":{"cached_tokens":2,"cache_write_tokens":1}}`
@@ -26,7 +32,7 @@ func TestResponsesOrdinaryNativeRewriteAndErrors(t *testing.T) {
 	if err != nil || status != "completed" || strings.Contains(string(response), "private-model") || !strings.Contains(string(response), `"id":"resp_1"`) {
 		t.Fatalf("native response changed: %s %v", response, err)
 	}
-	for _, raw := range []string{`null`, `{"object":"chat.completion"}`, strings.Replace(responseFixture("completed", "null"), `"output":[{"type":"message","content":[{"type":"output_text","text":"hello"}]}]`, `"output":null`, 1), responseFixture("in_progress", "null")} {
+	for _, raw := range []string{`null`, `{"object":"chat.completion"}`, strings.Replace(responseFixture("completed", "null"), `"output":[{"id":"msg_1","type":"message","role":"assistant","status":"completed","content":[{"type":"output_text","text":"hello"}]}]`, `"output":null`, 1), responseFixture("in_progress", "null")} {
 		if _, _, err := rewriteResponsesObject([]byte(raw), "public", false); err == nil {
 			t.Fatal("nonfinal/malformed ordinary response accepted")
 		}
@@ -146,6 +152,13 @@ func TestResponsesCancelBeforeAndAfterFinalUsage(t *testing.T) {
 		stream := responseEventFixture("response.created", "in_progress", "null", 0) + responseEventFixture("response.completed", "completed", responsesFinalUsage, 1)
 		usage, err := proxyResponsesStream(ctx, writer, strings.NewReader(stream), "public")
 		cancel()
+		completion := "unknown"
+		if final {
+			completion = "completed"
+		}
+		if usage.NativeCompletionEvidence != completion {
+			t.Fatalf("terminal cancellation lost independent native evidence: %+v, want %s", usage, completion)
+		}
 		if !errors.Is(err, context.Canceled) || usage.Complete != final {
 			t.Fatalf("cancellation finality: %+v %v", usage, err)
 		}

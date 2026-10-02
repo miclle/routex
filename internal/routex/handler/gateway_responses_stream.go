@@ -123,11 +123,11 @@ func rewriteResponsesEvent(raw []byte, model string) (responsesEvent, error) {
 }
 func mustJSON(value any) []byte { raw, _ := json.Marshal(value); return raw }
 
-func proxyResponsesStream(ctx context.Context, writer http.ResponseWriter, body io.Reader, model string) (gatewayUsage, error) {
+func proxyResponsesStream(ctx context.Context, writer http.ResponseWriter, body io.Reader, model string) (gatewayObservation, error) {
 	scanner := bufio.NewScanner(body)
 	scanner.Buffer(make([]byte, 4096), gatewayEventLimit)
 	var event bytes.Buffer
-	var usage gatewayUsage
+	usage := observeGatewayUsage(service.GatewayUsage{})
 	responseID := ""
 	var previousSequence *int64
 	write := func(raw []byte) error {
@@ -144,7 +144,7 @@ func proxyResponsesStream(ctx context.Context, writer http.ResponseWriter, body 
 		}
 		return control.Flush()
 	}
-	failed := func() (gatewayUsage, error) {
+	failed := func() (gatewayObservation, error) {
 		if ctx.Err() != nil {
 			return usage, ctx.Err()
 		}
@@ -200,9 +200,12 @@ func proxyResponsesStream(ctx context.Context, writer http.ResponseWriter, body 
 				}
 			}
 			// Replace the complete frame; never merge partial counters between events.
-			usage = parsed
+			usage.GatewayUsage = parsed
 			usage.UnsupportedDimensions = dimensions
 			usage.Unsupported = len(dimensions) > 0
+		}
+		if observed.Terminal {
+			usage.NativeCompletionEvidence = responsesCompletionEvidence(observed.Response, observed.Status)
 		}
 		if err := write(observed.Bytes); err != nil {
 			return usage, err

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -54,6 +55,18 @@ func testResponsesLifecycle(t *testing.T, db *gorm.DB) {
 			return
 		}
 		switch mode.Load().(string) {
+		case "handoff", "refusal", "handoff_stream", "refusal_stream":
+			output := `[{"type":"function_call","name":"weather","call_id":"call_1","arguments":"{}","status":"completed"}]`
+			if strings.HasPrefix(mode.Load().(string), "refusal") {
+				output = `[{"type":"message","role":"assistant","status":"completed","content":[{"type":"refusal","refusal":"Cannot answer"}]}]`
+			}
+			raw := responseOutputFixture("completed", responsesFinalUsage, output)
+			if strings.HasSuffix(mode.Load().(string), "_stream") {
+				w.Header().Set("Content-Type", "text/event-stream")
+				_, _ = fmt.Fprintf(w, "event: response.completed\ndata: {\"type\":\"response.completed\",\"sequence_number\":0,\"response\":%s}\n\n", raw)
+			} else {
+				_, _ = io.WriteString(w, raw)
+			}
 		case "error":
 			w.WriteHeader(429)
 			_, _ = io.WriteString(w, `{"error":{"code":"rate_limit_exceeded","type":"rate_limit_error","message":"upstream-secret","debug":"sensitive-input"}}`)
@@ -263,6 +276,13 @@ func testResponsesLifecycle(t *testing.T, db *gorm.DB) {
 		if err := db.Model(&entity.CallRecord{}).Where("request_id = ?", requestID).Count(&count).Error; err != nil || count != 1 {
 			t.Fatal("duplicated call fact")
 		}
+		if item.attempts > 0 {
+			completion := "unknown"
+			if item.response == ordinary || item.response == stream || item.response == canceled[1] {
+				completion = "completed"
+			}
+			assertStoredNativeCompletion(t, db, requestID, completion)
+		}
 		assertNativeAttemptAttribution(t, db, requestID, provider.Connections[0].Credentials[0].ID, expectedSnapshots[requestID], item.status, int(item.attempts))
 		if err := db.Model(&entity.CallAttempt{}).Where("request_id = ?", requestID).Count(&count).Error; err != nil || count != item.attempts {
 			t.Fatalf("attempt count %d expected %d", count, item.attempts)
@@ -277,6 +297,47 @@ func testResponsesLifecycle(t *testing.T, db *gorm.DB) {
 	stats := report.Current.Summary
 	if stats.Requests != 7 || stats.Successes != 2 || stats.Canceled != 2 || stats.Errors != 3 || len(stats.Amounts) != 1 || stats.Amounts[0].Currency != "USD" || stats.Amounts[0].Amount != "0.000051" || stats.Amounts[0].Calls != 3 {
 		t.Fatalf("native usage includes chat or loses native pricing: %+v", stats)
+	}
+
+	// Exercise non-text terminal outcomes after the original usage-report proof.
+	// A separate service records synchronously, preserving the recorder replay checks.
+	outcomeService, err := service.New(ctx, db, service.WithCredentialStorage(store), service.WithUpstreamPolicy(true))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := db.First(&pm, "id = ?", pm.ID).Error; err != nil {
+		t.Fatal(err)
+	}
+	if _, err := outcomeService.SetProviderModelState(ctx, admin.User.ID, pm.ID, pm.ETag, true); err != nil {
+		t.Fatal(err)
+	}
+	if err := outcomeService.StartRuntime(ctx); err != nil {
+		t.Fatal(err)
+	}
+	defer outcomeService.StopRuntime()
+	outcomeRouter := fox.New()
+	New(outcomeService).RegisterRoutes(outcomeRouter)
+	for _, outcome := range []struct{ mode, want string }{
+		{"handoff", "handoff"}, {"refusal", "blocked"}, {"handoff_stream", "handoff"}, {"refusal_stream", "blocked"},
+	} {
+		mode.Store(outcome.mode)
+		payload := body
+		if strings.HasSuffix(outcome.mode, "_stream") {
+			payload = strings.TrimSuffix(body, "}") + `,"stream":true}`
+		}
+		req := httptest.NewRequest("POST", "/v1/responses", strings.NewReader(payload))
+		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Authorization", "Bearer "+key.Secret)
+		response := httptest.NewRecorder()
+		outcomeRouter.ServeHTTP(response, req)
+		expectStatus(t, response, 200)
+		requestID := response.Header().Get("X-Request-ID")
+		assertStoredNativeCompletion(t, db, requestID, outcome.want)
+		assertNativeAttemptAttribution(t, db, requestID, provider.Connections[0].Credentials[0].ID, outcomeService.RuntimeStatus().SnapshotID, "success", 1)
+		var fact entity.CallRecord
+		if err := db.First(&fact, "request_id = ?", requestID).Error; err != nil || fact.InputTokens == nil || fact.OutputTokens == nil || fact.Status != "success" {
+			t.Fatalf("terminal outcome changed native status/usage: %+v %v", fact, err)
+		}
 	}
 
 }

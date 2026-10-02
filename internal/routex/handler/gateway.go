@@ -74,7 +74,7 @@ func (ctrl *Ctrl) GatewayChat(c *fox.Context) {
 	ctx, cancel := context.WithTimeout(service.WithGatewayClientIP(c.Request.Context(), clientIP), 5*time.Minute)
 	defer cancel()
 	result, callErr := ctrl.service.GatewayChat(ctx, gatewayBearer(c.Request), body, requestID)
-	var usage gatewayUsage
+	usage := observeGatewayUsage(service.GatewayUsage{})
 	defer func() { ctrl.recordGatewayCall(ctx, requestID, started, result, usage, callErr) }()
 	if result != nil && result.Response != nil {
 		defer func() { _ = result.Response.Body.Close() }()
@@ -87,7 +87,7 @@ func (ctrl *Ctrl) GatewayChat(c *fox.Context) {
 		c.Header("Content-Type", "text/event-stream")
 		c.Header("X-Accel-Buffering", "no")
 		c.Status(http.StatusOK)
-		usage, callErr = proxyGatewayStream(ctx, c.Writer, result.Response.Body, result.ModelName)
+		usage, callErr = proxyGatewayStream(ctx, c.Writer, result.Response.Body, result.ModelName, expectedChatChoices(body))
 		return
 	}
 	response, err := io.ReadAll(io.LimitReader(result.Response.Body, gatewayResponseLimit+1))
@@ -101,11 +101,11 @@ func (ctrl *Ctrl) GatewayChat(c *fox.Context) {
 		writeGatewayError(c, callErr)
 		return
 	}
-	usage = parseGatewayUsage(response)
+	usage = parseGatewayUsage(response, expectedChatChoices(body))
 	c.Data(http.StatusOK, "application/json", response)
 }
 
-func (ctrl *Ctrl) recordGatewayCall(ctx context.Context, requestID string, started time.Time, result *service.GatewayResult, usage gatewayUsage, callErr error) {
+func (ctrl *Ctrl) recordGatewayCall(ctx context.Context, requestID string, started time.Time, result *service.GatewayResult, usage gatewayObservation, callErr error) {
 	if result == nil || (result.UserID == "" && result.ProjectID == "") {
 		return
 	}
@@ -127,7 +127,7 @@ func (ctrl *Ctrl) recordGatewayCall(ctx context.Context, requestID string, start
 		status, code = "error", "upstream_timeout"
 	}
 	completed := time.Now().UTC()
-	usage = usage.WithExpectedInputMedia(result.ImageInputs+result.PDFInputs > 0)
+	usage.GatewayUsage = usage.WithExpectedInputMedia(result.ImageInputs+result.PDFInputs > 0)
 	noWork := result.NoUpstreamWork()
 	if noWork {
 		zero := int64(0)
@@ -158,7 +158,8 @@ func (ctrl *Ctrl) recordGatewayCall(ctx context.Context, requestID string, start
 			ID: result.AttemptID, ProviderID: result.ProviderID, ProviderName: result.ProviderName,
 			ProviderModelID: result.ProviderModelID, ConnectionID: result.ConnectionID,
 			CredentialID: result.CredentialID, SnapshotID: result.SnapshotID,
-			ConnectionName: result.ConnectionName, UpstreamModelName: result.UpstreamModelName,
+			NativeCompletionEvidence: usage.NativeCompletionEvidence,
+			ConnectionName:           result.ConnectionName, UpstreamModelName: result.UpstreamModelName,
 			AttemptNumber: len(fact.Attempts) + 1, Status: status, FailureClass: failureClass,
 			WorkEvidence: workEvidence, OutputStarted: status == "success" || usage.OutputStarted, FinalUsageKnown: usage.Complete,
 			EvidenceCode: evidenceCode, StartedAt: result.AttemptStartedAt, CompletedAt: completed,
@@ -174,10 +175,12 @@ func (ctrl *Ctrl) recordGatewayCall(ctx context.Context, requestID string, start
 	}
 }
 
-type gatewayUsage = service.GatewayUsage
-
-func parseGatewayUsage(raw []byte) gatewayUsage {
-	return service.ParseOpenAIUsage(raw, false)
+func parseGatewayUsage(raw []byte, expected ...int) gatewayObservation {
+	observation := observeGatewayUsage(service.ParseOpenAIUsage(raw, false))
+	state := chatCompletionObservation{expected: chatChoiceCount(expected)}
+	state.observe(raw, false)
+	observation.NativeCompletionEvidence = state.evidence()
+	return observation
 }
 
 func prepareGateway(c *fox.Context) (string, error) {
@@ -251,11 +254,12 @@ func rewriteGatewayModel(raw []byte, model string) ([]byte, error) {
 	return json.Marshal(data)
 }
 
-func proxyGatewayStream(ctx context.Context, writer http.ResponseWriter, body io.Reader, model string) (gatewayUsage, error) {
+func proxyGatewayStream(ctx context.Context, writer http.ResponseWriter, body io.Reader, model string, expected ...int) (gatewayObservation, error) {
 	scanner := bufio.NewScanner(body)
 	scanner.Buffer(make([]byte, 4096), gatewayEventLimit)
+	completion := chatCompletionObservation{expected: chatChoiceCount(expected)}
 	var event bytes.Buffer
-	var usage gatewayUsage
+	usage := observeGatewayUsage(service.GatewayUsage{})
 	write := func(data []byte) error {
 		controller := http.NewResponseController(writer)
 		if err := controller.SetWriteDeadline(time.Now().Add(30 * time.Second)); err != nil && !errors.Is(err, http.ErrNotSupported) {
@@ -270,7 +274,7 @@ func proxyGatewayStream(ctx context.Context, writer http.ResponseWriter, body io
 		}
 		return controller.Flush()
 	}
-	failed := func() (gatewayUsage, error) {
+	failed := func() (gatewayObservation, error) {
 		if ctx.Err() != nil {
 			return usage, ctx.Err()
 		}
@@ -297,6 +301,7 @@ func proxyGatewayStream(ctx context.Context, writer http.ResponseWriter, body io
 			}
 			if len(data) != 0 {
 				if !terminal {
+					completion.observe(bytes.TrimSpace(bytes.TrimPrefix(data, []byte("data: "))), true)
 					observed := service.ParseOpenAIUsage(bytes.TrimSpace(bytes.TrimPrefix(data, []byte("data: "))), true)
 					unsupported := usage.Unsupported || observed.Unsupported
 					dimensions := append([]string{}, usage.UnsupportedDimensions...)
@@ -306,10 +311,13 @@ func proxyGatewayStream(ctx context.Context, writer http.ResponseWriter, body io
 						}
 					}
 					if observed.Present {
-						usage = observed
+						usage.GatewayUsage = observed
 					}
 					usage.Unsupported = unsupported
 					usage.UnsupportedDimensions = dimensions
+				}
+				if terminal {
+					usage.NativeCompletionEvidence = completion.evidence()
 				}
 				if err := write(data); err != nil {
 					return usage, err

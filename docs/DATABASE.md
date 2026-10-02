@@ -70,3 +70,20 @@ test-only; production migration remains GORM-only.
 The complete PostgreSQL/MySQL matrix passed under race detection (Handler
 410.182 seconds, Service 5.252 seconds), including the new migration and
 attribution lifecycle; owned Compose resources were removed.
+
+## Native completion evidence (version 33)
+
+Frozen version 33 adds `call_attempts.native_completion_evidence` as a non-null
+`VARCHAR(20)` defaulting to `unknown`. Targeted GORM column/constraint operations
+use a standard bounded IN check for unknown/completed/handoff/blocked/incomplete.
+Services enforce the exact case-sensitive enum independently of supported database
+collations. Existing attempt IDs, Credential/publication attribution and indexes
+remain intact; old success rows remain unknown. No live foreign key or new index
+is required.
+
+Acceptance covers empty creation, existing-data upgrades, repeat/concurrent
+startup, partially applied column/check repair, portable constraints, immutable
+RecordCall/replay and DTO omission on both databases. Final-source focused
+acceptance passed in 140.280 seconds; the complete matrix passed under race
+detection (Handler 415.087 seconds, Service 5.164 seconds). Owned Compose resources
+were removed. Earlier V32 evidence remains separate.

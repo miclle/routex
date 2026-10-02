@@ -161,7 +161,7 @@ The binary capability count is 8 completed, 19 partially completed, and 3 not st
 | F08 | Personal and Project Key lifecycle | Completed | One-time delivery, confirmation, editing, rotation, revocation, expiration, scope, and history are implemented with controlled dual-database evidence. |
 | F09 | Key Token, money, RPM, TPM, concurrency, and IP restrictions | Completed | Personal, Project, and Key admission policies are enforced in the native gateway for the documented single-node architecture. Multi-node enforcement remains a separate release-architecture gate. |
 | F10 | Offboarding, inventory, handover, and emergency disable | Partially completed | Transactional local-account offboarding and continuity workflows exist; external-identity and complete enterprise continuity behavior remain open. |
-| F11 | Provider, Connection, Credential, discovery, and rotation | Partially completed | The management workspace, encrypted credentials, controlled verification, and activation boundaries exist; explicit provider-model capacity attestations, credential-pool filtering/verification timestamps, reviewed name/priority editing, reviewed deletion, staged replacement preparation, and immutable per-attempt Credential/publication attribution are available; evidence-gated predecessor retirement, real-provider acceptance, and complete pool operations remain open. |
+| F11 | Provider, Connection, Credential, discovery, and rotation | Partially completed | The management workspace, encrypted credentials, controlled verification, and activation boundaries exist; explicit provider-model capacity attestations, credential-pool filtering/verification timestamps, reviewed name/priority editing, reviewed deletion, staged replacement preparation, immutable per-attempt Credential/publication attribution, and parser-owned native completion evidence are available; evidence-gated predecessor retirement, real-provider acceptance, and complete pool operations remain open. |
 | F12 | Model catalog, names, bindings, weights, and catalog assistance | Partially completed | Stable models, renames, bindings, weights, grants, and availability controls exist; complete public-catalog assistance and final routing acceptance remain open. |
 | F13 | Four native protocols, streaming, health, retries, and failover | Partially completed | Chat Completions, Responses, Messages, and Gemini now use bounded replay-safe same-protocol failover with process-local health, one admission/settlement, durable ordered diagnostics, and no retry after a usable response. Real-provider and measured multi-node health acceptance remain open. |
 | F14 | Managed egress and staged network diagnostics | Partially completed | Direct, default, SOCKS5, verified CONNECT, endpoint-bound saved authentication, complete-tunnel proxy-address fallback, and diagnostics exist. External proxy and production performance acceptance remain open. |
@@ -1397,4 +1397,44 @@ recovery and immutable SQL replay without a fabricated publication.
 
 F11 remains partial. Credential/configuration attribution alone does not prove
 native inference completion or current eligibility. Parser-owned completion proof,
-scoped runtime readback and evidence-gated planned retirement remain separate work.
+scoped runtime readback and evidence-gated planned retirement remain separate work
+at this attribution checkpoint. The subsequent package below delivers native
+completion evidence.
+
+### Parser-owned native completion evidence
+
+Independent parser/runtime and persistence/schema owners implemented an
+internal attempt marker with exact unknown/completed/handoff/blocked/incomplete
+values and frozen GORM V33. Legacy database/journal history remains unknown
+independently of status and usage. Native observations remain separate from
+GatewayUsage; no forwarding, quota, public DTO or CSV behavior is changed.
+
+Chat requires complete bounded requested-choice coverage and a recognized native
+finish; Responses and Messages require their native terminal; Gemini requires
+clean EOF. Tool handoff, blocking and output limits are distinct. Weak/unsupported
+shapes stay unknown. A terminal observation never overrides cancellation/error
+status or proves scoped current eligibility. Mandatory check found two lint
+issues, corrected without changing behavior. Native review identified Responses
+status-only promotion of refusal/tool handoff. Bounded terminal-output observation
+and ordinary/SSE regressions now distinguish those outcomes, weak/future/empty/
+nonterminal and contradictory outputs. The focused re-review closed the finding;
+independent persistence review also found no remaining issue.
+
+Final focused race tests passed (Service 4.486 seconds, Handler 2.994 seconds).
+Full format/check/test passed with 619 Vitest cases in 51 files, Go race/unit,
+four Node checks, development lifecycle and production assets. Final-source
+focused PostgreSQL/MySQL V33 migration/persistence and corrected Responses
+acceptance passed in 140.280 seconds; owned Compose resources were removed.
+An earlier seven-lifecycle run passed in 146.843 seconds on the prior parser copy;
+it does not accept the correction. The final complete PostgreSQL/MySQL matrix
+passed under race detection (Handler 415.087 seconds, Service 5.164 seconds),
+including all native fixtures, durable replay and migration constraints. Owned
+Compose resources were removed. Local Markdown references and whitespace
+checks passed.
+
+F11 remains partial. Scoped readiness and a separate durable receipt for planned
+predecessor retirement remain separate packages. The existing Personal/Project
+Key retirement gates still count generic successful calls; a separate next fix
+will require successful terminal completed attempts while preserving historical
+rotation replay and current ownership/scope/expiry checks. This package does not
+claim that gate is hardened or that F11 is fully accepted.

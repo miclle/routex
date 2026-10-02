@@ -91,7 +91,7 @@ func TestIdentityIntegration(t *testing.T) {
 				t.Fatal(err)
 			}
 			var versions int64
-			if err := db.Table("schema_migrations").Count(&versions).Error; err != nil || versions != 32 {
+			if err := db.Table("schema_migrations").Count(&versions).Error; err != nil || versions != 33 {
 				t.Fatalf("migration ledger: %d, %v", versions, err)
 			}
 			var preserved entity.Example
@@ -122,6 +122,7 @@ func TestIdentityIntegration(t *testing.T) {
 			testProviderQualityMigration(t, db)
 			testCredentialReplacementMigration(t, db)
 			testCallCredentialAttributionMigration(t, db)
+			testCallNativeCompletionMigration(t, db)
 			orphan := entity.Session{ID: "ses_orphan", UserID: "usr_missing", TokenHash: strings.Repeat("a", 64), ExpiresAt: time.Now().Add(time.Hour)}
 			if err := db.Create(&orphan).Error; err == nil {
 				t.Fatal("orphan session must be rejected by database FK")
@@ -133,7 +134,7 @@ func TestIdentityIntegration(t *testing.T) {
 			}
 			// Reapply the later additive attempt diagnostics after reconstructing the
 			// version 5 table, matching an interruption before either ledger advanced.
-			if err := db.Table("schema_migrations").Where("version IN ?", []int{5, 25, 30, 32}).Delete(&struct{}{}).Error; err != nil {
+			if err := db.Table("schema_migrations").Where("version IN ?", []int{5, 25, 30, 32, 33}).Delete(&struct{}{}).Error; err != nil {
 				t.Fatal(err)
 			}
 			if err := database.Migrate(context.Background(), db); err != nil {
@@ -152,7 +153,7 @@ func TestIdentityIntegration(t *testing.T) {
 			for _, test := range []struct {
 				name string
 				run  func(*testing.T, *gorm.DB)
-			}{{"catalog", testCatalogLifecycle}, {"credential_metadata", testCredentialMetadataLifecycle}, {"credential_delete", testCredentialDeleteLifecycle}, {"credential_replacements", testCredentialReplacementLifecycle}, {"keys", testKeyLifecycle}, {"gateway", testGatewayLifecycle}, {"call_credential_attribution", testCallCredentialAttributionLifecycle}, {"calls", testCallLifecycle}, {"call_export", testCallExportLifecycle}, {"account", testAccountLifecycle}, {"governance", testGovernanceLifecycle}, {"runtime", testRuntimeLifecycle}, {"system_status", testSystemStatusLifecycle}, {"resources", testResourceLifecycle}, {"recorder", testRecorderLifecycle}, {"project_keys", testProjectKeyLifecycle}, {"personal_key_rotation", testPersonalKeyRotationLifecycle}, {"offboarding", testOffboardingLifecycle}, {"pricing", testPricingLifecycle}, {"project_requests", testProjectRequestLifecycle}, {"call_pricing", testCallPricingLifecycle}, {"price_import", testPriceImportLifecycle}, {"resource_limits", testResourceLimitLifecycle}, {"price_spreadsheet", testPriceSpreadsheetLifecycle}, {"usage", testUsageLifecycle}, {"mfa", testMFALifecycle}, {"responses", testResponsesLifecycle}, {"messages", testMessagesLifecycle}, {"gemini", testGeminiLifecycle}, {"site", testSiteLifecycle}, {"audit", testAuditLifecycle}, {"egress", testEgressLifecycle}, {"quota", testQuotaLifecycle}, {"attachment_quota_settlement", testGatewayAttachmentQuotaSettlementLifecycle}, {"smtp", testSMTPLifecycle}, {"storage", testStorageLifecycle}, {"notification_http", testNotificationHTTPLifecycle}, {"provider_quality_http", testProviderQualityHTTPLifecycle}} {
+			}{{"catalog", testCatalogLifecycle}, {"credential_metadata", testCredentialMetadataLifecycle}, {"credential_delete", testCredentialDeleteLifecycle}, {"credential_replacements", testCredentialReplacementLifecycle}, {"keys", testKeyLifecycle}, {"gateway", testGatewayLifecycle}, {"call_native_completion", testCallNativeCompletionLifecycle}, {"call_credential_attribution", testCallCredentialAttributionLifecycle}, {"calls", testCallLifecycle}, {"call_export", testCallExportLifecycle}, {"account", testAccountLifecycle}, {"governance", testGovernanceLifecycle}, {"runtime", testRuntimeLifecycle}, {"system_status", testSystemStatusLifecycle}, {"resources", testResourceLifecycle}, {"recorder", testRecorderLifecycle}, {"project_keys", testProjectKeyLifecycle}, {"personal_key_rotation", testPersonalKeyRotationLifecycle}, {"offboarding", testOffboardingLifecycle}, {"pricing", testPricingLifecycle}, {"project_requests", testProjectRequestLifecycle}, {"call_pricing", testCallPricingLifecycle}, {"price_import", testPriceImportLifecycle}, {"resource_limits", testResourceLimitLifecycle}, {"price_spreadsheet", testPriceSpreadsheetLifecycle}, {"usage", testUsageLifecycle}, {"mfa", testMFALifecycle}, {"responses", testResponsesLifecycle}, {"messages", testMessagesLifecycle}, {"gemini", testGeminiLifecycle}, {"site", testSiteLifecycle}, {"audit", testAuditLifecycle}, {"egress", testEgressLifecycle}, {"quota", testQuotaLifecycle}, {"attachment_quota_settlement", testGatewayAttachmentQuotaSettlementLifecycle}, {"smtp", testSMTPLifecycle}, {"storage", testStorageLifecycle}, {"notification_http", testNotificationHTTPLifecycle}, {"provider_quality_http", testProviderQualityHTTPLifecycle}} {
 				reset()
 				// Schema-reset fixtures must not reuse driver statement caches from
 				// earlier schema generations. Keep the production connection setup.

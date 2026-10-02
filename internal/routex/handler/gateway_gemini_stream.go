@@ -15,13 +15,15 @@ import (
 )
 
 type geminiStreamState struct {
-	expected       int
-	stopped        map[int]bool
-	blocked        bool
-	candidatesSeen bool
-	usage          gatewayUsage
-	usageAfterStop bool
-	dimensions     []string
+	expected              int
+	stopped               map[int]bool
+	blocked               bool
+	candidatesSeen        bool
+	usage                 service.GatewayUsage
+	usageAfterStop        bool
+	dimensions            []string
+	completionCandidates  map[int]geminiCompletionCandidate
+	completionBlockReason string
 }
 
 func (state *geminiStreamState) finished() bool {
@@ -63,6 +65,7 @@ func (state *geminiStreamState) object(raw []byte, model, requestID string) ([]b
 				state.stopped[index] = true
 			}
 		}
+		state.observeCandidateCompletion(candidate, index, finish)
 	}
 	if len(candidates) == 0 {
 		var feedback map[string]json.RawMessage
@@ -73,6 +76,7 @@ func (state *geminiStreamState) object(raw []byte, model, requestID string) ([]b
 					return nil, invalidGatewayResponse()
 				}
 				state.blocked = true
+				state.completionBlockReason = reason
 			}
 		}
 	}
@@ -113,14 +117,17 @@ func (state *geminiStreamState) object(raw []byte, model, requestID string) ([]b
 	// No mutation of opaque parts, thought signatures, function JSON or native IDs.
 	return json.Marshal(object)
 }
-func (state *geminiStreamState) result(complete bool) gatewayUsage {
-	usage := state.usage
+func (state *geminiStreamState) result(complete bool) gatewayObservation {
+	usage := observeGatewayUsage(state.usage)
 	usage.Complete = complete && state.finished() && state.usageAfterStop
+	if complete {
+		usage.NativeCompletionEvidence = state.completionEvidence()
+	}
 	usage.UnsupportedDimensions = state.dimensions
 	usage.Unsupported = len(state.dimensions) > 0
 	return usage
 }
-func proxyGeminiStream(ctx context.Context, writer http.ResponseWriter, body io.Reader, model, requestID string, candidates int) (gatewayUsage, error) {
+func proxyGeminiStream(ctx context.Context, writer http.ResponseWriter, body io.Reader, model, requestID string, candidates int) (gatewayObservation, error) {
 	scanner := bufio.NewScanner(body)
 	scanner.Buffer(make([]byte, 4096), gatewayEventLimit)
 	state := geminiStreamState{expected: candidates}
@@ -140,12 +147,12 @@ func proxyGeminiStream(ctx context.Context, writer http.ResponseWriter, body io.
 		}
 		return control.Flush()
 	}
-	result := func(complete bool) gatewayUsage {
+	result := func(complete bool) gatewayObservation {
 		usage := state.result(complete)
 		usage.OutputStarted = outputStarted
 		return usage
 	}
-	fail := func() (gatewayUsage, error) {
+	fail := func() (gatewayObservation, error) {
 		if ctx.Err() != nil {
 			return result(false), ctx.Err()
 		}

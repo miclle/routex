@@ -107,7 +107,7 @@ func (ctrl *Ctrl) GatewayMessages(c *fox.Context) {
 	ctx, cancel := context.WithTimeout(service.WithGatewayClientIP(c.Request.Context(), clientIP), 5*time.Minute)
 	defer cancel()
 	result, callErr := ctrl.service.GatewayMessages(ctx, bearer, body, requestID, headers)
-	var usage gatewayUsage
+	usage := observeGatewayUsage(service.GatewayUsage{})
 	defer func() { ctrl.recordGatewayCall(ctx, requestID, started, result, usage, callErr) }()
 	if result != nil && result.Response != nil {
 		defer func() { _ = result.Response.Body.Close() }()
@@ -134,7 +134,8 @@ func (ctrl *Ctrl) GatewayMessages(c *fox.Context) {
 		writeMessagesError(c, callErr, requestID)
 		return
 	}
-	usage = service.ParseMessagesUsage(encoded, true)
+	usage = observeGatewayUsage(service.ParseMessagesUsage(encoded, true))
+	usage.NativeCompletionEvidence = observedMessagesCompletion(encoded)
 	c.Data(result.Response.StatusCode, "application/json", encoded)
 }
 func rewriteMessagesObject(raw []byte, model string, final bool) ([]byte, error) {

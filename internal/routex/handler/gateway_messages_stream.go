@@ -21,6 +21,7 @@ type messagesStreamState struct {
 	usage          service.MessagesStreamUsage
 	unsupported    bool
 	unknown        bool
+	completion     string
 }
 
 func (state *messagesStreamState) event(raw []byte, model, requestID string) ([]byte, bool, error) {
@@ -115,6 +116,7 @@ func (state *messagesStreamState) event(raw []byte, model, requestID string) ([]
 			return nil, false, invalidGatewayResponse()
 		}
 		state.final = final
+		state.completion = messagesCompletionEvidence(delta["stop_reason"])
 	case "message_stop":
 		if !state.started || !state.final || len(state.blocks) != 0 {
 			return nil, false, invalidGatewayResponse()
@@ -145,12 +147,12 @@ func (state *messagesStreamState) event(raw []byte, model, requestID string) ([]
 	}
 	return out.Bytes(), terminal, nil
 }
-func proxyMessagesStream(ctx context.Context, writer http.ResponseWriter, body io.Reader, model, requestID string) (gatewayUsage, error) {
+func proxyMessagesStream(ctx context.Context, writer http.ResponseWriter, body io.Reader, model, requestID string) (gatewayObservation, error) {
 	scanner := bufio.NewScanner(body)
 	scanner.Buffer(make([]byte, 4096), gatewayEventLimit)
 	state := messagesStreamState{}
 	var event bytes.Buffer
-	var usage gatewayUsage
+	usage := observeGatewayUsage(service.GatewayUsage{})
 	write := func(raw []byte) error {
 		control := http.NewResponseController(writer)
 		if err := control.SetWriteDeadline(time.Now().Add(30 * time.Second)); err != nil && !errors.Is(err, http.ErrNotSupported) {
@@ -165,7 +167,7 @@ func proxyMessagesStream(ctx context.Context, writer http.ResponseWriter, body i
 		}
 		return control.Flush()
 	}
-	failed := func() (gatewayUsage, error) {
+	failed := func() (gatewayObservation, error) {
 		if ctx.Err() != nil {
 			return usage, ctx.Err()
 		}
@@ -193,7 +195,7 @@ func proxyMessagesStream(ctx context.Context, writer http.ResponseWriter, body i
 		if err != nil && len(encoded) == 0 {
 			return failed()
 		}
-		usage = state.usage.Usage(terminal && err == nil)
+		usage.GatewayUsage = state.usage.Usage(terminal && err == nil)
 		if state.unknown {
 			usage.Unsupported = true
 			usage.UnsupportedDimensions = append(usage.UnsupportedDimensions, "request_condition")
@@ -201,6 +203,9 @@ func proxyMessagesStream(ctx context.Context, writer http.ResponseWriter, body i
 		if state.unsupported {
 			usage.Unsupported = true
 			usage.UnsupportedDimensions = append(usage.UnsupportedDimensions, "external_tool")
+		}
+		if terminal && err == nil {
+			usage.NativeCompletionEvidence = state.completion
 		}
 		if writeErr := write(encoded); writeErr != nil {
 			return usage, writeErr

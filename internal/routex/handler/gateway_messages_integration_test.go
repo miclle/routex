@@ -288,6 +288,13 @@ func testMessagesLifecycle(t *testing.T, db *gorm.DB) {
 		if err := db.Model(&entity.CallRecord{}).Where("request_id = ?", requestID).Count(&count).Error; err != nil || count != 1 {
 			t.Fatal("duplicated call fact")
 		}
+		if item.attempts > 0 {
+			completion := "unknown"
+			if item.response == ordinary || item.response == stream || item.response == canceled[1] {
+				completion = "completed"
+			}
+			assertStoredNativeCompletion(t, db, requestID, completion)
+		}
 		assertNativeAttemptAttribution(t, db, requestID, provider.Connections[0].Credentials[0].ID, expectedSnapshots[requestID], item.status, int(item.attempts))
 		if err := db.Model(&entity.CallAttempt{}).Where("request_id = ?", requestID).Count(&count).Error; err != nil || count != item.attempts {
 			t.Fatalf("attempt count %d expected %d", count, item.attempts)

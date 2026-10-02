@@ -1,10 +1,10 @@
 # Current Work Handoff
 
-- **Status:** implementation active; F11 replacement preparation pushed; per-attempt attribution checked; native completion evidence next
-- **Updated:** 2026-10-02T14:31:00+08:00
+- **Status:** implementation active; F11 attribution pushed; native completion evidence checked; Key proof hardening next
+- **Updated:** 2026-10-02T15:14:00+08:00
 - **Repository / branch:** RouteX / `main`
-- **Previous checked source baseline:** `16c0cff6098390fdd6f7df0a9160901859cfad31`, pushed and read back from `origin/main`
-- **Current owner:** coordinating task; independent persistence/schema and native-parser owners prepared for native completion evidence
+- **Previous checked source baseline:** `c7f80d9f30dcd5b7eed66374a6eb59fc3ef5913b`, pushed and read back from `origin/main`
+- **Current owner:** coordinating task; independent persistence/schema and native-parser owners preparing the next scoped Key proof hardening
 - **Next owner:** current task continues the resumed goal
 - **Transport:** identify this checked delivery with `git log -1 -- docs/current-work-handoff.md` and independently verify its upstream
 - **Coordination plan:** `~/dotfiles/projects/routex/implementation-plan.md`; synchronize separately and preserve unrelated changes
@@ -93,7 +93,7 @@ dual-database matrix; all required local checks passed before this delivery.
 | Embedded browser | English/Chinese original table/menu, historical lineage, preparation fields/state and cancellation; no browser write/upstream call; English restored and fixture removed |
 | Review and docs | Independent focused review: no actionable finding; whitespace and 68 local Markdown references passed |
 
-## Latest checked package: immutable per-attempt attribution
+## Previous checked package: immutable per-attempt attribution
 
 The persistence owner adds bounded optional CredentialID/SnapshotID to internal
 attempt facts and exact RecordCall copies, with frozen GORM V32 and a historical
@@ -131,6 +131,39 @@ GolangCI-Lint [36970977651](https://github.com/miclle/routex/actions/runs/369709
 The CI includes backend/frontend checks, dual databases, real-process session
 lifecycle and build artifacts; it does not cover the subsequent V32 attribution
 package. Inspect that package's exact remote checks separately.
+
+## Latest checked package: parser-owned native completion evidence
+
+The persistence owner added an internal `NativeCompletionEvidence` attempt field
+with exact values unknown/completed/handoff/blocked/incomplete, frozen GORM V33,
+legacy normalization and real-database migration/replay/privacy tests. The native
+parser owner added an observation separate from token usage for Chat, Responses,
+Messages and Gemini, preserving forwarding, native finality, quota and public DTOs.
+Weak or unsupported shapes remain unknown. Completion is recorded only at native
+terminal events or clean Gemini EOF; successful HTTP, usage, discovery and health
+are never fallback proof. Chat must account for every requested bounded choice.
+
+Initial focused tests passed, then mandatory check exposed two lint findings,
+corrected without changing behavior. Native review found Responses status-only
+promotion of refusal/tool handoff. Bounded terminal-output observation now keeps
+refusal blocked, function/custom-tool handoff distinct, recognized normal text
+completed, and weak/future/empty/nonterminal or contradictory output unknown.
+Ordinary/SSE regressions and real outcome fixtures preserve forwarding/error/
+usage semantics. Focused re-review closed the finding with no remaining issue.
+
+Final focused race tests passed (Service 4.486 seconds, Handler 2.994 seconds),
+staticcheck/lint passed, and full format/check/test passed with 619 Vitest cases
+in 51 files, Go race/unit, four Node checks, development lifecycle and production
+assets. Final-source focused PostgreSQL/MySQL migration/persistence/Responses
+acceptance passed in 140.280 seconds; owned resources were removed. The earlier
+seven-lifecycle run passed in 146.843 seconds on the prior parser copy and is
+separate evidence. The final complete PostgreSQL/MySQL matrix passed (Handler 415.087 seconds,
+Service 5.164 seconds), including native fixtures, replay and migration
+constraints. Owned Compose resources were removed. Thirty local Markdown
+references and whitespace checks passed. No scoped
+retirement-readiness endpoint or predecessor retirement is implemented. A later
+separate receipt must distinguish committed retirement from current application
+and avoid disabling a source that was subsequently enabled.
 
 ## Overall status and other partial work
 
@@ -195,18 +228,19 @@ be reported separately.
 
 ## Working tree and transfer
 
-- Replacement preparation was pushed as `16c0cff`, with its exact remote SHA read back and a clean RouteX tree before per-attempt attribution began. The following checked package delivers V32 attribution, runtime recording, compatibility checkpoint repair, tests and directly associated documents; identify its commit with the transport command above. Metadata/deletion was previously pushed as `1d3e430`.
-- Dotfiles baseline was `3615f848b9dca4ef1d18c981c93c3b797146e37e`, pushed to `origin/main`; stage only the RouteX coordination record for later updates.
+- Replacement preparation was pushed as `16c0cff`, with its exact remote SHA read back and a clean RouteX tree before per-attempt attribution began. V32 attribution and the compatibility checkpoint were pushed as `c7f80d9` with exact remote main readback. The following checked package delivers V33 native completion observation, migration, tests and documents; identify its commit with the transport command above. Metadata/deletion was previously pushed as `1d3e430`.
+- Dotfiles baseline was `0cc0644cf51873f61febd71f7a115c3420310755`, pushed to `origin/main`; stage only the RouteX coordination record for later updates.
 - Preserve unrelated modified dotfiles `zsh/.zshrc`; never stage, overwrite or discard it.
 - Fetch both repositories' `main` branches to transfer checked commits. Ignored configuration, databases, processes and temporary logs do not transfer; recreate them from `docs/DEVELOPMENT.md`.
 
 ## Next actions
 
-1. Commit/push the checked V32 package, read back its exact remote SHA and inspect its own CI; earlier replacement CI is separate evidence.
-2. Add parser-owned native completion evidence with bounded unknown/completed/handoff/blocked/incomplete values. The persistence owner implements frozen V33 and exact storage/legacy normalization; the runtime owner implements native ordinary/SSE observations without changing forwarding, status or usage contracts. Weak/unsupported shapes and legacy history stay unknown.
-3. Validate native terminal requirements, multiple Chat choices, clean Gemini EOF, cancellation/transport failure and journal replay, then run mandatory check/test/matrix before the next commit/push.
-4. Follow with scoped current-configuration readback before a server-gated planned retirement operation. A separate durable retirement receipt must reconcile historical commit and current application after source disable changes publication; retries must not re-disable a re-enabled source. HTTP/call success can include empty Chat payloads or Gemini prompt blocks; discovery/global readiness/usage completeness cannot authorize retirement. Emergency disable stays independent.
-5. Real-provider, SMTP, IdP/LDAP, Vault, S3, price-source and production acceptance require supplied environments and resources; do not search other accounts for credentials.
+1. V32 was pushed as `c7f80d9f30dcd5b7eed66374a6eb59fc3ef5913b`; exact remote main was read back and the tree was clean before V33. Inspect its CI [36973994747](https://github.com/miclle/routex/actions/runs/36973994747), passed with backend/frontend, dual databases, independent-process session lifecycle and build artifacts. Its Actionlint [36973994777](https://github.com/miclle/routex/actions/runs/36973994777) and GolangCI-Lint [36973994746](https://github.com/miclle/routex/actions/runs/36973994746) passed. Earlier replacement CI is separate evidence.
+2. Commit/push the checked V33 native completion package and inspect its own exact remote CI; read back the main SHA. Its persistence owner delivered frozen V33 and exact storage/legacy normalization; its runtime owner delivered native ordinary/SSE observations without changing forwarding, status or usage contracts. Weak/unsupported shapes and legacy history stay unknown.
+3. Native terminal, multiple Chat choices, clean Gemini EOF, cancellation/transport failure and journal replay are checked for V33. Preserve them in all later changes; mandatory check/test/matrix must pass before each subsequent code commit/push.
+4. First tighten existing Personal/Project Key planned-rotation gates in a separate checked fix. They currently count generic successful logical calls, and their old controlled fixtures use empty Chat choices that V33 correctly marks unknown. Require a successful terminal completed attempt for the exact replacement Key/owner and creation boundary; preserve historical idempotent rotations and all existing authorization/scope/expiry checks. Fetch and compare exact marker/status values in Go after portable GORM filtering.
+5. Follow with scoped current-configuration readback before a server-gated planned retirement operation. A separate durable retirement receipt must reconcile historical commit and current application after source disable changes publication; retries must not re-disable a re-enabled source. HTTP/call success can include empty Chat payloads or Gemini prompt blocks; discovery/global readiness/usage completeness cannot authorize retirement. Emergency disable stays independent.
+6. Real-provider, SMTP, IdP/LDAP, Vault, S3, price-source and production acceptance require supplied environments and resources; do not search other accounts for credentials.
 
 ## Files to read first
 
