@@ -195,39 +195,7 @@ func quotaNotificationRecord(row quotaInboxRow) NotificationRecord {
 	}
 }
 
-type quotaOperationalAuthority struct {
-	RoleID           string
-	PermissionRoleID string
-	Permission       string
-	AssignmentRoleID string
-	AssignmentUserID string
-}
-
-// Operational history is visible only through a current exact permission
-// binding. SQL collation must not turn a corrupt alias into recipient authority.
+// Operational history retains its current permission boundary.
 func quotaInboxOperationalAuthority(tx *gorm.DB, actor entity.User) (bool, error) {
-	builtin := "rol_member"
-	if actor.Role == entity.RoleAdmin {
-		builtin = "rol_admin"
-	}
-	builtinScope := tx.Where(database.ExactText(tx, clause.Column{Table: "role", Name: "id"}, builtin))
-	customScope := tx.Where(database.ExactText(tx, clause.Column{Table: "assignment", Name: "user_id"}, actor.ID)).
-		Where(database.ExactTextColumns(tx, clause.Column{Table: "assignment", Name: "role_id"}, clause.Column{Table: "role", Name: "id"}))
-	var rows []quotaOperationalAuthority
-	err := tx.Table("role_permissions AS permission").
-		Select("role.id AS role_id, permission.role_id AS permission_role_id, permission.permission, assignment.role_id AS assignment_role_id, assignment.user_id AS assignment_user_id").
-		Joins("JOIN roles AS role ON role.id = permission.role_id").
-		Joins("LEFT JOIN user_roles AS assignment ON assignment.role_id = role.id AND assignment.user_id = ?", actor.ID).
-		Where(database.ExactTextColumns(tx, clause.Column{Table: "role", Name: "id"}, clause.Column{Table: "permission", Name: "role_id"})).
-		Where(database.ExactText(tx, clause.Column{Table: "permission", Name: "permission"}, "system.read")).
-		Where(tx.Where(builtinScope).Or(customScope)).Limit(1).Scan(&rows).Error
-	if err != nil {
-		return false, err
-	}
-	if len(rows) == 0 {
-		return false, nil
-	}
-	row := rows[0]
-	return row.Permission == "system.read" && row.PermissionRoleID == row.RoleID &&
-		(row.RoleID == builtin || row.AssignmentUserID == actor.ID && row.AssignmentRoleID == row.RoleID), nil
+	return exactGovernancePermission(tx, actor, "system.read")
 }

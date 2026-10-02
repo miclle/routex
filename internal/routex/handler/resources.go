@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"encoding/json"
 	"github.com/fox-gonic/fox"
 	apperrors "github.com/miclle/routex/internal/routex/errors"
 	"github.com/miclle/routex/internal/routex/service"
@@ -26,14 +27,15 @@ type TeamResponse struct {
 	ModelIDs    []string                 `json:"model_ids"`
 }
 type ProjectResponse struct {
-	ID          string                   `json:"id"`
-	Name        string                   `json:"name"`
-	Description string                   `json:"description"`
-	Status      string                   `json:"status"`
-	CreatorID   string                   `json:"creator_id"`
-	CreatedAt   time.Time                `json:"created_at"`
-	Managers    []ResourcePersonResponse `json:"managers"`
-	ModelIDs    []string                 `json:"model_ids"`
+	RequestWorkspaceOnly bool                     `json:"request_workspace_only,omitempty"`
+	ID                   string                   `json:"id"`
+	Name                 string                   `json:"name"`
+	Description          string                   `json:"description"`
+	Status               string                   `json:"status"`
+	CreatorID            string                   `json:"creator_id"`
+	CreatedAt            time.Time                `json:"created_at"`
+	Managers             []ResourcePersonResponse `json:"managers"`
+	ModelIDs             []string                 `json:"model_ids"`
 }
 type ListResourcesRequest struct {
 	Query  string `query:"q"`
@@ -56,7 +58,7 @@ func teamResponse(item *service.ResourceRecord) *TeamResponse {
 	return &TeamResponse{ID: item.ID, Name: item.Name, Description: item.Description, Status: item.Status, CreatedAt: item.CreatedAt, Members: resourcePeople(item.Members), ModelIDs: item.ModelIDs}
 }
 func projectResponse(item *service.ResourceRecord) *ProjectResponse {
-	return &ProjectResponse{ID: item.ID, Name: item.Name, Description: item.Description, Status: item.Status, CreatorID: item.CreatorID, CreatedAt: item.CreatedAt, Managers: resourcePeople(item.Managers), ModelIDs: item.ModelIDs}
+	return &ProjectResponse{RequestWorkspaceOnly: item.RequestWorkspaceOnly, ID: item.ID, Name: item.Name, Description: item.Description, Status: item.Status, CreatorID: item.CreatorID, CreatedAt: item.CreatedAt, Managers: resourcePeople(item.Managers), ModelIDs: item.ModelIDs}
 }
 
 type TeamPath struct {
@@ -241,4 +243,18 @@ func (ctrl *Ctrl) SetProjectManagers(c *fox.Context, request SetProjectManagersR
 		return nil, err
 	}
 	return projectResponse(item), nil
+}
+
+func (project ProjectResponse) MarshalJSON() ([]byte, error) {
+	if project.RequestWorkspaceOnly {
+		return json.Marshal(struct {
+			ID                   string `json:"id"`
+			Name                 string `json:"name"`
+			Description          string `json:"description"`
+			Status               string `json:"status"`
+			RequestWorkspaceOnly bool   `json:"request_workspace_only"`
+		}{project.ID, project.Name, project.Description, project.Status, true})
+	}
+	type plain ProjectResponse
+	return json.Marshal(plain(project))
 }

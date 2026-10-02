@@ -1,35 +1,115 @@
-# Project model access requests
+# Project resource requests
 
-A current, enabled Project manager can request additional models for an active Project. Creating a request does not change effective grants. The request stores the grant baseline and the explicit additions separately; callers send only additional model IDs, never the complete desired grant set. Empty requests and models already granted at submission are rejected.
+Current enabled managers of an active Project can request additional model access
+or finite monthly quota changes. Requests preserve the original baseline and the
+explicit additions or quota patch. Pending requests never change grants or quota
+enforcement. All endpoints require a console session; mutations also require the
+existing Origin and CSRF protections.
 
-A different enabled member with `projects.models.write` can approve or reject the request. Manager status alone does not grant approval authority, and even a platform administrator cannot approve their own request. Rejection requires a reason. An enabled applicant can withdraw their own pending request, including after losing the manager relationship or after the Project becomes inactive. Rejection and withdrawal never alter grants.
+## Authority and history
 
-Approval revalidates the active Project, the applicant's active account and current manager relationship, and every requested model's active status. It adds the explicitly requested models to the latest effective grants. It never restores a removed baseline grant or removes a grant introduced after submission. Existing Project Key model ceilings remain unchanged; keys gain access only when their existing ceilings include a newly approved model.
+Model reviewers need `projects.models.write`; quota reviewers independently need
+`projects.limits.write`. Manager status grants no approval authority, and no actor
+can approve their own request. Approval revalidates the active Project, enabled
+applicant and current manager relationship. An enabled applicant may withdraw
+their own pending request after losing management or after Project deactivation.
+Rejection and withdrawal do not change grants or limits.
+
+Current managers and `projects.read_all` readers see both request kinds. Reviewers
+without either authority see only the kind they can review; these predicates apply
+before pagination. Former managers lose history access unless independently
+authorized. A quota-only reviewer can open the existing Project Resource
+configuration through a minimal `request_workspace_only` response containing
+only the Project ID, name, description and status. It exposes no manager directory,
+creator identity, timestamps or model grants and grants no global Project listing
+authority. Withdrawal receipts do not expose current policy to a departed manager.
+
+History accepts `status`, `cursor` and `limit`, defaults to 40 records and caps
+the page at 100. Records are ordered by descending ID; responses contain `items`
+and an optional `next_cursor`. A request's `kind` is `MODEL_ACCESS` or `QUOTA`,
+and its status is `pending`, `approved`, `rejected` or `withdrawn`.
 
 ## API
 
-All endpoints require a console session. Mutations also require the existing Origin and CSRF protections.
-
 | Method | Path | Purpose |
 | --- | --- | --- |
-| GET | `/api/v1/projects/:project_id/request-model-candidates` | Current manager only; active ungranted model identities, literal `q` search, maximum 50 |
-| GET | `/api/v1/projects/:project_id/requests` | Scoped history, with `status`, `cursor`, and `limit` filters |
-| POST | `/api/v1/projects/:project_id/requests` | Submit an additional model request |
-| POST | `/api/v1/projects/:project_id/requests/:request_id/decision` | Approve, reject, or withdraw |
+| GET | `/api/v1/projects/:project_id/request-model-candidates` | Current manager; active ungranted models, literal `q` search, maximum 50 |
+| GET | `/api/v1/projects/:project_id/request-quota-context` | Current manager of an active Project; reviewed monthly policy and currency context |
+| GET | `/api/v1/projects/:project_id/requests` | Authorized, kind-scoped history |
+| GET | `/api/v1/projects/:project_id/requests/:request_id` | Authorized detail; quota details include fresh approval and application context |
+| POST | `/api/v1/projects/:project_id/requests` | Submit an explicit model addition or finite monthly quota patch |
+| POST | `/api/v1/projects/:project_id/requests/:request_id/decision` | Approve, reject or withdraw |
 
-Submission body:
+### Model access
 
 ```json
 {
   "request_id": "req_client_generated_unique_id",
+  "kind": "MODEL_ACCESS",
   "model_ids": ["mdl_additional_model"],
   "reason": "Required for a new application workload"
 }
 ```
 
-The caller-generated `request_id` is an idempotency key, not the generated request record ID. It is bound to the actor, Project, sorted model IDs, and trimmed reason. An identical authorized retry returns the existing record; reuse with different intent returns HTTP 409. The successful response has HTTP 201 and a generated `pmr_...` ID.
+Omitting `kind` retains the existing model-request API. Empty additions and models
+already granted at submission are rejected. Callers submit only additional IDs,
+never a complete desired grant set. Responses preserve `baseline_model_ids` and
+`requested_model_ids` separately.
 
-Decision body:
+Approval revalidates every requested model's active status and adds those models
+to the latest effective grants. It never restores a removed baseline grant or
+removes a grant added after submission. Existing Project Key ceilings stay intact;
+a Key gains access only when its existing ceiling includes an approved model.
+
+### Monthly quota
+
+Read `/request-quota-context` before submission. The response supplies
+`current_quota`, `policy_etag`, `platform_currency` and a strong `review_etag`.
+Send that exact composite validator as quoted `If-Match`:
+
+```json
+{
+  "request_id": "req_client_generated_unique_id",
+  "kind": "QUOTA",
+  "quota": {
+    "tokens_month": 100000,
+    "money_month": "10.000000000000000001",
+    "currency": "USD"
+  },
+  "reason": "Required for the reviewed monthly workload"
+}
+```
+
+At least one quota field is required. Omitted fields stay unchanged; explicit
+`null` is rejected. Tokens are non-negative safe integers and zero is a real cap.
+Money remains decimal text, with at most 18 integer and 18 fractional digits.
+Money requires the current platform currency; a Tokens-only patch must omit
+`currency`. Unknown fields and fields mixed across request kinds are rejected.
+The original monthly baseline, requested patch and baseline policy revision are
+immutable history.
+
+Quota details return current monthly values and platform currency. Pending
+details also provide `approval_review_etag`, which binds the immutable request
+intent to the complete current normalized policy, policy revision and platform
+currency generation. Approval requires this exact quoted `If-Match` and a
+non-empty reason. A changed policy or currency generation requires a fresh,
+explicit review; preserving a draft does not accept a newer validator.
+
+Approval patches only requested fields into the current full normalized policy.
+It preserves rolling quotas, RPM, TPM, concurrency and IP restrictions, usage,
+Project Key ceilings and all other policy fields. The complete approved finite
+money policy must match the locked platform denomination. Saved approval records
+retain the complete normalized policy, approved revision, original review
+validator and decision intent hash.
+
+Approved details expose `approved_quota`, `approved_policy_etag` and fresh
+`runtime_applied` / `application_status`. `applied` requires the current policy,
+local runtime publication, leases and denomination to match the saved approval;
+`superseded` means a later policy has replaced it. `pending` means application is
+not confirmed, not that a background approval job has been queued. History lists
+do not claim live enforcement from a saved decision alone.
+
+### Decisions and retries
 
 ```json
 {
@@ -38,27 +118,86 @@ Decision body:
 }
 ```
 
-Actions are `approve`, `reject`, and `withdraw`. Responses expose `kind: "MODEL_ACCESS"`, `baseline_model_ids`, `requested_model_ids`, the original reason, applicant and Project IDs, timestamps, and decision actor/reason. Status is `pending`, `approved`, `rejected`, or `withdrawn`. Decision reasons are optional except for rejection. Reasons are stored as business history and should not contain credentials.
+Actions are `approve`, `reject` and `withdraw`. Rejection always requires a reason;
+quota approval also requires one. Existing model approval and withdrawal retain
+their optional-reason contract. Reasons are business history and must not contain
+credentials.
 
-Current managers and members with `projects.models.write` or `projects.read_all` can read a Project's history. Former managers lose that access unless separately authorized. Listing defaults to 40 records and accepts at most 100; records are ordered by descending ID. The response contains `items` and an optional `next_cursor`.
+The caller-generated `request_id` identifies creation intent rather than the
+generated `pmr_...` record. Identical authorized retries return that record; reuse
+with a different actor, Project, body or review returns HTTP 409. The legacy model
+creation digest remains compatible with historical receipts. Quota creation
+replays keep the original body and reviewed header even if current policy changes.
+
+The first valid terminal decision wins. Only the same actor with the same action,
+normalized reason and original quota approval validator can replay it; conflicting
+decisions return HTTP 409. Exact retries reconcile current publication and never
+reapply a historical quota patch after a later direct policy edit. Approval
+history therefore stays valid even when its policy is now superseded.
 
 ## Consistency and operational scope
 
-Creation and decisions serialize with Project lifecycle, manager, grant, and account governance changes. The first valid terminal decision wins. Only the same actor retrying the same action and normalized reason can replay a terminal result; all conflicting decisions return HTTP 409. Transactions persist the request and its audit event together. Approval and its grant additions are atomic, with synchronous runtime publication before a successful response. If publication fails after commit, the caller receives HTTP 503 and can retry the same decision; committed history is retained.
+Creation and decisions serialize with Project lifecycle, managers, grants and
+account governance. Quota approval also serializes with admission and policy
+updates, persists policy/request/typed audit atomically, and synchronously
+publishes runtime state. A post-commit publication failure returns HTTP 503;
+committed history remains durable and the original intent may be retried.
 
-The request baseline is historical evidence, not a replacement policy. Request records keep historical identifiers without cascading deletion. This phase implements model access only. Quota and rate limit requests, scheduled decisions, notifications, and a global approval inbox are not implemented by these endpoints.
-
-The isolated PostgreSQL and MySQL lifecycle harness covers manager/approval permissions, idempotency, unchanged pending/rejected/withdrawn grants, stale baseline preservation, immutable key ceilings, immediate runtime publication, account/Project/model/manager revalidation, scoped history, and concurrent terminal decisions. Pure unit tests cover input normalization and decision validation.
-
-Candidate visibility permits requesting access only; it does not grant invocation or expose provider configuration. Inactive Projects cannot request candidates. HTTP integration additionally verifies session/CSRF enforcement, unsupported fields and kinds, bound status/cursor/limit queries, and exclusion of granted models.
-
+Frozen additive migration 36 extends existing request history through GORM;
+historical rows default to `MODEL_ACCESS`. It introduces no live identity foreign
+keys, cascading history deletion or startup migration against evolving entities.
+Team approval/escalation, request-rate approvals, global approval inboxes,
+scheduled decisions and request notifications remain unfinished scope.
 
 ## Web workflow
 
-The Project resource configuration presents model request history with status filters and cursor pagination. Current managers can search active, ungranted model identities and submit explicit additions with a required reason. The form shows existing grants as context; pending requests leave access unchanged. Historical records retain model and member IDs, including identities that are no longer visible in current selectors.
+The existing Project Resource configuration retains request history, status
+filters, cursor pagination and detail dialogs. Managers use separate model and
+monthly-quota application actions. The monthly form shows reviewed current values,
+uses blank fields to preserve a value, accepts zero and preserves exact decimal
+money. Details separate the original baseline, requested patch, current policy,
+saved approval and current application status.
 
-The detail dialog separates the original baseline, requested additions, applicant, and final decision. Members with `projects.models.write` can approve or reject another member's request; rejection requires a reason. Applicants can withdraw their own pending requests. Inactive Projects disable new requests and approvals while retaining permitted rejection, withdrawal, and history. The UI never treats creator identity or platform administrator status alone as a manager relationship.
+Read and decision permissions stay independent for each kind. Self-approval is
+disabled; inactive Projects disable new submissions and approvals while retaining
+authorized rejection, withdrawal and history. Minimal quota-review workspaces
+fetch only authorized request information. Actor-scoped caches and failed
+reauthorization hide stale recipient data.
 
-Submission retries preserve the caller-generated request ID and reviewed payload. An uncertain mutation outcome locks the intent for an identical retry; HTTP 409 closes the stale review through an explicit history refresh. Successful actions refresh request history, candidates, and Project resource queries. Approval does not expand existing Project Key ceilings. English and Chinese translations cover the workflow; quota and rate limit request controls are intentionally absent until supported by the backend.
+Uncertain mutations retain the original request ID, body and header for identical
+retry while the dialog is open. Authorization uses the current Session CSRF for
+the same captured actor; session rotation never changes the saved business intent.
+Cancel remains available when no request is busy; dismissal does not report success or resolve uncertainty, and the parent retains
+an unknown-outcome notice while refreshing real history. Conflict review requires
+an explicit fresh review. English and Chinese labels, validation and notices use
+the paired `projectRequests` namespace and English remains the default.
 
-Focused frontend tests cover scoped visibility, manager-only submission, explicit-addition payloads, CSRF, stable retries, self-approval prevention, rejection reasons, inactive Project behavior, terminal decision history, conflict recovery, pagination, and both locales. Backend lifecycle tests separately establish transactional and runtime behavior.
+## Verification
+
+The combined PostgreSQL/MySQL focused race suite passed in 184.141 seconds,
+including every migration prefix through V36, existing model requests, quota
+requests and the monthly-notification permission regression. It covers old
+creation-digest compatibility, strict union/header validation, reviewed currency
+generation, exact role/manager identities, per-kind pagination, no self-approval,
+concurrent first-terminal decisions, departed withdrawal, disabled resources,
+publication failure and exact replay, later direct edits, and restart. Controlled
+native calls establish token and precise money enforcement after approval while
+preserving existing settled use and conservative monetary reservation rounding.
+
+Full check and test passed: 759 frontend cases in 57 files, Go race/unit tests,
+Node checks, development lifecycle and embedded production assets. Focused UI
+coverage includes minimum-permission workspace privacy, saved/pending publication
+retry, same-actor CSRF rotation, immutable uncertain intent and terminal notices.
+The 71-case focused suite also rejects malformed HTTP 200 quota receipts and
+accepts valid terminal creation replays without changing legacy model responses.
+Independent review found and fixed inherited GORM OR grouping; a generated-query
+regression keeps Project, kind, status and cursor conditions conjunctive.
+
+An owned production/PostgreSQL/browser fixture confirmed the existing application
+and approval workflow, native enforcement at 10 tokens, direct policy 15 and an
+original approval replay after restart retaining 15. English and Chinese details
+separate baseline 5, saved approval 10 and current 15. A quota-only reviewer sees
+only the authorized request workspace. The owned tab, binary, upstream, database
+container and network were removed. The complete PostgreSQL/MySQL race matrix also passed
+(Handler 504.548 seconds, Service 5.267 seconds), with owned resources removed.
+External provider and full product acceptance remain separate.

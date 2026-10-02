@@ -278,31 +278,8 @@ func (s *Service) SetResourceLimit(ctx context.Context, actor string, target Lim
 				return apperrors.ErrBadRequest
 			}
 		}
-		revision, err := id.NewPrefixed("lim")
-		if err != nil {
-			return err
-		}
-		ranges, err := json.Marshal(policy.IPRanges)
-		if err != nil {
-			return err
-		}
-		row = entity.ResourceLimit{ScopeKind: resolved.kind, ScopeID: resolved.id, ETag: revision, PreviousETag: etag, ActorID: actor, Reason: reason, Tokens5H: policy.Tokens5H, Tokens7D: policy.Tokens7D, TokensMonth: policy.TokensMonth, TPM: policy.TPM, MoneyMonth: policy.MoneyMonth, Currency: policy.Currency, RPM: policy.RPM, Concurrency: policy.Concurrency, IPMode: policy.IPMode, IPRangesJSON: string(ranges)}
-		if err := tx.Save(&row).Error; err != nil {
-			return err
-		}
-		auditID, err := id.NewPrefixed("aud")
-		if err != nil {
-			return err
-		}
-		details, err := json.Marshal(struct {
-			Before, After limits.Policy
-			Reason, ETag  string
-		}{before, policy, reason, revision})
-		if err != nil {
-			return err
-		}
-		encoded := string(details)
-		return tx.Create(&entity.AuditEvent{ID: auditID, ActorID: actor, Action: "limits.update", ResourceType: resolved.kind, ResourceID: resolved.id, DetailsJSON: &encoded}).Error
+		_, err = persistResourceLimitPolicy(tx, actor, resolved, row, before, policy, reason)
+		return err
 	})
 	if err != nil {
 		return nil, catalogError(err)
@@ -314,3 +291,33 @@ func (s *Service) SetResourceLimit(ctx context.Context, actor string, target Lim
 	return s.GetResourceLimit(ctx, actor, target)
 }
 func limitAccount(kind, scopeID string) string { return kind + "_" + scopeID }
+
+// persistResourceLimitPolicy saves one normalized full policy and its audit.
+// Callers own admission/governance locks and validate the current revision.
+func persistResourceLimitPolicy(tx *gorm.DB, actor string, resolved resolvedLimitTarget, row entity.ResourceLimit, before, policy limits.Policy, reason string) (entity.ResourceLimit, error) {
+	revision, err := id.NewPrefixed("lim")
+	if err != nil {
+		return row, err
+	}
+	ranges, err := json.Marshal(policy.IPRanges)
+	if err != nil {
+		return row, err
+	}
+	row = entity.ResourceLimit{ScopeKind: resolved.kind, ScopeID: resolved.id, ETag: revision, PreviousETag: row.ETag, ActorID: actor, Reason: reason, Tokens5H: policy.Tokens5H, Tokens7D: policy.Tokens7D, TokensMonth: policy.TokensMonth, TPM: policy.TPM, MoneyMonth: policy.MoneyMonth, Currency: policy.Currency, RPM: policy.RPM, Concurrency: policy.Concurrency, IPMode: policy.IPMode, IPRangesJSON: string(ranges)}
+	if err := tx.Save(&row).Error; err != nil {
+		return row, err
+	}
+	auditID, err := id.NewPrefixed("aud")
+	if err != nil {
+		return row, err
+	}
+	details, err := json.Marshal(struct {
+		Before, After limits.Policy
+		Reason, ETag  string
+	}{before, policy, reason, revision})
+	if err != nil {
+		return row, err
+	}
+	encoded := string(details)
+	return row, tx.Create(&entity.AuditEvent{ID: auditID, ActorID: actor, Action: "limits.update", ResourceType: resolved.kind, ResourceID: resolved.id, DetailsJSON: &encoded}).Error
+}

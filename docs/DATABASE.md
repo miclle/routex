@@ -145,3 +145,27 @@ pinned GORM Migrator generates invalid CURRENT_SCHEMA syntax; MySQL uses
 Migrator.DropIndex. This is test-only; production V35 remains GORM-only.
 The complete PostgreSQL/MySQL race matrix also passed (Handler 499.925 seconds,
 Service 5.851 seconds); its owned containers/network were removed.
+
+
+## Project monthly quota request history (version 36)
+
+Frozen additive V36 extends the released Project request table with an explicit
+kind, baseline policy revision, original decision review validator, approved
+policy revision, decision intent hash and immutable normalized approved policy.
+Historical rows default to MODEL_ACCESS and preserve existing model arrays and
+terminal decisions. QUOTA approvals must retain their review/revision/hash/policy
+evidence. No live foreign key or table rename is introduced.
+
+Targeted GORM column and check operations repair partially applied DDL without
+rewriting old versions. The approved policy TEXT column uses an expression empty
+default through its GORM tag, which is portable to MySQL and PostgreSQL. Explicit column tags bind the new ETag fields to the exact names used by the
+constraints, independently of GORM acronym splitting. Actual PostgreSQL/MySQL
+empty creation, V35 upgrades, repeat/concurrent startup, six individual missing
+column repairs, constraint-only recovery, indexes, uniqueness and non-null/kind/
+approval constraints have passed. Historical model and quota timestamps are
+compared to their pre-migration persisted values, preserving the released MySQL
+DATETIME precision without inferring a precision upgrade. Combined migration/model/quota/monthly-notification focused acceptance passed in
+184.141 seconds. The complete PostgreSQL/MySQL race matrix passed (Handler
+504.548 seconds, Service 5.267 seconds), and owned resources were removed. Native
+quota enforcement and historical receipt replay are covered separately by the
+lifecycle and production browser evidence in PROJECT_REQUESTS.md.

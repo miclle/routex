@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Textarea } from '@/components/ui/textarea'
 import { FormField } from '@/components/app/CatalogUI'
-import type { ProjectRequest, ProjectRequestAction } from '@/types/project-requests'
+import type { ProjectModelRequest, ProjectRequestAction } from '@/types/project-requests'
 
 export default function DetailDialog({
   request,
@@ -18,7 +18,7 @@ export default function DetailDialog({
   onSuccess,
   onRefresh,
 }: {
-  request: ProjectRequest
+  request: ProjectModelRequest
   active: boolean
   canDecide: boolean
   onClose: () => void

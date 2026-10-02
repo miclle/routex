@@ -9,6 +9,7 @@ export interface ResourcePerson {
   status?: 'active' | 'disabled'
 }
 export interface ResourceRecord {
+  request_workspace_only?: boolean
   id: string
   name: string
   description: string

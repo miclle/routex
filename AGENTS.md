@@ -274,3 +274,14 @@ with exact strings and paired `notifications` translations. Never infer threshol
 crossings, percentages, remaining allowance or exhaustion from holds. Hide stale
 rows, unread counts and actions during refresh or authorization failure, and bind
 read retries/cache invalidation to the captured actor.
+
+
+Project monthly quota requests reuse Resource configuration and scoped request
+history. QUOTA requests accept finite monthly targets only: blank omits a field,
+zero is valid and money remains an exact decimal string. Preserve independent
+model/quota reviewer permissions and current-manager authority. Bind submission
+and approval to reviewed composite policy/currency validators; retain original
+UUID, payload and validator through uncertain retries. Fresh details separate
+historical baseline, requested targets and current policy. Saved approval never
+proves runtime application, and superseded approval retries never restore an old
+policy. Keep paired projectRequests copy and explicit conflict review.

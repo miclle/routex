@@ -1,10 +1,10 @@
 # Current Work Handoff
 
-- **Status:** implementation active; F08 Key proof hardening pushed; F11 readiness pushed; receipt-backed retirement pushed; member model availability correction pushed; source directory pushed; monthly quota exhaustion inbox checked for phased delivery; Project quota requests assessed next
-- **Updated:** 2026-10-02T19:15:23+08:00
+- **Status:** implementation active; F08 Key proof hardening pushed; F11 readiness pushed; receipt-backed retirement pushed; member model availability correction pushed; source directory pushed; monthly quota exhaustion inbox checked and pushed; Project monthly quota requests checked for phased delivery
+- **Updated:** 2026-10-02T20:35:00+08:00
 - **Repository / branch:** RouteX / `main`
-- **Previous checked source baseline:** `13c1b0880a7e0f5fef2558016561015cf683ce31`, pushed and read back from `origin/main`
-- **Current owner:** coordinating task; three implementation owners have frozen quota observation/migration/worker, scoped inbox and UI; coordinator completes full database acceptance and delivery; next partial-capability assessment covers Project quota requests
+- **Previous checked source baseline:** `ce568febf9d85170f60f6e9ad4e2a608d565b872`, pushed and read back from `origin/main`
+- **Current owner:** coordinating task; three independent owners completed Project request entity/migration, quota request services/HTTP acceptance and UI; coordinator owns shared fixtures, docs, final validation and delivery
 - **Next owner:** current task continues the resumed goal
 - **Transport:** identify this checked delivery with `git log -1 -- docs/current-work-handoff.md` and independently verify its upstream
 - **Coordination plan:** `~/dotfiles/projects/routex/implementation-plan.md`; synchronize separately and preserve unrelated changes
@@ -489,9 +489,13 @@ four Node checks, development lifecycle and production embedded assets. Focused
 actual PostgreSQL/MySQL migration and lifecycle race acceptance passed in
 173.349 seconds. The complete PostgreSQL/MySQL race matrix passed: Handler 499.925 seconds,
 Service 5.851 seconds. Its isolated containers and network were removed.
-Local whitespace and all 67 checked Markdown references passed. This package
-is ready for its phased main-branch commit; exact transport and remote CI are
-verified separately after publication.
+Local whitespace and all 67 checked Markdown references passed. This package was committed and pushed at exact
+`ce568febf9d85170f60f6e9ad4e2a608d565b872`; upstream read-back matched and
+the source tree was clean before the next package began. Actionlint
+37000084170 and GolangCI-Lint 37000084191 succeeded. Full CI 37000084055 succeeded, including frontend/backend checks, complete
+database/process-restart acceptance and Build Artifacts. All three remote
+workflows are green for the exact notification commit; remote results remain
+separate from local acceptance.
 
 The disposable production binary and isolated PostgreSQL browser fixture
 published real Personal/Project notices after controlled native Chat settlement
@@ -507,3 +511,65 @@ F17/F23 and full RouteX acceptance remain open. The next assessed partial packag
 is Project monthly quota requests and independent approval, using the existing
 resource configuration and request history. Team/request-rate approvals and
 broader sources remain separate unfinished scope.
+
+
+## Latest checked package: F18 Project monthly quota requests
+
+The existing Project model-request lifecycle and quota enforcement are the
+prerequisites. Three owners completed a bounded QUOTA request kind, frozen
+additive V36 history fields, independent reviewer authority and the existing
+Resource configuration/request history composition. V36 schema and final lifecycle
+acceptance pass on both databases. This package is ready for phased commit and push.
+
+Monthly targets are finite: omitted fields remain unchanged, zero is a real cap,
+explicit null is rejected, and money stays exact decimal text. A manager-only
+submission context supplies a composite validator for the policy and platform
+currency generation. Request details supply another fresh validator bound to
+immutable request intent and current policy/currency. Approvals use independent
+projects.limits.write authority and disallow self-approval. Each reviewer sees
+only its request kind unless independently authorized as manager or global reader.
+
+Pending requests leave enforcement unchanged. Approval must patch only requested
+fields, retain immutable normalized policy/decision evidence, serialize with
+admission and governance, and reconcile actual publication. A replay after a
+newer policy edit must preserve that newer policy; historical approval and current
+application/supersession are separate facts. Team and rate-limit approvals remain
+open. V36 and the quota lifecycle are registered in the shared harness. The final
+focused PostgreSQL/MySQL race run passed in 184.141 seconds, covering all V36
+migration prefixes, old model requests, new quota requests and monthly inbox
+permissions. The owned resources were removed. Final check and test passed:
+759 frontend cases in 57 files, Go race/unit, Node checks, development lifecycle
+and embedded production assets; Actionlint also passed. The complete isolated
+PostgreSQL/MySQL race matrix passed (Handler 504.548 seconds, Service 5.267
+seconds), and all owned resources were removed. The 71-case focused UI suite
+includes malformed HTTP 200 quota receipts and valid terminal creation replays.
+
+Failures found and fixed before this acceptance include exact GORM ETag column
+mapping, comparison against persisted historical MySQL timestamps, uniform legacy
+withdrawal denial, inherited query OR grouping, and monetary fixture funds that
+include conservative reservation margins. Production price arithmetic stays
+unchanged. Independent UI review fixed quota-only workspace unmounts, current
+same-actor CSRF retries and terminal stale-review forms.
+
+Owned production/PostgreSQL/browser proof confirms pending Tokens 5 remains 5,
+approval to 10, native settlement to 10 with next-call rejection, later direct
+policy 15, historical exact approval replay and final-source service restart
+preserving 15. English/Chinese detail separates baseline 5, saved approval 10 and
+current 15. A quota-only reviewer opened only the authorized Resource
+configuration/request workspace. The owned tab, binary, controlled upstream,
+database container and network have been removed; no developer service was touched.
+A fresh final build repeated the complete browser/native/restart workflow after
+receipt validation changed. A13 has partial Project approval evidence; its Team
+overflow boundary remains unaccepted. Capability totals remain 8 complete, 19
+partial and 3 not started; only A01 is fully accepted.
+
+The next read-only-assessed partial package is RPM/TPM/concurrency requests within
+the same workflow. Backend/schema owners assessed a shared lifecycle and frozen V37 compatibility.
+No request-rate implementation has started. Preserve current source until the
+checked monthly phase is committed and pushed; then implement RATE_LIMIT with
+current policy/currency review, finite field patches and independently retained
+creation intents for a combined form.
+
+External coordination checkpoint `ff383331a5428cf80713289b58bd7d14aa3205b8`
+was pushed and read back independently. Only the RouteX plan was staged; unrelated
+zsh configuration changes were preserved.

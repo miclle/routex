@@ -12,6 +12,7 @@ import (
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 
+	"github.com/miclle/routex/internal/routex/database"
 	"github.com/miclle/routex/internal/routex/entity"
 	apperrors "github.com/miclle/routex/internal/routex/errors"
 	"github.com/miclle/routex/pkg/id"
@@ -19,28 +20,42 @@ import (
 )
 
 type ProjectRequestInput struct {
-	RequestID string
-	ModelIDs  []string
-	Reason    string
+	Kind       string
+	Quota      *ProjectQuotaPatch
+	ReviewETag string
+	RequestID  string
+	ModelIDs   []string
+	Reason     string
 }
-type ProjectRequestDecision struct{ Action, Reason string }
+type ProjectRequestDecision struct{ Action, Reason, ReviewETag string }
 type ProjectRequestFilter struct {
 	Status, Cursor string
 	Limit          int
 }
 type ProjectRequestRecord struct {
-	ID                string     `json:"id"`
-	ProjectID         string     `json:"project_id"`
-	ApplicantUserID   string     `json:"applicant_user_id"`
-	Kind              string     `json:"kind"`
-	BaselineModelIDs  []string   `json:"baseline_model_ids"`
-	RequestedModelIDs []string   `json:"requested_model_ids"`
-	Reason            string     `json:"reason"`
-	Status            string     `json:"status"`
-	DecisionActorID   string     `json:"decision_actor_id,omitempty"`
-	DecisionReason    string     `json:"decision_reason,omitempty"`
-	CreatedAt         time.Time  `json:"created_at"`
-	DecidedAt         *time.Time `json:"decided_at"`
+	BaselineQuota      *ProjectQuotaValues `json:"baseline_quota,omitempty"`
+	RequestedQuota     *ProjectQuotaPatch  `json:"requested_quota,omitempty"`
+	ApprovedQuota      *ProjectQuotaValues `json:"approved_quota,omitempty"`
+	BaselinePolicyETag string              `json:"baseline_policy_etag,omitempty"`
+	ApprovedPolicyETag string              `json:"approved_policy_etag,omitempty"`
+	CurrentQuota       *ProjectQuotaValues `json:"current_quota,omitempty"`
+	CurrentPolicyETag  string              `json:"current_policy_etag,omitempty"`
+	PlatformCurrency   string              `json:"platform_currency,omitempty"`
+	ApprovalReviewETag string              `json:"approval_review_etag,omitempty"`
+	RuntimeApplied     *bool               `json:"runtime_applied,omitempty"`
+	ApplicationStatus  string              `json:"application_status,omitempty"`
+	ID                 string              `json:"id"`
+	ProjectID          string              `json:"project_id"`
+	ApplicantUserID    string              `json:"applicant_user_id"`
+	Kind               string              `json:"kind"`
+	BaselineModelIDs   []string            `json:"baseline_model_ids"`
+	RequestedModelIDs  []string            `json:"requested_model_ids"`
+	Reason             string              `json:"reason"`
+	Status             string              `json:"status"`
+	DecisionActorID    string              `json:"decision_actor_id,omitempty"`
+	DecisionReason     string              `json:"decision_reason,omitempty"`
+	CreatedAt          time.Time           `json:"created_at"`
+	DecidedAt          *time.Time          `json:"decided_at"`
 }
 type ProjectRequestPage struct {
 	Items      []ProjectRequestRecord `json:"items"`
@@ -48,7 +63,17 @@ type ProjectRequestPage struct {
 }
 
 func projectRequestRecord(row *entity.ProjectModelRequest) (*ProjectRequestRecord, error) {
-	result := &ProjectRequestRecord{ID: row.ID, ProjectID: row.ProjectID, ApplicantUserID: row.ApplicantUserID, Kind: "MODEL_ACCESS", Reason: row.Reason, Status: row.Status, DecisionActorID: row.DecisionActorID, DecisionReason: row.DecisionReason, CreatedAt: row.CreatedAt, DecidedAt: row.DecidedAt}
+	kind := row.Kind
+	if kind == "" {
+		kind = entity.ProjectRequestModelAccess
+	}
+	result := &ProjectRequestRecord{ID: row.ID, ProjectID: row.ProjectID, ApplicantUserID: row.ApplicantUserID, Kind: kind, Reason: row.Reason, Status: row.Status, DecisionActorID: row.DecisionActorID, DecisionReason: row.DecisionReason, CreatedAt: row.CreatedAt, DecidedAt: row.DecidedAt}
+	if kind == entity.ProjectRequestQuota {
+		return projectQuotaRequestRecord(row, result)
+	}
+	if kind != entity.ProjectRequestModelAccess {
+		return nil, apperrors.ErrInternal
+	}
 	if err := json.Unmarshal([]byte(row.BaselineJSON), &result.BaselineModelIDs); err != nil {
 		return nil, err
 	}
@@ -100,14 +125,28 @@ func activeProjectRequestModels(tx *gorm.DB, ids []string) error {
 	return nil
 }
 func (s *Service) CreateProjectRequest(ctx context.Context, actorID, projectID string, input ProjectRequestInput) (*ProjectRequestRecord, error) {
+	if input.Kind == entity.ProjectRequestQuota {
+		return s.createProjectQuotaRequest(ctx, actorID, projectID, input)
+	}
+	if input.Kind != "" && input.Kind != entity.ProjectRequestModelAccess || input.Quota != nil {
+		return nil, apperrors.ErrBadRequest
+	}
 	input, err := normalizeProjectRequest(input)
 	if err != nil {
 		return nil, err
 	}
 	encoded, err := json.Marshal(struct {
 		ActorID, ProjectID string
-		Input              ProjectRequestInput
-	}{actorID, projectID, input})
+		Input              struct {
+			RequestID string
+			ModelIDs  []string
+			Reason    string
+		}
+	}{actorID, projectID, struct {
+		RequestID string
+		ModelIDs  []string
+		Reason    string
+	}{input.RequestID, input.ModelIDs, input.Reason}})
 	if err != nil {
 		return nil, err
 	}
@@ -180,22 +219,20 @@ func (s *Service) ListProjectRequests(ctx context.Context, actorID, projectID st
 	}
 	result := &ProjectRequestPage{Items: []ProjectRequestRecord{}}
 	err := s.authDB(ctx).Transaction(func(tx *gorm.DB) error {
-		permissions, err := permissionsFor(tx, actorID)
+		access, err := projectRequestReadAccess(tx, actorID, projectID)
 		if err != nil {
 			return err
-		}
-		manager, err := resourceManager(tx, actorID, projectID)
-		if err != nil {
-			return err
-		}
-		if !manager && !slices.Contains(permissions, "projects.models.write") && !slices.Contains(permissions, "projects.read_all") {
-			return apperrors.ErrNotFound
 		}
 		var project entity.Project
-		if err := tx.First(&project, "id = ?", projectID).Error; err != nil {
+		if err := tx.Where(database.ExactText(tx, clause.Column{Name: "id"}, projectID)).First(&project).Error; err != nil {
 			return err
 		}
-		query := tx.Where("project_id = ?", projectID)
+		if project.ID != projectID {
+			return apperrors.ErrNotFound
+		}
+		query := tx.Where(database.ExactText(tx, clause.Column{Name: "project_id"}, projectID))
+		query = projectRequestKindScope(query, access)
+
 		if filter.Status != "" {
 			query = query.Where("status = ?", filter.Status)
 		}
@@ -211,6 +248,9 @@ func (s *Service) ListProjectRequests(ctx context.Context, actorID, projectID st
 			result.NextCursor = rows[len(rows)-1].ID
 		}
 		for _, row := range rows {
+			if row.ProjectID != projectID || !access.allows(row.Kind) {
+				return apperrors.ErrInternal
+			}
 			record, err := projectRequestRecord(&row)
 			if err != nil {
 				return err

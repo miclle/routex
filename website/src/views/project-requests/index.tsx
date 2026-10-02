@@ -12,6 +12,9 @@ import type { ResourceRecord } from '@/types/resources'
 import type { ProjectRequest, ProjectRequestStatus } from '@/types/project-requests'
 import ApplicationDialog from './application-dialog'
 import DetailDialog from './detail-dialog'
+import QuotaApplicationDialog from './quota-application-dialog'
+import QuotaDetailDialog from './quota-detail-dialog'
+import { QuotaValues } from './quota-values'
 
 export default function ProjectRequestsPanel({ project }: { project: ResourceRecord }) {
   const { t, i18n } = useTranslation('projectRequests')
@@ -20,30 +23,61 @@ export default function ProjectRequestsPanel({ project }: { project: ResourceRec
   const cache = useQueryClient()
   const [status, setStatus] = useState<ProjectRequestStatus | ''>('')
   const [applying, setApplying] = useState(false)
+  const [applyingQuota, setApplyingQuota] = useState(false)
   const [selected, setSelected] = useState<ProjectRequest | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
   const manager = project.managers?.some((m) => m.user_id === session.data?.user.id) === true
-  const canRead = manager || access.can('projects.models.write') || access.can('projects.read_all')
+  const actor = session.isError ? '' : (session.data?.user.id ?? '')
+  const canRead =
+    manager ||
+    access.can('projects.models.write') ||
+    access.can('projects.limits.write') ||
+    access.can('projects.read_all')
+  const canReadKind = (kind: ProjectRequest['kind']) =>
+    manager ||
+    access.can('projects.read_all') ||
+    access.can(kind === 'QUOTA' ? 'projects.limits.write' : 'projects.models.write')
   const active = project.status === 'active'
+  const readScope = [
+    manager,
+    access.can('projects.models.write'),
+    access.can('projects.limits.write'),
+    access.can('projects.read_all'),
+  ].join(':')
   const history = useInfiniteQuery({
-    queryKey: ['project-requests', project.id, status],
+    queryKey: ['project-requests', actor, project.id, status, readScope],
     queryFn: ({ pageParam, signal }) => listProjectRequests(project.id, status, pageParam, signal),
     initialPageParam: null as string | null,
     getNextPageParam: (page) => page.next_cursor ?? undefined,
-    enabled: canRead && !access.isPending && !access.isError,
+    enabled: !!actor && canRead && !access.isPending && !access.isError,
     retry: false,
   })
-  const rows = history.data?.pages.flatMap((p) => p.items) ?? []
-  function refresh() {
-    setApplying(false)
-    setSelected(null)
-    void cache.invalidateQueries({ queryKey: ['project-requests', project.id] })
-    void cache.invalidateQueries({ queryKey: ['project-request-candidates', project.id] })
-    void cache.invalidateQueries({ queryKey: ['resources'] })
+  const rows =
+    actor && !access.isFetching && history.isSuccess && !history.isFetching && !history.isError
+      ? history.data.pages.flatMap((p) => p.items).filter((record) => canReadKind(record.kind))
+      : []
+  function invalidate(kind?: ProjectRequest['kind']) {
+    void cache.invalidateQueries({ queryKey: ['project-requests', actor, project.id] })
+    void cache.invalidateQueries({ queryKey: ['project-request-quota-context', actor, project.id] })
+    if (kind !== 'QUOTA') {
+      void cache.invalidateQueries({ queryKey: ['project-request-candidates', project.id] })
+      void cache.invalidateQueries({ queryKey: ['resources'] })
+    }
+    void cache.invalidateQueries({ queryKey: ['resource-limits'] })
   }
-  function success(message: string) {
+  function refresh(kind?: ProjectRequest['kind']) {
+    setApplying(false)
+    setApplyingQuota(false)
+    setSelected(null)
+    invalidate(kind)
+  }
+  function success(message: string, kind?: ProjectRequest['kind']) {
     setNotice(message)
-    refresh()
+    refresh(kind)
+  }
+  function dismissQuota(uncertain: boolean) {
+    if (uncertain) setNotice('quota.dismissedUncertain')
+    refresh('QUOTA')
   }
   if (access.isPending || access.isError)
     return (
@@ -72,9 +106,14 @@ export default function ProjectRequestsPanel({ project }: { project: ResourceRec
           <p className="mt-1 text-sm text-muted-foreground">{t('description')}</p>
         </div>
         {manager && (
-          <Button disabled={!active} onClick={() => setApplying(true)}>
-            {t('apply')}
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            <Button disabled={!active} onClick={() => setApplying(true)}>
+              {t('apply')}
+            </Button>
+            <Button disabled={!active} onClick={() => setApplyingQuota(true)}>
+              {t('quota.apply')}
+            </Button>
+          </div>
         )}
       </div>
       {!manager && <p className="text-sm text-muted-foreground">{t('managerOnly')}</p>}
@@ -104,16 +143,18 @@ export default function ProjectRequestsPanel({ project }: { project: ResourceRec
             ))}
           </select>
         </label>
-        <Button variant="outline" disabled={history.isFetching} onClick={refresh}>
+        <Button variant="outline" disabled={history.isFetching} onClick={() => refresh()}>
           {t('refresh')}
         </Button>
       </div>
       <QueryState
-        pending={history.isPending}
+        pending={history.isFetching || access.isFetching}
         error={history.error}
         retry={() => void history.refetch()}
       />
       {!history.isPending &&
+        !history.isFetching &&
+        !access.isFetching &&
         !history.isError &&
         (rows.length === 0 ? (
           <p className="rounded-lg border border-dashed p-6 text-center text-sm text-muted-foreground">
@@ -124,7 +165,8 @@ export default function ProjectRequestsPanel({ project }: { project: ResourceRec
             <thead>
               <tr>
                 <th>{t('status')}</th>
-                <th>{t('models')}</th>
+                <th>{t('requestKind')}</th>
+                <th>{t('requestedChange')}</th>
                 <th>{t('applicant')}</th>
                 <th>{t('submitted')}</th>
                 <th>{t('reason')}</th>
@@ -139,8 +181,13 @@ export default function ProjectRequestsPanel({ project }: { project: ResourceRec
                   <td>
                     <Badge variant="outline">{t(record.status)}</Badge>
                   </td>
-                  <td className="max-w-60 break-all font-mono text-xs">
-                    {record.requested_model_ids.join(', ')}
+                  <td>{t(record.kind === 'QUOTA' ? 'quota.kind' : 'kind')}</td>
+                  <td className="max-w-60 break-all text-xs">
+                    {record.kind === 'QUOTA' ? (
+                      <QuotaValues quota={record.requested_quota} patch />
+                    ) : (
+                      <span className="font-mono">{record.requested_model_ids.join(', ')}</span>
+                    )}
                   </td>
                   <td>{record.applicant_user_id}</td>
                   <td className="whitespace-nowrap">{date(record.created_at)}</td>
@@ -157,7 +204,7 @@ export default function ProjectRequestsPanel({ project }: { project: ResourceRec
             </tbody>
           </Table>
         ))}
-      {history.hasNextPage && (
+      {!history.isError && !history.isFetching && history.hasNextPage && (
         <Button
           variant="outline"
           disabled={history.isFetchingNextPage}
@@ -166,7 +213,7 @@ export default function ProjectRequestsPanel({ project }: { project: ResourceRec
           {t('more')}
         </Button>
       )}
-      {applying && manager && (
+      {applying && manager && actor && (
         <ApplicationDialog
           project={project}
           onClose={refresh}
@@ -174,7 +221,27 @@ export default function ProjectRequestsPanel({ project }: { project: ResourceRec
           onSuccess={() => success('saved')}
         />
       )}
-      {selected && (
+      {applyingQuota && manager && actor && (
+        <QuotaApplicationDialog
+          key={`${actor}:${project.id}`}
+          project={project}
+          onClose={dismissQuota}
+          onSuccess={() => success('quota.saved', 'QUOTA')}
+        />
+      )}
+      {selected?.kind === 'QUOTA' && canReadKind('QUOTA') && actor && (
+        <QuotaDetailDialog
+          key={`${actor}:${project.id}:${selected.id}`}
+          projectId={project.id}
+          requestId={selected.id}
+          active={active}
+          canDecide={access.can('projects.limits.write')}
+          authorized={!access.isFetching}
+          onClose={dismissQuota}
+          onSaved={() => invalidate('QUOTA')}
+        />
+      )}
+      {selected?.kind === 'MODEL_ACCESS' && canReadKind('MODEL_ACCESS') && (
         <DetailDialog
           request={selected}
           active={active}

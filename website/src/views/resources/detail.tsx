@@ -29,11 +29,18 @@ export default function ResourceDetailPage({
 }) {
   const { t } = useTranslation('resources')
   const { resourceId = '' } = useParams()
+  const session = useSession()
+  const actor = session.isError ? '' : (session.data?.user.id ?? '')
   const resource = useQuery({
-    queryKey: ['resources', kind, admin, resourceId],
+    queryKey: ['resources', kind, admin, resourceId, actor],
     queryFn: ({ signal }) => getResource(kind, admin, resourceId, signal),
+    enabled: !!actor,
+    retry: false,
   })
-  if (!resource.data)
+  if (
+    !resource.data ||
+    (resource.data.request_workspace_only && (resource.isFetching || resource.isError))
+  )
     return (
       <Page title={t('details', { kind: t(kind === 'teams' ? 'team' : 'project') })} description="">
         <QueryState
@@ -58,7 +65,34 @@ function ResourceDetail({ kind, resource }: { kind: ResourceKind; resource: Reso
   const canCalls = kind === 'projects' && (isManager || access.can('calls.read_all'))
   const canRequests =
     kind === 'projects' &&
-    (isManager || access.can('projects.models.write') || access.can('projects.read_all'))
+    (isManager ||
+      access.can('projects.models.write') ||
+      access.can('projects.limits.write') ||
+      access.can('projects.read_all'))
+  if (resource.request_workspace_only === true && kind === 'projects')
+    return (
+      <section className="space-y-6">
+        {(access.can('projects.limits.write') || access.can('projects.read_all')) &&
+          !access.isError &&
+          !access.isFetching && (
+            <header className="space-y-1">
+              <div className="flex items-center gap-3">
+                <h1 className="text-2xl font-semibold">{resource.name}</h1>
+                <Badge variant="outline">{t(resource.status)}</Badge>
+              </div>
+              <p className="text-sm text-muted-foreground">{resource.description}</p>
+            </header>
+          )}
+        <Tabs value="resources">
+          <TabsList aria-label={t('details', { kind: t('project') })}>
+            <TabsTrigger value="resources">{t('resources')}</TabsTrigger>
+          </TabsList>
+          <TabsContent value="resources">
+            <ProjectRequestsPanel project={resource} />
+          </TabsContent>
+        </Tabs>
+      </section>
+    )
   const tabs =
     kind === 'teams'
       ? ['overview', 'members', 'models', 'settings']

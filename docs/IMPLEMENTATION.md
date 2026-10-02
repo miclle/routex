@@ -157,7 +157,7 @@ The binary capability count is 8 completed, 19 partially completed, and 3 not st
 | F04 | Member administration, direct grants, roles, and resource policies | Partially completed | Member and role workflows plus scoped resource-limit interfaces exist; token, TPM, and exact-money controls with authoritative quota snapshots are available; the complete cross-domain resource-policy surface remains open. |
 | F05 | Built-in and custom roles with composed permissions | Partially completed | Current-domain role and permission management is implemented; later enterprise and operations domains still require permission integration and negative acceptance. |
 | F06 | Team membership, ownership, models, quotas, and member rules | Partially completed | Team creation, membership, ownership, and model relationships exist; Team aggregate quotas and member-rule enforcement remain open. |
-| F07 | Project lifecycle, managers, models, Keys, and requests | Partially completed | Project management, managers, model grants, Project Keys, resource limits, and model requests exist; the complete Project request and lifecycle surface remains open. |
+| F07 | Project lifecycle, managers, models, Keys, and requests | Partially completed | Project management, managers, model grants, Project Keys, resource limits, model requests and finite monthly quota approvals exist; the complete Project request and lifecycle surface remains open. |
 | F08 | Personal and Project Key lifecycle | Completed | One-time delivery, confirmation, editing, rotation, revocation, expiration, scope, and history are implemented with controlled dual-database evidence. |
 | F09 | Key Token, money, RPM, TPM, concurrency, and IP restrictions | Completed | Personal, Project, and Key admission policies are enforced in the native gateway for the documented single-node architecture. Multi-node enforcement remains a separate release-architecture gate. |
 | F10 | Offboarding, inventory, handover, and emergency disable | Partially completed | Transactional local-account offboarding and continuity workflows exist; external-identity and complete enterprise continuity behavior remain open. |
@@ -168,7 +168,7 @@ The binary capability count is 8 completed, 19 partially completed, and 3 not st
 | F15 | Prices, spreadsheet/CSV workflows, API, and repository sync | Partially completed | Current prices, ETags, CSV/XLS/XLSX import, preview, commit, and export exist; external price-repository synchronization is not implemented. |
 | F16 | Platform currency, exchange rates, and historical price snapshots | Completed | Decimal-string currency/rate management, exact quoting, and immutable per-call assessment are implemented. |
 | F17 | User and Team defaults, overrides, budgets, alerts, and stop policy | Partially completed | Personal, Project, and Key enforcement plus budget/token/TPM controls, authoritative quota snapshots, and installation-calendar configuration exist; current-policy Personal/Project monthly settled-exhaustion inboxes have focused acceptance, while Team defaults, templates, broader alerts, and configurable stop-calling policy remain open. |
-| F18 | Quota, model, and request-limit approvals | Partially completed | Project model requests exist; Team quota approval, escalation, and Project quota/request-limit workflows remain open. |
+| F18 | Quota, model, and request-limit approvals | Partially completed | Project model requests and independently reviewed finite monthly quota approvals have controlled acceptance, including current runtime application and superseded receipt replay; Team approval, escalation and request-limit workflows remain open. |
 | F19 | Member overview, model sources, requests, and examples | Partially completed | Actor-scoped Personal/Team source attribution, native metadata, filters, details and examples are available; Project requests exist, while Personal/Team requests, Team invocation and broader price/usage facts remain open. |
 | F20 | Playground, comparison, attachments, and code examples | Partially completed | Four native conversation paths, two-to-four-lane comparison, cancellation, executable examples, per-protocol image/PDF discovery, user/Project attachment resolution, single/comparison attachment lifecycle interfaces, and conservative token/TPM/money admission with exact per-occurrence media prices exist; external acceptance remains open. |
 | F21 | Personal, Project, and platform call records and CSV | Completed | Isolated list/detail queries, incremental loading, redacted drawers, bounded server-side CSV export, filter parity, formula protection, and bilingual download actions are implemented with dual-database evidence. |
@@ -200,7 +200,7 @@ Only A01 is fully accepted across its defined scope. Every other case remains in
 | A10 | In-flight price changes and historical reporting | Partially completed | Immutable assessments exist; final reporting and release acceptance remain open. |
 | A11 | Concurrent quota, TPM, RPM, and concurrency contention | Partially completed | Single-process controlled enforcement exists; distributed and capacity bounds remain open. |
 | A12 | IPv4, IPv6, CIDR, and forged forwarding headers | Partially completed | Controlled source-address enforcement exists; production proxy-topology acceptance remains open. |
-| A13 | Self, repeated, concurrent approval and Team overflow | Not started | The complete approval system is not implemented. |
+| A13 | Self, repeated, concurrent approval and Team overflow | Partially completed | Controlled Project model/monthly approval permissions, first-terminal decisions and durable replay are covered; Team overflow, assignment and escalation remain open. |
 | A14 | Control Plane, Vault, analytics failure, invalid snapshots, and replay | Partially completed | Runtime and durable replay foundations exist; Vault and the complete failure matrix remain open. |
 | A15 | SSO, OAuth, LDAP, MFA, and recovery | Partially completed | MFA is implemented; enterprise identity is not. |
 | A16 | Vault compensation, rotation, and cleanup failure | Not started | Vault integration is not implemented. |
@@ -1632,3 +1632,52 @@ The complete PostgreSQL/MySQL race matrix passed (Handler 499.925 seconds,
 Service 5.851 seconds); its owned containers/network were removed. F23 and F17 remain partially completed;
 the capability inventory stays 8 completed / 19 partially completed / 3 not
 started, and A01 remains the only fully accepted case.
+
+
+### Project monthly quota requests
+
+The existing Resource configuration and scoped request history now support
+MODEL_ACCESS and finite monthly QUOTA applications. Current enabled managers of
+active Projects submit explicit fields; quota reviewers independently require
+projects.limits.write, cannot approve themselves and must provide a reason.
+Monthly Tokens remain safe integers, zero is a cap, omission preserves a field,
+null is rejected and money stays exact decimal text. Per-kind authorization
+predicates apply before pagination; quota-only reviewers receive a minimal Project
+request workspace. Pending requests leave enforcement unchanged.
+
+Strong composite submission/approval validators bind complete normalized policy,
+raw policy revision, immutable request intent and platform currency generation.
+Approval serializes with admission and governance and atomically saves the full
+patched policy, immutable approval evidence and typed audit. It preserves other
+limits, usage and Project Key ceilings. Original decision replay never reapplies
+a superseded policy; fresh details distinguish saved approval from current applied,
+pending or superseded state. Same-actor retries use the current Session CSRF while
+retaining original business intent. Malformed HTTP 200 receipts do not claim
+success. Existing MODEL creation hashes and approval semantics stay compatible.
+
+Frozen additive GORM V36 passed both supported databases: empty creation, V35
+upgrade, concurrent/repeat execution, six missing-column repairs, constraints,
+indexes, historical model/approved quota preservation and immutable approval
+requirements. Targeted race acceptance passed in 184.141 seconds, including old
+model requests, new quota requests and shared monthly inbox authority. The complete
+PostgreSQL/MySQL race matrix passed (Handler 504.548 seconds, Service 5.267 seconds);
+owned Compose resources were removed. Final check and test passed with 759
+frontend cases in 57 files, Go race/unit tests, Node checks, development lifecycle
+and embedded production assets. The focused request/resource/i18n suite passed
+71 cases, including malformed HTTP 200 receipts and valid terminal creation replay.
+Actionlint passed.
+
+An owned built binary/PostgreSQL/native fixture and in-app browser verified a
+manager submission with baseline 5 and target 10, independent approval, actual
+settlement to 10 and next-call refusal, later direct policy 15, exact historical
+approval replay after restart preserving 15, bilingual details and a quota-only
+reviewer's minimal workspace. Owned browser/runtime/database resources were
+removed. Browser proof is separate from external provider and complete product
+acceptance. A fresh build containing the final receipt validation repeated manager
+submission, independent approval, native enforcement, superseded replay after
+restart and bilingual detail acceptance; its owned resources were removed.
+
+F18 remains partial; Project request-rate changes and Team approvals/escalation
+remain open. A13 now has partial Project approval evidence rather than being
+unstarted; its Team overflow boundary is still unaccepted. Capability totals stay
+8 complete, 19 partial and 3 not started. A01 remains the only fully accepted case.

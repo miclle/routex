@@ -28,7 +28,7 @@ All successful mutations append an audit event in the same transaction. Audit re
 
 Team and Project model assignments use independent grant tables. Assignment validates the complete list against active logical models; duplicate or unknown IDs abort the whole replacement. An empty list means no assigned models.
 
-These grants do not create `user_model_grants`, expand personal API Key scope, or grant platform permissions. The current gateway continues to use its existing direct-user and personal-Key authorization rules. [Project Keys](PROJECT_KEYS.md) use their own fixed scopes intersected with current Project model grants. Interactive Team/Project session contexts, resource requests, budgets, quotas, and their enforcement remain later work; this phase exposes no placeholder quota fields and does not claim those runtime capabilities.
+These grants do not create `user_model_grants`, expand personal API Key scope, or grant platform permissions. The current gateway continues to use its existing direct-user and personal-Key authorization rules. [Project Keys](PROJECT_KEYS.md) use their own fixed scopes intersected with current Project model grants. [Project resource requests](PROJECT_REQUESTS.md) provide explicit model additions and finite monthly quota applications with independent reviewer permissions. [Resource limits](QUOTAS.md) enforce Personal, Project and Key policies. Team invocation, Team quotas and interactive session attribution remain unfinished scope.
 
 ## HTTP Contract
 
@@ -55,7 +55,7 @@ All paths below are relative to `/api/v1`. Every route requires an authenticated
 | `PUT /admin/projects/:project_id/managers` | As above | Same manager replacement contract |
 | `PUT /admin/projects/:project_id/models` | As above | Same model assignment contract |
 
-A Team response contains `{id,name,description,status,created_at,members,model_ids}`. Each member contains `{id,user_id,name,email,role,status}`. A Project contains `{id,name,description,status,creator_id,created_at,managers,model_ids}`. Each manager contains `{id,user_id,name,email}`. Names and emails identify related platform users; password hashes, sessions, and Key material never appear.
+A Team response contains `{id,name,description,status,created_at,members,model_ids}`. Each member contains `{id,user_id,name,email,role,status}`. A full Project response contains `{id,name,description,status,creator_id,created_at,managers,model_ids}`. A quota-only reviewer with `projects.limits.write` receives only `{id,name,description,status,request_workspace_only:true}` for the directed request workspace; this does not expose relationships or grant global listing authority. Each manager contains `{id,user_id,name,email}`. Names and emails identify related platform users; password hashes, sessions, and Key material never appear.
 
 Personal lists remain scoped even for administrators. Global lists require their explicit `read_all` permission. An unrelated user receives `404` for a resource detail. List pagination orders by stable resource ID, defaults to 40 items, and caps pages at 100. The next cursor is `null` at the end. Search matches resource names case-insensitively and treats SQL wildcard characters literally. State filters accept `active`, `disabled`, or `archived`. Relationship and model replacement requests are bounded to 1,000 items and remain subject to the management request body limit.
 

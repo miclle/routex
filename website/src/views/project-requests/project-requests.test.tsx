@@ -9,12 +9,12 @@ import i18n from '@/i18n'
 import en from '@/i18n/locales/en/projectRequests'
 import zh from '@/i18n/locales/zh/projectRequests'
 import type { ResourceRecord } from '@/types/resources'
-import type { ProjectRequest } from '@/types/project-requests'
+import type { ProjectModelRequest, ProjectRequest } from '@/types/project-requests'
 import ProjectRequestsPanel from './index'
 
 Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true })
 let root: Root, container: HTMLDivElement, cache: QueryClient
-let project: ResourceRecord, record: ProjectRequest
+let project: ResourceRecord, record: ProjectModelRequest
 let requests: InternalAxiosRequestConfig[],
   permissions: string[],
   failure: number,
@@ -351,6 +351,10 @@ describe('Project model requests', () => {
     expect(document.body.textContent).toContain(zh.title)
     expect(document.body.textContent).toContain(zh.empty)
     expect(Object.keys(zh).sort()).toEqual(Object.keys(en).sort())
-    expect(Object.values(zh).every((value) => value.trim().length > 0)).toBe(true)
+    const nonempty = (value: string | Record<string, unknown>): boolean =>
+      typeof value === 'string'
+        ? value.trim().length > 0
+        : Object.values(value).every((item) => nonempty(item as string | Record<string, unknown>))
+    expect(nonempty(zh)).toBe(true)
   })
 })

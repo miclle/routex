@@ -10,6 +10,7 @@ import (
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 
+	"github.com/miclle/routex/internal/routex/database"
 	"github.com/miclle/routex/internal/routex/entity"
 	apperrors "github.com/miclle/routex/internal/routex/errors"
 )
@@ -28,6 +29,47 @@ func projectRequestDecisionStatus(input ProjectRequestDecision) (string, error) 
 	return "", apperrors.ErrBadRequest
 }
 func (s *Service) DecideProjectRequest(ctx context.Context, actorID, projectID, requestID string, input ProjectRequestDecision) (*ProjectRequestRecord, error) {
+	db := s.authDB(ctx)
+	actor, err := exactEnabledActor(db, actorID)
+	if err != nil {
+		return nil, catalogError(err)
+	}
+	query := db
+	if input.Action == "withdraw" {
+		query = query.Where(database.ExactText(db, clause.Column{Name: "applicant_user_id"}, actorID))
+	} else {
+		model, err := exactGovernancePermission(db, actor, "projects.models.write")
+		if err != nil {
+			return nil, err
+		}
+		quota, err := exactGovernancePermission(db, actor, "projects.limits.write")
+		if err != nil {
+			return nil, err
+		}
+		if !model && !quota {
+			return nil, apperrors.ErrForbidden
+		}
+		query = projectRequestKindScope(query, projectRequestAccess{Model: model, Quota: quota})
+	}
+	var target entity.ProjectModelRequest
+	err = query.Select("id", "project_id", "kind").
+		Where(database.ExactText(s.authDB(ctx), clause.Column{Name: "project_id"}, projectID)).
+		Where(database.ExactText(s.authDB(ctx), clause.Column{Name: "id"}, requestID)).First(&target).Error
+	if err != nil {
+		if input.Action == "withdraw" && errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, apperrors.ErrForbidden
+		}
+		return nil, catalogError(err)
+	}
+	if target.ID != requestID || target.ProjectID != projectID {
+		return nil, apperrors.ErrNotFound
+	}
+	if target.Kind == entity.ProjectRequestQuota {
+		return s.decideProjectQuotaRequest(ctx, actorID, projectID, requestID, input)
+	}
+	if target.Kind != "" && target.Kind != entity.ProjectRequestModelAccess {
+		return nil, apperrors.ErrNotFound
+	}
 	input.Reason = strings.TrimSpace(input.Reason)
 	status, err := projectRequestDecisionStatus(input)
 	if err != nil {
