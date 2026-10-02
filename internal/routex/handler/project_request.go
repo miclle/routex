@@ -16,6 +16,7 @@ type CreateProjectRequestInput struct {
 	ModelIDs  json.RawMessage `json:"model_ids"`
 	Reason    string          `json:"reason"`
 	Quota     json.RawMessage `json:"quota"`
+	RateLimit json.RawMessage `json:"rate_limit"`
 }
 type ListProjectRequestsInput struct {
 	ProjectID string `uri:"project_id" json:"-"`
@@ -39,14 +40,18 @@ func (ctrl *Ctrl) CreateProjectRequest(c *fox.Context) error {
 	var kind string
 	if request.Kind == nil {
 		kind = "MODEL_ACCESS"
-	} else if json.Unmarshal(request.Kind, &kind) != nil || kind != "MODEL_ACCESS" && kind != "QUOTA" {
+	} else if json.Unmarshal(request.Kind, &kind) != nil || kind != "MODEL_ACCESS" && kind != "QUOTA" && kind != "RATE_LIMIT" {
 		return apperrors.ErrBadRequest
 	}
 	var models []string
 	var quota *service.ProjectQuotaPatch
+	var rate *service.ProjectRateLimitPatch
 	var reviewed string
-	if kind == "QUOTA" {
-		if request.ModelIDs != nil || request.Quota == nil || json.Unmarshal(request.Quota, &quota) != nil || quota == nil {
+	if kind == "QUOTA" || kind == "RATE_LIMIT" {
+		if request.ModelIDs != nil {
+			return apperrors.ErrBadRequest
+		}
+		if kind == "QUOTA" && (request.RateLimit != nil || request.Quota == nil || json.Unmarshal(request.Quota, &quota) != nil || quota == nil) || kind == "RATE_LIMIT" && (request.Quota != nil || request.RateLimit == nil || json.Unmarshal(request.RateLimit, &rate) != nil || rate == nil) {
 			return apperrors.ErrBadRequest
 		}
 		var err error
@@ -54,10 +59,10 @@ func (ctrl *Ctrl) CreateProjectRequest(c *fox.Context) error {
 		if err != nil {
 			return err
 		}
-	} else if request.Quota != nil || request.ModelIDs == nil || json.Unmarshal(request.ModelIDs, &models) != nil {
+	} else if request.Quota != nil || request.RateLimit != nil || request.ModelIDs == nil || json.Unmarshal(request.ModelIDs, &models) != nil {
 		return apperrors.ErrBadRequest
 	}
-	result, err := ctrl.service.CreateProjectRequest(c.Request.Context(), currentAuthentication(c).User.ID, request.ProjectID, service.ProjectRequestInput{RequestID: request.RequestID, ModelIDs: models, Reason: request.Reason, Kind: kind, Quota: quota, ReviewETag: reviewed})
+	result, err := ctrl.service.CreateProjectRequest(c.Request.Context(), currentAuthentication(c).User.ID, request.ProjectID, service.ProjectRequestInput{RequestID: request.RequestID, ModelIDs: models, Reason: request.Reason, Kind: kind, Quota: quota, RateLimit: rate, ReviewETag: reviewed})
 	if err != nil {
 		return err
 	}
@@ -117,6 +122,17 @@ func (ctrl *Ctrl) GetProjectRequest(c *fox.Context) (*service.ProjectRequestReco
 	result, err := ctrl.service.GetProjectRequest(c.Request.Context(), currentAuthentication(c).User.ID, c.Param("project_id"), c.Param("request_id"))
 	if err == nil && result.ApprovalReviewETag != "" {
 		c.Header("ETag", `"`+result.ApprovalReviewETag+`"`)
+	}
+	return result, err
+}
+
+func (ctrl *Ctrl) ProjectRequestLimitsContext(c *fox.Context) (*service.ProjectRequestLimitsContext, error) {
+	if c.Request.URL.RawQuery != "" {
+		return nil, apperrors.ErrBadRequest
+	}
+	result, err := ctrl.service.GetProjectRequestLimitsContext(c.Request.Context(), currentAuthentication(c).User.ID, c.Param("project_id"))
+	if err == nil {
+		c.Header("ETag", `"`+result.ReviewETag+`"`)
 	}
 	return result, err
 }

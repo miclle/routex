@@ -28,7 +28,7 @@ All successful mutations append an audit event in the same transaction. Audit re
 
 Team and Project model assignments use independent grant tables. Assignment validates the complete list against active logical models; duplicate or unknown IDs abort the whole replacement. An empty list means no assigned models.
 
-These grants do not create `user_model_grants`, expand personal API Key scope, or grant platform permissions. The current gateway continues to use its existing direct-user and personal-Key authorization rules. [Project Keys](PROJECT_KEYS.md) use their own fixed scopes intersected with current Project model grants. [Project resource requests](PROJECT_REQUESTS.md) provide explicit model additions and finite monthly quota applications with independent reviewer permissions. [Resource limits](QUOTAS.md) enforce Personal, Project and Key policies. Team invocation, Team quotas and interactive session attribution remain unfinished scope.
+These grants do not create `user_model_grants`, expand personal API Key scope, or grant platform permissions. The current gateway continues to use its existing direct-user and personal-Key authorization rules. [Project Keys](PROJECT_KEYS.md) use their own fixed scopes intersected with current Project model grants. [Project resource requests](PROJECT_REQUESTS.md) provide explicit model additions, finite monthly quota applications and finite RPM/TPM/concurrency applications with independent reviewer permissions. [Resource limits](QUOTAS.md) enforce Personal, Project and Key policies. Team invocation, Team quotas and interactive session attribution remain unfinished scope.
 
 ## HTTP Contract
 

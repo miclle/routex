@@ -5,6 +5,7 @@ import "time"
 const (
 	ProjectRequestModelAccess = "MODEL_ACCESS"
 	ProjectRequestQuota       = "QUOTA"
+	ProjectRequestRateLimit   = "RATE_LIMIT"
 
 	ProjectRequestPending   = "pending"
 	ProjectRequestApproved  = "approved"
@@ -12,7 +13,7 @@ const (
 	ProjectRequestWithdrawn = "withdrawn"
 )
 
-// ProjectModelRequest retains original model and quota intents independently
+// ProjectModelRequest retains original model and limit intents independently
 // of their current effective grants and policies.
 // Historical identifiers are retained without cascading live relationships.
 type ProjectModelRequest struct {
@@ -21,11 +22,11 @@ type ProjectModelRequest struct {
 	RequestHash         string `gorm:"size:64;not null"`
 	ProjectID           string `gorm:"size:30;not null;index:idx_project_model_request_project"`
 	ApplicantUserID     string `gorm:"size:30;not null"`
-	Kind                string `gorm:"size:20;not null;default:MODEL_ACCESS;check:ck_project_request_kind,kind IN ('MODEL_ACCESS','QUOTA')"`
+	Kind                string `gorm:"size:20;not null;default:MODEL_ACCESS;check:ck_project_request_kind_v37,kind IN ('MODEL_ACCESS','QUOTA','RATE_LIMIT')"`
 	BaselinePolicyETag  string `gorm:"column:baseline_policy_etag;size:64;not null;default:''"`
 	DecisionReviewETag  string `gorm:"column:decision_review_etag;size:64;not null;default:''"`
 	ApprovedPolicyETag  string `gorm:"column:approved_policy_etag;size:64;not null;default:''"`
-	DecisionRequestHash string `gorm:"size:64;not null;default:''"`
+	DecisionRequestHash string `gorm:"size:64;not null;default:'';check:ck_project_rate_approval,kind <> 'RATE_LIMIT' OR status <> 'approved' OR (decision_review_etag <> '' AND approved_policy_etag <> '' AND decision_request_hash <> '' AND approved_policy_json <> '')"`
 	ApprovedPolicyJSON  string `gorm:"type:text;not null;default:('');check:ck_project_quota_approval,kind <> 'QUOTA' OR status <> 'approved' OR (decision_review_etag <> '' AND approved_policy_etag <> '' AND decision_request_hash <> '' AND approved_policy_json <> '')"`
 	BaselineJSON        string `gorm:"type:text;not null"`
 	RequestedJSON       string `gorm:"type:text;not null"`

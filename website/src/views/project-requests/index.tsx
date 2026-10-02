@@ -15,6 +15,7 @@ import DetailDialog from './detail-dialog'
 import QuotaApplicationDialog from './quota-application-dialog'
 import QuotaDetailDialog from './quota-detail-dialog'
 import { QuotaValues } from './quota-values'
+import { RateValues } from './rate-values'
 
 export default function ProjectRequestsPanel({ project }: { project: ResourceRecord }) {
   const { t, i18n } = useTranslation('projectRequests')
@@ -36,7 +37,7 @@ export default function ProjectRequestsPanel({ project }: { project: ResourceRec
   const canReadKind = (kind: ProjectRequest['kind']) =>
     manager ||
     access.can('projects.read_all') ||
-    access.can(kind === 'QUOTA' ? 'projects.limits.write' : 'projects.models.write')
+    access.can(kind === 'MODEL_ACCESS' ? 'projects.models.write' : 'projects.limits.write')
   const active = project.status === 'active'
   const readScope = [
     manager,
@@ -59,7 +60,10 @@ export default function ProjectRequestsPanel({ project }: { project: ResourceRec
   function invalidate(kind?: ProjectRequest['kind']) {
     void cache.invalidateQueries({ queryKey: ['project-requests', actor, project.id] })
     void cache.invalidateQueries({ queryKey: ['project-request-quota-context', actor, project.id] })
-    if (kind !== 'QUOTA') {
+    void cache.invalidateQueries({
+      queryKey: ['project-request-limits-context', actor, project.id],
+    })
+    if (!kind || kind === 'MODEL_ACCESS') {
       void cache.invalidateQueries({ queryKey: ['project-request-candidates', project.id] })
       void cache.invalidateQueries({ queryKey: ['resources'] })
     }
@@ -181,10 +185,20 @@ export default function ProjectRequestsPanel({ project }: { project: ResourceRec
                   <td>
                     <Badge variant="outline">{t(record.status)}</Badge>
                   </td>
-                  <td>{t(record.kind === 'QUOTA' ? 'quota.kind' : 'kind')}</td>
+                  <td>
+                    {t(
+                      record.kind === 'QUOTA'
+                        ? 'quota.kind'
+                        : record.kind === 'RATE_LIMIT'
+                          ? 'rate.kind'
+                          : 'kind',
+                    )}
+                  </td>
                   <td className="max-w-60 break-all text-xs">
                     {record.kind === 'QUOTA' ? (
                       <QuotaValues quota={record.requested_quota} patch />
+                    ) : record.kind === 'RATE_LIMIT' ? (
+                      <RateValues rate={record.requested_rate_limit} patch />
                     ) : (
                       <span className="font-mono">{record.requested_model_ids.join(', ')}</span>
                     )}
@@ -226,19 +240,29 @@ export default function ProjectRequestsPanel({ project }: { project: ResourceRec
           key={`${actor}:${project.id}`}
           project={project}
           onClose={dismissQuota}
-          onSuccess={() => success('quota.saved', 'QUOTA')}
+          onSuccess={(kinds) =>
+            success(
+              kinds.length > 1
+                ? 'rate.combinedSaved'
+                : kinds[0] === 'RATE_LIMIT'
+                  ? 'rate.saved'
+                  : 'quota.saved',
+              kinds[0],
+            )
+          }
         />
       )}
-      {selected?.kind === 'QUOTA' && canReadKind('QUOTA') && actor && (
+      {selected && selected.kind !== 'MODEL_ACCESS' && canReadKind(selected.kind) && actor && (
         <QuotaDetailDialog
           key={`${actor}:${project.id}:${selected.id}`}
           projectId={project.id}
           requestId={selected.id}
+          kind={selected.kind}
           active={active}
           canDecide={access.can('projects.limits.write')}
           authorized={!access.isFetching}
           onClose={dismissQuota}
-          onSaved={() => invalidate('QUOTA')}
+          onSaved={() => invalidate(selected.kind)}
         />
       )}
       {selected?.kind === 'MODEL_ACCESS' && canReadKind('MODEL_ACCESS') && (

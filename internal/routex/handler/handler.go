@@ -72,6 +72,7 @@ func (ctrl *Ctrl) RegisterRoutes(r *fox.Engine) {
 	identity.GET("/projects/:project_id/limits", ctrl.requireSession, ctrl.GetResourceLimit)
 	identity.PUT("/projects/:project_id/limits", ctrl.requireSession, sameOrigin, requireCSRF, jsonManagementRequest, ctrl.SetResourceLimit)
 	identity.GET("/projects/:project_id/request-quota-context", ctrl.requireSession, ctrl.ProjectQuotaRequestContext)
+	identity.GET("/projects/:project_id/request-limits-context", ctrl.requireSession, ctrl.ProjectRequestLimitsContext)
 	identity.GET("/projects/:project_id/requests/:request_id", ctrl.requireSession, ctrl.GetProjectRequest)
 	identity.GET("/projects/:project_id/requests", ctrl.requireSession, ctrl.ListProjectRequests)
 	identity.GET("/projects/:project_id/request-model-candidates", ctrl.requireSession, ctrl.ProjectRequestCandidates)

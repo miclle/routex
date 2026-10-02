@@ -1,10 +1,10 @@
 # Current Work Handoff
 
-- **Status:** implementation active; F08 Key proof hardening pushed; F11 readiness pushed; receipt-backed retirement pushed; member model availability correction pushed; source directory pushed; monthly quota exhaustion inbox checked and pushed; Project monthly quota requests checked for phased delivery
-- **Updated:** 2026-10-02T20:35:00+08:00
+- **Status:** implementation active; F08 Key proof hardening pushed; F11 readiness pushed; receipt-backed retirement pushed; member model availability correction pushed; source directory pushed; monthly quota exhaustion inbox checked and pushed; Project monthly quota requests pushed; Project request-rate approval checked; Team session foundation assessed
+- **Updated:** 2026-10-02T21:10:00+08:00
 - **Repository / branch:** RouteX / `main`
-- **Previous checked source baseline:** `ce568febf9d85170f60f6e9ad4e2a608d565b872`, pushed and read back from `origin/main`
-- **Current owner:** coordinating task; three independent owners completed Project request entity/migration, quota request services/HTTP acceptance and UI; coordinator owns shared fixtures, docs, final validation and delivery
+- **Previous checked source baseline:** `7c0d41053f14c546eab9106a27beaad8327d41c6`, pushed and read back from `origin/main`
+- **Current owner:** coordinating task; three independent owners completed Project rate constraints, shared limit-request services/HTTP acceptance and UI; coordinator owns shared fixtures, docs, final validation and delivery
 - **Next owner:** current task continues the resumed goal
 - **Transport:** identify this checked delivery with `git log -1 -- docs/current-work-handoff.md` and independently verify its upstream
 - **Coordination plan:** `~/dotfiles/projects/routex/implementation-plan.md`; synchronize separately and preserve unrelated changes
@@ -563,13 +563,77 @@ receipt validation changed. A13 has partial Project approval evidence; its Team
 overflow boundary remains unaccepted. Capability totals remain 8 complete, 19
 partial and 3 not started; only A01 is fully accepted.
 
-The next read-only-assessed partial package is RPM/TPM/concurrency requests within
-the same workflow. Backend/schema owners assessed a shared lifecycle and frozen V37 compatibility.
-No request-rate implementation has started. Preserve current source until the
-checked monthly phase is committed and pushed; then implement RATE_LIMIT with
-current policy/currency review, finite field patches and independently retained
-creation intents for a combined form.
+At this historical monthly checkpoint, RPM/TPM/concurrency requests were assessed
+and not yet started. The following checked package records their implementation
+and acceptance; this paragraph is not a current next action.
 
 External coordination checkpoint `ff383331a5428cf80713289b58bd7d14aa3205b8`
 was pushed and read back independently. Only the RouteX plan was staged; unrelated
 zsh configuration changes were preserved.
+
+
+## Published monthly quota checkpoint and checked rate package
+
+RouteX `7c0d41053f14c546eab9106a27beaad8327d41c6` was committed and pushed
+to main with exact remote readback and a clean tree before the next package.
+[CI](https://github.com/miclle/routex/actions/runs/37007482201),
+[Actionlint](https://github.com/miclle/routex/actions/runs/37007482276) and
+[GolangCI-Lint](https://github.com/miclle/routex/actions/runs/37007482186) all
+succeeded, including database tests, independent-process authentication restart
+and build artifacts. Local checks and acceptance above are final for that commit.
+External coordination `f74ecf11f8a33d4dc6c8b32f3627be9c31bfea40` records the
+delivery and next package; unrelated zsh changes remain preserved.
+
+Three owners completed finite Project RATE_LIMIT requests for RPM, TPM and
+concurrency. Schema ownership covered frozen V37 and entity kinds; backend owns
+strict submission, bounded shared quota/rate approval and native execution tests;
+frontend owns the existing adjustment form/history and bilingual partial results.
+The coordinator completed shared integration registration, docs, full checks and
+owned production/browser acceptance. The current package is ready for phased
+commit/push; identify its eventual SHA through this document's Git history.
+
+Combined monthly/rate submission creates independent records and immutable retry
+intents. Blank preserves a field, zero caps it, explicit null is rejected. Current
+manager submission and nonself projects.limits.write review remain separate.
+Historical MODEL/QUOTA digests stay byte-identical. Full-policy patches preserve
+settled usage, monthly/rolling/money/IP restrictions and Key ceilings. Original
+approval replay never restores a superseded policy. Runtime application requires
+current publication evidence. Independent UI review fixed actor/unmount leakage
+and fail-closed handling of contradictory application flags.
+
+Final verification: go tool task check and go tool task test passed, including
+800 frontend cases in 58 files, Go race/unit, Node, development lifecycle and
+production assets. Focused request UI: 112 cases. Actionlint passed. Focused real
+PostgreSQL/MySQL race matrix: 210.144 seconds; full matrix: Handler 529.867 seconds,
+Service 5.063 seconds. Frozen V37 preserves released migrations and passes empty,
+upgrade, repeat, concurrent and interrupted-prefix constraint tests.
+
+Owned final production/PostgreSQL/browser acceptance proved baseline monthly 100
+and RPM/TPM/concurrency 1/5/1, independent pending requests for 200 and 2/10/2,
+unchanged rates after monthly-only approval, actual native rate rejection after
+separate rate approval, later policy 250 and 3/15/3, and exact historical approval
+replay preserving the latter before and after restart. English/Chinese details
+show baseline, requested, saved and current values with supersession explicit.
+All owned tabs, processes, upstream and Compose resources were removed; the
+existing developer service was untouched. Remote CI for the new SHA must be read
+back after push; the green runs above refer only to the monthly commit.
+
+## Next partial package: Team session invocation and call attribution
+
+Read-only assessment found Team grants are visible but cannot authorize current
+Key-only native invocation. Team policy approval would therefore lack enforcement.
+First implement explicit Team-scoped Session text-only native Chat, short-leased
+runtime Session/member/grant authorization, immediate local revocation, immutable
+Team/actor call attribution and separate Team history. Keep Personal/Project Keys
+and their ledgers separate; do not infer authority from a union model catalogue.
+No Team implementation or Team quota acceptance is claimed at this checkpoint.
+
+First action after committing/pushing the checked rate package: inspect runtime
+identity, session revocation, call journaling and scoped history contracts; assign
+three non-overlapping owners before editing. Use a new frozen additive migration
+for Team attribution and current exact Team/member authorization for every attempt.
+Preserve the approved Playground source-selector position with explicit named Team
+Sessions, separate CSRF/cookie transport, and bilingual text-only limitations.
+Reject attachments/comparison/code export until supported rather than falling back
+to Personal credentials. Validate both databases, revocation/lease/replay boundaries
+and owned native/browser workflows before the next main commit and push.

@@ -1,9 +1,9 @@
-import { useRef, useState, type FormEvent } from 'react'
+import { useLayoutEffect, useRef, useState, type FormEvent } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import {
   decideProjectRequest,
-  projectQuotaRequestDetail,
+  projectPolicyRequestDetail,
   projectRequestError,
 } from '@/api/project-requests'
 import { useSession } from '@/hooks/use-auth'
@@ -12,14 +12,20 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Textarea } from '@/components/ui/textarea'
 import { FormField, QueryState } from '@/components/app/CatalogUI'
-import type { ProjectRequestAction, ProjectRequestDecision } from '@/types/project-requests'
+import type {
+  ProjectRequestAction,
+  ProjectRequestDecision,
+  ProjectPolicyRequest,
+} from '@/types/project-requests'
 import { QuotaValues } from './quota-values'
+import { RateValues } from './rate-values'
 
 type DecisionIntent = { actor: string; body: ProjectRequestDecision; etag?: string }
 
 export default function QuotaDetailDialog({
   projectId,
   requestId,
+  kind = 'QUOTA',
   active,
   canDecide,
   authorized = true,
@@ -28,6 +34,7 @@ export default function QuotaDetailDialog({
 }: {
   projectId: string
   requestId: string
+  kind?: ProjectPolicyRequest['kind']
   active: boolean
   canDecide: boolean
   authorized?: boolean
@@ -39,8 +46,13 @@ export default function QuotaDetailDialog({
   const actor = session.isError ? '' : (session.data?.user.id ?? '')
   const csrf = session.data?.csrf_token ?? ''
   const detail = useQuery({
-    queryKey: ['project-quota-request-detail', actor, projectId, requestId],
-    queryFn: ({ signal }) => projectQuotaRequestDetail(projectId, requestId, signal),
+    queryKey: [
+      kind === 'QUOTA' ? 'project-quota-request-detail' : 'project-rate-request-detail',
+      actor,
+      projectId,
+      requestId,
+    ],
+    queryFn: ({ signal }) => projectPolicyRequestDetail(projectId, requestId, kind, signal),
     enabled: !!actor && authorized,
     retry: false,
     gcTime: 0,
@@ -59,10 +71,23 @@ export default function QuotaDetailDialog({
   const [error, setError] = useState<string | null>(null)
   const [saved, setSaved] = useState(false)
   const running = useRef(false)
+  const mounted = useRef(true)
+  const currentActor = useRef(actor)
+  useLayoutEffect(() => {
+    currentActor.current = actor
+  }, [actor])
+  useLayoutEffect(() => {
+    mounted.current = true
+    return () => {
+      mounted.current = false
+    }
+  }, [])
   const current = actor && authorized && detail.isSuccess && !detail.isFetching && !detail.isError
   const record = current ? detail.data : undefined
+  const copy = kind === 'RATE_LIMIT' ? 'rate' : 'quota'
   const own = record?.applicant_user_id === actor
   const currencyMismatch =
+    record?.kind === 'QUOTA' &&
     record?.requested_quota.money_month !== undefined &&
     record?.requested_quota.currency !== record?.platform_currency
   const allowed = (next: ProjectRequestAction) =>
@@ -112,14 +137,16 @@ export default function QuotaDetailDialog({
     setError(null)
     try {
       const result = await decideProjectRequest(projectId, requestId, next.body, csrf, next.etag)
-      if (result.kind !== 'QUOTA' || result.id !== requestId || result.project_id !== projectId)
-        throw new Error('Invalid Project quota decision receipt')
+      if (!mounted.current || currentActor.current !== next.actor) return
+      if (result.kind !== kind || result.id !== requestId || result.project_id !== projectId)
+        throw new Error('Invalid Project policy request decision receipt')
       setUncertain(false)
       setConflict(false)
       setSaved(true)
       onSaved()
       await detail.refetch()
     } catch (caught) {
+      if (!mounted.current || currentActor.current !== next.actor) return
       const key = projectRequestError(caught)
       setError(key)
       if (key === 'failed' || key === 'unavailable') setUncertain(true)
@@ -129,7 +156,7 @@ export default function QuotaDetailDialog({
       }
     } finally {
       running.current = false
-      setBusy(false)
+      if (mounted.current && currentActor.current === next.actor) setBusy(false)
     }
   }
   return (
@@ -138,8 +165,8 @@ export default function QuotaDetailDialog({
       onOpenChange={(open) => {
         if (!open) onClose(uncertain)
       }}
-      title={t('quota.detailTitle')}
-      description={t('quota.detailDescription')}
+      title={t(`${copy}.detailTitle`)}
+      description={t(`${copy}.detailDescription`)}
       busy={busy}
       width={660}
     >
@@ -161,7 +188,7 @@ export default function QuotaDetailDialog({
         {record && (
           <>
             <div className="flex flex-wrap gap-2">
-              <Badge>{t('quota.kind')}</Badge>
+              <Badge>{t(`${copy}.kind`)}</Badge>
               <Badge variant="outline">{t(record.status)}</Badge>
             </div>
             <dl className="grid grid-cols-[auto_1fr] gap-x-5 gap-y-3 text-sm">
@@ -175,33 +202,52 @@ export default function QuotaDetailDialog({
               <dd className="whitespace-pre-wrap break-words">{record.reason}</dd>
             </dl>
             <div className="grid gap-3 sm:grid-cols-2">
-              <section className="space-y-3 rounded-lg border p-4" aria-label={t('quota.baseline')}>
-                <h3 className="text-sm font-medium">{t('quota.baseline')}</h3>
-                <QuotaValues quota={record.baseline_quota} />
+              <section
+                className="space-y-3 rounded-lg border p-4"
+                aria-label={t(`${copy}.baseline`)}
+              >
+                <h3 className="text-sm font-medium">{t(`${copy}.baseline`)}</h3>
+                {record.kind === 'QUOTA' ? (
+                  <QuotaValues quota={record.baseline_quota} />
+                ) : (
+                  <RateValues rate={record.baseline_rate_limit} />
+                )}
               </section>
               <section
                 className="space-y-3 rounded-lg border bg-muted/30 p-4"
                 aria-label={t('quota.requested')}
               >
                 <h3 className="text-sm font-medium">{t('quota.requested')}</h3>
-                <QuotaValues quota={record.requested_quota} patch />
+                {record.kind === 'QUOTA' ? (
+                  <QuotaValues quota={record.requested_quota} patch />
+                ) : (
+                  <RateValues rate={record.requested_rate_limit} patch />
+                )}
               </section>
             </div>
-            <section className="space-y-3 rounded-lg border p-4" aria-label={t('quota.current')}>
-              <h3 className="text-sm font-medium">{t('quota.current')}</h3>
-              <QuotaValues quota={record.current_quota} />
+            <section className="space-y-3 rounded-lg border p-4" aria-label={t(`${copy}.current`)}>
+              <h3 className="text-sm font-medium">{t(`${copy}.current`)}</h3>
+              {record.kind === 'QUOTA' ? (
+                <QuotaValues quota={record.current_quota} />
+              ) : (
+                <RateValues rate={record.current_rate_limit} />
+              )}
               <p className="text-xs text-muted-foreground">
                 {t('quota.denomination', { currency: record.platform_currency })}
               </p>
             </section>
-            <p className="text-xs text-muted-foreground">{t('quota.baselineHelp')}</p>
-            {record.approved_quota && (
+            <p className="text-xs text-muted-foreground">{t(`${copy}.baselineHelp`)}</p>
+            {(record.kind === 'QUOTA' ? record.approved_quota : record.approved_rate_limit) && (
               <section
                 className="space-y-3 rounded-lg border p-4"
                 aria-label={t('quota.approvedSnapshot')}
               >
                 <h3 className="text-sm font-medium">{t('quota.approvedSnapshot')}</h3>
-                <QuotaValues quota={record.approved_quota} />
+                {record.kind === 'QUOTA' && record.approved_quota ? (
+                  <QuotaValues quota={record.approved_quota} />
+                ) : record.kind === 'RATE_LIMIT' && record.approved_rate_limit ? (
+                  <RateValues rate={record.approved_rate_limit} />
+                ) : null}
               </section>
             )}
             {record.status === 'approved' && (
@@ -263,7 +309,7 @@ export default function QuotaDetailDialog({
         )}
         {action && (record?.status === 'pending' || exactRetry) && (
           <form className="space-y-4" onSubmit={(event) => void submit(event)}>
-            <p className="text-sm">{t(`quota.${action}Help`)}</p>
+            <p className="text-sm">{t(`${copy}.${action}Help`)}</p>
             {needsReview && !exactRetry && (
               <div role="alert" className="space-y-3 rounded-lg border p-3 text-sm">
                 <p>{t('quota.reviewChanged')}</p>

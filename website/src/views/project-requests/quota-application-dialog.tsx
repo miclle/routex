@@ -1,9 +1,9 @@
-import { useRef, useState, type FormEvent } from 'react'
+import { useLayoutEffect, useRef, useState, type FormEvent } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import {
   createProjectRequest,
-  projectQuotaContext,
+  projectRequestLimitsContext,
   projectRequestError,
 } from '@/api/project-requests'
 import { useSession } from '@/hooks/use-auth'
@@ -15,13 +15,24 @@ import { FormField, QueryState } from '@/components/app/CatalogUI'
 import { parseInteger, validMoney } from '@/views/resource-limits/quota-values'
 import type { ResourceRecord } from '@/types/resources'
 import type {
-  CreateProjectQuotaRequest,
-  ProjectQuotaContext,
+  CreateProjectPolicyRequest,
+  ProjectRequestLimitsContext,
   ProjectQuotaPatch,
+  ProjectRateLimitPatch,
 } from '@/types/project-requests'
 import { QuotaValues } from './quota-values'
+import { RateValues } from './rate-values'
 
-type Intent = { body: CreateProjectQuotaRequest; etag: string; actor: string }
+type Intent = {
+  body: CreateProjectPolicyRequest
+  etag: string
+  actor: string
+  status: 'not_sent' | 'saved' | 'failed' | 'unknown'
+  error?: string
+  recordId?: string
+  recordStatus?: string
+}
+const rateFields = ['rpm', 'tpm', 'concurrency'] as const
 
 export default function QuotaApplicationDialog({
   project,
@@ -30,16 +41,16 @@ export default function QuotaApplicationDialog({
 }: {
   project: ResourceRecord
   onClose: (uncertain: boolean) => void
-  onSuccess: () => void
+  onSuccess: (kinds: CreateProjectPolicyRequest['kind'][]) => void
 }) {
   const { t } = useTranslation('projectRequests')
   const session = useSession()
   const actor = session.isError ? '' : (session.data?.user.id ?? '')
   const [busy, setBusy] = useState(false)
-  const [uncertain, setUncertain] = useState(false)
+  const [incomplete, setIncomplete] = useState(false)
   const context = useQuery({
-    queryKey: ['project-request-quota-context', actor, project.id],
-    queryFn: ({ signal }) => projectQuotaContext(project.id, signal),
+    queryKey: ['project-request-limits-context', actor, project.id],
+    queryFn: ({ signal }) => projectRequestLimitsContext(project.id, signal),
     enabled: !!actor && project.status === 'active',
     retry: false,
     gcTime: 0,
@@ -51,7 +62,7 @@ export default function QuotaApplicationDialog({
     <Dialog
       open
       onOpenChange={(open) => {
-        if (!open) onClose(uncertain)
+        if (!open) onClose(incomplete)
       }}
       title={t('quota.applyTitle')}
       description={t('quota.applyDescription')}
@@ -64,7 +75,7 @@ export default function QuotaApplicationDialog({
         retry={() => void context.refetch()}
       />
       {context.data && actor && (
-        <QuotaForm
+        <LimitForm
           key={`${actor}:${project.id}`}
           project={project}
           context={context.data}
@@ -74,9 +85,9 @@ export default function QuotaApplicationDialog({
           csrf={session.data?.csrf_token ?? ''}
           busy={busy}
           setBusy={setBusy}
-          onUncertain={() => setUncertain(true)}
+          onIncomplete={() => setIncomplete(true)}
           refresh={() => void context.refetch()}
-          onClose={() => onClose(uncertain)}
+          onClose={() => onClose(incomplete)}
           onSuccess={onSuccess}
         />
       )}
@@ -84,7 +95,7 @@ export default function QuotaApplicationDialog({
   )
 }
 
-function QuotaForm({
+function LimitForm({
   project,
   context,
   current,
@@ -93,102 +104,170 @@ function QuotaForm({
   csrf,
   busy,
   setBusy,
-  onUncertain,
+  onIncomplete,
   refresh,
   onClose,
   onSuccess,
 }: {
   project: ResourceRecord
-  context: ProjectQuotaContext
+  context: ProjectRequestLimitsContext
   current: boolean
   updatedAt: number
   actor: string
   csrf: string
   busy: boolean
   setBusy: (value: boolean) => void
-  onUncertain: () => void
+  onIncomplete: () => void
   refresh: () => void
   onClose: () => void
-  onSuccess: () => void
+  onSuccess: (kinds: CreateProjectPolicyRequest['kind'][]) => void
 }) {
   const { t } = useTranslation('projectRequests')
   const [reviewed, setReviewed] = useState(context)
   const [tokens, setTokens] = useState('')
   const [money, setMoney] = useState('')
+  const [rates, setRates] = useState({ rpm: '', tpm: '', concurrency: '' })
   const [reason, setReason] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [conflict, setConflict] = useState(false)
   const [conflictAt, setConflictAt] = useState(0)
-  const [intent, setIntent] = useState<Intent | null>(null)
-  const [uncertain, setUncertain] = useState(false)
+  const [intents, setIntents] = useState<Intent[] | null>(null)
   const running = useRef(false)
+  const mounted = useRef(true)
+  const identity = useRef({ actor, csrf })
+  useLayoutEffect(() => {
+    identity.current = { actor, csrf }
+  }, [actor, csrf])
+  useLayoutEffect(() => {
+    mounted.current = true
+    return () => {
+      mounted.current = false
+    }
+  }, [])
+  const uncertain = intents?.some((intent) => intent.status === 'unknown') === true
+  const hasSaved = intents?.some((intent) => intent.status === 'saved') === true
   const needsReview = conflict || context.review_etag !== reviewed.review_etag
-  const changed = tokens.trim() !== '' || money.trim() !== ''
-  const frozen = busy || uncertain
+  const quotaChanged = tokens.trim() !== '' || money.trim() !== ''
+  const rateChanged = rateFields.some((key) => rates[key].trim() !== '')
+  const changed = quotaChanged || rateChanged
+  const frozen = busy || uncertain || hasSaved
+
   async function submit(event: FormEvent) {
     event.preventDefault()
     if (
       running.current ||
       busy ||
-      (!uncertain && project.status !== 'active') ||
       !actor ||
       !csrf ||
-      (!uncertain && (!current || needsReview))
+      (!uncertain && (project.status !== 'active' || !current || needsReview))
     )
       return
-    let next = intent
-    if (!uncertain) {
-      const value = parseInteger(tokens)
-      const amount = money.trim()
+    let next = intents
+    if (!next) {
       if (!changed || !reason.trim()) {
         setError('quota.required')
         return
       }
-      if (value === undefined || (amount && !validMoney(amount))) {
+      const value = parseInteger(tokens)
+      const amount = money.trim()
+      const parsed = Object.fromEntries(rateFields.map((key) => [key, parseInteger(rates[key])]))
+      if (
+        value === undefined ||
+        (amount && !validMoney(amount)) ||
+        rateFields.some((key) => parsed[key] === undefined)
+      ) {
         setError('quota.invalidValues')
         return
       }
-      const patch: ProjectQuotaPatch = {}
-      if (value !== null) patch.tokens_month = value
-      if (amount) {
-        patch.money_month = amount
-        patch.currency = reviewed.platform_currency
+      next = []
+      if (quotaChanged) {
+        const quota: ProjectQuotaPatch = {}
+        if (value !== null) quota.tokens_month = value
+        if (amount) {
+          quota.money_month = amount
+          quota.currency = reviewed.platform_currency
+        }
+        next.push({
+          body: { request_id: crypto.randomUUID(), kind: 'QUOTA', quota, reason: reason.trim() },
+          etag: reviewed.review_etag,
+          actor,
+          status: 'not_sent',
+        })
       }
-      next = {
-        body: {
-          request_id: crypto.randomUUID(),
-          kind: 'QUOTA',
-          quota: patch,
-          reason: reason.trim(),
-        },
-        etag: reviewed.review_etag,
-        actor,
+      if (rateChanged) {
+        const rate_limit: ProjectRateLimitPatch = {}
+        for (const key of rateFields) if (parsed[key] !== null) rate_limit[key] = parsed[key]
+        next.push({
+          body: {
+            request_id: crypto.randomUUID(),
+            kind: 'RATE_LIMIT',
+            rate_limit,
+            reason: reason.trim(),
+          },
+          etag: reviewed.review_etag,
+          actor,
+          status: 'not_sent',
+        })
       }
-      setIntent(next)
+      setIntents(next)
     }
-    if (!next || next.actor !== actor) return
+    if (next.some((intent) => intent.actor !== actor)) return
     running.current = true
     setBusy(true)
     setError(null)
+    let allSaved = true
     try {
-      const saved = await createProjectRequest(project.id, next.body, csrf, next.etag)
-      if (saved.kind !== 'QUOTA' || saved.project_id !== project.id || !saved.id)
-        throw new Error('Invalid Project quota request receipt')
-      onSuccess()
-    } catch (caught) {
-      const key = projectRequestError(caught)
-      setError(key)
-      if (key === 'failed' || key === 'unavailable') {
-        setUncertain(true)
-        onUncertain()
+      for (let index = 0; index < next.length; index++) {
+        const intent: Intent = next[index]
+        if (intent.status === 'saved') continue
+        if (!mounted.current || identity.current.actor !== intent.actor || !identity.current.csrf)
+          return
+        try {
+          const saved = await createProjectRequest(
+            project.id,
+            intent.body,
+            identity.current.csrf,
+            intent.etag,
+          )
+          if (!mounted.current) return
+          if (saved.kind !== intent.body.kind || saved.project_id !== project.id || !saved.id)
+            throw new Error('Invalid Project policy request receipt')
+          next = next.map((item, position) =>
+            position === index
+              ? {
+                  ...item,
+                  status: 'saved',
+                  error: undefined,
+                  recordId: saved.id,
+                  recordStatus: saved.status,
+                }
+              : item,
+          )
+          setIntents(next)
+        } catch (caught) {
+          if (!mounted.current) return
+          const key = projectRequestError(caught)
+          const unknown = intent.status === 'unknown' || key === 'failed' || key === 'unavailable'
+          next = next.map((item, position) =>
+            position === index
+              ? { ...item, status: unknown ? 'unknown' : 'failed', error: key }
+              : item,
+          )
+          setIntents(next)
+          setError(key)
+          if (key === 'conflict') {
+            setConflict(true)
+            setConflictAt(updatedAt)
+          }
+          onIncomplete()
+          allSaved = false
+          break
+        }
       }
-      if (key === 'conflict') {
-        setConflict(true)
-        setConflictAt(updatedAt)
-      }
+      if (allSaved && mounted.current) onSuccess(next.map((intent) => intent.body.kind))
     } finally {
       running.current = false
-      setBusy(false)
+      if (mounted.current) setBusy(false)
     }
   }
   return (
@@ -197,6 +276,8 @@ function QuotaForm({
         <section className="space-y-3 rounded-lg bg-muted p-4" aria-label={t('quota.current')}>
           <h3 className="text-sm font-medium">{t('quota.current')}</h3>
           <QuotaValues quota={context.current_quota} />
+          <h3 className="text-sm font-medium">{t('rate.current')}</h3>
+          <RateValues rate={context.current_rate_limit} />
           <p className="text-xs text-muted-foreground">
             {t('quota.denomination', { currency: context.platform_currency })}
           </p>
@@ -212,7 +293,21 @@ function QuotaForm({
               setReviewed(context)
               setConflict(false)
               setError(null)
-              setIntent(null)
+              setIntents((previous) =>
+                previous?.some((intent) => intent.status === 'saved')
+                  ? previous.map((intent) =>
+                      intent.status === 'saved'
+                        ? intent
+                        : {
+                            ...intent,
+                            body: { ...intent.body, request_id: crypto.randomUUID() },
+                            etag: context.review_etag,
+                            status: 'not_sent',
+                            error: undefined,
+                          },
+                    )
+                  : null,
+              )
             }}
           >
             {t('quota.useReviewed')}
@@ -226,7 +321,10 @@ function QuotaForm({
             <Input
               aria-label={t('quota.tokens')}
               value={tokens}
-              onChange={(event) => setTokens(event.target.value)}
+              onChange={(event) => {
+                setTokens(event.target.value)
+                if (!frozen) setIntents(null)
+              }}
               inputMode="numeric"
               placeholder={t('quota.keep')}
               disabled={frozen}
@@ -237,7 +335,10 @@ function QuotaForm({
             <Input
               aria-label={t('quota.moneyIn', { currency: reviewed.platform_currency })}
               value={money}
-              onChange={(event) => setMoney(event.target.value)}
+              onChange={(event) => {
+                setMoney(event.target.value)
+                if (!frozen) setIntents(null)
+              }}
               inputMode="decimal"
               placeholder={t('quota.keep')}
               disabled={frozen}
@@ -245,20 +346,66 @@ function QuotaForm({
             />
           </FormField>
         </div>
+      </section>
+      <section className="space-y-3" aria-label={t('rate.kind')}>
+        <h3 className="font-medium">{t('rate.kind')}</h3>
+        <div className="grid gap-4 sm:grid-cols-3">
+          {rateFields.map((key) => (
+            <FormField key={key} label={t(`rate.${key}`)}>
+              <Input
+                aria-label={t(`rate.${key}`)}
+                value={rates[key]}
+                onChange={(event) => {
+                  setRates({ ...rates, [key]: event.target.value })
+                  if (!frozen) setIntents(null)
+                }}
+                inputMode="numeric"
+                placeholder={t('quota.keep')}
+                disabled={frozen}
+                maxLength={20}
+              />
+            </FormField>
+          ))}
+        </div>
         <p className="text-xs text-muted-foreground">{t('quota.fieldHelp')}</p>
+        <p className="text-xs text-muted-foreground">{t('rate.separateRequests')}</p>
       </section>
       <FormField label={t('reason')}>
         <Textarea
           aria-label={t('reason')}
           value={reason}
-          onChange={(event) => setReason(event.target.value)}
+          onChange={(event) => {
+            setReason(event.target.value)
+            if (!frozen) setIntents(null)
+          }}
           placeholder={t('quota.reasonPlaceholder')}
           maxLength={2000}
           required
-          readOnly={uncertain}
+          readOnly={uncertain || hasSaved}
           disabled={busy}
         />
       </FormField>
+      {intents && (
+        <ul className="space-y-2" aria-label={t('rate.submissionProgress')}>
+          {intents.map((intent) => (
+            <li
+              key={intent.body.request_id}
+              className="rounded-lg border p-3 text-sm"
+              role="status"
+            >
+              <span className="font-medium">
+                {t(intent.body.kind === 'QUOTA' ? 'quota.kind' : 'rate.kind')}
+              </span>
+              {' · '}
+              {t(`rate.submission.${intent.status}`)}
+              {intent.recordId && (
+                <span className="ml-2 break-all font-mono text-xs">{intent.recordId}</span>
+              )}
+              {intent.recordStatus && <span className="ml-2">{t(intent.recordStatus)}</span>}
+            </li>
+          ))}
+        </ul>
+      )}
       {error && (
         <div
           role="alert"
@@ -285,12 +432,16 @@ function QuotaForm({
           type="submit"
           disabled={
             busy ||
-            (!uncertain && project.status !== 'active') ||
             error === 'denied' ||
-            (!uncertain && (!current || needsReview || !changed || !reason.trim()))
+            (!uncertain &&
+              (project.status !== 'active' ||
+                !current ||
+                needsReview ||
+                !changed ||
+                !reason.trim()))
           }
         >
-          {t(busy ? 'sending' : uncertain ? 'retry' : 'send')}
+          {t(busy ? 'sending' : intents ? 'retry' : 'send')}
         </Button>
       </div>
     </form>

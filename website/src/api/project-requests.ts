@@ -9,6 +9,9 @@ import type {
   ProjectRequestStatus,
   ProjectQuotaContext,
   ProjectQuotaRequestDetail,
+  ProjectPolicyRequestDetail,
+  ProjectPolicyRequest,
+  ProjectRequestLimitsContext,
 } from '@/types/project-requests'
 const projectPath = (id: string) => `/projects/${encodeURIComponent(id)}`
 export async function listProjectRequests(
@@ -43,7 +46,7 @@ function validRequest(item: ProjectRequest, projectId: string) {
     !['pending', 'approved', 'rejected', 'withdrawn'].includes(item.status)
   )
     return false
-  if (item.kind === 'QUOTA')
+  if (item.kind === 'QUOTA' || item.kind === 'RATE_LIMIT')
     return (
       item.id.length > 0 &&
       item.applicant_user_id.length > 0 &&
@@ -51,8 +54,11 @@ function validRequest(item: ProjectRequest, projectId: string) {
       Number.isFinite(Date.parse(item.created_at)) &&
       typeof item.baseline_policy_etag === 'string' &&
       item.baseline_policy_etag.length > 0 &&
-      validQuota(item.baseline_quota) &&
-      validQuotaPatch(item.requested_quota) &&
+      (item.kind === 'QUOTA'
+        ? validQuota(item.baseline_quota) && validQuotaPatch(item.requested_quota)
+        : validRateLimit(item.baseline_rate_limit) &&
+          validRateLimit(item.requested_rate_limit, true)) &&
+      validApplication(item) &&
       (item.status === 'pending'
         ? item.decided_at === null
         : typeof item.decided_at === 'string' &&
@@ -60,7 +66,9 @@ function validRequest(item: ProjectRequest, projectId: string) {
           typeof item.decision_actor_id === 'string' &&
           item.decision_actor_id.length > 0) &&
       (item.status !== 'approved' ||
-        (validQuota(item.approved_quota) &&
+        ((item.kind === 'QUOTA'
+          ? validQuota(item.approved_quota)
+          : validRateLimit(item.approved_rate_limit)) &&
           typeof item.approved_policy_etag === 'string' &&
           item.approved_policy_etag.length > 0))
     )
@@ -92,8 +100,8 @@ export async function createProjectRequest(
       headers: { 'X-CSRF-Token': csrf, ...(reviewETag ? { 'If-Match': `"${reviewETag}"` } : {}) },
     })
   ).data
-  if (input.kind === 'QUOTA' && (data?.kind !== 'QUOTA' || !validRequest(data, id)))
-    throw new Error('Invalid Project quota creation receipt')
+  if (input.kind !== 'MODEL_ACCESS' && (data?.kind !== input.kind || !validRequest(data, id)))
+    throw new Error('Invalid Project policy request creation receipt')
   return data
 }
 export async function decideProjectRequest(
@@ -113,13 +121,13 @@ export async function decideProjectRequest(
     )
   ).data
   if (
-    data?.kind === 'QUOTA' &&
+    (data?.kind === 'QUOTA' || data?.kind === 'RATE_LIMIT') &&
     (!validRequest(data, id) ||
       data.id !== requestId ||
       data.status !==
         ({ approve: 'approved', reject: 'rejected', withdraw: 'withdrawn' } as const)[input.action])
   )
-    throw new Error('Invalid Project quota decision receipt')
+    throw new Error('Invalid Project policy request decision receipt')
   return data
 }
 export async function projectQuotaContext(id: string, signal?: AbortSignal) {
@@ -138,6 +146,57 @@ export async function projectQuotaContext(id: string, signal?: AbortSignal) {
   )
     throw new Error('Invalid Project quota context')
   return data
+}
+export async function projectRequestLimitsContext(id: string, signal?: AbortSignal) {
+  const data = (
+    await client.get<ProjectRequestLimitsContext>(`${projectPath(id)}/request-limits-context`, {
+      signal,
+    })
+  ).data
+  if (
+    !data ||
+    data.project_id !== id ||
+    typeof data.review_etag !== 'string' ||
+    !/^[a-f0-9]{64}$/.test(data.review_etag) ||
+    typeof data.policy_etag !== 'string' ||
+    !data.policy_etag ||
+    !validQuota(data.current_quota) ||
+    !validRateLimit(data.current_rate_limit) ||
+    typeof data.platform_currency !== 'string' ||
+    !/^[A-Z]{3}$/.test(data.platform_currency)
+  )
+    throw new Error('Invalid Project request limits context')
+  return data
+}
+function validRateLimit(rate: unknown, patch = false) {
+  if (!rate || typeof rate !== 'object' || Array.isArray(rate)) return false
+  const value = rate as Record<string, unknown>
+  const keys = ['rpm', 'tpm', 'concurrency']
+  if (Object.keys(value).some((key) => !keys.includes(key))) return false
+  if (patch && Object.keys(value).length === 0) return false
+  return keys.every((key) =>
+    patch && !Object.hasOwn(value, key)
+      ? true
+      : (!patch && value[key] === null) ||
+        (typeof value[key] === 'number' && Number.isSafeInteger(value[key]) && value[key] >= 0),
+  )
+}
+function validApplication(data: unknown, required = false) {
+  if (!data || typeof data !== 'object') return false
+  const value = data as Record<string, unknown>
+  if (
+    !required &&
+    !Object.hasOwn(value, 'runtime_applied') &&
+    !Object.hasOwn(value, 'application_status')
+  )
+    return true
+  return (
+    value.status === 'approved' &&
+    typeof value.runtime_applied === 'boolean' &&
+    typeof value.application_status === 'string' &&
+    ['pending', 'applied', 'superseded'].includes(value.application_status) &&
+    value.runtime_applied === (value.application_status === 'applied')
+  )
 }
 function validQuota(quota: unknown) {
   if (!quota || typeof quota !== 'object') return false
@@ -178,8 +237,17 @@ export async function projectQuotaRequestDetail(
   requestId: string,
   signal?: AbortSignal,
 ) {
+  const data = await projectPolicyRequestDetail(id, requestId, 'QUOTA', signal)
+  return data as ProjectQuotaRequestDetail
+}
+export async function projectPolicyRequestDetail(
+  id: string,
+  requestId: string,
+  kind: ProjectPolicyRequest['kind'],
+  signal?: AbortSignal,
+) {
   const data = (
-    await client.get<ProjectQuotaRequestDetail>(
+    await client.get<ProjectPolicyRequestDetail>(
       `${projectPath(id)}/requests/${encodeURIComponent(requestId)}`,
       { signal },
     )
@@ -188,27 +256,24 @@ export async function projectQuotaRequestDetail(
     !data ||
     data.project_id !== id ||
     data.id !== requestId ||
-    data.kind !== 'QUOTA' ||
-    !['pending', 'approved', 'rejected', 'withdrawn'].includes(data.status) ||
-    typeof data.applicant_user_id !== 'string' ||
-    typeof data.reason !== 'string' ||
-    typeof data.created_at !== 'string' ||
-    !validQuota(data.current_quota) ||
-    !validQuota(data.baseline_quota) ||
-    !validQuotaPatch(data.requested_quota) ||
+    data.kind !== kind ||
+    !validRequest(data, id) ||
+    !(data.kind === 'QUOTA'
+      ? validQuota(data.current_quota)
+      : validRateLimit(data.current_rate_limit)) ||
     typeof data.current_policy_etag !== 'string' ||
     typeof data.platform_currency !== 'string' ||
     !/^[A-Z]{3}$/.test(data.platform_currency) ||
     (data.status === 'pending' &&
       (typeof data.approval_review_etag !== 'string' ||
         !/^[a-f0-9]{64}$/.test(data.approval_review_etag))) ||
-    (data.status === 'approved' &&
-      (!validQuota(data.approved_quota) ||
-        typeof data.approved_policy_etag !== 'string' ||
-        typeof data.runtime_applied !== 'boolean' ||
-        !['pending', 'applied', 'superseded'].includes(data.application_status ?? '')))
+    (data.status === 'approved' && !validApplication(data, true))
   )
-    throw new Error('Invalid Project quota request detail')
+    throw new Error(
+      kind === 'QUOTA'
+        ? 'Invalid Project quota request detail'
+        : 'Invalid Project request-limit detail',
+    )
   return data
 }
 export function projectRequestError(error: unknown) {

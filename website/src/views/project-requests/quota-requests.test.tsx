@@ -150,8 +150,14 @@ beforeEach(async () => {
     if (config.url === '/auth/session') response.data = auth()
     else if (config.url === '/auth/permissions') response.data = { permissions }
     else if (config.url === base) response.data = structuredClone(project)
-    else if (config.url === `${base}/request-quota-context`)
-      response.data = contextOverride ?? structuredClone(context)
+    else if (
+      config.url === `${base}/request-quota-context` ||
+      config.url === `${base}/request-limits-context`
+    )
+      response.data = contextOverride ?? {
+        ...structuredClone(context),
+        current_rate_limit: { rpm: 60, tpm: null, concurrency: 2 },
+      }
     else if (config.url === `${base}/requests/${requestId}`)
       response.data = detailOverride ?? freshDetail()
     else if (config.url === `${base}/requests/${requestId}/decision`) {
@@ -275,7 +281,7 @@ async function submit() {
 }
 const posts = () => requests.filter((request) => request.method === 'post')
 async function apply() {
-  await click('Request quota adjustment')
+  await click('Request quota and limit adjustment')
   await until(() => expect(dialog().textContent).toContain('Platform currency: USD'))
 }
 async function review() {
@@ -498,7 +504,7 @@ describe('Project monthly quota applications', () => {
     context = { ...context, review_etag: 'c'.repeat(64), platform_currency: 'EUR' }
     await act(async () => {
       void cache.invalidateQueries({
-        queryKey: ['project-request-quota-context', actor, projectId],
+        queryKey: ['project-request-limits-context', actor, projectId],
       })
     })
     await until(() => expect(dialog().textContent).toContain('Platform currency: EUR'))
@@ -548,7 +554,7 @@ describe('Project monthly quota applications', () => {
     }
     await click('Refresh current quotas')
     await until(() => expect(dialog().textContent).toContain('Platform currency: EUR'))
-    expect(button('Submit request').disabled).toBe(true)
+    expect(button('Retry the same action').disabled).toBe(true)
     expect(dialog().querySelector('textarea')?.value).toBe('Preserved draft')
     await click('Use this reviewed context')
     expect(
@@ -605,7 +611,7 @@ describe('Project monthly quota applications', () => {
     rows = []
     contextOverride = { ...context, project_id: 'prj_other' }
     await mount()
-    await click('Request quota adjustment')
+    await click('Request quota and limit adjustment')
     await until(() => expect(dialog().querySelector('[role="alert"]')).not.toBeNull())
     expect(dialog().querySelector('input')).toBeNull()
     expect(posts()).toHaveLength(0)
@@ -677,7 +683,7 @@ describe('Scoped Project quota review', () => {
     await mount(true)
     expect(host.querySelectorAll('[role="tab"]')).toHaveLength(1)
     expect(host.textContent).not.toContain('Existing model request')
-    expect(button('Request quota adjustment')).toBeUndefined()
+    expect(button('Request quota and limit adjustment')).toBeUndefined()
     expect(
       requests.some(
         (request) =>
@@ -943,6 +949,24 @@ describe('Scoped Project quota review', () => {
 })
 
 describe('Quota request read boundaries', () => {
+  it.each([
+    { runtime_applied: true, application_status: 'pending' },
+    { runtime_applied: true, application_status: 'superseded' },
+    { runtime_applied: false, application_status: 'applied' },
+  ])('rejects contradictory approved quota application flags %j', async (flags) => {
+    detailOverride = {
+      ...freshDetail(),
+      status: 'approved',
+      decided_at: '2026-10-02T01:00:00Z',
+      decision_actor_id: actor,
+      approved_quota: structuredClone(context.current_quota),
+      approved_policy_etag: 'policy-approved',
+      ...flags,
+    }
+    await expect(projectQuotaRequestDetail(projectId, requestId)).rejects.toThrow(
+      'Invalid Project quota request detail',
+    )
+  })
   it('rejects weak or malformed creation context instead of inventing a review validator', async () => {
     for (const override of [
       { ...context, review_etag: 'weak' },

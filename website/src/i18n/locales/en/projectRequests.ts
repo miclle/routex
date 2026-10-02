@@ -1,7 +1,7 @@
 export default {
   title: 'Project resource requests',
   description:
-    'Request additional models or monthly quotas for this Project. Pending requests do not change effective configuration.',
+    'Request additional models, monthly quotas or request limits for this Project. Pending requests do not change effective configuration.',
   requestKind: 'Type',
   requestedChange: 'Requested change',
   apply: 'Request models',
@@ -72,10 +72,10 @@ export default {
   refresh: 'Refresh history',
   retry: 'Retry the same action',
   quota: {
-    apply: 'Request quota adjustment',
-    applyTitle: 'Request quota adjustment',
+    apply: 'Request quota and limit adjustment',
+    applyTitle: 'Request quota and limit adjustment',
     applyDescription:
-      'Request finite monthly quotas. Approval is required before the Project policy changes.',
+      'Request finite monthly quotas and request limits. Approval is required before the Project policy changes.',
     monthly: 'Monthly quotas',
     tokens: 'Monthly tokens',
     money: 'Monthly money',
@@ -86,11 +86,11 @@ export default {
     current: 'Current quotas',
     denomination: 'Platform currency: {{currency}}',
     fieldHelp:
-      'Leave a field blank to keep it unchanged. Zero is a real limit. Unlimited targets and request-limit applications are not available in this form.',
-    reasonPlaceholder: 'Explain why this Project needs these monthly quotas.',
-    required: 'Enter at least one monthly quota and provide a reason.',
+      'Leave a field blank to keep it unchanged. Zero is a real limit. Unlimited targets are not available in this form.',
+    reasonPlaceholder: 'Explain why this Project needs these quotas or request limits.',
+    required: 'Enter at least one quota or request limit and provide a reason.',
     invalidValues:
-      'Use a non-negative safe integer for tokens and an exact decimal amount with up to 18 integer and 18 fractional digits for money.',
+      'Use a non-negative safe integer for tokens and request limits and an exact decimal amount with up to 18 integer and 18 fractional digits for money.',
     reviewChanged:
       'The policy or platform currency may have changed. Refresh and review the current quotas before submitting. Your draft is preserved.',
     useReviewed: 'Use this reviewed context',
@@ -124,9 +124,40 @@ export default {
       'The decision may already be saved. Retry the exact reviewed action; refreshing does not resolve that uncertainty.',
     unknown: 'Unknown',
     dismissedUncertain:
-      'The previous quota action may already be saved. Dismissal did not confirm its outcome. Check fresh request history and details before acting again.',
-    requiredDecisionReason: 'A reason is required to approve or reject a quota request.',
+      'The previous resource action may already be saved or only partly completed. Dismissal did not confirm its outcome. Check fresh request history and details before acting again.',
+    requiredDecisionReason: 'A reason is required to approve or reject a resource policy request.',
     currencyMismatch:
       'The requested money currency differs from the current platform currency. This historical amount cannot be reinterpreted; submit a new request in the current currency.',
+  },
+  rate: {
+    kind: 'Request limits',
+    saved: 'Request-limit application submitted. Effective limits are unchanged.',
+    combinedSaved:
+      'Both applications are saved. Monthly quotas and request limits require separate decisions.',
+    rpm: 'RPM',
+    tpm: 'TPM',
+    concurrency: 'Maximum concurrency',
+    current: 'Current request limits',
+    baseline: 'Request limits at submission',
+    detailTitle: 'Request-limit details',
+    detailDescription:
+      'Review the recorded rate baseline, targets, current policy and decision history.',
+    baselineHelp:
+      'The baseline is historical context. Approval changes only the requested RPM, TPM and concurrency fields in the latest policy; quotas, other controls and existing usage are preserved.',
+    approveHelp:
+      'Confirm these request limits against the reviewed current policy. Existing usage and Project Key restrictions are preserved.',
+    rejectHelp:
+      'Explain why this request-limit application should not be approved. The policy remains unchanged.',
+    withdrawHelp:
+      'Withdraw your own pending request-limit application. The policy remains unchanged.',
+    separateRequests:
+      'Monthly quotas and request limits create separate applications and are reviewed independently.',
+    submissionProgress: 'Application results',
+    submission: {
+      not_sent: 'Not submitted',
+      saved: 'Request saved',
+      failed: 'Not confirmed; the server rejected this attempt',
+      unknown: 'Outcome unknown; retry the original application',
+    },
   },
 }

@@ -169,3 +169,22 @@ DATETIME precision without inferring a precision upgrade. Combined migration/mod
 504.548 seconds, Service 5.267 seconds), and owned resources were removed. Native
 quota enforcement and historical receipt replay are covered separately by the
 lifecycle and production browser evidence in PROJECT_REQUESTS.md.
+
+
+## Project request-rate constraints (version 37)
+
+Frozen GORM V37 adds no columns and preserves released V1–V36. Its private schema
+installs the RATE_LIMIT immutable approval evidence check, then a separately named
+MODEL_ACCESS/QUOTA/RATE_LIMIT kind check, then removes the old two-kind check.
+The existing quota approval check remains. Every partial DDL prefix keeps the old
+conservative kind guard until both new checks exist; reruns repair either missing
+new check without reinstalling an incompatible historical guard.
+
+Real PostgreSQL/MySQL fixtures reconstruct released V36 checks, retain complete
+historical rows and persisted timestamps, compare unchanged columns, replay
+concurrent/repeated/interrupted upgrades and reject missing approved-rate evidence.
+They preserve pending requests without fabricated approvals and existing intent
+uniqueness. Focused actual PostgreSQL/MySQL race acceptance passed in 210.144
+seconds; the full matrix passed (Handler 529.867 seconds, Service 5.063 seconds).
+Native rate enforcement and receipt/restart acceptance are recorded in
+[Project requests](PROJECT_REQUESTS.md).

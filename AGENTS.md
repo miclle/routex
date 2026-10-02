@@ -285,3 +285,15 @@ UUID, payload and validator through uncertain retries. Fresh details separate
 historical baseline, requested targets and current policy. Saved approval never
 proves runtime application, and superseded approval retries never restore an old
 policy. Keep paired projectRequests copy and explicit conflict review.
+
+
+Project rate-limit requests extend the existing Resource adjustment form with
+RPM, TPM and concurrency fields. RATE_LIMIT and QUOTA use independent request
+records, permissions and immutable mutation intents; a combined form reports each
+saved, failed or uncertain result separately. Never resend a saved half. A fresh
+explicit policy review may renew only a definitively unsaved intent; a prior
+unknown outcome remains unresolved even if a later retry returns a conflict.
+Omitted fields preserve the current control, zero is a cap, and explicit null is
+unsupported. Use coherent manager-authorized request-limits context, actor-scoped
+queries, exact decision receipts and current same-actor CSRF. Preserve model/quota
+compatibility and distinguish historical approval from actual current application.

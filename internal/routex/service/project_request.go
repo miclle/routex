@@ -22,6 +22,7 @@ import (
 type ProjectRequestInput struct {
 	Kind       string
 	Quota      *ProjectQuotaPatch
+	RateLimit  *ProjectRateLimitPatch
 	ReviewETag string
 	RequestID  string
 	ModelIDs   []string
@@ -33,29 +34,33 @@ type ProjectRequestFilter struct {
 	Limit          int
 }
 type ProjectRequestRecord struct {
-	BaselineQuota      *ProjectQuotaValues `json:"baseline_quota,omitempty"`
-	RequestedQuota     *ProjectQuotaPatch  `json:"requested_quota,omitempty"`
-	ApprovedQuota      *ProjectQuotaValues `json:"approved_quota,omitempty"`
-	BaselinePolicyETag string              `json:"baseline_policy_etag,omitempty"`
-	ApprovedPolicyETag string              `json:"approved_policy_etag,omitempty"`
-	CurrentQuota       *ProjectQuotaValues `json:"current_quota,omitempty"`
-	CurrentPolicyETag  string              `json:"current_policy_etag,omitempty"`
-	PlatformCurrency   string              `json:"platform_currency,omitempty"`
-	ApprovalReviewETag string              `json:"approval_review_etag,omitempty"`
-	RuntimeApplied     *bool               `json:"runtime_applied,omitempty"`
-	ApplicationStatus  string              `json:"application_status,omitempty"`
-	ID                 string              `json:"id"`
-	ProjectID          string              `json:"project_id"`
-	ApplicantUserID    string              `json:"applicant_user_id"`
-	Kind               string              `json:"kind"`
-	BaselineModelIDs   []string            `json:"baseline_model_ids"`
-	RequestedModelIDs  []string            `json:"requested_model_ids"`
-	Reason             string              `json:"reason"`
-	Status             string              `json:"status"`
-	DecisionActorID    string              `json:"decision_actor_id,omitempty"`
-	DecisionReason     string              `json:"decision_reason,omitempty"`
-	CreatedAt          time.Time           `json:"created_at"`
-	DecidedAt          *time.Time          `json:"decided_at"`
+	BaselineRateLimit  *ProjectRateLimitValues `json:"baseline_rate_limit,omitempty"`
+	RequestedRateLimit *ProjectRateLimitPatch  `json:"requested_rate_limit,omitempty"`
+	CurrentRateLimit   *ProjectRateLimitValues `json:"current_rate_limit,omitempty"`
+	ApprovedRateLimit  *ProjectRateLimitValues `json:"approved_rate_limit,omitempty"`
+	BaselineQuota      *ProjectQuotaValues     `json:"baseline_quota,omitempty"`
+	RequestedQuota     *ProjectQuotaPatch      `json:"requested_quota,omitempty"`
+	ApprovedQuota      *ProjectQuotaValues     `json:"approved_quota,omitempty"`
+	BaselinePolicyETag string                  `json:"baseline_policy_etag,omitempty"`
+	ApprovedPolicyETag string                  `json:"approved_policy_etag,omitempty"`
+	CurrentQuota       *ProjectQuotaValues     `json:"current_quota,omitempty"`
+	CurrentPolicyETag  string                  `json:"current_policy_etag,omitempty"`
+	PlatformCurrency   string                  `json:"platform_currency,omitempty"`
+	ApprovalReviewETag string                  `json:"approval_review_etag,omitempty"`
+	RuntimeApplied     *bool                   `json:"runtime_applied,omitempty"`
+	ApplicationStatus  string                  `json:"application_status,omitempty"`
+	ID                 string                  `json:"id"`
+	ProjectID          string                  `json:"project_id"`
+	ApplicantUserID    string                  `json:"applicant_user_id"`
+	Kind               string                  `json:"kind"`
+	BaselineModelIDs   []string                `json:"baseline_model_ids"`
+	RequestedModelIDs  []string                `json:"requested_model_ids"`
+	Reason             string                  `json:"reason"`
+	Status             string                  `json:"status"`
+	DecisionActorID    string                  `json:"decision_actor_id,omitempty"`
+	DecisionReason     string                  `json:"decision_reason,omitempty"`
+	CreatedAt          time.Time               `json:"created_at"`
+	DecidedAt          *time.Time              `json:"decided_at"`
 }
 type ProjectRequestPage struct {
 	Items      []ProjectRequestRecord `json:"items"`
@@ -68,6 +73,9 @@ func projectRequestRecord(row *entity.ProjectModelRequest) (*ProjectRequestRecor
 		kind = entity.ProjectRequestModelAccess
 	}
 	result := &ProjectRequestRecord{ID: row.ID, ProjectID: row.ProjectID, ApplicantUserID: row.ApplicantUserID, Kind: kind, Reason: row.Reason, Status: row.Status, DecisionActorID: row.DecisionActorID, DecisionReason: row.DecisionReason, CreatedAt: row.CreatedAt, DecidedAt: row.DecidedAt}
+	if kind == entity.ProjectRequestRateLimit {
+		return projectRateLimitRequestRecord(row, result)
+	}
 	if kind == entity.ProjectRequestQuota {
 		return projectQuotaRequestRecord(row, result)
 	}
@@ -125,32 +133,20 @@ func activeProjectRequestModels(tx *gorm.DB, ids []string) error {
 	return nil
 }
 func (s *Service) CreateProjectRequest(ctx context.Context, actorID, projectID string, input ProjectRequestInput) (*ProjectRequestRecord, error) {
-	if input.Kind == entity.ProjectRequestQuota {
-		return s.createProjectQuotaRequest(ctx, actorID, projectID, input)
+	if isProjectLimitRequest(input.Kind) {
+		return s.createProjectLimitRequest(ctx, actorID, projectID, input)
 	}
-	if input.Kind != "" && input.Kind != entity.ProjectRequestModelAccess || input.Quota != nil {
+	if input.Kind != "" && input.Kind != entity.ProjectRequestModelAccess || input.Quota != nil || input.RateLimit != nil {
 		return nil, apperrors.ErrBadRequest
 	}
 	input, err := normalizeProjectRequest(input)
 	if err != nil {
 		return nil, err
 	}
-	encoded, err := json.Marshal(struct {
-		ActorID, ProjectID string
-		Input              struct {
-			RequestID string
-			ModelIDs  []string
-			Reason    string
-		}
-	}{actorID, projectID, struct {
-		RequestID string
-		ModelIDs  []string
-		Reason    string
-	}{input.RequestID, input.ModelIDs, input.Reason}})
+	digest, err := projectModelRequestHash(actorID, projectID, input)
 	if err != nil {
 		return nil, err
 	}
-	digest := secret.SHA256Hex(string(encoded))
 	var result *ProjectRequestRecord
 	err = s.authDB(ctx).Transaction(func(tx *gorm.DB) error {
 		if err := lockGovernance(tx); err != nil {
@@ -260,4 +256,23 @@ func (s *Service) ListProjectRequests(ctx context.Context, actorID, projectID st
 		return nil
 	}, &sql.TxOptions{Isolation: sql.LevelRepeatableRead, ReadOnly: true})
 	return result, catalogError(err)
+}
+
+func projectModelRequestHash(actorID, projectID string, input ProjectRequestInput) (string, error) {
+	encoded, err := json.Marshal(struct {
+		ActorID, ProjectID string
+		Input              struct {
+			RequestID string
+			ModelIDs  []string
+			Reason    string
+		}
+	}{actorID, projectID, struct {
+		RequestID string
+		ModelIDs  []string
+		Reason    string
+	}{input.RequestID, input.ModelIDs, input.Reason}})
+	if err != nil {
+		return "", err
+	}
+	return secret.SHA256Hex(string(encoded)), nil
 }

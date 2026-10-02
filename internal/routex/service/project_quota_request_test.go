@@ -54,7 +54,7 @@ func (projectQuotaScopeDialector) QuoteTo(writer clause.Writer, value string) {
 func (projectQuotaScopeDialector) Explain(value string, _ ...any) string { return value }
 
 func TestProjectQuotaKindGroupingKeepsScopeStatusAndCursorConjunctive(t *testing.T) {
-	for _, access := range []projectRequestAccess{{Model: true}, {Quota: true}, {Model: true, Quota: true}} {
+	for _, access := range []projectRequestAccess{{Model: true}, {Limits: true}, {Model: true, Limits: true}} {
 		db, err := gorm.Open(projectQuotaScopeDialector{}, &gorm.Config{DryRun: true, DisableAutomaticPing: true})
 		if err != nil {
 			t.Fatal(err)

@@ -1,22 +1,22 @@
 # Project resource requests
 
 Current enabled managers of an active Project can request additional model access
-or finite monthly quota changes. Requests preserve the original baseline and the
-explicit additions or quota patch. Pending requests never change grants or quota
+or finite monthly quota and request-rate changes. Requests preserve the original
+baseline and the explicit additions or limit patch. Pending requests never change grants or quota
 enforcement. All endpoints require a console session; mutations also require the
 existing Origin and CSRF protections.
 
 ## Authority and history
 
-Model reviewers need `projects.models.write`; quota reviewers independently need
+Model reviewers need `projects.models.write`; quota and rate reviewers independently need
 `projects.limits.write`. Manager status grants no approval authority, and no actor
 can approve their own request. Approval revalidates the active Project, enabled
 applicant and current manager relationship. An enabled applicant may withdraw
 their own pending request after losing management or after Project deactivation.
 Rejection and withdrawal do not change grants or limits.
 
-Current managers and `projects.read_all` readers see both request kinds. Reviewers
-without either authority see only the kind they can review; these predicates apply
+Current managers and `projects.read_all` readers see all three request kinds. Reviewers
+without either authority see only the kinds they can review; these predicates apply
 before pagination. Former managers lose history access unless independently
 authorized. A quota-only reviewer can open the existing Project Resource
 configuration through a minimal `request_workspace_only` response containing
@@ -26,7 +26,7 @@ authority. Withdrawal receipts do not expose current policy to a departed manage
 
 History accepts `status`, `cursor` and `limit`, defaults to 40 records and caps
 the page at 100. Records are ordered by descending ID; responses contain `items`
-and an optional `next_cursor`. A request's `kind` is `MODEL_ACCESS` or `QUOTA`,
+and an optional `next_cursor`. A request's `kind` is `MODEL_ACCESS`, `QUOTA` or `RATE_LIMIT`,
 and its status is `pending`, `approved`, `rejected` or `withdrawn`.
 
 ## API
@@ -35,9 +35,10 @@ and its status is `pending`, `approved`, `rejected` or `withdrawn`.
 | --- | --- | --- |
 | GET | `/api/v1/projects/:project_id/request-model-candidates` | Current manager; active ungranted models, literal `q` search, maximum 50 |
 | GET | `/api/v1/projects/:project_id/request-quota-context` | Current manager of an active Project; reviewed monthly policy and currency context |
+| GET | `/api/v1/projects/:project_id/request-limits-context` | Current manager of an active Project; coherent monthly/rate policy and currency context |
 | GET | `/api/v1/projects/:project_id/requests` | Authorized, kind-scoped history |
-| GET | `/api/v1/projects/:project_id/requests/:request_id` | Authorized detail; quota details include fresh approval and application context |
-| POST | `/api/v1/projects/:project_id/requests` | Submit an explicit model addition or finite monthly quota patch |
+| GET | `/api/v1/projects/:project_id/requests/:request_id` | Authorized detail; limit details include fresh approval and application context |
+| POST | `/api/v1/projects/:project_id/requests` | Submit an explicit model addition or finite monthly/rate patch |
 | POST | `/api/v1/projects/:project_id/requests/:request_id/decision` | Approve, reject or withdraw |
 
 ### Model access
@@ -109,6 +110,39 @@ local runtime publication, leases and denomination to match the saved approval;
 not confirmed, not that a background approval job has been queued. History lists
 do not claim live enforcement from a saved decision alone.
 
+### Request rates
+
+Read `/request-limits-context` for a coherent snapshot of `current_quota`,
+`current_rate_limit`, `policy_etag`, `platform_currency` and `review_etag`.
+The existing monthly-only context and validator remain compatible. A RATE_LIMIT
+request uses that exact quoted composite `If-Match`:
+
+```json
+{
+  "request_id": "req_client_generated_unique_id",
+  "kind": "RATE_LIMIT",
+  "rate_limit": {"rpm": 60, "tpm": 100000, "concurrency": 4},
+  "reason": "Required for the reviewed request workload"
+}
+```
+
+At least one rate field is required. Each present field is a non-negative safe
+integer; zero is a cap, omission keeps its current value and explicit null is
+rejected. Unknown, mixed-kind and currency fields are rejected. Rate details keep
+`baseline_rate_limit`, `requested_rate_limit`, current values and an optional
+`approved_rate_limit` separate. Current policy revision, reviewed approval
+validator and runtime application follow the same independent approval boundary
+as monthly quotas. A rate-only approval preserves all monthly, rolling, money,
+IP and Key controls, settled use and admission counters.
+
+The combined adjustment form may submit monthly and rate changes together, as
+two independent requests with separate IDs and retained intents. Approval of
+one does not approve the other. Show each saved, failed or uncertain result;
+never resend a saved request. A definitive conflict permits fresh explicit review
+of only the unsaved request. Once an outcome is unknown, a later conflict cannot
+resolve that uncertainty or authorize rebasing its original intent. Historical
+MODEL_ACCESS and QUOTA creation/decision hash envelopes remain unchanged.
+
 ### Decisions and retries
 
 ```json
@@ -119,7 +153,7 @@ do not claim live enforcement from a saved decision alone.
 ```
 
 Actions are `approve`, `reject` and `withdraw`. Rejection always requires a reason;
-quota approval also requires one. Existing model approval and withdrawal retain
+quota and rate approval also require one. Existing model approval and withdrawal retain
 their optional-reason contract. Reasons are business history and must not contain
 credentials.
 
@@ -130,7 +164,7 @@ creation digest remains compatible with historical receipts. Quota creation
 replays keep the original body and reviewed header even if current policy changes.
 
 The first valid terminal decision wins. Only the same actor with the same action,
-normalized reason and original quota approval validator can replay it; conflicting
+normalized reason and original limit approval validator can replay it; conflicting
 decisions return HTTP 409. Exact retries reconcile current publication and never
 reapply a historical quota patch after a later direct policy edit. Approval
 history therefore stays valid even when its policy is now superseded.
@@ -146,16 +180,18 @@ committed history remains durable and the original intent may be retried.
 Frozen additive migration 36 extends existing request history through GORM;
 historical rows default to `MODEL_ACCESS`. It introduces no live identity foreign
 keys, cascading history deletion or startup migration against evolving entities.
-Team approval/escalation, request-rate approvals, global approval inboxes,
+Frozen GORM V37 widens the kind guard only after installing immutable rate
+approval checks; it adds no columns. Team approval/escalation, global approval inboxes,
 scheduled decisions and request notifications remain unfinished scope.
 
 ## Web workflow
 
 The existing Project Resource configuration retains request history, status
 filters, cursor pagination and detail dialogs. Managers use separate model and
-monthly-quota application actions. The monthly form shows reviewed current values,
+resource-adjustment application actions. The form shows coherent reviewed current values,
 uses blank fields to preserve a value, accepts zero and preserves exact decimal
-money. Details separate the original baseline, requested patch, current policy,
+money. Monthly fields retain the two-column row and RPM/TPM/concurrency use the
+existing three-column rate row. Details separate the original baseline, requested patch, current policy,
 saved approval and current application status.
 
 Read and decision permissions stay independent for each kind. Self-approval is
@@ -201,3 +237,21 @@ only the authorized request workspace. The owned tab, binary, upstream, database
 container and network were removed. The complete PostgreSQL/MySQL race matrix also passed
 (Handler 504.548 seconds, Service 5.267 seconds), with owned resources removed.
 External provider and full product acceptance remain separate.
+
+
+The RATE_LIMIT extension passed final check and full test: 800 frontend cases in
+58 files, Go race/unit checks, development lifecycle and production embedded
+assets. The focused request UI suite passed 112 cases, including actor/unmount
+privacy guards, coherent application flags, exact retained intents and partial
+combined results. Focused actual PostgreSQL/MySQL race acceptance passed in
+210.144 seconds; the complete matrix passed (Handler 529.867 seconds, Service
+5.063 seconds). Frozen V37 covers repeated, concurrent and interrupted upgrades.
+
+Owned production/PostgreSQL/browser acceptance submitted independent monthly
+200 and RPM/TPM/concurrency 2/10/2 requests against baseline 100 and 1/5/1.
+Pending requests and monthly-only approval left the original rates enforced.
+Separately approving rates confirmed actual native enforcement. A later direct
+policy 250 and 3/15/3 remained intact after original approval retries and restart.
+English and Chinese details distinguished requested, saved and current values,
+with supersession explicit. All owned tabs, processes and Compose resources were
+removed. Team approvals, escalation and complete F18/A13 acceptance remain open.

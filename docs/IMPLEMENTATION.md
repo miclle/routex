@@ -157,7 +157,7 @@ The binary capability count is 8 completed, 19 partially completed, and 3 not st
 | F04 | Member administration, direct grants, roles, and resource policies | Partially completed | Member and role workflows plus scoped resource-limit interfaces exist; token, TPM, and exact-money controls with authoritative quota snapshots are available; the complete cross-domain resource-policy surface remains open. |
 | F05 | Built-in and custom roles with composed permissions | Partially completed | Current-domain role and permission management is implemented; later enterprise and operations domains still require permission integration and negative acceptance. |
 | F06 | Team membership, ownership, models, quotas, and member rules | Partially completed | Team creation, membership, ownership, and model relationships exist; Team aggregate quotas and member-rule enforcement remain open. |
-| F07 | Project lifecycle, managers, models, Keys, and requests | Partially completed | Project management, managers, model grants, Project Keys, resource limits, model requests and finite monthly quota approvals exist; the complete Project request and lifecycle surface remains open. |
+| F07 | Project lifecycle, managers, models, Keys, and requests | Partially completed | Project management, managers, model grants, Project Keys, resource limits, model requests, finite monthly quota and RPM/TPM/concurrency approvals exist; the complete Project request and lifecycle surface remains open. |
 | F08 | Personal and Project Key lifecycle | Completed | One-time delivery, confirmation, editing, rotation, revocation, expiration, scope, and history are implemented with controlled dual-database evidence. |
 | F09 | Key Token, money, RPM, TPM, concurrency, and IP restrictions | Completed | Personal, Project, and Key admission policies are enforced in the native gateway for the documented single-node architecture. Multi-node enforcement remains a separate release-architecture gate. |
 | F10 | Offboarding, inventory, handover, and emergency disable | Partially completed | Transactional local-account offboarding and continuity workflows exist; external-identity and complete enterprise continuity behavior remain open. |
@@ -168,7 +168,7 @@ The binary capability count is 8 completed, 19 partially completed, and 3 not st
 | F15 | Prices, spreadsheet/CSV workflows, API, and repository sync | Partially completed | Current prices, ETags, CSV/XLS/XLSX import, preview, commit, and export exist; external price-repository synchronization is not implemented. |
 | F16 | Platform currency, exchange rates, and historical price snapshots | Completed | Decimal-string currency/rate management, exact quoting, and immutable per-call assessment are implemented. |
 | F17 | User and Team defaults, overrides, budgets, alerts, and stop policy | Partially completed | Personal, Project, and Key enforcement plus budget/token/TPM controls, authoritative quota snapshots, and installation-calendar configuration exist; current-policy Personal/Project monthly settled-exhaustion inboxes have focused acceptance, while Team defaults, templates, broader alerts, and configurable stop-calling policy remain open. |
-| F18 | Quota, model, and request-limit approvals | Partially completed | Project model requests and independently reviewed finite monthly quota approvals have controlled acceptance, including current runtime application and superseded receipt replay; Team approval, escalation and request-limit workflows remain open. |
+| F18 | Quota, model, and request-limit approvals | Partially completed | Project model, finite monthly quota and RPM/TPM/concurrency requests have controlled acceptance, including independent review, current runtime application and superseded receipt replay; Team approval, escalation and global request workspaces remain open. |
 | F19 | Member overview, model sources, requests, and examples | Partially completed | Actor-scoped Personal/Team source attribution, native metadata, filters, details and examples are available; Project requests exist, while Personal/Team requests, Team invocation and broader price/usage facts remain open. |
 | F20 | Playground, comparison, attachments, and code examples | Partially completed | Four native conversation paths, two-to-four-lane comparison, cancellation, executable examples, per-protocol image/PDF discovery, user/Project attachment resolution, single/comparison attachment lifecycle interfaces, and conservative token/TPM/money admission with exact per-occurrence media prices exist; external acceptance remains open. |
 | F21 | Personal, Project, and platform call records and CSV | Completed | Isolated list/detail queries, incremental loading, redacted drawers, bounded server-side CSV export, filter parity, formula protection, and bilingual download actions are implemented with dual-database evidence. |
@@ -1677,7 +1677,32 @@ acceptance. A fresh build containing the final receipt validation repeated manag
 submission, independent approval, native enforcement, superseded replay after
 restart and bilingual detail acceptance; its owned resources were removed.
 
-F18 remains partial; Project request-rate changes and Team approvals/escalation
+F18 remains partial; Team approvals/escalation and global request workspaces
 remain open. A13 now has partial Project approval evidence rather than being
 unstarted; its Team overflow boundary is still unaccepted. Capability totals stay
 8 complete, 19 partial and 3 not started. A01 remains the only fully accepted case.
+
+
+### Checked F18 package: Project request-rate approval
+
+Finite RPM, TPM and concurrency requests reuse the Resource adjustment form and
+scoped history. Monthly and rate changes produce independent records and retained
+intents; partial saved, failed and uncertain results remain explicit. Current
+managers submit; independent nonself projects.limits.write reviewers approve.
+The bounded shared limit lifecycle preserves historical MODEL/QUOTA digest bytes,
+full-policy/currency review, settled use, Key ceilings and unrelated policies.
+Saved decisions never restore later policy changes.
+
+Frozen GORM V37 adds only safely ordered checks and preserves released V1–V36.
+Final check/test passed: 800 frontend cases in 58 files, Go race/unit, Node,
+development lifecycle and production embedded assets. Focused UI: 112 cases.
+Focused actual PostgreSQL/MySQL race acceptance: 210.144 seconds; full matrix:
+Handler 529.867 seconds, Service 5.063 seconds. Actionlint passed. Independent
+review identified and fixed late decision callbacks after actor changes/unmount.
+
+Owned production/PostgreSQL/browser acceptance verified combined monthly/rate
+submission, unchanged pending enforcement, separate approvals, real native rate
+rejection, later policy preservation through original retries and restart, and
+English/Chinese details. All owned resources were removed. Team session invocation
+and immutable call attribution are the next assessed prerequisite before Team
+limits and approval. F18/A13 remain partial; totals and full acceptance are unchanged.

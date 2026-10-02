@@ -34,13 +34,35 @@ export interface ProjectQuotaRequest extends ProjectRequestBase {
   approved_quota?: ProjectQuota
   approved_policy_etag?: string
 }
-export type ProjectRequest = ProjectModelRequest | ProjectQuotaRequest
+export interface ProjectRateLimit {
+  rpm: number | null
+  tpm: number | null
+  concurrency: number | null
+}
+export interface ProjectRateLimitPatch {
+  rpm?: number
+  tpm?: number
+  concurrency?: number
+}
+export interface ProjectRateLimitRequest extends ProjectRequestBase {
+  kind: 'RATE_LIMIT'
+  baseline_rate_limit: ProjectRateLimit
+  requested_rate_limit: ProjectRateLimitPatch
+  baseline_policy_etag: string
+  approved_rate_limit?: ProjectRateLimit
+  approved_policy_etag?: string
+}
+export type ProjectPolicyRequest = ProjectQuotaRequest | ProjectRateLimitRequest
+export type ProjectRequest = ProjectModelRequest | ProjectPolicyRequest
 export interface ProjectQuotaContext {
   project_id: string
   review_etag: string
   policy_etag: string
   current_quota: ProjectQuota
   platform_currency: string
+}
+export interface ProjectRequestLimitsContext extends ProjectQuotaContext {
+  current_rate_limit: ProjectRateLimit
 }
 export interface ProjectQuotaRequestDetail extends ProjectQuotaRequest {
   approval_review_etag?: string
@@ -50,6 +72,15 @@ export interface ProjectQuotaRequestDetail extends ProjectQuotaRequest {
   runtime_applied?: boolean
   application_status?: 'pending' | 'applied' | 'superseded'
 }
+export interface ProjectRateLimitRequestDetail extends ProjectRateLimitRequest {
+  approval_review_etag?: string
+  current_rate_limit: ProjectRateLimit
+  current_policy_etag: string
+  platform_currency: string
+  runtime_applied?: boolean
+  application_status?: 'pending' | 'applied' | 'superseded'
+}
+export type ProjectPolicyRequestDetail = ProjectQuotaRequestDetail | ProjectRateLimitRequestDetail
 export interface ProjectRequestPage {
   items: ProjectRequest[]
   next_cursor?: string
@@ -70,7 +101,14 @@ export interface CreateProjectQuotaRequest {
   quota: ProjectQuotaPatch
   reason: string
 }
-export type CreateProjectRequest = CreateProjectModelRequest | CreateProjectQuotaRequest
+export interface CreateProjectRateLimitRequest {
+  request_id: string
+  kind: 'RATE_LIMIT'
+  rate_limit: ProjectRateLimitPatch
+  reason: string
+}
+export type CreateProjectPolicyRequest = CreateProjectQuotaRequest | CreateProjectRateLimitRequest
+export type CreateProjectRequest = CreateProjectModelRequest | CreateProjectPolicyRequest
 export interface ProjectRequestDecision {
   action: ProjectRequestAction
   reason: string

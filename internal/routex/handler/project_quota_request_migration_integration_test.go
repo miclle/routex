@@ -19,9 +19,13 @@ func testProjectQuotaRequestMigration(t *testing.T, db *gorm.DB) {
 	columns := []string{"Kind", "BaselinePolicyETag", "DecisionReviewETag", "ApprovedPolicyETag", "DecisionRequestHash", "ApprovedPolicyJSON"}
 	dropChecks := func() {
 		t.Helper()
-		for _, name := range []string{"ck_project_request_kind", "ck_project_quota_approval"} {
-			if err := db.Migrator().DropConstraint(model, name); err != nil {
-				t.Fatal(err)
+		// Later checks also refer to the V36 columns being reconstructed. Both
+		// ledgers are replayed so the current schema restores every guard.
+		for _, name := range []string{"ck_project_request_kind", "ck_project_request_kind_v37", "ck_project_quota_approval", "ck_project_rate_approval"} {
+			if db.Migrator().HasConstraint(model, name) {
+				if err := db.Migrator().DropConstraint(model, name); err != nil {
+					t.Fatal(err)
+				}
 			}
 		}
 	}
@@ -160,9 +164,9 @@ func testProjectQuotaRequestMigration(t *testing.T, db *gorm.DB) {
 
 func removeProjectQuotaRequestLedger(t *testing.T, db *gorm.DB) {
 	t.Helper()
-	result := db.Table("schema_migrations").Where("version = ?", 36).Delete(&struct{}{})
-	if result.Error != nil || result.RowsAffected != 1 {
-		t.Fatal("cannot reconstruct V36 migration ledger", result.Error)
+	result := db.Table("schema_migrations").Where("version IN ?", []int{36, 37}).Delete(&struct{}{})
+	if result.Error != nil || result.RowsAffected != 2 {
+		t.Fatal("cannot reconstruct V36 and dependent V37 migration ledgers", result.Error)
 	}
 }
 
@@ -192,10 +196,13 @@ func assertProjectQuotaRequestSchema(t *testing.T, db *gorm.DB) {
 	if len(expected) != 0 {
 		t.Fatal("missing quota request fields", expected)
 	}
-	for _, name := range []string{"ck_project_request_kind", "ck_project_quota_approval"} {
+	for _, name := range []string{"ck_project_request_kind_v37", "ck_project_quota_approval", "ck_project_rate_approval"} {
 		if !db.Migrator().HasConstraint(model, name) {
 			t.Fatal("missing quota request check", name)
 		}
+	}
+	if db.Migrator().HasConstraint(model, "ck_project_request_kind") {
+		t.Fatal("current migration retained the released two-kind restriction")
 	}
 	for _, name := range []string{"uq_project_model_request", "idx_project_model_request_project", "idx_project_model_request_status"} {
 		if !db.Migrator().HasIndex(model, name) {

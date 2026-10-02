@@ -49,7 +49,7 @@ func (s *Service) DecideProjectRequest(ctx context.Context, actorID, projectID, 
 		if !model && !quota {
 			return nil, apperrors.ErrForbidden
 		}
-		query = projectRequestKindScope(query, projectRequestAccess{Model: model, Quota: quota})
+		query = projectRequestKindScope(query, projectRequestAccess{Model: model, Limits: quota})
 	}
 	var target entity.ProjectModelRequest
 	err = query.Select("id", "project_id", "kind").
@@ -64,8 +64,8 @@ func (s *Service) DecideProjectRequest(ctx context.Context, actorID, projectID, 
 	if target.ID != requestID || target.ProjectID != projectID {
 		return nil, apperrors.ErrNotFound
 	}
-	if target.Kind == entity.ProjectRequestQuota {
-		return s.decideProjectQuotaRequest(ctx, actorID, projectID, requestID, input)
+	if isProjectLimitRequest(target.Kind) {
+		return s.decideProjectLimitRequest(ctx, actorID, projectID, requestID, target.Kind, input)
 	}
 	if target.Kind != "" && target.Kind != entity.ProjectRequestModelAccess {
 		return nil, apperrors.ErrNotFound
