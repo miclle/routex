@@ -66,6 +66,14 @@ The package deliberately blocks retry after uncertain execution or final usage. 
 
 ## Focused validation
 
+Internal attempt attribution now copies each actual dispatch's Credential and
+published configuration snapshot into failed, final and interrupted facts. A
+later attempt never substitutes its IDs into earlier history, and legacy missing
+attribution stays unknown rather than borrowing the logical call's final snapshot.
+See [Call facts](CALLS.md#internal-attempt-attribution)
+for the V32 persistence and acceptance boundary. These identifiers alone do not
+prove native completion or authorize planned Credential retirement.
+
 ```bash
 go test -race -count=1 ./pkg/routeattempt ./pkg/eventqueue ./pkg/upstream ./internal/routex/service
 ```

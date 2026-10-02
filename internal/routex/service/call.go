@@ -49,6 +49,10 @@ type CallFact struct {
 }
 
 type CallAttempt struct {
+	// Optional historical attribution is captured by the dispatched attempt.
+	// Empty values remain unknown; the logical call snapshot is not a fallback.
+	CredentialID      string
+	SnapshotID        string
 	ID                string
 	ProviderID        string
 	ProviderName      string
@@ -167,7 +171,7 @@ func (s *Service) RecordCall(ctx context.Context, fact CallFact) error {
 		}
 		for _, attempt := range fact.Attempts {
 			durationMS := attempt.CompletedAt.Sub(attempt.StartedAt).Milliseconds()
-			row := entity.CallAttempt{ID: attempt.ID, RequestID: fact.RequestID, ProviderID: attempt.ProviderID, ProviderName: attempt.ProviderName, ProviderModelID: attempt.ProviderModelID, ConnectionID: attempt.ConnectionID, ConnectionName: attempt.ConnectionName, UpstreamModelName: attempt.UpstreamModelName, DurationMS: &durationMS, AttemptNumber: attempt.AttemptNumber, Status: attempt.Status, FailureClass: attempt.FailureClass, WorkEvidence: attempt.WorkEvidence, OutputStarted: attempt.OutputStarted, FinalUsageKnown: attempt.FinalUsageKnown, EvidenceCode: attempt.EvidenceCode, HTTPStatus: attempt.HTTPStatus, ErrorCode: safeCallError(attempt.ErrorCode), StartedAt: attempt.StartedAt.UTC().Truncate(time.Microsecond), CompletedAt: attempt.CompletedAt.UTC().Truncate(time.Microsecond)}
+			row := entity.CallAttempt{ID: attempt.ID, CredentialID: attempt.CredentialID, SnapshotID: attempt.SnapshotID, RequestID: fact.RequestID, ProviderID: attempt.ProviderID, ProviderName: attempt.ProviderName, ProviderModelID: attempt.ProviderModelID, ConnectionID: attempt.ConnectionID, ConnectionName: attempt.ConnectionName, UpstreamModelName: attempt.UpstreamModelName, DurationMS: &durationMS, AttemptNumber: attempt.AttemptNumber, Status: attempt.Status, FailureClass: attempt.FailureClass, WorkEvidence: attempt.WorkEvidence, OutputStarted: attempt.OutputStarted, FinalUsageKnown: attempt.FinalUsageKnown, EvidenceCode: attempt.EvidenceCode, HTTPStatus: attempt.HTTPStatus, ErrorCode: safeCallError(attempt.ErrorCode), StartedAt: attempt.StartedAt.UTC().Truncate(time.Microsecond), CompletedAt: attempt.CompletedAt.UTC().Truncate(time.Microsecond)}
 			if err := tx.Create(&row).Error; err != nil {
 				return err
 			}
@@ -295,7 +299,7 @@ func validateCallFact(fact CallFact) error {
 }
 
 func validCallAttemptSnapshot(attempt CallAttempt) bool {
-	if len(attempt.ProviderModelID) > 30 || len(attempt.ConnectionID) > 30 {
+	if !validOptionalAttemptAttributionID(attempt.CredentialID) || !validOptionalAttemptAttributionID(attempt.SnapshotID) || len(attempt.ProviderModelID) > 30 || len(attempt.ConnectionID) > 30 {
 		return false
 	}
 	if attempt.ProviderID == "" {
@@ -303,6 +307,10 @@ func validCallAttemptSnapshot(attempt CallAttempt) bool {
 	}
 	return safeCallID.MatchString(attempt.ProviderID) && safeCallID.MatchString(attempt.ProviderModelID) && safeCallID.MatchString(attempt.ConnectionID) &&
 		validCatalogLabel(attempt.ProviderName) && validCatalogLabel(attempt.ConnectionName) && validUpstreamName(attempt.UpstreamModelName)
+}
+
+func validOptionalAttemptAttributionID(value string) bool {
+	return value == "" || len(value) <= 30 && safeCallID.MatchString(value)
 }
 
 func zeroCounter(value *int64) bool { return value != nil && *value == 0 }

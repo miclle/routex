@@ -194,6 +194,8 @@ func gatewayFallbackPayload(requestID string, result *GatewayResult, now time.Ti
 			ProviderName:      result.ProviderName,
 			ProviderModelID:   result.ProviderModelID,
 			ConnectionID:      result.ConnectionID,
+			CredentialID:      result.CredentialID,
+			SnapshotID:        result.SnapshotID,
 			ConnectionName:    result.ConnectionName,
 			UpstreamModelName: result.UpstreamModelName,
 			AttemptNumber:     len(attempts) + 1,

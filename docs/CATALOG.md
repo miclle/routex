@@ -96,8 +96,10 @@ transaction, together with the typed `credential.delete` audit event. Provider,
 Connection, provider models, weights, grants, and immutable call/attempt history
 remain intact. Deleting the last ready credential is allowed and can make its
 routes unavailable; no hidden replacement, fallback credential, or weight change
-is introduced. Existing calls do not persist Credential IDs, so deletion does not
-invent per-credential historical attribution.
+is introduced. New internal attempt facts retain exact Credential and publication
+IDs without live catalog foreign keys; deletion preserves that history. Older
+missing IDs remain unknown and are never inferred from the remaining catalog.
+See [internal attempt attribution](CALLS.md#internal-attempt-attribution).
 
 After commit, the server installs a credential tombstone before refreshing the
 runtime. New dispatch cannot use that removed credential even if publication
@@ -165,9 +167,10 @@ and unmount clear sensitive state; no mutation cache or browser storage is used.
 
 Complete planned retirement remains separate unfinished scope. It requires exact
 new-Credential configuration application and an authoritative successful inference
-using that new Credential. Current call/attempt facts do not persist Credential
-IDs, and global runtime readiness, discovery or a model's success cannot establish
-those facts. Equal priority does not prove the new Credential receives traffic.
+using that new Credential. Exact internal attempt Credential/publication IDs are
+available, but parser-owned native completion evidence and scoped current runtime
+readback remain unfinished. HTTP success, global runtime readiness, discovery or
+a model's success cannot establish the complete retirement gate. Equal priority does not prove the new Credential receives traffic.
 The existing emergency disable action remains independently available; supplier-
 side revocation is outside this preparation endpoint.
 

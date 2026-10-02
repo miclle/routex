@@ -57,7 +57,7 @@ func testRecorderLifecycle(t *testing.T, db *gorm.DB) {
 		ProviderModelID: "pmd_recorder_historical", ConnectionID: "con_recorder_historical", ConnectionName: "Historical Connection", UpstreamModelName: "historical-upstream",
 		Protocol: entity.ProtocolOpenAIChat, Status: "success", StartedAt: started, CompletedAt: started.Add(100 * time.Millisecond),
 		InputTokens: &inputTokens, OutputTokens: &outputTokens,
-		Attempts: []service.CallAttempt{{ID: "att_recorder_outage", ProviderModelID: "pmd_recorder_historical", ConnectionID: "con_recorder_historical", Status: "success", StartedAt: started, CompletedAt: started.Add(100 * time.Millisecond), HTTPStatus: 200}},
+		Attempts: []service.CallAttempt{{ID: "att_recorder_outage", CredentialID: "crd_recorder_historical", SnapshotID: "cfg_recorder", ProviderModelID: "pmd_recorder_historical", ConnectionID: "con_recorder_historical", Status: "success", StartedAt: started, CompletedAt: started.Add(100 * time.Millisecond), HTTPStatus: 200}},
 	}
 	duplicate := fact
 	duplicate.RequestID = "req_recorder_duplicate"
@@ -92,6 +92,9 @@ func testRecorderLifecycle(t *testing.T, db *gorm.DB) {
 	accepted := duplicate
 	acceptedInput := int64(31)
 	accepted.InputTokens = &acceptedInput
+	accepted.Attempts = append([]service.CallAttempt(nil), duplicate.Attempts...)
+	accepted.Attempts[0].CredentialID = "crd_recorder_accepted"
+	accepted.Attempts[0].SnapshotID = "cfg_recorder_accepted"
 	if err := live.RecordCall(ctx, accepted); err != nil {
 		t.Fatal(err)
 	}
@@ -102,13 +105,15 @@ func testRecorderLifecycle(t *testing.T, db *gorm.DB) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, forbidden := range []string{"test-only-recorder-provider-secret", "test-only-recorder-prompt-content", "test-only-recorder-credential-id"} {
+	for _, forbidden := range []string{"test-only-recorder-provider-secret", "test-only-recorder-prompt-content"} {
 		if bytes.Contains(contents, []byte(forbidden)) {
 			t.Fatal("durable admission included response content or credential material")
 		}
 	}
-	if !bytes.Contains(contents, []byte(pending.RequestID)) {
-		t.Fatal("pending admission was not durably retained before restart")
+	for _, allowed := range []string{pending.RequestID, pending.Attempts[0].CredentialID, pending.Attempts[0].SnapshotID} {
+		if !bytes.Contains(contents, []byte(allowed)) {
+			t.Fatalf("private journal lost stable request/attempt attribution %q", allowed)
+		}
 	}
 	info, err := os.Stat(spool)
 	if err != nil || info.Mode().Perm() != 0600 {
@@ -144,7 +149,7 @@ func testRecorderLifecycle(t *testing.T, db *gorm.DB) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		if detail.Record.Status != "success" || detail.Record.SnapshotID != expected.SnapshotID || detail.Record.ProviderID != expected.ProviderID || detail.Record.ProviderName != expected.ProviderName || detail.Record.ConnectionName != expected.ConnectionName || detail.Record.UpstreamModelName != expected.UpstreamModelName || detail.Record.InputTokens == nil || *detail.Record.InputTokens != *expected.InputTokens || detail.Record.OutputTokens == nil || *detail.Record.OutputTokens != *expected.OutputTokens || len(detail.Attempts) != 1 {
+		if detail.Record.Status != "success" || detail.Record.SnapshotID != expected.SnapshotID || detail.Record.ProviderID != expected.ProviderID || detail.Record.ProviderName != expected.ProviderName || detail.Record.ConnectionName != expected.ConnectionName || detail.Record.UpstreamModelName != expected.UpstreamModelName || detail.Record.InputTokens == nil || *detail.Record.InputTokens != *expected.InputTokens || detail.Record.OutputTokens == nil || *detail.Record.OutputTokens != *expected.OutputTokens || len(detail.Attempts) != 1 || detail.Attempts[0].CredentialID != expected.Attempts[0].CredentialID || detail.Attempts[0].SnapshotID != expected.Attempts[0].SnapshotID {
 			t.Fatal("recovery changed the canonical fact or doubled its attempt/usage")
 		}
 	}
@@ -152,7 +157,7 @@ func testRecorderLifecycle(t *testing.T, db *gorm.DB) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if interrupted.Record.Status != "error" || interrupted.Record.ErrorCode != "process_interrupted" || interrupted.Record.InputTokens != nil || interrupted.Record.OutputTokens != nil || interrupted.Record.SnapshotID != pending.SnapshotID {
+	if interrupted.Record.Status != "error" || interrupted.Record.ErrorCode != "process_interrupted" || interrupted.Record.InputTokens != nil || interrupted.Record.OutputTokens != nil || interrupted.Record.SnapshotID != pending.SnapshotID || len(interrupted.Attempts) != 1 || interrupted.Attempts[0].CredentialID != pending.Attempts[0].CredentialID || interrupted.Attempts[0].SnapshotID != pending.Attempts[0].SnapshotID || interrupted.Attempts[0].Status != "error" || interrupted.Attempts[0].WorkEvidence != "unknown" || interrupted.Attempts[0].FinalUsageKnown {
 		t.Fatal("interrupted admission was not recovered with explicit unknown usage")
 	}
 }
@@ -168,7 +173,7 @@ func admitRecorderFixture(t *testing.T, svc *service.Service, requestID string, 
 		SnapshotID: fact.SnapshotID, Response: response, UserID: fact.UserID, KeyID: fact.KeyID,
 		ModelID: fact.ModelID, ModelName: fact.ModelName, ProviderModelID: fact.ProviderModelID,
 		ProviderID: fact.ProviderID, ProviderName: fact.ProviderName, ConnectionID: fact.ConnectionID,
-		ConnectionName: fact.ConnectionName, UpstreamModelName: fact.UpstreamModelName, CredentialID: "test-only-recorder-credential-id",
+		ConnectionName: fact.ConnectionName, UpstreamModelName: fact.UpstreamModelName, CredentialID: fact.Attempts[0].CredentialID,
 		Stream: fact.Stream, AttemptID: fact.Attempts[0].ID, AttemptStartedAt: fact.StartedAt,
 	}
 	if err := svc.AdmitGatewayCall(requestID, result); err != nil {

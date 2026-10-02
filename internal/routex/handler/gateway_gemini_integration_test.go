@@ -137,11 +137,14 @@ func testGeminiLifecycle(t *testing.T, db *gorm.DB) {
 	stop()
 	defer func() { _ = svc.StopCallRecorder() }()
 	body := `{"contents":[{"role":"user","parts":[{"text":"sensitive-input"}]}],"generationConfig":{"thinkingConfig":{"thinkingBudget":100}}}`
+	expectedSnapshots := map[string]string{}
 	invoke := func(body, action string, status int) *httptest.ResponseRecorder {
 		req := httptest.NewRequest("POST", "/v1beta/models/public-model:"+action+"?key="+key.Secret, strings.NewReader(body))
 		req.Header.Set("Content-Type", "application/json")
+		snapshotID := svc.RuntimeStatus().SnapshotID
 		response := httptest.NewRecorder()
 		router.ServeHTTP(response, req)
+		expectedSnapshots[response.Header().Get("X-Request-ID")] = snapshotID
 		expectStatus(t, response, status)
 		return response
 	}
@@ -169,8 +172,10 @@ func testGeminiLifecycle(t *testing.T, db *gorm.DB) {
 	req := httptest.NewRequest("POST", "/v1beta/models/public-model:streamGenerateContent", strings.NewReader(body)).WithContext(cancelCtx)
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("x-goog-api-key", key.Secret)
+	canceledSnapshot := svc.RuntimeStatus().SnapshotID
 	canceled := httptest.NewRecorder()
 	router.ServeHTTP(&cancelResponseWriter{canceled, cancel, "partial"}, req)
+	expectedSnapshots[canceled.Header().Get("X-Request-ID")] = canceledSnapshot
 	cancel()
 	if _, err := svc.SetProviderModelState(ctx, admin.User.ID, pm.ID, pm.ETag, false); err != nil {
 		t.Fatal(err)
@@ -232,6 +237,7 @@ func testGeminiLifecycle(t *testing.T, db *gorm.DB) {
 		if err := db.Model(&entity.CallRecord{}).Where("request_id = ?", requestID).Count(&count).Error; err != nil || count != 1 {
 			t.Fatal("duplicate call fact")
 		}
+		assertNativeAttemptAttribution(t, db, requestID, provider.Connections[0].Credentials[0].ID, expectedSnapshots[requestID], item.status, int(item.attempts))
 		if err := db.Model(&entity.CallAttempt{}).Where("request_id = ?", requestID).Count(&count).Error; err != nil || count != item.attempts {
 			t.Fatal("wrong attempt count")
 		}

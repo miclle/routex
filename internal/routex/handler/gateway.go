@@ -157,6 +157,7 @@ func (ctrl *Ctrl) recordGatewayCall(ctx context.Context, requestID string, start
 		fact.Attempts = append(fact.Attempts, service.CallAttempt{
 			ID: result.AttemptID, ProviderID: result.ProviderID, ProviderName: result.ProviderName,
 			ProviderModelID: result.ProviderModelID, ConnectionID: result.ConnectionID,
+			CredentialID: result.CredentialID, SnapshotID: result.SnapshotID,
 			ConnectionName: result.ConnectionName, UpstreamModelName: result.UpstreamModelName,
 			AttemptNumber: len(fact.Attempts) + 1, Status: status, FailureClass: failureClass,
 			WorkEvidence: workEvidence, OutputStarted: status == "success" || usage.OutputStarted, FinalUsageKnown: usage.Complete,

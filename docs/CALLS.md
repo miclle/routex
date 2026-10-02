@@ -1,12 +1,12 @@
 # Call Facts and Query API
 
-Call facts record completed gateway requests without storing prompts, responses, credentials, or raw upstream diagnostics. Facts support personal or Project attribution, exactly one per request. Supported text calls include immutable assessed amounts and bounded CSV export; Team attribution and aggregate analytics remain separate work packages. Durable event ingestion is implemented for the single-process deployment.
+Call facts record completed gateway requests without storing prompts, responses, credential secrets, or raw upstream diagnostics. Facts support personal or Project attribution, exactly one per request. Supported text calls include immutable assessed amounts and bounded CSV export; Team attribution and aggregate analytics remain separate work packages. Durable event ingestion is implemented for the single-process deployment.
 
 ## Recording Contract
 
 The gateway assigns a canonical server-generated `RequestID` and records one `service.CallFact` after an authenticated request succeeds, fails, or is canceled. Each upstream attempt has a separate ID. A rejection before dialing an upstream has no attempt. Unauthenticated traffic has no trusted user attribution and is not stored as a personal call fact.
 
-A fact contains stable user, Key, model, provider-model, and connection IDs; the public model name used for attribution; protocol; outcome; streaming flag; start and completion timestamps; duration; optional input/output and cache token counts; pricing status and nullable exact amount/currency; a safe error classification; a route stop reason; and ordered attempts. It contains no credential ID, Authorization value, plaintext secret, request body, response content, or upstream error text. Supported protocols are `openai_chat`, `openai_responses`, `anthropic_messages`, and `gemini_generate_content`; outcomes are `success`, `error`, and `canceled`.
+A fact contains stable user, Key, model, provider-model, and connection IDs; the public model name used for attribution; protocol; outcome; streaming flag; start and completion timestamps; duration; optional input/output and cache token counts; pricing status and nullable exact amount/currency; a safe error classification; a route stop reason; and ordered attempts. It contains no Authorization value, plaintext secret, request body, response content, or upstream error text. A logical call has no single Credential ID: different attempts can use different Credentials. Internal attempt attribution is described below. Supported protocols are `openai_chat`, `openai_responses`, `anthropic_messages`, and `gemini_generate_content`; outcomes are `success`, `error`, and `canceled`.
 
 Unknown token usage remains `null`. It is not converted to zero or inferred from text length. The exception is an admitted call whose attempt evidence proves that no provider work began: it stores explicit zero token counters and the `no_work` pricing state while retaining diagnostic pricing dimensions. Supported complete text usage is assessed from a pre-dispatch price snapshot; unpriced amounts remain null. See [METERING](METERING.md) for completeness and pricing boundaries. An error code outside the predefined internal classifications is replaced with `upstream_error`, so an accidental provider message cannot become a stored diagnostic.
 
@@ -25,6 +25,37 @@ A background worker delivers up to 64 facts per cycle, with a three-second timeo
 The HTTP shutdown drains requests before closing the journal. Ready facts do not need to finish delivery before shutdown because they remain on disk. Configure `event_queue_path` on persistent local writable storage; one process exclusively owns each journal file. Do not share a journal between instances or delete it during an outage. Journal files are created with mode 0600 and new directories with mode 0700. Relational schemas and business data continue to use GORM with PostgreSQL/MySQL; bbolt is only the bounded local transport journal.
 
 Authorization during a primary-database outage is separately bounded by the five-second lease in [RUNTIME](RUNTIME.md). Buffering does not extend authorization indefinitely.
+
+## Internal attempt attribution
+
+Each actual attempt preserves its selected `CredentialID` and published
+`SnapshotID` alongside Provider/Connection attribution. Failed attempts, final
+native results and fsynced active interruption checkpoints copy their own exact
+dispatch context. A later retry cannot replace earlier IDs. No-attempt rejections
+do not fabricate a dispatch. The database compatibility path without an active
+runtime can retain a Credential ID with an unknown publication snapshot.
+
+Frozen GORM version 32 adds two non-null `VARCHAR(30)` columns with empty defaults
+and a `(credential_id,snapshot_id,completed_at,id)` lookup index. IDs are historical
+metadata with no live catalog/publication foreign keys. Legacy database and journal
+records retain empty/unknown values; neither the parent logical call snapshot nor
+the mutable catalog is a fallback. Service validation rejects unsafe or oversized
+non-empty IDs. Relational delivery copies each attempt exactly and preserves the
+existing transaction, first-fact deduplication and quota settlement contracts.
+
+The existing journal JSON carries these bounded fields without changing its
+format, capacity or payload limit. The direct-database compatibility path also
+checkpoints before dispatch; a checkpoint failure returns 503 before any upstream
+request and clears the unstarted attempt identity. Interrupted attempts remain
+`process_interrupted` with unknown work, even if an HTTP response had been accepted
+before a crash. Attribution alone does not prove native completion, current
+configuration eligibility or safe planned predecessor retirement. HTTP/call
+success and token-usage completeness are not native completion evidence.
+
+These fields remain internal: Personal, Project, platform call DTOs and CSV exports
+are unchanged. No Credential secret, ciphertext or request/response content is
+recorded. Full checks and the PostgreSQL/MySQL matrix passed for this package;
+see the [implementation record](IMPLEMENTATION.md) for exact evidence.
 
 ## Access and HTTP API
 

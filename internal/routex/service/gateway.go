@@ -386,9 +386,12 @@ func (s *Service) gatewayNative(ctx context.Context, bearer string, body []byte,
 		return result, gatewayError(500, "internal_error", "The request could not be initialized.")
 	}
 	result.AttemptStartedAt = time.Now().UTC()
-	response, err := client.Do(req)
+	response, err := s.dispatchCheckpointedGatewayRequest(requestID, result, &client, req)
 	result.Response = response
 	if err != nil {
+		if errors.Is(err, callQueueUnavailable) {
+			return result, err
+		}
 		var timedOut interface{ Timeout() bool }
 		if errors.Is(ctx.Err(), context.DeadlineExceeded) || (errors.As(err, &timedOut) && timedOut.Timeout()) {
 			return result, gatewayError(504, "upstream_timeout", "The upstream request timed out.")
@@ -563,4 +566,15 @@ func chooseAvailableGatewayRoute(weights []int, available []bool) (int, error) {
 		position -= weight
 	}
 	return 0, gatewayError(503, "upstream_unavailable", "No valid route is configured.")
+}
+
+// dispatchCheckpointedGatewayRequest retains exact attempt evidence before the
+// compatibility path can consume upstream resources without a runtime snapshot.
+func (s *Service) dispatchCheckpointedGatewayRequest(requestID string, result *GatewayResult, client *http.Client, request *http.Request) (*http.Response, error) {
+	if err := s.CheckpointGatewayCall(requestID, result); err != nil {
+		result.AttemptID = ""
+		result.AttemptStartedAt = time.Time{}
+		return nil, err
+	}
+	return client.Do(request)
 }

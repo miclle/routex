@@ -8,7 +8,9 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"path/filepath"
 	"strings"
+	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -18,6 +20,7 @@ import (
 
 	"github.com/miclle/routex/internal/routex/entity"
 	"github.com/miclle/routex/internal/routex/service"
+	"github.com/miclle/routex/pkg/eventqueue"
 	"github.com/miclle/routex/pkg/secretstore"
 )
 
@@ -218,14 +221,17 @@ func testGatewayLifecycle(t *testing.T, db *gorm.DB) {
 	}
 	router := fox.New()
 	New(svc).RegisterRoutes(router)
+	expectedSnapshots := map[string]string{}
 	request := func(method, path, body, bearer string) *httptest.ResponseRecorder {
 		req := httptest.NewRequest(method, path, strings.NewReader(body))
 		req.Header.Set("Content-Type", "application/json")
 		if bearer != "" {
 			req.Header.Set("Authorization", "Bearer "+bearer)
 		}
+		snapshotID := svc.RuntimeStatus().SnapshotID
 		response := httptest.NewRecorder()
 		router.ServeHTTP(response, req)
+		expectedSnapshots[response.Header().Get("X-Request-ID")] = snapshotID
 		return response
 	}
 	body := `{"model":"public-model","messages":[{"role":"user","content":"Hello"}],"temperature":0.125}`
@@ -268,6 +274,7 @@ func testGatewayLifecycle(t *testing.T, db *gorm.DB) {
 	if ordinaryFact.Status != "success" || ordinaryFact.InputTokens == nil || *ordinaryFact.InputTokens != 3 || ordinaryFact.OutputTokens == nil || *ordinaryFact.OutputTokens != 2 {
 		t.Fatal("ordinary usage fact was not persisted")
 	}
+	assertNativeAttemptAttribution(t, db, ordinaryFact.RequestID, credentialID, "", "success", 1)
 	testProviderModelState(t, db, router, store, pm, body, created.Secret, &chatCalls)
 	mode.Store("stream")
 	streamed := request("POST", "/v1/chat/completions", strings.Replace(body, `"temperature":0.125`, `"stream":true`, 1), created.Secret)
@@ -282,6 +289,7 @@ func testGatewayLifecycle(t *testing.T, db *gorm.DB) {
 	if streamFact.Status != "success" || !streamFact.Stream || streamFact.InputTokens == nil || *streamFact.InputTokens != 3 || streamFact.OutputTokens == nil || *streamFact.OutputTokens != 2 {
 		t.Fatal("stream usage fact was not persisted")
 	}
+	assertNativeAttemptAttribution(t, db, streamFact.RequestID, credentialID, "", "success", 1)
 	mode.Store("error")
 	beforeFailure := chatCalls.Load()
 	failure := request("POST", "/v1/chat/completions", body, created.Secret)
@@ -445,6 +453,15 @@ func testGatewayLifecycle(t *testing.T, db *gorm.DB) {
 	if retryRecord.ConnectionID != retryAttempts[1].ConnectionID || retryRecord.ProviderID != finalProvider.ID || retryRecord.ProviderName != finalProvider.Name || retryRecord.ConnectionName != finalConnection.Name || retryRecord.UpstreamModelName != finalProviderModel.UpstreamName {
 		t.Fatalf("retry record did not retain the final successful route: record=%+v attempts=%+v", retryRecord, retryAttempts)
 	}
+	credentialByConnection := map[string]string{provider.Connections[0].Connection.ID: credentialID, retryProvider.Connections[0].Connection.ID: retryCredentialID}
+	for _, attempt := range retryAttempts {
+		if attempt.CredentialID != credentialByConnection[attempt.ConnectionID] || attempt.SnapshotID != expectedSnapshots[retryRecord.RequestID] || attempt.SnapshotID == "" {
+			t.Fatalf("retry attempt lost its exact credential/configuration: %+v", attempt)
+		}
+	}
+	if retryAttempts[0].CredentialID == retryAttempts[1].CredentialID {
+		t.Fatal("cross-Provider retry merged distinct credential identities")
+	}
 	for _, streamMode := range []string{"stream_empty", "stream_incomplete"} {
 		mode.Store(streamMode)
 		beforeStreamFailure := chatCalls.Load()
@@ -461,6 +478,7 @@ func testGatewayLifecycle(t *testing.T, db *gorm.DB) {
 		if err := db.Where("request_id = ?", failedRecord.RequestID).Find(&failedAttempts).Error; err != nil {
 			t.Fatal(err)
 		}
+		assertNativeAttemptAttribution(t, db, failedRecord.RequestID, credentialByConnection[failedRecord.ConnectionID], expectedSnapshots[failedRecord.RequestID], "error", 1)
 		if failedRecord.RouteStopReason != "unsafe_to_replay" || len(failedAttempts) != 1 || failedAttempts[0].WorkEvidence != "unknown" || !failedAttempts[0].OutputStarted {
 			t.Fatalf("%s diagnostics: record=%+v attempts=%+v", streamMode, failedRecord, failedAttempts)
 		}
@@ -491,6 +509,7 @@ func testGatewayLifecycle(t *testing.T, db *gorm.DB) {
 		t.Fatal(err)
 	}
 	expectStatus(t, request("POST", "/v1/chat/completions", body, created.Secret), 401)
+	testDirectGatewayRecorderCheckpoint(t, db, admin.User.ID, store)
 }
 
 func TestGatewayUsageUnknownAndBearerParsing(t *testing.T) {
@@ -516,5 +535,149 @@ func TestGatewayUsageUnknownAndBearerParsing(t *testing.T) {
 	req.Header.Add("Authorization", "Bearer second")
 	if gatewayBearer(req) != "" {
 		t.Fatal("ambiguous authorization headers accepted")
+	}
+}
+
+func assertNativeAttemptAttribution(t *testing.T, db *gorm.DB, requestID, credentialID, snapshotID, status string, count int) {
+	t.Helper()
+	var attempts []entity.CallAttempt
+	if err := db.Where("request_id = ?", requestID).Order("attempt_number").Find(&attempts).Error; err != nil {
+		t.Fatal(err)
+	}
+	if len(attempts) != count {
+		t.Fatalf("native attempt count = %d, want %d", len(attempts), count)
+	}
+	for _, attempt := range attempts {
+		if credentialID == "" || attempt.CredentialID != credentialID || attempt.SnapshotID != snapshotID || attempt.Status != status {
+			t.Fatalf("native attempt lost exact attribution or terminal status: %+v; want credential=%s snapshot=%s status=%s", attempt, credentialID, snapshotID, status)
+		}
+		if (attempt.FailureClass == "success") != (status == "success") || status == "success" && attempt.WorkEvidence != "completed" {
+			t.Fatalf("accepted HTTP response became false terminal success: %+v", attempt)
+		}
+	}
+}
+
+func testDirectGatewayRecorderCheckpoint(t *testing.T, db *gorm.DB, actorID string, store *secretstore.Store) {
+	t.Helper()
+	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+	defer cancel()
+	entered, release := make(chan struct{}), make(chan struct{})
+	unblock := sync.OnceFunc(func() { close(release) })
+	upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		if r.URL.Path == "/v1/models" {
+			_, _ = io.WriteString(w, `{"data":[{"id":"direct-upstream"}]}`)
+			return
+		}
+		if r.Header.Get("Authorization") != "Bearer direct-fixture-secret" {
+			t.Error("direct dispatch lost the exact reviewed credential")
+		}
+		close(entered)
+		<-release
+		_, _ = io.WriteString(w, `{}`)
+	}))
+	defer upstream.Close()
+	defer unblock()
+	svc, err := service.New(ctx, db, service.WithCredentialStorage(store), service.WithUpstreamPolicy(true))
+	if err != nil {
+		t.Fatal(err)
+	}
+	provider, err := svc.CreateProvider(ctx, actorID, "Direct journal provider", service.CreateConnectionInput{Name: "Direct", BaseURL: upstream.URL + "/v1", Protocol: entity.ProtocolOpenAIChat, CredentialName: "Direct credential", Secret: "direct-fixture-secret"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	credentialID := provider.Connections[0].Credentials[0].ID
+	if verified, err := svc.VerifyCredential(ctx, actorID, credentialID); err != nil || !verified.Verified {
+		t.Fatalf("direct fixture verification = %+v, error = %v", verified, err)
+	}
+	if _, err := svc.SetCredentialEnabled(ctx, actorID, credentialID, true); err != nil {
+		t.Fatal(err)
+	}
+	var pm entity.ProviderModel
+	if err := db.First(&pm, "connection_id = ?", provider.Connections[0].Connection.ID).Error; err != nil {
+		t.Fatal(err)
+	}
+	model, err := svc.CreateModel(ctx, actorID, "direct-journal-model", pm.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := svc.SetModelWeights(ctx, actorID, model.Model.ID, []service.ModelWeight{{BindingID: model.Bindings[0].Binding.ID, Weight: 100}}); err != nil {
+		t.Fatal(err)
+	}
+	key, err := svc.CreatePersonalKey(ctx, actorID, "Direct journal key", []string{model.Model.ID}, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := svc.ConfirmKeyDelivery(ctx, actorID, key.Record.Key.ID); err != nil {
+		t.Fatal(err)
+	}
+	path := filepath.Join(t.TempDir(), "direct-journal.db")
+	recorderCtx, stop := context.WithCancel(ctx)
+	if err := svc.StartCallRecorder(recorderCtx, path); err != nil {
+		stop()
+		t.Fatal(err)
+	}
+	stop()
+	defer func() { _ = svc.StopCallRecorder() }()
+	if svc.RuntimeStatus().Enabled {
+		t.Fatal("compatibility fixture unexpectedly started runtime publication")
+	}
+	done := make(chan error, 1)
+	go func() {
+		result, err := svc.GatewayChat(ctx, key.Secret, []byte(`{"model":"direct-journal-model","messages":[{"role":"user","content":"fixture"}]}`), "req_direct_interrupted")
+		if result != nil && result.Response != nil {
+			_ = result.Response.Body.Close()
+		}
+		done <- err
+	}()
+	select {
+	case <-entered:
+	case err := <-done:
+		t.Fatalf("direct dispatch ended before controlled upstream: %v", err)
+	case <-ctx.Done():
+		t.Fatal("direct dispatch did not enter controlled upstream")
+	}
+	if err := svc.StopCallRecorder(); err != nil {
+		t.Fatal(err)
+	}
+	queue, err := eventqueue.Open(path, 8, 64<<10)
+	if err != nil {
+		t.Fatal(err)
+	}
+	entries, err := queue.Read(8)
+	if err != nil || len(entries) != 1 {
+		_ = queue.Close()
+		t.Fatalf("direct DB interruption recovery = %+v, error = %v", entries, err)
+	}
+	var recovered service.CallFact
+	if err := json.Unmarshal(entries[0].Payload, &recovered); err != nil {
+		_ = queue.Close()
+		t.Fatal(err)
+	}
+	if len(recovered.Attempts) != 1 || recovered.Attempts[0].CredentialID != credentialID || recovered.Attempts[0].SnapshotID != "" || recovered.Attempts[0].Status != "error" || recovered.Attempts[0].WorkEvidence != "unknown" || recovered.Attempts[0].ErrorCode != "process_interrupted" {
+		_ = queue.Close()
+		t.Fatalf("direct DB dispatch lost exact attempt or invented applied configuration: %+v", recovered)
+	}
+	if err := queue.Close(); err != nil {
+		t.Fatal(err)
+	}
+	unblock()
+	if err := <-done; err != nil {
+		t.Fatal(err)
+	}
+	restarted, err := service.New(ctx, db)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := restarted.StartCallRecorder(ctx, path); err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = restarted.StopCallRecorder() }()
+	if err := restarted.FlushCallRecorder(ctx); err != nil {
+		t.Fatal(err)
+	}
+	stored, err := restarted.GetCall(ctx, "", "req_direct_interrupted")
+	if err != nil || len(stored.Attempts) != 1 || stored.Attempts[0].CredentialID != credentialID || stored.Attempts[0].SnapshotID != "" || stored.Attempts[0].Status != "error" {
+		t.Fatalf("direct interrupted attempt did not survive replay: %+v, error = %v", stored, err)
 	}
 }

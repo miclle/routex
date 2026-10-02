@@ -156,13 +156,16 @@ func testMessagesLifecycle(t *testing.T, db *gorm.DB) {
 	}
 	stop()
 	defer func() { _ = svc.StopCallRecorder() }()
+	expectedSnapshots := map[string]string{}
 	invoke := func(body string, status int) *httptest.ResponseRecorder {
 		req := httptest.NewRequest("POST", "/v1/messages", strings.NewReader(body))
 		req.Header.Set("Content-Type", "application/json")
 		req.Header.Set("anthropic-version", "2023-06-01")
 		req.Header.Set("x-api-key", key.Secret)
+		snapshotID := svc.RuntimeStatus().SnapshotID
 		response := httptest.NewRecorder()
 		router.ServeHTTP(response, req)
+		expectedSnapshots[response.Header().Get("X-Request-ID")] = snapshotID
 		expectStatus(t, response, status)
 		return response
 	}
@@ -203,8 +206,10 @@ func testMessagesLifecycle(t *testing.T, db *gorm.DB) {
 		req.Header.Set("Content-Type", "application/json")
 		req.Header.Set("anthropic-version", "2023-06-01")
 		req.Header.Set("x-api-key", key.Secret)
+		snapshotID := svc.RuntimeStatus().SnapshotID
 		recorder := httptest.NewRecorder()
 		router.ServeHTTP(&cancelResponseWriter{recorder, cancel, trigger}, req)
+		expectedSnapshots[recorder.Header().Get("X-Request-ID")] = snapshotID
 		cancel()
 		canceled = append(canceled, recorder)
 	}
@@ -283,6 +288,7 @@ func testMessagesLifecycle(t *testing.T, db *gorm.DB) {
 		if err := db.Model(&entity.CallRecord{}).Where("request_id = ?", requestID).Count(&count).Error; err != nil || count != 1 {
 			t.Fatal("duplicated call fact")
 		}
+		assertNativeAttemptAttribution(t, db, requestID, provider.Connections[0].Credentials[0].ID, expectedSnapshots[requestID], item.status, int(item.attempts))
 		if err := db.Model(&entity.CallAttempt{}).Where("request_id = ?", requestID).Count(&count).Error; err != nil || count != item.attempts {
 			t.Fatalf("attempt count %d expected %d", count, item.attempts)
 		}

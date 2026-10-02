@@ -55,6 +55,11 @@ func TestGatewayAttemptExecutionRetriesOnlyProvenRejections(t *testing.T) {
 			if result == nil || result.RouteStopReason != test.wantStop || len(result.Attempts) != 1 || result.Attempts[0].FailureClass != test.wantFailure {
 				t.Fatalf("result = %+v, error = %v", result, err)
 			}
+			failed := result.Attempts[0]
+			credentials := map[string]string{"con_one": "crd_one", "con_two": "crd_two"}
+			if failed.CredentialID != credentials[failed.ConnectionID] || failed.SnapshotID != "cfg_attempt_execution" {
+				t.Fatalf("failed attempt lost its exact credential/snapshot: %+v", failed)
+			}
 			if test.wantCalls == 2 {
 				if err != nil || result.Response == nil || result.AttemptID == "" || result.Attempts[0].AttemptNumber != 1 {
 					t.Fatalf("retry result = %+v, error = %v", result, err)
@@ -67,6 +72,9 @@ func TestGatewayAttemptExecutionRetriesOnlyProvenRejections(t *testing.T) {
 				}
 				if result.ConnectionID == "con_two" && (result.ProviderID != "prv_two" || result.ProviderName != "Provider Two" || result.ConnectionName != "Secondary" || result.UpstreamModelName != "provider-model-two") {
 					t.Fatalf("secondary route attribution mismatch: %+v", result)
+				}
+				if result.CredentialID != credentials[result.ConnectionID] || failed.CredentialID == result.CredentialID {
+					t.Fatalf("credential attribution did not follow failover: failed=%+v final=%+v", failed, result)
 				}
 				_ = result.Response.Body.Close()
 				return
@@ -121,6 +129,9 @@ func TestGatewayAttemptExecutionRetriesProvenPreRequestFailure(t *testing.T) {
 	}
 	defer func() { _ = result.Response.Body.Close() }()
 	failed := result.Attempts[0]
+	if failed.CredentialID == "" || failed.SnapshotID != "cfg_attempt_execution" || failed.CredentialID == result.CredentialID {
+		t.Fatalf("pre-request failure lost its exact credential/snapshot: %+v", failed)
+	}
 	if failed.FailureClass != "connection_failure" || failed.WorkEvidence != "not_sent" || failed.EvidenceCode != "pre_request_connection" {
 		t.Fatalf("failed attempt = %+v", failed)
 	}
@@ -170,6 +181,15 @@ func TestGatewayAttemptCheckpointRecoversOneAdmissionWithOrderedEvidence(t *test
 	}
 	if len(fallback.Attempts) != 2 || fallback.Attempts[0].AttemptNumber != 1 || fallback.Attempts[0].FailureClass != "credential_rejected" || fallback.Attempts[1].AttemptNumber != 2 || fallback.Attempts[1].ErrorCode != "process_interrupted" {
 		t.Fatalf("recovered fallback = %+v", fallback)
+	}
+	for index, attempt := range fallback.Attempts {
+		credentials := map[string]string{"con_one": "crd_one", "con_two": "crd_two"}
+		if attempt.CredentialID != credentials[attempt.ConnectionID] || attempt.SnapshotID != "cfg_attempt_execution" || attempt.Status != "error" {
+			t.Fatalf("recovered attempt %d lost immutable attribution or became success: %+v", index, attempt)
+		}
+	}
+	if fallback.Attempts[1].CredentialID != result.CredentialID || fallback.Attempts[1].WorkEvidence != "unknown" || fallback.Attempts[1].FailureClass == "success" {
+		t.Fatalf("accepted HTTP response became terminal success after interruption: %+v", fallback.Attempts[1])
 	}
 }
 
@@ -275,7 +295,7 @@ func TestGatewayAttemptFinalizesOneReceiptAfterRetry(t *testing.T) {
 	if len(attempts) != 1 || attempts[0].ProviderID == "" || attempts[0].ProviderName == "" || attempts[0].ConnectionName == "" || attempts[0].UpstreamModelName == "" {
 		t.Fatalf("failed attempt lost immutable route snapshots: %+v", attempts)
 	}
-	attempts = append(attempts, CallAttempt{ID: result.AttemptID, ProviderID: result.ProviderID, ProviderName: result.ProviderName, ProviderModelID: result.ProviderModelID, ConnectionID: result.ConnectionID, ConnectionName: result.ConnectionName, UpstreamModelName: result.UpstreamModelName, AttemptNumber: 2, Status: "success", FailureClass: "success", WorkEvidence: "completed", StartedAt: result.AttemptStartedAt, CompletedAt: completed, HTTPStatus: http.StatusOK})
+	attempts = append(attempts, CallAttempt{ID: result.AttemptID, CredentialID: result.CredentialID, SnapshotID: result.SnapshotID, ProviderID: result.ProviderID, ProviderName: result.ProviderName, ProviderModelID: result.ProviderModelID, ConnectionID: result.ConnectionID, ConnectionName: result.ConnectionName, UpstreamModelName: result.UpstreamModelName, AttemptNumber: 2, Status: "success", FailureClass: "success", WorkEvidence: "completed", StartedAt: result.AttemptStartedAt, CompletedAt: completed, HTTPStatus: http.StatusOK})
 	fact := CallFact{RequestID: "req_attempt_final", SnapshotID: result.SnapshotID, UserID: result.UserID, KeyID: result.KeyID, ModelID: result.ModelID, ModelName: result.ModelName, ProviderID: result.ProviderID, ProviderName: result.ProviderName, ProviderModelID: result.ProviderModelID, ConnectionID: result.ConnectionID, ConnectionName: result.ConnectionName, UpstreamModelName: result.UpstreamModelName, RouteStopReason: "succeeded", Protocol: result.NativeProtocol(), Status: "success", StartedAt: attempts[0].StartedAt, CompletedAt: completed, Attempts: attempts}
 	if err := svc.PersistGatewayCall(context.Background(), fact); err != nil {
 		t.Fatal(err)
@@ -402,6 +422,9 @@ func TestGatewayCredentialRejectionUsesNextPriorityOnSameTarget(t *testing.T) {
 		t.Fatalf("result = %+v, error = %v, calls = %d", result, err, calls.Load())
 	}
 	_ = result.Response.Body.Close()
+	if result.Attempts[0].CredentialID != "crd_one" || result.Attempts[0].SnapshotID != "cfg_attempt_execution" || result.SnapshotID != "cfg_attempt_execution" {
+		t.Fatalf("same-Connection fallback merged credential attribution: failed=%+v final=%+v", result.Attempts[0], result)
+	}
 	if svc.gatewayAttemptHealthy("con_one", "crd_one") || !svc.gatewayAttemptHealthy("con_one", "crd_two") {
 		t.Fatal("credential cooldown was not scoped to the rejected credential")
 	}

@@ -1,10 +1,10 @@
 # Current Work Handoff
 
-- **Status:** implementation active; F11 replacement preparation checked; per-attempt attribution is the next package
-- **Updated:** 2026-10-02T13:53:00+08:00
+- **Status:** implementation active; F11 replacement preparation pushed; per-attempt attribution checked; native completion evidence next
+- **Updated:** 2026-10-02T14:31:00+08:00
 - **Repository / branch:** RouteX / `main`
-- **Previous checked source baseline:** `1d3e430a0fefb726481638d3c1f0151eab1e5b5f`, pushed and read back from `origin/main`
-- **Current owner:** coordinating task; replacement workers frozen after acceptance; independent persistence/runtime owners prepared for the next package
+- **Previous checked source baseline:** `16c0cff6098390fdd6f7df0a9160901859cfad31`, pushed and read back from `origin/main`
+- **Current owner:** coordinating task; independent persistence/schema and native-parser owners prepared for native completion evidence
 - **Next owner:** current task continues the resumed goal
 - **Transport:** identify this checked delivery with `git log -1 -- docs/current-work-handoff.md` and independently verify its upstream
 - **Coordination plan:** `~/dotfiles/projects/routex/implementation-plan.md`; synchronize separately and preserve unrelated changes
@@ -37,7 +37,7 @@ concurrent/uncertain creation, explicit activation/publication, migration and
 negative acceptance. Verification of a new Credential never implicitly enables it.
 No paid upstream calls or external credentials have been used.
 
-## Latest checked package: staged replacement preparation
+## Previous checked package: staged replacement preparation
 
 Backend and frontend own separate files. New pending disabled Credentials receive
 immutable historical predecessor IDs; frozen GORM V31 adds that nullable column
@@ -80,7 +80,7 @@ and the owned temporary tab/process/database/network/config/journal were removed
 Independent-process and browser evidence remain separate from the complete
 dual-database matrix; all required local checks passed before this delivery.
 
-## Current-package verification
+## Replacement preparation verification
 
 | Check | Result |
 | --- | --- |
@@ -92,6 +92,45 @@ dual-database matrix; all required local checks passed before this delivery.
 | Process restart | New preparation 201, exact retry from independent restarted binary 200/same ID, changed-secret reuse 409 |
 | Embedded browser | English/Chinese original table/menu, historical lineage, preparation fields/state and cancellation; no browser write/upstream call; English restored and fixture removed |
 | Review and docs | Independent focused review: no actionable finding; whitespace and 68 local Markdown references passed |
+
+## Latest checked package: immutable per-attempt attribution
+
+The persistence owner adds bounded optional CredentialID/SnapshotID to internal
+attempt facts and exact RecordCall copies, with frozen GORM V32 and a historical
+lookup index. The runtime owner copies actual dispatch IDs into failed attempts,
+final native results and fsynced active interruption checkpoints. Existing journal
+JSON carries the new fields without changing quota admission or the queue format.
+Old database/journal fields remain empty/unknown; the parent logical call snapshot
+and current catalog are never attribution fallbacks. Public call DTOs and CSV
+remain unchanged. No native completion or retirement behavior is added yet.
+
+Focused service/handler race tests passed, and full format/check/test passed
+with 619 Vitest cases in 51 files, Go race/unit, four Node checks, development
+lifecycle and production embedded assets. Focused real PostgreSQL/MySQL V32
+migration and attribution lifecycle passed in 121.681 seconds. Mandatory check
+was rerun after initial fixture corrections. The first complete matrix failed
+in the older recorder fixture: its deliberately long placeholder Credential ID
+now violates the stored ID bound. The fixture now uses a bounded historical ID
+and verifies exact attribution through outage, interruption and immutable replay.
+Independent review also found the direct-database compatibility dispatch missing
+a pre-request durable checkpoint. It now checkpoints immediately before dispatch,
+returns the existing 503 without any upstream request on checkpoint failure, and
+clears the unstarted attempt. Focused race tests cover both that failure and
+held-request journal recovery; the final full format/check/test and PostgreSQL/MySQL matrix passed (Handler
+410.182 seconds, Service 5.252 seconds). Owned Compose resources were removed.
+Independent review found no remaining actionable defect. The real-database
+compatibility fixture also confirmed interrupted recovery and SQL replay.
+Native completion proof remains separate: HTTP/call success may
+include empty Chat payloads or native blocks; only parser-owned terminal evidence
+can support a later planned retirement gate.
+
+Replacement exact remote checks all passed for `16c0cff`: CI
+[36970977822](https://github.com/miclle/routex/actions/runs/36970977822), Actionlint
+[36970977665](https://github.com/miclle/routex/actions/runs/36970977665), and
+GolangCI-Lint [36970977651](https://github.com/miclle/routex/actions/runs/36970977651).
+The CI includes backend/frontend checks, dual databases, real-process session
+lifecycle and build artifacts; it does not cover the subsequent V32 attribution
+package. Inspect that package's exact remote checks separately.
 
 ## Overall status and other partial work
 
@@ -156,17 +195,17 @@ be reported separately.
 
 ## Working tree and transfer
 
-- The preparation delivery contains only its backend/UI/tests/docs/rules. Its checked commit is the commit carrying this handoff; read it from Git history rather than guessing a self-referential SHA. Per-attempt attribution has not begun at the preparation freeze. Metadata/deletion was previously pushed as `1d3e430` with a clean tree.
-- Dotfiles baseline was `67e7e0d5170a4004ebe8c7b6f2800bdb72945c8c`, pushed to `origin/main`; stage only the RouteX coordination record for later updates.
+- Replacement preparation was pushed as `16c0cff`, with its exact remote SHA read back and a clean RouteX tree before per-attempt attribution began. The following checked package delivers V32 attribution, runtime recording, compatibility checkpoint repair, tests and directly associated documents; identify its commit with the transport command above. Metadata/deletion was previously pushed as `1d3e430`.
+- Dotfiles baseline was `3615f848b9dca4ef1d18c981c93c3b797146e37e`, pushed to `origin/main`; stage only the RouteX coordination record for later updates.
 - Preserve unrelated modified dotfiles `zsh/.zshrc`; never stage, overwrite or discard it.
 - Fetch both repositories' `main` branches to transfer checked commits. Ignored configuration, databases, processes and temporary logs do not transfer; recreate them from `docs/DEVELOPMENT.md`.
 
 ## Next actions
 
-1. Identify this checked preparation delivery with `git log -1 -- docs/current-work-handoff.md`; verify `origin/main` and its exact CI outcomes. Preserve unrelated dotfiles changes and never attribute old CI to new code.
-2. Begin per-attempt attribution in `service/call.go` and `entity/call.go`, with a frozen V32 migration. The persistence owner implements bounded optional CredentialID/SnapshotID and exact RecordCall copies; the runtime owner populates failed/final/interrupted attempts in `gateway_attempt_execute.go`, `call_recorder.go`, and `handler/gateway.go`. No public call DTO change is needed.
-3. Keep old database/journal values unknown; never infer an attempt snapshot from its parent logical call. Validate same-Connection Credential fallback, cross-Provider failover, four native ordinary/stream outcomes, interruption/replay, idempotent delivery, and both-database migration preservation/partial recovery. Run mandatory check/test/matrix before the next commit/push.
-4. Follow with independent parser-owned native completion evidence and scoped current-configuration readback before a server-gated planned retirement operation. HTTP/call success can include empty Chat payloads or Gemini prompt blocks; discovery/global readiness/usage completeness cannot authorize retirement. Emergency disable stays independent.
+1. Commit/push the checked V32 package, read back its exact remote SHA and inspect its own CI; earlier replacement CI is separate evidence.
+2. Add parser-owned native completion evidence with bounded unknown/completed/handoff/blocked/incomplete values. The persistence owner implements frozen V33 and exact storage/legacy normalization; the runtime owner implements native ordinary/SSE observations without changing forwarding, status or usage contracts. Weak/unsupported shapes and legacy history stay unknown.
+3. Validate native terminal requirements, multiple Chat choices, clean Gemini EOF, cancellation/transport failure and journal replay, then run mandatory check/test/matrix before the next commit/push.
+4. Follow with scoped current-configuration readback before a server-gated planned retirement operation. A separate durable retirement receipt must reconcile historical commit and current application after source disable changes publication; retries must not re-disable a re-enabled source. HTTP/call success can include empty Chat payloads or Gemini prompt blocks; discovery/global readiness/usage completeness cannot authorize retirement. Emergency disable stays independent.
 5. Real-provider, SMTP, IdP/LDAP, Vault, S3, price-source and production acceptance require supplied environments and resources; do not search other accounts for credentials.
 
 ## Files to read first

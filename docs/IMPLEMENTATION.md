@@ -161,7 +161,7 @@ The binary capability count is 8 completed, 19 partially completed, and 3 not st
 | F08 | Personal and Project Key lifecycle | Completed | One-time delivery, confirmation, editing, rotation, revocation, expiration, scope, and history are implemented with controlled dual-database evidence. |
 | F09 | Key Token, money, RPM, TPM, concurrency, and IP restrictions | Completed | Personal, Project, and Key admission policies are enforced in the native gateway for the documented single-node architecture. Multi-node enforcement remains a separate release-architecture gate. |
 | F10 | Offboarding, inventory, handover, and emergency disable | Partially completed | Transactional local-account offboarding and continuity workflows exist; external-identity and complete enterprise continuity behavior remain open. |
-| F11 | Provider, Connection, Credential, discovery, and rotation | Partially completed | The management workspace, encrypted credentials, controlled verification, and activation boundaries exist; explicit provider-model capacity attestations, credential-pool filtering/verification timestamps, reviewed name/priority editing, reviewed deletion, and staged replacement preparation are available; evidence-gated predecessor retirement, real-provider acceptance, and complete pool operations remain open. |
+| F11 | Provider, Connection, Credential, discovery, and rotation | Partially completed | The management workspace, encrypted credentials, controlled verification, and activation boundaries exist; explicit provider-model capacity attestations, credential-pool filtering/verification timestamps, reviewed name/priority editing, reviewed deletion, staged replacement preparation, and immutable per-attempt Credential/publication attribution are available; evidence-gated predecessor retirement, real-provider acceptance, and complete pool operations remain open. |
 | F12 | Model catalog, names, bindings, weights, and catalog assistance | Partially completed | Stable models, renames, bindings, weights, grants, and availability controls exist; complete public-catalog assistance and final routing acceptance remain open. |
 | F13 | Four native protocols, streaming, health, retries, and failover | Partially completed | Chat Completions, Responses, Messages, and Gemini now use bounded replay-safe same-protocol failover with process-local health, one admission/settlement, durable ordered diagnostics, and no retry after a usable response. Real-provider and measured multi-node health acceptance remain open. |
 | F14 | Managed egress and staged network diagnostics | Partially completed | Direct, default, SOCKS5, verified CONNECT, endpoint-bound saved authentication, complete-tunnel proxy-address fallback, and diagnostics exist. External proxy and production performance acceptance remain open. |
@@ -1350,3 +1350,51 @@ PostgreSQL/MySQL matrix passed (Handler 404.327 seconds, Service 5.012 seconds),
 with owned Compose containers/network removed. No timeout or assertion was
 relaxed. F11 remains partial: per-Credential invocation/configuration evidence,
 native completion proof and planned predecessor retirement remain separate work.
+
+
+### Immutable per-attempt Credential and publication attribution
+
+Internal attempts now preserve exact selected Credential and published Snapshot
+IDs through failed attempts, final native results and fsynced interruption
+checkpoints. Same-Connection fallback keeps distinct Credentials; cross-Provider
+retry cannot replace earlier attribution with the final logical route. Frozen
+GORM V32 adds bounded non-null columns with empty historical defaults and an
+ordered Credential/publication/completion lookup index, without live catalog or
+publication foreign keys. Existing database/journal blanks stay unknown, never
+backfilled from a parent call or mutable catalog. No-attempt failures fabricate
+no dispatch. The compatibility path without a runtime records no publication.
+
+RecordCall validates each bounded optional ID and copies exact per-attempt values.
+Its transaction, immutable RequestID replay, quota admission/settlement and bounded
+journal format remain unchanged. Public Personal/Project/platform call DTOs and
+CSV exports remain unchanged; neither new identifier leaks through them. No
+secret, ciphertext or request/response content is recorded.
+
+Focused service/handler race tests passed, including same-Connection and cross-
+Provider fallback, separate prior/active snapshots, legacy journal fields staying
+unknown and interrupted active attempts staying error/unknown after accepted
+HTTP 2xx. Full format/check/test passed with 619 Vitest cases in 51 files, Go
+race/unit, four Node checks, development lifecycle and production embedded assets.
+Focused real PostgreSQL/MySQL migration and attribution lifecycle passed under
+race detection in 121.681 seconds. Two initial fixture assumptions were corrected:
+pinned PostgreSQL GORM index introspection lacks physical ordinal order, and
+member-scoped service reads intentionally hide attempt diagnostics. Parameterized
+test-only catalog introspection now verifies actual index order, while internal
+administrator reads assert stored attempts and separate real HTTP tests preserve
+member/platform DTO privacy. No production SQL or privacy boundary changed.
+The first complete matrix exposed an older recorder fixture with an overlong
+Credential placeholder. The corrected bounded fixture now asserts stable IDs in
+private journal recovery while retaining secret/content exclusions and immutable
+replay. Independent review found a missing pre-dispatch durable checkpoint in the
+direct-database compatibility path. That path now fails before any upstream
+request when checkpoint persistence fails, and held-request recovery preserves
+its exact Credential with an unknown publication. Focused race tests passed;
+the final full format/check/test and PostgreSQL/MySQL matrix passed (Handler
+410.182 seconds, Service 5.252 seconds). All owned Compose resources were removed.
+The focused independent repair review found no remaining actionable defect.
+The new real-database compatibility fixture confirms interrupted checkpoint
+recovery and immutable SQL replay without a fabricated publication.
+
+F11 remains partial. Credential/configuration attribution alone does not prove
+native inference completion or current eligibility. Parser-owned completion proof,
+scoped runtime readback and evidence-gated planned retirement remain separate work.

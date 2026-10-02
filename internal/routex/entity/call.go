@@ -34,7 +34,9 @@ type CallRecord struct {
 }
 
 type CallAttempt struct {
-	ID                string `gorm:"primaryKey;size:64;index:idx_attempts_provider_time,priority:3;index:idx_attempts_connection_time,priority:3;index:idx_attempts_provider_model_time,priority:3"`
+	ID                string `gorm:"primaryKey;size:64;index:idx_attempts_provider_time,priority:3;index:idx_attempts_connection_time,priority:3;index:idx_attempts_provider_model_time,priority:3;index:idx_attempts_credential_snapshot_time,priority:4"`
+	CredentialID      string `gorm:"size:30;not null;default:'';index:idx_attempts_credential_snapshot_time,priority:1"`
+	SnapshotID        string `gorm:"size:30;not null;default:'';index:idx_attempts_credential_snapshot_time,priority:2"`
 	RequestID         string `gorm:"size:64;not null"`
 	ProviderID        string `gorm:"size:30;not null;default:'';index:idx_attempts_provider_time,priority:1"`
 	ProviderName      string `gorm:"size:100;not null;default:''"`
@@ -53,5 +55,5 @@ type CallAttempt struct {
 	HTTPStatus        int       `gorm:"not null"`
 	ErrorCode         string    `gorm:"size:40;not null"`
 	StartedAt         time.Time `gorm:"not null"`
-	CompletedAt       time.Time `gorm:"not null;index:idx_attempts_provider_time,priority:2;index:idx_attempts_connection_time,priority:2;index:idx_attempts_provider_model_time,priority:2"`
+	CompletedAt       time.Time `gorm:"not null;index:idx_attempts_provider_time,priority:2;index:idx_attempts_connection_time,priority:2;index:idx_attempts_provider_model_time,priority:2;index:idx_attempts_credential_snapshot_time,priority:3"`
 }

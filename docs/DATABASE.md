@@ -49,3 +49,24 @@ Real PostgreSQL/MySQL acceptance covers version-30 upgrades and old-row
 preservation, empty and repeated migration, concurrent startup, interrupted
 DDL/index reconciliation, receipt uniqueness and deletion durability. Do not
 edit earlier released schema steps or use current entities as frozen definitions.
+
+## Attempt Credential attribution (version 32)
+
+Version 32 adds `call_attempts.credential_id` and `snapshot_id`, each a non-null
+`VARCHAR(30)` with an empty default. The frozen additive schema uses targeted
+GORM column and index operations; it does not evolve current business entities.
+The historical lookup index orders Credential, exact published snapshot,
+completion time and attempt ID. No live Credential or publication foreign key is
+added, and old rows retain unknown attribution without a backfill.
+
+Acceptance includes V31 data preservation, empty/repeat/concurrent migration,
+independently missing columns and index repair, portable schema constraints,
+immutable RecordCall delivery/replay and public DTO omission on both databases.
+The index-removal fault injection uses the same bounded PostgreSQL test-only
+Migrator workaround documented above. A parameterized PostgreSQL catalog query
+verifies physical index-key order because the pinned GORM `GetIndexes` query does
+not retain ordinal order; MySQL uses GORM introspection. Both exceptions are
+test-only; production migration remains GORM-only.
+The complete PostgreSQL/MySQL matrix passed under race detection (Handler
+410.182 seconds, Service 5.252 seconds), including the new migration and
+attribution lifecycle; owned Compose resources were removed.

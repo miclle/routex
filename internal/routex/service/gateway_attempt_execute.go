@@ -493,6 +493,8 @@ func (s *Service) finishGatewayFailedAttempt(requestID string, result *GatewayRe
 		ProviderName:      result.ProviderName,
 		ProviderModelID:   result.ProviderModelID,
 		ConnectionID:      result.ConnectionID,
+		CredentialID:      result.CredentialID,
+		SnapshotID:        result.SnapshotID,
 		ConnectionName:    result.ConnectionName,
 		UpstreamModelName: result.UpstreamModelName,
 		AttemptNumber:     attempt.Number,

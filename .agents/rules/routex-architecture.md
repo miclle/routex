@@ -16,6 +16,7 @@ These rules describe RouteX application boundaries. Follow `docs/ARCHITECTURE.md
 - Handlers own HTTP binding, status codes, response DTOs, and route grouping.
 - Services own business logic and database access.
 - Entities own GORM models, table names, persistence constants, and narrow model helpers.
+- Internal call attempts retain their own immutable Credential and published snapshot attribution through failure, interruption and replay. Missing historical values stay unknown; the logical call's final route and mutable catalog are not fallbacks. Public DTOs remain explicit, and HTTP success or usage completeness does not establish native completion.
 - Configuration should stay bootstrap-focused: listen address, database driver, DSN, and similarly necessary startup settings.
 - PostgreSQL and MySQL behavior must be equivalent in business code. Use GORM Migrator APIs and frozen version-specific schema structs for new migrations; confine unavoidable driver differences to `internal/routex/database/`.
 - Business code must use translated GORM errors rather than SQLSTATE/numeric driver errors. Raw SQL exceptions need a documented GORM limitation and real tests on both databases.
