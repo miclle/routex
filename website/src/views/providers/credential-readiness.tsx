@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { getCredentialReadiness } from '@/api/credential-readiness'
 import { credentialReadinessBlockers } from '@/types/credential-readiness'
@@ -6,6 +6,7 @@ import { usePermissions } from '@/hooks/use-permissions'
 import { QueryState } from '@/components/app/CatalogUI'
 import { Button } from '@/components/ui/button'
 import { Dialog } from '@/components/ui/dialog'
+import CredentialRetirementControls from './credential-retirement'
 
 type Props = {
   providerId: string
@@ -19,6 +20,7 @@ type Props = {
 export default function CredentialReadinessDialog(props: Props) {
   const { t, i18n } = useTranslation('catalog')
   const access = usePermissions()
+  const cache = useQueryClient()
   const query = useQuery({
     queryKey: [
       'admin',
@@ -37,6 +39,8 @@ export default function CredentialReadinessDialog(props: Props) {
       ),
     enabled: access.can('providers.read'),
     retry: false,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
     gcTime: 0,
   })
   if (!access.can('providers.read')) return null
@@ -130,6 +134,26 @@ export default function CredentialReadinessDialog(props: Props) {
               )}
             </div>
           </>
+        )}
+        {query.data && (
+          <CredentialRetirementControls
+            initial={query.data}
+            current={record}
+            reload={async () => {
+              const refreshed = await query.refetch()
+              if (refreshed.isError || !refreshed.data) throw refreshed.error
+              return refreshed.data
+            }}
+            onApplied={() => {
+              void cache.invalidateQueries({ queryKey: ['admin', 'providers'] })
+              void cache.invalidateQueries({
+                predicate: ({ queryKey }) =>
+                  queryKey[0] === 'admin' &&
+                  (queryKey.includes(props.sourceCredentialId) ||
+                    queryKey.includes(props.credentialId)),
+              })
+            }}
+          />
         )}
         <div className="flex justify-end gap-2">
           <Button

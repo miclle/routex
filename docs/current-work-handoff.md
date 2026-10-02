@@ -1,10 +1,10 @@
 # Current Work Handoff
 
-- **Status:** implementation active; F08 Key proof hardening pushed; F11 read-only replacement readiness checked
-- **Updated:** 2026-10-02T16:26:00+08:00
+- **Status:** implementation active; F08 Key proof hardening pushed; F11 readiness pushed; receipt-backed retirement checked; member model directory is next
+- **Updated:** 2026-10-02T17:35:52+08:00
 - **Repository / branch:** RouteX / `main`
-- **Previous checked source baseline:** `7af4c497e478f0d754953e99b684481a7ec78620`, pushed and read back from `origin/main`
-- **Current owner:** coordinating task; independent runtime and API owners finished readiness; coordinating task owns phased delivery and the next receipt-backed retirement package
+- **Previous checked source baseline:** `a9d8dc3e89bf15e22a898095bee8e5006ec44d48`, pushed and read back from `origin/main`
+- **Current owner:** coordinating task; independent backend/runtime owners delivered retirement; coordinating task owns UI, audit projection, docs and phased delivery
 - **Next owner:** current task continues the resumed goal
 - **Transport:** identify this checked delivery with `git log -1 -- docs/current-work-handoff.md` and independently verify its upstream
 - **Coordination plan:** `~/dotfiles/projects/routex/implementation-plan.md`; synchronize separately and preserve unrelated changes
@@ -336,7 +336,7 @@ retirement is the next write package.
 The overall objective remains active and the capability count stays 8/19/3.
 
 
-## Next bounded package: receipt-backed planned retirement
+## Latest checked package: receipt-backed planned retirement
 
 POST retire must bind a stable UUIDv4 intent, reviewed aggregate If-Match, exact
 replacement/AttemptID/pre-disable cfg and required reason. Revalidate that same
@@ -351,6 +351,43 @@ successor must remain incomplete. Preserve original intent through uncertain/
 rejected retries. No fresh inference is required merely because source disable
 or process restart changes cfg after the saved commit. Current successor scope/
 publication and source exclusion still require confirmation. The runtime owner
-will assess a minimal publication pin acquired before DB borrowing, avoiding
-runtime/DB lock inversion and commit races. No phase7 source is implemented at
-this readiness checkpoint. Continue under the resumed full objective.
+implements a minimal publication pin acquired before DB borrowing, avoiding
+runtime/DB lock inversion and commit races. Phase7 source passed local acceptance:
+backend owns the frozen V34 receipt/transaction/POST and controlled dual-database
+fixtures; runtime owns publication pinning, exact reviewed proof and current
+application reconciliation; root owns the existing dialog controls, safe audit
+projection, paired copy and documentation. Source is checked and ready for its scoped commit/push. Continue under the resumed full objective.
+
+- Readiness is pushed at `a9d8dc3e89bf15e22a898095bee8e5006ec44d48`, verified
+  against remote main. Its Actionlint 36984325353 and GolangCI-Lint 36984325458
+  and CI 36984325423 all succeeded, including dual-database/restart and build jobs. The external
+  coordination checkpoint is pushed at `5f02c77`.
+- Final focused frontend passed 39 cases. Full format/check/test passed with
+  650 Vitest cases/53 files, Go race/unit, four Node checks, development lifecycle
+  and embedded production assets. Final pre-commit check passed.
+- Focused real PostgreSQL/MySQL acceptance passed in 159.203 seconds; complete
+  race matrix passed (Handler 449.057 seconds, Service 5.332 seconds). Independent
+  frozen review found no remaining actionable defect. An earlier integration
+  fixture callback-removal race was fixed by awaiting its concurrent publisher
+  before cleanup; the final matrix passed. Owned resources were removed.
+- Disposable production PostgreSQL plus a controlled native upstream passed the
+  built-in-browser retirement reason, explicit exact proof confirmation, receipt
+  and local application flow. Predecessor disabled/successor enabled, bilingual
+  switching and console checks passed. First durable admission starts accounting
+  and publishes a new configuration; proof was obtained after that publication.
+  The owned browser tab, process and Compose resources were removed. No supplier
+  or fleet proof is claimed.
+
+## Next partial capability: F19 member model directory
+
+First fix the existing available count and fabricated Chat example for models
+without eligible protocols. Preserve the direct personal `/api/v1/models` and
+Personal Key ceiling. Then add a separate actor-scoped `/api/v1/model-catalog`
+with reauthorized detail, deduplicated personal/active-Team visibility and exact
+non-secret sources. Team visibility does not grant Personal Key access or Team
+invocation; explicit Team execution and non-Project requests remain separate.
+Follow the existing card/table/filter/drawer composition and paired translations.
+Cover literal/intersected filters, revocation, scoped sources, unavailable routes,
+capability intersections and bounded overflow with UI and real dual-database
+acceptance. The inventory stays 8 complete/19 partial/3 not started; only A01 is
+fully accepted. Continue the full objective after phased delivery.

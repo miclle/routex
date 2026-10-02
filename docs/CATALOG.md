@@ -165,12 +165,12 @@ replacement was created and cannot unlock another intent. Normal source conflict
 require explicit review before a fresh request ID. Dismissal, success, navigation
 and unmount clear sensitive state; no mutation cache or browser storage is used.
 
-Complete planned retirement remains separate unfinished scope. It requires exact
+Planned retirement requires exact
 new-Credential configuration application and an authoritative successful inference
 using that new Credential. Exact internal attempt Credential/publication IDs are
 available, and parser-owned native terminal evidence now distinguishes completed,
 handoff, blocked, incomplete and unknown outcomes. Scoped current runtime
-readback and the receipt-backed predecessor retirement gate remain unfinished. HTTP success, global runtime readiness, discovery or
+readback and the receipt-backed predecessor retirement gate are available. HTTP success, global runtime readiness, discovery or
 a model's success cannot establish the complete retirement gate. Equal priority does not prove the new Credential receives traffic.
 The existing emergency disable action remains independently available; supplier-
 side revocation is outside this preparation endpoint.
@@ -294,3 +294,70 @@ final complete dual-database race matrix passed (Handler 429.433 seconds, Servic
 5.336 seconds); owned Compose resources were removed. These controlled fixtures
 do not replace supplier or fleet acceptance. Receipt-backed planned retirement
 follows as a separately checked write package.
+
+
+## Planned Credential retirement
+
+The existing replacement readiness dialog adds a required reason and an explicit
+confirmation for `POST /api/v1/admin/credentials/:credential_id/retire`.
+Read and write permissions remain independent. The write requires
+`providers.write`, same-origin validation, CSRF and the reviewed strong aggregate
+`If-Match`. Its strict JSON contains `request_id` (canonical UUIDv4),
+`replacement_credential_id`, `evidence_attempt_id`, `snapshot_id` and `reason`.
+The server revalidates the exact reviewed successful terminal native completion;
+a later successful call cannot silently replace that proof or invalidate an
+otherwise unchanged reviewed intent. The non-empty trimmed reason has the same
+1,024-byte UTF-8/control-character limits as metadata edits.
+
+For a fresh intent, publication pinning precedes database connection borrowing.
+Governance, sorted Model, Connection and sorted Credential locks protect the
+current authorization, lineage, metadata, complete bounded route scope and proof.
+A changed scope or configuration requires a new explicit review. The predecessor
+must still be enabled; the successor must be verified, explicitly enabled and
+present in every required current positive native route. Discovery, HTTP 200,
+usage completeness and global readiness do not substitute for native completion.
+The transaction disables only the predecessor and atomically creates a frozen
+V34 retirement receipt and a typed `credential.retire` audit event. The receipt
+has no live foreign keys. Fresh commit installs the predecessor tombstone before
+releasing the publication pin, then refreshes runtime. Existing dispatched calls
+are not cancelled.
+
+Fresh authorization precedes receipt lookup. An exact historical retry uses the
+same actor, IDs, original validator and body; mismatched UUID reuse returns 409.
+It never disables a re-enabled predecessor, installs a new tombstone or duplicates
+an audit. Historical receipt lookup precedes current record/proof existence
+checks. Deleting call evidence or changing configuration after the known disable
+does not erase the saved commit or require a fresh inference merely to reconcile
+it. A later intentionally re-enabled predecessor needs a fresh intent and current
+review to retire again.
+
+HTTP 200 acknowledges known `committed: true` independently of
+`runtime_applied`. Its explicit response includes the retirement request UUID,
+source/replacement IDs, `committed_at`, nullable `current_snapshot_id` and bounded
+safe application blockers. Current application requires the predecessor to exist
+and remain disabled, its successor to remain valid with complete current route
+coverage, locally coherent publication and predecessor exclusion from new dispatch.
+Missing/re-enabled predecessors, missing successors, stale publication or unavailable
+routes preserve the historical receipt but cannot report current application.
+Supplier revocation and other instances remain separate acceptance boundaries.
+
+The dialog preserves immutable intent through network/uncertain publication
+results, saved-but-unapplied receipts, refresh failures and rejected retries.
+It does not optimistically change rows or treat refreshing readiness as proof of
+an uncertain write. Conflict review retains the reason but requires explicit
+acceptance of the new ETag before a fresh request. English and Chinese notices
+update without losing the draft; retirement requests never enter mutation caches.
+
+Full format/check/test passed, including 650 Vitest cases in 53 files, Go
+race/unit checks, development lifecycle and embedded production assets. Focused
+frontend acceptance passed 39 cases. Focused real PostgreSQL/MySQL acceptance
+passed in 159.203 seconds; the complete race matrix passed (Handler 449.057
+seconds, Service 5.332 seconds). Independent frozen review found no remaining
+actionable defect. A disposable production PostgreSQL process and controlled
+native upstream passed the built-in browser reason/confirmation/receipt workflow:
+the saved receipt confirmed local application, the predecessor became disabled
+and the successor remained enabled. Chinese switching passed with no console
+errors; owned resources were removed. First durable admission activates quota
+accounting and can publish a new configuration, so the controlled fixture obtained
+its actual successor completion after that publication. No supplier/fleet
+acceptance or whole-F11 completion is claimed.

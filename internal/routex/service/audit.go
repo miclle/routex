@@ -199,6 +199,34 @@ func auditRecord(row entity.AuditEvent) AuditRecord {
 			After  replacement `json:"after"`
 			Reason string      `json:"reason"`
 		}{absence{true}, replacement{detail.SourceID, detail.ConnectionID, detail.Name, *detail.Priority}, detail.Reason}
+	case "credential.retire":
+		var detail struct {
+			SourceID          string `json:"source_id"`
+			ReplacementID     string `json:"replacement_id"`
+			ConnectionID      string `json:"connection_id"`
+			RequestID         string `json:"request_id"`
+			SnapshotID        string `json:"snapshot_id"`
+			EvidenceAttemptID string `json:"evidence_attempt_id"`
+			Reason            string `json:"reason"`
+			Before            struct {
+				Enabled *bool `json:"enabled"`
+			} `json:"before"`
+			After struct {
+				Enabled *bool `json:"enabled"`
+			} `json:"after"`
+		}
+		if json.Unmarshal([]byte(*row.DetailsJSON), &detail) != nil ||
+			row.ResourceType != "credential" || row.ResourceID != detail.SourceID ||
+			!validCredentialRetirementPairIDs(detail.SourceID, detail.ReplacementID) ||
+			!validCatalogLabel(detail.ConnectionID) ||
+			!credentialReplacementRequestID.MatchString(detail.RequestID) ||
+			!credentialRetirementSnapshotID.MatchString(detail.SnapshotID) ||
+			!safeCallID.MatchString(detail.EvidenceAttemptID) ||
+			strings.TrimSpace(detail.Reason) != detail.Reason || !validCredentialMetadataReason(detail.Reason) ||
+			detail.Before.Enabled == nil || !*detail.Before.Enabled || detail.After.Enabled == nil || *detail.After.Enabled {
+			return result
+		}
+		changes = detail
 	case "system.instance.cleanup":
 		var detail struct {
 			Revision uint64 `json:"revision"`

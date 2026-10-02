@@ -1,7 +1,9 @@
 package service
 
 import (
+	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"slices"
@@ -195,6 +197,12 @@ func TestCredentialRetirementEvidenceRequiresExactNativeTerminalTuple(t *testing
 	if !valid.matches(replacement, capture) {
 		t.Fatal("valid proof rejected")
 	}
+	if !valid.matches(replacement, capture, valid.AttemptID) ||
+		valid.matches(replacement, capture, "att_newer") ||
+		valid.matches(replacement, capture, "ATT_PROOF") ||
+		valid.matches(replacement, capture, "") {
+		t.Fatal("explicit proof silently switched or accepted a folded identity")
+	}
 	for _, test := range []struct {
 		name   string
 		change func(*credentialRetirementEvidenceRow)
@@ -231,5 +239,109 @@ func TestCredentialRetirementEvidenceRequiresExactNativeTerminalTuple(t *testing
 				t.Fatal("hostile proof accepted")
 			}
 		})
+	}
+}
+
+func TestCredentialRetirementPublicationPinPrecedesDatabaseBorrow(t *testing.T) {
+	svc, _ := credentialReadinessRuntimeFixture()
+	// The fixture has no database. A publisher crossing the pin before checking
+	// its canceled context would attempt to borrow it and fail this test.
+	release, err := svc.pinCredentialRetirementRuntime()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer release()
+	if secondRelease, err := svc.pinCredentialRetirementRuntime(); err == nil || secondRelease != nil {
+		t.Fatal("a second retirement bypassed the exclusive publication pin")
+	}
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	started := make(chan struct{})
+	done := make(chan error, 1)
+	go func() { close(started); done <- svc.RefreshRuntime(ctx) }()
+	<-started
+	select {
+	case err := <-done:
+		t.Fatalf("publisher bypassed the active retirement pin: %v", err)
+	case <-time.After(20 * time.Millisecond):
+	}
+	cancel()
+	release()
+	select {
+	case err := <-done:
+		if !errors.Is(err, runtimeUnavailable) {
+			t.Fatalf("canceled publisher reached database: %v", err)
+		}
+	case <-time.After(time.Second):
+		t.Fatal("publisher failed to finish after pin release")
+	}
+	// Release is idempotent so a deferred release remains safe before refresh.
+	release()
+}
+
+func TestCredentialRetirementPublicationPinRejectsActivePublisher(t *testing.T) {
+	svc, _ := credentialReadinessRuntimeFixture()
+	svc.runtime.publication.RLock()
+	defer svc.runtime.publication.RUnlock()
+	if release, err := svc.pinCredentialRetirementRuntime(); err == nil || release != nil {
+		t.Fatal("retirement borrowed state while publication was active")
+	}
+}
+
+func TestCredentialRetirementApplicationRequiresDisabledAbsentSource(t *testing.T) {
+	svc, replacement := credentialReadinessRuntimeFixture()
+	source := entity.ProviderCredential{ID: "crd_source", ConnectionID: replacement.ConnectionID}
+	replacement.ReplacesCredentialID = &source.ID
+	capture, err := svc.captureCredentialRetirementRuntime(source.ConnectionID, source.ID, replacement.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := credentialRetirementRuntimeApplicationBlockers(source, replacement, capture); len(got) != 0 {
+		t.Fatalf("disabled absent source was rejected: %v", got)
+	}
+	for _, sample := range []struct {
+		name, blocker string
+		change        func(*entity.ProviderCredential, *entity.ProviderCredential, *credentialRetirementRuntimeCapture)
+	}{
+		{"missing_source", "runtime_stale", func(source, _ *entity.ProviderCredential, _ *credentialRetirementRuntimeCapture) { source.ID = "" }},
+		{"reenabled_source", "runtime_stale", func(source, _ *entity.ProviderCredential, _ *credentialRetirementRuntimeCapture) {
+			source.Enabled = true
+		}},
+		{"wrong_lineage", "runtime_stale", func(_, replacement *entity.ProviderCredential, _ *credentialRetirementRuntimeCapture) {
+			replacement.ReplacesCredentialID = nil
+		}},
+		{"wrong_connection", "runtime_stale", func(_, replacement *entity.ProviderCredential, _ *credentialRetirementRuntimeCapture) {
+			replacement.ConnectionID = "con_other"
+		}},
+		{"disabled_replacement", "replacement_disabled", func(_, replacement *entity.ProviderCredential, _ *credentialRetirementRuntimeCapture) {
+			replacement.Enabled = false
+		}},
+		{"unverified_replacement", "replacement_unverified", func(_, replacement *entity.ProviderCredential, _ *credentialRetirementRuntimeCapture) {
+			replacement.VerificationStatus = "failed"
+		}},
+		{"source_still_candidate", "route_unavailable", func(_, _ *entity.ProviderCredential, capture *credentialRetirementRuntimeCapture) {
+			capture.scope[0].SourceCandidate = true
+		}},
+	} {
+		t.Run(sample.name, func(t *testing.T) {
+			sourceCopy, replacementCopy, captureCopy := source, replacement, *capture
+			captureCopy.scope = append([]credentialReadinessRoute(nil), capture.scope...)
+			sample.change(&sourceCopy, &replacementCopy, &captureCopy)
+			if blockers := credentialRetirementRuntimeApplicationBlockers(sourceCopy, replacementCopy, &captureCopy); !slices.Contains(blockers, sample.blocker) {
+				t.Fatalf("application blockers %v, want %s", blockers, sample.blocker)
+			}
+		})
+	}
+}
+
+func TestCredentialRetirementCaptureFindsSourceAfterReplacement(t *testing.T) {
+	svc, _ := credentialReadinessRuntimeFixture()
+	routes := svc.runtime.routes.Load()
+	candidates := routes.Models["mdl_one"]
+	candidates[0].Credentials = append(candidates[0].Credentials, runtimeCredential{ID: "crd_source"})
+	routes.Models["mdl_one"] = candidates
+	capture, err := svc.captureCredentialRetirementRuntime("con_one", "crd_source", "crd_replacement")
+	if err != nil || len(capture.scope) != 1 || !capture.scope[0].SourceCandidate || !capture.scope[0].ReplacementCandidate {
+		t.Fatalf("candidate membership depends on pool order: %+v %v", capture, err)
 	}
 }

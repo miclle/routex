@@ -132,3 +132,36 @@ func TestCredentialReplacementAuditProjection(t *testing.T) {
 		t.Fatal("replacement audit attributed to invalid result")
 	}
 }
+
+func TestCredentialRetirementAuditProjection(t *testing.T) {
+	sourceID := "crd_01m36yee4gkbns18pfcqqc75a3"
+	replacementID := "crd_01m36yee4gkbns18pfcqqc75a4"
+	raw := `{"source_id":"` + sourceID + `","replacement_id":"` + replacementID + `","connection_id":"con_recorded","request_id":"aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa","snapshot_id":"cfg_01m36yee4gkbns18pfcqqc75a3","evidence_attempt_id":"att_native_completed","reason":"Reviewed cutover","before":{"enabled":true,"secret":"do-not-leak"},"after":{"enabled":false},"request_body":"do-not-leak","key":"do-not-leak"}`
+	row := entity.AuditEvent{Action: "credential.retire", ResourceType: "credential", ResourceID: sourceID, DetailsJSON: &raw}
+	record := auditRecord(row)
+	if record.Changes == nil || strings.Contains(string(record.Changes), "do-not-leak") || !strings.Contains(string(record.Changes), `"evidence_attempt_id":"att_native_completed"`) {
+		t.Fatalf("unsafe or absent retirement audit: %s", record.Changes)
+	}
+	if record.Source != nil || record.IP != nil || record.RequestID != nil {
+		t.Fatal("retirement audit invented unrecorded inference or network metadata")
+	}
+	for _, invalid := range []string{
+		strings.Replace(raw, replacementID, sourceID, 1),
+		strings.Replace(raw, `"enabled":true`, `"enabled":false`, 1),
+		strings.Replace(raw, `"after":{"enabled":false}`, `"after":{}`, 1),
+		strings.Replace(raw, `"reason":"Reviewed cutover"`, `"reason":"bad\nreason"`, 1),
+		strings.Replace(raw, "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", "not-a-request-id", 1),
+		strings.Replace(raw, "att_native_completed", "invalid attempt", 1),
+		strings.Replace(raw, "cfg_01m36yee4gkbns18pfcqqc75a3", "cfg_invalid", 1),
+	} {
+		row.DetailsJSON = &invalid
+		if auditRecord(row).Changes != nil {
+			t.Fatal("accepted malformed retirement audit")
+		}
+	}
+	row.DetailsJSON = &raw
+	row.ResourceID = replacementID
+	if auditRecord(row).Changes != nil {
+		t.Fatal("retirement audit attributed to replacement")
+	}
+}

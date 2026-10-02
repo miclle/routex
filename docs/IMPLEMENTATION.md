@@ -1,6 +1,6 @@
 # RouteX Implementation and Acceptance Index
 
-Updated: 2026-09-29. This document records engineering contracts, work packages, and acceptance checks. Interfaces, tables, pages, and metrics marked as planned are not necessarily implemented; delivery evidence appears at the end. The active goal covers all F01–F30 capabilities and A01–A20 acceptance cases; completed stages do not end implementation. The full product is delivered incrementally through P0–P6.
+Updated: 2026-10-02. This document records engineering contracts, work packages, and acceptance checks. Interfaces, tables, pages, and metrics marked as planned are not necessarily implemented; delivery evidence appears at the end. The active goal covers all F01–F30 capabilities and A01–A20 acceptance cases; completed stages do not end implementation. The full product is delivered incrementally through P0–P6.
 
 ## Scope and Decisions
 
@@ -161,7 +161,7 @@ The binary capability count is 8 completed, 19 partially completed, and 3 not st
 | F08 | Personal and Project Key lifecycle | Completed | One-time delivery, confirmation, editing, rotation, revocation, expiration, scope, and history are implemented with controlled dual-database evidence. |
 | F09 | Key Token, money, RPM, TPM, concurrency, and IP restrictions | Completed | Personal, Project, and Key admission policies are enforced in the native gateway for the documented single-node architecture. Multi-node enforcement remains a separate release-architecture gate. |
 | F10 | Offboarding, inventory, handover, and emergency disable | Partially completed | Transactional local-account offboarding and continuity workflows exist; external-identity and complete enterprise continuity behavior remain open. |
-| F11 | Provider, Connection, Credential, discovery, and rotation | Partially completed | The management workspace, encrypted credentials, controlled verification, and activation boundaries exist; explicit provider-model capacity attestations, credential-pool filtering/verification timestamps, reviewed name/priority editing, reviewed deletion, staged replacement preparation, immutable per-attempt Credential/publication attribution, and parser-owned native completion evidence are available; evidence-gated predecessor retirement, real-provider acceptance, and complete pool operations remain open. |
+| F11 | Provider, Connection, Credential, discovery, and rotation | Partially completed | The management workspace, encrypted credentials, controlled verification, and activation boundaries exist; explicit provider-model capacity attestations, credential-pool filtering/verification timestamps, reviewed name/priority editing, reviewed deletion, staged replacement preparation, immutable per-attempt Credential/publication attribution, and parser-owned native completion evidence are available; evidence-gated predecessor retirement with historical receipt/current-application separation is available; real-provider acceptance and complete pool operations remain open. |
 | F12 | Model catalog, names, bindings, weights, and catalog assistance | Partially completed | Stable models, renames, bindings, weights, grants, and availability controls exist; complete public-catalog assistance and final routing acceptance remain open. |
 | F13 | Four native protocols, streaming, health, retries, and failover | Partially completed | Chat Completions, Responses, Messages, and Gemini now use bounded replay-safe same-protocol failover with process-local health, one admission/settlement, durable ordered diagnostics, and no retry after a usable response. Real-provider and measured multi-node health acceptance remain open. |
 | F14 | Managed egress and staged network diagnostics | Partially completed | Direct, default, SOCKS5, verified CONNECT, endpoint-bound saved authentication, complete-tunnel proxy-address fallback, and diagnostics exist. External proxy and production performance acceptance remain open. |
@@ -1500,3 +1500,38 @@ Independent frozen review found no actionable defect. Markdown references and
 whitespace checks passed. No paid supplier call, fleet acknowledgment or planned
 retirement write is claimed. F11 remains partial; receipt-backed retirement is
 the next separately checked package.
+
+
+### Checked F11 package: receipt-backed predecessor retirement
+
+Extend the existing readiness dialog with a required reason, explicit confirmation
+and immutable request retry. The server binds a UUIDv4 intent to reviewed exact
+lineage, aggregate ETag, pre-disable configuration and native completed AttemptID.
+Frozen GORM V34 retains historical receipts without live foreign keys. One
+predecessor disable, receipt and typed audit commit atomically; exact authorized
+replay never disables a re-enabled predecessor or duplicates audit. Current local
+application is reported independently from historical saved intent, without a
+fresh inference requirement after the known disable/restart. No supplier/fleet
+acceptance or full F11 completion is implied.
+
+Three owners delivered transaction/migration/HTTP fixtures, runtime publication
+pin/exact proof/application, and UI/audit projection/docs in parallel. Final
+format/check/test passed (650 Vitest cases in 53 files, Go race/unit, four Node
+checks, development lifecycle and production assets). Focused frontend passed
+39 cases. Focused real PostgreSQL/MySQL acceptance passed in 159.203 seconds;
+complete race acceptance passed (Handler 449.057 seconds, Service 5.332 seconds).
+Independent frozen review found no remaining actionable defect. Final pre-commit
+check passed. Local Markdown references and whitespace passed.
+
+A disposable production process with PostgreSQL and a controlled native upstream
+passed built-in-browser required reason, exact proof confirmation, saved receipt
+and current local application. The predecessor became disabled while the successor
+remained enabled; English/Chinese switching and console checks passed. The first
+durable call activates quota accounting and changes the configuration, so the
+fixture obtained its qualifying completion after observing that publication.
+Owned processes, browser tab and Compose resources were removed. External supplier
+and fleet acceptance remain open; F11 and the full objective remain partial.
+Readiness baseline `a9d8dc3` remote CI 36984325423, Actionlint 36984325353 and
+GolangCI-Lint 36984325458 all subsequently succeeded, including dual databases,
+independent-process session restart and build artifacts. Those results are separate
+from this retirement package.

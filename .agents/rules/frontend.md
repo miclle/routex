@@ -174,3 +174,13 @@ storage cleanup work may appear as system jobs. Register paired `systemStatus`
 translations and preserve independent refresh/error/empty states for both cards.
 
 Provider-model capacity attestations belong in the existing detail view before prices. Read and write permissions remain independent. Use positive safe integer maxima, explicit evidence and reason, reviewed If-Match, retained drafts on conflicts, and immutable intent for uncertain retries. A configured record means a saved attestation, not proof that its revision is currently valid or enforced. Keep paired `pricing` translations.
+
+
+Credential planned retirement extends the existing replacement readiness dialog.
+Keep providers.read and providers.write independent, require a reason and explicit
+Base UI confirmation, and dispatch the exact reviewed replacement, native attempt,
+configuration and aggregate ETag with one UUIDv4 intent. Retain that immutable
+intent through uncertain or rejected retries; refreshing readiness never resolves
+uncertainty. A durable receipt confirms historical commit independently of current
+runtime application. Never optimistically disable rows, treat a re-enabled or
+missing predecessor as currently applied, or claim supplier/fleet revocation.

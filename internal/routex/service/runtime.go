@@ -33,6 +33,7 @@ type gatewayRuntime struct {
 	cancel               context.CancelFunc
 	done                 chan struct{}
 	mu                   sync.Mutex
+	publication          sync.RWMutex
 	auth                 atomic.Pointer[runtimeAuthorization]
 	routes               atomic.Pointer[runtimeRoutes]
 	status               atomic.Pointer[RuntimeStatus]
@@ -151,6 +152,10 @@ func (s *Service) RefreshRuntime(ctx context.Context) error {
 	}
 	ctx, cancel := context.WithTimeout(ctx, runtimeRefreshTimeout)
 	defer cancel()
+	// Acquire publication admission before borrowing a database connection.
+	// Retirement holds the exclusive gate through commit and invalidation.
+	runtime.publication.RLock()
+	defer runtime.publication.RUnlock()
 	runtime.mu.Lock()
 	defer runtime.mu.Unlock()
 	if ctx.Err() != nil {

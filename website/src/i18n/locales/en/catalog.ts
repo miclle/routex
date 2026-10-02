@@ -1,4 +1,54 @@
 export default {
+  credentialRetirement: {
+    reason: 'Retirement reason',
+    reasonError: 'Enter a reason of 1–1,024 UTF-8 bytes without control characters.',
+    retire: 'Retire original credential',
+    review: 'Review current readiness',
+    reviewed:
+      'Current readiness reviewed. Your reason is preserved; confirm the original, replacement, and recorded completion before submitting.',
+    reviewFailed: 'Could not review readiness. Your draft is preserved.',
+    stale:
+      'Readiness changed or could not be confirmed. Review current readiness before submitting your retained draft.',
+    confirmTitle: 'Retire original credential?',
+    confirmDescription:
+      'Disable the original credential using the reviewed configuration and native completion. Supplier revocation remains a separate operation.',
+    confirmTarget: 'Retire “{{source}}” after replacement “{{replacement}}”.',
+    confirmEvidence: 'Reviewed completion: {{id}} · Configuration: {{snapshot}}',
+    confirmReason: 'Reason: {{reason}}',
+    confirm: 'Confirm retirement',
+    cancel: 'Cancel',
+    saved: 'Retirement record saved',
+    applied:
+      'The current processing instance has applied this retirement. Other instances and supplier revocation are not confirmed by this result.',
+    pending:
+      'The historical retirement is saved, but current runtime application is not confirmed. Retry the original request to check application.',
+    currentSnapshot: 'Current configuration: {{id}}',
+    uncertain:
+      'The retirement result is uncertain. Retry the original request to verify its receipt; refreshing readiness cannot resolve this uncertainty.',
+    retry: 'Retry original retirement request',
+    retryFailed:
+      'Could not confirm the original request. Its saved or uncertain state is retained.',
+    failed:
+      'Could not retire the original credential. Check permissions and review the retained draft.',
+    blockers: {
+      source_reenabled:
+        'The original credential was re-enabled. Retrying this request will not disable it again.',
+      source_missing:
+        'The original credential no longer exists; current application cannot be confirmed.',
+      replacement_missing: 'The replacement credential no longer exists.',
+      relationship_changed:
+        'The original and replacement no longer have the reviewed relationship.',
+      replacement_disabled: 'The replacement is disabled.',
+      replacement_unverified: 'The replacement is not verified.',
+      runtime_unavailable: 'Current local runtime application is unavailable. Retry later.',
+      runtime_stale: 'Published routes do not match the current configuration.',
+      route_unavailable: 'A required replacement route is currently unavailable.',
+      coverage_missing: 'The replacement does not cover every required enabled model route.',
+      no_eligible_routes: 'No active positive-weight model route is available.',
+      scope_overflow: 'The connection exceeds the bounded application review.',
+      unknown: 'An additional server application condition is not satisfied.',
+    },
+  },
   credentialReadiness: {
     action: 'Review retirement readiness',
     title: 'Replacement readiness',

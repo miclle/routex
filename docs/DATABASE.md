@@ -87,3 +87,24 @@ RecordCall/replay and DTO omission on both databases. Final-source focused
 acceptance passed in 140.280 seconds; the complete matrix passed under race
 detection (Handler 415.087 seconds, Service 5.164 seconds). Owned Compose resources
 were removed. Earlier V32 evidence remains separate.
+
+
+## Credential retirement receipts (version 34)
+
+Frozen version 34 creates `credential_retirement_receipts` through GORM's bounded
+frozen-schema migration. Its only key is the request UUID primary key; no live
+Credential, actor, Connection, snapshot or attempt foreign key is added. Required
+bounded historical identity fields, non-secret intent/validator hashes and a UTC
+microsecond commit timestamp remain independently readable after live records are
+deleted. A portable CHECK requires distinct predecessor and successor IDs. There
+is no source uniqueness constraint: a deliberately re-enabled source may later
+have a fresh reviewed retirement intent. No production handwritten SQL is needed.
+
+Empty-database creation, V33 upgrades, repeat/concurrent startup, interrupted
+constraint/ledger repair, primary-key uniqueness, required columns, distinct IDs
+and historical receipt preservation are covered by the new migration fixtures.
+Actual PostgreSQL/MySQL acceptance passed, including the complete race matrix
+(Handler 449.057 seconds, Service 5.332 seconds). Controlled receipt replay,
+concurrent intents, typed-audit rollback, deleted proof preservation, independent
+single-connection restart, re-enabled predecessor protection and bounded
+publication-pin lock waits passed. Owned Compose resources were removed.

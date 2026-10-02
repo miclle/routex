@@ -7,6 +7,7 @@ import (
 	"errors"
 	"slices"
 	"sort"
+	"sync"
 	"time"
 
 	"gorm.io/gorm"
@@ -43,6 +44,7 @@ type credentialReadinessRoute struct {
 	SupportsImageInput    bool
 	SupportsPDFInput      bool
 	SourceAccess          bool
+	SourceCandidate       bool
 	ReplacementAccess     bool
 	ReplacementCandidate  bool
 }
@@ -119,9 +121,11 @@ func (s *Service) captureCredentialRetirementRuntime(connectionID, sourceID, rep
 				ReplacementAccess:     auth.CredentialAccess[replacementID][route.ProviderModelID],
 			}
 			for _, credential := range candidate.Credentials {
+				if credential.ID == sourceID {
+					observed.SourceCandidate = true
+				}
 				if credential.ID == replacementID {
 					observed.ReplacementCandidate = true
-					break
 				}
 			}
 			capture.scope = append(capture.scope, observed)
@@ -158,8 +162,9 @@ func (s *Service) captureCredentialRetirementRuntime(connectionID, sourceID, rep
 	return capture, nil
 }
 
-// Validate only after releasing the database transaction. TryLock never waits
-// for a publisher which may itself be waiting for the database pool.
+// Advisory reads validate after releasing their transaction. A pinned mutation
+// may also validate before commit: TryLock never waits for a publisher which
+// may itself be waiting for the database pool.
 func (s *Service) validateCredentialRetirementRuntimeCapture(capture *credentialRetirementRuntimeCapture) []string {
 	if capture == nil || s.runtime == nil || !s.runtime.mu.TryLock() {
 		return []string{"runtime_unavailable"}
@@ -206,7 +211,100 @@ type credentialReadinessDBRoute struct {
 	SupportsPDFInput      bool
 }
 
+// pinCredentialRetirementRuntime must precede every database borrow for a
+// retirement operation. Publication is pinned without holding runtime.mu.
+func (s *Service) pinCredentialRetirementRuntime() (func(), error) {
+	if s.runtime == nil || !s.runtime.publication.TryLock() {
+		return nil, runtimeUnavailable
+	}
+	var once sync.Once
+	return func() { once.Do(s.runtime.publication.Unlock) }, nil
+}
+
 func (s *Service) credentialRetirementRuntimeReadiness(
+	tx *gorm.DB,
+	connection entity.ProviderConnection,
+	source, replacement entity.ProviderCredential,
+	capture *credentialRetirementRuntimeCapture,
+) (*credentialRetirementRuntimeProjection, error) {
+	return s.credentialRetirementReadinessWithAttempt(tx, connection, source, replacement, capture)
+}
+
+// An explicit proof never falls back to another attempt, including a newer one.
+func (s *Service) credentialRetirementRuntimeReadinessForAttempt(
+	tx *gorm.DB,
+	connection entity.ProviderConnection,
+	source, replacement entity.ProviderCredential,
+	capture *credentialRetirementRuntimeCapture,
+	attemptID string,
+) (*credentialRetirementRuntimeProjection, error) {
+	return s.credentialRetirementReadinessWithAttempt(tx, connection, source, replacement, capture, attemptID)
+}
+
+func (s *Service) credentialRetirementReadinessWithAttempt(
+	tx *gorm.DB,
+	connection entity.ProviderConnection,
+	source, replacement entity.ProviderCredential,
+	capture *credentialRetirementRuntimeCapture,
+	reviewedAttemptID ...string,
+) (*credentialRetirementRuntimeProjection, error) {
+	result, err := s.credentialRetirementRuntimeScope(tx, connection, source, replacement, capture)
+	if err != nil || len(result.Blockers) > 0 {
+		return result, err
+	}
+	result.Evidence, err = completedCredentialRetirementAttempt(tx, replacement, capture, reviewedAttemptID...)
+	if err != nil {
+		return nil, err
+	}
+	if result.Evidence == nil {
+		result.Blockers = appendCredentialReadinessBlocker(result.Blockers, "evidence_missing")
+	}
+	return result, nil
+}
+
+// A known durable receipt reconciles present application only. A fresh native
+// invocation is not required, and this helper never disables the source again.
+func (s *Service) credentialRetirementRuntimeApplication(
+	tx *gorm.DB,
+	connection entity.ProviderConnection,
+	source, replacement entity.ProviderCredential,
+	capture *credentialRetirementRuntimeCapture,
+) (*credentialRetirementRuntimeProjection, error) {
+	if blockers := credentialRetirementRuntimeApplicationBlockers(source, replacement, capture); len(blockers) > 0 {
+		return &credentialRetirementRuntimeProjection{Blockers: blockers}, nil
+	}
+	return s.credentialRetirementRuntimeScope(tx, connection, source, replacement, capture)
+}
+
+func credentialRetirementRuntimeApplicationBlockers(
+	source, replacement entity.ProviderCredential,
+	capture *credentialRetirementRuntimeCapture,
+) []string {
+	if capture == nil {
+		return []string{"runtime_unavailable"}
+	}
+	if source.ID == "" || source.Enabled {
+		return []string{"runtime_stale"}
+	}
+	if replacement.ID == "" || replacement.ReplacesCredentialID == nil ||
+		*replacement.ReplacesCredentialID != source.ID || replacement.ConnectionID != source.ConnectionID {
+		return []string{"runtime_stale"}
+	}
+	if !replacement.Enabled {
+		return []string{"replacement_disabled"}
+	}
+	if replacement.VerificationStatus != "verified" {
+		return []string{"replacement_unverified"}
+	}
+	for _, route := range capture.scope {
+		if route.SourceCandidate {
+			return []string{"route_unavailable"}
+		}
+	}
+	return nil
+}
+
+func (s *Service) credentialRetirementRuntimeScope(
 	tx *gorm.DB,
 	connection entity.ProviderConnection,
 	source, replacement entity.ProviderCredential,
@@ -296,6 +394,7 @@ func (s *Service) credentialRetirementRuntimeReadiness(
 			SupportsImageInput:    row.SupportsImageInput,
 			SupportsPDFInput:      row.SupportsPDFInput,
 			SourceAccess:          access[source.ID][row.ProviderModelID],
+			SourceCandidate:       access[source.ID][row.ProviderModelID] && source.Enabled && source.VerificationStatus == "verified",
 			ReplacementAccess:     access[replacement.ID][row.ProviderModelID],
 			ReplacementCandidate:  access[replacement.ID][row.ProviderModelID] && replacement.Enabled && replacement.VerificationStatus == "verified",
 		})
@@ -326,16 +425,6 @@ func (s *Service) credentialRetirementRuntimeReadiness(
 	}{connection.ID, transport, scope})
 	digest := sha256.Sum256(raw)
 	result.ScopeDigest = hex.EncodeToString(digest[:])
-	if len(result.Blockers) > 0 {
-		return result, nil
-	}
-	result.Evidence, err = completedCredentialRetirementAttempt(tx, replacement, capture)
-	if err != nil {
-		return nil, err
-	}
-	if result.Evidence == nil {
-		result.Blockers = appendCredentialReadinessBlocker(result.Blockers, "evidence_missing")
-	}
 	return result, nil
 }
 
@@ -408,7 +497,11 @@ func completedCredentialRetirementAttempt(
 	tx *gorm.DB,
 	replacement entity.ProviderCredential,
 	capture *credentialRetirementRuntimeCapture,
+	reviewedAttemptID ...string,
 ) (*credentialRetirementAttemptEvidence, error) {
+	if len(reviewedAttemptID) > 1 || len(reviewedAttemptID) == 1 && reviewedAttemptID[0] == "" {
+		return nil, nil
+	}
 	if len(capture.scope) == 0 || len(capture.scope) > maxCredentialReadinessRoutes {
 		return nil, nil
 	}
@@ -429,7 +522,7 @@ func completedCredentialRetirementAttempt(
 		"calls.provider_model_id AS call_provider_model_id, attempt.connection_id, " +
 		"calls.connection_id AS call_connection_id, calls.protocol, attempt.started_at, " +
 		"attempt.completed_at, attempt.attempt_number"
-	found := tx.Table("call_attempts AS attempt").Select(columns).
+	query := tx.Table("call_attempts AS attempt").Select(columns).
 		Joins("JOIN call_records AS calls ON calls.request_id = attempt.request_id").
 		Where(
 			"attempt.credential_id = ? AND attempt.snapshot_id = ? AND attempt.status = ? AND "+
@@ -438,16 +531,27 @@ func completedCredentialRetirementAttempt(
 			replacement.ID, capture.SnapshotID, "success", "completed", "success", replacement.CreatedAt, replacement.CreatedAt,
 		).
 		Where("NOT EXISTS (?)", later).Where(eligible).
-		Order("attempt.completed_at DESC, attempt.id DESC").Limit(1).Find(&row)
+		Order("attempt.completed_at DESC, attempt.id DESC")
+	if len(reviewedAttemptID) == 1 {
+		query = query.Where("attempt.id = ?", reviewedAttemptID[0])
+	}
+	found := query.Limit(1).Find(&row)
 	if found.Error != nil {
 		return nil, found.Error
 	}
-	if found.RowsAffected == 0 || !row.matches(replacement, capture) {
+	if found.RowsAffected == 0 || !row.matches(replacement, capture, reviewedAttemptID...) {
 		return nil, nil
 	}
 	return &credentialRetirementAttemptEvidence{AttemptID: row.AttemptID, CompletedAt: row.CompletedAt}, nil
 }
-func (row credentialRetirementEvidenceRow) matches(replacement entity.ProviderCredential, capture *credentialRetirementRuntimeCapture) bool {
+func (row credentialRetirementEvidenceRow) matches(
+	replacement entity.ProviderCredential,
+	capture *credentialRetirementRuntimeCapture,
+	reviewedAttemptID ...string,
+) bool {
+	if len(reviewedAttemptID) > 1 || len(reviewedAttemptID) == 1 && row.AttemptID != reviewedAttemptID[0] {
+		return false
+	}
 	if row.AttemptID == "" ||
 		row.RequestID == "" ||
 		row.AttemptRequestID != row.RequestID ||
