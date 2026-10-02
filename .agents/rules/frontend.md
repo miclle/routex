@@ -87,6 +87,14 @@ success, dismissal, resource change and unmount. Show historical predecessor IDs
 in the existing name-cell composition without secret fragments or new resource
 queries. Keep paired `catalog` translations and independent read/write authority.
 
+Credential retirement readiness stays in the replacement row action menu and
+existing Base UI dialog composition. The advisory GET requires independent read
+authority and never disables either record. Validate exact source/replacement/
+Connection IDs, coherent ETag, nullable configuration/evidence and bounded route
+count. Hide previous eligibility during refresh or error. Localize known blockers
+and use generic localized guidance for new codes; expose no caller, Key, request
+content or secret. Readiness concerns the current processing instance only.
+
 Personal and Project Key rotation dialogs explain the native-completion gate.
 Delivery, HTTP acceptance, known usage, tool handoff, blocked/truncated responses
 and unknown history do not verify a replacement. The server owns eligibility;

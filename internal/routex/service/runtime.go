@@ -48,19 +48,22 @@ type gatewayRuntime struct {
 }
 
 type runtimeAuthorization struct {
-	Quota               *runtimeQuotaData
-	ConnectionRevisions map[string]string
-	ValidUntil          time.Time
-	LimitPolicies       map[string]limits.Policy
-	LimitRoots          map[string]string
-	Keys                map[string]runtimeKey
-	KeysByID            map[string]runtimeKey
-	Names               map[string]entity.ModelName
-	Models              map[string]bool
-	Credentials         map[string]bool
-	ProviderModels      map[string]bool
-	CredentialAccess    map[string]map[string]bool
-	ModelCreated        map[string]time.Time
+	SourceDigest           string
+	CredentialRevisions    map[string]string
+	ProviderModelRevisions map[string]string
+	Quota                  *runtimeQuotaData
+	ConnectionRevisions    map[string]string
+	ValidUntil             time.Time
+	LimitPolicies          map[string]limits.Policy
+	LimitRoots             map[string]string
+	Keys                   map[string]runtimeKey
+	KeysByID               map[string]runtimeKey
+	Names                  map[string]entity.ModelName
+	Models                 map[string]bool
+	Credentials            map[string]bool
+	ProviderModels         map[string]bool
+	CredentialAccess       map[string]map[string]bool
+	ModelCreated           map[string]time.Time
 }
 
 type runtimeKey struct {
@@ -161,6 +164,8 @@ func (s *Service) RefreshRuntime(ctx context.Context) error {
 		return runtimeUnavailable
 	}
 	auth := buildRuntimeAuthorization(data, started.Add(runtimeAuthorizationLease))
+	digest, digestErr := runtimeDigest(data)
+	auth.SourceDigest = digest
 	runtime.auth.Store(auth)
 	clearRuntimeTombstones(&runtime.deniedKeys, generation)
 	clearRuntimeTombstones(&runtime.deniedLimits, generation)
@@ -171,8 +176,7 @@ func (s *Service) RefreshRuntime(ctx context.Context) error {
 	// eligibility map, so clearing older tombstones cannot restore disabled keys.
 	clearRuntimeTombstones(&runtime.deniedCredentials, generation)
 	clearRuntimeTombstones(&runtime.deniedProviderModels, generation)
-	digest, err := runtimeDigest(data)
-	if err != nil {
+	if digestErr != nil {
 		s.setRuntimeStatus(ctx, started, "invalid_configuration")
 		return runtimeUnavailable
 	}
@@ -437,7 +441,23 @@ func (s *Service) loadRuntimeData(ctx context.Context) (*runtimeData, error) {
 }
 
 func buildRuntimeAuthorization(data *runtimeData, until time.Time) *runtimeAuthorization {
-	auth := &runtimeAuthorization{Quota: data.Quota, ConnectionRevisions: runtimeConnectionRevisions(data), ValidUntil: until, LimitPolicies: data.LimitPolicies, LimitRoots: data.LimitRoots, Keys: map[string]runtimeKey{}, KeysByID: map[string]runtimeKey{}, Names: map[string]entity.ModelName{}, Models: map[string]bool{}, Credentials: map[string]bool{}, ProviderModels: map[string]bool{}, CredentialAccess: map[string]map[string]bool{}, ModelCreated: map[string]time.Time{}}
+	auth := &runtimeAuthorization{
+		CredentialRevisions:    map[string]string{},
+		ProviderModelRevisions: map[string]string{},
+		Quota:                  data.Quota,
+		ConnectionRevisions:    runtimeConnectionRevisions(data),
+		ValidUntil:             until,
+		LimitPolicies:          data.LimitPolicies,
+		LimitRoots:             data.LimitRoots,
+		Keys:                   map[string]runtimeKey{},
+		KeysByID:               map[string]runtimeKey{},
+		Names:                  map[string]entity.ModelName{},
+		Models:                 map[string]bool{},
+		Credentials:            map[string]bool{},
+		ProviderModels:         map[string]bool{},
+		CredentialAccess:       map[string]map[string]bool{},
+		ModelCreated:           map[string]time.Time{},
+	}
 	users := map[string]bool{}
 	for _, user := range data.Users {
 		users[user.ID] = !user.Disabled
@@ -479,9 +499,11 @@ func buildRuntimeAuthorization(data *runtimeData, until time.Time) *runtimeAutho
 	}
 	for _, model := range data.ProviderModels {
 		auth.ProviderModels[model.ID] = !model.Disabled
+		auth.ProviderModelRevisions[model.ID] = model.ETag
 	}
 	for _, credential := range data.Credentials {
 		auth.Credentials[credential.ID] = credential.Enabled && credential.VerificationStatus == "verified"
+		auth.CredentialRevisions[credential.ID] = credentialMetadataRecord(credential).ETag
 	}
 	for _, access := range data.Access {
 		if auth.CredentialAccess[access.CredentialID] == nil {

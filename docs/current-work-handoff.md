@@ -1,10 +1,10 @@
 # Current Work Handoff
 
-- **Status:** implementation active; F11 native completion evidence pushed; F08 Key retirement proof hardening checked for phased commit
-- **Updated:** 2026-10-02T15:44:00+08:00
+- **Status:** implementation active; F08 Key proof hardening pushed; F11 read-only replacement readiness checked
+- **Updated:** 2026-10-02T16:26:00+08:00
 - **Repository / branch:** RouteX / `main`
-- **Previous checked source baseline:** `cbfbd6dd38cc720966357c687397bd03542a04cf`, pushed and read back from `origin/main`
-- **Current owner:** coordinating task; independent Personal/Project owners finished Key proof hardening; coordinating task owns UI guidance, full acceptance and documents
+- **Previous checked source baseline:** `7af4c497e478f0d754953e99b684481a7ec78620`, pushed and read back from `origin/main`
+- **Current owner:** coordinating task; independent runtime and API owners finished readiness; coordinating task owns phased delivery and the next receipt-backed retirement package
 - **Next owner:** current task continues the resumed goal
 - **Transport:** identify this checked delivery with `git log -1 -- docs/current-work-handoff.md` and independently verify its upstream
 - **Coordination plan:** `~/dotfiles/projects/routex/implementation-plan.md`; synchronize separately and preserve unrelated changes
@@ -271,7 +271,7 @@ were removed after preview/cancellation checks; no browser write or real upstrea
 request was submitted.
 
 
-## Active package: existing Key retirement proof hardening
+## Previous checked package: Key retirement proof hardening
 
 Personal and Project gates now require an exact immutable successful replacement
 call after Key creation and its successful last attempt with native completed
@@ -289,8 +289,8 @@ unit, four Node checks, dev lifecycle and production assets). Focused PostgreSQL
 MySQL lifecycle race acceptance passed in 146.174 seconds and removed all owned
 Compose resources. The final complete matrix passed (Handler 417.693 seconds, Service 5.211
 seconds); owned Compose resources were removed. Whitespace and local Markdown
-references passed. This delivery is ready for a scoped commit/push. Identify its
-commit through the handoff file log and read back main and its own CI. Synchronize
+references passed. This delivery was pushed as `7af4c49`, with exact remote main readback.
+Its exact CI, Actionlint and GolangCI-Lint all succeeded. Synchronize
 the coordination plan separately, then continue F11 scoped readiness and durable
 retirement receipt.
 
@@ -302,3 +302,55 @@ The separately pushed coordination baseline is
 `53a5ba9e7c6b1f701f0be61b6cb95afe4ee9a72b`. These earlier remote results do not accept the
 current Key package. The inventory remains 8 complete, 19 partial and
 3 not started; only A01 is fully accepted. The overall objective remains active.
+
+
+## Latest checked package: F11 read-only replacement readiness
+
+The prior checked Key fix is pushed at `7af4c49`, with exact remote main readback
+and a clean tree before this package. Its exact [CI](https://github.com/miclle/routex/actions/runs/36980216647),
+[Actionlint](https://github.com/miclle/routex/actions/runs/36980216548) and
+[GolangCI-Lint](https://github.com/miclle/routex/actions/runs/36980216588) all
+succeeded, including independent process/session restart and build jobs. The coordination baseline is separately pushed at `72b7b38`.
+
+Implement advisory GET retirement-readiness with exact source/replacement lineage,
+current verified/explicitly enabled state, bounded positive native-route coverage,
+local source-digest/publication coherence, current database projection matching and
+exact successful terminal completed-attempt proof under the current cfg. Capture
+and recapture must not wait for runtime.mu with a borrowed DB connection or run
+DB work under that mutex. Preserve independent ordinary auth/route publication.
+No write endpoint, receipt, migration, implicit disable or supplier revocation
+in this phase.
+
+Backend owns service/handler/GET registration and controlled lifecycle fixture;
+runtime owns private source-digest and bounded scope/evidence helpers; coordinating
+task owns the existing replacement row menu/Base UI review, DTO validation, paired
+translations and docs. Independent frozen review found no actionable defect. Final focused UI/i18n
+passed 28 cases and full format/check/test passed (639 Vitest/52 files, Go race/
+unit, four Node checks, dev lifecycle and production assets). Focused actual
+PostgreSQL/MySQL catalog/replacement/readiness race acceptance passed in 160.016
+seconds; final complete race matrix passed (Handler 429.433 seconds, Service
+5.336 seconds). All owned Compose resources were removed; whitespace and local
+Markdown references passed. Commit/push only this checked scope, read back main
+and its own CI, then synchronize the coordination plan separately. Receipt-backed
+retirement is the next write package.
+The overall objective remains active and the capability count stays 8/19/3.
+
+
+## Next bounded package: receipt-backed planned retirement
+
+POST retire must bind a stable UUIDv4 intent, reviewed aggregate If-Match, exact
+replacement/AttemptID/pre-disable cfg and required reason. Revalidate that same
+immutable attempt; a newer call must never silently replace reviewed proof.
+Fresh source disable, frozen V34 durable non-FK receipt and one safe typed audit
+commit atomically. Authorize before exact receipt lookup; replay compares the
+original identity/hash and never re-disables a re-enabled/deleted source.
+
+HTTP 200 may acknowledge known `committed:true` independently of current
+`runtime_applied`; failed publication, re-enabled/deleted source or invalid
+successor must remain incomplete. Preserve original intent through uncertain/
+rejected retries. No fresh inference is required merely because source disable
+or process restart changes cfg after the saved commit. Current successor scope/
+publication and source exclusion still require confirmation. The runtime owner
+will assess a minimal publication pin acquired before DB borrowing, avoiding
+runtime/DB lock inversion and commit races. No phase7 source is implemented at
+this readiness checkpoint. Continue under the resumed full objective.

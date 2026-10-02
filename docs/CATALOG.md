@@ -254,3 +254,43 @@ Controlled upstream tests do not replace a real supplier smoke test. Provider cr
 Provider model availability is managed independently of credential verification,
 routing bindings and prices. See [PROVIDER_MODELS](PROVIDER_MODELS.md) for state
 changes, gateway eligibility, ETags and publication recovery.
+
+
+## Credential retirement readiness
+
+An advisory read-only review is available through
+`GET /api/v1/admin/credentials/:credential_id/retirement-readiness` with exactly
+one `replacement_credential_id` query and independent `providers.read` authority.
+It does not disable either Credential, save an operation intent or receipt, or
+perform supplier-side revocation. Invalid identities return 400, missing records
+404, and existing mismatched lineage or Connection 409.
+
+The explicit representation includes safe `source`/`replacement` metadata,
+nullable `snapshot_id`, nullable `evidence {attempt_id,completed_at}`, bounded
+`eligible_route_count`, `eligible`, canonical `blockers` and aggregate `etag` with
+a matching strong ETag header. Eligibility requires current replacement
+verification/enablement, all required positive-route coverage, actual locally
+published candidate/transport/authorization eligibility and exact durable native
+completed terminal evidence from the replacement under the current configuration.
+Generic HTTP success, discovery, usage or global runtime readiness is insufficient.
+
+The source-digest comparison is specific to readiness; ordinary gateway
+authorization publication and last-valid routing behavior remain independent.
+Bounded runtime capture, consistent current database projection and recapture
+avoid waiting for the runtime mutex while borrowing a database connection.
+Concurrent changes, unavailable publication, stale scope, cooldown/tombstones,
+missing proof and overflow conservatively block readiness. Historical blank
+Credential/configuration/native fields are never backfilled.
+
+The existing replacement row menu opens a local Base UI review dialog with
+English/Chinese guidance, Refresh and Close. Server facts stay resource-scoped;
+previous eligibility is hidden during refresh/error and arbitrary blocker codes
+are never rendered as labels. The review concerns this processing instance,
+not a fleet acknowledgment or completed retirement. API/UI and controlled
+acceptance passed: full check/test (639 Vitest cases in 52 files, Go race/unit,
+Node/development lifecycle/production assets), independent review and focused
+PostgreSQL/MySQL catalog/replacement/readiness acceptance (160.016 seconds). The
+final complete dual-database race matrix passed (Handler 429.433 seconds, Service
+5.336 seconds); owned Compose resources were removed. These controlled fixtures
+do not replace supplier or fleet acceptance. Receipt-backed planned retirement
+follows as a separately checked write package.

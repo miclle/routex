@@ -23,6 +23,7 @@ import { ProviderOverview, ProviderSettings } from './detail'
 import CredentialMetadataDialog from './credential-metadata'
 import CredentialDeleteDialog from './credential-delete'
 import CredentialReplacementDialog from './credential-replacements'
+import CredentialReadinessDialog from './credential-readiness'
 
 type Action = { kind: 'provider' | 'connection' | 'credential' | 'model'; id?: string }
 type ProviderTab = 'overview' | 'connections' | 'credentials' | 'models' | 'settings'
@@ -44,6 +45,7 @@ function CredentialTable({
   onEdit,
   onDelete,
   onReplace,
+  onReadiness,
 }: {
   provider: Provider
   canWrite: boolean
@@ -53,6 +55,7 @@ function CredentialTable({
   onEdit: (credential: Credential, connectionId: string, connectionName: string) => void
   onDelete: (credential: Credential, connectionId: string, connectionName: string) => void
   onReplace: (credential: Credential, connectionId: string, connectionName: string) => void
+  onReadiness: (credential: Credential, connectionId: string, connectionName: string) => void
 }) {
   const { t, i18n } = useTranslation('catalog')
   const [query, setQuery] = useState('')
@@ -200,6 +203,14 @@ function CredentialTable({
                   >
                     {t('credentialReplacement.action')}
                   </MenuItem>
+                  {credential.replaces_credential_id && (
+                    <MenuItem
+                      disabled={pending}
+                      onClick={() => onReadiness(credential, item.id, item.name)}
+                    >
+                      {t('credentialReadiness.action')}
+                    </MenuItem>
+                  )}
                   <MenuItem
                     disabled={pending || !canWrite}
                     onClick={() => onDelete(credential, item.id, item.name)}
@@ -252,6 +263,13 @@ function Providers() {
   const [replacingCredential, setReplacingCredential] = useState<{
     providerId: string
     credentialId: string
+    connectionId: string
+    connectionName: string
+  } | null>(null)
+  const [reviewingCredential, setReviewingCredential] = useState<{
+    providerId: string
+    credentialId: string
+    sourceCredentialId: string
     connectionId: string
     connectionName: string
   } | null>(null)
@@ -549,6 +567,17 @@ function Providers() {
                     connectionName,
                   })
                 }}
+                onReadiness={(credential, connectionId, connectionName) => {
+                  if (!credential.replaces_credential_id) return
+                  setNotice(null)
+                  setReviewingCredential({
+                    providerId: selected.id,
+                    credentialId: credential.id,
+                    sourceCredentialId: credential.replaces_credential_id,
+                    connectionId,
+                    connectionName,
+                  })
+                }}
                 onDelete={(credential, connectionId, connectionName) => {
                   setNotice(null)
                   setDeletingCredential({
@@ -619,6 +648,13 @@ function Providers() {
             </TabsContent>
           </Tabs>
         </>
+      )}
+      {reviewingCredential && selected?.id === reviewingCredential.providerId && (
+        <CredentialReadinessDialog
+          key={`${reviewingCredential.providerId}:${reviewingCredential.sourceCredentialId}:${reviewingCredential.credentialId}`}
+          {...reviewingCredential}
+          onClose={() => setReviewingCredential(null)}
+        />
       )}
       {replacingCredential && selected?.id === replacingCredential.providerId && (
         <CredentialReplacementDialog

@@ -1,4 +1,44 @@
 export default {
+  credentialReadiness: {
+    action: 'Review retirement readiness',
+    title: 'Replacement readiness',
+    description: 'Review the replacement before retiring its original credential.',
+    connection: 'Connection: {{name}} · {{id}}',
+    advisory:
+      'This check does not retire either credential. It describes the current processing instance; conditions may change before retirement.',
+    source: 'Original credential',
+    replacement: 'Replacement credential',
+    routes: 'Eligible routes',
+    routeCount_one: '{{count}} route',
+    routeCount_other: '{{count}} routes',
+    snapshot: 'Current configuration',
+    unknown: 'Not confirmed',
+    eligible: 'Current readiness conditions are satisfied',
+    blocked: 'Replacement is not ready for planned retirement',
+    evidence: 'Recorded native completion: {{id}}',
+    noEvidence: 'No qualifying native completion is confirmed.',
+    refresh: 'Refresh readiness',
+    close: 'Close',
+    blockers: {
+      source_disabled:
+        'The original credential is already disabled; this does not prove a completed rotation.',
+      replacement_disabled: 'Explicitly enable the replacement after verification.',
+      replacement_unverified: 'Verify the replacement using the existing credential action.',
+      runtime_unavailable:
+        'Current local runtime publication could not be confirmed. Refresh later.',
+      runtime_stale:
+        'The published routes do not match the current configuration. Wait for publication and refresh.',
+      route_unavailable: 'A required replacement route is currently unavailable.',
+      coverage_missing: 'The replacement does not cover every required enabled model route.',
+      no_eligible_routes: 'No active positive-weight model route is available for this connection.',
+      scope_overflow:
+        'This connection exceeds the bounded readiness review. No readiness claim can be made.',
+      evidence_missing:
+        'Confirm routing and credential priority send traffic through the replacement, complete a real model response under the current configuration, then wait for its record.',
+      unknown:
+        'An additional server readiness condition is not satisfied. Refresh after resolving the configuration.',
+    },
+  },
   credentialReplacement: {
     title: 'Create replacement credential',
     action: 'Create replacement',

@@ -1468,3 +1468,35 @@ Final whitespace and local Markdown-reference checks passed.
 
 This repairs an existing proof gap without changing capability inventory counts.
 F11 scoped readiness and receipt-backed Provider retirement remain open.
+
+
+### Checked F11 package: read-only replacement readiness
+
+Independent runtime and API owners implemented bounded advisory readiness through
+the existing replacement row menu and Base UI dialog. The contract combines
+exact lineage/metadata, verified explicit enablement, full required native-route
+coverage, current locally coherent publication and current database scope, and
+immutable successful terminal completed proof from the exact successor/current
+configuration. Unknown history, weak HTTP acceptance, stale publication, missing
+coverage and unavailable transport remain blockers. Capture/recapture avoids
+blocking runtime/DB pool inversion. No migration, receipt or retirement write is
+part of this phase; controlled tests and independent review passed.
+
+
+The existing English/Chinese row-menu/dialog composition validates exact target
+IDs and strong header/body ETags, hides prior eligibility during refresh/failure,
+shows unconfirmed configuration/counts as unknown and localizes safe blockers.
+The final focused UI/i18n run passed 28 cases; the Provider suite/i18n passed
+128 cases before the final count-display adjustment. Full format/check/test
+passed on the combined source (639 Vitest cases in 52 files, Go race/unit, four
+Node checks, development lifecycle and embedded production assets). Runtime
+race tests passed after readability-only formatting (1.733 seconds), with lint
+zero issues. Focused real PostgreSQL/MySQL acceptance passed in 160.016 seconds,
+including actual native HTTP fixtures, current-config proof, committed-but-not-
+published scope, no GET mutation/upstream contact, single-connection concurrency
+and bounded overflow. The final complete race matrix passed (Handler 429.433
+seconds, Service 5.336 seconds); all owned Compose resources were removed.
+Independent frozen review found no actionable defect. Markdown references and
+whitespace checks passed. No paid supplier call, fleet acknowledgment or planned
+retirement write is claimed. F11 remains partial; receipt-backed retirement is
+the next separately checked package.
