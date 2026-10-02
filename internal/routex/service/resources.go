@@ -28,6 +28,7 @@ const (
 type ResourcePerson struct{ ID, UserID, Name, Email, Role, Status string }
 type ResourceRecord struct {
 	RequestWorkspaceOnly                     bool `gorm:"-"`
+	ResourceLimitWorkspaceOnly               bool `gorm:"-"`
 	ID, Name, Description, Status, CreatorID string
 	CreatedAt                                time.Time
 	Members                                  []ResourcePerson `gorm:"-"`
@@ -118,6 +119,28 @@ func (s *Service) GetResource(ctx context.Context, actorID string, kind Resource
 	}
 	db := s.authDB(ctx)
 	if err := resourceAccess(db, actorID, kind, resourceID); err != nil {
+
+		if kind == TeamResource && errors.Is(err, apperrors.ErrNotFound) {
+			actor, actorErr := exactEnabledActor(db, actorID)
+			if actorErr != nil {
+				return nil, catalogError(actorErr)
+			}
+			fields, permissionErr := teamLimitEditableFields(db, actor, "team")
+			if permissionErr != nil {
+				return nil, catalogError(permissionErr)
+			}
+			if len(fields) > 0 {
+				minimal := &ResourceRecord{ResourceLimitWorkspaceOnly: true}
+				queryErr := db.Model(&entity.Team{}).Select("id", "name", "description", "status").Where(database.ExactText(db, clause.Column{Name: "id"}, resourceID)).Take(minimal).Error
+				if queryErr != nil {
+					return nil, catalogError(queryErr)
+				}
+				if minimal.ID != resourceID {
+					return nil, apperrors.ErrNotFound
+				}
+				return minimal, nil
+			}
+		}
 		if kind == ProjectResource && errors.Is(err, apperrors.ErrNotFound) {
 			actor, actorErr := exactEnabledActor(db, actorID)
 			if actorErr != nil {

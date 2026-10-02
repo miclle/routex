@@ -10,6 +10,7 @@ export interface ResourcePerson {
 }
 export interface ResourceRecord {
   request_workspace_only?: boolean
+  resource_limit_workspace_only?: boolean
   id: string
   name: string
   description: string

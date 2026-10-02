@@ -203,3 +203,20 @@ Real-database fixtures preserve legacy facts and persisted timestamps, exercise
 empty/upgraded/repeated/concurrent/partially applied migrations and reject mixed
 subjects. The test-only PostgreSQL index-removal helper retains the documented
 pinned-GORM exception used by earlier migration fixtures; production V38 is GORM-only.
+
+
+## Stable Team policy identities (version 39)
+
+Frozen GORM V39 widens only `resource_limits.scope_id` from 30 to 64 characters
+and independently seeds `teams.tokens.write`, `teams.money.write`, and
+`teams.rates.write` on the administrator role. Its private full policy schema
+retains explicit primary-key `NOT NULL` when GORM alters the column. No raw SQL,
+new policy table, journal identity migration or historical use reset is required.
+Released V1–V38 remain unchanged.
+
+Real PostgreSQL/MySQL fixtures reconstruct the old width using a frozen test
+struct, preserve every historical policy value and persisted timestamp, run
+concurrent/repeated upgrades, store the full 52-character Team/User digest, reject
+oversized identities and repair each interrupted permission-seed prefix. The
+Team policy lifecycle and native finite admission are separate actual acceptance
+fixtures; see [Team resource limits](TEAM_LIMITS.md).

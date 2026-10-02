@@ -36,9 +36,10 @@ attachments and code export remain unfinished for this authentication source.
 The same native attempt pipeline retains one durable logical admission, native
 terminal evidence, immutable usage and assessed prices. Team aggregate and stable
 Team/User pair journal accounts are separate from Personal and Key accounts.
-Default unlimited accounts establish attribution and replay, not finite Team quota
-enforcement. Membership removal/rejoin cannot reset the pair identity. Team limits,
-member-specific limits and quota approvals require their own later acceptance.
+Default unlimited accounts establish attribution and replay. The separate
+[finite Team policy package](TEAM_LIMITS.md) adds aggregate and member token, money
+and request-rate enforcement. Membership removal/rejoin cannot reset pair identity
+or use. Team requests and quota approvals remain subsequent scope.
 
 Frozen GORM V38 adds historical `team_id` and `team_membership_id` fields with empty
 defaults, a Team actor cursor index and a guard against mixed Team/Project/Key
@@ -82,4 +83,5 @@ total, live English/Chinese switching, own-actor history/detail, denied invocati
 and hidden history after membership removal, new relation after rejoin, and
 persisted history/new invocation after restart. Owned resources were removed.
 This is controlled proof; external Provider acceptance, complete Session protocol
-coverage, finite Team policies and full product acceptance remain open.
+coverage and full product acceptance remain open. The later finite-policy evidence
+is recorded independently in TEAM_LIMITS.md.

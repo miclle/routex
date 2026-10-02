@@ -5,6 +5,8 @@ import { MoreHorizontal } from 'lucide-react'
 import { Menu, MenuItem } from '@/components/ui/menu'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { writeCatalog } from '@/api/catalog'
+import { usePermissions } from '@/hooks/use-permissions'
+import ResourceLimits from '@/views/resource-limits'
 import { useSession } from '@/hooks/use-auth'
 import { ErrorNotice, SaveButton } from '@/components/app/CatalogUI'
 import { Button } from '@/components/ui/button'
@@ -26,6 +28,8 @@ export function ResourcePeople({
   useTranslation()
 
   const session = useSession()
+  const access = usePermissions()
+  const [limitUser, setLimitUser] = useState<ResourcePerson | null>(null)
   const cache = useQueryClient()
   const [search, setSearch] = useState('')
   const [adding, setAdding] = useState(false)
@@ -35,6 +39,18 @@ export function ResourcePeople({
     action: 'remove' | 'role' | 'status'
   } | null>(null)
   const people = kind === 'teams' ? (resource.members ?? []) : (resource.managers ?? [])
+  const currentOwner = people.some(
+    (person) =>
+      person.user_id === session.data?.user.id &&
+      person.role === 'owner' &&
+      person.status === 'active',
+  )
+  const platformLimits = [
+    'teams.read_all',
+    'teams.tokens.write',
+    'teams.money.write',
+    'teams.rates.write',
+  ].some((permission) => access.can(permission))
   const update = useMutation({
     mutationFn: (next: { user_id: string; role?: string; status?: string }[]) =>
       writeCatalog<ResourceRecord>(
@@ -132,6 +148,14 @@ export function ResourcePeople({
                     label={t('more_actions_for_value_c2374', { v0: person.name })}
                     trigger={<MoreHorizontal className="size-4" />}
                   >
+                    {person.status === 'active' &&
+                      (person.user_id === session.data?.user.id ||
+                        currentOwner ||
+                        platformLimits) && (
+                        <MenuItem onClick={() => setLimitUser(person)}>
+                          {t('resources:memberResources')}
+                        </MenuItem>
+                      )}
                     <MenuItem
                       disabled={
                         !canEdit ||
@@ -200,6 +224,23 @@ export function ResourcePeople({
   )
   return (
     <>
+      <Dialog
+        open={!!limitUser}
+        onOpenChange={(open) => {
+          if (!open) setLimitUser(null)
+        }}
+        title={t('resources:memberResources')}
+        description={limitUser ? `${limitUser.name} · ${resource.name}` : ''}
+        width={800}
+      >
+        {limitUser && (
+          <ResourceLimits
+            path={`/teams/${resource.id}/members/${limitUser.user_id}`}
+            team={{ teamId: resource.id, userId: limitUser.user_id }}
+            canEdit={resource.status === 'active'}
+          />
+        )}
+      </Dialog>
       <div className="space-y-4">
         {kind === 'teams' ? (
           <>

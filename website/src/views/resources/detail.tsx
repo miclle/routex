@@ -36,7 +36,15 @@ export default function ResourceDetailPage({
     queryFn: ({ signal }) => getResource(kind, admin, resourceId, signal),
     enabled: !!actor,
     retry: false,
-    ...(kind === 'teams' ? { staleTime: 0, gcTime: 0, refetchOnMount: 'always' as const } : {}),
+    ...(kind === 'teams'
+      ? {
+          staleTime: 0,
+          gcTime: 0,
+          refetchOnMount: 'always' as const,
+          refetchOnWindowFocus: false,
+          refetchOnReconnect: false,
+        }
+      : {}),
   })
   if (
     !resource.data ||
@@ -70,6 +78,12 @@ function ResourceDetail({ kind, resource }: { kind: ResourceKind; resource: Reso
     !!resource.members?.some(
       (person) => person.user_id === session.data?.user.id && person.status === 'active',
     )
+  const canTeamLimits =
+    kind === 'teams' &&
+    (ownTeam ||
+      ['teams.read_all', 'teams.tokens.write', 'teams.money.write', 'teams.rates.write'].some(
+        (permission) => access.can(permission),
+      ))
   const canCalls = kind === 'projects' && (isManager || access.can('calls.read_all'))
   const canRequests =
     kind === 'projects' &&
@@ -101,9 +115,37 @@ function ResourceDetail({ kind, resource }: { kind: ResourceKind; resource: Reso
         </Tabs>
       </section>
     )
+  if (resource.resource_limit_workspace_only === true && kind === 'teams')
+    return (
+      <section className="space-y-6">
+        <header className="space-y-1">
+          <h1 className="text-2xl font-semibold">{resource.name}</h1>
+          <p className="text-sm text-muted-foreground">{resource.description}</p>
+        </header>
+        <Tabs value="limits">
+          <TabsList aria-label={t('details', { kind: t('team') })}>
+            <TabsTrigger value="limits">{t('limits')}</TabsTrigger>
+          </TabsList>
+          <TabsContent value="limits">
+            <ResourceLimits
+              path={`/teams/${resource.id}`}
+              team={{ teamId: resource.id }}
+              canEdit={resource.status === 'active'}
+            />
+          </TabsContent>
+        </Tabs>
+      </section>
+    )
   const tabs =
     kind === 'teams'
-      ? ['overview', 'members', 'models', ...(ownTeam ? ['calls'] : []), 'settings']
+      ? [
+          'overview',
+          'members',
+          'models',
+          ...(canTeamLimits ? ['limits'] : []),
+          ...(ownTeam ? ['calls'] : []),
+          'settings',
+        ]
       : [
           'overview',
           ...(canEdit ? ['keys'] : []),
@@ -218,6 +260,15 @@ function ResourceDetail({ kind, resource }: { kind: ResourceKind; resource: Reso
               resource={resource}
               kind={kind}
               canEdit={canEdit && resource.status !== 'archived'}
+            />
+          </TabsContent>
+        )}
+        {kind === 'teams' && canTeamLimits && (
+          <TabsContent value="limits">
+            <ResourceLimits
+              path={`/teams/${resource.id}`}
+              team={{ teamId: resource.id }}
+              canEdit={resource.status === 'active'}
             />
           </TabsContent>
         )}

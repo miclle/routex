@@ -19,7 +19,7 @@ import (
 
 var errLimitConflict = &apperrors.Error{Code: 409, Message: "resource limit policy changed"}
 
-type LimitTarget struct{ Kind, ID, ProjectID string }
+type LimitTarget struct{ Kind, ID, ProjectID, TeamID string }
 type LimitInput struct {
 	limits.Policy
 	Reason string `json:"reason"`
@@ -35,6 +35,8 @@ type EffectiveLimitValues struct {
 	Concurrency *int64  `json:"concurrency"`
 }
 type LimitRecord struct {
+	TeamID           string               `json:"team_id,omitempty"`
+	EditableFields   []string             `json:"editable_fields,omitempty"`
 	PlatformCurrency string               `json:"platform_currency"`
 	QuotaUsage       *QuotaUsageRecord    `json:"quota_usage"`
 	Kind             string               `json:"kind"`
@@ -49,7 +51,7 @@ type LimitRecord struct {
 	Active           *int64               `json:"active"`
 	Enforced         bool                 `json:"enforced"`
 }
-type resolvedLimitTarget struct{ kind, id, parentKind, parentID string }
+type resolvedLimitTarget struct{ kind, id, parentKind, parentID, teamID, userID string }
 
 func policyFromRow(row entity.ResourceLimit) (limits.Policy, error) {
 	policy := limits.Policy{Tokens5H: row.Tokens5H, Tokens7D: row.Tokens7D, TokensMonth: row.TokensMonth, TPM: row.TPM, MoneyMonth: row.MoneyMonth, Currency: row.Currency, RPM: row.RPM, Concurrency: row.Concurrency, IPMode: row.IPMode}
@@ -73,6 +75,18 @@ func readLimitPolicy(db *gorm.DB, kind, scopeID string) (entity.ResourceLimit, l
 	return row, policy, err
 }
 func resolveLimitTarget(db *gorm.DB, actor string, target LimitTarget, write bool) (resolvedLimitTarget, error) {
+	if target.Kind == "team" || target.Kind == "team_member" {
+		userID := ""
+		if target.Kind == "team_member" {
+			userID = target.ID
+		}
+		current, err := loadTeamLimitContext(db, actor, target.TeamID, userID, write)
+		if err != nil {
+			return resolvedLimitTarget{}, err
+		}
+		return current.Resolved, nil
+	}
+
 	permissions, err := permissionsFor(db, actor)
 	if err != nil {
 		return resolvedLimitTarget{}, err
@@ -174,7 +188,11 @@ func (s *Service) GetResourceLimit(ctx context.Context, actor string, target Lim
 	return result, catalogError(err)
 }
 func (s *Service) resourceLimitRecord(db *gorm.DB, target LimitTarget, resolved resolvedLimitTarget) (*LimitRecord, error) {
-	row, stored, err := readLimitPolicy(db, resolved.kind, resolved.id)
+	read := readLimitPolicy
+	if resolved.kind == "team" || resolved.kind == "team_member" {
+		read = readTeamLimitPolicy
+	}
+	row, stored, err := read(db, resolved.kind, resolved.id)
 	if err != nil {
 		return nil, err
 	}
@@ -187,7 +205,7 @@ func (s *Service) resourceLimitRecord(db *gorm.DB, target LimitTarget, resolved 
 	}
 	result.PlatformCurrency = pricingSetting.PlatformCurrency
 	if resolved.parentKind != "" {
-		parentRow, parent, err := readLimitPolicy(db, resolved.parentKind, resolved.parentID)
+		parentRow, parent, err := read(db, resolved.parentKind, resolved.parentID)
 		if err != nil {
 			return nil, err
 		}
@@ -312,12 +330,17 @@ func persistResourceLimitPolicy(tx *gorm.DB, actor string, resolved resolvedLimi
 		return row, err
 	}
 	details, err := json.Marshal(struct {
+		TeamID        string `json:"team_id,omitempty"`
 		Before, After limits.Policy
 		Reason, ETag  string
-	}{before, policy, reason, revision})
+	}{resolved.teamID, before, policy, reason, revision})
 	if err != nil {
 		return row, err
 	}
 	encoded := string(details)
-	return row, tx.Create(&entity.AuditEvent{ID: auditID, ActorID: actor, Action: "limits.update", ResourceType: resolved.kind, ResourceID: resolved.id, DetailsJSON: &encoded}).Error
+	resourceID := resolved.id
+	if resolved.kind == "team_member" {
+		resourceID = resolved.userID
+	}
+	return row, tx.Create(&entity.AuditEvent{ID: auditID, ActorID: actor, Action: "limits.update", ResourceType: resolved.kind, ResourceID: resourceID, DetailsJSON: &encoded}).Error
 }

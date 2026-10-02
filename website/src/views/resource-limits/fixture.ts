@@ -18,3 +18,50 @@ export function limitFixture(): LimitRecord {
     enforced: true,
   }
 }
+
+export function teamFixture(member = false): LimitRecord {
+  const policy = {
+    tokens_5h: 1000,
+    tokens_7d: 5000,
+    tokens_month: 10000,
+    money_month: '999999999999999999.123456789012345678',
+    currency: 'USD',
+    rpm: 60,
+    tpm: 500,
+    concurrency: 4,
+    ip_mode: 'none' as const,
+    ip_ranges: [],
+  }
+  const stored = member
+    ? {
+        ...policy,
+        tokens_5h: null,
+        tokens_7d: null,
+        tokens_month: null,
+        money_month: null,
+        currency: '',
+        rpm: null,
+        tpm: null,
+        concurrency: null,
+      }
+    : policy
+  return {
+    kind: member ? 'team_member' : 'team',
+    id: member ? 'usr_member' : 'tea_test',
+    team_id: 'tea_test',
+    account_id: member ? 'team_member_stable' : 'team_stable',
+    etag: 'a'.repeat(64),
+    ...(member ? { parent_etag: 'b'.repeat(64) } : {}),
+    editable_fields: member
+      ? ['tokens_month', 'money_month', 'rpm', 'tpm', 'concurrency']
+      : ['tokens_5h', 'tokens_7d', 'tokens_month', 'money_month', 'rpm', 'tpm', 'concurrency'],
+    platform_currency: 'USD',
+    stored,
+    effective: policy,
+    ip_policies: member ? [policy, stored] : [stored],
+    quota_usage: null,
+    rpm_used: null,
+    active: null,
+    enforced: true,
+  }
+}

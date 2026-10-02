@@ -1,4 +1,6 @@
 export default {
+  limits: 'Budgets, quotas and limits',
+  memberResources: 'Adjust member resources',
   usage: 'Usage',
   overview: 'Overview',
   members: 'Members',

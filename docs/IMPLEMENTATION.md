@@ -156,7 +156,7 @@ The binary capability count is 8 completed, 19 partially completed, and 3 not st
 | F03 | Enterprise SSO, LDAP, OAuth, and emergency recovery | Not started | Provider configuration, callbacks, identity binding, enforced SSO, and enterprise recovery remain unimplemented. |
 | F04 | Member administration, direct grants, roles, and resource policies | Partially completed | Member and role workflows plus scoped resource-limit interfaces exist; token, TPM, and exact-money controls with authoritative quota snapshots are available; the complete cross-domain resource-policy surface remains open. |
 | F05 | Built-in and custom roles with composed permissions | Partially completed | Current-domain role and permission management is implemented; later enterprise and operations domains still require permission integration and negative acceptance. |
-| F06 | Team membership, ownership, models, quotas, and member rules | Partially completed | Team creation, membership, ownership, and model relationships exist; Team aggregate quotas and member-rule enforcement remain open. |
+| F06 | Team membership, ownership, models, quotas, and member rules | Partially completed | Team creation, membership, ownership, model relationships and finite aggregate/member policy enforcement exist; Team-assigned roles, scoped Team-only permission unions and the role-management interface remain open. |
 | F07 | Project lifecycle, managers, models, Keys, and requests | Partially completed | Project management, managers, model grants, Project Keys, resource limits, model requests, finite monthly quota and RPM/TPM/concurrency approvals exist; the complete Project request and lifecycle surface remains open. |
 | F08 | Personal and Project Key lifecycle | Completed | One-time delivery, confirmation, editing, rotation, revocation, expiration, scope, and history are implemented with controlled dual-database evidence. |
 | F09 | Key Token, money, RPM, TPM, concurrency, and IP restrictions | Completed | Personal, Project, and Key admission policies are enforced in the native gateway for the documented single-node architecture. Multi-node enforcement remains a separate release-architecture gate. |
@@ -167,7 +167,7 @@ The binary capability count is 8 completed, 19 partially completed, and 3 not st
 | F14 | Managed egress and staged network diagnostics | Partially completed | Direct, default, SOCKS5, verified CONNECT, endpoint-bound saved authentication, complete-tunnel proxy-address fallback, and diagnostics exist. External proxy and production performance acceptance remain open. |
 | F15 | Prices, spreadsheet/CSV workflows, API, and repository sync | Partially completed | Current prices, ETags, CSV/XLS/XLSX import, preview, commit, and export exist; external price-repository synchronization is not implemented. |
 | F16 | Platform currency, exchange rates, and historical price snapshots | Completed | Decimal-string currency/rate management, exact quoting, and immutable per-call assessment are implemented. |
-| F17 | User and Team defaults, overrides, budgets, alerts, and stop policy | Partially completed | Personal, Project, and Key enforcement plus budget/token/TPM controls, authoritative quota snapshots, and installation-calendar configuration exist; current-policy Personal/Project monthly settled-exhaustion inboxes have focused acceptance, while Team defaults, templates, broader alerts, and configurable stop-calling policy remain open. |
+| F17 | User and Team defaults, overrides, budgets, alerts, and stop policy | Partially completed | Personal, Project, Key and Team aggregate/member enforcement plus budget/token/TPM controls, authoritative quota snapshots, and installation-calendar configuration exist; current-policy Personal/Project monthly settled-exhaustion inboxes have focused acceptance, while Team defaults, templates, broader alerts, and configurable stop-calling policy remain open. |
 | F18 | Quota, model, and request-limit approvals | Partially completed | Project model, finite monthly quota and RPM/TPM/concurrency requests have controlled acceptance, including independent review, current runtime application and superseded receipt replay; Team approval, escalation and global request workspaces remain open. |
 | F19 | Member overview, model sources, requests, and examples | Partially completed | Actor-scoped Personal/Team source attribution, native metadata, filters, details and examples are available; Project requests exist, while Personal/Team requests, Team invocation and broader price/usage facts remain open. |
 | F20 | Playground, comparison, attachments, and code examples | Partially completed | Four native conversation paths, two-to-four-lane comparison, cancellation, executable examples, per-protocol image/PDF discovery, user/Project attachment resolution, single/comparison attachment lifecycle interfaces, and conservative token/TPM/money admission with exact per-occurrence media prices exist; external acceptance remains open. |
@@ -221,7 +221,7 @@ Only A01 is fully accepted across its defined scope. Every other case remains in
 | P1-03 Personal Keys | Delivered (`3cd5305`); controlled local acceptance passed | One-time pending delivery, confirmation, digest storage, concurrent rotation, ownership, revocation and audit; PostgreSQL/MySQL integration passed |
 | P1-04/05 | In progress | Native OpenAI chat ordinary/SSE, Key Playground, isolated personal/admin call queries and request facts have controlled dual-database evidence; immutable snapshots and bounded durable events have controlled failure/restart evidence; measured capacity and real-provider acceptance remain open |
 | P2 | In progress | Profile/password/session APIs and UI delivered; member/role/registration interfaces and Team/Project backend delivered; Project Keys, offboarding, and resource interfaces advance in separate verified packages |
-| P3 | In progress | Current token and image/PDF occurrence prices, FX, immutable call assessments, atomic CSV/XLS/XLSX imports, CSV exports, and single-process Personal/Project/Key token and monetary quota admission are implemented; Team quotas, templates, approvals, alerts, distributed enforcement, additional billing dimensions, and synchronization remain open |
+| P3 | In progress | Current token and image/PDF occurrence prices, FX, immutable call assessments, atomic CSV/XLS/XLSX imports, CSV exports, and single-process Personal/Project/Key and Team aggregate/member token and monetary quota admission are implemented; templates, Team approvals, broader alerts, distributed enforcement, additional billing dimensions, and synchronization remain open |
 | P4–P6 | In progress | Four native inference protocols, conservative image/PDF capability discovery, user/Project attachment resolution, single/comparison attachment interfaces, attested token/TPM/money reservation with exact media occurrence settlement, SMTP configuration/test and durable operational delivery, object-storage administration/owned-attachment backend, and authoritative process/system-job operations are implemented; provider-specific media pricing, broader alert policy, remaining enterprise integrations, and final acceptance remain open |
 
 Verification in this iteration:
@@ -1734,3 +1734,29 @@ usage, own history/detail, removal denial, rejoin and persistent restart; owned
 resources were removed. Finite Team aggregate/member policies and subsequent Team
 approval are the next partial package. Capability totals remain 8 complete,
 19 partial and 3 not started; A01 remains the only fully accepted case.
+
+
+### Checked partial package: finite Team aggregate and member policies
+
+Three owners delivered independently authorized direct Team policies, stable-account
+atomic native enforcement and the approved bilingual Limits/member-adjustment
+interface. Frozen GORM V39 preserves historical policy values while widening the
+stable scope ID and seeding separate token/money/rate authority. Owners receive no
+implicit direct-write permission. Sparse edits preserve inaccessible fields; strong
+composite review binds full parent/current policy, currency and lifecycle. Current
+application proof, unchanged retry intent, exact money, incomplete coverage and
+stable use through rejoin/restart remain explicit. See [Team resource limits](TEAM_LIMITS.md).
+
+Final check/test passed with 876 Vitest cases in 63 files, Go race/unit, four Node
+checks, development lifecycle and production assets. Actual PostgreSQL/MySQL race
+acceptance passed (Handler 623.428 seconds, Service 6.559 seconds), including both
+new policy/native fixtures and V39 upgrade/constraint recovery. Real-process
+Session/Key lifecycle and Actionlint passed. Controlled browser proof confirms
+child/aggregate no-dispatch exhaustion, independent Personal use, bilingual saves,
+retained conflict drafts, rejoin and persisted restart. Owned resources were removed.
+
+Acceptance fixed mapped GORM previous-revision update, explicit primary-key
+nullability, money-pointer aliasing and exact monetary denomination proof. The
+frontend late-response regression avoids racing timer-based GC. F06 remains partial
+for Team-assigned roles/scoped permission union; F17 defaults and F18 owner/platform
+request stages remain open. Capability and full-acceptance totals are unchanged.

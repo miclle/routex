@@ -236,6 +236,19 @@ translations and preserve independent refresh/error/empty states for both cards.
 
 Provider-model capacity attestations belong in the existing detail view before prices. Read and write permissions remain independent. Use positive safe integer maxima, explicit evidence and reason, reviewed If-Match, retained drafts on conflicts, and immutable intent for uncertain retries. A configured record means a saved attestation, not proof that its revision is currently valid or enforced. Keep paired `pricing` translations.
 
+Team resource limits use the addressable Limits tab and existing member action
+menu/dialog. Aggregate policies support rolling/monthly Tokens, monthly money,
+RPM, TPM and concurrency; members support monthly Tokens/money and request rates.
+Use independent `teams.tokens.write`, `teams.money.write`, and
+`teams.rates.write` permissions, sparse presence-aware writes, exact decimal money,
+server-owned editable fields and a composite reviewed ETag. Owners receive no
+implicit direct write authority. Keep the limits-only workspace free of member/model
+directories. Stable Team/User policy and journal identities survive removal/rejoin;
+aggregate and member admission is atomic. Preserve drafts and original uncertain
+intent through incidental focus/reconnect events, with fresh authority on mount
+and dispatch. Runtime confirmation includes the complete policy, revision, current
+membership and monetary denomination; persistence alone never proves enforcement.
+
 
 Credential planned retirement extends the existing replacement readiness dialog.
 Keep providers.read and providers.write independent, require a reason and explicit

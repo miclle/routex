@@ -220,6 +220,8 @@ expired publication fails closed.
 
 Text-only Chat retains one immutable Team subject and stable Team/User journal
 accounts. Personal/Project Key authority and ledgers remain separate. Current
-members can read only their own Team call facts. Finite Team policies and approval,
-additional Session protocols and fleet-wide immediate revocation remain separate
-acceptance boundaries.
+members can read only their own Team call facts. [Finite Team policies](TEAM_LIMITS.md)
+publish independently authorized aggregate/member rules into leased immutable
+snapshots and atomically admit both stable accounts without synchronous Control
+Plane reads. Approval workflows, additional Session protocols and fleet-wide
+immediate revocation remain separate acceptance boundaries.

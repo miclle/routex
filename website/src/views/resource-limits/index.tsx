@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Dialog } from '@/components/ui/dialog'
 import { FormField, QueryState } from '@/components/app/CatalogUI'
-import type { LimitInput, LimitRecord } from '@/types/resource-limits'
+import type { LimitInput, LimitRecord, TeamLimitScope } from '@/types/resource-limits'
 import {
   integerDraft,
   integerFields,
@@ -20,8 +20,11 @@ import {
 } from './quota-values'
 import { QuotaUsageSummary } from './quota-usage'
 
-type Props = { path: string; canEdit: boolean; child?: boolean }
+import TeamResourceLimits from './team'
+
+type Props = { path: string; canEdit: boolean; child?: boolean; team?: TeamLimitScope }
 export default function ResourceLimits(props: Props) {
+  if (props.team) return <TeamResourceLimits scope={props.team} canEdit={props.canEdit} />
   return <ResourceLimitContent key={props.path} {...props} />
 }
 function ResourceLimitContent(props: Props) {

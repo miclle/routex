@@ -165,3 +165,16 @@ func TestCredentialRetirementAuditProjection(t *testing.T) {
 		t.Fatal("retirement audit attributed to replacement")
 	}
 }
+
+func TestTeamLimitAuditScopeIsBoundedAndTyped(t *testing.T) {
+	raw := `{"team_id":"tea_one","before":{"ip_mode":"none","rpm":1},"after":{"ip_mode":"none","rpm":2,"secret":"do-not-leak"},"reason":"Reviewed","etag":"lim_one","ciphertext":"do-not-leak"}`
+	row := auditRecord(entity.AuditEvent{Action: "limits.update", ResourceType: "team_member", ResourceID: "usr_one", DetailsJSON: &raw})
+	if row.Changes == nil || !strings.Contains(string(row.Changes), `"team_id":"tea_one"`) || strings.Contains(string(row.Changes), "do-not-leak") {
+		t.Fatal("child audit lost Team provenance or leaked unrelated fields", string(row.Changes))
+	}
+	raw = strings.Replace(raw, "tea_one", "https://secret.invalid", 1)
+	row = auditRecord(entity.AuditEvent{Action: "limits.update", ResourceType: "team_member", ResourceID: "usr_one", DetailsJSON: &raw})
+	if row.Changes != nil {
+		t.Fatal("arbitrary Team scope exposed")
+	}
+}

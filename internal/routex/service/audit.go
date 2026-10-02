@@ -117,6 +117,7 @@ func auditRecord(row entity.AuditEvent) AuditRecord {
 		changes = detail
 	case "limits.update":
 		var detail struct {
+			TeamID string        `json:"team_id,omitempty"`
 			Before limits.Policy `json:"before"`
 			After  limits.Policy `json:"after"`
 			Reason string        `json:"reason"`
@@ -124,6 +125,13 @@ func auditRecord(row entity.AuditEvent) AuditRecord {
 		}
 		if json.Unmarshal([]byte(*row.DetailsJSON), &detail) != nil {
 			return result
+		}
+		if row.ResourceType == "team" || row.ResourceType == "team_member" {
+			if !safeTeamSessionID(detail.TeamID) || !strings.HasPrefix(detail.TeamID, "tea_") || row.ResourceType == "team" && row.ResourceID != detail.TeamID || row.ResourceType == "team_member" && (!safeTeamSessionID(row.ResourceID) || !strings.HasPrefix(row.ResourceID, "usr_")) || validateTeamLimitPolicy(row.ResourceType, detail.Before) != nil || validateTeamLimitPolicy(row.ResourceType, detail.After) != nil {
+				return result
+			}
+		} else {
+			detail.TeamID = ""
 		}
 		changes = detail
 	case "credential.metadata.update":

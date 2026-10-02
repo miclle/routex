@@ -1,9 +1,14 @@
-import { limitFixture } from '@/views/resource-limits/fixture'
+import { limitFixture, teamFixture } from '@/views/resource-limits/fixture'
 import { usageFixture } from '@/views/usage/fixture'
 import { act } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { createMemoryRouter, RouterProvider } from 'react-router'
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import {
+  focusManager,
+  onlineManager,
+  QueryClient,
+  QueryClientProvider,
+} from '@tanstack/react-query'
 import { AxiosError, AxiosHeaders, type InternalAxiosRequestConfig } from 'axios'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import i18n from '@/i18n'
@@ -123,7 +128,27 @@ beforeEach(() => {
     else if (config.url?.endsWith('/projects'))
       response.data = { items: [project], next_cursor: null }
     else response.data = { items: [], next_cursor: null }
-    if (config.url?.endsWith('/limits')) response.data = limitFixture()
+    if (config.url?.endsWith('/limits')) {
+      if (config.url.startsWith('/teams/')) {
+        const member = config.url.includes('/members/')
+        const base = teamFixture(member)
+        const patch = { ...body }
+        delete patch.reason
+        response.data = {
+          ...base,
+          ...(config.method === 'put'
+            ? { stored: { ...base.stored, ...patch }, etag: 'c'.repeat(64) }
+            : {}),
+          id: member ? 'usr_1' : 'tea_1',
+          team_id: 'tea_1',
+          editable_fields: permissions.includes('teams.tokens.write')
+            ? member
+              ? ['tokens_month']
+              : ['tokens_5h', 'tokens_7d', 'tokens_month']
+            : [],
+        }
+      } else response.data = limitFixture()
+    }
     if (config.url?.endsWith('/usage')) response.data = usageFixture()
     return response
   }
@@ -131,6 +156,8 @@ beforeEach(() => {
 afterEach(async () => {
   await act(async () => root.unmount())
   router?.dispose()
+  focusManager.setFocused(undefined)
+  onlineManager.setOnline(true)
   cache.clear()
   client.defaults.adapter = originalAdapter
   host.remove()
@@ -195,6 +222,104 @@ async function submit(selector = 'form') {
 }
 
 describe('Team and Project resource workflows', () => {
+  it('opens the addressable Team limit cards without granting owner writes', async () => {
+    await mount('/teams/tea_1?tab=limits')
+    await until(() => expect(host.textContent).toContain('Budget and quotas'))
+    expect(host.textContent).toContain('Rate limits')
+    expect(host.textContent).not.toContain('Edit limits')
+    expect(requests.filter((request) => request.url === '/teams/tea_1/limits')).toHaveLength(1)
+    expect(requests.some((request) => request.url?.includes('/admin/members'))).toBe(false)
+  })
+  it('lets the current owner inspect an exact member policy from the existing menu', async () => {
+    await mount('/teams/tea_1?tab=members')
+    await until(() =>
+      expect(host.querySelector('[aria-label="More actions for Test Manager"]')).toBeTruthy(),
+    )
+    await act(async () =>
+      host
+        .querySelector<HTMLButtonElement>('[aria-label="More actions for Test Manager"]')!
+        .click(),
+    )
+    await until(() => expect(document.body.textContent).toContain('Adjust member resources'))
+    await click('Adjust member resources')
+    await until(() => expect(document.body.textContent).toContain('Inherit parent'))
+    expect(requests.some((request) => request.url === '/teams/tea_1/members/usr_1/limits')).toBe(
+      true,
+    )
+    expect(document.querySelector('[role="dialog"]')?.textContent).not.toContain('Edit limits')
+    expect(document.querySelector('[role="dialog"]')?.textContent).not.toContain('IP source')
+  })
+  it('renders only the minimal limits workspace without relationship or model queries', async () => {
+    permissions = ['teams.tokens.write']
+    team = {
+      id: 'tea_1',
+      name: 'Scoped Team',
+      description: 'Policy review',
+      status: 'active',
+      resource_limit_workspace_only: true,
+    } as ResourceRecord
+    await mount('/teams/tea_1?tab=overview')
+    await until(() => expect(host.textContent).toContain('Budget and quotas'))
+    expect([...host.querySelectorAll('[role="tab"]')].map((tab) => tab.textContent)).toEqual([
+      'Budgets, quotas and limits',
+    ])
+    expect(host.textContent).not.toContain('Member count')
+    expect(
+      requests.some((request) => /candidates|\/models|\/members|\/calls/.test(request.url ?? '')),
+    ).toBe(false)
+    await click('Edit limits')
+    expect(host.querySelector<HTMLInputElement>('[aria-label="RPM"]')?.disabled).toBe(true)
+  })
+  it('retains an exact uncertain Team limit intent through focus and reconnect', async () => {
+    permissions = ['teams.tokens.write']
+    await mount('/teams/tea_1?tab=limits')
+    await until(() => expect(host.textContent).toContain('Budget and quotas'))
+    await click('Edit limits')
+    async function setInput(label: string, value: string) {
+      const input = host.querySelector<HTMLInputElement>(`[aria-label="${label}"]`)!
+      await act(async () => {
+        Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!.call(
+          input,
+          value,
+        )
+        input.dispatchEvent(new Event('input', { bubbles: true }))
+      })
+    }
+    await setInput('Monthly token quota', '0')
+    await setInput('Reason for change', 'Keep reviewed intent')
+    failure['put /teams/tea_1/limits'] = 503
+    await click('Save limits')
+    await until(() => expect(host.textContent).toContain('This change may already be saved'))
+    const original = requests.find(
+      (request) => request.method === 'put' && request.url === '/teams/tea_1/limits',
+    )!
+    const metadataReads = requests.filter(
+      (request) => request.url === '/teams/tea_1' && request.method === 'get',
+    ).length
+    await act(async () => {
+      focusManager.setFocused(false)
+      focusManager.setFocused(true)
+      onlineManager.setOnline(false)
+      onlineManager.setOnline(true)
+      await new Promise((resolve) => setTimeout(resolve, 30))
+    })
+    expect(
+      requests.filter((request) => request.url === '/teams/tea_1' && request.method === 'get'),
+    ).toHaveLength(metadataReads)
+    expect(host.textContent).toContain('This change may already be saved')
+    expect(host.querySelector<HTMLInputElement>('[aria-label="Monthly token quota"]')!.value).toBe(
+      '0',
+    )
+    delete failure['put /teams/tea_1/limits']
+    await click('Retry application')
+    await until(() => expect(host.textContent).toContain('Limits saved and applied.'))
+    const retries = requests.filter(
+      (request) => request.method === 'put' && request.url === '/teams/tea_1/limits',
+    )
+    expect(retries).toHaveLength(2)
+    expect(retries[1].data).toBe(original.data)
+    expect(retries[1].headers.get('If-Match')).toBe(original.headers.get('If-Match'))
+  })
   it('keeps the six Project tabs and opens the Playground with only the Project ID', async () => {
     await mount('/projects/prj_1')
     await until(() => expect(host.textContent).toContain('Open in Playground'))

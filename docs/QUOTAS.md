@@ -1,6 +1,6 @@
 # Token and monetary quotas
 
-Version 19 adds quota policy storage and gateway admission to the [durable ledger foundation](QUOTA_LEDGER.md). This is a single-process enforcement implementation. Source tests, dual-database acceptance, browser evidence, and measured production capacity are separate checkpoints. Team/session quotas, default templates, reset-to-template, quota approvals, alerts, and distributed enforcement remain outside this slice.
+Version 19 adds quota policy storage and gateway admission to the [durable ledger foundation](QUOTA_LEDGER.md). This is a single-process enforcement implementation. Source tests, dual-database acceptance, browser evidence, and measured production capacity are separate checkpoints. [Team Session policies](TEAM_LIMITS.md) extend this ledger with separate aggregate and stable member accounts. Default templates, reset-to-template, Team approvals, broader alerts and distributed enforcement remain separate scope.
 
 ## Policy API
 
@@ -22,11 +22,11 @@ Existing resource-limit GET/PUT endpoints accept these additional fields:
 }
 ```
 
-PUT is a complete policy replacement. Clients must retain the full supported policy when editing one section; omitted fields become null/unrestricted at an aggregate or inherited at a Key. A strong `If-Match`, CSRF, same-origin validation, current resource authority, and nonempty reason are required. Stale edits return 409. Identical retries with the prior ETag, same actor, normalized policy, and reason retry publication without another audit event.
+Personal/Project/Key PUT is a complete policy replacement. Clients must retain the full supported policy when editing one section; omitted fields become null/unrestricted at an aggregate or inherited at a Key. A strong `If-Match`, CSRF, same-origin validation, current resource authority, and nonempty reason are required. Stale edits return 409. Identical retries with the prior ETag, same actor, normalized policy, and reason retry publication without another audit event.
 
 Integers are nonnegative safe JSON integers. Money is an exact nonnegative decimal string with at most 18 integer and 18 fractional digits; scientific notation and numeric JSON money are rejected. A finite monetary policy must use the current platform currency. Null money clears its local currency. Zero closes that allowance. Personal and Project Key overrides can only narrow their respective owner aggregate. Overlapping rotation credentials share the oldest immutable ancestor's policy and counters.
 
-A personal call checks user plus Key accounts. A Project call checks Project plus Key accounts, independently of its creator or managers' personal accounts. Policy edits, grants, disabling, re-enabling, and Key rotation do not clear history.
+A Team Session call checks Team plus stable Team/User accounts atomically; its sparse policy API and permission boundaries are documented in [Team resource limits](TEAM_LIMITS.md). A personal call checks user plus Key accounts. A Project call checks Project plus Key accounts, independently of its creator or managers' personal accounts. Policy edits, grants, disabling, re-enabling, and Key rotation do not clear history.
 
 GET includes `platform_currency` under the existing resource read authority, even when the local monetary policy is unlimited and its `currency` is empty. This field reveals only the current denomination, not exchange rates or the administrative price catalogue. Readers must review a changed denomination before submitting a retained monetary draft.
 

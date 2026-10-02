@@ -1,10 +1,10 @@
 # Current Work Handoff
 
-- **Status:** implementation active; F08 Key proof hardening pushed; F11 readiness pushed; receipt-backed retirement pushed; member model availability correction pushed; source directory pushed; monthly quota exhaustion inbox checked and pushed; Project monthly quota requests pushed; Project request-rate approval pushed; Team Session foundation checked locally
-- **Updated:** 2026-10-02T22:00:00+08:00
+- **Status:** implementation active; F08 Key proof hardening pushed; F11 readiness pushed; receipt-backed retirement pushed; member model availability correction pushed; source directory pushed; monthly quota exhaustion inbox checked and pushed; Project monthly quota requests pushed; Project request-rate approval pushed; Team Session foundation pushed; finite Team policies checked
+- **Updated:** 2026-10-02T22:47:00+08:00
 - **Repository / branch:** RouteX / `main`
-- **Previous checked source baseline:** `85730293c22e50a311c463ab62dbf4d4b6902b3a`, pushed and read back from `origin/main`
-- **Current owner:** coordinating task; three independent owners completed Team Session publication/revocation, native attempt integration and UI; coordinator owns shared fixtures, docs, final validation and delivery
+- **Previous checked source baseline:** `24fec89ec34adede7d99cb6087af0b748f596d4f`, pushed and read back from `origin/main`
+- **Current owner:** coordinating task; three independent owners completed Team policy API, native finite admission and UI; coordinator owns migration/harness, docs, actual acceptance and delivery
 - **Next owner:** current task continues the resumed goal
 - **Transport:** identify this checked delivery with `git log -1 -- docs/current-work-handoff.md` and independently verify its upstream
 - **Coordination plan:** `~/dotfiles/projects/routex/implementation-plan.md`; synchronize separately and preserve unrelated changes
@@ -693,3 +693,61 @@ Delivery transport: this document travels with its checked main commit. Resolve
 that delivery using git log -1 -- docs/current-work-handoff.md and verify upstream
 before resuming. Remote CI for this new commit must be checked independently;
 successful runs listed above apply to the earlier Project rate commit.
+
+
+## Published Team Session checkpoint and active finite-policy ownership
+
+Team Session source `24fec89ec34adede7d99cb6087af0b748f596d4f` was committed,
+pushed and read back from origin/main with a clean tree before finite-policy work.
+Coordination plan `e47ea4ecdb027a450fee0c93368d4d706597f9ab` was independently
+pushed/read back with only the plan staged; unrelated zsh changes were preserved.
+Exact Actionlint 37016949801 and GolangCI-Lint 37016949517 succeeded. Exact CI
+37016950128 also succeeded, including dual-database/restart acceptance and built
+artifacts. These three results apply to the Team Session commit only.
+
+The new bounded Team policy package is active; see TEAM_LIMITS.md. Parallel owners:
+policy API/permissions/composite review/minimal Team projection; native aggregate
+and stable-pair finite admission; approved Team Limits/member-adjustment UI. The
+coordinator owns frozen V39 scope widening and permission seeds, shared HTTP DTO,
+routes and migration harness, docs and final acceptance. Current source remains
+uncommitted until all required checks and actual dual-database proof pass. Do not
+claim finite enforcement or Team approval from this active checkpoint.
+
+
+## Checked finite Team policy checkpoint
+
+All implementation owners are frozen. Final check/test passed (876 Vitest cases in
+63 files; Go race/unit, Node, development lifecycle and production embedding).
+Actionlint and both real-process identity/Key lifecycle drivers passed. The full
+actual PostgreSQL/MySQL race matrix passed: Handler 623.428 seconds and Service
+6.559 seconds. It includes frozen V39 empty/upgrade/repeat/concurrent/interrupted
+migration and real Team policy/native finite fixtures. Owned production/browser
+proof confirms cap rejection before dispatch, exact current application, isolated
+Personal use, bilingual edits/conflict review and stable policy/use through
+membership rejoin and process restart. All owned resources were cleaned up.
+
+Corrections: explicit primary-key NOT NULL during GORM width alteration; mapped
+PreviousETag update; fresh exact-money patch allocation; full monetary denomination
+application proof; deterministic old-query clearing in the late-response test.
+Released migrations and Personal/Project/Key policy contracts are unchanged.
+
+This checked delivery travels with its main commit; resolve the exact SHA with
+`git log -1 -- docs/TEAM_LIMITS.md` and compare to origin/main. Remote workflows
+for that SHA must be verified after push; earlier green runs apply only to earlier
+commits. External coordination must stage only its implementation plan, preserving
+unrelated zsh changes.
+
+Next action: implement monthly Team member quota requests after this checkpoint is
+committed/pushed. Read the assessed contract and TEAM_LIMITS.md; assign separate
+persistence/migration, service/API and UI owners before editing. Support one Team
+and monthly Token or money dimension; current non-applicant owners review first,
+then overflow escalates to dimension-authorized platform review. Without another
+eligible owner, start at platform review. Final overflow approval changes aggregate
+and member caps atomically; no self-approval or implicit owner write authority.
+Use stable creation/step decision receipts, pending-slot uniqueness, immutable
+submission versus fresh current review, exact amounts and current application versus
+superseded history. Preserve approved workspace/table/dialog/drawer composition,
+read-only global records and English-default localization. Full checks, actual
+both-database/native/restart/browser acceptance precede another main commit/push.
+F06 also retains Team-role assignment/permission union; all full acceptance remains
+open and the user has not requested a pause.

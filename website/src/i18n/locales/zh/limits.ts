@@ -1,4 +1,18 @@
 export default {
+  teamTitle: '团队预算、配额与限制',
+  teamMemberTitle: '成员资源',
+  teamMemberEdit: '调整成员资源',
+  teamHelp:
+    '留空表示不设置本地上限，零会阻止调用。团队与成员策略共同生效，保存不会重置已记录的用量。',
+  teamMemberHelp:
+    '留空表示继承当前团队策略，成员显式上限只能收紧限制。成员关系变化不会重置资源账户及其已记录用量。',
+  teamAboveParent: '成员显式上限不能超过当前团队上限。',
+  teamReadOnlyField: '此字段需要独立的平台策略权限。',
+  teamNoChanges: '保存前请至少修改一个可编辑的限制。',
+  teamUncertain:
+    '此次变更可能已经保存，请重试完全相同的原始变更。重新加载当前策略不能消除之前结果的不确定性。',
+  teamUncertainClosed: '之前的变更结果仍不确定。刷新只展示当前策略，不代表已确认原始操作。',
+
   title: '资源限制',
   requests: '速率限制',
   budgetQuotas: '预算与配额',

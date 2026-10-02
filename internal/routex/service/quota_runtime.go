@@ -56,6 +56,9 @@ func loadRuntimeQuota(tx *gorm.DB, data *runtimeData) (*runtimeQuotaData, error)
 			result.Created[limitAccount("key", key.ID)] = key.CreatedAt
 		}
 	}
+	for account, created := range runtimeTeamLimitAccounts(data) {
+		result.Created[account] = created
+	}
 	for _, row := range data.Limits {
 		result.Revisions[limitAccount(row.ScopeKind, row.ScopeID)] = row.ETag
 	}
@@ -106,10 +109,6 @@ func (s *Service) gatewayQuotaPolicies(ctx context.Context, result *GatewayResul
 		revision := data.Revisions[item.Account]
 		createdAt := data.Created[item.Account]
 		if result.TeamID != "" {
-			// Team Session accounts are immutable identity projections, with no
-			// editable or inherited personal policy in this phase.
-			policy = limits.Policy{}
-			revision = "0"
 			if result.identity.team == nil {
 				return nil, nil, runtimeUnavailable
 			}
@@ -133,6 +132,8 @@ func quotaAccountCreated(db *gorm.DB, kind, scopeID string, projectKey bool) (ti
 		model = &entity.User{}
 	case "project":
 		model = &entity.Project{}
+	case "team":
+		model = &entity.Team{}
 	case "key":
 		if projectKey {
 			model = &entity.ProjectKey{}

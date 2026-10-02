@@ -1,4 +1,19 @@
 export default {
+  teamTitle: 'Team budgets, quotas and limits',
+  teamMemberTitle: 'Member resources',
+  teamMemberEdit: 'Adjust member resources',
+  teamHelp:
+    'Leave blank for no local cap. Zero blocks admission. Team and member policies apply together; saving never resets recorded usage.',
+  teamMemberHelp:
+    'Leave blank to inherit the current Team policy. Explicit member limits can only narrow it. The account and its recorded usage remain stable when membership changes.',
+  teamAboveParent: 'An explicit member limit cannot exceed the current Team maximum.',
+  teamReadOnlyField: 'This field requires its own platform policy permission.',
+  teamNoChanges: 'Change at least one editable limit before saving.',
+  teamUncertain:
+    'This change may already be saved. Retry the exact original change. Reloading the current policy does not resolve the earlier uncertain result.',
+  teamUncertainClosed:
+    'The previous change has an unknown result. Refresh shows the current policy; it does not confirm the original operation.',
+
   title: 'Resource limits',
   requests: 'Rate limits',
   budgetQuotas: 'Budget and quotas',

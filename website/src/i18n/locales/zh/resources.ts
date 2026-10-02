@@ -1,4 +1,6 @@
 export default {
+  limits: '预算、配额与限制',
+  memberResources: '调整成员资源',
   usage: '用量统计',
   overview: '概览',
   members: '成员',

@@ -6,7 +6,7 @@ import "time"
 // oldest immutable rotation ancestor, shared by overlapping credentials.
 type ResourceLimit struct {
 	ScopeKind    string `gorm:"primaryKey;size:20"`
-	ScopeID      string `gorm:"primaryKey;size:30"`
+	ScopeID      string `gorm:"primaryKey;size:64;not null"`
 	ETag         string `gorm:"size:64;not null"`
 	PreviousETag string `gorm:"size:64;not null"`
 	ActorID      string `gorm:"size:30;not null"`

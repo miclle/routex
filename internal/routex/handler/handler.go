@@ -63,6 +63,10 @@ func (ctrl *Ctrl) RegisterRoutes(r *fox.Engine) {
 	identity.GET("/admin/status", ctrl.requireSession, requireAdmin, ctrl.AdminStatus)
 
 	identity.GET("/teams", ctrl.requireSession, ctrl.ListTeams)
+	identity.GET("/teams/:team_id/limits", ctrl.requireSession, ctrl.GetTeamResourceLimit)
+	identity.PUT("/teams/:team_id/limits", ctrl.requireSession, sameOrigin, requireCSRF, jsonManagementRequest, ctrl.SetTeamResourceLimit)
+	identity.GET("/teams/:team_id/members/:user_id/limits", ctrl.requireSession, ctrl.GetTeamResourceLimit)
+	identity.PUT("/teams/:team_id/members/:user_id/limits", ctrl.requireSession, sameOrigin, requireCSRF, jsonManagementRequest, ctrl.SetTeamResourceLimit)
 	identity.GET("/teams/:team_id", ctrl.requireSession, ctrl.GetTeam)
 	identity.GET("/teams/:team_id/inference-models", ctrl.TeamGatewayModels)
 	identity.POST("/teams/:team_id/chat/completions", ctrl.TeamGatewayChat)

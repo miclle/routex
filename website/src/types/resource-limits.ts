@@ -31,7 +31,9 @@ export interface QuotaUsage {
   month: QuotaWindow | null
 }
 export interface LimitRecord {
-  kind: 'user' | 'project' | 'personal_key' | 'project_key'
+  kind: 'user' | 'project' | 'personal_key' | 'project_key' | 'team' | 'team_member'
+  team_id?: string
+  editable_fields?: TeamLimitField[]
   id: string
   account_id: string
   etag: string
@@ -46,5 +48,24 @@ export interface LimitRecord {
   enforced: boolean
 }
 export interface LimitInput extends LimitPolicy {
+  reason: string
+}
+
+export const teamLimitFields = [
+  'tokens_5h',
+  'tokens_7d',
+  'tokens_month',
+  'money_month',
+  'rpm',
+  'tpm',
+  'concurrency',
+] as const
+export type TeamLimitField = (typeof teamLimitFields)[number]
+export interface TeamLimitScope {
+  teamId: string
+  userId?: string
+}
+export type TeamLimitInput = Partial<Pick<LimitPolicy, TeamLimitField>> & {
+  currency?: string
   reason: string
 }

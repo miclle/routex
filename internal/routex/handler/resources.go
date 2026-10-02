@@ -18,13 +18,14 @@ type ResourcePersonResponse struct {
 	Status string `json:"status,omitempty"`
 }
 type TeamResponse struct {
-	ID          string                   `json:"id"`
-	Name        string                   `json:"name"`
-	Description string                   `json:"description"`
-	Status      string                   `json:"status"`
-	CreatedAt   time.Time                `json:"created_at"`
-	Members     []ResourcePersonResponse `json:"members"`
-	ModelIDs    []string                 `json:"model_ids"`
+	ResourceLimitWorkspaceOnly bool                     `json:"resource_limit_workspace_only,omitempty"`
+	ID                         string                   `json:"id"`
+	Name                       string                   `json:"name"`
+	Description                string                   `json:"description"`
+	Status                     string                   `json:"status"`
+	CreatedAt                  time.Time                `json:"created_at"`
+	Members                    []ResourcePersonResponse `json:"members"`
+	ModelIDs                   []string                 `json:"model_ids"`
 }
 type ProjectResponse struct {
 	RequestWorkspaceOnly bool                     `json:"request_workspace_only,omitempty"`
@@ -55,7 +56,7 @@ func resourcePeople(items []service.ResourcePerson) []ResourcePersonResponse {
 	return result
 }
 func teamResponse(item *service.ResourceRecord) *TeamResponse {
-	return &TeamResponse{ID: item.ID, Name: item.Name, Description: item.Description, Status: item.Status, CreatedAt: item.CreatedAt, Members: resourcePeople(item.Members), ModelIDs: item.ModelIDs}
+	return &TeamResponse{ResourceLimitWorkspaceOnly: item.ResourceLimitWorkspaceOnly, ID: item.ID, Name: item.Name, Description: item.Description, Status: item.Status, CreatedAt: item.CreatedAt, Members: resourcePeople(item.Members), ModelIDs: item.ModelIDs}
 }
 func projectResponse(item *service.ResourceRecord) *ProjectResponse {
 	return &ProjectResponse{RequestWorkspaceOnly: item.RequestWorkspaceOnly, ID: item.ID, Name: item.Name, Description: item.Description, Status: item.Status, CreatorID: item.CreatorID, CreatedAt: item.CreatedAt, Managers: resourcePeople(item.Managers), ModelIDs: item.ModelIDs}
@@ -257,4 +258,18 @@ func (project ProjectResponse) MarshalJSON() ([]byte, error) {
 	}
 	type plain ProjectResponse
 	return json.Marshal(plain(project))
+}
+
+func (team TeamResponse) MarshalJSON() ([]byte, error) {
+	if team.ResourceLimitWorkspaceOnly {
+		return json.Marshal(struct {
+			ID                         string `json:"id"`
+			Name                       string `json:"name"`
+			Description                string `json:"description"`
+			Status                     string `json:"status"`
+			ResourceLimitWorkspaceOnly bool   `json:"resource_limit_workspace_only"`
+		}{team.ID, team.Name, team.Description, team.Status, true})
+	}
+	type plain TeamResponse
+	return json.Marshal(plain(team))
 }

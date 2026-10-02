@@ -78,15 +78,27 @@ func projectLimitRoots(keys []entity.ProjectKey) (map[string]string, error) {
 }
 func compileRuntimeLimits(data *runtimeData) error {
 	data.LimitPolicies = map[string]limits.Policy{}
+	teamAccounts := runtimeTeamLimitAccounts(data)
 	for _, row := range data.Limits {
-		if row.ScopeKind != "user" && row.ScopeKind != "project" && row.ScopeKind != "key" {
+		if row.ScopeKind != "user" && row.ScopeKind != "project" && row.ScopeKind != "key" && row.ScopeKind != "team" && row.ScopeKind != "team_member" {
 			return limits.ErrInvalid
 		}
 		policy, err := policyFromRow(row)
 		if err != nil {
 			return err
 		}
-		data.LimitPolicies[limitAccount(row.ScopeKind, row.ScopeID)] = policy
+		account := limitAccount(row.ScopeKind, row.ScopeID)
+		if row.ScopeKind == "team" || row.ScopeKind == "team_member" {
+			if err := validateTeamLimitPolicy(row.ScopeKind, policy); err != nil {
+				return err
+			}
+			// Historical member policies survive removal, but only canonical
+			// current Team/member identities can contribute a live policy.
+			if _, exists := teamAccounts[account]; !exists {
+				continue
+			}
+		}
+		data.LimitPolicies[account] = policy
 	}
 	roots, err := personalLimitRoots(data.Keys)
 	if err != nil {
@@ -103,6 +115,35 @@ func compileRuntimeLimits(data *runtimeData) error {
 		}
 	}
 	return nil
+}
+
+// runtimeTeamLimitAccounts preserves the creation date already bound into the
+// Team journal. A replacement membership must never reset a stable pair account.
+func runtimeTeamLimitAccounts(data *runtimeData) map[string]time.Time {
+	accounts := map[string]time.Time{}
+	if data.TeamSessionData == nil {
+		return accounts
+	}
+	users := map[string]bool{}
+	for _, user := range data.Users {
+		if safeTeamSessionID(user.ID) && !user.Disabled && user.OffboardedAt == nil {
+			users[user.ID] = true
+		}
+	}
+	teams := map[string]time.Time{}
+	for _, team := range data.TeamSessionData.Teams {
+		if safeTeamSessionID(team.ID) && team.Status == entity.ResourceActive {
+			teams[team.ID] = team.CreatedAt
+			accounts[limitAccount("team", team.ID)] = team.CreatedAt
+		}
+	}
+	for _, member := range data.TeamSessionData.Memberships {
+		created, exists := teams[member.TeamID]
+		if exists && users[member.UserID] && safeTeamSessionID(member.ID) && member.Status == entity.ResourceActive && (member.Role == entity.TeamOwner || member.Role == entity.TeamMember) {
+			accounts[teamMemberLimitAccount(member.TeamID, member.UserID)] = created
+		}
+	}
+	return accounts
 }
 func (s *Service) denyLimitScope(kind, scopeID string) {
 	if s.runtime != nil {
@@ -129,7 +170,20 @@ func (s *Service) gatewayLimits(ctx context.Context, result *GatewayResult) ([]e
 		if err := s.ReauthorizeTeamSession(ctx, result.identity.team, result.ModelID); err != nil {
 			return nil, err
 		}
-		return []eventqueue.Limit{{Account: limitAccount("team", result.TeamID)}, {Account: teamMemberLimitAccount(result.TeamID, result.UserID)}}, nil
+		auth := s.runtime.auth.Load()
+		if auth == nil || !s.gatewayAttemptClock().Before(auth.ValidUntil) {
+			return nil, runtimeUnavailable
+		}
+		accounts := []string{limitAccount("team", result.TeamID), teamMemberLimitAccount(result.TeamID, result.UserID)}
+		output := make([]eventqueue.Limit, 0, len(accounts))
+		for _, account := range accounts {
+			if runtimeDenied(&s.runtime.deniedLimits, account) {
+				return nil, runtimeUnavailable
+			}
+			policy := auth.LimitPolicies[account]
+			output = append(output, eventqueue.Limit{Account: account, RPM: policy.RPM, Concurrency: policy.Concurrency})
+		}
+		return output, nil
 	}
 
 	parentKind, parentID := "user", result.UserID

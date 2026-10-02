@@ -49,7 +49,11 @@ func (s *Service) resourceQuotaUsage(db *gorm.DB, resolved resolvedLimitTarget) 
 		return result, nil
 	}
 	now := time.Now()
-	created, err := quotaAccountCreated(db, resolved.kind, resolved.id, resolved.parentKind == "project")
+	createdKind, createdID := resolved.kind, resolved.id
+	if resolved.kind == "team_member" {
+		createdKind, createdID = "team", resolved.teamID
+	}
+	created, err := quotaAccountCreated(db, createdKind, createdID, resolved.parentKind == "project")
 	if err != nil {
 		return nil, err
 	}
