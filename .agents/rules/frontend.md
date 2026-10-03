@@ -350,3 +350,28 @@ Unknown or unauthorized sections remain null, known empty counts remain zero,
 held and unknown usage remain separate and money stays exact. Refreshing or denied
 authority hides previous private sections. Unknown creation does not permit
 automatic replay or success inference.
+
+## Personal model requests
+
+Preserve the catalog card/table composition and 520px Model drawer. Use the
+separate minimal candidate endpoint for the Available to request filter. Request
+Personal access in the existing footer with a bounded reason and actor/model
+review; a Team grant never substitutes for a Personal grant. Candidate metadata
+is not a claim of Key or route eligibility.
+
+Keep request history/review within the Member Models tab and independent scoped
+workspace. `members.models.write` alone must not fetch a Member DTO, email, role
+directory, Keys or limits. Use current actor/target query keys and suppress
+cached private headers/cards while authority is renewed or denied. Preserve
+original UUID/body/If-Match through uncertain outcomes, explicit conflicts and
+rejected retries. Approval adds one Personal grant; present saved decisions and
+current applied/pending/superseded status separately. Never replay or restore a
+revoked grant automatically. Register paired personalModelRequests translations
+and test default English, live Chinese, nonself/permission boundaries and
+uncertain retries.
+
+Personal request history remains accessible through the existing catalogue action
+area regardless of current grants. Retain mounted history through renewed actor
+reads while hiding private rows, and refresh exact candidate detail independently
+of discovery. A captured committed response is historical; current application
+copy comes only from fresh authorized request detail.

@@ -90,3 +90,12 @@ roles; definition changes invalidate a previous review. Assignment writes and ro
 edits/deletion share the governance lock. Assigned roles cannot be deleted even
 when their Team is archived. Typed `team.roles.replace` audit records expose only
 bounded before/after role IDs, Team actions and required reason.
+
+## Independent Personal Model review
+
+`members.models.write` authorizes only target-scoped direct Model access and
+request review. It can be delegated independently of `members.read`,
+`members.write` and `models.write`; it reveals no Member email, role, Key or limit
+fields. Reviewers cannot approve themselves. See
+[Personal Model requests](PERSONAL_MODEL_REQUESTS.md) for exact reviewed decisions,
+current authority, additions-only grants and immutable receipt semantics.

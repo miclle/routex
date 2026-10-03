@@ -1,10 +1,10 @@
 # Current Work Handoff
 
-- **Status:** implementation active; F06 completed and pushed; F22 scoped Team reports pushed; F07 canonical authority pushed at 4c669dc; F17 defaults pushed at 35e279a; initial Project managers/Overview passed all local gates and are ready for phased main delivery
+- **Status:** implementation active; F07 initial managers/Overview pushed at 5006126 with exact green remote checks; F19 Personal Model requests are under final acceptance
 - **Updated:** 2026-10-04
 - **Repository / branch:** RouteX / `main`
-- **Previous checked source baseline:** `4c669dc057d477e073b66f176fafbc7b3396c084`, pushed and read back from `origin/main`
-- **Current owner:** coordinator owns final F07 acceptance and delivery; three owners implement isolated F19 Personal model requests
+- **Previous checked source baseline:** `5006126855e847dd88b6901bafbfbb00ee809158`, pushed and read back from `origin/main`
+- **Current owner:** coordinator owns F19 integration, final acceptance and delivery; three scoped owners maintain its isolated source
 - **Next owner:** current task continues the resumed goal
 - **Transport:** identify this checked delivery with `git log -1 -- docs/current-work-handoff.md` and independently verify its upstream
 - **Coordination plan:** `~/dotfiles/projects/routex/implementation-plan.md`; synchronize separately and preserve unrelated changes
@@ -1174,3 +1174,41 @@ owners resume the existing isolated source rather than restarting or replacing
 it: schema/real acceptance fixture, service/API and interface/tests. Keep this
 work outside the F07 phase commit. The original V42/current main fixture repairs
 must survive later integration.
+
+## Active F19 continuation, 2026-10-04
+
+The Personal Model request phase is verified and ready for its scoped main commit
+and push. V43 history/pending uniqueness/provenance, independent
+`members.models.write`, additions-only approval and immutable receipts are
+integrated. Existing Key ceilings do not expand. Shared routes preserve preceding
+Project creation/Overview, and the internal lifecycle compatibility repair accepts
+exact safe persisted User IDs without relaxing public request authorization.
+
+Final check/full test passed 1089 Vitest cases in 75 files, Go race, development
+lifecycle and production embedding. The five affected actual fixtures passed on
+both databases (363.965 seconds). Complete PostgreSQL/MySQL regression passed
+(Handler 834.672 seconds; Service 6.110 seconds); both real-process/native
+lifecycles passed. Controlled production browser/native/restart proof passed
+pending no-access, independent reviewer, old-Key ceiling, new-Key completion,
+revocation, original retry without restoration, stable history and superseded
+status. English/Chinese passed with English restored; no console errors remained.
+Owned resources were removed. The earlier failed 815.437-second matrix is recorded
+in the implementation index and is not treated as a successful run.
+
+Continue the already-partial F19 Team Model request package in the existing
+isolated managed worktree. Separate owners hold frozen V44/entities/acceptance,
+service/API and interface/tests. The coordinating task owns runtime provenance,
+typed audit projection, lifecycle hooks, retained Team grant sources and shared
+registration. One pending Team/Model slot is shared across applicants; capture the
+exact original membership, use independent `teams.models.write`, prohibit
+self-review and owner-only escalation, and retain own immutable history after
+membership loss. Approval changes only shared Team grants. An approved grant
+survives applicant departure; pending requests cancel on loss of eligibility.
+Existing grant replacements must retain unchanged canonical source records.
+
+Integrate only the Team-owned manifest and narrow shared deltas after Personal
+commit, preserving every preceding route, migration and UI fix. Run focused tests,
+full check/test, real dual-database migration/lifecycle, auth restart and controlled
+bilingual browser/native proof before a separate main commit/push. Continue the
+full active goal afterward. F19 further Team protocols and broader member
+facts remain open. Preserve protected worktrees and unrelated dotfiles changes.

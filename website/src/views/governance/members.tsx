@@ -1,3 +1,4 @@
+import { PersonalModelMemberPanel } from '@/views/personal-model-requests'
 import ResourceLimits from '@/views/resource-limits'
 import { useTranslation } from 'react-i18next'
 import { useState, type FormEvent } from 'react'
@@ -34,26 +35,37 @@ function Members() {
   const session = useSession()
   const cache = useQueryClient()
   const navigate = useNavigate()
+  const actor = session.isError ? '' : (session.data?.user.id ?? '')
+  const authorized =
+    !!actor &&
+    !session.isFetching &&
+    !access.isError &&
+    !access.isFetching &&
+    access.can('members.read')
   const [filters, setFilters] = useState<MemberFilters>({})
   const [creating, setCreating] = useState(false)
   const [statusTarget, setStatusTarget] = useState<Member | null>(null)
   const [validation, setValidation] = useState<'members.passwordValidation' | null>(null)
   const members = useInfiniteQuery({
-    queryKey: ['admin', 'members', filters],
+    queryKey: ['admin', 'members', actor, filters],
     queryFn: ({ pageParam, signal }) => getMembers(filters, pageParam, signal),
     initialPageParam: null as string | null,
     getNextPageParam: (page) => page.next_cursor ?? undefined,
-    enabled: !memberId,
+    enabled: !memberId && authorized,
   })
   const member = useQuery({
-    queryKey: ['admin', 'member', memberId],
+    queryKey: ['admin', 'member', actor, memberId],
     queryFn: ({ signal }) => getMember(memberId!, signal),
-    enabled: !!memberId,
+    enabled: !!memberId && authorized,
+    retry: false,
+    staleTime: 0,
+    gcTime: 0,
+    refetchOnMount: 'always',
   })
   const roles = useQuery({
-    queryKey: ['admin', 'roles'],
+    queryKey: ['admin', 'roles', actor],
     queryFn: ({ signal }) => getRoles(signal),
-    enabled: !!memberId && access.can('roles.read'),
+    enabled: !!memberId && authorized && access.can('roles.read'),
   })
   const mutation = useMutation({
     mutationFn: ({
@@ -69,7 +81,7 @@ function Members() {
     onSuccess: (result, input) => {
       setCreating(false)
       setStatusTarget(null)
-      cache.setQueryData(['admin', 'member', result.id], result)
+      cache.setQueryData(['admin', 'member', actor, result.id], result)
       void cache.invalidateQueries({ queryKey: ['admin', 'members'] })
       void cache.invalidateQueries({ queryKey: ['permissions'] })
       void cache.invalidateQueries({ queryKey: ['auth', 'session'] })
@@ -108,7 +120,7 @@ function Members() {
       : role.builtin && role.id === 'rol_member'
         ? t('common.member')
         : role.name
-  const current = member.data
+  const current = authorized && member.isSuccess && !member.isFetching ? member.data : undefined
   const currentRoles =
     roles.data?.items.filter(
       (role) =>
@@ -251,7 +263,7 @@ function Members() {
       {memberId && (
         <>
           <QueryState
-            pending={member.isPending}
+            pending={member.isFetching}
             error={member.error}
             retry={() => void member.refetch()}
           />
@@ -284,9 +296,12 @@ function Members() {
               </section>
               <Tabs
                 value={
-                  ['overview', 'settings', ...(access.can('roles.read') ? ['roles'] : [])].includes(
-                    params.get('tab') || '',
-                  )
+                  [
+                    'overview',
+                    'settings',
+                    ...(access.can('members.models.write') ? ['models'] : []),
+                    ...(access.can('roles.read') ? ['roles'] : []),
+                  ].includes(params.get('tab') || '')
                     ? params.get('tab')!
                     : 'overview'
                 }
@@ -298,6 +313,15 @@ function Members() {
                   <TabsTrigger value="overview">{t('members.overview')}</TabsTrigger>
                   {access.can('roles.read') && (
                     <TabsTrigger value="roles">{t('members.rolesTab')}</TabsTrigger>
+                  )}
+                  {access.can('members.models.write') && (
+                    <TabsTrigger
+                      value="models"
+                      id={`member-models-tab-${actor}-${memberId}`}
+                      aria-controls={`member-models-panel-${actor}-${memberId}`}
+                    >
+                      {t('personalModelRequests:title')}
+                    </TabsTrigger>
                   )}
                   <TabsTrigger value="settings">{t('members.settings')}</TabsTrigger>
                 </TabsList>
@@ -484,6 +508,19 @@ function Members() {
                 </TabsContent>
               </Tabs>
             </>
+          )}
+          {params.get('tab') === 'models' && (
+            <section
+              role="tabpanel"
+              id={`member-models-panel-${actor}-${memberId}`}
+              aria-labelledby={`member-models-tab-${actor}-${memberId}`}
+            >
+              <PersonalModelMemberPanel
+                key={`${actor}:${memberId}`}
+                owner={memberId}
+                visible={!!current && access.can('members.models.write')}
+              />
+            </section>
           )}
         </>
       )}

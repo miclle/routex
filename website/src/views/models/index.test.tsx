@@ -6,6 +6,7 @@ import { AxiosError, AxiosHeaders, CanceledError, type InternalAxiosRequestConfi
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import client from '@/api/client'
 import i18n from '@/i18n'
+import type { PersonalModelRequestDetail } from '@/types/personal-model-requests'
 import type { ModelAccessSource, ModelCatalogRecord } from '@/types/model-catalog'
 import ModelsPage from './index'
 
@@ -23,6 +24,7 @@ let models: ModelCatalogRecord[], requests: InternalAxiosRequestConfig[]
 let actorID: string,
   failures: Record<string, number>,
   detailOverrides: Record<string, ModelCatalogRecord>
+let pendingRequest: PersonalModelRequestDetail | null
 let detailBarrier: { promise: Promise<void>; release: () => void } | undefined
 const writeText = vi.fn<(value: string) => Promise<void>>()
 
@@ -68,6 +70,7 @@ beforeEach(async () => {
   failures = {}
   detailOverrides = {}
   detailBarrier = undefined
+  pendingRequest = null
   actorID = 'usr_current'
   writeText.mockReset().mockResolvedValue(undefined)
   Object.defineProperty(navigator, 'clipboard', { configurable: true, value: { writeText } })
@@ -108,7 +111,65 @@ beforeEach(async () => {
       const record = detailOverrides[id] ?? models.find((item) => item.id === id)
       if (!record) throw new Error(`Unexpected detail ${id}`)
       response.data = structuredClone(record)
-    } else throw new Error(`Unexpected request ${config.url}`)
+    } else if (
+      config.url === '/model-access-candidates' ||
+      config.url?.startsWith('/model-access-candidates/')
+    ) {
+      const records = models.map((item) => ({
+        id: item.id,
+        name: item.name,
+        status: item.status,
+        created_at: item.created_at,
+        protocols: item.protocols,
+        input_capabilities: item.input_capabilities,
+        personal_granted: item.sources.some((source) => source.type === 'personal'),
+        pending_request_id: pendingRequest?.model_id === item.id ? pendingRequest.id : null,
+        review_etag: 'a'.repeat(64),
+      }))
+      response.data =
+        config.url === '/model-access-candidates'
+          ? {
+              items: records.filter((item) => item.id !== pendingRequest?.model_id),
+              next_cursor: null,
+            }
+          : records.find(
+              (item) => item.id === config.url!.slice('/model-access-candidates/'.length),
+            )
+    } else if (config.url === '/auth/permissions') response.data = { permissions: [] }
+    else if (config.url === '/personal-model-requests' && config.method === 'post') {
+      const body = JSON.parse(config.data)
+      const item = models.find((item) => item.id === body.model_id)!
+      pendingRequest = {
+        id: 'mar_pending',
+        request_id: body.request_id,
+        applicant_user_id: actorID,
+        applicant_name: 'Member',
+        model_id: body.model_id,
+        model_name: item.name,
+        reason: body.reason,
+        status: 'pending',
+        created_at: item.created_at,
+        updated_at: item.created_at,
+        resolved_at: null,
+        cancelled_reason: null,
+        decision: null,
+        current_model: { id: item.id, name: item.name, status: 'active' },
+        current_granted: false,
+        review_etag: 'b'.repeat(64),
+        allowed_actions: ['withdraw'],
+        runtime_applied: false,
+        application_status: 'pending',
+      }
+      response.data = structuredClone(pendingRequest)
+    } else if (config.url === '/personal-model-requests')
+      response.data = {
+        items: pendingRequest ? [structuredClone(pendingRequest)] : [],
+        total: pendingRequest ? 1 : 0,
+        next_cursor: null,
+      }
+    else if (config.url === '/personal-model-requests/mar_pending')
+      response.data = structuredClone(pendingRequest)
+    else throw new Error(`Unexpected request ${config.url}`)
     return response
   }
 })
@@ -595,6 +656,100 @@ describe('Authorized member model catalogue', () => {
     expect(drawer().querySelector('pre')).toBeNull()
     expect(host.querySelector('select[aria-label="输入能力"]')).not.toBeNull()
     expect(host.textContent).toContain('个人可接入模型')
-    expect(requests).toHaveLength(3)
+    await until(() =>
+      expect(drawer().querySelector('[aria-label="申请个人访问权限"]')).not.toBeNull(),
+    )
+    expect(requests.some((request) => request.url?.startsWith('/model-access-candidates/'))).toBe(
+      true,
+    )
+  })
+
+  it('retains scoped own history access after every visible model has a Personal grant', async () => {
+    models = [model('personal')]
+    await mount()
+    await act(async () => button('My model requests').click())
+    await until(() => expect(drawer().textContent).toContain('No recorded model requests.'))
+    expect(requests.some((request) => request.url === '/personal-model-requests')).toBe(true)
+    expect(requests.some((request) => request.url?.startsWith('/admin/'))).toBe(false)
+    expect(requests.some((request) => request.url?.startsWith('/model-access-candidates'))).toBe(
+      false,
+    )
+    expect(requests.every((request) => request.method === 'get')).toBe(true)
+  })
+
+  it('discovers request candidates only after the explicit source filter and never exposes personal examples', async () => {
+    models = [model('personal'), model('candidate', ['openai_chat'], [])]
+    await mount()
+    expect(requests.some((request) => request.url === '/model-access-candidates')).toBe(false)
+    await select('Access source', 'requestable')
+    await until(() => expect(visibleNames()).toEqual(['candidate']))
+    expect(statistic('Total models')).toBe('—')
+    await open('candidate')
+    await until(() => expect(button('Submit request')).toBeDefined())
+    expect(drawer().querySelector('pre')).toBeNull()
+    expect(button('Copy').disabled).toBe(true)
+    expect(drawer().querySelector('a[href="/keys"]')).toBeNull()
+    expect(requests.some((request) => request.url === '/model-catalog/mdl_candidate')).toBe(false)
+    expect(requests.filter((request) => request.url === '/model-access-candidates')).toHaveLength(1)
+  })
+
+  it('retains independently authorized pending details when a submitted model disappears from discovery', async () => {
+    models = [model('pending-candidate', ['openai_chat'], [])]
+    await mount()
+    await select('Access source', 'requestable')
+    await until(() => expect(visibleNames()).toEqual(['pending-candidate']))
+    await open('pending-candidate')
+    await until(() => expect(button('Submit request')).toBeDefined())
+    const reason = drawer().querySelector('textarea')!
+    await act(async () => {
+      Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value')!.set!.call(
+        reason,
+        'Pending research need',
+      )
+      reason.dispatchEvent(new Event('input', { bubbles: true }))
+    })
+    await act(async () => button('Submit request').click())
+    await until(() => {
+      expect(visibleNames()).toEqual([])
+      expect(drawer().querySelector('h2.break-words')?.textContent).toBe('pending-candidate')
+      expect(drawer().textContent).toContain('Personal access requested')
+      expect(drawer().textContent).toContain('Pending research need')
+      expect(drawer().querySelector('table')?.textContent).toContain('Pending')
+    })
+    const sessionReads = requests.filter((request) => request.url === '/auth/session').length
+    await act(async () => new Promise((resolve) => setTimeout(resolve, 50)))
+    expect(requests.filter((request) => request.url === '/auth/session')).toHaveLength(sessionReads)
+    expect(drawer().querySelector('h2.break-words')?.textContent).toBe('pending-candidate')
+    expect(drawer().querySelector('pre')).toBeNull()
+    expect(requests.filter((request) => request.method === 'post')).toHaveLength(1)
+    expect(
+      requests.filter((request) => request.url === '/model-access-candidates/mdl_pending-candidate')
+        .length,
+    ).toBeGreaterThanOrEqual(4)
+    await act(async () => button('Request details').click())
+    await until(() =>
+      expect([...document.querySelectorAll('[role="dialog"]')].at(-1)?.textContent).toContain(
+        'Pending research need',
+      ),
+    )
+    expect(requests.some((request) => request.url === '/personal-model-requests/mar_pending')).toBe(
+      true,
+    )
+  })
+
+  it('offers Personal requests for a Team-only model while preserving named Team Chat access', async () => {
+    models = [
+      model(
+        'team-request',
+        ['openai_chat'],
+        [{ ...team('tea_live', 'Live'), invocation_protocols: ['openai_chat'] }],
+      ),
+    ]
+    await mount()
+    await open('team-request')
+    await until(() => expect(button('Submit request')).toBeDefined())
+    expect(drawer().querySelector('a[href^="/playground?team=tea_live"]')).not.toBeNull()
+    expect(drawer().querySelector('pre')).toBeNull()
+    expect(requests.every((request) => request.method === 'get')).toBe(true)
   })
 })

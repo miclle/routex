@@ -169,7 +169,7 @@ The binary capability count is 10 completed, 17 partially completed, and 3 not s
 | F16 | Platform currency, exchange rates, and historical price snapshots | Completed | Decimal-string currency/rate management, exact quoting, and immutable per-call assessment are implemented. |
 | F17 | User and Team defaults, overrides, budgets, alerts, and stop policy | Partially completed | Personal, Project, Key and Team aggregate/member enforcement plus budget/token/TPM controls, authoritative quota snapshots, and installation-calendar configuration exist; current-policy Personal/Project monthly settled-exhaustion inboxes have focused acceptance, and creation-default settings and explicit restores have complete local acceptance; templates, broader alerts, and configurable stop-calling policy remain open. |
 | F18 | Quota, model, and request-limit approvals | Completed | Project model/monthly quota/RPM/TPM/concurrency and Team monthly Token/money requests have controlled acceptance: owner-first assignment, escalation, independent dimensions, read-only platform records, atomic final policies and immutable receipts with current application. Distributed acknowledgements belong to F30; release-wide acceptance remains separate. |
-| F19 | Member overview, model sources, requests, and examples | Partially completed | Actor-scoped Personal/Team source attribution, native metadata, filters, details and examples are available; Project requests and text-only native Chat Team Sessions exist; Personal/Team model-request coverage, further Team protocols and broader price/usage facts remain open. |
+| F19 | Member overview, model sources, requests, and examples | Partially completed | Actor-scoped Personal/Team source attribution, native metadata, filters, details and examples are available; Project requests and text-only native Chat Team Sessions exist; Personal single-Model requests and independent scoped review are available; Team model requests, further Team protocols and broader price/usage facts remain open. |
 | F20 | Playground, comparison, attachments, and code examples | Partially completed | Four native conversation paths, two-to-four-lane comparison, cancellation, executable examples, per-protocol image/PDF discovery, user/Project attachment resolution, single/comparison attachment lifecycle interfaces, and conservative token/TPM/money admission with exact per-occurrence media prices exist; external acceptance remains open. |
 | F21 | Personal, Project, and platform call records and CSV | Completed | Isolated list/detail queries, incremental loading, redacted drawers, bounded server-side CSV export, filter parity, formula protection, and bilingual download actions are implemented with dual-database evidence. |
 | F22 | Usage trends, amounts, and multidimensional filters | Partially completed | Personal, Team, Project and platform usage interfaces plus immutable Provider attribution exist. Current-member Team aggregation, independent historical platform filters, revocation-safe interfaces and controlled replay/restart are accepted; complete freshness/capacity acceptance remains open. |
@@ -2003,3 +2003,47 @@ restoration and process restart. English/Chinese switching passed. The QA-only
 wait separately observes journal settlement and durable call delivery, comparing
 the same UTC instant without replaying inference. Initial resource configuration
 and combined creation requests remain open; F07 is not marked complete.
+
+
+### F19 Personal Model requests: verified delivery, 2026-10-04
+
+Frozen GORM V43 stores request history, unique pending slots and nullable direct
+grant provenance. [Personal Model requests](PERSONAL_MODEL_REQUESTS.md) use
+independent `members.models.write`, exact scoped review, additions-only approval
+and immutable terminal receipts. Approval does not expand an existing Key's
+Model ceiling. Disablement and offboarding cancel pending requests atomically.
+Current published provenance distinguishes original application from a superseded
+approval; historical retries never recreate revoked grants.
+
+The existing catalogue drawer and Member Models workspace retain their layout.
+An independently authorized minimal workspace does not expose Member directory,
+profile, role or Key data. English/Chinese current and historical status copy
+remains separate. Browser acceptance found and repaired a session-refresh remount
+loop and stale captured-response application copy, with focused regressions.
+
+Final mandatory check and full test passed 1089 frontend cases in 75 files, Go
+race tests, development lifecycle and production embedding. The five affected
+actual database fixtures passed on both drivers (363.965 seconds). The final
+complete PostgreSQL/MySQL race matrix passed (Handler 834.672 seconds; Service
+6.110 seconds), and both real-process authentication/native lifecycles passed.
+Controlled production browser/native/restart proof passed pending no-access,
+independent reviewer access, old-Key ceilings, new-Key completion, revocation,
+original receipt retry without restoration, stable pending history and fresh
+superseded status. English was restored, console errors were absent and owned
+processes, tabs and Compose resources were removed. No external-provider
+acceptance is claimed.
+
+Earlier fixture failures involved pinned PostgreSQL DropIndex syntax, the alias
+authentication error expectation and a missing persisted receipt comparison
+baseline. The first complete matrix also exposed legacy persisted User IDs
+rejected by the new lifecycle cancellation helper and omitted prior Project
+creation/Overview routes. Exact safe persisted identities are now accepted only
+at that internal lifecycle boundary; public request identity rules remain strict.
+The prior routes are restored. The failed 815.437-second matrix remains a failed
+run; the corrected final gates above supply delivery evidence.
+
+The preceding `5006126` exact CI 37138830271, Actionlint 37138830243 and
+GolangCI-Lint 37138830247 succeeded. F19 remains partial for Team requests,
+further Team protocols and broader overview/price/usage facts. Three owners are
+implementing Team schema/acceptance, API and interface work separately. Capability
+totals remain 10 complete, 17 partial and 3 unstarted; the full goal remains active.

@@ -444,3 +444,11 @@ remain unfinished; full F19 and external-provider acceptance are not established
 The complete PostgreSQL/MySQL race integration matrix also passed (Handler
 488.717 seconds, Service 5.727 seconds). This does not establish external-provider
 or full-platform acceptance.
+
+## Personal access requests
+
+[Personal Model requests](PERSONAL_MODEL_REQUESTS.md) expose a separate minimal
+candidate catalogue and scoped history through the existing catalogue composition.
+A pending request creates no grant; approval adds only direct Personal access and
+never expands an existing Key. Granted discovery and Team sources retain their
+existing authorization contracts.

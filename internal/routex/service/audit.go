@@ -39,7 +39,7 @@ type AuditPage struct {
 }
 
 var auditCategories = map[string][]string{
-	"models":      {"model", "provider_model", "model_name", "binding", "model_provider_binding", "user_model_grant", "team_model_grant", "project_model_grant"},
+	"models":      {"personal_model_request", "model", "provider_model", "model_name", "binding", "model_provider_binding", "user_model_grant", "team_model_grant", "project_model_grant"},
 	"keys":        {"api_key", "project_api_key"},
 	"limits":      {"key", "user", "user_default", "team", "team_member", "team_member_default", "project", "team_quota_request", "default_limit"},
 	"credentials": {"credential", "provider_credential", "provider", "connection"},
@@ -81,6 +81,13 @@ func auditRecord(row entity.AuditEvent) AuditRecord {
 	// never become an accidental credential/request-body read API.
 	var changes any
 	switch row.Action {
+	case "personal.model_request.create", "personal.model_request.approve", "personal.model_request.reject", "personal.model_request.withdraw", "personal.model_request.cancel":
+		var valid bool
+		changes, valid = personalModelAuditProjection(row)
+		if !valid {
+			return result
+		}
+
 	case "limits.defaults.update", "limits.default.apply", "limits.default.reset":
 		var valid bool
 		changes, valid = defaultLimitAuditProjection(row)

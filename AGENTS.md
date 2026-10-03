@@ -392,3 +392,20 @@ strings, at most five typed activities and real immutable last-call facts. Journ
 settlement and SQL call delivery are independent; never invent a last call from
 quota use. Suppress private cards and actions while refreshing actor/Project
 authority, and never replay uncertain creation automatically.
+
+Personal model access requests use the existing catalog drawer footer and Member
+Models tab. A separate minimal requestable directory does not grant invocation
+or expose administrative catalog facts. Reviewer access requires independent
+`members.models.write` and never borrows `members.read` or `members.write`.
+Approvals add one Personal grant only, retain immutable UUID/review receipts and
+never expand existing Key scopes. Original retries cannot restore later revoked
+grants; exact private source markers distinguish current application from saved
+history. Unknown creation/decision intent survives every rejected retry. Keep
+actor/target privacy, fresh authority, paired `personalModelRequests` translations
+and native authorization-negative coverage.
+
+Personal request history remains accessible through the existing catalogue action
+area regardless of current grants. Retain mounted history through renewed actor
+reads while hiding private rows, and refresh exact candidate detail independently
+of discovery. A captured committed response is historical; current application
+copy comes only from fresh authorized request detail.

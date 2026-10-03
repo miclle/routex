@@ -439,3 +439,29 @@ describe('member governance', () => {
     expect(document.querySelector('[role="dialog"]')?.textContent).toContain('允许动作')
   })
 })
+
+describe('Member detail fresh private authority', () => {
+  it('hides cached member details and actions after a renewed target read is rejected', async () => {
+    await mount('/admin/members/usr_target?tab=settings')
+    await until(() => expect(container.textContent).toContain('target@example.invalid'))
+    failures['get /admin/members/usr_target'] = 403
+    await act(async () => {
+      void cache.invalidateQueries({ queryKey: ['admin', 'member'] })
+    })
+    await until(() => expect(container.querySelector('[role="alert"]')).not.toBeNull())
+    expect(container.textContent).not.toContain('target@example.invalid')
+    expect(container.textContent).not.toContain('Target')
+  })
+  it('does not reuse another actor member detail after an account switch', async () => {
+    await mount('/admin/members/usr_target')
+    await until(() => expect(container.textContent).toContain('target@example.invalid'))
+    failures['get /admin/members/usr_target'] = 403
+    session = { ...session, user: { ...session.user, id: 'usr_next' } }
+    await act(async () => cache.setQueryData(['auth', 'session'], structuredClone(session)))
+    await until(() => expect(container.querySelector('[role="alert"]')).not.toBeNull())
+    expect(container.textContent).not.toContain('target@example.invalid')
+    expect(requests.filter((request) => request.url === '/admin/members/usr_target')).toHaveLength(
+      2,
+    )
+  })
+})

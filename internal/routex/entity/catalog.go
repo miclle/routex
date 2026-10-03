@@ -90,7 +90,8 @@ type ModelProviderBinding struct {
 }
 
 type UserModelGrant struct {
-	UserID    string `gorm:"primaryKey;size:30"`
-	ModelID   string `gorm:"primaryKey;size:30"`
-	CreatedAt time.Time
+	SourceRequestID *string `gorm:"column:source_request_id;size:30;check:ck_user_model_grant_source,source_request_id IS NULL OR (CHAR_LENGTH(source_request_id) >= 1 AND CHAR_LENGTH(source_request_id) <= 30)"`
+	UserID          string  `gorm:"primaryKey;size:30"`
+	ModelID         string  `gorm:"primaryKey;size:30"`
+	CreatedAt       time.Time
 }

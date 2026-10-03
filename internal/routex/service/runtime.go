@@ -53,6 +53,7 @@ type gatewayRuntime struct {
 }
 
 type runtimeAuthorization struct {
+	PersonalGrantSources   map[string]map[string]string
 	SourceDigest           string
 	CredentialRevisions    map[string]string
 	ProviderModelRevisions map[string]string
@@ -462,6 +463,7 @@ func (s *Service) loadRuntimeData(ctx context.Context) (*runtimeData, error) {
 
 func buildRuntimeAuthorization(data *runtimeData, until time.Time) *runtimeAuthorization {
 	auth := &runtimeAuthorization{
+		PersonalGrantSources:   map[string]map[string]string{},
 		CredentialRevisions:    map[string]string{},
 		ProviderModelRevisions: map[string]string{},
 		Quota:                  data.Quota,
@@ -497,6 +499,12 @@ func buildRuntimeAuthorization(data *runtimeData, until time.Time) *runtimeAutho
 			grants[grant.UserID] = map[string]bool{}
 		}
 		grants[grant.UserID][grant.ModelID] = true
+		if grant.SourceRequestID != nil && users[grant.UserID] && auth.Models[grant.ModelID] {
+			if auth.PersonalGrantSources[grant.UserID] == nil {
+				auth.PersonalGrantSources[grant.UserID] = map[string]string{}
+			}
+			auth.PersonalGrantSources[grant.UserID][grant.ModelID] = *grant.SourceRequestID
+		}
 	}
 	scopes := map[string][]string{}
 	for _, scope := range data.Scopes {

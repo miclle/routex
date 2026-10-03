@@ -1,13 +1,16 @@
 import { useState } from 'react'
-import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { useInfiniteQuery, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { Bot, Grid2X2, List, RefreshCw } from 'lucide-react'
+import { listPersonalModelCandidates } from '@/api/personal-model-requests'
 import { listModelCatalog, modelCatalogError } from '@/api/model-catalog'
 import { Page } from '@/components/app/CatalogUI'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Table } from '@/components/ui/table'
+import { Dialog } from '@/components/ui/dialog'
+import RequestPanel from '@/views/personal-model-requests/requests'
 import { useSession } from '@/hooks/use-auth'
 import { protocolLabel, protocolLabels } from '@/lib/protocols'
 import type { ModelCatalogRecord, ModelInputCapability } from '@/types/model-catalog'
@@ -40,8 +43,40 @@ export default function ModelsPage() {
   const [protocol, setProtocol] = useState('all')
   const [capability, setCapability] = useState<'all' | ModelInputCapability>('all')
   const [view, setView] = useState('card')
+  const [history, setHistory] = useState(false)
   const [selectedID, setSelectedID] = useState<string | null>(null)
-  const records = actorID && models.isSuccess && !models.isFetching ? models.data : []
+  const requesting = source === 'requestable'
+  const candidates = useInfiniteQuery({
+    queryKey: ['personal-model-candidates', actorID, query],
+    queryFn: ({ pageParam, signal }) => listPersonalModelCandidates(query, pageParam, signal),
+    initialPageParam: null as string | null,
+    getNextPageParam: (page) => page.next_cursor ?? undefined,
+    enabled: !!actorID && requesting,
+    retry: false,
+    staleTime: 0,
+    gcTime: 0,
+    refetchOnMount: 'always',
+    refetchOnWindowFocus: false,
+  })
+  const candidateRecords: ModelCatalogRecord[] =
+    actorID && !session.isFetching && candidates.isSuccess && !candidates.isFetching
+      ? candidates.data.pages
+          .flatMap((page) => page.items)
+          .filter((item) => !item.personal_granted)
+          .map((item) => ({
+            id: item.id,
+            name: item.name,
+            status: item.status,
+            created_at: item.created_at,
+            protocols: item.protocols,
+            input_capabilities: item.input_capabilities,
+            personal_available: false,
+            sources: [],
+          }))
+      : []
+  const grantedRecords =
+    actorID && !session.isFetching && models.isSuccess && !models.isFetching ? models.data : []
+  const records = requesting ? candidateRecords : grantedRecords
   const sources = orderedModelSources([
     ...new Map(
       records.flatMap((model) => model.sources).map((item) => [modelSourceKey(item), item]),
@@ -51,13 +86,21 @@ export default function ModelsPage() {
   const items = records.filter(
     (model) =>
       model.name.toLowerCase().includes(query.toLowerCase()) &&
-      (source === 'all' || model.sources.some((item) => modelSourceKey(item) === source)) &&
+      (source === 'all' ||
+        requesting ||
+        model.sources.some((item) => modelSourceKey(item) === source)) &&
       (protocol === 'all' || knownModelProtocols(model).includes(protocol)) &&
       (capability === 'all' || declaredCapabilities(model, protocol).includes(capability)),
   )
-  const busy = session.isPending || (!!actorID && models.isFetching)
-  const error = session.error ?? models.error
-  const current = !!actorID && models.isSuccess && !models.isFetching
+  const busy =
+    session.isFetching || (!!actorID && (requesting ? candidates.isFetching : models.isFetching))
+  const error = session.error ?? (requesting ? candidates.error : models.error)
+  const current =
+    !!actorID &&
+    !session.isFetching &&
+    (requesting
+      ? candidates.isSuccess && !candidates.isFetching
+      : models.isSuccess && !models.isFetching)
   const date = (value: string) => {
     const parsed = new Date(value)
     return Number.isNaN(parsed.valueOf())
@@ -91,7 +134,7 @@ export default function ModelsPage() {
         ].map(([label, value]) => (
           <div key={label}>
             <p className="text-sm text-muted-foreground">{label}</p>
-            <p className="mt-1 text-2xl">{current ? value : '—'}</p>
+            <p className="mt-1 text-2xl">{current && !requesting ? value : '—'}</p>
           </div>
         ))}
       </div>
@@ -114,6 +157,7 @@ export default function ModelsPage() {
           className="h-9 rounded-md border bg-background px-3 text-sm"
         >
           <option value="all">{t('memberModels.allSources')}</option>
+          <option value="requestable">{t('personalModelRequests:discovery')}</option>
           {sources.map((item) => (
             <option key={modelSourceKey(item)} value={modelSourceKey(item)}>
               {item.type === 'personal' ? t('memberModels.personalGrant') : item.team_name}
@@ -154,13 +198,22 @@ export default function ModelsPage() {
                   queryKey: ['model-catalog', 'detail', actorID, selectedID],
                   exact: true,
                 })
-              void models.refetch()
+              if (requesting) void candidates.refetch()
+              else void models.refetch()
             } else void session.refetch()
           }}
           aria-label={t('memberModels.refreshCatalogue')}
         >
           <RefreshCw className="size-4" />
           {t('memberModels.refreshCatalogue')}
+        </Button>
+        <Button
+          variant="outline"
+          size="sm"
+          disabled={!actorID || session.isFetching}
+          onClick={() => setHistory(true)}
+        >
+          {t('personalModelRequests:ownHistory')}
         </Button>
       </div>
       <div className="flex items-center justify-between gap-4">
@@ -314,11 +367,32 @@ export default function ModelsPage() {
           </tbody>
         </Table>
       )}
+      {requesting && current && candidates.hasNextPage && (
+        <Button
+          variant="outline"
+          disabled={candidates.isFetchingNextPage}
+          onClick={() => void candidates.fetchNextPage()}
+        >
+          {t('personalModelRequests:loadMore')}
+        </Button>
+      )}
+      {actorID && history && (
+        <Dialog
+          open
+          onOpenChange={setHistory}
+          title={t('personalModelRequests:ownHistory')}
+          description={t('personalModelRequests:sourceHelp')}
+        >
+          <RequestPanel key={actorID} visible={!session.isFetching && !session.isError} />
+        </Dialog>
+      )}
       {actorID && selectedID && (
         <ModelAccess
           key={`${actorID}:${selectedID}`}
           actorID={actorID}
           modelID={selectedID}
+          requestable={requesting}
+          visible={!session.isFetching && !session.isError}
           onClose={() => setSelectedID(null)}
         />
       )}

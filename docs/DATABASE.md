@@ -271,3 +271,17 @@ PostgreSQL/MySQL migration and feature focus passed in 243.032 seconds; the fina
 complete regression matrix passed (Handler 808.330 seconds; Service 6.035 seconds). See
 [default limit contracts](DEFAULT_LIMITS.md) for atomic creation, explicit restore
 and immutable uncertain-intent boundaries.
+
+## Version 43: Personal Model request history
+
+Frozen additive GORM V43 creates `personal_model_requests` and
+`personal_model_request_pending_slots`, adds nullable
+`user_model_grants.source_request_id`, and seeds `members.models.write` only on
+`rol_admin`. The separate composite pending slot permits one current request per
+applicant/Model without preventing later requests after a terminal decision.
+Nullable globally unique decision UUIDs and status/receipt checks retain original
+terminal evidence. Historical names and identities have no live-resource foreign
+keys. Legacy grants keep null provenance and unchanged timestamps. Column, guard,
+index and permission repair tolerate partial DDL without altering released
+V1–V42. Real dual-database migration and complete race acceptance passed; see
+[the request contract](PERSONAL_MODEL_REQUESTS.md).

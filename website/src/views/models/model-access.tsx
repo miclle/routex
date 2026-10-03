@@ -3,6 +3,9 @@ import { useQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router'
 import { Bot, Copy, RefreshCw } from 'lucide-react'
+import { getPersonalModelCandidate } from '@/api/personal-model-requests'
+import PersonalAccessRequest from '@/views/personal-model-requests/request'
+import type { ModelCatalogRecord } from '@/types/model-catalog'
 import { getModelCatalogRecord, modelCatalogError } from '@/api/model-catalog'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -19,16 +22,36 @@ import {
 export default function ModelAccess({
   actorID,
   modelID,
+  requestable = false,
+  visible = true,
   onClose,
 }: {
   actorID: string
   modelID: string
+  requestable?: boolean
+  visible?: boolean
   onClose: () => void
 }) {
   const { t } = useTranslation('catalog')
+  const [requestBusy, setRequestBusy] = useState(false)
   const query = useQuery({
-    queryKey: ['model-catalog', 'detail', actorID, modelID],
-    queryFn: ({ signal }) => getModelCatalogRecord(modelID, signal),
+    queryKey: requestable
+      ? ['personal-model-candidate-drawer', actorID, modelID]
+      : ['model-catalog', 'detail', actorID, modelID],
+    queryFn: async ({ signal }): Promise<ModelCatalogRecord> => {
+      if (!requestable) return getModelCatalogRecord(modelID, signal)
+      const candidate = await getPersonalModelCandidate(modelID, signal)
+      return {
+        id: candidate.id,
+        name: candidate.name,
+        status: candidate.status,
+        created_at: candidate.created_at,
+        protocols: candidate.protocols,
+        input_capabilities: candidate.input_capabilities,
+        sources: [],
+        personal_available: false,
+      }
+    },
     retry: false,
     gcTime: 0,
     refetchOnMount: 'always',
@@ -40,7 +63,14 @@ export default function ModelAccess({
     null,
   )
   // Earlier catalogue authorization cannot authorize a refreshed resource detail.
-  const model = query.isSuccess && !query.isFetching ? query.data : undefined
+  const model = visible && query.isSuccess && !query.isFetching ? query.data : undefined
+  const [requestOpened, setRequestOpened] = useState(false)
+  if (
+    !requestOpened &&
+    model &&
+    (requestable || !model.sources.some((source) => source.type === 'personal'))
+  )
+    setRequestOpened(true)
   const protocols = model ? knownModelProtocols(model) : []
   const activeProtocol = protocols.includes(exampleProtocol) ? exampleProtocol : protocols[0]
   const gemini = activeProtocol === 'gemini_generate_content'
@@ -102,6 +132,7 @@ export default function ModelAccess({
       }}
       title={t('memberModels.apiTitle', { name: model?.name ?? modelID })}
       width={520}
+      busy={requestBusy}
     >
       <div className="space-y-6">
         <div className="flex justify-end">
@@ -255,6 +286,17 @@ export default function ModelAccess({
               </p>
             )}
           </>
+        )}
+        {requestOpened && (
+          <PersonalAccessRequest
+            actorID={actorID}
+            modelID={modelID}
+            onBusy={setRequestBusy}
+            visible={
+              !!model &&
+              (requestable || !model.sources.some((source) => source.type === 'personal'))
+            }
+          />
         )}
       </div>
     </Drawer>
