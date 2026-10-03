@@ -28,7 +28,7 @@ New credentials have `verification_status: "pending"` and `enabled: false`. Veri
 
 A successful verification records `verified`, the verification time, and the exact discovered model coverage. It does not enable a new credential. Administrators must explicitly enable it. Verification failure records `failed`, clears its discovered coverage, and disables it. Reverification replaces coverage atomically; if previously active models are no longer covered, that credential is disabled until a valid explicit enable operation.
 
-Enabling a credential requires successful verification and coverage of every model currently assigned positive routing weight on that connection. A binding is ready only when the connection has at least one enabled, verified credential and every such credential has discovered that provider model. Manually entered provider models receive no invented verification result; they must appear in real discovery before activation. This phase verifies discovery and authorization, not per-model inference capability or complete credential-pool failover. Those remain separate acceptance requirements.
+Enabling a credential requires successful verification and coverage of every model currently assigned positive routing weight on that connection. A binding is displayed as ready only when its Provider Model is enabled, the connection has at least one enabled, verified credential, and every such credential has discovered that Provider Model. Weight configuration independently retains the credential-coverage rule, so temporarily disabling supply does not erase weights or prevent an otherwise valid weight update. Manually entered provider models receive no invented verification result; they must appear in real discovery before activation. This phase verifies discovery and authorization, not per-model inference capability or complete credential-pool failover. Those remain separate acceptance requirements.
 
 Base URLs and outbound connections follow the upstream client's SSRF policy. Public HTTPS is the default. Private or local test endpoints require explicit development configuration. Redirects and DNS resolution follow the same policy; credentials must not be forwarded to an unvalidated destination. Missing root-key configuration returns `503` when credential storage is required, without preventing local identity operations.
 
@@ -491,3 +491,11 @@ following permission revocation. English was restored, browser errors were empty
 and owned QA resources were removed. The complete main-branch PostgreSQL/MySQL matrix passed under race detection
 (Handler 971.759 seconds, Service 7.422 seconds); owned Compose resources were
 removed. All required local gates passed before this phase delivery.
+
+
+Disabled supply readiness passed focused real PostgreSQL/MySQL race proof in
+101.402 seconds and the complete matrix (Handler 1012.087 seconds, Service
+7.001 seconds). Full check/test passed 1207 frontend cases, Go race/unit,
+development lifecycle and embedded production assets. Enabling/disabling supply
+retains exact prices, grants, weights and names; disabled native routes made zero
+upstream dispatches. Owned test resources were removed.

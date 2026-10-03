@@ -30,6 +30,17 @@ type BindingCatalog struct {
 	UpstreamName string
 	Protocol     string
 	Ready        bool
+	// Weight configuration depends on verified credential coverage even when
+	// the Provider Model is temporarily disabled.
+	credentialReady bool
+}
+
+func modelBindingCatalog(binding entity.ModelProviderBinding, model entity.ProviderModel, connection entity.ProviderConnection, credentialReady bool) BindingCatalog {
+	return BindingCatalog{
+		Binding: binding, ProviderID: connection.ProviderID, ConnectionID: connection.ID,
+		UpstreamName: model.UpstreamName, Protocol: connection.Protocol,
+		Ready: !model.Disabled && credentialReady, credentialReady: credentialReady,
+	}
 }
 
 type ModelWeight struct {
@@ -76,7 +87,7 @@ func loadModelCatalog(db *gorm.DB, modelID string) (*ModelCatalog, error) {
 		if err != nil {
 			return nil, err
 		}
-		result.Bindings = append(result.Bindings, BindingCatalog{Binding: binding, ProviderID: connection.ProviderID, ConnectionID: connection.ID, UpstreamName: pm.UpstreamName, Protocol: connection.Protocol, Ready: ready})
+		result.Bindings = append(result.Bindings, modelBindingCatalog(binding, pm, connection, ready))
 	}
 	if err := db.Model(&entity.UserModelGrant{}).Where("model_id = ?", modelID).Order("user_id").Pluck("user_id", &result.GrantedUserIDs).Error; err != nil {
 		return nil, err
@@ -225,7 +236,7 @@ func (s *Service) SetModelWeights(ctx context.Context, actorID, modelID string, 
 			if !exists {
 				return catalogConflict
 			}
-			if weight > 0 && !binding.Ready {
+			if weight > 0 && !binding.credentialReady {
 				return credentialNotReady
 			}
 			sums[binding.Protocol] += weight

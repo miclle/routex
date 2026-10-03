@@ -2235,3 +2235,20 @@ tabs must redirect to settings/resources after current authorization. Team behav
 stays separate. Accepted creation/managers/lifecycle/resources/requests/Overview
 and member entry require no additional broad release gate. Keep F07 partial for
 these named gaps; external identity/provider/distributed delivery belong elsewhere.
+
+
+### Disabled Model supply readiness, 2026-10-04
+
+Logical Model list/detail readiness now includes the Provider-model enabled flag.
+A private credential-coverage fact preserves the existing positive-weight
+activation rule; temporary supply disabling changes neither weights nor grants,
+names, prices, Model status, schema or runtime authorization. Focused actual
+PostgreSQL/MySQL race proof passed in 101.402 seconds, including enable/disable/
+re-enable list/detail agreement, unchanged price generation, covered weight
+writes, uncovered rejection and disabled native zero dispatch. Current read
+permission revocation remains authoritative. Full main check/test passed 1207 Vitest cases in 79 files, Go race/unit,
+development lifecycle and embedded production assets. The complete
+PostgreSQL/MySQL race matrix passed (Handler 1012.087 seconds, Service 7.001
+seconds). Owned Compose resources were removed; final mandatory check passed.
+Exact Model-price source `3e8a159` CI 37152547296, Actionlint 37152547292 and
+GolangCI-Lint 37152547317 also passed.

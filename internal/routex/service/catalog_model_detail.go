@@ -82,7 +82,7 @@ func loadExactAdminModelCatalog(tx *gorm.DB, modelID string) (*ModelCatalog, err
 		if err != nil {
 			return nil, err
 		}
-		result.Bindings = append(result.Bindings, BindingCatalog{Binding: binding, ProviderID: connection.ProviderID, ConnectionID: connection.ID, UpstreamName: model.UpstreamName, Protocol: connection.Protocol, Ready: ready})
+		result.Bindings = append(result.Bindings, modelBindingCatalog(binding, model, connection, ready))
 	}
 	if err := personalExact(tx.Model(&entity.UserModelGrant{}), "model_id", modelID).Order("user_id").Pluck("user_id", &result.GrantedUserIDs).Error; err != nil {
 		return nil, err
