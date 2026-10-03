@@ -147,7 +147,7 @@ Status terms in this section are deliberately strict:
 - **Partially completed** means material implementation exists, but one or more required behaviors or acceptance gates remain open. It does not mean that work has not started.
 - **Not started** means no material implementation of the capability exists. A prerequisite or design note may still be present.
 
-The binary capability count is 10 completed, 17 partially completed, and 3 not started. This is a completion count, not an effort percentage: several partially completed capabilities contain substantial delivered work. The user resumed implementation on 2026-10-02 and prioritized partially completed capabilities. Status changes require current implementation and acceptance evidence; a package delivery alone does not complete an entire capability.
+The binary capability count is 11 completed, 16 partially completed, and 3 not started. This is a completion count, not an effort percentage: several partially completed capabilities contain substantial delivered work. The user resumed implementation on 2026-10-02 and prioritized partially completed capabilities. Status changes require current implementation and acceptance evidence; a package delivery alone does not complete an entire capability.
 
 | ID | Capability | Status | Delivered and remaining scope |
 |---|---|---|---|
@@ -157,7 +157,7 @@ The binary capability count is 10 completed, 17 partially completed, and 3 not s
 | F04 | Member administration, direct grants, roles, and resource policies | Partially completed | Member and role workflows plus scoped resource-limit interfaces exist; token, TPM, and exact-money controls with authoritative quota snapshots are available; the complete cross-domain resource-policy surface remains open. |
 | F05 | Built-in and custom roles with composed permissions | Partially completed | Current-domain role and permission management is implemented; later enterprise and operations domains still require permission integration and negative acceptance. |
 | F06 | Team membership, ownership, models, quotas, and member rules | Completed | Team membership/ownership, model relationships, finite aggregate/member policies and monthly requests are accepted. Durable Team-assigned roles, exact Team-only action unions, reviewed administrator assignment and the existing Roles interface have controlled dual-database and browser evidence. |
-| F07 | Project lifecycle, managers, models, Keys, and requests | Partially completed | Project management, managers, model grants, Project Keys, resource limits, model requests, finite monthly quota and RPM/TPM/concurrency approvals exist; canonical current authority, stable manager identities and revocation-safe detail interfaces are hardened; initial multi-manager creation and authoritative scoped Overview have full controlled acceptance; initial direct resources and atomic combined creation requests have controlled dual-database/browser/native/restart acceptance; remaining Project list Key/policy summaries, name-or-ID search and legacy tab redirects remain open. |
+| F07 | Project lifecycle, managers, models, Keys, and requests | Completed | Exact current management, lifecycle/continuity, multi-manager creation, initial direct resources and combined requests, scoped Overview, Project Keys, resource limits and model/quota/rate approvals are implemented with controlled dual-database/browser/native/restart evidence. Both lists now show authorized total retained Key counts; administrative stored-policy summaries, literal name/ID search and authorized legacy tab replacement have full main acceptance. |
 | F08 | Personal and Project Key lifecycle | Completed | One-time delivery, confirmation, editing, rotation, revocation, expiration, scope, and history are implemented with controlled dual-database evidence. |
 | F09 | Key Token, money, RPM, TPM, concurrency, and IP restrictions | Completed | Personal, Project, and Key admission policies are enforced in the native gateway for the documented single-node architecture. Multi-node enforcement remains a separate release-architecture gate. |
 | F10 | Offboarding, inventory, handover, and emergency disable | Partially completed | Transactional local-account offboarding and continuity workflows exist; external-identity and complete enterprise continuity behavior remain open. |
@@ -2224,7 +2224,7 @@ branch concurrency policy; the succeeding main CI must confirm the combined
 lineage. Local F07 gates passed and are unaffected by this remote cancellation.
 
 
-### Remaining F07 list/navigation acceptance
+### F07 final list/navigation acceptance scope
 
 A source/reference audit identified a bounded final package: both Project lists
 need total Project-owned Key counts; the administrative list also needs configured
@@ -2301,3 +2301,67 @@ The complete main PostgreSQL/MySQL matrix then passed under race detection
 removed. Final formatting and mandatory check passed; source and acceptance
 documents are submitted together. The earlier failed matrix remains failed
 evidence and does not count as acceptance.
+
+
+### Project list/navigation acceptance in progress, 2026-10-04
+
+The combined candidate passed full check/test/build with 1365 frontend cases in
+82 files. Its first actual driver focus failed (76.290 seconds): PostgreSQL
+correctly rejected a case-variant UserRole foreign key, and a MySQL fixture
+contained a collation-equivalent composite grant key. The fixture now removes
+canonical role assignments before attempting legacy aliases, accepts only the
+portable foreign-key rejection as a valid database boundary, and uses a distinct
+Model for the aliased-owner grant. A Project Key alias is likewise tested separately
+from canonical retained Keys so exact FKs can reject it while case-insensitive
+FKs leave application filtering observable. No production authorization, schema
+or query semantics were relaxed. Both-driver rerun, controlled production browser,
+complete main regression and final check were still pending at that point; F07 remained partial.
+
+
+### Project list/navigation focused and browser acceptance, 2026-10-04
+
+The second focus also failed (69 seconds): canonical manager inserts shared a
+batch with PostgreSQL-rejected legacy aliases, and the permission-refresh fixture
+reused stale pre-assignment Role IDs. Canonical and alias records are now inserted
+separately, allowing only portable foreign-key rejection, and current exact role
+assignments are captured before the permission transition. No production
+authorization, schema or query was relaxed. Both earlier failures remain failures.
+
+The final real PostgreSQL/MySQL focus passed (Handler 81.505 seconds), including
+bounded batched queries, literal names and case-sensitive ID fragments, retained
+Key statuses, exact stored policy, authority renewal and collation alias rejection.
+The isolated production browser then passed English/Chinese administrative and
+personal lists, total retained Key count 4 versus Model count 1, exact
+`0.123456789012345678 USD`, stored Token/RPM zero versus TPM null and absent policy,
+literal `_%` and canonical ID fragment filtering, case-variant ID exclusion,
+read-all-only unknown Key counts, and authorized legacy tab replacement preserving
+other query parameters. Revoked manager details stay inaccessible without
+redirecting legacy URLs; revoked global readers lose rows, actions and navigation.
+Real process restart retained Sessions and stored facts. No inference was sent,
+browser console errors were absent, English was restored, and owned process, tab
+and Compose resources were removed. Complete current-main regression and final
+check are running; F07 remains partial until those gates pass.
+
+
+Exact Team-comparison source `81f4697dc50deee1dd93c4fc7e6bfa8fb71f81b3`
+remote CI 37158084172, Actionlint 37158084229 and GolangCI-Lint 37158084221
+all succeeded. CI independently passed both-driver integration, backend and
+frontend checks, and build artifacts. Pending Project source is a separate gate.
+
+
+### F07 complete controlled delivery, 2026-10-04
+
+The final current-main Project list/navigation package passed mandatory check,
+Go race/development lifecycle and production asset tests, 1365 frontend cases in
+82 files, and the complete actual PostgreSQL/MySQL matrix (Handler 1041.548
+seconds; Service 7.515 seconds). Final formatting/check passed, scoped Markdown
+links and paired frontend rules match, and owned Compose resources were removed.
+Focused and bilingual production/restart/revocation evidence is recorded above.
+No schema or identity-persistence behavior changed in this package.
+
+These final named list/navigation gaps close F07 under the documented current
+single-node architecture; capability totals are now 11 complete, 16 partial and
+three unstarted. External identity/provider acceptance and distributed publication
+remain independent capabilities. The full goal continues with Team code/Reset,
+creator-private Team media, Team monthly notices and the bounded member Overview
+package. Closing F07 neither pauses nor completes the full objective.

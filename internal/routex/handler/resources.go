@@ -31,15 +31,17 @@ type TeamResponse struct {
 	ModelIDs                   []string                 `json:"model_ids"`
 }
 type ProjectResponse struct {
-	RequestWorkspaceOnly bool                     `json:"request_workspace_only,omitempty"`
-	ID                   string                   `json:"id"`
-	Name                 string                   `json:"name"`
-	Description          string                   `json:"description"`
-	Status               string                   `json:"status"`
-	CreatorID            string                   `json:"creator_id"`
-	CreatedAt            time.Time                `json:"created_at"`
-	Managers             []ResourcePersonResponse `json:"managers"`
-	ModelIDs             []string                 `json:"model_ids"`
+	RequestWorkspaceOnly bool                       `json:"request_workspace_only,omitempty"`
+	ID                   string                     `json:"id"`
+	Name                 string                     `json:"name"`
+	Description          string                     `json:"description"`
+	Status               string                     `json:"status"`
+	CreatorID            string                     `json:"creator_id"`
+	CreatedAt            time.Time                  `json:"created_at"`
+	Managers             []ResourcePersonResponse   `json:"managers"`
+	ModelIDs             []string                   `json:"model_ids"`
+	KeyCount             *int64                     `json:"key_count"`
+	Limits               *service.ProjectListLimits `json:"limits"`
 }
 type ListResourcesRequest struct {
 	Query  string `query:"q"`
@@ -62,7 +64,7 @@ func teamResponse(item *service.ResourceRecord) *TeamResponse {
 	return &TeamResponse{ResourceLimitWorkspaceOnly: item.ResourceLimitWorkspaceOnly, ID: item.ID, Name: item.Name, Description: item.Description, Status: item.Status, CreatedAt: item.CreatedAt, Members: resourcePeople(item.Members), ModelIDs: item.ModelIDs}
 }
 func projectResponse(item *service.ResourceRecord) *ProjectResponse {
-	return &ProjectResponse{RequestWorkspaceOnly: item.RequestWorkspaceOnly, ID: item.ID, Name: item.Name, Description: item.Description, Status: item.Status, CreatorID: item.CreatorID, CreatedAt: item.CreatedAt, Managers: resourcePeople(item.Managers), ModelIDs: item.ModelIDs}
+	return &ProjectResponse{RequestWorkspaceOnly: item.RequestWorkspaceOnly, ID: item.ID, Name: item.Name, Description: item.Description, Status: item.Status, CreatorID: item.CreatorID, CreatedAt: item.CreatedAt, Managers: resourcePeople(item.Managers), ModelIDs: item.ModelIDs, KeyCount: item.KeyCount, Limits: item.ProjectListLimits}
 }
 
 type TeamPath struct {

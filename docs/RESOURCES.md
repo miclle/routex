@@ -10,7 +10,7 @@ Teams have established memberships with an `owner` or `member` role and `active`
 
 An active Team membership grants scoped read access. Ownership is a responsibility marker and does not implicitly grant Team mutation authority, platform administration, Project management, or Personal Key invocation. Explicit Team Session inference separately requires current active membership and the exact Team model grant. Team metadata, lifecycle, and membership changes require `teams.write`. Model assignments require the separate `teams.models.write` permission. `teams.read_all` permits global listing and inspection.
 
-Every enabled platform member can create a Project with an explicit initial manager set. Ordinary creators remain managers; a direct `projects.write` administrator may select a complete set that excludes the creator. Omitting `manager_ids` preserves creator-only creation. New Projects have no model grants, policies, Keys or resource applications. The creation-specific picker does not grant global directory authority. See [Project creation and Overview](PROJECT_OVERVIEW.md) for the atomic creation and authoritative scoped cards. `creator_id` is an audit identity; authority comes from current manager relationships. Managers may change Project metadata and replace the manager set. They cannot change lifecycle state or expand model grants merely because they manage the Project. Those operations require `projects.write` or `projects.models.write`, respectively. `projects.write` also permits manager and metadata administration, while `projects.read_all` permits global listing and inspection. Projects currently have explicit managers, without an additional ordinary Project membership role.
+Every enabled platform member can create a Project with an explicit initial manager set. Ordinary creators remain managers; a direct `projects.write` administrator may select a complete set that excludes the creator. Omitting `manager_ids` preserves creator-only creation. Without explicitly reviewed initial resources or requests, new Projects have no model grants, policies, Keys or resource applications. The creation-specific picker does not grant global directory authority. See [Project creation and Overview](PROJECT_OVERVIEW.md) for the atomic creation and authoritative scoped cards. `creator_id` is an audit identity; authority comes from current manager relationships. Managers may change Project metadata and replace the manager set. They cannot change lifecycle state or expand model grants merely because they manage the Project. Those operations require `projects.write` or `projects.models.write`, respectively. `projects.write` also permits manager and metadata administration, while `projects.read_all` permits global listing and inspection. Projects currently have explicit managers, without an additional ordinary Project membership role.
 
 The six platform permissions are available for custom roles. Built-in administrators receive them through schema version 8. Service transactions recheck current permission and account state, so route access or a stale browser session cannot substitute for authorization.
 
@@ -28,7 +28,7 @@ All successful mutations append an audit event in the same transaction. Audit re
 
 Team and Project model assignments use independent grant tables. Assignment validates the complete list against active logical models; duplicate or unknown IDs abort the whole replacement. An empty list means no assigned models.
 
-These grants do not create `user_model_grants`, expand personal API Key scope, or grant platform permissions. Personal Key requests retain their existing direct-user grant rules. Explicit [Team Sessions](TEAM_INFERENCE.md) separately authorize text-only native Chat from current Team grants and active membership. [Project Keys](PROJECT_KEYS.md) use their own fixed scopes intersected with current Project model grants. [Project resource requests](PROJECT_REQUESTS.md) provide explicit model additions, finite monthly quota applications and finite RPM/TPM/concurrency applications with independent reviewer permissions. [Resource limits](QUOTAS.md) enforce Personal, Project and Key policies. Team Session call history is restricted to the current member's own actor, including owners and administrators. [Team resource limits](TEAM_LIMITS.md) add independently authorized aggregate/member policies and conjunctive native enforcement. Member caps do not reserve aggregate allocations. [Monthly Team member requests](TEAM_REQUESTS.md) add owner-first review, platform escalation and read-only global records without granting owners direct policy writes. Target-scoped [Team roles](TEAM_ROLES.md) provide reviewed administrator assignment and exact Team-only action unions. [User and Team defaults](DEFAULT_LIMITS.md) provide creation snapshots and explicit reviewed resets. Named policy templates and broader Team protocols remain separate unfinished packages.
+These grants do not create `user_model_grants`, expand personal API Key scope, or grant platform permissions. Personal Key requests retain their existing direct-user grant rules. Explicit [Team Sessions](TEAM_INFERENCE.md) separately authorize native Chat Completions, Responses, Messages and Gemini text calls from current Team grants and active membership. [Project Keys](PROJECT_KEYS.md) use their own fixed scopes intersected with current Project model grants. [Project resource requests](PROJECT_REQUESTS.md) provide explicit model additions, finite monthly quota applications and finite RPM/TPM/concurrency applications with independent reviewer permissions. [Resource limits](QUOTAS.md) enforce Personal, Project and Key policies. Team Session call history is restricted to the current member's own actor, including owners and administrators. [Team resource limits](TEAM_LIMITS.md) add independently authorized aggregate/member policies and conjunctive native enforcement. Member caps do not reserve aggregate allocations. [Monthly Team member requests](TEAM_REQUESTS.md) add owner-first review, platform escalation and read-only global records without granting owners direct policy writes. Target-scoped [Team roles](TEAM_ROLES.md) provide reviewed administrator assignment and exact Team-only action unions. [User and Team defaults](DEFAULT_LIMITS.md) provide creation snapshots and explicit reviewed resets. Named policy templates, creator-private Team attachments and Team request-code export remain separate unfinished packages.
 
 ## HTTP Contract
 
@@ -55,11 +55,66 @@ All paths below are relative to `/api/v1`. Every route requires an authenticated
 | `PUT /admin/projects/:project_id/managers` | As above | Same manager replacement contract |
 | `PUT /admin/projects/:project_id/models` | As above | Same model assignment contract |
 
-A full Team response contains `{id,name,description,status,created_at,members,model_ids}`. A dimension-only Team limit writer receives `{id,name,description,status,resource_limit_workspace_only:true}` for the directed Limits workspace; relationships and global directory access remain unavailable. Each member contains `{id,user_id,name,email,role,status}`. A full Project response contains `{id,name,description,status,creator_id,created_at,managers,model_ids}`. A quota-only reviewer with `projects.limits.write` receives only `{id,name,description,status,request_workspace_only:true}` for the directed request workspace; this does not expose relationships or grant global listing authority. Each manager contains `{id,user_id,name,email}`. Names and emails identify related platform users; password hashes, sessions, and Key material never appear.
+A full Team response contains `{id,name,description,status,created_at,members,model_ids}`. A dimension-only Team limit writer receives `{id,name,description,status,resource_limit_workspace_only:true}` for the directed Limits workspace; relationships and global directory access remain unavailable. Each member contains `{id,user_id,name,email,role,status}`. A full Project response contains `{id,name,description,status,creator_id,created_at,managers,model_ids,key_count,limits}`. The last two fields are list projections; detail and creation responses return them as `null`. A quota-only reviewer with `projects.limits.write` receives only `{id,name,description,status,request_workspace_only:true}` for the directed request workspace; this does not expose relationships or grant global listing authority. Each manager contains `{id,user_id,name,email}`. Names and emails identify related platform users; password hashes, sessions, and Key material never appear.
 
-Personal lists remain scoped even for administrators. Global lists require their explicit `read_all` permission. An unrelated user receives `404` for a resource detail. List pagination orders by stable resource ID, defaults to 40 items, and caps pages at 100. The next cursor is `null` at the end. Search matches resource names case-insensitively and treats SQL wildcard characters literally. State filters accept `active`, `disabled`, or `archived`. Relationship and model replacement requests are bounded to 1,000 items and remain subject to the management request body limit.
+Personal lists remain scoped even for administrators. Global lists require their explicit `read_all` permission. An unrelated user receives `404` for a resource detail. List pagination orders by stable resource ID, defaults to 40 items, and caps pages at 100. The next cursor is `null` at the end. Search matches resource names case-insensitively and treats SQL wildcard characters literally. Project search also matches literal, case-sensitive fragments of the canonical Project ID; it does not normalize an ID alias into authority. The administrative Project filter accepts a name or ID fragment, while the personal list keeps its current management scope. State filters accept `active`, `disabled`, or `archived`. Relationship and model replacement requests are bounded to 1,000 items and remain subject to the management request body limit.
 
 Invalid input returns `400`, insufficient mutation authority returns `403`, unavailable detail returns `404`, and continuity or lifecycle conflicts return `409`. Removing oneself from a Project manager set is allowed if another enabled manager remains; the returned mutation result describes the completed operation, while subsequent scoped reads require the new membership state.
+
+## Project List Facts and Navigation
+
+Both Project lists use the server-projected total retained `key_count` in the
+existing Key-count column. The count includes pending, active, disabled, revoked
+and expired Project Key records; it is not a count of active Keys or granted
+Models. A currently enabled exact manager or holder of `projects.write` may read
+it. `projects.read_all` alone permits the administrative list but leaves each
+Key count `null`, displayed as Unknown. Global list authority never broadens the
+personal list beyond current exact manager relationships.
+
+The administrative list also projects `limits` as
+`{stored,tokens_month,money_month,currency,rpm,tpm}` from the stored Project policy.
+The administrative endpoint requires `projects.read_all`, which independently
+permits Project limit reads; existing manager and `projects.limits.write` limit
+read authority does not itself grant global listing. Personal lists return
+`limits:null`. These summaries contain no effective defaults, inherited values,
+usage, holds, remaining allowance or runtime-enforcement proof. They do not make
+per-row Overview, limit or directory requests.
+
+| Recorded value                                             | List meaning                                                                     |
+| ---------------------------------------------------------- | -------------------------------------------------------------------------------- |
+| `key_count:0`                                              | No retained Project Key records                                                  |
+| `key_count:null`                                           | Key count is unknown to this reader                                              |
+| `limits:null`                                              | Policy summary is unavailable in this response                                   |
+| `limits.stored:false`                                      | No stored Project policy; nullable controls are `null` and currency is empty     |
+| `limits.stored:true` with a nullable control set to `null` | That local control is Not set; this does not assert unlimited effective capacity |
+| An explicit numeric or money zero                          | A recorded zero, preserved independently of unset or absent policy               |
+| Missing or invalid projection fields                       | Unknown; never substituted with zero or a default policy                         |
+
+Monthly money remains an exact decimal string alongside its recorded currency.
+The browser never rounds it through JavaScript numbers or substitutes the current
+platform denomination. Monthly Tokens, RPM and TPM display only their recorded
+stored values. Team model-count columns and Team tab navigation are unchanged.
+
+Project lists reauthorize through actor-scoped queries after Session renewal and,
+for administrative lists, permission renewal. Rows, policy summaries, action
+menus and pending lifecycle dialogs stay hidden during renewed reads, errors or
+account changes. Late results for an obsolete actor or generation cannot restore
+private rows. Lifecycle actions still require their independent current write
+permission.
+
+After a successful fresh actor- and target-authorized Project detail read and a
+fresh Session, legacy `?tab=managers` URLs become `?tab=settings`; `?tab=models`
+and `?tab=limits` become `?tab=resources`. The router replaces the current history
+entry and preserves other query parameters on scoped and administrative Project
+URLs. Pending, denied or obsolete reads never rewrite the URL or reveal tabs.
+Only these known Project aliases are canonicalized; Team tabs retain their
+existing URLs.
+
+The source contracts are covered by `internal/routex/service/project_list.go`,
+`internal/routex/handler/project_list_integration_test.go` and
+`website/src/views/resources/project-list-navigation.test.tsx`. Controlled
+browser, production and dual-database acceptance are recorded separately in the
+implementation handoff; this contract does not declare those gates complete.
 
 ## Storage and Verification
 
@@ -117,8 +172,9 @@ independence from its creator's later manager removal. Failed publication after 
 grant replacement retains the Project tombstone: native authentication returns
 401 and dispatches nothing. Fresh successful publication restores the still-granted
 model; removed grants remain unavailable and immutable call history remains intact.
-This package adds no migration, endpoint or dependency. Initial multi-manager
-creation and the complete Project overview remain separate unfinished scope.
+The authority package adds no migration, endpoint or dependency. Initial
+manager selection and Project overview behavior are documented separately in
+[Project creation and Overview](PROJECT_OVERVIEW.md).
 
 ## Shared Team Model requests
 

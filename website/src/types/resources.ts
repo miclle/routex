@@ -8,7 +8,17 @@ export interface ResourcePerson {
   role?: 'owner' | 'member'
   status?: 'active' | 'disabled'
 }
+export interface ProjectListLimits {
+  stored: boolean
+  tokens_month: number | null
+  money_month: string | null
+  currency: string
+  rpm: number | null
+  tpm: number | null
+}
 export interface ResourceRecord {
+  key_count?: number | null
+  limits?: ProjectListLimits | null
   request_workspace_only?: boolean
   resource_limit_workspace_only?: boolean
   id: string

@@ -1,4 +1,16 @@
 export default {
+  projectKeyCount: 'Project Key',
+  storedMonthlyTokens: '月度 Token 规则',
+  storedMonthlyMoney: '月度金额规则',
+  storedRequestLimits: '请求规则',
+  requestLimitsValue: '{{rpm}} RPM · {{tpm}} TPM',
+  storedMoneyValue: '{{amount}} {{currency}}',
+  listUnknown: '未知',
+  listUnavailable: '不可用',
+  listNoStoredPolicy: '未存储规则',
+  listNotSet: '未设置',
+  searchProjectNameOrId: '搜索 Project 名称或 ID',
+
   projectOverviewUnknown: '未知',
   projectOverviewUnavailable: '不可用',
   projectOverviewHelp: '查看项目用量与当前配置，再继续常用操作。',

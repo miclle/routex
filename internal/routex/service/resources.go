@@ -31,9 +31,11 @@ type ResourceRecord struct {
 	ResourceLimitWorkspaceOnly               bool `gorm:"-"`
 	ID, Name, Description, Status, CreatorID string
 	CreatedAt                                time.Time
-	Members                                  []ResourcePerson `gorm:"-"`
-	Managers                                 []ResourcePerson `gorm:"-"`
-	ModelIDs                                 []string         `gorm:"-"`
+	Members                                  []ResourcePerson   `gorm:"-"`
+	Managers                                 []ResourcePerson   `gorm:"-"`
+	ModelIDs                                 []string           `gorm:"-"`
+	KeyCount                                 *int64             `gorm:"-"`
+	ProjectListLimits                        *ProjectListLimits `gorm:"-"`
 }
 type ResourceFilter struct {
 	Query, Status, Cursor string
@@ -189,6 +191,9 @@ func (s *Service) ListResources(ctx context.Context, actorID string, kind Resour
 	}
 	if filter.Limit < 1 || filter.Limit > 100 || len(filter.Cursor) > 30 || len(filter.Query) > 200 || !utf8.ValidString(filter.Query) || (filter.Status != "" && filter.Status != entity.ResourceActive && filter.Status != entity.ResourceDisabled && filter.Status != entity.ResourceArchived) {
 		return nil, apperrors.ErrBadRequest
+	}
+	if kind == ProjectResource {
+		return s.listProjects(ctx, actorID, all, filter)
 	}
 	db := s.authDB(ctx)
 	allowed, err := resourcePermission(db, actorID, kind, "read_all")

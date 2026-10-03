@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useQuery } from '@tanstack/react-query'
-import { Link, useParams, useSearchParams } from 'react-router'
+import { Link, Navigate, useParams, useSearchParams } from 'react-router'
 import { ArrowUpRight } from 'lucide-react'
 import { getResource } from '@/api/resources'
 import { useSession } from '@/hooks/use-auth'
@@ -58,9 +58,23 @@ export default function ResourceDetailPage({
       resource.data.status === 'active',
   )
   const fresh = !!actor && !!resource.data && resource.isSuccess && !resource.isFetching
+  const requestedTab = params.get('tab')
+  const legacyTab =
+    kind === 'projects'
+      ? requestedTab === 'managers'
+        ? 'settings'
+        : requestedTab === 'models' || requestedTab === 'limits'
+          ? 'resources'
+          : undefined
+      : undefined
+  const canonicalParams = new URLSearchParams(params)
+  if (legacyTab) canonicalParams.set('tab', legacyTab)
+  const canShow = fresh && (!legacyTab || (!session.isFetching && !session.isError))
   return (
     <>
-      {fresh ? (
+      {canShow && legacyTab ? (
+        <Navigate replace to={{ search: `?${canonicalParams.toString()}` }} />
+      ) : canShow ? (
         <ResourceDetail key={`${actor}:${resourceId}`} kind={kind} resource={resource.data!} />
       ) : (
         <Page
@@ -68,7 +82,9 @@ export default function ResourceDetailPage({
           description=""
         >
           <QueryState
-            pending={resource.isPending || resource.isFetching}
+            pending={
+              resource.isPending || resource.isFetching || (!!legacyTab && session.isFetching)
+            }
             error={resource.error}
             retry={() => void resource.refetch()}
           />

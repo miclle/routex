@@ -51,33 +51,65 @@ function ResourceList({ kind, admin }: { kind: ResourceKind; admin: boolean }) {
   const session = useSession()
   const cache = useQueryClient()
   const [filters, setFilters] = useState<ResourceFilters>({ q: '', status: '' })
-  const [change, setChange] = useState<{ resource: ResourceRecord; status: ResourceStatus } | null>(
-    null,
-  )
+  const [change, setChange] = useState<{
+    resource: ResourceRecord
+    status: ResourceStatus
+    actor: string
+  } | null>(null)
+  const actor = session.isError ? '' : (session.data?.user.id ?? '')
+  const freshSession = !!actor && !session.isFetching && !session.isError
+  const freshPermissions = !permissions.isPending && !permissions.isFetching && !permissions.isError
+  const authorized =
+    freshSession && (!admin || (freshPermissions && permissions.can(`${kind}.read_all`)))
   const data = useInfiniteQuery({
-    queryKey: ['resources', kind, admin, filters],
+    queryKey: [
+      'resources',
+      kind,
+      admin,
+      actor,
+      filters,
+      session.dataUpdatedAt,
+      admin ? permissions.dataUpdatedAt : null,
+    ],
+    enabled: authorized,
+    retry: false,
+    staleTime: 0,
+    gcTime: 0,
+    refetchOnMount: 'always',
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
     initialPageParam: null as string | null,
     queryFn: ({ pageParam, signal }) => getResources(kind, admin, filters, pageParam, signal),
     getNextPageParam: (page) => page.next_cursor ?? undefined,
   })
-  const items = data.data?.pages.flatMap((page) => page.items)
+  const visible = authorized && data.isSuccess && !data.isFetching && !data.isError
+  const items = visible ? data.data?.pages.flatMap((page) => page.items) : undefined
+  const currentChange =
+    change?.actor === actor && visible && items?.some((item) => item.id === change.resource.id)
+      ? change
+      : null
   const update = useMutation({
-    mutationFn: () =>
-      writeCatalog(
+    mutationFn: () => {
+      if (!currentChange || !freshPermissions || !permissions.can(`${kind}.write`) || !session.data)
+        throw new Error(t('access_denied_cb8d4'))
+      return writeCatalog(
         'patch',
-        `${kind === 'teams' ? '/admin/teams' : '/projects'}/${change!.resource.id}`,
-        { status: change!.status },
-        session.data!.csrf_token,
-      ),
+        `${kind === 'teams' ? '/admin/teams' : '/projects'}/${currentChange.resource.id}`,
+        { status: currentChange.status },
+        session.data.csrf_token,
+      )
+    },
     onSuccess: () => {
       setChange(null)
       void cache.invalidateQueries({ queryKey: ['resources'] })
     },
   })
-  const canCreate = kind === 'projects' || permissions.can('teams.write')
+  const canCreate =
+    freshSession && (kind === 'projects' || (freshPermissions && permissions.can('teams.write')))
   function changeStatus(resource: ResourceRecord, status: ResourceStatus) {
     update.reset()
-    setChange({ resource, status })
+    if (visible && freshPermissions && permissions.can(`${kind}.write`))
+      setChange({ resource, status, actor })
   }
   return (
     <Page
@@ -101,7 +133,11 @@ function ResourceList({ kind, admin }: { kind: ResourceKind; admin: boolean }) {
             <Input
               name="q"
               aria-label={t('search_value_9f660', { v0: label })}
-              placeholder={t('resources:searchName', { kind: singular })}
+              placeholder={
+                kind === 'projects'
+                  ? t('resources:searchProjectNameOrId')
+                  : t('resources:searchName', { kind: singular })
+              }
               className="w-80"
             />
             <select
@@ -133,7 +169,7 @@ function ResourceList({ kind, admin }: { kind: ResourceKind; admin: boolean }) {
         )}
       </div>
       <QueryState
-        pending={data.isPending}
+        pending={!authorized || data.isPending || data.isFetching}
         error={data.error}
         retry={() => void data.refetch()}
         empty={items?.length === 0}
@@ -147,7 +183,14 @@ function ResourceList({ kind, admin }: { kind: ResourceKind; admin: boolean }) {
           <tr>
             <th>{label}</th>
             <th>{kind === 'teams' ? t('members_c1ee9') : t('managers_7c2c6')}</th>
-            <th>{t('models_98fd0')}</th>
+            <th>{kind === 'projects' ? t('resources:projectKeyCount') : t('models_98fd0')}</th>
+            {kind === 'projects' && admin && (
+              <>
+                <th>{t('resources:storedMonthlyTokens')}</th>
+                <th>{t('resources:storedMonthlyMoney')}</th>
+                <th>{t('resources:storedRequestLimits')}</th>
+              </>
+            )}
             <th>{t('status_62e95')}</th>
             <th>{t('created_84e38')}</th>
             <th>{t('actions_f3ea6')}</th>
@@ -174,7 +217,25 @@ function ResourceList({ kind, admin }: { kind: ResourceKind; admin: boolean }) {
                       )
                     : t('resources:peopleCount', { count: item.managers?.length ?? 0 })}
               </td>
-              <td>{t('resources:modelCount', { count: item.model_ids.length })}</td>
+              <td>
+                {kind === 'projects'
+                  ? projectCount(item.key_count)
+                  : t('resources:modelCount', { count: item.model_ids.length })}
+              </td>
+              {kind === 'projects' && admin && (
+                <>
+                  <td>{projectPolicyValue(item, 'tokens_month')}</td>
+                  <td>{projectPolicyValue(item, 'money_month')}</td>
+                  <td>
+                    {item.limits?.stored === true
+                      ? t('resources:requestLimitsValue', {
+                          rpm: projectPolicyValue(item, 'rpm'),
+                          tpm: projectPolicyValue(item, 'tpm'),
+                        })
+                      : projectPolicyValue(item, 'rpm')}
+                  </td>
+                </>
+              )}
               <td>
                 <Badge variant="outline">{statusLabels[item.status]}</Badge>
               </td>
@@ -195,31 +256,33 @@ function ResourceList({ kind, admin }: { kind: ResourceKind; admin: boolean }) {
                   <MenuItem onClick={() => navigate(`${path}/${item.id}?tab=settings`)}>
                     {t('resources:resourceSettings', { kind: singular })}
                   </MenuItem>
-                  {permissions.can(`${kind}.write`) && item.status !== 'archived' && (
-                    <>
-                      <MenuItem
-                        onClick={() =>
-                          changeStatus(item, item.status === 'active' ? 'disabled' : 'active')
-                        }
-                      >
-                        {item.status === 'active'
-                          ? t('disable_value_4bb46', { v0: label })
-                          : t('reenable_value_7d7f9', { v0: label })}
-                      </MenuItem>
-                      {item.status === 'disabled' && (
-                        <MenuItem onClick={() => changeStatus(item, 'archived')}>
-                          {t('resources:archive', { kind: singular })}
+                  {freshPermissions &&
+                    permissions.can(`${kind}.write`) &&
+                    item.status !== 'archived' && (
+                      <>
+                        <MenuItem
+                          onClick={() =>
+                            changeStatus(item, item.status === 'active' ? 'disabled' : 'active')
+                          }
+                        >
+                          {item.status === 'active'
+                            ? t('disable_value_4bb46', { v0: label })
+                            : t('reenable_value_7d7f9', { v0: label })}
                         </MenuItem>
-                      )}
-                    </>
-                  )}
+                        {item.status === 'disabled' && (
+                          <MenuItem onClick={() => changeStatus(item, 'archived')}>
+                            {t('resources:archive', { kind: singular })}
+                          </MenuItem>
+                        )}
+                      </>
+                    )}
                 </Menu>
               </td>
             </tr>
           ))}
         </tbody>
       </Table>
-      {data.hasNextPage && (
+      {visible && data.hasNextPage && (
         <div className="text-center">
           <Button
             variant="outline"
@@ -231,17 +294,17 @@ function ResourceList({ kind, admin }: { kind: ResourceKind; admin: boolean }) {
         </div>
       )}
       <Dialog
-        open={!!change}
+        open={!!currentChange}
         onOpenChange={(open) => {
           if (!open) setChange(null)
         }}
         busy={update.isPending}
         title={t('confirm_value_for_value_a240d', {
-          v0: change ? statusLabels[change.status] : '',
+          v0: currentChange ? statusLabels[currentChange.status] : '',
           v1: label,
         })}
         description={
-          change?.status === 'archived'
+          currentChange?.status === 'archived'
             ? t('archiving_is_irreversible_and_prevents_further_changes_historical_a438f')
             : t('status_changes_affect_resource_access_and_calls_the_733f7')
         }
@@ -253,11 +316,39 @@ function ResourceList({ kind, admin }: { kind: ResourceKind; admin: boolean }) {
             if (!update.isPending) update.mutate()
           }}
         >
-          <p>{change?.resource.name}</p>
+          <p>{currentChange?.resource.name}</p>
           <ErrorNotice error={update.error} />
           <SaveButton pending={update.isPending}>{t('confirm_change_3ced6')}</SaveButton>
         </form>
       </Dialog>
     </Page>
   )
+}
+
+function projectCount(value: number | null | undefined) {
+  return typeof value === 'number' && Number.isSafeInteger(value) && value >= 0
+    ? new Intl.NumberFormat(locale()).format(value)
+    : t('resources:listUnknown')
+}
+function projectPolicyValue(
+  item: ResourceRecord,
+  field: 'tokens_month' | 'money_month' | 'rpm' | 'tpm',
+) {
+  const policy = item.limits
+  if (policy === undefined) return t('resources:listUnknown')
+  if (policy === null) return t('resources:listUnavailable')
+  if (policy.stored === false) return t('resources:listNoStoredPolicy')
+  if (policy.stored !== true || policy[field] === undefined) return t('resources:listUnknown')
+  const value = policy[field]
+  if (value === null) return t('resources:listNotSet')
+  if (field === 'money_month')
+    return typeof value === 'string' &&
+      /^(0|[1-9][0-9]*)(\.[0-9]+)?$/.test(value) &&
+      typeof policy.currency === 'string' &&
+      !!policy.currency
+      ? t('resources:storedMoneyValue', { amount: value, currency: policy.currency })
+      : t('resources:listUnknown')
+  return typeof value === 'number' && Number.isSafeInteger(value) && value >= 0
+    ? new Intl.NumberFormat(locale()).format(value)
+    : t('resources:listUnknown')
 }

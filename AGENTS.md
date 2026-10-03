@@ -182,6 +182,25 @@ Resource details reauthorize on mount with actor- and target-scoped queries. Hid
 
 Resource lists retain compact filters, tables, and action menus. Details use addressable tabs; Team members use identity/status rows and action menus, model access uses allowed/available tables, and Project settings include the manager table. Candidate pickers call only the authorized resource-specific endpoint. Existing selections outside a bounded search response remain selected. Unknown model names render stable IDs without querying an unauthorized catalog.
 
+Project lists show total retained Project Key counts, including pending, revoked
+and expired records, rather than Model counts or active-only Key counts. Read
+counts only from server `key_count`; current exact managers or `projects.write`
+may receive them, while `projects.read_all` alone receives null/Unknown.
+Administrative lists require `projects.read_all` and show only server-projected
+stored monthly Tokens, exact decimal money/currency, RPM and TPM. Personal lists
+return no policy summary. Keep explicit zero, null/Not set, no stored policy,
+unavailable and unknown distinct; never infer effective defaults, unlimited
+capacity or remaining allowance, round money through JavaScript numbers, or add
+per-row Overview/limit/directory reads. Administrative Project search accepts
+literal names and case-sensitive canonical ID fragments without changing scope.
+Hide list facts, actions and pending lifecycle dialogs during renewed Session
+or list reads, errors and actor changes; administrative lists also wait for fresh
+read permissions. Stale replies cannot restore private rows, and lifecycle
+dispatch requires fresh independent write authority. After fresh authorized Project detail and Session reads, replace
+legacy managers/models/limits tab URLs with settings/resources/resources while
+preserving other query parameters. Denied reads never redirect; Team counts and
+tabs stay unchanged.
+
 Project call tables reuse the call-record component with Project-specific endpoints and cache keys; they do not render administrator diagnostics or personal history. Metadata, continuity conflicts, terminal archival, and complete model/relationship replacements remain real API operations. New resources receive no implicit model grants. UI copy is paired in the `resources` namespace and follows the same English-default localization contract.
 
 Provider model price editing belongs in the provider-model detail view. Reuse the

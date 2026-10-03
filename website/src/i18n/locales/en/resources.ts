@@ -1,4 +1,16 @@
 export default {
+  projectKeyCount: 'Project Keys',
+  storedMonthlyTokens: 'Monthly token policy',
+  storedMonthlyMoney: 'Monthly money policy',
+  storedRequestLimits: 'Request policy',
+  requestLimitsValue: '{{rpm}} RPM · {{tpm}} TPM',
+  storedMoneyValue: '{{amount}} {{currency}}',
+  listUnknown: 'Unknown',
+  listUnavailable: 'Unavailable',
+  listNoStoredPolicy: 'No stored policy',
+  listNotSet: 'Not set',
+  searchProjectNameOrId: 'Search Project name or ID',
+
   projectOverviewUnknown: 'Unknown',
   projectOverviewUnavailable: 'Unavailable',
   projectOverviewHelp: 'Review Project usage and current configuration before continuing.',
