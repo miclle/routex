@@ -1,10 +1,14 @@
 package service
 
 import (
+	"context"
 	"errors"
 	"fmt"
+	"reflect"
 	"testing"
 	"time"
+
+	"github.com/miclle/routex/internal/routex/entity"
 )
 
 func catalogGrantFixture(modelID string) memberCatalogGrant {
@@ -119,5 +123,67 @@ func TestMemberModelCatalogInclusiveLimits(t *testing.T) {
 	items, err = memberCatalogRecords(nil, teams, "usr_actor", "")
 	if err != nil || len(items) != 1 || len(items[0].Sources) != memberCatalogTeamLimit {
 		t.Fatal("inclusive Team/grant limit rejected", err)
+	}
+}
+
+func catalogTeamGrantFixture(modelID string) memberCatalogGrant {
+	row := catalogGrantFixture(modelID)
+	row.TeamID, row.MembershipTeamID, row.GrantTeamID = "tem_one", "tem_one", "tem_one"
+	row.TeamName, row.TeamStatus, row.MembershipStatus, row.Role = "One", entity.ResourceActive, entity.ResourceActive, entity.TeamMember
+	return row
+}
+
+func TestMemberModelCatalogTeamProtocolsFollowReadyNativeRuntime(t *testing.T) {
+	for _, protocol := range []string{entity.ProtocolOpenAIChat, entity.ProtocolOpenAIResponses, entity.ProtocolAnthropicMessages, entity.ProtocolGeminiGenerateContent} {
+		t.Run(protocol, func(t *testing.T) {
+			svc, _ := teamGatewayFixture(t, "https://provider.example/v1")
+			routes := svc.runtime.routes.Load()
+			candidates := routes.Models["mdl_one"]
+			candidates[0].Route.Protocol = protocol
+			routes.Models["mdl_one"] = candidates
+			items, err := memberCatalogRecords(nil, []memberCatalogGrant{catalogTeamGrantFixture("mdl_one")}, "usr_actor", "")
+			if err != nil {
+				t.Fatal(err)
+			}
+			metadata, err := svc.gatewayModelMetadata(context.Background(), []string{"mdl_one"})
+			if err != nil {
+				t.Fatal(err)
+			}
+			applyMemberCatalogMetadata(items, metadata, true)
+			if len(items) != 1 || items[0].PersonalAvailable || items[0].Sources[0].InvocationSupported || !reflect.DeepEqual(items[0].Sources[0].InvocationProtocols, []string{protocol}) {
+				t.Fatal("ready native Team source lost its link or promised Personal calling", items)
+			}
+			svc.InvalidateRuntimeCredential("crd_one")
+			metadata, err = svc.gatewayModelMetadata(context.Background(), []string{"mdl_one"})
+			if err != nil {
+				t.Fatal(err)
+			}
+			applyMemberCatalogMetadata(items, metadata, true)
+			if len(items[0].Sources[0].InvocationProtocols) != 0 || items[0].PersonalAvailable || items[0].Sources[0].InvocationSupported {
+				t.Fatal("unready native route kept a Team invocation link", items)
+			}
+		})
+	}
+}
+
+func TestMemberModelCatalogNativeProjectionKeepsSourceAndCapabilityBoundaries(t *testing.T) {
+	protocols := []string{entity.ProtocolOpenAIResponses, entity.ProtocolAnthropicMessages, entity.ProtocolGeminiGenerateContent, "future_native"}
+	capabilities := map[string][]string{entity.ProtocolOpenAIResponses: {"image", "pdf"}}
+	metadata := map[string]gatewayModelMetadata{"mdl_one": {Protocols: protocols, InputCapabilities: capabilities}}
+	items, err := memberCatalogRecords([]memberCatalogGrant{catalogGrantFixture("mdl_one")}, []memberCatalogGrant{catalogTeamGrantFixture("mdl_one")}, "usr_actor", "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	applyMemberCatalogMetadata(items, metadata, true)
+	if !items[0].PersonalAvailable || !items[0].Sources[0].InvocationSupported || !reflect.DeepEqual(items[0].Sources[0].InvocationProtocols, protocols) || !reflect.DeepEqual(items[0].Sources[1].InvocationProtocols, protocols[:3]) || items[0].Sources[1].InvocationSupported || !reflect.DeepEqual(items[0].InputCapabilities, capabilities) {
+		t.Fatal("Team protocol projection changed Personal authority or model metadata", items)
+	}
+	items[0].Sources[1].InvocationProtocols[0] = "mutated"
+	if metadata["mdl_one"].Protocols[0] != entity.ProtocolOpenAIResponses || items[0].Sources[0].InvocationProtocols[0] != entity.ProtocolOpenAIResponses {
+		t.Fatal("Team protocol array aliases another source's authority")
+	}
+	applyMemberCatalogMetadata(items, metadata, false)
+	if len(items[0].Sources[1].InvocationProtocols) != 0 || items[0].Sources[1].InvocationSupported || !items[0].PersonalAvailable || !reflect.DeepEqual(items[0].InputCapabilities, capabilities) {
+		t.Fatal("database metadata advertised a missing Team runtime or removed independent Personal metadata", items)
 	}
 }

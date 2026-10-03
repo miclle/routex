@@ -44,6 +44,10 @@ func (ctrl *Ctrl) GatewayResponses(c *fox.Context) {
 	ctx, cancel := context.WithTimeout(service.WithGatewayClientIP(c.Request.Context(), clientIP), 5*time.Minute)
 	defer cancel()
 	result, callErr := ctrl.service.GatewayResponses(ctx, gatewayBearer(c.Request), body, requestID)
+	ctrl.finishGatewayResponses(c, ctx, requestID, started, result, callErr)
+}
+
+func (ctrl *Ctrl) finishGatewayResponses(c *fox.Context, ctx context.Context, requestID string, started time.Time, result *service.GatewayResult, callErr error) {
 	usage := observeGatewayUsage(service.GatewayUsage{})
 	defer func() { ctrl.recordGatewayCall(ctx, requestID, started, result, usage, callErr) }()
 	if result != nil && result.Response != nil {

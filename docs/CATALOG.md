@@ -460,3 +460,8 @@ and shared pending uniqueness in the existing catalogue drawer. Approval changes
 only the selected Team grant. Own history remains available after membership loss;
 current facts become unavailable without renewed resource authority. Team Models
 includes independently scoped review without requiring a global directory.
+
+Team source invocation protocols now reflect each current ready native Chat,
+Responses, Messages and Gemini route. Source-specific Playground links work for
+models without a Chat route. Team visibility and Session invocation do not provide
+Personal Key availability; native Team discovery advertises no media capability.

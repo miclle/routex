@@ -16,7 +16,7 @@ import {
   declaredCapabilities,
   knownModelProtocols,
   personallyAvailable,
-  teamChatSupported,
+  teamInvocationSupported,
 } from './catalogue-metadata'
 
 export default function ModelAccess({
@@ -174,7 +174,7 @@ export default function ModelAccess({
               <ModelAccessSources name={model.name} sources={model.sources} expanded />
             </div>
             {model.sources
-              .filter((source) => protocols.includes('openai_chat') && teamChatSupported(source))
+              .filter((source) => teamInvocationSupported(source))
               .map(
                 (source) =>
                   source.type === 'team' && (
@@ -183,7 +183,7 @@ export default function ModelAccess({
                       to={`/playground?team=${encodeURIComponent(source.team_id)}&model=${encodeURIComponent(model.id)}`}
                       className="block text-sm underline"
                     >
-                      {t('memberModels.openTeamChat', { name: source.team_name })}
+                      {t('memberModels.openTeamConversation', { name: source.team_name })}
                     </Link>
                   ),
               )}
@@ -194,8 +194,8 @@ export default function ModelAccess({
               model.sources.some((source) => source.type === 'team') && (
                 <p role="status" className="rounded-md border p-3 text-sm text-muted-foreground">
                   {t(
-                    model.sources.some(teamChatSupported) && protocols.includes('openai_chat')
-                      ? 'memberModels.teamOnlyChatGuidance'
+                    model.sources.some(teamInvocationSupported)
+                      ? 'memberModels.teamOnlyNativeGuidance'
                       : 'memberModels.teamOnlyGuidance',
                   )}
                 </p>

@@ -83,6 +83,10 @@ func (ctrl *Ctrl) GatewayGemini(c *fox.Context) {
 	ctx, cancel := context.WithTimeout(service.WithGatewayClientIP(c.Request.Context(), clientIP), 5*time.Minute)
 	defer cancel()
 	result, callErr := ctrl.service.GatewayGemini(ctx, bearer, body, requestID, model, stream)
+	ctrl.finishGatewayGemini(c, ctx, requestID, started, body, result, callErr)
+}
+
+func (ctrl *Ctrl) finishGatewayGemini(c *fox.Context, ctx context.Context, requestID string, started time.Time, body []byte, result *service.GatewayResult, callErr error) {
 	usage := observeGatewayUsage(service.GatewayUsage{})
 	defer func() { ctrl.recordGatewayCall(ctx, requestID, started, result, usage, callErr) }()
 	if result != nil && result.Response != nil {

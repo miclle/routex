@@ -422,3 +422,12 @@ departure. Keep immutable uncertain intents, current/historical status separatio
 local Base UI confirmations and paired `teamModelRequests` translations. The
 minimal review route is `/teams/:resourceId/model-requests`; never fetch a global
 Team/member directory for request workflows.
+
+Team Session native inference uses Cookie/current CSRF through exact Team resource
+endpoints for Chat, Responses, Messages and Gemini. Native Key headers and extra
+query/workspace selectors are rejected and scrubbed before request logging. Team
+model discovery exposes actual ready protocols with empty media capabilities;
+member catalogue Team links use source-specific protocols without Personal Key
+authority. Team comparison, attachments and code export remain unavailable. Session
+renewal and native authorization failures clear stale selection and transcript;
+late cancelled responses never enter completed history.

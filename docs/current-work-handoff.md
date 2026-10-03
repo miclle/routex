@@ -1,9 +1,9 @@
 # Current Work Handoff
 
-- **Status:** implementation active; F19 Personal requests pushed with green checks; shared Team requests passed final local acceptance and are ready for phased delivery
+- **Status:** implementation active; shared Team requests pushed with green checks; four native Team text protocols passed final local acceptance and are ready for phased delivery
 - **Updated:** 2026-10-04
 - **Repository / branch:** RouteX / `main`
-- **Previous checked source baseline:** `4dffc88ab7e1c56ba8c6e120aa3c1c2df55662d8`, pushed and read back from `origin/main`
+- **Previous checked source baseline:** `ea73a056792c58704d8442b85f7cfc667aa697cd`, pushed and read back from `origin/main`
 - **Current owner:** coordinator owns F19 integration, final acceptance and delivery; three scoped owners maintain its isolated source
 - **Next owner:** current task continues the resumed goal
 - **Transport:** identify this checked delivery with `git log -1 -- docs/current-work-handoff.md` and independently verify its upstream
@@ -1217,3 +1217,45 @@ Commit/push each checked phase to main and verify exact remote checks. Next asse
 F07 initial resource configuration/creation requests; no F07 implementation is
 included here. Full totals stay 10 complete, 17 partial and 3 unstarted; the full
 goal remains active. Preserve protected worktrees and unrelated dotfiles changes.
+
+## Current native Team delivery and F07 continuation
+
+Shared Team requests are pushed as `ea73a05` with exact green CI 37145348320,
+Actionlint 37145348264 and GolangCI-Lint 37145348262. Native Team text invocation
+now supports Chat, Responses, Messages and Gemini with source-specific catalogue
+links, separate Session/CSRF transport and no Personal Key or attachment borrowing.
+
+Final format/check/full test passed 1151 Vitest cases in 77 files, Go race,
+development lifecycle and production embedding. Complete real PostgreSQL/MySQL
+regression passed (Handler 929.393 seconds; Service 7.045 seconds), and both
+authentication/native process lifecycles passed. Controlled production/browser/
+restart proof passed all four protocols, authoritative usage, completed inline
+history, truncation failure, explicit recovery, native-only links, zero-dispatch
+revocation and persisted Sessions. A real browser 404 exposed stale selectors;
+401/403/404 now clear old models/transcript, with regression and rebuilt-browser
+proof. English restored; no console errors; owned QA resources removed. Earlier
+failed fixture runs are recorded in IMPLEMENTATION.md, not acceptance evidence.
+
+Three owners are implementing the next already-partial F07 creation package in
+the managed project-initial-resources worktree, starting from `ea73a05`. Backend
+owns service/entity/frozen V45; interface owns the existing Project form/API/types/
+paired resources copy; HTTP acceptance owns enhanced response and real-driver
+fixtures. Root owns runtime publication proof, typed audit, route/migration/harness
+registration, actual DB/process/browser checks and phased main integration.
+
+Enhanced creation uses `creation_id`, a reviewed context If-Match and mutually
+exclusive `initial_resources` or `initial_request`. Direct model/limit dimensions
+have independent permissions. Optional initial requests require the applicant in
+the explicit initial managers and atomically split MODEL_ACCESS/QUOTA/RATE_LIMIT
+records. The immutable receipt acknowledges historical commit separately from
+current Project authority and publication; exact original retries cannot recreate
+a Project, restore managers/grants or overwrite policies. Legacy creation remains
+compatible. F07 work is excluded from the native Team phase commit.
+
+First action after native Team delivery: freeze/review the F07 owned manifests,
+carry the committed native baseline into that worktree with narrow shared merges,
+finish V45 upgrade/partial-DDL/constraints and runtime proof tests, then integrate
+only its files and run full checks, both drivers and bilingual production browser/
+restart/native acceptance before committing/pushing. No completed F07 package is
+claimed yet. Team comparison/media/code export and broader F19 facts remain open.
+The full goal stays active; totals remain 10 complete, 17 partial and 3 unstarted.

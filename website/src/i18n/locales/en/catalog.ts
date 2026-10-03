@@ -378,13 +378,13 @@ export default {
     moreSources_one: 'View {{count}} more access source for {{name}}',
     moreSources_other: 'View {{count}} more access sources for {{name}}',
     noAccessSource: 'No access source',
-    teamChatAvailable: 'Text Chat via Team Session',
-    openTeamChat: 'Open {{name}} Chat in Playground',
+    teamNativeAvailable: 'Native text conversation via Team Session',
+    openTeamConversation: 'Open {{name}} conversation in Playground',
     teamInvocationUnsupported: 'Team invocation is not supported',
-    teamOnlyChatGuidance:
-      'This Team grant supports text Chat through the named Team Session. A personal Key cannot use it. Other protocols and media are not available through this Team path.',
+    teamOnlyNativeGuidance:
+      'This Team grant supports native text conversation through the named Team Session using its ready protocols. A personal Key cannot use this Team grant. Media is unavailable in this Team conversation.',
     teamOnlyGuidance:
-      'This model is visible through a Team grant. Team Keys and Team inference are not available. A personal Key cannot use this Team grant.',
+      'This model is visible through a Team grant, but no Team native protocol is currently ready. A personal Key cannot use this Team grant.',
     personalInvocationUnavailable:
       'Personal inference is not currently available for this model. Creating a Key does not grant model access or make unavailable routes callable.',
     allProtocols: 'All protocols',

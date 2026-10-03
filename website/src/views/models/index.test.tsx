@@ -330,27 +330,91 @@ describe('Authorized member model catalogue', () => {
     await until(() => expect(document.querySelector('[role="menu"]')).toBeNull())
   })
 
-  it('opens only a freshly authorized named Team Chat source without offering a personal Key', async () => {
+  it.each(['openai_chat', 'openai_responses', 'anthropic_messages', 'gemini_generate_content'])(
+    'opens only a freshly authorized named Team %s source without offering a personal Key',
+    async (protocol) => {
+      models = [
+        model(
+          'Team native model',
+          [protocol],
+          [{ ...team('tea_live', 'Live Team'), invocation_protocols: [protocol] }],
+        ),
+      ]
+      await mount()
+      await open('Team native model')
+      const link = drawer().querySelector<HTMLAnchorElement>('a[href^="/playground?"]')!
+      expect(link.getAttribute('href')).toBe(
+        `/playground?team=tea_live&model=${encodeURIComponent(models[0].id)}`,
+      )
+      expect(link.textContent).toContain('Live Team')
+      expect(drawer().textContent).toContain(
+        'native text conversation through the named Team Session',
+      )
+      expect(drawer().textContent).not.toContain('Team inference are not available')
+      expect(drawer().querySelector('a[href="/keys"]')).toBeNull()
+      expect(button('Copy').disabled).toBe(true)
+      await act(async () => i18n.changeLanguage('zh'))
+      expect(link.textContent).toContain('打开 Live Team 对话')
+    },
+  )
+
+  it('uses the independent ready Team protocol subset instead of borrowing global or Personal route availability', async () => {
     models = [
       model(
-        'Team Chat model',
+        'independent-team',
         ['openai_chat'],
-        [{ ...team('tea_live', 'Live Team'), invocation_protocols: ['openai_chat'] }],
+        [
+          {
+            ...team('tea_ready', 'Ready Team'),
+            invocation_protocols: [
+              'openai_responses',
+              'anthropic_messages',
+              'gemini_generate_content',
+            ],
+          },
+          { ...team('tea_unready', 'Unready Team'), invocation_protocols: [] },
+          { ...team('tea_future', 'Future Team'), invocation_protocols: ['future_native'] },
+        ],
       ),
     ]
     await mount()
-    await open('Team Chat model')
-    const link = drawer().querySelector<HTMLAnchorElement>('a[href^="/playground?"]')!
-    expect(link.getAttribute('href')).toBe(
-      `/playground?team=tea_live&model=${encodeURIComponent(models[0].id)}`,
+    await open('independent-team')
+    expect(drawer().querySelector('a[href^="/playground?team=tea_ready"]')).not.toBeNull()
+    expect(drawer().querySelector('a[href^="/playground?team=tea_unready"]')).toBeNull()
+    expect(drawer().querySelector('a[href^="/playground?team=tea_future"]')).toBeNull()
+    expect(drawer().querySelectorAll('a[href^="/playground?team="]')).toHaveLength(1)
+    expect(drawer().querySelector('pre')).toBeNull()
+    expect(drawer().querySelector('a[href="/keys"]')).toBeNull()
+    expect(drawer().textContent).toContain('A personal Key cannot use this Team grant')
+    expect(button('Copy').disabled).toBe(true)
+  })
+
+  it('hides a native Team link during detail renewal and removes it after its ready protocol is revoked', async () => {
+    const item = model(
+      'renew-team-native',
+      ['gemini_generate_content'],
+      [{ ...team('tea_ready', 'Ready Team'), invocation_protocols: ['gemini_generate_content'] }],
     )
-    expect(link.textContent).toContain('Live Team')
-    expect(drawer().textContent).toContain('text Chat through the named Team Session')
-    expect(drawer().textContent).not.toContain('Team inference are not available')
+    models = [item]
+    await mount()
+    await open(item.name)
+    expect(drawer().querySelector('a[href^="/playground?team=tea_ready"]')).not.toBeNull()
+    const barrier = holdDetails()
+    await act(async () => button('Refresh details').click())
+    await until(() =>
+      expect(drawer().querySelector('a[href^="/playground?team=tea_ready"]')).toBeNull(),
+    )
+    detailOverrides[item.id] = {
+      ...item,
+      sources: [{ ...team('tea_ready', 'Ready Team'), invocation_protocols: [] }],
+    }
+    await act(async () => barrier.release())
+    await until(() =>
+      expect(drawer().textContent).toContain('no Team native protocol is currently ready'),
+    )
+    expect(drawer().querySelector('a[href^="/playground?team="]')).toBeNull()
     expect(drawer().querySelector('a[href="/keys"]')).toBeNull()
     expect(button('Copy').disabled).toBe(true)
-    await act(async () => i18n.changeLanguage('zh'))
-    expect(link.textContent).toContain('打开 Live Team Chat')
   })
 
   it('preserves the table composition with actual creation dates and explicit unknown price and usage fields', async () => {

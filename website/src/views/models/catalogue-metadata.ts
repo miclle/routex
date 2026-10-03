@@ -47,10 +47,14 @@ export function declaredCapabilities(model: ModelCatalogRecord, protocol = 'all'
   )
 }
 
-export function teamChatSupported(source: import('@/types/model-catalog').ModelAccessSource) {
-  return (
-    source.type === 'team' &&
-    source.invocation_protocols?.length === 1 &&
-    source.invocation_protocols[0] === 'openai_chat'
-  )
+export function teamInvocationProtocols(source: ModelAccessSource) {
+  return source.type === 'team' && Array.isArray(source.invocation_protocols)
+    ? [...new Set(source.invocation_protocols)].filter((protocol) =>
+        modelCatalogProtocols.some((known) => known === protocol),
+      )
+    : []
+}
+
+export function teamInvocationSupported(source: ModelAccessSource) {
+  return teamInvocationProtocols(source).length > 0
 }

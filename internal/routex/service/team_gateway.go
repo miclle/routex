@@ -62,35 +62,33 @@ func (s *Service) TeamGatewayModels(ctx context.Context, identity *TeamSessionId
 		if err := s.ReauthorizeTeamSession(ctx, identity, name.ModelID); err != nil {
 			continue
 		}
-		eligible := false
+		protocols := []string{}
+		capabilities := map[string][]string{}
 		for _, protocol := range metadata[name.ModelID].Protocols {
-			if protocol == entity.ProtocolOpenAIChat {
-				eligible = true
+			if !teamNativeProtocol(protocol) {
+				continue
 			}
-		}
-		if !eligible {
-			continue
-		}
-		plan, err := s.gatewayAttemptPlan(name.ModelID, entity.ProtocolOpenAIChat)
-		if err != nil {
-			continue
-		}
-		plan.team, plan.userID = identity, identity.UserID
-		eligible = false
-		for _, candidate := range plan.Candidates() {
-			ok, err := s.gatewayAttemptEligible(ctx, plan, candidate.attempt)
+			plan, err := s.gatewayAttemptPlan(name.ModelID, protocol)
 			if err != nil {
-				return nil, gatewayPublicAttemptError(err)
+				continue
 			}
-			if ok {
-				eligible = true
-				break
+			plan.team, plan.userID = identity, identity.UserID
+			for _, candidate := range plan.Candidates() {
+				eligible, err := s.gatewayAttemptEligible(ctx, plan, candidate.attempt)
+				if err != nil {
+					return nil, gatewayPublicAttemptError(err)
+				}
+				if eligible {
+					protocols = append(protocols, protocol)
+					capabilities[protocol] = []string{}
+					break
+				}
 			}
 		}
-		if !eligible {
+		if len(protocols) == 0 {
 			continue
 		}
-		output = append(output, GatewayModel{ID: name.Name, ModelID: name.ModelID, Object: "model", Created: auth.ModelCreated[name.ModelID].Unix(), OwnedBy: "routex", Protocols: []string{entity.ProtocolOpenAIChat}, InputCapabilities: map[string][]string{entity.ProtocolOpenAIChat: {}}, AttachmentScope: "team", PersonalAttachments: false})
+		output = append(output, GatewayModel{ID: name.Name, ModelID: name.ModelID, Object: "model", Created: auth.ModelCreated[name.ModelID].Unix(), OwnedBy: "routex", Protocols: protocols, InputCapabilities: capabilities, AttachmentScope: "team", PersonalAttachments: false})
 	}
 	if err := s.ReauthorizeTeamSession(ctx, identity, ""); err != nil {
 		return nil, err
@@ -106,50 +104,26 @@ func (s *Service) TeamGatewayChat(ctx context.Context, identity *TeamSessionIden
 	return s.gatewayNativeIdentity(ctx, gatewayIdentity{team: identity}, body, requestID, entity.ProtocolOpenAIChat)
 }
 
-func validateTeamChatText(payload map[string]json.RawMessage) error {
-	unsupported := func() error {
-		return gatewayError(400, "unsupported_input", "Team Session inference supports text input only.")
+func (s *Service) TeamGatewayResponses(ctx context.Context, identity *TeamSessionIdentity, body []byte, requestID string) (*GatewayResult, error) {
+	if err := s.ReauthorizeTeamSession(ctx, identity, ""); err != nil {
+		return nil, err
 	}
-	var messages []map[string]json.RawMessage
-	if json.Unmarshal(payload["messages"], &messages) != nil {
-		return unsupported()
+	return s.gatewayNativeIdentity(ctx, gatewayIdentity{team: identity}, body, requestID, entity.ProtocolOpenAIResponses)
+}
+
+func (s *Service) TeamGatewayMessages(ctx context.Context, identity *TeamSessionIdentity, body []byte, requestID string, headers MessagesHeaders) (*GatewayResult, error) {
+	if err := s.ReauthorizeTeamSession(ctx, identity, ""); err != nil {
+		return nil, err
 	}
-	for _, message := range messages {
-		if message["audio"] != nil {
-			return unsupported()
-		}
-		raw := message["content"]
-		if len(raw) == 0 || string(raw) == "null" {
-			continue
-		}
-		var text string
-		if json.Unmarshal(raw, &text) == nil {
-			continue
-		}
-		var parts []map[string]json.RawMessage
-		if json.Unmarshal(raw, &parts) != nil {
-			return unsupported()
-		}
-		for _, part := range parts {
-			var kind string
-			if json.Unmarshal(part["type"], &kind) != nil || kind != "text" || json.Unmarshal(part["text"], &text) != nil {
-				return unsupported()
-			}
-		}
+	if err := ValidateMessagesHeaders(headers); err != nil {
+		return nil, err
 	}
-	if payload["audio"] != nil {
-		return unsupported()
+	return s.gatewayNativeIdentity(ctx, gatewayIdentity{team: identity}, body, requestID, entity.ProtocolAnthropicMessages, gatewayNativeOptions{Messages: headers})
+}
+
+func (s *Service) TeamGatewayGemini(ctx context.Context, identity *TeamSessionIdentity, body []byte, requestID, model string, stream bool) (*GatewayResult, error) {
+	if err := s.ReauthorizeTeamSession(ctx, identity, ""); err != nil {
+		return nil, err
 	}
-	if raw := payload["modalities"]; raw != nil {
-		var values []string
-		if json.Unmarshal(raw, &values) != nil {
-			return unsupported()
-		}
-		for _, value := range values {
-			if value != "text" {
-				return unsupported()
-			}
-		}
-	}
-	return nil
+	return s.gatewayNativeIdentity(ctx, gatewayIdentity{team: identity}, body, requestID, entity.ProtocolGeminiGenerateContent, gatewayNativeOptions{GeminiModel: model, GeminiStream: stream})
 }

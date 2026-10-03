@@ -1,6 +1,13 @@
 import type { SnippetInput } from '@/lib/playground-snippet'
 import TeamPicker from './team-picker'
-import { getTeamModels, runTeamChat } from '@/api/playground-team'
+import {
+  getTeamModels,
+  runTeamChat,
+  runTeamResponses,
+  runTeamMessages,
+  runTeamGemini,
+  teamInferencePath,
+} from '@/api/playground-team'
 import CodeDialog from './code-dialog'
 import { AttachmentChips, AttachmentPicker } from './attachments'
 import { isGeminiModelName, protocolLabel } from '@/lib/protocols'
@@ -110,10 +117,12 @@ export default function ChatWorkbench({
 
   const session = useSession()
   const [teamConfirmed, setTeamConfirmed] = useState(false)
+  const controller = useRef<AbortController | null>(null)
   const liveSession = useRef(session.data)
   useLayoutEffect(() => {
-    liveSession.current = session.isError ? undefined : session.data
-  }, [session.data, session.isError])
+    liveSession.current = session.isError || session.isFetching ? undefined : session.data
+    if (source === 'team' && (session.isError || session.isFetching)) controller.current?.abort()
+  }, [session.data, session.isError, session.isFetching, source])
   const [streamEnabled, setStreamEnabled] = useState(true)
   const [codeRequest, setCodeRequest] = useState<SnippetInput | null>(null)
   const [key, setKey] = useState('')
@@ -131,6 +140,9 @@ export default function ChatWorkbench({
         value === 'gemini_generate_content',
     )
   }
+  const freshTeamSession = !session.isError && !session.isFetching && !!session.data
+  const teamVisible = source !== 'team' || freshTeamSession
+  const visibleModels = teamVisible ? models : []
   const availableProtocols = protocols(models.find((item) => item.id === model))
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | GatewayError>('')
@@ -140,7 +152,6 @@ export default function ChatWorkbench({
   const [attachments, setAttachments] = useState<Attachment[]>([])
   const [uploadingNames, setUploadingNames] = useState<string[]>([])
   const [copied, setCopied] = useState('')
-  const controller = useRef<AbortController | null>(null)
   const attachmentGeneration = useRef(0)
   const attachmentRef = useRef<Attachment[]>([])
   const ownedAttachmentTargets = useRef(new Map<string, AttachmentTarget>())
@@ -332,7 +343,9 @@ export default function ChatWorkbench({
   }
   async function loadModels() {
     if (
-      (source === 'key' ? !key.trim() : !teamConfirmed || !liveSession.current) ||
+      (source === 'key'
+        ? !key.trim()
+        : !teamConfirmed || !freshTeamSession || !liveSession.current) ||
       busy ||
       lock.current
     )
@@ -341,6 +354,13 @@ export default function ChatWorkbench({
     const abort = new AbortController()
     controller.current = abort
     setLoading(true)
+    if (source === 'team') {
+      setModels([])
+      setModel('')
+      setKeyChecked(false)
+      setExchanges([])
+      setCodeRequest(null)
+    }
     setError('')
     try {
       const available =
@@ -400,7 +420,7 @@ export default function ChatWorkbench({
       !model ||
       (source === 'key'
         ? !key.trim()
-        : !teamConfirmed || !liveSession.current || protocol !== 'openai_chat') ||
+        : !teamConfirmed || !freshTeamSession || !liveSession.current) ||
       !availableProtocols.includes(protocol)
     )
       return
@@ -416,7 +436,12 @@ export default function ChatWorkbench({
     const messages: ChatMessage[] = [
       ...(system ? [{ role: 'system' as const, content: system }] : []),
       ...exchanges
-        .filter((exchange) => exchange.status === 'completed')
+        .filter(
+          (exchange) =>
+            exchange.status === 'completed' &&
+            (source !== 'team' ||
+              (!exchange.refused && !exchange.nonTextOutput && !!exchange.text.trim())),
+        )
         .flatMap((exchange): ChatMessage[] => [
           { role: 'user', content: exchange.prompt },
           { role: 'assistant', content: exchange.text },
@@ -449,6 +474,7 @@ export default function ChatWorkbench({
           current.map((exchange) => (exchange.id === id ? { ...exchange, ...patch } : exchange)),
         )
     }
+    const teamCSRF = liveSession.current?.csrf_token ?? ''
     try {
       const parameters = {
         model,
@@ -457,8 +483,11 @@ export default function ChatWorkbench({
         top_p: Number(form.get('top_p')),
       }
       if (protocol === 'gemini_generate_content') {
-        const result = await runGemini(
-          key.trim(),
+        const execute =
+          source === 'team'
+            ? runTeamGemini.bind(null, teamId, teamCSRF)
+            : runGemini.bind(null, key.trim())
+        const result = await execute(
           {
             model,
             stream,
@@ -494,8 +523,11 @@ export default function ChatWorkbench({
                 content: buildMessagesAttachmentContent(text, submittedAttachments),
               }
             : { role: 'user', content: text }
-        const result = await runMessages(
-          key.trim(),
+        const execute =
+          source === 'team'
+            ? runTeamMessages.bind(null, teamId, teamCSRF)
+            : runMessages.bind(null, key.trim())
+        const result = await execute(
           {
             ...parameters,
             messages: [
@@ -520,8 +552,11 @@ export default function ChatWorkbench({
                 content: buildResponsesAttachmentContent(text, submittedAttachments),
               }
             : { role: 'user', content: text }
-        const result = await runResponses(
-          key.trim(),
+        const execute =
+          source === 'team'
+            ? runTeamResponses.bind(null, teamId, teamCSRF)
+            : runResponses.bind(null, key.trim())
+        const result = await execute(
           {
             ...parameters,
             input: [
@@ -540,13 +575,17 @@ export default function ChatWorkbench({
         update({
           ...result,
           status:
-            result.responseStatus === 'completed'
-              ? 'completed'
-              : result.responseStatus === 'failed'
-                ? 'failed'
-                : result.responseStatus === 'incomplete'
-                  ? 'incomplete'
-                  : 'accepted',
+            source === 'team' && result.refused
+              ? 'refused'
+              : source === 'team' && result.responseStatus === 'completed' && result.nonTextOutput
+                ? 'handoff'
+                : result.responseStatus === 'completed'
+                  ? 'completed'
+                  : result.responseStatus === 'failed'
+                    ? 'failed'
+                    : result.responseStatus === 'incomplete'
+                      ? 'incomplete'
+                      : 'accepted',
           error: result.responseStatus === 'failed' ? 'playground:failedHelp' : '',
         })
       } else {
@@ -563,7 +602,7 @@ export default function ChatWorkbench({
                 request: Parameters<typeof runChat>[1],
                 signal: AbortSignal,
                 onUpdate: Parameters<typeof runChat>[3],
-              ) => runTeamChat(teamId, liveSession.current!.csrf_token, request, signal, onUpdate)
+              ) => runTeamChat(teamId, teamCSRF, request, signal, onUpdate)
             : (
                 request: Parameters<typeof runChat>[1],
                 signal: AbortSignal,
@@ -597,7 +636,19 @@ export default function ChatWorkbench({
       }
     } catch (failure) {
       if (abort.signal.aborted) update({ status: 'cancelled', error: '' }, true)
-      else
+      else {
+        if (
+          source === 'team' &&
+          failure instanceof GatewayError &&
+          [401, 403, 404].includes(failure.status)
+        ) {
+          setModels([])
+          setModel('')
+          setKeyChecked(false)
+          setExchanges([])
+          setCodeRequest(null)
+          setError(failure)
+        }
         update({
           status: 'failed',
           error:
@@ -608,7 +659,9 @@ export default function ChatWorkbench({
             ? { requestId: failure.requestId }
             : {}),
         })
+      }
     } finally {
+      if (abort.signal.aborted) update({ status: 'cancelled', error: '' }, true)
       lock.current = false
       if (controller.current === abort) controller.current = null
       void releaseAttachments(submittedAttachments, csrfRef.current)
@@ -683,12 +736,14 @@ export default function ChatWorkbench({
           </FormField>
           {source === 'team' && (
             <>
-              <TeamPicker
-                actor={session.isError ? '' : (session.data?.user.id ?? '')}
-                value={teamId}
-                onChange={(id) => onTeam?.(id)}
-                onConfirmed={confirmTeam}
-              />
+              <div hidden={!freshTeamSession}>
+                <TeamPicker
+                  actor={session.isError ? '' : (session.data?.user.id ?? '')}
+                  value={teamId}
+                  onChange={(id) => onTeam?.(id)}
+                  onConfirmed={confirmTeam}
+                />
+              </div>
               <p className="text-xs text-muted-foreground">{t('playground:teamTextOnly')}</p>
             </>
           )}
@@ -709,7 +764,9 @@ export default function ChatWorkbench({
               <Button
                 size="sm"
                 variant="outline"
-                disabled={(source === 'key' ? !key.trim() : !teamConfirmed) || busy}
+                disabled={
+                  (source === 'key' ? !key.trim() : !teamConfirmed || !freshTeamSession) || busy
+                }
                 onClick={() => void loadModels()}
               >
                 {loading
@@ -733,7 +790,7 @@ export default function ChatWorkbench({
               <select
                 name="model"
                 aria-label={t('choose_a_model_4e769')}
-                value={model}
+                value={teamVisible ? model : ''}
                 onChange={(e) => {
                   clearDraftAttachments()
                   setModel(e.target.value)
@@ -745,10 +802,10 @@ export default function ChatWorkbench({
                   setExchanges([])
                 }}
                 className="h-11 w-full rounded-md border bg-background px-3 text-sm"
-                disabled={!models.length}
+                disabled={!visibleModels.length}
               >
                 <option value="">
-                  {models.length
+                  {visibleModels.length
                     ? t('choose_a_model_4e769')
                     : keyChecked
                       ? t(
@@ -762,14 +819,14 @@ export default function ChatWorkbench({
                             : 'verify_your_key_first_5592a',
                         )}
                 </option>
-                {models.map((item) => (
+                {visibleModels.map((item) => (
                   <option key={item.id} value={item.id}>
                     {item.id}
                   </option>
                 ))}
               </select>
             </FormField>
-            {model && (
+            {model && teamVisible && (
               <FormField label={t('playground:protocol')}>
                 <select
                   name="protocol"
@@ -806,7 +863,7 @@ export default function ChatWorkbench({
               <p className="mt-2 break-all font-mono text-xs text-muted-foreground">
                 POST{' '}
                 {source === 'team'
-                  ? `/api/v1/teams/${encodeURIComponent(teamId)}/chat/completions`
+                  ? teamInferencePath(teamId, protocol, teamVisible ? model : '', streamEnabled)
                   : protocol === 'gemini_generate_content'
                     ? isGeminiModelName(model)
                       ? `/v1beta/models/${encodeURIComponent(model)}:${streamEnabled ? 'streamGenerateContent' : 'generateContent'}`
@@ -913,7 +970,7 @@ export default function ChatWorkbench({
             aria-live="polite"
             className="min-h-0 flex-1 space-y-6 overflow-auto p-5"
           >
-            {exchanges.length === 0 && (
+            {(teamVisible ? exchanges : []).length === 0 && (
               <div className="flex min-h-60 items-center justify-center text-center text-sm leading-7 text-muted-foreground">
                 {source === 'team'
                   ? t('playground:teamConversationStart')
@@ -922,7 +979,7 @@ export default function ChatWorkbench({
                 {t('playground:context')}
               </div>
             )}
-            {exchanges.map((exchange) => (
+            {(teamVisible ? exchanges : []).map((exchange) => (
               <article key={exchange.id} className="space-y-3">
                 <div className="ml-auto max-w-[90%] whitespace-pre-wrap rounded-lg bg-secondary px-4 py-3 text-sm leading-6">
                   {exchange.prompt}
@@ -1064,7 +1121,15 @@ export default function ChatWorkbench({
                     {t('stop_generation_76349')}
                   </Button>
                 )}
-                <Button type="submit" disabled={busy || !model || !prompt.trim()}>
+                <Button
+                  type="submit"
+                  disabled={
+                    busy ||
+                    !model ||
+                    !prompt.trim() ||
+                    (source === 'team' && (!freshTeamSession || !teamConfirmed))
+                  }
+                >
                   {busy ? (
                     <LoaderCircle className="size-4 animate-spin" aria-hidden="true" />
                   ) : (

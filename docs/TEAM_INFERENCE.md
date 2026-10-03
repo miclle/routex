@@ -28,10 +28,12 @@ digests and Personal/Project Key semantics intact.
 
 ## Invocation and accounting
 
-The first slice supports text-only Chat. Images, PDF input and attachment scalar
-references are rejected before storage reads or upstream dispatch. Opaque tool
-payloads retain their meaning. Responses, Messages, Gemini, Team comparison,
-attachments and code export remain unfinished for this authentication source.
+Text-only Chat, Responses, Messages and Gemini use their native Team Session
+endpoints and independent terminal/usage semantics. Images, PDF input and attachment
+scalar references are rejected before storage reads or upstream dispatch. Opaque
+text and tool payloads retain their meaning; content positions are bounded and
+validated separately for each protocol. Team comparison, attachments and code
+export remain unfinished for this authentication source.
 
 The same native attempt pipeline retains one durable logical admission, native
 terminal evidence, immutable usage and assessed prices. Team aggregate and stable
@@ -53,7 +55,7 @@ Team Session calls do not become a fabricated Key ranking.
 
 The existing Playground source selector offers API Key by default and explicit
 named Team Sessions from the member's own active Team list. Team discovery and
-Chat transport use separate actor/Team identities and current CSRF; Key transport
+native transports use separate actor/Team identities and current CSRF; Key transport
 continues to omit cookies. Changing source, Team, model, actor or page aborts
 requests and clears transient conversation, credentials and selected attachments.
 Late responses must not restore data from the previous authority. Team call tables
@@ -85,3 +87,31 @@ persisted history/new invocation after restart. Owned resources were removed.
 This is controlled proof; external Provider acceptance, complete Session protocol
 coverage and full product acceptance remain open. The later finite-policy evidence
 is recorded independently in TEAM_LIMITS.md.
+
+## Native text protocol extension
+
+Session-authenticated `POST /api/v1/teams/:team_id/responses`, `/messages` and
+`/models/:model_action` join existing `/chat/completions`. Gemini streaming accepts
+only `alt=sse`; other native Team queries, Key credentials and workspace selectors
+are rejected. Middleware removes native credential headers and query values before
+logging/recovery, including malformed native paths. Messages retains its native
+version header and Gemini retains native contents/systemInstruction/generationConfig.
+No handler converts a protocol to Chat or borrows Personal attachment ownership.
+
+Discovery returns only current ready native protocol routes with empty input
+capabilities and explicit Team scope. Member catalogue Team source links expose
+these protocols independently of Personal Key availability. Each native attempt
+uses existing immutable Team/membership facts, aggregate/member admission and
+settlement. Unknown terminal usage remains unknown, and finite policies fail closed.
+
+The Playground retains its existing source/model/protocol controls and uses the
+matching parser with transient completed text histories. Renewed Session reads hide
+old grants; authorization failure clears stale selection/transcript. Cancellation
+and late responses cannot enter history or replay a request. Final mandatory check and full test passed 1151 frontend cases in 77 files.
+Complete PostgreSQL/MySQL race regression passed (Handler 929.393 seconds; Service
+7.045 seconds), and both authentication/native process lifecycles passed.
+Controlled production/browser/restart proof passed each ordinary/streaming native
+protocol, terminal usage, completed history, truncation failure, native-only
+catalogue links, revocation without dispatch and persisted Sessions.
+English/Chinese passed with English restored, no console errors and owned
+resource cleanup. These results do not establish external-provider acceptance.

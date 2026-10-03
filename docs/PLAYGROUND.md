@@ -1,6 +1,6 @@
 # Playground
 
-Playground is a native conversation and model comparison client for native OpenAI Chat Completions, OpenAI Responses, Anthropic Messages, and Gemini Generate Content. Both workbenches support user-owned and Project-owned PNG, JPEG, and PDF attachments. It makes real requests; it does not synthesize responses or usage statistics. An explicit Team Session source additionally supports text-only native Chat Completions in the existing conversation workbench. Other Session protocols, Team comparison, Team attachments, Team code export and tools remain separate work packages.
+Playground is a native conversation and model comparison client for native OpenAI Chat Completions, OpenAI Responses, Anthropic Messages, and Gemini Generate Content. Both workbenches support user-owned and Project-owned PNG, JPEG, and PDF attachments. It makes real requests; it does not synthesize responses or usage statistics. An explicit Team Session source supports text-only native Chat Completions, Responses, Messages and Gemini in the existing conversation workbench. Team comparison, attachments, code export and interactive tool execution remain separate work packages.
 
 ## Workflow
 
@@ -27,7 +27,7 @@ Uploads use the authenticated session and CSRF token. Personal uploads call
 `/api/v1/attachments`; Project uploads call
 `/api/v1/projects/:project_id/attachments` and require a current enabled manager.
 API Key inference continues to use only the transient Key and never sends session
-cookies. Explicit Team Session Chat uses its separate same-origin cookie/CSRF
+cookies. Explicit Team Session native inference uses its separate same-origin cookie/CSRF
 transport and cannot borrow Personal or Project attachment authority. The optional `?project=` value from Project Overview contains only an
 expected Project ID; a mismatched verified Key clears models and drafts. Direct
 Playground use derives the target from verified model metadata. File objects,
@@ -58,8 +58,8 @@ tier, cache, or media shape fail the stricter request-shape check first.
 ## Transport and Secret Handling
 
 - Model discovery, Chat, and Responses use `Authorization: Bearer <key>` against same-origin endpoints. Messages uses only `x-api-key: <key>` with `anthropic-version: 2023-06-01` against `/v1/messages`; Gemini uses only `x-goog-api-key` against the native `/v1beta/models/{name}` action. Authentication forms are never combined, and the client never places credentials in query parameters.
-- API Key requests omit browser cookies and reject redirects. Team Session model discovery and Chat use separate current-Session cookie/CSRF authentication against the exact Team path. Both sources reject redirects; changing sources destroys transient state.
-- Attachment upload/deletion and explicit Team Session discovery/Chat use separate Session transports. Team Sessions cannot upload or invoke attachments in this slice. Project routes receive only the non-secret Project path ID after server authorization; they never receive the entered inference Key. Returned object identifiers and selected `File` objects are not stored in React Query or browser storage.
+- API Key requests omit browser cookies and reject redirects. Team Session model discovery and native inference use separate current-Session cookie/CSRF authentication against the exact Team path. Both sources reject redirects; changing sources destroys transient state.
+- Attachment upload/deletion and explicit Team Session discovery/native inference use separate Session transports. Team Sessions cannot upload or invoke attachments in this slice. Project routes receive only the non-secret Project path ID after server authorization; they never receive the entered inference Key. Returned object identifiers and selected `File` objects are not stored in React Query or browser storage.
 - The Key remains only in component memory and the password input while the page is mounted. The client never writes it to localStorage, sessionStorage, React Query caches, logs, or generated request examples.
 - The native client uses `fetch` and an `AbortController`, not React Query mutations, so request arguments and secrets are not retained in a mutation cache.
 - Native error messages retain useful gateway context, with the supplied Key redacted if it appears in a message. Output is rendered as plain text, not executable HTML.
@@ -146,7 +146,7 @@ Team model discovery. A `?team=` or `?model=` value is expected navigation conte
 only; it never grants access. The source selector preserves the existing left
 configuration panel. Text-only restrictions and empty guidance are bilingual.
 
-Team discovery and Chat use the current Session and CSRF without an entered Key.
+Team discovery and native inference use the current Session and CSRF without an entered Key.
 Changing actor, source, Team, model or page aborts requests and clears history,
 credentials, attachments and code drafts. Late callbacks cannot restore the old
 authority. Own-Team pickers and history are revalidated on remount, and denied

@@ -40,6 +40,17 @@ export async function runMessages(
   onUpdate: (value: MessagesResult) => void,
 ): Promise<MessagesResult> {
   const response = await nativeRequest('/v1/messages', key, signal, request, 'messages')
+  return readMessagesResponse(response, request, signal, onUpdate, key)
+}
+
+export async function readMessagesResponse(
+  response: Response,
+  request: MessagesRequest,
+  signal: AbortSignal,
+  onUpdate: (value: MessagesResult) => void,
+  key = '',
+): Promise<MessagesResult> {
+  signal.throwIfAborted()
   let result: MessagesResult = {
     text: '',
     requestId: response.headers.get('X-Request-ID') ?? response.headers.get('request-id') ?? '',

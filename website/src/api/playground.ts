@@ -276,6 +276,17 @@ export async function runResponses(
   onUpdate: (result: ResponsesResult) => void,
 ): Promise<ResponsesResult> {
   const response = await nativeRequest('/v1/responses', key, signal, request)
+  return readResponsesResponse(response, request, signal, onUpdate, key)
+}
+
+export async function readResponsesResponse(
+  response: Response,
+  request: ResponsesRequest,
+  signal: AbortSignal,
+  onUpdate: (result: ResponsesResult) => void,
+  key = '',
+): Promise<ResponsesResult> {
+  signal.throwIfAborted()
   let result: ResponsesResult = {
     text: '',
     requestId: response.headers.get('X-Request-ID') ?? '',
@@ -324,6 +335,7 @@ export async function runResponses(
         } else if (content.type === 'refusal') {
           if (typeof content.refusal !== 'string') throw invalid()
           text.push(content.refusal)
+          result = { ...result, refused: true }
         } else nonTextOutput = true
       }
     }

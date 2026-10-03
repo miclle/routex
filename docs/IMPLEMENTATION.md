@@ -169,7 +169,7 @@ The binary capability count is 10 completed, 17 partially completed, and 3 not s
 | F16 | Platform currency, exchange rates, and historical price snapshots | Completed | Decimal-string currency/rate management, exact quoting, and immutable per-call assessment are implemented. |
 | F17 | User and Team defaults, overrides, budgets, alerts, and stop policy | Partially completed | Personal, Project, Key and Team aggregate/member enforcement plus budget/token/TPM controls, authoritative quota snapshots, and installation-calendar configuration exist; current-policy Personal/Project monthly settled-exhaustion inboxes have focused acceptance, and creation-default settings and explicit restores have complete local acceptance; templates, broader alerts, and configurable stop-calling policy remain open. |
 | F18 | Quota, model, and request-limit approvals | Completed | Project model/monthly quota/RPM/TPM/concurrency and Team monthly Token/money requests have controlled acceptance: owner-first assignment, escalation, independent dimensions, read-only platform records, atomic final policies and immutable receipts with current application. Distributed acknowledgements belong to F30; release-wide acceptance remains separate. |
-| F19 | Member overview, model sources, requests, and examples | Partially completed | Actor-scoped Personal/Team source attribution, native metadata, filters, details and examples are available; Project requests and text-only native Chat Team Sessions exist; Personal single-Model requests and independent scoped review are available; Shared Team model requests and independently scoped review are available; further Team protocols and broader price/usage facts remain open. |
+| F19 | Member overview, model sources, requests, and examples | Partially completed | Actor-scoped Personal/Team source attribution, native metadata, filters, details and examples are available; Project requests and four text-only native Team Session protocols exist; Personal single-Model requests and independent scoped review are available; Shared Team model requests and independently scoped review are available; Team comparison/media/code export and broader overview/price/usage facts remain open. |
 | F20 | Playground, comparison, attachments, and code examples | Partially completed | Four native conversation paths, two-to-four-lane comparison, cancellation, executable examples, per-protocol image/PDF discovery, user/Project attachment resolution, single/comparison attachment lifecycle interfaces, and conservative token/TPM/money admission with exact per-occurrence media prices exist; external acceptance remains open. |
 | F21 | Personal, Project, and platform call records and CSV | Completed | Isolated list/detail queries, incremental loading, redacted drawers, bounded server-side CSV export, filter parity, formula protection, and bilingual download actions are implemented with dual-database evidence. |
 | F22 | Usage trends, amounts, and multidimensional filters | Partially completed | Personal, Team, Project and platform usage interfaces plus immutable Provider attribution exist. Current-member Team aggregation, independent historical platform filters, revocation-safe interfaces and controlled replay/restart are accepted; complete freshness/capacity acceptance remains open. |
@@ -2087,3 +2087,42 @@ tabs, processes and Compose resources were removed. No external-provider or
 whole-F19 acceptance is claimed. Totals remain 10 complete, 17 partial and 3
 unstarted. The full goal remains active; further Team protocols are the next
 bounded package, followed by remaining overview/price/usage facts.
+
+### F19 Team native text protocols: verified delivery, 2026-10-04
+
+The preceding shared Team requests are pushed as `ea73a05`; exact CI 37145348320,
+Actionlint 37145348264 and GolangCI-Lint 37145348262 succeeded.
+
+Three parallel owners implemented native backend, frontend/source links and
+actual-driver fixtures. Responses, Messages and Gemini extend Team Session text
+invocation alongside Chat with independent native finality, current Session/
+membership/grant checks and atomic aggregate/member accounting. Model discovery
+and catalogue links expose each ready native protocol, including non-Chat models,
+without Personal Key authority or media capability. Native credential/query
+redaction precedes logging and recovery; invalid selectors fail before dispatch.
+
+The first actual focus failed test-only media-envelope assertions and callback
+cleanup lifetime (301.986 seconds); the next failed an over-specific Gemini
+message expectation for earlier native resource rejection (311.702 seconds).
+Corrected native-specific assertions and worker-safe cleanup preserve zero-
+storage-read/dispatch checks. These failed runs are not acceptance evidence.
+
+Final formatting, mandatory check and full test passed 1151 frontend cases in
+77 files, Go race/unit, development lifecycle and production embedding. Complete
+PostgreSQL/MySQL race regression passed (Handler 929.393 seconds; Service 7.045
+seconds), covering four exclusive protocol discoveries, finite token/money/rate
+settlement, refusals, native terminal states/unknown usage, membership and Session
+revocation, durable restart and retained original Key ceilings. Both real-process
+authentication/native lifecycles passed.
+
+Controlled production proof passed eight ordinary/streaming calls and browser
+completion on all four native protocols with authoritative 5 Tokens per reply.
+Completed Gemini inline history, model/protocol clearing, truncated stream failure
+with unknown usage, explicit recovery, native-only catalogue navigation, grant
+revocation with no dispatch and persisted Session/revocation after restart passed.
+Browser acceptance found a stale selection after native 404; native 401/403/404
+now clear grants/transcript and require renewed discovery, with focused regressions
+and rebuilt production verification. English/Chinese passed with English restored,
+no console errors and owned process/tab/Compose cleanup. Team comparison/media/
+code export, broader member facts, external-provider and full F19 acceptance remain
+open. Totals stay 10 complete, 17 partial and 3 unstarted; the full goal is active.

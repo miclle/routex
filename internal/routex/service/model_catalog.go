@@ -190,17 +190,32 @@ func (s *Service) memberModelCatalog(ctx context.Context, actorID, modelID strin
 	if err != nil {
 		return nil, catalogError(err)
 	}
+	applyMemberCatalogMetadata(items, metadata, s.runtime != nil)
+	return items, nil
+}
+
+func applyMemberCatalogMetadata(items []MemberModelCatalogRecord, metadata map[string]gatewayModelMetadata, teamSession bool) {
 	for i := range items {
 		items[i].Protocols = metadata[items[i].ID].Protocols
 		items[i].InputCapabilities = metadata[items[i].ID].InputCapabilities
 		for j := range items[i].Sources {
-			if items[i].Sources[j].Type == "personal" {
+			switch items[i].Sources[j].Type {
+			case "personal":
 				items[i].Sources[j].InvocationProtocols = append([]string{}, items[i].Protocols...)
-			} else if s.runtime != nil && slices.Contains(items[i].Protocols, entity.ProtocolOpenAIChat) {
-				items[i].Sources[j].InvocationProtocols = []string{entity.ProtocolOpenAIChat}
+			case "team":
+				// These protocol links use the Team Session subject; Team visibility
+				// never promises Personal Key authorization or attachment ownership.
+				items[i].Sources[j].InvocationSupported = false
+				items[i].Sources[j].InvocationProtocols = []string{}
+				if teamSession {
+					for _, protocol := range items[i].Protocols {
+						if teamNativeProtocol(protocol) {
+							items[i].Sources[j].InvocationProtocols = append(items[i].Sources[j].InvocationProtocols, protocol)
+						}
+					}
+				}
 			}
 		}
 		items[i].PersonalAvailable = len(items[i].Protocols) > 0 && slices.ContainsFunc(items[i].Sources, func(source MemberModelCatalogSource) bool { return source.Type == "personal" })
 	}
-	return items, nil
 }

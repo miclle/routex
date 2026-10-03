@@ -7,23 +7,46 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import PlaygroundPage from './index'
 import client from '@/api/client'
 import i18n from '@/i18n'
-import { getTeamModels, runTeamChat } from '@/api/playground-team'
-import { getGatewayModels, runChat } from '@/api/playground'
+import {
+  getTeamModels,
+  runTeamChat,
+  runTeamResponses,
+  runTeamMessages,
+  runTeamGemini,
+} from '@/api/playground-team'
+import {
+  GatewayError,
+  getGatewayModels,
+  runChat,
+  runResponses,
+  runMessages,
+  runGemini,
+} from '@/api/playground'
 
 let actor = 'usr_one',
   csrf = 'csrf-one'
+let refreshing = false
 vi.mock('@/hooks/use-auth', () => ({
-  useSession: () => ({ data: { user: { id: actor, role: 'member' }, csrf_token: csrf } }),
+  useSession: () => ({
+    isFetching: refreshing,
+    data: { user: { id: actor, role: 'member' }, csrf_token: csrf },
+  }),
 }))
 vi.mock('@/api/playground-team', async (original) => ({
   ...(await original<typeof import('@/api/playground-team')>()),
   getTeamModels: vi.fn(),
   runTeamChat: vi.fn(),
+  runTeamResponses: vi.fn(),
+  runTeamMessages: vi.fn(),
+  runTeamGemini: vi.fn(),
 }))
 vi.mock('@/api/playground', async (original) => ({
   ...(await original<typeof import('@/api/playground')>()),
   getGatewayModels: vi.fn(),
   runChat: vi.fn(),
+  runResponses: vi.fn(),
+  runMessages: vi.fn(),
+  runGemini: vi.fn(),
 }))
 Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true })
 const adapter = client.defaults.adapter
@@ -40,6 +63,7 @@ const nativeModel = {
 const result = { text: 'Team reply', requestId: 'req_team', usage: null, finishReason: 'stop' }
 beforeEach(async () => {
   actor = 'usr_one'
+  refreshing = false
   csrf = 'csrf-one'
   teamFailure = false
   requests = []
@@ -73,6 +97,21 @@ beforeEach(async () => {
   })
   vi.mocked(getGatewayModels).mockResolvedValue([{ id: 'key-model' }])
   vi.mocked(runChat).mockResolvedValue(result)
+  vi.mocked(runTeamResponses).mockResolvedValue({
+    ...result,
+    responseStatus: 'completed',
+    nonTextOutput: false,
+  })
+  vi.mocked(runTeamMessages).mockResolvedValue({
+    ...result,
+    messageStatus: 'completed',
+    nonTextOutput: false,
+  })
+  vi.mocked(runTeamGemini).mockResolvedValue({
+    ...result,
+    generationStatus: 'completed',
+    nonTextOutput: false,
+  })
 })
 afterEach(async () => {
   await act(async () => root.unmount())
@@ -334,8 +373,238 @@ describe('Team Session Playground', () => {
     await fill('prompt', 'Draft')
     await act(async () => i18n.changeLanguage('zh'))
     expect(host.textContent).toContain('凭证来源')
-    expect(host.textContent).toContain('Team 会话仅支持文本')
+    expect(host.textContent).toContain('Team 会话仅支持通过可用原生协议进行文本对话')
     expect(host.querySelector<HTMLTextAreaElement>('[name="prompt"]')!.value).toBe('Draft')
     expect(host.querySelector<HTMLSelectElement>('[name="team"]')!.value).toBe('tea_one')
+  })
+})
+
+describe('Team native conversation selection and renewal', () => {
+  it.each(['openai_responses', 'anthropic_messages', 'gemini_generate_content'] as const)(
+    'chooses a %s-only model and sends only its native inline text/history',
+    async (protocol) => {
+      vi.mocked(getTeamModels).mockResolvedValue([
+        { ...nativeModel, protocols: [protocol], input_capabilities: { [protocol]: [] } },
+      ])
+      await teamReady()
+      expect(host.querySelector<HTMLSelectElement>('[name="protocol"]')!.value).toBe(protocol)
+      expect(host.querySelectorAll('[name="protocol"] option')).toHaveLength(1)
+      const execute =
+        protocol === 'openai_responses'
+          ? vi.mocked(runTeamResponses)
+          : protocol === 'anthropic_messages'
+            ? vi.mocked(runTeamMessages)
+            : vi.mocked(runTeamGemini)
+      await fill('system', 'Explicit instruction')
+      await fill('prompt', 'First')
+      await click('Send message')
+      await fill('prompt', 'Second')
+      await click('Send message')
+      expect(execute).toHaveBeenCalledTimes(2)
+      const body = execute.mock.calls[1][2]
+      if ('input' in body)
+        expect(body).toMatchObject({
+          instructions: 'Explicit instruction',
+          input: [
+            { role: 'user', content: 'First' },
+            { role: 'assistant', content: 'Team reply' },
+            { role: 'user', content: 'Second' },
+          ],
+        })
+      else if ('messages' in body)
+        expect(body).toMatchObject({
+          system: 'Explicit instruction',
+          messages: [
+            { role: 'user', content: 'First' },
+            { role: 'assistant', content: 'Team reply' },
+            { role: 'user', content: 'Second' },
+          ],
+        })
+      else
+        expect(body).toMatchObject({
+          systemInstruction: { parts: [{ text: 'Explicit instruction' }] },
+          contents: [
+            { role: 'user', parts: [{ text: 'First' }] },
+            { role: 'model', parts: [{ text: 'Team reply' }] },
+            { role: 'user', parts: [{ text: 'Second' }] },
+          ],
+          generationConfig: { candidateCount: 1 },
+        })
+      expect(runTeamChat).not.toHaveBeenCalled()
+      expect(runResponses).not.toHaveBeenCalled()
+      expect(runMessages).not.toHaveBeenCalled()
+      expect(runGemini).not.toHaveBeenCalled()
+      expect(host.querySelector('[name="api_key"]')).toBeNull()
+      expect(button('Get code').disabled).toBe(true)
+      expect(host.textContent).toContain(
+        protocol === 'openai_responses'
+          ? '/teams/tea_one/responses'
+          : protocol === 'anthropic_messages'
+            ? '/teams/tea_one/messages'
+            : '/teams/tea_one/models/team-native-name:streamGenerateContent?alt=sse',
+      )
+    },
+  )
+  it.each(['incomplete', 'failed', 'queued', 'refused', 'handoff'] as const)(
+    'excludes %s Responses turns from subsequent native history',
+    async (status) => {
+      vi.mocked(getTeamModels).mockResolvedValue([
+        {
+          ...nativeModel,
+          protocols: ['openai_responses'],
+          input_capabilities: { openai_responses: [] },
+        },
+      ])
+      vi.mocked(runTeamResponses).mockResolvedValue({
+        ...result,
+        responseStatus: status === 'refused' || status === 'handoff' ? 'completed' : status,
+        refused: status === 'refused',
+        nonTextOutput: status === 'handoff',
+      })
+      await teamReady()
+      await fill('prompt', 'First')
+      await click('Send message')
+      await fill('prompt', 'Second')
+      await click('Send message')
+      expect(vi.mocked(runTeamResponses).mock.calls[1][2].input).toEqual([
+        { role: 'user', content: 'Second' },
+      ])
+    },
+  )
+  it.each(['incomplete', 'handoff', 'refused'] as const)(
+    'excludes %s native Messages and Gemini turns from history',
+    async (status) => {
+      vi.mocked(getTeamModels).mockResolvedValue([
+        {
+          ...nativeModel,
+          protocols: ['anthropic_messages', 'gemini_generate_content'],
+          input_capabilities: { anthropic_messages: [], gemini_generate_content: [] },
+        },
+      ])
+      vi.mocked(runTeamMessages).mockResolvedValue({
+        ...result,
+        messageStatus: status,
+        nonTextOutput: false,
+      })
+      vi.mocked(runTeamGemini).mockResolvedValue({
+        ...result,
+        generationStatus: status,
+        nonTextOutput: false,
+      })
+      await teamReady()
+      await fill('prompt', 'First')
+      await click('Send message')
+      await fill('prompt', 'Second')
+      await click('Send message')
+      expect(vi.mocked(runTeamMessages).mock.calls[1][2].messages).toHaveLength(1)
+      await select('protocol', 'gemini_generate_content')
+      expect(host.textContent).not.toContain('Team reply')
+      await fill('prompt', 'Third')
+      await click('Send message')
+      await fill('prompt', 'Fourth')
+      await click('Send message')
+      expect(vi.mocked(runTeamGemini).mock.calls[1][2].contents).toHaveLength(1)
+    },
+  )
+  it('hides prior grants and transcript during session renewal and uses fresh CSRF without replay', async () => {
+    await teamReady()
+    await fill('prompt', 'First')
+    await click('Send message')
+    refreshing = true
+    await render()
+    expect(host.textContent).not.toContain('Team reply')
+    expect(host.querySelector<HTMLSelectElement>('[name="model"]')!.value).toBe('')
+    expect(button('Load Team models').disabled).toBe(true)
+    await fill('prompt', 'Preserved draft')
+    await click('Send message')
+    expect(runTeamChat).toHaveBeenCalledTimes(1)
+    refreshing = false
+    csrf = 'csrf-new'
+    await render()
+    expect(host.textContent).toContain('Team reply')
+    await click('Send message')
+    expect(vi.mocked(runTeamChat).mock.calls[1][1]).toBe('csrf-new')
+    expect(vi.mocked(runTeamChat).mock.calls[1][2].messages).toHaveLength(3)
+  })
+  it('clears previously loaded grants before a denied exact discovery refresh completes', async () => {
+    await teamReady()
+    await fill('prompt', 'First')
+    await click('Send message')
+    vi.mocked(getTeamModels).mockRejectedValue(new GatewayError('Denied', '', 403))
+    await click('Load Team models')
+    expect(host.textContent).not.toContain('Team reply')
+    expect(host.querySelector<HTMLSelectElement>('[name="model"]')!.value).toBe('')
+    await fill('prompt', 'No stale grant')
+    await click('Send message')
+    expect(runTeamChat).toHaveBeenCalledTimes(1)
+    expect(host.textContent).toContain('Denied')
+  })
+  it.each([401, 403, 404])(
+    'blocks stale Team grants after native invocation denial %s',
+    async (status) => {
+      await teamReady()
+      await fill('prompt', 'First')
+      await click('Send message')
+      vi.mocked(runTeamChat).mockRejectedValue(
+        new GatewayError('Team no longer permitted', '', status),
+      )
+      await fill('prompt', 'Denied')
+      await click('Send message')
+      expect(host.textContent).not.toContain('Team reply')
+      expect(host.querySelector<HTMLSelectElement>('[name="model"]')!.value).toBe('')
+      await fill('prompt', 'Must reload')
+      await click('Send message')
+      expect(runTeamChat).toHaveBeenCalledTimes(2)
+    },
+  )
+  it('cancels a native Responses request on auth renewal and never dispatches duplicate submits or late history', async () => {
+    vi.mocked(getTeamModels).mockResolvedValue([
+      {
+        ...nativeModel,
+        protocols: ['openai_responses'],
+        input_capabilities: { openai_responses: [] },
+      },
+    ])
+    let finish!: () => void
+    vi.mocked(runTeamResponses).mockImplementation(
+      (_team, _csrf, _body, _signal, update) =>
+        new Promise((resolve) => {
+          finish = () => {
+            const value = { ...result, responseStatus: 'completed' as const, nonTextOutput: false }
+            update(value)
+            resolve(value)
+          }
+        }),
+    )
+    await teamReady()
+    await fill('prompt', 'Held')
+    await click('Send message')
+    await act(async () => {
+      host
+        .querySelector('form')!
+        .dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+    })
+    expect(runTeamResponses).toHaveBeenCalledTimes(1)
+    const signal = vi.mocked(runTeamResponses).mock.calls[0][3]
+    refreshing = true
+    await render()
+    expect(signal.aborted).toBe(true)
+    await act(async () => finish())
+    refreshing = false
+    await render()
+    expect(host.textContent).not.toContain('Team reply')
+    expect(runTeamResponses).toHaveBeenCalledTimes(1)
+    expect(host.textContent).toContain('Stopped')
+    vi.mocked(runTeamResponses).mockResolvedValue({
+      ...result,
+      responseStatus: 'completed',
+      nonTextOutput: false,
+    })
+    await fill('prompt', 'New explicit turn')
+    await click('Send message')
+    expect(runTeamResponses).toHaveBeenCalledTimes(2)
+    expect(vi.mocked(runTeamResponses).mock.calls[1][2].input).toEqual([
+      { role: 'user', content: 'New explicit turn' },
+    ])
   })
 })

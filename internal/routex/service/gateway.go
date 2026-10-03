@@ -221,7 +221,7 @@ func (s *Service) gatewayNativeIdentity(ctx context.Context, identity gatewayIde
 		return result, err
 	}
 	if identity.team != nil {
-		if err := validateTeamChatText(payload); err != nil {
+		if err := validateTeamNativeText(protocol, payload); err != nil {
 			return result, err
 		}
 	}
@@ -230,6 +230,9 @@ func (s *Service) gatewayNativeIdentity(ctx context.Context, identity gatewayIde
 		return result, err
 	}
 	result.ImageInputs, result.PDFInputs = attachmentPlan.MediaInputs()
+	if identity.team != nil && (len(attachmentPlan.Occurrences) != 0 || result.ImageInputs != 0 || result.PDFInputs != 0) {
+		return result, teamTextUnsupported()
+	}
 	var name entity.ModelName
 	if s.runtime != nil {
 		var exists bool

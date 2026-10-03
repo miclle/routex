@@ -51,6 +51,18 @@ export async function runGemini(
     body,
     'gemini',
   )
+  return readGeminiResponse(response, request, signal, onUpdate, key)
+}
+
+export async function readGeminiResponse(
+  response: Response,
+  request: GeminiRequest,
+  signal: AbortSignal,
+  onUpdate: (value: GeminiResult) => void,
+  key = '',
+): Promise<GeminiResult> {
+  const { stream } = request
+  signal.throwIfAborted()
   let result: GeminiResult = {
     text: '',
     requestId: response.headers.get('X-Request-ID') ?? '',

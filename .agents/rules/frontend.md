@@ -252,8 +252,10 @@ compatibility and distinguish historical approval from actual current applicatio
 
 Team Session Playground controls retain the approved credential-source selector
 position with API Key as the default and explicit named current active Teams.
-Discover eligible Chat models from the exact Team runtime endpoint, using stable
-model_id only for verified navigation and native model names for invocation.
+Discover eligible Chat, Responses, Messages and Gemini models from the exact
+Team runtime endpoint, using stable model_id only for verified navigation and
+native model names for invocation. Preserve each protocol's terminal/usage parser
+and completed inline text history; never fall back across protocols.
 Separate cookie/current-CSRF Session transport from Key credentials:omit; never
 fallback across sources. The first slice disables Team attachments, comparison
 and code export with localized explanations. Source/Team/model/actor changes and
@@ -388,3 +390,12 @@ departure. Keep immutable uncertain intents, current/historical status separatio
 local Base UI confirmations and paired `teamModelRequests` translations. The
 minimal review route is `/teams/:resourceId/model-requests`; never fetch a global
 Team/member directory for request workflows.
+
+Team Session native inference uses Cookie/current CSRF through exact Team resource
+endpoints for Chat, Responses, Messages and Gemini. Native Key headers and extra
+query/workspace selectors are rejected and scrubbed before request logging. Team
+model discovery exposes actual ready protocols with empty media capabilities;
+member catalogue Team links use source-specific protocols without Personal Key
+authority. Team comparison, attachments and code export remain unavailable. Session
+renewal and native authorization failures clear stale selection and transcript;
+late cancelled responses never enter completed history.
