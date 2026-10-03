@@ -1,10 +1,10 @@
 # Current Work Handoff
 
-- **Status:** implementation active; F08 Key proof hardening pushed; F11 readiness pushed; receipt-backed retirement pushed; member model availability correction pushed; source directory pushed; monthly quota exhaustion inbox checked and pushed; Project monthly quota requests pushed; Project request-rate approval pushed; Team Session foundation pushed; finite Team policies pushed; monthly Team requests checked; F18/A13 controlled scope accepted
+- **Status:** implementation active; F08 Key proof hardening pushed; F11 readiness pushed; receipt-backed retirement pushed; member model availability correction pushed; source directory pushed; monthly quota exhaustion inbox checked and pushed; Project monthly quota requests pushed; Project request-rate approval pushed; Team Session foundation pushed; finite Team policies pushed; monthly Team requests pushed; F18/A13 controlled scope accepted; F06 Team roles accepted and ready for phased delivery
 - **Updated:** 2026-10-03
 - **Repository / branch:** RouteX / `main`
-- **Previous checked source baseline:** `e25d8a9023c555a15d9842bfee50c2c2ab32076c`, pushed and read back from `origin/main`
-- **Current owner:** Team-request source is checked and ready for phased main delivery; the next parallel package is F06 Team roles
+- **Previous checked source baseline:** `bfad9f42893c3cba7bf509df9a969574c9a76be0`, pushed and read back from `origin/main`
+- **Current owner:** coordinator completes frozen F06 acceptance; three parallel F22 report/API, database-fixture and frontend owners work in the isolated `team-usage` worktree
 - **Next owner:** current task continues the resumed goal
 - **Transport:** identify this checked delivery with `git log -1 -- docs/current-work-handoff.md` and independently verify its upstream
 - **Coordination plan:** `~/dotfiles/projects/routex/implementation-plan.md`; synchronize separately and preserve unrelated changes
@@ -821,3 +821,120 @@ detail Roles table/dialog/picker/Save and Team-local gates. Direct/global permis
 Team quota-administrator dimensions, Project/Key authority and native grants remain
 independent. Source implementation starts only after this request phase is committed
 and pushed. The overall objective remains active with no new pause.
+
+
+## Published monthly requests and active F06 Team roles
+
+RouteX `bfad9f42893c3cba7bf509df9a969574c9a76be0` was pushed to `origin/main` and
+its exact remote SHA read back. External coordination plan commit `c5483bc` was
+pushed with unrelated shell changes preserved. Exact Actionlint 37122415984 and
+GolangCI-Lint 37122416013 and CI 37122416012 all succeeded for that exact
+commit. F18/A13 scope is accepted locally; full objective remains active.
+
+F06 ownership is now explicit: persistence owns frozen V41/live TeamRole and
+migration tests; service/API owns target-scoped role union, candidate/assignment
+endpoints, resource hooks and deletion guard; frontend owns the existing Roles
+tab/table/dialog/picker and local actor/Team gates. The coordinator owns shared
+route registration, reset/ledger helpers, safe audit, rules/docs and actual
+acceptance. Current role changes are uncommitted and unaccepted until frozen
+source, both real databases, scoped runtime/browser proof and mandatory checks pass.
+
+Role assignment uses strict current If-Match and saved-state reconciliation,
+without a new general workflow or receipt schema. Team lifecycle remains direct
+platform authority; scoped roles contribute only metadata/membership and model
+actions. Preserve current role definitions through explicit conflict review and
+keep global Session permissions, quotas, native grants, Projects and Keys independent.
+
+## Active F06 verification checkpoint
+
+F18 exact CI 37122416012, Actionlint 37122415984 and GolangCI-Lint 37122416013
+all succeeded. F06 V41 migration acceptance passed on actual PostgreSQL/MySQL
+under the race detector (Handler 202.479 seconds), including partial-schema repair
+and unchanged direct role grants. The first early run found an owned migration
+fixture user leaking into the shared setup baseline; bounded function-return
+cleanup repaired test isolation. No production migration behavior was weakened.
+
+Both real-database independent authentication/gateway process lifecycles passed.
+The disposable production API proved target-only metadata/model operations,
+unchanged global permissions, immediate definition revocation, stale review409,
+assignment removal and native grant independence, then independent restart. The
+full role workflow matrix and final interface acceptance are still pending.
+
+Actual browser checks found an empty candidate query rejected by strict parsing
+and a saved assignment leaving old-generation candidate data. The frontend owner
+is repairing transport omission and current-generation refresh, plus an explicit
+current-state review/discard path for unresolved local drafts. None of these checks
+constitutes a historical operation receipt or runtime publication proof. Final
+source/check/test and both-database workflow acceptance precede another main commit.
+
+The final role-save review additionally found a PUT/GET validator mismatch from
+transient versus persisted timestamp precision. Changed writes now reload the
+persisted Team in the same locked transaction, and Team metadata uses the same
+portable monotonic millisecond generation. Real-database assertions bind PUT
+body/header to subsequent role/candidate validators and interleaved metadata ABA.
+Earlier full runners were explicitly stopped for coherent-source repair and are
+not accepted evidence. The complete release matrix is running against frozen
+backend source. Unknown-result discard now requires a new same-actor/Team read
+before opening its confirmation, preserving original intent and outcome status.
+
+
+## Final F06 browser and process proof
+
+The final isolated production binary and built interface passed actual scoped
+metadata/model/candidate operations, cross-Team and global denials, lifecycle and
+assignment denials, immediate Role-definition revocation, stale reviewed writes,
+assignment removal, independent native grants and process restart. Global Session
+permissions remained unchanged. The member Roles table and permission dialog
+showed only the two supported Team actions, without assignment controls; English
+and live Chinese views passed and English was restored.
+
+A controlled local response-loss proxy committed one assignment but returned 503.
+The exact original retry returned 409 without resolving the unknown outcome. A new
+same-actor/Team read preceded the explicit current-state confirmation; discarding
+removed only the local draft. Two further consecutive saves without reload proved
+current validators and candidate refresh. The owned browser tab, proxy, process,
+Compose PostgreSQL/network and configuration/journal were removed.
+
+The first complete workflow matrix failed because a test tried to create ordinary
+roles with reserved `roles.write`; the API correctly rejected those inputs. A
+subsequent focused run found a test-only singular `kind=team` query instead of the
+supported `kind=teams`. Both fixtures are corrected without weakening production
+validation. The corrected focused workflow matrix and complete final matrix remain
+required before acceptance or commit. F06 remains partial pending these gates.
+
+
+## Active isolated F22 Team usage package
+
+The corrected F06 workflow focus passed on PostgreSQL and MySQL (238.34 seconds);
+its final complete matrix is running against frozen main-checkout source. Final
+check and test passed with 957 Vitest cases in 67 files, Go race/unit, development
+lifecycle and embedded assets. F06 remains partial until full acceptance and phased
+delivery. No further F06 production edits are planned unless acceptance finds a
+specific defect.
+
+The managed `team-usage` worktree starts from the checked F18 main baseline. Three
+owners implement report/API logic, an independent real-database fixture, and the
+existing usage interface respectively. The coordinator owns route/harness
+registration, documentation, integration and final acceptance. Main's F06 source
+remains isolated. Team reports authorize exact current enabled membership and an
+active Team within the facts snapshot, expose only model/trend/currency aggregates,
+and preserve actor-only call history. Platform `team_id` filtering uses independent
+`calls.read_all` and immutable historical attribution. No new migration is needed.
+F22 and the full objective remain active and incomplete.
+
+
+## Accepted F06 source ready for main delivery
+
+The corrected complete PostgreSQL/MySQL matrix passed (Handler 723.801 seconds;
+Service 6.167 seconds) and removed its owned Compose resources. All mandatory
+checks are green for the frozen source, including 957 Vitest cases in 67 files and
+both database process auth/native lifecycles. F06 is now completed in the formal
+capability index; totals are 10 completed, 17 partial and 3 not started. A02 and
+full release acceptance remain open. This document's own checked delivery is
+identified by `git log -1 -- docs/current-work-handoff.md`; never infer a new
+commit SHA from an uncommitted document.
+
+F22 Team usage remains active in the isolated `team-usage` worktree. Backend and
+fixture source are frozen and focused compile/race/lint passed; the frontend
+continues focused tests. A sole isolated real PostgreSQL/MySQL workflow focus has
+started. Do not mix its source into this F06 commit or claim F22 acceptance yet.

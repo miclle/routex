@@ -1,3 +1,4 @@
+import { useTeamMutationGuard } from '@/hooks/use-team-access'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
@@ -23,15 +24,31 @@ export function ResourceModels({
   const { t } = useTranslation('resources')
   const session = useSession()
   const cache = useQueryClient()
+  const guard = useTeamMutationGuard(kind === 'teams', canEdit)
   const [draft, setDraft] = useState<string[] | null>(null)
   const [search, setSearch] = useState('')
   const [saved, setSaved] = useState(false)
   const selected = draft ?? resource.model_ids
   const candidates = useQuery({
-    queryKey: ['resource-model-candidates', kind, search],
+    queryKey: [
+      'resource-model-candidates',
+      kind,
+      kind === 'teams' ? resource.id : '',
+      session.data?.user.id,
+      search,
+    ],
     queryFn: ({ signal }) =>
-      getResourceCandidates(`/admin/resource-model-candidates?kind=${kind}`, search, signal),
+      getResourceCandidates(
+        kind === 'teams'
+          ? `/teams/${resource.id}/model-candidates`
+          : `/admin/resource-model-candidates?kind=${kind}`,
+        search,
+        signal,
+      ),
     enabled: canEdit,
+    ...(kind === 'teams'
+      ? { retry: false, staleTime: 0, gcTime: 0, refetchOnMount: 'always' as const }
+      : {}),
   })
   const update = useMutation({
     mutationFn: () =>
@@ -39,15 +56,20 @@ export function ResourceModels({
         'put',
         `${kind === 'teams' ? '/admin/teams' : '/projects'}/${resource.id}/models`,
         { model_ids: selected },
-        session.data!.csrf_token,
+        guard.csrf(),
       ),
     onSuccess: () => {
+      if (!guard.active()) return
       setDraft(null)
       setSaved(true)
       void cache.invalidateQueries({ queryKey: ['resources'] })
     },
   })
-  const names = new Map(candidates.data?.map((item) => [item.id, item.name]))
+  const visibleCandidates =
+    kind !== 'teams' ||
+    (canEdit && candidates.isSuccess && !candidates.isFetching && !candidates.isError)
+  const candidateRows = visibleCandidates ? candidates.data : undefined
+  const names = new Map(candidateRows?.map((item) => [item.id, item.name]))
   function change(ids: string[]) {
     setSaved(false)
     setDraft(ids)
@@ -118,7 +140,7 @@ export function ResourceModels({
                 </tr>
               </thead>
               <tbody>
-                {candidates.data
+                {candidateRows
                   ?.filter((item) => !selected.includes(item.id))
                   .map((item) => (
                     <tr key={item.id}>

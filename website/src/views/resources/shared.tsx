@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { useState, type ReactNode } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { getResourceCandidates } from '@/api/resources'
+import { useSession } from '@/hooks/use-auth'
 import { QueryState } from '@/components/app/CatalogUI'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
@@ -47,10 +48,26 @@ export function CandidatePicker({
   useTranslation()
 
   const [q, setQ] = useState('')
+  const session = useSession()
+  const scopedTeam = path.startsWith('/teams/')
   const candidates = useQuery({
-    queryKey: ['resource-candidates', path, q],
+    queryKey: ['resource-candidates', path, q, scopedTeam ? session.data?.user.id : undefined],
     queryFn: ({ signal }) => getResourceCandidates(path, q, signal),
+    ...(scopedTeam
+      ? {
+          enabled: !disabled,
+          retry: false,
+          staleTime: 0,
+          gcTime: 0,
+          refetchOnMount: 'always' as const,
+        }
+      : {}),
   })
+  const rows =
+    !scopedTeam ||
+    (!disabled && candidates.isSuccess && !candidates.isFetching && !candidates.isError)
+      ? candidates.data
+      : undefined
   return (
     <fieldset disabled={disabled} className="space-y-3">
       <legend className="mb-2 text-sm font-medium">{label}</legend>
@@ -64,10 +81,10 @@ export function CandidatePicker({
         pending={candidates.isPending}
         error={candidates.error}
         retry={() => void candidates.refetch()}
-        empty={candidates.data?.filter((item) => !exclude.includes(item.id)).length === 0}
+        empty={rows?.filter((item) => !exclude.includes(item.id)).length === 0}
       />
       <div className="max-h-64 space-y-2 overflow-y-auto rounded-md border p-3">
-        {candidates.data
+        {rows
           ?.filter((candidate) => !exclude.includes(candidate.id))
           .map((candidate) => (
             <label className="flex items-center gap-3 text-sm" key={candidate.id}>
@@ -101,10 +118,10 @@ export function CandidatePicker({
               variant="secondary"
               onClick={() => onChange(selected.filter((item) => item !== id))}
               aria-label={t('remove_selection_value_90b0c', {
-                v0: candidates.data?.find((item) => item.id === id)?.name ?? id,
+                v0: rows?.find((item) => item.id === id)?.name ?? id,
               })}
             >
-              {candidates.data?.find((item) => item.id === id)?.name ?? id} ×
+              {rows?.find((item) => item.id === id)?.name ?? id} ×
             </Button>
           ))}
         </div>

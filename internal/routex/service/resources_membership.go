@@ -38,8 +38,12 @@ func (s *Service) SetTeamMembers(ctx context.Context, actorID, teamID string, me
 		if err := lockGovernance(tx); err != nil {
 			return err
 		}
-		if err := authorizeGovernance(tx, actorID, "teams.write"); err != nil {
+		allowed, err := teamTargetActionAllowed(tx, actorID, teamID, "teams.write")
+		if err != nil {
 			return err
+		}
+		if !allowed {
+			return apperrors.ErrForbidden
 		}
 		current, err := resourceRecord(tx, TeamResource, teamID, true)
 		if err != nil {
@@ -59,7 +63,7 @@ func (s *Service) SetTeamMembers(ctx context.Context, actorID, teamID string, me
 		for _, member := range members {
 			userIDs = append(userIDs, member.UserID)
 		}
-		if err := tx.Model(&entity.User{}).Where("id IN ?", userIDs).Count(&userCount).Error; err != nil {
+		if err := teamRoleDefinitionQuery(tx.Model(&entity.User{}), userIDs).Count(&userCount).Error; err != nil {
 			return err
 		}
 		if userCount != int64(len(members)) {
@@ -186,7 +190,15 @@ func (s *Service) SetResourceModels(ctx context.Context, actorID string, kind Re
 		if err := lockGovernance(tx); err != nil {
 			return err
 		}
-		if err := authorizeGovernance(tx, actorID, string(kind)+".models.write"); err != nil {
+		if kind == TeamResource {
+			allowed, err := teamTargetActionAllowed(tx, actorID, resourceID, "teams.models.write")
+			if err != nil {
+				return err
+			}
+			if !allowed {
+				return apperrors.ErrForbidden
+			}
+		} else if err := authorizeGovernance(tx, actorID, string(kind)+".models.write"); err != nil {
 			return err
 		}
 		current, err := resourceRecord(tx, kind, resourceID, true)
@@ -206,7 +218,11 @@ func (s *Service) SetResourceModels(ctx context.Context, actorID string, kind Re
 		}
 		if len(modelIDs) > 0 {
 			var count int64
-			if err := tx.Model(&entity.Model{}).Where("id IN ? AND status = ?", modelIDs, entity.ResourceActive).Count(&count).Error; err != nil {
+			query := tx.Model(&entity.Model{}).Where("id IN ? AND status = ?", modelIDs, entity.ResourceActive)
+			if kind == TeamResource {
+				query = teamRoleDefinitionQuery(tx.Model(&entity.Model{}), modelIDs).Where(teamQuotaEquality(tx, "status", entity.ResourceActive))
+			}
+			if err := query.Count(&count).Error; err != nil {
 				return err
 			}
 			if count != int64(len(modelIDs)) {

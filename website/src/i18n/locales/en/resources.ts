@@ -1,4 +1,43 @@
 export default {
+  roles: 'Roles and permissions',
+  teamRoles: 'Team roles',
+  teamRolesHelp:
+    'Assigned roles contribute only actions for this Team. Direct platform roles remain independent; ownership does not grant administrative permissions. Model access and budgets are managed in their own tabs.',
+  teamRoleName: 'Role',
+  teamRoleType: 'Type',
+  teamRolePermissions: 'Team permissions',
+  teamRoleBuiltin: 'Built-in role',
+  teamRoleCustom: 'Custom role',
+  teamRoleUnavailable: 'Unavailable',
+  teamRoleViewPermissions: 'View permissions',
+  teamRoleAdd: 'Add roles',
+  teamRoleSearch: 'Search roles',
+  teamRoleSelected: 'Selected roles: {{count}}',
+  teamRoleMore: 'Load more',
+  teamRoleReason: 'Change reason',
+  teamRoleUseContext: 'Use reviewed role definitions',
+  teamRoleSave: 'Save Team roles',
+  teamRoleRetry: 'Retry exact assignment',
+  teamRoleReviewCurrent: 'Review current assignment',
+  teamRoleDiscard: 'Use current assignment and discard draft',
+  teamRoleDiscardHelp:
+    'Review the currently saved roles and their Team actions. Discarding only removes the local draft and retry intent. The original operation outcome remains unknown; there is no historical receipt or runtime publication proof.',
+  teamRoleDiscarded:
+    'The local draft was discarded. The original operation outcome remains unknown; the displayed assignment is the current saved state only.',
+  teamRoleRefresh: 'Refresh roles and actions',
+  teamEffectiveRoles: 'Effective Team permissions',
+  teamRoleEditTeam: 'Edit this Team and its members',
+  teamRoleEditModels: 'Maintain this Team’s model access',
+  teamRolesEmpty: 'No delegated Team actions.',
+  teamRoleSaved:
+    'Current Team role assignment is saved. This does not prove an earlier historical operation or runtime publication.',
+  teamRoleConflict:
+    'Team status, permissions or role definitions changed. Refresh and explicitly review before replacing the validator; your draft is retained.',
+  teamRoleUncertain:
+    'The assignment may already be saved. Retry its unchanged original intent; a rejected retry does not resolve the earlier unknown result.',
+  teamRoleFailed: 'The role assignment could not be completed.',
+  teamRoleReasonRequired:
+    'Provide a reason of at most 1,024 UTF-8 bytes without control characters.',
   limits: 'Budgets, quotas and limits',
   memberResources: 'Adjust member resources',
   usage: 'Usage',

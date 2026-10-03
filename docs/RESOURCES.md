@@ -28,7 +28,7 @@ All successful mutations append an audit event in the same transaction. Audit re
 
 Team and Project model assignments use independent grant tables. Assignment validates the complete list against active logical models; duplicate or unknown IDs abort the whole replacement. An empty list means no assigned models.
 
-These grants do not create `user_model_grants`, expand personal API Key scope, or grant platform permissions. Personal Key requests retain their existing direct-user grant rules. Explicit [Team Sessions](TEAM_INFERENCE.md) separately authorize text-only native Chat from current Team grants and active membership. [Project Keys](PROJECT_KEYS.md) use their own fixed scopes intersected with current Project model grants. [Project resource requests](PROJECT_REQUESTS.md) provide explicit model additions, finite monthly quota applications and finite RPM/TPM/concurrency applications with independent reviewer permissions. [Resource limits](QUOTAS.md) enforce Personal, Project and Key policies. Team Session call history is restricted to the current member's own actor, including owners and administrators. [Team resource limits](TEAM_LIMITS.md) add independently authorized aggregate/member policies and conjunctive native enforcement. Member caps do not reserve aggregate allocations. [Monthly Team member requests](TEAM_REQUESTS.md) add owner-first review, platform escalation and read-only global records without granting owners direct policy writes. Team-assigned roles, default templates and broader Team protocols remain unfinished.
+These grants do not create `user_model_grants`, expand personal API Key scope, or grant platform permissions. Personal Key requests retain their existing direct-user grant rules. Explicit [Team Sessions](TEAM_INFERENCE.md) separately authorize text-only native Chat from current Team grants and active membership. [Project Keys](PROJECT_KEYS.md) use their own fixed scopes intersected with current Project model grants. [Project resource requests](PROJECT_REQUESTS.md) provide explicit model additions, finite monthly quota applications and finite RPM/TPM/concurrency applications with independent reviewer permissions. [Resource limits](QUOTAS.md) enforce Personal, Project and Key policies. Team Session call history is restricted to the current member's own actor, including owners and administrators. [Team resource limits](TEAM_LIMITS.md) add independently authorized aggregate/member policies and conjunctive native enforcement. Member caps do not reserve aggregate allocations. [Monthly Team member requests](TEAM_REQUESTS.md) add owner-first review, platform escalation and read-only global records without granting owners direct policy writes. Target-scoped [Team roles](TEAM_ROLES.md) provide reviewed administrator assignment and exact Team-only action unions. Default templates and broader Team protocols remain separate unfinished packages.
 
 ## HTTP Contract
 
@@ -70,3 +70,19 @@ Schema version 8 uses private frozen GORM definitions, explicit belongs-to relat
 ## Scoped selection APIs
 
 `GET /projects/:project_id/manager-candidates?q=...` is limited to current managers and holders of `projects.write`; it returns enabled users for that Project's manager form. `GET /admin/team-member-candidates?q=...` requires `teams.write`. `GET /admin/resource-model-candidates?kind=teams|projects&q=...` requires the corresponding `*.models.write` permission and returns active logical models. Results are bounded to 50 items, sorted by stable ID, with literal case-insensitive name/email search. User items contain only ID, name, and email; model items contain ID and current name. These endpoints do not grant general member-directory or model-administration access. Archived Projects cannot use mutation pickers.
+
+## Target-scoped Team roles
+
+Team role assignments are independent of direct user roles. Current active members
+inherit only `teams.write` and `teams.models.write` within the assigned active Team.
+Metadata, membership and model controls use the target-specific role projection;
+Team lifecycle changes still require direct platform `teams.write`. Global lists,
+Team creation, quotas, Project management and native model grants remain separate.
+Only the protected platform administrator may replace Team roles with a reviewed
+If-Match and required reason. The existing detail gains a Roles tab with the compact
+assignment table, permission dialog, bounded picker and explicit Save.
+
+Target-specific member and model candidate endpoints support delegated controls
+without fetching the global directory. Quota-only resource representations never
+fetch role data or candidates. See [Team roles](TEAM_ROLES.md) for the exact API,
+current-definition review, saved-state and acceptance contracts.

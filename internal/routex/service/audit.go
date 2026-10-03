@@ -44,7 +44,7 @@ var auditCategories = map[string][]string{
 	"limits":      {"key", "user", "user_default", "team", "team_member", "team_member_default", "project", "team_quota_request"},
 	"credentials": {"credential", "provider_credential", "provider", "connection"},
 	"pricing":     {"pricing"},
-	"identity":    {"user", "role", "session", "mfa", "installation", "registration", "offboarding_case"},
+	"identity":    {"user", "role", "session", "mfa", "installation", "registration", "offboarding_case", "teams"},
 	"site":        {"site", "announcement"},
 	"system":      {"system_instance"},
 }
@@ -81,6 +81,12 @@ func auditRecord(row entity.AuditEvent) AuditRecord {
 	// never become an accidental credential/request-body read API.
 	var changes any
 	switch row.Action {
+	case "team.roles.replace":
+		var valid bool
+		changes, valid = teamRoleAuditProjection(row)
+		if !valid {
+			return result
+		}
 	case "team.quota_request.create", "team.quota_request.approve", "team.quota_request.reject", "team.quota_request.withdraw":
 		var valid bool
 		changes, valid = teamQuotaAuditProjection(row)

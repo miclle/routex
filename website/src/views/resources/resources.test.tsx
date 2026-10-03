@@ -82,7 +82,22 @@ beforeEach(() => {
         csrf_token: 'csrf-fixture',
       }
     else if (config.url === '/auth/permissions') response.data = { permissions }
-    else if (config.url?.includes('resource-model-candidates'))
+    else if (config.url === '/teams/tea_1/roles')
+      response.data = {
+        team_id: team.id,
+        role_ids: [],
+        roles: [],
+        effective_team_actions: [],
+        actor_team_actions: permissions.filter((permission) =>
+          ['teams.write', 'teams.models.write'].includes(permission),
+        ),
+        can_assign_roles: false,
+        etag: 'a'.repeat(64),
+      }
+    else if (
+      config.url?.includes('resource-model-candidates') ||
+      config.url?.endsWith('/model-candidates')
+    )
       response.data = { items: [{ id: 'mdl_new', name: 'New model' }] }
     else if (config.url?.includes('candidates'))
       response.data = {

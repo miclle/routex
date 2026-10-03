@@ -31,6 +31,10 @@ export async function getResource(
   return (await client.get<ResourceRecord>(`${resourcePath(kind, admin)}/${id}`, { signal })).data
 }
 export async function getResourceCandidates(path: string, q: string, signal?: AbortSignal) {
-  return (await client.get<{ items: ResourceCandidate[] }>(path, { params: { q }, signal })).data
-    .items
+  return (
+    await client.get<{ items: ResourceCandidate[] }>(path, {
+      params: path.startsWith('/teams/') ? { query: q || undefined } : { q },
+      signal,
+    })
+  ).data.items
 }

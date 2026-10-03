@@ -335,3 +335,24 @@ render the server-issued stage effect preview and require the same reviewed ETag
 owner escalation explicitly changes no quota. Global records expose a workspace
 link only when the server confirms a current assigned reviewer. Never fetch a global Team
 directory for the personal workspace or enable mutations in global records.
+
+
+## Team role scope
+
+Team roles use the existing detail Roles tab and compact assignment table, local
+permission dialog, candidate picker and explicit Save action. Keep the current
+Team/actor query independent of global authenticated permissions and navigation.
+Only exact `teams.write` and `teams.models.write` actions may be inherited, for the
+assigned active Team and its current enabled members. Owner responsibility alone
+grants no management action; global directories, Team quota-administrator dimensions,
+Project/Key authority and role-assignment powers stay independent. Team lifecycle
+writes retain direct platform permission checks.
+
+Use target-specific member/model/role candidates and server-owned actor actions.
+Only protected current platform administrators can assign roles. Preserve the
+complete selection, required reason and reviewed If-Match through uncertain retries;
+a current GET describes saved state rather than a historical operation receipt.
+Changed role definitions require explicit review. Never query role or candidate
+data from a minimal quota-only projection. Keep English/Chinese role copy in
+`resources`, hide stale authority on refresh/denial, and distinguish saved role
+assignment from runtime policy publication.

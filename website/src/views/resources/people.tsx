@@ -1,3 +1,4 @@
+import { useTeamMutationGuard } from '@/hooks/use-team-access'
 import { t } from '@/i18n'
 import { useTranslation } from 'react-i18next'
 import { useState } from 'react'
@@ -31,6 +32,7 @@ export function ResourcePeople({
   const access = usePermissions()
   const [limitUser, setLimitUser] = useState<ResourcePerson | null>(null)
   const cache = useQueryClient()
+  const guard = useTeamMutationGuard(kind === 'teams', canEdit)
   const [search, setSearch] = useState('')
   const [adding, setAdding] = useState(false)
   const [selected, setSelected] = useState<string[]>([])
@@ -59,9 +61,10 @@ export function ResourcePeople({
           ? `/admin/teams/${resource.id}/members`
           : `/projects/${resource.id}/managers`,
         kind === 'teams' ? { members: next } : { user_ids: next.map((person) => person.user_id) },
-        session.data!.csrf_token,
+        guard.csrf(),
       ),
     onSuccess: () => {
+      if (!guard.active()) return
       setAdding(false)
       setSelected([])
       setChange(null)
@@ -293,14 +296,14 @@ export function ResourcePeople({
           <CandidatePicker
             path={
               kind === 'teams'
-                ? '/admin/team-member-candidates'
+                ? `/teams/${resource.id}/member-candidates`
                 : `/projects/${resource.id}/manager-candidates`
             }
             exclude={people.map((person) => person.user_id)}
             selected={selected}
             onChange={setSelected}
             label={kind === 'teams' ? t('members_c1ee9') : t('managers_7c2c6')}
-            disabled={update.isPending}
+            disabled={update.isPending || !canEdit}
           />
           <ErrorNotice error={update.error} />
           <SaveButton pending={update.isPending} disabled={!selected.length}>

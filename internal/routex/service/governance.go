@@ -242,6 +242,12 @@ func (s *Service) DeleteRole(ctx context.Context, actorID, roleID string) error 
 		if assigned > 0 {
 			return catalogConflict
 		}
+		if err := tx.Model(&entity.TeamRole{}).Where("role_id = ?", role.ID).Count(&assigned).Error; err != nil {
+			return err
+		}
+		if assigned > 0 {
+			return catalogConflict
+		}
 		if err := tx.Where("role_id = ?", roleID).Delete(&entity.RolePermission{}).Error; err != nil {
 			return err
 		}

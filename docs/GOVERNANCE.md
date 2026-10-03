@@ -35,7 +35,7 @@ The implemented resource/action vocabulary is:
 
 `roles.write` and `registration.write` are reserved for the protected administrator identity. They cannot be assigned through custom roles. The API's `available_permissions` list contains only permissions that may be placed in a custom role; built-in administrator metadata additionally includes the reserved powers. Defining a permission boundary does not claim that every corresponding product page or operational capability has been implemented.
 
-Custom roles are additive and confer only implemented platform actions. They do not grant model invocation, ownership of another user's Keys, Team ownership, Project management, or unrestricted access to personal endpoints. Unknown or duplicate permission values are rejected. A role still assigned to users cannot be deleted. Role replacement and assignment validate the whole request before committing, preventing partial changes.
+Custom roles are additive and confer only implemented platform actions. They do not grant model invocation, ownership of another user's Keys, Team ownership, Project management, or unrestricted access to personal endpoints. Unknown or duplicate permission values are rejected. A role still assigned to users or Teams cannot be deleted. Role replacement and assignment validate the whole request before committing, preventing partial changes.
 
 A delegated member manager may create ordinary members and change other ordinary members' enabled state. They cannot create administrators, change any base role, modify an administrator, suspend themselves, create/edit/delete roles, assign roles, or change registration policy. These restrictions are enforced in the service transaction as well as at the HTTP boundary, so direct method use cannot turn a delegated permission into a privilege escalation.
 
@@ -73,3 +73,20 @@ Schema version 6 uses frozen private GORM schema types and the shared migration 
 `testGovernanceLifecycle` runs through the real router against fresh PostgreSQL and MySQL databases. It covers disabled-by-default registration, member-only creation without model grants, CSRF checks, protected built-ins, permission allowlists, additive roles, delegated access, self-grant and administrator escalation failures, atomic session/Key revocation, irreversible Key revocation across reenabling, failed assignment rollback, immediate permission removal, filtered lists, persistent registration settings, and concurrent protection of the last active administrator.
 
 Use `go tool task test-integration` for the database lifecycle. Broader phase evidence and unimplemented governance capabilities are tracked in [the implementation record](IMPLEMENTATION.md).
+
+## Team assignment boundary
+
+[Team roles](TEAM_ROLES.md) are target-scoped relationships, separate from platform
+`user_roles`. An enabled current member of an active Team inherits only
+`teams.write` and `teams.models.write` from its assigned roles. A role may contain
+other platform permissions, but those permissions do not enter Team authority.
+Ownership alone contributes no management permission. Session permissions and
+application navigation remain based on direct platform roles. Team lifecycle,
+quota approvals, Project/Key scope and native model access remain independent.
+
+Only an actual enabled platform administrator may replace Team assignments. The
+review binds current assignment and safe role definitions, including selectable
+roles; definition changes invalidate a previous review. Assignment writes and role
+edits/deletion share the governance lock. Assigned roles cannot be deleted even
+when their Team is archived. Typed `team.roles.replace` audit records expose only
+bounded before/after role IDs, Team actions and required reason.

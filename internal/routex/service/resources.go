@@ -62,6 +62,10 @@ func resourceManager(db *gorm.DB, actorID, projectID string) (bool, error) {
 	return count > 0, err
 }
 func resourceAccess(db *gorm.DB, actorID string, kind ResourceKind, resourceID string) error {
+	if kind == TeamResource {
+		_, err := teamRoleTargetAccess(db, actorID, resourceID, false)
+		return err
+	}
 	permissions, err := permissionsFor(db, actorID)
 	if err != nil {
 		return err
@@ -328,6 +332,17 @@ func (s *Service) UpdateResource(ctx context.Context, actorID string, kind Resou
 			return err
 		}
 		allowed, err := resourcePermission(tx, actorID, kind, "write")
+		if kind == TeamResource {
+			actor, actorErr := exactEnabledActor(tx, actorID)
+			if actorErr != nil {
+				return actorErr
+			}
+			allowed, err = exactGovernancePermission(tx, actor, "teams.write")
+			// Inherited Team actions manage metadata, never Team lifecycle.
+			if err == nil && !allowed && input.Status == nil {
+				allowed, err = teamTargetActionAllowed(tx, actorID, resourceID, "teams.write")
+			}
+		}
 		if err != nil {
 			return err
 		}
@@ -354,6 +369,15 @@ func (s *Service) UpdateResource(ctx context.Context, actorID string, kind Resou
 			return catalogConflict
 		}
 		updates := map[string]any{"updated_at": time.Now().UTC()}
+		if kind == TeamResource {
+			var saved struct{ UpdatedAt time.Time }
+			// resourceRecord already locked this Team. Read its persisted generation
+			// without adding internal lifecycle timestamps to the public record.
+			if err := quotaExact(tx.Model(&entity.Team{}), "id", current.ID).Select("updated_at").Take(&saved).Error; err != nil {
+				return err
+			}
+			updates["updated_at"] = teamRoleAssignmentGeneration(saved.UpdatedAt, time.Now())
+		}
 		if input.Name != nil {
 			updates["name"] = *input.Name
 		}

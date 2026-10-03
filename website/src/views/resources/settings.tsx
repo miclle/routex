@@ -1,8 +1,8 @@
+import { useTeamMutationGuard } from '@/hooks/use-team-access'
 import { useState, type FormEvent } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { writeCatalog } from '@/api/catalog'
-import { useSession } from '@/hooks/use-auth'
 import { ErrorNotice, FormField, SaveButton } from '@/components/app/CatalogUI'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -24,8 +24,8 @@ export function ResourceSettings({
   canLifecycle: boolean
 }) {
   const { t } = useTranslation('resources')
-  const session = useSession()
   const cache = useQueryClient()
+  const guard = useTeamMutationGuard(kind === 'teams', canEdit)
   const [status, setStatus] = useState<ResourceStatus | null>(null)
   const [saved, setSaved] = useState(false)
   const [invalid, setInvalid] = useState(false)
@@ -38,9 +38,10 @@ export function ResourceSettings({
         'patch',
         `${kind === 'teams' ? '/admin/teams' : '/projects'}/${resource.id}`,
         data,
-        session.data!.csrf_token,
+        guard.csrf(),
       ),
     onSuccess: () => {
+      if (!guard.active()) return
       setStatus(null)
       setSaved(true)
       setDirty(false)

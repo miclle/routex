@@ -241,3 +241,19 @@ passed with V40 prefix, constraint, concurrent-startup and historical-data fixtu
 (Handler 704.846 seconds; Service 6.084 seconds). Owned Compose resources were
 removed. See [Team requests](TEAM_REQUESTS.md) for lifecycle, transaction and
 runtime-application contracts.
+
+## Target-scoped Team roles (version 41)
+
+Frozen additive GORM V41 creates `team_roles` with a composite Team/Role primary
+key, a Role lookup index and restrictive live Team and Role foreign keys. It uses
+private frozen ID-only relation structs and the existing bounded migration helper.
+Released V1–V40, direct user role assignments and global permission records remain
+unchanged; no handwritten production SQL is required.
+
+A partially created table, missing index or either missing foreign key must be
+repaired without replacing existing assignments or relationship metadata. Archived
+Teams retain assignments, and assigned Roles cannot be deleted or have their
+identity rewritten. The real PostgreSQL/MySQL fixture checks table/guard prefixes,
+repeat execution, concurrent startup, historical row preservation, orphan and
+duplicate rejection, and restrictive delete/update behavior. Current final
+acceptance is recorded in [Team roles](TEAM_ROLES.md) for the frozen implementation.

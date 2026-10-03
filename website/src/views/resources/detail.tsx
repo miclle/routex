@@ -5,6 +5,8 @@ import { ArrowUpRight } from 'lucide-react'
 import { getResource } from '@/api/resources'
 import { useSession } from '@/hooks/use-auth'
 import { usePermissions } from '@/hooks/use-permissions'
+import { useTeamAccess } from '@/hooks/use-team-access'
+import TeamRolesPanel from './team-roles'
 import { Page, QueryState } from '@/components/app/CatalogUI'
 import { Badge } from '@/components/ui/badge'
 import { buttonVariants } from '@/components/ui/button'
@@ -70,8 +72,22 @@ function ResourceDetail({ kind, resource }: { kind: ResourceKind; resource: Reso
   const isManager =
     kind === 'projects' &&
     !!resource.managers?.some((person) => person.user_id === session.data?.user.id)
-  const canEdit = access.can(`${kind}.write`) || isManager
-  const canModels = access.can(`${kind}.models.write`) && resource.status !== 'archived'
+  const teamAccess = useTeamAccess(
+    resource.id,
+    kind === 'teams' && resource.status === 'active' && !resource.resource_limit_workspace_only,
+  )
+  const canEdit =
+    kind === 'teams'
+      ? resource.status === 'active'
+        ? teamAccess.current?.actor_team_actions.includes('teams.write') === true
+        : access.can('teams.write')
+      : access.can('projects.write') || isManager
+  const canModels =
+    (kind === 'teams'
+      ? resource.status === 'active'
+        ? teamAccess.current?.actor_team_actions.includes('teams.models.write') === true
+        : access.can('teams.models.write')
+      : access.can('projects.models.write')) && resource.status !== 'archived'
   const ownTeam =
     kind === 'teams' &&
     resource.status === 'active' &&
@@ -141,6 +157,7 @@ function ResourceDetail({ kind, resource }: { kind: ResourceKind; resource: Reso
       ? [
           'overview',
           'members',
+          ...(resource.status === 'active' ? ['roles'] : []),
           'models',
           ...(canTeamLimits ? ['limits'] : []),
           ...(ownTeam ? ['calls'] : []),
@@ -261,6 +278,11 @@ function ResourceDetail({ kind, resource }: { kind: ResourceKind; resource: Reso
               kind={kind}
               canEdit={canEdit && resource.status !== 'archived'}
             />
+          </TabsContent>
+        )}
+        {kind === 'teams' && resource.status === 'active' && (
+          <TabsContent value="roles">
+            <TeamRolesPanel team={resource.id} access={teamAccess} />
           </TabsContent>
         )}
         {kind === 'teams' && canTeamLimits && (

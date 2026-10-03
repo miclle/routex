@@ -63,6 +63,11 @@ func (ctrl *Ctrl) RegisterRoutes(r *fox.Engine) {
 	identity.GET("/admin/status", ctrl.requireSession, requireAdmin, ctrl.AdminStatus)
 
 	identity.GET("/teams", ctrl.requireSession, ctrl.ListTeams)
+	identity.GET("/teams/:team_id/roles", ctrl.requireSession, ctrl.GetTeamRoles)
+	identity.PUT("/teams/:team_id/roles", ctrl.requireSession, sameOrigin, requireCSRF, jsonManagementRequest, ctrl.SetTeamRoles)
+	identity.GET("/teams/:team_id/role-candidates", ctrl.requireSession, ctrl.TeamRoleCandidates)
+	identity.GET("/teams/:team_id/member-candidates", ctrl.requireSession, ctrl.ScopedTeamMemberCandidates)
+	identity.GET("/teams/:team_id/model-candidates", ctrl.requireSession, ctrl.ScopedTeamModelCandidates)
 	identity.GET("/teams/:team_id/quota-request-context", ctrl.requireSession, ctrl.TeamQuotaRequestContext)
 	identity.POST("/teams/:team_id/quota-requests", ctrl.requireSession, sameOrigin, requireCSRF, jsonManagementRequest, ctrl.CreateTeamQuotaRequest)
 	identity.GET("/quota-requests", ctrl.requireSession, ctrl.ListTeamQuotaRequests)

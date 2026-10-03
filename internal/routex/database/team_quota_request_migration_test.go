@@ -72,7 +72,7 @@ func TestFrozenTeamQuotaRequestSchema(t *testing.T) {
 		}
 	}
 	steps := migrationSteps("postgres")
-	if len(steps) != 40 {
+	if len(steps) < 40 || reflect.ValueOf(steps[39]).Pointer() != reflect.ValueOf(teamQuotaRequestMigration).Pointer() {
 		t.Fatal("V40 must be appended without replacing released versions", len(steps))
 	}
 }

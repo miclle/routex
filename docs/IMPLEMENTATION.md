@@ -147,7 +147,7 @@ Status terms in this section are deliberately strict:
 - **Partially completed** means material implementation exists, but one or more required behaviors or acceptance gates remain open. It does not mean that work has not started.
 - **Not started** means no material implementation of the capability exists. A prerequisite or design note may still be present.
 
-The binary capability count is 9 completed, 18 partially completed, and 3 not started. This is a completion count, not an effort percentage: several partially completed capabilities contain substantial delivered work. The user resumed implementation on 2026-10-02 and prioritized partially completed capabilities. Status changes require current implementation and acceptance evidence; a package delivery alone does not complete an entire capability.
+The binary capability count is 10 completed, 17 partially completed, and 3 not started. This is a completion count, not an effort percentage: several partially completed capabilities contain substantial delivered work. The user resumed implementation on 2026-10-02 and prioritized partially completed capabilities. Status changes require current implementation and acceptance evidence; a package delivery alone does not complete an entire capability.
 
 | ID | Capability | Status | Delivered and remaining scope |
 |---|---|---|---|
@@ -156,7 +156,7 @@ The binary capability count is 9 completed, 18 partially completed, and 3 not st
 | F03 | Enterprise SSO, LDAP, OAuth, and emergency recovery | Not started | Provider configuration, callbacks, identity binding, enforced SSO, and enterprise recovery remain unimplemented. |
 | F04 | Member administration, direct grants, roles, and resource policies | Partially completed | Member and role workflows plus scoped resource-limit interfaces exist; token, TPM, and exact-money controls with authoritative quota snapshots are available; the complete cross-domain resource-policy surface remains open. |
 | F05 | Built-in and custom roles with composed permissions | Partially completed | Current-domain role and permission management is implemented; later enterprise and operations domains still require permission integration and negative acceptance. |
-| F06 | Team membership, ownership, models, quotas, and member rules | Partially completed | Team creation, membership, ownership, model relationships and finite aggregate/member policy enforcement exist; Team-assigned roles, scoped Team-only permission unions and the role-management interface remain open. |
+| F06 | Team membership, ownership, models, quotas, and member rules | Completed | Team membership/ownership, model relationships, finite aggregate/member policies and monthly requests are accepted. Durable Team-assigned roles, exact Team-only action unions, reviewed administrator assignment and the existing Roles interface have controlled dual-database and browser evidence. |
 | F07 | Project lifecycle, managers, models, Keys, and requests | Partially completed | Project management, managers, model grants, Project Keys, resource limits, model requests, finite monthly quota and RPM/TPM/concurrency approvals exist; the complete Project request and lifecycle surface remains open. |
 | F08 | Personal and Project Key lifecycle | Completed | One-time delivery, confirmation, editing, rotation, revocation, expiration, scope, and history are implemented with controlled dual-database evidence. |
 | F09 | Key Token, money, RPM, TPM, concurrency, and IP restrictions | Completed | Personal, Project, and Key admission policies are enforced in the native gateway for the documented single-node architecture. Multi-node enforcement remains a separate release-architecture gate. |
@@ -1813,3 +1813,43 @@ dispatch. No production code changed after the full matrix. Required check/test
 passed again for the final test fixture with 922 frontend cases. F18 moves to
 Completed and A13 to Completed; capability totals are 9/18/3. A01 and A13 are fully
 accepted in their stated controlled scope; other acceptance cases remain open.
+
+
+## Checked F06 Team-assigned roles, 2026-10-03
+
+Frozen GORM V41 adds restrictive Team/Role relationships without handwritten SQL.
+Current active members inherit only `teams.write` and `teams.models.write` within
+the exact Team. Direct platform permissions remain independent; ownership alone
+adds no management authority. Team lifecycle, quotas, Projects, Keys, global
+navigation and invocation grants never expand through Team assignments.
+
+Actual protected administrators use complete role replacement with strong reviewed
+If-Match and a required reason. Role definitions and candidate generations bind
+the review; monotonic portable persisted Team timestamps prevent assignment ABA.
+Assigned roles cannot be deleted. Typed transactional audit strips unrelated JSON.
+The existing Roles tab preserves table, permission dialog, add/remove picker and
+explicit Save with English/Chinese copy and target-specific controls.
+
+Final check and test passed: 957 Vitest cases in 67 files, Go race/unit tests,
+four Node checks, development lifecycle and production embedded assets. Real
+PostgreSQL/MySQL migration focus passed (202.479 seconds), corrected role workflow
+focus passed (238.34 seconds), and the complete final matrix passed (Handler
+723.801 seconds; Service 6.167 seconds). Both actual database process auth/native
+lifecycles passed. Initial failures were confined to owned fixture cleanup,
+reserved Role permissions and a singular resource-kind query; production guards
+were preserved. Earlier stopped runs are not accepted evidence.
+
+The controlled production API/browser confirmed target-only management, global
+and cross-Team denials, role-definition revocation, assignment removal, unchanged
+native grants, process restart and bilingual read-only member views. A committed
+assignment whose response was deliberately lost remained unknown after a rejected
+exact retry; a fresh read and explicit current-state confirmation discarded only
+local intent. Consecutive saves used matching persisted validators and fresh
+candidates. Owned acceptance resources were removed. No external-provider,
+distributed enforcement or full-release acceptance is inferred.
+
+F06 is complete in its stated capability scope. A02 remains partial because other
+enterprise and operations boundaries remain open. Capability totals are 10
+completed, 17 partially completed and 3 not started. The objective remains active;
+F22 Team aggregate usage is proceeding in an isolated worktree with independent
+report/API, database-fixture and frontend owners.
