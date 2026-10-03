@@ -1,4 +1,7 @@
 export default {
+  modelParameters: '模型参数',
+  resetParameters: '恢复默认参数',
+  parametersReset: '模型参数已恢复默认值。',
   teamConversationStart: '选择你的团队并加载模型，开始一次真实对话。',
   unknownUsage: '未知',
   source: '凭证来源',
@@ -19,7 +22,7 @@ export default {
   teamRefreshRequired: '此次调用未能完成。请刷新 Team 访问权限并重新加载模型后再重试。',
   teamRequestFailed: 'Team 会话请求失败（HTTP {{status}}）。请刷新会话或 Team 访问权限后重试。',
   teamTextOnly:
-    'Team 会话仅支持通过可用原生协议进行文本对话和模型比较，暂不支持附件和代码导出。你的 Team 调用记录单独保存。',
+    'Team 会话仅支持通过可用原生协议进行文本对话和模型比较，暂不支持附件。你的 Team 调用记录单独保存。',
   teamAttachmentsUnavailable: 'Team 会话不支持附件',
   useKey: '使用 API Key',
 
@@ -32,6 +35,10 @@ export default {
   codeCopyFailed: '复制失败，请手动选择并复制代码。',
   codePromptPlaceholder: '替换为你的消息',
   laneCode: '获取对比 {{count}} 的代码',
+  teamCodeUnavailable:
+    '捕获的 Team 或原生模型路径无效。请刷新 Team 访问权限并选择可用模型，然后重新获取代码。',
+  teamCodeHelp:
+    '已捕获团队设置、已完成的纯文本历史和当前草稿。在本地设置 ROUTEX_EMAIL 和 ROUTEX_PASSWORD；示例会独立登录，并在需要两步验证时停止。不包含当前会话、CSRF 令牌或 API Key。cURL 使用 Python 3 完成登录准备；Python 使用标准库，JavaScript 在支持原生 fetch 的 Node.js 中运行。流式示例原样输出原生 SSE。',
   codeHelp:
     '代码包含当前设置、已完成的历史和消息草稿。空草稿使用可编辑的消息占位符。请在本地设置 ROUTEX_API_KEY；代码不会包含已输入的 Key。cURL 用于 POSIX Shell，Python 使用标准库，JavaScript 需要支持原生 fetch 的 Node.js。流式示例原样输出原生 SSE。',
 

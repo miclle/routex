@@ -170,15 +170,18 @@ async function codeHistory(source: 'key' | 'team', expected: string[], excluded:
   const button = [...host.querySelectorAll('button')].find(
     (item) => item.textContent === 'Get code',
   )!
-  if (source === 'team') {
-    expect(button.disabled).toBe(true)
-    return
-  }
+  expect(button.disabled).toBe(false)
   await click('Get code')
   const code = document.querySelector('pre')!.textContent!
   for (const value of expected) expect(code).toContain(value)
   for (const value of excluded) expect(code).not.toContain(value)
   expect(code).not.toContain('rx_finality-transient')
+  expect(code).not.toContain('csrf-finality')
+  if (source === 'team') {
+    expect(code).toContain('/api/v1/teams/tem_finality/')
+    expect(code).toContain('ROUTEX_EMAIL')
+    expect(code).toContain('ROUTEX_PASSWORD')
+  }
 }
 
 const rejected: {

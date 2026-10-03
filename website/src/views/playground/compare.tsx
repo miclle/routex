@@ -1,4 +1,6 @@
+import { useSessionGeneration } from '@/hooks/use-session-generation'
 import type { SnippetInput } from '@/lib/playground-snippet'
+import type { TeamSnippetInput } from '@/lib/playground-team-snippet'
 import CodeDialog from './code-dialog'
 import TeamPicker from './team-picker'
 import {
@@ -139,10 +141,12 @@ function ComparisonSession({
   const { t } = useTranslation('playground')
   const actor = session.isError ? '' : (session.data?.user.id ?? '')
   const freshSession = !session.isError && !session.isFetching && !!session.data
+  const sessionGeneration = useSessionGeneration()
+  const previousSessionGeneration = useRef(sessionGeneration)
   const liveSession = useRef(session.data)
   const [teamConfirmed, setTeamConfirmed] = useState(false)
   const epoch = useRef(0)
-  const [codeRequest, setCodeRequest] = useState<SnippetInput | null>(null)
+  const [codeRequest, setCodeRequest] = useState<SnippetInput | TeamSnippetInput | null>(null)
   const [key, setKey] = useState('')
   const [models, setModels] = useState<GatewayModel[]>([])
   const [lanes, setLanes] = useState<Lane[]>([makeLane(1), makeLane(2)])
@@ -163,6 +167,8 @@ function ComparisonSession({
   const lock = useRef(false)
   const mounted = useRef(true)
   const teamVisible = source !== 'team' || (freshSession && teamConfirmed)
+  if (codeRequest && source === 'team' && (!teamVisible || !actor || !session.data?.csrf_token))
+    setCodeRequest(null)
   const visibleModels = teamVisible ? models : []
   const visibleLanes = teamVisible
     ? lanes
@@ -270,7 +276,7 @@ function ComparisonSession({
   }, [])
   useLayoutEffect(() => {
     liveSession.current = freshSession ? session.data : undefined
-    if (source === 'team' && !freshSession) {
+    if (source === 'team' && (!freshSession || !session.data?.csrf_token)) {
       epoch.current += 1
       verification.current?.abort()
       for (const abort of active.current.values()) abort.abort()
@@ -285,6 +291,12 @@ function ComparisonSession({
     },
     [source, resetAuthority],
   )
+
+  useLayoutEffect(() => {
+    if (previousSessionGeneration.current !== sessionGeneration && source === 'team')
+      confirmTeam(false)
+    previousSessionGeneration.current = sessionGeneration
+  }, [sessionGeneration, source, confirmTeam])
 
   async function selectAttachments(files: File[]) {
     if (!session.data || !canAttach || busy) return
@@ -448,6 +460,7 @@ function ComparisonSession({
   }
   function add() {
     if (busy || lanes.length >= 4 || !models.length) return
+    setCodeRequest(null)
     clearDraftAttachments()
     const selected = new Set(lanes.map((lane) => lane.model))
     const model = models.find((item) => !selected.has(item.id)) ?? models[0]
@@ -456,20 +469,33 @@ function ComparisonSession({
   }
   function remove(id: number) {
     if (lanes.length <= 2) return
+    setCodeRequest(null)
     clearDraftAttachments()
     active.current.get(id)?.abort()
     active.current.delete(id)
     setLanes((current) => (current.length > 2 ? current.filter((lane) => lane.id !== id) : current))
   }
-  function showCode(lane: Lane) {
-    if (
-      source === 'team' ||
-      !protocols(models.find((item) => item.id === lane.model)).includes(lane.protocol) ||
-      busy ||
-      attachments.length > 0
+  function canShowCode(lane: Lane) {
+    return (
+      checked &&
+      !!lane.model &&
+      models.some((item) => item.id === lane.model) &&
+      !busy &&
+      attachments.length === 0 &&
+      lanes.some(
+        (current) =>
+          current.id === lane.id &&
+          current.model === lane.model &&
+          current.protocol === lane.protocol,
+      ) &&
+      protocols(models.find((item) => item.id === lane.model)).includes(lane.protocol) &&
+      (source !== 'team' || (teamVisible && !!teamId && !!actor && !!session.data?.csrf_token))
     )
-      return
+  }
+  function showCode(lane: Lane) {
+    if (!canShowCode(lane) || (source === 'team' && liveSession.current?.user.id !== actor)) return
     setCodeRequest({
+      ...(source === 'team' ? { source: 'team' as const, teamId } : {}),
       origin: window.location.origin,
       protocol: lane.protocol,
       model: lane.model,
@@ -496,6 +522,7 @@ function ComparisonSession({
     })
   }
   function change(id: number, model: string, protocol?: PlaygroundProtocol) {
+    setCodeRequest(null)
     clearDraftAttachments()
     active.current.get(id)?.abort()
     active.current.delete(id)
@@ -798,6 +825,7 @@ function ComparisonSession({
           {source === 'team' ? (
             <div className="min-w-[280px] space-y-2">
               <TeamPicker
+                key={sessionGeneration}
                 actor={freshSession ? actor : ''}
                 value={teamId}
                 onChange={(value) => onTeam?.(value)}
@@ -905,7 +933,7 @@ function ComparisonSession({
                   size="icon"
                   variant="ghost"
                   aria-label={t('laneCode', { count: index + 1 })}
-                  disabled={source === 'team' || busy || attachments.length > 0 || !lane.model}
+                  disabled={!canShowCode(lane)}
                   onClick={() => showCode(lane)}
                 >
                   <Code className="size-4" />
@@ -1126,7 +1154,11 @@ function ComparisonSession({
           </div>
         </div>
       </div>
-      {codeRequest && <CodeDialog request={codeRequest} onClose={() => setCodeRequest(null)} />}
+      {codeRequest &&
+        teamVisible &&
+        (source !== 'team' || (checked && !loading && !!actor && !!session.data?.csrf_token)) && (
+          <CodeDialog request={codeRequest} onClose={() => setCodeRequest(null)} />
+        )}
     </form>
   )
 }

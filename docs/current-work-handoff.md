@@ -3,7 +3,7 @@
 - **Status:** implementation active; prioritize partially completed capabilities
 - **Updated:** 2026-10-04
 - **Repository / branch:** RouteX / `main`
-- **Previous checked baseline:** `81f4697dc50deee1dd93c4fc7e6bfa8fb71f81b3`, pushed and read back from `origin/main`
+- **Previous checked baseline:** `2fc39b18561e49dd1ee6c74c85d7fdb487f3e848`, pushed and read back from `origin/main`
 - **Current owner:** coordinator owns integration, actual runtime acceptance and delivery; parallel owners prepare isolated source and fixtures
 - **Transport:** identify the current checked delivery with `git log -1 -- docs/current-work-handoff.md` and independently verify its upstream
 - **Roadmap:** [Implementation and acceptance index](IMPLEMENTATION.md); cross-task coordination is maintained separately in `~/dotfiles/projects/routex/implementation-plan.md`
@@ -39,7 +39,7 @@ Never claim runtime enforcement from persistence alone.
 | `01129cf` | Combined-router API 404 repair | Full check and complete handler race tests passed in development and production |
 | `3e8a159` | Model route base prices | Full local checks, 1207 frontend cases, complete PostgreSQL/MySQL matrix and controlled bilingual production browser/restart/revocation proof passed |
 | `81f4697` | Team native comparison and Key/Team native finality | Full local checks, 1345 cases, complete PostgreSQL/MySQL matrix and controlled bilingual native/cancellation/restart/revocation proof passed |
-| Current documentation commit | Final F07 Project lists/navigation | Full check/test, 1365 frontend cases, complete PostgreSQL/MySQL matrix and controlled bilingual filter/permission/alias/restart proof passed |
+| `2fc39b1` | Final F07 Project lists/navigation | Full check/test, 1365 frontend cases, complete PostgreSQL/MySQL matrix and controlled bilingual filter/permission/alias/restart proof passed |
 
 The complete initial-resource matrix passed with Handler 971.977 seconds and
 Service 7.062 seconds. Earlier failed fixture runs are recorded in the acceptance
@@ -109,8 +109,8 @@ diffs because each contains carried baselines and shared harness/rule files.
 | --- | --- | --- |
 | `team-native-comparison` | Frozen Team comparison and Key/Team native finality source carried into main; local checks and controlled production proof passed | Complete main matrix passed: Handler 1032.267 seconds / Service 8.273 seconds; final formatting/check passed |
 | `project-list-navigation` | Bounded exact Project list projection and literal ID search adapter; six UI/type/catalog files, authorized legacy redirects and fixtures | Carried comparison source passed 1365 cases; Complete main regression passed Handler 1041.548 seconds / Service 7.515 seconds; final check and controlled bilingual browser/restart/revocation passed |
-| `team-session-code` | Frozen independent Team-native code builders, conversation/comparison dialogs, parameter Reset and finality tests | Full carried-source check/test/build passed 1495 cases; actual generated-program/browser acceptance remains |
-| `team-native-attachments` | Creator-private Team media source frozen; V46/runtime source passed race/lint, interface passed 497 focused cases; acceptance fixtures, English docs and controlled browser helper are frozen | Full carried-source check/test/build passed 1551 frontend cases in 88 files; real V46/storage/native/browser acceptance remains |
+| `team-session-code` | Frozen independent Team-native code builders, conversation/comparison dialogs, parameter Reset and finality tests | Final main check/test/build passed 1521 cases/88 files; separate actual24 generated programs and final9 browser calls passed; final Session renewal/revocation/restart accepted |
+| `team-native-attachments` | Creator-private Team media source frozen; V46/runtime source passed race/lint, interface passed 497 focused cases; acceptance fixtures, English docs and controlled browser helper are frozen | Renewal candidate passed 1557 cases/89 files; V46 migration passed both drivers, corrected lifecycle focus runs; browser acceptance remains |
 | `model-supply-status` | Four frozen files listed above | Checked local delivery; inspect exact new-main remote checks |
 | `team-quota-notifications` | Frozen F17 Team aggregate monthly settled-exhaustion observer/inbox source and fixtures; V47 follows V46 | Full carried-source check/test/build passed 1234 cases in 80 files; exact current recipients, immutable history and actual driver/browser acceptance remain |
 
@@ -123,34 +123,38 @@ Do not substitute Overview active-Key counts or inferred effective defaults.
 
 Team comparison preserves two to four independent native text lanes, a shared
 composer, transient Session authority, individual cancellation and completed text
-history. Team media and code export remain separately unfinished. Code export and
-parameter Reset passed full carried-source check/test/build with 1495 frontend
-cases in 86 files. Creator-private Team media passed its combined full gates with
-1551 cases in 88 files; source, fixtures, English documents and owned browser
-helper are frozen. Actual acceptance remains separate. A native 401
-requires an active authoritative no-store Session probe before logout; upstream
-rejection does not establish Session expiry. The carried conversation Key path now applies the same native finality/history/
-export criteria, covered by 53 focused cases.
+history. Team media remains unfinished. Final code export and Reset candidate
+passed current-main check/test/build with 1521 cases in 88 files and controlled
+production/browser acceptance. The media renewal candidate passed 1557 cases in
+89 files; corrected actual lifecycle/storage acceptance remains pending. A native
+401 requires an active authoritative no-store Session probe before logout;
+upstream rejection does not establish Session expiry. The conversation Key path
+uses the same native finality/history/export criteria.
 
 ## First valid action
 
-1. Deliver the checked F07 list/navigation phase from the 19 scoped paths in
-   `/tmp/routex-project-list-main-manifest.txt`, then read back main/upstream and
-   inspect exact new remote checks. Full main gates passed: 1365 frontend cases,
-   Handler 1041.548 seconds and Service 7.515 seconds. Final check passed.
-2. Run `/tmp/routex-team-code-browser-qa.py` serially for 24 real generated
-   programs across three languages/four protocols/ordinary and streaming, plus
-   independent bilingual browser code/Reset and two-round native comparison
-   proof. Generated programs cannot substitute browser proof. Carry only its
-   owned files/rule hunks, run current-main checks/tests and deliver separately.
-3. Complete creator-private Team media V46/storage/native/browser acceptance,
-   then Team monthly notifications V47 driver/browser acceptance. Their sources
-   are frozen and locally checked; historical reconstruction guards remain
-   root-owned. Continue the parallel member Overview source/fixture/interface
-   package without claiming acceptance.
-4. Update the external coordinator separately, preserving unrelated dotfiles
-   changes. Continue remaining partial capabilities; do not mark the full goal
-   complete or paused after these packages.
+1. Team code/Reset final main acceptance is complete: 1521 frontend cases/88
+   files, complete check/test/build, nine new browser native calls, automatic
+   Session renewal cleanup, bilingual controls, revocation/restart without replay
+   and owned-resource cleanup. The unchanged builder has separate earlier actual
+   proof from 24 programs. Deliver the 22 scoped paths after final check and
+   exact staged-diff review; then inspect exact remote checks.
+2. Creator-private Team media final fixture focus runs as session 75185, log
+   `/tmp/routex-team-media-valid-input-focus.log`. The fixture now uses a real
+   validated 1×1 PNG, atomic 50/50 intersection weights and restoration to 100;
+   no production validation or runtime guard changed. Its interface renewal
+   candidate passed full check/test/build at 1557 cases/89 files; current binary
+   `/tmp/routex-team-media-renewal-qa-bin` is the browser target.
+3. Team monthly notification first focus failed its test reservation ceiling;
+   both migrations and existing siblings passed. Corrected source is frozen;
+   repair the browser helper's matching conservative reservation margin and run
+   actual driver/browser proof serially after owned media cleanup.
+4. F07 remains delivered at `2fc39b1`; CI 37160231402 is pending while Actionlint
+   and GolangCI-Lint passed. Member Overview source is frozen at 1398 cases/83
+   files; `/tmp/routex-member-overview-focus.sh` is prepared, actual acceptance
+   remains pending.
+5. Update the external coordinator separately, preserving unrelated dotfiles
+   changes. Continue partial capabilities without pausing the full objective.
 
 The coordinator alone runs actual database/app/browser fixtures. Other owners
 prepare source and focused unit/race/type/style evidence. Isolated test databases
@@ -177,3 +181,17 @@ member Overview account summary includes Personal plus current Team accounts,
 separate aggregate/stable-member quota facts, scoped usage navigation, exact amounts, unknown coverage and fresh
 authority. Existing Model source filters/detail/native examples need no redesign.
 No accepted Overview delivery is claimed.
+
+
+## Team code/Reset current main acceptance
+
+The 22 scoped paths in `/tmp/routex-team-code-main-manifest.txt` are carried.
+Final current-main check/test/build passed 1521 cases/88 files. The final binary
+passed nine independent native browser calls, automatic Session renewal clearing
+models/history/code while retaining the draft, bilingual state, revocation and
+restart with no replay. The unchanged snippet builder has earlier independent
+proof from 24 programs across three languages, four protocols and both stream
+modes; they are not counted as the final browser calls. The complete Project
+backend matrix remains valid because this phase changes only frontend and docs.
+All owned actual resources were removed. Media lifecycle proof follows serially;
+member Overview source is frozen with isolated full gates, actual proof pending.

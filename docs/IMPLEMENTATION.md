@@ -2365,3 +2365,95 @@ three unstarted. External identity/provider acceptance and distributed publicati
 remain independent capabilities. The full goal continues with Team code/Reset,
 creator-private Team media, Team monthly notices and the bounded member Overview
 package. Closing F07 neither pauses nor completes the full objective.
+
+
+### Team request code and parameter Reset: controlled acceptance, 2026-10-04
+
+The isolated production candidate executed 24 exact generated programs: cURL,
+Python and JavaScript, each across four native protocols with ordinary and
+streaming requests. Each independently authenticated and sent one inference,
+without replay or authentication material in output. Generator/malformed/MFA/
+redirect boundaries remain covered by focused execution tests.
+
+The bilingual browser independently completed two conversation turns and two
+four-protocol comparison rounds, then verified all four lane code dialogs retain
+only their completed history and current native context. Empty drafts expose an
+editable placeholder. Reset restored Temperature 0.7, Top P 1, maximum output
+Tokens 2048 and empty system text while preserving source, Team, model, protocol,
+streaming, completed history and an unsent prompt; Reset sent no inference.
+Existing notices and code guidance changed language live. Server proof separately
+counts 24 program calls and 10 browser calls with 34 distinct durable identities,
+exact Team/User/membership attribution and no Personal calls. Revoked discovery
+disables code/inference, current Sessions survive restart, transient state clears,
+and no native request is replayed. Console errors were absent, English restored
+and owned process/tab/Compose resources removed. The initial 20-path frontend/document
+phase was carried; the renewal fix adds two files, bringing the scoped manifest to
+22 paths. No backend or migration changed.
+
+
+### Team media first actual focus, 2026-10-04
+
+The first real driver focus failed (Handler 133.021 seconds) on both databases:
+a discovery-intersection fixture created a second Provider-model with the same
+Connection/upstream name, violating its existing unique constraint. The narrower
+ready route now has its own upstream name while retaining the same logical Model,
+positive weight, ready Credential and PDF-only capability. No production schema,
+uniqueness or capability intersection was weakened. Both V46 migration fixtures,
+storage reconstruction and four-protocol/comparison siblings passed in that failed
+run; the overall run remains failed evidence. Repaired media driver focus is
+pending, followed by controlled storage/browser and complete main regression.
+
+### Team code authority renewal regression, 2026-10-04
+
+A real QueryClient regression reproduced four failures when a successful Session
+read retained the same data object and timestamp: conversation and comparison
+kept captured code or pending inference. Two manual CSRF replacement cases already
+passed. A shared subscription now observes non-manual successful Session reads
+without mounting another network observer. All six regression cases and 237
+focused Playground cases pass. Complete current-main gates are rerun before
+submission; earlier 1515-case gates describe the preceding candidate only.
+
+The repaired media focus passed V46 migration on both drivers but failed lifecycle
+with runtime-unavailable; a fixture-only diagnosis is in progress. No production
+constraint or runtime publication guard has been relaxed. Team quota notification
+actual focus follows serially after the media containers were removed.
+
+### Pending Team package gates, 2026-10-04
+
+The code/Reset renewal candidate passed complete current-main check/test/build:
+1521 frontend cases in 88 files, Go race, development lifecycle and production
+asset serving. Dependency versions are unchanged; build-time optional-platform
+lockfile metadata churn was restored. Current-binary browser proof follows.
+
+The media weight-corrected focus again passed V46 migration on both drivers but
+failed lifecycle at HTTP 400 rather than the expected attachment creation 201.
+The fixture now preserves an atomic 50/50 intersection and restores 100; no
+production weight rule changed. Upload rejection is being diagnosed separately.
+
+The first Team monthly notification focus failed (Handler 128.446 seconds):
+its finite money ceiling was below the conservative native reservation bound.
+Both V47 migration cases, existing monthly notifications and Team limits gateway
+siblings passed. The observer fixture will reserve the exact bounded amount and
+review a settled-exhaustion policy separately; production admission stays strict.
+
+### Team code/Reset final main acceptance, 2026-10-04
+
+The final 22-path main candidate passed complete check/test/build with 1521
+frontend cases in 88 files, Go race, development lifecycle and production assets.
+Current production browser proof independently dispatched nine exact Team calls:
+one conversation and two four-protocol comparison rounds. Reset retained native
+context, completed history and unsent draft. Captured code retained completed
+comparison history and current draft. Automatic successful Session renewal closed
+the code dialog, cleared models/history, disabled inference/export and retained
+only the unsent draft; bilingual controls reflected that state. Revoked grants
+produced no new dispatch. Restart retained real Sessions, cleared transient state
+and replayed no native requests. Server evidence confirmed nine distinct
+Team/User/membership identities and zero Personal calls. Browser errors were
+absent, English restored and owned tab/process/Compose resources removed.
+
+The unchanged snippet builder retains separate earlier actual execution proof:
+24 programs across three languages, four native protocols and ordinary/streaming
+requests. These program calls are not counted as the nine final browser calls.
+No database schema or backend behavior changed, so the completed F07 full
+PostgreSQL/MySQL regression remains the backend baseline for this frontend phase.
+Team attachments and broader capability acceptance remain independently pending.

@@ -296,7 +296,7 @@ function lane(index: number) {
 }
 
 describe('Team native comparison', () => {
-  it('uses four independent native endpoints and Session CSRF without Keys, media or export', async () => {
+  it('uses four independent native endpoints and Session CSRF without Keys or media', async () => {
     await ready()
     await click('Add comparison')
     await click('Add comparison')
@@ -323,7 +323,7 @@ describe('Team native comparison', () => {
     )
     expect(host.querySelector('input[type="password"]')).toBeNull()
     expect(host.querySelector('input[type="file"]')).toBeNull()
-    expect(button('Get code for comparison 1').disabled).toBe(true)
+    expect(button('Get code for comparison 1').disabled).toBe(false)
     expect(getGatewayModels).not.toHaveBeenCalled()
     expect(runChat).not.toHaveBeenCalled()
     expect(host.textContent).toContain('Responses text')

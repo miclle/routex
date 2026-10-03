@@ -32,8 +32,7 @@ Text-only Chat, Responses, Messages and Gemini use their native Team Session
 endpoints and independent terminal/usage semantics. Images, PDF input and attachment
 scalar references are rejected before storage reads or upstream dispatch. Opaque
 text and tool payloads retain their meaning; content positions are bounded and
-validated separately for each protocol. Team comparison uses independently dispatched native text lanes. Attachments and
-code export remain unfinished for this authentication source.
+validated separately for each protocol. Team comparison uses independently dispatched native text lanes. Attachments remain unfinished for this authentication source. Request code uses independent environment-driven Session authentication.
 
 The same native attempt pipeline retains one durable logical admission, native
 terminal evidence, immutable usage and assessed prices. Team aggregate and stable
@@ -130,4 +129,12 @@ call facts while browser workbench credentials/history remain transient.
 
 Native 401 handling uses a bounded current Session probe; upstream rejection
 cannot establish Session expiry. Cancellation or late probe results cannot clear
-a newer authority. Source-specific media and code export are separate packages.
+a newer authority. Source-specific media remains separate. Request code uses the existing dialog and independent environment-driven authentication, as described in [Playground](PLAYGROUND.md).
+
+
+Team authority renewal observes every successful network Session read, including
+structurally identical data with an unchanged timestamp. Clear Team models,
+completed history and captured code, abort pending inference, preserve unsent
+drafts, and require explicit model rediscovery. Observe the existing Session query
+without creating an additional network observer. Manual same-actor CSRF cache
+replacement is not a Team authority renewal and preserves completed history.

@@ -1,6 +1,6 @@
 # Playground
 
-Playground is a native conversation and model comparison client for native OpenAI Chat Completions, OpenAI Responses, Anthropic Messages, and Gemini Generate Content. Both workbenches support user-owned and Project-owned PNG, JPEG, and PDF attachments. It makes real requests; it does not synthesize responses or usage statistics. An explicit Team Session source supports text-only native Chat Completions, Responses, Messages and Gemini in both existing conversation and comparison workbenches. Team attachments and code export remain separate work packages; interactive tool execution is outside this text interface.
+Playground is a native conversation and model comparison client for native OpenAI Chat Completions, OpenAI Responses, Anthropic Messages, and Gemini Generate Content. Both workbenches support user-owned and Project-owned PNG, JPEG, and PDF attachments. It makes real requests; it does not synthesize responses or usage statistics. An explicit Team Session source supports text-only native Chat Completions, Responses, Messages and Gemini in both existing conversation and comparison workbenches. Team attachments remain a separate work package; Team code examples use independent Session authentication; interactive tool execution is outside this text interface.
 
 ## Workflow
 
@@ -172,6 +172,49 @@ upstream 401, successful probe, network error, timeout or late cancellation cann
 establish logout. Native permission failures clear stale comparison authority
 without inferring which server-side relationship changed.
 
-Team code export, parameter reset and Team-owned media remain named local F20
-gaps at this checkpoint. Browser/runtime evidence and external-provider
-acceptance are recorded separately in the implementation index.
+Team-owned media remains a separate local F20 package. Team request code and
+parameter Reset are implemented below; their actual generated-program/browser
+acceptance and external-provider evidence remain separate in the implementation
+index.
+
+
+## Team request code and parameter Reset
+
+Team conversation and comparison use the existing three-language code dialog.
+It captures the current native body, completed text history, parameters and exact
+Team path without accepting the live cookie, CSRF or password. Preview and Copy
+make no request. Current authority, a confirmed Team and exact discovered model
+are required; renewal clears captured code and requires explicit rediscovery.
+
+Generated programs read ROUTEX_EMAIL and ROUTEX_PASSWORD from their environment,
+sign in independently, verify the current actor/Session/CSRF and then issue one
+exact native request. HTTP 202 requires two-step verification in RouteX and stops
+before inference. Redirects, rejected authentication and malformed authority also
+stop without replay. Python 3 uses standard-library in-memory cookies. JavaScript
+uses Node native fetch and a private in-memory cookie value. The cURL tab requires
+Python 3 for private authentication, followed by curl --disable --config - with
+configuration supplied on stdin. Authentication is never placed in arguments,
+files or printed output. Native response bytes remain protocol-specific; accepted
+transport alone never proves native completion. Existing Key snippets still read
+ROUTEX_API_KEY and never authenticate a Session.
+
+Reset in the conversation parameter header restores Temperature 0.7, Top P 1,
+2048 maximum output Tokens and an empty system prompt. It preserves source,
+credential, Team, model, protocol, streaming, history and the unsent prompt and
+makes no request. It is disabled during active inference. The localized notice
+and subsequent request/code previews use the restored values.
+
+Focused generated-program, dialog, conversation, comparison, parameter and
+finality tests cover ordinary/SSE behavior, all four protocols, independent login,
+MFA/authentication denial, redirects, private credentials, completed-history
+exclusion, explicit renewal, Reset without dispatch and live language switching.
+Full combined frontend acceptance passed 1495 cases in 86 files and four Node
+checks; actual backend/generated-program/browser acceptance remains pending.
+
+
+Team authority renewal observes every successful network Session read, including
+structurally identical data with an unchanged timestamp. Clear Team models,
+completed history and captured code, abort pending inference, preserve unsent
+drafts, and require explicit model rediscovery. Observe the existing Session query
+without creating an additional network observer. Manual same-actor CSRF cache
+replacement is not a Team authority renewal and preserves completed history.

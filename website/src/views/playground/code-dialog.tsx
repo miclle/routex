@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { buildTeamPlaygroundSnippet, type TeamSnippetInput } from '@/lib/playground-team-snippet'
 import { useTranslation } from 'react-i18next'
 import { Code } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -13,15 +14,18 @@ export default function CodeDialog({
   request,
   onClose,
 }: {
-  request: SnippetInput
+  request: SnippetInput | TeamSnippetInput
   onClose: () => void
 }) {
   const { t } = useTranslation('playground'),
     [language, setLanguage] = useState<SnippetLanguage>('curl'),
     [notice, setNotice] = useState<'codeCopied' | 'codeCopyFailed' | null>(null)
+  const teamRequest = 'source' in request && request.source === 'team'
   let code = ''
   try {
-    code = buildPlaygroundSnippet(request, language)
+    code = teamRequest
+      ? buildTeamPlaygroundSnippet(request, language)
+      : buildPlaygroundSnippet(request, language)
   } catch {
     /* Invalid paths are explained without fabricating a callable request. */
   }
@@ -37,7 +41,7 @@ export default function CodeDialog({
     <Dialog
       open
       title={t('requestCode')}
-      description={t('codeHelp')}
+      description={t(teamRequest ? 'teamCodeHelp' : 'codeHelp')}
       width={760}
       onOpenChange={(open) => {
         if (!open) onClose()
@@ -72,7 +76,7 @@ export default function CodeDialog({
               </pre>
             ) : (
               <p role="alert" className="text-sm text-destructive">
-                {t('geminiAliasRequired')}
+                {t(teamRequest ? 'teamCodeUnavailable' : 'geminiAliasRequired')}
               </p>
             )}
           </TabsContent>

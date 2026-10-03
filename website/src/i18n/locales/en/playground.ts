@@ -1,4 +1,7 @@
 export default {
+  modelParameters: 'Model parameters',
+  resetParameters: 'Restore default parameters',
+  parametersReset: 'Model parameters reset to defaults.',
   teamConversationStart: 'Select your Team and load its models to start a real conversation.',
   unknownUsage: 'Unknown',
   source: 'Credential source',
@@ -22,7 +25,7 @@ export default {
   teamRequestFailed:
     'Team session request failed (HTTP {{status}}). Refresh your session or Team access before retrying.',
   teamTextOnly:
-    'Team Sessions support text conversations and comparison through the available native protocols. Attachments and code export are unavailable. Your own Team calls are recorded separately.',
+    'Team Sessions support text conversations and comparison through the available native protocols. Attachments are unavailable. Your own Team calls are recorded separately.',
   teamAttachmentsUnavailable: 'Team Sessions do not support attachments',
   useKey: 'Use an API Key',
 
@@ -35,6 +38,10 @@ export default {
   codeCopyFailed: 'Copy failed. Select and copy the code manually.',
   codePromptPlaceholder: 'REPLACE WITH YOUR MESSAGE',
   laneCode: 'Get code for comparison {{count}}',
+  teamCodeUnavailable:
+    'The captured Team or native model path is invalid. Refresh Team access and select an available model before capturing code again.',
+  teamCodeHelp:
+    'Captured Team settings, completed text history and your current draft. Set ROUTEX_EMAIL and ROUTEX_PASSWORD locally; these examples independently log in and stop if two-step verification is required. No current Session, CSRF token or API Key is included. cURL uses Python 3 for the login bootstrap; Python uses its standard library, and JavaScript runs in Node.js with native fetch. Streaming examples print native SSE unchanged.',
   codeHelp:
     'Captured settings, completed history and your current draft. An empty draft uses an editable message placeholder. Set ROUTEX_API_KEY locally; the entered Key is never included. cURL runs in a POSIX shell, Python uses its standard library, and JavaScript runs in Node.js with native fetch. Streaming examples print native SSE unchanged.',
 

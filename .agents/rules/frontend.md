@@ -276,8 +276,8 @@ Team runtime endpoint, using stable model_id only for verified navigation and
 native model names for invocation. Preserve each protocol's terminal/usage parser
 and completed inline text history; never fall back across protocols.
 Separate cookie/current-CSRF Session transport from Key credentials:omit; never
-fallback across sources. The first slice disables Team attachments, comparison
-and code export with localized explanations. Source/Team/model/actor changes and
+fallback across sources. Four-protocol text conversation, comparison and code
+export are available; Team attachments remain explicitly unavailable. Source/Team/model/actor changes and
 unmount abort and clear sensitive state; late callbacks must check the current
 actor/Team/generation. Team Calls uses current-member own-actor endpoints and
 separate actor/Team cache keys, with cached rows/details hidden on refresh failure.
@@ -416,7 +416,9 @@ query/workspace selectors are rejected and scrubbed before request logging. Team
 model discovery exposes actual ready protocols with empty media capabilities;
 member catalogue Team links use source-specific protocols without Personal Key
 authority. Team comparison uses two to four independent native text lanes and a
-shared composer. Team attachments and code export remain unavailable. Renewed
+shared composer. Team attachments remain unavailable. Team code export captures
+only non-secret native request data and generates independent environment-driven
+login programs. Renewed
 Session/Team authority clears stale selection and transcript while retaining an
 unsent prompt; model loading and dispatch remain explicit. A native 401 triggers
 a bounded no-store Session probe, and only its active authoritative 401 expires
@@ -444,3 +446,28 @@ Model price or infer media/long-context rates. Renew Model authority before pric
 reads/retries; hide old detail, prices and actions during Session/permission refresh,
 errors, target changes and late replies. Price editing remains in Provider-model
 details. Use paired catalog/pricing copy and existing Table components.
+
+Team request code reuses the existing conversation/comparison code dialog.
+Require fresh actor/Team/Session authority and an exact discovered model; clear
+captured code on renewal, conflict, context changes or teardown. Each generated
+program independently signs in with ROUTEX_EMAIL/ROUTEX_PASSWORD, verifies an
+authenticated current Session and CSRF, then invokes exactly one Team-native
+request. MFA HTTP 202 never becomes a Session. Redirects, failed proofs and
+malformed authority stop before inference without retries. Keep passwords,
+cookies and CSRF out of arguments, files, browser storage, logs and captured
+snippet data. Python uses its private in-memory CookieJar; cURL requires Python 3
+for private authentication then receives native curl configuration through stdin;
+JavaScript uses Node's native fetch. Existing Key examples remain unchanged.
+
+The conversation parameter Reset action restores Temperature 0.7, Top P 1,
+maximum output Tokens 2048 and an empty system prompt. Preserve credential source,
+Team, model, protocol, streaming, completed history and the unsent prompt; dispatch
+no request. Disable parameter Reset while an invocation is active. Keep all
+labels/notices bilingual and code previews aligned with the current defaults.
+
+Team authority renewal observes every successful network Session read, including
+structurally identical data with an unchanged timestamp. Clear Team models,
+completed history and captured code, abort pending inference, preserve unsent
+drafts, and require explicit model rediscovery. Observe the existing Session query
+without creating an additional network observer. Manual same-actor CSRF cache
+replacement is not a Team authority renewal and preserves completed history.

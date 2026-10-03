@@ -1,4 +1,6 @@
+import { useSessionGeneration } from '@/hooks/use-session-generation'
 import type { SnippetInput } from '@/lib/playground-snippet'
+import type { TeamSnippetInput } from '@/lib/playground-team-snippet'
 import TeamPicker from './team-picker'
 import {
   getTeamModels,
@@ -20,7 +22,7 @@ import {
 import { t } from '@/i18n'
 import { useTranslation } from 'react-i18next'
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type FormEvent } from 'react'
-import { Code, Copy, LoaderCircle, Send, Square, Trash2 } from 'lucide-react'
+import { Code, Copy, LoaderCircle, Send, Square, Trash2, Undo2 } from 'lucide-react'
 import { AttachmentError, deleteAttachment, uploadAttachment } from '@/api/attachments'
 import {
   GatewayError,
@@ -90,6 +92,7 @@ function isCompletedText(exchange: Exchange) {
 
 const maxAttachmentBytes = 2 << 20
 const maxAttachments = 4
+const defaultParameters = { temperature: '0.7', topP: '1', maxTokens: '2048', system: '' }
 
 function attachmentCapability(file: File): 'image' | 'pdf' | null {
   const name = file.name.toLowerCase()
@@ -135,6 +138,8 @@ export default function ChatWorkbench({
   useTranslation()
 
   const session = useSession()
+  const sessionGeneration = useSessionGeneration()
+  const previousSessionGeneration = useRef(sessionGeneration)
   const [teamConfirmed, setTeamConfirmed] = useState(false)
   const controller = useRef<AbortController | null>(null)
   const liveSession = useRef(session.data)
@@ -143,7 +148,9 @@ export default function ChatWorkbench({
     if (source === 'team' && (session.isError || session.isFetching)) controller.current?.abort()
   }, [session.data, session.isError, session.isFetching, source])
   const [streamEnabled, setStreamEnabled] = useState(true)
-  const [codeRequest, setCodeRequest] = useState<SnippetInput | null>(null)
+  const [parameters, setParameters] = useState(defaultParameters)
+  const [parametersReset, setParametersReset] = useState(false)
+  const [codeRequest, setCodeRequest] = useState<SnippetInput | TeamSnippetInput | null>(null)
   const [key, setKey] = useState('')
   const [models, setModels] = useState<GatewayModel[]>([])
   const [model, setModel] = useState('')
@@ -159,7 +166,7 @@ export default function ChatWorkbench({
         value === 'gemini_generate_content',
     )
   }
-  const freshTeamSession = !session.isError && !session.isFetching && !!session.data
+  const freshTeamSession = !session.isError && !session.isFetching && !!session.data?.csrf_token
   const teamVisible = source !== 'team' || freshTeamSession
   const visibleModels = teamVisible ? models : []
   const availableProtocols = protocols(models.find((item) => item.id === model))
@@ -194,6 +201,26 @@ export default function ChatWorkbench({
     source === 'key' && !!attachmentTarget && inputCapabilities.length > 0 && !!session.data
   const requestRunning = exchanges.some((exchange) => exchange.status === 'running')
   const busy = loading || uploadingNames.length > 0 || requestRunning
+  const teamCodeReady =
+    source !== 'team' ||
+    (freshTeamSession &&
+      teamConfirmed &&
+      keyChecked &&
+      !!selectedModel &&
+      !!session.data?.csrf_token)
+
+  if (source === 'team' && !teamCodeReady && codeRequest) setCodeRequest(null)
+
+  function changeParameter(name: keyof typeof defaultParameters, value: string) {
+    setParameters((current) => ({ ...current, [name]: value }))
+    setParametersReset(false)
+  }
+
+  function resetParameters() {
+    if (busy || lock.current) return
+    setParameters(defaultParameters)
+    setParametersReset(true)
+  }
 
   function replaceAttachments(update: (current: Attachment[]) => Attachment[]) {
     setAttachments((current) => {
@@ -261,6 +288,12 @@ export default function ChatWorkbench({
     },
     [source],
   )
+
+  useLayoutEffect(() => {
+    if (previousSessionGeneration.current !== sessionGeneration && source === 'team')
+      confirmTeam(false)
+    previousSessionGeneration.current = sessionGeneration
+  }, [sessionGeneration, source, confirmTeam])
 
   async function selectAttachments(files: File[]) {
     if (!session.data || !canAttach || busy) return
@@ -677,7 +710,7 @@ export default function ChatWorkbench({
   }
   function showCode() {
     if (
-      source === 'team' ||
+      !teamCodeReady ||
       !formRef.current ||
       !availableProtocols.includes(protocol) ||
       busy ||
@@ -686,6 +719,7 @@ export default function ChatWorkbench({
       return
     const form = new FormData(formRef.current)
     setCodeRequest({
+      ...(source === 'team' ? { source: 'team' as const, teamId } : {}),
       origin: window.location.origin,
       protocol,
       model,
@@ -744,7 +778,8 @@ export default function ChatWorkbench({
             <>
               <div hidden={!freshTeamSession}>
                 <TeamPicker
-                  actor={session.isError ? '' : (session.data?.user.id ?? '')}
+                  key={sessionGeneration}
+                  actor={freshTeamSession ? (session.data?.user.id ?? '') : ''}
                   value={teamId}
                   onChange={(id) => onTeam?.(id)}
                   onConfirmed={confirmTeam}
@@ -886,6 +921,24 @@ export default function ChatWorkbench({
                 {t('playground:geminiAliasRequired')}
               </p>
             )}
+            <div className="flex items-center justify-between">
+              <h2 className="text-sm font-semibold">{t('playground:modelParameters')}</h2>
+              <Button
+                variant="ghost"
+                size="icon"
+                disabled={busy}
+                aria-label={t('playground:resetParameters')}
+                title={t('playground:resetParameters')}
+                onClick={resetParameters}
+              >
+                <Undo2 className="size-4" aria-hidden="true" />
+              </Button>
+            </div>
+            {parametersReset && (
+              <p role="status" className="text-xs text-muted-foreground">
+                {t('playground:parametersReset')}
+              </p>
+            )}
             <FormField label={t('temperature')}>
               <Input
                 name="temperature"
@@ -893,7 +946,8 @@ export default function ChatWorkbench({
                 min={0}
                 max={protocol === 'anthropic_messages' ? 1 : 2}
                 step={0.1}
-                defaultValue={0.7}
+                value={parameters.temperature}
+                onValueChange={(value) => changeParameter('temperature', value)}
                 required
               />
             </FormField>
@@ -904,7 +958,8 @@ export default function ChatWorkbench({
                 min={0}
                 max={1}
                 step={0.05}
-                defaultValue={1}
+                value={parameters.topP}
+                onValueChange={(value) => changeParameter('topP', value)}
                 required
               />
             </FormField>
@@ -915,13 +970,16 @@ export default function ChatWorkbench({
                 min={protocol === 'anthropic_messages' ? 0 : 1}
                 max={32768}
                 step={1}
-                defaultValue={2048}
+                value={parameters.maxTokens}
+                onValueChange={(value) => changeParameter('maxTokens', value)}
                 required
               />
             </FormField>
             <FormField label={t('systemPrompt')}>
               <Textarea
                 name="system"
+                value={parameters.system}
+                onChange={(event) => changeParameter('system', event.target.value)}
                 placeholder={t('optional_describe_the_response_style_or_task_context_5fc2f')}
               />
             </FormField>
@@ -957,7 +1015,7 @@ export default function ChatWorkbench({
                 variant="ghost"
                 size="sm"
                 disabled={
-                  source === 'team' ||
+                  !teamCodeReady ||
                   busy ||
                   attachments.length > 0 ||
                   !model ||
@@ -1148,7 +1206,13 @@ export default function ChatWorkbench({
           </div>
         </div>
       </form>
-      {codeRequest && <CodeDialog request={codeRequest} onClose={() => setCodeRequest(null)} />}
+      {codeRequest &&
+        teamCodeReady &&
+        (!('source' in codeRequest)
+          ? source === 'key'
+          : source === 'team' && codeRequest.teamId === teamId) && (
+          <CodeDialog request={codeRequest} onClose={() => setCodeRequest(null)} />
+        )}
     </>
   )
 }

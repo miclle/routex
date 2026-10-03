@@ -277,7 +277,7 @@ describe('Team Session Playground', () => {
         '[aria-label="Team Sessions do not support attachments"]',
       )!.disabled,
     ).toBe(true)
-    expect(button('Get code').disabled).toBe(true)
+    expect(button('Get code').disabled).toBe(false)
     await fill('prompt', 'Hello')
     await click('Send message')
     expect(runTeamChat).toHaveBeenCalledWith(
@@ -436,7 +436,7 @@ describe('Team native conversation selection and renewal', () => {
       expect(runMessages).not.toHaveBeenCalled()
       expect(runGemini).not.toHaveBeenCalled()
       expect(host.querySelector('[name="api_key"]')).toBeNull()
-      expect(button('Get code').disabled).toBe(true)
+      expect(button('Get code').disabled).toBe(false)
       expect(host.textContent).toContain(
         protocol === 'openai_responses'
           ? '/teams/tea_one/responses'
@@ -522,10 +522,19 @@ describe('Team native conversation selection and renewal', () => {
     refreshing = false
     csrf = 'csrf-new'
     await render()
-    expect(host.textContent).toContain('Team reply')
+    expect(host.textContent).not.toContain('Team reply')
+    expect(button('Get code').disabled).toBe(true)
+    expect(host.querySelector<HTMLTextAreaElement>('[name="prompt"]')!.value).toBe(
+      'Preserved draft',
+    )
+    await click('Send message')
+    expect(runTeamChat).toHaveBeenCalledTimes(1)
+    await click('Load Team models')
     await click('Send message')
     expect(vi.mocked(runTeamChat).mock.calls[1][1]).toBe('csrf-new')
-    expect(vi.mocked(runTeamChat).mock.calls[1][2].messages).toHaveLength(3)
+    expect(vi.mocked(runTeamChat).mock.calls[1][2].messages).toEqual([
+      { role: 'user', content: 'Preserved draft' },
+    ])
   })
   it('clears previously loaded grants before a denied exact discovery refresh completes', async () => {
     await teamReady()
@@ -595,7 +604,9 @@ describe('Team native conversation selection and renewal', () => {
     await render()
     expect(host.textContent).not.toContain('Team reply')
     expect(runTeamResponses).toHaveBeenCalledTimes(1)
-    expect(host.textContent).toContain('Stopped')
+    expect(host.textContent).not.toContain('Stopped')
+    expect(button('Get code').disabled).toBe(true)
+    await click('Load Team models')
     vi.mocked(runTeamResponses).mockResolvedValue({
       ...result,
       responseStatus: 'completed',
