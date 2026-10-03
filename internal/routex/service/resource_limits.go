@@ -189,6 +189,9 @@ func (s *Service) GetResourceLimit(ctx context.Context, actor string, target Lim
 }
 func (s *Service) resourceLimitRecord(db *gorm.DB, target LimitTarget, resolved resolvedLimitTarget) (*LimitRecord, error) {
 	read := readLimitPolicy
+	if resolved.kind == "user" {
+		read = readDefaultResourceLimitPolicy
+	}
 	if resolved.kind == "team" || resolved.kind == "team_member" {
 		read = readTeamLimitPolicy
 	}
@@ -273,7 +276,7 @@ func (s *Service) SetResourceLimit(ctx context.Context, actor string, target Lim
 			return err
 		}
 		if row.ETag != etag {
-			if row.PreviousETag == etag && row.ActorID == actor && row.Reason == reason && reflect.DeepEqual(before, policy) {
+			if row.AppliedDefaultETag == nil && row.DefaultResetETag == nil && row.PreviousETag == etag && row.ActorID == actor && row.Reason == reason && reflect.DeepEqual(before, policy) {
 				return nil
 			}
 			return errLimitConflict
@@ -313,6 +316,12 @@ func limitAccount(kind, scopeID string) string { return kind + "_" + scopeID }
 // persistResourceLimitPolicy saves one normalized full policy and its audit.
 // Callers own admission/governance locks and validate the current revision.
 func persistResourceLimitPolicy(tx *gorm.DB, actor string, resolved resolvedLimitTarget, row entity.ResourceLimit, before, policy limits.Policy, reason string) (entity.ResourceLimit, error) {
+	return persistResourceLimitPolicyWithDefault(tx, actor, resolved, row, before, policy, reason, nil)
+}
+
+type defaultLimitProvenance struct{ RuleETag, ReviewETag string }
+
+func persistResourceLimitPolicyWithDefault(tx *gorm.DB, actor string, resolved resolvedLimitTarget, row entity.ResourceLimit, before, policy limits.Policy, reason string, provenance *defaultLimitProvenance) (entity.ResourceLimit, error) {
 	revision, err := id.NewPrefixed("lim")
 	if err != nil {
 		return row, err
@@ -322,8 +331,15 @@ func persistResourceLimitPolicy(tx *gorm.DB, actor string, resolved resolvedLimi
 		return row, err
 	}
 	row = entity.ResourceLimit{ScopeKind: resolved.kind, ScopeID: resolved.id, ETag: revision, PreviousETag: row.ETag, ActorID: actor, Reason: reason, Tokens5H: policy.Tokens5H, Tokens7D: policy.Tokens7D, TokensMonth: policy.TokensMonth, TPM: policy.TPM, MoneyMonth: policy.MoneyMonth, Currency: policy.Currency, RPM: policy.RPM, Concurrency: policy.Concurrency, IPMode: policy.IPMode, IPRangesJSON: string(ranges)}
+	if provenance != nil {
+		row.AppliedDefaultETag = &provenance.RuleETag
+		row.DefaultResetETag = &provenance.ReviewETag
+	}
 	if err := tx.Save(&row).Error; err != nil {
 		return row, err
+	}
+	if provenance != nil {
+		return row, appendDefaultLimitAudit(tx, actor, "limits.default.reset", resolved.kind, resolved.id, map[string]any{"before": before, "after": policy, "default_rule_etag": provenance.RuleETag, "reset_review_etag": provenance.ReviewETag, "reason": reason})
 	}
 	auditID, err := id.NewPrefixed("aud")
 	if err != nil {

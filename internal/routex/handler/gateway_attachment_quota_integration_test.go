@@ -96,13 +96,23 @@ func testGatewayAttachmentQuotaSettlementLifecycle(t *testing.T, db *gorm.DB) {
 		&entity.PriceRate{ID: "ptr_attachment_image", ModelPriceID: "prc_attachment_quota", Metric: pricing.ImageInput, Tier: pricing.Base, Unit: pricing.ImageUnit, Currency: "USD", Amount: "2", Enabled: true},
 		&entity.PriceRate{ID: "ptr_attachment_pdf", ModelPriceID: "prc_attachment_quota", Metric: pricing.PDFInput, Tier: pricing.Base, Unit: pricing.PDFUnit, Currency: "USD", Amount: "0", Enabled: true},
 		&entity.ReservationBound{ProviderModelID: "pmd_attachment_quota", Protocol: entity.ProtocolOpenAIChat, MaxInputTokens: 10, MaxOutputTokens: 10, Evidence: "Controlled attachment quota fixture", ETag: "bound_attachment_quota", Reason: "Integration coverage", UpdatedAt: now},
-		&entity.ResourceLimit{ScopeKind: "user", ScopeID: admin.User.ID, ETag: "limit_attachment_quota", Reason: "Integration coverage", Tokens5H: int64Pointer(100), MoneyMonth: stringPointer("100"), Currency: "USD"},
 		&entity.StorageRevision{ID: "str_attachment_quota", Endpoint: storage.URL, Region: "us-east-1", Bucket: "routex-test", SecretGeneration: "generation-one", AuthCiphertext: storageCiphertext, VerifiedAt: &now, CreatedBy: admin.User.ID, CreatedAt: now},
 		&entity.StorageObject{ID: objectID, OwnerID: admin.User.ID, RevisionID: "str_attachment_quota", Purpose: "attachment", State: "ready", Name: "image.png", MIME: "image/png", Size: int64(len(attachment)), SHA256: hex.EncodeToString(digest[:]), VersionID: version, NextCleanupAt: now.Add(time.Hour), CreatedAt: now},
 	} {
 		if err := db.Create(row).Error; err != nil {
 			t.Fatal(err)
 		}
+	}
+	// This controlled policy predates runtime/journal startup. Replace the
+	// atomic creation template explicitly instead of inserting a duplicate row.
+	policyWrite := db.Model(&entity.ResourceLimit{}).Where("scope_kind = ? AND scope_id = ?", "user", admin.User.ID).Updates(map[string]any{
+		"e_tag": "limit_attachment_quota", "actor_id": admin.User.ID,
+		"reason": "Integration coverage", "tokens5_h": int64(100),
+		"money_month": "100", "currency": "USD", "updated_at": now,
+		"applied_default_etag": nil, "default_reset_etag": nil,
+	})
+	if policyWrite.Error != nil || policyWrite.RowsAffected != 1 {
+		t.Fatal("cannot replace owned attachment quota policy", policyWrite.Error)
 	}
 	if err := db.Model(&entity.User{}).Where("id = ?", admin.User.ID).Update("created_at", now).Error; err != nil {
 		t.Fatal(err)

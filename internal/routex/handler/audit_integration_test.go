@@ -18,6 +18,10 @@ func testAuditLifecycle(t *testing.T, db *gorm.DB) {
 	expectStatus(t, setup, 201)
 	auth, cookie := readIdentity(t, setup)
 	expectStatus(t, identityRequest(router, "GET", "/api/v1/admin/audit", "", nil, ""), 401)
+	var initialAuditCount int64
+	if err := db.Model(&entity.AuditEvent{}).Count(&initialAuditCount).Error; err != nil {
+		t.Fatal(err)
+	}
 	base := time.Now().UTC().Add(-time.Hour)
 	var rows []entity.AuditEvent
 	for i := 0; i < 55; i++ {
@@ -44,7 +48,7 @@ func testAuditLifecycle(t *testing.T, db *gorm.DB) {
 		t.Fatal("audit first page invalid")
 	}
 	next := get("/api/v1/admin/audit?cursor=" + *first.NextCursor)
-	if len(next.Items) != 5 || next.NextCursor != nil {
+	if len(next.Items) != len(rows)+int(initialAuditCount)-50 || next.NextCursor != nil {
 		t.Fatal("audit continuation invalid")
 	}
 	if first.Items[0].ActorName != "Audit Operator" || first.Items[0].Source != nil || first.Items[0].IP != nil || first.Items[0].RequestID != nil {
@@ -56,8 +60,11 @@ func testAuditLifecycle(t *testing.T, db *gorm.DB) {
 	if got := get("/api/v1/admin/audit?q=" + url.QueryEscape("audit operator")); len(got.Items) != 50 {
 		t.Fatal("actor search missing")
 	}
-	if got := get("/api/v1/admin/audit?category=limits"); len(got.Items) != 1 || got.Items[0].ResourceType != "key" {
+	if got := get("/api/v1/admin/audit?category=limits&q=limits.update"); len(got.Items) != 1 || got.Items[0].ResourceType != "key" {
 		t.Fatal("Key limits category missing")
+	}
+	if got := get("/api/v1/admin/audit?category=limits&q=limits.default.apply"); len(got.Items) != 1 || got.Items[0].Action != "limits.default.apply" || got.Items[0].ResourceType != "user" || got.Items[0].ResourceID != auth.User.ID || !strings.Contains(string(got.Items[0].Changes), `"default_rule_etag"`) || !strings.Contains(string(got.Items[0].Changes), `"after"`) {
+		t.Fatal("creation default audit facts missing or misclassified")
 	}
 	old := entity.AuditEvent{ID: "aud_99999999999999999999999999", ActorID: auth.User.ID, Action: "old", ResourceType: "model", ResourceID: "mdl_old", CreatedAt: time.Now().UTC().Add(-31 * 24 * time.Hour)}
 	if err := db.Create(&old).Error; err != nil {

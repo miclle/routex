@@ -131,7 +131,7 @@ const adminLinks = () =>
 describe('permission alternatives', () => {
   it.each([
     ['system reader', ['system.read']],
-    ['quota calendar writer', ['limits.settings.write']],
+    ['quota settings writer', ['limits.settings.write']],
     ['both authorities', ['system.read', 'limits.settings.write']],
   ])('allows %s and mounts protected queries only after authorization', async (_name, granted) => {
     permissions = granted
@@ -162,6 +162,12 @@ describe('permission alternatives', () => {
     await act(async () => cache.setQueryData(['permissions', 'usr_gate'], ['system.read']))
     await until(() => expect(host.textContent).toContain('Protected quota content'))
   })
+  it('keeps the site editor inaccessible to a quota-settings-only writer', async () => {
+    permissions = ['limits.settings.write']
+    await gate('site.write')
+    await until(() => expect(host.textContent).toContain('does not have permission'))
+    expect(requests.some((item) => item.url === '/protected')).toBe(false)
+  })
   it('keeps permission failures closed until a successful explicit retry', async () => {
     permissions = ['limits.settings.write']
     permissionFailure = true
@@ -174,18 +180,19 @@ describe('permission alternatives', () => {
   })
 })
 
-describe('system information navigation', () => {
-  it('shows only the system-information management link to a quota-calendar-only writer', async () => {
+describe('quota settings and system information navigation', () => {
+  it('shows default limits and quota calendar links to a quota-settings-only writer', async () => {
     permissions = ['limits.settings.write']
     await shell()
     await until(() => expect(adminLinks()).toContain('/admin/system-info'))
-    expect(adminLinks()).toEqual(['/', '/admin/system-info'])
+    expect(adminLinks()).toEqual(['/', '/admin/limits', '/admin/system-info'])
     await until(() => expect(requests.some((item) => item.url === '/notifications')).toBe(true))
   })
   it('keeps existing system-reader links independently accessible', async () => {
     permissions = ['system.read']
     await shell()
     await until(() => expect(adminLinks()).toContain('/admin/system-info'))
+    expect(adminLinks()).toContain('/admin/limits')
     expect(adminLinks()).toContain('/admin/system-status')
     expect(adminLinks()).toContain('/admin/system-announcements')
     expect(adminLinks()).not.toContain('/admin/storage')
@@ -194,16 +201,20 @@ describe('system information navigation', () => {
     permissions = ['site.write']
     await shell()
     expect(adminLinks()).not.toContain('/admin/system-info')
+    expect(adminLinks()).not.toContain('/admin/limits')
   })
-  it('provides a workspace management entry to the calendar and removes it after revocation', async () => {
+  it('provides a workspace management entry to default limits and removes both links after revocation', async () => {
     permissions = ['limits.settings.write']
     await shell('/')
     await until(() =>
       expect(
-        host.querySelector('nav[aria-label="Account navigation"] a[href="/admin/system-info"]'),
+        host.querySelector('nav[aria-label="Account navigation"] a[href="/admin/limits"]'),
       ).not.toBeNull(),
     )
     await act(async () => cache.setQueryData(['permissions', 'usr_gate'], []))
-    await until(() => expect(host.querySelector('a[href="/admin/system-info"]')).toBeNull())
+    await until(() => {
+      expect(host.querySelector('a[href="/admin/limits"]')).toBeNull()
+      expect(host.querySelector('a[href="/admin/system-info"]')).toBeNull()
+    })
   })
 })

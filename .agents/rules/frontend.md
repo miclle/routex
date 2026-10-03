@@ -318,3 +318,20 @@ actions while fetching or after an error. An absent or failed current Session
 cannot supply an actor. Late prior-actor or prior-target responses cannot restore
 private content. Keep existing localized loading/error states and resource layouts;
 server-side exact Project permissions remain authoritative.
+
+## User and Team defaults
+
+`views/default-limits` preserves two User/Team tabs and grouped Budget, Tokens and
+Rate limits rows with inline editing. Keep read/write settings authority separate,
+server-owned editability, complete nullable policies, exact money strings and
+reviewed currency generations. Paired `defaultLimits` translations cover all visible
+and accessible copy. Template saves describe future creation only.
+
+Existing User/Team aggregate editors use a server-derived restore context and
+Base UI confirmation with reason and exact If-Match. User restore requires
+`limits.users.write`; Team restore requires all token/money/rate writes. Preserve
+IP/usage/window/holds and display saved versus exact current runtime application
+separately. Explicitly review changed target/default/currency generations; preserve
+original reset intent after uncertain publication, even after a rejected retry.
+Scope queries to current actor/target and hide old private previews during reads
+or denial. A changed actor cannot consume a late acknowledgement.

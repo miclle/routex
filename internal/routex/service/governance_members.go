@@ -89,6 +89,9 @@ func (s *Service) Register(ctx context.Context, email, password, name string) (*
 		if err := tx.Create(&user).Error; err != nil {
 			return err
 		}
+		if err := applyCreationDefaultLimit(tx, "user", user.ID, user.ID); err != nil {
+			return err
+		}
 		var err error
 		auth, err = createSession(tx, user)
 		if err != nil {
@@ -121,6 +124,9 @@ func (s *Service) CreateMember(ctx context.Context, actorID, email, password, na
 			}
 		}
 		if err := tx.Create(&user).Error; err != nil {
+			return err
+		}
+		if err := applyCreationDefaultLimit(tx, "user", user.ID, actorID); err != nil {
 			return err
 		}
 		return appendAudit(tx, actorID, "member.create", "user", user.ID)

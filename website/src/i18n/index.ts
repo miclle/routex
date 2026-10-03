@@ -1,3 +1,5 @@
+import enDefaultLimits from './locales/en/defaultLimits'
+import zhDefaultLimits from './locales/zh/defaultLimits'
 import enTeamRequests from './locales/en/teamRequests'
 import zhTeamRequests from './locales/zh/teamRequests'
 import enEgress from './locales/en/egress'
@@ -85,6 +87,7 @@ void i18n.use(initReactI18next).init({
   resources: {
     en: {
       common: en,
+      defaultLimits: enDefaultLimits,
       egress: enEgress,
       storage: enStorage,
       systemStatus: enSystemStatus,
@@ -111,6 +114,7 @@ void i18n.use(initReactI18next).init({
     },
     zh: {
       common: zh,
+      defaultLimits: zhDefaultLimits,
       egress: zhEgress,
       storage: zhStorage,
       systemStatus: zhSystemStatus,

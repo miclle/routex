@@ -161,7 +161,12 @@ func testTeamLimitsGatewayLifecycle(t *testing.T, db *gorm.DB) {
 	firstSession, firstCookie := readIdentity(t, identityRequest(router, "POST", "/api/v1/auth/login", `{"email":"team-limits-first@example.invalid","password":"team-limits-password"}`, nil, ""))
 	secondSession, secondCookie := readIdentity(t, identityRequest(router, "POST", "/api/v1/auth/login", `{"email":"team-limits-second@example.invalid","password":"team-limits-password"}`, nil, ""))
 	zero := int64(0)
-	if _, err := svc.SetResourceLimit(ctx, admin.User.ID, service.LimitTarget{Kind: "user", ID: first.User.ID}, "0", service.LimitInput{Policy: limits.Policy{TokensMonth: &zero, RPM: &zero}, Reason: "Personal isolation"}); err != nil {
+	personalTarget := service.LimitTarget{Kind: "user", ID: first.User.ID}
+	personalPolicy, err := svc.GetResourceLimit(ctx, admin.User.ID, personalTarget)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := svc.SetResourceLimit(ctx, admin.User.ID, personalTarget, personalPolicy.ETag, service.LimitInput{Policy: limits.Policy{TokensMonth: &zero, RPM: &zero}, Reason: "Personal isolation"}); err != nil {
 		t.Fatal(err)
 	}
 	read := func(userID string) *service.LimitRecord {

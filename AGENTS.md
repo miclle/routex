@@ -372,3 +372,14 @@ breakdowns while preserving existing cards, trends, model groups, historical
 currency amounts and unknown coverage. Shared Team reports never expand actor-only
 Team call history. Administrative Team filtering requires independent
 `calls.read_all` and cannot combine Personal-user or Project subject selectors.
+
+User/Team default settings use `views/default-limits` at `/admin/limits` with paired
+`defaultLimits` translations. Read access is `system.read` or
+`limits.settings.write`; only the latter writes future creation templates. New
+User/Team accounts copy current templates atomically; existing accounts change
+only through the dedicated reviewed restore flow. Restore user caps only with
+`limits.users.write`, and Team aggregates only with all three Team cap permissions.
+Preserve zero/null, exact money/currency, local IP, usage/holds/calendar, resource
+birth and Key/relationship identity. Freeze unknown reset intent through retries;
+report current runtime application separately from saved provenance. Never treat
+rule-save persistence as retroactive enforcement.

@@ -1,3 +1,4 @@
+import RestoreDefaults from '@/views/default-limits/restore'
 import { useLayoutEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
@@ -67,6 +68,7 @@ function TeamLimitContent({
           {!editing && (
             <>
               <TeamLimitSummary record={query.data} member={!!scope.userId} />
+              {!scope.userId && <RestoreDefaults target={{ kind: 'team', id: scope.teamId }} />}
               {editable && (
                 <Button
                   variant="outline"

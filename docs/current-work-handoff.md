@@ -1,10 +1,10 @@
 # Current Work Handoff
 
-- **Status:** implementation active; F06 completed and pushed; F22 scoped Team reports pushed; F07 canonical authority accepted for phased main delivery; F17 defaults active in an isolated worktree
-- **Updated:** 2026-10-03
+- **Status:** implementation active; F06 completed and pushed; F22 scoped Team reports pushed; F07 canonical authority pushed at 4c669dc; F17 defaults passed all local delivery gates and are ready for the phased main commit
+- **Updated:** 2026-10-04
 - **Repository / branch:** RouteX / `main`
-- **Previous checked source baseline:** `598ffd17e00f8ef651b8a8a4f7bbfbae864f8c48`, pushed and read back from `origin/main`
-- **Current owner:** coordinator owns phased F07 delivery and F17 integration; three owners implement F17 backend/API, frozen migration/acceptance and frontend
+- **Previous checked source baseline:** `4c669dc057d477e073b66f176fafbc7b3396c084`, pushed and read back from `origin/main`
+- **Current owner:** coordinator owns F17 delivery and F07 integration; three owners have frozen the isolated Project creation/Overview package
 - **Next owner:** current task continues the resumed goal
 - **Transport:** identify this checked delivery with `git log -1 -- docs/current-work-handoff.md` and independently verify its upstream
 - **Coordination plan:** `~/dotfiles/projects/routex/implementation-plan.md`; synchronize separately and preserve unrelated changes
@@ -1027,3 +1027,103 @@ F07 remains partial for creation/overview scope; totals remain 10 completed,
 17 partial and 3 not started. The overall objective continues with F17 defaults
 in its isolated worktree. Identify this checked delivery using Git history;
 do not invent its own commit SHA before commit.
+
+## Current F17 integration checkpoint
+
+F07 `4c669dc057d477e073b66f176fafbc7b3396c084` was pushed and independently
+read back from main. Exact Actionlint 37130395221 and GolangCI-Lint 37130395194
+succeeded; exact CI 37130395206 also succeeded. The app refused archival of the
+completed Project authority worktree because it is protected; retain it.
+
+F17 frozen source has been copied into main while preserving F07 source/tests and
+registration. Source is uncommitted. Mandatory check passed; the first full test
+run passed 1033/1035 cases but failed two old navigation assertions. The UI owner
+updated those assertions; final full check/test passed with 1036 Vitest cases in
+72 files. Initial migration column naming mismatches were corrected with explicit
+frozen-schema tags, and legacy fixtures now read actual creation policy revisions.
+Both real-database migration checks passed. The native fixture was corrected to
+use max_completion_tokens and is being adjusted to create finite accounts only
+after a real unlimited call establishes ledger coverage. No constraint or
+production policy is weakened. Final native, full matrix, process lifecycle and
+browser acceptance remain open.
+
+Next copy the frozen corrected entity/migration/fixture source from the
+`resource-defaults` worktree, preserve the Project authority harness registration,
+rerun the actual default-limits PostgreSQL/MySQL focus, then final main check/test
+and the complete matrix. User creation persistence also requires both real-process
+auth lifecycles and owned production/browser/restart checks. Commit only after all
+required gates pass. Broader F17 scope remains open and the objective is active.
+
+## F17 corrected focus and controlled runtime acceptance
+
+The final focused PostgreSQL/MySQL run passed in 243.032 seconds. Native fixtures
+now start authoritative journal coverage with an unlimited real call before
+creating finite accounts; no production fallback, time backdating or invented
+zero usage was introduced. Both frozen V42 migration checks and Personal/Team
+quota/reset workflows passed. Final main full matrix is running; both process
+authentication lifecycles and final precommit check are still required.
+
+Owned production/browser acceptance passed saving future User monthly Tokens 5,
+creation provenance, real settled 5 and next-call 429, default change to 10 without
+retroactive policy mutation, explicit browser reset preserving IP/usage/provenance,
+confirmed runtime application, remaining-5 admission and next-call 429, and process
+restart preserving Sessions, policies, defaults and usage. Bilingual rendering
+passed, English was restored, error logs were empty and owned resources removed.
+The first browser harness read used etag instead of historical e_tag; the isolated
+script query was corrected and the complete fresh run passed.
+
+The next F07 package is being developed only in the managed
+project-creation-overview worktree with three disjoint owners: initial manager
+creation/candidates, authoritative scoped overview and real-database fixture,
+and frontend/API/types/translations. It is not part of the pending F17 commit.
+Initial resource configuration/request creation and broader F07 acceptance remain
+open; neither this delivery nor the next package completes the full objective.
+
+Both real-process PostgreSQL/MySQL authentication/native lifecycles passed and
+cleaned up their owned Compose resources. Final full regression is still running.
+The coordinator added a focused finite-default denomination guard assertion;
+its supplementary both-database run is in progress before commit. No production
+source changed after the passed production/browser/restart proof.
+
+The first complete matrix found two additional legacy-fixture assumptions on both
+engines: audit pagination omitted the new default-application event, and the quota
+retry used revision 0 instead of the real creation-policy revision. Fixtures now
+retain and verify the typed limits.default.apply event and retry the captured
+original revision. No event or guard is removed. Corrected audit/quota/defaults
+focus and another complete matrix are required before commit.
+
+The supplemental finite-default denomination guard passed both databases in
+274.847 seconds. Frontend reason validation now matches the backend 1024-byte
+and control-character boundary, with ASCII/multibyte/control rejection coverage;
+all 1036 frontend tests and mandatory check passed again. Production embedding was
+rechecked after the UI validation change.
+
+Corrected default-limits/audit/quota focus passed on both engines (246.02 seconds
+for the parent harness). Both legacy fixture repairs preserve creation audit,
+actual captured policy revisions, native dispatch and quota-history assertions.
+The final complete main matrix is now running on the corrected source; commit is
+still gated on that result. The next Project package remains isolated.
+
+
+## Final F17 delivery gates, 2026-10-04
+
+All required local gates passed on the final source. Complete PostgreSQL/MySQL
+regression passed (Handler 808.330 seconds; Service 6.035 seconds), with migration,
+audit, quota, default-copy/reset and native gateway workflows. Both real-process
+authentication/native lifecycles passed restart persistence and revocation.
+Mandatory final check, 1036 Vitest cases in 72 files, Go race/development lifecycle
+and production embedding checks passed. Controlled browser/native/restart proof
+confirmed copied defaults, non-retroactive edits, preserved IP and settled usage,
+reviewed reset provenance and exact enforcement; English/Chinese switching passed
+with no browser errors. Owned test Compose/process resources were removed.
+
+Submit only the integrated F17 package and its documentation, push main and verify
+exact remote checks. Broader F17 alerts, configurable stop policy, named templates,
+distributed enforcement and capacity acceptance remain open. Capability totals
+stay 10 complete, 17 partial and 3 unstarted.
+
+The next F07 package remains isolated in the managed project-creation-overview
+worktree. Its actual PostgreSQL/MySQL creation/Overview focus passed in 254.50
+seconds; controlled browser/native/revocation/restart acceptance is running. Copy
+only its owned files after F17 delivery, retaining final F17 fixture and validation
+repairs. Initial resource configuration and combined creation requests remain open.

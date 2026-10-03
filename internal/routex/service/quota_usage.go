@@ -87,6 +87,15 @@ func effectiveQuotaValues(stored, parent limits.Policy) EffectiveLimitValues {
 	return EffectiveLimitValues{RPM: limits.Minimum(parent.RPM, stored.RPM), Concurrency: limits.Minimum(parent.Concurrency, stored.Concurrency), Tokens5H: limits.Minimum(parent.Tokens5H, stored.Tokens5H), Tokens7D: limits.Minimum(parent.Tokens7D, stored.Tokens7D), TokensMonth: limits.Minimum(parent.TokensMonth, stored.TokensMonth), TPM: limits.Minimum(parent.TPM, stored.TPM), MoneyMonth: limits.MoneyMinimum(parent.MoneyMonth, stored.MoneyMonth), Currency: currency}
 }
 func (s *Service) guardQuotaCurrencyChange(tx *gorm.DB) error {
+	// A finite creation template reserves its exact denomination even before any
+	// resource has copied it. Malformed extra kinds cannot bypass this guard.
+	var defaults []entity.DefaultLimitRule
+	if err := tx.Where("money_month IS NOT NULL").Limit(3).Find(&defaults).Error; err != nil {
+		return err
+	}
+	if len(defaults) != 0 {
+		return errLimitConflict
+	}
 	var count int64
 	if err := tx.Model(&entity.ResourceLimit{}).Where("money_month IS NOT NULL").Count(&count).Error; err != nil {
 		return err

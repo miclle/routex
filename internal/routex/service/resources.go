@@ -348,6 +348,9 @@ func (s *Service) CreateResource(ctx context.Context, actorID string, kind Resou
 			if err := tx.Create(&team).Error; err != nil {
 				return err
 			}
+			if err := applyCreationDefaultLimit(tx, "team", team.ID, actorID); err != nil {
+				return err
+			}
 			for _, owner := range owners {
 				relationID, err := id.NewPrefixed("tmm")
 				if err != nil {

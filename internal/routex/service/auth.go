@@ -80,6 +80,9 @@ func (s *Service) Initialize(ctx context.Context, email, password, name string) 
 		if err := tx.Create(&user).Error; err != nil {
 			return err
 		}
+		if err := applyCreationDefaultLimit(tx, "user", user.ID, user.ID); err != nil {
+			return err
+		}
 		if err := tx.Model(&installation).Update("initialized", true).Error; err != nil {
 			return err
 		}

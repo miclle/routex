@@ -190,14 +190,18 @@ func testResourceLimitLifecycle(t *testing.T, db *gorm.DB) {
 	}
 	call := func(bearer string) *httptest.ResponseRecorder { return gateway(bearer, "192.0.2.8:4040", "") }
 	empty := read(userPath)
-	if empty.ETag != "0" || empty.Stored.RPM != nil {
-		t.Fatal("existing account was restricted by migration")
+	if empty.ETag == "" || empty.ETag == "0" || empty.Stored.Tokens5H != nil || empty.Stored.Tokens7D != nil || empty.Stored.TokensMonth != nil || empty.Stored.TPM != nil || empty.Stored.MoneyMonth != nil || empty.Stored.Currency != "" || empty.Stored.RPM != nil || empty.Stored.Concurrency != nil {
+		t.Fatal("new account did not copy an unrestricted creation policy")
+	}
+	var copiedPolicy entity.ResourceLimit
+	if err := db.First(&copiedPolicy, "scope_kind = ? AND scope_id = ?", "user", admin.User.ID).Error; err != nil || copiedPolicy.AppliedDefaultETag == nil || copiedPolicy.DefaultResetETag != nil {
+		t.Fatal("new account omitted creation default provenance", err)
 	}
 	expectStatus(t, identityRequest(router, "PUT", userPath, `{"rpm":0,"reason":"No CSRF"}`, cookie, ""), 403)
 	expectStatus(t, request("PUT", userPath, map[string]any{"rpm": 1, "reason": "No ETag"}, ""), 400)
-	expectStatus(t, request("PUT", userPath, map[string]any{"tokens_week": 100, "reason": "Unsupported"}, "0"), 400)
+	expectStatus(t, request("PUT", userPath, map[string]any{"tokens_week": 100, "reason": "Unsupported"}, empty.ETag), 400)
 	write(userPath, 2, nil, "none", []string{})
-	expectStatus(t, request("PUT", userPath, map[string]any{"rpm": 3, "reason": "Stale"}, "0"), 409)
+	expectStatus(t, request("PUT", userPath, map[string]any{"rpm": 3, "reason": "Stale"}, empty.ETag), 409)
 	child := write(keyPath, 1, nil, "none", []string{})
 	expectStatus(t, request("PUT", keyPath, map[string]any{"rpm": 3, "ip_mode": "none", "ip_ranges": []string{}, "reason": "Broader"}, child.ETag), 400)
 	expectStatus(t, call(personalBearer), 200)

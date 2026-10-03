@@ -63,6 +63,10 @@ const routes: RouteObject[] = [
             lazy: async () => ({ Component: (await import('@/views/audit')).default }),
           },
           {
+            path: 'admin/limits',
+            lazy: async () => ({ Component: (await import('@/views/default-limits')).default }),
+          },
+          {
             path: 'admin/system-info',
             lazy: async () => ({ Component: (await import('@/views/site')).default }),
           },

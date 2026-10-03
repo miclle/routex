@@ -195,6 +195,7 @@ func testQuotaLifecycle(t *testing.T, db *gorm.DB) {
 	deniedResult := httptest.NewRecorder()
 	router.ServeHTTP(deniedResult, denied)
 	expectStatus(t, deniedResult, 403)
+	initialUserETag := read(userPath).ETag
 	parent := write(userPath, map[string]any{"tokens_5h": 24, "tokens_7d": 24, "tokens_month": 24, "tpm": 24, "money_month": "1", "currency": "USD"})
 	beforeDispatch := dispatched.Load()
 	expectStatus(t, call(memberBearer, false), 400)
@@ -207,7 +208,7 @@ func testQuotaLifecycle(t *testing.T, db *gorm.DB) {
 	if used.QuotaUsage == nil || used.QuotaUsage.FiveHours == nil || !used.QuotaUsage.FiveHours.Covered || used.QuotaUsage.FiveHours.TokensUsed != 5 || used.QuotaUsage.Month.MoneyUsed["USD"] != "0.000005" {
 		t.Fatalf("independent durable settlement incorrect: %+v", used.QuotaUsage)
 	}
-	expectStatus(t, request("PUT", userPath, map[string]any{"tokens_5h": 25, "reason": "stale"}, "0"), 409)
+	expectStatus(t, request("PUT", userPath, map[string]any{"tokens_5h": 25, "reason": "stale"}, initialUserETag), 409)
 	write(adminPath, map[string]any{"tokens_5h": 100})
 	expectStatus(t, call(adminBearer, true), 503)
 	if report := read(adminPath); report.QuotaUsage.FiveHours.Covered {
@@ -221,7 +222,7 @@ func testQuotaLifecycle(t *testing.T, db *gorm.DB) {
 	}
 	// Refresh retry must not duplicate the policy revision or its audit event.
 	retryBody := map[string]any{"tokens_5h": 24, "tokens_7d": 24, "tokens_month": 24, "tpm": 24, "money_month": "1", "currency": "USD", "reason": "Quota acceptance"}
-	if retry := decodeCatalogResponse[service.LimitRecord](t, request("PUT", userPath, retryBody, "0"), 200); retry.ETag != parent.ETag {
+	if retry := decodeCatalogResponse[service.LimitRecord](t, request("PUT", userPath, retryBody, initialUserETag), 200); retry.ETag != parent.ETag {
 		t.Fatal("policy retry changed revision")
 	}
 	var priceSetting entity.PricingSetting

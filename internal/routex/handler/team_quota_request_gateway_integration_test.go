@@ -149,7 +149,12 @@ func testTeamQuotaApprovalNativeLifecycle(t *testing.T, db *gorm.DB) {
 	)
 	identity, cookie := readIdentity(t, identityRequest(router, "POST", "/api/v1/auth/login", `{"email":"quota-native-applicant@example.invalid","password":"quota-native-password"}`, nil, ""))
 	zero := int64(0)
-	if _, err := svc.SetResourceLimit(ctx, admin.User.ID, service.LimitTarget{Kind: "user", ID: applicant.User.ID}, "0", service.LimitInput{Policy: limits.Policy{TokensMonth: &zero}, Reason: "Personal isolation"}); err != nil {
+	personalTarget := service.LimitTarget{Kind: "user", ID: applicant.User.ID}
+	personalPolicy, err := svc.GetResourceLimit(ctx, admin.User.ID, personalTarget)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := svc.SetResourceLimit(ctx, admin.User.ID, personalTarget, personalPolicy.ETag, service.LimitInput{Policy: limits.Policy{TokensMonth: &zero}, Reason: "Personal isolation"}); err != nil {
 		t.Fatal(err)
 	}
 	read := func(userID string) *service.LimitRecord {

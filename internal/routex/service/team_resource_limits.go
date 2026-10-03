@@ -418,7 +418,7 @@ func (s *Service) SetTeamResourceLimit(ctx context.Context, actorID, teamID, use
 			return err
 		}
 		if etag != current.ReviewETag {
-			if current.Row.PreviousETag == etag && current.Row.ActorID == actorID && current.Row.Reason == input.Reason && reflect.DeepEqual(current.Stored, policy) {
+			if current.Row.AppliedDefaultETag == nil && current.Row.DefaultResetETag == nil && current.Row.PreviousETag == etag && current.Row.ActorID == actorID && current.Row.Reason == input.Reason && reflect.DeepEqual(current.Stored, policy) {
 				return nil
 			}
 			return errLimitConflict

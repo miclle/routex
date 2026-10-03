@@ -145,7 +145,12 @@ func testTeamGatewayLifecycle(t *testing.T, db *gorm.DB) {
 	// A Personal zero policy is a real current policy, yet Team Session accounts
 	// are independent and have no invented finite Team quota.
 	zero := int64(0)
-	if _, err := svc.SetResourceLimit(ctx, admin.User.ID, service.LimitTarget{Kind: "user", ID: member.User.ID}, "0", service.LimitInput{Policy: limits.Policy{TokensMonth: &zero, RPM: &zero}, Reason: "Personal isolation acceptance"}); err != nil {
+	personalTarget := service.LimitTarget{Kind: "user", ID: member.User.ID}
+	personalPolicy, err := svc.GetResourceLimit(ctx, admin.User.ID, personalTarget)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := svc.SetResourceLimit(ctx, admin.User.ID, personalTarget, personalPolicy.ETag, service.LimitInput{Policy: limits.Policy{TokensMonth: &zero, RPM: &zero}, Reason: "Personal isolation acceptance"}); err != nil {
 		t.Fatal(err)
 	}
 	native := func(cookie *http.Cookie, csrf, method, path, body string, headers map[string]string) *httptest.ResponseRecorder {

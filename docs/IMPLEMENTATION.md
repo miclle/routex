@@ -1,6 +1,6 @@
 # RouteX Implementation and Acceptance Index
 
-Updated: 2026-10-03. This document records engineering contracts, work packages, and acceptance checks. Interfaces, tables, pages, and metrics marked as planned are not necessarily implemented; delivery evidence appears at the end. The active goal covers all F01–F30 capabilities and A01–A20 acceptance cases; completed stages do not end implementation. The full product is delivered incrementally through P0–P6.
+Updated: 2026-10-04. This document records engineering contracts, work packages, and acceptance checks. Interfaces, tables, pages, and metrics marked as planned are not necessarily implemented; delivery evidence appears at the end. The active goal covers all F01–F30 capabilities and A01–A20 acceptance cases; completed stages do not end implementation. The full product is delivered incrementally through P0–P6.
 
 ## Scope and Decisions
 
@@ -167,7 +167,7 @@ The binary capability count is 10 completed, 17 partially completed, and 3 not s
 | F14 | Managed egress and staged network diagnostics | Partially completed | Direct, default, SOCKS5, verified CONNECT, endpoint-bound saved authentication, complete-tunnel proxy-address fallback, and diagnostics exist. External proxy and production performance acceptance remain open. |
 | F15 | Prices, spreadsheet/CSV workflows, API, and repository sync | Partially completed | Current prices, ETags, CSV/XLS/XLSX import, preview, commit, and export exist; external price-repository synchronization is not implemented. |
 | F16 | Platform currency, exchange rates, and historical price snapshots | Completed | Decimal-string currency/rate management, exact quoting, and immutable per-call assessment are implemented. |
-| F17 | User and Team defaults, overrides, budgets, alerts, and stop policy | Partially completed | Personal, Project, Key and Team aggregate/member enforcement plus budget/token/TPM controls, authoritative quota snapshots, and installation-calendar configuration exist; current-policy Personal/Project monthly settled-exhaustion inboxes have focused acceptance, while Team defaults, templates, broader alerts, and configurable stop-calling policy remain open. |
+| F17 | User and Team defaults, overrides, budgets, alerts, and stop policy | Partially completed | Personal, Project, Key and Team aggregate/member enforcement plus budget/token/TPM controls, authoritative quota snapshots, and installation-calendar configuration exist; current-policy Personal/Project monthly settled-exhaustion inboxes have focused acceptance, and creation-default settings and explicit restores have complete local acceptance; templates, broader alerts, and configurable stop-calling policy remain open. |
 | F18 | Quota, model, and request-limit approvals | Completed | Project model/monthly quota/RPM/TPM/concurrency and Team monthly Token/money requests have controlled acceptance: owner-first assignment, escalation, independent dimensions, read-only platform records, atomic final policies and immutable receipts with current application. Distributed acknowledgements belong to F30; release-wide acceptance remains separate. |
 | F19 | Member overview, model sources, requests, and examples | Partially completed | Actor-scoped Personal/Team source attribution, native metadata, filters, details and examples are available; Project requests and text-only native Chat Team Sessions exist; Personal/Team model-request coverage, further Team protocols and broader price/usage facts remain open. |
 | F20 | Playground, comparison, attachments, and code examples | Partially completed | Four native conversation paths, two-to-four-lane comparison, cancellation, executable examples, per-protocol image/PDF discovery, user/Project attachment resolution, single/comparison attachment lifecycle interfaces, and conservative token/TPM/money admission with exact per-occurrence media prices exist; external acceptance remains open. |
@@ -1937,3 +1937,30 @@ Markdown references and whitespace checks passed. This F07 package is ready for
 phased main delivery; its exact commit is identified through Git history. The
 separate F17 worktree continues seven-field User/Team default settings, atomic
 creation snapshots and explicitly reviewed resets with frozen GORM V42.
+
+## Checked F17 User/Team defaults, 2026-10-04
+
+An isolated schema/acceptance, backend/API and frontend team implemented two
+creation templates, frozen GORM V42, atomic new User/Team policy copies and
+explicit current-default restore. The runtime consumes ordinary saved policies;
+template changes do not modify existing resources. Restore preserves local IP,
+usage, holds, calendar and immutable resource/Key/relationship identities, binds
+current target/default/currency review, and separates persistence from exact runtime
+application. Unknown publication retries retain their original copied revision;
+ordinary later writes clear the last-reset marker.
+
+Focused frontend checks passed 79 cases in five files, TypeScript, scoped ESLint and
+Prettier. Backend focused/full service race and pinned lint passed. Initial full
+frontend acceptance found two old navigation expectations after the new settings
+entry; corrected permission/default UI focus passed 29 cases in two files. Initial
+real database acceptance found GORM acronym/digit column naming differences in
+V42 checks; explicit model/frozen/fixture column mappings preserve the required
+constraints. Corrected PostgreSQL/MySQL focus passed in 243.032 seconds, including
+real Personal/Team admission. Final full check/test passed with 1036 Vitest cases
+in 72 files. Controlled production/native/browser/restart acceptance passed
+creation-only defaults, preserved IP/settled usage, exact reset provenance and
+quota rejection. The final full PostgreSQL/MySQL matrix passed (Handler 808.330 seconds;
+Service 6.035 seconds). Both real-process authentication/native lifecycles passed
+restart persistence and revocation. Mandatory final check, full frontend and
+production embedding checks passed on the corrected source. F17 and the full objective remain
+partial; totals stay 10 completed, 17 partial and 3 not started.

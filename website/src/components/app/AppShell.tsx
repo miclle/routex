@@ -157,6 +157,17 @@ const adminNav = [
     },
   },
   {
+    to: '/admin/limits',
+    get label() {
+      return t('defaultLimits:title')
+    },
+    icon: Settings,
+    permission: ['system.read', 'limits.settings.write'],
+    get group() {
+      return t('system_administration_04ca1')
+    },
+  },
+  {
     to: '/admin/system-info',
     get label() {
       return t('site:information')

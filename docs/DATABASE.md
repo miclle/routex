@@ -257,3 +257,17 @@ identity rewritten. The real PostgreSQL/MySQL fixture checks table/guard prefixe
 repeat execution, concurrent startup, historical row preservation, orphan and
 duplicate rejection, and restrictive delete/update behavior. Current final
 acceptance is recorded in [Team roles](TEAM_ROLES.md) for the frozen implementation.
+
+## Version 42: creation defaults
+
+Frozen GORM V42 adds two independently persisted User/Team default limit rules and
+nullable `applied_default_etag`/`default_reset_etag` columns on resource limits.
+Seeds are unlimited; existing resource rows receive no caps or inferred provenance.
+Explicit column tags align acronym/digit fields with portable check expressions.
+Checks enforce supported targets, nullable safe integers, currency/money coherence
+and bounded revision lengths. AddColumn and constraint reconciliation tolerate
+partially committed MySQL DDL; no handwritten SQL is introduced. Final actual
+PostgreSQL/MySQL migration and feature focus passed in 243.032 seconds; the final
+complete regression matrix passed (Handler 808.330 seconds; Service 6.035 seconds). See
+[default limit contracts](DEFAULT_LIMITS.md) for atomic creation, explicit restore
+and immutable uncertain-intent boundaries.

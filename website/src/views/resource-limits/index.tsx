@@ -1,3 +1,4 @@
+import RestoreDefaults from '@/views/default-limits/restore'
 import { useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
@@ -80,6 +81,14 @@ function ResourceLimitContent(props: Props) {
           retry={() => void query.refetch()}
         />
         {query.data && <LimitSummary record={query.data} child={props.child} />}
+        {props.canEdit &&
+          query.data?.kind === 'user' &&
+          !query.isFetching &&
+          !query.isError &&
+          !editing &&
+          /^\/admin\/members\/[^/]+$/.test(props.path) && (
+            <RestoreDefaults target={{ kind: 'user', id: query.data.id }} />
+          )}
         {notice && (
           <p role="status" className="text-sm">
             {t(notice)}
