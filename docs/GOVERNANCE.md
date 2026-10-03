@@ -99,3 +99,11 @@ request review. It can be delegated independently of `members.read`,
 fields. Reviewers cannot approve themselves. See
 [Personal Model requests](PERSONAL_MODEL_REQUESTS.md) for exact reviewed decisions,
 current authority, additions-only grants and immutable receipt semantics.
+
+## Independent Team Model review
+
+`teams.models.write` authorizes minimal target-scoped Model access and request
+review independently of Team directory permissions. A scoped assigned role may
+provide it; ownership alone does not. Reviewers cannot approve themselves.
+[Team Model requests](TEAM_MODEL_REQUESTS.md) preserve immutable decisions,
+same-transaction pending cancellation and shared grants after applicant departure.

@@ -452,3 +452,11 @@ candidate catalogue and scoped history through the existing catalogue compositio
 A pending request creates no grant; approval adds only direct Personal access and
 never expands an existing Key. Granted discovery and Team sources retain their
 existing authorization contracts.
+
+## Shared Team access requests
+
+[Team Model requests](TEAM_MODEL_REQUESTS.md) use explicit active Team selection
+and shared pending uniqueness in the existing catalogue drawer. Approval changes
+only the selected Team grant. Own history remains available after membership loss;
+current facts become unavailable without renewed resource authority. Team Models
+includes independently scoped review without requiring a global directory.

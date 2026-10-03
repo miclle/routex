@@ -1,3 +1,5 @@
+import enTeamModelRequests from './locales/en/teamModelRequests'
+import zhTeamModelRequests from './locales/zh/teamModelRequests'
 import enPersonalModelRequests from './locales/en/personalModelRequests'
 import zhPersonalModelRequests from './locales/zh/personalModelRequests'
 import enDefaultLimits from './locales/en/defaultLimits'
@@ -90,6 +92,7 @@ void i18n.use(initReactI18next).init({
     en: {
       common: en,
       personalModelRequests: enPersonalModelRequests,
+      teamModelRequests: enTeamModelRequests,
       defaultLimits: enDefaultLimits,
       egress: enEgress,
       storage: enStorage,
@@ -118,6 +121,7 @@ void i18n.use(initReactI18next).init({
     zh: {
       common: zh,
       personalModelRequests: zhPersonalModelRequests,
+      teamModelRequests: zhTeamModelRequests,
       defaultLimits: zhDefaultLimits,
       egress: zhEgress,
       storage: zhStorage,

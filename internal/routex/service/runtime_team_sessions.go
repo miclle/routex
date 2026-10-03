@@ -91,6 +91,15 @@ func addTeamSessionRuntimeAuthorization(auth *runtimeAuthorization, data *teamSe
 		team, exists := auth.Teams[grant.TeamID]
 		if exists && auth.Models[grant.ModelID] {
 			team.Models[grant.ModelID] = true
+			if grant.SourceRequestID != nil {
+				if auth.TeamGrantSources == nil {
+					auth.TeamGrantSources = map[string]map[string]string{}
+				}
+				if auth.TeamGrantSources[grant.TeamID] == nil {
+					auth.TeamGrantSources[grant.TeamID] = map[string]string{}
+				}
+				auth.TeamGrantSources[grant.TeamID][grant.ModelID] = *grant.SourceRequestID
+			}
 		}
 	}
 }

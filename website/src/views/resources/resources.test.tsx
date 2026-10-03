@@ -1,4 +1,5 @@
 import { limitFixture, teamFixture } from '@/views/resource-limits/fixture'
+import { teamModelDetail, teamModelWorkspace } from '@/views/team-model-requests/fixture'
 import { usageFixture } from '@/views/usage/fixture'
 import { act } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
@@ -97,6 +98,14 @@ beforeEach(() => {
         monthly_quota: null,
         activities: [],
       }
+    else if (config.url === '/team-model-requests' || config.url === '/teams/tea_1/model-requests')
+      response.data = {
+        items: [{ ...teamModelDetail('tea_1'), applicant_user_id: 'usr_1' }],
+        total: 1,
+        next_cursor: null,
+      }
+    else if (config.url === '/teams/tea_1/model-request-workspace')
+      response.data = { ...teamModelWorkspace(), team_id: 'tea_1' }
     else if (config.url === '/teams/tea_1/roles')
       response.data = {
         team_id: team.id,
@@ -252,6 +261,37 @@ async function submit(selector = 'form') {
 }
 
 describe('Team and Project resource workflows', () => {
+  it('appends own Team request history to the existing allowed/available model tables without owner review authority', async () => {
+    await mount('/teams/tea_1?tab=models')
+    await until(() => expect(host.textContent).toContain('Original Team need'))
+    expect(host.textContent).toContain('mdl_hidden')
+    expect([...host.querySelectorAll('[role="tab"]')].map((tab) => tab.textContent)).toContain(
+      'Model access',
+    )
+    expect(
+      requests.some(
+        (item) => item.url === '/team-model-requests' && item.params.team_id === 'tea_1',
+      ),
+    ).toBe(true)
+    expect(requests.some((item) => item.url === '/teams/tea_1/model-request-workspace')).toBe(false)
+    expect(requests.some((item) => item.url === '/teams/tea_1/model-requests')).toBe(false)
+    expect(
+      requests.some((item) => item.url === '/admin/members' || item.url === '/admin/teams'),
+    ).toBe(false)
+  })
+  it('uses the scoped Team reviewer workspace only with independently granted model write authority', async () => {
+    permissions = ['teams.models.write']
+    await mount('/teams/tea_1?tab=models')
+    await until(() => expect(host.textContent).toContain('Team model request history'))
+    expect(host.textContent).toContain('mdl_hidden')
+    expect(requests.some((item) => item.url === '/teams/tea_1/model-request-workspace')).toBe(true)
+    expect(requests.some((item) => item.url === '/teams/tea_1/model-requests')).toBe(true)
+    expect(
+      requests
+        .filter((item) => item.url === '/team-model-requests')
+        .every((item) => item.params.team_id === 'tea_1'),
+    ).toBe(true)
+  })
   it('opens the addressable Team limit cards without granting owner writes', async () => {
     await mount('/teams/tea_1?tab=limits')
     await until(() => expect(host.textContent).toContain('Budget and quotas'))

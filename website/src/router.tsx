@@ -200,6 +200,12 @@ const routes: RouteObject[] = [
             lazy: async () => ({ Component: (await import('@/views/home')).default }),
           },
           {
+            path: 'teams/:resourceId/model-requests',
+            lazy: async () => ({
+              Component: (await import('@/views/team-model-requests')).default,
+            }),
+          },
+          {
             path: 'admin/members',
             lazy: async () => ({ Component: (await import('@/views/governance/members')).default }),
           },

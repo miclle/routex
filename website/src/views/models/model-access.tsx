@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router'
 import { Bot, Copy, RefreshCw } from 'lucide-react'
 import { getPersonalModelCandidate } from '@/api/personal-model-requests'
-import PersonalAccessRequest from '@/views/personal-model-requests/request'
+import AccessRequestFooter from '@/views/team-model-requests/footer'
 import type { ModelCatalogRecord } from '@/types/model-catalog'
 import { getModelCatalogRecord, modelCatalogError } from '@/api/model-catalog'
 import { Badge } from '@/components/ui/badge'
@@ -65,12 +65,7 @@ export default function ModelAccess({
   // Earlier catalogue authorization cannot authorize a refreshed resource detail.
   const model = visible && query.isSuccess && !query.isFetching ? query.data : undefined
   const [requestOpened, setRequestOpened] = useState(false)
-  if (
-    !requestOpened &&
-    model &&
-    (requestable || !model.sources.some((source) => source.type === 'personal'))
-  )
-    setRequestOpened(true)
+  if (!requestOpened && model) setRequestOpened(true)
   const protocols = model ? knownModelProtocols(model) : []
   const activeProtocol = protocols.includes(exampleProtocol) ? exampleProtocol : protocols[0]
   const gemini = activeProtocol === 'gemini_generate_content'
@@ -249,6 +244,7 @@ export default function ModelAccess({
                 <label className="flex items-center gap-3 px-4 pt-4 text-sm">
                   {t('common.protocolType')}
                   <select
+                    aria-label={t('common.protocolType')}
                     value={activeProtocol}
                     onChange={(event) => {
                       setExampleProtocol(event.target.value)
@@ -288,14 +284,12 @@ export default function ModelAccess({
           </>
         )}
         {requestOpened && (
-          <PersonalAccessRequest
+          <AccessRequestFooter
             actorID={actorID}
             modelID={modelID}
             onBusy={setRequestBusy}
-            visible={
-              !!model &&
-              (requestable || !model.sources.some((source) => source.type === 'personal'))
-            }
+            personalGranted={model?.sources.some((source) => source.type === 'personal') ?? false}
+            visible={!!model}
           />
         )}
       </div>

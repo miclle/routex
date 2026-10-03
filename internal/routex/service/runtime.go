@@ -54,6 +54,7 @@ type gatewayRuntime struct {
 
 type runtimeAuthorization struct {
 	PersonalGrantSources   map[string]map[string]string
+	TeamGrantSources       map[string]map[string]string
 	SourceDigest           string
 	CredentialRevisions    map[string]string
 	ProviderModelRevisions map[string]string
@@ -464,6 +465,7 @@ func (s *Service) loadRuntimeData(ctx context.Context) (*runtimeData, error) {
 func buildRuntimeAuthorization(data *runtimeData, until time.Time) *runtimeAuthorization {
 	auth := &runtimeAuthorization{
 		PersonalGrantSources:   map[string]map[string]string{},
+		TeamGrantSources:       map[string]map[string]string{},
 		CredentialRevisions:    map[string]string{},
 		ProviderModelRevisions: map[string]string{},
 		Quota:                  data.Quota,

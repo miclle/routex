@@ -375,3 +375,16 @@ area regardless of current grants. Retain mounted history through renewed actor
 reads while hiding private rows, and refresh exact candidate detail independently
 of discovery. A captured committed response is historical; current application
 copy comes only from fresh authorized request detail.
+
+Team Model requests extend the existing Model drawer with explicit Personal/Team
+scope, minimal membership-scoped Team selection and shared Team/Model pending
+slots. Own history remains available after membership loss, while current facts
+require fresh independent resource authority. Use `teams.models.write` scoped
+review without owner-only authority or self-review. Approval adds only a missing
+shared Team grant; unchanged canonical grants preserve request provenance and
+ordinary removal/re-addition never revives historical proof. Pending eligibility
+loss cancels requests atomically; approved shared grants survive applicant
+departure. Keep immutable uncertain intents, current/historical status separation,
+local Base UI confirmations and paired `teamModelRequests` translations. The
+minimal review route is `/teams/:resourceId/model-requests`; never fetch a global
+Team/member directory for request workflows.

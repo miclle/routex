@@ -80,6 +80,9 @@ func (s *Service) SetTeamMembers(ctx context.Context, actorID, teamID string, me
 			existing[member.UserID] = member.ID
 			if !desiredActive[member.UserID] {
 				removedUsers = append(removedUsers, member.UserID)
+				if err := CancelTeamModelRequestsForMember(tx, actorID, current.ID, member.UserID, "membership_unavailable"); err != nil {
+					return err
+				}
 				if err := cancelTeamQuotaRequestsForMember(tx, current.ID, member.UserID, "membership_unavailable"); err != nil {
 					return err
 				}
@@ -258,13 +261,8 @@ func (s *Service) SetResourceModels(ctx context.Context, actorID string, kind Re
 			}
 		}
 		if kind == TeamResource {
-			if err := tx.Where("team_id = ?", resourceID).Delete(&entity.TeamModelGrant{}).Error; err != nil {
+			if err := replaceTeamModelGrants(tx, current.ID, modelIDs); err != nil {
 				return err
-			}
-			for _, modelID := range modelIDs {
-				if err := tx.Create(&entity.TeamModelGrant{TeamID: resourceID, ModelID: modelID}).Error; err != nil {
-					return err
-				}
 			}
 		} else {
 			if err := tx.Where("project_id = ?", resourceID).Delete(&entity.ProjectModelGrant{}).Error; err != nil {

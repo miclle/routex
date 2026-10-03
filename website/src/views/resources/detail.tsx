@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useQuery } from '@tanstack/react-query'
 import { Link, useParams, useSearchParams } from 'react-router'
@@ -17,6 +18,7 @@ import { ProjectUsagePanel } from '@/views/usage'
 import ResourceLimits from '@/views/resource-limits'
 import ProjectKeysPanel from '@/views/project-keys'
 import ProjectRequestsPanel from '@/views/project-requests'
+import TeamModelHistory from '@/views/team-model-requests/team-history'
 import { ResourceSection } from './shared'
 import { ResourcePeople } from './people'
 import { ResourceModels } from './models'
@@ -33,6 +35,9 @@ export default function ResourceDetailPage({
   const { t } = useTranslation('resources')
   const { resourceId = '' } = useParams()
   const session = useSession()
+  const [params] = useSearchParams()
+  const [modelHistoryMounted, setModelHistoryMounted] = useState(params.get('tab') === 'models')
+  if (params.get('tab') === 'models' && !modelHistoryMounted) setModelHistoryMounted(true)
   const actor = session.isError ? '' : (session.data?.user.id ?? '')
   const resource = useQuery({
     queryKey: ['resources', kind, admin, resourceId, actor],
@@ -45,17 +50,46 @@ export default function ResourceDetailPage({
     refetchOnWindowFocus: false,
     refetchOnReconnect: false,
   })
-  if (!actor || !resource.data || !resource.isSuccess || resource.isFetching)
-    return (
-      <Page title={t('details', { kind: t(kind === 'teams' ? 'team' : 'project') })} description="">
-        <QueryState
-          pending={resource.isPending || resource.isFetching}
-          error={resource.error}
-          retry={() => void resource.refetch()}
-        />
-      </Page>
-    )
-  return <ResourceDetail key={`${actor}:${resourceId}`} kind={kind} resource={resource.data} />
+  const teamAccess = useTeamAccess(
+    resourceId,
+    kind === 'teams' &&
+      !!resource.data &&
+      !resource.data.resource_limit_workspace_only &&
+      resource.data.status === 'active',
+  )
+  const fresh = !!actor && !!resource.data && resource.isSuccess && !resource.isFetching
+  return (
+    <>
+      {fresh ? (
+        <ResourceDetail key={`${actor}:${resourceId}`} kind={kind} resource={resource.data!} />
+      ) : (
+        <Page
+          title={t('details', { kind: t(kind === 'teams' ? 'team' : 'project') })}
+          description=""
+        >
+          <QueryState
+            pending={resource.isPending || resource.isFetching}
+            error={resource.error}
+            retry={() => void resource.refetch()}
+          />
+        </Page>
+      )}
+      {kind === 'teams' &&
+        modelHistoryMounted &&
+        resource.data?.resource_limit_workspace_only !== true && (
+          <TeamModelHistory
+            key={`history:${actor}:${resourceId}`}
+            team={resourceId}
+            reviewer={
+              teamAccess.current?.actor_team_actions.includes('teams.models.write') === true
+            }
+            visible={
+              fresh && params.get('tab') === 'models' && !session.isFetching && !session.isError
+            }
+          />
+        )}
+    </>
+  )
 }
 function ResourceDetail({ kind, resource }: { kind: ResourceKind; resource: ResourceRecord }) {
   const { t, i18n } = useTranslation('resources')

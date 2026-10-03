@@ -586,7 +586,9 @@ describe('native protocol catalog', () => {
       ),
     )
     await act(async () => {
-      const select = document.querySelector<HTMLSelectElement>('[role="dialog"] select')!
+      const select = document.querySelector<HTMLSelectElement>(
+        '[role="dialog"] select[aria-label="Protocol type"]',
+      )!
       select.value = 'openai_responses'
       select.dispatchEvent(new Event('change', { bubbles: true }))
     })
@@ -615,7 +617,7 @@ describe('native protocol catalog', () => {
     await until(() =>
       expect(document.querySelector('[role="dialog"] pre')?.textContent).toContain('/v1/responses'),
     )
-    expect(document.querySelector('[role="dialog"] select')).toBeNull()
+    expect(document.querySelector('[role="dialog"] select[aria-label="Protocol type"]')).toBeNull()
     expect(document.querySelector('[role="dialog"]')!.textContent).not.toContain('OpenAI Chat')
   })
 })
@@ -646,7 +648,7 @@ it('uses native Messages authentication and parameters for a Messages-only model
   expect(example).not.toContain('Authorization:')
   expect(example).not.toContain('/chat/completions')
   expect(example).not.toContain('/responses')
-  expect(document.querySelector('[role="dialog"] select')).toBeNull()
+  expect(document.querySelector('[role="dialog"] select[aria-label="Protocol type"]')).toBeNull()
   expect(document.querySelector('[role="dialog"]')!.textContent).toContain('Anthropic Messages')
 })
 

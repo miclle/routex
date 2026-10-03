@@ -285,3 +285,12 @@ keys. Legacy grants keep null provenance and unchanged timestamps. Column, guard
 index and permission repair tolerate partial DDL without altering released
 V1–V42. Real dual-database migration and complete race acceptance passed; see
 [the request contract](PERSONAL_MODEL_REQUESTS.md).
+
+## Version 44: shared Team Model requests
+
+Frozen GORM V44 adds Team request history and Team/Model pending uniqueness,
+plus nullable shared-grant provenance. Its terminal receipts survive membership
+loss; no evolving entities define the historical migration. Unique intents,
+receipt/status constraints, concurrent/repeat startup and partial-DDL recovery
+are covered by real-driver fixtures under acceptance. See
+[Team Model requests](TEAM_MODEL_REQUESTS.md).

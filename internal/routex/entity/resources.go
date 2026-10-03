@@ -26,8 +26,9 @@ type TeamMembership struct {
 	Status string `gorm:"size:20;not null"`
 }
 type TeamModelGrant struct {
-	TeamID  string `gorm:"primaryKey;size:30"`
-	ModelID string `gorm:"primaryKey;size:30"`
+	SourceRequestID *string `gorm:"column:source_request_id;size:30;check:ck_team_model_grant_source,source_request_id IS NULL OR (CHAR_LENGTH(source_request_id) >= 1 AND CHAR_LENGTH(source_request_id) <= 30)"`
+	TeamID          string  `gorm:"primaryKey;size:30"`
+	ModelID         string  `gorm:"primaryKey;size:30"`
 }
 type Project struct {
 	ID          string `gorm:"primaryKey;size:30"`

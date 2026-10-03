@@ -119,3 +119,11 @@ grant replacement retains the Project tombstone: native authentication returns
 model; removed grants remain unavailable and immutable call history remains intact.
 This package adds no migration, endpoint or dependency. Initial multi-manager
 creation and the complete Project overview remain separate unfinished scope.
+
+## Shared Team Model requests
+
+[Team Model requests](TEAM_MODEL_REQUESTS.md) preserve exact membership-bound
+submission, independent scoped review and immutable history. Pending requests
+change no access; approval affects only shared Team grants. Full Model-list
+updates retain unchanged canonical grant provenance, while removal/re-addition
+does not revive the original receipt's application proof.

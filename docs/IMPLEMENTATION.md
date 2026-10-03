@@ -169,7 +169,7 @@ The binary capability count is 10 completed, 17 partially completed, and 3 not s
 | F16 | Platform currency, exchange rates, and historical price snapshots | Completed | Decimal-string currency/rate management, exact quoting, and immutable per-call assessment are implemented. |
 | F17 | User and Team defaults, overrides, budgets, alerts, and stop policy | Partially completed | Personal, Project, Key and Team aggregate/member enforcement plus budget/token/TPM controls, authoritative quota snapshots, and installation-calendar configuration exist; current-policy Personal/Project monthly settled-exhaustion inboxes have focused acceptance, and creation-default settings and explicit restores have complete local acceptance; templates, broader alerts, and configurable stop-calling policy remain open. |
 | F18 | Quota, model, and request-limit approvals | Completed | Project model/monthly quota/RPM/TPM/concurrency and Team monthly Token/money requests have controlled acceptance: owner-first assignment, escalation, independent dimensions, read-only platform records, atomic final policies and immutable receipts with current application. Distributed acknowledgements belong to F30; release-wide acceptance remains separate. |
-| F19 | Member overview, model sources, requests, and examples | Partially completed | Actor-scoped Personal/Team source attribution, native metadata, filters, details and examples are available; Project requests and text-only native Chat Team Sessions exist; Personal single-Model requests and independent scoped review are available; Team model requests, further Team protocols and broader price/usage facts remain open. |
+| F19 | Member overview, model sources, requests, and examples | Partially completed | Actor-scoped Personal/Team source attribution, native metadata, filters, details and examples are available; Project requests and text-only native Chat Team Sessions exist; Personal single-Model requests and independent scoped review are available; Shared Team model requests and independently scoped review are available; further Team protocols and broader price/usage facts remain open. |
 | F20 | Playground, comparison, attachments, and code examples | Partially completed | Four native conversation paths, two-to-four-lane comparison, cancellation, executable examples, per-protocol image/PDF discovery, user/Project attachment resolution, single/comparison attachment lifecycle interfaces, and conservative token/TPM/money admission with exact per-occurrence media prices exist; external acceptance remains open. |
 | F21 | Personal, Project, and platform call records and CSV | Completed | Isolated list/detail queries, incremental loading, redacted drawers, bounded server-side CSV export, filter parity, formula protection, and bilingual download actions are implemented with dual-database evidence. |
 | F22 | Usage trends, amounts, and multidimensional filters | Partially completed | Personal, Team, Project and platform usage interfaces plus immutable Provider attribution exist. Current-member Team aggregation, independent historical platform filters, revocation-safe interfaces and controlled replay/restart are accepted; complete freshness/capacity acceptance remains open. |
@@ -2047,3 +2047,43 @@ GolangCI-Lint 37138830247 succeeded. F19 remains partial for Team requests,
 further Team protocols and broader overview/price/usage facts. Three owners are
 implementing Team schema/acceptance, API and interface work separately. Capability
 totals remain 10 complete, 17 partial and 3 unstarted; the full goal remains active.
+
+### F19 shared Team Model requests: verified delivery, 2026-10-04
+
+The preceding Personal package is committed and pushed as `4dffc88`; exact
+CI 37143100600, Actionlint 37143100595 and GolangCI-Lint 37143100576 succeeded.
+
+[Team Model requests](TEAM_MODEL_REQUESTS.md) add explicit exact membership,
+shared pending uniqueness, independently scoped `teams.models.write`, no
+self-review and immutable receipts. Pending eligibility loss cancels requests;
+approved shared grants survive applicant departure. Unchanged canonical grant
+replacements retain provenance; ordinary removal/re-addition does not restore
+original application proof. The existing catalogue drawer/history and Team Models
+composition use paired English/Chinese copy and fresh resource authority.
+
+The first actual focus passed five accompanying fixtures on both drivers but
+failed Team creation reconciliation after membership loss (398.02 seconds).
+Exact enabled-actor intent reconciliation now precedes current membership checks;
+fresh requests still require membership. The repaired Team migration/lifecycle
+focus passed both drivers under race detection (Handler 283.375 seconds).
+An initial full frontend run found two legacy catalogue assertions that confused
+the new request-scope selector with the protocol selector. Accessible protocol
+labels and semantic assertions correct this; the failed run is not delivery proof.
+
+Final formatting, mandatory check and full test passed: 1121 Vitest cases in
+77 files, Go race/unit, development lifecycle and production embedded assets.
+The complete PostgreSQL/MySQL matrix passed (Handler 951.498 seconds; Service
+5.827 seconds), including frozen V44 creation, upgrade, repeat/concurrent startup,
+constraints, preserved rows and governing lifecycle changes. Both real-process
+authentication/native lifecycles passed.
+
+Controlled production browser/native/restart proof passed pending no-grant,
+independent review without global directories, shared member native completion,
+unchanged old Personal Key ceilings, applicant departure with retained own history
+and unavailable current facts, peer grant survival, revocation and exact historical
+retry without restoration. Restart preserved Sessions, receipts and revocation.
+English/Chinese passed with English restored and no console errors. Only owned
+tabs, processes and Compose resources were removed. No external-provider or
+whole-F19 acceptance is claimed. Totals remain 10 complete, 17 partial and 3
+unstarted. The full goal remains active; further Team protocols are the next
+bounded package, followed by remaining overview/price/usage facts.

@@ -210,6 +210,9 @@ func (s *Service) UpdateMember(ctx context.Context, actorID, userID string, disa
 			return err
 		}
 		if nextDisabled {
+			if err := CancelTeamModelRequestsForUser(tx, actorID, canonicalUserID, "applicant_unavailable"); err != nil {
+				return err
+			}
 			if err := CancelPersonalModelRequestsForUser(tx, actorID, canonicalUserID, "applicant_unavailable"); err != nil {
 				return err
 			}

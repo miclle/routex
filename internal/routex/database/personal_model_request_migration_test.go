@@ -83,7 +83,7 @@ func TestFrozenPersonalModelRequestSchema(t *testing.T) {
 	}
 	for _, dialect := range []string{"postgres", "mysql"} {
 		steps := migrationSteps(dialect)
-		if len(steps) != 43 || reflect.ValueOf(steps[42]).Pointer() != reflect.ValueOf(personalModelRequestMigration).Pointer() ||
+		if len(steps) < 43 || reflect.ValueOf(steps[42]).Pointer() != reflect.ValueOf(personalModelRequestMigration).Pointer() ||
 			reflect.ValueOf(steps[41]).Pointer() != reflect.ValueOf(defaultLimitMigration).Pointer() {
 			t.Fatal("V43 must append without replacing released defaults", dialect)
 		}

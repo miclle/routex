@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Table } from '@/components/ui/table'
 import { Dialog } from '@/components/ui/dialog'
-import RequestPanel from '@/views/personal-model-requests/requests'
+import ModelRequestHistory from '@/views/team-model-requests/history'
 import { useSession } from '@/hooks/use-auth'
 import { protocolLabel, protocolLabels } from '@/lib/protocols'
 import type { ModelCatalogRecord, ModelInputCapability } from '@/types/model-catalog'
@@ -44,6 +44,7 @@ export default function ModelsPage() {
   const [capability, setCapability] = useState<'all' | ModelInputCapability>('all')
   const [view, setView] = useState('card')
   const [history, setHistory] = useState(false)
+  const [historyBusy, setHistoryBusy] = useState(false)
   const [selectedID, setSelectedID] = useState<string | null>(null)
   const requesting = source === 'requestable'
   const candidates = useInfiniteQuery({
@@ -379,11 +380,17 @@ export default function ModelsPage() {
       {actorID && history && (
         <Dialog
           open
+          busy={historyBusy}
           onOpenChange={setHistory}
           title={t('personalModelRequests:ownHistory')}
           description={t('personalModelRequests:sourceHelp')}
         >
-          <RequestPanel key={actorID} visible={!session.isFetching && !session.isError} />
+          <ModelRequestHistory
+            onBusy={setHistoryBusy}
+            key={actorID}
+            actor={actorID}
+            visible={!session.isFetching && !session.isError}
+          />
         </Dialog>
       )}
       {actorID && selectedID && (

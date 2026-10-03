@@ -1,9 +1,9 @@
 # Current Work Handoff
 
-- **Status:** implementation active; F07 initial managers/Overview pushed at 5006126 with exact green remote checks; F19 Personal Model requests are under final acceptance
+- **Status:** implementation active; F19 Personal requests pushed with green checks; shared Team requests passed final local acceptance and are ready for phased delivery
 - **Updated:** 2026-10-04
 - **Repository / branch:** RouteX / `main`
-- **Previous checked source baseline:** `5006126855e847dd88b6901bafbfbb00ee809158`, pushed and read back from `origin/main`
+- **Previous checked source baseline:** `4dffc88ab7e1c56ba8c6e120aa3c1c2df55662d8`, pushed and read back from `origin/main`
 - **Current owner:** coordinator owns F19 integration, final acceptance and delivery; three scoped owners maintain its isolated source
 - **Next owner:** current task continues the resumed goal
 - **Transport:** identify this checked delivery with `git log -1 -- docs/current-work-handoff.md` and independently verify its upstream
@@ -1177,38 +1177,43 @@ must survive later integration.
 
 ## Active F19 continuation, 2026-10-04
 
-The Personal Model request phase is verified and ready for its scoped main commit
-and push. V43 history/pending uniqueness/provenance, independent
-`members.models.write`, additions-only approval and immutable receipts are
-integrated. Existing Key ceilings do not expand. Shared routes preserve preceding
-Project creation/Overview, and the internal lifecycle compatibility repair accepts
-exact safe persisted User IDs without relaxing public request authorization.
+Personal requests are pushed as `4dffc88` with matching local/origin SHA and exact
+green CI 37143100600, Actionlint 37143100595 and GolangCI-Lint 37143100576.
+Shared Team requests are integrated narrowly on main and passed final local
+acceptance. This delivery contains frozen GORM V44, independently scoped review,
+immutable creation/decision receipts, original shared-grant provenance, same-
+transaction pending cancellation and the existing drawer/history/Team Models UI.
+Approved grants survive applicant departure; historical retries never recreate
+revoked grants. Unchanged canonical grant replacements preserve source identity.
 
-Final check/full test passed 1089 Vitest cases in 75 files, Go race, development
-lifecycle and production embedding. The five affected actual fixtures passed on
-both databases (363.965 seconds). Complete PostgreSQL/MySQL regression passed
-(Handler 834.672 seconds; Service 6.110 seconds); both real-process/native
-lifecycles passed. Controlled production browser/native/restart proof passed
-pending no-access, independent reviewer, old-Key ceiling, new-Key completion,
-revocation, original retry without restoration, stable history and superseded
-status. English/Chinese passed with English restored; no console errors remained.
-Owned resources were removed. The earlier failed 815.437-second matrix is recorded
-in the implementation index and is not treated as a successful run.
+Final format/check/full test passed (1121 Vitest cases in 77 files, Go race,
+development lifecycle and production embedding). Repaired actual Team focus
+passed both drivers (283.375 seconds); complete PostgreSQL/MySQL regression passed
+(Handler 951.498 seconds; Service 5.827 seconds). Both authentication/native process
+lifecycles passed. Production browser/native/restart proof passed pending no-
+access, independent reviewer, shared native completion, old Personal Key denial,
+applicant departure/history/current unknown, peer grant survival, revocation and
+original receipt replay without restoration. English/Chinese passed with English
+restored; no console errors. Owned QA process/tab/Compose resources were cleaned.
+Earlier failed focused and frontend runs are recorded in IMPLEMENTATION.md and
+are not successful evidence.
 
-Continue the already-partial F19 Team Model request package in the existing
-isolated managed worktree. Separate owners hold frozen V44/entities/acceptance,
-service/API and interface/tests. The coordinating task owns runtime provenance,
-typed audit projection, lifecycle hooks, retained Team grant sources and shared
-registration. One pending Team/Model slot is shared across applicants; capture the
-exact original membership, use independent `teams.models.write`, prohibit
-self-review and owner-only escalation, and retain own immutable history after
-membership loss. Approval changes only shared Team grants. An approved grant
-survives applicant departure; pending requests cancel on loss of eligibility.
-Existing grant replacements must retain unchanged canonical source records.
+The next bounded package extends text-only Team Session invocation to native
+Responses, Messages and Gemini while retaining Chat. Three parallel owners froze
+backend, interface and acceptance sources in the managed team-native-protocols
+worktree. That worktree starts from the Personal commit and must first receive
+the current Team request baseline with narrow merges in handler registration and
+the integration harness. No next-package source belongs in the Team request
+commit. Preserve session/CSRF authentication, protocol-owned native finality,
+exact current membership, atomic aggregate/member admission, transient text
+history and zero Personal/Project attachment access. Team comparison/media/code
+export remain outside this bounded protocol package.
 
-Integrate only the Team-owned manifest and narrow shared deltas after Personal
-commit, preserving every preceding route, migration and UI fix. Run focused tests,
-full check/test, real dual-database migration/lifecycle, auth restart and controlled
-bilingual browser/native proof before a separate main commit/push. Continue the
-full active goal afterward. F19 further Team protocols and broader member
-facts remain open. Preserve protected worktrees and unrelated dotfiles changes.
+First action after Team delivery: integrate the committed Team request manifest
+into the native worktree, preserve its three native routes/middleware/fixture,
+finish actual focused protocol acceptance and source-protocol links, then run full
+check/test, both databases, process restart and bilingual controlled browser proof.
+Commit/push each checked phase to main and verify exact remote checks. Next assess
+F07 initial resource configuration/creation requests; no F07 implementation is
+included here. Full totals stay 10 complete, 17 partial and 3 unstarted; the full
+goal remains active. Preserve protected worktrees and unrelated dotfiles changes.
