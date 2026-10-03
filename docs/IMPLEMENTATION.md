@@ -1,6 +1,6 @@
 # RouteX Implementation and Acceptance Index
 
-Updated: 2026-10-02. This document records engineering contracts, work packages, and acceptance checks. Interfaces, tables, pages, and metrics marked as planned are not necessarily implemented; delivery evidence appears at the end. The active goal covers all F01–F30 capabilities and A01–A20 acceptance cases; completed stages do not end implementation. The full product is delivered incrementally through P0–P6.
+Updated: 2026-10-03. This document records engineering contracts, work packages, and acceptance checks. Interfaces, tables, pages, and metrics marked as planned are not necessarily implemented; delivery evidence appears at the end. The active goal covers all F01–F30 capabilities and A01–A20 acceptance cases; completed stages do not end implementation. The full product is delivered incrementally through P0–P6.
 
 ## Scope and Decisions
 
@@ -147,7 +147,7 @@ Status terms in this section are deliberately strict:
 - **Partially completed** means material implementation exists, but one or more required behaviors or acceptance gates remain open. It does not mean that work has not started.
 - **Not started** means no material implementation of the capability exists. A prerequisite or design note may still be present.
 
-The binary capability count is 8 completed, 19 partially completed, and 3 not started. This is a completion count, not an effort percentage: several partially completed capabilities contain substantial delivered work. The user resumed implementation on 2026-10-02 and prioritized partially completed capabilities. Status changes require current implementation and acceptance evidence; a package delivery alone does not complete an entire capability.
+The binary capability count is 9 completed, 18 partially completed, and 3 not started. This is a completion count, not an effort percentage: several partially completed capabilities contain substantial delivered work. The user resumed implementation on 2026-10-02 and prioritized partially completed capabilities. Status changes require current implementation and acceptance evidence; a package delivery alone does not complete an entire capability.
 
 | ID | Capability | Status | Delivered and remaining scope |
 |---|---|---|---|
@@ -168,8 +168,8 @@ The binary capability count is 8 completed, 19 partially completed, and 3 not st
 | F15 | Prices, spreadsheet/CSV workflows, API, and repository sync | Partially completed | Current prices, ETags, CSV/XLS/XLSX import, preview, commit, and export exist; external price-repository synchronization is not implemented. |
 | F16 | Platform currency, exchange rates, and historical price snapshots | Completed | Decimal-string currency/rate management, exact quoting, and immutable per-call assessment are implemented. |
 | F17 | User and Team defaults, overrides, budgets, alerts, and stop policy | Partially completed | Personal, Project, Key and Team aggregate/member enforcement plus budget/token/TPM controls, authoritative quota snapshots, and installation-calendar configuration exist; current-policy Personal/Project monthly settled-exhaustion inboxes have focused acceptance, while Team defaults, templates, broader alerts, and configurable stop-calling policy remain open. |
-| F18 | Quota, model, and request-limit approvals | Partially completed | Project model, finite monthly quota and RPM/TPM/concurrency requests have controlled acceptance, including independent review, current runtime application and superseded receipt replay; Team approval, escalation and global request workspaces remain open. |
-| F19 | Member overview, model sources, requests, and examples | Partially completed | Actor-scoped Personal/Team source attribution, native metadata, filters, details and examples are available; Project requests exist, while Personal/Team requests, Team invocation and broader price/usage facts remain open. |
+| F18 | Quota, model, and request-limit approvals | Completed | Project model/monthly quota/RPM/TPM/concurrency and Team monthly Token/money requests have controlled acceptance: owner-first assignment, escalation, independent dimensions, read-only platform records, atomic final policies and immutable receipts with current application. Distributed acknowledgements belong to F30; release-wide acceptance remains separate. |
+| F19 | Member overview, model sources, requests, and examples | Partially completed | Actor-scoped Personal/Team source attribution, native metadata, filters, details and examples are available; Project requests and text-only native Chat Team Sessions exist; Personal/Team model-request coverage, further Team protocols and broader price/usage facts remain open. |
 | F20 | Playground, comparison, attachments, and code examples | Partially completed | Four native conversation paths, two-to-four-lane comparison, cancellation, executable examples, per-protocol image/PDF discovery, user/Project attachment resolution, single/comparison attachment lifecycle interfaces, and conservative token/TPM/money admission with exact per-occurrence media prices exist; external acceptance remains open. |
 | F21 | Personal, Project, and platform call records and CSV | Completed | Isolated list/detail queries, incremental loading, redacted drawers, bounded server-side CSV export, filter parity, formula protection, and bilingual download actions are implemented with dual-database evidence. |
 | F22 | Usage trends, amounts, and multidimensional filters | Partially completed | Personal, Project, and platform usage interfaces plus immutable Provider attribution exist; Team attribution and complete freshness/capacity acceptance remain open. |
@@ -184,7 +184,7 @@ The binary capability count is 8 completed, 19 partially completed, and 3 not st
 
 ### Acceptance-case status
 
-Only A01 is fully accepted across its defined scope. Every other case remains incomplete even when a delivered work package provides useful controlled evidence; final acceptance must cover the complete objects, integrations, and failure boundaries named by that case.
+A01 and A13 are fully accepted across their defined controlled scope. Other cases remain incomplete even when a delivered work package provides useful controlled evidence; final acceptance must cover the complete objects, integrations, and failure boundaries named by that case.
 
 | ID | Acceptance case | Status | Current boundary |
 |---|---|---|---|
@@ -200,7 +200,7 @@ Only A01 is fully accepted across its defined scope. Every other case remains in
 | A10 | In-flight price changes and historical reporting | Partially completed | Immutable assessments exist; final reporting and release acceptance remain open. |
 | A11 | Concurrent quota, TPM, RPM, and concurrency contention | Partially completed | Single-process controlled enforcement exists; distributed and capacity bounds remain open. |
 | A12 | IPv4, IPv6, CIDR, and forged forwarding headers | Partially completed | Controlled source-address enforcement exists; production proxy-topology acceptance remains open. |
-| A13 | Self, repeated, concurrent approval and Team overflow | Partially completed | Controlled Project model/monthly approval permissions, first-terminal decisions and durable replay are covered; Team overflow, assignment and escalation remain open. |
+| A13 | Self, repeated, concurrent approval and Team overflow | Completed | Real PostgreSQL/MySQL controlled tests reject self/duplicate/stale decisions, serialize owner approve/approve and approve/reject competitors, retain one winner and audit, atomically raise Team/member caps, roll back exact audit failure, and preserve receipts/current use through restart. This is controlled single-process acceptance. |
 | A14 | Control Plane, Vault, analytics failure, invalid snapshots, and replay | Partially completed | Runtime and durable replay foundations exist; Vault and the complete failure matrix remain open. |
 | A15 | SSO, OAuth, LDAP, MFA, and recovery | Partially completed | MFA is implemented; enterprise identity is not. |
 | A16 | Vault compensation, rotation, and cleanup failure | Not started | Vault integration is not implemented. |
@@ -221,7 +221,7 @@ Only A01 is fully accepted across its defined scope. Every other case remains in
 | P1-03 Personal Keys | Delivered (`3cd5305`); controlled local acceptance passed | One-time pending delivery, confirmation, digest storage, concurrent rotation, ownership, revocation and audit; PostgreSQL/MySQL integration passed |
 | P1-04/05 | In progress | Native OpenAI chat ordinary/SSE, Key Playground, isolated personal/admin call queries and request facts have controlled dual-database evidence; immutable snapshots and bounded durable events have controlled failure/restart evidence; measured capacity and real-provider acceptance remain open |
 | P2 | In progress | Profile/password/session APIs and UI delivered; member/role/registration interfaces and Team/Project backend delivered; Project Keys, offboarding, and resource interfaces advance in separate verified packages |
-| P3 | In progress | Current token and image/PDF occurrence prices, FX, immutable call assessments, atomic CSV/XLS/XLSX imports, CSV exports, and single-process Personal/Project/Key and Team aggregate/member token and monetary quota admission are implemented; templates, Team approvals, broader alerts, distributed enforcement, additional billing dimensions, and synchronization remain open |
+| P3 | In progress | Current token and image/PDF occurrence prices, FX, immutable call assessments, atomic CSV/XLS/XLSX imports, CSV exports, and single-process Personal/Project/Key and Team aggregate/member token and monetary quota admission are implemented; templates, broader alerts, distributed enforcement, additional billing dimensions, and synchronization remain open |
 | P4–P6 | In progress | Four native inference protocols, conservative image/PDF capability discovery, user/Project attachment resolution, single/comparison attachment interfaces, attested token/TPM/money reservation with exact media occurrence settlement, SMTP configuration/test and durable operational delivery, object-storage administration/owned-attachment backend, and authoritative process/system-job operations are implemented; provider-specific media pricing, broader alert policy, remaining enterprise integrations, and final acceptance remain open |
 
 Verification in this iteration:
@@ -1760,3 +1760,56 @@ nullability, money-pointer aliasing and exact monetary denomination proof. The
 frontend late-response regression avoids racing timer-based GC. F06 remains partial
 for Team-assigned roles/scoped permission union; F17 defaults and F18 owner/platform
 request stages remain open. Capability and full-acceptance totals are unchanged.
+
+
+### Monthly Team member quota requests
+
+Three owners delivered dedicated request/step/pending-slot persistence, scoped
+owner-first/platform escalation service APIs, and the approved own/pending workspace
+plus read-only platform records. Frozen V40 must preserve historical requests and
+released V1–V39. Independent `teams.quota_requests.read_all` gates global records;
+current owner identity authorizes only nonself workflow decisions, while platform
+Token/money decisions use their respective dimension permission.
+
+Immutable submission and step receipts, current authority, atomic aggregate/member
+application and current publication proof remain distinct. Fresh actions and server
+effect previews require matching request/step stages and contiguous history; known
+receipt reconciliation retains its earlier position. The confirmation dialog renders
+server-owned before/after values, and global records expose a workspace link only
+for a current assigned reviewer. F18 and A13 now have complete controlled evidence
+for their defined scope. Full product, distributed-node and release acceptance
+remain open.
+
+
+Monthly Team request source is checked with 922 Vitest cases in 65 files, Go
+race/unit, Node, dev lifecycle and production assets. The full actual PostgreSQL/
+MySQL race matrix passed (Handler 704.846 seconds; Service 6.084 seconds), and
+both real-database process suites passed restart, persisted Session/revocation
+and controlled ordinary/streaming inference. V40 migration prefixes, request
+permissions, exact money, ordered steps, lifecycle ABA cancellation, offboarding,
+malformed-stage denial and immutable receipts are included. The controlled native
+fixture verifies unchanged owner escalation, concurrent owners, atomic rollback
+after final audit failure, final 15/15 admission, superseded replay and same-journal
+restart without Personal debit.
+
+The actual bilingual browser creates target 15 from member 5/Team 10, confirms
+unchanged owner escalation and explicit final 15/15 effects, and observes approved
+current application. Three five-Token native calls succeed; the fourth stops before
+upstream dispatch. An independent restarted production binary preserves the same
+receipts, caps and used 15. Terminal platform records are read-only with no workspace
+shortcut. Owned tabs/processes/Compose/config/journal are removed and developer
+services are untouched. Six legacy-route cases preserve auth/destination gates.
+No external provider, distributed acknowledgement, load or full release acceptance
+is claimed. The next assessed partial capability is F06 Team-assigned roles, exact
+Team-only action union, role workspace and current scoped candidate authorization.
+
+
+The final added approve/reject competition passed on real PostgreSQL and MySQL
+(native fixtures 5.92/5.94 seconds; complete focused runner 208.460 seconds). One
+current owner wins, the other receives 409, and the request/step/slot, exact actor/
+decision receipt and one audit follow that winner. Either rejection or escalation
+leaves aggregate 25/member 20 and used 20 unchanged; rejected native calls cannot
+dispatch. No production code changed after the full matrix. Required check/test
+passed again for the final test fixture with 922 frontend cases. F18 moves to
+Completed and A13 to Completed; capability totals are 9/18/3. A01 and A13 are fully
+accepted in their stated controlled scope; other acceptance cases remain open.

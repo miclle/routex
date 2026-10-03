@@ -207,6 +207,16 @@ func applyOffboarding(tx *gorm.DB, actorID string, inventory *OffboardingInvento
 	if err := tx.Model(&entity.User{}).Where("id = ?", inventory.UserID).Updates(map[string]any{"disabled": true, "offboarded_at": time.Now().UTC(), "role": entity.RoleMember}).Error; err != nil {
 		return nil, err
 	}
+	if err := cancelTeamQuotaRequestsForUser(tx, inventory.UserID, "applicant_offboarded"); err != nil {
+		return nil, err
+	}
+	// The removed relationships still identify Teams whose pending owner stage
+	// needs current eligibility review after responsibility handover.
+	for _, membership := range inventory.memberships {
+		if err := reconcileTeamQuotaRequestOwners(tx, membership.TeamID); err != nil {
+			return nil, err
+		}
+	}
 	if inventory.userRole != entity.RoleMember {
 		if err := appendAudit(tx, actorID, "member.role.remove", "user", inventory.UserID); err != nil {
 			return nil, err

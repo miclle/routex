@@ -260,3 +260,17 @@ and code export with localized explanations. Source/Team/model/actor changes and
 unmount abort and clear sensitive state; late callbacks must check the current
 actor/Team/generation. Team Calls uses current-member own-actor endpoints and
 separate actor/Team cache keys, with cached rows/details hidden on refresh failure.
+
+
+Team monthly quota requests use `views/team-requests`, `/quota-requests` and the
+read-only `/admin/quota-requests` workspace. Preserve owner-first review, independent
+Token/money platform stages, no self-approval, exact string targets and server-owned
+current actions. Bind immutable creation/decision UUIDs to the reviewed context and
+exact step; replaying an owner decision never approves a later platform stage. Keep
+uncertain intent through rejected retries, explicitly review conflicts, and display
+saved approval separately from current runtime application. Use local Base UI
+dialogs/drawers and paired `teamRequests` translations. Approval confirmation must
+render the server-issued stage effect preview and require the same reviewed ETag;
+owner escalation explicitly changes no quota. Global records expose a workspace
+link only when the server confirms a current assigned reviewer. Never fetch a global Team
+directory for the personal workspace or enable mutations in global records.

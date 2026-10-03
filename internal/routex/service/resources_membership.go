@@ -74,6 +74,9 @@ func (s *Service) SetTeamMembers(ctx context.Context, actorID, teamID string, me
 			existing[member.UserID] = member.ID
 			if !desiredActive[member.UserID] {
 				removedUsers = append(removedUsers, member.UserID)
+				if err := cancelTeamQuotaRequestsForMember(tx, current.ID, member.UserID, "membership_unavailable"); err != nil {
+					return err
+				}
 			}
 		}
 		if err := tx.Where("team_id = ?", teamID).Delete(&entity.TeamMembership{}).Error; err != nil {
@@ -90,6 +93,9 @@ func (s *Service) SetTeamMembers(ctx context.Context, actorID, teamID string, me
 			if err := tx.Create(&entity.TeamMembership{ID: relationID, TeamID: teamID, UserID: member.UserID, Role: member.Role, Status: member.Status}).Error; err != nil {
 				return err
 			}
+		}
+		if err := reconcileTeamQuotaRequestOwners(tx, current.ID); err != nil {
+			return err
 		}
 		if err := appendAudit(tx, actorID, "team.members.replace", "teams", teamID); err != nil {
 			return err

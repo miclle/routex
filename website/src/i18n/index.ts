@@ -1,3 +1,5 @@
+import enTeamRequests from './locales/en/teamRequests'
+import zhTeamRequests from './locales/zh/teamRequests'
 import enEgress from './locales/en/egress'
 import zhEgress from './locales/zh/egress'
 import enStorage from './locales/en/storage'
@@ -100,6 +102,7 @@ void i18n.use(initReactI18next).init({
       resources: enResources,
       projectKeys: enProjectKeys,
       projectRequests: enProjectRequests,
+      teamRequests: enTeamRequests,
       offboarding: enOffboarding,
       catalog: enCatalog,
       activity: enActivity,
@@ -125,6 +128,7 @@ void i18n.use(initReactI18next).init({
       resources: zhResources,
       projectKeys: zhProjectKeys,
       projectRequests: zhProjectRequests,
+      teamRequests: zhTeamRequests,
       offboarding: zhOffboarding,
       catalog: zhCatalog,
       activity: zhActivity,

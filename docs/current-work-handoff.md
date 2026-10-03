@@ -1,10 +1,10 @@
 # Current Work Handoff
 
-- **Status:** implementation active; F08 Key proof hardening pushed; F11 readiness pushed; receipt-backed retirement pushed; member model availability correction pushed; source directory pushed; monthly quota exhaustion inbox checked and pushed; Project monthly quota requests pushed; Project request-rate approval pushed; Team Session foundation pushed; finite Team policies checked
-- **Updated:** 2026-10-02T22:47:00+08:00
+- **Status:** implementation active; F08 Key proof hardening pushed; F11 readiness pushed; receipt-backed retirement pushed; member model availability correction pushed; source directory pushed; monthly quota exhaustion inbox checked and pushed; Project monthly quota requests pushed; Project request-rate approval pushed; Team Session foundation pushed; finite Team policies pushed; monthly Team requests checked; F18/A13 controlled scope accepted
+- **Updated:** 2026-10-03
 - **Repository / branch:** RouteX / `main`
-- **Previous checked source baseline:** `24fec89ec34adede7d99cb6087af0b748f596d4f`, pushed and read back from `origin/main`
-- **Current owner:** coordinating task; three independent owners completed Team policy API, native finite admission and UI; coordinator owns migration/harness, docs, actual acceptance and delivery
+- **Previous checked source baseline:** `e25d8a9023c555a15d9842bfee50c2c2ab32076c`, pushed and read back from `origin/main`
+- **Current owner:** Team-request source is checked and ready for phased main delivery; the next parallel package is F06 Team roles
 - **Next owner:** current task continues the resumed goal
 - **Transport:** identify this checked delivery with `git log -1 -- docs/current-work-handoff.md` and independently verify its upstream
 - **Coordination plan:** `~/dotfiles/projects/routex/implementation-plan.md`; synchronize separately and preserve unrelated changes
@@ -168,10 +168,10 @@ preserving a predecessor that was subsequently enabled.
 
 ## Overall status and other partial work
 
-`docs/IMPLEMENTATION.md` remains the authoritative inventory: **8 completed, 19
+`docs/IMPLEMENTATION.md` remains the authoritative inventory: **9 completed, 18
 partially completed, 3 not started**. This counts completed capabilities, not effort.
-A01 is fully accepted; A02–A15 and A17–A20 have partial evidence. A13 includes
-Project approvals; its Team overflow boundary remains open. A16 is not started.
+A01 and A13 have complete controlled acceptance. A02–A12, A14–A15 and A17–A20
+have partial evidence; A16 is not started.
 
 Delivered foundations include local identity/MFA, durable sessions and Keys,
 governance and Team/Project management, four native protocols and bounded
@@ -183,18 +183,17 @@ quality notifications, resource quota interfaces, capacity attestation, installa
 calendar controls, and Credential filtering. Complete contracts and external
 boundaries remain in the domain documents and implementation index.
 
-F17 reminders were assessed, but are not delivered by this package. The earlier checked
-notifications authorized platform operators only; the current quota package adds
-separate scoped recipients and remains under validation. Personal/Project recipients,
-thresholds, durable resource/dimension/window decisions, dedupe and policy/period
-transitions need explicit contracts. A reservation rejection does not prove
-settled quota exhaustion; unknown usage and conservative holds must not fabricate
-exhaustion. Operator-only observations are not member/Project reminder delivery.
+Personal/Project settled monthly-exhaustion inboxes are delivered with scoped
+recipients and exact policy/window facts. Team reminders, broader thresholds,
+notification delivery and complete quota stop-policy scope remain separate. A
+reservation rejection does not prove settled exhaustion; unknown usage and holds
+must not fabricate exhaustion.
 
-Team invocation context/defaults, templates, approvals, configurable quota stop
-policy, enterprise identity, Vault, distributed enforcement, external price sync,
-saved reports, AI analysis, backup/restore, and final production acceptance remain
-open. Never infer Team attribution or debit from membership alone.
+Team defaults, templates, further Team protocols/attachments, configurable quota
+stop policy, enterprise identity, Vault, distributed enforcement, external price
+sync, saved reports, AI analysis, backup/restore and final production acceptance
+remain open. Team-assigned roles are the next partial package. Never infer Team
+attribution or debit from membership alone.
 
 ## Verification
 
@@ -751,3 +750,74 @@ read-only global records and English-default localization. Full checks, actual
 both-database/native/restart/browser acceptance precede another main commit/push.
 F06 also retains Team-role assignment/permission union; all full acceptance remains
 open and the user has not requested a pause.
+
+
+## Published finite Team policy checkpoint and resumed request ownership
+
+RouteX `e25d8a9023c555a15d9842bfee50c2c2ab32076c` was pushed and exact
+origin/main was read back with a clean source tree. Exact CI 37022492454,
+Actionlint 37022492517 and GolangCI-Lint 37022492550 all succeeded. External
+coordination `a5e9c0239583a5fb8c94e136c68e114945e2027b` was separately
+pushed/read back, staging only the plan and preserving unrelated zsh work.
+
+The user resumed the full goal on 2026-10-03 and again prioritized partial work.
+No Team request implementation landed before the interruption. Three owners have
+resumed: dedicated request/step/pending-slot entities and frozen V40 migration;
+monthly owner/platform workflow and strict scoped API; approved bilingual workspace,
+creation dialog, timeline/detail drawer and independently authorized read-only
+platform records. The coordinator owns shared route registration, reset/migration
+harness, independent global-read permission, safe audit projection, docs and actual
+acceptance. New source remains uncommitted until required checks pass.
+
+Keep creation UUID and per-step decision UUID/review intent immutable. An owner
+approval may record an approved step while the request remains pending at the
+platform node; it is not final policy application. Membership loss/replacement
+cancels pending applications and rejoin cannot revive them. Preserve historical
+approved policies while reporting current pending/applied/superseded publication
+separately. Full both-database, native, restart and browser proof precede delivery.
+
+
+## Monthly Team request verification checkpoint, 2026-10-03
+
+The V40 schema, owner-first monthly Token/money workflow, platform escalation,
+read-only global records and bilingual interfaces are frozen. The final coherence
+review passed after rejecting mismatched status/step and noncontiguous histories.
+Immutable existing receipts reconcile before fresh-decision checks. Server-owned
+effect previews distinguish unchanged owner escalation from atomic final quota
+writes; read-only terminal records never expose an approval workspace shortcut.
+
+Mandatory check and full test passed after compatibility redirects and import
+formatting: 922 Vitest cases in 65 files, Go race/unit, four Node checks, developer
+process lifecycle and production asset embedding. Full actual PostgreSQL/MySQL
+race acceptance passed (Handler 704.846 seconds; Service 6.084 seconds) and both
+real-database process lifecycle suites passed. V40 migration prefixes, preserved
+history, constraints, scoped authority, exact money, owner transitions, cancellation
+through membership/account/Team/offboarding changes, stale review, malformed stage
+and immutable receipt replay are covered.
+
+The actual disposable production browser used English-default creation and live
+Chinese switching. Member 5/Team 10 target 15 entered the owner first; owner
+confirmation retained 5/10 and entered the platform stage. Final confirmation
+rendered 5→15 and 10→15, and current application was confirmed. Three controlled
+five-Token calls succeeded and the fourth stopped before dispatch; an independent
+restart preserved stage receipts, approved caps and used 15. Terminal global records
+were read-only without a workspace link. Owned tab, services, configuration, journal
+and Compose resources were removed; the developer service was untouched.
+
+The full matrix retains the existing concurrent-owner approve/approve and exact
+final-audit rollback cases. A final test-only approve/reject competition appended after native/restart proof
+passed on both actual databases (5.92/5.94 seconds; full focused runner 208.460
+seconds), with exactly one winning receipt/audit and unchanged policies/use. No
+business behavior changed after the full matrix. Final required check/test passed
+with 922 Vitest cases. F18/A13 are complete in their defined controlled scope;
+capability totals are 9 complete, 18 partial and 3 unstarted. A01/A13 are accepted;
+full product/release acceptance remains open.
+
+The next assessed partial package is F06 Team-assigned roles and scoped permission
+union: frozen V41 relationship; exact `teams.write`/`teams.models.write` action
+allowlist; target-specific member/model/role candidates; protected actual-admin
+assignment; reviewed Role definitions; assigned-role deletion guard; existing
+detail Roles table/dialog/picker/Save and Team-local gates. Direct/global permissions,
+Team quota-administrator dimensions, Project/Key authority and native grants remain
+independent. Source implementation starts only after this request phase is committed
+and pushed. The overall objective remains active with no new pause.

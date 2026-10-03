@@ -41,7 +41,7 @@ type AuditPage struct {
 var auditCategories = map[string][]string{
 	"models":      {"model", "provider_model", "model_name", "binding", "model_provider_binding", "user_model_grant", "team_model_grant", "project_model_grant"},
 	"keys":        {"api_key", "project_api_key"},
-	"limits":      {"key", "user", "user_default", "team", "team_member", "team_member_default", "project"},
+	"limits":      {"key", "user", "user_default", "team", "team_member", "team_member_default", "project", "team_quota_request"},
 	"credentials": {"credential", "provider_credential", "provider", "connection"},
 	"pricing":     {"pricing"},
 	"identity":    {"user", "role", "session", "mfa", "installation", "registration", "offboarding_case"},
@@ -81,6 +81,12 @@ func auditRecord(row entity.AuditEvent) AuditRecord {
 	// never become an accidental credential/request-body read API.
 	var changes any
 	switch row.Action {
+	case "team.quota_request.create", "team.quota_request.approve", "team.quota_request.reject", "team.quota_request.withdraw":
+		var valid bool
+		changes, valid = teamQuotaAuditProjection(row)
+		if !valid {
+			return result
+		}
 	case "prices.update":
 		type values struct {
 			ETag  string        `json:"etag"`
@@ -272,7 +278,7 @@ func (s *Service) ListAudit(ctx context.Context, actor string, filter AuditFilte
 				query = query.Where("action <> ?", "limits.update")
 			}
 			if filter.Category == "limits" {
-				query = query.Where("action = ?", "limits.update")
+				query = query.Where("action IN ?", []string{"limits.update", "team.quota_request.create", "team.quota_request.approve", "team.quota_request.reject", "team.quota_request.withdraw"})
 			}
 		}
 		if filter.Query != "" {

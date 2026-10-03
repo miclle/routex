@@ -63,6 +63,13 @@ func (ctrl *Ctrl) RegisterRoutes(r *fox.Engine) {
 	identity.GET("/admin/status", ctrl.requireSession, requireAdmin, ctrl.AdminStatus)
 
 	identity.GET("/teams", ctrl.requireSession, ctrl.ListTeams)
+	identity.GET("/teams/:team_id/quota-request-context", ctrl.requireSession, ctrl.TeamQuotaRequestContext)
+	identity.POST("/teams/:team_id/quota-requests", ctrl.requireSession, sameOrigin, requireCSRF, jsonManagementRequest, ctrl.CreateTeamQuotaRequest)
+	identity.GET("/quota-requests", ctrl.requireSession, ctrl.ListTeamQuotaRequests)
+	identity.GET("/quota-requests/:request_id", ctrl.requireSession, ctrl.GetTeamQuotaRequest)
+	identity.POST("/quota-requests/:request_id/decision", ctrl.requireSession, sameOrigin, requireCSRF, jsonManagementRequest, ctrl.DecideTeamQuotaRequest)
+	identity.GET("/admin/quota-requests", ctrl.requireSession, ctrl.ListAdminTeamQuotaRequests)
+	identity.GET("/admin/quota-requests/:request_id", ctrl.requireSession, ctrl.GetAdminTeamQuotaRequest)
 	identity.GET("/teams/:team_id/limits", ctrl.requireSession, ctrl.GetTeamResourceLimit)
 	identity.PUT("/teams/:team_id/limits", ctrl.requireSession, sameOrigin, requireCSRF, jsonManagementRequest, ctrl.SetTeamResourceLimit)
 	identity.GET("/teams/:team_id/members/:user_id/limits", ctrl.requireSession, ctrl.GetTeamResourceLimit)

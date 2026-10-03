@@ -362,6 +362,11 @@ func (s *Service) UpdateResource(ctx context.Context, actorID string, kind Resou
 		}
 		if input.Status != nil {
 			updates["status"] = *input.Status
+			if kind == TeamResource && *input.Status != entity.ResourceActive {
+				if err := cancelTeamQuotaRequestsForTeam(tx, current.ID, "team_unavailable"); err != nil {
+					return err
+				}
+			}
 		}
 		if err := tx.Table(string(kind)).Where("id = ?", resourceID).Updates(updates).Error; err != nil {
 			return err

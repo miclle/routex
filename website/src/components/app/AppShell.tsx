@@ -17,6 +17,7 @@ import {
   Bot,
   PlayCircle,
   History,
+  ClipboardList,
   UserRound,
   ShieldCheck,
   Settings,
@@ -78,6 +79,13 @@ const memberNav = [
       return t('usage:title')
     },
     icon: ChartNoAxesCombined,
+  },
+  {
+    to: '/quota-requests',
+    get label() {
+      return t('teamRequests:title')
+    },
+    icon: ClipboardList,
   },
   {
     to: '/calls',
@@ -199,6 +207,17 @@ const adminNav = [
     },
     icon: UsersRound,
     permission: 'teams.read_all',
+    get group() {
+      return t('members_and_access_34488')
+    },
+  },
+  {
+    to: '/admin/quota-requests',
+    get label() {
+      return t('teamRequests:adminTitle')
+    },
+    icon: ClipboardList,
+    permission: 'teams.quota_requests.read_all',
     get group() {
       return t('members_and_access_34488')
     },

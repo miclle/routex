@@ -1,5 +1,5 @@
 import LoadingRoute from '@/components/app/LoadingRoute'
-import type { RouteObject } from 'react-router'
+import { Navigate, type RouteObject } from 'react-router'
 import AuthGate from '@/components/app/AuthGate'
 import AppShell from '@/components/app/AppShell'
 
@@ -93,6 +93,25 @@ const routes: RouteObject[] = [
             lazy: async () => {
               const { default: Page } = await import('@/views/pricing/provider-model')
               return { Component: Page }
+            },
+          },
+          {
+            path: 'quota-requests',
+            lazy: async () => ({ Component: (await import('@/views/team-requests')).default }),
+          },
+          {
+            path: 'admin/approvals',
+            element: <Navigate to="/admin/quota-requests" replace />,
+          },
+          {
+            path: 'admin/quota-approvals',
+            element: <Navigate to="/admin/quota-requests" replace />,
+          },
+          {
+            path: 'admin/quota-requests',
+            lazy: async () => {
+              const { default: Page } = await import('@/views/team-requests')
+              return { Component: () => <Page admin /> }
             },
           },
           {

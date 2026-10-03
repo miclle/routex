@@ -3,7 +3,7 @@
 This bounded package adds finite Team policies to the existing
 [Team Session foundation](TEAM_INFERENCE.md). Source implementation has controlled local acceptance on both real databases,
 production assets and the bilingual browser workflow.
-Team approval workflows and complete product acceptance remain separate.
+[Monthly Team member requests](TEAM_REQUESTS.md) provide a separate owner-first approval workflow. Complete product acceptance remains separate.
 
 ## API and authority
 
@@ -113,7 +113,8 @@ money patch allocation and denomination-sensitive current-application proof. A
 frontend late-response test now explicitly clears the old query before resolving
 its held response rather than racing React Query's zero-delay GC timer.
 
-Team-assigned roles remain a separate F06 gap. Team requests/escalation, templates,
+Team-assigned roles remain a separate F06 gap. Monthly member requests and
+escalation use [their own reviewed workflow](TEAM_REQUESTS.md). Templates,
 notifications, additional Session protocols and distributed enforcement remain
 unfinished. No paid upstream, external-provider, production-load or complete
 release acceptance is claimed by these controlled fixtures.

@@ -34,13 +34,18 @@ these fields return null and interfaces display **Not recorded**. Do not infer
 an IP from current sessions or fabricate request IDs from event IDs. Price import
 source is returned only for the known `api`, `csv`, `xlsx` and `xls` values.
 
-Only the existing typed price, currency, limit, and system-instance cleanup
-schemas are projected into `changes`. Price, currency, and limit events use
+Only known typed price, currency, limit, Credential lifecycle, Team request and
+system-instance cleanup schemas are projected into `changes`. Price, currency, and limit events use
 lowercase `before`/`after` and applicable `reason`/`etag`. Cleanup events expose
 one event per retired instance: `resource_id` is the exact process-generation ID
 and typed `changes` contains only the reviewed heartbeat revision. A multi-row
 cleanup commits all retirement rows and their target-addressable events in the
 same transaction.
+Team request creation and approve/reject/withdraw events record only the exact
+Team/applicant IDs, dimension, decimal-string target, currency, step ID, stage,
+resulting status and reason. They appear in the `limits` category. An owner
+approval can record advancement to the platform stage without policy application;
+the historical event does not prove that a later quota revision is enforced.
 Unknown detail fields, unknown action payloads, malformed JSON and oversized
 payloads are not exposed. Provider credentials, request bodies and arbitrary
 stored JSON never become an audit readback API. Other events retain their action

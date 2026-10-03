@@ -204,6 +204,9 @@ func (s *Service) UpdateMember(ctx context.Context, actorID, userID string, disa
 			return err
 		}
 		if nextDisabled {
+			if err := cancelTeamQuotaRequestsForUser(tx, canonicalUserID, "applicant_unavailable"); err != nil {
+				return err
+			}
 			if err := invalidateMFAChallenges(tx, userID); err != nil {
 				return err
 			}

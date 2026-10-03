@@ -39,7 +39,7 @@ Team/User pair journal accounts are separate from Personal and Key accounts.
 Default unlimited accounts establish attribution and replay. The separate
 [finite Team policy package](TEAM_LIMITS.md) adds aggregate and member token, money
 and request-rate enforcement. Membership removal/rejoin cannot reset pair identity
-or use. Team requests and quota approvals remain subsequent scope.
+or use. [Monthly Team member requests](TEAM_REQUESTS.md) separately review quota increases; pending and escalated steps never change native admission.
 
 Frozen GORM V38 adds historical `team_id` and `team_membership_id` fields with empty
 defaults, a Team actor cursor index and a guard against mixed Team/Project/Key

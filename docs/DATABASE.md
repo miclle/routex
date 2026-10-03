@@ -220,3 +220,24 @@ concurrent/repeated upgrades, store the full 52-character Team/User digest, reje
 oversized identities and repair each interrupted permission-seed prefix. The
 Team policy lifecycle and native finite admission are separate actual acceptance
 fixtures; see [Team resource limits](TEAM_LIMITS.md).
+
+## Team monthly request history (version 40)
+
+Frozen additive GORM V40 creates `team_quota_requests`,
+`team_quota_request_steps` and `team_quota_pending_slots`. Historical request
+identity, names, submitted context and approved policy snapshots do not depend on
+live-resource foreign keys. Creation intents are globally unique; decision UUIDs
+are nullable until a human action and globally unique when present. Each request
+has at most two independently reviewed ordered stages. A composite primary key
+permits only one pending request per Team/applicant/monthly dimension, with a
+separate unique request reference.
+
+GORM model checks constrain dimensions, currencies, statuses, stage ordinals and
+complete approval/decision evidence. Interrupted table-prefix and missing guard,
+index or permission-seed repair must preserve saved snapshots and timestamps.
+V40 seeds `teams.quota_requests.read_all` independently of direct quota writes;
+released V1–V39 remain unchanged. The complete real PostgreSQL/MySQL race suite
+passed with V40 prefix, constraint, concurrent-startup and historical-data fixtures
+(Handler 704.846 seconds; Service 6.084 seconds). Owned Compose resources were
+removed. See [Team requests](TEAM_REQUESTS.md) for lifecycle, transaction and
+runtime-application contracts.
