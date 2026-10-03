@@ -309,3 +309,12 @@ breakdowns while preserving existing cards, trends, model groups, historical
 currency amounts and unknown coverage. Shared Team reports never expand actor-only
 Team call history. Administrative Team filtering requires independent
 `calls.read_all` and cannot combine Personal-user or Project subject selectors.
+
+## Current resource detail authority
+
+Resource details use actor- and target-scoped queries, zero stale/cache retention,
+and renewed authorization on mount. Hide all cached private details, tabs and
+actions while fetching or after an error. An absent or failed current Session
+cannot supply an actor. Late prior-actor or prior-target responses cannot restore
+private content. Keep existing localized loading/error states and resource layouts;
+server-side exact Project permissions remain authoritative.

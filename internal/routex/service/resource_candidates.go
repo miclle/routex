@@ -46,8 +46,11 @@ func (s *Service) ResourceMemberCandidates(ctx context.Context, actorID string, 
 			return nil, apperrors.ErrNotFound
 		}
 		var project entity.Project
-		if err := db.Where("id = ?", projectID).First(&project).Error; err != nil {
+		if err := db.Where(database.ExactText(db, clause.Column{Name: "id"}, projectID)).First(&project).Error; err != nil {
 			return nil, catalogError(err)
+		}
+		if project.ID != projectID {
+			return nil, apperrors.ErrNotFound
 		}
 		if project.Status == entity.ResourceArchived {
 			return nil, catalogConflict

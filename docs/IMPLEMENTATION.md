@@ -157,7 +157,7 @@ The binary capability count is 10 completed, 17 partially completed, and 3 not s
 | F04 | Member administration, direct grants, roles, and resource policies | Partially completed | Member and role workflows plus scoped resource-limit interfaces exist; token, TPM, and exact-money controls with authoritative quota snapshots are available; the complete cross-domain resource-policy surface remains open. |
 | F05 | Built-in and custom roles with composed permissions | Partially completed | Current-domain role and permission management is implemented; later enterprise and operations domains still require permission integration and negative acceptance. |
 | F06 | Team membership, ownership, models, quotas, and member rules | Completed | Team membership/ownership, model relationships, finite aggregate/member policies and monthly requests are accepted. Durable Team-assigned roles, exact Team-only action unions, reviewed administrator assignment and the existing Roles interface have controlled dual-database and browser evidence. |
-| F07 | Project lifecycle, managers, models, Keys, and requests | Partially completed | Project management, managers, model grants, Project Keys, resource limits, model requests, finite monthly quota and RPM/TPM/concurrency approvals exist; the complete Project request and lifecycle surface remains open. |
+| F07 | Project lifecycle, managers, models, Keys, and requests | Partially completed | Project management, managers, model grants, Project Keys, resource limits, model requests, finite monthly quota and RPM/TPM/concurrency approvals exist; canonical current authority, stable manager identities and revocation-safe detail interfaces are hardened; initial multi-manager creation and complete Project overview remain open. |
 | F08 | Personal and Project Key lifecycle | Completed | One-time delivery, confirmation, editing, rotation, revocation, expiration, scope, and history are implemented with controlled dual-database evidence. |
 | F09 | Key Token, money, RPM, TPM, concurrency, and IP restrictions | Completed | Personal, Project, and Key admission policies are enforced in the native gateway for the documented single-node architecture. Multi-node enforcement remains a separate release-architecture gate. |
 | F10 | Offboarding, inventory, handover, and emergency disable | Partially completed | Transactional local-account offboarding and continuity workflows exist; external-identity and complete enterprise continuity behavior remain open. |
@@ -1892,3 +1892,48 @@ F22 remains partial for complete freshness/capacity acceptance and broader scope
 Capability totals remain 10 completed, 17 partial and 3 not started. Exact F06
 CI 37127402456, Actionlint 37127402424 and GolangCI-Lint 37127402443 succeeded.
 The overall objective continues with isolated F07 Project authority hardening.
+
+## Checked F07 canonical authority package, 2026-10-03
+
+Exact enabled actors and current direct Project permissions or manager associations
+now gate target reads, manager replacement and model replacement. Exact selected
+users/models and canonical retained manager IDs prevent collation aliases from
+lending authority or historical relationship identity. Creator attribution remains
+immutable and supplies no permanent management rights. Disabled Project governance
+remains available; archived Projects remain terminal. No schema/API/dependency
+change is introduced.
+
+The existing actor/target-scoped detail hides private cached content, tabs and
+actions during renewed reads and errors. Eight focused cases cover cached remounts,
+401/403/404, changed actor/target and late responses. Full check/test passed with
+998 Vitest cases in 70 files, Go race/unit, development lifecycle and production
+embedding. Corrected real PostgreSQL/MySQL focused acceptance passed (226.497 seconds);
+the final complete matrix passed (Handler 760.155 seconds; Service 6.376
+seconds). Controlled production-browser and process
+restart acceptance passed.
+
+The first actual database focus found a fixture expectation mismatch: failed
+publication retains a Project authentication tombstone and returns native 401,
+not a model-scope 403. The fixture now follows the existing runtime contract and
+still requires zero dispatch. Additional assertions preserve the original Project
+Key after creator management removal and successful republication. Both supported
+databases passed the corrected focus before the final complete matrix passed.
+
+F07 remains partial. Initial multi-manager creation and complete Project overview
+are open. Capability totals remain 10 completed, 17 partial and 3 not started.
+
+Controlled F07 production acceptance used an isolated owned PostgreSQL database.
+Current-manager settings and the manager table were verified in English/Chinese;
+actual manager removal produced detail/candidate 404 and mutation 403, and browser
+refresh hid the old private data and actions. Restoring current management and
+restarting the independent binary preserved Sessions, immutable creator identity
+and exact current authority. Browser Retry restored the authorized detail, English
+was restored and final browser error logs were empty. The temporary tab was closed;
+owned process/database/network/files were removed by the acceptance script.
+
+The final mandatory check passed after the fixture correction. Owned focused/full
+Compose resources and production acceptance resources were removed. All 82 local
+Markdown references and whitespace checks passed. This F07 package is ready for
+phased main delivery; its exact commit is identified through Git history. The
+separate F17 worktree continues seven-field User/Team default settings, atomic
+creation snapshots and explicitly reviewed resets with frozen GORM V42.

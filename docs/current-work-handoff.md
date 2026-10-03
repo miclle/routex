@@ -1,10 +1,10 @@
 # Current Work Handoff
 
-- **Status:** implementation active; F06 roles pushed and accepted; F22 Team usage accepted for phased delivery; F07 Project authority hardening isolated; F08 Key proof hardening pushed; F11 readiness pushed; receipt-backed retirement pushed; member model availability correction pushed; source directory pushed; monthly quota exhaustion inbox checked and pushed; Project monthly quota requests pushed; Project request-rate approval pushed; Team Session foundation pushed; finite Team policies pushed; monthly Team requests pushed; F18/A13 controlled scope accepted; F06 Team roles accepted and ready for phased delivery
+- **Status:** implementation active; F06 completed and pushed; F22 scoped Team reports pushed; F07 canonical authority accepted for phased main delivery; F17 defaults active in an isolated worktree
 - **Updated:** 2026-10-03
 - **Repository / branch:** RouteX / `main`
-- **Previous checked source baseline:** `ef821a689cfeb31b75bf737e29199094865850e9`, pushed and read back from `origin/main`
-- **Current owner:** coordinator completes F22 acceptance on main; three parallel F07 production, database-fixture and frontend owners work in the isolated `project-authority` worktree
+- **Previous checked source baseline:** `598ffd17e00f8ef651b8a8a4f7bbfbae864f8c48`, pushed and read back from `origin/main`
+- **Current owner:** coordinator owns phased F07 delivery and F17 integration; three owners implement F17 backend/API, frozen migration/acceptance and frontend
 - **Next owner:** current task continues the resumed goal
 - **Transport:** identify this checked delivery with `git log -1 -- docs/current-work-handoff.md` and independently verify its upstream
 - **Coordination plan:** `~/dotfiles/projects/routex/implementation-plan.md`; synchronize separately and preserve unrelated changes
@@ -168,7 +168,7 @@ preserving a predecessor that was subsequently enabled.
 
 ## Overall status and other partial work
 
-`docs/IMPLEMENTATION.md` remains the authoritative inventory: **9 completed, 18
+`docs/IMPLEMENTATION.md` remains the authoritative inventory: **10 completed, 17
 partially completed, 3 not started**. This counts completed capabilities, not effort.
 A01 and A13 have complete controlled acceptance. A02–A12, A14–A15 and A17–A20
 have partial evidence; A16 is not started.
@@ -192,7 +192,7 @@ must not fabricate exhaustion.
 Team defaults, templates, further Team protocols/attachments, configurable quota
 stop policy, enterprise identity, Vault, distributed enforcement, external price
 sync, saved reports, AI analysis, backup/restore and final production acceptance
-remain open. Team-assigned roles are the next partial package. Never infer Team
+remain open. Team roles are completed; current Project authority is in acceptance. Never infer Team
 attribution or debit from membership alone.
 
 ## Verification
@@ -981,3 +981,49 @@ The final F22 commit is identified through Git history rather than an invented
 self-referencing SHA. Next complete the isolated F07 authority fixture, actual
 both-database focus, final main integration/checks and controlled runtime proof.
 The full objective remains active; no pause or overall completion is claimed.
+
+## Current F07 acceptance checkpoint
+
+F22 is pushed at `598ffd17e00f8ef651b8a8a4f7bbfbae864f8c48` with final local
+check/test, dual-database and production/native/browser/restart evidence. Its exact
+Actionlint 37128676137 and GolangCI-Lint 37128676202 succeeded; CI 37128676192 also succeeded for the exact commit. The completed `team-usage` worktree could not be
+archived because the app reports it protected by a pinned task/workspace; retain
+it and do not manually remove it. The separate `project-authority` worktree remains
+needed for current source/fixture ownership.
+
+F07 source is integrated into main, uncommitted, and limited to Project service
+checks, one real-database fixture/registration, focused service tests, the shared
+resource detail and eight UI privacy tests, plus directly related documents/rules.
+Full check/test passed with 998 Vitest cases in 70 files. The initial real database
+focus stopped on a test-only 403 expectation where the existing Project tombstone
+correctly returned 401. Corrected source additionally proves original Project Key
+independence after creator manager removal; the sole PostgreSQL/MySQL focus passed (226.497 seconds). The final full matrix
+passed (Handler 760.155 seconds; Service 6.376 seconds); controlled production-browser/restart acceptance passed.
+
+All required F07 local gates have passed. Commit and push this scoped F07 delivery,
+verify its remote checks, then integrate only frozen F17 source and run its focused
+GORM migration/default-policy acceptance before the final full matrix. F07 remains partial
+for initial multi-manager creation and the complete Project overview. F17 User/Team defaults are being implemented in the separate `resource-defaults`
+worktree by backend/API, frozen GORM V42/acceptance, and frontend owners. Its
+unsubmitted source is separate from this F07 delivery. The objective continues and is not paused.
+
+Controlled F07 production acceptance used an isolated owned PostgreSQL database.
+Current-manager settings and the manager table were verified in English/Chinese;
+actual manager removal produced detail/candidate 404 and mutation 403, and browser
+refresh hid the old private data and actions. Restoring current management and
+restarting the independent binary preserved Sessions, immutable creator identity
+and exact current authority. Browser Retry restored the authorized detail, English
+was restored and final browser error logs were empty. The temporary tab was closed;
+owned process/database/network/files were removed by the acceptance script.
+
+## Accepted F07 source ready for phased main delivery
+
+Final PostgreSQL/MySQL full acceptance passed (Handler 760.155 seconds; Service
+6.376 seconds) and removed owned Compose resources. Mandatory full check passed
+on corrected final source; full test passed with 998 Vitest cases in 70 files,
+Go race/unit, development lifecycle and embedded production assets. Controlled
+production browser/restart evidence and 82 local Markdown references also passed.
+F07 remains partial for creation/overview scope; totals remain 10 completed,
+17 partial and 3 not started. The overall objective continues with F17 defaults
+in its isolated worktree. Identify this checked delivery using Git history;
+do not invent its own commit SHA before commit.

@@ -86,3 +86,36 @@ Target-specific member and model candidate endpoints support delegated controls
 without fetching the global directory. Quota-only resource representations never
 fetch role data or candidates. See [Team roles](TEAM_ROLES.md) for the exact API,
 current-definition review, saved-state and acceptance contracts.
+
+## Canonical Project authority
+
+Project actor IDs, resource IDs, selected manager IDs and model IDs are exact
+identities. Database collation must not turn case aliases into authority. Service
+checks require a currently enabled, non-offboarded exact actor and exact direct
+role/permission associations or current exact Project manager membership. The
+immutable creator fact gives no permanent management authority. Manager-only
+users cannot assign models or change lifecycle state; platform editors need their
+independent action permission and do not become managers by editing a resource.
+
+Manager replacement validates every selected enabled user before changing the
+complete set. Retained canonical relationships preserve their IDs. A corrupt
+association with an aliased Project or user cannot lend its ID to a repaired
+canonical replacement. Model replacement similarly validates exact active model
+identities. Invalid aliases, unavailable users/models, forbidden actors and
+continuity conflicts leave relationships, audit and runtime publication unchanged.
+Disabled Projects remain administratively editable; archived Projects remain
+terminal.
+
+Resource detail queries are actor- and target-scoped, reauthorize on mount, and
+hide cached private details, tabs and actions while the renewed read is pending or
+fails. Late responses from another actor or target cannot restore a prior detail.
+The existing layout, localized loading/errors and permission-specific controls
+are preserved. This protection covers Team details through the same component.
+
+The real PostgreSQL/MySQL `project_authority` lifecycle also exercises Project Key
+independence from its creator's later manager removal. Failed publication after a
+grant replacement retains the Project tombstone: native authentication returns
+401 and dispatches nothing. Fresh successful publication restores the still-granted
+model; removed grants remain unavailable and immutable call history remains intact.
+This package adds no migration, endpoint or dependency. Initial multi-manager
+creation and the complete Project overview remain separate unfinished scope.

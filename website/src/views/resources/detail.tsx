@@ -38,25 +38,17 @@ export default function ResourceDetailPage({
     queryFn: ({ signal }) => getResource(kind, admin, resourceId, signal),
     enabled: !!actor,
     retry: false,
-    ...(kind === 'teams'
-      ? {
-          staleTime: 0,
-          gcTime: 0,
-          refetchOnMount: 'always' as const,
-          refetchOnWindowFocus: false,
-          refetchOnReconnect: false,
-        }
-      : {}),
+    staleTime: 0,
+    gcTime: 0,
+    refetchOnMount: 'always',
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
   })
-  if (
-    !resource.data ||
-    ((resource.data.request_workspace_only || kind === 'teams') &&
-      (resource.isFetching || resource.isError))
-  )
+  if (!actor || !resource.data || !resource.isSuccess || resource.isFetching)
     return (
       <Page title={t('details', { kind: t(kind === 'teams' ? 'team' : 'project') })} description="">
         <QueryState
-          pending={resource.isPending}
+          pending={resource.isPending || resource.isFetching}
           error={resource.error}
           retry={() => void resource.refetch()}
         />

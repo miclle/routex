@@ -53,38 +53,41 @@ func validResourceDescription(value string) bool {
 	return utf8.ValidString(value) && utf8.RuneCountInString(value) <= 2000 && !strings.ContainsFunc(value, func(r rune) bool { return unicode.IsControl(r) && r != '\n' && r != '\t' })
 }
 func resourcePermission(db *gorm.DB, actorID string, kind ResourceKind, action string) (bool, error) {
+	if kind == ProjectResource {
+		actor, err := exactEnabledActor(db, actorID)
+		if err != nil {
+			return false, err
+		}
+		return exactGovernancePermission(db, actor, "projects."+action)
+	}
 	permissions, err := permissionsFor(db, actorID)
 	return slices.Contains(permissions, string(kind)+"."+action), err
 }
 func resourceManager(db *gorm.DB, actorID, projectID string) (bool, error) {
-	var count int64
-	err := db.Model(&entity.ProjectManager{}).Where("project_id = ? AND user_id = ?", projectID, actorID).Count(&count).Error
-	return count > 0, err
+	if _, err := exactEnabledActor(db, actorID); err != nil {
+		return false, err
+	}
+	return exactProjectRequestManager(db, actorID, projectID)
 }
 func resourceAccess(db *gorm.DB, actorID string, kind ResourceKind, resourceID string) error {
 	if kind == TeamResource {
 		_, err := teamRoleTargetAccess(db, actorID, resourceID, false)
 		return err
 	}
-	permissions, err := permissionsFor(db, actorID)
-	if err != nil {
-		return err
-	}
 	for _, action := range []string{"read_all", "write", "models.write"} {
-		if slices.Contains(permissions, string(kind)+"."+action) {
+		allowed, err := resourcePermission(db, actorID, kind, action)
+		if err != nil {
+			return err
+		}
+		if allowed {
 			return nil
 		}
 	}
-	var count int64
-	if kind == TeamResource {
-		err = db.Model(&entity.TeamMembership{}).Where("team_id = ? AND user_id = ? AND status = ?", resourceID, actorID, entity.ResourceActive).Count(&count).Error
-	} else {
-		err = db.Model(&entity.ProjectManager{}).Where("project_id = ? AND user_id = ?", resourceID, actorID).Count(&count).Error
-	}
+	manager, err := resourceManager(db, actorID, resourceID)
 	if err != nil {
 		return err
 	}
-	if count == 0 {
+	if !manager {
 		return apperrors.ErrNotFound
 	}
 	return nil
@@ -92,11 +95,17 @@ func resourceAccess(db *gorm.DB, actorID string, kind ResourceKind, resourceID s
 func resourceRecord(db *gorm.DB, kind ResourceKind, resourceID string, lock bool) (*ResourceRecord, error) {
 	result := &ResourceRecord{ModelIDs: []string{}}
 	query := db.Table(string(kind)).Where("id = ?", resourceID)
+	if kind == ProjectResource {
+		query = db.Table(string(kind)).Where(database.ExactText(db, clause.Column{Name: "id"}, resourceID))
+	}
 	if lock {
 		query = query.Clauses(clause.Locking{Strength: "UPDATE"})
 	}
 	if err := query.Take(result).Error; err != nil {
 		return nil, err
+	}
+	if kind == ProjectResource && result.ID != resourceID {
+		return nil, apperrors.ErrNotFound
 	}
 	if kind == TeamResource {
 		result.Members = []ResourcePerson{}
@@ -242,6 +251,70 @@ func activeResourceUsers(tx *gorm.DB, userIDs []string) error {
 		return err
 	}
 	if count != int64(len(userIDs)) {
+		return apperrors.ErrBadRequest
+	}
+	return nil
+}
+
+func projectIdentityQuery(query *gorm.DB, ids []string) *gorm.DB {
+	predicates := make([]clause.Expression, 0, len(ids))
+	for _, value := range ids {
+		predicates = append(predicates, database.ExactText(query, clause.Column{Name: "id"}, value))
+	}
+	return query.Where(clause.Or(predicates...))
+}
+
+func projectSelectionMatches(selectedIDs, submittedIDs []string) bool {
+	if len(selectedIDs) != len(submittedIDs) {
+		return false
+	}
+	selected := make(map[string]bool, len(selectedIDs))
+	for _, value := range selectedIDs {
+		if value == "" || selected[value] {
+			return false
+		}
+		selected[value] = true
+	}
+	for _, value := range submittedIDs {
+		if !selected[value] {
+			return false
+		}
+		delete(selected, value)
+	}
+	return len(selected) == 0
+}
+
+func projectManagerIdentities(rows []entity.ProjectManager, projectID string, selectedUserIDs []string) map[string]string {
+	selected := make(map[string]bool, len(selectedUserIDs))
+	for _, userID := range selectedUserIDs {
+		selected[userID] = true
+	}
+	identities := make(map[string]string, len(rows))
+	for _, manager := range rows {
+		if manager.ProjectID == projectID && selected[manager.UserID] {
+			identities[manager.UserID] = manager.ID
+		}
+	}
+	return identities
+}
+
+func activeProjectResourceUsers(tx *gorm.DB, userIDs []string) error {
+	if len(userIDs) == 0 || len(userIDs) > 1000 {
+		return apperrors.ErrBadRequest
+	}
+	var rows []entity.User
+	if err := projectIdentityQuery(tx.Model(&entity.User{}), userIDs).Select("id", "disabled", "offboarded_at").
+		Where("disabled = ? AND offboarded_at IS NULL", false).Find(&rows).Error; err != nil {
+		return err
+	}
+	selected := make([]string, 0, len(rows))
+	for _, row := range rows {
+		if row.Disabled || row.OffboardedAt != nil {
+			return apperrors.ErrBadRequest
+		}
+		selected = append(selected, row.ID)
+	}
+	if !projectSelectionMatches(selected, userIDs) {
 		return apperrors.ErrBadRequest
 	}
 	return nil

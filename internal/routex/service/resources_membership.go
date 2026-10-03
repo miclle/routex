@@ -4,7 +4,9 @@ import (
 	"context"
 
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 
+	"github.com/miclle/routex/internal/routex/database"
 	"github.com/miclle/routex/internal/routex/entity"
 	apperrors "github.com/miclle/routex/internal/routex/errors"
 	"github.com/miclle/routex/pkg/id"
@@ -143,13 +145,15 @@ func (s *Service) SetProjectManagers(ctx context.Context, actorID, projectID str
 		if current.Status == entity.ResourceArchived {
 			return catalogConflict
 		}
-		if err := activeResourceUsers(tx, userIDs); err != nil {
+		if err := activeProjectResourceUsers(tx, userIDs); err != nil {
 			return err
 		}
-		existing := map[string]string{}
-		for _, manager := range current.Managers {
-			existing[manager.UserID] = manager.ID
+		var existingRows []entity.ProjectManager
+		if err := tx.Select("id", "project_id", "user_id").
+			Where(database.ExactText(tx, clause.Column{Name: "project_id"}, current.ID)).Find(&existingRows).Error; err != nil {
+			return err
 		}
+		existing := projectManagerIdentities(existingRows, current.ID, userIDs)
 		if err := tx.Where("project_id = ?", projectID).Delete(&entity.ProjectManager{}).Error; err != nil {
 			return err
 		}
@@ -198,14 +202,20 @@ func (s *Service) SetResourceModels(ctx context.Context, actorID string, kind Re
 			if !allowed {
 				return apperrors.ErrForbidden
 			}
-		} else if err := authorizeGovernance(tx, actorID, string(kind)+".models.write"); err != nil {
-			return err
+		} else {
+			allowed, err := resourcePermission(tx, actorID, ProjectResource, "models.write")
+			if err != nil {
+				return err
+			}
+			if !allowed {
+				return apperrors.ErrForbidden
+			}
 		}
 		current, err := resourceRecord(tx, kind, resourceID, true)
 		if err != nil {
 			return err
 		}
-		if kind == TeamResource && current.ID != resourceID {
+		if current.ID != resourceID {
 			return apperrors.ErrNotFound
 		}
 		if current.Status == entity.ResourceArchived {
@@ -217,16 +227,34 @@ func (s *Service) SetResourceModels(ctx context.Context, actorID string, kind Re
 			}
 		}
 		if len(modelIDs) > 0 {
-			var count int64
-			query := tx.Model(&entity.Model{}).Where("id IN ? AND status = ?", modelIDs, entity.ResourceActive)
-			if kind == TeamResource {
-				query = teamRoleDefinitionQuery(tx.Model(&entity.Model{}), modelIDs).Where(teamQuotaEquality(tx, "status", entity.ResourceActive))
-			}
-			if err := query.Count(&count).Error; err != nil {
-				return err
-			}
-			if count != int64(len(modelIDs)) {
-				return apperrors.ErrBadRequest
+			if kind == ProjectResource {
+				var models []entity.Model
+				if err := projectIdentityQuery(tx.Model(&entity.Model{}), modelIDs).Select("id", "status").
+					Where(database.ExactText(tx, clause.Column{Name: "status"}, entity.ResourceActive)).Find(&models).Error; err != nil {
+					return err
+				}
+				selected := make([]string, 0, len(models))
+				for _, model := range models {
+					if model.Status != entity.ResourceActive {
+						return apperrors.ErrBadRequest
+					}
+					selected = append(selected, model.ID)
+				}
+				if !projectSelectionMatches(selected, modelIDs) {
+					return apperrors.ErrBadRequest
+				}
+			} else {
+				var count int64
+				query := tx.Model(&entity.Model{}).Where("id IN ? AND status = ?", modelIDs, entity.ResourceActive)
+				if kind == TeamResource {
+					query = teamRoleDefinitionQuery(tx.Model(&entity.Model{}), modelIDs).Where(teamQuotaEquality(tx, "status", entity.ResourceActive))
+				}
+				if err := query.Count(&count).Error; err != nil {
+					return err
+				}
+				if count != int64(len(modelIDs)) {
+					return apperrors.ErrBadRequest
+				}
 			}
 		}
 		if kind == TeamResource {
