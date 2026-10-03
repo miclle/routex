@@ -12,14 +12,20 @@ import (
 )
 
 func usageFilter(request *http.Request, admin bool) (service.UsageFilter, error) {
+	return scopedUsageFilter(request, admin, false)
+}
+func scopedUsageFilter(request *http.Request, admin, team bool) (service.UsageFilter, error) {
 	filter := service.UsageFilter{}
 	values, err := url.ParseQuery(request.URL.RawQuery)
 	if err != nil {
 		return filter, apperrors.ErrBadRequest
 	}
 	allowed := map[string]bool{"period": true, "from": true, "to": true, "timezone": true, "granularity": true, "compare": true, "model_id": true, "key_id": true, "status": true, "protocol": true, "stream": true}
+	if team {
+		delete(allowed, "key_id")
+	}
 	if admin {
-		for _, key := range []string{"user_id", "project_id", "provider_id", "provider_model_id", "connection_id"} {
+		for _, key := range []string{"user_id", "project_id", "team_id", "provider_id", "provider_model_id", "connection_id"} {
 			allowed[key] = true
 		}
 	}
@@ -31,6 +37,10 @@ func usageFilter(request *http.Request, admin bool) (service.UsageFilter, error)
 	filter.Period, filter.Timezone, filter.Granularity = values.Get("period"), values.Get("timezone"), values.Get("granularity")
 	filter.ModelID, filter.KeyID, filter.Status, filter.Protocol = values.Get("model_id"), values.Get("key_id"), values.Get("status"), values.Get("protocol")
 	filter.UserID, filter.ProjectID, filter.ProviderID, filter.ProviderModelID, filter.ConnectionID = values.Get("user_id"), values.Get("project_id"), values.Get("provider_id"), values.Get("provider_model_id"), values.Get("connection_id")
+	filter.TeamID = values.Get("team_id")
+	if filter.TeamID != "" && (filter.UserID != "" || filter.ProjectID != "" || filter.KeyID != "") {
+		return filter, apperrors.ErrBadRequest
+	}
 	for _, item := range []struct {
 		key    string
 		target **time.Time
@@ -78,4 +88,12 @@ func (ctrl *Ctrl) AdminUsage(c *fox.Context) (*service.UsageReport, error) {
 		return nil, err
 	}
 	return ctrl.service.AdminUsage(c.Request.Context(), currentAuthentication(c).User.ID, filter)
+}
+
+func (ctrl *Ctrl) TeamUsage(c *fox.Context, path TeamPath) (*service.UsageReport, error) {
+	filter, err := scopedUsageFilter(c.Request, false, true)
+	if err != nil {
+		return nil, err
+	}
+	return ctrl.service.TeamUsage(c.Request.Context(), currentAuthentication(c).User.ID, path.TeamID, filter)
 }

@@ -70,3 +70,14 @@ export function usageFixture(): UsageReport {
     available_dimensions: ['model', 'key', 'provider', 'provider_model', 'connection'],
   }
 }
+
+export function teamUsageFixture(teamID = 'tea_usage_resource'): UsageReport {
+  const report = usageFixture()
+  report.team_id = teamID
+  report.available_dimensions = ['model']
+  report.current.keys = []
+  delete report.current.providers
+  delete report.current.provider_models
+  delete report.current.connections
+  return report
+}

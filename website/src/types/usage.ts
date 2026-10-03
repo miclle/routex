@@ -14,6 +14,7 @@ export interface UsageFilters {
   stream?: boolean
   user_id?: string
   project_id?: string
+  team_id?: string
   provider_id?: string
   provider_model_id?: string
   connection_id?: string
@@ -63,6 +64,7 @@ export interface UsagePeriod {
   connections?: UsageGroup[]
 }
 export interface UsageReport {
+  team_id?: string
   timezone: string
   granularity: Exclude<UsageGranularity, 'auto'>
   queried_at: string
@@ -76,4 +78,9 @@ export interface UsageReport {
 export interface UsageScope {
   admin?: boolean
   projectId?: string
+  teamId?: string
+}
+export interface UsageTeams {
+  items: { id: string; name: string }[]
+  next_cursor: string | null
 }

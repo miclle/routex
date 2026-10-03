@@ -1,10 +1,10 @@
 # Current Work Handoff
 
-- **Status:** implementation active; F08 Key proof hardening pushed; F11 readiness pushed; receipt-backed retirement pushed; member model availability correction pushed; source directory pushed; monthly quota exhaustion inbox checked and pushed; Project monthly quota requests pushed; Project request-rate approval pushed; Team Session foundation pushed; finite Team policies pushed; monthly Team requests pushed; F18/A13 controlled scope accepted; F06 Team roles accepted and ready for phased delivery
+- **Status:** implementation active; F06 roles pushed and accepted; F22 Team usage accepted for phased delivery; F07 Project authority hardening isolated; F08 Key proof hardening pushed; F11 readiness pushed; receipt-backed retirement pushed; member model availability correction pushed; source directory pushed; monthly quota exhaustion inbox checked and pushed; Project monthly quota requests pushed; Project request-rate approval pushed; Team Session foundation pushed; finite Team policies pushed; monthly Team requests pushed; F18/A13 controlled scope accepted; F06 Team roles accepted and ready for phased delivery
 - **Updated:** 2026-10-03
 - **Repository / branch:** RouteX / `main`
-- **Previous checked source baseline:** `bfad9f42893c3cba7bf509df9a969574c9a76be0`, pushed and read back from `origin/main`
-- **Current owner:** coordinator completes frozen F06 acceptance; three parallel F22 report/API, database-fixture and frontend owners work in the isolated `team-usage` worktree
+- **Previous checked source baseline:** `ef821a689cfeb31b75bf737e29199094865850e9`, pushed and read back from `origin/main`
+- **Current owner:** coordinator completes F22 acceptance on main; three parallel F07 production, database-fixture and frontend owners work in the isolated `project-authority` worktree
 - **Next owner:** current task continues the resumed goal
 - **Transport:** identify this checked delivery with `git log -1 -- docs/current-work-handoff.md` and independently verify its upstream
 - **Coordination plan:** `~/dotfiles/projects/routex/implementation-plan.md`; synchronize separately and preserve unrelated changes
@@ -938,3 +938,46 @@ F22 Team usage remains active in the isolated `team-usage` worktree. Backend and
 fixture source are frozen and focused compile/race/lint passed; the frontend
 continues focused tests. A sole isolated real PostgreSQL/MySQL workflow focus has
 started. Do not mix its source into this F06 commit or claim F22 acceptance yet.
+
+
+## Published F06 and active F22/F07 checkpoint
+
+F06 `ef821a689cfeb31b75bf737e29199094865850e9` was committed, pushed and read
+back from `origin/main`; the coordination update `c456432` was also pushed while
+preserving unrelated shell edits. Exact Actionlint 37127402424 and GolangCI-Lint
+37127402443 succeeded; CI 37127402456 also succeeded for the exact commit.
+
+The isolated F22 source has been integrated into main while preserving V41,
+Team-role routes/rules and shared reset helpers. Final local check/test passed
+with 990 Vitest cases in 69 files. The actual Team workflow focus passed on both
+databases (215.926 seconds); a final correction removes Key availability from the
+platform Team filter while preserving its authorized provider dimensions. The
+complete final matrix is running against that final source. Actual native calls,
+process restart and browser proof establish two actors/two requests/ten known
+Tokens, empty member Personal usage, actor-only history, stale-result removal
+upon revoked membership, exact rejoin totals, bilingual views and platform
+Team/provider filtering without fabricated Keys. Owned acceptance resources were
+removed; F22 remains partial for broader complete freshness/capacity acceptance.
+
+F07 production, fixture and frontend owners work only in the separate
+`project-authority` worktree. Canonical Project/actor/manager/model checks retain
+valid direct-platform/current-manager distinctions and stable manager relation
+IDs; alias inputs must leave relationships, audit and publication unchanged.
+Private Project detail data and actions are hidden during renewed authorization
+or errors and cannot be restored by old actor/resource responses. Source local
+verification is progressing; real database and final main acceptance are pending.
+No F07 completion or commit is claimed. The overall objective remains active.
+
+
+## Accepted F22 source ready for main delivery
+
+The final complete PostgreSQL/MySQL matrix passed (Handler 745.019 seconds;
+Service 6.692 seconds) and removed its owned resources. All mandatory checks and
+actual native/browser/restart proof are green for final F22 source, including
+990 Vitest cases in 69 files. F22 remains partial for broader freshness/capacity
+acceptance; totals remain 10 completed, 17 partial and 3 not started. Exact F06
+CI 37127402456, Actionlint 37127402424 and GolangCI-Lint 37127402443 all succeeded.
+The final F22 commit is identified through Git history rather than an invented
+self-referencing SHA. Next complete the isolated F07 authority fixture, actual
+both-database focus, final main integration/checks and controlled runtime proof.
+The full objective remains active; no pause or overall completion is claimed.

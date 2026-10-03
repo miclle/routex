@@ -172,7 +172,7 @@ The binary capability count is 10 completed, 17 partially completed, and 3 not s
 | F19 | Member overview, model sources, requests, and examples | Partially completed | Actor-scoped Personal/Team source attribution, native metadata, filters, details and examples are available; Project requests and text-only native Chat Team Sessions exist; Personal/Team model-request coverage, further Team protocols and broader price/usage facts remain open. |
 | F20 | Playground, comparison, attachments, and code examples | Partially completed | Four native conversation paths, two-to-four-lane comparison, cancellation, executable examples, per-protocol image/PDF discovery, user/Project attachment resolution, single/comparison attachment lifecycle interfaces, and conservative token/TPM/money admission with exact per-occurrence media prices exist; external acceptance remains open. |
 | F21 | Personal, Project, and platform call records and CSV | Completed | Isolated list/detail queries, incremental loading, redacted drawers, bounded server-side CSV export, filter parity, formula protection, and bilingual download actions are implemented with dual-database evidence. |
-| F22 | Usage trends, amounts, and multidimensional filters | Partially completed | Personal, Project, and platform usage interfaces plus immutable Provider attribution exist; Team attribution and complete freshness/capacity acceptance remain open. |
+| F22 | Usage trends, amounts, and multidimensional filters | Partially completed | Personal, Team, Project and platform usage interfaces plus immutable Provider attribution exist. Current-member Team aggregation, independent historical platform filters, revocation-safe interfaces and controlled replay/restart are accepted; complete freshness/capacity acceptance remains open. |
 | F23 | Operations overview, quality, alerts, and notifications | Partially completed | The real-data operations overview, immutable Provider-attempt quality, revisioned success/P95 thresholds, grouped Provider-quality and route-unavailable alerts, recipient-isolated history, independent severity settings, and bounded durable operational SMTP delivery are implemented. Current-policy Personal/Project monthly settled-exhaustion inboxes have focused acceptance; external mail acceptance, bounce/inbox tracking, real-Provider quality acceptance, and broader quota/enterprise sources remain open. |
 | F24 | Read-only AI operations analysis and saved reports | Not started | Authorized analysis queries, saved definitions, evaluation, exports, and hostile-input acceptance are not implemented. |
 | F25 | Site presentation, language, and announcements | Completed | Durable site name, URL, logo, footer, default language, bilingual UI behavior, and announcement lifecycle are implemented. |
@@ -1853,3 +1853,42 @@ enterprise and operations boundaries remain open. Capability totals are 10
 completed, 17 partially completed and 3 not started. The objective remains active;
 F22 Team aggregate usage is proceeding in an isolated worktree with independent
 report/API, database-fixture and frontend owners.
+
+
+## Checked F22 Team usage reports, 2026-10-03
+
+The existing usage workspace defaults to Personal and offers named own active
+Teams with paginated selection and explicit expected context. Team reports use
+current exact enabled membership and active Team authority in the same read
+snapshot as immutable fact selection. Historical contributors remain counted
+without current membership joins. Canonical Team attribution excludes Personal,
+Project and Key facts before limits. Only model/trend/currency statistics appear;
+actor-only Team call history remains separate.
+
+Platform `team_id` filters require independent exact current `calls.read_all` and
+retain historical archived or missing-catalogue Team attribution. They cannot
+combine Personal-user, Project or Key filters. Authorized Provider dimensions
+remain available; Team-filtered platform reports do not advertise or fabricate
+Keys. The member interface validates exact target echo, cancels obsolete reads,
+resets filters on scope change and hides stale private data during renewed reads
+or errors. English-default and live Chinese workflows preserve exact counters,
+unknown coverage, decimal amounts and historical currency grouping.
+
+Final check/test passed with 990 Vitest cases in 69 files, Go race/unit,
+development lifecycle and production embedding. The real PostgreSQL/MySQL workflow
+focus passed (215.926 seconds), and the final complete matrix passed (Handler
+745.019 seconds; Service 6.692 seconds), including the final platform-dimension
+correction. No migration or new dependency was introduced.
+
+Controlled production native calls from two actors yielded two Team requests and
+ten known Tokens; member Personal usage stayed empty and each actor's Team call
+history contained one own call. Actual browser revocation removed old totals,
+rejoin restored immutable attribution, and process restart preserved the report.
+The platform Team filter retained authorized provider groups and omitted Keys.
+English was restored; browser errors were empty in the final administrator view;
+owned acceptance services, files and Compose resources were removed.
+
+F22 remains partial for complete freshness/capacity acceptance and broader scope.
+Capability totals remain 10 completed, 17 partial and 3 not started. Exact F06
+CI 37127402456, Actionlint 37127402424 and GolangCI-Lint 37127402443 succeeded.
+The overall objective continues with isolated F07 Project authority hardening.

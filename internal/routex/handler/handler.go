@@ -120,6 +120,7 @@ func (ctrl *Ctrl) RegisterRoutes(r *fox.Engine) {
 	projectKeys.POST("/:key_id/rotate", sameOrigin, requireCSRF, jsonManagementRequest, ctrl.RotateProjectKey)
 	projectKeys.POST("/:key_id/complete-rotation", sameOrigin, requireCSRF, jsonManagementRequest, ctrl.CompleteProjectKeyRotation)
 	identity.GET("/usage", ctrl.requireSession, ctrl.PersonalUsage)
+	identity.GET("/teams/:team_id/usage", ctrl.requireSession, ctrl.TeamUsage)
 	identity.GET("/projects/:project_id/usage", ctrl.requireSession, ctrl.ProjectUsage)
 	identity.GET("/calls", ctrl.requireSession, ctrl.ListPersonalCalls)
 	identity.GET("/calls/export.csv", ctrl.requireSession, ctrl.ExportPersonalCalls)

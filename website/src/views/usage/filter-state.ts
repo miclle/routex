@@ -9,7 +9,7 @@ export const defaultUsageFilters: UsageFilters = {
 export function readUsageFilters(
   data: FormData,
   admin: boolean,
-): UsageFilters | 'invalidRange' | 'invalidTimezone' | 'invalidPrincipal' {
+): UsageFilters | 'invalidRange' | 'invalidTimezone' | 'invalidPrincipal' | 'invalidTeamKey' {
   const value = (name: string) => String(data.get(name) ?? '').trim()
   const timezone = value('timezone') || 'UTC'
   try {
@@ -45,12 +45,14 @@ export function readUsageFilters(
     'status',
     'protocol',
     ...(admin
-      ? ['user_id', 'project_id', 'provider_id', 'provider_model_id', 'connection_id']
+      ? ['user_id', 'project_id', 'team_id', 'provider_id', 'provider_model_id', 'connection_id']
       : []),
   ]) {
     if (value(key)) Object.assign(next, { [key]: value(key) })
   }
   if (value('stream')) next.stream = value('stream') === 'true'
-  if (next.user_id && next.project_id) return 'invalidPrincipal'
+  if ([next.user_id, next.project_id, next.team_id].filter(Boolean).length > 1)
+    return 'invalidPrincipal'
+  if (next.team_id && next.key_id) return 'invalidTeamKey'
   return next
 }

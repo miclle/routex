@@ -1,6 +1,6 @@
 # Usage queries
 
-Usage reports aggregate immutable, deduplicated `call_records`. They provide request counts, reported token coverage, historical charges, time trends, model distributions, and Key rankings for Personal and Project principals. They do not read live quota counters or recalculate historical receipts.
+Usage reports aggregate immutable, deduplicated `call_records`. They provide request counts, reported token coverage, historical charges, time trends, model distributions, and Key rankings for Personal and Project principals. Team reports provide shared model/trend/currency aggregates without Key or contributor identities. They do not read live quota counters or recalculate historical receipts.
 
 ## Endpoints and authority
 
@@ -8,9 +8,10 @@ Usage reports aggregate immutable, deduplicated `call_records`. They provide req
 | ---------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `GET /api/v1/usage`                      | Current active account; only its Personal facts (`user_id` matches and `project_id` is empty), including revoked or rotated Keys.                                   |
 | `GET /api/v1/projects/:project_id/usage` | Current Project manager or `calls.read_all`; only that Project's facts. The creator has no implicit access. Disabled and archived Project history remains readable. |
+| `GET /api/v1/teams/:team_id/usage` | Exact current enabled active-Team membership; all canonical facts attributed to that Team, without contributor identities. |
 | `GET /api/v1/admin/usage`                | Current `calls.read_all` authority; installation-wide facts, optionally narrowed by principal or route.                                                             |
 
-A repeatable-read transaction checks current account/permissions/manager membership and selects facts from the same database snapshot. A membership change affects subsequent queries. Personal and Project results expose model and Key IDs; provider, provider-model, and connection dimensions are restricted to the administrative endpoint. Guessed filters never widen the caller's scope.
+A repeatable-read transaction checks current account/permissions/manager membership and selects facts from the same database snapshot. A membership change affects subsequent queries. Personal and Project results expose model and Key IDs; [Team results](TEAM_USAGE.md) expose model-only dimensions and an exact `team_id` echo, with empty Key groups; provider, provider-model, and connection dimensions are restricted to the administrative endpoint. Guessed filters never widen the caller's scope.
 
 ## Query contract
 
@@ -54,8 +55,30 @@ Provider topology is recorded only after an upstream attempt enters execution. A
 
 Each requested period must be positive and no longer than 366 elapsed days. Each period is limited to 1,000 buckets and each distribution to 500 distinct IDs. The combined current/comparison selection is limited to 10,000 facts. The query reads at most 10,001 rows to detect overflow and excludes receipt JSON and attempt bodies; aggregation is portable Go code over a bounded selection. Database authorization and selection share a five-second timeout. Invalid ranges return `400`; row, bucket, or dimension overflow returns `422` with no partial report. Narrow the range or filters and retry. Query cancellation/deadline failure returns a generic `503`.
 
-The bilingual Personal, Project and platform interfaces provide filters, summary cards, trends, model/Key distributions and rankings using these reports. The platform interface additionally provides a Provider ID filter and provider, provider-model, and connection distributions with immutable historical labels. Personal and Project responses omit those topology dimensions. Exact values and unknown coverage remain visible. Team Session facts retain immutable Team/member attribution and are excluded from Personal reports. Platform reports include their recorded usage and prices without fabricating a Key ranking. Dedicated Team aggregate report interfaces, usage CSV export, forecasts, and background rollups remain open. Large installations will need indexed rollups or another explicitly complete aggregation path instead of increasing these synchronous bounds without evaluation.
+The bilingual Personal, Project and platform interfaces provide filters, summary cards, trends, model/Key distributions and rankings using these reports. The platform interface additionally provides a Provider ID filter and provider, provider-model, and connection distributions with immutable historical labels. Personal and Project responses omit those topology dimensions. Exact values and unknown coverage remain visible. Team Session facts retain immutable Team/member attribution and are excluded from Personal reports. Platform reports include their recorded usage and prices without fabricating a Key ranking. The existing usage page defaults to Personal and offers named own active Teams; Team mode suppresses Key controls and stale private results during refresh or authorization errors. Platform reports support an exact historical `team_id` filter under independent `calls.read_all`, omitting Key dimensions for that filter while preserving authorized provider diagnostics. Team filters cannot combine Personal-user, Project or Key attribution. Usage CSV export, forecasts, and background rollups remain open. Large installations will need indexed rollups or another explicitly complete aggregation path instead of increasing these synchronous bounds without evaluation.
 
 ## Verification
 
 Pure tests cover exact decimal/token sums, mixed currencies, free and unknown charges, partial token counters, zero-filled buckets, immutable historical labels, scope-safe filters, strict query parsing, DST hour/day boundaries, leap months, equal-duration comparison, and cardinality/range rejection. `testUsageLifecycle` is part of the coordinated PostgreSQL/MySQL harness: it exercises canonical replay, Personal/Project/platform isolation, creator-versus-manager history access, live membership/account revocation, guessed Key/model/provider filters, archived Project history, route redaction, rename-stable provider history, and complete-versus-overflow boundaries including comparison rows. The migration lifecycle covers empty creation, existing-data upgrade, partial-DDL recovery, repeat execution, concurrent startup, field constraints, and provider-index restoration on both supported databases.
+
+
+## Team report verification checkpoint
+
+The Team workflow focus passed on actual PostgreSQL/MySQL (Handler 215.926
+seconds), including exact identity/scope, unknown counters, decimal currencies,
+canonical replay, independent connection reopen, member revocation, historical
+contributors, platform history and bounded complete-read overflow. Final main
+check and test passed with 990 Vitest cases in 69 files, Go race/unit, development
+lifecycle and embedded production assets. The final complete matrix passed (Handler 745.019 seconds; Service 6.692
+seconds), including the final platform Team-dimension correction.
+
+A disposable production binary recorded one native Team call from each of two
+actors. Both see two requests and ten known Tokens in the Team report; the member
+Personal report remains empty and actor-only Team history contains one call.
+Removing membership and refreshing the real English/Chinese interface hides the
+old aggregate and denies access. Rejoining restores the same immutable aggregate;
+an independent process restart preserves it. The platform Team filter displays
+the same totals with authorized provider groups and no fabricated Key controls.
+Owned browser/process/config/journal/Compose resources were removed. This evidence
+does not establish measured capacity, external providers or complete release
+acceptance; F22 remains partial.

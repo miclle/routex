@@ -356,3 +356,17 @@ Changed role definitions require explicit review. Never query role or candidate
 data from a minimal quota-only projection. Keep English/Chinese role copy in
 `resources`, hide stale authority on refresh/denial, and distinguish saved role
 assignment from runtime policy publication.
+
+
+## Team usage reports
+
+Team aggregate usage belongs in the existing usage workspace with a compact
+Personal/own-Team selector. Fetch only the caller's scoped, paginated active Team
+list; an expected `?team=` context never authorizes access. Keep actor, exact Team
+and filters in query identities, cancel obsolete reads, and suppress stale private
+reports during renewed reads or errors. Validate the exact `team_id` echo and
+model-only dimensions. Team mode omits Key controls, rankings and provider
+breakdowns while preserving existing cards, trends, model groups, historical
+currency amounts and unknown coverage. Shared Team reports never expand actor-only
+Team call history. Administrative Team filtering requires independent
+`calls.read_all` and cannot combine Personal-user or Project subject selectors.

@@ -23,15 +23,18 @@ func (s *Service) AdminUsage(ctx context.Context, actorID string, filter UsageFi
 	return s.queryUsage(ctx, actorID, "admin", "", filter)
 }
 func validateUsageFilter(filter UsageFilter, admin bool) error {
-	if !admin && (filter.UserID != "" || filter.ProjectID != "" || filter.ProviderID != "" || filter.ProviderModelID != "" || filter.ConnectionID != "") {
+	if !admin && (filter.UserID != "" || filter.ProjectID != "" || filter.TeamID != "" || filter.ProviderID != "" || filter.ProviderModelID != "" || filter.ConnectionID != "") {
 		return apperrors.ErrBadRequest
 	}
-	for _, value := range []string{filter.ModelID, filter.KeyID, filter.UserID, filter.ProjectID, filter.ProviderID, filter.ProviderModelID, filter.ConnectionID} {
+	for _, value := range []string{filter.ModelID, filter.KeyID, filter.UserID, filter.ProjectID, filter.TeamID, filter.ProviderID, filter.ProviderModelID, filter.ConnectionID} {
 		if value != "" && !safeCallID.MatchString(value) {
 			return apperrors.ErrBadRequest
 		}
 	}
 	if filter.UserID != "" && filter.ProjectID != "" {
+		return apperrors.ErrBadRequest
+	}
+	if filter.TeamID != "" && (filter.UserID != "" || filter.ProjectID != "" || filter.KeyID != "") {
 		return apperrors.ErrBadRequest
 	}
 	if filter.Status != "" && filter.Status != "success" && filter.Status != "error" && filter.Status != "canceled" {
@@ -43,6 +46,9 @@ func validateUsageFilter(filter UsageFilter, admin bool) error {
 	return nil
 }
 func usageQueryFilters(query *gorm.DB, filter UsageFilter) *gorm.DB {
+	if filter.TeamID != "" {
+		query = teamUsageFacts(query, filter.TeamID)
+	}
 	for _, item := range []struct{ column, value string }{{"model_id", filter.ModelID}, {"key_id", filter.KeyID}, {"status", filter.Status}, {"protocol", filter.Protocol}, {"user_id", filter.UserID}, {"project_id", filter.ProjectID}, {"provider_id", filter.ProviderID}, {"provider_model_id", filter.ProviderModelID}, {"connection_id", filter.ConnectionID}} {
 		if item.value != "" {
 			query = query.Where(item.column+" = ?", item.value)
@@ -54,12 +60,26 @@ func usageQueryFilters(query *gorm.DB, filter UsageFilter) *gorm.DB {
 	return query
 }
 func authorizeUsage(tx *gorm.DB, actorID, scope, projectID string) error {
+	if scope == "team" {
+		return authorizeTeamCalls(tx, actorID, projectID)
+	}
+	if scope == "admin" {
+		actor, err := exactEnabledActor(tx, actorID)
+		if err != nil {
+			return err
+		}
+		allowed, err := exactGovernancePermission(tx, actor, "calls.read_all")
+		if err != nil {
+			return err
+		}
+		if !allowed {
+			return apperrors.ErrForbidden
+		}
+		return nil
+	}
 	permissions, err := permissionsFor(tx, actorID)
 	if err != nil {
 		return err
-	}
-	if scope == "admin" && !slices.Contains(permissions, "calls.read_all") {
-		return apperrors.ErrForbidden
 	}
 	if scope != "project" {
 		return nil
@@ -90,6 +110,9 @@ func (s *Service) queryUsage(ctx context.Context, actorID, scope, projectID stri
 	if err := validateUsageFilter(filter, admin); err != nil {
 		return nil, err
 	}
+	if scope == "team" && filter.KeyID != "" {
+		return nil, apperrors.ErrBadRequest
+	}
 	now := time.Now().UTC()
 	plan, err := planUsage(filter, now)
 	if err != nil {
@@ -108,12 +131,14 @@ func (s *Service) queryUsage(ctx context.Context, actorID, scope, projectID stri
 		if err := authorizeUsage(tx, actorID, scope, projectID); err != nil {
 			return err
 		}
-		query := tx.Model(&entity.CallRecord{}).Select([]string{"request_id", "key_id", "team_id", "model_id", "model_name", "provider_id", "provider_name", "provider_model_id", "upstream_model_name", "connection_id", "connection_name", "status", "started_at", "completed_at", "duration_ms", "input_tokens", "output_tokens", "pricing_status", "charge_amount", "charge_currency"}).Where("started_at >= ? AND started_at < ?", from, plan.current.to)
+		query := tx.Model(&entity.CallRecord{}).Select(usageFactColumns(scope)).Where("started_at >= ? AND started_at < ?", from, plan.current.to)
 		switch scope {
 		case "personal":
 			query = query.Where("user_id = ? AND project_id = ? AND team_id = ?", actorID, "", "")
 		case "project":
 			query = query.Where("project_id = ?", projectID)
+		case "team":
+			query = teamUsageFacts(query, projectID)
 		}
 		// An admin user filter selects Personal attribution, not Team actors or Project creators.
 		if filter.UserID != "" {
@@ -122,6 +147,15 @@ func (s *Service) queryUsage(ctx context.Context, actorID, scope, projectID stri
 		query = usageQueryFilters(query, filter)
 		if err := query.Order("started_at ASC").Order("request_id ASC").Limit(usageRowLimit + 1).Find(&rows).Error; err != nil {
 			return err
+		}
+		teamID := filter.TeamID
+		if scope == "team" {
+			teamID = projectID
+		}
+		if teamID != "" {
+			if err := validateTeamUsageFacts(rows, teamID); err != nil {
+				return err
+			}
 		}
 		if len(rows) > usageRowLimit {
 			return usageTooLarge
@@ -138,16 +172,16 @@ func (s *Service) queryUsage(ctx context.Context, actorID, scope, projectID stri
 	if err != nil {
 		return nil, err
 	}
-	result := &UsageReport{Timezone: plan.location.String(), Granularity: plan.grain, QueriedAt: now, Source: "persisted_call_records", MayLag: true, Current: current, AvailableDimensions: []string{"model", "key"}}
+	result := &UsageReport{Timezone: plan.location.String(), Granularity: plan.grain, QueriedAt: now, Source: "persisted_call_records", MayLag: true, Current: current, AvailableDimensions: usageDimensions(scope, filter)}
+	if scope == "team" {
+		result.TeamID = projectID
+	}
 	if plan.previous != nil {
 		previous, err := aggregateUsage(rows, *plan.previous, plan, admin)
 		if err != nil {
 			return nil, err
 		}
 		result.Previous = &previous
-	}
-	if admin {
-		result.AvailableDimensions = append(result.AvailableDimensions, "provider", "provider_model", "connection")
 	}
 	for _, row := range rows {
 		if result.LatestCompletedAt == nil || row.CompletedAt.After(*result.LatestCompletedAt) {

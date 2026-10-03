@@ -125,6 +125,10 @@ beforeEach(async () => {
       response.data = { permissions: allowed ? ['calls.read_all'] : [] }
       return response
     }
+    if (config.url === '/teams') {
+      response.data = { items: [], next_cursor: null }
+      return response
+    }
     if (errorCode) {
       response.status = errorCode
       throw new AxiosError('fixture query failed', '', config, undefined, response)
@@ -287,6 +291,19 @@ describe('usage reports', () => {
       dimension.dispatchEvent(new Event('change', { bubbles: true }))
     })
     expect(container.textContent).toContain('Historical connection')
+  })
+  it('supports an explicit platform Team filter and rejects combined resource principals', async () => {
+    await render(<UsagePage admin />)
+    await input('team_id', 'tea_one')
+    await submit()
+    expect(usageRequests().at(-1)?.params).toMatchObject({ team_id: 'tea_one' })
+    expect(container.querySelector('[name="key_id"]')).toBeNull()
+    expect(container.textContent).not.toContain('key_rotated')
+    const count = usageRequests().length
+    await input('user_id', 'usr_other')
+    await submit()
+    expect(container.textContent).toContain('Choose only one Personal user, Project, or Team')
+    expect(usageRequests()).toHaveLength(count)
   })
   it('handles complete-report overflow and recovers without fabricating totals', async () => {
     errorCode = 422

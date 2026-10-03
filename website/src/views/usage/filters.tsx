@@ -1,4 +1,4 @@
-import { useId, useState, type FormEvent } from 'react'
+import { useId, useState, type ReactNode, type FormEvent } from 'react'
 import { useTranslation } from 'react-i18next'
 import { FormField } from '@/components/app/CatalogUI'
 import { Input } from '@/components/ui/input'
@@ -9,11 +9,15 @@ import { defaultUsageFilters, readUsageFilters } from './filter-state'
 
 export default function UsageFiltersForm({
   admin,
+  team = false,
+  sourceControl,
   models,
   keys,
   onApply,
 }: {
   admin: boolean
+  team?: boolean
+  sourceControl?: ReactNode
   models: UsageGroup[]
   keys: UsageGroup[]
   onApply: (filters: UsageFilters) => void
@@ -78,6 +82,7 @@ export default function UsageFiltersForm({
             ))}
           </select>
         </FormField>
+        {sourceControl}
         <FormField label={t('timezone')}>
           <Input name="timezone" defaultValue="UTC" list={`${id}-zones`} className="w-44" />
         </FormField>
@@ -86,16 +91,20 @@ export default function UsageFiltersForm({
             <option key={zone} value={zone} />
           ))}
         </datalist>
-        <FormField label={t('key')}>
-          <Input name="key_id" placeholder={t('all')} list={`${id}-keys`} className="w-44" />
-        </FormField>
-        <datalist id={`${id}-keys`}>
-          {keys
-            .filter((group) => group.id)
-            .map((group) => (
-              <option key={group.id} value={group.id} />
-            ))}
-        </datalist>
+        {!team && (
+          <>
+            <FormField label={t('key')}>
+              <Input name="key_id" placeholder={t('all')} list={`${id}-keys`} className="w-44" />
+            </FormField>
+            <datalist id={`${id}-keys`}>
+              {keys
+                .filter((group) => group.id)
+                .map((group) => (
+                  <option key={group.id} value={group.id} />
+                ))}
+            </datalist>
+          </>
+        )}
         <FormField label={t('model')}>
           <Input name="model_id" placeholder={t('all')} list={`${id}-models`} className="w-44" />
         </FormField>
@@ -152,8 +161,8 @@ export default function UsageFiltersForm({
               <option value="">{t('all')}</option>
               <option value="openai_chat">{t('chat')}</option>
               <option value="openai_responses">{t('responses')}</option>
-              <option value="anthropic_messages">Anthropic Messages</option>
-              <option value="gemini_generate_content">Gemini Generate Content</option>
+              <option value="anthropic_messages">{t('messages')}</option>
+              <option value="gemini_generate_content">{t('gemini')}</option>
             </select>
           </FormField>
           {admin &&
@@ -161,6 +170,7 @@ export default function UsageFiltersForm({
               [
                 ['user_id', 'user'],
                 ['project_id', 'project'],
+                ['team_id', 'team'],
                 ['provider_id', 'provider'],
                 ['connection_id', 'connection'],
                 ['provider_model_id', 'providerModel'],
