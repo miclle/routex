@@ -17,13 +17,13 @@ export default {
   teamExpectedModelUnavailable:
     'The requested model is not currently callable in this Team. Select an available model.',
   teamInvalidModels: 'The Team model or membership response is invalid.',
+  teamRefreshRequired:
+    'The call could not complete. Refresh Team access and reload its models before retrying.',
   teamRequestFailed:
     'Team session request failed (HTTP {{status}}). Refresh your session or Team access before retrying.',
   teamTextOnly:
-    'Team Sessions support text conversations through the available native protocols. Attachments, comparison and code export are unavailable. Your own Team calls are recorded separately.',
+    'Team Sessions support text conversations and comparison through the available native protocols. Attachments and code export are unavailable. Your own Team calls are recorded separately.',
   teamAttachmentsUnavailable: 'Team Sessions do not support attachments',
-  teamComparisonUnavailable:
-    'Team Sessions do not support model comparison. Return to conversation or explicitly use an API Key.',
   useKey: 'Use an API Key',
 
   getCode: 'Get code',

@@ -69,6 +69,25 @@ type Exchange = ChatResult & {
   error: string | GatewayError
 }
 
+function completedTextStatus(
+  result: ChatResult & { nonTextOutput?: boolean },
+  nativeStatus: Exchange['status'],
+): Exchange['status'] {
+  if (nativeStatus !== 'completed') return nativeStatus
+  if (result.refused) return 'refused'
+  if (result.nonTextOutput) return 'handoff'
+  return result.text.trim() ? 'completed' : 'incomplete'
+}
+
+function isCompletedText(exchange: Exchange) {
+  return (
+    exchange.status === 'completed' &&
+    !exchange.refused &&
+    !exchange.nonTextOutput &&
+    !!exchange.text.trim()
+  )
+}
+
 const maxAttachmentBytes = 2 << 20
 const maxAttachments = 4
 
@@ -435,17 +454,10 @@ export default function ChatWorkbench({
     const stream = form.get('stream') === 'on'
     const messages: ChatMessage[] = [
       ...(system ? [{ role: 'system' as const, content: system }] : []),
-      ...exchanges
-        .filter(
-          (exchange) =>
-            exchange.status === 'completed' &&
-            (source !== 'team' ||
-              (!exchange.refused && !exchange.nonTextOutput && !!exchange.text.trim())),
-        )
-        .flatMap((exchange): ChatMessage[] => [
-          { role: 'user', content: exchange.prompt },
-          { role: 'assistant', content: exchange.text },
-        ]),
+      ...exchanges.filter(isCompletedText).flatMap((exchange): ChatMessage[] => [
+        { role: 'user', content: exchange.prompt },
+        { role: 'assistant', content: exchange.text },
+      ]),
     ]
     const id = crypto.randomUUID()
     const abort = new AbortController()
@@ -514,7 +526,7 @@ export default function ChatWorkbench({
           abort.signal,
           update,
         )
-        update({ ...result, status: result.generationStatus })
+        update({ ...result, status: completedTextStatus(result, result.generationStatus) })
       } else if (protocol === 'anthropic_messages') {
         const currentMessage: MessagesHistoryMessage | MessagesCurrentTurnMessage =
           submittedAttachments.length > 0
@@ -543,7 +555,7 @@ export default function ChatWorkbench({
           abort.signal,
           update,
         )
-        update({ ...result, status: result.messageStatus })
+        update({ ...result, status: completedTextStatus(result, result.messageStatus) })
       } else if (protocol === 'openai_responses') {
         const currentItem: ResponsesHistoryItem | ResponsesCurrentTurnItem =
           submittedAttachments.length > 0
@@ -574,18 +586,16 @@ export default function ChatWorkbench({
         )
         update({
           ...result,
-          status:
-            source === 'team' && result.refused
-              ? 'refused'
-              : source === 'team' && result.responseStatus === 'completed' && result.nonTextOutput
-                ? 'handoff'
-                : result.responseStatus === 'completed'
-                  ? 'completed'
-                  : result.responseStatus === 'failed'
-                    ? 'failed'
-                    : result.responseStatus === 'incomplete'
-                      ? 'incomplete'
-                      : 'accepted',
+          status: completedTextStatus(
+            result,
+            result.responseStatus === 'completed'
+              ? 'completed'
+              : result.responseStatus === 'failed'
+                ? 'failed'
+                : result.responseStatus === 'incomplete'
+                  ? 'incomplete'
+                  : 'accepted',
+          ),
           error: result.responseStatus === 'failed' ? 'playground:failedHelp' : '',
         })
       } else {
@@ -620,18 +630,16 @@ export default function ChatWorkbench({
         )
         update({
           ...result,
-          status:
-            source === 'key'
-              ? 'completed'
-              : result.refused
-                ? 'refused'
-                : result.finishReason === 'stop' && !!result.text.trim()
+          status: completedTextStatus(
+            result,
+            result.refused || result.finishReason === 'content_filter'
+              ? 'refused'
+              : result.finishReason === 'tool_calls' || result.finishReason === 'function_call'
+                ? 'handoff'
+                : result.finishReason === 'stop'
                   ? 'completed'
-                  : result.finishReason === 'tool_calls' || result.finishReason === 'function_call'
-                    ? 'handoff'
-                    : result.finishReason === 'content_filter'
-                      ? 'refused'
-                      : 'incomplete',
+                  : 'incomplete',
+          ),
         })
       }
     } catch (failure) {
@@ -687,12 +695,10 @@ export default function ChatWorkbench({
       maxTokens: Number(form.get('max_tokens')),
       system: String(form.get('system') ?? ''),
       messages: [
-        ...exchanges
-          .filter((exchange) => exchange.status === 'completed')
-          .flatMap((exchange) => [
-            { role: 'user' as const, content: exchange.prompt },
-            { role: 'assistant' as const, content: exchange.text },
-          ]),
+        ...exchanges.filter(isCompletedText).flatMap((exchange) => [
+          { role: 'user' as const, content: exchange.prompt },
+          { role: 'assistant' as const, content: exchange.text },
+        ]),
         { role: 'user', content: prompt.trim() || t('playground:codePromptPlaceholder') },
       ],
     })

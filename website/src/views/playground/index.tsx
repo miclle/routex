@@ -3,7 +3,6 @@ import { Page } from '@/components/app/CatalogUI'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { useState } from 'react'
 import { useSession } from '@/hooks/use-auth'
-import { Button } from '@/components/ui/button'
 import { useSearchParams } from 'react-router'
 import ChatWorkbench from './chat'
 import CompareWorkbench from './compare'
@@ -55,20 +54,14 @@ function PlaygroundContext({
           />
         </TabsContent>
         <TabsContent value="compare">
-          {source === 'team' ? (
-            <div role="status" className="rounded-lg border p-5">
-              <p>{t('teamComparisonUnavailable')}</p>
-              <Button variant="outline" onClick={() => setSource('key')}>
-                {t('useKey')}
-              </Button>
-            </div>
-          ) : (
-            <CompareWorkbench
-              key={`compare:${actor}:${projectId}`}
-              projectId={projectId}
-              onSource={setSource}
-            />
-          )}
+          <CompareWorkbench
+            key={`compare:${actor}:${source}:${team}:${projectId}`}
+            projectId={projectId}
+            source={source}
+            teamId={team}
+            onSource={setSource}
+            onTeam={setTeam}
+          />
         </TabsContent>
       </Tabs>
     </Page>

@@ -146,7 +146,7 @@ async function teamRequest(
     },
     body: JSON.stringify(body),
   })
-  if (response.status === 401) window.dispatchEvent(new Event('routex:session-expired'))
+  if (response.status === 401) await confirmTeamSessionExpiry(signal)
   if (!response.ok)
     throw new GatewayError(
       () => t('playground:teamRequestFailed', { status: response.status }),
@@ -154,6 +154,34 @@ async function teamRequest(
       response.status,
     )
   return response
+}
+
+async function confirmTeamSessionExpiry(signal: AbortSignal) {
+  if (signal.aborted) return
+  const probe = new AbortController()
+  const abort = () => probe.abort()
+  signal.addEventListener('abort', abort, { once: true })
+  const timeout = setTimeout(abort, 5_000)
+  try {
+    // Native protocols retain upstream authentication errors. Only the current
+    // Session endpoint can confirm expiry; its private body is never consumed.
+    const response = await fetch('/api/v1/auth/session', {
+      method: 'GET',
+      credentials: 'same-origin',
+      redirect: 'error',
+      cache: 'no-store',
+      signal: probe.signal,
+    })
+    void response.body?.cancel().catch(() => {})
+    if (response.status === 401 && !signal.aborted && !probe.signal.aborted)
+      window.dispatchEvent(new Event('routex:session-expired'))
+  } catch {
+    // An unavailable or canceled confirmation never replaces the original
+    // native error or establishes that the Session has expired.
+  } finally {
+    clearTimeout(timeout)
+    signal.removeEventListener('abort', abort)
+  }
 }
 
 function textItems(items: unknown) {

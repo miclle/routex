@@ -32,6 +32,8 @@ const request: ChatRequest = {
 beforeEach(() => vi.stubGlobal('fetch', vi.fn()))
 afterEach(() => {
   client.defaults.adapter = adapter
+  vi.useRealTimers()
+  vi.restoreAllMocks()
   vi.unstubAllGlobals()
 })
 function reply(data: unknown) {
@@ -44,7 +46,7 @@ function reply(data: unknown) {
   })
 }
 describe('Team Session transport', () => {
-  it('rejects attachment parts before dispatch and expires a denied Session independently of Key authentication', async () => {
+  it('rejects attachment parts before dispatch', async () => {
     await expect(
       runTeamChat(
         'tea_one',
@@ -65,14 +67,6 @@ describe('Team Session transport', () => {
       ),
     ).rejects.toThrow()
     expect(fetch).not.toHaveBeenCalled()
-    const expired = vi.fn()
-    window.addEventListener('routex:session-expired', expired)
-    vi.mocked(fetch).mockResolvedValue(new Response('{}', { status: 401 }))
-    await expect(
-      runTeamChat('tea_one', 'csrf', request, new AbortController().signal, vi.fn()),
-    ).rejects.toMatchObject({ status: 401 })
-    expect(expired).toHaveBeenCalledOnce()
-    window.removeEventListener('routex:session-expired', expired)
   })
   it('uses the explicit Team resource and native parser without an API Key', async () => {
     vi.mocked(fetch).mockResolvedValue(
@@ -474,5 +468,189 @@ describe('native Team text protocols', () => {
       runTeamGemini('tea_one', 'csrf', nativeGemini, abort.signal, vi.fn()),
     ).rejects.toThrow()
     expect(fetch).not.toHaveBeenCalled()
+  })
+})
+
+const teamAuthCases = [
+  {
+    protocol: 'Chat',
+    run: (signal: AbortSignal) => runTeamChat('tea_one', 'csrf', request, signal, vi.fn()),
+  },
+  {
+    protocol: 'Responses',
+    run: (signal: AbortSignal) =>
+      runTeamResponses('tea_one', 'csrf', nativeResponses, signal, vi.fn()),
+  },
+  {
+    protocol: 'Messages',
+    run: (signal: AbortSignal) =>
+      runTeamMessages('tea_one', 'csrf', nativeMessages, signal, vi.fn()),
+  },
+  {
+    protocol: 'Gemini',
+    run: (signal: AbortSignal) => runTeamGemini('tea_one', 'csrf', nativeGemini, signal, vi.fn()),
+  },
+]
+
+function deferred<T>() {
+  let resolve!: (value: T) => void
+  const promise = new Promise<T>((done) => {
+    resolve = done
+  })
+  return { promise, resolve }
+}
+
+describe.each(teamAuthCases)('$protocol native authentication failure', ({ run }) => {
+  const nativeFailure = (status = 401) =>
+    new Response('private upstream error', {
+      status,
+      headers: { 'X-Request-ID': 'req_original_native' },
+    })
+  const originalError = { status: 401, requestId: 'req_original_native' }
+
+  it.each([200, 403, 404, 503])(
+    'does not expire a Session when authoritative confirmation returns %s',
+    async (status) => {
+      const expired = vi.spyOn(window, 'dispatchEvent')
+      const session = Response.json({ private_session: 'never consume' }, { status })
+      const readBody = vi.spyOn(session, 'json')
+      const cancelBody = vi.spyOn(session.body!, 'cancel')
+      vi.mocked(fetch).mockResolvedValueOnce(nativeFailure()).mockResolvedValueOnce(session)
+      const controller = new AbortController()
+      await expect(run(controller.signal)).rejects.toMatchObject(originalError)
+      expect(expired).not.toHaveBeenCalled()
+      expect(fetch).toHaveBeenCalledTimes(2)
+      const [path, options] = vi.mocked(fetch).mock.calls[1]
+      expect(path).toBe('/api/v1/auth/session')
+      expect(options).toMatchObject({
+        method: 'GET',
+        credentials: 'same-origin',
+        redirect: 'error',
+        cache: 'no-store',
+      })
+      expect(options!.body).toBeUndefined()
+      expect(options!.headers).toBeUndefined()
+      expect(options!.signal!.aborted).toBe(false)
+      expect(readBody).not.toHaveBeenCalled()
+      expect(cancelBody).toHaveBeenCalledOnce()
+      // The completed probe has removed its link to the inference lifetime.
+      controller.abort()
+      expect(options!.signal!.aborted).toBe(false)
+    },
+  )
+
+  it('emits expiry only after the active authoritative Session read also returns 401', async () => {
+    const expired = vi.spyOn(window, 'dispatchEvent')
+    vi.mocked(fetch)
+      .mockResolvedValueOnce(nativeFailure())
+      .mockResolvedValueOnce(new Response('{}', { status: 401 }))
+    await expect(run(sig())).rejects.toMatchObject(originalError)
+    expect(expired).toHaveBeenCalledOnce()
+    expect(expired.mock.calls[0][0].type).toBe('routex:session-expired')
+    expect(fetch).toHaveBeenCalledTimes(2)
+    expect(vi.mocked(fetch).mock.calls.map(([, options]) => options?.method)).toEqual([
+      'POST',
+      'GET',
+    ])
+  })
+
+  it.each([403, 404, 429, 503])('does not probe or expire on native %s', async (status) => {
+    const expired = vi.spyOn(window, 'dispatchEvent')
+    vi.mocked(fetch).mockResolvedValueOnce(nativeFailure(status))
+    await expect(run(sig())).rejects.toMatchObject({ ...originalError, status })
+    expect(fetch).toHaveBeenCalledOnce()
+    expect(expired).not.toHaveBeenCalled()
+  })
+
+  it('keeps the original native error when Session confirmation fails or redirects', async () => {
+    const expired = vi.spyOn(window, 'dispatchEvent')
+    vi.mocked(fetch)
+      .mockResolvedValueOnce(nativeFailure())
+      .mockRejectedValueOnce(new TypeError('Session confirmation unavailable'))
+    await expect(run(sig())).rejects.toMatchObject(originalError)
+    expect(fetch).toHaveBeenCalledTimes(2)
+    expect(expired).not.toHaveBeenCalled()
+  })
+
+  it('does not begin confirmation after the original inference signal is canceled', async () => {
+    const expired = vi.spyOn(window, 'dispatchEvent')
+    const controller = new AbortController()
+    vi.mocked(fetch).mockImplementationOnce(async () => {
+      controller.abort()
+      return nativeFailure()
+    })
+    await expect(run(controller.signal)).rejects.toMatchObject(originalError)
+    expect(fetch).toHaveBeenCalledOnce()
+    expect(expired).not.toHaveBeenCalled()
+  })
+
+  it('links cancellation to a pending probe and ignores its late 401 completion', async () => {
+    const expired = vi.spyOn(window, 'dispatchEvent')
+    const controller = new AbortController()
+    const pending = deferred<Response>()
+    const began = deferred<void>()
+    vi.mocked(fetch)
+      .mockResolvedValueOnce(nativeFailure())
+      .mockImplementationOnce(() => {
+        began.resolve()
+        return pending.promise
+      })
+    const failure = run(controller.signal).catch((error: unknown) => error)
+    await began.promise
+    const probeSignal = vi.mocked(fetch).mock.calls[1][1]!.signal!
+    controller.abort()
+    expect(probeSignal.aborted).toBe(true)
+    pending.resolve(new Response('{}', { status: 401 }))
+    expect(await failure).toMatchObject(originalError)
+    expect(expired).not.toHaveBeenCalled()
+    expect(fetch).toHaveBeenCalledTimes(2)
+  })
+
+  it('bounds an unresponsive confirmation and preserves native failure on timeout', async () => {
+    vi.useFakeTimers()
+    const expired = vi.spyOn(window, 'dispatchEvent')
+    const controller = new AbortController()
+    const began = deferred<void>()
+    vi.mocked(fetch)
+      .mockResolvedValueOnce(nativeFailure())
+      .mockImplementationOnce((_, options) => {
+        began.resolve()
+        return new Promise((_, reject) => {
+          options!.signal!.addEventListener('abort', () => reject(options!.signal!.reason), {
+            once: true,
+          })
+        })
+      })
+    const failure = run(controller.signal).catch((error: unknown) => error)
+    await began.promise
+    await vi.advanceTimersByTimeAsync(5_000)
+    expect(await failure).toMatchObject(originalError)
+    expect(controller.signal.aborted).toBe(false)
+    expect(vi.mocked(fetch).mock.calls[1][1]!.signal!.aborted).toBe(true)
+    expect(expired).not.toHaveBeenCalled()
+    expect(fetch).toHaveBeenCalledTimes(2)
+    expect(vi.getTimerCount()).toBe(0)
+  })
+
+  it('ignores a late timeout response even when the original inference remains active', async () => {
+    vi.useFakeTimers()
+    const expired = vi.spyOn(window, 'dispatchEvent')
+    const controller = new AbortController()
+    const pending = deferred<Response>()
+    const began = deferred<void>()
+    vi.mocked(fetch)
+      .mockResolvedValueOnce(nativeFailure())
+      .mockImplementationOnce(() => {
+        began.resolve()
+        return pending.promise
+      })
+    const failure = run(controller.signal).catch((error: unknown) => error)
+    await began.promise
+    await vi.advanceTimersByTimeAsync(5_000)
+    pending.resolve(new Response('{}', { status: 401 }))
+    expect(await failure).toMatchObject(originalError)
+    expect(controller.signal.aborted).toBe(false)
+    expect(expired).not.toHaveBeenCalled()
+    expect(vi.getTimerCount()).toBe(0)
   })
 })

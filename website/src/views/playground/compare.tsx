@@ -1,5 +1,14 @@
 import type { SnippetInput } from '@/lib/playground-snippet'
 import CodeDialog from './code-dialog'
+import TeamPicker from './team-picker'
+import {
+  getTeamModels,
+  runTeamChat,
+  runTeamResponses,
+  runTeamMessages,
+  runTeamGemini,
+  teamInferencePath,
+} from '@/api/playground-team'
 import { AttachmentChips, AttachmentPicker } from './attachments'
 import { isGeminiModelName, protocolLabel } from '@/lib/protocols'
 import {
@@ -8,7 +17,7 @@ import {
   buildMessagesAttachmentContent,
   buildResponsesAttachmentContent,
 } from '@/lib/playground-attachments'
-import { useEffect, useLayoutEffect, useRef, useState, type FormEvent } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useRef, useState, type FormEvent } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Code, Plus, Send, Square, Trash2, X } from 'lucide-react'
 import { AttachmentError, deleteAttachment, uploadAttachment } from '@/api/attachments'
@@ -101,15 +110,38 @@ function makeLane(id: number, model?: GatewayModel): Lane {
   return { id, model: model?.id ?? '', protocol: protocols(model)[0] ?? 'openai_chat', turns: [] }
 }
 const selectClass = 'h-10 min-w-0 flex-1 rounded-md border bg-background px-3 text-sm'
-export default function CompareWorkbench({
-  projectId = '',
-  onSource,
-}: {
+type CompareProps = {
   projectId?: string
+  source?: 'key' | 'team'
+  teamId?: string
+  onTeam?: (team: string) => void
   onSource?: (source: 'key' | 'team') => void
-}) {
-  const { t } = useTranslation('playground')
+}
+export default function CompareWorkbench(props: CompareProps) {
   const session = useSession()
+  const actor = session.isError ? '' : (session.data?.user.id ?? '')
+  return (
+    <ComparisonSession
+      key={`${actor}:${props.source ?? 'key'}:${props.teamId ?? ''}:${props.projectId ?? ''}`}
+      {...props}
+      session={session}
+    />
+  )
+}
+function ComparisonSession({
+  projectId = '',
+  source = 'key',
+  teamId = '',
+  onTeam,
+  onSource,
+  session,
+}: CompareProps & { session: ReturnType<typeof useSession> }) {
+  const { t } = useTranslation('playground')
+  const actor = session.isError ? '' : (session.data?.user.id ?? '')
+  const freshSession = !session.isError && !session.isFetching && !!session.data
+  const liveSession = useRef(session.data)
+  const [teamConfirmed, setTeamConfirmed] = useState(false)
+  const epoch = useRef(0)
   const [codeRequest, setCodeRequest] = useState<SnippetInput | null>(null)
   const [key, setKey] = useState('')
   const [models, setModels] = useState<GatewayModel[]>([])
@@ -130,6 +162,11 @@ export default function CompareWorkbench({
   const csrfRef = useRef('')
   const lock = useRef(false)
   const mounted = useRef(true)
+  const teamVisible = source !== 'team' || (freshSession && teamConfirmed)
+  const visibleModels = teamVisible ? models : []
+  const visibleLanes = teamVisible
+    ? lanes
+    : lanes.map((lane) => ({ ...lane, model: '', turns: [] }))
   const requestRunning = lanes.some((lane) => lane.turns.some((turn) => turn.status === 'running'))
   const busy = loading || uploadingNames.length > 0 || requestRunning
   const laneCapabilities = lanes.map((lane) => {
@@ -155,6 +192,7 @@ export default function CompareWorkbench({
     ...(inputCapabilities.includes('pdf') ? ['application/pdf'] : []),
   ].join(',')
   const canAttach =
+    source === 'key' &&
     !!session.data &&
     !!attachmentTarget &&
     lanes.every((lane) => !!lane.model) &&
@@ -215,6 +253,38 @@ export default function CompareWorkbench({
           void deleteScopedAttachment(id, csrf, target).catch(() => undefined)
     }
   }, [])
+
+  const resetAuthority = useCallback(() => {
+    epoch.current += 1
+    verification.current?.abort()
+    verification.current = null
+    for (const abort of active.current.values()) abort.abort()
+    active.current.clear()
+    lock.current = false
+    setModels([])
+    setLanes([makeLane(1), makeLane(2)])
+    nextID.current = 3
+    setChecked(false)
+    setLoading(false)
+    setCodeRequest(null)
+  }, [])
+  useLayoutEffect(() => {
+    liveSession.current = freshSession ? session.data : undefined
+    if (source === 'team' && !freshSession) {
+      epoch.current += 1
+      verification.current?.abort()
+      for (const abort of active.current.values()) abort.abort()
+      active.current.clear()
+      lock.current = false
+    }
+  }, [freshSession, session.data, source])
+  const confirmTeam = useCallback(
+    (confirmed: boolean) => {
+      setTeamConfirmed(confirmed)
+      if (source === 'team' && !confirmed) resetAuthority()
+    },
+    [source, resetAuthority],
+  )
 
   async function selectAttachments(files: File[]) {
     if (!session.data || !canAttach || busy) return
@@ -306,6 +376,7 @@ export default function CompareWorkbench({
   }
 
   function changeKey(value: string) {
+    resetAuthority()
     clearDraftAttachments()
     setKey(value)
     setModels([])
@@ -316,18 +387,30 @@ export default function CompareWorkbench({
     setPrompt('')
   }
   async function verify() {
-    if (busy || lock.current || !key.trim()) return
+    if (
+      busy ||
+      lock.current ||
+      (source === 'key' ? !key.trim() : !teamConfirmed || !freshSession || !liveSession.current)
+    )
+      return
+    setError('')
+    const generation = epoch.current
+    if (source === 'team') resetAuthority()
+    const currentGeneration = source === 'team' ? epoch.current : generation
     lock.current = true
     setLoading(true)
-    setError('')
     const abort = new AbortController()
     verification.current = abort
     try {
-      const raw = await getGatewayModels(key.trim(), abort.signal)
+      const raw =
+        source === 'team'
+          ? await getTeamModels(teamId, abort.signal)
+          : await getGatewayModels(key.trim(), abort.signal)
+      if (!mounted.current || abort.signal.aborted || epoch.current !== currentGeneration) return
       const verifiedScope = raw[0]?.attachment_scope
       const verifiedProjectId = raw[0]?.attachment_project_id ?? ''
-      if (!mounted.current || abort.signal.aborted) return
       if (
+        source === 'key' &&
         projectId &&
         raw.length > 0 &&
         (verifiedScope !== 'project' || verifiedProjectId !== projectId)
@@ -341,18 +424,25 @@ export default function CompareWorkbench({
         return
       }
       const available = raw.filter((item) => protocols(item).length)
-      if (!mounted.current || abort.signal.aborted) return
       clearDraftAttachments()
       setModels(available)
       setLanes([makeLane(1, available[0]), makeLane(2, available[1] ?? available[0])])
       nextID.current = 3
       setChecked(true)
     } catch (failure) {
-      if (mounted.current && !abort.signal.aborted)
-        setError(failure instanceof GatewayError ? failure : 'verifyFailed')
+      if (mounted.current && !abort.signal.aborted && epoch.current === currentGeneration)
+        setError(
+          failure instanceof GatewayError
+            ? failure
+            : source === 'team'
+              ? 'teamUnavailable'
+              : 'verifyFailed',
+        )
     } finally {
-      lock.current = false
-      if (mounted.current) setLoading(false)
+      if (epoch.current === currentGeneration) {
+        lock.current = false
+        if (mounted.current) setLoading(false)
+      }
       if (verification.current === abort) verification.current = null
     }
   }
@@ -373,6 +463,7 @@ export default function CompareWorkbench({
   }
   function showCode(lane: Lane) {
     if (
+      source === 'team' ||
       !protocols(models.find((item) => item.id === lane.model)).includes(lane.protocol) ||
       busy ||
       attachments.length > 0
@@ -389,7 +480,13 @@ export default function CompareWorkbench({
       system: '',
       messages: [
         ...lane.turns
-          .filter((turn) => turn.status === 'completed')
+          .filter(
+            (turn) =>
+              turn.status === 'completed' &&
+              !turn.refused &&
+              !turn.nonTextOutput &&
+              !!turn.text.trim(),
+          )
           .flatMap((turn) => [
             { role: 'user' as const, content: turn.prompt },
             { role: 'assistant' as const, content: turn.text },
@@ -412,6 +509,8 @@ export default function CompareWorkbench({
     )
   }
   async function run(lane: Lane, text: string, submittedAttachments: Attachment[]) {
+    const generation = epoch.current
+    const csrf = liveSession.current?.csrf_token ?? ''
     const abort = new AbortController()
     active.current.set(lane.id, abort)
     const id = crypto.randomUUID(),
@@ -432,7 +531,13 @@ export default function CompareWorkbench({
       ),
     )
     const update = (patch: Partial<Turn>) => {
-      if (!mounted.current || active.current.get(lane.id) !== abort) return
+      if (
+        !mounted.current ||
+        abort.signal.aborted ||
+        epoch.current !== generation ||
+        active.current.get(lane.id) !== abort
+      )
+        return
       setLanes((current) =>
         current.map((item) =>
           item.id === lane.id
@@ -446,7 +551,13 @@ export default function CompareWorkbench({
     }
     const messages: ChatMessage[] = [
       ...lane.turns
-        .filter((turn) => turn.status === 'completed')
+        .filter(
+          (turn) =>
+            turn.status === 'completed' &&
+            !turn.refused &&
+            !turn.nonTextOutput &&
+            !!turn.text.trim(),
+        )
         .flatMap((turn): ChatMessage[] => [
           { role: 'user', content: turn.prompt },
           { role: 'assistant', content: turn.text },
@@ -455,8 +566,11 @@ export default function CompareWorkbench({
     const parameters = { model: lane.model, stream: true, temperature: 0.7, top_p: 1 }
     try {
       if (lane.protocol === 'gemini_generate_content') {
-        const result = await runGemini(
-          key.trim(),
+        const invoke =
+          source === 'team'
+            ? runTeamGemini.bind(null, teamId, csrf)
+            : runGemini.bind(null, key.trim())
+        const result = await invoke(
           {
             model: lane.model,
             stream: true,
@@ -493,8 +607,11 @@ export default function CompareWorkbench({
                 content: buildMessagesAttachmentContent(text, submittedAttachments),
               }
             : { role: 'user', content: text }
-        const result = await runMessages(
-          key.trim(),
+        const invoke =
+          source === 'team'
+            ? runTeamMessages.bind(null, teamId, csrf)
+            : runMessages.bind(null, key.trim())
+        const result = await invoke(
           {
             ...parameters,
             messages: [...(messages as MessagesHistoryMessage[]), currentMessage],
@@ -516,8 +633,11 @@ export default function CompareWorkbench({
                 content: buildResponsesAttachmentContent(text, submittedAttachments),
               }
             : { role: 'user', content: text }
-        const result = await runResponses(
-          key.trim(),
+        const invoke =
+          source === 'team'
+            ? runTeamResponses.bind(null, teamId, csrf)
+            : runResponses.bind(null, key.trim())
+        const result = await invoke(
           {
             ...parameters,
             input: [...(messages as ResponsesHistoryItem[]), currentItem],
@@ -528,14 +648,17 @@ export default function CompareWorkbench({
         )
         update({
           ...result,
-          status:
-            result.responseStatus === 'completed'
-              ? 'completed'
-              : result.responseStatus === 'failed'
-                ? 'failed'
-                : result.responseStatus === 'incomplete'
-                  ? 'incomplete'
-                  : 'accepted',
+          status: result.refused
+            ? 'refused'
+            : result.responseStatus === 'completed' && result.nonTextOutput
+              ? 'handoff'
+              : result.responseStatus === 'completed' && !!result.text.trim()
+                ? 'completed'
+                : result.responseStatus === 'failed'
+                  ? 'failed'
+                  : result.responseStatus === 'incomplete'
+                    ? 'incomplete'
+                    : 'accepted',
           error: result.responseStatus === 'failed' ? 'failedHelp' : '',
           duration: Math.round(performance.now() - started),
         })
@@ -547,8 +670,9 @@ export default function CompareWorkbench({
                 content: buildChatAttachmentContent(text, submittedAttachments),
               }
             : { role: 'user', content: text }
-        const result = await runChat(
-          key.trim(),
+        const invoke =
+          source === 'team' ? runTeamChat.bind(null, teamId, csrf) : runChat.bind(null, key.trim())
+        const result = await invoke(
           {
             ...parameters,
             messages: [...messages, currentMessage],
@@ -560,11 +684,48 @@ export default function CompareWorkbench({
         )
         update({
           ...result,
-          status: 'completed',
+          status:
+            result.refused || result.finishReason === 'content_filter'
+              ? 'refused'
+              : result.finishReason === 'tool_calls' || result.finishReason === 'function_call'
+                ? 'handoff'
+                : result.finishReason === 'stop' && !!result.text.trim()
+                  ? 'completed'
+                  : 'incomplete',
           duration: Math.round(performance.now() - started),
         })
       }
     } catch (failure) {
+      if (
+        source === 'team' &&
+        failure instanceof GatewayError &&
+        [401, 403, 404].includes(failure.status ?? 0) &&
+        !abort.signal.aborted &&
+        epoch.current === generation
+      ) {
+        resetAuthority()
+        setTeamConfirmed(false)
+        setError('teamRefreshRequired')
+        return
+      }
+      if (
+        abort.signal.aborted &&
+        active.current.get(lane.id) === abort &&
+        epoch.current === generation
+      ) {
+        setLanes((current) =>
+          current.map((item) =>
+            item.id === lane.id
+              ? {
+                  ...item,
+                  turns: item.turns.map((turn) =>
+                    turn.id === id ? { ...turn, status: 'cancelled' } : turn,
+                  ),
+                }
+              : item,
+          ),
+        )
+      }
       update({
         status: abort.signal.aborted ? 'cancelled' : 'failed',
         error: abort.signal.aborted
@@ -587,7 +748,7 @@ export default function CompareWorkbench({
       busy ||
       lock.current ||
       !prompt.trim() ||
-      !key.trim() ||
+      (source === 'key' ? !key.trim() : !teamConfirmed || !freshSession || !liveSession.current) ||
       !lanes.every(
         (lane) =>
           lane.model &&
@@ -596,6 +757,7 @@ export default function CompareWorkbench({
     )
       return
     lock.current = true
+    const generation = epoch.current
     const captured = prompt.trim()
     const submittedAttachments = attachmentRef.current
     attachmentGeneration.current += 1
@@ -607,7 +769,7 @@ export default function CompareWorkbench({
     try {
       await Promise.allSettled(lanes.map((lane) => run(lane, captured, submittedAttachments)))
     } finally {
-      lock.current = false
+      if (epoch.current === generation) lock.current = false
       void releaseAttachments(submittedAttachments)
     }
   }
@@ -624,7 +786,7 @@ export default function CompareWorkbench({
               <select
                 name="comparison_source"
                 aria-label={t('source')}
-                value="key"
+                value={source}
                 onChange={(event) => onSource(event.target.value as 'key' | 'team')}
                 className="h-11 w-full rounded-md border bg-background px-3 text-sm"
               >
@@ -633,37 +795,57 @@ export default function CompareWorkbench({
               </select>
             </FormField>
           )}
-          <fieldset disabled={busy} className="min-w-[280px] space-y-2">
-            <FormField label={t('key')}>
-              <Input
-                aria-label={t('comparisonKey')}
-                name="comparison_key"
-                type="password"
-                autoComplete="off"
-                value={key}
-                onValueChange={changeKey}
-                placeholder={t('keyPlaceholder')}
+          {source === 'team' ? (
+            <div className="min-w-[280px] space-y-2">
+              <TeamPicker
+                actor={freshSession ? actor : ''}
+                value={teamId}
+                onChange={(value) => onTeam?.(value)}
+                onConfirmed={confirmTeam}
               />
-            </FormField>
-            <div className="flex gap-2">
+              <p className="text-xs text-muted-foreground">{t('teamTextOnly')}</p>
               <Button
                 size="sm"
                 variant="outline"
-                disabled={!key.trim() || busy}
+                disabled={busy || !freshSession || !teamConfirmed}
                 onClick={() => void verify()}
               >
-                {t(loading ? 'verifying' : 'verify')}
-              </Button>
-              <Button
-                size="sm"
-                variant="ghost"
-                disabled={!key || busy}
-                onClick={() => changeKey('')}
-              >
-                {t('clearKey')}
+                {t(loading ? 'verifying' : 'teamLoadModels')}
               </Button>
             </div>
-          </fieldset>
+          ) : (
+            <fieldset disabled={busy} className="min-w-[280px] space-y-2">
+              <FormField label={t('key')}>
+                <Input
+                  aria-label={t('comparisonKey')}
+                  name="comparison_key"
+                  type="password"
+                  autoComplete="off"
+                  value={key}
+                  onValueChange={changeKey}
+                  placeholder={t('keyPlaceholder')}
+                />
+              </FormField>
+              <div className="flex gap-2">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  disabled={!key.trim() || busy}
+                  onClick={() => void verify()}
+                >
+                  {t(loading ? 'verifying' : 'verify')}
+                </Button>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  disabled={!key || busy}
+                  onClick={() => changeKey('')}
+                >
+                  {t('clearKey')}
+                </Button>
+              </div>
+            </fieldset>
+          )}
         </div>
         <div className="flex gap-2">
           <Button
@@ -691,11 +873,11 @@ export default function CompareWorkbench({
       )}
       {checked && !models.length && (
         <p role="status" className="p-4 text-sm">
-          {t('noModels')}
+          {t(source === 'team' ? 'teamNoModels' : 'noModels')}
         </p>
       )}
       <div className="flex min-h-0 flex-1 overflow-x-auto">
-        {lanes.map((lane, index) => (
+        {visibleLanes.map((lane, index) => (
           <section
             key={lane.id}
             aria-label={t('lane', { count: index + 1 })}
@@ -707,13 +889,13 @@ export default function CompareWorkbench({
                   className={selectClass}
                   aria-label={t('laneModel', { count: index + 1 })}
                   value={lane.model}
-                  disabled={!models.length || loading}
+                  disabled={!visibleModels.length || loading}
                   onChange={(event) => change(lane.id, event.target.value)}
                 >
                   <option value="" disabled>
                     {t('selectModel')}
                   </option>
-                  {models.map((item) => (
+                  {visibleModels.map((item) => (
                     <option key={item.id} value={item.id}>
                       {item.id}
                     </option>
@@ -723,7 +905,7 @@ export default function CompareWorkbench({
                   size="icon"
                   variant="ghost"
                   aria-label={t('laneCode', { count: index + 1 })}
-                  disabled={busy || attachments.length > 0 || !lane.model}
+                  disabled={source === 'team' || busy || attachments.length > 0 || !lane.model}
                   onClick={() => showCode(lane)}
                 >
                   <Code className="size-4" />
@@ -761,15 +943,17 @@ export default function CompareWorkbench({
                 </Badge>
                 {lane.model && (
                   <span className="text-xs text-muted-foreground">
-                    {lane.protocol === 'gemini_generate_content'
-                      ? isGeminiModelName(lane.model)
-                        ? `/v1beta/models/${encodeURIComponent(lane.model)}:streamGenerateContent`
-                        : '—'
-                      : lane.protocol === 'anthropic_messages'
-                        ? '/v1/messages'
-                        : lane.protocol === 'openai_chat'
-                          ? '/v1/chat/completions'
-                          : '/v1/responses'}
+                    {source === 'team'
+                      ? teamInferencePath(teamId, lane.protocol, lane.model, true)
+                      : lane.protocol === 'gemini_generate_content'
+                        ? isGeminiModelName(lane.model)
+                          ? `/v1beta/models/${encodeURIComponent(lane.model)}:streamGenerateContent`
+                          : '—'
+                        : lane.protocol === 'anthropic_messages'
+                          ? '/v1/messages'
+                          : lane.protocol === 'openai_chat'
+                            ? '/v1/chat/completions'
+                            : '/v1/responses'}
                   </span>
                 )}
               </div>
@@ -783,7 +967,22 @@ export default function CompareWorkbench({
                   size="sm"
                   variant="outline"
                   aria-label={t('stopLane', { count: index + 1 })}
-                  onClick={() => active.current.get(lane.id)?.abort()}
+                  onClick={() => {
+                    active.current.get(lane.id)?.abort()
+                    active.current.delete(lane.id)
+                    setLanes((current) =>
+                      current.map((item) =>
+                        item.id === lane.id
+                          ? {
+                              ...item,
+                              turns: item.turns.map((turn) =>
+                                turn.status === 'running' ? { ...turn, status: 'cancelled' } : turn,
+                              ),
+                            }
+                          : item,
+                      ),
+                    )
+                  }}
                 >
                   <Square className="size-3" aria-hidden="true" />
                   {t('stop')}
@@ -894,25 +1093,32 @@ export default function CompareWorkbench({
           }}
         />
         <div className="flex items-center justify-between gap-2">
-          <AttachmentPicker
-            accept={attachmentAccept}
-            disabled={busy || !canAttach || attachments.length >= maxAttachments}
-            label={
-              canAttach
-                ? t('attachFiles')
-                : attachmentTarget && models.length > 0
-                  ? t('attachmentUnsupported')
-                  : attachmentScope === 'project' || projectId
-                    ? t('attachmentProjectUnavailable')
-                    : t('attachmentUnsupported')
-            }
-            onFiles={(files) => void selectAttachments(files)}
-          />
+          {source === 'key' && (
+            <AttachmentPicker
+              accept={attachmentAccept}
+              disabled={busy || !canAttach || attachments.length >= maxAttachments}
+              label={
+                canAttach
+                  ? t('attachFiles')
+                  : attachmentTarget && models.length > 0
+                    ? t('attachmentUnsupported')
+                    : attachmentScope === 'project' || projectId
+                      ? t('attachmentProjectUnavailable')
+                      : t('attachmentUnsupported')
+              }
+              onFiles={(files) => void selectAttachments(files)}
+            />
+          )}
           <div className="flex justify-end">
             <Button
               type="submit"
               aria-label={t('sendAll')}
-              disabled={busy || !prompt.trim() || !lanes.every((lane) => lane.model)}
+              disabled={
+                busy ||
+                !prompt.trim() ||
+                !visibleLanes.every((lane) => lane.model) ||
+                (source === 'team' && (!teamConfirmed || !freshSession))
+              }
             >
               <Send className="size-4" aria-hidden="true" />
               {t(busy ? 'sending' : 'sendAll')}

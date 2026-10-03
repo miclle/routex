@@ -16,11 +16,11 @@ export default {
   teamNoModels: '此 Team 当前没有可调用的文本模型。',
   teamExpectedModelUnavailable: '此 Team 当前无法调用指定模型，请选择可用模型。',
   teamInvalidModels: 'Team 模型或成员资格响应无效。',
+  teamRefreshRequired: '此次调用未能完成。请刷新 Team 访问权限并重新加载模型后再重试。',
   teamRequestFailed: 'Team 会话请求失败（HTTP {{status}}）。请刷新会话或 Team 访问权限后重试。',
   teamTextOnly:
-    'Team 会话仅支持通过可用原生协议进行文本对话，暂不支持附件、模型比较和代码导出。你的 Team 调用记录单独保存。',
+    'Team 会话仅支持通过可用原生协议进行文本对话和模型比较，暂不支持附件和代码导出。你的 Team 调用记录单独保存。',
   teamAttachmentsUnavailable: 'Team 会话不支持附件',
-  teamComparisonUnavailable: 'Team 会话暂不支持模型比较。请返回模型对话，或明确选择 API Key。',
   useKey: '使用 API Key',
 
   getCode: '获取代码',

@@ -131,6 +131,22 @@ func testCredentialRetirementReadinessLifecycle(t *testing.T, db *gorm.DB) {
 		}
 		return result
 	}
+	// Advisory reads intentionally fail closed when publication is busy or changes
+	// across their transaction. Retry only these transient reads, never inference
+	// or mutations; domain blockers and missing completion evidence still fail
+	// immediately. Explicit contention tests below retain their original behavior.
+	readCoherent := func(cookie *http.Cookie) service.CredentialRetirementReadiness {
+		t.Helper()
+		deadline := time.Now().Add(5 * time.Second)
+		for {
+			result := read(cookie)
+			transient := slices.Contains(result.Blockers, "runtime_unavailable") || slices.Contains(result.Blockers, "runtime_stale")
+			if !transient || !time.Now().Before(deadline) {
+				return result
+			}
+			time.Sleep(10 * time.Millisecond)
+		}
+	}
 	expectStatus(t, identityRequest(router, "GET", path, "", nil, ""), 401)
 	expectStatus(t, identityRequest(router, "GET", path, "", writeCookie, ""), 403)
 	pending := read(readCookie)
@@ -157,7 +173,7 @@ func testCredentialRetirementReadinessLifecycle(t *testing.T, db *gorm.DB) {
 	if _, err := svc.WriteCredentialMetadata(ctx, admin.User.ID, prepared.ID, replacementMetadata.ETag, service.CredentialMetadataInput{Name: replacementMetadata.Name, Priority: &priority, Reason: "Route reviewed replacement for actual inference"}); err != nil {
 		t.Fatal(err)
 	}
-	withoutProof := read(readCookie)
+	withoutProof := readCoherent(readCookie)
 	if withoutProof.Eligible || withoutProof.Evidence != nil || !slices.Contains(withoutProof.Blockers, "evidence_missing") {
 		t.Fatal("verification/enablement alone became completed inference")
 	}
@@ -182,7 +198,7 @@ func testCredentialRetirementReadinessLifecycle(t *testing.T, db *gorm.DB) {
 	}
 	responseBody.Store(completed)
 	actual := call()
-	ready := read(readCookie)
+	ready := readCoherent(readCookie)
 	if !ready.Eligible || ready.Evidence == nil || ready.SnapshotID == nil || len(ready.Blockers) != 0 || ready.EligibleRouteCount != 1 {
 		t.Fatalf("actual completed replacement inference not eligible: %+v", ready)
 	}

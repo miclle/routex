@@ -1,6 +1,6 @@
 # Playground
 
-Playground is a native conversation and model comparison client for native OpenAI Chat Completions, OpenAI Responses, Anthropic Messages, and Gemini Generate Content. Both workbenches support user-owned and Project-owned PNG, JPEG, and PDF attachments. It makes real requests; it does not synthesize responses or usage statistics. An explicit Team Session source supports text-only native Chat Completions, Responses, Messages and Gemini in the existing conversation workbench. Team comparison, attachments, code export and interactive tool execution remain separate work packages.
+Playground is a native conversation and model comparison client for native OpenAI Chat Completions, OpenAI Responses, Anthropic Messages, and Gemini Generate Content. Both workbenches support user-owned and Project-owned PNG, JPEG, and PDF attachments. It makes real requests; it does not synthesize responses or usage statistics. An explicit Team Session source supports text-only native Chat Completions, Responses, Messages and Gemini in both existing conversation and comparison workbenches. Team attachments and code export remain separate work packages; interactive tool execution is outside this text interface.
 
 ## Workflow
 
@@ -12,7 +12,7 @@ Playground is a native conversation and model comparison client for native OpenA
 6. Send a message. The page displays the submitted filenames under the user message, incremental text when streaming, the gateway Request ID, and upstream usage when supplied.
 7. Stop an active request to abort the browser fetch and close the response stream. Leaving the page also aborts active requests.
 
-Only successfully completed exchanges are included in later conversation context. Failed or canceled partial answers remain visible but are excluded from future requests. Changing the protocol, model, or Key clears the conversation. Clearing the Key also clears the model selection and conversation. Copy output copies only the selected answer; clipboard failures provide a manual-copy fallback message.
+Only native completed, non-empty text exchanges without refusal or non-text output are included in later conversation context. Failed or canceled partial answers remain visible but are excluded from future requests. Changing the protocol, model, or Key clears the conversation. Clearing the Key also clears the model selection and conversation. Copy output copies only the selected answer; clipboard failures provide a manual-copy fallback message.
 
 Model discovery returns effective protocol-specific image and PDF input
 capabilities plus one non-secret attachment scope for the entered credential.
@@ -91,13 +91,13 @@ Run `npm --prefix website test`, `npm --prefix website run lint`, and `npm --pre
 
 The Model conversation and Model comparison tabs keep separate transient workbenches. Switching tabs destroys the hidden workbench, aborts its active fetches, and clears its entered Key and history. The conversation workbench retains its existing settings/transcript layout.
 
-Comparison uses a shared credential toolbar, two initial model columns, and one shared message composer. Add comparison creates up to four columns; remove controls appear only above the two-column minimum. Columns scroll horizontally with a 300-pixel minimum width. Each column selects its own currently eligible Chat, Responses, Messages, or Gemini protocol and displays the actual endpoint, partial output, terminal status, Request ID, observed elapsed time, and authoritative usage. Verification uses one transient personal or Project Key, and models with explicit empty protocol capabilities are unavailable.
+Comparison uses a shared credential toolbar, two initial model columns, and one shared message composer. Add comparison creates up to four columns; remove controls appear only above the two-column minimum. Columns scroll horizontally with a 300-pixel minimum width. Each column selects its own currently eligible Chat, Responses, Messages, or Gemini protocol and displays the actual endpoint, partial output, terminal status, Request ID, observed elapsed time, and authoritative usage. Verification uses one transient personal or Project Key, or the selected active Team and current Session. Models with explicit empty protocol capabilities are unavailable.
 
 The shared composer preserves the approved chips-above-textarea layout, lower-left paperclip, and lower-right send action. Attachment types are the conservative intersection of every selected column's effective protocol capabilities, and every selected model must share the verified Key scope. One session/CSRF upload creates the shared transient draft; the same owner-bound references are encoded into each column's native current turn while requests and cancellation remain independent. Changing the scope, Key, a model, a protocol, or the column set invalidates and deletes the draft. After submission, object deletion starts only after every column settles and cannot block the next message; the durable one-hour expiry covers failed or interrupted cleanup.
 
 Send captures one message and concurrently dispatches an independent native request to each selected column. The comparison defaults are streaming, Temperature 0.7, Top P 1, and 2,048 maximum output Tokens. Per-column Stop only aborts that column; failure or cancellation does not stop siblings. Removing a column or changing its model/protocol cancels that column's request and clears only its history. Global sending waits until all current requests settle, with a synchronous guard against duplicate dispatch.
 
-Subsequent requests include only the successful text history of their own column. Failed, incomplete, accepted, and canceled turns remain visible but are excluded from later context. Submitted filenames remain visible under each column's user message without replaying object references. Clear all resets all histories; clearing/changing the Key also resets models and drafts. There are no simulated responses. Team Session inference is limited to the separate conversation tab and cannot enter comparison lanes.
+Subsequent requests include only the successful text history of their own column. Failed, incomplete, accepted, and canceled turns remain visible but are excluded from later context. Submitted filenames remain visible under each column's user message without replaying object references. Clear all resets all histories; clearing/changing the Key also resets models and drafts. There are no simulated responses. Explicit Team Session comparison uses the same four native protocols through separate cookie/CSRF requests for the exact Team. It shares no Personal or Project Key account or attachment scope.
 
 `website/src/views/playground/compare.test.tsx` covers the two-to-four column bounds, eligible protocols, shared-composer placement, capability intersection, concurrent native attachment bodies, independent histories/errors/cancellation, non-blocking cleanup, duplicate sends, context invalidation, credential clearing, stale multi-file upload termination, tab teardown, and bilingual accessibility/draft preservation. All client tests use controlled mocked transports, separate from paid-provider or real gateway acceptance.
 
@@ -138,7 +138,7 @@ Focused tests execute generated commands against a shell function, a stub Python
 Python 3 is optional for local frontend development: only the Python execution cases are explicitly skipped when `python3` is unavailable. Structural native-payload assertions and all other client checks still run. CI must provide Python 3 and verify it before invoking this test so that interpreter execution is never silently omitted from release evidence.
 
 
-## Explicit Team Session conversation
+## Explicit Team Session conversation and comparison
 
 API Key is the default credential source. Selecting Team Session loads only the
 signed-in actor's own active Teams, followed by independently authorized native
@@ -152,3 +152,26 @@ credentials, attachments and code drafts. Late callbacks cannot restore the old
 authority. Own-Team pickers and history are revalidated on remount, and denied
 responses hide stale rows and selected details. See [Team Session inference](TEAM_INFERENCE.md)
 for endpoint, publication, attribution and unfinished scope.
+
+
+## Native history and renewed authority
+
+Conversation and comparison apply the same completed-text criterion to both Key
+and Team sources. Known usage or a successful HTTP transport never makes a
+refusal, handoff, truncation, accepted result or empty output completed text. Such
+results remain visible with their native status and usage, but do not enter later
+inline history or generated code.
+
+Team comparison dispatches one independent request per lane. A lane cancellation
+leaves completed siblings intact. Renewed Session/Team reads abort stale work and
+clear models/history while retaining an unsent prompt; loading models and sending
+again require explicit actions. Changing actor, source or Team destroys transient
+state. A native 401 initiates a bounded five-second, no-store, same-origin Session
+probe. Only an authoritative 401 from the active probe expires the Session; an
+upstream 401, successful probe, network error, timeout or late cancellation cannot
+establish logout. Native permission failures clear stale comparison authority
+without inferring which server-side relationship changed.
+
+Team code export, parameter reset and Team-owned media remain named local F20
+gaps at this checkpoint. Browser/runtime evidence and external-provider
+acceptance are recorded separately in the implementation index.

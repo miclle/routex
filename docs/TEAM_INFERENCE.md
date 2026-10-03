@@ -32,8 +32,8 @@ Text-only Chat, Responses, Messages and Gemini use their native Team Session
 endpoints and independent terminal/usage semantics. Images, PDF input and attachment
 scalar references are rejected before storage reads or upstream dispatch. Opaque
 text and tool payloads retain their meaning; content positions are bounded and
-validated separately for each protocol. Team comparison, attachments and code
-export remain unfinished for this authentication source.
+validated separately for each protocol. Team comparison uses independently dispatched native text lanes. Attachments and
+code export remain unfinished for this authentication source.
 
 The same native attempt pipeline retains one durable logical admission, native
 terminal evidence, immutable usage and assessed prices. Team aggregate and stable
@@ -115,3 +115,19 @@ protocol, terminal usage, completed history, truncation failure, native-only
 catalogue links, revocation without dispatch and persisted Sessions.
 English/Chinese passed with English restored, no console errors and owned
 resource cleanup. These results do not establish external-provider acceptance.
+
+
+## Independent native comparison lanes
+
+The existing comparison workbench supports two to four current Team-native lanes
+with one shared prompt. Each lane has its own protocol request, cancellation,
+request ID, native completion and authoritative usage. Only completed plaintext
+turns enter that lane's future history. Finite admission/settlement remain separate
+Team aggregate and stable Team/User accounts; no Personal or Key attribution is
+introduced. Current model/member changes and renewals require fresh explicit
+discovery before new dispatch. Restart preserves the server Session and durable
+call facts while browser workbench credentials/history remain transient.
+
+Native 401 handling uses a bounded current Session probe; upstream rejection
+cannot establish Session expiry. Cancellation or late probe results cannot clear
+a newer authority. Source-specific media and code export are separate packages.

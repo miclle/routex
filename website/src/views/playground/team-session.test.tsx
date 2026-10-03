@@ -324,14 +324,15 @@ describe('Team Session Playground', () => {
     expect(host.textContent).toContain('requested model is not currently callable')
     expect(runTeamChat).not.toHaveBeenCalled()
   })
-  it('shows Team comparison as unsupported without dispatch or a Key fallback', async () => {
+  it('offers Team comparison without dispatch or a Key fallback', async () => {
     await teamReady()
     await act(async () =>
       [...host.querySelectorAll<HTMLButtonElement>('[role="tab"]')]
         .find((item) => item.textContent === 'Model comparison')!
         .click(),
     )
-    expect(host.textContent).toContain('Team Sessions do not support model comparison')
+    expect(host.textContent).toContain('Team Sessions support text conversations and comparison')
+    expect(host.querySelectorAll('section[aria-label^="Comparison "]')).toHaveLength(2)
     expect(host.querySelector('[name="comparison_key"]')).toBeNull()
     expect(runChat).not.toHaveBeenCalled()
     expect(runTeamChat).not.toHaveBeenCalled()

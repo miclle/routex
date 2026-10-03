@@ -169,8 +169,8 @@ The binary capability count is 10 completed, 17 partially completed, and 3 not s
 | F16 | Platform currency, exchange rates, and historical price snapshots | Completed | Decimal-string currency/rate management, exact quoting, and immutable per-call assessment are implemented. |
 | F17 | User and Team defaults, overrides, budgets, alerts, and stop policy | Partially completed | Personal, Project, Key and Team aggregate/member enforcement plus budget/token/TPM controls, authoritative quota snapshots, and installation-calendar configuration exist; current-policy Personal/Project monthly settled-exhaustion inboxes have focused acceptance, and creation-default settings and explicit restores have complete local acceptance; templates, broader alerts, and configurable stop-calling policy remain open. |
 | F18 | Quota, model, and request-limit approvals | Completed | Project model/monthly quota/RPM/TPM/concurrency and Team monthly Token/money requests have controlled acceptance: owner-first assignment, escalation, independent dimensions, read-only platform records, atomic final policies and immutable receipts with current application. Distributed acknowledgements belong to F30; release-wide acceptance remains separate. |
-| F19 | Member overview, model sources, requests, and examples | Partially completed | Actor-scoped Personal/Team source attribution, native metadata, filters, details and examples are available; Project requests and four text-only native Team Session protocols exist; Personal single-Model requests and independent scoped review are available; Shared Team model requests and independently scoped review are available; Team comparison/media/code export and broader overview/price/usage facts remain open. |
-| F20 | Playground, comparison, attachments, and code examples | Partially completed | Four native conversation paths, two-to-four-lane comparison, cancellation, executable examples, per-protocol image/PDF discovery, user/Project attachment resolution, single/comparison attachment lifecycle interfaces, and conservative token/TPM/money admission with exact per-occurrence media prices exist; external acceptance remains open. |
+| F19 | Member overview, model sources, requests, and examples | Partially completed | Actor-scoped Personal/Team source attribution, native metadata, filters, details and examples are available; Project requests and four text-only native Team Session protocols exist; Personal single-Model requests and independent scoped review are available; Shared Team model requests and independently scoped review are available; Two-to-four native Team text comparison lanes are implemented; Team media/code export and broader overview/price/usage facts remain open. |
+| F20 | Playground, comparison, attachments, and code examples | Partially completed | Four native conversation paths, two-to-four-lane comparison, cancellation, executable examples, per-protocol image/PDF discovery, user/Project attachment resolution, single/comparison attachment lifecycle interfaces, and conservative token/TPM/money admission with exact per-occurrence media prices exist; Team text comparison is implemented, while Team attachments/code export and parameter reset remain separate active packages; external acceptance remains open. |
 | F21 | Personal, Project, and platform call records and CSV | Completed | Isolated list/detail queries, incremental loading, redacted drawers, bounded server-side CSV export, filter parity, formula protection, and bilingual download actions are implemented with dual-database evidence. |
 | F22 | Usage trends, amounts, and multidimensional filters | Partially completed | Personal, Team, Project and platform usage interfaces plus immutable Provider attribution exist. Current-member Team aggregation, independent historical platform filters, revocation-safe interfaces and controlled replay/restart are accepted; complete freshness/capacity acceptance remains open. |
 | F23 | Operations overview, quality, alerts, and notifications | Partially completed | The real-data operations overview, immutable Provider-attempt quality, revisioned success/P95 thresholds, grouped Provider-quality and route-unavailable alerts, recipient-isolated history, independent severity settings, and bounded durable operational SMTP delivery are implemented. Current-policy Personal/Project monthly settled-exhaustion inboxes have focused acceptance; external mail acceptance, bounce/inbox tracking, real-Provider quality acceptance, and broader quota/enterprise sources remain open. |
@@ -2252,3 +2252,52 @@ PostgreSQL/MySQL race matrix passed (Handler 1012.087 seconds, Service 7.001
 seconds). Owned Compose resources were removed; final mandatory check passed.
 Exact Model-price source `3e8a159` CI 37152547296, Actionlint 37152547292 and
 GolangCI-Lint 37152547317 also passed.
+
+
+### Team native comparison and conversation finality, 2026-10-04
+
+The approved comparison workbench supports two to four independent Team Session
+text lanes across Chat, Responses, Messages and Gemini, sharing one composer.
+Every lane retains its exact native request, current Team/membership, independent
+request ID, cancellation and accounting. Team media and code export remain
+separate packages. A native 401 triggers one bounded active no-store Session
+probe; only its current authoritative 401 establishes platform logout.
+
+Conversation history and exported Key requests now require nonempty completed
+plaintext without refusal or nontext output. HTTP success, usage, truncation,
+tool handoff, blocking and unknown finality do not establish native completion.
+Four native parsers retain their independent terminal semantics. Renewed Session
+or Team authority aborts requests and clears old models/history, preserving the
+unsent draft until explicit discovery. CSRF-only replacement preserves an
+otherwise fresh confirmed context.
+
+Carried-source full checks/test/build passed 1345 frontend cases in 81 files, Go
+race/unit, development lifecycle and embedded production assets. Focused actual
+PostgreSQL/MySQL comparison proof passed in 60.079 seconds. Controlled production
+browser proof confirmed four-protocol completed history, independent cancellation,
+truncated Responses and Messages handoff exclusion, upstream 401 with a valid
+platform Session, exact Team/User/membership attribution and zero Personal calls.
+The final owned rerun independently confirmed eight dispatched call identities,
+four revoked zero-attempt records, revoked discovery, persistent Sessions after
+restart and zero request replay. English/Chinese rendering passed; English was
+restored, console errors were empty and owned resources were removed.
+
+Earlier QA-only failures are not full acceptance: finite Team resources were
+initially created before accounting activation; a zero activation policy rejected
+before history evaluation; the call-count fixture conflated rejected records with
+upstream dispatch; its repaired detail read then used a nonexistent id instead of
+request_id. Source contracts were unchanged by these fixture repairs. Successful
+intermediate observations remain separate from the final complete capture. The
+first complete main PostgreSQL/MySQL matrix failed (Handler 1005.991 seconds;
+Service 7.504 seconds passed) in the existing MySQL credential retirement
+readiness fixture. Its immediate coherent-read assertion raced the periodic
+publisher: the advisory capture intentionally returns runtime_unavailable on
+mutex contention, and validation rejects changed publication pointers. The
+fixture now bounds retries to those transient read blockers only; it never
+replays inference or mutation and retains domain, native evidence, lease and
+explicit single-pool contention assertions. The repaired dual-driver readiness/comparison focus passed (66.650 seconds).
+The complete main PostgreSQL/MySQL matrix then passed under race detection
+(Handler 1032.267 seconds; Service 8.273 seconds). Owned Compose resources were
+removed. Final formatting and mandatory check passed; source and acceptance
+documents are submitted together. The earlier failed matrix remains failed
+evidence and does not count as acceptance.

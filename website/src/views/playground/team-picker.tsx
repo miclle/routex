@@ -42,7 +42,7 @@ export default function TeamPicker({
   const confirmed = !!actor && items.some((item) => item.id === value)
   useLayoutEffect(() => {
     onConfirmed(confirmed)
-  }, [confirmed, onConfirmed])
+  }, [confirmed, onConfirmed, query.dataUpdatedAt])
   return (
     <div className="space-y-2">
       <FormField label={t('team')}>
@@ -87,7 +87,10 @@ export default function TeamPicker({
           size="sm"
           variant="outline"
           disabled={query.isFetching}
-          onClick={() => void query.refetch()}
+          onClick={() => {
+            onConfirmed(false)
+            void query.refetch()
+          }}
         >
           {t('teamRefresh')}
         </Button>
@@ -96,7 +99,10 @@ export default function TeamPicker({
             size="sm"
             variant="ghost"
             disabled={query.isFetching}
-            onClick={() => void query.fetchNextPage()}
+            onClick={() => {
+              onConfirmed(false)
+              void query.fetchNextPage()
+            }}
           >
             {t('teamMore')}
           </Button>

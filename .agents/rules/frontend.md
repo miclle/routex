@@ -396,9 +396,13 @@ endpoints for Chat, Responses, Messages and Gemini. Native Key headers and extra
 query/workspace selectors are rejected and scrubbed before request logging. Team
 model discovery exposes actual ready protocols with empty media capabilities;
 member catalogue Team links use source-specific protocols without Personal Key
-authority. Team comparison, attachments and code export remain unavailable. Session
-renewal and native authorization failures clear stale selection and transcript;
-late cancelled responses never enter completed history.
+authority. Team comparison uses two to four independent native text lanes and a
+shared composer. Team attachments and code export remain unavailable. Renewed
+Session/Team authority clears stale selection and transcript while retaining an
+unsent prompt; model loading and dispatch remain explicit. A native 401 triggers
+a bounded no-store Session probe, and only its active authoritative 401 expires
+the Session. Other native failures never establish logout. Cancellation, late
+callbacks and noncompleted turns never enter completed text history.
 
 Project creation uses the existing name/description/manager form with optional
 initial models and monthly Tokens/money, RPM, TPM and concurrency controls. Keep
