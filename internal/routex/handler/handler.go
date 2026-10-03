@@ -265,6 +265,7 @@ func (ctrl *Ctrl) RegisterRoutes(r *fox.Engine) {
 	admin.GET("/providers/:provider_id/quality-policy", ctrl.RequirePermission("system.read"), ctrl.ProviderQualityPolicy)
 	admin.PUT("/providers/:provider_id/quality-policy", sameOrigin, requireCSRF, jsonManagementRequest, ctrl.RequirePermission("system.write"), ctrl.WriteProviderQualityPolicy)
 	admin.GET("/models", ctrl.RequirePermission("models.read_all"), ctrl.ListAdminModels)
+	admin.GET("/models/:model_id", ctrl.RequirePermission("models.read_all"), ctrl.GetAdminModel)
 	admin.GET("/model-grantees", ctrl.RequirePermission("models.write"), ctrl.ListModelGrantees)
 	admin.POST("/providers", sameOrigin, requireCSRF, jsonManagementRequest, ctrl.RequirePermission("providers.write"), ctrl.CreateProvider)
 	admin.POST("/providers/:provider_id/connections", sameOrigin, requireCSRF, jsonManagementRequest, ctrl.RequirePermission("providers.write"), ctrl.CreateConnection)

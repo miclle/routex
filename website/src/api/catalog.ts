@@ -75,3 +75,55 @@ export async function setProviderModelState(
 ) {
   return writeCatalog<ProviderModel>('patch', `/admin/provider-models/${id}`, input, csrf)
 }
+
+export async function getAdminModel(modelID: string, signal?: AbortSignal): Promise<Model> {
+  const value = (
+    await client.get<unknown>(`/admin/models/${encodeURIComponent(modelID)}`, { signal })
+  ).data
+  const record = (item: unknown): item is Record<string, unknown> =>
+    !!item && typeof item === 'object' && !Array.isArray(item)
+  const text = (item: unknown) => typeof item === 'string' && item.length > 0
+  const unique = (items: unknown[]) => new Set(items).size === items.length
+  if (
+    !record(value) ||
+    value.id !== modelID ||
+    !text(value.name) ||
+    !['active', 'disabled', 'archived'].includes(String(value.status)) ||
+    !Array.isArray(value.names) ||
+    value.names.some(
+      (name) =>
+        !record(name) ||
+        !text(name.name) ||
+        typeof name.is_current !== 'boolean' ||
+        !(
+          name.expires_at === null ||
+          (typeof name.expires_at === 'string' && Number.isFinite(Date.parse(name.expires_at)))
+        ),
+    ) ||
+    !unique(value.names.map((name) => name.name)) ||
+    !Array.isArray(value.bindings) ||
+    value.bindings.some(
+      (binding) =>
+        !record(binding) ||
+        ![
+          'id',
+          'provider_model_id',
+          'provider_id',
+          'connection_id',
+          'upstream_name',
+          'protocol',
+        ].every((key) => text(binding[key])) ||
+        !Number.isSafeInteger(binding.weight) ||
+        Number(binding.weight) < 0 ||
+        Number(binding.weight) > 100 ||
+        typeof binding.ready !== 'boolean',
+    ) ||
+    !unique(value.bindings.map((binding) => binding.id)) ||
+    !unique(value.bindings.map((binding) => binding.provider_model_id)) ||
+    !Array.isArray(value.granted_user_ids) ||
+    value.granted_user_ids.some((id) => !text(id)) ||
+    !unique(value.granted_user_ids)
+  )
+    throw new Error('Invalid Model detail response')
+  return value as unknown as Model
+}

@@ -1,4 +1,11 @@
 export default {
+  routeAmount: '{{amount}} {{currency}} / {{unit}}',
+  routeNotConfigured: '未配置',
+  routeReadPermission: '需要价格读取权限',
+  routeLoading: '正在刷新价格…',
+  routeUnavailable: '价格不可用',
+  routeRetry: '重新读取 {{name}} 的价格',
+
   title: '价格设置',
   description:
     '全部计费项。媒体价格按请求中每个通过校验的引用计费；已启用的零价格明确表示 Token 价格已覆盖该媒体类型，停用计费项不代表免费。',

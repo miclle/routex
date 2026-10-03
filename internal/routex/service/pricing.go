@@ -148,14 +148,7 @@ func (s *Service) ListPrices(ctx context.Context, actorID string, filter PriceFi
 	return result, pricingError(err)
 }
 func (s *Service) GetPrice(ctx context.Context, actorID, providerModelID string) (*PricePage, error) {
-	result, err := s.ListPrices(ctx, actorID, PriceFilter{ProviderModelID: providerModelID, Limit: 1})
-	if err != nil {
-		return nil, err
-	}
-	if len(result.Items) == 0 {
-		return nil, apperrors.ErrNotFound
-	}
-	return result, nil
+	return s.getExactProviderModelPrice(ctx, actorID, providerModelID)
 }
 func (s *Service) QuotePrice(ctx context.Context, actorID, providerModelID string, usage pricing.Usage) (*PriceQuote, error) {
 	page, err := s.GetPrice(ctx, actorID, providerModelID)

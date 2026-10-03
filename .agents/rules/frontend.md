@@ -411,3 +411,13 @@ through uncertainty; explicit retry reconciles the historical receipt without
 restoring managers, grants, policies or pending children. Current Project facts
 and runtime application require renewed resource authority, and receipt navigation
 is explicit. Keep legacy creation compatible and preserve Team creation.
+
+Administrative Model detail uses an exact actor/Model-scoped read, independently
+of the global Model directory. Existing routing-table input/output prices are
+read-only base INPUT_TOKEN/OUTPUT_TOKEN rates for each exact Provider-model. Keep
+models.read_all and prices.read independent, preserve decimal strings, denomination,
+1M_TOKEN, known zero, disabled and absent rates, and never synthesize a logical
+Model price or infer media/long-context rates. Renew Model authority before price
+reads/retries; hide old detail, prices and actions during Session/permission refresh,
+errors, target changes and late replies. Price editing remains in Provider-model
+details. Use paired catalog/pricing copy and existing Table components.

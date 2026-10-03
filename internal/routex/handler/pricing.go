@@ -51,8 +51,11 @@ type QuotePriceRequest struct {
 func (ctrl *Ctrl) ListPrices(c *fox.Context, request PriceListRequest) (*service.PricePage, error) {
 	return ctrl.service.ListPrices(c.Request.Context(), currentAuthentication(c).User.ID, service.PriceFilter{ProviderModelID: request.ProviderModelID, Cursor: request.Cursor, Limit: request.Limit})
 }
-func (ctrl *Ctrl) GetPrice(c *fox.Context, request PricePath) (*service.PricePage, error) {
-	return ctrl.service.GetPrice(c.Request.Context(), currentAuthentication(c).User.ID, request.ProviderModelID)
+func (ctrl *Ctrl) GetPrice(c *fox.Context, _ PricePath) (*service.PricePage, error) {
+	if err := noTeamQuotaQuery(c); err != nil {
+		return nil, err
+	}
+	return ctrl.service.GetPrice(c.Request.Context(), currentAuthentication(c).User.ID, c.Param("provider_model_id"))
 }
 func (ctrl *Ctrl) WritePrices(c *fox.Context) (*service.PricePage, error) {
 	var request WritePricesRequest

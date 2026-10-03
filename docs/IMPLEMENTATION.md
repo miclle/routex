@@ -157,7 +157,7 @@ The binary capability count is 10 completed, 17 partially completed, and 3 not s
 | F04 | Member administration, direct grants, roles, and resource policies | Partially completed | Member and role workflows plus scoped resource-limit interfaces exist; token, TPM, and exact-money controls with authoritative quota snapshots are available; the complete cross-domain resource-policy surface remains open. |
 | F05 | Built-in and custom roles with composed permissions | Partially completed | Current-domain role and permission management is implemented; later enterprise and operations domains still require permission integration and negative acceptance. |
 | F06 | Team membership, ownership, models, quotas, and member rules | Completed | Team membership/ownership, model relationships, finite aggregate/member policies and monthly requests are accepted. Durable Team-assigned roles, exact Team-only action unions, reviewed administrator assignment and the existing Roles interface have controlled dual-database and browser evidence. |
-| F07 | Project lifecycle, managers, models, Keys, and requests | Partially completed | Project management, managers, model grants, Project Keys, resource limits, model requests, finite monthly quota and RPM/TPM/concurrency approvals exist; canonical current authority, stable manager identities and revocation-safe detail interfaces are hardened; initial multi-manager creation and authoritative scoped Overview have full controlled acceptance; initial direct resources and atomic combined creation requests have controlled dual-database/browser/native/restart acceptance; full Project release acceptance remains open. |
+| F07 | Project lifecycle, managers, models, Keys, and requests | Partially completed | Project management, managers, model grants, Project Keys, resource limits, model requests, finite monthly quota and RPM/TPM/concurrency approvals exist; canonical current authority, stable manager identities and revocation-safe detail interfaces are hardened; initial multi-manager creation and authoritative scoped Overview have full controlled acceptance; initial direct resources and atomic combined creation requests have controlled dual-database/browser/native/restart acceptance; remaining Project list Key/policy summaries, name-or-ID search and legacy tab redirects remain open. |
 | F08 | Personal and Project Key lifecycle | Completed | One-time delivery, confirmation, editing, rotation, revocation, expiration, scope, and history are implemented with controlled dual-database evidence. |
 | F09 | Key Token, money, RPM, TPM, concurrency, and IP restrictions | Completed | Personal, Project, and Key admission policies are enforced in the native gateway for the documented single-node architecture. Multi-node enforcement remains a separate release-architecture gate. |
 | F10 | Offboarding, inventory, handover, and emergency disable | Partially completed | Transactional local-account offboarding and continuity workflows exist; external-identity and complete enterprise continuity behavior remain open. |
@@ -2135,8 +2135,7 @@ fixtures. Root adds publication proof, bounded typed audit and shared registrati
 [Project creation and initial resources](PROJECT_CREATION.md) preserve legacy
 creation, independent permissions, exact decimal money, reviewed currency/context
 and original uncertain intents. Initial pending records never grant resources.
-The completed gates and controlled evidence are recorded below; full F07 release
-acceptance remains separate.
+The completed gates and controlled evidence are recorded below; the remaining F07 list/navigation package is tracked separately.
 
 The initial actual V45 focus failed before lifecycle execution because GORM
 inferred review_e_tag while a check constraint used review_etag. Entity/frozen
@@ -2158,8 +2157,8 @@ and grant changes, native revocation, and lost manager authority never restored
 original resources through receipt retry. Two process restarts preserved Sessions
 and historical receipts while reporting current superseded/unavailable status.
 English/Chinese passed, English was restored, console errors were empty and owned
-process/tab/Compose resources were removed. Full F07/platform acceptance remains
-open beyond this controlled package.
+process/tab/Compose resources were removed. F07 remains partial for Project list Key/policy summaries, name-or-ID search
+and legacy tab redirects. Broader platform acceptance is separate.
 
 Exact remote checks for native Team source d29ffa8 passed: CI 37146984375,
 Actionlint 37146984325 and GolangCI-Lint 37146984327.
@@ -2191,3 +2190,48 @@ issues. Standalone asset checks remain separate from the combined-router proof.
 Mandatory full check passed; complete handler race/unit tests passed in development
 (4.374 seconds) and production (4.220 seconds). This repair changes no persistent
 authentication or migration behavior.
+
+
+### Administrative Model route prices, 2026-10-04
+
+Exact actor/Model-scoped detail reads replace the global-directory lookup for
+resource URLs. Existing routing-table base input/output columns show each exact
+Provider-model schedule, preserving decimal strings, currency, unit, known zero,
+disabled and missing values. Model, price and Provider-directory permissions stay
+independent. No consolidated Model quote, new navigation or price write is added.
+
+Focused PostgreSQL/MySQL catalogue, scoped price and call-assessment regression
+passed under race detection (129.542 seconds). Full carried-source check/test
+passed 1207 Vitest cases in 79 files, Go race/unit, development lifecycle and
+production embedded assets. Controlled bilingual production browser/native-free
+proof passed exact display, absent schedules, separate read authority, disabled
+writes, restart persistence and removal of stale details/actions after revocation.
+English was restored, browser errors were empty and owned QA resources removed.
+The complete main PostgreSQL/MySQL matrix passed under race detection (Handler
+971.759 seconds, Service 7.422 seconds). Owned Compose resources were removed;
+all required local gates passed before delivery.
+
+The integration harness now prepares fresh schemas inside selected lifecycle
+subtests. Full matrix behavior and per-case driver reconnects remain unchanged;
+filtered cases no longer reset/migrate every skipped lifecycle. Focused Team
+comparison evidence is separate: both drivers passed (60.079 seconds); its isolated
+full local test passed 1266 Vitest cases in 79 files, with production/runtime
+comparison acceptance still pending.
+
+Initial Project source `4a32986` has green Actionlint 37150472987 and GolangCI-Lint
+37150472989. CI 37150472951 was canceled by the newer main push under the existing
+branch concurrency policy; the succeeding main CI must confirm the combined
+lineage. Local F07 gates passed and are unaffected by this remote cancellation.
+
+
+### Remaining F07 list/navigation acceptance
+
+A source/reference audit identified a bounded final package: both Project lists
+need total Project-owned Key counts; the administrative list also needs configured
+monthly Token/money/currency/RPM/TPM summaries. These are authorized total Key
+records and stored policies, not Overview's active-Key count or remaining usage.
+Project search must support literal names or IDs. Legacy managers/models/limits
+tabs must redirect to settings/resources after current authorization. Team behavior
+stays separate. Accepted creation/managers/lifecycle/resources/requests/Overview
+and member entry require no additional broad release gate. Keep F07 partial for
+these named gaps; external identity/provider/distributed delivery belong elsewhere.

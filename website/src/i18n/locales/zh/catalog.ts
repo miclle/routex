@@ -411,6 +411,12 @@ export default {
     namePlaceholder: '调用时使用的模型名称',
   },
   adminModels: {
+    inputBasePrice: '基础输入价格',
+    outputBasePrice: '基础输出价格',
+    refreshDetails: '刷新模型详情',
+    routePriceHelp:
+      '各供应商模型路由配置的基础 Token 价格，保留原币种和计价单位。这些价格不代表统一模型价格或调用费用报价。',
+
     title: '模型管理',
     description:
       '使用稳定的模型身份管理名称、供应关系和用户授权。新增供应关系权重为 0，只有发布有效权重后才接收流量。',

@@ -203,3 +203,9 @@ paid-provider equivalence remains a separate acceptance gate. This slice does no
 claim full provider pricing compatibility.
 
 The [Gemini adapter](GEMINI.md) normalizes native candidate, thought and cached input counters. Missing counters, hosted-tool conditions and unsupported modalities remain explicitly unpriced.
+
+The administrative Model routing table may read each exact Provider-model's base
+input/output schedule under independent prices.read authority. Scoped reads retain
+PricePage and a coherent pricing generation/FX snapshot, reject query expansion,
+and preserve exact decimal values. Missing, disabled and zero rates stay distinct;
+no route-price aggregation, media inference or pricing write occurs in that table.

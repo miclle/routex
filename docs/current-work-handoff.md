@@ -1,10 +1,10 @@
 # Current Work Handoff
 
-- **Status:** implementation active; four native Team text protocols pushed; initial Project resources and simultaneous requests passed controlled acceptance
+- **Status:** implementation active; initial Project resources, API 404 repair and Model route prices delivered; Team comparison and Project list completion are active
 - **Updated:** 2026-10-04
 - **Repository / branch:** RouteX / `main`
-- **Previous checked source baseline:** `d29ffa8dd7a706569a7bbfbb0c5fcfbc677ab6c2`, pushed and read back from `origin/main`
-- **Current owner:** coordinator owns F07 integration and actual acceptance; scoped owners froze backend, interface and fixtures
+- **Previous checked source baseline:** `01129cf749c2232c23ad351caddd9548d9087889`, pushed and read back from `origin/main`
+- **Current owner:** coordinator owns integration, actual runtime acceptance and delivery; parallel owners prepare Project lists and supply readiness
 - **Next owner:** current task continues the resumed goal
 - **Transport:** identify this checked delivery with `git log -1 -- docs/current-work-handoff.md` and independently verify its upstream
 - **Coordination plan:** `~/dotfiles/projects/routex/implementation-plan.md`; synchronize separately and preserve unrelated changes
@@ -1310,7 +1310,7 @@ The full goal stays active; totals remain 10 complete, 17 partial and 3 unstarte
 ## API fallback repair before Model-price delivery
 
 The three-path sanitized Fox404 renderer repair is separate from Model pricing.
-Unsupported API paths previously became500 under the application's custom
+Unsupported API paths previously became 500 under the application's custom
 renderer; combined-router regressions reproduce and repair that boundary in both
 build modes while preserving JSON sanitization and production SPA fallback.
 Focused race/staticcheck/pinned lint passed; mandatory full check passed. Full
@@ -1319,3 +1319,50 @@ handler race tests also passed in development (4.374 seconds) and production
 After its scoped commit/push, carry these three committed paths into both active
 worktrees, then integrate and gate Model prices before Team comparison delivery.
 The goal remains active.
+
+
+## Current Model-price main acceptance
+
+Project creation `4a32986` and sanitized API fallback `01129cf` are committed, pushed
+and read back; the narrow 24-path Model-price manifest is now the only primary
+implementation change. Scoped dual-driver catalogue/price/call regression passed
+129.542 seconds. Full carried-source check/test passed 1207 cases in 79 Vitest
+files, and production browser/restart proof passed exact decimal/zero/disabled/
+absent values, independent reads, disabled writes and stale-detail removal after
+revocation. The complete primary PostgreSQL/MySQL matrix is running; do not claim
+phase completion or commit before success and mandatory final check.
+
+F07 Actionlint/GolangCI succeeded; its CI was canceled by the newer main push.
+Verify `01129cf`'s complete CI to cover the combined lineage; do not call a canceled
+run green. The independently frozen Team comparison passed both drivers in 60.079
+seconds and its complete local 1266-case frontend/full test. Its protocol-native
+Session 401 proof, stable Session observer, independent cancellation/finality and
+transient draft behavior are implemented; production comparison proof remains
+pending. Root owns actual DB/process runs, while a helper is being prepared.
+
+First action: read Model-price complete matrix and final source check/test logs,
+repair any concrete failure, update docs and phase-commit/push only its paths.
+Then carry that committed baseline into Team comparison, run its final complete
+gates and bilingual browser/native/restart acceptance before a separate delivery.
+The full goal is active; totals remain 10 complete, 17 partial and 3 unstarted.
+
+
+## Checked delivery: administrative Model route prices
+
+The existing routing table now reads exact actor/Model details and independently
+authorized per-route base prices. Decimal strings, denomination, units, zero,
+disabled and absent rates remain distinct; stale details are hidden during renewed
+authority or errors. Full local check/test passed 1207 Vitest cases in 79 files,
+Go race/unit, development lifecycle and production embedded assets. Focused
+PostgreSQL/MySQL checks passed in 129.542 seconds; the complete race matrix
+passed (Handler 971.759 seconds, Service 7.422 seconds). Controlled bilingual
+production browser proof passed separate permissions, price display, process
+restart persistence and revoked-read cleanup, with no console errors. All owned
+processes, browser tabs and Compose resources were removed.
+
+Continue four-protocol Team comparison from its isolated frozen source, then
+complete Project list Key/policy summaries, literal name-or-ID search and legacy
+tab redirects. A separate narrow readiness fix excludes disabled Provider-models
+from displayed ready supply while retaining credential-based weight editing.
+These packages require their own final runtime acceptance and main deliveries.
+The full objective remains active.

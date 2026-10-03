@@ -1,4 +1,11 @@
 export default {
+  routeAmount: '{{amount}} {{currency}} / {{unit}}',
+  routeNotConfigured: 'Not configured',
+  routeReadPermission: 'Price read permission required',
+  routeLoading: 'Refreshing price…',
+  routeUnavailable: 'Price unavailable',
+  routeRetry: 'Retry price for {{name}}',
+
   title: 'Price settings',
   description:
     'All charge components. Media rates apply to each validated request occurrence. An enabled zero explicitly means the token price already covers that media kind; a disabled rate does not mean free.',

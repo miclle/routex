@@ -459,6 +459,12 @@ export default {
     namePlaceholder: 'Model name used in requests',
   },
   adminModels: {
+    inputBasePrice: 'Base input price',
+    outputBasePrice: 'Base output price',
+    refreshDetails: 'Refresh Model details',
+    routePriceHelp:
+      'Configured base token rates for each Provider-model route. Currency and unit are preserved; these are not a consolidated Model price or a call-cost quote.',
+
     title: 'Model management',
     description:
       'Manage names, provider bindings, and user grants using stable model identities. New bindings have weight 0 and receive traffic only after valid routing weights are saved.',

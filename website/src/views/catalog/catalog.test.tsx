@@ -149,6 +149,7 @@ beforeEach(() => {
     if (route === 'get /admin/providers') response.data = { items: [structuredClone(provider)] }
     if (route === 'post /admin/models') response.data = structuredClone(model)
     if (route === 'get /admin/models') response.data = { items: [structuredClone(model)] }
+    if (route === 'get /admin/models/mdl_1') response.data = structuredClone(model)
     if (route === 'get /admin/model-grantees')
       response.data = {
         items: [

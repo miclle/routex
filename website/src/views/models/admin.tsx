@@ -3,8 +3,16 @@ import { useTranslation } from 'react-i18next'
 import { useState, type FormEvent } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Plus } from 'lucide-react'
-import { listAdminModels, listGrantees, listProviders, writeCatalog } from '@/api/catalog'
-import { useSession } from '@/hooks/use-auth'
+import {
+  getAdminModel,
+  listAdminModels,
+  listGrantees,
+  listProviders,
+  writeCatalog,
+} from '@/api/catalog'
+import { sessionKey, useSession } from '@/hooks/use-auth'
+import type { Session } from '@/types/auth'
+import RoutePrices from './route-prices'
 import { Page, QueryState, ErrorNotice, FormField, SaveButton } from '@/components/app/CatalogUI'
 import { PermissionGate } from '@/components/app/PermissionGate'
 import { usePermissions } from '@/hooks/use-permissions'
@@ -19,32 +27,106 @@ import type { Model } from '@/types/catalog'
 type Action =
   { kind: 'create' } | { kind: 'rename' | 'binding' | 'weights' | 'grants'; model: Model }
 export default function AdminModelsPage() {
+  const session = useSession()
+  const { modelId } = useParams()
   return (
     <PermissionGate permission="models.read_all">
-      <AdminModels />
+      {session.data && (
+        <AdminModels
+          key={`${session.data.user.id}:${modelId ?? 'list'}`}
+          actor={session.data.user.id}
+          generation={session.dataUpdatedAt}
+          modelId={modelId}
+          visible={!session.isError && !session.isFetching}
+        />
+      )}
     </PermissionGate>
   )
 }
-function AdminModels() {
+function AdminModels({
+  actor,
+  generation,
+  modelId,
+  visible,
+}: {
+  actor: string
+  generation: number
+  modelId: string | undefined
+  visible: boolean
+}) {
   const { t, i18n } = useTranslation('catalog')
-  const { data: session } = useSession()
   const cache = useQueryClient()
   const access = usePermissions()
-  const models = useQuery({ queryKey: ['admin', 'models'], queryFn: listAdminModels })
-  const providers = useQuery({
-    queryKey: ['admin', 'providers'],
-    queryFn: listProviders,
-    enabled: access.can('providers.read'),
+  const readable = visible && !access.isError && !access.isFetching && access.can('models.read_all')
+  const detailKey = ['admin', 'models', 'detail', actor, modelId, generation, access.dataUpdatedAt]
+  const detail = useQuery({
+    queryKey: detailKey,
+    queryFn: ({ signal }) => getAdminModel(modelId!, signal),
+    enabled: readable && !!modelId,
+    retry: false,
+    staleTime: 0,
+    gcTime: 0,
+    refetchOnMount: 'always',
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
   })
-  const grantees = useQuery({
-    queryKey: ['admin', 'model-grantees'],
-    queryFn: listGrantees,
-    enabled: access.can('models.write'),
+  const models = useQuery({
+    queryKey: ['admin', 'models', 'list', actor, generation, access.dataUpdatedAt],
+    queryFn: listAdminModels,
+    enabled: readable && !modelId,
+    retry: false,
+    staleTime: 0,
+    gcTime: 0,
+    refetchOnMount: 'always',
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
   })
+  const selected = readable && detail.isSuccess && !detail.isFetching ? detail.data : undefined
   const [action, setAction] = useState<Action | null>(null)
   const [search, setSearch] = useState('')
-  const { modelId } = useParams()
-  const selected = models.data?.find((model) => model.id === modelId)
+  const providers = useQuery({
+    queryKey: ['admin', 'model-providers', actor, generation, access.dataUpdatedAt],
+    queryFn: listProviders,
+    enabled: readable && access.can('providers.read'),
+    retry: false,
+    staleTime: 0,
+    gcTime: 0,
+    refetchOnMount: 'always',
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
+  })
+  const grantees = useQuery({
+    queryKey: ['admin', 'model-grantees', actor, modelId, generation, access.dataUpdatedAt],
+    queryFn: listGrantees,
+    enabled: readable && !!selected && access.can('models.write') && action?.kind === 'grants',
+    retry: false,
+    staleTime: 0,
+    gcTime: 0,
+    refetchOnMount: 'always',
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
+  })
+  const providerData =
+    readable && providers.isSuccess && !providers.isFetching && access.can('providers.read')
+      ? providers.data
+      : undefined
+  const grantsFresh = readable && grantees.isSuccess && !grantees.isFetching
+  const writeReady = () => {
+    const session = cache.getQueryData<Session>(sessionKey)
+    const permissions = cache.getQueryState(['permissions', actor])
+    return (
+      session?.user.id === actor &&
+      cache.getQueryState(sessionKey)?.status === 'success' &&
+      cache.getQueryState(sessionKey)?.fetchStatus !== 'fetching' &&
+      permissions?.status === 'success' &&
+      permissions.fetchStatus !== 'fetching' &&
+      cache.getQueryData<string[]>(['permissions', actor])?.includes('models.write') &&
+      cache.getQueryData<string[]>(['permissions', actor])?.includes('models.read_all') &&
+      (!modelId ||
+        (cache.getQueryState(detailKey)?.status === 'success' &&
+          cache.getQueryState(detailKey)?.fetchStatus !== 'fetching'))
+    )
+  }
   const mutation = useMutation({
     mutationFn: ({
       path,
@@ -54,20 +136,32 @@ function AdminModels() {
       path: string
       data: unknown
       method?: 'post' | 'put'
-    }) => writeCatalog(method, path, data, session!.csrf_token),
+    }) => {
+      if (!writeReady()) throw new Error('Current Model write authority unavailable')
+      return writeCatalog(method, path, data, cache.getQueryData<Session>(sessionKey)!.csrf_token)
+    },
     onSuccess: () => {
+      if (cache.getQueryData<Session>(sessionKey)?.user.id !== actor) return
       setAction(null)
       void cache.invalidateQueries({ queryKey: ['admin', 'models'] })
       void cache.invalidateQueries({ queryKey: ['models'] })
     },
   })
   function open(next: Action) {
+    if (!readable || !selected || !access.can('models.write')) return
     mutation.reset()
     setAction(next)
   }
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
-    if (!action || mutation.isPending) return
+    if (
+      !action ||
+      mutation.isPending ||
+      !writeReady() ||
+      (action.kind !== 'create' && action.model.id !== modelId) ||
+      (action.kind === 'grants' && !grantsFresh)
+    )
+      return
     const form = new FormData(event.currentTarget)
     const name = String(form.get('name') ?? '').trim()
     const provider_model_id = String(form.get('provider_model_id') ?? '')
@@ -114,7 +208,7 @@ function AdminModels() {
     grants: t('adminModels.grantsTitle'),
   }
   const upstreamModels =
-    providers.data?.flatMap((provider) =>
+    providerData?.flatMap((provider) =>
       provider.connections.flatMap((connection) =>
         connection.provider_models.map((model) => ({
           id: model.id,
@@ -125,12 +219,12 @@ function AdminModels() {
   return (
     <Page title={t('adminModels.title')} description={t('adminModels.description')}>
       <QueryState
-        pending={models.isPending}
-        error={models.error}
-        retry={() => void models.refetch()}
-        empty={models.data?.length === 0}
+        pending={modelId ? detail.isFetching : models.isFetching}
+        error={visible ? (modelId ? detail.error : models.error) : null}
+        retry={() => void (modelId ? detail.refetch() : models.refetch())}
+        empty={!modelId && readable && models.isSuccess && models.data.length === 0}
       />
-      {!modelId && (
+      {!modelId && readable && models.isSuccess && !models.isFetching && (
         <>
           <div className="flex items-center justify-between gap-4">
             <Input
@@ -162,7 +256,7 @@ function AdminModels() {
               <tbody>
                 {models.data
                   ?.filter((model) =>
-                    `${model.name} ${model.bindings.map((b) => providers.data?.find((p) => p.id === b.provider_id)?.name).join(' ')}`
+                    `${model.name} ${model.bindings.map((b) => providerData?.find((p) => p.id === b.provider_id)?.name).join(' ')}`
                       .toLowerCase()
                       .includes(search.toLowerCase()),
                   )
@@ -183,7 +277,7 @@ function AdminModels() {
                           ...new Set(
                             model.bindings.map(
                               (b) =>
-                                providers.data?.find((p) => p.id === b.provider_id)?.name ??
+                                providerData?.find((p) => p.id === b.provider_id)?.name ??
                                 b.provider_id,
                             ),
                           ),
@@ -221,13 +315,18 @@ function AdminModels() {
                     : t('common.disabled')}
                 </Badge>
               </h2>
-              <Button
-                disabled={!access.can('models.write')}
-                variant="outline"
-                onClick={() => open({ kind: 'rename', model: selected })}
-              >
-                {t('adminModels.rename')}
-              </Button>
+              <div className="flex items-center gap-3">
+                <Button variant="outline" onClick={() => void detail.refetch()}>
+                  {t('adminModels.refreshDetails')}
+                </Button>
+                <Button
+                  disabled={!access.can('models.write')}
+                  variant="outline"
+                  onClick={() => open({ kind: 'rename', model: selected })}
+                >
+                  {t('adminModels.rename')}
+                </Button>
+              </div>
             </header>
             <div className="space-y-4 p-6">
               <dl className="grid grid-cols-2 gap-4 text-sm lg:grid-cols-4">
@@ -275,7 +374,7 @@ function AdminModels() {
             className="space-y-4"
             onSubmit={(event) => {
               event.preventDefault()
-              if (mutation.isPending) return
+              if (mutation.isPending || !writeReady()) return
               const values = new FormData(event.currentTarget)
               mutation.mutate({
                 path: `/admin/models/${selected.id}/weights`,
@@ -298,6 +397,8 @@ function AdminModels() {
                     <th>{t('adminModels.providerModel')}</th>
                     <th>{t('common.protocol')}</th>
                     <th>{t('adminModels.status')}</th>
+                    <th>{t('adminModels.inputBasePrice')}</th>
+                    <th>{t('adminModels.outputBasePrice')}</th>
                     <th>{t('adminModels.weight')}</th>
                   </tr>
                 </thead>
@@ -305,7 +406,7 @@ function AdminModels() {
                   {selected.bindings.map((binding) => (
                     <tr key={binding.id}>
                       <td>
-                        {providers.data?.find((p) => p.id === binding.provider_id)?.name ??
+                        {providerData?.find((p) => p.id === binding.provider_id)?.name ??
                           binding.provider_id}
                       </td>
                       <td>{binding.upstream_name}</td>
@@ -315,6 +416,14 @@ function AdminModels() {
                           ? t('adminModels.connectionReady')
                           : t('adminModels.connectionNotReady')}
                       </td>
+                      <RoutePrices
+                        actor={actor}
+                        modelID={selected.id}
+                        generation={detail.dataUpdatedAt}
+                        binding={binding}
+                        readable={readable && access.can('prices.read')}
+                        refreshDetail={() => void detail.refetch()}
+                      />
                       <td>
                         <div className="flex items-center gap-2">
                           <Input
@@ -338,6 +447,9 @@ function AdminModels() {
                   ))}
                 </tbody>
               </Table>
+              <p className="px-4 pt-4 text-xs text-muted-foreground">
+                {t('adminModels.routePriceHelp')}
+              </p>
               <div className="flex items-center justify-between gap-4 p-4">
                 <Button
                   disabled={!access.can('models.write')}
@@ -366,7 +478,7 @@ function AdminModels() {
         </>
       )}
       <Dialog
-        open={!!action}
+        open={!!action && readable && !!selected}
         onOpenChange={(open) => {
           if (!open) setAction(null)
         }}
@@ -462,7 +574,7 @@ function AdminModels() {
                   retry={() => void grantees.refetch()}
                   empty={grantees.data?.length === 0}
                 />
-                {grantees.data?.map((user) => (
+                {(grantsFresh ? grantees.data : [])?.map((user) => (
                   <label key={user.id} className="flex items-center gap-2 text-sm">
                     <input
                       type="checkbox"
@@ -479,7 +591,12 @@ function AdminModels() {
           <ErrorNotice error={mutation.error} />
           <SaveButton
             pending={mutation.isPending}
-            disabled={action?.kind === 'grants' && !grantees.isSuccess}
+            disabled={
+              !readable ||
+              !selected ||
+              !access.can('models.write') ||
+              (action?.kind === 'grants' && !grantsFresh)
+            }
           >
             {t('common.save')}
           </SaveButton>

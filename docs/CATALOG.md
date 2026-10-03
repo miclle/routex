@@ -465,3 +465,29 @@ Team source invocation protocols now reflect each current ready native Chat,
 Responses, Messages and Gemini route. Source-specific Playground links work for
 models without a Chat route. Team visibility and Session invocation do not provide
 Personal Key availability; native Team discovery advertises no media capability.
+
+## Scoped administrative detail and route prices
+
+GET /api/v1/admin/models/:model_id reauthorizes the exact current enabled actor
+and Model with models.read_all in a coherent read snapshot. It returns the existing
+Model DTO without borrowing a target from the global list or selecting credential
+secrets. Exact relationship and readiness comparisons preserve supported driver
+collations. GET /api/v1/admin/provider-models/:provider_model_id/price retains its
+separate prices.read gate and exact live subject; pricing generation, rates and
+exchange data are coherent. Neither read grants write or Provider-directory access.
+
+The existing Model routing table shows each route's base input/output amounts,
+currency and per-million unit. Known zero, disabled and absent rates stay distinct.
+Media and long-context rates are not substitutes. Model/actor/session-specific
+queries renew authority and suppress old details during errors or refresh. No
+consolidated logical Model price, new navigation or price editing is introduced.
+Focused PostgreSQL/MySQL catalogue, scoped detail, price and call-assessment
+regression passed under race detection (129.542 seconds). Full local check/test
+passed 1207 Vitest cases in 79 files, Go race/unit, development lifecycle and
+production embedded assets. Controlled bilingual production browser proof passed
+exact decimal/zero/disabled prices, absent schedules, separate Model/price reads,
+disabled writes, Session/price persistence after restart and hidden old details
+following permission revocation. English was restored, browser errors were empty
+and owned QA resources were removed. The complete main-branch PostgreSQL/MySQL matrix passed under race detection
+(Handler 971.759 seconds, Service 7.422 seconds); owned Compose resources were
+removed. All required local gates passed before this phase delivery.
