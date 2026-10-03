@@ -7,6 +7,7 @@ import { useSession } from '@/hooks/use-auth'
 import { usePermissions } from '@/hooks/use-permissions'
 import { useTeamAccess } from '@/hooks/use-team-access'
 import TeamRolesPanel from './team-roles'
+import ProjectOverview from './project-overview'
 import { Page, QueryState } from '@/components/app/CatalogUI'
 import { Badge } from '@/components/ui/badge'
 import { buttonVariants } from '@/components/ui/button'
@@ -195,73 +196,77 @@ function ResourceDetail({ kind, resource }: { kind: ResourceKind; resource: Reso
           ))}
         </TabsList>
         <TabsContent value="overview">
-          <div className="space-y-6">
-            <ResourceSection title={t('basic')}>
-              <dl className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-                <div>
-                  <dt className="text-sm text-muted-foreground">
-                    {t('identity', { kind: label })}
-                  </dt>
-                  <dd className="mt-1 font-mono text-sm">{resource.id}</dd>
-                </div>
-                <div>
-                  <dt className="text-sm text-muted-foreground">{t('created')}</dt>
-                  <dd className="mt-1 text-sm">
-                    {new Date(resource.created_at).toLocaleString(
-                      i18n.resolvedLanguage === 'zh' ? 'zh-CN' : 'en-US',
-                    )}
-                  </dd>
-                </div>
-                <div>
-                  <dt className="text-sm text-muted-foreground">{t('status')}</dt>
-                  <dd className="mt-1 text-sm">{t(resource.status)}</dd>
-                </div>
-                <div>
-                  <dt className="text-sm text-muted-foreground">
-                    {kind === 'teams' ? t('memberCount') : t('managerCount')}
-                  </dt>
-                  <dd className="mt-1 text-sm">
-                    {kind === 'teams'
-                      ? (resource.members?.length ?? 0)
-                      : (resource.managers?.length ?? 0)}
-                  </dd>
-                </div>
-                <div>
-                  <dt className="text-sm text-muted-foreground">{t('modelCount')}</dt>
-                  <dd className="mt-1 text-sm">{resource.model_ids.length}</dd>
-                </div>
-              </dl>
-              {((kind === 'projects' && isManager && resource.status === 'active') || ownTeam) && (
-                <Link
-                  className={buttonVariants({ variant: 'outline' })}
-                  to={`/playground?${ownTeam ? 'team' : 'project'}=${encodeURIComponent(resource.id)}`}
-                >
-                  {t('openInPlayground')}
-                  <ArrowUpRight className="size-4" aria-hidden="true" />
-                </Link>
-              )}
-            </ResourceSection>
-            <ResourceSection title={kind === 'teams' ? t('owners') : t('managers')}>
-              <div className="space-y-3">
-                {(kind === 'teams'
-                  ? resource.members?.filter(
-                      (person) => person.role === 'owner' && person.status === 'active',
-                    )
-                  : resource.managers
-                )?.map((person) => (
-                  <div className="flex items-center gap-3" key={person.user_id}>
-                    <span className="flex size-8 items-center justify-center rounded-full bg-muted text-xs">
-                      {person.name.slice(0, 2).toUpperCase()}
-                    </span>
-                    <div>
-                      <p className="text-sm">{person.name}</p>
-                      <p className="text-xs text-muted-foreground">{person.email}</p>
-                    </div>
+          {kind === 'projects' ? (
+            <ProjectOverview resource={resource} isManager={isManager} canKeys={canEdit} />
+          ) : (
+            <div className="space-y-6">
+              <ResourceSection title={t('basic')}>
+                <dl className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+                  <div>
+                    <dt className="text-sm text-muted-foreground">
+                      {t('identity', { kind: label })}
+                    </dt>
+                    <dd className="mt-1 font-mono text-sm">{resource.id}</dd>
                   </div>
-                ))}
-              </div>
-            </ResourceSection>
-          </div>
+                  <div>
+                    <dt className="text-sm text-muted-foreground">{t('created')}</dt>
+                    <dd className="mt-1 text-sm">
+                      {new Date(resource.created_at).toLocaleString(
+                        i18n.resolvedLanguage === 'zh' ? 'zh-CN' : 'en-US',
+                      )}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt className="text-sm text-muted-foreground">{t('status')}</dt>
+                    <dd className="mt-1 text-sm">{t(resource.status)}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-sm text-muted-foreground">
+                      {kind === 'teams' ? t('memberCount') : t('managerCount')}
+                    </dt>
+                    <dd className="mt-1 text-sm">
+                      {kind === 'teams'
+                        ? (resource.members?.length ?? 0)
+                        : (resource.managers?.length ?? 0)}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt className="text-sm text-muted-foreground">{t('modelCount')}</dt>
+                    <dd className="mt-1 text-sm">{resource.model_ids.length}</dd>
+                  </div>
+                </dl>
+                {ownTeam && (
+                  <Link
+                    className={buttonVariants({ variant: 'outline' })}
+                    to={`/playground?${ownTeam ? 'team' : 'project'}=${encodeURIComponent(resource.id)}`}
+                  >
+                    {t('openInPlayground')}
+                    <ArrowUpRight className="size-4" aria-hidden="true" />
+                  </Link>
+                )}
+              </ResourceSection>
+              <ResourceSection title={kind === 'teams' ? t('owners') : t('managers')}>
+                <div className="space-y-3">
+                  {(kind === 'teams'
+                    ? resource.members?.filter(
+                        (person) => person.role === 'owner' && person.status === 'active',
+                      )
+                    : resource.managers
+                  )?.map((person) => (
+                    <div className="flex items-center gap-3" key={person.user_id}>
+                      <span className="flex size-8 items-center justify-center rounded-full bg-muted text-xs">
+                        {person.name.slice(0, 2).toUpperCase()}
+                      </span>
+                      <div>
+                        <p className="text-sm">{person.name}</p>
+                        <p className="text-xs text-muted-foreground">{person.email}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </ResourceSection>
+            </div>
+          )}
         </TabsContent>
         {kind === 'teams' && (
           <TabsContent value="members">

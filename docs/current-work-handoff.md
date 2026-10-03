@@ -1,10 +1,10 @@
 # Current Work Handoff
 
-- **Status:** implementation active; F06 completed and pushed; F22 scoped Team reports pushed; F07 canonical authority pushed at 4c669dc; F17 defaults passed all local delivery gates and are ready for the phased main commit
+- **Status:** implementation active; F06 completed and pushed; F22 scoped Team reports pushed; F07 canonical authority pushed at 4c669dc; F17 defaults pushed at 35e279a; initial Project managers/Overview passed all local gates and are ready for phased main delivery
 - **Updated:** 2026-10-04
 - **Repository / branch:** RouteX / `main`
 - **Previous checked source baseline:** `4c669dc057d477e073b66f176fafbc7b3396c084`, pushed and read back from `origin/main`
-- **Current owner:** coordinator owns F17 delivery and F07 integration; three owners have frozen the isolated Project creation/Overview package
+- **Current owner:** coordinator owns final F07 acceptance and delivery; three owners implement isolated F19 Personal model requests
 - **Next owner:** current task continues the resumed goal
 - **Transport:** identify this checked delivery with `git log -1 -- docs/current-work-handoff.md` and independently verify its upstream
 - **Coordination plan:** `~/dotfiles/projects/routex/implementation-plan.md`; synchronize separately and preserve unrelated changes
@@ -1127,3 +1127,50 @@ worktree. Its actual PostgreSQL/MySQL creation/Overview focus passed in 254.50
 seconds; controlled browser/native/revocation/restart acceptance is running. Copy
 only its owned files after F17 delivery, retaining final F17 fixture and validation
 repairs. Initial resource configuration and combined creation requests remain open.
+
+
+## Active F07 main integration, 2026-10-04
+
+F17 `35e279a3cc9f95d1da275db1b34072e60c796f53` was committed, pushed and
+read back from main after all local gates passed. Completed resource-defaults
+worktree archival was refused because the app protects it; retain it.
+
+Only frozen initial Project managers/Overview paths were copied into main. Shared
+route and harness registration were applied narrowly, preserving V42/defaults and
+final quota/audit fixtures. The full main check/test and actual PostgreSQL/MySQL
+matrix are running. Controlled browser creation passed. Its first native Overview
+check raced asynchronous SQL call delivery after synchronous journal settlement;
+the disposable QA harness now waits for both real independent facts, retaining
+all exact quota and call assertions and dispatching inference only once.
+
+Three owners started the next partial F19 package in the managed personal-model-requests
+worktree: frozen V43/entities/acceptance, Personal request services/APIs and the
+approved catalog drawer/Member Models interface. This work is outside the F07
+commit. Review uses independent `members.models.write` rather than widening
+identity-edit authority; approvals are additions only and receipts never restore
+subsequently revoked grants or expand existing Key scopes.
+
+
+## Final F07 creation/Overview delivery gates, 2026-10-04
+
+All main gates passed: mandatory check, full Go/frontend/development lifecycle
+and production embedding, 1057 Vitest cases in 73 files, complete PostgreSQL/MySQL
+regression (Handler 815.082 seconds; Service 6.616 seconds) and both real-process
+authentication/native lifecycles. Controlled browser/native proof passed exact
+two-manager creation with no implicit resources, settled Project Tokens 5/10,
+real last-call attribution, independent pending count, current-manager revocation
+with hidden private cards, retained creator facts/peer authority, restoration and
+restart. English/Chinese switching passed and English was restored. Screenshots
+were captured; the owned browser tab closed and the temporary viewport was reset.
+The test process stopped during interruption; only its exact remaining owned
+Compose project is cleaned up.
+
+Submit only the F07 main package and English documentation, then verify exact
+remote checks. F07 remains partial for initial resource configuration and combined
+creation requests. The full goal remains active.
+
+The interruption stopped previous F19 workers before completion. Three new
+owners resume the existing isolated source rather than restarting or replacing
+it: schema/real acceptance fixture, service/API and interface/tests. Keep this
+work outside the F07 phase commit. The original V42/current main fixture repairs
+must survive later integration.

@@ -135,3 +135,23 @@ func (s *Service) ScopedTeamModelCandidates(ctx context.Context, actorID, teamID
 	}, &sql.TxOptions{Isolation: sql.LevelRepeatableRead, ReadOnly: true})
 	return items, catalogError(err)
 }
+
+// ProjectCreationManagerCandidates is a purpose-specific picker, not a grant of
+// global member-directory authority or access to existing Projects.
+func (s *Service) ProjectCreationManagerCandidates(ctx context.Context, actorID, query string) ([]ResourceCandidate, error) {
+	pattern, err := candidatePattern(query)
+	if err != nil {
+		return nil, err
+	}
+	items := []ResourceCandidate{}
+	err = s.authDB(ctx).Transaction(func(tx *gorm.DB) error {
+		if _, err := exactEnabledActor(tx, actorID); err != nil {
+			return err
+		}
+		return tx.Model(&entity.User{}).Select("id", "name", "email").
+			Where("disabled = ? AND offboarded_at IS NULL", false).
+			Where("LOWER(name) LIKE ? ESCAPE '!' OR LOWER(email) LIKE ? ESCAPE '!'", pattern, pattern).
+			Order("id").Limit(50).Scan(&items).Error
+	}, &sql.TxOptions{Isolation: sql.LevelRepeatableRead, ReadOnly: true})
+	return items, catalogError(err)
+}

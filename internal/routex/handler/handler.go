@@ -87,6 +87,8 @@ func (ctrl *Ctrl) RegisterRoutes(r *fox.Engine) {
 	identity.GET("/teams/:team_id/calls", ctrl.requireSession, ctrl.ListTeamCalls)
 	identity.GET("/teams/:team_id/calls/:request_id", ctrl.requireSession, ctrl.GetTeamCall)
 	identity.GET("/projects", ctrl.requireSession, ctrl.ListProjects)
+	identity.GET("/projects/creation-manager-candidates", ctrl.requireSession, ctrl.ProjectCreationManagerCandidates)
+	identity.GET("/projects/:project_id/overview", ctrl.requireSession, ctrl.ProjectOverview)
 	identity.GET("/projects/:project_id/calls", ctrl.requireSession, ctrl.ListProjectCalls)
 	identity.GET("/projects/:project_id/calls/export.csv", ctrl.requireSession, ctrl.ExportProjectCalls)
 	identity.GET("/projects/:project_id/calls/:request_id", ctrl.requireSession, ctrl.GetProjectCall)

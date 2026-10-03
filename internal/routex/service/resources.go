@@ -361,18 +361,7 @@ func (s *Service) CreateResource(ctx context.Context, actorID string, kind Resou
 				}
 			}
 		} else {
-			if err := activeResourceUsers(tx, []string{actorID}); err != nil {
-				return err
-			}
-			project := entity.Project{ID: resourceID, Name: name, Description: description, Status: entity.ResourceActive, CreatorID: actorID}
-			if err := tx.Create(&project).Error; err != nil {
-				return err
-			}
-			relationID, err := id.NewPrefixed("pmg")
-			if err != nil {
-				return err
-			}
-			if err := tx.Create(&entity.ProjectManager{ID: relationID, ProjectID: resourceID, UserID: actorID}).Error; err != nil {
+			if err := createProjectWithManagers(tx, actorID, resourceID, name, description, nil); err != nil {
 				return err
 			}
 		}

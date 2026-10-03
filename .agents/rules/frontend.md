@@ -335,3 +335,18 @@ separately. Explicitly review changed target/default/currency generations; prese
 original reset intent after uncertain publication, even after a rejected retry.
 Scope queries to current actor/target and hide old private previews during reads
 or denial. A changed actor cannot consume a late acknowledgement.
+
+## Project creation and Overview
+
+Retain the established create form with the purpose-specific initial manager
+picker. Ordinary creators cannot remove themselves; direct `projects.write`
+administrators may submit a complete explicit selection. Preserve selected users
+outside the bounded search response and recheck exact enabled targets on the server.
+
+Use the existing Project Overview composition for monthly quota, operating
+counts, pending guidance, authorized common actions and bounded typed metadata
+activity. Fetch the Project-specific snapshot without borrowing platform data.
+Unknown or unauthorized sections remain null, known empty counts remain zero,
+held and unknown usage remain separate and money stays exact. Refreshing or denied
+authority hides previous private sections. Unknown creation does not permit
+automatic replay or success inference.

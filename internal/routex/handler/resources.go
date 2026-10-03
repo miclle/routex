@@ -2,11 +2,14 @@ package handler
 
 import (
 	"encoding/json"
+	"net/http"
+	"net/url"
+	"time"
+
 	"github.com/fox-gonic/fox"
+
 	apperrors "github.com/miclle/routex/internal/routex/errors"
 	"github.com/miclle/routex/internal/routex/service"
-	"net/http"
-	"time"
 )
 
 type ResourcePersonResponse struct {
@@ -142,10 +145,7 @@ type ProjectsResponse struct {
 	Items      []ProjectResponse `json:"items"`
 	NextCursor *string           `json:"next_cursor"`
 }
-type CreateProjectRequest struct {
-	Name        string `json:"name"`
-	Description string `json:"description"`
-}
+type CreateProjectRequest = service.ProjectCreationInput
 type UpdateProjectRequest struct {
 	ProjectID   string  `uri:"project_id" json:"-"`
 	Name        *string `json:"name"`
@@ -181,8 +181,15 @@ func (ctrl *Ctrl) GetProject(c *fox.Context, request ProjectPath) (*ProjectRespo
 	}
 	return projectResponse(item), nil
 }
-func (ctrl *Ctrl) CreateProject(c *fox.Context, request CreateProjectRequest) error {
-	item, err := ctrl.service.CreateResource(c.Request.Context(), currentAuthentication(c).User.ID, service.ProjectResource, request.Name, request.Description, nil)
+func (ctrl *Ctrl) CreateProject(c *fox.Context) error {
+	if c.Request.URL.RawQuery != "" {
+		return apperrors.ErrBadRequest
+	}
+	var request CreateProjectRequest
+	if err := decodeStrictRequest(c, &request); err != nil {
+		return err
+	}
+	item, err := ctrl.service.CreateProject(c.Request.Context(), currentAuthentication(c).User.ID, request)
 	if err != nil {
 		return err
 	}
@@ -272,4 +279,17 @@ func (team TeamResponse) MarshalJSON() ([]byte, error) {
 	}
 	type plain TeamResponse
 	return json.Marshal(plain(team))
+}
+
+func (ctrl *Ctrl) ProjectCreationManagerCandidates(c *fox.Context) (*ResourceCandidatesResponse, error) {
+	values, err := url.ParseQuery(c.Request.URL.RawQuery)
+	if err != nil {
+		return nil, apperrors.ErrBadRequest
+	}
+	for key, entries := range values {
+		if key != "q" || len(entries) != 1 {
+			return nil, apperrors.ErrBadRequest
+		}
+	}
+	return resourceCandidates(ctrl.service.ProjectCreationManagerCandidates(c.Request.Context(), currentAuthentication(c).User.ID, values.Get("q")))
 }

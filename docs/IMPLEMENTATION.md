@@ -157,7 +157,7 @@ The binary capability count is 10 completed, 17 partially completed, and 3 not s
 | F04 | Member administration, direct grants, roles, and resource policies | Partially completed | Member and role workflows plus scoped resource-limit interfaces exist; token, TPM, and exact-money controls with authoritative quota snapshots are available; the complete cross-domain resource-policy surface remains open. |
 | F05 | Built-in and custom roles with composed permissions | Partially completed | Current-domain role and permission management is implemented; later enterprise and operations domains still require permission integration and negative acceptance. |
 | F06 | Team membership, ownership, models, quotas, and member rules | Completed | Team membership/ownership, model relationships, finite aggregate/member policies and monthly requests are accepted. Durable Team-assigned roles, exact Team-only action unions, reviewed administrator assignment and the existing Roles interface have controlled dual-database and browser evidence. |
-| F07 | Project lifecycle, managers, models, Keys, and requests | Partially completed | Project management, managers, model grants, Project Keys, resource limits, model requests, finite monthly quota and RPM/TPM/concurrency approvals exist; canonical current authority, stable manager identities and revocation-safe detail interfaces are hardened; initial multi-manager creation and complete Project overview remain open. |
+| F07 | Project lifecycle, managers, models, Keys, and requests | Partially completed | Project management, managers, model grants, Project Keys, resource limits, model requests, finite monthly quota and RPM/TPM/concurrency approvals exist; canonical current authority, stable manager identities and revocation-safe detail interfaces are hardened; initial multi-manager creation and authoritative scoped Overview have full controlled acceptance; initial resource configuration and combined creation requests remain open. |
 | F08 | Personal and Project Key lifecycle | Completed | One-time delivery, confirmation, editing, rotation, revocation, expiration, scope, and history are implemented with controlled dual-database evidence. |
 | F09 | Key Token, money, RPM, TPM, concurrency, and IP restrictions | Completed | Personal, Project, and Key admission policies are enforced in the native gateway for the documented single-node architecture. Multi-node enforcement remains a separate release-architecture gate. |
 | F10 | Offboarding, inventory, handover, and emergency disable | Partially completed | Transactional local-account offboarding and continuity workflows exist; external-identity and complete enterprise continuity behavior remain open. |
@@ -1964,3 +1964,42 @@ Service 6.035 seconds). Both real-process authentication/native lifecycles passe
 restart persistence and revocation. Mandatory final check, full frontend and
 production embedding checks passed on the corrected source. F17 and the full objective remain
 partial; totals stay 10 completed, 17 partial and 3 not started.
+
+
+## Checked F07 initial managers and Overview, 2026-10-04
+
+The next isolated package has been integrated after the F17 main delivery.
+Projects accept presence-aware complete initial manager selections, with exact
+enabled candidates and ordinary creator retention. Independent current direct
+permission permits a complete selection without the creator. Relationships,
+Project and audit commit atomically; no implicit grants, policies, Keys or
+applications are introduced.
+
+The addressable Overview uses a scoped repeatable-read snapshot with independently
+authorized operating counts, authoritative quota windows/holds/coverage, exact
+historical money and actual immutable last-call facts. At most five typed
+metadata activities never borrow arbitrary audit JSON or current directory names.
+The interface preserves the existing creation form, monthly and operating cards,
+pending notice and activity table, with fresh actor/Project privacy boundaries.
+
+Source frontend focus passed 62 cases in four files. Actual PostgreSQL/MySQL
+creation/Overview focus passed in 254.50 seconds. Final main checks, full test and
+full real-database matrix are running. Controlled browser creation passed exact
+two-manager selection and no implicit resources. A QA-only wait condition was
+corrected to await both journal settlement and independent SQL call delivery
+without resending inference. Full production/browser/revocation/restart proof
+remains a delivery gate. F07 remains partial; totals stay 10 complete, 17 partial
+and 3 unstarted.
+
+
+Final F07 main acceptance passed mandatory check, Go race/development lifecycle
+and production embedding tests, 1057 frontend cases in 73 files, complete
+PostgreSQL/MySQL regression (Handler 815.082 seconds; Service 6.616 seconds)
+and both process authentication/native lifecycles. Controlled production/browser
+proof passed exact two-manager creation, no implicit resources, real Project use
+5/10, the exact immutable last call, independent pending request count, creator
+access revocation without erasing attribution, peer continuity, explicit
+restoration and process restart. English/Chinese switching passed. The QA-only
+wait separately observes journal settlement and durable call delivery, comparing
+the same UTC instant without replaying inference. Initial resource configuration
+and combined creation requests remain open; F07 is not marked complete.

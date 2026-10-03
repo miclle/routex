@@ -383,3 +383,12 @@ Preserve zero/null, exact money/currency, local IP, usage/holds/calendar, resour
 birth and Key/relationship identity. Freeze unknown reset intent through retries;
 report current runtime application separately from saved provenance. Never treat
 rule-save persistence as retroactive enforcement.
+
+Project creation uses the purpose-specific manager picker and explicit initial
+manager set. Preserve ordinary creators, permit direct `projects.write` selection
+and treat creator identity solely as an immutable fact. The existing Overview
+uses the scoped server snapshot, independent nullable sections, exact quota
+strings, at most five typed activities and real immutable last-call facts. Journal
+settlement and SQL call delivery are independent; never invent a last call from
+quota use. Suppress private cards and actions while refreshing actor/Project
+authority, and never replay uncertain creation automatically.

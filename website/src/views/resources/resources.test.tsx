@@ -82,6 +82,21 @@ beforeEach(() => {
         csrf_token: 'csrf-fixture',
       }
     else if (config.url === '/auth/permissions') response.data = { permissions }
+    else if (config.url === '/projects/prj_1/overview')
+      response.data = {
+        project_id: 'prj_1',
+        observed_at: '2026-10-03T00:00:00Z',
+        counts: {
+          managers: project.managers?.length ?? 0,
+          models: project.model_ids.length,
+          active_keys: 0,
+          pending_requests: 0,
+        },
+        last_call_at: null,
+        calls_available: true,
+        monthly_quota: null,
+        activities: [],
+      }
     else if (config.url === '/teams/tea_1/roles')
       response.data = {
         team_id: team.id,
