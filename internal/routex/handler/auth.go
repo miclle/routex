@@ -57,6 +57,8 @@ func renderAPIError(c *fox.Context, err error) {
 		code, message = httpErr.Code, httpErr.Message
 	case errors.As(err, &bindingErr) && bindingErr.HTTPCode == http.StatusBadRequest:
 		code, message = http.StatusBadRequest, "bad request"
+	case errors.As(err, &bindingErr) && bindingErr.HTTPCode == http.StatusNotFound:
+		code, message = http.StatusNotFound, "not found"
 	}
 	c.JSON(code, ErrorResponse{Code: code, Message: message})
 	c.Abort()

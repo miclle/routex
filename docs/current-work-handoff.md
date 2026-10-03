@@ -1305,3 +1305,17 @@ in 78 files, without actual-driver/browser acceptance yet. Team text comparison
 is the next bounded parallel package; it reuses four native Team transports and
 the approved two-to-four-lane layout. Root owns all actual DB/process runners.
 The full goal stays active; totals remain 10 complete, 17 partial and 3 unstarted.
+
+
+## API fallback repair before Model-price delivery
+
+The three-path sanitized Fox404 renderer repair is separate from Model pricing.
+Unsupported API paths previously became500 under the application's custom
+renderer; combined-router regressions reproduce and repair that boundary in both
+build modes while preserving JSON sanitization and production SPA fallback.
+Focused race/staticcheck/pinned lint passed; mandatory full check passed. Full
+handler race tests also passed in development (4.374 seconds) and production
+(4.220 seconds).
+After its scoped commit/push, carry these three committed paths into both active
+worktrees, then integrate and gate Model prices before Team comparison delivery.
+The goal remains active.

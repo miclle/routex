@@ -2171,3 +2171,23 @@ containers/network were removed. Both PostgreSQL/MySQL real-process
 authentication and native gateway lifecycles passed restart, persisted Session/Key facts and revocation; owned resources were
 removed. Mandatory check was rerun after the final fixture correction. All required
 local gates passed before phase delivery, with 107 checked local Markdown links.
+
+
+### Combined-router API 404 rendering, 2026-10-04
+
+Controlled browser setup exposed an unsupported API path returning sanitized 500.
+The helper was corrected to use the documented Provider list; separately, the
+combined application's custom error renderer was found to recognize Fox binding
+400 errors but not Fox's fallback 404. The renderer now preserves sanitized JSON
+404 for unsupported API/native paths while retaining generic 500 sanitization.
+No route, permission, authentication lifecycle or database contract changed.
+
+Combined-router regression reproduced 44 failures before repair. Focused race
+checks passed in development (1.942 seconds) and production (1.956 seconds), with
+44 unsupported method/path cases, 11 error mappings and four production SPA
+fallback cases. Staticcheck passed both modes and pinned scoped lint found zero
+issues. Standalone asset checks remain separate from the combined-router proof.
+
+Mandatory full check passed; complete handler race/unit tests passed in development
+(4.374 seconds) and production (4.220 seconds). This repair changes no persistent
+authentication or migration behavior.
