@@ -94,6 +94,12 @@ func auditRecord(row entity.AuditEvent) AuditRecord {
 			return result
 		}
 
+	case "project.creation.commit":
+		var valid bool
+		changes, valid = projectCreationAuditProjection(row)
+		if !valid {
+			return result
+		}
 	case "limits.defaults.update", "limits.default.apply", "limits.default.reset":
 		var valid bool
 		changes, valid = defaultLimitAuditProjection(row)

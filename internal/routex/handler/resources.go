@@ -189,6 +189,22 @@ func (ctrl *Ctrl) CreateProject(c *fox.Context) error {
 	if err := decodeStrictRequest(c, &request); err != nil {
 		return err
 	}
+	if request.CreationID != "" || request.InitialResources != nil || request.InitialRequest != nil {
+		reviewed, err := personalModelHeader(c)
+		if err != nil {
+			return err
+		}
+		request.ReviewETag = reviewed
+		result, err := ctrl.service.CreateProjectWithInitialResources(c.Request.Context(), currentAuthentication(c).User.ID, request)
+		if err != nil {
+			return err
+		}
+		c.JSON(http.StatusCreated, projectCreationResponse(result))
+		return nil
+	}
+	if len(c.Request.Header.Values("If-Match")) != 0 {
+		return apperrors.ErrBadRequest
+	}
 	item, err := ctrl.service.CreateProject(c.Request.Context(), currentAuthentication(c).User.ID, request)
 	if err != nil {
 		return err

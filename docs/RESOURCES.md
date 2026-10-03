@@ -127,3 +127,8 @@ submission, independent scoped review and immutable history. Pending requests
 change no access; approval affects only shared Team grants. Full Model-list
 updates retain unchanged canonical grant provenance, while removal/re-addition
 does not revive the original receipt's application proof.
+
+[Project creation and initial resources](PROJECT_CREATION.md) extend the existing
+form with independently authorized initial models and limits or atomic separate
+pending requests. Reviewed context/currency and a stable creation receipt separate
+historical commit from renewed current authority and runtime application.

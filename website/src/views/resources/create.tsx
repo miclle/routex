@@ -1,21 +1,19 @@
 import { t } from '@/i18n'
 import { useTranslation } from 'react-i18next'
-import { useLayoutEffect, useRef, useState, type FormEvent } from 'react'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Link, useNavigate } from 'react-router'
+import { useState, type FormEvent } from 'react'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { useNavigate } from 'react-router'
 import { writeCatalog } from '@/api/catalog'
-import { createProject, getProjectCreationManagers, resourcePath } from '@/api/resources'
-import { useSession, sessionKey } from '@/hooks/use-auth'
-import { usePermissions } from '@/hooks/use-permissions'
-import type { Session } from '@/types/auth'
-import { isAxiosError } from 'axios'
+import { resourcePath } from '@/api/resources'
+import { useSession } from '@/hooks/use-auth'
 import { PermissionGate } from '@/components/app/PermissionGate'
 import { Page, ErrorNotice, FormField, SaveButton, QueryState } from '@/components/app/CatalogUI'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { CandidatePicker, ResourceSection } from './shared'
-import type { ResourceCandidate, ResourceKind, ResourceRecord } from '@/types/resources'
+import type { ResourceKind, ResourceRecord } from '@/types/resources'
+import ProjectCreation from './project-creation'
 export default function CreateResourcePage({
   kind,
   admin = false,
@@ -160,189 +158,20 @@ function CreateResource({ kind, admin }: { kind: ResourceKind; admin: boolean })
 
 function CreateProjectPage({ admin }: { admin: boolean }) {
   const session = useSession()
-  const actor = session.isError ? '' : (session.data?.user.id ?? '')
+  const actor = session.data?.user.id ?? ''
   return actor && session.data ? (
-    <ProjectCreation key={actor} admin={admin} user={session.data.user} />
+    <ProjectCreation
+      key={actor}
+      admin={admin}
+      user={session.data.user}
+      generation={session.dataUpdatedAt}
+      visible={!session.isError && !session.isFetching}
+    />
   ) : (
     <QueryState
       pending={session.isPending}
       error={session.error}
       retry={() => void session.refetch()}
     />
-  )
-}
-function ProjectCreation({ admin, user }: { admin: boolean; user: Session['user'] }) {
-  const { t: tr } = useTranslation('resources')
-  const cache = useQueryClient()
-  const navigate = useNavigate()
-  const access = usePermissions()
-  const canReplaceCreator = access.can('projects.write') && !access.isError && !access.isFetching
-  const creator = { id: user.id, name: user.name, email: user.email }
-  const [selected, setSelected] = useState<ResourceCandidate[]>([creator])
-  const [q, setQ] = useState('')
-  const [busy, setBusy] = useState(false)
-  const [issue, setIssue] = useState<string | null>(null)
-  const [error, setError] = useState<unknown>(null)
-  const lock = useRef(false)
-  const alive = useRef(true)
-  useLayoutEffect(() => {
-    alive.current = true
-    return () => {
-      alive.current = false
-    }
-  }, [])
-  const currentActor = () =>
-    alive.current && cache.getQueryData<Session>(sessionKey)?.user.id === user.id
-  const candidates = useQuery({
-    queryKey: ['project-creation-managers', user.id, q],
-    queryFn: ({ signal }) => getProjectCreationManagers(q, signal),
-    retry: false,
-    staleTime: 0,
-    gcTime: 0,
-    refetchOnMount: 'always',
-    refetchOnWindowFocus: false,
-  })
-  const fresh = candidates.isSuccess && !candidates.isFetching
-  const effective =
-    !canReplaceCreator && !selected.some((item) => item.id === user.id)
-      ? [creator, ...selected]
-      : selected
-  const blocked = busy || issue === 'creationUncertain'
-  async function submitProject(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault()
-    const session = cache.getQueryData<Session>(sessionKey)
-    if (blocked || lock.current || !session || !currentActor() || !fresh) return
-    if (!effective.length) {
-      setIssue('creationManagerRequired')
-      return
-    }
-    const form = new FormData(event.currentTarget)
-    const name = String(form.get('name')).trim()
-    const description = String(form.get('description') || '').trim()
-    if (!name) {
-      setIssue('blankName')
-      return
-    }
-    lock.current = true
-    setBusy(true)
-    setIssue(null)
-    setError(null)
-    try {
-      const value = await createProject(
-        { name, description, manager_ids: effective.map((item) => item.id) },
-        session.csrf_token,
-        user.id,
-        effective.map((item) => item.id),
-      )
-      if (currentActor()) {
-        void cache.invalidateQueries({ queryKey: ['resources'] })
-        navigate(`${resourcePath('projects', admin)}/${value.id}`)
-      }
-    } catch (failure) {
-      if (currentActor()) {
-        const status = isAxiosError(failure) ? failure.response?.status : undefined
-        setIssue(!status || status >= 500 ? 'creationUncertain' : 'creationRejected')
-        if (status && status < 500) setError(failure)
-      }
-    } finally {
-      lock.current = false
-      if (currentActor()) setBusy(false)
-    }
-  }
-  return (
-    <Page title={tr('creationTitle')} description={tr('creationHelp')}>
-      <ResourceSection title={tr('creationTitle')}>
-        <form
-          aria-label={tr('creationTitle')}
-          className="space-y-6"
-          onSubmit={(event) => void submitProject(event)}
-        >
-          <fieldset disabled={blocked} className="space-y-6">
-            <FormField label={tr('creationName')}>
-              <Input name="name" autoFocus required maxLength={100} />
-            </FormField>
-            <FormField label={tr('businessDescription')}>
-              <Textarea name="description" rows={3} maxLength={2000} />
-            </FormField>
-            <fieldset className="space-y-3">
-              <legend className="mb-2 text-sm font-medium">{tr('managers')}</legend>
-              <Input
-                aria-label={tr('creationManagerSearch')}
-                placeholder={tr('creationManagerSearch')}
-                value={q}
-                onValueChange={setQ}
-              />
-              <QueryState
-                pending={candidates.isFetching}
-                error={candidates.error}
-                retry={() => void candidates.refetch()}
-                empty={fresh && !candidates.data?.length}
-              />
-              {fresh && (
-                <div className="max-h-64 space-y-2 overflow-y-auto rounded-md border p-3">
-                  {candidates.data?.map((candidate) => (
-                    <label key={candidate.id} className="flex items-center gap-3 text-sm">
-                      <input
-                        type="checkbox"
-                        checked={effective.some((item) => item.id === candidate.id)}
-                        disabled={!canReplaceCreator && candidate.id === user.id}
-                        onChange={(event) =>
-                          setSelected((old) =>
-                            event.target.checked
-                              ? [...old.filter((item) => item.id !== candidate.id), candidate]
-                              : old.filter((item) => item.id !== candidate.id),
-                          )
-                        }
-                      />
-                      <span>
-                        {candidate.name}
-                        <span className="ml-2 text-muted-foreground">{candidate.email}</span>
-                      </span>
-                    </label>
-                  ))}
-                </div>
-              )}
-              <div className="flex flex-wrap gap-2" aria-label={tr('creationSelectedManagers')}>
-                {effective.map((person) => (
-                  <Button
-                    key={person.id}
-                    type="button"
-                    size="sm"
-                    variant="secondary"
-                    disabled={!canReplaceCreator && person.id === user.id}
-                    onClick={() =>
-                      setSelected((old) => old.filter((item) => item.id !== person.id))
-                    }
-                    aria-label={tr('creationRemoveManager', { name: person.name })}
-                  >
-                    {person.name} ×
-                  </Button>
-                ))}
-              </div>
-              <p className="text-xs text-muted-foreground">
-                {tr(canReplaceCreator ? 'creationManagerAdminHelp' : 'creationManagerMemberHelp')}
-              </p>
-            </fieldset>
-            <p className="text-sm text-muted-foreground">
-              {tr('newHelp', { kind: tr('project') })}
-            </p>
-          </fieldset>
-          {issue && (
-            <p role="alert" className="text-sm text-destructive">
-              {tr(issue)}
-            </p>
-          )}
-          <ErrorNotice error={error} />
-          <div className="flex justify-end gap-3">
-            <Link to={resourcePath('projects', admin)} className="text-sm underline">
-              {tr('creationBack')}
-            </Link>
-            <Button type="submit" disabled={blocked || !fresh}>
-              {tr('create', { kind: tr('project') })}
-            </Button>
-          </div>
-        </form>
-      </ResourceSection>
-    </Page>
   )
 }

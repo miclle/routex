@@ -110,6 +110,14 @@ beforeEach(async () => {
     }
     if (config.url === '/auth/session') response.data = identity
     else if (config.url === '/auth/permissions') response.data = { permissions }
+    else if (config.url === '/project-creation-resources')
+      response.data = {
+        review_etag: 'a'.repeat(64),
+        platform_currency: 'USD',
+        can_set_models: false,
+        can_set_limits: false,
+        can_request_resources: false,
+      }
     else if (config.url === '/projects/creation-manager-candidates')
       response.data = candidateReply ?? { items: config.params.q ? [other] : [manager, other] }
     else if (config.url?.endsWith('/overview')) {
@@ -131,6 +139,19 @@ beforeEach(async () => {
           user_id: id,
         })),
       }
+      if (body.creation_id)
+        response.data = {
+          project: response.data,
+          committed: true,
+          receipt: {
+            creation_id: body.creation_id,
+            project_id: resource.id,
+            created_at: stamp,
+            initial_request_ids: [],
+          },
+          runtime_applied: true,
+          application_status: 'applied',
+        }
     }
     if (response.status >= 400)
       throw new AxiosError('Current scope denied', '', config, undefined, response)
@@ -214,8 +235,12 @@ describe('Project creation with current manager selection', () => {
       manager.name,
     )
     await submit()
-    await until(() => expect(router.state.location.pathname).toBe('/projects/prj_one'))
+    await until(() => expect(host.textContent).toContain('The creation was committed.'))
+    expect(router.state.location.pathname).toBe('/projects/new')
+    await click('a[href="/projects/prj_one"]')
+    expect(router.state.location.pathname).toBe('/projects/prj_one')
     expect(JSON.parse(postRequests()[0].data)).toEqual({
+      creation_id: expect.any(String),
       name: 'Created Project',
       description: '',
       manager_ids: [manager.id, other.id],
@@ -270,6 +295,11 @@ describe('Project creation with current manager selection', () => {
     await submit()
     await until(() => expect(host.textContent).toContain('Creation was rejected.'))
     expect(host.querySelector<HTMLInputElement>('[name="name"]')?.value).toBe('Created Project')
+    await act(async () =>
+      [...host.querySelectorAll('button')]
+        .find((button) => button.textContent === 'Review current creation context')!
+        .click(),
+    )
     postFailure = 503
     await submit()
     await until(() => expect(host.textContent).toContain('Creation may already be saved.'))

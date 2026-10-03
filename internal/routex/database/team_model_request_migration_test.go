@@ -98,7 +98,7 @@ func TestFrozenTeamModelRequestSchema(t *testing.T) {
 	}
 	for _, dialect := range []string{"postgres", "mysql"} {
 		steps := migrationSteps(dialect)
-		if len(steps) != 44 || reflect.ValueOf(steps[43]).Pointer() != reflect.ValueOf(teamModelRequestMigration).Pointer() || reflect.ValueOf(steps[42]).Pointer() != reflect.ValueOf(personalModelRequestMigration).Pointer() {
+		if len(steps) < 44 || reflect.ValueOf(steps[43]).Pointer() != reflect.ValueOf(teamModelRequestMigration).Pointer() || reflect.ValueOf(steps[42]).Pointer() != reflect.ValueOf(personalModelRequestMigration).Pointer() {
 			t.Fatal("V44 must append without replacing Personal requests", dialect)
 		}
 	}

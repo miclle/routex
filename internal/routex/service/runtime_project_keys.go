@@ -26,6 +26,7 @@ func loadProjectRuntimeData(tx *gorm.DB) (*projectRuntimeData, error) {
 	return data, nil
 }
 func addProjectRuntimeAuthorization(auth *runtimeAuthorization, data *projectRuntimeData, users map[string]bool) {
+	addProjectCreationAuthorization(auth, data, users)
 	if data == nil {
 		return
 	}

@@ -8,6 +8,7 @@ import (
 	"io"
 	"slices"
 	"strings"
+	"unicode/utf8"
 
 	"gorm.io/gorm"
 
@@ -19,12 +20,19 @@ import (
 // ProjectCreationInput distinguishes a legacy creator-only request from an
 // explicitly reviewed complete initial manager selection.
 type ProjectCreationInput struct {
-	Name        string    `json:"name"`
-	Description string    `json:"description"`
-	ManagerIDs  *[]string `json:"manager_ids,omitempty"`
+	Name             string                   `json:"name"`
+	Description      string                   `json:"description"`
+	ManagerIDs       *[]string                `json:"manager_ids,omitempty"`
+	CreationID       string                   `json:"creation_id,omitempty"`
+	ReviewETag       string                   `json:"-"`
+	InitialResources *ProjectInitialResources `json:"initial_resources,omitempty"`
+	InitialRequest   *ProjectInitialResources `json:"initial_request,omitempty"`
 }
 
 func (input *ProjectCreationInput) UnmarshalJSON(raw []byte) error {
+	if !utf8.Valid(raw) {
+		return apperrors.ErrBadRequest
+	}
 	decoder := json.NewDecoder(bytes.NewReader(raw))
 	token, err := decoder.Token()
 	if err != nil || token != json.Delim('{') {
@@ -56,11 +64,23 @@ func (input *ProjectCreationInput) UnmarshalJSON(raw []byte) error {
 				return apperrors.ErrBadRequest
 			}
 		case "manager_ids":
-			var selected []string
-			if json.Unmarshal(value, &selected) != nil || len(selected) == 0 {
+			selected, err := projectCreationStringIDs(value, false)
+			if err != nil {
 				return apperrors.ErrBadRequest
 			}
 			result.ManagerIDs = &selected
+		case "creation_id":
+			if json.Unmarshal(value, &result.CreationID) != nil || result.CreationID == "" {
+				return apperrors.ErrBadRequest
+			}
+		case "initial_resources":
+			if json.Unmarshal(value, &result.InitialResources) != nil {
+				return apperrors.ErrBadRequest
+			}
+		case "initial_request":
+			if json.Unmarshal(value, &result.InitialRequest) != nil {
+				return apperrors.ErrBadRequest
+			}
 		default:
 			return apperrors.ErrBadRequest
 		}
@@ -136,6 +156,9 @@ func createProjectWithManagers(tx *gorm.DB, actorID, projectID, name, descriptio
 }
 
 func (s *Service) CreateProject(ctx context.Context, actorID string, input ProjectCreationInput) (*ResourceRecord, error) {
+	if input.CreationID != "" || input.InitialResources != nil || input.InitialRequest != nil || input.ReviewETag != "" {
+		return nil, apperrors.ErrBadRequest
+	}
 	name := strings.TrimSpace(input.Name)
 	if !validCatalogLabel(name) || !validResourceDescription(input.Description) {
 		return nil, apperrors.ErrBadRequest

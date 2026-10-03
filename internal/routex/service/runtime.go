@@ -53,6 +53,7 @@ type gatewayRuntime struct {
 }
 
 type runtimeAuthorization struct {
+	ProjectCreationStates  map[string]runtimeProjectCreationState
 	PersonalGrantSources   map[string]map[string]string
 	TeamGrantSources       map[string]map[string]string
 	SourceDigest           string

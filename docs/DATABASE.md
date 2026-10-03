@@ -294,3 +294,9 @@ loss; no evolving entities define the historical migration. Unique intents,
 receipt/status constraints, concurrent/repeat startup and partial-DDL recovery
 are covered by real-driver fixtures under acceptance. See
 [Team Model requests](TEAM_MODEL_REQUESTS.md).
+
+Frozen V45 adds `project_creation_receipts` using a private bounded GORM schema.
+Global creation UUID and Project uniqueness, actor indexing and intent/hash/review
+length guards retain immutable historical creation independently of current
+Project/manager/grant/policy rows. No live foreign keys or handwritten SQL are added.
+See [Project creation and initial resources](PROJECT_CREATION.md).

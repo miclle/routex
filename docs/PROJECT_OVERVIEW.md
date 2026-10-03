@@ -1,8 +1,10 @@
 # Project Creation and Overview
 
 Projects have explicit manager relationships and independent model, policy and
-Key scopes. Creating a Project does not inherit Team authority or grant models,
-limits, Keys or pending resource applications.
+Key scopes. Creating a Project does not inherit Team authority. Omitted initial resources
+grant no models, limits, Keys or pending resource applications. Explicit initial
+resources and simultaneous requests use the separately reviewed
+[creation contract](PROJECT_CREATION.md).
 
 ## Initial managers
 
@@ -76,6 +78,7 @@ The disposable QA wait distinguishes synchronous journal settlement from
 asynchronous SQL call delivery and compares UTC instants instead of serialized
 offset spellings. It never resends native inference or fabricates a last call.
 
-Initial resource configuration and combined creation requests remain separate
-workflows. Recorded active Key counts are not an assertion that a disabled or
+Initial resource configuration and simultaneous creation requests extend the same
+form through [reviewed atomic creation](PROJECT_CREATION.md); their acceptance
+evidence is recorded separately from this earlier manager/Overview delivery. Recorded active Key counts are not an assertion that a disabled or
 archived Project is callable. Full F07 and full product acceptance remain open.

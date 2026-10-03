@@ -1,10 +1,10 @@
 # Current Work Handoff
 
-- **Status:** implementation active; shared Team requests pushed with green checks; four native Team text protocols passed final local acceptance and are ready for phased delivery
+- **Status:** implementation active; four native Team text protocols pushed; initial Project resources and simultaneous requests passed controlled acceptance
 - **Updated:** 2026-10-04
 - **Repository / branch:** RouteX / `main`
-- **Previous checked source baseline:** `ea73a056792c58704d8442b85f7cfc667aa697cd`, pushed and read back from `origin/main`
-- **Current owner:** coordinator owns F19 integration, final acceptance and delivery; three scoped owners maintain its isolated source
+- **Previous checked source baseline:** `d29ffa8dd7a706569a7bbfbb0c5fcfbc677ab6c2`, pushed and read back from `origin/main`
+- **Current owner:** coordinator owns F07 integration and actual acceptance; scoped owners froze backend, interface and fixtures
 - **Next owner:** current task continues the resumed goal
 - **Transport:** identify this checked delivery with `git log -1 -- docs/current-work-handoff.md` and independently verify its upstream
 - **Coordination plan:** `~/dotfiles/projects/routex/implementation-plan.md`; synchronize separately and preserve unrelated changes
@@ -1258,4 +1258,50 @@ finish V45 upgrade/partial-DDL/constraints and runtime proof tests, then integra
 only its files and run full checks, both drivers and bilingual production browser/
 restart/native acceptance before committing/pushing. No completed F07 package is
 claimed yet. Team comparison/media/code export and broader F19 facts remain open.
+The full goal stays active; totals remain 10 complete, 17 partial and 3 unstarted.
+
+## Current F07 acceptance
+
+The F07 manifest is integrated narrowly over committed native Team source.
+Backend, interface and HTTP/driver fixture owners are frozen. Final formatting,
+full check and test passed 1181 Vitest cases in 78 files, Go race/unit, development
+lifecycle and production embedded assets. Mandatory check passed again after the
+final actual-driver fixture correction;
+zero errors and two existing Fast Refresh warnings remained.
+
+The first actual focus failed during V45 setup because GORM inferred review_e_tag
+while the constraint referenced review_etag. Entity, frozen schema and private
+partial-upgrade fixtures now declare column:review_etag; the schema regression
+checks actual column names. Later focuses exposed incorrect fixture expectations:
+atomic creation records three scoped audit actions with distinct legacy/current
+resource types; Project calls retain blank User/Team/membership attribution.
+These failed runs are not acceptance evidence. Owned failed-run resources were
+removed. The complete PostgreSQL/MySQL matrix passed the repaired source under race
+detection (Handler 971.977 seconds; Service 7.062 seconds), and owned containers
+and network were removed. Both drivers also passed real-process authentication
+and native gateway
+lifecycles with restart, persisted facts and revocation; owned resources were
+removed. All required local gates passed before phase delivery.
+
+Controlled production/browser/native acceptance passed direct creation and all
+three simultaneous pending request types. Exact receipts, finite native quota,
+independent approvals, unchanged existing Key scope, later grants/policy changes,
+revocation with zero extra dispatch and lost current manager authority were
+verified. Two production restarts retained Sessions, immutable receipts and
+current superseded/unavailable status. English/Chinese controls passed; English
+was restored, the browser reported no console errors and owned process, tab,
+containers, volume and network were removed.
+
+Native Team delivery d29ffa8 has exact green CI 37146984375, Actionlint
+37146984325 and GolangCI-Lint 37146984327. Its four-protocol package is independent
+of this separately checked F07 package.
+
+Next action: commit and push the 42 checked F07 paths, then carry that committed
+baseline into the isolated Model-price workspace and run its scoped real-driver,
+complete check/test and bilingual production browser/restart acceptance. Model
+routing-table base prices are implemented in
+an isolated managed worktree; preliminary full check/test passed 1177 Vitest cases
+in 78 files, without actual-driver/browser acceptance yet. Team text comparison
+is the next bounded parallel package; it reuses four native Team transports and
+the approved two-to-four-lane layout. Root owns all actual DB/process runners.
 The full goal stays active; totals remain 10 complete, 17 partial and 3 unstarted.

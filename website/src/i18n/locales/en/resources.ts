@@ -50,7 +50,7 @@ export default {
     'Select at least one current enabled manager. Your creator identity is retained independently.',
   creationManagerRequired: 'Select at least one Project manager.',
   creationUncertain:
-    'Creation may already be saved. Do not submit another creation. Check your Projects; matching names do not prove this request succeeded.',
+    'Creation may already be saved. Retry the original creation to reconcile its receipt. Do not create another Project.',
   creationRejected: 'Creation was rejected. Review the manager selection before submitting again.',
   creationBack: 'Back to Projects',
 
@@ -170,4 +170,58 @@ export default {
   projectCalls: 'Project call records',
   projectCallsHelp: 'Calls made by this Project remain separate from personal call history.',
   openInPlayground: 'Open in Playground',
+  creationInitialResources: 'Initial resources',
+  creationRequestedResources: 'Initial resource request',
+  creationInitialHelp:
+    'Configure only resources you can assign directly. Blank controls remain unset.',
+  creationRequestHelp:
+    'Submit pending requests with this Project. Approval is required before these resources take effect.',
+  creationModels: 'Initial models',
+  creationRequestModels: 'Requested models',
+  creationModelSearch: 'Search initial models',
+  creationSelectedModels: 'Selected initial models',
+  creationRemoveModel: 'Remove {{name}}',
+  creationLoadMoreModels: 'Load more models',
+  creationMoney: 'Monthly money ({{currency}})',
+  creation_tokens_month: 'Monthly Tokens',
+  creation_rpm: 'RPM',
+  creation_tpm: 'TPM',
+  creation_concurrency: 'Concurrency',
+  creationOmit: 'Leave unset',
+  creationResourceReason: 'Resource reason',
+  creationReasonHelp:
+    'Required when configuring resources. Up to 1,024 UTF-8 bytes; control characters are not allowed.',
+  creationSubmitRequest: 'Request initial resources for approval',
+  creationNoDefaults:
+    'Blank fields create no model grants or Project limit overrides. Initial model access does not expand any Key scope.',
+  creationContextChanged:
+    'Creation authority or currency changed. Review the current context before creating.',
+  creationReview: 'Review current creation context',
+  creationRequestManager: 'Select yourself as an initial Project manager to request resources.',
+  creationInvalidResources: 'Enter non-negative safe integers and a valid decimal money amount.',
+  creationRequestRequired: 'Select at least one resource to request.',
+  creationResourceReasonInvalid: 'Enter a valid reason and review current resource permissions.',
+  creationCommitted: 'The creation was committed. Its receipt is recorded below.',
+  creationReceipt: 'Recorded Project creation',
+  creationReceiptProject: 'Created Project: {{id}}',
+  creationReceiptRequests_one: '{{count}} initial request recorded.',
+  creationReceiptRequests_other: '{{count}} initial requests recorded.',
+  creationApplication_pending: 'Current runtime application has not been confirmed.',
+  creationApplication_applied: 'The recorded creation is currently applied.',
+  creationApplication_superseded:
+    'The recorded creation has been superseded by current Project changes.',
+  creationApplication_unavailable:
+    'Current Project access and application are unavailable. The historical receipt remains recorded.',
+  creationOpenProject: 'Open Project',
+  creationRecheckReceipt: 'Recheck recorded creation',
+  creationCheckingReceipt: 'Refreshing current creation application…',
+  creationRetry: 'Retry original creation',
+  creationAndRequests: 'Create Project and submit requests',
+  creationRefreshContext: 'Refresh creation context',
+  creationApplicationNeedsRefresh:
+    'Recheck the recorded creation to confirm current Project access and application.',
+  creationReceiptRefreshFailed:
+    'Current creation application could not be confirmed. The committed historical receipt remains recorded.',
+  creationClearUnavailableModels: 'Clear initial models requiring unavailable permission',
+  creationClearUnavailableLimits: 'Clear initial limits requiring unavailable permission',
 }

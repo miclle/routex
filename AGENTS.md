@@ -431,3 +431,15 @@ member catalogue Team links use source-specific protocols without Personal Key
 authority. Team comparison, attachments and code export remain unavailable. Session
 renewal and native authorization failures clear stale selection and transcript;
 late cancelled responses never enter completed history.
+
+Project creation uses the existing name/description/manager form with optional
+initial models and monthly Tokens/money, RPM, TPM and concurrency controls. Keep
+direct model/limit permissions independent. The optional initial-request mode
+requires the applicant in the explicit initial manager selection and records
+independent MODEL_ACCESS, QUOTA and RATE_LIMIT requests atomically at creation.
+Use only minimal creation context/model candidates and exact decimal money with
+a reviewed currency. Enhanced creation retains one UUIDv4/body/If-Match intent
+through uncertainty; explicit retry reconciles the historical receipt without
+restoring managers, grants, policies or pending children. Current Project facts
+and runtime application require renewed resource authority, and receipt navigation
+is explicit. Keep legacy creation compatible and preserve Team creation.

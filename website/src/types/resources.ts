@@ -86,3 +86,47 @@ export interface ProjectOverviewRecord {
     status: 'committed'
   }[]
 }
+
+export interface ProjectCreationContext {
+  review_etag: string
+  platform_currency: string
+  can_set_models: boolean
+  can_set_limits: boolean
+  can_request_resources: boolean
+}
+export interface ProjectInitialResources {
+  model_ids?: string[]
+  tokens_month?: number
+  money_month?: string
+  currency?: string
+  rpm?: number
+  tpm?: number
+  concurrency?: number
+  reason: string
+}
+export interface ProjectResourceCreationInput extends ProjectCreationInput {
+  creation_id: string
+  manager_ids: string[]
+  initial_resources?: ProjectInitialResources
+  initial_request?: ProjectInitialResources
+}
+export interface ProjectCreationIntent {
+  body: ProjectResourceCreationInput
+  etag: string
+}
+export interface ProjectCreationModelPage {
+  items: { id: string; name: string }[]
+  next_cursor: string | null
+}
+export interface ProjectCreationReceipt {
+  project: ResourceRecord | null
+  receipt: {
+    creation_id: string
+    project_id: string
+    created_at: string
+    initial_request_ids: string[]
+  }
+  committed: true
+  runtime_applied: boolean
+  application_status: 'pending' | 'applied' | 'superseded' | 'unavailable'
+}

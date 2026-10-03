@@ -157,7 +157,7 @@ The binary capability count is 10 completed, 17 partially completed, and 3 not s
 | F04 | Member administration, direct grants, roles, and resource policies | Partially completed | Member and role workflows plus scoped resource-limit interfaces exist; token, TPM, and exact-money controls with authoritative quota snapshots are available; the complete cross-domain resource-policy surface remains open. |
 | F05 | Built-in and custom roles with composed permissions | Partially completed | Current-domain role and permission management is implemented; later enterprise and operations domains still require permission integration and negative acceptance. |
 | F06 | Team membership, ownership, models, quotas, and member rules | Completed | Team membership/ownership, model relationships, finite aggregate/member policies and monthly requests are accepted. Durable Team-assigned roles, exact Team-only action unions, reviewed administrator assignment and the existing Roles interface have controlled dual-database and browser evidence. |
-| F07 | Project lifecycle, managers, models, Keys, and requests | Partially completed | Project management, managers, model grants, Project Keys, resource limits, model requests, finite monthly quota and RPM/TPM/concurrency approvals exist; canonical current authority, stable manager identities and revocation-safe detail interfaces are hardened; initial multi-manager creation and authoritative scoped Overview have full controlled acceptance; initial resource configuration and combined creation requests remain open. |
+| F07 | Project lifecycle, managers, models, Keys, and requests | Partially completed | Project management, managers, model grants, Project Keys, resource limits, model requests, finite monthly quota and RPM/TPM/concurrency approvals exist; canonical current authority, stable manager identities and revocation-safe detail interfaces are hardened; initial multi-manager creation and authoritative scoped Overview have full controlled acceptance; initial direct resources and atomic combined creation requests have controlled dual-database/browser/native/restart acceptance; full Project release acceptance remains open. |
 | F08 | Personal and Project Key lifecycle | Completed | One-time delivery, confirmation, editing, rotation, revocation, expiration, scope, and history are implemented with controlled dual-database evidence. |
 | F09 | Key Token, money, RPM, TPM, concurrency, and IP restrictions | Completed | Personal, Project, and Key admission policies are enforced in the native gateway for the documented single-node architecture. Multi-node enforcement remains a separate release-architecture gate. |
 | F10 | Offboarding, inventory, handover, and emergency disable | Partially completed | Transactional local-account offboarding and continuity workflows exist; external-identity and complete enterprise continuity behavior remain open. |
@@ -2126,3 +2126,48 @@ and rebuilt production verification. English/Chinese passed with English restore
 no console errors and owned process/tab/Compose cleanup. Team comparison/media/
 code export, broader member facts, external-provider and full F19 acceptance remain
 open. Totals stay 10 complete, 17 partial and 3 unstarted; the full goal is active.
+
+### F07 initial Project resources: controlled acceptance, 2026-10-04
+
+Three parallel owners implemented frozen GORM V45 and atomic creation resources/
+requests, the existing Project form and minimal API, and actual migration/lifecycle
+fixtures. Root adds publication proof, bounded typed audit and shared registration.
+[Project creation and initial resources](PROJECT_CREATION.md) preserve legacy
+creation, independent permissions, exact decimal money, reviewed currency/context
+and original uncertain intents. Initial pending records never grant resources.
+The completed gates and controlled evidence are recorded below; full F07 release
+acceptance remains separate.
+
+The initial actual V45 focus failed before lifecycle execution because GORM
+inferred review_e_tag while a check constraint used review_etag. Entity/frozen
+schema and private partial-upgrade fixture mappings now specify column:review_etag;
+the frozen schema test verifies actual field DB names. Failed-run Compose resources
+were removed. Initial full source validation passed 1180 Vitest cases in 78 files
+and final schema race tests passed; repaired real-driver results are recorded below.
+
+Final full local check/test passed 1181 Vitest cases in 78 files, Go race/unit,
+development lifecycle and embedded production assets. Subsequent failed focused
+runs corrected fixture audit cardinality/resource types and Project-native
+attribution expectations; these runs are not acceptance evidence. The complete PostgreSQL/MySQL matrix subsequently passed against the repaired
+fixture, as recorded below.
+
+Controlled production/browser/native acceptance passed direct initial resources,
+all three pending request types, exact retry reconciliation, finite quota and
+independent approval. Existing Keys retained their original scope; later policy
+and grant changes, native revocation, and lost manager authority never restored
+original resources through receipt retry. Two process restarts preserved Sessions
+and historical receipts while reporting current superseded/unavailable status.
+English/Chinese passed, English was restored, console errors were empty and owned
+process/tab/Compose resources were removed. Full F07/platform acceptance remains
+open beyond this controlled package.
+
+Exact remote checks for native Team source d29ffa8 passed: CI 37146984375,
+Actionlint 37146984325 and GolangCI-Lint 37146984327.
+
+The repaired complete PostgreSQL/MySQL matrix passed under race detection:
+Handler 971.977 seconds and Service 7.062 seconds. Both drivers exercised V45
+upgrade/partial-DDL/repeat/concurrent startup and lifecycle constraints. Owned
+containers/network were removed. Both PostgreSQL/MySQL real-process
+authentication and native gateway lifecycles passed restart, persisted Session/Key facts and revocation; owned resources were
+removed. Mandatory check was rerun after the final fixture correction. All required
+local gates passed before phase delivery, with 107 checked local Markdown links.
