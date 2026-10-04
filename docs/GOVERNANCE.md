@@ -314,7 +314,8 @@ fixtures are now integrated on the checked Member Teams baseline. Root registere
 V54 and both routes, retaining all earlier 89 harness entries before the two new
 entries (91 per driver). Isolated source race/static/pinned lint and 182 related
 frontend tests passed. Integrated checks/build, real PostgreSQL/MySQL and controlled
-native/browser/restart acceptance passed; checked delivery remains pending. The accepted Member
+native/browser/restart acceptance passed; the checked delivery was committed and
+pushed as `569abcd`. The accepted Member
 Teams evidence remains unchanged.
 F04/F19 remain Partial; formal totals stay 11 completed, 16 partial and three
 unstarted. See [Personal requests](PERSONAL_MODEL_REQUESTS.md#direct-personal-grant-editor-source-preparation)
@@ -333,7 +334,7 @@ drafts, reason validation, independent permissions and responsive containment;
 browser grant writes are not claimed. The 197-path successor differs from the
 full-matrix floor only in a tested Actor fixture. Detailed failed and successful
 checkpoints remain in [Implementation](IMPLEMENTATION.md#member-models-actual-acceptance-2026-10-05).
-Final mandatory check passed; checked main delivery remains pending. F04/F19 and formal
+Final mandatory check passed, followed by checked main delivery `569abcd`. F04/F19 and formal
 11 complete/16 partial/3 unstarted remain unchanged.
 
 
@@ -345,3 +346,27 @@ conservatively. It does not replay writes or establish a historical receipt.
 Focused dual-driver R4, complete integration, authentication and controlled
 native/browser acceptance passed; current-state confirmation remains distinct
 from historical operation evidence.
+
+
+### Stable Member Model review revisions
+
+The strong review ETag binds the actor, target identity and lifecycle, Personal
+grant revision and provenance, Team exclusion basis, and complete persisted
+Model, supply, credential coverage and egress configuration. Transient runtime
+mutex contention, lease state and the resulting availability/protocol projection
+do not change that configuration revision. A brief busy observation therefore
+cannot make an otherwise identical reviewed reduction conflict.
+
+Readiness remains independent: every addition is checked against the current
+runtime projection at dispatch. Unknown, expired, tombstoned or unpublished
+routes remain nonselectable. Real configuration or authorization changes still
+invalidate review, and postcommit confirmation still requires current grants and
+runtime application. No mutation or publication is repeated by this correction.
+
+The correction passed deterministic contention and fresh-addition tests, source
+race tests, and mandatory checks. The fresh complete ordered integration matrix
+passed all 91 scenarios per database and eight pre-loop constraints on PostgreSQL
+and MySQL. Both-driver authentication, persisted sessions, process restart, and
+gateway lifecycle checks also passed. Owned test resources were independently
+verified absent. The earlier CI and local contention failures remain recorded in
+[Implementation](IMPLEMENTATION.md#own-team-export-regression-and-member-review-correction-2026-10-05).

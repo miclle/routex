@@ -124,14 +124,12 @@ func (s *Service) memberModelProtocols(model entity.Model, index memberModelsEli
 }
 func memberModelsETag(actorID string, data *memberModelsData, rows []MemberModelRow, index memberModelsEligibilityIndex) string {
 	type reviewedModel struct {
-		ID, Name, Status, Availability, Configuration string
-		CreatedAt                                     time.Time
-		Protocols                                     []string
-		Selectable                                    bool
+		ID, Name, Status, Configuration string
+		CreatedAt                       time.Time
 	}
 	models := make([]reviewedModel, 0, len(rows))
 	for _, row := range rows {
-		models = append(models, reviewedModel{row.ID, row.Name, row.Status, row.Availability, index.hash(entity.Model{ID: row.ID, Status: row.Status, CreatedAt: row.CreatedAt}), row.CreatedAt, row.Protocols, row.Selectable})
+		models = append(models, reviewedModel{row.ID, row.Name, row.Status, index.hash(entity.Model{ID: row.ID, Status: row.Status, CreatedAt: row.CreatedAt}), row.CreatedAt})
 	}
 	return memberModelsDigest(struct {
 		ActorID, UserID, Role, Revision, GrantHash string
