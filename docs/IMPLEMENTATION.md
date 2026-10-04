@@ -165,7 +165,7 @@ The binary capability count is 11 completed, 16 partially completed, and 3 not s
 | F12 | Model catalog, names, bindings, weights, and catalog assistance | Partially completed | Stable models, renames, bindings, weights, grants, and availability controls exist; standalone compatibility-name Early stop is an isolated source package. Batch creation, complete public-catalog assistance and final routing acceptance remain open. |
 | F13 | Four native protocols, streaming, health, retries, and failover | Partially completed | Chat Completions, Responses, Messages, and Gemini now use bounded replay-safe same-protocol failover with process-local health, one admission/settlement, durable ordered diagnostics, and no retry after a usable response. Real-provider and measured multi-node health acceptance remain open. |
 | F14 | Managed egress and staged network diagnostics | Partially completed | Direct, default, SOCKS5, verified CONNECT, endpoint-bound saved authentication, complete-tunnel proxy-address fallback, and diagnostics exist. External proxy and production performance acceptance remain open. |
-| F15 | Prices, spreadsheet/CSV workflows, API, and repository sync | Partially completed | Current prices, ETags, CSV/XLS/XLSX import, preview, commit, and export exist; repository-source maintenance is an isolated candidate; current-main synchronization acceptance remains open. |
+| F15 | Prices, spreadsheet/CSV workflows, API, and repository sync | Partially completed | Current prices, ETags, CSV/XLS/XLSX import, preview, commit, and export exist; repository-file mappings, reviewed synchronization, custom-rate protection and selected restoration passed complete current-main source, dual-driver and controlled production/browser/restart gates; shipped prices stay empty pending reviewed source rates, while wider external/release acceptance remains open. |
 | F16 | Platform currency, exchange rates, and historical price snapshots | Completed | Decimal-string currency/rate management, exact quoting, and immutable per-call assessment are implemented. |
 | F17 | User and Team defaults, overrides, budgets, alerts, and stop policy | Partially completed | Personal, Project, Key and Team aggregate/member enforcement plus budget/token/TPM controls, authoritative quota snapshots, and installation-calendar configuration exist; current-policy Personal/Project monthly settled-exhaustion inboxes have focused acceptance, Team aggregate monthly settled-exhaustion inboxes have complete controlled acceptance, and creation-default settings and explicit restores have complete local acceptance; templates, broader alerts, and configurable stop-calling policy remain open. |
 | F18 | Quota, model, and request-limit approvals | Completed | Project model/monthly quota/RPM/TPM/concurrency and Team monthly Token/money requests have controlled acceptance: owner-first assignment, escalation, independent dimensions, read-only platform records, atomic final policies and immutable receipts with current application. Distributed acknowledgements belong to F30; release-wide acceptance remains separate. |
@@ -196,7 +196,7 @@ A01 and A13 are fully accepted across their defined controlled scope. Other case
 | A06 | Model rename, alias expiry, and historical-name reuse | Partially completed | Controlled model-name tests exist; final end-to-end release acceptance remains open. |
 | A07 | Weights, new candidates, no healthy target, and credential failure | Partially completed | Active weights, credential priority, health cooldowns, current-policy rechecks, safe failover, exhaustion, and diagnostics have controlled coverage. Real-provider failure behavior and multi-node health remain open. |
 | A08 | Stream failure, cancellation, and timeout | Partially completed | Controlled four-protocol evidence exists; real-provider and production-load evidence do not. |
-| A09 | Invalid price files, stale ETags, and repository synchronization | Partially completed | File and ETag behavior exists; network synchronization does not. |
+| A09 | Invalid price files, stale ETags, and repository synchronization | Partially completed | File/ETag behavior and the selected repository-file synchronization passed controlled current-main gates; arbitrary network fetching and automatic scheduling are not implemented, and wider release acceptance remains open. |
 | A10 | In-flight price changes and historical reporting | Partially completed | Immutable assessments and dual-driver genuine-native in-flight price/FX, historical reporting and recorder replay proof passed the full current-source matrix; release acceptance remains open. |
 | A11 | Concurrent quota, TPM, RPM, and concurrency contention | Partially completed | Single-process controlled enforcement exists; distributed and capacity bounds remain open. |
 | A12 | IPv4, IPv6, CIDR, and forged forwarding headers | Partially completed | Controlled source-address enforcement exists; production proxy-topology acceptance remains open. |
@@ -3045,3 +3045,90 @@ five-domain production/browser/restart probes, the 63-path phase satisfies its
 controlled internal-root-rotation delivery gates. Earlier failed checkpoints
 remain historical diagnosis, not acceptance. External Vault/fleet/physical-erasure
 boundaries and formal 11/16/3 totals remain open/unchanged.
+
+
+### Repository-price current-main source acceptance started, 2026-10-04
+
+After root rotation commit/push `16fd182` and exact remote read-back, 44 exact
+repository owner paths plus narrow Service/audit/registry/routes/harness changes
+were carried onto clean main. V49 follows immutable V48 and retains all released
+migration guards. Six management routes and repository lifecycle/migration cases
+are registered. Paired rules and Pricing documentation are updated. Current
+format/check/test/build is running; real-driver/process/browser gates remain
+unrun. Production catalogue bytes stay intentionally empty. A separately labelled
+synthetic source must be rebuilt from this final candidate before controlled
+price application/native acceptance. No formal F15 or overall total changes.
+
+
+### Repository-price source and real-driver focus, 2026-10-04
+
+Current-main format/check/test/build passed with 1908 frontend cases/104 files,
+Go race/unit/dev/production assets and unchanged package/lock bytes. Production
+candidate SHA256 is `e87ae19ce7c664db43854b12bafc67d55cfed4fe02710e52d722e7938b01b31e`.
+First actual focus passed the business lifecycle on both drivers but failed its
+migration setup because a retained price referenced an absent Provider Model.
+The narrow fixture repair creates legitimate Provider/Connection/ProviderModel
+prerequisites; it changes no production code or constraint. Orphan repository
+mappings/receipts and absent immutable call subjects remain tested. Repaired
+migration/lifecycle focus passed in 62.508s under race detection on both databases;
+all 49 final code hashes stayed exact and owned resources were removed/checked.
+
+The final-main TEST ONLY source copy was freshly built with exactly two synthetic
+source keys; binary SHA256 is `9e2a2c87c8bb172a0e21995abdf54f550ff3ad5f850ff254043494bf73d7c4c7`.
+It remains separate from the tracked empty production catalogue. Root is starting
+the serial real-process proof; process/browser/final full regression and delivery
+remain pending. The earlier 72.113s failed focus is diagnosis, not acceptance.
+
+
+### Repository-price real-process and browser acceptance, 2026-10-04
+
+Two isolated serial production processes passed the final-main source contract.
+Each used a separately labelled synthetic catalogue only for controlled price
+application, then returned to the exact empty production catalogue. Each completed
+exactly three genuine native calls: repository pricing, an explicitly custom zero
+input price, and restoration of that selected input rate. Recorded charges were
+0.000006, 0.000002 and 0.000006 USD. Native usage was four input and one output
+Token per call, with parser-owned completed evidence and exact immutable actor,
+Key, Model, Provider-model, Connection, Credential, runtime and price identities.
+Restart, receipt refresh and production-source changes caused no native replay or
+historical repricing. Custom zero, disabled and same-amount rates remained protected;
+configuration alone did not apply prices. The API scenario additionally preserved
+an original superseded sync receipt without reapplying its old prices.
+
+The independent browser scenario submitted configuration, sync and selected-rate
+restoration through real Base UI review/confirmation, then verified each exact
+UUID receipt through the service. English/Chinese views showed server-derived
+price differences, historical commitment and separately reported application.
+A local observation proxy recorded actual Session GET 200 at 06:51:32 and
+06:52:32 UTC without recording headers, credentials or bodies. The typed restoration
+reason survived this real network renewal before explicit confirmation. Only one
+input rate was restored, preserving 1.000000000000000001 as a decimal string.
+The existing authenticated browser Session survived a real process restart.
+The empty production source disabled preview while retaining saved rates and
+historical receipts. Browser warning/error logs were empty. Both helpers, the
+observation proxy, owned browser tab and uniquely labelled Compose resources
+were stopped; containers, networks and volumes were verified absent.
+
+The tracked production file remains empty; no controlled price is a market rate
+or a shipped default. Initial helper failure was a read-only physical-column
+projection typo, corrected to GORM's price_e_tag without changing product code,
+constraints or assertions. Its interrupted run is diagnosis, not acceptance.
+Complete final-main PostgreSQL/MySQL regression is now running against all 49
+unchanged accepted code paths. Final mandatory check and commit/push remain pending.
+F15/A09 and overall totals remain partial/unchanged.
+
+
+### Repository-price complete main regression and delivery gate, 2026-10-04
+
+Complete final-main PostgreSQL/MySQL race regression passed:
+Handler 1314.101s/Service 8.002s. The owned routex-test project had no remaining
+containers, network or volumes; all 49 accepted source paths were unchanged.
+Final mandatory check passed with zero errors and only the two existing frontend
+Fast Refresh warnings; package/lock bytes remained unchanged. Combined with
+1908 frontend cases/104 files, repaired migration/lifecycle focus 62.508s and two
+independent three-native-call production/browser/restart scenarios, the 56-path
+phase satisfies its controlled repository-source delivery gates. Final English
+source README/schema/pricing/handoff records were refreshed without changing
+product code or the empty embedded catalogue. Earlier failed fixture/helper
+checkpoints remain diagnosis; synthetic rates remain test-only. Broader F15/A09
+and formal 11/16/3 totals remain open/unchanged.

@@ -40,6 +40,8 @@ export interface ModelPrice {
   context_threshold: 0 | 128000 | 200000
   update_source: string
   follow_repository: boolean
+  rate_sources?: Record<string, import('./repository-prices').RateSource>
+  context_threshold_source?: { kind: 'custom' | 'repository'; source_model_key: string | null }
   rates: PriceRate[]
 }
 export interface PricePage {

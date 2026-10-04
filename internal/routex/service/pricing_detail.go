@@ -44,13 +44,14 @@ func (s *Service) getExactProviderModelPrice(ctx context.Context, actorID, provi
 		if price.ProviderModelID != model.ID {
 			return apperrors.ErrNotFound
 		}
-		record := PriceRecord{ID: price.ID, ProviderID: connection.ProviderID, ProviderModelID: model.ID, UpstreamName: model.UpstreamName, Protocol: connection.Protocol, ContextThreshold: price.ContextThreshold, UpdateSource: price.UpdateSource, FollowRepository: price.FollowRepository, Rates: []pricing.Rate{}}
+		record := PriceRecord{ID: price.ID, ProviderID: connection.ProviderID, ProviderModelID: model.ID, UpstreamName: model.UpstreamName, Protocol: connection.Protocol, ContextThreshold: price.ContextThreshold, UpdateSource: price.UpdateSource, FollowRepository: price.FollowRepository, Rates: []pricing.Rate{}, RateSources: map[string]PriceRateSource{}, ContextThresholdSource: repositoryThresholdSource(price)}
 		var rates []entity.PriceRate
 		if err := personalExact(tx, "model_price_id", price.ID).Order("metric,tier").Find(&rates).Error; err != nil {
 			return err
 		}
 		for _, rate := range rates {
-			record.Rates = append(record.Rates, pricing.Rate{ID: rate.ID, Metric: rate.Metric, Tier: rate.Tier, Unit: rate.Unit, Currency: rate.Currency, Amount: rate.Amount, Enabled: rate.Enabled})
+			record.Rates = append(record.Rates, repositoryRateValue(rate))
+			record.RateSources[rate.ID] = repositoryRateSource(rate)
 		}
 		result.Items = append(result.Items, record)
 		return nil

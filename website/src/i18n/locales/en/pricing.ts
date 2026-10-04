@@ -122,4 +122,8 @@ export default {
     'Publication could not be confirmed. The attestation may already be stored. Retry the exact change or load the current revision for review.',
   capacityRetry: 'Retry publication',
   capacityReview: 'Load current attestation',
+  selectRate: 'Select',
+  selectRateLabel: 'Select {{metric}} · {{tier}}',
+  repositoryManaged: 'Repository managed',
+  unknownSource: 'Maintenance source not recorded',
 }

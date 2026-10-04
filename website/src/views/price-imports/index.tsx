@@ -1,6 +1,7 @@
+import { RepositoryPriceCard } from './repository/card'
 import { useRef, useState, type ChangeEvent, type DragEvent } from 'react'
 import { useTranslation } from 'react-i18next'
-import { useQueryClient } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link } from 'react-router'
 import axios from 'axios'
 import { Download, Inbox } from 'lucide-react'
@@ -11,8 +12,8 @@ import {
   downloadPriceCSV,
 } from '@/api/price-imports'
 import { useSession } from '@/hooks/use-auth'
-import { usePermissions } from '@/hooks/use-permissions'
-import { PermissionGate } from '@/components/app/PermissionGate'
+import { getPermissions } from '@/api/governance'
+import { useSessionGeneration } from '@/hooks/use-session-generation'
 import { Page, ErrorNotice } from '@/components/app/CatalogUI'
 import { Button } from '@/components/ui/button'
 import { Dialog } from '@/components/ui/dialog'
@@ -21,16 +22,38 @@ import type { PriceImportPreview, SelectedPriceFile } from '@/types/price-import
 import { readPriceFile, PriceFileError } from './file'
 import { PricePreviewDialog } from './preview'
 export default function PriceImportsPage() {
-  return (
-    <PermissionGate permission="prices.read">
-      <PriceImports />
-    </PermissionGate>
-  )
-}
-function PriceImports() {
-  const { t } = useTranslation('priceImports')
   const session = useSession()
-  const access = usePermissions()
+  return <PriceImports key={session.data?.user.id ?? ''} session={session} />
+}
+function PriceImports({ session }: { session: ReturnType<typeof useSession> }) {
+  const { t } = useTranslation('priceImports')
+  const sessionGeneration = useSessionGeneration()
+  const fresh =
+    session.isSuccess && !session.isFetching && !session.error && !!session.data?.csrf_token
+  const permissionQuery = useQuery({
+    queryKey: [
+      'permissions',
+      session.data?.user.id,
+      'price-imports',
+      session.data?.user.role,
+      sessionGeneration,
+    ],
+    queryFn: ({ signal }) => getPermissions(signal),
+    enabled: fresh,
+    retry: false,
+    staleTime: 0,
+    gcTime: 0,
+  })
+  const access = {
+    ...permissionQuery,
+    can: (permission: string) => permissionQuery.data?.includes(permission) === true,
+  }
+  const uploadVisible =
+    fresh &&
+    permissionQuery.isSuccess &&
+    !permissionQuery.isFetching &&
+    !permissionQuery.error &&
+    access.can('prices.read')
   const cache = useQueryClient()
   const [file, setFile] = useState<SelectedPriceFile | null>(null)
   const [preview, setPreview] = useState<{
@@ -147,114 +170,123 @@ function PriceImports() {
     <Page title={t('title')} description={t('description')}>
       <p className="text-sm text-muted-foreground">
         {t('navigation')}{' '}
-        {access.can('providers.read') && (
+        {uploadVisible && access.can('providers.read') && (
           <Link className="text-primary underline-offset-4 hover:underline" to="/admin/providers">
             {t('providers')}
           </Link>
         )}
       </p>
-      <ResourceSection
-        title={t('uploadTitle')}
-        action={
-          <Button variant="outline" onClick={() => setApiOpen(true)}>
-            {t('api')}
-          </Button>
-        }
-      >
-        <div className="space-y-6">
-          <div className="flex flex-wrap items-center justify-between gap-4">
-            <div className="space-y-2">
-              <h3 className="text-sm font-semibold">{t('downloadStep')}</h3>
-              <p className="text-sm text-muted-foreground">{t('downloadHelp')}</p>
-            </div>
-            <Button variant="outline" disabled={!!busy} onClick={() => void download()}>
-              <Download className="size-4" />
-              {t('download')}
-            </Button>
-          </div>
-          <hr />
-          <div className="space-y-2">
-            <h3 className="text-sm font-semibold">{t('uploadStep')}</h3>
-            <p className="text-sm text-muted-foreground">{t('uploadHelp')}</p>
-            <p className="text-sm text-muted-foreground">{t('workbookHelp')}</p>
-          </div>
-          <label
-            className="relative flex min-h-44 cursor-pointer flex-col items-center justify-center gap-3 rounded-lg border border-dashed bg-muted/20 p-6 text-center hover:bg-muted/40"
-            onDragOver={(event) => event.preventDefault()}
-            onDrop={drop}
-          >
-            <Inbox className="size-9 text-muted-foreground" />
-            <span className="text-sm font-medium">{t('drop')}</span>
-            <span className="text-xs text-muted-foreground">{t('bounds')}</span>
-            <input
-              aria-label={t('fileInput')}
-              type="file"
-              accept=".csv,.xls,.xlsx,text/csv,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-              disabled={!!busy}
-              onChange={change}
-              className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
-            />
-          </label>
-          {file && (
-            <p className="break-all text-sm">
-              {t('selected')}: {file.name}
-            </p>
-          )}
-          {issue && !preview && (
-            <p role="alert" className="text-sm text-destructive">
-              {t(issue)}
-            </p>
-          )}
-          <ErrorNotice error={error} />
-          {notice && (
-            <p role="status" className="text-sm">
-              {t(notice)}
-            </p>
-          )}
-          <div className="flex justify-end">
-            <Button disabled={!file || !!busy} onClick={() => void review()}>
-              {busy ? t('working') : t('validate')}
-            </Button>
-          </div>
-        </div>
-      </ResourceSection>
-      {preview && (
-        <PricePreviewDialog
-          key={preview.result.etag + preview.result.preview_digest}
-          preview={preview.result}
-          name={preview.file.name}
-          busy={!!busy}
-          issue={issue}
-          canApply={access.can('prices.write')}
-          onClose={() => {
-            setPreview(null)
-          }}
-          onApply={() => void apply()}
-          onReview={() => void review(preview.file)}
-        />
-      )}
-      <Dialog
-        open={apiOpen}
-        onOpenChange={setApiOpen}
-        title={t('apiTitle')}
-        description={t('apiHelp')}
-        width={720}
-      >
-        <div className="space-y-4 text-sm">
-          <p>{t('apiAuth')}</p>
-          <pre className="overflow-auto rounded-md bg-muted p-4 text-xs">
-            {
-              'POST /api/v1/admin/prices/import/preview\n{ "csv": "..." }\n{ "filename": "prices.xlsx", "content_base64": "..." }\n\nPOST /api/v1/admin/prices/import/commit\n{ "csv": "...", "etag": "...", "preview_digest": "..." }\n{ "filename": "prices.xls", "content_base64": "...", "etag": "...", "preview_digest": "..." }\n\nGET /api/v1/admin/prices/export.csv'
+      <RepositoryPriceCard session={session} />
+      {fresh &&
+        permissionQuery.isSuccess &&
+        !permissionQuery.isFetching &&
+        !access.can('prices.read') && <p role="alert">{t('common:access_denied_cb8d4')}</p>}
+      {uploadVisible && (
+        <>
+          <ResourceSection
+            title={t('uploadTitle')}
+            action={
+              <Button variant="outline" onClick={() => setApiOpen(true)}>
+                {t('api')}
+              </Button>
             }
-          </pre>
-          <p>{t('apiBinary')}</p>
-          <p>{t('headers')}</p>
-          <p className="font-mono text-xs break-all">
-            provider_model_id,metric,tier,unit,currency,amount,enabled,context_threshold
-          </p>
-          <p>{t('identity')}</p>
-        </div>
-      </Dialog>
+          >
+            <div className="space-y-6">
+              <div className="flex flex-wrap items-center justify-between gap-4">
+                <div className="space-y-2">
+                  <h3 className="text-sm font-semibold">{t('downloadStep')}</h3>
+                  <p className="text-sm text-muted-foreground">{t('downloadHelp')}</p>
+                </div>
+                <Button variant="outline" disabled={!!busy} onClick={() => void download()}>
+                  <Download className="size-4" />
+                  {t('download')}
+                </Button>
+              </div>
+              <hr />
+              <div className="space-y-2">
+                <h3 className="text-sm font-semibold">{t('uploadStep')}</h3>
+                <p className="text-sm text-muted-foreground">{t('uploadHelp')}</p>
+                <p className="text-sm text-muted-foreground">{t('workbookHelp')}</p>
+              </div>
+              <label
+                className="relative flex min-h-44 cursor-pointer flex-col items-center justify-center gap-3 rounded-lg border border-dashed bg-muted/20 p-6 text-center hover:bg-muted/40"
+                onDragOver={(event) => event.preventDefault()}
+                onDrop={drop}
+              >
+                <Inbox className="size-9 text-muted-foreground" />
+                <span className="text-sm font-medium">{t('drop')}</span>
+                <span className="text-xs text-muted-foreground">{t('bounds')}</span>
+                <input
+                  aria-label={t('fileInput')}
+                  type="file"
+                  accept=".csv,.xls,.xlsx,text/csv,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                  disabled={!!busy}
+                  onChange={change}
+                  className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
+                />
+              </label>
+              {file && (
+                <p className="break-all text-sm">
+                  {t('selected')}: {file.name}
+                </p>
+              )}
+              {issue && !preview && (
+                <p role="alert" className="text-sm text-destructive">
+                  {t(issue)}
+                </p>
+              )}
+              <ErrorNotice error={error} />
+              {notice && (
+                <p role="status" className="text-sm">
+                  {t(notice)}
+                </p>
+              )}
+              <div className="flex justify-end">
+                <Button disabled={!file || !!busy} onClick={() => void review()}>
+                  {busy ? t('working') : t('validate')}
+                </Button>
+              </div>
+            </div>
+          </ResourceSection>
+          {preview && (
+            <PricePreviewDialog
+              key={preview.result.etag + preview.result.preview_digest}
+              preview={preview.result}
+              name={preview.file.name}
+              busy={!!busy}
+              issue={issue}
+              canApply={access.can('prices.write')}
+              onClose={() => {
+                setPreview(null)
+              }}
+              onApply={() => void apply()}
+              onReview={() => void review(preview.file)}
+            />
+          )}
+          <Dialog
+            open={apiOpen}
+            onOpenChange={setApiOpen}
+            title={t('apiTitle')}
+            description={t('apiHelp')}
+            width={720}
+          >
+            <div className="space-y-4 text-sm">
+              <p>{t('apiAuth')}</p>
+              <pre className="overflow-auto rounded-md bg-muted p-4 text-xs">
+                {
+                  'POST /api/v1/admin/prices/import/preview\n{ "csv": "..." }\n{ "filename": "prices.xlsx", "content_base64": "..." }\n\nPOST /api/v1/admin/prices/import/commit\n{ "csv": "...", "etag": "...", "preview_digest": "..." }\n{ "filename": "prices.xls", "content_base64": "...", "etag": "...", "preview_digest": "..." }\n\nGET /api/v1/admin/prices/export.csv'
+                }
+              </pre>
+              <p>{t('apiBinary')}</p>
+              <p>{t('headers')}</p>
+              <p className="font-mono text-xs break-all">
+                provider_model_id,metric,tier,unit,currency,amount,enabled,context_threshold
+              </p>
+              <p>{t('identity')}</p>
+            </div>
+          </Dialog>
+        </>
+      )}
     </Page>
   )
 }

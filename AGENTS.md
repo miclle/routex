@@ -572,3 +572,16 @@ Addressable historical root-rotation details expose only that recorded job's
 server-allowed actions. Global Start belongs to `/admin/secrets` and is never
 prepared from a historical task URL; the shell retains the Credential storage
 title on addressable rotation routes.
+
+Repository price maintenance uses the existing `views/price-imports` workspace
+and a local `repository` composition above the file workflow. Configure explicit
+stable-ID mappings before previewing selected models; configuration never applies
+prices. Preserve reviewed source/configuration/catalogue generations, independent
+read/write permission gates and immutable UUIDv4 intents through uncertain results
+and temporary authority reads. Retain private workflow owners while hiding cached
+fragments during renewed reads. Selected rate restoration belongs in the existing
+Provider-model price table and uses only server-derived differences after explicit
+confirmation. Keep exact decimal strings, per-rate custom zero/disabled/same-amount
+protection, separate threshold ownership and historical receipts distinct from
+current configuration/runtime proof. Register paired `priceImports` and `pricing`
+copy; previews and retries never invent last-success metadata.

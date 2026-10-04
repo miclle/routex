@@ -342,3 +342,29 @@ and lifecycle focus passed under race detection on both drivers in 124.896s, pre
 and verified absent. The complete final PostgreSQL/MySQL race matrix passed
 (Handler 1341.797s/Service 8.060s), with frozen source and checked cleanup. See
 [internal secrets](SECRETS.md) for the five-domain workflow and recovery limits.
+
+
+## Repository price provenance and receipts (version 49)
+
+Frozen GORM V49 adds per-rate repository Model/rate keys, independently owned
+context-threshold provenance, an inert singleton configuration, explicit existing
+Provider-model/source mappings and durable operation receipts. It follows V48.
+No source rate, guessed price or implicit local Model mapping is inserted.
+Existing prices start with their actual custom ownership; the compatibility
+follow flag is derived only from recorded per-rate source identities.
+
+Use private frozen schema structs and Migrator APIs for columns, constraints,
+tables and partially applied DDL repair. Receipts retain exact actor, UUID intent,
+review/source/configuration/catalogue identities and microsecond timestamps.
+Immutable history and deliberately orphaned mappings/receipts have no lifecycle
+foreign key that could remove them. Current price foreign keys remain enforced.
+Service writes use portable GORM transactions and governance/pricing locks;
+database collation must not authorize a different identity.
+
+The actual PostgreSQL/MySQL migration focus passed empty/current creation,
+independent partial upgrades, repeat execution, concurrent repair and constraint
+checks in 62.508s with the lifecycle suite. Legitimate price prerequisites are
+created before testing historical preservation; the fixture does not weaken
+production constraints. Complete final-main PostgreSQL/MySQL race regression subsequently passed
+Handler 1314.101s/Service 8.002s with all accepted source hashes unchanged and
+verified owned cleanup.

@@ -1,39 +1,117 @@
+import { useState } from 'react'
+import type { ProviderModel } from '@/types/catalog'
 import { useQuery } from '@tanstack/react-query'
 import { Link, useParams } from 'react-router'
 import { useTranslation } from 'react-i18next'
 import { listAdminModels, listProviders } from '@/api/catalog'
-import { PermissionGate } from '@/components/app/PermissionGate'
 import { Page, QueryState } from '@/components/app/CatalogUI'
-import { usePermissions } from '@/hooks/use-permissions'
+import { getPermissions } from '@/api/governance'
+import { useSession } from '@/hooks/use-auth'
+import { useSessionGeneration } from '@/hooks/use-session-generation'
 import { Badge } from '@/components/ui/badge'
 import ModelPriceTable from './model-price-table'
 import ProviderModelState from './provider-model-state'
 import ProviderModelCapacity from './provider-model-capacity'
 
 export default function ProviderModelPage() {
+  const session = useSession(),
+    { providerId, modelId } = useParams()
   return (
-    <PermissionGate permission="providers.read">
-      <ProviderModelDetail />
-    </PermissionGate>
+    <ProviderModelDetail
+      key={`${session.data?.user.id ?? ''}:${providerId}:${modelId}`}
+      session={session}
+      providerId={providerId}
+      modelId={modelId}
+    />
   )
 }
-function ProviderModelDetail() {
-  const { t } = useTranslation('pricing')
-  const { providerId, modelId } = useParams()
-  const access = usePermissions()
-  const providers = useQuery({ queryKey: ['admin', 'providers'], queryFn: listProviders })
+function ProviderModelDetail({
+  session,
+  providerId,
+  modelId,
+}: {
+  session: ReturnType<typeof useSession>
+  providerId?: string
+  modelId?: string
+}) {
+  const { t } = useTranslation('pricing'),
+    generation = useSessionGeneration()
+  const fresh =
+    session.isSuccess && !session.isFetching && !session.error && !!session.data?.csrf_token
+  const permissions = useQuery({
+    queryKey: [
+      'permissions',
+      session.data?.user.id,
+      'provider-price',
+      providerId,
+      modelId,
+      session.data?.user.role,
+      generation,
+    ],
+    queryFn: ({ signal }) => getPermissions(signal),
+    enabled: fresh,
+    retry: false,
+    staleTime: 0,
+    gcTime: 0,
+  })
+  const access = {
+    ...permissions,
+    can: (permission: string) =>
+      fresh &&
+      permissions.isSuccess &&
+      !permissions.isFetching &&
+      !permissions.error &&
+      permissions.data.includes(permission),
+  }
+  const providers = useQuery({
+    queryKey: [
+      'admin',
+      'providers',
+      session.data?.user.id,
+      providerId,
+      modelId,
+      session.data?.user.role,
+      generation,
+    ],
+    queryFn: listProviders,
+    enabled: access.can('providers.read'),
+    retry: false,
+    gcTime: 0,
+    staleTime: 0,
+  })
   const models = useQuery({
-    queryKey: ['admin', 'models'],
+    queryKey: [
+      'admin',
+      'models',
+      session.data?.user.id,
+      providerId,
+      modelId,
+      session.data?.user.role,
+      generation,
+    ],
     queryFn: listAdminModels,
     enabled: access.can('models.read_all'),
+    retry: false,
+    gcTime: 0,
+    staleTime: 0,
   })
-  const provider = providers.data?.find((item) => item.id === providerId)
+  const providerVisible =
+    access.can('providers.read') && providers.isSuccess && !providers.isFetching && !providers.error
+  const provider = providerVisible
+    ? providers.data?.find((item) => item.id === providerId)
+    : undefined
   const connection = provider?.connections.find((item) =>
     item.provider_models.some((model) => model.id === modelId),
   )
   const model = connection?.provider_models.find((item) => item.id === modelId)
+  const [retainedModel, setRetainedModel] = useState<ProviderModel>()
+  if (model && model !== retainedModel) setRetainedModel(model)
+  const capturedModel = model ?? retainedModel
   const bindings =
-    models.data?.flatMap((platform) =>
+    (access.can('models.read_all') && models.isSuccess && !models.isFetching && !models.error
+      ? models.data
+      : undefined
+    )?.flatMap((platform) =>
       platform.bindings
         .filter((binding) => binding.provider_model_id === modelId)
         .map((binding) => ({ platform, binding })),
@@ -102,27 +180,30 @@ function ProviderModelDetail() {
               ))}
             </section>
           )}
-          <ProviderModelState
-            key={model.id}
-            model={model}
-            reload={async () => {
-              const result = await providers.refetch()
-              if (result.isError) throw result.error
-              return result.data
-                ?.flatMap((provider) =>
-                  provider.connections.flatMap((connection) => connection.provider_models),
-                )
-                .find((item) => item.id === model.id)
-            }}
-          />
-          <ProviderModelCapacity key={model.id} modelId={model.id} />
-          {access.can('prices.read') && (
-            <section className="space-y-4 rounded-lg border p-6">
-              <h3 className="font-semibold">{t('title')}</h3>
-              <ModelPriceTable key={model.id} modelId={model.id} modelName={model.upstream_name} />
-            </section>
-          )}
         </>
+      )}
+      {capturedModel && (
+        <ProviderModelState
+          key={capturedModel.id}
+          model={capturedModel}
+          visible={!!model}
+          reload={async () => {
+            const result = await providers.refetch()
+            if (result.isError) throw result.error
+            return result.data
+              ?.flatMap((provider) =>
+                provider.connections.flatMap((connection) => connection.provider_models),
+              )
+              .find((item) => item.id === modelId)
+          }}
+        />
+      )}
+      {modelId && <ProviderModelCapacity modelId={modelId} visible={!!model} />}
+      {modelId && (
+        <section className="space-y-4 rounded-lg border p-6">
+          {access.can('prices.read') && <h3 className="font-semibold">{t('title')}</h3>}
+          <ModelPriceTable modelId={modelId} modelName={model?.upstream_name ?? modelId} />
+        </section>
       )}
     </Page>
   )

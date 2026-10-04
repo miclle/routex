@@ -12,8 +12,10 @@ import { Switch } from '@/components/ui/switch'
 export default function ProviderModelState({
   model,
   reload,
+  visible = true,
 }: {
   model: ProviderModel
+  visible?: boolean
   reload: () => Promise<ProviderModel | undefined>
 }) {
   const { t } = useTranslation('pricing')
@@ -35,7 +37,7 @@ export default function ProviderModelState({
     supportsImageInput !== reviewed.supports_image_input ||
     supportsPdfInput !== reviewed.supports_pdf_input
   async function refresh() {
-    if (lock.current) return
+    if (!visible || lock.current) return
     lock.current = true
     setBusy(true)
     setError(null)
@@ -56,6 +58,7 @@ export default function ProviderModelState({
   async function save(event: FormEvent) {
     event.preventDefault()
     if (
+      !visible ||
       lock.current ||
       stale ||
       (!changed && !uncertain) ||
@@ -97,6 +100,7 @@ export default function ProviderModelState({
       setBusy(false)
     }
   }
+  if (!visible) return null
   return (
     <section className="space-y-4 rounded-lg border p-6" aria-label={t('supplyState')}>
       <h3 className="font-semibold">{t('supplyState')}</h3>

@@ -13,6 +13,7 @@ import (
 	apperrors "github.com/miclle/routex/internal/routex/errors"
 	"github.com/miclle/routex/pkg/limits"
 	"github.com/miclle/routex/pkg/pricing"
+	"github.com/miclle/routex/prices"
 	"gorm.io/gorm"
 )
 
@@ -124,6 +125,14 @@ func auditRecord(row entity.AuditEvent) AuditRecord {
 		if !valid {
 			return result
 		}
+	case "prices.repository.config", "prices.repository.apply":
+		var valid bool
+		changes, valid = repositoryPriceAuditProjection(row)
+		if !valid {
+			return result
+		}
+		source := prices.SourceID
+		result.Source = &source
 	case "prices.update":
 		type values struct {
 			ETag  string        `json:"etag"`

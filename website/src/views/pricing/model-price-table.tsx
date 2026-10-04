@@ -1,10 +1,12 @@
-import { useState, type FormEvent } from 'react'
+import { useSessionGeneration } from '@/hooks/use-session-generation'
+import { RepositoryRateRestore } from '@/views/price-imports/repository/restore'
+import { useLayoutEffect, useState, type FormEvent } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import axios from 'axios'
 import { getModelPrices, writePrices } from '@/api/pricing'
 import { useSession } from '@/hooks/use-auth'
-import { usePermissions } from '@/hooks/use-permissions'
+import { getPermissions } from '@/api/governance'
 import { ErrorNotice, FormField, QueryState, SaveButton } from '@/components/app/CatalogUI'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -34,17 +36,79 @@ export default function ModelPriceTable({
   modelId: string
   modelName: string
 }) {
-  const { t } = useTranslation('pricing')
   const session = useSession()
-  const access = usePermissions()
+  return (
+    <ModelPriceFrame
+      key={`${session.data?.user.id ?? ''}:${modelId}`}
+      session={session}
+      modelId={modelId}
+      modelName={modelName}
+    />
+  )
+}
+function ModelPriceFrame({
+  modelId,
+  modelName,
+  session,
+}: {
+  modelId: string
+  modelName: string
+  session: ReturnType<typeof useSession>
+}) {
+  const { t } = useTranslation('pricing')
+  const generation = useSessionGeneration()
+  const permissionQuery = useQuery({
+    queryKey: [
+      'permissions',
+      session.data?.user.id,
+      'model-price',
+      modelId,
+      session.data?.user.role,
+      generation,
+    ],
+    queryFn: ({ signal }) => getPermissions(signal),
+    enabled:
+      session.isSuccess && !session.isFetching && !session.error && !!session.data?.csrf_token,
+    retry: false,
+    staleTime: 0,
+    gcTime: 0,
+  })
+  const access = {
+    ...permissionQuery,
+    can: (permission: string) => permissionQuery.data?.includes(permission) === true,
+  }
   const cache = useQueryClient()
-  const queryKey = ['admin', 'prices', modelId]
+  const readable =
+    session.isSuccess &&
+    !session.isFetching &&
+    !session.error &&
+    !!session.data?.csrf_token &&
+    access.isSuccess &&
+    !access.isFetching &&
+    !access.error &&
+    access.can('prices.read')
+  const queryKey = [
+    'admin',
+    'prices',
+    session.data?.user.id,
+    modelId,
+    session.data?.user.role,
+    generation,
+  ]
   const query = useQuery({
     queryKey,
     queryFn: ({ signal }) => getModelPrices(modelId, signal),
-    enabled: access.can('prices.read'),
+    enabled: readable,
+    retry: false,
+    staleTime: 0,
+    gcTime: 0,
   })
-  const price = query.data?.items[0]
+  const visible = readable && query.isSuccess && !query.isFetching && !query.error
+  const price = visible ? query.data?.items[0] : undefined
+  const [selected, setSelected] = useState<string[]>([])
+  useLayoutEffect(() => {
+    setSelected([])
+  }, [generation])
   const [editor, setEditor] = useState<Editor | null>(null)
   const [notice, setNotice] = useState('')
   const [validation, setValidation] = useState('')
@@ -73,9 +137,9 @@ export default function ModelPriceTable({
     },
   })
   const status = axios.isAxiosError(mutation.error) ? mutation.error.response?.status : undefined
-  const stale = status === 409
+  const stale = status === 409 || (!!editor && !!query.data && editor.etag !== query.data.etag)
   function open(rate?: PriceRate) {
-    if (!query.data) return
+    if (!visible || !query.data) return
     mutation.reset()
     setValidation('')
     setNotice('')
@@ -107,7 +171,7 @@ export default function ModelPriceTable({
   }
   function save(event: FormEvent) {
     event.preventDefault()
-    if (!editor || mutation.isPending || stale || !access.can('prices.write')) return
+    if (!editor || !visible || mutation.isPending || stale || !access.can('prices.write')) return
     const rate = editor.rate
     if (!/^\d{1,18}(\.\d{1,18})?$/.test(rate.amount)) {
       setValidation('decimalError')
@@ -151,78 +215,128 @@ export default function ModelPriceTable({
     setValidation('')
     setNotice('reloadNotice')
   }
-  if (!access.can('prices.read')) return null
   return (
     <section className="space-y-4" aria-label={t('title')}>
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <p className="text-sm text-muted-foreground">{t('description')}</p>
-        {access.can('prices.write') && (
-          <Button variant="outline" disabled={!query.data || query.isError} onClick={() => open()}>
-            {t('add')}
-          </Button>
-        )}
-      </div>
-      {notice && (
-        <p role="status" className="text-sm">
-          {t(notice)}
-        </p>
-      )}
-      <QueryState
-        pending={query.isPending}
-        error={query.error}
-        retry={() => void query.refetch()}
-        empty={query.isSuccess && !price?.rates.length}
+      <RepositoryRateRestore
+        session={session}
+        modelId={modelId}
+        rateIds={selected.filter((id) => price?.rates.some((rate) => rate.id === id))}
+        eligible={visible}
       />
-      {query.isSuccess && (
-        <Table aria-label={`${modelName} · ${t('title')}`}>
-          <thead>
-            <tr>
-              {['metric', 'tier', 'unit', 'amount', 'maintenance', 'status', 'actions'].map(
-                (key) => (
-                  <th key={key}>{t(key)}</th>
-                ),
-              )}
-            </tr>
-          </thead>
-          <tbody>
-            {price?.rates.map((rate) => (
-              <tr key={rate.id}>
-                <td>{t(rate.metric)}</td>
-                <td>
-                  {t(rate.tier)}
-                  {rate.tier === 'long_context' && ` > ${price.context_threshold}`}
-                </td>
-                <td>{t(rate.unit)}</td>
-                <td className="text-right tabular-nums">
-                  {rate.amount} {rate.currency}
-                </td>
-                <td>
-                  <Badge variant="outline">{t('custom')}</Badge>
-                </td>
-                <td>
-                  <Badge variant={rate.enabled ? 'default' : 'outline'}>
-                    {t(rate.enabled ? 'enabled' : 'disabled')}
-                  </Badge>
-                </td>
-                <td>
-                  {access.can('prices.write') && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      aria-label={t('editLabel', { metric: t(rate.metric), tier: t(rate.tier) })}
-                      onClick={() => open(rate)}
-                    >
-                      {t('edit')}
-                    </Button>
-                  )}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </Table>
+      {readable && (
+        <>
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <p className="text-sm text-muted-foreground">{t('description')}</p>
+            {access.can('prices.write') && (
+              <Button
+                variant="outline"
+                disabled={!query.data || query.isError}
+                onClick={() => open()}
+              >
+                {t('add')}
+              </Button>
+            )}
+          </div>
+          {notice && (
+            <p role="status" className="text-sm">
+              {t(notice)}
+            </p>
+          )}
+          <QueryState
+            pending={query.isPending}
+            error={query.error}
+            retry={() => void query.refetch()}
+            empty={query.isSuccess && !price?.rates.length}
+          />
+          {visible && (
+            <Table aria-label={`${modelName} · ${t('title')}`}>
+              <thead>
+                <tr>
+                  {[
+                    'selectRate',
+                    'metric',
+                    'tier',
+                    'unit',
+                    'amount',
+                    'maintenance',
+                    'status',
+                    'actions',
+                  ].map((key) => (
+                    <th key={key}>{t(key)}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {price?.rates.map((rate) => (
+                  <tr key={rate.id}>
+                    <td>
+                      <input
+                        type="checkbox"
+                        aria-label={t('selectRateLabel', {
+                          metric: t(rate.metric),
+                          tier: t(rate.tier),
+                        })}
+                        checked={!!rate.id && selected.includes(rate.id)}
+                        disabled={!rate.id || !access.can('prices.write')}
+                        onChange={(event) => {
+                          if (rate.id)
+                            setSelected(
+                              event.target.checked
+                                ? [...selected, rate.id]
+                                : selected.filter((id) => id !== rate.id),
+                            )
+                        }}
+                      />
+                    </td>
+                    <td>{t(rate.metric)}</td>
+                    <td>
+                      {t(rate.tier)}
+                      {rate.tier === 'long_context' && ` > ${price.context_threshold}`}
+                    </td>
+                    <td>{t(rate.unit)}</td>
+                    <td className="text-right tabular-nums">
+                      {rate.amount} {rate.currency}
+                    </td>
+                    <td>
+                      <Badge variant="outline">
+                        {t(
+                          rate.id && price.rate_sources?.[rate.id]?.kind === 'repository'
+                            ? 'repositoryManaged'
+                            : rate.id && price.rate_sources?.[rate.id]?.kind === 'custom'
+                              ? 'custom'
+                              : 'unknownSource',
+                        )}
+                      </Badge>
+                    </td>
+                    <td>
+                      <Badge variant={rate.enabled ? 'default' : 'outline'}>
+                        {t(rate.enabled ? 'enabled' : 'disabled')}
+                      </Badge>
+                    </td>
+                    <td>
+                      {access.can('prices.write') && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          aria-label={t('editLabel', {
+                            metric: t(rate.metric),
+                            tier: t(rate.tier),
+                          })}
+                          onClick={() => open(rate)}
+                        >
+                          {t('edit')}
+                        </Button>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </Table>
+          )}
+        </>
       )}
       <Dialog
-        open={!!editor}
+        open={!!editor && visible}
         onOpenChange={(open) => {
           if (!open) {
             setEditor(null)

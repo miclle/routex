@@ -22,15 +22,17 @@ var pricingStale = &apperrors.Error{Code: http.StatusConflict, Message: "price c
 var pricingMissing = &apperrors.Error{Code: http.StatusUnprocessableEntity, Message: "required price or exchange rate is not configured"}
 
 type PriceRecord struct {
-	ID               string         `json:"id"`
-	ProviderID       string         `json:"provider_id"`
-	ProviderModelID  string         `json:"provider_model_id"`
-	UpstreamName     string         `json:"upstream_name"`
-	Protocol         string         `json:"protocol"`
-	ContextThreshold int64          `json:"context_threshold"`
-	UpdateSource     string         `json:"update_source"`
-	FollowRepository bool           `json:"follow_repository"`
-	Rates            []pricing.Rate `json:"rates"`
+	ID                     string                     `json:"id"`
+	ProviderID             string                     `json:"provider_id"`
+	ProviderModelID        string                     `json:"provider_model_id"`
+	UpstreamName           string                     `json:"upstream_name"`
+	Protocol               string                     `json:"protocol"`
+	ContextThreshold       int64                      `json:"context_threshold"`
+	UpdateSource           string                     `json:"update_source"`
+	FollowRepository       bool                       `json:"follow_repository"`
+	Rates                  []pricing.Rate             `json:"rates"`
+	RateSources            map[string]PriceRateSource `json:"rate_sources"`
+	ContextThresholdSource PriceThresholdSource       `json:"context_threshold_source"`
 }
 type PricePage struct {
 	ETag       string        `json:"etag"`
@@ -78,21 +80,18 @@ func pricingFX(tx *gorm.DB, setting entity.PricingSetting) (pricing.FX, error) {
 	return result, nil
 }
 func loadPrice(tx *gorm.DB, modelPrice entity.ModelPrice) (PriceRecord, error) {
-	var model entity.ProviderModel
-	var connection entity.ProviderConnection
-	if err := tx.First(&model, "id = ?", modelPrice.ProviderModelID).Error; err != nil {
+	model, connection, err := loadExactPriceSubject(tx, modelPrice.ProviderModelID)
+	if err != nil {
 		return PriceRecord{}, err
 	}
-	if err := tx.First(&connection, "id = ?", model.ConnectionID).Error; err != nil {
-		return PriceRecord{}, err
-	}
-	result := PriceRecord{ID: modelPrice.ID, ProviderID: connection.ProviderID, ProviderModelID: model.ID, UpstreamName: model.UpstreamName, Protocol: connection.Protocol, ContextThreshold: modelPrice.ContextThreshold, UpdateSource: modelPrice.UpdateSource, FollowRepository: modelPrice.FollowRepository, Rates: []pricing.Rate{}}
+	result := PriceRecord{ID: modelPrice.ID, ProviderID: connection.ProviderID, ProviderModelID: model.ID, UpstreamName: model.UpstreamName, Protocol: connection.Protocol, ContextThreshold: modelPrice.ContextThreshold, UpdateSource: modelPrice.UpdateSource, FollowRepository: modelPrice.FollowRepository, Rates: []pricing.Rate{}, RateSources: map[string]PriceRateSource{}, ContextThresholdSource: repositoryThresholdSource(modelPrice)}
 	var rows []entity.PriceRate
-	if err := tx.Where("model_price_id = ?", modelPrice.ID).Order("metric, tier").Find(&rows).Error; err != nil {
+	if err := personalExact(tx, "model_price_id", modelPrice.ID).Order("metric,tier").Find(&rows).Error; err != nil {
 		return result, err
 	}
 	for _, row := range rows {
-		result.Rates = append(result.Rates, pricing.Rate{ID: row.ID, Metric: row.Metric, Tier: row.Tier, Unit: row.Unit, Currency: row.Currency, Amount: row.Amount, Enabled: row.Enabled})
+		result.Rates = append(result.Rates, repositoryRateValue(row))
+		result.RateSources[row.ID] = repositoryRateSource(row)
 	}
 	return result, nil
 }
@@ -283,12 +282,8 @@ func applyPriceBatch(tx *gorm.DB, actorID string, setting entity.PricingSetting,
 }
 
 func writePrice(tx *gorm.DB, input PriceInput, source string) (*PriceRecord, *PriceRecord, error) {
-	var providerModel entity.ProviderModel
-	var connection entity.ProviderConnection
-	if err := tx.First(&providerModel, "id = ?", input.ProviderModelID).Error; err != nil {
-		return nil, nil, err
-	}
-	if err := tx.First(&connection, "id = ?", providerModel.ConnectionID).Error; err != nil {
+	_, connection, err := loadExactPriceSubject(tx, input.ProviderModelID)
+	if err != nil {
 		return nil, nil, err
 	}
 	if !entity.SupportedNativeProtocol(connection.Protocol) {
@@ -296,7 +291,7 @@ func writePrice(tx *gorm.DB, input PriceInput, source string) (*PriceRecord, *Pr
 	}
 	var model entity.ModelPrice
 	var before *PriceRecord
-	err := tx.First(&model, "provider_model_id = ?", input.ProviderModelID).Error
+	err = personalExact(tx, "provider_model_id", input.ProviderModelID).Take(&model).Error
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		model.ID, err = id.NewPrefixed("prc")
 		if err != nil {
@@ -314,6 +309,7 @@ func writePrice(tx *gorm.DB, input PriceInput, source string) (*PriceRecord, *Pr
 	}
 	if input.ContextThreshold != nil {
 		model.ContextThreshold = *input.ContextThreshold
+		model.RepositoryThresholdKey = nil
 	}
 	model.UpdateSource = source
 	model.FollowRepository = false
@@ -328,7 +324,7 @@ func writePrice(tx *gorm.DB, input PriceInput, source string) (*PriceRecord, *Pr
 		}
 		submitted[key] = true
 		var rate entity.PriceRate
-		err = tx.Where("model_price_id = ? AND metric = ? AND tier = ?", model.ID, inputRate.Metric, inputRate.Tier).First(&rate).Error
+		err = personalExact(personalExact(personalExact(tx, "model_price_id", model.ID), "metric", inputRate.Metric), "tier", inputRate.Tier).Take(&rate).Error
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			rate.ID, err = id.NewPrefixed("rat")
 			if err != nil {
@@ -344,9 +340,14 @@ func writePrice(tx *gorm.DB, input PriceInput, source string) (*PriceRecord, *Pr
 		rate.Currency = inputRate.Currency
 		rate.Amount, _ = pricing.Decimal(inputRate.Amount)
 		rate.Enabled = inputRate.Enabled
+		rate.RepositoryModelKey = nil
+		rate.RepositoryRateKey = nil
 		if err = tx.Save(&rate).Error; err != nil {
 			return nil, nil, err
 		}
+	}
+	if err := repositoryFollowSummary(tx, &model); err != nil {
+		return nil, nil, err
 	}
 	result, err := loadPrice(tx, model)
 	if err != nil {

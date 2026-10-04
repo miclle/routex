@@ -111,4 +111,8 @@ export default {
     '暂时无法确认发布结果，声明可能已保存。请重试完全相同的变更，或加载当前版本进行核对。',
   capacityRetry: '重试发布',
   capacityReview: '加载当前容量声明',
+  selectRate: '选择',
+  selectRateLabel: '选择 {{metric}} · {{tier}}',
+  repositoryManaged: '仓库维护',
+  unknownSource: '未记录维护来源',
 }

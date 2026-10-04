@@ -15,11 +15,17 @@ import { Button } from '@/components/ui/button'
 import { Dialog } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 
-export default function ProviderModelCapacity({ modelId }: { modelId: string }) {
-  return <CapacityCard key={modelId} modelId={modelId} />
+export default function ProviderModelCapacity({
+  modelId,
+  visible = true,
+}: {
+  modelId: string
+  visible?: boolean
+}) {
+  return <CapacityCard key={modelId} modelId={modelId} visible={visible} />
 }
 
-function CapacityCard({ modelId }: { modelId: string }) {
+function CapacityCard({ modelId, visible }: { modelId: string; visible: boolean }) {
   const { t, i18n } = useTranslation('pricing')
   const access = usePermissions()
   const cache = useQueryClient()
@@ -27,74 +33,78 @@ function CapacityCard({ modelId }: { modelId: string }) {
   const query = useQuery({
     queryKey,
     queryFn: ({ signal }) => getProviderModelCapacity(modelId, signal),
-    enabled: access.can('providers.read'),
+    enabled: visible && access.can('providers.read'),
   })
   const [draft, setDraft] = useState<ProviderModelCapacity>()
   const [open, setOpen] = useState(false)
   const [saved, setSaved] = useState(false)
-  if (!access.can('providers.read')) return null
   const record = query.data
   return (
-    <section className="space-y-4 rounded-lg border p-6" aria-label={t('capacityTitle')}>
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <h3 className="font-semibold">{t('capacityTitle')}</h3>
-        {record && access.can('providers.write') && (
-          <Button
-            variant="outline"
-            onClick={() => {
-              if (!draft) setDraft(record)
-              setSaved(false)
-              setOpen(true)
-            }}
-          >
-            {t('capacityEdit')}
-          </Button>
-        )}
-      </div>
-      <p className="text-sm text-muted-foreground">{t('capacityHelp')}</p>
-      <QueryState
-        pending={query.isPending}
-        error={query.error}
-        retry={() => void query.refetch()}
-      />
-      {record && (
-        <>
-          <Badge variant="outline">
-            {t(record.configured ? 'capacityConfigured' : 'capacityUnconfigured')}
-          </Badge>
-          {!record.configured && (
-            <p className="text-sm">{t('capacityProtocol', { protocol: record.protocol })}</p>
+    <>
+      {visible && access.can('providers.read') && (
+        <section className="space-y-4 rounded-lg border p-6" aria-label={t('capacityTitle')}>
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <h3 className="font-semibold">{t('capacityTitle')}</h3>
+            {record && access.can('providers.write') && (
+              <Button
+                variant="outline"
+                onClick={() => {
+                  if (!draft) setDraft(record)
+                  setSaved(false)
+                  setOpen(true)
+                }}
+              >
+                {t('capacityEdit')}
+              </Button>
+            )}
+          </div>
+          <p className="text-sm text-muted-foreground">{t('capacityHelp')}</p>
+          <QueryState
+            pending={query.isPending}
+            error={query.error}
+            retry={() => void query.refetch()}
+          />
+          {record && (
+            <>
+              <Badge variant="outline">
+                {t(record.configured ? 'capacityConfigured' : 'capacityUnconfigured')}
+              </Badge>
+              {!record.configured && (
+                <p className="text-sm">{t('capacityProtocol', { protocol: record.protocol })}</p>
+              )}
+              {record.configured && (
+                <dl className="grid gap-4 text-sm sm:grid-cols-3">
+                  {[
+                    ['capacityInput', record.max_input_tokens.toLocaleString(i18n.language)],
+                    ['capacityOutput', record.max_output_tokens.toLocaleString(i18n.language)],
+                    ['protocol', record.protocol],
+                    ['capacityEvidence', record.evidence],
+                    ['capacityRevision', record.etag],
+                    ['capacityUpdated', new Date(record.updated_at).toLocaleString(i18n.language)],
+                  ].map(([label, value]) => (
+                    <div key={label}>
+                      <dt className="text-muted-foreground">{t(label)}</dt>
+                      <dd className="mt-1 break-words whitespace-pre-wrap">{value}</dd>
+                    </div>
+                  ))}
+                </dl>
+              )}
+              <p className="text-sm text-muted-foreground">{t('capacityValidityHelp')}</p>
+            </>
           )}
-          {record.configured && (
-            <dl className="grid gap-4 text-sm sm:grid-cols-3">
-              {[
-                ['capacityInput', record.max_input_tokens.toLocaleString(i18n.language)],
-                ['capacityOutput', record.max_output_tokens.toLocaleString(i18n.language)],
-                ['protocol', record.protocol],
-                ['capacityEvidence', record.evidence],
-                ['capacityRevision', record.etag],
-                ['capacityUpdated', new Date(record.updated_at).toLocaleString(i18n.language)],
-              ].map(([label, value]) => (
-                <div key={label}>
-                  <dt className="text-muted-foreground">{t(label)}</dt>
-                  <dd className="mt-1 break-words whitespace-pre-wrap">{value}</dd>
-                </div>
-              ))}
-            </dl>
+          {saved && (
+            <p role="status" className="text-sm">
+              {t('capacitySaved')}
+            </p>
           )}
-          <p className="text-sm text-muted-foreground">{t('capacityValidityHelp')}</p>
-        </>
+        </section>
       )}
-      {saved && (
-        <p role="status" className="text-sm">
-          {t('capacitySaved')}
-        </p>
-      )}
-      {draft && record && access.can('providers.write') && (
+      {draft && (
         <CapacityEditor
           initial={draft}
-          current={record}
-          open={open}
+          current={record ?? draft}
+          visible={visible && access.can('providers.read') && access.can('providers.write')}
+          open={open && visible}
           onOpenChange={setOpen}
           reload={async () => {
             const result = await query.refetch()
@@ -109,7 +119,7 @@ function CapacityCard({ modelId }: { modelId: string }) {
           }}
         />
       )}
-    </section>
+    </>
   )
 }
 
@@ -120,8 +130,10 @@ function CapacityEditor({
   onOpenChange,
   reload,
   onSaved,
+  visible,
 }: {
   initial: ProviderModelCapacity
+  visible: boolean
   current: ProviderModelCapacity
   open: boolean
   onOpenChange: (open: boolean) => void
@@ -147,7 +159,7 @@ function CapacityEditor({
   const locked = busy || uncertain
 
   async function review() {
-    if (lock.current) return
+    if (!visible || lock.current) return
     lock.current = true
     setBusy(true)
     setError(null)
@@ -170,7 +182,7 @@ function CapacityEditor({
 
   async function submit(event?: FormEvent, retry = false) {
     event?.preventDefault()
-    if (lock.current || !session.data || !access.can('providers.write')) return
+    if (!visible || lock.current || !session.data || !access.can('providers.write')) return
     if (retry ? !uncertain || !intent.current : stale || uncertain) return
     let captured = intent.current
     if (!retry) {

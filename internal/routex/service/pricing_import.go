@@ -128,7 +128,7 @@ func validatePriceImport(tx *gorm.DB, parsed parsedPriceCSV, setting entity.Pric
 					action = "unchanged"
 				}
 			}
-			result.Changes = append(result.Changes, PriceImportChange{Row: row.Line, ProviderModelID: pm.ID, UpstreamName: pm.UpstreamName, Action: action, Before: old, After: after, ThresholdBefore: before.ContextThreshold, ThresholdAfter: merged.ContextThreshold, StopsFollowing: before.FollowRepository})
+			result.Changes = append(result.Changes, PriceImportChange{Row: row.Line, ProviderModelID: pm.ID, UpstreamName: pm.UpstreamName, Action: action, Before: old, After: after, ThresholdBefore: before.ContextThreshold, ThresholdAfter: merged.ContextThreshold, StopsFollowing: old != nil && before.RateSources[old.ID].Kind == "repository"})
 		}
 		if pricing.ValidateSchedule(merged) != nil {
 			for _, row := range rows {
@@ -145,6 +145,25 @@ func validatePriceImport(tx *gorm.DB, parsed parsedPriceCSV, setting entity.Pric
 			after.ID = "prc_" + strings.Repeat("0", 26)
 		}
 		after.Rates = slices.Clone(merged.Rates)
+		after.RateSources = map[string]PriceRateSource{}
+		for rateID, owner := range before.RateSources {
+			after.RateSources[rateID] = owner
+		}
+		if item.ContextThreshold != nil {
+			after.ContextThresholdSource = PriceThresholdSource{Kind: "custom"}
+		}
+		for _, row := range rows {
+			for _, rate := range after.Rates {
+				if rate.Metric == row.Rate.Metric && rate.Tier == row.Rate.Tier {
+					after.RateSources[rate.ID] = PriceRateSource{Kind: "custom"}
+				}
+			}
+		}
+		for _, owner := range after.RateSources {
+			if owner.Kind == "repository" {
+				after.FollowRepository = true
+			}
+		}
 		for index := range after.Rates {
 			if after.Rates[index].ID == "" {
 				after.Rates[index].ID = "rat_" + strings.Repeat("0", 26)

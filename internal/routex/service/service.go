@@ -15,6 +15,7 @@ import (
 
 	"github.com/miclle/routex/pkg/secretstore"
 	"github.com/miclle/routex/pkg/upstream"
+	"github.com/miclle/routex/prices"
 )
 
 // Service holds the database connection and provides business logic methods.
@@ -24,6 +25,7 @@ type Service struct {
 	trustedProxies        []netip.Prefix
 	runtime               *gatewayRuntime
 	recorder              *callRecorder
+	repositorySource      *prices.Snapshot
 	secrets               *secretstore.Store
 	rootPolicy            atomic.Pointer[secretPolicyView]
 	rootNow               func() time.Time

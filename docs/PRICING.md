@@ -209,3 +209,53 @@ input/output schedule under independent prices.read authority. Scoped reads reta
 PricePage and a coherent pricing generation/FX snapshot, reject query expansion,
 and preserve exact decimal values. Missing, disabled and zero rates stay distinct;
 no route-price aggregation, media inference or pricing write occurs in that table.
+
+## Repository source maintenance
+
+The initial trusted source is the versioned `prices/catalog.json` file embedded
+in the RouteX binary. Its complete bytes identify a source generation by SHA-256.
+The default file is deliberately empty; no market rates are invented. A later
+source adapter can replace this mechanism without granting the browser arbitrary
+URL, path, Git or amount authority.
+
+Explicit mappings connect existing Provider-model identities to reviewed source keys.
+Configuration changes do not apply prices. A server-derived preview binds the
+reviewed source, configuration, catalogue and selected identities; application
+requires explicit confirmation, a reason and one retained UUIDv4 intent. Durable
+receipts establish historical commitment separately from current configuration
+and runtime publication. A matching current read alone cannot resolve an original
+uncertain operation.
+
+Per-rate provenance preserves manually submitted values, including zero,
+disabled and same-amount edits. Unsubmitted rates retain their ownership. Selected
+custom rates can be explicitly restored from the reviewed source; missing source
+rows never imply deletion. Context threshold ownership is independent, and
+changes must not reinterpret protected custom rates. Historical monetary call
+bases stay immutable.
+
+The maintenance card belongs above the existing price-file workflow. Selected
+rate restoration belongs in the existing Provider-model price table. Read and
+write permissions remain independent. Operational timestamps describe the last
+fresh committed application, including no-change outcomes; previews, rejected
+requests, replays and rolled-back failures do not fabricate success metadata.
+
+The source, backend, interface and frozen V49 integration passed current-main
+source gates, actual PostgreSQL/MySQL migration/lifecycle, controlled production,
+manual bilingual browser and complete dual-driver regression. Receipt publication
+and restart boundaries were verified separately from historical commitment. Controlled synthetic
+source rates, if used for acceptance, belong only in a separately labelled test
+artifact; the production catalogue remains empty.
+
+
+Current-main source gates passed with 1908 frontend cases/104 files and full Go
+race/unit/dev/asset checks. Actual PostgreSQL/MySQL migration/lifecycle focus
+passed in 62.508s after a fixture-only live-price-FK preparation correction, preserving
+all orphan receipt/mapping and historical pricing assertions. Owned cleanup and
+49 current code hashes were verified. Two final-main isolated production scenarios each passed exactly three completed
+native calls, immutable pricing bases and real restart without replay. Manual
+English/Chinese browser confirmation verified exact operation receipts, a genuine
+60-second Session renewal with retained reason, selected-rate restoration and
+the empty production-source boundary. Owned resources were removed and checked.
+Complete main race regression passed Handler 1314.101s/Service 8.002s and the
+mandatory check passed;
+separately labelled synthetic prices are test-only.

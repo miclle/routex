@@ -353,7 +353,7 @@ describe('Price file maintenance', () => {
     await mount()
     expect(requests.some((r) => r.url?.startsWith('/admin/prices'))).toBe(false)
     permissions = ['prices.read']
-    await act(async () => cache.setQueryData(['permissions', 'usr_import'], permissions))
+    await act(async () => cache.refetchQueries({ queryKey: ['permissions'] }))
     await until(() => expect(host.querySelector('input[type="file"]')).not.toBeNull())
     expect(requests.some((r) => r.method === 'post')).toBe(false)
     await preview()
