@@ -95,10 +95,11 @@ type runtimeRoute struct {
 }
 
 type runtimeCredential struct {
-	ID        string
-	Plaintext string
-	Priority  int
-	CreatedAt time.Time
+	ID         string
+	CipherHash string
+	Plaintext  string
+	Priority   int
+	CreatedAt  time.Time
 }
 
 // RuntimeStatus exposes publication metadata without keys or routing secrets.
@@ -582,6 +583,10 @@ func runtimeDigest(data *runtimeData) (string, error) {
 	})
 	egresses := append([]entity.Egress(nil), data.Egresses...)
 	sort.Slice(egresses, func(i, j int) bool { return egresses[i].ID < egresses[j].ID })
+	credentialSecrets := map[string]string{}
+	for _, credential := range data.Credentials {
+		credentialSecrets[credential.ID] = personalHash(credential.Ciphertext)
+	}
 	ciphertexts := map[string]string{}
 	for i := range egresses {
 		ciphertexts[egresses[i].ID] = egresses[i].AuthCiphertext
@@ -590,20 +595,21 @@ func runtimeDigest(data *runtimeData) (string, error) {
 		egresses[i].UpdatedAt = time.Time{}
 	}
 	raw, err := json.Marshal(struct {
-		Quota            *runtimeQuotaData
-		Egresses         []entity.Egress
-		EgressSecrets    map[string]string
-		EgressSetting    entity.EgressSetting
-		EgressGeneration uint64
-		Limits           []entity.ResourceLimit
-		Pricing          *runtimePricingData
-		Providers        []entity.Provider
-		Connections      []entity.ProviderConnection
-		Credentials      []entity.ProviderCredential
-		ProviderModels   []entity.ProviderModel
-		Bindings         []entity.ModelProviderBinding
-		Access           []entity.CredentialModelAccess
-	}{data.Quota, egresses, ciphertexts, data.EgressSetting, data.EgressGeneration, data.Limits, data.Pricing, data.Providers, data.Connections, data.Credentials, data.ProviderModels, data.Bindings, data.Access})
+		Quota             *runtimeQuotaData
+		Egresses          []entity.Egress
+		EgressSecrets     map[string]string
+		EgressSetting     entity.EgressSetting
+		EgressGeneration  uint64
+		Limits            []entity.ResourceLimit
+		Pricing           *runtimePricingData
+		Providers         []entity.Provider
+		Connections       []entity.ProviderConnection
+		Credentials       []entity.ProviderCredential
+		CredentialSecrets map[string]string
+		ProviderModels    []entity.ProviderModel
+		Bindings          []entity.ModelProviderBinding
+		Access            []entity.CredentialModelAccess
+	}{data.Quota, egresses, ciphertexts, data.EgressSetting, data.EgressGeneration, data.Limits, data.Pricing, data.Providers, data.Connections, data.Credentials, credentialSecrets, data.ProviderModels, data.Bindings, data.Access})
 	if err != nil {
 		return "", err
 	}
@@ -659,7 +665,7 @@ func (s *Service) buildRuntimeRoutes(data *runtimeData) (map[string][]runtimeRou
 		if err != nil {
 			return nil, runtimeUnavailable
 		}
-		credentials[credential.ConnectionID] = append(credentials[credential.ConnectionID], runtimeCredential{ID: credential.ID, Plaintext: plaintext, Priority: credential.Priority, CreatedAt: credential.CreatedAt})
+		credentials[credential.ConnectionID] = append(credentials[credential.ConnectionID], runtimeCredential{ID: credential.ID, CipherHash: personalHash(credential.Ciphertext), Plaintext: plaintext, Priority: credential.Priority, CreatedAt: credential.CreatedAt})
 	}
 	for connectionID := range credentials {
 		sort.Slice(credentials[connectionID], func(i, j int) bool {

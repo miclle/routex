@@ -368,3 +368,26 @@ created before testing historical preservation; the fixture does not weaken
 production constraints. Complete final-main PostgreSQL/MySQL race regression subsequently passed
 Handler 1314.101s/Service 8.002s with all accepted source hashes unchanged and
 verified owned cleanup.
+
+
+## Guided Model creation receipts (version 50)
+
+Private frozen GORM V50 follows V49 and adds one bounded immutable receipt table.
+Migrator APIs handle creation, columns, checks and indexes, including partial DDL
+repair. UUID intent uniqueness, exact actor/Connection/review identities and
+microsecond timestamps are retained. The maximum 50-item snapshot is bounded to
+60 KiB for portable MySQL TEXT storage. No live foreign key can remove historical
+receipts when catalogue resources change.
+
+Business writes use portable GORM transactions and governance/subject locks.
+The receipt and typed audit are atomic with selected Model/name/binding creation.
+No existing grant or Key scope changes implicitly. Current configuration and
+runtime publication proof remain separate from historical operation commit.
+Actual empty/current upgrade, repeat/concurrent startup, partial repair and
+constraint acceptance on PostgreSQL/MySQL are pending the coordinating runner.
+
+V50 migration fault injection follows the existing test-only PostgreSQL index
+removal exception: pinned GORM DropIndex renders an invalid CURRENT_SCHEMA()
+qualifier. Only a fixed index name is removed, with presence/absence assertions;
+production creation and interrupted-DDL repair use GORM Migrator APIs on both
+supported databases. No business-layer dialect handling is introduced.

@@ -162,7 +162,7 @@ The binary capability count is 11 completed, 16 partially completed, and 3 not s
 | F09 | Key Token, money, RPM, TPM, concurrency, and IP restrictions | Completed | Personal, Project, and Key admission policies are enforced in the native gateway for the documented single-node architecture. Multi-node enforcement remains a separate release-architecture gate. |
 | F10 | Offboarding, inventory, handover, and emergency disable | Partially completed | Transactional local-account offboarding and continuity workflows exist; external-identity and complete enterprise continuity behavior remain open. |
 | F11 | Provider, Connection, Credential, discovery, and rotation | Partially completed | The management workspace, encrypted credentials, controlled verification, and activation boundaries exist; explicit provider-model capacity attestations, credential-pool filtering/verification timestamps, reviewed name/priority editing, reviewed deletion, staged replacement preparation, immutable per-attempt Credential/publication attribution, and parser-owned native completion evidence are available; evidence-gated predecessor retirement with historical receipt/current-application separation is available; real-provider acceptance and complete pool operations remain open. |
-| F12 | Model catalog, names, bindings, weights, and catalog assistance | Partially completed | Stable models, renames, bindings, weights, grants, and availability controls exist; standalone compatibility-name Early stop is an isolated source package. Batch creation, complete public-catalog assistance and final routing acceptance remain open. |
+| F12 | Model catalog, names, bindings, weights, and catalog assistance | Partially completed | Stable models, renames, bindings, weights, grants, and availability controls exist; reviewed compatibility-name Early stop has complete controlled source, dual-driver, native/browser/restart and full-matrix delivery. Guided batch creation has complete source, repaired driver, production/browser/restart and full-matrix acceptance, with one atomic reviewed transaction, bounded historical receipts and no implicit grants or existing-Key expansion. Complete public-catalog assistance and broader routing acceptance remain open. |
 | F13 | Four native protocols, streaming, health, retries, and failover | Partially completed | Chat Completions, Responses, Messages, and Gemini now use bounded replay-safe same-protocol failover with process-local health, one admission/settlement, durable ordered diagnostics, and no retry after a usable response. Real-provider and measured multi-node health acceptance remain open. |
 | F14 | Managed egress and staged network diagnostics | Partially completed | Direct, default, SOCKS5, verified CONNECT, endpoint-bound saved authentication, complete-tunnel proxy-address fallback, and diagnostics exist. External proxy and production performance acceptance remain open. |
 | F15 | Prices, spreadsheet/CSV workflows, API, and repository sync | Partially completed | Current prices, ETags, CSV/XLS/XLSX import, preview, commit, and export exist; repository-file mappings, reviewed synchronization, custom-rate protection and selected restoration passed complete current-main source, dual-driver and controlled production/browser/restart gates; shipped prices stay empty pending reviewed source rates, while wider external/release acceptance remains open. |
@@ -3329,3 +3329,99 @@ Manual English/live Chinese Project call-table/detail proof remained scoped and
 sanitized. Its owned resources were removed; all final source hashes stayed exact.
 The checked phase is ready for scoped main commit/push and distinct remote CI.
 F12/A06 and formal totals remain partial.
+
+
+### Guided Model creation main source checkpoint, 2026-10-04
+
+Checked Alias main `fd9cf74cc9098dd8d45c041a89d27352f332e621` was committed,
+pushed and read back exactly. Actionlint 37192439388 and GolangCI 37192439347
+passed; CI 37192439365 is running. Its full local evidence remains above.
+
+A hardened clean-main integration added 23 frozen owner paths and six narrow
+shared changes for guided Model creation. Every current Alias/rejection/UTC and
+repaired pricing migration source, route, audit and sole harness entry was
+preserved. Private frozen GORM V50 follows V49; shared changes register seven
+bounded routes, two integration cases, typed audit and paired modelCreation copy.
+Publication proof now explicitly retains encrypted-credential identity in the
+private runtime digest/route facts, without exposing ciphertext or secrets.
+
+The existing creation page selects one Connection and 1–50 Provider-model rows,
+keeps selections across bounded picker responses, previews server-derived
+new100/backup 0/first-protocol100 weights and confirms reason/ETag/UUID intent.
+Historical receipt, current configuration and applied/pending/superseded/unavailable
+status remain distinct. No grant or existing Key expands implicitly. Exact actor,
+review and uncertain intent survive authority renewal without automatic dispatch.
+
+Main format/check/test/build passed 2003 frontend cases/107 files, Go race/unit,
+development lifecycle and embedded production asset tests. All 50 integrated/
+protected source hashes and dependency bytes remain exact. Serial real PostgreSQL/
+MySQL lifecycle/migration focus is running with retained Alias, rejection and price
+repository regressions. Separate production/manual browser/restart and full matrix
+are pending; source integration is not accepted delivery. F12/A06 remain partial.
+
+
+### Guided Model creation first driver focus, 2026-10-04
+
+The first TZ=UTC PostgreSQL/MySQL focus failed (Handler 131.354s). Both lifecycle
+fixtures reused the administrator preview for a write-only actor; the server
+correctly rejected that actor-bound review with 409. The fixture now requires a
+real preview issued to that writer under temporary read authority, then removes
+read authority before the independent write/revocation checks. PostgreSQL index
+fault injection hit the pinned GORM DropIndex CURRENT_SCHEMA qualifier defect.
+A fixed test-only index-removal statement follows the existing adapter exception;
+production migration creation/repair and actor-bound review remain unchanged.
+All owned containers, network and volumes were removed. Earlier source gates
+remain source evidence only; corrected driver, process/browser and full acceptance
+are pending. Controlled native usage is tested without inventing price amounts.
+
+
+### Guided Model creation corrected driver focus, 2026-10-04
+
+The fixture-only correction passed mandatory check and the six-case TZ=UTC
+PostgreSQL/MySQL race focus in Handler 141.843s. Both real migration and lifecycle
+cases passed, retaining actor-specific review, independent permissions, native
+attribution, no implicit grants/Key expansion, backup exclusion, rollback,
+publication failure, exact retries and historical receipts. Alias retirement,
+strict native rejection and repository-price lifecycle/migration also passed.
+All owned Compose resources were removed; all 50 R2 code/dependency hashes stayed
+exact. Production/browser/restart and the complete matrix remain pending.
+Checked Alias main fd9cf74 now has all three exact remote checks green, including
+CI 37192439365.
+
+
+### Guided Model creation production acceptance, 2026-10-04
+
+The final production artifact passed separate manual English/live Chinese
+creation and receipt proof. The actual browser POST 201 committed three reviewed
+rows with new100/backup 0/first-protocol100 weights, one durable receipt/audit,
+no implicit grants and no old-Key expansion. A scheduled real Session refresh
+preserved the complete draft before a new explicit review. Three genuine Chat
+completions retained exact Model, Connection, Provider-model, Key, Credential
+and matching attempt/call snapshot IDs with known 3 input/2 output Tokens. The
+old Key denied the new Model without upstream dispatch; a separate explicit
+grant/new Key enabled it. The backup received no traffic. No price amount is
+inferred from these controlled usage facts.
+
+A later real rename left the historical receipt unchanged and current application
+superseded; the existing page reported those facts separately. A same-artifact
+process restart retained the receipt, immutable calls and browser Session without
+replay. Current-browser Session revocation cleared private access and returned
+to login; a renewed private route returned 401. All owned processes, proxy,
+Compose resources and temporary browser tab were removed. All50 code/dependency
+hashes stayed exact. Complete final-source PostgreSQL/MySQL regression and final
+mandatory check are pending.
+
+
+### Guided Model creation complete main acceptance, 2026-10-04
+
+Complete unchanged-source PostgreSQL/MySQL race regression passed Handler
+1346.593s and Service 7.991s. All 50 integrated/protected R2 code hashes and
+dependency bytes stayed exact; owned Compose resources were verified absent.
+The checked phase includes 29 source paths and seven relevant English docs/rules.
+Earlier source gates passed 2003 frontend cases/107 files, corrected six-case focus
+141.843s and distinct production/manual bilingual native/restart proof. First
+failed focus remains diagnosis; fixture corrections did not weaken production
+actor-bound reviews or GORM migration creation/repair. Broader F12/A06/public
+catalogue assistance and external/routing release acceptance remain partial.
+
+Final `go tool task check` passed with the same frozen code and dependency bytes.

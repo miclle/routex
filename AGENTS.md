@@ -597,3 +597,15 @@ prove the original historical operation. Preserve stable Model/grants/bindings,
 permanent historical-name reservation and already-dispatched calls. Register
 paired catalog copy, render only recorded UTC deadlines with the selected locale,
 and never infer eligibility from the browser clock.
+
+Guided Model creation uses the existing creation page and the `modelCreation`
+namespace. Select one exact authorized Connection and up to 50 Provider-model
+items; retain selections outside bounded picker responses. Keep models.read_all /
+providers.read separate from models.write. Preview server-derived new100,
+same-protocol backup0 and first-protocol100 weights, then require reason and
+explicit Base UI confirmation with a reviewed ETag and UUIDv4 intent. Preserve
+that exact intent across uncertainty, renewed authority reads and rejected retries.
+Receipts prove historical commit independently of current configuration/runtime
+application; pending/superseded/unavailable are not success. New Models receive
+no implicit grants and existing Keys never expand. Do not infer traffic readiness
+from saved zero-weight configuration or render credential material.

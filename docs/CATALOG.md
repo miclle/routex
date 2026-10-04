@@ -513,3 +513,48 @@ Disabled supply readiness passed focused real PostgreSQL/MySQL race proof in
 development lifecycle and embedded production assets. Enabling/disabling supply
 retains exact prices, grants, weights and names; disabled native routes made zero
 upstream dispatches. Owned test resources were removed.
+
+
+## Guided Model creation
+
+The existing `/admin/models/new` page selects one authorized Provider Connection
+and a bounded set of discovered Provider-model items. Connection/protocol identity
+is explicit. Pickers require models.read_all and providers.read; committing is an
+independent models.write operation. Literal search/cursors remain server-owned;
+selected items outside a bounded response stay selected. A batch contains 1–50
+unique Provider-model selections, with a new logical Model name or an exact
+existing Model target for each item.
+
+Server preview derives valid per-protocol topology: new Models and the first
+route for a previously absent protocol receive weight 100; an added backup for
+an existing valid protocol receives 0. Existing routing weights are preserved.
+Invalid all-zero supply is rejected rather than silently repaired. Ordinary
+single-binding APIs retain their existing initial-zero contract. No User, Team
+or Project grants are created, and no existing Key scope expands.
+
+Explicit Base UI confirmation submits the reviewed strong If-Match, reason and
+one UUIDv4 intent. One transaction writes the bounded Model/name/binding changes,
+durable historical receipt and typed audit. Exact same-intent retry cannot replay
+creation or restore later topology. Permission, actor, Connection, Provider-model,
+Model, name reservation and reviewed revisions are checked independently of
+database collation. Private picker/result data is hidden during renewed authority
+reads; original uncertain intent survives until explicitly reconciled.
+
+A receipt confirms the saved operation. Current items and pending/applied,
+superseded or unavailable application status are separately authorized and proven.
+Unavailable subjects never revive a receipt's old names or routes. Configured
+backup0 publication does not establish traffic eligibility. Publication proof
+includes current encrypted-credential identity, without exposing secrets.
+
+| Method | Endpoint | Purpose |
+| --- | --- | --- |
+| GET | `/api/v1/admin/model-creation/connections` | Bounded authorized Connections |
+| GET | `/api/v1/admin/connections/:connection_id/model-creation` | Exact reviewed Connection context |
+| GET | `/api/v1/admin/connections/:connection_id/model-creation/provider-models` | Bounded Provider-model choices |
+| GET | `/api/v1/admin/connections/:connection_id/model-creation/models` | Bounded existing targets |
+| POST | `/api/v1/admin/connections/:connection_id/model-creation/preview` | Server-derived difference and ETag |
+| POST | `/api/v1/admin/connections/:connection_id/model-creation` | Confirmed atomic creation |
+| GET | `/api/v1/admin/model-creation/receipts/:request_id` | Authorized historical receipt/current proof |
+
+This phase is integrated for final main source and serial real acceptance.
+Prepared worktree tests do not establish running-main or external-provider proof.

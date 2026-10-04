@@ -1,14 +1,16 @@
 # Current implementation handoff
 
-Updated: 2026-10-04T09:31:00Z. Status: active. Continue the full RouteX objective,
+Updated: 2026-10-04T10:22:00Z. Status: active. Continue the full RouteX objective,
 prioritizing partial capabilities and checked phased main deliveries. This is the
 live resume point; historical evidence remains in `docs/IMPLEMENTATION.md`.
 
 ## Delivered baseline
 
-- Previous delivered main and exact remote: `bc67a478b394f6bd9ec59d0243583bb74303ffdd`.
-  The checked Alias phase follows this baseline in the commit containing this
-  handoff. Read its exact SHA from Git and the external coordinator after push.
+- Delivered main and exact remote: `fd9cf74cc9098dd8d45c041a89d27352f332e621`.
+  The checked Alias phase passed 1944 frontend cases/105 files, dual-driver focus
+  (105.006s), complete matrix (Handler 1332.441s/Service 8.008s) and separate
+  Personal Key/Project Key/Team native/browser/restart acceptance. All owned
+  resources were removed. Its distinct remote checks are observed below.
 - Strict native rejection is committed/pushed in an eight-path phase. Final
   source format/check/test/build passed with 1908 frontend cases/104 files;
   complete PostgreSQL/MySQL race regression passed Handler 1320.407s and Service
@@ -33,91 +35,62 @@ Committed phases are transferable through remote main. Dirty source and candidat
 worktrees/helpers remain local until their own checked commit/push. No transfer
 or pause is requested; the full goal remains active.
 
-## Active Model Alias retirement phase
+## Checked guided Model creation phase
 
-A hardened clean-main carry applied 13 frozen owner paths plus four narrow shared
-integrations. It preserved current rejection, UTC and repaired pricing migration
-source, all earlier routes/audit cases and the sole native_failover harness entry.
-It never copied an old shared file snapshot. No migration or dependency changed;
-the schema ledger remains through V49.
+The guided batch phase has complete current-main local acceptance: format/check/
+test/build passed 2003 frontend cases/107 files; corrected TZ=UTC driver focus
+passed 141.843s; separate production/manual EN/live ZH browser, three genuine
+native calls, Session renewal/revocation and same-artifact restart passed.
+Complete PostgreSQL/MySQL race regression passed Handler 1346.593s and Service
+7.991s. All owned resources/tab were removed, all 50 integrated/protected R2
+code hashes stayed exact and dependencies did not change. Final mandatory check
+also passed before its scoped main commit/push. The exact delivered remote SHA and distinct
+CI are recorded in the external coordinator after read-back; prior checked main
+is fd9cf74 with all three checks green.
 
-The phase adds two resource-addressed routes: independent models.read_all review
-of an exact retained name and models.write confirmation with reason/If-Match.
-Early stop only shortens the deadline, preserves historical reservation and emits
-one typed audit. Current-state retry confirms current non-callability/publication,
-including natural expiry; it never proves an original historical operation.
-Publication failure remains fail-closed and original intent is retained.
+The phase contains 23 owner paths plus six narrow shared integrations and seven
+English docs/rules. Private frozen GORM V50 follows V49; no released step changes.
+Seven bounded endpoints support Connection selection, exact ProviderModel/target
+queries, reviewed preview, atomic commit and actor-owned receipt reads. Existing
+creation layout, paired modelCreation copy and both frontend rule files are kept.
 
-The UI keeps the existing Model information card and local Base UI review/danger
-confirmation, bilingual catalog copy and recorded deadline formatting. Current
-names cannot be stopped by this action. Authority renewal hides private facts,
-retains scoped drafts/uncertainty and cannot dispatch automatically. Actor/Model
-changes destroy captured ownership. Both frontend rule files are updated.
+Reviewed weights 100/0/100 preserve existing weights, grants and Key ceilings.
+One atomic transaction retains bounded UUID receipts and typed audit. Historical
+commit, current configuration and runtime application remain independent. Later
+rename or weight changes are not restored by a historical retry. Private cipher
+identity proof preserves delivered root rotation, rejection and Alias behavior.
+The first failed focus was fixture diagnosis; actor-bound reviews and production
+GORM creation/repair stayed unchanged. The separate final artifact SHA256 is
+383560c68ae9c5746462cd7d5d789012a836a2a54b75dbf2f8dc49afb64f376d.
 
-The shared native path now checks the exact requested public name before admission
-and immediately before dispatch, alongside existing Team/Key/Model authorization.
-An already-sent request may finish with immutable original alias facts.
+## Next exact actions
 
-Current source scope is 17 paths:
+1. Finish final mandatory check, commit/push only the checked 36-path batch phase,
+   read back exact remote main and observe that distinct CI. The index is empty
+   before scoped staging. Do not repeat passed actual gates without a new change,
+   failure or unresolved concern.
+2. Integrate member catalogue examples from the clean checked batch HEAD. Carry
+   eight exclusive frontend paths and semantically merge three shared paths;
+   preserve the complete Alias locale subtree and exact actor/Model invalidation
+   scope. No backend/migration change is needed. Run appropriate source/native/
+   browser/restart acceptance before that separate checked delivery.
+3. Then integrate private member notices and administrative Member Overview.
+   The newly prepared V51 harness preserves all 82 current cases and adds its
+   two entries exactly once. Never copy the old harness that omits native
+   failover. Recheck future baselines and protected source before every carry.
+4. Public-catalogue identity suggestions and the administrative Member Keys tab
+   are assessed future partial-capability gaps. Public identity assistance is
+   distinct from stored ProviderModel discovery and prices; demo names are not
+   a production source. Preserve exact ownership and independent permissions.
 
-- New service Model Alias retirement and runtime-name guard, with focused tests.
-- New handler review/confirmation and genuine integration fixture, with tests.
-- Narrow audit projection, native attempt hooks, routes and one harness entry.
-- Catalog API/types, Model admin detail, focused alias UI tests and paired catalog
-  translations. No new primitive or namespace dependency is needed.
-
-Relevant docs/rules: `AGENTS.md`, `.agents/rules/frontend.md`, `docs/CATALOG.md`,
-`docs/GATEWAY.md`, `docs/AUDIT.md`, `docs/IMPLEMENTATION.md` and this handoff.
-Stage explicitly after acceptance; do not mix isolated candidates into this phase.
-
-## Current gates and next exact actions
-
-1. Main format/check/test/build passed: 1944 frontend cases/105 files plus Go
-   race/unit/development/production assets. All 24 source/protection paths and
-   package/lock bytes remain exact. Embedded artifact SHA256 is
-   `abd3d5b8960cd7476a95b7f6a876ec8d52d3020b7a72b6eaf277a24e8ce324cd`.
-2. The isolated PostgreSQL/MySQL focus passed Handler 105.006s for Alias,
-   final rejection and repository lifecycle/migration regressions. Owned
-   resources were verified absent; all 24 source paths stayed exact. Preserve fixture assertions:
-   11 genuine successful dispatches per driver, eight protocol/context old-name
-   denials with no additional dispatch/attempt, audit rollback, publication failure,
-   exact retry, retained names, already-dispatched completion and actual restart.
-3. An initial production/browser pass exposed obsolete local reason feedback,
-   before any retirement POST. One-line local validation correction passed
-   meaningful RED/GREEN, 95 focused cases, types/lint/format and repeated full
-   source gates. Every other protected source remains unchanged.
-4. Final separate production/manual bilingual browser acceptance passed:
-   16 genuine native calls, eight old-name denials with zero dispatch/attempt,
-   immutable facts, one actual retired/changed/runtime_applied browser POST,
-   same-target retry without duplicate audit, real Session renewal/draft retention,
-   browser revocation/private cache clearing, and same-binary/database/journal
-   restart with retained Sessions and zero replay. Exactly one retirement audit
-   remains; current target is not a historical receipt. All owned resources and
-   listeners were verified absent, and all 24 source hashes remain exact.
-
-5. Full unchanged-source database regression passed Handler 1332.441s and
-   Service 8.008s; all owned resources were removed and frozen code hashes
-   remain exact. The helper-only Project Key extension also passed on the same
-   artifact: 24 genuine completions across Personal Key/Project Key/Team and four
-   native protocols, 12 stopped-name denials with zero upstream dispatch/attempt,
-   exact Project attribution, unchanged Project/grants/Keys, one audit/current
-   retry and retained-Session restart without replay. Manual bilingual Project
-   calls/detail remain scoped and sanitized. Every owned resource was removed.
-6. Final `go tool task check` passed; all code/protection hashes are unchanged.
-   Commit/push only the prepared 24 phase paths, read back exact remote main and
-   observe the distinct checks. Next, integrate guided Model creation using its
-   hardened clean-main carry bound to the new full delivered HEAD and current
-   protected source. Do not copy old shared snapshots or pricing fixtures.
-
-The Alias phase has passed all required local source/driver/process/browser and
-full matrix gates. Current scoped main commit/push and remote CI are next. Wider
-F12/A06 release acceptance, capacity and external-provider proof stay open.
+Formal totals remain 11 complete, 16 partial and three unstarted. Wider F12/A06,
+capacity and external-provider acceptance remain partial. Continue the full goal.
 
 ## Parallel prepared work
 
 | Candidate | Source boundary | Remaining before delivery |
 | --- | --- | --- |
-| Guided Model creation | V50, reviewed selections/UUID receipt, no implicit grants; 23 owners plus six narrow shared changes | Clean-main semantic integration after Alias, preserved F13/UTC/repaired F15 fixture, all own source/driver/process/browser/full gates |
+| Guided Model creation | V50, reviewed selections/UUID receipt, no implicit grants; 23 owners plus six narrow shared changes | All local source, focus, production/browser/restart and full-matrix gates passed; scoped commit/push and distinct CI |
 | Member catalogue examples | Explicit Personal/exact Team context, native subsets, pure credential-free snippets; 11 frozen paths | Semantic paired catalogue merge, frontend rules, four real native example programs, renewed authority/revocation/restart and full checks |
 | Private member quota notices | V51 after V50, stable Team/User account, exact self recipient, settled exhaustion and no owner/admin fanout | Fresh shared harness/version guards, unchanged raw aggregate assertions, actual native/lifecycle/migration/browser/full gates |
 | Administrative Member Overview | Backend/interface/acceptance owners in one isolated worktree; three existing-layout cards for Personal monthly Tokens/money and retained Personal Key count | Frozen source, private published User lifecycle map and helper contracts are ready; run independent members.read/subject exactness/journal/native/browser/restart/full acceptance |

@@ -88,6 +88,12 @@ func auditRecord(row entity.AuditEvent) AuditRecord {
 			return result
 		}
 		changes = record
+	case "model.batch_create":
+		var valid bool
+		changes, valid = modelCreationBatchAuditProjection(row)
+		if !valid {
+			return result
+		}
 	case "team.model_request.create", "team.model_request.approve", "team.model_request.reject", "team.model_request.withdraw", "team.model_request.cancel":
 		var valid bool
 		changes, valid = teamModelRequestAuditProjection(row)

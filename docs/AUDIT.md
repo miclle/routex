@@ -76,3 +76,9 @@ Filters issue real scoped API requests, reset cursor pagination, close the selec
 Missing source, IP, request ID, and change metadata display **Not recorded** in both table and drawer. The interface does not infer old values from current resources or manufacture failure events. Typed before/after values, reason/ETag data, and reviewed cleanup identities render as plain text; exact price decimal strings remain unchanged. Operator names, resource identifiers, action codes, and change content never become HTML. Dates and labels follow the selected English/Chinese locale without translating stored identities.
 
 Frontend tests use controlled API adapters for permission denial, initial filters, cursor append/reset, stale-response cancellation, retry, Unicode search bounds, malicious text, precise prices, missing metadata, stable IDs, drawer dates, and live language switching. These tests are independent of the real database lifecycle and browser acceptance gates.
+
+Guided creation emits one typed `model.batch_create` event containing reviewed
+Connection, request intent, reason and bounded created Model/binding facts.
+Projection validates exact resource ownership and safe scalar fields; arbitrary
+JSON and credential material are never exposed. The event and durable receipt
+share the creation transaction, and same-intent retries do not duplicate either.

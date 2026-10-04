@@ -1,3 +1,5 @@
+import zhModelCreation from './locales/zh/modelCreation'
+import enModelCreation from './locales/en/modelCreation'
 import enSecrets from './locales/en/secrets'
 import zhSecrets from './locales/zh/secrets'
 import enOverview from './locales/en/overview'
@@ -95,6 +97,7 @@ void i18n.use(initReactI18next).init({
   resources: {
     en: {
       common: en,
+      modelCreation: enModelCreation,
       secrets: enSecrets,
       overview: enOverview,
       personalModelRequests: enPersonalModelRequests,
@@ -126,6 +129,7 @@ void i18n.use(initReactI18next).init({
     },
     zh: {
       common: zh,
+      modelCreation: zhModelCreation,
       secrets: zhSecrets,
       overview: zhOverview,
       personalModelRequests: zhPersonalModelRequests,

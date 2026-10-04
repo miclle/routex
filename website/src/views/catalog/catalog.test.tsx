@@ -12,6 +12,7 @@ import ModelsPage from '@/views/models'
 import client from '@/api/client'
 import i18n from '@/i18n'
 import type { CallableModel, Model, PersonalKey, Provider } from '@/types/catalog'
+import type { ModelCreationInput, ModelCreationResult } from '@/types/model-creation'
 
 Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true })
 let root: Root
@@ -464,32 +465,154 @@ describe('catalog and Key workflows', () => {
       ).not.toContain('upstream_secret'),
     )
   })
-  it('creates a model from the dedicated form and opens its routing detail', async () => {
+  it('reviews and confirms a guided Model batch while retaining its pending receipt', async () => {
+    const catalogueAdapter = client.defaults.adapter
+    if (typeof catalogueAdapter !== 'function') throw new Error('Catalogue adapter missing')
+    const path = '/admin/connections/con_guided/model-creation'
+    const connection = {
+      id: 'con_guided',
+      provider_id: 'prv_guided',
+      provider_name: 'Guided Provider',
+      name: 'Guided Connection',
+      protocol: 'openai_chat',
+      base_url: 'https://example.invalid/v1',
+    }
+    const committed: ModelCreationResult[] = []
+    client.defaults.adapter = async (config) => {
+      if (!config.url?.includes('model-creation')) return catalogueAdapter(config)
+      requests.push(config)
+      let data: unknown
+      let status = 200
+      if (config.url === '/admin/model-creation/connections')
+        data = { items: [connection], next_cursor: null }
+      else if (config.url === `${path}/provider-models`)
+        data = {
+          items: [
+            {
+              id: 'pmd_guided',
+              upstream_name: 'Guided upstream',
+              disabled: false,
+              credential_ready: true,
+              selectable: true,
+              input_capabilities: [],
+              blocker_codes: [],
+            },
+          ],
+          next_cursor: null,
+        }
+      else if (config.url === `${path}/models`) data = { items: [], next_cursor: null }
+      else if (config.url === `${path}/preview`) {
+        const input = JSON.parse(config.data) as Pick<ModelCreationInput, 'items'>
+        data = {
+          connection,
+          review_etag: 'a'.repeat(64),
+          observed_at: '2026-10-04T00:00:00Z',
+          can_commit: true,
+          items: input.items.map((item) => ({
+            ...item,
+            upstream_name: 'Guided upstream',
+            model_id: null,
+            protocol: 'openai_chat',
+            initial_weight: 100,
+            blocker_codes: [],
+          })),
+        }
+      } else if (config.url === path && config.method === 'post') {
+        const input = JSON.parse(config.data) as ModelCreationInput
+        const items = [
+          {
+            provider_model_id: 'pmd_guided',
+            model_id: 'mdl_guided',
+            binding_id: 'bnd_guided',
+            created_model: true,
+            name: 'Public-Model',
+            protocol: 'openai_chat' as const,
+            weight: 100 as const,
+          },
+        ]
+        committed.push({
+          receipt: {
+            request_id: input.request_id,
+            connection_id: connection.id,
+            created_at: '2026-10-04T00:00:00Z',
+            items,
+          },
+          committed: true,
+          changed: true,
+          current_items: items,
+          runtime_applied: false,
+          application_status: 'pending',
+        })
+        data = committed[0]
+        status = 201
+      } else if (config.url === path)
+        data = { connection, can_create: true, observed_at: '2026-10-04T00:00:00Z' }
+      else throw new Error(`Unexpected guided endpoint ${config.url}`)
+      return { config, status, statusText: '', headers: new AxiosHeaders(), data }
+    }
+    const change = async (selector: string, value: string) => {
+      const element = document.querySelector<
+        HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
+      >(selector)!
+      expect(element).not.toBeNull()
+      await act(async () => {
+        const prototype =
+          element instanceof HTMLSelectElement
+            ? HTMLSelectElement.prototype
+            : element instanceof HTMLTextAreaElement
+              ? HTMLTextAreaElement.prototype
+              : HTMLInputElement.prototype
+        Object.getOwnPropertyDescriptor(prototype, 'value')!.set!.call(element, value)
+        element.dispatchEvent(
+          new Event(element instanceof HTMLSelectElement ? 'change' : 'input', { bubbles: true }),
+        )
+      })
+    }
     await render(<CreateModelPage />)
-    await until(() => expect(document.querySelector('option[value="con_1"]')).not.toBeNull())
-    await act(async () => {
-      const select = container.querySelector('select')!
-      select.value = 'con_1'
-      select.dispatchEvent(new Event('change', { bubbles: true }))
-    })
+    await until(() => expect(document.querySelector('option[value="con_guided"]')).not.toBeNull())
+    await change('select[aria-label="Provider Connection"]', connection.id)
     await until(() =>
-      expect(document.querySelector('select[name="provider_model_id"]')).not.toBeNull(),
+      expect(document.querySelector('input[aria-label="Select Guided upstream"]')).not.toBeNull(),
     )
-    await act(async () => {
-      const select = container.querySelector<HTMLSelectElement>('select[name="provider_model_id"]')!
-      select.value = 'pm_1'
-      select.dispatchEvent(new Event('change', { bubbles: true }))
+    await act(async () =>
+      document
+        .querySelector<HTMLInputElement>('input[aria-label="Select Guided upstream"]')!
+        .click(),
+    )
+    await change('input[aria-label="Public Model name for Guided upstream"]', 'Public-Model')
+    await change('textarea', 'Reviewed guided creation')
+    await click('Review selected models')
+    await until(() => expect(document.querySelector('[role="dialog"]')).not.toBeNull())
+    expect(document.querySelector('[role="dialog"]')?.textContent).toContain('100')
+    expect(committed).toHaveLength(0)
+    expect(JSON.parse(requests.find((r) => r.url === `${path}/preview`)!.data)).toEqual({
+      items: [{ provider_model_id: 'pmd_guided', target: 'new', name: 'Public-Model' }],
     })
-    await fill('name', 'Public Model')
-    await act(async () => {
-      container
-        .querySelector('form')!
-        .dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
-    })
-    await until(() => expect(container.textContent).toContain('Save routing weights'))
+    await click('Confirm addition')
+    await until(() => expect(container.textContent).toContain('The receipt confirms'))
+    const writes = requests.filter((r) => r.method === 'post' && r.url === path)
+    expect(writes).toHaveLength(1)
+    const input = JSON.parse(writes[0].data) as ModelCreationInput
+    expect(input.items).toEqual([
+      { provider_model_id: 'pmd_guided', target: 'new', name: 'Public-Model' },
+    ])
+    expect(input.reason).toBe('Reviewed guided creation')
+    expect(input.request_id).toMatch(
+      /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/,
+    )
+    expect(writes[0].headers.get('If-Match')).toBe(`"${'a'.repeat(64)}"`)
+    expect(writes[0].headers.get('X-CSRF-Token')).toBe('csrf')
+    expect(committed[0].receipt.request_id).toBe(input.request_id)
+    expect(container.textContent).toContain(input.request_id)
+    expect(container.querySelector('a[href="/admin/models/mdl_guided"]')).not.toBeNull()
+    expect(container.textContent).toContain('Pending runtime publication')
+    expect(container.textContent).not.toContain('Save routing weights')
     expect(
-      JSON.parse(requests.find((r) => r.method === 'post' && r.url === '/admin/models')!.data),
-    ).toEqual({ name: 'Public Model', provider_model_id: 'pm_1' })
+      requests.some(
+        (r) =>
+          r.url === '/admin/providers' || r.url === '/admin/models' || r.url?.includes('grant'),
+      ),
+    ).toBe(false)
   })
   it('switches catalog views and opens API access in a drawer', async () => {
     await render(<ModelsPage />)
