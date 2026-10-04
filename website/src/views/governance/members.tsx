@@ -2,7 +2,7 @@ import MemberKeys from './member-keys'
 import MemberOverview from './member-overview'
 import { useSessionGeneration } from '@/hooks/use-session-generation'
 import { PersonalModelMemberPanel } from '@/views/personal-model-requests'
-import ResourceLimits from '@/views/resource-limits'
+import MemberLimits from './member-limits'
 import { useTranslation } from 'react-i18next'
 import { useLayoutEffect, useRef, useState, type FormEvent } from 'react'
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
@@ -444,6 +444,7 @@ function Members() {
                   [
                     'overview',
                     'keys',
+                    'limits',
                     'settings',
                     ...(access.can('members.models.write') ? ['models'] : []),
                     ...(access.can('roles.read') ? ['roles'] : []),
@@ -476,6 +477,13 @@ function Members() {
                       {t('personalModelRequests:title')}
                     </TabsTrigger>
                   )}
+                  <TabsTrigger
+                    value="limits"
+                    id={`member-limits-tab-${actor}-${memberId}`}
+                    aria-controls={`member-limits-panel-${actor}-${memberId}`}
+                  >
+                    {t('members.limits')}
+                  </TabsTrigger>
                   <TabsTrigger value="settings">{t('members.settings')}</TabsTrigger>
                 </TabsList>
                 <TabsContent value="overview" className="space-y-6">
@@ -610,12 +618,6 @@ function Members() {
                 </TabsContent>
                 <TabsContent value="settings">
                   <div className="space-y-6">
-                    <ResourceLimits
-                      key={current.id}
-                      parentManagedSession
-                      path={`/admin/members/${current.id}`}
-                      canEdit={access.can('limits.users.write') && !current.disabled}
-                    />
                     <section className="rounded-lg border">
                       <h3 className="border-b p-4 font-medium">{t('members.basicInfo')}</h3>
                       <form
@@ -779,6 +781,22 @@ function Members() {
   return (
     <>
       {authorized ? page : unavailable}
+      {memberId && params.get('tab') === 'limits' && (
+        <section
+          className="mt-6"
+          role="tabpanel"
+          id={`member-limits-panel-${actor}-${memberId}`}
+          aria-labelledby={`member-limits-tab-${actor}-${memberId}`}
+        >
+          <MemberLimits
+            actor={actor}
+            target={memberId}
+            generation={generation}
+            ready={!!current}
+            targetQueryKey={['admin', 'member', actor, memberId, generation]}
+          />
+        </section>
+      )}
       {memberId && params.get('tab') === 'keys' && (
         <section
           className="mt-6"

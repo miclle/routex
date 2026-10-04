@@ -1,27 +1,37 @@
 # Current implementation handoff
 
-Updated: 2026-10-04. Status: active. Continue the full RouteX objective,
+Updated: 2026-10-05. Status: active. Continue the full RouteX objective,
 prioritizing partial capabilities and verified phased main deliveries. Historical
 acceptance remains in `docs/IMPLEMENTATION.md`.
 
 ## Delivered baseline
 
-Latest checked source delivery is advisory public Model names
-`767315fa2a57a9d39d8f727cc6e0f79e481f5580`, committed/pushed and read back exactly.
-Final source passed 2162 frontend cases/114 files and focused 63/four-file checks;
-R2 controlled production/browser/native/restart acceptance governs that delivery.
-Its CI, Actionlint and GolangCI-Lint are now all verified green. Preceding
-administrative Member Overview
-`77f0e53bc6f0adf00ef3d0e17209363ebf5e122c` retains the complete 85-case-per-driver
-matrix and all three exact remote checks green.
+Latest checked source delivery is administrative Member Keys
+818500abea154b23b442e8a1ce5404627a2dc7c1, committed/pushed with exact remote main
+read-back and clean main before the next carry. Local source 2235/116, full
+87-case-per-driver matrix, auth lifecycle, rebuilt nine-call/native/browser/
+restart and final mandatory check passed. All 136 checked protections were exact.
+CI 37214572870, Actionlint 37214572894 and GolangCI-Lint 37214572860
+all completed successfully for that exact checked delivery.
 
-Administrative Member Keys now has complete local acceptance on the rebuilt
-82c06d0e artifact: source 2235 frontend cases/116 files, check/build, full 87-case-
-per-driver matrix, authentication lifecycle and controlled native/browser/restart
-passed. All 136 current source/dependency/rule protections match; 129 unowned R3
-entries and backend acceptance remain unchanged. The 45-path candidate awaits
-root commit/push; its new remote CI is unknown. Earlier R2/R3 and original b757 R6
-checkpoints remain historical and are not substituted as repaired-artifact proof.
+The addressable Member Limits 13-path frontend carry is now integrated on that
+checked baseline. All 142 current source/dependency/rule protections match its
+initial checkpoint. Current-main format/check/test/build passed 2259 cases/117 files, Go race,
+development lifecycle and production assets. Candidate binary is
+8855a01c79f1b30239270144d2ef20083ce62f44fae6343c8750168ad7d9f85d. Checked R3
+actual process/native/browser/restart passed: six completed native dispatches,
+two zero-policy denials without dispatch, original browser PUT plus identical
+retry and one default reset. The committed response was explicitly masked by
+observer HTTP503; this is not raw network-loss proof. Retry wrote no policy/audit,
+reset retained usage, and restart retained Sessions/provenance/history without
+replay. Final mandatory check passed; scoped commit/push and new remote checks
+remain pending. Frozen source
+155/nine-file proof and earlier failed helper runs remain independently recorded.
+
+Predecessor public-name 767315fa2a57a9d39d8f727cc6e0f79e481f5580 passed source
+2162/114 and repaired R2 actual proof; all three remote checks are green.
+Member Overview 77f0e53 retains its full 85-case matrix and all three remote checks
+green. Their evidence is distinct from the new Limits candidate.
 
 Previous checked documentation delivery
 `91861d3ef20f45102510ec96f5927401fd924b11` was pushed/read back exactly, with CI,
@@ -238,17 +248,33 @@ V52 uses a private frozen AddColumn/backfill in batches of 200 and seeds only th
 administrator permission. Contracts and detailed evidence are in
 [Keys](KEYS.md#administrative-member-keys) and [Implementation](IMPLEMENTATION.md).
 
+## Administrative Member Limits current candidate
+
+A frontend-only candidate provides addressable `?tab=limits` with the existing
+budget/quota, request-rate/IP and explicit default reset controls. Settings keeps
+identity/lifecycle actions. Same actor/target managed mount preserves only local
+drafts and original uncertain policy/reset intent during renewed reads/errors;
+private facts/actions remain hidden. Current exact authority/generation and CSRF
+guard explicit retry, and rejected retry cannot replace the original intent.
+Actor/target/logout/tab exit destroys state. No new API/schema/permission or
+accounting/admission behavior is introduced; other policy/reset callers retain
+existing behavior. The candidate is integrated on checked Member Keys delivery, with source gates
+and checked R3 process/native/browser/restart acceptance passed. Real saved/current
+runtime and exact zero/default enforcement were read back independently of tab
+navigation. Final mandatory check passed; scoped commit/push remains pending. Detailed
+R1/R2 failure and checked R3 evidence is retained in IMPLEMENTATION.
+
 ## Next exact actions
 
-1. Scope commit/push of the accepted 45-path Member Keys package using the passed
-   final mandatory check, then verify exact remote read-back.
-   Record only observed new remote results; none is known yet.
-2. Integrate the frozen addressable Member Limits frontend after checked Key
-   delivery. Regenerate contextual parent/rule/document seams rather than copying
-   old shared snapshots; current-main and actual acceptance remain pending.
-3. Keep the larger Member Teams view separate until exact read authority and
-   historical joined-at behavior are reviewed. No Teams implementation or actual
-   acceptance is claimed by the Limits preparation.
+1. Root scopes the 17-path Limits commit/push and exact remote read-back using
+   passed source/build, checked R3 actual acceptance, independent owned cleanup
+   and the passed final mandatory check.
+   No new source SHA or remote result is inferred before that delivery.
+2. Continue the separately reviewed Member Teams package; do not expand this
+   frontend-only Limits carry into Team membership/history or quota changes.
+3. Preserve Member Keys 818500a all-three remote success and the independently
+   accepted unchanged backend 87-case matrix/auth lifecycle. New remote CI belongs
+   to the future scoped Limits delivery.
 
 Formal totals remain 11 complete, 16 partial and three unstarted. F19 and wider
 F12/A06, capacity and external-provider acceptance remain open. Continue the goal.
@@ -306,6 +332,7 @@ exact-row success-focus guarantee is claimed.
 
 Root verified browser tab closed, owned Docker containers/networks/volumes absent,
 port 19138 reuse-bind passed and all 136 source hashes unchanged. Local acceptance
-and final mandatory check passed; commit/push and new remote CI remain pending. Preserve formal
+and final mandatory check passed; checked delivery is 818500a with exact push/
+read-back. Actionlint passed; CI remains running; GolangCI-Lint passed. Preserve formal
 11/16/3 and F04 Partial. Limits source preparation and later Teams scope remain
 separate future acceptance.

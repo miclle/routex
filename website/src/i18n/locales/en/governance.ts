@@ -111,6 +111,7 @@ export default {
     listSeparator: ', ',
   },
   members: {
+    limits: 'Budgets, quotas and limits',
     offboarding: 'Offboarding',
     offboardingHelp:
       'Review responsibilities and credential inventory before planning or completing an offboarding.',

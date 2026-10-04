@@ -35,14 +35,16 @@ export default function RestoreDefaults({ target }: { target: DefaultResetTarget
     />
   )
 }
-function RestoreControls({
+export function RestoreControls({
   target,
   actor,
   visible,
+  managed,
 }: {
   target: DefaultResetTarget
   actor: string
   visible: boolean
+  managed?: { canDispatch: () => boolean; generation: string }
 }) {
   const { t } = useTranslation('defaultLimits')
   const [open, setOpen] = useState(false)
@@ -54,6 +56,7 @@ function RestoreControls({
           type="button"
           variant="outline"
           onClick={() => {
+            if (managed && !managed.canDispatch()) return
             setNotice(null)
             setOpen(true)
           }}
@@ -68,6 +71,7 @@ function RestoreControls({
           target={target}
           actor={actor}
           visible={visible}
+          managed={managed}
           close={(result) => {
             setNotice(result)
             setOpen(false)
@@ -82,16 +86,21 @@ function RestoreDialog({
   actor,
   visible,
   close,
+  managed,
 }: {
   target: DefaultResetTarget
   actor: string
   visible: boolean
   close: (notice: string | null) => void
+  managed?: { canDispatch: () => boolean; generation: string }
 }) {
   const { t } = useTranslation('defaultLimits')
   const cache = useQueryClient()
+  const queryKey = managed
+    ? ['default-reset', actor, target.kind, target.id, managed.generation]
+    : ['default-reset', actor, target.kind, target.id]
   const query = useQuery({
-    queryKey: ['default-reset', actor, target.kind, target.id],
+    queryKey,
     queryFn: ({ signal }) => getDefaultReset(target, signal),
     enabled: visible,
     retry: false,
@@ -108,14 +117,21 @@ function RestoreDialog({
   const lock = useRef(false)
   const alive = useRef(true)
   const intent = useRef<{ review: DefaultLimitResetContext; reason: string } | null>(null)
+  const controller = useRef<AbortController | null>(null)
+  useLayoutEffect(() => {
+    if (managed && (!visible || query.isFetching)) controller.current?.abort()
+  }, [managed, visible, query.isFetching])
   useLayoutEffect(() => {
     alive.current = true
     return () => {
       alive.current = false
+      controller.current?.abort()
     }
   }, [])
   const currentActor = () =>
-    alive.current && cache.getQueryData<Session>(sessionKey)?.user.id === actor
+    alive.current &&
+    cache.getQueryData<Session>(sessionKey)?.user.id === actor &&
+    (!managed || managed.canDispatch())
   const fresh = visible && query.isSuccess && !query.isFetching
   if (fresh && query.data && !reviewed) setReviewed(query.data)
   const context = reviewed ?? query.data ?? null
@@ -123,8 +139,17 @@ function RestoreDialog({
   const blocked = stale || issue === 'conflict' || issue === 'failed'
   async function dispatch(retry = false) {
     const session = cache.getQueryData<Session>(sessionKey)
+    // A cache refetch can begin before React hides the reviewed controls.
+    const reviewState = cache.getQueryState<DefaultLimitResetContext>(queryKey)
+    const currentReview =
+      !managed ||
+      (reviewState?.status === 'success' &&
+        reviewState.fetchStatus === 'idle' &&
+        !reviewState.error &&
+        reviewState.data === query.data)
     if (
       lock.current ||
+      !currentReview ||
       !currentActor() ||
       !session ||
       !fresh ||
@@ -148,30 +173,47 @@ function RestoreDialog({
     if (!intent.current) return
     lock.current = true
     setBusy(true)
+    const pending = new AbortController()
+    controller.current = pending
     try {
       const result = await restoreDefaultLimits(
         target,
         intent.current.review,
         intent.current.reason,
         session.csrf_token,
+        managed ? pending.signal : undefined,
       )
-      if (currentActor()) {
+      const latestReview = cache.getQueryState<DefaultLimitResetContext>(queryKey)
+      const obsoleteReview =
+        latestReview?.fetchStatus !== 'idle' ||
+        latestReview.status !== 'success' ||
+        !!latestReview.error ||
+        latestReview.dataUpdateCount !== reviewState?.dataUpdateCount ||
+        latestReview.errorUpdateCount !== reviewState?.errorUpdateCount
+      if (
+        managed &&
+        alive.current &&
+        (!currentActor() || pending.signal.aborted || obsoleteReview || !result.runtime_applied)
+      ) {
+        setUncertain(true)
+        setIssue('uncertain')
+      } else if (currentActor()) {
         void cache.invalidateQueries({ queryKey: ['resource-limits'] })
         close(result.runtime_applied ? 'restored' : 'pending')
       }
     } catch (error) {
-      if (currentActor()) {
+      if (currentActor() || (managed && alive.current)) {
         const status = isAxiosError(error) ? error.response?.status : undefined
         if (!status || status >= 500) setUncertain(true)
         setIssue(status === 409 ? 'conflict' : !status || status >= 500 ? 'uncertain' : 'failed')
       }
     } finally {
       lock.current = false
-      if (currentActor()) setBusy(false)
+      if (currentActor() || (managed && alive.current)) setBusy(false)
     }
   }
   async function review() {
-    if (lock.current) return
+    if (lock.current || (managed && !currentActor())) return
     lock.current = true
     setBusy(true)
     try {
@@ -183,7 +225,7 @@ function RestoreDialog({
       }
     } finally {
       lock.current = false
-      if (currentActor()) setBusy(false)
+      if (currentActor() || (managed && alive.current)) setBusy(false)
     }
   }
   if (!visible) return null

@@ -124,12 +124,14 @@ export async function restoreDefaultLimits(
   review: DefaultLimitResetContext,
   reason: string,
   csrf: string,
+  signal?: AbortSignal,
 ) {
   const value = (
     await client.post<unknown>(
       defaultResetPath(target),
       { reason },
       {
+        signal,
         headers: { 'If-Match': `"${review.etag}"`, 'X-CSRF-Token': csrf },
       },
     )

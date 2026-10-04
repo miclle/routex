@@ -17,6 +17,47 @@ The following routes use session authorization. PUT additionally requires CSRF, 
 | `/api/v1/keys/:key_id/limits` | Current personal owner |
 | `/api/v1/projects/:project_id/keys/:key_id/limits` | Current Project manager or existing platform Project management authority |
 
+## Administrative Member Limits tab
+
+The member composition moves the existing policy editor from Settings into
+addressable `?tab=limits`, preserving its local budget/quota, request-rate/IP and
+default-restore composition. The existing GET/PUT
+`/api/v1/admin/members/:user_id/limits` and GET/POST
+`/api/v1/admin/members/:user_id/limits/default-reset` remain authoritative. No new
+API, policy, migration, permission, accounting or native admission behavior is
+introduced. Member detail requires `members.read`; writes/reset independently
+require `limits.users.write` and a current enabled target. Existing scoped backend
+read authority is not broadened by this UI composition.
+
+Only the member panel supplies managed freshness/dispatch guards. It checks exact
+current Session/actor/target, permissions and member/policy cache generations
+before dispatch and acceptance, aborting obsolete work. A same-actor/target
+renewal or read error hides private policy facts/actions/dialogs while keeping
+component-local draft and already-dispatched intent. Actor/target changes, logout
+and tab exit destroy it. Renewed authority enables only explicit retry with fresh
+CSRF; it never automatically writes or declares a late response applied.
+
+Policy intent captures exact reviewed ETag, complete submitted body and reason.
+An uncertain intent survives subsequent rejected retries; reviewing or canceling
+the policy editor cannot silently replace it. New writes after changed policy or
+currency need explicit review. Default reset uses the existing hook-free controls
+with member-managed authority/generation and response guards. Its original review
+and reason survive renewal/rejected retry; reset review cannot overwrite an
+uncertain request. Explicit reset dismissal reports unresolved state rather than
+success. Reset never clears journal usage. See [Defaults](DEFAULT_LIMITS.md).
+
+Stored/effective/inherited values, zero/null, exact money and currency maps,
+coverage, known subtotals, unknowns and retained/live holds keep their existing
+meaning. No remaining allowance or currency conversion is inferred. Other
+Personal/Project/Key/Team policy and reset callers retain their existing behavior.
+Current-main source checks/build and controlled process/native/browser/restart
+acceptance passed. Actual reviewed zero blocked inference without dispatch;
+explicit default restoration retained usage and confirmed current runtime policy.
+An observer HTTP503 masking a committed response exercised original-intent retry
+without another write; it does not prove raw network-loss behavior. Final mandatory
+check passed; scoped commit/push and new remote checks remain pending. Detailed checkpoints remain in
+[Implementation](IMPLEMENTATION.md).
+
 Example PUT body:
 
 ```json

@@ -108,6 +108,7 @@ export default {
     listSeparator: '、',
   },
   members: {
+    limits: '预算、配额与限制',
     offboarding: '离职交接',
     offboardingHelp: '先检查职责与凭证清单，再制定或完成离职交接。',
     reviewOffboarding: '查看离职交接',

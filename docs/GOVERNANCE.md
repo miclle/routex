@@ -140,5 +140,37 @@ permission; assignment does not transfer ownership or inference access. Integrat
 checks passed. The full dual-driver regression and final mandatory check also passed.
 Authentication lifecycle passed on both drivers. The bounded browser focus correction passed rebuilt source checks and skips
 restoration on lost authority or hidden/disconnected rows. Immediate success
-invalidation remains. Rebuilt-artifact native/browser/restart acceptance passed;
-commit/push and new remote CI remain pending.
+invalidation remains. Rebuilt-artifact native/browser/restart acceptance passed.
+The checked 45-path package was committed/pushed as
+818500abea154b23b442e8a1ce5404627a2dc7c1 with exact remote read-back. Actionlint
+and GolangCI-Lint passed; CI 37214572870 also completed successfully for that exact commit.
+
+## Addressable Member Limits candidate
+
+The Member detail Limits tab at `?tab=limits` owns budget/quota, request-rate and
+IP policy controls plus explicit reset-to-current-default. Settings retains
+identity and lifecycle actions. The page remains independently `members.read`
+gated; only `limits.users.write` permits policy/reset writes. Neither
+`members.write` nor the Limits tab itself adds spending or owner authority.
+
+The member-only panel is a stable sibling for the same actor/target. Incidental
+Session, permission, member or policy reads hide private facts/actions/dialogs
+while retaining local unsent drafts and exact already-dispatched policy intent.
+Actor/target changes, tab exit and logout destroy state and abort obsolete work.
+Dispatch and callbacks check current cache status/generation, exact actor/target,
+current write permission and enabled target; explicit retry uses current CSRF.
+No extra Session observer, browser storage or private draft cache is introduced.
+
+A policy conflict preserves drafts and needs explicit review. Uncertain writes
+retain the original reason/body/If-Match through renewal and rejected retries;
+review cannot replace that unresolved intent. Default reset reuses the hook-free
+controls with member-managed authority and generation guards, retaining original
+review/reason through renewal or rejection. Saved policy and runtime enforcement
+remain separate. Existing Project/Key/Team callers keep their existing behavior.
+Current-main source checks/build and controlled policy/native/browser/restart
+acceptance passed. The checked observer masked one committed backend response
+with HTTP503; explicit original retry confirmed current enforcement without a
+second policy or audit write. This is not raw network-loss proof. Final mandatory
+check passed; scoped commit/push and new remote checks remain pending. Detailed evidence is in
+[Implementation](IMPLEMENTATION.md).
+See [Resource limits](RESOURCE_LIMITS.md#administrative-member-limits-tab).

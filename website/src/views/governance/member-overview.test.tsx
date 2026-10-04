@@ -78,7 +78,8 @@ beforeEach(async () => {
     if (deferred) value = await deferred
     else if (config.url === '/auth/session') value = structuredClone(session)
     else if (config.url === '/auth/permissions') value = { permissions }
-    else if (config.url?.endsWith('/limits')) value = limitFixture()
+    else if (config.url?.endsWith('/limits'))
+      value = { ...limitFixture(), id: config.url.split('/')[3] }
     else if (config.url === '/admin/members')
       value = {
         items: [
@@ -431,7 +432,7 @@ describe('administrative Member Overview', () => {
     permissions = ['members.read', 'limits.users.write']
     await mount()
     await act(async () => {
-      await router.navigate('/admin/members/usr_target?tab=settings')
+      await router.navigate('/admin/members/usr_target?tab=limits')
     })
     await until(() =>
       [...host.querySelectorAll('button')].some((button) => button.textContent === 'Edit limits'),

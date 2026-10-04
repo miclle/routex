@@ -152,7 +152,7 @@ Platform currency settings use the dedicated complete-catalogue currency metadat
 
 Price file maintenance belongs in `views/price-imports` at `/admin/prices`, with download/upload steps and a separate server-derived difference preview. Apply only the captured UTF-8 CSV or original XLSX/XLS filename and base64 bytes, returned ETag, and preview digest after explicit confirmation. Keep CSV at 32 KiB and workbooks at 512 KiB; the server owns workbook parsing, text-only amount validation, and sheet/cell error locations. Never convert workbook amounts in JavaScript. Never synthesize a preview from edited data or treat an uncertain publication result as success. Keep file limits, read/write permission differences, all located errors, and paired `priceImports` translations covered by tests.
 
-Admission controls live in member Settings, Project Resource configuration, and existing Key detail/restriction surfaces. `views/resource-limits` shares the implemented rolling five-hour/seven-day token, monthly token/money, TPM, RPM, concurrency, and IP policy editor; aggregate edits are inline and Key restrictions use the local dialog. Keep null/inherited values distinct from zero, display stored/effective policies and the complete IP conjunction, and show publication status separately from persistence. Writes require a reason and strong If-Match. Retain immutable submission intent for uncertain publication retries; stale policies require explicit reload/review without discarding the draft. Read the platform denomination from the resource-authorized `platform_currency` field and preserve exact money strings. Changed currency requires explicit review of retained drafts. Display authoritative quota windows, coverage, holds, and unknown values separately; never invent remaining allowance. Default templates and broader alerts remain outside this policy editor.
+Admission controls live in the addressable Member Limits tab, Project Resource configuration, and existing Key detail/restriction surfaces. `views/resource-limits` shares the implemented rolling five-hour/seven-day token, monthly token/money, TPM, RPM, concurrency, and IP policy editor; aggregate edits are inline and Key restrictions use the local dialog. Keep null/inherited values distinct from zero, display stored/effective policies and the complete IP conjunction, and show publication status separately from persistence. Writes require a reason and strong If-Match. Retain immutable submission intent for uncertain publication retries; stale policies require explicit reload/review without discarding the draft. Read the platform denomination from the resource-authorized `platform_currency` field and preserve exact money strings. Changed currency requires explicit review of retained drafts. Display authoritative quota windows, coverage, holds, and unknown values separately; never invent remaining allowance. Default templates and broader alerts remain outside this policy editor.
 
 Team monthly exhaustion notifications freeze current-policy aggregate settled
 Tokens/money and the then-current enabled owner/member recipients. Current exact
@@ -662,3 +662,18 @@ Session, permission, target and list authority. Skip disconnected or hidden rows
 when authority changes or successful disable refreshes the list; never delay
 private-data hiding or force focus through timers, global queries or stale DOM
 references. Callers without these optional props retain native default behavior.
+
+Administrative Member budgets, quotas and limits use `?tab=limits`; Settings
+retains identity and lifecycle actions. Mount the Member-only limits composition
+beside the other detail content with a stable actor/target identity. Hide policy,
+edit and reset controls during Session, permission, target or policy refreshes and
+errors without destroying the same-target unsent draft or original uncertain
+request. Fresh `members.read` governs reads and `limits.users.write` independently
+governs writes. Reuse the existing policy editor and default-restoration controls
+with parent-managed authority; do not add Session observers. Guard review,
+dispatch and response synchronously against current query generations, submit
+original uncertain bodies and strong If-Match values only on explicit retry with
+current CSRF, and never let a rejected retry clear uncertainty. Actor, target,
+logout and tab changes destroy local private intent; explicit reset dismissal
+retains its existing uncertainty warning. Preserve legacy Project, Key, Team and
+default-limit callers and confirm runtime application before reporting enforcement.

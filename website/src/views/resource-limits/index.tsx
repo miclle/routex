@@ -117,7 +117,7 @@ function ResourceLimitContent(props: Props) {
     </section>
   )
 }
-function LimitSummary({ record, child }: { record: LimitRecord; child?: boolean }) {
+export function LimitSummary({ record, child }: { record: LimitRecord; child?: boolean }) {
   const { t, i18n } = useTranslation('limits')
   const format = (value: number | null | undefined, fallback: string) =>
     value == null ? t(fallback) : value.toLocaleString(i18n.resolvedLanguage)
@@ -185,7 +185,7 @@ function LimitSummary({ record, child }: { record: LimitRecord; child?: boolean 
     </div>
   )
 }
-function LimitEditor({
+export function LimitEditor({
   parentManagedSession,
   path,
   child,
@@ -195,12 +195,18 @@ function LimitEditor({
   close,
   saved,
   pending,
+  visible = true,
+  canDispatch,
+  savePolicy,
 }: Props & {
   current: LimitRecord
   pending: (value: boolean) => void
   reload: () => Promise<LimitRecord>
   close: () => void
   saved: (data: LimitRecord) => void
+  visible?: boolean
+  canDispatch?: () => boolean
+  savePolicy?: (etag: string, input: LimitInput) => Promise<LimitRecord>
 }) {
   const { t } = useTranslation('limits')
   const session = useSession(!parentManagedSession)
@@ -218,10 +224,19 @@ function LimitEditor({
     current.etag !== reviewed.etag ||
     current.parent_etag !== reviewed.parent_etag ||
     current.platform_currency !== reviewed.platform_currency
-  const uncertain = issue === 'uncertain'
+  const [uncertainIntent, setUncertainIntent] = useState(false)
+  const uncertain = issue === 'uncertain' || (!!savePolicy && uncertainIntent)
   const blocked = stale || issue === 'conflict' || issue === 'failed'
   async function dispatch(retry = false) {
-    if (!canEdit || lock.current || !session.data || (!retry && (blocked || uncertain))) return
+    if (
+      !visible ||
+      !canEdit ||
+      lock.current ||
+      !session.data ||
+      (canDispatch && !canDispatch()) ||
+      (!retry && (blocked || uncertain))
+    )
+      return
     if (!retry) {
       const numeric = Object.fromEntries(
         integerFields.map((field) => [field, parseInteger(numbers[field])]),
@@ -293,10 +308,18 @@ function LimitEditor({
     setIssue(null)
     try {
       saved(
-        await saveLimits(path, intent.current.etag, intent.current.input, session.data.csrf_token),
+        savePolicy
+          ? await savePolicy(intent.current.etag, intent.current.input)
+          : await saveLimits(
+              path,
+              intent.current.etag,
+              intent.current.input,
+              session.data.csrf_token,
+            ),
       )
     } catch (error) {
       const status = isAxiosError(error) ? error.response?.status : undefined
+      if (savePolicy && (!status || status >= 500)) setUncertainIntent(true)
       setIssue(status === 409 ? 'conflict' : !status || status >= 500 ? 'uncertain' : 'failed')
     } finally {
       lock.current = false
@@ -305,7 +328,7 @@ function LimitEditor({
     }
   }
   async function reconcile() {
-    if (lock.current) return
+    if (lock.current || (savePolicy && uncertain) || (canDispatch && !canDispatch())) return
     lock.current = true
     setBusy(true)
     pending(true)
@@ -321,6 +344,7 @@ function LimitEditor({
       pending(false)
     }
   }
+  if (!visible) return null
   return (
     <form
       className="space-y-4"
@@ -333,7 +357,7 @@ function LimitEditor({
       <p className="text-sm text-muted-foreground">{t(child ? 'childHelp' : 'aggregateHelp')}</p>
       {(issue || stale) && (
         <p role="alert" className="text-sm text-destructive">
-          {t(stale && !uncertain ? 'conflict' : issue!)}
+          {t(savePolicy && uncertain ? 'uncertain' : stale && !uncertain ? 'conflict' : issue!)}
         </p>
       )}
       <fieldset disabled={busy || uncertain} className="space-y-4">
@@ -458,12 +482,17 @@ function LimitEditor({
             {t('retry')}
           </Button>
         )}
-        {(blocked || uncertain) && (
+        {(blocked || uncertain) && !(savePolicy && uncertain) && (
           <Button type="button" variant="outline" disabled={busy} onClick={() => void reconcile()}>
             {t('reload')}
           </Button>
         )}
-        <Button type="button" variant="outline" disabled={busy} onClick={close}>
+        <Button
+          type="button"
+          variant="outline"
+          disabled={busy || (!!savePolicy && uncertain)}
+          onClick={close}
+        >
           {t('cancel')}
         </Button>
       </div>

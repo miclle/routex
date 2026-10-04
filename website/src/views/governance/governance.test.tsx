@@ -121,7 +121,8 @@ beforeEach(() => {
     }
     if (key === 'get /admin/providers')
       response.data = { items: [{ id: 'prv_1', name: 'Provider', connections: [] }] }
-    if (config.url?.endsWith('/limits')) response.data = limitFixture()
+    if (config.url?.endsWith('/limits'))
+      response.data = { ...limitFixture(), id: config.url.split('/')[3] }
     return response
   }
 })
@@ -202,7 +203,7 @@ async function submit(label?: string) {
 describe('member governance', () => {
   it('requires limits.users.write for member aggregate changes, independently of members.write', async () => {
     permissions = ['members.read', 'members.write']
-    await mount('/admin/members/usr_target?tab=settings')
+    await mount('/admin/members/usr_target?tab=limits')
     await until(() => expect(container.textContent).toContain('user_usr_fixture'))
     expect(container.textContent).not.toContain('Edit limits')
     permissions = ['members.read', 'limits.users.write']

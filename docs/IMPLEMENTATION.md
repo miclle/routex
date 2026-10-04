@@ -154,7 +154,7 @@ The binary capability count is 11 completed, 16 partially completed, and 3 not s
 | F01 | Initialization, local identity, registration, and logout | Completed | Concurrent one-time setup, administrator creation, local login, registration control, durable sessions, and logout are implemented and tested. |
 | F02 | Profile, password, MFA, recovery codes, and session revocation | Completed | Profile and password changes, authenticator enrollment, single-use recovery codes, and individual-session revocation are implemented. |
 | F03 | Enterprise SSO, LDAP, OAuth, and emergency recovery | Not started | Provider configuration, callbacks, identity binding, enforced SSO, and enterprise recovery remain unimplemented. |
-| F04 | Member administration, direct grants, roles, and resource policies | Partially completed | Member and role workflows plus scoped resource-limit interfaces exist; token, TPM, and exact-money controls with authoritative quota snapshots are available. The seventeen-path administrative member Overview source is integrated with independent members.read, exact Personal monthly facts and retained Personal Key count; source check/test/build, focused PostgreSQL/MySQL, controlled production/browser/restart and complete 85-case-per-driver matrix passed; the checked delivery is represented by the commit containing this record, with new remote CI pending. Administrative Member Keys adds retained safe Personal metadata and independent reviewed disable authority with persistent lifecycle/runtime proof; repaired-source checks/build, focused dual-driver migration/lifecycle, full 87-case matrix, auth lifecycle and rebuilt native/browser/restart acceptance passed. Commit/push and new remote CI remain pending. The complete cross-domain resource-policy surface remains open. |
+| F04 | Member administration, direct grants, roles, and resource policies | Partially completed | Member and role workflows plus scoped resource-limit interfaces exist; token, TPM, and exact-money controls with authoritative quota snapshots are available. The seventeen-path administrative member Overview source is integrated with independent members.read, exact Personal monthly facts and retained Personal Key count; source check/test/build, focused PostgreSQL/MySQL, controlled production/browser/restart and complete 85-case-per-driver matrix passed; the checked delivery is represented by the commit containing this record, with new remote CI pending. Administrative Member Keys adds retained safe Personal metadata and independent reviewed disable authority with persistent lifecycle/runtime proof; repaired-source checks/build, focused dual-driver migration/lifecycle, full 87-case matrix, auth lifecycle and rebuilt native/browser/restart acceptance passed. The checked 45-path package is delivered as 818500a with exact push/read-back; all three exact remote checks passed. Addressable Member Limits passed current-main source checks/build, controlled reviewed policy/native/browser/restart acceptance and final mandatory check; scoped commit/push and new remote checks remain pending. The complete cross-domain resource-policy surface remains open. |
 | F05 | Built-in and custom roles with composed permissions | Partially completed | Current-domain role and permission management is implemented; later enterprise and operations domains still require permission integration and negative acceptance. |
 | F06 | Team membership, ownership, models, quotas, and member rules | Completed | Team membership/ownership, model relationships, finite aggregate/member policies and monthly requests are accepted. Durable Team-assigned roles, exact Team-only action unions, reviewed administrator assignment and the existing Roles interface have controlled dual-database and browser evidence. |
 | F07 | Project lifecycle, managers, models, Keys, and requests | Completed | Exact current management, lifecycle/continuity, multi-manager creation, initial direct resources and combined requests, scoped Overview, Project Keys, resource limits and model/quota/rate approvals are implemented with controlled dual-database/browser/native/restart evidence. Both lists now show authorized total retained Key counts; administrative stored-policy summaries, literal name/ID search and authorized legacy tab replacement have full main acceptance. |
@@ -4103,3 +4103,105 @@ remain Partial, with formal 11 completed/16 partial/three unstarted unchanged.
 Next bounded work is the prepared addressable Member Limits frontend, whose
 current-main and actual acceptance are pending; the larger Member Teams view
 still requires its separately reviewed authority/history contract.
+
+
+### Member Keys checked delivery and Member Limits integration, 2026-10-04
+
+The accepted 45-path Member Keys package was committed/pushed as
+818500abea154b23b442e8a1ce5404627a2dc7c1; exact remote main read-back matched and
+main was clean before the next carry. Its accepted source 2235/116, full 87-case-
+per-driver matrix, auth lifecycle, rebuilt nine-call/native/browser/restart and
+final mandatory check remain independently preserved above. Actionlint
+37214572894 passed; CI 37214572870 and GolangCI-Lint 37214572860 are running.
+No completion or new remote success is inferred from that snapshot.
+
+The reviewed 13-path Member Limits frontend carry is integrated on this checked
+baseline. Its addressable Limits tab moves only the existing budget/quota/rate/IP
+and explicit default restoration out of Settings. Same actor/target stable mount
+retains local drafts and exact uncertain policy/reset review through renewed
+reads/errors/rejected retries while all private facts/actions/dialogs stay hidden.
+Current query generations and authority gate dispatch/responses; explicit retry
+uses current CSRF. Actor/target/logout/tab changes destroy state. Reset explicit
+dismissal reports uncertainty and closes its intent; it is not success. Other
+Project/Key/Team/default callers retain existing behavior. No new endpoint,
+migration, permission, accounting or native admission change is introduced.
+
+Frozen worker source passed 155 cases/nine files, types/scoped lint/format and
+exact dependency checks; stale reset-context source reproduction was RED then
+GREEN. That source evidence does not prove current-main or runtime enforcement.
+All 142 integrated source/dependency/rule hashes matched this documentation
+checkpoint. Root's current format/check/test/build is running; actual process,
+native, browser/restart, full acceptance, final check and commit/push for Limits
+remain pending. F04/F17 and formal 11/16/3 totals are unchanged. Contracts:
+[Governance](GOVERNANCE.md#addressable-member-limits-candidate) and
+[Resource limits](RESOURCE_LIMITS.md#administrative-member-limits-tab).
+
+
+### Member Limits integrated source checks passed, 2026-10-04
+
+Current-main format/check/test/build passed 2259 Vitest cases in 117 files,
+Go race/unit, development lifecycle and embedded production asset tests. All
+142 protected source hashes matched; only verified Linux libc optional metadata
+was restored, preserving exact package/lock bytes. Candidate binary SHA256:
+8855a01c79f1b30239270144d2ef20083ce62f44fae6343c8750168ad7d9f85d.
+No actual policy/runtime, native, browser/restart or delivery acceptance is
+claimed yet. Those independent gates and final check/commit remain pending.
+Member Keys predecessor 818500a now has Actionlint and GolangCI-Lint green;
+CI 37214572870 is still running. Formal 11/16/3 remains unchanged.
+
+
+### Member Limits checked R3 local acceptance, 2026-10-05
+
+Current-main source format/check/test/build remains passed at 2259 Vitest cases
+in 117 files, Go race/unit, development lifecycle and embedded production assets.
+The checked production artifact is unchanged:
+8855a01c79f1b30239270144d2ef20083ce62f44fae6343c8750168ad7d9f85d.
+All 142 protected source/dependency/rule bytes remained exact. The frontend-only
+slice retains the independently accepted unchanged backend 87-case-per-driver
+and authentication lifecycle evidence; it introduces no schema or admission change.
+
+The checked R3 real-process/browser scenario exited successfully. Six actual
+native dispatches produced six immutable completed call/attempt pairs; two
+zero-ceiling HTTP429 requests produced no dispatch. The subject's known subtotal
+was 9 Tokens/USD9.000000000000000003 before browser changes and
+12 Tokens/USD12.000000000000000004 after the sixth completed call. Its separate
+live reservation was 5 Tokens/USD5.000000000000000003 and cleared on settlement.
+Read-only member authority exposed the summary with no Edit/Restore; Settings
+retained identity/offboarding controls only. Editor draft zero and reason survived
+live English/Chinese and actual authority refresh. An uncertain form remained
+locked; real renewed Session reads after role loss hid private content and inputs,
+while restored authority preserved the original immutable intent.
+
+One real browser PUT committed HTTP200 in the backend, then an owned observer
+returned explicit generic HTTP503. This is response masking, not raw network-loss
+or a real failed publication claim. One explicit identical body/If-Match retry
+confirmed current runtime with zero further policy/audit writes. One explicitly
+reviewed browser default-reset POST restored current 25 Tokens/
+USD25.000000000000000001 with its original reason retained across refresh;
+monthly used9 stayed unchanged. There were exactly two typed browser transition
+audits: one limits.update and one limits.default.reset. The extra independent
+operator permission-denial check is not claimed as a browser rejected-retry proof.
+
+Same-artifact/config/root/database/journal restart retained Sessions, saved policy,
+review/default provenance, audits and immutable history without replay. English
+and Chinese restart checks passed with zero browser console errors/warnings.
+Root independently verified every owned Compose container/network/volume absent,
+browser tab closed, and reuse-bind on both application/observer ports passed.
+All 142 protections and the exact production artifact remained unchanged. This
+acceptance does not infer browser timing from source tests.
+
+Earlier runs remain unaccepted: R1 failed readiness before native/browser because
+an observer health connection preceded backend readiness; R2 failed its first
+browser Save count assertion. Transparent transport retry was suspected, not
+proved. The checked R3 replaces only the committed-response fault with explicit
+HTTP503; an earlier R3 launch missing the required artifact hash stopped before
+creating a database and is not acceptance. No product change was warranted by
+these temporary helper corrections.
+
+Final mandatory `go tool task check` passed: formatting, ESLint with zero errors
+and two unchanged primitive Fast Refresh warnings, TypeScript and module checks.
+All 142 protections remained exact. Scoped commit/push and the new commit's
+remote checks remain pending. Member Keys predecessor
+818500abea154b23b442e8a1ce5404627a2dc7c1 independently has CI 37214572870,
+Actionlint 37214572894 and GolangCI-Lint 37214572860 all successful. F04/F17 and
+formal 11 completed/16 partial/three unstarted remain unchanged.
