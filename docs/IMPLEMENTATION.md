@@ -154,7 +154,7 @@ The binary capability count is 11 completed, 16 partially completed, and 3 not s
 | F01 | Initialization, local identity, registration, and logout | Completed | Concurrent one-time setup, administrator creation, local login, registration control, durable sessions, and logout are implemented and tested. |
 | F02 | Profile, password, MFA, recovery codes, and session revocation | Completed | Profile and password changes, authenticator enrollment, single-use recovery codes, and individual-session revocation are implemented. |
 | F03 | Enterprise SSO, LDAP, OAuth, and emergency recovery | Not started | Provider configuration, callbacks, identity binding, enforced SSO, and enterprise recovery remain unimplemented. |
-| F04 | Member administration, direct grants, roles, and resource policies | Partially completed | Member and role workflows plus scoped resource-limit interfaces exist; token, TPM, and exact-money controls with authoritative quota snapshots are available; the complete cross-domain resource-policy surface remains open. |
+| F04 | Member administration, direct grants, roles, and resource policies | Partially completed | Member and role workflows plus scoped resource-limit interfaces exist; token, TPM, and exact-money controls with authoritative quota snapshots are available. The seventeen-path administrative member Overview source is integrated with independent members.read, exact Personal monthly facts and retained Personal Key count; source check/test/build, focused PostgreSQL/MySQL, controlled production/browser/restart and complete 85-case-per-driver matrix passed; the checked delivery is represented by the commit containing this record, with new remote CI pending. The complete cross-domain resource-policy surface remains open. |
 | F05 | Built-in and custom roles with composed permissions | Partially completed | Current-domain role and permission management is implemented; later enterprise and operations domains still require permission integration and negative acceptance. |
 | F06 | Team membership, ownership, models, quotas, and member rules | Completed | Team membership/ownership, model relationships, finite aggregate/member policies and monthly requests are accepted. Durable Team-assigned roles, exact Team-only action unions, reviewed administrator assignment and the existing Roles interface have controlled dual-database and browser evidence. |
 | F07 | Project lifecycle, managers, models, Keys, and requests | Completed | Exact current management, lifecycle/continuity, multi-manager creation, initial direct resources and combined requests, scoped Overview, Project Keys, resource limits and model/quota/rate approvals are implemented with controlled dual-database/browser/native/restart evidence. Both lists now show authorized total retained Key counts; administrative stored-policy summaries, literal name/ID search and authorized legacy tab replacement have full main acceptance. |
@@ -3629,3 +3629,110 @@ The distinct CI, Actionlint and GolangCI-Lint runs for this exact source SHA are
 in progress, not accepted green. Catalogue 81b8c2f and batch 4fed603 retain their
 separate all-green remote checks. Formal totals remain 11 complete, 16 partial
 and three unstarted; wider F17/F23 and external acceptance remain open.
+
+
+### Administrative member Overview integrated source checkpoint, 2026-10-04
+
+The reviewed seventeen-path package is integrated on checked delivery-document
+baseline `91861d3ef20f45102510ec96f5927401fd924b11`, following delivered V51 source
+5363d3c. The existing member Overview tab now binds its three approved cards to
+an exact independently authorized member read: Personal monthly Tokens, Personal
+monthly money and an exact all-status retained Personal Key count. Project Keys,
+Key identities/secrets/actions and implicit mutation permissions are excluded.
+Default-aware subject policy, settled and unresolved monthly facts, coherent live
+reservations, coverage/unknowns and decimal strings remain distinct.
+
+The seven-read repeatable snapshot and one journal account batch preserve saved
+facts during journal outages without inventing zeros. A narrow private published
+User creation/lifecycle proof supplements complete policy/calendar/currency,
+current runtime generation/lease and tombstone checks. It does not alter native
+eligibility or self Overview. Parent detail and cards isolate actor, exact target
+and successful Session network generations, including same-millisecond identical
+renewal; obsolete responses and callbacks cannot restore authority.
+
+Full format/check/test/build passed with 2130 frontend cases in 112 files, Go
+race/unit, Node development lifecycle and embedded asset checks. All 95 combined
+protected source hashes and package/lock bytes were verified exact after restoring
+only the known eighteen Linux libc optional-metadata differences. Production
+binary SHA256: `11b959310c7e6b43a7c17c5185ccb387c057521f020afc238bdd1f76be7bf84d`.
+
+The actual PostgreSQL/MySQL focus passed Handler 134.955s (parent 132.72s;
+PostgreSQL 56.12s, MySQL 76.60s). New administrative member Overview and both V51
+lifecycle/migration cases passed on both drivers. The member fixture retained eight
+genuine native calls per driver; V51 retained its separate fixed five per driver.
+All 95 source hashes stayed exact and every owned focus container, network and
+volume was independently verified absent. This is focused acceptance, not a
+complete regression or production/browser claim.
+
+The complete 85-case-per-driver PostgreSQL/MySQL integration matrix passed
+Handler 1482.117s and Service 8.317s. Runner and coordinator independently verified
+all 95 protected source hashes unchanged and every owned matrix container,
+network and volume absent. Full source check/test/build, focused dual-driver,
+controlled production/browser and same-artifact restart gates are locally
+accepted. Prior self Overview and V51 acceptance remain independent; formal
+totals are unchanged.
+
+The checked implementation is delivered by the commit containing this acceptance
+record; consult Git history for its SHA. Remote CI for that new commit remains
+pending.
+
+The delivered V51 source's accepted 2094/110, 98.815s focus, complete matrix
+Handler 1456.730s/Service 8.504s and independent three-native browser/restart proof
+remain unchanged. At the current remote checkpoint, source 5363d3c Actionlint and
+GolangCI-Lint passed; its CI was cancelled by the next documentation-only push.
+Documentation 91861d3, with unchanged code, has CI 37201242395,
+Actionlint 37201242446 and GolangCI-Lint 37201242387 completed successfully.
+This exact remote checkpoint is independent from the new Member Overview
+implementation's separately accepted local gates and pending new remote CI.
+Formal totals remain 11 complete, 16 partial and
+three unstarted. See [Member Overview](MEMBER_OVERVIEW.md).
+
+
+### Administrative member Overview production/browser checkpoint, 2026-10-04
+
+The successful controlled scenario retained the exact source/build/focus above.
+Dispatch/call counts were six initially, seven dispatches/six accepted facts
+while held, seven/seven after release and eight/eight after the unknown call.
+Subject known settled usage rose from 5 Tokens / 5.000000000000000001 USD to
+10 Tokens / 10.000000000000000002 USD; separate live reservation 5 Tokens /
+5.000000000000000003 USD cleared after settlement. Captured defaults remained
+100 Tokens / 100.000000000000000001 USD. Explicit zero and genuine known-zero
+usage, subsequent unlimited policy and one unknown record preserved exact null,
+zero and known-subtotal semantics. Five retained all-status Personal Keys excluded
+Project Keys; peer/Project/Team call attribution stayed separate.
+
+Initial English, live Chinese and retained target selection passed. Disabled
+subject history stayed visible with runtime_applied false; its old Session returned
+401 and reenabling restored neither old Session nor revoked Keys. Reader authority
+removal produced 403 and renewed-browser private-card denial; restoration required
+fresh authority. Same-artifact/config/database/journal restart retained eight
+calls/attempts with no inference replay and real-browser Session/read proof.
+Observer counts were 22 browser Session HTTP 200 plus one initial anonymous 401,
+and 15 Overview HTTP 200; no minute automatic-renewal claim is made. Console
+errors/warnings were zero. Owned tabs/processes/proxy/ports and all Compose
+containers/networks/volumes were verified removed after both runs.
+
+The first helper's warmup HTTP 503 exposed a helper setup omission, not a product
+failure: new binding candidates correctly start at zero. The original was
+preserved; the temporary corrected helper asserts the exact single Chat candidate
+at zero and performs the real reviewed binding activation to 100 before native
+calls. Its SHA256 is f0699386648a542f4580eee6dcea36564b53c5e8da97fd98ab6c8ce895f0ac9e.
+The failed run was cleaned and is not acceptance. No product or frozen source
+changed. The subsequent complete matrix passed as recorded below; formal totals
+stay 11 complete, 16 partial and three unstarted.
+
+
+### Administrative member Overview complete local matrix, 2026-10-04
+
+The unchanged-source complete integration run passed all 85 cases per driver:
+Handler 1482.117s and Service 8.317s. Runner and coordinator independently verified
+all 95 protected source hashes and absence of every owned container/network/volume.
+Source 2130 cases/112 files, full check/test/build, exact binary 11b95931,
+focused Handler 134.955s, controlled eight-native production/browser and
+same-artifact restart proofs remain independently accepted. Earlier helper warmup
+503 remains a failed cleaned setup run, not successful acceptance or a product
+change. The checked implementation is delivered by the commit containing this
+acceptance record; consult Git history for its SHA. Remote CI for that new commit
+remains pending. No future source SHA or remote success is inferred. Previous
+91861d3 CI/Actionlint/GolangCI-Lint successes remain separate. F04/F19 and formal 11/16/3 totals are
+unchanged; this bounded package does not complete broader cross-domain work.

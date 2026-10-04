@@ -23,7 +23,13 @@ import { QuotaUsageSummary } from './quota-usage'
 
 import TeamResourceLimits from './team'
 
-type Props = { path: string; canEdit: boolean; child?: boolean; team?: TeamLimitScope }
+type Props = {
+  path: string
+  canEdit: boolean
+  child?: boolean
+  team?: TeamLimitScope
+  parentManagedSession?: boolean
+}
 export default function ResourceLimits(props: Props) {
   if (props.team) return <TeamResourceLimits scope={props.team} canEdit={props.canEdit} />
   return <ResourceLimitContent key={props.path} {...props} />
@@ -180,6 +186,7 @@ function LimitSummary({ record, child }: { record: LimitRecord; child?: boolean 
   )
 }
 function LimitEditor({
+  parentManagedSession,
   path,
   child,
   canEdit,
@@ -196,7 +203,7 @@ function LimitEditor({
   saved: (data: LimitRecord) => void
 }) {
   const { t } = useTranslation('limits')
-  const session = useSession()
+  const session = useSession(!parentManagedSession)
   const [reviewed, setReviewed] = useState(current)
   const [numbers, setNumbers] = useState(() => integerDraft(current.stored))
   const [money, setMoney] = useState(current.stored.money_month ?? '')

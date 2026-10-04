@@ -554,6 +554,22 @@ and ignore obsolete actor/generation pages. Keep usage links scoped and paired
 overview translations; never fetch resource/model/member directories to fill the
 monthly table.
 
+Administrative member detail keeps the existing Overview tab and three cards for
+Personal monthly Tokens, Personal monthly money and total retained Personal Keys.
+Read only the exact member-scoped /admin/members/:user_id/overview endpoint under
+independent members.read authority. The count includes every retained Personal
+Key status, excludes Project Keys, and exposes no Key IDs, secrets or actions;
+it does not establish active or callable Keys. Preserve count and money strings,
+settled usage, unresolved monthly facts, live reservations, unknown coverage and
+server-owned runtime application separately. No progress or remaining allowance
+is inferred. Scope both parent detail and Overview queries to actor, target and
+successful Session network generation; hide old cards during renewed authority,
+pending/error reads and target changes. Reject obsolete responses and callbacks,
+including structurally identical same-millisecond renewal. Observe the existing
+Session query without another network observer; manual CSRF replacement alone
+is not a network renewal. Keep paired governance translations and the existing
+access-status section; this read-only view grants no member or Key mutation.
+
 Creator-private Team media uses only exact Team Session/CSRF attachment routes and
 canonical managed references in the four native image/PDF scalar positions. Bind
 objects to exact Team, creator user and active membership, with a fixed deadline

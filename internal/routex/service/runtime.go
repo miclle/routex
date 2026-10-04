@@ -52,7 +52,13 @@ type gatewayRuntime struct {
 	lastRecordedState    string
 }
 
+type runtimeUserProof struct {
+	CreatedAt time.Time
+	Enabled   bool
+}
+
 type runtimeAuthorization struct {
+	UserProofs             map[string]runtimeUserProof
 	ProjectCreationStates  map[string]runtimeProjectCreationState
 	PersonalGrantSources   map[string]map[string]string
 	TeamGrantSources       map[string]map[string]string
@@ -476,6 +482,7 @@ func (s *Service) loadRuntimeDataTx(tx *gorm.DB) (*runtimeData, error) {
 
 func buildRuntimeAuthorization(data *runtimeData, until time.Time) *runtimeAuthorization {
 	auth := &runtimeAuthorization{
+		UserProofs:             map[string]runtimeUserProof{},
 		PersonalGrantSources:   map[string]map[string]string{},
 		TeamGrantSources:       map[string]map[string]string{},
 		CredentialRevisions:    map[string]string{},
@@ -499,6 +506,7 @@ func buildRuntimeAuthorization(data *runtimeData, until time.Time) *runtimeAutho
 	users := map[string]bool{}
 	for _, user := range data.Users {
 		users[user.ID] = !user.Disabled
+		auth.UserProofs[user.ID] = runtimeUserProof{CreatedAt: user.CreatedAt, Enabled: !user.Disabled && user.OffboardedAt == nil}
 	}
 	for _, model := range data.Models {
 		auth.Models[model.ID] = model.Status == "active"

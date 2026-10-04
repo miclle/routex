@@ -208,6 +208,7 @@ func (ctrl *Ctrl) RegisterRoutes(r *fox.Engine) {
 	admin.POST("/members/:user_id/offboarding/emergency", requireAdmin, sameOrigin, requireCSRF, jsonManagementRequest, ctrl.EmergencyOffboarding)
 	admin.GET("/members", ctrl.RequirePermission("members.read"), ctrl.ListMembers)
 	admin.GET("/members/:user_id", ctrl.RequirePermission("members.read"), ctrl.GetMember)
+	admin.GET("/members/:user_id/overview", ctrl.RequirePermission("members.read"), ctrl.MemberOverview)
 	admin.POST("/members", sameOrigin, requireCSRF, jsonAuthRequest, ctrl.RequirePermission("members.write"), ctrl.CreateMember)
 	admin.PATCH("/members/:user_id", sameOrigin, requireCSRF, jsonAuthRequest, ctrl.RequirePermission("members.write"), ctrl.UpdateMember)
 	admin.GET("/roles", ctrl.RequirePermission("roles.read"), ctrl.ListRoles)

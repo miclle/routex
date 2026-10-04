@@ -1,7 +1,9 @@
+import MemberOverview from './member-overview'
+import { useSessionGeneration } from '@/hooks/use-session-generation'
 import { PersonalModelMemberPanel } from '@/views/personal-model-requests'
 import ResourceLimits from '@/views/resource-limits'
 import { useTranslation } from 'react-i18next'
-import { useState, type FormEvent } from 'react'
+import { useLayoutEffect, useRef, useState, type FormEvent } from 'react'
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router'
 import { Plus } from 'lucide-react'
@@ -9,7 +11,6 @@ import { getMember, getMembers, getRoles } from '@/api/governance'
 import { writeCatalog } from '@/api/catalog'
 import { useSession } from '@/hooks/use-auth'
 import { usePermissions } from '@/hooks/use-permissions'
-import { PermissionGate } from '@/components/app/PermissionGate'
 import { Page, QueryState, FormField, ErrorNotice, SaveButton } from '@/components/app/CatalogUI'
 import { Table } from '@/components/ui/table'
 import { Button } from '@/components/ui/button'
@@ -18,14 +19,11 @@ import { Dialog } from '@/components/ui/dialog'
 import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { PermissionRows } from './roles'
+import type { Session } from '@/types/auth'
 import type { Member, MemberFilters } from '@/types/governance'
 
 export default function MembersPage() {
-  return (
-    <PermissionGate permission="members.read">
-      <Members />
-    </PermissionGate>
-  )
+  return <Members />
 }
 function Members() {
   const { t, i18n } = useTranslation('governance')
@@ -33,28 +31,55 @@ function Members() {
   const [params, setParams] = useSearchParams()
   const access = usePermissions()
   const session = useSession()
+  const generation = useSessionGeneration()
   const cache = useQueryClient()
   const navigate = useNavigate()
-  const actor = session.isError ? '' : (session.data?.user.id ?? '')
+  const actor = session.data?.user.id ?? ''
   const authorized =
     !!actor &&
+    !session.isError &&
     !session.isFetching &&
     !access.isError &&
     !access.isFetching &&
     access.can('members.read')
+  const owner = `${actor}:${memberId ?? ''}`
+  const [draft, setDraft] = useState<{ owner: string; role: string; roleIds: string[] } | null>(
+    null,
+  )
+  const latest = useRef({
+    actor,
+    memberId,
+    generation,
+    authorized,
+    csrf: session.data?.csrf_token,
+    admin: access.isAdmin,
+    write: access.can('members.write'),
+  })
+  useLayoutEffect(() => {
+    latest.current = {
+      actor,
+      memberId,
+      generation,
+      authorized,
+      csrf: session.data?.csrf_token,
+      admin: access.isAdmin,
+      write: access.can('members.write'),
+    }
+  }, [actor, memberId, generation, authorized, session.data?.csrf_token, access.isAdmin, access])
+  const dispatching = useRef(false)
   const [filters, setFilters] = useState<MemberFilters>({})
   const [creating, setCreating] = useState(false)
   const [statusTarget, setStatusTarget] = useState<Member | null>(null)
   const [validation, setValidation] = useState<'members.passwordValidation' | null>(null)
   const members = useInfiniteQuery({
-    queryKey: ['admin', 'members', actor, filters],
+    queryKey: ['admin', 'members', actor, generation, filters],
     queryFn: ({ pageParam, signal }) => getMembers(filters, pageParam, signal),
     initialPageParam: null as string | null,
     getNextPageParam: (page) => page.next_cursor ?? undefined,
     enabled: !memberId && authorized,
   })
   const member = useQuery({
-    queryKey: ['admin', 'member', actor, memberId],
+    queryKey: ['admin', 'member', actor, memberId, generation],
     queryFn: ({ signal }) => getMember(memberId!, signal),
     enabled: !!memberId && authorized,
     retry: false,
@@ -63,7 +88,7 @@ function Members() {
     refetchOnMount: 'always',
   })
   const roles = useQuery({
-    queryKey: ['admin', 'roles', actor],
+    queryKey: ['admin', 'roles', actor, generation],
     queryFn: ({ signal }) => getRoles(signal),
     enabled: !!memberId && authorized && access.can('roles.read'),
   })
@@ -72,23 +97,115 @@ function Members() {
       method,
       path,
       data,
+      actor: capturedActor,
+      target: capturedTarget,
+      generation: capturedGeneration,
     }: {
       method: 'post' | 'put' | 'patch'
       path: string
       data: unknown
-    }) => writeCatalog<Member>(method, path, data, session.data!.csrf_token),
+      actor: string
+      target?: string
+      generation: number
+    }) => {
+      const now = latest.current
+      const auth = cache.getQueryState<Session>(['auth', 'session'])
+      const permission = cache.getQueryState<string[]>(['permissions', now.actor])
+      if (
+        !now.authorized ||
+        !auth?.data?.csrf_token ||
+        auth.data.user.id !== now.actor ||
+        auth.error ||
+        auth.fetchStatus !== 'idle' ||
+        permission?.fetchStatus !== 'idle' ||
+        permission.error ||
+        !permission.data?.includes('members.read') ||
+        (path.endsWith('/roles')
+          ? auth.data.user.role !== 'admin'
+          : !permission.data.includes('members.write')) ||
+        now.actor !== capturedActor ||
+        now.memberId !== capturedTarget ||
+        now.generation !== capturedGeneration ||
+        (path.endsWith('/roles') ? !now.admin : !now.write)
+      )
+        throw new Error('Member write authority is unavailable')
+      return writeCatalog<Member>(method, path, data, auth.data.csrf_token)
+    },
     gcTime: 0,
     onSuccess: (result, input) => {
+      const now = latest.current
+      const auth = cache.getQueryState<Session>(['auth', 'session'])
+      const permission = cache.getQueryState<string[]>(['permissions', now.actor])
+      if (
+        !now.authorized ||
+        auth?.data?.user.id !== input.actor ||
+        auth.error ||
+        auth.fetchStatus !== 'idle' ||
+        permission?.fetchStatus !== 'idle' ||
+        permission.error ||
+        !permission.data?.includes('members.read') ||
+        now.actor !== input.actor ||
+        now.memberId !== input.target ||
+        now.generation !== input.generation ||
+        (input.method !== 'post' && result.id !== input.path.split('/')[3])
+      ) {
+        mutation.reset()
+        return
+      }
+      setDraft(null)
       setCreating(false)
       setStatusTarget(null)
-      cache.setQueryData(['admin', 'member', actor, result.id], result)
+      cache.setQueryData(['admin', 'member', actor, result.id, generation], result)
       void cache.invalidateQueries({ queryKey: ['admin', 'members'] })
       void cache.invalidateQueries({ queryKey: ['permissions'] })
       void cache.invalidateQueries({ queryKey: ['auth', 'session'] })
       mutation.reset()
       if (input.method === 'post') navigate(`/admin/members/${result.id}`)
     },
+    onSettled: () => {
+      dispatching.current = false
+    },
   })
+  const [previousOwner, setPreviousOwner] = useState(owner)
+  if (previousOwner !== owner) {
+    setPreviousOwner(owner)
+    setDraft(null)
+    setCreating(false)
+    setStatusTarget(null)
+    setValidation(null)
+  }
+  const resetMutation = mutation.reset
+  useLayoutEffect(() => {
+    resetMutation()
+  }, [owner, resetMutation])
+  function dispatch(input: { method: 'post' | 'put' | 'patch'; path: string; data: unknown }) {
+    const now = latest.current
+    const auth = cache.getQueryState<Session>(['auth', 'session'])
+    const permission = cache.getQueryState<string[]>(['permissions', now.actor])
+    if (
+      dispatching.current ||
+      !now.authorized ||
+      !auth?.data?.csrf_token ||
+      auth.data.user.id !== now.actor ||
+      auth.error ||
+      auth.fetchStatus !== 'idle' ||
+      permission?.fetchStatus !== 'idle' ||
+      permission.error ||
+      !permission.data?.includes('members.read') ||
+      (input.path.endsWith('/roles')
+        ? auth.data.user.role !== 'admin'
+        : !permission.data.includes('members.write')) ||
+      (input.path.endsWith('/roles') ? !now.admin : !now.write)
+    )
+      return
+    dispatching.current = true
+    mutation.mutate({
+      ...input,
+      actor: now.actor,
+      target: now.memberId,
+      generation: now.generation,
+    })
+  }
   const canChange = (target: Member) =>
     access.can('members.write') &&
     (access.isAdmin || (target.role !== 'admin' && target.id !== session.data?.user.id))
@@ -103,7 +220,7 @@ function Members() {
       return
     }
     setValidation(null)
-    mutation.mutate({
+    dispatch({
       method: 'post',
       path: '/admin/members',
       data: {
@@ -120,12 +237,40 @@ function Members() {
       : role.builtin && role.id === 'rol_member'
         ? t('common.member')
         : role.name
-  const current = authorized && member.isSuccess && !member.isFetching ? member.data : undefined
+  const current =
+    authorized && member.isSuccess && !member.isFetching && member.data.id === memberId
+      ? member.data
+      : undefined
   const currentRoles =
     roles.data?.items.filter(
       (role) =>
         current && (role.id === `rol_${current.role}` || current.role_ids.includes(role.id)),
     ) ?? []
+  if (!authorized)
+    return (
+      <Page
+        title={t('common:access_denied_cb8d4')}
+        description={t('common:your_account_does_not_have_permission_to_access_ca6a8')}
+      >
+        <QueryState
+          pending={session.isFetching || access.isPending || access.isFetching}
+          error={session.error || access.error}
+          retry={() => {
+            void session.refetch()
+            void access.refetch()
+          }}
+        />
+        {!session.isFetching &&
+          !access.isPending &&
+          !access.isFetching &&
+          !session.isError &&
+          !access.isError && (
+            <p role="alert" className="text-sm text-muted-foreground">
+              {t('common:your_account_does_not_have_permission_to_access_ca6a8')}
+            </p>
+          )}
+      </Page>
+    )
   return (
     <Page
       title={memberId ? t('members.detailTitle') : t('members.title')}
@@ -325,7 +470,14 @@ function Members() {
                   )}
                   <TabsTrigger value="settings">{t('members.settings')}</TabsTrigger>
                 </TabsList>
-                <TabsContent value="overview">
+                <TabsContent value="overview" className="space-y-6">
+                  <MemberOverview
+                    key={`${actor}:${memberId}:${generation}`}
+                    actor={actor}
+                    target={memberId}
+                    generation={generation}
+                    authorized={!!current}
+                  />
                   <section className="rounded-lg border">
                     <h3 className="border-b p-4 font-medium">{t('members.accessStatus')}</h3>
                     <dl className="grid gap-4 p-4 text-sm sm:grid-cols-3">
@@ -367,7 +519,7 @@ function Members() {
                     onSubmit={(event) => {
                       event.preventDefault()
                       if (mutation.isPending) return
-                      mutation.mutate({
+                      dispatch({
                         method: 'put',
                         path: `/admin/members/${current.id}/roles`,
                         data: {
@@ -405,7 +557,21 @@ function Members() {
                                     type="checkbox"
                                     value={role.id}
                                     aria-label={t('members.assignLabel', { name: roleName(role) })}
-                                    defaultChecked={current.role_ids.includes(role.id)}
+                                    checked={(draft?.owner === owner
+                                      ? draft.roleIds
+                                      : current.role_ids
+                                    ).includes(role.id)}
+                                    onChange={(event) => {
+                                      const selected =
+                                        draft?.owner === owner ? draft.roleIds : current.role_ids
+                                      setDraft({
+                                        owner,
+                                        role: draft?.owner === owner ? draft.role : current.role,
+                                        roleIds: event.target.checked
+                                          ? [...selected, role.id]
+                                          : selected.filter((id) => id !== role.id),
+                                      })
+                                    }}
                                     disabled={!access.isAdmin || mutation.isPending}
                                   />
                                   {t('members.assign')}
@@ -438,6 +604,7 @@ function Members() {
                   <div className="space-y-6">
                     <ResourceLimits
                       key={current.id}
+                      parentManagedSession
                       path={`/admin/members/${current.id}`}
                       canEdit={access.can('limits.users.write') && !current.disabled}
                     />
@@ -449,7 +616,7 @@ function Members() {
                         onSubmit={(event) => {
                           event.preventDefault()
                           if (mutation.isPending) return
-                          mutation.mutate({
+                          dispatch({
                             method: 'patch',
                             path: `/admin/members/${current.id}`,
                             data: { role: String(new FormData(event.currentTarget).get('role')) },
@@ -460,7 +627,14 @@ function Members() {
                           <select
                             name="role"
                             className="h-10 rounded-md border bg-background px-3"
-                            defaultValue={current.role}
+                            value={draft?.owner === owner ? draft.role : current.role}
+                            onChange={(event) =>
+                              setDraft({
+                                owner,
+                                role: event.target.value,
+                                roleIds: draft?.owner === owner ? draft.roleIds : current.role_ids,
+                              })
+                            }
                             disabled={!access.isAdmin || mutation.isPending}
                           >
                             <option value="member">{t('common.member')}</option>
@@ -582,7 +756,7 @@ function Members() {
           disabled={mutation.isPending}
           onClick={() =>
             statusTarget &&
-            mutation.mutate({
+            dispatch({
               method: 'patch',
               path: `/admin/members/${statusTarget.id}`,
               data: { disabled: !statusTarget.disabled },

@@ -1,15 +1,24 @@
 # Current implementation handoff
 
-Updated: 2026-10-04T12:08:35Z. Status: active. Continue the full RouteX objective,
+Updated: 2026-10-04. Status: active. Continue the full RouteX objective,
 prioritizing partial capabilities and verified phased main deliveries. Historical
 acceptance remains in `docs/IMPLEMENTATION.md`.
 
 ## Delivered baseline
 
-Latest checked source delivery is
-`5363d3ce53ca4d1248227b2f941aae642c433499`: the checked 30-path V51 phase was
-committed/pushed, exact remote main read-back matched and main was clean. Its
-distinct CI, Actionlint and GolangCI-Lint are in progress, not accepted green.
+Administrative Member Overview has complete local controlled source, focused
+dual-driver, production/browser/restart and full-matrix acceptance. The checked
+implementation is delivered by the commit containing this acceptance record;
+consult Git history for its SHA. Remote CI for that new commit remains pending.
+All 95 source protections and dependency bytes remained exact.
+
+Previous checked documentation delivery
+`91861d3ef20f45102510ec96f5927401fd924b11` was pushed/read back exactly, with CI,
+Actionlint and GolangCI-Lint successful for its unchanged code. Previous accepted
+source `5363d3ce53ca4d1248227b2f941aae642c433499` contained the checked 30-path V51
+phase, committed/pushed with exact remote read-back and clean main. Its Actionlint
+and GolangCI-Lint passed; its CI was cancelled by the next documentation-only push.
+These previous remote checks are separate from the new Member Overview commit.
 Previous catalogue 81b8c2f has all three exact remote checks green; its evidence
 below remains independent from the member-notice phase.
 Guided creation `4fed603` now has CI, Actionlint and GolangCI-Lint all green.
@@ -70,7 +79,7 @@ Rejoin may restore original read state without restoring old native membership
 authority or replaying calls. No accounting/admission or new API permission changes
 are included. Private V51 follows V50 and preserves historical aggregates.
 
-The current harness retains all 82 original cases plus two new cases. Historical
+The V51 harness retained all 82 original cases plus two new cases. Historical
 reconstruction reapplies V47/V48/V51 guards. Modern aggregate tests inspect raw
 all-scope responses, exact unread/read state and canonical self-only child records
 before projecting aggregate rows. Personal/Project pollution is still rejected;
@@ -106,24 +115,83 @@ The complete unchanged-source PostgreSQL/MySQL race matrix passed Handler
 81 protected source hashes, byte-identical package/lock and absence of every
 owned matrix container, network and volume. The locally accepted 30-path phase
 is committed/pushed as 5363d3c with exact remote main read-back. Its distinct
-remote checks are in progress; their success is not inferred. Final
+Actionlint and GolangCI-Lint passed; CI was cancelled by the documentation-only
+push. Unchanged-code 91861d3 CI, Actionlint and GolangCI-Lint are now successful. Final
 mandatory `go tool task check` passed with all 81 code/dependency bytes exact:
 Go lint zero issues, Prettier/TypeScript/mod tidy passed, ESLint zero errors
 and two unchanged button/badge Fast Refresh warnings. Source, focus,
 production/browser and full-matrix evidence remain distinct.
 Preserve all delivered catalogue/batch/Alias/rejection/UTC/F15/cipher facts.
 
+## Administrative member Overview acceptance
+
+The reviewed seventeen paths add three cards inside the existing member Overview
+and retain the access-status section. Independent members.read permits only the
+exact retained subject's Personal monthly account and exact all-status Personal
+Key count; no Project Keys, Key IDs/secrets/actions or implicit write authority.
+Seven repeatable-read SQL reads plus one coherent journal account batch preserve
+default-aware policy, exact settled/retained/live/unknown facts, null versus zero
+and currency without directory expansion. The narrow runtime User creation and
+lifecycle proof supplements current policy/calendar/currency, lease/generation
+and tombstones; inactive subjects cannot claim application. Actor/target and
+successful Session network generations isolate parent detail, cards and callbacks,
+including same-millisecond identical renewal, without another Session observer.
+
+Full format/check/test/build passed with 2130 frontend cases in 112 files, Go
+race/unit, Node development lifecycle and embedded asset checks. All 95 combined
+protected source hashes and package/lock bytes were verified exact after restoring
+only the known eighteen Linux libc optional-metadata differences. Production
+binary SHA256: `11b959310c7e6b43a7c17c5185ccb387c057521f020afc238bdd1f76be7bf84d`.
+
+The actual PostgreSQL/MySQL focus passed Handler 134.955s (parent 132.72s;
+PostgreSQL 56.12s, MySQL 76.60s). New administrative member Overview and both V51
+lifecycle/migration cases passed on both drivers. The member fixture retained eight
+genuine native calls per driver; V51 retained its separate fixed five per driver.
+All 95 source hashes stayed exact and every owned focus container, network and
+volume was independently verified absent. This is focused acceptance, not a
+complete regression or production/browser claim.
+
+Separate production/browser/restart acceptance passed with the same binary and
+95 unchanged source hashes. Exact counts advanced six initial dispatches to
+seven/six while held, seven/seven after release and eight/eight after unknown
+usage. Known subject settled 5 Tokens / 5.000000000000000001 USD became 10 /
+10.000000000000000002 USD; live 5 / 5.000000000000000003 USD stayed separate and
+cleared. Default100, explicit0, unlimited and unknown coverage remained distinct;
+five all-status retained Personal Keys excluded Project Keys and foreign scopes.
+English/live Chinese, exact target, disabled-history/runtimefalse, old Session401,
+reenable without Session/Key revival and reader403/renewed denial/fresh restoration
+passed. Same-artifact restart retained eight calls/attempts with no replay.
+Observer browser-only counts22Session200 plus initial anonymous401 and15Overview200
+are not minute automatic-renewal evidence. Console had zero errors/warnings and
+all owned resources were removed. The first warmup503 was a cleaned helper setup
+failure: it omitted explicit zero-candidate binding activation. Accepted temporary
+helper f0699386648a542f4580eee6dcea36564b53c5e8da97fd98ab6c8ce895f0ac9e asserted
+zero then used real activation100; product source was unchanged.
+
+The complete 85-case-per-driver PostgreSQL/MySQL integration matrix passed
+Handler 1482.117s and Service 8.317s. Runner and coordinator independently verified
+all 95 protected source hashes unchanged and every owned matrix container,
+network and volume absent. Full source check/test/build, focused dual-driver,
+controlled production/browser and same-artifact restart gates are locally
+accepted. Prior self Overview and V51 acceptance remain independent; formal
+totals are unchanged.
+
+The checked implementation is delivered by the commit containing this acceptance
+record; consult Git history for its SHA. Remote CI for that new commit remains
+pending.
+
+Contract: [Member Overview](MEMBER_OVERVIEW.md).
+
 ## Next exact actions
 
-1. Observe distinct remote checks for delivered V51 source 5363d3c without
-   conflating them with passed local gates or previous catalogue/batch all-green
-   checks. Preserve all 81 source protections and dependency bytes.
-2. Perform the guarded carry of frozen seventeen-path administrative Member
-   Overview source after this delivery follow-up: retain the existing three
-   cards, independent members.read, Personal monthly Tokens/money and retained
-   Key count. Reapply its narrow private User lifecycle proof semantically,
-   preserving current runtime cipher/rotation/native guards. Source and actual
-   journal/native/browser/restart/dual-driver acceptance are independent gates.
+1. Observe remote CI for the commit containing this Member Overview acceptance
+   record. Previous 91861d3 CI/Actionlint/GolangCI-Lint success and source 5363d3c's
+   cancelled CI remain distinct; neither establishes the new code's remote result.
+2. Prepare the next guarded public-name source carry from the checked delivered
+   Member Overview HEAD. Revalidate exact frozen frontend payloads, all 95 source
+   protections, dependencies and current paired rule bytes; append its approved
+   paragraph without replacing later instructions. Root owns subsequent source
+   and real-browser acceptance. Preserve runtime cipher/rotation/native guards.
 3. Public-name helper frontend source is frozen with 56 focused cases;
    administrative Member Keys backend implementation is in progress. Neither
    is an accepted delivery. Advisory identities remain separate from stored
@@ -133,6 +201,16 @@ Preserve all delivered catalogue/batch/Alias/rejection/UTC/F15/cipher facts.
 
 Formal totals remain 11 complete, 16 partial and three unstarted. F19 and wider
 F12/A06, capacity and external-provider acceptance remain open. Continue the goal.
+
+## Later call-filter parity follow-up
+
+Keep F21 Completed and the current queue unchanged. Source predicates differ for
+platform user_id filtering: `internal/routex/service/call.go` admits same-user
+Team facts, while `internal/routex/service/call_export.go` requires Personal
+attribution. This is a source-level discrepancy, not an actual reproduction.
+A later bounded acceptance should compare complete JSON/CSV RequestID sets for
+one user's Personal and Team facts, preserving unfiltered platform history and
+current scope permissions. No call-source change is part of this delivery.
 
 ## Execution constraints
 

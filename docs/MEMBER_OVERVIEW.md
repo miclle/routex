@@ -1,6 +1,12 @@
 # Member Overview Monthly Accounts
 
-This bounded package has complete local controlled acceptance. Full main check/test/build, focused PostgreSQL/MySQL lifecycle, complete main database regression and controlled production browser proof passed.
+The self-only monthly account package has complete local controlled acceptance.
+Full main check/test/build, focused PostgreSQL/MySQL lifecycle, complete main
+database regression and controlled production browser proof passed. The separate
+administrative member Overview below also has complete local controlled source,
+dual-driver, production/browser/restart and full-matrix acceptance. Its checked
+delivery is represented by the commit containing this acceptance record; new
+remote CI remains pending.
 
 The member Overview retains its identity header and monthly resource-account
 card/table. The self-only `GET /api/v1/overview/accounts` returns Personal plus
@@ -104,6 +110,133 @@ checks use the exact administrator call detail rather than unavailable list
 fields. Complete main PostgreSQL/MySQL regression passed with Handler 1091.619 seconds
 and Service 7.953 seconds. Final mandatory check passed, and owned Compose
 resources were removed. No external-provider or deployment acceptance is claimed.
+
+## Administrative member Overview
+
+The existing administrative member detail Overview tab contains three cards:
+Personal monthly Tokens, Personal monthly money and total retained Personal Keys.
+The existing access-status section remains below them. This is separate from the
+self-only monthly account table and its Team enumeration.
+
+`GET /api/v1/admin/members/:user_id/overview` returns `user_id`, UTC `observed_at`,
+`platform_currency`, `personal` using the monthly account shape above, and
+`total_personal_keys` as an exact nonnegative integer string. No query parameters
+are accepted. Subject IDs are bounded to 1–30 safe ASCII identifier bytes and are
+matched exactly in persistence; aliases never substitute a different identity.
+Responses use `Cache-Control: private, no-store`.
+
+The enabled current reader requires independent `members.read` authority. Neither
+administrator role nor member-write authority substitutes for that permission.
+The retained target may be disabled or offboarded: saved policy, journal facts and
+Key count remain read-only historical facts, while runtime application is false.
+This endpoint never impersonates the target or calls self Overview with a
+substituted actor. Missing targets return not found; failed count or governance
+reads fail the response rather than fabricating zeros.
+
+The Personal policy uses the existing default-aware resource-policy read and its
+persisted creation/restoration basis and revision. Later default edits do not
+replace an already captured subject policy. Monthly Tokens and money preserve
+null versus explicit zero, exact currency and decimal strings. Known settled
+usage, unresolved monthly facts, live reservations and unknown coverage remain
+separate. Active accounting has both usage and active-reservation objects;
+inactive or unavailable accounting has both null. Journal outages preserve known
+SQL facts while leaving usage unknown. The cards infer no progress, combined
+allowance or conversion across recorded currencies.
+
+The Key card counts all retained Personal Key statuses, including disabled,
+revoked and expired records. It excludes Project Keys and returns no Key IDs,
+secret material, directory, actions or active-Key claim. This minimal count is
+part of the authorized member read; no Key permission or mutation is added.
+
+The bounded read has seven SQL reads in one repeatable-read, read-only snapshot:
+reader, permission, target creation/lifecycle, target policy, platform currency,
+quota calendar and Personal Key count. One coherent journal account batch supplies
+monthly and live reservation facts without per-Key or per-account getters. SQL
+`observed_at` and journal `usage.as_of` remain distinct observations. The request
+has a five-second service deadline; no migration, accounting or native admission
+behavior changes.
+
+Runtime application additionally requires the private published exact User
+creation/lifecycle proof, complete normalized policy/revision, current calendar
+revision/timezone, monetary denomination, current publication identity, lease and
+denial markers. Disabled, offboarded, missing, differently created or tombstoned
+subjects cannot claim application even when the reader is authorized. An active
+SQL snapshot against a newly published disabled subject, or a raw reenable against
+a still-disabled publication, stays unapplied. This proof requires no subject
+Session, Key or Model and does not change native eligibility.
+
+Parent member detail and Overview reads share actor, exact target and successful
+Session network-generation guards. Pending renewed reads, errors and target or
+actor changes hide prior private facts. Structurally identical successful renewal
+in the same millisecond still isolates the generation; obsolete reads and mutation
+callbacks cannot restore old authority. The existing Session observer is reused;
+manual CSRF cache replacement alone does not count as a network renewal. English
+and Chinese labels, dates, empty/error states and accessible names use the paired
+`governance` namespace.
+
+The reviewed seventeen-path source is integrated on checked documentation
+baseline `91861d3ef20f45102510ec96f5927401fd924b11`, following delivered V51 source
+`5363d3ce53ca4d1248227b2f941aae642c433499`.
+
+Full format/check/test/build passed with 2130 frontend cases in 112 files, Go
+race/unit, Node development lifecycle and embedded asset checks. All 95 combined
+protected source hashes and package/lock bytes were verified exact after restoring
+only the known eighteen Linux libc optional-metadata differences. Production
+binary SHA256: `11b959310c7e6b43a7c17c5185ccb387c057521f020afc238bdd1f76be7bf84d`.
+
+The actual PostgreSQL/MySQL focus passed Handler 134.955s (parent 132.72s;
+PostgreSQL 56.12s, MySQL 76.60s). New administrative member Overview and both V51
+lifecycle/migration cases passed on both drivers. The member fixture retained eight
+genuine native calls per driver; V51 retained its separate fixed five per driver.
+All 95 source hashes stayed exact and every owned focus container, network and
+volume was independently verified absent. This is focused acceptance, not a
+complete regression or production/browser claim.
+
+Controlled production/browser/restart acceptance passed with the unchanged
+binary and all 95 source protections. Six initial native dispatches became seven
+during the held call (six accepted immutable calls), seven accepted after release,
+and eight dispatches/eight calls after the unknown-usage call. The subject's known
+settled usage was `5` Tokens / `5.000000000000000001 USD`, then `10` Tokens /
+`10.000000000000000002 USD`. Live reservation `5` Tokens /
+`5.000000000000000003 USD` stayed separate and cleared after settlement.
+
+The captured default was `100` Tokens / `100.000000000000000001 USD`. A zero-policy
+subject retained explicit `0`/`0` with genuine known-zero usage. Explicit unlimited
+policy and one unknown-usage record preserved the known subtotal. The count stayed
+five retained Personal Keys across statuses, excluded Project Keys and exposed no
+Key identity or secret. Peer, Project and Team attribution did not enter the
+subject's Personal card.
+
+English, live Chinese and the selected target stayed correct. Disabling the
+subject retained history with runtime application false and made the old Session
+return 401. Reenabling did not restore that Session or revoked Keys. Revoking the
+reader's permission produced helper 403 and renewed-browser denial with private
+cards absent; restoring it required a fresh authorized read. Same binary/config,
+database and journal restart retained eight calls/attempts and fresh real-browser
+Session data without inference replay. Observer evidence was 22 browser Session
+HTTP 200 responses plus one initial anonymous 401 and 15 Overview HTTP 200 reads;
+it does not establish minute automatic renewal. Console errors/warnings were zero.
+All owned browser, app, proxy, port and Compose resources were removed.
+
+The first helper run failed its warmup with HTTP 503 because it omitted explicit
+binding activation: real Model creation correctly leaves a candidate at weight
+zero. That cleaned run is not acceptance. The corrected temporary helper first
+asserted the exact zero-weight single Chat candidate, then used the real binding
+write to set 100 and confirm readiness. No product source changed; the original
+helper was preserved. Accepted helper SHA256:
+`f0699386648a542f4580eee6dcea36564b53c5e8da97fd98ab6c8ce895f0ac9e`.
+
+The complete 85-case-per-driver PostgreSQL/MySQL integration matrix passed
+Handler 1482.117s and Service 8.317s. Runner and coordinator independently verified
+all 95 protected source hashes unchanged and every owned matrix container,
+network and volume absent. Full source check/test/build, focused dual-driver,
+controlled production/browser and same-artifact restart gates are locally
+accepted. Prior self Overview and V51 acceptance remain independent; formal
+totals are unchanged.
+
+The checked implementation is delivered by the commit containing this acceptance
+record; consult Git history for its SHA. Remote CI for that new commit remains
+pending.
 
 ## Personal thirty-day usage
 
