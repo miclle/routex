@@ -304,6 +304,8 @@ func (ctrl *Ctrl) RegisterRoutes(r *fox.Engine) {
 	admin.POST("/models/:model_id/bindings", sameOrigin, requireCSRF, jsonManagementRequest, ctrl.RequirePermission("models.write"), ctrl.AddModelBinding)
 	admin.PUT("/models/:model_id/weights", sameOrigin, requireCSRF, jsonManagementRequest, ctrl.RequirePermission("models.write"), ctrl.UpdateModelWeights)
 	admin.POST("/models/:model_id/rename", sameOrigin, requireCSRF, jsonManagementRequest, ctrl.RequirePermission("models.write"), ctrl.RenameModel)
+	admin.GET("/models/:model_id/alias-retirement", ctrl.RequirePermission("models.read_all"), ctrl.GetModelAliasRetirement)
+	admin.POST("/models/:model_id/alias-retirement", sameOrigin, requireCSRF, jsonManagementRequest, ctrl.RequirePermission("models.write"), ctrl.RetireModelAlias)
 	admin.PUT("/models/:model_id/grants", sameOrigin, requireCSRF, jsonManagementRequest, ctrl.RequirePermission("models.write"), ctrl.UpdateModelGrants)
 
 	keys := identity.Group("/keys")

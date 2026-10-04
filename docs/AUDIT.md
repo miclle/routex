@@ -46,6 +46,10 @@ Team/applicant IDs, dimension, decimal-string target, currency, step ID, stage,
 resulting status and reason. They appear in the `limits` category. An owner
 approval can record advancement to the platform stage without policy application;
 the historical event does not prove that a later quota revision is enforced.
+`model.alias.retire` projects only the exact Model/name, previous and shortened
+UTC deadline, and required reason. The row proves its database transaction;
+current non-callability or runtime publication is a separate review, and a
+matching target retry never creates an original-operation receipt.
 Unknown detail fields, unknown action payloads, malformed JSON and oversized
 payloads are not exposed. Provider credentials, request bodies and arbitrary
 stored JSON never become an audit readback API. Other events retain their action

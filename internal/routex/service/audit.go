@@ -186,6 +186,12 @@ func auditRecord(row entity.AuditEvent) AuditRecord {
 			detail.TeamID = ""
 		}
 		changes = detail
+	case "model.alias.retire":
+		var valid bool
+		changes, valid = modelAliasRetirementAuditProjection(row)
+		if !valid {
+			return result
+		}
 	case "credential.metadata.update":
 		type values struct {
 			Name     string `json:"name"`

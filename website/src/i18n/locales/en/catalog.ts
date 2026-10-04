@@ -1,4 +1,54 @@
 export default {
+  aliasRetirement: {
+    names: 'Compatibility names and history',
+    configuredName: 'Recorded name',
+    deadline: 'Recorded deadline: {{date}}',
+    noDeadline: 'No callable deadline recorded',
+    action: 'Review early stop',
+    actionName: 'Review early stop for {{name}}',
+    title: 'Model alias early stop',
+    description:
+      'Review this exact name before ending its compatibility period. The name remains reserved; the current name, grants and routing weights stay unchanged.',
+    name: 'Selected name',
+    currentName: 'Current public name',
+    state: 'Current name state',
+    recordedDeadline: 'Recorded compatibility deadline',
+    observed: 'Server observation',
+    runtimeApplied: 'The current processing instance confirms this name configuration is applied.',
+    runtimeUnconfirmed: 'Current runtime application is not confirmed.',
+    reason: 'Early stop reason',
+    reasonError: 'Enter a reason of 1–1,024 UTF-8 bytes without control characters.',
+    notEligible:
+      'This name cannot currently be stopped, or current write authority is unavailable.',
+    readUnavailable: 'Your account does not have permission to access this Model.',
+    review: 'Review current name state',
+    stop: 'Stop compatibility early',
+    confirmTitle: 'Stop this compatibility name?',
+    confirmTarget:
+      'Stop requests using “{{name}}”. Callers must use “{{current}}”. Already dispatched calls may finish.',
+    capturedReason: 'Reason: {{reason}}',
+    confirm: 'Confirm early stop',
+    cancel: 'Cancel',
+    submitting: 'Checking application…',
+    retry: 'Retry original stop request',
+    unknown:
+      'The request result is uncertain. Its original name, reason and reviewed ETag are retained. Review alone cannot resolve it; retry explicitly to confirm the current non-callable target and application.',
+    conflict:
+      'The reviewed name configuration changed. Your reason is preserved; review the current state explicitly before confirming again.',
+    failed:
+      'The request was rejected. Your reason is preserved; check current authority and review again.',
+    pending:
+      'The name is non-callable, but runtime application is unconfirmed. Retry the original request explicitly.',
+    responseConfirmed:
+      'This response confirmed a non-callable name with runtime application. Natural expiry may also satisfy that target; this is not proof of the original operation’s historical commit.',
+    responsePending:
+      'This response reported a non-callable name without confirmed runtime application.',
+    states: {
+      current: 'Current name',
+      compatibility: 'Compatibility period active',
+      retired: 'Non-callable; name reserved',
+    },
+  },
   credentialRetirement: {
     reason: 'Retirement reason',
     reasonError: 'Enter a reason of 1–1,024 UTF-8 bytes without control characters.',

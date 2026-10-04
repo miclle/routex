@@ -71,3 +71,24 @@ export interface KeyDelivery {
   key: PersonalKey
   secret: string
 }
+
+export interface ModelAliasRetirementReview {
+  model_id: string
+  current_name: string
+  alias: { name: string; is_current: boolean; expires_at: string | null }
+  state: 'current' | 'compatibility' | 'retired'
+  observed_at: string
+  etag: string
+  can_retire: boolean
+  runtime_applied: boolean
+}
+export interface ModelAliasRetirementInput {
+  name: string
+  reason: string
+}
+export interface ModelAliasRetirementResult {
+  alias: ModelAliasRetirementReview
+  retired: true
+  changed: boolean
+  runtime_applied: boolean
+}

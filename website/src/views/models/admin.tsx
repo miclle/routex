@@ -1,10 +1,21 @@
 import { protocolLabel, protocolLabels } from '@/lib/protocols'
 import { useTranslation } from 'react-i18next'
-import { useState, type FormEvent } from 'react'
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+  useSyncExternalStore,
+  type FormEvent,
+} from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Plus } from 'lucide-react'
 import {
   getAdminModel,
+  getModelAliasRetirement,
+  retireModelAlias,
+  validModelAliasReason,
   listAdminModels,
   listGrantees,
   listProviders,
@@ -14,51 +25,88 @@ import { sessionKey, useSession } from '@/hooks/use-auth'
 import type { Session } from '@/types/auth'
 import RoutePrices from './route-prices'
 import { Page, QueryState, ErrorNotice, FormField, SaveButton } from '@/components/app/CatalogUI'
-import { PermissionGate } from '@/components/app/PermissionGate'
-import { usePermissions } from '@/hooks/use-permissions'
+import { getPermissions } from '@/api/governance'
+import { useSessionGeneration } from '@/hooks/use-session-generation'
 import { Input } from '@/components/ui/input'
 import { Button, buttonVariants } from '@/components/ui/button'
 import { Dialog } from '@/components/ui/dialog'
 import { Link, useParams } from 'react-router'
 import { Table } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
-import type { Model } from '@/types/catalog'
+import type {
+  Model,
+  ModelAliasRetirementReview,
+  ModelAliasRetirementInput,
+  ModelAliasRetirementResult,
+} from '@/types/catalog'
+import axios from 'axios'
 
 type Action =
   { kind: 'create' } | { kind: 'rename' | 'binding' | 'weights' | 'grants'; model: Model }
 export default function AdminModelsPage() {
   const session = useSession()
+  const generation = useSessionGeneration()
   const { modelId } = useParams()
-  return (
-    <PermissionGate permission="models.read_all">
-      {session.data && (
-        <AdminModels
-          key={`${session.data.user.id}:${modelId ?? 'list'}`}
-          actor={session.data.user.id}
-          generation={session.dataUpdatedAt}
-          modelId={modelId}
-          visible={!session.isError && !session.isFetching}
-        />
-      )}
-    </PermissionGate>
-  )
+  return session.data ? (
+    <AdminModels
+      key={`${session.data.user.id}:${modelId ?? 'list'}`}
+      actor={session.data.user.id}
+      role={session.data.user.role}
+      generation={generation}
+      modelId={modelId}
+      visible={!session.isError && !session.isFetching && !!session.data.csrf_token}
+    />
+  ) : null
 }
 function AdminModels({
   actor,
+  role,
   generation,
   modelId,
   visible,
 }: {
   actor: string
+  role: Session['user']['role']
   generation: number
   modelId: string | undefined
   visible: boolean
 }) {
   const { t, i18n } = useTranslation('catalog')
   const cache = useQueryClient()
-  const access = usePermissions()
+  const authorityGeneration = useRef(generation)
+  useLayoutEffect(() => {
+    authorityGeneration.current = generation
+    return cache.getQueryCache().subscribe((event) => {
+      if (
+        event.query.queryKey.length === 2 &&
+        event.query.queryKey[0] === 'auth' &&
+        event.query.queryKey[1] === 'session' &&
+        event.type === 'updated' &&
+        event.action.type === 'success' &&
+        !event.action.manual
+      )
+        authorityGeneration.current = event.query.state.dataUpdateCount
+    })
+  }, [cache, generation])
+  const permissionKey = ['permissions', actor, generation]
+  const permissions = useQuery({
+    queryKey: permissionKey,
+    queryFn: ({ signal }) => getPermissions(signal),
+    enabled: visible,
+    retry: false,
+    staleTime: 0,
+    gcTime: 0,
+    refetchOnMount: 'always',
+    refetchOnWindowFocus: true,
+    refetchInterval: 30_000,
+  })
+  const permissionGeneration = useModelReadGeneration(permissionKey)
+  const access = {
+    ...permissions,
+    can: (permission: string) => permissions.data?.includes(permission) === true,
+  }
   const readable = visible && !access.isError && !access.isFetching && access.can('models.read_all')
-  const detailKey = ['admin', 'models', 'detail', actor, modelId, generation, access.dataUpdatedAt]
+  const detailKey = ['admin', 'models', 'detail', actor, modelId, generation, permissionGeneration]
   const detail = useQuery({
     queryKey: detailKey,
     queryFn: ({ signal }) => getAdminModel(modelId!, signal),
@@ -70,8 +118,9 @@ function AdminModels({
     refetchOnWindowFocus: false,
     refetchOnReconnect: false,
   })
+  const detailGeneration = useModelReadGeneration(detailKey)
   const models = useQuery({
-    queryKey: ['admin', 'models', 'list', actor, generation, access.dataUpdatedAt],
+    queryKey: ['admin', 'models', 'list', actor, generation, permissionGeneration],
     queryFn: listAdminModels,
     enabled: readable && !modelId,
     retry: false,
@@ -84,8 +133,11 @@ function AdminModels({
   const selected = readable && detail.isSuccess && !detail.isFetching ? detail.data : undefined
   const [action, setAction] = useState<Action | null>(null)
   const [search, setSearch] = useState('')
+  const [aliasName, setAliasName] = useState<string | null>(null)
+  const [aliasOpen, setAliasOpen] = useState(false)
+  const [aliasLocked, setAliasLocked] = useState(false)
   const providers = useQuery({
-    queryKey: ['admin', 'model-providers', actor, generation, access.dataUpdatedAt],
+    queryKey: ['admin', 'model-providers', actor, generation, permissionGeneration],
     queryFn: listProviders,
     enabled: readable && access.can('providers.read'),
     retry: false,
@@ -96,7 +148,7 @@ function AdminModels({
     refetchOnReconnect: false,
   })
   const grantees = useQuery({
-    queryKey: ['admin', 'model-grantees', actor, modelId, generation, access.dataUpdatedAt],
+    queryKey: ['admin', 'model-grantees', actor, modelId, generation, permissionGeneration],
     queryFn: listGrantees,
     enabled: readable && !!selected && access.can('models.write') && action?.kind === 'grants',
     retry: false,
@@ -113,20 +165,31 @@ function AdminModels({
   const grantsFresh = readable && grantees.isSuccess && !grantees.isFetching
   const writeReady = () => {
     const session = cache.getQueryData<Session>(sessionKey)
-    const permissions = cache.getQueryState(['permissions', actor])
+    const permissions = cache.getQueryState(permissionKey)
     return (
       session?.user.id === actor &&
+      session.user.role === role &&
+      !!session.csrf_token &&
+      authorityGeneration.current === generation &&
       cache.getQueryState(sessionKey)?.status === 'success' &&
       cache.getQueryState(sessionKey)?.fetchStatus !== 'fetching' &&
       permissions?.status === 'success' &&
       permissions.fetchStatus !== 'fetching' &&
-      cache.getQueryData<string[]>(['permissions', actor])?.includes('models.write') &&
-      cache.getQueryData<string[]>(['permissions', actor])?.includes('models.read_all') &&
+      permissions.dataUpdateCount === permissionGeneration &&
+      cache.getQueryData<string[]>(permissionKey)?.includes('models.write') === true &&
+      cache.getQueryData<string[]>(permissionKey)?.includes('models.read_all') === true &&
       (!modelId ||
         (cache.getQueryState(detailKey)?.status === 'success' &&
-          cache.getQueryState(detailKey)?.fetchStatus !== 'fetching'))
+          cache.getQueryState(detailKey)?.fetchStatus !== 'fetching' &&
+          cache.getQueryState(detailKey)?.dataUpdateCount === detailGeneration))
     )
   }
+  useLayoutEffect(() => {
+    if (!readable) {
+      void cache.cancelQueries({ queryKey: ['admin', 'models', 'detail', actor, modelId] })
+      void cache.cancelQueries({ queryKey: ['admin', 'model-alias-retirement', actor, modelId] })
+    }
+  }, [readable, cache, actor, modelId])
   const mutation = useMutation({
     mutationFn: ({
       path,
@@ -218,6 +281,14 @@ function AdminModels({
     ) ?? []
   return (
     <Page title={t('adminModels.title')} description={t('adminModels.description')}>
+      <QueryState
+        pending={visible && permissions.isFetching}
+        error={visible ? permissions.error : null}
+        retry={() => void permissions.refetch()}
+      />
+      {visible && permissions.isSuccess && !access.can('models.read_all') && (
+        <p role="alert">{t('aliasRetirement.readUnavailable')}</p>
+      )}
       <QueryState
         pending={modelId ? detail.isFetching : models.isFetching}
         error={visible ? (modelId ? detail.error : models.error) : null}
@@ -348,23 +419,43 @@ function AdminModels({
                 </div>
               </dl>
               {selected.names.some((name) => !name.is_current) && (
-                <p className="text-xs leading-6 text-muted-foreground">
-                  {t('adminModels.historicalNames', {
-                    names: selected.names
-                      .filter((name) => !name.is_current)
-                      .map((name) =>
-                        t('adminModels.historicalName', {
-                          name: name.name,
-                          expiration: name.expires_at
-                            ? new Date(name.expires_at).toLocaleString(
-                                i18n.resolvedLanguage === 'zh' ? 'zh-CN' : 'en-US',
-                              )
-                            : t('adminModels.unavailable'),
-                        }),
-                      )
-                      .join(t('common.listSeparator')),
-                  })}
-                </p>
+                <section aria-label={t('aliasRetirement.names')} className="space-y-3">
+                  <h3 className="text-sm font-semibold">{t('aliasRetirement.names')}</h3>
+                  {selected.names
+                    .filter((name) => !name.is_current)
+                    .map((name) => (
+                      <div
+                        key={name.name}
+                        className="flex flex-wrap items-center justify-between gap-3 text-sm"
+                      >
+                        <div className="flex flex-wrap items-center gap-3">
+                          <code>{name.name}</code>
+                          <Badge variant="outline">{t('aliasRetirement.configuredName')}</Badge>
+                          <span className="text-muted-foreground">
+                            {name.expires_at
+                              ? t('aliasRetirement.deadline', {
+                                  date: new Date(name.expires_at).toLocaleString(
+                                    i18n.resolvedLanguage === 'zh' ? 'zh-CN' : 'en-US',
+                                  ),
+                                })
+                              : t('aliasRetirement.noDeadline')}
+                          </span>
+                        </div>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          aria-label={t('aliasRetirement.actionName', { name: name.name })}
+                          disabled={aliasLocked && aliasName !== name.name}
+                          onClick={() => {
+                            setAliasName(name.name)
+                            setAliasOpen(true)
+                          }}
+                        >
+                          {t('aliasRetirement.action')}
+                        </Button>
+                      </div>
+                    ))}
+                </section>
               )}
             </div>
           </section>
@@ -419,7 +510,7 @@ function AdminModels({
                       <RoutePrices
                         actor={actor}
                         modelID={selected.id}
-                        generation={detail.dataUpdatedAt}
+                        generation={detailGeneration}
                         binding={binding}
                         readable={readable && access.can('prices.read')}
                         refreshDetail={() => void detail.refetch()}
@@ -476,6 +567,26 @@ function AdminModels({
             </div>
           </form>
         </>
+      )}
+      {modelId && (
+        <AliasRetirementDialog
+          key={aliasName ?? 'none'}
+          actor={actor}
+          modelID={modelId}
+          name={aliasName}
+          open={aliasOpen}
+          onOpenChange={setAliasOpen}
+          onCaptureChange={setAliasLocked}
+          generation={generation}
+          resourceGeneration={detailGeneration}
+          readable={
+            readable &&
+            !!selected &&
+            !!aliasName &&
+            selected.names.some((name) => name.name === aliasName)
+          }
+          writeReady={writeReady}
+        />
       )}
       <Dialog
         open={!!action && readable && !!selected}
@@ -604,4 +715,366 @@ function AdminModels({
       </Dialog>
     </Page>
   )
+}
+
+function AliasRetirementDialog({
+  actor,
+  modelID,
+  name,
+  open,
+  onOpenChange,
+  onCaptureChange,
+  generation,
+  resourceGeneration,
+  readable,
+  writeReady,
+}: {
+  actor: string
+  modelID: string
+  name: string | null
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  onCaptureChange: (locked: boolean) => void
+  generation: number
+  resourceGeneration: number
+  readable: boolean
+  writeReady: () => boolean
+}) {
+  const { t, i18n } = useTranslation('catalog')
+  const cache = useQueryClient()
+  const [reason, setReason] = useState('')
+  const [reviewed, setReviewed] = useState<ModelAliasRetirementReview | null>(null)
+  const [reviewRequired, setReviewRequired] = useState(false)
+  const [confirmation, setConfirmation] = useState<{
+    review: ModelAliasRetirementReview
+    reason: string
+  } | null>(null)
+  const [intent, setIntent] = useState<{ input: ModelAliasRetirementInput; etag: string } | null>(
+    null,
+  )
+  const [result, setResult] = useState<ModelAliasRetirementResult | null>(null)
+  const [notice, setNotice] = useState<
+    'conflict' | 'failed' | 'unknown' | 'pending' | 'reasonError' | null
+  >(null)
+  const [pending, setPending] = useState(false)
+  const submitting = useRef(false)
+  const controller = useRef<AbortController | null>(null)
+  const version = useRef(0)
+  const queryKey = [
+    'admin',
+    'model-alias-retirement',
+    actor,
+    modelID,
+    name,
+    generation,
+    resourceGeneration,
+  ]
+  const query = useQuery({
+    queryKey,
+    queryFn: ({ signal }) => getModelAliasRetirement(modelID, name!, signal),
+    enabled: readable && open && !!name,
+    retry: false,
+    gcTime: 0,
+    staleTime: 0,
+    refetchOnMount: 'always',
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
+  })
+  const fresh = readable && query.isSuccess && !query.isFetching && !query.isError
+  const current = fresh ? query.data : undefined
+  const basis = reviewed ?? (!reviewRequired ? current : null)
+  useLayoutEffect(() => {
+    const epoch = ++version.current
+    const active = controller.current
+    active?.abort()
+    controller.current = null
+    submitting.current = false
+    queueMicrotask(() => {
+      if (epoch !== version.current) return
+      setReviewed(null)
+      setConfirmation(null)
+      if (active) {
+        setPending(false)
+        setNotice('unknown')
+      }
+    })
+  }, [generation, resourceGeneration, readable])
+  useEffect(
+    () => () => {
+      version.current++
+      controller.current?.abort()
+    },
+    [],
+  )
+  function freshReview() {
+    const state = cache.getQueryState(queryKey)
+    return readable && state?.status === 'success' && state.fetchStatus !== 'fetching'
+      ? cache.getQueryData<ModelAliasRetirementReview>(queryKey)
+      : undefined
+  }
+  async function review() {
+    setConfirmation(null)
+    setReviewed(null)
+    const epoch = version.current
+    const checked = await query.refetch()
+    if (epoch === version.current && !checked.isError && checked.data && freshReview()) {
+      setReviewed(checked.data)
+      setReviewRequired(false)
+      if (!intent) setNotice(null)
+    }
+  }
+  async function dispatch(
+    captured: { input: ModelAliasRetirementInput; etag: string },
+    retry: boolean,
+  ) {
+    if (submitting.current || !writeReady() || !freshReview()) return
+    if (!retry && (!freshReview()!.can_retire || freshReview()!.etag !== captured.etag)) return
+    submitting.current = true
+    setPending(true)
+    setConfirmation(null)
+    setIntent(captured)
+    onCaptureChange(true)
+    setNotice('unknown')
+    const epoch = version.current
+    const active = new AbortController()
+    controller.current = active
+    try {
+      const response = await retireModelAlias(
+        modelID,
+        captured.input,
+        captured.etag,
+        cache.getQueryData<Session>(sessionKey)!.csrf_token,
+        active.signal,
+      )
+      if (active.signal.aborted || epoch !== version.current || !writeReady() || !freshReview())
+        return
+      setResult(response)
+      if (response.runtime_applied) {
+        setIntent(null)
+        onCaptureChange(false)
+        setNotice(null)
+      } else setNotice('pending')
+      void cache.invalidateQueries({ queryKey: ['admin', 'models', 'detail', actor, modelID] })
+      void cache.invalidateQueries({ queryKey: ['models'] })
+      void query.refetch()
+    } catch (error) {
+      if (active.signal.aborted || epoch !== version.current) return
+      const status = axios.isAxiosError(error) ? error.response?.status : undefined
+      if (!retry && status && [400, 403, 404, 409].includes(status)) {
+        setIntent(null)
+        onCaptureChange(false)
+        setReviewRequired(true)
+        setReviewed(null)
+        setNotice(status === 409 ? 'conflict' : 'failed')
+      } else setNotice('unknown')
+      if (status && [403, 404, 409].includes(status))
+        void cache.invalidateQueries({ queryKey: ['permissions', actor] })
+    } finally {
+      if (controller.current === active) {
+        controller.current = null
+        submitting.current = false
+        setPending(false)
+      }
+    }
+  }
+  const date = (value: string) =>
+    new Date(value).toLocaleString(i18n.resolvedLanguage === 'zh' ? 'zh-CN' : 'en-US')
+  return (
+    <Dialog
+      open={open && readable}
+      onOpenChange={onOpenChange}
+      busy={pending}
+      title={t(confirmation ? 'aliasRetirement.confirmTitle' : 'aliasRetirement.title')}
+      description={t('aliasRetirement.description')}
+    >
+      <QueryState pending={query.isFetching} error={query.error} retry={() => void review()} />
+      {current && (
+        <div className="space-y-4">
+          <dl className="space-y-2 text-sm">
+            <div>
+              <dt className="text-muted-foreground">{t('aliasRetirement.name')}</dt>
+              <dd className="break-all font-mono">{current.alias.name}</dd>
+            </div>
+            <div>
+              <dt className="text-muted-foreground">{t('aliasRetirement.currentName')}</dt>
+              <dd className="break-all font-mono">{current.current_name}</dd>
+            </div>
+            <div>
+              <dt className="text-muted-foreground">{t('aliasRetirement.state')}</dt>
+              <dd>{t(`aliasRetirement.states.${current.state}`)}</dd>
+            </div>
+            <div>
+              <dt className="text-muted-foreground">{t('aliasRetirement.recordedDeadline')}</dt>
+              <dd>
+                {current.alias.expires_at
+                  ? date(current.alias.expires_at)
+                  : t('aliasRetirement.noDeadline')}
+              </dd>
+            </div>
+            <div>
+              <dt className="text-muted-foreground">{t('aliasRetirement.observed')}</dt>
+              <dd>{date(current.observed_at)}</dd>
+            </div>
+          </dl>
+          <p className="text-sm text-muted-foreground">
+            {t(
+              current.runtime_applied
+                ? 'aliasRetirement.runtimeApplied'
+                : 'aliasRetirement.runtimeUnconfirmed',
+            )}
+          </p>
+          {notice && (
+            <p role="alert" className="text-sm text-destructive">
+              {t(`aliasRetirement.${notice}`)}
+            </p>
+          )}
+          {result && (
+            <p role="status" className="text-sm">
+              {t(
+                result.runtime_applied
+                  ? 'aliasRetirement.responseConfirmed'
+                  : 'aliasRetirement.responsePending',
+              )}
+            </p>
+          )}
+          {intent ? (
+            <>
+              <p className="break-all text-sm">
+                {t('aliasRetirement.capturedReason', { reason: intent.input.reason })}
+              </p>
+              <div className="flex flex-wrap justify-end gap-3">
+                <Button variant="outline" onClick={() => void review()} disabled={pending}>
+                  {t('aliasRetirement.review')}
+                </Button>
+                <Button
+                  variant="outline"
+                  className="border-destructive text-destructive hover:bg-destructive/10"
+                  onClick={() => void dispatch(intent, true)}
+                  disabled={pending || !writeReady()}
+                >
+                  {t(pending ? 'aliasRetirement.submitting' : 'aliasRetirement.retry')}
+                </Button>
+              </div>
+            </>
+          ) : confirmation ? (
+            <>
+              <p className="text-sm">
+                {t('aliasRetirement.confirmTarget', {
+                  name: confirmation.review.alias.name,
+                  current: confirmation.review.current_name,
+                })}
+              </p>
+              <p className="break-all text-sm">
+                {t('aliasRetirement.capturedReason', { reason: confirmation.reason })}
+              </p>
+              <div className="flex justify-end gap-3">
+                <Button variant="outline" onClick={() => setConfirmation(null)}>
+                  {t('aliasRetirement.cancel')}
+                </Button>
+                <Button
+                  variant="outline"
+                  className="border-destructive text-destructive hover:bg-destructive/10"
+                  disabled={
+                    !writeReady() ||
+                    current.etag !== confirmation.review.etag ||
+                    !current.can_retire
+                  }
+                  onClick={() =>
+                    void dispatch(
+                      {
+                        input: {
+                          name: confirmation.review.alias.name,
+                          reason: confirmation.reason,
+                        },
+                        etag: confirmation.review.etag,
+                      },
+                      false,
+                    )
+                  }
+                >
+                  {t('aliasRetirement.confirm')}
+                </Button>
+              </div>
+            </>
+          ) : (
+            <form
+              className="space-y-4"
+              onSubmit={(event) => {
+                event.preventDefault()
+                if (!validModelAliasReason(reason)) {
+                  setNotice('reasonError')
+                  return
+                }
+                const live = freshReview()
+                if (
+                  !writeReady() ||
+                  !live?.can_retire ||
+                  !basis ||
+                  reviewRequired ||
+                  basis.etag !== live.etag
+                )
+                  return
+                setNotice((value) => (value === 'reasonError' ? null : value))
+                setConfirmation({ review: structuredClone(basis), reason })
+              }}
+            >
+              {!current.can_retire && (
+                <p className="text-sm text-muted-foreground">{t('aliasRetirement.notEligible')}</p>
+              )}
+              <FormField label={t('aliasRetirement.reason')}>
+                <Input
+                  name="alias_reason"
+                  value={reason}
+                  onValueChange={setReason}
+                  disabled={!current.can_retire || !writeReady()}
+                  autoComplete="off"
+                />
+              </FormField>
+              <div className="flex flex-wrap justify-end gap-3">
+                <Button variant="outline" onClick={() => void review()}>
+                  {t('aliasRetirement.review')}
+                </Button>
+                <Button
+                  type="submit"
+                  variant="outline"
+                  className="border-destructive text-destructive hover:bg-destructive/10"
+                  disabled={
+                    !current.can_retire ||
+                    !writeReady() ||
+                    reviewRequired ||
+                    basis?.etag !== current.etag
+                  }
+                >
+                  {t('aliasRetirement.stop')}
+                </Button>
+              </div>
+            </form>
+          )}
+        </div>
+      )}
+    </Dialog>
+  )
+}
+
+function useModelReadGeneration(key: unknown[]) {
+  const cache = useQueryClient()
+  const hash = JSON.stringify(key)
+  const subscribe = useCallback(
+    (notify: () => void) =>
+      cache.getQueryCache().subscribe((event) => {
+        if (
+          JSON.stringify(event.query.queryKey) === hash &&
+          event.type === 'updated' &&
+          event.action.type === 'success' &&
+          !event.action.manual
+        )
+          notify()
+      }),
+    [cache, hash],
+  )
+  const snapshot = useCallback(
+    () => cache.getQueryState(JSON.parse(hash))?.dataUpdateCount ?? 0,
+    [cache, hash],
+  )
+  return useSyncExternalStore(subscribe, snapshot, snapshot)
 }

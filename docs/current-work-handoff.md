@@ -1,149 +1,163 @@
 # Current implementation handoff
 
-Updated: 2026-10-04T08:29:30Z. Status: active. The full RouteX implementation
-objective remains active; prioritize partial capabilities and deliver bounded,
-verified phases to main. This is the live resume point. Detailed historical
-checkpoints and failed-run diagnosis remain in `docs/IMPLEMENTATION.md`.
+Updated: 2026-10-04T09:31:00Z. Status: active. Continue the full RouteX objective,
+prioritizing partial capabilities and checked phased main deliveries. This is the
+live resume point; historical evidence remains in `docs/IMPLEMENTATION.md`.
 
-## Repository and delivery
+## Delivered baseline
 
-- Repository: `miclle/routex`; branch/base: `main`; upstream: `origin/main`.
-- Exact prior delivered baseline: `7b33fa30d66824b6f562d5e4e9c06766b613664b`.
-  This handoff accompanies the following checked strict-rejection phase. Resolve
-  its delivery SHA from `git log -1` and compare `git ls-remote origin refs/heads/main`
-  before carrying another candidate; commit/push are authorized after final check.
-- Previous delivery: canonical UTC repository receipt projection and its real
-  projection regression, with pricing documentation. Its four-path commit
-  excludes all native-rejection files in this phase.
-- Exact Actionlint 37187451119 and GolangCI 37187451078 passed;
-  CI 37187451111 also passed. All three exact remote checks are green. Earlier CI 37185488266 failed direct/HTTP receipt
-  location equality under UTC; the failure was reproduced and corrected without
-  relaxing publication, concurrency, precision or persisted-identity assertions.
-- Previous repository synchronization: `2e5f66511fdeb50069c106610222e5bc821e91bf`.
-  The versioned source `prices/catalog.json` stays empty; no synthetic rate is
-  shipped. Source, dual-driver, controlled production/browser and restart gates
-  passed before its scoped delivery. The later UTC correction is independent.
-- Internal root rotation: `16fd1825169b4c84c9171e052ee75e6a6a15c404`;
-  all three exact remote checks passed. Usage CSV `e4f87ab` also passed all checks.
-- Formal capability totals remain 11 complete, 16 partial and three unstarted.
-  Controlled deliveries do not close broader external or distributed acceptance.
+- Previous delivered main and exact remote: `bc67a478b394f6bd9ec59d0243583bb74303ffdd`.
+  The checked Alias phase follows this baseline in the commit containing this
+  handoff. Read its exact SHA from Git and the external coordinator after push.
+- Strict native rejection is committed/pushed in an eight-path phase. Final
+  source format/check/test/build passed with 1908 frontend cases/104 files;
+  complete PostgreSQL/MySQL race regression passed Handler 1320.407s and Service
+  7.798s. Exact frozen source/dependencies and owned cleanup were verified.
+- Independent final driver focus passed 85.316s with 52 actual native POSTs/33
+  logical calls per driver. A distinct production process passed 25 POSTs/17
+  calls, immutable native attribution, genuine removal/rejoin and restart without
+  replay. Manual bilingual admin/member scope and revocation proof passed.
+- That exact delivery's Actionlint 37189123004 and GolangCI 37189123013
+  passed; CI 37189122983 also passed. All three exact remote checks are green.
+- Previous UTC receipt fix `7b33fa30d66824b6f562d5e4e9c06766b613664b` has all
+  three checks green: CI 37187451111, Actionlint 37187451119, GolangCI 37187451078.
+  It preserves timestamps/precision and fixes the reproduced representation
+  failure without weakening persisted/runtime/concurrent assertions.
+- Repository synchronization `2e5f665` follows the user's versioned-file choice.
+  `prices/catalog.json` stays empty without synthetic production rates. Root
+  rotation `16fd182` and Usage CSV `e4f87ab` have all three checks green.
+- Formal totals remain 11 complete, 16 partial and three unstarted. Controlled
+  phases do not close broader external, capacity or distributed acceptance.
 
-Committed work is transferable through remote main. Prepared candidate
-worktrees/helpers remain local-only until their own scoped delivery; another computer must not assume those local artifacts exist.
-The rejection phase becomes transferable only after its exact push/read-back.
-Root remains the current owner; no transfer or pause was requested.
+Committed phases are transferable through remote main. Dirty source and candidate
+worktrees/helpers remain local until their own checked commit/push. No transfer
+or pause is requested; the full goal remains active.
 
-## Checked strict-rejection phase
+## Active Model Alias retirement phase
 
-The delivery contains exactly five source/harness paths and the three listed
-documentation paths. Source owned by this phase:
+A hardened clean-main carry applied 13 frozen owner paths plus four narrow shared
+integrations. It preserved current rejection, UTC and repaired pricing migration
+source, all earlier routes/audit cases and the sole native_failover harness entry.
+It never copied an old shared file snapshot. No migration or dependency changed;
+the schema ledger remains through V49.
 
-- `internal/routex/handler/auth_integration_test.go`: one native_failover entry.
-- `internal/routex/service/gateway_attempt_classification.go`: strict native
-  rejection classifier boundary.
-- `internal/routex/service/gateway_attempt_classification_test.go`: contradiction,
-  duplicate, discriminator and Responses event regressions.
+The phase adds two resource-addressed routes: independent models.read_all review
+of an exact retained name and models.write confirmation with reason/If-Match.
+Early stop only shortens the deadline, preserves historical reservation and emits
+one typed audit. Current-state retry confirms current non-callability/publication,
+including natural expiry; it never proves an original historical operation.
+Publication failure remains fail-closed and original intent is retained.
 
-New source required for this phase:
+The UI keeps the existing Model information card and local Base UI review/danger
+confirmation, bilingual catalog copy and recorded deadline formatting. Current
+names cannot be stopped by this action. Authority renewal hides private facts,
+retains scoped drafts/uncertainty and cannot dispatch automatically. Actor/Model
+changes destroy captured ownership. Both frontend rule files are updated.
 
-- `internal/routex/service/gateway_rejection_evidence.go`.
-- `internal/routex/handler/native_failover_integration_test.go`.
+The shared native path now checks the exact requested public name before admission
+and immediately before dispatch, alongside existing Team/Key/Model authorization.
+An already-sent request may finish with immutable original alias facts.
 
-Phase documentation: `docs/ROUTE_ATTEMPTS.md`, `docs/IMPLEMENTATION.md` and
-this handoff. No migration, permission, dependency or UI control was introduced.
-Do not overwrite the repaired repository migration fixture or any earlier
-root/CSV/repository route. Numbered migrations remain immutable through V49.
+Current source scope is 17 paths:
 
-Revision 3 blocks replay for native work markers including null/empty/zero,
-duplicate decoded rejection members, relevant case aliases, disagreeing reserved
-error fields, mismatching native numeric status, and Responses response/event
-envelopes. Only native structural positions are inspected; opaque diagnostic
-and tool text remain opaque. Unknown work never becomes known-zero usage,
-output, charge or completion. Public sanitization and the 1 MiB bound are retained.
+- New service Model Alias retirement and runtime-name guard, with focused tests.
+- New handler review/confirmation and genuine integration fixture, with tests.
+- Narrow audit projection, native attempt hooks, routes and one harness entry.
+- Catalog API/types, Model admin detail, focused alias UI tests and paired catalog
+  translations. No new primitive or namespace dependency is needed.
 
-## Verified final-source evidence
+Relevant docs/rules: `AGENTS.md`, `.agents/rules/frontend.md`, `docs/CATALOG.md`,
+`docs/GATEWAY.md`, `docs/AUDIT.md`, `docs/IMPLEMENTATION.md` and this handoff.
+Stage explicitly after acceptance; do not mix isolated candidates into this phase.
 
-| Check | Result and boundary |
-| --- | --- |
-| `go tool task check` | Passed; zero errors, two existing frontend Fast Refresh warnings |
-| `go tool task test` | Passed; 1908 frontend cases/104 files plus Go race/unit, dev lifecycle and production assets |
-| `go tool task build` | Passed; embedded final-source production artifact |
-| Frozen source checks | All seven paths exact: five rejection source/harness plus two already committed UTC projection paths; package/lock bytes exact |
-| Revision 3 source RED/GREEN | Native Responses event gap reproduced; 14 focused race tests, full service/handler staticcheck and pinned lint passed |
-| TZ=UTC real-driver focus | Passed Handler 85.316s: PostgreSQL/MySQL native_failover, pricing_repository and pricing_repository_migration |
-| Native driver facts | Exactly 52 controlled upstream POSTs/33 logical calls per driver; four protocols, Personal/Project/Team, one finite settlement, revocation, truncation, bounded exhaustion and genuine journal recovery |
-| Independent final production process | Passed exactly 25 upstream POSTs/17 logical calls; four safe Team auth and four Project rate failovers, eight Personal contradiction/duplicate failures and accounting warmup |
-| Final manual browser | Passed English/live Chinese diagnostics; Personal (8), Project (4) and Team (4) scope separation, redacted member details, revoked private views, new membership and unchanged old history |
-| Actual process restart | Existing browser Session and all immutable facts retained; fresh Team discovery returned four native models; no native replay |
-| Different actor | Empty Personal history and inaccessible exact Project/Team resources; no cached private call actions |
-| Owned cleanup | Helper exited0; temporary browser closed; exact owned container/network/volume labels absent |
-| Complete `go tool task test-integration` | Passed under TZ=UTC: Handler 1320.407s, Service 7.798s; all frozen source/dependency bytes exact and owned resources absent |
+## Current gates and next exact actions
 
-Final QA binary SHA256:
-`48218d4b4e70aa330f4c63a5a718df5ee6b7fd1c3a4b83ca677eca3f1fbedaa7`.
-The driver fixture's USD1-per-Token schedules are controlled test data, not
-production defaults or market rates. The independent process configured no money
-prices or money policy and preserved unknown recorded economics. Browser proof
-is read-only call/discovery proof, not browser-created inference.
+1. Main format/check/test/build passed: 1944 frontend cases/105 files plus Go
+   race/unit/development/production assets. All 24 source/protection paths and
+   package/lock bytes remain exact. Embedded artifact SHA256 is
+   `abd3d5b8960cd7476a95b7f6a876ec8d52d3020b7a72b6eaf277a24e8ce324cd`.
+2. The isolated PostgreSQL/MySQL focus passed Handler 105.006s for Alias,
+   final rejection and repository lifecycle/migration regressions. Owned
+   resources were verified absent; all 24 source paths stayed exact. Preserve fixture assertions:
+   11 genuine successful dispatches per driver, eight protocol/context old-name
+   denials with no additional dispatch/attempt, audit rollback, publication failure,
+   exact retry, retained names, already-dispatched completion and actual restart.
+3. An initial production/browser pass exposed obsolete local reason feedback,
+   before any retirement POST. One-line local validation correction passed
+   meaningful RED/GREEN, 95 focused cases, types/lint/format and repeated full
+   source gates. Every other protected source remains unchanged.
+4. Final separate production/manual bilingual browser acceptance passed:
+   16 genuine native calls, eight old-name denials with zero dispatch/attempt,
+   immutable facts, one actual retired/changed/runtime_applied browser POST,
+   same-target retry without duplicate audit, real Session renewal/draft retention,
+   browser revocation/private cache clearing, and same-binary/database/journal
+   restart with retained Sessions and zero replay. Exactly one retirement audit
+   remains; current target is not a historical receipt. All owned resources and
+   listeners were verified absent, and all 24 source hashes remain exact.
 
-Earlier revision 2 actual proof is historical: independent inspection found the
-missing Responses event envelope guard, then revision 3 fixed it. Its interrupted
-helper expected 404 instead of the actual membership403 and printed obsolete
-/calls resource URLs; neither restart nor complete process acceptance was claimed.
-The new helper uses exact403 and existing ?tab=calls navigation. Historical
-failure artifacts are diagnosis and do not replace final-source acceptance.
+5. Full unchanged-source database regression passed Handler 1332.441s and
+   Service 8.008s; all owned resources were removed and frozen code hashes
+   remain exact. The helper-only Project Key extension also passed on the same
+   artifact: 24 genuine completions across Personal Key/Project Key/Team and four
+   native protocols, 12 stopped-name denials with zero upstream dispatch/attempt,
+   exact Project attribution, unchanged Project/grants/Keys, one audit/current
+   retry and retained-Session restart without replay. Manual bilingual Project
+   calls/detail remain scoped and sanitized. Every owned resource was removed.
+6. Final `go tool task check` passed; all code/protection hashes are unchanged.
+   Commit/push only the prepared 24 phase paths, read back exact remote main and
+   observe the distinct checks. Next, integrate guided Model creation using its
+   hardened clean-main carry bound to the new full delivered HEAD and current
+   protected source. Do not copy old shared snapshots or pricing fixtures.
 
-## Next actions and prepared candidates
+The Alias phase has passed all required local source/driver/process/browser and
+full matrix gates. Current scoped main commit/push and remote CI are next. Wider
+F12/A06 release acceptance, capacity and external-provider proof stay open.
 
-1. Final `go tool task check` passed. Scope the eight phase paths, commit/push
-   and read back exact main. If this phase is already delivered, verify that SHA
-   and its distinct remote checks instead of repeating the completed actual matrix.
-2. Carry Model Alias retirement from its frozen worktree using exact clean main
-   and a protected manifest covering final rejection, UTC and repaired repository
-   fixture paths. Preserve every current shared route, audit and harness case.
-3. Continue the following isolated candidates in order. Complete each phase's
-   own source, real-driver, controlled process/browser and final check before
-   commit/push; update this live handoff for that actual phase.
+## Parallel prepared work
 
-| Candidate | Prepared boundary | Remaining delivery gates |
+| Candidate | Source boundary | Remaining before delivery |
 | --- | --- | --- |
-| Model Alias early retirement | 13 frozen owners plus narrow audit/native/routes/harness; no migration; hardened carry requires exact clean HEAD and protected manifest | Main source, 11-POST driver fixture, 16-call controlled browser/restart, complete matrix/check and scoped delivery |
-| Guided Model creation | V50, 23 owners plus six narrow shared integrations; UUID receipt, independent saved/current/runtime application, no implicit grants | Fresh clean-main integration preserving F13 and repaired F15 fixture; 6-dispatch driver and 3-call process/browser, full gates |
-| Member catalogue examples | 11 frozen paths; explicit Personal/exact Team source, native subsets, fresh actor/target/Session authority and pure credential-free snippets | Semantic catalogue translation merge, paired frontend rules, actual four native programs and bilingual authority/revocation/restart proof |
-| Private member quota notices | V51 after V50; stable Team/User account, exact self recipient, settled exhaustion, no owner/admin fanout | Regenerate exact shared harness/version guards on clean main; preserve full existing aggregate raw-response assertions; driver/process/browser/full gates |
+| Guided Model creation | V50, reviewed selections/UUID receipt, no implicit grants; 23 owners plus six narrow shared changes | Clean-main semantic integration after Alias, preserved F13/UTC/repaired F15 fixture, all own source/driver/process/browser/full gates |
+| Member catalogue examples | Explicit Personal/exact Team context, native subsets, pure credential-free snippets; 11 frozen paths | Semantic paired catalogue merge, frontend rules, four real native example programs, renewed authority/revocation/restart and full checks |
+| Private member quota notices | V51 after V50, stable Team/User account, exact self recipient, settled exhaustion and no owner/admin fanout | Fresh shared harness/version guards, unchanged raw aggregate assertions, actual native/lifecycle/migration/browser/full gates |
+| Administrative Member Overview | Backend/interface/acceptance owners in one isolated worktree; three existing-layout cards for Personal monthly Tokens/money and retained Personal Key count | Frozen source, private published User lifecycle map and helper contracts are ready; run independent members.read/subject exactness/journal/native/browser/restart/full acceptance |
 
-Administrative Member Overview cards are also being prepared in a separate
-worktree with disjoint backend, interface and acceptance owners. This read-only
-package covers Personal monthly Tokens/money and retained Personal Key count
-under independent `members.read`; it opens no foreign Key directory or actions.
-Its source preparation has no actual acceptance or delivery claim.
+Member Overview never exposes foreign Key IDs/names/secrets/actions, invents a
+keys.read_all permission or borrows the self-only Home endpoint. Saved limits,
+known subtotals, unknown coverage, live holds and current enforcement remain
+separate; exact amounts/counts stay strings. Prepared candidates are local-only
+and must not be described as accepted or transferable implementations.
 
-Prepared worktrees, frozen manifests and helpers are source preparation only.
-Never copy an older shared harness, audit, route, runtime or migration file over
-current main. Alias retries confirm the exact current target, not an original
-historical operation. Batch/currency/publication receipts retain their independent
-historical and current-application meanings. Preserve private notice history and
-all native immutable Credential/snapshot/membership identities.
+## Execution conventions
 
-## Execution conventions and open boundaries
-
-The user authorizes continued parallel implementation and phased main commit/push
-once checks pass. Docs, commit messages and descriptions use English. Preserve
-the approved layout using local shadcn/ui and Base UI and English-default paired
-Chinese i18next catalogs. Prefer frozen GORM migration/query APIs; keep necessary
-dialect adapters in the database layer. UI structure changes update both frontend
-rule files. External coordinator updates are separate scoped deliveries.
+User authorization covers continued parallel implementation and checked phased
+main commit/push. Docs, commit text and descriptions use English. Reproduce the
+approved layout using local shadcn/ui and Base UI, with English-default paired
+Chinese i18next copy. Prefer frozen GORM migrations/query APIs; driver adapters
+belong only in database. Update both frontend rule files for composition changes.
+External coordinator updates are separate scoped deliveries.
 
 Root alone runs actual DB/application/native/browser/Compose acceptance, serially;
-source owners prepare disjoint files and checks with explicit empty test DSNs.
-Use uniquely labelled disposable Compose resources, never development volumes or
-unrelated process cleanup. Task, staticcheck and actionlint use pinned Go tools;
-Node22 is required by current frontend tooling. Reconstruct local configuration
-through documented setup and authorized test helpers; never copy secret values
-into this handoff or recover credentials from another machine.
+owners run source-only checks with explicit empty actual DSNs. Use uniquely
+labelled disposable Compose resources, never development volumes or unrelated
+process cleanup. Use pinned Go tools and Node22. Never place credentials, root
+material, CSRF or Session proofs in this document or recover another machine's
+secrets. Broader paid-provider, measured-capacity, coordinated multi-node, external
+Vault, physical-erasure and full release acceptance remain open. Completing one
+phase does not pause or complete the active objective.
 
-Current bounded source/process proof has no paid-provider, measured-capacity,
-coordinated multi-node health, external Vault or physical-erasure claim. These
-broader acceptance gates remain open. Full goal completion requires remaining
-capabilities and release acceptance; completion of this rejection phase is a
-checkpoint, not a pause or complete objective.
+
+## Helper setup diagnosis
+
+The first standalone helper stopped before native inference because it used an
+obsolete Team creation path; its owned resources were removed and verified
+absent. Root corrected only helper paths for administrative Team creation/grants,
+Team inference discovery and the physical price revision column. Product source,
+fixed native counts and acceptance assertions were unchanged. The next browser
+pass diagnosed local validation before any retirement POST, and was also cleaned.
+The distinct corrected final Personal Key/Team production/browser pass succeeded
+and removed all owned resources. Its observation proxy recorded only real Session
+status and allowlisted alias-result booleans/identity, never sensitive material.
+The explicit Project Key extension passed after the full matrix with independent
+Project grants/ownership, all 24 immutable facts and zero replay. It does not borrow
+Personal or Team authority. Historical helper runs remain separately recorded.

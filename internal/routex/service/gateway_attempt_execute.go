@@ -107,6 +107,10 @@ func (s *Service) gatewayNativeAttempts(ctx context.Context, requestID string, r
 			return nil
 		},
 		Admit: func(ctx context.Context, attempt routeattempt.Attempt) error {
+			if err := s.reauthorizeGatewayPublicName(ctx, result); err != nil {
+				hookErr = err
+				return err
+			}
 			admitErr := s.admitPreparedGatewayAttempt(ctx, requestID, plan, result, attempt)
 			if admitErr != nil {
 				hookErr = admitErr
@@ -434,10 +438,8 @@ func applyGatewayAttemptRoute(result *GatewayResult, route *gatewayRoute) {
 }
 
 func (s *Service) executeGatewayAttempt(ctx context.Context, requestID string, result *GatewayResult, attempt routeattempt.Attempt, prepared *preparedGatewayAttempt) (routeattempt.Outcome, error, error) {
-	if result.identity.team != nil {
-		if err := s.ReauthorizeTeamSession(ctx, result.identity.team, result.ModelID); err != nil {
-			return routeattempt.Outcome{Failure: routeattempt.PermanentFailure, Work: routeattempt.NotSent}, err, routeattempt.ErrExecution
-		}
+	if err := s.reauthorizeGatewayPublicName(ctx, result); err != nil {
+		return routeattempt.Outcome{Failure: routeattempt.PermanentFailure, Work: routeattempt.NotSent}, err, routeattempt.ErrExecution
 	}
 	result.AttemptID, _ = id.NewPrefixed("att")
 	if result.AttemptID == "" {
@@ -448,15 +450,13 @@ func (s *Service) executeGatewayAttempt(ctx context.Context, requestID string, r
 	if err := s.CheckpointGatewayCall(requestID, result); err != nil {
 		return routeattempt.Outcome{Failure: routeattempt.PermanentFailure, Work: routeattempt.NotSent}, err, routeattempt.ErrExecution
 	}
-	if result.identity.team != nil {
-		if err := s.ReauthorizeTeamSession(ctx, result.identity.team, result.ModelID); err != nil {
-			result.AttemptID = ""
-			result.AttemptStartedAt = time.Time{}
-			if checkpointErr := s.CheckpointGatewayCall(requestID, result); checkpointErr != nil {
-				return routeattempt.Outcome{Failure: routeattempt.PermanentFailure, Work: routeattempt.NotSent}, checkpointErr, routeattempt.ErrExecution
-			}
-			return routeattempt.Outcome{Failure: routeattempt.PermanentFailure, Work: routeattempt.NotSent}, err, routeattempt.ErrExecution
+	if err := s.reauthorizeGatewayPublicName(ctx, result); err != nil {
+		result.AttemptID = ""
+		result.AttemptStartedAt = time.Time{}
+		if checkpointErr := s.CheckpointGatewayCall(requestID, result); checkpointErr != nil {
+			return routeattempt.Outcome{Failure: routeattempt.PermanentFailure, Work: routeattempt.NotSent}, checkpointErr, routeattempt.ErrExecution
 		}
+		return routeattempt.Outcome{Failure: routeattempt.PermanentFailure, Work: routeattempt.NotSent}, err, routeattempt.ErrExecution
 	}
 	response, requestErr := prepared.client.Do(prepared.request)
 	result.Response = response

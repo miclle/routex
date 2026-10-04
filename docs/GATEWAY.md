@@ -8,6 +8,12 @@ The initial gateway supports `GET /v1/models` and `POST /v1/chat/completions` wi
 
 `GET /v1/models` returns an OpenAI-compatible list of current public names visible to that effective scope. Each item also includes `protocols`, the currently eligible native protocol names, and `input_capabilities`, a protocol-keyed map of effective `image` and `pdf` support. A capability appears only when every currently ready, enabled, positive-weight route for that protocol declares it; RouteX never infers support from names. An empty protocol array means no currently usable route. Listing a model does not guarantee a later request will remain eligible. Chat requests accept the current name or an unexpired compatibility alias. Expired aliases and inaccessible models receive the same `model_not_found` response. Routing and authorization use the stable internal model ID.
 
+Every native protocol rechecks the exact requested public name before quota
+admission and immediately before upstream dispatch. Published expiry or Early
+stop denies a newly dispatched request with `model_not_found`, while an already
+sent request can finish with its immutable original name and attribution. This
+name check does not replace independent Key, Team and Model authority checks.
+
 Chat requests preserve native JSON parameters and replace the outbound `model` with the selected provider model's name. Streaming requests additionally set `stream_options.include_usage` to `true`, preserving other options, to request the native final usage event. Returned JSON and SSE chunks replace their `model` field with the caller's public name. The configured connection base URL must include the provider API prefix, such as `https://api.example.com/v1`; the gateway appends `/chat/completions`.
 
 ## Routing and Credential Selection

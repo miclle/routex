@@ -3263,3 +3263,69 @@ GolangCI 37187451078 passed; CI 37187451111 also passed. Final mandatory
 `go tool task check` passed with zero errors and two existing frontend warnings. This strict-rejection
 phase is scoped separately for checked delivery; broader F13/A07/A08 and formal
 totals stay partial. Continue the active full goal with Model Alias retirement.
+
+
+### Model compatibility-name Early stop main checkpoint, 2026-10-04
+
+The checked rejection phase is delivered as `bc67a478b394f6bd9ec59d0243583bb74303ffdd`;
+exact remote main matched, and CI 37189122983, Actionlint 37189123004 and
+GolangCI 37189123013 all passed. Model
+Alias retirement was narrowly carried onto that clean baseline: 13 frozen owner
+paths plus four reviewed shared integrations. Final rejection, UTC receipt and
+repaired repository migration facts remain unchanged; native_failover remains
+registered once. No migration, permission or dependency was added.
+
+The existing Model information card now offers a server-reviewed compatibility
+name Early stop dialog with independent read/write gates, required reason and
+explicit confirmation. Current-state retries never prove an original historical
+operation. Before admission/dispatch, all native protocols recheck the exact
+requested name, preserving already-sent completion and historical reservation.
+Main source gates and serial actual driver/process/browser acceptance are next;
+this source carry is not accepted delivery. F12/A06 and formal totals stay partial.
+
+
+### Model Alias final-source driver and browser acceptance, 2026-10-04
+
+Final main format/check/test/build passed with 1944 frontend cases/105 files,
+Go race/unit/development/production assets and unchanged dependencies. All 24
+Alias/current-protection hashes stayed exact. TZ=UTC PostgreSQL/MySQL focus passed
+Handler 105.006s, covering Alias (11 actual dispatches per driver), final native
+rejection and repository lifecycle/migration regressions. Owned resources were
+verified absent. The first production helper stopped at obsolete Team API/physical
+column contracts before inference; only helper contracts were corrected.
+
+A subsequent browser pass found obsolete local required-reason feedback persisting
+into valid confirmation. It issued eight pre-stop native calls and zero retirement
+POSTs, then removed its owned resources. One production line now clears only that
+local validation after fresh exact authority/review checks. The meaningful RED
+reproduced it; 95 focused tests, full types, scoped lint and formatting passed.
+Unknown/conflict/publication notices and immutable uncertain intent are preserved.
+
+A distinct final production build and manual built-in-browser pass succeeded. It
+issued eight genuine pre-stop calls, denied all eight old-name requests with zero
+additional upstream dispatch/attempt, and completed eight current-name calls across
+four native protocols and Personal Key/Team contexts. All 16 immutable native
+facts retain exact protocol/credential/snapshot/price/native completion evidence.
+Only the actual authorized browser POST confirmed retired/changed/runtime_applied.
+Current-target retry kept one audit record; it claims no historical receipt.
+
+English/live Chinese review and result, local reason validation, explicit Base UI
+confirmation and a real one-minute Session renewal with retained reason all passed.
+Browser Session revocation returned to login and cleared private details. The same
+binary/database/journal restarted with retained helper and newly signed-in browser
+Sessions, no native replay and the retired name still reserved/non-callable.
+The browser had no warning/error before intentional revocation. All owned process,
+proxy and Compose containers/network/volumes were removed and source hashes stayed
+exact. Complete unchanged-source PostgreSQL/MySQL race regression passed
+Handler 1332.441s and Service 8.008s; all owned Compose resources were removed
+and the final code hashes remained exact.
+Final `go tool task check` also passed with every source/protection hash unchanged.
+A separate helper-only Project extension also passed on the same final artifact:
+24 genuine completions across Personal Key, Project Key and Team for all four
+protocols; 12 old-name denials with zero upstream dispatch/attempt; exact Project
+ownership rather than issuing-manager attribution; unchanged Project/grants/Keys;
+one audit, current-target retry and retained-Session restart without replay.
+Manual English/live Chinese Project call-table/detail proof remained scoped and
+sanitized. Its owned resources were removed; all final source hashes stayed exact.
+The checked phase is ready for scoped main commit/push and distinct remote CI.
+F12/A06 and formal totals remain partial.

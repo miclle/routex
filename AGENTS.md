@@ -585,3 +585,15 @@ confirmation. Keep exact decimal strings, per-rate custom zero/disabled/same-amo
 protection, separate threshold ownership and historical receipts distinct from
 current configuration/runtime proof. Register paired `priceImports` and `pricing`
 copy; previews and retries never invent last-success metadata.
+
+Model compatibility-name Early stop belongs in the existing Model information
+card and local Base UI review/confirmation dialog. Keep models.read_all and
+models.write independent; select one exact retained name with a reviewed strong
+If-Match and required reason. Retain the exact original body/reason/ETag through
+uncertain or rejected retries, hide private facts during renewed authority reads,
+and clear ownership on actor/Model changes. Fresh review and matching current
+retirement confirm only present non-callability/runtime application; they never
+prove the original historical operation. Preserve stable Model/grants/bindings,
+permanent historical-name reservation and already-dispatched calls. Register
+paired catalog copy, render only recorded UTC deadlines with the selected locale,
+and never infer eligibility from the browser clock.

@@ -181,6 +181,18 @@ Creating a model requires a provider model and creates an initial binding with w
 
 Each model has exactly one current name through its transactional creation/rename flow. A nullable unique `current_model_id` constraint prevents multiple current names. Renaming preserves the Model ID, bindings, and grants. The old name becomes a compatibility name until the optional `alias_expires_at` deadline; omitting the deadline expires it immediately. Expired and historical names remain globally reserved and cannot be reused, even by their original model. `ResolveModelName` resolves only active models through a current or unexpired compatibility name; callers must still enforce their own grant and Key checks.
 
+A retained compatibility name can be stopped early from its Model information
+card. Review reads one exact name under `models.read_all`; confirmation requires
+independent `models.write`, a non-empty reason and the reviewed strong `If-Match`.
+The transaction only shortens the recorded deadline and commits one typed audit.
+It preserves the Model, current name, bindings, grants and permanent name
+reservation. Current names cannot be stopped through this action. Conflicts
+retain the draft for explicit review; uncertain results retain the original
+request. A matching retired target retry confirms current state/publication,
+including natural expiry, without proving the original historical operation.
+Saved retirement and runtime application remain separate; failed publication
+keeps lookup fail-closed until an authorized exact retry republishes.
+
 Adding a binding always assigns weight `0`. Weight replacement must include every existing binding exactly once, use integer values from 0 to 100, and total 100 for each protocol. Positive weights require ready bindings. Invalid updates change nothing. The transaction locks the model and its connections in a stable order, so concurrent updates cannot publish mixed weights or bypass concurrent credential changes. Disabling or invalidating credentials can make a previously weighted binding unavailable; a stored positive weight never overrides current readiness.
 
 Grant replacement validates all supplied users before deleting old grants, then commits the new set and its audit event atomically. Disabled or unknown users and duplicate IDs are rejected. An empty array revokes every direct user grant. Member-facing model lists expose only explicitly granted active models, without upstream connection or credential metadata. Model visibility alone does not claim that a route is currently callable.
@@ -208,6 +220,8 @@ All paths below are relative to `/api/v1`. Management endpoints require a sessio
 | `POST /admin/models/:model_id/bindings` | `{provider_model_id}` | Model with the new zero-weight binding |
 | `PUT /admin/models/:model_id/weights` | `{weights:[{binding_id,weight}]}` | Model |
 | `POST /admin/models/:model_id/rename` | `{name,alias_expires_at?}` | Model |
+| `GET /admin/models/:model_id/alias-retirement` | Single exact `name` query | Private review/state/editability/runtime application and strong ETag |
+| `POST /admin/models/:model_id/alias-retirement` | `{name,reason}` and reviewed quoted `If-Match` | `{alias,retired,changed,runtime_applied}`; current-target confirmation, no historical receipt |
 | `PUT /admin/models/:model_id/grants` | `{user_ids:[]}` | Model |
 | `GET /admin/model-grantees` | None | `{items:[{id,email,name}]}` for active users |
 | `GET /models` | None | `{items:[{id,name,status,protocol,protocols,input_capabilities}]}` for the current user's grants; any authenticated role |

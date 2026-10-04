@@ -5,6 +5,9 @@ import type {
   CallableModel,
   KeyDelivery,
   Model,
+  ModelAliasRetirementReview,
+  ModelAliasRetirementInput,
+  ModelAliasRetirementResult,
   PersonalKey,
   Provider,
   ProviderModel,
@@ -126,4 +129,117 @@ export async function getAdminModel(modelID: string, signal?: AbortSignal): Prom
   )
     throw new Error('Invalid Model detail response')
   return value as unknown as Model
+}
+
+const aliasNamePattern = /^[A-Za-z0-9][A-Za-z0-9._:/-]{0,127}$/
+const aliasModelPattern = /^mdl_[A-Za-z0-9_-]{1,26}$/
+const aliasETagPattern = /^[a-f0-9]{64}$/
+function aliasTarget(modelID: string, name: string) {
+  if (!aliasModelPattern.test(modelID) || !aliasNamePattern.test(name))
+    throw new Error('Invalid Model alias target')
+}
+export function validModelAliasReason(reason: string) {
+  return (
+    reason.trim().length > 0 &&
+    new TextEncoder().encode(reason).length <= 1024 &&
+    ![...reason].some((character) => {
+      const code = character.codePointAt(0)!
+      return code < 32 || (code >= 127 && code <= 159)
+    }) &&
+    !/[\uD800-\uDFFF]/u.test(reason)
+  )
+}
+function aliasReview(value: unknown, modelID: string, name: string): ModelAliasRetirementReview {
+  const record = (v: unknown): v is Record<string, unknown> =>
+    !!v && typeof v === 'object' && !Array.isArray(v)
+  const date = (v: unknown) =>
+    typeof v === 'string' && /^\d{4}-\d{2}-\d{2}T.+Z$/.test(v) && Number.isFinite(Date.parse(v))
+  if (
+    !record(value) ||
+    Object.keys(value).some(
+      (key) =>
+        ![
+          'model_id',
+          'current_name',
+          'alias',
+          'state',
+          'observed_at',
+          'etag',
+          'can_retire',
+          'runtime_applied',
+        ].includes(key),
+    ) ||
+    value.model_id !== modelID ||
+    typeof value.current_name !== 'string' ||
+    !aliasNamePattern.test(value.current_name) ||
+    !record(value.alias) ||
+    Object.keys(value.alias).some((key) => !['name', 'is_current', 'expires_at'].includes(key)) ||
+    value.alias.name !== name ||
+    typeof value.alias.is_current !== 'boolean' ||
+    !(value.alias.expires_at === null || date(value.alias.expires_at)) ||
+    !['current', 'compatibility', 'retired'].includes(String(value.state)) ||
+    (value.state === 'current') !== value.alias.is_current ||
+    (value.state === 'current' && value.current_name !== name) ||
+    (value.state !== 'current' && value.current_name === name) ||
+    (value.state === 'compatibility' && value.alias.expires_at === null) ||
+    !date(value.observed_at) ||
+    typeof value.etag !== 'string' ||
+    !aliasETagPattern.test(value.etag) ||
+    typeof value.can_retire !== 'boolean' ||
+    (value.can_retire && value.state !== 'compatibility') ||
+    typeof value.runtime_applied !== 'boolean'
+  )
+    throw new Error('Invalid Model alias review response')
+  return value as unknown as ModelAliasRetirementReview
+}
+export async function getModelAliasRetirement(modelID: string, name: string, signal?: AbortSignal) {
+  aliasTarget(modelID, name)
+  return aliasReview(
+    (
+      await client.get<unknown>(`/admin/models/${modelID}/alias-retirement`, {
+        params: { name },
+        signal,
+      })
+    ).data,
+    modelID,
+    name,
+  )
+}
+export async function retireModelAlias(
+  modelID: string,
+  input: ModelAliasRetirementInput,
+  etag: string,
+  csrf: string,
+  signal?: AbortSignal,
+): Promise<ModelAliasRetirementResult> {
+  aliasTarget(modelID, input.name)
+  if (!validModelAliasReason(input.reason) || !aliasETagPattern.test(etag) || !csrf)
+    throw new Error('Invalid Model alias retirement intent')
+  const value = (
+    await client.post<unknown>(`/admin/models/${modelID}/alias-retirement`, input, {
+      headers: { 'If-Match': `"${etag}"`, 'X-CSRF-Token': csrf },
+      signal,
+    })
+  ).data
+  if (!value || typeof value !== 'object' || Array.isArray(value))
+    throw new Error('Invalid Model alias retirement response')
+  const result = value as Record<string, unknown>
+  const review = aliasReview(result.alias, modelID, input.name)
+  if (
+    Object.keys(result).some(
+      (key) => !['alias', 'retired', 'changed', 'runtime_applied'].includes(key),
+    ) ||
+    result.retired !== true ||
+    review.state !== 'retired' ||
+    typeof result.changed !== 'boolean' ||
+    typeof result.runtime_applied !== 'boolean' ||
+    review.runtime_applied !== result.runtime_applied
+  )
+    throw new Error('Invalid Model alias retirement response')
+  return {
+    alias: review,
+    retired: true,
+    changed: result.changed,
+    runtime_applied: result.runtime_applied,
+  }
 }
