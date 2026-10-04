@@ -162,7 +162,7 @@ The binary capability count is 11 completed, 16 partially completed, and 3 not s
 | F09 | Key Token, money, RPM, TPM, concurrency, and IP restrictions | Completed | Personal, Project, and Key admission policies are enforced in the native gateway for the documented single-node architecture. Multi-node enforcement remains a separate release-architecture gate. |
 | F10 | Offboarding, inventory, handover, and emergency disable | Partially completed | Transactional local-account offboarding and continuity workflows exist; external-identity and complete enterprise continuity behavior remain open. |
 | F11 | Provider, Connection, Credential, discovery, and rotation | Partially completed | The management workspace, encrypted credentials, controlled verification, and activation boundaries exist; explicit provider-model capacity attestations, credential-pool filtering/verification timestamps, reviewed name/priority editing, reviewed deletion, staged replacement preparation, immutable per-attempt Credential/publication attribution, and parser-owned native completion evidence are available; evidence-gated predecessor retirement with historical receipt/current-application separation is available; real-provider acceptance and complete pool operations remain open. |
-| F12 | Model catalog, names, bindings, weights, and catalog assistance | Partially completed | Stable models, renames, bindings, weights, grants, and availability controls exist; reviewed compatibility-name Early stop has complete controlled source, dual-driver, native/browser/restart and full-matrix delivery. Guided batch creation has complete source, repaired driver, production/browser/restart and full-matrix acceptance, with one atomic reviewed transaction, bounded historical receipts and no implicit grants or existing-Key expansion. Complete public-catalog assistance and broader routing acceptance remain open. |
+| F12 | Model catalog, names, bindings, weights, and catalog assistance | Partially completed | Stable models, renames, bindings, weights, grants, and availability controls exist; reviewed compatibility-name Early stop has complete controlled source, dual-driver, native/browser/restart and full-matrix delivery. Guided batch creation has complete source, repaired driver, production/browser/restart and full-matrix acceptance, with one atomic reviewed transaction, bounded historical receipts and no implicit grants or existing-Key expansion. Advisory public-name assistance and its bounded popup-label compatibility repair have complete controlled source and final R2 browser/native/restart acceptance; checked delivery is represented by the containing acceptance-record commit, with new remote CI pending. Complete public-catalog assistance and broader routing acceptance remain open. |
 | F13 | Four native protocols, streaming, health, retries, and failover | Partially completed | Chat Completions, Responses, Messages, and Gemini now use bounded replay-safe same-protocol failover with process-local health, one admission/settlement, durable ordered diagnostics, and no retry after a usable response. Real-provider and measured multi-node health acceptance remain open. |
 | F14 | Managed egress and staged network diagnostics | Partially completed | Direct, default, SOCKS5, verified CONNECT, endpoint-bound saved authentication, complete-tunnel proxy-address fallback, and diagnostics exist. External proxy and production performance acceptance remain open. |
 | F15 | Prices, spreadsheet/CSV workflows, API, and repository sync | Partially completed | Current prices, ETags, CSV/XLS/XLSX import, preview, commit, and export exist; repository-file mappings, reviewed synchronization, custom-rate protection and selected restoration passed complete current-main source, dual-driver and controlled production/browser/restart gates; shipped prices stay empty pending reviewed source rates, while wider external/release acceptance remains open. |
@@ -3736,3 +3736,111 @@ acceptance record; consult Git history for its SHA. Remote CI for that new commi
 remains pending. No future source SHA or remote success is inferred. Previous
 91861d3 CI/Actionlint/GolangCI-Lint successes remain separate. F04/F19 and formal 11/16/3 totals are
 unchanged; this bounded package does not complete broader cross-domain work.
+
+
+### Member Overview checked delivery and advisory names source carry, 2026-10-04
+
+The accepted administrative Member Overview source was committed/pushed and read
+back exactly as `77f0e53bc6f0adf00ef3d0e17209363ebf5e122c`. Its local source
+2130/112, build, focused Handler 134.955s, controlled eight-native/browser/restart
+and full 85-case-per-driver matrix Handler 1482.117s/Service 8.317s remain
+independent accepted gates. Exact source Actionlint 37204249654 and GolangCI-Lint
+37204249661 and CI 37204249644 all completed successfully. Prior 91861d3 all-three
+remote success remains separate from the new public-name delivery.
+
+The next reviewed twelve-path advisory public-name carry is integrated on that
+checked main: ten frozen frontend payloads plus two append-only paired rule
+paragraphs. Four reviewed official identities come from one local versioned JSON
+file. Suggestions preserve custom input, exact spelling, explicit selection,
+current actor/Connection/row authority and existing server preview/reason/receipt
+semantics. They infer no Provider-model, protocol, capability, rate, grant or
+availability and issue no create operation or reference endpoint. The existing
+three-row confirmed creation workflow remains independent.
+
+Worker source-only verification passed 56 cases in four files, TypeScript and
+scoped ESLint/Prettier with dependency bytes exact. All 101 combined protected
+source hashes matched the initial carry checkpoint. Initial integrated source and
+R1 controlled proof passed as recorded below. Final repaired-source and R2 gates
+subsequently passed in their separate record. No completed F12 claim is made. This advisory
+frontend-only slice retains the unchanged accepted 85-case backend baseline;
+formal totals remain 11 complete, 16 partial and three unstarted. Contract:
+[Catalogue](CATALOG.md#advisory-public-model-names).
+
+
+### Advisory name R1 controlled proof and accessibility follow-up, 2026-10-04
+
+Initial integrated frontend verification passed 2155 tests in 114 files. R1
+controlled production/browser/native/restart acceptance passed on binary SHA256
+`663c6aa0fa55ef0f12abfe05d3e8caa8f5e3ca7ff9b8516ecea6d27b3832d511` with all 101
+source protections unchanged. One explicit browser confirmation committed one
+creation receipt. Three completed native calls/dispatches retained exact original
+attribution; old-Key denial returned 404 with no dispatch. Grant and new-Key steps
+were separate explicit operations, and same-artifact restart retained receipt and
+current runtime proof without replay. Custom-name preview stayed usable; a
+reserved name disabled confirmation without an extra commit.
+
+English/Chinese draft retention, keyboard/pointer selection, non-filling arrow
+navigation and Escape passed. Stale authority blocked confirmation until explicit
+fresh review. Browser console errors/warnings were zero; all owned browser,
+application and Compose resources were removed. An immediate plain port bind met
+TIME_WAIT after cleanup; bounded connection failure and reuse-bind checks confirmed
+no remaining listener, without killing any process.
+
+R1 also found a genuine Chinese popup accessibility issue: Base UI 1.8 supplies
+hidden dismissal controls with hardcoded English accessible labels and no supported
+label prop. A narrow ref-bound compatibility fix, focused regressions and paired
+rule append were pending at that R1 checkpoint. The observed R1 binary and source
+are preserved separately; final repaired-source/R2 acceptance follows below.
+This finding adds no name, protocol, rate, grant or runtime behavior.
+
+The browser committed exactly one creation receipt
+03c8bb44-5d67-4e85-9b1a-3cb290d0b3b6. The three completed native attempts and old-Key
+zero-dispatch denial are controlled local evidence, not official-provider supply
+verification. Existing 85-case backend acceptance remains unchanged; no new
+migration or accounting behavior is introduced. F12 remains partial and formal
+11/16/3 totals are unchanged.
+
+
+### Advisory public names final R2 acceptance, 2026-10-04
+
+Final accessibility-fixed source passed 2162 Vitest cases in 114 files, including
+63 focused cases in four files, mandatory check, Go race/unit, development
+lifecycle, embedded production assets and production build. The final binary
+SHA256 is `1cefad7f79b181874c4fa80ebbdabde18785d944e76bcc41e3a79ae9c5b40261`.
+The complete 101-path source protection remains independent from the original R1
+artifact; the unchanged backend retains Member Overview's accepted 85-case-per-
+driver matrix, without claiming another database run for this frontend-only fix.
+
+R2 controlled production/browser/native/restart acceptance passed and governs this
+delivery. Both native dismissal controls displayed English `Close` and Chinese
+`关闭`, and the actual native close action passed without replacing focus or
+handlers. Arrow navigation did not fill input, pointer selection retained exact
+spelling and Escape preserved custom input. Browser evidence covers live language
+change with a closed popup and subsequent reopen. Changing language while the
+popup remains open is proven by focused source tests only, not a browser claim.
+
+One explicitly confirmed browser creation committed one receipt. The helper
+verified three immutable completed calls and three upstream dispatches, old-Key
+new-Model denial with zero dispatch, independently reviewed grant/new-Key steps,
+native weights and no implicit grants or existing-Key expansion. Custom server
+preview succeeded without commit; reserved `gpt-5.2` disabled confirmation.
+Same-artifact restart retained original receipt/current runtime proof and calls
+without replay. Console errors/warnings were zero; the owned browser tab and every
+owned container, network and volume were removed. Bounded connection and reuse-
+bind checks confirmed no remaining listener.
+
+The checked implementation is delivered by the commit containing this acceptance
+record; consult Git history for its SHA. Remote CI for that new commit remains
+pending. Previous Member Overview 77f0e53 has CI 37204249644, Actionlint
+37204249654 and GolangCI-Lint 37204249661 all completed successfully; these checks
+are distinct from the public-name delivery. F12 and formal 11/16/3 totals remain
+unchanged; official-provider supply and wider catalogue/routing acceptance are
+not established by advisory names or controlled local calls.
+
+The R2 browser's single creation request was
+07a1b509-57c8-4a7e-9fb6-3dcd4b9505b5, independent from R1 receipt
+03c8bb44-5d67-4e85-9b1a-3cb290d0b3b6. Each run's three completed local calls are
+separate proofs; neither is counted as another provider or fleet acceptance.
+The bounded compatibility implementation changes only the exact native sibling
+accessible labels owned by the local wrapper. No dependency, API, schema,
+permission, grant, price or native dispatcher behavior changes.

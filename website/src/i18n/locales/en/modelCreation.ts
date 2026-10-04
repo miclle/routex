@@ -31,6 +31,8 @@ export default {
   new: 'Create a new Model',
   existing: 'Link an existing Model',
   publicName: 'Public Model name for {{name}}',
+  publicNameSuggestions:
+    'Public names are suggestions only. You can enter a custom name; the server reviews availability.',
   targetModel: 'Target Model for {{name}}',
   chooseTarget: 'Select an existing Model',
   remove: 'Remove {{name}}',

@@ -31,6 +31,7 @@ export default {
   new: '创建新模型',
   existing: '关联现有模型',
   publicName: '{{name}} 的对外模型名',
+  publicNameSuggestions: '公开名称仅作建议，也可填写自定义名称；名称是否可用由服务器审核。',
   targetModel: '{{name}} 的目标模型',
   chooseTarget: '选择现有模型',
   remove: '移除 {{name}}',

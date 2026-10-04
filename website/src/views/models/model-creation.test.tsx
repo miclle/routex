@@ -665,4 +665,209 @@ describe('guided atomic batch creation', () => {
     expect(document.querySelector('textarea')?.value).toBe('')
     expect(commits()).toHaveLength(1)
   })
+  it('explicit public-name keyboard selection submits only its exact row name through existing review', async () => {
+    await mount()
+    await selectOne()
+    const input = document.querySelector<HTMLInputElement>(
+      'input[aria-label="Public Model name for Upstream pmd_one"]',
+    )!
+    await change(input, 'gpt-5.2')
+    await act(async () => {
+      input.focus()
+      input.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, button: 0 }))
+    })
+    await until(() => expect(document.querySelectorAll('[role="option"]')).toHaveLength(2))
+    expect(commits()).toHaveLength(0)
+    await act(async () =>
+      input.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true })),
+    )
+    await act(async () =>
+      input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true })),
+    )
+    expect(input.value).toBe('gpt-5.2')
+    expect(commits()).toHaveLength(0)
+    await review()
+    await click('Confirm addition')
+    await until(() => expect(commits()).toHaveLength(1))
+    expect(JSON.parse(commits()[0].data).items).toEqual([
+      { provider_model_id: 'pmd_one', target: 'new', name: 'gpt-5.2' },
+    ])
+    expect(requests.some((r) => r.url?.includes('reference') || r.url?.includes('grant'))).toBe(
+      false,
+    )
+  })
+  it('suggestions update only the chosen row and custom names survive language switching', async () => {
+    await mount()
+    await selectOne()
+    await click('Load more')
+    await until(() =>
+      expect(document.querySelector('input[aria-label="Select Upstream pmd_two"]')).toBeTruthy(),
+    )
+    await act(async () =>
+      (
+        document.querySelector('input[aria-label="Select Upstream pmd_two"]') as HTMLInputElement
+      ).click(),
+    )
+    const second = document.querySelector<HTMLInputElement>(
+      'input[aria-label="Public Model name for Upstream pmd_two"]',
+    )!
+    await change(second, 'claude')
+    await act(async () =>
+      second.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, button: 0 })),
+    )
+    await until(() =>
+      expect(document.querySelector('[role="option"]')?.textContent).toBe('claude-sonnet-4-6'),
+    )
+    await act(async () => (document.querySelector('[role="option"]') as HTMLElement).click())
+    expect(second.value).toBe('claude-sonnet-4-6')
+    expect(
+      document.querySelector<HTMLInputElement>(
+        'input[aria-label="Public Model name for Upstream pmd_one"]',
+      )!.value,
+    ).toBe('Exact/Name')
+    await act(async () => i18n.changeLanguage('zh'))
+    expect(host.textContent).toContain(zh.publicNameSuggestions)
+    expect(
+      Array.from(host.querySelectorAll('input')).some((input) => input.value === 'Exact/Name'),
+    ).toBe(true)
+    expect(
+      Array.from(host.querySelectorAll('input')).some(
+        (input) => input.value === 'claude-sonnet-4-6',
+      ),
+    ).toBe(true)
+    expect(commits()).toHaveLength(0)
+  })
+  it('late suggestion selection during Session renewal cannot change the retained name', async () => {
+    await mount()
+    await selectOne()
+    const input = document.querySelector<HTMLInputElement>(
+      'input[aria-label="Public Model name for Upstream pmd_one"]',
+    )!
+    await change(input, 'gpt')
+    await act(async () =>
+      input.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, button: 0 })),
+    )
+    await until(() => expect(document.querySelector('[role="option"]')).toBeTruthy())
+    const staleOption = document.querySelector<HTMLElement>('[role="option"]')!
+    const hold = deferred()
+    holds['/auth/session'] = () => hold.promise
+    await act(async () => {
+      void cache.refetchQueries({ queryKey: sessionKey, exact: true })
+      staleOption.click()
+    })
+    expect(document.querySelector('[role="option"]')).toBeNull()
+    hold.release()
+    await until(() =>
+      expect(
+        document.querySelector<HTMLInputElement>(
+          'input[aria-label="Public Model name for Upstream pmd_one"]',
+        )?.value,
+      ).toBe('gpt'),
+    )
+    expect(commits()).toHaveLength(0)
+  })
+  it('read permission loss or Connection change closes suggestions and discards obsolete selection events', async () => {
+    await mount()
+    await selectOne()
+    const input = document.querySelector<HTMLInputElement>(
+      'input[aria-label="Public Model name for Upstream pmd_one"]',
+    )!
+    await change(input, 'gemini')
+    await act(async () =>
+      input.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, button: 0 })),
+    )
+    await until(() => expect(document.querySelector('[role="option"]')).toBeTruthy())
+    const staleOption = document.querySelector<HTMLElement>('[role="option"]')!
+    permissions = ['models.write']
+    await act(async () => {
+      void cache.invalidateQueries({ predicate: (q) => q.queryKey.includes('permissions') })
+      staleOption.click()
+    })
+    await until(() => expect(host.textContent).toContain(en.denied))
+    expect(document.querySelector('[role="option"]')).toBeNull()
+    permissions = ['models.read_all', 'providers.read', 'models.write']
+    await act(async () => {
+      await cache.invalidateQueries({ predicate: (q) => q.queryKey.includes('permissions') })
+    })
+    await until(() =>
+      expect(
+        document.querySelector<HTMLInputElement>(
+          'input[aria-label="Public Model name for Upstream pmd_one"]',
+        )?.value,
+      ).toBe('gemini'),
+    )
+    await change(document.querySelector('select[aria-label="Provider Connection"]')!, 'con_two')
+    await act(async () => staleOption.click())
+    await until(() =>
+      expect(document.querySelector('input[aria-label="Select Upstream pmd_one"]')).toBeTruthy(),
+    )
+    expect(
+      host.querySelector('input[aria-label="Public Model name for Upstream pmd_one"]'),
+    ).toBeNull()
+    expect(commits()).toHaveLength(0)
+  })
+  it('actor changes remove old suggestion interaction and clear its row draft', async () => {
+    await mount()
+    await selectOne()
+    const input = document.querySelector<HTMLInputElement>(
+      'input[aria-label="Public Model name for Upstream pmd_one"]',
+    )!
+    await change(input, 'gpt')
+    await act(async () =>
+      input.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, button: 0 })),
+    )
+    await until(() => expect(document.querySelector('[role="option"]')).toBeTruthy())
+    const staleOption = document.querySelector<HTMLElement>('[role="option"]')!
+    identity = { ...identity, user: { ...identity.user, id: 'usr_two' } }
+    await act(async () => {
+      cache.setQueryData(sessionKey, identity)
+      staleOption.click()
+    })
+    await until(() =>
+      expect(document.querySelector('input[aria-label="Select Upstream pmd_one"]')).toBeTruthy(),
+    )
+    expect(document.querySelector('[role="option"]')).toBeNull()
+    expect(
+      host.querySelector('input[aria-label="Public Model name for Upstream pmd_one"]'),
+    ).toBeNull()
+    expect(host.querySelector('textarea')?.value).toBe('')
+    expect(commits()).toHaveLength(0)
+  })
+  it('an old option cannot switch a just-changed existing target back to new in the same batch', async () => {
+    await mount()
+    await selectOne()
+    const input = document.querySelector<HTMLInputElement>(
+      'input[aria-label="Public Model name for Upstream pmd_one"]',
+    )!
+    await change(input, 'gpt')
+    await act(async () =>
+      input.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, button: 0 })),
+    )
+    await until(() => expect(document.querySelector('[role="option"]')).toBeTruthy())
+    const staleOption = document.querySelector<HTMLElement>('[role="option"]')!
+    const target = document.querySelector<HTMLSelectElement>(
+      'select[aria-label="Upstream pmd_one Addition and target"]',
+    )!
+    await act(async () => {
+      Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value')!.set!.call(
+        target,
+        'existing',
+      )
+      target.dispatchEvent(new Event('change', { bubbles: true }))
+      staleOption.click()
+    })
+    expect(target.value).toBe('existing')
+    expect(
+      host.querySelector('input[aria-label="Public Model name for Upstream pmd_one"]'),
+    ).toBeNull()
+    await change(
+      document.querySelector('select[aria-label="Target Model for Upstream pmd_one"]')!,
+      'mdl_old',
+    )
+    await review()
+    expect(
+      JSON.parse(requests.filter((r) => r.url === path + '/preview').at(-1)!.data).items,
+    ).toEqual([{ provider_model_id: 'pmd_one', target: 'existing', model_id: 'mdl_old' }])
+    expect(commits()).toHaveLength(0)
+  })
 })

@@ -38,6 +38,7 @@ import { Input } from '@/components/ui/input'
 import { Table } from '@/components/ui/table'
 import { Dialog } from '@/components/ui/dialog'
 import { Textarea } from '@/components/ui/textarea'
+import { PublicModelName } from './public-model-name'
 
 function useReadCount(key: readonly unknown[]) {
   const cache = useQueryClient(),
@@ -629,18 +630,52 @@ function BatchForm({
                           <option value="existing">{t('existing')}</option>
                         </select>
                         {selected.item.target === 'new' ? (
-                          <Input
-                            aria-label={t('publicName', { name: row.upstream_name })}
-                            maxLength={128}
+                          <PublicModelName
+                            key={`${authority}:${row.id}`}
+                            label={t('publicName', { name: row.upstream_name })}
                             disabled={locked || !row.selectable}
                             value={selected.item.name}
-                            onChange={(e) =>
-                              update(selected.item.provider_model_id, {
-                                provider_model_id: selected.item.provider_model_id,
-                                target: 'new',
-                                name: e.target.value,
-                              })
-                            }
+                            excludedNames={draft.flatMap((d) =>
+                              d.item.provider_model_id !== row.id && d.item.target === 'new'
+                                ? [d.item.name]
+                                : [],
+                            )}
+                            onValueChange={(name) => {
+                              const modelState = cache.getQueryState([
+                                ...prefix,
+                                'provider-models',
+                                q,
+                              ])
+                              const targetState = cache.getQueryState([
+                                ...prefix,
+                                'targets',
+                                targetQ,
+                              ])
+                              if (
+                                !live.current ||
+                                lock.current ||
+                                locked ||
+                                !row.selectable ||
+                                !visible ||
+                                !readyRef.current() ||
+                                authorityRef.current !== authority ||
+                                modelState?.status !== 'success' ||
+                                modelState.fetchStatus !== 'idle' ||
+                                modelState.dataUpdateCount !== modelCount ||
+                                targetState?.status !== 'success' ||
+                                targetState.fetchStatus !== 'idle' ||
+                                targetState.dataUpdateCount !== targetCount
+                              )
+                                return
+                              setDraft((old) =>
+                                old.map((d) =>
+                                  d.item.provider_model_id === row.id && d.item.target === 'new'
+                                    ? { ...d, item: { ...d.item, name } }
+                                    : d,
+                                ),
+                              )
+                              setReview(null)
+                            }}
                           />
                         ) : (
                           <select

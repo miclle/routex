@@ -622,3 +622,22 @@ Receipts prove historical commit independently of current configuration/runtime
 application; pending/superseded/unavailable are not success. New Models receive
 no implicit grants and existing Keys never expand. Do not infer traffic readiness
 from saved zero-weight configuration or render credential material.
+
+Public Model name assistance stays inside the guided creation name control. The
+versioned local reference file contains only reviewed official identities, source
+URLs and review dates. The local Base UI Autocomplete accepts custom names and
+requires explicit selection; malformed reference metadata disables suggestions
+without disabling input. Suggestions never infer Connection/ProviderModel
+selection, routing readiness, protocols, capabilities, prices or grants. Preserve
+exact actor/Connection/row authority and the existing server preview, reason and
+immutable creation intent; close obsolete suggestion interactions on renewed
+reads or resource changes. Keep paired modelCreation copy.
+
+Autocomplete dismissal labels use the paired common close translation. Base UI
+1.8.0 exposes no public label prop for its two native hidden dismiss controls;
+the local wrapper localizes only the exact ref-bound input/popup sibling labels.
+Preserve native dismissal handlers, focus guards and custom input. Never use a
+global query, observe the document, hide accessibility controls or disable focus
+management. Keep open-popup language switching, both native dismiss actions,
+Escape, reopening, row isolation and StrictMode covered by tests; a changed
+native sibling structure must fail the focused compatibility tests.

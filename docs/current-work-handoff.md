@@ -6,11 +6,20 @@ acceptance remains in `docs/IMPLEMENTATION.md`.
 
 ## Delivered baseline
 
-Administrative Member Overview has complete local controlled source, focused
-dual-driver, production/browser/restart and full-matrix acceptance. The checked
-implementation is delivered by the commit containing this acceptance record;
-consult Git history for its SHA. Remote CI for that new commit remains pending.
-All 95 source protections and dependency bytes remained exact.
+Preceding checked source delivery is administrative Member Overview
+`77f0e53bc6f0adf00ef3d0e17209363ebf5e122c`, committed/pushed and read back exactly.
+Source/build, focused dual-driver, controlled production/browser/restart and the
+complete 85-case-per-driver matrix passed; all 95 protections and dependency bytes
+remained exact. CI 37204249644, Actionlint 37204249654 and GolangCI-Lint
+37204249661 all completed successfully; they belong to that exact predecessor.
+
+The next twelve-path public-name advisory frontend carry is integrated on that
+checked baseline. All 101 combined source protections matched its initial
+checkpoint. Final repaired-source 2162/114, focused 63/four files and R2
+production/browser/native/restart proof passed. The checked implementation is
+delivered by the commit containing this acceptance record; consult Git history
+for its SHA. New public-name remote CI remains pending. Member Overview's exact
+predecessor checks and local 85-case acceptance remain independent.
 
 Previous checked documentation delivery
 `91861d3ef20f45102510ec96f5927401fd924b11` was pushed/read back exactly, with CI,
@@ -176,28 +185,52 @@ controlled production/browser and same-artifact restart gates are locally
 accepted. Prior self Overview and V51 acceptance remain independent; formal
 totals are unchanged.
 
-The checked implementation is delivered by the commit containing this acceptance
-record; consult Git history for its SHA. Remote CI for that new commit remains
-pending.
+Checked Member Overview delivery is 77f0e53, committed/pushed with exact remote
+read-back. Its CI/Actionlint/GolangCI-Lint all completed successfully.
 
 Contract: [Member Overview](MEMBER_OVERVIEW.md).
 
+## Advisory public-name final acceptance
+
+The guided Model creation name field offers four exact reviewed identities from
+versioned local JSON through Base UI Autocomplete. Literal case-insensitive search,
+explicit pointer/Enter selection, non-filling arrow navigation and Escape preserve
+fully custom text. Malformed reference metadata removes suggestions only. Actor/
+Connection/row and renewed Session/permission/context/picker authority discard
+obsolete interactions, with live bilingual helper copy. Suggestions select no
+supply, protocol, capability, rate or grant, create no Model and make no reference
+API request; the existing server preview/reason/confirmation/receipt remains
+independently authoritative. Both rules use append-only identical paragraphs.
+
+Original worker 56/four-file and R1 2155/114 evidence remain separate. R1's
+observed hidden English dismissal labels led to the bounded ref-owned native
+sibling label compatibility repair; it does not replace native focus/handlers.
+Final source passed 2162 Vitest cases/114 files, focused 63/four files, check,
+Go race/unit, development lifecycle, production assets and build. Final binary:
+1cefad7f79b181874c4fa80ebbdabde18785d944e76bcc41e3a79ae9c5b40261.
+
+R2 passed both native dismissal controls' English Close/Chinese 关闭 labels and
+actual close action, arrow/no-fill, pointer/exact, Escape/custom and live closed-
+popup language change/reopen. Open-popup locale change has focused source proof
+only. Exactly one browser creation request, three immutable completed calls/
+dispatches, old-Key zero-dispatch denial, separate grant/new-Key steps, native
+weights/no implicit grants, custom-preview/no commit and reserved-name disabled
+confirmation passed. Restart retained receipt/runtime/call facts with no replay;
+console errors/warnings were zero and all owned resources/listeners were absent.
+The final R2 proof governs delivery; R1 is not substituted as fixed-source proof.
+The checked implementation is delivered by the containing acceptance-record commit;
+its new remote CI is pending. The unchanged backend retains the accepted 85-case
+baseline. Contract: [Catalogue](CATALOG.md#advisory-public-model-names).
+
 ## Next exact actions
 
-1. Observe remote CI for the commit containing this Member Overview acceptance
-   record. Previous 91861d3 CI/Actionlint/GolangCI-Lint success and source 5363d3c's
-   cancelled CI remain distinct; neither establishes the new code's remote result.
-2. Prepare the next guarded public-name source carry from the checked delivered
-   Member Overview HEAD. Revalidate exact frozen frontend payloads, all 95 source
-   protections, dependencies and current paired rule bytes; append its approved
-   paragraph without replacing later instructions. Root owns subsequent source
-   and real-browser acceptance. Preserve runtime cipher/rotation/native guards.
-3. Public-name helper frontend source is frozen with 56 focused cases;
-   administrative Member Keys backend implementation is in progress. Neither
-   is an accepted delivery. Advisory identities remain separate from stored
-   Provider-model discovery, prices and actual protocol/capacity declarations.
-   Foreign-owner Key offboarding needs its narrow explicit permission;
-   members.write never impersonates owners.
+1. Observe remote CI for the public-name commit containing this acceptance
+   record. Previous Member Overview 77f0e53 and documentation 91861d3 checks are
+   all green; they do not establish the new source's remote result.
+2. Continue the administrative Member Keys package when its source is ready.
+   It remains in progress, not an accepted delivery. Preserve independent owner
+   authority; members.write never impersonates owners or silently grants
+   foreign-owner Key operations.
 
 Formal totals remain 11 complete, 16 partial and three unstarted. F19 and wider
 F12/A06, capacity and external-provider acceptance remain open. Continue the goal.

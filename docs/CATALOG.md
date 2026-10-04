@@ -566,6 +566,57 @@ production/browser/native/restart and complete regression acceptance. External
 provider and wider Model capability acceptance remain independent.
 
 
+## Advisory public Model names
+
+The guided creation name control now offers advisory suggestions through the local
+Base UI Autocomplete while retaining fully custom input. The versioned local
+`website/src/data/public-model-references.v1.json` contains four reviewed exact
+identities: `gpt-5.2`, `gpt-5.2-2025-12-11`, `claude-sonnet-4-6` and
+`gemini-2.5-flash`. Each entry records its official documentation URL and review
+date. These are reviewed names, not claims of current availability or the latest
+provider release. No reference API, network catalogue synchronization or server
+endpoint is added.
+
+The parser accepts only the version-1 schema, at most 100 unique bounded ASCII
+names, canonical credential-free HTTPS URLs on reviewed official hosts and valid
+review dates. Malformed metadata disables suggestions without disabling custom
+input. Search is literal and case-insensitive, returns original exact spelling,
+excludes only exact selected sibling names and displays at most eight results.
+The existing server preview remains authoritative for name reservation/collision.
+
+Arrow navigation does not fill the field. Explicit pointer or Enter selection
+changes only that row's name; Escape dismisses suggestions while retaining custom
+text. Selection changes no Connection, Provider-model, row mode, reason, sibling
+row, routing weight, price, grant or credential. It makes no creation request and
+claims no protocol, media capability, capacity or supply readiness. The existing
+server preview, required reason, explicit confirmation and immutable UUID receipt
+workflow are unchanged. Only that independently confirmed operation can create a
+Model or binding.
+
+Actor, exact Connection and row identity, current mode/removal, synchronous busy
+lock and fresh Session/permission/context/picker generations guard suggestion
+updates. Renewed authority hides obsolete interactions; late option events cannot
+restore private or cleared rows. Successful authority reads recreate the control.
+English/Chinese helper copy changes live while exact custom text is retained.
+Both frontend rule files append the same bounded contract, preserving all later
+Member Overview and other instructions.
+
+Final R2 acceptance passed 2162 frontend cases in 114 files, including 63 focused
+cases in four files, source checks and production build. Controlled bilingual
+browser/native/restart proof verified localized native dismissal controls, one
+explicit creation receipt, three completed calls/dispatches, old-Key zero-dispatch
+denial and separate grant/new-Key operations without implicit access. Restart
+retained receipt/runtime/call facts without replay. Browser locale switching was
+verified with a closed popup and reopen; open-popup switching has focused source
+proof only. This frontend-only slice retains the accepted backend matrix and
+changes no route, schema, permission or immutable call basis. Full independent
+R1/R2 evidence is recorded in [Implementation](IMPLEMENTATION.md).
+
+The checked implementation is delivered by the commit containing this acceptance
+record; consult Git history for its SHA. Remote CI for that new commit remains
+pending. F12 and formal 11/16/3 totals are unchanged; advisory names do not establish
+official-provider supply or wider catalogue/routing acceptance.
+
 ## Explicit-source member examples
 
 The existing card/table, 520px Model drawer, connection settings, inline cURL
