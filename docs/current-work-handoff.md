@@ -1,21 +1,24 @@
 # Current implementation handoff
 
-Updated: 2026-10-04T12:03:30Z. Status: active. Continue the full RouteX objective,
+Updated: 2026-10-04T12:08:35Z. Status: active. Continue the full RouteX objective,
 prioritizing partial capabilities and verified phased main deliveries. Historical
 acceptance remains in `docs/IMPLEMENTATION.md`.
 
 ## Delivered baseline
 
-Exact delivered main/origin is `81b8c2f18ebfca235ca9fba480d88743a0b2e9f9` for
-the catalogue phase described below. Its distinct CI, Actionlint and
-GolangCI-Lint checks have completed successfully at that exact delivered HEAD.
+Latest checked source delivery is
+`5363d3ce53ca4d1248227b2f941aae642c433499`: the checked 30-path V51 phase was
+committed/pushed, exact remote main read-back matched and main was clean. Its
+distinct CI, Actionlint and GolangCI-Lint are in progress, not accepted green.
+Previous catalogue 81b8c2f has all three exact remote checks green; its evidence
+below remains independent from the member-notice phase.
 Guided creation `4fed603` now has CI, Actionlint and GolangCI-Lint all green.
 It passed 2003 frontend cases/107 files,
 corrected UTC driver focus (141.843s), full PostgreSQL/MySQL race regression
 (Handler 1346.593s / Service 7.991s), bilingual production/browser/native/restart
 acceptance and final mandatory check. All 50 protected hashes and dependencies
-stayed exact; owned resources were removed. Those checks do not establish
-acceptance of the newly integrated member-notice phase.
+stayed exact; owned resources were removed. Those checks remain independent
+from the delivered member-notice evidence below.
 
 Previous Alias `fd9cf74`, native rejection `bc67a47` and UTC receipt `7b33fa3`
 have all three remote checks green. Repository price synchronization `2e5f665`
@@ -57,7 +60,7 @@ corrections preceded the successful scenario; those earlier clean runs dispatche
 no example inference. No backend/schema change occurred; its exact unchanged
 full dual-driver matrix remains the independently accepted baseline above.
 
-## Current V51 locally accepted phase
+## Delivered V51 phase
 
 The reviewed 24-path carry adds private Team member settled-exhaustion notices
 to the existing bilingual menu and Session inbox routes. Its stored child policy
@@ -101,8 +104,9 @@ resources were removed. Helper SHA256:
 The complete unchanged-source PostgreSQL/MySQL race matrix passed Handler
 1456.730s and Service 8.504s. Runner and coordinator independently verified all
 81 protected source hashes, byte-identical package/lock and absence of every
-owned matrix container, network and volume. Local acceptance passed. V51 remains
-undelivered pending scoped commit/push and exact remote read-back. Final
+owned matrix container, network and volume. The locally accepted 30-path phase
+is committed/pushed as 5363d3c with exact remote main read-back. Its distinct
+remote checks are in progress; their success is not inferred. Final
 mandatory `go tool task check` passed with all 81 code/dependency bytes exact:
 Go lint zero issues, Prettier/TypeScript/mod tidy passed, ESLint zero errors
 and two unchanged button/badge Fast Refresh warnings. Source, focus,
@@ -111,24 +115,21 @@ Preserve all delivered catalogue/batch/Alias/rejection/UTC/F15/cipher facts.
 
 ## Next exact actions
 
-1. Preserve delivered catalogue main 81b8c2f and its all-green exact remote
-   checks, source/dependency hashes and four-call native facts independently
-   from the new candidate. Batch remote checks are also green.
-2. Scope the V51 commit/push and exact remote read-back after the passed final
-   mandatory check. Local gates do not infer delivery or its distinct CI.
-   Preserve all 81 source protections, dependencies, raw aggregate assertions
-   and historical guards; do not repeat passed actual gates without a new change,
-   failure or unresolved concern.
-3. Integrate the frozen seventeen-path administrative Member Overview source:
-   existing three cards, independent `members.read`, Personal monthly Tokens/
-   money and retained Personal Key count, private published User lifecycle proof.
-   Keep source, native/journal, browser/restart and dual-driver evidence distinct.
-4. Public-name helper frontend source is frozen with 56 focused cases;
+1. Observe distinct remote checks for delivered V51 source 5363d3c without
+   conflating them with passed local gates or previous catalogue/batch all-green
+   checks. Preserve all 81 source protections and dependency bytes.
+2. Perform the guarded carry of frozen seventeen-path administrative Member
+   Overview source after this delivery follow-up: retain the existing three
+   cards, independent members.read, Personal monthly Tokens/money and retained
+   Key count. Reapply its narrow private User lifecycle proof semantically,
+   preserving current runtime cipher/rotation/native guards. Source and actual
+   journal/native/browser/restart/dual-driver acceptance are independent gates.
+3. Public-name helper frontend source is frozen with 56 focused cases;
    administrative Member Keys backend implementation is in progress. Neither
-   is an accepted delivery. Identity references remain
-   advisory and separate from stored Provider-model discovery, prices and actual
-   protocol/capacity declarations. Foreign-owner Key offboarding needs its narrow
-   explicit permission; `members.write` never impersonates owners.
+   is an accepted delivery. Advisory identities remain separate from stored
+   Provider-model discovery, prices and actual protocol/capacity declarations.
+   Foreign-owner Key offboarding needs its narrow explicit permission;
+   members.write never impersonates owners.
 
 Formal totals remain 11 complete, 16 partial and three unstarted. F19 and wider
 F12/A06, capacity and external-provider acceptance remain open. Continue the goal.

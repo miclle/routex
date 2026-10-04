@@ -211,7 +211,7 @@ mandatory `go tool task check` passed. Source, fixtures and documentation are
 delivered as one scoped main package; inspect its commit and remote checks.
 
 
-## Private Team member monthly exhaustion: integrated candidate
+## Private Team member monthly exhaustion
 
 A member's stored child monthly cap is observed independently from Team aggregate
 limits. Only the exact current enabled, nonoffboarded active member/owner receives
@@ -295,8 +295,9 @@ The complete unchanged-source PostgreSQL/MySQL race matrix passed Handler
 1456.730s and Service 8.504s. All 81 protected source hashes and package/lock
 bytes stayed exact; runner and coordinator independently verified that every
 owned matrix container, network and volume was removed. Local controlled
-acceptance and final mandatory `go tool task check` passed. V51 remains
-undelivered pending scoped commit/push and remote read-back. Source, corrected
-focus, production/browser and full matrix
-remain distinct evidence. SMTP, warning thresholds, configurable stop policy
-and broader F17/F23 stay open.
+acceptance and final mandatory `go tool task check` passed. The checked 30-path
+phase is committed/pushed as `5363d3ce53ca4d1248227b2f941aae642c433499`, with
+matching remote main read-back and clean main. Its distinct CI, Actionlint and
+GolangCI-Lint are still in progress; remote success is not inferred. Source,
+corrected focus, production/browser and full matrix remain distinct evidence.
+SMTP, warning thresholds, configurable stop policy and broader F17/F23 stay open.

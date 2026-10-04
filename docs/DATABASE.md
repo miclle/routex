@@ -430,6 +430,8 @@ in [Implementation evidence](IMPLEMENTATION.md). The complete unchanged-source
 PostgreSQL/MySQL race matrix passed Handler 1456.730s and Service 8.504s. The
 runner and coordinator independently verified all 81 protected source hashes,
 byte-identical package/lock and absence of every owned matrix container, network
-and volume. Local acceptance and final mandatory `go tool task check` passed;
-scoped commit/push and remote read-back remain pending. See
-[Notifications](NOTIFICATIONS.md).
+and volume. Local acceptance and final mandatory `go tool task check` passed.
+The 30-path source/documentation phase was committed and pushed as
+`5363d3ce53ca4d1248227b2f941aae642c433499`; exact remote main read-back matched
+and main was clean. Its distinct CI, Actionlint and GolangCI-Lint are in progress,
+not yet accepted green. See [Notifications](NOTIFICATIONS.md).
