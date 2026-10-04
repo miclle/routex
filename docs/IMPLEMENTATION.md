@@ -162,17 +162,17 @@ The binary capability count is 11 completed, 16 partially completed, and 3 not s
 | F09 | Key Token, money, RPM, TPM, concurrency, and IP restrictions | Completed | Personal, Project, and Key admission policies are enforced in the native gateway for the documented single-node architecture. Multi-node enforcement remains a separate release-architecture gate. |
 | F10 | Offboarding, inventory, handover, and emergency disable | Partially completed | Transactional local-account offboarding and continuity workflows exist; external-identity and complete enterprise continuity behavior remain open. |
 | F11 | Provider, Connection, Credential, discovery, and rotation | Partially completed | The management workspace, encrypted credentials, controlled verification, and activation boundaries exist; explicit provider-model capacity attestations, credential-pool filtering/verification timestamps, reviewed name/priority editing, reviewed deletion, staged replacement preparation, immutable per-attempt Credential/publication attribution, and parser-owned native completion evidence are available; evidence-gated predecessor retirement with historical receipt/current-application separation is available; real-provider acceptance and complete pool operations remain open. |
-| F12 | Model catalog, names, bindings, weights, and catalog assistance | Partially completed | Stable models, renames, bindings, weights, grants, and availability controls exist; complete public-catalog assistance and final routing acceptance remain open. |
+| F12 | Model catalog, names, bindings, weights, and catalog assistance | Partially completed | Stable models, renames, bindings, weights, grants, and availability controls exist; standalone compatibility-name Early stop is an isolated source package. Batch creation, complete public-catalog assistance and final routing acceptance remain open. |
 | F13 | Four native protocols, streaming, health, retries, and failover | Partially completed | Chat Completions, Responses, Messages, and Gemini now use bounded replay-safe same-protocol failover with process-local health, one admission/settlement, durable ordered diagnostics, and no retry after a usable response. Real-provider and measured multi-node health acceptance remain open. |
 | F14 | Managed egress and staged network diagnostics | Partially completed | Direct, default, SOCKS5, verified CONNECT, endpoint-bound saved authentication, complete-tunnel proxy-address fallback, and diagnostics exist. External proxy and production performance acceptance remain open. |
-| F15 | Prices, spreadsheet/CSV workflows, API, and repository sync | Partially completed | Current prices, ETags, CSV/XLS/XLSX import, preview, commit, and export exist; external price-repository synchronization is not implemented. |
+| F15 | Prices, spreadsheet/CSV workflows, API, and repository sync | Partially completed | Current prices, ETags, CSV/XLS/XLSX import, preview, commit, and export exist; repository-source maintenance is an isolated candidate; current-main synchronization acceptance remains open. |
 | F16 | Platform currency, exchange rates, and historical price snapshots | Completed | Decimal-string currency/rate management, exact quoting, and immutable per-call assessment are implemented. |
 | F17 | User and Team defaults, overrides, budgets, alerts, and stop policy | Partially completed | Personal, Project, Key and Team aggregate/member enforcement plus budget/token/TPM controls, authoritative quota snapshots, and installation-calendar configuration exist; current-policy Personal/Project monthly settled-exhaustion inboxes have focused acceptance, Team aggregate monthly settled-exhaustion inboxes have complete controlled acceptance, and creation-default settings and explicit restores have complete local acceptance; templates, broader alerts, and configurable stop-calling policy remain open. |
 | F18 | Quota, model, and request-limit approvals | Completed | Project model/monthly quota/RPM/TPM/concurrency and Team monthly Token/money requests have controlled acceptance: owner-first assignment, escalation, independent dimensions, read-only platform records, atomic final policies and immutable receipts with current application. Distributed acknowledgements belong to F30; release-wide acceptance remains separate. |
 | F19 | Member overview, model sources, requests, and examples | Partially completed | Actor-scoped Personal/Team source attribution, native metadata, filters, details and examples are available; Project requests and four native Team Session protocols exist; Personal single-Model requests and independent scoped review are available; Shared Team model requests and independently scoped review are available; Two-to-four native Team comparison lanes are implemented; Independent Team native code export is accepted; self-only monthly Overview accounts and Personal thirty-day Home cards/trend/history have complete local source, database and controlled browser acceptance; Creator-private Team media has complete local source, migration and controlled production acceptance; broader overview/price/usage facts remain open. |
 | F20 | Playground, comparison, attachments, and code examples | Partially completed | Four native conversation paths, two-to-four-lane comparison, cancellation, executable examples, per-protocol image/PDF discovery, user/Project attachment resolution, single/comparison attachment lifecycle interfaces, and conservative token/TPM/money admission with exact per-occurrence media prices exist; Team comparison, independent native code export, parameter Reset and creator-private Team attachments have complete local acceptance; external acceptance remains open. |
 | F21 | Personal, Project, and platform call records and CSV | Completed | Isolated list/detail queries, incremental loading, redacted drawers, bounded server-side CSV export, filter parity, formula protection, and bilingual download actions are implemented with dual-database evidence. |
-| F22 | Usage trends, amounts, and multidimensional filters | Partially completed | Personal, Team, Project and platform usage interfaces plus immutable Provider attribution exist. Current-member Team aggregation, independent historical platform filters, revocation-safe interfaces and controlled replay/restart are accepted; complete freshness/capacity acceptance remains open. |
+| F22 | Usage trends, amounts, and multidimensional filters | Partially completed | Personal, Team, Project and platform usage interfaces plus immutable Provider attribution exist. Current-member aggregation and controlled replay/restart are accepted. Scoped CSV, exact-ID selection and genuine-native freshness passed current-source checks and the complete dual-driver regression; measured capacity/release evidence remain open. |
 | F23 | Operations overview, quality, alerts, and notifications | Partially completed | The real-data operations overview, immutable Provider-attempt quality, revisioned success/P95 thresholds, grouped Provider-quality and route-unavailable alerts, recipient-isolated history, independent severity settings, and bounded durable operational SMTP delivery are implemented. Current-policy Personal/Project monthly settled-exhaustion inboxes have focused acceptance and Team aggregate monthly settled-exhaustion inboxes have complete controlled acceptance; external mail acceptance, bounce/inbox tracking, real-Provider quality acceptance, and broader quota/enterprise sources remain open. |
 | F24 | Read-only AI operations analysis and saved reports | Not started | Authorized analysis queries, saved definitions, evaluation, exports, and hostile-input acceptance are not implemented. |
 | F25 | Site presentation, language, and announcements | Completed | Durable site name, URL, logo, footer, default language, bilingual UI behavior, and announcement lifecycle are implemented. |
@@ -197,7 +197,7 @@ A01 and A13 are fully accepted across their defined controlled scope. Other case
 | A07 | Weights, new candidates, no healthy target, and credential failure | Partially completed | Active weights, credential priority, health cooldowns, current-policy rechecks, safe failover, exhaustion, and diagnostics have controlled coverage. Real-provider failure behavior and multi-node health remain open. |
 | A08 | Stream failure, cancellation, and timeout | Partially completed | Controlled four-protocol evidence exists; real-provider and production-load evidence do not. |
 | A09 | Invalid price files, stale ETags, and repository synchronization | Partially completed | File and ETag behavior exists; network synchronization does not. |
-| A10 | In-flight price changes and historical reporting | Partially completed | Immutable assessments exist; final reporting and release acceptance remain open. |
+| A10 | In-flight price changes and historical reporting | Partially completed | Immutable assessments and dual-driver genuine-native in-flight price/FX, historical reporting and recorder replay proof passed the full current-source matrix; release acceptance remains open. |
 | A11 | Concurrent quota, TPM, RPM, and concurrency contention | Partially completed | Single-process controlled enforcement exists; distributed and capacity bounds remain open. |
 | A12 | IPv4, IPv6, CIDR, and forged forwarding headers | Partially completed | Controlled source-address enforcement exists; production proxy-topology acceptance remains open. |
 | A13 | Self, repeated, concurrent approval and Team overflow | Completed | Real PostgreSQL/MySQL controlled tests reject self/duplicate/stale decisions, serialize owner approve/approve and approve/reject competitors, retain one winner and audit, atomically raise Team/member caps, roll back exact audit failure, and preserve receipts/current use through restart. This is controlled single-process acceptance. |
@@ -2728,3 +2728,199 @@ is. The final mandatory `go tool task check` passed. This phase carries only
 delivery commit and exact remote ref for transport. This delivery does not
 add broader alert thresholds or stop-policy configuration, external mail
 acceptance, or distributed worker acknowledgement.
+
+### Scoped Usage CSV main candidate, 2026-10-04
+
+The accepted Team-notice delivery is `4a4682380418077c1f827f794de3e873714126a0`,
+pushed and read back from exact remote main. CI37173852477 passed;
+Actionlint37173852521 and GolangCI37173852587 passed for that source.
+
+Root carried thirteen frozen CSV source/fixture paths plus four central GET
+routes and one lifecycle registration, preserving all Home/monthly/V47 and
+callback repairs. Current-main format/check/test/build passed: 1765 frontend
+cases in 99 files, Go race/unit, development lifecycle and production assets.
+No dependency change was retained; eighteen optional Linux libc metadata-only
+changes were restored to their exact pre-build bytes.
+
+The first actual PostgreSQL/MySQL CSV focus failed (Handler61.377s) because its
+new fixture incorrectly required daily edge buckets to equal the clipped query
+range. Existing reports preserve full local calendar days. The fixture now
+asserts the exact half-open query range, full March9–March13 New York calendar
+boundaries, four contiguous day buckets and the native23-hour DST day. Complete
+CSV/report cell comparison, exact monetary/Token values, scope totals and
+out-of-range exclusion remain unchanged. No production behavior changed.
+Compilation and the corrected real-driver focus passed: Handler54.081s,
+PostgreSQL19.28s and MySQL32.91s. Owned focus resources were removed.
+
+The controlled production helper verified thirteen actual authenticated CSV
+files against every corresponding JSON report cell, including all four scopes,
+empty peer history and status/protocol/Model/Key filters. All reads retained seven
+native dispatches and eight immutable facts. Its earlier port-probe, timestamp
+representation and omitted-empty-group assumptions were corrected in the local
+helper; failed trials were cleaned and do not establish acceptance.
+
+The browser displayed a prepared-download notice and paired English/Chinese
+guidance. The in-app download event did not return a saved path, so this is not
+browser saved-file proof. Real browser acceptance also found that periodic
+Session renewal unmounted the filter owner and reset applied/unsaved filters. A
+scoped state-lifetime repair and real-query regression tests are in progress;
+private report/export authority must still renew and cancel obsolete requests.
+New source gates/build, controlled privacy/restart proof, complete main database
+regression and final mandatory check remain delivery gates.
+F22 and the full objective remain partial.
+
+
+### Usage CSV authority and filter-lifetime acceptance, 2026-10-04
+
+The isolated production browser prepared CSV for Personal, Team, Project and
+platform scopes using their existing filter rows. Team reports exposed aggregate
+facts only. Fresh Team membership reads after removal hid previous report facts
+and disabled export; rejoin restored the same history. Project report refresh
+after manager removal likewise hid history and disabled export, then recovered
+after explicit manager restoration. Revoking the historical Personal Key left
+recorded Key groups intact. Browser Session revocation cleared the private
+workspace and returned to sign-in. Every helper capture retained exactly seven
+native dispatches and eight immutable facts.
+
+The discovered Session-renewal regression is repaired in three Usage files.
+Non-sensitive applied filters and independent raw drafts live in an actor-and-
+exact-source owner; generation-bound authority/report/export subtrees still
+unmount during renewed reads. The focused real-query suite passed60 cases in
+four files, with TypeScript, ESLint and formatting passing. Tests cover all four
+scopes, same-data/same-millisecond Session renewals, invalid unsaved drafts,
+permission denial/recovery, Team selection, source changes, captured-request
+cancellation, discarded late files, and no automatic export. Complete rebuilt
+main gates and post-repair production proof remain pending.
+
+
+The repaired main passed complete format/check/test/build:1774 frontend cases in
+99 files, Go race/unit, development lifecycle and production assets. Eighteen
+optional Linux libc metadata changes were restored; no dependency edit remains.
+The rebuilt production artifact SHA-256 is
+`c1a4c81d36d82359c53e9e95092b0f9be4c4fabca28cf706229fb49486962f5c`.
+It replaced the QA executable atomically before an actual process restart.
+All thirteen authenticated CSV/report projections still matched; Sessions,
+revoked Key history and eight immutable facts persisted, with seven native
+upstream dispatches and no replay. Post-repair browser renewal and complete main
+PostgreSQL/MySQL regression remain final acceptance gates.
+
+
+Post-repair production browser acceptance passed actual periodic renewed reads:
+custom applied range/hourly/comparison remained in the fresh report, while an
+independent invalid unsaved end-time draft survived. Export still prepared using
+the applied request; live Chinese switching retained those values. Browser
+warning/error logs were empty. Final authenticated captures after restart and
+renewal still matched all thirteen CSV/report projections and the same seven
+native dispatches/eight immutable facts. The in-app browser returned no saved
+file path, so byte correctness is established by authenticated HTTP captures,
+not a browser-save claim. Complete main database regression is the remaining
+behavior gate before final check and scoped delivery.
+
+
+A further source audit identified a preexisting exact-ID gap now exposed by the
+shared report/export contract. Historical Model/Key/User/Project/Provider/
+Provider-model/Connection filters still use ordinary equality; accepted ID syntax
+permits uppercase, while supported MySQL text collation can match aliases.
+Personal/Project scope predicates and Project existence checks are being reviewed
+at the same boundary. Existing Team queries already use database-layer exact
+comparison and fact validation. Narrow portability hardening and two-driver
+canonical/alias JSON/CSV fixtures are in an isolated source workspace. The running
+complete matrix predates this repair and is interim evidence only; current-source
+checks and actual-driver acceptance are required before CSV delivery.
+
+
+The repaired filter-lifetime main completed its full PostgreSQL/MySQL regression
+successfully: Handler1203.358s and Service7.479s, with owned containers/network/
+volumes removed and verified absent. This is explicitly the source before the
+subsequent exact-ID repair, not final acceptance of that additional source.
+Three frozen exact-ID paths plus one lifecycle registration are now carried onto
+main. Current-source check/test/build and the real-driver Usage/Team/CSV/identity/
+Home regression focus are running. The identity fixture's seeded immutable facts
+prove query selection and projection only; genuine native completion remains
+established independently by controlled process and freshness fixtures.
+
+
+### Usage exact-identity acceptance checkpoint, 2026-10-04
+
+Current main format/check/test/build passed after the exact-ID repair: 1774
+frontend cases in 99 files, Go race/unit, development lifecycle and embedded
+production assets. The rebuilt artifact SHA-256 is
+`9dd69fbbc3f8c86455797c63ed71a6f33c951ab87e860e9fc97f2ee896d0fdaf`.
+No dependency changes remain. The focused real PostgreSQL/MySQL regression
+passed under race detection: Handler118.128s, PostgreSQL46.43s and MySQL69.52s.
+It included Usage, Team Usage, CSV, exact identity and monthly Home Usage.
+Canonical positives, all eight historical selectors, case/trailing aliases,
+Project manager/administrator resource aliases, archived history and exact
+Personal attribution passed. Owned containers, network and volumes were removed
+and verified absent. Seeded identity facts establish selection/projection only.
+
+A separate genuine-native freshness fixture is being prepared for the final
+source matrix. It preserves the existing prohibition on denomination changes
+during an unresolved monetary hold: an in-flight price/FX update retains the
+original denomination, and a later currency cutover follows settlement. Queued
+facts, unknown usage, explicit zero, free prices, commit-before-ack replay and
+restart are independent assertions. This preparation is not real-driver proof.
+The final complete database matrix and mandatory check remain delivery gates.
+
+
+The first genuine-native freshness focus failed before pricing mutation
+assertions on both drivers (Handler59.649s). Its new CSV oracle passed an empty
+Personal scope identifier, while the production export correctly returned the
+exact current actor ID. The fixture is being repaired to supply the authenticated
+actor for each JSON/CSV read; all projection and privacy assertions remain.
+Owned containers, network and volumes were removed and verified absent. This
+failed fixture run is not acceptance. The same source passed complete source
+gates and retained 1774 frontend cases in 99 files; compile-only source tests do
+not supersede the failed actual-driver gate.
+
+
+### Genuine-native Usage freshness acceptance, 2026-10-04
+
+The repaired fixture passed on actual PostgreSQL/MySQL under race detection:
+Handler65.282s, PostgreSQL23.35s and MySQL40.07s, including the parent's fresh
+schema and historical migration reconstruction. Each driver dispatched exactly
+five native Chat completions, preserving exact Credential/request/attempt/Model/
+published-snapshot identities. An actual in-flight request retained its original
+price/FX/ETag and CNY 26.6 while reviewed HTTP changes published a newer generation;
+the next call used CNY 9. Denomination changed to EUR only after known settlement.
+Explicit zero, terminal null usage and nonzero usage with enabled free rates
+remained separate. Final reports contained 3,000,009 known Tokens plus one unknown
+call, historical CNY 35.6 across two calls and EUR 0 across two calls, plus one
+unknown monetary assessment. Current FX never recomputed those historical sums.
+
+Both scoped JSON and complete CSV omitted queued/in-flight facts while delivery
+was paused. The empty peer exposed no foreign completion watermark. The last
+actual native journal payload committed before acknowledgement; a fresh Service
+replayed the original queue, increasing totals without advancing the already
+latest selected completion. Fixed half-open start ranges, current/previous
+projections, original complete price snapshots and immutable records/attempts
+passed a second Service restart and repeat flush, with no new upstream dispatch.
+The oracle-only Personal scope-ID repair retained every privacy/projection
+assertion. Owned Compose containers, network and volumes were removed and
+verified absent. This closes the bounded local behavior gap, not measured
+capacity, live-provider, fleet or deployment acceptance. The complete current-
+source main matrix is now running; final check and delivery remain pending.
+
+
+### Checked scoped Usage CSV main package, 2026-10-04
+
+The complete final-source PostgreSQL/MySQL integration matrix passed under race
+detection: Handler1222.042s and Service7.418s. This includes the exact-ID repair
+and corrected genuine-native freshness fixture; earlier matrices remain distinct
+checkpoints. Owned containers, network and volumes were removed and verified
+absent. All 19 final code-path hashes remained unchanged during the matrix.
+The mandatory `go tool task check` passed for this exact source. Complete
+format/test/build gates passed with 1774 frontend cases in 99 files, Go race/unit,
+development lifecycle and embedded assets; the only subsequent source edit was
+the corrected fixture's independently asserted Personal actor ID, covered by
+the final check and actual focus/full matrix. No dependency changes remain.
+
+The checked package adds complete scoped CSV to the existing filter row, exact
+historical identity selection and actor/source-bound applied/draft filter
+lifetimes. Real HTTP byte captures establish 13 full report projections; browser
+proof establishes bilingual prepared-download, privacy/revocation, restart and
+timed renewal behavior, separately from an unavailable browser saved-file path.
+Genuine-native fixtures establish in-flight price/FX retention and durable replay.
+English README, Usage contracts, implementation evidence, current handoff and
+paired frontend rules are included in the bounded main commit. F22/A10 and
+full RouteX remain partial for measured capacity, external and release gates.

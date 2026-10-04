@@ -1,4 +1,4 @@
-import { useId, useState, type ReactNode, type FormEvent } from 'react'
+import { useId, useState, type ReactNode, type FormEvent, type ChangeEvent } from 'react'
 import { useTranslation } from 'react-i18next'
 import { FormField } from '@/components/app/CatalogUI'
 import { Input } from '@/components/ui/input'
@@ -7,26 +7,41 @@ import { Switch } from '@/components/ui/switch'
 import type { UsageFilters, UsageGroup } from '@/types/usage'
 import { defaultUsageFilters, readUsageFilters } from './filter-state'
 
+export type UsageFilterDraft = Record<string, string>
+
 export default function UsageFiltersForm({
   admin,
   team = false,
   sourceControl,
+  action,
   models,
   keys,
   onApply,
+  draft,
+  onDraft,
 }: {
   admin: boolean
   team?: boolean
   sourceControl?: ReactNode
+  action?: ReactNode
   models: UsageGroup[]
   keys: UsageGroup[]
   onApply: (filters: UsageFilters) => void
+  draft: UsageFilterDraft
+  onDraft: (draft: UsageFilterDraft) => void
 }) {
   const { t } = useTranslation('usage')
   const id = useId()
-  const [period, setPeriod] = useState('month')
-  const [granularity, setGranularity] = useState('auto')
+  const period = draft.period ?? 'month'
+  const granularity = draft.granularity ?? 'auto'
   const [validation, setValidation] = useState('')
+  function field(name: string) {
+    return {
+      value: draft[name] ?? '',
+      onChange: (event: ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
+        onDraft({ ...draft, [name]: event.target.value }),
+    }
+  }
   function apply(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     const next = readUsageFilters(new FormData(event.currentTarget), admin)
@@ -41,9 +56,14 @@ export default function UsageFiltersForm({
   return (
     <form
       onSubmit={apply}
-      onReset={() => {
-        setPeriod('month')
-        setGranularity('auto')
+      onInput={(event) => {
+        const input = event.target
+        if (input instanceof HTMLInputElement && input.name && input.name !== 'compare')
+          onDraft({ ...draft, [input.name]: input.value })
+      }}
+      onReset={(event) => {
+        event.preventDefault()
+        onDraft({ period: 'month', granularity: 'auto', timezone: 'UTC' })
         setValidation('')
         onApply({ ...defaultUsageFilters })
       }}
@@ -56,8 +76,7 @@ export default function UsageFiltersForm({
             name="period"
             value={period}
             onChange={(e) => {
-              setPeriod(e.target.value)
-              setGranularity('auto')
+              onDraft({ ...draft, period: e.target.value, granularity: 'auto' })
             }}
             className={selectClass}
           >
@@ -72,7 +91,7 @@ export default function UsageFiltersForm({
           <select
             name="granularity"
             value={granularity}
-            onChange={(e) => setGranularity(e.target.value)}
+            onChange={(e) => onDraft({ ...draft, granularity: e.target.value })}
             className={selectClass}
           >
             {['auto', 'hour', 'day', 'week', 'month'].map((g) => (
@@ -84,7 +103,7 @@ export default function UsageFiltersForm({
         </FormField>
         {sourceControl}
         <FormField label={t('timezone')}>
-          <Input name="timezone" defaultValue="UTC" list={`${id}-zones`} className="w-44" />
+          <Input name="timezone" {...field('timezone')} list={`${id}-zones`} className="w-44" />
         </FormField>
         <datalist id={`${id}-zones`}>
           {['UTC', 'Asia/Shanghai', 'America/New_York', 'Europe/London'].map((zone) => (
@@ -94,7 +113,13 @@ export default function UsageFiltersForm({
         {!team && (
           <>
             <FormField label={t('key')}>
-              <Input name="key_id" placeholder={t('all')} list={`${id}-keys`} className="w-44" />
+              <Input
+                name="key_id"
+                {...field('key_id')}
+                placeholder={t('all')}
+                list={`${id}-keys`}
+                className="w-44"
+              />
             </FormField>
             <datalist id={`${id}-keys`}>
               {keys
@@ -106,7 +131,13 @@ export default function UsageFiltersForm({
           </>
         )}
         <FormField label={t('model')}>
-          <Input name="model_id" placeholder={t('all')} list={`${id}-models`} className="w-44" />
+          <Input
+            name="model_id"
+            {...field('model_id')}
+            placeholder={t('all')}
+            list={`${id}-models`}
+            className="w-44"
+          />
         </FormField>
         <datalist id={`${id}-models`}>
           {models
@@ -118,21 +149,27 @@ export default function UsageFiltersForm({
             ))}
         </datalist>
         <label className="flex h-9 items-center gap-2">
-          <Switch name="compare" aria-label={t('compare')} />
+          <Switch
+            name="compare"
+            aria-label={t('compare')}
+            checked={draft.compare === 'on'}
+            onCheckedChange={(checked) => onDraft({ ...draft, compare: checked ? 'on' : '' })}
+          />
           {t('compare')}
         </label>
         <Button type="submit">{t('apply')}</Button>
         <Button variant="ghost" type="reset">
           {t('reset')}
         </Button>
+        {action}
       </div>
       {period === 'custom' && (
         <div className="grid gap-3 sm:grid-cols-2">
           <FormField label={t('from')}>
-            <Input name="from" placeholder="2026-09-01T00:00:00Z" required />
+            <Input name="from" {...field('from')} placeholder="2026-09-01T00:00:00Z" required />
           </FormField>
           <FormField label={t('to')}>
-            <Input name="to" placeholder="2026-09-02T00:00:00Z" required />
+            <Input name="to" {...field('to')} placeholder="2026-09-02T00:00:00Z" required />
           </FormField>
         </div>
       )}
@@ -140,7 +177,7 @@ export default function UsageFiltersForm({
         <summary className="w-fit cursor-pointer text-muted-foreground">{t('advanced')}</summary>
         <div className="mt-3 flex flex-wrap items-end gap-3 [&_label]:w-44 [&_label]:text-xs [&_input]:h-9">
           <FormField label={t('status')}>
-            <select className={selectClass} name="status">
+            <select className={selectClass} name="status" {...field('status')}>
               <option value="">{t('all')}</option>
               {['success', 'error', 'canceled'].map((s) => (
                 <option key={s} value={s}>
@@ -150,14 +187,14 @@ export default function UsageFiltersForm({
             </select>
           </FormField>
           <FormField label={t('stream')}>
-            <select className={selectClass} name="stream">
+            <select className={selectClass} name="stream" {...field('stream')}>
               <option value="">{t('all')}</option>
               <option value="true">{t('streaming')}</option>
               <option value="false">{t('ordinary')}</option>
             </select>
           </FormField>
           <FormField label={t('protocol')}>
-            <select className={selectClass} name="protocol">
+            <select className={selectClass} name="protocol" {...field('protocol')}>
               <option value="">{t('all')}</option>
               <option value="openai_chat">{t('chat')}</option>
               <option value="openai_responses">{t('responses')}</option>
@@ -177,7 +214,7 @@ export default function UsageFiltersForm({
               ] as const
             ).map(([name, label]) => (
               <FormField label={t(label)} key={name}>
-                <Input name={name} placeholder={t('optional')} />
+                <Input name={name} {...field(name)} placeholder={t('optional')} />
               </FormField>
             ))}
         </div>

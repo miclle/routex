@@ -1,4 +1,13 @@
 export default {
+  exportDenied:
+    'This usage scope could not be authorized. Refresh the report before exporting again.',
+  exportCSV: 'Export CSV',
+  exporting: 'Preparing CSV…',
+  exportReady: 'CSV download was prepared.',
+  exportFailed: 'The CSV could not be prepared. Refresh authority or retry explicitly.',
+  exportOverflow: 'The complete export exceeds its limit. Narrow the applied range or filters.',
+  exportHelp:
+    'Exports use the last applied filters and a fresh server report, which may differ from the screen. Exact text uses apostrophe_text_v1: remove one added leading apostrophe to recover the original text; import those columns as text to preserve precision.',
   teamTitle: 'Team usage',
   teamDescription:
     'Shared aggregate usage for this Team. Member identities and individual call records are not included.',

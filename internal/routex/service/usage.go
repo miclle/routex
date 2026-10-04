@@ -4,10 +4,12 @@ import (
 	"context"
 	"database/sql"
 	"errors"
-	"slices"
 	"time"
 
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
+
+	"github.com/miclle/routex/internal/routex/database"
 
 	"github.com/miclle/routex/internal/routex/entity"
 	apperrors "github.com/miclle/routex/internal/routex/errors"
@@ -49,7 +51,12 @@ func usageQueryFilters(query *gorm.DB, filter UsageFilter) *gorm.DB {
 	if filter.TeamID != "" {
 		query = teamUsageFacts(query, filter.TeamID)
 	}
-	for _, item := range []struct{ column, value string }{{"model_id", filter.ModelID}, {"key_id", filter.KeyID}, {"status", filter.Status}, {"protocol", filter.Protocol}, {"user_id", filter.UserID}, {"project_id", filter.ProjectID}, {"provider_id", filter.ProviderID}, {"provider_model_id", filter.ProviderModelID}, {"connection_id", filter.ConnectionID}} {
+	for _, item := range []struct{ column, value string }{{"model_id", filter.ModelID}, {"key_id", filter.KeyID}, {"user_id", filter.UserID}, {"project_id", filter.ProjectID}, {"provider_id", filter.ProviderID}, {"provider_model_id", filter.ProviderModelID}, {"connection_id", filter.ConnectionID}} {
+		if item.value != "" {
+			query = query.Where(database.ExactText(query, clause.Column{Name: item.column}, item.value))
+		}
+	}
+	for _, item := range []struct{ column, value string }{{"status", filter.Status}, {"protocol", filter.Protocol}} {
 		if item.value != "" {
 			query = query.Where(item.column+" = ?", item.value)
 		}
@@ -77,7 +84,7 @@ func authorizeUsage(tx *gorm.DB, actorID, scope, projectID string) error {
 		}
 		return nil
 	}
-	permissions, err := permissionsFor(tx, actorID)
+	actor, err := exactEnabledActor(tx, actorID)
 	if err != nil {
 		return err
 	}
@@ -87,8 +94,12 @@ func authorizeUsage(tx *gorm.DB, actorID, scope, projectID string) error {
 	if projectID == "" || !safeCallID.MatchString(projectID) {
 		return apperrors.ErrBadRequest
 	}
-	if !slices.Contains(permissions, "calls.read_all") {
-		manager, err := resourceManager(tx, actorID, projectID)
+	allowed, err := exactGovernancePermission(tx, actor, "calls.read_all")
+	if err != nil {
+		return err
+	}
+	if !allowed {
+		manager, err := exactProjectRequestManager(tx, actorID, projectID)
 		if err != nil {
 			return err
 		}
@@ -96,15 +107,34 @@ func authorizeUsage(tx *gorm.DB, actorID, scope, projectID string) error {
 			return apperrors.ErrNotFound
 		}
 	}
-	var count int64
-	if err := tx.Model(&entity.Project{}).Where("id = ?", projectID).Count(&count).Error; err != nil {
-		return err
-	}
-	if count != 1 {
+	var project entity.Project
+	err = tx.Select("id").Where(database.ExactText(tx, clause.Column{Name: "id"}, projectID)).First(&project).Error
+	if errors.Is(err, gorm.ErrRecordNotFound) || err == nil && project.ID != projectID {
 		return apperrors.ErrNotFound
 	}
-	return nil
+	return err
 }
+
+// Historical attribution is scoped without mutable catalogue joins or collated aliases.
+func usageScopeFacts(query *gorm.DB, actorID, scope, targetID string) *gorm.DB {
+	switch scope {
+	case "personal":
+		query = query.Where(database.ExactText(query, clause.Column{Name: "user_id"}, actorID))
+		return usagePersonalFacts(query)
+	case "project":
+		return query.Where(database.ExactText(query, clause.Column{Name: "project_id"}, targetID))
+	case "team":
+		return teamUsageFacts(query, targetID)
+	default:
+		return query
+	}
+}
+
+func usagePersonalFacts(query *gorm.DB) *gorm.DB {
+	return query.Where(database.ExactText(query, clause.Column{Name: "project_id"}, "")).
+		Where(database.ExactText(query, clause.Column{Name: "team_id"}, ""))
+}
+
 func (s *Service) queryUsage(ctx context.Context, actorID, scope, projectID string, filter UsageFilter) (*UsageReport, error) {
 	admin := scope == "admin"
 	if err := validateUsageFilter(filter, admin); err != nil {
@@ -132,17 +162,10 @@ func (s *Service) queryUsage(ctx context.Context, actorID, scope, projectID stri
 			return err
 		}
 		query := tx.Model(&entity.CallRecord{}).Select(usageFactColumns(scope)).Where("started_at >= ? AND started_at < ?", from, plan.current.to)
-		switch scope {
-		case "personal":
-			query = query.Where("user_id = ? AND project_id = ? AND team_id = ?", actorID, "", "")
-		case "project":
-			query = query.Where("project_id = ?", projectID)
-		case "team":
-			query = teamUsageFacts(query, projectID)
-		}
+		query = usageScopeFacts(query, actorID, scope, projectID)
 		// An admin user filter selects Personal attribution, not Team actors or Project creators.
 		if filter.UserID != "" {
-			query = query.Where("project_id = ? AND team_id = ?", "", "")
+			query = usagePersonalFacts(query)
 		}
 		query = usageQueryFilters(query, filter)
 		if err := query.Order("started_at ASC").Order("request_id ASC").Limit(usageRowLimit + 1).Find(&rows).Error; err != nil {

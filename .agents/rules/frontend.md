@@ -505,3 +505,19 @@ transient, never borrow Personal/Project uploads, preserve completed plaintext
 history only and disable code export while media is selected.
 
 The member Home Overview preserves its identity header and monthly resource-account table, followed by three Personal thirty-day usage cards, a full-width Token trend, and Model/API Key detail tabs. Request only the existing Personal Usage API with the server-anchored 30d preset, UTC daily buckets and no comparison. Preserve exact returned range, observed query time, recorded completion and durable-delivery lag. Keep the authoritative success-rate denominator, including cancellations and admission failures, explicit. Render exact token strings and unknown coverage separately; leave unknown trend buckets as gaps and derive bounded shares only from known positive totals with BigInt. Historical identities come from the report alone. Scope queries to the current actor and successful Session generation, hide private facts during renewal/errors, abort obsolete reads, and ignore late responses. Keep overflow guidance localized and link to Usage without fabricating narrower results, remaining allowance, combined Team usage, or Key secrets.
+
+Usage CSV export remains the final action in the existing filter row and uses
+only the last applied scoped filters. Request one authorized server CSV; never
+serialize cached report data or fetch a directory to fill it. Preserve the
+reversible `apostrophe_text_v1` exact-text encoding, null versus zero, recorded
+currencies and independent Personal/Project/Team/platform dimensions. Scope the
+transient download to actor, target, applied filters and successful Session
+generation; abort obsolete work and reject late callbacks without replay. Keep
+401/403/404 authority loss separate from bounded-complete-export failures. Blob
+URLs stay transient and are revoked promptly. A prepared download is not proof
+that a file was saved. Keep paired `usage` guidance and independent server gates.
+Preserve non-sensitive applied filters and independent raw drafts in an actor-and-exact-source owner through successful
+Session or permission renewal. Generation-bound report/export subtrees still
+unmount during authority reads; actor or Personal/Team/Project/platform source
+changes clear filter intent. Never persist drafts in browser storage or private
+query caches.

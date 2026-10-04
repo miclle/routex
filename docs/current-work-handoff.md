@@ -8,16 +8,23 @@ delivery evidence remains in `docs/IMPLEMENTATION.md`.
 ## Repository and delivery boundary
 
 - Branch: `main`.
-- Previous checked and pushed delivery: `d79f1a6c3113d3446b59b9e99c9146dd6e70f89c`,
-  Personal thirty-day Home usage. The new Team-notice delivery is identified
-  by this document's commit; read its exact remote ref/checks independently.
-- Exact remote checks passed: CI 37170564226, Actionlint 37170564249 and
-  GolangCI-Lint 37170564253.
-- This delivery contains 25 scoped paths: Team monthly-notification source,
+- Previous checked and pushed feature delivery: `4a4682380418077c1f827f794de3e873714126a0`,
+  Team aggregate monthly settled-exhaustion notices. Exact remote read-back
+  matched; all three exact remote checks passed.
+- Prior Home `d79f1a6` checks passed: CI37170564226, Actionlint37170564249 and
+  GolangCI37170564253. Team-notice Actionlint37173852521 and GolangCI37173852587
+  passed; CI37173852477 passed.
+- The Team-notice delivery contains 25 scoped paths: Team monthly-notification source,
   narrow V47 registrations, the credential-metadata test callback lifecycle
   repair, the finite integration timeout update, paired frontend rules and
   English docs. Complete source, database, controlled production/browser and
-  final mandatory checks passed. No later candidate is included.
+  final mandatory checks passed. Its commit contains no later candidate.
+- Current checked package: scoped Usage CSV, exact historical-ID selection and
+  retained applied/draft filters. Complete source gates passed with 1774 frontend
+  cases/99 files. The final complete PostgreSQL/MySQL matrix passed under race
+  detection (Handler1222.042s, Service7.418s); mandatory check passed and all
+  owned resources were removed. This package is recorded by the commit carrying
+  this handoff; consult Git history for its delivery SHA.
 - Independent Usage CSV, internal root rotation and repository price-sync
   candidates live in managed worktrees. Their dirty source and local temporary
   helpers are local-only until carried, checked and committed.
@@ -89,14 +96,15 @@ commit/push. The previous failed run is not acceptance.
 
 ## Independent candidates
 
-Use `git worktree list` for current local locations. Do not copy entire worktree
+Use `git worktree list` for current local locations. The alias source starts from checked Team-notice main and introduces no receipt table or migration; its actual-state retry cannot prove the original historical stop. Do not copy entire worktree
 diffs because their shared files include carried baselines.
 
 | Worktree | Frozen/active scope | Remaining acceptance |
 | --- | --- | --- |
-| `usage-report-export` | 13 exclusive CSV backend/frontend/fixture paths plus four central GET routes and one lifecycle registration; frozen source check/test/build passed 1638 frontend cases/92 files | Carry onto clean main after Team notices; build current-main binary; actual four-scope CSV/browser download/privacy/restart proof; full main matrix and final check |
-| `internal-root-rotation` | 49 frozen crypto, five-domain fences/worker, HTTP/UI and fixture paths; root registered V48/six routes after V47 and added paired rules/secret docs; complete source check/test/build passed 1734 frontend cases/97 files | Actual migrations/writer contention, five real domain operations, continuous server-owned 300-second observation, restart, bilingual UI, full main matrix; external Vault work remains open |
-| `repository-price-sync` | Root-owned strict embedded file/package foundation; backend/interface owners implement V49, stable mappings, per-rate custom provenance, preview/apply/restore and durable config receipts | Complete source gates, real PostgreSQL/MySQL migration/lifecycle, production/browser preview/apply and stale/uncertain receipt proof |
+| `usage-report-export` | Thirteen source/fixture paths carried onto Team-notice main with four central GET routes and one lifecycle registration; repaired current-main check/test/build passed with 1774 frontend cases/99 files | Real-driver focus passed54.081s; thirteen real CSV/report files match; browser found Session-refresh filter resets; three-file repair passed60 focused cases. Rebuilt browser timed renewal, four-scope/privacy/restart proof passed; exact-ID source and both-driver regression passed in 118.128s; genuine-native freshness passed in 65.282s; complete final-source matrix passed in 1222.042s/7.418s and mandatory check passed; checked package included in main delivery |
+| `internal-root-rotation` | 49 frozen crypto, five-domain fences/worker, HTTP/UI and fixture paths plus three validated bootstrap prerequisites; V48/six routes and latest checked source baseline passed with 1827 frontend cases/101 files | Actual migrations/writer contention, five real domain operations, continuous server-owned 300-second observation, restart, bilingual UI, full main matrix; external Vault work remains open |
+| `repository-price-sync` | Four strict source files,15 backend,24 HTTP/UI and two actual-driver fixtures frozen; V47/V48/V49 and shared baselines integrated; complete union source gates passed with 1906 frontend cases/104 files | Real PostgreSQL/MySQL migration/lifecycle, production/browser preview/apply and stale/uncertain receipt proof |
+| `model-alias-retirement` | F12 exact compatibility-name Early stop contract approved; backend, existing-detail UI and genuine-native fixture preparation have disjoint owners | Eight Key/Team × four-protocol prepared-name RED/GREEN tests and full service race passed; source/UI/fixture completion, both drivers and browser remain pending |
 
 Usage CSV reuses one existing authorized report, completes bounded rectangular
 UTF-8 CSV before headers, and keeps exact text with `apostrophe_text_v1`. It adds
@@ -122,15 +130,28 @@ uncertain operation. Per-rate custom zero/disabled/same-amount edits are
 protected. No external URL/authentication blocks this initial source; a later
 source migration is a separate decision.
 
+A separately labelled synthetic-source artifact was built only in a private
+temporary source copy. Its two TEST ONLY entries never enter tracked production
+bytes. Production remains the intentionally empty catalogue. The prepared helper
+will first verify the real embedded production digest, then exercise explicit
+mapping/custom-price/restore operations and immutable native price facts using
+that distinguishable test artifact. Preparation/build is not actual service or
+browser acceptance. Final main carries and real-driver proof remain required.
+
+
 ## First valid actions and completion conditions
 
-1. Verify the new Team-notice delivery SHA and exact remote CI checks. The
-   complete main matrix passed with exit zero/no race and full owned cleanup;
-   the final required check passed. Preserve the existing 15 frozen source
-   hashes and the necessary callback lifecycle repair.
-2. Carry only frozen Usage CSV paths and narrow routes/fixture into clean main;
-   run check/test/build, actual production/browser download/privacy/restart and
-   complete database regression, then final check and phased commit/push.
+1. Read current Git history and verify the CSV delivery/upstream ref after its
+   authorized commit/push. The exact current-source final matrix and mandatory
+   check passed; all 19 code hashes stayed frozen. Do not rerun earlier repaired
+   fixtures without a new change or unresolved failure.
+2. Preserve the checked CSV contract and accepted tests: 13 real authenticated
+   CSV/report captures, four-scope privacy/restart, bilingual browser renewal
+   with invalid unsaved draft retained, exact-ID driver focus118.128s, and
+   genuine-native freshness65.282s with five dispatches per driver. No browser
+   saved path was returned. The initial calendar and Personal scope-ID fixture
+   failures were corrected without changing production behavior or weakening
+   projection/privacy assertions. The final full matrix passed in 1222.042s/7.418s.
 3. Continue internal rotation and repository-sync source preparation in their
    separate worktrees while root serially accepts the CSV main package.
 4. Carry internal rotation independently after CSV, preserving V47 and current

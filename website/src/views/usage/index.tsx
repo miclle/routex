@@ -1,17 +1,19 @@
-import { useLayoutEffect, useRef, useState, type ReactNode } from 'react'
-import { useInfiniteQuery, useQuery } from '@tanstack/react-query'
+import { useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { useInfiniteQuery, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useInRouterContext, useSearchParams } from 'react-router'
 import { isAxiosError } from 'axios'
-import { RefreshCw } from 'lucide-react'
+import { Download, RefreshCw } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { getUsage, getUsageTeams } from '@/api/usage'
 import TeamSelector from './team-selector'
-import { useSession } from '@/hooks/use-auth'
+import { sessionKey, useSession } from '@/hooks/use-auth'
+import { useSessionGeneration } from '@/hooks/use-session-generation'
+import { getPermissions } from '@/api/governance'
+import { downloadUsageCSV, exportUsage } from '@/api/usage-export'
 import { Page, QueryState } from '@/components/app/CatalogUI'
-import { PermissionGate } from '@/components/app/PermissionGate'
 import { Button } from '@/components/ui/button'
 import type { UsageFilters, UsageScope } from '@/types/usage'
-import UsageFiltersForm from './filters'
+import UsageFiltersForm, { type UsageFilterDraft } from './filters'
 import { defaultUsageFilters } from './filter-state'
 import { SummaryCards, ChargeSummary } from './stats'
 import UsageTrend from './trend'
@@ -20,50 +22,138 @@ import UsageKeyTable from './key-table'
 import { usageTime } from './format'
 
 export default function UsagePage({ admin = false, projectId, teamId }: UsageScope) {
-  return admin && !projectId ? (
-    <PermissionGate permission="calls.read_all">
-      <UsageSession admin />
-    </PermissionGate>
-  ) : (
-    <UsageSession projectId={projectId} teamId={teamId} />
-  )
+  return <UsageSession admin={admin && !projectId} projectId={projectId} teamId={teamId} />
 }
 export function ProjectUsagePanel({ projectId }: { projectId: string }) {
   return <UsagePage projectId={projectId} />
 }
+type UsageFilterState = {
+  filters: UsageFilters
+  onApply: (filters: UsageFilters) => void
+  draft: UsageFilterDraft
+  onDraft: (draft: UsageFilterDraft) => void
+}
 function UsageSession(scope: UsageScope) {
   const session = useSession()
   const routed = useInRouterContext()
-  if (session.isPending || session.isError || !session.data)
-    return (
+  const gate =
+    session.isFetching || session.isPending || session.isError || !session.data ? (
       <QueryState
-        pending={session.isPending}
+        pending={session.isFetching || session.isPending}
         error={session.error}
         retry={() => void session.refetch()}
       />
-    )
+    ) : undefined
+  if (!session.data) return gate
   const actor = session.data.user.id
   if (!scope.admin && !scope.projectId)
     return routed && !scope.teamId ? (
-      <RoutedMemberUsage key={actor} userId={actor} />
+      <RoutedMemberUsage key={actor} userId={actor} sessionGate={gate} />
     ) : (
       <LocalMemberUsage
-        key={`${actor}:${scope.teamId ?? ''}`}
+        key={JSON.stringify([actor, scope.teamId ?? ''])}
         userId={actor}
         initialTeam={scope.teamId ?? ''}
+        sessionGate={gate}
       />
     )
-  const key = JSON.stringify([actor, scope.admin ?? false, scope.projectId ?? ''])
-  return <UsageContent key={key} scope={scope} userId={actor} />
+  return (
+    <UsageScopeState
+      key={JSON.stringify([actor, scope.admin ?? false, scope.projectId ?? ''])}
+      scope={scope}
+      userId={actor}
+      sessionGate={gate}
+    />
+  )
 }
-function RoutedMemberUsage({ userId }: { userId: string }) {
+// Keep only filter intent through renewed authority reads. Reports and exports
+// remain inside the generation-bound subtree and cannot survive renewal.
+function UsageScopeState({
+  scope,
+  userId,
+  sessionGate,
+  onTeamChange,
+}: {
+  scope: UsageScope
+  userId: string
+  sessionGate?: ReactNode
+  onTeamChange?: (team: string) => void
+}) {
+  const generation = useSessionGeneration()
+  const [filters, onApply] = useState<UsageFilters>({ ...defaultUsageFilters })
+  const [draft, onDraft] = useState<UsageFilterDraft>({
+    period: 'month',
+    granularity: 'auto',
+    timezone: 'UTC',
+  })
+  const state = { filters, onApply, draft, onDraft }
+  if (sessionGate) return sessionGate
+  if (onTeamChange)
+    return (
+      <MemberUsage
+        key={generation}
+        userId={userId}
+        team={scope.teamId ?? ''}
+        onChange={onTeamChange}
+        filterState={state}
+      />
+    )
+  return scope.admin ? (
+    <AdminUsage key={generation} scope={scope} userId={userId} filterState={state} />
+  ) : (
+    <UsageContent key={generation} scope={scope} userId={userId} filterState={state} />
+  )
+}
+function AdminUsage({
+  scope,
+  userId,
+  filterState,
+}: {
+  scope: UsageScope
+  userId: string
+  filterState: UsageFilterState
+}) {
+  const { t } = useTranslation('usage')
+  const generation = useSessionGeneration()
+  const permissions = useQuery({
+    queryKey: ['permissions', userId, 'usage', generation],
+    queryFn: ({ signal }) => getPermissions(signal),
+    retry: false,
+    staleTime: 0,
+    gcTime: 0,
+    refetchOnMount: 'always',
+    refetchOnWindowFocus: true,
+    refetchInterval: 30_000,
+  })
+  if (permissions.isFetching || permissions.isPending || permissions.isError)
+    return (
+      <QueryState
+        pending={permissions.isFetching || permissions.isPending}
+        error={permissions.error}
+        retry={() => void permissions.refetch()}
+      />
+    )
+  if (!permissions.data.includes('calls.read_all'))
+    return (
+      <Page
+        title={t('common:access_denied_cb8d4')}
+        description={t('common:your_account_does_not_have_permission_to_access_ca6a8')}
+      >
+        <p role="alert">{t('common:your_account_does_not_have_permission_to_access_ca6a8')}</p>
+      </Page>
+    )
+  return <UsageContent scope={scope} userId={userId} filterState={filterState} />
+}
+function RoutedMemberUsage({ userId, sessionGate }: { userId: string; sessionGate?: ReactNode }) {
   const [params, setParams] = useSearchParams()
   const team = params.get('team') ?? ''
   return (
-    <MemberUsage
+    <UsageScopeState
+      key={team || 'personal'}
       userId={userId}
-      team={team}
-      onChange={(next) => {
+      scope={{ teamId: team || undefined }}
+      sessionGate={sessionGate}
+      onTeamChange={(next) => {
         const updated = new URLSearchParams(params)
         if (next) updated.set('team', next)
         else updated.delete('team')
@@ -72,19 +162,38 @@ function RoutedMemberUsage({ userId }: { userId: string }) {
     />
   )
 }
-function LocalMemberUsage({ userId, initialTeam }: { userId: string; initialTeam: string }) {
+function LocalMemberUsage({
+  userId,
+  initialTeam,
+  sessionGate,
+}: {
+  userId: string
+  initialTeam: string
+  sessionGate?: ReactNode
+}) {
   const [team, setTeam] = useState(initialTeam)
-  return <MemberUsage userId={userId} team={team} onChange={setTeam} />
+  return (
+    <UsageScopeState
+      key={team || 'personal'}
+      userId={userId}
+      scope={{ teamId: team || undefined }}
+      sessionGate={sessionGate}
+      onTeamChange={setTeam}
+    />
+  )
 }
 function MemberUsage({
   userId,
   team,
   onChange,
+  filterState,
 }: {
   userId: string
   team: string
   onChange: (team: string) => void
+  filterState: UsageFilterState
 }) {
+  const generation = useSessionGeneration()
   const mounted = useRef(false)
   const [refreshing, setRefreshing] = useState(false)
   useLayoutEffect(() => {
@@ -94,7 +203,7 @@ function MemberUsage({
     }
   }, [])
   const teams = useInfiniteQuery({
-    queryKey: ['usage-teams', userId],
+    queryKey: ['usage-teams', userId, generation],
     queryFn: ({ pageParam, signal }) => getUsageTeams(pageParam, signal),
     initialPageParam: null as string | null,
     getNextPageParam: (page, pages) =>
@@ -143,6 +252,7 @@ function MemberUsage({
       scope={{ teamId: team || undefined }}
       contextReady={ready}
       sourceControl={control}
+      filterState={filterState}
     />
   )
 }
@@ -151,15 +261,20 @@ function UsageContent({
   userId,
   contextReady = true,
   sourceControl,
+  filterState,
 }: {
   scope: UsageScope
   userId: string
   contextReady?: boolean
   sourceControl?: ReactNode
+  filterState: UsageFilterState
 }) {
   const { t, i18n } = useTranslation('usage')
+  const generation = useSessionGeneration()
   const locale = i18n.resolvedLanguage === 'zh' ? 'zh-CN' : 'en-US'
-  const [filters, setFilters] = useState<UsageFilters>({ ...defaultUsageFilters })
+  const { filters, onApply, draft, onDraft } = filterState
+  const context = JSON.stringify([userId, scope, filters])
+  const [deniedContext, setDeniedContext] = useState<string | null>(null)
   const teamAccount = !!scope.teamId || !!(scope.admin && filters.team_id)
   const [dimension, setDimension] = useState('keys')
   const [refreshing, setRefreshing] = useState(false)
@@ -170,10 +285,11 @@ function UsageContent({
       mounted.current = false
     }
   }, [])
-  const query = useQuery({
-    queryKey: [
+  const reportKey = useMemo(
+    () => [
       'usage',
       userId,
+      generation,
       scope.teamId
         ? ['team', scope.teamId]
         : scope.projectId
@@ -183,21 +299,149 @@ function UsageContent({
             : 'personal',
       filters,
     ],
+    [userId, generation, scope.teamId, scope.projectId, scope.admin, filters],
+  )
+  const reportHash = JSON.stringify(reportKey)
+  const query = useQuery({
+    queryKey: reportKey,
     queryFn: ({ signal }) => getUsage(scope, filters, signal),
     retry: false,
     enabled: !scope.teamId || contextReady,
-    ...(scope.teamId ? { staleTime: 0, gcTime: 0, refetchOnMount: 'always' as const } : {}),
+    staleTime: 0,
+    gcTime: 0,
+    refetchOnMount: 'always',
   })
   const report =
     query.isSuccess &&
-    (!scope.teamId || (contextReady && !query.isFetching && !query.isError && !refreshing))
+    (!scope.teamId || contextReady) &&
+    !query.isFetching &&
+    !query.isError &&
+    !refreshing &&
+    deniedContext !== context
       ? query.data
       : undefined
+  const cache = useQueryClient()
+  const exportController = useRef<AbortController | null>(null)
+  const exportLock = useRef(false)
+  const [exporting, setExporting] = useState(false)
+  const [exportResult, setExportResult] = useState<{ context: string; key: string } | null>(null)
+  const authority = useRef(false)
+  const teamReady = !scope.teamId || contextReady
+  const exportMessage = exportResult?.context === context ? exportResult.key : ''
+  useLayoutEffect(() => {
+    exportController.current?.abort()
+    return () => {
+      exportController.current?.abort()
+    }
+  }, [context, teamReady])
+  useLayoutEffect(() => {
+    authority.current = !!report
+    if (!report) exportController.current?.abort()
+  }, [report])
+  useLayoutEffect(
+    () =>
+      cache.getQueryCache().subscribe((event) => {
+        if (event.type !== 'updated') return
+        const key = event.query.queryKey
+        if (key[0] === 'auth' && key[1] === 'session') {
+          const state = event.query.state
+          const actor = (state.data as { user?: { id?: string } } | null)?.user?.id
+          if (
+            state.fetchStatus === 'fetching' ||
+            state.status !== 'success' ||
+            actor !== userId ||
+            (event.action.type === 'success' && !event.action.manual)
+          )
+            exportController.current?.abort()
+        }
+        if (
+          (key[0] === 'permissions' && scope.admin) ||
+          (scope.teamId && key[0] === 'usage-teams' && key[1] === userId) ||
+          JSON.stringify(key) === reportHash
+        )
+          exportController.current?.abort()
+      }),
+    [cache, userId, scope.admin, scope.teamId, reportHash],
+  )
+  function currentAuthority() {
+    const session = cache.getQueryState<{ user: { id: string } } | null>(sessionKey)
+    const state = cache.getQueryState(reportKey)
+    if (
+      !authority.current ||
+      session?.fetchStatus === 'fetching' ||
+      session?.status !== 'success' ||
+      session.data?.user.id !== userId ||
+      state?.status !== 'success' ||
+      state.fetchStatus === 'fetching' ||
+      state.isInvalidated
+    )
+      return false
+    const teams = cache.getQueryState(['usage-teams', userId, generation])
+    if (
+      scope.teamId &&
+      (!teams ||
+        teams.status !== 'success' ||
+        teams.fetchStatus === 'fetching' ||
+        teams.isInvalidated)
+    )
+      return false
+    if (scope.admin) {
+      const permissions = cache.getQueryState<string[]>([
+        'permissions',
+        userId,
+        'usage',
+        generation,
+      ])
+      if (
+        permissions?.status !== 'success' ||
+        permissions.fetchStatus === 'fetching' ||
+        !permissions.data?.includes('calls.read_all')
+      )
+        return false
+    }
+    return true
+  }
+  async function exportCSV() {
+    if (exportLock.current || !currentAuthority()) return
+    const controller = new AbortController()
+    exportController.current = controller
+    exportLock.current = true
+    setExporting(true)
+    setExportResult(null)
+    const captured = { ...scope }
+    try {
+      const blob = await exportUsage(captured, { ...filters }, controller.signal)
+      if (controller.signal.aborted || !currentAuthority()) return
+      downloadUsageCSV(blob, captured)
+      setExportResult({ context, key: 'exportReady' })
+    } catch (error) {
+      if (!controller.signal.aborted && mounted.current) {
+        const denied = isAxiosError(error) && [401, 403, 404].includes(error.response?.status ?? 0)
+        if (denied) setDeniedContext(context)
+        setExportResult({
+          context,
+          key: denied
+            ? 'exportDenied'
+            : isAxiosError(error) && error.response?.status === 422
+              ? 'exportOverflow'
+              : 'exportFailed',
+        })
+      }
+    } finally {
+      if (exportController.current === controller) exportController.current = null
+      exportLock.current = false
+      if (mounted.current) setExporting(false)
+    }
+  }
   async function refreshReport() {
     if (query.isFetching || refreshing || (scope.teamId && !contextReady)) return
     setRefreshing(true)
     try {
-      await query.refetch()
+      const result = await query.refetch()
+      if (result.isSuccess && mounted.current) {
+        setDeniedContext(null)
+        setExportResult(null)
+      }
     } finally {
       if (mounted.current) setRefreshing(false)
     }
@@ -267,9 +511,29 @@ function UsageContent({
         sourceControl={sourceControl}
         models={report?.current.models ?? []}
         keys={report?.current.keys ?? []}
-        onApply={setFilters}
+        onApply={onApply}
+        draft={draft}
+        onDraft={onDraft}
+        action={
+          <Button
+            type="button"
+            variant="outline"
+            disabled={!report || exporting}
+            onClick={() => void exportCSV()}
+            className="ml-auto"
+          >
+            <Download className="size-4" aria-hidden />
+            {t(exporting ? 'exporting' : 'exportCSV')}
+          </Button>
+        }
       />
-      {(query.isPending || refreshing) && (
+      <p className="text-xs text-muted-foreground">{t('exportHelp')}</p>
+      {exportMessage && (report || exportMessage === 'exportDenied') && (
+        <p role={exportMessage === 'exportReady' ? 'status' : 'alert'} className="text-sm">
+          {t(exportMessage)}
+        </p>
+      )}
+      {(query.isPending || query.isFetching || refreshing) && (
         <QueryState pending error={null} retry={() => void refreshReport()} />
       )}
       {query.isError && (

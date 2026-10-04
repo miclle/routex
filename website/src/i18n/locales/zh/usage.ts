@@ -1,4 +1,12 @@
 export default {
+  exportDenied: '无法确认当前用量范围的权限。请先刷新报表，再重新导出。',
+  exportCSV: '导出 CSV',
+  exporting: '正在生成 CSV…',
+  exportReady: 'CSV 下载已准备好。',
+  exportFailed: '无法生成 CSV。请刷新当前权限或手动重试。',
+  exportOverflow: '完整导出超出限制。请缩小已应用的时间范围或筛选条件。',
+  exportHelp:
+    '导出使用最近已应用的筛选条件，并重新读取服务端报表，结果可能与当前页面不同。精确文本使用 apostrophe_text_v1：移除额外添加的一个前导单引号可还原原文；请按文本导入这些列以保留精度。',
   teamTitle: '团队用量',
   teamDescription: '此团队的共享汇总用量，不包含成员身份或单次调用记录。',
   team: '团队 ID',
