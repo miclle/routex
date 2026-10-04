@@ -22,57 +22,56 @@ func classifyGatewayHTTPFailure(protocol string, status int, body []byte) gatewa
 		Outcome:      routeattempt.Outcome{Failure: routeattempt.PermanentFailure, Work: routeattempt.Unknown},
 		EvidenceCode: "upstream_response",
 	}
-	if len(body) == 0 || len(body) > gatewayRetryBodyLimit {
+	if len(body) == 0 || len(body) > gatewayRetryBodyLimit || (status != http.StatusUnauthorized && status != http.StatusTooManyRequests) {
+		return result
+	}
+
+	rawError, valid := gatewayNativeRejectionError(protocol, status, body)
+	if !valid {
 		return result
 	}
 
 	switch protocol {
 	case entity.ProtocolOpenAIChat, entity.ProtocolOpenAIResponses:
 		var envelope struct {
-			Error struct {
-				Code string `json:"code"`
-				Type string `json:"type"`
-			} `json:"error"`
+			Code string `json:"code"`
+			Type string `json:"type"`
 		}
-		if json.Unmarshal(body, &envelope) != nil {
+		if json.Unmarshal(rawError, &envelope) != nil {
 			return result
 		}
 		if status == http.StatusUnauthorized &&
-			(envelope.Error.Code == "invalid_api_key" || envelope.Error.Type == "authentication_error") {
+			(envelope.Code == "invalid_api_key" || envelope.Type == "authentication_error") {
 			return retryableGatewayRejection(routeattempt.CredentialRejected, "native_auth_rejection")
 		}
 		if status == http.StatusTooManyRequests &&
-			(envelope.Error.Code == "rate_limit_exceeded" || envelope.Error.Type == "rate_limit_error") {
+			(envelope.Code == "rate_limit_exceeded" || envelope.Type == "rate_limit_error") {
 			return retryableGatewayRejection(routeattempt.RateLimited, "native_rate_rejection")
 		}
 	case entity.ProtocolAnthropicMessages:
 		var envelope struct {
-			Error struct {
-				Type string `json:"type"`
-			} `json:"error"`
+			Type string `json:"type"`
 		}
-		if json.Unmarshal(body, &envelope) != nil {
+		if json.Unmarshal(rawError, &envelope) != nil {
 			return result
 		}
-		if status == http.StatusUnauthorized && envelope.Error.Type == "authentication_error" {
+		if status == http.StatusUnauthorized && envelope.Type == "authentication_error" {
 			return retryableGatewayRejection(routeattempt.CredentialRejected, "native_auth_rejection")
 		}
-		if status == http.StatusTooManyRequests && envelope.Error.Type == "rate_limit_error" {
+		if status == http.StatusTooManyRequests && envelope.Type == "rate_limit_error" {
 			return retryableGatewayRejection(routeattempt.RateLimited, "native_rate_rejection")
 		}
 	case entity.ProtocolGeminiGenerateContent:
 		var envelope struct {
-			Error struct {
-				Status string `json:"status"`
-			} `json:"error"`
+			Status string `json:"status"`
 		}
-		if json.Unmarshal(body, &envelope) != nil {
+		if json.Unmarshal(rawError, &envelope) != nil {
 			return result
 		}
-		if status == http.StatusUnauthorized && envelope.Error.Status == "UNAUTHENTICATED" {
+		if status == http.StatusUnauthorized && envelope.Status == "UNAUTHENTICATED" {
 			return retryableGatewayRejection(routeattempt.CredentialRejected, "native_auth_rejection")
 		}
-		if status == http.StatusTooManyRequests && envelope.Error.Status == "RESOURCE_EXHAUSTED" {
+		if status == http.StatusTooManyRequests && envelope.Status == "RESOURCE_EXHAUSTED" {
 			return retryableGatewayRejection(routeattempt.RateLimited, "native_rate_rejection")
 		}
 	}

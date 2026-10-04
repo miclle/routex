@@ -12,7 +12,7 @@ Limits are 128 targets, 32 credentials per target, and one to four executed atte
 
 ## Execution hooks
 
-`Plan.Run(ctx, Hooks)` returns detached ordered attempt results, whether durable admission succeeded, and an explicit stop reason. It never retains provider error text. Hook errors become fixed package errors; context cancellation retains the context error. Returned records contain opaque internal credential IDs for execution correlation only: gateway logs and persisted call facts must continue to omit credential IDs and secrets.
+`Plan.Run(ctx, Hooks)` returns detached ordered attempt results, whether durable admission succeeded, and an explicit stop reason. It never retains provider error text. Hook errors become fixed package errors; context cancellation retains the context error. Returned records contain opaque internal credential IDs for execution correlation only: public call DTOs and logs omit secrets and private credential IDs. Internal immutable attempt facts preserve the exact Credential and published snapshot IDs separately from the logical call's final route.
 
 Hooks run in this order:
 
@@ -39,7 +39,36 @@ Connection failures with proven `not_sent` evidence place that Connection in a b
 
 Before reading attachment storage or dispatching an attempt, the gateway filters candidates through current authorization, runtime snapshot, egress revision, capability, health, and quota evidence. Token and monetary policies reserve the maximum supported capacity and exact decimal price across all retained candidates. The request receives one durable admission, one RPM/concurrency debit, one quota hold, and one final settlement regardless of attempt count.
 
-The durable journal stores a zero-work recovery settlement atomically with admission, then checkpoints the ordered evidence before each dispatch. Entering an active attempt clears the pre-dispatch zero assumption. A restart therefore recovers exact zero economics before dispatch or after only proven work-free failures, while active and ambiguous attempts remain unknown. The interruption fact contains completed attempts plus any active attempt, without exposing credential IDs or provider response text. Schema version 25 stores the route stop reason and normalized attempt number, failure class, work evidence, output/finality flags, and allowlisted evidence code. Administrators can inspect this evidence in the existing call drawer; member call APIs remain redacted.
+The durable journal stores a zero-work recovery settlement atomically with admission, then checkpoints the ordered evidence before each dispatch. Entering an active attempt clears the pre-dispatch zero assumption. A restart therefore recovers exact zero economics before dispatch or after only proven work-free failures, while active and ambiguous attempts remain unknown. The interruption fact contains completed attempts plus any active attempt, without exposing private credential IDs or arbitrary provider response text in public/member responses. Schema version 25 stores the route stop reason and normalized attempt number, failure class, work evidence, output/finality flags, and allowlisted evidence code. Administrators can inspect this evidence in the existing call drawer; member call APIs remain redacted.
+
+## Strict native rejection evidence
+
+A non-success response authorizes another attempt only when its bounded native
+error envelope has one unambiguous interpretation. Root and error positions must
+be JSON objects with valid UTF-8, no trailing value and no duplicate decoded
+members, including equivalent escaped names. Relevant case aliases and disagreeing
+reserved error discriminators keep work unknown. A present Gemini numeric code
+must be a canonical integer matching the HTTP 401 or 429 status; an absent code
+remains compatible. Benign diagnostic fields remain supported.
+
+Any native success/work marker in a root error envelope blocks replay, even if its
+value is null, empty, zero, false or malformed. This does not fabricate known usage,
+emitted output, charge, delivery or native completion. The classifier retains
+unknown work and the planner stops with unsafe_to_replay.
+
+| Native protocol | Root positions that conflict with error-only rejection |
+| --- | --- |
+| Chat | choices, usage, id, object, created, model |
+| Responses | response, output, output_text, usage, status, incomplete_details, id, object, model, created_at, completed_at; response.* event types block replay |
+| Messages | content, usage, stop_reason, stop_sequence, id, model, role; a present type must be error |
+| Gemini | candidates, usageMetadata, promptFeedback, modelVersion, responseId |
+
+Inspect only these structural positions and reserved rejection discriminators.
+Do not search opaque message, tool or nested diagnostic text for usage/output
+words or recursively treat diagnostic member names as work evidence. The existing
+1 MiB read bound, native public-error sanitization, one admission/settlement,
+current authorization, cancellation and native success parsers remain unchanged.
+No new policy, schema, permission or frontend control is introduced.
 
 ## Evidence required for replay
 
@@ -79,3 +108,45 @@ go test -race -count=1 ./pkg/routeattempt ./pkg/eventqueue ./pkg/upstream ./inte
 ```
 
 Tests cover exact deterministic weight intervals, credential priority independent of route weights, health-based renormalization, credential versus Connection exclusions, output/finality/unknown-work safety, one durable admission across retries, preparation failures without fabricated attempts, cancellation after admission and execution, current revocation before the next attempt, explicit attempt exhaustion, malformed randomness, immutable snapshots/results, and concurrent independent runs. Gateway tests cover strict versus ambiguous native errors, pre-request connection proof, single-admission crash recovery, aggregate quota bounds, and cooldowns. PostgreSQL/MySQL integration covers the additive migration and ordered diagnostic persistence. These tests do not replace real-provider, capacity, or multi-node acceptance.
+
+### Rejection-evidence acceptance checkpoint, 2026-10-04
+
+Source RED reproduced a second execution after contradictory native work or
+duplicate rejection fields across four protocols. Revision 2 GREEN passed 12
+focused race tests and its dual-driver focus passed 52 POSTs/33 calls per driver.
+Independent inspection then exposed a Responses native event/payload gap.
+Revision 3 RED reproduced it; GREEN passed 14 focused race tests, source-only
+handler compile, full service/handler staticcheck and pinned lint. Only the
+Responses contradiction body changed in the genuine fixture; all 52/33
+assertions remain intact. The independent helper preserves its 25/17 counts.
+At that checkpoint, final-main source/driver/process/browser gates were pending.
+The following checkpoint records their results; revision 2 evidence remains
+historical and does not establish the additional edge case.
+Paid-provider semantics, measured capacity and multi-node health remain open.
+
+### Final revision 3 actual acceptance checkpoint, 2026-10-04
+
+Final main source format/check/test/build passed with 1908 frontend cases/104
+files and exact dependency bytes. The final TZ=UTC PostgreSQL/MySQL focus
+passed Handler85.316s, including native failover and repository lifecycle/schema
+regressions. Each driver verified 52 actual upstream POSTs/33 logical calls: four
+native protocols across Personal/Project/Team authentication failover, Team rate
+failover, contradictory and duplicated native errors, accepted truncated streams,
+three between-attempt revocations and bounded four-attempt exhaustion. One
+controlled call-delivery outage recovered genuine journal facts without another
+upstream dispatch. Finite holds settled exactly once; internal attempts retained
+exact Credential, Connection, Provider-model, publication and scope identities.
+
+An independent final production process retained 25 POSTs/17 logical calls across
+four Team authentication failovers, four Project rate failovers, eight Personal
+unknown-work failures and accounting warmup. Actual Team removal/rejoin and
+same-binary restart preserved immutable calls/ordered attempts without replay.
+Manual English/Chinese admin diagnostics showed ordered safe versus one-attempt
+unknown evidence. Personal (8), Project (4) and Team (4) member views were scope-separated and
+redacted; revoked and unrelated actors had no private resource actions. Existing
+browser authentication and fresh four-model Team discovery worked after restart.
+No browser inference was dispatched. Owned helper/tab/Compose resources were
+closed and checked absent. Complete final-source PostgreSQL/MySQL race regression
+passed (Handler 1320.407s, Service 7.798s), with source and dependency bytes
+unchanged and exact owned resources absent. These controlled checks do not close
+external-provider, capacity or fleet acceptance.

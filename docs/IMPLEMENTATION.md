@@ -3134,6 +3134,78 @@ checkpoints remain diagnosis; synthetic rates remain test-only. Broader F15/A09
 and formal 11/16/3 totals remain open/unchanged.
 
 
+### Strict native rejection current-main source acceptance, 2026-10-04
+
+After checked repository-price delivery 2e5f665, four frozen service/fixture files
+and one exact harness insertion were carried onto clean main, preserving 1,204
+other tracked paths and all price/root/CSV routes and migrations. Revision 2
+source RED/GREEN fixes contradictory root work markers, duplicate decoded
+rejection members and disagreeing reserved/native numeric discriminators.
+Benign native errors and opaque diagnostics remain supported. Work stays unknown
+without invented usage/completion; no policy/schema/permission/UI was added.
+
+Current-main format/check/test/build is running. Full registered handler
+static/pinned lint and producer 12 focused race tests are preparation/source proof.
+The planned genuine four-protocol/three-scope driver matrix 52-POSTs/33-calls and
+independent process matrix 25-POSTs/17-calls remain unrun. F13/A07/A08 and formal
+totals remain partial.
+
+
+### Native-rejection revision 2 diagnosis checkpoint, 2026-10-04
+
+Revision 2 current-main format/check/test/build passed with 1908 frontend
+cases/104 files, unchanged dependencies and binary digest
+a6293695f281dea24459ed922b92ee7d52d9aa8b504dc5ae51b048908dab017a.
+Its real PostgreSQL/MySQL focus passed in 68.759s with 52 controlled upstream
+POSTs and 33 logical calls per driver. A distinct real process captured 25
+POSTs/17 calls, ordered safe failover, unknown contradiction/duplicate usage
+and bilingual admin plus Personal/Project/Team privacy views. Its Team-removal
+helper incorrectly expected 404 rather than the actual authorization 403 and
+stopped with verified owned cleanup. Browser resource navigation was corrected
+through the existing Call records tabs; prepared /calls URLs were inaccurate.
+Restart and complete process acceptance are not claimed for that interrupted run.
+
+Independent source inspection found that a Responses error envelope could carry
+a native response.completed event and response payload without rejecting replay.
+Revision 3 is being prepared with a source RED/GREEN regression and a genuine
+controlled Responses event contradiction. Revision 2 evidence remains historical,
+not acceptance of this additional edge case; exact final-source rebuild and
+actual acceptance remain required. No new migration or UI scope follows.
+
+Repository-price exact remote CI37185488266 failed its PostgreSQL receipt
+comparison, although runtime_applied=true and application_status=applied were
+reported. Concurrent immutable receipt equality is under source-backed diagnosis;
+no assertion or current publication gate is relaxed. Exact Actionlint37185488299
+and GolangCI37185488258 passed.
+
+
+### Repository receipt UTC diagnosis, 2026-10-04
+
+Exact remote receipt equality failure was reproduced on unchanged main with
+TZ=UTC: Handler61.724s, PostgreSQL pricing_repository failed, both migration
+cases and MySQL pricing_repository passed. The full native-rejection source
+hashes remained unchanged and all owned Compose labels were absent afterward.
+The pgx timestamp codec retains time.Local; JSON decoding produces UTC. A
+source-only codec/JSON regression confirms equal instants and microseconds with
+different location representation, so reflect.DeepEqual fails. This is a receipt
+projection portability defect, not evidence of failed runtime application. A
+narrow UTC projection correction is under preparation; persisted facts and all
+concurrent/audit/receipt/current-publication assertions remain unchanged.
+
+
+### Final native rejection and UTC receipt source checkpoint, 2026-10-04
+
+Revision 3 and the two-path UTC projection correction passed final-main
+format/check/test/build under TZ=UTC: 1908 frontend cases/104 files, full Go
+race/unit/dev/production asset checks and unchanged dependencies. Only18 known
+Linux libc lock metadata entries were restored after npm install; package/lock
+bytes are exact. Final QA binary digest is
+48218d4b4e70aa330f4c63a5a718df5ee6b7fd1c3a4b83ca677eca3f1fbedaa7.
+All seven source hashes remain frozen. Root is running the exact final-source
+TZ=UTC dual-driver focus for native failover and repository lifecycle/migration;
+complete final actual and delivery gates are still pending.
+
+
 ### Canonical repository receipt timestamps, 2026-10-04
 
 Remote CI37185488266 exposed equal timestamp instants with different Go
@@ -3154,3 +3226,40 @@ also included the independent native-failover candidate; those source files
 remain outside this pricing correction commit. Owned containers, networks and
 volumes were verified absent. Earlier failed UTC reproduction is diagnosis.
 Exact remote verification of this correction remains separate from local proof.
+
+
+### Strict rejection final-source actual acceptance, 2026-10-04
+
+The final seven-path source candidate passed TZ=UTC PostgreSQL/MySQL focus in
+85.316s with native_failover, pricing_repository and pricing_repository_migration.
+All final source/binary/dependency hashes stayed exact and owned resources were
+verified absent. Native fixture counts remained 52 POSTs/33 logical calls per
+driver with the additional Responses event contradiction; no count, metering,
+revocation, truncation, attempt-budget or journal-recovery assertion was relaxed.
+
+The distinct final production helper passed exactly 25 controlled native POSTs
+and 17 logical calls. Read-only SQL preserved ordered attempt/publication/
+Credential/scope/native-completion identities through actual removal, new
+membership, restart and repeated captures. Eight contradictory/duplicate calls
+retained unknown usage and one attempt. Safe failover calls completed four input/
+one output Tokens. This process configured no monetary price or money policy.
+
+Manual English/live Chinese admin drawers confirmed safe ordered attempts and
+unknown single-attempt stops, including Responses response.completed in a rejected
+error envelope. Member Personal (8), Project (4) and Team (4) views were separate and redacted.
+Actual removal hid Team details/actions; rejoin restored authorized history
+without changing captured old membership. Same-binary restart preserved browser
+Session/history and fresh four-model discovery. An unrelated actor had empty
+Personal history and denied exact Project/Team details. No browser inference
+occurred; warning/error logs were empty before intentional authorization denials.
+The helper exited 0; owned browser tab and exact Compose labels were absent.
+
+Complete unchanged final-source PostgreSQL/MySQL race regression passed
+(Handler 1320.407s, Service 7.798s); all seven source hashes and dependencies
+remained exact and owned resources were verified absent. Pricing UTC correction
+is already separately committed/pushed as
+`7b33fa30d66824b6f562d5e4e9c06766b613664b`; Actionlint 37187451119 and
+GolangCI 37187451078 passed; CI 37187451111 also passed. Final mandatory
+`go tool task check` passed with zero errors and two existing frontend warnings. This strict-rejection
+phase is scoped separately for checked delivery; broader F13/A07/A08 and formal
+totals stay partial. Continue the active full goal with Model Alias retirement.
