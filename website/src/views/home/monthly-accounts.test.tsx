@@ -9,6 +9,7 @@ import { sessionKey } from '@/hooks/use-auth'
 import i18n from '@/i18n'
 import type { MonthlyAccount, OverviewAccountsPage } from '@/types/overview'
 import Home from './index'
+import { homeUsageFixture } from './usage-overview-fixture'
 
 Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true })
 const originalAdapter = client.defaults.adapter
@@ -69,6 +70,9 @@ function page(): OverviewAccountsPage {
     next_cursor: null,
   }
 }
+function monthlyTable() {
+  return host.querySelector<HTMLTableElement>(`table[aria-label="${i18n.t('overview:title')}"]`)
+}
 function session() {
   return {
     user: { id: actor, role: 'member', name, email: actor + '@example.invalid' },
@@ -92,7 +96,7 @@ async function flush() {
 async function settle() {
   for (let i = 0; i < 12; i++) {
     await flush()
-    if (host.querySelector('table')) return
+    if (monthlyTable()) return
   }
   throw new Error(host.textContent || 'table missing')
 }
@@ -151,7 +155,8 @@ beforeEach(async () => {
       if (gate) await gate.promise
       if (failure) throw error(config, failure)
       response = saved
-    } else throw new Error('Unexpected API ' + config.url)
+    } else if (config.url === '/usage') response = homeUsageFixture(true)
+    else throw new Error('Unexpected API ' + config.url)
     return { config, status: 200, statusText: '', headers: new AxiosHeaders(), data: response }
   }
 })
@@ -172,7 +177,7 @@ describe('monthly member Overview', () => {
     expect(host.textContent).toContain('This month’s resource accounts')
     expect(host.textContent).toContain('Personal resource account')
     expect(host.textContent).toContain('Recorded Team')
-    const team = Array.from(host.querySelectorAll('tbody tr'))[1]
+    const team = Array.from(monthlyTable()!.querySelectorAll('tbody tr'))[1]
     expect(team.textContent).toContain('Team aggregate')
     expect(team.textContent).toContain('Your member account')
     expect(team.textContent).toContain('5 / 1,000')
@@ -188,7 +193,7 @@ describe('monthly member Overview', () => {
       '/usage?team=tem_exact',
     )
     expect(new Set(requests.map((r) => r.url))).toEqual(
-      new Set(['/auth/session', '/overview/accounts']),
+      new Set(['/auth/session', '/overview/accounts', '/usage']),
     )
     expect(requests.filter((r) => r.url === '/auth/session')).toHaveLength(1)
   })
@@ -213,7 +218,7 @@ describe('monthly member Overview', () => {
     usage.money_used = { EUR: '0.123456789012345678', USD: '9007199254740993.000000000000000002' }
     data.personal.runtime_applied = false
     await mount()
-    const row = host.querySelector('tbody tr')!
+    const row = monthlyTable()!.querySelector('tbody tr')!
     expect(row.textContent).toContain('Known subtotal')
     expect(row.textContent).toContain('Monthly coverage incomplete')
     expect(row.textContent).toContain('Unknown Token usage: 9,007,199,254,740,993')
@@ -236,7 +241,7 @@ describe('monthly member Overview', () => {
         currency: 'USD',
       }
       await mount()
-      const row = host.querySelector('tbody tr')!
+      const row = monthlyTable()!.querySelector('tbody tr')!
       expect(row.textContent).toContain('Unknown / 0')
       expect(row.textContent).toContain('Unknown / 0 USD')
       expect(row.textContent).toContain(
@@ -249,7 +254,7 @@ describe('monthly member Overview', () => {
   )
   it('keeps live reservations separate from monthly settled usage, retained holds and the usage rate', async () => {
     await mount()
-    const row = host.querySelector('tbody tr')!
+    const row = monthlyTable()!.querySelector('tbody tr')!
     expect(row.textContent).toContain('5 / 100')
     expect(row.textContent).toContain('Held Tokens: 2')
     expect(row.textContent).toContain('Live reserved Tokens: 5')
@@ -258,7 +263,7 @@ describe('monthly member Overview', () => {
     data.personal.active_reservations = { tokens_held: '0', money_held: {} }
     await click('Refresh accounts')
     await settle()
-    const refreshed = host.querySelector('tbody tr')!
+    const refreshed = monthlyTable()!.querySelector('tbody tr')!
     expect(refreshed.textContent).toContain('Live reserved Tokens: 0')
     expect(refreshed.textContent).toContain('No live monetary reservations')
     expect(refreshed.textContent).toContain('Held Tokens: 2')
@@ -267,7 +272,7 @@ describe('monthly member Overview', () => {
   it('keeps absent local controls Not set, never labels them unlimited or zero', async () => {
     data.personal = { ...account(), tokens_month: null, money_month: null, currency: null }
     await mount()
-    const row = host.querySelector('tbody tr')!
+    const row = monthlyTable()!.querySelector('tbody tr')!
     expect(row.textContent).toContain('5 / Not set')
     expect(row.textContent).toContain('USD / Not set')
     expect(row.querySelector('[role=progressbar]')).toBeNull()
@@ -280,7 +285,7 @@ describe('monthly member Overview', () => {
     await settle()
     expect(host.textContent).toContain('Next Team')
     expect(host.textContent).not.toContain('Recorded Team')
-    expect(host.querySelectorAll('tbody tr')).toHaveLength(2)
+    expect(monthlyTable()!.querySelectorAll('tbody tr')).toHaveLength(2)
     expect(requests.filter((r) => r.url === '/overview/accounts').at(-1)?.params).toEqual({
       cursor: 'exact-cursor',
       limit: 10,
@@ -301,14 +306,14 @@ describe('monthly member Overview', () => {
       overviewFailure = status
       await click('Refresh accounts')
       await flush()
-      expect(host.querySelector('table')).toBeNull()
+      expect(monthlyTable()).toBeNull()
       expect(host.textContent).not.toContain('Recorded Team')
       overviewGate.release()
       await flush()
       await flush()
       expect(host.textContent).toContain('Monthly accounts could not be confirmed')
       expect(host.textContent).not.toContain('server-private')
-      expect(host.querySelector('table')).toBeNull()
+      expect(monthlyTable()).toBeNull()
       overviewGate = null
       overviewFailure = 0
       data.teams = []
@@ -360,7 +365,7 @@ describe('monthly member Overview', () => {
     data.personal.usage!.money_used = { USD: '0' }
     data.personal.usage!.money_held = { USD: '0' }
     await mount()
-    const row = host.querySelector('tbody tr')!
+    const row = monthlyTable()!.querySelector('tbody tr')!
     expect(row.textContent).toContain('0 / 0')
     expect(row.textContent).toContain('0 USD / 0 USD')
     expect(row.textContent).toContain('Held Tokens: 0')
@@ -372,7 +377,7 @@ describe('monthly member Overview', () => {
     data.personal.usage!.money_used = {}
     data.personal.usage!.money_held = {}
     await mount()
-    const row = host.querySelector('tbody tr')!
+    const row = monthlyTable()!.querySelector('tbody tr')!
     expect(row.textContent).toContain('No recorded monetary usage / 10.123456789012345678 USD')
     expect(row.textContent).toContain('Held money: No recorded monetary usage')
     expect(row.textContent).not.toContain('0 USD')
@@ -380,7 +385,7 @@ describe('monthly member Overview', () => {
   it('suppresses percentage while covered journal usage still has unknown Tokens', async () => {
     data.personal.usage!.tokens_unknown = '1'
     await mount()
-    const row = host.querySelector('tbody tr')!
+    const row = monthlyTable()!.querySelector('tbody tr')!
     expect(row.textContent).toContain('Complete monthly coverage')
     expect(row.textContent).toContain('Unknown Token usage: 1')
     expect(row.textContent).toContain('Usage rate unavailable')

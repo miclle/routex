@@ -1,6 +1,7 @@
 import { useCallback, useSyncExternalStore } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import MonthlyAccounts from './monthly-accounts'
+import UsageOverview from './usage-overview'
 import { Button } from '@/components/ui/button'
 import { t } from '@/i18n'
 import { useTranslation } from 'react-i18next'
@@ -59,6 +60,11 @@ export default function Home() {
         <Badge variant="outline">{t('common:active_f78d0')}</Badge>
       </section>
       <MonthlyAccounts key={`${session.user.id}:${generation}`} actorId={session.user.id} />
+      <UsageOverview
+        key={`usage:${session.user.id}:${generation}`}
+        actorId={session.user.id}
+        generation={generation}
+      />
     </section>
   )
 }

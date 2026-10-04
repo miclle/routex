@@ -3,7 +3,7 @@
 - **Status:** implementation active; prioritize partially completed capabilities
 - **Updated:** 2026-10-04
 - **Repository / branch:** RouteX / `main`
-- **Previous checked baseline:** `15effef1b54b07b8ae4120283e193f291ece9583`, pushed and read back from `origin/main`
+- **Previous checked baseline:** `96c8f319ea2fd792fae1751c5f5bf93f7fff4e18`, pushed and read back from `origin/main`
 - **Current owner:** coordinator owns integration, actual runtime acceptance and delivery; parallel owners prepare isolated source and fixtures
 - **Transport:** identify the current checked delivery with `git log -1 -- docs/current-work-handoff.md` and independently verify its upstream
 - **Roadmap:** [Implementation and acceptance index](IMPLEMENTATION.md); cross-task coordination is maintained separately in `~/dotfiles/projects/routex/implementation-plan.md`
@@ -295,3 +295,35 @@ No external-provider or multi-node acceptance is implied. Next delivery is the
 frozen Home thirty-day package, followed by Team notifications; Usage CSV source
 owners are preparing its independent complete-report/privacy acceptance. The
 full objective remains active.
+
+## Active Home thirty-day main integration
+
+Team media was committed/pushed as `96c8f319ea2fd792fae1751c5f5bf93f7fff4e18`
+and exact `origin/main` read-back matched. CI 37168481743, Actionlint 37168481759
+and GolangCI-Lint 37168481798 all passed for that exact source. The coordinator carried only 16 frozen Home source/fixture paths and
+one lifecycle registration, preserving V46 and all prior monthly/native source.
+Paired frontend rules and Overview/Usage docs describe the server-owned 720-hour
+Personal report, exact unknown coverage and fresh Session scope. Current-main
+check/test/build passed with 1681 frontend cases/95 files. Serial controlled
+production/browser proof passed bilingual Personal cards/trend/history, exact
+unknown coverage, independent Team totals, membership and Key revocation,
+Session clearing and restart without replay. Seven actual upstream dispatches
+and eight immutable facts remain unchanged. The Personal report has four
+requests, 50% success, known Tokens 5 and three unknown Token/amount records;
+the admission failure retains null usage and `not_captured`. Monthly journal
+coverage remains independent. Earlier helper zero-usage and stale printed-count
+mistakes are documented in Member Overview; they do not change production or
+count as acceptance. English was restored, browser warnings/errors were absent
+and owned resources were removed. Complete PostgreSQL/MySQL regression passed
+(Handler 1123.214 seconds; Service 7.545 seconds), with owned matrix resources
+removed. The final required check passed. This document's delivery commit contains
+the exact 24-path bounded Home package; verify its upstream independently.
+Team notifications and Usage CSV retain separate frozen
+source; no later candidate was copied with the Home package.
+
+Internal root rotation now has frozen source-only v2 crypto/bootstrap
+prerequisites in a separate checkout. Complete all-domain policy, writer fencing,
+resumable rewrap, publication/retirement proof and the administrative interface
+are being implemented independently. These source checkpoints are not actual
+database, process, browser or completed rotation evidence. Main delivery order
+remains Home, Team notifications, scoped Usage CSV, then internal rotation.

@@ -211,3 +211,121 @@ export async function getUsageTeams(
     next_cursor: value.next_cursor as string | null,
   }
 }
+
+// Reuse the protocol-neutral guards without broadening Team report dimensions.
+export function isPersonalUsageReport(value: unknown): value is UsageReport {
+  function groups(value: unknown) {
+    return (
+      Array.isArray(value) &&
+      value.length <= 500 &&
+      value.every(
+        (group) =>
+          object(group) &&
+          keys(group, ['id', 'name', 'unknown', 'stats']) &&
+          typeof group.id === 'string' &&
+          (group.name === undefined || typeof group.name === 'string') &&
+          typeof group.unknown === 'boolean' &&
+          group.unknown === (group.id === '') &&
+          coherentStats(group.stats),
+      ) &&
+      new Set(value.map((group) => group.id)).size === value.length
+    )
+  }
+  function coherentStats(value: unknown): value is import('@/types/usage').UsageStats {
+    if (!stats(value)) return false
+    const row = value as import('@/types/usage').UsageStats
+    if (
+      row.requests !== row.successes + row.errors + row.canceled ||
+      row.unknown_amount_calls > row.requests ||
+      (row.requests === 0
+        ? row.success_rate !== null || row.average_duration_ms !== null
+        : row.success_rate === null ||
+          row.average_duration_ms === null ||
+          Math.abs(row.success_rate - row.successes / row.requests) > 1e-12)
+    )
+      return false
+    for (const count of Object.values(row.tokens)) {
+      if (
+        !/^(0|[1-9]\d*)$/.test(count.known) ||
+        count.unknown_calls > row.requests ||
+        (count.unknown_calls === 0 ? count.value !== count.known : count.value !== null)
+      )
+        return false
+    }
+    return (
+      BigInt(row.tokens.total.known) ===
+        BigInt(row.tokens.input.known) + BigInt(row.tokens.output.known) &&
+      new Set(row.amounts.map((amount) => amount.currency)).size === row.amounts.length &&
+      row.amounts.every((amount) => amount.calls <= row.requests)
+    )
+  }
+  function personalPeriod(value: unknown) {
+    if (
+      !object(value) ||
+      !keys(value, ['from', 'to', 'summary', 'trend', 'models', 'keys']) ||
+      !stamp(value.from) ||
+      !stamp(value.to) ||
+      Date.parse(value.from as string) >= Date.parse(value.to as string) ||
+      !coherentStats(value.summary) ||
+      !groups(value.models) ||
+      !groups(value.keys) ||
+      !Array.isArray(value.trend) ||
+      value.trend.length === 0 ||
+      value.trend.length > 1000
+    )
+      return false
+    let requests = 0,
+      known = 0n,
+      unknown = 0
+    for (let index = 0; index < value.trend.length; index++) {
+      const bucket = value.trend[index]
+      if (
+        !object(bucket) ||
+        !keys(bucket, ['start', 'end', 'stats']) ||
+        !stamp(bucket.start) ||
+        !stamp(bucket.end) ||
+        Date.parse(bucket.start as string) >= Date.parse(bucket.end as string) ||
+        Date.parse(bucket.start as string) >= Date.parse(value.to as string) ||
+        Date.parse(bucket.end as string) <= Date.parse(value.from as string) ||
+        !coherentStats(bucket.stats) ||
+        (index > 0 && bucket.start !== value.trend[index - 1].end)
+      )
+        return false
+      requests += bucket.stats.requests
+      known += BigInt(bucket.stats.tokens.total.known)
+      unknown += bucket.stats.tokens.total.unknown_calls
+    }
+    return (
+      Date.parse(value.trend[0].start) <= Date.parse(value.from as string) &&
+      Date.parse(value.trend.at(-1).end) >= Date.parse(value.to as string) &&
+      requests === value.summary.requests &&
+      known.toString() === value.summary.tokens.total.known &&
+      unknown === value.summary.tokens.total.unknown_calls
+    )
+  }
+  return (
+    object(value) &&
+    keys(value, [
+      'timezone',
+      'granularity',
+      'queried_at',
+      'latest_completed_at',
+      'source',
+      'may_lag',
+      'current',
+      'available_dimensions',
+    ]) &&
+    timezone(value.timezone) &&
+    ['hour', 'day', 'week', 'month'].includes(value.granularity as string) &&
+    stamp(value.queried_at) &&
+    (value.latest_completed_at === null || stamp(value.latest_completed_at)) &&
+    value.source === 'persisted_call_records' &&
+    typeof value.may_lag === 'boolean' &&
+    Array.isArray(value.available_dimensions) &&
+    value.available_dimensions.length === 2 &&
+    new Set(value.available_dimensions).size === 2 &&
+    value.available_dimensions.includes('model') &&
+    value.available_dimensions.includes('key') &&
+    personalPeriod(value.current)
+  )
+}

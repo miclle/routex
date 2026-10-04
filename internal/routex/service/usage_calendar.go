@@ -53,6 +53,8 @@ func planUsage(filter UsageFilter, now time.Time) (usagePlan, error) {
 			plan.current.from = now.Add(-24 * time.Hour)
 		case "7d":
 			plan.current.from = now.Add(-7 * 24 * time.Hour)
+		case "30d":
+			plan.current.from = now.Add(-30 * 24 * time.Hour)
 		case "90d":
 			plan.current.from = now.Add(-90 * 24 * time.Hour)
 		case "year":

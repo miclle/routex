@@ -1,4 +1,4 @@
-export type UsagePeriodName = 'today' | '24h' | '7d' | 'month' | '90d' | 'year'
+export type UsagePeriodName = 'today' | '24h' | '7d' | '30d' | 'month' | '90d' | 'year'
 export type UsageGranularity = 'auto' | 'hour' | 'day' | 'week' | 'month'
 export interface UsageFilters {
   period?: UsagePeriodName

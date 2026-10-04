@@ -104,3 +104,60 @@ checks use the exact administrator call detail rather than unavailable list
 fields. Complete main PostgreSQL/MySQL regression passed with Handler 1091.619 seconds
 and Service 7.953 seconds. Final mandatory check passed, and owned Compose
 resources were removed. No external-provider or deployment acceptance is claimed.
+
+## Personal thirty-day usage
+
+The existing identity header and monthly resource accounts are followed by three
+Personal cards for recorded requests, Tokens and success rate, a full-width Token
+trend, and Model/API Key detail tabs. This report uses the existing Personal
+Usage API with `period=30d`, `timezone=UTC`, `granularity=day`, `compare=false`.
+The server captures one half-open `[now - 720h, now)` interval. Calendar buckets
+retain partial edges, so the returned report need not have exactly 30 buckets.
+
+All recorded requests enter the existing success-rate denominator, including
+cancellations and admission failures. Token values remain exact strings; known
+subtotals and unknown coverage remain separate, and unknown trend buckets are
+gaps. Shares use bounded BigInt ratios only for known positive totals. Historical
+Model/Key labels and IDs come from the report without a directory lookup. The
+view shows returned range, query observation, latest selected completion and
+durable-delivery lag; it never presents this report as quota or combined Team
+allowance. Actor and successful Session generation scope queries; renewal, errors
+and obsolete reads cannot restore old private facts. Localized complete-query
+overflow links to Usage without silently reducing the request.
+
+The isolated source passed full check/test/build and 1625 frontend cases/93
+files. The four-case PostgreSQL/MySQL focus passed in 117.082 seconds, including
+existing Usage, Team Usage and monthly Overview. These seeded historical facts
+are separate from native invocation proof. The package is now carried onto the
+checked Team-media main baseline. Rebuilt-main check/test/build passed with 1681
+frontend cases in 95 files, Go race, development lifecycle and embedded production
+assets. Complete main PostgreSQL/MySQL regression passed (Handler 1123.214 seconds;
+Service 7.545 seconds), including the new report and all existing lifecycle and
+migration cases. The final required check passed; owned matrix resources were
+removed. The bounded thirty-day package has complete local controlled acceptance.
+
+Controlled production/browser acceptance passed on that rebuilt binary. Seven
+actual local upstream dispatches produced eight immutable facts across Personal,
+Team, Project and administrator scopes. The Personal report contains four
+requests, two successes, one cancellation and one admission failure: 50% success,
+known Token subtotal `5`, three unknown Token/amount records and exact known
+`4.000000123456789012 USD`. The pre-admission 429 has no attempt or dispatch and
+retains `not_captured` with null counters and charge; it is not a known zero.
+The monthly account journal remains independent, with two unknown records rather
+than the report's three. Team aggregate `10` and this member's `5` are separate.
+
+The bilingual browser verified cards, unknown trend gaps and Model/Key tabs,
+including recorded Model names after a live rename and both historical Key IDs
+after revocation. Membership removal hides the Team row without changing Personal
+facts; rejoin restores independent historical Team accounting. Real-process
+restart retains sessions/facts without replay. Revoking the browser Session
+returns to sign-in and clears private composition; a fresh sign-in restores only
+current-authorized data. English was restored, warning/error logs were empty and
+all owned browser/process/Compose resources were removed.
+
+Two earlier setup runs failed an incorrect helper assumption that a pre-admission
+failure had known zero usage. The helper was corrected to assert actual null
+coverage and zero attempts/dispatch; production semantics were unchanged. The
+successful run's assertion checked three unknown records, while its printed
+summary initially retained a stale value of two. That reporting field is corrected
+for future runs; it is not used as coverage proof.

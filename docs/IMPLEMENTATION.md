@@ -2624,3 +2624,46 @@ check runs before scoped main commit and push. F19/F20 remain partial because
 other product and external acceptance gates are separate; formal totals remain
 11 complete, 16 partial and three unstarted. Home thirty-day reports, Team monthly
 notices and scoped Usage CSV retain their own delivery gates.
+
+### Home thirty-day main integration, 2026-10-04
+
+The Team media package was committed/pushed and remotely read back as `96c8f31`.
+Its 42-path delivery follows final full check and complete PostgreSQL/MySQL
+regression. Exact CI 37168481743, Actionlint 37168481759 and GolangCI-Lint
+37168481798 all passed. Sixteen frozen Home report
+source/fixture paths and one narrow lifecycle registration are now carried onto
+that main baseline. Existing monthly production files remain unchanged; only
+their test adapter gains the valid Personal report and scoped table assertions.
+The three cards, trend and Model/Key tabs preserve the approved composition,
+exact counters, unknown gaps and fresh actor/Session authority. Current-main
+source, actual browser and regression gates precede commit; F19 remains partial.
+
+### Home thirty-day source and controlled acceptance, 2026-10-04
+
+Current-main check/test/build passed with 1681 frontend cases in 95 files, Go
+race, development lifecycle and embedded production assets. Controlled production
+and bilingual browser acceptance passed against that same rebuilt binary: seven
+actual local upstream dispatches, eight immutable facts, four Personal requests,
+50% success, known Tokens `5`, three unknown Token/amount records and exact known
+`4.000000123456789012 USD`. The pre-admission 429 retains `not_captured`, null
+usage and zero attempts/dispatch. It is separate from seeded known-zero facts and
+monthly quota-journal coverage. Team/Project/platform scopes stay independent.
+
+The browser verified cards, trend gaps, historical Model/Key details, current
+membership removal/rejoin, revoked-Key history, real restart without replay and
+browser Session revocation/private-data clearing. English was restored, logs had
+no warnings/errors and owned resources were removed. Earlier helper known-zero
+assumptions and a stale printed unknown-count field remain failed/reporting
+evidence, not acceptance; strict successful assertions and the UI both confirm
+three unknown records. Complete main PostgreSQL/MySQL regression is running;
+final check and scoped commit/push remain gates. F19 stays partial.
+
+### Home thirty-day final local acceptance, 2026-10-04
+
+The complete main PostgreSQL/MySQL regression passed (Handler 1123.214 seconds;
+Service 7.545 seconds). The final required check also passed, and owned matrix
+resources were removed. Full check/test/build, 1681 frontend cases/95 files and
+the controlled production/browser proof above establish this bounded package's
+local acceptance. The scoped delivery contains 17 source/fixture integration
+paths and seven English documentation/rule paths. F19 remains partial because
+broader catalog/price facts and release-wide acceptance are independent.

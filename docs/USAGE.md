@@ -91,3 +91,10 @@ Team aggregate and the current member's stable Team/User account as distinct
 scopes. Live reservations and monthly settled/retained amounts are separate,
 coherent journal facts. Its links open the existing Personal or exact Team report;
 it never turns a report into remaining allowance or runtime enforcement proof.
+
+The server-owned `30d` preset resolves once to the preceding 720 elapsed hours
+with a half-open upper bound. Timezone determines calendar buckets, including
+partial edges and DST, without changing that elapsed duration. Existing explicit
+ranges, comparison and complete-query bounds remain unchanged. The Personal
+member Home uses this preset with UTC daily buckets and no comparison; see
+[Member Overview](MEMBER_OVERVIEW.md).
