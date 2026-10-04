@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useLayoutEffect, useRef, useState } from 'react'
 import { useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Bell, CheckCheck, CircleAlert, RefreshCw } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
@@ -11,14 +11,15 @@ import {
 import { Button } from '@/components/ui/button'
 import { Menu, MenuItem } from '@/components/ui/menu'
 import { useSession } from '@/hooks/use-auth'
+import { useSessionGeneration } from '@/hooks/use-session-generation'
 import type {
   MonthlyQuotaNotificationSnapshot,
   Notification,
   NotificationReadStatus,
 } from '@/types/notifications'
 
-type ReadIntent = { recipientId: string; csrf: string; id: string }
-type ReadAllIntent = { recipientId: string; csrf: string }
+type ReadIntent = { recipientId: string; generation: number; csrf: string; id: string }
+type ReadAllIntent = { recipientId: string; generation: number; csrf: string }
 
 function itemText(notification: Notification, t: ReturnType<typeof useTranslation>['t']) {
   return t(`items.${notification.kind}.${notification.detail_code}`, {
@@ -44,7 +45,7 @@ function recordedQuota(notification: Notification): MonthlyQuotaNotificationSnap
   if (
     notification.kind !== 'monthly_quota_exhausted' ||
     !quota ||
-    (quota.scope_kind !== 'user' && quota.scope_kind !== 'project') ||
+    !['user', 'project', 'team'].includes(quota.scope_kind) ||
     typeof quota.scope_id !== 'string' ||
     !quota.scope_id.trim() ||
     typeof quota.policy_revision !== 'string' ||
@@ -67,7 +68,9 @@ function recordedQuota(notification: Notification): MonthlyQuotaNotificationSnap
     asOf < start ||
     asOf >= end ||
     (notification.subject_type != null && notification.subject_type !== quota.scope_kind) ||
-    (notification.subject_id != null && notification.subject_id !== quota.scope_id)
+    (notification.subject_id != null && notification.subject_id !== quota.scope_id) ||
+    (quota.scope_kind === 'team' &&
+      (notification.subject_type !== 'team' || notification.subject_id !== quota.scope_id))
   )
     return undefined
   const tokens = quota.dimension === 'tokens'
@@ -107,8 +110,8 @@ function QuotaSnapshot({ notification }: { notification: Notification }) {
     quota.dimension === 'tokens'
       ? t('quota.tokensValue', { amount: value })
       : t('quota.moneyValue', { amount: value, currency: quota.currency })
-  const projectName =
-    notification.subject_type === 'project' && notification.subject_id === quota.scope_id
+  const scopeName =
+    notification.subject_type === quota.scope_kind && notification.subject_id === quota.scope_id
       ? notification.subject_name?.trim()
       : undefined
   return (
@@ -117,10 +120,14 @@ function QuotaSnapshot({ notification }: { notification: Notification }) {
         {t(
           quota.scope_kind === 'user'
             ? 'quota.personalScope'
-            : projectName
-              ? 'quota.projectScopeNamed'
-              : 'quota.projectScope',
-          { id: quota.scope_id, name: projectName },
+            : quota.scope_kind === 'team'
+              ? scopeName
+                ? 'quota.teamScopeNamed'
+                : 'quota.teamScope'
+              : scopeName
+                ? 'quota.projectScopeNamed'
+                : 'quota.projectScope',
+          { id: quota.scope_id, name: scopeName },
         )}
       </span>
       <span className="block">{t('quota.settled', { value: amount(quota.settled) })}</span>
@@ -141,41 +148,78 @@ function QuotaSnapshot({ notification }: { notification: Notification }) {
 export function NotificationMenu() {
   const { t, i18n } = useTranslation('notifications')
   const session = useSession()
+  const generation = useSessionGeneration()
+  const previousGeneration = useRef(generation)
   const recipientId = session.isError ? '' : (session.data?.user.id ?? '')
   const csrf = session.data?.csrf_token ?? ''
+  const freshSession =
+    !!recipientId && !session.isPending && !session.isError && !session.isFetching
   const queryClient = useQueryClient()
   const [status, setStatus] = useState<NotificationReadStatus>('unread')
   const query = useInfiniteQuery({
     queryKey: notificationsKey(recipientId, status),
-    queryFn: ({ pageParam, signal }) => getNotifications(status, pageParam, signal),
+    queryFn: async ({ pageParam, signal }) => {
+      const capturedGeneration = previousGeneration.current
+      return {
+        ...(await getNotifications(status, pageParam, signal)),
+        generation: capturedGeneration,
+      }
+    },
     initialPageParam: null as string | null,
     getNextPageParam: (page) => page.next_cursor ?? undefined,
-    enabled: recipientId !== '',
+    enabled: freshSession,
     retry: false,
     gcTime: 0,
     refetchOnMount: 'always',
     refetchInterval: 30_000,
   })
+  useLayoutEffect(() => {
+    const renewed = previousGeneration.current !== generation
+    previousGeneration.current = generation
+    if (renewed && recipientId)
+      void queryClient.resetQueries({ queryKey: ['notifications', recipientId] })
+    else if (!freshSession && recipientId)
+      void queryClient.cancelQueries({ queryKey: ['notifications', recipientId] })
+  }, [freshSession, generation, recipientId, queryClient])
   const refresh = (capturedRecipient: string) =>
     queryClient.invalidateQueries({ queryKey: ['notifications', capturedRecipient] })
   const readMutation = useMutation({
     mutationFn: (intent: ReadIntent) => markNotificationRead(intent.id, intent.csrf),
-    onSettled: (_result, _error, intent) => refresh(intent.recipientId),
+    onSettled: (_result, _error, intent) => {
+      if (intent.generation === previousGeneration.current) return refresh(intent.recipientId)
+    },
   })
   const allMutation = useMutation({
     mutationFn: (intent: ReadAllIntent) => markAllNotificationsRead(intent.csrf),
-    onSettled: (_result, _error, intent) => refresh(intent.recipientId),
+    onSettled: (_result, _error, intent) => {
+      if (intent.generation === previousGeneration.current) return refresh(intent.recipientId)
+    },
   })
-  const canRead = recipientId !== ''
-  const current = canRead && query.isSuccess && !query.isFetching && !query.isError
+  const canRead = freshSession
+  const current =
+    canRead &&
+    query.isSuccess &&
+    !query.isFetching &&
+    !query.isError &&
+    query.data.pages.every((page) => page.generation === generation)
   const pages = current ? query.data.pages : []
   const notifications = pages.flatMap((page) => page.items)
   const count = pages[0]?.unread_count ?? 0
   const mutationFailed =
-    (readMutation.isError && readMutation.variables?.recipientId === recipientId) ||
-    (allMutation.isError && allMutation.variables?.recipientId === recipientId)
-  const readPending = readMutation.isPending && readMutation.variables?.recipientId === recipientId
-  const allPending = allMutation.isPending && allMutation.variables?.recipientId === recipientId
+    (readMutation.isError &&
+      readMutation.variables?.recipientId === recipientId &&
+      readMutation.variables.generation === generation) ||
+    (allMutation.isError &&
+      allMutation.variables?.recipientId === recipientId &&
+      allMutation.variables.generation === generation)
+  const readPending =
+    readMutation.isPending &&
+    readMutation.variables?.recipientId === recipientId &&
+    readMutation.variables.generation === generation
+  const allPending =
+    allMutation.isPending &&
+    allMutation.variables?.recipientId === recipientId &&
+    allMutation.variables.generation === generation
   const locale = i18n.resolvedLanguage === 'zh' ? 'zh-CN' : 'en-US'
 
   return (
@@ -208,8 +252,10 @@ export function NotificationMenu() {
           <Button
             variant="ghost"
             size="sm"
-            disabled={allPending || readPending}
-            onClick={() => allMutation.mutate({ recipientId, csrf })}
+            disabled={allPending || readPending || !csrf}
+            onClick={() => {
+              if (current && csrf) allMutation.mutate({ recipientId, generation, csrf })
+            }}
           >
             <CheckCheck className="size-4" aria-hidden />
             {t('markAllRead')}
@@ -232,12 +278,12 @@ export function NotificationMenu() {
         </div>
       )}
       <div className="max-h-[min(480px,65vh)] overflow-y-auto">
-        {session.isPending && (
+        {(session.isPending || session.isFetching) && (
           <p role="status" className="px-3 py-6 text-center text-sm text-muted-foreground">
             {t('loading')}
           </p>
         )}
-        {!session.isPending && !canRead && (
+        {!session.isPending && !session.isFetching && !canRead && (
           <p className="px-3 py-8 text-center text-sm text-muted-foreground">
             {t('sessionUnavailable')}
           </p>
@@ -275,10 +321,10 @@ export function NotificationMenu() {
             return (
               <MenuItem
                 key={notification.id}
-                disabled={readPending || allPending}
+                disabled={readPending || allPending || !csrf}
                 onClick={() => {
-                  if (!notification.read)
-                    readMutation.mutate({ recipientId, csrf, id: notification.id })
+                  if (current && csrf && !notification.read)
+                    readMutation.mutate({ recipientId, generation, csrf, id: notification.id })
                 }}
               >
                 <span className="min-w-0 flex-1 py-1">

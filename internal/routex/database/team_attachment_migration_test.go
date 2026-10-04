@@ -62,7 +62,7 @@ func TestFrozenTeamAttachmentSchema(t *testing.T) {
 	}
 	for _, dialect := range []string{"postgres", "mysql"} {
 		steps := migrationSteps(dialect)
-		if len(steps) != 46 || reflect.ValueOf(steps[45]).Pointer() != reflect.ValueOf(teamAttachmentMigration).Pointer() || reflect.ValueOf(steps[44]).Pointer() != reflect.ValueOf(projectCreationMigration).Pointer() {
+		if len(steps) < 46 || reflect.ValueOf(steps[45]).Pointer() != reflect.ValueOf(teamAttachmentMigration).Pointer() || reflect.ValueOf(steps[44]).Pointer() != reflect.ValueOf(projectCreationMigration).Pointer() {
 			t.Fatal("V46 must append to V45", dialect)
 		}
 	}

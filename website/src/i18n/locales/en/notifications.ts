@@ -23,6 +23,8 @@ export default {
   unknownItem: 'A notification requires attention.',
   quota: {
     personalScope: 'Personal quota',
+    teamScope: 'Team: {{id}}',
+    teamScopeNamed: 'Team: {{name}} ({{id}})',
     projectScope: 'Project: {{id}}',
     projectScopeNamed: 'Project: {{name}} ({{id}})',
     settled: 'Settled: {{value}}',

@@ -167,13 +167,13 @@ The binary capability count is 11 completed, 16 partially completed, and 3 not s
 | F14 | Managed egress and staged network diagnostics | Partially completed | Direct, default, SOCKS5, verified CONNECT, endpoint-bound saved authentication, complete-tunnel proxy-address fallback, and diagnostics exist. External proxy and production performance acceptance remain open. |
 | F15 | Prices, spreadsheet/CSV workflows, API, and repository sync | Partially completed | Current prices, ETags, CSV/XLS/XLSX import, preview, commit, and export exist; external price-repository synchronization is not implemented. |
 | F16 | Platform currency, exchange rates, and historical price snapshots | Completed | Decimal-string currency/rate management, exact quoting, and immutable per-call assessment are implemented. |
-| F17 | User and Team defaults, overrides, budgets, alerts, and stop policy | Partially completed | Personal, Project, Key and Team aggregate/member enforcement plus budget/token/TPM controls, authoritative quota snapshots, and installation-calendar configuration exist; current-policy Personal/Project monthly settled-exhaustion inboxes have focused acceptance, and creation-default settings and explicit restores have complete local acceptance; templates, broader alerts, and configurable stop-calling policy remain open. |
+| F17 | User and Team defaults, overrides, budgets, alerts, and stop policy | Partially completed | Personal, Project, Key and Team aggregate/member enforcement plus budget/token/TPM controls, authoritative quota snapshots, and installation-calendar configuration exist; current-policy Personal/Project monthly settled-exhaustion inboxes have focused acceptance, Team aggregate monthly settled-exhaustion inboxes have complete controlled acceptance, and creation-default settings and explicit restores have complete local acceptance; templates, broader alerts, and configurable stop-calling policy remain open. |
 | F18 | Quota, model, and request-limit approvals | Completed | Project model/monthly quota/RPM/TPM/concurrency and Team monthly Token/money requests have controlled acceptance: owner-first assignment, escalation, independent dimensions, read-only platform records, atomic final policies and immutable receipts with current application. Distributed acknowledgements belong to F30; release-wide acceptance remains separate. |
-| F19 | Member overview, model sources, requests, and examples | Partially completed | Actor-scoped Personal/Team source attribution, native metadata, filters, details and examples are available; Project requests and four native Team Session protocols exist; Personal single-Model requests and independent scoped review are available; Shared Team model requests and independently scoped review are available; Two-to-four native Team comparison lanes are implemented; Independent Team native code export is accepted; self-only monthly Overview accounts have complete local source, database and controlled browser acceptance; Creator-private Team media has complete local source, migration and controlled production acceptance; broader overview/price/usage facts remain open. |
+| F19 | Member overview, model sources, requests, and examples | Partially completed | Actor-scoped Personal/Team source attribution, native metadata, filters, details and examples are available; Project requests and four native Team Session protocols exist; Personal single-Model requests and independent scoped review are available; Shared Team model requests and independently scoped review are available; Two-to-four native Team comparison lanes are implemented; Independent Team native code export is accepted; self-only monthly Overview accounts and Personal thirty-day Home cards/trend/history have complete local source, database and controlled browser acceptance; Creator-private Team media has complete local source, migration and controlled production acceptance; broader overview/price/usage facts remain open. |
 | F20 | Playground, comparison, attachments, and code examples | Partially completed | Four native conversation paths, two-to-four-lane comparison, cancellation, executable examples, per-protocol image/PDF discovery, user/Project attachment resolution, single/comparison attachment lifecycle interfaces, and conservative token/TPM/money admission with exact per-occurrence media prices exist; Team comparison, independent native code export, parameter Reset and creator-private Team attachments have complete local acceptance; external acceptance remains open. |
 | F21 | Personal, Project, and platform call records and CSV | Completed | Isolated list/detail queries, incremental loading, redacted drawers, bounded server-side CSV export, filter parity, formula protection, and bilingual download actions are implemented with dual-database evidence. |
 | F22 | Usage trends, amounts, and multidimensional filters | Partially completed | Personal, Team, Project and platform usage interfaces plus immutable Provider attribution exist. Current-member Team aggregation, independent historical platform filters, revocation-safe interfaces and controlled replay/restart are accepted; complete freshness/capacity acceptance remains open. |
-| F23 | Operations overview, quality, alerts, and notifications | Partially completed | The real-data operations overview, immutable Provider-attempt quality, revisioned success/P95 thresholds, grouped Provider-quality and route-unavailable alerts, recipient-isolated history, independent severity settings, and bounded durable operational SMTP delivery are implemented. Current-policy Personal/Project monthly settled-exhaustion inboxes have focused acceptance; external mail acceptance, bounce/inbox tracking, real-Provider quality acceptance, and broader quota/enterprise sources remain open. |
+| F23 | Operations overview, quality, alerts, and notifications | Partially completed | The real-data operations overview, immutable Provider-attempt quality, revisioned success/P95 thresholds, grouped Provider-quality and route-unavailable alerts, recipient-isolated history, independent severity settings, and bounded durable operational SMTP delivery are implemented. Current-policy Personal/Project monthly settled-exhaustion inboxes have focused acceptance and Team aggregate monthly settled-exhaustion inboxes have complete controlled acceptance; external mail acceptance, bounce/inbox tracking, real-Provider quality acceptance, and broader quota/enterprise sources remain open. |
 | F24 | Read-only AI operations analysis and saved reports | Not started | Authorized analysis queries, saved definitions, evaluation, exports, and hostile-input acceptance are not implemented. |
 | F25 | Site presentation, language, and announcements | Completed | Durable site name, URL, logo, footer, default language, bilingual UI behavior, and announcement lifecycle are implemented. |
 | F26 | Instances, heartbeats, resources, jobs, and offline cleanup | Completed | Distinct process generations, server-owned leases, nullable resource facts, bounded real system jobs, executor-loss reconciliation, revision-checked cleanup, audit evidence, and the bilingual administrative workspace are implemented. |
@@ -2667,3 +2667,64 @@ the controlled production/browser proof above establish this bounded package's
 local acceptance. The scoped delivery contains 17 source/fixture integration
 paths and seven English documentation/rule paths. F19 remains partial because
 broader catalog/price facts and release-wide acceptance are independent.
+
+
+### Team monthly notifications main integration, 2026-10-04
+
+Home was committed/pushed and exactly read back as `d79f1a6`. Its 24 paths passed
+all local gates and controlled production acceptance. Fifteen frozen Team-notice
+source/fixture paths now extend that checked main with GORM V47, current exact
+member recipient/read boundaries and Session-generation-safe menu state. Only
+the migration registry and lifecycle harness receive narrow shared additions,
+preserving V46, monthly account and thirty-day source. Main source/build, browser,
+full real-database regression and final check remain delivery gates.
+
+The first integrated source test run found an old V46 unit assertion requiring
+the entire migration chain to have exactly 46 steps. It now permits later
+appended steps while retaining exact V45/V46 function positions and every frozen
+schema check. No released migration changed. The repaired main passed full
+check, test and build: 1711 frontend cases in 97 files, Go race tests, development
+lifecycle and production assets. The failed initial run is not acceptance evidence.
+
+Controlled production acceptance used the rebuilt main binary with SHA-256
+`bb66a918cc20a150977236b88c8edd575e0e0944a1df72606f39351be85b36ea`.
+Two local native upstream dispatches produced five settled Team Tokens and five
+USD. Reviewed aggregate and stable-member policies rejected further inference
+without upstream dispatch. The owner and original member each received exactly
+one immutable notice per dimension; a nonmember administrator and a later member
+received no historical fanout. Personal usage remained separate.
+
+The real notification menu passed live English/Chinese switching, original Team
+name/policy/month/currency preservation after a live rename, and exact read-state
+persistence after refresh. Removal hid both unread count and all history, denied
+the exact read operation, and prevented read-all from modifying hidden history.
+Rejoin restored the original member's history and read state. A real process
+restart preserved Sessions, snapshots and the one-read/one-unread state without
+replaying upstream dispatches. Browser warning/error logs were empty. Owned
+Compose containers, network and volumes were removed after acceptance.
+
+The first complete current-main PostgreSQL/MySQL regression finished in
+1193.834 seconds but failed the existing MySQL credential-metadata fixture's
+race check. Its GORM Query callback removal overlapped the Runtime refresh
+worker reading the shared callback registry. The fixture now installs the hook
+before workers start and removes it only after the recorder and Runtime workers
+join; publication-failure, exact retry, concurrent verification and metadata
+assertions remain unchanged. The complete regression must pass after the repair.
+The full suite's measured duration
+approached the former 20-minute bound, so the runner now keeps a finite
+30-minute limit without relaxing assertions or disabling the race detector.
+
+The repaired credential-metadata fixture passed three consecutive PostgreSQL and
+MySQL repetitions (six lifecycle executions, Handler 185.485 seconds) under the
+race detector, preserving publication-failure and concurrency assertions. Its
+owned Compose resources were removed and verified absent. Final current-main
+check passed again. The complete repaired regression passed under race detection:
+Handler1181.133s and Service7.983s. Its owned containers, network and volumes
+were removed and verified absent.
+
+The failed first run is not passing acceptance evidence; the repaired full run
+is. The final mandatory `go tool task check` passed. This phase carries only
+25 scoped source, fixture, rule and English documentation paths; inspect its
+delivery commit and exact remote ref for transport. This delivery does not
+add broader alert thresholds or stop-policy configuration, external mail
+acceptance, or distributed worker acknowledgement.

@@ -26,7 +26,7 @@ var errQuotaNotificationIdentity = errors.New("quota notification identity misma
 // monthlyQuotaObservations observes current settled levels only. Neither a
 // reservation rejection nor an outstanding hold establishes settled exhaustion.
 func monthlyQuotaObservations(row entity.ResourceLimit, created time.Time, usage *eventqueue.AccountQuotaUsage, platformCurrency string) []entity.QuotaNotificationObservation {
-	if row.ScopeKind != "user" && row.ScopeKind != "project" || row.ScopeID == "" || len(row.ScopeID) > 30 || !safeCallID.MatchString(row.ScopeID) || row.ETag == "" || len(row.ETag) > 64 || !safeCallID.MatchString(row.ETag) || usage == nil || usage.AsOf.IsZero() || usage.CoverageStart.IsZero() || created.IsZero() || created.After(usage.AsOf) || usage.CoverageStart.After(usage.AsOf) || usage.TimeZone == "" || usage.TimeZone == "Local" || len(usage.TimeZone) > 100 {
+	if row.ScopeKind != "user" && row.ScopeKind != "project" && row.ScopeKind != "team" || row.ScopeID == "" || len(row.ScopeID) > 30 || !safeCallID.MatchString(row.ScopeID) || row.ETag == "" || len(row.ETag) > 64 || !safeCallID.MatchString(row.ETag) || usage == nil || usage.AsOf.IsZero() || usage.CoverageStart.IsZero() || created.IsZero() || created.After(usage.AsOf) || usage.CoverageStart.After(usage.AsOf) || usage.TimeZone == "" || usage.TimeZone == "Local" || len(usage.TimeZone) > 100 {
 		return nil
 	}
 	policy, err := policyFromRow(row)
@@ -81,6 +81,16 @@ func monthlyQuotaObservations(row entity.ResourceLimit, created time.Time, usage
 }
 
 func (s *Service) quotaNotificationPolicyApplied(row entity.ResourceLimit, policy limits.Policy, timeZone, currency string) bool {
+	return s.quotaNotificationApplied(row, nil, policy, timeZone, currency)
+}
+
+// The Team creation basis must match the applied resource generation, not only
+// the account policy. No historical observation grants current Team authority.
+func (s *Service) quotaNotificationResourceApplied(row entity.ResourceLimit, created time.Time, policy limits.Policy, timeZone, currency string) bool {
+	return s.quotaNotificationApplied(row, &created, policy, timeZone, currency)
+}
+
+func (s *Service) quotaNotificationApplied(row entity.ResourceLimit, created *time.Time, policy limits.Policy, timeZone, currency string) bool {
 	if s.runtime == nil {
 		return false
 	}
@@ -88,6 +98,12 @@ func (s *Service) quotaNotificationPolicyApplied(row entity.ResourceLimit, polic
 	account := limitAccount(row.ScopeKind, row.ScopeID)
 	if auth == nil || !time.Now().Before(auth.ValidUntil) || auth.Quota == nil || auth.Quota.Revisions[account] != row.ETag || auth.Quota.Setting.TimeZone != timeZone || runtimeDenied(&s.runtime.deniedLimits, account) || runtimeDenied(&s.runtime.deniedLimits, "quota_settings") {
 		return false
+	}
+	if row.ScopeKind == "team" {
+		team, exists := auth.Teams[row.ScopeID]
+		if !exists || runtimeDenied(&s.runtime.deniedTeams, row.ScopeID) || created != nil && (created.IsZero() || !team.CreatedAt.Equal(*created)) {
+			return false
+		}
 	}
 	published, err := limits.Normalize(auth.LimitPolicies[account])
 	return err == nil && reflect.DeepEqual(published, policy) && (policy.MoneyMonth == nil || auth.Quota.Currency == currency)
@@ -136,7 +152,7 @@ func persistQuotaNotification(tx *gorm.DB, observation entity.QuotaNotificationO
 }
 
 func (s *Service) observeMonthlyQuotaNotification(ctx context.Context, kind, scopeID string) error {
-	if kind != "user" && kind != "project" || scopeID == "" || len(scopeID) > 30 || !safeCallID.MatchString(scopeID) {
+	if kind != "user" && kind != "project" && kind != "team" || scopeID == "" || len(scopeID) > 30 || !safeCallID.MatchString(scopeID) {
 		return nil
 	}
 	if s.recorder == nil || s.runtime == nil {
@@ -150,7 +166,8 @@ func (s *Service) observeMonthlyQuotaNotification(ctx context.Context, kind, sco
 		}
 		var created time.Time
 		var scopeName string
-		if kind == "user" {
+		switch kind {
+		case "user":
 			var user entity.User
 			if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).Select("id", "created_at", "disabled", "offboarded_at").Where(database.ExactText(tx, clause.Column{Name: "id"}, scopeID)).First(&user).Error; errors.Is(err, gorm.ErrRecordNotFound) {
 				return nil
@@ -161,7 +178,18 @@ func (s *Service) observeMonthlyQuotaNotification(ctx context.Context, kind, sco
 				return nil
 			}
 			created = user.CreatedAt
-		} else {
+		case "team":
+			var team entity.Team
+			if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).Select("id", "name", "created_at", "status").Where(database.ExactText(tx, clause.Column{Name: "id"}, scopeID)).First(&team).Error; errors.Is(err, gorm.ErrRecordNotFound) {
+				return nil
+			} else if err != nil {
+				return err
+			}
+			if team.ID != scopeID || team.Status != entity.ResourceActive || !validCatalogLabel(team.Name) {
+				return nil
+			}
+			created, scopeName = team.CreatedAt, team.Name
+		default:
 			var project entity.Project
 			if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).Select("id", "name", "created_at", "status").Where(database.ExactText(tx, clause.Column{Name: "id"}, scopeID)).First(&project).Error; errors.Is(err, gorm.ErrRecordNotFound) {
 				return nil
@@ -198,7 +226,7 @@ func (s *Service) observeMonthlyQuotaNotification(ctx context.Context, kind, sco
 		if err := tx.First(&pricingSetting, 1).Error; err != nil {
 			return err
 		}
-		if !s.quotaNotificationPolicyApplied(row, policy, setting.TimeZone, pricingSetting.PlatformCurrency) {
+		if !s.quotaNotificationResourceApplied(row, created, policy, setting.TimeZone, pricingSetting.PlatformCurrency) {
 			return nil
 		}
 		status, err := s.recorder.queue.QuotaStatus()
@@ -231,7 +259,7 @@ func (s *Service) observeMonthlyQuotaNotification(ctx context.Context, kind, sco
 		}
 		// Publication may expire while a resource lock is awaited. Roll back instead
 		// of turning a saved but unapplied revision into a member notification.
-		if !s.quotaNotificationPolicyApplied(row, policy, setting.TimeZone, pricingSetting.PlatformCurrency) {
+		if !s.quotaNotificationResourceApplied(row, created, policy, setting.TimeZone, pricingSetting.PlatformCurrency) {
 			return runtimeUnavailable
 		}
 		return nil

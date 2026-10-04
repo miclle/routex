@@ -23,6 +23,8 @@ export default {
   unknownItem: '有通知需要关注。',
   quota: {
     personalScope: '个人额度',
+    teamScope: 'Team：{{id}}',
+    teamScopeNamed: 'Team：{{name}}（{{id}}）',
     projectScope: 'Project：{{id}}',
     projectScopeNamed: 'Project：{{name}}（{{id}}）',
     settled: '已结算：{{value}}',

@@ -154,6 +154,12 @@ Price file maintenance belongs in `views/price-imports` at `/admin/prices`, with
 
 Admission controls live in member Settings, Project Resource configuration, and existing Key detail/restriction surfaces. `views/resource-limits` shares the implemented rolling five-hour/seven-day token, monthly token/money, TPM, RPM, concurrency, and IP policy editor; aggregate edits are inline and Key restrictions use the local dialog. Keep null/inherited values distinct from zero, display stored/effective policies and the complete IP conjunction, and show publication status separately from persistence. Writes require a reason and strong If-Match. Retain immutable submission intent for uncertain publication retries; stale policies require explicit reload/review without discarding the draft. Read the platform denomination from the resource-authorized `platform_currency` field and preserve exact money strings. Changed currency requires explicit review of retained drafts. Display authoritative quota windows, coverage, holds, and unknown values separately; never invent remaining allowance. Default templates and broader alerts remain outside this policy editor.
 
+Team monthly exhaustion notifications freeze current-policy aggregate settled
+Tokens/money and the then-current enabled owner/member recipients. Current exact
+membership controls inbox/read access; rejoin retains original read state, while
+new members receive no historical fanout. Session network generations hide stale
+rows/count/read actions; preserve manual same-actor CSRF cache replacement.
+
 Team resource limits use the addressable Limits tab and existing member action
 menu/dialog. Aggregate policies support rolling/monthly Tokens, monthly money,
 RPM, TPM and concurrency; members support monthly Tokens/money and request rates.

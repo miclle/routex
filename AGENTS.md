@@ -257,6 +257,12 @@ translations and preserve independent refresh/error/empty states for both cards.
 
 Provider-model capacity attestations belong in the existing detail view before prices. Read and write permissions remain independent. Use positive safe integer maxima, explicit evidence and reason, reviewed If-Match, retained drafts on conflicts, and immutable intent for uncertain retries. A configured record means a saved attestation, not proof that its revision is currently valid or enforced. Keep paired `pricing` translations.
 
+Team monthly exhaustion notifications freeze current-policy aggregate settled
+Tokens/money and the then-current enabled owner/member recipients. Current exact
+membership controls inbox/read access; rejoin retains original read state, while
+new members receive no historical fanout. Session network generations hide stale
+rows/count/read actions; preserve manual same-actor CSRF cache replacement.
+
 Team resource limits use the addressable Limits tab and existing member action
 menu/dialog. Aggregate policies support rolling/monthly Tokens, monthly money,
 RPM, TPM and concurrency; members support monthly Tokens/money and request rates.

@@ -16,6 +16,7 @@ type quotaInboxAccess struct {
 	ActorID     string
 	Operational bool
 	ProjectIDs  []string
+	TeamIDs     []string
 }
 
 const quotaInboxManagerLimit = 1000
@@ -47,6 +48,59 @@ func quotaManagerQuery(tx *gorm.DB) *gorm.DB {
 		Where(database.ExactTextColumns(tx, clause.Column{Table: "project", Name: "id"}, clause.Column{Table: "manager", Name: "project_id"}))
 }
 
+type quotaTeamIdentity struct {
+	MembershipID     string
+	MembershipUserID string
+	MembershipTeamID string
+	UserID           string
+	TeamID           string
+	TeamStatus       string
+	MembershipStatus string
+	Role             string
+	Disabled         bool
+	Offboarded       bool
+}
+
+func validQuotaTeamMember(row quotaTeamIdentity, actorID, teamID string) bool {
+	return safeTeamSessionID(row.MembershipID) && safeTeamSessionID(row.UserID) && safeTeamSessionID(row.TeamID) &&
+		row.MembershipUserID == row.UserID && row.MembershipTeamID == row.TeamID &&
+		(actorID == "" || row.UserID == actorID) && (teamID == "" || row.TeamID == teamID) &&
+		row.TeamStatus == entity.ResourceActive && row.MembershipStatus == entity.ResourceActive &&
+		(row.Role == entity.TeamOwner || row.Role == entity.TeamMember) && !row.Disabled && !row.Offboarded
+}
+
+func quotaTeamQuery(tx *gorm.DB) *gorm.DB {
+	return tx.Table("team_memberships AS member").
+		Select("member.id AS membership_id, member.user_id AS membership_user_id, member.team_id AS membership_team_id, actor.id AS user_id, team.id AS team_id, team.status AS team_status, member.status AS membership_status, member.role, actor.disabled, actor.offboarded_at IS NOT NULL AS offboarded").
+		Joins("JOIN users AS actor ON actor.id = member.user_id").
+		Joins("JOIN teams AS team ON team.id = member.team_id").
+		Where("actor.disabled = ? AND actor.offboarded_at IS NULL", false).
+		Where(database.ExactText(tx, clause.Column{Table: "team", Name: "status"}, entity.ResourceActive)).
+		Where(database.ExactText(tx, clause.Column{Table: "member", Name: "status"}, entity.ResourceActive)).
+		Where(clause.Or(database.ExactText(tx, clause.Column{Table: "member", Name: "role"}, entity.TeamOwner), database.ExactText(tx, clause.Column{Table: "member", Name: "role"}, entity.TeamMember))).
+		Where(database.ExactTextColumns(tx, clause.Column{Table: "actor", Name: "id"}, clause.Column{Table: "member", Name: "user_id"})).
+		Where(database.ExactTextColumns(tx, clause.Column{Table: "team", Name: "id"}, clause.Column{Table: "member", Name: "team_id"}))
+}
+
+func quotaTeamRecipients(tx *gorm.DB, scopeID string) ([]string, error) {
+	var rows []quotaTeamIdentity
+	if err := quotaTeamQuery(tx).Where(database.ExactText(tx, clause.Column{Table: "team", Name: "id"}, scopeID)).
+		Limit(quotaInboxManagerLimit + 1).Scan(&rows).Error; err != nil {
+		return nil, err
+	}
+	if len(rows) > quotaInboxManagerLimit {
+		return nil, apperrors.ErrBadRequest
+	}
+	recipients := make([]string, 0, len(rows))
+	for _, row := range rows {
+		if validQuotaTeamMember(row, "", scopeID) {
+			recipients = append(recipients, row.UserID)
+		}
+	}
+	slices.Sort(recipients)
+	return slices.Compact(recipients), nil
+}
+
 // quotaNotificationRecipients is called inside the observer's governance-locked
 // transaction. Recorded recipients never expand when an observation is replayed.
 func quotaNotificationRecipients(tx *gorm.DB, scopeKind, scopeID string) ([]string, error) {
@@ -63,6 +117,9 @@ func quotaNotificationRecipients(tx *gorm.DB, scopeKind, scopeID string) ([]stri
 			return nil, nil
 		}
 		return []string{user.ID}, nil
+	}
+	if scopeKind == "team" {
+		return quotaTeamRecipients(tx, scopeID)
 	}
 	if scopeKind != "project" {
 		return nil, nil
@@ -115,6 +172,24 @@ func loadQuotaInboxAccess(tx *gorm.DB, actorID string) (quotaInboxAccess, error)
 	}
 	slices.Sort(access.ProjectIDs)
 	access.ProjectIDs = slices.Compact(access.ProjectIDs)
+	// Aggregate history follows current Team read authority. Rejoining restores
+	// only the original user's recorded inbox rows and preserves their read state.
+	// A membership generation is an invocation proof, not an inbox entitlement.
+	var memberships []quotaTeamIdentity
+	if err := quotaTeamQuery(tx).Where(database.ExactText(tx, clause.Column{Table: "actor", Name: "id"}, actorID)).
+		Limit(quotaInboxManagerLimit + 1).Scan(&memberships).Error; err != nil {
+		return access, err
+	}
+	if len(memberships) > quotaInboxManagerLimit {
+		return access, apperrors.ErrBadRequest
+	}
+	for _, membership := range memberships {
+		if validQuotaTeamMember(membership, actorID, "") {
+			access.TeamIDs = append(access.TeamIDs, membership.TeamID)
+		}
+	}
+	slices.Sort(access.TeamIDs)
+	access.TeamIDs = slices.Compact(access.TeamIDs)
 	return access, nil
 }
 
@@ -145,6 +220,10 @@ func quotaObservationScope(tx *gorm.DB, access quotaInboxAccess) *gorm.DB {
 		scope = scope.Or(tx.Where(database.ExactText(tx, clause.Column{Table: "observation", Name: "scope_kind"}, "project")).
 			Where(database.ExactText(tx, clause.Column{Table: "observation", Name: "scope_id"}, projectID)))
 	}
+	for _, teamID := range access.TeamIDs {
+		scope = scope.Or(tx.Where(database.ExactText(tx, clause.Column{Table: "observation", Name: "scope_kind"}, "team")).
+			Where(database.ExactText(tx, clause.Column{Table: "observation", Name: "scope_id"}, teamID)))
+	}
 	dimensions := tx.Where(database.ExactText(tx, clause.Column{Table: "observation", Name: "dimension"}, "tokens")).
 		Or(database.ExactText(tx, clause.Column{Table: "observation", Name: "dimension"}, "money"))
 	return scope.Where(dimensions)
@@ -172,7 +251,8 @@ func validQuotaInboxRow(row quotaInboxRow, access quotaInboxAccess) bool {
 	return row.RecipientID == access.ActorID && row.InboxObservationID == observation.ID &&
 		(observation.Dimension == "tokens" || observation.Dimension == "money") &&
 		(observation.ScopeKind == "user" && observation.ScopeID == access.ActorID ||
-			observation.ScopeKind == "project" && slices.Contains(access.ProjectIDs, observation.ScopeID))
+			observation.ScopeKind == "project" && slices.Contains(access.ProjectIDs, observation.ScopeID) ||
+			observation.ScopeKind == "team" && slices.Contains(access.TeamIDs, observation.ScopeID))
 }
 
 func quotaNotificationRecord(row quotaInboxRow) NotificationRecord {

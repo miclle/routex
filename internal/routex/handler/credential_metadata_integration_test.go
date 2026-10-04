@@ -101,13 +101,26 @@ func testCredentialMetadataLifecycle(t *testing.T, db *gorm.DB) {
 			t.Fatal(err)
 		}
 	}
+	// GORM callback registries are shared by all sessions. Install the fault
+	// hook before starting readers and remove it only after their workers join.
+	var failPublication atomic.Bool
+	callback := "test:credential_metadata_publication"
+	if err := db.Callback().Query().Before("gorm:query").Register(callback, func(tx *gorm.DB) {
+		if failPublication.Load() && tx.Statement.Table == "models" {
+			_ = tx.AddError(errors.New("test-only publication unavailable"))
+		}
+	}); err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = db.Callback().Query().Remove(callback) }()
 	if err := svc.StartRuntime(ctx); err != nil {
 		t.Fatal(err)
 	}
+	defer svc.StopRuntime()
 	if err := svc.StartCallRecorder(ctx, filepath.Join(t.TempDir(), "metadata.db")); err != nil {
 		t.Fatal(err)
 	}
-	defer func() { svc.StopRuntime(); _ = svc.StopCallRecorder() }()
+	defer func() { _ = svc.StopCallRecorder() }()
 	path := "/api/v1/admin/credentials/crd_metadata_first/metadata"
 	request := func(method, target, raw, etag string, sessionCookie *http.Cookie, csrf string) *httptest.ResponseRecorder {
 		req := httptest.NewRequest(method, "http://routex.test"+target, strings.NewReader(raw))
@@ -305,16 +318,6 @@ func testCredentialMetadataLifecycle(t *testing.T, db *gorm.DB) {
 	}
 	// Publication can fail after a committed write. Exact retries reconcile the
 	// saved target, refresh runtime, and never manufacture a second audit event.
-	var failPublication atomic.Bool
-	callback := "test:credential_metadata_publication"
-	if err := db.Callback().Query().Before("gorm:query").Register(callback, func(tx *gorm.DB) {
-		if failPublication.Load() && tx.Statement.Table == "models" {
-			_ = tx.AddError(errors.New("test-only publication unavailable"))
-		}
-	}); err != nil {
-		t.Fatal(err)
-	}
-	defer func() { _ = db.Callback().Query().Remove(callback) }()
 	current = read(path)
 	priorAuditCount := auditCount()
 	failPublication.Store(true)

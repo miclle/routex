@@ -6,7 +6,7 @@ import "time"
 // settled exhaustion. It does not claim a historical threshold crossing.
 type QuotaNotificationObservation struct {
 	ID                string    `gorm:"primaryKey;size:30"`
-	ScopeKind         string    `gorm:"size:20;not null;uniqueIndex:uq_quota_notification_observation,priority:1;check:ck_quota_notification_scope,scope_kind IN ('user','project')"`
+	ScopeKind         string    `gorm:"size:20;not null;uniqueIndex:uq_quota_notification_observation,priority:1;check:ck_quota_notification_scope_v47,scope_kind IN ('user','project','team')"`
 	ScopeID           string    `gorm:"size:30;not null;uniqueIndex:uq_quota_notification_observation,priority:2"`
 	ScopeName         string    `gorm:"size:100;not null"`
 	Dimension         string    `gorm:"size:20;not null;uniqueIndex:uq_quota_notification_observation,priority:3;check:ck_quota_notification_dimension,dimension IN ('tokens','money')"`
@@ -23,7 +23,7 @@ type QuotaNotificationObservation struct {
 }
 
 // QuotaNotificationInbox freezes eligible recipients when the observation is
-// saved. Historical replay neither adds new managers nor resets read state.
+// saved. Historical replay neither adds new recipients nor resets read state.
 type QuotaNotificationInbox struct {
 	ID            string     `gorm:"primaryKey;size:30;index:idx_quota_inbox_recipient_created,priority:3"`
 	ObservationID string     `gorm:"size:30;not null;uniqueIndex:uq_quota_inbox_observation_recipient,priority:1"`

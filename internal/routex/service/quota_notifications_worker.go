@@ -20,7 +20,7 @@ type quotaNotificationCursor struct{ Kind, ID string }
 func (s *Service) reconcileMonthlyQuotaNotificationBatch(ctx context.Context, cursor *quotaNotificationCursor) (bool, error) {
 	var rows []entity.ResourceLimit
 	db := s.authDB(ctx)
-	query := db.Select("scope_kind", "scope_id").Where(clause.Or(database.ExactText(db, clause.Column{Name: "scope_kind"}, "user"), database.ExactText(db, clause.Column{Name: "scope_kind"}, "project"))).Where("tokens_month IS NOT NULL OR money_month IS NOT NULL")
+	query := db.Select("scope_kind", "scope_id").Where(clause.Or(database.ExactText(db, clause.Column{Name: "scope_kind"}, "user"), database.ExactText(db, clause.Column{Name: "scope_kind"}, "project"), database.ExactText(db, clause.Column{Name: "scope_kind"}, "team"))).Where("tokens_month IS NOT NULL OR money_month IS NOT NULL")
 	if cursor.Kind != "" {
 		query = query.Where("scope_kind > ? OR (scope_kind = ? AND scope_id > ?)", cursor.Kind, cursor.Kind, cursor.ID)
 	}

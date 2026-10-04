@@ -175,3 +175,36 @@ Personal/Project settlement snapshots, English/Chinese switching and revoked
 Project authority refresh. Its owned resources were removed. The complete PostgreSQL/MySQL race matrix passed (Handler 499.925 seconds,
 Service 5.851 seconds), and its owned containers/network were removed; external mail and broader quota/enterprise alert
 acceptance remain open.
+
+
+## Team monthly settled exhaustion
+
+Team aggregate monthly Tokens and money use the same conservative settled-fact
+observer. It freezes a current-policy observation and the then-current enabled
+owner/member recipients, bounded to 1000 identities; an overflow cannot become
+a partial recipient list. Stable Team/User accounting is not a separate public
+recipient scope. No Team Key or personal quota is introduced.
+
+Inbox/count/read actions require current exact enabled membership and an active
+Team; a platform administrator has no implicit member access. Removal hides
+recorded private notices without rewriting read state. Rejoin restores that
+original state; a later member receives no old observation during worker replay.
+Recorded subject names, policy revision, month/timezone, settled/limit strings and
+currency remain immutable even after live Team changes. Unknown coverage, holds,
+partial calendar coverage and unconfirmed application never prove exhaustion.
+
+The existing notification menu renders paired English/Chinese Team snapshot copy.
+Every successful Session network generation reauthorizes rows, unread count and
+read intents, including structurally equal same-millisecond responses. Renewing
+or failed reads hide old private facts; late prior-generation results cannot
+restore them. Manual same-actor CSRF cache replacement preserves valid state.
+
+Frozen GORM V47 expands only the observation scope check after installing the
+new guard; released V35 remains immutable. Existing observations, deduplication
+and historical recipients survive repeat/partial-DDL repair. Current-main source
+checks and controlled bilingual production acceptance passed, including exact
+membership removal/rejoin and persisted read state after real restart. The complete
+current-main PostgreSQL/MySQL regression passed under race detection
+(Handler1181.133s, Service7.983s), with owned matrix resources removed. Final
+mandatory `go tool task check` passed. Source, fixtures and documentation are
+delivered as one scoped main package; inspect its commit and remote checks.

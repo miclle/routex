@@ -4,7 +4,7 @@ export type NotificationDeliveryStatus =
   'pending' | 'retry' | 'sending' | 'accepted' | 'failed' | 'unknown'
 
 export interface MonthlyQuotaNotificationSnapshot {
-  scope_kind: 'user' | 'project'
+  scope_kind: 'user' | 'project' | 'team'
   scope_id: string
   dimension: 'tokens' | 'money'
   policy_revision: string
