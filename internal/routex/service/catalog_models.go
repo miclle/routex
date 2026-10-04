@@ -135,8 +135,19 @@ func (s *Service) CreateModel(ctx context.Context, actorID, name, providerModelI
 	if err != nil {
 		return nil, apperrors.ErrInternal
 	}
+	release := s.pinPersonalKeyMutation()
+	defer release()
 	db := s.authDB(ctx)
 	err = db.Transaction(func(tx *gorm.DB) error {
+		if err := lockGovernance(tx); err != nil {
+			return err
+		}
+		if err := exactCatalogPermission(modelCreationDB(tx), actorID, "models.write"); err != nil {
+			return err
+		}
+		if _, err := memberModelsSubject(tx, actorID, true); err != nil {
+			return err
+		}
 		var pm entity.ProviderModel
 		if err := tx.First(&pm, "id = ?", providerModelID).Error; err != nil {
 			return err
@@ -155,11 +166,15 @@ func (s *Service) CreateModel(ctx context.Context, actorID, name, providerModelI
 		if err := tx.Create(&entity.UserModelGrant{UserID: actorID, ModelID: modelID}).Error; err != nil {
 			return err
 		}
+		if err := advancePersonalGrantRevision(modelCreationDB(tx), actorID); err != nil {
+			return err
+		}
 		if err := appendAudit(tx, actorID, "model.create", "model", modelID); err != nil {
 			return err
 		}
 		return appendAudit(tx, actorID, "model.grant", "model", modelID)
 	})
+	release()
 	if err := s.refreshAfterMutation(ctx, catalogError(err)); err != nil {
 		return nil, err
 	}
@@ -303,46 +318,31 @@ func (s *Service) RenameModel(ctx context.Context, actorID, modelID, name string
 }
 
 func (s *Service) SetModelGrants(ctx context.Context, actorID, modelID string, userIDs []string) (*ModelCatalog, error) {
-	if len(userIDs) > 1000 {
+	if len(userIDs) > 1000 || !validAdminModelTarget(modelID) {
 		return nil, apperrors.ErrBadRequest
 	}
 	seen := map[string]bool{}
 	for _, userID := range userIDs {
-		if userID == "" || seen[userID] {
+		if !safeTeamSessionID(userID) || seen[userID] {
 			return nil, apperrors.ErrBadRequest
 		}
 		seen[userID] = true
 	}
+	release := s.pinPersonalKeyMutation()
+	defer release()
 	db := s.authDB(ctx)
+	var removed []string
 	err := db.Transaction(func(tx *gorm.DB) error {
-		// Key issuance locks its owner before foreign-key checks on the model.
-		// Grant insertion must use the same order to avoid an owner/model cycle.
-		if len(userIDs) > 0 {
-			var users []entity.User
-			if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).Select("id").Where("id IN ? AND disabled = ?", userIDs, false).Order("id").Find(&users).Error; err != nil {
-				return err
-			}
-			if len(users) != len(userIDs) {
-				return apperrors.ErrBadRequest
-			}
-		}
-		var model entity.Model
-		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).First(&model, "id = ?", modelID).Error; err != nil {
-			return err
-		}
-		if err := tx.Where("model_id = ?", modelID).Delete(&entity.UserModelGrant{}).Error; err != nil {
-			return err
-		}
-		for _, userID := range userIDs {
-			if err := tx.Create(&entity.UserModelGrant{UserID: userID, ModelID: modelID}).Error; err != nil {
-				return err
-			}
-		}
-		return appendAudit(tx, actorID, "model.grants.update", "model", modelID)
+		var err error
+		removed, err = setCatalogModelGrants(tx, actorID, modelID, userIDs)
+		return err
 	})
 	if err == nil {
-		s.InvalidateRuntimeModel(modelID)
+		for _, userID := range removed {
+			s.invalidatePersonalModelGrants(userID)
+		}
 	}
+	release()
 	if err := s.refreshAfterMutation(ctx, catalogError(err)); err != nil {
 		return nil, err
 	}

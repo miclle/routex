@@ -2,7 +2,7 @@ import MemberTeams from './member-teams'
 import MemberKeys from './member-keys'
 import MemberOverview from './member-overview'
 import { useSessionGeneration } from '@/hooks/use-session-generation'
-import { PersonalModelMemberPanel } from '@/views/personal-model-requests'
+import MemberModels from './member-models'
 import MemberLimits from './member-limits'
 import { useTranslation } from 'react-i18next'
 import { useLayoutEffect, useRef, useState, type FormEvent } from 'react'
@@ -448,7 +448,7 @@ function Members() {
                     'keys',
                     'limits',
                     'settings',
-                    ...(access.can('members.models.write') ? ['models'] : []),
+                    'models',
                     ...(access.can('roles.read') ? ['roles'] : []),
                   ].includes(params.get('tab') || '')
                     ? params.get('tab')!
@@ -476,15 +476,13 @@ function Members() {
                   >
                     {t('memberKeys.title')}
                   </TabsTrigger>
-                  {access.can('members.models.write') && (
-                    <TabsTrigger
-                      value="models"
-                      id={`member-models-tab-${actor}-${memberId}`}
-                      aria-controls={`member-models-panel-${actor}-${memberId}`}
-                    >
-                      {t('personalModelRequests:title')}
-                    </TabsTrigger>
-                  )}
+                  <TabsTrigger
+                    value="models"
+                    id={`member-models-tab-${actor}-${memberId}`}
+                    aria-controls={`member-models-panel-${actor}-${memberId}`}
+                  >
+                    {t('memberModels.title')}
+                  </TabsTrigger>
                   <TabsTrigger
                     value="limits"
                     id={`member-limits-tab-${actor}-${memberId}`}
@@ -704,19 +702,6 @@ function Members() {
               </Tabs>
             </>
           )}
-          {params.get('tab') === 'models' && (
-            <section
-              role="tabpanel"
-              id={`member-models-panel-${actor}-${memberId}`}
-              aria-labelledby={`member-models-tab-${actor}-${memberId}`}
-            >
-              <PersonalModelMemberPanel
-                key={`${actor}:${memberId}`}
-                owner={memberId}
-                visible={!!current && access.can('members.models.write')}
-              />
-            </section>
-          )}
         </>
       )}
       <Dialog
@@ -834,6 +819,22 @@ function Members() {
           aria-label={t('memberTeams.title')}
         >
           <MemberTeams
+            actor={actor}
+            target={memberId}
+            generation={generation}
+            ready={!!current}
+            targetQueryKey={['admin', 'member', actor, memberId, generation]}
+          />
+        </section>
+      )}
+      {memberId && params.get('tab') === 'models' && (
+        <section
+          className="mt-6"
+          role="tabpanel"
+          id={`member-models-panel-${actor}-${memberId}`}
+          aria-labelledby={`member-models-tab-${actor}-${memberId}`}
+        >
+          <MemberModels
             actor={actor}
             target={memberId}
             generation={generation}

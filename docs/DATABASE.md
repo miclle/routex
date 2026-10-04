@@ -552,3 +552,67 @@ regression, mandatory check, both-driver auth/process lifecycle and R3
 native/browser/restart acceptance, this phase is ready for a scoped main commit
 and push. Previous failed fixture/helper runs remain explicit historical
 evidence. Remote delivery and CI are not yet claimed.
+
+
+## Personal Model grant revisions (V54 source preparation)
+
+Private frozen GORM V54 follows V53 and adds only the private
+`users.personal_grant_revision` field: non-null 64-character lowercase hexadecimal,
+with an all-zero initial migration sentinel and
+`ck_users_personal_grant_revision`. The sentinel records a schema baseline,
+not a historical grant operation. The migration uses Migrator column and check
+APIs, repairs a partially added null/empty baseline and reconciles column shape
+before acknowledging the step. It introduces no table, receipt, permission,
+foreign key or implicit Model grant; released migrations remain unchanged.
+Root registered V54 after the accepted V53 delivery; the harness ledger now
+expects 54 versions. Empty/upgrade/repeat/concurrent/partial-DDL and constraint acceptance passed
+on real PostgreSQL and MySQL.
+
+Every actual direct-grant/provenance change must advance a cryptographically
+random revision in the same transaction. The three existing writers are legacy
+Model creation's actor grant, complete Model-to-user replacement and first
+Personal-request approval insertion; the new Member complete-set writer shares
+that fence. Retained exact grant rows keep their original `CreatedAt` and nullable
+`SourceRequestID`. True equal-state reconciliation makes no grant, revision or
+audit write. A generation prevents remove/re-add ABA from validating an old review.
+The new delta and typed before/after audit commit atomically.
+
+Private authorization publication binds exact User creation/enablement/revision
+and the complete grant proof, including empty sets and null provenance. The
+reduction tombstone applies only to Personal Key authorization and prepared
+attempts; it does not reuse the broader User-denial fence or revoke Team Session
+or Project authority. New Personal grants never expand retained Key ceilings.
+Saved state and current private publication remain separate; a successful
+current-state confirmation is not an immutable operation receipt.
+
+Real-driver migration and historical preservation acceptance passed. Controlled
+native reduction, quota/history preservation, publication outage and same-artifact
+restart also passed. The accepted Team histories and current V53
+checkpoints above are unchanged. See
+[Governance](GOVERNANCE.md#administrative-member-models-source-preparation).
+
+
+Member Models passed focused dual-driver acceptance and the complete unmodified
+ordered 91-case-per-driver race matrix, including V54 lifecycle/constraint tests,
+plus both-driver authentication/process restart. Source checks, Go race,
+development/production assets, production build and fresh 2346 frontend tests in
+123 files passed. Controlled process/native/browser/restart acceptance passed ten
+native completions and four zero-dispatch denials, genuine publication failure,
+Personal-only reduction, unchanged Team/Project authority, old Key ceilings and
+zero-write current-state retry. Browser evidence covers bilingual tables, retained
+drafts, reason validation, independent permissions and responsive containment;
+browser grant writes are not claimed. The 197-path successor differs from the
+full-matrix floor only in a tested Actor fixture. Detailed failed and successful
+checkpoints remain in [Implementation](IMPLEMENTATION.md#member-models-actual-acceptance-2026-10-05).
+Final mandatory check passed; checked main delivery remains pending. F04/F19 and formal
+11 complete/16 partial/3 unstarted remain unchanged.
+
+
+Member Models current confirmation tolerates only a bounded busy snapshot read
+after the committed transaction and one successful publication. Every fresh
+capture reauthorizes the actor and exact target/set; explicit non-application,
+authority changes, cancellation, deadline, stopped or expired runtime fail
+conservatively. It does not replay writes or establish a historical receipt.
+Focused dual-driver R4, complete integration, authentication and controlled
+native/browser acceptance passed; current-state confirmation remains distinct
+from historical operation evidence.

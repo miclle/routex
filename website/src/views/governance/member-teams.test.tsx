@@ -188,7 +188,7 @@ it('uses the approved trigger order without changing existing tab URLs', async (
     'Overview',
     'Teams',
     'API Keys',
-    'Personal model access',
+    'Models',
     'Budgets, quotas and limits',
     'Roles and permissions',
     'Settings',
@@ -303,6 +303,7 @@ it.each(['actor', 'target', 'tab', 'logout'])(
     const signal = reads()[0].signal
     await act(async () => {
       if (change === 'actor') {
+        pages = [memberTeamsPage([memberTeamRow('d')])]
         actor = 'usr_01dddddddddddddddddddddddd'
         cache.setQueryData(['auth', 'session'], {
           user: { id: actor, role: 'admin', name: 'Other' },
@@ -319,6 +320,7 @@ it.each(['actor', 'target', 'tab', 'logout'])(
     await act(async () => {
       g.release()
     })
+    if (change === 'actor') await until(() => expect(host.textContent).toContain('Recorded Team d'))
     expect(host.textContent).not.toContain('Recorded Team c')
     expect(document.querySelector('[role="tooltip"]')).toBeNull()
   },

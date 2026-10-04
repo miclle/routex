@@ -107,6 +107,8 @@ func (s *Service) DecidePersonalModelRequest(ctx context.Context, actorID, userI
 	if !personalModelID(userID, "usr") || !personalModelID(requestID, "mar") || !personalModelETag(etag) || !credentialReplacementRequestID.MatchString(input.DecisionID) || !personalModelReason(input.Reason, input.Action == "reject") || reviewer && (input.Action != "approve" && input.Action != "reject") || !reviewer && (input.Action != "withdraw" || input.Reason != "") {
 		return nil, apperrors.ErrBadRequest
 	}
+	release := s.pinPersonalKeyMutation()
+	defer release()
 	hash := personalDecisionHash(actorID, requestID, etag, input)
 	var saved entity.PersonalModelRequest
 	approved := false
@@ -162,6 +164,9 @@ func (s *Service) DecidePersonalModelRequest(ctx context.Context, actorID, userI
 			if err := tx.Create(&grant).Error; err != nil {
 				return err
 			}
+			if err := advancePersonalGrantRevision(modelCreationDB(tx), userID); err != nil {
+				return err
+			}
 			approved = true
 		}
 		now := time.Now().UTC().Truncate(time.Microsecond)
@@ -196,6 +201,7 @@ func (s *Service) DecidePersonalModelRequest(ctx context.Context, actorID, userI
 		// future reviewed validators must hash the actual saved representation.
 		return personalExact(tx, "id", saved.ID).Take(&saved).Error
 	}, &sql.TxOptions{Isolation: sql.LevelReadCommitted})
+	release()
 	if errors.Is(err, gorm.ErrDuplicatedKey) {
 		err = errPersonalModelConflict
 	}

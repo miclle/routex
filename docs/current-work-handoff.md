@@ -6,7 +6,43 @@ acceptance remains in `docs/IMPLEMENTATION.md`.
 
 ## Delivered baseline
 
-Latest checked source delivery is administrative Member Limits
+Latest checked source delivery is Member Teams
+`8074aaa46a1f247459d04034439ccad9dec8b826`, committed/pushed and read back
+exactly. Its fresh full 89-case, authentication, native/browser/restart and final
+mandatory checks passed. All three exact remote workflows passed: Actionlint
+37226753209, GolangCI-Lint 37226753205 and CI 37226753152.
+
+## Active work and next delivery
+
+Member Models is integrated on the delivered baseline. Source checks, all 2346
+frontend cases in 123 files, production build and focused dual-driver R4 passed.
+The complete ordered 91-case-per-driver integration matrix and both-driver
+authentication/restart passed. A test-only Actor fixture successor passed the
+fresh full frontend suite; all business sources and the production binary stayed
+exact. Controlled native/browser/restart acceptance passed ten native completions
+and four zero-dispatch denials. Genuine publication read failure kept Personal
+reductions denied while target Team, peer and Project calls completed; immutable
+history, old Key ceilings and equal-state retry without writes survived restart.
+English/Chinese, reason validation, Escape/draft preservation, direct refresh,
+independent read/write/Provider/price gates and 390px containment passed in the
+built-in browser. No grant write was performed through the browser. Earlier
+helper preparation failures and the first R3 browser-checkpoint stdin EOF remain
+historical; the same corrected helper passed with interactive stdin. All owned
+resources/listeners and the agent-created browser tab are absent. Final mandatory
+check passed; commit and push remain pending.
+
+After this delivery, accept platform CSV User-filter parity, own-Team call CSV
+and Member Settings name editing in separate tested phases. Their parallel
+source packets are frozen; they are not applied to main or accepted by runtime
+tests. A separate Member list backend/frontend pair has frozen the approved
+eleven-column table, safe batched summaries and fresh row-action authority in an
+isolated worktree; related source checks passed, actual acceptance is pending.
+Recent login remains unavailable until genuinely recorded.
+Formal totals remain 11 complete, 16 partial and 3 unstarted.
+
+## Earlier deliveries
+
+Previous checked source delivery is administrative Member Limits
 2d5cafc255561933e478dca637e1df95e0b935a5, committed/pushed with exact remote
 main read-back and clean main. Its 17 paths retain source 2259/117, Go race,
 development/production assets and checked build
@@ -34,7 +70,8 @@ conservative rounding. All 164 protected paths and production binary
 8008b44e426a80f22d722bf1834a93f052d9ee29825f6b857ced87b753e610a8
 remain exact. Browser screenshots include English/Chinese, unknown joins,
 independent reader denial and mobile containment. Owned resources and listener
-were independently absent. Commit/push and remote CI remain pending. This phase
+were independently absent. That source was subsequently committed/pushed as `8074aaa`; Actionlint and
+GolangCI-Lint and CI subsequently passed. This phase
 does not broaden accepted Keys/Limits authority. Formal 11/16/3 is unchanged.
 
 Predecessor public-name 767315fa2a57a9d39d8f727cc6e0f79e481f5580 passed source
@@ -473,3 +510,123 @@ regression, mandatory check, both-driver auth/process lifecycle and R3
 native/browser/restart acceptance, this phase is ready for a scoped main commit
 and push. Previous failed fixture/helper runs remain explicit historical
 evidence. Remote delivery and CI are not yet claimed.
+
+
+## Queued Member Models source preparation
+
+Member Teams is accepted and delivered as
+`8074aaa46a1f247459d04034439ccad9dec8b826`, pushed/read back exactly. Its
+fresh complete 89-case, authentication, native/browser/restart and final mandatory
+checks passed; exact remote Actionlint/GolangCI-Lint passed, CI was running.
+Preserve prior fixture/helper failures as historical evidence.
+
+The Member Models frontend packet is frozen: 15 bounded leaves, 182 related
+cases/ten files passed in 14.45s, types/scoped lint/format passed, and 465 unrelated
+frontend/dependency records stayed exact. It preserves current Keys/Limits/Teams/
+Overview mounts while adding a stable same-actor/target Models editor and managed
+request composition with no extra Session observer. Same-target drafts and exact
+uncertain body/reason/If-Match survive renewed authority/error gates with private
+facts hidden; actor/target/tab/logout destroys them. Explicit retries use fresh
+CSRF, and discarded late responses cannot resolve uncertainty.
+
+The fixed backend contract permits direct explicit `members.models.write` for
+any exact enabled target, including self/admin, without changing nonself request
+approval. Direct PUT confirms current Personal grants/runtime only, never an
+original historical receipt. Private random revision, preserved grant provenance,
+complete private auth proof and Personal-only tombstones must fence all existing
+writers plus the new delta. Old Key ceilings and Team/Project scopes remain
+unchanged. Type and semantic update metadata stay Unknown; Provider and price
+facts need their independent read permissions.
+
+The reviewed 24 backend, 15 frontend and two driver-fixture leaves are
+integrated on that accepted baseline. V54 and routes are registered centrally;
+the ledger expects 54 and two new cases follow all original ordered 89 (91).
+Fresh format/check/test/build, actual PostgreSQL/MySQL, authentication,
+native/browser/restart and final delivery are pending. Current-state-only write
+confirmation must never be presented as a historical receipt. Contextual docs
+were regenerated against the delivered baseline; corrected Team/Overview
+fixtures and unrelated dependency bytes were preserved. F04/F19 and formal 11 completed/16 partial/three unstarted
+status remain unchanged; broader catalog declarations are not closed here.
+
+
+Integrated Member Models source gates passed on the delivered Member Teams
+baseline: mandatory check, Go race, development lifecycle, production asset
+serving, all 2346 frontend tests in 123 files, and production build. The final
+195-path source floor and unchanged dependencies are recorded locally. V54 and
+the ordered 91-case harness are registered. Focused PostgreSQL/MySQL acceptance
+is now running; full regression, authentication and controlled native/browser/
+restart acceptance, final check and delivery remain pending. This source result
+is not runtime acceptance and does not change formal 11/16/3 status.
+
+
+Models actual focus R1 failed (Handler 117.985s): both drivers passed V54,
+Personal-request and Key children; catalog expected400 received404 for an invalid
+requested grant owner, and the new Models lifecycle received500 at an initially
+unlocalized request. Root restored the existing catalog400 contract without
+changing exact-owner validation and added bounded fixture caller diagnostics.
+R2 is running against a freshly frozen source floor. All owned R1 containers,
+networks and volumes were independently absent. This failure is retained and
+is not accepted delivery or a reason to weaken an assertion.
+
+
+Models focus R2 retained the original failure checkpoint and confirmed catalog
+now passes on both drivers; eight of ten children passed, while the Models
+workspace failed at its ready-route GET (fixture caller261). Pure GORM schema
+inspection confirmed ETag maps to e_tag and lowercase etag is not a mapped field.
+Root changed both non-secret Egress projections to mapped GORM field names;
+service/handler source race passed (8.863s/4.332s). R3 actual focus is running,
+with full and native/browser/restart acceptance still pending. R2 owned
+containers/networks/volumes were independently absent.
+
+
+Models focus R3 passed nine of ten children (Handler125.628s), including the
+complete PostgreSQL Models lifecycle16.03s. MySQL reached self equal-state
+confirmation and received503 instead of200. Source review identified a normal
+publisher contention window after the successful Refresh: the existing correct
+nonblocking projection may capture no snapshot. Root retained that safety gate
+and is preparing bounded fresh read-only confirmation, with no transaction,
+publication, tombstone or audit replay; only private busy captures may retry.
+A reviewed fixture extension now covers both corrected Egress projections using
+owned numeric no-auth/authenticated SOCKS5 descriptors via saved product APIs.
+Transport discovery is not native completion. Actual rerun and all remaining
+gates are pending. R3 owned resources were independently absent.
+
+
+Delivered Member Teams8074 now has all-three exact remote success:
+Actionlint37226753209, GolangCI-Lint37226753205 and CI37226753152. This
+remote evidence is separate from the still-unaccepted Models candidate.
+
+
+Member Models checkpoint (2026-10-05): focused PostgreSQL/MySQL R4 passed all
+ten required children with no missing or skipped child (Handler 124.041s).
+This includes V54, the Models lifecycle, Personal requests, catalog and Keys.
+Both named and platform-default saved SOCKS5 descriptors were exercised in
+discovery; this does not claim native inference completion. The bounded
+post-publication confirmation retries only a private busy read, renews authority
+and the exact desired set, and never repeats a mutation, audit or publication.
+Fresh source race, mandatory check and production build passed; all 197 protected
+source/dependency paths stayed exact. Owned containers, networks and volumes
+were independently absent. The unmodified complete integration task is now
+running with JSON test events, all ordered 91 cases per driver, the race detector
+and its normal 30-minute bound. Authentication, native/browser/restart, final
+check and delivery remain pending. Earlier failed R1-R3 checkpoints remain
+historical evidence. F04/F19 and formal 11 complete/16 partial/3 unstarted
+status remain unchanged.
+
+
+Member Models actual checkpoint (2026-10-05): the full unmodified race matrix
+passed all ordered 91 cases on each of PostgreSQL/MySQL and all eight existing
+pre-loop constraint cases (Handler 1596.908s, Service 10.115s). All five test-bearing
+packages passed; entity has no tests. Owned resources were independently absent.
+A test-only Actor fixture successor then distinguished the cancelled old response
+from newly authorized data, preserving every privacy assertion and the checked
+production artifact. Fresh frontend R5 passed 2346 cases/123 files plus four Node
+checks. The 197-path successor floor differs only in that test fixture. Both-driver
+authentication/process restart, encrypted credentials, grants, Key confirmation,
+ordinary/streaming calls and persistent revocation passed with owned cleanup.
+Controlled Models native R1/R2 failed in helper preparation: R1 used the wrong
+Team model write URL; R2 requested nonexistent Team/Project grant timestamps.
+Only immutable TEMP helper successors changed, with no product, lease or proof
+relaxation. Both failed environments/listeners were independently absent. R3
+captures actual grant fields and is running. Native/browser acceptance, final
+mandatory check, commit and push remain pending; formal 11/16/3 is unchanged.

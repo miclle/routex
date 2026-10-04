@@ -13,8 +13,9 @@ import (
 // gatewayIdentity keeps real Key and Team Session subjects separate while both
 // use the same native parsing, route attempts, admission and forwarding.
 type gatewayIdentity struct {
-	key  *KeyRecord
-	team *TeamSessionIdentity
+	personalGrantRevision string
+	key                   *KeyRecord
+	team                  *TeamSessionIdentity
 }
 
 func (identity gatewayIdentity) modelIDs() []string {

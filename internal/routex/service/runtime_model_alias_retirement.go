@@ -48,6 +48,9 @@ func (s *Service) reauthorizeGatewayPublicName(ctx context.Context, result *Gate
 		if auth == nil || !time.Now().Before(auth.ValidUntil) {
 			return gatewayPublicAttemptError(runtimeUnavailable)
 		}
+		if result.identity.key != nil && result.ProjectID == "" && !s.personalPreparedGrantAllowed(auth, result.UserID, result.KeyID, result.ModelID, result.identity.personalGrantRevision) {
+			return gatewayError(403, "model_forbidden", "The requested model is unavailable.")
+		}
 		name, exists := s.runtimeModelName(result.ModelName)
 		if !exists || name.Name != result.ModelName || name.ModelID != result.ModelID {
 			return gatewayError(404, "model_not_found", "The requested model is unavailable.")

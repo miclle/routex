@@ -45,6 +45,12 @@ func (s *Service) gatewayNativeAttempts(ctx context.Context, requestID string, r
 	}
 	plan.userID, plan.projectID, plan.keyID = result.UserID, result.ProjectID, result.KeyID
 	plan.team = result.identity.team
+	if result.identity.key != nil && result.ProjectID == "" {
+		if auth := s.runtime.auth.Load(); auth != nil {
+			plan.personalGrantRevision = auth.PersonalGrantStates[result.UserID].Revision
+			result.identity.personalGrantRevision = plan.personalGrantRevision
+		}
+	}
 	plan, err = gatewayAttachmentAttemptPlan(plan, attachmentPlan)
 	if err != nil {
 		return result, err

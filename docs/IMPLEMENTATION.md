@@ -4394,3 +4394,164 @@ regression, mandatory check, both-driver auth/process lifecycle and R3
 native/browser/restart acceptance, this phase is ready for a scoped main commit
 and push. Previous failed fixture/helper runs remain explicit historical
 evidence. Remote delivery and CI are not yet claimed.
+
+
+### Member Models isolated source preparation, 2026-10-05
+
+The queued Member Models package implements the approved two-table Personal
+complete-set editor with nine bounded metadata cells, local Add/Remove and one
+reviewed reason/If-Match Save. Read and direct-write permissions are independent;
+explicit `members.models.write` may edit any exact enabled target, including self
+or administrator. Personal-request nonself review and historical UUID receipts
+remain separate. Direct writes confirm current configuration/runtime only, with
+no new historical receipt. Unknown Type/update time and independently authorized
+Provider/price projections remain factual; no inferred declarations, prices,
+Team directory or old-Key expansion are introduced.
+
+The frontend packet is frozen source only: 182 related tests passed in ten files
+(14.45s), covering Models/API/managed requests and existing Keys, Limits, Teams,
+Overview, governance, Personal-request and i18n regressions. Types, scoped ESLint
+and formatter passed. Its 15 owned paths consist of seven new leaves and eight
+contextual changes; 465 unrelated frontend/dependency baseline records remained
+byte-identical. The only existing Team test change is its Models navigation-label
+expectation. Forward/reverse patches reconstructed exact bytes in a private source
+copy; that is not a main carry or runtime test.
+
+Backend source (24 leaves) and two driver fixtures are frozen and integrated
+with the 15 frontend leaves on accepted Member Teams `8074aaa`. Root registered
+V54 and GET/PUT, advanced only the ledger expectation to 54, and appended two
+new cases while preserving the original ordered 89 (91 per driver). Isolated
+service/handler/database race, static and pinned lint passed. Fresh integrated
+checks/build, actual migration/lifecycle, native/browser/restart, full regression
+and checked delivery remain pending. Three earlier repaired Team/Overview
+fixtures remain byte-identical; no older whole-file snapshot replaces them.
+
+Member Teams `8074aaa46a1f247459d04034439ccad9dec8b826` was committed/pushed
+and read back exactly; its complete 89-case, authentication and eight-native
+browser/restart acceptance remain independent and accepted. Remote Actionlint
+and GolangCI-Lint succeeded; CI was still running at integration start.
+F04/F19 remain Partial and formal totals stay
+11 completed, 16 partial and three unstarted. Broader catalog Type/semantic-update
+declarations remain a separate gap. Contracts:
+[Governance](GOVERNANCE.md#administrative-member-models-source-preparation),
+[Database](DATABASE.md#personal-model-grant-revisions-v54-source-preparation),
+[Personal requests](PERSONAL_MODEL_REQUESTS.md#direct-personal-grant-editor-source-preparation).
+
+
+Integrated Member Models source gates passed on the delivered Member Teams
+baseline: mandatory check, Go race, development lifecycle, production asset
+serving, all 2346 frontend tests in 123 files, and production build. The final
+195-path source floor and unchanged dependencies are recorded locally. V54 and
+the ordered 91-case harness are registered. Focused PostgreSQL/MySQL acceptance
+is now running; full regression, authentication and controlled native/browser/
+restart acceptance, final check and delivery remain pending. This source result
+is not runtime acceptance and does not change formal 11/16/3 status.
+
+
+Models actual focus R1 failed (Handler 117.985s): both drivers passed V54,
+Personal-request and Key children; catalog expected400 received404 for an invalid
+requested grant owner, and the new Models lifecycle received500 at an initially
+unlocalized request. Root restored the existing catalog400 contract without
+changing exact-owner validation and added bounded fixture caller diagnostics.
+R2 is running against a freshly frozen source floor. All owned R1 containers,
+networks and volumes were independently absent. This failure is retained and
+is not accepted delivery or a reason to weaken an assertion.
+
+
+Models focus R2 retained the original failure checkpoint and confirmed catalog
+now passes on both drivers; eight of ten children passed, while the Models
+workspace failed at its ready-route GET (fixture caller261). Pure GORM schema
+inspection confirmed ETag maps to e_tag and lowercase etag is not a mapped field.
+Root changed both non-secret Egress projections to mapped GORM field names;
+service/handler source race passed (8.863s/4.332s). R3 actual focus is running,
+with full and native/browser/restart acceptance still pending. R2 owned
+containers/networks/volumes were independently absent.
+
+
+Models focus R3 passed nine of ten children (Handler125.628s), including the
+complete PostgreSQL Models lifecycle16.03s. MySQL reached self equal-state
+confirmation and received503 instead of200. Source review identified a normal
+publisher contention window after the successful Refresh: the existing correct
+nonblocking projection may capture no snapshot. Root retained that safety gate
+and is preparing bounded fresh read-only confirmation, with no transaction,
+publication, tombstone or audit replay; only private busy captures may retry.
+A reviewed fixture extension now covers both corrected Egress projections using
+owned numeric no-auth/authenticated SOCKS5 descriptors via saved product APIs.
+Transport discovery is not native completion. Actual rerun and all remaining
+gates are pending. R3 owned resources were independently absent.
+
+
+Delivered Member Teams8074 now has all-three exact remote success:
+Actionlint37226753209, GolangCI-Lint37226753205 and CI37226753152. This
+remote evidence is separate from the still-unaccepted Models candidate.
+
+
+Member Models checkpoint (2026-10-05): focused PostgreSQL/MySQL R4 passed all
+ten required children with no missing or skipped child (Handler 124.041s).
+This includes V54, the Models lifecycle, Personal requests, catalog and Keys.
+Both named and platform-default saved SOCKS5 descriptors were exercised in
+discovery; this does not claim native inference completion. The bounded
+post-publication confirmation retries only a private busy read, renews authority
+and the exact desired set, and never repeats a mutation, audit or publication.
+Fresh source race, mandatory check and production build passed; all 197 protected
+source/dependency paths stayed exact. Owned containers, networks and volumes
+were independently absent. The unmodified complete integration task is now
+running with JSON test events, all ordered 91 cases per driver, the race detector
+and its normal 30-minute bound. Authentication, native/browser/restart, final
+check and delivery remain pending. Earlier failed R1-R3 checkpoints remain
+historical evidence. F04/F19 and formal 11 complete/16 partial/3 unstarted
+status remain unchanged.
+
+
+Member Models actual checkpoint (2026-10-05): the full unmodified race matrix
+passed all ordered 91 cases on each of PostgreSQL/MySQL and all eight existing
+pre-loop constraint cases (Handler 1596.908s, Service 10.115s). All five test-bearing
+packages passed; entity has no tests. Owned resources were independently absent.
+A test-only Actor fixture successor then distinguished the cancelled old response
+from newly authorized data, preserving every privacy assertion and the checked
+production artifact. Fresh frontend R5 passed 2346 cases/123 files plus four Node
+checks. The 197-path successor floor differs only in that test fixture. Both-driver
+authentication/process restart, encrypted credentials, grants, Key confirmation,
+ordinary/streaming calls and persistent revocation passed with owned cleanup.
+Controlled Models native R1/R2 failed in helper preparation: R1 used the wrong
+Team model write URL; R2 requested nonexistent Team/Project grant timestamps.
+Only immutable TEMP helper successors changed, with no product, lease or proof
+relaxation. Both failed environments/listeners were independently absent. R3
+captures actual grant fields and is running. Native/browser acceptance, final
+mandatory check, commit and push remain pending; formal 11/16/3 is unchanged.
+
+### Member Models actual acceptance, 2026-10-05
+
+The fourth controlled process invocation passed the unchanged corrected R3
+helper against the checked production binary
+`ee99b6813add52095c9a45aa9ddf521f50218dc0564c49804b20a4e95a6d3cdc`.
+Exactly ten native completions retained known usage and immutable original
+attribution; four authorization denials created no admission or upstream attempt.
+A genuine owned PostgreSQL publication-read fault returned 503 after the saved
+Personal reduction. Both removed and retained Personal Key paths stayed denied
+while exact-target Team, peer and Project calls completed during the fault.
+The original in-flight call retained its original attempt facts. Restoring the
+unchanged database descriptor and restarting the same binary reconciled current
+state without another grant, revision or audit write. Old Key ceilings did not
+broaden. No HTTP-response masking, lease extension or synthetic completion was
+used. The first invocation of this same helper passed its process/native stage
+but failed on stdin EOF at the browser checkpoint; it remains failed evidence.
+
+Built-in-browser acceptance passed default English, live Chinese with retained
+draft, localized unknown metadata, ten-column compact tables, required reason,
+Escape cancellation with retained draft, Add/Remove restoration, addressable
+refresh and independent permissions. A reader saw no Add/Remove/Save and no
+unauthorized Provider labels or prices; a write-only actor could not borrow
+Member detail read authority. At 390px, document width remained 390px and tables
+scrolled within their containers. Console errors were absent. Browser actions
+were draft/cancel/read-only; real grant mutations have process/API evidence.
+The temporary browser tab, listener and owned Compose resources were removed,
+with independent container/network/volume inventories all empty.
+
+Together with full ordered 91-case-per-driver integration, eight pre-loop
+constraints, both-driver authentication/restart and fresh 2346/123 frontend
+acceptance, this completes the bounded Models phase. All 197 successor protected
+source/dependency paths remain exact. Final mandatory check passed; checked main
+delivery remains pending. F04/F19 and formal 11 complete/16 partial/3 unstarted
+remain unchanged; Type/semantic-update declarations and broader member work
+remain open.

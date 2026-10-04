@@ -276,3 +276,72 @@ regression, mandatory check, both-driver auth/process lifecycle and R3
 native/browser/restart acceptance, this phase is ready for a scoped main commit
 and push. Previous failed fixture/helper runs remain explicit historical
 evidence. Remote delivery and CI are not yet claimed.
+
+
+## Administrative Member Models source preparation
+
+The Models tab gives `?tab=models` two compact Personal-grant tables:
+retained authorized Models and other candidates, with local Add/Remove followed
+by one reason review and explicit Save. The nine cells show Model name/ID, Type,
+Providers, native protocols, availability, input/output base prices, creation time
+and semantic update time. Type and update time remain Unknown: neither has a
+current declaration. Provider labels require independent `providers.read`; prices
+require independent `prices.read`. Exact decimal strings, zero, disabled prices,
+missing rates and heterogeneous schedules remain distinct. No directory or
+per-row lookup is introduced; the complete union is bounded at 1,000 Models.
+Current active Team-only candidates are excluded without exposing Team names.
+
+The `GET /api/v1/admin/members/:user_id/models` accepts current
+`members.read` OR `members.models.write` for its minimal scoped metadata. The
+Member page still requires fresh `members.read`. Direct replacement through PUT
+requires explicit `members.models.write`, an exact enabled/nonoffboarded target,
+strong reviewed If-Match and reason. This platform permission may edit self,
+administrator or member targets; no role label grants implicit authority. Existing
+Personal-request review keeps its separate nonself approval rule.
+
+A successful matching PUT confirms only `current_model_grants` and current
+runtime application. It is not a historical operation receipt. Failed publication
+can leave saved rows uncertain; metadata GET and later matching configuration do
+not prove the original write. The UI retains its original body, reason and
+If-Match through same-target renewal/error and rejected retries, and explicitly
+retries with current CSRF. Current cache generations gate dispatch and callbacks;
+private rows, actions and dialogs hide during renewed reads. Actor, target, logout
+and tab changes destroy local intent. Request history reuses parent authority
+without another Session observer and retains its independent receipt semantics.
+
+The reviewed backend (24 leaves), frontend (15 leaves) and two real-driver
+fixtures are now integrated on the checked Member Teams baseline. Root registered
+V54 and both routes, retaining all earlier 89 harness entries before the two new
+entries (91 per driver). Isolated source race/static/pinned lint and 182 related
+frontend tests passed. Integrated checks/build, real PostgreSQL/MySQL and controlled
+native/browser/restart acceptance passed; checked delivery remains pending. The accepted Member
+Teams evidence remains unchanged.
+F04/F19 remain Partial; formal totals stay 11 completed, 16 partial and three
+unstarted. See [Personal requests](PERSONAL_MODEL_REQUESTS.md#direct-personal-grant-editor-source-preparation)
+and [Database](DATABASE.md#personal-model-grant-revisions-v54-source-preparation).
+
+
+Member Models passed focused dual-driver acceptance and the complete unmodified
+ordered 91-case-per-driver race matrix, including V54 lifecycle/constraint tests,
+plus both-driver authentication/process restart. Source checks, Go race,
+development/production assets, production build and fresh 2346 frontend tests in
+123 files passed. Controlled process/native/browser/restart acceptance passed ten
+native completions and four zero-dispatch denials, genuine publication failure,
+Personal-only reduction, unchanged Team/Project authority, old Key ceilings and
+zero-write current-state retry. Browser evidence covers bilingual tables, retained
+drafts, reason validation, independent permissions and responsive containment;
+browser grant writes are not claimed. The 197-path successor differs from the
+full-matrix floor only in a tested Actor fixture. Detailed failed and successful
+checkpoints remain in [Implementation](IMPLEMENTATION.md#member-models-actual-acceptance-2026-10-05).
+Final mandatory check passed; checked main delivery remains pending. F04/F19 and formal
+11 complete/16 partial/3 unstarted remain unchanged.
+
+
+Member Models current confirmation tolerates only a bounded busy snapshot read
+after the committed transaction and one successful publication. Every fresh
+capture reauthorizes the actor and exact target/set; explicit non-application,
+authority changes, cancellation, deadline, stopped or expired runtime fail
+conservatively. It does not replay writes or establish a historical receipt.
+Focused dual-driver R4, complete integration, authentication and controlled
+native/browser acceptance passed; current-state confirmation remains distinct
+from historical operation evidence.

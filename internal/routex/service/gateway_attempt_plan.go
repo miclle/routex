@@ -14,17 +14,18 @@ type gatewayAttemptCandidate struct {
 }
 
 type gatewayAttemptPlan struct {
-	Plan       *routeattempt.Plan
-	modelID    string
-	protocol   string
-	snapshotID string
-	userID     string
-	projectID  string
-	keyID      string
-	team       *TeamSessionIdentity
-	candidates []gatewayAttemptCandidate
-	draw       func(int) (int, error)
-	allowed    map[string]bool
+	personalGrantRevision string
+	Plan                  *routeattempt.Plan
+	modelID               string
+	protocol              string
+	snapshotID            string
+	userID                string
+	projectID             string
+	keyID                 string
+	team                  *TeamSessionIdentity
+	candidates            []gatewayAttemptCandidate
+	draw                  func(int) (int, error)
+	allowed               map[string]bool
 }
 
 func gatewayAttemptKey(attempt routeattempt.Attempt) string {
@@ -136,7 +137,7 @@ func (s *Service) gatewayAttemptEligible(ctx context.Context, plan *gatewayAttem
 			if runtimeDenied(&s.runtime.deniedProjects, plan.projectID) {
 				return false, nil
 			}
-		} else if runtimeDenied(&s.runtime.deniedUsers, plan.userID) {
+		} else if runtimeDenied(&s.runtime.deniedUsers, plan.userID) || !s.personalPreparedGrantAllowed(auth, plan.userID, plan.keyID, plan.modelID, plan.personalGrantRevision) {
 			return false, nil
 		}
 		granted := false
@@ -189,5 +190,5 @@ func (p *gatewayAttemptPlan) filtered(candidates []gatewayAttemptCandidate) (*ga
 	for _, candidate := range candidates {
 		allowed[gatewayAttemptKey(candidate.attempt)] = true
 	}
-	return &gatewayAttemptPlan{Plan: plan, modelID: p.modelID, protocol: p.protocol, snapshotID: p.snapshotID, userID: p.userID, projectID: p.projectID, keyID: p.keyID, team: p.team, candidates: append([]gatewayAttemptCandidate(nil), candidates...), draw: p.draw, allowed: allowed}, nil
+	return &gatewayAttemptPlan{personalGrantRevision: p.personalGrantRevision, Plan: plan, modelID: p.modelID, protocol: p.protocol, snapshotID: p.snapshotID, userID: p.userID, projectID: p.projectID, keyID: p.keyID, team: p.team, candidates: append([]gatewayAttemptCandidate(nil), candidates...), draw: p.draw, allowed: allowed}, nil
 }

@@ -41,6 +41,7 @@ type gatewayRuntime struct {
 	deniedKeys           sync.Map
 	deniedLimits         sync.Map
 	deniedUsers          sync.Map
+	deniedPersonalGrants sync.Map
 	deniedProjects       sync.Map
 	deniedModels         sync.Map
 	deniedProviderModels sync.Map
@@ -58,6 +59,8 @@ type runtimeUserProof struct {
 }
 
 type runtimeAuthorization struct {
+	PersonalGrantStates    map[string]runtimePersonalGrantState
+	ModelEligibilityHashes map[string]string
 	PersonalKeyStates      map[string]runtimePersonalKeyState
 	UserProofs             map[string]runtimeUserProof
 	ProjectCreationStates  map[string]runtimeProjectCreationState
@@ -197,6 +200,7 @@ func (s *Service) RefreshRuntime(ctx context.Context) error {
 	clearRuntimeTombstones(&runtime.deniedKeys, generation)
 	clearRuntimeTombstones(&runtime.deniedLimits, generation)
 	clearRuntimeTombstones(&runtime.deniedUsers, generation)
+	clearRuntimeTombstones(&runtime.deniedPersonalGrants, generation)
 	clearRuntimeTombstones(&runtime.deniedProjects, generation)
 	clearRuntimeTombstones(&runtime.deniedModels, generation)
 	// Credential revocations are also checked against the freshly published
@@ -349,7 +353,7 @@ func (s *Service) authenticateRuntimeKey(bearer string) (*KeyRecord, error) {
 	if !exists || project != (key.ProjectID != "") || runtimeDenied(&runtime.deniedKeys, key.Key.ID) || (key.Key.ExpiresAt != nil && !time.Now().Before(*key.Key.ExpiresAt)) {
 		return nil, apperrors.ErrUnauthorized
 	}
-	if (project && runtimeDenied(&runtime.deniedProjects, key.ProjectID)) || (personal && runtimeDenied(&runtime.deniedUsers, key.Key.UserID)) {
+	if (project && runtimeDenied(&runtime.deniedProjects, key.ProjectID)) || (personal && (runtimeDenied(&runtime.deniedUsers, key.Key.UserID) || runtimeDenied(&runtime.deniedPersonalGrants, key.Key.UserID))) {
 		return nil, apperrors.ErrUnauthorized
 	}
 	models := make([]string, 0, len(key.Models))
@@ -448,7 +452,7 @@ func (s *Service) loadRuntimeDataTx(tx *gorm.DB) (*runtimeData, error) {
 	data := &runtimeData{EgressGeneration: s.egressGeneration.Load()}
 	err := func() error {
 		// A repeatable-read transaction prevents mixed entity generations.
-		if err := tx.Select("id", "disabled", "offboarded_at", "created_at").Find(&data.Users).Error; err != nil {
+		if err := tx.Select("id", "disabled", "offboarded_at", "created_at", "personal_grant_revision").Find(&data.Users).Error; err != nil {
 			return err
 		}
 		for _, target := range []any{&data.Limits, &data.Keys, &data.Scopes, &data.Grants, &data.Models, &data.Names, &data.Providers, &data.Connections, &data.Credentials, &data.ProviderModels, &data.Access, &data.Bindings, &data.Egresses} {
@@ -484,6 +488,8 @@ func (s *Service) loadRuntimeDataTx(tx *gorm.DB) (*runtimeData, error) {
 func buildRuntimeAuthorization(data *runtimeData, until time.Time) *runtimeAuthorization {
 	auth := &runtimeAuthorization{
 		PersonalKeyStates:      runtimeMemberKeyStates(data.Keys),
+		PersonalGrantStates:    runtimePersonalGrantStates(data),
+		ModelEligibilityHashes: runtimeMemberModelsEligibility(data),
 		UserProofs:             map[string]runtimeUserProof{},
 		PersonalGrantSources:   map[string]map[string]string{},
 		TeamGrantSources:       map[string]map[string]string{},

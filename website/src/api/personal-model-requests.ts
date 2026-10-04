@@ -243,12 +243,13 @@ export async function decidePersonalModelRequest(
   requestID: string,
   intent: PersonalModelDecisionIntent,
   csrf: string,
+  signal?: AbortSignal,
 ): Promise<PersonalModelDecisionReceipt> {
   const value = (
     await client.post<unknown>(
       `${scope(owner)}/${encodeURIComponent(requestID)}/decision`,
       intent.body,
-      { headers: { 'X-CSRF-Token': csrf, 'If-Match': `"${intent.etag}"` } },
+      { signal, headers: { 'X-CSRF-Token': csrf, 'If-Match': `"${intent.etag}"` } },
     )
   ).data
   if (!object(value) || value.committed !== true || value.decision_id !== intent.body.decision_id)

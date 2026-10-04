@@ -91,3 +91,71 @@ errors were recorded and owned processes/tab/Compose resources were removed.
 Complete real PostgreSQL/MySQL race regression passed (Handler 834.672 seconds;
 Service 6.110 seconds), including migration and lifecycle acceptance. Full F19 remains partial: Team Model requests,
 further Team protocols and broader member overview/price/usage facts remain open.
+
+
+## Direct Personal grant editor source preparation
+
+The Member Models editor uses explicit `members.models.write` to
+replace an exact enabled target's Personal grant set, including self or an
+administrator. This is distinct from request approval: existing nonself review,
+UUID intent, immutable decision receipt and first-terminal rules remain unchanged.
+The page additionally needs fresh `members.read`; write-only API access does not
+borrow Member-page authority. Pending or historical requests are not rewritten
+by direct editing, and direct Save never fabricates an approved request.
+
+The new current-state PUT uses reviewed If-Match, complete `model_ids` and a
+required reason bounded to 1,024 UTF-8 bytes. It has no operation UUID or receipt.
+Its successful `current_model_grants` confirmation means the submitted set
+currently matches exact runtime publication. An equal-set retry may reconcile
+another actor's current state without a second write or audit; it does not prove
+who originally applied that set. A stale differing set conflicts and cannot
+restore revoked access. Failed publication retains the exact original intent for
+explicit retry rather than interpreting a subsequent GET as success.
+
+Unchanged grants retain `CreatedAt` and `SourceRequestID`; ordinary new direct
+grants have no request provenance. Request application continues to require its
+exact original source proof, so remove/re-add cannot restore an old receipt's
+application. Existing Keys retain their ceilings. Team/Project grants, native
+quota accounting and dispatched immutable history stay separate. A private
+per-User grant generation fences all three existing writers and the new delta;
+Personal-only reduction denial does not revoke Team Session access.
+
+The editor and managed request panel hide private facts/actions during current
+Session, permission, target or workspace reads/errors. Same-target drafts and
+already-dispatched immutable intents survive those gates; actor/target/logout/tab
+changes destroy them. Managed history/detail composition reuses parent authority
+without additional Session observers. Obsolete decision requests are aborted and
+late responses discarded; historical decision receipts retain their existing
+independent semantics.
+
+The reviewed package is integrated on the checked Member Teams baseline with
+V54 and routes registered. Related source tests, integrated checks/build, real-driver and controlled
+native/browser/restart acceptance passed; checked delivery remains pending. F04/F19 and formal 11/16/3
+status do not change. See
+[Governance](GOVERNANCE.md#administrative-member-models-source-preparation).
+
+
+Member Models passed focused dual-driver acceptance and the complete unmodified
+ordered 91-case-per-driver race matrix, including V54 lifecycle/constraint tests,
+plus both-driver authentication/process restart. Source checks, Go race,
+development/production assets, production build and fresh 2346 frontend tests in
+123 files passed. Controlled process/native/browser/restart acceptance passed ten
+native completions and four zero-dispatch denials, genuine publication failure,
+Personal-only reduction, unchanged Team/Project authority, old Key ceilings and
+zero-write current-state retry. Browser evidence covers bilingual tables, retained
+drafts, reason validation, independent permissions and responsive containment;
+browser grant writes are not claimed. The 197-path successor differs from the
+full-matrix floor only in a tested Actor fixture. Detailed failed and successful
+checkpoints remain in [Implementation](IMPLEMENTATION.md#member-models-actual-acceptance-2026-10-05).
+Final mandatory check passed; checked main delivery remains pending. F04/F19 and formal
+11 complete/16 partial/3 unstarted remain unchanged.
+
+
+Member Models current confirmation tolerates only a bounded busy snapshot read
+after the committed transaction and one successful publication. Every fresh
+capture reauthorizes the actor and exact target/set; explicit non-application,
+authority changes, cancellation, deadline, stopped or expired runtime fail
+conservatively. It does not replay writes or establish a historical receipt.
+Focused dual-driver R4, complete integration, authentication and controlled
+native/browser acceptance passed; current-state confirmation remains distinct
+from historical operation evidence.
