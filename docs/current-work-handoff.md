@@ -6,34 +6,55 @@ acceptance remains in `docs/IMPLEMENTATION.md`.
 
 ## Delivered baseline
 
-Latest checked source delivery is Member Models
-`569abcd8337e49d57071f4adb37428c97c7333a0`, committed/pushed and read back
-exactly. Its 51 paths passed the full ordered 91-case-per-driver race matrix,
-eight pre-loop constraints, both-driver authentication/restart, fresh 2346
-frontend cases/123 files, controlled ten-native/four-denial process/browser/
-restart acceptance and final mandatory check. All 197 protected source paths
-and the production artifact stayed exact. Owned resources/listeners and the
-agent browser tab are absent. Exact remote Actionlint 37233563830 and GolangCI-Lint 37233563840 passed;
-CI 37233563834 is still running and remains separate from local acceptance.
+Preceding checked source delivery is the Member Model review revision correction
+`3d6118678132aeaa1e3532d7c06423ba26725782`, committed and pushed with exact
+remote main read-back. It keeps durable configuration and authority in the ETag,
+while transient runtime contention no longer creates a false reduction conflict.
+Fresh addition eligibility remains conservative and independent. Deterministic
+source regressions, final mandatory check, the complete ordered 91-case-per-driver
+matrix and eight pre-loop constraints passed. Both-driver authentication, persisted
+sessions, gateway lifecycle and process restart also passed; all 227 protected
+paths remained exact during actual tests and owned resources were independently
+absent. New remote workflows are tracked separately.
+
+Previous platform CSV parity `b7f1ab5` retains its focused real-driver and source
+acceptance. Its Actionlint/GolangCI-Lint passed; CI 37233984014 failed the MySQL
+Member Model contention regression. The unchanged first local full run reproduced
+it on PostgreSQL and was stopped with verified owned cleanup. Those failed and
+incomplete runs remain historical and are not acceptance.
+Member Models `569abcd` retains full ordered 91-case-per-driver, authentication,
+2346/123 frontend, ten-native/four-denial process/browser/restart and final check
+acceptance. Exact Actionlint 37233563830 and GolangCI-Lint 37233563840 passed;
+CI 37233563834 was cancelled by the subsequent parity push, not passed. The new
+parity workflows cover the current source and are tracked independently.
 
 ## Active work and next delivery
 
-The four-leaf platform CSV User-filter parity repair is carried on the accepted
-Models baseline. It selects the immutable exact recorded actor consistently
-with platform JSON, including Team facts while preserving Personal/Project
-boundaries. Source RED-to-GREEN evidence is frozen; root real PostgreSQL/MySQL
-acceptance passed both children (58.742s), Service/Handler source race and mandatory
-check passed. All 207 protected paths and independent owned cleanup passed.
-Checked main commit/push is next. No new native completion is claimed
-for historical projection fixtures.
+Own-Team call CSV implementation and scoped checks are complete. It reuses the
+existing filter row, exact current-member own-actor endpoint, member-safe schema
+and transient download lifecycle. Complete source tests passed 2381 cases in
+125 files, four Node tests, Go race and development/production assets. Focused
+Team/export tests, the complete ordered 91-case-per-driver matrix with eight
+constraints, and authentication/restart passed on both databases. Initial source
+and actual helper failures remain explicitly recorded in Implementation.
 
-After parity, accept own-Team call CSV, Member Settings name editing and the
-Member list in separate tested phases. Their parallel source packets are frozen;
-they are not applied to main or accepted by runtime tests. The Member list uses
-the approved eleven-column table, safe batched summaries and fresh row-action
-authority; recent login remains unavailable until genuinely recorded. Overview
-effective-model sources preserve independent Team read authorization. Formal
-totals remain 11 complete, 16 partial and 3 unstarted.
+R6 native/process/restart acceptance passed four completed calls with known
+usage, original immutable attribution, exact monetary amounts, membership removal
+denial and original history after rejoin. Browser reads changed no protected
+facts or inference count. A measured mobile column issue was corrected inside
+the existing horizontal scroll container; fresh frontend/mandatory/build and
+production asset tests passed. Bilingual browser workflow and readable columns
+passed without console errors. The in-app download event returned no saved file,
+and Chrome was unavailable: file landing and browser-file byte comparison remain
+unverified. HTTP CSV bytes and headers were independently checked. Owned test
+resources/listener were independently absent and all 227 protected paths exact.
+Remote workflow results are tracked independently of local checks.
+Next, accept Member Settings name editing and the Member list in
+separate tested phases. Their source packets are frozen; actual acceptance is
+pending. The list preserves eleven approved columns and bounded summaries;
+recent login remains unknown until genuinely recorded. Overview effective-model
+backend preparation is isolated and preserves independent Team read permission.
+Formal totals remain 11 complete, 16 partial and 3 unstarted.
 
 ## Earlier deliveries
 

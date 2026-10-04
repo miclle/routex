@@ -586,7 +586,13 @@ describe('mounted Usage routes and Project access', () => {
     ).toBe(false)
     expect(host.textContent).toContain('Only your own calls')
     expect(host.querySelector('[name="key_id"]')).toBeNull()
-    expect(host.textContent).not.toContain('Export CSV')
+    await until(() => {
+      const exportButton = [...host.querySelectorAll<HTMLButtonElement>('button')].find(
+        (button) => button.textContent === 'Export CSV',
+      )
+      expect(exportButton?.disabled).toBe(false)
+    })
+    expect(requests.some((request) => request.url?.endsWith('/calls/export.csv'))).toBe(false)
   })
   it('does not grant Team call history to a nonmember with platform call authority', async () => {
     team.members = []

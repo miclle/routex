@@ -114,14 +114,14 @@ describe('own-actor Team calls', () => {
     expect(requests.at(-1)?.url).toBe('/teams/tea_one/calls/req_team_own')
     expect(document.querySelector('[role="dialog"]')?.textContent).not.toContain('Team model')
   })
-  it('uses only the exact Team endpoint and independent member cache, without Key filters or export', async () => {
+  it('uses only the exact Team endpoint and independent member cache, without Key filters and with scoped export', async () => {
     await render()
     expect(host.textContent).toContain('Your Team call records')
     expect(host.textContent).toContain('req_team_own')
     expect(host.textContent).toContain('Only your own calls')
     expect(host.querySelector('[name="key_id"]')).toBeNull()
     expect(host.querySelector('[name="user_id"]')).toBeNull()
-    expect(host.textContent).not.toContain('Export CSV')
+    expect(host.textContent).toContain('Export CSV')
     expect(requests.every((item) => item.url === '/teams/tea_one/calls')).toBe(true)
     expect(
       cache.getQueryCache().findAll({ queryKey: ['calls', 'team', 'usr_member', 'tea_one'] }),
@@ -136,7 +136,7 @@ describe('own-actor Team calls', () => {
     failure = true
     await click('Refresh')
     expect(host.textContent).not.toContain('req_team_own')
-    expect(document.querySelector('[role="dialog"]')?.textContent).not.toContain('Team model')
+    expect(document.querySelector('[role="dialog"]')).toBeNull()
   })
   it('does not preserve cached rows after pagination authorization failure', async () => {
     await render()

@@ -4579,3 +4579,88 @@ permission, native recording or accounting change occurred. Seeded facts prove
 projection only. The already accepted Models complete 91-case matrix remains
 independent; it was not gratuitously repeated for this bounded predicate repair.
 Main delivery is next; formal F21 status and 11/16/3 totals remain unchanged.
+
+
+Platform CSV parity was committed/pushed as
+`b7f1ab569ba6fa72b20aac2857be9af823a5c3ca`, with exact remote main read-back
+and clean source before the next carry. Models Actionlint/GolangCI-Lint passed;
+its CI was cancelled by this subsequent push and is not claimed passed. Parity
+remote workflows are tracked separately. The next own-Team CSV carry includes
+13 reviewed source/rule paths and preserves V54, ordered 91 cases, platform
+parity and every accepted Models source. Integrated and actual acceptance remain
+pending; frozen source preparation alone does not count as delivery.
+
+
+Own-Team CSV source checkpoint (2026-10-05): mandatory check passed. The first
+full source test task passed Go race but failed one existing resource-route UI
+assertion: it still required Export CSV to be absent (2380/2381 passed,125 files).
+The product now intentionally exposes that action. Root changed only that test
+to require an enabled button after fresh scoped list success and no automatic
+export GET, preserving own-endpoint/no-Key/nonmember assertions. Four focused
+UI/API files passed69 tests; the original failed run remains historical.
+All13 product/rule carry bytes stayed exact; the successor adds one test-only
+leaf. Fresh complete source and actual acceptance remain pending.
+
+
+### Own-Team export regression and Member review correction, 2026-10-05
+
+Fresh complete source tests passed 2381 frontend cases in 125 files, Go race,
+development/production asset serving and mandatory check. The own-Team/export
+real-driver focus passed four lifecycle children and eight pre-loop constraints,
+with all 224 protected paths unchanged and independently empty owned resources.
+
+Remote parity CI 37233984014 failed only MySQL member_models at fixture line481:
+a fresh reviewed Personal reduction received 409. The next local full matrix
+reproduced the same PostgreSQL failure. Root stopped only its owned failing test
+child, verified script cleanup and preserved the failed log; the unfinished MySQL
+matrix is not acceptance. Source diagnosis and deterministic RED tests showed
+that runtime mutex contention changed Availability/Protocols/Selectable in the
+review ETag without changing persisted configuration. The narrow correction
+removes those transient fields from that hash while retaining complete durable
+authority/configuration and unchanged fresh addition checks and confirmation.
+Both contention directions and busy/expired/tombstoned/unpublished addition
+regressions passed source overlay checks. Fresh integrated full regression and
+controlled process/browser acceptance remain required before delivery.
+
+
+The corrected complete ordered matrix subsequently passed all 91 scenarios per
+supported database and eight pre-loop constraints (Handler 1585.205s), with no
+failed, skipped or incomplete tests. All five test-bearing packages completed.
+Both-driver authentication, persisted sessions, native gateway lifecycle and
+same-artifact process restart passed. All 227 protected paths stayed exact during
+these actual tests; independent project-label inventories verified no retained
+containers, networks or volumes. The final mandatory check passed. The three-path
+review revision correction was committed and pushed as
+`3d6118678132aeaa1e3532d7c06423ba26725782`, with exact remote main read-back.
+Earlier failures remain recorded. Own-Team CSV controlled process/native/browser
+acceptance and its separate delivery remain pending; the correction itself
+changes no CSV or UI behavior. Formal capability totals remain unchanged.
+
+
+### Own-Team call CSV checked implementation, 2026-10-05
+
+Controlled R5 process/native/restart acceptance passed four completed calls with
+known usage, original Credential and Snapshot attribution, exact monetary values,
+own-actor Team scope, removal denial and preserved original history after rejoin.
+The first two helper runs failed on timestamp spelling and an unsupported status
+selector; both were corrected in immutable successors without product changes,
+and independently cleaned. Neither failed run is acceptance.
+
+The browser found an existing narrow-screen column compression. A two-class
+change now preserves readable headers and model/request width inside the existing
+horizontal scroll wrapper; navigation and page composition are unchanged. Fresh
+2381 frontend cases in 125 files, four Node tests, mandatory checks and production
+build passed, followed by production asset race tests (1.884s). R6 repeated the
+same four native/process/restart checks against production artifact
+`74fd981f1ba3962b72505bf4e06ae736cedb387a8cb6c23af70e4a1498201d24`.
+All 227 protected paths remained exact during actual checks; owned resources and
+listener were independently absent.
+
+The in-app browser verified English default, live Chinese, scoped rows, empty
+error selection and explicit export, reset/refresh, and readable mobile columns
+(800px table inside a 358px scroll container), with no console errors. It reported
+prepared downloads but returned no download file event; Chrome was unavailable.
+Saved-file landing and browser-file byte comparison are therefore unverified,
+separately from passing real HTTP CSV-byte and scope checks. No platform or peer
+history, secret, extra native call or new write was introduced by browser reads.
+F21 and formal 11 complete/16 partial/3 unstarted remain unchanged.

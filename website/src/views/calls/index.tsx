@@ -1,7 +1,8 @@
 import { useTranslation } from 'react-i18next'
-import { useRef, useState, type FormEvent } from 'react'
-import { useInfiniteQuery, useQuery } from '@tanstack/react-query'
+import { useLayoutEffect, useRef, useState, type FormEvent } from 'react'
+import { useInfiniteQuery, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useSession } from '@/hooks/use-auth'
+import { useSessionGeneration } from '@/hooks/use-session-generation'
 import { Download, RefreshCw } from 'lucide-react'
 import { downloadCallsCSV, exportCalls, getCall, listCalls } from '@/api/calls'
 import type { AdminCallDetail, CallFilters, CallRecord } from '@/types/calls'
@@ -34,6 +35,7 @@ export default function CallsPage({
 }
 function TeamCallRecords({ teamId }: { teamId: string }) {
   const session = useSession()
+  const generation = useSessionGeneration()
   if (!session.data || session.isError)
     return (
       <QueryState
@@ -42,39 +44,78 @@ function TeamCallRecords({ teamId }: { teamId: string }) {
         retry={() => void session.refetch()}
       />
     )
-  return <CallRecords key={`${session.data.user.id}:${teamId}`} admin={false} teamId={teamId} />
+  return (
+    <CallRecordContent
+      key={`${session.data.user.id}:${teamId}`}
+      admin={false}
+      teamId={teamId}
+      actor={session.data.user.id}
+      generation={generation}
+      sessionReady={!session.isFetching}
+    />
+  )
 }
 function CallRecords({
   admin,
   projectId,
-  teamId,
 }: {
   admin: boolean
   projectId?: string
   teamId?: string
 }) {
+  const session = useSession(false)
+  const generation = useSessionGeneration()
+  const actor = session.isError ? '' : (session.data?.user.id ?? '')
+  return (
+    <CallRecordContent
+      key={`${actor}:${admin}:${projectId ?? ''}`}
+      admin={admin}
+      projectId={projectId}
+      actor={actor}
+      generation={generation}
+      sessionReady={!session.isError && !session.isFetching}
+    />
+  )
+}
+function CallRecordContent({
+  admin,
+  projectId,
+  teamId,
+  actor,
+  generation,
+  sessionReady,
+}: {
+  admin: boolean
+  projectId?: string
+  teamId?: string
+  actor: string
+  generation: number
+  sessionReady: boolean
+}) {
   const { t, i18n } = useTranslation('activity')
+  const cache = useQueryClient()
   const formatTime = (value: string) =>
     new Date(value).toLocaleString(i18n.resolvedLanguage === 'zh' ? 'zh-CN' : 'en-US')
-  const session = useSession(!!teamId)
-  const actor = session.isError ? '' : (session.data?.user.id ?? '')
   const scope = teamId
-    ? ['team', actor, teamId]
+    ? ['team', actor, teamId, generation]
     : projectId
       ? ['project', projectId]
       : [admin ? 'admin' : 'self']
   const [filters, setFilters] = useState<CallFilters>({})
   const [selected, setSelected] = useState<string | null>(null)
   const [validation, setValidation] = useState('')
-  const exportLock = useRef(false)
-  const [exporting, setExporting] = useState(false)
-  const [exportError, setExportError] = useState<unknown>(null)
-  const [exportReady, setExportReady] = useState(false)
+  const pendingExport = useRef<{ controller: AbortController; identity: string } | null>(null)
+  const exportAuthority = useRef({ identity: '', ready: false })
+  const [exportState, setExportState] = useState<{
+    identity: string
+    kind: 'preparing' | 'ready' | 'error'
+    error?: unknown
+  } | null>(null)
   const calls = useInfiniteQuery({
     queryKey: ['calls', ...scope, filters],
     queryFn: ({ pageParam, signal }) =>
       listCalls(admin, filters, pageParam, signal, projectId, teamId),
-    enabled: !teamId || !!actor,
+    enabled: !teamId || (!!actor && sessionReady),
     ...(teamId ? { retry: false, staleTime: 0, gcTime: 0, refetchOnMount: 'always' as const } : {}),
     initialPageParam: null as string | null,
     getNextPageParam: (page) => page.next_cursor ?? undefined,
@@ -82,9 +123,57 @@ function CallRecords({
   const detail = useQuery({
     queryKey: ['call', ...scope, selected],
     queryFn: ({ signal }) => getCall(admin, selected!, signal, projectId, teamId),
-    enabled: selected !== null && (!teamId || !!actor),
+    enabled: selected !== null && (!teamId || (!!actor && sessionReady)),
     ...(teamId ? { retry: false, staleTime: 0, gcTime: 0, refetchOnMount: 'always' as const } : {}),
   })
+  const queryIdentity = JSON.stringify(['calls', ...scope, filters])
+  const exportIdentity = JSON.stringify([admin, projectId, teamId, actor, generation, filters])
+  const exportAuthorized = sessionReady && calls.isSuccess && !calls.isFetching && !calls.isError
+  const visibleExport =
+    exportAuthorized && exportState?.identity === exportIdentity ? exportState : null
+  const exporting = visibleExport?.kind === 'preparing'
+  const exportReady = visibleExport?.kind === 'ready'
+  const exportError = visibleExport?.kind === 'error' ? visibleExport.error : null
+  useLayoutEffect(() => {
+    exportAuthority.current = { identity: exportIdentity, ready: exportAuthorized }
+    if (
+      pendingExport.current &&
+      (!exportAuthorized || pendingExport.current.identity !== exportIdentity)
+    ) {
+      pendingExport.current.controller.abort()
+      pendingExport.current = null
+    }
+  }, [exportIdentity, exportAuthorized])
+  useLayoutEffect(() => {
+    const unsubscribe = cache.getQueryCache().subscribe((event) => {
+      if (event.type !== 'updated' && event.type !== 'removed') return
+      const sessionEvent =
+        JSON.stringify(event.query.queryKey) === JSON.stringify(['auth', 'session']) &&
+        (event.type === 'removed' ||
+          event.action.type === 'fetch' ||
+          event.action.type === 'error' ||
+          (event.action.type === 'success' && !event.action.manual))
+      const listEvent =
+        JSON.stringify(event.query.queryKey) === queryIdentity &&
+        (event.type === 'removed' || ['fetch', 'error', 'success'].includes(event.action.type))
+      if (!sessionEvent && !listEvent) return
+      if (
+        sessionEvent ||
+        event.type === 'removed' ||
+        event.action.type === 'fetch' ||
+        event.action.type === 'error'
+      )
+        setSelected(null)
+      pendingExport.current?.controller.abort()
+      pendingExport.current = null
+      setExportState(null)
+    })
+    return () => {
+      unsubscribe()
+      pendingExport.current?.controller.abort()
+      pendingExport.current = null
+    }
+  }, [cache, queryIdentity])
   function filter(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     const data = new FormData(event.currentTarget)
@@ -104,27 +193,64 @@ function CallRecords({
     setValidation('')
     setSelected(null)
     setFilters(next)
-    setExportError(null)
-    setExportReady(false)
+    setExportState(null)
   }
   async function exportCSV() {
-    if (exportLock.current) return
-    exportLock.current = true
-    setExporting(true)
-    setExportError(null)
-    setExportReady(false)
+    if (pendingExport.current || !exportAuthority.current.ready) return
+    const attempt = {
+      controller: new AbortController(),
+      identity: exportAuthority.current.identity,
+    }
+    const capturedFilters = { ...filters }
+    const current = () => {
+      const auth = cache.getQueryState<{ user: { id: string } } | null>(['auth', 'session'])
+      const list = cache.getQueryState(['calls', ...scope, capturedFilters])
+      return (
+        pendingExport.current === attempt &&
+        !attempt.controller.signal.aborted &&
+        exportAuthority.current.ready &&
+        exportAuthority.current.identity === attempt.identity &&
+        list?.status === 'success' &&
+        list.fetchStatus === 'idle' &&
+        ((!teamId &&
+          !actor &&
+          (!auth || (auth.status === 'pending' && auth.fetchStatus === 'idle'))) ||
+          (auth?.status === 'success' &&
+            auth.fetchStatus === 'idle' &&
+            auth.data?.user.id === actor))
+      )
+    }
+    pendingExport.current = attempt
+    if (!current()) {
+      pendingExport.current = null
+      return
+    }
+    setExportState({ identity: attempt.identity, kind: 'preparing' })
     try {
-      downloadCallsCSV(await exportCalls(admin, filters, undefined, projectId), admin, projectId)
-      setExportReady(true)
+      const blob = await exportCalls(
+        admin,
+        capturedFilters,
+        attempt.controller.signal,
+        projectId,
+        teamId,
+      )
+      if (!current()) return
+      downloadCallsCSV(blob, admin, projectId, teamId)
+      setExportState({ identity: attempt.identity, kind: 'ready' })
     } catch (error) {
-      setExportError(error)
+      if (current()) setExportState({ identity: attempt.identity, kind: 'error', error })
     } finally {
-      exportLock.current = false
-      setExporting(false)
+      if (pendingExport.current === attempt) {
+        pendingExport.current = null
+        setExportState((state) =>
+          state?.identity === attempt.identity && state.kind === 'preparing' ? null : state,
+        )
+      }
     }
   }
+
   const items =
-    teamId && (calls.isFetching || calls.isError || !actor)
+    teamId && (calls.isFetching || calls.isError || !actor || !sessionReady)
       ? []
       : (calls.data?.pages.flatMap((page) => page.items) ?? [])
   return (
@@ -200,8 +326,7 @@ function CallRecords({
               setFilters({})
               setSelected(null)
               setValidation('')
-              setExportError(null)
-              setExportReady(false)
+              setExportState(null)
             }}
           >
             {t('calls.reset')}
@@ -212,19 +337,17 @@ function CallRecords({
             {t(validation)}
           </p>
         )}
-        {!teamId && (
-          <div className="ml-auto">
-            <Button
-              type="button"
-              variant="outline"
-              disabled={exporting}
-              onClick={() => void exportCSV()}
-            >
-              <Download className="size-4" aria-hidden="true" />
-              {t(exporting ? 'calls.exporting' : 'calls.exportCSV')}
-            </Button>
-          </div>
-        )}
+        <div className="ml-auto">
+          <Button
+            type="button"
+            variant="outline"
+            disabled={exporting || !exportAuthorized}
+            onClick={() => void exportCSV()}
+          >
+            <Download className="size-4" aria-hidden="true" />
+            {t(exporting ? 'calls.exporting' : 'calls.exportCSV')}
+          </Button>
+        </div>
       </form>
       <ErrorNotice error={exportError} />
       {exportReady && (
@@ -240,7 +363,7 @@ function CallRecords({
       />
       {items.length > 0 && (
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm">
+          <table className="w-full min-w-[800px] text-left text-sm [&_th]:whitespace-nowrap">
             <thead className="border-b bg-muted/40 text-xs text-muted-foreground">
               <tr>
                 <th className="px-3 py-2 font-medium">{t('calls.modelRequest')}</th>
@@ -257,7 +380,7 @@ function CallRecords({
             <tbody className="divide-y">
               {items.map((call) => (
                 <tr key={call.request_id}>
-                  <td className="max-w-72 px-3 py-2">
+                  <td className="min-w-56 max-w-72 px-3 py-2">
                     <p className="break-all font-medium">{call.model_name}</p>
                     <p className="mt-1 break-all font-mono text-xs text-muted-foreground">
                       {call.request_id}
@@ -331,6 +454,7 @@ function CallRecords({
         {detail.data &&
           (!teamId ||
             (!!actor &&
+              sessionReady &&
               !detail.isFetching &&
               !detail.isError &&
               !calls.isFetching &&

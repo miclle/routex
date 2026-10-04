@@ -93,6 +93,7 @@ func (ctrl *Ctrl) RegisterRoutes(r *fox.Engine) {
 	identity.POST("/teams/:team_id/messages", ctrl.TeamGatewayMessages)
 	identity.POST("/teams/:team_id/responses", ctrl.TeamGatewayResponses)
 	identity.GET("/teams/:team_id/calls", ctrl.requireSession, ctrl.ListTeamCalls)
+	identity.GET("/teams/:team_id/calls/export.csv", ctrl.requireSession, ctrl.ExportTeamCalls)
 	identity.GET("/teams/:team_id/calls/:request_id", ctrl.requireSession, ctrl.GetTeamCall)
 	identity.GET("/projects", ctrl.requireSession, ctrl.ListProjects)
 	identity.GET("/projects/creation-manager-candidates", ctrl.requireSession, ctrl.ProjectCreationManagerCandidates)

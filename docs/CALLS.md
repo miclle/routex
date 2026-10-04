@@ -1,6 +1,6 @@
 # Call Facts and Query API
 
-Call facts record completed gateway requests without storing prompts, responses, credential secrets, or raw upstream diagnostics. Facts support Personal, Project or explicit Team Session attribution, exactly one subject per request. Supported text calls include immutable assessed amounts and bounded Personal/Project/platform CSV export. Team Session history has its own current-member own-actor list and detail endpoints; Team CSV and Team aggregate report interfaces remain separate work packages. Durable event ingestion is implemented for the single-process deployment.
+Call facts record completed gateway requests without storing prompts, responses, credential secrets, or raw upstream diagnostics. Facts support Personal, Project or explicit Team Session attribution, exactly one subject per request. Supported text calls include immutable assessed amounts and bounded Personal/Project/platform CSV export. Team Session history has its own current-member own-actor list and detail endpoints; Own-Team CSV follows the same current-member own-actor scope. Team aggregate report interfaces remain separate work packages. Durable event ingestion is implemented for the single-process deployment.
 
 ## Recording Contract
 
@@ -99,6 +99,7 @@ All paths are relative to `/api/v1` and require a valid session. Personal endpoi
 | `GET /projects/:project_id/calls` | Authorized Project call facts |
 | `GET /projects/:project_id/calls/export.csv` | Complete bounded CSV for an authorized Project |
 | `GET /projects/:project_id/calls/:request_id` | Authorized Project safe call detail |
+| `GET /teams/:team_id/calls/export.csv` | Complete bounded current-member own-actor Team CSV |
 
 Lists return `{items: [...], next_cursor: string | null}`. Supported filters are `status`, `model_id`, `key_id`, `from`, and `to`. Timestamps use RFC 3339 and bounds are inclusive. Platform queries may also filter the exact immutable acting `user_id`, including that user's Personal and Team facts. Project Key facts have an empty User ID; neither their creator nor a manager is substituted. Case aliases do not match, and unsafe identifiers (including trailing whitespace) are rejected. Personal and Project queries reject that parameter.
 
@@ -148,3 +149,46 @@ expose only that member's own acting User ID in that Team. Owners and directory
 administrators have the same own-actor boundary. User/Key filter expansion is
 rejected; model/status/time filters and cursor pagination remain scoped. Membership
 removal stops new reads without rewriting history. See [Team Session inference](TEAM_INFERENCE.md).
+
+
+## Own-Team call CSV
+
+The Team export requires the exact current enabled member and active path Team.
+Owners retain the same own-actor scope; platform permissions do not bypass
+membership. Removal or inactivity denies new reads, while rejoin retains the
+original historical MembershipID in immutable call facts. Authorization and row
+selection share one read-only repeatable-read transaction.
+
+Only `status`, `model_id`, `from` and `to` filters are accepted. Duplicate,
+malformed, unknown, foreign and page selectors fail, including supplied-empty
+unsupported keys. The complete file uses the existing member-safe 19 columns,
+fixed `routex-team-calls.csv` name, exact decimals, null/zero distinction, UTC
+timestamps and formula protection. Five-second, 10,000-row and 8 MiB limits
+return a complete JSON failure; empty results contain only headers. Team usage
+report CSV is separate.
+
+The existing filter-row action captures fresh actor, Team, successful Session
+generation, scoped list authority and applied filters. Renewed/error reads,
+logout, scope/filter changes and unmount abort and discard obsolete responses
+before object-URL creation. Blobs stay transient, duplicate clicks share one
+pending dispatch, and the temporary URL is released.
+
+The integrated implementation passed 2381 frontend tests in 125 files, four
+Node development tests, Go race, development/production asset tests and mandatory
+checks. The focused real-driver Team/export lifecycles and complete ordered
+91-case-per-driver regression with eight constraints passed on PostgreSQL and
+MySQL, followed by both-driver authentication and restart checks.
+
+Controlled native/process acceptance passed four completed calls with known
+usage and exact immutable attribution, including Personal/peer/other-Team
+separation, membership removal denial, retained history after rejoin and restart.
+CSV reads preserved protected policies, grants, Keys, credentials, audits and call
+facts. A fresh production artifact after the mobile-width correction passed the
+same four-call process checks. Bilingual in-app browser checks verified scoped
+rows, filters, reset/refresh, explicit export and readable internally scrolling
+mobile columns without console errors. The browser reported prepared downloads,
+but its download event did not expose a saved file and Chrome was unavailable;
+file landing and browser-file byte comparison remain unverified. Actual HTTP CSV
+bytes, complete headers and exact decimals were verified separately. Earlier
+helper-only timestamp-spelling and unsupported-status failures remain historical.
+Seeded projection fixtures do not establish native completion evidence.
