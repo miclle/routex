@@ -86,7 +86,7 @@ func (s *Service) CreateCredentialReplacement(ctx context.Context, actorID, sour
 			if replacement.ConnectionID != receipt.ConnectionID || replacement.ReplacesCredentialID == nil || *replacement.ReplacesCredentialID != sourceID {
 				return catalogConflict
 			}
-			plaintext, err := s.secrets.Open(replacement.ID, replacement.Ciphertext)
+			plaintext, err := s.openSecret(replacement.ID, replacement.Ciphertext)
 			if err != nil {
 				return secretStoreUnavailable
 			}
@@ -116,11 +116,15 @@ func (s *Service) CreateCredentialReplacement(ctx context.Context, actorID, sour
 		if err := checkCredentialName(tx, connection.ID, "", input.Name); err != nil {
 			return err
 		}
+		preparedEpoch := s.secretEpoch()
 		replacement, err := s.prepareCredential(connection.ID, input.Name, input.Secret, source.Priority)
 		if err != nil {
 			return err
 		}
 		replacement.ReplacesCredentialID = &sourceID
+		if err := s.guardSecretWrite(tx, preparedEpoch, replacement.ID, replacement.Ciphertext); err != nil {
+			return err
+		}
 		if err := tx.Create(&replacement).Error; err != nil {
 			return err
 		}

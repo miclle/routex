@@ -7,7 +7,7 @@ import "time"
 // arbitrary error or request-content log.
 type SystemJob struct {
 	ID             string     `gorm:"primaryKey;size:30"`
-	Code           string     `gorm:"size:40;not null;index:idx_system_jobs_code_started,priority:1;check:ck_system_jobs_code,code IN ('runtime_publication','call_record_delivery','storage_cleanup')"`
+	Code           string     `gorm:"size:40;not null;index:idx_system_jobs_code_started,priority:1;check:ck_system_jobs_code,code IN ('runtime_publication','call_record_delivery','storage_cleanup','secret_root_rotation')"`
 	Status         string     `gorm:"size:20;not null;index:idx_system_jobs_status_updated,priority:1;check:ck_system_jobs_status,status IN ('running','completed','failed')"`
 	ExecutorID     string     `gorm:"size:30;not null;default:''"`
 	Progress       *int       `gorm:"check:chk_system_jobs_progress,progress IS NULL OR (progress >= 0 AND progress <= 100)"`

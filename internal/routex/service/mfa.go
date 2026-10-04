@@ -174,9 +174,13 @@ func (s *Service) BeginMFAEnrollment(ctx context.Context, auth *Authentication, 
 		if err != nil {
 			return err
 		}
-		ciphertext, err := s.secrets.Seal("mfa:"+user.ID+":"+generation, key)
+		preparedEpoch := s.secretEpoch()
+		ciphertext, err := s.sealSecret("mfa:"+user.ID+":"+generation, key)
 		if err != nil {
 			return errMFAUnavailable
+		}
+		if err := s.guardSecretWrite(tx, preparedEpoch, "mfa:"+user.ID+":"+generation, ciphertext); err != nil {
+			return err
 		}
 		state.Generation = generation
 		state.SecretCiphertext = ciphertext

@@ -190,6 +190,17 @@ const adminNav = [
     },
   },
   {
+    to: '/admin/secrets',
+    get label() {
+      return t('secrets:title')
+    },
+    icon: KeyRound,
+    permission: 'secrets.read',
+    get group() {
+      return t('system_administration_04ca1')
+    },
+  },
+  {
     to: '/admin/storage',
     get label() {
       return t('storage:navTitle')
@@ -352,7 +363,17 @@ export default function AppShell() {
   const siteName = site.data?.name || 'RouteX'
   const session = useSession()
   const access = usePermissions()
-  const adminItems = adminNav.filter((item) => allowsPermission(item.permission, access.can))
+  const adminItems = adminNav.filter(
+    (item) =>
+      allowsPermission(item.permission, access.can) &&
+      (item.to !== '/admin/secrets' ||
+        (session.isSuccess &&
+          !session.isFetching &&
+          session.data?.user.role === 'admin' &&
+          access.isSuccess &&
+          !access.isFetching &&
+          !access.error)),
+  )
   const queryClient = useQueryClient()
   const navigate = useNavigate()
   const { pathname } = useLocation()
@@ -377,17 +398,19 @@ export default function AppShell() {
   })
   const title =
     [...accountNav, ...memberNav, ...adminNav].find((item) => item.to === pathname)?.label ??
-    (pathname === '/admin/models/new'
-      ? t('add_model_532a6')
-      : pathname.startsWith('/admin/providers/')
-        ? t('provider_details_50ab1')
-        : pathname.startsWith('/admin/models/')
-          ? t('model_details_84b34')
-          : pathname.startsWith('/admin/members/')
-            ? t('member_details_e20da')
-            : /\/(?:admin\/)?(?:teams|projects)\//.test(pathname)
-              ? t(pathname.includes('/teams/') ? 'teams_21d70' : 'projects_22336')
-              : siteName)
+    (pathname.startsWith('/admin/secrets/rotations/')
+      ? t('secrets:title')
+      : pathname === '/admin/models/new'
+        ? t('add_model_532a6')
+        : pathname.startsWith('/admin/providers/')
+          ? t('provider_details_50ab1')
+          : pathname.startsWith('/admin/models/')
+            ? t('model_details_84b34')
+            : pathname.startsWith('/admin/members/')
+              ? t('member_details_e20da')
+              : /\/(?:admin\/)?(?:teams|projects)\//.test(pathname)
+                ? t(pathname.includes('/teams/') ? 'teams_21d70' : 'projects_22336')
+                : siteName)
   const compact = desktop && collapsed
   function links(items: typeof memberNav) {
     return items.map((item) => (

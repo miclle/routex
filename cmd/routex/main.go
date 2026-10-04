@@ -51,7 +51,7 @@ func run(ctx context.Context, configPath string) (runErr error) {
 	if err != nil {
 		return errors.New("load configuration failed")
 	}
-	store, err := credentialStore(cfg.EncryptionKey)
+	store, err := credentialStoreForConfig(cfg)
 	if err != nil {
 		return err
 	}
@@ -78,6 +78,9 @@ func run(ctx context.Context, configPath string) (runErr error) {
 	svc, err := service.New(ctx, db, service.WithTrustedProxies(trustedProxies), service.WithCredentialStorage(store), service.WithUpstreamPolicy(cfg.AllowPrivateUpstreams), service.WithEgressPolicy(cfg.AllowPrivateEgresses), service.WithSMTPPolicy(cfg.AllowPrivateSMTP), service.WithStoragePolicy(cfg.AllowPrivateStorage))
 	if err != nil {
 		return errors.New("initialize service failed")
+	}
+	if err := svc.InitializeSecretStore(ctx); err != nil {
+		return errors.New("initialize secret policy failed")
 	}
 	// Publishers, durable workers, and the recorder remain available while HTTP requests drain.
 	// Their explicit stop methods run only after serveHTTP has shut the listener.
@@ -115,6 +118,11 @@ func run(ctx context.Context, configPath string) (runErr error) {
 	if ctx.Err() != nil {
 		return nil
 	}
+	stopSecretRotation, err := svc.StartSecretRotationWorker(lifecycle)
+	if err != nil {
+		return errors.New("start secret rotation failed")
+	}
+	defer stopSecretRotation()
 	stopStorageCleanup, err := svc.StartStorageCleanup(lifecycle)
 	if err != nil {
 		return errors.New("start storage cleanup failed")
@@ -143,6 +151,39 @@ func run(ctx context.Context, configPath string) (runErr error) {
 	}
 	log.Printf("server starting on %s (commit=%s, built=%s)", listener.Addr(), CommitID, BuildTime)
 	return serveHTTP(ctx, listener, engine, 15*time.Second)
+}
+
+func credentialStoreForConfig(cfg *config.Config) (*secretstore.Store, error) {
+	if cfg.EncryptionKeyring == nil {
+		return credentialStore(cfg.EncryptionKey)
+	}
+	ring := cfg.EncryptionKeyring
+	keys := make(map[string][]byte, len(ring.Keys))
+	defer func() {
+		for _, key := range keys {
+			clear(key)
+		}
+	}()
+	invalid := errors.New("encryption_keyring requires valid unique roots and key references")
+	for _, slot := range ring.Keys {
+		if _, exists := keys[slot.ID]; exists {
+			return nil, invalid
+		}
+		if len(slot.Key) != base64.StdEncoding.EncodedLen(32) {
+			return nil, invalid
+		}
+		key, err := base64.StdEncoding.Strict().DecodeString(slot.Key)
+		if err != nil || len(key) != 32 || base64.StdEncoding.EncodeToString(key) != slot.Key {
+			clear(key)
+			return nil, invalid
+		}
+		keys[slot.ID] = key
+	}
+	store, err := secretstore.NewKeyring(keys, ring.LegacyKeyID, ring.WriteKeyID)
+	if err != nil {
+		return nil, invalid
+	}
+	return store, nil
 }
 
 func credentialStore(encoded string) (*secretstore.Store, error) {

@@ -84,7 +84,7 @@ func (s *Service) storageConfig(row entity.StorageRevision) (objectstore.Config,
 	if s.secrets == nil || row.AuthCiphertext == "" {
 		return config, secretStoreUnavailable
 	}
-	plain, err := s.secrets.Open("storage:"+row.ID+":"+row.SecretGeneration, row.AuthCiphertext)
+	plain, err := s.openSecret("storage:"+row.ID+":"+row.SecretGeneration, row.AuthCiphertext)
 	if err != nil {
 		return config, secretStoreUnavailable
 	}
@@ -154,7 +154,7 @@ func (s *Service) prepareStorage(original entity.StorageRevision, actor string, 
 			return row, apperrors.ErrInternal
 		}
 		encoded, _ := json.Marshal(struct{ AccessKey, SecretKey string }{access, secret})
-		row.AuthCiphertext, err = s.secrets.Seal("storage:"+row.ID+":"+row.SecretGeneration, string(encoded))
+		row.AuthCiphertext, err = s.sealSecret("storage:"+row.ID+":"+row.SecretGeneration, string(encoded))
 		if err != nil {
 			return row, secretStoreUnavailable
 		}
@@ -187,6 +187,7 @@ func (s *Service) WriteStorageSettings(ctx context.Context, actor string, input 
 	if !input.Enabled && unchanged {
 		return s.activateStorage(ctx, actor, input.ETag, original, false, "storage.disable")
 	}
+	preparedEpoch := s.secretEpoch()
 	next, err := s.prepareStorage(original, actor, input)
 	if err != nil {
 		return nil, err
@@ -198,6 +199,9 @@ func (s *Service) WriteStorageSettings(ctx context.Context, actor string, input 
 			return err
 		}
 		if err := authorizeGovernance(tx, actor, "storage.write"); err != nil {
+			return err
+		}
+		if err := s.guardSecretWrite(tx, preparedEpoch, "storage:"+next.ID+":"+next.SecretGeneration, next.AuthCiphertext); err != nil {
 			return err
 		}
 		var current entity.StorageSetting

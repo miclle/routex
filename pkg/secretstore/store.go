@@ -21,7 +21,10 @@ var (
 // Store holds the root encryption key independently of the caller's key buffer.
 // A Store is safe for concurrent use. Its zero value is not usable.
 type Store struct {
-	root cipher.AEAD
+	root        cipher.AEAD
+	keys        map[string]cipher.AEAD
+	legacyKeyID string
+	writeKeyID  string
 }
 
 type envelope struct {
@@ -47,6 +50,9 @@ func New(key []byte) (*Store, error) {
 // Seal encrypts plaintext under a fresh data key and binds both ciphertexts to
 // reference, an immutable credential identifier. Empty values are rejected.
 func (s *Store) Seal(reference, plaintext string) (string, error) {
+	if s != nil && s.keys != nil {
+		return s.sealKeyring(reference, plaintext)
+	}
 	if s == nil || s.root == nil || reference == "" || plaintext == "" {
 		return "", errSeal
 	}
@@ -83,6 +89,9 @@ func (s *Store) Seal(reference, plaintext string) (string, error) {
 // Open decrypts a supported envelope only for its original reference and root
 // key. Errors never contain plaintext, identifiers, keys, or ciphertext.
 func (s *Store) Open(reference, ciphertext string) (string, error) {
+	if s != nil && s.keys != nil {
+		return s.openKeyring(reference, ciphertext)
+	}
 	if s == nil || s.root == nil || reference == "" || ciphertext == "" {
 		return "", errOpen
 	}

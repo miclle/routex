@@ -1,3 +1,5 @@
+import enSecrets from './locales/en/secrets'
+import zhSecrets from './locales/zh/secrets'
 import enOverview from './locales/en/overview'
 import zhOverview from './locales/zh/overview'
 import enTeamModelRequests from './locales/en/teamModelRequests'
@@ -93,6 +95,7 @@ void i18n.use(initReactI18next).init({
   resources: {
     en: {
       common: en,
+      secrets: enSecrets,
       overview: enOverview,
       personalModelRequests: enPersonalModelRequests,
       teamModelRequests: enTeamModelRequests,
@@ -123,6 +126,7 @@ void i18n.use(initReactI18next).init({
     },
     zh: {
       common: zh,
+      secrets: zhSecrets,
       overview: zhOverview,
       personalModelRequests: zhPersonalModelRequests,
       teamModelRequests: zhTeamModelRequests,

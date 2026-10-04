@@ -158,9 +158,9 @@ func (s *Service) prepareCredential(connectionID, name, plaintext string, priori
 	if err != nil {
 		return credential, apperrors.ErrInternal
 	}
-	credential.Ciphertext, err = s.secrets.Seal(credential.ID, plaintext)
+	credential.Ciphertext, err = s.sealSecret(credential.ID, plaintext)
 	if err != nil {
-		return credential, apperrors.ErrInternal
+		return credential, catalogError(err)
 	}
 	return credential, nil
 }
@@ -175,6 +175,7 @@ func (s *Service) CreateProvider(ctx context.Context, actorID, name string, inpu
 		return nil, apperrors.ErrInternal
 	}
 	provider := entity.Provider{ID: providerID, Name: name}
+	preparedEpoch := s.secretEpoch()
 	connection, credential, err := s.prepareConnection(providerID, input)
 	if err != nil {
 		return nil, err
@@ -197,6 +198,9 @@ func (s *Service) CreateProvider(ctx context.Context, actorID, name string, inpu
 		if err := tx.Create(&connection).Error; err != nil {
 			return err
 		}
+		if err := s.guardSecretWrite(tx, preparedEpoch, credential.ID, credential.Ciphertext); err != nil {
+			return err
+		}
 		if err := tx.Create(&credential).Error; err != nil {
 			return err
 		}
@@ -210,6 +214,7 @@ func (s *Service) CreateProvider(ctx context.Context, actorID, name string, inpu
 }
 
 func (s *Service) CreateConnection(ctx context.Context, actorID, providerID string, input CreateConnectionInput) (*ConnectionCatalog, error) {
+	preparedEpoch := s.secretEpoch()
 	connection, credential, err := s.prepareConnection(providerID, input)
 	if err != nil {
 		return nil, err
@@ -233,6 +238,9 @@ func (s *Service) CreateConnection(ctx context.Context, actorID, providerID stri
 		if err := tx.Create(&connection).Error; err != nil {
 			return err
 		}
+		if err := s.guardSecretWrite(tx, preparedEpoch, credential.ID, credential.Ciphertext); err != nil {
+			return err
+		}
 		if err := tx.Create(&credential).Error; err != nil {
 			return err
 		}
@@ -246,6 +254,7 @@ func (s *Service) CreateConnection(ctx context.Context, actorID, providerID stri
 }
 
 func (s *Service) CreateCredential(ctx context.Context, actorID, connectionID, name, plaintext string, priority int) (*entity.ProviderCredential, error) {
+	preparedEpoch := s.secretEpoch()
 	credential, err := s.prepareCredential(connectionID, name, plaintext, priority)
 	if err != nil {
 		return nil, err
@@ -262,6 +271,9 @@ func (s *Service) CreateCredential(ctx context.Context, actorID, connectionID, n
 			return err
 		}
 		if err := checkCredentialName(tx, connectionID, "", credential.Name); err != nil {
+			return err
+		}
+		if err := s.guardSecretWrite(tx, preparedEpoch, credential.ID, credential.Ciphertext); err != nil {
 			return err
 		}
 		if err := tx.Create(&credential).Error; err != nil {

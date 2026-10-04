@@ -178,7 +178,7 @@ The binary capability count is 11 completed, 16 partially completed, and 3 not s
 | F25 | Site presentation, language, and announcements | Completed | Durable site name, URL, logo, footer, default language, bilingual UI behavior, and announcement lifecycle are implemented. |
 | F26 | Instances, heartbeats, resources, jobs, and offline cleanup | Completed | Distinct process generations, server-owned leases, nullable resource facts, bounded real system jobs, executor-loss reconciliation, revision-checked cleanup, audit evidence, and the bilingual administrative workspace are implemented. |
 | F27 | S3, owned attachments, SMTP, and notifications | Partially completed | S3-compatible configuration and administration UI, explicit user/Project attachment APIs, cleanup recovery, Key-scoped inference reads, single/comparison attachment interfaces, SMTP administration/test delivery, and durable operational email intents exist. External storage/mail acceptance, bounce handling, and inbox tracking remain open. |
-| F28 | Internal encryption, root-key rotation, and Vault switching | Partially completed | Internal provider, egress, SMTP, and storage secrets are encrypted. Root-key rotation, Vault identities, compensation, and storage switching remain open. |
+| F28 | Internal encryption, root-key rotation, and Vault switching | Partially completed | Internal Provider, egress, SMTP, retained Storage and MFA encryption is implemented. Guarded root rotation passed source, complete dual-driver regression and controlled production/browser/restart acceptance, including final mandatory checks. External Vault identities, compensation and storage switching remain open. |
 | F29 | API Key Vault delivery and application identities | Not started | Application identities, Profiles, descriptors, coordinator state, and no-plaintext-fallback delivery are not implemented. |
 | F30 | Configuration publication, acknowledgement, rollback, revocation, and audit | Partially completed | Immutable runtime publication, durable events, current revocation, and audit foundations exist; node acknowledgement, complete rollback, and distributed emergency-revocation acceptance remain open. |
 
@@ -2924,3 +2924,124 @@ Genuine-native fixtures establish in-flight price/FX retention and durable repla
 English README, Usage contracts, implementation evidence, current handoff and
 paired frontend rules are included in the bounded main commit. F22/A10 and
 full RouteX remain partial for measured capacity, external and release gates.
+
+
+### Internal-root-rotation main acceptance started, 2026-10-04
+
+After the checked CSV commit/push, 52 frozen root-rotation paths (49 source/fixture
+paths plus three bootstrap prerequisites) were carried with narrow V48, six
+HTTP routes, reset/reconstruction guards, paired rules and Secrets documentation.
+Current main source gates are running. The first real PostgreSQL/MySQL focus
+passed V48 migration, concurrent/repeated execution and partial-DDL prefixes.
+The lifecycle failed on both drivers (Handler101.753s): a partially migrated
+third-root job could not roll back to its retained configured predecessor next,
+returning sanitized credential-storage503 instead of the required reverse job.
+Owned containers, network and volumes were removed. The source owner is fixing
+the concrete rollback cause in isolation; this failed run is not acceptance.
+No rollback, observation, lease, epoch or runtime-publication assertion is
+weakened. The CSV delivery remains independently checked and pushed.
+
+
+### Internal-root-rotation page-publication repair, 2026-10-04
+
+The first real-driver lifecycle failure was traced to a retained Egress page
+whose committed rewrap changed the routing source digest after the worker's
+pre-page publication. Rollback correctly failed closed; its proof is unchanged.
+The worker now publishes after each bounded page outside page locks and reloads
+the saved job on publication failure before marking publication_pending. Two
+source race regressions cover current rollback proof, released locks, retained
+cursor/counts/rewraps and stale-proof denial. The prior-worker overlay fails at
+the precise503; the correction passes focused and full service race, handler
+compilation, staticcheck and pinned lint. Repaired main source gates and actual
+PostgreSQL/MySQL focus are running; earlier failed lifecycle and pre-repair
+binary remain distinct, non-acceptance checkpoints.
+
+
+### Repaired internal-root-rotation source and database focus, 2026-10-04
+
+Repaired main format/check/test/build passed with 1827 frontend cases in 101 files,
+Go race/unit, development lifecycle and embedded assets. Dependency bytes are
+unchanged. The repaired actual PostgreSQL/MySQL migration and lifecycle focus
+passed under race detection in 124.896s; both third-root rollback paths now pass
+without changing admission proof or observation. Owned Compose resources were
+removed and verified absent. All 50 repaired producer source hashes remained
+exact. The new production candidate SHA256 is
+`d386f2a1e47e3434a3f2afdde440bcdc0aefe288d57e3abf6cff2954467178a8`.
+The coordinator has started the serial five-domain real-process helper against
+this candidate; browser/observation/restart and final complete matrix are pending.
+
+
+### Internal-root-rotation real-process checkpoint, 2026-10-04
+
+The production candidate created 29 genuine legacy envelopes across Provider,
+authenticated proxy, SMTP, 25 verified Storage revisions and one enabled MFA
+factor. Before cutover and after start, actual restart, original-root retirement,
+reverse cutover and third-root retirement, independent product operations
+confirmed native completed calls, authenticated proxy forwarding, TLS SMTP
+AUTH/DATA, exact historical Storage reads and fresh real-counter MFA sign-in.
+Compared descriptors and every payload/nonce were preserved.
+
+The first server observation restarted after the process changed and ran
+continuously from 05:34:06UTC to its 05:39:06 eligibility. Explicit Chinese UI
+confirmation retired old at 05:39:33. The unused third root was then cut over
+and safely rolled back through a separately receipted reverse job; its own
+observation ran 05:41:43–05:46:43 before explicit third retirement at 05:47:15.
+No browser or injected clock established these production observations. Current
+process proof and immutable historical receipts remain separate. Six native
+completed calls are recorded so far; next-only restart/final operations and
+checked cleanup remain pending.
+
+Browser inspection additionally reproduced a historical task showing a global
+Start control and a generic nested-route title. Two regression cases fail against
+the prior UI for completed/rolled-back addressable jobs. The narrow three-path
+UI repair restricts global Start preparation to the current storage overview and
+retains the Credential storage shell title. Rebuilt full source gates are running
+before using that candidate for final next-only restart and browser proof.
+The repaired backend is unchanged from its 124.896s actual-driver focus.
+
+
+### Final root-rotation production and source proof, 2026-10-04
+
+Final main format/check/test/build passed with 1829 frontend cases in 101 files,
+Go race/unit, development lifecycle, embedded assets and unchanged dependencies.
+The historical completed/rolled-back route regressions passed without changing
+backend acceptance. The rebuilt binary SHA256 is
+`ce8b0ef48e2baa4c61357a6379fa46da5d1d065fe58ea1569d81ff97c88e65f3`.
+
+Seven genuine completed native calls and independent authenticated proxy,
+TLS SMTP AUTH/DATA, exact historical Storage and real-counter MFA operations
+passed before cutover, after start, after restart, after old-root retirement,
+after reverse rotation, after third-root retirement and after next-only restart.
+All 29 legacy envelopes preserved payload ciphertext/nonces; 25 independently
+verified Storage revisions include history beyond the management page limit.
+The two actual server-owned observation windows remain 05:34:06–05:39:06UTC
+and 05:41:43–05:46:43UTC. No browser or fixture clock proved continuity.
+
+English/Chinese historical jobs show no global Start control or selector and
+retain the Credential storage title. Current overview still requires explicit
+review. Revoking the exact browser Session removed private state and returned to
+login; fresh MFA sign-in retained seven calls/35 known Tokens after next-only
+restart. Browser warnings/errors were empty before expected revocation. Owned
+browser tab, processes, containers, networks and volumes were removed and checked.
+The real-process authentication lifecycle subsequently passed PostgreSQL/MySQL
+and verified cleanup. Final complete main regression is running against the
+frozen 56 code paths; mandatory check and main commit/push remain pending.
+
+This proof covers controlled single-process internal rotation. External Vault,
+fleet acknowledgement, physical root erasure and real-provider acceptance remain
+open. F28 and the formal overall totals are unchanged.
+
+
+### Root-rotation complete main regression and delivery gate, 2026-10-04
+
+The frozen final-source complete PostgreSQL/MySQL race matrix passed:
+Handler 1341.797s/Service 8.060s. All owned containers, network and volumes were
+removed and verified absent. The serial wrapper confirmed every 56 accepted
+code hash unchanged. Final mandatory `go tool task check` passed with no errors;
+only the two existing frontend Fast Refresh warnings remain. Package/lock bytes
+are unchanged. Combined with 1829 frontend cases/101 files, actual migration and
+lifecycle focus 124.896s, real-process authentication persistence, and the seven
+five-domain production/browser/restart probes, the 63-path phase satisfies its
+controlled internal-root-rotation delivery gates. Earlier failed checkpoints
+remain historical diagnosis, not acceptance. External Vault/fleet/physical-erasure
+boundaries and formal 11/16/3 totals remain open/unchanged.

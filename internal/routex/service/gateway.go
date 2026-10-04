@@ -259,7 +259,7 @@ func (s *Service) gatewayNativeIdentity(ctx context.Context, identity gatewayIde
 		if s.secrets == nil {
 			err = runtimeUnavailable
 		} else {
-			credential, err = s.secrets.Open(route.CredentialID, route.Ciphertext)
+			credential, err = s.openSecret(route.CredentialID, route.Ciphertext)
 		}
 	}
 	if err != nil {

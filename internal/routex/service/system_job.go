@@ -14,6 +14,7 @@ const (
 	SystemJobRuntimePublication = "runtime_publication"
 	SystemJobCallRecordDelivery = "call_record_delivery"
 	SystemJobStorageCleanup     = "storage_cleanup"
+	SystemJobSecretRootRotation = "secret_root_rotation"
 
 	systemJobRunning   = "running"
 	systemJobCompleted = "completed"
@@ -261,7 +262,7 @@ func pruneSystemJobs(db *gorm.DB) error {
 
 func validSystemJobCode(code string) bool {
 	switch code {
-	case SystemJobRuntimePublication, SystemJobCallRecordDelivery, SystemJobStorageCleanup:
+	case SystemJobRuntimePublication, SystemJobCallRecordDelivery, SystemJobStorageCleanup, SystemJobSecretRootRotation:
 		return true
 	default:
 		return false
@@ -277,6 +278,8 @@ func validSystemJobOutcome(code, status, detail string) bool {
 		return detail == "published" || detail == "database_unavailable" || detail == "invalid_configuration" || detail == "publication_failed" || detail == "executor_lost"
 	case SystemJobCallRecordDelivery:
 		return detail == "delivered" || detail == "canceled" || detail == "buffer_read_failed" || detail == "invalid_fact" || detail == "identity_mismatch" || detail == "persistence_failed" || detail == "acknowledge_failed" || detail == "executor_lost"
+	case SystemJobSecretRootRotation:
+		return detail == "processed" || detail == "rotation_blocked" || detail == "executor_lost"
 	case SystemJobStorageCleanup:
 		return detail == "cleaned" || detail == "canceled" || detail == "claim_failed" || detail == "delete_failed" || detail == "state_update_failed" || detail == "executor_lost"
 	default:

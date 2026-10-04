@@ -79,7 +79,7 @@ func (s *Service) egressConfig(row entity.Egress) (*upstream.EgressConfig, error
 		if s.secrets == nil {
 			return nil, secretStoreUnavailable
 		}
-		plaintext, err := s.secrets.Open("egress:"+row.ID+":"+row.SecretGeneration, row.AuthCiphertext)
+		plaintext, err := s.openSecret("egress:"+row.ID+":"+row.SecretGeneration, row.AuthCiphertext)
 		if err != nil {
 			return nil, secretStoreUnavailable
 		}
@@ -142,7 +142,7 @@ func (s *Service) prepareEgress(row entity.Egress, input EgressInput) (entity.Eg
 		if err != nil {
 			return row, nil, false, apperrors.ErrInternal
 		}
-		cipher, err := s.secrets.Seal("egress:"+row.ID+":"+generation, string(payload))
+		cipher, err := s.sealSecret("egress:"+row.ID+":"+generation, string(payload))
 		if err != nil {
 			return row, nil, false, secretStoreUnavailable
 		}
@@ -239,6 +239,7 @@ func (s *Service) WriteEgress(ctx context.Context, actor, egressID string, input
 			return nil, catalogConflict
 		}
 	}
+	preparedEpoch := s.secretEpoch()
 	row, config, changed, err := s.prepareEgress(original, input)
 	if err != nil {
 		return nil, err
@@ -274,6 +275,11 @@ func (s *Service) WriteEgress(ctx context.Context, actor, egressID string, input
 		if err := authorizeGovernance(tx, actor, "egress.write"); err != nil {
 			return err
 		}
+		if input.Auth.Action == "replace" {
+			if err := s.guardSecretWrite(tx, preparedEpoch, "egress:"+row.ID+":"+row.SecretGeneration, row.AuthCiphertext); err != nil {
+				return err
+			}
+		}
 		action := "egress.create"
 		if egressID != "" {
 			var current entity.Egress
@@ -282,6 +288,10 @@ func (s *Service) WriteEgress(ctx context.Context, actor, egressID string, input
 			}
 			if current.ETag != input.ETag {
 				return catalogConflict
+			}
+			if input.Auth.Action == "" || input.Auth.Action == "keep" {
+				row.AuthCiphertext = current.AuthCiphertext
+				row.SecretGeneration = current.SecretGeneration
 			}
 			action = "egress.update"
 		}

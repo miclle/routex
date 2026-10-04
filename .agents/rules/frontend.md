@@ -521,3 +521,21 @@ Session or permission renewal. Generation-bound report/export subtrees still
 unmount during authority reads; actor or Personal/Team/Project/platform source
 changes clear filter intent. Never persist drafts in browser storage or private
 query caches.
+
+Internal secret storage uses `views/secrets` at `/admin/secrets` and addressable
+rotation URLs. Require a current administrator and independent `secrets.read`
+and `secrets.rotate` authority. Scope reads to actor, target and successful
+Session generation; hide old private state during renewed reads/errors and
+ignore obsolete replies. Keep the approved internal status card and local Base
+UI confirmation dialog, exact configured key IDs, string epochs/counts and
+server-owned blockers/observation times. Never display root material, private
+proofs, secret subjects, invented progress or fleet acknowledgement. Mutations
+retain the reviewed strong ETag, UUIDv4, body and reason through uncertain and
+rejected retries; refresh never proves the original operation. Historical
+receipts and current write-policy/publication application remain separate. Keep
+paired `secrets` translations and clear transient action state on teardown.
+
+Addressable historical root-rotation details expose only that recorded job's
+server-allowed actions. Global Start belongs to `/admin/secrets` and is never
+prepared from a historical task URL; the shell retains the Credential storage
+title on addressable rotation routes.

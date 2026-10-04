@@ -82,7 +82,7 @@ func (s *Service) smtpConfig(row entity.SMTPSetting) (smtpclient.Config, error) 
 		if s.secrets == nil {
 			return config, secretStoreUnavailable
 		}
-		plaintext, err := s.secrets.Open("smtp:1:"+row.SecretGeneration, row.AuthCiphertext)
+		plaintext, err := s.openSecret("smtp:1:"+row.SecretGeneration, row.AuthCiphertext)
 		if err != nil {
 			return config, secretStoreUnavailable
 		}
@@ -127,7 +127,7 @@ func (s *Service) prepareSMTP(row entity.SMTPSetting, input SMTPInput) (entity.S
 			return row, apperrors.ErrInternal
 		}
 		value, _ := json.Marshal(struct{ Username, Password string }{input.Auth.Username, input.Auth.Password})
-		ciphertext, err := s.secrets.Seal("smtp:1:"+generation, string(value))
+		ciphertext, err := s.sealSecret("smtp:1:"+generation, string(value))
 		if err != nil {
 			return row, secretStoreUnavailable
 		}
@@ -155,6 +155,7 @@ func (s *Service) WriteSMTPSettings(ctx context.Context, actor string, input SMT
 	if original.ETag != input.ETag {
 		return nil, catalogConflict
 	}
+	preparedEpoch := s.secretEpoch()
 	next, err := s.prepareSMTP(original, input)
 	if err != nil {
 		return nil, err
@@ -176,12 +177,21 @@ func (s *Service) WriteSMTPSettings(ctx context.Context, actor string, input SMT
 		if err := authorizeGovernance(tx, actor, "smtp.write"); err != nil {
 			return err
 		}
+		if input.Auth.Action == "replace" {
+			if err := s.guardSecretWrite(tx, preparedEpoch, "smtp:1:"+next.SecretGeneration, next.AuthCiphertext); err != nil {
+				return err
+			}
+		}
 		var current entity.SMTPSetting
 		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).First(&current, 1).Error; err != nil {
 			return err
 		}
 		if current.ETag != input.ETag {
 			return catalogConflict
+		}
+		if input.Auth.Action == "" || input.Auth.Action == "keep" {
+			next.AuthCiphertext = current.AuthCiphertext
+			next.SecretGeneration = current.SecretGeneration
 		}
 		next.LastTestStartedAt = current.LastTestStartedAt
 		var err error

@@ -24,7 +24,7 @@ func (s *Service) consumeMFAProof(tx *gorm.DB, state *entity.UserMFA, proof MFAP
 		result := tx.Model(&entity.MFARecoveryCode{}).Where("user_id = ? AND code_hash = ? AND used_at IS NULL", state.UserID, digest).Update("used_at", now)
 		return result.RowsAffected == 1, result.Error
 	}
-	key, err := s.secrets.Open("mfa:"+state.UserID+":"+state.Generation, state.SecretCiphertext)
+	key, err := s.openSecret("mfa:"+state.UserID+":"+state.Generation, state.SecretCiphertext)
 	if err != nil {
 		return false, errMFAUnavailable
 	}

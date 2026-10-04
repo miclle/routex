@@ -180,7 +180,7 @@ func (s *Service) egressAPIRequest(ctx context.Context, db *gorm.DB, actor, conn
 	if s.secrets == nil {
 		return nil, nil, secretStoreUnavailable
 	}
-	plaintext, err := s.secrets.Open(credential.ID, credential.Ciphertext)
+	plaintext, err := s.openSecret(credential.ID, credential.Ciphertext)
 	if err != nil {
 		return nil, nil, secretStoreUnavailable
 	}

@@ -115,6 +115,11 @@ type RuntimeStatus struct {
 // StartRuntime loads the initial configuration before serving requests and then
 // refreshes it until ctx is canceled. Call once during application startup.
 func (s *Service) StartRuntime(ctx context.Context) error {
+	if s.rootPolicy.Load() == nil {
+		if err := s.InitializeSecretStore(ctx); err != nil {
+			return err
+		}
+	}
 	if s.runtime != nil {
 		return errors.New("runtime is already started")
 	}
@@ -427,8 +432,13 @@ type runtimeData struct {
 }
 
 func (s *Service) loadRuntimeData(ctx context.Context) (*runtimeData, error) {
+	var data *runtimeData
+	err := s.authDB(ctx).Transaction(func(tx *gorm.DB) error { var err error; data, err = s.loadRuntimeDataTx(tx); return err }, &sql.TxOptions{Isolation: sql.LevelRepeatableRead, ReadOnly: true})
+	return data, err
+}
+func (s *Service) loadRuntimeDataTx(tx *gorm.DB) (*runtimeData, error) {
 	data := &runtimeData{EgressGeneration: s.egressGeneration.Load()}
-	err := s.authDB(ctx).Transaction(func(tx *gorm.DB) error {
+	err := func() error {
 		// A repeatable-read transaction prevents mixed entity generations.
 		if err := tx.Select("id", "disabled", "offboarded_at", "created_at").Find(&data.Users).Error; err != nil {
 			return err
@@ -459,7 +469,7 @@ func (s *Service) loadRuntimeData(ctx context.Context) (*runtimeData, error) {
 			return err
 		}
 		return compileRuntimeLimits(data)
-	}, &sql.TxOptions{Isolation: sql.LevelRepeatableRead, ReadOnly: true})
+	}()
 	return data, err
 }
 
@@ -645,7 +655,7 @@ func (s *Service) buildRuntimeRoutes(data *runtimeData) (map[string][]runtimeRou
 		if s.secrets == nil {
 			return nil, runtimeUnavailable
 		}
-		plaintext, err := s.secrets.Open(credential.ID, credential.Ciphertext)
+		plaintext, err := s.openSecret(credential.ID, credential.Ciphertext)
 		if err != nil {
 			return nil, runtimeUnavailable
 		}

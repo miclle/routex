@@ -25,6 +25,11 @@ type Service struct {
 	runtime               *gatewayRuntime
 	recorder              *callRecorder
 	secrets               *secretstore.Store
+	rootPolicy            atomic.Pointer[secretPolicyView]
+	rootNow               func() time.Time
+	rootMutation          sync.Mutex
+	rootReaders           atomic.Int64
+	rootReadersClosed     atomic.Bool
 	upstream              *http.Client
 	allowPrivateUpstream  bool
 	allowPrivateSMTP      bool
@@ -70,7 +75,7 @@ func New(ctx context.Context, db *gorm.DB, options ...Option) (*Service, error) 
 
 	svc := &Service{
 		db: db, upstream: upstream.NewClient(false), attemptNow: time.Now,
-		instanceNow: time.Now, instanceResources: collectSystemInstanceResources,
+		rootNow: time.Now, instanceNow: time.Now, instanceResources: collectSystemInstanceResources,
 		instanceHeartbeat: 10 * time.Second, instanceLeaseDuration: 35 * time.Second,
 		instanceCleanupAfter: 5 * time.Minute,
 	}

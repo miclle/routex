@@ -315,3 +315,30 @@ also rewind the dependent V46 guard/ledger and restore versions in release order
 Focused upgrade, repeat, partial-DDL, concurrent-startup and constraint proof passed
 on PostgreSQL/MySQL. Complete rebuilt-main acceptance remains pending. See
 [Object storage](STORAGE.md) and [Team inference](TEAM_INFERENCE.md).
+
+
+## Internal recoverable-secret root rotation (version 48)
+
+Frozen GORM V48 introduces an inert singleton write policy, root-key metadata,
+durable rotation jobs/items/action receipts and private process proofs, then
+extends the existing System Job guard. Root material is never persisted.
+Historical ciphertext, identity and receipt data remain unchanged. Bounded
+Migrator operations reconcile partially applied MySQL DDL independently;
+released V1–V47 steps remain immutable. Historical reconstruction fixtures
+rewind this dependent guard/ledger before replaying migrations in release order.
+
+The bounded worker uses exact byte keysets and ciphertext compare-and-swap.
+GORM has no portable byte-collation syntax, so database-layer `ByteOrder` and
+`ByteAfter` quote fixed server-owned columns and parameterize cursor values.
+PostgreSQL uses the C collation; MySQL uses binary casts. Dialect handling stays
+out of services, handlers and entities, and dry-run tests cover both adapters.
+This exception preserves deterministic pagination across database collations.
+
+Initial actual PostgreSQL/MySQL migration tests passed empty/upgrade/repeat,
+concurrent startup and partially applied prefixes. A lifecycle rollback failure
+exposed stale runtime publication after a committed Egress rewrap; its source
+correction leaves migrations and rollback proof unchanged. Repaired migration
+and lifecycle focus passed under race detection on both drivers in 124.896s, preserving rollback guards; owned resources were removed
+and verified absent. The complete final PostgreSQL/MySQL race matrix passed
+(Handler 1341.797s/Service 8.060s), with frozen source and checked cleanup. See
+[internal secrets](SECRETS.md) for the five-domain workflow and recovery limits.

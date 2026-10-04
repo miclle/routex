@@ -41,7 +41,7 @@ func (s *Service) VerifyCredential(ctx context.Context, actorID, credentialID st
 	if err != nil {
 		return nil, err
 	}
-	plaintext, err := s.secrets.Open(credential.ID, credential.Ciphertext)
+	plaintext, err := s.openSecret(credential.ID, credential.Ciphertext)
 	if err != nil {
 		return nil, apperrors.ErrInternal
 	}

@@ -1,0 +1,195 @@
+package database
+
+import (
+	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
+	"strings"
+	"time"
+)
+
+// secretWritePolicyV48 is the authoritative commit fence, independent of bootstrap.
+type secretWritePolicyV48 struct {
+	ID          int       `gorm:"primaryKey;autoIncrement:false;check:ck_secret_policy_singleton,id = 1"`
+	Initialized bool      `gorm:"not null;check:ck_secret_policy_state,(initialized AND write_key_id IS NOT NULL AND CHAR_LENGTH(write_key_id) > 0 AND epoch > 0) OR (NOT initialized AND write_key_id IS NULL AND active_job_id IS NULL AND epoch = 0)"`
+	WriteKeyID  *string   `gorm:"size:64"`
+	Epoch       uint64    `gorm:"not null"`
+	ETag        string    `gorm:"column:etag;size:64;not null;check:ck_secret_policy_etag,CHAR_LENGTH(etag) = 64"`
+	ActiveJobID *string   `gorm:"size:30"`
+	UpdatedAt   time.Time `gorm:"precision:6;not null"`
+}
+type secretRootKeyV48 struct {
+	KeyID           string     `gorm:"primaryKey;size:64;check:ck_secret_root_identity,CHAR_LENGTH(key_id) > 0"`
+	State           string     `gorm:"size:16;not null;check:ck_secret_root_state,((CHAR_LENGTH(state) = 5 AND ASCII(SUBSTRING(state,1,1)) = 119 AND ASCII(SUBSTRING(state,2,1)) = 114 AND ASCII(SUBSTRING(state,3,1)) = 105 AND ASCII(SUBSTRING(state,4,1)) = 116 AND ASCII(SUBSTRING(state,5,1)) = 101) OR (CHAR_LENGTH(state) = 12 AND ASCII(SUBSTRING(state,1,1)) = 100 AND ASCII(SUBSTRING(state,2,1)) = 101 AND ASCII(SUBSTRING(state,3,1)) = 99 AND ASCII(SUBSTRING(state,4,1)) = 114 AND ASCII(SUBSTRING(state,5,1)) = 121 AND ASCII(SUBSTRING(state,6,1)) = 112 AND ASCII(SUBSTRING(state,7,1)) = 116 AND ASCII(SUBSTRING(state,8,1)) = 95 AND ASCII(SUBSTRING(state,9,1)) = 111 AND ASCII(SUBSTRING(state,10,1)) = 110 AND ASCII(SUBSTRING(state,11,1)) = 108 AND ASCII(SUBSTRING(state,12,1)) = 121) OR (CHAR_LENGTH(state) = 7 AND ASCII(SUBSTRING(state,1,1)) = 114 AND ASCII(SUBSTRING(state,2,1)) = 101 AND ASCII(SUBSTRING(state,3,1)) = 116 AND ASCII(SUBSTRING(state,4,1)) = 105 AND ASCII(SUBSTRING(state,5,1)) = 114 AND ASCII(SUBSTRING(state,6,1)) = 101 AND ASCII(SUBSTRING(state,7,1)) = 100))"`
+	ProofCiphertext string     `gorm:"type:text;not null" json:"-"`
+	CreatedAt       time.Time  `gorm:"precision:6;not null"`
+	RetiredAt       *time.Time `gorm:"precision:6;check:ck_secret_root_retired,(state = 'retired' AND retired_at IS NOT NULL AND proof_ciphertext = '') OR (state <> 'retired' AND retired_at IS NULL AND CHAR_LENGTH(proof_ciphertext) > 0)"`
+}
+type secretRotationJobV48 struct {
+	ID                         string     `gorm:"primaryKey;size:30"`
+	SourceKeyID                string     `gorm:"size:64;not null"`
+	TargetKeyID                string     `gorm:"size:64;not null;check:ck_secret_rotation_keys,CHAR_LENGTH(source_key_id) > 0 AND CHAR_LENGTH(target_key_id) > 0 AND source_key_id <> target_key_id"`
+	CutoverEpoch               uint64     `gorm:"not null;check:ck_secret_rotation_epoch,cutover_epoch > 0 AND scan_generation > 0"`
+	ETag                       string     `gorm:"column:etag;size:64;not null;check:ck_secret_rotation_etag,CHAR_LENGTH(etag) = 64"`
+	Status                     string     `gorm:"size:16;not null;check:ck_secret_rotation_status,((CHAR_LENGTH(status) = 9 AND ASCII(SUBSTRING(status,1,1)) = 109 AND ASCII(SUBSTRING(status,2,1)) = 105 AND ASCII(SUBSTRING(status,3,1)) = 103 AND ASCII(SUBSTRING(status,4,1)) = 114 AND ASCII(SUBSTRING(status,5,1)) = 97 AND ASCII(SUBSTRING(status,6,1)) = 116 AND ASCII(SUBSTRING(status,7,1)) = 105 AND ASCII(SUBSTRING(status,8,1)) = 110 AND ASCII(SUBSTRING(status,9,1)) = 103) OR (CHAR_LENGTH(status) = 7 AND ASCII(SUBSTRING(status,1,1)) = 98 AND ASCII(SUBSTRING(status,2,1)) = 108 AND ASCII(SUBSTRING(status,3,1)) = 111 AND ASCII(SUBSTRING(status,4,1)) = 99 AND ASCII(SUBSTRING(status,5,1)) = 107 AND ASCII(SUBSTRING(status,6,1)) = 101 AND ASCII(SUBSTRING(status,7,1)) = 100) OR (CHAR_LENGTH(status) = 9 AND ASCII(SUBSTRING(status,1,1)) = 111 AND ASCII(SUBSTRING(status,2,1)) = 98 AND ASCII(SUBSTRING(status,3,1)) = 115 AND ASCII(SUBSTRING(status,4,1)) = 101 AND ASCII(SUBSTRING(status,5,1)) = 114 AND ASCII(SUBSTRING(status,6,1)) = 118 AND ASCII(SUBSTRING(status,7,1)) = 105 AND ASCII(SUBSTRING(status,8,1)) = 110 AND ASCII(SUBSTRING(status,9,1)) = 103) OR (CHAR_LENGTH(status) = 5 AND ASCII(SUBSTRING(status,1,1)) = 114 AND ASCII(SUBSTRING(status,2,1)) = 101 AND ASCII(SUBSTRING(status,3,1)) = 97 AND ASCII(SUBSTRING(status,4,1)) = 100 AND ASCII(SUBSTRING(status,5,1)) = 121) OR (CHAR_LENGTH(status) = 9 AND ASCII(SUBSTRING(status,1,1)) = 99 AND ASCII(SUBSTRING(status,2,1)) = 111 AND ASCII(SUBSTRING(status,3,1)) = 109 AND ASCII(SUBSTRING(status,4,1)) = 112 AND ASCII(SUBSTRING(status,5,1)) = 108 AND ASCII(SUBSTRING(status,6,1)) = 101 AND ASCII(SUBSTRING(status,7,1)) = 116 AND ASCII(SUBSTRING(status,8,1)) = 101 AND ASCII(SUBSTRING(status,9,1)) = 100) OR (CHAR_LENGTH(status) = 11 AND ASCII(SUBSTRING(status,1,1)) = 114 AND ASCII(SUBSTRING(status,2,1)) = 111 AND ASCII(SUBSTRING(status,3,1)) = 108 AND ASCII(SUBSTRING(status,4,1)) = 108 AND ASCII(SUBSTRING(status,5,1)) = 101 AND ASCII(SUBSTRING(status,6,1)) = 100 AND ASCII(SUBSTRING(status,7,1)) = 95 AND ASCII(SUBSTRING(status,8,1)) = 98 AND ASCII(SUBSTRING(status,9,1)) = 97 AND ASCII(SUBSTRING(status,10,1)) = 99 AND ASCII(SUBSTRING(status,11,1)) = 107))"`
+	Phase                      string     `gorm:"size:16;not null;check:ck_secret_rotation_phase,((CHAR_LENGTH(phase) = 9 AND ASCII(SUBSTRING(phase,1,1)) = 109 AND ASCII(SUBSTRING(phase,2,1)) = 105 AND ASCII(SUBSTRING(phase,3,1)) = 103 AND ASCII(SUBSTRING(phase,4,1)) = 114 AND ASCII(SUBSTRING(phase,5,1)) = 97 AND ASCII(SUBSTRING(phase,6,1)) = 116 AND ASCII(SUBSTRING(phase,7,1)) = 105 AND ASCII(SUBSTRING(phase,8,1)) = 111 AND ASCII(SUBSTRING(phase,9,1)) = 110) OR (CHAR_LENGTH(phase) = 12 AND ASCII(SUBSTRING(phase,1,1)) = 118 AND ASCII(SUBSTRING(phase,2,1)) = 101 AND ASCII(SUBSTRING(phase,3,1)) = 114 AND ASCII(SUBSTRING(phase,4,1)) = 105 AND ASCII(SUBSTRING(phase,5,1)) = 102 AND ASCII(SUBSTRING(phase,6,1)) = 105 AND ASCII(SUBSTRING(phase,7,1)) = 99 AND ASCII(SUBSTRING(phase,8,1)) = 97 AND ASCII(SUBSTRING(phase,9,1)) = 116 AND ASCII(SUBSTRING(phase,10,1)) = 105 AND ASCII(SUBSTRING(phase,11,1)) = 111 AND ASCII(SUBSTRING(phase,12,1)) = 110) OR (CHAR_LENGTH(phase) = 11 AND ASCII(SUBSTRING(phase,1,1)) = 111 AND ASCII(SUBSTRING(phase,2,1)) = 98 AND ASCII(SUBSTRING(phase,3,1)) = 115 AND ASCII(SUBSTRING(phase,4,1)) = 101 AND ASCII(SUBSTRING(phase,5,1)) = 114 AND ASCII(SUBSTRING(phase,6,1)) = 118 AND ASCII(SUBSTRING(phase,7,1)) = 97 AND ASCII(SUBSTRING(phase,8,1)) = 116 AND ASCII(SUBSTRING(phase,9,1)) = 105 AND ASCII(SUBSTRING(phase,10,1)) = 111 AND ASCII(SUBSTRING(phase,11,1)) = 110) OR (CHAR_LENGTH(phase) = 9 AND ASCII(SUBSTRING(phase,1,1)) = 99 AND ASCII(SUBSTRING(phase,2,1)) = 111 AND ASCII(SUBSTRING(phase,3,1)) = 109 AND ASCII(SUBSTRING(phase,4,1)) = 112 AND ASCII(SUBSTRING(phase,5,1)) = 108 AND ASCII(SUBSTRING(phase,6,1)) = 101 AND ASCII(SUBSTRING(phase,7,1)) = 116 AND ASCII(SUBSTRING(phase,8,1)) = 101 AND ASCII(SUBSTRING(phase,9,1)) = 100))"`
+	Domain                     int        `gorm:"not null;check:ck_secret_rotation_domain,domain >= 0 AND domain <= 5"`
+	Cursor                     string     `gorm:"size:64;not null"`
+	ScanGeneration             uint64     `gorm:"not null"`
+	LeaseExecutorID            string     `gorm:"size:30;not null"`
+	LeaseToken                 string     `gorm:"size:30;not null" json:"-"`
+	LeaseUntil                 *time.Time `gorm:"precision:6"`
+	CountsJSON                 string     `gorm:"type:text;not null" json:"-"`
+	BlockerCode                string     `gorm:"size:64;not null"`
+	ObservationStartedAt       *time.Time `gorm:"precision:6"`
+	ObservationLastConfirmedAt *time.Time `gorm:"precision:6"`
+	VerifiedProcessID          string     `gorm:"size:30;not null"`
+	VerifiedSnapshotID         string     `gorm:"size:30;not null"`
+	CreatedAt                  time.Time  `gorm:"precision:6;not null"`
+	UpdatedAt                  time.Time  `gorm:"precision:6;not null"`
+	CompletedAt                *time.Time `gorm:"precision:6;check:ck_secret_rotation_terminal,(status IN ('completed','rolled_back') AND completed_at IS NOT NULL) OR (status NOT IN ('completed','rolled_back') AND completed_at IS NULL)"`
+}
+type secretRotationItemV48 struct {
+	JobID             string    `gorm:"primaryKey;size:30"`
+	Domain            string    `gorm:"primaryKey;size:32;check:ck_secret_item_domain,((CHAR_LENGTH(domain) = 20 AND ASCII(SUBSTRING(domain,1,1)) = 112 AND ASCII(SUBSTRING(domain,2,1)) = 114 AND ASCII(SUBSTRING(domain,3,1)) = 111 AND ASCII(SUBSTRING(domain,4,1)) = 118 AND ASCII(SUBSTRING(domain,5,1)) = 105 AND ASCII(SUBSTRING(domain,6,1)) = 100 AND ASCII(SUBSTRING(domain,7,1)) = 101 AND ASCII(SUBSTRING(domain,8,1)) = 114 AND ASCII(SUBSTRING(domain,9,1)) = 95 AND ASCII(SUBSTRING(domain,10,1)) = 99 AND ASCII(SUBSTRING(domain,11,1)) = 114 AND ASCII(SUBSTRING(domain,12,1)) = 101 AND ASCII(SUBSTRING(domain,13,1)) = 100 AND ASCII(SUBSTRING(domain,14,1)) = 101 AND ASCII(SUBSTRING(domain,15,1)) = 110 AND ASCII(SUBSTRING(domain,16,1)) = 116 AND ASCII(SUBSTRING(domain,17,1)) = 105 AND ASCII(SUBSTRING(domain,18,1)) = 97 AND ASCII(SUBSTRING(domain,19,1)) = 108 AND ASCII(SUBSTRING(domain,20,1)) = 115) OR (CHAR_LENGTH(domain) = 8 AND ASCII(SUBSTRING(domain,1,1)) = 101 AND ASCII(SUBSTRING(domain,2,1)) = 103 AND ASCII(SUBSTRING(domain,3,1)) = 114 AND ASCII(SUBSTRING(domain,4,1)) = 101 AND ASCII(SUBSTRING(domain,5,1)) = 115 AND ASCII(SUBSTRING(domain,6,1)) = 115 AND ASCII(SUBSTRING(domain,7,1)) = 101 AND ASCII(SUBSTRING(domain,8,1)) = 115) OR (CHAR_LENGTH(domain) = 13 AND ASCII(SUBSTRING(domain,1,1)) = 115 AND ASCII(SUBSTRING(domain,2,1)) = 109 AND ASCII(SUBSTRING(domain,3,1)) = 116 AND ASCII(SUBSTRING(domain,4,1)) = 112 AND ASCII(SUBSTRING(domain,5,1)) = 95 AND ASCII(SUBSTRING(domain,6,1)) = 115 AND ASCII(SUBSTRING(domain,7,1)) = 101 AND ASCII(SUBSTRING(domain,8,1)) = 116 AND ASCII(SUBSTRING(domain,9,1)) = 116 AND ASCII(SUBSTRING(domain,10,1)) = 105 AND ASCII(SUBSTRING(domain,11,1)) = 110 AND ASCII(SUBSTRING(domain,12,1)) = 103 AND ASCII(SUBSTRING(domain,13,1)) = 115) OR (CHAR_LENGTH(domain) = 17 AND ASCII(SUBSTRING(domain,1,1)) = 115 AND ASCII(SUBSTRING(domain,2,1)) = 116 AND ASCII(SUBSTRING(domain,3,1)) = 111 AND ASCII(SUBSTRING(domain,4,1)) = 114 AND ASCII(SUBSTRING(domain,5,1)) = 97 AND ASCII(SUBSTRING(domain,6,1)) = 103 AND ASCII(SUBSTRING(domain,7,1)) = 101 AND ASCII(SUBSTRING(domain,8,1)) = 95 AND ASCII(SUBSTRING(domain,9,1)) = 114 AND ASCII(SUBSTRING(domain,10,1)) = 101 AND ASCII(SUBSTRING(domain,11,1)) = 118 AND ASCII(SUBSTRING(domain,12,1)) = 105 AND ASCII(SUBSTRING(domain,13,1)) = 115 AND ASCII(SUBSTRING(domain,14,1)) = 105 AND ASCII(SUBSTRING(domain,15,1)) = 111 AND ASCII(SUBSTRING(domain,16,1)) = 110 AND ASCII(SUBSTRING(domain,17,1)) = 115) OR (CHAR_LENGTH(domain) = 8 AND ASCII(SUBSTRING(domain,1,1)) = 117 AND ASCII(SUBSTRING(domain,2,1)) = 115 AND ASCII(SUBSTRING(domain,3,1)) = 101 AND ASCII(SUBSTRING(domain,4,1)) = 114 AND ASCII(SUBSTRING(domain,5,1)) = 95 AND ASCII(SUBSTRING(domain,6,1)) = 109 AND ASCII(SUBSTRING(domain,7,1)) = 102 AND ASCII(SUBSTRING(domain,8,1)) = 97))"`
+	SubjectID         string    `gorm:"primaryKey;size:64"`
+	SubjectGeneration string    `gorm:"size:64;not null"`
+	Reference         string    `gorm:"size:160;not null" json:"-"`
+	OriginalDigest    string    `gorm:"size:64;not null" json:"-"`
+	ResultDigest      string    `gorm:"size:64;not null" json:"-"`
+	Outcome           string    `gorm:"size:20;not null;check:ck_secret_item_outcome,((CHAR_LENGTH(outcome) = 9 AND ASCII(SUBSTRING(outcome,1,1)) = 114 AND ASCII(SUBSTRING(outcome,2,1)) = 101 AND ASCII(SUBSTRING(outcome,3,1)) = 119 AND ASCII(SUBSTRING(outcome,4,1)) = 114 AND ASCII(SUBSTRING(outcome,5,1)) = 97 AND ASCII(SUBSTRING(outcome,6,1)) = 112 AND ASCII(SUBSTRING(outcome,7,1)) = 112 AND ASCII(SUBSTRING(outcome,8,1)) = 101 AND ASCII(SUBSTRING(outcome,9,1)) = 100) OR (CHAR_LENGTH(outcome) = 14 AND ASCII(SUBSTRING(outcome,1,1)) = 97 AND ASCII(SUBSTRING(outcome,2,1)) = 108 AND ASCII(SUBSTRING(outcome,3,1)) = 114 AND ASCII(SUBSTRING(outcome,4,1)) = 101 AND ASCII(SUBSTRING(outcome,5,1)) = 97 AND ASCII(SUBSTRING(outcome,6,1)) = 100 AND ASCII(SUBSTRING(outcome,7,1)) = 121 AND ASCII(SUBSTRING(outcome,8,1)) = 95 AND ASCII(SUBSTRING(outcome,9,1)) = 116 AND ASCII(SUBSTRING(outcome,10,1)) = 97 AND ASCII(SUBSTRING(outcome,11,1)) = 114 AND ASCII(SUBSTRING(outcome,12,1)) = 103 AND ASCII(SUBSTRING(outcome,13,1)) = 101 AND ASCII(SUBSTRING(outcome,14,1)) = 116) OR (CHAR_LENGTH(outcome) = 7 AND ASCII(SUBSTRING(outcome,1,1)) = 100 AND ASCII(SUBSTRING(outcome,2,1)) = 101 AND ASCII(SUBSTRING(outcome,3,1)) = 108 AND ASCII(SUBSTRING(outcome,4,1)) = 101 AND ASCII(SUBSTRING(outcome,5,1)) = 116 AND ASCII(SUBSTRING(outcome,6,1)) = 101 AND ASCII(SUBSTRING(outcome,7,1)) = 100) OR (CHAR_LENGTH(outcome) = 7 AND ASCII(SUBSTRING(outcome,1,1)) = 99 AND ASCII(SUBSTRING(outcome,2,1)) = 104 AND ASCII(SUBSTRING(outcome,3,1)) = 97 AND ASCII(SUBSTRING(outcome,4,1)) = 110 AND ASCII(SUBSTRING(outcome,5,1)) = 103 AND ASCII(SUBSTRING(outcome,6,1)) = 101 AND ASCII(SUBSTRING(outcome,7,1)) = 100) OR (CHAR_LENGTH(outcome) = 7 AND ASCII(SUBSTRING(outcome,1,1)) = 98 AND ASCII(SUBSTRING(outcome,2,1)) = 108 AND ASCII(SUBSTRING(outcome,3,1)) = 111 AND ASCII(SUBSTRING(outcome,4,1)) = 99 AND ASCII(SUBSTRING(outcome,5,1)) = 107 AND ASCII(SUBSTRING(outcome,6,1)) = 101 AND ASCII(SUBSTRING(outcome,7,1)) = 100))"`
+	Attempts          uint64    `gorm:"not null;check:ck_secret_item_attempts,attempts > 0"`
+	UpdatedAt         time.Time `gorm:"precision:6;not null"`
+}
+type secretRotationReceiptV48 struct {
+	RequestID   string    `gorm:"primaryKey;size:36;check:ck_secret_receipt_hash,CHAR_LENGTH(request_id) = 36 AND CHAR_LENGTH(request_hash) = 64 AND CHAR_LENGTH(review_etag) = 64"`
+	ActorID     string    `gorm:"size:30;not null"`
+	JobID       string    `gorm:"size:30;not null;index:idx_secret_receipt_job"`
+	Action      string    `gorm:"size:16;not null;check:ck_secret_receipt_action,((CHAR_LENGTH(action) = 5 AND ASCII(SUBSTRING(action,1,1)) = 115 AND ASCII(SUBSTRING(action,2,1)) = 116 AND ASCII(SUBSTRING(action,3,1)) = 97 AND ASCII(SUBSTRING(action,4,1)) = 114 AND ASCII(SUBSTRING(action,5,1)) = 116) OR (CHAR_LENGTH(action) = 6 AND ASCII(SUBSTRING(action,1,1)) = 114 AND ASCII(SUBSTRING(action,2,1)) = 101 AND ASCII(SUBSTRING(action,3,1)) = 115 AND ASCII(SUBSTRING(action,4,1)) = 117 AND ASCII(SUBSTRING(action,5,1)) = 109 AND ASCII(SUBSTRING(action,6,1)) = 101) OR (CHAR_LENGTH(action) = 6 AND ASCII(SUBSTRING(action,1,1)) = 114 AND ASCII(SUBSTRING(action,2,1)) = 101 AND ASCII(SUBSTRING(action,3,1)) = 116 AND ASCII(SUBSTRING(action,4,1)) = 105 AND ASCII(SUBSTRING(action,5,1)) = 114 AND ASCII(SUBSTRING(action,6,1)) = 101) OR (CHAR_LENGTH(action) = 8 AND ASCII(SUBSTRING(action,1,1)) = 114 AND ASCII(SUBSTRING(action,2,1)) = 111 AND ASCII(SUBSTRING(action,3,1)) = 108 AND ASCII(SUBSTRING(action,4,1)) = 108 AND ASCII(SUBSTRING(action,5,1)) = 98 AND ASCII(SUBSTRING(action,6,1)) = 97 AND ASCII(SUBSTRING(action,7,1)) = 99 AND ASCII(SUBSTRING(action,8,1)) = 107))"`
+	RequestHash string    `gorm:"size:64;not null" json:"-"`
+	ReviewETag  string    `gorm:"column:review_etag;size:64;not null" json:"-"`
+	ResultEpoch uint64    `gorm:"not null;check:ck_secret_receipt_epoch,result_epoch > 0"`
+	ResultKeyID string    `gorm:"size:64;not null"`
+	CreatedAt   time.Time `gorm:"precision:6;not null"`
+}
+type secretProcessVerificationV48 struct {
+	ProcessID           string    `gorm:"primaryKey;size:30"`
+	PolicyEpoch         uint64    `gorm:"not null;check:ck_secret_process_epoch,policy_epoch > 0 AND crypto_version = 2"`
+	KeyManifestDigest   string    `gorm:"size:64;not null" json:"-"`
+	CryptoVersion       int       `gorm:"not null"`
+	LeaseToken          string    `gorm:"size:30;not null" json:"-"`
+	RuntimeSnapshotID   string    `gorm:"size:30;not null"`
+	RuntimeSourceDigest string    `gorm:"size:64;not null" json:"-"`
+	VerifiedAt          time.Time `gorm:"precision:6;not null"`
+}
+
+func (secretWritePolicyV48) TableName() string { return "secret_write_policies" }
+
+func (secretRootKeyV48) TableName() string { return "secret_root_keys" }
+
+func (secretRotationJobV48) TableName() string { return "secret_rotation_jobs" }
+
+func (secretRotationItemV48) TableName() string { return "secret_rotation_items" }
+
+func (secretRotationReceiptV48) TableName() string { return "secret_rotation_receipts" }
+
+func (secretProcessVerificationV48) TableName() string { return "secret_process_verifications" }
+
+// V48 owns immutable bounded schemas; it never chooses or decrypts root material.
+func rootKeyRotationMigration(db *gorm.DB) error {
+	models := []any{&secretWritePolicyV48{}, &secretRootKeyV48{}, &secretRotationJobV48{}, &secretRotationItemV48{}, &secretRotationReceiptV48{}, &secretProcessVerificationV48{}}
+	for _, model := range models {
+		if db.Migrator().HasTable(model) {
+			statement := &gorm.Statement{DB: db}
+			if err := statement.Parse(model); err != nil {
+				return err
+			}
+			for _, field := range statement.Schema.Fields {
+				if !db.Migrator().HasColumn(model, field.DBName) {
+					if err := db.Migrator().AddColumn(model, field.Name); err != nil {
+						return err
+					}
+				}
+			}
+		}
+	}
+	if err := migrateTables(db, models...); err != nil {
+		return err
+	}
+	if err := rootKeyColumnIdentityV48(db); err != nil {
+		return err
+	}
+	inert := secretWritePolicyV48{ID: 1, ETag: strings.Repeat("0", 64), UpdatedAt: time.Now().UTC()}
+	if err := db.Clauses(clause.OnConflict{DoNothing: true}).Create(&inert).Error; err != nil {
+		return err
+	}
+	for _, permission := range []string{"secrets.read", "secrets.rotate"} {
+		if err := db.Clauses(clause.OnConflict{DoNothing: true}).Create(&secretPermissionV48{RoleID: "rol_admin", Permission: permission}).Error; err != nil {
+			return err
+		}
+	}
+	model := &secretSystemJobCodeV48{}
+	if db.Migrator().HasConstraint(model, "ck_system_jobs_code") {
+		if err := db.Migrator().DropConstraint(model, "ck_system_jobs_code"); err != nil {
+			return err
+		}
+	}
+	return db.Migrator().CreateConstraint(model, "ck_system_jobs_code")
+}
+
+type secretPermissionV48 struct {
+	RoleID     string `gorm:"primaryKey;size:30"`
+	Permission string `gorm:"primaryKey;size:80"`
+}
+
+func (secretPermissionV48) TableName() string { return "role_permissions" }
+
+type secretSystemJobCodeV48 struct {
+	Code string `gorm:"size:40;not null;check:ck_system_jobs_code,code IN ('runtime_publication','call_record_delivery','storage_cleanup','secret_root_rotation')"`
+}
+
+func (secretSystemJobCodeV48) TableName() string { return "system_jobs" }
+
+// GORM string tags cannot express portable column collations. This database-only
+// adapter uses Migrator.AlterColumn against frozen types, preserving exact root
+// ID uniqueness and source/target checks under MySQL's default case folding.
+func rootKeyColumnIdentityV48(db *gorm.DB) error {
+	if db.Name() != "mysql" {
+		return nil
+	}
+	for _, item := range []struct {
+		model  any
+		fields []string
+	}{{&secretRootBinaryV48{}, []string{"KeyID"}}, {&secretPolicyBinaryV48{}, []string{"WriteKeyID"}}, {&secretJobBinaryV48{}, []string{"SourceKeyID", "TargetKeyID"}}, {&secretReceiptBinaryV48{}, []string{"ResultKeyID"}}} {
+		for _, field := range item.fields {
+			if err := db.Migrator().AlterColumn(item.model, field); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
+type secretRootBinaryV48 struct {
+	KeyID string `gorm:"primaryKey;not null;type:varchar(64) CHARACTER SET ascii COLLATE ascii_bin"`
+}
+
+func (secretRootBinaryV48) TableName() string { return "secret_root_keys" }
+
+type secretPolicyBinaryV48 struct {
+	WriteKeyID *string `gorm:"type:varchar(64) CHARACTER SET ascii COLLATE ascii_bin"`
+}
+
+func (secretPolicyBinaryV48) TableName() string { return "secret_write_policies" }
+
+type secretJobBinaryV48 struct {
+	SourceKeyID string `gorm:"type:varchar(64) CHARACTER SET ascii COLLATE ascii_bin;not null"`
+	TargetKeyID string `gorm:"type:varchar(64) CHARACTER SET ascii COLLATE ascii_bin;not null"`
+}
+
+func (secretJobBinaryV48) TableName() string { return "secret_rotation_jobs" }
+
+type secretReceiptBinaryV48 struct {
+	ResultKeyID string `gorm:"type:varchar(64) CHARACTER SET ascii COLLATE ascii_bin;not null"`
+}
+
+func (secretReceiptBinaryV48) TableName() string { return "secret_rotation_receipts" }

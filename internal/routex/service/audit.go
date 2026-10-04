@@ -46,7 +46,7 @@ var auditCategories = map[string][]string{
 	"pricing":     {"pricing"},
 	"identity":    {"user", "role", "session", "mfa", "installation", "registration", "offboarding_case", "teams"},
 	"site":        {"site", "announcement"},
-	"system":      {"system_instance"},
+	"system":      {"system_instance", "secret_rotation"},
 }
 
 func validateAuditFilter(f AuditFilter) (AuditFilter, time.Duration, error) {
@@ -81,6 +81,12 @@ func auditRecord(row entity.AuditEvent) AuditRecord {
 	// never become an accidental credential/request-body read API.
 	var changes any
 	switch row.Action {
+	case "secret_rotation.start", "secret_rotation.resume", "secret_rotation.retire", "secret_rotation.rollback":
+		record, valid := rootRotationAuditProjection(row)
+		if !valid {
+			return result
+		}
+		changes = record
 	case "team.model_request.create", "team.model_request.approve", "team.model_request.reject", "team.model_request.withdraw", "team.model_request.cancel":
 		var valid bool
 		changes, valid = teamModelRequestAuditProjection(row)
