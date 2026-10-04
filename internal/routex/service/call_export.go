@@ -10,9 +10,11 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/miclle/routex/internal/routex/database"
 	"github.com/miclle/routex/internal/routex/entity"
 	apperrors "github.com/miclle/routex/internal/routex/errors"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 const (
@@ -66,6 +68,20 @@ func callExportQuery(tx *gorm.DB, filter CallFilter) *gorm.DB {
 	}
 	if filter.To != nil {
 		query = query.Where("started_at <= ?", filter.To.UTC())
+	}
+	return query
+}
+
+func callExportScope(query *gorm.DB, actorID, scope, projectID string, filter CallFilter) *gorm.DB {
+	switch scope {
+	case "personal":
+		query = query.Where("user_id = ? AND project_id = ? AND team_id = ?", actorID, "", "")
+	case "project":
+		query = query.Where("project_id = ?", projectID)
+	case "admin":
+		if filter.UserID != "" {
+			query = query.Where(database.ExactText(query, clause.Column{Name: "user_id"}, filter.UserID))
+		}
 	}
 	return query
 }
@@ -194,16 +210,7 @@ func (s *Service) exportCalls(ctx context.Context, actorID, scope, projectID str
 		}
 
 		query := callExportQuery(tx, filter)
-		switch scope {
-		case "personal":
-			query = query.Where("user_id = ? AND project_id = ? AND team_id = ?", actorID, "", "")
-		case "project":
-			query = query.Where("project_id = ?", projectID)
-		case "admin":
-			if filter.UserID != "" {
-				query = query.Where("user_id = ? AND project_id = ? AND team_id = ?", filter.UserID, "", "")
-			}
-		}
+		query = callExportScope(query, actorID, scope, projectID, filter)
 
 		records := []entity.CallRecord{}
 		if err := query.Order("started_at DESC, request_id DESC").Limit(callExportRows + 1).Find(&records).Error; err != nil {

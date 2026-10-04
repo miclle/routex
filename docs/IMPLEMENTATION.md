@@ -4555,3 +4555,27 @@ source/dependency paths remain exact. Final mandatory check passed; checked main
 delivery remains pending. F04/F19 and formal 11 complete/16 partial/3 unstarted
 remain unchanged; Type/semantic-update declarations and broader member work
 remain open.
+
+
+Member Models was committed/pushed as
+`569abcd8337e49d57071f4adb37428c97c7333a0`, with exact remote main read-back
+and a clean checkout before the next carry. All local acceptance above remains
+independent; the three new exact remote workflows are still running. The next
+four-leaf platform CSV repair is carried for scoped real-driver acceptance.
+It changes only the exact immutable acting-user predicate and projection tests,
+not routes, schema, permissions, accounting or native completion semantics.
+
+
+### Platform CSV recorded-actor parity acceptance, 2026-10-05
+
+The four-leaf repair passed the real PostgreSQL/MySQL `call_export` children
+under race (Handler 58.742s), including exact actor JSON/CSV ordering, Team
+attribution, empty Project actor, large Tokens, exact decimals, null/zero,
+conjunctive filters, formula safety, private headers and scope permissions.
+Service/Handler source race passed (12.180s/4.557s), and mandatory check passed.
+All 207 protected paths were exact before and after the controlled run; owned
+containers, networks and volumes were independently absent. No route, schema,
+permission, native recording or accounting change occurred. Seeded facts prove
+projection only. The already accepted Models complete 91-case matrix remains
+independent; it was not gratuitously repeated for this bounded predicate repair.
+Main delivery is next; formal F21 status and 11/16/3 totals remain unchanged.

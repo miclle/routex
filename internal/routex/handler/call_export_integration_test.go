@@ -7,6 +7,7 @@ import (
 	"net/http/httptest"
 	"net/url"
 	"slices"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -110,9 +111,19 @@ func testCallExportLifecycle(t *testing.T, db *gorm.DB) {
 	project := base
 	project.RequestID, project.UserID, project.ProjectID = "req_export_project", "", projectID
 	project.ModelName, project.InputTokens, project.OutputTokens = "Project model", &zero, &zero
+	zeroAmount := "0"
+	project.ChargeAmount = &zeroAmount
 	adminPersonal := base
 	adminPersonal.RequestID, adminPersonal.UserID, adminPersonal.ModelName = "req_export_admin", admin.User.ID, "Admin model"
-	if err := db.Create([]entity.CallRecord{managerPersonal, otherPersonal, project, adminPersonal}).Error; err != nil {
+	// Historical facts are seeded to exercise projection, not native completion.
+	team := base
+	team.RequestID, team.UserID, team.TeamID, team.TeamMembershipID = "req_export_team", users[1].ID, "tea_export_history", "tmm_export_history"
+	team.KeyID, team.ProjectID = "", ""
+	largeTokens := int64(9007199254740993)
+	exactAmount, historicalCurrency := "0.000000000000000001", "EUR"
+	team.InputTokens, team.OutputTokens = &largeTokens, &zero
+	team.ChargeAmount, team.ChargeCurrency = &exactAmount, &historicalCurrency
+	if err := db.Create([]entity.CallRecord{managerPersonal, otherPersonal, project, adminPersonal, team}).Error; err != nil {
 		t.Fatal(err)
 	}
 
@@ -161,7 +172,7 @@ func testCallExportLifecycle(t *testing.T, db *gorm.DB) {
 	platformColumns := append(append([]string{}, callExportMemberColumns...), "user_id", "project_id", "team_id", "team_membership_id")
 	adminResponse := get(adminPath, adminCookie)
 	adminRows := readCallCSV(t, adminResponse, http.StatusOK)
-	if len(adminRows) != 5 || !slices.Equal(adminRows[0], platformColumns) {
+	if len(adminRows) != 6 || !slices.Equal(adminRows[0], platformColumns) {
 		t.Fatalf("platform export shape = %v", adminRows)
 	}
 	if adminResponse.Header().Get("Content-Disposition") != `attachment; filename="routex-platform-calls.csv"` {
@@ -177,10 +188,76 @@ func testCallExportLifecycle(t *testing.T, db *gorm.DB) {
 	if len(filtered) != 2 || filtered[1][requestColumn] != otherPersonal.RequestID {
 		t.Fatalf("export filters diverged from call list: %v", filtered)
 	}
-	filteredList := decodeCatalogResponse[AdminCallsResponse](t, get(adminListPath+"?user_id="+users[1].ID, adminCookie), http.StatusOK)
-	if len(filteredList.Items) != 1 || filteredList.Items[0].RequestID != otherPersonal.RequestID {
-		t.Fatalf("valid platform user filter failed: %+v", filteredList.Items)
+	// The public platform acting-user filter includes Personal and Team facts.
+	// It cannot attribute Project calls to their creator or current manager.
+	for _, user := range []struct {
+		id       string
+		expected []string
+	}{
+		{users[1].ID, []string{team.RequestID, otherPersonal.RequestID}},
+		{users[0].ID, []string{managerPersonal.RequestID}},
+		{strings.ToUpper(users[1].ID), nil},
+	} {
+		t.Run("platform recorded actor "+user.id, func(t *testing.T) {
+			query := "?user_id=" + url.QueryEscape(user.id)
+			rows := readCallCSV(t, get(adminPath+query, adminCookie), http.StatusOK)
+			list := decodeCatalogResponse[AdminCallsResponse](t, get(adminListPath+query, adminCookie), http.StatusOK)
+			if len(rows) != len(user.expected)+1 || len(list.Items) != len(user.expected) {
+				t.Fatalf("JSON/CSV actor filter cardinality: CSV=%v JSON=%+v", rows, list.Items)
+			}
+			for index, requestID := range user.expected {
+				if rows[index+1][requestColumn] != requestID || list.Items[index].RequestID != requestID || rows[index+1][callCSVColumn(t, rows[0], "user_id")] != user.id || list.Items[index].UserID != user.id {
+					t.Fatal("acting-user identity/order diverged", rows, list.Items)
+				}
+			}
+		})
 	}
+	platformList := decodeCatalogResponse[AdminCallsResponse](t, get(adminListPath, adminCookie), http.StatusOK)
+	if len(platformList.Items) != len(adminRows)-1 {
+		t.Fatal("platform JSON/CSV snapshot cardinality diverged")
+	}
+	for index, item := range platformList.Items {
+		row := adminRows[index+1]
+		for column, want := range map[string]string{"request_id": item.RequestID, "user_id": item.UserID, "project_id": item.ProjectID, "team_id": item.TeamID, "team_membership_id": item.TeamMembershipID} {
+			if got := row[callCSVColumn(t, adminRows[0], column)]; got != want {
+				t.Fatalf("platform JSON/CSV %s diverged: %q/%q", column, got, want)
+			}
+		}
+		if item.RequestID == team.RequestID && (item.InputTokens == nil || *item.InputTokens != largeTokens || item.OutputTokens == nil || *item.OutputTokens != 0 || item.ChargeAmount == nil || *item.ChargeAmount != exactAmount || item.ChargeCurrency == nil || *item.ChargeCurrency != historicalCurrency) {
+			t.Fatal("JSON lost exact historical Team metering", item)
+		}
+	}
+	successRows := readCallCSV(t, get(adminPath+"?user_id="+users[1].ID+"&status=success", adminCookie), http.StatusOK)
+	if len(successRows) != 2 || successRows[1][requestColumn] != team.RequestID {
+		t.Fatal("Team acting-user/status filters not conjunctive", successRows)
+	}
+	for _, row := range adminRows[1:] {
+		switch row[requestColumn] {
+		case team.RequestID:
+			for column, want := range map[string]string{"user_id": team.UserID, "team_id": team.TeamID, "team_membership_id": team.TeamMembershipID, "key_id": "", "project_id": "", "input_tokens": strconv.FormatInt(largeTokens, 10), "output_tokens": "0", "charge_amount": exactAmount, "charge_currency": historicalCurrency} {
+				if got := row[callCSVColumn(t, adminRows[0], column)]; got != want {
+					t.Fatalf("historical Team %s=%q want %q", column, got, want)
+				}
+			}
+		case project.RequestID:
+			for column, want := range map[string]string{"user_id": "", "project_id": projectID, "team_id": "", "team_membership_id": "", "input_tokens": "0", "output_tokens": "0", "charge_amount": "0", "charge_currency": "USD"} {
+				if got := row[callCSVColumn(t, adminRows[0], column)]; got != want {
+					t.Fatalf("recorded Project %s=%q want %q", column, got, want)
+				}
+			}
+		case otherPersonal.RequestID:
+			for _, column := range []string{"input_tokens", "output_tokens", "charge_amount", "charge_currency", "team_id", "team_membership_id"} {
+				if got := row[callCSVColumn(t, adminRows[0], column)]; got != "" {
+					t.Fatalf("unknown Personal %s became %q", column, got)
+				}
+			}
+		}
+	}
+	otherRows := readCallCSV(t, get(personalPath, otherCookie), http.StatusOK)
+	if len(otherRows) != 2 || otherRows[1][requestColumn] != otherPersonal.RequestID {
+		t.Fatal("same-user Team fact entered Personal export", otherRows)
+	}
+
 	empty := readCallCSV(t, get(personalPath+"?status=canceled", managerCookie), http.StatusOK)
 	if len(empty) != 1 || !slices.Equal(empty[0], callExportMemberColumns) {
 		t.Fatalf("empty export must retain only its header: %v", empty)
@@ -208,6 +285,8 @@ func testCallExportLifecycle(t *testing.T, db *gorm.DB) {
 		{"platform export Key", adminPath + "?key_id=bad%20key", adminCookie},
 		{"platform list user", adminListPath + "?user_id=bad%21user", adminCookie},
 		{"platform export user", adminPath + "?user_id=bad%21user", adminCookie},
+		{"platform list trailing user", adminListPath + "?user_id=" + url.QueryEscape(users[1].ID+" "), adminCookie},
+		{"platform export trailing user", adminPath + "?user_id=" + url.QueryEscape(users[1].ID+" "), adminCookie},
 		{"personal cursor", personalPath + "?cursor=opaque", managerCookie},
 		{"Project limit", projectPath + "?limit=1", managerCookie},
 		{"platform cursor", adminPath + "?cursor=opaque", adminCookie},

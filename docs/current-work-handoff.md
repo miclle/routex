@@ -6,39 +6,34 @@ acceptance remains in `docs/IMPLEMENTATION.md`.
 
 ## Delivered baseline
 
-Latest checked source delivery is Member Teams
-`8074aaa46a1f247459d04034439ccad9dec8b826`, committed/pushed and read back
-exactly. Its fresh full 89-case, authentication, native/browser/restart and final
-mandatory checks passed. All three exact remote workflows passed: Actionlint
-37226753209, GolangCI-Lint 37226753205 and CI 37226753152.
+Latest checked source delivery is Member Models
+`569abcd8337e49d57071f4adb37428c97c7333a0`, committed/pushed and read back
+exactly. Its 51 paths passed the full ordered 91-case-per-driver race matrix,
+eight pre-loop constraints, both-driver authentication/restart, fresh 2346
+frontend cases/123 files, controlled ten-native/four-denial process/browser/
+restart acceptance and final mandatory check. All 197 protected source paths
+and the production artifact stayed exact. Owned resources/listeners and the
+agent browser tab are absent. Exact remote Actionlint 37233563830 and GolangCI-Lint 37233563840 passed;
+CI 37233563834 is still running and remains separate from local acceptance.
 
 ## Active work and next delivery
 
-Member Models is integrated on the delivered baseline. Source checks, all 2346
-frontend cases in 123 files, production build and focused dual-driver R4 passed.
-The complete ordered 91-case-per-driver integration matrix and both-driver
-authentication/restart passed. A test-only Actor fixture successor passed the
-fresh full frontend suite; all business sources and the production binary stayed
-exact. Controlled native/browser/restart acceptance passed ten native completions
-and four zero-dispatch denials. Genuine publication read failure kept Personal
-reductions denied while target Team, peer and Project calls completed; immutable
-history, old Key ceilings and equal-state retry without writes survived restart.
-English/Chinese, reason validation, Escape/draft preservation, direct refresh,
-independent read/write/Provider/price gates and 390px containment passed in the
-built-in browser. No grant write was performed through the browser. Earlier
-helper preparation failures and the first R3 browser-checkpoint stdin EOF remain
-historical; the same corrected helper passed with interactive stdin. All owned
-resources/listeners and the agent-created browser tab are absent. Final mandatory
-check passed; commit and push remain pending.
+The four-leaf platform CSV User-filter parity repair is carried on the accepted
+Models baseline. It selects the immutable exact recorded actor consistently
+with platform JSON, including Team facts while preserving Personal/Project
+boundaries. Source RED-to-GREEN evidence is frozen; root real PostgreSQL/MySQL
+acceptance passed both children (58.742s), Service/Handler source race and mandatory
+check passed. All 207 protected paths and independent owned cleanup passed.
+Checked main commit/push is next. No new native completion is claimed
+for historical projection fixtures.
 
-After this delivery, accept platform CSV User-filter parity, own-Team call CSV
-and Member Settings name editing in separate tested phases. Their parallel
-source packets are frozen; they are not applied to main or accepted by runtime
-tests. A separate Member list backend/frontend pair has frozen the approved
-eleven-column table, safe batched summaries and fresh row-action authority in an
-isolated worktree; related source checks passed, actual acceptance is pending.
-Recent login remains unavailable until genuinely recorded.
-Formal totals remain 11 complete, 16 partial and 3 unstarted.
+After parity, accept own-Team call CSV, Member Settings name editing and the
+Member list in separate tested phases. Their parallel source packets are frozen;
+they are not applied to main or accepted by runtime tests. The Member list uses
+the approved eleven-column table, safe batched summaries and fresh row-action
+authority; recent login remains unavailable until genuinely recorded. Overview
+effective-model sources preserve independent Team read authorization. Formal
+totals remain 11 complete, 16 partial and 3 unstarted.
 
 ## Earlier deliveries
 

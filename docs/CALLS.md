@@ -86,7 +86,7 @@ package; see the [implementation record](IMPLEMENTATION.md) for exact evidence.
 
 ## Access and HTTP API
 
-All paths are relative to `/api/v1` and require a valid session. Personal endpoints always add the current user ID and exclude Project-attributed rows. Platform endpoints require `calls.read_all`, which may come from a built-in or custom role. A request for another user's fact returns the same `404` as a missing fact.
+All paths are relative to `/api/v1` and require a valid session. Personal endpoints always add the current user ID and exclude Project- and Team-attributed rows. Platform endpoints require `calls.read_all`, which may come from a built-in or custom role. A request for another user's fact returns the same `404` as a missing fact.
 
 | Endpoint | Result |
 |---|---|
@@ -94,13 +94,13 @@ All paths are relative to `/api/v1` and require a valid session. Personal endpoi
 | `GET /calls/export.csv` | Complete bounded CSV for the current user's filtered facts |
 | `GET /calls/:request_id` | Current user's safe call detail |
 | `GET /admin/calls` | All users' call facts, with actor IDs |
-| `GET /admin/calls/export.csv` | Complete bounded platform CSV, with user/Project attribution |
+| `GET /admin/calls/export.csv` | Complete bounded platform CSV, with recorded User/Project/Team/membership attribution |
 | `GET /admin/calls/:request_id` | Administrator detail with safe routing and attempt metadata |
 | `GET /projects/:project_id/calls` | Authorized Project call facts |
 | `GET /projects/:project_id/calls/export.csv` | Complete bounded CSV for an authorized Project |
 | `GET /projects/:project_id/calls/:request_id` | Authorized Project safe call detail |
 
-Lists return `{items: [...], next_cursor: string | null}`. Supported filters are `status`, `model_id`, `key_id`, `from`, and `to`. Timestamps use RFC 3339 and bounds are inclusive. Platform queries may also filter Personal attribution by `user_id`. Personal and Project queries reject that parameter.
+Lists return `{items: [...], next_cursor: string | null}`. Supported filters are `status`, `model_id`, `key_id`, `from`, and `to`. Timestamps use RFC 3339 and bounds are inclusive. Platform queries may also filter the exact immutable acting `user_id`, including that user's Personal and Team facts. Project Key facts have an empty User ID; neither their creator nor a manager is substituted. Case aliases do not match, and unsafe identifiers (including trailing whitespace) are rejected. Personal and Project queries reject that parameter.
 
 `limit` defaults to 40 and must be between 1 and 100. `cursor` is opaque to clients. Pagination orders by `started_at DESC, request_id DESC`, so equal timestamps have deterministic order. Filters apply on the server before pagination. Clients must preserve the same filters while following a cursor.
 
@@ -112,9 +112,9 @@ started_at, completed_at, duration_ms, input_tokens, output_tokens, cache_read_t
 image_inputs, pdf_inputs, pricing_status, charge_amount, charge_currency
 ```
 
-Platform list items additionally contain `user_id` and `project_id` when applicable. Platform detail also contains `provider_model_id`, `connection_id`, `error_code`, `route_stop_reason`, `attempts`, `price_etag`, and `pricing_snapshot`. The latter contains normalized rate/FX inputs and the assessed quote, not content or credentials. Each attempt contains its ID, ordinal, provider-model and connection IDs, outcome, failure class, replay work evidence, actual output/final-usage flags, an allowlisted evidence code, HTTP status, safe error code, and timestamps. Member DTOs never include upstream route IDs, attempt diagnostics, error codes, or other users' identities.
+Platform list items additionally contain `user_id`, `project_id`, `team_id`, and `team_membership_id` when applicable. Platform detail also contains `provider_model_id`, `connection_id`, `error_code`, `route_stop_reason`, `attempts`, `price_etag`, and `pricing_snapshot`. The latter contains normalized rate/FX inputs and the assessed quote, not content or credentials. Each attempt contains its ID, ordinal, provider-model and connection IDs, outcome, failure class, replay work evidence, actual output/final-usage flags, an allowlisted evidence code, HTTP status, safe error code, and timestamps. Member DTOs never include upstream route IDs, attempt diagnostics, error codes, or other users' identities.
 
-CSV export applies the same filters without a cursor or page limit and orders the captured rows by `started_at DESC, request_id DESC`. Personal and Project files use exactly the member-safe fields above. Platform files add only `user_id` and `project_id`; detail-only route and attempt diagnostics remain excluded. Nullable usage and amounts stay empty, explicit zero remains `0`, decimal strings remain exact, booleans use `true` or `false`, and timestamps use UTC RFC 3339 with nanosecond precision.
+CSV export applies the same filters without a cursor or page limit and orders the captured rows by `started_at DESC, request_id DESC`. Personal and Project files use exactly the member-safe fields above. Platform files add only `user_id`, `project_id`, `team_id`, and `team_membership_id`; detail-only route and attempt diagnostics remain excluded. Nullable usage and amounts stay empty, explicit zero remains `0`, decimal strings remain exact, booleans use `true` or `false`, and timestamps use UTC RFC 3339 with nanosecond precision.
 
 Export authorization and row selection share one read-only repeatable-read transaction. Generation has a five-second execution bound, a 10,000-row limit, and an 8 MiB encoded limit. The server builds the complete file before writing the response; an overflow returns `422` rather than a truncated download. Empty results return a header-only file. Every string cell is checked after leading Unicode whitespace and control characters; values beginning with `=`, `+`, `-`, or `@` receive an apostrophe before standard CSV quoting. Downloads use fixed RouteX filenames, UTF-8 without a BOM, `private, no-store`, and `nosniff`.
 
@@ -124,7 +124,7 @@ Authentication responses and these protected API responses use the shared no-sto
 
 `testCallLifecycle` runs against PostgreSQL and MySQL through the single isolated database integration lifecycle. It covers concurrent duplicate delivery, immutable accepted facts, attempt conflict rollback, V25 upgrade/reentry, ordered diagnostics, fresh-service persistence, unknown usage, ownership filtering, indistinguishable cross-user misses, member/platform DTO boundaries, safe error classification, deterministic cursor pagination, and time/status/model/Key/user filters.
 
-`testCallExportLifecycle` covers all three authenticated export scopes on PostgreSQL and MySQL, including delegated platform permission, Project-manager isolation, filter parity, formula protection, exact headers, fixed download metadata, header-only empty results, and rejection of cursor/page inputs. Unit tests cover nullable versus zero encoding, exact decimals and timestamps, safe member/platform columns, CSV syntax, formula prefixes after control or Unicode whitespace, and complete failure at row or byte limits.
+`testCallExportLifecycle` covers all three authenticated export scopes on PostgreSQL and MySQL, including delegated platform permission, Project-manager isolation, exact acting-user JSON/CSV filter parity across Personal and Team facts, captured Team/membership IDs, empty Project User attribution, formula protection, exact headers, fixed download metadata, header-only empty results, and rejection of cursor/page inputs. The expanded parity fixture passed on both real drivers (focused Handler 58.742s). It uses seeded immutable historical facts and proves projection parity, not new native recording behavior. Unit tests cover exact database-adapter predicates, nullable versus zero encoding, exact decimals and timestamps, safe member/platform columns, CSV syntax, formula prefixes after control or Unicode whitespace, and complete failure at row or byte limits.
 
 Gateway tests separately establish that real controlled-upstream success, failure, stream completion, and cancellation produce the corresponding facts. Data-store tests alone do not prove gateway recording behavior. Run `go tool task test-integration` for the real database lifecycle and consult [the implementation record](IMPLEMENTATION.md) for current evidence and remaining acceptance work.
 

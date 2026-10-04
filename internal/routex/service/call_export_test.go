@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/miclle/routex/internal/routex/entity"
+	"gorm.io/gorm"
 )
 
 var callExportTestMemberColumns = []string{
@@ -168,5 +169,53 @@ func TestEncodeCallCSVIsCompleteOrBounded(t *testing.T) {
 	huge := entity.CallRecord{ModelName: strings.Repeat("x", callExportBytes+1)}
 	if encoded, err := encodeCallCSV([]entity.CallRecord{huge}, false); err == nil || len(encoded) != 0 {
 		t.Fatalf("byte overflow returned %d bytes, error %v", len(encoded), err)
+	}
+}
+
+func TestCallExportPlatformUserFilterKeepsExactActingUserAcrossSubjects(t *testing.T) {
+	for _, dialect := range []gorm.Dialector{projectQuotaScopeDialector{}, personalLifecycleMySQLDialector{}} {
+		for _, userID := range []string{"usr_exact", "USR_EXACT", "usr_exact "} {
+			t.Run(dialect.Name()+"/"+userID, func(t *testing.T) {
+				db, err := gorm.Open(dialect, &gorm.Config{DryRun: true, DisableAutomaticPing: true})
+				if err != nil {
+					t.Fatal(err)
+				}
+				query := callExportScope(db.Model(&entity.CallRecord{}), "usr_operator", "admin", "", CallFilter{UserID: userID})
+				query.Statement.Clauses["WHERE"].Build(query.Statement)
+				sql := query.Statement.SQL.String()
+				expected := `"user_id" = ?`
+				if dialect.Name() == "mysql" {
+					expected = `CAST("user_id" AS BINARY) = CAST(? AS BINARY)`
+				}
+				if sql != "WHERE "+expected || !slices.Equal(query.Statement.Vars, []any{userID}) {
+					t.Fatalf("platform user filter excludes Team facts or aliases recorded actor: SQL=%s bindings=%v", sql, query.Statement.Vars)
+				}
+			})
+		}
+	}
+}
+
+func TestCallExportPersonalAndProjectScopeRemainIsolated(t *testing.T) {
+	for _, test := range []struct {
+		scope, project, sql string
+		vars                []any
+	}{
+		{"personal", "", "user_id = ? AND project_id = ? AND team_id = ?", []any{"usr_exact", "", ""}},
+		{"project", "prj_exact", "project_id = ?", []any{"prj_exact"}},
+		{"admin", "", "", nil},
+	} {
+		t.Run(test.scope, func(t *testing.T) {
+			db, err := gorm.Open(projectQuotaScopeDialector{}, &gorm.Config{DryRun: true, DisableAutomaticPing: true})
+			if err != nil {
+				t.Fatal(err)
+			}
+			query := callExportScope(db.Model(&entity.CallRecord{}), "usr_exact", test.scope, test.project, CallFilter{})
+			if test.sql != "" {
+				query.Statement.Clauses["WHERE"].Build(query.Statement)
+			}
+			if strings.TrimPrefix(query.Statement.SQL.String(), "WHERE ") != test.sql || !slices.Equal(query.Statement.Vars, test.vars) {
+				t.Fatal("export scope widened", query.Statement.SQL.String(), query.Statement.Vars)
+			}
+		})
 	}
 }
