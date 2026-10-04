@@ -19,11 +19,12 @@ type Team struct {
 	UpdatedAt   time.Time
 }
 type TeamMembership struct {
-	ID     string `gorm:"primaryKey;size:30"`
-	TeamID string `gorm:"size:30;not null;uniqueIndex:uq_team_member"`
-	UserID string `gorm:"size:30;not null;uniqueIndex:uq_team_member"`
-	Role   string `gorm:"size:20;not null"`
-	Status string `gorm:"size:20;not null"`
+	JoinedAt *time.Time `json:"-"`
+	ID       string     `gorm:"primaryKey;size:30"`
+	TeamID   string     `gorm:"size:30;not null;uniqueIndex:uq_team_member"`
+	UserID   string     `gorm:"size:30;not null;uniqueIndex:uq_team_member"`
+	Role     string     `gorm:"size:20;not null"`
+	Status   string     `gorm:"size:20;not null"`
 }
 type TeamModelGrant struct {
 	SourceRequestID *string `gorm:"column:source_request_id;size:30;check:ck_team_model_grant_source,source_request_id IS NULL OR (CHAR_LENGTH(source_request_id) >= 1 AND CHAR_LENGTH(source_request_id) <= 30)"`

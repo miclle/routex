@@ -1,3 +1,4 @@
+import MemberTeams from './member-teams'
 import MemberKeys from './member-keys'
 import MemberOverview from './member-overview'
 import { useSessionGeneration } from '@/hooks/use-session-generation'
@@ -443,6 +444,7 @@ function Members() {
                 value={
                   [
                     'overview',
+                    'teams',
                     'keys',
                     'limits',
                     'settings',
@@ -458,6 +460,15 @@ function Members() {
               >
                 <TabsList>
                   <TabsTrigger value="overview">{t('members.overview')}</TabsTrigger>
+                  {access.can('teams.read_all') && (
+                    <TabsTrigger
+                      value="teams"
+                      id={`member-teams-tab-${actor}-${memberId}`}
+                      aria-controls={`member-teams-panel-${actor}-${memberId}`}
+                    >
+                      {t('memberTeams.title')}
+                    </TabsTrigger>
+                  )}
                   <TabsTrigger
                     value="keys"
                     id={`member-keys-tab-${actor}-${memberId}`}
@@ -465,9 +476,6 @@ function Members() {
                   >
                     {t('memberKeys.title')}
                   </TabsTrigger>
-                  {access.can('roles.read') && (
-                    <TabsTrigger value="roles">{t('members.rolesTab')}</TabsTrigger>
-                  )}
                   {access.can('members.models.write') && (
                     <TabsTrigger
                       value="models"
@@ -484,6 +492,9 @@ function Members() {
                   >
                     {t('members.limits')}
                   </TabsTrigger>
+                  {access.can('roles.read') && (
+                    <TabsTrigger value="roles">{t('members.rolesTab')}</TabsTrigger>
+                  )}
                   <TabsTrigger value="settings">{t('members.settings')}</TabsTrigger>
                 </TabsList>
                 <TabsContent value="overview" className="space-y-6">
@@ -811,6 +822,22 @@ function Members() {
             generation={generation}
             sessionReady={!!actor && !session.isError && !session.isFetching}
             targetReady={!!current && current.id === memberId}
+            targetQueryKey={['admin', 'member', actor, memberId, generation]}
+          />
+        </section>
+      )}
+      {memberId && params.get('tab') === 'teams' && (
+        <section
+          className="mt-6"
+          role="tabpanel"
+          id={`member-teams-panel-${actor}-${memberId}`}
+          aria-label={t('memberTeams.title')}
+        >
+          <MemberTeams
+            actor={actor}
+            target={memberId}
+            generation={generation}
+            ready={!!current}
             targetQueryKey={['admin', 'member', actor, memberId, generation]}
           />
         </section>

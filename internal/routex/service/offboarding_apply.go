@@ -5,7 +5,9 @@ import (
 	"time"
 
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 
+	"github.com/miclle/routex/internal/routex/database"
 	"github.com/miclle/routex/internal/routex/entity"
 	apperrors "github.com/miclle/routex/internal/routex/errors"
 	"github.com/miclle/routex/pkg/id"
@@ -122,16 +124,19 @@ func applyOffboarding(tx *gorm.DB, actorID string, inventory *OffboardingInvento
 	for _, assignment := range assignments.Teams {
 		for _, userID := range assignment.OwnerUserIDs {
 			var membership entity.TeamMembership
-			err := tx.Where("team_id = ? AND user_id = ?", assignment.TeamID, userID).Find(&membership).Error
+			err := tx.Where(database.ExactText(tx, clause.Column{Name: "team_id"}, assignment.TeamID)).Where(database.ExactText(tx, clause.Column{Name: "user_id"}, userID)).Find(&membership).Error
 			if err != nil {
 				return nil, err
+			}
+			if membership.ID != "" && (membership.TeamID != assignment.TeamID || membership.UserID != userID || !safeTeamSessionID(membership.ID) || membership.JoinedAt != nil && membership.JoinedAt.IsZero()) {
+				return nil, apperrors.ErrInternal
 			}
 			if membership.ID == "" {
 				relationID, err := id.NewPrefixed("tmm")
 				if err != nil {
 					return nil, err
 				}
-				membership = entity.TeamMembership{ID: relationID, TeamID: assignment.TeamID, UserID: userID, Role: entity.TeamMember, Status: entity.ResourceActive}
+				membership = entity.TeamMembership{ID: relationID, TeamID: assignment.TeamID, UserID: userID, Role: entity.TeamMember, Status: entity.ResourceActive, JoinedAt: newMemberTeamJoinedAt(time.Now())}
 				if err := tx.Create(&membership).Error; err != nil {
 					return nil, err
 				}

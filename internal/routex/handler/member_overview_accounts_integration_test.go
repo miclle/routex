@@ -469,7 +469,7 @@ func testMemberOverviewAccountsLifecycle(t *testing.T, db *gorm.DB) {
 			// the former case prove the canonical relationship was unchanged;
 			// in the latter case the endpoint must exclude the persisted alias.
 			var unchanged entity.TeamMembership
-			if readErr := db.Where("id = ?", row.ID).First(&unchanged).Error; readErr != nil || unchanged != row {
+			if readErr := db.Where("id = ?", row.ID).First(&unchanged).Error; readErr != nil || !reflect.DeepEqual(unchanged, row) {
 				t.Fatal("rejected alias changed current membership", mutation, err, unchanged, readErr)
 			}
 			t.Log("governance constraint rejected membership alias", mutation.field)
@@ -479,7 +479,7 @@ func testMemberOverviewAccountsLifecycle(t *testing.T, db *gorm.DB) {
 		if err := db.Where("id = ?", row.ID).First(&persisted).Error; err != nil {
 			t.Fatal("read retained membership after alias attempt", mutation, err)
 		}
-		if persisted == row {
+		if reflect.DeepEqual(persisted, row) {
 			// A full-width varchar may discard an excess trailing space instead
 			// of retaining an alias. Canonical retained bytes remain authority;
 			// do not claim this normalization exercised alias rejection.

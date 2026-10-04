@@ -361,7 +361,7 @@ func (s *Service) CreateResource(ctx context.Context, actorID string, kind Resou
 				if err != nil {
 					return err
 				}
-				if err := tx.Create(&entity.TeamMembership{ID: relationID, TeamID: resourceID, UserID: owner, Role: entity.TeamOwner, Status: entity.ResourceActive}).Error; err != nil {
+				if err := tx.Create(&entity.TeamMembership{ID: relationID, TeamID: resourceID, UserID: owner, Role: entity.TeamOwner, Status: entity.ResourceActive, JoinedAt: newMemberTeamJoinedAt(time.Now())}).Error; err != nil {
 					return err
 				}
 			}

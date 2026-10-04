@@ -1,6 +1,6 @@
 # RouteX Implementation and Acceptance Index
 
-Updated: 2026-10-04. This document records engineering contracts, work packages, and acceptance checks. Interfaces, tables, pages, and metrics marked as planned are not necessarily implemented; delivery evidence appears at the end. The active goal covers all F01–F30 capabilities and A01–A20 acceptance cases; completed stages do not end implementation. The full product is delivered incrementally through P0–P6.
+Updated: 2026-10-05. This document records engineering contracts, work packages, and acceptance checks. Interfaces, tables, pages, and metrics marked as planned are not necessarily implemented; delivery evidence appears at the end. The active goal covers all F01–F30 capabilities and A01–A20 acceptance cases; completed stages do not end implementation. The full product is delivered incrementally through P0–P6.
 
 ## Scope and Decisions
 
@@ -154,7 +154,7 @@ The binary capability count is 11 completed, 16 partially completed, and 3 not s
 | F01 | Initialization, local identity, registration, and logout | Completed | Concurrent one-time setup, administrator creation, local login, registration control, durable sessions, and logout are implemented and tested. |
 | F02 | Profile, password, MFA, recovery codes, and session revocation | Completed | Profile and password changes, authenticator enrollment, single-use recovery codes, and individual-session revocation are implemented. |
 | F03 | Enterprise SSO, LDAP, OAuth, and emergency recovery | Not started | Provider configuration, callbacks, identity binding, enforced SSO, and enterprise recovery remain unimplemented. |
-| F04 | Member administration, direct grants, roles, and resource policies | Partially completed | Member and role workflows plus scoped resource-limit interfaces exist; token, TPM, and exact-money controls with authoritative quota snapshots are available. The seventeen-path administrative member Overview source is integrated with independent members.read, exact Personal monthly facts and retained Personal Key count; source check/test/build, focused PostgreSQL/MySQL, controlled production/browser/restart and complete 85-case-per-driver matrix passed; the checked delivery is represented by the commit containing this record, with new remote CI pending. Administrative Member Keys adds retained safe Personal metadata and independent reviewed disable authority with persistent lifecycle/runtime proof; repaired-source checks/build, focused dual-driver migration/lifecycle, full 87-case matrix, auth lifecycle and rebuilt native/browser/restart acceptance passed. The checked 45-path package is delivered as 818500a with exact push/read-back; all three exact remote checks passed. Addressable Member Limits passed current-main source checks/build, controlled reviewed policy/native/browser/restart acceptance and final mandatory check; scoped commit/push and new remote checks remain pending. The complete cross-domain resource-policy surface remains open. |
+| F04 | Member administration, direct grants, roles, and resource policies | Partially completed | Member and role workflows plus scoped resource-limit interfaces exist; token, TPM, and exact-money controls with authoritative quota snapshots are available. The seventeen-path administrative member Overview source is integrated with independent members.read, exact Personal monthly facts and retained Personal Key count; source check/test/build, focused PostgreSQL/MySQL, controlled production/browser/restart and complete 85-case-per-driver matrix passed; the checked delivery is represented by the commit containing this record, with new remote CI pending. Administrative Member Keys adds retained safe Personal metadata and independent reviewed disable authority with persistent lifecycle/runtime proof; repaired-source checks/build, focused dual-driver migration/lifecycle, full 87-case matrix, auth lifecycle and rebuilt native/browser/restart acceptance passed. The checked 45-path package is delivered as 818500a with exact push/read-back; all three exact remote checks passed. Addressable Member Limits passed current-main source checks/build, controlled reviewed policy/native/browser/restart acceptance and final mandatory check; checked 17-path delivery is 2d5cafc with exact push/read-back, all three exact remote workflows green. Read-only administrative Member Teams and nullable membership joined time are an integrated source candidate with source check/test/build passed; real driver/native/browser/restart, final mandatory check and delivery remain pending. The complete cross-domain resource-policy surface remains open. |
 | F05 | Built-in and custom roles with composed permissions | Partially completed | Current-domain role and permission management is implemented; later enterprise and operations domains still require permission integration and negative acceptance. |
 | F06 | Team membership, ownership, models, quotas, and member rules | Completed | Team membership/ownership, model relationships, finite aggregate/member policies and monthly requests are accepted. Durable Team-assigned roles, exact Team-only action unions, reviewed administrator assignment and the existing Roles interface have controlled dual-database and browser evidence. |
 | F07 | Project lifecycle, managers, models, Keys, and requests | Completed | Exact current management, lifecycle/continuity, multi-manager creation, initial direct resources and combined requests, scoped Overview, Project Keys, resource limits and model/quota/rate approvals are implemented with controlled dual-database/browser/native/restart evidence. Both lists now show authorized total retained Key counts; administrative stored-policy summaries, literal name/ID search and authorized legacy tab replacement have full main acceptance. |
@@ -4205,3 +4205,192 @@ remote checks remain pending. Member Keys predecessor
 818500abea154b23b442e8a1ce5404627a2dc7c1 independently has CI 37214572870,
 Actionlint 37214572894 and GolangCI-Lint 37214572860 all successful. F04/F17 and
 formal 11 completed/16 partial/three unstarted remain unchanged.
+
+
+### Member Limits checked delivery and Member Teams preparation, 2026-10-05
+
+The accepted 17-path Limits package is committed/pushed as
+2d5cafc255561933e478dca637e1df95e0b935a5; exact remote main read-back matched
+and main was clean. Source 2259/117, checked R3 six-native/zero-denial/edit/reset/
+restart and final mandatory check remain accepted above. Actionlint 37217951924
+and GolangCI-Lint 37217951886 passed; CI 37217951974 remains pending at this
+verified checkpoint. Member Keys 818500a retains all-three remote success.
+Failed helper startup/count/preflight records remain separate from accepted R3.
+
+The joint Member Teams candidate has 17 backend and 13 frontend paths integrated
+on that checked delivery. All 163 protected source/rule/dependency hashes matched;
+current-main format/check/test/build is running, with no passed result yet.
+It adds a read-only six-column exact-target table under members.read AND
+teams.read_all, with bounded actor/target-bound paging, no global directory,
+mutation or per-row usage requests. Exact stored child policy, separately labelled
+parent context, historical currency maps, unknown/coverage/retained holds and live
+reservations remain distinct. Current runtime proof binds full subject, Team,
+membership, policy, calendar, currency and leased publication; it never borrows
+reader or historical authority. Nullable descriptive V53 joined time preserves
+legacy unknown values and all three writer generation boundaries without quota
+or history reset. Both frontend rule files are owned by the guarded joint carry.
+
+Frozen worker source evidence and guarded payload preparation are independent
+from accepted current-main behavior. Joint current-main format/check/test/build,
+real driver migration/lifecycle and native/browser/restart acceptance have not
+passed for this candidate. Neither a prepared fixture nor a carried source file
+promotes delivery or the formal 11 completed/16 partial/three unstarted totals.
+Detailed contracts are [Governance](GOVERNANCE.md#administrative-member-teams-candidate),
+[Resource limits](RESOURCE_LIMITS.md#administrative-member-team-policy-display)
+and [Database](DATABASE.md#nullable-team-membership-joined-time-v53).
+
+
+### Member Teams integrated source checks passed, 2026-10-05
+
+The integrated format/check/test/build pipeline exited successfully: 2302 Vitest
+cases in 120 files, Go race/unit, development lifecycle and embedded production
+assets passed. The exact checked production artifact is
+8008b44e426a80f22d722bf1834a93f052d9ee29825f6b857ced87b753e610a8.
+The initial frozen source packet remains unchanged as historical preparation.
+
+Before any real database run, root found the shared authentication fixture still
+expected ledger version52 and corrected only that expected value to53. This was
+source preflight, not an actual migration failure or a product/schema correction.
+The same 89 ordered harness cases remain; the current 163-file source manifest
+records that one fixture successor while all other initial protections remain
+unchanged. The production artifact is unchanged by this test-only correction.
+Follow-up handler/database source Go race is running, with no passed result yet.
+
+Real PostgreSQL/MySQL focused migration/lifecycle, complete 89-case-per-driver
+regression, authentication lifecycle, controlled native/browser/restart, final
+mandatory check and scoped delivery remain pending. No test fixture preparation,
+source-only pass or prior accepted Limits/Keys evidence substitutes for this
+candidate's actual behavior. F04/F17 and formal 11 completed/16 partial/three
+unstarted remain unchanged.
+
+### Member Teams focused database failures, 2026-10-05
+
+Two controlled focused runs exited unsuccessfully; all four new driver/case
+children failed. Both runs cleaned only their owned Compose resources. The
+second diagnostic runner retained a private local failure file after the first
+runner had discarded the assertion detail; no raw bodies or credentials were
+published. Source gates remain passed at 2302 cases/120 files, but these results
+are not database, native, browser or delivery acceptance.
+
+The migration fixture reused a PostgreSQL SELECT-star plan across its deliberate
+column removal; MySQL rejected its comparison of original in-memory timestamps
+with persisted historical precision. The lifecycle fixture attempted to insert
+a resource-limit identity already created by the service. Root applied a two-file
+fixture successor with explicit projections, persisted full-history baselines
+and exact policy seed updates; the repaired source-only handler race test passed.
+Product migrations and the checked
+production artifact remain unchanged; fresh real-driver acceptance is required.
+
+The delivered Member Limits commit 2d5cafc now has all three exact remote workflows
+successful: CI 37217951974, Actionlint 37217951924 and GolangCI-Lint 37217951886.
+These accepted checks remain separate from the pending Member Teams candidate.
+
+The repaired R3 focused run passed both migration children (PostgreSQL 1.67s,
+MySQL 3.19s), while both lifecycle children failed during fixture setup: a map
+update used `etag` instead of the GORM `ETag` field mapping. Root changed only
+the two affected fixture field references, passed handler source-only race tests
+(4.588s), and bound the R4 focused replay to the new 163-path manifest. No business,
+migration or production-binary bytes changed; lifecycle acceptance is still pending.
+R3 owned containers, networks and volumes were independently confirmed absent.
+
+R4 again passed both migration children, then reached the lifecycle integrity
+fixture: both databases correctly rejected its attempted orphan membership through
+the released foreign key. The R5 fixture now requires translated
+`gorm.ErrForeignKeyViolated`, zero persisted orphan rows and the unchanged valid
+target list. Existing pure hydration tests still require corrupt-history rejection;
+the real constraint is not disabled to manufacture that state. Source-only handler
+and service race tests passed (4.466s/8.627s). R5 focused acceptance is running;
+R4 owned containers, networks and volumes were independently confirmed absent.
+
+### Member Teams repaired focused acceptance, 2026-10-05
+
+R5 focused PostgreSQL/MySQL acceptance passed all four new children with no skips:
+migration 1.41s/3.16s and lifecycle 15.81s/19.81s; complete handler run 88.416s.
+The runner confirmed all 163 protected source paths, V53 and the unchanged ordered
+89-case harness. Owned containers, networks and volumes were independently absent.
+The checked production binary remains unchanged. The full mandatory dual-database
+matrix is now running; authentication lifecycle, native/browser/restart, final
+mandatory check and checked delivery are still pending. Earlier failed runs remain
+recorded and are not included as successful acceptance.
+
+### Member Teams complete-matrix regression, 2026-10-05
+
+The first complete 89-case-per-driver run failed overall (Handler 1518.294s).
+Only the PostgreSQL/MySQL `member_overview_accounts` children failed. Their
+preexisting alias fixture compared whole `TeamMembership` structs directly;
+nullable `JoinedAt` now makes separate database reads carry distinct pointer
+addresses. PostgreSQL's rejected alias and MySQL's normalized trailing-space
+identity therefore looked changed even though persisted values were unchanged.
+Root replaced the two comparisons with full value comparisons, preserving the
+original constraint and exact-authority assertions. No business, migration or
+checked-binary bytes changed. The new 164-path manifest protects this additional
+fixture explicitly. Source-only handler race passed; targeted regression and a
+fresh successful complete matrix are required before delivery. The failed run's
+owned containers, networks and volumes were independently absent.
+
+### Member Teams value-comparison regression passed, 2026-10-05
+
+R6 focused acceptance passed all six children without skips: PostgreSQL/MySQL
+Member Overview accounts 14.47s/19.12s, Teams migration 1.36s/3.62s and Teams
+lifecycle 15.66s/18.16s; complete handler 122.663s. All 164 protected paths, V53
+and original ordered 89 remained exact. Owned resources were independently absent.
+Mandatory `go tool task check` passed, including format, static/pinned lint,
+frontend types and module tidiness, with only two preexisting fast-refresh warnings.
+Authentication lifecycle is running. Controlled native/browser/restart and a
+fresh successful complete matrix remain required before delivery; the earlier
+full-matrix failure is preserved above.
+
+### Member Teams process acceptance checkpoint, 2026-10-05
+
+The standard PostgreSQL/MySQL authentication lifecycle passed, including real
+process restart, persisted sessions, revocation, encrypted credentials, native
+ordinary/streaming calls and immutable call history. Its owned Compose resources
+were independently absent afterward. The R1 controlled native Teams run failed
+at the live-reservation observation before its browser checkpoint. This is an
+unresolved acceptance failure, not a delivered feature or browser pass. The
+failed run was cleaned up and its exact owned containers, networks, volumes and
+application listener were independently absent. All 164 protected source paths
+and the checked production binary remain unchanged. Diagnose the observed
+reservation values, rerun native/browser/restart acceptance, then pass a fresh
+complete 89-case-per-driver matrix before committing this phase.
+
+### Member Teams native and browser acceptance passed, 2026-10-05
+
+Controlled process R3 passed eight immutable native completions (six known usage,
+two missing usage), two membership denials without upstream dispatch, three real
+join-date writers, nine typed continuity Team audits and same-artifact restart.
+The primary member retained 12 known Tokens and exact 12.000000000000000004 USD;
+aggregate 15 included its independent peer. A finite missing-usage call retained
+5 Tokens and the conservative 5.000000000000000003 USD bound; the separate
+unbounded case retained one unknown record. Original and rejoined membership
+attribution, policies, ciphertext and immutable history survived restart.
+
+R1/R2 failures remain above: R2 measured that only the helper's active-money
+expectation differed. R3 corrected that single constant to the measured bound
+supported by pricing component rounding; product source/binary stayed unchanged.
+Actual browser acceptance passed English-default and live Chinese switching,
+exact amounts, historical unknown joins, five target-only relationships, disabled
+and archived state, keyboard tooltip and Escape, refresh, horizontal table access
+and 390px mobile containment. Switching to the member-reader account kept the
+Teams deep URL while hiding its private table and showing independent authority
+guidance. Browser inspection produced no additional native dispatch or changes
+to captured audits, memberships, ciphertext or history. Five rows are not proof
+of the default 20-row Load More workflow; that boundary has source/driver tests.
+The owned tab closed, viewport reset and Compose resources/listener were
+independently absent. All 164 protected paths remained exact. A fresh standard
+complete 89-case-per-driver PostgreSQL/MySQL matrix is running; commit/push remain
+pending its success.
+
+### Member Teams complete local acceptance passed, 2026-10-05
+
+The fresh standard `go tool task test-integration` passed (exit 0) after the
+value-comparison fixture correction: the unchanged ordered 89-case harness ran
+against PostgreSQL and MySQL, Handler 1526.419s. Configuration 1.744s, database
+1.630s, errors 1.467s and service 8.107s also passed. Its exact owned Compose
+containers, networks and volumes were independently absent. All 164 protected
+source hashes, V53 and the checked production binary remain exact. Together
+with source format/check/test/build (2302 frontend cases/120 files), R6 focused
+regression, mandatory check, both-driver auth/process lifecycle and R3
+native/browser/restart acceptance, this phase is ready for a scoped main commit
+and push. Previous failed fixture/helper runs remain explicit historical
+evidence. Remote delivery and CI are not yet claimed.

@@ -17,6 +17,22 @@ The following routes use session authorization. PUT additionally requires CSRF, 
 | `/api/v1/keys/:key_id/limits` | Current personal owner |
 | `/api/v1/projects/:project_id/keys/:key_id/limits` | Current Project manager or existing platform Project management authority |
 
+Example PUT body:
+
+```json
+{"rpm":60,"concurrency":4,"ip_mode":"allowlist","ip_ranges":["192.0.2.0/24"],"reason":"Application admission policy"}
+```
+
+GET returns `platform_currency`, `stored`, numeric/decimal `effective`, the conjunction in `ip_policies`, `account_id`, `etag`, optional parent ETag, live `rpm_used`/`active`, `quota_usage`, and `enforced`. Quota windows include a coverage flag, settled values, conservative holds, and unknown counts; counters before coverage must not be presented as a complete balance. Null numeric fields mean unrestricted aggregate or inherited child. Limits are checked on inference; IP restrictions also protect `/v1/models`, whose metadata reads do not consume RPM or inference concurrency. HTTP 429 distinguishes `rate_limit_exceeded` and `concurrency_limit_exceeded`; IP rejection is 403 `ip_not_allowed`. Rejected calls reach no upstream and consume no limiter capacity.
+
+The stable Key account is derived from its oldest retained immutable rotation ancestor. Both overlapping credentials share policy and counters. Cycles, missing ancestors or cross-owner ancestry fail closed. No new Key ownership column or backfill is needed in this slice. PUT on either active credential edits that shared account. Parent reductions apply immediately to every descendant; setting a child field to null does not erase its counters.
+
+RPM means successful durable gateway admission, including a later dial failure, timeout, cancellation or upstream rejection. The journal atomically stores admission, aggregate/Key RPM entries, concurrency leases and pending call fallback. Final fact completion releases concurrency exactly once. SQL event acknowledgment preserves RPM history; restart restores the rolling minute and releases orphan local leases. IP rejection, exhausted limits and journal write/capacity failure happen before admission. The journal retains at most 200,000 minute/account entries independently of its 4,096 pending event slots; reaching either capacity returns 503. Each ordinary Key call uses two account entries. Capacity and latency are bounded implementation choices, not measured production SLOs.
+
+An established database is bound to one journal identity. Missing/foreign files refuse startup rather than reset quota. A deliberate restore must restore the matching SQL database and journal together; no automatic rebinding/reset endpoint exists. Back up both and operate one gateway process per installation. Filesystem locking prevents concurrent processes opening the same file, but separate copied files are not a distributed lock service.
+
+Pure tests cover rolling boundaries, atomic aggregate/child contention, rotation continuity, policy publication ordering, IP/proxy trust, idempotent completion and journal recovery. `testResourceLimitLifecycle` extends the isolated PostgreSQL/MySQL harness with actual policy HTTP calls and controlled gateway execution; its final execution result belongs in stage acceptance evidence.
+
 ## Administrative Member Limits tab
 
 The member composition moves the existing policy editor from Settings into
@@ -55,24 +71,42 @@ acceptance passed. Actual reviewed zero blocked inference without dispatch;
 explicit default restoration retained usage and confirmed current runtime policy.
 An observer HTTP503 masking a committed response exercised original-intent retry
 without another write; it does not prove raw network-loss behavior. Final mandatory
-check passed; scoped commit/push and new remote checks remain pending. Detailed checkpoints remain in
+check passed. The reviewed Limits composition is delivered as 2d5cafc with
+exact push/read-back; all three exact remote workflows passed. Detailed checkpoints remain in
 [Implementation](IMPLEMENTATION.md).
 
-Example PUT body:
+## Administrative Member Team policy display
 
-```json
-{"rpm":60,"concurrency":4,"ip_mode":"allowlist","ip_ranges":["192.0.2.0/24"],"reason":"Application admission policy"}
-```
+The Member Teams table uses the resource-authorized member Teams endpoint and
+requires independently current `members.read` AND `teams.read_all`. It is
+read-only: Team-scoped ownership and quota-write permissions substitute for
+neither read grant. There is no relationship or quota editor in this table.
 
-GET returns `platform_currency`, `stored`, numeric/decimal `effective`, the conjunction in `ip_policies`, `account_id`, `etag`, optional parent ETag, live `rpm_used`/`active`, `quota_usage`, and `enforced`. Quota windows include a coverage flag, settled values, conservative holds, and unknown counts; counters before coverage must not be presented as a complete balance. Null numeric fields mean unrestricted aggregate or inherited child. Limits are checked on inference; IP restrictions also protect `/v1/models`, whose metadata reads do not consume RPM or inference concurrency. HTTP 429 distinguishes `rate_limit_exceeded` and `concurrency_limit_exceeded`; IP rejection is 403 `ip_not_allowed`. Rejected calls reach no upstream and consume no limiter capacity.
+Each row shows the inspected target's **stored** monthly Tokens/money and
+RPM/TPM/concurrency. Policy record absence, null/Not set, explicit zero and
+unavailable usage remain distinct. `parent_stored` is separate Team restriction
+context; it is not an aggregate usage balance, allocated member pool, inherited
+remaining allowance or a value to add to the member's cap. Null child limits do
+not mean globally unlimited. Current resource-authorized platform currency is
+context only and never converts historical charges.
 
-The stable Key account is derived from its oldest retained immutable rotation ancestor. Both overlapping credentials share policy and counters. Cycles, missing ancestors or cross-owner ancestry fail closed. No new Key ownership column or backfill is needed in this slice. PUT on either active credential edits that shared account. Parent reductions apply immediately to every descendant; setting a child field to null does not erase its counters.
+The member's monthly known subtotal, coverage, unknown counts and retained holds
+come from its stable Team/User journal account. Live reservations are a separate
+nullable projection from the same bounded coherent account batch. Exact integer
+and money strings are preserved; no percentages, progress or inferred remainder
+is supplied. Each page and row retains its own observation/AsOf/window context,
+so loaded pages are not presented as one complete atomic report.
 
-RPM means successful durable gateway admission, including a later dial failure, timeout, cancellation or upstream rejection. The journal atomically stores admission, aggregate/Key RPM entries, concurrency leases and pending call fallback. Final fact completion releases concurrency exactly once. SQL event acknowledgment preserves RPM history; restart restores the rolling minute and releases orphan local leases. IP rejection, exhausted limits and journal write/capacity failure happen before admission. The journal retains at most 200,000 minute/account entries independently of its 4,096 pending event slots; reaching either capacity returns 503. Each ordinary Key call uses two account entries. Capacity and latency are bounded implementation choices, not measured production SLOs.
-
-An established database is bound to one journal identity. Missing/foreign files refuse startup rather than reset quota. A deliberate restore must restore the matching SQL database and journal together; no automatic rebinding/reset endpoint exists. Back up both and operate one gateway process per installation. Filesystem locking prevents concurrent processes opening the same file, but separate copied files are not a distributed lock service.
-
-Pure tests cover rolling boundaries, atomic aggregate/child contention, rotation continuity, policy publication ordering, IP/proxy trust, idempotent completion and journal recovery. `testResourceLimitLifecycle` extends the isolated PostgreSQL/MySQL harness with actual policy HTTP calls and controlled gateway execution; its final execution result belongs in stage acceptance evidence.
+Saved policy and current runtime proof are separate. Application requires exact
+active subject/Team/membership, creation identities, full child/parent policy
+revisions and normalized values, calendar/currency, current published lease and
+no tombstone. Disabled/offboarded targets or inactive relationships/Teams retain
+readable history with runtime application false. Missing/inactive/outage journal
+facts remain unknown. Joined time cannot reset coverage, usage or accounting.
+Current-main source checks/build and repaired focused PostgreSQL/MySQL tests
+passed, including the six-child Overview regression; mandatory check passed.
+Authentication lifecycle, native/browser/restart, a fresh complete matrix and
+checked delivery remain pending. See [Governance](GOVERNANCE.md#administrative-member-teams-candidate).
 
 ## Decisions
 
@@ -219,3 +253,58 @@ IP tests cover untrusted forged headers, trusted multi-hop chains, missing/dupli
 The UI displays stored and effective rules separately, per-dimension inheritance, scope/currency/timezone, used/reserved/unknown holds, and publication status. It uses the existing resource configuration and Key dialogs rather than adding a fake request type or reporting a hard limit as active before gateway enforcement. English/Chinese behavior tests verify zero/null inputs, decimal strings, permission boundaries, narrowing, reset confirmation, stale edits, retry, and success only after publication acknowledgment.
 
 Full F09/F17/F18 acceptance remains open until the relevant slices, measured single-process capacity/recovery tests, and applicable provider contracts have passed. Multi-node partitions, distributed counters and HA recovery are separate work.
+
+### Member Teams process acceptance checkpoint, 2026-10-05
+
+The standard PostgreSQL/MySQL authentication lifecycle passed, including real
+process restart, persisted sessions, revocation, encrypted credentials, native
+ordinary/streaming calls and immutable call history. Its owned Compose resources
+were independently absent afterward. The R1 controlled native Teams run failed
+at the live-reservation observation before its browser checkpoint. This is an
+unresolved acceptance failure, not a delivered feature or browser pass. The
+failed run was cleaned up and its exact owned containers, networks, volumes and
+application listener were independently absent. All 164 protected source paths
+and the checked production binary remain unchanged. Diagnose the observed
+reservation values, rerun native/browser/restart acceptance, then pass a fresh
+complete 89-case-per-driver matrix before committing this phase.
+
+### Member Teams native and browser acceptance passed, 2026-10-05
+
+Controlled process R3 passed eight immutable native completions (six known usage,
+two missing usage), two membership denials without upstream dispatch, three real
+join-date writers, nine typed continuity Team audits and same-artifact restart.
+The primary member retained 12 known Tokens and exact 12.000000000000000004 USD;
+aggregate 15 included its independent peer. A finite missing-usage call retained
+5 Tokens and the conservative 5.000000000000000003 USD bound; the separate
+unbounded case retained one unknown record. Original and rejoined membership
+attribution, policies, ciphertext and immutable history survived restart.
+
+R1/R2 failures remain above: R2 measured that only the helper's active-money
+expectation differed. R3 corrected that single constant to the measured bound
+supported by pricing component rounding; product source/binary stayed unchanged.
+Actual browser acceptance passed English-default and live Chinese switching,
+exact amounts, historical unknown joins, five target-only relationships, disabled
+and archived state, keyboard tooltip and Escape, refresh, horizontal table access
+and 390px mobile containment. Switching to the member-reader account kept the
+Teams deep URL while hiding its private table and showing independent authority
+guidance. Browser inspection produced no additional native dispatch or changes
+to captured audits, memberships, ciphertext or history. Five rows are not proof
+of the default 20-row Load More workflow; that boundary has source/driver tests.
+The owned tab closed, viewport reset and Compose resources/listener were
+independently absent. All 164 protected paths remained exact. A fresh standard
+complete 89-case-per-driver PostgreSQL/MySQL matrix is running; commit/push remain
+pending its success.
+
+### Member Teams complete local acceptance passed, 2026-10-05
+
+The fresh standard `go tool task test-integration` passed (exit 0) after the
+value-comparison fixture correction: the unchanged ordered 89-case harness ran
+against PostgreSQL and MySQL, Handler 1526.419s. Configuration 1.744s, database
+1.630s, errors 1.467s and service 8.107s also passed. Its exact owned Compose
+containers, networks and volumes were independently absent. All 164 protected
+source hashes, V53 and the checked production binary remain exact. Together
+with source format/check/test/build (2302 frontend cases/120 files), R6 focused
+regression, mandatory check, both-driver auth/process lifecycle and R3
+native/browser/restart acceptance, this phase is ready for a scoped main commit
+and push. Previous failed fixture/helper runs remain explicit historical
+evidence. Remote delivery and CI are not yet claimed.

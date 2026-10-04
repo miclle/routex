@@ -456,7 +456,7 @@ expose credential material or turn a disabled record into an active authenticato
 Disable/audit persistence and current published runtime proof remain separate;
 there is no new operation receipt table.
 
-The migration and Member Keys routes are integrated candidates. Focused real
+The migration and Member Keys routes are delivered in checked 818500a. Focused real
 PostgreSQL/MySQL migration replay passed with historical preservation assertions
 retained, including a full-row check before reconstructing partial backfill. The
 fixture uses the frozen column-only type so reconstruction does not update
@@ -464,5 +464,91 @@ historical timestamps; production migration behavior is unchanged. R2 source
 checks/build passed. The complete dual-driver regression and final mandatory check also passed.
 Authentication lifecycle passed on both drivers. A frontend-only focus repair passed rebuilt source checks without changing
 backend behavior; rebuilt-artifact native/browser/restart acceptance passed.
-Commit/push and new remote CI remain pending. Detailed
+Exact push/read-back and all three remote checks passed. Detailed
 checkpoints belong in [Implementation](IMPLEMENTATION.md).
+
+
+## Nullable Team membership joined time (V53)
+
+The integrated candidate private frozen GORM V53 follows V52 and adds only nullable
+`team_memberships.joined_at` through `Migrator.HasColumn`/`AddColumn`. It creates
+no table, timestamp default, history backfill, permission or live foreign key.
+Existing rows remain SQL NULL through upgrade/repeat/concurrent/partial-DDL
+reconciliation. No Team creation, identifier, audit, policy or startup timestamp
+substitutes for unknown historical join time. Released migrations stay unchanged.
+The entity field is excluded from existing JSON serialization; only the new scoped
+Member Teams DTO projects its recorded UTC value, leaving runtime digests and
+existing embedded policy ETags unaffected by descriptive metadata.
+
+All three production membership creation boundaries preserve generation identity:
+resource creation timestamps only new owner relationships; complete member
+replacement preserves the retained exact relationship ID and nullable joined
+time through role/status changes; offboarding continuity does the same for
+existing replacement-owner relationships and timestamps only newly created ones.
+Removal then re-add creates a new membership ID/time while stable Team/User
+policy and journal history survive. Lifecycle reactivation and promotion do not
+invent a historical join or reset quota coverage. Mutation inputs never supply
+joined time.
+
+Current-main source checks/build and repaired focused PostgreSQL/MySQL migration
+and lifecycle tests passed, including empty/upgrade/repeat/concurrent/partial-DDL
+preservation and writer continuity. Six-child Overview/Teams regression and
+mandatory check passed after correcting value comparisons in an existing fixture.
+A fresh complete 89-case-per-driver matrix, authentication lifecycle and controlled
+native/browser/restart remain pending; this candidate is not yet a checked delivery.
+See [Governance](GOVERNANCE.md#administrative-member-teams-candidate).
+
+### Member Teams process acceptance checkpoint, 2026-10-05
+
+The standard PostgreSQL/MySQL authentication lifecycle passed, including real
+process restart, persisted sessions, revocation, encrypted credentials, native
+ordinary/streaming calls and immutable call history. Its owned Compose resources
+were independently absent afterward. The R1 controlled native Teams run failed
+at the live-reservation observation before its browser checkpoint. This is an
+unresolved acceptance failure, not a delivered feature or browser pass. The
+failed run was cleaned up and its exact owned containers, networks, volumes and
+application listener were independently absent. All 164 protected source paths
+and the checked production binary remain unchanged. Diagnose the observed
+reservation values, rerun native/browser/restart acceptance, then pass a fresh
+complete 89-case-per-driver matrix before committing this phase.
+
+### Member Teams native and browser acceptance passed, 2026-10-05
+
+Controlled process R3 passed eight immutable native completions (six known usage,
+two missing usage), two membership denials without upstream dispatch, three real
+join-date writers, nine typed continuity Team audits and same-artifact restart.
+The primary member retained 12 known Tokens and exact 12.000000000000000004 USD;
+aggregate 15 included its independent peer. A finite missing-usage call retained
+5 Tokens and the conservative 5.000000000000000003 USD bound; the separate
+unbounded case retained one unknown record. Original and rejoined membership
+attribution, policies, ciphertext and immutable history survived restart.
+
+R1/R2 failures remain above: R2 measured that only the helper's active-money
+expectation differed. R3 corrected that single constant to the measured bound
+supported by pricing component rounding; product source/binary stayed unchanged.
+Actual browser acceptance passed English-default and live Chinese switching,
+exact amounts, historical unknown joins, five target-only relationships, disabled
+and archived state, keyboard tooltip and Escape, refresh, horizontal table access
+and 390px mobile containment. Switching to the member-reader account kept the
+Teams deep URL while hiding its private table and showing independent authority
+guidance. Browser inspection produced no additional native dispatch or changes
+to captured audits, memberships, ciphertext or history. Five rows are not proof
+of the default 20-row Load More workflow; that boundary has source/driver tests.
+The owned tab closed, viewport reset and Compose resources/listener were
+independently absent. All 164 protected paths remained exact. A fresh standard
+complete 89-case-per-driver PostgreSQL/MySQL matrix is running; commit/push remain
+pending its success.
+
+### Member Teams complete local acceptance passed, 2026-10-05
+
+The fresh standard `go tool task test-integration` passed (exit 0) after the
+value-comparison fixture correction: the unchanged ordered 89-case harness ran
+against PostgreSQL and MySQL, Handler 1526.419s. Configuration 1.744s, database
+1.630s, errors 1.467s and service 8.107s also passed. Its exact owned Compose
+containers, networks and volumes were independently absent. All 164 protected
+source hashes, V53 and the checked production binary remain exact. Together
+with source format/check/test/build (2302 frontend cases/120 files), R6 focused
+regression, mandatory check, both-driver auth/process lifecycle and R3
+native/browser/restart acceptance, this phase is ready for a scoped main commit
+and push. Previous failed fixture/helper runs remain explicit historical
+evidence. Remote delivery and CI are not yet claimed.

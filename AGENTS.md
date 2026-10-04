@@ -710,3 +710,5 @@ current CSRF, and never let a rejected retry clear uncertainty. Actor, target,
 logout and tab changes destroy local private intent; explicit reset dismissal
 retains its existing uncertainty warning. Preserve legacy Project, Key, Team and
 default-limit callers and confirm runtime application before reporting enforcement.
+
+Administrative Member Teams uses the addressable Teams tab with independent members.read and teams.read_all authority. Its six compact columns show retained relationships, exact member usage and stored caps, separate Team restrictions, and recorded nullable join dates. Reuse the parent Session generation and exact target queries; hide rows, links and private tooltip portals during renewed reads or errors and guard events against current cache authority. Never query directories or per-row policies, combine parent/member amounts, infer remaining allowance, or convert historical currencies. Local Tooltip wraps Base UI with keyboard dismissal, translated accessible labels and an optional synchronous authority guard; no private popup may outlive its authorized table.

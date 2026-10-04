@@ -171,6 +171,108 @@ Current-main source checks/build and controlled policy/native/browser/restart
 acceptance passed. The checked observer masked one committed backend response
 with HTTP503; explicit original retry confirmed current enforcement without a
 second policy or audit write. This is not raw network-loss proof. Final mandatory
-check passed; scoped commit/push and new remote checks remain pending. Detailed evidence is in
+check passed. The 17-path Limits package is delivered as
+2d5cafc255561933e478dca637e1df95e0b935a5 with exact push/remote read-back.
+Actionlint and GolangCI-Lint passed; its CI remains pending at this checkpoint. Detailed evidence is in
 [Implementation](IMPLEMENTATION.md).
 See [Resource limits](RESOURCE_LIMITS.md#administrative-member-limits-tab).
+
+
+## Administrative Member Teams candidate
+
+The addressable `?tab=teams` is a read-only six-column table immediately after
+Overview: Team link, Team status, target-member monthly Tokens/quota, budget,
+configured rates and recorded joined time. It neither edits relationships nor
+opens a Team directory. Retained disabled memberships and disabled/archived Teams
+remain inspectable; removed relationships are absent.
+
+| Operation | Required current authority |
+| --- | --- |
+| Open the tab and read each page | `members.read` AND `teams.read_all` |
+| Follow an exact Team resource link | Both enclosing read grants remain fresh; the destination reauthorizes independently |
+| Write a Team, membership or policy | No action is supplied by this tab; existing write permissions do not replace either read grant |
+
+The server reads only the exact retained target's relationships. Personal usage,
+caller membership, owners, administrative role labels and write authority never
+expand this list. The scoped endpoint is
+`GET /api/v1/admin/members/:user_id/teams`, with default20/maximum50 and an opaque
+actor/target-bound cursor. Load more is explicit; no total or global scan is
+invented. Every page is a fresh read and carries its own observation context.
+
+Fresh Session, either permission, exact target and list generations gate rows,
+links, tooltips and pagination synchronously. Renewal/error hides private facts;
+obsolete responses cannot restore them. Actor/target/tab/logout destroys these
+read-only pages. No additional enabled Session observer, browser storage,
+mutation, draft or per-row limit query is added. A denied direct Teams URL remains
+at that address with a localized denial instead of pretending Overview succeeded.
+
+Exact stored member monthly/rate values and parent context remain distinct.
+Historical charges stay in their recorded currencies; unknown coverage, retained
+monthly holds and separate live reservations never become zero or remaining quota.
+Recorded joined time is descriptive and may be Unknown; it grants no current
+membership authority and resets no stable Team/User accounting. A local Base UI
+Tooltip wrapper supports accessible scope/context help within the six columns.
+
+The reviewed 17-path backend and 13-path frontend are integrated as one source
+candidate. Current-main source checks/build and repaired focused PostgreSQL/MySQL
+migration/lifecycle passed, including six-child Overview regression after a
+fixture-only full-matrix failure. Mandatory check passed. Authentication lifecycle,
+controlled native/browser/restart, a fresh successful full matrix and delivery
+remain pending. Contracts:
+[Resource limits](RESOURCE_LIMITS.md#administrative-member-team-policy-display)
+and [Database](DATABASE.md#nullable-team-membership-joined-time-v53).
+
+### Member Teams process acceptance checkpoint, 2026-10-05
+
+The standard PostgreSQL/MySQL authentication lifecycle passed, including real
+process restart, persisted sessions, revocation, encrypted credentials, native
+ordinary/streaming calls and immutable call history. Its owned Compose resources
+were independently absent afterward. The R1 controlled native Teams run failed
+at the live-reservation observation before its browser checkpoint. This is an
+unresolved acceptance failure, not a delivered feature or browser pass. The
+failed run was cleaned up and its exact owned containers, networks, volumes and
+application listener were independently absent. All 164 protected source paths
+and the checked production binary remain unchanged. Diagnose the observed
+reservation values, rerun native/browser/restart acceptance, then pass a fresh
+complete 89-case-per-driver matrix before committing this phase.
+
+### Member Teams native and browser acceptance passed, 2026-10-05
+
+Controlled process R3 passed eight immutable native completions (six known usage,
+two missing usage), two membership denials without upstream dispatch, three real
+join-date writers, nine typed continuity Team audits and same-artifact restart.
+The primary member retained 12 known Tokens and exact 12.000000000000000004 USD;
+aggregate 15 included its independent peer. A finite missing-usage call retained
+5 Tokens and the conservative 5.000000000000000003 USD bound; the separate
+unbounded case retained one unknown record. Original and rejoined membership
+attribution, policies, ciphertext and immutable history survived restart.
+
+R1/R2 failures remain above: R2 measured that only the helper's active-money
+expectation differed. R3 corrected that single constant to the measured bound
+supported by pricing component rounding; product source/binary stayed unchanged.
+Actual browser acceptance passed English-default and live Chinese switching,
+exact amounts, historical unknown joins, five target-only relationships, disabled
+and archived state, keyboard tooltip and Escape, refresh, horizontal table access
+and 390px mobile containment. Switching to the member-reader account kept the
+Teams deep URL while hiding its private table and showing independent authority
+guidance. Browser inspection produced no additional native dispatch or changes
+to captured audits, memberships, ciphertext or history. Five rows are not proof
+of the default 20-row Load More workflow; that boundary has source/driver tests.
+The owned tab closed, viewport reset and Compose resources/listener were
+independently absent. All 164 protected paths remained exact. A fresh standard
+complete 89-case-per-driver PostgreSQL/MySQL matrix is running; commit/push remain
+pending its success.
+
+### Member Teams complete local acceptance passed, 2026-10-05
+
+The fresh standard `go tool task test-integration` passed (exit 0) after the
+value-comparison fixture correction: the unchanged ordered 89-case harness ran
+against PostgreSQL and MySQL, Handler 1526.419s. Configuration 1.744s, database
+1.630s, errors 1.467s and service 8.107s also passed. Its exact owned Compose
+containers, networks and volumes were independently absent. All 164 protected
+source hashes, V53 and the checked production binary remain exact. Together
+with source format/check/test/build (2302 frontend cases/120 files), R6 focused
+regression, mandatory check, both-driver auth/process lifecycle and R3
+native/browser/restart acceptance, this phase is ready for a scoped main commit
+and push. Previous failed fixture/helper runs remain explicit historical
+evidence. Remote delivery and CI are not yet claimed.

@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"time"
 
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
@@ -71,13 +72,15 @@ func (s *Service) SetTeamMembers(ctx context.Context, actorID, teamID string, me
 		if userCount != int64(len(members)) {
 			return apperrors.ErrBadRequest
 		}
-		existing := map[string]string{}
+		existing, err := retainedMemberTeamGenerations(tx, current.ID)
+		if err != nil {
+			return err
+		}
 		desiredActive := map[string]bool{}
 		for _, member := range members {
 			desiredActive[member.UserID] = member.Status == entity.ResourceActive
 		}
 		for _, member := range current.Members {
-			existing[member.UserID] = member.ID
 			if !desiredActive[member.UserID] {
 				removedUsers = append(removedUsers, member.UserID)
 				if err := CancelTeamModelRequestsForMember(tx, actorID, current.ID, member.UserID, "membership_unavailable"); err != nil {
@@ -88,18 +91,24 @@ func (s *Service) SetTeamMembers(ctx context.Context, actorID, teamID string, me
 				}
 			}
 		}
-		if err := tx.Where("team_id = ?", teamID).Delete(&entity.TeamMembership{}).Error; err != nil {
+		if err := tx.Where(database.ExactText(tx, clause.Column{Name: "team_id"}, teamID)).Delete(&entity.TeamMembership{}).Error; err != nil {
 			return err
 		}
 		for _, member := range members {
-			relationID := existing[member.UserID]
+			previous, retained := existing[member.UserID]
+			relationID := previous.ID
+			joinedAt := previous.JoinedAt
 			if relationID == "" {
 				relationID, err = id.NewPrefixed("tmm")
 				if err != nil {
 					return err
 				}
+				joinedAt = newMemberTeamJoinedAt(time.Now())
 			}
-			if err := tx.Create(&entity.TeamMembership{ID: relationID, TeamID: teamID, UserID: member.UserID, Role: member.Role, Status: member.Status}).Error; err != nil {
+			if retained && (previous.TeamID != teamID || previous.UserID != member.UserID) {
+				return apperrors.ErrInternal
+			}
+			if err := tx.Create(&entity.TeamMembership{ID: relationID, TeamID: teamID, UserID: member.UserID, Role: member.Role, Status: member.Status, JoinedAt: joinedAt}).Error; err != nil {
 				return err
 			}
 		}
