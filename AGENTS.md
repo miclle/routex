@@ -263,6 +263,19 @@ membership controls inbox/read access; rejoin retains original read state, while
 new members receive no historical fanout. Session network generations hide stale
 rows/count/read actions; preserve manual same-actor CSRF cache replacement.
 
+Private Team member notices use the same menu and existing Session inbox routes.
+Keep team_member distinct from Team aggregate exhaustion: validate the stable
+pair digest, frozen Team/User proof fields and exact current recipient before
+rendering a recorded Team name or team_id fallback. Only the exhausted member
+receives their own stored child-policy notice; owners/admins gain no peer access.
+Current enabled active membership governs list/count/read/mark-all. Removal hides
+original rows; same-user rejoin may restore their original read state without new
+recipients or native replay. Derive exhaustion only from that child's covered,
+known settled monthly journal and exact applied policy/calendar/currency. Never
+sum parent/child quotas or treat live holds as settlement. Preserve exact decimal
+strings, paired notifications copy and current Session-generation guards. Invalid
+or foreign member proofs fail closed; no member directory or new endpoint is used.
+
 Team resource limits use the addressable Limits tab and existing member action
 menu/dialog. Aggregate policies support rolling/monthly Tokens, monthly money,
 RPM, TPM and concurrency; members support monthly Tokens/money and request rates.

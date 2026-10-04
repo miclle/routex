@@ -384,10 +384,52 @@ The receipt and typed audit are atomic with selected Model/name/binding creation
 No existing grant or Key scope changes implicitly. Current configuration and
 runtime publication proof remain separate from historical operation commit.
 Actual empty/current upgrade, repeat/concurrent startup, partial repair and
-constraint acceptance on PostgreSQL/MySQL are pending the coordinating runner.
+constraint acceptance on PostgreSQL/MySQL passed in the delivered V50 phase;
+its complete acceptance evidence is recorded in [IMPLEMENTATION](IMPLEMENTATION.md).
 
 V50 migration fault injection follows the existing test-only PostgreSQL index
 removal exception: pinned GORM DropIndex renders an invalid CURRENT_SCHEMA()
 qualifier. Only a fixed index name is removed, with presence/absence assertions;
 production creation and interrupted-DDL repair use GORM Migrator APIs on both
 supported databases. No business-layer dialect handling is introduced.
+
+
+## Private Team member quota observations (version 51)
+
+Private frozen GORM V51 follows delivered V48/V49/V50. It widens only
+`quota_notification_observations.scope_id` to 64 characters and adds nullable
+`team_id` and `member_user_id`, each bounded to 30 characters. No new table,
+index or live foreign key is introduced. Historical User/Project/Team
+observations retain their original scope IDs and NULL member-proof fields;
+observations, uniqueness, recipients and read timestamps are not rewritten.
+
+`ck_quota_notification_scope_v51` validates exact ASCII user/project/team/
+team_member kinds across database collations. The paired
+`ck_quota_notification_member_v51` requires a 52-character member scope digest
+and both nonempty historical proof IDs; aggregate kinds retain 1–30-character
+IDs and NULL proofs. The migration adds referenced columns before their guard,
+measures scope-column width before AlterColumn, and installs both new guards
+before removing old scope checks. Bounded Migrator operations can reconcile
+partially applied MySQL DDL; released V35/V47 definitions remain immutable.
+
+The integrated harness restores V47/V48/V51 after historical reconstruction
+before modern readers run, preserving the released fixtures' checks. Modern
+aggregate lifecycle assertions validate complete raw responses, unread/read
+state and canonical private child identities before selecting aggregate rows;
+they still reject Personal/Project pollution and preserve all-scope alias/cursor/
+pagination behavior. No obsolete schema is substituted to suppress member notices.
+
+The corrected revision-5 PostgreSQL/MySQL focus passed under race detection
+(Handler 98.815s), including both V51 migration and private lifecycle cases.
+Both drivers observed exact 30-byte overflow canonicalization; the lifecycle
+fixtures retained their fixed five-native assertions, immutable prior token
+history and exact fresh money policy revision. All 81 protected source hashes
+stayed unchanged and owned focus resources were verified absent. Independent
+production/browser/restart proof also passed. Earlier fixture failures remain
+in [Implementation evidence](IMPLEMENTATION.md). The complete unchanged-source
+PostgreSQL/MySQL race matrix passed Handler 1456.730s and Service 8.504s. The
+runner and coordinator independently verified all 81 protected source hashes,
+byte-identical package/lock and absence of every owned matrix container, network
+and volume. Local acceptance and final mandatory `go tool task check` passed;
+scoped commit/push and remote read-back remain pending. See
+[Notifications](NOTIFICATIONS.md).

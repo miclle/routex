@@ -29,6 +29,8 @@ type NotificationFilter struct {
 }
 
 type QuotaNotificationSnapshot struct {
+	TeamID         *string   `json:"team_id,omitempty"`
+	MemberUserID   *string   `json:"member_user_id,omitempty"`
 	ScopeKind      string    `json:"scope_kind"`
 	ScopeID        string    `json:"scope_id"`
 	Dimension      string    `json:"dimension"`

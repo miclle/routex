@@ -26,9 +26,17 @@ var errQuotaNotificationIdentity = errors.New("quota notification identity misma
 // monthlyQuotaObservations observes current settled levels only. Neither a
 // reservation rejection nor an outstanding hold establishes settled exhaustion.
 func monthlyQuotaObservations(row entity.ResourceLimit, created time.Time, usage *eventqueue.AccountQuotaUsage, platformCurrency string) []entity.QuotaNotificationObservation {
-	if row.ScopeKind != "user" && row.ScopeKind != "project" && row.ScopeKind != "team" || row.ScopeID == "" || len(row.ScopeID) > 30 || !safeCallID.MatchString(row.ScopeID) || row.ETag == "" || len(row.ETag) > 64 || !safeCallID.MatchString(row.ETag) || usage == nil || usage.AsOf.IsZero() || usage.CoverageStart.IsZero() || created.IsZero() || created.After(usage.AsOf) || usage.CoverageStart.After(usage.AsOf) || usage.TimeZone == "" || usage.TimeZone == "Local" || len(usage.TimeZone) > 100 {
+	if row.ScopeKind != "user" && row.ScopeKind != "project" && row.ScopeKind != "team" || !validMonthlyQuotaFacts(row, created, usage, 30) {
 		return nil
 	}
+	return monthlyQuotaSettledObservations(row, created, usage, platformCurrency)
+}
+
+func validMonthlyQuotaFacts(row entity.ResourceLimit, created time.Time, usage *eventqueue.AccountQuotaUsage, maxScope int) bool {
+	return row.ScopeID != "" && len(row.ScopeID) <= maxScope && safeCallID.MatchString(row.ScopeID) && row.ETag != "" && len(row.ETag) <= 64 && safeCallID.MatchString(row.ETag) && usage != nil && !usage.AsOf.IsZero() && !usage.CoverageStart.IsZero() && !created.IsZero() && !created.After(usage.AsOf) && !usage.CoverageStart.After(usage.AsOf) && usage.TimeZone != "" && usage.TimeZone != "Local" && len(usage.TimeZone) <= 100
+}
+
+func monthlyQuotaSettledObservations(row entity.ResourceLimit, created time.Time, usage *eventqueue.AccountQuotaUsage, platformCurrency string) []entity.QuotaNotificationObservation {
 	policy, err := policyFromRow(row)
 	if err != nil {
 		return nil
@@ -110,7 +118,7 @@ func (s *Service) quotaNotificationApplied(row entity.ResourceLimit, created *ti
 }
 
 func sameQuotaObservationIdentity(a, b entity.QuotaNotificationObservation) bool {
-	return a.ScopeKind == b.ScopeKind && a.ScopeID == b.ScopeID && a.Dimension == b.Dimension && a.PolicyRevision == b.PolicyRevision && a.Currency == b.Currency && a.MonthStart.Equal(b.MonthStart)
+	return a.ScopeKind == b.ScopeKind && a.ScopeID == b.ScopeID && a.Dimension == b.Dimension && a.PolicyRevision == b.PolicyRevision && a.Currency == b.Currency && a.MonthStart.Equal(b.MonthStart) && sameQuotaMemberProof(a, b)
 }
 
 func persistQuotaNotification(tx *gorm.DB, observation entity.QuotaNotificationObservation, recipients []string) error {

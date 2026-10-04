@@ -22,6 +22,8 @@ export default {
   retry: 'Retry',
   unknownItem: 'A notification requires attention.',
   quota: {
+    teamMemberScope: 'Your member quota in Team {{id}}',
+    teamMemberScopeNamed: 'Your member quota in {{name}} ({{id}})',
     personalScope: 'Personal quota',
     teamScope: 'Team: {{id}}',
     teamScopeNamed: 'Team: {{name}} ({{id}})',

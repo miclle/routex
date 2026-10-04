@@ -5,11 +5,32 @@ import (
 	"reflect"
 	"sync"
 	"testing"
+	"time"
 
-	"github.com/miclle/routex/internal/routex/entity"
 	"gorm.io/gorm"
 	"gorm.io/gorm/schema"
 )
+
+// This complete snapshot bounds the released V47 changes independently of later entities.
+type quotaNotificationHistoricalV47 struct {
+	ID                string    `gorm:"primaryKey;size:30"`
+	ScopeKind         string    `gorm:"size:20;not null;uniqueIndex:uq_quota_notification_observation,priority:1;check:ck_quota_notification_scope_v47,scope_kind IN ('user','project','team')"`
+	ScopeID           string    `gorm:"size:30;not null;uniqueIndex:uq_quota_notification_observation,priority:2"`
+	ScopeName         string    `gorm:"size:100;not null"`
+	Dimension         string    `gorm:"size:20;not null;uniqueIndex:uq_quota_notification_observation,priority:3;check:ck_quota_notification_dimension,dimension IN ('tokens','money')"`
+	PolicyRevision    string    `gorm:"size:64;not null;uniqueIndex:uq_quota_notification_observation,priority:5"`
+	MonthStart        time.Time `gorm:"precision:6;not null;uniqueIndex:uq_quota_notification_observation,priority:4;check:ck_quota_notification_calendar,month_end > month_start AND as_of >= month_start AND as_of < month_end"`
+	MonthEnd          time.Time `gorm:"precision:6;not null"`
+	TimeZone          string    `gorm:"size:100;not null"`
+	AsOf              time.Time `gorm:"precision:6;not null"`
+	Limit             string    `gorm:"column:limit_value;size:40;not null"`
+	Settled           string    `gorm:"column:settled_value;size:80;not null"`
+	Currency          string    `gorm:"size:3;not null;uniqueIndex:uq_quota_notification_observation,priority:6;check:ck_quota_notification_currency,(dimension = 'tokens' AND currency = '') OR (dimension = 'money' AND currency <> '')"`
+	CoverageStart     time.Time `gorm:"precision:6;not null"`
+	ResourceCreatedAt time.Time `gorm:"precision:6;not null"`
+}
+
+func (quotaNotificationHistoricalV47) TableName() string { return "quota_notification_observations" }
 
 func TestFrozenTeamQuotaNotificationScope(t *testing.T) {
 	frozen, err := schema.Parse(&quotaNotificationScopeV47{}, &sync.Map{}, schema.NamingStrategy{})
@@ -27,7 +48,7 @@ func TestFrozenTeamQuotaNotificationScope(t *testing.T) {
 	if len(frozen.ParseCheckConstraints()) != 1 || check.Constraint != "scope_kind IN ('user','project','team')" || check.DBName != field.DBName {
 		t.Fatal("scope check uses an unbounded kind or nonexistent DB column")
 	}
-	current, err := schema.Parse(&entity.QuotaNotificationObservation{}, &sync.Map{}, schema.NamingStrategy{})
+	current, err := schema.Parse(&quotaNotificationHistoricalV47{}, &sync.Map{}, schema.NamingStrategy{})
 	if err != nil {
 		t.Fatal(err)
 	}

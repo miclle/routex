@@ -206,6 +206,7 @@ const quotaInboxSelect = `quota_notification_inboxes.id, quota_notification_inbo
  quota_notification_inboxes.recipient_id, quota_notification_inboxes.read_at, quota_notification_inboxes.created_at,
  observation.id AS observation_id, observation.scope_kind AS observation_scope_kind,
  observation.scope_id AS observation_scope_id, observation.scope_name AS observation_scope_name,
+ observation.team_id AS observation_team_id, observation.member_user_id AS observation_member_user_id,
  observation.dimension AS observation_dimension, observation.policy_revision AS observation_policy_revision,
  observation.month_start AS observation_month_start, observation.month_end AS observation_month_end,
  observation.time_zone AS observation_time_zone, observation.as_of AS observation_as_of,
@@ -223,6 +224,7 @@ func quotaObservationScope(tx *gorm.DB, access quotaInboxAccess) *gorm.DB {
 	for _, teamID := range access.TeamIDs {
 		scope = scope.Or(tx.Where(database.ExactText(tx, clause.Column{Table: "observation", Name: "scope_kind"}, "team")).
 			Where(database.ExactText(tx, clause.Column{Table: "observation", Name: "scope_id"}, teamID)))
+		scope = scope.Or(teamMemberQuotaInboxScope(tx, access.ActorID, teamID))
 	}
 	dimensions := tx.Where(database.ExactText(tx, clause.Column{Table: "observation", Name: "dimension"}, "tokens")).
 		Or(database.ExactText(tx, clause.Column{Table: "observation", Name: "dimension"}, "money"))
@@ -252,7 +254,8 @@ func validQuotaInboxRow(row quotaInboxRow, access quotaInboxAccess) bool {
 		(observation.Dimension == "tokens" || observation.Dimension == "money") &&
 		(observation.ScopeKind == "user" && observation.ScopeID == access.ActorID ||
 			observation.ScopeKind == "project" && slices.Contains(access.ProjectIDs, observation.ScopeID) ||
-			observation.ScopeKind == "team" && slices.Contains(access.TeamIDs, observation.ScopeID))
+			observation.ScopeKind == "team" && slices.Contains(access.TeamIDs, observation.ScopeID) ||
+			validTeamMemberQuotaInboxObservation(observation, access))
 }
 
 func quotaNotificationRecord(row quotaInboxRow) NotificationRecord {
@@ -264,6 +267,7 @@ func quotaNotificationRecord(row quotaInboxRow) NotificationRecord {
 	}
 	snapshot := &QuotaNotificationSnapshot{
 		ScopeKind: observation.ScopeKind, ScopeID: observation.ScopeID, Dimension: observation.Dimension,
+		TeamID: observation.TeamID, MemberUserID: observation.MemberUserID,
 		PolicyRevision: observation.PolicyRevision, MonthStart: observation.MonthStart, MonthEnd: observation.MonthEnd,
 		TimeZone: observation.TimeZone, AsOf: observation.AsOf, Limit: observation.Limit, Settled: observation.Settled, Currency: currency,
 	}

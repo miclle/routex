@@ -167,13 +167,13 @@ The binary capability count is 11 completed, 16 partially completed, and 3 not s
 | F14 | Managed egress and staged network diagnostics | Partially completed | Direct, default, SOCKS5, verified CONNECT, endpoint-bound saved authentication, complete-tunnel proxy-address fallback, and diagnostics exist. External proxy and production performance acceptance remain open. |
 | F15 | Prices, spreadsheet/CSV workflows, API, and repository sync | Partially completed | Current prices, ETags, CSV/XLS/XLSX import, preview, commit, and export exist; repository-file mappings, reviewed synchronization, custom-rate protection and selected restoration passed complete current-main source, dual-driver and controlled production/browser/restart gates; shipped prices stay empty pending reviewed source rates, while wider external/release acceptance remains open. |
 | F16 | Platform currency, exchange rates, and historical price snapshots | Completed | Decimal-string currency/rate management, exact quoting, and immutable per-call assessment are implemented. |
-| F17 | User and Team defaults, overrides, budgets, alerts, and stop policy | Partially completed | Personal, Project, Key and Team aggregate/member enforcement plus budget/token/TPM controls, authoritative quota snapshots, and installation-calendar configuration exist; current-policy Personal/Project monthly settled-exhaustion inboxes have focused acceptance, Team aggregate monthly settled-exhaustion inboxes have complete controlled acceptance, and creation-default settings and explicit restores have complete local acceptance; templates, broader alerts, and configurable stop-calling policy remain open. |
+| F17 | User and Team defaults, overrides, budgets, alerts, and stop policy | Partially completed | Personal, Project, Key and Team aggregate/member enforcement plus budget/token/TPM controls, authoritative quota snapshots, and installation-calendar configuration exist; current-policy Personal/Project monthly settled-exhaustion inboxes have focused acceptance, Team aggregate monthly settled-exhaustion inboxes have complete controlled acceptance; private Team member monthly notices have passed controlled local source, dual-driver, native/browser/restart and full-matrix acceptance, with final mandatory check passed and delivery pending, and creation-default settings and explicit restores have complete local acceptance; templates, broader alerts, and configurable stop-calling policy remain open. |
 | F18 | Quota, model, and request-limit approvals | Completed | Project model/monthly quota/RPM/TPM/concurrency and Team monthly Token/money requests have controlled acceptance: owner-first assignment, escalation, independent dimensions, read-only platform records, atomic final policies and immutable receipts with current application. Distributed acknowledgements belong to F30; release-wide acceptance remains separate. |
 | F19 | Member overview, model sources, requests, and examples | Partially completed | Actor-scoped Personal/Team source attribution, native metadata, filters, details and examples are available; explicit-source Team catalogue examples and successful Session-generation guards have complete local source and four-native production/browser/restart acceptance; Project requests and four native Team Session protocols exist; Personal single-Model requests and independent scoped review are available; Shared Team model requests and independently scoped review are available; Two-to-four native Team comparison lanes are implemented; Independent Team native code export is accepted; self-only monthly Overview accounts and Personal thirty-day Home cards/trend/history have complete local source, database and controlled browser acceptance; Creator-private Team media has complete local source, migration and controlled production acceptance; broader overview/price/usage facts remain open. |
 | F20 | Playground, comparison, attachments, and code examples | Partially completed | Four native conversation paths, two-to-four-lane comparison, cancellation, executable examples, per-protocol image/PDF discovery, user/Project attachment resolution, single/comparison attachment lifecycle interfaces, and conservative token/TPM/money admission with exact per-occurrence media prices exist; Team comparison, independent native code export, parameter Reset and creator-private Team attachments have complete local acceptance; external acceptance remains open. |
 | F21 | Personal, Project, and platform call records and CSV | Completed | Isolated list/detail queries, incremental loading, redacted drawers, bounded server-side CSV export, filter parity, formula protection, and bilingual download actions are implemented with dual-database evidence. |
 | F22 | Usage trends, amounts, and multidimensional filters | Partially completed | Personal, Team, Project and platform usage interfaces plus immutable Provider attribution exist. Current-member aggregation and controlled replay/restart are accepted. Scoped CSV, exact-ID selection and genuine-native freshness passed current-source checks and the complete dual-driver regression; measured capacity/release evidence remain open. |
-| F23 | Operations overview, quality, alerts, and notifications | Partially completed | The real-data operations overview, immutable Provider-attempt quality, revisioned success/P95 thresholds, grouped Provider-quality and route-unavailable alerts, recipient-isolated history, independent severity settings, and bounded durable operational SMTP delivery are implemented. Current-policy Personal/Project monthly settled-exhaustion inboxes have focused acceptance and Team aggregate monthly settled-exhaustion inboxes have complete controlled acceptance; external mail acceptance, bounce/inbox tracking, real-Provider quality acceptance, and broader quota/enterprise sources remain open. |
+| F23 | Operations overview, quality, alerts, and notifications | Partially completed | The real-data operations overview, immutable Provider-attempt quality, revisioned success/P95 thresholds, grouped Provider-quality and route-unavailable alerts, recipient-isolated history, independent severity settings, and bounded durable operational SMTP delivery are implemented. Current-policy Personal/Project monthly settled-exhaustion inboxes have focused acceptance and Team aggregate monthly settled-exhaustion inboxes have complete controlled acceptance; private Team member monthly notices have passed controlled local source, dual-driver, native/browser/restart and full-matrix acceptance, with final mandatory check passed and delivery pending; external mail acceptance, bounce/inbox tracking, real-Provider quality acceptance, and broader quota/enterprise sources remain open. |
 | F24 | Read-only AI operations analysis and saved reports | Not started | Authorized analysis queries, saved definitions, evaluation, exports, and hostile-input acceptance are not implemented. |
 | F25 | Site presentation, language, and announcements | Completed | Durable site name, URL, logo, footer, default language, bilingual UI behavior, and announcement lifecycle are implemented. |
 | F26 | Instances, heartbeats, resources, jobs, and offline cleanup | Completed | Distinct process generations, server-owned leases, nullable resource facts, bounded real system jobs, executor-loss reconciliation, revision-checked cleanup, audit evidence, and the bilingual administrative workspace are implemented. |
@@ -3486,3 +3486,129 @@ No backend/schema/authentication implementation changed. The exact unchanged
 backend retains the preceding full PostgreSQL/MySQL matrix (Handler1346.593s,
 Service7.991s); this frontend phase does not claim a redundant database matrix.
 Formal totals remain 11 complete, 16 partial and three unstarted; F19 stays partial.
+
+
+### Private Team member monthly notices integrated source, 2026-10-04
+
+The reviewed 24-path V51 candidate is integrated on delivered catalogue main
+`81b8c2f18ebfca235ca9fba480d88743a0b2e9f9`. The existing notification menu and
+Session inbox endpoints add a distinct team_member snapshot with immutable
+Team/User proofs and the stable child scope digest. Only the exhausted member
+receives their own event. Current exact enabled membership controls read/count/
+mark authority; removal hides original rows, same-user rejoin can restore original
+read state, and no administrator/owner role grants another member's inbox access.
+
+Observation uses the stored child cap and its covered known settled monthly
+journal independently from aggregate usage, with exact policy/calendar/currency/
+lease/membership publication proof. Holds and unknown/stale facts do not establish
+exhaustion. The independent bounded member cursor preserves aggregate scanning,
+immutable deduplication and accounting/admission semantics.
+
+Private frozen V51 follows V50, widens observation scope IDs and adds nullable
+historical Team/User proof fields with exact paired guards. Released migrations
+and raw aggregate fixture assertions remain intact; historical reconstruction
+restores current guards before modern lifecycle cases. Aggregate projections
+follow complete raw-response/privacy/unread validation rather than hiding child
+notices or assuming a fixed count.
+
+Source format/check/test/build passed with 2094 Vitest cases in 110 files, Go
+race/unit, Node lifecycle and embedded production asset checks. Binary SHA256:
+`dbc326ef0554c1a41498e0465987c7a950abff50b0e69f8997de89262c1360e7`.
+This source result does not establish actual lifecycle acceptance.
+
+Actual revision 1 failed on an overlong fixture identity: HTTP 400 enforced the
+input contract. Revision 2 failed because an uppercase canonical digest made
+the intended negative mutation a no-op. Revision 3 passed the PostgreSQL and
+MySQL V51 migration cases, but lifecycle failed on a noncanonical membership
+user_id assertion and remains under diagnosis (combined focus 82.729s). All
+owned Compose resources were removed. Earlier failures remain diagnosis, not
+passed acceptance; no completion or delivered status is inferred.
+
+That revision-3 checkpoint did not yet establish corrected lifecycle, native/
+privacy, browser/restart or complete-matrix acceptance; later evidence follows. Prior aggregate/catalogue deliveries are independent evidence.
+Catalogue 81b8c2f now has all three exact remote checks green, including CI
+with completed build artifacts. Batch 4fed603 also has all remote checks green. Formal totals stay 11 complete,
+16 partial and three unstarted; F17/F23, external mail, warning thresholds and
+configurable stop policy remain open.
+
+
+### Private member notices revision 5 and independent production proof, 2026-10-04
+
+The unchanged production candidate retains passed source format/check/test/build
+(2094 Vitest cases/110 files, Go race/unit, Node lifecycle and embedded assets)
+and binary dbc326ef0554c1a41498e0465987c7a950abff50b0e69f8997de89262c1360e7.
+Actual revision 4 failed in 95.139s: both migration cases passed and both drivers
+confirmed exact 30-byte overflow canonicalization. Lifecycle then failed a money
+denominator check that counted retained token history. Revision 5 changes only
+the fixture: a fresh money Team, immutable complete prior token row and exact
+new money policy revision. Race/compile 2.066s, staticcheck, pinned lint and gofmt
+passed. Actual focus was then running; its accepted result is recorded below.
+
+The independent real production/browser scenario passed with test-only synthetic
+USD rates and three native requests: warmup, caller and peer. Team usage/caps
+were 10/100, caller 5/5 and peer 5/20, independently for Tokens and money. Exactly
+two self child notices were recorded; owner, peer, administrator and new member
+received zero. Finite denial dispatched nothing extra. Original notice, recipient,
+policy and settled snapshot facts remained immutable. Helper SHA256:
+`6506641b175a1527407e43ae6f590f5891dc60165678e5a40c4e6dc2185e1103`.
+
+Actual English/reopened Chinese browser proof covered a token-notice click
+(one read/one unread), two all-history rows, removed-member empty history after
+genuine Session/list reads and new-membership rejoin with original IDs/read
+state restored. Owner/peer browser histories stayed empty; new members received
+no replay. Same-binary restart preserved Sessions/notices/read state and facts,
+with zero inference replay and fresh browser Session/list proof. The observer
+recorded 10 browser Session HTTP 200 and 13 list HTTP 200 responses; no minute automatic
+renewal is claimed. Console errors/warnings were zero. All owned application,
+proxy, Compose containers/network/volumes, ports and temporary browser tab were
+removed. This is independent production evidence, not a passed driver lifecycle.
+
+At that production checkpoint, corrected focus, the complete matrix and final
+check were still pending. Subsequent focus evidence is recorded below; formal
+totals and wider F17/F23/external acceptance are unchanged.
+
+
+### Private member notices corrected driver focus passed, 2026-10-04
+
+Revision-5 actual PostgreSQL/MySQL race focus passed Handler 98.815s. Both
+lifecycle and V51 migration cases passed with explicit 30-byte overflow
+canonicalization observed on both drivers. The lifecycle fixtures retained fixed
+five-native assertions, full prior token-row immutability and the exact fresh
+money policy revision. Production guards and accounting were not weakened.
+All 81 protected source hashes remained unchanged; every owned focus container,
+network and volume was verified absent. Earlier failed runs remain diagnostic
+evidence above rather than accepted results.
+
+The independently passed three-native production/bilingual browser/restart
+scenario remains separate evidence, with exactly two self notices, unchanged
+read/recipient history and no replay. At that focus checkpoint the complete
+matrix, final mandatory check and delivery remained pending. The accepted full
+matrix result is recorded below; wider F17/F23/external scope is unchanged.
+
+
+### Private member notices complete local acceptance, 2026-10-04
+
+The final unchanged-source PostgreSQL/MySQL race matrix passed under
+`go tool task test-integration`: Handler 1456.730s and Service 8.504s. All 81
+protected source hashes and package/lock bytes remained exact. Runner and
+coordinator independently verified removal of all owned matrix containers,
+networks and volumes. Released migration and raw aggregate/private-recipient
+assertions remained intact. Earlier fixture failures above are diagnosis rather
+than accepted results; their isolated repairs did not weaken production guards.
+
+This completes the bounded local acceptance gates alongside passed source
+format/check/test/build (2094 Vitest cases/110 files), corrected driver focus
+98.815s and the independent three-native production/bilingual browser/restart
+scenario. Binary dbc326ef0554c1a41498e0465987c7a950abff50b0e69f8997de89262c1360e7
+and the observed 10 Session/13 notification-list HTTP 200 responses remain their
+own evidence; no minute automatic renewal or synthetic production rate is claimed.
+
+Final mandatory `go tool task check` passed on the unchanged source. Go lint
+reported zero issues; Prettier, TypeScript and mod tidy passed. ESLint reported
+zero errors and the two unchanged button/badge Fast Refresh warnings. All 81
+protected code hashes and dependency bytes remained exact.
+
+Scoped commit/push and remote read-back remain pending; no future SHA or CI
+outcome is inferred. V51 is locally accepted but not yet delivered.
+Formal totals remain 11 complete, 16 partial and three unstarted; broader F17/F23,
+SMTP, threshold and configurable stop-policy acceptance remain open.

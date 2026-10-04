@@ -4,6 +4,7 @@ import { Bell, CheckCheck, CircleAlert, RefreshCw } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import {
   getNotifications,
+  recordedMonthlyQuota,
   markAllNotificationsRead,
   markNotificationRead,
   notificationsKey,
@@ -12,11 +13,7 @@ import { Button } from '@/components/ui/button'
 import { Menu, MenuItem } from '@/components/ui/menu'
 import { useSession } from '@/hooks/use-auth'
 import { useSessionGeneration } from '@/hooks/use-session-generation'
-import type {
-  MonthlyQuotaNotificationSnapshot,
-  Notification,
-  NotificationReadStatus,
-} from '@/types/notifications'
+import type { Notification, NotificationReadStatus } from '@/types/notifications'
 
 type ReadIntent = { recipientId: string; generation: number; csrf: string; id: string }
 type ReadAllIntent = { recipientId: string; generation: number; csrf: string }
@@ -40,60 +37,15 @@ function subjectText(notification: Notification, t: ReturnType<typeof useTransla
   return t(`subject.${notification.subject_type}`, { name: value })
 }
 
-function recordedQuota(notification: Notification): MonthlyQuotaNotificationSnapshot | undefined {
-  const quota = notification.quota
-  if (
-    notification.kind !== 'monthly_quota_exhausted' ||
-    !quota ||
-    !['user', 'project', 'team'].includes(quota.scope_kind) ||
-    typeof quota.scope_id !== 'string' ||
-    !quota.scope_id.trim() ||
-    typeof quota.policy_revision !== 'string' ||
-    !quota.policy_revision.trim() ||
-    typeof quota.time_zone !== 'string' ||
-    !quota.time_zone.trim() ||
-    typeof quota.month_start !== 'string' ||
-    typeof quota.month_end !== 'string' ||
-    typeof quota.as_of !== 'string' ||
-    !Number.isFinite(Date.parse(quota.month_start)) ||
-    !Number.isFinite(Date.parse(quota.month_end)) ||
-    !Number.isFinite(Date.parse(quota.as_of))
-  )
-    return undefined
-  const start = Date.parse(quota.month_start)
-  const end = Date.parse(quota.month_end)
-  const asOf = Date.parse(quota.as_of)
-  if (
-    end <= start ||
-    asOf < start ||
-    asOf >= end ||
-    (notification.subject_type != null && notification.subject_type !== quota.scope_kind) ||
-    (notification.subject_id != null && notification.subject_id !== quota.scope_id) ||
-    (quota.scope_kind === 'team' &&
-      (notification.subject_type !== 'team' || notification.subject_id !== quota.scope_id))
-  )
-    return undefined
-  const tokens = quota.dimension === 'tokens'
-  const pattern = tokens ? /^\d+$/ : /^\d+(?:\.\d+)?$/
-  if (
-    typeof quota.limit !== 'string' ||
-    typeof quota.settled !== 'string' ||
-    !pattern.test(quota.limit) ||
-    !pattern.test(quota.settled) ||
-    (tokens
-      ? notification.detail_code !== 'tokens_month_exhausted' || quota.currency !== null
-      : quota.dimension !== 'money' ||
-        notification.detail_code !== 'money_month_exhausted' ||
-        typeof quota.currency !== 'string' ||
-        !quota.currency.trim())
-  )
-    return undefined
-  return quota
-}
-
-function QuotaSnapshot({ notification }: { notification: Notification }) {
+function QuotaSnapshot({
+  notification,
+  recipientId,
+}: {
+  notification: Notification
+  recipientId: string
+}) {
   const { t, i18n } = useTranslation('notifications')
-  const quota = recordedQuota(notification)
+  const quota = recordedMonthlyQuota(notification, recipientId)
   if (!quota) return <span className="mt-1 block text-xs">{t('quota.snapshotUnavailable')}</span>
   const format = (value: string) => {
     try {
@@ -120,14 +72,21 @@ function QuotaSnapshot({ notification }: { notification: Notification }) {
         {t(
           quota.scope_kind === 'user'
             ? 'quota.personalScope'
-            : quota.scope_kind === 'team'
+            : quota.scope_kind === 'team_member'
               ? scopeName
-                ? 'quota.teamScopeNamed'
-                : 'quota.teamScope'
-              : scopeName
-                ? 'quota.projectScopeNamed'
-                : 'quota.projectScope',
-          { id: quota.scope_id, name: scopeName },
+                ? 'quota.teamMemberScopeNamed'
+                : 'quota.teamMemberScope'
+              : quota.scope_kind === 'team'
+                ? scopeName
+                  ? 'quota.teamScopeNamed'
+                  : 'quota.teamScope'
+                : scopeName
+                  ? 'quota.projectScopeNamed'
+                  : 'quota.projectScope',
+          {
+            id: quota.scope_kind === 'team_member' ? quota.team_id : quota.scope_id,
+            name: scopeName,
+          },
         )}
       </span>
       <span className="block">{t('quota.settled', { value: amount(quota.settled) })}</span>
@@ -161,7 +120,7 @@ export function NotificationMenu() {
     queryFn: async ({ pageParam, signal }) => {
       const capturedGeneration = previousGeneration.current
       return {
-        ...(await getNotifications(status, pageParam, signal)),
+        ...(await getNotifications(status, pageParam, signal, recipientId)),
         generation: capturedGeneration,
       }
     },
@@ -343,7 +302,7 @@ export function NotificationMenu() {
                   </span>
                   {subject && <span className="mt-1 block text-xs">{subject}</span>}
                   {notification.kind === 'monthly_quota_exhausted' && (
-                    <QuotaSnapshot notification={notification} />
+                    <QuotaSnapshot notification={notification} recipientId={recipientId} />
                   )}
                   <span className="mt-1 block text-xs text-muted-foreground">
                     {Number.isFinite(Date.parse(notification.last_seen_at))

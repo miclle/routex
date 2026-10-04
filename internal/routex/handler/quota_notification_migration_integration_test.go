@@ -70,7 +70,7 @@ func testQuotaNotificationMigration(t *testing.T, db *gorm.DB) {
 	month := time.Date(2026, 3, 1, 0, 0, 0, 0, time.UTC)
 	now := month.Add(24 * time.Hour)
 	observation := entity.QuotaNotificationObservation{ID: "qob_historical_notice", ScopeKind: "user", ScopeID: "usr_historical_notice", Dimension: "tokens", PolicyRevision: "lim_historical_notice", MonthStart: month, MonthEnd: month.AddDate(0, 1, 0), TimeZone: "UTC", AsOf: now, Limit: "0", Settled: "0", CoverageStart: month, ResourceCreatedAt: month}
-	if err := db.Create(&observation).Error; err != nil {
+	if err := db.Omit("TeamID", "MemberUserID").Create(&observation).Error; err != nil {
 		t.Fatal("historical observations need no live resource FK", err)
 	}
 	inbox := entity.QuotaNotificationInbox{ID: "qni_historical_notice", ObservationID: observation.ID, RecipientID: "usr_historical_recipient", CreatedAt: now}
@@ -79,7 +79,7 @@ func testQuotaNotificationMigration(t *testing.T, db *gorm.DB) {
 	}
 	duplicate := observation
 	duplicate.ID = "qob_duplicate_notice"
-	if err := db.Create(&duplicate).Error; err == nil {
+	if err := db.Omit("TeamID", "MemberUserID").Create(&duplicate).Error; err == nil {
 		t.Fatal("source observation dedup missing")
 	}
 	duplicateInbox := inbox
@@ -100,7 +100,7 @@ func testQuotaNotificationMigration(t *testing.T, db *gorm.DB) {
 		case "calendar":
 			invalid.AsOf = invalid.MonthEnd
 		}
-		if err := db.Create(&invalid).Error; err == nil {
+		if err := db.Omit("TeamID", "MemberUserID").Create(&invalid).Error; err == nil {
 			t.Fatal("invalid frozen observation accepted", field)
 		}
 	}
@@ -120,7 +120,7 @@ func testQuotaNotificationMigration(t *testing.T, db *gorm.DB) {
 		case "scope":
 			changed.ScopeKind = "project"
 		}
-		if err := db.Create(&changed).Error; err != nil {
+		if err := db.Omit("TeamID", "MemberUserID").Create(&changed).Error; err != nil {
 			t.Fatal("new current revision/month/dimension/scope incorrectly deduped", err)
 		}
 	}

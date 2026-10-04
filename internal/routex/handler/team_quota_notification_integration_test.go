@@ -217,9 +217,73 @@ func testTeamQuotaNotificationLifecycle(t *testing.T, db *gorm.DB) {
 		actor := identities[name]
 		return request(actor.cookie, actor.csrf, method, path, nil)
 	}
+	childAccount, err := svc.GetTeamResourceLimit(ctx, admin.User.ID, teamID, users["caller"].ID)
+	if err != nil || childAccount == nil || !strings.HasPrefix(childAccount.AccountID, "team_member_") {
+		t.Fatal("missing canonical child account", err)
+	}
+	childScope := strings.TrimPrefix(childAccount.AccountID, "team_member_")
+	if len(childScope) != 52 {
+		t.Fatal("invalid canonical child scope", childScope)
+	}
+	var childRevision string
+	privateSnapshots := map[string]string{}
 	page := func(name string) service.NotificationPage {
 		t.Helper()
-		return decodeCatalogResponse[service.NotificationPage](t, actorRequest(name, "GET", "/api/v1/notifications?status=all"), 200)
+		// Validate the entire real response before projecting aggregate-only expectations.
+		raw := decodeCatalogResponse[service.NotificationPage](t, actorRequest(name, "GET", "/api/v1/notifications?status=all&limit=100"), 200)
+		if raw.NextCursor != "" {
+			t.Fatal("complete fixture inbox unexpectedly exceeded one bounded page")
+		}
+		var rawUnread int64
+		seen := map[string]bool{}
+		projection := service.NotificationPage{Items: []service.NotificationRecord{}}
+		for _, record := range raw.Items {
+			if seen[record.ID] || record.Read != (record.ReadAt != nil) {
+				t.Fatal("raw inbox identity/read flag mismatch", record.ID)
+			}
+			seen[record.ID] = true
+			if !record.Read {
+				rawUnread++
+			}
+			var recipient entity.QuotaNotificationInbox
+			if err := db.First(&recipient, "id = ?", record.ID).Error; err != nil || recipient.ID != record.ID || recipient.RecipientID != users[name].ID || recipient.ObservationID != record.QuotaObservationID || (recipient.ReadAt != nil) != record.Read {
+				t.Fatal("raw inbox borrowed recipient/read authority", record.ID, err)
+			}
+			if record.Quota == nil {
+				t.Fatal("unexpected non-quota notice in isolated fixture", record.ID)
+			}
+			switch record.Quota.ScopeKind {
+			case "team":
+				projection.Items = append(projection.Items, record)
+				if !record.Read {
+					projection.UnreadCount++
+				}
+			case "team_member":
+				q := record.Quota
+				if name != "caller" || childRevision == "" || record.SubjectType != "team_member" || record.SubjectID != childScope || record.SubjectName != "Frozen Team notice name" || q.ScopeID != childScope || q.TeamID == nil || *q.TeamID != teamID || q.MemberUserID == nil || *q.MemberUserID != users["caller"].ID || q.PolicyRevision != childRevision || q.Limit != "5" || q.Settled != "5" || record.Kind != "monthly_quota_exhausted" || record.Severity != "high" || record.AlertID != "" || record.DeliveryStatus != "" || !q.MonthEnd.After(q.MonthStart) || q.AsOf.Before(q.MonthStart) || !q.AsOf.Before(q.MonthEnd) || q.TimeZone == "" {
+					t.Fatal("private child snapshot or self-recipient mismatch", record)
+				}
+				if (q.Dimension == "tokens" && (q.Currency != nil || record.DetailCode != "tokens_month_exhausted")) || (q.Dimension == "money" && (q.Currency == nil || *q.Currency != "USD" || record.DetailCode != "money_month_exhausted")) || (q.Dimension != "tokens" && q.Dimension != "money") {
+					t.Fatal("private child dimension/currency mismatch", record)
+				}
+				immutable := record
+				immutable.Read, immutable.ReadAt = false, nil
+				encoded, err := json.Marshal(immutable)
+				if err != nil {
+					t.Fatal(err)
+				}
+				if prior, found := privateSnapshots[record.ID]; found && prior != string(encoded) {
+					t.Fatal("private child replay changed immutable snapshot", record.ID)
+				}
+				privateSnapshots[record.ID] = string(encoded)
+			default:
+				t.Fatal("Team fixture emitted Personal/Project or unknown quota scope", record.Quota.ScopeKind)
+			}
+		}
+		if raw.UnreadCount != rawUnread {
+			t.Fatalf("complete raw unread total mismatch: reported=%d actual=%d", raw.UnreadCount, rawUnread)
+		}
+		return projection
 	}
 	readLimit := func(team, user string) *service.LimitRecord {
 		t.Helper()
@@ -338,6 +402,11 @@ func testTeamQuotaNotificationLifecycle(t *testing.T, db *gorm.DB) {
 	// against the conservative admission reservation or an unreviewed policy.
 	initial := writeLimit(teamID, "", `{"money_month":"5","currency":"USD","reason":"Observe exact settled Team exhaustion"}`)
 	writeLimit(teamID, users["caller"].ID, `{"money_month":"5","currency":"USD","reason":"Observe exact settled child exhaustion"}`)
+	var childRow entity.ResourceLimit
+	if err := db.Where("scope_kind = ? AND scope_id = ?", "team_member", childScope).First(&childRow).Error; err != nil || childRow.ScopeKind != "team_member" || childRow.ScopeID != childScope || childRow.ETag == "" || childRow.TokensMonth == nil || *childRow.TokensMonth != 5 || childRow.MoneyMonth == nil || *childRow.MoneyMonth != "5" || childRow.Currency != "USD" {
+		t.Fatal("missing exact reviewed child policy", childRow, err)
+	}
+	childRevision = childRow.ETag
 	// Team HTTP ETags review the complete authority/pricing context. Quota
 	// snapshots retain the canonical stored policy revision independently.
 	var initialRow entity.ResourceLimit
@@ -572,9 +641,28 @@ func testTeamQuotaNotificationLifecycle(t *testing.T, db *gorm.DB) {
 		}
 	}
 	var nonTeam int64
-	if err := db.Model(&entity.QuotaNotificationObservation{}).Where("scope_kind <> ?", "team").Count(&nonTeam).Error; err != nil || nonTeam != 0 {
-		t.Fatal("Team extension emitted Personal/child observations", nonTeam, err)
+	if err := db.Model(&entity.QuotaNotificationObservation{}).Where("scope_kind NOT IN ?", []string{"team", "team_member"}).Count(&nonTeam).Error; err != nil || nonTeam != 0 {
+		t.Fatal("Team extension emitted Personal/Project observations", nonTeam, err)
 	}
+	assertPrivateHistory := func() {
+		t.Helper()
+		var rows []entity.QuotaNotificationObservation
+		if err := db.Where("scope_kind = ?", "team_member").Find(&rows).Error; err != nil || len(rows) != 2 || len(privateSnapshots) != 2 {
+			t.Fatal("canonical independent child observations missing or duplicated", len(rows), len(privateSnapshots), err)
+		}
+		dimensions := map[string]bool{}
+		for _, row := range rows {
+			if row.ScopeKind != "team_member" || row.ScopeID != childScope || row.TeamID == nil || *row.TeamID != teamID || row.MemberUserID == nil || *row.MemberUserID != users["caller"].ID || row.PolicyRevision != childRevision || row.ScopeName != "Frozen Team notice name" || row.Limit != "5" || row.Settled != "5" || dimensions[row.Dimension] || (row.Dimension != "tokens" && row.Dimension != "money") || (row.Dimension == "tokens" && row.Currency != "") || (row.Dimension == "money" && row.Currency != "USD") {
+				t.Fatal("canonical child observation proof changed", row)
+			}
+			dimensions[row.Dimension] = true
+			var recipients []entity.QuotaNotificationInbox
+			if err := db.Where("observation_id = ?", row.ID).Find(&recipients).Error; err != nil || len(recipients) != 1 || recipients[0].ObservationID != row.ID || recipients[0].RecipientID != users["caller"].ID || privateSnapshots[recipients[0].ID] == "" {
+				t.Fatal("child notification fanned out beyond original self recipient", recipients, err)
+			}
+		}
+	}
+	assertPrivateHistory()
 	testTeamQuotaInboxAliases(t, db, svc, teamID, users["caller"].ID, func(method, path string) *httptest.ResponseRecorder { return actorRequest("caller", method, path) })
 	// Reopen the same durable journal and use the original persisted Session cookie.
 	if err := svc.FlushCallRecorder(ctx); err != nil {
@@ -627,6 +715,7 @@ func testTeamQuotaNotificationLifecycle(t *testing.T, db *gorm.DB) {
 	if count(teamID) != beforeRestart {
 		t.Fatal("concurrent observer replay duplicated observations")
 	}
+	assertPrivateHistory()
 }
 
 func testTeamQuotaInboxAliases(t *testing.T, db *gorm.DB, svc *service.Service, teamID, actor string, request func(string, string) *httptest.ResponseRecorder) {

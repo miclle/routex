@@ -182,8 +182,9 @@ acceptance remain open.
 Team aggregate monthly Tokens and money use the same conservative settled-fact
 observer. It freezes a current-policy observation and the then-current enabled
 owner/member recipients, bounded to 1000 identities; an overflow cannot become
-a partial recipient list. Stable Team/User accounting is not a separate public
-recipient scope. No Team Key or personal quota is introduced.
+a partial recipient list. This aggregate notice does not fan out another member's
+stable Team/User quota facts. Private child notices are defined separately below;
+no Team Key or Personal quota is introduced.
 
 Inbox/count/read actions require current exact enabled membership and an active
 Team; a platform administrator has no implicit member access. Removal hides
@@ -208,3 +209,94 @@ current-main PostgreSQL/MySQL regression passed under race detection
 (Handler1181.133s, Service7.983s), with owned matrix resources removed. Final
 mandatory `go tool task check` passed. Source, fixtures and documentation are
 delivered as one scoped main package; inspect its commit and remote checks.
+
+
+## Private Team member monthly exhaustion: integrated candidate
+
+A member's stored child monthly cap is observed independently from Team aggregate
+limits. Only the exact current enabled, nonoffboarded active member/owner receives
+their own child event. An owner is eligible for their own child account only;
+other members, administrators and operators gain no implicit private recipient
+access. Parent and child balances are never summed or flattened into an allowance.
+An exhausted child can have a notice while its Team aggregate remains below cap.
+
+The existing Session endpoints GET `/api/v1/notifications`, POST
+`/api/v1/notifications/:id/read` and POST `/api/v1/notifications/read-all` are
+unchanged, including CSRF and same-origin mutation guards. New snapshots retain
+kind `monthly_quota_exhausted`, severity `high` and the existing token/money detail
+codes. `subject_type` and `quota.scope_kind` are `team_member`; `subject_id` and
+`quota.scope_id` contain the same stable 52-character pair digest. Frozen
+`quota.team_id` and `quota.member_user_id` identify the exact Team and recipient.
+The recorded subject name is the validated Team name; aggregate snapshots omit
+these new proof fields. Policy revision, limit, settled amount, currency, month
+boundaries, timezone and observation time remain immutable exact-string facts.
+
+List, unread count, read-one and mark-all require original recipient ownership
+plus current exact active Team/User membership and matching frozen pair proofs.
+Removal, disable, archive or offboarding hides the original notice. Same-user
+rejoin may restore its original read state; replay never adds recipients, changes
+the snapshot or resets read state. That current inbox entitlement does not revive
+an old captured native membership or change the stable child accounting identity.
+
+Qualification requires known settled usage in the observed dimension, complete
+monthly coverage since the later of Team creation/month start, and exact current
+applied child and parent policies, calendar revision/timezone, currency and
+published membership/lease/tombstone proof. Unknown or uncovered usage, holds,
+stale/unpublished policy and expired authority do not prove exhaustion. Null is
+unlimited; covered known zero with a finite zero cap remains valid evidence.
+Native finality does not introduce a new settlement gate or alter accounting.
+Observation and the sole self-recipient inbox insertion commit atomically.
+
+The worker has an independent 32-membership keyset cursor and batched child-policy
+lookup; aggregate scanning is unchanged. Skips and failures advance rather than
+starving later rows. Explicit reconciliation completes both full cursor cycles;
+background ticks advance one page of each. Fresh SQL subject checks and private
+publication proof are repeated before commit, with no network under locks.
+
+The existing bilingual menu labels this as your member quota in the recorded
+Team, distinct from aggregate exhaustion. It validates the digest and exact
+recipient/Team proofs before using the frozen name or Team ID fallback. Successful
+Session network generations reauthorize rows/count/read intents; manual same-actor
+CSRF replacement retains its existing exception, and late/foreign responses fail
+closed. No member directory, new permission or new endpoint is added.
+
+V51 preserves released V35/V47 migrations and historical aggregate notices.
+This 24-path integrated candidate passed source format/check/test/build with
+2094 Vitest cases in 110 files, Go race/unit, Node lifecycle and embedded
+production asset checks. The production binary SHA256 is
+`dbc326ef0554c1a41498e0465987c7a950abff50b0e69f8997de89262c1360e7`.
+
+The corrected revision-5 PostgreSQL/MySQL race focus passed (Handler 98.815s).
+Both V51 migrations and lifecycle cases passed, including exact 30-byte overflow
+canonicalization and fixed five-native assertions on each driver. All 81 source
+protections stayed exact; owned focus resources were removed. Earlier fixture
+failures and their isolated repairs remain in [Implementation](IMPLEMENTATION.md).
+
+The separate controlled production/browser scenario passed using the unchanged
+binary and synthetic USD rates restricted to test setup. Three actual native
+requests covered warmup, caller and peer. Settled Team usage was 10 against
+aggregate caps of 100; caller usage/caps were 5/5 and peer usage/caps 5/20 for
+both Tokens and money. Exactly two child notices belonged to the caller; owner,
+peer, administrator and new member received none. Finite denial added no dispatch.
+
+English and reopened Chinese menus passed. A genuine token-notice click produced
+one read and one unread record, with two all-history rows. After removal, real
+Session/list reads showed empty history; rejoin created a new membership while
+restoring original notice IDs/read state, without historical fanout. Owner/peer
+browser histories stayed empty. Same-binary restart preserved Sessions, notices,
+read state and immutable facts without inference replay; post-restart browser
+Session/list reads passed. The observer recorded 10 browser Session HTTP 200s
+and 13 list HTTP 200s, not proof of a minute automatic-renewal interval. Console
+errors/warnings were zero. All scenario processes, proxy, Compose resources,
+ports and temporary tab were removed. Helper SHA256:
+`6506641b175a1527407e43ae6f590f5891dc60165678e5a40c4e6dc2185e1103`.
+
+The complete unchanged-source PostgreSQL/MySQL race matrix passed Handler
+1456.730s and Service 8.504s. All 81 protected source hashes and package/lock
+bytes stayed exact; runner and coordinator independently verified that every
+owned matrix container, network and volume was removed. Local controlled
+acceptance and final mandatory `go tool task check` passed. V51 remains
+undelivered pending scoped commit/push and remote read-back. Source, corrected
+focus, production/browser and full matrix
+remain distinct evidence. SMTP, warning thresholds, configurable stop policy
+and broader F17/F23 stay open.

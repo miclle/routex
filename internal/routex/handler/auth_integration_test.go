@@ -91,7 +91,7 @@ func TestIdentityIntegration(t *testing.T) {
 				t.Fatal(err)
 			}
 			var versions int64
-			if err := db.Table("schema_migrations").Count(&versions).Error; err != nil || versions != 50 {
+			if err := db.Table("schema_migrations").Count(&versions).Error; err != nil || versions != 51 {
 				t.Fatalf("migration ledger: %d, %v", versions, err)
 			}
 			var preserved entity.Example
@@ -126,10 +126,10 @@ func TestIdentityIntegration(t *testing.T) {
 			testCredentialRetirementMigration(t, db)
 			testQuotaNotificationMigration(t, db)
 			// Frozen reconstruction fixtures restore their released scope/job
-			// guards. Reapply the later V47/V48 guards before lifecycle cases.
-			result := db.Table("schema_migrations").Where("version IN ?", []int{47, 48}).Delete(&struct{}{})
-			if result.Error != nil || result.RowsAffected != 2 {
-				t.Fatalf("restore V47/V48 after historical fixtures: rows=%d err=%v", result.RowsAffected, result.Error)
+			// guards. Reapply the later V47/V48/V51 guards before lifecycle cases.
+			result := db.Table("schema_migrations").Where("version IN ?", []int{47, 48, 51}).Delete(&struct{}{})
+			if result.Error != nil || result.RowsAffected != 3 {
+				t.Fatalf("restore V47/V48/V51 after historical fixtures: rows=%d err=%v", result.RowsAffected, result.Error)
 			}
 			if err := database.Migrate(context.Background(), db); err != nil {
 				t.Fatal(err)
@@ -174,7 +174,7 @@ func TestIdentityIntegration(t *testing.T) {
 			for _, test := range []struct {
 				name string
 				run  func(*testing.T, *gorm.DB)
-			}{{"catalog", testCatalogLifecycle}, {"model_creation_batch", testModelCreationBatchLifecycle}, {"model_creation_batch_migration", testModelCreationBatchMigration}, {"model_alias_retirement", testModelAliasRetirementLifecycle}, {"model_detail_prices", testModelDetailPricesLifecycle}, {"model_supply_status", testModelSupplyStatusLifecycle}, {"member_model_catalog", testMemberModelCatalogLifecycle}, {"personal_model_requests", testPersonalModelRequestsLifecycle}, {"team_model_requests", testTeamModelRequestsLifecycle}, {"credential_metadata", testCredentialMetadataLifecycle}, {"credential_delete", testCredentialDeleteLifecycle}, {"credential_replacements", testCredentialReplacementLifecycle}, {"credential_retirement_readiness", testCredentialRetirementReadinessLifecycle}, {"credential_retirement", testCredentialRetirementLifecycle}, {"keys", testKeyLifecycle}, {"gateway", testGatewayLifecycle}, {"team_gateway", testTeamGatewayLifecycle}, {"team_native_protocols", testTeamNativeProtocolsLifecycle}, {"native_failover", testNativeFailoverLifecycle}, {"team_comparison", testTeamComparisonLifecycle}, {"team_limits_gateway", testTeamLimitsGatewayLifecycle}, {"team_session_auth", testTeamSessionAuthLifecycle}, {"call_native_completion", testCallNativeCompletionLifecycle}, {"call_credential_attribution", testCallCredentialAttributionLifecycle}, {"calls", testCallLifecycle}, {"team_calls", testTeamCallLifecycle}, {"call_export", testCallExportLifecycle}, {"account", testAccountLifecycle}, {"governance", testGovernanceLifecycle}, {"runtime", testRuntimeLifecycle}, {"system_status", testSystemStatusLifecycle}, {"resources", testResourceLifecycle}, {"project_authority", testProjectAuthorityLifecycle}, {"project_creation_overview", testProjectCreationOverviewLifecycle}, {"project_list", testProjectListLifecycle}, {"project_initial_resources", testProjectInitialResourcesLifecycle}, {"team_roles", testTeamRolesLifecycle}, {"recorder", testRecorderLifecycle}, {"project_keys", testProjectKeyLifecycle}, {"personal_key_rotation", testPersonalKeyRotationLifecycle}, {"offboarding", testOffboardingLifecycle}, {"pricing", testPricingLifecycle}, {"pricing_repository", testPricingRepositoryLifecycle}, {"pricing_repository_migration", testPricingRepositoryMigration}, {"project_requests", testProjectRequestLifecycle}, {"project_quota_requests", testProjectQuotaRequestLifecycle}, {"project_rate_limit_requests", testProjectRateLimitRequestLifecycle}, {"call_pricing", testCallPricingLifecycle}, {"price_import", testPriceImportLifecycle}, {"default_limits", testDefaultLimitsLifecycle}, {"resource_limits", testResourceLimitLifecycle}, {"team_resource_limits", testTeamResourceLimitsLifecycle}, {"team_quota_requests", testTeamQuotaRequestLifecycle}, {"team_quota_approval_gateway", testTeamQuotaApprovalNativeLifecycle}, {"price_spreadsheet", testPriceSpreadsheetLifecycle}, {"usage", testUsageLifecycle}, {"usage_identity", testUsageIdentityLifecycle}, {"usage_freshness", testUsageFreshnessLifecycle}, {"team_usage", testTeamUsageLifecycle}, {"usage_export", testUsageExportLifecycle}, {"member_overview_accounts", testMemberOverviewAccountsLifecycle}, {"member_overview_usage", testMemberOverviewUsageLifecycle}, {"mfa", testMFALifecycle}, {"responses", testResponsesLifecycle}, {"messages", testMessagesLifecycle}, {"gemini", testGeminiLifecycle}, {"site", testSiteLifecycle}, {"audit", testAuditLifecycle}, {"egress", testEgressLifecycle}, {"quota", testQuotaLifecycle}, {"attachment_quota_settlement", testGatewayAttachmentQuotaSettlementLifecycle}, {"smtp", testSMTPLifecycle}, {"storage", testStorageLifecycle}, {"team_attachments", testTeamAttachmentLifecycle}, {"team_attachment_migration", testTeamAttachmentMigration}, {"notification_http", testNotificationHTTPLifecycle}, {"monthly_quota_notifications", testMonthlyQuotaNotificationLifecycle}, {"team_quota_notifications", testTeamQuotaNotificationLifecycle}, {"team_quota_notification_migration", testTeamQuotaNotificationMigration}, {"root_key_rotation_migration", testRootKeyRotationMigration}, {"root_key_rotation", testRootKeyRotationLifecycle}, {"provider_quality_http", testProviderQualityHTTPLifecycle}} {
+			}{{"catalog", testCatalogLifecycle}, {"model_creation_batch", testModelCreationBatchLifecycle}, {"model_creation_batch_migration", testModelCreationBatchMigration}, {"model_alias_retirement", testModelAliasRetirementLifecycle}, {"model_detail_prices", testModelDetailPricesLifecycle}, {"model_supply_status", testModelSupplyStatusLifecycle}, {"member_model_catalog", testMemberModelCatalogLifecycle}, {"personal_model_requests", testPersonalModelRequestsLifecycle}, {"team_model_requests", testTeamModelRequestsLifecycle}, {"credential_metadata", testCredentialMetadataLifecycle}, {"credential_delete", testCredentialDeleteLifecycle}, {"credential_replacements", testCredentialReplacementLifecycle}, {"credential_retirement_readiness", testCredentialRetirementReadinessLifecycle}, {"credential_retirement", testCredentialRetirementLifecycle}, {"keys", testKeyLifecycle}, {"gateway", testGatewayLifecycle}, {"team_gateway", testTeamGatewayLifecycle}, {"team_native_protocols", testTeamNativeProtocolsLifecycle}, {"native_failover", testNativeFailoverLifecycle}, {"team_comparison", testTeamComparisonLifecycle}, {"team_limits_gateway", testTeamLimitsGatewayLifecycle}, {"team_session_auth", testTeamSessionAuthLifecycle}, {"call_native_completion", testCallNativeCompletionLifecycle}, {"call_credential_attribution", testCallCredentialAttributionLifecycle}, {"calls", testCallLifecycle}, {"team_calls", testTeamCallLifecycle}, {"call_export", testCallExportLifecycle}, {"account", testAccountLifecycle}, {"governance", testGovernanceLifecycle}, {"runtime", testRuntimeLifecycle}, {"system_status", testSystemStatusLifecycle}, {"resources", testResourceLifecycle}, {"project_authority", testProjectAuthorityLifecycle}, {"project_creation_overview", testProjectCreationOverviewLifecycle}, {"project_list", testProjectListLifecycle}, {"project_initial_resources", testProjectInitialResourcesLifecycle}, {"team_roles", testTeamRolesLifecycle}, {"recorder", testRecorderLifecycle}, {"project_keys", testProjectKeyLifecycle}, {"personal_key_rotation", testPersonalKeyRotationLifecycle}, {"offboarding", testOffboardingLifecycle}, {"pricing", testPricingLifecycle}, {"pricing_repository", testPricingRepositoryLifecycle}, {"pricing_repository_migration", testPricingRepositoryMigration}, {"project_requests", testProjectRequestLifecycle}, {"project_quota_requests", testProjectQuotaRequestLifecycle}, {"project_rate_limit_requests", testProjectRateLimitRequestLifecycle}, {"call_pricing", testCallPricingLifecycle}, {"price_import", testPriceImportLifecycle}, {"default_limits", testDefaultLimitsLifecycle}, {"resource_limits", testResourceLimitLifecycle}, {"team_resource_limits", testTeamResourceLimitsLifecycle}, {"team_quota_requests", testTeamQuotaRequestLifecycle}, {"team_quota_approval_gateway", testTeamQuotaApprovalNativeLifecycle}, {"price_spreadsheet", testPriceSpreadsheetLifecycle}, {"usage", testUsageLifecycle}, {"usage_identity", testUsageIdentityLifecycle}, {"usage_freshness", testUsageFreshnessLifecycle}, {"team_usage", testTeamUsageLifecycle}, {"usage_export", testUsageExportLifecycle}, {"member_overview_accounts", testMemberOverviewAccountsLifecycle}, {"member_overview_usage", testMemberOverviewUsageLifecycle}, {"mfa", testMFALifecycle}, {"responses", testResponsesLifecycle}, {"messages", testMessagesLifecycle}, {"gemini", testGeminiLifecycle}, {"site", testSiteLifecycle}, {"audit", testAuditLifecycle}, {"egress", testEgressLifecycle}, {"quota", testQuotaLifecycle}, {"attachment_quota_settlement", testGatewayAttachmentQuotaSettlementLifecycle}, {"smtp", testSMTPLifecycle}, {"storage", testStorageLifecycle}, {"team_attachments", testTeamAttachmentLifecycle}, {"team_attachment_migration", testTeamAttachmentMigration}, {"notification_http", testNotificationHTTPLifecycle}, {"monthly_quota_notifications", testMonthlyQuotaNotificationLifecycle}, {"team_quota_notifications", testTeamQuotaNotificationLifecycle}, {"team_quota_notification_migration", testTeamQuotaNotificationMigrationAtCurrentSchema}, {"team_member_quota_notifications", testTeamMemberQuotaNotificationLifecycle}, {"team_member_quota_notification_migration", testTeamMemberQuotaNotificationMigration}, {"root_key_rotation_migration", testRootKeyRotationMigration}, {"root_key_rotation", testRootKeyRotationLifecycle}, {"provider_quality_http", testProviderQualityHTTPLifecycle}} {
 				t.Run(test.name, func(t *testing.T) {
 					reset()
 					// Schema-reset fixtures must not reuse driver statement caches from
@@ -424,4 +424,48 @@ func TestIdentityOriginAndCookies(t *testing.T) {
 			}
 		})
 	}
+}
+
+// Only the released V47 migration fixture observes its historical scope guard.
+// Modern lifecycle fixtures always retain the complete V51 behavior.
+func testTeamQuotaNotificationMigrationAtCurrentSchema(t *testing.T, db *gorm.DB) {
+	t.Helper()
+	model := &entity.QuotaNotificationObservation{}
+	for _, check := range []string{"ck_quota_notification_scope_v51", "ck_quota_notification_member_v51"} {
+		if !db.Migrator().HasConstraint(model, check) {
+			t.Fatal("missing current guard before historical V47 fixture", check)
+		}
+	}
+	if db.Migrator().HasConstraint(&teamQuotaScopeAfterV47{}, "ck_quota_notification_scope_v47") {
+		t.Fatal("current schema retained historical V47 scope guard")
+	}
+	// Install the narrower historical guard first: no unguarded DDL interval.
+	if err := db.Migrator().CreateConstraint(&teamQuotaScopeAfterV47{}, "ck_quota_notification_scope_v47"); err != nil {
+		t.Fatal(err)
+	}
+	defer func() {
+		// Keep ledger V51 during all inner V47 replays; only this restoration removes it.
+		result := db.Table("schema_migrations").Where("version = ?", 51).Delete(&struct{}{})
+		if result.Error != nil || result.RowsAffected != 1 {
+			t.Fatalf("restore V51 after historical V47 fixture: rows=%d error=%v", result.RowsAffected, result.Error)
+		}
+		if err := database.Migrate(context.Background(), db); err != nil {
+			t.Fatal("restore complete V51 schema", err)
+		}
+		for _, check := range []string{"ck_quota_notification_scope_v51", "ck_quota_notification_member_v51"} {
+			if !db.Migrator().HasConstraint(model, check) {
+				t.Fatal("historical V47 fixture lost current guard", check)
+			}
+		}
+		for _, check := range []string{"ck_quota_notification_scope", "ck_quota_notification_scope_v47"} {
+			if db.Migrator().HasConstraint(model, check) {
+				t.Fatal("historical scope guard survived V51 restoration", check)
+			}
+		}
+	}()
+	if err := db.Migrator().DropConstraint(model, "ck_quota_notification_scope_v51"); err != nil {
+		t.Fatal(err)
+	}
+	// Nullable proof columns, 64-byte scope width, and paired proof guard remain.
+	testTeamQuotaNotificationMigration(t, db)
 }

@@ -22,6 +22,8 @@ export default {
   retry: '重试',
   unknownItem: '有通知需要关注。',
   quota: {
+    teamMemberScope: '您在 Team {{id}} 的成员额度',
+    teamMemberScopeNamed: '您在 {{name}}（{{id}}）的成员额度',
     personalScope: '个人额度',
     teamScope: 'Team：{{id}}',
     teamScopeNamed: 'Team：{{name}}（{{id}}）',
