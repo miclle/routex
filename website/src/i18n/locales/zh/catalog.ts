@@ -383,7 +383,7 @@ export default {
     openTeamConversation: '在 Playground 中打开 {{name}} 对话',
     teamInvocationUnsupported: '暂不支持 Team 调用',
     teamOnlyNativeGuidance:
-      '此 Team 授权可通过指定 Team 会话，使用已就绪的原生协议进行文本对话。个人 Key 不能使用此 Team 授权。此 Team 对话暂不支持媒体。',
+      '此 Team 授权可通过指定 Team 会话，使用已就绪的原生协议进行文本对话。个人 Key 不能使用此 Team 授权。',
     teamOnlyGuidance:
       '此模型通过 Team 授权可见，但当前没有已就绪的 Team 原生协议。个人 Key 不能使用此 Team 授权。',
     personalInvocationUnavailable:
@@ -433,6 +433,13 @@ export default {
     model: '模型',
     source: '授权来源',
     manageKeys: '管理 API Key',
+    chooseExampleProtocol: '请明确选择当前就绪的协议。',
+    exampleSource: '示例访问来源',
+    chooseExampleSource: '请选择此示例使用的确切访问来源。',
+    exampleSourceUnavailable: '所选访问来源当前不可用。请明确选择其他已授权来源。',
+    teamExampleSource: 'Team：{{name}}',
+    teamExampleGuidance:
+      '此独立示例通过 ROUTEX_EMAIL 和 ROUTEX_PASSWORD 单独登录，需要 cURL 和 Python 3（标准库）。遇到两步验证挑战时会在推理前停止。示例不包含浏览器 Session、CSRF 令牌或 API Key；运行后仅通过所选 Team 发送一次原生请求。',
     requestExample: '请求示例',
     copied: '已复制。',
     copyFailed: '复制失败，请手动选择文本。',

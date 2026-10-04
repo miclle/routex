@@ -169,7 +169,7 @@ The binary capability count is 11 completed, 16 partially completed, and 3 not s
 | F16 | Platform currency, exchange rates, and historical price snapshots | Completed | Decimal-string currency/rate management, exact quoting, and immutable per-call assessment are implemented. |
 | F17 | User and Team defaults, overrides, budgets, alerts, and stop policy | Partially completed | Personal, Project, Key and Team aggregate/member enforcement plus budget/token/TPM controls, authoritative quota snapshots, and installation-calendar configuration exist; current-policy Personal/Project monthly settled-exhaustion inboxes have focused acceptance, Team aggregate monthly settled-exhaustion inboxes have complete controlled acceptance, and creation-default settings and explicit restores have complete local acceptance; templates, broader alerts, and configurable stop-calling policy remain open. |
 | F18 | Quota, model, and request-limit approvals | Completed | Project model/monthly quota/RPM/TPM/concurrency and Team monthly Token/money requests have controlled acceptance: owner-first assignment, escalation, independent dimensions, read-only platform records, atomic final policies and immutable receipts with current application. Distributed acknowledgements belong to F30; release-wide acceptance remains separate. |
-| F19 | Member overview, model sources, requests, and examples | Partially completed | Actor-scoped Personal/Team source attribution, native metadata, filters, details and examples are available; Project requests and four native Team Session protocols exist; Personal single-Model requests and independent scoped review are available; Shared Team model requests and independently scoped review are available; Two-to-four native Team comparison lanes are implemented; Independent Team native code export is accepted; self-only monthly Overview accounts and Personal thirty-day Home cards/trend/history have complete local source, database and controlled browser acceptance; Creator-private Team media has complete local source, migration and controlled production acceptance; broader overview/price/usage facts remain open. |
+| F19 | Member overview, model sources, requests, and examples | Partially completed | Actor-scoped Personal/Team source attribution, native metadata, filters, details and examples are available; explicit-source Team catalogue examples and successful Session-generation guards have complete local source and four-native production/browser/restart acceptance; Project requests and four native Team Session protocols exist; Personal single-Model requests and independent scoped review are available; Shared Team model requests and independently scoped review are available; Two-to-four native Team comparison lanes are implemented; Independent Team native code export is accepted; self-only monthly Overview accounts and Personal thirty-day Home cards/trend/history have complete local source, database and controlled browser acceptance; Creator-private Team media has complete local source, migration and controlled production acceptance; broader overview/price/usage facts remain open. |
 | F20 | Playground, comparison, attachments, and code examples | Partially completed | Four native conversation paths, two-to-four-lane comparison, cancellation, executable examples, per-protocol image/PDF discovery, user/Project attachment resolution, single/comparison attachment lifecycle interfaces, and conservative token/TPM/money admission with exact per-occurrence media prices exist; Team comparison, independent native code export, parameter Reset and creator-private Team attachments have complete local acceptance; external acceptance remains open. |
 | F21 | Personal, Project, and platform call records and CSV | Completed | Isolated list/detail queries, incremental loading, redacted drawers, bounded server-side CSV export, filter parity, formula protection, and bilingual download actions are implemented with dual-database evidence. |
 | F22 | Usage trends, amounts, and multidimensional filters | Partially completed | Personal, Team, Project and platform usage interfaces plus immutable Provider attribution exist. Current-member aggregation and controlled replay/restart are accepted. Scoped CSV, exact-ID selection and genuine-native freshness passed current-source checks and the complete dual-driver regression; measured capacity/release evidence remain open. |
@@ -3425,3 +3425,64 @@ actor-bound reviews or GORM migration creation/repair. Broader F12/A06/public
 catalogue assistance and external/routing release acceptance remain partial.
 
 Final `go tool task check` passed with the same frozen code and dependency bytes.
+
+
+### Member catalogue examples acceptance, 2026-10-04
+
+The next eleven-path frontend candidate is integrated on checked main `4fed603`.
+Eight exclusive files retain their original baseline/absence guards; three narrow
+shared merges preserve the complete Alias translations and the exact actor/Model
+request-invalidation prefix. No backend, route, migration, shared Session hook,
+grant, Key ceiling or dependency change is included. Both frontend rule files
+and the catalogue contract describe the new source-specific workflow.
+
+The existing catalogue drawer now selects an explicit Personal or named Team
+example source and uses its ready native protocols, including non-Chat-only
+Teams. Team cURL programs use the existing nonsecret standalone builder, separate
+execution-time login and current Session/CSRF verification. Challenges stop before
+inference; example generation/copying performs no inference or grant mutation.
+
+List/discovery/detail authority is bound to successful Session network
+generations, including structurally identical same-millisecond renewals. Obsolete
+reads/private actions and clipboard acknowledgements cannot restore prior
+authority. Same-actor manual CSRF replacement does not constitute renewal.
+Actor/Model-scoped request captures survive incidental renewal without replay;
+successful request invalidation covers only that exact candidate-drawer prefix.
+
+Format, mandatory check, full tests and embedded production build passed: 2035
+Vitest cases/109 files, Go race/unit, Node checks/development lifecycle and
+production assets. The existing Rolldown package bundled the exact nonsecret
+example builder; the prepared helper had assumed an absent optional esbuild
+executable. Only temporary acceptance tooling changed. Package/lock bytes and
+all 59 integrated/protected code hashes remained exact.
+
+The separate controlled PostgreSQL process/browser scenario passed. Actual
+browser Copy contents matched all four native builder outputs exactly. Each
+standalone program signed in independently and sent one Team-native request: four
+distinct call IDs, four completed immutable attempts, known four input/one output
+Tokens per call, exact Team/User/original membership and Credential/Provider-model/
+Connection/snapshot. Personal calls, browser inference and model-request creates
+remained zero; no price/charge was assumed. Protocol removal disabled the selected
+example without fallback. Grant and membership removal hid the exact old Team
+source/link/code; rejoining created a new current membership without rewriting
+original call attribution. A second actor saw only its Research-authorized shared
+Model. Same-artifact restart preserved Sessions and all four facts without replay;
+browser reload discarded transient drawer ownership and reauthorized the list.
+
+Default-English and reopened-Chinese source guidance, explicit multi-source
+choice and a genuine browser minute Session read passed. Live-language draft
+retention, same-millisecond generation races and uncertain request preservation
+are focused real-QueryClient tests, not fabricated browser mutation receipts.
+Browser console had no errors/warnings. All owned services, Compose resources
+and temporary tab were removed.
+
+Before the successful scenario, temporary observer readiness/interactive-input
+setup and the macOS `/tmp` canonical-path comparison were corrected. Those runs
+completed cleanup and produced no example inference; they are not acceptance
+successes. The successful final helper retained fixed counts through every
+lifecycle operation and returned zero.
+
+No backend/schema/authentication implementation changed. The exact unchanged
+backend retains the preceding full PostgreSQL/MySQL matrix (Handler1346.593s,
+Service7.991s); this frontend phase does not claim a redundant database matrix.
+Formal totals remain 11 complete, 16 partial and three unstarted; F19 stays partial.

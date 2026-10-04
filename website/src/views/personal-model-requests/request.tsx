@@ -105,7 +105,6 @@ export default function PersonalAccessRequest({
         void cache.invalidateQueries({ queryKey: ['personal-model-candidates', actorID] })
         void cache.invalidateQueries({
           queryKey: ['personal-model-candidate-drawer', actorID, modelID],
-          exact: true,
         })
       }
     } catch (error) {

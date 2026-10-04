@@ -37,7 +37,7 @@ function model(
   sources: ModelAccessSource[] = [personal],
 ): ModelCatalogRecord {
   return {
-    id: `mdl_${name}`,
+    id: `mdl_${name.replace(/[^A-Za-z0-9_-]/g, '_').slice(0, 26)}`,
     name,
     status: 'active',
     created_at: '2026-09-01T10:00:00Z',
@@ -83,7 +83,11 @@ beforeEach(async () => {
       headers: new AxiosHeaders(),
       data: {} as unknown,
     }
-    if (config.url?.startsWith('/model-catalog/') && detailBarrier) {
+    if (
+      (config.url?.startsWith('/model-catalog/') ||
+        config.url?.startsWith('/model-access-candidates/')) &&
+      detailBarrier
+    ) {
       await new Promise<void>((resolve, reject) => {
         const abort = () => reject(new CanceledError('Cancelled model detail', config))
         config.signal?.addEventListener?.('abort', abort)
@@ -352,7 +356,7 @@ describe('Authorized member model catalogue', () => {
       )
       expect(drawer().textContent).not.toContain('Team inference are not available')
       expect(drawer().querySelector('a[href="/keys"]')).toBeNull()
-      expect(button('Copy').disabled).toBe(true)
+      expect(button('Copy').disabled).toBe(protocol === 'gemini_generate_content')
       await act(async () => i18n.changeLanguage('zh'))
       expect(link.textContent).toContain('打开 Live Team 对话')
     },
@@ -431,6 +435,16 @@ describe('Authorized member model catalogue', () => {
     expect(table.textContent).toContain('Unknown')
     expect(host.textContent).toContain('Prices, member usage and monthly requests are not provided')
     await act(async () => button('API access').click())
+    await until(() =>
+      expect(drawer().querySelector('select[aria-label="Example access source"]')).not.toBeNull(),
+    )
+    await act(async () => {
+      const choice = drawer().querySelector<HTMLSelectElement>(
+        'select[aria-label="Example access source"]',
+      )!
+      choice.value = 'personal'
+      choice.dispatchEvent(new Event('change', { bubbles: true }))
+    })
     await until(() =>
       expect(drawer().querySelector('pre')?.textContent).toContain('/v1/chat/completions'),
     )
@@ -516,9 +530,11 @@ describe('Authorized member model catalogue', () => {
         '/model-catalog',
         '/model-catalog/mdl_native-model',
       ])
-      expect(cache.getQueryData(['model-catalog', 'detail', actorID, models[0].id])).toEqual(
-        models[0],
-      )
+      expect(
+        cache
+          .getQueriesData({ queryKey: ['model-catalog', 'detail', actorID, models[0].id] })
+          .find(([, data]) => !!data)?.[1],
+      ).toEqual(models[0])
     },
   )
 
@@ -526,7 +542,7 @@ describe('Authorized member model catalogue', () => {
     models = [model('mixed', ['future_native', 'openai_responses', 'openai_chat', 'openai_chat'])]
     await mount()
     await open('mixed')
-    const input = drawer().querySelector<HTMLSelectElement>('select')!
+    const input = drawer().querySelector<HTMLSelectElement>('select[aria-label="Protocol type"]')!
     expect([...input.options].map((option) => option.value)).toEqual([
       'openai_responses',
       'openai_chat',
@@ -636,6 +652,10 @@ describe('Authorized member model catalogue', () => {
     const current = { ...item, personal_available: false, sources: [team('team_a', 'Alpha')] }
     models = [current]
     detailOverrides[item.id] = current
+    const beforeRefresh = requests.filter(
+      (request) => request.url === '/model-catalog/mdl_refreshed-list',
+    ).length
+    const beforeSession = requests.filter((request) => request.url === '/auth/session').length
     await act(async () => button('Refresh catalogue').click())
     await until(() =>
       expect(drawer().textContent).toContain('A personal Key cannot use this Team grant'),
@@ -645,7 +665,15 @@ describe('Authorized member model catalogue', () => {
     expect(statistic('Personally available models')).toBe('0')
     expect(
       requests.filter((request) => request.url === '/model-catalog/mdl_refreshed-list'),
-    ).toHaveLength(2)
+    ).toHaveLength(
+      beforeRefresh +
+        1 +
+        requests.filter((request) => request.url === '/auth/session').length -
+        beforeSession,
+    )
+    expect(requests.filter((request) => request.url === '/auth/session')).toHaveLength(
+      beforeSession + 1,
+    )
   })
 
   it('cancels an abandoned resource request and keeps the next model independent', async () => {
@@ -667,14 +695,26 @@ describe('Authorized member model catalogue', () => {
     models = [model('actor-model')]
     await mount()
     await open('actor-model')
-    expect(cache.getQueryData(['model-catalog', 'list', 'usr_current'])).toEqual(models)
+    expect(
+      cache
+        .getQueriesData({ queryKey: ['model-catalog', 'list', 'usr_current'] })
+        .find(([, data]) => !!data)?.[1],
+    ).toEqual(models)
     actorID = 'usr_other'
     models = [{ ...models[0], personal_available: false }]
     await act(async () => cache.invalidateQueries({ queryKey: ['auth', 'session'] }))
+    await until(() => expect(document.querySelector('[role="dialog"]')).toBeNull())
+    await until(() => expect(visibleNames()).toEqual(['actor-model']))
+    expect(
+      requests.filter((request) => request.url === '/model-catalog/mdl_actor-model'),
+    ).toHaveLength(1)
+    await open('actor-model')
     await until(() =>
-      expect(cache.getQueryData(['model-catalog', 'detail', 'usr_other', models[0].id])).toEqual(
-        models[0],
-      ),
+      expect(
+        cache
+          .getQueriesData({ queryKey: ['model-catalog', 'detail', 'usr_other', models[0].id] })
+          .find(([, data]) => !!data)?.[1],
+      ).toEqual(models[0]),
     )
     await until(() => expect(button('Copy')?.disabled).toBe(true))
     expect(drawer().querySelector('pre')).toBeNull()
@@ -748,13 +788,22 @@ describe('Authorized member model catalogue', () => {
     await select('Access source', 'requestable')
     await until(() => expect(visibleNames()).toEqual(['candidate']))
     expect(statistic('Total models')).toBe('—')
+    const beforeCandidate = requests.filter(
+      (request) => request.url === '/model-access-candidates',
+    ).length
+    const beforeSession = requests.filter((request) => request.url === '/auth/session').length
     await open('candidate')
     await until(() => expect(button('Submit request')).toBeDefined())
     expect(drawer().querySelector('pre')).toBeNull()
     expect(button('Copy').disabled).toBe(true)
     expect(drawer().querySelector('a[href="/keys"]')).toBeNull()
     expect(requests.some((request) => request.url === '/model-catalog/mdl_candidate')).toBe(false)
-    expect(requests.filter((request) => request.url === '/model-access-candidates')).toHaveLength(1)
+    expect(requests.filter((request) => request.url === '/model-access-candidates')).toHaveLength(
+      beforeCandidate + 1,
+    )
+    expect(requests.filter((request) => request.url === '/auth/session')).toHaveLength(
+      beforeSession + 1,
+    )
   })
 
   it('retains independently authorized pending details when a submitted model disappears from discovery', async () => {
@@ -772,6 +821,18 @@ describe('Authorized member model catalogue', () => {
       )
       reason.dispatchEvent(new Event('input', { bubbles: true }))
     })
+    const invalidated: (readonly unknown[])[] = []
+    const subscribe = cache.getQueryCache().subscribe((event) => {
+      if (event.type === 'updated' && event.action.type === 'invalidate')
+        invalidated.push(event.query.queryKey)
+    })
+    const otherActorKey = ['personal-model-candidate-drawer', 'usr_other', models[0].id, 99]
+    const otherModelKey = ['personal-model-candidate-drawer', actorID, 'mdl_other', 99]
+    cache.setQueryData(otherActorKey, { private: 'other actor' })
+    cache.setQueryData(otherModelKey, { private: 'other Model' })
+    const beforeDetail = requests.filter(
+      (request) => request.url === '/model-access-candidates/mdl_pending-candidate',
+    ).length
     await act(async () => button('Submit request').click())
     await until(() => {
       expect(visibleNames()).toEqual([])
@@ -780,6 +841,25 @@ describe('Authorized member model catalogue', () => {
       expect(drawer().textContent).toContain('Pending research need')
       expect(drawer().querySelector('table')?.textContent).toContain('Pending')
     })
+    subscribe()
+    expect(
+      invalidated.some(
+        (key) =>
+          key[0] === 'personal-model-candidate-drawer' &&
+          key[1] === actorID &&
+          key[2] === models[0].id &&
+          typeof key[3] === 'number',
+      ),
+    ).toBe(true)
+    expect(invalidated.some((key) => key[1] === 'usr_other' || key[2] === 'mdl_other')).toBe(false)
+    expect(cache.getQueryState(otherActorKey)?.isInvalidated).toBe(false)
+    expect(cache.getQueryState(otherModelKey)?.isInvalidated).toBe(false)
+    expect(
+      requests.filter((request) => request.url === '/model-access-candidates/mdl_pending-candidate')
+        .length,
+    ).toBeGreaterThan(beforeDetail)
+    expect(drawer().textContent).not.toContain('other actor')
+    expect(drawer().textContent).not.toContain('other Model')
     const sessionReads = requests.filter((request) => request.url === '/auth/session').length
     await act(async () => new Promise((resolve) => setTimeout(resolve, 50)))
     expect(requests.filter((request) => request.url === '/auth/session')).toHaveLength(sessionReads)
@@ -813,7 +893,62 @@ describe('Authorized member model catalogue', () => {
     await open('team-request')
     await until(() => expect(button('Submit request')).toBeDefined())
     expect(drawer().querySelector('a[href^="/playground?team=tea_live"]')).not.toBeNull()
-    expect(drawer().querySelector('pre')).toBeNull()
+    expect(drawer().querySelector('pre')?.textContent).toContain(
+      '/api/v1/teams/tea_live/chat/completions',
+    )
+    expect(drawer().querySelector('pre')?.textContent).not.toContain('ROUTEX_API_KEY')
     expect(requests.every((request) => request.method === 'get')).toBe(true)
+  })
+  it('retains the original unknown Personal request through Session generation renewal and rejected retries without automatic replay', async () => {
+    models = [model('uncertain-request', ['openai_chat'], [])]
+    await mount()
+    await select('Access source', 'requestable')
+    await until(() => expect(visibleNames()).toEqual(['uncertain-request']))
+    await open('uncertain-request')
+    await until(() => expect(button('Submit request')).toBeDefined())
+    await act(async () => {
+      const reason = drawer().querySelector('textarea')!
+      Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value')!.set!.call(
+        reason,
+        'Captured exact request reason',
+      )
+      reason.dispatchEvent(new Event('input', { bubbles: true }))
+    })
+    failures['/personal-model-requests'] = 500
+    await act(async () => button('Submit request').click())
+    await until(() => expect(button('Retry original request')).toBeDefined())
+    const original = requests.find((request) => request.method === 'post')!
+    const reviewed = original.headers.get('If-Match'),
+      body = original.data
+    const hold = holdDetails()
+    await act(async () => {
+      await cache.refetchQueries({ queryKey: ['auth', 'session'] })
+    })
+    await until(() => expect(drawer().querySelector('h2.break-words')).toBeNull())
+    expect(requests.filter((request) => request.method === 'post')).toHaveLength(1)
+    expect(button('Retry original request').disabled).toBe(true)
+    expect(drawer().textContent).toContain('The request may already be saved')
+    detailBarrier = undefined
+    await act(async () => hold.release())
+    await until(() => expect(button('Retry original request').disabled).toBe(false))
+    failures['/personal-model-requests'] = 409
+    await act(async () => button('Retry original request').click())
+    await until(() => expect(button('Retry original request').disabled).toBe(false))
+    const rejected = requests.filter((request) => request.method === 'post').at(-1)!
+    expect(rejected.data).toBe(body)
+    expect(rejected.headers.get('If-Match')).toBe(reviewed)
+    expect(drawer().textContent).toContain('The request may already be saved')
+    failures['/model-access-candidates/mdl_uncertain-request'] = 403
+    await act(async () => button('Refresh details').click())
+    await until(() => expect(drawer().querySelector('h2.break-words')).toBeNull())
+    expect(button('Retry original request').disabled).toBe(true)
+    expect(requests.filter((request) => request.method === 'post')).toHaveLength(2)
+    expect(drawer().textContent).toContain('The request may already be saved')
+    actorID = 'usr_other'
+    await act(async () => {
+      await cache.refetchQueries({ queryKey: ['auth', 'session'] })
+    })
+    await until(() => expect(document.querySelector('[role="dialog"]')).toBeNull())
+    expect(requests.filter((request) => request.method === 'post')).toHaveLength(2)
   })
 })

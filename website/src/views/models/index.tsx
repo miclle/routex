@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useLayoutEffect, useState } from 'react'
 import { useInfiniteQuery, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { Bot, Grid2X2, List, RefreshCw } from 'lucide-react'
@@ -11,7 +11,7 @@ import { Input } from '@/components/ui/input'
 import { Table } from '@/components/ui/table'
 import { Dialog } from '@/components/ui/dialog'
 import ModelRequestHistory from '@/views/team-model-requests/history'
-import { useSession } from '@/hooks/use-auth'
+import { useCatalogueAuthority } from './catalogue-authority'
 import { protocolLabel, protocolLabels } from '@/lib/protocols'
 import type { ModelCatalogRecord, ModelInputCapability } from '@/types/model-catalog'
 import ModelAccessSources from './access-sources'
@@ -27,12 +27,11 @@ import {
 export default function ModelsPage() {
   const { t, i18n } = useTranslation('catalog')
   const cache = useQueryClient()
-  const session = useSession()
-  const actorID = session.isError ? undefined : session.data?.user.id
+  const { session, actorID, generation, fresh, isCurrent } = useCatalogueAuthority()
   const models = useQuery({
-    queryKey: ['model-catalog', 'list', actorID],
+    queryKey: ['model-catalog', 'list', actorID, generation],
     queryFn: ({ signal }) => listModelCatalog(signal),
-    enabled: !!actorID,
+    enabled: !!actorID && fresh,
     retry: false,
     gcTime: 0,
     refetchOnWindowFocus: false,
@@ -46,21 +45,46 @@ export default function ModelsPage() {
   const [history, setHistory] = useState(false)
   const [historyBusy, setHistoryBusy] = useState(false)
   const [selectedID, setSelectedID] = useState<string | null>(null)
+  const [selectionOwner, setSelectionOwner] = useState(actorID)
+  if (selectionOwner !== actorID) {
+    setSelectionOwner(actorID)
+    setSelectedID(null)
+    setHistory(false)
+    setHistoryBusy(false)
+    setQuery('')
+    setSource('all')
+    setProtocol('all')
+    setCapability('all')
+  }
   const requesting = source === 'requestable'
   const candidates = useInfiniteQuery({
-    queryKey: ['personal-model-candidates', actorID, query],
+    queryKey: ['personal-model-candidates', actorID, query, generation],
     queryFn: ({ pageParam, signal }) => listPersonalModelCandidates(query, pageParam, signal),
     initialPageParam: null as string | null,
     getNextPageParam: (page) => page.next_cursor ?? undefined,
-    enabled: !!actorID && requesting,
+    enabled: !!actorID && fresh && requesting,
     retry: false,
     staleTime: 0,
     gcTime: 0,
     refetchOnMount: 'always',
     refetchOnWindowFocus: false,
   })
+  useLayoutEffect(
+    () => () => {
+      void cache.cancelQueries({ queryKey: ['model-catalog', 'list', actorID, generation] })
+    },
+    [cache, actorID, generation, fresh],
+  )
+  useLayoutEffect(
+    () => () => {
+      void cache.cancelQueries({
+        queryKey: ['personal-model-candidates', actorID, query, generation],
+      })
+    },
+    [cache, actorID, query, generation, fresh],
+  )
   const candidateRecords: ModelCatalogRecord[] =
-    actorID && !session.isFetching && candidates.isSuccess && !candidates.isFetching
+    actorID && fresh && candidates.isSuccess && !candidates.isFetching
       ? candidates.data.pages
           .flatMap((page) => page.items)
           .filter((item) => !item.personal_granted)
@@ -76,7 +100,7 @@ export default function ModelsPage() {
           }))
       : []
   const grantedRecords =
-    actorID && !session.isFetching && models.isSuccess && !models.isFetching ? models.data : []
+    actorID && fresh && models.isSuccess && !models.isFetching ? models.data : []
   const records = requesting ? candidateRecords : grantedRecords
   const sources = orderedModelSources([
     ...new Map(
@@ -98,7 +122,7 @@ export default function ModelsPage() {
   const error = session.error ?? (requesting ? candidates.error : models.error)
   const current =
     !!actorID &&
-    !session.isFetching &&
+    fresh &&
     (requesting
       ? candidates.isSuccess && !candidates.isFetching
       : models.isSuccess && !models.isFetching)
@@ -194,10 +218,10 @@ export default function ModelsPage() {
           disabled={busy}
           onClick={() => {
             if (actorID) {
+              if (!isCurrent()) return
               if (selectedID)
                 void cache.invalidateQueries({
                   queryKey: ['model-catalog', 'detail', actorID, selectedID],
-                  exact: true,
                 })
               if (requesting) void candidates.refetch()
               else void models.refetch()
@@ -211,8 +235,10 @@ export default function ModelsPage() {
         <Button
           variant="outline"
           size="sm"
-          disabled={!actorID || session.isFetching}
-          onClick={() => setHistory(true)}
+          disabled={!actorID || !fresh}
+          onClick={() => {
+            if (isCurrent()) setHistory(true)
+          }}
         >
           {t('personalModelRequests:ownHistory')}
         </Button>
@@ -277,7 +303,9 @@ export default function ModelsPage() {
             >
               <button
                 type="button"
-                onClick={() => setSelectedID(model.id)}
+                onClick={() => {
+                  if (isCurrent()) setSelectedID(model.id)
+                }}
                 aria-label={t('memberModels.openAPI', { name: model.name })}
                 aria-haspopup="dialog"
                 className="flex w-full items-center gap-2 text-left"
@@ -359,7 +387,13 @@ export default function ModelsPage() {
                 <td>{t('memberModels.unknown')}</td>
                 <td>{t('memberModels.unknown')}</td>
                 <td>
-                  <Button size="sm" variant="ghost" onClick={() => setSelectedID(model.id)}>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => {
+                      if (isCurrent()) setSelectedID(model.id)
+                    }}
+                  >
                     {t('common.apiAccess')}
                   </Button>
                 </td>
@@ -389,7 +423,7 @@ export default function ModelsPage() {
             onBusy={setHistoryBusy}
             key={actorID}
             actor={actorID}
-            visible={!session.isFetching && !session.isError}
+            visible={fresh}
           />
         </Dialog>
       )}
@@ -399,7 +433,9 @@ export default function ModelsPage() {
           actorID={actorID}
           modelID={selectedID}
           requestable={requesting}
-          visible={!session.isFetching && !session.isError}
+          generation={generation}
+          isCurrent={isCurrent}
+          visible={fresh}
           onClose={() => setSelectedID(null)}
         />
       )}

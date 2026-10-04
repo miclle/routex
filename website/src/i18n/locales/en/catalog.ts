@@ -432,7 +432,7 @@ export default {
     openTeamConversation: 'Open {{name}} conversation in Playground',
     teamInvocationUnsupported: 'Team invocation is not supported',
     teamOnlyNativeGuidance:
-      'This Team grant supports native text conversation through the named Team Session using its ready protocols. A personal Key cannot use this Team grant. Media is unavailable in this Team conversation.',
+      'This Team grant supports native text conversation through the named Team Session using its ready protocols. A personal Key cannot use this Team grant.',
     teamOnlyGuidance:
       'This model is visible through a Team grant, but no Team native protocol is currently ready. A personal Key cannot use this Team grant.',
     personalInvocationUnavailable:
@@ -485,6 +485,14 @@ export default {
     model: 'Model',
     source: 'Access source',
     manageKeys: 'Manage API keys',
+    chooseExampleProtocol: 'Select a currently ready protocol explicitly.',
+    exampleSource: 'Example access source',
+    chooseExampleSource: 'Select the exact access source for this example.',
+    exampleSourceUnavailable:
+      'The selected access source is not currently available. Select another authorized source explicitly.',
+    teamExampleSource: 'Team: {{name}}',
+    teamExampleGuidance:
+      'This standalone example signs in separately using ROUTEX_EMAIL and ROUTEX_PASSWORD. It requires cURL and Python 3 (standard library). A two-step login challenge stops before inference. It contains no browser Session, CSRF token or API Key; running it sends one native request through the selected Team.',
     requestExample: 'Request example',
     copied: 'Copied.',
     copyFailed: 'Could not copy. Select the text manually.',

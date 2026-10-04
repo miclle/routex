@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { useQuery } from '@tanstack/react-query'
+import { useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router'
 import { Bot, Copy, RefreshCw } from 'lucide-react'
@@ -15,29 +15,42 @@ import ModelAccessSources from './access-sources'
 import {
   declaredCapabilities,
   knownModelProtocols,
+  modelSourceKey,
   personallyAvailable,
   teamInvocationSupported,
 } from './catalogue-metadata'
+import { exampleProtocols, modelExample } from './model-examples'
 
 export default function ModelAccess({
   actorID,
   modelID,
   requestable = false,
   visible = true,
+  generation = 0,
+  isCurrent = () => true,
   onClose,
 }: {
   actorID: string
   modelID: string
   requestable?: boolean
   visible?: boolean
+  generation?: number
+  isCurrent?: () => boolean
   onClose: () => void
 }) {
   const { t } = useTranslation('catalog')
+  const cache = useQueryClient()
   const [requestBusy, setRequestBusy] = useState(false)
+  const queryKey = useMemo(
+    () =>
+      requestable
+        ? ['personal-model-candidate-drawer', actorID, modelID, generation]
+        : ['model-catalog', 'detail', actorID, modelID, generation],
+    [requestable, actorID, modelID, generation],
+  )
   const query = useQuery({
-    queryKey: requestable
-      ? ['personal-model-candidate-drawer', actorID, modelID]
-      : ['model-catalog', 'detail', actorID, modelID],
+    queryKey,
+    enabled: visible,
     queryFn: async ({ signal }): Promise<ModelCatalogRecord> => {
       if (!requestable) return getModelCatalogRecord(modelID, signal)
       const candidate = await getPersonalModelCandidate(modelID, signal)
@@ -58,64 +71,90 @@ export default function ModelAccess({
     refetchOnWindowFocus: false,
     refetchOnReconnect: false,
   })
-  const [exampleProtocol, setExampleProtocol] = useState('openai_chat')
-  const [notice, setNotice] = useState<'memberModels.copied' | 'memberModels.copyFailed' | null>(
-    null,
+  useLayoutEffect(
+    () => () => {
+      void cache.cancelQueries({ queryKey, exact: true })
+    },
+    [cache, queryKey, visible],
   )
+  const [exampleSource, setExampleSource] = useState<string | null>(null)
+  const [sourceInitialized, setSourceInitialized] = useState(false)
+  const [exampleProtocol, setExampleProtocol] = useState('openai_chat')
+  const [notice, setNotice] = useState<{
+    value: 'memberModels.copied' | 'memberModels.copyFailed'
+    example: string
+    generation: number
+  } | null>(null)
   // Earlier catalogue authorization cannot authorize a refreshed resource detail.
   const model = visible && query.isSuccess && !query.isFetching ? query.data : undefined
   const [requestOpened, setRequestOpened] = useState(false)
   if (!requestOpened && model) setRequestOpened(true)
-  const protocols = model ? knownModelProtocols(model) : []
-  const activeProtocol = protocols.includes(exampleProtocol) ? exampleProtocol : protocols[0]
+  if (!sourceInitialized && model) {
+    setSourceInitialized(true)
+    const source = model.sources.length === 1 ? model.sources[0] : undefined
+    setExampleSource(source ? modelSourceKey(source) : null)
+    const eligible = exampleProtocols(model, source)
+    setExampleProtocol(
+      source?.type === 'team'
+        ? (eligible[0] ?? '')
+        : eligible.includes('openai_chat')
+          ? 'openai_chat'
+          : (eligible[0] ?? ''),
+    )
+  }
+  const selectedSource = model?.sources.find((source) => modelSourceKey(source) === exampleSource)
+  const protocols = model ? exampleProtocols(model, selectedSource) : []
+  const modelProtocols = model ? knownModelProtocols(model) : []
+  const activeProtocol = protocols.includes(exampleProtocol) ? exampleProtocol : undefined
   const gemini = activeProtocol === 'gemini_generate_content'
   const invalidGeminiName = gemini && !isGeminiModelName(model?.name ?? '')
-  const invocationAvailable = model && personallyAvailable(model)
-  const endpoint = activeProtocol
-    ? `${window.location.origin}/${gemini ? 'v1beta' : 'v1'}`
-    : undefined
-  const requestPath = gemini
-    ? `models/${encodeURIComponent(model?.name ?? '')}:generateContent`
-    : activeProtocol === 'anthropic_messages'
-      ? 'messages'
-      : activeProtocol === 'openai_responses'
-        ? 'responses'
-        : 'chat/completions'
-  const requestBody = gemini
-    ? { contents: [{ role: 'user', parts: [{ text: 'Hello' }] }] }
-    : activeProtocol === 'openai_responses'
-      ? { model: model?.name, input: 'Hello' }
-      : {
-          model: model?.name,
-          ...(activeProtocol === 'anthropic_messages' ? { max_tokens: 1024 } : {}),
-          messages: [{ role: 'user', content: 'Hello' }],
-        }
+  const invocationAvailable =
+    !!selectedSource &&
+    !!protocols.length &&
+    (selectedSource.type === 'team' || (!!model && personallyAvailable(model)))
+  const endpoint =
+    selectedSource && activeProtocol
+      ? selectedSource?.type === 'team'
+        ? `${window.location.origin}/api/v1/teams/${encodeURIComponent(selectedSource.team_id)}`
+        : `${window.location.origin}/${gemini ? 'v1beta' : 'v1'}`
+      : undefined
   const authHeader = gemini
     ? 'x-goog-api-key: $ROUTEX_API_KEY'
     : activeProtocol === 'anthropic_messages'
       ? 'x-api-key: $ROUTEX_API_KEY'
       : 'Authorization: Bearer $ROUTEX_API_KEY'
-  const headers = [
-    authHeader,
-    ...(activeProtocol === 'anthropic_messages' ? ['anthropic-version: 2023-06-01'] : []),
-    'Content-Type: application/json',
-  ]
-  const example =
-    invocationAvailable && activeProtocol && !invalidGeminiName
-      ? [
-          `curl ${endpoint}/${requestPath}`,
-          ...headers.map((header) => `  -H "${header}"`),
-          `  -d '${JSON.stringify(requestBody).replace(/'/g, "'\\''")}'`,
-        ].join(' \\\n')
-      : undefined
-
+  const example = model
+    ? modelExample(model, selectedSource, activeProtocol, window.location.origin)
+    : undefined
+  const copyOwner = useRef({ example, isCurrent })
+  useLayoutEffect(() => {
+    const current = { example, isCurrent }
+    copyOwner.current = current
+    return () => {
+      if (copyOwner.current === current)
+        copyOwner.current = { example: undefined, isCurrent: () => false }
+    }
+  }, [example, isCurrent])
+  function currentExample() {
+    const detail = cache.getQueryState<ModelCatalogRecord>(queryKey)
+    return (
+      isCurrent() &&
+      visible &&
+      detail?.status === 'success' &&
+      detail.fetchStatus === 'idle' &&
+      detail.data === model
+    )
+  }
   async function copy() {
-    if (!example) return
+    if (!example || !currentExample()) return
+    const owner = copyOwner.current
     try {
       await navigator.clipboard.writeText(example)
-      setNotice('memberModels.copied')
+      if (copyOwner.current === owner && currentExample())
+        setNotice({ value: 'memberModels.copied', example, generation })
     } catch {
-      setNotice('memberModels.copyFailed')
+      if (copyOwner.current === owner && currentExample())
+        setNotice({ value: 'memberModels.copyFailed', example, generation })
     }
   }
 
@@ -134,8 +173,9 @@ export default function ModelAccess({
           <Button
             variant="outline"
             size="sm"
-            disabled={query.isFetching}
+            disabled={!visible || query.isFetching}
             onClick={() => {
+              if (!isCurrent() || !visible) return
               setNotice(null)
               void query.refetch()
             }}
@@ -162,7 +202,7 @@ export default function ModelAccess({
                 <h2 className="min-w-0 break-words font-semibold">{model.name}</h2>
               </div>
               <Badge variant="outline">
-                {protocolLabels(protocols) || t('memberModels.unavailableProtocol')}
+                {protocolLabels(modelProtocols) || t('memberModels.unavailableProtocol')}
               </Badge>
               <p className="text-sm text-muted-foreground">
                 {model && activeProtocol && declaredCapabilities(model, activeProtocol).length
@@ -180,6 +220,9 @@ export default function ModelAccess({
                   source.type === 'team' && (
                     <Link
                       key={source.team_id}
+                      onClick={(event) => {
+                        if (!currentExample()) event.preventDefault()
+                      }}
                       to={`/playground?team=${encodeURIComponent(source.team_id)}&model=${encodeURIComponent(model.id)}`}
                       className="block text-sm underline"
                     >
@@ -217,7 +260,7 @@ export default function ModelAccess({
                   </p>
                   <code className="break-all">{model.name}</code>
                 </div>
-                {example && (
+                {example && selectedSource?.type === 'personal' && (
                   <>
                     <div>
                       <p className="text-sm text-muted-foreground">
@@ -225,7 +268,13 @@ export default function ModelAccess({
                       </p>
                       <code className="break-all text-sm">{authHeader}</code>
                     </div>
-                    <Link to="/keys" className="text-sm underline">
+                    <Link
+                      to="/keys"
+                      className="text-sm underline"
+                      onClick={(event) => {
+                        if (!currentExample()) event.preventDefault()
+                      }}
+                    >
                       {t('memberModels.manageKeys')}
                     </Link>
                   </>
@@ -240,18 +289,61 @@ export default function ModelAccess({
                   {t('common.copy')}
                 </Button>
               </div>
-              {protocols.length > 1 && (
+              {model.sources.length > 0 && (
+                <label className="flex items-center gap-3 px-4 pt-4 text-sm">
+                  {t('memberModels.exampleSource')}
+                  <select
+                    aria-label={t('memberModels.exampleSource')}
+                    value={exampleSource ?? ''}
+                    onChange={(event) => {
+                      setExampleSource(event.target.value)
+                      const source = model.sources.find(
+                        (source) => modelSourceKey(source) === event.target.value,
+                      )
+                      setExampleProtocol(exampleProtocols(model, source)[0] ?? '')
+                      setNotice(null)
+                    }}
+                    className="h-9 min-w-0 flex-1 rounded-md border bg-background px-3"
+                  >
+                    <option value="">{t('memberModels.chooseExampleSource')}</option>
+                    {exampleSource && !selectedSource && (
+                      <option value={exampleSource}>
+                        {t('memberModels.exampleSourceUnavailable')}
+                      </option>
+                    )}
+                    {model.sources.map((source) => (
+                      <option key={modelSourceKey(source)} value={modelSourceKey(source)}>
+                        {source.type === 'personal'
+                          ? t('memberModels.personalGrant')
+                          : t('memberModels.teamExampleSource', { name: source.team_name })}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              )}
+              {selectedSource?.type === 'team' && example && (
+                <p className="px-4 pt-4 text-sm text-muted-foreground">
+                  {t('memberModels.teamExampleGuidance')}
+                </p>
+              )}
+              {(protocols.length > 1 ||
+                (selectedSource?.type === 'team' && protocols.length > 0) ||
+                (protocols.length > 0 && !activeProtocol)) && (
                 <label className="flex items-center gap-3 px-4 pt-4 text-sm">
                   {t('common.protocolType')}
                   <select
                     aria-label={t('common.protocolType')}
-                    value={activeProtocol}
+                    disabled={!selectedSource}
+                    value={activeProtocol ?? ''}
                     onChange={(event) => {
                       setExampleProtocol(event.target.value)
                       setNotice(null)
                     }}
                     className="h-9 rounded-md border bg-background px-3"
                   >
+                    {!activeProtocol && (
+                      <option value="">{t('memberModels.chooseExampleProtocol')}</option>
+                    )}
                     {protocols.map((protocol) => (
                       <option key={protocol} value={protocol}>
                         {protocolLabel(protocol)}
@@ -260,9 +352,21 @@ export default function ModelAccess({
                   </select>
                 </label>
               )}
-              {!activeProtocol ? (
+              {!selectedSource && model.sources.length > 0 ? (
                 <p role="status" className="p-4 text-sm text-muted-foreground">
-                  {t('memberModels.protocolUnavailable')}
+                  {t(
+                    exampleSource
+                      ? 'memberModels.exampleSourceUnavailable'
+                      : 'memberModels.chooseExampleSource',
+                  )}
+                </p>
+              ) : !activeProtocol ? (
+                <p role="status" className="p-4 text-sm text-muted-foreground">
+                  {t(
+                    protocols.length
+                      ? 'memberModels.chooseExampleProtocol'
+                      : 'memberModels.protocolUnavailable',
+                  )}
                 </p>
               ) : !invocationAvailable ? (
                 <p role="status" className="p-4 text-sm text-muted-foreground">
@@ -276,9 +380,9 @@ export default function ModelAccess({
                 <pre className="overflow-auto p-4 text-xs leading-6">{example}</pre>
               )}
             </section>
-            {notice && (
+            {notice && notice.generation === generation && notice.example === example && (
               <p role="status" className="text-sm">
-                {t(notice)}
+                {t(notice.value)}
               </p>
             )}
           </>

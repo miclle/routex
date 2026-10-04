@@ -410,9 +410,12 @@ Each record contains only `id`, current `name`, `status`, authoritative UTC
 `created_at`, eligible native `protocols`, per-protocol `input_capabilities`,
 `personal_available` and `sources`. Personal sources have null Team fields and
 `invocation_supported: true` for the implemented personal authentication path.
-Team sources contain their authorized Team ID/name and
-`invocation_supported: false`; Team visibility does not implement native Team
-execution. Personal availability requires a direct grant and an eligible route,
+Team sources contain their authorized Team ID/name and independently ready
+`invocation_protocols`; input capabilities remain on the Model's per-protocol map.
+`invocation_supported: false` preserves the Personal Key separation; it does not
+mean the Team's native Session paths are unavailable. Current Team execution still
+requires exact enabled Session/User/membership authority and native admission.
+Personal availability requires a direct grant and an eligible route,
 and does not promise that a particular Key, quota or request will be accepted.
 No Provider topology, credentials, global member counts, price assumption or
 other users' grants appear.
@@ -434,8 +437,9 @@ capability filters are conjunctive; name search is literal. Two source labels an
 an all-source overflow preserve the exact deduplicated source set. Team sources
 never imply a Team Key. Drawer data comes from an independently authorized
 actor/model query, never from the list as a permission fallback; cached detail
-is hidden during refresh, error or revoked access. Working native examples and
-Key navigation require confirmed current personal availability. Historical
+is hidden during refresh, error or revoked access. Native examples require the
+explicit currently available Personal or Team source and its ready protocol;
+Key navigation requires confirmed current personal availability. Historical
 creation time is known; route-dependent prices and global member/request facts
 remain unknown where the layout displays them.
 
@@ -451,9 +455,10 @@ A disposable production process with PostgreSQL and a controlled native upstream
 passed browser source overflow, ready Team-only denial, Personal native examples,
 authorization revocation with fresh inaccessible details, image filtering, table
 composition and English/Chinese switching. No console errors were recorded.
-Owned test processes, tab and Compose resources were removed. Personal/Team model
-permission requests, explicit Team invocation and broader price/usage contracts
-remain unfinished; full F19 and external-provider acceptance are not established.
+Owned test processes, tab and Compose resources were removed. At that directory
+checkpoint, Personal/Team requests and explicit Team invocation were unfinished;
+later sections record those implementations. Broader price/usage, full F19 and
+external-provider acceptance remain independent.
 
 The complete PostgreSQL/MySQL race integration matrix also passed (Handler
 488.717 seconds, Service 5.727 seconds). This does not establish external-provider
@@ -556,5 +561,67 @@ includes current encrypted-credential identity, without exposing secrets.
 | POST | `/api/v1/admin/connections/:connection_id/model-creation` | Confirmed atomic creation |
 | GET | `/api/v1/admin/model-creation/receipts/:request_id` | Authorized historical receipt/current proof |
 
-This phase is integrated for final main source and serial real acceptance.
-Prepared worktree tests do not establish running-main or external-provider proof.
+Guided creation was delivered on main `4fed603` after source, dual-driver,
+production/browser/native/restart and complete regression acceptance. External
+provider and wider Model capability acceptance remain independent.
+
+
+## Explicit-source member examples
+
+The existing card/table, 520px Model drawer, connection settings, inline cURL
+example and model-request footer are retained. The example source selector is
+independent of the catalogue filter. One source may initialize the selection;
+multiple sources require an explicit choice. A removed source stays unavailable
+and a protocol that loses readiness requires explicit reselection. No Personal
+or Team fallback is selected silently. Responses-only, Messages-only and
+Gemini-only Team sources use their own ready protocol subsets. The Gemini public
+name guard remains in effect.
+
+Personal examples retain their native Key environment-variable authentication.
+Team examples use the exact selected Team and the existing standalone text
+snippet builder. Its descriptor contains only origin, protocol, public Model name,
+settings and sample text; no live Key, browser Session/CSRF, account credentials
+or attachments. Running the Team program signs in separately using ROUTEX_EMAIL
+and ROUTEX_PASSWORD, verifies a current authenticated Session/CSRF, then sends one
+Team-native request. cURL requires Python 3 standard-library bootstrap. Login
+HTTP 202, redirects or failed/malformed authority stop before inference. Merely
+generating or copying an example performs no network or grant operation.
+
+One catalogue Session observer uses successful network generations. List, request
+discovery and exact detail queries include actor/generation, with detail also
+including the Model ID. Structurally identical same-millisecond Session renewal
+still requires renewed resource reads; manual same-actor CSRF cache replacement
+does not create a renewal. Obsolete reads are canceled, private facts/actions
+are hidden during renewal/errors, and synchronous authority guards protect copy
+and navigation. Late clipboard completion cannot restore an obsolete notice;
+an already issued clipboard operation cannot be undone. Actor changes clear
+selection, history and private filters. Incidental same-actor/Model renewal keeps
+mounted request captures without replay. Successful Personal requests invalidate
+only the complete actor/Model candidate-drawer prefix, including its generations.
+
+The API client validates complete bounded records, exact requested Model identity,
+typed distinct Personal/Team sources, safe persisted IDs, timestamps and native
+protocol/capability shapes, and discards unexpected fields before caching. It
+accepts safe legacy IDs without assuming modern prefixes. No global Team, Provider,
+Key, member or price directory is fetched; unrecorded price/usage/member facts
+remain unknown. This candidate changes no backend route, migration, grant or
+Key ceiling.
+
+This eleven-path frontend delivery passed format, mandatory check, full tests
+(2035 Vitest cases in 109 files, Go race/unit, Node development lifecycle and
+production assets) and the embedded production build on baseline `4fed603`.
+Four actual browser clipboard programs matched the current builder byte-for-byte
+and executed four independent native Team requests. Exactly four immutable
+completed calls/attempts retained their original Team/User/membership and exact
+Credential/Provider-model/Connection/snapshot through protocol, grant and
+membership removal/rejoin and a same-artifact process restart. No Personal call,
+browser inference or model-request create occurred; no price was invented.
+
+Default English, reopened Chinese guidance, multiple-source selection, current
+minute Session reads, disabled stale examples and second-actor cache isolation
+passed the actual browser scenario. Live-language draft retention and
+same-millisecond generation/callback races remain focused regression evidence.
+All owned services, Compose resources and the browser tab were removed. Backend
+code and migrations are unchanged from the separately accepted `4fed603`
+PostgreSQL/MySQL matrix; no redundant full database run is claimed. Broader F19
+price/usage/overview and external-provider acceptance remain open.

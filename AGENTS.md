@@ -298,10 +298,27 @@ Member source visibility uses actor-scoped `model-catalog` queries, separate fro
 the direct personal `/models` Key selector. Deduplicate models and actual sources;
 Team visibility never grants Personal Key or Team invocation authority. Keep
 conjunctive literal/source/protocol/explicit image-PDF filters, two-plus-all source
-labels, and the existing card/table/520px drawer. Detail cache keys include actor
-and Model IDs; hide cached records during refresh, errors or revocation. Enable
-examples and Key navigation only after current personal availability is confirmed.
-Render missing price/member/request facts as unknown, with paired catalog copy.
+labels, and the existing card/table/520px drawer. List, discovery and detail cache
+keys include the current actor and successful Session network generation; detail
+also includes the exact Model. Cancel obsolete reads and hide private facts/actions
+during renewal, errors or revocation. Key navigation requires confirmed current
+personal availability. Render missing price/member/request facts as unknown.
+
+Member Model examples select an exact Personal or named Team source separately
+from list filters. A sole source may initialize the selector; multiple sources
+require an explicit choice. Use the selected source's ready native protocols,
+including non-Chat Team sources. Removed sources or unavailable protocols require
+explicit reselection without fallback. Team cURL examples use the existing
+standalone builder with nonsecret request data only, sign in separately through
+execution-time ROUTEX_EMAIL/ROUTEX_PASSWORD, require Python 3 standard-library
+bootstrap, and stop on login challenges. Never export a browser Session/CSRF or
+accept a live Key. Generation/copying performs no login, inference or grant write.
+Guard copy/navigation synchronously against current authority; late clipboard
+completion cannot restore stale notices. Manual same-actor CSRF cache replacement
+is not a successful network renewal. Preserve actor/Model-scoped request captures
+through incidental renewal without replay; actor/Model changes destroy them.
+Invalidate generation-suffixed candidate drawers by their complete actor/Model
+prefix. Keep all visible example guidance in the paired catalog translations.
 
 
 Monthly quota exhaustion uses the existing notification menu and recipient-scoped
