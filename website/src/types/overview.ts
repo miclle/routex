@@ -75,3 +75,51 @@ export interface UpdateOperationalAlertInput {
   state: Exclude<OperationalAlertState, 'open'>
   etag: string
 }
+
+export interface OverviewAccountUsage {
+  as_of: string
+  time_zone: string
+  month_start: string
+  month_end: string
+  covered: boolean
+  tokens_used: string
+  tokens_held: string
+  tokens_unknown: string
+  money_used: Record<string, string>
+  money_held: Record<string, string>
+  money_unknown: string
+}
+
+export interface MonthlyAccount {
+  account_id: string
+  policy_etag: string
+  tokens_month: string | null
+  money_month: string | null
+  currency: string | null
+  runtime_applied: boolean
+  usage_status: 'active' | 'inactive' | 'unavailable'
+  usage: OverviewAccountUsage | null
+  active_reservations: OverviewActiveReservations | null
+}
+
+export interface OverviewActiveReservations {
+  tokens_held: string
+  money_held: Record<string, string>
+}
+
+export interface OverviewTeamAccount {
+  id: string
+  name: string
+  membership_id: string
+  aggregate: MonthlyAccount
+  member: MonthlyAccount
+}
+
+export interface OverviewAccountsPage {
+  actor_user_id: string
+  observed_at: string
+  platform_currency: string
+  personal: MonthlyAccount
+  teams: OverviewTeamAccount[]
+  next_cursor: string | null
+}

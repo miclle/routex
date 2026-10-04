@@ -3,7 +3,7 @@
 - **Status:** implementation active; prioritize partially completed capabilities
 - **Updated:** 2026-10-04
 - **Repository / branch:** RouteX / `main`
-- **Previous checked baseline:** `2fc39b18561e49dd1ee6c74c85d7fdb487f3e848`, pushed and read back from `origin/main`
+- **Previous checked baseline:** `32643a86d7a272166456f0fa86d3113c4320ff0c`, pushed and read back from `origin/main`
 - **Current owner:** coordinator owns integration, actual runtime acceptance and delivery; parallel owners prepare isolated source and fixtures
 - **Transport:** identify the current checked delivery with `git log -1 -- docs/current-work-handoff.md` and independently verify its upstream
 - **Roadmap:** [Implementation and acceptance index](IMPLEMENTATION.md); cross-task coordination is maintained separately in `~/dotfiles/projects/routex/implementation-plan.md`
@@ -40,6 +40,7 @@ Never claim runtime enforcement from persistence alone.
 | `3e8a159` | Model route base prices | Full local checks, 1207 frontend cases, complete PostgreSQL/MySQL matrix and controlled bilingual production browser/restart/revocation proof passed |
 | `81f4697` | Team native comparison and Key/Team native finality | Full local checks, 1345 cases, complete PostgreSQL/MySQL matrix and controlled bilingual native/cancellation/restart/revocation proof passed |
 | `2fc39b1` | Final F07 Project lists/navigation | Full check/test, 1365 frontend cases, complete PostgreSQL/MySQL matrix and controlled bilingual filter/permission/alias/restart proof passed |
+| `32643a8` | Team request code and Reset | Final main check/test/build, 1521 frontend cases, independent generated programs and controlled renewal/revocation/restart proof; all exact remote checks passed |
 
 The complete initial-resource matrix passed with Handler 971.977 seconds and
 Service 7.062 seconds. Earlier failed fixture runs are recorded in the acceptance
@@ -112,7 +113,7 @@ diffs because each contains carried baselines and shared harness/rule files.
 | `team-session-code` | Frozen independent Team-native code builders, conversation/comparison dialogs, parameter Reset and finality tests | Final main check/test/build passed 1521 cases/88 files; separate actual24 generated programs and final9 browser calls passed; final Session renewal/revocation/restart accepted |
 | `team-native-attachments` | Creator-private Team media source frozen; V46/runtime source passed race/lint, interface passed 497 focused cases; acceptance fixtures, English docs and controlled browser helper are frozen | Renewal candidate passed 1557 cases/89 files; V46 migration passed both drivers, corrected lifecycle focus runs; browser acceptance remains |
 | `model-supply-status` | Four frozen files listed above | Checked local delivery; inspect exact new-main remote checks |
-| `team-quota-notifications` | Frozen F17 Team aggregate monthly settled-exhaustion observer/inbox source and fixtures; V47 follows V46 | Full carried-source check/test/build passed 1234 cases in 80 files; exact current recipients, immutable history and actual driver/browser acceptance remain |
+| `team-quota-notifications` | Frozen F17 Team aggregate monthly settled-exhaustion observer/inbox source and fixtures; V47 follows V46 | Focused actual driver lifecycle and V47 passed; renewed source check/test/build passed 1237 cases/81 files; controlled browser and main acceptance remain |
 
 Project list completion is the bounded remaining F07 package: total retained
 Project Key records in both lists; configured monthly Tokens/money/currency/RPM/TPM
@@ -126,7 +127,7 @@ composer, transient Session authority, individual cancellation and completed tex
 history. Team media remains unfinished. Final code export and Reset candidate
 passed current-main check/test/build with 1521 cases in 88 files and controlled
 production/browser acceptance. The media renewal candidate passed 1557 cases in
-89 files; corrected actual lifecycle/storage acceptance remains pending. A native
+89 files; corrected actual lifecycle/storage focus passed in 76.817 seconds; controlled browser and main acceptance remain pending. A native
 401 requires an active authoritative no-store Session probe before logout;
 upstream rejection does not establish Session expiry. The conversation Key path
 uses the same native finality/history/export criteria.
@@ -137,22 +138,26 @@ uses the same native finality/history/export criteria.
    files, complete check/test/build, nine new browser native calls, automatic
    Session renewal cleanup, bilingual controls, revocation/restart without replay
    and owned-resource cleanup. The unchanged builder has separate earlier actual
-   proof from 24 programs. Deliver the 22 scoped paths after final check and
-   exact staged-diff review; then inspect exact remote checks.
-2. Creator-private Team media final fixture focus runs as session 75185, log
-   `/tmp/routex-team-media-valid-input-focus.log`. The fixture now uses a real
-   validated 1×1 PNG, atomic 50/50 intersection weights and restoration to 100;
-   no production validation or runtime guard changed. Its interface renewal
-   candidate passed full check/test/build at 1557 cases/89 files; current binary
-   `/tmp/routex-team-media-renewal-qa-bin` is the browser target.
-3. Team monthly notification first focus failed its test reservation ceiling;
-   both migrations and existing siblings passed. Corrected source is frozen;
-   repair the browser helper's matching conservative reservation margin and run
-   actual driver/browser proof serially after owned media cleanup.
-4. F07 remains delivered at `2fc39b1`; CI 37160231402 is pending while Actionlint
-   and GolangCI-Lint passed. Member Overview source is frozen at 1398 cases/83
-   files; `/tmp/routex-member-overview-focus.sh` is prepared, actual acceptance
-   remains pending.
+   proof from 24 programs. Delivered and read back as `32643a8`; Actionlint 37161943329 and
+   GolangCI-Lint 37161943298 and CI 37161943372 all passed for the exact delivered source.
+2. Creator-private Team media source remains frozen; the latest actual focus
+   failed at the legitimate creator DELETE. Named diagnostics located an
+   initialized GORM locking-query state leak across User/Team/member reads.
+   Both V46 migration cases passed. The fresh-Session query clone preserves locks/context and exact guards; its
+   real authorizer regression demonstrated red/green on both dialect adapters.
+   The rebuilt clone candidate passed complete check/test/build at 1557 cases/89
+   files. Root-only lifecycle and V46 focus passed on both drivers in 76.817 seconds; controlled browser proof and main acceptance remain.
+3. Team monthly notifications now passed the complete focused PostgreSQL/MySQL
+   lifecycle and V47 cases (Handler 109.108 seconds), including both existing
+   siblings. The inbox Session-renewal repair passed isolated check/test/build,
+   1237 frontend cases/81 files and meaningful same-data/same-millisecond renewal
+   regressions. Controlled browser proof and main integration remain pending.
+4. F07 remains delivered at `2fc39b1`; all exact remote checks passed. Member
+   Overview's updated source passed 1408 cases/83 files and complete isolated
+   check/test/build. Its cold calendar read is repaired; actual fixtures then
+   exposed an overlong test price ID and an omitted blocked history row. The
+   final focused lifecycle passed on both drivers in 82.517 seconds. Integrated
+   main check/test/build passed 1584 frontend cases/90 files. Controlled production browser proof now passed, including unknown usage, current membership removal/rejoin and real-process restart with no replay. The complete main matrix passed with Handler 1091.619 seconds and Service 7.953 seconds; final mandatory check passed. This phase is ready for its checked main delivery.
 5. Update the external coordinator separately, preserving unrelated dotfiles
    changes. Continue partial capabilities without pausing the full objective.
 
@@ -195,3 +200,39 @@ modes; they are not counted as the final browser calls. The complete Project
 backend matrix remains valid because this phase changes only frontend and docs.
 All owned actual resources were removed. Media lifecycle proof follows serially;
 member Overview source is frozen with isolated full gates, actual proof pending.
+
+## Parallel next member Overview slice
+
+The isolated `member-overview-usage` worktree carries the monthly-account baseline
+without delivering it separately. Three source owners prepare server-clock `30d`
+report support, the approved three cards/Token trend/Model-Key breakdown and a
+fresh database acceptance fixture. The range is exactly the preceding 720 hours;
+calendar buckets preserve partial edges. Reads stay Personal-only and reuse the
+existing complete-query bounds, exact decimal strings and unknown coverage.
+The existing inclusive success-rate denominator remains authoritative and is
+explained in both languages. No actual database/app/browser work runs there.
+Full isolated check/test/build now passed 1625 frontend cases in 93 files,
+Go race, development lifecycle and production assets. Package/lock baselines
+are unchanged. This is source evidence; the fresh actual-driver fixture and
+production browser acceptance remain pending. The coordinator's current actual
+monthly-account complete PostgreSQL/MySQL matrix has passed; its owned resources
+were removed. The next actual gate is the already-frozen Team media package,
+carried by exact source paths and narrow shared merges before rebuilt-main
+controlled browser proof and complete database regression.
+
+## Checked monthly-account delivery
+
+The current bounded phase adds the self-only monthly-account handler/service,
+coherent journal batch, Home account table, exact API types/validation, paired
+catalogs and source/driver fixtures. Source manifest is those new monthly-account
+files plus `handler.go`, `auth_integration_test.go`, `api/overview.ts`,
+`types/overview.ts`, `i18n/index.ts` and `views/home/index.tsx`. The paired frontend
+rules, README, Usage link, Member Overview contract, acceptance index and handoff
+ship together. Team code evidence is refreshed without changing that source.
+
+All required local gates passed: check, test (1584 frontend cases/90 files), build,
+complete PostgreSQL/MySQL integration (Handler 1091.619 seconds, Service 7.953
+seconds), focused actual lifecycle, controlled production browser and final check.
+No schema or identity-persistence change belongs to this phase. Exact remote
+checks must be inspected after this document's commit is pushed; preceding source
+checks do not prove the next commit. The full objective remains active.

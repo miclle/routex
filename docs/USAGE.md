@@ -82,3 +82,12 @@ the same totals with authorized provider groups and no fabricated Key controls.
 Owned browser/process/config/journal/Compose resources were removed. This evidence
 does not establish measured capacity, external providers or complete release
 acceptance; F22 remains partial.
+
+## Member monthly account Overview
+
+The self-only [member Overview](MEMBER_OVERVIEW.md) reads current monthly quota
+accounts separately from immutable usage-report aggregates. It preserves Personal,
+Team aggregate and the current member's stable Team/User account as distinct
+scopes. Live reservations and monthly settled/retained amounts are separate,
+coherent journal facts. Its links open the existing Personal or exact Team report;
+it never turns a report into remaining allowance or runtime enforcement proof.

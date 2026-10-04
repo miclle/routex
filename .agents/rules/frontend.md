@@ -471,3 +471,16 @@ completed history and captured code, abort pending inference, preserve unsent
 drafts, and require explicit model rediscovery. Observe the existing Session query
 without creating an additional network observer. Manual same-actor CSRF cache
 replacement is not a Team authority renewal and preserves completed history.
+
+Member Overview keeps the approved identity header and monthly account table.
+The self-only /overview/accounts endpoint exposes bounded current Personal and
+Team accounts, with separate aggregate and stable Team/User member policies.
+Preserve exact decimal strings, null versus zero, recorded currency, runtime
+application, coverage and unknown usage. Monthly settled/retained facts and live
+active_reservations are separate snapshots from the same coherent batch; never
+add them or infer a remaining allowance. Only covered, known settled usage with
+a positive finite Token cap may produce a percentage. Reauthorize the Session on
+mount and every completed read, hide private rows/actions during refresh/error,
+and ignore obsolete actor/generation pages. Keep usage links scoped and paired
+overview translations; never fetch resource/model/member directories to fill the
+monthly table.

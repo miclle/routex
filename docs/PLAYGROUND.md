@@ -208,8 +208,11 @@ Focused generated-program, dialog, conversation, comparison, parameter and
 finality tests cover ordinary/SSE behavior, all four protocols, independent login,
 MFA/authentication denial, redirects, private credentials, completed-history
 exclusion, explicit renewal, Reset without dispatch and live language switching.
-Full combined frontend acceptance passed 1495 cases in 86 files and four Node
-checks; actual backend/generated-program/browser acceptance remains pending.
+Final main check/test/build passed 1521 frontend cases in 88 files and four Node
+checks. Controlled acceptance separately executed 24 generated programs and nine
+final rebuilt-browser calls, including automatic Session renewal, bilingual
+controls, revocation and restart without replay. External-provider acceptance
+remains independent.
 
 
 Team authority renewal observes every successful network Session read, including

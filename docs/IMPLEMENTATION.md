@@ -169,8 +169,8 @@ The binary capability count is 11 completed, 16 partially completed, and 3 not s
 | F16 | Platform currency, exchange rates, and historical price snapshots | Completed | Decimal-string currency/rate management, exact quoting, and immutable per-call assessment are implemented. |
 | F17 | User and Team defaults, overrides, budgets, alerts, and stop policy | Partially completed | Personal, Project, Key and Team aggregate/member enforcement plus budget/token/TPM controls, authoritative quota snapshots, and installation-calendar configuration exist; current-policy Personal/Project monthly settled-exhaustion inboxes have focused acceptance, and creation-default settings and explicit restores have complete local acceptance; templates, broader alerts, and configurable stop-calling policy remain open. |
 | F18 | Quota, model, and request-limit approvals | Completed | Project model/monthly quota/RPM/TPM/concurrency and Team monthly Token/money requests have controlled acceptance: owner-first assignment, escalation, independent dimensions, read-only platform records, atomic final policies and immutable receipts with current application. Distributed acknowledgements belong to F30; release-wide acceptance remains separate. |
-| F19 | Member overview, model sources, requests, and examples | Partially completed | Actor-scoped Personal/Team source attribution, native metadata, filters, details and examples are available; Project requests and four text-only native Team Session protocols exist; Personal single-Model requests and independent scoped review are available; Shared Team model requests and independently scoped review are available; Two-to-four native Team text comparison lanes are implemented; Team media/code export and broader overview/price/usage facts remain open. |
-| F20 | Playground, comparison, attachments, and code examples | Partially completed | Four native conversation paths, two-to-four-lane comparison, cancellation, executable examples, per-protocol image/PDF discovery, user/Project attachment resolution, single/comparison attachment lifecycle interfaces, and conservative token/TPM/money admission with exact per-occurrence media prices exist; Team text comparison is implemented, while Team attachments/code export and parameter reset remain separate active packages; external acceptance remains open. |
+| F19 | Member overview, model sources, requests, and examples | Partially completed | Actor-scoped Personal/Team source attribution, native metadata, filters, details and examples are available; Project requests and four text-only native Team Session protocols exist; Personal single-Model requests and independent scoped review are available; Shared Team model requests and independently scoped review are available; Two-to-four native Team text comparison lanes are implemented; Independent Team native code export is accepted; self-only monthly Overview accounts have complete local source, database and controlled browser acceptance; Team media and broader overview/price/usage facts remain open. |
+| F20 | Playground, comparison, attachments, and code examples | Partially completed | Four native conversation paths, two-to-four-lane comparison, cancellation, executable examples, per-protocol image/PDF discovery, user/Project attachment resolution, single/comparison attachment lifecycle interfaces, and conservative token/TPM/money admission with exact per-occurrence media prices exist; Team text comparison, independent native code export and parameter Reset are accepted; creator-private Team attachments remain an active package and external acceptance remains open. |
 | F21 | Personal, Project, and platform call records and CSV | Completed | Isolated list/detail queries, incremental loading, redacted drawers, bounded server-side CSV export, filter parity, formula protection, and bilingual download actions are implemented with dual-database evidence. |
 | F22 | Usage trends, amounts, and multidimensional filters | Partially completed | Personal, Team, Project and platform usage interfaces plus immutable Provider attribution exist. Current-member Team aggregation, independent historical platform filters, revocation-safe interfaces and controlled replay/restart are accepted; complete freshness/capacity acceptance remains open. |
 | F23 | Operations overview, quality, alerts, and notifications | Partially completed | The real-data operations overview, immutable Provider-attempt quality, revisioned success/P95 thresholds, grouped Provider-quality and route-unavailable alerts, recipient-isolated history, independent severity settings, and bounded durable operational SMTP delivery are implemented. Current-policy Personal/Project monthly settled-exhaustion inboxes have focused acceptance; external mail acceptance, bounce/inbox tracking, real-Provider quality acceptance, and broader quota/enterprise sources remain open. |
@@ -2457,3 +2457,118 @@ requests. These program calls are not counted as the nine final browser calls.
 No database schema or backend behavior changed, so the completed F07 full
 PostgreSQL/MySQL regression remains the backend baseline for this frontend phase.
 Team attachments and broader capability acceptance remain independently pending.
+
+### Team code/Reset remote delivery, 2026-10-04
+
+`32643a86d7a272166456f0fa86d3113c4320ff0c` is pushed and independently
+read back from main. Actionlint 37161943329 and GolangCI-Lint 37161943298 passed;
+CI 37161943372 is running. F07 exact CI 37160231402 also passed, completing all
+remote checks for that delivery. Formal totals remain 11 complete/16 partial/
+three unstarted; this closes bounded F19/F20 gaps, not the full capabilities.
+
+### Team media native-bound focus, 2026-10-04
+
+The download-corrected focus passed V46 migration on both drivers but failed a
+Messages native-media success with quota_request_unsupported. Download
+privacy now checks the actual private,no-store contract and semantic disposition.
+The bounded native payload/attestation path is being diagnosed; no inference
+retries or production bound exceptions are introduced. Notification hold checks
+now distinguish Active reservations from monthly settled counters; its third
+actual focus has reached notification snapshot checks and is still pending.
+
+### Member Overview first driver focus, 2026-10-04
+
+The first seven-case actual focus failed (Handler 156.941 seconds) on both drivers
+at the new cold Overview read. All six existing sibling fixtures passed per
+driver. The new calendar projection selected nonexistent `etag`; the frozen
+GORM field maps to `e_tag`. The new service is being corrected through model
+field projection, with a regression and unchanged historical schema.
+
+Live reservations belong to the coherent journal Active snapshot, while monthly
+usage represents its separate Month snapshot. The unreleased Overview DTO now
+adds nullable active_reservations alongside monthly usage, preserving exact
+Tokens and currency-grouped decimal money without merging counters or inventing
+remaining allowance. Interface, strict API validation and actual hold assertions
+are updated together. Inactive/unavailable counters remain unknown.
+
+### Active acceptance checkpoint, 2026-10-04
+
+Exact Team code/Reset source `32643a8` now has green CI 37161943372,
+Actionlint 37161943329 and GolangCI-Lint 37161943298.
+
+The Team monthly notification focus passed on both supported databases, with
+Handler 109.108 seconds, after preserving the conservative reservation margin,
+separate active/Month facts and raw persisted policy revision. Existing monthly
+notice and Team gateway siblings also passed. The renewed inbox candidate passed
+check/test/build with 1237 frontend cases/81 files; controlled browser and main
+acceptance remain pending.
+
+Member Overview's updated isolated check/test/build passed 1408 frontend cases
+in 83 files. Its next actual run failed on a fixture-only price ID longer than
+30 characters; all six siblings passed on each driver (Handler 168.884 seconds).
+Canonical short fixture IDs are restored. The subsequent PostgreSQL proof reached
+immutable history and correctly returned the previously blocked zero-quota call
+alongside two successes. The fixture must assert all three facts; this failed run
+is not acceptance. Monthly settled counters and live active reservations stay
+separate throughout.
+
+Team attachment actual lifecycle remains blocked by the final secondary-Team
+creator content GET returning 404 (Handler 68.215 seconds). V46 migration passed
+both drivers. Exact object/current-authority diagnostics are added to the fixture;
+production ownership, lifetime and download guards remain unchanged.
+
+### Member Overview focused lifecycle and Team media repair, 2026-10-04
+
+The final member Overview fixture passed both supported databases with Handler
+82.517 seconds. It retains the quota-denial row, native completion/attempt proof,
+coherent settled versus active reservations, exact retained relationships,
+bounded query counts, unavailable/stale authority, stable rejoin and restart.
+A full-width ID whose excess space is discarded by storage remains canonical;
+the fixture independently distinguishes normalization from retained-alias denial.
+Integrated main check/test/build passed 1584 frontend cases/90 files. Initial
+controlled browser proof confirmed bilingual tables, decimal amounts, exact
+Personal/Team links, ten-plus-one pagination and separate live holds/settlement.
+Its subsequent unknown-call helper omitted a durable admission-denial row and
+failed its own history count; the repaired helper must complete before browser
+acceptance. Complete main integration also remains pending.
+
+Named Team attachment stages corrected the earlier failure-location hypothesis:
+the actual 404 was the legitimate fresh-draft DELETE, not the later secondary-Team
+GET. A locked initialized GORM handle retained the User model/predicates across
+Team/member reads. A fresh Session clone now preserves context and locking while
+isolating each exact query. The real authorizer dry-run regression demonstrated
+the defect then passed both dialect adapters. Full candidate check/test/build
+passed 1557 frontend cases/89 files, service/handler race and assets. Production
+creator, current membership, lifetime and remote-read guards remain intact.
+Actual lifecycle and browser acceptance follow serially.
+
+Team attachment repaired full lifecycle and V46 migration focus passed on both
+supported databases (Handler 76.817 seconds). The legitimate creator DELETE now
+returns 200 while denial, exact creator/current membership, native four-protocol
+media, post-I/O revocation, finite/concurrent admission, stable usage, restart,
+immutable expiry and cleanup assertions remain intact. Full main integration and
+controlled browser acceptance remain pending.
+
+### Member Overview controlled browser checkpoint, 2026-10-04
+
+The final controlled integrated-binary run passed English/Chinese account display,
+explicit unknown coverage, current removal/rejoin and real-process restart with
+zero replay. Five actual native dispatches remain separate from a durable denied
+call with zero attempts/upstream dispatch. Exact administrator detail verifies
+the denial; list DTOs intentionally omit that diagnostic. Earlier helper failures
+and operator-delayed holds are retained as failed runs. Separate same-binary
+positive hold/settlement and pagination/link proof remains valid. English was
+restored, browser warning/error logs were empty and owned resources were removed.
+The complete main PostgreSQL/MySQL matrix is now running. F19 remains partial;
+near-term parallel source prepares the thirty-day cards/trend/Model-Key breakdown.
+
+### Checked monthly member Overview package, 2026-10-04
+
+The complete main PostgreSQL/MySQL race matrix passed with Handler 1091.619
+seconds and Service 7.953 seconds. Final mandatory check passed; frontend
+formatting/types/lint, 1584 cases/90 files, Go race, development lifecycle and
+production assets were already green. Focused driver and controlled production
+browser evidence is described in [Member Overview](MEMBER_OVERVIEW.md). Owned
+resources were removed. Deliver source, fixtures, paired catalogs and current
+contracts together; thirty-day cards/trend/breakdown, Team media and the broader
+F19 capability remain partial. No external-provider acceptance is implied.
