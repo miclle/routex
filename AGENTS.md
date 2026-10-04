@@ -674,3 +674,24 @@ global query, observe the document, hide accessibility controls or disable focus
 management. Keep open-popup language switching, both native dismiss actions,
 Escape, reopening, row isolation and StrictMode covered by tests; a changed
 native sibling structure must fail the focused compatibility tests.
+
+Administrative Member Keys remain in the addressable Member detail Keys tab. Use
+the exact Personal-only metadata projection with independent members.read and
+members.keys.disable gates; never fetch a model directory, expose credential
+material or add owner/Project lifecycle controls. Preserve exact-string quota
+counters and currency amounts, monthly coverage and live holds, and shared
+rotation roots without inventing remaining allowance. Review the exact Key and
+strong persistent ETag in the local Base UI danger dialog with a required reason.
+Same-actor/target renewed reads hide private rows/actions/dialogs while retaining
+only the original transient uncertain reason and revision for explicit retry;
+actor/target changes abort obsolete work and destroy that intent. Only the exact
+authorized disable response confirms current disabled runtime state, never an
+original historical operation. Keep paired governance copy.
+
+Row-menu review dialogs may pass the native Base UI Popup `finalFocus` through the
+local Dialog and use the local Menu `triggerRef` for their exact current row.
+Member Key Escape and Cancel return focus only to a connected trigger with fresh
+Session, permission, target and list authority. Skip disconnected or hidden rows
+when authority changes or successful disable refreshes the list; never delay
+private-data hiding or force focus through timers, global queries or stale DOM
+references. Callers without these optional props retain native default behavior.

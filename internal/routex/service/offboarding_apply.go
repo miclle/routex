@@ -181,7 +181,14 @@ func applyOffboarding(tx *gorm.DB, actorID string, inventory *OffboardingInvento
 		if key.Status == entity.KeyRevoked {
 			continue
 		}
-		if err := tx.Model(&entity.APIKey{}).Where("id = ?", key.ID).Update("status", entity.KeyRevoked).Error; err != nil {
+		var stored entity.APIKey
+		if err := tx.Select("id", "user_id", "status").First(&stored, "id = ? AND user_id = ?", key.ID, inventory.UserID).Error; err != nil {
+			return nil, err
+		}
+		if stored.ID != key.ID || stored.UserID != inventory.UserID {
+			return nil, apperrors.ErrNotFound
+		}
+		if err := changePersonalKeyStatus(tx, &stored, entity.KeyRevoked); err != nil {
 			return nil, err
 		}
 		if err := appendAudit(tx, actorID, "key.revoke", "api_key", key.ID); err != nil {

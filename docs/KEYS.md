@@ -37,3 +37,65 @@ Key fields are `id`, `name`, `prefix`, `status`, `model_ids`, `expires_at`, `cre
 `handler/apikey_integration_test.go` and `handler/apikey_rotation_integration_test.go` run in the shared disposable-database harness on PostgreSQL and MySQL. They cover pending rejection, digest-only storage, disclosure boundaries, CSRF, explicit model grants, immediate grant revocation, cancellation, concurrent confirmation and retirement, disabled rotation, expired delivery, ownership, terminal revocation, restart behavior, and audit persistence. Rotation acceptance uses a real native-completed HTTP upstream call. Actual HTTP 200 empty, refused, tool-handoff and output-limit fixtures remain ineligible. Adversarial immutable facts cover wrong-user, wrong-Key, Project-attributed, pre-creation, missing, canceled, failed, nonterminal and raw case-folded evidence. Independent database pools race completion and prove durable, single-audit retirement and historical retry semantics. Frontend tests cover confirmation, cancel/revoke failures, bilingual completion guidance and secret cache isolation.
 
 [Project Keys](PROJECT_KEYS.md) have independent ownership and authorization. Token and money limits, RPM/TPM/concurrency and IP restrictions are implemented through the separate [resource-limits API](RESOURCE_LIMITS.md). External delivery and delivery Profiles remain later work packages. Production gateway authorization uses the immutable runtime snapshot and its bounded lease, with synchronous refresh and denial markers after reductions. Database-backed authentication remains available for service use when runtime snapshots are not started. Key lists retain revoked history; pagination, richer history presentation, and delivery policy configuration remain separate follow-up slices.
+
+## Administrative Member Keys
+
+The addressable Member Keys tab reads retained Personal Key metadata through
+`GET /api/v1/admin/members/:user_id/keys` and its `/:key_id` detail route under
+independent `members.read`. Pages default to 40 rows, accept limits 1–100 and use
+an exact retained subject-owned Key cursor. Complete ancestry resolution is
+bounded to 8192 records; overflow fails explicitly. Project Keys never enter this
+projection, and the real reader is never substituted with the subject owner.
+
+Rows expose safe identity/name, all retained lifecycle states, recorded model
+ceiling IDs, expiration and recorded timestamps, a reviewed ETag, server-owned
+Disable eligibility and last-use coverage. Last use comes only from exact Personal
+subject/Key call facts; it is not native completion evidence. No bearer, digest,
+display prefix, delivery material or raw revision is returned. Model labels use
+already-authorized metadata or stable IDs without fetching a directory.
+
+The limit projection distinguishes stored and effective policy, validated shared
+rotation quota roots, authoritative windows, coverage, known subtotals, unknown
+counts and holds. Usage counters and currency maps remain exact strings; zero,
+null and unavailable data remain distinct. Denomination comes from the scoped
+`platform_currency`. No remaining allowance, lifetime sum or currency conversion
+is inferred. See [Resource limits](RESOURCE_LIMITS.md).
+
+`POST /api/v1/admin/members/:user_id/keys/:key_id/disable` requires independent
+`members.keys.disable`, current Session, same origin, CSRF, JSON `{reason}` and the
+reviewed strong quoted ETag. `members.write` and owner permissions confer no such
+authority. Delegated actors cannot disable their own Key or an administrator
+subject's Key; even administrators require the explicit permission. Only active,
+unexpired Keys of current enabled, non-offboarded subjects can begin this action.
+This tab adds no create, rotate, revoke, reveal or re-enable operation.
+
+Persistent `LifecycleRevision` participates in the ETag alongside exact owner,
+Key, metadata, expiry and ceiling. Product Personal Key state writers advance the
+revision, so re-enable followed by another disable cannot reuse an older active
+review merely because status or timestamp precision matches. A shared publication
+gate serializes these writers through commit and reduction tombstones. Disable
+and its secret-free real-actor audit commit atomically; runtime publication then
+must prove the exact current owner/revision/disabled status under a valid lease.
+The private retained-state proof is separate from the active authentication map.
+
+A confirmed response has exact `user_id`, `id`, `status:"disabled"`, current `etag`,
+`runtime_applied:true` and `confirmation:"current_disabled_state"`. It confirms
+current state, not the original operation or a historical receipt. An authorized
+retry of an already disabled retained target adds no audit; a newer re-enable
+makes the old intent conflict. Publication/proof failure may return 503 after
+commit. Preserve original reason and If-Match across all uncertain or rejected
+retries; a metadata GET, 404 or missing active runtime entry never proves success.
+The UI reviews the exact row in a local danger dialog. A stable actor/subject
+mount retains only transient drafts and uncertain intent during incidental reads
+or errors, while obsolete private rows/actions/dialog remain hidden. Actor/target
+changes and logout destroy that state. It uses current authority on dispatch
+and binds replies to actor, subject, Key and Session generations.
+
+This bounded package has complete local acceptance and awaits commit/push. R2 source checks/build and focused dual-driver migration/lifecycle checks passed.
+The full dual-driver matrix and final mandatory check also passed. Authentication
+lifecycle passed on both drivers. The bounded focus repair now passed rebuilt source checks. Escape/Cancel returns
+focus only to the connected exact currently reviewed row; authority loss or a
+hidden/disconnected trigger skips restoration. Success refresh still invalidates
+the list immediately and does not guarantee row focus. Rebuilt-artifact native/browser/restart acceptance also passed with exact current
+state confirmation and retained immutable history. New remote CI remains unknown. See
+[Implementation evidence](IMPLEMENTATION.md).

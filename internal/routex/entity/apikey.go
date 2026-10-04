@@ -11,6 +11,7 @@ const (
 
 // APIKey holds verification metadata; its bearer value is never persisted.
 type APIKey struct {
+	LifecycleRevision string `gorm:"size:30;not null;default:''"`
 	ID                string `gorm:"primaryKey;size:30"`
 	UserID            string `gorm:"size:30;not null"`
 	Name              string `gorm:"size:100;not null"`

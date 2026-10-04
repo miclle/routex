@@ -22,6 +22,7 @@ The implemented resource/action vocabulary is:
 |---|---|
 | `members.read` | Search and inspect platform members |
 | `members.write` | Create and suspend ordinary members, subject to the restrictions below |
+| `members.keys.disable` | Disable another eligible member's Personal Key under independent subject/lifecycle guards |
 | `roles.read` | Read role definitions and permission metadata |
 | `roles.write` | Protected platform administrator role management |
 | `registration.write` | Protected platform administrator registration policy |
@@ -54,6 +55,9 @@ Paths are relative to `/api/v1`. Mutations use the established same-origin, JSON
 | `PATCH /admin/registration` | `{enabled}` | `{enabled}`; platform administrator |
 | `GET /admin/members` | Optional `q`, `status`, `role`, `limit`, `cursor` | `{items:Member[],next_cursor:string|null}`; `members.read` |
 | `GET /admin/members/:user_id` | None | Member; `members.read` |
+| `GET /admin/members/:user_id/keys` | Optional exact `cursor`, `limit` 1–100 (default 40) | Retained Personal Key page; `members.read` |
+| `GET /admin/members/:user_id/keys/:key_id` | None | Safe reviewed Key/ETag; `members.read` |
+| `POST /admin/members/:user_id/keys/:key_id/disable` | `{reason}`, strong reviewed If-Match | Exact current disabled/runtime confirmation; `members.keys.disable` |
 | `POST /admin/members` | `{email,name,password,role?}` | `201`, Member; `members.write`, with administrator creation restricted |
 | `PATCH /admin/members/:user_id` | `{disabled?,role?}` | Member; `members.write`, subject to target and continuity restrictions |
 | `GET /admin/roles` | None | `{items:Role[],available_permissions:[]}`; `roles.read` |
@@ -107,3 +111,34 @@ review independently of Team directory permissions. A scoped assigned role may
 provide it; ownership alone does not. Reviewers cannot approve themselves.
 [Team Model requests](TEAM_MODEL_REQUESTS.md) preserve immutable decisions,
 same-transaction pending cancellation and shared grants after applicant departure.
+
+## Administrative Personal Key boundary
+
+Member Keys metadata reads retain all Personal lifecycle states, including for
+inactive subjects, but expose no Key secret, digest, prefix or Project Key. They
+resolve exact owner ancestry and recorded Personal last-use facts without calling
+an owner endpoint as the subject. The member page remains `members.read` gated;
+Disable authority is checked independently, including in the service transaction.
+Neither `members.write` nor another user's owner authority implies this action.
+Delegated members cannot target themselves or administrator subjects; inactive or
+offboarded subjects cannot be mutated. Administrators need the explicit permission.
+
+A reviewed active Key ETag includes its persistent lifecycle revision. Disable
+advances that revision with a real-actor typed audit in one governance transaction.
+Every product Personal Key state writer uses the publication gate, preserving
+owner operations while fencing re-enable/status ABA. A reduction tombstone precedes
+refresh; success requires exact current retained owner/revision/disabled proof and
+an unexpired runtime lease. Already-dispatched calls and immutable history remain.
+
+Authorized disabled-target retry reports only `current_disabled_state`, with no
+second audit or claim of original historical commit. A newer re-enable conflicts
+with the old review. Failed publication can leave a committed operation uncertain;
+the UI keeps the original reason/If-Match and does not reconcile from metadata GET
+or 404. [Keys](KEYS.md#administrative-member-keys) documents the row, limits and
+transient confirmation contract. V52 seeds only the built-in administrator's new
+permission; assignment does not transfer ownership or inference access. Integrated R2 source checks/build and focused dual-driver lifecycle/migration
+checks passed. The full dual-driver regression and final mandatory check also passed.
+Authentication lifecycle passed on both drivers. The bounded browser focus correction passed rebuilt source checks and skips
+restoration on lost authority or hidden/disconnected rows. Immediate success
+invalidation remains. Rebuilt-artifact native/browser/restart acceptance passed;
+commit/push and new remote CI remain pending.

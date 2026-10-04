@@ -58,6 +58,7 @@ type runtimeUserProof struct {
 }
 
 type runtimeAuthorization struct {
+	PersonalKeyStates      map[string]runtimePersonalKeyState
 	UserProofs             map[string]runtimeUserProof
 	ProjectCreationStates  map[string]runtimeProjectCreationState
 	PersonalGrantSources   map[string]map[string]string
@@ -482,6 +483,7 @@ func (s *Service) loadRuntimeDataTx(tx *gorm.DB) (*runtimeData, error) {
 
 func buildRuntimeAuthorization(data *runtimeData, until time.Time) *runtimeAuthorization {
 	auth := &runtimeAuthorization{
+		PersonalKeyStates:      runtimeMemberKeyStates(data.Keys),
 		UserProofs:             map[string]runtimeUserProof{},
 		PersonalGrantSources:   map[string]map[string]string{},
 		TeamGrantSources:       map[string]map[string]string{},

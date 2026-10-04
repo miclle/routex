@@ -265,6 +265,8 @@ func (s *Service) CreateOffboardingPlan(ctx context.Context, actorID, userID str
 }
 
 func (s *Service) CompleteOffboarding(ctx context.Context, actorID, userID, caseID string) (*OffboardingCaseRecord, error) {
+	releasePublication := s.pinPersonalKeyMutation()
+	defer releasePublication()
 	var result entity.OffboardingCase
 	var affected []string
 	err := s.authDB(ctx).Transaction(func(tx *gorm.DB) error {
@@ -306,10 +308,12 @@ func (s *Service) CompleteOffboarding(ctx context.Context, actorID, userID, case
 		affected, err = applyOffboarding(tx, actorID, inventory, assignments, &result)
 		return err
 	}, &sql.TxOptions{Isolation: sql.LevelReadCommitted})
-	return s.finishOffboardingMutation(ctx, userID, result, affected, err)
+	return s.finishOffboardingMutation(ctx, userID, result, affected, err, releasePublication)
 }
 
 func (s *Service) EmergencyOffboarding(ctx context.Context, actorID, userID string, input OffboardingEmergencyInput) (*OffboardingCaseRecord, error) {
+	releasePublication := s.pinPersonalKeyMutation()
+	defer releasePublication()
 	input.Reason = strings.TrimSpace(input.Reason)
 	if !safeCallID.MatchString(input.RequestID) || input.Reason == "" || !validResourceDescription(input.Reason) || !validPassword(input.CurrentPassword) {
 		return nil, apperrors.ErrBadRequest
@@ -387,10 +391,10 @@ func (s *Service) EmergencyOffboarding(ctx context.Context, actorID, userID stri
 	if err != nil {
 		return nil, catalogError(err)
 	}
-	return s.finishOffboardingMutation(ctx, userID, *result, affected, nil)
+	return s.finishOffboardingMutation(ctx, userID, *result, affected, nil, releasePublication)
 }
 
-func (s *Service) finishOffboardingMutation(ctx context.Context, userID string, row entity.OffboardingCase, projects []string, err error) (*OffboardingCaseRecord, error) {
+func (s *Service) finishOffboardingMutation(ctx context.Context, userID string, row entity.OffboardingCase, projects []string, err error, releasePublication func()) (*OffboardingCaseRecord, error) {
 	if err != nil {
 		return nil, catalogError(err)
 	}
@@ -398,6 +402,7 @@ func (s *Service) finishOffboardingMutation(ctx context.Context, userID string, 
 	for _, projectID := range projects {
 		s.InvalidateRuntimeProject(projectID)
 	}
+	releasePublication()
 	if err := s.refreshAfterMutation(ctx, nil); err != nil {
 		return nil, err
 	}

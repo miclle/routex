@@ -1,3 +1,4 @@
+import MemberKeys from './member-keys'
 import MemberOverview from './member-overview'
 import { useSessionGeneration } from '@/hooks/use-session-generation'
 import { PersonalModelMemberPanel } from '@/views/personal-model-requests'
@@ -246,32 +247,31 @@ function Members() {
       (role) =>
         current && (role.id === `rol_${current.role}` || current.role_ids.includes(role.id)),
     ) ?? []
-  if (!authorized)
-    return (
-      <Page
-        title={t('common:access_denied_cb8d4')}
-        description={t('common:your_account_does_not_have_permission_to_access_ca6a8')}
-      >
-        <QueryState
-          pending={session.isFetching || access.isPending || access.isFetching}
-          error={session.error || access.error}
-          retry={() => {
-            void session.refetch()
-            void access.refetch()
-          }}
-        />
-        {!session.isFetching &&
-          !access.isPending &&
-          !access.isFetching &&
-          !session.isError &&
-          !access.isError && (
-            <p role="alert" className="text-sm text-muted-foreground">
-              {t('common:your_account_does_not_have_permission_to_access_ca6a8')}
-            </p>
-          )}
-      </Page>
-    )
-  return (
+  const unavailable = (
+    <Page
+      title={t('common:access_denied_cb8d4')}
+      description={t('common:your_account_does_not_have_permission_to_access_ca6a8')}
+    >
+      <QueryState
+        pending={session.isFetching || access.isPending || access.isFetching}
+        error={session.error || access.error}
+        retry={() => {
+          void session.refetch()
+          void access.refetch()
+        }}
+      />
+      {!session.isFetching &&
+        !access.isPending &&
+        !access.isFetching &&
+        !session.isError &&
+        !access.isError && (
+          <p role="alert" className="text-sm text-muted-foreground">
+            {t('common:your_account_does_not_have_permission_to_access_ca6a8')}
+          </p>
+        )}
+    </Page>
+  )
+  const page = (
     <Page
       title={memberId ? t('members.detailTitle') : t('members.title')}
       description={t('members.description')}
@@ -443,6 +443,7 @@ function Members() {
                 value={
                   [
                     'overview',
+                    'keys',
                     'settings',
                     ...(access.can('members.models.write') ? ['models'] : []),
                     ...(access.can('roles.read') ? ['roles'] : []),
@@ -456,6 +457,13 @@ function Members() {
               >
                 <TabsList>
                   <TabsTrigger value="overview">{t('members.overview')}</TabsTrigger>
+                  <TabsTrigger
+                    value="keys"
+                    id={`member-keys-tab-${actor}-${memberId}`}
+                    aria-controls={`member-keys-panel-${actor}-${memberId}`}
+                  >
+                    {t('memberKeys.title')}
+                  </TabsTrigger>
                   {access.can('roles.read') && (
                     <TabsTrigger value="roles">{t('members.rolesTab')}</TabsTrigger>
                   )}
@@ -767,5 +775,28 @@ function Members() {
         </Button>
       </Dialog>
     </Page>
+  )
+  return (
+    <>
+      {authorized ? page : unavailable}
+      {memberId && params.get('tab') === 'keys' && (
+        <section
+          className="mt-6"
+          role="tabpanel"
+          id={`member-keys-panel-${actor}-${memberId}`}
+          aria-labelledby={`member-keys-tab-${actor}-${memberId}`}
+        >
+          <MemberKeys
+            userId={memberId}
+            actorId={session.data?.user.id ?? ''}
+            csrf={session.data?.csrf_token ?? ''}
+            generation={generation}
+            sessionReady={!!actor && !session.isError && !session.isFetching}
+            targetReady={!!current && current.id === memberId}
+            targetQueryKey={['admin', 'member', actor, memberId, generation]}
+          />
+        </section>
+      )}
+    </>
   )
 }

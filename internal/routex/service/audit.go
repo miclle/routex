@@ -82,6 +82,12 @@ func auditRecord(row entity.AuditEvent) AuditRecord {
 	// never become an accidental credential/request-body read API.
 	var changes any
 	switch row.Action {
+	case "member.key.disable":
+		record, valid := memberKeyDisableAuditProjection(row)
+		if !valid {
+			return result
+		}
+		changes = record
 	case "secret_rotation.start", "secret_rotation.resume", "secret_rotation.retire", "secret_rotation.rollback":
 		record, valid := rootRotationAuditProjection(row)
 		if !valid {

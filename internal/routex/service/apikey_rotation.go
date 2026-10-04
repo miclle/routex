@@ -14,6 +14,8 @@ import (
 // CompletePersonalKeyRotation retires an old Key only after a native-completed
 // terminal call made with its delivered replacement. Emergency revocation stays separate.
 func (s *Service) CompletePersonalKeyRotation(ctx context.Context, userID, keyID, replacementID string) error {
+	releasePublication := s.pinPersonalKeyMutation()
+	defer releasePublication()
 	if replacementID == "" || replacementID == keyID {
 		return apperrors.ErrBadRequest
 	}
@@ -67,7 +69,7 @@ func (s *Service) CompletePersonalKeyRotation(ctx context.Context, userID, keyID
 			return errKeyConflict
 		}
 		if old.Status != entity.KeyRevoked {
-			if err := tx.Model(old).Update("status", entity.KeyRevoked).Error; err != nil {
+			if err := changePersonalKeyStatus(tx, old, entity.KeyRevoked); err != nil {
 				return err
 			}
 			if err := appendAudit(tx, userID, "key.revoke", "api_key", keyID); err != nil {
@@ -80,6 +82,7 @@ func (s *Service) CompletePersonalKeyRotation(ctx context.Context, userID, keyID
 	if err == nil {
 		s.InvalidateRuntimeKey(keyID)
 	}
+	releasePublication()
 	return s.refreshAfterMutation(ctx, keyServiceError(err))
 }
 func keyRotationCompleted(tx *gorm.DB, action, resourceType, replacementID string) (bool, error) {

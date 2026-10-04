@@ -96,6 +96,8 @@ func keyServiceError(err error) error {
 }
 
 func (s *Service) CreatePersonalKey(ctx context.Context, userID, name string, modelIDs []string, expiresAt *time.Time) (*CreatedKey, error) {
+	releasePublication := s.pinPersonalKeyMutation()
+	defer releasePublication()
 	name = strings.TrimSpace(name)
 	if name == "" || !utf8.ValidString(name) || utf8.RuneCountInString(name) > 100 || (expiresAt != nil && !expiresAt.After(time.Now())) {
 		return nil, apperrors.ErrBadRequest
@@ -112,6 +114,7 @@ func (s *Service) CreatePersonalKey(ctx context.Context, userID, name string, mo
 		result, err = createPendingKey(tx, userID, name, modelIDs, expiresAt, nil, true)
 		return err
 	})
+	releasePublication()
 	return result, s.refreshAfterMutation(ctx, keyServiceError(err))
 }
 
@@ -127,6 +130,9 @@ func createPendingKey(tx *gorm.DB, userID, name string, modelIDs []string, expir
 	bearer := "rx_" + random
 	deadline := time.Now().UTC().Add(10 * time.Minute)
 	key := entity.APIKey{ID: keyID, UserID: userID, Name: name, Prefix: bearer[:11], TokenHash: secret.SHA256Hex(bearer), Status: entity.KeyPending, ExpiresAt: expiresAt, DeliveryExpiresAt: &deadline, ReplacesKeyID: replaces, ActivateOnConfirm: activate}
+	if err := advancePersonalKeyRevision(&key); err != nil {
+		return nil, err
+	}
 	if err := tx.Create(&key).Error; err != nil {
 		return nil, err
 	}
@@ -146,7 +152,7 @@ func createPendingKey(tx *gorm.DB, userID, name string, modelIDs []string, expir
 func lockActiveKeyOwner(tx *gorm.DB, userID string) error {
 	var owner entity.User
 	err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).Select("id", "disabled").First(&owner, "id = ?", userID).Error
-	if errors.Is(err, gorm.ErrRecordNotFound) || (err == nil && owner.Disabled) {
+	if errors.Is(err, gorm.ErrRecordNotFound) || (err == nil && (owner.Disabled || owner.ID != userID)) {
 		return apperrors.ErrUnauthorized
 	}
 	return err
@@ -161,10 +167,15 @@ func lockOwnedKey(tx *gorm.DB, userID, keyID string) (*entity.APIKey, error) {
 	if err != nil {
 		return nil, err
 	}
+	if key.ID != keyID || key.UserID != userID {
+		return nil, apperrors.ErrNotFound
+	}
 	return &key, nil
 }
 
 func (s *Service) ConfirmKeyDelivery(ctx context.Context, userID, keyID string) (*KeyRecord, error) {
+	releasePublication := s.pinPersonalKeyMutation()
+	defer releasePublication()
 	var result *KeyRecord
 	err := s.authDB(ctx).Transaction(func(tx *gorm.DB) error {
 		if err := lockActiveKeyOwner(tx, userID); err != nil {
@@ -212,6 +223,9 @@ func (s *Service) ConfirmKeyDelivery(ctx context.Context, userID, keyID string) 
 			key.Status = entity.KeyActive
 		}
 		key.DeliveryExpiresAt = nil
+		if err := advancePersonalKeyRevision(key); err != nil {
+			return err
+		}
 		if err := tx.Save(key).Error; err != nil {
 			return err
 		}
@@ -221,6 +235,7 @@ func (s *Service) ConfirmKeyDelivery(ctx context.Context, userID, keyID string) 
 		result = &KeyRecord{Key: *key, ModelIDs: models}
 		return nil
 	})
+	releasePublication()
 	return result, s.refreshAfterMutation(ctx, keyServiceError(err))
 }
 
@@ -232,6 +247,8 @@ func sameExpiry(a, b *time.Time) bool {
 }
 
 func (s *Service) UpdatePersonalKey(ctx context.Context, userID, keyID string, name *string, enabled *bool) (*KeyRecord, error) {
+	releasePublication := s.pinPersonalKeyMutation()
+	defer releasePublication()
 	if name == nil && enabled == nil {
 		return nil, apperrors.ErrBadRequest
 	}
@@ -273,6 +290,9 @@ func (s *Service) UpdatePersonalKey(ctx context.Context, userID, keyID string, n
 				key.Status = entity.KeyActive
 			}
 		}
+		if err := advancePersonalKeyRevision(key); err != nil {
+			return err
+		}
 		if err := tx.Save(key).Error; err != nil {
 			return err
 		}
@@ -285,10 +305,13 @@ func (s *Service) UpdatePersonalKey(ctx context.Context, userID, keyID string, n
 	if err == nil && enabled != nil && !*enabled {
 		s.InvalidateRuntimeKey(keyID)
 	}
+	releasePublication()
 	return result, s.refreshAfterMutation(ctx, keyServiceError(err))
 }
 
 func (s *Service) RevokePersonalKey(ctx context.Context, userID, keyID string) error {
+	releasePublication := s.pinPersonalKeyMutation()
+	defer releasePublication()
 	err := s.authDB(ctx).Transaction(func(tx *gorm.DB) error {
 		if err := lockActiveKeyOwner(tx, userID); err != nil {
 			return err
@@ -300,7 +323,7 @@ func (s *Service) RevokePersonalKey(ctx context.Context, userID, keyID string) e
 		if key.Status == entity.KeyRevoked {
 			return nil
 		}
-		if err := tx.Model(key).Update("status", entity.KeyRevoked).Error; err != nil {
+		if err := changePersonalKeyStatus(tx, key, entity.KeyRevoked); err != nil {
 			return err
 		}
 		return appendAudit(tx, userID, "key.revoke", "api_key", key.ID)
@@ -308,10 +331,13 @@ func (s *Service) RevokePersonalKey(ctx context.Context, userID, keyID string) e
 	if err == nil {
 		s.InvalidateRuntimeKey(keyID)
 	}
+	releasePublication()
 	return s.refreshAfterMutation(ctx, keyServiceError(err))
 }
 
 func (s *Service) RotatePersonalKey(ctx context.Context, userID, keyID string) (*CreatedKey, error) {
+	releasePublication := s.pinPersonalKeyMutation()
+	defer releasePublication()
 	var result *CreatedKey
 	err := s.authDB(ctx).Transaction(func(tx *gorm.DB) error {
 		if err := lockActiveKeyOwner(tx, userID); err != nil {
@@ -337,6 +363,7 @@ func (s *Service) RotatePersonalKey(ctx context.Context, userID, keyID string) (
 		result, err = createPendingKey(tx, userID, key.Name, models, key.ExpiresAt, &key.ID, key.Status == entity.KeyActive)
 		return err
 	})
+	releasePublication()
 	return result, s.refreshAfterMutation(ctx, keyServiceError(err))
 }
 

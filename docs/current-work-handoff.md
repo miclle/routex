@@ -6,20 +6,22 @@ acceptance remains in `docs/IMPLEMENTATION.md`.
 
 ## Delivered baseline
 
-Preceding checked source delivery is administrative Member Overview
-`77f0e53bc6f0adf00ef3d0e17209363ebf5e122c`, committed/pushed and read back exactly.
-Source/build, focused dual-driver, controlled production/browser/restart and the
-complete 85-case-per-driver matrix passed; all 95 protections and dependency bytes
-remained exact. CI 37204249644, Actionlint 37204249654 and GolangCI-Lint
-37204249661 all completed successfully; they belong to that exact predecessor.
+Latest checked source delivery is advisory public Model names
+`767315fa2a57a9d39d8f727cc6e0f79e481f5580`, committed/pushed and read back exactly.
+Final source passed 2162 frontend cases/114 files and focused 63/four-file checks;
+R2 controlled production/browser/native/restart acceptance governs that delivery.
+Its CI, Actionlint and GolangCI-Lint are now all verified green. Preceding
+administrative Member Overview
+`77f0e53bc6f0adf00ef3d0e17209363ebf5e122c` retains the complete 85-case-per-driver
+matrix and all three exact remote checks green.
 
-The next twelve-path public-name advisory frontend carry is integrated on that
-checked baseline. All 101 combined source protections matched its initial
-checkpoint. Final repaired-source 2162/114, focused 63/four files and R2
-production/browser/native/restart proof passed. The checked implementation is
-delivered by the commit containing this acceptance record; consult Git history
-for its SHA. New public-name remote CI remains pending. Member Overview's exact
-predecessor checks and local 85-case acceptance remain independent.
+Administrative Member Keys now has complete local acceptance on the rebuilt
+82c06d0e artifact: source 2235 frontend cases/116 files, check/build, full 87-case-
+per-driver matrix, authentication lifecycle and controlled native/browser/restart
+passed. All 136 current source/dependency/rule protections match; 129 unowned R3
+entries and backend acceptance remain unchanged. The 45-path candidate awaits
+root commit/push; its new remote CI is unknown. Earlier R2/R3 and original b757 R6
+checkpoints remain historical and are not substituted as repaired-artifact proof.
 
 Previous checked documentation delivery
 `91861d3ef20f45102510ec96f5927401fd924b11` was pushed/read back exactly, with CI,
@@ -222,15 +224,31 @@ The checked implementation is delivered by the containing acceptance-record comm
 its new remote CI is pending. The unchanged backend retains the accepted 85-case
 baseline. Contract: [Catalogue](CATALOG.md#advisory-public-model-names).
 
+## Administrative Member Keys current candidate
+
+The addressable Keys tab reads safe retained Personal metadata under `members.read`
+and offers only independently authorized `members.keys.disable`. It never invokes
+an owner API as the subject, reveals a secret or includes Project Keys. Reviewed
+ETags bind persistent lifecycle revisions; every product Personal state writer
+participates in the publication fence. Disable/audit commit atomically, then exact
+current private owner/revision/disabled publication and lease prove confirmation.
+Current-state retries are not historical receipts. Uncertain or rejected retries
+retain original reason/If-Match; owner re-enable cannot replace a stale intent.
+V52 uses a private frozen AddColumn/backfill in batches of 200 and seeds only the
+administrator permission. Contracts and detailed evidence are in
+[Keys](KEYS.md#administrative-member-keys) and [Implementation](IMPLEMENTATION.md).
+
 ## Next exact actions
 
-1. Observe remote CI for the public-name commit containing this acceptance
-   record. Previous Member Overview 77f0e53 and documentation 91861d3 checks are
-   all green; they do not establish the new source's remote result.
-2. Continue the administrative Member Keys package when its source is ready.
-   It remains in progress, not an accepted delivery. Preserve independent owner
-   authority; members.write never impersonates owners or silently grants
-   foreign-owner Key operations.
+1. Scope commit/push of the accepted 45-path Member Keys package using the passed
+   final mandatory check, then verify exact remote read-back.
+   Record only observed new remote results; none is known yet.
+2. Integrate the frozen addressable Member Limits frontend after checked Key
+   delivery. Regenerate contextual parent/rule/document seams rather than copying
+   old shared snapshots; current-main and actual acceptance remain pending.
+3. Keep the larger Member Teams view separate until exact read authority and
+   historical joined-at behavior are reviewed. No Teams implementation or actual
+   acceptance is claimed by the Limits preparation.
 
 Formal totals remain 11 complete, 16 partial and three unstarted. F19 and wider
 F12/A06, capacity and external-provider acceptance remain open. Continue the goal.
@@ -253,3 +271,41 @@ released migrations immutable and business persistence portable through GORM.
 Preserve frontend rules together, English documents/commit text, paired en/zh
 copy and approved layout. Run mandatory check before each scoped commit and push.
 Do not repeat passed gates without new changes, failures or unresolved concerns.
+
+
+## Historical Member Keys checkpoints
+
+R2 fixed the actual parent Session-lifetime failure and passed source 2227/116.
+The first dual-driver migration focus failed fixture timestamp preservation;
+using a frozen column-only reconstruction retained all historical assertions and
+then passed migration replay 54.665s. Full 87-case matrix and auth lifecycle passed
+for the unchanged backend. R3 native fixture regex and R4/R5 omitted cache-zero
+counters remained failed fixtures, not relaxed accounting. Original b757 R6 passed
+nine-call process/reconciliation proof but browser Escape focus reached BODY.
+The seven-path focus successor passed 91 related source cases and full 2235/116.
+[Implementation](IMPLEMENTATION.md) retains the independent detailed records.
+
+## Current Member Keys final local acceptance
+
+Source format/check/test/build passed 2235 cases/116 files, Go race/development
+lifecycle and production assets, with exact dependencies and all 136 protections.
+Binary: 82c06d0e15b3debb05b31b6af2065d31afe69df21831c38e321df7180e0e37fd.
+Backend full 87-case matrix passed Handler 1527.203s/Service 8.110s; both-driver
+authentication lifecycle remains accepted.
+
+Rebuilt controlled proof passed nine immutable calls, exact finite quotas/holds/
+unknowns, scope/authority, owner ABA, publication 503/restart and in-flight facts.
+One browser Disable produced one typed audit; one original-intent reconciliation
+POST made zero writes. Extra native 401 caused zero dispatch; all nine original
+calls remained unchanged. Reader saw six retained Personal rows/no actions;
+Disable-only read received 403/no private data. Cancel/Escape English and Escape
+Chinese restored the current exact sibling row; empty reason and live-language
+draft behavior passed. Disabled row/current runtime remained confirmed, with zero
+console errors/warnings. Post-success focus skipped during fresh list read; no
+exact-row success-focus guarantee is claimed.
+
+Root verified browser tab closed, owned Docker containers/networks/volumes absent,
+port 19138 reuse-bind passed and all 136 source hashes unchanged. Local acceptance
+and final mandatory check passed; commit/push and new remote CI remain pending. Preserve formal
+11/16/3 and F04 Partial. Limits source preparation and later Teams scope remain
+separate future acceptance.

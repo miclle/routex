@@ -139,6 +139,8 @@ func (s *Service) CreateMember(ctx context.Context, actorID, email, password, na
 }
 
 func (s *Service) UpdateMember(ctx context.Context, actorID, userID string, disabled *bool, role *string) (*MemberRecord, error) {
+	releasePublication := s.pinPersonalKeyMutation()
+	defer releasePublication()
 	if disabled == nil && role == nil {
 		return nil, apperrors.ErrBadRequest
 	}
@@ -225,7 +227,7 @@ func (s *Service) UpdateMember(ctx context.Context, actorID, userID string, disa
 			if err := tx.Where("user_id = ?", userID).Delete(&entity.Session{}).Error; err != nil {
 				return err
 			}
-			if err := tx.Model(&entity.APIKey{}).Where("user_id = ? AND status <> ?", userID, entity.KeyRevoked).Update("status", entity.KeyRevoked).Error; err != nil {
+			if err := revokeOwnerPersonalKeys(tx, canonicalUserID); err != nil {
 				return err
 			}
 		}
@@ -240,6 +242,7 @@ func (s *Service) UpdateMember(ctx context.Context, actorID, userID string, disa
 	if invalidate {
 		s.InvalidateRuntimeUser(canonicalUserID)
 	}
+	releasePublication()
 	if err := s.refreshAfterMutation(ctx, nil); err != nil {
 		return nil, err
 	}

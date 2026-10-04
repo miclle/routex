@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react'
+import type { ReactNode, Ref } from 'react'
 import { Menu as BaseMenu } from '@base-ui/react/menu'
 import { cn } from '@/lib/utils'
 
@@ -9,6 +9,7 @@ export function Menu({
   side = 'top',
   align = 'start',
   triggerClassName,
+  triggerRef,
   popupClassName,
 }: {
   trigger: ReactNode
@@ -17,11 +18,13 @@ export function Menu({
   side?: 'top' | 'bottom' | 'left' | 'right'
   align?: 'start' | 'center' | 'end'
   triggerClassName?: string
+  triggerRef?: Ref<HTMLButtonElement>
   popupClassName?: string
 }) {
   return (
     <BaseMenu.Root>
       <BaseMenu.Trigger
+        ref={triggerRef}
         className={cn(
           'flex h-10 w-full items-center gap-2 rounded-md px-2 text-left text-sm hover:bg-accent',
           triggerClassName,

@@ -1,7 +1,7 @@
 import { t } from '@/i18n'
 import { useTranslation } from 'react-i18next'
 import { Dialog as BaseDialog } from '@base-ui/react/dialog'
-import type { ReactNode } from 'react'
+import type { ComponentProps, ReactNode } from 'react'
 import { X } from 'lucide-react'
 import { Button } from './button'
 
@@ -13,6 +13,7 @@ export function Dialog({
   children,
   busy = false,
   width = 520,
+  finalFocus,
 }: {
   open: boolean
   onOpenChange: (open: boolean) => void
@@ -21,6 +22,7 @@ export function Dialog({
   children: ReactNode
   busy?: boolean
   width?: number
+  finalFocus?: ComponentProps<typeof BaseDialog.Popup>['finalFocus']
 }) {
   useTranslation()
 
@@ -34,6 +36,7 @@ export function Dialog({
       <BaseDialog.Portal>
         <BaseDialog.Backdrop className="fixed inset-0 z-50 bg-black/40" />
         <BaseDialog.Popup
+          finalFocus={finalFocus}
           style={{ width, maxWidth: 'calc(100vw - 32px)' }}
           className="fixed top-1/2 left-1/2 z-50 max-h-[90dvh] -translate-x-1/2 -translate-y-1/2 overflow-auto rounded-xl border bg-background p-6 shadow-xl outline-none"
         >

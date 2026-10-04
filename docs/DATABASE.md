@@ -435,3 +435,34 @@ The 30-path source/documentation phase was committed and pushed as
 `5363d3ce53ca4d1248227b2f941aae642c433499`; exact remote main read-back matched
 and main was clean. Its distinct CI, Actionlint and GolangCI-Lint are in progress,
 not yet accepted green. See [Notifications](NOTIFICATIONS.md).
+
+## Personal Key lifecycle revisions (V52)
+
+Private frozen GORM V52 follows V51 without modifying released migrations. It
+adds `api_keys.lifecycle_revision` as a non-null, bounded 30-character string with
+an empty bootstrap default. GORM `Migrator.AddColumn` is used only if the column
+is absent. Existing blank revisions are read in ordered batches of 200; each gets
+a fresh `kvr_` identity through a conditional update that still requires blank
+state. Assigned values survive repeated or concurrent startup. Partial MySQL
+column/backfill commits are repaired before acknowledging V52. The same migration
+idempotently seeds `members.keys.disable` only for `rol_admin`; no new table, live
+foreign key, Key grant or Project ownership change is introduced.
+
+The runtime business entity and every product Personal Key state writer maintain
+the revision. Reviewed ETags bind this persistent identity rather than UpdatedAt
+precision, preventing status ABA from restoring an older active review. A private
+published retained-state map carries only owner, revision and status; it does not
+expose credential material or turn a disabled record into an active authenticator.
+Disable/audit persistence and current published runtime proof remain separate;
+there is no new operation receipt table.
+
+The migration and Member Keys routes are integrated candidates. Focused real
+PostgreSQL/MySQL migration replay passed with historical preservation assertions
+retained, including a full-row check before reconstructing partial backfill. The
+fixture uses the frozen column-only type so reconstruction does not update
+historical timestamps; production migration behavior is unchanged. R2 source
+checks/build passed. The complete dual-driver regression and final mandatory check also passed.
+Authentication lifecycle passed on both drivers. A frontend-only focus repair passed rebuilt source checks without changing
+backend behavior; rebuilt-artifact native/browser/restart acceptance passed.
+Commit/push and new remote CI remain pending. Detailed
+checkpoints belong in [Implementation](IMPLEMENTATION.md).

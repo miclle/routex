@@ -154,7 +154,7 @@ The binary capability count is 11 completed, 16 partially completed, and 3 not s
 | F01 | Initialization, local identity, registration, and logout | Completed | Concurrent one-time setup, administrator creation, local login, registration control, durable sessions, and logout are implemented and tested. |
 | F02 | Profile, password, MFA, recovery codes, and session revocation | Completed | Profile and password changes, authenticator enrollment, single-use recovery codes, and individual-session revocation are implemented. |
 | F03 | Enterprise SSO, LDAP, OAuth, and emergency recovery | Not started | Provider configuration, callbacks, identity binding, enforced SSO, and enterprise recovery remain unimplemented. |
-| F04 | Member administration, direct grants, roles, and resource policies | Partially completed | Member and role workflows plus scoped resource-limit interfaces exist; token, TPM, and exact-money controls with authoritative quota snapshots are available. The seventeen-path administrative member Overview source is integrated with independent members.read, exact Personal monthly facts and retained Personal Key count; source check/test/build, focused PostgreSQL/MySQL, controlled production/browser/restart and complete 85-case-per-driver matrix passed; the checked delivery is represented by the commit containing this record, with new remote CI pending. The complete cross-domain resource-policy surface remains open. |
+| F04 | Member administration, direct grants, roles, and resource policies | Partially completed | Member and role workflows plus scoped resource-limit interfaces exist; token, TPM, and exact-money controls with authoritative quota snapshots are available. The seventeen-path administrative member Overview source is integrated with independent members.read, exact Personal monthly facts and retained Personal Key count; source check/test/build, focused PostgreSQL/MySQL, controlled production/browser/restart and complete 85-case-per-driver matrix passed; the checked delivery is represented by the commit containing this record, with new remote CI pending. Administrative Member Keys adds retained safe Personal metadata and independent reviewed disable authority with persistent lifecycle/runtime proof; repaired-source checks/build, focused dual-driver migration/lifecycle, full 87-case matrix, auth lifecycle and rebuilt native/browser/restart acceptance passed. Commit/push and new remote CI remain pending. The complete cross-domain resource-policy surface remains open. |
 | F05 | Built-in and custom roles with composed permissions | Partially completed | Current-domain role and permission management is implemented; later enterprise and operations domains still require permission integration and negative acceptance. |
 | F06 | Team membership, ownership, models, quotas, and member rules | Completed | Team membership/ownership, model relationships, finite aggregate/member policies and monthly requests are accepted. Durable Team-assigned roles, exact Team-only action unions, reviewed administrator assignment and the existing Roles interface have controlled dual-database and browser evidence. |
 | F07 | Project lifecycle, managers, models, Keys, and requests | Completed | Exact current management, lifecycle/continuity, multi-manager creation, initial direct resources and combined requests, scoped Overview, Project Keys, resource limits and model/quota/rate approvals are implemented with controlled dual-database/browser/native/restart evidence. Both lists now show authorized total retained Key counts; administrative stored-policy summaries, literal name/ID search and authorized legacy tab replacement have full main acceptance. |
@@ -3844,3 +3844,262 @@ separate proofs; neither is counted as another provider or fleet acceptance.
 The bounded compatibility implementation changes only the exact native sibling
 accessible labels owned by the local wrapper. No dependency, API, schema,
 permission, grant, price or native dispatcher behavior changes.
+
+
+### Administrative Member Keys integrated candidate, 2026-10-04
+
+The reviewed joint 37-path carry is integrated on checked public-name source
+`767315fa2a57a9d39d8f727cc6e0f79e481f5580`, committed/pushed with exact remote
+read-back. That predecessor passed 2162 frontend cases/114 files and final R2
+controlled bilingual production/browser/native/restart acceptance; its distinct
+remote CI remains pending. Member Overview 77f0e53 retains its full 85-case-per-
+driver acceptance and all three remote checks green. These are predecessor
+proofs, not acceptance of the new Key candidate.
+
+The candidate exposes retained Personal Key list/detail under `members.read` and
+one reviewed Disable action under independent `members.keys.disable`. It performs
+no owner impersonation or secret/Project directory exposure. Exact retained
+metadata, recorded model ceilings and Personal last use remain separate from
+current grants/native completion. Limit projection preserves stored/effective
+policy, shared rotation roots, exact counters/decimal maps, zero/null/unknown,
+coverage and live/monthly holds without fabricated remaining allowance.
+
+Persistent lifecycle revision binds reviewed ETags and every product Personal Key
+state writer. The mutation publication gate fences revision/status ABA through
+commit and tombstones. Disable and typed real-actor audit are atomic; exact
+private retained owner/revision/disabled proof with a valid lease is required
+before confirmation. A 503 may follow durable commit. Identical disabled-target
+retry adds no audit and confirms only current state, never an original historical
+receipt; a newer re-enable rejects an older active intent. Frontend keeps the
+original reason/If-Match through uncertainty, uses independent permissions and
+current actor/target/Key/Session generations, and hides private obsolete reads.
+
+Immutable private GORM V52 adds the bounded lifecycle revision column, conditionally
+backfills blanks in batches of 200 and seeds only the administrator permission.
+The released migration sequence and prior fixture assertions are retained.
+All 133 integrated source/dependency/rule protection hashes matched the initial
+documentation checkpoint. At that initial checkpoint, root's format/check/test/
+build pipeline was running and no final source result was claimed. Dual-driver migration/lifecycle,
+genuine native, browser, restart, full regression, final mandatory check and
+commit/push acceptance remain pending. Frozen worker source evidence does not
+substitute for those current-main gates. F04 remains Partial; formal totals remain
+11 completed, 16 partial and three unstarted. Contracts:
+[Keys](KEYS.md#administrative-member-keys), [Governance](GOVERNANCE.md#administrative-personal-key-boundary)
+and [Database](DATABASE.md#personal-key-lifecycle-revisions-v52).
+
+
+### Member Keys integrated Session-lifetime failure, 2026-10-04
+
+The first integrated source pipeline passed formatting, mandatory check and Go
+unit/race tests, then failed two of 2225 frontend cases (2223 passed, 116 files).
+Focused reproduction retained both failures. The current Member parent returns
+early during Session refresh/error, unmounting the new Keys panel and destroying
+its component-local uncertain intent. The earlier worktree parent did not have
+this mounting boundary. This is an integration defect, not accepted delivery.
+
+At that failed checkpoint, a bounded stable-mount correction was in progress:
+same actor/subject incidental
+reads retain only the original transient intent while private facts/actions stay
+hidden; actor/target changes and logout still destroy it. Existing Overview,
+managed Session generation, permissions, lists and other actions remain protected.
+At that checkpoint no database, native, production/browser or restart acceptance
+had started, and no failing implementation had been committed.
+
+
+### Member Keys integrated source R2 passed, 2026-10-04
+
+The source successor fixes the actual parent lifetime boundary: Keys remains a
+stable sibling through incidental same-actor/subject Session or permission reads,
+outages and denial. Private rows, actions and dialogs stay hidden while authority
+is unavailable. Actor/target changes and logout still destroy transient state.
+The original immutable uncertain reason/If-Match survives; no fresh review or
+background refresh substitutes another intent. Existing Overview, managed Session
+observer, UserProofs, public-name and native protocol behavior remain unchanged.
+The correction changes only the managed parent and focused integration tests;
+131 other protected source/dependency/rule entries remain exact.
+
+Focused source reproduction was 30 pass/two fail before the repair, then 32/32
+original cases passed. Related coverage passed 73 cases across four files and a
+repeat passed 34 including permission outage/denial intent retention. Complete
+R2 format/check/test/build passed 2227 Vitest cases in 116 files, Go unit/race,
+development lifecycle and embedded production asset checks. Final candidate
+binary SHA256 is b757bcde843c0db39093681329722b5a5aa370e373afd825135f9a45c824d9c7.
+All 133 R2 source protections and dependency bytes matched. The original full run
+with 2223 passes/two failures remains a failed historical checkpoint; it is not
+final delivery evidence.
+
+Root's isolated PostgreSQL/MySQL focus is running with no accepted actual result
+yet. The 87-case-per-driver full matrix, controlled process/native/browser/restart,
+final mandatory check and commit/push remain pending. Source tests prove the
+mounting/authority contract, not durable disable or gateway application. Formal
+11/16/3 totals and F04 Partial remain unchanged.
+
+
+### Member Keys first actual focus failed migration preservation, 2026-10-04
+
+The focused real PostgreSQL/MySQL run failed overall (Handler 172.346s).
+`member_key_migration` failed on both drivers at the same historical credential,
+metadata, owner and timestamp preservation assertion (PostgreSQL 1.37s; MySQL
+3.55s). Backend diagnosis is in progress; no cause or repair is accepted yet.
+The separate `member_keys` lifecycle case passed PostgreSQL 17.49s and MySQL
+18.47s, and preceding Overview/Team-notice cases passed. Those passes do not
+supersede the migration failure or accept the complete candidate.
+
+R2 source 2227/116, its focused tests and candidate binary
+b757bcde843c0db39093681329722b5a5aa370e373afd825135f9a45c824d9c7 remain distinct
+successful source evidence. Actual migration acceptance, the full 87-case matrix,
+independent controlled process/native/browser/restart proof, final mandatory
+check and commit/push remain pending. No accepted actual or delivery claim is
+made from the failed focus; formal 11/16/3 and F04 Partial are unchanged.
+
+
+### Member Keys migration-only replay accepted, 2026-10-04
+
+Diagnosis isolated the earlier preservation failure to fixture reconstruction:
+using the evolving Key entity to clear a revision also changed historical
+UpdatedAt through GORM. The fixture-only repair uses the frozen column-only type
+and adds a complete-row comparison before migration. Every prior historical
+credential, metadata, owner and timestamp assertion remains. Production V52 and
+the b757bcde843c0db39093681329722b5a5aa370e373afd825135f9a45c824d9c7 artifact
+are unchanged; the failed focus remains separate historical evidence.
+
+The genuine migration-only replay passed on both drivers (Handler 54.665s;
+parent 52.52s). PostgreSQL took 19.44s with migration 1.44s; MySQL took 33.08s
+with migration 3.53s. Root independently verified owned resource cleanup and all
+133 final R3 source protections. Earlier actual Member Keys lifecycle passes
+17.49s/18.47s remain separate from this migration replay. R2 source 2227/116 and
+its focused/build evidence remain intact.
+
+The full 87-case-per-driver matrix is now running and is not accepted yet.
+Controlled process/native/browser/restart, final mandatory check and commit/push
+also remain pending. Checked public-name predecessor
+767315fa2a57a9d39d8f727cc6e0f79e481f5580 now has all three remote checks verified
+green; those do not establish Member Keys delivery. F04 Partial and formal
+11/16/3 totals are unchanged.
+
+
+### Member Keys full dual-driver matrix and final check passed, 2026-10-04
+
+The complete 87-case-per-driver PostgreSQL/MySQL integration matrix passed
+(Handler 1527.203s; Service 8.110s). Runner and root independently verified all
+133 R3 source protections unchanged and every owned project resource removed.
+Final mandatory `go tool task check` also passed with zero errors and two unchanged
+Fast Refresh warnings. This acceptance uses the fixture-only timestamp repair;
+production V52 and the b757 artifact remain unchanged. Earlier full-source RED,
+failed focused migration, corrected migration-only 54.665s and separate Keys
+lifecycle passes remain distinct checkpoints rather than being relabeled.
+
+Actual authentication lifecycle is now running and has no accepted result yet.
+The controlled native R3/process/browser/restart scenario has not started.
+Those independent gates, commit/push and new remote CI remain pending. No
+Member Keys delivery or broader F04 completion is claimed; formal 11/16/3 totals
+remain unchanged. The full matrix and final check do not substitute for the
+pending controlled artifact proof.
+
+
+### Member Keys auth pass and interim native/browser findings, 2026-10-04
+
+Actual authentication lifecycle passed on PostgreSQL and MySQL: initialization,
+real-process restart, persisted Session, logout/new login, encrypted Provider,
+Models/Key/gateway/call facts and persistent revocation. Root independently
+verified all owned containers/networks/volumes absent and all 133 R3 source
+protections/b757 artifact unchanged at that gate. The complete 87-case-per-driver
+matrix (Handler 1527.203s; Service 8.110s) and prior mandatory check remain accepted
+for that source; they are not proof of a later repaired frontend artifact.
+
+Controlled native R3 failed a Project Key fixture regular expression. R4/R5
+omitted explicit cache-zero usage and correctly received unknown pricing; those
+are failed fixture checkpoints, not altered settlement expectations. R6 supplied
+explicit zero cache counters and its process stage passed nine immutable calls.
+Final native audit/reconciliation/cleanup was still awaiting confirmation at
+this checkpoint; no complete R6 scenario result is claimed.
+
+The interim R6 browser on b757 read six retained Personal rows, denied the
+Disable-only reader, rejected empty reason, preserved reason through language
+change and confirmed the disabled sibling's current state. It also found a real
+Escape focus-return defect: focus landed on BODY rather than the row action
+trigger. A bounded main frontend repair is in progress. Final UI acceptance must
+use its rebuilt artifact; the old binary's passes do not supersede that finding.
+R2 source 2227/116 and all earlier RED, migration failure/replay and fixture
+failures remain distinct historical evidence. Final repaired-source checks,
+rebuilt native/browser proof, complete reconciliation/cleanup, commit/push and
+new remote CI remain pending. Formal 11/16/3 and F04 Partial are unchanged.
+
+
+The original b757 R6 final process stage subsequently passed. Exactly one browser
+Disable produced one typed administrator audit; one original-intent reconciliation
+POST added zero writes. Current disabled runtime was confirmed; an extra native
+401 caused zero dispatch and the original nine immutable calls stayed unchanged.
+Root independently verified all three Docker resource kinds absent for the owned
+project, no listener on port 19138 and browser tab closed. A plain bind encountered
+TIME_WAIT rather than a live listener; no bind-free claim is made. This accepts
+that artifact's process/reconciliation proof while retaining the observed focus
+failure. Rebuilt-source/native/browser acceptance and delivery remain pending.
+
+
+### Member Keys focus successor source accepted, 2026-10-04
+
+The bounded seven-path focus correction passed 91 related source cases and the
+complete current-main format/check/test/build pipeline: 2235 Vitest cases in
+116 files, Go race/unit, development lifecycle and embedded production assets.
+The rebuilt QA binary SHA256 is
+82c06d0e15b3debb05b31b6af2065d31afe69df21831c38e321df7180e0e37fd.
+All 136 current source/dependency/rule protections matched. The 129 unowned
+entries from the accepted R3 floor remain unchanged; backend full 87-case matrix
+and authentication-lifecycle evidence remain valid independently of the new UI.
+The source pipeline restored only verified Linux libc optional metadata so
+package/lock bytes remain exact. This is the uncommitted 45-path candidate,
+not a delivery or new remote CI result.
+
+The local Dialog exposes optional Base UI finalFocus and Menu exposes triggerRef.
+Member Keys Escape/Cancel restores only a connected exact reviewed row under
+current authority. Actor/target/authority loss or hidden/disconnected triggers
+skip restoration. Immediate post-success list invalidation remains unchanged;
+there is no guaranteed row focus after success. Source tests establish this
+contract; old b757 browser evidence does not prove the repaired artifact.
+
+Root's serial controlled scenario on this new binary is running with no accepted
+native result yet; browser acceptance is pending. Earlier R2 2227/116, R3 migration
+repair/matrix/auth and original b757 R6 proofs remain distinct history. Final
+rebuilt native/browser/restart, reconciliation/cleanup, commit/push and new remote
+CI remain pending. Formal 11/16/3 and F04 Partial are unchanged.
+
+
+### Member Keys rebuilt-artifact final local acceptance, 2026-10-04
+
+The controlled process/native/browser/restart scenario passed on rebuilt binary
+82c06d0e15b3debb05b31b6af2065d31afe69df21831c38e321df7180e0e37fd. Nine immutable
+native calls proved scope isolation, independent authority, finite exact quotas,
+holds/unknown, current disabled-state confirmation, owner re-enable ABA rejection,
+publication 503/restart and already-in-flight completion. Exactly one browser
+Disable produced one typed administrator audit. One exact original-intent
+reconciliation POST performed zero writes; an extra native 401 caused zero
+upstream dispatch and the original nine immutable calls stayed unchanged.
+
+The rebuilt browser read six retained Personal rows with zero actions for the
+read-only actor. A Disable-only actor without Read received 403 and no private
+rows. Cancel/Escape in English and Escape in Chinese returned focus to the current
+exact sibling row action. Empty reason validation and live language change kept
+the draft; final confirmation retained the disabled row with current runtime
+application. Console errors/warnings were zero. Focus after success was skipped
+while the list performed its immediate fresh read; no exact-row success-focus
+claim is made. The old b757 BODY finding is preserved as a failed UI checkpoint,
+not reused as repaired-artifact proof.
+
+Root independently verified all 136 source protections unchanged, the owned
+browser tab closed, and every owned container/network/volume absent. Reuse-bind
+on port 19138 passed. Source format/check/test/build remains accepted at
+2235 Vitest cases/116 files with exact dependency bytes. The unchanged backend
+retains full 87-case-per-driver acceptance (Handler 1527.203s; Service 8.110s)
+and actual authentication lifecycle on both drivers. Earlier Session-lifetime RED,
+migration fixture timestamp failure, R3 regex, R4/R5 cache-zero omission and old
+artifact proof remain separate historical records.
+
+All required local acceptance and final mandatory `go tool task check` passed.
+Root's final commit/push and the new
+commit's remote checks remain pending; no future SHA or CI success is inferred.
+The current uncommitted candidate contains 45 paths. F04 and broader governance
+remain Partial, with formal 11 completed/16 partial/three unstarted unchanged.
+Next bounded work is the prepared addressable Member Limits frontend, whose
+current-main and actual acceptance are pending; the larger Member Teams view
+still requires its separately reviewed authority/history contract.
