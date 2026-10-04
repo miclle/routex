@@ -22,8 +22,8 @@ export default {
   teamRefreshRequired: '此次调用未能完成。请刷新 Team 访问权限并重新加载模型后再重试。',
   teamRequestFailed: 'Team 会话请求失败（HTTP {{status}}）。请刷新会话或 Team 访问权限后重试。',
   teamTextOnly:
-    'Team 会话仅支持通过可用原生协议进行文本对话和模型比较，暂不支持附件。你的 Team 调用记录单独保存。',
-  teamAttachmentsUnavailable: 'Team 会话不支持附件',
+    'Team 会话使用可用的原生协议。支持的图片和 PDF 仅属于你当前的成员资格，用于一次提交，并在一小时后过期。你的 Team 调用记录单独保存。',
+  teamAttachmentsUnavailable: '当前 Team 选择不支持附件',
   useKey: '使用 API Key',
 
   getCode: '获取代码',

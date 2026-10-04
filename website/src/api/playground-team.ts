@@ -1,3 +1,6 @@
+import axios from 'axios'
+import { AttachmentError } from './attachments'
+import type { TeamAttachment } from '@/types/attachments'
 import client from './client'
 import { readChatResponse, readResponsesResponse } from './playground'
 import { readMessagesResponse } from './playground-messages'
@@ -71,16 +74,30 @@ export async function getTeamModels(teamId: string, signal: AbortSignal): Promis
         model.attachment_scope === 'team' &&
         model.personal_attachments === false &&
         model.attachment_project_id === undefined &&
+        (model.attachment_team_id === undefined || model.attachment_team_id === teamId) &&
+        (model.attachment_membership_id === undefined ||
+          validIdentity(model.attachment_membership_id)) &&
+        (model.attachment_team_id === undefined) ===
+          (model.attachment_membership_id === undefined) &&
+        (model.protocols.every(
+          (protocol: string) =>
+            (record(model.input_capabilities)[protocol] as unknown[] | undefined)?.length === 0,
+        ) ||
+          (model.attachment_team_id === teamId && validIdentity(model.attachment_membership_id))) &&
         Object.keys(record(model.input_capabilities)).length === model.protocols.length &&
         model.protocols.every(
           (protocol: string) =>
             Array.isArray(record(model.input_capabilities)[protocol]) &&
-            (record(model.input_capabilities)[protocol] as unknown[]).length === 0,
+            (record(model.input_capabilities)[protocol] as unknown[]).every(
+              (value, index, values) =>
+                ['image', 'pdf'].includes(String(value)) && values.indexOf(value) === index,
+            ),
         )
       )
     }) ||
     new Set(data.map((item) => record(item).id)).size !== data.length ||
-    new Set(data.map((item) => record(item).model_id)).size !== data.length
+    new Set(data.map((item) => record(item).model_id)).size !== data.length ||
+    new Set(data.map((item) => record(item).attachment_membership_id)).size > 1
   )
     throw new GatewayError(() => t('playground:teamInvalidModels'))
   return data as GatewayModel[]
@@ -102,7 +119,8 @@ export async function runTeamChat(
       (message) =>
         message &&
         ['system', 'user', 'assistant'].includes(message.role) &&
-        typeof message.content === 'string',
+        (typeof message.content === 'string' ||
+          (message.role === 'user' && mediaContent(message.content, 'openai_chat'))),
     )
   )
     throw new GatewayError(() => t('playground:teamTextOnly'))
@@ -184,7 +202,77 @@ async function confirmTeamSessionExpiry(signal: AbortSignal) {
   }
 }
 
-function textItems(items: unknown) {
+function managedReference(value: unknown) {
+  return (
+    typeof value === 'string' &&
+    /^routex:\/\/attachments\/obj_[0-7][0-9a-hjkmnp-tv-z]{25}$/.test(value)
+  )
+}
+function exactFields(value: unknown, fields: string[]) {
+  const keys = Object.keys(record(value))
+  return keys.length === fields.length && keys.every((key) => fields.includes(key))
+}
+function mediaContent(value: unknown, protocol: PlaygroundProtocol) {
+  return (
+    Array.isArray(value) &&
+    value.length > 0 &&
+    value.every((raw) => {
+      const block = record(raw)
+      if (protocol === 'gemini_generate_content') {
+        if (exactFields(block, ['text'])) return typeof block.text === 'string'
+        const data = record(block.inlineData)
+        return (
+          exactFields(block, ['inlineData']) &&
+          exactFields(data, ['mimeType', 'data']) &&
+          ['image/png', 'image/jpeg', 'application/pdf'].includes(String(data.mimeType)) &&
+          managedReference(data.data)
+        )
+      }
+      const textType = protocol === 'openai_responses' ? 'input_text' : 'text'
+      if (block.type === textType)
+        return exactFields(block, ['type', 'text']) && typeof block.text === 'string'
+      if (protocol === 'openai_chat') {
+        if (block.type === 'image_url')
+          return (
+            exactFields(block, ['type', 'image_url']) &&
+            exactFields(block.image_url, ['url']) &&
+            managedReference(record(block.image_url).url)
+          )
+        const file = record(block.file)
+        return (
+          block.type === 'file' &&
+          exactFields(block, ['type', 'file']) &&
+          exactFields(file, ['file_data', 'filename']) &&
+          managedReference(file.file_data) &&
+          typeof file.filename === 'string'
+        )
+      }
+      if (protocol === 'openai_responses') {
+        if (block.type === 'input_image')
+          return exactFields(block, ['type', 'image_url']) && managedReference(block.image_url)
+        return (
+          block.type === 'input_file' &&
+          exactFields(block, ['type', 'file_data', 'filename']) &&
+          managedReference(block.file_data) &&
+          typeof block.filename === 'string'
+        )
+      }
+      const data = record(block.source)
+      return (
+        ['image', 'document'].includes(String(block.type)) &&
+        exactFields(block, ['type', 'source']) &&
+        exactFields(data, ['type', 'media_type', 'data']) &&
+        data.type === 'base64' &&
+        (block.type === 'document'
+          ? data.media_type === 'application/pdf'
+          : ['image/png', 'image/jpeg'].includes(String(data.media_type))) &&
+        managedReference(data.data)
+      )
+    })
+  )
+}
+
+function textItems(items: unknown, protocol: PlaygroundProtocol) {
   return (
     Array.isArray(items) &&
     items.length > 0 &&
@@ -192,7 +280,8 @@ function textItems(items: unknown) {
       (item) =>
         item &&
         ['user', 'assistant'].includes(record(item).role as string) &&
-        typeof record(item).content === 'string',
+        (typeof record(item).content === 'string' ||
+          (record(item).role === 'user' && mediaContent(record(item).content, protocol))),
     )
   )
 }
@@ -205,7 +294,7 @@ export async function runTeamResponses(
 ) {
   if (
     !request.model.trim() ||
-    !textItems(request.input) ||
+    !textItems(request.input, 'openai_responses') ||
     (request.instructions !== undefined && typeof request.instructions !== 'string')
   )
     throw new GatewayError(() => t('playground:teamTextOnly'))
@@ -225,7 +314,7 @@ export async function runTeamMessages(
 ) {
   if (
     !request.model.trim() ||
-    !textItems(request.messages) ||
+    !textItems(request.messages, 'anthropic_messages') ||
     (request.system !== undefined && typeof request.system !== 'string')
   )
     throw new GatewayError(() => t('playground:teamTextOnly'))
@@ -255,7 +344,11 @@ export async function runTeamGemini(
     !Array.isArray(request.contents) ||
     request.contents.length === 0 ||
     !request.contents.every(
-      (item) => item && ['user', 'model'].includes(item.role) && textParts(item.parts),
+      (item) =>
+        item &&
+        ['user', 'model'].includes(item.role) &&
+        (textParts(item.parts) ||
+          (item.role === 'user' && mediaContent(item.parts, 'gemini_generate_content'))),
     ) ||
     (request.systemInstruction !== undefined && !textParts(request.systemInstruction.parts)) ||
     request.generationConfig.candidateCount !== 1
@@ -274,4 +367,84 @@ export async function runTeamGemini(
     signal,
     onUpdate,
   )
+}
+
+function validIdentity(value: unknown): value is string {
+  return typeof value === 'string' && /^[A-Za-z0-9_-]{1,30}$/.test(value)
+}
+function validTeamAttachment(value: unknown, teamId: string, id?: string): value is TeamAttachment {
+  const item = record(value)
+  return (
+    managedReference(`routex://attachments/${String(item.id)}`) &&
+    (!id || item.id === id) &&
+    typeof item.name === 'string' &&
+    !!item.name.trim() &&
+    ['image/png', 'image/jpeg', 'application/pdf'].includes(String(item.mime)) &&
+    typeof item.size === 'number' &&
+    Number.isSafeInteger(item.size) &&
+    item.size > 0 &&
+    ['uploading', 'ready', 'delete_pending', 'deleted'].includes(String(item.state)) &&
+    typeof item.created_at === 'string' &&
+    Number.isFinite(Date.parse(item.created_at)) &&
+    item.attachment_team_id === teamId &&
+    validIdentity(item.attachment_membership_id) &&
+    validIdentity(item.creator_user_id) &&
+    typeof item.expires_at === 'string' &&
+    Number.isFinite(Date.parse(item.expires_at))
+  )
+}
+async function teamAttachmentRequest(
+  method: 'get' | 'post' | 'delete',
+  teamId: string,
+  id?: string,
+  data?: FormData,
+  csrf?: string,
+  signal?: AbortSignal,
+): Promise<TeamAttachment> {
+  if (
+    !validIdentity(teamId) ||
+    (id !== undefined && !managedReference(`routex://attachments/${id}`)) ||
+    (method !== 'get' && !csrf)
+  )
+    throw new AttachmentError(0)
+  try {
+    const path = `/teams/${encodeURIComponent(teamId)}/attachments${id ? '/' + encodeURIComponent(id) : ''}`
+    const response = await client.request<unknown>({
+      method,
+      url: path,
+      data,
+      signal,
+      ...(csrf ? { headers: { 'X-CSRF-Token': csrf } } : {}),
+    })
+    if (
+      !validTeamAttachment(response.data, teamId, id) ||
+      (method === 'post' && response.data.state !== 'ready')
+    )
+      throw new AttachmentError(0)
+    return response.data
+  } catch (error) {
+    if (error instanceof AttachmentError) throw error
+    throw new AttachmentError(axios.isAxiosError(error) ? (error.response?.status ?? 0) : 0)
+  }
+}
+export function uploadTeamAttachment(
+  teamId: string,
+  file: File,
+  csrf: string,
+  signal?: AbortSignal,
+) {
+  const data = new FormData()
+  data.append('file', file, file.name)
+  return teamAttachmentRequest('post', teamId, undefined, data, csrf, signal)
+}
+export function getTeamAttachment(teamId: string, id: string, signal?: AbortSignal) {
+  return teamAttachmentRequest('get', teamId, id, undefined, undefined, signal)
+}
+export function deleteTeamAttachment(
+  teamId: string,
+  id: string,
+  csrf: string,
+  signal?: AbortSignal,
+) {
+  return teamAttachmentRequest('delete', teamId, id, undefined, csrf, signal)
 }

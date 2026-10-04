@@ -300,3 +300,18 @@ Global creation UUID and Project uniqueness, actor indexing and intent/hash/revi
 length guards retain immutable historical creation independently of current
 Project/manager/grant/policy rows. No live foreign keys or handwritten SQL are added.
 See [Project creation and initial resources](PROJECT_CREATION.md).
+
+
+## Creator-private Team attachments (version 46)
+
+Frozen GORM V46 adds nullable creator User/membership IDs and an immutable expiry
+column to storage objects, then reconciles owner-kind and Team creator constraints.
+Historical User/Project rows retain null creator/expiry fields. These historical
+identities have no new foreign keys: removal/rejoin cannot reassign their ownership.
+The deadline is creation plus one hour, independent of cleanup retry scheduling.
+Migrator operations are independently retryable after partially applied MySQL DDL;
+released V1–V45 steps remain immutable. Historical V22/V23 reconstruction fixtures
+also rewind the dependent V46 guard/ledger and restore versions in release order.
+Focused upgrade, repeat, partial-DDL, concurrent-startup and constraint proof passed
+on PostgreSQL/MySQL. Complete rebuilt-main acceptance remains pending. See
+[Object storage](STORAGE.md) and [Team inference](TEAM_INFERENCE.md).

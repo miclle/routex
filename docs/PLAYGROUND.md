@@ -1,6 +1,6 @@
 # Playground
 
-Playground is a native conversation and model comparison client for native OpenAI Chat Completions, OpenAI Responses, Anthropic Messages, and Gemini Generate Content. Both workbenches support user-owned and Project-owned PNG, JPEG, and PDF attachments. It makes real requests; it does not synthesize responses or usage statistics. An explicit Team Session source supports text-only native Chat Completions, Responses, Messages and Gemini in both existing conversation and comparison workbenches. Team attachments remain a separate work package; Team code examples use independent Session authentication; interactive tool execution is outside this text interface.
+Playground is a native conversation and model comparison client for native OpenAI Chat Completions, OpenAI Responses, Anthropic Messages, and Gemini Generate Content. Both workbenches support user-owned and Project-owned PNG, JPEG, and PDF attachments. It makes real requests; it does not synthesize responses or usage statistics. An explicit Team Session source supports the four native protocols in the existing conversation and comparison workbenches, with creator-private managed images/PDFs when discovery declares support; Team code examples use independent Session authentication; interactive tool execution is outside this text interface.
 
 ## Workflow
 
@@ -59,7 +59,7 @@ tier, cache, or media shape fail the stricter request-shape check first.
 
 - Model discovery, Chat, and Responses use `Authorization: Bearer <key>` against same-origin endpoints. Messages uses only `x-api-key: <key>` with `anthropic-version: 2023-06-01` against `/v1/messages`; Gemini uses only `x-goog-api-key` against the native `/v1beta/models/{name}` action. Authentication forms are never combined, and the client never places credentials in query parameters.
 - API Key requests omit browser cookies and reject redirects. Team Session model discovery and native inference use separate current-Session cookie/CSRF authentication against the exact Team path. Both sources reject redirects; changing sources destroys transient state.
-- Attachment upload/deletion and explicit Team Session discovery/native inference use separate Session transports. Team Sessions cannot upload or invoke attachments in this slice. Project routes receive only the non-secret Project path ID after server authorization; they never receive the entered inference Key. Returned object identifiers and selected `File` objects are not stored in React Query or browser storage.
+- Attachment upload/deletion and explicit Team Session discovery/native inference use separate Session transports. Team uploads require exact creator/current membership and canonical managed references. Project routes receive only the non-secret Project path ID after server authorization; they never receive the entered inference Key. Returned object identifiers and selected `File` objects are not stored in React Query or browser storage.
 - The Key remains only in component memory and the password input while the page is mounted. The client never writes it to localStorage, sessionStorage, React Query caches, logs, or generated request examples.
 - The native client uses `fetch` and an `AbortController`, not React Query mutations, so request arguments and secrets are not retained in a mutation cache.
 - Native error messages retain useful gateway context, with the supplied Key redacted if it appears in a message. Output is rendered as plain text, not executable HTML.
@@ -172,7 +172,7 @@ upstream 401, successful probe, network error, timeout or late cancellation cann
 establish logout. Native permission failures clear stale comparison authority
 without inferring which server-side relationship changed.
 
-Team-owned media remains a separate local F20 package. Team request code and
+Creator-private Team media extends the existing F20 workbenches, with its own acceptance gates. Team request code and
 parameter Reset are implemented below; their actual generated-program/browser
 acceptance and external-provider evidence remain separate in the implementation
 index.
@@ -221,3 +221,44 @@ completed history and captured code, abort pending inference, preserve unsent
 drafts, and require explicit model rediscovery. Observe the existing Session query
 without creating an additional network observer. Manual same-actor CSRF cache
 replacement is not a Team authority renewal and preserves completed history.
+
+### Team attachment authority and lifetime
+
+Team discovery exposes actual per-protocol `input_capabilities`,
+`attachment_scope: "team"`, `attachment_team_id`, `attachment_membership_id`, and
+`personal_attachments: false`. The current actor, explicitly selected Team and
+exact membership must match before an upload can be selected. Comparison also
+intersects the image/PDF capabilities of every selected lane; absent capabilities
+or inconsistent targets disable uploads. The existing shared chips, paperclip and
+bottom composer serve both sources, without a Team attachment library.
+
+Each Team object belongs to the exact Team, creator user and captured active
+membership. The upload response must match that captured identity before the UI
+adopts it; unexpected ownership is neither reused nor deleted. Objects expire
+exactly one hour after creation. Another member, owner or administrator cannot
+borrow them, and leaving/rejoining the Team does not restore the old membership's
+objects. Only canonical managed `routex://attachments/obj_<ULID>` references enter
+the four protocols' supported image/PDF scalar positions. Remote URLs, raw inline
+base64, provider file IDs, audio and video are unavailable for Team media.
+
+Renewed Session reads immediately hide unsent Team media and abort pending
+uploads. Reconfirmation clears the draft and model selection while preserving
+unsent text; the UI never restores or replays the upload automatically. The server
+can still authorize an unexpired object through a renewed Session belonging to
+the same enabled creator and exact active membership. These are separate UI and
+server contracts. Changing actor, source, Team, model, protocol or lanes clears
+unsent media. Submitted references remain retained until all participating
+requests settle, including canceled or unmounted lanes. Cleanup uses the captured
+Team target; a denied or uncertain deletion defers to durable expiry. Later
+history contains completed plaintext and filename labels, never old object
+references. Files, identifiers, credentials and CSRF stay transient and out of
+browser storage and mutation caches. Code export is disabled while files are
+selected or uploading.
+
+Controlled rebuilt-main Team media acceptance passed 16 distinct native calls
+across all four protocols, completed-text history without media replay, shared
+retention through independent cancellation, exact-version cleanup, current grant
+revocation and Session-preserving restart without replay. Bilingual controls and
+empty transient state were verified; warnings/errors were absent. Full main
+check/test/build and PostgreSQL/MySQL regression passed. This controlled proof
+does not establish external-provider compatibility.

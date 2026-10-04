@@ -65,9 +65,27 @@ A currently active account can access only its personal object IDs. Project rout
 
 All routes require a session. Mutations require same-origin protection and CSRF. Upload middleware accepts multipart rather than JSON and caps the entire request at 2 MiB plus 64 KiB of framing. File contents are limited to 2 MiB. Filename length is 1–200 Unicode characters with path separators and control terminators rejected. PNG and JPEG headers/dimensions are validated (maximum 8192 on either side and 32 million pixels); PDF requires its header and terminal marker. This is bounded format validation, not malware scanning or a complete PDF parser. PDFs are never executed or rendered by the backend. Caller-provided MIME labels do not decide the accepted type.
 
-Metadata contains `id`, `name`, `mime`, `size`, `state`, and `created_at`. It contains no owner identifier, bucket key, storage credential, or version identifier. Returned content uses attachment disposition, `private, no-store`, `nosniff`, and a sandbox policy. Reads verify recorded size, SHA-256 digest, and storage ownership metadata, then recheck current user or Project authority and object state after remote I/O before returning bytes. The implementation caps each immutable user or Project scope at 128 non-deleted attachments, including pending cleanup, to bound retained content.
+User/Project metadata contains `id`, `name`, `mime`, `size`, `state`, and `created_at`, without owner identifiers. Team metadata also returns the exact Team, creator and membership IDs plus immutable expiry so the client can verify its captured context. No response exposes a bucket key, storage credential or version identifier. Returned content uses attachment disposition, `private, no-store`, `nosniff`, and a sandbox policy. Reads verify recorded size, SHA-256 digest, and storage ownership metadata, then recheck current user or Project authority and object state after remote I/O before returning bytes. The implementation caps each immutable user or Project scope at 128 non-deleted attachments, including pending cleanup, to bound retained content.
 
 Project upload creation holds the governance lock and locks the Project row before recording intent. It verifies the Project is active and the uploader is a current enabled manager before the remote write, then repeats those checks before publishing the verified object as ready. Manager removal or Project disablement during upload records cleanup intent instead of publishing. Once ready, the object remains Project-owned across creator departure, Key rotation, and manager replacement; a successor manager can govern it without transferring ownership.
+
+Team attachment routes accept no query or workspace selector and derive the
+Team only from the authorized path and captured Session identity. A current
+enabled creator and exact active membership in an active Team are required on
+upload, metadata, content and deletion, including after remote I/O. Peers, Team
+owners and platform administrators cannot borrow or govern another creator's
+objects. A renewed Session for the same creator and membership can access an
+unexpired object; removal/rejoin never restores its old membership proof. Personal
+and Project Keys cannot resolve Team objects, and Team native requests cannot
+borrow Personal or Project objects. Frozen V46 preserves these owner/creator
+fields and the existing user/Project semantics.
+
+Team expiry is exactly creation plus one hour. Cleanup retries cannot extend that
+deadline. Metadata, content and native resolution return unavailable after expiry,
+while DELETE remains permitted only to the current exact creator/membership.
+Deletion can remain pending when current authority or storage is unavailable;
+the durable worker uses recorded cleanup intent and expiry independently of the
+browser's ability to delete. No client clock grants access or proves cleanup.
 
 Disabling storage stops new uploads. Existing owned content remains readable through its original descriptor; deletion and cleanup continue. Switching bucket, prefix, or credentials never reassigns historical objects to the new descriptor.
 
@@ -110,8 +128,22 @@ names, or sample calls. The final rate, concurrency and quota admission repeats
 all checks and reserves once, after resolution and immediately before the single
 upstream dispatch.
 
-Each unique object is read once per request with the authenticated Key's immutable
-owner kind and owner ID. The read repeats the session API's owner, ready-state,
+Team resolution derives an immutable `team`/creator/membership scope from the
+captured published Session identity. Only canonical managed
+`routex://attachments/obj_<ULID>` references are eligible in the native scalar
+positions above. Raw inline base64, remote URLs, provider file IDs, audio/video
+and unsupported native media fail before object storage or upstream dispatch;
+opaque text and tool/function JSON remain opaque. Discovery reports actual
+per-protocol image/PDF intersections across eligible routes with non-secret Team
+and membership IDs. Missing or foreign objects, old memberships and expired
+objects cannot be made readable by a valid reference earlier in the same request:
+the complete metadata set is validated before any remote read. Team/model/creator
+and membership authority is rechecked after reads and before final admission.
+Finite-policy capacity and per-occurrence monetary requirements remain the same;
+there is no media-token estimate or additional admission/dispatch.
+
+Each unique object is read once per request with the invocation's captured
+owner kind and owner ID, including exact creator/membership for Team Sessions. The read repeats the session API's owner, ready-state,
 storage revision, exact version, object metadata, size and SHA-256 checks, then
 rechecks ownership and readiness. Project reads also recheck that the Project is
 active and retains an enabled current manager after remote I/O. Missing, foreign,
@@ -138,3 +170,29 @@ cannot leave a permanent ready object or consume the owner limit indefinitely.
 Focused tests use controlled loopback HTTP services only. They cover signed requests, conditional creation, version-aware deletion, foreign metadata protection, redirect rejection, bounded reads, cancellation, secret-envelope revision binding, configuration policy isolation, and accepted/rejected formats. The dual-database lifecycle helper covers personal and Project HTTP upload/download, CSRF, manager and owner isolation, manager-removal upload races, successor access, disabled/archived recovery, revision changes and rollback, failed verification preserving active state, and cleanup replay including a late accepted ambiguous upload. Migration coverage exercises empty creation, a V22 existing-row upgrade, partially applied DDL recovery, repeat execution, concurrent startup, constraints, and both owner indexes on PostgreSQL and MySQL.
 
 The `/admin/storage` web interface exposes the saved status card and configuration drawer, independent read/write/test authority, transient credential actions, exact ETag conflict review, saved-descriptor probe stages, cleanup-pending state, and verified revision rollback in English and Chinese. It refetches complete history after writes and never treats an uncertain response as success. User/Project native inference resolution, single-model and comparison attachment lifecycles, conservative token/TPM admission, and explicit per-occurrence media monetary pricing are implemented separately from administration. Per-page, per-pixel, per-byte and external-service acceptance remain open.
+
+## Team media interface and verification boundary
+
+The Playground preserves the existing chips and picker above one shared composer.
+Team uploads require exact returned Team/creator/membership metadata; unexpected
+ownership is never adopted or deleted by the client. Image/PDF controls use the
+intersection of every selected lane's native capabilities. Renewed authority
+hides and clears unsent media, aborts pending uploads and preserves unsent text,
+without automatic restoration or replay. Submitted objects keep their captured
+Team target until all requests settle; cleanup denial or uncertainty falls back
+to durable expiry. Selected media disables code export, and completed plaintext
+history never replays earlier object references. There is no shared Team library
+or browser-storage persistence.
+
+The focused Team media API/UI suites cover those boundaries with controlled
+responses. The 497-case Playground/native/snippet/localization gate includes 56
+media cases and passed alongside TypeScript, scoped ESLint and Prettier. Focused Team lifecycle/V46 migration passed both drivers (76.817 seconds).
+Rebuilt-main check/test/build passed, including 1640 frontend cases/92 files.
+Controlled bilingual production proof passed 16 distinct Team native requests,
+creator/membership isolation, fixed one-hour deadlines, shared retention during
+independent cancellation and exact-version deletion. Four denied calls after
+grant revocation started no upstream attempts; restart retained Sessions and call
+facts without replay. Complete rebuilt-main PostgreSQL/MySQL acceptance passed (Handler 1137.119
+seconds; Service 7.537 seconds);
+the historical personal/Project verification above is not evidence for it. See
+[Team Session inference](TEAM_INFERENCE.md) and [Playground](PLAYGROUND.md).

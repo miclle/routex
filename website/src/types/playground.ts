@@ -7,6 +7,8 @@ export interface GatewayModel {
   id: string
   attachment_scope?: AttachmentScope | 'team'
   attachment_project_id?: string
+  attachment_team_id?: string
+  attachment_membership_id?: string
   personal_attachments?: boolean
   protocols?: PlaygroundProtocol[]
   input_capabilities?: Partial<Record<PlaygroundProtocol, InputCapability[]>>

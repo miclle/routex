@@ -4,6 +4,8 @@ import type { TeamSnippetInput } from '@/lib/playground-team-snippet'
 import TeamPicker from './team-picker'
 import {
   getTeamModels,
+  uploadTeamAttachment,
+  deleteTeamAttachment,
   runTeamChat,
   runTeamResponses,
   runTeamMessages,
@@ -14,6 +16,7 @@ import CodeDialog from './code-dialog'
 import { AttachmentChips, AttachmentPicker } from './attachments'
 import { isGeminiModelName, protocolLabel } from '@/lib/protocols'
 import {
+  matchesTeamAttachment,
   buildChatAttachmentContent,
   buildGeminiAttachmentParts,
   buildMessagesAttachmentContent,
@@ -44,7 +47,10 @@ import type {
   ResponsesHistoryItem,
   ResponseStatus,
 } from '@/types/playground'
-import type { Attachment, AttachmentTarget } from '@/types/attachments'
+import type {
+  Attachment,
+  PlaygroundAttachmentTarget as AttachmentTarget,
+} from '@/types/attachments'
 import { useSession } from '@/hooks/use-auth'
 import { FormField } from '@/components/app/CatalogUI'
 import { Button } from '@/components/ui/button'
@@ -108,13 +114,20 @@ function attachmentCapability(file: File): 'image' | 'pdf' | null {
   return null
 }
 
-function uploadScopedAttachment(file: File, csrf: string, target: AttachmentTarget) {
+function uploadScopedAttachment(
+  file: File,
+  csrf: string,
+  target: AttachmentTarget,
+  signal?: AbortSignal,
+) {
+  if (target.scope === 'team') return uploadTeamAttachment(target.teamId, file, csrf, signal)
   return target.scope === 'user'
     ? uploadAttachment(file, csrf)
     : uploadAttachment(file, csrf, undefined, target)
 }
 
 function deleteScopedAttachment(id: string, csrf: string, target: AttachmentTarget) {
+  if (target.scope === 'team') return deleteTeamAttachment(target.teamId, id, csrf)
   return target.scope === 'user'
     ? deleteAttachment(id, csrf)
     : deleteAttachment(id, csrf, undefined, target)
@@ -179,26 +192,44 @@ export default function ChatWorkbench({
   const [uploadingNames, setUploadingNames] = useState<string[]>([])
   const [copied, setCopied] = useState('')
   const attachmentGeneration = useRef(0)
+  const uploadControllers = useRef(new Set<AbortController>())
+  const submittedAttachmentIDs = useRef(new Set<string>())
   const attachmentRef = useRef<Attachment[]>([])
   const ownedAttachmentTargets = useRef(new Map<string, AttachmentTarget>())
   const csrfRef = useRef('')
   const mounted = useRef(true)
   const selectedModel = models.find((item) => item.id === model)
   const attachmentTarget: AttachmentTarget | null =
-    selectedModel?.attachment_scope === 'user' && !projectId
-      ? { scope: 'user' }
-      : selectedModel?.attachment_scope === 'project' &&
-          !!selectedModel.attachment_project_id &&
-          (!projectId || selectedModel.attachment_project_id === projectId)
-        ? { scope: 'project', projectId: selectedModel.attachment_project_id }
-        : null
+    source === 'team' &&
+    teamVisible &&
+    selectedModel?.attachment_scope === 'team' &&
+    selectedModel.attachment_team_id === teamId &&
+    !!selectedModel.attachment_membership_id &&
+    !!session.data?.user.id
+      ? {
+          scope: 'team',
+          teamId,
+          membershipId: selectedModel.attachment_membership_id,
+          creatorUserId: session.data.user.id,
+        }
+      : source === 'key' && selectedModel?.attachment_scope === 'user' && !projectId
+        ? { scope: 'user' }
+        : source === 'key' &&
+            selectedModel?.attachment_scope === 'project' &&
+            !!selectedModel.attachment_project_id &&
+            (!projectId || selectedModel.attachment_project_id === projectId)
+          ? { scope: 'project', projectId: selectedModel.attachment_project_id }
+          : null
   const inputCapabilities = selectedModel?.input_capabilities?.[protocol] ?? []
   const attachmentAccept = [
     ...(inputCapabilities.includes('image') ? ['image/png', 'image/jpeg'] : []),
     ...(inputCapabilities.includes('pdf') ? ['application/pdf'] : []),
   ].join(',')
   const canAttach =
-    source === 'key' && !!attachmentTarget && inputCapabilities.length > 0 && !!session.data
+    !!attachmentTarget &&
+    inputCapabilities.length > 0 &&
+    !!session.data?.csrf_token &&
+    (source === 'key' || (freshTeamSession && teamConfirmed && keyChecked))
   const requestRunning = exchanges.some((exchange) => exchange.status === 'running')
   const busy = loading || uploadingNames.length > 0 || requestRunning
   const teamCodeReady =
@@ -230,7 +261,7 @@ export default function ChatWorkbench({
     })
   }
 
-  async function releaseAttachments(items: Attachment[], csrf = csrfRef.current) {
+  const releaseAttachments = useCallback(async (items: Attachment[], csrf = csrfRef.current) => {
     if (!csrf) return
     const results = await Promise.allSettled(
       items.map(async (attachment) => {
@@ -242,16 +273,26 @@ export default function ChatWorkbench({
     )
     if (mounted.current && results.some((result) => result.status === 'rejected'))
       setError('playground:attachmentDeleteFailed')
-  }
+  }, [])
 
-  function clearDraftAttachments() {
+  const clearDraftAttachments = useCallback(() => {
     attachmentGeneration.current += 1
+    for (const upload of uploadControllers.current) upload.abort()
+    uploadControllers.current.clear()
     const current = attachmentRef.current
     attachmentRef.current = []
     setAttachments([])
     setUploadingNames([])
     void releaseAttachments(current)
-  }
+  }, [releaseAttachments])
+
+  useLayoutEffect(() => {
+    if (source === 'team' && !freshTeamSession) {
+      attachmentGeneration.current += 1
+      for (const upload of uploadControllers.current) upload.abort()
+      uploadControllers.current.clear()
+    }
+  }, [source, freshTeamSession])
 
   useEffect(() => {
     csrfRef.current = session.data?.csrf_token ?? ''
@@ -259,15 +300,19 @@ export default function ChatWorkbench({
 
   useLayoutEffect(() => {
     const activeOwnedAttachmentTargets = ownedAttachmentTargets.current
+    const uploads = uploadControllers.current
+    const submitted = submittedAttachmentIDs.current
     mounted.current = true
     return () => {
       mounted.current = false
       attachmentGeneration.current += 1
+      for (const upload of uploads) upload.abort()
+      uploads.clear()
       controller.current?.abort()
       attachmentRef.current = []
       const csrf = csrfRef.current
-      const owned = [...activeOwnedAttachmentTargets]
-      activeOwnedAttachmentTargets.clear()
+      const owned = [...activeOwnedAttachmentTargets].filter(([id]) => !submitted.has(id))
+      for (const [id] of owned) activeOwnedAttachmentTargets.delete(id)
       if (csrf)
         for (const [id, target] of owned)
           void deleteScopedAttachment(id, csrf, target).catch(() => undefined)
@@ -278,6 +323,7 @@ export default function ChatWorkbench({
     (value: boolean) => {
       setTeamConfirmed(value)
       if (source === 'team' && !value) {
+        clearDraftAttachments()
         controller.current?.abort()
         setModels([])
         setModel('')
@@ -286,7 +332,7 @@ export default function ChatWorkbench({
         setCodeRequest(null)
       }
     },
-    [source],
+    [source, clearDraftAttachments],
   )
 
   useLayoutEffect(() => {
@@ -300,6 +346,7 @@ export default function ChatWorkbench({
     const target = attachmentTarget
     if (!target) return
     setError('')
+    setCodeRequest(null)
     const csrf = session.data.csrf_token
     const generation = attachmentGeneration.current
     const knownNames = new Set([
@@ -330,7 +377,16 @@ export default function ChatWorkbench({
       remaining -= 1
       setUploadingNames((current) => [...current, file.name])
       try {
-        const attachment = await uploadScopedAttachment(file, csrf, target)
+        const upload = target.scope === 'team' ? new AbortController() : undefined
+        if (upload) uploadControllers.current.add(upload)
+        let attachment: Attachment
+        try {
+          attachment = await uploadScopedAttachment(file, csrf, target, upload?.signal)
+        } finally {
+          if (upload) uploadControllers.current.delete(upload)
+        }
+        if (target.scope === 'team' && !matchesTeamAttachment(attachment, target))
+          throw new AttachmentError(0)
         ownedAttachmentTargets.current.set(attachment.id, target)
         if (!mounted.current || attachmentGeneration.current !== generation) {
           await deleteScopedAttachment(attachment.id, csrf, target)
@@ -354,6 +410,12 @@ export default function ChatWorkbench({
         replaceAttachments((current) => [...current, attachment])
       } catch (failure) {
         if (mounted.current && attachmentGeneration.current === generation) {
+          if (
+            target.scope === 'team' &&
+            failure instanceof AttachmentError &&
+            [401, 403, 404].includes(failure.status)
+          )
+            confirmTeam(false)
           setError(
             failure instanceof AttachmentError && failure.status === 429
               ? 'playground:attachmentStorageLimit'
@@ -480,6 +542,7 @@ export default function ChatWorkbench({
     const form = new FormData(event.currentTarget)
     const text = prompt.trim()
     const submittedAttachments = attachmentRef.current
+    for (const attachment of submittedAttachments) submittedAttachmentIDs.current.add(attachment.id)
     attachmentGeneration.current += 1
     attachmentRef.current = []
     setAttachments([])
@@ -705,7 +768,9 @@ export default function ChatWorkbench({
       if (abort.signal.aborted) update({ status: 'cancelled', error: '' }, true)
       lock.current = false
       if (controller.current === abort) controller.current = null
-      void releaseAttachments(submittedAttachments, csrfRef.current)
+      await releaseAttachments(submittedAttachments, csrfRef.current)
+      for (const attachment of submittedAttachments)
+        submittedAttachmentIDs.current.delete(attachment.id)
     }
   }
   function showCode() {
@@ -1139,8 +1204,8 @@ export default function ChatWorkbench({
           </div>
           <div className="space-y-3 border-t p-4">
             <AttachmentChips
-              attachments={attachments}
-              uploadingNames={uploadingNames}
+              attachments={teamVisible ? attachments : []}
+              uploadingNames={teamVisible ? uploadingNames : []}
               disabled={busy}
               removeLabel={(name) => t('playground:removeAttachment', { name })}
               uploadingLabel={(name) => t('playground:attachmentUploadingLabel', { name })}
@@ -1166,13 +1231,14 @@ export default function ChatWorkbench({
                 accept={attachmentAccept}
                 disabled={busy || !canAttach || attachments.length >= maxAttachments}
                 label={
-                  source === 'team'
+                  source === 'team' && !canAttach
                     ? t('playground:teamAttachmentsUnavailable')
                     : canAttach
                       ? t('playground:attachFiles')
                       : attachmentTarget && selectedModel
                         ? t('playground:attachmentUnsupported')
-                        : selectedModel?.attachment_scope === 'project' || projectId
+                        : (source === 'key' && selectedModel?.attachment_scope === 'project') ||
+                            projectId
                           ? t('playground:attachmentProjectUnavailable')
                           : t('playground:attachmentUnsupported')
                 }

@@ -73,22 +73,27 @@ func (s *Service) TeamGatewayModels(ctx context.Context, identity *TeamSessionId
 				continue
 			}
 			plan.team, plan.userID = identity, identity.UserID
+			intersection := inputCapabilityIntersection{}
+			available := false
 			for _, candidate := range plan.Candidates() {
 				eligible, err := s.gatewayAttemptEligible(ctx, plan, candidate.attempt)
 				if err != nil {
 					return nil, gatewayPublicAttemptError(err)
 				}
 				if eligible {
-					protocols = append(protocols, protocol)
-					capabilities[protocol] = []string{}
-					break
+					available = true
+					intersection.include(candidate.route)
 				}
+			}
+			if available {
+				protocols = append(protocols, protocol)
+				capabilities[protocol] = intersection.values()
 			}
 		}
 		if len(protocols) == 0 {
 			continue
 		}
-		output = append(output, GatewayModel{ID: name.Name, ModelID: name.ModelID, Object: "model", Created: auth.ModelCreated[name.ModelID].Unix(), OwnedBy: "routex", Protocols: protocols, InputCapabilities: capabilities, AttachmentScope: "team", PersonalAttachments: false})
+		output = append(output, GatewayModel{ID: name.Name, ModelID: name.ModelID, Object: "model", Created: auth.ModelCreated[name.ModelID].Unix(), OwnedBy: "routex", Protocols: protocols, InputCapabilities: capabilities, AttachmentScope: "team", AttachmentTeamID: identity.TeamID, AttachmentMembershipID: identity.TeamMembershipID, PersonalAttachments: false})
 	}
 	if err := s.ReauthorizeTeamSession(ctx, identity, ""); err != nil {
 		return nil, err

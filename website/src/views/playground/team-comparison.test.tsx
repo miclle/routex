@@ -353,7 +353,7 @@ describe('Team native comparison', () => {
     await click('Load Team models')
     await fill('comparison_prompt', 'Preserved draft')
     await act(async () => i18n.changeLanguage('zh'))
-    expect(host.textContent).toContain('文本对话和模型比较')
+    expect(host.textContent).toContain('仅属于你当前的成员资格')
     expect(host.textContent).not.toContain('暂不支持附件、模型比较')
     expect(host.querySelector<HTMLTextAreaElement>('textarea')!.value).toBe('Preserved draft')
   })

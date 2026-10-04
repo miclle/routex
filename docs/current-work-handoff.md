@@ -3,7 +3,7 @@
 - **Status:** implementation active; prioritize partially completed capabilities
 - **Updated:** 2026-10-04
 - **Repository / branch:** RouteX / `main`
-- **Previous checked baseline:** `32643a86d7a272166456f0fa86d3113c4320ff0c`, pushed and read back from `origin/main`
+- **Previous checked baseline:** `15effef1b54b07b8ae4120283e193f291ece9583`, pushed and read back from `origin/main`
 - **Current owner:** coordinator owns integration, actual runtime acceptance and delivery; parallel owners prepare isolated source and fixtures
 - **Transport:** identify the current checked delivery with `git log -1 -- docs/current-work-handoff.md` and independently verify its upstream
 - **Roadmap:** [Implementation and acceptance index](IMPLEMENTATION.md); cross-task coordination is maintained separately in `~/dotfiles/projects/routex/implementation-plan.md`
@@ -236,3 +236,62 @@ seconds), focused actual lifecycle, controlled production browser and final chec
 No schema or identity-persistence change belongs to this phase. Exact remote
 checks must be inspected after this document's commit is pushed; preceding source
 checks do not prove the next commit. The full objective remains active.
+
+## Active rebuilt-main Team media candidate
+
+The monthly-account phase was delivered and read back as `15effef`. Its Actionlint
+37166060859, CI 37166060858 and GolangCI-Lint 37166060843 all passed
+for that exact commit.
+
+The coordinator carried 28 frozen Team media source/fixture files and five narrow
+shared registrations/historical-test changes into the current main worktree.
+F07, code/Reset, Session generation and monthly Overview source remain intact;
+no entire older worktree diff or stale rule/document file was copied. V46 follows
+V45 with GORM migration and historical guard reconstruction. The paired frontend
+rules, database/storage/Team/Playground contracts and README are updated narrowly.
+Formatting and complete main check/test/build precede a rebuilt-main production
+browser run and mandatory complete PostgreSQL/MySQL matrix. This source is not yet
+delivered. Exact creator/current membership, immutable expiry, post-I/O rechecks,
+one final admission and independent native lanes remain required. The isolated
+repaired lifecycle focus is evidence for those frozen backend paths; earlier
+failed runs remain failures.
+
+The initial integrated frontend run passed 1639/1640 cases and failed one old
+text-only language assertion. One narrow existing comparison test seam is now
+included, making 29 frozen source/fixture paths plus the shared integrations.
+Full main check/test/build reruns; do not claim the failed run as acceptance.
+
+Integrated Team media check/test/build now passed 1640 frontend cases/92 files,
+Go race, development lifecycle and production assets after the narrow copy seam
+repair. Package/lock baselines are unchanged. The rebuilt-main binary is ready
+for controlled production browser acceptance; complete main V46 matrix remains
+pending. The separate Home thirty-day four-case actual focus passed PostgreSQL
+and MySQL in 117.082 seconds, including current usage/Team/account siblings. Its
+new report assertions use seeded immutable facts and make no native completion
+claim. Final Home integration/browser acceptance remains pending.
+
+The rebuilt-main controlled media browser passed 16 distinct native requests,
+four-protocol media/text rounds, creator/exact-membership and one-hour isolation,
+shared retention during independent cancellation, exact-version cleanup, four
+pre-attempt grant-revocation failures and restart without replay. English was
+restored, browser warnings/errors were absent and owned QA resources were removed.
+An earlier optional two-lane cancellation scenario failed the four-lane helper
+expectation after Session renewal; it is retained as failed evidence. The fresh
+complete run confirmed all four selected lanes before dispatch and passed.
+A duplicate historical V23 fixture rewind is removed without relaxing constraints.
+The full current-main V46 PostgreSQL/MySQL matrix is now running; commit/push
+remains gated on it and the final required check. The full objective stays active.
+
+## Checked Team media package
+
+All current-main local gates passed: full check/test/build, 1640 frontend cases
+in 92 files, Go race, development lifecycle, embedded production assets and the
+complete PostgreSQL/MySQL matrix (Handler 1137.119 seconds; Service 7.537 seconds).
+The controlled production proof above uses the same rebuilt binary. Owned
+application/storage/native fixtures and all matrix Compose resources were
+removed. Final required check precedes scoped main commit/push; read the current
+document commit and remote ref for transport, and inspect its exact remote checks.
+No external-provider or multi-node acceptance is implied. Next delivery is the
+frozen Home thirty-day package, followed by Team notifications; Usage CSV source
+owners are preparing its independent complete-report/privacy acceptance. The
+full objective remains active.

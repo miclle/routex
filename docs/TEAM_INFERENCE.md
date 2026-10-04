@@ -7,7 +7,7 @@ a Team Key, expand Personal Key grants or choose a Team from a union catalogue.
 ## Native endpoints
 
 - `GET /api/v1/teams/:team_id/inference-models` returns native `{object,data}`
-  model discovery restricted to current eligible Chat routes. `id` is the public
+  model discovery restricted to current eligible native routes. `id` is the public
   model name; `model_id` is its stable identity for verified navigation.
 - `POST /api/v1/teams/:team_id/chat/completions` accepts native Chat JSON and
   returns ordinary JSON or native SSE. Authentication is the existing HttpOnly
@@ -28,11 +28,12 @@ digests and Personal/Project Key semantics intact.
 
 ## Invocation and accounting
 
-Text-only Chat, Responses, Messages and Gemini use their native Team Session
-endpoints and independent terminal/usage semantics. Images, PDF input and attachment
-scalar references are rejected before storage reads or upstream dispatch. Opaque
-text and tool payloads retain their meaning; content positions are bounded and
-validated separately for each protocol. Team comparison uses independently dispatched native text lanes. Attachments remain unfinished for this authentication source. Request code uses independent environment-driven Session authentication.
+Chat, Responses, Messages and Gemini retain their independent native semantics.
+Creator-private image/PDF input requires canonical managed references and the
+current model capability. Raw media and unsupported references fail before
+storage I/O or upstream dispatch; opaque text/tool content remains unchanged.
+Conversation/comparison share the same bounded resolution and current Team scope.
+Request code retains independent environment-driven Session authentication.
 
 The same native attempt pipeline retains one durable logical admission, native
 terminal evidence, immutable usage and assessed prices. Team aggregate and stable
@@ -97,8 +98,8 @@ logging/recovery, including malformed native paths. Messages retains its native
 version header and Gemini retains native contents/systemInstruction/generationConfig.
 No handler converts a protocol to Chat or borrows Personal attachment ownership.
 
-Discovery returns only current ready native protocol routes with empty input
-capabilities and explicit Team scope. Member catalogue Team source links expose
+Discovery returns only current ready native protocol routes with actual input
+capabilities and exact Team/membership attachment scope. Member catalogue Team source links expose
 these protocols independently of Personal Key availability. Each native attempt
 uses existing immutable Team/membership facts, aggregate/member admission and
 settlement. Unknown terminal usage remains unknown, and finite policies fail closed.
@@ -138,3 +139,55 @@ completed history and captured code, abort pending inference, preserve unsent
 drafts, and require explicit model rediscovery. Observe the existing Session query
 without creating an additional network observer. Manual same-actor CSRF cache
 replacement is not a Team authority renewal and preserves completed history.
+
+## Creator-private Team media
+
+Session attachment routes derive Team context only from the authorized path:
+
+| Method and path | Behavior |
+| --- | --- |
+| `POST /api/v1/teams/:team_id/attachments` | Exactly one multipart `file`; 201 ready metadata after verified storage |
+| `GET /api/v1/teams/:team_id/attachments/:attachment_id` | Current creator/exact-membership metadata for an unexpired ready object |
+| `GET /api/v1/teams/:team_id/attachments/:attachment_id/content` | Bounded, verified bytes under the same current authority |
+| `DELETE /api/v1/teams/:team_id/attachments/:attachment_id` | 200 metadata confirming deletion intent or deleted state, including expired objects |
+
+Every route requires the current enabled creator, active Team and the same exact
+active membership captured at creation. Team ownership and platform permissions
+provide no bypass. Native Key headers, queries and context selectors are rejected.
+Mutations require same-origin protection and current CSRF. Team metadata adds
+`attachment_team_id`, `attachment_membership_id`, `creator_user_id` and
+`expires_at` to the existing attachment fields; storage descriptors and secrets
+remain private. Renewal of the creator's Session can preserve server eligibility;
+removal/rejoin replaces membership identity and cannot restore object access.
+
+Frozen V46 stores Team ownership and creator proof. The immutable deadline is
+creation plus one hour, independent of cleanup retry scheduling. Metadata,
+content and native resolution reject an expired object, even if deletion has not
+yet completed. Expired-object DELETE still requires current exact creator and
+membership authority. These objects are private invocation drafts, not shared
+Team resources or a reusable attachment library.
+
+Native resolution preflights the complete reference set before storage I/O,
+validates occurrence MIME and byte bounds, deduplicates reads, and reauthorizes
+the captured published Team identity and current model grant after remote reads.
+Every selected eligible route must support the declared input kind. Existing
+attested-capacity and enabled image/PDF base-price requirements apply before
+reads under finite quota policies. One final admission and native dispatch retain
+Team/user/membership attribution with no Personal, Project or Key expansion.
+See [Object storage](STORAGE.md) for native positions and bounded resolution.
+
+The Playground hides and clears unsent media on renewed authority, aborts uploads,
+preserves unsent text and requires explicit model reload. It does not restore
+objects merely because a renewed Session could still access them. Comparison
+shares one upload across independent native lanes and retains submitted objects
+until every lane settles, even on cancellation or unmount. Failed authorized
+cleanup relies on durable expiry. Code remains unavailable while media is
+selected. [Playground](PLAYGROUND.md) documents composition, standalone code
+login, Reset, and the 497-case scoped client gate. Focused actual PostgreSQL/MySQL lifecycle and V46 migration passed on both
+drivers (Handler 76.817 seconds). Rebuilt-main check/test/build passed 1640
+frontend cases in 92 files plus Go race and asset checks. Controlled bilingual
+production-browser acceptance passed 16 distinct native requests, exact media
+rewriting, completed-text history without media replay, independent cancellation,
+shared-object retention, exact-version cleanup, grant revocation and restart
+without replay. The complete rebuilt-main PostgreSQL/MySQL matrix passed (Handler 1137.119
+seconds; Service 7.537 seconds). External-provider acceptance remains separate.

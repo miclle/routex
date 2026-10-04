@@ -5,6 +5,8 @@ import CodeDialog from './code-dialog'
 import TeamPicker from './team-picker'
 import {
   getTeamModels,
+  uploadTeamAttachment,
+  deleteTeamAttachment,
   runTeamChat,
   runTeamResponses,
   runTeamMessages,
@@ -14,6 +16,7 @@ import {
 import { AttachmentChips, AttachmentPicker } from './attachments'
 import { isGeminiModelName, protocolLabel } from '@/lib/protocols'
 import {
+  matchesTeamAttachment,
   buildChatAttachmentContent,
   buildGeminiAttachmentParts,
   buildMessagesAttachmentContent,
@@ -43,7 +46,10 @@ import type {
   ResponsesHistoryItem,
   ResponseStatus,
 } from '@/types/playground'
-import type { Attachment, AttachmentTarget } from '@/types/attachments'
+import type {
+  Attachment,
+  PlaygroundAttachmentTarget as AttachmentTarget,
+} from '@/types/attachments'
 import { useSession } from '@/hooks/use-auth'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -88,13 +94,20 @@ function attachmentCapability(file: File): 'image' | 'pdf' | null {
   return null
 }
 
-function uploadScopedAttachment(file: File, csrf: string, target: AttachmentTarget) {
+function uploadScopedAttachment(
+  file: File,
+  csrf: string,
+  target: AttachmentTarget,
+  signal?: AbortSignal,
+) {
+  if (target.scope === 'team') return uploadTeamAttachment(target.teamId, file, csrf, signal)
   return target.scope === 'user'
     ? uploadAttachment(file, csrf)
     : uploadAttachment(file, csrf, undefined, target)
 }
 
 function deleteScopedAttachment(id: string, csrf: string, target: AttachmentTarget) {
+  if (target.scope === 'team') return deleteTeamAttachment(target.teamId, id, csrf)
   return target.scope === 'user'
     ? deleteAttachment(id, csrf)
     : deleteAttachment(id, csrf, undefined, target)
@@ -161,12 +174,15 @@ function ComparisonSession({
   const active = useRef(new Map<number, AbortController>())
   const verification = useRef<AbortController | null>(null)
   const attachmentGeneration = useRef(0)
+  const uploadControllers = useRef(new Set<AbortController>())
+  const submittedAttachmentIDs = useRef(new Set<string>())
   const attachmentRef = useRef<Attachment[]>([])
   const ownedAttachmentTargets = useRef(new Map<string, AttachmentTarget>())
   const csrfRef = useRef('')
   const lock = useRef(false)
   const mounted = useRef(true)
-  const teamVisible = source !== 'team' || (freshSession && teamConfirmed)
+  const teamVisible =
+    source !== 'team' || (freshSession && teamConfirmed && !!session.data?.csrf_token)
   if (codeRequest && source === 'team' && (!teamVisible || !actor || !session.data?.csrf_token))
     setCodeRequest(null)
   const visibleModels = teamVisible ? models : []
@@ -183,13 +199,33 @@ function ComparisonSession({
   })
   const attachmentScope = models[0]?.attachment_scope
   const attachmentTarget: AttachmentTarget | null =
-    attachmentScope === 'user' && !projectId
-      ? { scope: 'user' }
-      : attachmentScope === 'project' &&
-          !!models[0]?.attachment_project_id &&
-          (!projectId || models[0].attachment_project_id === projectId)
-        ? { scope: 'project', projectId: models[0].attachment_project_id }
-        : null
+    source === 'team' &&
+    teamVisible &&
+    models[0]?.attachment_scope === 'team' &&
+    models[0].attachment_team_id === teamId &&
+    !!models[0].attachment_membership_id &&
+    !!session.data?.user.id &&
+    lanes.every((lane) => {
+      const selected = models.find((model) => model.id === lane.model)
+      return (
+        selected?.attachment_team_id === teamId &&
+        selected?.attachment_membership_id === models[0]?.attachment_membership_id
+      )
+    })
+      ? {
+          scope: 'team',
+          teamId,
+          membershipId: models[0].attachment_membership_id,
+          creatorUserId: session.data.user.id,
+        }
+      : source === 'key' && attachmentScope === 'user' && !projectId
+        ? { scope: 'user' }
+        : source === 'key' &&
+            attachmentScope === 'project' &&
+            !!models[0]?.attachment_project_id &&
+            (!projectId || models[0].attachment_project_id === projectId)
+          ? { scope: 'project', projectId: models[0].attachment_project_id }
+          : null
   const inputCapabilities = (['image', 'pdf'] as const).filter((capability) =>
     laneCapabilities.every((item) => item.values.includes(capability)),
   )
@@ -198,7 +234,7 @@ function ComparisonSession({
     ...(inputCapabilities.includes('pdf') ? ['application/pdf'] : []),
   ].join(',')
   const canAttach =
-    source === 'key' &&
+    (source === 'key' || (teamVisible && checked && !!session.data?.csrf_token)) &&
     !!session.data &&
     !!attachmentTarget &&
     lanes.every((lane) => !!lane.model) &&
@@ -212,7 +248,7 @@ function ComparisonSession({
     })
   }
 
-  async function releaseAttachments(items: Attachment[], csrf = csrfRef.current) {
+  const releaseAttachments = useCallback(async (items: Attachment[], csrf = csrfRef.current) => {
     if (!csrf) return
     const owned = items.filter((attachment) => ownedAttachmentTargets.current.has(attachment.id))
     const results = await Promise.allSettled(
@@ -225,17 +261,27 @@ function ComparisonSession({
     )
     if (mounted.current && results.some((result) => result.status === 'rejected'))
       setAttachmentError('attachmentDeleteFailed')
-  }
+  }, [])
 
-  function clearDraftAttachments() {
+  const clearDraftAttachments = useCallback(() => {
     attachmentGeneration.current += 1
+    for (const upload of uploadControllers.current) upload.abort()
+    uploadControllers.current.clear()
     const current = attachmentRef.current
     attachmentRef.current = []
     setAttachments([])
     setUploadingNames([])
     setAttachmentError('')
     void releaseAttachments(current)
-  }
+  }, [releaseAttachments])
+
+  useLayoutEffect(() => {
+    if (source === 'team' && !(freshSession && !!session.data?.csrf_token)) {
+      attachmentGeneration.current += 1
+      for (const upload of uploadControllers.current) upload.abort()
+      uploadControllers.current.clear()
+    }
+  }, [source, freshSession, session.data?.csrf_token])
 
   useEffect(() => {
     csrfRef.current = session.data?.csrf_token ?? ''
@@ -244,16 +290,20 @@ function ComparisonSession({
     mounted.current = true
     const controllers = active.current
     const activeOwnedAttachmentTargets = ownedAttachmentTargets.current
+    const uploads = uploadControllers.current
+    const submitted = submittedAttachmentIDs.current
     return () => {
       mounted.current = false
       attachmentGeneration.current += 1
+      for (const upload of uploads) upload.abort()
+      uploads.clear()
       verification.current?.abort()
       for (const controller of controllers.values()) controller.abort()
       controllers.clear()
       attachmentRef.current = []
       const csrf = csrfRef.current
-      const owned = [...activeOwnedAttachmentTargets]
-      activeOwnedAttachmentTargets.clear()
+      const owned = [...activeOwnedAttachmentTargets].filter(([id]) => !submitted.has(id))
+      for (const [id] of owned) activeOwnedAttachmentTargets.delete(id)
       if (csrf)
         for (const [id, target] of owned)
           void deleteScopedAttachment(id, csrf, target).catch(() => undefined)
@@ -261,6 +311,7 @@ function ComparisonSession({
   }, [])
 
   const resetAuthority = useCallback(() => {
+    clearDraftAttachments()
     epoch.current += 1
     verification.current?.abort()
     verification.current = null
@@ -273,7 +324,7 @@ function ComparisonSession({
     setChecked(false)
     setLoading(false)
     setCodeRequest(null)
-  }, [])
+  }, [clearDraftAttachments])
   useLayoutEffect(() => {
     liveSession.current = freshSession ? session.data : undefined
     if (source === 'team' && (!freshSession || !session.data?.csrf_token)) {
@@ -303,6 +354,7 @@ function ComparisonSession({
     const target = attachmentTarget
     if (!target) return
     setAttachmentError('')
+    setCodeRequest(null)
     const csrf = session.data.csrf_token
     const generation = attachmentGeneration.current
     const knownNames = new Set([
@@ -333,7 +385,16 @@ function ComparisonSession({
       remaining -= 1
       setUploadingNames((current) => [...current, file.name])
       try {
-        const attachment = await uploadScopedAttachment(file, csrf, target)
+        const upload = target.scope === 'team' ? new AbortController() : undefined
+        if (upload) uploadControllers.current.add(upload)
+        let attachment: Attachment
+        try {
+          attachment = await uploadScopedAttachment(file, csrf, target, upload?.signal)
+        } finally {
+          if (upload) uploadControllers.current.delete(upload)
+        }
+        if (target.scope === 'team' && !matchesTeamAttachment(attachment, target))
+          throw new AttachmentError(0)
         ownedAttachmentTargets.current.set(attachment.id, target)
         if (!mounted.current || attachmentGeneration.current !== generation) {
           await deleteScopedAttachment(attachment.id, csrf, target)
@@ -357,6 +418,12 @@ function ComparisonSession({
         replaceAttachments((current) => [...current, attachment])
       } catch (failure) {
         if (mounted.current && attachmentGeneration.current === generation) {
+          if (
+            target.scope === 'team' &&
+            failure instanceof AttachmentError &&
+            [401, 403, 404].includes(failure.status)
+          )
+            confirmTeam(false)
           setAttachmentError(
             failure instanceof AttachmentError && failure.status === 429
               ? 'attachmentStorageLimit'
@@ -787,6 +854,7 @@ function ComparisonSession({
     const generation = epoch.current
     const captured = prompt.trim()
     const submittedAttachments = attachmentRef.current
+    for (const attachment of submittedAttachments) submittedAttachmentIDs.current.add(attachment.id)
     attachmentGeneration.current += 1
     attachmentRef.current = []
     setAttachments([])
@@ -797,7 +865,9 @@ function ComparisonSession({
       await Promise.allSettled(lanes.map((lane) => run(lane, captured, submittedAttachments)))
     } finally {
       if (epoch.current === generation) lock.current = false
-      void releaseAttachments(submittedAttachments)
+      await releaseAttachments(submittedAttachments)
+      for (const attachment of submittedAttachments)
+        submittedAttachmentIDs.current.delete(attachment.id)
     }
   }
   return (
@@ -826,7 +896,7 @@ function ComparisonSession({
             <div className="min-w-[280px] space-y-2">
               <TeamPicker
                 key={sessionGeneration}
-                actor={freshSession ? actor : ''}
+                actor={freshSession && session.data?.csrf_token ? actor : ''}
                 value={teamId}
                 onChange={(value) => onTeam?.(value)}
                 onConfirmed={confirmTeam}
@@ -1093,8 +1163,8 @@ function ComparisonSession({
       </div>
       <div className="space-y-3 border-t p-4">
         <AttachmentChips
-          attachments={attachments}
-          uploadingNames={uploadingNames}
+          attachments={teamVisible ? attachments : []}
+          uploadingNames={teamVisible ? uploadingNames : []}
           disabled={busy}
           removeLabel={(name) => t('removeAttachment', { name })}
           uploadingLabel={(name) => t('attachmentUploadingLabel', { name })}
@@ -1121,7 +1191,7 @@ function ComparisonSession({
           }}
         />
         <div className="flex items-center justify-between gap-2">
-          {source === 'key' && (
+          {(source === 'key' || !!attachmentTarget) && (
             <AttachmentPicker
               accept={attachmentAccept}
               disabled={busy || !canAttach || attachments.length >= maxAttachments}
@@ -1130,7 +1200,7 @@ function ComparisonSession({
                   ? t('attachFiles')
                   : attachmentTarget && models.length > 0
                     ? t('attachmentUnsupported')
-                    : attachmentScope === 'project' || projectId
+                    : (source === 'key' && attachmentScope === 'project') || projectId
                       ? t('attachmentProjectUnavailable')
                       : t('attachmentUnsupported')
               }

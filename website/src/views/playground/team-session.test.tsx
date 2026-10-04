@@ -274,7 +274,7 @@ describe('Team Session Playground', () => {
     expect(host.querySelector('[name="api_key"]')).toBeNull()
     expect(
       host.querySelector<HTMLButtonElement>(
-        '[aria-label="Team Sessions do not support attachments"]',
+        '[aria-label="This Team selection does not support attachments"]',
       )!.disabled,
     ).toBe(true)
     expect(button('Get code').disabled).toBe(false)
@@ -331,7 +331,7 @@ describe('Team Session Playground', () => {
         .find((item) => item.textContent === 'Model comparison')!
         .click(),
     )
-    expect(host.textContent).toContain('Team Sessions support text conversations and comparison')
+    expect(host.textContent).toContain('Team Sessions use available native protocols')
     expect(host.querySelectorAll('section[aria-label^="Comparison "]')).toHaveLength(2)
     expect(host.querySelector('[name="comparison_key"]')).toBeNull()
     expect(runChat).not.toHaveBeenCalled()
@@ -374,7 +374,7 @@ describe('Team Session Playground', () => {
     await fill('prompt', 'Draft')
     await act(async () => i18n.changeLanguage('zh'))
     expect(host.textContent).toContain('凭证来源')
-    expect(host.textContent).toContain('Team 会话仅支持通过可用原生协议进行文本对话')
+    expect(host.textContent).toContain('Team 会话使用可用的原生协议')
     expect(host.querySelector<HTMLTextAreaElement>('[name="prompt"]')!.value).toBe('Draft')
     expect(host.querySelector<HTMLSelectElement>('[name="team"]')!.value).toBe('tea_one')
   })

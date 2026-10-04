@@ -169,8 +169,8 @@ The binary capability count is 11 completed, 16 partially completed, and 3 not s
 | F16 | Platform currency, exchange rates, and historical price snapshots | Completed | Decimal-string currency/rate management, exact quoting, and immutable per-call assessment are implemented. |
 | F17 | User and Team defaults, overrides, budgets, alerts, and stop policy | Partially completed | Personal, Project, Key and Team aggregate/member enforcement plus budget/token/TPM controls, authoritative quota snapshots, and installation-calendar configuration exist; current-policy Personal/Project monthly settled-exhaustion inboxes have focused acceptance, and creation-default settings and explicit restores have complete local acceptance; templates, broader alerts, and configurable stop-calling policy remain open. |
 | F18 | Quota, model, and request-limit approvals | Completed | Project model/monthly quota/RPM/TPM/concurrency and Team monthly Token/money requests have controlled acceptance: owner-first assignment, escalation, independent dimensions, read-only platform records, atomic final policies and immutable receipts with current application. Distributed acknowledgements belong to F30; release-wide acceptance remains separate. |
-| F19 | Member overview, model sources, requests, and examples | Partially completed | Actor-scoped Personal/Team source attribution, native metadata, filters, details and examples are available; Project requests and four text-only native Team Session protocols exist; Personal single-Model requests and independent scoped review are available; Shared Team model requests and independently scoped review are available; Two-to-four native Team text comparison lanes are implemented; Independent Team native code export is accepted; self-only monthly Overview accounts have complete local source, database and controlled browser acceptance; Team media and broader overview/price/usage facts remain open. |
-| F20 | Playground, comparison, attachments, and code examples | Partially completed | Four native conversation paths, two-to-four-lane comparison, cancellation, executable examples, per-protocol image/PDF discovery, user/Project attachment resolution, single/comparison attachment lifecycle interfaces, and conservative token/TPM/money admission with exact per-occurrence media prices exist; Team text comparison, independent native code export and parameter Reset are accepted; creator-private Team attachments remain an active package and external acceptance remains open. |
+| F19 | Member overview, model sources, requests, and examples | Partially completed | Actor-scoped Personal/Team source attribution, native metadata, filters, details and examples are available; Project requests and four native Team Session protocols exist; Personal single-Model requests and independent scoped review are available; Shared Team model requests and independently scoped review are available; Two-to-four native Team comparison lanes are implemented; Independent Team native code export is accepted; self-only monthly Overview accounts have complete local source, database and controlled browser acceptance; Creator-private Team media has complete local source, migration and controlled production acceptance; broader overview/price/usage facts remain open. |
+| F20 | Playground, comparison, attachments, and code examples | Partially completed | Four native conversation paths, two-to-four-lane comparison, cancellation, executable examples, per-protocol image/PDF discovery, user/Project attachment resolution, single/comparison attachment lifecycle interfaces, and conservative token/TPM/money admission with exact per-occurrence media prices exist; Team comparison, independent native code export, parameter Reset and creator-private Team attachments have complete local acceptance; external acceptance remains open. |
 | F21 | Personal, Project, and platform call records and CSV | Completed | Isolated list/detail queries, incremental loading, redacted drawers, bounded server-side CSV export, filter parity, formula protection, and bilingual download actions are implemented with dual-database evidence. |
 | F22 | Usage trends, amounts, and multidimensional filters | Partially completed | Personal, Team, Project and platform usage interfaces plus immutable Provider attribution exist. Current-member Team aggregation, independent historical platform filters, revocation-safe interfaces and controlled replay/restart are accepted; complete freshness/capacity acceptance remains open. |
 | F23 | Operations overview, quality, alerts, and notifications | Partially completed | The real-data operations overview, immutable Provider-attempt quality, revisioned success/P95 thresholds, grouped Provider-quality and route-unavailable alerts, recipient-isolated history, independent severity settings, and bounded durable operational SMTP delivery are implemented. Current-policy Personal/Project monthly settled-exhaustion inboxes have focused acceptance; external mail acceptance, bounce/inbox tracking, real-Provider quality acceptance, and broader quota/enterprise sources remain open. |
@@ -2572,3 +2572,55 @@ browser evidence is described in [Member Overview](MEMBER_OVERVIEW.md). Owned
 resources were removed. Deliver source, fixtures, paired catalogs and current
 contracts together; thirty-day cards/trend/breakdown, Team media and the broader
 F19 capability remain partial. No external-provider acceptance is implied.
+
+### Team media integrated source checkpoint, 2026-10-04
+
+The first main source test run passed 1639 frontend cases but failed one legacy
+comparison-language assertion that still expected text-only guidance. The
+approved media copy now describes current creator/membership and expiry. Its
+single assertion is updated while explicit Team selection, authorization, language
+switching and draft-preservation checks remain intact. This failed run is not
+acceptance; complete main check/test/build is rerun before production proof.
+
+The corrected integrated Team media source passed full check/test/build, including
+1640 frontend cases in 92 files and unchanged dependency baselines. The separate
+Home thirty-day report focus passed all four selected lifecycle cases on both
+drivers (Handler 117.082 seconds); seeded historical facts remain distinct from
+native invocation proof. Rebuilt-main media browser and full V46 regression are
+next; neither candidate is a new checked delivery yet.
+
+### Team media rebuilt-main production proof, 2026-10-04
+
+The rebuilt production binary passed controlled bilingual browser/native/storage
+proof: 16 distinct Team/user/membership-attributed requests, two completed
+four-protocol rounds, exact PNG/PDF bytes, completed-text history without media
+replay, independent Chat cancellation while three siblings completed, and shared
+objects retained until every lane settled. Four inspected creator-private objects
+were deleted once using their original storage versions. Peers, Team owners and
+platform administrators could not read them; fixed deadlines equal creation plus
+one hour. Four post-revocation calls started no upstream attempts, refreshed
+discovery was empty, and restart retained Sessions and durable facts without
+replaying inference. English was restored, browser warnings/errors were empty
+and all owned QA resources were removed.
+
+An earlier optional cancellation run followed automatic Session renewal but
+incorrectly assumed its four comparison lanes survived; only two were configured.
+The helper correctly failed its four-lane expectation. The complete fresh run
+confirmed four selected lanes before dispatch and passed; no production behavior
+or acceptance bound was weakened. Source audit also caught a duplicate V46 guard
+rewind in the historical V23 partial-DDL fixture. The second rewind is removed,
+retaining strict guard/ledger checks. The complete main PostgreSQL/MySQL matrix
+is running; this remains an uncommitted candidate until that gate passes.
+
+### Team media final local acceptance, 2026-10-04
+
+The complete current-main PostgreSQL/MySQL regression passed (Handler 1137.119
+seconds; Service 7.537 seconds), including frozen V46, historical reconstruction,
+creator/membership/expiry lifecycle and existing package siblings. Owned Compose
+resources were removed. Full check/test/build, 1640 frontend cases/92 files, Go
+race, development lifecycle, embedded production assets and the 16-request
+bilingual native/storage/revocation/restart proof passed. The final required
+check runs before scoped main commit and push. F19/F20 remain partial because
+other product and external acceptance gates are separate; formal totals remain
+11 complete, 16 partial and three unstarted. Home thirty-day reports, Team monthly
+notices and scoped Usage CSV retain their own delivery gates.

@@ -19,23 +19,33 @@ import (
 const attachmentReadyTTL = time.Hour
 
 type AttachmentView struct {
-	ID        string    `json:"id"`
-	Name      string    `json:"name"`
-	MIME      string    `json:"mime"`
-	Size      int64     `json:"size"`
-	State     string    `json:"state"`
-	CreatedAt time.Time `json:"created_at"`
+	ID                     string     `json:"id"`
+	Name                   string     `json:"name"`
+	MIME                   string     `json:"mime"`
+	Size                   int64      `json:"size"`
+	State                  string     `json:"state"`
+	CreatedAt              time.Time  `json:"created_at"`
+	AttachmentTeamID       string     `json:"attachment_team_id,omitempty"`
+	AttachmentMembershipID string     `json:"attachment_membership_id,omitempty"`
+	CreatorUserID          string     `json:"creator_user_id,omitempty"`
+	ExpiresAt              *time.Time `json:"expires_at,omitempty"`
 }
 
 type attachmentOwner struct {
-	Kind string
-	ID   string
+	Kind                string
+	ID                  string
+	CreatorUserID       string
+	CreatorMembershipID string
 }
 
 type attachmentAuthorization func(*gorm.DB) error
 
 func attachmentView(row entity.StorageObject) AttachmentView {
-	return AttachmentView{ID: row.ID, Name: row.Name, MIME: row.MIME, Size: row.Size, State: row.State, CreatedAt: row.CreatedAt}
+	view := AttachmentView{ID: row.ID, Name: row.Name, MIME: row.MIME, Size: row.Size, State: row.State, CreatedAt: row.CreatedAt}
+	if row.OwnerKind == entity.StorageOwnerTeam && row.CreatorUserID != nil && row.CreatorMembershipID != nil {
+		view.AttachmentTeamID, view.AttachmentMembershipID, view.CreatorUserID, view.ExpiresAt = row.OwnerID, *row.CreatorMembershipID, *row.CreatorUserID, row.ExpiresAt
+	}
+	return view
 }
 
 func activeAttachmentOwner(db *gorm.DB, actor string) error {
@@ -112,7 +122,16 @@ func (s *Service) uploadAttachment(ctx context.Context, actor string, owner atta
 	}
 	sum := sha256.Sum256(data)
 	createdAt := time.Now().UTC()
+	if owner.Kind == entity.StorageOwnerTeam {
+		// Released MySQL storage timestamps have millisecond precision. Match
+		// that common precision before fixing an immutable one-hour deadline.
+		createdAt = createdAt.Truncate(time.Millisecond)
+	}
 	row := entity.StorageObject{ID: objectID, OwnerKind: owner.Kind, OwnerID: owner.ID, Purpose: "attachment", State: "uploading", Name: name, MIME: mime, Size: int64(len(data)), SHA256: hex.EncodeToString(sum[:]), NextCleanupAt: createdAt.Add(attachmentReadyTTL), CreatedAt: createdAt}
+	if owner.Kind == entity.StorageOwnerTeam {
+		deadline := createdAt.Add(attachmentReadyTTL)
+		row.CreatorUserID, row.CreatorMembershipID, row.ExpiresAt = &owner.CreatorUserID, &owner.CreatorMembershipID, &deadline
+	}
 	var revision entity.StorageRevision
 	err = s.authDB(ctx).Transaction(func(tx *gorm.DB) error {
 		if err := lockGovernance(tx); err != nil {
@@ -145,7 +164,7 @@ func (s *Service) uploadAttachment(ctx context.Context, actor string, owner atta
 		return appendAudit(tx, actor, "attachment.upload", "attachment", row.ID)
 	})
 	if err != nil {
-		return nil, catalogError(err)
+		return nil, attachmentError(owner, err)
 	}
 	config, err := s.storageConfig(revision)
 	if err != nil {
@@ -160,6 +179,12 @@ func (s *Service) uploadAttachment(ctx context.Context, actor string, owner atta
 	defer client.Close()
 	run, cancel := context.WithTimeout(ctx, 20*time.Second)
 	defer cancel()
+	if owner.Kind == entity.StorageOwnerTeam {
+		if err := authorize(s.authDB(run)); err != nil {
+			_ = s.abandonStorageUpload(ctx, row.ID)
+			return nil, attachmentError(owner, err)
+		}
+	}
 	version, err := client.Put(run, row.ID, mime, data)
 	if err != nil {
 		_ = s.markStorageDeletion(ctx, row.ID, version)
@@ -168,8 +193,20 @@ func (s *Service) uploadAttachment(ctx context.Context, actor string, owner atta
 	if err := s.confirmStorageUpload(ctx, row.ID, version); err != nil {
 		return nil, runtimeUnavailable
 	}
+	if owner.Kind == entity.StorageOwnerTeam {
+		if err := authorize(s.authDB(run)); err != nil {
+			_ = s.markStorageDeletion(ctx, row.ID, version)
+			return nil, attachmentError(owner, err)
+		}
+	}
 	object, err := client.Get(run, row.ID, version)
 	if err == nil {
+		if owner.Kind == entity.StorageOwnerTeam {
+			row.VersionID = version
+			if !storedAttachmentMatches(row, object) {
+				err = objectstore.ErrConflict
+			}
+		}
 		actual := sha256.Sum256(object.Data)
 		if object.OwnerID != row.ID || actual != sum {
 			err = objectstore.ErrConflict
@@ -186,7 +223,10 @@ func (s *Service) uploadAttachment(ctx context.Context, actor string, owner atta
 		if err := authorize(tx); err != nil {
 			return err
 		}
-		result := tx.Model(&entity.StorageObject{}).Where("id = ? AND owner_kind = ? AND owner_id = ? AND state = ?", row.ID, owner.Kind, owner.ID, "uploading").Updates(map[string]any{"state": "ready", "version_id": version})
+		if owner.Kind == entity.StorageOwnerTeam && (row.ExpiresAt == nil || !row.ExpiresAt.After(time.Now().UTC())) {
+			return apperrors.ErrNotFound
+		}
+		result := attachmentScopeQuery(tx.Model(&entity.StorageObject{}), owner, row.ID).Where("state = ?", "uploading").Updates(map[string]any{"state": "ready", "version_id": version})
 		if result.Error != nil {
 			return result.Error
 		}
@@ -197,7 +237,7 @@ func (s *Service) uploadAttachment(ctx context.Context, actor string, owner atta
 	})
 	if err != nil {
 		_ = s.markStorageDeletion(ctx, row.ID, version)
-		return nil, catalogError(err)
+		return nil, attachmentError(owner, err)
 	}
 	row.State, row.VersionID = "ready", version
 	view := attachmentView(row)
@@ -207,11 +247,14 @@ func (s *Service) uploadAttachment(ctx context.Context, actor string, owner atta
 func (s *Service) scopedAttachment(ctx context.Context, owner attachmentOwner, objectID string, authorize attachmentAuthorization) (entity.StorageObject, error) {
 	db := s.authDB(ctx)
 	if err := authorize(db); err != nil {
-		return entity.StorageObject{}, catalogError(err)
+		return entity.StorageObject{}, attachmentError(owner, err)
 	}
 	var row entity.StorageObject
-	if err := db.First(&row, "id = ? AND owner_kind = ? AND owner_id = ? AND purpose = ?", objectID, owner.Kind, owner.ID, "attachment").Error; err != nil {
-		return row, catalogError(err)
+	if err := attachmentScopeQuery(db, owner, objectID).First(&row).Error; err != nil {
+		return row, attachmentError(owner, err)
+	}
+	if owner.Kind == entity.StorageOwnerTeam && !teamAttachmentMatches(row, owner) {
+		return entity.StorageObject{}, apperrors.ErrNotFound
 	}
 	return row, nil
 }
@@ -272,7 +315,7 @@ func (s *Service) readScopedAttachment(ctx context.Context, owner attachmentOwne
 	}
 	var revision entity.StorageRevision
 	if err := s.authDB(ctx).First(&revision, "id = ?", row.RevisionID).Error; err != nil {
-		return entity.StorageObject{}, nil, catalogError(err)
+		return entity.StorageObject{}, nil, attachmentError(owner, err)
 	}
 	config, err := s.storageConfig(revision)
 	if err != nil {
@@ -285,7 +328,17 @@ func (s *Service) readScopedAttachment(ctx context.Context, owner attachmentOwne
 	defer client.Close()
 	run, cancel := context.WithTimeout(ctx, 20*time.Second)
 	defer cancel()
+	if owner.Kind == entity.StorageOwnerTeam {
+		if err := authorize(s.authDB(run)); err != nil {
+			return entity.StorageObject{}, nil, attachmentError(owner, err)
+		}
+	}
 	object, err := client.Get(run, row.ID, row.VersionID)
+	if owner.Kind == entity.StorageOwnerTeam {
+		if authErr := authorize(s.authDB(run)); authErr != nil {
+			return entity.StorageObject{}, nil, attachmentError(owner, authErr)
+		}
+	}
 	if err != nil {
 		return entity.StorageObject{}, nil, runtimeUnavailable
 	}
@@ -305,6 +358,9 @@ func (s *Service) readScopedAttachment(ctx context.Context, owner attachmentOwne
 func attachmentReadableAt(row entity.StorageObject, now time.Time) bool {
 	if row.State != "ready" {
 		return false
+	}
+	if row.OwnerKind == entity.StorageOwnerTeam {
+		return row.ExpiresAt != nil && row.ExpiresAt.Equal(row.CreatedAt.Add(attachmentReadyTTL)) && row.ExpiresAt.After(now)
 	}
 	return row.Purpose != "attachment" || row.NextCleanupAt.After(now) || row.CreatedAt.After(now.Add(-attachmentReadyTTL))
 }
@@ -339,8 +395,11 @@ func (s *Service) deleteAttachment(ctx context.Context, actor string, owner atta
 		if err := authorize(tx); err != nil {
 			return err
 		}
-		if err := tx.First(&row, "id = ? AND owner_kind = ? AND owner_id = ? AND purpose = ?", objectID, owner.Kind, owner.ID, "attachment").Error; err != nil {
+		if err := attachmentScopeQuery(tx, owner, objectID).First(&row).Error; err != nil {
 			return err
+		}
+		if owner.Kind == entity.StorageOwnerTeam && !teamAttachmentMatches(row, owner) {
+			return apperrors.ErrNotFound
 		}
 		if row.State == "deleted" || row.State == "delete_pending" {
 			return nil
@@ -357,7 +416,7 @@ func (s *Service) deleteAttachment(ctx context.Context, actor string, owner atta
 		return appendAudit(tx, actor, "attachment.delete", "attachment", row.ID)
 	})
 	if err != nil {
-		return nil, catalogError(err)
+		return nil, attachmentError(owner, err)
 	}
 	view := attachmentView(row)
 	return &view, nil

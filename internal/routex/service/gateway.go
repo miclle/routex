@@ -39,16 +39,18 @@ func gatewayError(status int, code, message string) *GatewayError {
 
 // GatewayModel is the public model identity, independent of a provider name.
 type GatewayModel struct {
-	ModelID             string              `json:"model_id,omitempty"`
-	ID                  string              `json:"id"`
-	Object              string              `json:"object"`
-	Created             int64               `json:"created"`
-	OwnedBy             string              `json:"owned_by"`
-	Protocols           []string            `json:"protocols"`
-	InputCapabilities   map[string][]string `json:"input_capabilities"`
-	AttachmentScope     string              `json:"attachment_scope"`
-	AttachmentProjectID string              `json:"attachment_project_id,omitempty"`
-	PersonalAttachments bool                `json:"personal_attachments"`
+	ModelID                string              `json:"model_id,omitempty"`
+	ID                     string              `json:"id"`
+	Object                 string              `json:"object"`
+	Created                int64               `json:"created"`
+	OwnedBy                string              `json:"owned_by"`
+	Protocols              []string            `json:"protocols"`
+	InputCapabilities      map[string][]string `json:"input_capabilities"`
+	AttachmentScope        string              `json:"attachment_scope"`
+	AttachmentTeamID       string              `json:"attachment_team_id,omitempty"`
+	AttachmentMembershipID string              `json:"attachment_membership_id,omitempty"`
+	AttachmentProjectID    string              `json:"attachment_project_id,omitempty"`
+	PersonalAttachments    bool                `json:"personal_attachments"`
 }
 
 func gatewayModel(key *KeyRecord, id string, created int64, metadata gatewayModelMetadata) GatewayModel {
@@ -221,7 +223,7 @@ func (s *Service) gatewayNativeIdentity(ctx context.Context, identity gatewayIde
 		return result, err
 	}
 	if identity.team != nil {
-		if err := validateTeamNativeText(protocol, payload); err != nil {
+		if err := validateTeamNativeInput(protocol, payload); err != nil {
 			return result, err
 		}
 	}
@@ -230,9 +232,6 @@ func (s *Service) gatewayNativeIdentity(ctx context.Context, identity gatewayIde
 		return result, err
 	}
 	result.ImageInputs, result.PDFInputs = attachmentPlan.MediaInputs()
-	if identity.team != nil && (len(attachmentPlan.Occurrences) != 0 || result.ImageInputs != 0 || result.PDFInputs != 0) {
-		return result, teamTextUnsupported()
-	}
 	var name entity.ModelName
 	if s.runtime != nil {
 		var exists bool

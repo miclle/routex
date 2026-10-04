@@ -1,4 +1,4 @@
-import type { Attachment } from '@/types/attachments'
+import type { Attachment, TeamAttachment, TeamAttachmentTarget } from '@/types/attachments'
 import type {
   ChatCurrentTurnContent,
   ChatFileContentBlock,
@@ -103,4 +103,15 @@ export function buildGeminiAttachmentParts(
   attachments: readonly Attachment[],
 ): GeminiPart[] {
   return [{ text: prompt }, ...attachments.map(geminiAttachmentPart)]
+}
+
+export function matchesTeamAttachment(attachment: Attachment, target: TeamAttachmentTarget) {
+  const team = attachment as Partial<TeamAttachment>
+  return (
+    team.attachment_team_id === target.teamId &&
+    team.attachment_membership_id === target.membershipId &&
+    team.creator_user_id === target.creatorUserId &&
+    team.state === 'ready' &&
+    typeof team.expires_at === 'string'
+  )
 }

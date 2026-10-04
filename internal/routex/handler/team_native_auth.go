@@ -33,7 +33,7 @@ func isTeamNativePath(path string) bool {
 	// Invalid embedded slashes must not move a native suffix outside redaction.
 	for _, part := range parts[4:] {
 		switch strings.ToLower(part) {
-		case "responses", "messages", "chat", "inference-models", "models":
+		case "responses", "messages", "chat", "inference-models", "models", "attachments":
 			return true
 		}
 	}

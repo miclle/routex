@@ -69,7 +69,7 @@ func TestFrozenProjectCreationReceiptSchema(t *testing.T) {
 	assertTeamQuotaFrozenIndex(t, frozen, "idx_project_creation_actor", "", []string{"actor_id"})
 	for _, dialect := range []string{"postgres", "mysql"} {
 		steps := migrationSteps(dialect)
-		if len(steps) != 45 || reflect.ValueOf(steps[44]).Pointer() != reflect.ValueOf(projectCreationMigration).Pointer() || reflect.ValueOf(steps[43]).Pointer() != reflect.ValueOf(teamModelRequestMigration).Pointer() {
+		if len(steps) < 45 || reflect.ValueOf(steps[44]).Pointer() != reflect.ValueOf(projectCreationMigration).Pointer() || reflect.ValueOf(steps[43]).Pointer() != reflect.ValueOf(teamModelRequestMigration).Pointer() {
 			t.Fatal("V45 must append without replacing Team request history", dialect)
 		}
 	}

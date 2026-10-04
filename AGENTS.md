@@ -338,8 +338,8 @@ transport separate from API Key transport, with exact Team/member checks on ever
 attempt and immediate local revocation after committed authority changes. Do not
 synthesize Team Keys, borrow Personal attachments or debit Personal/Key ledgers.
 Native text conversations and comparison support four protocols; code exports
-use independent transient authentication. Team attachments remain a separate
-unfinished package. Team call tables show only the current
+use independent transient authentication. Team attachments preserve exact creator
+and active membership scope. Team call tables show only the current
 active member's own immutable actor facts; directory permissions do not broaden
 that route. Preserve actor/Team query keys, fail-closed refreshes and transient
 state cleanup. Historical Team membership IDs never define accounting identities.
@@ -446,10 +446,10 @@ Team/member directory for request workflows.
 Team Session native inference uses Cookie/current CSRF through exact Team resource
 endpoints for Chat, Responses, Messages and Gemini. Native Key headers and extra
 query/workspace selectors are rejected and scrubbed before request logging. Team
-model discovery exposes actual ready protocols with empty media capabilities;
+model discovery exposes actual ready protocols and per-protocol media capabilities;
 member catalogue Team links use source-specific protocols without Personal Key
 authority. Team comparison uses two to four independent native text lanes and a
-shared composer. Team attachments remain unavailable. Team code export captures
+shared composer. Team creator-private attachments use exact Session scope. Team code export captures
 only non-secret native request data and generates independent environment-driven
 login programs. Renewed
 Session/Team authority clears stale selection and transcript while retaining an
@@ -517,3 +517,16 @@ mount and every completed read, hide private rows/actions during refresh/error,
 and ignore obsolete actor/generation pages. Keep usage links scoped and paired
 overview translations; never fetch resource/model/member directories to fill the
 monthly table.
+
+Creator-private Team media uses only exact Team Session/CSRF attachment routes and
+canonical managed references in the four native image/PDF scalar positions. Bind
+objects to exact Team, creator user and active membership, with a fixed deadline
+one hour after creation; peers, owners, administrators and rejoined memberships
+receive no bypass. A renewed Session may remain server-eligible for the same
+creator/membership, while the UI clears unsent media and aborts uploads without
+restoration or replay. Keep existing chips/picker/shared composer, intersect every
+selected lane's capabilities, reject mismatched response ownership and retain
+submitted objects until all lanes settle, including cancellation and unmount.
+Cleanup denial defers to durable expiry. Keep files, credentials and references
+transient, never borrow Personal/Project uploads, preserve completed plaintext
+history only and disable code export while media is selected.

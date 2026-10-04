@@ -61,7 +61,7 @@ func (s *Service) gatewayNativeAttempts(ctx context.Context, requestID string, r
 		if result.ProjectID != "" {
 			owner = attachmentOwner{Kind: entity.StorageOwnerProject, ID: result.ProjectID}
 		}
-		resolved, resolveErr := s.resolveGatewayAttachments(ctx, owner, attachmentPlan)
+		resolved, resolveErr := s.resolveGatewayIdentityAttachments(ctx, result, owner, attachmentPlan)
 		if resolveErr != nil {
 			return result, resolveErr
 		}

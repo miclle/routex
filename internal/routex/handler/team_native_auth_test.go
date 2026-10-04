@@ -50,7 +50,7 @@ func TestTeamNativeDefaultLoggerAndRecoveryRedaction(t *testing.T) {
 		engine.RedirectFixedPath = false
 		engine.Engine.Use(TeamNativeInputs)
 		engine.POST("/api/v1/teams/tem_one/responses", func(c *fox.Context) { panic("fixed test panic") })
-		for _, path := range []string{"/api/v1/teams/tem_one/extra/messages", "/api/v1/teams/tem_one/messages/missing", "/api/v1/teams/tem_one/Responses", "/api/v1/teams/tem_one/responses/", "/api/v1/teams/tem_one/responses"} {
+		for _, path := range []string{"/api/v1/teams/tem_one/extra/messages", "/api/v1/teams/tem_one/messages/missing", "/api/v1/teams/tem_one/Responses", "/api/v1/teams/tem_one/responses/", "/api/v1/teams/tem_one/responses", "/api/v1/teams/tem_one/attachments", "/api/v1/teams/tem_one/Attachments/missing/content", "/api/v1/teams/tem_one/extra/attachments/obj_missing", "/api/v1/teams/tem_one/attachments/"} {
 			request := httptest.NewRequest("POST", path+"?key=query-test-secret&bad=%zz", nil)
 			request.Header.Set("x-api-key", "messages-test-secret")
 			request.Header.Set("x-goog-api-key", "gemini-test-secret")

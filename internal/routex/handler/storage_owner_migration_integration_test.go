@@ -53,6 +53,7 @@ func testStorageOwnerMigration(t *testing.T, db *gorm.DB) {
 
 	model := &storageOwnerV23Integration{}
 	renameStorageOwnerTestIndex(t, db)
+	rewindTeamStorageOwnerGuard(t, db)
 	// Removing the column reproduces the V22 schema and lets each database drop
 	// its dependent V23 constraint. The renamed residual index is intentionally
 	// ignored so the migration must create the canonical composite index again.
@@ -79,6 +80,7 @@ func testStorageOwnerMigration(t *testing.T, db *gorm.DB) {
 
 	// Reproduce an interrupted MySQL migration after AddColumn but before its
 	// backfill, constraint, and index DDL have all been reconciled.
+	rewindTeamStorageOwnerGuard(t, db)
 	if err := db.Migrator().DropConstraint(model, "ck_storage_objects_owner_kind"); err != nil {
 		t.Fatal(err)
 	}
@@ -128,6 +130,25 @@ func testStorageOwnerMigration(t *testing.T, db *gorm.DB) {
 	invalid.OwnerKind = "team"
 	if err := db.Create(&invalid).Error; err == nil {
 		t.Fatal("unsupported storage owner kind must be rejected")
+	}
+}
+
+// Reconstructing V22/V23 also rewinds the later dependent Team guard. Otherwise
+// MySQL rejects dropping its referenced column and PostgreSQL can silently drop
+// it while the V46 ledger still claims it exists. All migrations then run in
+// release order and restore the current schema after each historical fixture.
+func rewindTeamStorageOwnerGuard(t *testing.T, db *gorm.DB) {
+	t.Helper()
+	model := &entity.StorageObject{}
+	if !db.Migrator().HasConstraint(model, "ck_storage_objects_team_creator") {
+		t.Fatal("current Team guard missing before historical reconstruction")
+	}
+	if err := db.Migrator().DropConstraint(model, "ck_storage_objects_team_creator"); err != nil {
+		t.Fatal(err)
+	}
+	result := db.Table("schema_migrations").Where("version = ?", 46).Delete(&struct{}{})
+	if result.Error != nil || result.RowsAffected != 1 {
+		t.Fatalf("rewind dependent V46 ledger: affected=%d err=%v", result.RowsAffected, result.Error)
 	}
 }
 

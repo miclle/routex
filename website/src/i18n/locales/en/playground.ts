@@ -25,8 +25,8 @@ export default {
   teamRequestFailed:
     'Team session request failed (HTTP {{status}}). Refresh your session or Team access before retrying.',
   teamTextOnly:
-    'Team Sessions support text conversations and comparison through the available native protocols. Attachments are unavailable. Your own Team calls are recorded separately.',
-  teamAttachmentsUnavailable: 'Team Sessions do not support attachments',
+    'Team Sessions use available native protocols. Supported images and PDFs are private to your current membership and used for one submission; they expire after one hour. Your own Team calls are recorded separately.',
+  teamAttachmentsUnavailable: 'This Team selection does not support attachments',
   useKey: 'Use an API Key',
 
   getCode: 'Get code',
