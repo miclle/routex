@@ -3132,3 +3132,25 @@ source README/schema/pricing/handoff records were refreshed without changing
 product code or the empty embedded catalogue. Earlier failed fixture/helper
 checkpoints remain diagnosis; synthetic rates remain test-only. Broader F15/A09
 and formal 11/16/3 totals remain open/unchanged.
+
+
+### Canonical repository receipt timestamps, 2026-10-04
+
+Remote CI37185488266 exposed equal timestamp instants with different Go
+location representation in direct versus HTTP receipts. Root reproduced the
+PostgreSQL failure under TZ=UTC without changing the strict receipt/publication
+assertions. RepositoryPriceReceiptView now projects CreatedAt.UTC() only; saved
+instants, microseconds, UUID, source digest, mode and all runtime gates remain
+unchanged. Nine actual-projection source cases cover UTC, zero-offset Local and
+nonzero-offset times across configure/sync/restore and preserve historical
+receipt availability without claiming current application.
+
+The current combined main candidate passed format/check/test/build with 1908
+frontend cases/104 files and unchanged dependencies. Final TZ=UTC real-driver
+focus passed in 85.316s, including PostgreSQL/MySQL pricing_repository and
+pricing_repository_migration with every existing concurrent receipt, one-audit,
+custom-source, restart and current-publication assertion retained. The focus
+also included the independent native-failover candidate; those source files
+remain outside this pricing correction commit. Owned containers, networks and
+volumes were verified absent. Earlier failed UTC reproduction is diagnosis.
+Exact remote verification of this correction remains separate from local proof.

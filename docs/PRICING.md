@@ -136,7 +136,8 @@ Authenticated detail edits and reviewed CSV/XLS/XLSX imports reuse the same
 validated catalogue transaction boundary and set `follow_repository: false`.
 Clients cannot claim repository provenance. Import preview is server-derived and
 commit replays only the captured file bytes, catalogue ETag, and preview digest.
-Repository synchronization remains separate work.
+Repository synchronization uses the explicit mapping, preview and receipt
+workflow described below.
 
 A currency write replaces the finite FX map and platform currency atomically.
 Rates express source currency to the selected platform currency. Self-conversion
@@ -224,7 +225,10 @@ reviewed source, configuration, catalogue and selected identities; application
 requires explicit confirmation, a reason and one retained UUIDv4 intent. Durable
 receipts establish historical commitment separately from current configuration
 and runtime publication. A matching current read alone cannot resolve an original
-uncertain operation.
+uncertain operation. Receipt timestamps are projected in UTC with their exact
+persisted instant and microsecond precision. Direct service and HTTP receipts
+therefore retain the same immutable identity across server timezones; this
+normalization does not change a saved operation or current publication status.
 
 Per-rate provenance preserves manually submitted values, including zero,
 disabled and same-amount edits. Unsubmitted rates retain their ownership. Selected

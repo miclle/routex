@@ -196,7 +196,7 @@ func (s *Service) repositoryReceipt(ctx context.Context, actorID, requestID stri
 	return s.repositoryResult(ctx, actorID, receipt, false), nil
 }
 func (s *Service) repositoryResult(ctx context.Context, actorID string, receipt entity.RepositoryPriceReceipt, created bool) *RepositoryPriceResult {
-	result := &RepositoryPriceResult{Receipt: RepositoryPriceReceiptView{receipt.RequestID, receipt.SourceDigest, receipt.Mode, receipt.CreatedAt}, Committed: true, Created: created, ApplicationStatus: "unavailable"}
+	result := &RepositoryPriceResult{Receipt: RepositoryPriceReceiptView{receipt.RequestID, receipt.SourceDigest, receipt.Mode, receipt.CreatedAt.UTC()}, Committed: true, Created: created, ApplicationStatus: "unavailable"}
 	source, err := s.repositoryPriceSnapshot()
 	if err != nil {
 		return result

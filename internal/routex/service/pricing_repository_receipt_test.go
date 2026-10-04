@@ -4,10 +4,13 @@ import (
 	"context"
 	"database/sql"
 	"database/sql/driver"
+	"encoding/json"
 	"errors"
 	"io"
+	"reflect"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/miclle/routex/internal/routex/entity"
 	"github.com/miclle/routex/pkg/pricing"
@@ -193,5 +196,54 @@ func TestRepositoryRateOwnershipNoChangeRequiresExactStoredProof(t *testing.T) {
 				})
 			}
 		})
+	}
+}
+
+// A persisted receipt remains available when renewed current-state lookup fails.
+// Exercise its real projection, not a duplicate DTO constructor. The SQL driver
+// deliberately refuses Begin, so no database service or current authority is
+// invented to test the historical HTTP identity boundary.
+func TestRepositoryReceiptProjectionHasCanonicalHTTPIdentity(t *testing.T) {
+	instant := time.Date(2026, 10, 4, 7, 26, 23, 156539000, time.UTC)
+	for _, zone := range []*time.Location{time.UTC, time.FixedZone("Local", 0), time.FixedZone("Recorded offset", 8*60*60)} {
+		for _, mode := range []string{"configure", "sync", "restore"} {
+			t.Run(zone.String()+"/"+mode, func(t *testing.T) {
+				original := entity.RepositoryPriceReceipt{RequestID: "49000000-0000-4000-8000-000000000006", ActorID: "usr_owner", SourceDigest: strings.Repeat("a", 64), Mode: mode, CreatedAt: instant.In(zone)}
+				preserved := original
+				fixture := &repositoryReceiptFixture{}
+				pool := sql.OpenDB(repositoryReceiptDriver{fixture})
+				t.Cleanup(func() { _ = pool.Close() })
+				db, err := gorm.Open(postgres.New(postgres.Config{Conn: pool}), &gorm.Config{DisableAutomaticPing: true})
+				if err != nil {
+					t.Fatal(err)
+				}
+				svc := &Service{db: db}
+				projected := svc.repositoryResult(context.Background(), original.ActorID, original, false)
+				if !projected.Committed || projected.RuntimeApplied || projected.ConfigurationApplied || projected.Configuration != nil || projected.ApplicationStatus != "unavailable" {
+					t.Fatal("historical receipt inferred current authority", projected)
+				}
+				if !reflect.DeepEqual(original, preserved) || fixture.mutations != 0 || len(fixture.queries) != 0 {
+					t.Fatal("receipt projection mutated persisted input or current state")
+				}
+				receipt := projected.Receipt
+				if receipt.RequestID != original.RequestID || receipt.SourceDigest != original.SourceDigest || receipt.Mode != original.Mode || !receipt.CreatedAt.Equal(original.CreatedAt) || receipt.CreatedAt.UnixMicro() != instant.UnixMicro() || receipt.CreatedAt.Nanosecond() != instant.Nanosecond() {
+					t.Fatal("projection changed immutable receipt identity or precision", receipt)
+				}
+				raw, err := json.Marshal(projected)
+				if err != nil {
+					t.Fatal(err)
+				}
+				var decoded RepositoryPriceResult
+				if err := json.Unmarshal(raw, &decoded); err != nil {
+					t.Fatal(err)
+				}
+				if receipt.CreatedAt.Location() != time.UTC || !reflect.DeepEqual(receipt, decoded.Receipt) || !reflect.DeepEqual(projected, &decoded) {
+					t.Fatalf("direct and HTTP receipt differ despite same instant: directLocation=%q decodedLocation=%q", receipt.CreatedAt.Location(), decoded.Receipt.CreatedAt.Location())
+				}
+				if !strings.Contains(string(raw), `"created_at":"2026-10-04T07:26:23.156539Z"`) {
+					t.Fatal("receipt did not serialize the exact canonical UTC instant")
+				}
+			})
+		}
 	}
 }
