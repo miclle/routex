@@ -3,7 +3,6 @@ package service
 import (
 	"context"
 	"strings"
-	"unicode/utf8"
 
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
@@ -250,47 +249,15 @@ func (s *Service) UpdateMember(ctx context.Context, actorID, userID string, disa
 	return result, catalogError(err)
 }
 
+// ListMembers preserves the existing service record shape for internal callers.
 func (s *Service) ListMembers(ctx context.Context, actorID string, filter MemberFilter) (*MemberPage, error) {
-	db := s.authDB(ctx)
-	if err := authorizeGovernance(db, actorID, "members.read"); err != nil {
-		return nil, catalogError(err)
+	page, err := s.ListMemberSummaries(ctx, actorID, filter)
+	if err != nil {
+		return nil, err
 	}
-	if filter.Limit == 0 {
-		filter.Limit = 40
-	}
-	if filter.Limit < 1 || filter.Limit > 100 || len(filter.Query) > 200 || !utf8.ValidString(filter.Query) || (filter.Status != "" && filter.Status != "active" && filter.Status != "disabled") || (filter.Role != "" && filter.Role != entity.RoleAdmin && filter.Role != entity.RoleMember) || len(filter.Cursor) > 30 {
-		return nil, apperrors.ErrBadRequest
-	}
-	query := db.Model(&entity.User{}).Omit("password_hash")
-	if filter.Query != "" {
-		escaped := strings.NewReplacer("!", "!!", "%", "!%", "_", "!_").Replace(strings.ToLower(filter.Query))
-		pattern := "%" + escaped + "%"
-		query = query.Where("LOWER(email) LIKE ? ESCAPE '!' OR LOWER(name) LIKE ? ESCAPE '!'", pattern, pattern)
-	}
-	if filter.Status != "" {
-		query = query.Where("disabled = ?", filter.Status == "disabled")
-	}
-	if filter.Role != "" {
-		query = query.Where("role = ?", filter.Role)
-	}
-	if filter.Cursor != "" {
-		query = query.Where("id > ?", filter.Cursor)
-	}
-	var users []entity.User
-	if err := query.Order("id").Limit(filter.Limit + 1).Find(&users).Error; err != nil {
-		return nil, catalogError(err)
-	}
-	result := &MemberPage{Members: []MemberRecord{}}
-	if len(users) > filter.Limit {
-		users = users[:filter.Limit]
-		result.NextCursor = users[len(users)-1].ID
-	}
-	for _, user := range users {
-		item, err := memberRecord(db, user.ID)
-		if err != nil {
-			return nil, catalogError(err)
-		}
-		result.Members = append(result.Members, *item)
+	result := &MemberPage{Members: []MemberRecord{}, NextCursor: page.NextCursor}
+	for _, item := range page.Members {
+		result.Members = append(result.Members, item.MemberRecord)
 	}
 	return result, nil
 }

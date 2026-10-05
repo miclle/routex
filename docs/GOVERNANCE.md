@@ -413,3 +413,52 @@ paths and independently empty owned resources. Twenty deterministic race repetit
 and three real Member Models repetitions per driver also passed. The checked delivery
 is represented by the commit containing this record; remote CI remains independent.
 F04 and formal totals remain unchanged.
+
+## Member list summaries
+
+The existing Member table retains its eleven columns: name, email, status, Teams,
+monthly Personal Tokens, monthly Personal money, Personal Keys, recent login,
+creation time, update time and actions. Existing compact filters and action menus
+remain. Resource-scoped listing requires a current exact enabled, nonoffboarded
+actor with `members.read`; write actions retain independent permission checks.
+
+`GET /admin/members` supports literal name/email search, active/disabled and base
+role filters, stable exact-ID cursor paging, default 40 and maximum 100 rows.
+Reject unknown, duplicate or malformed selectors. Return an actor-bound page,
+observation timestamp, platform denomination and private no-store response.
+Batch retained roles, all-status Personal Key counts and monthly Personal policies/
+journal accounts; Project Keys and Team usage cannot become Personal totals.
+Stored policy, inherited/default limits, zero, unlimited, known usage, coverage,
+unknown retained holds and live reservations remain distinct, with exact decimal
+and integer strings. Runtime application requires current server evidence.
+
+Team metadata requires independent `teams.read_all`; a denied section is null
+and performs no Team hydration. Complete retained Team memberships are bounded
+at 1,000 per page; overflow is explicit and never a truncated complete list.
+Direct role relationships are bounded at 10,000. Bound batch queries and complete
+identity hydration rather than issuing requests for each row. Historical recent
+login remains null/unknown in this phase; never derive it from retained Sessions.
+The separately queued recorded-login migration will change that contract only
+after its own accepted delivery. Selected-language dates and live translations
+preserve search inputs. Fresh actor, Session and filter generations hide obsolete
+rows/actions and reject late pages without a global directory fallback.
+
+The checked list phase preserves V54 and all previous 92 scenarios, appending
+only `member_list_summary`. Final source tests passed 2,486 frontend cases in 129
+files, four Node tests, two development lifecycle tests, Go race and production
+assets. Focused dual-driver tests, both-driver authentication and controlled
+four-call native/bilingual browser/restart acceptance passed. The complete final
+matrix passed all 93 scenarios per database, eight constraints and all five
+test-bearing packages (Handler 1616.250s), with unchanged protected source and
+independently empty owned inventories. Mandatory checks passed before phase
+submission. Earlier failed fixtures and browser findings remain historical in
+Implementation; F04 and formal completion totals remain unchanged.
+
+Clients retain the authoritative `user_<id>` Personal account identity and
+recorded RFC3339 offsets. Historical names are bounded escaped text rather than
+revalidated creation input; empty names use the recorded email as accessible
+link/action context. English-default/live-Chinese browser checks confirmed all
+columns, literal search, role filtering/clearing and independent Team access.
+Actual tooltip activation remains separately unverified; source tooltip tests
+retain their scope. No whole User/Session/catalogue preservation is inferred
+from the eight protected historical table digests.

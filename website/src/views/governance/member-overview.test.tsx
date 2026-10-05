@@ -1,3 +1,4 @@
+import { memberListPage, memberListRow } from './member-list.fixture'
 import { act } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
@@ -81,20 +82,7 @@ beforeEach(async () => {
     else if (config.url?.endsWith('/limits'))
       value = { ...limitFixture(), id: config.url.split('/')[3] }
     else if (config.url === '/admin/members')
-      value = {
-        items: [
-          {
-            id: 'usr_target',
-            name: 'Target',
-            email: 'target@example.invalid',
-            role: 'member',
-            role_ids: [],
-            disabled: false,
-            created_at: '2026-09-23T00:00:00Z',
-          },
-        ],
-        next_cursor: null,
-      }
+      value = memberListPage(session.user.id, [memberListRow()])
     else if (config.url === '/admin/roles')
       value = {
         items: [{ id: 'rol_custom', name: 'Custom', builtin: false, permissions: [] }],

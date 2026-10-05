@@ -1,3 +1,4 @@
+import { memberListPage, memberListRow } from './member-list.fixture'
 import { limitFixture } from '@/views/resource-limits/fixture'
 import { act } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
@@ -81,7 +82,7 @@ beforeEach(() => {
     if (key === 'get /auth/session') response.data = structuredClone(session)
     if (key === 'get /auth/permissions') response.data = { permissions: [...permissions] }
     if (key === 'get /admin/members')
-      response.data = { items: [structuredClone(target)], next_cursor: null }
+      response.data = memberListPage(session.user.id, [memberListRow(structuredClone(target))])
     if (key === 'get /admin/members/usr_target') response.data = structuredClone(target)
     if (key === 'get /admin/roles')
       response.data = {
@@ -288,7 +289,15 @@ describe('member governance', () => {
   it('requires confirmation before suspension and preserves the form on continuity errors', async () => {
     await mount('/admin/members')
     await until(() => expect(container.textContent).toContain('Target'))
-    await click('Disable')
+    await act(async () => {
+      document.querySelector<HTMLButtonElement>('[aria-label="Member actions for Target"]')!.click()
+    })
+    await until(() => expect(document.querySelector('[role="menuitem"]')).not.toBeNull())
+    await act(async () => {
+      ;[...document.querySelectorAll<HTMLElement>('[role="menuitem"]')]
+        .find((item) => item.textContent === 'Disable')!
+        .click()
+    })
     expect(requests.some((r) => r.method === 'patch')).toBe(false)
     failures['patch /admin/members/usr_target'] = 409
     await click('Confirm disable')

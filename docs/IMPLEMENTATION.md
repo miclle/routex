@@ -4777,3 +4777,119 @@ replacement, durable assignment/definition fencing and reasoned full typed audit
 Tentative V56/99-case root registration is source preparation only, not a migrated
 or delivered feature. The Settings base-role reviewed editor remains a separate
 gap. F04/F19 and formal11 complete/16 partial/three unstarted are unchanged.
+
+### Eleven-column Member list integration, 2026-10-05
+
+Root re-prepared the frozen list packet against checked clean Metadata main
+`d261b02c3073a0c6e9c5a43fd95f5b391cfe4e65`, then carried exactly 21 source/rule
+paths. Existing Metadata, mobile tables, Model review revisions and both test-only
+observation corrections remain exact. V54 is unchanged; all 92 preceding ordered
+scenarios are preserved and only `member_list_summary` is appended (93 per driver).
+The protected union contains 251 paths, including the newly protected existing
+Governance handler. Formatting preserved those bytes.
+
+Mandatory checks and complete source tests passed: 2,477 frontend cases in 129
+files, four Node tests, two development lifecycle tests, Go race and production
+asset serving. The list retains the eleven approved columns and compact controls,
+with bounded exact cursor/search filters, independently gated complete Team
+metadata, exact Personal quota/journal facts and all-status Personal Key counts.
+Unknown login history is not inferred from Sessions; no schema or admission rule
+changes. Source tests do not establish actual native or driver acceptance.
+
+Next run the root-owned PostgreSQL/MySQL governance/Models/Metadata/List focus,
+then authentication and the controlled four-call native/browser/restart scenario,
+followed by a fresh complete 93-case-per-driver matrix and final mandatory check
+before scoped commit/push. No actual list delivery is yet claimed. Formal 11
+complete, 16 partial and three unstarted remains unchanged. Metadata remote
+Actionlint37246352450 and GolangCI-Lint37246352527 passed; CI37246352465 is still
+running independently of this uncommitted list source.
+
+The first actual list focus passed six of eight lifecycle scenarios and all eight
+constraint checks, but both list scenarios rejected an invalid fixture policy
+ceiling of 2^53 + 1. Owned resources were removed and source integrity was
+confirmed; that run is not accepted. The test-only successor uses the existing
+maximum supported ceiling (9,007,199,254,740,991), separately verifies rejection
+of a larger corrupt stored ceiling, restores the entire policy, and preserves
+exact money/token checks. Production validators and admission remain unchanged.
+Source Go race passed again; the repaired actual focus remains pending.
+
+The second actual focus again passed the other six lifecycle scenarios and all
+eight constraints, with complete owned cleanup and unchanged protected source.
+The list fixtures failed on reused GORM query state (PostgreSQL duplicate table)
+and an incorrect missing-bound counter expectation (MySQL). The one-file R4
+fixture successor creates independent GORM queries and asserts the actual
+finite-bound contract: settled Tokens10 and money10.000000000000000002, retained
+Tokens5 and money5.000000000000000003, missing-bound counters zero and live
+Tokens zero. Four immutable completed attempts and independent unknown final
+usage remain mandatory; no native replay or production quota change was added.
+Handler/eventqueue source race passed. The repaired actual focus is pending.
+
+The third actual focus passed both drivers through the List query, independent
+authority, exact usage, four native attempts and immutable history checks, then
+failed only a repeated old missing-bound assertion after journal restart. Other
+six scenarios/eight constraints passed; owned cleanup and251-source integrity
+were confirmed. R5 applies the same finite-retained-bound contract to restart,
+adds exact monetary/live checks and preserves all call/attempt/no-replay checks.
+Source Handler race passed again. Final actual focus remains pending.
+
+Member list follow-up: the repaired R5 fixture passed the fourth actual focus
+(eight lifecycle children/eight constraints), and both-driver authentication and
+native gateway/restart passed. Controlled native/process checks passed exactly
+four calls/attempts, three known-usage and one unknown-usage, retained finite
+bounds and original history. Actual browser inspection exposed the incorrect
+client `user:` account namespace; the authoritative server uses `user_`. A narrow
+frontend correction preserves timezone-offset timestamps and historical names
+and provides an accessible empty-name fallback. Five contract RED cases reproduced
+the mismatch;59 focused API/UI cases now pass. One initial UI test used an
+incorrect cache invalidation prefix and was corrected. Fresh complete gates,
+rebuilt-artifact bilingual browser/restart and full93 remain pending; no List
+commit or browser success is claimed. Prior failed runs remain unaccepted.
+Metadata CI37246352465 has now completed successfully, including both databases
+and artifact build; Actionlint37246352450 and GolangCI37246352527 also passed.
+
+The corrected List source gate passed2,486 frontend cases/129 files, four Node
+tests, two development lifecycle tests, Go race and production assets; mandatory
+check passed (two existing Fast Refresh warnings, no lint errors). The rebuilt
+production artifact passed the controlled four-call native/process/restart gate
+and separate English-default/live-Chinese browser observation: all eleven columns,
+literal search, role filter/clear, independent Team names and writer-only directory
+denial. Console warnings/errors were empty. Eight protected historical table
+digests, all251 source paths and owned cleanup were verified; these do not claim
+whole Session/User/catalogue table preservation. Actual tooltip activation was
+not verified separately; source tooltip tests retain their scope. Full93-case
+matrix and phased main commit/push are still pending.
+
+### Member list final acceptance, 2026-10-05
+
+The unchanged-source final real-database matrix passed all 93 ordered scenarios
+once on each of PostgreSQL and MySQL, eight pre-loop constraints and all five
+test-bearing packages (Handler 1616.250s; Service 10.216s). Every observed test
+completed without failures or skips. All 251 protected paths, the main HEAD and
+empty index remained exact; the unique owned Compose project had zero containers,
+networks or volumes after teardown. Log SHA256:
+`3c074531ecc8e225fc93a649cdf6f3bc62e6e48e0fa58e8e5d76fc0bd3943da5`.
+
+The external log reviewer initially rejected valid slash-containing Go subtest
+labels. It was corrected without changing repository source: labels may contain
+virtual path components or completed sibling prefixes, so active ancestor checks
+use exact integration parents where known. Six positive/negative parser checks
+passed, then the original log passed all ordered matrix and cleanup checks.
+The Go JSON format does not independently identify arbitrary subtest parents.
+
+This complements 2,486/129 frontend source acceptance, Go race, lifecycle and
+production assets, repaired dual-driver focus, both-driver authentication and
+rebuilt four-call native/bilingual browser/restart acceptance above. Earlier
+three fixture failures, rejected browser observation, interrupted unfiltered
+RED run and parser rejections remain historical, not accepted gates. Final
+mandatory check precedes scoped main commit/push; new remote workflows are
+tracked separately. Metadata predecessor CI37246352465, Actionlint37246352450
+and GolangCI-Lint37246352527 all completed successfully.
+
+Continue effective Models, recorded login, Access, reviewed Roles and reviewed
+State in checked phases. State backend, fixtures and root registration are
+source-only; its list-dialog focus repair and root helper preparation remain in
+progress. Registration approval before account use is a valid remaining F04
+requirement, excluded only from the bounded State slice. It needs its own policy,
+application/decision, authentication/runtime and lifecycle-bypass acceptance.
+Role templates, role-definition UX and Team-role review also remain open. F04
+and the formal 11 complete / 16 partial / three unstarted totals are unchanged.

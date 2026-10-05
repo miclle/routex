@@ -34,10 +34,8 @@ type MemberResponse struct {
 	CreatedAt    time.Time  `json:"created_at"`
 	RoleIDs      []string   `json:"role_ids"`
 }
-type MembersResponse struct {
-	Items      []MemberResponse `json:"items"`
-	NextCursor *string          `json:"next_cursor"`
-}
+type MembersResponse = MemberListResponse
+
 type ListMembersRequest struct {
 	Query  string `query:"q"`
 	Status string `query:"status"`
@@ -133,17 +131,19 @@ func (ctrl *Ctrl) CurrentPermissions(c *fox.Context) (*PermissionResponse, error
 	}
 	return &PermissionResponse{Permissions: permissions}, nil
 }
-func (ctrl *Ctrl) ListMembers(c *fox.Context, request ListMembersRequest) (*MembersResponse, error) {
-	page, err := ctrl.service.ListMembers(c.Request.Context(), currentAuthentication(c).User.ID, service.MemberFilter{Query: request.Query, Status: request.Status, Role: request.Role, Limit: request.Limit, Cursor: request.Cursor})
+func (ctrl *Ctrl) ListMembers(c *fox.Context) (*MembersResponse, error) {
+	c.Header("Cache-Control", "private, no-store")
+	filter, err := memberListFilter(c)
 	if err != nil {
 		return nil, err
 	}
-	result := &MembersResponse{Items: []MemberResponse{}, NextCursor: callCursor(page.NextCursor)}
-	for _, item := range page.Members {
-		result.Items = append(result.Items, *memberResponse(item))
+	page, err := ctrl.service.ListMemberSummaries(c.Request.Context(), currentAuthentication(c).User.ID, filter)
+	if err != nil {
+		return nil, err
 	}
-	return result, nil
+	return memberListResponse(page), nil
 }
+
 func (ctrl *Ctrl) GetMember(c *fox.Context, request MemberPath) (*MemberResponse, error) {
 	item, err := ctrl.service.GetMember(c.Request.Context(), currentAuthentication(c).User.ID, request.UserID)
 	if err != nil {

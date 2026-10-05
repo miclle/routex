@@ -7,10 +7,12 @@ three unstarted**. The coordinated roadmap lives outside this repository;
 
 ## Current main delivery
 
-The commit containing this checkpoint delivers Member Settings basic-name
-editing and the scoped Member Models test observation correction after checked
-own-Team CSV `185611c`. Run `git log -3 --oneline` for the exact delivered revision;
-remote workflow acceptance must be observed independently after push.
+Checked main `d261b02c3073a0c6e9c5a43fd95f5b391cfe4e65` delivers Member Settings
+basic-name editing after the separate two-test correction `516ee0b` and checked
+own-Team CSV `185611c`. Both commits passed mandatory checks and exact push/read-
+back; main was clean before the list carry. Exact Actionlint37246352450 and
+GolangCI-Lint37246352527 and CI37246352465 all passed, including both-driver
+integration and artifact build.
 
 The existing Basic information card retains its layout and read-only email.
 Name updates require independent authority, exact resource identity, reviewed
@@ -61,15 +63,52 @@ matrix failures remain historical in Implementation and are not passed evidence.
   deliveries with complete local gates and all three exact remote workflows
   successful. Their earlier fixture/helper failures remain in Implementation.
 
+## Checked Member list phase
+
+The containing phase preserves Metadata main and adds the approved eleven-column
+Member table, compact filters and action menus. Bounded Personal quota/journal
+and Key summaries retain exact strings, zero/null and unknown usage; Team names
+require independent read permission. Historical login remains unknown until V55.
+The client accepts authoritative `user_<id>` accounts, recorded RFC3339 offsets
+and bounded historical names, with an accessible email fallback for empty names.
+
+Final source gates passed 2,486 frontend cases in 129 files, four Node tests,
+two development lifecycle tests, Go race and production assets. Mandatory checks
+passed with no lint errors and two existing Fast Refresh warnings. The corrected
+dual-driver focus passed eight lifecycle children and eight constraints; both-driver
+authentication, native gateway and restart passed. The rebuilt production artifact
+SHA256 `90f96e8524eec366db9ec2cb2a495ea9f0f39e372d1f05342e5a3034e3db7e50`
+passed four controlled native calls/attempts (three known usage, one unknown),
+retained finite bounds, immutable attribution and same-artifact restart. Separate
+English-default/live-Chinese browser checks passed all columns, literal search,
+role filters, clearing, independent Team names and writer-only directory denial;
+console warnings/errors were empty. Eight protected historical table digests
+remained exact. Actual tooltip activation was not separately verified.
+
+The final unchanged-source matrix passed all 93 ordered scenarios on each of
+PostgreSQL and MySQL, eight constraints and all five test-bearing packages
+(Handler 1616.250s). No test failed or skipped; all 251 source paths remained exact
+and owned containers, networks, volumes and application listeners were absent
+after cleanup. Log SHA256:
+`3c074531ecc8e225fc93a649cdf6f3bc62e6e48e0fa58e8e5d76fc0bd3943da5`.
+Earlier fixture failures, rejected browser observation and interrupted unfiltered
+RED command remain historical in Implementation. The log reviewer was corrected
+for slash-containing Go subtest labels; six parser checks passed, with exact
+integration-parent checks retained. This did not change product or test source.
+
+Final mandatory check and scoped commit/push follow this evidence. New remote
+workflows are independent. Continue effective Models immediately afterward.
+
 ## Next checked phases
 
 | Order | Slice | Source state | Remaining gates |
 | --- | --- | --- | --- |
-| 1 | Eleven-column Member list | Frozen backend/UI and four-call fixture; preserve existing filter/table/actions | Carry onto checked Metadata main, mandatory/source checks, both-driver focus/full, controlled native/browser/restart, phased commit/push |
+| 1 | Eleven-column Member list | Complete source, both-driver full93/authentication and native/browser/restart gates passed | Final mandatory check and scoped commit/push |
 | 2 | Overview effective Models | Frozen bounded Personal/active-Team union, independent enrichment authority and exact prices | Reprepare onto checked list, source and both-driver gates, zero-inference process/browser/restart, commit/push |
 | 3 | Recorded recent successful login | Frozen backend/UI, tentative additive GORM V55; historical NULL remains unknown | Carry onto checked effective Models, register V55/two cases, real migration/auth/MFA/restart and bilingual evidence, commit/push |
 | 4 | Overview Access summary | Frozen six backend/eighteen UI leaves plus root contexts; independent Role/Team metadata reads | Reprepare onto checked recent login, source/driver/full and zero-inference bilingual process/restart, commit/push |
-| 5 | Reviewed direct role assignment | Independent worktree; backend, frontend and acceptance source owners run in parallel | Complete assigned-role table/multi-select/permission dialog/Save, durable assignment/definition revisions, tentative V56, reasoned typed audit, strict preconditions, then root actual gates and commit/push |
+| 5 | Reviewed direct role assignment | Frozen backend, UI, real-driver fixtures and root registration; tentative V56/99 | Carry after checked Access, root actual gates and commit/push |
+| 6 | Reviewed member state and base role | Isolated source-only backend/fixtures/root registration; UI focus repair in progress, V56/100 | Finish focus tests, reprepare after checked Roles, root actual gates and commit/push |
 
 Queued packets are source preparation, not actual migration, runtime acceptance or
 delivery. Their future accepted predecessor revisions remain unbound. Never copy
@@ -79,8 +118,11 @@ append only the new cases. Pair frontend rule updates in AGENTS and frontend rul
 
 ## Remaining scope and evidence limits
 
-F04 remains Partial. Even after the queued slices, the Settings base-role editor
-still needs its separate reviewed reason/before-after contract. The reviewed
+F04 remains Partial. The separate state slice covers reviewed base-role and
+account lifecycle changes. Registration approval before account use remains a
+valid unresolved requirement; it is excluded only from that bounded state slice,
+not from the product objective. Its policy, application, decision and bypass
+guards require a later checked phase. The reviewed
 custom-role editor does not complete role-definition UX, templates or Team-role
 review. Do not infer whole-goal completion from this Member sequence.
 

@@ -1,4 +1,9 @@
 import MemberMetadata from './member-metadata'
+import MemberList from './member-list'
+import { getMemberList, validateMemberListChain } from '@/api/member-list'
+import type { MemberListItem } from '@/types/member-list'
+import type { InfiniteData } from '@tanstack/react-query'
+import type { MemberListPage } from '@/types/member-list'
 import MemberTeams from './member-teams'
 import MemberKeys from './member-keys'
 import MemberOverview from './member-overview'
@@ -6,11 +11,11 @@ import { useSessionGeneration } from '@/hooks/use-session-generation'
 import MemberModels from './member-models'
 import MemberLimits from './member-limits'
 import { useTranslation } from 'react-i18next'
-import { useLayoutEffect, useRef, useState, type FormEvent } from 'react'
+import { useLayoutEffect, useMemo, useRef, useState, type FormEvent } from 'react'
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Link, useNavigate, useParams, useSearchParams } from 'react-router'
+import { useNavigate, useParams, useSearchParams } from 'react-router'
 import { Plus } from 'lucide-react'
-import { getMember, getMembers, getRoles } from '@/api/governance'
+import { getMember, getRoles } from '@/api/governance'
 import { writeCatalog } from '@/api/catalog'
 import { useSession } from '@/hooks/use-auth'
 import { usePermissions } from '@/hooks/use-permissions'
@@ -73,14 +78,82 @@ function Members() {
   const [filters, setFilters] = useState<MemberFilters>({})
   const [creating, setCreating] = useState(false)
   const [statusTarget, setStatusTarget] = useState<Member | null>(null)
+  const [statusListOwner, setStatusListOwner] = useState<string | null>(null)
+  const teamRead = access.can('teams.read_all')
+  const listOwner = JSON.stringify([actor, generation, filters, teamRead])
+  const listQueryKey = useMemo(
+    () => ['admin', 'members', actor, generation, filters, teamRead] as const,
+    [actor, generation, filters, teamRead],
+  )
   const [validation, setValidation] = useState<'members.passwordValidation' | null>(null)
   const members = useInfiniteQuery({
-    queryKey: ['admin', 'members', actor, generation, filters],
-    queryFn: ({ pageParam, signal }) => getMembers(filters, pageParam, signal),
+    queryKey: listQueryKey,
+    queryFn: ({ pageParam, signal }) => getMemberList(filters, actor, pageParam, signal),
     initialPageParam: null as string | null,
     getNextPageParam: (page) => page.next_cursor ?? undefined,
     enabled: !memberId && authorized,
+    retry: false,
+    staleTime: 0,
+    gcTime: 0,
+    refetchOnMount: 'always',
   })
+  let listError: Error | null = null
+  let listRows: MemberListItem[] = []
+  if (!memberId && authorized && members.isSuccess && !members.isFetching) {
+    try {
+      listRows = validateMemberListChain(members.data.pages, actor).flatMap((page) => page.items)
+    } catch (error) {
+      listError = error instanceof Error ? error : new Error('Invalid member list')
+    }
+  }
+  const listReady =
+    !memberId && authorized && members.isSuccess && !members.isFetching && !listError
+  const listLatest = useRef({ owner: listOwner, key: listQueryKey, ready: listReady })
+  useLayoutEffect(() => {
+    listLatest.current = { owner: listOwner, key: listQueryKey, ready: listReady }
+  }, [listOwner, listQueryKey, listReady])
+  function canListAct(id: string, permission = 'members.read') {
+    const now = latest.current,
+      list = listLatest.current
+    const auth = cache.getQueryState<Session>(['auth', 'session'])
+    const grants = cache.getQueryState<string[]>(['permissions', now.actor])
+    const state = cache.getQueryState<InfiniteData<MemberListPage>>(list.key)
+    return (
+      !now.memberId &&
+      now.authorized &&
+      list.ready &&
+      auth?.data?.user.id === now.actor &&
+      !auth.error &&
+      auth.fetchStatus === 'idle' &&
+      grants?.fetchStatus === 'idle' &&
+      !grants.error &&
+      grants.data?.includes('members.read') === true &&
+      grants.data.includes(permission) &&
+      state?.status === 'success' &&
+      state.fetchStatus === 'idle' &&
+      !state.error &&
+      state.data?.pages.every((page) => page.actor_user_id === now.actor) === true &&
+      state.data.pages.some((page) => page.items.some((row) => row.id === id))
+    )
+  }
+  function validListSelection(selection: { owner: string; row: MemberListItem }) {
+    const list = listLatest.current
+    const state = cache.getQueryState<InfiniteData<MemberListPage>>(list.key)
+    return (
+      selection.owner === list.owner &&
+      canListAct(selection.row.id, 'members.write') &&
+      state?.data?.pages.some((page) => page.items.some((row) => row === selection.row)) === true
+    )
+  }
+  if (
+    statusListOwner &&
+    (statusListOwner !== listOwner ||
+      !listReady ||
+      !listRows.includes(statusTarget as MemberListItem))
+  ) {
+    setStatusTarget(null)
+    setStatusListOwner(null)
+  }
   const member = useQuery({
     queryKey: ['admin', 'member', actor, memberId, generation],
     queryFn: ({ signal }) => getMember(memberId!, signal),
@@ -103,6 +176,7 @@ function Members() {
       actor: capturedActor,
       target: capturedTarget,
       generation: capturedGeneration,
+      listSelection,
     }: {
       method: 'post' | 'put' | 'patch'
       path: string
@@ -110,11 +184,13 @@ function Members() {
       actor: string
       target?: string
       generation: number
+      listSelection?: { owner: string; row: MemberListItem }
     }) => {
       const now = latest.current
       const auth = cache.getQueryState<Session>(['auth', 'session'])
       const permission = cache.getQueryState<string[]>(['permissions', now.actor])
       if (
+        (listSelection && !validListSelection(listSelection)) ||
         !now.authorized ||
         !auth?.data?.csrf_token ||
         auth.data.user.id !== now.actor ||
@@ -140,6 +216,7 @@ function Members() {
       const auth = cache.getQueryState<Session>(['auth', 'session'])
       const permission = cache.getQueryState<string[]>(['permissions', now.actor])
       if (
+        (input.listSelection && !validListSelection(input.listSelection)) ||
         !now.authorized ||
         auth?.data?.user.id !== input.actor ||
         auth.error ||
@@ -181,12 +258,16 @@ function Members() {
   useLayoutEffect(() => {
     resetMutation()
   }, [owner, resetMutation])
-  function dispatch(input: { method: 'post' | 'put' | 'patch'; path: string; data: unknown }) {
+  function dispatch(
+    input: { method: 'post' | 'put' | 'patch'; path: string; data: unknown },
+    listSelection?: { owner: string; row: MemberListItem },
+  ) {
     const now = latest.current
     const auth = cache.getQueryState<Session>(['auth', 'session'])
     const permission = cache.getQueryState<string[]>(['permissions', now.actor])
     if (
       dispatching.current ||
+      (listSelection && !validListSelection(listSelection)) ||
       !now.authorized ||
       !auth?.data?.csrf_token ||
       auth.data.user.id !== now.actor ||
@@ -207,6 +288,7 @@ function Members() {
       actor: now.actor,
       target: now.memberId,
       generation: now.generation,
+      listSelection,
     })
   }
   const canChange = (target: Member) =>
@@ -336,70 +418,46 @@ function Members() {
             )}
           </div>
           <QueryState
-            pending={members.isPending}
-            error={members.error}
-            retry={() => void members.refetch()}
-            empty={members.isSuccess && !members.data.pages.some((page) => page.items.length)}
+            pending={members.isPending || members.isFetching}
+            error={members.error || listError}
+            retry={() => {
+              if (authorized) void members.refetch()
+            }}
+            empty={listReady && listRows.length === 0}
           />
-          <Table aria-label={t('members.listLabel')}>
-            <thead>
-              <tr>
-                <th>{t('common.member')}</th>
-                <th>{t('members.email')}</th>
-                <th>{t('common.role')}</th>
-                <th>{t('common.status')}</th>
-                <th>{t('members.joined')}</th>
-                <th>{t('common.actions')}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {members.data?.pages
-                .flatMap((page) => page.items)
-                .map((item) => (
-                  <tr key={item.id}>
-                    <td>
-                      <Link to={`/admin/members/${item.id}`}>{item.name}</Link>
-                    </td>
-                    <td>{item.email}</td>
-                    <td>{item.role === 'admin' ? t('common.admin') : t('common.member')}</td>
-                    <td>
-                      <Badge variant="outline">
-                        {item.offboarded_at
-                          ? t('common.offboarded')
-                          : item.disabled
-                            ? t('common.disabled')
-                            : t('common.active')}
-                      </Badge>
-                    </td>
-                    <td>
-                      {new Date(item.created_at).toLocaleString(
-                        i18n.resolvedLanguage === 'zh' ? 'zh-CN' : 'en-US',
-                      )}
-                    </td>
-                    <td>
-                      {canChange(item) && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => {
-                            mutation.reset()
-                            setStatusTarget(item)
-                          }}
-                        >
-                          {item.disabled ? t('common.enable') : t('common.disable')}
-                        </Button>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-            </tbody>
-          </Table>
-          {members.hasNextPage && (
+          {listReady && (
+            <MemberList
+              rows={listRows}
+              permissions={{
+                teams: access.can('teams.read_all'),
+                calls: access.can('calls.read_all'),
+                limitsWrite: access.can('limits.users.write'),
+              }}
+              canAct={canListAct}
+              canChange={canChange}
+              onStatus={(item) => {
+                if (canListAct(item.id, 'members.write') && canChange(item)) {
+                  mutation.reset()
+                  setStatusListOwner(listOwner)
+                  setStatusTarget(item)
+                }
+              }}
+            />
+          )}
+          {listReady && members.hasNextPage && (
             <div className="text-center">
               <Button
                 variant="outline"
-                disabled={members.isFetchingNextPage}
-                onClick={() => void members.fetchNextPage()}
+                disabled={members.isFetching}
+                onClick={() => {
+                  if (
+                    listLatest.current.ready &&
+                    listLatest.current.owner === listOwner &&
+                    listRows.length &&
+                    canListAct(listRows[0].id)
+                  )
+                    void members.fetchNextPage({ cancelRefetch: false })
+                }}
               >
                 {t('members.loadMore')}
               </Button>
@@ -679,7 +737,15 @@ function Members() {
         </form>
       </Dialog>
       <Dialog
-        open={!!statusTarget}
+        open={
+          !!statusTarget &&
+          (memberId
+            ? !!current
+            : !!statusListOwner &&
+              statusListOwner === listOwner &&
+              listReady &&
+              listRows.includes(statusTarget as MemberListItem))
+        }
         onOpenChange={(open) => {
           if (!open) setStatusTarget(null)
         }}
@@ -695,11 +761,16 @@ function Members() {
           disabled={mutation.isPending}
           onClick={() =>
             statusTarget &&
-            dispatch({
-              method: 'patch',
-              path: `/admin/members/${statusTarget.id}`,
-              data: { disabled: !statusTarget.disabled },
-            })
+            dispatch(
+              {
+                method: 'patch',
+                path: `/admin/members/${statusTarget.id}`,
+                data: { disabled: !statusTarget.disabled },
+              },
+              statusListOwner
+                ? { owner: statusListOwner, row: statusTarget as MemberListItem }
+                : undefined,
+            )
           }
         >
           {t(statusTarget?.disabled ? 'members.confirmEnable' : 'members.confirmDisable')}
