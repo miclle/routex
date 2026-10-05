@@ -297,7 +297,7 @@ func testProjectKeyLifecycle(t *testing.T, db *gorm.DB) {
 	expectStatus(t, creatorRequest("GET", keysPath, nil), 404)
 	expectStatus(t, creatorRequest("GET", projectPath+"/calls", nil), 404)
 	expectStatus(t, creatorRequest("POST", keyPath+"/complete-rotation", completion), 404)
-	expectStatus(t, request("PATCH", "/api/v1/admin/members/"+creator.User.ID, map[string]any{"disabled": true}), 200)
+	expectStatus(t, reviewedMemberStateFixtureRequest(t, router, adminCookie, admin.CSRFToken, creator.User.ID, map[string]any{"disabled": true}), 200)
 	expectStatus(t, call(replacement.Secret, "project-model"), 200)
 	expectStatus(t, call(survivor.Secret, "project-model"), 200)
 	survivingRecord := decodeCatalogResponse[ProjectKeyResponse](t, successorRequest("GET", keysPath+"/"+survivor.Key.ID, nil), 200)

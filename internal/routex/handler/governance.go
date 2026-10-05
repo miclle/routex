@@ -52,11 +52,6 @@ type CreateMemberRequest struct {
 	Password string `json:"password"`
 	Role     string `json:"role"`
 }
-type UpdateMemberRequest struct {
-	UserID   string  `uri:"user_id" json:"-"`
-	Disabled *bool   `json:"disabled"`
-	Role     *string `json:"role"`
-}
 type RoleResponse struct {
 	ID          string   `json:"id"`
 	Name        string   `json:"name"`
@@ -162,13 +157,6 @@ func (ctrl *Ctrl) CreateMember(c *fox.Context, request CreateMemberRequest) erro
 	}
 	c.JSON(http.StatusCreated, memberResponse(*item))
 	return nil
-}
-func (ctrl *Ctrl) UpdateMember(c *fox.Context, request UpdateMemberRequest) (*MemberResponse, error) {
-	item, err := ctrl.service.UpdateMember(c.Request.Context(), currentAuthentication(c).User.ID, request.UserID, request.Disabled, request.Role)
-	if err != nil {
-		return nil, err
-	}
-	return memberResponse(*item), nil
 }
 func (ctrl *Ctrl) ListRoles(c *fox.Context) (*RolesResponse, error) {
 	items, err := ctrl.service.ListRoles(c.Request.Context(), currentAuthentication(c).User.ID)

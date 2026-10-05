@@ -27,6 +27,7 @@ import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tansta
 import { useNavigate, useParams, useSearchParams } from 'react-router'
 import { Plus } from 'lucide-react'
 import MemberRoles from './member-roles'
+import MemberState from './member-state'
 import { getMemberDetail } from '@/api/member-recent-login'
 import { writeCatalog } from '@/api/catalog'
 import { useSession } from '@/hooks/use-auth'
@@ -99,7 +100,6 @@ function Members() {
     !access.isFetching &&
     access.can('members.read')
   const owner = `${actor}:${memberId ?? ''}`
-  const [draft, setDraft] = useState<{ owner: string; role: string } | null>(null)
   const latest = useRef({
     actor,
     memberId,
@@ -123,10 +123,18 @@ function Members() {
   const dispatching = useRef(false)
   const [filters, setFilters] = useState<MemberFilters>({})
   const [creating, setCreating] = useState(false)
-  const [statusTarget, setStatusTarget] = useState<Member | null>(null)
-  const [statusListOwner, setStatusListOwner] = useState<string | null>(null)
+  const [statusSelection, setStatusSelection] = useState<{
+    owner: string
+    target: string
+    trigger: HTMLButtonElement | null
+  } | null>(null)
   const teamRead = access.can('teams.read_all')
   const listOwner = JSON.stringify([actor, generation, filters, teamRead])
+  const statusOwner = JSON.stringify([actor, filters])
+  const statusFocusOwner = useRef(statusOwner)
+  useLayoutEffect(() => {
+    statusFocusOwner.current = statusOwner
+  }, [statusOwner])
   const listQueryKey = useMemo(
     () => ['admin', 'members', actor, generation, filters, teamRead] as const,
     [actor, generation, filters, teamRead],
@@ -182,24 +190,8 @@ function Members() {
       state.data.pages.some((page) => page.items.some((row) => row.id === id))
     )
   }
-  function validListSelection(selection: { owner: string; row: MemberListItem }) {
-    const list = listLatest.current
-    const state = cache.getQueryState<InfiniteData<MemberListPage>>(list.key)
-    return (
-      selection.owner === list.owner &&
-      canListAct(selection.row.id, 'members.write') &&
-      state?.data?.pages.some((page) => page.items.some((row) => row === selection.row)) === true
-    )
-  }
-  if (
-    statusListOwner &&
-    (statusListOwner !== listOwner ||
-      !listReady ||
-      !listRows.includes(statusTarget as MemberListItem))
-  ) {
-    setStatusTarget(null)
-    setStatusListOwner(null)
-  }
+  if (statusSelection && (statusSelection.owner !== statusOwner || memberId))
+    setStatusSelection(null)
   const member = useQuery({
     queryKey: ['admin', 'member', actor, memberId, generation],
     queryFn: ({ signal }) => getMemberDetail(memberId!, signal),
@@ -217,21 +209,18 @@ function Members() {
       actor: capturedActor,
       target: capturedTarget,
       generation: capturedGeneration,
-      listSelection,
     }: {
-      method: 'post' | 'put' | 'patch'
+      method: 'post'
       path: string
       data: unknown
       actor: string
       target?: string
       generation: number
-      listSelection?: { owner: string; row: MemberListItem }
     }) => {
       const now = latest.current
       const auth = cache.getQueryState<Session>(['auth', 'session'])
       const permission = cache.getQueryState<string[]>(['permissions', now.actor])
       if (
-        (listSelection && !validListSelection(listSelection)) ||
         !now.authorized ||
         !auth?.data?.csrf_token ||
         auth.data.user.id !== now.actor ||
@@ -240,13 +229,11 @@ function Members() {
         permission?.fetchStatus !== 'idle' ||
         permission.error ||
         !permission.data?.includes('members.read') ||
-        (path.endsWith('/roles')
-          ? auth.data.user.role !== 'admin'
-          : !permission.data.includes('members.write')) ||
+        !permission.data.includes('members.write') ||
         now.actor !== capturedActor ||
         now.memberId !== capturedTarget ||
         now.generation !== capturedGeneration ||
-        (path.endsWith('/roles') ? !now.admin : !now.write)
+        !now.write
       )
         throw new Error('Member write authority is unavailable')
       return writeCatalog<Member>(method, path, data, auth.data.csrf_token)
@@ -257,7 +244,6 @@ function Members() {
       const auth = cache.getQueryState<Session>(['auth', 'session'])
       const permission = cache.getQueryState<string[]>(['permissions', now.actor])
       if (
-        (input.listSelection && !validListSelection(input.listSelection)) ||
         !now.authorized ||
         auth?.data?.user.id !== input.actor ||
         auth.error ||
@@ -267,15 +253,13 @@ function Members() {
         !permission.data?.includes('members.read') ||
         now.actor !== input.actor ||
         now.memberId !== input.target ||
-        now.generation !== input.generation ||
-        (input.method !== 'post' && result.id !== input.path.split('/')[3])
+        now.generation !== input.generation
       ) {
         mutation.reset()
         return
       }
-      setDraft(null)
       setCreating(false)
-      setStatusTarget(null)
+      setStatusSelection(null)
       cache.setQueryData(['admin', 'member', actor, result.id, generation], result)
       void cache.invalidateQueries({ queryKey: ['admin', 'members'] })
       void cache.invalidateQueries({ queryKey: ['permissions'] })
@@ -290,25 +274,20 @@ function Members() {
   const [previousOwner, setPreviousOwner] = useState(owner)
   if (previousOwner !== owner) {
     setPreviousOwner(owner)
-    setDraft(null)
     setCreating(false)
-    setStatusTarget(null)
+    setStatusSelection(null)
     setValidation(null)
   }
   const resetMutation = mutation.reset
   useLayoutEffect(() => {
     resetMutation()
   }, [owner, resetMutation])
-  function dispatch(
-    input: { method: 'post' | 'put' | 'patch'; path: string; data: unknown },
-    listSelection?: { owner: string; row: MemberListItem },
-  ) {
+  function dispatch(input: { method: 'post'; path: string; data: unknown }) {
     const now = latest.current
     const auth = cache.getQueryState<Session>(['auth', 'session'])
     const permission = cache.getQueryState<string[]>(['permissions', now.actor])
     if (
       dispatching.current ||
-      (listSelection && !validListSelection(listSelection)) ||
       !now.authorized ||
       !auth?.data?.csrf_token ||
       auth.data.user.id !== now.actor ||
@@ -317,10 +296,8 @@ function Members() {
       permission?.fetchStatus !== 'idle' ||
       permission.error ||
       !permission.data?.includes('members.read') ||
-      (input.path.endsWith('/roles')
-        ? auth.data.user.role !== 'admin'
-        : !permission.data.includes('members.write')) ||
-      (input.path.endsWith('/roles') ? !now.admin : !now.write)
+      !permission.data.includes('members.write') ||
+      !now.write
     )
       return
     dispatching.current = true
@@ -329,7 +306,6 @@ function Members() {
       actor: now.actor,
       target: now.memberId,
       generation: now.generation,
-      listSelection,
     })
   }
   const canChange = (target: Member) =>
@@ -410,11 +386,13 @@ function Members() {
               onSubmit={(event) => {
                 event.preventDefault()
                 const form = new FormData(event.currentTarget)
-                setFilters({
+                const nextFilters = {
                   q: String(form.get('q') || '').trim(),
                   status: String(form.get('status') || ''),
                   role: String(form.get('role') || ''),
-                })
+                }
+                statusFocusOwner.current = JSON.stringify([actor, nextFilters])
+                setFilters(nextFilters)
               }}
             >
               <Input
@@ -476,11 +454,9 @@ function Members() {
               }}
               canAct={canListAct}
               canChange={canChange}
-              onStatus={(item) => {
+              onStatus={(item, trigger) => {
                 if (canListAct(item.id, 'members.write') && canChange(item)) {
-                  mutation.reset()
-                  setStatusListOwner(listOwner)
-                  setStatusTarget(item)
+                  setStatusSelection({ owner: statusOwner, target: item.id, trigger })
                 }
               }}
             />
@@ -664,51 +640,34 @@ function Members() {
           <SaveButton pending={mutation.isPending}>{t('members.create')}</SaveButton>
         </form>
       </Dialog>
-      <Dialog
-        open={
-          !!statusTarget &&
-          (memberId
-            ? !!current
-            : !!statusListOwner &&
-              statusListOwner === listOwner &&
-              listReady &&
-              listRows.includes(statusTarget as MemberListItem))
-        }
-        onOpenChange={(open) => {
-          if (!open) setStatusTarget(null)
-        }}
-        busy={mutation.isPending}
-        title={statusTarget?.disabled ? t('members.enableTitle') : t('members.disableTitle')}
-        description={t(
-          statusTarget?.disabled ? 'members.enableDescription' : 'members.disableDescription',
-          { name: statusTarget?.name ?? '' },
-        )}
-      >
-        <ErrorNotice error={mutation.error} />
-        <Button
-          disabled={mutation.isPending}
-          onClick={() =>
-            statusTarget &&
-            dispatch(
-              {
-                method: 'patch',
-                path: `/admin/members/${statusTarget.id}`,
-                data: { disabled: !statusTarget.disabled },
-              },
-              statusListOwner
-                ? { owner: statusListOwner, row: statusTarget as MemberListItem }
-                : undefined,
-            )
-          }
-        >
-          {t(statusTarget?.disabled ? 'members.confirmEnable' : 'members.confirmDisable')}
-        </Button>
-      </Dialog>
     </Page>
   )
   return (
     <>
       {authorized ? page : unavailable}
+      {!memberId && statusSelection && statusSelection.owner === statusOwner && (
+        <MemberState
+          actor={actor}
+          target={statusSelection.target}
+          generation={generation}
+          ready={listReady && listRows.some((row) => row.id === statusSelection.target)}
+          owner={statusOwner}
+          mode="status"
+          contextKind="list"
+          contextQueryKey={listQueryKey}
+          returnFocus={() =>
+            statusFocusOwner.current === statusSelection.owner &&
+            latest.current.actor === actor &&
+            latest.current.generation === generation &&
+            listLatest.current.owner === listOwner &&
+            canListAct(statusSelection.target, 'members.write') &&
+            statusSelection.trigger?.isConnected
+              ? statusSelection.trigger
+              : false
+          }
+          onClose={() => setStatusSelection(null)}
+        />
+      )}
       {memberId && params.get('tab') === 'roles' && (
         <section
           className="mt-6"
@@ -740,77 +699,33 @@ function Members() {
             email={current?.email ?? ''}
             targetQueryKey={['admin', 'member', actor, memberId, generation]}
           />
-          {current && (
-            <div className="space-y-6">
-              <section className="rounded-lg border">
-                <h3 className="border-b p-4 font-medium">{t('common.baseRole')}</h3>
-                <form
-                  className="space-y-4 p-4"
-                  aria-label={t('common.baseRole')}
-                  onSubmit={(event) => {
-                    event.preventDefault()
-                    if (mutation.isPending) return
-                    dispatch({
-                      method: 'patch',
-                      path: `/admin/members/${current.id}`,
-                      data: { role: String(new FormData(event.currentTarget).get('role')) },
-                    })
-                  }}
-                >
-                  <FormField label={t('common.baseRole')}>
-                    <select
-                      name="role"
-                      className="h-10 rounded-md border bg-background px-3"
-                      value={draft?.owner === owner ? draft.role : current.role}
-                      onChange={(event) =>
-                        setDraft({
-                          owner,
-                          role: event.target.value,
-                        })
-                      }
-                      disabled={!access.isAdmin || mutation.isPending}
-                    >
-                      <option value="member">{t('common.member')}</option>
-                      <option value="admin">{t('common.admin')}</option>
-                    </select>
-                  </FormField>
-                  <ErrorNotice error={mutation.error} />
-                  {access.isAdmin && (
-                    <SaveButton pending={mutation.isPending}>
-                      {t('members.saveBaseRole')}
-                    </SaveButton>
-                  )}
-                </form>
-              </section>
-              <section className="rounded-lg border p-4">
-                <h3 className="mb-3 font-medium">{t('members.offboarding')}</h3>
-                <p className="mb-4 text-sm text-muted-foreground">{t('members.offboardingHelp')}</p>
-                <Button
-                  variant="outline"
-                  onClick={() => navigate(`/admin/members/${current.id}/offboarding`)}
-                >
-                  {t('members.reviewOffboarding')}
-                </Button>
-              </section>
-              {canChange(current) && (
+          <div className="space-y-6">
+            <MemberState
+              actor={actor}
+              target={memberId}
+              generation={generation}
+              ready={!!current}
+              owner="settings"
+              mode="settings"
+              contextKind="detail"
+              contextQueryKey={['admin', 'member', actor, memberId, generation]}
+            >
+              {current && (
                 <section className="rounded-lg border p-4">
-                  <h3 className="mb-3 font-medium">{t('members.accountAccess')}</h3>
+                  <h3 className="mb-3 font-medium">{t('members.offboarding')}</h3>
                   <p className="mb-4 text-sm text-muted-foreground">
-                    {t('members.disableExplanation')}
+                    {t('members.offboardingHelp')}
                   </p>
                   <Button
                     variant="outline"
-                    onClick={() => {
-                      mutation.reset()
-                      setStatusTarget(current)
-                    }}
+                    onClick={() => navigate(`/admin/members/${current.id}/offboarding`)}
                   >
-                    {current.disabled ? t('common.enable') : t('common.disable')}
+                    {t('members.reviewOffboarding')}
                   </Button>
                 </section>
               )}
-            </div>
-          )}
+            </MemberState>
+          </div>
         </section>
       )}
       {memberId && params.get('tab') === 'limits' && (

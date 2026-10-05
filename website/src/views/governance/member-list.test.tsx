@@ -1,3 +1,8 @@
+import {
+  memberStateFixture,
+  memberStateResultFixture,
+  stateReviewETag,
+} from './member-state.fixture'
 import { act } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
@@ -78,11 +83,26 @@ beforeEach(() => {
       data = structuredClone(page)
       if (listGate) await listGate.promise
       if (listError) throw failure(config, listError)
+    } else if (config.url === '/admin/members/usr_target/state') {
+      data = memberStateFixture(page.items[0], actor, 'admin', permissions)
     } else if (config.url === '/admin/members/usr_target' && config.method === 'patch') {
-      data = memberListRow()
+      data = memberStateResultFixture(
+        memberStateFixture(page.items[0], actor, 'admin', permissions),
+        JSON.parse(config.data),
+      )
       if (postGate) await postGate.promise
     } else throw new Error(`Unexpected controlled request ${config.method} ${config.url}`)
-    return { config, status: 200, statusText: '', headers: new AxiosHeaders(), data }
+    return {
+      config,
+      status: 200,
+      statusText: '',
+      headers: new AxiosHeaders(
+        config.url?.endsWith('/state') || config.method === 'patch'
+          ? { etag: `"${stateReviewETag}"`, 'cache-control': 'private, no-store' }
+          : {},
+      ),
+      data,
+    }
   }
 })
 afterEach(async () => {
@@ -269,6 +289,7 @@ it('hides cached rows, portal menus and status confirmation during a list renewa
   await mount()
   await menu()
   await item('Disable')
+  await until(() => expect(document.querySelector('[role="dialog"] textarea')).not.toBeNull())
   expect(document.querySelector('[role="dialog"]')).not.toBeNull()
   const confirm = [...document.querySelectorAll<HTMLButtonElement>('button')].find(
     (b) => b.textContent === 'Confirm disable',
@@ -295,6 +316,7 @@ it.each(['session', 'permission'] as const)(
     await mount()
     await menu()
     await item('Disable')
+    await until(() => expect(document.querySelector('[role="dialog"] textarea')).not.toBeNull())
     if (kind === 'session') sessionGate = controlledGate()
     else permissionGate = controlledGate()
     await invalidate(kind === 'session' ? ['auth', 'session'] : ['permissions'])
@@ -307,7 +329,8 @@ it.each(['session', 'permission'] as const)(
       await act(async () => permissionGate!.release())
     }
     await until(() => expect(host.textContent).toContain('target@example.invalid'))
-    expect(document.querySelector('[role="dialog"]')).toBeNull()
+    if (kind === 'permission') expect(document.querySelector('[role="dialog"]')).toBeNull()
+    else await until(() => expect(document.querySelector('[role="dialog"]')).not.toBeNull())
     expect(requests.some((r) => r.method === 'patch')).toBe(false)
   },
 )
@@ -331,7 +354,16 @@ it('blocks a late committed lifecycle result after filter invalidation from rest
   await mount()
   await menu()
   await item('Disable')
+  await until(() => expect(document.querySelector('[role="dialog"] textarea')).not.toBeNull())
   postGate = controlledGate()
+  await act(async () => {
+    const field = document.querySelector('textarea')!
+    Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value')!.set!.call(
+      field,
+      'Controlled lifecycle change',
+    )
+    field.dispatchEvent(new Event('input', { bubbles: true }))
+  })
   await button('Confirm disable')
   expect(requests.filter((r) => r.method === 'patch')).toHaveLength(1)
   page = memberListPage('usr_admin', [
@@ -371,8 +403,91 @@ it('does not offer ordinary reenable for an offboarded target', async () => {
   await mount()
   await menu()
   expect(document.querySelector('[role="menu"]')?.textContent).not.toContain('Enable')
+  expect(document.querySelector('[role="menu"]')?.textContent).toContain('Reactivate')
   expect(document.querySelector('[role="menu"]')?.textContent).not.toContain('Review offboarding')
 })
+
+it.each(['Cancel', 'Escape'] as const)(
+  'returns list status %s focus to the exact current row menu trigger without dispatch',
+  async (close) => {
+    await mount()
+    const trigger = document.querySelector<HTMLButtonElement>(
+      '[aria-label="Member actions for Target"]',
+    )!
+    await act(async () => trigger.focus())
+    await menu()
+    await item('Disable')
+    await until(() => expect(document.querySelector('[role="dialog"] textarea')).not.toBeNull())
+    await act(async () =>
+      document.querySelector<HTMLTextAreaElement>('[role="dialog"] textarea')!.focus(),
+    )
+    expect(document.querySelector('[role="dialog"]')!.contains(document.activeElement)).toBe(true)
+    if (close === 'Cancel') await button('Cancel')
+    else
+      await act(async () =>
+        document
+          .querySelector('[role="dialog"]')!
+          .dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })),
+      )
+    await until(() => expect(document.querySelector('[role="dialog"]')).toBeNull())
+    await until(() => expect(document.activeElement).toBe(trigger))
+    expect(trigger.isConnected).toBe(true)
+    expect(requests.some((request) => request.method === 'patch')).toBe(false)
+  },
+)
+
+it.each(['permission', 'actor', 'filter'] as const)(
+  'does not restore list status focus to the original trigger after %s scope loss',
+  async (change) => {
+    await mount()
+    const trigger = document.querySelector<HTMLButtonElement>(
+      '[aria-label="Member actions for Target"]',
+    )!
+    await menu()
+    await item('Disable')
+    await until(() => expect(document.querySelector('[role="dialog"] textarea')).not.toBeNull())
+    await act(async () =>
+      document.querySelector<HTMLTextAreaElement>('[role="dialog"] textarea')!.focus(),
+    )
+    const cancel = [...document.querySelectorAll<HTMLButtonElement>('button')].find(
+      (element) => element.textContent === 'Cancel',
+    )!
+    const focus = vi.spyOn(trigger, 'focus')
+    await act(async () => {
+      if (change === 'permission') {
+        permissions = ['members.read', 'teams.read_all', 'calls.read_all']
+        cache.setQueryData(['permissions', actor], permissions)
+      } else if (change === 'actor') {
+        actor = 'usr_other_admin'
+        page = memberListPage(actor)
+        cache.setQueryData(['auth', 'session'], {
+          user: {
+            id: actor,
+            name: 'Other administrator',
+            email: 'other@example.invalid',
+            role: 'admin',
+          },
+          csrf_token: 'controlled-next-csrf',
+        })
+      } else {
+        page = memberListPage(actor, [
+          memberListRow({ id: 'usr_filtered', name: 'Filtered target' }),
+        ])
+        host.querySelector<HTMLInputElement>('[name="q"]')!.value = 'Filtered'
+        host
+          .querySelector('form')!
+          .dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+      }
+      cancel.click()
+    })
+    await until(() => expect(document.querySelector('[role="dialog"]')).toBeNull())
+    if (change === 'permission') await until(() => expect(trigger.isConnected).toBe(true))
+    else await until(() => expect(trigger.isConnected).toBe(false))
+    expect(focus).not.toHaveBeenCalled()
+    expect(document.activeElement).not.toBe(trigger)
+    expect(requests.some((request) => request.method === 'patch')).toBe(false)
+  },
+)
 
 it('renews list authority for two same-millisecond successful Session reads, never reusing timestamp identity', async () => {
   const fixed = Date.now()

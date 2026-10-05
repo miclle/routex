@@ -13,7 +13,7 @@ type Props = {
   permissions: { teams: boolean; calls: boolean; limitsWrite: boolean }
   canAct: (id: string, permission?: string) => boolean
   canChange: (row: MemberListItem) => boolean
-  onStatus: (row: MemberListItem) => void
+  onStatus: (row: MemberListItem, trigger: HTMLButtonElement | null) => void
 }
 export default function MemberList({ rows, permissions, canAct, canChange, onStatus }: Props) {
   const { t, i18n } = useTranslation('governance')
@@ -125,6 +125,7 @@ export default function MemberList({ rows, permissions, canAct, canChange, onSta
       </thead>
       <tbody>
         {rows.map((row) => {
+          let menuTrigger: HTMLButtonElement | null = null
           const base = `/admin/members/${encodeURIComponent(row.id)}`,
             p = row.personal,
             u = p.usage,
@@ -250,6 +251,9 @@ export default function MemberList({ rows, permissions, canAct, canChange, onSta
               <td>{date(row.updated_at)}</td>
               <td className="sticky right-0 bg-background">
                 <Menu
+                  triggerRef={(node) => {
+                    menuTrigger = node
+                  }}
                   trigger={<Ellipsis aria-hidden className="size-4" />}
                   label={t('memberList.menu', { name: displayName })}
                   side="bottom"
@@ -292,17 +296,23 @@ export default function MemberList({ rows, permissions, canAct, canChange, onSta
                       {t('memberList.calls')}
                     </MenuItem>
                   )}
-                  {!row.offboarded_at && canChange(row) && (
+                  {canChange(row) && (
                     <>
                       <div role="separator" className="my-1 border-t" />
                       <MenuItem
                         onClick={() => {
-                          if (canAct(row.id, 'members.write')) onStatus(row)
+                          if (canAct(row.id, 'members.write')) onStatus(row, menuTrigger)
                         }}
                       >
                         <Ban aria-hidden className="size-4" />
                         <span className={!row.disabled ? 'text-destructive' : undefined}>
-                          {t(row.disabled ? 'common.enable' : 'common.disable')}
+                          {t(
+                            row.offboarded_at
+                              ? 'memberState.reactivate'
+                              : row.disabled
+                                ? 'common.enable'
+                                : 'common.disable',
+                          )}
                         </span>
                       </MenuItem>
                     </>

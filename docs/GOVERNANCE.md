@@ -934,3 +934,89 @@ checks; commit/push/remote read-back remain separate coordinator observations.
 Global Role definition editing, reviewed account State and local registration
 approval remain independent follow-up work. F04 and F05 remain Partial; formal
 11-complete/16-partial/three-unstarted totals are unchanged.
+
+## Reviewed Member State integration — historical preparation checkpoint
+
+The existing Member Settings cards and list status menu now use an exact-target
+state review and strict one-field PATCH with a reason, strong If-Match and local
+Base UI confirmation. Read and write authority stay independent. A changing
+review detects private revision ABA and metadata label changes; identical desired
+state can confirm current state with zero writes or audits after fresh authority.
+No historical operation receipt is returned.
+
+Base-role success confirms current database identity. Account-access success
+requires the server's current bounded runtime lifecycle proof. Disable revokes
+Personal Keys, Sessions, MFA challenges and pending member requests atomically
+with the typed audit. Ordinary enable and reactivation never revive credentials;
+reactivation clears only the current marker and retains offboarding history.
+Self-disable/demotion can commit before a fresh response returns 401/403, so the
+UI preserves uncertainty according to current authentication and authority.
+
+The 37-path source is carried on checked Roles a44838d, preserves frozen V56
+without another migration, appends only the 100th driver scenario, and extends
+source protections from 322 to 343. Fifteen legacy HTTP fixtures use explicit
+reviewed test adapters; ordinary trusted service callers retain their shared
+mutation engine. The English/Chinese UI, retained retry intent, private headers,
+continuity and last-admin guards require actual source/dual-driver/authentication/
+production browser/restart acceptance before delivery. No pending gate is claimed
+as passed; F04/F05 and formal 11/16/3 remain unchanged.
+
+## Member State source, focused database and production acceptance
+
+Current carried State source passed format, mandatory checks, Go race, 2,815
+frontend cases in 140 files, development lifecycle, production asset tests and
+production build. PostgreSQL and MySQL focused acceptance passed all 16 selected
+lifecycle children, eight pre-loop constraints and 40 nested children without
+failure or skip. The complete 343 protected hashes stayed exact and owned
+Compose containers, networks and volumes were independently absent.
+
+Production SHA256
+`b94eef3cdc1db3cbbc6b58749599732d6fd6b7f3203e8b7183292de390da3369`
+passed one actual reviewed browser disable, required-reason validation, bilingual
+read-only cards and a surviving-browser-Session restart with no new login. Five
+explicit typed State audits covered base promotion/restoration, disable, enable
+and reactivation. Current-only original retry added no writes/audits; later
+differing state rejected that retry. Old Session cookies and the revoked Key
+stayed denied, while the completed offboarding case remained unchanged.
+Seven screenshots and empty browser warning/error observations were retained;
+zero native dispatches, call records or attempts were created. Delegated/outsider
+denials were independent API checks; self-commit and publication-fault assertions
+remain source/driver evidence. No transport-loss or original-operation receipt is
+claimed. Owned ports were reusable, the test tab closed and English restored.
+
+The build's optional Linux libc metadata drift was restored after exact JSON
+comparison proved only 18 metadata removals and no package/version change. An
+initial blank browser page loaded after deliberate reload before sign-in; no
+product correction is claimed. Both-driver independent authentication/native/restart
+passed; the owned project inventories were independently empty.
+
+Complete regression then passed 100 ordered scenarios per PostgreSQL/MySQL,
+eight constraints, five test-bearing packages and 2,866 named tests with no named
+failure or skip. PostgreSQL took 786.760s, MySQL 1015.930s and Handler 1807.116s.
+Log SHA256: `6de49d8751725622ef7278c01920be37f49cd8e66625c4b30d684cfe8a7aed0c`.
+All 343 protected paths remained exact and the full-run project's containers,
+networks and volumes were independently absent.
+
+A four-file frontend follow-up, plus its parent fixture adaptation, retains the exact original request after every
+failed dispatch, including a first 409 that may follow a durable commit. Matching
+reads, Cancel and Escape never resolve uncertainty. Explicit Abandon discards only
+local retries, retains the draft and requires current review/new confirmation;
+the original outcome remains unknown. Private real-QueryClient RED/GREEN evidence
+passed 21 State tests, including fresh CSRF, failed renewed reads, obsolete actions,
+bilingual guidance and pending-request abandonment denial. Backend, schema,
+authentication and the complete integration harness remain byte-identical to the
+accepted regression source. The earlier browser/restart evidence retains its
+original artifact hash; no new real transport-loss or first409-after-commit
+experiment is claimed. The additional parent-governance fixture retains its
+continuity/end-state assertions and explicitly abandons before a new review.
+
+Corrected complete source passed 2,817 frontend cases in 140 files, Go race,
+four Node checks, two development lifecycle checks and production asset serving
+(1.669s). Corrected mandatory checks passed with zero lint errors and two existing
+Fast Refresh warnings. Formatting, dependency files and all unrelated protections
+stayed exact. A fresh embedded binary is built separately; the prior process and
+browser proof is not relabeled with its hash. Final mandatory checking remains a
+pre-commit requirement; commit/push/read-back and new remote workflows are separate
+coordinator observations. The containing commit records the bounded State slice.
+Continue actual local registration approval, then the remaining Member workflow
+and Role definition work. F04/F05 and formal 11/16/3 remain unchanged.

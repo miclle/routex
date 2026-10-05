@@ -451,7 +451,9 @@ func testDefaultLimitsLifecycle(t *testing.T, db *gorm.DB) {
 	if err := db.Model(&entity.CallRecord{}).Where("user_id = ? AND key_id = ?", user.User.ID, "key_defaults").Count(&history).Error; err != nil || history < 3 {
 		t.Fatal("default reset discarded immutable calls", history, err)
 	}
-	expectStatus(t, asAdmin("PATCH", "/api/v1/admin/members/"+user.User.ID, map[string]any{"disabled": true}, ""), 200)
+	stateRouter, stateRuntime := memberStateRuntimeFixtureRouter(t, db, service.WithCredentialStorage(store), service.WithUpstreamPolicy(true))
+	defer stateRuntime.StopRuntime()
+	expectStatus(t, reviewedMemberStateFixtureRequest(t, stateRouter, adminCookie, admin.CSRFToken, user.User.ID, map[string]any{"disabled": true}), 200)
 	expectStatus(t, asAdmin("GET", resetPath, nil, ""), 409)
 	expectStatus(t, asAdmin("POST", resetPath, map[string]any{"reason": "Cannot reset disabled User"}, lostReview.ETag), 409)
 	expectStatus(t, asAdmin("PATCH", "/api/v1/admin/teams/"+team.ID, map[string]any{"status": "disabled"}, ""), 200)

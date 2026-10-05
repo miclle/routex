@@ -10,6 +10,9 @@ import (
 	"testing"
 
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
+
+	"github.com/miclle/routex/internal/routex/database"
 
 	"github.com/miclle/routex/internal/routex/entity"
 	"github.com/miclle/routex/pkg/secret"
@@ -17,7 +20,7 @@ import (
 
 // Invoked by the shared lifecycle owner against each fresh migrated database.
 func testGovernanceLifecycle(t *testing.T, db *gorm.DB) {
-	router := identityRouter(t, db)
+	router, _ := memberStateRuntimeFixtureRouter(t, db)
 	status := decodeCatalogResponse[RegistrationResponse](t, identityRequest(router, "GET", "/api/v1/auth/registration", "", nil, ""), 200)
 	if status.Enabled {
 		t.Fatal("registration must be disabled on a new database")
@@ -34,8 +37,8 @@ func testGovernanceLifecycle(t *testing.T, db *gorm.DB) {
 		}
 		return identityRequest(router, method, path, string(encoded), adminCookie, admin.CSRFToken)
 	}
-	expectStatus(t, request("PATCH", "/api/v1/admin/members/"+admin.User.ID, map[string]any{"disabled": true}), 409)
-	expectStatus(t, request("PATCH", "/api/v1/admin/members/"+admin.User.ID, map[string]any{"role": "member"}), 409)
+	expectStatus(t, reviewedMemberStateFixtureRequest(t, router, adminCookie, admin.CSRFToken, admin.User.ID, map[string]any{"disabled": true}), 409)
+	expectStatus(t, reviewedMemberStateFixtureRequest(t, router, adminCookie, admin.CSRFToken, admin.User.ID, map[string]any{"role": "member"}), 409)
 	expectStatus(t, identityRequest(router, "PATCH", "/api/v1/admin/registration", `{"enabled":true}`, adminCookie, ""), 403)
 	decodeCatalogResponse[RegistrationResponse](t, request("PATCH", "/api/v1/admin/registration", map[string]any{"enabled": true}), 200)
 	registered := identityRequest(router, "POST", "/api/v1/auth/register", registrationBody, nil, "")
@@ -87,9 +90,9 @@ func testGovernanceLifecycle(t *testing.T, db *gorm.DB) {
 	expectStatus(t, memberRequest("GET", "/api/v1/admin/calls", nil), 200)
 	expectStatus(t, memberRequest("POST", "/api/v1/admin/providers", map[string]any{}), 403)
 	expectStatus(t, reviewedMemberRolesFixtureRequest(t, router, adminCookie, memberCookie, member.CSRFToken, member.User.ID, []string{"rol_admin"}), 403)
-	expectStatus(t, memberRequest("PATCH", memberPath, map[string]any{"role": "admin"}), 403)
-	expectStatus(t, memberRequest("PATCH", memberPath, map[string]any{"disabled": true}), 403)
-	expectStatus(t, memberRequest("PATCH", "/api/v1/admin/members/"+admin.User.ID, map[string]any{"disabled": true}), 403)
+	expectStatus(t, reviewedMemberStateFixtureRequest(t, router, memberCookie, member.CSRFToken, member.User.ID, map[string]any{"role": "admin"}), 403)
+	expectStatus(t, reviewedMemberStateFixtureRequest(t, router, memberCookie, member.CSRFToken, member.User.ID, map[string]any{"disabled": true}), 403)
+	expectStatus(t, reviewedMemberStateFixtureRequest(t, router, memberCookie, member.CSRFToken, admin.User.ID, map[string]any{"disabled": true}), 403)
 	expectStatus(t, memberRequest("POST", "/api/v1/admin/roles", map[string]any{"name": "Self escalation", "permissions": roles.AvailablePermissions}), 403)
 	expectStatus(t, memberRequest("POST", "/api/v1/admin/members", map[string]any{"name": "Escalated", "email": "escalated@example.com", "password": "governance-password", "role": "admin"}), 403)
 	managed := decodeCatalogResponse[MemberResponse](t, memberRequest("POST", "/api/v1/admin/members", map[string]any{"name": "Managed member", "email": "managed@example.com", "password": "governance-password"}), 201)
@@ -104,7 +107,7 @@ func testGovernanceLifecycle(t *testing.T, db *gorm.DB) {
 	if err := db.Create(&key).Error; err != nil {
 		t.Fatal(err)
 	}
-	decodeCatalogResponse[MemberResponse](t, memberRequest("PATCH", "/api/v1/admin/members/"+managed.ID, map[string]bool{"disabled": true}), 200)
+	expectStatus(t, reviewedMemberStateFixtureRequest(t, router, memberCookie, member.CSRFToken, managed.ID, map[string]bool{"disabled": true}), 200)
 	expectStatus(t, identityRequest(router, "GET", "/api/v1/auth/session", "", managedCookie, ""), 401)
 	expectStatus(t, identityRequest(router, "POST", "/api/v1/auth/login", `{"email":"managed@example.com","password":"governance-password"}`, nil, ""), 401)
 	if err := db.First(&key, "id = ?", key.ID).Error; err != nil || key.Status != entity.KeyRevoked {
@@ -114,7 +117,7 @@ func testGovernanceLifecycle(t *testing.T, db *gorm.DB) {
 	if err := db.Model(&entity.Session{}).Where("user_id = ?", managed.ID).Count(&sessions).Error; err != nil || sessions != 0 {
 		t.Fatal("member disable did not delete sessions")
 	}
-	decodeCatalogResponse[MemberResponse](t, request("PATCH", "/api/v1/admin/members/"+managed.ID, map[string]bool{"disabled": false}), 200)
+	expectStatus(t, reviewedMemberStateFixtureRequest(t, router, adminCookie, admin.CSRFToken, managed.ID, map[string]bool{"disabled": false}), 200)
 	if err := db.First(&key, "id = ?", key.ID).Error; err != nil || key.Status != entity.KeyRevoked {
 		t.Fatal("reenabling a member restored a revoked Key")
 	}
@@ -144,29 +147,62 @@ func testGovernanceLifecycle(t *testing.T, db *gorm.DB) {
 	secondLogin := identityRequest(router, "POST", "/api/v1/auth/login", `{"email":"second-admin@example.com","password":"governance-password"}`, nil, "")
 	expectStatus(t, secondLogin, 200)
 	secondSession, secondCookie := readIdentity(t, secondLogin)
+	adminReview := memberStateFixtureReview(t, router, adminCookie, admin.User.ID)
+	secondReview := memberStateFixtureReview(t, router, secondCookie, secondAdmin.ID)
+	var beforeStateAudits int64
+	if err := db.Model(&entity.AuditEvent{}).Where("action = ?", "member.state.update").Count(&beforeStateAudits).Error; err != nil {
+		t.Fatal(err)
+	}
 	responses := make(chan int, 2)
+	startStateChanges := make(chan struct{})
 	var wg sync.WaitGroup
 	for _, candidate := range []struct {
 		id     string
 		cookie *http.Cookie
 		csrf   string
-	}{{admin.User.ID, adminCookie, admin.CSRFToken}, {secondAdmin.ID, secondCookie, secondSession.CSRFToken}} {
+		etag   string
+	}{{admin.User.ID, adminCookie, admin.CSRFToken, adminReview.ETag}, {secondAdmin.ID, secondCookie, secondSession.CSRFToken, secondReview.ETag}} {
 		wg.Go(func() {
-			responses <- identityRequest(router, "PATCH", "/api/v1/admin/members/"+candidate.id, `{"role":"member"}`, candidate.cookie, candidate.csrf).Code
+			<-startStateChanges
+			responses <- memberStateFixturePATCH(t, router, candidate.cookie, candidate.csrf, candidate.id, candidate.etag, map[string]any{"role": "member", "reason": "Concurrent last administrator review"}).Code
 		})
 	}
+	close(startStateChanges)
 	wg.Wait()
 	close(responses)
 	counts := map[int]int{}
 	for code := range responses {
 		counts[code]++
 	}
-	if counts[200] != 1 || counts[409] != 1 {
+	if counts[403] != 1 || counts[409] != 1 {
 		t.Fatalf("concurrent last administrator protection returned %v", counts)
 	}
 	var administrators int64
-	if err := db.Model(&entity.User{}).Where("role = ? AND disabled = ?", entity.RoleAdmin, false).Count(&administrators).Error; err != nil || administrators != 1 {
+	if err := db.Model(&entity.User{}).Where(database.ExactText(db, clause.Column{Name: "role"}, entity.RoleAdmin)).Where("disabled = ? AND offboarded_at IS NULL", false).Count(&administrators).Error; err != nil || administrators != 1 {
 		t.Fatal("last active administrator was lost")
+	}
+	var afterStateAudits int64
+	if err := db.Model(&entity.AuditEvent{}).Where("action = ?", "member.state.update").Count(&afterStateAudits).Error; err != nil || afterStateAudits-beforeStateAudits != 1 {
+		t.Fatal("concurrent self demotion did not commit exactly one typed audit", afterStateAudits, beforeStateAudits, err)
+	}
+	var stateEvents []entity.AuditEvent
+	if err := db.Where("action = ? AND resource_id IN ?", "member.state.update", []string{admin.User.ID, secondAdmin.ID}).Find(&stateEvents).Error; err != nil || len(stateEvents) != 1 {
+		t.Fatal("concurrent self demotion audit target was not exact", err)
+	}
+	event := stateEvents[0]
+	var stateDetails struct {
+		UserID    string `json:"user_id"`
+		Operation string `json:"operation"`
+		Reason    string `json:"reason"`
+		Before    struct {
+			BaseRole string `json:"base_role"`
+		} `json:"before"`
+		After struct {
+			BaseRole string `json:"base_role"`
+		} `json:"after"`
+	}
+	if event.ActorID != event.ResourceID || event.DetailsJSON == nil || json.Unmarshal([]byte(*event.DetailsJSON), &stateDetails) != nil || stateDetails.UserID != event.ResourceID || stateDetails.Operation != "base_role" || stateDetails.Reason != "Concurrent last administrator review" || stateDetails.Before.BaseRole != entity.RoleAdmin || stateDetails.After.BaseRole != entity.RoleMember {
+		t.Fatal("concurrent self demotion lost typed attribution")
 	}
 	// Reads after a new service instance still observe the persisted switch.
 	fresh := identityRouter(t, db)

@@ -1,4 +1,57 @@
 export default {
+  memberState: {
+    actionUnavailable: 'Current member write authority is unavailable. The review remains closed.',
+    desiredRole: 'Reviewed base identity: {{role}}',
+    baseRoleTitle: 'Confirm base identity',
+    baseRoleDescription:
+      'Change the base identity of {{name}}. This confirms current database authority only; it does not enable the account.',
+    disableTitle: 'Disable member access',
+    disableDescription:
+      'Disable {{name}}. Existing Sessions and Personal Keys are revoked; already dispatched calls and retained history remain.',
+    enableTitle: 'Enable member access',
+    enableDescription:
+      'Enable {{name}}. Old Sessions and Personal Keys remain revoked; this does not guarantee a callable model.',
+    reactivateTitle: 'Reactivate member access',
+    reactivateDescription:
+      'Reactivate {{name}} and clear the current offboarding marker. Historical offboarding remains; old Sessions, Personal Keys and custom roles are not restored.',
+    reactivate: 'Reactivate',
+    reason: 'Reason',
+    confirm_baseRole: 'Confirm base identity',
+    confirm_disable: 'Confirm disable',
+    confirm_enable: 'Confirm enable',
+    confirm_reactivate: 'Confirm reactivation',
+    retry: 'Retry original state request',
+    resume: 'Resume state confirmation',
+    abandon: 'Abandon original state request',
+    abandonHelp:
+      'Abandon only local retries. The original outcome remains unknown; preserve the draft and review current state before a new confirmation.',
+    review: 'Review current member state',
+    refresh: 'Refresh',
+    loading: 'Reading current member state…',
+    failed: 'Member state could not be read.',
+    applied: 'Account lifecycle gate applied',
+    unknown: 'Account lifecycle application unknown',
+    status_active: 'Active',
+    status_disabled: 'Disabled',
+    status_offboarded: 'Offboarded',
+    invalidReason:
+      'Enter a reason of at most 1024 UTF-8 bytes without surrounding whitespace or control characters.',
+    stale:
+      'The reviewed member state or label changed. Preserve the draft and explicitly review current state before a new request.',
+    conflict:
+      'Current authority, state or continuity changed. The original request remains unconfirmed; retry it exactly or explicitly abandon local retries before a new review.',
+    uncertain:
+      'The original state request is unconfirmed. Only its exact body, reason and revision may be retried; a fresh read does not confirm it.',
+    authorityLost:
+      'Current write authority is unavailable. The original request remains unconfirmed; an authorized administrator can inspect current state.',
+    authLost:
+      'Current sign-in authority is unavailable. An authorized administrator can inspect current state; this does not confirm the original request.',
+    confirmed: 'Current member state confirmed: {{effect}}. This is current effect only.',
+    reconciled:
+      'Current member state confirmed after retry: {{effect}}. This does not prove the original operation.',
+    current_base_identity: 'current base identity',
+    current_account_access: 'current account access',
+  },
   memberRoles: {
     recordedPermissions:
       'Recorded codes not implemented by this version do not grant current platform access.',

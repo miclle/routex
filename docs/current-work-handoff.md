@@ -7,23 +7,37 @@ three unstarted**. The coordinated roadmap lives outside this repository;
 
 ## Current work
 
-The containing Member Roles delivery extends checked Access 9205ca5. It binds
-complete reviewed custom-role replacement to exact definition proofs, reason and
-If-Match, with independent read/protected-writer boundaries, atomic typed audit
-and current-state-only retries. Safe historical permission-code casing is retained
-without granting aliases. Frozen GORM V56 records assignment/definition revisions.
+Reviewed Member State is now carried onto checked Roles `a44838d`: 37 exact
+source outputs with no new migration, V56 retained, 100 ordered driver scenarios
+and 343 protected paths. Original source2815/140, mandatory checks, focused
+real-driver16+8, controlled production/browser/current retry/same-Session restart,
+independent authentication/native/restart and complete100-per-driver regression
+now passed. Complete regression contains 2,866 named tests without named failure
+or skip. A four-file frontend-only first409 recovery correction is carried;
+its corrected complete source2817/140, Go race, Node/development and embedded
+asset checks now pass. Preserve the original process artifact's evidence separately. The existing Settings cards and list
+action menu use minimal exact-target reviews, reason and strong If-Match.
+Base-role confirmation proves current database identity; account enable/disable
+requires current runtime application. Retain original uncertain intent; self
+changes can commit before current authority disappears. Reactivation never
+restores old Sessions, Keys or custom roles.
 
-Current source2761/138, expanded real-driver focus10+8, both-driver
-authentication/native persistence, new-artifact bilingual browser/current retry/
-same-Session restart and complete99 passed. The full regression passed 2,790 named
-tests with all322 source protections and independently empty owned resources.
-Historical failed attempts remain in the evidence sections. Final mandatory
-check, commit/push and exact remote read-back are separate delivery steps.
-Continue reviewed Member State, then local registration approval and the
+Continue the final State delivery gate, then actual local registration approval and the
 repository price-data candidate. Global Role definition editing is preparing
 in three isolated source-only subtasks; it has no actual acceptance yet.
 
-## Current main delivery
+## Preceding checked main delivery
+
+Reviewed Roles `a44838d3a8b618d164680cd1ddbd23ae3bdb55c5` is checked,
+committed and pushed with exact remote main read-back. Complete source passed
+2,761 frontend cases/138 files, Go race, lifecycle/assets and final mandatory
+checks. Dual-driver focus passed ten lifecycle children/eight constraints;
+complete integration passed 99 scenarios per driver and 2,790 named tests.
+Both-driver auth/native restart and controlled bilingual browser/current retry/
+same-Session restart passed with seven screenshots and zero native dispatches.
+All 322 protected paths remained exact; owned resources were independently absent.
+Historical failed attempts remain separate. Exact Roles CI37280249927,
+Actionlint37280249997 and GolangCI-Lint37280249786 all succeeded. F04/F05 and formal 11/16/3 remain unchanged.
 
 Access predecessor 9205ca5 is the earlier checked delivery. It preserves the approved
 six Access facts and independently authorized Role/Team names, with no migration
@@ -620,3 +634,63 @@ checks; commit/push/remote read-back remain separate coordinator observations.
 Global Role definition editing, reviewed account State and local registration
 approval remain independent follow-up work. F04 and F05 remain Partial; formal
 11-complete/16-partial/three-unstarted totals are unchanged.
+
+## Member State source, focused database and production acceptance
+
+Current carried State source passed format, mandatory checks, Go race, 2,815
+frontend cases in 140 files, development lifecycle, production asset tests and
+production build. PostgreSQL and MySQL focused acceptance passed all 16 selected
+lifecycle children, eight pre-loop constraints and 40 nested children without
+failure or skip. The complete 343 protected hashes stayed exact and owned
+Compose containers, networks and volumes were independently absent.
+
+Production SHA256
+`b94eef3cdc1db3cbbc6b58749599732d6fd6b7f3203e8b7183292de390da3369`
+passed one actual reviewed browser disable, required-reason validation, bilingual
+read-only cards and a surviving-browser-Session restart with no new login. Five
+explicit typed State audits covered base promotion/restoration, disable, enable
+and reactivation. Current-only original retry added no writes/audits; later
+differing state rejected that retry. Old Session cookies and the revoked Key
+stayed denied, while the completed offboarding case remained unchanged.
+Seven screenshots and empty browser warning/error observations were retained;
+zero native dispatches, call records or attempts were created. Delegated/outsider
+denials were independent API checks; self-commit and publication-fault assertions
+remain source/driver evidence. No transport-loss or original-operation receipt is
+claimed. Owned ports were reusable, the test tab closed and English restored.
+
+The build's optional Linux libc metadata drift was restored after exact JSON
+comparison proved only 18 metadata removals and no package/version change. An
+initial blank browser page loaded after deliberate reload before sign-in; no
+product correction is claimed. Both-driver independent authentication/native/restart
+passed; the owned project inventories were independently empty.
+
+Complete regression then passed 100 ordered scenarios per PostgreSQL/MySQL,
+eight constraints, five test-bearing packages and 2,866 named tests with no named
+failure or skip. PostgreSQL took 786.760s, MySQL 1015.930s and Handler 1807.116s.
+Log SHA256: `6de49d8751725622ef7278c01920be37f49cd8e66625c4b30d684cfe8a7aed0c`.
+All 343 protected paths remained exact and the full-run project's containers,
+networks and volumes were independently absent.
+
+A four-file frontend follow-up, plus its parent fixture adaptation, retains the exact original request after every
+failed dispatch, including a first 409 that may follow a durable commit. Matching
+reads, Cancel and Escape never resolve uncertainty. Explicit Abandon discards only
+local retries, retains the draft and requires current review/new confirmation;
+the original outcome remains unknown. Private real-QueryClient RED/GREEN evidence
+passed 21 State tests, including fresh CSRF, failed renewed reads, obsolete actions,
+bilingual guidance and pending-request abandonment denial. Backend, schema,
+authentication and the complete integration harness remain byte-identical to the
+accepted regression source. The earlier browser/restart evidence retains its
+original artifact hash; no new real transport-loss or first409-after-commit
+experiment is claimed. The additional parent-governance fixture retains its
+continuity/end-state assertions and explicitly abandons before a new review.
+
+Corrected complete source passed 2,817 frontend cases in 140 files, Go race,
+four Node checks, two development lifecycle checks and production asset serving
+(1.669s). Corrected mandatory checks passed with zero lint errors and two existing
+Fast Refresh warnings. Formatting, dependency files and all unrelated protections
+stayed exact. A fresh embedded binary is built separately; the prior process and
+browser proof is not relabeled with its hash. Final mandatory checking remains a
+pre-commit requirement; commit/push/read-back and new remote workflows are separate
+coordinator observations. The containing commit records the bounded State slice.
+Continue actual local registration approval, then the remaining Member workflow
+and Role definition work. F04/F05 and formal 11/16/3 remain unchanged.

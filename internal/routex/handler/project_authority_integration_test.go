@@ -329,11 +329,13 @@ func testProjectAuthorityLifecycle(t *testing.T, db *gorm.DB) {
 	if !retained || len(added.Managers) != 2 {
 		t.Fatal("canonical retained manager identity changed")
 	}
+	stateRouter, stateRuntime := memberStateRuntimeFixtureRouter(t, db, service.WithCredentialStorage(store), service.WithUpstreamPolicy(true))
+	defer stateRuntime.StopRuntime()
 	// A direct platform editor can replace the full set without becoming a manager.
 	expectStatus(t, platformRequest("PUT", path+"/managers", managerBody(successor.User.ID)), 200)
 	unchanged("creator has no permanent management", func() { expectStatus(t, managerRequest("PUT", path+"/managers", managerBody(manager.User.ID)), 403) })
 	unchanged("sole active manager cannot be disabled", func() {
-		expectStatus(t, adminRequest("PATCH", "/api/v1/admin/members/"+successor.User.ID, map[string]any{"disabled": true}), 409)
+		expectStatus(t, reviewedMemberStateFixtureRequest(t, stateRouter, adminCookie, admin.CSRFToken, successor.User.ID, map[string]any{"disabled": true}), 409)
 	})
 	var creator entity.Project
 	if err := db.First(&creator, "id = ?", project.ID).Error; err != nil {

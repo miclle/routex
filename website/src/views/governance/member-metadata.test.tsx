@@ -1,4 +1,5 @@
 import { accessSummaryFixture } from './member-access-summary.fixture'
+import { memberStateFixture, stateReviewETag } from './member-state.fixture'
 import { act } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
@@ -59,6 +60,29 @@ beforeEach(async () => {
   })
   client.defaults.adapter = async (config) => {
     requests.push(config)
+    if (config.method === 'get' && config.url?.endsWith('/state')) {
+      return {
+        config,
+        status: 200,
+        statusText: '',
+        headers: new AxiosHeaders({
+          etag: `"${stateReviewETag}"`,
+          'cache-control': 'private, no-store',
+        }),
+        data: memberStateFixture(
+          {
+            id: config.url.split('/')[3],
+            name: saved,
+            role: 'member',
+            disabled: false,
+            offboarded_at: null,
+          },
+          session.user.id,
+          session.user.role,
+          permissions,
+        ),
+      }
+    }
     if (config.method === 'get' && config.url?.endsWith('/access')) {
       const data = accessSummaryFixture(config.url.split('/')[3], {
         roles: permissions.includes('roles.read'),
@@ -190,7 +214,7 @@ it('uses the approved card with parent email and separate lifecycle/role actions
   expect(host.querySelectorAll('[role="tabpanel"]')).toHaveLength(1)
   expect(form().querySelector<HTMLInputElement>('input:not([name])')?.disabled).toBe(true)
   expect(form().textContent).toContain('Maintain the member name')
-  expect(host.textContent).toContain('Save base role')
+  await until(() => expect(host.textContent).toContain('Save base role'))
   expect(host.textContent).toContain('Account access')
   expect(requests.filter((r) => r.url === '/auth/session')).toHaveLength(1)
   expect(requests.some((r) => r.url === '/account' || r.url === '/admin/models')).toBe(false)

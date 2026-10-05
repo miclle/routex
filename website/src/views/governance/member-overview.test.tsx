@@ -1,3 +1,8 @@
+import {
+  memberStateFixture,
+  memberStateResultFixture,
+  stateReviewETag,
+} from './member-state.fixture'
 import { rolesWorkspace, roleSummary } from './member-roles.fixture'
 import { accessSummaryFixture } from './member-access-summary.fixture'
 import { memberListPage, memberListRow } from './member-list.fixture'
@@ -99,6 +104,28 @@ beforeEach(async () => {
     if (deferred) value = await deferred
     else if (config.url === '/auth/session') value = structuredClone(session)
     else if (config.url === '/auth/permissions') value = { permissions }
+    else if (config.url?.endsWith('/state'))
+      return {
+        config,
+        status: 200,
+        statusText: '',
+        headers: new AxiosHeaders({
+          etag: `"${stateReviewETag}"`,
+          'cache-control': 'private, no-store',
+        }),
+        data: memberStateFixture(
+          {
+            id: config.url.split('/')[3],
+            name: 'Target',
+            role: 'member',
+            disabled: false,
+            offboarded_at: null,
+          },
+          session.user.id,
+          session.user.role,
+          permissions,
+        ),
+      }
     else if (config.url?.endsWith('/limits'))
       value = { ...limitFixture(), id: config.url.split('/')[3] }
     else if (config.url === '/admin/members')
@@ -170,6 +197,28 @@ beforeEach(async () => {
         created_at: '2026-09-23T00:00:00Z',
       }
     else throw new Error('Unexpected endpoint ' + config.url)
+    if (config.method === 'patch') {
+      const target = value as {
+        id: string
+        name: string
+        role: 'admin' | 'member'
+        disabled: boolean
+        offboarded_at: string | null
+      }
+      return {
+        config,
+        status: 200,
+        statusText: '',
+        headers: new AxiosHeaders({
+          etag: `"${stateReviewETag}"`,
+          'cache-control': 'private, no-store',
+        }),
+        data: memberStateResultFixture(
+          memberStateFixture(target, session.user.id, session.user.role, permissions),
+          JSON.parse(config.data),
+        ),
+      }
+    }
     return { config, status: 200, statusText: '', headers: new AxiosHeaders(), data: value }
   }
 })
@@ -566,6 +615,20 @@ describe('administrative Member Overview', () => {
       const form = host.querySelector('form[aria-label="Base role"]')!
       form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
       form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+    })
+    await until(() => document.querySelector('[role="dialog"] textarea') !== null)
+    await act(async () => {
+      const field = document.querySelector('textarea')!
+      Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value')!.set!.call(
+        field,
+        'Controlled base identity',
+      )
+      field.dispatchEvent(new Event('input', { bubbles: true }))
+      const button = [...document.querySelectorAll<HTMLButtonElement>('button')].find(
+        (b) => b.textContent === 'Confirm base identity',
+      )!
+      button.click()
+      button.click()
     })
     await until(() => requests.some((r) => r.method === 'patch'))
     const writes = requests.filter((r) => r.method === 'patch')

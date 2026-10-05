@@ -709,3 +709,28 @@ full typed audits are bounded60KiB without truncation. Actor/target/Session/read
 renewal hides private rows and portals synchronously; no global directory fallback
 or additional Session observer is allowed. Keep paired governance copy and source,
 driver, migration and zero-inference process/restart/browser evidence separate.
+
+Member base identity and account access retain the existing Settings cards and
+Member list action menu. Read the minimal state review only for the invoked exact
+target, using the parent real Session and independent read/write authority. Keep
+same-actor/target editors mounted through renewed reads and errors while hiding
+private facts and actions. Every PATCH changes exactly one base role or disabled
+field with the reviewed strong If-Match, required reason and explicit confirmation.
+Keep Metadata, offboarding and custom Roles separate; never fall back to the
+unreviewed legacy endpoint, create a per-row review query or infer pending approval.
+Preserve the immutable original transient intent after every failed dispatched
+request, including the first conflict response. Fresh GET, Cancel and Escape never
+resolve it; only the exact explicit retry may confirm current_member_state, without
+claiming an original historical operation. Explicit Abandon drops only local retry
+intent, leaves the original outcome unknown and retains the draft for current
+review and a new explicit confirmation. Block abandonment while a request is pending
+or current write authority is unavailable.
+Account-access success requires the server's current runtime application proof;
+base-role success confirms current database identity independently. Reactivation
+clears the current offboarding marker without restoring old Sessions, Keys or
+custom roles. Self-disable and self-demotion can commit before authority is lost:
+401 uses established authentication cleanup;403 hides private facts while retaining
+same-context intent, never claims success or retries automatically. Actor, target,
+tab, logout or unmount destroys transient state. Keep paired live translations,
+reason UTF-8 bounds, conflict drafts, exact dispatch identities and connected
+focus restoration covered by tests.

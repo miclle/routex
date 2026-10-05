@@ -14,7 +14,7 @@ import (
 
 // The shared integration driver invokes this against a fresh migrated database.
 func testResourceLifecycle(t *testing.T, db *gorm.DB) {
-	router := identityRouter(t, db)
+	router, _ := memberStateRuntimeFixtureRouter(t, db)
 	setup := identityRequest(router, "POST", "/api/v1/setup", `{"email":"resources@example.com","password":"resources-password","name":"Resource admin"}`, nil, "")
 	expectStatus(t, setup, 201)
 	admin, adminCookie := readIdentity(t, setup)
@@ -59,7 +59,7 @@ func testResourceLifecycle(t *testing.T, db *gorm.DB) {
 	expectStatus(t, outsiderRequest("GET", "/api/v1/teams/"+team.ID, nil), 404)
 	expectStatus(t, ownerRequest("PATCH", teamPath, map[string]any{"name": "Escalated"}), 403)
 	expectStatus(t, ownerRequest("PUT", teamPath+"/models", map[string]any{"model_ids": []string{}}), 403)
-	expectStatus(t, request("PATCH", "/api/v1/admin/members/"+owner.User.ID, map[string]any{"disabled": true}), 409)
+	expectStatus(t, reviewedMemberStateFixtureRequest(t, router, adminCookie, admin.CSRFToken, owner.User.ID, map[string]any{"disabled": true}), 409)
 	expectStatus(t, identityRequest(router, "PUT", teamPath+"/members", `{"members":[]}`, adminCookie, ""), 403)
 	expectStatus(t, request("PUT", teamPath+"/members", map[string]any{"members": []map[string]string{{"user_id": owner.User.ID, "role": "member", "status": "active"}}}), 409)
 	expectStatus(t, request("PUT", teamPath+"/members", map[string]any{"members": []map[string]string{{"user_id": owner.User.ID, "role": "owner", "status": "pending"}}}), 400)
@@ -104,12 +104,12 @@ func testResourceLifecycle(t *testing.T, db *gorm.DB) {
 	// A Project-only manager also blocks suspension independently of Team checks.
 	independent := decodeCatalogResponse[ProjectResponse](t, outsiderRequest("POST", "/api/v1/projects", map[string]any{"name": "Project-only continuity"}), 201)
 	independentPath := "/api/v1/projects/" + independent.ID
-	expectStatus(t, request("PATCH", "/api/v1/admin/members/"+outsider.User.ID, map[string]any{"disabled": true}), 409)
+	expectStatus(t, reviewedMemberStateFixtureRequest(t, router, adminCookie, admin.CSRFToken, outsider.User.ID, map[string]any{"disabled": true}), 409)
 	// Removing the creator from management removes access; creator is audit-only.
 	expectStatus(t, outsiderRequest("PUT", independentPath+"/managers", map[string]any{"user_ids": []string{admin.User.ID}}), 200)
 	expectStatus(t, outsiderRequest("GET", independentPath, nil), 404)
 	expectStatus(t, outsiderRequest("PATCH", independentPath, map[string]any{"name": "Creator escalation"}), 403)
-	expectStatus(t, request("PATCH", "/api/v1/admin/members/"+outsider.User.ID, map[string]any{"disabled": true}), 200)
+	expectStatus(t, reviewedMemberStateFixtureRequest(t, router, adminCookie, admin.CSRFToken, outsider.User.ID, map[string]any{"disabled": true}), 200)
 	// Invalid relationship replacement leaves the previous owner intact.
 	expectStatus(t, request("PUT", teamPath+"/members", map[string]any{"members": []map[string]string{{"user_id": owner.User.ID, "role": "owner", "status": "active"}, {"user_id": "usr_missing", "role": "member", "status": "active"}}}), 400)
 	intactTeam := decodeCatalogResponse[TeamResponse](t, request("GET", teamPath, nil), 200)
@@ -179,7 +179,7 @@ func testResourceLifecycle(t *testing.T, db *gorm.DB) {
 	statuses := make(chan int, 2)
 	for _, userID := range []string{owner.User.ID, second.User.ID} {
 		wg.Go(func() {
-			statuses <- request("PATCH", "/api/v1/admin/members/"+userID, map[string]any{"disabled": true}).Code
+			statuses <- reviewedMemberStateFixtureRequest(t, router, adminCookie, admin.CSRFToken, userID, map[string]any{"disabled": true}).Code
 		})
 	}
 	wg.Wait()

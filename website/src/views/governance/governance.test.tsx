@@ -1,3 +1,8 @@
+import {
+  memberStateFixture,
+  memberStateResultFixture,
+  stateReviewETag,
+} from './member-state.fixture'
 import { rolesWorkspace, roleSummary } from './member-roles.fixture'
 import { accessSummaryFixture } from './member-access-summary.fixture'
 import { memberListPage, memberListRow } from './member-list.fixture'
@@ -114,6 +119,13 @@ beforeEach(() => {
         last_login_at: null,
         last_login_status: 'historical_unavailable',
       }
+    if (key === 'get /admin/members/usr_target/state') {
+      response.data = memberStateFixture(target, session.user.id, session.user.role, permissions)
+      response.headers = new AxiosHeaders({
+        etag: `"${stateReviewETag}"`,
+        'cache-control': 'private, no-store',
+      })
+    }
     if (key === 'get /admin/members/usr_target/roles') {
       const page = rolesWorkspace(target.id)
       page.etag = roleETag
@@ -176,8 +188,19 @@ beforeEach(() => {
       response.data = { enabled: registration }
     }
     if (key === 'patch /admin/members/usr_target') {
-      Object.assign(target, JSON.parse(config.data))
-      response.data = structuredClone(target)
+      const input = JSON.parse(config.data)
+      Object.assign(
+        target,
+        Object.hasOwn(input, 'role') ? { role: input.role } : { disabled: input.disabled },
+      )
+      response.data = memberStateResultFixture(
+        memberStateFixture(target, session.user.id, session.user.role, permissions),
+        JSON.parse(config.data),
+      )
+      response.headers = new AxiosHeaders({
+        etag: `"${stateReviewETag}"`,
+        'cache-control': 'private, no-store',
+      })
     }
     if (key === 'put /admin/members/usr_target/roles') {
       target.role_ids = JSON.parse(config.data).role_ids
@@ -390,6 +413,15 @@ describe('member governance', () => {
         .click()
     })
     expect(requests.some((r) => r.method === 'patch')).toBe(false)
+    await until(() => expect(document.querySelector('[role="dialog"] textarea')).not.toBeNull())
+    await act(async () => {
+      const field = document.querySelector('textarea')!
+      Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value')!.set!.call(
+        field,
+        'Controlled lifecycle change',
+      )
+      field.dispatchEvent(new Event('input', { bubbles: true }))
+    })
     failures['patch /admin/members/usr_target'] = 409
     await click('Confirm disable')
     await until(() =>
@@ -397,6 +429,11 @@ describe('member governance', () => {
     )
     expect(target.disabled).toBe(false)
     delete failures['patch /admin/members/usr_target']
+    expect(document.querySelector('textarea')?.value).toBe('Controlled lifecycle change')
+    await click('Abandon original state request')
+    expect(document.querySelector('textarea')?.value).toBe('Controlled lifecycle change')
+    expect(requests.filter((r) => r.method === 'patch')).toHaveLength(1)
+    await click('Review current member state')
     await click('Confirm disable')
     await until(() => expect(target.disabled).toBe(true))
   })
