@@ -519,6 +519,180 @@ describe('Recorded Project monthly warning boundary', () => {
     ).toBeUndefined()
   })
 })
+function memberWarningNotice(overrides: Partial<MonthlyQuotaWarningSnapshot> = {}): Notification {
+  const original = warningNotice({
+    scope_kind: 'team_member',
+    scope_id: 'A'.repeat(51) + 'Q',
+    threshold_generation: 'team-member-monthly-80-90-v1',
+    ...overrides,
+  })
+  return {
+    ...original,
+    id: 'mwi_1',
+    quota_warning_observation_id: 'mwo_1',
+    subject_type: 'team_member',
+    subject_id: 'A'.repeat(51) + 'Q',
+    subject_name: 'Recorded Team',
+  }
+}
+
+describe('Recorded Team member monthly warning boundary', () => {
+  it.each([
+    { dimension: 'tokens', level: 'near', threshold: 80, currency: null },
+    { dimension: 'tokens', level: 'critical', threshold: 90, currency: null },
+    { dimension: 'money', level: 'near', threshold: 80, currency: 'USD' },
+    { dimension: 'money', level: 'critical', threshold: 90, currency: 'USD' },
+  ] as const)(
+    'accepts the authorized Team-member $dimension/$level snapshot without reconstructing a private tuple',
+    async (snapshot) => {
+      const notification = memberWarningNotice({
+        ...snapshot,
+        limit: snapshot.dimension === 'money' ? '9007199254740993.123456789012345678' : '100',
+        settled: snapshot.dimension === 'money' ? '8907199254740993.123456789012345678' : '93',
+      })
+      const before = structuredClone(notification)
+      expect(recordedMonthlyQuotaWarning(notification, 'usr_current')).toBe(
+        notification.quota_warning,
+      )
+      const get = vi.spyOn(client, 'get').mockResolvedValueOnce({
+        data: { items: [notification], unread_count: 1, next_cursor: 'recipient-cursor' },
+      })
+      expect(
+        (await getNotifications('all', 'prior-cursor', undefined, 'usr_current')).items[0],
+      ).toEqual(before)
+      expect(get).toHaveBeenCalledWith('/notifications', {
+        params: { status: 'all', cursor: 'prior-cursor' },
+        signal: undefined,
+      })
+      expect(notification).toEqual(before)
+    },
+  )
+
+  it.each([undefined, null, '', 'Original historical Team', '名'.repeat(100)])(
+    'preserves the optional recorded Team-member name without an invented byte cap %#',
+    (subject_name) => {
+      const notification = { ...memberWarningNotice(), subject_name }
+      expect(recordedMonthlyQuotaWarning(notification, 'usr_current')).toBe(
+        notification.quota_warning,
+      )
+    },
+  )
+
+  it.each([
+    ['Personal inbox', { id: 'qwi_1' }],
+    ['Team inbox', { id: 'twi_1' }],
+    ['Project inbox', { id: 'pwi_1' }],
+    ['Project observation', { quota_warning_observation_id: 'pwo_1' }],
+    ['Team observation', { quota_warning_observation_id: 'two_1' }],
+    ['Personal observation', { quota_warning_observation_id: 'qwo_1' }],
+    ['subject alias', { subject_id: 'a'.repeat(51) + 'q' }],
+    ['subject trailing space', { subject_id: 'member_digest ' }],
+    ['wrong subject', { subject_id: 'other_digest' }],
+    ['missing subject', { subject_id: undefined }],
+    ['wrong subject kind', { subject_type: 'user' }],
+    ['missing subject kind', { subject_type: undefined }],
+    ['unsafe name', { subject_name: 'Recorded\nTeam-member' }],
+    ['invalid name text', { subject_name: '\ud800' }],
+    ['borrowed alert', { alert_id: 'alt_private' }],
+    ['borrowed delivery', { delivery_status: 'accepted' }],
+  ])('keeps %s unavailable instead of exposing a Team-member snapshot', (_, changes) => {
+    expect(
+      recordedMonthlyQuotaWarning(
+        { ...memberWarningNotice(), ...changes } as Notification,
+        'usr_current',
+      ),
+    ).toBeUndefined()
+  })
+
+  it.each([
+    ['Personal generation', { threshold_generation: 'personal-monthly-80-90-v1' }],
+    ['Team generation', { threshold_generation: 'team-monthly-80-90-v1' }],
+    ['Project generation', { threshold_generation: 'project-monthly-80-90-v1' }],
+    ['unknown generation', { threshold_generation: 'team-member-monthly-future' }],
+    ['aggregate Team scope', { scope_kind: 'team' }],
+    ['Project scope', { scope_kind: 'project' }],
+    ['unsafe member digest', { scope_id: 'member_digest/' }],
+    ['trailing member digest', { scope_id: 'member_digest ' }],
+    ['lowercase digest alias', { scope_id: 'a'.repeat(51) + 'q' }],
+    ['noncanonical final digest bits', { scope_id: 'A'.repeat(51) + 'B' }],
+    ['padded digest', { scope_id: 'A'.repeat(52) + '=' }],
+    ['short digest', { scope_id: 'A'.repeat(51) }],
+    ['long digest', { scope_id: 'A'.repeat(53) }],
+    ['non-Base32 digit', { scope_id: '1'.repeat(51) + 'Q' }],
+    ['legacy Team tuple', { team_id: 'tem_private' }],
+    ['legacy member tuple', { member_user_id: 'usr_private' }],
+    ['numeric member digest', { scope_id: 1 }],
+    ['unknown threshold', { threshold: 85 }],
+    ['contradictory level', { level: 'critical' }],
+    ['unknown settled usage', { settled: null }],
+    ['numeric settled usage', { settled: 80 }],
+    ['token overflow', { settled: '9223372036854775808' }],
+    ['zero stored limit', { limit: '0' }],
+    ['currency on tokens', { currency: 'USD' }],
+    ['unknown calendar', { time_zone: 'Unknown/Calendar' }],
+    ['exclusive month end', { as_of: '2026-11-01T00:00:00Z' }],
+  ])('keeps %s unavailable without estimating usage or current policy', (_, changes) => {
+    const notification = memberWarningNotice()
+    notification.quota_warning = {
+      ...notification.quota_warning,
+      ...changes,
+    } as MonthlyQuotaWarningSnapshot
+    expect(recordedMonthlyQuotaWarning(notification, 'usr_current')).toBeUndefined()
+  })
+
+  it.each(['A', 'Q'])(
+    'accepts the canonical final digest bit %s without reconstructing its tuple',
+    (last) => {
+      const scope_id = 'A'.repeat(51) + last
+      const notification = { ...memberWarningNotice({ scope_id }), subject_id: scope_id }
+      expect(recordedMonthlyQuotaWarning(notification, 'usr_current')).toBe(
+        notification.quota_warning,
+      )
+    },
+  )
+
+  it('preserves malformed member warning history for explicit unavailable rendering', async () => {
+    const notification = memberWarningNotice({
+      threshold_generation: 'future-v2' as MonthlyQuotaWarningSnapshot['threshold_generation'],
+    })
+    vi.spyOn(client, 'get').mockResolvedValueOnce({
+      data: { items: [notification], unread_count: 1 },
+    })
+    const page = await getNotifications('all', null, undefined, 'usr_current')
+    expect(page.items).toEqual([notification])
+    expect(recordedMonthlyQuotaWarning(page.items[0], 'usr_current')).toBeUndefined()
+  })
+
+  it.each([
+    { quota: { scope_kind: 'team_member', team_id: 'tem_private', member_user_id: 'usr_current' } },
+    { quota_observation_id: 'qob_private' },
+  ])('rejects borrowed exhaustion authority at the response boundary %#', async (changes) => {
+    vi.spyOn(client, 'get').mockResolvedValueOnce({
+      data: { items: [{ ...memberWarningNotice(), ...changes }], unread_count: 1 },
+    })
+    await expect(getNotifications('all', null, undefined, 'usr_current')).rejects.toThrow(
+      'Invalid notification response',
+    )
+  })
+
+  it('requires a safe current recipient without treating Team-member scope as recipient identity', () => {
+    for (const recipient of ['', 'usr_current ', 'usr_current/'])
+      expect(recordedMonthlyQuotaWarning(memberWarningNotice(), recipient)).toBeUndefined()
+    expect(recordedMonthlyQuotaWarning(memberWarningNotice(), 'usr_current')).toBeDefined()
+  })
+
+  it('does not admit Team-member identity or generation into a Personal snapshot', () => {
+    expect(
+      recordedMonthlyQuotaWarning(
+        warningNotice({ threshold_generation: 'team-member-monthly-80-90-v1' }),
+        'usr_member',
+      ),
+    ).toBeUndefined()
+    expect(
+      recordedMonthlyQuotaWarning({ ...warningNotice(), id: 'mwi_1' }, 'usr_member'),
+    ).toBeUndefined()
+  })
+})
 it('preserves recorded money precision and denomination without floating-point conversion', () => {
   const notification = warningNotice({
     dimension: 'money',

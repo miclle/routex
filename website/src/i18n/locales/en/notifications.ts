@@ -27,6 +27,8 @@ export default {
       'Fixed settled-usage observation; not current remaining allowance or a record of a threshold crossing.',
     teamMemberScope: 'Your member quota in Team {{id}}',
     teamMemberScopeNamed: 'Your member quota in {{name}} ({{id}})',
+    memberWarningScope: 'Your Team member quota',
+    memberWarningScopeNamed: 'Your member quota in {{name}}',
     personalScope: 'Personal quota',
     teamScope: 'Team: {{id}}',
     teamScopeNamed: 'Team: {{name}} ({{id}})',
@@ -89,6 +91,13 @@ export default {
       tokens_month_critical: 'Critical Project monthly token warning recorded.',
       money_month_near: 'Project monthly money warning recorded.',
       money_month_critical: 'Critical Project monthly money warning recorded.',
+    },
+    team_member_monthly_quota_warning: {
+      default: 'A warning for your Team member monthly quota was recorded.',
+      tokens_month_near: 'Your Team member monthly token warning recorded.',
+      tokens_month_critical: 'Critical warning for your Team member monthly tokens recorded.',
+      money_month_near: 'Your Team member monthly money warning recorded.',
+      money_month_critical: 'Critical warning for your Team member monthly money recorded.',
     },
     monthly_quota_exhausted: {
       default: 'A monthly quota limit was reached.',

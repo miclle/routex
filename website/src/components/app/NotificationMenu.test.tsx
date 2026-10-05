@@ -1161,3 +1161,244 @@ describe('Recorded Project monthly warning menu', () => {
     expect(button('Mark all read')).toBeUndefined()
   })
 })
+
+function memberWarning(snapshot: Partial<MonthlyQuotaWarningSnapshot> = {}): Notification {
+  return {
+    ...warning({
+      scope_kind: 'team_member',
+      scope_id: 'A'.repeat(51) + 'Q',
+      threshold_generation: 'team-member-monthly-80-90-v1',
+      ...snapshot,
+    }),
+    id: 'mwi_1',
+    quota_warning_observation_id: 'mwo_1',
+    subject_type: 'team_member',
+    subject_id: 'A'.repeat(51) + 'Q',
+    subject_name: 'Recorded Team',
+  }
+}
+
+describe('Recorded Team member monthly warning menu', () => {
+  it.each([
+    {
+      dimension: 'tokens',
+      level: 'near',
+      threshold: 80,
+      currency: null,
+      en: 'Your Team member monthly token warning recorded.',
+      zh: '已记录你的 Team 成员月度 Token 预警。',
+    },
+    {
+      dimension: 'tokens',
+      level: 'critical',
+      threshold: 90,
+      currency: null,
+      en: 'Critical warning for your Team member monthly tokens recorded.',
+      zh: '已记录你的 Team 成员月度 Token 严重预警。',
+    },
+    {
+      dimension: 'money',
+      level: 'near',
+      threshold: 80,
+      currency: 'USD',
+      en: 'Your Team member monthly money warning recorded.',
+      zh: '已记录你的 Team 成员月度金额预警。',
+    },
+    {
+      dimension: 'money',
+      level: 'critical',
+      threshold: 90,
+      currency: 'USD',
+      en: 'Critical warning for your Team member monthly money recorded.',
+      zh: '已记录你的 Team 成员月度金额严重预警。',
+    },
+  ] as const)(
+    'renders $dimension/$level recorded facts and switches language live',
+    async (value) => {
+      const { en, zh, ...snapshot } = value
+      const money = snapshot.dimension === 'money'
+      const settled = money ? '8907199254740993.123456789012345678' : '93'
+      const limit = money ? '9007199254740993.123456789012345678' : '100'
+      page.items = [memberWarning({ ...snapshot, settled, limit })]
+      await mount()
+      await until(() => expect(menu().textContent).toContain(en))
+      expect(menu().textContent).toContain('Your member quota in Recorded Team')
+      expect(menu().textContent).not.toContain('A'.repeat(51) + 'Q')
+      expect(menu().textContent).not.toContain('Team:')
+      expect(menu().textContent).not.toContain('undefined')
+      expect(menu().textContent).toContain(`Recorded warning threshold: ${snapshot.threshold}%`)
+      expect(menu().textContent).toContain(`Settled: ${settled} ${money ? 'USD' : 'tokens'}`)
+      expect(menu().textContent).toContain(`Limit: ${limit} ${money ? 'USD' : 'tokens'}`)
+      expect(menu().textContent).toContain('Recorded month: Sep 1, 2026')
+      expect(menu().textContent).toContain('Calendar time zone: UTC')
+      expect(menu().textContent).toContain('As of Sep 17, 2026')
+      expect(menu().textContent).toContain('Policy revision: policy-4')
+      expect(menu().textContent).toContain('Fixed settled-usage observation')
+      expect(menu().textContent).not.toContain('93%')
+      expect(menu().textContent).not.toContain('7 tokens')
+      expect(menu().textContent).not.toContain('Personal quota')
+      expect(menu().textContent).not.toContain('Email')
+      expect(requests.map((request) => request.url)).toEqual(['/auth/session', '/notifications'])
+      await act(async () => i18n.changeLanguage('zh'))
+      expect(menu().textContent).toContain(zh)
+      expect(menu().textContent).toContain('你在 Recorded Team 的成员额度')
+      expect(menu().textContent).not.toContain('A'.repeat(51) + 'Q')
+      expect(menu().textContent).toContain(`记录的预警阈值：${snapshot.threshold}%`)
+      expect(menu().textContent).toContain(`已结算：${settled} ${money ? 'USD' : 'Token'}`)
+      expect(menu().textContent).toContain('不代表当前剩余额度')
+      expect(menu().querySelector('[aria-label="通知历史筛选"]')).not.toBeNull()
+    },
+  )
+
+  it.each([undefined, null, '', '   '])(
+    'uses self-scope fallback for an absent recorded Team name %#',
+    async (subject_name) => {
+      page.items = [{ ...memberWarning(), subject_name }]
+      await mount()
+      await until(() => expect(menu().textContent).toContain('Your Team member quota'))
+      expect(menu().textContent).not.toContain('Recorded Team')
+      expect(requests.map((request) => request.url)).toEqual(['/auth/session', '/notifications'])
+      await act(async () => i18n.changeLanguage('zh'))
+      expect(menu().textContent).toContain('你的 Team 成员额度')
+      expect(menu().textContent).not.toContain('A'.repeat(51) + 'Q')
+    },
+  )
+
+  it('marks only the exact Team member inbox identity read and retains immutable mixed history', async () => {
+    const original = memberWarning({
+      dimension: 'money',
+      currency: 'USD',
+      level: 'critical',
+      threshold: 90,
+      limit: '1.000000000000000001',
+      settled: '0.900000000000000001',
+    })
+    page.items = [original, warning(), teamWarning(), projectWarning()]
+    page.unread_count = 4
+    await mount()
+    await until(() =>
+      expect(menu().textContent).toContain(
+        'Critical warning for your Team member monthly money recorded.',
+      ),
+    )
+    const memberItem = [...menu().querySelectorAll<HTMLElement>('[role="menuitem"]')].find((row) =>
+      row.textContent?.includes('Your member quota in Recorded Team'),
+    )!
+    await act(async () => memberItem.click())
+    await until(() => expect(page.items[0].read).toBe(true))
+    const read = requests.filter((request) => request.method === 'post')
+    expect(read).toHaveLength(1)
+    expect(read[0].url).toBe('/notifications/mwi_1/read')
+    expect(read[0].headers.get('X-CSRF-Token')).toBe('csrf-usr_member')
+    expect(page.items[0].quota_warning).toEqual(original.quota_warning)
+    expect(page.items[1].read).toBe(false)
+    expect(page.items[2].read).toBe(false)
+    expect(page.items[3].read).toBe(false)
+    await click('Notifications')
+    await until(() => expect(menu()).not.toBeNull())
+    await click('All')
+    await until(() => expect(menu().querySelectorAll('[role="menuitem"]')).toHaveLength(4))
+    expect(menu().textContent).toContain('Settled: 0.900000000000000001 USD')
+    expect(menu().textContent).toContain('Personal monthly token warning recorded.')
+    expect(menu().textContent).toContain('Team monthly token warning recorded.')
+    expect(menu().textContent).toContain('Team: Recorded Team (tem_recorded)')
+    expect(menu().textContent).toContain('Project: Recorded Project (prj_recorded)')
+    await act(async () => i18n.changeLanguage('zh'))
+    expect(button('全部')?.getAttribute('aria-pressed')).toBe('true')
+    expect(menu().textContent).toContain('已记录你的 Team 成员月度金额严重预警。')
+    expect(menu().textContent).toContain('0.900000000000000001 USD')
+    expect(page.items[0].subject_name).toBe('Recorded Team')
+    expect(page.items[0].quota_warning_observation_id).toBe('mwo_1')
+  })
+
+  it.each([
+    ['wrong Team member subject', { subject_id: 'other_digest' }],
+    ['aliased member subject', { subject_id: 'a'.repeat(51) + 'q' }],
+    [
+      'noncanonical digest',
+      { quota_warning: { ...memberWarning().quota_warning, scope_id: 'A'.repeat(51) + 'B' } },
+    ],
+    [
+      'borrowed legacy Team ID',
+      { quota_warning: { ...memberWarning().quota_warning, team_id: 'tem_private' } },
+    ],
+    [
+      'Project generation',
+      {
+        quota_warning: {
+          ...memberWarning().quota_warning,
+          threshold_generation: 'project-monthly-80-90-v1',
+        },
+      },
+    ],
+    ['Team inbox identity', { id: 'twi_1' }],
+    [
+      'Team generation',
+      {
+        quota_warning: {
+          ...memberWarning().quota_warning,
+          threshold_generation: 'team-monthly-80-90-v1',
+        },
+      },
+    ],
+    [
+      'Personal generation',
+      {
+        quota_warning: {
+          ...memberWarning().quota_warning,
+          threshold_generation: 'personal-monthly-80-90-v1',
+        },
+      },
+    ],
+    [
+      'unknown settled usage',
+      { quota_warning: { ...memberWarning().quota_warning, settled: null } },
+    ],
+    [
+      'unsupported threshold',
+      { quota_warning: { ...memberWarning().quota_warning, threshold: 85 } },
+    ],
+    [
+      'borrowed operational identity',
+      { subject_type: 'provider', subject_name: 'Private Provider', delivery_status: 'accepted' },
+    ],
+  ])(
+    'renders localized unavailable for %s without exposing captured Team member facts',
+    async (_, changes) => {
+      page.items = [{ ...memberWarning(), ...changes } as Notification]
+      await mount()
+      await until(() =>
+        expect(menu().textContent).toContain(
+          'The monthly quota snapshot was not recorded or is unavailable.',
+        ),
+      )
+      expect(menu().textContent).toContain('A monthly quota warning was recorded.')
+      expect(menu().textContent).not.toContain('Recorded Team')
+      expect(menu().textContent).not.toContain('A'.repeat(51) + 'Q')
+      expect(menu().textContent).not.toContain('Private Provider')
+      expect(menu().textContent).not.toContain('Settled:')
+      expect(menu().textContent).not.toContain('Recorded warning threshold:')
+      expect(menu().textContent).not.toContain('Email')
+      await act(async () => i18n.changeLanguage('zh'))
+      expect(menu().textContent).toContain('月度额度快照未记录或不可用。')
+      expect(menu().textContent).toContain('已记录月度额度预警。')
+    },
+  )
+
+  it('hides Team member snapshots during recipient renewal and cannot restore denied facts', async () => {
+    page.items = [memberWarning()]
+    await mount()
+    await until(() => expect(menu().textContent).toContain('Your member quota in Recorded Team'))
+    getGate = barrier()
+    getFailure = 403
+    await refresh()
+    await until(() => expect(menu().textContent).toContain('Loading notifications'))
+    expect(menu().textContent).not.toContain('Recorded Team')
+    expect(menu().textContent).not.toContain('93 tokens')
+    expect(unreadBadge()).toBeNull()
+    await act(async () => getGate!.release())
+    await until(() => expect(menu().textContent).toContain('Notifications could not be loaded.'))
+    expect(menu().textContent).not.toContain('Recorded Team')
+    expect(button('Mark all read')).toBeUndefined()
+  })
+})

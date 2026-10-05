@@ -141,6 +141,15 @@ export function recordedMonthlyQuotaWarning(
       (warning.scope_kind === 'user' &&
         warning.scope_id === recipientId &&
         warning.threshold_generation === 'personal-monthly-80-90-v1') ||
+      (warning.scope_kind === 'team_member' &&
+        typeof warning.scope_id === 'string' &&
+        /^[A-Z2-7]{51}[AQ]$/.test(warning.scope_id) &&
+        warning.threshold_generation === 'team-member-monthly-80-90-v1' &&
+        !Object.hasOwn(warning, 'team_id') &&
+        !Object.hasOwn(warning, 'member_user_id') &&
+        (notification.subject_name == null ||
+          (typeof notification.subject_name === 'string' &&
+            !invalidRecordedText(notification.subject_name)))) ||
       ((warning.scope_kind === 'team' || warning.scope_kind === 'project') &&
         typeof warning.scope_id === 'string' &&
         safeId.test(warning.scope_id) &&
@@ -154,12 +163,24 @@ export function recordedMonthlyQuotaWarning(
     notification.subject_id !== warning.scope_id ||
     !safeId.test(notification.id) ||
     !notification.id.startsWith(
-      warning.scope_kind === 'team' ? 'twi_' : warning.scope_kind === 'project' ? 'pwi_' : 'qwi_',
+      warning.scope_kind === 'team_member'
+        ? 'mwi_'
+        : warning.scope_kind === 'team'
+          ? 'twi_'
+          : warning.scope_kind === 'project'
+            ? 'pwi_'
+            : 'qwi_',
     ) ||
     typeof notification.quota_warning_observation_id !== 'string' ||
     !safeId.test(notification.quota_warning_observation_id) ||
     !notification.quota_warning_observation_id.startsWith(
-      warning.scope_kind === 'team' ? 'two_' : warning.scope_kind === 'project' ? 'pwo_' : 'qwo_',
+      warning.scope_kind === 'team_member'
+        ? 'mwo_'
+        : warning.scope_kind === 'team'
+          ? 'two_'
+          : warning.scope_kind === 'project'
+            ? 'pwo_'
+            : 'qwo_',
     ) ||
     notification.quota != null ||
     notification.quota_observation_id != null ||
@@ -252,6 +273,9 @@ function validNotification(value: unknown, recipientId?: string): value is Notif
       item.subject_type === 'team_member' ||
       (item.quota as Record<string, unknown> | undefined)?.scope_kind === 'team_member'
     ) ||
+      (item.kind === 'monthly_quota_warning' &&
+        item.quota == null &&
+        item.quota_observation_id == null) ||
       !!recordedMonthlyQuota(item as unknown as Notification, recipientId))
   )
 }

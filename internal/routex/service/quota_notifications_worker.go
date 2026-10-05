@@ -58,11 +58,11 @@ func (s *Service) ReconcileMonthlyQuotaNotifications(ctx context.Context) error 
 		done, err := s.reconcileMonthlyQuotaNotificationBatch(ctx, &cursor)
 		failures = errors.Join(failures, err)
 		if done || ctx.Err() != nil {
-			return errors.Join(failures, s.reconcileTeamMemberQuotaNotifications(ctx), s.reconcileMonthlyQuotaWarnings(ctx), s.reconcileMonthlyTeamQuotaWarnings(ctx), s.reconcileMonthlyProjectQuotaWarnings(ctx))
+			return errors.Join(failures, s.reconcileTeamMemberQuotaNotifications(ctx), s.reconcileMonthlyQuotaWarnings(ctx), s.reconcileMonthlyTeamQuotaWarnings(ctx), s.reconcileMonthlyProjectQuotaWarnings(ctx), s.reconcileMonthlyTeamMemberQuotaWarnings(ctx))
 		}
 		// A failed query did not advance the cursor; retry on the next reconciliation.
 		if err != nil && cursor == previous {
-			return errors.Join(failures, s.reconcileTeamMemberQuotaNotifications(ctx), s.reconcileMonthlyQuotaWarnings(ctx), s.reconcileMonthlyTeamQuotaWarnings(ctx), s.reconcileMonthlyProjectQuotaWarnings(ctx))
+			return errors.Join(failures, s.reconcileTeamMemberQuotaNotifications(ctx), s.reconcileMonthlyQuotaWarnings(ctx), s.reconcileMonthlyTeamQuotaWarnings(ctx), s.reconcileMonthlyProjectQuotaWarnings(ctx), s.reconcileMonthlyTeamMemberQuotaWarnings(ctx))
 		}
 	}
 }
@@ -87,6 +87,7 @@ func (s *Service) StartQuotaNotifications(ctx context.Context) (func(), error) {
 		warningCursor := quotaNotificationCursor{}
 		teamWarningCursor := quotaNotificationCursor{}
 		projectWarningCursor := quotaNotificationCursor{}
+		memberWarningCursor := ""
 		deferred := false
 		for {
 			if runCtx.Err() != nil {
@@ -97,7 +98,8 @@ func (s *Service) StartQuotaNotifications(ctx context.Context) (func(), error) {
 			_, warningErr := s.reconcileMonthlyQuotaWarningBatch(runCtx, &warningCursor)
 			_, teamWarningErr := s.reconcileMonthlyTeamQuotaWarningBatch(runCtx, &teamWarningCursor)
 			_, projectWarningErr := s.reconcileMonthlyProjectQuotaWarningBatch(runCtx, &projectWarningCursor)
-			err = errors.Join(err, memberErr, warningErr, teamWarningErr, projectWarningErr)
+			_, memberWarningErr := s.reconcileMonthlyTeamMemberQuotaWarningBatch(runCtx, &memberWarningCursor)
+			err = errors.Join(err, memberErr, warningErr, teamWarningErr, projectWarningErr, memberWarningErr)
 			if err != nil && runCtx.Err() == nil && !deferred {
 				log.Print("monthly quota notification observation deferred")
 			} else if err == nil && deferred {

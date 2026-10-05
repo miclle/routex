@@ -5,6 +5,96 @@ prioritize partial capabilities. Formal totals remain **11 complete, 16 partial,
 three unstarted**. The coordinated roadmap lives outside this repository;
 [Implementation](IMPLEMENTATION.md) records the independent historical gates.
 
+## Active private Team-member warning integration
+
+Main and remote base are `9de8b1d02b75dd43186990e8064d7e3e2deb6859`.
+Project V61 is delivered. Dirty main work is Team-member V62/backend/UI,
+real-driver fixtures, measured integration deadline, paired rules and four
+related documents. Corrected PostgreSQL/MySQL focus, mandatory main checking,
+complete Task testing (3,365 frontend cases/151 files, Go race/coverage,
+four Node checks, two development lifecycle checks and production assets) and
+current main production build passed.
+
+Fresh controlled PostgreSQL production/bilingual/private-history/original-Session
+restart acceptance passed against binary
+`7fbdaa881f1c6957bb0b3e457cf763b07590b2dac0937192c1f8ad9562fb6375`
+and all1,559 exact main source paths: six native completions/four observations
+and sole-member inboxes, single-read200/read-all204, preserved removal/rejoin
+history, empty owner/peer/admin inboxes and no native/login replay on restart.
+Owned tabs/listeners/Compose resources are absent. Prior helper runs remain
+failed: omitted public recipient field, then nonexistent final fanout tables;
+both were corrected solely in test helpers and fresh full workflow rerun.
+
+Full113 R1 failed: PostgreSQL passed all113, MySQL failed only the existing
+Personal-warning unpublished reconciliation at fixture line413. New Member
+cases passed; source/index and cleanup guards passed. Log SHA256
+`e948286d79ee24e2346551314ee1ff5bf5250fd7bef114a757d6fe38e17f7392`.
+A narrow fixture successor refreshes a valid baseline before each deliberate
+unpublished mutation; production deadlines and all rejection assertions stay
+unchanged. Fresh focused dual-driver Personal+Member acceptance passed eight
+selected cases and71 named events with no failures/skips/race reports; all1,559
+worktree paths/index and independent cleanup passed. PostgreSQL66.07s and
+MySQL104.29s; log SHA256
+`ac9b3537532e43a4d49f01b539988db48ba59712d30641f334e8360dcf53e3e8`.
+The same fixture was carried to main; final mandatory main checking passed.
+Corrected full113 R2 passed both databases: 3,861 named run/pass events,
+eight constraints, no failures/skips/race reports, PostgreSQL1,019.91s and
+MySQL1,443.51s (2,494.711s total). All1,559 frozen source paths and semantic
+index identities remained exact; owned containers/networks/volumes are absent.
+Log SHA256 `d56436dcdce3bd334a763c5e62555bf416ddc932894aa29bf2da0c191ed9c92e`.
+The text-output reader needed a narrow correction for Go summary ordering;
+its rejected readings remain recorded and no test/source/resource was rerun
+or changed for that correction. Main preserves one assertion-equivalent
+Member fixture initializer lint correction outside the historical worktree.
+Latest mandatory main checking passed. The containing commit records Member
+delivery; no failed run is relabeled as accepted.
+
+Restore recovery passed complete isolated source/Task/build and actual controlled
+PostgreSQL browser acceptance: real conflicts, exact original-intent retries,
+transient Session-error gate unmount/manual recovery, bilingual draft retention
+and same-artifact/original-Session restart. It is not delivered on main; after
+Member delivery carry the exact UI changes, preserve current paired rules,
+update Default Limits docs and run composition checks before a separate commit.
+
+Team creation V63/115 passed source checks and complete Task testing; actual
+driver/browser acceptance is pending. Its source-only focused runner now binds
+the accepted inherited Personal-warning fixture correction without changing
+case counts, deadlines or acceptance guards.
+
+Personal Key V64 now registers two real-driver cases after the unchanged115-case
+prefix, for117 total. The live-runtime fixture keeps the publisher alive and
+fences only tagged background reads during deliberately unpublished SQL faults;
+manual APIs and the real warning producer retain their normal reads and proof
+gates. Actual driver/native/browser acceptance is pending. Accepted Restore
+consumers fix the old Restore retry/read-authority mismatch; composed UI passes
+3,583 cases/156 files plus four Node checks. Separate mandatory source checking,
+development lifecycle and production assets passed; the original failed complete
+Task run stays failed. The newly registered fixture's mandatory checking and focused pure race
+tests also pass after an assertion-preserving tagged-switch lint correction. Project Key backend and paired notification UI are
+being prepared independently: original rotation-root monthly80/90 warnings for
+current admitted Project managers, with no late-join replay or administrator
+recipient override. Source candidates are not delivery or new formal completions.
+The full objective remains active.
+
+Project CI37369875985 is now successful, including actual frontend/backend,
+both database and authentication restart checks, build and asset checks.
+Actionlint37369875963 and independent GolangCI-Lint37369875938 now succeeded
+at exact delivered HEAD9de8b1d. Earlier Runner-allocation cancellations remain
+historical failures; their successful retries establish current convergence.
+
+Team creation now composes the accepted Restore consumer with both resource-test
+endpoint branches retained. Its combined mandatory checks,3,512 frontend tests/
+156 files, four Node checks, production build and embedded assets passed.
+Personal and Project Key warning source is composed together with privateV64/V65,
+shared worker/inbox wiring and paired rules. Mandatory checking and focused race
+checks passed; full UI passed3,661 cases/156 files plus four Node checks. Both new Project Key
+fixtures are registered and pure race/check gates passed. Team and Key auth
+bootstrap fixtures now assert their actual ledgers63/65, respectively. Team
+focused dual-driver execution is authorized on its frozen1,584-path candidate;
+its actual result remains pending.
+The target complete Key matrix is119 after the unchanged117 prefix. Source-only
+preparation never establishes database/native/browser acceptance or delivery.
+
 ## Active Project warning integration
 
 Team warnings are checked/pushed as `4504088` with exact remote main read-back;
@@ -958,3 +1048,36 @@ pre-commit requirement; commit/push/read-back and new remote workflows are separ
 coordinator observations. The containing commit records the bounded State slice.
 Continue actual local registration approval, then the remaining Member workflow
 and Role definition work. F04/F05 and formal 11/16/3 remain unchanged.
+
+## Private Team-member monthly warning integration V62
+
+Private member warnings use the approved fixed 80% reminder and 90% critical
+thresholds on complete settled monthly Tokens and exact decimal money. Their
+scope is the stable Team/User pair, independent of a replaced Membership row.
+Frozen GORM V62 creates immutable observations and original-recipient inboxes,
+with separate exact Team and User birth proofs. Current published parent and
+member policies, membership, currency, calendar and settled journal coverage
+must agree. Holds, unknown usage and stale authority never produce percentages.
+No owner, administrator or peer receives a member's warning; removal hides
+history and same-identity rejoining restores the original read state. The existing
+hard stop, exhaustion notification and SMTP contracts remain unchanged.
+
+Core race tests passed eight top-level tests/111 named events. Corrected fixture
+source tests passed five top-level tests/15 named events. Actual isolated
+PostgreSQL/MySQL focus passed all six selected lifecycles and 47 named events,
+without failures, skips or race reports; PostgreSQL took 68.16s and MySQL 91.01s.
+All 1,559 protected source paths and semantic staged identities remained exact;
+owned containers, networks and volumes are independently absent. Earlier R1/R2
+fixture runs remain failed: an unused builder sent unsupported policy fields;
+the corrected fixture now uses the real presence-aware decoder. No production
+server contract was relaxed.
+
+The identical runtime/UI source passed complete Task testing: Go race/coverage,
+3,365 frontend cases in 151 files, four Node checks, two development lifecycle
+checks and production asset building/embedding. The full ordered 113-scenario
+matrix is running on both drivers, preserving the original 111 prefix. Its finite
+45-minute aggregate deadline reflects the measured 2,299.13-second predecessor;
+per-query/request/readiness deadlines and assertions are unchanged. Main now
+carries the exact runtime/UI/fixture afterimages. Final mandatory checking,
+current production/bilingual/privacy/original-Session restart, full regression
+and phased delivery remain pending. F17/F23 and formal 11/16/3 remain unchanged.

@@ -23,11 +23,14 @@ export interface MonthlyQuotaWarningSnapshot extends Omit<
   MonthlyQuotaNotificationSnapshot,
   'scope_kind' | 'team_id' | 'member_user_id'
 > {
-  scope_kind: 'user' | 'team' | 'project'
+  scope_kind: 'user' | 'team' | 'project' | 'team_member'
   level: 'near' | 'critical'
   threshold: 80 | 90
   threshold_generation:
-    'personal-monthly-80-90-v1' | 'team-monthly-80-90-v1' | 'project-monthly-80-90-v1'
+    | 'personal-monthly-80-90-v1'
+    | 'team-monthly-80-90-v1'
+    | 'project-monthly-80-90-v1'
+    | 'team-member-monthly-80-90-v1'
 }
 
 export interface Notification {

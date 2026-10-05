@@ -511,3 +511,72 @@ external Provider/SMTP acceptance are not claimed. Final mandatory checking and 
 3,286 frontend cases, four Node checks, two development lifecycle checks and
 production build/embedded assets. The containing commit records this phase. F17/F23 and formal 11/16/3 are
 unchanged; the full implementation objective continues.
+
+## Private Team-member monthly warning integration V62
+
+Private member warnings use the approved fixed 80% reminder and 90% critical
+thresholds on complete settled monthly Tokens and exact decimal money. Their
+scope is the stable Team/User pair, independent of a replaced Membership row.
+Frozen GORM V62 creates immutable observations and original-recipient inboxes,
+with separate exact Team and User birth proofs. Current published parent and
+member policies, membership, currency, calendar and settled journal coverage
+must agree. Holds, unknown usage and stale authority never produce percentages.
+No owner, administrator or peer receives a member's warning; removal hides
+history and same-identity rejoining restores the original read state. The existing
+hard stop, exhaustion notification and SMTP contracts remain unchanged.
+
+Core race tests passed eight top-level tests/111 named events. Corrected fixture
+source tests passed five top-level tests/15 named events. Actual isolated
+PostgreSQL/MySQL focus passed all six selected lifecycles and 47 named events,
+without failures, skips or race reports; PostgreSQL took 68.16s and MySQL 91.01s.
+All 1,559 protected source paths and semantic staged identities remained exact;
+owned containers, networks and volumes are independently absent. Earlier R1/R2
+fixture runs remain failed: an unused builder sent unsupported policy fields;
+the corrected fixture now uses the real presence-aware decoder. No production
+server contract was relaxed.
+
+The identical runtime/UI source passed complete Task testing: Go race/coverage,
+3,365 frontend cases in151 files, four Node checks, two development lifecycle
+checks and production assets. Main mandatory checking and production build
+passed; a test-only scope initializer cleanup preserves the exact identity.
+The finite45-minute aggregate integration bound reflects the measured2,299.13s
+predecessor; per-query/request/readiness deadlines and assertions are unchanged.
+
+Controlled current-main PostgreSQL production and bilingual browser acceptance
+passed: six native completions/attempts, four immutable observations/four
+sole-recipient inboxes, recorded Tokens8/10 and9/10 plus USD9/11.25 and9/10,
+owner/peer/admin isolation, removal/rejoin history, single-read200/read-all204
+and identical artifact/configuration/database/journal/original Sessions after
+restart without additional login or inference. Binary SHA256:
+`7fbdaa881f1c6957bb0b3e457cf763b07590b2dac0937192c1f8ad9562fb6375`.
+All1,559 main source paths stayed exact; owned tabs/listeners/Compose resources
+are absent. MySQL browser acceptance is not claimed. Two prior helper failures
+remain failed; source-only corrections removed an impossible public field
+expectation and used actual fanout table names before fresh complete acceptance.
+
+Full113 R1 failed despite PostgreSQL113 passing: MySQL's existing Personal-warning
+unpublished fixture returned runtime-unavailable at line413. All new Member
+cases passed;3,858 named PASS events, no skips/race reports and exact source/index
+are recorded independently from the failure. Log SHA256:
+`e948286d79ee24e2346551314ee1ff5bf5250fd7bef114a757d6fe38e17f7392`.
+The stopped-publication fixture has a five-second lease and multiple sequential
+negative segments; expiration between observation fences is a source-supported
+explanation, not an instrumented historical branch proof. A narrow successor
+refreshes valid baselines before deliberate mutations, preserving all assertions
+and production deadlines. Fresh focus passed eight selected Personal/Member
+migration/lifecycle cases and71 named events on both drivers, with no failures,
+skips or race reports (PostgreSQL66.07s, MySQL104.29s). Log SHA256:
+`ac9b3537532e43a4d49f01b539988db48ba59712d30641f334e8360dcf53e3e8`.
+All1,559 worktree paths/index stayed exact and owned resources are absent. Main
+carries the same minimal fixture and passed final mandatory checking. Corrected
+full113 R2 passed3,861 named run/pass events and eight constraints with no
+failures/skips/race reports: PostgreSQL1,019.91s, MySQL1,443.51s and total
+2,494.711s. All1,559 source paths and semantic index identities stayed exact;
+owned containers/networks/volumes are independently absent. Log SHA256:
+`d56436dcdce3bd334a763c5e62555bf416ddc932894aa29bf2da0c191ed9c92e`.
+A narrow text-output reader correction recognizes Go summary ordering; earlier
+reader rejections remain recorded and no test/source/resource changed for it.
+Main retains an assertion-equivalent Member fixture initializer lint correction
+outside the frozen worktree; its focused pure race and final mandatory checks
+passed. The containing commit records this phase. F17/F23 and formal11/16/3
+remain unchanged.

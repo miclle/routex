@@ -783,3 +783,12 @@ identities. Render recorded names or stable IDs without a directory read.
 Original current managers own separate read state; removal hides history,
 same-incarnation rejoining restores it, and later managers never gain old rows.
 Creator attribution and administrator privilege grant no warning access.
+
+Private Team-member monthly warnings share the existing notification menu.
+Validate `team-member-monthly-80-90-v1`, exact `team_member` scope/subject,
+52-character stable Team/User scope and `mwo_`/`mwi_` identities. Only the
+original current member may read its retained notification; owners, peers and
+administrators gain no recipient privilege. Removal hides history, same-identity
+rejoining restores independent read state, and later members receive no backfill.
+Render recorded Team names or stable IDs without directory reads; retain paired
+English/Chinese snapshot fields and never expose private birth proofs.

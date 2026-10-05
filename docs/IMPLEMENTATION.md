@@ -4,16 +4,22 @@ Updated: 2026-10-06. This document records engineering contracts, work packages,
 
 ## Current delivery and active queue
 
-Member workflows are checked/pushed as `cb4bab4`, and Personal monthly warnings
-as `38de94f`. Their CI and standalone lint workflows succeeded. Team aggregate
-monthly warnings now have local source, dual-driver/full-matrix and controlled
-PostgreSQL bilingual/original-Session restart acceptance. The containing commit
-records this phase. Project warning has focused
-dual-driver and frontend/build acceptance; its full matrix is running in an
-isolated worktree. Private Team-member warning and Restore recovery candidates
-await their actual acceptance gates. The full objective stays active and formal
-totals remain
-11 complete, 16 partial and 3 unstarted. Historical evidence is retained below.
+Project warnings are checked/committed/pushed as
+`9de8b1d02b75dd43186990e8064d7e3e2deb6859` after full dual-driver, source,
+production/bilingual/original-Session restart, complete Task and mandatory gates.
+Main is integrating private Team-member warnings: corrected dual-driver focus,
+mandatory checks, complete Task, production build and fresh controlled PostgreSQL
+bilingual/privacy/original-Session browser acceptance passed. Full113 R1 failed
+only an existing MySQL Personal-warning unpublished fixture; its narrow baseline
+successor passed fresh dual-driver focus (eight cases/71 events) and final main
+checking. Corrected full113 R2 is running before delivery. Historical
+helper preparation failures remain failed. Restore
+same-actor Session-error recovery passed complete isolated source/Task/build and
+controlled PostgreSQL bilingual/original-Session browser acceptance; main carry
+and delivery remain pending. Team creation initial limits passed full candidate
+source checks and Task testing; driver/browser acceptance is pending. Personal
+Key warnings are being composed in their separate isolated source candidate.
+The full objective stays active: 11 complete, 16 partial and three unstarted.
 
 ## Checked repository price source and grouped Role permissions
 
@@ -5724,3 +5730,45 @@ final mandatory checking and complete Task tests passed. The containing commit
 records this phase. See [Notifications](NOTIFICATIONS.md#project-monthly-warning-integration-v61) for
 scope, counts, artifact, runtime evidence and acceptance limits. F17/F23 remain
 partial and the full objective continues.
+
+## Private Team-member monthly warning integration V62
+
+Private member warnings use the approved fixed 80% reminder and 90% critical
+thresholds on complete settled monthly Tokens and exact decimal money. Their
+scope is the stable Team/User pair, independent of a replaced Membership row.
+Frozen GORM V62 creates immutable observations and original-recipient inboxes,
+with separate exact Team and User birth proofs. Current published parent and
+member policies, membership, currency, calendar and settled journal coverage
+must agree. Holds, unknown usage and stale authority never produce percentages.
+No owner, administrator or peer receives a member's warning; removal hides
+history and same-identity rejoining restores the original read state. The existing
+hard stop, exhaustion notification and SMTP contracts remain unchanged.
+
+Core race tests passed eight top-level tests/111 named events. Corrected fixture
+source tests passed five top-level tests/15 named events. Actual isolated
+PostgreSQL/MySQL focus passed all six selected lifecycles and 47 named events,
+without failures, skips or race reports; PostgreSQL took 68.16s and MySQL 91.01s.
+All 1,559 protected source paths and semantic staged identities remained exact;
+owned containers, networks and volumes are independently absent. Earlier R1/R2
+fixture runs remain failed: an unused builder sent unsupported policy fields;
+the corrected fixture now uses the real presence-aware decoder. No production
+server contract was relaxed.
+
+The identical runtime/UI source passed complete Task testing: Go race/coverage,
+3,365 frontend cases in 151 files, four Node checks, two development lifecycle
+checks and production asset building/embedding. Corrected full113 R2 passed
+both drivers with the original111 prefix, eight constraints and3,861 named
+run/pass events without failures/skips/race reports. PostgreSQL took1,019.91s,
+MySQL1,443.51s and total2,494.711s. All1,559 frozen source paths and semantic
+index identities remained exact; owned resources are independently absent.
+Log SHA256 `d56436dcdce3bd334a763c5e62555bf416ddc932894aa29bf2da0c191ed9c92e`.
+The finite45-minute aggregate deadline, per-query/request/readiness bounds and
+assertions are unchanged. Earlier MySQL Personal-warning failure and text-reader
+rejections remain separately recorded in [Notifications](NOTIFICATIONS.md).
+Main preserves an assertion-equivalent Member fixture initializer lint variant;
+its focused pure race and mandatory checks passed. Controlled current-main
+PostgreSQL bilingual/privacy/original-Session restart passed: six native calls,
+four observations/four sole-member inboxes, original sessions with no extra
+login/inference and all owned tabs/listeners/Compose resources absent. Binary
+SHA256 `7fbdaa881f1c6957bb0b3e457cf763b07590b2dac0937192c1f8ad9562fb6375`.
+The containing commit records this phase. F17/F23 and formal11/16/3 remain unchanged.

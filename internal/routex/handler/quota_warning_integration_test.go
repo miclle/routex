@@ -345,6 +345,7 @@ func testPersonalMonthlyQuotaWarningLifecycle(t *testing.T, db *gorm.DB) {
 	}
 	// An unpublished denomination must not create a current-policy money level.
 	unpublished := write(userPath, map[string]any{"money_month": "11", "currency": "USD"})
+	refresh() // Publish the valid baseline before this deliberate unpublished mutation.
 	if err := db.Model(&entity.PricingSetting{}).Where("id = ?", 1).UpdateColumn("platform_currency", "EUR").Error; err != nil {
 		t.Fatal(err)
 	}
@@ -366,6 +367,7 @@ func testPersonalMonthlyQuotaWarningLifecycle(t *testing.T, db *gorm.DB) {
 	if err := db.Where("scope_kind = ? AND scope_id = ?", "user", member.User.ID).Take(&savedPolicy).Error; err != nil {
 		t.Fatal(err)
 	}
+	refresh() // Publish the valid baseline before this deliberate unpublished mutation.
 	if err := db.Model(&entity.ResourceLimit{}).Where("scope_kind = ? AND scope_id = ?", "user", member.User.ID).UpdateColumn("ETag", "lim_warning_unpublished").Error; err != nil {
 		t.Fatal(err)
 	}
@@ -394,6 +396,7 @@ func testPersonalMonthlyQuotaWarningLifecycle(t *testing.T, db *gorm.DB) {
 		t.Fatal(err)
 	}
 	changedBirth := savedUser.CreatedAt.Add(time.Millisecond)
+	refresh() // Publish the valid baseline before this deliberate unpublished mutation.
 	if err := db.Model(&entity.User{}).Where("id = ?", member.User.ID).UpdateColumn("created_at", changedBirth).Error; err != nil {
 		t.Fatal(err)
 	}
