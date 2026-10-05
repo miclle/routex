@@ -738,3 +738,18 @@ review the existing filtered price list and retain a distinct immutable binding;
 product source is unchanged. The finite full-suite deadline is 40 minutes,
 based on the measured 2,015.362-second prior matrix and added scenarios.
 Individual query/request/readiness bounds and race/assertion coverage are unchanged.
+
+## Team aggregate monthly warnings V60
+
+Frozen GORM V60 adds private Team observations and recipient inboxes with immutable
+original recipient/Team/User birth facts and read state. Private frozen structs
+and GORM Migrator APIs preserve existing V59 and all released steps. Exact
+current membership and incarnation gate reads/marks; replay never expands
+historical recipients. It does not change admission or existing exhaustion.
+
+Both supported databases passed V60 creation, upgrade, repeat/concurrent startup
+and constraints, plus Team native warning lifecycles. Full 109 preserved the
+original 107 prefix and passed 3,526 named events with eight constraints.
+All 1,533 source paths stayed exact and owned resources are absent.
+See [Notifications](NOTIFICATIONS.md#team-aggregate-monthly-warnings-v60) for
+threshold, runtime, production/browser/restart and retained failed-run evidence.

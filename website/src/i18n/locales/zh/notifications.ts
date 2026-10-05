@@ -69,11 +69,18 @@ export default {
   },
   items: {
     monthly_quota_warning: {
-      default: '已记录个人月度配额预警。',
+      default: '已记录月度额度预警。',
       tokens_month_near: '已记录个人月度 Token 预警。',
       tokens_month_critical: '已记录个人月度 Token 严重预警。',
       money_month_near: '已记录个人月度金额预警。',
       money_month_critical: '已记录个人月度金额严重预警。',
+    },
+    team_monthly_quota_warning: {
+      default: '已记录 Team 月度额度预警。',
+      tokens_month_near: '已记录 Team 月度 Token 预警。',
+      tokens_month_critical: '已记录 Team 月度 Token 严重预警。',
+      money_month_near: '已记录 Team 月度金额预警。',
+      money_month_critical: '已记录 Team 月度金额严重预警。',
     },
     monthly_quota_exhausted: {
       default: '月度额度已达到上限。',

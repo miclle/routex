@@ -19,7 +19,20 @@ import type { Notification, NotificationReadStatus } from '@/types/notifications
 type ReadIntent = { recipientId: string; generation: number; csrf: string; id: string }
 type ReadAllIntent = { recipientId: string; generation: number; csrf: string }
 
-function itemText(notification: Notification, t: ReturnType<typeof useTranslation>['t']) {
+function itemText(
+  notification: Notification,
+  recipientId: string,
+  t: ReturnType<typeof useTranslation>['t'],
+) {
+  if (notification.kind === 'monthly_quota_warning') {
+    const warning = recordedMonthlyQuotaWarning(notification, recipientId)
+    if (!warning) return t('items.monthly_quota_warning.default')
+    const key =
+      warning.scope_kind === 'team' ? 'team_monthly_quota_warning' : 'monthly_quota_warning'
+    return t(`items.${key}.${notification.detail_code}`, {
+      defaultValue: t(`items.${key}.default`),
+    })
+  }
   return t(`items.${notification.kind}.${notification.detail_code}`, {
     defaultValue: t(`items.${notification.kind}.default`, {
       defaultValue: t('unknownItem'),
@@ -299,7 +312,7 @@ export function NotificationMenu() {
               >
                 <span className="min-w-0 flex-1 py-1">
                   <span className="flex items-start justify-between gap-3">
-                    <span className="font-medium">{itemText(notification, t)}</span>
+                    <span className="font-medium">{itemText(notification, recipientId, t)}</span>
                     <span
                       className={`mt-1 size-2 shrink-0 rounded-full ${
                         notification.severity === 'high'

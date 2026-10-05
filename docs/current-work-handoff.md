@@ -5,6 +5,30 @@ prioritize partial capabilities. Formal totals remain **11 complete, 16 partial,
 three unstarted**. The coordinated roadmap lives outside this repository;
 [Implementation](IMPLEMENTATION.md) records the independent historical gates.
 
+## Current Team aggregate warning acceptance
+
+Personal monthly warnings are checked/pushed as `38de94f`; CI 37356643442,
+GolangCI-Lint 37356643541 and Actionlint 37356643376 all succeeded.
+Team V60 and the unchanged 107 prefix plus 108–109 now have full dual-driver,
+source and current-production bilingual/original-Session restart acceptance.
+The containing commit records this phase. Project warning has focused dual-driver
+and frontend/build acceptance, with its isolated full matrix running. Team-member
+warning and Restore recovery await actual acceptance; source-only checks never
+count as delivery. The full objective remains active.
+
+Full 109 passed 3,526 named events and eight constraints on both databases;
+all 1,533 source paths stayed exact. Source/frontend/build gates passed, and
+controlled PostgreSQL produced six completed calls/attempts, four observations
+and eight original-recipient rows. Tokens/money 80%/90%, bilingual history,
+membership/rejoin privacy, single-read HTTP 200/read-all HTTP 204 and the same
+artifact/configuration/database/journal/original Sessions survived restart.
+Owned resources are absent. Full log SHA256:
+`648a88a9a5c264080f42179f4a8ed427712b1855c71950a15982a36750696409`.
+Browser artifact SHA256:
+`957ef673e5e71ec068ed7d6c57e7fcbf5466a2d0327037db4ff0a0b41c357cb0`.
+See [Notifications](NOTIFICATIONS.md#team-aggregate-monthly-warnings-v60) for
+independent driver and browser evidence, limitations and retained failed runs.
+
 ## Personal monthly warning acceptance and delivery
 
 Checked/pushed main predecessor is Member workflow

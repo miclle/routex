@@ -263,6 +263,133 @@ it.each([
     )
   },
 )
+
+function teamWarningNotice(overrides: Partial<MonthlyQuotaWarningSnapshot> = {}): Notification {
+  const original = warningNotice({
+    scope_kind: 'team',
+    scope_id: 'tem_recorded',
+    threshold_generation: 'team-monthly-80-90-v1',
+    ...overrides,
+  })
+  return {
+    ...original,
+    id: 'twi_1',
+    quota_warning_observation_id: 'two_1',
+    subject_type: 'team',
+    subject_id: 'tem_recorded',
+    subject_name: 'Recorded Team',
+  }
+}
+
+describe('Recorded Team monthly warning boundary', () => {
+  it.each([
+    { dimension: 'tokens', level: 'near', threshold: 80, currency: null },
+    { dimension: 'tokens', level: 'critical', threshold: 90, currency: null },
+    { dimension: 'money', level: 'near', threshold: 80, currency: 'USD' },
+    { dimension: 'money', level: 'critical', threshold: 90, currency: 'USD' },
+  ] as const)(
+    'accepts the authorized Team $dimension/$level snapshot for a distinct recipient',
+    async (snapshot) => {
+      const notification = teamWarningNotice({
+        ...snapshot,
+        limit: snapshot.dimension === 'money' ? '9007199254740993.123456789012345678' : '100',
+        settled: snapshot.dimension === 'money' ? '8907199254740993.123456789012345678' : '93',
+      })
+      const before = structuredClone(notification)
+      expect(recordedMonthlyQuotaWarning(notification, 'usr_current')).toBe(
+        notification.quota_warning,
+      )
+      const get = vi.spyOn(client, 'get').mockResolvedValueOnce({
+        data: { items: [notification], unread_count: 1, next_cursor: 'recipient-cursor' },
+      })
+      expect(
+        (await getNotifications('all', 'prior-cursor', undefined, 'usr_current')).items[0],
+      ).toEqual(before)
+      expect(get).toHaveBeenCalledWith('/notifications', {
+        params: { status: 'all', cursor: 'prior-cursor' },
+        signal: undefined,
+      })
+      expect(notification).toEqual(before)
+    },
+  )
+
+  it.each([undefined, null, '', 'Original historical Team', '名'.repeat(100)])(
+    'preserves the optional recorded Team name without an invented byte cap %#',
+    (subject_name) => {
+      const notification = { ...teamWarningNotice(), subject_name }
+      expect(recordedMonthlyQuotaWarning(notification, 'usr_current')).toBe(
+        notification.quota_warning,
+      )
+    },
+  )
+
+  it.each([
+    ['Personal inbox', { id: 'qwi_1' }],
+    ['Personal observation', { quota_warning_observation_id: 'qwo_1' }],
+    ['subject alias', { subject_id: 'TEM_RECORDED' }],
+    ['subject trailing space', { subject_id: 'tem_recorded ' }],
+    ['wrong subject', { subject_id: 'tem_other' }],
+    ['missing subject', { subject_id: undefined }],
+    ['wrong subject kind', { subject_type: 'user' }],
+    ['missing subject kind', { subject_type: undefined }],
+    ['unsafe name', { subject_name: 'Recorded\nTeam' }],
+    ['invalid name text', { subject_name: '\ud800' }],
+    ['borrowed alert', { alert_id: 'alt_private' }],
+    ['borrowed delivery', { delivery_status: 'accepted' }],
+  ])('keeps %s unavailable instead of exposing a Team snapshot', (_, changes) => {
+    expect(
+      recordedMonthlyQuotaWarning(
+        { ...teamWarningNotice(), ...changes } as Notification,
+        'usr_current',
+      ),
+    ).toBeUndefined()
+  })
+
+  it.each([
+    ['Personal generation', { threshold_generation: 'personal-monthly-80-90-v1' }],
+    ['unknown generation', { threshold_generation: 'team-monthly-future' }],
+    ['child scope', { scope_kind: 'team_member' }],
+    ['Project scope', { scope_kind: 'project' }],
+    ['unsafe Team ID', { scope_id: 'tem_recorded/' }],
+    ['trailing Team ID', { scope_id: 'tem_recorded ' }],
+    ['case alias Team ID', { scope_id: 'TEM_RECORDED' }],
+    ['numeric Team ID', { scope_id: 1 }],
+    ['unknown threshold', { threshold: 85 }],
+    ['contradictory level', { level: 'critical' }],
+    ['unknown settled usage', { settled: null }],
+    ['numeric settled usage', { settled: 80 }],
+    ['token overflow', { settled: '9223372036854775808' }],
+    ['zero stored limit', { limit: '0' }],
+    ['currency on tokens', { currency: 'USD' }],
+    ['unknown calendar', { time_zone: 'Unknown/Calendar' }],
+    ['exclusive month end', { as_of: '2026-11-01T00:00:00Z' }],
+  ])('keeps %s unavailable without estimating usage or current policy', (_, changes) => {
+    const notification = teamWarningNotice()
+    notification.quota_warning = {
+      ...notification.quota_warning,
+      ...changes,
+    } as MonthlyQuotaWarningSnapshot
+    expect(recordedMonthlyQuotaWarning(notification, 'usr_current')).toBeUndefined()
+  })
+
+  it('requires a safe current recipient without treating Team scope as recipient identity', () => {
+    for (const recipient of ['', 'usr_current ', 'usr_current/'])
+      expect(recordedMonthlyQuotaWarning(teamWarningNotice(), recipient)).toBeUndefined()
+    expect(recordedMonthlyQuotaWarning(teamWarningNotice(), 'usr_current')).toBeDefined()
+  })
+
+  it('does not admit Team identity or generation into a Personal snapshot', () => {
+    expect(
+      recordedMonthlyQuotaWarning(
+        warningNotice({ threshold_generation: 'team-monthly-80-90-v1' }),
+        'usr_member',
+      ),
+    ).toBeUndefined()
+    expect(
+      recordedMonthlyQuotaWarning({ ...warningNotice(), id: 'twi_1' }, 'usr_member'),
+    ).toBeUndefined()
+  })
+})
 it('preserves recorded money precision and denomination without floating-point conversion', () => {
   const notification = warningNotice({
     dimension: 'money',

@@ -7,10 +7,12 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"math/big"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -227,6 +229,20 @@ func testTeamQuotaNotificationLifecycle(t *testing.T, db *gorm.DB) {
 	}
 	var childRevision string
 	privateSnapshots := map[string]string{}
+	warningSnapshots := map[string]string{}
+	warningRecipientBirths := map[string]time.Time{}
+	warningRecipientIDs := make([]string, 0, len(users))
+	for _, user := range users {
+		warningRecipientIDs = append(warningRecipientIDs, user.ID)
+	}
+	var originalWarningRecipients []entity.User
+	if err := db.Where("id IN ?", warningRecipientIDs).Find(&originalWarningRecipients).Error; err != nil || len(originalWarningRecipients) != len(users) {
+		t.Fatal("original warning recipient identities incomplete", err)
+	}
+	for _, user := range originalWarningRecipients {
+		warningRecipientBirths[user.ID] = user.CreatedAt
+	}
+	warningDecimal := regexp.MustCompile(`^(0|[1-9][0-9]*)(\.[0-9]+)?$`)
 	page := func(name string) service.NotificationPage {
 		t.Helper()
 		// Validate the entire real response before projecting aggregate-only expectations.
@@ -244,6 +260,83 @@ func testTeamQuotaNotificationLifecycle(t *testing.T, db *gorm.DB) {
 			seen[record.ID] = true
 			if !record.Read {
 				rawUnread++
+			}
+			if record.Kind == "monthly_quota_warning" || record.QuotaWarning != nil || record.QuotaWarningObservationID != "" {
+				q := record.QuotaWarning
+				if record.Kind != "monthly_quota_warning" || q == nil || q.ScopeKind != "team" || q.ScopeID != teamID || record.SubjectType != "team" || record.SubjectID != q.ScopeID || !strings.HasPrefix(record.ID, "twi_") || !strings.HasPrefix(record.QuotaWarningObservationID, "two_") || record.Quota != nil || record.QuotaObservationID != "" || record.AlertID != "" || record.OccurrenceCount != 1 || record.DeliveryStatus != "" || record.DeliveryCode != "" || record.DeliveryAttempts != 0 || record.DeliveryUpdatedAt != nil {
+					t.Fatal("unexpected mixed Team warning shape", record)
+				}
+				var inbox entity.TeamQuotaWarningInbox
+				if err := db.First(&inbox, "id = ?", record.ID).Error; err != nil || inbox.ID != record.ID || inbox.RecipientID != users[name].ID || inbox.ObservationID != record.QuotaWarningObservationID || inbox.RecipientCreatedAt.IsZero() || !inbox.RecipientCreatedAt.Equal(warningRecipientBirths[users[name].ID]) || (inbox.ReadAt != nil) != record.Read || (inbox.ReadAt != nil && !inbox.ReadAt.Equal(*record.ReadAt)) || !inbox.CreatedAt.Equal(record.LastSeenAt) {
+					t.Fatal("mixed Team warning borrowed original recipient/read receipt", record.ID, err)
+				}
+				var observation entity.TeamQuotaWarningObservation
+				if err := db.First(&observation, "id = ?", inbox.ObservationID).Error; err != nil || observation.ID != inbox.ObservationID || observation.TeamID != teamID || observation.ThresholdGeneration != "team-monthly-80-90-v1" || observation.ResourceCreatedAt.IsZero() || observation.PolicyRevision == "" || observation.TimeZone == "" || !observation.MonthEnd.After(observation.MonthStart) || observation.AsOf.Before(observation.MonthStart) || !observation.AsOf.Before(observation.MonthEnd) || observation.AsOf.Before(observation.ResourceCreatedAt) || observation.AsOf.Before(observation.CoverageStart) {
+					t.Fatal("mixed Team warning observation source mismatch", record.ID, err)
+				}
+				location, err := time.LoadLocation(observation.TimeZone)
+				if err != nil {
+					t.Fatal("mixed Team warning calendar unavailable", record.ID, err)
+				}
+				local := observation.AsOf.In(location)
+				month := time.Date(local.Year(), local.Month(), 1, 0, 0, 0, 0, location)
+				coveredFrom := observation.MonthStart
+				if observation.ResourceCreatedAt.After(coveredFrom) {
+					coveredFrom = observation.ResourceCreatedAt
+				}
+				if !observation.MonthStart.Equal(month) || !observation.MonthEnd.Equal(month.AddDate(0, 1, 0)) || observation.CoverageStart.IsZero() || observation.CoverageStart.After(coveredFrom) {
+					t.Fatal("mixed Team warning lacks complete recorded month coverage", record.ID)
+				}
+				var actor entity.User
+				var team entity.Team
+				if err := db.First(&actor, "id = ?", inbox.RecipientID).Error; err != nil || actor.ID != inbox.RecipientID || actor.Disabled || actor.OffboardedAt != nil || actor.ApprovalApplicationID != nil || !actor.CreatedAt.Equal(inbox.RecipientCreatedAt) {
+					t.Fatal("mixed Team warning current exact actor/birth mismatch", record.ID, err)
+				}
+				if err := db.First(&team, "id = ?", observation.TeamID).Error; err != nil || team.ID != observation.TeamID || team.Status != entity.ResourceActive || !team.CreatedAt.Equal(observation.ResourceCreatedAt) {
+					t.Fatal("mixed Team warning current exact Team/birth mismatch", record.ID, err)
+				}
+				var memberships []entity.TeamMembership
+				if err := db.Where("team_id = ? AND user_id = ?", team.ID, actor.ID).Limit(1001).Find(&memberships).Error; err != nil || len(memberships) > 1000 {
+					t.Fatal("mixed Team warning current membership read incomplete", record.ID, err)
+				}
+				var currentMemberships int
+				for _, membership := range memberships {
+					if membership.TeamID == team.ID && membership.UserID == actor.ID && membership.Status == entity.ResourceActive && (membership.Role == entity.TeamOwner || membership.Role == entity.TeamMember) {
+						currentMemberships++
+					}
+				}
+				if currentMemberships != 1 {
+					t.Fatal("mixed Team warning lacks one current canonical membership", record.ID, currentMemberships)
+				}
+				severity := "medium"
+				if observation.Level == "critical" {
+					severity = "high"
+				}
+				if (observation.Level != "near" || observation.Threshold != 80) && (observation.Level != "critical" || observation.Threshold != 90) || record.Severity != severity || record.DetailCode != observation.Dimension+"_month_"+observation.Level || !warningDecimal.MatchString(observation.Limit) || !warningDecimal.MatchString(observation.Settled) || (observation.Dimension == "tokens" && (observation.Currency != "" || q.Currency != nil || strings.Contains(observation.Limit, ".") || strings.Contains(observation.Settled, "."))) || (observation.Dimension == "money" && (observation.Currency != "USD" || q.Currency == nil || *q.Currency != observation.Currency)) || (observation.Dimension != "tokens" && observation.Dimension != "money") {
+					t.Fatal("mixed Team warning dimension/level/currency mismatch", record.ID)
+				}
+				used, usedOK := new(big.Rat).SetString(observation.Settled)
+				limit, limitOK := new(big.Rat).SetString(observation.Limit)
+				if !usedOK || !limitOK || limit.Sign() <= 0 || used.Sign() < 0 || used.Cmp(limit) >= 0 || new(big.Rat).Mul(used, big.NewRat(100, 1)).Cmp(new(big.Rat).Mul(limit, big.NewRat(int64(observation.Threshold), 1))) < 0 || (observation.Level == "near" && new(big.Rat).Mul(used, big.NewRat(100, 1)).Cmp(new(big.Rat).Mul(limit, big.NewRat(90, 1))) >= 0) {
+					t.Fatal("mixed Team warning is not the exact highest below-exhaustion level", record.ID)
+				}
+				if q.Dimension != observation.Dimension || q.PolicyRevision != observation.PolicyRevision || !q.MonthStart.Equal(observation.MonthStart) || !q.MonthEnd.Equal(observation.MonthEnd) || q.TimeZone != observation.TimeZone || !q.AsOf.Equal(observation.AsOf) || q.Limit != observation.Limit || q.Settled != observation.Settled || q.Level != observation.Level || q.Threshold != observation.Threshold || q.ThresholdGeneration != observation.ThresholdGeneration || record.SubjectName != observation.TeamName || !record.FirstSeenAt.Equal(observation.AsOf) {
+					t.Fatal("mixed Team warning snapshot differs from retained observation", record.ID)
+				}
+				immutable := record
+				immutable.Read, immutable.ReadAt = false, nil
+				encoded, err := json.Marshal(struct {
+					Record      service.NotificationRecord
+					Observation entity.TeamQuotaWarningObservation
+				}{immutable, observation})
+				if err != nil {
+					t.Fatal(err)
+				}
+				if prior, found := warningSnapshots[record.ID]; found && prior != string(encoded) {
+					t.Fatal("mixed Team warning replay changed immutable snapshot", record.ID)
+				}
+				warningSnapshots[record.ID] = string(encoded)
+				continue // Only this fully validated warning is outside the exhaustion projection.
 			}
 			var recipient entity.QuotaNotificationInbox
 			if err := db.First(&recipient, "id = ?", record.ID).Error; err != nil || recipient.ID != record.ID || recipient.RecipientID != users[name].ID || recipient.ObservationID != record.QuotaObservationID || (recipient.ReadAt != nil) != record.Read {

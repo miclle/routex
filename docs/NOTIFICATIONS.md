@@ -391,3 +391,79 @@ review the existing filtered price list and retain a distinct immutable binding;
 product source is unchanged. The finite full-suite deadline is 40 minutes,
 based on the measured 2,015.362-second prior matrix and added scenarios.
 Individual query/request/readiness bounds and race/assertion coverage are unchanged.
+
+## Team aggregate monthly warnings V60
+
+Team warnings use the user-selected fixed 80% reminder and 90% critical levels
+for complete known settled monthly Tokens and exact decimal money. At 100%,
+the existing exhaustion observer and hard-stop policy remain responsible.
+Unknown usage, holds, incomplete coverage or mismatched current policy, calendar,
+currency or runtime authority produce no percentage. No SMTP, permission or
+admission change is included.
+
+Frozen GORM V60 adds private Team observations and recipient inboxes without
+changing released migrations. Creation atomically records exact Team/User births
+and the bounded original owner/member recipient set. Replays preserve recorded
+names, recipients and read state. Reads and marks require the original admitted
+recipient, current active membership and matching Team/User incarnation; leaving
+hides history and rejoining restores the original history. Later membership and
+administrator privilege never expand historical access.
+
+The existing notification menu and its request/controller boundaries retain their
+layout, paired English/Chinese recorded facts and independent read state. Missing
+recorded names fall back to exact IDs without fetching an unauthorized directory.
+
+### Acceptance
+
+The phase follows checked/pushed Personal warnings `38de94f`. V60 is registered;
+scenarios 108–109 append to the unchanged 107 prefix. The current targeted Team
+native lifecycles passed on both databases with 231 named events;
+the preceding R3 separately passed the other 14 selected driver cases, including
+both V60 migrations and the strict mixed-exhaustion workflow.
+Full regression passed 109 ordered scenarios per PostgreSQL/MySQL, eight
+constraint cases and 3,526 named PASS events without named failures
+or skips. All 1,533 protected paths remained exact; owned Compose resources are
+independently absent. PostgreSQL took 967.37s; MySQL took
+1290.15s. Full log SHA256:
+`648a88a9a5c264080f42179f4a8ed427712b1855c71950a15982a36750696409`.
+Focused log SHA256: `ee8c285ce3733a6373b38335d63daa025a54b93d98a44cc88f5f2bf6233e0537`.
+
+Controlled PostgreSQL production and bilingual browser acceptance passed against
+binary `957ef673e5e71ec068ed7d6c57e7fcbf5466a2d0327037db4ff0a0b41c357cb0`.
+Six completed native calls/attempts produced four observations and eight
+original-recipient inboxes, with no Personal warning, exhaustion or SMTP fanout.
+Tokens 8/10 and 9/10 and USD 9/11.25 and 9/10 appeared in default English and live
+Chinese. One recipient's HTTP 200 single-read preserved the other's unread state;
+both HTTP 204 read-all operations retained history. Removal hid the member's
+history; rejoining restored it and later members received no old notifications.
+The same artifact/configuration/database/journal and original Sessions survived
+restart without inference or login, preserving calls, attempt attribution,
+snapshots and all read state. Escape restored trigger focus, console errors and
+warnings were empty, and owned tabs/listeners/Compose resources are independently
+absent. MySQL browser acceptance is not claimed; dual-driver migration/native
+acceptance is separate.
+
+Go source race tests, 3,225 frontend cases in 151 files, four Node checks, pinned
+backend lint, formatting, mandatory checks, production build and embedded asset
+tests passed. The mandatory pre-commit gate is `go tool task check`; scoped English main
+commits and pushes record delivery. Project, private Team-member/Key warnings, configurable thresholds,
+SMTP and Restore recovery remain separate. F17/F23 and formal 11/16/3 remain
+unchanged; the full implementation objective continues.
+
+### Retained failed runs
+
+Focused R1 failed the root fixture's old ledger 59 expectation after V60 correctly
+created 60; R2 failed test-only mixed-inbox classification, null-money currency
+input and timestamp representation; R3 failed a 33-character synthetic ID against
+the unchanged 30-character schema. Narrow test corrections preserve all history,
+native, permission and negative assertions. Their failed log SHA256 values are
+`97005cee07c84a9f29669ecaa29b786847379f9e30c6bbed2b89ad8b8d426df0`,
+`3ad6923a5d237833b94cf96abf2d6136f109b8560c155cf94c200b6b45edd70c` and
+`32fa3fa535c60abb26c840bf31dd11cf3dc203a6dfb0f59744b1f23b92081e38`.
+The first production run stopped before membership/restart because its private
+helper required an omitted optional terminal `next_cursor`. A one-line helper
+correction retains exact four unique IDs and complete pagination assertions;
+fresh R2 production passed. Earlier failures remain failed and their owned
+resources are independently absent. The initial check tooling collision was
+resolved by running the pinned linter without a concurrent second instance;
+subsequent mandatory checking passed without product changes.

@@ -70,11 +70,18 @@ export default {
   },
   items: {
     monthly_quota_warning: {
-      default: 'A personal monthly quota warning was recorded.',
+      default: 'A monthly quota warning was recorded.',
       tokens_month_near: 'Personal monthly token warning recorded.',
       tokens_month_critical: 'Critical personal monthly token warning recorded.',
       money_month_near: 'Personal monthly money warning recorded.',
       money_month_critical: 'Critical personal monthly money warning recorded.',
+    },
+    team_monthly_quota_warning: {
+      default: 'A Team monthly quota warning was recorded.',
+      tokens_month_near: 'Team monthly token warning recorded.',
+      tokens_month_critical: 'Critical Team monthly token warning recorded.',
+      money_month_near: 'Team monthly money warning recorded.',
+      money_month_critical: 'Critical Team monthly money warning recorded.',
     },
     monthly_quota_exhausted: {
       default: 'A monthly quota limit was reached.',

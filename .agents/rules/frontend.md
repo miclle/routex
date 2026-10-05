@@ -769,3 +769,10 @@ strings, calendar, currency and revision; keep unknown snapshots explicit.
 History never proves current allowance or a historical crossing. Preserve
 English-default/live-Chinese copy, recipient/session generation gates and
 ordinary read/history actions; warnings change neither admission nor SMTP.
+
+Team aggregate monthly warnings share the existing notification menu. Validate
+`team-monthly-80-90-v1`, exact Team subject/scope and `two_`/`twi_` identities.
+Render the recorded Team name or stable ID without a directory read. Individual
+read state remains recipient-owned; current membership and exact recorded birth
+are server-authorized. Leaving hides history, rejoining the same identity restores
+its original read state, and new members receive no historical fanout.

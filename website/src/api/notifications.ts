@@ -137,21 +137,32 @@ export function recordedMonthlyQuotaWarning(
     notification.kind !== 'monthly_quota_warning' ||
     !warning ||
     !safeId.test(recipientId) ||
-    warning.scope_kind !== 'user' ||
-    warning.scope_id !== recipientId ||
-    notification.subject_type !== 'user' ||
-    notification.subject_id !== recipientId ||
+    !(
+      (warning.scope_kind === 'user' &&
+        warning.scope_id === recipientId &&
+        warning.threshold_generation === 'personal-monthly-80-90-v1') ||
+      (warning.scope_kind === 'team' &&
+        typeof warning.scope_id === 'string' &&
+        safeId.test(warning.scope_id) &&
+        warning.threshold_generation === 'team-monthly-80-90-v1' &&
+        (notification.subject_name == null ||
+          (typeof notification.subject_name === 'string' &&
+            !invalidRecordedText(notification.subject_name))))
+    ) ||
+    notification.subject_type !== warning.scope_kind ||
+    notification.subject_id !== warning.scope_id ||
     !safeId.test(notification.id) ||
-    !notification.id.startsWith('qwi_') ||
+    !notification.id.startsWith(warning.scope_kind === 'team' ? 'twi_' : 'qwi_') ||
     typeof notification.quota_warning_observation_id !== 'string' ||
     !safeId.test(notification.quota_warning_observation_id) ||
-    !notification.quota_warning_observation_id.startsWith('qwo_') ||
+    !notification.quota_warning_observation_id.startsWith(
+      warning.scope_kind === 'team' ? 'two_' : 'qwo_',
+    ) ||
     notification.quota != null ||
     notification.quota_observation_id != null ||
     notification.alert_id != null ||
     notification.delivery_status != null ||
     notification.occurrence_count !== 1 ||
-    warning.threshold_generation !== 'personal-monthly-80-90-v1' ||
     !(
       (warning.level === 'near' &&
         warning.threshold === 80 &&
