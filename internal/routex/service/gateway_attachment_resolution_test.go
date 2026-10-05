@@ -585,6 +585,7 @@ type attachmentStorageObject struct {
 type attachmentStorageQueryFixture struct {
 	objects        map[string]attachmentStorageObject
 	revision       entity.StorageRevision
+	userCreatedAt  time.Time
 	projectStatus  []string
 	projectQueries int
 }
@@ -658,7 +659,11 @@ func configureGatewayAttachmentStorageScopeStatuses(t *testing.T, svc *Service, 
 		t.Fatal(err)
 	}
 	revision := entity.StorageRevision{ID: "str_attachment", Endpoint: server.URL, Region: "us-east-1", Bucket: "routex-test", Prefix: "", SecretGeneration: "generation-one", AuthCiphertext: ciphertext}
-	fixture := &attachmentStorageQueryFixture{objects: objects, revision: revision, projectStatus: projectStatus}
+	auth := svc.runtime.auth.Load()
+	if auth == nil || auth.UserProofs["usr_one"].CreatedAt.IsZero() {
+		t.Fatal("attachment fixture requires the recorded user birth")
+	}
+	fixture := &attachmentStorageQueryFixture{objects: objects, revision: revision, userCreatedAt: auth.UserProofs["usr_one"].CreatedAt, projectStatus: projectStatus}
 	sqlDB := sql.OpenDB(attachmentStorageConnector{fixture: fixture})
 	t.Cleanup(func() { _ = sqlDB.Close() })
 	db, err := gorm.Open(postgres.New(postgres.Config{Conn: sqlDB, PreferSimpleProtocol: true, WithoutReturning: true}), &gorm.Config{})
@@ -711,7 +716,10 @@ func (*attachmentStorageConnection) Begin() (driver.Tx, error) {
 func (connection *attachmentStorageConnection) QueryContext(_ context.Context, query string, args []driver.NamedValue) (driver.Rows, error) {
 	switch {
 	case strings.Contains(query, `FROM "users"`):
-		return &attachmentStorageRows{columns: []string{"id", "disabled"}, values: [][]driver.Value{{"usr_one", false}}}, nil
+		return &attachmentStorageRows{
+			columns: []string{"id", "disabled", "created_at", "offboarded_at", "approval_application_id"},
+			values:  [][]driver.Value{{"usr_one", false, connection.fixture.userCreatedAt, nil, nil}},
+		}, nil
 	case strings.Contains(query, `FROM "projects"`):
 		now := time.Now()
 		status := entity.ResourceActive

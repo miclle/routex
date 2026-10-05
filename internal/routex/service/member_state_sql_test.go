@@ -49,6 +49,22 @@ func (c *stateSQLConnection) QueryContext(ctx context.Context, q string, args []
 		c.f.locks = append(c.f.locks, values[0])
 	}
 	switch {
+	case strings.Contains(q, `FROM "users"`) && strings.Contains(q, `"role" = $1`) && !strings.Contains(q, "count(*)"):
+		c.f.queries = append(c.f.queries, q)
+		c.f.countSQL = q
+		rows := []entity.User{}
+		for _, u := range c.current().users {
+			if u.Role == entity.RoleAdmin && !u.Disabled && u.OffboardedAt == nil {
+				rows = append(rows, u)
+			}
+		}
+		return effectiveSQLRows(rows)
+	case strings.Contains(q, "JOIN team_memberships AS member"):
+		c.f.queries = append(c.f.queries, q)
+		return effectiveSQLRows([]entity.User{})
+	case strings.Contains(q, "JOIN project_managers AS manager"):
+		c.f.queries = append(c.f.queries, q)
+		return effectiveSQLRows([]entity.User{})
 	case strings.Contains(q, `SELECT count(*) FROM "users"`):
 		c.f.queries = append(c.f.queries, q)
 		c.f.countSQL = q

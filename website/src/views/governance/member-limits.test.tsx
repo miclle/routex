@@ -192,6 +192,7 @@ beforeEach(async () => {
         email: 'target@example.invalid',
         role: 'member',
         role_ids: [],
+        registration_approval: { status: 'not_required', admission_eligible: false },
         last_login_at: null,
         last_login_status: 'historical_unavailable',
         disabled: subjectDisabled,

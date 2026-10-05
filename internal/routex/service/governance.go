@@ -16,7 +16,7 @@ import (
 
 // AvailablePermissions defines the implemented platform resource/action surface.
 // Personal resource access and model call grants remain independently scoped.
-var AvailablePermissions = []string{"secrets.read", "secrets.rotate", "members.read", "members.write", "members.keys.disable", "members.models.write", "roles.read", "roles.write", "registration.write", "providers.read", "providers.write", "models.read_all", "models.write", "calls.read_all", "audit.read", "system.read", "system.write", "teams.read_all", "teams.write", "teams.models.write", "teams.tokens.write", "teams.money.write", "teams.rates.write", "teams.quota_requests.read_all", "projects.read_all", "projects.write", "projects.models.write", "prices.read", "prices.write", "limits.users.write", "limits.settings.write", "projects.limits.write", "site.write", "announcements.write", "egress.read", "egress.write", "egress.test", "smtp.read", "smtp.write", "smtp.test", "storage.read", "storage.write", "storage.test"}
+var AvailablePermissions = []string{"secrets.read", "secrets.rotate", "members.read", "members.approvals.write", "members.write", "members.keys.disable", "members.models.write", "roles.read", "roles.write", "registration.write", "providers.read", "providers.write", "models.read_all", "models.write", "calls.read_all", "audit.read", "system.read", "system.write", "teams.read_all", "teams.write", "teams.models.write", "teams.tokens.write", "teams.money.write", "teams.rates.write", "teams.quota_requests.read_all", "projects.read_all", "projects.write", "projects.models.write", "prices.read", "prices.write", "limits.users.write", "limits.settings.write", "projects.limits.write", "site.write", "announcements.write", "egress.read", "egress.write", "egress.test", "smtp.read", "smtp.write", "smtp.test", "storage.read", "storage.write", "storage.test"}
 
 type RoleRecord struct {
 	Role        entity.Role
@@ -58,11 +58,8 @@ func activePlatformAdmin(db *gorm.DB, actorID string) error {
 }
 
 func permissionsFor(db *gorm.DB, userID string) ([]string, error) {
-	var user entity.User
-	if err := db.Where("id = ? AND disabled = ?", userID, false).First(&user).Error; err != nil {
-		if err == gorm.ErrRecordNotFound {
-			return nil, apperrors.ErrUnauthorized
-		}
+	user, err := registrationAdmittedUser(db, userID, false)
+	if err != nil {
 		return nil, err
 	}
 	permissions := []string{}
@@ -147,7 +144,7 @@ func (s *Service) ListRoles(ctx context.Context, actorID string) ([]RoleRecord, 
 func AssignablePermissions() []string {
 	result := []string{}
 	for _, permission := range AvailablePermissions {
-		if permission != "roles.write" && permission != "registration.write" {
+		if permission != "roles.write" && permission != "registration.write" && permission != "members.approvals.write" {
 			result = append(result, permission)
 		}
 	}

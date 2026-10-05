@@ -197,6 +197,11 @@ func (s *Service) RecordCall(ctx context.Context, fact CallFact) error {
 }
 
 func (s *Service) ListCalls(ctx context.Context, ownerID string, filter CallFilter) (*CallPage, error) {
+	if ownerID != "" {
+		if _, err := registrationAdmittedUser(s.authDB(ctx), ownerID, false); err != nil {
+			return nil, catalogError(err)
+		}
+	}
 	return listCallsDB(s.authDB(ctx), ownerID, filter)
 }
 
@@ -266,6 +271,11 @@ func listCallsDB(query *gorm.DB, ownerID string, filter CallFilter) (*CallPage, 
 }
 
 func (s *Service) GetCall(ctx context.Context, ownerID, requestID string) (*CallDetail, error) {
+	if ownerID != "" {
+		if _, err := registrationAdmittedUser(s.authDB(ctx), ownerID, false); err != nil {
+			return nil, catalogError(err)
+		}
+	}
 	if !safeCallID.MatchString(requestID) {
 		return nil, apperrors.ErrNotFound
 	}

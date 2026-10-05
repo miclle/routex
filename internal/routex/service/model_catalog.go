@@ -3,7 +3,6 @@ package service
 import (
 	"context"
 	"database/sql"
-	"errors"
 	"net/http"
 	"slices"
 	"strings"
@@ -148,15 +147,8 @@ func (s *Service) GetMemberModelCatalog(ctx context.Context, actorID, modelID st
 func (s *Service) memberModelCatalog(ctx context.Context, actorID, modelID string) ([]MemberModelCatalogRecord, error) {
 	var items []MemberModelCatalogRecord
 	err := s.authDB(ctx).Transaction(func(tx *gorm.DB) error {
-		var actor entity.User
-		if err := tx.Select("id", "disabled").First(&actor, "id = ?", actorID).Error; err != nil {
-			if errors.Is(err, gorm.ErrRecordNotFound) {
-				return apperrors.ErrUnauthorized
-			}
+		if _, err := registrationAdmittedUser(tx, actorID, false); err != nil {
 			return err
-		}
-		if actor.ID != actorID || actor.Disabled {
-			return apperrors.ErrUnauthorized
 		}
 		base := func() *gorm.DB {
 			query := tx.Table("models m").Joins("JOIN model_names n ON n.current_model_id = m.id").Where("m.status = ?", entity.ResourceActive)

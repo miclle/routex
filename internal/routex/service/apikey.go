@@ -41,6 +41,9 @@ func appendAudit(tx *gorm.DB, actorID, action, resourceType, resourceID string) 
 }
 
 func (s *Service) ListPersonalKeys(ctx context.Context, userID string) ([]KeyRecord, error) {
+	if _, err := registrationAdmittedUser(s.authDB(ctx), userID, false); err != nil {
+		return nil, keyServiceError(err)
+	}
 	db := s.authDB(ctx)
 	var keys []entity.APIKey
 	if err := db.Where("user_id = ?", userID).Order("created_at DESC, id DESC").Find(&keys).Error; err != nil {
@@ -151,9 +154,12 @@ func createPendingKey(tx *gorm.DB, userID, name string, modelIDs []string, expir
 // Take this lock before every key lock, including replacement confirmation.
 func lockActiveKeyOwner(tx *gorm.DB, userID string) error {
 	var owner entity.User
-	err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).Select("id", "disabled").First(&owner, "id = ?", userID).Error
+	err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).First(&owner, "id = ?", userID).Error
 	if errors.Is(err, gorm.ErrRecordNotFound) || (err == nil && (owner.Disabled || owner.ID != userID)) {
 		return apperrors.ErrUnauthorized
+	}
+	if err == nil {
+		err = requireRegistrationAdmission(tx.Session(&gorm.Session{}), owner)
 	}
 	return err
 }
@@ -388,12 +394,8 @@ func (s *Service) AuthenticateAPIKey(ctx context.Context, bearer string) (*KeyRe
 	if err != nil {
 		return nil, apperrors.ErrInternal
 	}
-	var count int64
-	if err := db.Model(&entity.User{}).Where("id = ? AND disabled = ?", key.UserID, false).Count(&count).Error; err != nil {
-		return nil, apperrors.ErrInternal
-	}
-	if count != 1 {
-		return nil, apperrors.ErrUnauthorized
+	if _, err := registrationAdmittedUser(db, key.UserID, false); err != nil {
+		return nil, keyServiceError(err)
 	}
 	ids := []string{}
 	if err := db.Table("api_key_models AS scope").Joins("JOIN user_model_grants AS grants ON grants.model_id = scope.model_id AND grants.user_id = ?", key.UserID).Joins("JOIN models ON models.id = scope.model_id").Where("scope.key_id = ? AND models.status = ?", key.ID, "active").Order("scope.model_id").Pluck("scope.model_id", &ids).Error; err != nil {

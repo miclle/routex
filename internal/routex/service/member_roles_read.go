@@ -52,9 +52,12 @@ func memberRolesPeople(tx *gorm.DB, actorID, userID string, read, lock bool) (en
 	if actor.Disabled || actor.OffboardedAt != nil || actor.Role != entity.RoleAdmin && actor.Role != entity.RoleMember {
 		return actor, subject, apperrors.ErrUnauthorized
 	}
+	if err := requireRegistrationAdmission(memberRolesDB(tx), actor); err != nil {
+		return actor, subject, err
+	}
 	if read {
 		for _, permission := range []string{"members.read", "roles.read"} {
-			allowed, err := exactGovernancePermission(memberRolesDB(tx), actor, permission)
+			allowed, err := exactGovernancePermissionForAdmittedActor(memberRolesDB(tx), actor, permission)
 			if err != nil {
 				return actor, subject, err
 			}

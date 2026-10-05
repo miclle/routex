@@ -15,8 +15,9 @@ import (
 
 type MemberDetailRecord struct {
 	MemberRecord
-	LastLoginAt     *time.Time
-	LastLoginStatus string
+	LastLoginAt          *time.Time
+	RegistrationApproval RegistrationApprovalSummary
+	LastLoginStatus      string
 }
 
 // GET-only projection: mutation/create records retain their existing shape.
@@ -32,14 +33,17 @@ func (s *Service) GetMemberDetail(ctx context.Context, actorID, userID string) (
 	var result *MemberDetailRecord
 	err := s.authDB(ctx).Transaction(func(tx *gorm.DB) error {
 		var actor entity.User
-		err := modelCreationDB(tx).Select("ID", "Role", "Disabled", "OffboardedAt").Where(database.ExactText(tx, clause.Column{Name: "id"}, actorID)).Where("disabled = ? AND offboarded_at IS NULL", false).Take(&actor).Error
+		err := modelCreationDB(tx).Select("ID", "Role", "Disabled", "OffboardedAt", "CreatedAt", "ApprovalApplicationID").Where(database.ExactText(tx, clause.Column{Name: "id"}, actorID)).Where("disabled = ? AND offboarded_at IS NULL", false).Take(&actor).Error
 		if errors.Is(err, gorm.ErrRecordNotFound) || err == nil && (actor.ID != actorID || actor.Role != entity.RoleAdmin && actor.Role != entity.RoleMember) {
 			return apperrors.ErrUnauthorized
 		}
 		if err != nil {
 			return err
 		}
-		read, err := exactGovernancePermission(modelCreationDB(tx), actor, "members.read")
+		if err := requireRegistrationAdmission(modelCreationDB(tx), actor); err != nil {
+			return err
+		}
+		read, err := exactGovernancePermissionForAdmittedActor(modelCreationDB(tx), actor, "members.read")
 		if err != nil {
 			return err
 		}
@@ -47,7 +51,7 @@ func (s *Service) GetMemberDetail(ctx context.Context, actorID, userID string) (
 			return apperrors.ErrForbidden
 		}
 		var target entity.User
-		if err := modelCreationDB(tx).Select("ID", "Email", "Name", "Role", "Disabled", "OffboardedAt", "CreatedAt", "LastLoginAt").Where(database.ExactText(tx, clause.Column{Name: "id"}, userID)).Take(&target).Error; err != nil {
+		if err := modelCreationDB(tx).Select("ID", "Email", "Name", "Role", "Disabled", "OffboardedAt", "CreatedAt", "ApprovalApplicationID", "LastLoginAt").Where(database.ExactText(tx, clause.Column{Name: "id"}, userID)).Take(&target).Error; err != nil {
 			return err
 		}
 		if target.ID != userID || target.Role != entity.RoleAdmin && target.Role != entity.RoleMember {
@@ -57,6 +61,11 @@ func (s *Service) GetMemberDetail(ctx context.Context, actorID, userID string) (
 		if err != nil {
 			return err
 		}
+		apps, err := loadRegistrationApplications(modelCreationDB(tx), []entity.User{target})
+		if err != nil {
+			return err
+		}
+		approval, _ := registrationAdmission(target, apps)
 		var relationships []entity.UserRole
 		if err := modelCreationDB(tx).Where(database.ExactText(tx, clause.Column{Name: "user_id"}, userID)).Limit(memberListRoleBudget + 1).Find(&relationships).Error; err != nil {
 			return err
@@ -69,7 +78,7 @@ func (s *Service) GetMemberDetail(ctx context.Context, actorID, userID string) (
 		if login != nil {
 			status = "recorded"
 		}
-		result = &MemberDetailRecord{MemberRecord: MemberRecord{User: target, RoleIDs: roles[userID]}, LastLoginAt: login, LastLoginStatus: status}
+		result = &MemberDetailRecord{MemberRecord: MemberRecord{User: target, RoleIDs: roles[userID]}, LastLoginAt: login, LastLoginStatus: status, RegistrationApproval: approval}
 		return ctx.Err()
 	}, &sql.TxOptions{Isolation: sql.LevelRepeatableRead, ReadOnly: true})
 	if err != nil {

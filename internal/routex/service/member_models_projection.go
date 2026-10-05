@@ -199,6 +199,6 @@ func (s *Service) projectMemberModels(actorID string, data *memberModelsData) *M
 	slices.SortFunc(result.AvailableModels, func(a, b MemberModelRow) int { return strings.Compare(a.ID, b.ID) })
 	slices.SortFunc(reviewed, func(a, b MemberModelRow) int { return strings.Compare(a.ID, b.ID) })
 	result.ETag = memberModelsETag(actorID, data, reviewed, index)
-	result.ApplicationStatus, result.RuntimeApplied = s.memberModelsApplication(data.Subject, data.Grants, auth)
+	result.ApplicationStatus, result.RuntimeApplied = s.memberModelsApplication(data.Subject, data.Grants, auth, data.Applications)
 	return result
 }

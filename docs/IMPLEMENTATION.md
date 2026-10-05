@@ -2,6 +2,56 @@
 
 Updated: 2026-10-05. This document records engineering contracts, work packages, and acceptance checks. Interfaces, tables, pages, and metrics marked as planned are not necessarily implemented; delivery evidence appears at the end. The active goal covers all F01–F30 capabilities and A01–A20 acceptance cases; completed stages do not end implementation. The full product is delivered incrementally through P0–P6.
 
+## Active local registration approval integration
+
+Checked main predecessor is reviewed Member State `74f08d3`; direct Member Roles
+was delivered earlier at `a44838d`. This approval phase
+adds frozen GORM V57 and exactly two cases after the 100 ordered driver prefix.
+It preserves existing registration/Member composition, independent permissions,
+bilingual copy and immutable dispatched intent recovery.
+
+Mandatory checks, complete source and fresh uncached Go race passed. Frontend
+source remains unchanged at 2,910 cases in 144 files, with the existing Node,
+development lifecycle and production-asset checks. Corrected focused acceptance
+passed 27 named tests on PostgreSQL/MySQL, retaining Overview 7, list 9/11/10 and
+Effective Models 20 query budgets. Both-driver authentication/native restart
+passed. Approval focus also retains five native completions, thirteen denied
+native requests, rollback, exact retry and stopped-publisher confirmation.
+
+The fresh complete regression passed 102 ordered scenarios per driver, unchanged
+100-case prefix, V57, eight constraints, all 204 direct lifecycle cases, five
+test-bearing packages and 3,049 named tests total with no named failure or skip.
+All 395 R17 protected paths stayed exact and all owned Compose resources were
+independently absent. Earlier stopped full-regression, fixture/source and
+query-budget failures remain historical; freshly admitted same-transaction actor
+proof reuse corrected redundant reads without loosening authority or assertions.
+
+The controlled production process and bilingual browser now passed against the
+same R17 source and production artifact. Anonymous registration returned HTTP 202
+without a Session cookie; pending login remained denied. Approval changed only the
+retained application and current admission, preserving existing Users, Sessions,
+Keys, model grants and MFA facts. The intended creation-default policy copy and
+its typed audit were verified separately and never admitted the pending account.
+After explicit model authorization and a new confirmed Personal Key, exactly one
+controlled native Chat completion produced one durable call and attempt with
+recorded Credential/snapshot attribution. Restart retained the original binary,
+configuration, database, journal and Sessions; read-only English/Chinese browser
+checks passed without signing in again or dispatching another inference request.
+All owned resources and temporary browser tabs were cleaned. Earlier failed runs,
+including the finite browser-checkpoint timeout, remain historical evidence.
+This confirms current state and runtime application, not a historical operation
+receipt or completion of the entire Member capability. The final mandatory check passed. The containing commit delivers this bounded
+approval phase; remote push/read-back and workflow results are recorded separately.
+
+Queued Role-definition, offboarding UI/recorded Settings summary and allowed-email
+source remain private preparation. Their combined Go 34 source checkpoint passed
+908 top-level tests and 3,160 pass events before its nonsemantic successors; combined frontend 35 passed 3,102 cases in 150 files with
+types, scoped lint/format and reversible contexts. The separate 10-path Restore
+proposal passed 3,117 private source cases in 150 files only; it is not part of current main or an
+accepted reset delivery. Repository seed-price data and its zero-inference plan
+also remain queued. These source counts are not database, browser or delivery
+acceptance. F04/F05 and formal 11 complete/16 partial/three unstarted are unchanged.
+
 ## Scope and Decisions
 
 - Each deployment serves one enterprise. The first iteration runs one RouteX process, with database dependencies managed by Docker Compose and Go/Vite hot reload on the host. Production multi-node HA is outside the first iteration's commitments.
@@ -154,7 +204,7 @@ The binary capability count is 11 completed, 16 partially completed, and 3 not s
 | F01 | Initialization, local identity, registration, and logout | Completed | Concurrent one-time setup, administrator creation, local login, registration control, durable sessions, and logout are implemented and tested. |
 | F02 | Profile, password, MFA, recovery codes, and session revocation | Completed | Profile and password changes, authenticator enrollment, single-use recovery codes, and individual-session revocation are implemented. |
 | F03 | Enterprise SSO, LDAP, OAuth, and emergency recovery | Not started | Provider configuration, callbacks, identity binding, enforced SSO, and enterprise recovery remain unimplemented. |
-| F04 | Member administration, direct grants, roles, and resource policies | Partially completed | Member Overview, Keys, Limits, Teams, Models, metadata and the eleven-column list are checked deliveries. List af9c22e has successful exact remote workflows. The containing read-only effective Models phase passed source, complete 94-per-driver regression and controlled bilingual process/restart acceptance. Recorded successful login has passed complete source, real V55/96-per-driver and production/MFA/bilingual restart acceptance; final checks passed and its checked delivery is the containing commit. Access summary has passed source, complete97-per-driver and controlled read-only bilingual process/restart acceptance; reviewed direct roles, State/base-role changes and registration approval remain queued or unfinished; role definitions/templates, Team-role review and wider resource-policy acceptance remain open. |
+| F04 | Member administration, direct grants, roles, and resource policies | Partially completed | Member Overview, Keys, Limits, Teams, Models, metadata, the eleven-column list, effective Models, recent login and Access are checked deliveries. Reviewed direct custom Roles a44838d and State/base-role changes 74f08d3 are also delivered. Local registration approval is an uncommitted candidate with source, complete102-per-driver and authentication/native restart passed; R9 bilingual policy/pending-registration observations passed, but its post-registration helper failed, so full process/browser acceptance and delivery remain pending. Role-definition/Team-role review, templates and remaining resource-policy acceptance stay open. |
 | F05 | Built-in and custom roles with composed permissions | Partially completed | Current-domain role and permission management is implemented; later enterprise and operations domains still require permission integration and negative acceptance. |
 | F06 | Team membership, ownership, models, quotas, and member rules | Completed | Team membership/ownership, model relationships, finite aggregate/member policies and monthly requests are accepted. Durable Team-assigned roles, exact Team-only action unions, reviewed administrator assignment and the existing Roles interface have controlled dual-database and browser evidence. |
 | F07 | Project lifecycle, managers, models, Keys, and requests | Completed | Exact current management, lifecycle/continuity, multi-manager creation, initial direct resources and combined requests, scoped Overview, Project Keys, resource limits and model/quota/rate approvals are implemented with controlled dual-database/browser/native/restart evidence. Both lists now show authorized total retained Key counts; administrative stored-policy summaries, literal name/ID search and authorized legacy tab replacement have full main acceptance. |

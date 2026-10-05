@@ -93,7 +93,7 @@ func utcMemberMetadataTime(value *time.Time) *time.Time {
 	return &next
 }
 func memberMetadataUserQuery(tx *gorm.DB, userID string) *gorm.DB {
-	return tx.Session(&gorm.Session{}).Model(&entity.User{}).Select("id", "name", "role", "disabled", "offboarded_at", "created_at", "updated_at").Where(database.ExactText(tx, clause.Column{Name: "id"}, userID))
+	return tx.Session(&gorm.Session{}).Model(&entity.User{}).Select("id", "name", "role", "disabled", "offboarded_at", "created_at", "approval_application_id", "updated_at").Where(database.ExactText(tx, clause.Column{Name: "id"}, userID))
 }
 func memberMetadataPeople(tx *gorm.DB, actorID, userID string, writeOnly, lock bool) (entity.User, entity.User, bool, error) {
 	var actor, target entity.User

@@ -39,23 +39,30 @@ func runtimePersonalGrantStates(data *runtimeData) map[string]runtimePersonalGra
 	for _, g := range data.Grants {
 		grouped[g.UserID] = append(grouped[g.UserID], g)
 	}
+	admissions := runtimeRegistrationAdmissions(data)
 	result := map[string]runtimePersonalGrantState{}
 	for _, u := range data.Users {
-		result[u.ID] = runtimePersonalGrantState{u.CreatedAt, !u.Disabled && u.OffboardedAt == nil, u.PersonalGrantRevision, personalGrantHash(grouped[u.ID])}
+		result[u.ID] = runtimePersonalGrantState{u.CreatedAt, admissions[u.ID].Eligible, u.PersonalGrantRevision, personalGrantHash(grouped[u.ID])}
 	}
 	return result
 }
-func (s *Service) memberModelsApplication(subject entity.User, grants []entity.UserModelGrant, auth *runtimeAuthorization) (string, *bool) {
+func (s *Service) memberModelsApplication(subject entity.User, grants []entity.UserModelGrant, auth *runtimeAuthorization, applications map[string]entity.RegistrationApprovalApplication) (string, *bool) {
 	if subject.Disabled || subject.OffboardedAt != nil {
 		value := false
 		return "not_applied", &value
+	}
+	if subject.ApprovalApplicationID != nil {
+		admission, _ := registrationAdmission(subject, applications)
+		if admission.Status == "unknown" {
+			return "unavailable", nil
+		}
 	}
 	if s.runtime == nil || auth == nil || s.runtime.auth.Load() != auth || !time.Now().Before(auth.ValidUntil) {
 		return "unavailable", nil
 	}
 	value := false
 	proof, exists := auth.PersonalGrantStates[subject.ID]
-	if exists && !subject.Disabled && subject.OffboardedAt == nil && proof.Enabled && !subject.CreatedAt.IsZero() && proof.CreatedAt.Equal(subject.CreatedAt) && personalModelETag(subject.PersonalGrantRevision) && proof.Revision == subject.PersonalGrantRevision && proof.Hash == personalGrantHash(grants) && !runtimeDenied(&s.runtime.deniedPersonalGrants, subject.ID) && !runtimeDenied(&s.runtime.deniedUsers, subject.ID) {
+	if exists && s.registrationAdvisoryPublished(auth, subject, applications) && !subject.Disabled && subject.OffboardedAt == nil && proof.Enabled && !subject.CreatedAt.IsZero() && proof.CreatedAt.Equal(subject.CreatedAt) && personalModelETag(subject.PersonalGrantRevision) && proof.Revision == subject.PersonalGrantRevision && proof.Hash == personalGrantHash(grants) && !runtimeDenied(&s.runtime.deniedPersonalGrants, subject.ID) && !runtimeDenied(&s.runtime.deniedUsers, subject.ID) {
 		value = true
 	}
 	if value {

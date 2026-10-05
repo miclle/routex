@@ -25,7 +25,7 @@ func memberModelsExactIDs(tx *gorm.DB, column string, ids []string) clause.Expre
 }
 func memberModelsSubject(tx *gorm.DB, userID string, lock bool) (entity.User, error) {
 	var user entity.User
-	q := personalExact(modelCreationDB(tx), "id", userID).Select("id", "role", "disabled", "offboarded_at", "created_at", "personal_grant_revision")
+	q := personalExact(modelCreationDB(tx), "id", userID).Select("id", "role", "disabled", "offboarded_at", "created_at", "approval_application_id", "personal_grant_revision")
 	if lock {
 		q = q.Clauses(clause.Locking{Strength: "UPDATE"})
 	}
@@ -45,13 +45,13 @@ func memberModelsPermissions(tx *gorm.DB, actorID string, write bool) (entity.Us
 	if actor.Role != entity.RoleMember && actor.Role != entity.RoleAdmin {
 		return actor, false, false, false, apperrors.ErrUnauthorized
 	}
-	canEdit, err := exactGovernancePermission(modelCreationDB(tx), actor, "members.models.write")
+	canEdit, err := exactGovernancePermissionForAdmittedActor(modelCreationDB(tx), actor, "members.models.write")
 	if err != nil {
 		return actor, false, false, false, err
 	}
 	read := canEdit
 	if !write && !read {
-		read, err = exactGovernancePermission(modelCreationDB(tx), actor, "members.read")
+		read, err = exactGovernancePermissionForAdmittedActor(modelCreationDB(tx), actor, "members.read")
 		if err != nil {
 			return actor, false, false, false, err
 		}
@@ -59,11 +59,11 @@ func memberModelsPermissions(tx *gorm.DB, actorID string, write bool) (entity.Us
 	if write && !canEdit || !write && !read {
 		return actor, false, false, false, apperrors.ErrForbidden
 	}
-	providers, err := exactGovernancePermission(modelCreationDB(tx), actor, "providers.read")
+	providers, err := exactGovernancePermissionForAdmittedActor(modelCreationDB(tx), actor, "providers.read")
 	if err != nil {
 		return actor, false, false, false, err
 	}
-	prices, err := exactGovernancePermission(modelCreationDB(tx), actor, "prices.read")
+	prices, err := exactGovernancePermissionForAdmittedActor(modelCreationDB(tx), actor, "prices.read")
 	return actor, canEdit, providers, prices, err
 }
 func readMemberModels(tx *gorm.DB, subject entity.User, canEdit, providers, prices, lock bool) (*memberModelsData, error) {
@@ -71,6 +71,11 @@ func readMemberModels(tx *gorm.DB, subject entity.User, canEdit, providers, pric
 		return nil, apperrors.ErrInternal
 	}
 	data := &memberModelsData{Subject: subject, CanEdit: canEdit && !subject.Disabled && subject.OffboardedAt == nil, ProvidersRead: providers, PricesRead: prices, TeamModels: map[string]bool{}, TeamBasis: []memberModelsTeamBasis{}}
+	applications, err := loadRegistrationApplications(modelCreationDB(tx), []entity.User{subject})
+	if err != nil {
+		return nil, err
+	}
+	data.Applications = applications
 	if err := personalExact(modelCreationDB(tx), "user_id", subject.ID).Order("model_id").Limit(1001).Find(&data.Grants).Error; err != nil {
 		return nil, err
 	}

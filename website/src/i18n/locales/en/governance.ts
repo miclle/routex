@@ -1,4 +1,60 @@
 export default {
+  registrationApproval: {
+    permission: 'Review registration applications',
+    review: 'Review registration',
+    description:
+      'Review the current registration application, identity role and account status. A decision changes admission only; it does not change account flags, permissions or Keys.',
+    status: 'Registration approval',
+    not_required: 'Approval not required',
+    pending: 'Awaiting approval',
+    approved: 'Approved',
+    rejected: 'Rejected',
+    unknown: 'Approval unavailable',
+    admission: 'Current admission',
+    eligible: 'Admission eligible',
+    ineligible: 'Admission denied',
+    runtime: 'Current runtime publication',
+    applied: 'Current admission outcome published',
+    notApplied: 'Publication not confirmed',
+    appliedAt: 'Application created',
+    decidedAt: 'Recorded decision time',
+    reviewer: 'Recorded reviewer ID',
+    reason: 'Reason',
+    approve: 'Approve application',
+    reject: 'Reject application',
+    confirmApprove:
+      'Confirm approval for the reviewed identity role and account status. A disabled or offboarded account remains ineligible. Approval does not grant models or create a Key.',
+    confirmReject:
+      'Confirm permanent rejection of this registration application. The account and its history will be retained.',
+    confirm: 'Confirm',
+    conflict:
+      'The reviewed state changed or the decision conflicted. Review the current state explicitly before submitting a new decision. Your draft is retained.',
+    uncertain:
+      'The submitted change is unconfirmed. Reading current state does not confirm the original request. Retry the exact submitted intent after fresh authorization.',
+    invalidReason:
+      'Enter a non-empty reason with no control characters, at most 1,024 UTF-8 bytes, and no leading or trailing spaces.',
+    failed: 'Unable to review this registration.',
+    retry: 'Retry exact submitted request',
+    abandon: 'Abandon submitted request',
+    abandonHelp:
+      'Abandoning only stops this local retry. The previous outcome remains unknown; this does not undo or confirm the request.',
+    abandoned:
+      'The previous outcome remains unknown. Review current state explicitly before starting a new request.',
+    reviewCurrent: 'Review current state',
+    confirmedEligible:
+      'The current retained decision and published admission eligibility are confirmed. This does not confirm who originally submitted the decision or that any Key or model is ready.',
+    confirmedDenied:
+      'The current retained decision and published admission denial are confirmed. Approval does not enable a disabled or offboarded account.',
+    required: 'Require registration approval',
+    policyHelp:
+      'Applies only to new local self-registration. Existing pending or rejected applications are retained. This setting is preserved when registration is closed.',
+    policySaved:
+      'Current registration policy confirmed. Existing accounts and applications are unchanged.',
+    policyConfirmTitle: 'Confirm registration policy',
+    policyConfirm:
+      'Confirm the complete reviewed registration policy and reason. This changes only future registrations and does not approve existing applicants or confirm successful login.',
+    policyValues: 'Email registration: {{enabled}}. Registration approval: {{approval}}.',
+  },
   memberState: {
     actionUnavailable: 'Current member write authority is unavailable. The review remains closed.',
     desiredRole: 'Reviewed base identity: {{role}}',

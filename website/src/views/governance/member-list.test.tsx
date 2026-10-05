@@ -1,3 +1,4 @@
+import { memberApprovalReview } from './member-approval.fixture'
 import {
   memberStateFixture,
   memberStateResultFixture,
@@ -83,6 +84,16 @@ beforeEach(() => {
       data = structuredClone(page)
       if (listGate) await listGate.promise
       if (listError) throw failure(config, listError)
+    } else if (config.url === '/admin/members/usr_target/approval') {
+      if (config.method === 'patch') throw failure(config, 503)
+      const review = memberApprovalReview()
+      return {
+        config,
+        status: 200,
+        statusText: '',
+        headers: new AxiosHeaders({ etag: `"${review.review_etag}"` }),
+        data: review,
+      }
     } else if (config.url === '/admin/members/usr_target/state') {
       data = memberStateFixture(page.items[0], actor, 'admin', permissions)
     } else if (config.url === '/admin/members/usr_target' && config.method === 'patch') {
@@ -398,6 +409,7 @@ it('validates pagination chain and hides old pages during next-page renewal', as
   )
 })
 it('does not offer ordinary reenable for an offboarded target', async () => {
+  page.items[0].registration_approval.admission_eligible = false
   page.items[0].offboarded_at = page.items[0].updated_at
   page.items[0].disabled = true
   await mount()
@@ -646,3 +658,71 @@ it('renders retained names as escaped text and gives an empty historical name an
     host.querySelector('[aria-label="Member actions for target@example.invalid"]'),
   ).not.toBeNull()
 })
+
+it.each(['Cancel', 'Escape', 'Actor replacement'])(
+  'retains exact uncertain approval through %s dismissal and same row reopening',
+  async (close) => {
+    permissions.push('members.approvals.write')
+    page.items[0].registration_approval = {
+      status: 'pending',
+      admission_eligible: false,
+    }
+    await mount()
+    await menu()
+    await item('Review registration')
+    await until(() => expect(document.querySelector('textarea')).not.toBeNull())
+    await act(async () => {
+      const input = document.querySelector<HTMLTextAreaElement>('textarea')!
+      Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value')!.set!.call(
+        input,
+        'Retain exact approval',
+      )
+      input.dispatchEvent(new Event('input', { bubbles: true }))
+    })
+    await button('Approve application')
+    await button('Confirm')
+    await until(() => expect(document.body.textContent).toContain('unconfirmed'))
+    const writes = () =>
+      requests.filter((r) => r.method === 'patch' && r.url?.endsWith('/approval'))
+    const original = writes()[0]
+    if (close !== 'Escape') await button('Cancel')
+    else
+      await act(async () =>
+        document
+          .querySelector('[role="dialog"]')!
+          .dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })),
+      )
+    await until(() => expect(document.querySelector('[role="dialog"]')).toBeNull())
+    if (close === 'Actor replacement') {
+      actor = 'usr_replacement'
+      page.actor_user_id = actor
+      await act(async () =>
+        cache.setQueryData(['auth', 'session'], {
+          user: { id: actor, name: 'New actor', email: 'new@example.invalid', role: 'admin' },
+          csrf_token: 'new-actor-csrf',
+        }),
+      )
+      await until(() =>
+        expect(document.querySelector('[aria-label="Member actions for Target"]')).not.toBeNull(),
+      )
+      await menu()
+      await item('Review registration')
+      await until(() => expect(document.querySelector('textarea')).not.toBeNull())
+      expect(document.querySelector('textarea')!.value).toBe('')
+      expect(document.body.textContent).not.toContain('unconfirmed')
+      expect(writes()).toHaveLength(1)
+      return
+    }
+    expect(writes()).toHaveLength(1)
+    await menu()
+    await item('Review registration')
+    await until(() => expect(document.body.textContent).toContain('unconfirmed'))
+    expect(JSON.parse(original.data).reason).toBe('Retain exact approval')
+    expect(document.querySelector('textarea')).toBeNull()
+    expect(writes()).toHaveLength(1)
+    await button('Retry exact submitted request')
+    await until(() => expect(writes()).toHaveLength(2))
+    expect(writes()[1].data).toBe(original.data)
+    expect(writes()[1].headers.get('If-Match')).toBe(original.headers.get('If-Match'))
+  },
+)

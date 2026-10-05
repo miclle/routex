@@ -3,11 +3,9 @@ package service
 import (
 	"context"
 
-	"github.com/miclle/routex/internal/routex/database"
 	"github.com/miclle/routex/internal/routex/entity"
 	apperrors "github.com/miclle/routex/internal/routex/errors"
 	"gorm.io/gorm"
-	"gorm.io/gorm/clause"
 )
 
 type memberStateMutation struct {
@@ -60,10 +58,14 @@ func (s *Service) mutateMemberState(ctx context.Context, actorID, userID, etag s
 		}
 		// Governance serializes every admin reduction. Count exact current intrinsic
 		// identities only; disabled/offboarded or collating role aliases cannot save it.
-		if target.Role == entity.RoleAdmin && !target.Disabled && target.OffboardedAt == nil && (next.Disabled || next.Role != entity.RoleAdmin) {
-			var count int64
-			q := memberRolesDB(tx).Model(&entity.User{}).Where(database.ExactText(tx, clause.Column{Name: "role"}, entity.RoleAdmin)).Where("disabled = ? AND offboarded_at IS NULL", false)
-			if err := q.Count(&count).Error; err != nil {
+		apps, err := loadRegistrationApplications(tx, []entity.User{target})
+		if err != nil {
+			return err
+		}
+		admission, _ := registrationAdmission(target, apps)
+		if admission.AdmissionEligible && target.Role == entity.RoleAdmin && !target.Disabled && target.OffboardedAt == nil && (next.Disabled || next.Role != entity.RoleAdmin) {
+			count, err := admittedAdministratorCount(tx)
+			if err != nil {
 				return err
 			}
 			if count <= 1 {

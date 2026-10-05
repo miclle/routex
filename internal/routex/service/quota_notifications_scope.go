@@ -144,11 +144,7 @@ func quotaNotificationRecipients(tx *gorm.DB, scopeKind, scopeID string) ([]stri
 
 func loadQuotaInboxAccess(tx *gorm.DB, actorID string) (quotaInboxAccess, error) {
 	access := quotaInboxAccess{ActorID: actorID}
-	var actor entity.User
-	err := tx.Where("id = ? AND disabled = ? AND offboarded_at IS NULL", actorID, false).First(&actor).Error
-	if errors.Is(err, gorm.ErrRecordNotFound) || err == nil && actor.ID != actorID {
-		return access, apperrors.ErrUnauthorized
-	}
+	actor, err := registrationAdmittedUser(tx, actorID, false)
 	if err != nil {
 		return access, err
 	}

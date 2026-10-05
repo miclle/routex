@@ -334,3 +334,71 @@ describe('exact resource transport', () => {
     expect(count).toBe(0)
   })
 })
+
+it('recognizes builtin-only approval permission in the complete44-code administrator union without custom delegation', () => {
+  const page = workspace()
+  page.identity_role = 'admin'
+  page.builtin_role = {
+    ...page.builtin_role,
+    id: 'rol_admin',
+    name: 'Administrator',
+    permission_count: 44,
+  }
+  page.assigned_roles = []
+  page.effective_permissions = [
+    'secrets.read',
+    'secrets.rotate',
+    'members.read',
+    'members.write',
+    'members.approvals.write',
+    'members.keys.disable',
+    'members.models.write',
+    'roles.read',
+    'roles.write',
+    'registration.write',
+    'providers.read',
+    'providers.write',
+    'models.read_all',
+    'models.write',
+    'calls.read_all',
+    'audit.read',
+    'system.read',
+    'system.write',
+    'teams.read_all',
+    'teams.write',
+    'teams.models.write',
+    'teams.tokens.write',
+    'teams.money.write',
+    'teams.rates.write',
+    'teams.quota_requests.read_all',
+    'projects.read_all',
+    'projects.write',
+    'projects.models.write',
+    'prices.read',
+    'prices.write',
+    'limits.users.write',
+    'limits.settings.write',
+    'projects.limits.write',
+    'site.write',
+    'announcements.write',
+    'egress.read',
+    'egress.write',
+    'egress.test',
+    'smtp.read',
+    'smtp.write',
+    'smtp.test',
+    'storage.read',
+    'storage.write',
+    'storage.test',
+  ].sort()
+  expect(page.effective_permissions).toHaveLength(44)
+  expect(validateMemberRoles(page, 'usr_target').effective_permissions).toEqual(
+    page.effective_permissions,
+  )
+  expect(page.assigned_roles).toEqual([])
+  const foreign = {
+    ...page,
+    effective_permissions: [...page.effective_permissions, 'unknown.permission'].sort(),
+  }
+  expect(() => validateMemberRoles(foreign, 'usr_target')).toThrow()
+})

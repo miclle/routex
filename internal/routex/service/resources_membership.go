@@ -309,8 +309,8 @@ func validateResourceContinuity(tx *gorm.DB, userID string) error {
 		return err
 	}
 	for _, teamID := range teamIDs {
-		var count int64
-		if err := tx.Table("team_memberships m").Joins("JOIN users u ON u.id = m.user_id").Where("m.team_id = ? AND m.user_id <> ? AND m.role = ? AND m.status = ? AND u.disabled = ?", teamID, userID, entity.TeamOwner, entity.ResourceActive, false).Count(&count).Error; err != nil {
+		count, err := admittedTeamOwners(tx, teamID, userID)
+		if err != nil {
 			return err
 		}
 		if count == 0 {
@@ -322,8 +322,8 @@ func validateResourceContinuity(tx *gorm.DB, userID string) error {
 		return err
 	}
 	for _, projectID := range projectIDs {
-		var count int64
-		if err := tx.Table("project_managers m").Joins("JOIN users u ON u.id = m.user_id").Where("m.project_id = ? AND m.user_id <> ? AND u.disabled = ?", projectID, userID, false).Count(&count).Error; err != nil {
+		count, err := admittedProjectManagers(tx, projectID, userID)
+		if err != nil {
 			return err
 		}
 		if count == 0 {

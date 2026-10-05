@@ -33,6 +33,7 @@ type MemberListPage struct {
 }
 type MemberListSummary struct {
 	MemberRecord
+	RegistrationApproval RegistrationApprovalSummary
 	TotalPersonalKeys    string
 	PersonalPolicyStored bool
 	Personal             MemberOverviewMonthlyAccount
@@ -67,7 +68,7 @@ func normalizeMemberListFilter(actorID string, filter MemberFilter) (MemberFilte
 	return filter, nil
 }
 func memberListUserQuery(tx *gorm.DB, filter MemberFilter) *gorm.DB {
-	q := tx.Session(&gorm.Session{}).Model(&entity.User{}).Select("ID", "Email", "Name", "Role", "Disabled", "OffboardedAt", "CreatedAt", "UpdatedAt", "LastLoginAt")
+	q := tx.Session(&gorm.Session{}).Model(&entity.User{}).Select("ID", "Email", "Name", "Role", "Disabled", "OffboardedAt", "CreatedAt", "ApprovalApplicationID", "UpdatedAt", "LastLoginAt")
 	if filter.Query != "" {
 		escaped := strings.NewReplacer("!", "!!", "%", "!%", "_", "!_").Replace(strings.ToLower(filter.Query))
 		pattern := "%" + escaped + "%"
@@ -213,7 +214,7 @@ func (s *Service) ListMemberSummaries(ctx context.Context, actorID string, filte
 	result := &MemberListPage{ActorUserID: actorID, Members: []MemberListSummary{}}
 	err = s.authDB(ctx).Transaction(func(tx *gorm.DB) error {
 		var actor entity.User
-		if err := tx.Select("ID", "Role", "Disabled", "OffboardedAt").Where(database.ExactText(tx, clause.Column{Name: "id"}, actorID)).Where("disabled = ? AND offboarded_at IS NULL", false).First(&actor).Error; err != nil {
+		if err := tx.Select("ID", "Role", "Disabled", "OffboardedAt", "CreatedAt", "ApprovalApplicationID").Where(database.ExactText(tx, clause.Column{Name: "id"}, actorID)).Where("disabled = ? AND offboarded_at IS NULL", false).First(&actor).Error; err != nil {
 			if err == gorm.ErrRecordNotFound {
 				return apperrors.ErrUnauthorized
 			}
@@ -222,14 +223,17 @@ func (s *Service) ListMemberSummaries(ctx context.Context, actorID string, filte
 		if actor.ID != actorID {
 			return apperrors.ErrUnauthorized
 		}
-		allowed, err := exactGovernancePermission(tx, actor, "members.read")
+		if err := requireRegistrationAdmission(tx.Session(&gorm.Session{NewDB: true}), actor); err != nil {
+			return err
+		}
+		allowed, err := exactGovernancePermissionForAdmittedActor(tx.Session(&gorm.Session{NewDB: true}), actor, "members.read")
 		if err != nil {
 			return err
 		}
 		if !allowed {
 			return apperrors.ErrForbidden
 		}
-		teamRead, err := exactGovernancePermission(tx, actor, "teams.read_all")
+		teamRead, err := exactGovernancePermissionForAdmittedActor(tx.Session(&gorm.Session{NewDB: true}), actor, "teams.read_all")
 		if err != nil {
 			return err
 		}
@@ -323,19 +327,24 @@ func (s *Service) ListMemberSummaries(ctx context.Context, actorID string, filte
 		if err := ctx.Err(); err != nil {
 			return err
 		}
+		apps, err := loadRegistrationApplications(tx.Session(&gorm.Session{}), users)
+		if err != nil {
+			return err
+		}
 		for i, u := range users {
+			approval, _ := registrationAdmission(u, apps)
 			teams := MemberListTeams{Status: "not_authorized"}
 			if teamRead {
 				teams = teamSummaries[u.ID]
 			}
 			personal := s.memberOverviewMonthlyAccount(targets[i], targets, batch, auth, u.ID, setting, result.PlatformCurrency)
-			personal.RuntimeApplied = personal.RuntimeApplied && s.memberOverviewSubjectApplied(auth, u, targets[i], setting, result.PlatformCurrency)
-			result.Members = append(result.Members, MemberListSummary{MemberRecord: MemberRecord{User: u, RoleIDs: roles[u.ID]}, TotalPersonalKeys: counts[u.ID], PersonalPolicyStored: stored[u.ID], Personal: personal, Teams: teams})
+			personal.RuntimeApplied = personal.RuntimeApplied && s.memberOverviewSubjectApplied(auth, u, targets[i], setting, result.PlatformCurrency, apps)
+			result.Members = append(result.Members, MemberListSummary{MemberRecord: MemberRecord{User: u, RoleIDs: roles[u.ID]}, TotalPersonalKeys: counts[u.ID], PersonalPolicyStored: stored[u.ID], Personal: personal, Teams: teams, RegistrationApproval: approval})
 		}
 		// Never claim application from a generation replaced while projecting a page.
 		for i := range result.Members {
 			item := &result.Members[i]
-			item.Personal.RuntimeApplied = item.Personal.RuntimeApplied && s.memberOverviewSubjectApplied(auth, item.User, targets[i], setting, result.PlatformCurrency)
+			item.Personal.RuntimeApplied = item.Personal.RuntimeApplied && s.memberOverviewSubjectApplied(auth, item.User, targets[i], setting, result.PlatformCurrency, apps)
 		}
 		return nil
 	}, &sql.TxOptions{Isolation: sql.LevelRepeatableRead, ReadOnly: true})

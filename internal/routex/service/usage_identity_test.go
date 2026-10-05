@@ -5,6 +5,7 @@ import (
 	"slices"
 	"strings"
 	"testing"
+	"time"
 
 	"gorm.io/gorm"
 
@@ -85,11 +86,17 @@ func TestUsagePersonalRequiresCurrentExactEnabledActorWithoutPermissionExpansion
 	for _, test := range []struct {
 		actor string
 		found bool
+		birth bool
 		want  error
 	}{
-		{"usr_exact", true, nil}, {"USR_EXACT", true, apperrors.ErrUnauthorized}, {"usr_exact", false, apperrors.ErrUnauthorized},
+		{"usr_exact", true, true, nil}, {"USR_EXACT", true, true, apperrors.ErrUnauthorized}, {"usr_exact", false, true, apperrors.ErrUnauthorized},
+		{"usr_exact", true, false, apperrors.ErrUnauthorized},
 	} {
-		t.Run(test.actor+"/"+map[bool]string{true: "present", false: "unavailable"}[test.found], func(t *testing.T) {
+		name := test.actor + "/" + map[bool]string{true: "present", false: "unavailable"}[test.found]
+		if test.found && !test.birth {
+			name += "/missing_birth"
+		}
+		t.Run(name, func(t *testing.T) {
 			db, err := gorm.Open(personalLifecycleMySQLDialector{}, &gorm.Config{DryRun: true, DisableAutomaticPing: true})
 			if err != nil {
 				t.Fatal(err)
@@ -107,6 +114,9 @@ func TestUsagePersonalRequiresCurrentExactEnabledActorWithoutPermissionExpansion
 				}
 				if test.found {
 					*actor = entity.User{ID: "usr_exact", Role: entity.RoleMember}
+					if test.birth {
+						actor.CreatedAt = time.Date(2026, time.October, 1, 0, 0, 0, 0, time.UTC)
+					}
 					query.RowsAffected = 1
 				} else {
 					_ = query.AddError(gorm.ErrRecordNotFound)

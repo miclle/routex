@@ -1,3 +1,4 @@
+import type { RegistrationApprovalSummary } from './registration-approval'
 import type { Member } from './governance'
 import type { MemberRecentLogin } from './member-recent-login'
 import type { MonthlyAccount } from './overview'
@@ -14,6 +15,7 @@ export type MemberListTeams =
   | { status: 'not_authorized' | 'overflow' | 'unavailable'; items: null }
 export type MemberListItem = Member &
   MemberRecentLogin & {
+    registration_approval: RegistrationApprovalSummary
     updated_at: string
     total_personal_keys: string
     personal_policy_stored: boolean

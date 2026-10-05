@@ -9,7 +9,8 @@ import (
 
 func TestPersonalModelGrantPublicationRequiresOriginalSource(t *testing.T) {
 	source := "mar_original"
-	data := &runtimeData{Users: []entity.User{{ID: "usr_one"}}, Models: []entity.Model{{ID: "mdl_one", Status: "active"}}, Grants: []entity.UserModelGrant{{UserID: "usr_one", ModelID: "mdl_one", SourceRequestID: &source}}}
+	createdAt := time.Date(2026, time.October, 1, 0, 0, 0, 0, time.UTC)
+	data := &runtimeData{Users: []entity.User{{ID: "usr_one", CreatedAt: createdAt}}, Models: []entity.Model{{ID: "mdl_one", Status: "active"}}, Grants: []entity.UserModelGrant{{UserID: "usr_one", ModelID: "mdl_one", SourceRequestID: &source}}}
 	s := &Service{runtime: &gatewayRuntime{}}
 	publish := func() { s.runtime.auth.Store(buildRuntimeAuthorization(data, time.Now().Add(time.Minute))) }
 	publish()
@@ -18,6 +19,25 @@ func TestPersonalModelGrantPublicationRequiresOriginalSource(t *testing.T) {
 	}
 	if s.RuntimePersonalModelGrantApplied("usr_one", "mdl_one", "mar_other") {
 		t.Fatal("different receipt borrowed original source")
+	}
+	data.Users[0].CreatedAt = time.Time{}
+	publish()
+	if s.RuntimePersonalModelGrantApplied("usr_one", "mdl_one", source) {
+		t.Fatal("missing account birth retained publication proof")
+	}
+	data.Users[0].CreatedAt = createdAt
+	applicationID := "raa_01j00000000000000000000000"
+	data.Users[0].ApprovalApplicationID = &applicationID
+	data.ApprovalApplications = []entity.RegistrationApprovalApplication{{ID: applicationID, UserID: "usr_one", UserCreatedAt: createdAt, CreatedAt: createdAt, State: "pending", Revision: memberRoleBaseline}}
+	publish()
+	if s.RuntimePersonalModelGrantApplied("usr_one", "mdl_one", source) {
+		t.Fatal("pending applicant retained publication proof")
+	}
+	data.Users[0].ApprovalApplicationID = nil
+	data.ApprovalApplications = nil
+	publish()
+	if !s.RuntimePersonalModelGrantApplied("usr_one", "mdl_one", source) {
+		t.Fatal("restored unmanaged account lost original-source publication proof")
 	}
 	data.Grants[0].SourceRequestID = nil
 	publish()

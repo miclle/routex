@@ -19,6 +19,9 @@ import { verifyMFALogin, MFARequestError } from '@/api/mfa'
 import MFAChallengeForm from './mfa-challenge'
 
 export default function AuthPage({ mode }: { mode: 'login' | 'setup' | 'register' }) {
+  return <Auth key={mode} mode={mode} />
+}
+function Auth({ mode }: { mode: 'login' | 'setup' | 'register' }) {
   useTranslation()
   const site = useSite()
   const name = site.data?.name || 'RouteX'
@@ -36,18 +39,19 @@ export default function AuthPage({ mode }: { mode: 'login' | 'setup' | 'register
   const queryClient = useQueryClient()
   const [validation, setValidation] = useState('')
   const [pending, setPending] = useState(false)
+  const [approvalPending, setApprovalPending] = useState(false)
   const [errorStatus, setErrorStatus] = useState<number | null>(null)
   const [challenge, setChallenge] = useState<MFAChallenge | null>(null)
   const attempt = useRef(0)
   const request = useRef<AbortController | null>(null)
   const locked = useRef(false)
-  useEffect(
-    () => () => {
-      attempt.current++
+  useEffect(() => {
+    const counter = attempt
+    return () => {
+      counter.current++
       request.current?.abort()
-    },
-    [],
-  )
+    }
+  }, [])
   async function complete(session: Session, turn: number) {
     await queryClient.cancelQueries({ predicate: (query) => query.queryKey[0] !== 'site' })
     if (turn !== attempt.current) return
@@ -78,11 +82,16 @@ export default function AuthPage({ mode }: { mode: 'login' | 'setup' | 'register
       const result = isSetup
         ? await setup(input)
         : isRegister
-          ? await register(input)
+          ? await register(input, request.current.signal)
           : await login({ email: input.email, password: input.password }, request.current.signal)
       if (turn !== attempt.current) return
       if ('kind' in result) {
-        if (result.kind === 'challenge') {
+        if (result.kind === 'approval_pending') {
+          setChallenge(null)
+          setValidation('')
+          setErrorStatus(null)
+          setApprovalPending(true)
+        } else if (result.kind === 'challenge') {
           await queryClient.cancelQueries({ queryKey: sessionKey })
           if (turn !== attempt.current) return
           queryClient.setQueryData(sessionKey, null)
@@ -177,7 +186,7 @@ export default function AuthPage({ mode }: { mode: 'login' | 'setup' | 'register
           ? t('registration_is_closed_contact_an_administrator_abd22')
           : authError(errorStatus)
       : '')
-  if (isRegister && (!registration.data?.enabled || registration.isPending))
+  if (isRegister && !approvalPending && (!registration.data?.enabled || registration.isPending))
     return (
       <main className="flex min-h-screen items-center justify-center p-6">
         <div className="absolute right-6 top-6">
@@ -236,7 +245,14 @@ export default function AuthPage({ mode }: { mode: 'login' | 'setup' | 'register
               {t(notice)}
             </p>
           )}
-          {challenge ? (
+          {approvalPending ? (
+            <div className="space-y-4" role="status">
+              <p>{t('registrationApprovalPending')}</p>
+              <Link to="/login" className="block underline">
+                {t('back_to_sign_in_f2fe4')}
+              </Link>
+            </div>
+          ) : challenge ? (
             <MFAChallengeForm
               challenge={challenge}
               busy={pending}

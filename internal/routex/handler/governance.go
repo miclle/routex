@@ -10,12 +10,7 @@ import (
 	"github.com/miclle/routex/internal/routex/service"
 )
 
-type RegistrationResponse struct {
-	Enabled bool `json:"enabled"`
-}
-type UpdateRegistrationRequest struct {
-	Enabled *bool `json:"enabled"`
-}
+type RegistrationResponse = service.RegistrationStatus
 type RegisterRequest struct {
 	Email    string `json:"email"`
 	Password string `json:"password"`
@@ -95,28 +90,28 @@ func roleResponse(item service.RoleRecord) *RoleResponse {
 }
 
 func (ctrl *Ctrl) RegistrationStatus(c *fox.Context) (*RegistrationResponse, error) {
-	enabled, err := ctrl.service.RegistrationEnabled(c.Request.Context())
-	if err != nil {
-		return nil, err
-	}
-	return &RegistrationResponse{Enabled: enabled}, nil
-}
-func (ctrl *Ctrl) UpdateRegistration(c *fox.Context, request UpdateRegistrationRequest) (*RegistrationResponse, error) {
-	if request.Enabled == nil {
+	if c.Request.URL.RawQuery != "" {
 		return nil, apperrors.ErrBadRequest
 	}
-	if err := ctrl.service.SetRegistrationEnabled(c.Request.Context(), currentAuthentication(c).User.ID, *request.Enabled); err != nil {
-		return nil, err
-	}
-	return &RegistrationResponse{Enabled: *request.Enabled}, nil
+	return ctrl.service.PublicRegistrationStatus(c.Request.Context())
+}
+
+// The root replaces the legacy policy route with SetRegistrationPolicy; this
+// compatibility method uses the same strict reviewed transport, never BindJSON.
+func (ctrl *Ctrl) UpdateRegistration(c *fox.Context) (*service.RegistrationPolicyResult, error) {
+	return ctrl.SetRegistrationPolicy(c)
 }
 func (ctrl *Ctrl) Register(c *fox.Context, request RegisterRequest) error {
-	auth, err := ctrl.service.Register(c.Request.Context(), request.Email, request.Password, request.Name)
+	result, err := ctrl.service.RegisterWithApproval(c.Request.Context(), request.Email, request.Password, request.Name)
 	if err != nil {
 		return err
 	}
-	setSessionCookie(c, auth)
-	c.JSON(http.StatusCreated, sessionResponse(auth))
+	if result.ApprovalPending {
+		ctrl.registrationPending(c)
+		return nil
+	}
+	setSessionCookie(c, result.Authentication)
+	c.JSON(http.StatusCreated, sessionResponse(result.Authentication))
 	return nil
 }
 func (ctrl *Ctrl) CurrentPermissions(c *fox.Context) (*PermissionResponse, error) {
@@ -148,7 +143,7 @@ func (ctrl *Ctrl) GetMember(c *fox.Context, request MemberPath) (*MemberDetailRe
 	if err != nil {
 		return nil, err
 	}
-	return &MemberDetailResponse{MemberResponse: *memberResponse(item.MemberRecord), LastLoginAt: item.LastLoginAt, LastLoginStatus: item.LastLoginStatus}, nil
+	return &MemberDetailResponse{MemberResponse: *memberResponse(item.MemberRecord), LastLoginAt: item.LastLoginAt, LastLoginStatus: item.LastLoginStatus, RegistrationApproval: item.RegistrationApproval}, nil
 }
 func (ctrl *Ctrl) CreateMember(c *fox.Context, request CreateMemberRequest) error {
 	item, err := ctrl.service.CreateMember(c.Request.Context(), currentAuthentication(c).User.ID, request.Email, request.Password, request.Name, request.Role)

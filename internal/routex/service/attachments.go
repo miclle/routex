@@ -4,7 +4,6 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
-	"errors"
 	"strings"
 	"time"
 
@@ -49,17 +48,14 @@ func attachmentView(row entity.StorageObject) AttachmentView {
 }
 
 func activeAttachmentOwner(db *gorm.DB, actor string) error {
-	var user entity.User
-	if err := db.First(&user, "id = ? AND disabled = ?", actor, false).Error; err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return apperrors.ErrUnauthorized
-		}
-		return err
-	}
-	return nil
+	_, err := registrationAdmittedUser(db, actor, false)
+	return err
 }
 
 func projectAttachmentManager(db *gorm.DB, actor, projectID string, requireActive, lock bool) error {
+	if _, err := registrationAdmittedUser(db, actor, lock); err != nil {
+		return err
+	}
 	var managers int64
 	if err := db.Table("project_managers m").Joins("JOIN users u ON u.id = m.user_id").Where("m.project_id = ? AND m.user_id = ? AND u.disabled = ?", projectID, actor, false).Count(&managers).Error; err != nil {
 		return err

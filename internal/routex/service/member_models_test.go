@@ -118,39 +118,39 @@ func TestMemberModelsGrantDiffPreservesProvenanceAndExplicitEmpty(t *testing.T) 
 func TestMemberModelsCompletePublicationProof(t *testing.T) {
 	now := time.Now().UTC()
 	user := entity.User{ID: "usr_subject", Role: entity.RoleMember, CreatedAt: now.Add(-time.Hour), PersonalGrantRevision: strings.Repeat("a", 64)}
-	svc := &Service{runtime: &gatewayRuntime{}}
+	svc := &Service{runtime: &gatewayRuntime{done: make(chan struct{})}}
 	publish := func(grants []entity.UserModelGrant) *runtimeAuthorization {
 		auth := buildRuntimeAuthorization(&runtimeData{Users: []entity.User{user}, Grants: grants}, time.Now().Add(time.Minute))
 		svc.runtime.auth.Store(auth)
 		return auth
 	}
 	auth := publish(nil)
-	if status, applied := svc.memberModelsApplication(user, nil, auth); status != "applied" || applied == nil || !*applied {
+	if status, applied := svc.memberModelsApplication(user, nil, auth, nil); status != "applied" || applied == nil || !*applied {
 		t.Fatal(status, applied)
 	}
 	grant := entity.UserModelGrant{UserID: user.ID, ModelID: "mdl_retained", CreatedAt: now}
 	auth = publish([]entity.UserModelGrant{grant})
-	if status, applied := svc.memberModelsApplication(user, []entity.UserModelGrant{grant}, auth); status != "applied" || !*applied {
+	if status, applied := svc.memberModelsApplication(user, []entity.UserModelGrant{grant}, auth, nil); status != "applied" || !*applied {
 		t.Fatal(status, applied)
 	}
 	for _, change := range []func(*entity.User){func(u *entity.User) { u.ID = "USR_subject" }, func(u *entity.User) { u.CreatedAt = u.CreatedAt.Add(time.Second) }, func(u *entity.User) { u.PersonalGrantRevision = strings.Repeat("b", 64) }, func(u *entity.User) { u.Disabled = true }, func(u *entity.User) { u.OffboardedAt = &now }} {
 		subject := user
 		change(&subject)
-		if status, applied := svc.memberModelsApplication(subject, []entity.UserModelGrant{grant}, auth); status != "not_applied" || applied == nil || *applied {
+		if status, applied := svc.memberModelsApplication(subject, []entity.UserModelGrant{grant}, auth, nil); status != "not_applied" || applied == nil || *applied {
 			t.Fatal(status, applied)
 		}
 	}
 	source := "mar_proof"
 	changed := grant
 	changed.SourceRequestID = &source
-	if _, value := svc.memberModelsApplication(user, []entity.UserModelGrant{changed}, auth); value == nil || *value {
+	if _, value := svc.memberModelsApplication(user, []entity.UserModelGrant{changed}, auth, nil); value == nil || *value {
 		t.Fatal("grant provenance not covered")
 	}
 	svc.invalidatePersonalModelGrants(user.ID)
 	if runtimeDenied(&svc.runtime.deniedUsers, user.ID) || !runtimeDenied(&svc.runtime.deniedPersonalGrants, user.ID) {
 		t.Fatal("Personal reduction leaked into Team User authority")
 	}
-	if _, value := svc.memberModelsApplication(user, []entity.UserModelGrant{grant}, auth); value == nil || *value {
+	if _, value := svc.memberModelsApplication(user, []entity.UserModelGrant{grant}, auth, nil); value == nil || *value {
 		t.Fatal("reduction fence omitted")
 	}
 	generation := svc.runtime.epoch.Load()
@@ -160,7 +160,7 @@ func TestMemberModelsCompletePublicationProof(t *testing.T) {
 		t.Fatal("older publication cleared newer reduction")
 	}
 	auth.ValidUntil = now.Add(-time.Second)
-	if status, value := svc.memberModelsApplication(user, nil, auth); status != "unavailable" || value != nil {
+	if status, value := svc.memberModelsApplication(user, nil, auth, nil); status != "unavailable" || value != nil {
 		t.Fatal(status, value)
 	}
 }

@@ -351,6 +351,9 @@ func (s *Service) SetModelGrants(ctx context.Context, actorID, modelID string, u
 }
 
 func (s *Service) ListVisibleModels(ctx context.Context, userID string) ([]VisibleModel, error) {
+	if _, err := registrationAdmittedUser(s.authDB(ctx), userID, false); err != nil {
+		return nil, catalogError(err)
+	}
 	result := []VisibleModel{}
 	err := s.authDB(ctx).Table("models m").Select("m.id, n.name, m.status").Joins("JOIN model_names n ON n.current_model_id = m.id").Joins("JOIN user_model_grants g ON g.model_id = m.id").Where("g.user_id = ? AND m.status = ?", userID, "active").Order("n.name").Scan(&result).Error
 	if err != nil || len(result) == 0 {

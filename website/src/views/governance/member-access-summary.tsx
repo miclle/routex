@@ -1,5 +1,7 @@
 import { useTranslation } from 'react-i18next'
 import { QueryState } from '@/components/app/CatalogUI'
+import { Button } from '@/components/ui/button'
+import { RegistrationApprovalStatus } from './member-approval'
 import { Tooltip } from '@/components/ui/tooltip'
 import type { MemberDetail } from '@/types/member-recent-login'
 import type { MemberAccessRead } from './member-access-summary-read'
@@ -29,9 +31,13 @@ export function MemberAccessRoleSummary({
 export default function MemberAccessSummary({
   read,
   member,
+  canApprove = false,
+  onApproval,
 }: {
   read: MemberAccessRead
   member: MemberDetail
+  canApprove?: boolean
+  onApproval?: (trigger: HTMLButtonElement) => void
 }) {
   const { t, i18n } = useTranslation('governance')
   const data = read.data
@@ -116,6 +122,34 @@ export default function MemberAccessSummary({
                   : t('common.active')}
             </dd>
           </div>
+          <div>
+            <dt className="text-muted-foreground">{t('registrationApproval.status')}</dt>
+            <dd>
+              <RegistrationApprovalStatus summary={member.registration_approval} />
+            </dd>
+          </div>
+          <div>
+            <dt className="text-muted-foreground">{t('registrationApproval.admission')}</dt>
+            <dd>
+              {t(
+                member.registration_approval.admission_eligible
+                  ? 'registrationApproval.eligible'
+                  : 'registrationApproval.ineligible',
+              )}
+            </dd>
+          </div>
+          {canApprove && onApproval && (
+            <div>
+              <Button
+                variant="outline"
+                onClick={(event) => {
+                  if (read.current()) onApproval(event.currentTarget)
+                }}
+              >
+                {t('registrationApproval.review')}
+              </Button>
+            </div>
+          )}
         </dl>
       )}
     </section>

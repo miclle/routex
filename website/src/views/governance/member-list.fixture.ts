@@ -11,6 +11,10 @@ export function memberListRow(base: Partial<Member> = {}): MemberListItem {
     offboarded_at: null,
     created_at: '2026-09-23T00:00:00Z',
     role_ids: [],
+    registration_approval: {
+      status: 'not_required',
+      admission_eligible: !(base.disabled || base.offboarded_at),
+    },
     ...base,
     updated_at: '2026-10-04T00:00:00Z',
     last_login_at: null,

@@ -191,6 +191,7 @@ beforeEach(async () => {
         role: 'member',
         role_ids: [],
         offboarded_at: null,
+        registration_approval: { status: 'not_required', admission_eligible: false },
         last_login_at: recentLogin,
         last_login_status: recentLogin ? 'recorded' : 'historical_unavailable',
         disabled: false,
@@ -821,6 +822,7 @@ it.each(['detail', 'Session'])(
       offboarded_at: null,
       created_at: '2026-09-23T00:00:00Z',
       role_ids: [],
+      registration_approval: { status: 'not_required', admission_eligible: false },
       last_login_at: '2026-10-03T08:19:00Z',
       last_login_status: 'recorded',
     })
@@ -922,6 +924,7 @@ it('does not reuse old recorded login through two same-millisecond successful Se
       offboarded_at: null,
       created_at: '2026-09-23T00:00:00Z',
       role_ids: [],
+      registration_approval: { status: 'not_required', admission_eligible: false },
       last_login_at: '2026-10-03T08:19:00Z',
       last_login_status: 'recorded',
     })

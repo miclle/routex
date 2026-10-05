@@ -358,7 +358,10 @@ func (s *Service) EmergencyOffboarding(ctx context.Context, actorID, userID stri
 			if err := validateOffboardingTarget(inventory, actorID); err != nil {
 				return err
 			}
-			assignments = emergencyOffboardingAssignments(inventory, actorID, assignments)
+			assignments, err = prepareEmergencyOffboardingAssignments(tx, inventory, actorID, assignments)
+			if err != nil {
+				return err
+			}
 		}
 		if err := lockOffboardingUsers(tx, actorID, userID, assignments); err != nil {
 			return err

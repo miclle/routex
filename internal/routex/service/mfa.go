@@ -77,13 +77,9 @@ func mfaFailure(tx *gorm.DB, state *entity.UserMFA, now time.Time) error {
 	return tx.Save(state).Error
 }
 func mfaActiveUser(tx *gorm.DB, userID string) (entity.User, error) {
-	var user entity.User
-	err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).Where("id = ?", userID).First(&user).Error
-	if errors.Is(err, gorm.ErrRecordNotFound) || user.Disabled {
-		return user, apperrors.ErrUnauthorized
-	}
-	return user, err
+	return registrationAdmittedUser(tx, userID, true)
 }
+
 func mfaSession(tx *gorm.DB, auth *Authentication, now time.Time) error {
 	if auth == nil {
 		return apperrors.ErrUnauthorized
@@ -99,8 +95,8 @@ func (s *Service) mfaPassword(ctx context.Context, userID, password string) (str
 	if !validPassword(password) {
 		return "", apperrors.ErrUnauthorized
 	}
-	var user entity.User
-	if err := s.authDB(ctx).Where("id = ? AND disabled = ?", userID, false).First(&user).Error; err != nil {
+	user, err := registrationAdmittedUser(s.authDB(ctx), userID, false)
+	if err != nil {
 		return "", keyServiceError(err)
 	}
 	if bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(password)) != nil {

@@ -170,6 +170,7 @@ beforeEach(async () => {
         offboarded_at: state.offboarded_at,
         role_ids: [],
         created_at: '2026-09-23T00:00:00Z',
+        registration_approval: { status: 'not_required', admission_eligible: false },
         last_login_at: null,
         last_login_status: 'historical_unavailable',
       }

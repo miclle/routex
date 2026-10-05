@@ -10,6 +10,7 @@ import (
 	"strings"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/miclle/routex/internal/routex/entity"
 	apperrors "github.com/miclle/routex/internal/routex/errors"
@@ -21,11 +22,15 @@ import (
 )
 
 type effectiveSQLFixture struct {
-	data        *memberEffectiveModelsData
-	queries     []string
-	options     driver.TxOptions
-	permissions map[string]bool
-	failTable   string
+	data         *memberEffectiveModelsData
+	queries      []string
+	options      driver.TxOptions
+	permissions  map[string]bool
+	failTable    string
+	actor        *entity.User
+	actorID      string
+	applications []entity.RegistrationApprovalApplication
+	writes       int
 }
 type effectiveSQLConnector struct{ fixture *effectiveSQLFixture }
 
@@ -50,6 +55,10 @@ func (c effectiveSQLConnection) Begin() (driver.Tx, error) {
 func (c effectiveSQLConnection) BeginTx(_ context.Context, opts driver.TxOptions) (driver.Tx, error) {
 	c.fixture.options = opts
 	return adminOverviewTransaction{}, nil
+}
+func (c effectiveSQLConnection) ExecContext(context.Context, string, []driver.NamedValue) (driver.Result, error) {
+	c.fixture.writes++
+	return nil, errors.New("read-only effective models wrote state")
 }
 func effectiveSQLRows[T any](values []T) (driver.Rows, error) {
 	var zero T
@@ -84,10 +93,28 @@ func (c effectiveSQLConnection) QueryContext(ctx context.Context, q string, args
 	}
 	switch {
 	case strings.Contains(q, `FROM "users"`):
-		if args[0].Value == "usr_reader" {
+		readerID := f.actorID
+		if readerID == "" {
+			readerID = "usr_reader"
+		}
+		if args[0].Value == readerID {
+			if f.actor != nil {
+				return effectiveSQLRows([]entity.User{*f.actor})
+			}
 			return effectiveSQLRows([]entity.User{{ID: "usr_reader", Role: entity.RoleAdmin, CreatedAt: d.Subject.CreatedAt}})
 		}
-		return effectiveSQLRows([]entity.User{d.Subject})
+		return memberListAdmissionUserRows(q, []entity.User{d.Subject})
+	case strings.Contains(q, `FROM "registration_approval_applications"`):
+		apps := []entity.RegistrationApprovalApplication{}
+		for _, app := range f.applications {
+			for _, arg := range args {
+				if arg.Value == app.ID {
+					apps = append(apps, app)
+					break
+				}
+			}
+		}
+		return effectiveSQLRows(apps)
 	case strings.Contains(q, "role_permissions AS permission"):
 		for _, a := range args {
 			if permission, ok := a.Value.(string); ok && f.permissions[permission] {
@@ -129,9 +156,14 @@ func (c effectiveSQLConnection) QueryContext(ctx context.Context, q string, args
 	return nil, fmt.Errorf("unexpected selected query %s", q)
 }
 func TestMemberEffectiveModelsMeasuredReadBudgetAndUnauthorizedTeamOmission(t *testing.T) {
-	for _, name := range []string{"personal", "full_one", "full_twenty", "mixed_egress", "write_only", "team_only", "metadata_error", "overflow_models", "overflow_teams", "overflow_grants"} {
+	for _, name := range []string{"personal", "direct_egress", "private_metadata", "full_one", "full_twenty", "mixed_egress", "write_only", "team_only", "metadata_error", "overflow_models", "overflow_teams", "overflow_grants"} {
 		t.Run(name, func(t *testing.T) {
 			_, data := effectiveModelsFixture(t)
+			if name == "direct_egress" {
+				for i := range data.Metadata.Connections {
+					data.Metadata.Connections[i].EgressMode = "direct"
+				}
+			}
 			if name == "mixed_egress" {
 				id := "egr_one"
 				data.Metadata.Connections[0].EgressMode = "proxy"
@@ -173,6 +205,10 @@ func TestMemberEffectiveModelsMeasuredReadBudgetAndUnauthorizedTeamOmission(t *t
 				data.TeamGrants = make([]entity.TeamModelGrant, 5001)
 			}
 			f := &effectiveSQLFixture{data: data, permissions: map[string]bool{"members.read": true, "teams.read_all": true, "providers.read": true, "prices.read": true}}
+			if name == "private_metadata" {
+				f.permissions["providers.read"] = false
+				f.permissions["prices.read"] = false
+			}
 			if name == "personal" {
 				f.permissions["teams.read_all"] = false
 			}
@@ -193,7 +229,7 @@ func TestMemberEffectiveModelsMeasuredReadBudgetAndUnauthorizedTeamOmission(t *t
 			}
 			s := &Service{db: db}
 			result, err := s.MemberEffectiveModels(context.Background(), "usr_reader", data.Metadata.Subject.ID)
-			if f.options.Isolation != driver.IsolationLevel(sql.LevelRepeatableRead) || !f.options.ReadOnly {
+			if f.options.Isolation != driver.IsolationLevel(sql.LevelRepeatableRead) || !f.options.ReadOnly || f.writes != 0 {
 				t.Fatal(f.options)
 			}
 			switch name {
@@ -217,6 +253,15 @@ func TestMemberEffectiveModelsMeasuredReadBudgetAndUnauthorizedTeamOmission(t *t
 				t.Fatal(err, f.queries)
 			}
 			want := 21
+			if name == "direct_egress" {
+				want = 20
+			}
+			if name == "private_metadata" {
+				want = 18
+				if result.Items[0].Providers != nil || result.Items[0].InputPrice.State != "unauthorized" || result.Items[0].OutputPrice.State != "unauthorized" {
+					t.Fatal("independent metadata gates", result)
+				}
+			}
 			if name == "mixed_egress" {
 				want = 22
 			}
@@ -282,5 +327,100 @@ func TestExistingMemberModelsSelectedHydrationRetainsReadOnlyContract(t *testing
 	}
 	if !f.options.ReadOnly || f.options.Isolation != driver.IsolationLevel(sql.LevelRepeatableRead) {
 		t.Fatal(f.options)
+	}
+}
+
+func TestMemberEffectiveModelsAdmissionProofIsCompleteAndReadOnce(t *testing.T) {
+	for _, name := range []string{"approved", "pending", "rejected", "missing", "wrong_birth", "wrong_user", "wrong_link", "invalid_link", "no_birth", "disabled", "offboarded", "actor_alias", "outage", "read_denied"} {
+		t.Run(name, func(t *testing.T) {
+			_, data := effectiveModelsFixture(t)
+			id := "raa_01j00000000000000000000000"
+			actor := entity.User{ID: "usr_reader", Role: entity.RoleAdmin, CreatedAt: data.Metadata.Subject.CreatedAt, ApprovalApplicationID: &id}
+			app := approvedMemberListApplication(actor, id)
+			f := &effectiveSQLFixture{data: data, actor: &actor, actorID: actor.ID, applications: []entity.RegistrationApprovalApplication{app}, permissions: map[string]bool{"members.read": true, "teams.read_all": true, "providers.read": true, "prices.read": true}}
+			switch name {
+			case "pending":
+				f.applications[0].State = "pending"
+				f.applications[0].DecidedAt = nil
+				f.applications[0].DecisionActorID = nil
+				f.applications[0].DecisionReason = nil
+			case "rejected":
+				f.applications[0].State = "rejected"
+			case "missing":
+				f.applications = nil
+			case "wrong_birth":
+				f.applications[0].UserCreatedAt = actor.CreatedAt.Add(time.Microsecond)
+			case "wrong_user":
+				f.applications[0].UserID = "usr_foreign"
+			case "wrong_link":
+				f.applications[0].ID = strings.ToUpper(id)
+			case "invalid_link":
+				id += " "
+				actor.ApprovalApplicationID = &id
+			case "no_birth":
+				actor.CreatedAt = time.Time{}
+			case "disabled":
+				actor.Disabled = true
+			case "offboarded":
+				actor.OffboardedAt = &app.CreatedAt
+			case "actor_alias":
+				f.actorID = strings.ToUpper(actor.ID)
+			case "outage":
+				f.failTable = `FROM "registration_approval_applications"`
+			case "read_denied":
+				f.permissions["members.read"] = false
+			}
+			if name == "approved" {
+				subjectID := "raa_01j00000000000000000000001"
+				data.Metadata.Subject.ApprovalApplicationID = &subjectID
+				f.applications = append(f.applications, approvedMemberListApplication(data.Metadata.Subject, subjectID))
+				for i := range data.Metadata.Connections {
+					data.Metadata.Connections[i].EgressMode = "direct"
+				}
+			}
+			pool := sql.OpenDB(effectiveSQLConnector{f})
+			t.Cleanup(func() { _ = pool.Close() })
+			db, err := gorm.Open(postgres.New(postgres.Config{Conn: pool}), &gorm.Config{DisableAutomaticPing: true})
+			if err != nil {
+				t.Fatal(err)
+			}
+			result, err := (&Service{db: db}).MemberEffectiveModels(context.Background(), f.actorID, data.Metadata.Subject.ID)
+			if f.writes != 0 || !f.options.ReadOnly || f.options.Isolation != driver.IsolationLevel(sql.LevelRepeatableRead) {
+				t.Fatal("read transaction changed", f.options, f.writes)
+			}
+			if name == "approved" {
+				actorReads, appReads, permissionReads := 0, 0, 0
+				for _, q := range f.queries {
+					if strings.Contains(q, `FROM "users"`) && strings.Contains(q, "SELECT *") {
+						actorReads++
+					}
+					if strings.Contains(q, `FROM "registration_approval_applications"`) {
+						appReads++
+					}
+					if strings.Contains(q, "role_permissions AS permission") {
+						permissionReads++
+					}
+				}
+				if err != nil || result == nil || len(f.queries) != 22 || actorReads != 1 || appReads != 2 || permissionReads != 4 || result.Items[0].Availability != "unknown" {
+					t.Fatal("managed source proof", err, len(f.queries), actorReads, appReads, permissionReads)
+				}
+			} else {
+				want := apperrors.ErrUnauthorized
+				if name == "read_denied" {
+					want = apperrors.ErrForbidden
+				}
+				if err == nil || result != nil || name != "outage" && !errors.Is(err, want) {
+					t.Fatal("unproven actor received catalog", name, err)
+				}
+				for _, q := range f.queries {
+					if strings.Contains(q, `FROM "user_model_grants"`) || strings.Contains(q, "team_memberships") || strings.Contains(q, `FROM "providers"`) {
+						t.Fatal("private source read after denial", name)
+					}
+					if name != "read_denied" && strings.Contains(q, "role_permissions AS permission") {
+						t.Fatal("unproven actor queried permissions", name)
+					}
+				}
+			}
+		})
 	}
 }

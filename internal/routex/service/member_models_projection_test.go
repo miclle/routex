@@ -14,6 +14,7 @@ import (
 func memberModelsProjectionFixture(t *testing.T) (*Service, *memberModelsData, *runtimeData) {
 	t.Helper()
 	svc, data, _ := runtimeFixture(t, "https://example.invalid/v1")
+	svc.runtime.done = make(chan struct{})
 	data.Users[0].CreatedAt = time.Now().UTC().Add(-time.Hour)
 	data.Users[0].Role = entity.RoleMember
 	data.Users[0].PersonalGrantRevision = strings.Repeat("a", 64)

@@ -12,6 +12,7 @@ type memberModelsData struct {
 	EgressSetting                      entity.EgressSetting
 	Egresses                           []entity.Egress
 	Subject                            entity.User
+	Applications                       map[string]entity.RegistrationApprovalApplication
 	Grants                             []entity.UserModelGrant
 	Models                             []entity.Model
 	Names                              []entity.ModelName

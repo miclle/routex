@@ -103,9 +103,9 @@ func TestMemberStateSQLSnapshotBoundAndExactAuthority(t *testing.T) {
 			}
 			result, err := s.GetMemberState(context.Background(), "usr_admin", "usr_target")
 			if mode == "reader" || mode == "writer" {
-				expected := 3
+				expected := 4
 				if mode == "reader" {
-					expected = 4
+					expected = 6
 				}
 				if err != nil || result == nil || len(f.queries) != expected || len(f.writes) != 0 || len(f.transactions) != 1 || !f.transactions[0].ReadOnly {
 					t.Fatal("bounded RR read", err, len(f.queries))
@@ -125,7 +125,7 @@ func TestMemberStateSQLSnapshotBoundAndExactAuthority(t *testing.T) {
 						userReads++
 					}
 				}
-				if userReads != 1 || len(f.queries) != 3 {
+				if userReads != 3 || len(f.queries) != 5 {
 					t.Fatal("private target read after denied permissions", userReads, len(f.queries))
 				}
 			}

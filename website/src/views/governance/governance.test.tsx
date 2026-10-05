@@ -35,6 +35,7 @@ let session: Session
 let target: Member
 let roles: PlatformRole[]
 let roleETag: string
+let registrationETag: string
 let registration: boolean
 let failures: Record<string, number>
 const oldAdapter = client.defaults.adapter
@@ -43,6 +44,7 @@ beforeEach(() => {
   failures = {}
   roleETag = 'a'.repeat(64)
   registration = false
+  registrationETag = 'a'.repeat(64)
   permissions = [
     'members.read',
     'members.write',
@@ -116,6 +118,7 @@ beforeEach(() => {
       response.data = {
         ...structuredClone(target),
         offboarded_at: target.offboarded_at ?? null,
+        registration_approval: { status: 'not_required', admission_eligible: false },
         last_login_at: null,
         last_login_status: 'historical_unavailable',
       }
@@ -181,11 +184,33 @@ beforeEach(() => {
         items: structuredClone(roles),
         available_permissions: ['providers.read', 'providers.write', 'members.read'],
       }
-    if (key === 'get /auth/registration' || key === 'get /admin/registration')
-      response.data = { enabled: registration }
+    if (key === 'get /auth/registration')
+      response.data = { enabled: registration, approval_required: false }
+    if (key === 'get /admin/registration') {
+      response.data = {
+        enabled: registration,
+        approval_required: false,
+        review_etag: registrationETag,
+      }
+      response.headers.set('ETag', `"${registrationETag}"`)
+    }
     if (key === 'patch /admin/registration') {
-      registration = JSON.parse(config.data).enabled
-      response.data = { enabled: registration }
+      const input = JSON.parse(config.data)
+      expect(input).toEqual({
+        enabled: true,
+        approval_required: false,
+        reason: 'Reviewed new registration policy',
+      })
+      expect(config.headers.get('If-Match')).toBe(`"${'a'.repeat(64)}"`)
+      registration = input.enabled
+      registrationETag = 'b'.repeat(64)
+      response.data = {
+        confirmation: 'current_registration_policy',
+        enabled: registration,
+        approval_required: false,
+        review_etag: 'b'.repeat(64),
+      }
+      response.headers.set('ETag', `"${'b'.repeat(64)}"`)
     }
     if (key === 'patch /admin/members/usr_target') {
       const input = JSON.parse(config.data)
@@ -227,9 +252,10 @@ beforeEach(() => {
       response.data = structuredClone(roles.at(-1))
     }
     if (key === 'post /auth/register') {
+      response.status = 201
       const data = JSON.parse(config.data)
       session = {
-        user: { ...target, name: data.name, email: data.email, role: 'member' },
+        user: { id: target.id, name: data.name, email: data.email, role: 'member' },
         csrf_token: 'registered-csrf',
       }
       response.data = structuredClone(session)
@@ -502,9 +528,13 @@ describe('member governance', () => {
     await until(() => expect(container.textContent).toContain('Not enabled'))
     await click('Configure')
     await act(async () => document.querySelector<HTMLElement>('[role="switch"]')!.click())
+    await fillApprovalReason()
     await submit('Member registration settings')
+    await click('Confirm')
     await until(() =>
-      expect(container.textContent).toContain('Member registration settings saved.'),
+      expect(container.textContent).toContain(
+        'Current registration policy confirmed. Existing accounts and applications are unchanged.',
+      ),
     )
     expect(registration).toBe(true)
     expect(requests.find((r) => r.method === 'patch')?.headers.get('X-CSRF-Token')).toBe('csrf')
@@ -575,13 +605,19 @@ describe('member governance', () => {
     expect(document.querySelector('[role="switch"]')?.getAttribute('aria-label')).toBe(
       '开放邮箱注册',
     )
+    await fillApprovalReason()
     await submit('成员注册设置')
-    await until(() => expect(container.textContent).toContain('成员注册设置已保存。'))
+    await click('确认')
+    await until(() =>
+      expect(container.textContent).toContain('已确认当前注册策略。现有账号和申请保持原状态。'),
+    )
     expect(registration).toBe(true)
     await act(async () => {
       await i18n.changeLanguage('en')
     })
-    expect(container.textContent).toContain('Member registration settings saved.')
+    expect(container.textContent).toContain(
+      'Current registration policy confirmed. Existing accounts and applications are unchanged.',
+    )
     await click('Configure')
     expect(document.querySelector('[role="switch"]')?.getAttribute('aria-checked')).toBe('true')
     expect(requests.filter((request) => request.method === 'patch')).toHaveLength(1)
@@ -626,3 +662,15 @@ describe('Member detail fresh private authority', () => {
     )
   })
 })
+
+async function fillApprovalReason() {
+  const field = document.querySelector<HTMLTextAreaElement>('textarea')!
+  await act(async () => {
+    Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value')!.set!.call(
+      field,
+      'Reviewed new registration policy',
+    )
+    field.dispatchEvent(new Event('input', { bubbles: true }))
+    field.dispatchEvent(new Event('change', { bubbles: true }))
+  })
+}

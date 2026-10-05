@@ -1,5 +1,6 @@
 import MemberAccessSummary, { MemberAccessRoleSummary } from './member-access-summary'
 import { useMemberAccessSummary } from './member-access-summary-read'
+import MemberApproval from './member-approval'
 import MemberMetadata from './member-metadata'
 import MemberList from './member-list'
 import { getMemberList, validateMemberListChain } from '@/api/member-list'
@@ -131,6 +132,22 @@ function Members() {
   const teamRead = access.can('teams.read_all')
   const listOwner = JSON.stringify([actor, generation, filters, teamRead])
   const statusOwner = JSON.stringify([actor, filters])
+  const approvalOwner = JSON.stringify([
+    actor,
+    memberId ?? '',
+    memberId ? (params.get('tab') ?? 'overview') : filters,
+  ])
+  const [approvalSelection, setApprovalSelection] = useState<{
+    open: boolean
+    owner: string
+    target: string
+    trigger: HTMLButtonElement | null
+  } | null>(null)
+  const approvalFocusOwner = useRef(approvalOwner)
+  useLayoutEffect(() => {
+    approvalFocusOwner.current = approvalOwner
+  }, [approvalOwner])
+  if (approvalSelection && approvalSelection.owner !== approvalOwner) setApprovalSelection(null)
   const statusFocusOwner = useRef(statusOwner)
   useLayoutEffect(() => {
     statusFocusOwner.current = statusOwner
@@ -391,6 +408,7 @@ function Members() {
                   status: String(form.get('status') || ''),
                   role: String(form.get('role') || ''),
                 }
+                approvalFocusOwner.current = JSON.stringify([actor, '', nextFilters])
                 statusFocusOwner.current = JSON.stringify([actor, nextFilters])
                 setFilters(nextFilters)
               }}
@@ -451,6 +469,16 @@ function Members() {
                 teams: access.can('teams.read_all'),
                 calls: access.can('calls.read_all'),
                 limitsWrite: access.can('limits.users.write'),
+              }}
+              canApprove={authorized && access.can('members.approvals.write')}
+              onApproval={(item, trigger) => {
+                if (canListAct(item.id, 'members.approvals.write'))
+                  setApprovalSelection({
+                    open: true,
+                    owner: approvalOwner,
+                    target: item.id,
+                    trigger,
+                  })
               }}
               canAct={canListAct}
               canChange={canChange}
@@ -524,9 +552,10 @@ function Members() {
                     ? params.get('tab')!
                     : 'overview'
                 }
-                onValueChange={(value) =>
+                onValueChange={(value) => {
+                  approvalFocusOwner.current = JSON.stringify([actor, memberId, String(value)])
                   setParams(value === 'overview' ? {} : { tab: String(value) }, { replace: true })
-                }
+                }}
               >
                 <TabsList>
                   <TabsTrigger value="overview">{t('members.overview')}</TabsTrigger>
@@ -585,7 +614,24 @@ function Members() {
                     generation={generation}
                     authorized={!!current}
                   />
-                  <MemberAccessSummary read={accessSummary} member={current} />
+                  <MemberAccessSummary
+                    read={accessSummary}
+                    member={current}
+                    canApprove={authorized && access.can('members.approvals.write')}
+                    onApproval={(trigger) => {
+                      if (
+                        authorized &&
+                        access.can('members.approvals.write') &&
+                        accessSummary.current()
+                      )
+                        setApprovalSelection({
+                          open: true,
+                          owner: approvalOwner,
+                          target: current.id,
+                          trigger,
+                        })
+                    }}
+                  />
                   <MemberEffectiveModels
                     actor={actor}
                     target={memberId}
@@ -645,6 +691,39 @@ function Members() {
   return (
     <>
       {authorized ? page : unavailable}
+      {approvalSelection && approvalSelection.owner === approvalOwner && (
+        <MemberApproval
+          actor={actor}
+          target={approvalSelection.target}
+          generation={generation}
+          ready={
+            authorized &&
+            access.can('members.approvals.write') &&
+            (memberId
+              ? !!current
+              : listReady && listRows.some((row) => row.id === approvalSelection.target))
+          }
+          contextKind={memberId ? 'detail' : 'list'}
+          contextQueryKey={
+            memberId ? ['admin', 'member', actor, memberId, generation] : listQueryKey
+          }
+          open={approvalSelection.open}
+          onClose={() =>
+            setApprovalSelection((selection) => selection && { ...selection, open: false })
+          }
+          returnFocus={() =>
+            approvalFocusOwner.current === approvalSelection.owner &&
+            latest.current.actor === actor &&
+            latest.current.generation === generation &&
+            approvalSelection.trigger?.isConnected &&
+            (memberId
+              ? !!current && accessSummary.current()
+              : canListAct(approvalSelection.target, 'members.approvals.write'))
+              ? approvalSelection.trigger
+              : false
+          }
+        />
+      )}
       {!memberId && statusSelection && statusSelection.owner === statusOwner && (
         <MemberState
           actor={actor}

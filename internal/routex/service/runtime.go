@@ -62,6 +62,7 @@ type runtimeAuthorization struct {
 	PersonalGrantStates    map[string]runtimePersonalGrantState
 	ModelEligibilityHashes map[string]string
 	PersonalKeyStates      map[string]runtimePersonalKeyState
+	UserAdmissions         map[string]runtimeAdmissionProof
 	UserProofs             map[string]runtimeUserProof
 	ProjectCreationStates  map[string]runtimeProjectCreationState
 	PersonalGrantSources   map[string]map[string]string
@@ -419,28 +420,29 @@ func (s *Service) runtimeProtocolRoute(modelID, protocol string) (*gatewayRoute,
 }
 
 type runtimeData struct {
-	Quota            *runtimeQuotaData
-	Egresses         []entity.Egress
-	EgressSetting    entity.EgressSetting
-	EgressGeneration uint64
-	Limits           []entity.ResourceLimit
-	LimitPolicies    map[string]limits.Policy
-	LimitRoots       map[string]string
-	Pricing          *runtimePricingData
-	ProjectData      *projectRuntimeData
-	TeamSessionData  *teamSessionRuntimeData
-	Users            []entity.User
-	Keys             []entity.APIKey
-	Scopes           []entity.APIKeyModel
-	Grants           []entity.UserModelGrant
-	Models           []entity.Model
-	Names            []entity.ModelName
-	Providers        []entity.Provider
-	Connections      []entity.ProviderConnection
-	Credentials      []entity.ProviderCredential
-	ProviderModels   []entity.ProviderModel
-	Access           []entity.CredentialModelAccess
-	Bindings         []entity.ModelProviderBinding
+	ApprovalApplications []entity.RegistrationApprovalApplication
+	Quota                *runtimeQuotaData
+	Egresses             []entity.Egress
+	EgressSetting        entity.EgressSetting
+	EgressGeneration     uint64
+	Limits               []entity.ResourceLimit
+	LimitPolicies        map[string]limits.Policy
+	LimitRoots           map[string]string
+	Pricing              *runtimePricingData
+	ProjectData          *projectRuntimeData
+	TeamSessionData      *teamSessionRuntimeData
+	Users                []entity.User
+	Keys                 []entity.APIKey
+	Scopes               []entity.APIKeyModel
+	Grants               []entity.UserModelGrant
+	Models               []entity.Model
+	Names                []entity.ModelName
+	Providers            []entity.Provider
+	Connections          []entity.ProviderConnection
+	Credentials          []entity.ProviderCredential
+	ProviderModels       []entity.ProviderModel
+	Access               []entity.CredentialModelAccess
+	Bindings             []entity.ModelProviderBinding
 }
 
 func (s *Service) loadRuntimeData(ctx context.Context) (*runtimeData, error) {
@@ -452,8 +454,15 @@ func (s *Service) loadRuntimeDataTx(tx *gorm.DB) (*runtimeData, error) {
 	data := &runtimeData{EgressGeneration: s.egressGeneration.Load()}
 	err := func() error {
 		// A repeatable-read transaction prevents mixed entity generations.
-		if err := tx.Select("id", "disabled", "offboarded_at", "created_at", "personal_grant_revision").Find(&data.Users).Error; err != nil {
+		if err := tx.Select("id", "disabled", "offboarded_at", "created_at", "personal_grant_revision", "approval_application_id").Find(&data.Users).Error; err != nil {
 			return err
+		}
+		apps, err := loadRegistrationApplications(tx, data.Users)
+		if err != nil {
+			return err
+		}
+		for _, a := range apps {
+			data.ApprovalApplications = append(data.ApprovalApplications, a)
 		}
 		for _, target := range []any{&data.Limits, &data.Keys, &data.Scopes, &data.Grants, &data.Models, &data.Names, &data.Providers, &data.Connections, &data.Credentials, &data.ProviderModels, &data.Access, &data.Bindings, &data.Egresses} {
 			if err := tx.Find(target).Error; err != nil {
@@ -463,7 +472,6 @@ func (s *Service) loadRuntimeDataTx(tx *gorm.DB) (*runtimeData, error) {
 		if err := tx.First(&data.EgressSetting, 1).Error; err != nil {
 			return err
 		}
-		var err error
 		data.ProjectData, err = loadProjectRuntimeData(tx)
 		if err != nil {
 			return err
@@ -490,6 +498,7 @@ func buildRuntimeAuthorization(data *runtimeData, until time.Time) *runtimeAutho
 		PersonalKeyStates:      runtimeMemberKeyStates(data.Keys),
 		PersonalGrantStates:    runtimePersonalGrantStates(data),
 		ModelEligibilityHashes: runtimeMemberModelsEligibility(data),
+		UserAdmissions:         runtimeRegistrationAdmissions(data),
 		UserProofs:             map[string]runtimeUserProof{},
 		PersonalGrantSources:   map[string]map[string]string{},
 		TeamGrantSources:       map[string]map[string]string{},
@@ -513,7 +522,7 @@ func buildRuntimeAuthorization(data *runtimeData, until time.Time) *runtimeAutho
 	}
 	users := map[string]bool{}
 	for _, user := range data.Users {
-		users[user.ID] = !user.Disabled
+		users[user.ID] = auth.UserAdmissions[user.ID].Eligible
 		auth.UserProofs[user.ID] = runtimeUserProof{CreatedAt: user.CreatedAt, Enabled: !user.Disabled && user.OffboardedAt == nil}
 	}
 	for _, model := range data.Models {

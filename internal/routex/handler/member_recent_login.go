@@ -1,11 +1,15 @@
 package handler
 
-import "time"
+import (
+	"github.com/miclle/routex/internal/routex/service"
+	"time"
+)
 
 type MemberDetailResponse struct {
 	MemberResponse
-	LastLoginAt     *time.Time `json:"last_login_at"`
-	LastLoginStatus string     `json:"last_login_status"`
+	RegistrationApproval service.RegistrationApprovalSummary `json:"registration_approval"`
+	LastLoginAt          *time.Time                          `json:"last_login_at"`
+	LastLoginStatus      string                              `json:"last_login_status"`
 }
 
 func memberLoginTime(value *time.Time) *time.Time {

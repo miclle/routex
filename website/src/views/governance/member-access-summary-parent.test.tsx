@@ -47,6 +47,7 @@ beforeEach(async () => {
         offboarded_at: null,
         created_at: '2026-10-01T00:00:00Z',
         role_ids: ['rol_selected'],
+        registration_approval: { status: 'not_required', admission_eligible: false },
         last_login_at: null,
         last_login_status: 'historical_unavailable',
       }
@@ -163,7 +164,7 @@ async function mount() {
   )
   await until(() => expect(host.textContent).toContain('Recorded Team'))
 }
-it('uses one resource summary for Overview header and six cells without global role/Team reads', async () => {
+it('uses one resource summary for Overview header and eight cells without global role/Team reads', async () => {
   await mount()
   expect(requests.filter((r) => r.url?.endsWith('/access'))).toHaveLength(1)
   expect(requests.some((r) => r.url === '/admin/roles' || r.url === '/admin/teams')).toBe(false)
@@ -176,6 +177,8 @@ it('uses one resource summary for Overview header and six cells without global r
     'Created',
     'Updated',
     'Status',
+    'Registration approval',
+    'Current admission',
   ])
   const cards = [...host.querySelectorAll('section')]
   expect(cards.indexOf(card)).toBeLessThan(

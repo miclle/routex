@@ -1,4 +1,5 @@
 import client from './client'
+import { isRegistrationApprovalSummary } from './registration-approval'
 import type { MemberDetail } from '@/types/member-recent-login'
 
 const object = (value: unknown): value is Record<string, unknown> =>
@@ -69,6 +70,7 @@ export function validateMemberDetail(data: unknown, target: string): MemberDetai
     'role_ids',
     'last_login_at',
     'last_login_status',
+    'registration_approval',
   ]
   if (
     !identity(target) ||
@@ -88,6 +90,9 @@ export function validateMemberDetail(data: unknown, target: string): MemberDetai
     data.role_ids.length > 10000 ||
     !data.role_ids.every(identity) ||
     new Set(data.role_ids).size !== data.role_ids.length ||
+    !isRegistrationApprovalSummary(data.registration_approval) ||
+    (data.registration_approval.admission_eligible &&
+      (data.disabled || data.offboarded_at !== null)) ||
     !isMemberRecentLogin(data)
   )
     throw new Error('Invalid member detail response')

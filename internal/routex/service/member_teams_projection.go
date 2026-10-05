@@ -48,10 +48,10 @@ func memberTeamsTargets(rows []memberTeamIdentity, userID string) []overviewAcco
 	}
 	return targets
 }
-func (s *Service) memberTeamsApplied(auth *runtimeAuthorization, subject entity.User, row memberTeamIdentity, target overviewAccountTarget, all []overviewAccountTarget, setting entity.QuotaSetting, currency string) bool {
+func (s *Service) memberTeamsApplied(auth *runtimeAuthorization, subject entity.User, row memberTeamIdentity, target overviewAccountTarget, all []overviewAccountTarget, setting entity.QuotaSetting, currency string, applications map[string]entity.RegistrationApprovalApplication) bool {
 	if auth == nil || subject.Disabled || subject.OffboardedAt != nil || subject.ID != row.MembershipUserID || subject.CreatedAt.IsZero() || row.Status != entity.ResourceActive || row.MembershipStatus != entity.ResourceActive || row.MembershipRole != entity.TeamMember && row.MembershipRole != entity.TeamOwner || !s.RuntimeStatus().Ready {
 		return false
 	}
 	proof, exists := auth.UserProofs[subject.ID]
-	return exists && proof.Enabled && proof.CreatedAt.Equal(subject.CreatedAt) && s.memberOverviewApplied(auth, subject.ID, target, all, setting, currency)
+	return exists && s.registrationAdvisoryPublished(auth, subject, applications) && proof.Enabled && proof.CreatedAt.Equal(subject.CreatedAt) && s.memberOverviewApplied(auth, subject.ID, target, all, setting, currency)
 }

@@ -616,3 +616,24 @@ conservatively. It does not replay writes or establish a historical receipt.
 Focused dual-driver R4, complete integration, authentication and controlled
 native/browser acceptance passed; current-state confirmation remains distinct
 from historical operation evidence.
+
+## Local registration approval migration V57
+
+The current approval integration appends one frozen GORM migration; released
+versions remain unchanged. It adds nullable `users.approval_application_id`,
+default-false registration approval policy and a private64-hex policy generation,
+plus `registration_approval_applications`. Each application records an exact User
+ID and creation identity, canonical application ID, pending/approved/rejected
+state, private revision and nullable recorded decision fields. A unique User
+index, restricted User foreign key and state/revision/decision checks protect
+these records. There is no reverse foreign key or cascading history deletion.
+
+No historical account receives an invented application, approval or timestamp.
+The migration seeds only the built-in administrator's reserved approval power
+and advances its definition generation when that permission is newly inserted.
+GORM Migrator APIs repair supported partial column/table/index/constraint prefixes;
+invalid retained rows fail constraint installation rather than being fabricated.
+Empty creation, existing-data upgrade, repetition, concurrent startup and partial
+MySQL DDL recovery are covered by the new real-driver fixture. Both PostgreSQL and MySQL passed these migration cases in the focused and
+complete V57/102 regression. Authentication and production restart retained the
+original database and migration ledger.

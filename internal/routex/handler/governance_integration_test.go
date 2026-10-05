@@ -39,8 +39,9 @@ func testGovernanceLifecycle(t *testing.T, db *gorm.DB) {
 	}
 	expectStatus(t, reviewedMemberStateFixtureRequest(t, router, adminCookie, admin.CSRFToken, admin.User.ID, map[string]any{"disabled": true}), 409)
 	expectStatus(t, reviewedMemberStateFixtureRequest(t, router, adminCookie, admin.CSRFToken, admin.User.ID, map[string]any{"role": "member"}), 409)
-	expectStatus(t, identityRequest(router, "PATCH", "/api/v1/admin/registration", `{"enabled":true}`, adminCookie, ""), 403)
-	decodeCatalogResponse[RegistrationResponse](t, request("PATCH", "/api/v1/admin/registration", map[string]any{"enabled": true}), 200)
+	policyReview := approvalFixturePolicyReview(t, router, adminCookie, admin.CSRFToken)
+	expectStatus(t, approvalFixtureRequest(t, router, "PATCH", "/api/v1/admin/registration", map[string]any{"enabled": true, "approval_required": false, "reason": "Verify registration CSRF denial"}, adminCookie, "", policyReview.ReviewETag), 403)
+	approvalFixtureSetPolicy(t, router, adminCookie, admin.CSRFToken, true, false, "Enable immediate registration fixture")
 	registered := identityRequest(router, "POST", "/api/v1/auth/register", registrationBody, nil, "")
 	expectStatus(t, registered, 201)
 	member, memberCookie := readIdentity(t, registered)
@@ -60,7 +61,8 @@ func testGovernanceLifecycle(t *testing.T, db *gorm.DB) {
 		return identityRequest(router, method, path, string(encoded), memberCookie, member.CSRFToken)
 	}
 	expectStatus(t, memberRequest("GET", "/api/v1/admin/members", nil), 403)
-	expectStatus(t, memberRequest("PATCH", "/api/v1/admin/registration", map[string]bool{"enabled": false}), 403)
+	policyReview = approvalFixturePolicyReview(t, router, adminCookie, admin.CSRFToken)
+	expectStatus(t, approvalFixtureRequest(t, router, "PATCH", "/api/v1/admin/registration", map[string]any{"enabled": false, "approval_required": false, "reason": "Verify registration member denial"}, memberCookie, member.CSRFToken, policyReview.ReviewETag), 403)
 	roles := decodeCatalogResponse[RolesResponse](t, request("GET", "/api/v1/admin/roles", nil), 200)
 	if len(roles.Items) != 2 || len(roles.AvailablePermissions) == 0 {
 		t.Fatal("builtin roles or permission allowlist missing")
@@ -141,7 +143,7 @@ func testGovernanceLifecycle(t *testing.T, db *gorm.DB) {
 	if len(page.Items) != 1 || page.NextCursor == nil {
 		t.Fatal("member pagination missing")
 	}
-	decodeCatalogResponse[RegistrationResponse](t, request("PATCH", "/api/v1/admin/registration", map[string]bool{"enabled": false}), 200)
+	approvalFixtureSetPolicy(t, router, adminCookie, admin.CSRFToken, false, false, "Close immediate registration fixture")
 	expectStatus(t, identityRequest(router, "POST", "/api/v1/auth/register", `{"email":"closed@example.com","password":"governance-password","name":"Closed registration"}`, nil, ""), 403)
 	secondAdmin := decodeCatalogResponse[MemberResponse](t, request("POST", "/api/v1/admin/members", map[string]any{"email": "second-admin@example.com", "name": "Second admin", "password": "governance-password", "role": "admin"}), 201)
 	secondLogin := identityRequest(router, "POST", "/api/v1/auth/login", `{"email":"second-admin@example.com","password":"governance-password"}`, nil, "")

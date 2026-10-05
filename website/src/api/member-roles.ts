@@ -28,6 +28,7 @@ const codes = [
   'secrets.rotate',
   'members.read',
   'members.write',
+  'members.approvals.write',
   'members.keys.disable',
   'members.models.write',
   'roles.read',

@@ -160,7 +160,7 @@ func memberOverviewProofFixture(t *testing.T) (*Service, *runtimeAuthorization, 
 	if err := memberOverviewPolicies(targets, nil); err != nil {
 		t.Fatal(err)
 	}
-	s := &Service{runtime: &gatewayRuntime{}}
+	s := &Service{runtime: &gatewayRuntime{done: make(chan struct{})}}
 	setting := entity.QuotaSetting{ETag: "quota_current", TimeZone: "UTC"}
 	auth := &runtimeAuthorization{ValidUntil: time.Now().Add(time.Minute), Teams: map[string]runtimeTeam{"tem_one": {CreatedAt: created, Members: map[string]string{"usr_actor": "tmm_current"}}}, Quota: &runtimeQuotaData{Setting: setting, Currency: "USD", Created: map[string]time.Time{}, Revisions: map[string]string{}}, LimitPolicies: map[string]limits.Policy{}}
 	for _, target := range targets {

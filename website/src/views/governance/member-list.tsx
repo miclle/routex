@@ -4,6 +4,7 @@ import { Ellipsis, UserRound, KeyRound, ArrowRightLeft, Gauge, Files, Ban } from
 import { Table } from '@/components/ui/table'
 import { Menu, MenuItem } from '@/components/ui/menu'
 import { Tooltip } from '@/components/ui/tooltip'
+import { RegistrationApprovalStatus } from './member-approval'
 import { Badge } from '@/components/ui/badge'
 import { exactDecimal, exactInteger } from '@/views/home/monthly-account-values'
 import type { MemberListItem } from '@/types/member-list'
@@ -12,10 +13,20 @@ type Props = {
   rows: MemberListItem[]
   permissions: { teams: boolean; calls: boolean; limitsWrite: boolean }
   canAct: (id: string, permission?: string) => boolean
+  canApprove?: boolean
+  onApproval?: (row: MemberListItem, trigger: HTMLButtonElement | null) => void
   canChange: (row: MemberListItem) => boolean
   onStatus: (row: MemberListItem, trigger: HTMLButtonElement | null) => void
 }
-export default function MemberList({ rows, permissions, canAct, canChange, onStatus }: Props) {
+export default function MemberList({
+  rows,
+  permissions,
+  canAct,
+  canChange,
+  onStatus,
+  canApprove = false,
+  onApproval,
+}: Props) {
   const { t, i18n } = useTranslation('governance')
   const navigate = useNavigate()
   const locale = i18n.resolvedLanguage === 'zh' ? 'zh-CN' : 'en-US'
@@ -177,6 +188,9 @@ export default function MemberList({ rows, permissions, canAct, canChange, onSta
                         : 'common.active',
                   )}
                 </Badge>
+                <div className="mt-1">
+                  <RegistrationApprovalStatus summary={row.registration_approval} />
+                </div>
               </td>
               <td>
                 <div className="flex max-w-44 items-center gap-1">
@@ -294,6 +308,15 @@ export default function MemberList({ rows, permissions, canAct, canChange, onSta
                     <MenuItem onClick={() => navigateRow(row, '/admin/calls', 'calls.read_all')}>
                       <Files aria-hidden className="size-4" />
                       {t('memberList.calls')}
+                    </MenuItem>
+                  )}
+                  {canApprove && onApproval && (
+                    <MenuItem
+                      onClick={() => {
+                        if (canAct(row.id, 'members.approvals.write')) onApproval(row, menuTrigger)
+                      }}
+                    >
+                      {t('registrationApproval.review')}
                     </MenuItem>
                   )}
                   {canChange(row) && (

@@ -25,7 +25,7 @@ type MemberOverviewRecord struct {
 
 func memberOverviewSubjectQuery(tx *gorm.DB, userID string) *gorm.DB {
 	return tx.Session(&gorm.Session{}).Model(&entity.User{}).
-		Select("ID", "Disabled", "OffboardedAt", "CreatedAt").
+		Select("ID", "Disabled", "OffboardedAt", "CreatedAt", "ApprovalApplicationID").
 		Where(database.ExactText(tx, clause.Column{Name: "id"}, userID))
 }
 
@@ -36,12 +36,12 @@ func memberOverviewKeyCountQuery(tx *gorm.DB, userID string) *gorm.DB {
 		Where(database.ExactText(tx, clause.Column{Name: "user_id"}, userID))
 }
 
-func (s *Service) memberOverviewSubjectApplied(auth *runtimeAuthorization, subject entity.User, target overviewAccountTarget, setting entity.QuotaSetting, currency string) bool {
+func (s *Service) memberOverviewSubjectApplied(auth *runtimeAuthorization, subject entity.User, target overviewAccountTarget, setting entity.QuotaSetting, currency string, applications map[string]entity.RegistrationApprovalApplication) bool {
 	if auth == nil || subject.Disabled || subject.OffboardedAt != nil || subject.ID != target.id || !subject.CreatedAt.Equal(target.created) || subject.CreatedAt.IsZero() {
 		return false
 	}
 	proof, exists := auth.UserProofs[subject.ID]
-	return exists && proof.Enabled && proof.CreatedAt.Equal(subject.CreatedAt) && s.memberOverviewApplied(auth, subject.ID, target, []overviewAccountTarget{target}, setting, currency)
+	return exists && s.registrationAdvisoryPublished(auth, subject, applications) && proof.Enabled && proof.CreatedAt.Equal(subject.CreatedAt) && s.memberOverviewApplied(auth, subject.ID, target, []overviewAccountTarget{target}, setting, currency)
 }
 
 // MemberOverview reads an independently authorized retained subject. Saved
@@ -61,7 +61,7 @@ func (s *Service) MemberOverview(ctx context.Context, actorID, userID string) (*
 		if err != nil {
 			return err
 		}
-		allowed, err := exactGovernancePermission(tx, actor, "members.read")
+		allowed, err := exactGovernancePermissionForAdmittedActor(tx.Session(&gorm.Session{NewDB: true}), actor, "members.read")
 		if err != nil {
 			return err
 		}
@@ -77,6 +77,10 @@ func (s *Service) MemberOverview(ctx context.Context, actorID, userID string) (*
 		}
 		if subject.CreatedAt.IsZero() {
 			return apperrors.ErrInternal
+		}
+		applications, err := loadRegistrationApplications(tx.Session(&gorm.Session{}), []entity.User{subject})
+		if err != nil {
+			return err
 		}
 		result.ObservedAt = time.Now().UTC()
 		row, policy, err := readDefaultResourceLimitPolicy(tx, "user", userID)
@@ -121,7 +125,7 @@ func (s *Service) MemberOverview(ctx context.Context, actorID, userID string) (*
 			return err
 		}
 		result.Personal = s.memberOverviewMonthlyAccount(target, []overviewAccountTarget{target}, batch, auth, userID, setting, result.PlatformCurrency)
-		result.Personal.RuntimeApplied = result.Personal.RuntimeApplied && s.memberOverviewSubjectApplied(auth, subject, target, setting, result.PlatformCurrency)
+		result.Personal.RuntimeApplied = result.Personal.RuntimeApplied && s.memberOverviewSubjectApplied(auth, subject, target, setting, result.PlatformCurrency, applications)
 		return nil
 	}, &sql.TxOptions{Isolation: sql.LevelRepeatableRead, ReadOnly: true})
 	if err != nil {

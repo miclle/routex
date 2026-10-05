@@ -109,6 +109,7 @@ beforeEach(async () => {
         offboarded_at: null,
         created_at: row.created_at,
         role_ids: [],
+        registration_approval: { status: 'not_required', admission_eligible: false },
         last_login_at: null,
         last_login_status: 'historical_unavailable',
       }

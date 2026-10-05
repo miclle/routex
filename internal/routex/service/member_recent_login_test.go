@@ -154,7 +154,7 @@ func (c recentLoginConnection) QueryContext(_ context.Context, q string, args []
 		return effectiveSQLRows(rows)
 	case strings.Contains(q, `FROM "users"`):
 		if f.mode == "detail" && args[0].Value == "usr_reader" {
-			return effectiveSQLRows([]entity.User{{ID: "usr_reader", Role: entity.RoleAdmin}})
+			return effectiveSQLRows([]entity.User{{ID: "usr_reader", Role: entity.RoleAdmin, CreatedAt: time.Date(2026, 10, 5, 0, 0, 0, 0, time.UTC)}})
 		}
 		return effectiveSQLRows([]entity.User{f.user})
 	}
@@ -178,7 +178,7 @@ func TestMemberRecentLoginActualPasswordSuccessAndWriteRollback(t *testing.T) {
 	}
 	for _, mode := range []string{"success", "timestamp_failure", "session_failure", "wrong_password"} {
 		t.Run(mode, func(t *testing.T) {
-			f := &recentLoginSQLFixture{user: entity.User{ID: "usr_subject", Role: entity.RoleMember, Email: "subject@example.test", PasswordHash: string(hash)}, rows: 1, failWrite: mode == "timestamp_failure", failSession: mode == "session_failure"}
+			f := &recentLoginSQLFixture{user: entity.User{ID: "usr_subject", Role: entity.RoleMember, Email: "subject@example.test", PasswordHash: string(hash), CreatedAt: time.Date(2026, 10, 5, 0, 0, 0, 0, time.UTC)}, rows: 1, failWrite: mode == "timestamp_failure", failSession: mode == "session_failure"}
 			s := &Service{db: recentLoginSQL(t, f)}
 			submitted := password
 			if mode == "wrong_password" {
@@ -244,7 +244,7 @@ func TestMemberRecentLoginDetailExactReadOnlyPermissionAndRetainedStatus(t *test
 	stamp := time.Now().UTC().Truncate(time.Microsecond)
 	for _, mode := range []string{"recorded", "historical", "disabled", "offboarded", "alias", "denied", "bad_time"} {
 		t.Run(mode, func(t *testing.T) {
-			f := &recentLoginSQLFixture{mode: "detail", user: entity.User{ID: "usr_subject", Role: entity.RoleMember, LastLoginAt: &stamp}, permission: mode != "denied"}
+			f := &recentLoginSQLFixture{mode: "detail", user: entity.User{ID: "usr_subject", Role: entity.RoleMember, LastLoginAt: &stamp, CreatedAt: stamp}, permission: mode != "denied"}
 			if mode == "historical" {
 				f.user.LastLoginAt = nil
 			}
@@ -306,7 +306,7 @@ func TestMemberRecentLoginDoesNotChangeLabelReviewOrRuntimeSource(t *testing.T) 
 
 func TestMemberRecentLoginRetainedRolesCompleteBoundAndOwnership(t *testing.T) {
 	for _, count := range []int{101, 10000, 10001} {
-		f := &recentLoginSQLFixture{mode: "detail", user: entity.User{ID: "usr_subject", Role: entity.RoleMember}, permission: true, roleCount: count}
+		f := &recentLoginSQLFixture{mode: "detail", user: entity.User{ID: "usr_subject", Role: entity.RoleMember, CreatedAt: time.Date(2026, 10, 5, 0, 0, 0, 0, time.UTC)}, permission: true, roleCount: count}
 		s := &Service{db: recentLoginSQL(t, f)}
 		got, err := s.GetMemberDetail(context.Background(), "usr_reader", "usr_subject")
 		if count <= 10000 {
@@ -317,7 +317,7 @@ func TestMemberRecentLoginRetainedRolesCompleteBoundAndOwnership(t *testing.T) {
 			t.Fatal("role overflow silently truncated", err)
 		}
 	}
-	f := &recentLoginSQLFixture{mode: "detail", user: entity.User{ID: "usr_subject", Role: entity.RoleMember}, permission: true, roleAlias: true}
+	f := &recentLoginSQLFixture{mode: "detail", user: entity.User{ID: "usr_subject", Role: entity.RoleMember, CreatedAt: time.Date(2026, 10, 5, 0, 0, 0, 0, time.UTC)}, permission: true, roleAlias: true}
 	s := &Service{db: recentLoginSQL(t, f)}
 	if got, err := s.GetMemberDetail(context.Background(), "usr_reader", "usr_subject"); got != nil || err != apperrors.ErrInternal {
 		t.Fatal("aliased relationship borrowed roles", err)

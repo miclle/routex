@@ -142,6 +142,9 @@ func (s *Service) beginLogin(ctx context.Context, email, password string, challe
 		if current.Disabled || current.PasswordHash != user.PasswordHash {
 			return apperrors.ErrUnauthorized
 		}
+		if err := requireRegistrationAdmission(tx.Session(&gorm.Session{}), current); err != nil {
+			return err
+		}
 		state, err := mfaState(tx, current.ID)
 		if err != nil {
 			return err
@@ -166,6 +169,11 @@ func (s *Service) beginLogin(ctx context.Context, email, password string, challe
 }
 
 func createSession(db *gorm.DB, user entity.User) (*Authentication, error) {
+	current, err := registrationAdmittedUser(db, user.ID, true)
+	if err != nil {
+		return nil, err
+	}
+	user = current
 	token, err := secret.RandomURLSafe(32)
 	if err != nil {
 		return nil, err
@@ -193,13 +201,9 @@ func (s *Service) Authenticate(ctx context.Context, token string) (*Authenticati
 	if err != nil {
 		return nil, apperrors.ErrInternal
 	}
-	var user entity.User
-	err = s.authDB(ctx).Where("id = ? AND disabled = ?", session.UserID, false).First(&user).Error
-	if errors.Is(err, gorm.ErrRecordNotFound) {
-		return nil, apperrors.ErrUnauthorized
-	}
+	user, err := registrationAdmittedUser(s.authDB(ctx), session.UserID, false)
 	if err != nil {
-		return nil, apperrors.ErrInternal
+		return nil, keyServiceError(err)
 	}
 	return &Authentication{User: user, Session: session, Token: token}, nil
 }

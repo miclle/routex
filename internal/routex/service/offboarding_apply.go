@@ -2,6 +2,7 @@ package service
 
 import (
 	"slices"
+	"sort"
 	"time"
 
 	"gorm.io/gorm"
@@ -27,7 +28,7 @@ func validateOffboardingAssignments(tx *gorm.DB, inventory *OffboardingInventory
 		if !exists || resource.Status == entity.ResourceArchived {
 			return apperrors.ErrBadRequest
 		}
-		if err := activeResourceUsers(tx, assignment.ManagerUserIDs); err != nil {
+		if err := admittedResourceUsers(tx, assignment.ManagerUserIDs); err != nil {
 			return err
 		}
 		assignedProjects[assignment.ProjectID] = len(assignment.ManagerUserIDs) > 0
@@ -37,7 +38,7 @@ func validateOffboardingAssignments(tx *gorm.DB, inventory *OffboardingInventory
 		if !exists || resource.Status == entity.ResourceArchived {
 			return apperrors.ErrBadRequest
 		}
-		if err := activeResourceUsers(tx, assignment.OwnerUserIDs); err != nil {
+		if err := admittedResourceUsers(tx, assignment.OwnerUserIDs); err != nil {
 			return err
 		}
 		for _, userID := range assignment.OwnerUserIDs {
@@ -67,7 +68,49 @@ func validateOffboardingAssignments(tx *gorm.DB, inventory *OffboardingInventory
 	return nil
 }
 
-func emergencyOffboardingAssignments(inventory *OffboardingInventory, actorID string, assignments OffboardingAssignments) OffboardingAssignments {
+// Automatic successor selection uses complete private admission facts, never the
+// public People projection. Final sorted User locks and fresh assignment validation
+// still run before completion, so this read does not replace continuity checks.
+func prepareEmergencyOffboardingAssignments(tx *gorm.DB, inventory *OffboardingInventory, actorID string, assignments OffboardingAssignments) (OffboardingAssignments, error) {
+	ids := []string{}
+	for _, team := range inventory.Teams {
+		if !team.RequiresSuccessor || slices.ContainsFunc(assignments.Teams, func(a OffboardingTeamAssignment) bool { return a.TeamID == team.ID }) {
+			continue
+		}
+		for _, person := range team.People {
+			if person.UserID != inventory.UserID && !person.Disabled && person.Status == entity.ResourceActive {
+				ids = append(ids, person.UserID)
+			}
+		}
+	}
+	sort.Strings(ids)
+	ids = slices.Compact(ids)
+	admitted := map[string]bool{}
+	for start := 0; start < len(ids); start += 500 {
+		batch := ids[start:min(start+500, len(ids))]
+		var users []entity.User
+		if err := tx.Session(&gorm.Session{NewDB: true}).Where("id IN ?", batch).Limit(len(batch) + 1).Find(&users).Error; err != nil {
+			return OffboardingAssignments{}, err
+		}
+		if len(users) > len(batch) {
+			return OffboardingAssignments{}, apperrors.ErrInternal
+		}
+		applications, err := loadRegistrationApplications(tx, users)
+		if err != nil {
+			return OffboardingAssignments{}, err
+		}
+		for _, user := range users {
+			// Collation aliases must not fill an exact inventory candidate slot.
+			if slices.Contains(batch, user.ID) {
+				admission, _ := registrationAdmission(user, applications)
+				admitted[user.ID] = admission.AdmissionEligible
+			}
+		}
+	}
+	return emergencyOffboardingAssignments(inventory, actorID, assignments, admitted), nil
+}
+
+func emergencyOffboardingAssignments(inventory *OffboardingInventory, actorID string, assignments OffboardingAssignments, admitted map[string]bool) OffboardingAssignments {
 	for _, project := range inventory.Projects {
 		if project.RequiresSuccessor {
 			assignments.Projects = append(assignments.Projects, OffboardingProjectAssignment{ProjectID: project.ID, ManagerUserIDs: []string{actorID}})
@@ -88,9 +131,9 @@ func emergencyOffboardingAssignments(inventory *OffboardingInventory, actorID st
 			continue
 		}
 		// Inventory members are ordered by stable user ID. Prefer an existing
-		// enabled active member; an empty team requires an explicit addition.
+		// admitted active member; an empty team requires an explicit addition.
 		for _, person := range team.People {
-			if person.UserID != inventory.UserID && !person.Disabled && person.Status == entity.ResourceActive {
+			if person.UserID != inventory.UserID && !person.Disabled && person.Status == entity.ResourceActive && admitted[person.UserID] {
 				assignments.Teams = append(assignments.Teams, OffboardingTeamAssignment{TeamID: team.ID, OwnerUserIDs: []string{person.UserID}})
 				break
 			}

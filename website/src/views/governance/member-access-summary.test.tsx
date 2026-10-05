@@ -46,6 +46,7 @@ function seed() {
     disabled: false,
     offboarded_at: null,
     created_at: '2026-10-01T01:02:03Z',
+    registration_approval: { status: 'not_required', admission_eligible: false },
     last_login_at: '2026-10-02T02:03:04.123456Z',
     last_login_status: 'recorded',
   }
@@ -147,7 +148,7 @@ const absent = () => {
   expect(host.querySelector('dl')).toBeNull()
   expect(document.querySelector('[role=tooltip]')).toBeNull()
 }
-it('renders exactly the approved six cells, dates and retained facts with one resource read and native0', async () => {
+it('renders exactly the approved eight cells, dates and retained facts with one resource read and native0', async () => {
   await mount()
   expect([...host.querySelectorAll('dt')].map((cell) => cell.textContent)).toEqual([
     'Roles',
@@ -156,6 +157,8 @@ it('renders exactly the approved six cells, dates and retained facts with one re
     'Created',
     'Updated',
     'Status',
+    'Registration approval',
+    'Current admission',
   ])
   expect(host.textContent).toContain('Member · Recorded role')
   expect(host.textContent).toContain('Oct 2, 2026')
@@ -255,6 +258,8 @@ it('switches live Chinese labels and dates while preserving exact server strings
     '创建时间',
     '更新时间',
     '状态',
+    '注册审批',
+    '当前准入',
   ])
   expect(host.textContent).toContain('Recorded role')
   expect(host.textContent).toContain('Recorded Team')

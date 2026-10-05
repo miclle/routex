@@ -1,4 +1,5 @@
 import client from './client'
+import { isRegistrationApprovalSummary } from './registration-approval'
 import { isMemberRecentLogin } from './member-recent-login'
 import type { MemberFilters } from '@/types/governance'
 import type { MemberListPage } from '@/types/member-list'
@@ -136,6 +137,7 @@ function row(v: unknown) {
       'updated_at',
       'last_login_at',
       'last_login_status',
+      'registration_approval',
       'total_personal_keys',
       'personal_policy_stored',
       'personal',
@@ -150,6 +152,8 @@ function row(v: unknown) {
     (v.offboarded_at === null || stamp(v.offboarded_at)) &&
     stamp(v.created_at) &&
     stamp(v.updated_at) &&
+    isRegistrationApprovalSummary(v.registration_approval) &&
+    (!v.registration_approval.admission_eligible || (!v.disabled && v.offboarded_at === null)) &&
     isMemberRecentLogin(v) &&
     Array.isArray(v.role_ids) &&
     v.role_ids.length <= 10000 &&

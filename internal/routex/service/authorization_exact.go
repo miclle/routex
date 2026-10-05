@@ -17,6 +17,9 @@ func exactEnabledActor(tx *gorm.DB, actorID string) (entity.User, error) {
 	if errors.Is(err, gorm.ErrRecordNotFound) || err == nil && actor.ID != actorID {
 		return actor, apperrors.ErrUnauthorized
 	}
+	if err == nil {
+		err = requireRegistrationAdmission(tx.Session(&gorm.Session{}), actor)
+	}
 	return actor, err
 }
 
@@ -30,6 +33,19 @@ type exactPermissionIdentity struct {
 
 // Exact bindings prevent database collation from turning an alias into authority.
 func exactGovernancePermission(tx *gorm.DB, actor entity.User, permission string) (bool, error) {
+	current, err := registrationAdmittedUser(tx, actor.ID, false)
+	if err != nil {
+		return false, err
+	}
+	return exactGovernancePermissionForAdmittedActor(tx, current, permission)
+}
+
+// The caller must freshly select the complete actor admission identity (ID,
+// Role, Disabled, OffboardedAt, CreatedAt and ApprovalApplicationID), verify exact
+// ownership and requireRegistrationAdmission once in this same transaction.
+// Partial projections, runtime identities and actors from another transaction
+// must use exactGovernancePermission instead.
+func exactGovernancePermissionForAdmittedActor(tx *gorm.DB, actor entity.User, permission string) (bool, error) {
 	builtin := "rol_member"
 	if actor.Role == entity.RoleAdmin {
 		builtin = "rol_admin"

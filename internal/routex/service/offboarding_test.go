@@ -29,7 +29,7 @@ func TestEmergencyOffboardingPreservesContinuity(t *testing.T) {
 		{ID: "tem_member", RequiresSuccessor: true, People: []OffboardingPerson{{UserID: "usr_departing", Role: entity.TeamOwner, Status: entity.ResourceActive}, {UserID: "usr_disabled", Disabled: true, Status: entity.ResourceActive}, {UserID: "usr_successor", Status: entity.ResourceActive}}},
 		{ID: "tem_empty", RequiresSuccessor: true},
 	}}
-	got := emergencyOffboardingAssignments(inventory, "usr_admin", OffboardingAssignments{})
+	got := emergencyOffboardingAssignments(inventory, "usr_admin", OffboardingAssignments{}, map[string]bool{"usr_successor": true})
 	if len(got.Projects) != 1 || got.Projects[0].ProjectID != "prj_sole" || got.Projects[0].ManagerUserIDs[0] != "usr_admin" {
 		t.Fatal("sole Project did not receive the acting administrator")
 	}

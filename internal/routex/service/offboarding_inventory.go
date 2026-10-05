@@ -103,13 +103,18 @@ func (s *Service) OffboardingInventory(ctx context.Context, actorID, userID stri
 
 func loadOffboardingInventory(tx *gorm.DB, userID string) (*OffboardingInventory, error) {
 	var user entity.User
-	if err := tx.Select("id", "role", "disabled", "offboarded_at").First(&user, "id = ?", userID).Error; err != nil {
+	if err := tx.Select("id", "role", "disabled", "offboarded_at", "created_at", "approval_application_id").First(&user, "id = ?", userID).Error; err != nil {
 		return nil, err
 	}
 	result := &OffboardingInventory{UserID: userID, Disabled: user.Disabled, OffboardedAt: user.OffboardedAt, PersonalKeys: []OffboardingKey{}, Projects: []OffboardingResource{}, Teams: []OffboardingResource{}, Cases: []OffboardingCaseRecord{}, userRole: user.Role}
-	if user.Role == entity.RoleAdmin && !user.Disabled {
-		var admins int64
-		if err := tx.Model(&entity.User{}).Where("role = ? AND disabled = ?", entity.RoleAdmin, false).Count(&admins).Error; err != nil {
+	apps, err := loadRegistrationApplications(tx, []entity.User{user})
+	if err != nil {
+		return nil, err
+	}
+	admission, _ := registrationAdmission(user, apps)
+	if admission.AdmissionEligible && user.Role == entity.RoleAdmin && !user.Disabled {
+		admins, err := admittedAdministratorCount(tx)
+		if err != nil {
 			return nil, err
 		}
 		result.LastAdministrator = admins == 1
@@ -126,7 +131,11 @@ func loadOffboardingInventory(tx *gorm.DB, userID string) (*OffboardingInventory
 		if err := tx.Table("project_managers m").Select("m.user_id,u.name,u.disabled").Joins("JOIN users u ON u.id = m.user_id").Where("m.project_id = ?", project.ID).Order("m.user_id").Scan(&item.People).Error; err != nil {
 			return nil, err
 		}
-		item.RequiresSuccessor = project.Status != entity.ResourceArchived && !hasOffboardingSuccessor(item.People, userID, false)
+		eligible, err := admittedProjectManagers(tx, project.ID, userID)
+		if err != nil {
+			return nil, err
+		}
+		item.RequiresSuccessor = project.Status != entity.ResourceArchived && eligible == 0
 		result.Projects = append(result.Projects, item)
 	}
 	if err := tx.Where("user_id = ?", userID).Order("team_id").Find(&result.memberships).Error; err != nil {
@@ -144,7 +153,11 @@ func loadOffboardingInventory(tx *gorm.DB, userID string) (*OffboardingInventory
 		if err := tx.Table("team_memberships m").Select("m.user_id,u.name,u.disabled,m.role,m.status").Joins("JOIN users u ON u.id = m.user_id").Where("m.team_id = ?", team.ID).Order("m.user_id").Scan(&item.People).Error; err != nil {
 			return nil, err
 		}
-		item.RequiresSuccessor = team.Status != entity.ResourceArchived && !hasOffboardingSuccessor(item.People, userID, true)
+		eligible, err := admittedTeamOwners(tx, team.ID, userID)
+		if err != nil {
+			return nil, err
+		}
+		item.RequiresSuccessor = team.Status != entity.ResourceArchived && eligible == 0
 		result.Teams = append(result.Teams, item)
 	}
 	if err := tx.Where("user_id = ?", userID).Order("role_id").Find(&result.roles).Error; err != nil {
@@ -165,13 +178,4 @@ func loadOffboardingInventory(tx *gorm.DB, userID string) (*OffboardingInventory
 	digest := sha256.Sum256(raw)
 	result.InventoryVersion = hex.EncodeToString(digest[:])
 	return result, nil
-}
-
-func hasOffboardingSuccessor(people []OffboardingPerson, departing string, team bool) bool {
-	for _, person := range people {
-		if person.UserID != departing && !person.Disabled && (!team || (person.Role == entity.TeamOwner && person.Status == entity.ResourceActive)) {
-			return true
-		}
-	}
-	return false
 }

@@ -24,6 +24,9 @@ func (s *Service) UpdateProfile(ctx context.Context, userID, name string) (*enti
 		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).Where("id = ? AND disabled = ?", userID, false).First(&user).Error; err != nil {
 			return err
 		}
+		if err := requireRegistrationAdmission(tx.Session(&gorm.Session{}), user); err != nil {
+			return err
+		}
 		user.Name = name
 		if err := tx.Model(&user).Update("name", name).Error; err != nil {
 			return err
@@ -56,6 +59,9 @@ func (s *Service) ChangePassword(ctx context.Context, userID, currentPassword, n
 		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).First(&user, "id = ?", userID).Error; err != nil {
 			return err
 		}
+		if err := requireRegistrationAdmission(tx.Session(&gorm.Session{}), user); err != nil {
+			return err
+		}
 		if user.Disabled || user.PasswordHash != before.PasswordHash {
 			return apperrors.ErrUnauthorized
 		}
@@ -84,12 +90,18 @@ func (s *Service) ChangePassword(ctx context.Context, userID, currentPassword, n
 }
 
 func (s *Service) ListAccountSessions(ctx context.Context, userID string) ([]entity.Session, error) {
+	if _, err := registrationAdmittedUser(s.authDB(ctx), userID, false); err != nil {
+		return nil, keyServiceError(err)
+	}
 	sessions := []entity.Session{}
 	err := s.authDB(ctx).Select("id", "user_id", "created_at", "expires_at").Where("user_id = ? AND expires_at > ?", userID, time.Now().UTC()).Order("created_at DESC, id DESC").Find(&sessions).Error
 	return sessions, keyServiceError(err)
 }
 
 func (s *Service) RevokeAccountSession(ctx context.Context, userID, sessionID string) error {
+	if _, err := registrationAdmittedUser(s.authDB(ctx), userID, false); err != nil {
+		return keyServiceError(err)
+	}
 	var revokedID string
 	err := s.authDB(ctx).Transaction(func(tx *gorm.DB) error {
 		var session entity.Session

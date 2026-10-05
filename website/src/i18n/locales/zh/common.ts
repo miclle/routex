@@ -1,4 +1,6 @@
 export default {
+  registrationApprovalPending:
+    '注册正在等待管理员审批。你尚未登录。审批后可返回登录；系统尚未授予模型权限或 Key。',
   language: '语言',
   page_not_found_55c9e: '页面不存在',
   return_home_8befa: '返回首页',

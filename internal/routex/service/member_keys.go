@@ -85,6 +85,9 @@ func memberKeyPeople(db *gorm.DB, actorID, subjectID, permission string) (entity
 	if actor.ID != actorID {
 		return actor, subject, apperrors.ErrForbidden
 	}
+	if _, err := registrationAdmittedUser(db, actor.ID, false); err != nil {
+		return actor, subject, err
+	}
 	permissions, err := memberKeyPermissions(db, actor)
 	if err != nil {
 		return actor, subject, err

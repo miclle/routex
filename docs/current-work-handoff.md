@@ -7,24 +7,56 @@ three unstarted**. The coordinated roadmap lives outside this repository;
 
 ## Current work
 
-Reviewed Member State is now carried onto checked Roles `a44838d`: 37 exact
-source outputs with no new migration, V56 retained, 100 ordered driver scenarios
-and 343 protected paths. Original source2815/140, mandatory checks, focused
-real-driver16+8, controlled production/browser/current retry/same-Session restart,
-independent authentication/native/restart and complete100-per-driver regression
-now passed. Complete regression contains 2,866 named tests without named failure
-or skip. A four-file frontend-only first409 recovery correction is carried;
-its corrected complete source2817/140, Go race, Node/development and embedded
-asset checks now pass. Preserve the original process artifact's evidence separately. The existing Settings cards and list
-action menu use minimal exact-target reviews, reason and strong If-Match.
-Base-role confirmation proves current database identity; account enable/disable
-requires current runtime application. Retain original uncertain intent; self
-changes can commit before current authority disappears. Reactivation never
-restores old Sessions, Keys or custom roles.
+Checked/pushed main is reviewed Member State `74f08d3`, with complete source
+checks, full100-per-driver regression, independent authentication restart and
+controlled production/browser evidence recorded below. All343 protected paths
+matched its accepted source. Its frontend first-conflict recovery correction
+retains every failed dispatched intent and requires explicit abandonment before
+a new review. Reactivation never restores revoked Sessions, Keys or roles.
 
-Continue the final State delivery gate, then actual local registration approval and the
-repository price-data candidate. Global Role definition editing is preparing
-in three isolated source-only subtasks; it has no actual acceptance yet.
+This local registration approval phase adds frozen GORM
+V57 after the unchanged100-case prefix. Mandatory/source checks and fresh uncached
+Go race passed; unchanged frontend source retains 2,910 cases in 144 files.
+Corrected focused real-driver acceptance passed 27 named tests with the original
+Overview 7, list 9/11/10 and Effective Models 20 budgets. Both-driver independent
+authentication/native restart passed. Approval focus preserves five native
+completions, thirteen denied native requests, rollback and exact retry checks.
+
+Fresh complete regression passed 102 scenarios on each PostgreSQL/MySQL, all 204
+direct lifecycle cases, eight constraints, five test-bearing packages and 3,049
+named tests total without named failure or skip. All 395 protected R17 paths stayed
+exact; all owned containers, networks and volumes were independently absent.
+Earlier failed/stopped full and query-budget runs remain historical, not relabeled
+passed. The proof-reuse repair preserves complete same-transaction actor admission
+and independent permissions without relaxing budget assertions.
+
+The controlled production process and bilingual browser now passed against the
+same R17 source and production artifact. Anonymous registration returned HTTP 202
+without a Session cookie; pending login remained denied. Approval changed only the
+retained application and current admission, preserving existing Users, Sessions,
+Keys, model grants and MFA facts. The intended creation-default policy copy and
+its typed audit were verified separately and never admitted the pending account.
+After explicit model authorization and a new confirmed Personal Key, exactly one
+controlled native Chat completion produced one durable call and attempt with
+recorded Credential/snapshot attribution. Restart retained the original binary,
+configuration, database, journal and Sessions; read-only English/Chinese browser
+checks passed without signing in again or dispatching another inference request.
+All owned resources and temporary browser tabs were cleaned. Earlier failed runs,
+including the finite browser-checkpoint timeout, remain historical evidence.
+This confirms current state and runtime application, not a historical operation
+receipt or completion of the entire Member capability. The final mandatory check passed. The containing commit delivers this bounded
+approval phase; remote push/read-back and workflow results are recorded separately.
+
+Queued Role-definition, offboarding UI/recorded Settings summary and allowed-email
+work remain private source. Combined Go 34 passed 908 top-level tests and 3,160 pass events before its
+nonsemantic successors; combined
+UI 35 passed 3,102 cases in 150 files, types, lint/format and reversible contexts.
+The separate 10-path Restore proposal passed 3,117 private source cases in 150 files only. None is
+applied or actually accepted. Repository price seed data remains a separate
+queued zero-inference plan. Compose overlapping governance fixture/locale/rule
+contexts explicitly; never replace older whole files. Continue these partial
+capabilities after checked approval delivery. F04/F05 and formal 11 complete,
+16 partial and three unstarted remain unchanged.
 
 ## Preceding checked main delivery
 
@@ -149,30 +181,26 @@ acceptance record below gives exact timings, hashes and remaining limits.
 
 ## Next checked phases
 
-| Order | Slice | Source state | Remaining gates |
-| --- | --- | --- | --- |
-| 1 | Eleven-column Member list | Checked main af9c22e; pushed/read back; all local and exact remote gates passed | Complete for this slice |
-| 2 | Overview effective Models | Checked main 88e8480, pushed and read back; complete local gates passed | All three exact remote workflows passed |
-| 3 | Recorded recent successful login | Frozen joint 36 contextual carry with historical decoder correction and paired wrapping-rule preservation; additive GORM V55, historical NULL unknown | Source, complete 96, real migration/auth/MFA/restart and bilingual evidence and final check passed; checked delivery is the containing commit |
-| 4 | Overview Access summary | Frozen six backend/eighteen UI leaves plus root contexts; independent Role/Team metadata reads | Integrated onto checked recent login; source, real-driver focus and zero-inference bilingual process/restart passed; complete 97 passed; final check and commit/push pending |
-| 5 | Reviewed direct role assignment | Frozen backend, UI, real-driver fixtures and root registration; tentative V56/99 | Carry after checked Access, root actual gates and commit/push |
-| 6 | Reviewed member state and base role | Frozen source-only backend/fixtures/root registration/UI focus repair/helpers, V56/100 | Reprepare after checked Roles, root actual gates and commit/push |
+| Slice | Current state | Next gate |
+| --- | --- | --- |
+| Member list, effective Models, recorded login and Access | Checked and pushed: af9c22e, 88e8480, d51a52e and 9205ca5 | Preserve accepted behavior |
+| Reviewed direct role assignment and Member state | Checked and pushed: a44838d and 74f08d3 | Preserve failed-intent recovery and revocation |
+| Local registration approval | V57/102, complete source, both-driver full regression/authentication and controlled bilingual process/restart passed | Final mandatory check passed; delivery is the containing commit |
+| Reviewed custom-role definitions | Backend, UI and fixtures prepared privately | Integrate Role-only source, V57/103; actual driver/browser gates |
+| Member offboarding and recorded Settings summary | Source prepared privately | Integrate and run actual acceptance |
+| Allowed registration email domains | Frozen V58 proposal and UI prepared privately | Integrate after checked approval and Role phase |
+| Repository price seed and Restore intent recovery | Separate private source proposals | Scoped integration and acceptance |
 
-Queued packets are source preparation, not actual migration, runtime acceptance or
-delivery. Their future accepted predecessor revisions remain unbound. Never copy
-an old whole-file snapshot over newer mobile, metadata, Model-review or test
-corrections. Recheck current contexts, preserve all earlier ordered scenarios and
-append only the new cases. Pair frontend rule updates in AGENTS and frontend rules.
+Recheck shared contexts against the checked predecessor and retain earlier ordered
+scenarios. Source-only preparations never count as actual runtime acceptance.
+Update AGENTS and frontend rules together for UI behavior changes.
 
 ## Remaining scope and evidence limits
 
-F04 remains Partial. The separate state slice covers reviewed base-role and
-account lifecycle changes. Registration approval before account use remains a
-valid unresolved requirement; it is excluded only from that bounded state slice,
-not from the product objective. Its policy, application, decision and bypass
-guards require a later checked phase. The reviewed
-custom-role editor does not complete role-definition UX, templates or Team-role
-review. Do not infer whole-goal completion from this Member sequence.
+F04 remains Partial. Reviewed Member state and local registration approval have
+bounded acceptance; remaining offboarding UI, invitations and related workflows
+still require delivery. Role-definition UX, templates and Team-role review remain
+separate F05 work. None of these Member slices completes the full objective.
 
 Preserve earlier catalogue, pricing, attachment, notification and admission
 acceptance. Repository prices use the requested versioned local file with no

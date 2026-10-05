@@ -164,13 +164,14 @@ func memberTeamsProofFixture(t *testing.T) (*Service, *runtimeAuthorization, []o
 		t.Fatal(err)
 	}
 	setting := entity.QuotaSetting{ETag: "calendar_current", TimeZone: "UTC"}
-	auth := &runtimeAuthorization{ValidUntil: time.Now().Add(time.Minute), UserProofs: map[string]runtimeUserProof{subject.ID: {CreatedAt: subject.CreatedAt, Enabled: true}}, Teams: map[string]runtimeTeam{row.ID: {CreatedAt: row.CreatedAt, Members: map[string]string{subject.ID: row.MembershipID}}}, Quota: &runtimeQuotaData{Setting: setting, Currency: "USD", Created: map[string]time.Time{}, Revisions: map[string]string{}}, LimitPolicies: map[string]limits.Policy{}}
+	_, admission := registrationAdmission(subject, nil)
+	auth := &runtimeAuthorization{UserAdmissions: map[string]runtimeAdmissionProof{subject.ID: admission}, ValidUntil: time.Now().Add(time.Minute), UserProofs: map[string]runtimeUserProof{subject.ID: {CreatedAt: subject.CreatedAt, Enabled: true}}, Teams: map[string]runtimeTeam{row.ID: {CreatedAt: row.CreatedAt, Members: map[string]string{subject.ID: row.MembershipID}}}, Quota: &runtimeQuotaData{Setting: setting, Currency: "USD", Created: map[string]time.Time{}, Revisions: map[string]string{}}, LimitPolicies: map[string]limits.Policy{}}
 	for _, target := range targets {
 		account := limitAccount(target.kind, target.id)
 		auth.Quota.Created[account] = target.created
 		auth.LimitPolicies[account] = target.policy
 	}
-	s := &Service{runtime: &gatewayRuntime{}}
+	s := &Service{runtime: &gatewayRuntime{done: make(chan struct{})}}
 	s.runtime.auth.Store(auth)
 	until := auth.ValidUntil
 	s.runtime.status.Store(&RuntimeStatus{Ready: true, AuthorizationValidUntil: &until})
@@ -236,7 +237,7 @@ func TestMemberTeamsRuntimeApplicationIsExactSubjectAndStablePairProof(t *testin
 			case "actor_tombstone":
 				s.runtime.deniedUsers.Store(memberTeamsActor, uint64(1))
 			}
-			if got := s.memberTeamsApplied(auth, subject, row, targets[1], targets, setting, "USD"); got != (name == "current" || name == "actor_tombstone") {
+			if got := s.memberTeamsApplied(auth, subject, row, targets[1], targets, setting, "USD", nil); got != (name == "current" || name == "actor_tombstone") {
 				t.Fatal("reader or stale publication changed subject proof", name, got)
 			}
 		})
@@ -261,7 +262,7 @@ func TestMemberTeamsCountersAndPoliciesStaySeparateAcrossRejoin(t *testing.T) {
 	account := s.memberOverviewMonthlyAccount(targets[1], targets, batch, auth, subject.ID, setting, "USD")
 	values := memberTeamPolicyValues(targets[1].policy)
 	subject.Disabled = true
-	record := MemberTeamRecord{ID: row.ID, JoinedAt: nil, Limits: MemberTeamLimits{PolicyRecorded: true, Stored: values, ParentStored: memberTeamPolicyValues(targets[0].policy), Usage: account.Usage, UsageStatus: account.UsageStatus, ActiveReservations: account.ActiveReservations, RuntimeApplied: s.memberTeamsApplied(auth, subject, row, targets[1], targets, setting, "USD")}}
+	record := MemberTeamRecord{ID: row.ID, JoinedAt: nil, Limits: MemberTeamLimits{PolicyRecorded: true, Stored: values, ParentStored: memberTeamPolicyValues(targets[0].policy), Usage: account.Usage, UsageStatus: account.UsageStatus, ActiveReservations: account.ActiveReservations, RuntimeApplied: s.memberTeamsApplied(auth, subject, row, targets[1], targets, setting, "USD", nil)}}
 	raw, err := json.Marshal(record)
 	if err != nil || record.Limits.RuntimeApplied || account.Usage == nil || account.Usage.TokensUsed != "9007199254740993" || account.Usage.TokensUnknown != "1" || account.ActiveReservations.TokensHeld != "5" || values.TokensMonth == nil || *values.TokensMonth != "0" || *values.MoneyMonth != money || *values.RPM != "9007199254740993" || record.Limits.ParentStored.TokensMonth != nil || !strings.Contains(string(raw), `"joined_at":null`) {
 		t.Fatal(string(raw), err)

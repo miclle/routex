@@ -87,6 +87,7 @@ beforeEach(async () => {
         offboarded_at: page.subject_status === 'offboarded' ? '2026-10-04T00:00:00Z' : null,
         created_at: '2026-10-01T00:00:00Z',
         role_ids: page.assigned_roles.map((r) => r.id),
+        registration_approval: { status: 'not_required', admission_eligible: false },
         last_login_at: null,
         last_login_status: 'historical_unavailable',
       }

@@ -186,7 +186,7 @@ func testMemberRecentLoginLifecycle(t *testing.T, db *gorm.DB) {
 	assertUnchanged(afterRecovery)
 	expectStatus(t, identityRequest(router, "GET", "/api/v1/auth/session", "", recoveryCookie, ""), 401)
 	// Generic registration and password security replacement remain distinct from sign-in.
-	expectStatus(t, identityRequest(router, "PATCH", "/api/v1/admin/registration", `{"enabled":true}`, adminCookie, admin.CSRFToken), 200)
+	approvalFixtureSetPolicy(t, router, adminCookie, admin.CSRFToken, true, false, "Enable immediate recent-login registration fixture")
 	registered := identityRequest(router, "POST", "/api/v1/auth/register", mfaFixtureBody(map[string]string{"email": "login-registered@example.invalid", "name": "Registered", "password": password}), nil, "")
 	expectStatus(t, registered, 201)
 	registeredAuth, registeredCookie := readIdentity(t, registered)

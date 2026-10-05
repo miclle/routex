@@ -14,7 +14,7 @@ func (s *Service) memberEffectivePersonalProof(data *memberModelsData, auth *run
 	if !s.memberEffectivePublication(auth, routes) {
 		return false
 	}
-	state, applied := s.memberModelsApplication(data.Subject, data.Grants, auth)
+	state, applied := s.memberModelsApplication(data.Subject, data.Grants, auth, data.Applications)
 	return state == "applied" && applied != nil && *applied
 }
 func (s *Service) memberEffectiveTeamProof(data *memberEffectiveModelsData, current memberEffectiveTeam, auth *runtimeAuthorization, routes *runtimeRoutes) bool {
@@ -23,7 +23,7 @@ func (s *Service) memberEffectiveTeamProof(data *memberEffectiveModelsData, curr
 		return false
 	}
 	user, exists := auth.UserProofs[subject.ID]
-	if !exists || !user.Enabled || subject.CreatedAt.IsZero() || !user.CreatedAt.Equal(subject.CreatedAt) || runtimeDenied(&s.runtime.deniedUsers, subject.ID) || runtimeDenied(&s.runtime.deniedTeams, current.ID) || runtimeDenied(&s.runtime.deniedTeamMembers, teamMemberRuntimeKey(current.ID, subject.ID)) {
+	if !exists || !s.registrationAdvisoryPublished(auth, subject, data.Metadata.Applications) || !user.Enabled || subject.CreatedAt.IsZero() || !user.CreatedAt.Equal(subject.CreatedAt) || runtimeDenied(&s.runtime.deniedUsers, subject.ID) || runtimeDenied(&s.runtime.deniedTeams, current.ID) || runtimeDenied(&s.runtime.deniedTeamMembers, teamMemberRuntimeKey(current.ID, subject.ID)) {
 		return false
 	}
 	team, exists := auth.Teams[current.ID]

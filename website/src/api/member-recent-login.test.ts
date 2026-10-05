@@ -13,6 +13,7 @@ const detail = () => ({
   offboarded_at: null,
   created_at: '2026-01-01T00:00:00Z',
   role_ids: [],
+  registration_approval: { status: 'not_required', admission_eligible: false },
   last_login_at: null,
   last_login_status: 'historical_unavailable',
 })

@@ -34,7 +34,7 @@ func memberEffectiveModelsPermissions(tx *gorm.DB, actorID string) (bool, bool, 
 	if actor.Role != entity.RoleAdmin && actor.Role != entity.RoleMember {
 		return false, false, false, apperrors.ErrUnauthorized
 	}
-	read, err := exactGovernancePermission(modelCreationDB(tx), actor, "members.read")
+	read, err := exactGovernancePermissionForAdmittedActor(modelCreationDB(tx), actor, "members.read")
 	if err != nil {
 		return false, false, false, err
 	}
@@ -43,7 +43,7 @@ func memberEffectiveModelsPermissions(tx *gorm.DB, actorID string) (bool, bool, 
 	}
 	flags := make([]bool, 3)
 	for i, p := range []string{"teams.read_all", "providers.read", "prices.read"} {
-		flags[i], err = exactGovernancePermission(modelCreationDB(tx), actor, p)
+		flags[i], err = exactGovernancePermissionForAdmittedActor(modelCreationDB(tx), actor, p)
 		if err != nil {
 			return false, false, false, err
 		}
@@ -63,6 +63,11 @@ func readMemberEffectiveModels(tx *gorm.DB, subject entity.User, teams, provider
 	}
 	data := &memberEffectiveModelsData{Metadata: &memberModelsData{Subject: subject, ProvidersRead: providers, PricesRead: prices}, TeamsRead: teams}
 	meta := data.Metadata
+	applications, err := loadRegistrationApplications(modelCreationDB(tx), []entity.User{subject})
+	if err != nil {
+		return nil, err
+	}
+	meta.Applications = applications
 	if err := personalExact(modelCreationDB(tx), "user_id", subject.ID).Order("model_id").Limit(1001).Find(&meta.Grants).Error; err != nil {
 		return nil, err
 	}

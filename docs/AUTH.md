@@ -7,8 +7,8 @@ This phase implements first administrator creation, local login, persistent sess
 - `users` uses ULIDs prefixed with `usr_`. Email addresses are trimmed and converted to lowercase, then protected by a database uniqueness constraint. The MySQL email column explicitly uses `utf8mb4_bin` to distinguish different normalized Unicode addresses, matching PostgreSQL behavior. This prevents the default accent-insensitive collation from confusing separate identities. Names must contain 1–100 Unicode characters after trimming.
 - Passwords must be valid UTF-8 and contain 12–72 bytes. Only bcrypt hashes at the default cost are stored. Multibyte characters count toward the limit by their UTF-8 byte length.
 - Initialization locks the singleton `installations` row with `id=1` inside a transaction. Creating the first administrator, marking initialization complete, and creating the session commit together. Only one concurrent initialization request succeeds; the others return `409`. Failed login attempts uniformly return `401`, without distinguishing an unknown email, an incorrect password, or a disabled account.
-- `sessions` uses ULIDs prefixed with `ses_` and stores the SHA-256 digest of a bearer token generated from 32 cryptographically random bytes. Sessions expire after a fixed 7 days; reading a session does not renew it. Each authentication check reads the current user role and disabled status. Logout deletes the session.
-- Initialization is currently the only user creation endpoint. Tests against real databases verify that members cannot access administrator APIs. There is no public registration endpoint that bypasses initialization.
+- `sessions` uses ULIDs prefixed with `ses_` and stores the SHA-256 digest of a bearer token generated from 32 cryptographically random bytes. Sessions expire after a fixed 7 days; reading a session does not renew it. Each authentication check reads the current exact user identity, enabled/offboarding state and registration admission. Logout deletes the session.
+- After initialization, administrators may create users and explicitly enable local self-registration. Registration requiring approval returns a pending outcome without authentication. Setup, administrator-created users and historical accounts do not acquire inferred approval applications. See [governance](GOVERNANCE.md) for the reviewed policy and decision contracts.
 
 ## HTTP Contract
 
@@ -19,9 +19,13 @@ Management APIs use `snake_case` JSON. Authentication responses include `Cache-C
 | `GET /api/v1/setup` | None | `200 {"initialized": false}` before initialization; `true` afterward | Public |
 | `POST /api/v1/setup` | `{email,password,name}` | `201`, session response and a session cookie | Before initialization only |
 | `POST /api/v1/auth/login` | `{email,password}` | `200` session and cookie, or `202` MFA challenge without a new session | Public |
+| `GET /api/v1/auth/registration` | None | `200 {enabled,approval_required}` | Public |
+| `POST /api/v1/auth/register` | `{email,password,name}` | `201` Session without approval, or `202 {kind:"approval_pending"}` without a Session/cookie | Public, initialized and registration open |
 | `GET /api/v1/auth/session` | Session cookie | `200`, session response | Authenticated |
 | `POST /api/v1/auth/logout` | Session cookie and `X-CSRF-Token` | `204`, session revoked and cookie cleared | Authenticated |
 | `GET /api/v1/admin/status` | Session cookie | `200 {"initialized": true}` | `admin` |
+
+A registration HTTP202 and an MFA login HTTP202 are distinct transient outcomes; neither is a Session or authorizes workspace navigation. Pending, rejected and invalid approval links produce generic authentication denial. After approval, a fresh ordinary login still needs the normal password/MFA flow. Approval does not issue or restore Sessions, Keys or model grants.
 
 Session responses contain only public profile fields and a CSRF token:
 

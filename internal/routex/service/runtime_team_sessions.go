@@ -67,7 +67,7 @@ func addTeamSessionRuntimeAuthorization(auth *runtimeAuthorization, data *teamSe
 	}
 	enabledUsers := map[string]bool{}
 	for _, user := range users {
-		if safeTeamSessionID(user.ID) && !user.Disabled && user.OffboardedAt == nil {
+		if safeTeamSessionID(user.ID) && auth.UserAdmissions[user.ID].Eligible {
 			enabledUsers[user.ID] = true
 		}
 	}

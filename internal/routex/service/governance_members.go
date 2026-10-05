@@ -23,18 +23,7 @@ func (s *Service) RegistrationEnabled(ctx context.Context) (bool, error) {
 }
 
 func (s *Service) SetRegistrationEnabled(ctx context.Context, actorID string, enabled bool) error {
-	return catalogError(s.authDB(ctx).Transaction(func(tx *gorm.DB) error {
-		if err := lockGovernance(tx); err != nil {
-			return err
-		}
-		if err := activePlatformAdmin(tx, actorID); err != nil {
-			return err
-		}
-		if err := tx.Model(&entity.GovernanceSetting{}).Where("id = ?", 1).Update("registration_enabled", enabled).Error; err != nil {
-			return err
-		}
-		return appendAudit(tx, actorID, "registration.update", "installation", "1")
-	}))
+	return s.setRegistrationEnabledLegacy(ctx, actorID, enabled)
 }
 
 func prepareMember(email, password, name, role string) (entity.User, error) {
@@ -58,7 +47,24 @@ func prepareMember(email, password, name, role string) (entity.User, error) {
 	return entity.User{ID: userID, Email: email, Name: name, Role: role, PasswordHash: string(hash), MemberRoleRevision: revision}, nil
 }
 
+type RegistrationResult struct {
+	Authentication  *Authentication
+	ApprovalPending bool
+}
+
+var ErrRegistrationApprovalPending = &apperrors.Error{Code: 202, Message: "registration approval pending"}
+
 func (s *Service) Register(ctx context.Context, email, password, name string) (*Authentication, error) {
+	result, err := s.RegisterWithApproval(ctx, email, password, name)
+	if err != nil {
+		return nil, err
+	}
+	if result.ApprovalPending {
+		return nil, ErrRegistrationApprovalPending
+	}
+	return result.Authentication, nil
+}
+func (s *Service) RegisterWithApproval(ctx context.Context, email, password, name string) (*RegistrationResult, error) {
 	enabled, err := s.RegistrationEnabled(ctx)
 	if err != nil {
 		return nil, err
@@ -71,6 +77,7 @@ func (s *Service) Register(ctx context.Context, email, password, name string) (*
 		return nil, err
 	}
 	var auth *Authentication
+	pending := false
 	err = s.authDB(ctx).Transaction(func(tx *gorm.DB) error {
 		if err := lockGovernance(tx); err != nil {
 			return err
@@ -95,6 +102,13 @@ func (s *Service) Register(ctx context.Context, email, password, name string) (*
 		if err := applyCreationDefaultLimit(tx, "user", user.ID, user.ID); err != nil {
 			return err
 		}
+		if settings.RegistrationApprovalRequired {
+			if err := createRegistrationApplication(tx, &user); err != nil {
+				return err
+			}
+			pending = true
+			return appendAudit(tx, user.ID, "member.register", "user", user.ID)
+		}
 		var err error
 		auth, err = createSession(tx, user)
 		if err != nil {
@@ -102,7 +116,10 @@ func (s *Service) Register(ctx context.Context, email, password, name string) (*
 		}
 		return appendAudit(tx, user.ID, "member.register", "user", user.ID)
 	})
-	return auth, s.refreshAfterMutation(ctx, catalogError(err))
+	if err = s.refreshAfterMutation(ctx, catalogError(err)); err != nil {
+		return nil, err
+	}
+	return &RegistrationResult{auth, pending}, nil
 }
 
 func (s *Service) CreateMember(ctx context.Context, actorID, email, password, name, role string) (*MemberRecord, error) {

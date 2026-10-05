@@ -1,4 +1,6 @@
 export default {
+  registrationApprovalPending:
+    'Your registration is awaiting administrator approval. You are not signed in. Return to sign in after approval; no model permissions or Key have been granted.',
   language: 'Language',
   page_not_found_55c9e: 'Page not found',
   return_home_8befa: 'Return home',

@@ -4,7 +4,9 @@ This phase adds controlled public registration, administrator member management,
 
 ## Registration and Member Lifecycle
 
-Registration is disabled by default and persisted in the singleton `governance_settings` row. It cannot create users before installation initialization. Only an active platform administrator can change the switch. The public registration endpoint always creates a `member`, ignores any attempted role injection, grants no models, and atomically creates its initial browser session. It uses the existing normalized email, unique email constraint, 12–72 UTF-8 byte password policy, bcrypt hashing, and safe session response.
+Registration is disabled by default and persisted in the singleton `governance_settings` row. It cannot create users before installation initialization. An admitted platform administrator with `registration.write` reviews and saves both registration enablement and the approval requirement with a reason and strong If-Match. The approval requirement defaults to false and applies only to new local self-registration; setup, administrator-created accounts and historical accounts remain unmanaged by this requirement.
+
+Public registration always creates a `member`, ignores attempted role injection and grants no models. Without approval it atomically creates its initial browser Session. With approval it creates a linked pending application and returns HTTP202 `{kind:"approval_pending"}` without a Session, cookie, CSRF token or application identifier. Pending, rejected or invalid application identities cannot log in, use Sessions or Keys, or contribute active Team/Project authority. Approval changes only the application decision and its typed audit; it does not enable a disabled account, undo offboarding, grant models or roles, create a Key, or restore revoked credentials. A newly approved active applicant must log in normally. Registration retains normalized email, exact unique email constraints, the12–72 UTF-8 byte password policy and bcrypt hashing.
 
 Administrators can list, search, inspect, and create members with an initial password. The create response never contains that password or its hash. Initial passwords are supplied explicitly by the administrator; there is no invitation or password-delivery workflow in this phase. Creating an administrator requires the protected platform administrator identity.
 
@@ -26,6 +28,7 @@ The implemented resource/action vocabulary is:
 | `roles.read` | Read role definitions and permission metadata |
 | `roles.write` | Protected platform administrator role management |
 | `registration.write` | Protected platform administrator registration policy |
+| `members.approvals.write` | Protected platform administrator account approval decisions; independent `members.read` is also required |
 | `providers.read` / `providers.write` | Read or change provider configuration |
 | `models.read_all` / `models.write` | Read or change the administrative model catalog |
 | `calls.read_all` | Read calls across users through administrator DTOs |
@@ -34,7 +37,7 @@ The implemented resource/action vocabulary is:
 | `teams.read_all` / `teams.write` / `teams.models.write` | Global Team reading, metadata/membership/lifecycle changes, and explicit model grants |
 | `projects.read_all` / `projects.write` / `projects.models.write` | Global Project reading, metadata/manager/lifecycle changes, and explicit model grants |
 
-`roles.write` and `registration.write` are reserved for the protected administrator identity. They cannot be assigned through custom roles. The API's `available_permissions` list contains only permissions that may be placed in a custom role; built-in administrator metadata additionally includes the reserved powers. Defining a permission boundary does not claim that every corresponding product page or operational capability has been implemented.
+`roles.write`, `registration.write` and `members.approvals.write` are reserved for the protected administrator identity. They cannot be assigned through custom roles. The API's `available_permissions` list contains only permissions that may be placed in a custom role; built-in administrator metadata additionally includes the reserved powers. Defining a permission boundary does not claim that every corresponding product page or operational capability has been implemented.
 
 Custom roles are additive and confer only implemented platform actions. They do not grant model invocation, ownership of another user's Keys, Team ownership, Project management, or unrestricted access to personal endpoints. Unknown or duplicate permission values are rejected. A role still assigned to users or Teams cannot be deleted. Role replacement and assignment validate the whole request before committing, preventing partial changes.
 
@@ -48,11 +51,13 @@ Paths are relative to `/api/v1`. Mutations use the established same-origin, JSON
 
 | Method and path | Input | Response / access |
 |---|---|---|
-| `GET /auth/registration` | None | `{enabled}`; public |
-| `POST /auth/register` | `{email,password,name}` | `201`, existing session response and cookie; registration must be open |
+| `GET /auth/registration` | None | `{enabled,approval_required}`; public, no private validator |
+| `POST /auth/register` | `{email,password,name}` | `201` Session and cookie without approval, or `202` `{kind:"approval_pending"}` without authentication; registration must be open |
 | `GET /auth/permissions` | Session | `{permissions:[]}`; authenticated |
-| `GET /admin/registration` | Session | `{enabled}`; platform administrator |
-| `PATCH /admin/registration` | `{enabled}` | `{enabled}`; platform administrator |
+| `GET /admin/registration` | Session | `{enabled,approval_required,review_etag}` and strong ETag; admitted platform administrator with `registration.write` |
+| `PATCH /admin/registration` | `{enabled,approval_required,reason}`, strong If-Match | Current policy confirmation; same authority as GET |
+| `GET /admin/members/:user_id/approval` | Session | Reviewed application, independent eligibility/editability/runtime facts and strong ETag; `members.read` |
+| `PATCH /admin/members/:user_id/approval` | `{decision:"approve"\|"reject",reason}`, strong If-Match | Exact current decision, eligibility and runtime application; admitted administrator with `members.read` and `members.approvals.write` |
 | `GET /admin/members` | Optional `q`, `status`, `role`, `limit`, `cursor` | `{items:Member[],next_cursor:string|null}`; `members.read` |
 | `GET /admin/members/:user_id` | None | Member; `members.read` |
 | `GET /admin/members/:user_id/keys` | Optional exact `cursor`, `limit` 1–100 (default 40) | Retained Personal Key page; `members.read` |
@@ -1020,3 +1025,62 @@ pre-commit requirement; commit/push/read-back and new remote workflows are separ
 coordinator observations. The containing commit records the bounded State slice.
 Continue actual local registration approval, then the remaining Member workflow
 and Role definition work. F04/F05 and formal 11/16/3 remain unchanged.
+
+## Local registration approval integration
+
+Frozen GORM migration V57 adds the private account/application relationship and
+policy generation without backfilling historical decisions or changing released
+migrations. Member list/detail summaries expose status and current admission
+eligibility, while dedicated review exposes only recorded application fields.
+The existing registration drawer, Member status/Overview and Base UI decision
+dialogs implement the English-default bilingual workflow.
+
+Each dispatched policy or decision request retains its exact reason, body and
+If-Match through failed responses, dismissal and same-actor authority renewal.
+A conflict after dispatch may follow a committed change. Refreshing metadata or
+matching current values does not prove the original operation. Explicit local
+abandonment preserves a draft for a new review and leaves the original outcome
+unknown. Successful retries confirm current state and runtime application, not a
+durable historical decision receipt.
+
+Mandatory checks, complete source tests and fresh uncached Go race passed; the
+unchanged frontend suite retains 2,910 cases in 144 files. The corrected focused
+real PostgreSQL/MySQL check passed 27 named tests and retained the original
+Overview seven-query, list nine/eleven/ten-query and Effective Models twenty-query
+budgets, independent permissions and exact admission proofs. Both-driver
+independent authentication/native restart passed.
+
+The fresh complete regression passed all 102 ordered scenarios per driver,
+preserving the original 100-case prefix, frozen V57, eight pre-loop constraints
+and five test-bearing packages. All 204 direct lifecycle cases and 3,049 named
+tests passed without named failure or skip. The 395 protected R17 paths stayed
+exact; owned containers, networks and volumes were independently absent. The
+first failed full run and later query-budget failures remain historical evidence;
+the repairs reuse the same transaction's freshly admitted actor and do not relax
+independent permissions, identity/application checks or driver assertions.
+Current advisory evidence follows the installed Gateway snapshot's exact identity,
+lease and denial fences; approval write confirmation additionally requires an
+active publisher.
+
+The controlled production process and bilingual browser now passed against the
+same R17 source and production artifact. Anonymous registration returned HTTP 202
+without a Session cookie; pending login remained denied. Approval changed only the
+retained application and current admission, preserving existing Users, Sessions,
+Keys, model grants and MFA facts. The intended creation-default policy copy and
+its typed audit were verified separately and never admitted the pending account.
+After explicit model authorization and a new confirmed Personal Key, exactly one
+controlled native Chat completion produced one durable call and attempt with
+recorded Credential/snapshot attribution. Restart retained the original binary,
+configuration, database, journal and Sessions; read-only English/Chinese browser
+checks passed without signing in again or dispatching another inference request.
+All owned resources and temporary browser tabs were cleaned. Earlier failed runs,
+including the finite browser-checkpoint timeout, remain historical evidence.
+This confirms current state and runtime application, not a historical operation
+receipt or completion of the entire Member capability. The final mandatory check passed. The containing commit delivers this bounded
+approval phase; remote push/read-back and workflow results are recorded separately.
+
+Allowed email domains,
+Role-definition review, offboarding UI/summary and repository price seed data
+remain separate queued source packages. Invitation delivery is not included.
+F04/F05 remain Partial; formal totals stay 11 complete, 16 partial and three
+unstarted.

@@ -75,7 +75,8 @@ beforeEach(() => {
         etag: 0,
       }
     if (key === 'get /announcements') response.data = { items: [] }
-    if (key === 'get /auth/registration') response.data = { enabled: registrationEnabled }
+    if (key === 'get /auth/registration')
+      response.data = { enabled: registrationEnabled, approval_required: false }
     if (key === 'get /setup') response.data = { initialized }
     if (key === 'get /notifications') response.data = { items: [], unread_count: 0 }
     if (key === 'get /auth/session') response.data = session
@@ -246,7 +247,10 @@ describe('authentication flows', () => {
       await router.navigate('/register')
     })
     await until(() => expect(container.querySelector('form[aria-label="Register"]')).not.toBeNull())
-    expect(queryClient.getQueryData(['auth', 'registration'])).toEqual({ enabled: true })
+    expect(queryClient.getQueryData(['auth', 'registration'])).toEqual({
+      enabled: true,
+      approval_required: false,
+    })
   })
 
   it('routes an empty installation to setup and creates an authenticated administrator', async () => {

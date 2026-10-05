@@ -86,7 +86,7 @@ func memberTeamsPeople(tx *gorm.DB, actorID, userID string) (entity.User, error)
 		return entity.User{}, apperrors.ErrForbidden
 	}
 	var subject entity.User
-	err = tx.Select("id", "role", "disabled", "offboarded_at", "created_at").Where(database.ExactText(tx, clause.Column{Name: "id"}, userID)).First(&subject).Error
+	err = tx.Select("id", "role", "disabled", "offboarded_at", "created_at", "approval_application_id").Where(database.ExactText(tx, clause.Column{Name: "id"}, userID)).First(&subject).Error
 	if err != nil {
 		return subject, err
 	}
@@ -157,6 +157,10 @@ func (s *Service) ListMemberTeams(ctx context.Context, actorID, userID string, f
 	result := &MemberTeamsPage{UserID: userID, Items: []MemberTeamRecord{}}
 	err = s.authDB(ctx).Transaction(func(tx *gorm.DB) error {
 		subject, e := memberTeamsPeople(tx, actorID, userID)
+		if e != nil {
+			return e
+		}
+		applications, e := loadRegistrationApplications(tx.Session(&gorm.Session{}), []entity.User{subject})
 		if e != nil {
 			return e
 		}
@@ -247,7 +251,7 @@ func (s *Service) ListMemberTeams(ctx context.Context, actorID, userID string, f
 					PolicyETag:     child.row.ETag,
 					Stored:         memberTeamPolicyValues(child.policy),
 					ParentStored:   memberTeamPolicyValues(parent.policy),
-					RuntimeApplied: account.RuntimeApplied && s.memberTeamsApplied(auth, subject, row, child, targets, calendar, result.PlatformCurrency),
+					RuntimeApplied: account.RuntimeApplied && s.memberTeamsApplied(auth, subject, row, child, targets, calendar, result.PlatformCurrency, applications),
 					UsageStatus:    account.UsageStatus, Usage: account.Usage,
 					ActiveReservations: account.ActiveReservations,
 				},
@@ -255,7 +259,7 @@ func (s *Service) ListMemberTeams(ctx context.Context, actorID, userID string, f
 			result.Items = append(result.Items, record)
 		}
 		for i := range result.Items {
-			result.Items[i].Limits.RuntimeApplied = result.Items[i].Limits.RuntimeApplied && s.memberTeamsApplied(auth, subject, rows[i], targets[2*i+1], targets, calendar, result.PlatformCurrency)
+			result.Items[i].Limits.RuntimeApplied = result.Items[i].Limits.RuntimeApplied && s.memberTeamsApplied(auth, subject, rows[i], targets[2*i+1], targets, calendar, result.PlatformCurrency, applications)
 		}
 		return ctx.Err()
 	}, &sql.TxOptions{Isolation: sql.LevelRepeatableRead, ReadOnly: true})

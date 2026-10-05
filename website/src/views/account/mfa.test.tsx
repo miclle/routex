@@ -79,7 +79,8 @@ beforeEach(async () => {
         methods: ['totp', 'recovery_code'],
       }
     } else if (config.url === '/auth/session') response.data = session
-    else if (config.url === '/auth/registration') response.data = { enabled: false }
+    else if (config.url === '/auth/registration')
+      response.data = { enabled: false, approval_required: false }
     else if (config.url === '/account/mfa') response.data = { ...status }
     else if (config.url === '/account/mfa/enrollment') {
       if (config.method === 'delete') {

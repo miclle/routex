@@ -53,7 +53,7 @@ func validMemberRoleDigest(value string) bool {
 }
 func memberRolesUserQuery(tx *gorm.DB, userID string, lock bool) *gorm.DB {
 	q := memberRolesExact(memberRolesDB(tx).Model(&entity.User{}), "id", userID).
-		Select("ID", "Role", "Disabled", "OffboardedAt", "CreatedAt", "MemberRoleRevision")
+		Select("ID", "Role", "Disabled", "OffboardedAt", "CreatedAt", "ApprovalApplicationID", "MemberRoleRevision")
 	if lock {
 		q = q.Clauses(clause.Locking{Strength: "UPDATE"})
 	}

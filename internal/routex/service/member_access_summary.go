@@ -58,7 +58,7 @@ func memberAccessLabel(value string) bool {
 }
 func memberAccessUserQuery(tx *gorm.DB, userID string) *gorm.DB {
 	return tx.Session(&gorm.Session{}).Model(&entity.User{}).
-		Select("ID", "Role", "Disabled", "OffboardedAt", "CreatedAt", "UpdatedAt").
+		Select("ID", "Role", "Disabled", "OffboardedAt", "CreatedAt", "UpdatedAt", "ApprovalApplicationID").
 		Where(database.ExactText(tx, clause.Column{Name: "id"}, userID))
 }
 func memberAccessRoleQuery(tx *gorm.DB, userID string) *gorm.DB {
@@ -189,7 +189,10 @@ func (s *Service) GetMemberAccessSummary(ctx context.Context, actorID, userID st
 		if err != nil {
 			return err
 		}
-		read, err := exactGovernancePermission(tx.Session(&gorm.Session{NewDB: true}), actor, "members.read")
+		if err := requireRegistrationAdmission(tx.Session(&gorm.Session{NewDB: true}), actor); err != nil {
+			return err
+		}
+		read, err := exactGovernancePermissionForAdmittedActor(tx.Session(&gorm.Session{NewDB: true}), actor, "members.read")
 		if err != nil {
 			return err
 		}
@@ -219,7 +222,7 @@ func (s *Service) GetMemberAccessSummary(ctx context.Context, actorID, userID st
 			{"roles.read", func() error { var err error; result.Roles, err = readMemberAccessRoles(tx, userID); return err }},
 			{"teams.read_all", func() error { var err error; result.Teams, err = readMemberAccessTeams(tx, userID); return err }},
 		} {
-			allowed, err := exactGovernancePermission(tx.Session(&gorm.Session{NewDB: true}), actor, section.permission)
+			allowed, err := exactGovernancePermissionForAdmittedActor(tx.Session(&gorm.Session{NewDB: true}), actor, section.permission)
 			if err != nil {
 				return err
 			}

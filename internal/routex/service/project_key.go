@@ -64,8 +64,8 @@ func lockProjectForKeys(tx *gorm.DB, actorID, projectID string, activeRequired b
 	if project.Status == entity.ResourceArchived || (activeRequired && project.Status != entity.ResourceActive) {
 		return nil, errKeyConflict
 	}
-	var managers int64
-	if err := tx.Table("project_managers m").Joins("JOIN users u ON u.id = m.user_id").Where("m.project_id = ? AND u.disabled = ?", projectID, false).Count(&managers).Error; err != nil {
+	managers, err := admittedProjectManagers(tx, projectID, "")
+	if err != nil {
 		return nil, err
 	}
 	if managers == 0 {
@@ -431,9 +431,9 @@ func (s *Service) authenticateProjectKey(ctx context.Context, bearer string) (*K
 	if err := db.Model(&entity.Project{}).Where("id = ? AND status = ?", key.ProjectID, entity.ResourceActive).Count(&projects).Error; err != nil {
 		return nil, apperrors.ErrInternal
 	}
-	var managers int64
-	if err := db.Table("project_managers m").Joins("JOIN users u ON u.id = m.user_id").Where("m.project_id = ? AND u.disabled = ?", key.ProjectID, false).Count(&managers).Error; err != nil {
-		return nil, apperrors.ErrInternal
+	managers, err := admittedProjectManagers(db, key.ProjectID, "")
+	if err != nil {
+		return nil, keyServiceError(err)
 	}
 	if projects != 1 || managers == 0 {
 		return nil, apperrors.ErrUnauthorized

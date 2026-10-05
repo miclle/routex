@@ -1,4 +1,53 @@
 export default {
+  registrationApproval: {
+    permission: '审核注册申请',
+    review: '审核注册',
+    description:
+      '审核当前注册申请、基础角色和账号状态。审批只影响准入，不改变账号标记、权限或 Key。',
+    status: '注册审批',
+    not_required: '无需审批',
+    pending: '待审批',
+    approved: '已批准',
+    rejected: '已拒绝',
+    unknown: '审批状态未知',
+    admission: '当前准入',
+    eligible: '符合准入条件',
+    ineligible: '不符合准入条件',
+    runtime: '当前运行时发布',
+    applied: '当前准入结果已发布',
+    notApplied: '尚未确认发布',
+    appliedAt: '申请创建时间',
+    decidedAt: '已记录的审批时间',
+    reviewer: '已记录的审核者 ID',
+    reason: '原因',
+    approve: '批准申请',
+    reject: '拒绝申请',
+    confirmApprove:
+      '确认批准已审核的基础角色和账号状态。禁用或已离职账号仍无法准入。批准不会授予模型或创建 Key。',
+    confirmReject: '确认永久拒绝此注册申请。账号及其历史记录会保留。',
+    confirm: '确认',
+    conflict: '已审核的状态发生变化或审批冲突。请明确审核当前状态后再提交新决定。草稿已保留。',
+    uncertain:
+      '提交的更改尚未确认。读取当前状态不能确认原请求。重新获得授权后可重试完全相同的提交意图。',
+    invalidReason: '请输入非空原因，不含控制字符、首尾空格，且不超过 1,024 个 UTF-8 字节。',
+    failed: '无法审核此注册。',
+    retry: '重试原始提交请求',
+    abandon: '放弃已提交请求',
+    abandonHelp: '放弃仅停止本地重试。原请求的结果仍未知，不会撤销或确认原请求。',
+    abandoned: '原请求的结果仍未知。发起新请求前，请明确审核当前状态。',
+    reviewCurrent: '审核当前状态',
+    confirmedEligible:
+      '已确认当前保留的审批决定及已发布的准入条件。这不证明原决定的提交者，也不表示任何 Key 或模型已可用。',
+    confirmedDenied: '已确认当前保留的审批决定及已发布的准入拒绝。批准不会启用禁用或已离职账号。',
+    required: '注册需要审批',
+    policyHelp:
+      '仅适用于新的本地自主注册。现有待审批或已拒绝申请会保留。关闭注册时，此设置仍会保留。',
+    policySaved: '已确认当前注册策略。现有账号和申请保持原状态。',
+    policyConfirmTitle: '确认注册策略',
+    policyConfirm:
+      '确认完整的已审核注册策略和原因。此操作只影响未来注册，不批准现有申请，也不代表登录成功。',
+    policyValues: '邮箱注册：{{enabled}}。注册审批：{{approval}}。',
+  },
   memberState: {
     actionUnavailable: '当前成员写入权限不可用，审阅保持关闭。',
     desiredRole: '已审阅的基础身份：{{role}}',

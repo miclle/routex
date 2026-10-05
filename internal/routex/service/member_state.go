@@ -102,7 +102,7 @@ func memberStateError(err error) error {
 	return memberStateUnavailable
 }
 func memberStateUserQuery(tx *gorm.DB, id string, lock bool) *gorm.DB {
-	q := memberRolesExact(memberRolesDB(tx).Model(&entity.User{}), "id", id).Select("ID", "Name", "Role", "Disabled", "OffboardedAt", "CreatedAt", "UpdatedAt", "MemberRoleRevision")
+	q := memberRolesExact(memberRolesDB(tx).Model(&entity.User{}), "id", id).Select("ID", "Name", "Role", "Disabled", "OffboardedAt", "CreatedAt", "ApprovalApplicationID", "UpdatedAt", "MemberRoleRevision")
 	if lock {
 		q = q.Clauses(clause.Locking{Strength: "UPDATE"})
 	}

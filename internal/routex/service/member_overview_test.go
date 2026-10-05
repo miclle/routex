@@ -48,7 +48,7 @@ func TestAdminMemberOverviewQueriesAreExactMinimalAndIndependent(t *testing.T) {
 			subject.Statement.BuildClauses = []string{"SELECT", "FROM", "WHERE", "FOR"}
 			callbacks.BuildQuerySQL(subject)
 			cols := subject.Statement.Clauses["SELECT"].Expression.(clause.Select).Columns
-			want := []clause.Column{{Name: "id"}, {Name: "disabled"}, {Name: "offboarded_at"}, {Name: "created_at"}}
+			want := []clause.Column{{Name: "id"}, {Name: "disabled"}, {Name: "offboarded_at"}, {Name: "created_at"}, {Name: "approval_application_id"}}
 			if !reflect.DeepEqual(cols, want) || !reflect.DeepEqual(subject.Statement.Vars, []any{"usr_subject"}) {
 				t.Fatal(subject.Statement.SQL.String(), cols, subject.Statement.Vars)
 			}
@@ -99,6 +99,8 @@ func TestAdminMemberOverviewAppliedRequiresPublishedSubjectNotReader(t *testing.
 			s, auth, targets, setting := memberOverviewProofFixture(t)
 			subject := entity.User{ID: targets[0].id, CreatedAt: targets[0].created}
 			auth.UserProofs = map[string]runtimeUserProof{subject.ID: {CreatedAt: subject.CreatedAt, Enabled: true}}
+			_, admission := registrationAdmission(subject, nil)
+			auth.UserAdmissions = map[string]runtimeAdmissionProof{subject.ID: admission}
 			switch name {
 			case "missing":
 				delete(auth.UserProofs, subject.ID)
@@ -135,7 +137,7 @@ func TestAdminMemberOverviewAppliedRequiresPublishedSubjectNotReader(t *testing.
 			case "reader_tombstone":
 				s.runtime.deniedUsers.Store("usr_reader", true)
 			}
-			if got := s.memberOverviewSubjectApplied(auth, subject, targets[0], setting, "USD"); got != (name == "current" || name == "reader_tombstone") {
+			if got := s.memberOverviewSubjectApplied(auth, subject, targets[0], setting, "USD", nil); got != (name == "current" || name == "reader_tombstone") {
 				t.Fatal("reader or stale subject claimed current application", name, got)
 			}
 		})
@@ -160,7 +162,7 @@ func TestAdminMemberOverviewKeepsSavedExactFactsDuringSubjectInactivity(t *testi
 	batch := &eventqueue.QuotaUsageBatch{Active: true, AsOf: now, TimeZone: "UTC", CoverageStart: target.created, Accounts: map[string]eventqueue.AccountQuotaUsage{account: {AsOf: now, TimeZone: "UTC", CoverageStart: target.created, Month: eventqueue.QuotaUsage{TokensUsed: 9007199254740993, MoneyUsed: map[string]string{"EUR": "0.000000000000000001"}}, Active: eventqueue.QuotaUsage{TokensHeld: 5, MoneyHeld: map[string]string{"USD": "5.000000000000000002"}}}}}
 	value := s.memberOverviewMonthlyAccount(target, []overviewAccountTarget{target}, batch, auth, target.id, setting, "USD")
 	subject := entity.User{ID: target.id, CreatedAt: target.created, Disabled: true}
-	value.RuntimeApplied = value.RuntimeApplied && s.memberOverviewSubjectApplied(auth, subject, target, setting, "USD")
+	value.RuntimeApplied = value.RuntimeApplied && s.memberOverviewSubjectApplied(auth, subject, target, setting, "USD", nil)
 	record := MemberOverviewRecord{UserID: target.id, ObservedAt: now, PlatformCurrency: "USD", Personal: value, TotalPersonalKeys: "9007199254740993"}
 	raw, err := json.Marshal(record)
 	if err != nil || value.RuntimeApplied || value.Usage == nil || value.Usage.TokensUsed != "9007199254740993" || value.ActiveReservations == nil || value.ActiveReservations.TokensHeld != "5" || value.TokensMonth == nil || *value.TokensMonth != "0" || value.MoneyMonth == nil || *value.MoneyMonth != money || !strings.Contains(string(raw), `"total_personal_keys":"9007199254740993"`) {
@@ -187,6 +189,11 @@ type adminOverviewFixture struct {
 	options                                                  driver.TxOptions
 	created                                                  time.Time
 	deniedActor, deniedPermission, aliasedSubject, failCount bool
+	actor, subject                                           *entity.User
+	actorID                                                  string
+	applications                                             []entity.RegistrationApprovalApplication
+	applicationFailure                                       bool
+	writes                                                   int
 }
 type adminOverviewConnector struct{ fixture *adminOverviewFixture }
 
@@ -235,6 +242,10 @@ func (r *adminOverviewRows) Next(dest []driver.Value) error {
 	r.values = r.values[1:]
 	return nil
 }
+func (c adminOverviewConnection) ExecContext(context.Context, string, []driver.NamedValue) (driver.Result, error) {
+	c.fixture.writes++
+	return nil, errors.New("read-only overview wrote state")
+}
 func (c adminOverviewConnection) QueryContext(ctx context.Context, query string, args []driver.NamedValue) (driver.Rows, error) {
 	if err := ctx.Err(); err != nil {
 		return nil, err
@@ -244,18 +255,42 @@ func (c adminOverviewConnection) QueryContext(ctx context.Context, query string,
 	f.args = append(f.args, append([]driver.NamedValue(nil), args...))
 	switch {
 	case strings.Contains(query, `FROM "users"`):
-		if args[0].Value == "usr_reader" {
+		readerID := f.actorID
+		if readerID == "" {
+			readerID = "usr_reader"
+		}
+		if args[0].Value == readerID {
+			if f.actor != nil {
+				return effectiveSQLRows([]entity.User{*f.actor})
+			}
 			rows := &adminOverviewRows{columns: []string{"id", "role", "created_at"}}
 			if !f.deniedActor {
 				rows.values = [][]driver.Value{{"usr_reader", entity.RoleAdmin, f.created}}
 			}
 			return rows, nil
 		}
+		if f.subject != nil {
+			return memberListAdmissionUserRows(query, []entity.User{*f.subject})
+		}
 		id := "usr_subject"
 		if f.aliasedSubject {
 			id = "USR_SUBJECT"
 		}
 		return &adminOverviewRows{columns: []string{"id", "disabled", "offboarded_at", "created_at"}, values: [][]driver.Value{{id, true, f.created.Add(time.Minute), f.created}}}, nil
+	case strings.Contains(query, `FROM "registration_approval_applications"`):
+		if f.applicationFailure {
+			return nil, errors.New("controlled admission read outage")
+		}
+		apps := []entity.RegistrationApprovalApplication{}
+		for _, app := range f.applications {
+			for _, arg := range args {
+				if arg.Value == app.ID {
+					apps = append(apps, app)
+					break
+				}
+			}
+		}
+		return effectiveSQLRows(apps)
 	case strings.Contains(query, "role_permissions AS permission"):
 		rows := &adminOverviewRows{columns: []string{"role_id", "permission_role_id", "permission", "assignment_role_id", "assignment_user_id"}}
 		if !f.deniedPermission {
@@ -291,7 +326,7 @@ func TestAdminMemberOverviewTransactionSeparatesReaderAndRetainedSubject(t *test
 			result, err := s.MemberOverview(context.Background(), "usr_reader", "usr_subject")
 			wantErr := map[string]error{"disabled_actor": apperrors.ErrUnauthorized, "admin_without_permission": apperrors.ErrForbidden, "subject_alias": apperrors.ErrNotFound, "count_outage": apperrors.ErrInternal}[name]
 			wantReads := map[string]int{"retained_subject": 7, "disabled_actor": 1, "admin_without_permission": 2, "subject_alias": 3, "count_outage": 7}[name]
-			if err != wantErr || len(f.queries) != wantReads || f.options.Isolation != driver.IsolationLevel(sql.LevelRepeatableRead) || !f.options.ReadOnly {
+			if err != wantErr || len(f.queries) != wantReads || f.options.Isolation != driver.IsolationLevel(sql.LevelRepeatableRead) || !f.options.ReadOnly || f.writes != 0 {
 				t.Fatal(name, err, len(f.queries), f.options)
 			}
 			if wantErr != nil {
@@ -310,6 +345,99 @@ func TestAdminMemberOverviewTransactionSeparatesReaderAndRetainedSubject(t *test
 				for _, forbidden := range []string{"team_memberships", "project_keys", "default_limit_settings"} {
 					if strings.Contains(query, forbidden) {
 						t.Fatal("overview expanded to unrelated or mutable default scope", query)
+					}
+				}
+			}
+		})
+	}
+}
+
+func TestAdminMemberOverviewAdmissionProofIsCompleteAndReadOnce(t *testing.T) {
+	for _, name := range []string{"approved", "pending", "rejected", "missing", "wrong_birth", "wrong_user", "wrong_link", "invalid_link", "no_birth", "disabled", "offboarded", "actor_alias", "outage", "read_denied"} {
+		t.Run(name, func(t *testing.T) {
+			created := time.Date(2026, 10, 5, 1, 0, 0, 0, time.UTC)
+			id := "raa_01j00000000000000000000000"
+			actor := entity.User{ID: "usr_reader", Role: entity.RoleMember, CreatedAt: created, ApprovalApplicationID: &id}
+			app := approvedMemberListApplication(actor, id)
+			f := &adminOverviewFixture{created: created, actor: &actor, actorID: actor.ID, applications: []entity.RegistrationApprovalApplication{app}}
+			switch name {
+			case "pending":
+				f.applications[0].State = "pending"
+				f.applications[0].DecidedAt = nil
+				f.applications[0].DecisionActorID = nil
+				f.applications[0].DecisionReason = nil
+			case "rejected":
+				f.applications[0].State = "rejected"
+			case "missing":
+				f.applications = nil
+			case "wrong_birth":
+				f.applications[0].UserCreatedAt = created.Add(time.Microsecond)
+			case "wrong_user":
+				f.applications[0].UserID = "usr_foreign"
+			case "wrong_link":
+				f.applications[0].ID = strings.ToUpper(id)
+			case "invalid_link":
+				id += " "
+				actor.ApprovalApplicationID = &id
+			case "no_birth":
+				actor.CreatedAt = time.Time{}
+			case "disabled":
+				actor.Disabled = true
+			case "offboarded":
+				actor.OffboardedAt = &created
+			case "actor_alias":
+				f.actorID = strings.ToUpper(actor.ID)
+			case "outage":
+				f.applicationFailure = true
+			case "read_denied":
+				f.deniedPermission = true
+			}
+			if name == "approved" {
+				subjectID := "raa_01j00000000000000000000001"
+				subject := entity.User{ID: "usr_subject", Role: entity.RoleMember, CreatedAt: created, Disabled: true, ApprovalApplicationID: &subjectID}
+				f.subject = &subject
+				f.applications = append(f.applications, approvedMemberListApplication(subject, subjectID))
+			}
+			pool := sql.OpenDB(adminOverviewConnector{f})
+			t.Cleanup(func() { _ = pool.Close() })
+			db, err := gorm.Open(postgres.New(postgres.Config{Conn: pool}), &gorm.Config{DisableAutomaticPing: true})
+			if err != nil {
+				t.Fatal(err)
+			}
+			result, err := (&Service{db: db}).MemberOverview(context.Background(), f.actorID, "usr_subject")
+			if f.writes != 0 || !f.options.ReadOnly || f.options.Isolation != driver.IsolationLevel(sql.LevelRepeatableRead) {
+				t.Fatal("read transaction changed", f.options, f.writes)
+			}
+			if name == "approved" {
+				actorReads, appReads := 0, 0
+				for i, q := range f.queries {
+					if strings.Contains(q, `FROM "users"`) && f.args[i][0].Value == actor.ID {
+						actorReads++
+						if !strings.Contains(q, "SELECT *") {
+							t.Fatal("partial actor", q)
+						}
+					}
+					if strings.Contains(q, `FROM "registration_approval_applications"`) {
+						appReads++
+					}
+				}
+				if err != nil || result == nil || len(f.queries) != 9 || actorReads != 1 || appReads != 2 || result.Personal.RuntimeApplied || result.TotalPersonalKeys != "9007199254740993" {
+					t.Fatal("managed proof budget", err, len(f.queries), actorReads, appReads)
+				}
+			} else {
+				want := apperrors.ErrUnauthorized
+				if name == "read_denied" {
+					want = apperrors.ErrForbidden
+				}
+				if result != nil || err == nil || name != "outage" && !errors.Is(err, want) {
+					t.Fatal("unproven actor received facts", name, err)
+				}
+				for _, q := range f.queries {
+					if strings.Contains(q, `FROM "resource_limits"`) || strings.Contains(q, `FROM "api_keys"`) {
+						t.Fatal("private target read after denial", name)
+					}
+					if name != "read_denied" && strings.Contains(q, "role_permissions AS permission") {
+						t.Fatal("unproven actor queried permissions", name)
 					}
 				}
 			}

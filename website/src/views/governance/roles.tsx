@@ -33,6 +33,7 @@ const actions: Record<string, string> = {
   read_all: 'actions.readAll',
   write: 'actions.write',
   'models.write': 'actions.assignModels',
+  'approvals.write': 'registrationApproval.permission',
 }
 
 export function PermissionRows({ permissions }: { permissions: string[] }) {

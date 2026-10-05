@@ -767,3 +767,19 @@ same-context intent, never claims success or retries automatically. Actor, targe
 tab, logout or unmount destroys transient state. Keep paired live translations,
 reason UTF-8 bounds, conflict drafts, exact dispatch identities and connected
 focus restoration covered by tests.
+
+Local registration approval retains the existing registration drawer and Member
+list/Overview review entry. A register HTTP202 is anonymous pending guidance,
+never a Session, MFA challenge or authenticated navigation. Pending/rejected
+applications deny account use without inventing historical approval for unmanaged
+accounts. Dedicated decisions require current admitted intrinsic administrator,
+members.read and members.approvals.write; policy edits independently require
+registration.write. Keep strong reviewed If-Match/reason, exact application
+continuity and current admission/runtime confirmation separate from lifecycle,
+grants, Keys, recorded decisions and historical receipts. Retain every failed
+dispatched intent through fresh reads, dismissal and permission renewal; explicit
+Abandon leaves the previous outcome unknown and requires current review before
+another confirmation. Approval creates no Session or implicit grants. Render only
+the bounded server summary in ordinary Member rows/details; keep application and
+reviewer metadata within the dedicated authorized dialog. Preserve pending202,
+fresh authority, exact retry, independent permissions and paired translations.

@@ -33,7 +33,7 @@ func runtimeFixture(t *testing.T, baseURL string) (*Service, *runtimeData, strin
 	bearer := "rx_" + strings.Repeat("a", 43)
 	data := &runtimeData{
 		Quota:          &runtimeQuotaData{Setting: entity.QuotaSetting{TimeZone: "UTC", ETag: "0"}, Bounds: map[string]entity.ReservationBound{}, Created: map[string]time.Time{}, Revisions: map[string]string{}},
-		Users:          []entity.User{{ID: "usr_one"}},
+		Users:          []entity.User{{ID: "usr_one", CreatedAt: time.Now().UTC()}},
 		Keys:           []entity.APIKey{{ID: "key_one", UserID: "usr_one", TokenHash: secret.SHA256Hex(bearer), Status: entity.KeyActive}},
 		Scopes:         []entity.APIKeyModel{{KeyID: "key_one", ModelID: modelID}},
 		Grants:         []entity.UserModelGrant{{UserID: "usr_one", ModelID: modelID}},
@@ -308,7 +308,7 @@ func TestProjectRuntimeLifecycleAndManagerChanges(t *testing.T) {
 	}
 	s, data, bearer, _ := projectRuntimeFixture(t)
 	data.Users[0].Disabled = true
-	data.Users = append(data.Users, entity.User{ID: "usr_new_manager"})
+	data.Users = append(data.Users, entity.User{ID: "usr_new_manager", CreatedAt: time.Now().UTC()})
 	data.ProjectData.Managers = []entity.ProjectManager{{ProjectID: "prj_one", UserID: "usr_new_manager"}}
 	s.runtime.auth.Store(buildRuntimeAuthorization(data, time.Now().Add(time.Minute)))
 	if _, err := s.AuthenticateAPIKey(context.Background(), bearer); err != nil {
