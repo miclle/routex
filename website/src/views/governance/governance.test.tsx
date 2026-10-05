@@ -39,6 +39,49 @@ let registrationETag: string
 let registration: boolean
 let failures: Record<string, number>
 const oldAdapter = client.defaults.adapter
+const roleDefinitionAvailablePermissions = [
+  'announcements.write',
+  'audit.read',
+  'calls.read_all',
+  'egress.read',
+  'egress.test',
+  'egress.write',
+  'limits.settings.write',
+  'limits.users.write',
+  'members.keys.disable',
+  'members.models.write',
+  'members.read',
+  'members.write',
+  'models.read_all',
+  'models.write',
+  'prices.read',
+  'prices.write',
+  'projects.limits.write',
+  'projects.models.write',
+  'projects.read_all',
+  'projects.write',
+  'providers.read',
+  'providers.write',
+  'roles.read',
+  'secrets.read',
+  'secrets.rotate',
+  'site.write',
+  'smtp.read',
+  'smtp.test',
+  'smtp.write',
+  'storage.read',
+  'storage.test',
+  'storage.write',
+  'system.read',
+  'system.write',
+  'teams.models.write',
+  'teams.money.write',
+  'teams.quota_requests.read_all',
+  'teams.rates.write',
+  'teams.read_all',
+  'teams.tokens.write',
+  'teams.write',
+]
 beforeEach(() => {
   requests = []
   failures = {}
@@ -173,6 +216,30 @@ beforeEach(() => {
           .sort((a, b) => (a.id < b.id ? -1 : 1)),
         next_cursor: null,
         etag: roleETag,
+      }
+      response.headers = new AxiosHeaders({
+        etag: `"${roleETag}"`,
+        'cache-control': 'private, no-store',
+      })
+    }
+    if (config.method === 'get' && /^\/admin\/roles\/[^/]+$/.test(config.url ?? '')) {
+      const id = config.url!.split('/')[3]
+      const role = roles.find((row) => row.id === id)
+      if (!role)
+        throw new AxiosError('Missing exact Role', '', config, undefined, {
+          ...response,
+          status: 404,
+        })
+      response.data = {
+        id: role.id,
+        name: role.name,
+        builtin: role.builtin,
+        permissions: [...role.permissions].sort(),
+        available_permissions: [...roleDefinitionAvailablePermissions],
+        definition_etag: roleETag,
+        identity_etag: 'b'.repeat(64),
+        review_etag: roleETag,
+        can_edit: !role.builtin && session.user.role === 'admin',
       }
       response.headers = new AxiosHeaders({
         etag: `"${roleETag}"`,
@@ -626,7 +693,12 @@ describe('member governance', () => {
     await mount('/admin/roles')
     await until(() => expect(container.textContent).toContain('Provider Reader'))
     await click('View permissions')
-    expect(document.querySelector('[role="dialog"]')?.textContent).toContain('Provider connections')
+    await until(() =>
+      expect(document.querySelector('[role="dialog"]')?.textContent).toContain(
+        'Provider connections',
+      ),
+    )
+    expect(requests.some((request) => request.url === '/admin/roles/rol_admin')).toBe(true)
     await act(async () => {
       await i18n.changeLanguage('zh')
     })

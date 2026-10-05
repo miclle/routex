@@ -11,7 +11,6 @@ import (
 	"github.com/miclle/routex/internal/routex/entity"
 	apperrors "github.com/miclle/routex/internal/routex/errors"
 	"github.com/miclle/routex/pkg/id"
-	"github.com/miclle/routex/pkg/secret"
 )
 
 // AvailablePermissions defines the implemented platform resource/action surface.
@@ -171,73 +170,23 @@ func (s *Service) SaveRole(ctx context.Context, actorID, roleID, name string, pe
 		return nil, err
 	}
 	creating := roleID == ""
-	var err error
 	if creating {
+		var err error
 		roleID, err = id.NewPrefixed("rol")
 		if err != nil {
 			return nil, apperrors.ErrInternal
 		}
 	}
-	role := entity.Role{ID: roleID, Name: name, NameKey: secret.SHA256Hex(name)}
-	db := s.authDB(ctx)
-	err = db.Transaction(func(tx *gorm.DB) error {
-		if err := lockGovernance(tx); err != nil {
-			return err
-		}
-		if err := activePlatformAdmin(tx, actorID); err != nil {
-			return err
-		}
-		if !creating {
-			if err := memberRolesExact(memberRolesDB(tx).Clauses(clause.Locking{Strength: "UPDATE"}), "id", roleID).First(&role).Error; err != nil {
-				return err
-			}
-			if role.Builtin {
-				return apperrors.ErrForbidden
-			}
-			beforePermissions, err := rolePermissions(memberRolesDB(tx), role.ID)
-			if err != nil {
-				return err
-			}
-			desired := slices.Clone(permissions)
-			slices.Sort(desired)
-			if role.Name == name && slices.Equal(beforePermissions, desired) {
-				return nil
-			}
-			role.DefinitionRevision, err = newMemberRoleRevision()
-			if err != nil {
-				return err
-			}
-			role.Name = name
-			role.NameKey = secret.SHA256Hex(name)
-			if err := tx.Model(&role).Updates(map[string]any{"name": name, "name_key": role.NameKey, "definition_revision": role.DefinitionRevision}).Error; err != nil {
-				return err
-			}
-		} else {
-			var err error
-			role.DefinitionRevision, err = newMemberRoleRevision()
-			if err != nil {
-				return err
-			}
-			if err := tx.Create(&role).Error; err != nil {
-				return err
-			}
-		}
-		if err := memberRolesExact(memberRolesDB(tx), "role_id", roleID).Delete(&entity.RolePermission{}).Error; err != nil {
-			return err
-		}
-		for _, permission := range permissions {
-			if err := tx.Create(&entity.RolePermission{RoleID: roleID, Permission: permission}).Error; err != nil {
-				return err
-			}
-		}
-		return appendAudit(tx, actorID, "role.save", "role", roleID)
-	})
+	if err := roleDefinitionIDs(actorID, roleID); err != nil {
+		return nil, err
+	}
+	permissions = append([]string{}, permissions...)
+	slices.Sort(permissions)
+	result, err := s.mutateRoleDefinition(ctx, actorID, roleID, "", RoleDefinitionInput{Name: name, Permissions: permissions}, false, creating)
 	if err != nil {
 		return nil, catalogError(err)
 	}
-	permissions = slices.Clone(permissions)
-	slices.Sort(permissions)
-	return &RoleRecord{Role: role, Permissions: permissions}, nil
+	return result, nil
 }
 
 func (s *Service) DeleteRole(ctx context.Context, actorID, roleID string) error {

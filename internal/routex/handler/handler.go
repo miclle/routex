@@ -63,6 +63,9 @@ func (ctrl *Ctrl) RegisterRoutes(r *fox.Engine) {
 	identity.POST("/auth/logout", sameOrigin, ctrl.requireSession, requireCSRF, ctrl.Logout)
 	identity.GET("/admin/status", ctrl.requireSession, requireAdmin, ctrl.AdminStatus)
 
+	identity.GET("/admin/roles/:role_id", memberMetadataResponseHeaders, ctrl.requireSession, ctrl.GetRoleDefinition)
+	identity.PUT("/admin/roles/:role_id", memberMetadataResponseHeaders, ctrl.requireSession, sameOrigin, requireCSRF, jsonManagementRequest, ctrl.SetReviewedRoleDefinition)
+
 	identity.GET("/teams", ctrl.requireSession, ctrl.ListTeams)
 	identity.GET("/teams/:team_id/roles", ctrl.requireSession, ctrl.GetTeamRoles)
 	identity.PUT("/teams/:team_id/roles", ctrl.requireSession, sameOrigin, requireCSRF, jsonManagementRequest, ctrl.SetTeamRoles)
@@ -225,7 +228,6 @@ func (ctrl *Ctrl) RegisterRoutes(r *fox.Engine) {
 	admin.POST("/members", sameOrigin, requireCSRF, jsonAuthRequest, ctrl.RequirePermission("members.write"), ctrl.CreateMember)
 	admin.GET("/roles", ctrl.RequirePermission("roles.read"), ctrl.ListRoles)
 	admin.POST("/roles", requireAdmin, sameOrigin, requireCSRF, jsonManagementRequest, ctrl.CreateRole)
-	admin.PUT("/roles/:role_id", requireAdmin, sameOrigin, requireCSRF, jsonManagementRequest, ctrl.UpdateRole)
 	admin.DELETE("/roles/:role_id", requireAdmin, sameOrigin, requireCSRF, ctrl.DeleteRole)
 	admin.GET("/members/:user_id/roles", ctrl.RequirePermission("members.read"), ctrl.RequirePermission("roles.read"), ctrl.GetMemberRoles)
 	admin.GET("/members/:user_id/roles/candidates", ctrl.RequirePermission("members.read"), ctrl.RequirePermission("roles.read"), ctrl.MemberRoleCandidates)

@@ -2,7 +2,50 @@
 
 Updated: 2026-10-05. This document records engineering contracts, work packages, and acceptance checks. Interfaces, tables, pages, and metrics marked as planned are not necessarily implemented; delivery evidence appears at the end. The active goal covers all F01–F30 capabilities and A01–A20 acceptance cases; completed stages do not end implementation. The full product is delivered incrementally through P0–P6.
 
-## Active local registration approval integration
+## Active reviewed Role-definition phase
+
+Checked, committed and pushed predecessor is local registration approval
+`b10eb6cf900994b8a0e10b7a81e346ed10144cc8`, with the accepted evidence below.
+The bounded Role-only candidate adds reviewed resource GET/PUT to the existing
+Role table/Edit dialog, independent read/intrinsic-admin write authority, durable
+definition/creation proofs, atomic typed reason audit and current-database-only
+confirmation. Existing create/delete and Member/Team assignments stay separate.
+Failed dispatched requests retain exact intent until confirmation or explicit
+local abandonment; matching reads never prove a historical operation.
+
+No migration is added. Frozen V57 and the 102-scenario prefix remain unchanged;
+Role definitions append scenario 103. The complete post-repair race regression
+passed 103 ordered lifecycle scenarios per driver, eight constraint cases and
+3,173 named pass events, with no named failures or skips (PostgreSQL 837.37s;
+MySQL 1090.87s). Log SHA256:
+`1fa9500a0ad8f3558f4f1004f98f01c8d8e6e1ca6a8481a5b579b33165745f5b`.
+The backend, schema and harness stayed exact after that gate. The later UI-only
+compact Base UI Input adjustment passed mandatory checks, 2,993 frontend cases
+across 146 files, four Node checks, two development lifecycle checks, production
+build and asset tests. Independent authentication/native restart passed on both
+databases. Every owned integration and restart resource was independently absent.
+
+Controlled bilingual production acceptance passed before and after the Input
+adjustment. Both runs returned reviewed browser PUT statuses 200, 409, 409 and
+200; rejected retries retained exact bodies/ETags and explicit Abandon plus a new
+review used a new ETag. The earlier run additionally verified three typed
+A → B → C → D audits and no audit for matching confirmation. The latest binary
+`76d2254276ba7a8f5b4c676a8e80e48a999497428f025b5dd4fbb948ff7d979b`
+verified actual Space activation, built-in 403 denial, dismissal/language draft
+retention, Escape focus and same-binary/configuration/database/Session restart
+against all 412 protected source paths. Zero calls/native POSTs were created.
+No console errors were observed; an initial blank load needed one reload, whose
+cause is unestablished. The temporary tab, listeners and Compose resources are
+absent. Earlier incomplete helper/browser attempts remain historical evidence.
+
+The Role phase is locally accepted and ready for its scoped commit/push; new
+remote CI remains pending. Approval b10eb6cf remains delivered. Its CI run
+37314987013 failed a proven PostgreSQL fixture-registry race and a masked MySQL
+error whose historical cause remains unknown. The repaired local focus and full
+regression passed without weakening deadlines or query budgets; they do not
+establish remote convergence. F04/F05 remain partial; formal 11/16/3 is unchanged.
+
+## Checked local registration approval predecessor
 
 Checked main predecessor is reviewed Member State `74f08d3`; direct Member Roles
 was delivered earlier at `a44838d`. This approval phase
@@ -43,8 +86,8 @@ This confirms current state and runtime application, not a historical operation
 receipt or completion of the entire Member capability. The final mandatory check passed. The containing commit delivers this bounded
 approval phase; remote push/read-back and workflow results are recorded separately.
 
-Queued Role-definition, offboarding UI/recorded Settings summary and allowed-email
-source remain private preparation. Their combined Go 34 source checkpoint passed
+At the Approval source checkpoint, the then-queued Role-definition, offboarding
+UI/recorded Settings summary and allowed-email combined Go 34 preparation passed
 908 top-level tests and 3,160 pass events before its nonsemantic successors; combined frontend 35 passed 3,102 cases in 150 files with
 types, scoped lint/format and reversible contexts. The separate 10-path Restore
 proposal passed 3,117 private source cases in 150 files only; it is not part of current main or an
@@ -204,7 +247,7 @@ The binary capability count is 11 completed, 16 partially completed, and 3 not s
 | F01 | Initialization, local identity, registration, and logout | Completed | Concurrent one-time setup, administrator creation, local login, registration control, durable sessions, and logout are implemented and tested. |
 | F02 | Profile, password, MFA, recovery codes, and session revocation | Completed | Profile and password changes, authenticator enrollment, single-use recovery codes, and individual-session revocation are implemented. |
 | F03 | Enterprise SSO, LDAP, OAuth, and emergency recovery | Not started | Provider configuration, callbacks, identity binding, enforced SSO, and enterprise recovery remain unimplemented. |
-| F04 | Member administration, direct grants, roles, and resource policies | Partially completed | Member Overview, Keys, Limits, Teams, Models, metadata, the eleven-column list, effective Models, recent login and Access are checked deliveries. Reviewed direct custom Roles a44838d and State/base-role changes 74f08d3 are also delivered. Local registration approval is an uncommitted candidate with source, complete102-per-driver and authentication/native restart passed; R9 bilingual policy/pending-registration observations passed, but its post-registration helper failed, so full process/browser acceptance and delivery remain pending. Role-definition/Team-role review, templates and remaining resource-policy acceptance stay open. |
+| F04 | Member administration, direct grants, roles, and resource policies | Partially completed | Member Overview, Keys, Limits, Teams, Models, metadata, list, effective Models, recent login, Access, direct Roles and State are checked deliveries. Approval b10eb6cf is locally delivered; CI run 37314987013 failed integration, so remote convergence is not claimed. Role-definition source checks, build, race-focused drivers and bilingual retry/restart passed with zero calls. Both drivers passed 103 ordered scenarios and constraints; final UI checks and current production keyboard/retry/restart acceptance passed. Scoped commit/push and new remote CI remain pending. Team-role review and remaining resource-policy acceptance stay open. |
 | F05 | Built-in and custom roles with composed permissions | Partially completed | Current-domain role and permission management is implemented; later enterprise and operations domains still require permission integration and negative acceptance. |
 | F06 | Team membership, ownership, models, quotas, and member rules | Completed | Team membership/ownership, model relationships, finite aggregate/member policies and monthly requests are accepted. Durable Team-assigned roles, exact Team-only action unions, reviewed administrator assignment and the existing Roles interface have controlled dual-database and browser evidence. |
 | F07 | Project lifecycle, managers, models, Keys, and requests | Completed | Exact current management, lifecycle/continuity, multi-manager creation, initial direct resources and combined requests, scoped Overview, Project Keys, resource limits and model/quota/rate approvals are implemented with controlled dual-database/browser/native/restart evidence. Both lists now show authorized total retained Key counts; administrative stored-policy summaries, literal name/ID search and authorized legacy tab replacement have full main acceptance. |

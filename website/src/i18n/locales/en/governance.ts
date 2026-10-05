@@ -1,4 +1,46 @@
 export default {
+  roleDefinition: {
+    reviewHelp:
+      'Review this exact Role definition before replacing its name and complete permissions. Saving confirms current database state only.',
+    readFailed: 'The Role definition could not be read.',
+    loading: 'Reading the Role definition…',
+    refresh: 'Refresh',
+    recorded:
+      'Recorded unknown permission codes remain visible and do not grant current platform access.',
+    readOnly: 'This Role is read-only under the current identity and authority.',
+    reviewChanged:
+      'The current review differs from the captured draft. Review the current definition explicitly before a new request.',
+    unknownCode: 'Recorded, not assignable: {{code}}',
+    removeUnknown:
+      'Remove recorded codes that are not currently assignable before saving. They are never removed automatically.',
+    reason: 'Reason',
+    invalidName:
+      'Enter a name of at most 100 Unicode characters without surrounding whitespace or control characters.',
+    invalidReason:
+      'Enter a reason of at most 1024 UTF-8 bytes without surrounding whitespace or control characters.',
+    cancel: 'Cancel',
+    reviewCurrent: 'Review current definition',
+    reviewSave: 'Review and save',
+    retry: 'Retry original definition request',
+    abandon: 'Abandon original request',
+    abandonTitle: 'Abandon unconfirmed request?',
+    abandonHelp:
+      'This clears only local retry intent. A prior request may already have changed the database. Keep the draft and explicitly review current state before a new request.',
+    confirmAbandon: 'Abandon request',
+    abandoned:
+      'The original request was explicitly abandoned. The draft is retained; review current state before sending a new request.',
+    confirmTitle: 'Confirm Role definition',
+    confirmHelp:
+      'Replace the complete name and permission set with this reviewed reason. Confirmation proves current stored state, not the original historical operation or runtime application.',
+    confirm: 'Confirm definition',
+    uncertain:
+      'The original request is unconfirmed. Retry its exact name, permissions, birth proof, reason and review revision. A matching read does not confirm it.',
+    conflict:
+      'The request was rejected or could not be confirmed against current state. Its original intent remains unconfirmed; retry it unchanged or explicitly abandon it.',
+    confirmed:
+      'The exact current Role definition is confirmed in the database. This is not a historical operation receipt or runtime application proof.',
+    readDenied: 'Fresh Role read access is unavailable.',
+  },
   registrationApproval: {
     permission: 'Review registration applications',
     review: 'Review registration',

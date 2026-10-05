@@ -26,7 +26,9 @@ import (
 	"github.com/miclle/routex/pkg/id"
 	"github.com/miclle/routex/pkg/pricing"
 	"github.com/miclle/routex/pkg/secretstore"
+	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
+	"gorm.io/gorm/logger"
 )
 
 // Real-driver fixtures use only root-registered product routes. Registration and
@@ -58,6 +60,7 @@ func testMemberModelsLifecycle(t *testing.T, db *gorm.DB) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	faults := installMemberModelsFixtureFaults(t, db)
 	defer svc.StopRuntime()
 	router := fox.New()
 	New(svc).RegisterRoutes(router)
@@ -514,51 +517,22 @@ func testMemberModelsLifecycle(t *testing.T, db *gorm.DB) {
 	put(writer, subject.auth.User.ID, current.ETag, []string{modelIDs["a"], modelIDs["b"]}, "Stale add after reduction", 409)
 	// Force a transactional audit error and verify complete rollback, not just
 	// the final membership set. This callback never alters production behavior.
-	callback := "test_member_models_audit_rollback"
-	if err := db.Callback().Create().Before("gorm:create").Register(callback, func(tx *gorm.DB) {
-		if row, ok := tx.Statement.Dest.(*entity.AuditEvent); ok && row.Action == "member.models.update" {
-			_ = tx.AddError(errors.New("controlled Member Models audit failure"))
-		}
-	}); err != nil {
-		t.Fatal(err)
-	}
 	beforeRollback, rollbackRevision, rollbackAudit := grants(subject.auth.User.ID), revision(subject.auth.User.ID), auditCount()
 	rollbackReview := get(writer, subject.auth.User.ID)
+	faults.rollback.Store(true)
 	put(writer, subject.auth.User.ID, rollbackReview.ETag, []string{}, "Rollback all grants", 500)
-	if err := db.Callback().Create().Remove(callback); err != nil {
-		t.Fatal(err)
-	}
+	faults.rollback.Store(false)
 	if !reflect.DeepEqual(grants(subject.auth.User.ID), beforeRollback) || revision(subject.auth.User.ID) != rollbackRevision || auditCount() != rollbackAudit {
 		t.Fatal("audit failure committed grants, revision or partial receipt")
 	}
 	// Commit a reduction then fail only auth publication. The same request can
 	// reconcile current disabled grants with no historical receipt or new audit.
-	var outage atomic.Bool
-	publicationCallback := "test_member_models_publication_outage"
-	if err := db.Callback().Query().Before("gorm:query").Register(publicationCallback, func(tx *gorm.DB) {
-		if outage.Load() && tx.Statement.Table == "api_keys" {
-			_ = tx.AddError(errors.New("controlled Member Models publication outage"))
-		}
-	}); err != nil {
-		t.Fatal(err)
-	}
-	if err := db.Callback().Create().After("gorm:create").Register(publicationCallback, func(tx *gorm.DB) {
-		if row, ok := tx.Statement.Dest.(*entity.AuditEvent); ok && row.Action == "member.models.update" && tx.Error == nil {
-			outage.Store(true)
-		}
-	}); err != nil {
-		t.Fatal(err)
-	}
 	uncertainReview := get(writer, subject.auth.User.ID)
 	uncertainAudit := auditCount()
+	faults.armPublication.Store(true)
 	put(writer, subject.auth.User.ID, uncertainReview.ETag, []string{}, "Controlled publication reduction", 503)
-	outage.Store(false)
-	if err := db.Callback().Query().Remove(publicationCallback); err != nil {
-		t.Fatal(err)
-	}
-	if err := db.Callback().Create().Remove(publicationCallback); err != nil {
-		t.Fatal(err)
-	}
+	faults.armPublication.Store(false)
+	faults.publication.Store(false)
 	uncertainRevision := revision(subject.auth.User.ID)
 	if len(grants(subject.auth.User.ID)) != 0 || auditCount() != uncertainAudit+1 || uncertainRevision == rollbackRevision {
 		t.Fatal("uncertain publication did not retain exact committed reduction")
@@ -959,4 +933,121 @@ func memberModelsSOCKSProxyFixture(t *testing.T, target string, authenticated bo
 		workers.Wait()
 	})
 	return listener.Addr().String(), &forwarded
+}
+
+// Callback registries are installed before StartRuntime and remain immutable
+// until its deferred StopRuntime joins. Only the fault gates change while the
+// real background publisher and request handlers execute concurrently.
+type memberModelsFixtureFaults struct {
+	rollback       atomic.Bool
+	publication    atomic.Bool
+	armPublication atomic.Bool
+}
+
+func installMemberModelsFixtureFaults(t *testing.T, db *gorm.DB) *memberModelsFixtureFaults {
+	t.Helper()
+	faults := &memberModelsFixtureFaults{}
+	const audit = "test_member_models_audit_rollback"
+	const publication = "test_member_models_publication_outage"
+	registrations := []func() error{
+		func() error {
+			return db.Callback().Create().Before("gorm:create").Register(audit, func(tx *gorm.DB) {
+				if row, ok := tx.Statement.Dest.(*entity.AuditEvent); faults.rollback.Load() && ok && row.Action == "member.models.update" {
+					_ = tx.AddError(errors.New("controlled Member Models audit failure"))
+				}
+			})
+		},
+		func() error {
+			return db.Callback().Query().Before("gorm:query").Register(publication, func(tx *gorm.DB) {
+				if faults.publication.Load() && tx.Statement.Table == "api_keys" {
+					_ = tx.AddError(errors.New("controlled Member Models publication outage"))
+				}
+			})
+		},
+		func() error {
+			return db.Callback().Create().After("gorm:create").Register(publication, func(tx *gorm.DB) {
+				if row, ok := tx.Statement.Dest.(*entity.AuditEvent); faults.armPublication.Load() && ok && row.Action == "member.models.update" && tx.Error == nil {
+					faults.publication.Store(true)
+				}
+			})
+		},
+	}
+	for _, register := range registrations {
+		if err := register(); err != nil {
+			t.Fatal(err)
+		}
+	}
+	// Test cleanup runs after testMemberModelsLifecycle's StopRuntime defer.
+	t.Cleanup(func() {
+		for _, remove := range []func() error{
+			func() error { return db.Callback().Create().Remove(audit) },
+			func() error { return db.Callback().Query().Remove(publication) },
+			func() error { return db.Callback().Create().Remove(publication) },
+		} {
+			if err := remove(); err != nil {
+				t.Error(err)
+			}
+		}
+	})
+	return faults
+}
+
+func TestMemberModelsFixtureFaultGatesRemainConcurrentAndScoped(t *testing.T) {
+	// DryRun plus disabled ping/default transactions executes the real GORM
+	// callback processor without connecting to a database or starting a runtime.
+	db, err := gorm.Open(postgres.New(postgres.Config{DSN: "host=127.0.0.1 port=1 user=source_only dbname=source_only sslmode=disable"}), &gorm.Config{DryRun: true, DisableAutomaticPing: true, SkipDefaultTransaction: true, Logger: logger.Default.LogMode(logger.Silent)})
+	if err != nil {
+		t.Fatal(err)
+	}
+	pool, err := db.DB()
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = pool.Close() })
+	faults := installMemberModelsFixtureFaults(t, db)
+	audit := func(action string) error { return db.Create(&entity.AuditEvent{Action: action}).Error }
+	query := func() error { var rows []entity.APIKey; return db.Find(&rows).Error }
+	if err := audit("member.models.update"); err != nil {
+		t.Fatal(err)
+	}
+	faults.rollback.Store(true)
+	if err := audit("member.models.update"); err == nil || err.Error() != "controlled Member Models audit failure" {
+		t.Fatal("audit rollback gate", err)
+	}
+	if err := audit("unrelated.action"); err != nil {
+		t.Fatal("unrelated audit intercepted", err)
+	}
+	faults.rollback.Store(false)
+	faults.armPublication.Store(true)
+	if err := audit("member.models.update"); err != nil || !faults.publication.Load() {
+		t.Fatal("committed audit did not arm publication", err)
+	}
+	if err := query(); err == nil || err.Error() != "controlled Member Models publication outage" {
+		t.Fatal("publication gate", err)
+	}
+	var roles []entity.Role
+	if err := db.Find(&roles).Error; err != nil {
+		t.Fatal("unrelated table intercepted", err)
+	}
+	faults.armPublication.Store(false)
+	var wg sync.WaitGroup
+	for range 4 {
+		wg.Go(func() {
+			for range 250 {
+				if err := query(); err != nil && err.Error() != "controlled Member Models publication outage" {
+					t.Error(err)
+				}
+			}
+		})
+	}
+	wg.Go(func() {
+		for i := range 1000 {
+			faults.publication.Store(i%2 == 0)
+		}
+	})
+	wg.Wait()
+	faults.publication.Store(false)
+	if err := query(); err != nil {
+		t.Fatal("publication recovery", err)
+	}
 }

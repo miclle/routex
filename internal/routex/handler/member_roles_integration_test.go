@@ -73,15 +73,30 @@ func testMemberRolesLifecycle(t *testing.T, db *gorm.DB) {
 	type marker struct{}
 	var queryMu sync.Mutex
 	var queries []string
+	var failedStatements []memberRolesFixtureStatementFailure
 	const queryCallback = "test:member-roles-query"
 	observer := func(tx *gorm.DB) {
 		if tx.Statement.Context.Value(marker{}) == true {
 			queryMu.Lock()
 			queries = append(queries, tx.Statement.SQL.String())
+			if tx.Error != nil {
+				failedStatements = append(failedStatements, memberRolesFixtureStatementDiagnostic(tx))
+			}
 			queryMu.Unlock()
 		}
 	}
+	startStatement := func(tx *gorm.DB) {
+		if tx.Statement.Context.Value(marker{}) == true {
+			tx.Statement.Settings.Store("test:member-roles-start", time.Now())
+		}
+	}
 	for _, register := range []func() error{
+		func() error {
+			return db.Callback().Query().Before("gorm:query").Register(queryCallback+":start", startStatement)
+		},
+		func() error {
+			return db.Callback().Row().Before("gorm:row").Register(queryCallback+":start", startStatement)
+		},
 		func() error { return db.Callback().Query().After("gorm:query").Register(queryCallback, observer) },
 		func() error { return db.Callback().Row().After("gorm:row").Register(queryCallback, observer) },
 	} {
@@ -89,7 +104,12 @@ func testMemberRolesLifecycle(t *testing.T, db *gorm.DB) {
 			t.Fatal(err)
 		}
 	}
-	defer func() { _ = db.Callback().Query().Remove(queryCallback); _ = db.Callback().Row().Remove(queryCallback) }()
+	defer func() {
+		_ = db.Callback().Query().Remove(queryCallback)
+		_ = db.Callback().Row().Remove(queryCallback)
+		_ = db.Callback().Query().Remove(queryCallback + ":start")
+		_ = db.Callback().Row().Remove(queryCallback + ":start")
+	}()
 	svc, err := service.New(ctx, db)
 	if err != nil {
 		t.Fatal(err)
@@ -613,10 +633,18 @@ func testMemberRolesLifecycle(t *testing.T, db *gorm.DB) {
 			t.Helper()
 			queryMu.Lock()
 			queries = nil
+			failedStatements = nil
 			queryMu.Unlock()
+			started := time.Now()
 			value, err := svc.GetMemberRoles(context.WithValue(ctx, marker{}, true), admin.User.ID, subject.User.ID)
 			if err != nil {
-				t.Fatal(err)
+				queryMu.Lock()
+				diagnostics := slices.Clone(failedStatements)
+				queryMu.Unlock()
+				for _, diagnostic := range diagnostics {
+					t.Logf("failed bounded Roles statement: error_type=%s message=%q context_error=%q elapsed=%s", diagnostic.ErrorType, diagnostic.Message, diagnostic.ContextError, diagnostic.Elapsed)
+				}
+				t.Fatalf("bounded Roles read failed: error_type=%T error=%v elapsed=%s failed_statements=%d", err, err, time.Since(started), len(diagnostics))
 			}
 			queryMu.Lock()
 			captured := slices.Clone(queries)
@@ -702,5 +730,60 @@ func testMemberRolesLifecycle(t *testing.T, db *gorm.DB) {
 	var native int64
 	if err := db.Model(&entity.CallRecord{}).Count(&native).Error; err != nil || native != 0 {
 		t.Fatal("Roles fixture produced inference", native, err)
+	}
+}
+
+type memberRolesFixtureStatementFailure struct {
+	ErrorType, Message, ContextError string
+	Elapsed                          time.Duration
+}
+
+func memberRolesFixtureSafeError(err error) string {
+	if err == nil {
+		return ""
+	}
+	message := err.Error()
+	upper := strings.ToUpper(message)
+	for _, sensitive := range []string{"SELECT ", "INSERT ", "UPDATE ", "DELETE ", "WHERE ", "VALUES ", "SQL SYNTAX", "DETAIL:", "://", "USER=", "DATABASE=", "HOST=", "PASSWORD", "TOKEN", "SECRET", "AUTHORIZATION", "DSN"} {
+		if strings.Contains(upper, sensitive) {
+			return "statement error text omitted because it may contain SQL or credentials"
+		}
+	}
+	message = strings.Map(func(r rune) rune {
+		if r < 32 || r == 127 {
+			return ' '
+		}
+		return r
+	}, message)
+	runes := []rune(message)
+	if len(runes) > 300 {
+		message = string(runes[:300]) + "…"
+	}
+	return message
+}
+
+func memberRolesFixtureStatementDiagnostic(tx *gorm.DB) memberRolesFixtureStatementFailure {
+	diagnostic := memberRolesFixtureStatementFailure{ErrorType: fmt.Sprintf("%T", tx.Error), Message: memberRolesFixtureSafeError(tx.Error), ContextError: memberRolesFixtureSafeError(tx.Statement.Context.Err())}
+	if value, ok := tx.Statement.Settings.Load("test:member-roles-start"); ok {
+		if started, ok := value.(time.Time); ok {
+			diagnostic.Elapsed = time.Since(started)
+		}
+	}
+	return diagnostic
+}
+
+func TestMemberRolesFixtureDiagnosticsExcludeSQLAndCredentials(t *testing.T) {
+	for _, message := range []string{"SELECT role_id WHERE id = secret", "postgres://user:password@host/database", "token=private", "INSERT INTO users values (...)", "syntax failure near WHERE name=private", "failed to connect user=private host=private"} {
+		if got := memberRolesFixtureSafeError(errors.New(message)); got != "statement error text omitted because it may contain SQL or credentials" {
+			t.Fatal("unsafe diagnostic", got)
+		}
+	}
+	for _, err := range []error{context.DeadlineExceeded, context.Canceled, errors.New("Error 1205 (HY000): Lock wait timeout exceeded; try restarting transaction")} {
+		if got := memberRolesFixtureSafeError(err); got != err.Error() {
+			t.Fatal("causal diagnostic lost", got)
+		}
+	}
+	if memberRolesFixtureSafeError(nil) != "" || len([]rune(memberRolesFixtureSafeError(errors.New(strings.Repeat("x", 301))))) != 301 {
+		t.Fatal("diagnostic bounds")
 	}
 }

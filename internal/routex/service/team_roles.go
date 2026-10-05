@@ -119,7 +119,17 @@ func teamRoleDefinitionQuery(tx *gorm.DB, roleIDs []string) *gorm.DB {
 	}
 	return tx.Where(clause.Or(expressions...))
 }
+
+type teamRoleDefinitionGeneration struct {
+	ID       string
+	Revision string
+}
+
 func loadTeamRoleDefinitions(tx *gorm.DB, roleIDs []string, all bool) ([]TeamRoleSummary, error) {
+	roles, _, err := loadReviewedTeamRoleDefinitions(tx, roleIDs, all)
+	return roles, err
+}
+func loadReviewedTeamRoleDefinitions(tx *gorm.DB, roleIDs []string, all bool) ([]TeamRoleSummary, []teamRoleDefinitionGeneration, error) {
 	query := tx.Model(&entity.Role{})
 	limit := 101
 	if all {
@@ -129,25 +139,27 @@ func loadTeamRoleDefinitions(tx *gorm.DB, roleIDs []string, all bool) ([]TeamRol
 	}
 	var rows []entity.Role
 	if err := query.Order("id").Limit(limit).Find(&rows).Error; err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	if len(rows) == limit {
-		return nil, errTeamRoleOverflow
+		return nil, nil, errTeamRoleOverflow
 	}
 	result := []TeamRoleSummary{}
+	generations := []teamRoleDefinitionGeneration{}
 	selected := map[string]int{}
 	for _, row := range rows {
-		if !safeTeamSessionID(row.ID) || !strings.HasPrefix(row.ID, "rol_") || !validCatalogLabel(row.Name) {
-			return nil, apperrors.ErrInternal
+		if !safeTeamSessionID(row.ID) || !strings.HasPrefix(row.ID, "rol_") || !validCatalogLabel(row.Name) || !validMemberRoleDigest(row.DefinitionRevision) {
+			return nil, nil, apperrors.ErrInternal
 		}
+		generations = append(generations, teamRoleDefinitionGeneration{ID: row.ID, Revision: row.DefinitionRevision})
 		selected[row.ID] = len(result)
 		result = append(result, TeamRoleSummary{ID: row.ID, Name: row.Name, Builtin: row.Builtin, TeamActions: []string{}})
 	}
 	if !all && len(rows) != len(roleIDs) {
-		return nil, apperrors.ErrBadRequest
+		return nil, nil, apperrors.ErrBadRequest
 	}
 	if len(rows) == 0 {
-		return result, nil
+		return result, generations, nil
 	}
 	roleScope := []clause.Expression{}
 	for _, row := range rows {
@@ -159,15 +171,15 @@ func loadTeamRoleDefinitions(tx *gorm.DB, roleIDs []string, all bool) ([]TeamRol
 	}
 	var permissions []entity.RolePermission
 	if err := tx.Where(clause.Or(roleScope...)).Where(clause.Or(actionScope...)).Order("role_id,permission").Limit(2001).Find(&permissions).Error; err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	if len(permissions) > 2000 {
-		return nil, errTeamRoleOverflow
+		return nil, nil, errTeamRoleOverflow
 	}
 	for _, permission := range permissions {
 		index, exists := selected[permission.RoleID]
 		if !exists || !slices.Contains(teamRoleActions, permission.Permission) {
-			return nil, apperrors.ErrInternal
+			return nil, nil, apperrors.ErrInternal
 		}
 		if !slices.Contains(result[index].TeamActions, permission.Permission) {
 			result[index].TeamActions = append(result[index].TeamActions, permission.Permission)
@@ -176,27 +188,31 @@ func loadTeamRoleDefinitions(tx *gorm.DB, roleIDs []string, all bool) ([]TeamRol
 	for index := range result {
 		slices.Sort(result[index].TeamActions)
 	}
-	return result, nil
+	return result, generations, nil
 }
 func loadTeamRoles(tx *gorm.DB, teamID string) ([]TeamRoleSummary, error) {
+	roles, _, err := loadReviewedTeamRoles(tx, teamID)
+	return roles, err
+}
+func loadReviewedTeamRoles(tx *gorm.DB, teamID string) ([]TeamRoleSummary, []teamRoleDefinitionGeneration, error) {
 	var rows []entity.TeamRole
 	if err := quotaExact(tx, "team_id", teamID).Order("role_id").Limit(101).Find(&rows).Error; err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	if len(rows) > 100 {
-		return nil, errTeamRoleOverflow
+		return nil, nil, errTeamRoleOverflow
 	}
 	ids := []string{}
 	for _, row := range rows {
 		if row.TeamID != teamID {
-			return nil, apperrors.ErrInternal
+			return nil, nil, apperrors.ErrInternal
 		}
 		ids = append(ids, row.RoleID)
 	}
-	return loadTeamRoleDefinitions(tx, ids, false)
+	return loadReviewedTeamRoleDefinitions(tx, ids, false)
 }
 func teamRolesRecord(tx *gorm.DB, target *teamRoleTarget) (*TeamRolesRecord, error) {
-	roles, err := loadTeamRoles(tx, target.Team.ID)
+	roles, roleGenerations, err := loadReviewedTeamRoles(tx, target.Team.ID)
 	if err != nil {
 		return nil, err
 	}
@@ -219,21 +235,24 @@ func teamRolesRecord(tx *gorm.DB, target *teamRoleTarget) (*TeamRolesRecord, err
 	}
 	slices.Sort(result.ActorTeamActions)
 	// Protected selection reviews the complete safe catalogue so newly selected
-	// roles cannot change their Team actions between candidate read and save.
+	// roles cannot change their definitions between candidate read and save,
+	// including A-to-B-to-A edits with identical restored public Team actions.
 	catalogue := []TeamRoleSummary{}
+	catalogueGenerations := []teamRoleDefinitionGeneration{}
 	if result.CanAssignRoles {
-		catalogue, err = loadTeamRoleDefinitions(tx, nil, true)
+		catalogue, catalogueGenerations, err = loadReviewedTeamRoleDefinitions(tx, nil, true)
 		if err != nil {
 			return nil, err
 		}
 	}
 	result.ETag, err = teamQuotaHash(struct {
-		ActorID          string
-		Team             entity.Team
-		Roles, Catalogue []TeamRoleSummary
-		ActorActions     []string
-		CanAssign        bool
-	}{target.Actor.ID, target.Team, roles, catalogue, result.ActorTeamActions, result.CanAssignRoles})
+		ActorID                               string
+		Team                                  entity.Team
+		Roles, Catalogue                      []TeamRoleSummary
+		ActorActions                          []string
+		CanAssign                             bool
+		RoleGenerations, CatalogueGenerations []teamRoleDefinitionGeneration
+	}{target.Actor.ID, target.Team, roles, catalogue, result.ActorTeamActions, result.CanAssignRoles, roleGenerations, catalogueGenerations})
 	return result, err
 }
 func teamTargetActionAllowed(tx *gorm.DB, actorID, teamID, action string) (bool, error) {

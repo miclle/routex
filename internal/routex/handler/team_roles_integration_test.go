@@ -354,6 +354,122 @@ func testTeamRolesLifecycle(t *testing.T, db *gorm.DB) {
 	expectStatus(t, native(true, "roles-two"), 200)
 	expectStatus(t, native(false, "roles-one"), 200)
 	expectStatus(t, native(false, "roles-two"), 404)
+	// Definition ABA must reject the original review even after public facts return to A.
+	for _, role := range []service.RoleRecord{*mixed, *spare} {
+		for _, edit := range []string{"name", "team_actions", "platform_actions"} {
+			before := get(adminCookie)
+			beforeMember := get(memberCookie)
+			beforeAudit, beforeDispatches := auditCount(), dispatches.Load()
+			var beforeTeam entity.Team
+			if err := db.First(&beforeTeam, "id = ?", team.ID).Error; err != nil {
+				t.Fatal(err)
+			}
+			definitionRevision := func() string {
+				t.Helper()
+				var values []string
+				if err := db.Model(&entity.Role{}).Where("id = ?", role.Role.ID).Pluck("definition_revision", &values).Error; err != nil || len(values) != 1 {
+					t.Fatal("missing exact stored definition generation", role.Role.ID, values, err)
+				}
+				return values[0]
+			}
+			originalRevision := definitionRevision()
+			cursorResponse := request("GET", "/api/v1/teams/"+team.ID+"/role-candidates?limit=1", "", adminCookie, "", "")
+			expectStatus(t, cursorResponse, 200)
+			var cursorPage service.TeamRoleCandidatePage
+			if json.Unmarshal(cursorResponse.Body.Bytes(), &cursorPage) != nil || cursorPage.ETag != before.ETag || cursorPage.NextCursor == nil {
+				t.Fatal("missing reviewed catalogue cursor", cursorResponse.Body.String())
+			}
+			name, permissions := role.Role.Name, slices.Clone(role.Permissions)
+			switch edit {
+			case "name":
+				name += " temporarily changed"
+			case "team_actions":
+				if slices.Contains(permissions, "teams.write") {
+					permissions = slices.DeleteFunc(permissions, func(p string) bool { return p == "teams.write" })
+				} else {
+					permissions = append(permissions, "teams.write")
+				}
+			case "platform_actions":
+				permissions = append(permissions, "audit.read")
+			}
+			if _, err := svc.SaveRole(ctx, admin.User.ID, role.Role.ID, name, permissions); err != nil {
+				t.Fatal(err)
+			}
+			changed := get(adminCookie)
+			changedRevision := definitionRevision()
+			if changed.ETag == before.ETag || changedRevision == originalRevision {
+				t.Fatalf("%s %s did not change reviewed definition generation", role.Role.ID, edit)
+			}
+			if _, err := svc.SaveRole(ctx, admin.User.ID, role.Role.ID, role.Role.Name, role.Permissions); err != nil {
+				t.Fatal(err)
+			}
+			restored := get(adminCookie)
+			restoredRevision := definitionRevision()
+			if restored.ETag == before.ETag || restored.ETag == changed.ETag || restoredRevision == originalRevision || restoredRevision == changedRevision {
+				t.Fatalf("%s %s ABA revived an obsolete review", role.Role.ID, edit)
+			}
+			if !reflect.DeepEqual(restored.Roles, before.Roles) || !reflect.DeepEqual(restored.RoleIDs, before.RoleIDs) || !reflect.DeepEqual(restored.ActorTeamActions, before.ActorTeamActions) || !reflect.DeepEqual(restored.EffectiveTeamActions, before.EffectiveTeamActions) {
+				t.Fatal("definition ABA did not restore the same public Team role facts")
+			}
+			memberRestored := get(memberCookie)
+			if !reflect.DeepEqual(memberRestored.Roles, beforeMember.Roles) || !reflect.DeepEqual(memberRestored.ActorTeamActions, beforeMember.ActorTeamActions) {
+				t.Fatal("definition ABA changed restored scoped member actions")
+			}
+			if slices.Contains(before.RoleIDs, role.Role.ID) {
+				if memberRestored.ETag == beforeMember.ETag {
+					t.Fatal("scoped assigned-role review ignored definition ABA")
+				}
+			} else if memberRestored.ETag != beforeMember.ETag {
+				t.Fatal("unassigned catalogue generation leaked into scoped member review")
+			}
+			expectStatus(t, put(before.RoleIDs, before.ETag), 409)
+			expectStatus(t, request("GET", "/api/v1/teams/"+team.ID+"/role-candidates?limit=1&cursor="+url.QueryEscape(*cursorPage.NextCursor), "", adminCookie, "", ""), 409)
+			// Explicitly re-reviewed same-state retries remain zero-write confirmations.
+			expectStatus(t, put(restored.RoleIDs, restored.ETag), 200)
+			if _, err := svc.SaveRole(ctx, admin.User.ID, role.Role.ID, role.Role.Name, role.Permissions); err != nil {
+				t.Fatal(err)
+			}
+			if get(adminCookie).ETag != restored.ETag || definitionRevision() != restoredRevision {
+				t.Fatal("no-op role save invalidated an unchanged review")
+			}
+			var afterTeam entity.Team
+			if err := db.First(&afterTeam, "id = ?", team.ID).Error; err != nil {
+				t.Fatal(err)
+			}
+			if !reflect.DeepEqual(afterTeam, beforeTeam) || auditCount() != beforeAudit || dispatches.Load() != beforeDispatches {
+				t.Fatal("definition review or rejected stale retry mutated Team, assignment audit or native dispatch")
+			}
+			wire := request("GET", rolePath, "", adminCookie, "", "")
+			expectStatus(t, wire, 200)
+			var projected map[string]json.RawMessage
+			if json.Unmarshal(wire.Body.Bytes(), &projected) != nil || len(projected) != 7 {
+				t.Fatal("Team role public DTO changed", wire.Body.String())
+			}
+			var projectedRoles []map[string]json.RawMessage
+			if json.Unmarshal(projected["roles"], &projectedRoles) != nil {
+				t.Fatal("invalid public roles", wire.Body.String())
+			}
+			for _, projectedRole := range projectedRoles {
+				if len(projectedRole) != 4 || projectedRole["id"] == nil || projectedRole["name"] == nil || projectedRole["builtin"] == nil || projectedRole["team_actions"] == nil {
+					t.Fatal("private definition generation leaked into Team role DTO", wire.Body.String())
+				}
+			}
+		}
+	}
+	currentDefinitionReview := get(adminCookie)
+	currentDefinitionAudit := auditCount()
+	expectStatus(t, put([]string{mixed.Role.ID, spare.Role.ID}, currentDefinitionReview.ETag), 200)
+	currentDefinitionSaved := get(adminCookie)
+	currentDefinitionIDs := []string{mixed.Role.ID, spare.Role.ID}
+	slices.Sort(currentDefinitionIDs)
+	if auditCount() != currentDefinitionAudit+1 || !reflect.DeepEqual(currentDefinitionSaved.RoleIDs, currentDefinitionIDs) {
+		t.Fatal("fresh definition review did not save one complete replacement")
+	}
+	expectStatus(t, put(currentDefinitionSaved.RoleIDs, currentDefinitionSaved.ETag), 200)
+	if auditCount() != currentDefinitionAudit+1 || get(adminCookie).ETag != currentDefinitionSaved.ETag {
+		t.Fatal("unchanged exact reviewed retry wrote another assignment")
+	}
+	expectStatus(t, put([]string{mixed.Role.ID}, currentDefinitionSaved.ETag), 200)
 	// Fresh role-definition edits revoke management immediately, not model grants.
 	obsolete := get(adminCookie)
 	if _, err := svc.SaveRole(ctx, admin.User.ID, mixed.Role.ID, mixed.Role.Name, []string{"teams.write", "teams.tokens.write"}); err != nil {

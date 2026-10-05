@@ -67,7 +67,8 @@ Paths are relative to `/api/v1`. Mutations use the established same-origin, JSON
 | `PATCH /admin/members/:user_id` | `{disabled?,role?}` | Member; `members.write`, subject to target and continuity restrictions |
 | `GET /admin/roles` | None | `{items:Role[],available_permissions:[]}`; `roles.read` |
 | `POST /admin/roles` | `{name,permissions:[]}` | `201`, Role; platform administrator |
-| `PUT /admin/roles/:role_id` | `{name,permissions:[]}` | Role; platform administrator |
+| `GET /admin/roles/:role_id` | None | Complete reviewed definition and strong ETag; current `roles.read` |
+| `PUT /admin/roles/:role_id` | `{name,permissions:[],identity_etag,reason}`, strong reviewed If-Match | Current definition confirmation; admitted intrinsic platform administrator, independently of `roles.read` |
 | `DELETE /admin/roles/:role_id` | None | `204`; platform administrator, custom unassigned roles only |
 | `PUT /admin/members/:user_id/roles` | `{role_ids:[]}` | Member; platform administrator, custom-role IDs only |
 
@@ -1079,8 +1080,84 @@ This confirms current state and runtime application, not a historical operation
 receipt or completion of the entire Member capability. The final mandatory check passed. The containing commit delivers this bounded
 approval phase; remote push/read-back and workflow results are recorded separately.
 
-Allowed email domains,
-Role-definition review, offboarding UI/summary and repository price seed data
-remain separate queued source packages. Invitation delivery is not included.
+Allowed email domains, offboarding UI/summary and repository price seed data
+remain separate queued source packages. Role-definition review is the integrated
+candidate described below, not a delivered feature. Invitation delivery is not
+included.
 F04/F05 remain Partial; formal totals stay 11 complete, 16 partial and three
 unstarted.
+
+## Reviewed Role definitions: current candidate
+
+The bounded Role-definition phase follows checked approval
+`b10eb6cf900994b8a0e10b7a81e346ed10144cc8`. It retains the existing global Role
+table, grouped permission choices and local Edit/View dialogs. Resource GET/PUT
+use private, no-store headers before Session validation; GET requires current
+`roles.read`, while PUT freshly requires an admitted, enabled, non-offboarded
+intrinsic platform administrator. Delegated `roles.write` does not authorize it.
+Built-ins remain readable and immutable. Existing creation/deletion and
+Member/Team assignments are separate operations.
+
+GET returns exactly `id`, `name`, `builtin`, complete recorded `permissions`,
+current `available_permissions`, `definition_etag`, nullable `identity_etag`,
+`review_etag` and `can_edit`. Safe unknown recorded codes remain visible but do
+not become assignable; complete definition reads and replacement are bounded to
+100 permission codes. Unknown creation provenance yields a read-only review.
+PUT replaces the full sorted unique permission set, including explicit empty
+arrays, with the recorded identity proof, a strong quoted review If-Match and a
+nonempty reason. Names retain the existing 100-code-point bound; reasons are
+trim-exact, control-free UTF-8 at most 1,024 bytes, within a 64-KiB request.
+
+A real change atomically advances the existing durable definition revision,
+saves name/permissions and appends typed `role.definition.update` before/after
+facts with the reason. No-op changes neither rows nor audits. The identity proof
+binds exact Role ID and stored creation identity; supported recreation with a
+different creation identity conflicts before equality confirmation. This does
+not promise detection of unsupported raw row cloning that preserves both facts.
+Fresh independent postcommit authority/current-definition checks precede success.
+Only the exact PUT response confirms `current_role_definition` with effect
+`current_database`; it proves no historical actor, operation receipt, assignment,
+model grant, native admission or fleet publication. Exact-current authorized
+retries can confirm with zero writes; stale changing proposals cannot restore an
+old generation.
+
+The editor retains every dispatched body, identity proof and If-Match after a
+failed response, including an initial 409. Matching GET, refresh, Cancel or
+Escape cannot resolve uncertainty. Same-actor/target renewal hides private UI
+but preserves the local retry; fresh CSRF is used only with the original request.
+Explicit Abandon permits a new reviewed request while leaving the original
+outcome unknown. Actor/target/logout/unmount destroys that scope; obsolete reads
+or callbacks cannot restore it. English/Chinese drafts and accessible names
+remain in the existing layout, with no additional editor Session observer.
+
+No migration is added. Frozen V57 and the 102-scenario prefix remain unchanged;
+Role definitions append scenario 103. The complete post-repair race regression
+passed 103 ordered lifecycle scenarios per driver, eight constraint cases and
+3,173 named pass events, with no named failures or skips (PostgreSQL 837.37s;
+MySQL 1090.87s). Log SHA256:
+`1fa9500a0ad8f3558f4f1004f98f01c8d8e6e1ca6a8481a5b579b33165745f5b`.
+The backend, schema and harness stayed exact after that gate. The later UI-only
+compact Base UI Input adjustment passed mandatory checks, 2,993 frontend cases
+across 146 files, four Node checks, two development lifecycle checks, production
+build and asset tests. Independent authentication/native restart passed on both
+databases. Every owned integration and restart resource was independently absent.
+
+Controlled bilingual production acceptance passed before and after the Input
+adjustment. Both runs returned reviewed browser PUT statuses 200, 409, 409 and
+200; rejected retries retained exact bodies/ETags and explicit Abandon plus a new
+review used a new ETag. The earlier run additionally verified three typed
+A → B → C → D audits and no audit for matching confirmation. The latest binary
+`76d2254276ba7a8f5b4c676a8e80e48a999497428f025b5dd4fbb948ff7d979b`
+verified actual Space activation, built-in 403 denial, dismissal/language draft
+retention, Escape focus and same-binary/configuration/database/Session restart
+against all 412 protected source paths. Zero calls/native POSTs were created.
+No console errors were observed; an initial blank load needed one reload, whose
+cause is unestablished. The temporary tab, listeners and Compose resources are
+absent. Earlier incomplete helper/browser attempts remain historical evidence.
+
+The Role phase is locally accepted and ready for its scoped commit/push; new
+remote CI remains pending. Approval b10eb6cf remains delivered. Its CI run
+37314987013 failed a proven PostgreSQL fixture-registry race and a masked MySQL
+error whose historical cause remains unknown. The repaired local focus and full
+regression passed without weakening deadlines or query budgets; they do not
+establish remote convergence. F04/F05 remain partial; formal 11/16/3 is unchanged.

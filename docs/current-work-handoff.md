@@ -5,9 +5,60 @@ prioritize partial capabilities. Formal totals remain **11 complete, 16 partial,
 three unstarted**. The coordinated roadmap lives outside this repository;
 [Implementation](IMPLEMENTATION.md) records the independent historical gates.
 
-## Current work
+## Current work: reviewed Role definitions
 
-Checked/pushed main is reviewed Member State `74f08d3`, with complete source
+Checked/pushed clean predecessor is local registration approval
+`b10eb6cf900994b8a0e10b7a81e346ed10144cc8`. Its source, complete102-per-driver,
+authentication/native restart and controlled bilingual process/browser gates
+passed; final mandatory checking and scoped commit/push are complete. Historical
+failed helper and query-budget attempts remain separate in the records below.
+
+The bounded Role-only reviewed GET/PUT and existing Edit/View workflow is accepted.
+Read authority is current `roles.read`; the independent writer is an admitted
+intrinsic platform administrator. Preserve exact review/identity proofs, full
+permission replacement, atomic typed reason audit and fresh current-database
+confirmation. Preserve every failed dispatched intent with current authority and
+fresh CSRF; GET/refresh/dismissal never establishes its historical outcome.
+No migration is added. Frozen V57 and the 102-scenario prefix remain unchanged;
+Role definitions append scenario 103. The complete post-repair race regression
+passed 103 ordered lifecycle scenarios per driver, eight constraint cases and
+3,173 named pass events, with no named failures or skips (PostgreSQL 837.37s;
+MySQL 1090.87s). Log SHA256:
+`1fa9500a0ad8f3558f4f1004f98f01c8d8e6e1ca6a8481a5b579b33165745f5b`.
+The backend, schema and harness stayed exact after that gate. The later UI-only
+compact Base UI Input adjustment passed mandatory checks, 2,993 frontend cases
+across 146 files, four Node checks, two development lifecycle checks, production
+build and asset tests. Independent authentication/native restart passed on both
+databases. Every owned integration and restart resource was independently absent.
+
+Controlled bilingual production acceptance passed before and after the Input
+adjustment. Both runs returned reviewed browser PUT statuses 200, 409, 409 and
+200; rejected retries retained exact bodies/ETags and explicit Abandon plus a new
+review used a new ETag. The earlier run additionally verified three typed
+A → B → C → D audits and no audit for matching confirmation. The latest binary
+`76d2254276ba7a8f5b4c676a8e80e48a999497428f025b5dd4fbb948ff7d979b`
+verified actual Space activation, built-in 403 denial, dismissal/language draft
+retention, Escape focus and same-binary/configuration/database/Session restart
+against all 412 protected source paths. Zero calls/native POSTs were created.
+No console errors were observed; an initial blank load needed one reload, whose
+cause is unestablished. The temporary tab, listeners and Compose resources are
+absent. Earlier incomplete helper/browser attempts remain historical evidence.
+
+The Role phase is locally accepted and ready for its scoped commit/push; new
+remote CI remains pending. Approval b10eb6cf remains delivered. Its CI run
+37314987013 failed a proven PostgreSQL fixture-registry race and a masked MySQL
+error whose historical cause remains unknown. The repaired local focus and full
+regression passed without weakening deadlines or query budgets; they do not
+establish remote convergence. F04/F05 remain partial; formal 11/16/3 is unchanged.
+
+Preserve accepted Approval, State/Roles, Member grants and native history while
+composing exact root route/harness contexts. Offboarding, allowed-email, Restore
+and repository price source remain independently queued. F04/F05 stay Partial;
+formal totals remain11 complete,16 partial and three unstarted.
+
+## Checked approval predecessor
+
+Approval's earlier checked predecessor was Member State `74f08d3`, with complete source
 checks, full100-per-driver regression, independent authentication restart and
 controlled production/browser evidence recorded below. All343 protected paths
 matched its accepted source. Its frontend first-conflict recovery correction
@@ -47,8 +98,9 @@ This confirms current state and runtime application, not a historical operation
 receipt or completion of the entire Member capability. The final mandatory check passed. The containing commit delivers this bounded
 approval phase; remote push/read-back and workflow results are recorded separately.
 
-Queued Role-definition, offboarding UI/recorded Settings summary and allowed-email
-work remain private source. Combined Go 34 passed 908 top-level tests and 3,160 pass events before its
+At the Approval source checkpoint, the then-queued Role-definition, offboarding
+UI/recorded Settings summary and allowed-email combined Go 34 preparation passed
+908 top-level tests and 3,160 pass events before its
 nonsemantic successors; combined
 UI 35 passed 3,102 cases in 150 files, types, lint/format and reversible contexts.
 The separate 10-path Restore proposal passed 3,117 private source cases in 150 files only. None is
@@ -185,8 +237,8 @@ acceptance record below gives exact timings, hashes and remaining limits.
 | --- | --- | --- |
 | Member list, effective Models, recorded login and Access | Checked and pushed: af9c22e, 88e8480, d51a52e and 9205ca5 | Preserve accepted behavior |
 | Reviewed direct role assignment and Member state | Checked and pushed: a44838d and 74f08d3 | Preserve failed-intent recovery and revocation |
-| Local registration approval | V57/102, complete source, both-driver full regression/authentication and controlled bilingual process/restart passed | Final mandatory check passed; delivery is the containing commit |
-| Reviewed custom-role definitions | Backend, UI and fixtures prepared privately | Integrate Role-only source, V57/103; actual driver/browser gates |
+| Local registration approval | Checked/pushed b10eb6cf; local V57/102, authentication/native restart and bilingual process acceptance passed; CI run 37314987013 failed integration | Preserve local evidence; verify a new CI run after the fixture repairs and continue diagnosing the masked MySQL error |
+| Reviewed custom-role definitions | Full dual-driver 103-scenario regression, final source checks/build, authentication restart and current bilingual keyboard/retry/restart passed | Complete scoped commit/push and verify new remote CI |
 | Member offboarding and recorded Settings summary | Source prepared privately | Integrate and run actual acceptance |
 | Allowed registration email domains | Frozen V58 proposal and UI prepared privately | Integrate after checked approval and Role phase |
 | Repository price seed and Restore intent recovery | Separate private source proposals | Scoped integration and acceptance |

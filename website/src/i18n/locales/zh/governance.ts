@@ -1,4 +1,37 @@
 export default {
+  roleDefinition: {
+    reviewHelp: '先评审此角色的精确定义，再替换名称和完整权限。保存仅确认当前数据库状态。',
+    readFailed: '无法读取角色定义。',
+    loading: '正在读取角色定义…',
+    refresh: '刷新',
+    recorded: '已记录的未知权限代码保持可见，但不会授予当前平台访问权限。',
+    readOnly: '当前身份或权限下，此角色仅可查看。',
+    reviewChanged: '当前评审与已捕获草稿不同。发送新请求前，请明确评审当前定义。',
+    unknownCode: '已记录，不可分配：{{code}}',
+    removeUnknown: '保存前请手动移除当前不可分配的已记录代码；系统不会自动移除。',
+    reason: '原因',
+    invalidName: '请输入不超过 100 个 Unicode 字符的名称，不包含首尾空白或控制字符。',
+    invalidReason: '请输入不超过 1024 字节 UTF-8 的原因，不包含首尾空白或控制字符。',
+    cancel: '取消',
+    reviewCurrent: '评审当前定义',
+    reviewSave: '评审并保存',
+    retry: '重试原定义请求',
+    abandon: '放弃原请求',
+    abandonTitle: '放弃未确认的请求？',
+    abandonHelp:
+      '此操作仅清除本地重试意图。之前的请求可能已经修改数据库。保留草稿，并在发送新请求前明确评审当前状态。',
+    confirmAbandon: '放弃请求',
+    abandoned: '已明确放弃原请求。草稿已保留；发送新请求前请评审当前状态。',
+    confirmTitle: '确认角色定义',
+    confirmHelp:
+      '使用已评审的原因替换完整名称和权限集。确认仅证明当前存储状态，不证明原历史操作或运行时应用。',
+    confirm: '确认定义',
+    uncertain:
+      '原请求尚未确认。请原样重试名称、权限、创建身份凭据、原因和评审版本；读取到相同内容不能确认它。',
+    conflict: '请求被拒绝，或无法基于当前状态确认。原意图仍未确认；请原样重试或明确放弃。',
+    confirmed: '已确认数据库中的精确当前角色定义。这不是历史操作回执或运行时应用证明。',
+    readDenied: '当前无法取得新的角色读取权限。',
+  },
   registrationApproval: {
     permission: '审核注册申请',
     review: '审核注册',
