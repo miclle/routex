@@ -219,11 +219,12 @@ function Roles() {
           if (canRead()) void roles.refetch()
         }}
       />
-      <Table aria-label={t('roles.listLabel')}>
+      <Table aria-label={t('roles.listLabel')} aria-describedby="role-member-count-help">
         <thead>
           <tr>
             <th>{t('common.role')}</th>
             <th>{t('common.type')}</th>
+            <th>{t('roles.members')}</th>
             <th>{t('roles.permissions')}</th>
             <th>{t('common.actions')}</th>
           </tr>
@@ -242,6 +243,13 @@ function Roles() {
                   <Badge variant="outline">
                     {role.builtin ? t('common.builtin') : t('common.custom')}
                   </Badge>
+                </td>
+                <td>
+                  {typeof role.member_count === 'number' &&
+                  Number.isSafeInteger(role.member_count) &&
+                  role.member_count >= 0
+                    ? t('roles.memberCount', { count: role.member_count })
+                    : t('roles.memberCountUnknown')}
                 </td>
                 <td>
                   {t(
@@ -291,6 +299,9 @@ function Roles() {
             ))}
         </tbody>
       </Table>
+      <p id="role-member-count-help" className="text-sm text-muted-foreground">
+        {t('roles.memberCountHelp')}
+      </p>
       <p className="text-sm text-muted-foreground">{t('roles.auditNotice')}</p>
       <Dialog
         open={editor !== null && writer()}

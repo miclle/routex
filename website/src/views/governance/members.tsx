@@ -2,6 +2,7 @@ import MemberAccessSummary, { MemberAccessRoleSummary } from './member-access-su
 import { useMemberAccessSummary } from './member-access-summary-read'
 import MemberApproval from './member-approval'
 import MemberMetadata from './member-metadata'
+import MemberOffboardingSummary from './member-offboarding-summary'
 import MemberList from './member-list'
 import { getMemberList, validateMemberListChain } from '@/api/member-list'
 import type { MemberListItem } from '@/types/member-list'
@@ -789,20 +790,13 @@ function Members() {
               contextKind="detail"
               contextQueryKey={['admin', 'member', actor, memberId, generation]}
             >
-              {current && (
-                <section className="rounded-lg border p-4">
-                  <h3 className="mb-3 font-medium">{t('members.offboarding')}</h3>
-                  <p className="mb-4 text-sm text-muted-foreground">
-                    {t('members.offboardingHelp')}
-                  </p>
-                  <Button
-                    variant="outline"
-                    onClick={() => navigate(`/admin/members/${current.id}/offboarding`)}
-                  >
-                    {t('members.reviewOffboarding')}
-                  </Button>
-                </section>
-              )}
+              <MemberOffboardingSummary
+                actor={actor}
+                target={memberId}
+                generation={generation}
+                ready={!!current}
+                targetQueryKey={['admin', 'member', actor, memberId, generation]}
+              />
             </MemberState>
           </div>
         </section>

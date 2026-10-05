@@ -52,6 +52,7 @@ type RoleResponse struct {
 	Name        string   `json:"name"`
 	Builtin     bool     `json:"builtin"`
 	Permissions []string `json:"permissions"`
+	MemberCount *int64   `json:"member_count,omitempty"`
 }
 type RolesResponse struct {
 	Items                []RoleResponse `json:"items"`
@@ -86,7 +87,7 @@ func memberResponse(item service.MemberRecord) *MemberResponse {
 	return &MemberResponse{ID: item.User.ID, Email: item.User.Email, Name: item.User.Name, Role: item.User.Role, Disabled: item.User.Disabled, OffboardedAt: item.User.OffboardedAt, CreatedAt: item.User.CreatedAt, RoleIDs: item.RoleIDs}
 }
 func roleResponse(item service.RoleRecord) *RoleResponse {
-	return &RoleResponse{ID: item.Role.ID, Name: item.Role.Name, Builtin: item.Role.Builtin, Permissions: item.Permissions}
+	return &RoleResponse{ID: item.Role.ID, Name: item.Role.Name, Builtin: item.Role.Builtin, Permissions: item.Permissions, MemberCount: item.MemberCount}
 }
 
 func (ctrl *Ctrl) RegistrationStatus(c *fox.Context) (*RegistrationResponse, error) {

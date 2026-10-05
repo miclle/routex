@@ -19,9 +19,9 @@ func TestRegistrationApprovalWirePrivacy(t *testing.T) {
 		{"pending", struct {
 			Kind string `json:"kind"`
 		}{"approval_pending"}, []string{"kind"}},
-		{"public policy", service.RegistrationStatus{}, []string{"enabled", "approval_required"}},
-		{"policy review", service.RegistrationPolicy{}, []string{"enabled", "approval_required", "review_etag"}},
-		{"policy confirmation", service.RegistrationPolicyResult{}, []string{"confirmation", "enabled", "approval_required", "review_etag"}},
+		{"public policy", service.RegistrationStatus{}, []string{"enabled", "approval_required", "allowed_email_domains"}},
+		{"policy review", service.RegistrationPolicy{}, []string{"enabled", "approval_required", "allowed_email_domains", "review_etag"}},
+		{"policy confirmation", service.RegistrationPolicyResult{}, []string{"confirmation", "enabled", "approval_required", "allowed_email_domains", "review_etag"}},
 		{"decision review", service.MemberApprovalRecord{}, []string{"user_id", "name", "identity_role", "disabled", "offboarded_at", "approval_status", "application", "can_approve", "can_reject", "admission_eligible", "runtime_applied", "review_etag"}},
 		{"decision confirmation", service.MemberApprovalResult{}, []string{"confirmation", "user_id", "application_id", "decision", "admission_eligible", "runtime_applied"}},
 	}
@@ -51,12 +51,12 @@ func TestRegistrationApprovalWirePrivacy(t *testing.T) {
 	}
 }
 func TestRegistrationPolicyStrictReviewInput(t *testing.T) {
-	good := []byte(`{"enabled":false,"approval_required":true,"reason":"Reviewed policy"}`)
+	good := []byte(`{"enabled":false,"approval_required":true,"allowed_email_domains":[],"reason":"Reviewed policy"}`)
 	var input service.RegistrationPolicyInput
 	if err := json.Unmarshal(good, &input); err != nil {
 		t.Fatal(err)
 	}
-	for _, raw := range []string{`{"enabled":true,"approval_required":null,"reason":"r"}`, `{"enabled":true,"approval_required":true,"reason":" r"}`, `{"enabled":true,"enabled":false,"approval_required":true,"reason":"r"}`, `{"Enabled":true,"approval_required":true,"reason":"r"}`, `{"enabled":true,"approval_required":true,"reason":"r","user_id":"usr_other"}`} {
+	for _, raw := range []string{`{"enabled":true,"approval_required":true,"reason":"Missing complete domain policy"}`, `{"enabled":true,"approval_required":true,"allowed_email_domains":null,"reason":"r"}`, `{"enabled":true,"approval_required":true,"allowed_email_domains":["a.invalid","A.invalid"],"reason":"r"}`, `{"enabled":true,"approval_required":null,"reason":"r"}`, `{"enabled":true,"approval_required":true,"reason":" r"}`, `{"enabled":true,"enabled":false,"approval_required":true,"reason":"r"}`, `{"Enabled":true,"approval_required":true,"reason":"r"}`, `{"enabled":true,"approval_required":true,"reason":"r","user_id":"usr_other"}`} {
 		if json.Unmarshal([]byte(raw), &input) == nil {
 			t.Fatalf("accepted invalid policy %q", raw)
 		}

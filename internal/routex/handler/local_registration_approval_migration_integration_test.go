@@ -52,8 +52,8 @@ type approvalMigrationLedgerRow struct {
 	AppliedAt string
 }
 
-// Root registers the future additive migration last. The fixture discovers that
-// exact ledger row and baseline; it reserves no version and hardcodes no total.
+// This fixture reconstructs released approval migration V57 only. Later ledger
+// rows remain part of the unchanged baseline; no latest-version assumption applies.
 func testLocalRegistrationApprovalMigration(t *testing.T, db *gorm.DB) {
 	t.Helper()
 	ctx := context.Background()
@@ -61,9 +61,21 @@ func testLocalRegistrationApprovalMigration(t *testing.T, db *gorm.DB) {
 	if err := db.Table("schema_migrations").Order("version").Find(&baselineLedger).Error; err != nil || len(baselineLedger) == 0 {
 		t.Fatal("missing migrated ledger baseline", err)
 	}
-	version := baselineLedger[len(baselineLedger)-1].Version
+	const version = 57
+	baselineOtherLedger := make([]approvalMigrationLedgerRow, 0, len(baselineLedger))
+	baselineApprovalRows := 0
+	for _, row := range baselineLedger {
+		if row.Version == version {
+			baselineApprovalRows++
+		} else {
+			baselineOtherLedger = append(baselineOtherLedger, row)
+		}
+	}
+	if baselineApprovalRows != 1 {
+		t.Fatal("released approval migration baseline must exist exactly once", version, baselineApprovalRows)
+	}
 	if !db.Migrator().HasTable(&entity.RegistrationApprovalApplication{}) || !db.Migrator().HasColumn(&approvalMigrationUserColumn{}, "ApprovalApplicationID") {
-		t.Fatal("root did not register approval as the final additive migration")
+		t.Fatal("released approval migration schema is missing")
 	}
 	timestamp := time.Now().UTC().Truncate(time.Microsecond)
 	ids := []string{"usr_approval_hist_a", "usr_approval_hist_b", "usr_approval_hist_c"}
@@ -145,7 +157,16 @@ func testLocalRegistrationApprovalMigration(t *testing.T, db *gorm.DB) {
 		if err := db.Table("schema_migrations").Order("version").Find(&ledger).Error; err != nil {
 			t.Fatal(err)
 		}
-		if len(ledger) != len(baselineLedger) || ledger[len(ledger)-1].Version != version || !reflect.DeepEqual(ledger[:len(ledger)-1], baselineLedger[:len(baselineLedger)-1]) {
+		otherLedger := make([]approvalMigrationLedgerRow, 0, len(ledger))
+		approvalRows := 0
+		for _, row := range ledger {
+			if row.Version == version {
+				approvalRows++
+			} else {
+				otherLedger = append(otherLedger, row)
+			}
+		}
+		if len(ledger) != len(baselineLedger) || approvalRows != 1 || !reflect.DeepEqual(otherLedger, baselineOtherLedger) {
 			t.Fatal("approval migration changed released ledger or duplicated its row")
 		}
 	}

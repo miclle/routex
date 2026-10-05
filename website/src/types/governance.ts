@@ -13,6 +13,7 @@ export interface PlatformRole {
   name: string
   builtin: boolean
   permissions: string[]
+  member_count?: number | null
 }
 export interface RoleList {
   items: PlatformRole[]

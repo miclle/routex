@@ -96,6 +96,9 @@ func (s *Service) RegisterWithApproval(ctx context.Context, email, password, nam
 		if !installation.Initialized {
 			return apperrors.ErrForbidden
 		}
+		if err := requireRegistrationEmail(settings.RegistrationAllowedEmailDomains, user.Email); err != nil {
+			return err
+		}
 		if err := tx.Create(&user).Error; err != nil {
 			return err
 		}

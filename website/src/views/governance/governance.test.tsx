@@ -11,7 +11,7 @@ import { act } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { createMemoryRouter, RouterProvider } from 'react-router'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { AxiosError, AxiosHeaders, type InternalAxiosRequestConfig } from 'axios'
+import { AxiosError, AxiosHeaders, type AxiosAdapter, type InternalAxiosRequestConfig } from 'axios'
 import { beforeEach, afterEach, describe, expect, it } from 'vitest'
 import client from '@/api/client'
 import i18n from '@/i18n'
@@ -165,6 +165,18 @@ beforeEach(() => {
         last_login_at: null,
         last_login_status: 'historical_unavailable',
       }
+    if (key === 'get /admin/members/usr_target/offboarding')
+      response.data = {
+        user_id: target.id,
+        disabled: target.disabled,
+        offboarded_at: target.offboarded_at ?? null,
+        last_administrator: false,
+        inventory_version: 'a'.repeat(64),
+        personal_keys: [],
+        projects: [],
+        teams: [],
+        cases: [],
+      }
     if (key === 'get /admin/members/usr_target/state') {
       response.data = memberStateFixture(target, session.user.id, session.user.role, permissions)
       response.headers = new AxiosHeaders({
@@ -252,11 +264,12 @@ beforeEach(() => {
         available_permissions: ['providers.read', 'providers.write', 'members.read'],
       }
     if (key === 'get /auth/registration')
-      response.data = { enabled: registration, approval_required: false }
+      response.data = { enabled: registration, approval_required: false, allowed_email_domains: [] }
     if (key === 'get /admin/registration') {
       response.data = {
         enabled: registration,
         approval_required: false,
+        allowed_email_domains: [],
         review_etag: registrationETag,
       }
       response.headers.set('ETag', `"${registrationETag}"`)
@@ -266,6 +279,7 @@ beforeEach(() => {
       expect(input).toEqual({
         enabled: true,
         approval_required: false,
+        allowed_email_domains: [],
         reason: 'Reviewed new registration policy',
       })
       expect(config.headers.get('If-Match')).toBe(`"${'a'.repeat(64)}"`)
@@ -275,6 +289,7 @@ beforeEach(() => {
         confirmation: 'current_registration_policy',
         enabled: registration,
         approval_required: false,
+        allowed_email_domains: [],
         review_etag: 'b'.repeat(64),
       }
       response.headers.set('ETag', `"${'b'.repeat(64)}"`)
@@ -428,6 +443,13 @@ describe('member governance', () => {
     target.offboarded_at = '2026-09-23T01:00:00Z'
     await mount('/admin/members/usr_target?tab=settings')
     await until(() => expect(container.textContent).toContain('Offboarded'))
+    await until(() =>
+      expect(
+        [...container.querySelectorAll('button')].some(
+          (button) => button.textContent === 'Review offboarding',
+        ),
+      ).toBe(true),
+    )
     expect(container.textContent).not.toContain('Edit limits')
     expect(
       [...container.querySelectorAll('button')].some(
@@ -669,6 +691,87 @@ describe('member governance', () => {
       'teams.tokens.write',
     ])
     expect(requests.some((r) => r.method === 'put' || r.method === 'post')).toBe(false)
+  })
+  it('renders only authoritative retained member counts with zero, singular and live localization', async () => {
+    roles[0].member_count = 12
+    roles[1].member_count = 0
+    roles[2].member_count = 1
+    await mount('/admin/roles')
+    await until(() => expect(container.textContent).toContain('12 members'))
+    const rows = () => [...container.querySelectorAll<HTMLTableRowElement>('tbody tr')]
+    expect(rows().map((row) => row.cells[2].textContent)).toEqual([
+      '12 members',
+      '0 members',
+      '1 member',
+    ])
+    expect(container.querySelector('table')?.getAttribute('aria-describedby')).toBe(
+      'role-member-count-help',
+    )
+    expect(container.querySelector('#role-member-count-help')?.textContent).toContain(
+      'including inactive, pending and rejected accounts',
+    )
+    expect(container.querySelector('#role-member-count-help')?.textContent).toContain(
+      'Team assignments are excluded',
+    )
+    expect(requests.filter((r) => r.method === 'get').map((r) => r.url)).not.toContain(
+      '/admin/members',
+    )
+    expect(requests.filter((r) => r.url === '/admin/roles')).toHaveLength(1)
+    await act(async () => i18n.changeLanguage('zh'))
+    expect(rows().map((row) => row.cells[2].textContent)).toEqual(['12 人', '0 人', '1 人'])
+    expect([...container.querySelectorAll('th')].map((node) => node.textContent)).toContain('成员')
+    expect(container.querySelector('#role-member-count-help')?.textContent).toContain(
+      '不计团队范围的角色分配',
+    )
+  })
+  it('renders missing and invalid member counts as unknown and never derives them from roles or permissions', async () => {
+    roles[1].member_count = -1
+    roles[2].member_count = Number.MAX_SAFE_INTEGER + 1
+    await mount('/admin/roles')
+    await until(() => expect(container.textContent).toContain('Provider Reader'))
+    const counts = () =>
+      [...container.querySelectorAll<HTMLTableRowElement>('tbody tr')].map(
+        (row) => row.cells[2].textContent,
+      )
+    expect(counts()).toEqual(['Unknown', 'Unknown', 'Unknown'])
+    await act(async () => i18n.changeLanguage('zh'))
+    expect(counts()).toEqual(['未知', '未知', '未知'])
+  })
+  it('hides retained counts during list renewal and failure, then displays only fresh authorized counts', async () => {
+    roles[0].member_count = 12
+    roles[1].member_count = 0
+    roles[2].member_count = 7
+    await mount('/admin/roles')
+    await until(() => expect(container.textContent).toContain('12 members'))
+    const adapter = client.defaults.adapter as AxiosAdapter
+    let release!: () => void
+    const gate = new Promise<void>((resolve) => {
+      release = resolve
+    })
+    client.defaults.adapter = async (config) => {
+      if (config.url === '/admin/roles') await gate
+      return adapter(config)
+    }
+    failures['get /admin/roles'] = 503
+    await act(async () => {
+      void cache.invalidateQueries({ queryKey: ['admin', 'roles'] })
+    })
+    expect(container.querySelector('tbody')?.textContent).toBe('')
+    await act(async () => release())
+    await until(() => expect(container.querySelector('[role=alert]')).not.toBeNull())
+    expect(container.querySelector('tbody')?.textContent).toBe('')
+    delete failures['get /admin/roles']
+    roles[0].member_count = 13
+    await act(async () => {
+      await cache.invalidateQueries({ queryKey: ['admin', 'roles'] })
+    })
+    await until(() => expect(container.textContent).toContain('13 members'))
+    expect(container.textContent).not.toContain('12 members')
+    await act(async () => {
+      void cache.invalidateQueries({ queryKey: ['permissions'], refetchType: 'none' })
+    })
+    expect(container.querySelector('tbody')?.textContent).toBe('')
+    expect(requests.some((r) => r.url === '/admin/members')).toBe(false)
   })
   it('surfaces assigned-role deletion conflicts without removing a role', async () => {
     await mount('/admin/roles')

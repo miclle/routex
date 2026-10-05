@@ -171,9 +171,14 @@ func (c *rolesSQLConnection) QueryContext(ctx context.Context, q string, args []
 		slices.SortFunc(rows, func(a, b entity.Role) int { return strings.Compare(a.ID, b.ID) })
 		return effectiveSQLRows(rows[:min(len(rows), rolesSQLLimit(args))])
 	case strings.Contains(q, `FROM "role_permissions"`):
+		// SQL predicates may bind the same ID in an indexed prefilter and an
+		// exact condition. Bind occurrences do not multiply returned rows.
+		ids := slices.Clone(values)
+		slices.Sort(ids)
+		ids = slices.Compact(ids)
 		if strings.Contains(q, `SELECT "permission"`) {
 			rows := []struct{ Permission string }{}
-			for _, id := range values {
+			for _, id := range ids {
 				for _, p := range d.permissions[id] {
 					rows = append(rows, struct{ Permission string }{p})
 				}
@@ -182,7 +187,7 @@ func (c *rolesSQLConnection) QueryContext(ctx context.Context, q string, args []
 			return effectiveSQLRows(rows)
 		}
 		rows := []entity.RolePermission{}
-		for _, id := range values {
+		for _, id := range ids {
 			for _, p := range d.permissions[id] {
 				rows = append(rows, entity.RolePermission{RoleID: id, Permission: p})
 			}

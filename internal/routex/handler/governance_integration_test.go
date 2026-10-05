@@ -40,7 +40,7 @@ func testGovernanceLifecycle(t *testing.T, db *gorm.DB) {
 	expectStatus(t, reviewedMemberStateFixtureRequest(t, router, adminCookie, admin.CSRFToken, admin.User.ID, map[string]any{"disabled": true}), 409)
 	expectStatus(t, reviewedMemberStateFixtureRequest(t, router, adminCookie, admin.CSRFToken, admin.User.ID, map[string]any{"role": "member"}), 409)
 	policyReview := approvalFixturePolicyReview(t, router, adminCookie, admin.CSRFToken)
-	expectStatus(t, approvalFixtureRequest(t, router, "PATCH", "/api/v1/admin/registration", map[string]any{"enabled": true, "approval_required": false, "reason": "Verify registration CSRF denial"}, adminCookie, "", policyReview.ReviewETag), 403)
+	expectStatus(t, approvalFixtureRequest(t, router, "PATCH", "/api/v1/admin/registration", map[string]any{"enabled": true, "approval_required": false, "allowed_email_domains": []string{}, "reason": "Verify registration CSRF denial"}, adminCookie, "", policyReview.ReviewETag), 403)
 	approvalFixtureSetPolicy(t, router, adminCookie, admin.CSRFToken, true, false, "Enable immediate registration fixture")
 	registered := identityRequest(router, "POST", "/api/v1/auth/register", registrationBody, nil, "")
 	expectStatus(t, registered, 201)
@@ -62,7 +62,7 @@ func testGovernanceLifecycle(t *testing.T, db *gorm.DB) {
 	}
 	expectStatus(t, memberRequest("GET", "/api/v1/admin/members", nil), 403)
 	policyReview = approvalFixturePolicyReview(t, router, adminCookie, admin.CSRFToken)
-	expectStatus(t, approvalFixtureRequest(t, router, "PATCH", "/api/v1/admin/registration", map[string]any{"enabled": false, "approval_required": false, "reason": "Verify registration member denial"}, memberCookie, member.CSRFToken, policyReview.ReviewETag), 403)
+	expectStatus(t, approvalFixtureRequest(t, router, "PATCH", "/api/v1/admin/registration", map[string]any{"enabled": false, "approval_required": false, "allowed_email_domains": []string{}, "reason": "Verify registration member denial"}, memberCookie, member.CSRFToken, policyReview.ReviewETag), 403)
 	roles := decodeCatalogResponse[RolesResponse](t, request("GET", "/api/v1/admin/roles", nil), 200)
 	if len(roles.Items) != 2 || len(roles.AvailablePermissions) == 0 {
 		t.Fatal("builtin roles or permission allowlist missing")
@@ -80,12 +80,19 @@ func testGovernanceLifecycle(t *testing.T, db *gorm.DB) {
 	caseRole := decodeCatalogResponse[RoleResponse](t, request("POST", "/api/v1/admin/roles", map[string]any{"name": "catalog reader", "permissions": []string{}}), 201)
 	expectStatus(t, request("DELETE", "/api/v1/admin/roles/"+caseRole.ID, nil), 204)
 	writer := decodeCatalogResponse[RoleResponse](t, request("POST", "/api/v1/admin/roles", map[string]any{"name": "Member manager", "permissions": []string{"members.write", "calls.read_all"}}), 201)
+	if reader.MemberCount != nil || writer.MemberCount != nil {
+		t.Fatal("role creation invented list-only membership counts")
+	}
 	memberPath := "/api/v1/admin/members/" + member.User.ID
 	expectStatus(t, reviewedMemberRolesFixtureRequest(t, router, adminCookie, adminCookie, admin.CSRFToken, member.User.ID, []string{reader.ID, writer.ID}), 200)
 	assigned := decodeCatalogResponse[MemberResponse](t, request("GET", memberPath, nil), 200)
 	if len(assigned.RoleIDs) != 2 {
 		t.Fatal("combined roles not persisted")
 	}
+	expectStatus(t, memberRequest("GET", "/api/v1/admin/roles", nil), 403)
+	t.Run("retained_role_member_counts", func(t *testing.T) {
+		testRoleListMemberCounts(t, db, router, admin.User.ID, adminCookie, admin.CSRFToken, reader.ID, writer.ID)
+	})
 	permissions := decodeCatalogResponse[PermissionResponse](t, memberRequest("GET", "/api/v1/auth/permissions", nil), 200)
 	for _, permission := range []string{"members.read", "members.write", "providers.read", "calls.read_all"} {
 		if !slices.Contains(permissions.Permissions, permission) {

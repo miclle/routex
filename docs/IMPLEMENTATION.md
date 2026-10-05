@@ -1,8 +1,61 @@
 # RouteX Implementation and Acceptance Index
 
-Updated: 2026-10-05. This document records engineering contracts, work packages, and acceptance checks. Interfaces, tables, pages, and metrics marked as planned are not necessarily implemented; delivery evidence appears at the end. The active goal covers all F01–F30 capabilities and A01–A20 acceptance cases; completed stages do not end implementation. The full product is delivered incrementally through P0–P6.
+Updated: 2026-10-06. This document records engineering contracts, work packages, and acceptance checks. Interfaces, tables, pages, and metrics marked as planned are not necessarily implemented; delivery evidence appears at the end. The active goal covers all F01–F30 capabilities and A01–A20 acceptance cases; completed stages do not end implementation. The full product is delivered incrementally through P0–P6.
 
-## Active repository price source and grouped Role permissions
+## Active Member workflow integration
+
+Checked and pushed predecessor is repository price source/grouped Role selection
+`3070f191bf24ac2a30406ae22c32bbbcc18129e8`. Its actual price and bilingual
+keyboard/restart gates passed. CI 37332855651 subsequently failed the MySQL
+10,000-assignment Member Roles read at its five-second deadline; frontend/backend
+checks and both standalone lint workflows passed. Role CI 37331397426 was
+cancelled. The earlier masked Approval CI error remains historically unexplained.
+
+The uncommitted Member phase integrates existing offboarding recovery and recorded
+Settings summaries, exact retained-user scope, complete allowed-email-domain
+policy and authoritative retained Role member counts. Frozen GORM V58 is
+registered; the original 103-scenario prefix remains and domain migration and
+lifecycle append cases104–105. Frontend 3,130 cases/151 files, four Node checks,
+mandatory checks, Go race/coverage, two development lifecycle checks, independent
+dual-driver authentication/native restart and embedded production assets passed.
+Corrected real-driver focus passed five cases per driver; catalogues500/501/1000
+retain6/7/7 statements, with explicit422 at1001. The original logger-counter
+failure and isolated fixture-only correction remain recorded separately.
+
+Controlled PostgreSQL production and bilingual browser acceptance passed against
+artifact `7db2a632ae19165a6c06abbc2b76764f8263cd2507e1ee08280dea1942a1c38c`
+and all1,508 protected paths. Actual policy save canonicalized the domain;
+disallowed403 created no User, while allowed202 granted no private access.
+Existing sign-in remained valid. A real first-plan409 retained the exact request
+through dismissal/language/reopen; reviewed restoration allowed the same retry201.
+Explicit completion200 recorded audits and revoked the target Session. Saved and
+completed Settings facts, canonical policy and retained counts1/3/0 survived the
+same binary/configuration/database/journal/administrator Session restart. Zero
+native Calls/Attempts/Keys/grants; owned tabs/listeners/Compose resources are absent.
+An earlier non-PTY helper stopped on stdin EOF before browser actions and is not
+accepted. This browser proof retains its original artifact identity.
+
+Full105 R1 failed only the V57 approval migration fixture on both databases:
+it assumed the final ledger row still identified V57 after V58 was registered.
+No released migration is changed. The correction must identify V57 explicitly
+and preserve every other ledger row, including later generations. The failed log
+SHA256 is `0e1e6d74af07f4ab1c3d2c87152e25ece94ea832e660bbc0c431482533a854c4`;
+owned full-run resources are independently absent. A corrected full run is pending.
+
+The remote timeout repair retains parameterized indexed ID filtering together
+with every exact-byte comparison. Actual same-fixture MySQL measurement improved
+from4.820s/full scan to0.905s/primary-key range scan of500 candidates; PostgreSQL
+passed as well. Both retained complete101/1001/10000 histories,8/11/47 statement
+counts, all authorization checks and the unchanged five-second deadline. Focused
+candidate acceptance is distinct from complete main regression and remote CI.
+The narrow source fix is integrated; diagnostic timing/EXPLAIN instrumentation is
+TEMP-only. Current-artifact production and final delivery remain pending.
+
+Personal monthly80%/90% warning backend/UI and unregistered V59 remain private
+preparation awaiting root integration and actual acceptance. Restore recovery is
+also separate. No new feature completion is claimed; formal totals stay11/16/3.
+
+## Checked repository price source and grouped Role permissions
 
 The reviewed Role predecessor `ecd130b` is committed/pushed with exact remote
 read-back. This bounded phase adds three reviewed native-model entries/six base
@@ -27,7 +80,8 @@ correct two-resource/two-action summaries and same-Session bilingual restart.
 All 415 protected source paths stayed exact; owned tabs/listeners/Compose
 resources are absent. Prior full 103-per-driver backend/schema/harness proof is
 retained; this static-data/UI-only phase does not relabel it as a new full run.
-Final documentation checks and scoped delivery remain pending. F04/F05/F15 stay
+The containing 3070f19 commit is checked and pushed with exact remote read-back;
+its CI37332855651 failed the MySQL bounded Member Roles read as recorded above. F04/F05/F15 stay
 partial; totals remain 11 complete, 16 partial and three unstarted.
 
 ## Checked reviewed Role-definition predecessor
@@ -68,7 +122,8 @@ absent. Earlier incomplete helper/browser attempts remain historical evidence.
 
 The Role definition phase is checked, committed and pushed as
 `ecd130b10734fe3a931170dc10305468c0536e4d`, with exact remote read-back. Its
-new CI run 37331397426 is in progress; historical Approval CI failure remains
+CI run 37331397426 was cancelled; latest CI37332855651 failed the MySQL bounded Member Roles read.
+Historical Approval CI failure remains
 separate. F04/F05 remain partial; formal 11/16/3 is unchanged. Approval b10eb6cf remains delivered. Its CI run
 37314987013 failed a proven PostgreSQL fixture-registry race and a masked MySQL
 error whose historical cause remains unknown. The repaired local focus and full
@@ -277,7 +332,7 @@ The binary capability count is 11 completed, 16 partially completed, and 3 not s
 | F01 | Initialization, local identity, registration, and logout | Completed | Concurrent one-time setup, administrator creation, local login, registration control, durable sessions, and logout are implemented and tested. |
 | F02 | Profile, password, MFA, recovery codes, and session revocation | Completed | Profile and password changes, authenticator enrollment, single-use recovery codes, and individual-session revocation are implemented. |
 | F03 | Enterprise SSO, LDAP, OAuth, and emergency recovery | Not started | Provider configuration, callbacks, identity binding, enforced SSO, and enterprise recovery remain unimplemented. |
-| F04 | Member administration, direct grants, roles, and resource policies | Partially completed | Member Overview, Keys, Limits, Teams, Models, metadata, list, effective Models, recent login, Access, direct Roles and State are checked deliveries. Approval b10eb6cf is locally delivered; CI run 37314987013 failed integration, so remote convergence is not claimed. Role-definition source checks, build, race-focused drivers and bilingual retry/restart passed with zero calls. Both drivers passed 103 ordered scenarios and constraints; final UI checks and current production keyboard/retry/restart acceptance passed. Role ecd130b is committed/pushed; its new CI remains in progress. Team-role review and remaining resource-policy acceptance stay open. |
+| F04 | Member administration, direct grants, roles, and resource policies | Partially completed | Member Overview, Keys, Limits, Teams, Models, metadata, list, effective Models, recent login, Access, direct Roles and State are checked deliveries. Approval b10eb6cf is locally delivered; CI run 37314987013 failed integration, so remote convergence is not claimed. Role-definition source checks, build, race-focused drivers and bilingual retry/restart passed with zero calls. Both drivers passed 103 ordered scenarios and constraints; final UI checks and current production keyboard/retry/restart acceptance passed. Role ecd130b is committed/pushed; its CI37332855651 failed the MySQL bounded Member Roles read as recorded above. Team-role review and remaining resource-policy acceptance stay open. |
 | F05 | Built-in and custom roles with composed permissions | Partially completed | Current-domain role and permission management is implemented; later enterprise and operations domains still require permission integration and negative acceptance. |
 | F06 | Team membership, ownership, models, quotas, and member rules | Completed | Team membership/ownership, model relationships, finite aggregate/member policies and monthly requests are accepted. Durable Team-assigned roles, exact Team-only action unions, reviewed administrator assignment and the existing Roles interface have controlled dual-database and browser evidence. |
 | F07 | Project lifecycle, managers, models, Keys, and requests | Completed | Exact current management, lifecycle/continuity, multi-manager creation, initial direct resources and combined requests, scoped Overview, Project Keys, resource limits and model/quota/rate approvals are implemented with controlled dual-database/browser/native/restart evidence. Both lists now show authorized total retained Key counts; administrative stored-policy summaries, literal name/ID search and authorized legacy tab replacement have full main acceptance. |
@@ -5568,3 +5623,48 @@ pre-commit requirement; commit/push/read-back and new remote workflows are separ
 coordinator observations. The containing commit records the bounded State slice.
 Continue actual local registration approval, then the remaining Member workflow
 and Role definition work. F04/F05 and formal 11/16/3 remain unchanged.
+
+## Member workflow complete local acceptance, 2026-10-06
+
+The current Member phase passed the complete race regression: 105 ordered
+lifecycle scenarios on each PostgreSQL/MySQL, eight pre-loop constraints and
+3,247 named test events, with no named failure or skip. PostgreSQL875.96s,
+MySQL1135.06s, Handler2015.362s. Full R2 log SHA256:
+`7dc6857e3ae6df5e2afcd2f76e64afcd4937e0d48dae4fd1f6ae0b06fd9a2ec6`.
+All1,509 protected source hashes remained exact, and owned containers, networks
+and volumes are independently absent. The earlier R1 failed only its V57
+latest-ledger fixture assumption; the corrected explicit-V57 fixture preserves
+all other rows/timestamps and released migrations. That failed run remains failed.
+
+Corrected real-driver focus passed seven cases per driver/108 named events,
+including V57/V58, registration policy, offboarding, Role counts and complete
+Member Roles history. The independently measured indexed-query repair preserves
+exact-byte checks, complete101/1001/10000 histories,8/11/47 statements and the
+five-second deadline. MySQL10,000-assignment measurement improved4.820s to0.905s
+and its actual plan changed from full scan to primary-key range scan. Diagnostic
+timing/EXPLAIN instrumentation remains outside product source.
+
+Current production artifact SHA256
+`0e0b04678e95f65205e33317cca9a8c0344833cb40e5e46fba9bd0de72dda7c0`
+passed controlled PostgreSQL APIs and bilingual browser acceptance: complete
+canonical policy save, denied403/no User, allowed202/no private access, existing
+sign-in unchanged, real first-plan409 and exact original retry201 after reviewed
+restoration, dismissal/language/reopen retention, explicit completion200, typed
+audits, target Session revocation, recorded Settings summaries and retained
+Role counts1/3/0. The same binary/config/database/journal/original administrator
+Session restart preserved these facts. Zero native Calls/Attempts/Keys/grants;
+owned tabs/listeners/Compose resources are absent and browser error/warning
+observations are empty. Earlier browser proof retains its original artifact;
+non-PTY EOF and an invalid root-generated credential key were failed preparation
+runs before browser actions. Native datetime input committed2027-10-07T18:00;
+no claim is made that its earlier2026 fill was submitted.
+
+Current source gates passed3,130 frontend cases/151 files, four Node checks,
+Go race source, mandatory checks, two development lifecycle checks, independent
+dual-driver authentication/native restart and production assets/build. Final
+mandatory checking precedes the containing scoped English main commit and push.
+Remote CI remains separate; the predecessor3070f19 failed its MySQL history
+deadline, while the earlier Role CI was cancelled. F04/F05/F17 and formal
+11 complete/16 partial/3 unstarted stay unchanged. Next is Personal monthly80/90
+warning integration and actual acceptance, with Team aggregate warnings and
+Restore recovery prepared independently.

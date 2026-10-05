@@ -12,7 +12,12 @@ let root: Root,
   host: HTMLDivElement,
   cache: QueryClient,
   requests: InternalAxiosRequestConfig[],
-  policy: { enabled: boolean; approval_required: boolean; review_etag: string },
+  policy: {
+    enabled: boolean
+    approval_required: boolean
+    allowed_email_domains: string[]
+    review_etag: string
+  },
   role: 'admin' | 'member',
   status: number,
   commit: boolean,
@@ -72,7 +77,12 @@ beforeEach(async () => {
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
   })
   requests = []
-  policy = { enabled: true, approval_required: true, review_etag: 'a'.repeat(64) }
+  policy = {
+    enabled: true,
+    approval_required: true,
+    allowed_email_domains: [],
+    review_etag: 'a'.repeat(64),
+  }
   role = 'admin'
   status = 0
   commit = false
@@ -106,6 +116,7 @@ beforeEach(async () => {
         policy = {
           enabled: input.enabled,
           approval_required: input.approval_required,
+          allowed_email_domains: [...input.allowed_email_domains],
           review_etag: 'b'.repeat(64),
         }
       if (failure)
@@ -118,7 +129,11 @@ beforeEach(async () => {
         })
       data = { ...policy, confirmation: 'current_registration_policy' }
     } else if (config.url === '/auth/registration')
-      data = { enabled: policy.enabled, approval_required: policy.approval_required }
+      data = {
+        enabled: policy.enabled,
+        approval_required: policy.approval_required,
+        allowed_email_domains: policy.enabled ? [...policy.allowed_email_domains] : [],
+      }
     else throw new Error('Unexpected ' + config.url)
     return {
       config,
@@ -160,6 +175,7 @@ it('preserves approval_required when closing registration and confirms complete 
   expect(JSON.parse(writes()[0].data)).toEqual({
     enabled: false,
     approval_required: true,
+    allowed_email_domains: [],
     reason: 'Complete reviewed policy',
   })
   expect(writes()[0].headers.get('If-Match')).toBe(`"${'a'.repeat(64)}"`)
@@ -190,6 +206,7 @@ it('retains an uncertain complete policy intent through drawer dismissal and cur
     expect(JSON.parse(request.data)).toEqual({
       enabled: false,
       approval_required: true,
+      allowed_email_domains: [],
       reason: 'Exact policy intent',
     })
     expect(request.headers.get('If-Match')).toBe(`"${'a'.repeat(64)}"`)
@@ -227,7 +244,12 @@ it('does not retain a policy confirmation notice after a different current polic
   await save()
   await click('Confirm')
   expect(document.body.textContent).toContain('Current registration policy confirmed')
-  policy = { enabled: false, approval_required: false, review_etag: 'c'.repeat(64) }
+  policy = {
+    enabled: false,
+    approval_required: false,
+    allowed_email_domains: [],
+    review_etag: 'c'.repeat(64),
+  }
   await act(async () => cache.invalidateQueries({ queryKey: ['admin', 'registration'] }))
   await flush()
   expect(document.body.textContent).not.toContain('Current registration policy confirmed')
@@ -245,6 +267,7 @@ it('returns confirmation cancellation focus to the exact connected Save button w
 })
 
 it('retains the exact uncertain policy through failed permission refetch and fresh recovery', async () => {
+  policy.allowed_email_domains = ['example.invalid']
   status = 503
   await mount()
   await click('Configure')
@@ -254,6 +277,7 @@ it('retains the exact uncertain policy through failed permission refetch and fre
   await click('Confirm')
   const original = writes()[0]
   expect(original).toBeTruthy()
+  expect(JSON.parse(original.data).allowed_email_domains).toEqual(['example.invalid'])
   permissionStatus = 503
   await act(async () => cache.invalidateQueries({ queryKey: ['permissions', 'usr_admin'] }))
   await flush()
@@ -261,11 +285,13 @@ it('retains the exact uncertain policy through failed permission refetch and fre
   expect(document.querySelector('textarea')).toBeNull()
   expect(document.querySelector('[role="switch"]')).toBeNull()
   expect(button('Retry exact submitted request')).toBeUndefined()
+  expect(document.body.textContent).not.toContain('example.invalid')
   expect(writes()).toHaveLength(1)
   permissionStatus = 0
   await act(async () => cache.refetchQueries({ queryKey: ['permissions', 'usr_admin'] }))
   await flush()
   expect(document.querySelector('textarea')!.value).toBe('Survive permission failure')
+  expect(document.body.textContent).toContain('example.invalid')
   expect(writes()).toHaveLength(1)
   status = 409
   await click('Retry exact submitted request')
@@ -397,3 +423,96 @@ it.each([409, 412])(
     expect(document.body.textContent).toContain('Current registration policy confirmed')
   },
 )
+
+async function domain(value: string) {
+  const node = document.querySelector<HTMLInputElement>('input[aria-label="Email domain"]')!
+  await act(async () => {
+    Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!.call(node, value)
+    node.dispatchEvent(new Event('input', { bubbles: true }))
+  })
+  await flush()
+}
+it('adds canonical exact domain chips by keyboard, rejects duplicates and confirms a complete replacement', async () => {
+  await mount()
+  await click('Configure')
+  await domain(' Sub.Example.INVALID ')
+  const keyboard = new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true })
+  await act(async () =>
+    document
+      .querySelector<HTMLInputElement>('input[aria-label="Email domain"]')!
+      .dispatchEvent(keyboard),
+  )
+  expect(keyboard.defaultPrevented).toBe(true)
+  expect(writes()).toHaveLength(0)
+  expect(document.querySelector('[aria-label="Remove sub.example.invalid"]')).not.toBeNull()
+  await domain('SUB.EXAMPLE.INVALID')
+  await click('Add')
+  expect(document.body.textContent).toContain('already listed')
+  await domain('example.invalid')
+  await click('Add')
+  await reason('Reviewed exact domain list')
+  await save()
+  expect(document.body.textContent).toContain(
+    'Allowed email domains: example.invalid, sub.example.invalid.',
+  )
+  await click('Confirm')
+  expect(JSON.parse(writes()[0].data)).toEqual({
+    enabled: true,
+    approval_required: true,
+    allowed_email_domains: ['example.invalid', 'sub.example.invalid'],
+    reason: 'Reviewed exact domain list',
+  })
+  expect(cache.getMutationCache().getAll()).toHaveLength(0)
+})
+it('retains original domain bytes and ETag through first409, dismissal, renewed policy and503 until exact success', async () => {
+  status = 409
+  commit = true
+  await mount()
+  await click('Configure')
+  await domain('example.invalid')
+  await click('Add')
+  await reason('Immutable domain intent')
+  await save()
+  await click('Confirm')
+  expect(writes()).toHaveLength(1)
+  expect(document.body.textContent).toContain('unconfirmed')
+  const original = writes()[0]
+  expect(
+    document.querySelector<HTMLButtonElement>('[aria-label="Remove example.invalid"]')!.disabled,
+  ).toBe(true)
+  await act(async () =>
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })),
+  )
+  await flush()
+  expect(document.querySelector('textarea')).toBeNull()
+  await click('Configure')
+  expect(document.querySelector('textarea')!.value).toBe('Immutable domain intent')
+  status = 503
+  await click('Retry exact submitted request')
+  status = 0
+  await click('Retry exact submitted request')
+  expect(writes()).toHaveLength(3)
+  for (const request of writes()) {
+    expect(request.data).toBe(original.data)
+    expect(request.headers.get('If-Match')).toBe(original.headers.get('If-Match'))
+  }
+  expect(JSON.parse(original.data).allowed_email_domains).toEqual(['example.invalid'])
+  expect(cache.getMutationCache().getAll()).toHaveLength(0)
+})
+it('keeps reviewed chips and safe draft through language switch and distinguishes explicit unrestricted replacement', async () => {
+  policy.allowed_email_domains = ['example.invalid']
+  await mount()
+  await click('Configure')
+  await reason('Explicit unrestricted replacement')
+  await act(async () => i18n.changeLanguage('zh'))
+  expect(document.querySelector('[aria-label="移除 example.invalid"]')).not.toBeNull()
+  expect(document.querySelector('textarea')!.value).toBe('Explicit unrestricted replacement')
+  await act(async () =>
+    document.querySelector<HTMLButtonElement>('[aria-label="移除 example.invalid"]')!.click(),
+  )
+  await act(async () => i18n.changeLanguage('en'))
+  await save()
+  expect(document.body.textContent).toContain('Allowed email domains: All domains.')
+  await click('Confirm')
+  expect(JSON.parse(writes()[0].data).allowed_email_domains).toEqual([])
+})

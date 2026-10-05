@@ -66,7 +66,7 @@ beforeEach(async () => {
     const body = config.data ? JSON.parse(config.data) : {}
     if (config.url === '/setup') response.data = { initialized: true }
     else if (config.url === '/auth/registration')
-      response.data = { enabled: false, approval_required: false }
+      response.data = { enabled: false, approval_required: false, allowed_email_domains: [] }
     else if (config.url === '/auth/session') response.data = session()
     else if (config.url === '/auth/permissions') response.data = { permissions }
     else if (config.url === '/site')

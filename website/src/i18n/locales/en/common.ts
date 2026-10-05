@@ -1,4 +1,9 @@
 export default {
+  registrationUnavailableForEmail:
+    'Registration is unavailable for this email under the current policy. Review the allowed domains or contact an administrator.',
+  registrationAllowedDomains: 'Allowed email domains: {{domains}}.',
+  registrationDomainAdvisory:
+    'Domains match exactly. This guidance does not confirm mailbox ownership, registration or account approval.',
   registrationApprovalPending:
     'Your registration is awaiting administrator approval. You are not signed in. Return to sign in after approval; no model permissions or Key have been granted.',
   language: 'Language',

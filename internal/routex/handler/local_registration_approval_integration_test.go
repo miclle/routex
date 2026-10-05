@@ -25,9 +25,10 @@ import (
 )
 
 type approvalFixturePolicy struct {
-	Enabled          bool   `json:"enabled"`
-	ApprovalRequired bool   `json:"approval_required"`
-	ReviewETag       string `json:"review_etag"`
+	AllowedEmailDomains []string `json:"allowed_email_domains"`
+	Enabled             bool     `json:"enabled"`
+	ApprovalRequired    bool     `json:"approval_required"`
+	ReviewETag          string   `json:"review_etag"`
 }
 type approvalFixtureApplication struct {
 	ID              string     `json:"id"`
@@ -106,7 +107,7 @@ func approvalFixtureObject(t *testing.T, res *httptest.ResponseRecorder, status 
 func approvalFixturePolicyReview(t *testing.T, router http.Handler, cookie *http.Cookie, csrf string) approvalFixturePolicy {
 	t.Helper()
 	res := approvalFixtureRequest(t, router, "GET", "/api/v1/admin/registration", nil, cookie, csrf, "")
-	approvalFixtureObject(t, res, 200, "enabled", "approval_required", "review_etag")
+	approvalFixtureObject(t, res, 200, "enabled", "approval_required", "allowed_email_domains", "review_etag")
 	value := decodeCatalogResponse[approvalFixturePolicy](t, res, 200)
 	if !regexp.MustCompile(`^[a-f0-9]{64}$`).MatchString(value.ReviewETag) || res.Header().Get("ETag") != `"`+value.ReviewETag+`"` {
 		t.Fatal("registration policy strong review differs")
@@ -116,8 +117,8 @@ func approvalFixturePolicyReview(t *testing.T, router http.Handler, cookie *http
 func approvalFixtureSetPolicy(t *testing.T, router http.Handler, cookie *http.Cookie, csrf string, enabled, required bool, reason string) approvalFixturePolicy {
 	t.Helper()
 	review := approvalFixturePolicyReview(t, router, cookie, csrf)
-	res := approvalFixtureRequest(t, router, "PATCH", "/api/v1/admin/registration", map[string]any{"enabled": enabled, "approval_required": required, "reason": reason}, cookie, csrf, review.ReviewETag)
-	approvalFixtureObject(t, res, 200, "confirmation", "enabled", "approval_required", "review_etag")
+	res := approvalFixtureRequest(t, router, "PATCH", "/api/v1/admin/registration", map[string]any{"enabled": enabled, "approval_required": required, "allowed_email_domains": review.AllowedEmailDomains, "reason": reason}, cookie, csrf, review.ReviewETag)
+	approvalFixtureObject(t, res, 200, "confirmation", "enabled", "approval_required", "allowed_email_domains", "review_etag")
 	value := decodeCatalogResponse[approvalFixturePolicy](t, res, 200)
 	if value.Enabled != enabled || value.ApprovalRequired != required || res.Header().Get("ETag") != `"`+value.ReviewETag+`"` {
 		t.Fatal("registration policy replacement not confirmed")
@@ -343,7 +344,7 @@ func testLocalRegistrationApproval(t *testing.T, db *gorm.DB) {
 		}
 	}
 	public := identityRequest(router, "GET", "/api/v1/auth/registration", "", nil, "")
-	approvalFixtureObject(t, public, 200, "enabled", "approval_required")
+	approvalFixtureObject(t, public, 200, "enabled", "approval_required", "allowed_email_domains")
 	initial := approvalFixturePolicyReview(t, router, adminCookie, admin.CSRFToken)
 	if initial.Enabled || initial.ApprovalRequired {
 		t.Fatal("new policy defaults differ")
@@ -352,8 +353,8 @@ func testLocalRegistrationApproval(t *testing.T, db *gorm.DB) {
 	// No-op and old-review matching-state reconciliation are current database
 	// confirmations. Neither advances generation nor appends another audit.
 	policyAudits := auditCount("registration.policy.update", "")
-	noop := approvalFixtureRequest(t, router, "PATCH", "/api/v1/admin/registration", map[string]any{"enabled": true, "approval_required": true, "reason": "Require local registration approval"}, adminCookie, admin.CSRFToken, initial.ReviewETag)
-	approvalFixtureObject(t, noop, 200, "confirmation", "enabled", "approval_required", "review_etag")
+	noop := approvalFixtureRequest(t, router, "PATCH", "/api/v1/admin/registration", map[string]any{"enabled": true, "approval_required": true, "allowed_email_domains": []string{}, "reason": "Require local registration approval"}, adminCookie, admin.CSRFToken, initial.ReviewETag)
+	approvalFixtureObject(t, noop, 200, "confirmation", "enabled", "approval_required", "allowed_email_domains", "review_etag")
 	if auditCount("registration.policy.update", "") != policyAudits || approvalFixturePolicyReview(t, router, adminCookie, admin.CSRFToken).ReviewETag != policy.ReviewETag {
 		t.Fatal("policy reconciliation wrote another generation/audit")
 	}
@@ -362,7 +363,7 @@ func testLocalRegistrationApproval(t *testing.T, db *gorm.DB) {
 		t.Fatal("closed policy discarded approval requirement")
 	}
 	approvalFixtureSetPolicy(t, router, adminCookie, admin.CSRFToken, true, true, "Reopen reviewed registrations")
-	stale := approvalFixtureRequest(t, router, "PATCH", "/api/v1/admin/registration", map[string]any{"enabled": false, "approval_required": false, "reason": "Stale policy must fail"}, adminCookie, admin.CSRFToken, initial.ReviewETag)
+	stale := approvalFixtureRequest(t, router, "PATCH", "/api/v1/admin/registration", map[string]any{"enabled": false, "approval_required": false, "allowed_email_domains": []string{}, "reason": "Stale policy must fail"}, adminCookie, admin.CSRFToken, initial.ReviewETag)
 	expectStatus(t, stale, 409)
 	t.Run("strict_policy", func(t *testing.T) {
 		review := approvalFixturePolicyReview(t, router, adminCookie, admin.CSRFToken)
@@ -377,8 +378,8 @@ func testLocalRegistrationApproval(t *testing.T, db *gorm.DB) {
 			router.ServeHTTP(res, req)
 			expectStatus(t, res, 400)
 		}
-		expectStatus(t, approvalFixtureRequest(t, router, "PATCH", "/api/v1/admin/registration", map[string]any{"enabled": true, "approval_required": true, "reason": "Missing review"}, adminCookie, admin.CSRFToken, ""), 400)
-		expectStatus(t, approvalFixtureRequest(t, router, "PATCH", "/api/v1/admin/registration?extra=", map[string]any{"enabled": true, "approval_required": true, "reason": "Unexpected query"}, adminCookie, admin.CSRFToken, review.ReviewETag), 400)
+		expectStatus(t, approvalFixtureRequest(t, router, "PATCH", "/api/v1/admin/registration", map[string]any{"enabled": true, "approval_required": true, "allowed_email_domains": []string{}, "reason": "Missing review"}, adminCookie, admin.CSRFToken, ""), 400)
+		expectStatus(t, approvalFixtureRequest(t, router, "PATCH", "/api/v1/admin/registration?extra=", map[string]any{"enabled": true, "approval_required": true, "allowed_email_domains": []string{}, "reason": "Unexpected query"}, adminCookie, admin.CSRFToken, review.ReviewETag), 400)
 		if approvalFixturePolicyReview(t, router, adminCookie, admin.CSRFToken).ReviewETag != review.ReviewETag || auditCount("registration.policy.update", "") != policyAudits+2 {
 			t.Fatal("invalid policy mutated saved state")
 		}

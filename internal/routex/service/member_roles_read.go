@@ -81,13 +81,17 @@ func memberRolesPeople(tx *gorm.DB, actorID, userID string, read, lock bool) (en
 }
 func memberRoleIDsQuery(tx *gorm.DB, column string, ids []string) *gorm.DB {
 	expressions := make([]clause.Expression, 0, len(ids))
+	values := make([]any, 0, len(ids))
 	for _, id := range ids {
+		values = append(values, id)
 		expressions = append(expressions, database.ExactText(tx, clause.Column{Name: column}, id))
 	}
 	if len(expressions) == 0 {
 		return tx.Where("1 = 0")
 	}
-	return tx.Where(clause.Or(expressions...))
+	// The ordinary indexed predicate is only a superset prefilter. Retain
+	// every exact comparison so collation aliases never become authority.
+	return tx.Where(clause.IN{Column: clause.Column{Name: column}, Values: values}).Where(clause.Or(expressions...))
 }
 func loadMemberRoleRows(tx *gorm.DB, ids []string) ([]entity.Role, error) {
 	rows := make([]entity.Role, 0, len(ids))

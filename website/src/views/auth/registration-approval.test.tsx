@@ -2,7 +2,7 @@ import { act } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { createMemoryRouter, RouterProvider } from 'react-router'
-import { AxiosHeaders, type InternalAxiosRequestConfig } from 'axios'
+import { AxiosError, AxiosHeaders, type InternalAxiosRequestConfig } from 'axios'
 import { afterEach, beforeEach, expect, it } from 'vitest'
 import client from '@/api/client'
 import i18n from '@/i18n'
@@ -16,6 +16,7 @@ let root: Root,
   requests: InternalAxiosRequestConfig[],
   response: unknown,
   status: number
+let domains: string[], policyStatus: number, readPause: Promise<void> | undefined
 const tick = () => new Promise((r) => setTimeout(r, 0))
 async function flush() {
   for (let n = 0; n < 8; n++)
@@ -68,10 +69,32 @@ beforeEach(async () => {
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
   })
   requests = []
+  domains = []
+  policyStatus = 0
+  readPause = undefined
   status = 202
   response = { kind: 'approval_pending' }
   client.defaults.adapter = async (config) => {
     requests.push(config)
+    if (config.url === '/auth/registration') {
+      await readPause
+      if (policyStatus)
+        throw new AxiosError('Controlled metadata failure', '', config, undefined, {
+          config,
+          status: policyStatus,
+          statusText: '',
+          headers: new AxiosHeaders(),
+          data: {},
+        })
+    }
+    if (config.method === 'post' && status === 403)
+      throw new AxiosError('Controlled policy denial', '', config, undefined, {
+        config,
+        status: 403,
+        statusText: '',
+        headers: new AxiosHeaders(),
+        data: {},
+      })
     return {
       config,
       status: config.method === 'post' ? status : 200,
@@ -88,7 +111,7 @@ beforeEach(async () => {
               etag: 0,
             }
           : config.url === '/auth/registration'
-            ? { enabled: true, approval_required: true }
+            ? { enabled: true, approval_required: true, allowed_email_domains: [...domains] }
             : response,
     }
   }
@@ -156,4 +179,66 @@ it('preserves immediate registration201 Session completion when approval is not 
   expect(router.state.location.pathname).toBe('/')
   expect(cache.getQueryData(['auth', 'session'])).toEqual(response)
   expect(cache.getMutationCache().getAll()).toHaveLength(0)
+})
+
+it('treats visible permitted domains as guidance while current POST403 remains a generic policy denial without admission', async () => {
+  domains = ['example.invalid']
+  status = 403
+  await mount()
+  expect(host.textContent).toContain('Allowed email domains: example.invalid.')
+  expect(host.textContent).toContain('does not confirm mailbox ownership')
+  await submit()
+  expect(host.textContent).toContain(
+    'Registration is unavailable for this email under the current policy',
+  )
+  expect(host.textContent).not.toContain('Registration is closed')
+  expect(router.state.location.pathname).toBe('/register')
+  expect(cache.getQueryData(['auth', 'session'])).toBeUndefined()
+  expect(cache.getMutationCache().getAll()).toHaveLength(0)
+  expect(requests.filter((r) => r.method === 'post')).toHaveLength(1)
+  await act(async () => i18n.changeLanguage('zh'))
+  expect(host.textContent).toContain('当前策略不允许此邮箱注册')
+})
+it('hides stale public domain hints immediately on invalidation and failed renewal, preserving name/email for fresh recovery', async () => {
+  domains = ['example.invalid']
+  await mount()
+  await field('name', 'Retained Applicant')
+  await field('email', 'retained@example.invalid')
+  await act(async () =>
+    cache.invalidateQueries({ queryKey: ['auth', 'registration'], refetchType: 'none' }),
+  )
+  await flush()
+  expect(host.textContent).not.toContain('Allowed email domains')
+  expect(host.querySelector('form')).toBeNull()
+  policyStatus = 503
+  await act(async () => cache.refetchQueries({ queryKey: ['auth', 'registration'] }))
+  await flush()
+  expect(host.textContent).not.toContain('example.invalid')
+  expect(host.textContent).toContain('Unable to load registration settings')
+  policyStatus = 0
+  domains = ['fresh.example']
+  await act(async () =>
+    [...host.querySelectorAll<HTMLButtonElement>('button')]
+      .find((node) => node.textContent === 'Retry')!
+      .click(),
+  )
+  await flush()
+  expect(host.textContent).toContain('Allowed email domains: fresh.example.')
+  expect(host.querySelector<HTMLInputElement>('input[name="name"]')!.value).toBe(
+    'Retained Applicant',
+  )
+  expect(host.querySelector<HTMLInputElement>('input[name="email"]')!.value).toBe(
+    'retained@example.invalid',
+  )
+  expect(requests.filter((r) => r.method === 'post')).toHaveLength(0)
+})
+it('keeps restricted pending202 anonymous with no stale domain hints or authenticated state', async () => {
+  domains = ['example.invalid']
+  await mount()
+  await submit()
+  expect(host.textContent).toContain('awaiting administrator approval')
+  expect(host.textContent).not.toContain('Allowed email domains')
+  expect(cache.getQueryData(['auth', 'session'])).toBeUndefined()
+  expect(cache.getMutationCache().getAll()).toHaveLength(0)
+  expect(router.state.location.pathname).toBe('/register')
 })

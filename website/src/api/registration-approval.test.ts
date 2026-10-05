@@ -191,7 +191,7 @@ it.each([
   ).rejects.toThrow()
 })
 it('keeps public policy facts separate from private complete replacement and matching current confirmation', async () => {
-  const policy = { enabled: false, approval_required: true },
+  const policy = { enabled: false, approval_required: true, allowed_email_domains: [] },
     privatePolicy = { ...policy, review_etag: approvalETag }
   const get = vi
     .spyOn(client, 'get')
@@ -226,7 +226,11 @@ it('keeps public policy facts separate from private complete replacement and mat
 it.each(['missing approval', 'private public leak', 'numeric', 'weak header', 'mismatched header'])(
   'rejects %s policy',
   async (kind) => {
-    const data: Record<string, unknown> = { enabled: true, approval_required: false }
+    const data: Record<string, unknown> = {
+      enabled: true,
+      approval_required: false,
+      allowed_email_domains: [],
+    }
     let header = `"${approvalETag}"`
     if (kind === 'missing approval') delete data.approval_required
     if (kind === 'private public leak') data.review_etag = approvalETag

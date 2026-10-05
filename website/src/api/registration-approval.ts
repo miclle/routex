@@ -1,4 +1,5 @@
 import client from './client'
+import { isCanonicalRegistrationDomains, sameRegistrationDomains } from '@/lib/registration-domains'
 import { AxiosHeaders, type AxiosResponse } from 'axios'
 import type { Session, SetupInput } from '@/types/auth'
 import type {
@@ -59,11 +60,14 @@ function policy(v: unknown, admin: boolean, result = false) {
     fields(v, [
       'enabled',
       'approval_required',
+      'allowed_email_domains',
       ...(admin ? ['review_etag'] : []),
       ...(result ? ['confirmation'] : []),
     ]) &&
     typeof v.enabled === 'boolean' &&
     typeof v.approval_required === 'boolean' &&
+    isCanonicalRegistrationDomains(v.allowed_email_domains) &&
+    (admin || v.enabled || v.allowed_email_domains.length === 0) &&
     (!admin || etag(v.review_etag)) &&
     (!result || v.confirmation === 'current_registration_policy')
   )
@@ -71,14 +75,14 @@ function policy(v: unknown, admin: boolean, result = false) {
 export async function getRegistrationPolicy(signal?: AbortSignal): Promise<RegistrationPolicy> {
   const r = await client.get('/auth/registration', { signal })
   if (signal?.aborted || r.status !== 200 || !policy(r.data, false)) throw invalid()
-  return r.data
+  return { ...r.data, allowed_email_domains: [...r.data.allowed_email_domains] }
 }
 export async function getRegistrationPolicyReview(
   signal?: AbortSignal,
 ): Promise<RegistrationPolicyReview> {
   const r = await client.get('/admin/registration', { signal })
   if (signal?.aborted || !reviewed(r) || !policy(r.data, true)) throw invalid()
-  return r.data
+  return { ...r.data, allowed_email_domains: [...r.data.allowed_email_domains] }
 }
 export async function setRegistrationPolicy(
   review: string,
@@ -87,6 +91,9 @@ export async function setRegistrationPolicy(
   signal?: AbortSignal,
 ): Promise<RegistrationPolicyResult> {
   if (
+    !object(input) ||
+    !fields(input, ['enabled', 'approval_required', 'allowed_email_domains', 'reason']) ||
+    !isCanonicalRegistrationDomains(input.allowed_email_domains) ||
     !etag(review) ||
     !csrf ||
     !validApprovalReason(input.reason) ||
@@ -94,20 +101,26 @@ export async function setRegistrationPolicy(
     typeof input.approval_required !== 'boolean'
   )
     throw invalid()
-  const r = await client.patch(
-    '/admin/registration',
-    { enabled: input.enabled, approval_required: input.approval_required, reason: input.reason },
-    { signal, headers: { 'If-Match': `"${review}"`, 'X-CSRF-Token': csrf } },
-  )
+  const body = {
+    enabled: input.enabled,
+    approval_required: input.approval_required,
+    allowed_email_domains: [...input.allowed_email_domains],
+    reason: input.reason,
+  }
+  const r = await client.patch('/admin/registration', body, {
+    signal,
+    headers: { 'If-Match': `"${review}"`, 'X-CSRF-Token': csrf },
+  })
   if (
     signal?.aborted ||
     !reviewed(r) ||
     !policy(r.data, true, true) ||
-    r.data.enabled !== input.enabled ||
-    r.data.approval_required !== input.approval_required
+    r.data.enabled !== body.enabled ||
+    r.data.approval_required !== body.approval_required ||
+    !sameRegistrationDomains(r.data.allowed_email_domains, body.allowed_email_domains)
   )
     throw invalid()
-  return r.data
+  return { ...r.data, allowed_email_domains: [...r.data.allowed_email_domains] }
 }
 export type RegistrationResult =
   { kind: 'session'; session: Session } | { kind: 'approval_pending' }

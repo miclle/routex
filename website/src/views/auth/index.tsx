@@ -3,12 +3,20 @@ import { useSite } from '@/hooks/use-site'
 import { t } from '@/i18n'
 import { useTranslation } from 'react-i18next'
 import { LanguageSwitcher } from '@/components/app/LanguageSwitcher'
-import { useEffect, useRef, useState, type FormEvent } from 'react'
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  useSyncExternalStore,
+  type FormEvent,
+} from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link, useLocation, useNavigate } from 'react-router'
 import axios from 'axios'
 import { ArrowRight, LoaderCircle } from 'lucide-react'
-import { getRegistration, register } from '@/api/governance'
+import { register } from '@/api/governance'
+import { getRegistrationPolicy } from '@/api/registration-approval'
 import { authError, login, setup } from '@/api/auth'
 import { sessionKey, setupKey } from '@/hooks/use-auth'
 import { Button } from '@/components/ui/button'
@@ -30,13 +38,46 @@ function Auth({ mode }: { mode: 'login' | 'setup' | 'register' }) {
   const isRegister = mode === 'register'
   const registration = useQuery({
     queryKey: ['auth', 'registration'],
-    queryFn: () => getRegistration(),
+    queryFn: ({ signal }) => getRegistrationPolicy(signal),
+    staleTime: 0,
+    gcTime: 0,
+    refetchOnMount: 'always',
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
     enabled: !isSetup,
     retry: false,
   })
   const navigate = useNavigate()
   const location = useLocation()
   const queryClient = useQueryClient()
+  const publicSnapshot = useCallback(() => {
+    const state = queryClient.getQueryState(['auth', 'registration'])
+    return `${state?.status}:${state?.fetchStatus}:${state?.isInvalidated}:${state?.dataUpdateCount}:${state?.errorUpdateCount}`
+  }, [queryClient])
+  useSyncExternalStore(
+    useCallback(
+      (notify: () => void) =>
+        queryClient.getQueryCache().subscribe((event) => {
+          if (JSON.stringify(event.query.queryKey) === JSON.stringify(['auth', 'registration']))
+            notify()
+        }),
+      [queryClient],
+    ),
+    publicSnapshot,
+    publicSnapshot,
+  )
+  const [safeName, setSafeName] = useState('')
+  const [safeEmail, setSafeEmail] = useState('')
+  const publicState = queryClient.getQueryState(['auth', 'registration'])
+  const freshRegistration =
+    registration.isSuccess &&
+    !registration.isFetching &&
+    publicState?.status === 'success' &&
+    publicState.fetchStatus === 'idle' &&
+    !publicState.isInvalidated &&
+    !publicState.error &&
+    publicState.data === registration.data
+  const publicPolicy = freshRegistration ? registration.data : undefined
   const [validation, setValidation] = useState('')
   const [pending, setPending] = useState(false)
   const [approvalPending, setApprovalPending] = useState(false)
@@ -102,6 +143,8 @@ function Auth({ mode }: { mode: 'login' | 'setup' | 'register' }) {
       if (turn !== attempt.current) return
       const status = axios.isAxiosError(error) ? (error.response?.status ?? 0) : 0
       setErrorStatus(status)
+      if (isRegister && status === 403)
+        void queryClient.invalidateQueries({ queryKey: ['auth', 'registration'] })
       if (isSetup && status === 409) {
         queryClient.setQueryData(setupKey, { initialized: true })
         navigate('/login', {
@@ -183,10 +226,10 @@ function Auth({ mode }: { mode: 'login' | 'setup' | 'register' }) {
       ? isRegister && errorStatus === 409
         ? t('this_email_is_already_registered_sign_in_or_e090b')
         : isRegister && errorStatus === 403
-          ? t('registration_is_closed_contact_an_administrator_abd22')
+          ? t('registrationUnavailableForEmail')
           : authError(errorStatus)
       : '')
-  if (isRegister && !approvalPending && (!registration.data?.enabled || registration.isPending))
+  if (isRegister && !approvalPending && (!publicPolicy?.enabled || !freshRegistration))
     return (
       <main className="flex min-h-screen items-center justify-center p-6">
         <div className="absolute right-6 top-6">
@@ -195,7 +238,7 @@ function Auth({ mode }: { mode: 'login' | 'setup' | 'register' }) {
         <section className="w-full max-w-[500px] space-y-6 rounded-lg border p-6 text-center">
           <h1 className="text-2xl font-semibold">{t('site:join', { name })}</h1>
           <p role={registration.isError ? 'alert' : 'status'}>
-            {registration.isPending
+            {registration.isFetching || registration.isPending
               ? t('checking_registration_settings_0ee9f')
               : registration.isError
                 ? t('unable_to_load_registration_settings_try_again_later_6d1e0')
@@ -278,7 +321,15 @@ function Auth({ mode }: { mode: 'login' | 'setup' | 'register' }) {
                     <label htmlFor="name" className="text-sm font-medium">
                       {isSetup ? t('administrator_name_df47b') : t('name_be4c2')}
                     </label>
-                    <Input id="name" name="name" autoComplete="name" required maxLength={100} />
+                    <Input
+                      id="name"
+                      name="name"
+                      autoComplete="name"
+                      required
+                      maxLength={100}
+                      value={safeName}
+                      onChange={(event) => setSafeName(event.target.value)}
+                    />
                   </div>
                 )}
                 <div className="space-y-2">
@@ -288,6 +339,8 @@ function Auth({ mode }: { mode: 'login' | 'setup' | 'register' }) {
                   <Input
                     id="email"
                     name="email"
+                    value={safeEmail}
+                    onChange={(event) => setSafeEmail(event.target.value)}
                     type="email"
                     autoComplete="username"
                     placeholder="you@company.com"
@@ -295,6 +348,18 @@ function Auth({ mode }: { mode: 'login' | 'setup' | 'register' }) {
                     maxLength={254}
                   />
                 </div>
+                {isRegister &&
+                  publicPolicy?.enabled &&
+                  publicPolicy.allowed_email_domains.length > 0 && (
+                    <div className="space-y-2 text-sm" role="status">
+                      <p>
+                        {t('registrationAllowedDomains', {
+                          domains: publicPolicy.allowed_email_domains.join(', '),
+                        })}
+                      </p>
+                      <p className="text-muted-foreground">{t('registrationDomainAdvisory')}</p>
+                    </div>
+                  )}
                 <div className="space-y-2">
                   <label htmlFor="password" className="text-sm font-medium">
                     {t('password_c839a')}
@@ -358,7 +423,7 @@ function Auth({ mode }: { mode: 'login' | 'setup' | 'register' }) {
               t('each_site_can_be_initialized_once_keep_your_0efb2')
             ) : isRegister ? (
               <Link to="/login">{t('already_have_an_account_sign_in_b5a87')}</Link>
-            ) : registration.data?.enabled ? (
+            ) : publicPolicy?.enabled ? (
               <Link to="/register">{t('need_an_account_register_5b4ad')}</Link>
             ) : (
               t('need_an_account_contact_your_organization_s_administrator_5477e')

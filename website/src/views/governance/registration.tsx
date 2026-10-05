@@ -2,7 +2,13 @@ import { useLayoutEffect, useRef, useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { AxiosError } from 'axios'
-import { Mail } from 'lucide-react'
+import { Mail, X } from 'lucide-react'
+import {
+  addRegistrationDomain,
+  isCanonicalRegistrationDomains,
+  sameRegistrationDomains,
+} from '@/lib/registration-domains'
+import { Input } from '@/components/ui/input'
 import {
   getRegistrationPolicyReview,
   setRegistrationPolicy,
@@ -85,6 +91,7 @@ function Policy({ actor }: { actor: string }) {
     [draft, setDraft] = useState<RegistrationPolicyInput>({
       enabled: false,
       approval_required: false,
+      allowed_email_domains: [],
       reason: '',
     }),
     [review, setReview] = useState<RegistrationPolicyReview | null>(null),
@@ -93,6 +100,20 @@ function Policy({ actor }: { actor: string }) {
       'saved' | 'uncertain' | 'conflict' | 'abandoned' | 'invalidReason' | null
     >(null),
     [busyScope, setBusyScope] = useState<string | null>(null)
+  const [domainInput, setDomainInput] = useState('')
+  const [domainError, setDomainError] = useState<'invalid' | 'duplicate' | 'limit' | null>(null)
+  function addDomain() {
+    if (busy || intent || !current()) return
+    const result = addRegistrationDomain(draft.allowed_email_domains, domainInput)
+    if (result.kind !== 'added') {
+      setDomainError(result.kind)
+      return
+    }
+    setDraft({ ...draft, allowed_email_domains: result.domains })
+    setDomainInput('')
+    setDomainError(null)
+    setConfirmation(false)
+  }
   const scope = `${generation}:${parent.revision}:${resource.revision}`
   const busy = busyScope === scope
   const alive = useRef(true),
@@ -129,7 +150,14 @@ function Policy({ actor }: { actor: string }) {
         setNotice('invalidReason')
         return
       }
-      captured = { etag: review.review_etag, body: { ...draft } }
+      if (domainInput || !isCanonicalRegistrationDomains(draft.allowed_email_domains)) {
+        setDomainError('invalid')
+        return
+      }
+      captured = {
+        etag: review.review_etag,
+        body: { ...draft, allowed_email_domains: [...draft.allowed_email_domains] },
+      }
     }
     const auth = cache.getQueryData<Session>(['auth', 'session'])
     if (!captured || !auth?.csrf_token) return
@@ -151,7 +179,9 @@ function Policy({ actor }: { actor: string }) {
       setConfirmation(false)
       setOpen(false)
       setReview(null)
-      setDraft({ enabled: false, approval_required: false, reason: '' })
+      setDraft({ enabled: false, approval_required: false, allowed_email_domains: [], reason: '' })
+      setDomainInput('')
+      setDomainError(null)
       setConfirmed(receipt)
       setNotice('saved')
       void cache.invalidateQueries({ queryKey: ['admin', 'registration'] })
@@ -187,7 +217,8 @@ function Policy({ actor }: { actor: string }) {
         confirmed &&
         page.review_etag === confirmed.review_etag &&
         page.enabled === confirmed.enabled &&
-        page.approval_required === confirmed.approval_required && (
+        page.approval_required === confirmed.approval_required &&
+        sameRegistrationDomains(page.allowed_email_domains, confirmed.allowed_email_domains) && (
           <p role="status">{t('registrationApproval.policySaved')}</p>
         )}
       <QueryState
@@ -221,9 +252,12 @@ function Policy({ actor }: { actor: string }) {
                   setDraft({
                     enabled: page.enabled,
                     approval_required: page.approval_required,
+                    allowed_email_domains: [...page.allowed_email_domains],
                     reason: '',
                   })
                   setNotice(null)
+                  setDomainInput('')
+                  setDomainError(null)
                 }
                 setOpen(true)
               }
@@ -252,6 +286,10 @@ function Policy({ actor }: { actor: string }) {
             if (!current() || intent || busy || stale) return
             if (!validApprovalReason(draft.reason)) {
               setNotice('invalidReason')
+              return
+            }
+            if (domainInput || !isCanonicalRegistrationDomains(draft.allowed_email_domains)) {
+              setDomainError('invalid')
               return
             }
             setConfirmation(true)
@@ -291,6 +329,68 @@ function Policy({ actor }: { actor: string }) {
               disabled={busy || !!intent}
             />
           </label>
+          <FormField label={t('registrationDomains.label')}>
+            <p id="registration-domain-help" className="text-sm text-muted-foreground">
+              {t('registrationDomains.help')}
+            </p>
+            <div className="flex min-h-11 flex-wrap items-center gap-2 rounded-md border border-input bg-background p-2">
+              {draft.allowed_email_domains.map((domain) => (
+                <Badge key={domain} variant="outline" className="gap-1">
+                  {domain}
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="size-5"
+                    aria-label={t('registrationDomains.remove', { domain })}
+                    disabled={busy || !!intent}
+                    onClick={() => {
+                      setDraft({
+                        ...draft,
+                        allowed_email_domains: draft.allowed_email_domains.filter(
+                          (entry) => entry !== domain,
+                        ),
+                      })
+                      setConfirmation(false)
+                      setDomainError(null)
+                    }}
+                  >
+                    <X aria-hidden className="size-3" />
+                  </Button>
+                </Badge>
+              ))}
+              <Input
+                className="h-8 min-w-40 flex-1 border-0 p-0 focus-visible:ring-0"
+                aria-label={t('registrationDomains.input')}
+                aria-describedby="registration-domain-help"
+                aria-invalid={!!domainError}
+                placeholder={t('registrationDomains.placeholder')}
+                value={domainInput}
+                disabled={busy || !!intent}
+                maxLength={255}
+                onChange={(event) => {
+                  setDomainInput(event.target.value)
+                  setDomainError(null)
+                  setConfirmation(false)
+                }}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter') {
+                    event.preventDefault()
+                    addDomain()
+                  }
+                }}
+              />
+              <Button
+                type="button"
+                variant="outline"
+                disabled={busy || !!intent || !domainInput}
+                onClick={addDomain}
+              >
+                {t('registrationDomains.add')}
+              </Button>
+            </div>
+            {domainError && <p role="alert">{t(`registrationDomains.${domainError}`)}</p>}
+          </FormField>
           <FormField label={t('registrationApproval.reason')}>
             <Textarea
               aria-label={t('registrationApproval.reason')}
@@ -368,6 +468,13 @@ function Policy({ actor }: { actor: string }) {
               approval: t(
                 draft.approval_required ? 'registration.enabled' : 'registration.notEnabled',
               ),
+            })}
+          </p>
+          <p className="break-words">
+            {t('registrationDomains.confirm', {
+              domains: draft.allowed_email_domains.length
+                ? draft.allowed_email_domains.join(', ')
+                : t('registrationDomains.unrestricted'),
             })}
           </p>
           <p className="break-words">{draft.reason}</p>

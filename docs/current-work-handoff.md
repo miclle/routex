@@ -1,11 +1,75 @@
 # Current implementation handoff
 
-Updated: 2026-10-05. Status: active. Continue the full RouteX objective and
+Updated: 2026-10-06. Status: active. Continue the full RouteX objective and
 prioritize partial capabilities. Formal totals remain **11 complete, 16 partial,
 three unstarted**. The coordinated roadmap lives outside this repository;
 [Implementation](IMPLEMENTATION.md) records the independent historical gates.
 
-## Active repository price source and grouped Role permissions
+## Active Member workflow integration
+
+Checked and pushed predecessor is repository price source/grouped Role selection
+`3070f191bf24ac2a30406ae22c32bbbcc18129e8`. Its actual price and bilingual
+keyboard/restart gates passed. CI 37332855651 subsequently failed the MySQL
+10,000-assignment Member Roles read at its five-second deadline; frontend/backend
+checks and both standalone lint workflows passed. Role CI 37331397426 was
+cancelled. The earlier masked Approval CI error remains historically unexplained.
+
+The uncommitted Member phase integrates existing offboarding recovery and recorded
+Settings summaries, exact retained-user scope, complete allowed-email-domain
+policy and authoritative retained Role member counts. Frozen GORM V58 is
+registered; the original 103-scenario prefix remains and domain migration and
+lifecycle append cases104–105. Frontend 3,130 cases/151 files, four Node checks,
+mandatory checks, Go race/coverage, two development lifecycle checks, independent
+dual-driver authentication/native restart and embedded production assets passed.
+Corrected real-driver focus passed seven cases per driver, including V57/V58 and
+complete Member Roles history; catalogues500/501/1000
+retain6/7/7 statements, with explicit422 at1001. The original logger-counter
+failure and isolated fixture-only correction remain recorded separately.
+
+Controlled PostgreSQL production and bilingual browser acceptance passed against
+current artifact `0e0b04678e95f65205e33317cca9a8c0344833cb40e5e46fba9bd0de72dda7c0`
+and all1,509 protected paths. Actual policy save canonicalized the domain;
+disallowed403 created no User, while allowed202 granted no private access.
+Existing sign-in remained valid. A real first-plan409 retained the exact request
+through dismissal/language/reopen; reviewed restoration allowed the same retry201.
+Explicit completion200 recorded audits and revoked the target Session. Saved and
+completed Settings facts, canonical policy and retained counts1/3/0 survived the
+same binary/configuration/database/journal/administrator Session restart. Zero
+native Calls/Attempts/Keys/grants; owned tabs/listeners/Compose resources are absent.
+An earlier non-PTY helper stopped on stdin EOF before browser actions and is not
+accepted. A later root-generated invalid credential key also failed before browser
+actions; the subsequent correctly bound current-artifact run passed. Earlier
+browser proof retains its own artifact identity.
+
+Full105 R1 failed only the V57 approval migration fixture on both databases:
+it assumed the final ledger row still identified V57 after V58 was registered.
+No released migration is changed. The correction must identify V57 explicitly
+and preserve every other ledger row, including later generations. The failed log
+SHA256 is `0e1e6d74af07f4ab1c3d2c87152e25ece94ea832e660bbc0c431482533a854c4`;
+owned full-run resources are independently absent. The corrected full R2 passed
+105 ordered lifecycle cases per driver, eight constraint cases and 3,247 named
+test events with no failures or skips. PostgreSQL took875.96s, MySQL1135.06s
+and Handler2015.362s. Log SHA256:
+`7dc6857e3ae6df5e2afcd2f76e64afcd4937e0d48dae4fd1f6ae0b06fd9a2ec6`.
+All1,509 protected hashes stayed exact and owned containers/networks/volumes are
+independently absent. The original R1 failure remains historical evidence.
+
+The remote timeout repair retains parameterized indexed ID filtering together
+with every exact-byte comparison. Actual same-fixture MySQL measurement improved
+from4.820s/full scan to0.905s/primary-key range scan of500 candidates; PostgreSQL
+passed as well. Both retained complete101/1001/10000 histories,8/11/47 statement
+counts, all authorization checks and the unchanged five-second deadline. Focused
+candidate acceptance is distinct from complete main regression and remote CI.
+The narrow source fix is integrated; diagnostic timing/EXPLAIN instrumentation is
+TEMP-only. Current-artifact production, bilingual browser and original-Session
+restart passed. The final mandatory check and scoped delivery remain separate.
+This bounded phase does not claim complete F04/F05 or remote CI convergence.
+
+Personal monthly80%/90% warning backend/UI and unregistered V59 remain private
+preparation awaiting root integration and actual acceptance. Restore recovery is
+also separate. No new feature completion is claimed; formal totals stay11/16/3.
+
+## Checked repository price source and grouped Role permissions
 
 The reviewed Role predecessor `ecd130b` is committed/pushed with exact remote
 read-back. This bounded phase adds three reviewed native-model entries/six base
@@ -30,7 +94,8 @@ correct two-resource/two-action summaries and same-Session bilingual restart.
 All 415 protected source paths stayed exact; owned tabs/listeners/Compose
 resources are absent. Prior full 103-per-driver backend/schema/harness proof is
 retained; this static-data/UI-only phase does not relabel it as a new full run.
-Final documentation checks and scoped delivery remain pending. F04/F05/F15 stay
+The containing 3070f19 commit is checked and pushed with exact remote read-back;
+its CI37332855651 failed the MySQL bounded Member Roles read as recorded above. F04/F05/F15 stay
 partial; totals remain 11 complete, 16 partial and three unstarted.
 
 ## Checked reviewed Role definitions
@@ -74,7 +139,8 @@ absent. Earlier incomplete helper/browser attempts remain historical evidence.
 
 The Role definition phase is checked, committed and pushed as
 `ecd130b10734fe3a931170dc10305468c0536e4d`, with exact remote read-back. Its
-new CI run 37331397426 is in progress; historical Approval CI failure remains
+CI run 37331397426 was cancelled; latest CI37332855651 failed the MySQL bounded Member Roles read.
+Historical Approval CI failure remains
 separate. F04/F05 remain partial; formal 11/16/3 is unchanged. Approval b10eb6cf remains delivered. Its CI run
 37314987013 failed a proven PostgreSQL fixture-registry race and a masked MySQL
 error whose historical cause remains unknown. The repaired local focus and full

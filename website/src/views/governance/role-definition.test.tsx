@@ -493,7 +493,13 @@ it('parent table preserves Create/Delete and scopes custom Edit to fresh GET rat
   )
   await settle()
   await settle()
-  expect(document.querySelectorAll('thead th')).toHaveLength(4)
+  expect([...document.querySelectorAll('thead th')].map((node) => node.textContent)).toEqual([
+    label('common.role'),
+    label('common.type'),
+    label('roles.members'),
+    label('roles.permissions'),
+    label('common.actions'),
+  ])
   expect(button('roles.create')).toBeDefined()
   const edits = [...document.querySelectorAll('button')].filter(
     (node) => node.textContent === label('roles.edit'),

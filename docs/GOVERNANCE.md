@@ -4,7 +4,7 @@ This phase adds controlled public registration, administrator member management,
 
 ## Registration and Member Lifecycle
 
-Registration is disabled by default and persisted in the singleton `governance_settings` row. It cannot create users before installation initialization. An admitted platform administrator with `registration.write` reviews and saves both registration enablement and the approval requirement with a reason and strong If-Match. The approval requirement defaults to false and applies only to new local self-registration; setup, administrator-created accounts and historical accounts remain unmanaged by this requirement.
+Registration is disabled by default and persisted in the singleton `governance_settings` row. It cannot create users before installation initialization. An admitted platform administrator with `registration.write` reviews and saves the complete registration policy (enablement, approval requirement and allowed email domains) with a reason and strong If-Match. The approval requirement defaults to false and applies only to new local self-registration; setup, administrator-created accounts and historical accounts remain unmanaged by this requirement.
 
 Public registration always creates a `member`, ignores attempted role injection and grants no models. Without approval it atomically creates its initial browser Session. With approval it creates a linked pending application and returns HTTP202 `{kind:"approval_pending"}` without a Session, cookie, CSRF token or application identifier. Pending, rejected or invalid application identities cannot log in, use Sessions or Keys, or contribute active Team/Project authority. Approval changes only the application decision and its typed audit; it does not enable a disabled account, undo offboarding, grant models or roles, create a Key, or restore revoked credentials. A newly approved active applicant must log in normally. Registration retains normalized email, exact unique email constraints, the12–72 UTF-8 byte password policy and bcrypt hashing.
 
@@ -51,11 +51,11 @@ Paths are relative to `/api/v1`. Mutations use the established same-origin, JSON
 
 | Method and path | Input | Response / access |
 |---|---|---|
-| `GET /auth/registration` | None | `{enabled,approval_required}`; public, no private validator |
+| `GET /auth/registration` | None | `{enabled,approval_required,allowed_email_domains}`; public, no private validator |
 | `POST /auth/register` | `{email,password,name}` | `201` Session and cookie without approval, or `202` `{kind:"approval_pending"}` without authentication; registration must be open |
 | `GET /auth/permissions` | Session | `{permissions:[]}`; authenticated |
-| `GET /admin/registration` | Session | `{enabled,approval_required,review_etag}` and strong ETag; admitted platform administrator with `registration.write` |
-| `PATCH /admin/registration` | `{enabled,approval_required,reason}`, strong If-Match | Current policy confirmation; same authority as GET |
+| `GET /admin/registration` | Session | `{enabled,approval_required,allowed_email_domains,review_etag}` and strong ETag; admitted platform administrator with `registration.write` |
+| `PATCH /admin/registration` | `{enabled,approval_required,allowed_email_domains,reason}`, strong If-Match | Current policy confirmation; same authority as GET |
 | `GET /admin/members/:user_id/approval` | Session | Reviewed application, independent eligibility/editability/runtime facts and strong ETag; `members.read` |
 | `PATCH /admin/members/:user_id/approval` | `{decision:"approve"\|"reject",reason}`, strong If-Match | Exact current decision, eligibility and runtime application; admitted administrator with `members.read` and `members.approvals.write` |
 | `GET /admin/members` | Optional `q`, `status`, `role`, `limit`, `cursor` | `{items:Member[],next_cursor:string|null}`; `members.read` |
@@ -65,7 +65,7 @@ Paths are relative to `/api/v1`. Mutations use the established same-origin, JSON
 | `POST /admin/members/:user_id/keys/:key_id/disable` | `{reason}`, strong reviewed If-Match | Exact current disabled/runtime confirmation; `members.keys.disable` |
 | `POST /admin/members` | `{email,name,password,role?}` | `201`, Member; `members.write`, with administrator creation restricted |
 | `PATCH /admin/members/:user_id` | `{disabled?,role?}` | Member; `members.write`, subject to target and continuity restrictions |
-| `GET /admin/roles` | None | `{items:Role[],available_permissions:[]}`; `roles.read` |
+| `GET /admin/roles` | None | `{items:Role[],available_permissions:[]}`; authoritative retained `member_count` on list items; `roles.read` |
 | `POST /admin/roles` | `{name,permissions:[]}` | `201`, Role; platform administrator |
 | `GET /admin/roles/:role_id` | None | Complete reviewed definition and strong ETag; current `roles.read` |
 | `PUT /admin/roles/:role_id` | `{name,permissions:[],identity_etag,reason}`, strong reviewed If-Match | Current definition confirmation; admitted intrinsic platform administrator, independently of `roles.read` |
@@ -1157,7 +1157,8 @@ absent. Earlier incomplete helper/browser attempts remain historical evidence.
 
 The Role definition phase is checked, committed and pushed as
 `ecd130b10734fe3a931170dc10305468c0536e4d`, with exact remote read-back. Its
-new CI run 37331397426 is in progress; historical Approval CI failure remains
+CI run 37331397426 was cancelled; latest CI37332855651 failed the MySQL bounded Member Roles read.
+Historical Approval CI failure remains
 separate. F04/F05 remain partial; formal 11/16/3 is unchanged. Approval b10eb6cf remains delivered. Its CI run
 37314987013 failed a proven PostgreSQL fixture-registry race and a masked MySQL
 error whose historical cause remains unknown. The repaired local focus and full
@@ -1174,3 +1175,62 @@ independent authority gates still apply. The Role list summarizes distinct
 resources and recorded action counts, including explicit zero, in both languages.
 Current production keyboard, save/readback and same-Session bilingual restart
 acceptance passed with zero inference.
+
+## Member workflow source integration
+
+Allowed email domains apply only to new local self-registration. An empty array
+is unrestricted. The complete reviewed policy accepts at most 32 explicit ASCII
+DNS names and 2,048 encoded bytes. Boundary ASCII spaces and letter case are
+normalized; names are sorted and duplicates rejected. Matching uses the exact
+normalized email domain, without suffix expansion, wildcard matching, Unicode
+conversion or DNS requests. Existing sign-in, setup, administrator-created members
+and recorded approval decisions remain independent. A disallowed registration
+creates no User, application, Session or audit. Invalid retained policy fails
+closed. The drawer preserves drafts and the original failed dispatched intent.
+
+Role-list counts describe retained identities and global assignments, including
+disabled, offboarded, pending and rejected identities where the relationship
+remains stored. Built-in counts use the recorded base role; custom counts use
+exact existing User/Role assignment identities. Team-scoped relationships never
+contribute. Counts are neither effective permission counts nor active-user totals.
+A five-second read-only repeatable-read snapshot binds current actor admission,
+read authority, complete definitions and batched counts. Catalogue or permission
+overflow returns 422 instead of a partial result. Missing counts render unknown.
+
+The existing offboarding page retains the exact failed mutation intent, including
+a first conflict, until confirmation or explicit abandonment. Its read boundary
+requires fresh actor and exact target authority. Member Settings displays only
+validated recorded case facts, with an addressable link to the existing workflow;
+it hides cached private facts while authority is being renewed or has failed.
+Retained-user lookup rejects collation aliases before returning inventory.
+
+Current source integration includes frozen GORM V58 and preserves the complete
+103-scenario prefix, appending the domain migration and lifecycle as cases
+104–105. Frontend 3,130 cases across 151 files and four Node checks passed.
+Focused domain migration/lifecycle, offboarding and Role-definition scenarios
+passed on both real drivers. The first governance focus failed only its new
+query-count instrumentation because authentication reads disable SQL logging;
+the fixture-only counter correction passed all five focused scenarios per driver,
+including exact 6/7/7 statement budgets and explicit 1001-entry overflow.
+Controlled current-artifact PostgreSQL production/browser policy, offboarding
+conflict/retry/completion, bilingual summaries/counts and same-Session restart
+passed on the current indexed-query artifact, with no inference. Full105 R1
+exposed the old approval fixture's final-version assumption; its narrow repair
+identifies released V57 and preserves every other ledger row, including V58.
+Corrected R2 passed105 ordered cases per driver, eight constraints and3,247
+named events without failure or skip. All1,509 protected paths remained exact;
+owned resources are independently absent. No historical migration is edited.
+
+Member Role batch reads now use a parameterized indexed ID superset conjunctively
+with the existing byte-exact comparisons. Collation aliases never gain authority.
+Measured MySQL10,000-assignment reads improved from4.820s/full scan to0.905s/
+primary-key range scan, preserving complete history,8/11/47 statement budgets for
+101/1001/10000 assignments and the five-second deadline. Both real-driver focused
+runs passed. Diagnostic timing and EXPLAIN instrumentation is not product code;
+complete corrected regression passed. Remote CI convergence remains separate.
+Current production/browser artifact SHA256 is
+`0e0b04678e95f65205e33317cca9a8c0344833cb40e5e46fba9bd0de72dda7c0`;
+full log SHA256 is
+`7dc6857e3ae6df5e2afcd2f76e64afcd4937e0d48dae4fd1f6ae0b06fd9a2ec6`.
+The containing checked commit delivers this bounded workflow slice; F04/F05 and
+formal11/16/3 remain unchanged.

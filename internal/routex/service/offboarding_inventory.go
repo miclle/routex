@@ -106,6 +106,10 @@ func loadOffboardingInventory(tx *gorm.DB, userID string) (*OffboardingInventory
 	if err := tx.Select("id", "role", "disabled", "offboarded_at", "created_at", "approval_application_id").First(&user, "id = ?", userID).Error; err != nil {
 		return nil, err
 	}
+	// A database collation match must not disclose another retained identity.
+	if user.ID != userID {
+		return nil, gorm.ErrRecordNotFound
+	}
 	result := &OffboardingInventory{UserID: userID, Disabled: user.Disabled, OffboardedAt: user.OffboardedAt, PersonalKeys: []OffboardingKey{}, Projects: []OffboardingResource{}, Teams: []OffboardingResource{}, Cases: []OffboardingCaseRecord{}, userRole: user.Role}
 	apps, err := loadRegistrationApplications(tx, []entity.User{user})
 	if err != nil {

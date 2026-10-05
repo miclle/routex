@@ -1,4 +1,8 @@
 export default {
+  registrationUnavailableForEmail: '当前策略不允许此邮箱注册。请查看允许的域名或联系管理员。',
+  registrationAllowedDomains: '允许注册的邮箱域名：{{domains}}。',
+  registrationDomainAdvisory:
+    '域名须完全匹配。此提示不代表邮箱所有权验证、注册成功或账户审批通过。',
   registrationApprovalPending:
     '注册正在等待管理员审批。你尚未登录。审批后可返回登录；系统尚未授予模型权限或 Key。',
   language: '语言',

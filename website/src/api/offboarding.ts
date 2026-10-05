@@ -25,6 +25,7 @@ async function post(
   data: unknown,
   csrf: string,
   reauthenticate = false,
+  signal?: AbortSignal,
 ) {
   try {
     const response = await client.post<OffboardingCase>(
@@ -32,6 +33,7 @@ async function post(
       data,
       {
         headers: { 'X-CSRF-Token': csrf },
+        signal,
         // A wrong reauthentication password is not proof the console session expired.
         validateStatus: (status) =>
           (status >= 200 && status < 300) || (reauthenticate && status === 401),
@@ -50,17 +52,28 @@ async function post(
     )
   }
 }
-export function createOffboardingPlan(userId: string, data: OffboardingPlan, csrf: string) {
-  return post(userId, 'plans', data, csrf)
+export function createOffboardingPlan(
+  userId: string,
+  data: OffboardingPlan,
+  csrf: string,
+  signal?: AbortSignal,
+) {
+  return post(userId, 'plans', data, csrf, false, signal)
 }
-export function completeOffboarding(userId: string, caseId: string, csrf: string) {
-  return post(userId, `${encodeURIComponent(caseId)}/complete`, {}, csrf)
+export function completeOffboarding(
+  userId: string,
+  caseId: string,
+  csrf: string,
+  signal?: AbortSignal,
+) {
+  return post(userId, `${encodeURIComponent(caseId)}/complete`, {}, csrf, false, signal)
 }
 export function emergencyOffboarding(
   userId: string,
   data: EmergencyOffboarding,
   password: string,
   csrf: string,
+  signal?: AbortSignal,
 ) {
-  return post(userId, 'emergency', { ...data, current_password: password }, csrf, true)
+  return post(userId, 'emergency', { ...data, current_password: password }, csrf, true, signal)
 }

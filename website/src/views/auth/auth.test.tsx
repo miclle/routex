@@ -76,7 +76,11 @@ beforeEach(() => {
       }
     if (key === 'get /announcements') response.data = { items: [] }
     if (key === 'get /auth/registration')
-      response.data = { enabled: registrationEnabled, approval_required: false }
+      response.data = {
+        enabled: registrationEnabled,
+        approval_required: false,
+        allowed_email_domains: [],
+      }
     if (key === 'get /setup') response.data = { initialized }
     if (key === 'get /notifications') response.data = { items: [], unread_count: 0 }
     if (key === 'get /auth/session') response.data = session
@@ -250,6 +254,7 @@ describe('authentication flows', () => {
     expect(queryClient.getQueryData(['auth', 'registration'])).toEqual({
       enabled: true,
       approval_required: false,
+      allowed_email_domains: [],
     })
   })
 

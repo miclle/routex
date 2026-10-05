@@ -26,6 +26,18 @@ export async function getMembers(
 export async function getMember(id: string, signal?: AbortSignal) {
   return (await client.get<Member>(`/admin/members/${id}`, { signal })).data
 }
-export async function getRoles(signal?: AbortSignal) {
-  return (await client.get<RoleList>('/admin/roles', { signal })).data
+export async function getRoles(signal?: AbortSignal): Promise<RoleList> {
+  const data = (await client.get<RoleList>('/admin/roles', { signal })).data
+  return {
+    ...data,
+    items: data.items.map((role) => ({
+      ...role,
+      member_count:
+        typeof role.member_count === 'number' &&
+        Number.isSafeInteger(role.member_count) &&
+        role.member_count >= 0
+          ? role.member_count
+          : null,
+    })),
+  }
 }

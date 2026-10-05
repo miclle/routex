@@ -1,4 +1,24 @@
 export default {
+  memberOffboardingSummary: {
+    wait: 'Waiting for current member read authority.',
+    loading: 'Loading recorded offboarding…',
+    failed: 'Recorded offboarding is unavailable.',
+    retry: 'Retry recorded offboarding',
+    empty: 'No offboarding record.',
+    history:
+      'Recent history: the newest saved plan among up to 100 recent records, otherwise the newest recorded case. A saved plan does not confirm applied handover or current account access.',
+    handover: 'Recorded handover',
+    ready_to_complete: 'Plan saved',
+    completed: 'Completed record',
+    planned: 'Planned',
+    emergency: 'Emergency',
+    assignments: 'Recorded assignments',
+    assignmentCounts: '{{projects}} Projects / {{teams}} Teams',
+    intended: 'Intended departure',
+    notSet: 'Not set',
+    keys: 'Personal Keys in this record',
+    notRecorded: 'Not recorded',
+  },
   roleDefinition: {
     reviewHelp:
       'Review this exact Role definition before replacing its name and complete permissions. Saving confirms current database state only.',
@@ -528,6 +548,13 @@ export default {
     explanation:
       'Combine permissions into roles. Built-in roles provide a baseline; custom roles refine access by resource and action.',
     create: 'Create custom role',
+    members: 'Members',
+    memberCount: '{{count}} members',
+    memberCount_one: '{{count}} member',
+    memberCount_other: '{{count}} members',
+    memberCountUnknown: 'Unknown',
+    memberCountHelp:
+      'Counts retained accounts by base identity for built-in roles or direct global assignment for custom roles, including inactive, pending and rejected accounts. Team assignments are excluded.',
     listLabel: 'Role list',
     permissions: 'Permissions',
     view: 'View permissions',
@@ -557,6 +584,20 @@ export default {
     deleteDescription: 'Delete {{name}}. Roles still assigned to members cannot be deleted.',
     actionCount_one: '{{count}} action',
     actionCount_other: '{{count}} actions',
+  },
+  registrationDomains: {
+    label: 'Allowed email domains',
+    help: 'An empty list allows all email domains while registration is enabled. Domains match exactly; subdomains must be listed separately. Use ASCII domain names only.',
+    input: 'Email domain',
+    placeholder: 'Add a domain',
+    add: 'Add',
+    remove: 'Remove {{domain}}',
+    invalid:
+      'Enter a valid ASCII domain name and add it before saving. Do not enter an email address, URL, wildcard or IP address.',
+    duplicate: 'This domain is already listed.',
+    limit: 'Use at most 32 domains and 2,048 bytes in the complete domain list.',
+    confirm: 'Allowed email domains: {{domains}}.',
+    unrestricted: 'All domains',
   },
   registration: {
     title: 'Authentication',

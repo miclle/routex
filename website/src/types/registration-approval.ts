@@ -7,6 +7,7 @@ export interface RegistrationApprovalSummary {
 export interface RegistrationPolicy {
   enabled: boolean
   approval_required: boolean
+  allowed_email_domains: string[]
 }
 export interface RegistrationPolicyReview extends RegistrationPolicy {
   review_etag: string

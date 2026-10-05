@@ -4,12 +4,15 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"net/http"
+	"net/url"
 	"reflect"
 	"strings"
 	"sync"
 	"testing"
 	"time"
 
+	"github.com/fox-gonic/fox"
 	"gorm.io/gorm"
 
 	"github.com/miclle/routex/internal/routex/entity"
@@ -88,6 +91,66 @@ func testOffboardingLifecycle(t *testing.T, db *gorm.DB) {
 	if _, err := svc.OffboardingInventory(ctx, "usr_remaining", "usr_departing"); !errors.Is(err, apperrors.ErrForbidden) {
 		t.Fatal("member read another member's offboarding inventory")
 	}
+	router := fox.New()
+	New(svc).RegisterRoutes(router)
+	adminCookie := &http.Cookie{Name: sessionCookie, Value: admin.Token}
+	assertReadIdentity := func(expected *service.OffboardingInventory) {
+		t.Helper()
+		var userBefore, userAfter entity.User
+		var casesBefore, casesAfter []entity.OffboardingCase
+		var keysBefore, keysAfter []entity.APIKey
+		var auditBefore, auditAfter int64
+		if err := db.First(&userBefore, "id = ?", expected.UserID).Error; err != nil {
+			t.Fatal(err)
+		}
+		if err := db.Where("user_id = ?", expected.UserID).Order("id").Find(&casesBefore).Error; err != nil {
+			t.Fatal(err)
+		}
+		if err := db.Where("user_id = ?", expected.UserID).Order("id").Find(&keysBefore).Error; err != nil {
+			t.Fatal(err)
+		}
+		if err := db.Model(&entity.AuditEvent{}).Count(&auditBefore).Error; err != nil {
+			t.Fatal(err)
+		}
+		for _, alias := range []string{strings.ToUpper(expected.UserID), "usr_departinG", expected.UserID + " "} {
+			result, err := svc.OffboardingInventory(ctx, admin.User.ID, alias)
+			if result != nil || !errors.Is(err, apperrors.ErrNotFound) {
+				t.Fatal("offboarding alias disclosed retained inventory or history")
+			}
+			expectStatus(t, identityRequest(router, "GET", "/api/v1/admin/members/"+url.PathEscape(alias)+"/offboarding", "", adminCookie, ""), http.StatusNotFound)
+		}
+		response := identityRequest(router, "GET", "/api/v1/admin/members/"+expected.UserID+"/offboarding", "", adminCookie, "")
+		expectStatus(t, response, http.StatusOK)
+		var got service.OffboardingInventory
+		if err := json.Unmarshal(response.Body.Bytes(), &got); err != nil {
+			t.Fatal(err)
+		}
+		// Compare the complete public DTO; its private stale-plan fields are not JSON.
+		expectedJSON, err := json.Marshal(expected)
+		if err != nil {
+			t.Fatal(err)
+		}
+		actualJSON, err := json.Marshal(&got)
+		if err != nil || string(expectedJSON) != string(actualJSON) {
+			t.Fatal("canonical retained inventory or recorded history changed")
+		}
+		if err := db.First(&userAfter, "id = ?", expected.UserID).Error; err != nil {
+			t.Fatal(err)
+		}
+		if err := db.Where("user_id = ?", expected.UserID).Order("id").Find(&casesAfter).Error; err != nil {
+			t.Fatal(err)
+		}
+		if err := db.Where("user_id = ?", expected.UserID).Order("id").Find(&keysAfter).Error; err != nil {
+			t.Fatal(err)
+		}
+		if err := db.Model(&entity.AuditEvent{}).Count(&auditAfter).Error; err != nil {
+			t.Fatal(err)
+		}
+		if !reflect.DeepEqual(userBefore, userAfter) || !reflect.DeepEqual(casesBefore, casesAfter) || !reflect.DeepEqual(keysBefore, keysAfter) || auditBefore != auditAfter {
+			t.Fatal("offboarding reads changed account, Key, case or audit history")
+		}
+	}
+	assertReadIdentity(inventory)
 	input := service.OffboardingPlanInput{RequestID: "req_offboarding_plan", InventoryVersion: inventory.InventoryVersion, PlannedAt: time.Now().UTC().Add(time.Hour), Reason: "Planned departure", OffboardingAssignments: service.OffboardingAssignments{Projects: []service.OffboardingProjectAssignment{{ProjectID: "prj_sole", ManagerUserIDs: []string{"usr_successor"}}}, Teams: []service.OffboardingTeamAssignment{{TeamID: "tem_sole", OwnerUserIDs: []string{"usr_successor"}}}}}
 	if _, err := svc.CreateOffboardingPlan(ctx, admin.User.ID, "usr_departing", input); err == nil {
 		t.Fatal("nonmember Team successor accepted without explicit addition")
@@ -198,6 +261,11 @@ func testOffboardingLifecycle(t *testing.T, db *gorm.DB) {
 	if err := db.Model(&entity.ProjectManager{}).Where("project_id = ?", "prj_shared").Count(&keys).Error; err != nil || keys != 1 {
 		t.Fatal("shared Project unnecessarily gained a replacement manager")
 	}
+	retained, err := svc.OffboardingInventory(ctx, admin.User.ID, "usr_departing")
+	if err != nil || !retained.Disabled || retained.OffboardedAt == nil || len(retained.Cases) != 1 || retained.Cases[0].ID != plan.ID || retained.Cases[0].Status != "completed" {
+		t.Fatal("disabled/offboarded canonical history became unreadable")
+	}
+	assertReadIdentity(retained)
 	// Explicit reactivation is an account action, not restoration of revoked
 	// credentials, deleted memberships, direct roles, or old browser sessions.
 	enabled := false

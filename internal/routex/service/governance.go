@@ -20,6 +20,7 @@ var AvailablePermissions = []string{"secrets.read", "secrets.rotate", "members.r
 type RoleRecord struct {
 	Role        entity.Role
 	Permissions []string
+	MemberCount *int64
 }
 type MemberRecord struct {
 	User    entity.User
@@ -114,26 +115,6 @@ func memberRecord(db *gorm.DB, userID string) (*MemberRecord, error) {
 	}
 	if err := db.Model(&entity.UserRole{}).Where("user_id = ?", userID).Order("role_id").Pluck("role_id", &result.RoleIDs).Error; err != nil {
 		return nil, err
-	}
-	return result, nil
-}
-
-func (s *Service) ListRoles(ctx context.Context, actorID string) ([]RoleRecord, error) {
-	db := s.authDB(ctx)
-	if err := authorizeGovernance(db, actorID, "roles.read"); err != nil {
-		return nil, catalogError(err)
-	}
-	roles := []entity.Role{}
-	if err := db.Order("builtin DESC, name").Find(&roles).Error; err != nil {
-		return nil, catalogError(err)
-	}
-	result := make([]RoleRecord, 0, len(roles))
-	for _, role := range roles {
-		permissions, err := rolePermissions(db, role.ID)
-		if err != nil {
-			return nil, catalogError(err)
-		}
-		result = append(result, RoleRecord{Role: role, Permissions: permissions})
 	}
 	return result, nil
 }

@@ -1,47 +1,134 @@
-import { useState } from 'react'
+import { useLayoutEffect, useRef, useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link, useParams } from 'react-router'
 import { useTranslation } from 'react-i18next'
 import { ArrowLeft, KeyRound, ShieldCheck } from 'lucide-react'
-import { getMember } from '@/api/governance'
+import { getMember, getPermissions } from '@/api/governance'
 import { getOffboarding } from '@/api/offboarding'
-import { usePermissions } from '@/hooks/use-permissions'
 import { useSession } from '@/hooks/use-auth'
-import { PermissionGate } from '@/components/app/PermissionGate'
+import { useSessionGeneration } from '@/hooks/use-session-generation'
+import type { Session } from '@/types/auth'
+import { freshQuery, offboardingVersion, useOffboardingVersion } from './read-authority'
 import { Page, QueryState } from '@/components/app/CatalogUI'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import type { OffboardingCase, OffboardingResource } from '@/types/offboarding'
+import type {
+  OffboardingCase,
+  OffboardingInventory,
+  OffboardingResource,
+} from '@/types/offboarding'
 import ActionDialog from './action-dialog'
 
 export default function OffboardingPage() {
   const { memberId } = useParams()
-  return (
-    <PermissionGate permission="members.read">
-      <Offboarding key={memberId} memberId={memberId!} />
-    </PermissionGate>
-  )
+  return <Offboarding memberId={memberId!} />
 }
 function Offboarding({ memberId }: { memberId: string }) {
-  const { t, i18n } = useTranslation('offboarding')
-  const access = usePermissions()
   const session = useSession()
+  const owner = `${session.data?.user.id ?? ''}:${memberId}`
+  return <OffboardingContent key={owner} memberId={memberId} session={session} />
+}
+function OffboardingContent({
+  memberId,
+  session,
+}: {
+  memberId: string
+  session: ReturnType<typeof useSession>
+}) {
+  const alive = useRef(true)
+  useLayoutEffect(() => {
+    alive.current = true
+    return () => {
+      alive.current = false
+    }
+  }, [])
+  const { t, i18n } = useTranslation('offboarding')
+  const generation = useSessionGeneration()
   const cache = useQueryClient()
+  const actor = session.data?.user.id ?? ''
+  const version = useOffboardingVersion(cache, actor, memberId)
+  const prefix = ['offboarding', actor, memberId, generation] as const
+  const permissionKey = ['permissions', actor, generation, 'offboarding'] as const
+  const grants = useQuery({
+    queryKey: permissionKey,
+    queryFn: ({ signal }) => getPermissions(signal),
+    enabled: !!actor && freshQuery(cache, ['auth', 'session']),
+    retry: false,
+  })
+  const authorized =
+    freshQuery(cache, ['auth', 'session']) &&
+    freshQuery(cache, permissionKey) &&
+    grants.data?.includes('members.read') === true
+  const access = {
+    can: (permission: string) => authorized && grants.data?.includes(permission) === true,
+    isAdmin: authorized && session.data?.user.role === 'admin',
+  }
   const [dialog, setDialog] = useState<'plan' | 'emergency' | 'complete' | null>(null)
   const [selected, setSelected] = useState<OffboardingCase>()
+  const [review, setReview] = useState<OffboardingInventory>()
+  const [trigger, setTrigger] = useState<HTMLButtonElement | null>(null)
+  const [submitted, setSubmitted] = useState(false)
+  const submittedRef = useRef(false)
   const [notice, setNotice] = useState<string | null>(null)
   const inventory = useQuery({
-    queryKey: ['offboarding', memberId],
+    queryKey: [...prefix, 'inventory'],
+    enabled: authorized,
     queryFn: ({ signal }) => getOffboarding(memberId, signal),
     refetchOnWindowFocus: false,
     retry: false,
   })
   const member = useQuery({
-    queryKey: ['admin', 'member', memberId],
+    queryKey: [...prefix, 'member'],
+    enabled: authorized,
     queryFn: ({ signal }) => getMember(memberId, signal),
     retry: false,
   })
-  const data = inventory.data
+  const ready =
+    authorized &&
+    freshQuery(cache, [...prefix, 'inventory']) &&
+    freshQuery(cache, [...prefix, 'member']) &&
+    inventory.data?.user_id === memberId &&
+    member.data?.id === memberId
+  const data = ready ? inventory.data : undefined
+  function canRead(capturedVersion: string) {
+    const auth = cache.getQueryState<Session>(['auth', 'session'])
+    return (
+      alive.current &&
+      auth?.data?.user.id === actor &&
+      !!actor &&
+      capturedVersion === offboardingVersion(cache, actor, memberId) &&
+      freshQuery(cache, ['auth', 'session']) &&
+      freshQuery(cache, permissionKey) &&
+      cache.getQueryData<string[]>(permissionKey)?.includes('members.read') === true &&
+      freshQuery(cache, [...prefix, 'inventory']) &&
+      freshQuery(cache, [...prefix, 'member']) &&
+      cache.getQueryData<OffboardingInventory>([...prefix, 'inventory'])?.user_id === memberId &&
+      cache.getQueryData<{ id: string }>([...prefix, 'member'])?.id === memberId
+    )
+  }
+  function canWrite(capturedVersion: string, mode: 'plan' | 'emergency' | 'complete') {
+    return (
+      canRead(capturedVersion) &&
+      cache.getQueryData<string[]>(permissionKey)?.includes('members.write') === true &&
+      (mode !== 'emergency' ||
+        cache.getQueryData<Session>(['auth', 'session'])?.user.role === 'admin') &&
+      (member.data?.role !== 'admin' ||
+        cache.getQueryData<Session>(['auth', 'session'])?.user.role === 'admin') &&
+      actor !== memberId
+    )
+  }
+  function open(
+    mode: 'plan' | 'emergency' | 'complete',
+    node: HTMLButtonElement,
+    record?: OffboardingCase,
+  ) {
+    if (!node.isConnected || !canWrite(version, mode) || submittedRef.current || !data || blocked)
+      return
+    setReview(data)
+    setSelected(record)
+    setTrigger(node)
+    setDialog(mode)
+  }
   const blocked = !access.can('members.write')
     ? 'readOnly'
     : memberId === session.data?.user.id
@@ -54,8 +141,16 @@ function Offboarding({ memberId }: { memberId: string }) {
             ? 'inactive'
             : null
   const refresh = () => {
-    setDialog(null)
-    setSelected(undefined)
+    if (!alive.current) return
+    if (!freshQuery(cache, ['auth', 'session'])) {
+      void session.refetch()
+      return
+    }
+    if (!freshQuery(cache, permissionKey)) {
+      void grants.refetch()
+      return
+    }
+    if (!cache.getQueryData<string[]>(permissionKey)?.includes('members.read')) return
     setNotice(null)
     void inventory.refetch()
     void member.refetch()
@@ -64,7 +159,8 @@ function Offboarding({ memberId }: { memberId: string }) {
     setDialog(null)
     setSelected(undefined)
     setNotice(record.status === 'completed' ? 'completed' : 'planSaved')
-    void cache.invalidateQueries({ queryKey: ['offboarding', memberId] })
+    void cache.invalidateQueries({ queryKey: ['offboarding', actor, memberId] })
+    void cache.invalidateQueries({ queryKey: ['admin', 'member', actor, memberId] })
     void cache.invalidateQueries({ queryKey: ['admin', 'member', memberId] })
     void cache.invalidateQueries({ queryKey: ['admin', 'members'] })
   }
@@ -85,18 +181,31 @@ function Offboarding({ memberId }: { memberId: string }) {
         </Link>
         <Button
           variant="outline"
-          disabled={inventory.isFetching || member.isFetching}
+          disabled={!ready || inventory.isFetching || member.isFetching}
           onClick={refresh}
         >
           {t('refresh')}
         </Button>
       </div>
       <QueryState
-        pending={inventory.isPending || member.isPending}
-        error={inventory.error || member.error}
+        pending={
+          session.isPending ||
+          session.isFetching ||
+          grants.isPending ||
+          grants.isFetching ||
+          (authorized &&
+            (inventory.isPending || inventory.isFetching || member.isPending || member.isFetching))
+        }
+        error={session.error || grants.error || inventory.error || member.error}
         retry={refresh}
       />
-      {data && member.data && !inventory.isError && !member.isError && (
+      {!authorized &&
+        !session.isFetching &&
+        !grants.isFetching &&
+        !session.isError &&
+        !grants.isError &&
+        grants.isSuccess && <p role="alert">{t('denied')}</p>}
+      {data && member.data && (
         <>
           <div>
             <h2 className="text-xl font-semibold">{member.data.name}</h2>
@@ -124,13 +233,13 @@ function Offboarding({ memberId }: { memberId: string }) {
               {t(blocked)}
             </p>
           )}
-          {!blocked && (
+          {!blocked && !submitted && (
             <div className="flex flex-wrap gap-3">
-              <Button onClick={() => setDialog('plan')}>{t('planned')}</Button>
+              <Button onClick={(event) => open('plan', event.currentTarget)}>{t('planned')}</Button>
               {access.isAdmin && (
                 <Button
                   className="bg-destructive text-white hover:bg-destructive/90"
-                  onClick={() => setDialog('emergency')}
+                  onClick={(event) => open('emergency', event.currentTarget)}
                 >
                   {t('emergency')}
                 </Button>
@@ -180,14 +289,11 @@ function Offboarding({ memberId }: { memberId: string }) {
                     record.inventory_version !== data.inventory_version && (
                       <p className="text-sm text-muted-foreground">{t('stalePlan')}</p>
                     )}
-                  {record.status === 'ready_to_complete' && !blocked && (
+                  {record.status === 'ready_to_complete' && !blocked && !submitted && (
                     <Button
                       variant="outline"
                       disabled={record.inventory_version !== data.inventory_version}
-                      onClick={() => {
-                        setSelected(record)
-                        setDialog('complete')
-                      }}
+                      onClick={(event) => open('complete', event.currentTarget, record)}
                     >
                       {t('complete')}
                     </Button>
@@ -201,23 +307,43 @@ function Offboarding({ memberId }: { memberId: string }) {
               ))
             )}
           </section>
-          {dialog && (
-            <ActionDialog
-              key={`${dialog}:${data.inventory_version}`}
-              mode={dialog}
-              inventory={data}
-              selectedCase={selected}
-              onClose={() => {
-                setDialog(null)
-                void inventory.refetch()
-                void member.refetch()
-              }}
-              onReview={refresh}
-              onSuccess={success}
-            />
-          )}
         </>
       )}
+      <ActionDialog
+        key={`${actor}:${memberId}`}
+        mode={dialog}
+        review={review}
+        selectedCase={selected}
+        actor={actor}
+        target={memberId}
+        generation={generation}
+        version={version}
+        ready={ready}
+        canRead={canRead}
+        canWrite={canWrite}
+        trigger={trigger}
+        onSubmitted={(value) => {
+          submittedRef.current = value
+          setSubmitted(value)
+        }}
+        onClose={() => {
+          setDialog(null)
+          if (!submittedRef.current) setReview(undefined)
+        }}
+        onOpen={(mode) => {
+          if (canRead(version)) setDialog(mode)
+        }}
+        onReview={() => {
+          if (!canRead(version)) return
+          if (!submittedRef.current) {
+            setDialog(null)
+            setSelected(undefined)
+            setReview(undefined)
+          }
+          refresh()
+        }}
+        onSuccess={success}
+      />
     </Page>
   )
 }

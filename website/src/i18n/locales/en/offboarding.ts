@@ -1,4 +1,14 @@
 export default {
+  submittedStale:
+    'The request was rejected, but that response does not prove that the original action was rolled back. Keep the same retry, or explicitly abandon it before a new review.',
+  unresolved:
+    'The submitted outcome remains unconfirmed. Review and explicitly retry the same action; refreshing current facts does not resolve it.',
+  reviewSubmitted: 'Review submitted action',
+  abandonWarning:
+    'Abandoning only clears your local retry. The previous outcome remains unknown; it neither undoes nor confirms the action.',
+  abandon: 'Abandon submitted request',
+  abandoned:
+    'Local retry abandoned. The previous outcome remains unknown. Review fresh inventory before starting another action.',
   title: 'Member offboarding',
   description:
     'Review responsibilities, arrange continuity, then explicitly close personal access.',

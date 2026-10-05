@@ -637,3 +637,31 @@ Empty creation, existing-data upgrade, repetition, concurrent startup and partia
 MySQL DDL recovery are covered by the new real-driver fixture. Both PostgreSQL and MySQL passed these migration cases in the focused and
 complete V57/102 regression. Authentication and production restart retained the
 original database and migration ledger.
+
+## Registration email-domain migration V58
+
+The new frozen private GORM schema adds a bounded JSON-text domain array to the
+singleton governance settings. Its historical unrestricted representation is
+`[]`. The migration uses GORM Migrator AddColumn, ColumnTypes and AlterColumn plus
+a query-builder NULL-only backfill; it introduces no handwritten SQL. It first
+adds a nullable column, preserves non-NULL retained values, validates the frozen
+canonical grammar, then reconciles the 2,048-character non-null column and
+default. Invalid retained values or singleton identities stop migration rather
+than resetting a configured restriction. Historical migrations remain unchanged.
+
+The new migration fixture covers empty creation, existing-data preservation,
+repeat/concurrent startup, nullable/incorrect-shape partial prefixes and invalid
+retained values on PostgreSQL and MySQL. Both drivers passed this focused fixture
+and the associated registration lifecycle. Authentication/native restart on both
+drivers and controlled PostgreSQL same-artifact/Session restart passed. Full105 R1
+exposed a test-only V57 fixture assumption that its migration was always the final
+ledger row. The fixture must reconstruct its explicit released V57, preserve all
+other ledger rows including V58, and retain its original upgrade/partial/repeat/
+concurrent/constraint assertions. No released migration changes. Corrected R2
+passed105 ordered cases per driver, eight constraints and3,247 named events
+without failure or skip. All1,509 protected paths remained exact, and owned
+containers/networks/volumes are independently absent. Current-artifact
+production and original-Session restart also passed. The containing checked
+commit releases V58; final checking and remote CI remain separate gates.
+Full log SHA256:
+`7dc6857e3ae6df5e2afcd2f76e64afcd4937e0d48dae4fd1f6ae0b06fd9a2ec6`.
