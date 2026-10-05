@@ -58,11 +58,11 @@ func (s *Service) ReconcileMonthlyQuotaNotifications(ctx context.Context) error 
 		done, err := s.reconcileMonthlyQuotaNotificationBatch(ctx, &cursor)
 		failures = errors.Join(failures, err)
 		if done || ctx.Err() != nil {
-			return errors.Join(failures, s.reconcileTeamMemberQuotaNotifications(ctx), s.reconcileMonthlyQuotaWarnings(ctx), s.reconcileMonthlyTeamQuotaWarnings(ctx))
+			return errors.Join(failures, s.reconcileTeamMemberQuotaNotifications(ctx), s.reconcileMonthlyQuotaWarnings(ctx), s.reconcileMonthlyTeamQuotaWarnings(ctx), s.reconcileMonthlyProjectQuotaWarnings(ctx))
 		}
 		// A failed query did not advance the cursor; retry on the next reconciliation.
 		if err != nil && cursor == previous {
-			return errors.Join(failures, s.reconcileTeamMemberQuotaNotifications(ctx), s.reconcileMonthlyQuotaWarnings(ctx), s.reconcileMonthlyTeamQuotaWarnings(ctx))
+			return errors.Join(failures, s.reconcileTeamMemberQuotaNotifications(ctx), s.reconcileMonthlyQuotaWarnings(ctx), s.reconcileMonthlyTeamQuotaWarnings(ctx), s.reconcileMonthlyProjectQuotaWarnings(ctx))
 		}
 	}
 }
@@ -86,6 +86,7 @@ func (s *Service) StartQuotaNotifications(ctx context.Context) (func(), error) {
 		memberCursor := ""
 		warningCursor := quotaNotificationCursor{}
 		teamWarningCursor := quotaNotificationCursor{}
+		projectWarningCursor := quotaNotificationCursor{}
 		deferred := false
 		for {
 			if runCtx.Err() != nil {
@@ -95,7 +96,8 @@ func (s *Service) StartQuotaNotifications(ctx context.Context) (func(), error) {
 			_, memberErr := s.reconcileTeamMemberQuotaNotificationBatch(runCtx, &memberCursor)
 			_, warningErr := s.reconcileMonthlyQuotaWarningBatch(runCtx, &warningCursor)
 			_, teamWarningErr := s.reconcileMonthlyTeamQuotaWarningBatch(runCtx, &teamWarningCursor)
-			err = errors.Join(err, memberErr, warningErr, teamWarningErr)
+			_, projectWarningErr := s.reconcileMonthlyProjectQuotaWarningBatch(runCtx, &projectWarningCursor)
+			err = errors.Join(err, memberErr, warningErr, teamWarningErr, projectWarningErr)
 			if err != nil && runCtx.Err() == nil && !deferred {
 				log.Print("monthly quota notification observation deferred")
 			} else if err == nil && deferred {

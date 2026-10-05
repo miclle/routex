@@ -82,6 +82,13 @@ export default {
       money_month_near: '已记录 Team 月度金额预警。',
       money_month_critical: '已记录 Team 月度金额严重预警。',
     },
+    project_monthly_quota_warning: {
+      default: '已记录 Project 月度额度预警。',
+      tokens_month_near: '已记录 Project 月度 Token 预警。',
+      tokens_month_critical: '已记录 Project 月度 Token 严重预警。',
+      money_month_near: '已记录 Project 月度金额预警。',
+      money_month_critical: '已记录 Project 月度金额严重预警。',
+    },
     monthly_quota_exhausted: {
       default: '月度额度已达到上限。',
       tokens_month_exhausted: '月度 Token 已达到上限。',

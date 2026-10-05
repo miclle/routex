@@ -251,6 +251,12 @@ func (s *Service) ListNotifications(ctx context.Context, actor string, filter No
 		}
 		records = append(records, teamWarnings...)
 		page.UnreadCount += teamWarningUnread
+		projectWarnings, projectWarningUnread, err := projectQuotaWarningPage(tx, access, filter, limit, cursorTime, cursorID)
+		if err != nil {
+			return err
+		}
+		records = append(records, projectWarnings...)
+		page.UnreadCount += projectWarningUnread
 		page.Items, page.NextCursor = mergeNotificationRecords(records, limit)
 		return nil
 	}, &sql.TxOptions{Isolation: sql.LevelRepeatableRead, ReadOnly: true})
@@ -332,6 +338,14 @@ func (s *Service) MarkNotificationRead(ctx context.Context, actor, notificationI
 			record = teamWarning
 			return nil
 		}
+		projectWarning, projectFound, projectErr := markProjectQuotaWarningRead(tx, access, notificationID)
+		if projectErr != nil && !errors.Is(projectErr, gorm.ErrRecordNotFound) {
+			return projectErr
+		}
+		if projectFound {
+			record = projectWarning
+			return nil
+		}
 		if !access.Operational {
 			return apperrors.ErrNotFound
 		}
@@ -380,7 +394,10 @@ func (s *Service) MarkAllNotificationsRead(ctx context.Context, actor string) er
 		if err := quotaWarningMutationQuery(tx, access).Where("read_at IS NULL").Update("read_at", now).Error; err != nil {
 			return err
 		}
-		return teamQuotaWarningMutationQuery(tx, access).Where("read_at IS NULL").Update("read_at", now).Error
+		if err := teamQuotaWarningMutationQuery(tx, access).Where("read_at IS NULL").Update("read_at", now).Error; err != nil {
+			return err
+		}
+		return projectQuotaWarningMutationQuery(tx, access).Where("read_at IS NULL").Update("read_at", now).Error
 	}, &sql.TxOptions{Isolation: sql.LevelReadCommitted})
 	return catalogError(err)
 }

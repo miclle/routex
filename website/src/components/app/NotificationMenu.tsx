@@ -28,7 +28,11 @@ function itemText(
     const warning = recordedMonthlyQuotaWarning(notification, recipientId)
     if (!warning) return t('items.monthly_quota_warning.default')
     const key =
-      warning.scope_kind === 'team' ? 'team_monthly_quota_warning' : 'monthly_quota_warning'
+      warning.scope_kind === 'team'
+        ? 'team_monthly_quota_warning'
+        : warning.scope_kind === 'project'
+          ? 'project_monthly_quota_warning'
+          : 'monthly_quota_warning'
     return t(`items.${key}.${notification.detail_code}`, {
       defaultValue: t(`items.${key}.default`),
     })

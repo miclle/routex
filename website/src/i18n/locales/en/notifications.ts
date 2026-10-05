@@ -83,6 +83,13 @@ export default {
       money_month_near: 'Team monthly money warning recorded.',
       money_month_critical: 'Critical Team monthly money warning recorded.',
     },
+    project_monthly_quota_warning: {
+      default: 'A Project monthly quota warning was recorded.',
+      tokens_month_near: 'Project monthly token warning recorded.',
+      tokens_month_critical: 'Critical Project monthly token warning recorded.',
+      money_month_near: 'Project monthly money warning recorded.',
+      money_month_critical: 'Critical Project monthly money warning recorded.',
+    },
     monthly_quota_exhausted: {
       default: 'A monthly quota limit was reached.',
       tokens_month_exhausted: 'Monthly token limit reached.',

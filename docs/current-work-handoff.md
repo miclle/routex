@@ -5,6 +5,23 @@ prioritize partial capabilities. Formal totals remain **11 complete, 16 partial,
 three unstarted**. The coordinated roadmap lives outside this repository;
 [Implementation](IMPLEMENTATION.md) records the independent historical gates.
 
+## Active Project warning integration
+
+Team warnings are checked/pushed as `4504088` with exact remote main read-back;
+remote frontend/backend checks and Actionlint passed. The first CI database
+and GolangCI-Lint jobs were cancelled before acquiring a hosted Runner; their
+annotations report no Runner allocation, not an executed test failure. Both
+workflows were retried; remote convergence remains pending. Main carries Project backend/UI/
+fixtures and frozen V61, preserving the 109 prefix and adding scenarios 110–111.
+Focused real-driver and frontend/build/asset gates passed against the identical
+isolated worktree source. Full 111 passed 3,697 named events and eight constraints
+without failures/skips; all 1,546 paths remained exact. Actual current-main PostgreSQL production,
+bilingual manager history/privacy and original-Session restart passed: six native
+completions, four observations/eight original inboxes, single-read HTTP 200 and
+read-all HTTP 204, with all original Sessions and no extra inference/login.
+Owned resources are absent. See [Notifications](NOTIFICATIONS.md#project-monthly-warning-integration-v61). No new
+completion is claimed; the full objective continues.
+
 ## Current Team aggregate warning acceptance
 
 Personal monthly warnings are checked/pushed as `38de94f`; CI 37356643442,
@@ -12,7 +29,8 @@ GolangCI-Lint 37356643541 and Actionlint 37356643376 all succeeded.
 Team V60 and the unchanged 107 prefix plus 108–109 now have full dual-driver,
 source and current-production bilingual/original-Session restart acceptance.
 The containing commit records this phase. Project warning has focused dual-driver
-and frontend/build acceptance, with its isolated full matrix running. Team-member
+and frontend/build/full 111 acceptance. Final mandatory checking and complete
+Task testing passed; the containing commit records this phase. Team-member
 warning and Restore recovery await actual acceptance; source-only checks never
 count as delivery. The full objective remains active.
 

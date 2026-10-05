@@ -753,3 +753,14 @@ original 107 prefix and passed 3,526 named events with eight constraints.
 All 1,533 source paths stayed exact and owned resources are absent.
 See [Notifications](NOTIFICATIONS.md#team-aggregate-monthly-warnings-v60) for
 threshold, runtime, production/browser/restart and retained failed-run evidence.
+
+## Project monthly warning integration V61
+
+Frozen GORM V61 and the unchanged 109-scenario prefix plus Project cases 110–111
+extend monthly 80%/90% notifications to original current managers. Focused real
+PostgreSQL/MySQL workflows, frontend/build/assets and current-main PostgreSQL
+production/bilingual/privacy/original-Session restart and full 111 passed;
+final mandatory checking and complete Task tests passed. The containing commit
+records this phase. See [Notifications](NOTIFICATIONS.md#project-monthly-warning-integration-v61) for
+scope, counts, artifact, runtime evidence and acceptance limits. F17/F23 remain
+partial and the full objective continues.

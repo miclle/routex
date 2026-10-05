@@ -5713,3 +5713,14 @@ for exact logs/artifact, limitations and retained failures. The mandatory
 pre-commit gate is `go tool task check`; the containing commit
 records this phase. F17/F23 and formal 11/16/3 remain unchanged;
 Project, Team-member/Key warnings, configurable thresholds and Restore remain open.
+
+## Project monthly warning integration V61
+
+Frozen GORM V61 and the unchanged 109-scenario prefix plus Project cases 110–111
+extend monthly 80%/90% notifications to original current managers. Focused real
+PostgreSQL/MySQL workflows, frontend/build/assets and current-main PostgreSQL
+production/bilingual/privacy/original-Session restart and full 111 passed;
+final mandatory checking and complete Task tests passed. The containing commit
+records this phase. See [Notifications](NOTIFICATIONS.md#project-monthly-warning-integration-v61) for
+scope, counts, artifact, runtime evidence and acceptance limits. F17/F23 remain
+partial and the full objective continues.

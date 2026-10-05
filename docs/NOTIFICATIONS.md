@@ -467,3 +467,47 @@ fresh R2 production passed. Earlier failures remain failed and their owned
 resources are independently absent. The initial check tooling collision was
 resolved by running the pinned linter without a concurrent second instance;
 subsequent mandatory checking passed without product changes.
+
+## Project monthly warning integration V61
+
+Project warnings record fixed 80% reminders and 90% critical observations for
+complete settled monthly Tokens and exact decimal money. Frozen GORM V61 keeps
+the original admitted manager recipients and exact Project/User births. Current
+management gates reads/marks; leaving hides history, same-incarnation rejoining
+restores it, and later managers receive no old rows. Creator or administrator
+privilege grants no notification access. Unknown usage, holds, incomplete coverage
+and stale policy/calendar/currency/runtime facts produce no percentage; existing
+exhaustion, hard stops and SMTP behavior remain unchanged.
+
+The existing notification menu retains paired English/Chinese facts and
+independent recipient read state. Recorded names fall back to stable IDs without
+a directory query. Public metadata excludes private births and Key secrets.
+
+Focused PostgreSQL/MySQL acceptance passed 20 selected cases/105 events; core
+source checks passed 33 cases/349 events. The exact worktree source passed 3,286
+frontend cases in 151 files, four Node checks, production build and embedded
+assets. Main carries those same runtime/UI/fixture afterimages; its mandatory
+check and current production build/assets passed. The complete 111-scenario
+matrix passed 111 ordered cases per PostgreSQL/MySQL, eight constraints and
+3,697 named events without failures or skips, preserving the original 109 prefix.
+All 1,546 protected paths stayed exact. PostgreSQL took 1036.51s and MySQL
+1262.62s; owned containers, networks and volumes are independently absent.
+Full log SHA256:
+`a3713d931969681838c771c4234519fddcf912bb06592495e0e64d53e159c5e6`.
+
+Controlled current-main PostgreSQL production and bilingual browser acceptance
+passed against binary `83ec876354abbdadd8b75a8e4fd908de71f1976a441809089cea457b788ef48c`.
+Six completed native calls/attempts produced four Project observations and eight
+original-manager inboxes. Tokens 8/10 and 9/10 and exact USD 9/11.25 and 9/10
+appeared in default English and live Chinese. Single-read HTTP 200 changed only
+its recipient; both read-all HTTP 204 operations preserved history. Manager
+removal hid history, rejoining restored it, and later managers received no old
+notifications. The same artifact/configuration/database/journal and original
+API/browser Sessions survived restart without more inference or login, retaining
+immutable call attribution and read state. Console warnings/errors were empty,
+Escape restored trigger focus, and owned tabs/listeners/Compose resources are
+independently absent. This is controlled PostgreSQL proof; MySQL browser and
+external Provider/SMTP acceptance are not claimed. Final mandatory checking and complete Task testing passed, including Go race,
+3,286 frontend cases, four Node checks, two development lifecycle checks and
+production build/embedded assets. The containing commit records this phase. F17/F23 and formal 11/16/3 are
+unchanged; the full implementation objective continues.

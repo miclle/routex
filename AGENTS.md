@@ -809,3 +809,10 @@ Render the recorded Team name or stable ID without a directory read. Individual
 read state remains recipient-owned; current membership and exact recorded birth
 are server-authorized. Leaving hides history, rejoining the same identity restores
 its original read state, and new members receive no historical fanout.
+
+Project monthly warnings share the existing notification menu. Validate
+`project-monthly-80-90-v1`, exact Project subject/scope and `pwo_`/`pwi_`
+identities. Render recorded names or stable IDs without a directory read.
+Original current managers own separate read state; removal hides history,
+same-incarnation rejoining restores it, and later managers never gain old rows.
+Creator attribution and administrator privilege grant no warning access.
