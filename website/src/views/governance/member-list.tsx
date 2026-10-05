@@ -241,7 +241,11 @@ export default function MemberList({ rows, permissions, canAct, canChange, onSta
                 )}
               </td>
               <td className="tabular-nums">{exactInteger(row.total_personal_keys, locale)}</td>
-              <td>{t('memberList.loginUnknown')}</td>
+              <td>
+                {row.last_login_status === 'recorded'
+                  ? date(row.last_login_at)
+                  : t('memberList.loginUnknown')}
+              </td>
               <td>{date(row.created_at)}</td>
               <td>{date(row.updated_at)}</td>
               <td className="sticky right-0 bg-background">

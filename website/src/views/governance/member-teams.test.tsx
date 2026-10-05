@@ -84,6 +84,8 @@ beforeEach(() => {
         email: 'member@example.invalid',
         role: 'member',
         role_ids: [],
+        last_login_at: null,
+        last_login_status: 'historical_unavailable',
         disabled: false,
         offboarded_at: null,
         created_at: '2026-10-01T00:00:00Z',

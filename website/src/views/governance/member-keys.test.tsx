@@ -90,8 +90,11 @@ beforeEach(async () => {
         email: 'target@example.invalid',
         role: 'member',
         disabled: false,
+        offboarded_at: null,
         created_at: row.created_at,
         role_ids: [],
+        last_login_at: null,
+        last_login_status: 'historical_unavailable',
       }
     else if (config.url === `/admin/members/${memberKeysUser}/keys`) {
       if (listStatus) throw fail(config, listStatus)

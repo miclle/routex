@@ -176,6 +176,8 @@ beforeEach(async () => {
         email: 'target@example.invalid',
         role: 'member',
         role_ids: [],
+        last_login_at: null,
+        last_login_status: 'historical_unavailable',
         disabled: subjectDisabled,
         offboarded_at: null,
         created_at: '2026-10-04T00:00:00Z',

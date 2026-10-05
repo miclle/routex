@@ -33,6 +33,36 @@ func (memberModelsPartialV54Fixture) TableName() string { return "users" }
 func testMemberModelsMigration(t *testing.T, db *gorm.DB) {
 	t.Helper()
 	ctx := context.Background()
+	readLedger := func() []int64 {
+		t.Helper()
+		var versions []int64
+		if err := db.Table("schema_migrations").Order("version").Pluck("version", &versions).Error; err != nil {
+			t.Fatal("cannot read exact incoming migration ledger", err)
+		}
+		return versions
+	}
+	baselineLedger := readLedger()
+	withoutV54 := []int64{}
+	var v54Rows int
+	for index, version := range baselineLedger {
+		if version <= 0 || index > 0 && baselineLedger[index-1] >= version {
+			t.Fatal("incoming migration versions are not ordered and unique", baselineLedger)
+		}
+		if version == 54 {
+			v54Rows++
+		} else {
+			withoutV54 = append(withoutV54, version)
+		}
+	}
+	if v54Rows != 1 {
+		t.Fatal("incoming migration ledger must contain V54 exactly once", v54Rows)
+	}
+	assertLedger := func(want []int64) {
+		t.Helper()
+		if got := readLedger(); !reflect.DeepEqual(got, want) {
+			t.Fatal("V54 replay changed the exact migration version list", got, want)
+		}
+	}
 	column := &memberModelsRevisionV54Fixture{}
 	guard := "ck_users_personal_grant_revision"
 	initial := strings.Repeat("0", 64)
@@ -119,6 +149,7 @@ func testMemberModelsMigration(t *testing.T, db *gorm.DB) {
 		if result.Error != nil || result.RowsAffected != 1 {
 			t.Fatal("cannot reconstruct V53 ledger", result.RowsAffected, result.Error)
 		}
+		assertLedger(withoutV54)
 	}
 	concurrent := func() {
 		t.Helper()
@@ -134,6 +165,7 @@ func testMemberModelsMigration(t *testing.T, db *gorm.DB) {
 				t.Fatal("concurrent V54 failed", err)
 			}
 		}
+		assertLedger(baselineLedger)
 	}
 	removeLedger()
 	if err := db.Migrator().DropConstraint(column, guard); err != nil {
@@ -153,6 +185,7 @@ func testMemberModelsMigration(t *testing.T, db *gorm.DB) {
 	if err := database.Migrate(ctx, db); err != nil {
 		t.Fatal(err)
 	}
+	assertLedger(baselineLedger)
 	assertHistory()
 	// Partial DDL: existing nullable/blank values are baselines; an already
 	// recorded nonzero generation is immutable and must not be reset.
@@ -188,6 +221,7 @@ func testMemberModelsMigration(t *testing.T, db *gorm.DB) {
 	if err := database.Migrate(ctx, db); err != nil {
 		t.Fatal(err)
 	}
+	assertLedger(baselineLedger)
 	assertHistory()
 	if !db.Migrator().HasConstraint(column, guard) {
 		t.Fatal("partial DDL did not restore revision guard")
@@ -201,10 +235,7 @@ func testMemberModelsMigration(t *testing.T, db *gorm.DB) {
 		}
 		assertHistory()
 	}
-	var versions int64
-	if err := db.Table("schema_migrations").Count(&versions).Error; err != nil || versions != 54 {
-		t.Fatal("V54 ledger is not exact", versions, err)
-	}
+	assertLedger(baselineLedger)
 	if err := db.Where("user_id IN ?", userIDs).Delete(&entity.UserModelGrant{}).Error; err != nil {
 		t.Fatal(err)
 	}

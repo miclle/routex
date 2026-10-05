@@ -1,4 +1,5 @@
 import client from './client'
+import { isMemberRecentLogin } from './member-recent-login'
 import type { MemberFilters } from '@/types/governance'
 import type { MemberListPage } from '@/types/member-list'
 const object = (v: unknown): v is Record<string, unknown> =>
@@ -149,8 +150,7 @@ function row(v: unknown) {
     (v.offboarded_at === null || stamp(v.offboarded_at)) &&
     stamp(v.created_at) &&
     stamp(v.updated_at) &&
-    v.last_login_at === null &&
-    v.last_login_status === 'historical_unavailable' &&
+    isMemberRecentLogin(v) &&
     Array.isArray(v.role_ids) &&
     v.role_ids.length <= 10000 &&
     v.role_ids.every(id) &&

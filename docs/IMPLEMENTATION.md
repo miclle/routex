@@ -154,7 +154,7 @@ The binary capability count is 11 completed, 16 partially completed, and 3 not s
 | F01 | Initialization, local identity, registration, and logout | Completed | Concurrent one-time setup, administrator creation, local login, registration control, durable sessions, and logout are implemented and tested. |
 | F02 | Profile, password, MFA, recovery codes, and session revocation | Completed | Profile and password changes, authenticator enrollment, single-use recovery codes, and individual-session revocation are implemented. |
 | F03 | Enterprise SSO, LDAP, OAuth, and emergency recovery | Not started | Provider configuration, callbacks, identity binding, enforced SSO, and enterprise recovery remain unimplemented. |
-| F04 | Member administration, direct grants, roles, and resource policies | Partially completed | Member Overview, Keys, Limits, Teams, Models, metadata and the eleven-column list are checked deliveries. List af9c22e has successful exact remote workflows. The containing read-only effective Models phase passed source, complete 94-per-driver regression and controlled bilingual process/restart acceptance. Recorded login, Access, reviewed direct roles, State/base-role changes and registration approval remain queued or unfinished; role definitions/templates, Team-role review and wider resource-policy acceptance remain open. |
+| F04 | Member administration, direct grants, roles, and resource policies | Partially completed | Member Overview, Keys, Limits, Teams, Models, metadata and the eleven-column list are checked deliveries. List af9c22e has successful exact remote workflows. The containing read-only effective Models phase passed source, complete 94-per-driver regression and controlled bilingual process/restart acceptance. Recorded successful login has passed complete source, real V55/96-per-driver and production/MFA/bilingual restart acceptance; final checks passed and its checked delivery is the containing commit. Access, reviewed direct roles, State/base-role changes and registration approval remain queued or unfinished; role definitions/templates, Team-role review and wider resource-policy acceptance remain open. |
 | F05 | Built-in and custom roles with composed permissions | Partially completed | Current-domain role and permission management is implemented; later enterprise and operations domains still require permission integration and negative acceptance. |
 | F06 | Team membership, ownership, models, quotas, and member rules | Completed | Team membership/ownership, model relationships, finite aggregate/member policies and monthly requests are accepted. Durable Team-assigned roles, exact Team-only action unions, reviewed administrator assignment and the existing Roles interface have controlled dual-database and browser evidence. |
 | F07 | Project lifecycle, managers, models, Keys, and requests | Completed | Exact current management, lifecycle/continuity, multi-manager creation, initial direct resources and combined requests, scoped Overview, Project Keys, resource limits and model/quota/rate approvals are implemented with controlled dual-database/browser/native/restart evidence. Both lists now show authorized total retained Key counts; administrative stored-policy summaries, literal name/ID search and authorized legacy tab replacement have full main acceptance. |
@@ -5000,3 +5000,125 @@ record; new remote workflows remain independent. F04 and overall 11/16/3 totals 
 partial/unchanged. Continue recorded recent login, Access, Roles and State;
 registration approval, role definitions/templates and Team-role review remain
 separate unfinished requirements.
+
+
+### Recorded recent successful login integration, 2026-10-05
+
+The reviewed 36-path slice is integrated onto checked, pushed effective Models
+main `88e8480`. All unowned accepted source remains exact. Additive frozen GORM
+V55 adds nullable microsecond recent-login history without synthetic backfill.
+Only a completed password or MFA sign-in records the timestamp atomically with
+its Session. Setup, registration, administrator creation, challenge issuance,
+failed proofs, Session reads and security Session replacements do not record a
+sign-in. The existing Member list and Overview display the recorded value or
+explicit historical unavailability, with English/Chinese formatting. Session and
+creation DTOs retain their existing shape. Metadata and grant revisions remain
+independent.
+
+The source protection floor contains 282 paths. The original 94 ordered
+integration scenarios remain unchanged; exactly two Recent Login scenarios append
+for 96 and V55. Source checks, real PostgreSQL/MySQL migration/authentication/MFA,
+controlled zero-inference process/browser/restart and complete integration gates
+are pending. This integration is not accepted delivery. F04 remains Partial and
+formal totals remain 11 complete, 16 partial and three unstarted.
+
+
+The first real Recent Login focus is not acceptance: PostgreSQL rejected a
+historical fixture's cached SELECT-star result after deliberate column
+reconstruction; both drivers rejected three obsolete Session paths. The run
+exited one, eight constraint checks passed and only one lifecycle completed.
+Owned containers, networks and volumes were independently absent. A two-file
+test-only correction explicitly selects the frozen historical GORM fields and
+uses the registered `/api/v1/auth/session` path in all three reads. All original
+history, rollback, status and revision assertions remain; production source,
+V55 and the original ordered 94-case prefix are unchanged. Corrected source and
+actual acceptance are pending.
+
+
+### Recent Login focused and production acceptance, 2026-10-05
+
+Source gates passed: mandatory check, 2,620 frontend cases in 132 files
+(103.56s), four Node tests, two development lifecycle tests, Go race and production
+assets (1.692s). The two fixture-only repairs subsequently passed fresh focused
+Go race source checks. The corrected real PostgreSQL/MySQL focus passed all four
+lifecycle children and eight constraints with no failed/skipped test; migration
+children took 1.47s/3.29s and login children 13.15s/14.84s. Both-driver real
+authentication, persisted Sessions, gateway lifecycle and restart also passed.
+
+The unchanged production artifact SHA256
+`a20bc2bd8010c15ad438ec3709a9a96546225fd9ea4c72aecd2aceafd95e1bf6`
+passed controlled Recent Login process/browser/restart. The helper performed
+exactly five successful password sign-ins and one genuine MFA completion; the
+browser's separate reader sign-in is outside that helper count. Failed proofs,
+challenge issuance, Session renewal, password/security Session replacements,
+setup and registration did not create another login record. Recorded subject
+and historical/registered NULL history remained exact through the same-artifact,
+config, database and journal restart. Public Session/create/challenge DTO shapes
+and private Member detail/list parity passed.
+
+English-default/live-Chinese Member list and Overview showed recorded time and
+explicit historical unavailability, with read-only controls. Restart renewed real
+Sessions, hid private content during renewal and restored fresh authorized views.
+After reader-role revocation, English/Chinese detail and the English directory
+denied access without private cards/rows; the server also rejected the existing
+Session's detail/list reads. Console warnings/errors were empty. Twelve
+screenshots were retained separately. Source tests, rather than browser evidence,
+cover same-millisecond/late-response races, equal/backward clock and changed-row
+reconciliation.
+
+This Recent Login process dispatched zero inference POSTs and retained zero call
+records/attempts; the separate authentication regression includes its own native
+gateway tests. All 282 source protections remained exact during the actual runs.
+Owned focus/auth/process inventories and the IPv4 application listener were
+independently absent after teardown; only the temporary browser tab was closed.
+The complete unchanged-source 96-case-per-driver matrix and final mandatory
+commit checks remain pending. Earlier failed focus remains historical. F04 and
+formal totals are unchanged; continue Access, Roles, State and registration
+approval after checked delivery.
+
+### Recent login complete-matrix retry, 2026-10-05
+
+The first V55 complete dual-driver run returned exit1: PostgreSQL and MySQL each
+passed 95/96 ordered lifecycle scenarios; only the historical V54 migration test
+rejected the correct 55-version ledger because it asserted a fixed global total.
+Its narrow test-only repair preserves the exact incoming version list across
+V54 removal, concurrency and repeat execution instead. The current harness
+remains exactly V55/96; all other source and production artifact bytes are
+unchanged. Owned containers, networks and volumes were independently confirmed
+absent. Corrected actual focus/full and final commit checks remain pending.
+
+The corrected three-child focus passed on both databases: six lifecycle children
+and eight preloop constraints, exact parent/package completion, no failure or
+skipped child, and independently confirmed owned resource absence. The complete
+96-case rerun and final commit checks remain pending.
+
+### Recorded successful login complete acceptance, 2026-10-05
+
+The corrected unchanged-source V55 matrix exited 0 with all 96 ordered lifecycle
+scenarios on each of PostgreSQL and MySQL, eight pre-loop constraints and all
+five test-bearing packages complete. No named test failed or skipped (2,662
+named tests). PostgreSQL took 714.160s, MySQL 919.720s, Handler 1638.068s and
+Service 10.790s. The original 94-case prefix and the two appended login scenarios
+remained exact. Full log SHA256:
+`7cd48573f2af38c3afd1e553bc59a3e68a0077f69786f3fc77507c162efe154c`.
+
+All 282 protected paths, reviewed 40-path dirty scope, main HEAD, empty index and
+production artifact remained exact across the run. Owned containers, volumes
+and networks were independently absent after cleanup. The log reviewer was
+corrected to require the exact four map-derived constraints once each before
+the strictly ordered lifecycle matrix; Go map iteration does not define their
+order. Missing-constraint and duplicate-constraint negatives passed. This
+reviewer-only correction changed no product or test source. Earlier failed
+focus and historical V54-fixture full run remain recorded above, not accepted
+evidence. The corrected six-child focus, complete source tests (2,620 frontend
+cases in 132 files), both-driver authentication/native persistence, and the
+separate zero-inference production/MFA/bilingual browser/restart proof remain
+independent passed gates. Final mandatory `go tool task check` passed with no
+lint errors and two existing Fast Refresh warnings. The containing scoped main
+commit is the checked delivery; push and remote workflows remain independent.
+
+Recorded login means an actual committed password or MFA sign-in. Historical
+NULL remains unknown; Session reads, setup, registration and security replacement
+do not manufacture login history. F04 remains Partial and formal totals remain
+11 complete, 16 partial and three unstarted. Continue Access, Roles, State and
+local registration approval; queued source packets are not accepted delivery.

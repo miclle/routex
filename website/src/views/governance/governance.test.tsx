@@ -83,7 +83,13 @@ beforeEach(() => {
     if (key === 'get /auth/permissions') response.data = { permissions: [...permissions] }
     if (key === 'get /admin/members')
       response.data = memberListPage(session.user.id, [memberListRow(structuredClone(target))])
-    if (key === 'get /admin/members/usr_target') response.data = structuredClone(target)
+    if (key === 'get /admin/members/usr_target')
+      response.data = {
+        ...structuredClone(target),
+        offboarded_at: target.offboarded_at ?? null,
+        last_login_at: null,
+        last_login_status: 'historical_unavailable',
+      }
     if (key === 'get /admin/roles')
       response.data = {
         items: structuredClone(roles),

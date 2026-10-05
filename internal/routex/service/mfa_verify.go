@@ -280,6 +280,9 @@ func (s *Service) CompleteMFALogin(ctx context.Context, token string, proof MFAP
 		if err != nil {
 			return err
 		}
+		if err := recordSuccessfulLogin(tx, &auth.User); err != nil {
+			return err
+		}
 		return appendAudit(tx, user.ID, "account.mfa.login", "user", user.ID)
 	})
 	if err != nil {

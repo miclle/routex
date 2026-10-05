@@ -17,6 +17,7 @@ type User struct {
 	Role                  string `gorm:"size:20;not null"`
 	Disabled              bool   `gorm:"not null"`
 	OffboardedAt          *time.Time
+	LastLoginAt           *time.Time `json:"-" gorm:"precision:6"`
 	CreatedAt             time.Time
 	UpdatedAt             time.Time
 }

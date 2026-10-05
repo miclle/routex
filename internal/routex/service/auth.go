@@ -154,7 +154,10 @@ func (s *Service) beginLogin(ctx context.Context, email, password string, challe
 			return err
 		}
 		auth, err = createSession(tx, current)
-		return err
+		if err != nil {
+			return err
+		}
+		return recordSuccessfulLogin(tx, &auth.User)
 	})
 	if err == nil && auth != nil {
 		s.publishSessionMutation(ctx)

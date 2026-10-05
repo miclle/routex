@@ -171,7 +171,7 @@ it('renders exactly eleven approved columns, exact strings and historical login 
   expect(host.textContent).toContain(
     '1.000000000000000001 USD / 99,999,999,999,999,999.000000000000000001 USD',
   )
-  expect(host.textContent).toContain('Unknown (historical data unavailable)')
+  expect(host.textContent).toContain('Historical login time unavailable')
   expect(host.querySelector('[name="role"]')).not.toBeNull()
   expect(requests.filter((r) => r.url === '/admin/members')).toHaveLength(1)
   expect(requests.some((r) => r.url?.match(/overview|teams|limits|keys|roles/))).toBe(false)
@@ -256,7 +256,7 @@ it('translates columns, unknown facts and menu live without making another list 
   const n = requests.length
   await act(async () => i18n.changeLanguage('zh'))
   expect(host.textContent).toContain('本月 Token 已用 / 已存限额')
-  expect(host.textContent).toContain('未知（历史数据不可用）')
+  expect(host.textContent).toContain('历史登录时间不可用')
   await act(async () =>
     document.querySelector<HTMLButtonElement>('[aria-label="Target 的成员操作"]')!.click(),
   )
@@ -428,6 +428,90 @@ it('removes all list facts when a fresh permission read revokes members.read', a
   await until(() => expect(host.textContent).toContain('Access denied'))
   expect(host.querySelector('table')).toBeNull()
   expect(document.querySelector('[role="menu"]')).toBeNull()
+})
+
+it('renders recorded login in the existing cell with live selected-language dates and no extra reads', async () => {
+  const stamp = '2026-10-03T08:19:00.123456Z'
+  page.items[0] = { ...page.items[0], last_login_status: 'recorded', last_login_at: stamp }
+  await mount()
+  const formatted = (locale: string) =>
+    new Intl.DateTimeFormat(locale, {
+      dateStyle: 'medium',
+      timeStyle: 'short',
+    }).format(new Date(stamp))
+  expect(host.querySelector('tbody tr')?.children[7].textContent).toBe(formatted('en-US'))
+  const count = requests.length
+  await act(async () => i18n.changeLanguage('zh'))
+  expect(host.querySelector('tbody tr')?.children[7].textContent).toBe(formatted('zh-CN'))
+  expect(requests).toHaveLength(count)
+  expect(requests.some((r) => r.url?.includes('sessions') || r.url?.includes('overview'))).toBe(
+    false,
+  )
+})
+it.each(['list', 'Session', 'permissions'])(
+  'hides recorded login throughout %s renewal or failure',
+  async (kind) => {
+    const stamp = '2026-10-03T08:19:00Z'
+    page.items[0] = { ...page.items[0], last_login_status: 'recorded', last_login_at: stamp }
+    await mount()
+    const text = new Intl.DateTimeFormat('en-US', {
+      dateStyle: 'medium',
+      timeStyle: 'short',
+    }).format(new Date(stamp))
+    expect(host.textContent).toContain(text)
+    const hold = controlledGate()
+    if (kind === 'Session') sessionGate = hold
+    else if (kind === 'permissions') permissionGate = hold
+    else listGate = hold
+    const operation =
+      kind === 'Session'
+        ? ['auth', 'session']
+        : kind === 'permissions'
+          ? ['permissions']
+          : ['admin', 'members']
+    await invalidate(operation)
+    await until(() => expect(host.textContent).not.toContain(text))
+    if (kind === 'list') listError = 503
+    else if (kind === 'Session') sessionError = 503
+    else {
+      // The pending permission read captured the old authority. The next renewed
+      // read must still hide retained facts after this one finishes.
+      permissions = []
+    }
+    await act(async () => hold.release())
+    if (kind === 'permissions') await invalidate(['permissions'])
+    await until(() => expect(cache.isFetching()).toBe(0))
+    expect(host.textContent).not.toContain(text)
+  },
+)
+it('never restores a recorded login from an obsolete filtered page', async () => {
+  const stamp = '2026-10-03T08:19:00Z'
+  page.items[0] = { ...page.items[0], last_login_status: 'recorded', last_login_at: stamp }
+  await mount()
+  const text = new Intl.DateTimeFormat('en-US', { dateStyle: 'medium', timeStyle: 'short' }).format(
+    new Date(stamp),
+  )
+  listGate = controlledGate()
+  await invalidate(['admin', 'members'])
+  await until(() => expect(host.textContent).not.toContain(text))
+  page = memberListPage('usr_admin', [
+    memberListRow({
+      id: 'usr_filtered',
+      name: 'Filtered target',
+      email: 'filtered@example.invalid',
+    }),
+  ])
+  await act(async () => {
+    host.querySelector<HTMLInputElement>('[name="q"]')!.value = 'Filtered'
+    host
+      .querySelector('form')!
+      .dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+  })
+  await until(() => expect(requests.filter((r) => r.url === '/admin/members')).toHaveLength(3))
+  await act(async () => listGate!.release())
+  await until(() => expect(host.textContent).toContain('filtered@example.invalid'))
+  expect(host.textContent).not.toContain(text)
+  expect(document.querySelector('[aria-label="Member actions for Target"]')).toBeNull()
 })
 
 it('renders retained names as escaped text and gives an empty historical name an accessible fallback', async () => {

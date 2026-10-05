@@ -144,12 +144,16 @@ func (ctrl *Ctrl) ListMembers(c *fox.Context) (*MembersResponse, error) {
 	return memberListResponse(page), nil
 }
 
-func (ctrl *Ctrl) GetMember(c *fox.Context, request MemberPath) (*MemberResponse, error) {
-	item, err := ctrl.service.GetMember(c.Request.Context(), currentAuthentication(c).User.ID, request.UserID)
+func (ctrl *Ctrl) GetMember(c *fox.Context, request MemberPath) (*MemberDetailResponse, error) {
+	userID, err := memberOverviewSubject(c)
 	if err != nil {
 		return nil, err
 	}
-	return memberResponse(*item), nil
+	item, err := ctrl.service.GetMemberDetail(c.Request.Context(), currentAuthentication(c).User.ID, userID)
+	if err != nil {
+		return nil, err
+	}
+	return &MemberDetailResponse{MemberResponse: *memberResponse(item.MemberRecord), LastLoginAt: item.LastLoginAt, LastLoginStatus: item.LastLoginStatus}, nil
 }
 func (ctrl *Ctrl) CreateMember(c *fox.Context, request CreateMemberRequest) error {
 	item, err := ctrl.service.CreateMember(c.Request.Context(), currentAuthentication(c).User.ID, request.Email, request.Password, request.Name, request.Role)

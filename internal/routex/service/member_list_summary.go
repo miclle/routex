@@ -67,7 +67,7 @@ func normalizeMemberListFilter(actorID string, filter MemberFilter) (MemberFilte
 	return filter, nil
 }
 func memberListUserQuery(tx *gorm.DB, filter MemberFilter) *gorm.DB {
-	q := tx.Session(&gorm.Session{}).Model(&entity.User{}).Select("ID", "Email", "Name", "Role", "Disabled", "OffboardedAt", "CreatedAt", "UpdatedAt")
+	q := tx.Session(&gorm.Session{}).Model(&entity.User{}).Select("ID", "Email", "Name", "Role", "Disabled", "OffboardedAt", "CreatedAt", "UpdatedAt", "LastLoginAt")
 	if filter.Query != "" {
 		escaped := strings.NewReplacer("!", "!!", "%", "!%", "_", "!_").Replace(strings.ToLower(filter.Query))
 		pattern := "%" + escaped + "%"
@@ -252,6 +252,9 @@ func (s *Service) ListMemberSummaries(ctx context.Context, actorID string, filte
 		ids := make([]string, len(users))
 		targets := make([]overviewAccountTarget, len(users))
 		for i, u := range users {
+			if _, err := memberRecentLoginProjection(u.LastLoginAt); err != nil {
+				return err
+			}
 			ids[i] = u.ID
 			targets[i] = overviewAccountTarget{kind: "user", id: u.ID, created: u.CreatedAt}
 		}

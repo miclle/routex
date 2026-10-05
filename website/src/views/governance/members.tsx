@@ -12,11 +12,20 @@ import { useSessionGeneration } from '@/hooks/use-session-generation'
 import MemberModels from './member-models'
 import MemberLimits from './member-limits'
 import { useTranslation } from 'react-i18next'
-import { useLayoutEffect, useMemo, useRef, useState, type FormEvent } from 'react'
+import {
+  useCallback,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+  useSyncExternalStore,
+  type FormEvent,
+} from 'react'
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useNavigate, useParams, useSearchParams } from 'react-router'
 import { Plus } from 'lucide-react'
-import { getMember, getRoles } from '@/api/governance'
+import { getRoles } from '@/api/governance'
+import { getMemberDetail } from '@/api/member-recent-login'
 import { writeCatalog } from '@/api/catalog'
 import { useSession } from '@/hooks/use-auth'
 import { usePermissions } from '@/hooks/use-permissions'
@@ -31,6 +40,42 @@ import { PermissionRows } from './roles'
 import type { Session } from '@/types/auth'
 import type { Member, MemberFilters } from '@/types/governance'
 
+// Observe cache invalidation synchronously without adding authentication observers.
+function useMemberReadState(actor: string, target: string | undefined, generation: number) {
+  const cache = useQueryClient()
+  const keys = useMemo(
+    () => [
+      ['auth', 'session'],
+      ['permissions', actor],
+      ['admin', 'member', actor, target, generation],
+    ],
+    [actor, target, generation],
+  )
+  const serialized = useMemo(() => keys.map((key) => JSON.stringify(key)), [keys])
+  const subscribe = useCallback(
+    (notify: () => void) =>
+      cache.getQueryCache().subscribe((event) => {
+        if (serialized.includes(JSON.stringify(event.query.queryKey))) notify()
+      }),
+    [cache, serialized],
+  )
+  const snapshot = useCallback(
+    () =>
+      keys
+        .map((key) => {
+          const state = cache.getQueryState(key)
+          return `${state?.dataUpdateCount}:${state?.errorUpdateCount}:${state?.status}:${state?.fetchStatus}:${state?.isInvalidated}`
+        })
+        .join('|'),
+    [cache, keys],
+  )
+  useSyncExternalStore(subscribe, snapshot, snapshot)
+  return {
+    authorityInvalidated: keys.slice(0, 2).some((key) => cache.getQueryState(key)?.isInvalidated),
+    targetInvalidated: cache.getQueryState(keys[2])?.isInvalidated === true,
+  }
+}
+
 export default function MembersPage() {
   return <Members />
 }
@@ -44,8 +89,10 @@ function Members() {
   const cache = useQueryClient()
   const navigate = useNavigate()
   const actor = session.data?.user.id ?? ''
+  const readState = useMemberReadState(actor, memberId, generation)
   const authorized =
     !!actor &&
+    !readState.authorityInvalidated &&
     !session.isError &&
     !session.isFetching &&
     !access.isError &&
@@ -157,7 +204,7 @@ function Members() {
   }
   const member = useQuery({
     queryKey: ['admin', 'member', actor, memberId, generation],
-    queryFn: ({ signal }) => getMember(memberId!, signal),
+    queryFn: ({ signal }) => getMemberDetail(memberId!, signal),
     enabled: !!memberId && authorized,
     retry: false,
     staleTime: 0,
@@ -324,7 +371,11 @@ function Members() {
         ? t('common.member')
         : role.name
   const current =
-    authorized && member.isSuccess && !member.isFetching && member.data.id === memberId
+    authorized &&
+    !readState.targetInvalidated &&
+    member.isSuccess &&
+    !member.isFetching &&
+    member.data.id === memberId
       ? member.data
       : undefined
   const currentRoles =
@@ -584,6 +635,17 @@ function Members() {
                             : current.disabled
                               ? t('common.disabled')
                               : t('common.active')}
+                        </dd>
+                      </div>
+                      <div>
+                        <dt className="text-muted-foreground">{t('memberList.login')}</dt>
+                        <dd>
+                          {current.last_login_status === 'recorded'
+                            ? new Intl.DateTimeFormat(
+                                i18n.resolvedLanguage === 'zh' ? 'zh-CN' : 'en-US',
+                                { dateStyle: 'medium', timeStyle: 'short' },
+                              ).format(new Date(current.last_login_at))
+                            : t('memberList.loginUnknown')}
                         </dd>
                       </div>
                       <div>

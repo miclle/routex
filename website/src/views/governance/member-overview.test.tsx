@@ -55,10 +55,12 @@ let data: MemberOverviewRecord,
   requests: InternalAxiosRequestConfig[]
 let intercept: ((config: InternalAxiosRequestConfig) => Promise<unknown> | undefined) | undefined
 let failure: number
+let recentLogin: string | null
 const original = client.defaults.adapter
 beforeEach(async () => {
   data = overviewFixture()
   failure = 0
+  recentLogin = null
   intercept = undefined
   requests = []
   permissions = ['members.read']
@@ -118,6 +120,9 @@ beforeEach(async () => {
         email: 'target@example.invalid',
         role: 'member',
         role_ids: [],
+        offboarded_at: null,
+        last_login_at: recentLogin,
+        last_login_status: recentLogin ? 'recorded' : 'historical_unavailable',
         disabled: false,
         created_at: '2026-09-23T00:00:00Z',
       }
@@ -631,4 +636,174 @@ it('preserves the Overview cards then access information then effective-model ta
   expect(headings.indexOf('Effective models')).toBe(headings.indexOf('Access status') + 1)
   expect(host.querySelector('table[aria-label="Member effective models"]')).not.toBeNull()
   expect(host.textContent).toContain('complete authorization union is unknown')
+})
+
+it('uses GET-only recorded login in Access status and keeps the effective table after it in both locales', async () => {
+  recentLogin = '2026-10-03T08:19:00.123456Z'
+  await mount()
+  const expected = (locale: string) =>
+    new Intl.DateTimeFormat(locale, { dateStyle: 'medium', timeStyle: 'short' }).format(
+      new Date(recentLogin!),
+    )
+  expect(host.textContent).toContain(expected('en-US'))
+  const count = requests.length
+  await act(async () => i18n.changeLanguage('zh'))
+  expect(host.textContent).toContain('最近登录')
+  expect(host.textContent).toContain(expected('zh-CN'))
+  expect(requests).toHaveLength(count)
+  expect(requests.every((r) => r.method === 'get')).toBe(true)
+})
+it('leaves historical login explicitly unavailable without inferring it from creation or Session', async () => {
+  await mount()
+  expect(host.textContent).toContain('Historical login time unavailable')
+  await act(async () => i18n.changeLanguage('zh'))
+  expect(host.textContent).toContain('历史登录时间不可用')
+})
+it.each(['detail', 'Session'])(
+  'hides recorded login through %s renewed authority and ignores a late old detail',
+  async (kind) => {
+    recentLogin = '2026-10-03T08:19:00Z'
+    await mount()
+    const text = new Intl.DateTimeFormat('en-US', {
+      dateStyle: 'medium',
+      timeStyle: 'short',
+    }).format(new Date(recentLogin))
+    const pending = deferred()
+    let captured: AbortSignal | undefined
+    intercept = (config) =>
+      config.url === '/admin/members/usr_target'
+        ? ((captured = config.signal as AbortSignal), pending.promise)
+        : undefined
+    await act(async () => {
+      void cache.refetchQueries({
+        queryKey:
+          kind === 'Session'
+            ? ['auth', 'session']
+            : kind === 'permission'
+              ? ['permissions']
+              : ['admin', 'member'],
+      })
+    })
+    await until(() => !!captured && !host.textContent?.includes(text))
+    data = overviewFixture('usr_other')
+    recentLogin = null
+    await act(async () => router.navigate('/admin/members/usr_other'))
+    await until(() => host.textContent?.includes('Other') === true)
+    expect(captured?.aborted).toBe(true)
+    pending.resolve({
+      id: 'usr_target',
+      name: 'Old',
+      email: 'old@example.invalid',
+      role: 'member',
+      disabled: false,
+      offboarded_at: null,
+      created_at: '2026-09-23T00:00:00Z',
+      role_ids: [],
+      last_login_at: '2026-10-03T08:19:00Z',
+      last_login_status: 'recorded',
+    })
+    await act(async () => await Promise.resolve())
+    expect(host.textContent).not.toContain(text)
+    expect(host.textContent).not.toContain('old@example.invalid')
+  },
+)
+
+it('hides recorded login on target invalidation even when automatic refetch is suppressed', async () => {
+  recentLogin = '2026-10-03T08:19:00Z'
+  await mount()
+  const text = new Intl.DateTimeFormat('en-US', { dateStyle: 'medium', timeStyle: 'short' }).format(
+    new Date(recentLogin),
+  )
+  expect(host.textContent).toContain(text)
+  await act(async () => {
+    await cache.invalidateQueries({ queryKey: ['admin', 'member'], refetchType: 'none' })
+  })
+  expect(host.textContent).not.toContain(text)
+})
+
+it.each(['Session', 'permission'])(
+  'hides recorded login synchronously on %s invalidation without an automatic read',
+  async (kind) => {
+    recentLogin = '2026-10-03T08:19:00Z'
+    await mount()
+    const text = new Intl.DateTimeFormat('en-US', {
+      dateStyle: 'medium',
+      timeStyle: 'short',
+    }).format(new Date(recentLogin))
+    expect(host.textContent).toContain(text)
+    await act(async () => {
+      await cache.invalidateQueries({
+        queryKey: kind === 'Session' ? ['auth', 'session'] : ['permissions'],
+        refetchType: 'none',
+      })
+    })
+    expect(host.textContent).not.toContain(text)
+    if (kind === 'permission') permissions = []
+    await act(async () => {
+      await cache.refetchQueries({
+        queryKey: kind === 'Session' ? ['auth', 'session'] : ['permissions'],
+      })
+    })
+    if (kind === 'permission') expect(host.textContent).not.toContain(text)
+    else await until(() => host.textContent?.includes(text) === true)
+  },
+)
+it('discards a recorded login when renewed detail fails strict decoding and preserves historical unknown on recovery', async () => {
+  recentLogin = '2026-10-03T08:19:00Z'
+  await mount()
+  const text = new Intl.DateTimeFormat('en-US', { dateStyle: 'medium', timeStyle: 'short' }).format(
+    new Date(recentLogin),
+  )
+  intercept = (config) =>
+    config.url === '/admin/members/usr_target'
+      ? Promise.resolve({
+          id: 'usr_other',
+          last_login_at: recentLogin,
+          last_login_status: 'recorded',
+        })
+      : undefined
+  await act(async () => {
+    await cache.refetchQueries({ queryKey: ['admin', 'member'] })
+  })
+  await until(() => !host.textContent?.includes(text))
+  expect(host.textContent).not.toContain('Historical login time unavailable')
+  intercept = undefined
+  recentLogin = null
+  await act(async () => {
+    await cache.refetchQueries({ queryKey: ['admin', 'member'] })
+  })
+  await until(() => host.textContent?.includes('Historical login time unavailable') === true)
+  expect(host.textContent).not.toContain(text)
+})
+it('does not reuse old recorded login through two same-millisecond successful Session generations', async () => {
+  vi.spyOn(Date, 'now').mockReturnValue(1791100000000)
+  recentLogin = '2026-10-03T08:19:00Z'
+  await mount()
+  const text = new Intl.DateTimeFormat('en-US', { dateStyle: 'medium', timeStyle: 'short' }).format(
+    new Date(recentLogin),
+  )
+  for (let i = 0; i < 2; i++) {
+    const pending = deferred()
+    let captured = false
+    intercept = (config) =>
+      config.url === '/admin/members/usr_target' ? ((captured = true), pending.promise) : undefined
+    await act(async () => {
+      await cache.refetchQueries({ queryKey: ['auth', 'session'], exact: true })
+    })
+    await until(() => captured && !host.textContent?.includes(text))
+    pending.resolve({
+      id: 'usr_target',
+      name: 'Target',
+      email: 'target@example.invalid',
+      role: 'member',
+      disabled: false,
+      offboarded_at: null,
+      created_at: '2026-09-23T00:00:00Z',
+      role_ids: [],
+      last_login_at: '2026-10-03T08:19:00Z',
+      last_login_status: 'recorded',
+    })
+    await until(() => host.textContent?.includes(text) === true)
+  }
+  expect(requests.filter((r) => r.url === '/auth/session')).toHaveLength(3)
 })

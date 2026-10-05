@@ -96,7 +96,7 @@ export default {
     created: 'Created',
     updated: 'Updated',
     actions: 'Actions',
-    loginUnknown: 'Unknown (historical data unavailable)',
+    loginUnknown: 'Historical login time unavailable',
     noTeams: 'No retained Teams',
     teamDenied: 'Team read access unavailable',
     teamOverflow: 'Team summary exceeds query budget',

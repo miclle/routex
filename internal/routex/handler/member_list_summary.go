@@ -62,7 +62,7 @@ func memberListFilter(c *fox.Context) (service.MemberFilter, error) {
 func memberListResponse(page *service.MemberListPage) *MemberListResponse {
 	result := &MemberListResponse{ActorUserID: page.ActorUserID, ObservedAt: page.ObservedAt, PlatformCurrency: page.PlatformCurrency, Items: []MemberListItemResponse{}, NextCursor: callCursor(page.NextCursor)}
 	for _, item := range page.Members {
-		result.Items = append(result.Items, MemberListItemResponse{MemberResponse: *memberResponse(item.MemberRecord), UpdatedAt: item.User.UpdatedAt, LastLoginStatus: "historical_unavailable", TotalPersonalKeys: item.TotalPersonalKeys, PersonalPolicyStored: item.PersonalPolicyStored, Personal: item.Personal, Teams: item.Teams})
+		result.Items = append(result.Items, MemberListItemResponse{MemberResponse: *memberResponse(item.MemberRecord), UpdatedAt: item.User.UpdatedAt, LastLoginAt: memberLoginTime(item.User.LastLoginAt), LastLoginStatus: memberLoginStatus(item.User.LastLoginAt), TotalPersonalKeys: item.TotalPersonalKeys, PersonalPolicyStored: item.PersonalPolicyStored, Personal: item.Personal, Teams: item.Teams})
 	}
 	return result
 }

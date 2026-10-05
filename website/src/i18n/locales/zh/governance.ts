@@ -91,7 +91,7 @@ export default {
     created: '创建时间',
     updated: '更新时间',
     actions: '操作',
-    loginUnknown: '未知（历史数据不可用）',
+    loginUnknown: '历史登录时间不可用',
     noTeams: '无留存团队',
     teamDenied: '无团队读取权限',
     teamOverflow: '团队摘要超出查询预算',
