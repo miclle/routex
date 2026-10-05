@@ -526,9 +526,21 @@ func testQuotaMixedNotificationSources(t *testing.T, db *gorm.DB, actor string, 
 	if err := db.Delete(&entity.UserRole{}, "user_id = ? AND role_id = ?", actor, "rol_quota_inbox_ops").Error; err != nil {
 		t.Fatal(err)
 	}
+	// A warning has its own typed snapshot; absence of exhaustion metadata no
+	// longer identifies an operational notification. Accept only this actor's
+	// explicit Personal warning shape while retaining operational privacy gates.
+	personalWarning := func(record service.NotificationRecord) bool {
+		warning := record.QuotaWarning
+		return record.Kind == "monthly_quota_warning" && record.Quota == nil && warning != nil &&
+			warning.ScopeKind == "user" && warning.ScopeID == actor &&
+			record.SubjectType == "user" && record.SubjectID == actor &&
+			warning.ThresholdGeneration == "personal-monthly-80-90-v1" &&
+			((warning.Level == "near" && warning.Threshold == 80 && record.Severity == "medium") ||
+				(warning.Level == "critical" && warning.Threshold == 90 && record.Severity == "high"))
+	}
 	revoked := decodeCatalogResponse[service.NotificationPage](t, request("GET", "/api/v1/notifications?status=all", nil), 200)
 	for _, record := range revoked.Items {
-		if record.Quota == nil {
+		if record.Quota == nil && !personalWarning(record) {
 			t.Fatal("revoked system.read still exposed operational history")
 		}
 	}
@@ -552,7 +564,7 @@ func testQuotaMixedNotificationSources(t *testing.T, db *gorm.DB, actor string, 
 		}
 		hidden := decodeCatalogResponse[service.NotificationPage](t, request("GET", "/api/v1/notifications?status=all", nil), 200)
 		for _, record := range hidden.Items {
-			if record.Quota == nil {
+			if record.Quota == nil && !personalWarning(record) {
 				t.Fatal("aliased role assignment granted operational history")
 			}
 		}

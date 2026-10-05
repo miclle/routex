@@ -19,10 +19,22 @@ export interface MonthlyQuotaNotificationSnapshot {
   currency: string | null
 }
 
+export interface MonthlyQuotaWarningSnapshot extends Omit<
+  MonthlyQuotaNotificationSnapshot,
+  'scope_kind' | 'team_id' | 'member_user_id'
+> {
+  scope_kind: 'user'
+  level: 'near' | 'critical'
+  threshold: 80 | 90
+  threshold_generation: 'personal-monthly-80-90-v1'
+}
+
 export interface Notification {
   id: string
   alert_id?: string
   quota_observation_id?: string
+  quota_warning_observation_id?: string
+  quota_warning?: MonthlyQuotaWarningSnapshot
   quota?: MonthlyQuotaNotificationSnapshot
   kind: string
   detail_code: string

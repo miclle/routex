@@ -5,7 +5,53 @@ prioritize partial capabilities. Formal totals remain **11 complete, 16 partial,
 three unstarted**. The coordinated roadmap lives outside this repository;
 [Implementation](IMPLEMENTATION.md) records the independent historical gates.
 
-## Active Member workflow integration
+## Personal monthly warning acceptance and delivery
+
+Checked/pushed main predecessor is Member workflow
+`cb4bab4416ced1da4489333edaf9d01770ebe930`. CI 37347016641,
+GolangCI-Lint 37347016446 and Actionlint 37347016491 all succeeded.
+Personal V59 and 107 ordered cases are accepted; final mandatory checking passed.
+The phase delivery is tracked in Git history. User-selected thresholds are 80% reminder and
+90% critical, using complete known settled monthly usage only.
+
+Focused PostgreSQL/MySQL acceptance passed eight selected scenarios and 128
+named events. Complete race-enabled regression passed 107 ordered scenarios per
+driver, eight additional constraint cases and 3,361 named PASS events,
+with no named failures or skips. PostgreSQL took 904.15s;
+MySQL took 1169.90s. The original 105-scenario prefix and
+all 1,520 protected source paths remained exact. Owned Compose containers,
+networks and volumes are independently absent.
+
+Full log SHA256: `d62c54939fae35c1a9a1bafe1d826f03146d111b7a9e1b8fca7c942e240b3148`.
+Focused log SHA256: `604401ae11e39c6e0e40b6732edd3cda1c85c41a9f1067ccec92d0fdee87bf30`.
+
+Controlled PostgreSQL production and bilingual browser acceptance passed against
+binary `8af28a7b8ecfd13974b4db15017e92da681308fb3df641445311bc0431e65bc9`.
+Six completed native calls and attempts produced four Personal warnings and no
+exhaustion or operational/SMTP fanout. Recorded Tokens 8/10 and 9/10 and USD
+9/11.25 and 9/10 appeared in default English and live Chinese. Single read
+returned HTTP 200; read-all returned 204 and retained all historical rows.
+The same binary/configuration/database/journal and original Sessions survived
+process restart without additional inference or login. Immutable call/attempt,
+warning and read-state facts were unchanged; administrator/other-account reads
+remained isolated. Escape restored trigger focus, console errors/warnings were
+empty, and owned tabs/listeners/Compose resources are independently absent.
+MySQL production browser verification is not claimed; dual-driver native and
+migration acceptance is recorded separately.
+
+Formatting, mandatory checks, Go race source tests, pinned backend lint, 3,169
+frontend cases in 151 files, four Node checks, production build and embedded
+asset tests passed. Final mandatory checking also passed with no errors and two
+existing Fast Refresh warnings; delivery is tracked in Git history.
+Team aggregate, Project, private Team-member and Key warnings, SMTP and
+configurable thresholds remain outside this Personal slice. F17/F23 and formal
+11 complete / 16 partial / 3 unstarted totals remain unchanged.
+
+Next: integrate the separately prepared Team aggregate warning slice, then
+Project warning and Restore recovery candidates. Their source-only preparation
+is not delivered functionality. Keep the full RouteX objective active.
+
+## Checked Member workflow integration
 
 Checked and pushed predecessor is repository price source/grouped Role selection
 `3070f191bf24ac2a30406ae22c32bbbcc18129e8`. Its actual price and bilingual

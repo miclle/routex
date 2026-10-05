@@ -665,3 +665,76 @@ production and original-Session restart also passed. The containing checked
 commit releases V58; final checking and remote CI remain separate gates.
 Full log SHA256:
 `7dc6857e3ae6df5e2afcd2f76e64afcd4937e0d48dae4fd1f6ae0b06fd9a2ec6`.
+
+## Personal monthly warning migration V59
+
+Frozen private GORM schemas add `quota_warning_observations` and
+`quota_warning_inboxes`. Unique identities include owner creation, dimension,
+month, policy revision, currency, level and the fixed80/90 threshold generation.
+Checks constrain recorded month/as-of/coverage, dimension, currency, level and
+threshold pairs; inbox uniqueness preserves one exact owner projection. GORM
+Migrator APIs repair missing supported columns and reconcile schema/index/check
+prefixes before recording V59. No new handwritten SQL or business-layer dialect
+branch is introduced; released migrations and exhaustion history stay unchanged.
+
+The real-driver fixture pins V59 explicitly and preserves all other ledger
+generations. Empty creation, existing-data upgrade, repeat/concurrent startup,
+partial MySQL DDL, constraints/indexes and retained history passed on PostgreSQL
+and MySQL. Historical migrations and existing User timestamp precision are
+unchanged. Identity-negative fixtures prove a persisted 1ms birth change and
+exact restoration; timestamp comparisons retain every scalar and exact instant.
+
+Focused PostgreSQL/MySQL acceptance passed eight selected scenarios and 128
+named events. Complete race-enabled regression passed 107 ordered scenarios per
+driver, eight additional constraint cases and 3,361 named PASS events,
+with no named failures or skips. PostgreSQL took 904.15s;
+MySQL took 1169.90s. The original 105-scenario prefix and
+all 1,520 protected source paths remained exact. Owned Compose containers,
+networks and volumes are independently absent.
+
+Full log SHA256: `d62c54939fae35c1a9a1bafe1d826f03146d111b7a9e1b8fca7c942e240b3148`.
+Focused log SHA256: `604401ae11e39c6e0e40b6732edd3cda1c85c41a9f1067ccec92d0fdee87bf30`.
+
+Controlled PostgreSQL production and bilingual browser acceptance passed against
+binary `8af28a7b8ecfd13974b4db15017e92da681308fb3df641445311bc0431e65bc9`.
+Six completed native calls and attempts produced four Personal warnings and no
+exhaustion or operational/SMTP fanout. Recorded Tokens 8/10 and 9/10 and USD
+9/11.25 and 9/10 appeared in default English and live Chinese. Single read
+returned HTTP 200; read-all returned 204 and retained all historical rows.
+The same binary/configuration/database/journal and original Sessions survived
+process restart without additional inference or login. Immutable call/attempt,
+warning and read-state facts were unchanged; administrator/other-account reads
+remained isolated. Escape restored trigger focus, console errors/warnings were
+empty, and owned tabs/listeners/Compose resources are independently absent.
+MySQL production browser verification is not claimed; dual-driver native and
+migration acceptance is recorded separately.
+
+Formatting, mandatory checks, Go race source tests, pinned backend lint, 3,169
+frontend cases in 151 files, four Node checks, production build and embedded
+asset tests passed. Final mandatory checking also passed with no errors and two
+existing Fast Refresh warnings; delivery is tracked in Git history.
+Team aggregate, Project, private Team-member and Key warnings, SMTP and
+configurable thresholds remain outside this Personal slice. F17/F23 and formal
+11 complete / 16 partial / 3 unstarted totals remain unchanged.
+
+### Historical failed attempts and corrections
+
+Focused R1 failed test oracles for mixed warning/exhaustion shape, literal
+`etag` instead of GORM field `ETag`, and timestamp representation equality.
+Log SHA256: `3123ca24aa0de78534bf0d5290e7577b144f5644ff70bf88cd3738bc498ffb1b`.
+R4 preserves every assertion with exact persisted policy restoration,
+`time.Equal` timestamp instants and a genuinely persisted 1ms User birth change.
+Focused R2 failed the missing-native-usage money oracle.
+Log SHA256: `81a221dec63238df8bf1edc7efb0d81cb2da9046b9c31ba5865e357b517e5165`.
+R5 retains TokensHeld=2, no MoneyHeld and MoneyUnknown=1: money was unconstrained
+at admission, and later policy changes cannot rewrite the original receipt.
+Runtime, UI, V59, eight native calls, seven warning observations and three
+exhaustion observations stayed unchanged. Earlier failed runs remain failed;
+the successor's actual pass does not reclassify them.
+
+Two failed private production helpers are separate: absent price 404 before
+creation, and a binding variable overwritten after near/critical. Successors
+review the existing filtered price list and retain a distinct immutable binding;
+product source is unchanged. The finite full-suite deadline is 40 minutes,
+based on the measured 2,015.362-second prior matrix and added scenarios.
+Individual query/request/readiness bounds and race/assertion coverage are unchanged.

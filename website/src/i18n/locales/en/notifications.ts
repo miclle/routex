@@ -22,6 +22,9 @@ export default {
   retry: 'Retry',
   unknownItem: 'A notification requires attention.',
   quota: {
+    warningThreshold: 'Recorded warning threshold: {{threshold}}%',
+    recordedWarning:
+      'Fixed settled-usage observation; not current remaining allowance or a record of a threshold crossing.',
     teamMemberScope: 'Your member quota in Team {{id}}',
     teamMemberScopeNamed: 'Your member quota in {{name}} ({{id}})',
     personalScope: 'Personal quota',
@@ -66,6 +69,13 @@ export default {
     unknown: 'Email delivery result is unknown',
   },
   items: {
+    monthly_quota_warning: {
+      default: 'A personal monthly quota warning was recorded.',
+      tokens_month_near: 'Personal monthly token warning recorded.',
+      tokens_month_critical: 'Critical personal monthly token warning recorded.',
+      money_month_near: 'Personal monthly money warning recorded.',
+      money_month_critical: 'Critical personal monthly money warning recorded.',
+    },
     monthly_quota_exhausted: {
       default: 'A monthly quota limit was reached.',
       tokens_month_exhausted: 'Monthly token limit reached.',

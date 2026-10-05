@@ -3,6 +3,7 @@ import client from './client'
 import type {
   Notification,
   MonthlyQuotaNotificationSnapshot,
+  MonthlyQuotaWarningSnapshot,
   NotificationReadStatus,
   NotificationSettings,
   NotificationsPage,
@@ -126,6 +127,86 @@ export function recordedMonthlyQuota(
   return quota
 }
 
+export function recordedMonthlyQuotaWarning(
+  notification: Notification,
+  recipientId: string,
+): MonthlyQuotaWarningSnapshot | undefined {
+  const warning = notification.quota_warning
+  const safeId = /^[A-Za-z0-9_-]{1,30}$/
+  if (
+    notification.kind !== 'monthly_quota_warning' ||
+    !warning ||
+    !safeId.test(recipientId) ||
+    warning.scope_kind !== 'user' ||
+    warning.scope_id !== recipientId ||
+    notification.subject_type !== 'user' ||
+    notification.subject_id !== recipientId ||
+    !safeId.test(notification.id) ||
+    !notification.id.startsWith('qwi_') ||
+    typeof notification.quota_warning_observation_id !== 'string' ||
+    !safeId.test(notification.quota_warning_observation_id) ||
+    !notification.quota_warning_observation_id.startsWith('qwo_') ||
+    notification.quota != null ||
+    notification.quota_observation_id != null ||
+    notification.alert_id != null ||
+    notification.delivery_status != null ||
+    notification.occurrence_count !== 1 ||
+    warning.threshold_generation !== 'personal-monthly-80-90-v1' ||
+    !(
+      (warning.level === 'near' &&
+        warning.threshold === 80 &&
+        notification.severity === 'medium') ||
+      (warning.level === 'critical' && warning.threshold === 90 && notification.severity === 'high')
+    ) ||
+    notification.detail_code !== `${warning.dimension}_month_${warning.level}` ||
+    typeof warning.policy_revision !== 'string' ||
+    !/^[A-Za-z0-9_-]{1,64}$/.test(warning.policy_revision) ||
+    typeof warning.time_zone !== 'string' ||
+    warning.time_zone.trim() !== warning.time_zone ||
+    !warning.time_zone ||
+    warning.time_zone.length > 100 ||
+    invalidRecordedText(warning.time_zone) ||
+    typeof warning.month_start !== 'string' ||
+    typeof warning.month_end !== 'string' ||
+    typeof warning.as_of !== 'string' ||
+    !Number.isFinite(Date.parse(warning.month_start)) ||
+    !Number.isFinite(Date.parse(warning.month_end)) ||
+    !Number.isFinite(Date.parse(warning.as_of)) ||
+    Date.parse(warning.month_end) <= Date.parse(warning.month_start) ||
+    Date.parse(warning.as_of) < Date.parse(warning.month_start) ||
+    Date.parse(warning.as_of) >= Date.parse(warning.month_end) ||
+    typeof warning.limit !== 'string' ||
+    typeof warning.settled !== 'string'
+  )
+    return undefined
+  const tokens = warning.dimension === 'tokens'
+  const tokenAmount = /^(0|[1-9]\d{0,18})$/
+  const moneyAmount = /^(0|[1-9]\d{0,59})(?:\.\d{1,18})?$/
+  if (
+    tokens
+      ? warning.currency !== null ||
+        !tokenAmount.test(warning.limit) ||
+        !tokenAmount.test(warning.settled) ||
+        BigInt(warning.limit) <= 0n ||
+        BigInt(warning.limit) > 9223372036854775807n ||
+        BigInt(warning.settled) > 9223372036854775807n
+      : warning.dimension !== 'money' ||
+        !/^[A-Z]{3}$/.test(warning.currency ?? '') ||
+        !moneyAmount.test(warning.limit) ||
+        warning.limit.length > 40 ||
+        !moneyAmount.test(warning.settled) ||
+        warning.settled.length > 80 ||
+        /^0(?:\.0+)?$/.test(warning.limit)
+  )
+    return undefined
+  try {
+    new Intl.DateTimeFormat('en', { timeZone: warning.time_zone })
+  } catch {
+    return undefined
+  }
+  return warning
+}
+
 function validNotification(value: unknown, recipientId?: string): value is Notification {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return false
   const item = value as Record<string, unknown>
@@ -141,6 +222,7 @@ function validNotification(value: unknown, recipientId?: string): value is Notif
     [
       'alert_id',
       'quota_observation_id',
+      'quota_warning_observation_id',
       'read_at',
       'subject_type',
       'subject_id',
@@ -150,6 +232,8 @@ function validNotification(value: unknown, recipientId?: string): value is Notif
       'delivery_updated_at',
     ].every((field) => item[field] == null || typeof item[field] === 'string') &&
     (item.quota == null || (typeof item.quota === 'object' && !Array.isArray(item.quota))) &&
+    (item.quota_warning == null ||
+      (typeof item.quota_warning === 'object' && !Array.isArray(item.quota_warning))) &&
     (!(
       item.subject_type === 'team_member' ||
       (item.quota as Record<string, unknown> | undefined)?.scope_kind === 'team_member'

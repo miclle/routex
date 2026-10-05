@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next'
 import {
   getNotifications,
   recordedMonthlyQuota,
+  recordedMonthlyQuotaWarning,
   markAllNotificationsRead,
   markNotificationRead,
   notificationsKey,
@@ -27,10 +28,12 @@ function itemText(notification: Notification, t: ReturnType<typeof useTranslatio
 }
 
 function deliveryText(notification: Notification, t: ReturnType<typeof useTranslation>['t']) {
+  if (notification.kind === 'monthly_quota_warning') return null
   return notification.delivery_status ? t(`delivery.${notification.delivery_status}`) : null
 }
 
 function subjectText(notification: Notification, t: ReturnType<typeof useTranslation>['t']) {
+  if (notification.kind === 'monthly_quota_warning') return null
   if (notification.subject_type !== 'provider' && notification.subject_type !== 'model') return null
   const value = notification.subject_name?.trim() || notification.subject_id?.trim()
   if (!value) return null
@@ -45,7 +48,8 @@ function QuotaSnapshot({
   recipientId: string
 }) {
   const { t, i18n } = useTranslation('notifications')
-  const quota = recordedMonthlyQuota(notification, recipientId)
+  const warning = recordedMonthlyQuotaWarning(notification, recipientId)
+  const quota = warning ?? recordedMonthlyQuota(notification, recipientId)
   if (!quota) return <span className="mt-1 block text-xs">{t('quota.snapshotUnavailable')}</span>
   const format = (value: string) => {
     try {
@@ -89,6 +93,11 @@ function QuotaSnapshot({
           },
         )}
       </span>
+      {warning && (
+        <span className="block">
+          {t('quota.warningThreshold', { threshold: warning.threshold })}
+        </span>
+      )}
       <span className="block">{t('quota.settled', { value: amount(quota.settled) })}</span>
       <span className="block">{t('quota.limit', { value: amount(quota.limit) })}</span>
       <span className="block">
@@ -99,7 +108,9 @@ function QuotaSnapshot({
       <span className="block">
         {t('quota.policyRevision', { revision: quota.policy_revision })}
       </span>
-      <span className="block text-muted-foreground">{t('quota.recordedSnapshot')}</span>
+      <span className="block text-muted-foreground">
+        {t(warning ? 'quota.recordedWarning' : 'quota.recordedSnapshot')}
+      </span>
     </span>
   )
 }
@@ -301,7 +312,8 @@ export function NotificationMenu() {
                     />
                   </span>
                   {subject && <span className="mt-1 block text-xs">{subject}</span>}
-                  {notification.kind === 'monthly_quota_exhausted' && (
+                  {(notification.kind === 'monthly_quota_exhausted' ||
+                    notification.kind === 'monthly_quota_warning') && (
                     <QuotaSnapshot notification={notification} recipientId={recipientId} />
                   )}
                   <span className="mt-1 block text-xs text-muted-foreground">

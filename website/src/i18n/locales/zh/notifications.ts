@@ -22,6 +22,8 @@ export default {
   retry: '重试',
   unknownItem: '有通知需要关注。',
   quota: {
+    warningThreshold: '记录的预警阈值：{{threshold}}%',
+    recordedWarning: '固定的已结算用量观测，不代表当前剩余额度，也不证明历史上跨越了阈值。',
     teamMemberScope: '您在 Team {{id}} 的成员额度',
     teamMemberScopeNamed: '您在 {{name}}（{{id}}）的成员额度',
     personalScope: '个人额度',
@@ -66,6 +68,13 @@ export default {
     unknown: '邮件投递结果未知',
   },
   items: {
+    monthly_quota_warning: {
+      default: '已记录个人月度配额预警。',
+      tokens_month_near: '已记录个人月度 Token 预警。',
+      tokens_month_critical: '已记录个人月度 Token 严重预警。',
+      money_month_near: '已记录个人月度金额预警。',
+      money_month_critical: '已记录个人月度金额严重预警。',
+    },
     monthly_quota_exhausted: {
       default: '月度额度已达到上限。',
       tokens_month_exhausted: '月度 Token 已达到上限。',

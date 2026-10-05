@@ -13,10 +13,11 @@ import (
 )
 
 type quotaInboxAccess struct {
-	ActorID     string
-	Operational bool
-	ProjectIDs  []string
-	TeamIDs     []string
+	ActorID        string
+	ActorCreatedAt time.Time
+	Operational    bool
+	ProjectIDs     []string
+	TeamIDs        []string
 }
 
 const quotaInboxManagerLimit = 1000
@@ -153,6 +154,7 @@ func loadQuotaInboxAccess(tx *gorm.DB, actorID string) (quotaInboxAccess, error)
 		return access, err
 	}
 	access.Operational = operational
+	access.ActorCreatedAt = actor.CreatedAt
 	var rows []quotaManagerIdentity
 	if err := quotaManagerQuery(tx).Where(database.ExactText(tx, clause.Column{Table: "actor", Name: "id"}, actorID)).
 		Limit(quotaInboxManagerLimit + 1).Scan(&rows).Error; err != nil {

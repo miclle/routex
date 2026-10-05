@@ -9,6 +9,7 @@ import { sessionKey } from '@/hooks/use-auth'
 import i18n from '@/i18n'
 import type {
   MonthlyQuotaNotificationSnapshot,
+  MonthlyQuotaWarningSnapshot,
   Notification,
   NotificationsPage,
 } from '@/types/notifications'
@@ -584,4 +585,166 @@ describe('Recipient monthly quota inbox', () => {
     expect(button('全部').getAttribute('aria-pressed')).toBe('true')
     expect(requests.filter((request) => request.url === '/notifications')).toHaveLength(2)
   })
+})
+
+function warning(snapshot: Partial<MonthlyQuotaWarningSnapshot> = {}): Notification {
+  const value: MonthlyQuotaWarningSnapshot = {
+    ...quota({ settled: '84' }),
+    scope_kind: 'user',
+    level: 'near',
+    threshold: 80,
+    threshold_generation: 'personal-monthly-80-90-v1',
+    ...snapshot,
+  }
+  return {
+    ...notice(),
+    id: 'qwi_1',
+    quota: undefined,
+    quota_observation_id: undefined,
+    quota_warning_observation_id: 'qwo_1',
+    quota_warning: value,
+    kind: 'monthly_quota_warning',
+    detail_code: `${value.dimension}_month_${value.level}`,
+    severity: value.level === 'near' ? 'medium' : 'high',
+    subject_type: 'user',
+    subject_id: 'usr_member',
+  }
+}
+it('renders the fixed personal near warning and switches labels without percentage or current-policy inference', async () => {
+  page.items = [warning()]
+  await mount()
+  await until(() => expect(menu().textContent).toContain('Recorded warning threshold: 80%'))
+  expect(menu().textContent).toContain('Personal monthly token warning recorded.')
+  expect(menu().textContent).toContain('Settled: 84 tokens')
+  expect(menu().textContent).toContain('Limit: 100 tokens')
+  expect(menu().textContent).toContain('Calendar time zone: UTC')
+  expect(menu().textContent).toContain('As of Sep 17, 2026')
+  expect(menu().textContent).toContain('Policy revision: policy-4')
+  expect(menu().textContent).toContain('Fixed settled-usage observation')
+  expect(menu().textContent).not.toContain('84%')
+  expect(menu().textContent).not.toContain('16 tokens')
+  expect(menu().querySelector('[aria-label="Medium severity"]')).not.toBeNull()
+  expect(requests.map((request) => request.url)).toEqual(['/auth/session', '/notifications'])
+  await act(async () => i18n.changeLanguage('zh'))
+  expect(menu().textContent).toContain('记录的预警阈值：80%')
+  expect(menu().textContent).toContain('已结算：84 Token')
+  expect(menu().textContent).toContain('不代表当前剩余额度')
+  expect(menu().querySelector('[aria-label="中级别"]')).not.toBeNull()
+})
+it('shows critical historical money exactly beside exhaustion, Team and unknown inbox records', async () => {
+  page.items = [
+    warning({
+      dimension: 'money',
+      currency: 'USD',
+      level: 'critical',
+      threshold: 90,
+      limit: '9007199254740993.123456789012345678',
+      settled: '8907199254740993.123456789012345678',
+    }),
+    notice(),
+    {
+      ...notice(quota({ scope_kind: 'team', scope_id: 'tem_recorded' })),
+      id: 'qnt_team',
+      subject_type: 'team',
+      subject_id: 'tem_recorded',
+      subject_name: 'Recorded Team',
+    },
+    { ...notice(), id: 'future_1', kind: 'future_kind', detail_code: 'future' },
+  ]
+  page.unread_count = 4
+  await mount()
+  await until(() => expect(menu().querySelectorAll('[role="menuitem"]')).toHaveLength(4))
+  expect(menu().textContent).toContain('Critical personal monthly money warning recorded.')
+  expect(menu().textContent).toContain('Recorded warning threshold: 90%')
+  expect(menu().textContent).toContain('Settled: 8907199254740993.123456789012345678 USD')
+  expect(menu().textContent).toContain('Limit: 9007199254740993.123456789012345678 USD')
+  expect(menu().textContent).toContain('Monthly token limit reached.')
+  expect(menu().textContent).toContain('Team: Recorded Team (tem_recorded)')
+  expect(menu().textContent).toContain('A notification requires attention.')
+  expect(menu().textContent).not.toContain('98.88%')
+  expect(
+    requests.every((request) => ['/auth/session', '/notifications'].includes(request.url!)),
+  ).toBe(true)
+  await act(async () => i18n.changeLanguage('zh'))
+  expect(menu().textContent).toContain('已记录个人月度金额严重预警。')
+  expect(menu().textContent).toContain('8907199254740993.123456789012345678 USD')
+})
+it.each([
+  ['missing', undefined],
+  ['unknown threshold', { ...warning().quota_warning, threshold: 85 }],
+  ['unknown usage', { ...warning().quota_warning, settled: null }],
+  ['wrong owner', { ...warning().quota_warning, scope_id: 'usr_other' }],
+])(
+  'leaves %s warning unavailable instead of inventing a percentage or private snapshot',
+  async (_, value) => {
+    page.items = [{ ...warning(), quota_warning: value } as Notification]
+    await mount()
+    await until(() =>
+      expect(menu().textContent).toContain(
+        'The monthly quota snapshot was not recorded or is unavailable.',
+      ),
+    )
+    expect(menu().textContent).not.toContain('Recorded warning threshold:')
+    expect(menu().textContent).not.toContain('Settled:')
+    expect(menu().textContent).not.toContain('Limit:')
+    await act(async () => i18n.changeLanguage('zh'))
+    expect(menu().textContent).toContain('月度额度快照未记录或不可用。')
+  },
+)
+it('hides warning snapshot during renewed reads and does not revive it after denial', async () => {
+  page.items = [warning()]
+  await mount()
+  await until(() => expect(menu().textContent).toContain('Recorded warning threshold: 80%'))
+  getGate = barrier()
+  getFailure = 403
+  await refresh()
+  await until(() => expect(menu().textContent).toContain('Loading notifications'))
+  expect(menu().textContent).not.toContain('Recorded warning threshold:')
+  expect(unreadBadge()).toBeNull()
+  await act(async () => getGate!.release())
+  await until(() => expect(menu().textContent).toContain('Notifications could not be loaded.'))
+  expect(menu().textContent).not.toContain('84 tokens')
+  expect(button('Mark all read')).toBeUndefined()
+})
+it('marks the exact warning inbox identity read with current Session CSRF and retains immutable history', async () => {
+  page.items = [warning()]
+  await mount()
+  await until(() =>
+    expect(menu().textContent).toContain('Personal monthly token warning recorded.'),
+  )
+  await act(async () => item().click())
+  await until(() =>
+    expect(requests.some((request) => request.url === '/notifications/qwi_1/read')).toBe(true),
+  )
+  const request = requests.find((request) => request.url === '/notifications/qwi_1/read')!
+  expect(request.headers.get('X-CSRF-Token')).toBe('csrf-usr_member')
+  await until(() => expect(page.items[0].read).toBe(true))
+  await click('Notifications')
+  await until(() => expect(menu()).not.toBeNull())
+  await click('All')
+  await until(() => expect(menu().textContent).toContain('Recorded warning threshold: 80%'))
+  expect(menu().textContent).toContain('Settled: 84 tokens')
+})
+
+it('does not turn contradictory warning metadata into an operational subject or SMTP delivery claim', async () => {
+  page.items = [
+    {
+      ...warning(),
+      alert_id: 'alt_wrong',
+      subject_type: 'provider',
+      subject_id: 'prv_private',
+      subject_name: 'Untrusted Provider',
+      delivery_status: 'accepted',
+    },
+  ]
+  await mount()
+  await until(() =>
+    expect(menu().textContent).toContain(
+      'The monthly quota snapshot was not recorded or is unavailable.',
+    ),
+  )
+  expect(menu().textContent).not.toContain('Untrusted Provider')
+  expect(menu().textContent).not.toContain('SMTP')
+  expect(menu().textContent).not.toContain('Email')
+  expect(menu().textContent).not.toContain('Settled:')
 })

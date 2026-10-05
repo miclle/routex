@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import client from './client'
-import { getNotifications } from './notifications'
+import { getNotifications, recordedMonthlyQuotaWarning } from './notifications'
+import type { Notification, MonthlyQuotaWarningSnapshot } from '@/types/notifications'
 
 const item = {
   id: 'qni_1',
@@ -211,3 +212,127 @@ describe('Private member quota snapshot boundary', () => {
     },
   )
 })
+
+function warningNotice(overrides: Partial<MonthlyQuotaWarningSnapshot> = {}): Notification {
+  const warning: MonthlyQuotaWarningSnapshot = {
+    scope_kind: 'user',
+    scope_id: 'usr_member',
+    dimension: 'tokens',
+    policy_revision: 'policy-4',
+    month_start: '2026-10-01T00:00:00Z',
+    month_end: '2026-11-01T00:00:00Z',
+    as_of: '2026-10-04T12:00:00Z',
+    time_zone: 'UTC',
+    limit: '100',
+    settled: '80',
+    currency: null,
+    level: 'near',
+    threshold: 80,
+    threshold_generation: 'personal-monthly-80-90-v1',
+    ...overrides,
+  }
+  return {
+    ...item,
+    id: 'qwi_1',
+    quota_warning_observation_id: 'qwo_1',
+    quota_warning: warning,
+    kind: 'monthly_quota_warning',
+    detail_code: `${warning.dimension}_month_${warning.level}`,
+    severity: warning.level === 'near' ? 'medium' : 'high',
+    subject_type: 'user',
+    subject_id: 'usr_member',
+  }
+}
+it.each([
+  { level: 'near', threshold: 80 },
+  { level: 'critical', threshold: 90 },
+] as const)(
+  'preserves authoritative $level/$threshold warning without computing a percentage',
+  async ({ level, threshold }) => {
+    const notification = warningNotice({
+      level,
+      threshold,
+      settled: level === 'near' ? '84' : '93',
+    })
+    expect(recordedMonthlyQuotaWarning(notification, 'usr_member')).toBe(notification.quota_warning)
+    vi.spyOn(client, 'get').mockResolvedValueOnce({
+      data: { items: [notification], unread_count: 1 },
+    })
+    expect((await getNotifications('unread', null, undefined, 'usr_member')).items[0]).toEqual(
+      notification,
+    )
+  },
+)
+it('preserves recorded money precision and denomination without floating-point conversion', () => {
+  const notification = warningNotice({
+    dimension: 'money',
+    currency: 'USD',
+    limit: '9007199254740993.123456789012345678',
+    settled: '8007199254740993.123456789012345678',
+  })
+  expect(recordedMonthlyQuotaWarning(notification, 'usr_member')).toEqual(
+    notification.quota_warning,
+  )
+})
+it.each([
+  ['missing', { quota_warning: undefined }],
+  ['wrong owner', { quota_warning: { ...warningNotice().quota_warning, scope_id: 'usr_other' } }],
+  ['wrong subject', { subject_id: 'usr_other' }],
+  ['wrong scope', { subject_type: 'project' }],
+  ['wrong inbox identity', { id: 'qnt_1' }],
+  ['wrong observation identity', { quota_warning_observation_id: 'qob_1' }],
+  ['contradictory severity', { severity: 'high' }],
+  ['contradictory detail', { detail_code: 'money_month_near' }],
+  ['operational alert', { alert_id: 'alt_1' }],
+  ['external delivery', { delivery_status: 'accepted' }],
+  ['exhaustion snapshot', { quota: { limit: '100' } }],
+  ['exhaustion observation', { quota_observation_id: 'qob_1' }],
+  ['unknown level', { quota_warning: { ...warningNotice().quota_warning, level: 'future' } }],
+  ['wrong threshold', { quota_warning: { ...warningNotice().quota_warning, threshold: 90 } }],
+  [
+    'unknown generation',
+    { quota_warning: { ...warningNotice().quota_warning, threshold_generation: 'future-v2' } },
+  ],
+  ['numeric amount', { quota_warning: { ...warningNotice().quota_warning, settled: 84 } }],
+  ['unknown token amount', { quota_warning: { ...warningNotice().quota_warning, settled: null } }],
+  [
+    'oversized integer',
+    { quota_warning: { ...warningNotice().quota_warning, settled: '9223372036854775808' } },
+  ],
+  ['zero limit', { quota_warning: { ...warningNotice().quota_warning, limit: '0' } }],
+  ['token denomination', { quota_warning: { ...warningNotice().quota_warning, currency: 'USD' } }],
+  [
+    'unknown calendar',
+    { quota_warning: { ...warningNotice().quota_warning, time_zone: 'Invalid/Zone' } },
+  ],
+  [
+    'exclusive end',
+    { quota_warning: { ...warningNotice().quota_warning, as_of: '2026-11-01T00:00:00Z' } },
+  ],
+  [
+    'reversed interval',
+    { quota_warning: { ...warningNotice().quota_warning, month_end: '2026-09-01T00:00:00Z' } },
+  ],
+])('keeps %s warning snapshot unavailable without exposing its values', (_, changes) => {
+  const notification = { ...warningNotice(), ...changes } as Notification
+  expect(recordedMonthlyQuotaWarning(notification, 'usr_member')).toBeUndefined()
+})
+it('requires exact current recipient and never borrows a previous owner snapshot', () => {
+  expect(recordedMonthlyQuotaWarning(warningNotice(), 'usr_other')).toBeUndefined()
+  expect(recordedMonthlyQuotaWarning(warningNotice(), '')).toBeUndefined()
+})
+it.each([
+  { quota_warning_observation_id: {} },
+  { quota_warning: [] },
+  { quota_warning: 'private' },
+])(
+  'rejects malformed top-level warning metadata rather than treating it as an empty inbox %#',
+  async (changes) => {
+    vi.spyOn(client, 'get').mockResolvedValueOnce({
+      data: { items: [{ ...warningNotice(), ...changes }], unread_count: 1 },
+    })
+    await expect(getNotifications('unread', null, undefined, 'usr_member')).rejects.toThrow(
+      'Invalid notification response',
+    )
+  },
+)

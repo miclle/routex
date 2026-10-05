@@ -795,3 +795,10 @@ Member offboarding uses one page-owned Session observer and cache-only successfu
 Member Settings displays recorded offboarding separately from current account access. Reuse the resource-authorized offboarding read with parent-managed actor, target and successful Session generation; hide facts/navigation during parent or own renewed/error/invalidation reads and fence queued navigation callbacks. The recent100 window prioritizes the first saved plan, otherwise the first completed case; a saved plan is not applied handover or current completion eligibility. Count only recorded assignment entries; historical Personal Key count is Not recorded. History GET never resolves an uncertain mutation or proves current runtime application. Preserve all existing Settings editors, drafts and immutable intent lifetimes, and add no Session observer or inline offboarding writer.
 
 Registration email-domain policy uses the existing configuration drawer and sign-up card. Show only the server-authorized normalized exact domains, preserve complete reviewed If-Match/reason replacement and conflict drafts, and keep browser validation advisory. Role-list member counts are server-owned retained assignment totals; absent or invalid counts stay unknown, and the list never fetches private member directories.
+
+Personal monthly quota warnings use the existing recipient-scoped notification
+menu. Render only validated server-recorded 80%/90% levels, exact settled/limit
+strings, calendar, currency and revision; keep unknown snapshots explicit.
+History never proves current allowance or a historical crossing. Preserve
+English-default/live-Chinese copy, recipient/session generation gates and
+ordinary read/history actions; warnings change neither admission nor SMTP.

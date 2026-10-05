@@ -45,25 +45,27 @@ type QuotaNotificationSnapshot struct {
 }
 
 type NotificationRecord struct {
-	QuotaObservationID string                     `json:"quota_observation_id,omitempty"`
-	Quota              *QuotaNotificationSnapshot `json:"quota,omitempty"`
-	ID                 string                     `json:"id"`
-	AlertID            string                     `json:"alert_id,omitempty"`
-	Kind               string                     `json:"kind"`
-	Severity           string                     `json:"severity"`
-	DetailCode         string                     `json:"detail_code"`
-	SubjectType        string                     `json:"subject_type,omitempty"`
-	SubjectID          string                     `json:"subject_id,omitempty"`
-	SubjectName        string                     `json:"subject_name,omitempty"`
-	OccurrenceCount    int                        `json:"occurrence_count"`
-	Read               bool                       `json:"read"`
-	FirstSeenAt        time.Time                  `json:"first_seen_at"`
-	LastSeenAt         time.Time                  `json:"last_seen_at"`
-	ReadAt             *time.Time                 `json:"read_at"`
-	DeliveryStatus     string                     `json:"delivery_status,omitempty"`
-	DeliveryCode       string                     `json:"delivery_code,omitempty"`
-	DeliveryAttempts   int                        `json:"delivery_attempts,omitempty"`
-	DeliveryUpdatedAt  *time.Time                 `json:"delivery_updated_at,omitempty"`
+	QuotaWarningObservationID string                     `json:"quota_warning_observation_id,omitempty"`
+	QuotaWarning              *QuotaWarningSnapshot      `json:"quota_warning,omitempty"`
+	QuotaObservationID        string                     `json:"quota_observation_id,omitempty"`
+	Quota                     *QuotaNotificationSnapshot `json:"quota,omitempty"`
+	ID                        string                     `json:"id"`
+	AlertID                   string                     `json:"alert_id,omitempty"`
+	Kind                      string                     `json:"kind"`
+	Severity                  string                     `json:"severity"`
+	DetailCode                string                     `json:"detail_code"`
+	SubjectType               string                     `json:"subject_type,omitempty"`
+	SubjectID                 string                     `json:"subject_id,omitempty"`
+	SubjectName               string                     `json:"subject_name,omitempty"`
+	OccurrenceCount           int                        `json:"occurrence_count"`
+	Read                      bool                       `json:"read"`
+	FirstSeenAt               time.Time                  `json:"first_seen_at"`
+	LastSeenAt                time.Time                  `json:"last_seen_at"`
+	ReadAt                    *time.Time                 `json:"read_at"`
+	DeliveryStatus            string                     `json:"delivery_status,omitempty"`
+	DeliveryCode              string                     `json:"delivery_code,omitempty"`
+	DeliveryAttempts          int                        `json:"delivery_attempts,omitempty"`
+	DeliveryUpdatedAt         *time.Time                 `json:"delivery_updated_at,omitempty"`
 }
 
 type NotificationPage struct {
@@ -237,6 +239,12 @@ func (s *Service) ListNotifications(ctx context.Context, actor string, filter No
 			return err
 		}
 		page.UnreadCount += quotaUnread
+		warnings, warningUnread, err := quotaWarningPage(tx, access, filter, limit, cursorTime, cursorID)
+		if err != nil {
+			return err
+		}
+		records = append(records, warnings...)
+		page.UnreadCount += warningUnread
 		page.Items, page.NextCursor = mergeNotificationRecords(records, limit)
 		return nil
 	}, &sql.TxOptions{Isolation: sql.LevelRepeatableRead, ReadOnly: true})
@@ -302,6 +310,14 @@ func (s *Service) MarkNotificationRead(ctx context.Context, actor, notificationI
 		if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
 			return err
 		}
+		warning, found, warningErr := markQuotaWarningRead(tx, access, notificationID)
+		if warningErr != nil && !errors.Is(warningErr, gorm.ErrRecordNotFound) {
+			return warningErr
+		}
+		if found {
+			record = warning
+			return nil
+		}
 		if !access.Operational {
 			return apperrors.ErrNotFound
 		}
@@ -344,7 +360,10 @@ func (s *Service) MarkAllNotificationsRead(ctx context.Context, actor string) er
 				return err
 			}
 		}
-		return quotaInboxMutationQuery(tx, access).Where("read_at IS NULL").Update("read_at", now).Error
+		if err := quotaInboxMutationQuery(tx, access).Where("read_at IS NULL").Update("read_at", now).Error; err != nil {
+			return err
+		}
+		return quotaWarningMutationQuery(tx, access).Where("read_at IS NULL").Update("read_at", now).Error
 	}, &sql.TxOptions{Isolation: sql.LevelReadCommitted})
 	return catalogError(err)
 }
