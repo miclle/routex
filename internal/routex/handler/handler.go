@@ -177,6 +177,8 @@ func (ctrl *Ctrl) RegisterRoutes(r *fox.Engine) {
 	identity.GET("/attachments/:attachment_id", ctrl.requireSession, ctrl.Attachment)
 	identity.GET("/attachments/:attachment_id/content", ctrl.requireSession, ctrl.AttachmentContent)
 	identity.DELETE("/attachments/:attachment_id", ctrl.requireSession, sameOrigin, requireCSRF, ctrl.DeleteAttachment)
+	identity.GET("/admin/members/:user_id/metadata", memberMetadataResponseHeaders, ctrl.requireSession, ctrl.GetMemberMetadata)
+	identity.PUT("/admin/members/:user_id/metadata", memberMetadataResponseHeaders, ctrl.requireSession, sameOrigin, requireCSRF, jsonManagementRequest, ctrl.SetMemberMetadata)
 	admin := identity.Group("/admin")
 	admin.Use(ctrl.requireSession)
 	admin.GET("/members/:user_id/model-access-workspace", ctrl.MemberModelAccessWorkspace)

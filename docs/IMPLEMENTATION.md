@@ -154,7 +154,7 @@ The binary capability count is 11 completed, 16 partially completed, and 3 not s
 | F01 | Initialization, local identity, registration, and logout | Completed | Concurrent one-time setup, administrator creation, local login, registration control, durable sessions, and logout are implemented and tested. |
 | F02 | Profile, password, MFA, recovery codes, and session revocation | Completed | Profile and password changes, authenticator enrollment, single-use recovery codes, and individual-session revocation are implemented. |
 | F03 | Enterprise SSO, LDAP, OAuth, and emergency recovery | Not started | Provider configuration, callbacks, identity binding, enforced SSO, and enterprise recovery remain unimplemented. |
-| F04 | Member administration, direct grants, roles, and resource policies | Partially completed | Member and role workflows plus scoped resource-limit interfaces exist; token, TPM, and exact-money controls with authoritative quota snapshots are available. The seventeen-path administrative member Overview source is integrated with independent members.read, exact Personal monthly facts and retained Personal Key count; source check/test/build, focused PostgreSQL/MySQL, controlled production/browser/restart and complete 85-case-per-driver matrix passed; the checked delivery is represented by the commit containing this record, with new remote CI pending. Administrative Member Keys adds retained safe Personal metadata and independent reviewed disable authority with persistent lifecycle/runtime proof; repaired-source checks/build, focused dual-driver migration/lifecycle, full 87-case matrix, auth lifecycle and rebuilt native/browser/restart acceptance passed. The checked 45-path package is delivered as 818500a with exact push/read-back; all three exact remote checks passed. Addressable Member Limits passed current-main source checks/build, controlled reviewed policy/native/browser/restart acceptance and final mandatory check; checked 17-path delivery is 2d5cafc with exact push/read-back, all three exact remote workflows green. Read-only administrative Member Teams and nullable membership joined time are an integrated source candidate with source check/test/build passed; real driver/native/browser/restart, final mandatory check and delivery remain pending. The complete cross-domain resource-policy surface remains open. |
+| F04 | Member administration, direct grants, roles, and resource policies | Partially completed | Checked Member Overview, Keys818500a, Limits2d5cafc, Teams8074aaa and Models569abcd deliveries have independent source, dual-driver and controlled process/browser/restart evidence. Keys/Limits/Teams exact remote workflows passed; subsequent cancelled/failed Model/CSV CI remains distinct. Basic-name Settings editing and its test-only observation correction have full92-per-driver, eight-constraint, authentication/restart and bilingual conflict/save acceptance; delivery is represented by the commit containing this record. Eleven-column list, effective Models, recorded login and Access summary are queued source packages; reviewed direct roles is being implemented independently. Base-role review and the complete cross-domain resource-policy surface remain open. |
 | F05 | Built-in and custom roles with composed permissions | Partially completed | Current-domain role and permission management is implemented; later enterprise and operations domains still require permission integration and negative acceptance. |
 | F06 | Team membership, ownership, models, quotas, and member rules | Completed | Team membership/ownership, model relationships, finite aggregate/member policies and monthly requests are accepted. Durable Team-assigned roles, exact Team-only action unions, reviewed administrator assignment and the existing Roles interface have controlled dual-database and browser evidence. |
 | F07 | Project lifecycle, managers, models, Keys, and requests | Completed | Exact current management, lifecycle/continuity, multi-manager creation, initial direct resources and combined requests, scoped Overview, Project Keys, resource limits and model/quota/rate approvals are implemented with controlled dual-database/browser/native/restart evidence. Both lists now show authorized total retained Key counts; administrative stored-policy summaries, literal name/ID search and authorized legacy tab replacement have full main acceptance. |
@@ -4664,3 +4664,116 @@ Saved-file landing and browser-file byte comparison are therefore unverified,
 separately from passing real HTTP CSV-byte and scope checks. No platform or peer
 history, secret, extra native call or new write was introduced by browser reads.
 F21 and formal 11 complete/16 partial/3 unstarted remain unchanged.
+
+
+### Member Settings basic-name metadata integration, 2026-10-05
+
+The root carried the 19 reviewed metadata source/rule paths after checked clean
+own-Team CSV `185611c67f5d6dcd8e671864e56b8a24f968d57e`. Eleven new leaves
+and eight contextual updates preserve all 219 other protected paths, including
+CSV/mobile behavior and durable Member Model review revisions. The two rule
+successors retain the accepted mobile paragraph; other 17 outputs stay exact to
+the frozen metadata packet. Formatting preserves all 238 protected bytes.
+
+The harness preserves all 91 earlier scenarios and appends only
+member_metadata/testMemberMetadataLifecycle (92 per database), without a schema
+change or V54 registry edit. The Basic information card uses the minimal scoped
+GET/PUT, independent read/write authority, reviewed name/reason, atomic typed
+name audit and explicit current-state confirmation. Metadata GET never proves a
+historical operation. Integrated mandatory checks and complete source tests passed
+2427 frontend cases in 127 files, four Node tests, two development lifecycle
+tests, Go race and production asset serving. These precede the test-only repair
+below; no frozen source-only result is counted as actual acceptance or delivery.
+
+The first actual dual-driver focus failed both new metadata children because its
+retained Personal Key fixture passed an empty model ceiling to the existing
+product validator. The four existing Account/Governance children and eight
+constraints passed, but the run is not accepted. Its owned Compose containers,
+networks and volumes were independently absent, and all 238 protected paths
+remained exact. The fixture and prepared process helper require a real configured
+model and explicit Personal grant before creating the pending Key. Preserve the
+Key and catalogue invariance assertions; do not relax product validation. Fresh
+focus/full matrix, restart and bilingual browser conflict/save remain pending.
+
+The repaired explicit-model/grant fixture passed all six selected lifecycle
+children and eight constraints on PostgreSQL and MySQL. The complete92-per-driver
+run then executed all scenarios and eight constraints; Metadata passed both
+drivers, but existing MySQL/member_models failed its immediate exact-price
+projection assertion. The full run is not accepted. All238 protected paths stayed
+exact and independent owned container/network/volume inventories were empty.
+
+Both-driver authentication, native gateway persistence and real restart passed
+afterward. Controlled Metadata process and same-artifact restart passed against
+production SHA `1a6e7846fbdb34a75302e5d37599205d4e5be05fb2e22e5441f7727e32991c45`,
+with native_count0. Default English, live Chinese with draft/notice preservation,
+read-only disabled inputs/no Save, stale reviewed conflict, explicit abandonment
+and fresh review, exactly one final UI name change and typed audit passed without
+console errors. Original Sessions, pending Key, grants, quota, catalogue and call
+rows were preserved. Source remained exact; owned resources and listener were
+independently absent. Current-state confirmation never claimed a historical receipt.
+
+Remote CSV CI37239988896 separately failed the MySQL/member_models immediate
+restored-proof assertion. Expected injected PUT500/503 are not those failures.
+Both observations depend on a runtime publisher that may briefly own its mutex
+or legitimately publish the changed generation. A source-only fixture correction
+and deterministic projection regressions are being reviewed; no production
+proof, ETag, price, native attribution or admission rule is relaxed. Fresh mandatory
+checks and a complete matrix are required before commit.
+
+The reviewed test-only correction is integrated as one existing Member Models
+fixture and one new service regression leaf. Fixed-original-publication tests
+reject changed provenance, retain unknown restored observations while the publisher
+is busy, then require exact fresh application. Exact zero USD input and18-place
+CNY output prices disappear only when route evidence is unknown and return
+unchanged after release. Both regressions passed20 race repetitions; fresh
+mandatory checks passed. No production behavior or mutation replay changed.
+
+The fixture uses bounded fresh GETs only for known-ready positive observations
+and exact restoration. Numeric/currency mismatches, changed durable ETags,
+permissions or model sets fail immediately; unknown never counts as success.
+A changed timestamp can legitimately become the newly published authorization
+basis, so the real-driver probe verifies changed review, complete timestamp-only
+persisted change and consistent application state rather than assuming a stale
+publication. Fixed-publication provenance rejection remains a permanent test.
+
+Three consecutive Member Models lifecycle repetitions passed on each database,
+with six paired lifecycle children and24 pre-loop constraints, no skipped or
+failed tests, unchanged239 protected paths and independently empty owned
+inventories. A fresh complete92-per-driver matrix is running; its acceptance
+and final checked commit/push remain pending. Earlier failed runs remain historical.
+
+### Member metadata full acceptance and checked delivery, 2026-10-05
+
+The fresh unmodified `go tool task test-integration` completed successfully after
+the two-leaf test correction: all ordered92 scenarios ran and passed once on each
+of PostgreSQL and MySQL, with eight pre-loop constraints, every observed nested
+child paired and no failed/skipped test. All five test-bearing packages completed;
+Handler1603.903s and Service10.350s. All239 protected source/dependency paths stayed
+exact, HEAD/index stayed unchanged during the run and the exact owned Compose
+containers/networks/volumes were independently absent afterward. The log SHA256
+is `ec6b11b794beb098eea3a7d5cfc735db24ed7c8cfcef15b51f188480bce2ec60`.
+
+This final matrix complements the repaired Metadata focus, complete source tests
+2427/127, both-driver authentication/native gateway/restart, unchanged production
+artifact and bilingual Metadata conflict/save/read-only acceptance above. The
+controlled Metadata scenario dispatched zero inference requests and preserved
+original security, Key, grant, policy, catalogue and immutable call facts. The
+separate deterministic Model tests passed20 race repetitions; three actual Model
+lifecycle repetitions per driver and24 constraints passed before the full matrix.
+Production proof/admission and exact numeric price checks were not weakened.
+Earlier failed fixtures, full run and CSV CI remain historical rather than passed.
+
+The phase contains19 metadata source/rule paths, two test-correction paths and
+three related English documents. Final mandatory checks passed before the scoped
+main commits and push. Checked delivery is represented by the containing commit;
+new remote workflow results are tracked separately. The current handoff is
+consolidated to the present state; detailed earlier evidence remains here.
+
+Continue the frozen Member list, effective Models, recorded-login V55 and Access
+summary packages in separate checked main phases. A separate role-review worktree
+has backend, frontend and acceptance owners working in parallel on the assigned
+role table, local Base UI multi-select, scoped permission dialog, complete reviewed
+replacement, durable assignment/definition fencing and reasoned full typed audit.
+Tentative V56/99-case root registration is source preparation only, not a migrated
+or delivered feature. The Settings base-role reviewed editor remains a separate
+gap. F04/F19 and formal11 complete/16 partial/three unstarted are unchanged.

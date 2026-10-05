@@ -1,4 +1,28 @@
 export default {
+  memberMetadata: {
+    form: 'Member basic information',
+    help: 'Maintain the member name. Email and platform access are managed separately.',
+    save: 'Save basic information',
+    resume: 'Resume name confirmation',
+    title: 'Confirm member name',
+    description:
+      'Review the current member and confirm only its name. This does not change identity, roles or platform access.',
+    reason: 'Reason',
+    currentName: 'Current name: {{name}}',
+    review: 'Review current name',
+    reviewing: 'Reading current member name…',
+    confirm: 'Confirm name',
+    retry: 'Retry original name request',
+    nameError:
+      'Enter a name of 1–100 characters without surrounding whitespace or control characters.',
+    reasonError: 'Enter a reason of at most 1024 UTF-8 bytes without control characters.',
+    uncertain:
+      'The original name request is unconfirmed. Retry only the original name, reason and revision. A fresh read does not confirm that operation.',
+    conflict:
+      'The current member differs from the original review. The original request remains unconfirmed; review cannot replace it.',
+    failed: 'The current name could not be reviewed.',
+    confirmed: 'Current member name confirmed. This confirms current state only.',
+  },
   memberModels: {
     title: 'Models',
     personal: 'Personal authorized models ({{count}})',

@@ -370,3 +370,46 @@ and MySQL. Both-driver authentication, persisted sessions, process restart, and
 gateway lifecycle checks also passed. Owned test resources were independently
 verified absent. The earlier CI and local contention failures remain recorded in
 [Implementation](IMPLEMENTATION.md#own-team-export-regression-and-member-review-correction-2026-10-05).
+
+
+## Member basic information
+
+The existing Member Settings Basic information card edits the retained name;
+email remains read-only. Resource-scoped `GET /admin/members/:user_id/metadata`
+returns only user ID, name, lifecycle status, server-owned editability and a
+strong ETag. It accepts independent `members.read` or `members.write`; the parent
+Member page still requires fresh `members.read`. PUT requires `members.write`,
+CSRF, the reviewed If-Match and exactly name/reason. Delegated members cannot edit
+self or administrator targets; an explicit administrator may. Disabled targets
+remain editable, while offboarded targets conflict. Actor and target identities
+are exact regardless of database collation.
+
+A changed name and typed before/after/reason audit commit atomically. Names use
+bounded Unicode labels, not a generic profile update: email, roles, enabled state,
+Keys, grants, quota and runtime publication are unchanged. An identical current
+name is a zero-write confirmation even with an older validator; a stale differing
+name conflicts. Fresh postcommit authority and current-name confirmation may fail
+without replaying the write. Confirmation means current member name only, never
+a historical operation receipt. Metadata GET cannot resolve original uncertainty.
+
+The Base UI confirmation retains reviewed name, reason and If-Match through
+incidental renewal, errors and uncertain/rejected retries. Explicit conflict
+review requires abandoning the old intent before adopting a newer revision.
+Actor, target, logout and tab changes clear the draft. The existing Settings
+composition, independent role/lifecycle controls and one Session observer remain.
+Implementation is integrated after checked own-Team CSV. Source checks passed.
+The first dual-driver focus used an invalid empty-model Personal Key fixture and
+is not acceptance; its explicit-model/grant repair passed both drivers while
+preserving all Key/catalogue invariance assertions. Metadata also passed both
+children in the full matrix, whose existing Member Models price observation failed
+and requires a separate test timing repair. Authentication/restart and controlled
+production/browser acceptance passed: bilingual drafts, stale-review rejection,
+explicit fresh review, one UI save, typed audits and unchanged protected facts.
+The controlled Metadata process dispatched no inference; owned resources and
+listener were empty. After the separate test-only Member Models observation repair,
+the fresh complete matrix passed all92 scenarios per driver and eight constraints,
+with five test-bearing packages complete, no skips/failures, unchanged239 protected
+paths and independently empty owned resources. Twenty deterministic race repetitions
+and three real Member Models repetitions per driver also passed. The checked delivery
+is represented by the commit containing this record; remote CI remains independent.
+F04 and formal totals remain unchanged.

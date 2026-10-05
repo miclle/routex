@@ -1,3 +1,4 @@
+import MemberMetadata from './member-metadata'
 import MemberTeams from './member-teams'
 import MemberKeys from './member-keys'
 import MemberOverview from './member-overview'
@@ -493,7 +494,13 @@ function Members() {
                   {access.can('roles.read') && (
                     <TabsTrigger value="roles">{t('members.rolesTab')}</TabsTrigger>
                   )}
-                  <TabsTrigger value="settings">{t('members.settings')}</TabsTrigger>
+                  <TabsTrigger
+                    value="settings"
+                    id={`member-settings-tab-${actor}-${memberId}`}
+                    aria-controls={`member-settings-panel-${actor}-${memberId}`}
+                  >
+                    {t('members.settings')}
+                  </TabsTrigger>
                 </TabsList>
                 <TabsContent value="overview" className="space-y-6">
                   <MemberOverview
@@ -625,80 +632,6 @@ function Members() {
                     />
                   </section>
                 </TabsContent>
-                <TabsContent value="settings">
-                  <div className="space-y-6">
-                    <section className="rounded-lg border">
-                      <h3 className="border-b p-4 font-medium">{t('members.basicInfo')}</h3>
-                      <form
-                        className="space-y-4 p-4"
-                        aria-label={t('common.baseRole')}
-                        onSubmit={(event) => {
-                          event.preventDefault()
-                          if (mutation.isPending) return
-                          dispatch({
-                            method: 'patch',
-                            path: `/admin/members/${current.id}`,
-                            data: { role: String(new FormData(event.currentTarget).get('role')) },
-                          })
-                        }}
-                      >
-                        <FormField label={t('common.baseRole')}>
-                          <select
-                            name="role"
-                            className="h-10 rounded-md border bg-background px-3"
-                            value={draft?.owner === owner ? draft.role : current.role}
-                            onChange={(event) =>
-                              setDraft({
-                                owner,
-                                role: event.target.value,
-                                roleIds: draft?.owner === owner ? draft.roleIds : current.role_ids,
-                              })
-                            }
-                            disabled={!access.isAdmin || mutation.isPending}
-                          >
-                            <option value="member">{t('common.member')}</option>
-                            <option value="admin">{t('common.admin')}</option>
-                          </select>
-                        </FormField>
-                        <ErrorNotice error={mutation.error} />
-                        {access.isAdmin && (
-                          <SaveButton pending={mutation.isPending}>
-                            {t('members.saveBaseRole')}
-                          </SaveButton>
-                        )}
-                      </form>
-                    </section>
-                    <section className="rounded-lg border p-4">
-                      <h3 className="mb-3 font-medium">{t('members.offboarding')}</h3>
-                      <p className="mb-4 text-sm text-muted-foreground">
-                        {t('members.offboardingHelp')}
-                      </p>
-                      <Button
-                        variant="outline"
-                        onClick={() => navigate(`/admin/members/${current.id}/offboarding`)}
-                      >
-                        {t('members.reviewOffboarding')}
-                      </Button>
-                    </section>
-                    {canChange(current) && (
-                      <section className="rounded-lg border p-4">
-                        <h3 className="mb-3 font-medium">{t('members.accountAccess')}</h3>
-                        <p className="mb-4 text-sm text-muted-foreground">
-                          {t('members.disableExplanation')}
-                        </p>
-                        <Button
-                          variant="outline"
-                          onClick={() => {
-                            mutation.reset()
-                            setStatusTarget(current)
-                          }}
-                        >
-                          {current.disabled ? t('common.enable') : t('common.disable')}
-                        </Button>
-                      </section>
-                    )}
-                  </div>
-                </TabsContent>
               </Tabs>
             </>
           )}
@@ -777,6 +710,95 @@ function Members() {
   return (
     <>
       {authorized ? page : unavailable}
+      {memberId && params.get('tab') === 'settings' && (
+        <section
+          className="mt-6 space-y-6"
+          role="tabpanel"
+          id={`member-settings-panel-${actor}-${memberId}`}
+          aria-labelledby={`member-settings-tab-${actor}-${memberId}`}
+        >
+          <MemberMetadata
+            actor={actor}
+            target={memberId}
+            generation={generation}
+            ready={!!current}
+            email={current?.email ?? ''}
+            targetQueryKey={['admin', 'member', actor, memberId, generation]}
+          />
+          {current && (
+            <div className="space-y-6">
+              <section className="rounded-lg border">
+                <h3 className="border-b p-4 font-medium">{t('common.baseRole')}</h3>
+                <form
+                  className="space-y-4 p-4"
+                  aria-label={t('common.baseRole')}
+                  onSubmit={(event) => {
+                    event.preventDefault()
+                    if (mutation.isPending) return
+                    dispatch({
+                      method: 'patch',
+                      path: `/admin/members/${current.id}`,
+                      data: { role: String(new FormData(event.currentTarget).get('role')) },
+                    })
+                  }}
+                >
+                  <FormField label={t('common.baseRole')}>
+                    <select
+                      name="role"
+                      className="h-10 rounded-md border bg-background px-3"
+                      value={draft?.owner === owner ? draft.role : current.role}
+                      onChange={(event) =>
+                        setDraft({
+                          owner,
+                          role: event.target.value,
+                          roleIds: draft?.owner === owner ? draft.roleIds : current.role_ids,
+                        })
+                      }
+                      disabled={!access.isAdmin || mutation.isPending}
+                    >
+                      <option value="member">{t('common.member')}</option>
+                      <option value="admin">{t('common.admin')}</option>
+                    </select>
+                  </FormField>
+                  <ErrorNotice error={mutation.error} />
+                  {access.isAdmin && (
+                    <SaveButton pending={mutation.isPending}>
+                      {t('members.saveBaseRole')}
+                    </SaveButton>
+                  )}
+                </form>
+              </section>
+              <section className="rounded-lg border p-4">
+                <h3 className="mb-3 font-medium">{t('members.offboarding')}</h3>
+                <p className="mb-4 text-sm text-muted-foreground">{t('members.offboardingHelp')}</p>
+                <Button
+                  variant="outline"
+                  onClick={() => navigate(`/admin/members/${current.id}/offboarding`)}
+                >
+                  {t('members.reviewOffboarding')}
+                </Button>
+              </section>
+              {canChange(current) && (
+                <section className="rounded-lg border p-4">
+                  <h3 className="mb-3 font-medium">{t('members.accountAccess')}</h3>
+                  <p className="mb-4 text-sm text-muted-foreground">
+                    {t('members.disableExplanation')}
+                  </p>
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      mutation.reset()
+                      setStatusTarget(current)
+                    }}
+                  >
+                    {current.disabled ? t('common.enable') : t('common.disable')}
+                  </Button>
+                </section>
+              )}
+            </div>
+          )}
+        </section>
+      )}
       {memberId && params.get('tab') === 'limits' && (
         <section
           className="mt-6"

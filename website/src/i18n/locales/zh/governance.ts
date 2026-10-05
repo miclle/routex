@@ -1,4 +1,25 @@
 export default {
+  memberMetadata: {
+    form: '成员基本信息',
+    help: '维护成员姓名。邮箱和平台访问状态由独立流程管理。',
+    save: '保存基本信息',
+    resume: '继续确认姓名',
+    title: '确认成员姓名',
+    description: '复核当前成员，仅确认其姓名。此操作不会更改身份、角色或平台访问状态。',
+    reason: '原因',
+    currentName: '当前姓名：{{name}}',
+    review: '复核当前姓名',
+    reviewing: '正在读取当前成员姓名…',
+    confirm: '确认姓名',
+    retry: '重试原始姓名请求',
+    nameError: '请输入 1–100 个字符的姓名，不含首尾空格或控制字符。',
+    reasonError: '请输入不超过 1024 个 UTF-8 字节且不含控制字符的原因。',
+    uncertain:
+      '原始姓名请求尚未确认。只能使用原始姓名、原因和版本重试。重新读取不代表该操作已确认。',
+    conflict: '当前成员与原始复核不同。原始请求仍未确认，重新复核不能替换它。',
+    failed: '无法复核当前姓名。',
+    confirmed: '已确认当前成员姓名。此结果仅确认当前状态。',
+  },
   memberModels: {
     title: '模型',
     personal: '个人已授权模型（{{count}}）',
