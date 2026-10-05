@@ -1,3 +1,4 @@
+import { rolesWorkspace, roleSummary } from './member-roles.fixture'
 import { accessSummaryFixture } from './member-access-summary.fixture'
 import { memberListPage, memberListRow } from './member-list.fixture'
 import { limitFixture } from '@/views/resource-limits/fixture'
@@ -28,12 +29,14 @@ let permissions: string[]
 let session: Session
 let target: Member
 let roles: PlatformRole[]
+let roleETag: string
 let registration: boolean
 let failures: Record<string, number>
 const oldAdapter = client.defaults.adapter
 beforeEach(() => {
   requests = []
   failures = {}
+  roleETag = 'a'.repeat(64)
   registration = false
   permissions = [
     'members.read',
@@ -111,6 +114,56 @@ beforeEach(() => {
         last_login_at: null,
         last_login_status: 'historical_unavailable',
       }
+    if (key === 'get /admin/members/usr_target/roles') {
+      const page = rolesWorkspace(target.id)
+      page.etag = roleETag
+      page.identity_role = target.role
+      page.subject_status = target.offboarded_at
+        ? 'offboarded'
+        : target.disabled
+          ? 'disabled'
+          : 'active'
+      page.permission_use = page.subject_status === 'active' ? 'active' : 'inactive'
+      const summarize = (role: PlatformRole) => ({
+        ...roleSummary(role.id, role.name),
+        builtin: role.builtin,
+        permission_count: role.permissions.length,
+      })
+      page.builtin_role = summarize(roles.find((role) => role.id === `rol_${target.role}`)!)
+      page.assigned_roles = roles
+        .filter((role) => target.role_ids.includes(role.id))
+        .map(summarize)
+        .sort((a, b) => (a.id < b.id ? -1 : 1))
+      page.effective_permissions = [
+        ...new Set(
+          roles
+            .filter((role) => role.id === page.builtin_role.id || target.role_ids.includes(role.id))
+            .flatMap((role) => role.permissions),
+        ),
+      ].sort()
+      response.data = page
+      response.headers = new AxiosHeaders({
+        etag: `"${roleETag}"`,
+        'cache-control': 'private, no-store',
+      })
+    }
+    if (key === 'get /admin/members/usr_target/roles/candidates') {
+      response.data = {
+        items: roles
+          .filter((role) => !role.builtin)
+          .map((role) => ({
+            ...roleSummary(role.id, role.name),
+            permission_count: role.permissions.length,
+          }))
+          .sort((a, b) => (a.id < b.id ? -1 : 1)),
+        next_cursor: null,
+        etag: roleETag,
+      }
+      response.headers = new AxiosHeaders({
+        etag: `"${roleETag}"`,
+        'cache-control': 'private, no-store',
+      })
+    }
     if (key === 'get /admin/roles')
       response.data = {
         items: structuredClone(roles),
@@ -128,7 +181,18 @@ beforeEach(() => {
     }
     if (key === 'put /admin/members/usr_target/roles') {
       target.role_ids = JSON.parse(config.data).role_ids
-      response.data = structuredClone(target)
+      roleETag = 'c'.repeat(64)
+      response.data = {
+        user_id: target.id,
+        role_ids: [...target.role_ids],
+        etag: roleETag,
+        confirmation: 'current_member_roles',
+        effect: 'current_database',
+      }
+      response.headers = new AxiosHeaders({
+        etag: `"${roleETag}"`,
+        'cache-control': 'private, no-store',
+      })
     }
     if (key === 'post /admin/members') {
       const data = JSON.parse(config.data)
@@ -338,13 +402,36 @@ describe('member governance', () => {
   })
   it('replaces explicit custom-role assignments without submitting built-in role IDs', async () => {
     await mount('/admin/members/usr_target?tab=roles')
-    await until(() => expect(document.querySelector('input[value="rol_custom"]')).not.toBeNull())
-    await act(async () =>
-      document.querySelector<HTMLInputElement>('input[value="rol_custom"]')!.click(),
+    await until(() =>
+      expect(
+        document.querySelector<HTMLButtonElement>('[aria-label="Remove Provider Reader"]')
+          ?.disabled,
+      ).toBe(false),
     )
-    await submit('Member roles')
+    await act(async () =>
+      document.querySelector<HTMLButtonElement>('[aria-label="Remove Provider Reader"]')!.click(),
+    )
+    expect(requests.some((request) => request.method === 'put')).toBe(false)
+    await click('Save member roles')
+    await act(async () => {
+      const input = document.querySelector<HTMLTextAreaElement>('textarea[aria-label="Reason"]')!
+      Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value')!.set!.call(
+        input,
+        'Controlled role replacement',
+      )
+      input.dispatchEvent(new Event('input', { bubbles: true }))
+    })
+    await submit('Confirm member roles')
     await until(() => expect(target.role_ids).toEqual([]))
-    expect(JSON.parse(requests.find((r) => r.method === 'put')!.data)).toEqual({ role_ids: [] })
+    const request = requests.find((r) => r.method === 'put')!
+    expect(JSON.parse(request.data)).toEqual({
+      role_ids: [],
+      role_definitions: [],
+      builtin_definition_etag: 'b'.repeat(64),
+      reason: 'Controlled role replacement',
+    })
+    expect(request.headers.get('If-Match')).toBe(`"${'a'.repeat(64)}"`)
+    expect(requests.some((request) => request.url === '/admin/roles')).toBe(false)
   })
   it('protects built-ins and submits only chosen custom permissions', async () => {
     await mount('/admin/roles')

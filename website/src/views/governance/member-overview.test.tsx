@@ -1,3 +1,4 @@
+import { rolesWorkspace, roleSummary } from './member-roles.fixture'
 import { accessSummaryFixture } from './member-access-summary.fixture'
 import { memberListPage, memberListRow } from './member-list.fixture'
 import { effectiveModelsPage } from './member-effective-models.fixture'
@@ -102,7 +103,33 @@ beforeEach(async () => {
       value = { ...limitFixture(), id: config.url.split('/')[3] }
     else if (config.url === '/admin/members')
       value = memberListPage(session.user.id, [memberListRow()])
-    else if (config.url === '/admin/roles')
+    else if (config.url?.endsWith('/roles/candidates'))
+      return {
+        config,
+        status: 200,
+        statusText: '',
+        headers: new AxiosHeaders({
+          etag: `"${'a'.repeat(64)}"`,
+          'cache-control': 'private, no-store',
+        }),
+        data: {
+          items: [{ ...roleSummary('rol_custom', 'Custom'), permission_count: 0 }],
+          next_cursor: null,
+          etag: 'a'.repeat(64),
+        },
+      }
+    else if (config.url?.endsWith('/roles')) {
+      const page = rolesWorkspace(config.url.split('/')[3])
+      page.assigned_roles = []
+      page.effective_permissions = []
+      return {
+        config,
+        status: 200,
+        statusText: '',
+        headers: new AxiosHeaders({ etag: `"${page.etag}"`, 'cache-control': 'private, no-store' }),
+        data: page,
+      }
+    } else if (config.url === '/admin/roles')
       value = {
         items: [{ id: 'rol_custom', name: 'Custom', builtin: false, permissions: [] }],
         available_permissions: [],
@@ -385,15 +412,32 @@ describe('administrative Member Overview', () => {
     await act(async () => {
       await router.navigate('/admin/members/usr_target?tab=roles')
     })
-    await until(() => !!host.querySelector('input[value="rol_custom"]'))
-    await act(async () => {
-      host.querySelector<HTMLInputElement>('input[value="rol_custom"]')!.click()
-    })
+    async function addCustomDraft() {
+      await until(
+        () =>
+          host.querySelector<HTMLInputElement>('input[aria-label="Search roles to add"]')
+            ?.disabled === false,
+      )
+      const input = host.querySelector<HTMLInputElement>('input[aria-label="Search roles to add"]')!
+      await act(async () => {
+        input.focus()
+        input.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, button: 0 }))
+      })
+      await until(() => document.querySelector('[role="option"]')?.textContent === 'Custom')
+      await act(async () => document.querySelector<HTMLElement>('[role="option"]')!.click())
+      await act(async () =>
+        [...host.querySelectorAll<HTMLButtonElement>('button')]
+          .find((button) => button.textContent === 'Add')!
+          .click(),
+      )
+    }
+    const assigned = () => host.querySelector('table[aria-label="Assigned member roles"]')
+    await addCustomDraft()
     await act(async () => {
       await cache.refetchQueries({ queryKey: ['auth', 'session'], exact: true })
     })
-    await until(() => !!host.querySelector('input[value="rol_custom"]'))
-    expect(host.querySelector<HTMLInputElement>('input[value="rol_custom"]')!.checked).toBe(true)
+    await until(() => assigned()?.textContent?.includes('Custom') === true)
+    expect(assigned()?.textContent).toContain('Custom')
     await act(async () => {
       await router.navigate('/admin/members/usr_other?tab=settings')
     })
@@ -402,17 +446,15 @@ describe('administrative Member Overview', () => {
     await act(async () => {
       await router.navigate('/admin/members/usr_target?tab=roles')
     })
-    await until(() => !!host.querySelector('input[value="rol_custom"]'))
-    expect(host.querySelector<HTMLInputElement>('input[value="rol_custom"]')!.checked).toBe(false)
-    await act(async () => {
-      host.querySelector<HTMLInputElement>('input[value="rol_custom"]')!.click()
-    })
+    await until(() => !!assigned())
+    expect(assigned()?.textContent).not.toContain('Custom')
+    await addCustomDraft()
     session = { ...session, user: { ...session.user, id: 'usr_new' } }
     await act(async () => {
       await cache.refetchQueries({ queryKey: ['auth', 'session'], exact: true })
     })
-    await until(() => !!host.querySelector('input[value="rol_custom"]'))
-    expect(host.querySelector<HTMLInputElement>('input[value="rol_custom"]')!.checked).toBe(false)
+    await until(() => !!assigned())
+    expect(assigned()?.textContent).not.toContain('Custom')
   })
   it('preserves ordinary same-actor metadata draft through a failed Session read without showing cached private facts', async () => {
     session.user.role = 'admin'

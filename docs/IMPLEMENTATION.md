@@ -5204,3 +5204,158 @@ These remote results apply to that predecessor, independently of this delivery.
 F04 and formal 11/16/3 remain partial/unchanged. Next integrate the reviewed
 Roles joint, including its two-leaf failed-request retry fix, then State and
 local approval. Their isolated source proofs do not establish actual acceptance.
+
+
+### Reviewed member Roles integration, 2026-10-05
+
+The 43-path reviewed joint is integrated onto checked Access delivery 9205ca5.
+The existing member Roles tab now reads bounded assignments and independently
+authorized definitions, retains reviewed additions/removals, and confirms a
+complete replacement with a reason, definition proofs and strong If-Match.
+Current-state retries retain the original request; they do not prove a historical
+operation or runtime enforcement. A failed request releases its submit lock so
+an explicit identical retry remains available. English and Chinese are paired.
+
+Frozen GORM migration V56 records private member-assignment and role-definition
+revisions. The original 97 lifecycle cases remain in order, followed by the
+revision migration and reviewed Roles scenarios (99 per driver). Existing
+internal fixture assignment shares the writer engine; the public legacy writer
+is replaced by the reviewed route. Measured full-matrix duration of 1751.999s
+justifies a finite 35-minute full test deadline with all race and assertion
+checks retained.
+
+Current-main source checks, both-driver migration/lifecycle, authentication
+persistence, production bilingual browser/restart and the complete regression
+are pending. Source-only preparation is not accepted delivery. F04 remains
+Partial; formal totals remain 11 complete, 16 partial and three unstarted.
+Continue reviewed account State, local registration approval and the repository
+price source after this independently checked phase.
+
+
+### Member Roles source and production proof, 2026-10-05
+
+Mandatory source checks passed with zero lint errors and two existing Fast Refresh
+warnings. Complete source tests passed 2,747 frontend cases in 138 files, Go race,
+four Node checks, two development lifecycle tests and production assets. The
+production binary SHA256 is
+`0186b40e5c43b6741f9cfcd7a1a976a8e50e8156f36e793ab4e974e261169be9`.
+Real-process authentication, native gateway and restart tests passed on both
+PostgreSQL and MySQL with independent owned-resource cleanup.
+
+The separate production Roles process and browser passed English/Chinese
+combined-reader controls, scoped permission details, administrator add/remove
+drafts, retained language-switch drafts, required reason and one complete
+confirmed replacement. The identical original review confirmed current state
+with zero additional writes or audits. Same-artifact/database/configuration/root
+and surviving-Session restart passed both languages without another login.
+Seven screenshots were recorded; console warnings/errors were empty. This
+Roles process dispatched zero inference requests, calls or attempts. Original
+Sessions, other assignments and protected facts were retained. Single-read and
+delegated-writer denials were actual API checks, not separate browser scenarios.
+Browser transport loss, ABA and bounds remain source/driver coverage only.
+
+The first real-driver focus failed two fixture assertions on each driver. GORM
+map scanning of a declared pointer string left a pointer value unhandled by the
+fixture; typed single-column Pluck with exact-one cardinality replaces that
+reader. A malformed-ID request accidentally appended whitespace to the literal
+route; it now targets the resource ID and separately preserves literal-route
+404 coverage. Every migration preservation, partial-DDL, concurrency, constraint,
+authority and mutation assertion remains. Product source and the production
+binary are unchanged by these two test-only repairs. The failed run remains
+failed historical evidence with confirmed cleanup. Corrected both-driver focus,
+complete 99-case regression and final mandatory checks remain pending.
+
+
+### Corrected Roles focus and full-regression failure, 2026-10-05
+
+The corrected PostgreSQL/MySQL focus passed all eight lifecycle children, eight
+constraints and complete parents with zero failure or skip. Independent owned
+container/network/volume inventories were empty. Report SHA256:
+`13f5aa58c6afdb81797b1a2753a314b5acf8c04a1089fa23adf71e92600d9227`.
+Access delivery 9205ca5 now has all three exact remote workflows successful:
+CI 37269675399, Actionlint 37269675308 and GolangCI-Lint 37269675118.
+
+The first complete Roles regression recorded a genuine existing
+`project_initial_resources` failure. Its historical case-aliased permission
+records are intentionally unknown and never confer direct Project authority.
+The new member-role projection rejected those safe uppercase recorded codes
+while hydrating the administrator candidate catalogue, blocking an unrelated
+valid role revocation. This is a production compatibility regression, distinct
+from the two earlier fixture errors. The failed owned Handler test was terminated
+after the failure was recorded; the partial run is not a completed matrix.
+Runner exit was 1, all 322 source paths and the artifact stayed exact, and owned
+containers/networks/volumes were independently absent. Raw failed log SHA256:
+`5f186415178859a0b9ec09021c97fa0064990ef41312c8cf2c171178fc163284`.
+
+A bounded projection/API repair and regression tests are in preparation. They
+must retain original permission-code casing and exact implemented permission
+matching, with unknown codes excluded from usable authority. The historical
+negative Project fixture remains intact. New source/build, relevant driver
+focus, production and complete regression gates are required before this phase
+can be submitted. F04 and formal totals remain Partial/unchanged.
+
+
+### Recorded permission compatibility correction, 2026-10-05
+
+The reviewed four-file repair is integrated. Bounded safe recorded permission
+codes retain their exact ASCII case in definition reads and scoped API decoding.
+Implemented permission unions and new-role writes still require exact catalogue
+membership; uppercase aliases grant no authority. The unchanged historical
+Project initialization fixture will be replayed on both drivers. Original-code
+regressions reproduced three Go failures and four API decoder failures; corrected
+isolated source tests passed all 13 selected Go race tests and 45 API cases.
+These source results do not accept the actual driver or production repair. New
+source/build, expanded driver focus, production/restart and complete 99-case
+regression gates remain pending; the previous failed run remains failed evidence.
+
+
+### Corrected Roles current-main gates, 2026-10-05
+
+The four-file compatibility repair passed mandatory checks and complete source
+tests: 2,761 frontend cases in 138 files, Go race, four Node checks, two development
+lifecycle checks and production assets. New production artifact SHA256:
+`06ca34d828505ac7306f82ecfe5b14d96875efc8ad7360056903c761b1154e50`.
+Expanded PostgreSQL/MySQL focus passed all ten lifecycle children, including the
+unchanged Project initialization negative-permission fixture, eight constraints
+and complete parents/package without failure or skip. Report SHA256:
+`4b218e037da0cbeca931d56111857873078b3e6c4fd091e4a202495ed4b80944`.
+
+The repaired production process and bilingual browser passed one reviewed
+replacement, required reason, retained language-switch draft and exact original
+current-state retry with zero additional writes/audits. Same-artifact/database/
+configuration/root and original browser-Session restart passed without another
+login. Seven screenshots and empty browser warning/error observations were
+recorded; native calls/attempts remained zero. Original Sessions, other
+assignments and protected facts were preserved. A preceding browser run exceeded
+its finite five-minute checkpoint before submitting; it remains failed evidence
+with independent cleanup, and the successful rerun used unchanged code/artifact.
+
+Both-driver authentication lifecycle again passed initialization, persistent
+Sessions, logout/revocation, encrypted provider, model grants, Keys, ordinary/
+streaming native calls and restart. Every owned resource/listener was independently
+absent after teardown. All 322 source protections stayed exact through these
+gates. Complete 99-case regression and final mandatory checks remain pending;
+no Roles delivery or whole-F04 completion is claimed. Formal totals stay 11/16/3.
+
+
+### Checked Member Roles complete regression, 2026-10-05
+
+The corrected complete regression passed all 99 ordered lifecycle scenarios on
+each real database, eight pre-loop constraints, five test-bearing packages and
+2,790 named tests with no named failure or skip. PostgreSQL took 762.050s,
+MySQL 984.010s and Handler 1750.486s. Exact log SHA256:
+`637ea40b9db486e1dc5b7cb3b4f92fd620ca60b268d4842912c6ef98f5515966`.
+The runner exited zero, all 322 protected source paths and the production artifact
+remained exact, and independent container/network/volume inventories were empty.
+Both drivers retained the historical case-alias authority denials while allowing
+the unrelated valid role clear. Prior fixture, incomplete full-run and finite
+browser-checkpoint failures remain historical failed attempts, not passed gates.
+
+Together with current source2761/138, expanded focus10+8, both-driver
+authentication/native persistence and new-artifact bilingual browser/current
+retry/same-Session restart, this accepts the bounded member Roles implementation.
+The containing commit is the scoped checked Roles delivery after final mandatory
+checks; commit/push/remote read-back remain separate coordinator observations.
+Global Role definition editing, reviewed account State and local registration
+approval remain independent follow-up work. F04 and F05 remain Partial; formal
+11-complete/16-partial/three-unstarted totals are unchanged.

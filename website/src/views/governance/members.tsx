@@ -26,19 +26,17 @@ import {
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useNavigate, useParams, useSearchParams } from 'react-router'
 import { Plus } from 'lucide-react'
-import { getRoles } from '@/api/governance'
+import MemberRoles from './member-roles'
 import { getMemberDetail } from '@/api/member-recent-login'
 import { writeCatalog } from '@/api/catalog'
 import { useSession } from '@/hooks/use-auth'
 import { usePermissions } from '@/hooks/use-permissions'
 import { Page, QueryState, FormField, ErrorNotice, SaveButton } from '@/components/app/CatalogUI'
-import { Table } from '@/components/ui/table'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Dialog } from '@/components/ui/dialog'
 import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
-import { PermissionRows } from './roles'
 import type { Session } from '@/types/auth'
 import type { Member, MemberFilters } from '@/types/governance'
 
@@ -101,9 +99,7 @@ function Members() {
     !access.isFetching &&
     access.can('members.read')
   const owner = `${actor}:${memberId ?? ''}`
-  const [draft, setDraft] = useState<{ owner: string; role: string; roleIds: string[] } | null>(
-    null,
-  )
+  const [draft, setDraft] = useState<{ owner: string; role: string } | null>(null)
   const latest = useRef({
     actor,
     memberId,
@@ -212,11 +208,6 @@ function Members() {
     staleTime: 0,
     gcTime: 0,
     refetchOnMount: 'always',
-  })
-  const roles = useQuery({
-    queryKey: ['admin', 'roles', actor, generation],
-    queryFn: ({ signal }) => getRoles(signal),
-    enabled: !!memberId && authorized && params.get('tab') === 'roles' && access.can('roles.read'),
   })
   const mutation = useMutation({
     mutationFn: ({
@@ -366,12 +357,6 @@ function Members() {
       },
     })
   }
-  const roleName = (role: { id: string; name: string; builtin: boolean }) =>
-    role.builtin && role.id === 'rol_admin'
-      ? t('common.admin')
-      : role.builtin && role.id === 'rol_member'
-        ? t('common.member')
-        : role.name
   const current =
     authorized &&
     !readState.targetInvalidated &&
@@ -387,11 +372,6 @@ function Members() {
     ready: !!current,
     targetQueryKey: ['admin', 'member', actor, memberId, generation],
   })
-  const currentRoles =
-    roles.data?.items.filter(
-      (role) =>
-        current && (role.id === `rol_${current.role}` || current.role_ids.includes(role.id)),
-    ) ?? []
   const unavailable = (
     <Page
       title={t('common:access_denied_cb8d4')}
@@ -605,7 +585,13 @@ function Members() {
                     {t('members.limits')}
                   </TabsTrigger>
                   {access.can('roles.read') && (
-                    <TabsTrigger value="roles">{t('members.rolesTab')}</TabsTrigger>
+                    <TabsTrigger
+                      value="roles"
+                      id={`member-roles-tab-${actor}-${memberId}`}
+                      aria-controls={`member-roles-panel-${actor}-${memberId}`}
+                    >
+                      {t('members.rolesTab')}
+                    </TabsTrigger>
                   )}
                   <TabsTrigger
                     value="settings"
@@ -631,100 +617,6 @@ function Members() {
                     ready={!!current}
                     targetQueryKey={['admin', 'member', actor, memberId, generation]}
                   />
-                </TabsContent>
-                <TabsContent value="roles">
-                  <QueryState
-                    pending={roles.isPending}
-                    error={roles.error}
-                    retry={() => void roles.refetch()}
-                  />
-                  <form
-                    key={current.role_ids.join(',')}
-                    aria-label={t('members.roleLabel')}
-                    className="space-y-4"
-                    onSubmit={(event) => {
-                      event.preventDefault()
-                      if (mutation.isPending) return
-                      dispatch({
-                        method: 'put',
-                        path: `/admin/members/${current.id}/roles`,
-                        data: {
-                          role_ids: new FormData(event.currentTarget)
-                            .getAll('role_ids')
-                            .map(String),
-                        },
-                      })
-                    }}
-                  >
-                    <Table aria-label={t('members.rolesListLabel')}>
-                      <thead>
-                        <tr>
-                          <th>{t('common.role')}</th>
-                          <th>{t('common.type')}</th>
-                          <th>{t('members.grant')}</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {roles.data?.items.map((role) => (
-                          <tr key={role.id}>
-                            <td>{roleName(role)}</td>
-                            <td>{role.builtin ? t('common.builtin') : t('common.custom')}</td>
-                            <td>
-                              {role.builtin ? (
-                                role.id === `rol_${current.role}` ? (
-                                  t('members.baseIdentity')
-                                ) : (
-                                  '—'
-                                )
-                              ) : (
-                                <label className="flex items-center gap-2">
-                                  <input
-                                    name="role_ids"
-                                    type="checkbox"
-                                    value={role.id}
-                                    aria-label={t('members.assignLabel', { name: roleName(role) })}
-                                    checked={(draft?.owner === owner
-                                      ? draft.roleIds
-                                      : current.role_ids
-                                    ).includes(role.id)}
-                                    onChange={(event) => {
-                                      const selected =
-                                        draft?.owner === owner ? draft.roleIds : current.role_ids
-                                      setDraft({
-                                        owner,
-                                        role: draft?.owner === owner ? draft.role : current.role,
-                                        roleIds: event.target.checked
-                                          ? [...selected, role.id]
-                                          : selected.filter((id) => id !== role.id),
-                                      })
-                                    }}
-                                    disabled={!access.isAdmin || mutation.isPending}
-                                  />
-                                  {t('members.assign')}
-                                </label>
-                              )}
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </Table>
-                    <ErrorNotice error={mutation.error} />
-                    {access.isAdmin && (
-                      <div className="flex justify-end">
-                        <SaveButton pending={mutation.isPending}>
-                          {t('members.saveRoles')}
-                        </SaveButton>
-                      </div>
-                    )}
-                  </form>
-                  <section className="mt-6 rounded-lg border">
-                    <h3 className="border-b p-4 font-medium">
-                      {t('members.effectivePermissions')}
-                    </h3>
-                    <PermissionRows
-                      permissions={[...new Set(currentRoles.flatMap((role) => role.permissions))]}
-                    />
-                  </section>
                 </TabsContent>
               </Tabs>
             </>
@@ -817,6 +709,22 @@ function Members() {
   return (
     <>
       {authorized ? page : unavailable}
+      {memberId && params.get('tab') === 'roles' && (
+        <section
+          className="mt-6"
+          role="tabpanel"
+          id={`member-roles-panel-${actor}-${memberId}`}
+          aria-labelledby={`member-roles-tab-${actor}-${memberId}`}
+        >
+          <MemberRoles
+            actor={actor}
+            target={memberId}
+            generation={generation}
+            ready={!!current}
+            targetQueryKey={['admin', 'member', actor, memberId, generation]}
+          />
+        </section>
+      )}
       {memberId && params.get('tab') === 'settings' && (
         <section
           className="mt-6 space-y-6"
@@ -858,7 +766,6 @@ function Members() {
                         setDraft({
                           owner,
                           role: event.target.value,
-                          roleIds: draft?.owner === owner ? draft.roleIds : current.role_ids,
                         })
                       }
                       disabled={!access.isAdmin || mutation.isPending}

@@ -1,3 +1,4 @@
+import { rolesWorkspace, roleSummary } from './member-roles.fixture'
 import { act } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
@@ -49,7 +50,17 @@ beforeEach(async () => {
         last_login_at: null,
         last_login_status: 'historical_unavailable',
       }
-    else if (config.url?.endsWith('/access')) {
+    else if (config.url?.endsWith('/roles/candidates'))
+      data = {
+        items: [roleSummary('rol_unassigned', 'Unassigned directory role')],
+        next_cursor: null,
+        etag: 'a'.repeat(64),
+      }
+    else if (config.url?.endsWith('/roles')) {
+      const page = rolesWorkspace(target)
+      page.assigned_roles = [roleSummary('rol_selected', 'Recorded role')]
+      data = page
+    } else if (config.url?.endsWith('/access')) {
       if (failure)
         throw new AxiosError('Unavailable', '', config, undefined, {
           config,
@@ -116,7 +127,10 @@ beforeEach(async () => {
       config,
       status: 200,
       statusText: '',
-      headers: new AxiosHeaders({ 'cache-control': 'private, no-store' }),
+      headers: new AxiosHeaders({
+        'cache-control': 'private, no-store',
+        ...(config.url?.includes('/roles') ? { etag: `"${'a'.repeat(64)}"` } : {}),
+      }),
       data,
     }
   }
@@ -170,16 +184,24 @@ it('uses one resource summary for Overview header and six cells without global r
   expect(host.textContent).toContain('Roles: Member · Recorded role')
   expect(requests.every((r) => r.method === 'get')).toBe(true)
 })
-it('preserves the legacy Roles-tab directory, checkbox assignment and effective-permission display', async () => {
+it('uses scoped assigned-role review and preserves the direct saved permission card without a global directory', async () => {
   await mount()
   await act(async () => router.navigate('/admin/members/usr_target?tab=roles'))
-  await until(() => expect(host.textContent).toContain('Unassigned directory role'))
-  expect(requests.filter((r) => r.url === '/admin/roles')).toHaveLength(1)
-  expect(host.querySelector<HTMLInputElement>('input[value="rol_selected"]')?.checked).toBe(true)
+  await until(() =>
+    expect(host.querySelector('table[aria-label="Assigned member roles"]')?.textContent).toContain(
+      'Recorded role',
+    ),
+  )
+  expect(requests.filter((r) => r.url === '/admin/members/usr_target/roles')).toHaveLength(1)
+  expect(
+    host.querySelector('table[aria-label="Assigned member roles"]')?.textContent,
+  ).not.toContain('Unassigned directory role')
+  expect(host.querySelector('[aria-label="Remove Recorded role"]')).not.toBeNull()
   expect(host.textContent).toContain('Effective member permissions')
   await act(async () => router.navigate('/admin/members/usr_target'))
   expect(host.textContent).not.toContain('Unassigned directory role')
-  expect(requests.filter((r) => r.url === '/admin/roles')).toHaveLength(1)
+  expect(requests.filter((r) => r.url === '/admin/roles')).toHaveLength(0)
+  expect(requests.every((request) => request.method === 'get')).toBe(true)
 })
 it('clears header, Access cells and tooltip authority on target invalidation and failed renewed reads', async () => {
   await mount()

@@ -44,12 +44,15 @@ func lockGovernance(tx *gorm.DB) error {
 }
 
 func activePlatformAdmin(db *gorm.DB, actorID string) error {
-	var actor entity.User
-	if err := db.Where("id = ? AND disabled = ? AND role = ?", actorID, false, entity.RoleAdmin).First(&actor).Error; err != nil {
-		if err == gorm.ErrRecordNotFound {
-			return apperrors.ErrForbidden
-		}
+	actor, err := exactEnabledActor(memberRolesDB(db), actorID)
+	if err == apperrors.ErrUnauthorized {
+		return apperrors.ErrForbidden
+	}
+	if err != nil {
 		return err
+	}
+	if actor.Role != entity.RoleAdmin {
+		return apperrors.ErrForbidden
 	}
 	return nil
 }
@@ -105,7 +108,7 @@ func authorizeGovernance(db *gorm.DB, userID, permission string) error {
 
 func rolePermissions(db *gorm.DB, roleID string) ([]string, error) {
 	result := []string{}
-	err := db.Model(&entity.RolePermission{}).Where("role_id = ?", roleID).Order("permission").Pluck("permission", &result).Error
+	err := memberRolesExact(memberRolesDB(db).Model(&entity.RolePermission{}), "role_id", roleID).Order("permission").Pluck("permission", &result).Error
 	return result, err
 }
 func memberRecord(db *gorm.DB, userID string) (*MemberRecord, error) {
@@ -188,21 +191,41 @@ func (s *Service) SaveRole(ctx context.Context, actorID, roleID, name string, pe
 			return err
 		}
 		if !creating {
-			if err := tx.First(&role, "id = ?", roleID).Error; err != nil {
+			if err := memberRolesExact(memberRolesDB(tx).Clauses(clause.Locking{Strength: "UPDATE"}), "id", roleID).First(&role).Error; err != nil {
 				return err
 			}
 			if role.Builtin {
 				return apperrors.ErrForbidden
 			}
-			role.Name = name
-			role.NameKey = secret.SHA256Hex(name)
-			if err := tx.Model(&role).Updates(map[string]any{"name": name, "name_key": role.NameKey}).Error; err != nil {
+			beforePermissions, err := rolePermissions(memberRolesDB(tx), role.ID)
+			if err != nil {
 				return err
 			}
-		} else if err := tx.Create(&role).Error; err != nil {
-			return err
+			desired := slices.Clone(permissions)
+			slices.Sort(desired)
+			if role.Name == name && slices.Equal(beforePermissions, desired) {
+				return nil
+			}
+			role.DefinitionRevision, err = newMemberRoleRevision()
+			if err != nil {
+				return err
+			}
+			role.Name = name
+			role.NameKey = secret.SHA256Hex(name)
+			if err := tx.Model(&role).Updates(map[string]any{"name": name, "name_key": role.NameKey, "definition_revision": role.DefinitionRevision}).Error; err != nil {
+				return err
+			}
+		} else {
+			var err error
+			role.DefinitionRevision, err = newMemberRoleRevision()
+			if err != nil {
+				return err
+			}
+			if err := tx.Create(&role).Error; err != nil {
+				return err
+			}
 		}
-		if err := tx.Where("role_id = ?", roleID).Delete(&entity.RolePermission{}).Error; err != nil {
+		if err := memberRolesExact(memberRolesDB(tx), "role_id", roleID).Delete(&entity.RolePermission{}).Error; err != nil {
 			return err
 		}
 		for _, permission := range permissions {
@@ -229,26 +252,26 @@ func (s *Service) DeleteRole(ctx context.Context, actorID, roleID string) error 
 			return err
 		}
 		var role entity.Role
-		if err := tx.First(&role, "id = ?", roleID).Error; err != nil {
+		if err := memberRolesExact(memberRolesDB(tx).Clauses(clause.Locking{Strength: "UPDATE"}), "id", roleID).First(&role).Error; err != nil {
 			return err
 		}
 		if role.Builtin {
 			return apperrors.ErrForbidden
 		}
 		var assigned int64
-		if err := tx.Model(&entity.UserRole{}).Where("role_id = ?", roleID).Count(&assigned).Error; err != nil {
+		if err := memberRolesExact(memberRolesDB(tx).Model(&entity.UserRole{}), "role_id", roleID).Count(&assigned).Error; err != nil {
 			return err
 		}
 		if assigned > 0 {
 			return catalogConflict
 		}
-		if err := tx.Model(&entity.TeamRole{}).Where("role_id = ?", role.ID).Count(&assigned).Error; err != nil {
+		if err := memberRolesExact(memberRolesDB(tx).Model(&entity.TeamRole{}), "role_id", role.ID).Count(&assigned).Error; err != nil {
 			return err
 		}
 		if assigned > 0 {
 			return catalogConflict
 		}
-		if err := tx.Where("role_id = ?", roleID).Delete(&entity.RolePermission{}).Error; err != nil {
+		if err := memberRolesExact(memberRolesDB(tx), "role_id", roleID).Delete(&entity.RolePermission{}).Error; err != nil {
 			return err
 		}
 		if err := tx.Delete(&role).Error; err != nil {
@@ -258,51 +281,29 @@ func (s *Service) DeleteRole(ctx context.Context, actorID, roleID string) error 
 	}))
 }
 
+// SetMemberRoles is the existing trusted service adapter. The public route uses
+// SetReviewedMemberRoles; every internal assignment still shares its durable fence.
 func (s *Service) SetMemberRoles(ctx context.Context, actorID, userID string, roleIDs []string) (*MemberRecord, error) {
-	if len(roleIDs) > 100 {
+	if err := memberMetadataIDs(actorID, userID); err != nil {
+		return nil, err
+	}
+	desired := slices.Clone(roleIDs)
+	if desired == nil {
+		desired = []string{}
+	}
+	slices.Sort(desired)
+	if len(desired) > memberRolesWriteBudget {
 		return nil, apperrors.ErrBadRequest
 	}
-	seen := map[string]bool{}
-	for _, roleID := range roleIDs {
-		if roleID == "" || seen[roleID] {
+	for i, roleID := range desired {
+		if !memberRoleID(roleID) || roleID == "rol_admin" || roleID == "rol_member" || i > 0 && desired[i-1] == roleID {
 			return nil, apperrors.ErrBadRequest
 		}
-		seen[roleID] = true
 	}
-	db := s.authDB(ctx)
-	err := db.Transaction(func(tx *gorm.DB) error {
-		if err := lockGovernance(tx); err != nil {
-			return err
-		}
-		if err := activePlatformAdmin(tx, actorID); err != nil {
-			return err
-		}
-		var user entity.User
-		if err := tx.First(&user, "id = ?", userID).Error; err != nil {
-			return err
-		}
-		if len(roleIDs) > 0 {
-			var count int64
-			if err := tx.Model(&entity.Role{}).Where("id IN ? AND builtin = ?", roleIDs, false).Count(&count).Error; err != nil {
-				return err
-			}
-			if count != int64(len(roleIDs)) {
-				return apperrors.ErrBadRequest
-			}
-		}
-		if err := tx.Where("user_id = ?", userID).Delete(&entity.UserRole{}).Error; err != nil {
-			return err
-		}
-		for _, roleID := range roleIDs {
-			if err := tx.Create(&entity.UserRole{UserID: userID, RoleID: roleID}).Error; err != nil {
-				return err
-			}
-		}
-		return appendAudit(tx, actorID, "member.roles.update", "user", userID)
-	})
+	_, err := s.setMemberRolesReviewed(ctx, actorID, userID, "", MemberRolesInput{RoleIDs: desired, Reason: "Administrator role assignment"}, true)
 	if err != nil {
-		return nil, catalogError(err)
+		return nil, err
 	}
-	result, err := memberRecord(db, userID)
+	result, err := memberRecord(s.authDB(ctx), userID)
 	return result, catalogError(err)
 }

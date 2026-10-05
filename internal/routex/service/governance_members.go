@@ -51,7 +51,11 @@ func prepareMember(email, password, name, role string) (entity.User, error) {
 	if err != nil {
 		return entity.User{}, apperrors.ErrInternal
 	}
-	return entity.User{ID: userID, Email: email, Name: name, Role: role, PasswordHash: string(hash)}, nil
+	revision, err := newMemberRoleRevision()
+	if err != nil {
+		return entity.User{}, err
+	}
+	return entity.User{ID: userID, Email: email, Name: name, Role: role, PasswordHash: string(hash), MemberRoleRevision: revision}, nil
 }
 
 func (s *Service) Register(ctx context.Context, email, password, name string) (*Authentication, error) {
@@ -208,6 +212,9 @@ func (s *Service) UpdateMember(ctx context.Context, actorID, userID string, disa
 			updates["offboarded_at"] = nil
 		}
 		if err := tx.Model(&target).Updates(updates).Error; err != nil {
+			return err
+		}
+		if err := advanceMemberRoleRevision(tx, canonicalUserID); err != nil {
 			return err
 		}
 		if nextDisabled {

@@ -1,4 +1,72 @@
 export default {
+  memberRoles: {
+    recordedPermissions:
+      'Recorded codes not implemented by this version do not grant current platform access.',
+    title: 'Member roles',
+    table: 'Assigned member roles',
+    permissions: 'Permissions',
+    actions: 'Actions',
+    help: 'Direct roles configure platform permissions. Add or remove custom roles in a draft, then explicitly save. Team roles are maintained separately.',
+    viewPermissions: 'View full permissions for {{name}}',
+    permissionCount_one: '{{count}} permission',
+    permissionCount_other: '{{count}} permissions',
+    removeRole: 'Remove {{name}}',
+    remove: 'Remove',
+    addRoles: 'Add roles',
+    search: 'Search roles to add',
+    removeSelection: 'Remove selected role {{name}}',
+    add: 'Add',
+    more: 'Load more roles',
+    invalidSearch: 'Use a literal search of at most 200 UTF-8 bytes.',
+    noCandidates: 'No matching roles',
+    candidatesLoading: 'Reading role candidates…',
+    candidatesFailed: 'Role candidates could not be read.',
+    loading: 'Reading reviewed roles…',
+    failed: 'Member roles could not be read.',
+    denied: 'Member and role read access is unavailable.',
+    refresh: 'Refresh',
+    save: 'Save member roles',
+    resume: 'Resume role confirmation',
+    confirmTitle: 'Confirm member roles',
+    confirmHelp:
+      'Save the complete custom role replacement with the reviewed definitions and reason. The builtin identity is retained.',
+    reason: 'Reason',
+    confirm: 'Confirm roles',
+    retry: 'Retry original role request',
+    invalidReason:
+      'Enter a reason of at most 1024 UTF-8 bytes without surrounding whitespace or control characters.',
+    uncertain:
+      'The original role request is unconfirmed. Retry only its original roles, definitions, reason and revision. A fresh read does not confirm it.',
+    conflict:
+      'The reviewed roles or definitions have changed. The original draft is preserved; explicitly review the current configuration.',
+    confirmed: 'Current member roles confirmed. This confirms current database state only.',
+    reconciled:
+      'Current member roles confirmed after retry. This does not prove the original operation.',
+    abandon: 'Abandon original request',
+    review: 'Review current roles',
+    staleDraft:
+      'The draft uses an older review. Review current roles before submitting a new request.',
+    needsReview: 'Definition needs review',
+    needsReviewHelp:
+      'Some selected definitions need review. Find those roles in the Add picker before saving.',
+    replacementLimit:
+      'A complete new replacement may contain at most 100 custom roles. Explicitly remove roles to reach this limit.',
+    inactive:
+      'Saved direct permissions are retained while this member is inactive; they do not grant current access.',
+    noPermissions: 'No permissions',
+    permissionTitle: 'Role permissions',
+    permissionDescription: 'Complete recorded permissions for {{name}}.',
+    definitionFailed:
+      'This reviewed definition could not be read. Review current roles before opening it again.',
+    block_not_platform_admin: 'Only a current platform administrator may change direct roles.',
+    block_offboarded: 'Offboarded members are read-only.',
+    block_assignment_audit_bound:
+      'This retained assignment exceeds the supported complete audit bound. Roles remain read-only.',
+    block_candidate_catalogue_bound:
+      'The complete candidate catalogue exceeds the supported limit. Roles remain read-only.',
+    block_definition_unavailable:
+      'A complete role definition is unavailable. Roles remain read-only.',
+  },
   memberAccess: {
     roles: 'Roles',
     teams: 'Teams',

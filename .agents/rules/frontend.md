@@ -693,3 +693,19 @@ Administrative Member lists retain the approved eleven-column composition and co
 Administrative Member Overview keeps the existing account cards and access information before its read-only effective-model table. The ten columns add Authorization source after Model. Read only the exact member-scoped endpoint with parent-managed Session/actor/target generations and fresh members.read; add no Session observer, mutation, directory or inference action. Independent teams.read_all permits complete active Team enrichment; otherwise show only Personal sources and generic unknown union completeness, without Team counts/IDs/names or overlapping Team-derived facts. Provider labels and exact decimal prices retain independent read permissions. Hide rows and private source tooltip portals synchronously during parent or own-query invalidation, renewal, errors and permission loss; reject obsolete replies and guard callbacks against current cache generations/invalidation. Preserve unknown Type/semantic Updated, recorded Created dates, all four native protocols, conservative per-source availability and inactive retained configuration. Availability is advisory, never a Key ceiling, admission guarantee, historical receipt or native completion. Keep paired live governance translations. Preserve every exact monetary string and retained model identifier by wrapping within its fixed table cell; never let text overlap adjacent columns or truncate decimal precision.
 
 Administrative Member Access keeps exactly Roles, Teams, Recent login, Created, Updated and Status inside the existing Overview card. One parent-owned member-scoped access query supplies its explicit custom-role header and read-only summary; global Roles directory reads belong only to the Roles tab. Keep members.read independent from roles.read and teams.read_all, with server-owned complete/denied/overflow/unavailable sections; show no denied IDs, names, counts or partial overflow rows. Use nullable recorded Updated and last-login facts, never browser clocks or observed_at as edit/login history. Reuse current parent Session/permission/target generations and synchronous QueryCache invalidation guards without another Session observer. Hide private header/card values during renewed reads, invalidation, errors and obsolete resource responses. Preserve existing account cards, effective-model table and lifecycle controls; add no role/Team writer or quota inference. Keep paired governance translations.
+
+Member direct role assignment uses the addressable Roles tab, an assigned-only
+four-column table, scoped permission dialogs and the local Base UI MultiSelect
+wrapper for staged Add/Remove with explicit Save. Require independent members.read
+and roles.read for private reads; only an exact enabled, nonoffboarded platform
+administrator may replace custom assignments. Preserve the unremovable builtin
+identity, complete retained reads, server editability, literal bounded candidates,
+reviewed assignment and definition validators, reason and exact immutable uncertain
+intent. A successful reviewed PUT confirms current database effect only; GET cannot
+resolve uncertainty or prove the original operation. Keep saved effective platform
+permissions distinct from an unsaved draft and Team/model/Key authority. Historical
+assignments above1000 remain read-only; complete replacement is at most100 and
+full typed audits are bounded60KiB without truncation. Actor/target/Session/read
+renewal hides private rows and portals synchronously; no global directory fallback
+or additional Session observer is allowed. Keep paired governance copy and source,
+driver, migration and zero-inference process/restart/browser evidence separate.

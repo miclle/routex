@@ -71,7 +71,8 @@ func testGovernanceLifecycle(t *testing.T, db *gorm.DB) {
 	expectStatus(t, request("DELETE", "/api/v1/admin/roles/"+caseRole.ID, nil), 204)
 	writer := decodeCatalogResponse[RoleResponse](t, request("POST", "/api/v1/admin/roles", map[string]any{"name": "Member manager", "permissions": []string{"members.write", "calls.read_all"}}), 201)
 	memberPath := "/api/v1/admin/members/" + member.User.ID
-	assigned := decodeCatalogResponse[MemberResponse](t, request("PUT", memberPath+"/roles", map[string]any{"role_ids": []string{reader.ID, writer.ID}}), 200)
+	expectStatus(t, reviewedMemberRolesFixtureRequest(t, router, adminCookie, adminCookie, admin.CSRFToken, member.User.ID, []string{reader.ID, writer.ID}), 200)
+	assigned := decodeCatalogResponse[MemberResponse](t, request("GET", memberPath, nil), 200)
 	if len(assigned.RoleIDs) != 2 {
 		t.Fatal("combined roles not persisted")
 	}
@@ -85,7 +86,7 @@ func testGovernanceLifecycle(t *testing.T, db *gorm.DB) {
 	expectStatus(t, memberRequest("GET", "/api/v1/admin/providers", nil), 200)
 	expectStatus(t, memberRequest("GET", "/api/v1/admin/calls", nil), 200)
 	expectStatus(t, memberRequest("POST", "/api/v1/admin/providers", map[string]any{}), 403)
-	expectStatus(t, memberRequest("PUT", memberPath+"/roles", map[string]any{"role_ids": []string{"rol_admin"}}), 403)
+	expectStatus(t, reviewedMemberRolesFixtureRequest(t, router, adminCookie, memberCookie, member.CSRFToken, member.User.ID, []string{"rol_admin"}), 403)
 	expectStatus(t, memberRequest("PATCH", memberPath, map[string]any{"role": "admin"}), 403)
 	expectStatus(t, memberRequest("PATCH", memberPath, map[string]any{"disabled": true}), 403)
 	expectStatus(t, memberRequest("PATCH", "/api/v1/admin/members/"+admin.User.ID, map[string]any{"disabled": true}), 403)
@@ -118,12 +119,13 @@ func testGovernanceLifecycle(t *testing.T, db *gorm.DB) {
 		t.Fatal("reenabling a member restored a revoked Key")
 	}
 	expectStatus(t, request("DELETE", "/api/v1/admin/roles/"+reader.ID, nil), 409)
-	expectStatus(t, request("PUT", memberPath+"/roles", map[string]any{"role_ids": []string{"rol_admin"}}), 400)
+	expectStatus(t, reviewedMemberRolesFixtureRequest(t, router, adminCookie, adminCookie, admin.CSRFToken, member.User.ID, []string{"rol_admin"}), 400)
 	var bindings int64
 	if err := db.Model(&entity.UserRole{}).Where("user_id = ?", member.User.ID).Count(&bindings).Error; err != nil || bindings != 2 {
 		t.Fatal("invalid role assignment partially replaced roles")
 	}
-	decodeCatalogResponse[MemberResponse](t, request("PUT", memberPath+"/roles", map[string]any{"role_ids": []string{}}), 200)
+	expectStatus(t, reviewedMemberRolesFixtureRequest(t, router, adminCookie, adminCookie, admin.CSRFToken, member.User.ID, []string{}), 200)
+	decodeCatalogResponse[MemberResponse](t, request("GET", memberPath, nil), 200)
 	expectStatus(t, memberRequest("GET", "/api/v1/admin/members", nil), 403)
 	expectStatus(t, memberRequest("GET", "/api/v1/admin/providers", nil), 403)
 	expectStatus(t, request("DELETE", "/api/v1/admin/roles/"+reader.ID, nil), 204)

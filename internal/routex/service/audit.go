@@ -82,6 +82,12 @@ func auditRecord(row entity.AuditEvent) AuditRecord {
 	// never become an accidental credential/request-body read API.
 	var changes any
 	switch row.Action {
+	case "member.roles.update":
+		record, valid := memberRolesAuditProjection(row)
+		if !valid {
+			return result
+		}
+		changes = record
 	case "member.metadata.update":
 		record, valid := memberMetadataAuditProjection(row)
 		if !valid {
