@@ -213,6 +213,7 @@ func (ctrl *Ctrl) RegisterRoutes(r *fox.Engine) {
 	admin.GET("/members/:user_id", ctrl.RequirePermission("members.read"), ctrl.GetMember)
 	admin.GET("/members/:user_id/overview", ctrl.RequirePermission("members.read"), ctrl.MemberOverview)
 	admin.GET("/members/:user_id/effective-models", ctrl.RequirePermission("members.read"), ctrl.MemberEffectiveModels)
+	admin.GET("/members/:user_id/access", ctrl.RequirePermission("members.read"), ctrl.MemberAccessSummary)
 	admin.GET("/members/:user_id/teams", ctrl.RequirePermission("members.read"), ctrl.RequirePermission("teams.read_all"), ctrl.ListMemberTeams)
 	admin.GET("/members/:user_id/models", ctrl.GetMemberModels)
 	admin.PUT("/members/:user_id/models", sameOrigin, requireCSRF, jsonManagementRequest, ctrl.SetMemberModels)

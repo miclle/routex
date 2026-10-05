@@ -7,22 +7,27 @@ three unstarted**. The coordinated roadmap lives outside this repository;
 
 ## Current work
 
-Recorded recent successful login has passed source and all actual gates on
-checked effective Models `88e8480`. Final mandatory check passed; the containing 40-path phase is the checked
-delivery, followed by the prepared Access summary, Roles and State.
-Local registration approval is being prepared in isolated source directories.
-Prices use the current repository file; initial data remains a separate
-source-only candidate.
+The containing checked Access delivery completes the read-only Member Overview
+Access summary. Full source (2,684/135), both-driver focus, complete 97-per-driver
+regression, controlled zero-inference production/bilingual browser/same-Session
+restart and final mandatory checks passed. Continue reviewed Roles, including
+its failed-request retry fix, then State and local registration approval. Their
+isolated source proofs remain separate from actual main acceptance. Prices use
+the current repository file with a separate reviewed initial-data candidate.
 
 ## Current main delivery
 
-The containing 40-path phase records actual successful sign-in timestamps and
-preserves historical unknowns in the existing Member list and Overview. Source,
-complete 96-per-driver matrix, authentication/native persistence, and controlled
-production/MFA/bilingual browser/restart and final mandatory checks passed.
-The containing commit is the checked delivery; new remote workflows are independent. Effective Models
-`88e8480` CI 37258113614, Actionlint 37258113611 and GolangCI-Lint 37258113632
-all passed. List `af9c22e` also retains all three successful exact workflows.
+The containing Access commit is the checked delivery. It preserves the approved
+six Access facts and independently authorized Role/Team names, with no migration
+or writer. Commit/push/read-back and new remote workflows are separate delivery
+observations recorded by the coordinator. F04 and formal 11/16/3 remain unchanged.
+
+Recent-login predecessor d51a52e retains actual committed sign-in timestamps and
+historical unknowns. Its complete 96, authentication/native persistence and
+controlled production/MFA/bilingual restart gates passed. Commit/push and exact
+remote read-back passed; CI 37264974282, Actionlint 37264974348 and
+GolangCI-Lint 37264974195 all succeeded. Effective Models 88e8480 and List af9c22e
+also retain all three successful exact workflows.
 
 ## Previously checked Metadata
 
@@ -126,8 +131,8 @@ acceptance record below gives exact timings, hashes and remaining limits.
 | --- | --- | --- | --- |
 | 1 | Eleven-column Member list | Checked main af9c22e; pushed/read back; all local and exact remote gates passed | Complete for this slice |
 | 2 | Overview effective Models | Checked main 88e8480, pushed and read back; complete local gates passed | All three exact remote workflows passed |
-| 3 | Recorded recent successful login | Frozen joint 36 contextual carry with historical decoder correction and paired wrapping-rule preservation; additive GORM V55, historical NULL unknown | Source, complete96, real migration/auth/MFA/restart and bilingual evidence and final check passed; checked delivery is the containing commit |
-| 4 | Overview Access summary | Frozen six backend/eighteen UI leaves plus root contexts; independent Role/Team metadata reads | Joint source R2 and helpers R3 reviewed; carry onto checked recent login, source/driver/full and zero-inference bilingual process/restart, commit/push |
+| 3 | Recorded recent successful login | Frozen joint 36 contextual carry with historical decoder correction and paired wrapping-rule preservation; additive GORM V55, historical NULL unknown | Source, complete 96, real migration/auth/MFA/restart and bilingual evidence and final check passed; checked delivery is the containing commit |
+| 4 | Overview Access summary | Frozen six backend/eighteen UI leaves plus root contexts; independent Role/Team metadata reads | Integrated onto checked recent login; source, real-driver focus and zero-inference bilingual process/restart passed; complete 97 passed; final check and commit/push pending |
 | 5 | Reviewed direct role assignment | Frozen backend, UI, real-driver fixtures and root registration; tentative V56/99 | Carry after checked Access, root actual gates and commit/push |
 | 6 | Reviewed member state and base role | Frozen source-only backend/fixtures/root registration/UI focus repair/helpers, V56/100 | Reprepare after checked Roles, root actual gates and commit/push |
 
@@ -370,3 +375,85 @@ NULL remains unknown; Session reads, setup, registration and security replacemen
 do not manufacture login history. F04 remains Partial and formal totals remain
 11 complete, 16 partial and three unstarted. Continue Access, Roles, State and
 local registration approval; queued source packets are not accepted delivery.
+
+### Member Access summary integration, 2026-10-05
+
+The reviewed 28-path joint R2 is carried contextually onto checked recent-login
+main d51a52e. Fourteen new leaves extend the protected floor from 282 to 296;
+all unowned predecessor code, the three corrected migration/login fixtures and
+paired Recent/Effective wrapping rules remain exact. There is no migration or
+writer: V55 and the original 96 order remain unchanged, with one Access scenario
+appended for 97. The existing Overview uses its six approved Access cards and
+header facts; Role and Team names each require independent read permission.
+Denied metadata stays unknown, overflow fails the complete read, and renewed
+actor/target reads hide stale private facts. English/Chinese copy is paired.
+
+Source, focused and complete real-driver, production/bilingual browser/restart
+and final mandatory gates are pending. The reviewed R3 root helpers require
+the accepted 282 predecessor and exact 296 source, preserve every unowned code
+hash, and permit only explicitly reviewed three-document updates. The process
+is zero inference; its selected older List fixture separately performs four
+genuine native calls. Queued Roles/State and isolated local-approval source
+work remain unaccepted. F04 and formal 11/16/3 remain unchanged.
+
+### Member Access source and production acceptance, 2026-10-05
+
+Current-main format and mandatory checks passed, followed by complete source
+tests: 2,684 frontend cases in 135 files, Go race tests, four Node checks,
+two development lifecycle tests and production assets. The actual PostgreSQL
+and MySQL focus passed eight lifecycle children and eight pre-loop constraints
+with complete parents and no failed or skipped child. The Access slice remains
+read-only, at V55 with 97 ordered lifecycle scenarios.
+
+The same production binary (SHA256
+`68425d9692fc61d9f0b5299e380c981b4e41efcd5cb63a4b5dcac14ac5201972`)
+passed controlled read-only process and English/Chinese browser acceptance for
+independent Role/Team metadata permissions, writer-only denial, real summaries,
+and hidden private facts during renewed reads. A same-artifact, database,
+configuration and credential-root restart retained the validated browser Session
+and passed both languages again without replaying login. Eight screenshots were
+captured; console warnings and errors were empty. This process dispatched zero
+inference requests and created zero calls or attempts. Original Sessions, grants,
+roles, Teams, policies, catalogue and history remained unchanged. The older List
+fixture selected by the focus separately performs four genuine native calls.
+
+Two initial process attempts failed the helper's restart Session baseline and
+remain historical failed evidence. The corrected helper captures the complete
+validated pre-restart Session set, retaining original Session equality and
+rejecting unexpected post-restart Session creation. A separate helper-only
+registry check now scopes its assertion to the current migration registry;
+legacy SQL has an independent append expression. Neither correction changed
+product source or the production binary. Actual tooltip activation was not
+separately verified; historical-null update timestamps and incidental renewal
+races have source coverage only. Owned containers, networks, volumes, listeners
+and the temporary browser tab were independently confirmed absent.
+
+The complete unchanged-code 97-case-per-driver regression and final pre-commit
+check remain pending. F04 stays Partial and formal totals stay 11 complete,
+16 partial and three unstarted. Continue reviewed Roles, State and registration
+approval after this checked slice; source packets alone are not delivery.
+
+### Member Access complete regression, 2026-10-05
+
+The unchanged-code complete V55 matrix exited 0 with all 97 ordered lifecycle
+scenarios on each of PostgreSQL and MySQL, eight pre-loop constraints, all
+five test-bearing packages complete and no failed or skipped named test
+(2,707 named tests). PostgreSQL took 773.670s, MySQL 973.960s, Handler 1751.999s
+and Service 11.221s. The original 96 prefix and appended Access scenario remained
+exact. Full log SHA256:
+`1aae2c7abb01ea85c585fbe54ab1a3923a5a27cce823f9a0315c0391e3dfd3f5`.
+
+All 296 protected paths, the reviewed 31-path dirty scope, main d51a52e, empty
+index and production artifact stayed exact during the actual run. Owned
+containers, networks and volumes were independently absent after teardown.
+The complete source tests (2,684 cases/135 files), both-driver focus (eight lifecycle children/eight constraints) and controlled zero-inference
+production/bilingual browser/same-Session restart gates remain independently
+passed. Final mandatory `go tool task check` passed with zero lint errors and two
+existing Fast Refresh warnings before the scoped main commit.
+
+Recorded-login predecessor d51a52e now has all three exact remote workflows
+successful: CI 37264974282, Actionlint 37264974348 and GolangCI-Lint 37264974195.
+These remote results apply to that predecessor, independently of this delivery.
+F04 and formal 11/16/3 remain partial/unchanged. Next integrate the reviewed
+Roles joint, including its two-leaf failed-request retry fix, then State and
+local approval. Their isolated source proofs do not establish actual acceptance.

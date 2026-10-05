@@ -1,3 +1,4 @@
+import { accessSummaryFixture } from './member-access-summary.fixture'
 import { memberListPage, memberListRow } from './member-list.fixture'
 import { limitFixture } from '@/views/resource-limits/fixture'
 import { act } from 'react'
@@ -69,6 +70,26 @@ beforeEach(() => {
   })
   client.defaults.adapter = async (config) => {
     requests.push(config)
+    if (config.method === 'get' && config.url?.endsWith('/access')) {
+      const data = accessSummaryFixture(config.url.split('/')[3], {
+        roles: permissions.includes('roles.read'),
+        teams: permissions.includes('teams.read_all'),
+      })
+      data.identity_role = target.role
+      if (data.roles.status === 'available')
+        data.roles.items = roles
+          .filter((role) => target.role_ids.includes(role.id))
+          .map(({ id, name, builtin }) => ({ id, name, builtin }))
+          .sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0))
+      if (data.teams.status === 'available') data.teams.items = []
+      return {
+        config: config,
+        status: 200,
+        statusText: '',
+        headers: new AxiosHeaders({ 'cache-control': 'private, no-store' }),
+        data,
+      }
+    }
     const key = `${config.method} ${config.url}`
     const response = {
       config,

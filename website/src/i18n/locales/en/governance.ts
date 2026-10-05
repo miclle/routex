@@ -1,4 +1,19 @@
 export default {
+  memberAccess: {
+    roles: 'Roles',
+    teams: 'Teams',
+    unknown: 'Unknown',
+    not_authorized: 'Not authorized',
+    overflow: 'Summary exceeds the supported limit',
+    unavailable: 'Summary unavailable',
+    noTeams: 'No Teams',
+    rolesValue: '{{identity}} · {{roles}}',
+    teamDetails: 'Retained Team membership details',
+    teamContext: 'Team: {{status}} · Membership: {{membership}} · Role: {{role}}',
+    owner: 'Owner',
+    member: 'Member',
+    archived: 'Archived',
+  },
   memberMetadata: {
     form: 'Member basic information',
     help: 'Maintain the member name. Email and platform access are managed separately.',

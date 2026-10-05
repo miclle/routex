@@ -1,3 +1,4 @@
+import { accessSummaryFixture } from './member-access-summary.fixture'
 import { act } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
@@ -58,6 +59,21 @@ beforeEach(async () => {
   })
   client.defaults.adapter = async (config) => {
     requests.push(config)
+    if (config.method === 'get' && config.url?.endsWith('/access')) {
+      const data = accessSummaryFixture(config.url.split('/')[3], {
+        roles: permissions.includes('roles.read'),
+        teams: permissions.includes('teams.read_all'),
+      })
+      if (data.roles.status === 'available') data.roles.items = []
+      if (data.teams.status === 'available') data.teams.items = []
+      return {
+        config: config,
+        status: 200,
+        statusText: '',
+        headers: new AxiosHeaders({ 'cache-control': 'private, no-store' }),
+        data,
+      }
+    }
     const target = config.url?.split('/')[3] ?? 'usr_target'
     let data: unknown
     const pending = intercept?.(config)

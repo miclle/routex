@@ -1,3 +1,5 @@
+import MemberAccessSummary, { MemberAccessRoleSummary } from './member-access-summary'
+import { useMemberAccessSummary } from './member-access-summary-read'
 import MemberMetadata from './member-metadata'
 import MemberList from './member-list'
 import { getMemberList, validateMemberListChain } from '@/api/member-list'
@@ -80,7 +82,7 @@ export default function MembersPage() {
   return <Members />
 }
 function Members() {
-  const { t, i18n } = useTranslation('governance')
+  const { t } = useTranslation('governance')
   const { memberId } = useParams()
   const [params, setParams] = useSearchParams()
   const access = usePermissions()
@@ -214,7 +216,7 @@ function Members() {
   const roles = useQuery({
     queryKey: ['admin', 'roles', actor, generation],
     queryFn: ({ signal }) => getRoles(signal),
-    enabled: !!memberId && authorized && access.can('roles.read'),
+    enabled: !!memberId && authorized && params.get('tab') === 'roles' && access.can('roles.read'),
   })
   const mutation = useMutation({
     mutationFn: ({
@@ -378,6 +380,13 @@ function Members() {
     member.data.id === memberId
       ? member.data
       : undefined
+  const accessSummary = useMemberAccessSummary({
+    actor,
+    target: memberId ?? '',
+    generation,
+    ready: !!current,
+    targetQueryKey: ['admin', 'member', actor, memberId, generation],
+  })
   const currentRoles =
     roles.data?.items.filter(
       (role) =>
@@ -530,17 +539,11 @@ function Members() {
                 <span className="flex size-12 items-center justify-center rounded-full bg-muted">
                   {current.name.slice(0, 2).toUpperCase()}
                 </span>
-                <div className="flex-1">
+                <div className="min-w-0 flex-1">
                   <h2 className="text-2xl font-semibold">{current.name}</h2>
                   <p className="text-sm text-muted-foreground">{current.email}</p>
-                  <p className="text-sm text-muted-foreground">
-                    {t('members.roleSummary', {
-                      roles: currentRoles.length
-                        ? currentRoles.map(roleName).join(t('common.listSeparator'))
-                        : current.role === 'admin'
-                          ? t('common.admin')
-                          : t('common.member'),
-                    })}
+                  <p className="truncate text-sm text-muted-foreground">
+                    <MemberAccessRoleSummary read={accessSummary} />
                   </p>
                 </div>
                 <Badge variant="outline">
@@ -620,44 +623,7 @@ function Members() {
                     generation={generation}
                     authorized={!!current}
                   />
-                  <section className="rounded-lg border">
-                    <h3 className="border-b p-4 font-medium">{t('members.accessStatus')}</h3>
-                    <dl className="grid gap-4 p-4 text-sm sm:grid-cols-3">
-                      <div>
-                        <dt className="text-muted-foreground">{t('members.id')}</dt>
-                        <dd className="break-all">{current.id}</dd>
-                      </div>
-                      <div>
-                        <dt className="text-muted-foreground">{t('common.status')}</dt>
-                        <dd>
-                          {current.offboarded_at
-                            ? t('common.offboarded')
-                            : current.disabled
-                              ? t('common.disabled')
-                              : t('common.active')}
-                        </dd>
-                      </div>
-                      <div>
-                        <dt className="text-muted-foreground">{t('memberList.login')}</dt>
-                        <dd>
-                          {current.last_login_status === 'recorded'
-                            ? new Intl.DateTimeFormat(
-                                i18n.resolvedLanguage === 'zh' ? 'zh-CN' : 'en-US',
-                                { dateStyle: 'medium', timeStyle: 'short' },
-                              ).format(new Date(current.last_login_at))
-                            : t('memberList.loginUnknown')}
-                        </dd>
-                      </div>
-                      <div>
-                        <dt className="text-muted-foreground">{t('members.joined')}</dt>
-                        <dd>
-                          {new Date(current.created_at).toLocaleString(
-                            i18n.resolvedLanguage === 'zh' ? 'zh-CN' : 'en-US',
-                          )}
-                        </dd>
-                      </div>
-                    </dl>
-                  </section>
+                  <MemberAccessSummary read={accessSummary} member={current} />
                   <MemberEffectiveModels
                     actor={actor}
                     target={memberId}

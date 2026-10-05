@@ -1,4 +1,19 @@
 export default {
+  memberAccess: {
+    roles: '角色',
+    teams: '所属团队',
+    unknown: '未知',
+    not_authorized: '无查看权限',
+    overflow: '摘要超过支持的数量上限',
+    unavailable: '摘要不可用',
+    noTeams: '无所属团队',
+    rolesValue: '{{identity}} · {{roles}}',
+    teamDetails: '保留的 Team 成员关系详情',
+    teamContext: 'Team：{{status}} · 成员关系：{{membership}} · 角色：{{role}}',
+    owner: '负责人',
+    member: '成员',
+    archived: '已归档',
+  },
   memberMetadata: {
     form: '成员基本信息',
     help: '维护成员姓名。邮箱和平台访问状态由独立流程管理。',

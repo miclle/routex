@@ -1,3 +1,4 @@
+import { accessSummaryFixture } from './member-access-summary.fixture'
 import { memberListPage, memberListRow } from './member-list.fixture'
 import { effectiveModelsPage } from './member-effective-models.fixture'
 import { act } from 'react'
@@ -77,6 +78,21 @@ beforeEach(async () => {
   await i18n.changeLanguage('en')
   client.defaults.adapter = async (config) => {
     requests.push(config)
+    if (config.method === 'get' && config.url?.endsWith('/access')) {
+      const data = accessSummaryFixture(config.url.split('/')[3], {
+        roles: permissions.includes('roles.read'),
+        teams: permissions.includes('teams.read_all'),
+      })
+      if (data.roles.status === 'available') data.roles.items = []
+      if (data.teams.status === 'available') data.teams.items = []
+      return {
+        config: config,
+        status: 200,
+        statusText: '',
+        headers: new AxiosHeaders({ 'cache-control': 'private, no-store' }),
+        data,
+      }
+    }
     const deferred = intercept?.(config)
     let value: unknown
     if (deferred) value = await deferred
@@ -190,6 +206,7 @@ describe('administrative Member Overview', () => {
           '/admin/members/usr_target',
           '/admin/members/usr_target/overview',
           '/admin/members/usr_target/effective-models',
+          '/admin/members/usr_target/access',
         ].includes(r.url!),
       ),
     ).toBe(true)

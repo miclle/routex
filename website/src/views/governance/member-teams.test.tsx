@@ -1,3 +1,4 @@
+import { accessSummaryFixture } from './member-access-summary.fixture'
 import { act } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
@@ -61,6 +62,36 @@ beforeEach(() => {
   cache = new QueryClient({ defaultOptions: { queries: { retry: false } } })
   client.defaults.adapter = async (config) => {
     requests.push(config)
+    if (config.method === 'get' && config.url?.endsWith('/access')) {
+      const data = accessSummaryFixture(config.url.split('/')[3], {
+        roles: permissions.includes('roles.read'),
+        teams: permissions.includes('teams.read_all'),
+      })
+      if (data.roles.status === 'available') data.roles.items = []
+      if (data.teams.status === 'available') {
+        const items = pages
+          .flatMap((page) => page.items)
+          .map(({ id, name, status, membership_status, membership_role }) => ({
+            id,
+            name,
+            status,
+            membership_status,
+            membership_role,
+          }))
+          .sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0))
+        data.teams =
+          new Set(items.map((team) => team.id)).size === items.length
+            ? { status: 'available', items }
+            : { status: 'unavailable', items: null }
+      }
+      return {
+        config: config,
+        status: 200,
+        statusText: '',
+        headers: new AxiosHeaders({ 'cache-control': 'private, no-store' }),
+        data,
+      }
+    }
     let data: unknown
     if (config.url === '/auth/session') {
       if (sessionStatus) throw fail(config, sessionStatus)
