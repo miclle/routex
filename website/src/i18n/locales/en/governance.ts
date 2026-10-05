@@ -23,6 +23,17 @@ export default {
     failed: 'The current name could not be reviewed.',
     confirmed: 'Current member name confirmed. This confirms current state only.',
   },
+  memberEffectiveModels: {
+    title: 'Effective models',
+    table: 'Member effective models',
+    source: 'Authorization source',
+    personal: 'Personal grant',
+    sourceDetails: 'Authorization source: {{source}}',
+    help: 'Configured Personal and authorized Team sources. Availability is advisory; it does not confirm Key ceilings, admission or completed inference.',
+    incomplete: 'Team enrichment is not authorized. The complete authorization union is unknown.',
+    inactive: 'The member is inactive. Retained configuration does not grant current access.',
+    denied: 'Member effective-model read access is unavailable.',
+  },
   memberModels: {
     title: 'Models',
     personal: 'Personal authorized models ({{count}})',

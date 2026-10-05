@@ -154,7 +154,7 @@ The binary capability count is 11 completed, 16 partially completed, and 3 not s
 | F01 | Initialization, local identity, registration, and logout | Completed | Concurrent one-time setup, administrator creation, local login, registration control, durable sessions, and logout are implemented and tested. |
 | F02 | Profile, password, MFA, recovery codes, and session revocation | Completed | Profile and password changes, authenticator enrollment, single-use recovery codes, and individual-session revocation are implemented. |
 | F03 | Enterprise SSO, LDAP, OAuth, and emergency recovery | Not started | Provider configuration, callbacks, identity binding, enforced SSO, and enterprise recovery remain unimplemented. |
-| F04 | Member administration, direct grants, roles, and resource policies | Partially completed | Checked Member Overview, Keys818500a, Limits2d5cafc, Teams8074aaa and Models569abcd deliveries have independent source, dual-driver and controlled process/browser/restart evidence. Keys/Limits/Teams exact remote workflows passed; subsequent cancelled/failed Model/CSV CI remains distinct. Basic-name Settings editing and its test-only observation correction have full92-per-driver, eight-constraint, authentication/restart and bilingual conflict/save acceptance; delivery is represented by the commit containing this record. Eleven-column list, effective Models, recorded login and Access summary are queued source packages; reviewed direct roles is being implemented independently. Base-role review and the complete cross-domain resource-policy surface remain open. |
+| F04 | Member administration, direct grants, roles, and resource policies | Partially completed | Member Overview, Keys, Limits, Teams, Models, metadata and the eleven-column list are checked deliveries. List af9c22e has successful exact remote workflows. The containing read-only effective Models phase passed source, complete 94-per-driver regression and controlled bilingual process/restart acceptance. Recorded login, Access, reviewed direct roles, State/base-role changes and registration approval remain queued or unfinished; role definitions/templates, Team-role review and wider resource-policy acceptance remain open. |
 | F05 | Built-in and custom roles with composed permissions | Partially completed | Current-domain role and permission management is implemented; later enterprise and operations domains still require permission integration and negative acceptance. |
 | F06 | Team membership, ownership, models, quotas, and member rules | Completed | Team membership/ownership, model relationships, finite aggregate/member policies and monthly requests are accepted. Durable Team-assigned roles, exact Team-only action unions, reviewed administrator assignment and the existing Roles interface have controlled dual-database and browser evidence. |
 | F07 | Project lifecycle, managers, models, Keys, and requests | Completed | Exact current management, lifecycle/continuity, multi-manager creation, initial direct resources and combined requests, scoped Overview, Project Keys, resource limits and model/quota/rate approvals are implemented with controlled dual-database/browser/native/restart evidence. Both lists now show authorized total retained Key counts; administrative stored-policy summaries, literal name/ID search and authorized legacy tab replacement have full main acceptance. |
@@ -4893,3 +4893,110 @@ requirement, excluded only from the bounded State slice. It needs its own policy
 application/decision, authentication/runtime and lifecycle-bypass acceptance.
 Role templates, role-definition UX and Team-role review also remain open. F04
 and the formal 11 complete / 16 partial / three unstarted totals are unchanged.
+
+### Effective Models source integration, 2026-10-05
+
+Checked Member list `af9c22e482164229e1daf80a17d5e3760ecc5ff3` was pushed and
+read back exactly from origin/main with a clean checkout. Root then carried the
+reviewed 26-path effective Models packet with all predecessor contexts verified
+before writes. All unowned accepted List paths, including the five namespace/
+timezone/historical-name corrections, remained exact. V54 is unchanged; the
+existing 93 ordered cases remain the prefix and only `member_effective_models`
+is appended (94 per driver). The protected source union has 268 paths.
+
+The existing Overview receives a read-only Personal/active-Team union with
+independent Team, Provider and price permissions; exact-source, bounded complete
+metadata and conservative current readiness never expand a Key ceiling or claim
+native completion. Source format/check/test and root-owned actual gates are in
+progress; no actual Effective Models acceptance or delivery is claimed. Root
+helpers are being re-reviewed against the checked predecessor and current source.
+F04 remains partial; the full objective continues after each checked phase.
+
+Effective Models source gates passed on checked List main: mandatory check,
+2,546 frontend cases in 131 files, four Node tests, two development lifecycle
+tests, Go race and embedded production assets (1.686s). The freshly built artifact
+SHA256 is `bf094619eadcf09335246e8083914c1130142c5b0412569a041ee3d5ea4158f0`.
+The Task build's npm install removed optional Linux libc lock metadata without
+changing dependency versions; root saved the diff and restored only that owned
+build-generated edit to the exact checked lock. All 268 protected source paths
+were confirmed exact afterward. Actual driver/process/browser/full gates remain
+pending. Source acceptance is distinct from actual runtime or phase delivery.
+
+The first actual Effective Models focus passed five lifecycle children and all
+eight constraints, but PostgreSQL's alias-membership fixture violated the real
+User foreign key. MySQL passed the alias case. Owned resources were independently
+absent and all268 protected source paths remained exact. This run is not accepted.
+The one-leaf test-only repair creates a disabled case-variant User parent via
+GORM where distinct primary keys are supported; portable `gorm.ErrDuplicatedKey`
+handles collation folding. Restore the canonical membership before removing only
+the exact independently created alias. Foreign keys, production authorization,
+negative alias exclusion, query budgets and immutable/no-dispatch checks remain
+unchanged. Handler source race passed; corrected actual acceptance is pending.
+
+
+### Effective Models real focus and browser correction, 2026-10-05
+
+The corrected PostgreSQL/MySQL focus passed all six selected lifecycle children
+and eight constraints, with every nested test terminal verified and all 268 source
+paths unchanged. The earlier PostgreSQL fixture foreign-key failure remains a
+failed run. The first production/browser run timed out awaiting its explicit
+300-second browser release during context continuation; owned resources were
+independently absent afterward, and that run is not accepted.
+
+The next unchanged-artifact process passed its Personal-only and authorized
+three-model union, exact 18-place prices, independent permissions, no inference
+and restart checks. All 20 protected table digests stayed exact; no native POST,
+CallRecord, CallAttempt or post-setup upstream request occurred. English/Chinese
+browser reads confirmed the data but exposed nowrap price spans overlapping
+adjacent 180px columns and retained model identifiers overflowing 220px cells.
+Browser acceptance failed; restart browser views and denied browser identities
+were not completed in that run. Owned tab, services, Compose resources and port
+were removed before source repair.
+
+Wrap the exact monetary string and retained model identifier inside the existing
+fixed cells without changing columns, layout, amounts or API contracts. Source
+verification, a newly built artifact and new bilingual process/browser/restart
+acceptance remain required. Earlier 2,546 source tests and artifact bf094619 are
+historical evidence for the pre-correction source, not the corrected delivery.
+
+
+### Checked Member effective Models acceptance, 2026-10-05
+
+The corrected source retains the existing Overview cards and ten-column table,
+with exact monetary values and model identifiers wrapped inside their fixed
+cells. Format, mandatory checks, all 2,546 frontend cases/131 files, four Node
+tests, two development lifecycle tests, Go race and production assets passed.
+The corrected production artifact SHA256 is
+`ce427279babb61a72a2c451d68e821d4e543d1aa30fc9def1c76cc43efeb88c1`.
+
+Both-driver focused acceptance passed six lifecycle children and eight
+constraints. The corrected artifact passed controlled production and browser
+acceptance: Personal-only versus complete authorized three-model union, two
+distinct shared-model sources, independent metadata/rate permissions, exact
+18-place input/output amounts, English/Chinese live switching and cell geometry,
+write-only and Team-only read denials, and same-artifact process restart with
+bilingual reopened reads. Console warnings/errors were empty. No native POST,
+CallRecord, CallAttempt or post-setup upstream request occurred; all 20 protected
+table digests stayed exact. Session and whole User/catalogue preservation are
+not inferred from those table digests. Availability remains advisory current
+configuration, never Key ceiling expansion, admission or native completion.
+Actual source-tooltip activation was not separately verified.
+
+The complete unchanged-source matrix passed all 94 ordered scenarios on both
+PostgreSQL and MySQL, eight pre-loop constraints and five test-bearing packages,
+with no failed or skipped tests. Handler 1644.881s; Service 10.804s. All 268 source
+protections and the exact 29-path dirty boundary remained unchanged during
+acceptance. Log SHA256:
+`fe14a67f171068ed0e497273aafd56b61ee73f682da32f43711336836df00263`.
+All owned containers, networks, volumes, browser tabs and application listeners
+were independently absent after cleanup. The earlier foreign-key fixture
+failure, operator-pause timeout and pre-correction browser overflow remain
+historical failed runs above; they are not passed evidence.
+
+Checked List main `af9c22e` now has successful exact CI 37252847114,
+Actionlint 37252847110 and GolangCI-Lint 37252847145. Final mandatory checks passed. The
+checked Effective Models phase is represented by the commit containing this
+record; new remote workflows remain independent. F04 and overall 11/16/3 totals stay
+partial/unchanged. Continue recorded recent login, Access, Roles and State;
+registration approval, role definitions/templates and Team-role review remain
+separate unfinished requirements.

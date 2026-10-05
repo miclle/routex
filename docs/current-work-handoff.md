@@ -7,12 +7,16 @@ three unstarted**. The coordinated roadmap lives outside this repository;
 
 ## Current main delivery
 
-Checked main `d261b02c3073a0c6e9c5a43fd95f5b391cfe4e65` delivers Member Settings
-basic-name editing after the separate two-test correction `516ee0b` and checked
-own-Team CSV `185611c`. Both commits passed mandatory checks and exact push/read-
-back; main was clean before the list carry. Exact Actionlint37246352450 and
-GolangCI-Lint37246352527 and CI37246352465 all passed, including both-driver
-integration and artifact build.
+The containing 29-path phase implements the Member effective Models table on
+checked List main `af9c22e`. Complete source and actual dual-driver, production,
+bilingual browser and restart gates and final mandatory checks passed. The
+checked delivery is represented by the commit containing this record. New remote workflows remain independent. List
+CI 37252847114, Actionlint 37252847110 and GolangCI-Lint 37252847145 all passed.
+
+## Previously checked Metadata
+
+Metadata `d261b02` and its separate observation correction `516ee0b` remain checked
+with successful exact remote workflows and the following accepted scope.
 
 The existing Basic information card retains its layout and read-only email.
 Name updates require independent authority, exact resource identity, reviewed
@@ -51,10 +55,10 @@ matrix failures remain historical in Implementation and are not passed evidence.
   final mandatory checks passed locally. Four immutable completed native calls,
   exact scope/money and membership denial passed. English/Chinese and mobile
   columns passed. Saved browser-file landing remains unverified; actual HTTP CSV
-  bytes and headers passed. Exact Actionlint37239988907 and GolangCI37239988911
-  passed; CI37239988896 failed the MySQL immediate restored-proof test assertion.
+  bytes and headers passed. Exact Actionlint 37239988907 and GolangCI 37239988911
+  passed; CI 37239988896 failed the MySQL immediate restored-proof test assertion.
 - Model review correction `3d6118`: deterministic source, full91 and both-driver
-  authentication/restart passed. Actionlint/GolangCI passed; CI37238698287 was
+  authentication/restart passed. Actionlint/GolangCI passed; CI 37238698287 was
   cancelled by the CSV push after source jobs. Cancellation is not success.
 - Member Models `569abcd`: full91, authentication, 2346/123 frontend and
   ten-native/four-denial process/browser/restart passed. Its CI was cancelled by
@@ -96,19 +100,25 @@ RED command remain historical in Implementation. The log reviewer was corrected
 for slash-containing Go subtest labels; six parser checks passed, with exact
 integration-parent checks retained. This did not change product or test source.
 
-Final mandatory check and scoped commit/push follow this evidence. New remote
-workflows are independent. Continue effective Models immediately afterward.
+Final List mandatory check, scoped commit/push and exact main read-back passed
+as `af9c22e`, with all three exact remote workflows now successful. Effective
+Models then integrated 26 reviewed paths, a one-leaf foreign-key fixture repair
+and a three-leaf table/rules wrapping correction. All other source protections
+remained exact. The corrected source passed 2,546/131 frontend, Go race,
+lifecycle, assets, mandatory checks, both-driver focused and complete 94 matrix,
+and controlled zero-inference bilingual process/browser/restart. The complete
+acceptance record below gives exact timings, hashes and remaining limits.
 
 ## Next checked phases
 
 | Order | Slice | Source state | Remaining gates |
 | --- | --- | --- | --- |
-| 1 | Eleven-column Member list | Complete source, both-driver full93/authentication and native/browser/restart gates passed | Final mandatory check and scoped commit/push |
-| 2 | Overview effective Models | Frozen bounded Personal/active-Team union, independent enrichment authority and exact prices | Reprepare onto checked list, source and both-driver gates, zero-inference process/browser/restart, commit/push |
-| 3 | Recorded recent successful login | Frozen backend/UI, tentative additive GORM V55; historical NULL remains unknown | Carry onto checked effective Models, register V55/two cases, real migration/auth/MFA/restart and bilingual evidence, commit/push |
+| 1 | Eleven-column Member list | Checked main af9c22e; pushed/read back; all local and exact remote gates passed | Complete for this slice |
+| 2 | Overview effective Models | Corrected protected 268/V54/94 source; complete source, driver/full and zero-inference bilingual process/restart passed | Scoped commit/push; independent new remote CI |
+| 3 | Recorded recent successful login | Frozen joint 36 contextual carry with historical decoder correction and paired wrapping-rule preservation; additive GORM V55, historical NULL unknown | Carry onto checked effective Models, register V55/two cases, real migration/auth/MFA/restart and bilingual evidence, commit/push |
 | 4 | Overview Access summary | Frozen six backend/eighteen UI leaves plus root contexts; independent Role/Team metadata reads | Reprepare onto checked recent login, source/driver/full and zero-inference bilingual process/restart, commit/push |
 | 5 | Reviewed direct role assignment | Frozen backend, UI, real-driver fixtures and root registration; tentative V56/99 | Carry after checked Access, root actual gates and commit/push |
-| 6 | Reviewed member state and base role | Isolated source-only backend/fixtures/root registration; UI focus repair in progress, V56/100 | Finish focus tests, reprepare after checked Roles, root actual gates and commit/push |
+| 6 | Reviewed member state and base role | Frozen source-only backend/fixtures/root registration/UI focus repair/helpers, V56/100 | Reprepare after checked Roles, root actual gates and commit/push |
 
 Queued packets are source preparation, not actual migration, runtime acceptance or
 delivery. Their future accepted predecessor revisions remain unbound. Never copy
@@ -143,3 +153,82 @@ documents/commit/PR text. Run relevant tests and mandatory `go tool task check`
 before each scoped commit; push and read back main. Keep remote CI independent,
 update documents after evidence changes and continue the objective after each
 checked phase. Never mark failed, skipped, cancelled or unexecuted gates passed.
+
+The first actual Effective Models focus passed five lifecycle children and all
+eight constraints, but PostgreSQL's alias-membership fixture violated the real
+User foreign key. MySQL passed the alias case. Owned resources were independently
+absent and all268 protected source paths remained exact. This run is not accepted.
+The one-leaf test-only repair creates a disabled case-variant User parent via
+GORM where distinct primary keys are supported; portable `gorm.ErrDuplicatedKey`
+handles collation folding. Restore the canonical membership before removing only
+the exact independently created alias. Foreign keys, production authorization,
+negative alias exclusion, query budgets and immutable/no-dispatch checks remain
+unchanged. Handler source race passed; corrected actual acceptance is pending.
+
+
+### Effective Models real focus and browser correction, 2026-10-05
+
+The corrected PostgreSQL/MySQL focus passed all six selected lifecycle children
+and eight constraints, with every nested test terminal verified and all 268 source
+paths unchanged. The earlier PostgreSQL fixture foreign-key failure remains a
+failed run. The first production/browser run timed out awaiting its explicit
+300-second browser release during context continuation; owned resources were
+independently absent afterward, and that run is not accepted.
+
+The next unchanged-artifact process passed its Personal-only and authorized
+three-model union, exact 18-place prices, independent permissions, no inference
+and restart checks. All 20 protected table digests stayed exact; no native POST,
+CallRecord, CallAttempt or post-setup upstream request occurred. English/Chinese
+browser reads confirmed the data but exposed nowrap price spans overlapping
+adjacent 180px columns and retained model identifiers overflowing 220px cells.
+Browser acceptance failed; restart browser views and denied browser identities
+were not completed in that run. Owned tab, services, Compose resources and port
+were removed before source repair.
+
+Wrap the exact monetary string and retained model identifier inside the existing
+fixed cells without changing columns, layout, amounts or API contracts. Source
+verification, a newly built artifact and new bilingual process/browser/restart
+acceptance remain required. Earlier 2,546 source tests and artifact bf094619 are
+historical evidence for the pre-correction source, not the corrected delivery.
+
+
+### Checked Member effective Models acceptance, 2026-10-05
+
+The corrected source retains the existing Overview cards and ten-column table,
+with exact monetary values and model identifiers wrapped inside their fixed
+cells. Format, mandatory checks, all 2,546 frontend cases/131 files, four Node
+tests, two development lifecycle tests, Go race and production assets passed.
+The corrected production artifact SHA256 is
+`ce427279babb61a72a2c451d68e821d4e543d1aa30fc9def1c76cc43efeb88c1`.
+
+Both-driver focused acceptance passed six lifecycle children and eight
+constraints. The corrected artifact passed controlled production and browser
+acceptance: Personal-only versus complete authorized three-model union, two
+distinct shared-model sources, independent metadata/rate permissions, exact
+18-place input/output amounts, English/Chinese live switching and cell geometry,
+write-only and Team-only read denials, and same-artifact process restart with
+bilingual reopened reads. Console warnings/errors were empty. No native POST,
+CallRecord, CallAttempt or post-setup upstream request occurred; all 20 protected
+table digests stayed exact. Session and whole User/catalogue preservation are
+not inferred from those table digests. Availability remains advisory current
+configuration, never Key ceiling expansion, admission or native completion.
+Actual source-tooltip activation was not separately verified.
+
+The complete unchanged-source matrix passed all 94 ordered scenarios on both
+PostgreSQL and MySQL, eight pre-loop constraints and five test-bearing packages,
+with no failed or skipped tests. Handler 1644.881s; Service 10.804s. All 268 source
+protections and the exact 29-path dirty boundary remained unchanged during
+acceptance. Log SHA256:
+`fe14a67f171068ed0e497273aafd56b61ee73f682da32f43711336836df00263`.
+All owned containers, networks, volumes, browser tabs and application listeners
+were independently absent after cleanup. The earlier foreign-key fixture
+failure, operator-pause timeout and pre-correction browser overflow remain
+historical failed runs above; they are not passed evidence.
+
+Checked List main `af9c22e` now has successful exact CI 37252847114,
+Actionlint 37252847110 and GolangCI-Lint 37252847145. Final mandatory checks passed. The
+checked Effective Models phase is represented by the commit containing this
+record; new remote workflows remain independent. F04 and overall 11/16/3 totals stay
+partial/unchanged. Continue recorded recent login, Access, Roles and State;
+registration approval, role definitions/templates and Team-role review remain
+separate unfinished requirements.

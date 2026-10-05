@@ -1,4 +1,5 @@
 import { memberListPage, memberListRow } from './member-list.fixture'
+import { effectiveModelsPage } from './member-effective-models.fixture'
 import { act } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
@@ -88,6 +89,18 @@ beforeEach(async () => {
         items: [{ id: 'rol_custom', name: 'Custom', builtin: false, permissions: [] }],
         available_permissions: [],
       }
+    else if (config.url?.endsWith('/effective-models'))
+      return {
+        config,
+        status: 200,
+        statusText: '',
+        headers: new AxiosHeaders({ 'cache-control': 'private, no-store' }),
+        data: effectiveModelsPage(config.url.split('/')[3], {
+          teams: permissions.includes('teams.read_all'),
+          providers: permissions.includes('providers.read'),
+          prices: permissions.includes('prices.read'),
+        }),
+      }
     else if (config.url?.endsWith('/overview')) {
       if (failure)
         throw new AxiosError('Denied', '', config, undefined, {
@@ -171,6 +184,7 @@ describe('administrative Member Overview', () => {
           '/auth/permissions',
           '/admin/members/usr_target',
           '/admin/members/usr_target/overview',
+          '/admin/members/usr_target/effective-models',
         ].includes(r.url!),
       ),
     ).toBe(true)
@@ -607,4 +621,14 @@ describe('administrative Member Overview', () => {
     await until(() => host.querySelector('[role=alert]') !== null)
     expect(overviewReads()).toBe(0)
   })
+})
+
+it('preserves the Overview cards then access information then effective-model table order', async () => {
+  await mount()
+  await until(() => host.textContent!.includes('controlled-model'))
+  const headings = [...host.querySelectorAll('h3')].map((element) => element.textContent)
+  expect(headings.indexOf('Access status')).toBeGreaterThan(2)
+  expect(headings.indexOf('Effective models')).toBe(headings.indexOf('Access status') + 1)
+  expect(host.querySelector('table[aria-label="Member effective models"]')).not.toBeNull()
+  expect(host.textContent).toContain('complete authorization union is unknown')
 })

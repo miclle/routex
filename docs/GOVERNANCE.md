@@ -462,3 +462,115 @@ columns, literal search, role filtering/clearing and independent Team access.
 Actual tooltip activation remains separately unverified; source tooltip tests
 retain their scope. No whole User/Session/catalogue preservation is inferred
 from the eight protected historical table digests.
+
+## Member Overview effective Models
+
+The existing Overview retains account cards, Access information and the effective
+Models table. Read the exact bounded union of direct Personal grants and active
+Team grants; the Team portion requires independent `teams.read_all`. A denied
+Team section reveals no Team IDs, names, SQL hydration or implied complete union.
+Separate `providers.read` and `prices.read` govern metadata and rates. Effective
+rows are advisory current configuration, never Key ceiling expansion or native
+invocation proof. Current readiness requires retained exact publication, lease,
+credential/cipher continuity and route evidence; unknown remains unknown.
+
+Keep distinct source identities, complete bounds (100 Teams, 1,000 Models and
+5,000 Team relationships), explicit overflow and exact decimal price strings.
+No per-row directory requests or credential decryption occur. A ready route
+cannot establish successful inference or admission. The table has no edit actions
+and does not mutate grants, Keys, quota or call facts. Fresh parent Session,
+permission, target and read generations hide stale rows and portals.
+
+The 26-path source packet is integrated on checked Member list `af9c22e`, with
+V54 unchanged and one scenario appended (94 per database). Source and root-owned
+real-driver, zero-inference process/bilingual browser/restart and full regression
+acceptance passed on the corrected source, as recorded below. Frozen successor source does not change F04 completion.
+
+Effective Models source gates passed on checked List main: mandatory check,
+2,546 frontend cases in 131 files, four Node tests, two development lifecycle
+tests, Go race and embedded production assets (1.686s). The freshly built artifact
+SHA256 is `bf094619eadcf09335246e8083914c1130142c5b0412569a041ee3d5ea4158f0`.
+The Task build's npm install removed optional Linux libc lock metadata without
+changing dependency versions; root saved the diff and restored only that owned
+build-generated edit to the exact checked lock. All 268 protected source paths
+were confirmed exact afterward. Actual driver/process/browser/full gates remain
+pending. Source acceptance is distinct from actual runtime or phase delivery.
+
+The first actual Effective Models focus passed five lifecycle children and all
+eight constraints, but PostgreSQL's alias-membership fixture violated the real
+User foreign key. MySQL passed the alias case. Owned resources were independently
+absent and all268 protected source paths remained exact. This run is not accepted.
+The one-leaf test-only repair creates a disabled case-variant User parent via
+GORM where distinct primary keys are supported; portable `gorm.ErrDuplicatedKey`
+handles collation folding. Restore the canonical membership before removing only
+the exact independently created alias. Foreign keys, production authorization,
+negative alias exclusion, query budgets and immutable/no-dispatch checks remain
+unchanged. Handler source race passed; corrected actual acceptance is pending.
+
+
+### Effective Models real focus and browser correction, 2026-10-05
+
+The corrected PostgreSQL/MySQL focus passed all six selected lifecycle children
+and eight constraints, with every nested test terminal verified and all 268 source
+paths unchanged. The earlier PostgreSQL fixture foreign-key failure remains a
+failed run. The first production/browser run timed out awaiting its explicit
+300-second browser release during context continuation; owned resources were
+independently absent afterward, and that run is not accepted.
+
+The next unchanged-artifact process passed its Personal-only and authorized
+three-model union, exact 18-place prices, independent permissions, no inference
+and restart checks. All 20 protected table digests stayed exact; no native POST,
+CallRecord, CallAttempt or post-setup upstream request occurred. English/Chinese
+browser reads confirmed the data but exposed nowrap price spans overlapping
+adjacent 180px columns and retained model identifiers overflowing 220px cells.
+Browser acceptance failed; restart browser views and denied browser identities
+were not completed in that run. Owned tab, services, Compose resources and port
+were removed before source repair.
+
+Wrap the exact monetary string and retained model identifier inside the existing
+fixed cells without changing columns, layout, amounts or API contracts. Source
+verification, a newly built artifact and new bilingual process/browser/restart
+acceptance remain required. Earlier 2,546 source tests and artifact bf094619 are
+historical evidence for the pre-correction source, not the corrected delivery.
+
+
+### Checked Member effective Models acceptance, 2026-10-05
+
+The corrected source retains the existing Overview cards and ten-column table,
+with exact monetary values and model identifiers wrapped inside their fixed
+cells. Format, mandatory checks, all 2,546 frontend cases/131 files, four Node
+tests, two development lifecycle tests, Go race and production assets passed.
+The corrected production artifact SHA256 is
+`ce427279babb61a72a2c451d68e821d4e543d1aa30fc9def1c76cc43efeb88c1`.
+
+Both-driver focused acceptance passed six lifecycle children and eight
+constraints. The corrected artifact passed controlled production and browser
+acceptance: Personal-only versus complete authorized three-model union, two
+distinct shared-model sources, independent metadata/rate permissions, exact
+18-place input/output amounts, English/Chinese live switching and cell geometry,
+write-only and Team-only read denials, and same-artifact process restart with
+bilingual reopened reads. Console warnings/errors were empty. No native POST,
+CallRecord, CallAttempt or post-setup upstream request occurred; all 20 protected
+table digests stayed exact. Session and whole User/catalogue preservation are
+not inferred from those table digests. Availability remains advisory current
+configuration, never Key ceiling expansion, admission or native completion.
+Actual source-tooltip activation was not separately verified.
+
+The complete unchanged-source matrix passed all 94 ordered scenarios on both
+PostgreSQL and MySQL, eight pre-loop constraints and five test-bearing packages,
+with no failed or skipped tests. Handler 1644.881s; Service 10.804s. All 268 source
+protections and the exact 29-path dirty boundary remained unchanged during
+acceptance. Log SHA256:
+`fe14a67f171068ed0e497273aafd56b61ee73f682da32f43711336836df00263`.
+All owned containers, networks, volumes, browser tabs and application listeners
+were independently absent after cleanup. The earlier foreign-key fixture
+failure, operator-pause timeout and pre-correction browser overflow remain
+historical failed runs above; they are not passed evidence.
+
+Checked List main `af9c22e` now has successful exact CI 37252847114,
+Actionlint 37252847110 and GolangCI-Lint 37252847145. Final mandatory checks passed. The
+checked Effective Models phase is represented by the commit containing this
+record; new remote workflows remain independent. F04 and overall 11/16/3 totals stay
+partial/unchanged. Continue recorded recent login, Access, Roles and State;
+registration approval, role definitions/templates and Team-role review remain
+separate unfinished requirements.

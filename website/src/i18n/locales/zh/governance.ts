@@ -20,6 +20,17 @@ export default {
     failed: '无法复核当前姓名。',
     confirmed: '已确认当前成员姓名。此结果仅确认当前状态。',
   },
+  memberEffectiveModels: {
+    title: '有效模型',
+    table: '成员有效模型',
+    source: '授权来源',
+    personal: '个人授权',
+    sourceDetails: '授权来源：{{source}}',
+    help: '已配置的个人授权及有权查看的团队授权。可用性仅供参考，不代表 API Key 范围、准入或推理已完成。',
+    incomplete: '无权查看团队补充信息，完整授权集合未知。',
+    inactive: '成员当前不可用。保留的配置不授予当前访问权限。',
+    denied: '无法读取成员有效模型。',
+  },
   memberModels: {
     title: '模型',
     personal: '个人已授权模型（{{count}}）',

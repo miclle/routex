@@ -4,6 +4,7 @@ import { getMemberList, validateMemberListChain } from '@/api/member-list'
 import type { MemberListItem } from '@/types/member-list'
 import type { InfiniteData } from '@tanstack/react-query'
 import type { MemberListPage } from '@/types/member-list'
+import MemberEffectiveModels from './member-effective-models'
 import MemberTeams from './member-teams'
 import MemberKeys from './member-keys'
 import MemberOverview from './member-overview'
@@ -595,6 +596,13 @@ function Members() {
                       </div>
                     </dl>
                   </section>
+                  <MemberEffectiveModels
+                    actor={actor}
+                    target={memberId}
+                    generation={generation}
+                    ready={!!current}
+                    targetQueryKey={['admin', 'member', actor, memberId, generation]}
+                  />
                 </TabsContent>
                 <TabsContent value="roles">
                   <QueryState
