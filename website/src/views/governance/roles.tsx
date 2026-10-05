@@ -28,6 +28,13 @@ const resources: Record<string, string> = {
   teams: 'resources.teams',
   projects: 'resources.projects',
   prices: 'resources.prices',
+  secrets: 'resources.secrets',
+  limits: 'resources.limits',
+  site: 'resources.site',
+  announcements: 'resources.announcements',
+  egress: 'resources.egress',
+  smtp: 'resources.smtp',
+  storage: 'resources.storage',
 }
 const actions: Record<string, string> = {
   read: 'actions.read',
@@ -35,6 +42,16 @@ const actions: Record<string, string> = {
   write: 'actions.write',
   'models.write': 'actions.assignModels',
   'approvals.write': 'registrationApproval.permission',
+  rotate: 'actions.rotate',
+  test: 'actions.test',
+  'keys.disable': 'actions.disableKeys',
+  'tokens.write': 'actions.tokens',
+  'money.write': 'actions.money',
+  'rates.write': 'actions.rates',
+  'quota_requests.read_all': 'actions.quotaRequests',
+  'limits.write': 'actions.limits',
+  'users.write': 'actions.userLimits',
+  'settings.write': 'actions.limitSettings',
 }
 
 export function PermissionRows({ permissions }: { permissions: string[] }) {
@@ -112,6 +129,7 @@ function Roles() {
   }
   const writer = () => current() && approvalActorCurrent(cache, actor, 'roles.read', true)
   const [editor, setEditor] = useState<'new' | null>(null)
+  const [creationPermissions, setCreationPermissions] = useState<string[]>([])
   const [definition, setDefinition] = useState<{
     actor: string
     id: string
@@ -171,7 +189,7 @@ function Roles() {
       path: '/admin/roles',
       data: {
         name: String(form.get('name')).trim(),
-        permissions: form.getAll('permissions').map(String),
+        permissions: form.getAll('permissions').map(String).sort(),
       },
     })
   }
@@ -185,6 +203,7 @@ function Roles() {
             onClick={() => {
               if (!writer()) return
               mutation.reset()
+              setCreationPermissions([])
               setEditor('new')
             }}
           >
@@ -224,7 +243,17 @@ function Roles() {
                     {role.builtin ? t('common.builtin') : t('common.custom')}
                   </Badge>
                 </td>
-                <td>{t('roles.actionCount', { count: role.permissions.length })}</td>
+                <td>
+                  {t(
+                    new Set(role.permissions.map((p) => p.split('.')[0])).size === 1
+                      ? 'roles.summarySingleResource'
+                      : 'roles.summary',
+                    {
+                      count: role.permissions.length,
+                      resources: new Set(role.permissions.map((p) => p.split('.')[0])).size,
+                    },
+                  )}
+                </td>
                 <td>
                   <div className="flex gap-2">
                     <Button
@@ -280,30 +309,71 @@ function Roles() {
             </FormField>
             <div className="divide-y">
               {[...new Set(roles.data?.available_permissions.map((p) => p.split('.')[0]))].map(
-                (resource) => (
-                  <fieldset key={resource} className="space-y-3 py-4">
-                    <legend className="text-sm font-medium">
-                      {resources[resource] ? t(resources[resource]) : resource}
-                    </legend>
-                    <div className="flex flex-wrap gap-4">
-                      {roles.data?.available_permissions
-                        .filter((p) => p.startsWith(`${resource}.`))
-                        .map((permission) => (
-                          <label key={permission} className="flex items-center gap-2 text-sm">
-                            <Input
-                              type="checkbox"
-                              className="h-4 w-4 shrink-0 rounded border-input p-0 accent-primary"
-                              name="permissions"
-                              value={permission}
-                            />
-                            {actions[permission.slice(resource.length + 1)]
-                              ? t(actions[permission.slice(resource.length + 1)])
-                              : permission}
-                          </label>
-                        ))}
-                    </div>
-                  </fieldset>
-                ),
+                (resource) => {
+                  const group = roles.data!.available_permissions.filter((p) =>
+                    p.startsWith(`${resource}.`),
+                  )
+                  const full = group.every((p) => creationPermissions.includes(p))
+                  const partial = group.some((p) => creationPermissions.includes(p)) && !full
+                  return (
+                    <fieldset key={resource} className="space-y-3 py-4">
+                      <legend className="text-sm font-medium">
+                        {resources[resource] ? t(resources[resource]) : resource}
+                      </legend>
+                      <div className="flex flex-wrap gap-4">
+                        {roles.data?.available_permissions
+                          .filter((p) => p.startsWith(`${resource}.`))
+                          .map((permission) => (
+                            <label key={permission} className="flex items-center gap-2 text-sm">
+                              <Input
+                                type="checkbox"
+                                className="h-4 w-4 shrink-0 rounded border-input p-0 accent-primary"
+                                name="permissions"
+                                value={permission}
+                                checked={creationPermissions.includes(permission)}
+                                onChange={(event) => {
+                                  if (!writer() || mutation.isPending) return
+                                  setCreationPermissions((previous) =>
+                                    event.target.checked
+                                      ? [...previous, permission].sort()
+                                      : previous.filter((code) => code !== permission),
+                                  )
+                                }}
+                              />
+                              {actions[permission.slice(resource.length + 1)]
+                                ? t(actions[permission.slice(resource.length + 1)])
+                                : permission}
+                            </label>
+                          ))}
+                        <label className="flex items-center gap-2 text-sm">
+                          <Input
+                            type="checkbox"
+                            className="h-4 w-4 shrink-0 rounded border-input p-0 accent-primary"
+                            aria-label={t('roles.selectAll', {
+                              resource: resources[resource] ? t(resources[resource]) : resource,
+                            })}
+                            checked={full}
+                            ref={(node) => {
+                              if (node instanceof HTMLInputElement) {
+                                node.indeterminate = partial
+                              }
+                            }}
+                            onChange={() => {
+                              if (!writer() || mutation.isPending) return
+                              setCreationPermissions((previous) => {
+                                const other = previous.filter((p) => !group.includes(p))
+                                return group.every((p) => previous.includes(p))
+                                  ? other
+                                  : [...other, ...group].sort()
+                              })
+                            }}
+                          />
+                          {t('roles.selectAllLabel')}
+                        </label>
+                      </div>
+                    </fieldset>
+                  )
+                },
               )}
             </div>
           </fieldset>

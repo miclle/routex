@@ -1,4 +1,86 @@
 {
   "schema_version": 1,
-  "models": []
+  "models": [
+    {
+      "key": "openai/gpt-4.1-mini-2025-04-14/openai_chat",
+      "provider_key": "openai",
+      "model": "gpt-4.1-mini-2025-04-14",
+      "protocol": "openai_chat",
+      "context_threshold": 0,
+      "rates": [
+        {
+          "key": "openai/gpt-4.1-mini-2025-04-14/openai_chat/input/base",
+          "metric": "INPUT_TOKEN",
+          "tier": "base",
+          "unit": "1M_TOKEN",
+          "currency": "USD",
+          "amount": "0.40",
+          "enabled": true
+        },
+        {
+          "key": "openai/gpt-4.1-mini-2025-04-14/openai_chat/output/base",
+          "metric": "OUTPUT_TOKEN",
+          "tier": "base",
+          "unit": "1M_TOKEN",
+          "currency": "USD",
+          "amount": "1.60",
+          "enabled": true
+        }
+      ]
+    },
+    {
+      "key": "anthropic/claude-haiku-4-5-20251001/anthropic_messages",
+      "provider_key": "anthropic",
+      "model": "claude-haiku-4-5-20251001",
+      "protocol": "anthropic_messages",
+      "context_threshold": 0,
+      "rates": [
+        {
+          "key": "anthropic/claude-haiku-4-5-20251001/anthropic_messages/input/base",
+          "metric": "INPUT_TOKEN",
+          "tier": "base",
+          "unit": "1M_TOKEN",
+          "currency": "USD",
+          "amount": "1",
+          "enabled": true
+        },
+        {
+          "key": "anthropic/claude-haiku-4-5-20251001/anthropic_messages/output/base",
+          "metric": "OUTPUT_TOKEN",
+          "tier": "base",
+          "unit": "1M_TOKEN",
+          "currency": "USD",
+          "amount": "5",
+          "enabled": true
+        }
+      ]
+    },
+    {
+      "key": "google/gemini-3.5-flash-lite/gemini_generate_content",
+      "provider_key": "google",
+      "model": "gemini-3.5-flash-lite",
+      "protocol": "gemini_generate_content",
+      "context_threshold": 0,
+      "rates": [
+        {
+          "key": "google/gemini-3.5-flash-lite/gemini_generate_content/input/base",
+          "metric": "INPUT_TOKEN",
+          "tier": "base",
+          "unit": "1M_TOKEN",
+          "currency": "USD",
+          "amount": "0.30",
+          "enabled": true
+        },
+        {
+          "key": "google/gemini-3.5-flash-lite/gemini_generate_content/output/base",
+          "metric": "OUTPUT_TOKEN",
+          "tier": "base",
+          "unit": "1M_TOKEN",
+          "currency": "USD",
+          "amount": "2.50",
+          "enabled": true
+        }
+      ]
+    }
+  ]
 }

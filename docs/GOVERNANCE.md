@@ -1155,9 +1155,22 @@ No console errors were observed; an initial blank load needed one reload, whose
 cause is unestablished. The temporary tab, listeners and Compose resources are
 absent. Earlier incomplete helper/browser attempts remain historical evidence.
 
-The Role phase is locally accepted and ready for its scoped commit/push; new
-remote CI remains pending. Approval b10eb6cf remains delivered. Its CI run
+The Role definition phase is checked, committed and pushed as
+`ecd130b10734fe3a931170dc10305468c0536e4d`, with exact remote read-back. Its
+new CI run 37331397426 is in progress; historical Approval CI failure remains
+separate. F04/F05 remain partial; formal 11/16/3 is unchanged. Approval b10eb6cf remains delivered. Its CI run
 37314987013 failed a proven PostgreSQL fixture-registry race and a masked MySQL
 error whose historical cause remains unknown. The repaired local focus and full
 regression passed without weakening deadlines or query budgets; they do not
 establish remote convergence. F04/F05 remain partial; formal 11/16/3 is unchanged.
+
+### Grouped Role permissions
+
+The existing Create/Edit dialogs use compact local Base UI Input checkboxes for
+individual current assignable actions and per-resource select-all. Partial groups
+retain native indeterminate state; unavailable recorded codes never become
+assignable through a group toggle. Existing review, failed-request intent and
+independent authority gates still apply. The Role list summarizes distinct
+resources and recorded action counts, including explicit zero, in both languages.
+Current production keyboard, save/readback and same-Session bilingual restart
+acceptance passed with zero inference.

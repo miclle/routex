@@ -294,35 +294,68 @@ export function RoleDefinitionEditor({
                 />
               </FormField>
               <div className="divide-y">
-                {[...new Set(choices.map((p) => p.split('.')[0]))].map((group) => (
-                  <fieldset key={group} className="space-y-3 py-4">
-                    <legend className="text-sm font-medium">{resourceLabel(group)}</legend>
-                    <div className="flex flex-wrap gap-4">
-                      {choices
-                        .filter((p) => p.startsWith(`${group}.`))
-                        .map((p) => (
-                          <label key={p} className="flex items-center gap-2 text-sm">
-                            <Input
-                              type="checkbox"
-                              className="h-4 w-4 shrink-0 rounded border-input p-0 accent-primary"
-                              checked={permissions.includes(p)}
-                              onChange={(e) => {
-                                if (!writable() || busy || intent) return
-                                setPermissions((previous) =>
-                                  e.target.checked
-                                    ? [...previous, p].sort()
-                                    : previous.filter((code) => code !== p),
-                                )
-                              }}
-                            />
-                            {query.data!.available_permissions.includes(p)
-                              ? permissionLabel(p)
-                              : t('roleDefinition.unknownCode', { code: p })}
-                          </label>
-                        ))}
-                    </div>
-                  </fieldset>
-                ))}
+                {[...new Set(choices.map((p) => p.split('.')[0]))].map((group) => {
+                  const available = query.data!.available_permissions.filter((p) =>
+                    p.startsWith(`${group}.`),
+                  )
+                  const full =
+                    available.length > 0 && available.every((p) => permissions.includes(p))
+                  const partial = available.some((p) => permissions.includes(p)) && !full
+                  return (
+                    <fieldset key={group} className="space-y-3 py-4">
+                      <legend className="text-sm font-medium">{resourceLabel(group)}</legend>
+                      <div className="flex flex-wrap gap-4">
+                        {choices
+                          .filter((p) => p.startsWith(`${group}.`))
+                          .map((p) => (
+                            <label key={p} className="flex items-center gap-2 text-sm">
+                              <Input
+                                type="checkbox"
+                                className="h-4 w-4 shrink-0 rounded border-input p-0 accent-primary"
+                                checked={permissions.includes(p)}
+                                onChange={(e) => {
+                                  if (!writable() || busy || intent) return
+                                  setPermissions((previous) =>
+                                    e.target.checked
+                                      ? [...previous, p].sort()
+                                      : previous.filter((code) => code !== p),
+                                  )
+                                }}
+                              />
+                              {query.data!.available_permissions.includes(p)
+                                ? permissionLabel(p)
+                                : t('roleDefinition.unknownCode', { code: p })}
+                            </label>
+                          ))}
+                        <label className="flex items-center gap-2 text-sm">
+                          <Input
+                            type="checkbox"
+                            className="h-4 w-4 shrink-0 rounded border-input p-0 accent-primary"
+                            aria-label={t('roles.selectAll', { resource: resourceLabel(group) })}
+                            disabled={available.length === 0}
+                            checked={full}
+                            ref={(node) => {
+                              if (node instanceof HTMLInputElement) {
+                                node.indeterminate = partial
+                              }
+                            }}
+                            onChange={() => {
+                              if (!writable() || busy || intent) return
+                              if (available.length === 0) return
+                              setPermissions((previous) => {
+                                const other = previous.filter((p) => !available.includes(p))
+                                return available.every((p) => previous.includes(p))
+                                  ? other
+                                  : [...other, ...available].sort()
+                              })
+                            }}
+                          />
+                          {t('roles.selectAllLabel')}
+                        </label>
+                      </div>
+                    </fieldset>
+                  )
+                })}
               </div>
               {unknown.length > 0 && <p>{t('roleDefinition.removeUnknown')}</p>}
               <FormField label={t('roleDefinition.reason')}>

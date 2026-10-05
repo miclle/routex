@@ -579,6 +579,97 @@ describe('member governance', () => {
       permissions: ['members.read'],
     })
   })
+  it('creates only explicitly selected resource groups and keeps selection during live language switching', async () => {
+    await mount('/admin/roles')
+    await until(() => expect(container.textContent).toContain('Provider Reader'))
+    await click('Create custom role')
+    await fill('name', 'Grouped reader')
+    const toggle = () =>
+      document.querySelector<HTMLInputElement>(
+        'input[aria-label="' +
+          i18n.t('roles.selectAll', {
+            ns: 'governance',
+            resource: i18n.t('resources.providers', { ns: 'governance' }),
+          }) +
+          '"]',
+      )!
+    const read = () => document.querySelector<HTMLInputElement>('input[value="providers.read"]')!
+    expect(toggle()).not.toBeNull()
+    expect(toggle().checked).toBe(false)
+    expect(toggle().indeterminate).toBe(false)
+    await act(async () => read().click())
+    expect(toggle().indeterminate).toBe(true)
+    await act(async () =>
+      document.querySelector<HTMLInputElement>('input[value="members.read"]')!.click(),
+    )
+    await act(async () => toggle().click())
+    expect(toggle().checked).toBe(true)
+    expect(toggle().indeterminate).toBe(false)
+    await act(async () => i18n.changeLanguage('zh'))
+    expect(toggle().getAttribute('aria-label')).toBe('全选供应商接入动作')
+    expect(toggle().checked).toBe(true)
+    await act(async () => toggle().click())
+    expect(read().checked).toBe(false)
+    expect(document.querySelector<HTMLInputElement>('input[value="members.read"]')!.checked).toBe(
+      true,
+    )
+    await act(async () => toggle().click())
+    await act(async () => i18n.changeLanguage('en'))
+    await submit()
+    await until(() => expect(document.querySelector('[role="dialog"]')).toBeNull())
+    expect(JSON.parse(requests.find((r) => r.method === 'post')!.data)).toEqual({
+      name: 'Grouped reader',
+      permissions: ['members.read', 'providers.read', 'providers.write'],
+    })
+  })
+  it('summarizes recorded resources and actions with singular and empty counts', async () => {
+    roles[0].permissions = ['egress.read', 'egress.test', 'secrets.rotate']
+    await mount('/admin/roles')
+    await until(() => expect(container.textContent).toContain('2 resources · 3 actions'))
+    expect(container.textContent).toContain('1 resource · 1 action')
+    expect(container.textContent).toContain('0 resources · 0 actions')
+    await act(async () => i18n.changeLanguage('zh'))
+    expect(container.textContent).toContain('2 个资源 · 3 个动作')
+    expect(container.textContent).toContain('1 个资源 · 1 个动作')
+  })
+  it('localizes supported permission groups and actions without translating stored codes', async () => {
+    roles[0].permissions = [
+      'egress.test',
+      'limits.settings.write',
+      'secrets.rotate',
+      'smtp.test',
+      'storage.read',
+      'teams.tokens.write',
+    ]
+    await mount('/admin/roles')
+    await until(() => expect(container.textContent).toContain('6 resources · 6 actions'))
+    await click('View permissions')
+    await until(() =>
+      expect(document.querySelector('[role="dialog"]')?.textContent).toContain('Rotate secrets'),
+    )
+    expect(document.querySelector('[role="dialog"]')?.textContent).toContain('Managed egress')
+    expect(document.querySelector('[role="dialog"]')?.textContent).toContain('Run diagnostics')
+    await act(async () => i18n.changeLanguage('zh'))
+    for (const value of [
+      '出口管理',
+      '轮换敏感信息',
+      '配额设置',
+      '存储',
+      '邮件发送',
+      '管理 Token 限额',
+    ]) {
+      expect(document.querySelector('[role="dialog"]')?.textContent).toContain(value)
+    }
+    expect(roles[0].permissions).toEqual([
+      'egress.test',
+      'limits.settings.write',
+      'secrets.rotate',
+      'smtp.test',
+      'storage.read',
+      'teams.tokens.write',
+    ])
+    expect(requests.some((r) => r.method === 'put' || r.method === 'post')).toBe(false)
+  })
   it('surfaces assigned-role deletion conflicts without removing a role', async () => {
     await mount('/admin/roles')
     await until(() => expect(container.textContent).toContain('Provider Reader'))

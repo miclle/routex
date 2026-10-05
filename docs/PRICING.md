@@ -215,9 +215,63 @@ no route-price aggregation, media inference or pricing write occurs in that tabl
 
 The initial trusted source is the versioned `prices/catalog.json` file embedded
 in the RouteX binary. Its complete bytes identify a source generation by SHA-256.
-The default file is deliberately empty; no market rates are invented. A later
-source adapter can replace this mechanism without granting the browser arbitrary
-URL, path, Git or amount authority.
+The file initially shipped empty. The reviewed three-model/six-base-rate seed
+has controlled application acceptance; no invented market rate is added. A
+later source adapter can replace this mechanism without granting the browser
+arbitrary URL, path, Git or amount authority.
+
+### Initial reviewed source seed
+
+The selected trusted source remains the file inside this RouteX repository. The
+reviewed data candidate contains exactly three model entries and six enabled
+base `INPUT_TOKEN` / `OUTPUT_TOKEN` rates, observed on 2026-10-05. It uses strict
+schema version 1, decimal strings, USD per 1,000,000 tokens and a zero context
+threshold for each entry. The embedded source passed current-binary preview,
+application, durable receipt, same-artifact restart and no-write replay on
+PostgreSQL and MySQL. Its exact native
+identifiers and direct-provider standard schedule are:
+
+| Native model | Protocol | Base input (USD/1M tokens) | Base output (USD/1M tokens) |
+| --- | --- | --- | --- |
+| `gpt-4.1-mini-2025-04-14` | `openai_chat` | `0.40` | `1.60` |
+| `claude-haiku-4-5-20251001` | `anthropic_messages` | `1` | `5` |
+| `gemini-3.5-flash-lite` | `gemini_generate_content` | `0.30` | `2.50` |
+
+Source keys remain the exact identities in `prices/catalog.json`; they are not
+local ProviderModel IDs or model discovery. Primary provider documents and
+observed billing conditions are recorded in [prices/README.md](../prices/README.md).
+This snapshot supplies no universal pricing coverage or paid-invoice proof.
+
+Use the existing repository maintenance card at `/admin/prices`:
+
+1. Read the embedded source and its complete-byte SHA-256. Maintain the versioned
+   file manually; a changed source requires building and deploying its binary.
+   There is no arbitrary runtime path, scheduled external synchronization or
+   network fetch from this source package.
+2. Explicitly map existing exact ProviderModel IDs to source model keys with
+   matching native protocols. Saving or enabling the configuration changes no
+   prices and does not discover models or verify account/endpoint eligibility.
+   Preserve independent `prices.read` and `prices.write` authority.
+3. Request the server-derived difference preview for the exact selected mappings
+   or rates. Keep its review ETag, source digest, preview digest and selection;
+   do not synthesize changes in the browser. Review protected custom zero,
+   disabled and same-amount rates separately.
+4. Enter a reason and explicitly confirm the captured operation, retaining one
+   UUIDv4 intent and the same selection/digests through uncertain retries with
+   the reviewed If-Match. Only the authorized result confirms durable commitment
+   and separately reports current configuration/runtime application. A matching
+   GET never resolves the original uncertain operation.
+
+Cache-read/write rates are absent, not zero or ordinary-input prices. Positive
+cache use without an applicable rate remains unpriced; finite money reservation
+may reject a schedule missing reachable cache rates, even for an uncached request.
+Cache storage, media occurrences, long-context tiers, Batch/Flex/Priority,
+regional/reseller/negotiated/discount schedules and other unsupported conditions
+are omitted. Source omission neither deletes saved rates nor overrides custom
+ownership, and updates never recalculate immutable historical call amounts.
+
+The earlier empty-production-source acceptance below remains historical and
+distinct from the current seed acceptance above. F15 remains Partially completed because broader external and release acceptance remains open.
 
 Explicit mappings connect existing Provider-model identities to reviewed source keys.
 Configuration changes do not apply prices. A server-derived preview binds the

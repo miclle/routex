@@ -13,13 +13,58 @@ import (
 
 const fixture = `{"schema_version":1,"models":[{"key":"example/model","provider_key":"example","model":"Native model","protocol":"openai_chat","context_threshold":0,"rates":[{"key":"example/model/input","metric":"INPUT_TOKEN","tier":"base","unit":"1M_TOKEN","currency":"USD","amount":"1.00","enabled":true}]}]}`
 
-func TestEmbeddedSourceStartsWithoutInventedRates(t *testing.T) {
+func TestEmbeddedSourceContainsReviewedBaseRates(t *testing.T) {
 	source, err := Embedded()
-	if err != nil || source == nil || len(source.Models()) != 0 || len(source.Digest()) != 64 {
-		t.Fatalf("empty source: %v %v", source, err)
+	if err != nil || source == nil {
+		t.Fatalf("embedded source: %v %v", source, err)
 	}
-	if SourceID != "routex-repository" {
-		t.Fatal("source identity changed")
+	digest := sha256.Sum256(embedded)
+	if source.Digest() != hex.EncodeToString(digest[:]) || SourceID != "routex-repository" {
+		t.Fatal("reviewed source identity or complete-byte digest changed")
+	}
+	models := source.Models()
+	if len(models) != 3 {
+		t.Fatalf("expected three reviewed models, got %d", len(models))
+	}
+	for i, expected := range []struct {
+		provider, name, protocol, input, output string
+	}{
+		{"openai", "gpt-4.1-mini-2025-04-14", "openai_chat", "0.4", "1.6"},
+		{"anthropic", "claude-haiku-4-5-20251001", "anthropic_messages", "1", "5"},
+		{"google", "gemini-3.5-flash-lite", "gemini_generate_content", "0.3", "2.5"},
+	} {
+		model := models[i]
+		key := expected.provider + "/" + expected.name + "/" + expected.protocol
+		if model.Key != key || model.ProviderKey != expected.provider || model.Name != expected.name || model.Protocol != expected.protocol || model.ContextThreshold != 0 || len(model.Rates) != 2 {
+			t.Fatalf("reviewed model metadata or base-only rates changed: %+v", model)
+		}
+		for j, expectedRate := range []struct{ suffix, metric, amount string }{
+			{"input/base", pricing.Input, expected.input},
+			{"output/base", pricing.Output, expected.output},
+		} {
+			want := Rate{Key: key + "/" + expectedRate.suffix, Value: pricing.Rate{
+				Metric: expectedRate.metric, Tier: pricing.Base, Unit: pricing.Unit,
+				Currency: "USD", Amount: expectedRate.amount, Enabled: true,
+			}}
+			if model.Rates[j] != want {
+				t.Fatalf("reviewed exact-decimal rate changed: got %+v, want %+v", model.Rates[j], want)
+			}
+		}
+	}
+}
+
+func TestExplicitEmptySourceRemainsValidWithoutInventedRates(t *testing.T) {
+	raw := []byte(`{"schema_version":1,"models":[]}`)
+	source, err := Parse(raw)
+	if err != nil || source == nil || len(source.Models()) != 0 {
+		t.Fatalf("explicit empty source: %v %v", source, err)
+	}
+	digest := sha256.Sum256(raw)
+	if source.Digest() != hex.EncodeToString(digest[:]) {
+		t.Fatal("empty source digest is not the complete input bytes")
+	}
+	if _, ok := source.Lookup("openai/gpt-4.1-mini-2025-04-14/openai_chat"); ok {
+		t.Fatal("empty source borrowed an embedded model")
 	}
 }
 

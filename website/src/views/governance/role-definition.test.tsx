@@ -642,3 +642,91 @@ it('local abandonment remains available after fresh writer loss and does not cla
   expect(document.body.textContent).toContain(label('roleDefinition.abandoned'))
   expect(document.body.textContent).not.toContain(label('roleDefinition.confirmed'))
 })
+
+function groupToggle(resource: string) {
+  return document.querySelector<HTMLInputElement>(
+    `input[aria-label="${i18n.t('roles.selectAll', { ns: 'governance', resource })}"]`,
+  )!
+}
+it('group selection preserves other resources and unknown historical codes through full and partial states', async () => {
+  page.permissions = ['legacy.READ', 'models.read_all', 'providers.LEGACY', 'providers.read']
+  page.available_permissions = ['models.read_all', 'providers.read', 'providers.write']
+  await draw()
+  expect(groupToggle('providers')).not.toBeNull()
+  expect(groupToggle('providers').checked).toBe(false)
+  expect(groupToggle('providers').indeterminate).toBe(true)
+  expect(groupToggle('legacy').disabled).toBe(true)
+  await act(async () => groupToggle('providers').click())
+  expect(groupToggle('providers').checked).toBe(true)
+  expect(groupToggle('providers').indeterminate).toBe(false)
+  const checked = () =>
+    [...document.querySelectorAll<HTMLInputElement>('input[type=checkbox]:checked')].map(
+      (node) => node.closest('label')!.textContent,
+    )
+  expect(checked().join('|')).toContain('providers.LEGACY')
+  expect(checked().join('|')).toContain('models.read_all')
+  expect(checked().join('|')).toContain('legacy.READ')
+  expect(checked().join('|')).toContain('providers.write')
+  await act(async () => groupToggle('providers').click())
+  expect(groupToggle('providers').checked).toBe(false)
+  expect(groupToggle('providers').indeterminate).toBe(false)
+  expect(checked().join('|')).toContain('providers.LEGACY')
+  expect(checked().join('|')).toContain('models.read_all')
+  expect(checked().join('|')).toContain('legacy.READ')
+  expect(checked().join('|')).not.toContain('providers.read')
+  expect(checked().join('|')).not.toContain('providers.write')
+  expect(requests).toEqual([])
+})
+it('group draft requires review and locks its exact selection through busy and every failed retry', async () => {
+  page.available_permissions = ['models.read_all', 'providers.read', 'providers.write']
+  await draw()
+  await act(async () => groupToggle('providers').click())
+  expect(requests).toEqual([])
+  failures = [503, 409]
+  gate = pause()
+  await send()
+  expect(requests).toHaveLength(1)
+  expect(requests[0].input.permissions).toEqual(['providers.read', 'providers.write'])
+  // Dispatch returns to the editor; its retained intent is busy and cannot be edited or replayed.
+  expect(groupToggle('providers').matches(':disabled')).toBe(true)
+  expect(button('roleDefinition.retry').disabled).toBe(true)
+  await act(async () => button('roleDefinition.retry').click())
+  expect(requests).toHaveLength(1)
+  gate.release()
+  gate = null
+  await settle()
+  expect(groupToggle('providers').matches(':disabled')).toBe(true)
+  await act(async () => groupToggle('providers').click())
+  await click('roleDefinition.retry')
+  expect(groupToggle('providers').matches(':disabled')).toBe(true)
+  await click('roleDefinition.retry')
+  expect(requests).toHaveLength(3)
+  for (const request of requests) {
+    expect(request.etag).toBe(review)
+    expect(request.input).toEqual(requests[0].input)
+  }
+})
+it('group controls hide during renewed reads and cannot grant delegated writer authority', async () => {
+  page.available_permissions = ['models.read_all', 'providers.read', 'providers.write']
+  await draw()
+  const oldToggle = groupToggle('providers')
+  readGate = pause()
+  await act(async () => {
+    void cache.invalidateQueries({ queryKey: ['admin', 'role-definition'] })
+  })
+  await settle()
+  expect(groupToggle('providers')).toBeNull()
+  await act(async () => oldToggle.click())
+  readGate.release()
+  readGate = null
+  await settle()
+  expect(groupToggle('providers').indeterminate).toBe(true)
+  await act(async () => {
+    cache.setQueryData(['auth', 'session'], session(actor, 'csrf-delegated', 'member'))
+    cache.setQueryData(['permissions', actor], ['roles.read', 'roles.write'])
+  })
+  await draw()
+  expect(groupToggle('providers').matches(':disabled')).toBe(true)
+  await act(async () => groupToggle('providers').click())
+  expect(requests).toEqual([])
+})

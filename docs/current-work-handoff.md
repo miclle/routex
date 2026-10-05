@@ -5,7 +5,35 @@ prioritize partial capabilities. Formal totals remain **11 complete, 16 partial,
 three unstarted**. The coordinated roadmap lives outside this repository;
 [Implementation](IMPLEMENTATION.md) records the independent historical gates.
 
-## Current work: reviewed Role definitions
+## Active repository price source and grouped Role permissions
+
+The reviewed Role predecessor `ecd130b` is committed/pushed with exact remote
+read-back. This bounded phase adds three reviewed native-model entries/six base
+USD rates to the existing embedded repository source, and current assignable
+permission-group select-all plus localized resource/action summaries to the
+existing Role dialogs/table. It adds no schema, API, backend runtime or layout.
+Missing cache rates remain absent; source maintenance never automatically applies
+rates or rewrites historical calls. See [Pricing](PRICING.md) and
+[the versioned source](../prices/README.md) for provenance and billing limits.
+
+Mandatory checks, Go race source, 2,999 frontend cases across 146 files, four Node
+checks, production build and asset/source tests passed. Current binary SHA256:
+`222713299689f77df5a563167e953c1ba991428ba38c906f69bfbe2875077c42`.
+Controlled production acceptance passed on real PostgreSQL and MySQL: exact
+three-model source/mappings, configuration with no price writes, side-effect-free
+six-rate preview, explicit apply, three price records/six rates/two durable
+receipts, current runtime confirmation, same-artifact/Session restart and exact
+replay with no extra writes. No Keys, logical routes, calls or attempts were
+created. Bilingual browser reads verified real mappings/digest/committed state.
+Role browser acceptance verified keyboard all/partial/clear in creation/editing,
+correct two-resource/two-action summaries and same-Session bilingual restart.
+All 415 protected source paths stayed exact; owned tabs/listeners/Compose
+resources are absent. Prior full 103-per-driver backend/schema/harness proof is
+retained; this static-data/UI-only phase does not relabel it as a new full run.
+Final documentation checks and scoped delivery remain pending. F04/F05/F15 stay
+partial; totals remain 11 complete, 16 partial and three unstarted.
+
+## Checked reviewed Role definitions
 
 Checked/pushed clean predecessor is local registration approval
 `b10eb6cf900994b8a0e10b7a81e346ed10144cc8`. Its source, complete102-per-driver,
@@ -44,8 +72,10 @@ No console errors were observed; an initial blank load needed one reload, whose
 cause is unestablished. The temporary tab, listeners and Compose resources are
 absent. Earlier incomplete helper/browser attempts remain historical evidence.
 
-The Role phase is locally accepted and ready for its scoped commit/push; new
-remote CI remains pending. Approval b10eb6cf remains delivered. Its CI run
+The Role definition phase is checked, committed and pushed as
+`ecd130b10734fe3a931170dc10305468c0536e4d`, with exact remote read-back. Its
+new CI run 37331397426 is in progress; historical Approval CI failure remains
+separate. F04/F05 remain partial; formal 11/16/3 is unchanged. Approval b10eb6cf remains delivered. Its CI run
 37314987013 failed a proven PostgreSQL fixture-registry race and a masked MySQL
 error whose historical cause remains unknown. The repaired local focus and full
 regression passed without weakening deadlines or query budgets; they do not
@@ -238,7 +268,7 @@ acceptance record below gives exact timings, hashes and remaining limits.
 | Member list, effective Models, recorded login and Access | Checked and pushed: af9c22e, 88e8480, d51a52e and 9205ca5 | Preserve accepted behavior |
 | Reviewed direct role assignment and Member state | Checked and pushed: a44838d and 74f08d3 | Preserve failed-intent recovery and revocation |
 | Local registration approval | Checked/pushed b10eb6cf; local V57/102, authentication/native restart and bilingual process acceptance passed; CI run 37314987013 failed integration | Preserve local evidence; verify a new CI run after the fixture repairs and continue diagnosing the masked MySQL error |
-| Reviewed custom-role definitions | Full dual-driver 103-scenario regression, final source checks/build, authentication restart and current bilingual keyboard/retry/restart passed | Complete scoped commit/push and verify new remote CI |
+| Reviewed custom-role definitions | Full dual-driver 103-scenario regression, final source checks/build, authentication restart and current bilingual keyboard/retry/restart passed | Verify new remote CI; continue grouped selection and remaining workflow |
 | Member offboarding and recorded Settings summary | Source prepared privately | Integrate and run actual acceptance |
 | Allowed registration email domains | Frozen V58 proposal and UI prepared privately | Integrate after checked approval and Role phase |
 | Repository price seed and Restore intent recovery | Separate private source proposals | Scoped integration and acceptance |

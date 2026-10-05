@@ -2,7 +2,35 @@
 
 Updated: 2026-10-05. This document records engineering contracts, work packages, and acceptance checks. Interfaces, tables, pages, and metrics marked as planned are not necessarily implemented; delivery evidence appears at the end. The active goal covers all F01–F30 capabilities and A01–A20 acceptance cases; completed stages do not end implementation. The full product is delivered incrementally through P0–P6.
 
-## Active reviewed Role-definition phase
+## Active repository price source and grouped Role permissions
+
+The reviewed Role predecessor `ecd130b` is committed/pushed with exact remote
+read-back. This bounded phase adds three reviewed native-model entries/six base
+USD rates to the existing embedded repository source, and current assignable
+permission-group select-all plus localized resource/action summaries to the
+existing Role dialogs/table. It adds no schema, API, backend runtime or layout.
+Missing cache rates remain absent; source maintenance never automatically applies
+rates or rewrites historical calls. See [Pricing](PRICING.md) and
+[the versioned source](../prices/README.md) for provenance and billing limits.
+
+Mandatory checks, Go race source, 2,999 frontend cases across 146 files, four Node
+checks, production build and asset/source tests passed. Current binary SHA256:
+`222713299689f77df5a563167e953c1ba991428ba38c906f69bfbe2875077c42`.
+Controlled production acceptance passed on real PostgreSQL and MySQL: exact
+three-model source/mappings, configuration with no price writes, side-effect-free
+six-rate preview, explicit apply, three price records/six rates/two durable
+receipts, current runtime confirmation, same-artifact/Session restart and exact
+replay with no extra writes. No Keys, logical routes, calls or attempts were
+created. Bilingual browser reads verified real mappings/digest/committed state.
+Role browser acceptance verified keyboard all/partial/clear in creation/editing,
+correct two-resource/two-action summaries and same-Session bilingual restart.
+All 415 protected source paths stayed exact; owned tabs/listeners/Compose
+resources are absent. Prior full 103-per-driver backend/schema/harness proof is
+retained; this static-data/UI-only phase does not relabel it as a new full run.
+Final documentation checks and scoped delivery remain pending. F04/F05/F15 stay
+partial; totals remain 11 complete, 16 partial and three unstarted.
+
+## Checked reviewed Role-definition predecessor
 
 Checked, committed and pushed predecessor is local registration approval
 `b10eb6cf900994b8a0e10b7a81e346ed10144cc8`, with the accepted evidence below.
@@ -38,8 +66,10 @@ No console errors were observed; an initial blank load needed one reload, whose
 cause is unestablished. The temporary tab, listeners and Compose resources are
 absent. Earlier incomplete helper/browser attempts remain historical evidence.
 
-The Role phase is locally accepted and ready for its scoped commit/push; new
-remote CI remains pending. Approval b10eb6cf remains delivered. Its CI run
+The Role definition phase is checked, committed and pushed as
+`ecd130b10734fe3a931170dc10305468c0536e4d`, with exact remote read-back. Its
+new CI run 37331397426 is in progress; historical Approval CI failure remains
+separate. F04/F05 remain partial; formal 11/16/3 is unchanged. Approval b10eb6cf remains delivered. Its CI run
 37314987013 failed a proven PostgreSQL fixture-registry race and a masked MySQL
 error whose historical cause remains unknown. The repaired local focus and full
 regression passed without weakening deadlines or query budgets; they do not
@@ -247,7 +277,7 @@ The binary capability count is 11 completed, 16 partially completed, and 3 not s
 | F01 | Initialization, local identity, registration, and logout | Completed | Concurrent one-time setup, administrator creation, local login, registration control, durable sessions, and logout are implemented and tested. |
 | F02 | Profile, password, MFA, recovery codes, and session revocation | Completed | Profile and password changes, authenticator enrollment, single-use recovery codes, and individual-session revocation are implemented. |
 | F03 | Enterprise SSO, LDAP, OAuth, and emergency recovery | Not started | Provider configuration, callbacks, identity binding, enforced SSO, and enterprise recovery remain unimplemented. |
-| F04 | Member administration, direct grants, roles, and resource policies | Partially completed | Member Overview, Keys, Limits, Teams, Models, metadata, list, effective Models, recent login, Access, direct Roles and State are checked deliveries. Approval b10eb6cf is locally delivered; CI run 37314987013 failed integration, so remote convergence is not claimed. Role-definition source checks, build, race-focused drivers and bilingual retry/restart passed with zero calls. Both drivers passed 103 ordered scenarios and constraints; final UI checks and current production keyboard/retry/restart acceptance passed. Scoped commit/push and new remote CI remain pending. Team-role review and remaining resource-policy acceptance stay open. |
+| F04 | Member administration, direct grants, roles, and resource policies | Partially completed | Member Overview, Keys, Limits, Teams, Models, metadata, list, effective Models, recent login, Access, direct Roles and State are checked deliveries. Approval b10eb6cf is locally delivered; CI run 37314987013 failed integration, so remote convergence is not claimed. Role-definition source checks, build, race-focused drivers and bilingual retry/restart passed with zero calls. Both drivers passed 103 ordered scenarios and constraints; final UI checks and current production keyboard/retry/restart acceptance passed. Role ecd130b is committed/pushed; its new CI remains in progress. Team-role review and remaining resource-policy acceptance stay open. |
 | F05 | Built-in and custom roles with composed permissions | Partially completed | Current-domain role and permission management is implemented; later enterprise and operations domains still require permission integration and negative acceptance. |
 | F06 | Team membership, ownership, models, quotas, and member rules | Completed | Team membership/ownership, model relationships, finite aggregate/member policies and monthly requests are accepted. Durable Team-assigned roles, exact Team-only action unions, reviewed administrator assignment and the existing Roles interface have controlled dual-database and browser evidence. |
 | F07 | Project lifecycle, managers, models, Keys, and requests | Completed | Exact current management, lifecycle/continuity, multi-manager creation, initial direct resources and combined requests, scoped Overview, Project Keys, resource limits and model/quota/rate approvals are implemented with controlled dual-database/browser/native/restart evidence. Both lists now show authorized total retained Key counts; administrative stored-policy summaries, literal name/ID search and authorized legacy tab replacement have full main acceptance. |
@@ -258,7 +288,7 @@ The binary capability count is 11 completed, 16 partially completed, and 3 not s
 | F12 | Model catalog, names, bindings, weights, and catalog assistance | Partially completed | Stable models, renames, bindings, weights, grants, and availability controls exist; reviewed compatibility-name Early stop has complete controlled source, dual-driver, native/browser/restart and full-matrix delivery. Guided batch creation has complete source, repaired driver, production/browser/restart and full-matrix acceptance, with one atomic reviewed transaction, bounded historical receipts and no implicit grants or existing-Key expansion. Advisory public-name assistance and its bounded popup-label compatibility repair have complete controlled source and final R2 browser/native/restart acceptance; checked delivery is represented by the containing acceptance-record commit, with new remote CI pending. Complete public-catalog assistance and broader routing acceptance remain open. |
 | F13 | Four native protocols, streaming, health, retries, and failover | Partially completed | Chat Completions, Responses, Messages, and Gemini now use bounded replay-safe same-protocol failover with process-local health, one admission/settlement, durable ordered diagnostics, and no retry after a usable response. Real-provider and measured multi-node health acceptance remain open. |
 | F14 | Managed egress and staged network diagnostics | Partially completed | Direct, default, SOCKS5, verified CONNECT, endpoint-bound saved authentication, complete-tunnel proxy-address fallback, and diagnostics exist. External proxy and production performance acceptance remain open. |
-| F15 | Prices, spreadsheet/CSV workflows, API, and repository sync | Partially completed | Current prices, ETags, CSV/XLS/XLSX import, preview, commit, and export exist; repository-file mappings, reviewed synchronization, custom-rate protection and selected restoration passed complete current-main source, dual-driver and controlled production/browser/restart gates; shipped prices stay empty pending reviewed source rates, while wider external/release acceptance remains open. |
+| F15 | Prices, spreadsheet/CSV workflows, API, and repository sync | Partially completed | Current prices, ETags, CSV/XLS/XLSX import, preview, commit, and export exist; repository-file mappings, reviewed synchronization, custom-rate protection and selected restoration passed complete current-main source, dual-driver and controlled production/browser/restart gates; three embedded model entries/six base USD rates now have controlled dual-driver preview/apply/receipt/replay and same-artifact restart acceptance; missing cache rates remain absent, while broader external/release acceptance remains open. |
 | F16 | Platform currency, exchange rates, and historical price snapshots | Completed | Decimal-string currency/rate management, exact quoting, and immutable per-call assessment are implemented. |
 | F17 | User and Team defaults, overrides, budgets, alerts, and stop policy | Partially completed | Personal, Project, Key and Team aggregate/member enforcement plus budget/token/TPM controls, authoritative quota snapshots, and installation-calendar configuration exist; current-policy Personal/Project monthly settled-exhaustion inboxes have focused acceptance, Team aggregate monthly settled-exhaustion inboxes have complete controlled acceptance; private Team member monthly notices have passed controlled local source, dual-driver, native/browser/restart and full-matrix acceptance, with final mandatory check passed and checked source committed/pushed as 5363d3c; distinct remote checks remain in progress, and creation-default settings and explicit restores have complete local acceptance; templates, broader alerts, and configurable stop-calling policy remain open. |
 | F18 | Quota, model, and request-limit approvals | Completed | Project model/monthly quota/RPM/TPM/concurrency and Team monthly Token/money requests have controlled acceptance: owner-first assignment, escalation, independent dimensions, read-only platform records, atomic final policies and immutable receipts with current application. Distributed acknowledgements belong to F30; release-wide acceptance remains separate. |
