@@ -196,6 +196,38 @@ func testMemberModelsLifecycle(t *testing.T, db *gorm.DB) {
 		t.Fatal("expected exact row absent", modelID)
 		return service.MemberModelRow{}
 	}
+	// Known-ready positive assertions must not turn a contended publication into
+	// a price/capability failure. Retry only fresh reads with an unknown route;
+	// once ready, every configured value is checked strictly by the caller.
+	readReadyCandidate := func(who actor, userID, modelID, stage string) service.MemberModelsWorkspace {
+		t.Helper()
+		deadline, reviewedETag := time.Now().Add(5*time.Second), ""
+		for {
+			view := get(who, userID)
+			row := find(view.AvailableModels, modelID)
+			if !view.CanEdit {
+				t.Fatal("known-ready observation lost current edit authority", stage)
+			}
+			if reviewedETag == "" {
+				reviewedETag = view.ETag
+			} else if view.ETag != reviewedETag {
+				t.Fatal("known-ready observation changed reviewed durable basis", stage)
+			}
+			if row.Availability == "ready" {
+				if !slices.Equal(row.Protocols, []string{entity.ProtocolOpenAIChat}) {
+					t.Fatal("known-ready observation changed exact native protocols", stage)
+				}
+				return view
+			}
+			if row.Availability != "unknown" || row.Selectable || len(row.Protocols) != 0 {
+				t.Fatal("known-ready observation has unexpected unavailable or admission state", stage, row.Availability)
+			}
+			if !time.Now().Before(deadline) {
+				t.Fatal("known-ready observation did not receive fresh published evidence", stage, view.ApplicationStatus)
+			}
+			time.Sleep(10 * time.Millisecond)
+		}
+	}
 	expectStatus(t, send(actor{}, "GET", endpoint, "", ""), 401)
 	expectStatus(t, send(ordinary, "GET", endpoint, "", ""), 403)
 	empty := get(writer, subject.auth.User.ID)
@@ -268,7 +300,7 @@ func testMemberModelsLifecycle(t *testing.T, db *gorm.DB) {
 	if err := svc.StartRuntime(ctx); err != nil {
 		t.Fatal(err)
 	}
-	current := get(writer, subject.auth.User.ID)
+	current := readReadyCandidate(writer, subject.auth.User.ID, modelIDs["a"], "initial complete candidate")
 	if current.RuntimeApplied == nil || !*current.RuntimeApplied || current.ApplicationStatus != "applied" || len(current.AvailableModels) != 1 || find(current.AvailableModels, modelIDs["a"]).Availability != "ready" {
 		t.Fatal("empty exact set or target Team-only exclusion was not proven")
 	}
@@ -627,7 +659,7 @@ func testMemberModelsLifecycle(t *testing.T, db *gorm.DB) {
 		providers bool
 		prices    bool
 	}{{writer, false, false}, {providerOnly, true, false}, {priceOnly, false, true}, {full, true, true}} {
-		workspace := get(check.who, subject.auth.User.ID)
+		workspace := readReadyCandidate(check.who, subject.auth.User.ID, modelIDs["a"], "independent metadata visibility")
 		row := find(workspace.AvailableModels, modelIDs["a"])
 		if row.Type != nil || row.UpdatedAt != nil || row.Protocols == nil || !slices.Equal(row.Protocols, []string{entity.ProtocolOpenAIChat}) || row.Availability != "ready" || !row.Selectable {
 			t.Fatal("row invented type/update time or lost current protocol authority")
@@ -679,11 +711,11 @@ func testMemberModelsLifecycle(t *testing.T, db *gorm.DB) {
 		return rates[0], rates[1]
 	}
 	inputA, _ := seedPrices(providerModels["a"], "0.123456789012345678", "CNY")
-	priced := find(get(full, subject.auth.User.ID).AvailableModels, modelIDs["a"])
+	priced := find(readReadyCandidate(full, subject.auth.User.ID, modelIDs["a"], "exact or heterogeneous configured prices").AvailableModels, modelIDs["a"])
 	if priced.InputPrice.State != "priced" || priced.InputPrice.Rate == nil || priced.InputPrice.Rate.Amount != "0" || priced.InputPrice.Rate.Currency != "USD" || priced.OutputPrice.State != "priced" || priced.OutputPrice.Rate == nil || priced.OutputPrice.Rate.Amount != "0.123456789012345678" || priced.OutputPrice.Rate.Currency != "CNY" {
 		t.Fatal("actual rate projection rounded money, erased zero or converted currency")
 	}
-	if hidden := find(get(providerOnly, subject.auth.User.ID).AvailableModels, modelIDs["a"]); hidden.InputPrice.State != "unauthorized" || hidden.InputPrice.Rate != nil || hidden.OutputPrice.Rate != nil {
+	if hidden := find(readReadyCandidate(providerOnly, subject.auth.User.ID, modelIDs["a"], "independent hidden configured prices").AvailableModels, modelIDs["a"]); hidden.InputPrice.State != "unauthorized" || hidden.InputPrice.Rate != nil || hidden.OutputPrice.Rate != nil {
 		t.Fatal("Provider read leaked existing prices")
 	}
 	var binding entity.ModelProviderBinding
@@ -704,12 +736,12 @@ func testMemberModelsLifecycle(t *testing.T, db *gorm.DB) {
 	if err := svc.RefreshRuntime(ctx); err != nil {
 		t.Fatal(err)
 	}
-	mixed := find(get(full, subject.auth.User.ID).AvailableModels, modelIDs["a"])
+	mixed := find(readReadyCandidate(full, subject.auth.User.ID, modelIDs["a"], "exact or heterogeneous configured prices").AvailableModels, modelIDs["a"])
 	if mixed.InputPrice.State != "heterogeneous" || mixed.InputPrice.Rate != nil || mixed.OutputPrice.State != "heterogeneous" || mixed.OutputPrice.Rate != nil {
 		t.Fatal("missing/present schedule mix invented a numeric rate")
 	}
 	inputB, _ := seedPrices(providerModels["b"], "1", "USD")
-	mixed = find(get(full, subject.auth.User.ID).AvailableModels, modelIDs["a"])
+	mixed = find(readReadyCandidate(full, subject.auth.User.ID, modelIDs["a"], "exact or heterogeneous configured prices").AvailableModels, modelIDs["a"])
 	if mixed.InputPrice.State != "priced" || mixed.InputPrice.Rate == nil || mixed.InputPrice.Rate.Amount != "0" || mixed.OutputPrice.State != "heterogeneous" || mixed.OutputPrice.Rate != nil {
 		t.Fatal("equal/mismatching schedules failed independent metric consensus")
 	}
@@ -718,7 +750,7 @@ func testMemberModelsLifecycle(t *testing.T, db *gorm.DB) {
 			t.Fatal(err)
 		}
 	}
-	disabledRate := find(get(priceOnly, subject.auth.User.ID).AvailableModels, modelIDs["a"])
+	disabledRate := find(readReadyCandidate(priceOnly, subject.auth.User.ID, modelIDs["a"], "disabled configured rate").AvailableModels, modelIDs["a"])
 	if disabledRate.Providers != nil || disabledRate.InputPrice.State != "disabled" || disabledRate.InputPrice.Rate == nil || disabledRate.InputPrice.Rate.Amount != "0" {
 		t.Fatal("disabled rate became enabled, unknown or leaked Provider labels")
 	}
@@ -733,20 +765,63 @@ func testMemberModelsLifecycle(t *testing.T, db *gorm.DB) {
 	}
 	// Exact grant provenance/time and revision are independent proof dimensions.
 	proofReview := get(writer, peer.auth.User.ID)
+	proofRevision := revision(peer.auth.User.ID)
 	peerGrant := peerHistory[0]
 	changedDate := peerGrant.CreatedAt.Add(time.Minute)
 	if err := db.Model(&entity.UserModelGrant{}).Where("user_id = ? AND model_id = ?", peer.auth.User.ID, peerGrant.ModelID).UpdateColumns(map[string]any{"created_at": changedDate}).Error; err != nil {
 		t.Fatal(err)
 	}
+	changedHistory := slices.Clone(peerHistory)
+	changedHistory[0].CreatedAt = changedDate
+	if !reflect.DeepEqual(grants(peer.auth.User.ID), changedHistory) || revision(peer.auth.User.ID) != proofRevision {
+		t.Fatal("controlled timestamp change altered original grant provenance or revision")
+	}
 	mismatch := get(writer, peer.auth.User.ID)
-	if mismatch.RuntimeApplied == nil || *mismatch.RuntimeApplied || mismatch.ApplicationStatus != "not_applied" || mismatch.ETag == proofReview.ETag {
-		t.Fatal("private publication proof ignored exact immutable provenance/time")
+	if mismatch.ETag == proofReview.ETag || mismatch.CanEdit != proofReview.CanEdit || !slices.EqualFunc(mismatch.PersonalModels, proofReview.PersonalModels, func(a, b service.MemberModelRow) bool { return a.ID == b.ID }) {
+		t.Fatal("changed provenance lost exact reviewed set, editability or ETag")
+	}
+	// Periodic publication may still contain the original grant, be contended,
+	// or already contain this changed timestamp. Each is a truthful current
+	// observation; the fixed-original-publication unit test rejects provenance
+	// mismatch independently of the real publisher's scheduling.
+	switch mismatch.ApplicationStatus {
+	case "applied":
+		if mismatch.RuntimeApplied == nil || !*mismatch.RuntimeApplied {
+			t.Fatal("changed provenance has contradictory applied observation")
+		}
+	case "not_applied":
+		if mismatch.RuntimeApplied == nil || *mismatch.RuntimeApplied {
+			t.Fatal("changed provenance has contradictory not-applied observation")
+		}
+	case "unavailable":
+		if mismatch.RuntimeApplied != nil {
+			t.Fatal("changed provenance has fabricated unavailable observation")
+		}
+	default:
+		t.Fatal("changed provenance has unknown application status")
 	}
 	if err := db.Model(&entity.UserModelGrant{}).Where("user_id = ? AND model_id = ?", peer.auth.User.ID, peerGrant.ModelID).UpdateColumns(map[string]any{"created_at": peerGrant.CreatedAt}).Error; err != nil {
 		t.Fatal(err)
 	}
-	if restored := get(writer, peer.auth.User.ID); restored.RuntimeApplied == nil || !*restored.RuntimeApplied || restored.ETag != proofReview.ETag {
-		t.Fatal("restored exact proof failed without a historical mutation claim")
+	// The one-second publisher can overlap a read or have sampled the temporary
+	// timestamp. Wait only for fresh reads of the exact restored durable basis;
+	// never refresh publication, repeat a mutation or accept an unknown proof.
+	proofDeadline := time.Now().Add(5 * time.Second)
+	for {
+		restored := get(writer, peer.auth.User.ID)
+		if restored.ETag != proofReview.ETag || restored.CanEdit != proofReview.CanEdit || !slices.EqualFunc(restored.PersonalModels, proofReview.PersonalModels, func(a, b service.MemberModelRow) bool { return a.ID == b.ID }) {
+			t.Fatal("restored proof changed the exact reviewed target, set or durable basis")
+		}
+		if restored.RuntimeApplied != nil && *restored.RuntimeApplied && restored.ApplicationStatus == "applied" {
+			break
+		}
+		if !time.Now().Before(proofDeadline) {
+			t.Fatal("restored exact proof did not reach current application without a mutation", restored.ApplicationStatus)
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
+	if !reflect.DeepEqual(grants(peer.auth.User.ID), peerHistory) || revision(peer.auth.User.ID) != proofRevision {
+		t.Fatal("restored observation changed the complete original grant provenance or revision")
 	}
 	// A complete workspace has an explicit bound; it never silently truncates a
 	// replacement base. Keep these fixtures separate from actual native evidence.
