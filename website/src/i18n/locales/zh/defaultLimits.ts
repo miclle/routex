@@ -45,5 +45,13 @@ export default {
   confirm: '确认恢复',
   restored: '默认值已恢复并应用于当前运行时。',
   pending: '恢复已保存，运行时应用尚未完成。',
+  capturedCurrent: '原请求中的账户规则',
+  capturedDefaults: '原请求中的默认规则',
+  abandon: '放弃原恢复请求',
+  abandonTitle: '放弃尚未确认的恢复请求？',
+  abandonHelp:
+    '此操作只清除本地重试意图。先前请求可能已修改已保存的规则。保留理由，并在再次确认前明确复核当前状态。',
+  confirmAbandon: '放弃恢复请求',
+  abandoned: '先前请求的结果仍未知。理由已保留；再次确认恢复前，请明确复核当前规则。',
   restoreClosed: '已关闭结果不确定的恢复操作，尚未确认恢复成功。',
 }

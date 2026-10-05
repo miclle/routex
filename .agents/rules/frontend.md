@@ -792,3 +792,13 @@ administrators gain no recipient privilege. Removal hides history, same-identity
 rejoining restores independent read state, and later members receive no backfill.
 Render recorded Team names or stable IDs without directory reads; retain paired
 English/Chinese snapshot fields and never expose private birth proofs.
+
+Submitted Team creation and default-reset intents use the private-route
+`UncertainIntentProvider` above `AuthGate`, with its local hook and narrow types.
+Retain only already-dispatched non-secret body/ETag and reviewed configuration
+in transient component-owned state; never retain Session/CSRF, credentials,
+permissions, query payloads, current usage or enforcement. Gate errors still
+unmount private pages. Fresh same-actor Session, permissions and target/context
+reads are required before manual recovery/retry. Preserve exact original intent
+and reject stale claims; no automatic POST. Logout, expiry, actor or route/tab
+changes clear retained intent. Historical defaults not recorded remain unknown.

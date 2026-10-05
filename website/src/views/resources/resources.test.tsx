@@ -16,6 +16,7 @@ import i18n from '@/i18n'
 import client from '@/api/client'
 import routes from '@/router'
 import type { ResourceRecord } from '@/types/resources'
+import type { DefaultLimitResetContext } from '@/types/default-limits'
 Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true })
 let root: Root
 let host: HTMLDivElement
@@ -26,6 +27,7 @@ let permissions: string[]
 let failure: Record<string, number>
 let team: ResourceRecord
 let project: ResourceRecord
+let restoreContext: DefaultLimitResetContext
 const originalAdapter = client.defaults.adapter
 const person = {
   id: 'rel_1',
@@ -56,6 +58,33 @@ beforeEach(() => {
     creator_id: 'usr_1',
     managers: [person],
   }
+  const limit = { ...teamFixture(), id: 'tea_1', team_id: 'tea_1' }
+  restoreContext = {
+    kind: 'team',
+    id: 'tea_1',
+    etag: 'c'.repeat(64),
+    editable: true,
+    applied_default_etag: null,
+    limit,
+    default_rule: {
+      kind: 'team',
+      etag: 'd'.repeat(64),
+      rule_etag: 'e'.repeat(64),
+      editable: true,
+      platform_currency: 'USD',
+      updated_at: '2026-10-05T00:00:00Z',
+      policy: {
+        tokens_5h: 0,
+        tokens_7d: null,
+        tokens_month: 500,
+        money_month: '10.123456789012345678',
+        currency: 'USD',
+        rpm: null,
+        tpm: 100,
+        concurrency: 4,
+      },
+    },
+  }
   host = document.createElement('div')
   document.body.append(host)
   root = createRoot(host)
@@ -83,6 +112,22 @@ beforeEach(() => {
         csrf_token: 'csrf-fixture',
       }
     else if (config.url === '/auth/permissions') response.data = { permissions }
+    else if (config.url === '/teams/tea_1/limits/default-reset')
+      response.data =
+        config.method === 'get'
+          ? structuredClone(restoreContext)
+          : {
+              kind: 'team',
+              id: 'tea_1',
+              saved: true,
+              default_reset_etag: restoreContext.etag,
+              applied_default_etag: restoreContext.default_rule.rule_etag,
+              runtime_applied: true,
+              limit: {
+                ...restoreContext.limit,
+                stored: { ...restoreContext.limit.stored, ...restoreContext.default_rule.policy },
+              },
+            }
     else if (config.url === '/projects/prj_1/overview')
       response.data = {
         project_id: 'prj_1',
@@ -654,4 +699,117 @@ describe('mounted Usage routes and Project access', () => {
     expect(requests.some((request) => request.url === '/projects/prj_1/usage')).toBe(true)
     expect(host.querySelector('[name="connection_id"]')).toBeNull()
   })
+})
+
+it('retains the exact Team restoration through actual detail unmount, permission errors and recovery', async () => {
+  permissions = ['teams.tokens.write', 'teams.money.write', 'teams.rates.write']
+  await mount('/teams/tea_1?tab=limits')
+  await until(() => expect(host.textContent).toContain('Restore defaults'))
+  await click('Restore defaults')
+  await until(() => expect(document.querySelector('input[aria-label="Reason"]')).toBeTruthy())
+  const reason = document.querySelector<HTMLInputElement>('input[aria-label="Reason"]')!
+  await act(async () => {
+    Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!.call(
+      reason,
+      'Team retained reason',
+    )
+    reason.dispatchEvent(new Event('input', { bubbles: true }))
+  })
+  failure['post /teams/tea_1/limits/default-reset'] = 503
+  await click('Confirm restoration')
+  await until(() => expect(document.body.textContent).toContain('Retry original request'))
+  const writes = () =>
+    requests.filter(
+      (request) => request.method === 'post' && request.url?.endsWith('/default-reset'),
+    )
+  const original = writes()[0]
+  failure['get /teams/tea_1'] = 503
+  await act(async () =>
+    cache.refetchQueries({ queryKey: ['resources', 'teams', false, 'tea_1', 'usr_1'] }),
+  )
+  await until(() => expect(host.textContent).not.toContain('Research Team'))
+  expect(document.body.textContent).not.toContain('Captured default policy')
+  expect(document.body.textContent).not.toContain('Retry original request')
+  failure['get /teams/tea_1'] = 0
+  await act(async () =>
+    cache.refetchQueries({ queryKey: ['resources', 'teams', false, 'tea_1', 'usr_1'] }),
+  )
+  await until(() =>
+    expect(document.querySelector<HTMLInputElement>('input[aria-label="Reason"]')?.value).toBe(
+      'Team retained reason',
+    ),
+  )
+  failure['get /auth/permissions'] = 503
+  await act(async () => cache.refetchQueries({ queryKey: ['permissions', 'usr_1'] }))
+  await until(() => expect(document.body.textContent).not.toContain('Captured default policy'))
+  expect(document.body.textContent).not.toContain('Retry original request')
+  expect(writes()).toHaveLength(1)
+  failure['get /auth/permissions'] = 0
+  await act(async () => cache.refetchQueries({ queryKey: ['permissions', 'usr_1'] }))
+  await until(() =>
+    expect(document.querySelector<HTMLInputElement>('input[aria-label="Reason"]')?.value).toBe(
+      'Team retained reason',
+    ),
+  )
+  failure['post /teams/tea_1/limits/default-reset'] = 409
+  await click('Retry original request')
+  await until(() => expect(writes()).toHaveLength(2))
+  await until(() =>
+    expect(
+      [...document.querySelectorAll<HTMLButtonElement>('button')].find(
+        (button) => button.textContent === 'Retry original request',
+      )?.disabled,
+    ).toBe(false),
+  )
+  failure['post /teams/tea_1/limits/default-reset'] = 0
+  await click('Retry original request')
+  await until(() =>
+    expect(host.textContent).toContain('Defaults restored and applied to the current runtime.'),
+  )
+  expect(writes()).toHaveLength(3)
+  expect(
+    writes().every(
+      (request) =>
+        request.data === original.data &&
+        request.headers.get('If-Match') === original.headers.get('If-Match'),
+    ),
+  ).toBe(true)
+  expect(
+    requests.some((request) => request.url === '/admin/teams' || request.url === '/admin/members'),
+  ).toBe(false)
+  expect(cache.getMutationCache().getAll()).toHaveLength(0)
+})
+
+it('a Team tab change destroys the old transient owner without replay or outcome claims', async () => {
+  permissions = ['teams.tokens.write', 'teams.money.write', 'teams.rates.write']
+  await mount('/teams/tea_1?tab=limits')
+  await until(() => expect(host.textContent).toContain('Restore defaults'))
+  await click('Restore defaults')
+  await until(() => expect(document.querySelector('input[aria-label="Reason"]')).toBeTruthy())
+  const reason = document.querySelector<HTMLInputElement>('input[aria-label="Reason"]')!
+  await act(async () => {
+    Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!.call(
+      reason,
+      'Old tab intent',
+    )
+    reason.dispatchEvent(new Event('input', { bubbles: true }))
+  })
+  failure['post /teams/tea_1/limits/default-reset'] = 409
+  await click('Confirm restoration')
+  await until(() => expect(document.body.textContent).toContain('Retry original request'))
+  await act(async () => router.navigate('/teams/tea_1?tab=members'))
+  await until(() => expect(document.body.textContent).not.toContain('Retry original request'))
+  await act(async () => router.navigate('/teams/tea_1?tab=limits'))
+  await until(() => expect(host.textContent).toContain('Restore defaults'))
+  await click('Restore defaults')
+  await until(() =>
+    expect(document.querySelector<HTMLInputElement>('input[aria-label="Reason"]')?.value).toBe(''),
+  )
+  expect(document.body.textContent).not.toContain('previous outcome remains unknown')
+  expect(document.body.textContent).not.toContain('Defaults restored and applied')
+  expect(
+    requests.filter(
+      (request) => request.method === 'post' && request.url?.endsWith('/default-reset'),
+    ),
+  ).toHaveLength(1)
 })

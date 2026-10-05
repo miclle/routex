@@ -513,3 +513,155 @@ describe('Explicit default restoration', () => {
     expect(writes()).toHaveLength(0)
   })
 })
+
+it('retains first 409 restoration through repeated explicit retry without cache renewal', async () => {
+  permissions = ['teams.tokens.write', 'teams.money.write', 'teams.rates.write']
+  fail = 409
+  await mount(true)
+  await click('Restore defaults')
+  await until(() => expect(document.querySelector('input[aria-label="Reason"]')).toBeTruthy())
+  await input('Reason', 'First conflict may follow commit')
+  await click('Confirm restoration')
+  await until(() => expect(document.body.textContent).toContain('result is uncertain'))
+  const original = writes()[0]
+  await click('Retry original request')
+  await until(() => expect(writes()).toHaveLength(2))
+  fail = 0
+  await click('Retry original request')
+  await until(() => expect(host.textContent).toContain('Defaults restored and applied'))
+  expect(writes()).toHaveLength(3)
+  expect(
+    writes().every(
+      (row) =>
+        row.data === original.data && row.headers['If-Match'] === original.headers['If-Match'],
+    ),
+  ).toBe(true)
+  expect(cache.getMutationCache().getAll()).toHaveLength(0)
+})
+
+it('preserves uncertain restoration across real Escape dismissal and same-target reopen', async () => {
+  permissions = ['teams.tokens.write', 'teams.money.write', 'teams.rates.write']
+  fail = 503
+  await mount(true)
+  await click('Restore defaults')
+  await until(() => expect(document.querySelector('input[aria-label="Reason"]')).toBeTruthy())
+  await input('Reason', 'Keep original after Escape')
+  await click('Confirm restoration')
+  await until(() => expect(document.body.textContent).toContain('result is uncertain'))
+  const original = writes()[0]
+  await act(async () =>
+    document.activeElement?.dispatchEvent(
+      new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }),
+    ),
+  )
+  await until(() => expect(document.querySelector('[role="dialog"]')).toBeNull())
+  await click('Restore defaults')
+  await until(() =>
+    expect(document.querySelector<HTMLInputElement>('input[aria-label="Reason"]')?.value).toBe(
+      'Keep original after Escape',
+    ),
+  )
+  expect(button('Confirm restoration').disabled).toBe(true)
+  fail = 0
+  await click('Retry original request')
+  await until(() => expect(host.textContent).toContain('Defaults restored and applied'))
+  expect(writes()).toHaveLength(2)
+  expect(writes()[1].data).toBe(original.data)
+  expect(writes()[1].headers['If-Match']).toBe(original.headers['If-Match'])
+})
+
+it('explicit abandonment preserves the reason and unknown outcome until a new reviewed confirmation', async () => {
+  permissions = ['teams.tokens.write', 'teams.money.write', 'teams.rates.write']
+  await mount(true)
+  await click('Restore defaults')
+  await until(() => expect(document.querySelector('input[aria-label="Reason"]')).toBeTruthy())
+  await input('Reason', 'Retained deliberate review')
+  fail = 409
+  await click('Confirm restoration')
+  await until(() => expect(button('Retry original request').disabled).toBe(false))
+  const original = writes()[0]
+  await click('Abandon original restoration')
+  await until(() => expect(document.querySelectorAll('[role="dialog"]')).toHaveLength(2))
+  await act(async () => {
+    const dialogs = document.querySelectorAll('[role="dialog"]')
+    const cancel = [
+      ...dialogs[dialogs.length - 1].querySelectorAll<HTMLButtonElement>('button'),
+    ].find((button) => button.textContent === 'Cancel')!
+    cancel.click()
+  })
+  expect(writes()).toHaveLength(1)
+  await click('Abandon original restoration')
+  await click('Abandon restoration request')
+  await until(() => expect(document.body.textContent).toContain('previous outcome remains unknown'))
+  expect(button('Confirm restoration').disabled).toBe(true)
+  expect(document.querySelector<HTMLInputElement>('input[aria-label="Reason"]')!.value).toBe(
+    'Retained deliberate review',
+  )
+  context.etag = 'f'.repeat(64)
+  await act(async () => cache.refetchQueries({ queryKey: ['default-reset'] }))
+  expect(button('Confirm restoration').disabled).toBe(true)
+  expect(writes()).toHaveLength(1)
+  await click('Review latest policy')
+  await until(() => expect(button('Confirm restoration').disabled).toBe(false))
+  fail = 0
+  await click('Confirm restoration')
+  await until(() => expect(writes()).toHaveLength(2))
+  expect(writes()[1].data).toBe(original.data)
+  expect(writes()[1].headers.get('If-Match')).toBe('"' + 'f'.repeat(64) + '"')
+  expect(original.headers.get('If-Match')).toBe('"' + 'c'.repeat(64) + '"')
+})
+
+it.each([400, 401, 403, 404, 409, 412, 422, 503])(
+  'a failed restoration status %s cannot erase original uncertainty',
+  async (status) => {
+    permissions = ['teams.tokens.write', 'teams.money.write', 'teams.rates.write']
+    await mount(true)
+    await click('Restore defaults')
+    await until(() => expect(document.querySelector('input[aria-label="Reason"]')).toBeTruthy())
+    await input('Reason', 'Exact failed restoration')
+    fail = status
+    await click('Confirm restoration')
+    await until(() => expect(button('Retry original request').disabled).toBe(false))
+    expect(button('Confirm restoration').disabled).toBe(true)
+    const original = writes()[0]
+    await click('Review latest policy')
+    await click('Retry original request')
+    await until(() => expect(writes()).toHaveLength(2))
+    expect(writes()[1].data).toBe(original.data)
+    expect(writes()[1].headers.get('If-Match')).toBe(original.headers.get('If-Match'))
+    expect(document.body.textContent).not.toContain('Defaults restored and applied')
+  },
+)
+
+it('captures policy, currency and IP arrays separately from incidental mutable query data', async () => {
+  permissions = ['teams.tokens.write', 'teams.money.write', 'teams.rates.write']
+  context.limit.stored.ip_mode = 'allowlist'
+  context.limit.stored.ip_ranges = ['192.0.2.0/24']
+  await mount(true)
+  await click('Restore defaults')
+  await until(() => expect(document.querySelector('input[aria-label="Reason"]')).toBeTruthy())
+  await input('Reason', 'Original captured policy')
+  fail = 409
+  await click('Confirm restoration')
+  await until(() => expect(button('Retry original request').disabled).toBe(false))
+  const original = writes()[0]
+  await act(async () => {
+    cache.setQueryData<DefaultLimitResetContext>(
+      ['default-reset', actor, 'team', 'tea_test'],
+      (data) => {
+        data!.default_rule.policy.money_month = '9.123456789012345678'
+        data!.default_rule.policy.currency = 'EUR'
+        data!.default_rule.platform_currency = 'EUR'
+        data!.limit.stored.ip_ranges.push('198.51.100.0/24')
+        return { ...data!, etag: 'f'.repeat(64) }
+      },
+    )
+  })
+  expect(document.body.textContent).toContain('12.500000000000000001 USD')
+  expect(document.body.textContent).not.toContain('9.123456789012345678 EUR')
+  await click('Retry original request')
+  await until(() => expect(writes()).toHaveLength(2))
+  expect(writes()[1].data).toBe(original.data)
+  expect(writes()[1].headers.get('If-Match')).toBe(original.headers.get('If-Match'))
+  expect(button('Confirm restoration').disabled).toBe(true)
+})

@@ -2,6 +2,7 @@ import LoadingRoute from '@/components/app/LoadingRoute'
 import { Navigate, type RouteObject } from 'react-router'
 import AuthGate from '@/components/app/AuthGate'
 import AppShell from '@/components/app/AppShell'
+import { UncertainIntentProvider } from '@/context/uncertain-intents'
 
 const routes: RouteObject[] = [
   {
@@ -36,7 +37,11 @@ const routes: RouteObject[] = [
     ],
   },
   {
-    element: <AuthGate mode="private" />,
+    element: (
+      <UncertainIntentProvider>
+        <AuthGate mode="private" />
+      </UncertainIntentProvider>
+    ),
     children: [
       {
         path: '/',

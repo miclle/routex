@@ -47,6 +47,15 @@ export default {
   confirm: 'Confirm restoration',
   restored: 'Defaults restored and applied to the current runtime.',
   pending: 'Restoration saved; runtime application is pending.',
+  capturedCurrent: 'Captured account policy',
+  capturedDefaults: 'Captured default policy',
+  abandon: 'Abandon original restoration',
+  abandonTitle: 'Abandon unconfirmed restoration?',
+  abandonHelp:
+    'This clears only local retry intent. The previous request may already have changed the saved policy. Keep the reason and explicitly review current state before a new confirmation.',
+  confirmAbandon: 'Abandon restoration request',
+  abandoned:
+    'The previous outcome remains unknown. The reason is retained; explicitly review current policy before confirming a new restoration.',
   restoreClosed:
     'An uncertain restoration was closed. No successful restoration has been confirmed.',
 }

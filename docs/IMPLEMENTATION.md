@@ -5772,3 +5772,16 @@ four observations/four sole-member inboxes, original sessions with no extra
 login/inference and all owned tabs/listeners/Compose resources absent. Binary
 SHA256 `7fbdaa881f1c6957bb0b3e457cf763b07590b2dac0937192c1f8ad9562fb6375`.
 The containing commit records this phase. F17/F23 and formal11/16/3 remain unchanged.
+
+## Default-reset transient Session recovery
+
+Reviewed private-route intent ownership and Restore consumers are carried onto
+checked Member warnings `f7b31b1a111937b5bc2885b942b12f087c27b08b`. The isolated source/Task/build
+and controlled PostgreSQL bilingual/conflict/original-Session restart gates
+passed; [Default Limits](DEFAULT_LIMITS.md#transient-session-error-recovery) records
+actual seven reset requests, zero native calls, recovery semantics and limits.
+Current main composition passed mandatory checks,3,407 frontend cases/153
+files, four Node checks, production asset race tests and embedded binary build.
+All16 reviewed UI afterimages remain exact; backend and schema are unchanged.
+The containing commit records this UI recovery phase.
+Formal11/16/3 and the full active objective remain unchanged.

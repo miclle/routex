@@ -5,10 +5,12 @@ prioritize partial capabilities. Formal totals remain **11 complete, 16 partial,
 three unstarted**. The coordinated roadmap lives outside this repository;
 [Implementation](IMPLEMENTATION.md) records the independent historical gates.
 
-## Active private Team-member warning integration
+## Checked Member warnings and Restore recovery
 
-Main and remote base are `9de8b1d02b75dd43186990e8064d7e3e2deb6859`.
-Project V61 is delivered. Dirty main work is Team-member V62/backend/UI,
+Member warning main and remote are `f7b31b1a111937b5bc2885b942b12f087c27b08b`.
+Member V62 is checked/committed/pushed with exact remote read-back; current
+dirty main is the separate Restore recovery phase.
+Project V61 and Team-member V62 are delivered. The Member phase included
 real-driver fixtures, measured integration deadline, paired rules and four
 related documents. Corrected PostgreSQL/MySQL focus, mandatory main checking,
 complete Task testing (3,365 frontend cases/151 files, Go race/coverage,
@@ -52,12 +54,19 @@ delivery; no failed run is relabeled as accepted.
 Restore recovery passed complete isolated source/Task/build and actual controlled
 PostgreSQL browser acceptance: real conflicts, exact original-intent retries,
 transient Session-error gate unmount/manual recovery, bilingual draft retention
-and same-artifact/original-Session restart. It is not delivered on main; after
-Member delivery carry the exact UI changes, preserve current paired rules,
-update Default Limits docs and run composition checks before a separate commit.
+and same-artifact/original-Session restart. The16 exact UI afterimages are now carried onto checked Member main, paired
+rules preserve the Member contract, and Default Limits documents the actual
+acceptance. Main composition passed mandatory checking,3,407 frontend cases/153 files,
+four Node checks, production asset race tests and embedded build. All16 accepted
+UI afterimages are exact. The containing commit records this separate recovery
+phase; its earlier browser artifact is distinct from the composed main build.
 
-Team creation V63/115 passed source checks and complete Task testing; actual
-driver/browser acceptance is pending. Its source-only focused runner now binds
+Team creation V63/115 passed source checks and complete Task testing. First
+actual focused R4 failed three cases: PostgreSQL fixture index removal hits the
+pinned GORM adapter syntax error; both lifecycle cases require a private,no-store
+creation-context response rather than inherited no-store. Seven other direct
+cases passed; source/index remained exact and owned resources are absent.
+Narrow fixture/header successors are in progress, with no full/browser acceptance. Its source-only focused runner now binds
 the accepted inherited Personal-warning fixture correction without changing
 case counts, deadlines or acceptance guards.
 

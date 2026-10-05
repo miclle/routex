@@ -1,6 +1,5 @@
-import { useLayoutEffect, useRef, useState } from 'react'
+import { useCallback, useLayoutEffect, useRef, useState, useSyncExternalStore } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { isAxiosError } from 'axios'
 import { useTranslation } from 'react-i18next'
 import { getDefaultReset, restoreDefaultLimits } from '@/api/default-limits'
 import { useSession, sessionKey } from '@/hooks/use-auth'
@@ -13,13 +12,27 @@ import type { Session } from '@/types/auth'
 import type { DefaultLimitResetContext, DefaultResetTarget } from '@/types/default-limits'
 import { PolicyRows } from './policy'
 import type { DefaultLimitPolicy } from '@/types/default-limits'
+import { useRestoreOwner, type RestoreOwner, type RestoreIntent } from './restore-owner'
 
-export default function RestoreDefaults({ target }: { target: DefaultResetTarget }) {
+export default function RestoreDefaults({
+  target,
+  owner,
+  visible = true,
+  hostCurrent,
+}: {
+  target: DefaultResetTarget
+  owner?: RestoreOwner
+  visible?: boolean
+  hostCurrent?: () => boolean
+}) {
   const session = useSession()
   const access = usePermissions()
-  const actor = session.isError ? '' : (session.data?.user.id ?? '')
+  const actor = session.data?.user.id ?? ''
   const allowed =
+    visible &&
     !!actor &&
+    !session.isError &&
+    !session.isFetching &&
     !access.isError &&
     !access.isFetching &&
     (target.kind === 'user'
@@ -32,6 +45,8 @@ export default function RestoreDefaults({ target }: { target: DefaultResetTarget
       target={target}
       actor={actor}
       visible={allowed}
+      owner={owner}
+      hostCurrent={hostCurrent}
     />
   )
 }
@@ -40,41 +55,50 @@ export function RestoreControls({
   actor,
   visible,
   managed,
+  owner,
+  hostCurrent,
 }: {
   target: DefaultResetTarget
   actor: string
   visible: boolean
   managed?: { canDispatch: () => boolean; generation: string }
+  owner?: RestoreOwner
+  hostCurrent?: () => boolean
 }) {
   const { t } = useTranslation('defaultLimits')
-  const [open, setOpen] = useState(false)
-  const [notice, setNotice] = useState<string | null>(null)
+  const localOwner = useRestoreOwner(actor, target, '', owner === undefined)
+  const retained = owner ?? localOwner
+  const { open, notice } = retained.state
+  const sameOwner =
+    retained.actor === actor &&
+    retained.target.kind === target.kind &&
+    retained.target.id === target.id
   return (
     <div className="space-y-2">
-      {visible && (
+      {visible && sameOwner && (
         <Button
           type="button"
           variant="outline"
           onClick={() => {
-            if (managed && !managed.canDispatch()) return
-            setNotice(null)
-            setOpen(true)
+            if ((managed && !managed.canDispatch()) || (hostCurrent && !hostCurrent())) return
+            retained.update((previous) => ({ ...previous, open: true, notice: null }))
           }}
         >
           {t('restore')}
         </Button>
       )}
-      {visible && notice && <p role="status">{t(notice)}</p>}
-      {open && (
+      {visible && sameOwner && notice && <p role="status">{t(notice)}</p>}
+      {sameOwner && (
         <RestoreDialog
           key={`${actor}:${target.kind}:${target.id}`}
           target={target}
           actor={actor}
-          visible={visible}
+          visible={visible && open}
           managed={managed}
+          owner={retained}
+          hostCurrent={hostCurrent}
           close={(result) => {
-            setNotice(result)
-            setOpen(false)
+            retained.update((previous) => ({ ...previous, notice: result, open: false }))
           }}
         />
       )}
@@ -87,10 +111,14 @@ function RestoreDialog({
   visible,
   close,
   managed,
+  owner,
+  hostCurrent,
 }: {
   target: DefaultResetTarget
   actor: string
   visible: boolean
+  owner: RestoreOwner
+  hostCurrent?: () => boolean
   close: (notice: string | null) => void
   managed?: { canDispatch: () => boolean; generation: string }
 }) {
@@ -109,52 +137,145 @@ function RestoreDialog({
     refetchOnMount: 'always',
     refetchOnWindowFocus: false,
   })
-  const [reviewed, setReviewed] = useState<DefaultLimitResetContext | null>(null)
-  const [reason, setReason] = useState('')
-  const [issue, setIssue] = useState<string | null>(null)
-  const [uncertain, setUncertain] = useState(false)
-  const [busy, setBusy] = useState(false)
+  const { reviewed, reason, issue, uncertain, busy, requireReview } = owner.state
+  const ownerUpdate = owner.update
+  const setReviewed = useCallback(
+    (value: DefaultLimitResetContext) =>
+      ownerUpdate((previous) => ({ ...previous, reviewed: structuredClone(value) })),
+    [ownerUpdate],
+  )
+  const setIssue = (value: string | null) =>
+    owner.update((previous) => ({ ...previous, issue: value }))
+  const setUncertain = (value: boolean) =>
+    owner.update((previous) => ({ ...previous, uncertain: value }))
+  const setBusy = (value: boolean) => owner.update((previous) => ({ ...previous, busy: value }))
   const lock = useRef(false)
-  const alive = useRef(true)
-  const intent = useRef<{ review: DefaultLimitResetContext; reason: string } | null>(null)
-  const controller = useRef<AbortController | null>(null)
+  const alive = useRef(false)
+  const intent = useRef<RestoreIntent | null>(owner.state.intent)
   useLayoutEffect(() => {
-    if (managed && (!visible || query.isFetching)) controller.current?.abort()
-  }, [managed, visible, query.isFetching])
+    intent.current = owner.state.intent
+  }, [owner.state.intent])
+  const controller = useRef<AbortController | null>(null)
+  const serial = useRef(0)
+  const writing = useRef(false)
+  const [abandon, setAbandon] = useState(false)
+  const keys = JSON.stringify([sessionKey, ['permissions', actor], queryKey])
+  const snapshot = () =>
+    JSON.parse(keys)
+      .map((key: unknown[]) => {
+        const state = cache.getQueryState(key)
+        return `${state?.status}:${state?.fetchStatus}:${state?.isInvalidated}:${state?.dataUpdateCount}:${state?.errorUpdateCount}`
+      })
+      .join('|')
+  useSyncExternalStore(
+    (notify) =>
+      cache.getQueryCache().subscribe((event) => {
+        if (
+          JSON.parse(keys).some(
+            (key: unknown[]) => JSON.stringify(key) === JSON.stringify(event.query.queryKey),
+          )
+        )
+          notify()
+      }),
+    snapshot,
+    snapshot,
+  )
+  function authorized() {
+    const session = cache.getQueryState<Session>(sessionKey)
+    const permission = cache.getQueryState<string[]>(['permissions', actor])
+    return (
+      visible &&
+      owner.active() &&
+      session?.status === 'success' &&
+      session.fetchStatus === 'idle' &&
+      !session.error &&
+      !session.isInvalidated &&
+      session.data?.user.id === actor &&
+      !!session.data.csrf_token &&
+      permission?.status === 'success' &&
+      permission.fetchStatus === 'idle' &&
+      !permission.error &&
+      !permission.isInvalidated &&
+      (target.kind === 'user'
+        ? permission.data?.includes('limits.users.write')
+        : ['teams.tokens.write', 'teams.money.write', 'teams.rates.write'].every((code) =>
+            permission.data?.includes(code),
+          )) &&
+      (!managed || managed.canDispatch()) &&
+      (!hostCurrent || hostCurrent())
+    )
+  }
+  const reviewState = cache.getQueryState<DefaultLimitResetContext>(queryKey)
+  const fresh =
+    !!authorized() &&
+    query.isSuccess &&
+    !query.isFetching &&
+    reviewState?.status === 'success' &&
+    reviewState.fetchStatus === 'idle' &&
+    !reviewState.error &&
+    !reviewState.isInvalidated &&
+    reviewState.data === query.data
+  function currentReview() {
+    const state = cache.getQueryState<DefaultLimitResetContext>(queryKey)
+    return (
+      !!authorized() &&
+      state?.status === 'success' &&
+      state.fetchStatus === 'idle' &&
+      !state.error &&
+      !state.isInvalidated &&
+      state.data === query.data
+    )
+  }
+  function currentActor() {
+    return alive.current && owner.active() && authorized()
+  }
+  const stop = useCallback(() => {
+    alive.current = false
+    serial.current++
+    controller.current?.abort()
+    if (lock.current)
+      ownerUpdate((previous) => ({
+        ...previous,
+        busy: false,
+        uncertain: writing.current && !!intent.current ? true : previous.uncertain,
+        issue: writing.current && intent.current ? 'uncertain' : previous.issue,
+      }))
+    lock.current = false
+  }, [ownerUpdate])
   useLayoutEffect(() => {
     alive.current = true
-    return () => {
-      alive.current = false
+    return stop
+  }, [stop])
+  useLayoutEffect(() => {
+    if (fresh && query.data && !reviewed && !intent.current && !requireReview)
+      setReviewed(query.data)
+  }, [fresh, query.data, reviewed, requireReview, setReviewed])
+  useLayoutEffect(() => {
+    if (!fresh && writing.current && lock.current && intent.current) {
+      serial.current++
       controller.current?.abort()
+      lock.current = false
+      writing.current = false
+      ownerUpdate((previous) => ({
+        ...previous,
+        busy: false,
+        uncertain: true,
+        issue: 'uncertain',
+      }))
     }
-  }, [])
-  const currentActor = () =>
-    alive.current &&
-    cache.getQueryData<Session>(sessionKey)?.user.id === actor &&
-    (!managed || managed.canDispatch())
-  const fresh = visible && query.isSuccess && !query.isFetching
-  if (fresh && query.data && !reviewed) setReviewed(query.data)
+  }, [fresh, ownerUpdate])
   const context = reviewed ?? query.data ?? null
   const stale = !!reviewed && query.data?.etag !== reviewed.etag
-  const blocked = stale || issue === 'conflict' || issue === 'failed'
+  const blocked = stale || requireReview || issue === 'conflict' || issue === 'failed'
   async function dispatch(retry = false) {
     const session = cache.getQueryData<Session>(sessionKey)
-    // A cache refetch can begin before React hides the reviewed controls.
-    const reviewState = cache.getQueryState<DefaultLimitResetContext>(queryKey)
-    const currentReview =
-      !managed ||
-      (reviewState?.status === 'success' &&
-        reviewState.fetchStatus === 'idle' &&
-        !reviewState.error &&
-        reviewState.data === query.data)
     if (
       lock.current ||
-      !currentReview ||
       !currentActor() ||
       !session ||
-      !fresh ||
+      !currentReview() ||
       !query.data?.editable ||
-      (!retry && (blocked || uncertain))
+      (!retry && (blocked || uncertain || !!intent.current))
     )
       return
     if (!retry) {
@@ -167,146 +288,239 @@ function RestoreDialog({
         setIssue('requiredReason')
         return
       }
-      intent.current = { review: context, reason: reason.trim() }
-      setReviewed(context)
+      const submission: RestoreIntent = {
+        target: { ...target },
+        review: structuredClone(context),
+        reason: reason.trim(),
+      }
+      const retainedSubmission = owner.capture(submission)
+      if (!retainedSubmission) return
+      intent.current = retainedSubmission
+      const captured = intent.current
+      owner.update((previous) => ({
+        ...previous,
+        intent: captured,
+        reviewed: captured.review,
+        issue: null,
+      }))
     }
-    if (!intent.current) return
+    if (!intent.current || !owner.claimCurrent(owner.currentClaim())) return
     lock.current = true
+    writing.current = true
     setBusy(true)
+    const turn = ++serial.current
+    const captured = intent.current
+    const dispatchedClaim = owner.currentClaim()
+    const startReview = cache.getQueryState<DefaultLimitResetContext>(queryKey)
     const pending = new AbortController()
     controller.current = pending
     try {
       const result = await restoreDefaultLimits(
-        target,
-        intent.current.review,
-        intent.current.reason,
+        captured.target,
+        captured.review,
+        captured.reason,
         session.csrf_token,
-        managed ? pending.signal : undefined,
+        pending.signal,
       )
       const latestReview = cache.getQueryState<DefaultLimitResetContext>(queryKey)
       const obsoleteReview =
+        latestReview?.isInvalidated ||
         latestReview?.fetchStatus !== 'idle' ||
         latestReview.status !== 'success' ||
         !!latestReview.error ||
-        latestReview.dataUpdateCount !== reviewState?.dataUpdateCount ||
-        latestReview.errorUpdateCount !== reviewState?.errorUpdateCount
+        latestReview.dataUpdateCount !== startReview?.dataUpdateCount ||
+        latestReview.errorUpdateCount !== startReview?.errorUpdateCount
+      if (!alive.current || turn !== serial.current || !owner.active()) return
       if (
-        managed &&
-        alive.current &&
-        (!currentActor() || pending.signal.aborted || obsoleteReview || !result.runtime_applied)
+        !currentActor() ||
+        pending.signal.aborted ||
+        obsoleteReview ||
+        !owner.claimCurrent(dispatchedClaim)
       ) {
         setUncertain(true)
         setIssue('uncertain')
-      } else if (currentActor()) {
+      } else {
+        if (!owner.clear(dispatchedClaim)) return
+        intent.current = null
+        owner.update((previous) => ({
+          ...previous,
+          intent: null,
+          uncertain: false,
+          reviewed: null,
+          reason: '',
+          requireReview: false,
+          issue: null,
+        }))
         void cache.invalidateQueries({ queryKey: ['resource-limits'] })
         close(result.runtime_applied ? 'restored' : 'pending')
       }
-    } catch (error) {
-      if (currentActor() || (managed && alive.current)) {
-        const status = isAxiosError(error) ? error.response?.status : undefined
-        if (!status || status >= 500) setUncertain(true)
-        setIssue(status === 409 ? 'conflict' : !status || status >= 500 ? 'uncertain' : 'failed')
+    } catch {
+      if (alive.current && turn === serial.current && owner.active()) {
+        setUncertain(true)
+        setIssue('uncertain')
       }
     } finally {
-      lock.current = false
-      if (currentActor() || (managed && alive.current)) setBusy(false)
+      if (alive.current && turn === serial.current && owner.active()) {
+        lock.current = false
+        writing.current = false
+        setBusy(false)
+      }
     }
   }
   async function review() {
-    if (lock.current || (managed && !currentActor())) return
+    if (lock.current || !currentActor()) return
     lock.current = true
     setBusy(true)
     try {
       const result = await query.refetch()
-      if (currentActor() && result.data && !result.error && !uncertain) {
+      if (currentActor() && result.data && !result.error && !intent.current) {
         setReviewed(result.data)
-        intent.current = null
-        setIssue(null)
+        owner.update((previous) => ({
+          ...previous,
+          requireReview: false,
+          issue: previous.requireReview ? 'abandoned' : null,
+        }))
       }
     } finally {
       lock.current = false
-      if (currentActor() || (managed && alive.current)) setBusy(false)
+      if (alive.current && owner.active()) setBusy(false)
     }
   }
-  if (!visible) return null
+  if (!visible || !authorized()) return null
   return (
-    <Dialog
-      open
-      busy={busy}
-      onOpenChange={(value) => {
-        if (!value) close(uncertain ? 'restoreClosed' : null)
-      }}
-      title={t('restoreTitle')}
-      description={t('restoreHelp')}
-      width={800}
-    >
-      <QueryState pending={query.isFetching} error={query.error} retry={() => void review()} />
-      {(issue || uncertain || stale) && (
-        <p role="alert" className="mb-4 text-destructive">
-          {t(uncertain ? 'uncertain' : stale ? 'conflict' : issue!)}
-        </p>
-      )}
-      {fresh && context && (
-        <form
-          className="space-y-6"
-          onSubmit={(event) => {
-            event.preventDefault()
-            void dispatch()
-          }}
-        >
-          <div className="grid gap-6 sm:grid-cols-2">
-            <section aria-label={t('current')}>
-              <h3 className="mb-4 font-medium">{t('current')}</h3>
-              <PolicyRows
-                policy={context.limit.stored as DefaultLimitPolicy}
-                currency={context.limit.platform_currency}
-              />
-            </section>
-            <section aria-label={t('defaults')}>
-              <h3 className="mb-4 font-medium">{t('defaults')}</h3>
-              <PolicyRows
-                policy={context.default_rule.policy}
-                currency={context.default_rule.platform_currency}
-              />
-            </section>
-          </div>
-          <FormField label={t('reason')}>
-            <Input
-              aria-label={t('reason')}
-              disabled={busy || uncertain || !query.data?.editable}
-              value={reason}
-              onValueChange={setReason}
-            />
-          </FormField>
-          <Button type="submit" disabled={busy || uncertain || blocked || !query.data?.editable}>
-            {t('confirm')}
-          </Button>
-        </form>
-      )}
-      <div className="mt-4 flex flex-wrap gap-2">
-        {(blocked || uncertain) && (
-          <Button type="button" variant="outline" disabled={busy} onClick={() => void review()}>
-            {t('review')}
-          </Button>
+    <>
+      <Dialog
+        open
+        busy={busy}
+        onOpenChange={(value) => {
+          if (!value) close(uncertain ? 'restoreClosed' : null)
+        }}
+        title={t('restoreTitle')}
+        description={t('restoreHelp')}
+        width={800}
+      >
+        <QueryState pending={query.isFetching} error={query.error} retry={() => void review()} />
+        {(issue || uncertain || stale) && (
+          <p role="alert" className="mb-4 text-destructive">
+            {t(uncertain ? 'uncertain' : stale ? 'conflict' : issue!)}
+          </p>
         )}
-        {uncertain && (
+        {fresh && context && (
+          <form
+            className="space-y-6"
+            onSubmit={(event) => {
+              event.preventDefault()
+              void dispatch()
+            }}
+          >
+            <div className="grid gap-6 sm:grid-cols-2">
+              <section aria-label={t(owner.state.intent ? 'capturedCurrent' : 'current')}>
+                <h3 className="mb-4 font-medium">
+                  {t(owner.state.intent ? 'capturedCurrent' : 'current')}
+                </h3>
+                <PolicyRows
+                  policy={context.limit.stored as DefaultLimitPolicy}
+                  currency={context.limit.platform_currency}
+                />
+              </section>
+              <section aria-label={t(owner.state.intent ? 'capturedDefaults' : 'defaults')}>
+                <h3 className="mb-4 font-medium">
+                  {t(owner.state.intent ? 'capturedDefaults' : 'defaults')}
+                </h3>
+                <PolicyRows
+                  policy={context.default_rule.policy}
+                  currency={context.default_rule.platform_currency}
+                />
+              </section>
+            </div>
+            <FormField label={t('reason')}>
+              <Input
+                aria-label={t('reason')}
+                disabled={busy || !!owner.state.intent || !query.data?.editable}
+                value={reason}
+                onValueChange={(value) =>
+                  owner.update((previous) => ({ ...previous, reason: value }))
+                }
+              />
+            </FormField>
+            <Button type="submit" disabled={busy || uncertain || blocked || !query.data?.editable}>
+              {t('confirm')}
+            </Button>
+          </form>
+        )}
+        <div className="mt-4 flex flex-wrap gap-2">
+          {(blocked || uncertain) && (
+            <Button type="button" variant="outline" disabled={busy} onClick={() => void review()}>
+              {t('review')}
+            </Button>
+          )}
+          {uncertain && (
+            <Button
+              type="button"
+              disabled={busy || !fresh || !query.data?.editable}
+              onClick={() => void dispatch(true)}
+            >
+              {t('retry')}
+            </Button>
+          )}
+          {owner.state.intent && (
+            <Button
+              type="button"
+              variant="outline"
+              disabled={busy || !fresh || !query.data?.editable}
+              onClick={() => setAbandon(true)}
+            >
+              {t('abandon')}
+            </Button>
+          )}
           <Button
             type="button"
-            disabled={busy || !fresh || !query.data?.editable}
-            onClick={() => void dispatch(true)}
+            variant="outline"
+            disabled={busy}
+            onClick={() => close(uncertain ? 'restoreClosed' : null)}
           >
-            {t('retry')}
+            {t('cancel')}
           </Button>
-        )}
-        <Button
-          type="button"
-          variant="outline"
-          disabled={busy}
-          onClick={() => close(uncertain ? 'restoreClosed' : null)}
-        >
-          {t('cancel')}
-        </Button>
-      </div>
-    </Dialog>
+        </div>
+      </Dialog>
+      <Dialog
+        open={abandon && fresh}
+        onOpenChange={setAbandon}
+        title={t('abandonTitle')}
+        description={t('abandonHelp')}
+        busy={busy}
+      >
+        <div className="mt-4 flex gap-2">
+          <Button
+            disabled={busy || !fresh || !query.data?.editable}
+            onClick={() => {
+              if (
+                lock.current ||
+                !currentActor() ||
+                !currentReview() ||
+                !query.data?.editable ||
+                !intent.current
+              )
+                return
+              if (!owner.clear(owner.currentClaim())) return
+              intent.current = null
+              owner.update((previous) => ({
+                ...previous,
+                intent: null,
+                uncertain: false,
+                requireReview: true,
+                issue: 'abandoned',
+              }))
+              setAbandon(false)
+            }}
+          >
+            {t('confirmAbandon')}
+          </Button>
+          <Button variant="outline" disabled={busy} onClick={() => setAbandon(false)}>
+            {t('cancel')}
+          </Button>
+        </div>
+      </Dialog>
+    </>
   )
 }

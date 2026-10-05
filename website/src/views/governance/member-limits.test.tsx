@@ -563,3 +563,40 @@ it('reset review renewal cannot accept an already pending response as current co
   expect(host.textContent).not.toContain('Current defaults restored and applied.')
   expect(resets()).toHaveLength(1)
 })
+
+it('retains first409 Member restoration across real dismissal and permission failure recovery', async () => {
+  await render()
+  await click('Restore defaults')
+  await until(() => expect(button('Confirm restoration')).toBeTruthy())
+  await input('Reason', 'Member retained restoration')
+  resetStatus = 409
+  await click('Confirm restoration')
+  await until(() => expect(button('Retry original request')?.disabled).toBe(false))
+  const original = resets()[0]
+  await click('Cancel')
+  await until(() => expect(document.querySelector('[role="dialog"]')).toBeNull())
+  permissionStatus = 503
+  await act(async () => cache.refetchQueries({ queryKey: ['permissions'] }))
+  expect(button('Restore defaults')).toBeUndefined()
+  expect(document.body.textContent).not.toContain('Captured account policy')
+  permissionStatus = 0
+  csrf = 'renewed-csrf'
+  await act(async () => {
+    await cache.refetchQueries({ queryKey: ['auth', 'session'] })
+    await cache.refetchQueries({ queryKey: ['permissions'] })
+  })
+  await click('Restore defaults')
+  await until(() =>
+    expect(document.querySelector<HTMLInputElement>('input[aria-label="Reason"]')?.value).toBe(
+      'Member retained restoration',
+    ),
+  )
+  expect(button('Confirm restoration')?.disabled).toBe(true)
+  resetStatus = 0
+  await click('Retry original request')
+  await until(() => expect(resets()).toHaveLength(2))
+  expect(resets()[1].data).toBe(original.data)
+  expect(resets()[1].headers.get('If-Match')).toBe(original.headers.get('If-Match'))
+  expect(resets()[1].headers.get('X-CSRF-Token')).toBe('renewed-csrf')
+  expect(cache.getMutationCache().getAll()).toHaveLength(0)
+})

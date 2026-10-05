@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link, Navigate, useParams, useSearchParams } from 'react-router'
 import { ArrowUpRight } from 'lucide-react'
 import { getResource } from '@/api/resources'
@@ -24,6 +24,8 @@ import { ResourcePeople } from './people'
 import { ResourceModels } from './models'
 import { ResourceSettings } from './settings'
 import type { ResourceKind, ResourceRecord } from '@/types/resources'
+import type { Session } from '@/types/auth'
+import { useRestoreOwner, type RestoreOwner } from '@/views/default-limits/restore-owner'
 
 export default function ResourceDetailPage({
   kind,
@@ -39,6 +41,36 @@ export default function ResourceDetailPage({
   const [modelHistoryMounted, setModelHistoryMounted] = useState(params.get('tab') === 'models')
   if (params.get('tab') === 'models' && !modelHistoryMounted) setModelHistoryMounted(true)
   const actor = session.isError ? '' : (session.data?.user.id ?? '')
+  const cache = useQueryClient()
+  const restoreOwner = useRestoreOwner(
+    session.data?.user.id ?? '',
+    { kind: 'team', id: resourceId },
+    `${kind}:${params.get('tab') ?? ''}`,
+  )
+  function restoreHostCurrent() {
+    const parent = cache.getQueryState<ResourceRecord>([
+      'resources',
+      kind,
+      admin,
+      resourceId,
+      restoreOwner.actor,
+    ])
+    const auth = cache.getQueryState<Session>(['auth', 'session'])
+    return (
+      kind === 'teams' &&
+      auth?.status === 'success' &&
+      auth.fetchStatus === 'idle' &&
+      !auth.error &&
+      !auth.isInvalidated &&
+      auth.data?.user.id === restoreOwner.actor &&
+      parent?.status === 'success' &&
+      parent.fetchStatus === 'idle' &&
+      !parent.error &&
+      !parent.isInvalidated &&
+      parent.data?.id === resourceId &&
+      parent.data.status === 'active'
+    )
+  }
   const resource = useQuery({
     queryKey: ['resources', kind, admin, resourceId, actor],
     queryFn: ({ signal }) => getResource(kind, admin, resourceId, signal),
@@ -75,7 +107,13 @@ export default function ResourceDetailPage({
       {canShow && legacyTab ? (
         <Navigate replace to={{ search: `?${canonicalParams.toString()}` }} />
       ) : canShow ? (
-        <ResourceDetail key={`${actor}:${resourceId}`} kind={kind} resource={resource.data!} />
+        <ResourceDetail
+          key={`${actor}:${resourceId}`}
+          kind={kind}
+          resource={resource.data!}
+          restoreOwner={restoreOwner}
+          restoreHostCurrent={restoreHostCurrent}
+        />
       ) : (
         <Page
           title={t('details', { kind: t(kind === 'teams' ? 'team' : 'project') })}
@@ -107,7 +145,17 @@ export default function ResourceDetailPage({
     </>
   )
 }
-function ResourceDetail({ kind, resource }: { kind: ResourceKind; resource: ResourceRecord }) {
+function ResourceDetail({
+  kind,
+  resource,
+  restoreOwner,
+  restoreHostCurrent,
+}: {
+  kind: ResourceKind
+  resource: ResourceRecord
+  restoreOwner: RestoreOwner
+  restoreHostCurrent: () => boolean
+}) {
   const { t, i18n } = useTranslation('resources')
   const session = useSession()
   const access = usePermissions()
@@ -189,6 +237,8 @@ function ResourceDetail({ kind, resource }: { kind: ResourceKind; resource: Reso
             <ResourceLimits
               path={`/teams/${resource.id}`}
               team={{ teamId: resource.id }}
+              restoreOwner={restoreOwner}
+              restoreHostCurrent={restoreHostCurrent}
               canEdit={resource.status === 'active'}
             />
           </TabsContent>
@@ -337,6 +387,8 @@ function ResourceDetail({ kind, resource }: { kind: ResourceKind; resource: Reso
             <ResourceLimits
               path={`/teams/${resource.id}`}
               team={{ teamId: resource.id }}
+              restoreOwner={restoreOwner}
+              restoreHostCurrent={restoreHostCurrent}
               canEdit={resource.status === 'active'}
             />
           </TabsContent>

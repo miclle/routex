@@ -1,4 +1,5 @@
 import RestoreDefaults from '@/views/default-limits/restore'
+import type { RestoreOwner } from '@/views/default-limits/restore-owner'
 import { useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
@@ -29,9 +30,19 @@ type Props = {
   child?: boolean
   team?: TeamLimitScope
   parentManagedSession?: boolean
+  restoreOwner?: RestoreOwner
+  restoreHostCurrent?: () => boolean
 }
 export default function ResourceLimits(props: Props) {
-  if (props.team) return <TeamResourceLimits scope={props.team} canEdit={props.canEdit} />
+  if (props.team)
+    return (
+      <TeamResourceLimits
+        scope={props.team}
+        canEdit={props.canEdit}
+        restoreOwner={props.restoreOwner}
+        restoreHostCurrent={props.restoreHostCurrent}
+      />
+    )
   return <ResourceLimitContent key={props.path} {...props} />
 }
 function ResourceLimitContent(props: Props) {
@@ -87,14 +98,28 @@ function ResourceLimitContent(props: Props) {
           retry={() => void query.refetch()}
         />
         {query.data && <LimitSummary record={query.data} child={props.child} />}
-        {props.canEdit &&
-          query.data?.kind === 'user' &&
-          !query.isFetching &&
-          !query.isError &&
-          !editing &&
-          /^\/admin\/members\/[^/]+$/.test(props.path) && (
-            <RestoreDefaults target={{ kind: 'user', id: query.data.id }} />
-          )}
+        {/^\/admin\/members\/[^/]+$/.test(props.path) && (
+          <RestoreDefaults
+            target={{ kind: 'user', id: props.path.split('/')[3] }}
+            visible={
+              props.canEdit &&
+              query.data?.kind === 'user' &&
+              !query.isFetching &&
+              !query.isError &&
+              !editing
+            }
+            hostCurrent={() => {
+              const state = cache.getQueryState(['resource-limits', props.path])
+              return (
+                state?.status === 'success' &&
+                state.fetchStatus === 'idle' &&
+                !state.error &&
+                !state.isInvalidated &&
+                state.data === query.data
+              )
+            }}
+          />
+        )}
         {notice && (
           <p role="status" className="text-sm">
             {t(notice)}

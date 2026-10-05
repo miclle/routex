@@ -1,4 +1,5 @@
 import RestoreDefaults from '@/views/default-limits/restore'
+import type { RestoreOwner } from '@/views/default-limits/restore-owner'
 import { useLayoutEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
@@ -18,9 +19,14 @@ import {
 import { integerDraft, moneyAbove, parseInteger, validMoney } from './quota-values'
 import { QuotaUsageSummary } from './quota-usage'
 
-export default function TeamResourceLimits(props: { scope: TeamLimitScope; canEdit: boolean }) {
+export default function TeamResourceLimits(props: {
+  scope: TeamLimitScope
+  canEdit: boolean
+  restoreOwner?: RestoreOwner
+  restoreHostCurrent?: () => boolean
+}) {
   const session = useSession()
-  const actor = session.isError ? '' : (session.data?.user.id ?? '')
+  const actor = session.data?.user.id ?? ''
   return (
     <TeamLimitContent key={`${actor}:${teamLimitPath(props.scope)}`} {...props} actor={actor} />
   )
@@ -29,10 +35,14 @@ function TeamLimitContent({
   scope,
   canEdit,
   actor,
+  restoreOwner,
+  restoreHostCurrent,
 }: {
   scope: TeamLimitScope
   canEdit: boolean
   actor: string
+  restoreOwner?: RestoreOwner
+  restoreHostCurrent?: () => boolean
 }) {
   const { t } = useTranslation('limits')
   const cache = useQueryClient()
@@ -68,7 +78,6 @@ function TeamLimitContent({
           {!editing && (
             <>
               <TeamLimitSummary record={query.data} member={!!scope.userId} />
-              {!scope.userId && <RestoreDefaults target={{ kind: 'team', id: scope.teamId }} />}
               {editable && (
                 <Button
                   variant="outline"
@@ -83,6 +92,26 @@ function TeamLimitContent({
             </>
           )}
         </>
+      )}
+      {!scope.userId && (
+        <RestoreDefaults
+          target={{ kind: 'team', id: scope.teamId }}
+          owner={restoreOwner}
+          visible={fresh && !editing && canEdit}
+          hostCurrent={() => {
+            const current = cache.getQueryState<LimitRecord>(queryKey)
+            return (
+              current?.status === 'success' &&
+              current.fetchStatus === 'idle' &&
+              !current.error &&
+              !current.isInvalidated &&
+              current.data === query.data &&
+              current.data?.kind === 'team' &&
+              current.data.id === scope.teamId &&
+              (!restoreHostCurrent || restoreHostCurrent())
+            )
+          }}
+        />
       )}
       {editing && query.data && (
         <TeamLimitEditor

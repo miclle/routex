@@ -137,3 +137,39 @@ real journal coverage starts.
 
 Broader F17 alerts, configurable stop policy, named templates, distributed
 enforcement and production capacity acceptance remain open.
+
+## Transient Session-error recovery
+
+A dispatched Restore request retains only its reviewed non-secret target, reason,
+If-Match and historical default context in the private AuthGate lifetime boundary.
+A temporary same-actor Session read failure unmounts private resource data and
+controls. Manual recovery requires a fresh real Session, permissions and target
+review; it never automatically posts. Explicit retry uses the original request
+with the current CSRF token, even when current defaults differ. Rejected retries
+retain uncertainty. Logout, definitive expiry, actor/resource/tab changes and
+explicit abandonment clear the intent; no credentials, Session tokens or
+private query snapshots enter browser storage or mutation caches.
+
+Isolated source checking, complete Task/build and controlled PostgreSQL bilingual
+browser/restart acceptance passed. Seven actual reset requests included two real
+Member conflicts, reviewed restoration, a labeled observer pre-forward412,
+committed200 withheld as503 and real Session200 withheld as500. Private DOM and
+actions disappeared during that gate error. Manual recovery retained the reviewed
+Team default200 while current defaults were201; original Sessions and the exact
+request survived process restart, with explicit retry200 and no extra audit.
+Exact money20.000000000000000001 USD, Member IP and independent child Tokens77
+remained intact. Project and Team-member restore controls stayed absent.
+
+There were zero native Calls/Attempts. Owned resources were independently absent;
+earlier fixture/module preparations remain failed. Source/build and browser
+artifact identities are separate from later main composition checks. A second
+UI tab proved post-restart Session/permission/Team reads; that observation does
+not prove the original React Query callback generation. MySQL browser acceptance
+is not claimed. Backend/schema/runtime publication contracts are unchanged.
+
+Main composition on checked Member warnings passed mandatory checking, all
+3,407 frontend cases/153 files and four Node checks, production asset race
+tests and a rebuilt embedded executable. All16 accepted UI afterimages remain
+exact; the Member backend/schema is unchanged. The prior controlled browser
+artifact remains separately identified from this later composed build. The
+containing commit records this UI recovery phase.
