@@ -327,7 +327,18 @@ function AdminModels({
               <tbody>
                 {models.data
                   ?.filter((model) =>
-                    `${model.name} ${model.bindings.map((b) => providerData?.find((p) => p.id === b.provider_id)?.name).join(' ')}`
+                    [
+                      model.name,
+                      model.bindings
+                        .map(
+                          (binding) =>
+                            providerData?.find((p) => p.id === binding.provider_id)?.name,
+                        )
+                        .join(' '),
+                      model.bindings.map((binding) => binding.protocol).join(' '),
+                      model.bindings.map((binding) => protocolLabel(binding.protocol)).join(' '),
+                    ]
+                      .join(' ')
                       .toLowerCase()
                       .includes(search.toLowerCase()),
                   )

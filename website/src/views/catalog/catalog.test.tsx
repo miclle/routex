@@ -662,6 +662,128 @@ describe('catalog and Key workflows', () => {
   })
 })
 
+describe('administrative Model protocol search', () => {
+  async function search(value: string) {
+    const input = container.querySelector<HTMLInputElement>('input')!
+    expect(input).not.toBeNull()
+    await act(async () => {
+      Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!.call(input, value)
+      input.dispatchEvent(new Event('input', { bubbles: true }))
+    })
+  }
+  function hasModel() {
+    return container.querySelector('tbody a[href="/admin/models/mdl_1"]') !== null
+  }
+
+  it.each(['openai_chat', 'openai_responses', 'anthropic_messages', 'gemini_generate_content'])(
+    'matches only the recorded %s binding without extra reads',
+    async (protocol) => {
+      model.bindings[0].protocol = protocol as Model['bindings'][number]['protocol']
+      await render(<AdminModelsPage />)
+      await until(() => expect(hasModel()).toBe(true))
+      const reads = requests.map((request) => `${request.method} ${request.url}`)
+      await search(protocol.toUpperCase())
+      expect(hasModel()).toBe(true)
+      await search(protocol === 'openai_chat' ? 'openai_responses' : 'openai_chat')
+      expect(hasModel()).toBe(false)
+      await search('')
+      expect(hasModel()).toBe(true)
+      expect(requests.map((request) => `${request.method} ${request.url}`)).toEqual(reads)
+    },
+  )
+
+  it.each([
+    ['openai_chat', 'OpenAI Chat', 'OpenAI Responses'],
+    ['openai_responses', 'OpenAI Responses', 'Anthropic Messages'],
+    ['anthropic_messages', 'Anthropic Messages', 'Gemini Generate Content'],
+    ['gemini_generate_content', 'Gemini Generate Content', 'OpenAI Chat'],
+  ])(
+    'matches the displayed label for %s without extra reads',
+    async (protocol, label, absentLabel) => {
+      model.bindings[0].protocol = protocol as Model['bindings'][number]['protocol']
+      await render(<AdminModelsPage />)
+      await until(() => expect(hasModel()).toBe(true))
+      expect(container.querySelector('tbody')?.textContent).toContain(label)
+      const reads = requests.map((request) => `${request.method} ${request.url}`)
+      await search(label.toUpperCase())
+      expect(hasModel()).toBe(true)
+      await search(absentLabel)
+      expect(hasModel()).toBe(false)
+      await search(protocol)
+      expect(hasModel()).toBe(true)
+      expect(requests.map((request) => `${request.method} ${request.url}`)).toEqual(reads)
+    },
+  )
+
+  it('searches mixed configured protocols literally while retaining name and Provider search', async () => {
+    model.bindings.push({
+      ...model.bindings[0],
+      id: 'bind_2',
+      protocol: 'anthropic_messages',
+      weight: 0,
+      ready: false,
+    })
+    await render(<AdminModelsPage />)
+    await until(() => expect(container.querySelector('tbody')?.textContent).toContain('Provider'))
+    await search('OPENAI_CHAT ANTHROPIC_MESSAGES')
+    expect(hasModel()).toBe(true)
+    await search('anthropic_messages openai_chat')
+    expect(hasModel()).toBe(false)
+    await search('openai.*')
+    expect(hasModel()).toBe(false)
+    await search('gemini_generate_content')
+    expect(hasModel()).toBe(false)
+    await search('mOdEl')
+    expect(hasModel()).toBe(true)
+    await search('pRoViDeR')
+    expect(hasModel()).toBe(true)
+    await search(' Model ')
+    expect(hasModel()).toBe(false)
+  })
+
+  it('uses binding protocols without fetching an unauthorized Provider catalogue', async () => {
+    const adapter = client.defaults.adapter as (
+      config: InternalAxiosRequestConfig,
+    ) => Promise<unknown>
+    client.defaults.adapter = async (config) => {
+      const response = (await adapter(config)) as { data: unknown }
+      if (config.url === '/auth/permissions') response.data = { permissions: ['models.read_all'] }
+      return response as never
+    }
+    await render(<AdminModelsPage />)
+    await until(() => expect(hasModel()).toBe(true))
+    await search('OPENAI_CHAT')
+    expect(hasModel()).toBe(true)
+    await search('Provider')
+    expect(hasModel()).toBe(false)
+    expect(requests.some((request) => request.url === '/admin/providers')).toBe(false)
+  })
+
+  it('preserves the protocol query and exact rows during a live language switch', async () => {
+    await render(<AdminModelsPage />)
+    await until(() => expect(hasModel()).toBe(true))
+    const input = container.querySelector<HTMLInputElement>('input')!
+    expect(input.placeholder).toBe(i18n.getFixedT('en', 'catalog')('adminModels.searchPlaceholder'))
+    await search('OPENAI_CHAT')
+    const reads = requests.length
+    try {
+      await act(async () => {
+        await i18n.changeLanguage('zh')
+      })
+      expect(input.placeholder).toBe(
+        i18n.getFixedT('zh', 'catalog')('adminModels.searchPlaceholder'),
+      )
+      expect(input.value).toBe('OPENAI_CHAT')
+      expect(hasModel()).toBe(true)
+      expect(requests).toHaveLength(reads)
+    } finally {
+      await act(async () => {
+        await i18n.changeLanguage('en')
+      })
+    }
+  })
+})
+
 describe('native protocol catalog', () => {
   it.each(['openai_responses', 'anthropic_messages', 'gemini_generate_content'])(
     'sends selected %s when creating a provider connection',

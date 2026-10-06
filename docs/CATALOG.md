@@ -879,3 +879,19 @@ authority renewal/error/replacement, live language changes and absent routes.
 Main checking, complete frontend tests and controlled bilingual clipboard,
 authority, actor replacement and original-Session restart acceptance pass.
 No SDK runtime compatibility is certified. See [F19 acceptance](IMPLEMENTATION.md#model-access-sdk-guidance-and-f19-acceptance-2026-10-07).
+
+## Administrative Model protocol search
+
+The existing Model table searches Model names, authorized Provider names, recorded
+binding protocol identifiers and the displayed native protocol labels using the
+same literal, case-insensitive substring rule. Configured zero-weight or unready
+bindings remain searchable without implying invocation eligibility. Search makes
+no additional catalogue reads; Provider names remain absent without Provider read
+authority. Switching between English and Chinese preserves the query and rows.
+
+Eleven regression cases cover all four identifiers and labels, mixed configured
+protocols, literal matching, independent Provider permission and live language
+switching. The related suite passes 106 cases. Complete local check, test and
+production build pass, including 4,280 frontend cases in 172 files, Go race/unit,
+Node checks, development lifecycle and production asset checks. Broader Model
+management acceptance remains tracked separately in the implementation index.
