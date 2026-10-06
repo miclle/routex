@@ -356,6 +356,8 @@ through incidental renewal without replay; actor/Model changes destroy them.
 Invalidate generation-suffixed candidate drawers by their complete actor/Model
 prefix. Keep all visible example guidance in the paired catalog translations.
 
+Model access drawers copy only their displayed Base URL, nonsecret Personal authentication header template, and exact generated example text. Team examples never offer a Key header. Reuse current actor/Model/source/protocol and successful idle detail-query authority for every copy action; renewed reads, errors, changed selections and unmount invalidate pending clipboard feedback. Preserve the original example characters when applying local Bash token highlighting, render tokens as escaped React text, and leave standalone Team here-document bodies opaque. Highlighting and copying perform no login, inference or grant operation. Keep accessible copy labels and feedback in paired catalog translations.
+
 
 Monthly quota exhaustion uses the existing notification menu and recipient-scoped
 inbox routes. Enabled members may read their own Personal notices; Project

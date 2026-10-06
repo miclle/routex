@@ -1952,3 +1952,35 @@ the stop; both remain unaccepted. Source stays exact and root independently
 verifies absent owned resources, listeners and process. Binding complete129 R3
 continues unaffected. Revised caller/workbook source gates and fresh complete
 validation are required before their separate deliveries.
+
+## Model access copy and highlighting: scoped delivery, 2026-10-06
+
+The existing Model access drawer adds accessible copy controls for its displayed
+Base URL, nonsecret Personal authentication header template and exact generated
+example. Team examples retain separate Session authentication without a Key
+header. Local Bash highlighting preserves original characters as escaped React
+text and leaves standalone Team here-document bodies opaque. Copy dispatch uses
+current actor, Model, source, protocol and successful idle detail authority;
+renewed reads, errors, selection changes and unmount discard late feedback. No
+login, inference, grant operation, schema, API or dependency is added.
+
+The clean Caller delivery worktree passes formatting, mandatory checking, complete
+Task (4,231 frontend cases/169 files, four Node checks, two development lifecycle
+checks, Go race/coverage and embedded assets) and production build. All 1,018
+accepted Caller backend/Task paths remain exact. Known optional libc-only build
+metadata is preserved and its private source lock restored; dependencies do not
+change. Current main mandatory checking passes with all 1,634 combined tested product
+paths exact. Check receipt SHA-256: `c1a042acb3fcf2456894b1d22ee6b1c8d0ea0c739acb1eb8fb65a3c9a0cea95b`.
+
+Exact clean-delivery binary controlled EN/ZH card/drawer, real clipboard,
+keyboard, grant withdrawal/restoration and ordinary actor replacement pass.
+Both original browser Sessions and all original API Sessions survive identical
+binary/configuration/database/journal restart without relogin; all six Session
+rows stay exact. Root verifies zero Calls/Attempts/Keys/Projects and absent owned
+resources/listeners; all temporary tabs are closed. Console warnings/errors are
+empty. Withdrawal was observed on renewed closed-drawer lists; late open-drawer
+responses remain source tests. A root SQL diagnostic initially used an absent
+Session field and was corrected to the actual recorded fields without product
+changes. Acceptance SHA-256: `eed88b6d189b45b3c365710cf3c5a68f61d83f87a9973f419320d623f7776ae7`. The historical
+private XLSX candidate receipt does not substitute. The containing commit
+delivers this bounded slice; F19 remains partial and totals stay 11/16/3.

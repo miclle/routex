@@ -1,4 +1,8 @@
 export default {
+  modelAccess: {
+    copyBaseURL: '复制 Base URL',
+    copyAuthenticationHeader: '复制认证请求头模板',
+  },
   providerModels: {
     bindingFilter: '筛选已保存的模型绑定',
     allBindings: '全部绑定状态',

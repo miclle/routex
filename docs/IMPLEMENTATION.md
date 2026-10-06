@@ -6742,3 +6742,35 @@ lint-check attempts remain historical. Their fixture-only and Boolean-equivalent
 predicate corrections do not relax authority, coverage, 10,000-row/overflow or
 one-fact-SELECT assertions. Sixteen Caller payloads are carried onto the delivered
 F11 predecessor. Main formatting, mandatory checking and production build pass. All 1,628 tested product paths and 1,018 backend/Task paths match the accepted candidates. Controlled EN/ZH cards/table/keyboard acceptance confirms Personal 2 requests/1 distinct caller, shared Team 3 requests/2 callers and unused Model zero. Real peer removal hides stale Model/usage facts; authorized readers retain two historical callers, and rejoin restores the shared view. Ordinary member-to-peer logout/login hides Personal facts. Three original browser Sessions and three original API Sessions remain usable after a same-binary/configuration/database/journal restart without relogin. Exactly five native calls, five persisted Calls and five Attempts, including exact private actor groups, are independently verified. Owned Compose resources, application/stub/database ports and temporary tabs are absent. Browser warning/error logs are empty. Functional acceptance SHA-256: `63ed9cffadfcfd4b1e7ae1c8fe8a9e40d8685d348ca5799c9d7b5ed9ad76d008`. Initial browser prices were Unknown and recovered to the unchanged exact rates on normal refresh; their initial cause remains unproven. Legacy unknown-attribution and obsolete-response cases remain source/driver evidence. The first noninteractive fixture launch reached setup then failed on stdin EOF with zero native calls; its cleanup and failed status are retained. The containing commit delivers this bounded Caller phase; F19 and formal 11/16/3 totals remain unchanged.
+
+## Model access copy and highlighting: scoped delivery, 2026-10-06
+
+The existing Model access drawer adds accessible copy controls for its displayed
+Base URL, nonsecret Personal authentication header template and exact generated
+example. Team examples retain separate Session authentication without a Key
+header. Local Bash highlighting preserves original characters as escaped React
+text and leaves standalone Team here-document bodies opaque. Copy dispatch uses
+current actor, Model, source, protocol and successful idle detail authority;
+renewed reads, errors, selection changes and unmount discard late feedback. No
+login, inference, grant operation, schema, API or dependency is added.
+
+The clean Caller delivery worktree passes formatting, mandatory checking, complete
+Task (4,231 frontend cases/169 files, four Node checks, two development lifecycle
+checks, Go race/coverage and embedded assets) and production build. All 1,018
+accepted Caller backend/Task paths remain exact. Known optional libc-only build
+metadata is preserved and its private source lock restored; dependencies do not
+change. Current main mandatory checking passes with all 1,634 combined tested product
+paths exact. Check receipt SHA-256: `c1a042acb3fcf2456894b1d22ee6b1c8d0ea0c739acb1eb8fb65a3c9a0cea95b`.
+
+Exact clean-delivery binary controlled EN/ZH card/drawer, real clipboard,
+keyboard, grant withdrawal/restoration and ordinary actor replacement pass.
+Both original browser Sessions and all original API Sessions survive identical
+binary/configuration/database/journal restart without relogin; all six Session
+rows stay exact. Root verifies zero Calls/Attempts/Keys/Projects and absent owned
+resources/listeners; all temporary tabs are closed. Console warnings/errors are
+empty. Withdrawal was observed on renewed closed-drawer lists; late open-drawer
+responses remain source tests. A root SQL diagnostic initially used an absent
+Session field and was corrected to the actual recorded fields without product
+changes. Acceptance SHA-256: `eed88b6d189b45b3c365710cf3c5a68f61d83f87a9973f419320d623f7776ae7`. The historical
+private XLSX candidate receipt does not substitute. The containing commit
+delivers this bounded slice; F19 remains partial and totals stay 11/16/3.

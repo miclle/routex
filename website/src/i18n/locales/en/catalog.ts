@@ -1,4 +1,8 @@
 export default {
+  modelAccess: {
+    copyBaseURL: 'Copy Base URL',
+    copyAuthenticationHeader: 'Copy authentication header template',
+  },
   providerModels: {
     bindingFilter: 'Filter stored Model bindings',
     allBindings: 'All bindings',

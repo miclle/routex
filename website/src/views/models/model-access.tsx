@@ -20,6 +20,7 @@ import {
   teamInvocationSupported,
 } from './catalogue-metadata'
 import { exampleProtocols, modelExample } from './model-examples'
+import { bashTokens } from './bash-tokens'
 
 export default function ModelAccess({
   actorID,
@@ -84,8 +85,7 @@ export default function ModelAccess({
   const [exampleProtocol, setExampleProtocol] = useState('openai_chat')
   const [notice, setNotice] = useState<{
     value: 'memberModels.copied' | 'memberModels.copyFailed'
-    example: string
-    generation: number
+    scope: object
   } | null>(null)
   // Earlier catalogue authorization cannot authorize a refreshed resource detail.
   const model = visible && query.isSuccess && !query.isFetching ? query.data : undefined
@@ -128,15 +128,27 @@ export default function ModelAccess({
   const example = model
     ? modelExample(model, selectedSource, activeProtocol, window.location.origin)
     : undefined
-  const copyOwner = useRef({ example, isCurrent })
+  const [copyScope, setCopyScope] = useState({ example, endpoint, authHeader, model, queryKey })
+  if (
+    copyScope.example !== example ||
+    copyScope.endpoint !== endpoint ||
+    copyScope.authHeader !== authHeader ||
+    copyScope.model !== model ||
+    copyScope.queryKey !== queryKey
+  )
+    setCopyScope({ example, endpoint, authHeader, model, queryKey })
+  const copyOwner = useRef<{ scope: typeof copyScope | null; isCurrent: () => boolean }>({
+    scope: copyScope,
+    isCurrent,
+  })
+  const copyOperation = useRef(0)
   useLayoutEffect(() => {
-    const current = { example, isCurrent }
+    const current = { scope: copyScope, isCurrent }
     copyOwner.current = current
     return () => {
-      if (copyOwner.current === current)
-        copyOwner.current = { example: undefined, isCurrent: () => false }
+      if (copyOwner.current === current) copyOwner.current = { scope: null, isCurrent: () => false }
     }
-  }, [example, isCurrent])
+  }, [copyScope, isCurrent])
   function currentExample() {
     const detail = cache.getQueryState<ModelCatalogMetadata>(queryKey)
     return (
@@ -147,16 +159,30 @@ export default function ModelAccess({
       detail.data === model
     )
   }
-  async function copy() {
-    if (!example || !currentExample()) return
+  function clearCopyScope() {
+    copyOperation.current++
+    copyOwner.current = { scope: null, isCurrent: () => false }
+    setNotice(null)
+  }
+  async function copy(text: string | undefined) {
+    if (!text || !currentExample()) return
     const owner = copyOwner.current
+    if (owner.scope !== copyScope) return
+    const operation = ++copyOperation.current
+    setNotice(null)
     try {
-      await navigator.clipboard.writeText(example)
-      if (copyOwner.current === owner && currentExample())
-        setNotice({ value: 'memberModels.copied', example, generation })
+      await navigator.clipboard.writeText(text)
+      if (copyOwner.current === owner && copyOperation.current === operation && currentExample())
+        setNotice({
+          value: 'memberModels.copied',
+          scope: copyScope,
+        })
     } catch {
-      if (copyOwner.current === owner && currentExample())
-        setNotice({ value: 'memberModels.copyFailed', example, generation })
+      if (copyOwner.current === owner && copyOperation.current === operation && currentExample())
+        setNotice({
+          value: 'memberModels.copyFailed',
+          scope: copyScope,
+        })
     }
   }
 
@@ -179,7 +205,7 @@ export default function ModelAccess({
             disabled={!visible || query.isFetching}
             onClick={() => {
               if (!isCurrent() || !visible) return
-              setNotice(null)
+              clearCopyScope()
               void query.refetch()
             }}
           >
@@ -253,9 +279,21 @@ export default function ModelAccess({
               <div className="space-y-4 p-4">
                 <div>
                   <p className="text-sm text-muted-foreground">{t('common.baseURL')}</p>
-                  <code className="break-all text-sm">
-                    {endpoint ?? t('memberModels.unavailableProtocol')}
-                  </code>
+                  <div className="flex items-start gap-2">
+                    <code className="min-w-0 flex-1 break-all text-sm">
+                      {endpoint ?? t('memberModels.unavailableProtocol')}
+                    </code>
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className="size-7"
+                      aria-label={t('modelAccess.copyBaseURL')}
+                      disabled={!endpoint}
+                      onClick={() => void copy(endpoint)}
+                    >
+                      <Copy className="size-3" />
+                    </Button>
+                  </div>
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">
@@ -269,7 +307,18 @@ export default function ModelAccess({
                       <p className="text-sm text-muted-foreground">
                         {t('memberModels.authenticationHeader')}
                       </p>
-                      <code className="break-all text-sm">{authHeader}</code>
+                      <div className="flex items-start gap-2">
+                        <code className="min-w-0 flex-1 break-all text-sm">{authHeader}</code>
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="size-7"
+                          aria-label={t('modelAccess.copyAuthenticationHeader')}
+                          onClick={() => void copy(authHeader)}
+                        >
+                          <Copy className="size-3" />
+                        </Button>
+                      </div>
                     </div>
                     <Link
                       to="/keys"
@@ -287,7 +336,12 @@ export default function ModelAccess({
             <section className="rounded-lg border">
               <div className="flex items-center justify-between border-b px-4 py-2">
                 <h3 className="text-sm font-semibold">{t('memberModels.requestExample')}</h3>
-                <Button size="sm" variant="ghost" disabled={!example} onClick={() => void copy()}>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  disabled={!example}
+                  onClick={() => void copy(example)}
+                >
                   <Copy className="size-3" />
                   {t('common.copy')}
                 </Button>
@@ -299,12 +353,13 @@ export default function ModelAccess({
                     aria-label={t('memberModels.exampleSource')}
                     value={exampleSource ?? ''}
                     onChange={(event) => {
+                      if (event.target.value === exampleSource) return
+                      clearCopyScope()
                       setExampleSource(event.target.value)
                       const source = model.sources.find(
                         (source) => modelSourceKey(source) === event.target.value,
                       )
                       setExampleProtocol(exampleProtocols(model, source)[0] ?? '')
-                      setNotice(null)
                     }}
                     className="h-9 min-w-0 flex-1 rounded-md border bg-background px-3"
                   >
@@ -339,8 +394,9 @@ export default function ModelAccess({
                     disabled={!selectedSource}
                     value={activeProtocol ?? ''}
                     onChange={(event) => {
+                      if (event.target.value === exampleProtocol) return
+                      clearCopyScope()
                       setExampleProtocol(event.target.value)
-                      setNotice(null)
                     }}
                     className="h-9 rounded-md border bg-background px-3"
                   >
@@ -380,10 +436,18 @@ export default function ModelAccess({
                   {t('memberModels.geminiAliasRequired')}
                 </p>
               ) : (
-                <pre className="overflow-auto p-4 text-xs leading-6">{example}</pre>
+                <pre className="overflow-auto p-4 text-xs leading-6">
+                  <code>
+                    {bashTokens(example ?? '').map((token, index) => (
+                      <span key={index} className={token.className}>
+                        {token.text}
+                      </span>
+                    ))}
+                  </code>
+                </pre>
               )}
             </section>
-            {notice && notice.generation === generation && notice.example === example && (
+            {notice && notice.scope === copyScope && currentExample() && (
               <p role="status" className="text-sm">
                 {t(notice.value)}
               </p>
