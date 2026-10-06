@@ -323,8 +323,22 @@ states in the existing card/table slots. Requestable candidates remain price-fre
 Never choose a route price, convert money, infer a billing quote, or fetch the
 administrative price catalogue/per-row metadata to fill these cells.
 
-Catalogue monthly request cells reuse one existing scoped usage report only after selecting Personal or one current named Team source. Personal counts are the actor's persisted Personal requests; Team counts are shared Team aggregate requests. Render server-returned UTC from/to/queried-at and may-lag qualification. All sources, requestable models, denied/error/incomplete/renewed reads remain Unknown; exact absent Model groups become zero only after a complete validated report. Preserve actor/source/generation fences, prices and layout, and add no per-row or administrative usage/directory reads. Never infer global member usage, sum sources, remaining allowance or quota reset behavior. Member counts remain Unknown.
+Catalogue monthly request cells reuse one existing scoped usage report only after selecting Personal or one current named Team source. Personal counts are the actor's persisted Personal requests; Team counts are shared Team aggregate requests. Render server-returned UTC from/to/queried-at and may-lag qualification. All sources, requestable models, denied/error/incomplete/renewed reads remain Unknown; exact absent Model groups become zero only after a complete validated report. Preserve actor/source/generation fences, prices and layout, and add no per-row or administrative usage/directory reads. Never infer global member usage, sum sources, remaining allowance or quota reset behavior.
 Refresh the catalogue first; each successful catalogue read starts one fresh scoped usage query, including unchanged fast responses. Never dispatch an eager parallel usage refresh.
+
+Recorded caller cells reuse the same selected-account report, never an extra
+endpoint/query. Require `member_count_basis: distinct_recorded_actors` and exact
+Model-only current/previous `members: {value, known, unknown_calls}` coverage;
+validate nonnegative integers, `known + unknown_calls <= requests`, and value
+known only when unknown_calls is zero. Unmarked legacy reports remain Unknown.
+Incomplete attribution keeps the primary total Unknown with a localized known
+subtotal/unattributed-call detail; only a complete fresh marked absent Model
+supports zero. These are exact historical recorded actors across success/error/
+canceled requests, not current Team membership, grant recipients, Key owners or
+native success. Preserve actor/source/Session/catalogue generations and hide
+stale details during renewed authority, errors and overflow. Expose no raw actor
+IDs or coverage in non-Model groups, and preserve CSV behavior and paired EN/ZH
+copy. All/requestable source counts remain Unknown; never sum accounts.
 
 Member Model examples select an exact Personal or named Team source separately
 from list filters. A sole source may initialize the selector; multiple sources

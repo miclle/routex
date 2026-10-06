@@ -43,11 +43,22 @@ type UsageBucket struct {
 	End   time.Time  `json:"end"`
 	Stats UsageStats `json:"stats"`
 }
+
+// UsageMembers counts distinct safe recorded actor IDs, never current memberships.
+type UsageMembers struct {
+	Value        *int64 `json:"value"`
+	Known        int64  `json:"known"`
+	UnknownCalls int64  `json:"unknown_calls"`
+}
+
+const usageMemberCountBasis = "distinct_recorded_actors"
+
 type UsageGroup struct {
-	ID      string     `json:"id"`
-	Name    string     `json:"name,omitempty"`
-	Unknown bool       `json:"unknown"`
-	Stats   UsageStats `json:"stats"`
+	ID      string        `json:"id"`
+	Name    string        `json:"name,omitempty"`
+	Unknown bool          `json:"unknown"`
+	Stats   UsageStats    `json:"stats"`
+	Members *UsageMembers `json:"members,omitempty"`
 }
 type UsagePeriod struct {
 	From           time.Time     `json:"from"`
@@ -61,6 +72,7 @@ type UsagePeriod struct {
 	Connections    []UsageGroup  `json:"connections,omitempty"`
 }
 type UsageReport struct {
+	MemberCountBasis    string       `json:"member_count_basis"`
 	TeamID              string       `json:"team_id,omitempty"`
 	Timezone            string       `json:"timezone"`
 	Granularity         string       `json:"granularity"`

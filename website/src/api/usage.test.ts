@@ -1,8 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { AxiosHeaders, type InternalAxiosRequestConfig } from 'axios'
 import client from './client'
-import { getUsage, getUsageTeams } from './usage'
-import { teamUsageFixture } from '@/views/usage/fixture'
+import { getUsage, getUsageTeams, isPersonalUsageReport } from './usage'
+import { teamUsageFixture, usageFixture } from '@/views/usage/fixture'
 import { defaultUsageFilters } from '@/views/usage/filter-state'
 const original = client.defaults.adapter
 let body: unknown, requests: InternalAxiosRequestConfig[]
@@ -105,5 +105,104 @@ describe('Team aggregate usage transport', () => {
   ])('rejects malformed own Team page %j', async (value) => {
     body = value
     await expect(getUsageTeams('repeat')).rejects.toThrow()
+  })
+})
+
+describe('recorded caller member-count extension', () => {
+  function marked(team = false) {
+    const report = team ? teamUsageFixture('tea_one') : usageFixture()
+    report.member_count_basis = 'distinct_recorded_actors'
+    report.current.models[0].members = { value: 2, known: 2, unknown_calls: 0 }
+    return report
+  }
+  it.each([{}, { teamId: 'tea_one' }, { projectId: 'prj_one' }, { admin: true }])(
+    'preserves current and previous exact counts without changing scope %j',
+    async (scope) => {
+      const report = marked(!!scope.teamId)
+      report.previous = structuredClone(report.current)
+      report.previous.models[0].members = { value: null, known: 1, unknown_calls: 1 }
+      body = report
+      expect(await getUsage(scope, defaultUsageFilters)).toBe(report)
+      expect(requests).toHaveLength(1)
+      expect(requests[0].url).toBe(
+        scope.teamId
+          ? '/teams/tea_one/usage'
+          : scope.projectId
+            ? '/projects/prj_one/usage'
+            : scope.admin
+              ? '/admin/usage'
+              : '/usage',
+      )
+    },
+  )
+  it('retains legacy unmarked reports and refuses previous in the specialized Personal guard', async () => {
+    body = usageFixture()
+    expect(await getUsage({}, defaultUsageFilters)).toBe(body)
+    const report = marked()
+    // The monthly/Home guard still rejects unrelated dimensions and comparison periods.
+    delete report.current.providers
+    delete report.current.provider_models
+    delete report.current.connections
+    report.available_dimensions = ['model', 'key']
+    expect(isPersonalUsageReport(report)).toBe(true)
+    report.previous = structuredClone(report.current)
+    expect(isPersonalUsageReport(report)).toBe(false)
+    body = report
+    expect(await getUsage({}, defaultUsageFilters)).toBe(report)
+  })
+  it.each([
+    ['negative', { value: -1, known: -1, unknown_calls: 0 }],
+    ['fractional', { value: 0.5, known: 0.5, unknown_calls: 0 }],
+    ['string', { value: '1', known: 1, unknown_calls: 0 }],
+    ['boolean', { value: true, known: 1, unknown_calls: 0 }],
+    ['unsafe', { value: 9007199254740992, known: 9007199254740992, unknown_calls: 0 }],
+    ['over requests', { value: 3, known: 3, unknown_calls: 0 }],
+    ['sum over requests', { value: null, known: 2, unknown_calls: 1 }],
+    ['unknown reported complete', { value: 1, known: 1, unknown_calls: 1 }],
+    ['complete reported null', { value: null, known: 1, unknown_calls: 0 }],
+    ['unknown negative', { value: null, known: 1, unknown_calls: -1 }],
+    ['missing field', { value: 1, known: 1 }],
+    ['identity disclosure', { value: 1, known: 1, unknown_calls: 0, user_ids: ['usr_private'] }],
+  ])('rejects malformed %s counts in all scopes', async (_name, counts) => {
+    for (const scope of [{}, { teamId: 'tea_one' }, { projectId: 'prj_one' }, { admin: true }]) {
+      const report = marked(!!scope.teamId)
+      Object.assign(report.current.models[0], { members: counts })
+      body = report
+      await expect(getUsage(scope, defaultUsageFilters)).rejects.toThrow(
+        'Invalid usage member counts',
+      )
+    }
+  })
+  it.each(['current', 'previous'])(
+    'requires every marked %s Model group to carry counts',
+    async (period) => {
+      const report = marked()
+      report.previous = structuredClone(report.current)
+      delete (period === 'current' ? report.current : report.previous).models[0].members
+      body = report
+      await expect(getUsage({}, defaultUsageFilters)).rejects.toThrow()
+    },
+  )
+  it.each(['keys', 'providers', 'provider_models', 'connections', 'trend', 'summary'])(
+    'rejects counts on non-Model %s',
+    async (field) => {
+      const report = marked()
+      const period = report.current as unknown as Record<string, unknown>
+      const target = field === 'summary' ? period[field] : (period[field] as unknown[])[0]
+      Object.assign(target as object, { members: { value: 1, known: 1, unknown_calls: 0 } })
+      body = report
+      await expect(getUsage({ admin: true }, defaultUsageFilters)).rejects.toThrow()
+    },
+  )
+  it.each([null, 'current_grants', true])('rejects invalid basis %j', async (basis) => {
+    body = { ...marked(), member_count_basis: basis }
+    await expect(getUsage({}, defaultUsageFilters)).rejects.toThrow()
+  })
+  it('rejects malformed counts even on an unmarked legacy report', async () => {
+    const report = marked()
+    delete report.member_count_basis
+    Object.assign(report.current.models[0], { members: { value: 1, known: 2, unknown_calls: 0 } })
+    body = report
+    await expect(getUsage({}, defaultUsageFilters)).rejects.toThrow()
   })
 })

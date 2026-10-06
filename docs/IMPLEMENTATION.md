@@ -4,8 +4,10 @@ Updated: 2026-10-06. This document records engineering contracts, work packages,
 
 ## Current delivery and active queue
 
-Current delivered main is `d8d80ffc6bf8c0b84527ff6d05855fbd095de645`
-(Home identity labels), following whole-item catalogue access `fc7dfff`, following Provider Models table `228dfd9`, following configured catalogue prices `20d6049` and
+Current delivered main is `10dcfde38474ea56959989333a299179c916d6ae`
+(Provider Model binding projection and V69 reverse index), following Home identity
+labels `d8d80ff`, whole-item catalogue access `fc7dfff`, Provider Models table
+`228dfd9`, configured catalogue prices `20d6049` and
 repaired monthly counts `daddd4e`. Their complete tests, controlled browser and
 original-Session restart evidence are recorded below. Provider Models passes
 4,021 frontend cases/165 files and mandatory main checking/build.
@@ -21,11 +23,11 @@ frontend cases/166 files), final main format/check/build and controlled Home
 browser/original-Session restart acceptance. Actual full127 R2 passes 127 ordered
 scenarios per database, 254 direct cases, eight constraints and 4,609 balanced
 named results. Root independently verifies current source and owned cleanup.
-Earlier failed attempts remain historical. Provider Model binding is carried into
-the uncommitted main working tree for complete acceptance. Monthly distinct
-recorded member counts continue privately; the latter follows the user's
-confirmed selected-resource/monthly definition. The full goal continues; totals
-remain 11 complete / 16 partial / three unstarted.
+Earlier failed attempts remain historical. Provider Model binding is delivered
+as `10dcfde`; its complete129 and controlled acceptance are recorded below.
+The containing commit delivers monthly distinct recorded callers after final main
+and controlled browser/restart acceptance, following the user's selected-resource/monthly definition. The full goal
+continues; totals remain 11 complete / 16 partial / three unstarted.
 
 ## Earlier delivery checkpoints
 
@@ -6710,3 +6712,33 @@ Binding full129 R3, caller full130 R3 and workbook full130 R2 are running; compl
 The containing commit delivers the scoped stored-binding read, existing-table Bound/Unbound controls and frozen GORM V69 reverse index. Main format/check, complete Task (4,154 frontend cases/167 files; Node4/dev2, Go race/assets) and production build pass. Complete129 R3 passes all 129 ordered scenarios per database, 258 direct lifecycles, eight constraints and 4,672 balanced named results in 3,074.113 seconds. Root independently verifies all 1,016 Go/Task source paths/modes match main, original127 prefix preservation and owned-resource/port/process absence. The acceptance digest is `9b80eba1dd786bbb475b8d75b9048a592ae31d4cc900ff0d9355535e40301683`.
 
 The previously recorded bilingual permission/current-name/original-Session restart browser gate passes with zero calls, attempts and Keys. Its ten unexplained shared-read HTTP 500 responses remain a bounded health limitation. Earlier failed index/copy/duty-fixture runs retain their failed status. Only the historical duty-role test now reads its bounded V1–V68 prefix; later ledger versions and released migrations stay intact. Caller/workbook full130 and future production/browser delivery remain pending; F11 remains partial and formal totals stay 11/16/3.
+
+
+## Recorded Model callers: accepted delivery, 2026-10-06
+
+The existing UsageReport adds Model-only current/previous recorded actor
+coverage, marked `distinct_recorded_actors`, without caller identities, an extra
+query/endpoint, directory join or schema change. The selected Personal/shared
+Team monthly catalogue cards and table reuse their existing report. Complete
+marked coverage shows exact zero/nonzero counts; unknown attribution keeps the
+primary value Unknown and exposes only the known subtotal/unattributed-call
+coverage. Legacy unmarked reports remain Unknown. Existing prices, request
+counts, source/authority generations and CSV behavior are preserved.
+
+The isolated corrected full130 R3 passes 130 ordered scenarios per database,
+260 direct lifecycles, eight constraints and 4,680 balanced named RUN/PASS results
+in 3,158.658 seconds. Both `usage_members` cases pass (PostgreSQL 7.25 seconds;
+MySQL 9.24 seconds). All 1,018 backend/Task source paths remain exact; owned
+containers, networks, volumes and captured ports are independently absent.
+Acceptance SHA-256:
+`61243e471486d2059fc70532f3cce61395e2adc022a09d67bd5ec4ed8767cf7f`.
+Private composed mandatory checking, complete Task (4,199 frontend cases/167
+files, four Node checks, two development lifecycle checks, Go race/coverage and
+embedded assets) and build pass. Cached Go packages remain identified in the
+source evidence; these private gates are separate from final main acceptance.
+
+Earlier failed Team-subject fixture inputs, stopped predecessor matrices and
+lint-check attempts remain historical. Their fixture-only and Boolean-equivalent
+predicate corrections do not relax authority, coverage, 10,000-row/overflow or
+one-fact-SELECT assertions. Sixteen Caller payloads are carried onto the delivered
+F11 predecessor. Main formatting, mandatory checking and production build pass. All 1,628 tested product paths and 1,018 backend/Task paths match the accepted candidates. Controlled EN/ZH cards/table/keyboard acceptance confirms Personal 2 requests/1 distinct caller, shared Team 3 requests/2 callers and unused Model zero. Real peer removal hides stale Model/usage facts; authorized readers retain two historical callers, and rejoin restores the shared view. Ordinary member-to-peer logout/login hides Personal facts. Three original browser Sessions and three original API Sessions remain usable after a same-binary/configuration/database/journal restart without relogin. Exactly five native calls, five persisted Calls and five Attempts, including exact private actor groups, are independently verified. Owned Compose resources, application/stub/database ports and temporary tabs are absent. Browser warning/error logs are empty. Functional acceptance SHA-256: `63ed9cffadfcfd4b1e7ae1c8fe8a9e40d8685d348ca5799c9d7b5ed9ad76d008`. Initial browser prices were Unknown and recovered to the unchanged exact rates on normal refresh; their initial cause remains unproven. Legacy unknown-attribution and obsolete-response cases remain source/driver evidence. The first noninteractive fixture launch reached setup then failed on stdin EOF with zero native calls; its cleanup and failed status are retained. The containing commit delivers this bounded Caller phase; F19 and formal 11/16/3 totals remain unchanged.

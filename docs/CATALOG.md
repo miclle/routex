@@ -755,7 +755,9 @@ Selecting Personal or one exact named Team source enables one existing scoped
 usage report for all visible Models. Personal counts reflect the current actor's
 Personal calls; Team counts are shared aggregate calls, including other Team
 members. All sources and requestable candidates remain Unknown rather than
-summing or guessing. Member counts remain Unknown.
+summing or guessing. Recorded caller counts use that same selected-account
+report; they count distinct recorded actors rather than current Model grantees or
+Team members.
 
 Reads use the server's UTC month-to-query period, separate from quota reset
 configuration. The existing cards/table show returned from/to/queried-at and a
@@ -776,6 +778,30 @@ passes Personal1/sharedTeam2, peer scope isolation and one catalogue read follow
 by one scoped report per manual refresh. Owned resources are independently absent.
 The containing commit delivers this bounded slice. No backend, schema, endpoint,
 permission or dependency change is introduced.
+
+
+## Member catalogue recorded caller coverage
+
+The existing monthly cards and table reuse the selected Personal or shared Team
+report for recorded caller counts. The report marks its provenance with
+`member_count_basis: "distinct_recorded_actors"`; each Model group carries
+`members: {value, known, unknown_calls}`. A complete marked group without
+unattributed calls displays the exact distinct recorded actor total. Otherwise
+the primary value stays Unknown, with the recorded known subtotal and number of
+unattributed calls shown separately. Legacy unmarked reports remain Unknown.
+Only a complete, current marked report supports zero for an absent Model group.
+
+Success, error and canceled requests participate. Counts retain historical exact
+actor attribution, including removed/rejoined members; they do not identify
+contributors, count current membership/grants, or prove native completion. All
+sources and requestable candidates remain Unknown. Current actor, selected
+account, Session and catalogue generations hide stale values during renewed
+reads/errors. UTC month-to-query boundaries, returned observation time and
+may-lag guidance remain explicit. No extra endpoint, per-row query, directory
+read, schema, price lookup or source summation is introduced. The same report's
+current and optional previous Model groups carry this coverage; the catalogue
+uses the existing current-month request with comparison disabled. See
+[Usage recorded caller coverage](USAGE.md#recorded-model-caller-coverage).
 
 ## Whole-item member catalogue access
 

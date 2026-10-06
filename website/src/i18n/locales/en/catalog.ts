@@ -535,7 +535,13 @@ export default {
     inputPrice: 'Input price',
     outputPrice: 'Output price',
     createdAt: 'Created',
-    members: 'Members using model',
+    members: 'Calling users this month',
+    personalMembers: 'Personal calling users this month',
+    teamMembers: 'Shared Team calling users this month',
+    memberCoverage: 'Known distinct callers: {{known}}; unattributed calls: {{unknown}}',
+    memberCount: 'Calling users this month: {{count}}',
+    personalMemberCount: 'Personal calling users this month: {{count}}',
+    teamMemberCount: 'Shared Team calling users this month: {{count}}',
     monthlyCalls: 'Monthly requests',
     personalMonthlyCalls: 'Your Personal requests this month',
     teamMonthlyCalls: 'Shared Team requests this month',
@@ -553,7 +559,7 @@ export default {
     memberUsageUnknown: 'Member usage unknown',
     monthlyCallsUnknown: 'Monthly requests unknown',
     unknownFields:
-      'Price cells show only server-confirmed current base rates. Member usage remains unknown. Monthly requests require one selected Personal or shared Team source; all sources and requestable models remain unknown.',
+      'Price cells show only server-confirmed current base rates. Monthly requests and calling users require one selected Personal or shared Team source; all sources and requestable models remain unknown. Calling users deduplicate recorded User IDs, not grants or current memberships. Missing caller attribution makes the count unknown.',
     nativeFormat:
       'Native request paths, parameters and response formats are preserved. Available protocols and input capabilities come from eligible routes.',
     authenticationHeader: 'Authentication header',

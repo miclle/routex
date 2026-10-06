@@ -13,6 +13,44 @@ Usage reports aggregate immutable, deduplicated `call_records`. They provide req
 
 A repeatable-read transaction checks current account/permissions/manager membership and selects facts from the same database snapshot. A membership change affects subsequent queries. Personal and Project results expose model and Key IDs; [Team results](TEAM_USAGE.md) expose model-only dimensions and an exact `team_id` echo, with empty Key groups; provider, provider-model, and connection dimensions are restricted to the administrative endpoint. Guessed filters never widen the caller's scope. Historical identity selection uses the database-layer exact-text adapter on both supported drivers. Case aliases never select a canonical identity; malformed trailing whitespace returns `400`. Project resource aliases return `404` even for managers or administrators. Archived history still requires the exact enabled actor and current manager or platform authority.
 
+
+## Recorded Model caller coverage
+
+Personal, Team, Project and platform reports add
+`member_count_basis: "distinct_recorded_actors"`. Every Model group in `current`
+and, when requested, `previous` contains `members` with exactly `value`, `known`
+and `unknown_calls`. `known` counts distinct safe recorded `CallRecord.UserID`
+strings in that Model and half-open window. IDs compare exactly, without
+trimming, case folding or joining a current directory. A safe historical ID has
+an exact `usr_` prefix, a nonempty ASCII letter/digit/underscore/hyphen suffix and
+at most 30 bytes. Missing or invalid recorded IDs contribute one unattributed
+call per canonical request. Differently cased valid suffixes remain distinct;
+an aliased prefix is unproven.
+
+`value` equals `known` only when `unknown_calls` is zero; otherwise it is null.
+The nonnegative values satisfy `known + unknown_calls <= stats.requests`.
+Success, error and canceled facts participate equally; canonical RequestID
+replay never adds another caller. Removed directory entries, membership changes,
+rejoins, Key ownership and current manager authority do not rewrite recorded
+attribution. Unknown Model groups retain coverage without inventing a Model or
+actor identity. This measures recorded callers, not current members, grantees or
+successful native users.
+
+The existing authorization and read-only repeatable-read transaction select the
+same scoped facts; the one bounded fact SELECT includes only one additional
+internal `user_id` field. No additional query, directory join, permission,
+endpoint, schema or quota behavior is added. Raw actor IDs and sets remain
+private. Only Model groups carry `members`: summaries, trends, Keys, Providers,
+Provider Models and Connections do not. Existing amounts, token coverage,
+freshness and all scoped CSV columns/bytes remain unchanged.
+
+A complete marked report supports zero for an absent selected Model. Legacy
+unmarked, incomplete, rejected or overflow reports do not establish a total.
+Catalogue rendering preserves an Unknown primary value when attribution is
+incomplete and shows known distinct callers and unattributed calls separately.
+The catalogue explicitly queries UTC month-to-query in one selected Personal or
+shared Team account; these boundaries do not derive quota-calendar facts.
+
 ## Query contract
 
 Unknown, repeated, malformed, and explicitly empty query parameters return `400`. Booleans are exactly `true` or `false`.

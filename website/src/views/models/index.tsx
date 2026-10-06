@@ -254,10 +254,43 @@ export default function ModelsPage() {
     : t('memberModels.monthlyCalls')
   const monthlyCount = (id: string) => {
     const count = monthly.count(id)
-    return count === undefined
+    return count === undefined || count === null
       ? t('memberModels.unknown')
       : new Intl.NumberFormat(i18n.language).format(count)
   }
+  const memberLabel = usageSource
+    ? t(
+        usageSource.type === 'personal'
+          ? 'memberModels.personalMembers'
+          : 'memberModels.teamMembers',
+      )
+    : t('memberModels.members')
+  const memberCount = (id: string) => {
+    const count = monthly.members(id)?.value
+    return count === undefined || count === null
+      ? t('memberModels.unknown')
+      : new Intl.NumberFormat(i18n.language).format(count)
+  }
+  const memberDetail = (id: string) => {
+    const coverage = monthly.members(id)
+    return coverage && coverage.unknown_calls > 0 ? (
+      <span className="block text-xs text-muted-foreground">
+        {t('memberModels.memberCoverage', {
+          known: new Intl.NumberFormat(i18n.language).format(coverage.known),
+          unknown: new Intl.NumberFormat(i18n.language).format(coverage.unknown_calls),
+        })}
+      </span>
+    ) : null
+  }
+  const memberCard = (id: string) =>
+    t(
+      usageSource
+        ? usageSource.type === 'personal'
+          ? 'memberModels.personalMemberCount'
+          : 'memberModels.teamMemberCount'
+        : 'memberModels.memberCount',
+      { count: memberCount(id) },
+    )
   const usageDate = (value: string) =>
     new Intl.DateTimeFormat(i18n.language, {
       dateStyle: 'medium',
@@ -514,7 +547,10 @@ export default function ModelsPage() {
                 ))}
               </dl>
               <div className="flex justify-between gap-3 text-xs text-muted-foreground">
-                <span>{t('memberModels.memberUsageUnknown')}</span>
+                <span>
+                  {memberCard(model.id)}
+                  {memberDetail(model.id)}
+                </span>
                 <span>
                   {monthlyLabel}: {monthlyCount(model.id)}
                 </span>
@@ -538,7 +574,13 @@ export default function ModelsPage() {
                 'memberModels.monthlyCalls',
                 'common.actions',
               ].map((key) => (
-                <th key={key}>{key === 'memberModels.monthlyCalls' ? monthlyLabel : t(key)}</th>
+                <th key={key}>
+                  {key === 'memberModels.monthlyCalls'
+                    ? monthlyLabel
+                    : key === 'memberModels.members'
+                      ? memberLabel
+                      : t(key)}
+                </th>
               ))}
             </tr>
           </thead>
@@ -570,7 +612,10 @@ export default function ModelsPage() {
                 <td>{price(model.input_price)}</td>
                 <td>{price(model.output_price)}</td>
                 <td className="whitespace-nowrap">{date(model.created_at)}</td>
-                <td>{t('memberModels.unknown')}</td>
+                <td>
+                  {memberCount(model.id)}
+                  {memberDetail(model.id)}
+                </td>
                 <td>{monthlyCount(model.id)}</td>
                 <td>
                   <Button

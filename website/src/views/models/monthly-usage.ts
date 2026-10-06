@@ -104,6 +104,11 @@ export function useMonthlyModelUsage({
       : undefined
   return {
     report,
+    members: (id: string) => {
+      if (!report || report.member_count_basis !== 'distinct_recorded_actors') return undefined
+      const group = report.current.models.find((item) => !item.unknown && item.id === id)
+      return group ? group.members : { value: 0, known: 0, unknown_calls: 0 }
+    },
     count: (id: string) =>
       report
         ? (report.current.models.find((group) => !group.unknown && group.id === id)?.stats

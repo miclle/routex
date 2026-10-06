@@ -553,3 +553,261 @@ describe('source-scoped catalogue monthly request facts', () => {
     expect(article('zero').textContent).toContain('month: 0')
   })
 })
+
+function memberReport(scope: ModelAccessSource = personal, known = 3, unknownCalls = 0) {
+  const value = report(scope, 12)
+  value.member_count_basis = 'distinct_recorded_actors'
+  value.current.models[0].members = {
+    value: unknownCalls ? null : known,
+    known,
+    unknown_calls: unknownCalls,
+  }
+  return value
+}
+describe('source-scoped recorded calling users', () => {
+  it('shares the complete monthly request report, shows exact distinct count and absent Model zero', async () => {
+    usage = memberReport()
+    await mount()
+    expect(article().textContent).toContain('Calling users this month: Unknown')
+    await source('personal')
+    await until(() =>
+      expect(article().textContent).toContain('Personal calling users this month: 3'),
+    )
+    expect(article().textContent).toContain('Your Personal requests this month: 12')
+    expect(article('zero').textContent).toContain('Personal calling users this month: 0')
+    expect(usageRequests()).toHaveLength(1)
+    await button('Table')
+    expect(host.querySelector('thead')?.textContent).toContain('Personal calling users this month')
+    const cells = [...host.querySelectorAll('tbody tr')].map((row) =>
+      [...row.querySelectorAll('td')].map((cell) => cell.textContent),
+    )
+    expect(cells[0]).toContain('3')
+    expect(cells[1]).toContain('0')
+    expect(usageRequests()).toHaveLength(1)
+    expect(
+      requests.some(
+        (row) =>
+          row.url?.includes('/admin/') || row.url === '/teams' || row.url?.includes('/members'),
+      ),
+    ).toBe(false)
+  })
+  it.each([0, 2])(
+    'keeps count Unknown with %s known and missing historical User attribution',
+    async (known) => {
+      usage = memberReport(personal, known, 1)
+      await mount()
+      await source('personal')
+      await until(() => expect(article().textContent).toContain('month: 12'))
+      expect(article().textContent).toContain('Personal calling users this month: Unknown')
+      expect(article('zero').textContent).toContain('Personal calling users this month: 0')
+    },
+  )
+  it('never treats legacy missing basis as complete, even with optional member fields or no calls', async () => {
+    usage = memberReport()
+    delete usage.member_count_basis
+    await mount()
+    await source('personal')
+    await until(() => expect(article().textContent).toContain('month: 12'))
+    expect(article().textContent).toContain('Personal calling users this month: Unknown')
+    expect(article('zero').textContent).toContain('Personal calling users this month: Unknown')
+    usage = report(personal, 0)
+    await button('Refresh catalogue')
+    await until(() => expect(article().textContent).toContain('month: 0'))
+    expect(article().textContent).toContain('Personal calling users this month: Unknown')
+  })
+  it('shows authoritative zero only for marked complete empty coverage', async () => {
+    usage = report(personal, 0)
+    usage.member_count_basis = 'distinct_recorded_actors'
+    await mount()
+    await source('personal')
+    await until(() =>
+      expect(article().textContent).toContain('Personal calling users this month: 0'),
+    )
+    expect(article('zero').textContent).toContain('Personal calling users this month: 0')
+  })
+  it('keeps Personal and shared Team counts separate and switches live language without another read', async () => {
+    usage = memberReport(personal, 3)
+    teamUsage = memberReport(team, 5)
+    await mount()
+    await source('personal')
+    await until(() =>
+      expect(article().textContent).toContain('Personal calling users this month: 3'),
+    )
+    await source('team:tea_alpha')
+    await until(() =>
+      expect(article().textContent).toContain('Shared Team calling users this month: 5'),
+    )
+    expect(article().textContent).not.toContain('Personal calling users this month: 3')
+    await act(async () => i18n.changeLanguage('zh'))
+    expect(article().textContent).toContain('Team 共享本月调用用户：5')
+    expect(host.textContent).toContain('不代表授权数或当前成员数')
+    await button('表格')
+    expect(host.querySelector('thead')?.textContent).toContain('Team 共享本月调用用户')
+    await act(async () => i18n.changeLanguage('en'))
+    expect(host.querySelector('thead')?.textContent).toContain(
+      'Shared Team calling users this month',
+    )
+    expect(host.querySelectorAll('select')[0].value).toBe('team:tea_alpha')
+    expect(usageRequests()).toHaveLength(2)
+    await source('all')
+    expect(host.querySelector('tbody')?.textContent).toContain('Unknown')
+    await source('requestable')
+    expect(usageRequests()).toHaveLength(2)
+  })
+  it.each(['personal', 'team:tea_alpha'])(
+    'hides counts during held %s catalogue refresh then makes exactly one shared usage read',
+    async (selected) => {
+      usage = memberReport(personal, 3)
+      teamUsage = memberReport(team, 3)
+      await mount()
+      await source(selected)
+      await until(() => expect(article().textContent).toContain('calling users this month: 3'))
+      const gate = hold('catalogue')
+      usage = memberReport(personal, 6)
+      teamUsage = memberReport(team, 6)
+      await button('Refresh catalogue')
+      await gate.entered
+      await until(() => expect(host.textContent).not.toContain('calling users this month: 3'))
+      expect(usageRequests()).toHaveLength(1)
+      await act(async () => gate.release())
+      heldCatalogue = undefined
+      await until(() => expect(article().textContent).toContain('calling users this month: 6'))
+      expect(usageRequests()).toHaveLength(2)
+    },
+  )
+  it('hides member counts during Session renewal and waits for fresh same-actor usage', async () => {
+    usage = memberReport(personal, 3)
+    await mount()
+    await source('personal')
+    await until(() => expect(article().textContent).toContain('calling users this month: 3'))
+    const gate = hold('session')
+    let renewal!: Promise<unknown>
+    await act(async () => {
+      renewal = cache.refetchQueries({ queryKey: ['auth', 'session'] })
+    })
+    await gate.entered
+    await until(() => expect(host.textContent).not.toContain('calling users this month: 3'))
+    usage = memberReport(personal, 6)
+    await act(async () => {
+      gate.release()
+      await renewal
+    })
+    heldSession = undefined
+    await until(() => expect(article().textContent).toContain('calling users this month: 6'))
+    expect(usageRequests()).toHaveLength(2)
+  })
+  it('does not reveal late old-actor counts after fresh catalogue removes its Personal scope', async () => {
+    usage = memberReport(personal, 3)
+    await mount()
+    const gate = hold('usage')
+    await source('personal')
+    await gate.entered
+    actor = 'usr_two'
+    models = models.map((row) => ({ ...row, sources: [team], personal_available: false }))
+    await act(async () => cache.refetchQueries({ queryKey: ['auth', 'session'] }))
+    await until(() => expect(host.querySelectorAll('option[value="personal"]')).toHaveLength(0))
+    await act(async () => gate.release())
+    expect(host.textContent).not.toContain('calling users this month: 3')
+    expect(usageRequests()).toHaveLength(1)
+  })
+  it('rejects malformed marked counts and shows Unknown rather than saved request or member zeros', async () => {
+    usage = memberReport()
+    usage.current.models[0].members!.known = 13
+    await mount()
+    await source('personal')
+    await until(() =>
+      expect(
+        cache.getQueryCache().findAll({ queryKey: ['model-catalog-monthly-usage'] })[0]?.state
+          .status,
+      ).toBe('error'),
+    )
+    expect(article().textContent).toContain('Personal calling users this month: Unknown')
+    expect(article('zero').textContent).toContain('Personal calling users this month: Unknown')
+    expect(article().textContent).toContain('month: Unknown')
+  })
+})
+
+describe('recorded caller unknown-coverage detail', () => {
+  it.each([
+    ['personal', 0, 3],
+    ['personal', 4, 2],
+    ['team:tea_alpha', 0, 3],
+    ['team:tea_alpha', 4, 2],
+  ])(
+    'keeps %s primary Unknown with exact known %s and unattributed %s facts across live languages',
+    async (selected, known, unknown) => {
+      usage = memberReport(personal, known as number, unknown as number)
+      teamUsage = memberReport(team, known as number, unknown as number)
+      await mount()
+      await source(selected as string)
+      await until(() =>
+        expect(article().textContent).toContain(
+          `Known distinct callers: ${known}; unattributed calls: ${unknown}`,
+        ),
+      )
+      const title =
+        selected === 'personal'
+          ? 'Personal calling users this month'
+          : 'Shared Team calling users this month'
+      expect(article().textContent).toContain(`${title}: Unknown`)
+      expect(article('zero').textContent).not.toContain('Known distinct callers:')
+      expect(usageRequests()).toHaveLength(1)
+      await act(async () => i18n.changeLanguage('zh'))
+      expect(article().textContent).toContain(
+        `已知去重调用用户：${known}；归属未知请求：${unknown}`,
+      )
+      await button('表格')
+      const cell = host.querySelectorAll('tbody tr')[0].querySelectorAll('td')[7]
+      expect(cell.firstChild?.textContent).toBe('未知')
+      expect(cell.textContent).toContain(`已知去重调用用户：${known}；归属未知请求：${unknown}`)
+      await act(async () => i18n.changeLanguage('en'))
+      expect(cell.firstChild?.textContent).toBe('Unknown')
+      expect(cell.textContent).toContain(
+        `Known distinct callers: ${known}; unattributed calls: ${unknown}`,
+      )
+      expect(host.querySelectorAll('select')[0].value).toBe(selected)
+      expect(usageRequests()).toHaveLength(1)
+      expect(
+        requests.some(
+          (row) =>
+            row.url?.includes('/members') || row.url === '/teams' || row.url?.startsWith('/admin/'),
+        ),
+      ).toBe(false)
+    },
+  )
+  it('does not expose subtotal detail for unmarked, failed, pending or revoked reports', async () => {
+    usage = memberReport(personal, 4, 2)
+    delete usage.member_count_basis
+    await mount()
+    await source('personal')
+    await until(() => expect(article().textContent).toContain('month: 12'))
+    expect(article().textContent).not.toContain('Known distinct callers:')
+    usage = memberReport(personal, 4, 2)
+    await button('Refresh catalogue')
+    await until(() =>
+      expect(article().textContent).toContain('Known distinct callers: 4; unattributed calls: 2'),
+    )
+    const gate = hold('catalogue')
+    failures['/usage'] = 503
+    await button('Refresh catalogue')
+    await gate.entered
+    await until(() => expect(host.textContent).not.toContain('Known distinct callers:'))
+    const before = usageRequests().length
+    await act(async () => gate.release())
+    heldCatalogue = undefined
+    await until(() =>
+      expect(article().textContent).toContain('Personal calling users this month: Unknown'),
+    )
+    await until(() => expect(usageRequests()).toHaveLength(before + 1))
+    expect(article().textContent).not.toContain('Known distinct callers:')
+    delete failures['/usage']
+    await button('Refresh catalogue')
+    await until(() =>
+      expect(article().textContent).toContain('Known distinct callers: 4; unattributed calls: 2'),
+    )
+    failures['/auth/session'] = 503
+    await act(async () => cache.refetchQueries({ queryKey: ['auth', 'session'] }))
+    await until(() => expect(host.querySelectorAll('article')).toHaveLength(0))
+    expect(host.textContent).not.toContain('Known distinct callers:')
+  })
+})

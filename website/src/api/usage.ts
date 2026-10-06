@@ -29,6 +29,54 @@ function count(value: unknown) {
     integer(value.unknown_calls)
   )
 }
+function members(value: unknown, requests: unknown) {
+  return (
+    object(value) &&
+    Object.keys(value).length === 3 &&
+    keys(value, ['value', 'known', 'unknown_calls']) &&
+    integer(requests) &&
+    integer(value.known) &&
+    integer(value.unknown_calls) &&
+    (value.known as number) + (value.unknown_calls as number) <= (requests as number) &&
+    (value.unknown_calls === 0 ? value.value === value.known : value.value === null)
+  )
+}
+// Validate the additive extension for every existing scope without expanding its dimensions.
+function memberExtension(value: unknown) {
+  if (
+    !object(value) ||
+    !(
+      value.member_count_basis === undefined ||
+      value.member_count_basis === 'distinct_recorded_actors'
+    )
+  )
+    return false
+  const marked = value.member_count_basis === 'distinct_recorded_actors'
+  for (const period of [value.current, value.previous]) {
+    if (period === undefined) continue
+    if (!object(period) || !Array.isArray(period.models)) return false
+    if (
+      !period.models.every(
+        (group) =>
+          object(group) &&
+          (group.members === undefined
+            ? !marked
+            : object(group.stats) && members(group.members, group.stats.requests)),
+      )
+    )
+      return false
+    for (const field of ['keys', 'providers', 'provider_models', 'connections', 'trend']) {
+      const groups = period[field]
+      if (
+        Array.isArray(groups) &&
+        groups.some((group) => object(group) && Object.hasOwn(group, 'members'))
+      )
+        return false
+    }
+    if (object(period.summary) && Object.hasOwn(period.summary, 'members')) return false
+  }
+  return !marked || object(value.current)
+}
 function stats(value: unknown) {
   if (
     !object(value) ||
@@ -94,7 +142,7 @@ function period(value: unknown) {
     value.models.every(
       (group) =>
         object(group) &&
-        keys(group, ['id', 'name', 'unknown', 'stats']) &&
+        keys(group, ['id', 'name', 'unknown', 'stats', 'members']) &&
         typeof group.id === 'string' &&
         (group.name === undefined || typeof group.name === 'string') &&
         typeof group.unknown === 'boolean' &&
@@ -118,6 +166,7 @@ function teamReport(value: unknown, team: string): value is UsageReport {
     object(value) &&
     keys(value, [
       'team_id',
+      'member_count_basis',
       'timezone',
       'granularity',
       'queried_at',
@@ -128,6 +177,7 @@ function teamReport(value: unknown, team: string): value is UsageReport {
       'previous',
       'available_dimensions',
     ]) &&
+    memberExtension(value) &&
     value.team_id === team &&
     timezone(value.timezone) &&
     ['hour', 'day', 'week', 'month'].includes(value.granularity as string) &&
@@ -174,6 +224,7 @@ export async function getUsage(
       { params: filters, signal },
     )
   ).data
+  if (!memberExtension(value)) throw new Error('Invalid usage member counts')
   if (scope.teamId && !teamReport(value, scope.teamId)) throw new Error('Invalid Team usage report')
   return value as UsageReport
 }
@@ -214,14 +265,19 @@ export async function getUsageTeams(
 
 // Reuse the protocol-neutral guards without broadening Team report dimensions.
 export function isPersonalUsageReport(value: unknown): value is UsageReport {
-  function groups(value: unknown) {
+  function groups(value: unknown, modelGroups = false) {
     return (
       Array.isArray(value) &&
       value.length <= 500 &&
       value.every(
         (group) =>
           object(group) &&
-          keys(group, ['id', 'name', 'unknown', 'stats']) &&
+          keys(
+            group,
+            modelGroups
+              ? ['id', 'name', 'unknown', 'stats', 'members']
+              : ['id', 'name', 'unknown', 'stats'],
+          ) &&
           typeof group.id === 'string' &&
           (group.name === undefined || typeof group.name === 'string') &&
           typeof group.unknown === 'boolean' &&
@@ -267,7 +323,7 @@ export function isPersonalUsageReport(value: unknown): value is UsageReport {
       !stamp(value.to) ||
       Date.parse(value.from as string) >= Date.parse(value.to as string) ||
       !coherentStats(value.summary) ||
-      !groups(value.models) ||
+      !groups(value.models, true) ||
       !groups(value.keys) ||
       !Array.isArray(value.trend) ||
       value.trend.length === 0 ||
@@ -306,6 +362,7 @@ export function isPersonalUsageReport(value: unknown): value is UsageReport {
   return (
     object(value) &&
     keys(value, [
+      'member_count_basis',
       'timezone',
       'granularity',
       'queried_at',
@@ -315,6 +372,7 @@ export function isPersonalUsageReport(value: unknown): value is UsageReport {
       'current',
       'available_dimensions',
     ]) &&
+    memberExtension(value) &&
     timezone(value.timezone) &&
     ['hour', 'day', 'week', 'month'].includes(value.granularity as string) &&
     stamp(value.queried_at) &&

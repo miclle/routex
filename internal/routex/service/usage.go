@@ -195,7 +195,7 @@ func (s *Service) queryUsage(ctx context.Context, actorID, scope, projectID stri
 	if err != nil {
 		return nil, err
 	}
-	result := &UsageReport{Timezone: plan.location.String(), Granularity: plan.grain, QueriedAt: now, Source: "persisted_call_records", MayLag: true, Current: current, AvailableDimensions: usageDimensions(scope, filter)}
+	result := &UsageReport{MemberCountBasis: usageMemberCountBasis, Timezone: plan.location.String(), Granularity: plan.grain, QueriedAt: now, Source: "persisted_call_records", MayLag: true, Current: current, AvailableDimensions: usageDimensions(scope, filter)}
 	if scope == "team" {
 		result.TeamID = projectID
 	}

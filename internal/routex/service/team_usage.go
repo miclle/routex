@@ -46,7 +46,7 @@ func validateTeamUsageFacts(rows []entity.CallRecord, teamID string) error {
 }
 
 func usageFactColumns(scope string) []string {
-	columns := []string{"request_id", "team_id", "model_id", "model_name", "status", "started_at", "completed_at", "duration_ms", "input_tokens", "output_tokens", "pricing_status", "charge_amount", "charge_currency"}
+	columns := []string{"request_id", "user_id", "team_id", "model_id", "model_name", "status", "started_at", "completed_at", "duration_ms", "input_tokens", "output_tokens", "pricing_status", "charge_amount", "charge_currency"}
 	if scope != "team" {
 		columns = append(columns, "key_id", "provider_id", "provider_name", "provider_model_id", "upstream_model_name", "connection_id", "connection_name")
 	}

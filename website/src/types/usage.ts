@@ -24,6 +24,11 @@ export interface UsageCount {
   known: string
   unknown_calls: number
 }
+export interface UsageMembers {
+  value: number | null
+  known: number
+  unknown_calls: number
+}
 export interface UsageAmount {
   currency: string
   amount: string
@@ -47,6 +52,9 @@ export interface UsageGroup {
   unknown: boolean
   stats: UsageStats
 }
+export interface UsageModelGroup extends UsageGroup {
+  members?: UsageMembers
+}
 export interface UsageBucket {
   start: string
   end: string
@@ -57,13 +65,14 @@ export interface UsagePeriod {
   to: string
   summary: UsageStats
   trend: UsageBucket[]
-  models: UsageGroup[]
+  models: UsageModelGroup[]
   keys: UsageGroup[]
   providers?: UsageGroup[]
   provider_models?: UsageGroup[]
   connections?: UsageGroup[]
 }
 export interface UsageReport {
+  member_count_basis?: 'distinct_recorded_actors'
   team_id?: string
   timezone: string
   granularity: Exclude<UsageGranularity, 'auto'>

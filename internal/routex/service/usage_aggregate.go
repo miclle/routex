@@ -119,11 +119,50 @@ func (a *usageAccumulator) result() UsageStats {
 	return result
 }
 
+type usageMemberAccumulator struct {
+	actors  map[string]struct{}
+	unknown int64
+}
+
+func (a *usageMemberAccumulator) add(actorID string) {
+	// Historical safe IDs remain exact and need no current User or membership join.
+	if !usageRecordedActorID(actorID) {
+		a.unknown++
+		return
+	}
+	if a.actors == nil {
+		a.actors = map[string]struct{}{}
+	}
+	a.actors[actorID] = struct{}{}
+}
+
+func (a *usageMemberAccumulator) result() UsageMembers {
+	known := int64(len(a.actors)) // The complete persisted query is bounded to 10,000 calls.
+	result := UsageMembers{Known: known, UnknownCalls: a.unknown}
+	if a.unknown == 0 {
+		result.Value = &known
+	}
+	return result
+}
+
+func usageRecordedActorID(value string) bool {
+	if len(value) < 5 || len(value) > 30 || !strings.HasPrefix(value, "usr_") {
+		return false
+	}
+	for _, c := range []byte(value[4:]) {
+		if c != '_' && c != '-' && (c < 'a' || c > 'z') && (c < 'A' || c > 'Z') && (c < '0' || c > '9') {
+			return false
+		}
+	}
+	return true
+}
+
 type usageGrouped struct {
 	name     string
 	latest   time.Time
 	latestID string
 	acc      usageAccumulator
+	members  *usageMemberAccumulator
 }
 
 func addUsageGroup(groups map[string]*usageGrouped, groupID, name string, row entity.CallRecord) error {
@@ -145,7 +184,12 @@ func addUsageGroup(groups map[string]*usageGrouped, groupID, name string, row en
 func usageGroups(groups map[string]*usageGrouped) []UsageGroup {
 	result := make([]UsageGroup, 0, len(groups))
 	for id, group := range groups {
-		result = append(result, UsageGroup{ID: id, Name: group.name, Unknown: id == "", Stats: group.acc.result()})
+		item := UsageGroup{ID: id, Name: group.name, Unknown: id == "", Stats: group.acc.result()}
+		if group.members != nil {
+			members := group.members.result()
+			item.Members = &members
+		}
+		result = append(result, item)
 	}
 	sort.Slice(result, func(i, j int) bool {
 		a, _ := new(big.Int).SetString(result[i].Stats.Tokens.Total.Known, 10)
@@ -185,6 +229,11 @@ func aggregateUsage(rows []entity.CallRecord, period usageRange, plan usagePlan,
 		if err := addUsageGroup(models, row.ModelID, row.ModelName, row); err != nil {
 			return UsagePeriod{}, err
 		}
+		model := models[row.ModelID]
+		if model.members == nil {
+			model.members = &usageMemberAccumulator{}
+		}
+		model.members.add(row.UserID)
 		if row.TeamID == "" {
 			if err := addUsageGroup(keys, row.KeyID, "", row); err != nil {
 				return UsagePeriod{}, err

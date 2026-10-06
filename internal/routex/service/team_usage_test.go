@@ -43,7 +43,11 @@ func TestTeamUsageFactScopeAndProjectionExcludePrivateIdentities(t *testing.T) {
 		t.Fatal("Team attribution lost exact conjunctive scoping", query.Statement.SQL.String(), query.Statement.Vars)
 	}
 	columns := usageFactColumns("team")
-	for _, forbidden := range []string{"key_id", "user_id", "team_membership_id", "provider_id", "provider_name", "provider_model_id", "connection_id", "connection_name", "upstream_model_name"} {
+	// Recorded actor ID is selected only for aggregate coverage, never a public identity.
+	if count := slices.DeleteFunc(slices.Clone(columns), func(column string) bool { return column != "user_id" }); len(count) != 1 {
+		t.Fatal("Team query must select exactly one private recorded actor ID", columns)
+	}
+	for _, forbidden := range []string{"key_id", "team_membership_id", "provider_id", "provider_name", "provider_model_id", "connection_id", "connection_name", "upstream_model_name"} {
 		if slices.Contains(columns, forbidden) {
 			t.Fatal("member Team query borrows private diagnostics", forbidden)
 		}
