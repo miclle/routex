@@ -58,7 +58,7 @@ export default function ConnectionTable({ providerId, session, onAdd }: Props) {
   const catalogueKey = ['admin', 'providers', actor, providerId, 'connections', generation]
   const catalogue = useQuery({
     queryKey: catalogueKey,
-    queryFn: listProviders,
+    queryFn: ({ signal }) => listProviders(signal),
     enabled: readable,
     retry: false,
     gcTime: 0,

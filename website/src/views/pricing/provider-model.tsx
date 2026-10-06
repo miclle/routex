@@ -73,7 +73,7 @@ function ProviderModelDetail({
       session.data?.user.role,
       generation,
     ],
-    queryFn: listProviders,
+    queryFn: ({ signal }) => listProviders(signal),
     enabled: access.can('providers.read'),
     retry: false,
     gcTime: 0,

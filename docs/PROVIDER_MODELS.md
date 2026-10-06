@@ -79,3 +79,37 @@ writes, runtime digest publication, safe route intersection, management/member/
 gateway responses, malformed metadata, read-only controls, duplicate submissions,
 stale review, uncertain publication, and live language switching. Completed
 execution evidence is recorded in [IMPLEMENTATION](IMPLEMENTATION.md).
+
+
+## Provider Models table composition
+
+The existing Provider detail Models tab now uses the approved compact toolbar
+and one six-column table instead of a separate model list per Connection. Literal
+trimmed case-insensitive identifier search, exact Connection and stored enabled
+filters are conjunctive; actor/Provider changes reset them. Existing per-Connection
+Add actions and exact provider-model resource URLs remain. The Connection selector
+is omitted for one Connection. Image/PDF declarations are separate columns, not
+inferred capabilities or extra invented filters.
+
+Each table mounts fresh actor/Provider catalogue reads, aborts obsolete requests
+and hides rows/actions through renewed reads/errors. Independent providers.read
+and providers.write remain authoritative. No global Model directory is fetched.
+Binding relationships and bound/unbound filtering remain unavailable because
+this authorized catalogue DTO has no complete binding projection; this slice
+neither invents those facts nor borrows independent models.read_all authority.
+F11 remains partial. Backend/schema/permission/endpoint behavior is unchanged.
+
+The final composition preserves the delivered Monthly refresh repair and passes
+formatting, mandatory checking, complete Task testing (4,021 frontend cases in
+165 files), and the production build. Sixteen new table tests cover filters,
+authority renewal, cancellation, target changes and localization.
+
+Controlled production/browser acceptance verifies four real configured rows,
+literal and conjunctive filters, default English/live Chinese, target reset,
+keyboard focus return, existing Add/detail navigation, independent read/write
+permissions, and original API/browser Sessions after the same-artifact restart.
+Changing the browser account to a denied actor never restores the prior table.
+The disposable database records zero calls/attempts; exactly two controlled
+discovery GETs occur, and all owned resources are absent after cleanup. Delayed
+and failed authority holds retain source-test evidence only; this does not claim
+all-request health or real external-provider acceptance.

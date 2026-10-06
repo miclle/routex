@@ -13,8 +13,8 @@ import type {
   ProviderModel,
 } from '@/types/catalog'
 
-export async function listProviders() {
-  return (await client.get<{ items: Provider[] }>('/admin/providers')).data.items
+export async function listProviders(signal?: AbortSignal) {
+  return (await client.get<{ items: Provider[] }>('/admin/providers', { signal })).data.items
 }
 export async function listAdminModels() {
   return (await client.get<{ items: Model[] }>('/admin/models')).data.items

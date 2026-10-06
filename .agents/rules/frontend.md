@@ -912,3 +912,12 @@ custom/unknown names, IDs and literal server search. Keep the existing Member an
 Team assignment workflows, fresh authority, reason/ETag reviews and uncertain
 intent guards. Duty grants use current implemented permissions only and confer no
 implicit Model access, resource ownership or protected administrator identity.
+
+Provider Models retains the existing Provider detail Models tab and Add actions.
+Use literal identifier search, exact Connection and stored enabled filters
+conjunctively; reset controls on actor/Provider change. Render stored image/PDF
+declarations independently of routing readiness, capacity and pricing. Require
+fresh exact actor/Provider catalogue and independent read/write permissions, hide
+private rows during renewed reads/errors, and forward AbortSignal for obsolete
+catalogue reads. Do not fetch Model directories or infer binding state. Keep paired
+English/Chinese labels and existing resource links.

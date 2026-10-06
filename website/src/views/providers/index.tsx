@@ -1,6 +1,6 @@
 import { egressSelection } from '@/api/egress'
 import { EgressSelect } from '@/views/egress/connection'
-import { protocolLabel, protocolLabels } from '@/lib/protocols'
+import { protocolLabels } from '@/lib/protocols'
 import { useTranslation } from 'react-i18next'
 import { useState, type FormEvent } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
@@ -22,6 +22,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { ProviderOverview, ProviderSettings } from './detail'
 import CredentialMetadataDialog from './credential-metadata'
 import ConnectionTable from './connections'
+import ProviderModelTable from './provider-models'
 import CredentialDeleteDialog from './credential-delete'
 import CredentialReplacementDialog from './credential-replacements'
 import CredentialReadinessDialog from './credential-readiness'
@@ -248,7 +249,10 @@ function Providers() {
   const { data: session } = sessionQuery
   const cache = useQueryClient()
   const access = usePermissions()
-  const providers = useQuery({ queryKey: ['admin', 'providers'], queryFn: listProviders })
+  const providers = useQuery({
+    queryKey: ['admin', 'providers'],
+    queryFn: ({ signal }) => listProviders(signal),
+  })
   const [action, setAction] = useState<Action | null>(null)
   const [editingMetadata, setEditingMetadata] = useState<{
     providerId: string
@@ -578,44 +582,11 @@ function Providers() {
               />
             </TabsContent>
             <TabsContent value="models">
-              <div className="mb-4 flex flex-wrap justify-end gap-2">
-                {selected.connections.map((c) => (
-                  <Button
-                    key={c.id}
-                    disabled={!access.can('providers.write')}
-                    onClick={() => open({ kind: 'model', id: c.id })}
-                  >
-                    {t('providers.addModelFor', { name: c.name })}
-                  </Button>
-                ))}
-              </div>
-              <Table>
-                <thead>
-                  <tr>
-                    <th>{t('providers.modelIdentifier')}</th>
-                    <th>{t('providers.connection')}</th>
-                    <th>{t('common.protocolType')}</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {selected.connections.flatMap((c) =>
-                    c.provider_models.map((m) => (
-                      <tr key={m.id}>
-                        <td>
-                          <Link
-                            className="text-primary"
-                            to={`/admin/providers/${selected.id}/models/${m.id}`}
-                          >
-                            {m.upstream_name}
-                          </Link>
-                        </td>
-                        <td>{c.name}</td>
-                        <td>{protocolLabel(c.protocol)}</td>
-                      </tr>
-                    )),
-                  )}
-                </tbody>
-              </Table>
+              <ProviderModelTable
+                providerId={selected.id}
+                session={sessionQuery}
+                onAdd={(connectionId) => open({ kind: 'model', id: connectionId })}
+              />
             </TabsContent>
             <TabsContent value="settings">
               <ProviderSettings provider={selected} />

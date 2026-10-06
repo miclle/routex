@@ -7,6 +7,22 @@ three unstarted** after accepting F06 initial Team Model access selection. Earli
 
 ## Current work and next gates
 
+Delivered main is Monthly request counts `daddd4e`, after catalogue prices
+`20d6049` and the narrow reactivation-copy test repair `7e55509`. The containing
+commit adds the bounded Provider Models table. Final format/check/full Task/build
+pass with 4,021 frontend cases in 165 files; all 1,602 tested product paths match
+main. Controlled bilingual filters, target reset, keyboard/Add/detail navigation,
+independent read/write denial, original-Session same-artifact restart, and browser
+account replacement pass. The database contains zero calls/attempts and all owned
+runtime resources/tabs are absent. F11 remains partial because complete binding
+projection/filtering is unavailable. Next, deliver the privately tested whole-item
+catalogue activation and validate the self-only Home Role-label endpoint on both
+databases. Its first PostgreSQL run found an invalid test-fixture foreign-key
+mutation; the unchanged product has no accepted driver result yet. The full goal
+remains active, with 11 complete / 16 partial / three unstarted capabilities.
+
+## Earlier delivery checkpoints
+
 Commit `8f17d12` delivers Team creation initial limits V63 after mandatory
 checks, complete Task testing, full115 on PostgreSQL/MySQL and controlled
 production/bilingual/original-Session restart acceptance. Its delivered
@@ -1727,3 +1743,21 @@ All owned tabs/listeners/containers/networks/volumes are independently absent.
 Earlier wrong-path404, EOF and pre-repair duplicate-read findings remain separate.
 The containing commit delivers this bounded slice; Provider Models and whole-item
 catalogue activation remain private, with the full objective active.
+
+
+## Provider Models table carried source
+
+Monthly request cells are committed/pushed as
+`daddd4ef0c48101e02ecf74687e0133a044f084b`, with exact remote read-back.
+Provider Models9 is carried after that repaired predecessor; all seven existing
+beforeimages/two absent new leaves match and locale additions preserve Monthly.
+All three Monthly refresh repair leaves remain exact. The existing six-column
+Models tab table retains Add and detail links, literal identifier/Connection/
+enabled filters, declarations, actor/target resets and fresh read/write authority.
+No backend/schema/domain permission changes occur; binding projections remain
+unavailable rather than invented. Final complete Task passes 4,021/165 on the
+repaired Monthly composition; root verifies all 1,602 product paths, with main
+mandatory check/build passing. Current controlled browser/restart acceptance is
+recorded in Implementation, root receipt
+`c58ce56bbb4626992713c21b6f272012165d9b902b46eacd72daee8c845ccbbb`.
+All owned resources are absent. Earlier 4,017 evidence remains historical only.

@@ -1,4 +1,21 @@
 export default {
+  providerModels: {
+    filters: '供应商模型筛选',
+    search: '搜索模型标识',
+    connectionFilter: '筛选模型所属接入',
+    enabledFilter: '筛选模型启用状态',
+    list: '供应商模型',
+    enabled: '供应商侧启用状态',
+    image: '图片输入声明',
+    pdf: 'PDF 输入声明',
+    declared: '已声明',
+    notDeclared: '未声明',
+    filtered: '{{total}} 个供应商模型中的 {{count}} 个',
+    empty: '没有匹配的供应商模型。',
+    denied: '当前账号没有读取供应商模型的权限。',
+    missing: '此供应商已不可用。',
+    declarationHelp: '输入能力是已保存的声明，不代表路由可用、容量已确认或价格有效。',
+  },
   connectionMetadata: {
     filters: '接入筛选',
     search: '搜索接入名称',

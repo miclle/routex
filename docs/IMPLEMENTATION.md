@@ -6376,3 +6376,40 @@ Owned resources are independently absent. Original wrong-path404, plain-pipeEOF,
 eager-request RED and intermediate unchanged-catalogue stale-count RED stay
 retained. The containing commit delivers this bounded monthly interface; F19 and
 formal 11 complete / 16 partial / three unstarted totals remain unchanged.
+
+
+## Provider Models table carried composition, 2026-10-06
+
+Nine exact frontend outputs preserve the Provider Models tab/Add/resource URLs
+while composing one compact filtered six-column table across Connections.
+Identifier search is literal and trimmed/case-insensitive; Connection and stored
+enabled filters intersect, with actor/Provider reset. Image/PDF are explicit
+stored declarations. Current Session/permission/catalogue generations hide stale
+facts/actions and abort obsolete reads. Separate providers.read/write remain.
+The authorized DTO has no complete binding projection, so bound/unbound facts
+are deferred rather than obtained from an independent global Model directory.
+No backend/schema/permission change occurs; F11 remains partial.
+
+Final composition on repaired Monthly delivery daddd4e preserves all three repair
+leaves and additive Monthly translations. Format/check/full Task/build pass:
+4,021 frontend cases in 165 files, Node four, development lifecycle two, Go
+race/coverage and embedded production assets. Root verifies all 1,602 product,
+test, Task and dependency paths against that tested private composition.
+Private gate receipt digest is
+`1f05e7adb8d873943a943cf22f6e00e98365c1990c6e484591f8264a3031a6c1`.
+
+Current-main mandatory check/build pass. Controlled browser acceptance verifies
+the six-column table, literal/conjunctive filters, bilingual controls, target
+reset, keyboard focus return, existing Add/detail hierarchy, read/write denial,
+and original API/browser Sessions after identical artifact/config/database/journal
+restart. Account replacement does not restore private cached rows. The database
+has zero calls/attempts, discovery records exactly two GETs, browser warning/error
+logs are empty, and owned tabs/processes/listeners/Compose resources are absent.
+Artifact digest is
+`c6ef4a6b3ecd219e1b041ff77e21435221233e9d270b0281bb1d32a8286cfe3b`;
+root browser receipt digest is
+`c58ce56bbb4626992713c21b6f272012165d9b902b46eacd72daee8c845ccbbb`.
+Delayed/error authority holds remain focused source evidence, not injected
+browser acceptance. Earlier 4,017 results remain predecessor evidence only.
+The containing commit delivers this bounded table slice. F11 and formal totals
+remain 11 complete / 16 partial / three unstarted.

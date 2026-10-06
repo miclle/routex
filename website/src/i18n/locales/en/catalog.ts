@@ -1,4 +1,22 @@
 export default {
+  providerModels: {
+    filters: 'Provider model filters',
+    search: 'Search model identifiers',
+    connectionFilter: 'Filter model Connection',
+    enabledFilter: 'Filter model enabled state',
+    list: 'Provider models',
+    enabled: 'Provider-side enabled state',
+    image: 'Image input declaration',
+    pdf: 'PDF input declaration',
+    declared: 'Declared',
+    notDeclared: 'Not declared',
+    filtered: '{{count}} of {{total}} provider models',
+    empty: 'No matching provider models.',
+    denied: 'Your account does not have permission to read Provider models.',
+    missing: 'This Provider is no longer available.',
+    declarationHelp:
+      'Input capabilities are stored declarations. They do not confirm routing availability, capacity or valid prices.',
+  },
   connectionMetadata: {
     filters: 'Connection filters',
     search: 'Search connection names',

@@ -138,7 +138,7 @@ function AdminModels({
   const [aliasLocked, setAliasLocked] = useState(false)
   const providers = useQuery({
     queryKey: ['admin', 'model-providers', actor, generation, permissionGeneration],
-    queryFn: listProviders,
+    queryFn: ({ signal }) => listProviders(signal),
     enabled: readable && access.can('providers.read'),
     retry: false,
     staleTime: 0,
