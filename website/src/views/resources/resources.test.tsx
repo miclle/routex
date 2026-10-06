@@ -427,6 +427,7 @@ describe('Team and Project resource workflows', () => {
     await setInput('Reason for change', 'Keep reviewed intent')
     failure['put /teams/tea_1/limits'] = 503
     await click('Save limits')
+    await click('Confirm limits')
     await until(() => expect(host.textContent).toContain('This change may already be saved'))
     const original = requests.find(
       (request) => request.method === 'put' && request.url === '/teams/tea_1/limits',

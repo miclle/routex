@@ -67,6 +67,7 @@ beforeEach(async () => {
           },
         }
       }
+      if (record.kind === 'team') record.ip_policies = [structuredClone(record.stored)]
       response.data = malformed ? { ...record, enforced: undefined } : structuredClone(record)
     }
     return response
@@ -108,9 +109,26 @@ function button(label: string) {
   expect(result, label).toBeDefined()
   return result!
 }
-async function click(label: string) {
+async function rawClick(label: string) {
   await act(async () => button(label).click())
 }
+async function confirm() {
+  const control = [...document.body.querySelectorAll('button')].find(
+    (item) => item.textContent === 'Confirm limits',
+  )!
+  expect(control).toBeTruthy()
+  await act(async () => control.click())
+}
+async function click(label: string) {
+  await rawClick(label)
+  if (label === 'Save limits' && document.body.querySelector('[role="dialog"]')) await confirm()
+}
+async function toggle(label: string) {
+  const control = host.querySelector<HTMLButtonElement>(`[role="switch"][aria-label="${label}"]`)!
+  expect(control).toBeTruthy()
+  await act(async () => control.click())
+}
+
 async function fill(label: string, value: string) {
   const input = host.querySelector<HTMLInputElement>(`[aria-label="${label}"]`)!
   expect(input).toBeTruthy()
@@ -420,4 +438,175 @@ describe('Team resource policies', () => {
       '0',
     )
   })
+})
+
+describe('Team aggregate monthly threshold behavior', () => {
+  it('requires explicit confirmation for a sparse independent mode-only edit', async () => {
+    await render()
+    await edit()
+    await toggle('Monthly token threshold behavior')
+    await fill('Reason for change', 'Reviewed aggregate token threshold')
+    await rawClick('Save limits')
+    expect(puts()).toHaveLength(0)
+    expect(document.body.textContent).toContain('Confirm Team monthly behavior')
+    await confirm()
+    await until(() => expect(host.textContent).toContain('Limits saved and applied.'))
+    expect(JSON.parse(puts()[0].data)).toEqual({
+      reason: 'Reviewed aggregate token threshold',
+      tokens_month_behavior: 'alert_only',
+    })
+    expect(record.stored.money_month_behavior).toBe('stop')
+    expect(host.textContent).toContain('Saved Team behavior')
+  })
+  it('preserves inert mode on null and treats zero as an editable threshold without rounding money', async () => {
+    record.stored.money_month_behavior = 'alert_only'
+    await render()
+    await edit()
+    await fill('Monthly budget', '')
+    expect(
+      host
+        .querySelector('[role="switch"][aria-label="Monthly budget threshold behavior"]')!
+        .hasAttribute('data-disabled'),
+    ).toBe(true)
+    await fill('Monthly token quota', '0')
+    expect(
+      host
+        .querySelector('[role="switch"][aria-label="Monthly token threshold behavior"]')!
+        .hasAttribute('data-disabled'),
+    ).toBe(false)
+    await toggle('Monthly token threshold behavior')
+    await fill('Reason for change', 'Null budget and zero token threshold')
+    await rawClick('Save limits')
+    expect(document.body.querySelector('[role="dialog"]')!.textContent).not.toContain(
+      '999999999999999999',
+    )
+    await confirm()
+    await until(() => expect(puts()).toHaveLength(1))
+    expect(JSON.parse(puts()[0].data)).toEqual({
+      reason: 'Null budget and zero token threshold',
+      money_month: null,
+      tokens_month: 0,
+      tokens_month_behavior: 'alert_only',
+    })
+    expect(record.stored.money_month_behavior).toBe('alert_only')
+  })
+  it('honors separate server-projected monthly mode editability', async () => {
+    record.editable_fields = ['tokens_month_behavior']
+    await render()
+    await edit()
+    expect(
+      host
+        .querySelector('[role="switch"][aria-label="Monthly budget threshold behavior"]')!
+        .hasAttribute('data-disabled'),
+    ).toBe(true)
+    expect(
+      host.querySelector<HTMLInputElement>('[aria-label="Monthly token quota"]')!.disabled,
+    ).toBe(true)
+    await toggle('Monthly token threshold behavior')
+    await fill('Reason for change', 'Token mode only')
+    await click('Save limits')
+    await until(() => expect(puts()).toHaveLength(1))
+    expect(JSON.parse(puts()[0].data)).toEqual({
+      reason: 'Token mode only',
+      tokens_month_behavior: 'alert_only',
+    })
+  })
+  it('retains exact sparse modes, amount, reason and original validator through an uncertain retry with current CSRF', async () => {
+    putStatus = 503
+    await render()
+    await edit()
+    await toggle('Monthly budget threshold behavior')
+    await fill('Monthly budget', '123456789012345678.123456789012345678')
+    await fill('Reason for change', 'Exact soft budget review')
+    await click('Save limits')
+    await until(() => expect(host.textContent).toContain('This change may already be saved'))
+    const original = puts()[0].data
+    record.etag = 'd'.repeat(64)
+    record.stored.money_month_behavior = 'stop'
+    csrf = 'csrf-current'
+    await act(async () => cache.setQueryData(['auth', 'session'], session()))
+    await click('Reload current policy')
+    expect(host.textContent).toContain('This change may already be saved')
+    putStatus = 0
+    await click('Retry application')
+    await until(() => expect(puts()).toHaveLength(2))
+    expect(puts()[1].data).toBe(original)
+    expect(puts()[1].headers.get('If-Match')).toBe(`"${'a'.repeat(64)}"`)
+    expect(puts()[1].headers.get('X-CSRF-Token')).toBe('csrf-current')
+    expect(JSON.parse(original)).toEqual({
+      reason: 'Exact soft budget review',
+      money_month: '123456789012345678.123456789012345678',
+      currency: 'USD',
+      money_month_behavior: 'alert_only',
+    })
+  })
+  it('keeps member controls hard while soft monthly parent thresholds do not narrow larger hard member caps', async () => {
+    record = teamFixture(true)
+    record.ip_policies[0].tokens_month_behavior = 'alert_only'
+    record.ip_policies[0].money_month_behavior = 'alert_only'
+    await render({ teamId: 'tea_test', userId: 'usr_member' })
+    await until(() => expect(host.textContent).toContain('Team parent behavior'))
+    await click('Adjust member resources')
+    expect(host.querySelector('[role="switch"]')).toBeNull()
+    expect(host.textContent).toContain('Current parent alert-only threshold')
+    await fill('Monthly token quota', '10001')
+    await fill('Reason for change', 'Independent hard member policy')
+    await click('Save limits')
+    await until(() => expect(puts()).toHaveLength(1))
+    expect(JSON.parse(puts()[0].data)).toEqual({
+      tokens_month: 10001,
+      reason: 'Independent hard member policy',
+    })
+  })
+  it('switches independent behavior labels live to Chinese while preserving original draft', async () => {
+    await render()
+    await edit()
+    await toggle('Monthly token threshold behavior')
+    await fill('Reason for change', 'Bilingual unchanged intent')
+    await act(async () => i18n.changeLanguage('zh'))
+    expect(
+      host
+        .querySelector('[role="switch"][aria-label="月度 Token 阈值行为"]')
+        ?.getAttribute('aria-checked'),
+    ).toBe('true')
+    expect(
+      host.querySelector<HTMLInputElement>('[aria-label="变更原因"]')?.value ??
+        host.querySelector<HTMLInputElement>('[aria-label="修改原因"]')?.value,
+    ).toBe('Bilingual unchanged intent')
+    await act(async () => i18n.changeLanguage('en'))
+    expect(
+      host
+        .querySelector('[role="switch"][aria-label="Monthly token threshold behavior"]')
+        ?.getAttribute('aria-checked'),
+    ).toBe('true')
+  })
+})
+
+it('cannot dispatch captured mode after fresh independent editability is withdrawn', async () => {
+  await render()
+  await edit()
+  await toggle('Monthly token threshold behavior')
+  await fill('Reason for change', 'Pending mode authority')
+  await rawClick('Save limits')
+  expect(puts()).toHaveLength(0)
+  record.editable_fields = ['money_month']
+  await act(async () => {
+    await cache.invalidateQueries({ queryKey: ['resource-limits', 'team'] })
+  })
+  await confirm()
+  expect(puts()).toHaveLength(0)
+})
+it('keeps a hard member money ceiling and currency guard when only the Team token parent is soft', async () => {
+  record = teamFixture(true)
+  record.ip_policies[0].tokens_month_behavior = 'alert_only'
+  record.ip_policies[0].money_month = '1'
+  await render({ teamId: 'tea_test', userId: 'usr_member' })
+  await until(() => expect(host.textContent).toContain('Team parent behavior'))
+  await click('Adjust member resources')
+  await fill('Monthly token quota', '10001')
+  await fill('Monthly budget', '2')
+  await fill('Reason for change', 'Independent money stop')
+  await click('Save limits')
+  expect(puts()).toHaveLength(0)
+  expect(host.textContent).toContain('cannot exceed the current Team maximum')
 })

@@ -71,3 +71,71 @@ describe('Team limit API boundary', () => {
     expect(requests[0].headers.get('X-CSRF-Token')).toBe('fresh-csrf')
   })
 })
+
+describe('Team monthly behavior transport boundary', () => {
+  it.each([null, '', 'ALERT_ONLY', 'alert_only ', [], true, 0, undefined])(
+    'rejects malformed aggregate mode %j',
+    async (mode) => {
+      const base = teamFixture()
+      value = { ...base, stored: { ...base.stored, tokens_month_behavior: mode } }
+      await expect(getTeamLimits({ teamId: 'tea_test' })).rejects.toThrow()
+    },
+  )
+  it('requires aggregate modes and rejects synthetic effective modes', async () => {
+    const base = teamFixture()
+    const stored = { ...base.stored }
+    delete stored.tokens_month_behavior
+    value = { ...base, stored }
+    await expect(getTeamLimits({ teamId: 'tea_test' })).rejects.toThrow()
+    value = { ...base, effective: { ...base.effective, tokens_month_behavior: 'alert_only' } }
+    await expect(getTeamLimits({ teamId: 'tea_test' })).rejects.toThrow()
+  })
+  it('accepts only aggregate modes in the exact member parent chain', async () => {
+    const base = teamFixture(true)
+    base.ip_policies[0].tokens_month_behavior = 'alert_only'
+    value = base
+    await expect(
+      getTeamLimits({ teamId: 'tea_test', userId: 'usr_member' }),
+    ).resolves.toMatchObject({
+      stored: { tokens_month: null },
+      ip_policies: [{ tokens_month_behavior: 'alert_only' }, {}],
+    })
+    value = { ...base, stored: { ...base.stored, tokens_month_behavior: 'stop' } }
+    await expect(getTeamLimits({ teamId: 'tea_test', userId: 'usr_member' })).rejects.toThrow()
+  })
+  it('rejects explicit member modes without issuing a PUT and requires exact saved aggregate mode', async () => {
+    await expect(
+      saveTeamLimits(
+        { teamId: 'tea_test', userId: 'usr_member' },
+        'a'.repeat(64),
+        { tokens_month_behavior: 'stop', reason: 'Hard child' },
+        'csrf',
+      ),
+    ).rejects.toThrow()
+    expect(requests).toHaveLength(0)
+    await expect(
+      saveTeamLimits(
+        { teamId: 'tea_test' },
+        'a'.repeat(64),
+        { tokens_month_behavior: 'alert_only', reason: 'Soft parent' },
+        'csrf',
+      ),
+    ).rejects.toThrow('Unconfirmed')
+    value = {
+      ...teamFixture(),
+      stored: { ...teamFixture().stored, tokens_month_behavior: 'alert_only' },
+    }
+    await expect(
+      saveTeamLimits(
+        { teamId: 'tea_test' },
+        'a'.repeat(64),
+        { tokens_month_behavior: 'alert_only', reason: 'Soft parent' },
+        'csrf-current',
+      ),
+    ).resolves.toMatchObject({ enforced: true })
+    expect(JSON.parse(requests[1].data)).toEqual({
+      tokens_month_behavior: 'alert_only',
+      reason: 'Soft parent',
+    })
+  })
+})

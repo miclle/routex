@@ -9,12 +9,18 @@ import { sessionKey, useSession } from '@/hooks/use-auth'
 import type { Session } from '@/types/auth'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { Switch } from '@/components/ui/switch'
+import { Dialog } from '@/components/ui/dialog'
 import { FormField, QueryState } from '@/components/app/CatalogUI'
 import {
   type LimitRecord,
   type TeamLimitField,
   type TeamLimitInput,
   type TeamLimitScope,
+  type TeamLimitEditableField,
+  type MonthlyQuotaBehavior,
+  teamMonthlyBehaviorFields,
+  teamLimitFields,
 } from '@/types/resource-limits'
 import { integerDraft, moneyAbove, parseInteger, validMoney } from './quota-values'
 import { QuotaUsageSummary } from './quota-usage'
@@ -163,7 +169,10 @@ function TeamLimitSummary({ record, member }: { record: LimitRecord; member: boo
       >
         {t(record.enforced ? 'published' : 'unpublished')}
       </p>
-      <p className="text-sm text-muted-foreground">{t(member ? 'teamMemberHelp' : 'teamHelp')}</p>
+      <p className="text-sm text-muted-foreground">
+        {t(member ? 'teamMemberHelp' : 'teamMonthlyHelp')}
+      </p>
+      {member && <p className="text-xs text-muted-foreground">{t('teamMonthlyNumericHelp')}</p>}
       {(['budgetQuotas', 'requests'] as const).map((section) => (
         <section className="rounded-lg border p-4" key={section}>
           <h3 className="font-medium">{t(section)}</h3>
@@ -183,6 +192,20 @@ function TeamLimitSummary({ record, member }: { record: LimitRecord; member: boo
                   <dd className="text-sm">
                     {t('effective')}: {value(field, true)}
                   </dd>
+                  {(field === 'tokens_month' || field === 'money_month') && (
+                    <dd className="mt-1 text-xs text-muted-foreground">
+                      {t(member ? 'teamParentBehavior' : 'teamStoredBehavior')}:{' '}
+                      {t(
+                        (member ? record.ip_policies[0] : record.stored)[
+                          field === 'tokens_month'
+                            ? 'tokens_month_behavior'
+                            : 'money_month_behavior'
+                        ] === 'alert_only'
+                          ? 'monthlyAlertOnly'
+                          : 'monthlyStop',
+                      )}
+                    </dd>
+                  )}
                 </div>
               ))}
           </dl>
@@ -210,6 +233,12 @@ function TeamLimitSummary({ record, member }: { record: LimitRecord; member: boo
     </>
   )
 }
+type TeamLimitIntent = {
+  etag: string
+  input: TeamLimitInput
+  actor: string
+  platformCurrency: string
+}
 function TeamLimitEditor({
   scope,
   actor,
@@ -236,11 +265,18 @@ function TeamLimitEditor({
   const [reviewed, setReviewed] = useState(current)
   const [numbers, setNumbers] = useState(() => integerDraft(current.stored))
   const [money, setMoney] = useState(current.stored.money_month ?? '')
+  const [tokensBehavior, setTokensBehavior] = useState<MonthlyQuotaBehavior>(
+    current.stored.tokens_month_behavior ?? 'stop',
+  )
+  const [moneyBehavior, setMoneyBehavior] = useState<MonthlyQuotaBehavior>(
+    current.stored.money_month_behavior ?? 'stop',
+  )
+  const [confirmation, setConfirmation] = useState<TeamLimitIntent | null>(null)
   const [reason, setReason] = useState('')
   const [issue, setIssue] = useState<string | null>(null)
   const [uncertain, setUncertain] = useState(false)
   const [busy, setBusy] = useState(false)
-  const intent = useRef<{ etag: string; input: TeamLimitInput; actor: string } | null>(null)
+  const intent = useRef<TeamLimitIntent | null>(null)
   const lock = useRef(false)
   const mounted = useRef(false)
   const identity = useRef('')
@@ -261,9 +297,28 @@ function TeamLimitEditor({
     mounted.current &&
     identity.current === actor &&
     currentSession()?.user.id === actor &&
-    cache.getQueryState(sessionKey)?.status !== 'error'
+    cache.getQueryState(sessionKey)?.status === 'success' &&
+    cache.getQueryState(sessionKey)?.fetchStatus === 'idle'
+  const currentTarget = () => {
+    const state = cache.getQueryState<LimitRecord>([
+      'resource-limits',
+      'team',
+      actor,
+      scope.teamId,
+      scope.userId ?? 'aggregate',
+    ])
+    return state?.status === 'success' &&
+      state.fetchStatus === 'idle' &&
+      !state.error &&
+      !state.isInvalidated &&
+      state.data?.kind === (scope.userId ? 'team_member' : 'team') &&
+      state.data.team_id === scope.teamId &&
+      state.data.id === (scope.userId ?? scope.teamId)
+      ? state.data
+      : undefined
+  }
   const fields = fieldsFor(!!scope.userId)
-  const editable = (field: TeamLimitField) =>
+  const editable = (field: TeamLimitEditableField) =>
     canEdit &&
     reviewed.editable_fields?.includes(field) === true &&
     current.editable_fields?.includes(field) === true
@@ -272,17 +327,18 @@ function TeamLimitEditor({
     current.parent_etag !== reviewed.parent_etag ||
     current.platform_currency !== reviewed.platform_currency
   const blocked = stale || issue === 'conflict' || issue === 'failed'
-  async function dispatch(retry = false) {
+  async function dispatch(retry = false, confirmed = false) {
     if (
       lock.current ||
       !active() ||
+      !currentTarget() ||
       !session.data ||
       !visible ||
       !canEdit ||
       (!retry && (blocked || uncertain))
     )
       return
-    if (!retry) {
+    if (!retry && !confirmed) {
       const input: TeamLimitInput = { reason: reason.trim() }
       if (!input.reason || new TextEncoder().encode(input.reason).length > 2000) {
         setIssue('requiredReason')
@@ -301,7 +357,8 @@ function TeamLimitEditor({
             amount !== null &&
             parent?.money_month != null &&
             (parent.currency !== reviewed.platform_currency ||
-              moneyAbove(amount, parent.money_month))
+              (parent.money_month_behavior !== 'alert_only' &&
+                moneyAbove(amount, parent.money_month)))
           ) {
             setIssue('teamAboveParent')
             return
@@ -316,24 +373,64 @@ function TeamLimitEditor({
             setIssue('invalidNumber')
             return
           }
-          if (numeric != null && parent?.[field] != null && numeric > parent[field]) {
+          if (
+            numeric != null &&
+            parent?.[field] != null &&
+            numeric > parent[field] &&
+            !(field === 'tokens_month' && parent.tokens_month_behavior === 'alert_only')
+          ) {
             setIssue('teamAboveParent')
             return
           }
           if (numeric !== (reviewed.stored[field] ?? null)) input[field] = numeric
         }
       }
-      if (!fields.some((field) => Object.hasOwn(input, field))) {
+      if (!scope.userId) {
+        for (const field of teamMonthlyBehaviorFields) {
+          const mode = field === 'tokens_month_behavior' ? tokensBehavior : moneyBehavior
+          if (editable(field) && mode !== reviewed.stored[field]) input[field] = mode
+        }
+      }
+      if (![...fields, ...teamMonthlyBehaviorFields].some((field) => Object.hasOwn(input, field))) {
         setIssue('teamNoChanges')
         return
       }
-      intent.current = { etag: reviewed.etag, input, actor }
+      intent.current = {
+        etag: reviewed.etag,
+        input,
+        actor,
+        platformCurrency: reviewed.platform_currency,
+      }
+      if (!scope.userId) {
+        setConfirmation({
+          etag: reviewed.etag,
+          input,
+          actor,
+          platformCurrency: reviewed.platform_currency,
+        })
+        return
+      }
     }
     const original = intent.current
     const latestSession = currentSession()
-    if (!original || original.actor !== latestSession?.user.id) return
+    const latestTarget = currentTarget()
+    if (
+      !original ||
+      original.actor !== latestSession?.user.id ||
+      !latestTarget ||
+      (!retry &&
+        (latestTarget.platform_currency !== original.platformCurrency ||
+          latestTarget.etag !== original.etag)) ||
+      [...teamLimitFields, ...teamMonthlyBehaviorFields].some(
+        (field) =>
+          Object.hasOwn(original.input, field) &&
+          (!editable(field) || !latestTarget.editable_fields?.includes(field)),
+      )
+    )
+      return
     lock.current = true
     setBusy(true)
+    setConfirmation(null)
     setIssue(null)
     try {
       const data = await saveTeamLimits(
@@ -391,14 +488,14 @@ function TeamLimitEditor({
       }}
     >
       <p className="text-sm text-muted-foreground">
-        {t(scope.userId ? 'teamMemberHelp' : 'teamHelp')}
+        {t(scope.userId ? 'teamMemberHelp' : 'teamMonthlyHelp')}
       </p>
       {(issue || stale || uncertain) && (
         <p role="alert" className="text-sm text-destructive">
           {t(uncertain ? 'teamUncertain' : stale ? 'conflict' : issue!)}
         </p>
       )}
-      <fieldset disabled={busy || uncertain} className="space-y-4">
+      <fieldset disabled={busy || uncertain || !!confirmation} className="space-y-4">
         {(['budgetQuotas', 'requests'] as const).map((section) => (
           <section className="rounded-lg border p-4" key={section}>
             <h3 className="font-medium">{t(section)}</h3>
@@ -417,7 +514,7 @@ function TeamLimitEditor({
                     <FormField label={t(field)}>
                       <Input
                         aria-label={t(field)}
-                        disabled={!editable(field)}
+                        disabled={busy || uncertain || !!confirmation || !editable(field)}
                         inputMode={field === 'money_month' ? 'decimal' : 'numeric'}
                         value={field === 'money_month' ? money : numbers[field]}
                         onValueChange={(value) =>
@@ -428,6 +525,23 @@ function TeamLimitEditor({
                         placeholder={t(scope.userId ? 'inherited' : 'unlimited')}
                       />
                     </FormField>
+                    {!scope.userId && (field === 'tokens_month' || field === 'money_month') && (
+                      <TeamBehaviorControl
+                        label={t(
+                          field === 'tokens_month' ? 'tokensMonthBehavior' : 'moneyMonthBehavior',
+                        )}
+                        mode={field === 'tokens_month' ? tokensBehavior : moneyBehavior}
+                        change={field === 'tokens_month' ? setTokensBehavior : setMoneyBehavior}
+                        disabled={
+                          !editable(
+                            field === 'tokens_month'
+                              ? 'tokens_month_behavior'
+                              : 'money_month_behavior',
+                          )
+                        }
+                        inactive={!(field === 'tokens_month' ? numbers.tokens_month : money).trim()}
+                      />
+                    )}
                     {!editable(field) && (
                       <p className="mt-1 text-xs text-muted-foreground">{t('teamReadOnlyField')}</p>
                     )}
@@ -438,12 +552,21 @@ function TeamLimitEditor({
                     )}
                     {scope.userId && (
                       <p className="mt-2 text-xs text-muted-foreground">
-                        {t('parentMaximum', {
-                          value:
-                            field === 'money_month' && reviewed.ip_policies[0]?.money_month != null
-                              ? `${reviewed.ip_policies[0].money_month} ${reviewed.ip_policies[0].currency}`
-                              : (reviewed.ip_policies[0]?.[field] ?? t('unlimited')),
-                        })}
+                        {t(
+                          (field === 'tokens_month' &&
+                            reviewed.ip_policies[0]?.tokens_month_behavior === 'alert_only') ||
+                            (field === 'money_month' &&
+                              reviewed.ip_policies[0]?.money_month_behavior === 'alert_only')
+                            ? 'parentAlertThreshold'
+                            : 'parentMaximum',
+                          {
+                            value:
+                              field === 'money_month' &&
+                              reviewed.ip_policies[0]?.money_month != null
+                                ? `${reviewed.ip_policies[0].money_month} ${reviewed.ip_policies[0].currency}`
+                                : (reviewed.ip_policies[0]?.[field] ?? t('unlimited')),
+                          },
+                        )}
                       </p>
                     )}
                   </div>
@@ -473,6 +596,116 @@ function TeamLimitEditor({
           {t('cancel')}
         </Button>
       </div>
+      {!scope.userId && confirmation && (
+        <Dialog
+          open
+          busy={busy}
+          title={t('teamMonthlyConfirmTitle')}
+          description={t('monthlyConfirmHelp')}
+          onOpenChange={(open) => {
+            if (!open) setConfirmation(null)
+          }}
+        >
+          {blocked && (
+            <p role="alert" className="text-destructive">
+              {t('conflict')}
+            </p>
+          )}
+          <dl className="space-y-3 text-sm">
+            {fields.filter(editable).map((field) => (
+              <div key={field}>
+                <dt>{t(field)}</dt>
+                <dd>
+                  {Object.hasOwn(confirmation.input, field)
+                    ? (confirmation.input[field] ?? t('unlimited'))
+                    : (reviewed.stored[field] ?? t('unlimited'))}
+                  {field === 'money_month' &&
+                  (Object.hasOwn(confirmation.input, field)
+                    ? confirmation.input.money_month
+                    : reviewed.stored.money_month) != null
+                    ? ` ${confirmation.input.currency ?? reviewed.stored.currency}`
+                    : ''}
+                </dd>
+              </div>
+            ))}
+            <div>
+              <dt>{t('tokensMonthBehavior')}</dt>
+              <dd>
+                {t(
+                  (confirmation.input.tokens_month_behavior ??
+                    reviewed.stored.tokens_month_behavior) === 'alert_only'
+                    ? 'monthlyAlertOnly'
+                    : 'monthlyStop',
+                )}
+              </dd>
+            </div>
+            <div>
+              <dt>{t('moneyMonthBehavior')}</dt>
+              <dd>
+                {t(
+                  (confirmation.input.money_month_behavior ??
+                    reviewed.stored.money_month_behavior) === 'alert_only'
+                    ? 'monthlyAlertOnly'
+                    : 'monthlyStop',
+                )}
+              </dd>
+            </div>
+            <div>
+              <dt>{t('reason')}</dt>
+              <dd className="whitespace-pre-wrap break-words">{confirmation.input.reason}</dd>
+            </div>
+          </dl>
+          <div className="mt-6 flex gap-2">
+            <Button
+              type="button"
+              disabled={busy || blocked || uncertain || !canEdit}
+              onClick={() => void dispatch(false, true)}
+            >
+              {t('monthlyConfirm')}
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              disabled={busy}
+              onClick={() => setConfirmation(null)}
+            >
+              {t('cancel')}
+            </Button>
+          </div>
+        </Dialog>
+      )}
     </form>
+  )
+}
+function TeamBehaviorControl({
+  label,
+  mode,
+  change,
+  disabled,
+  inactive,
+}: {
+  label: string
+  mode: MonthlyQuotaBehavior
+  change: (mode: MonthlyQuotaBehavior) => void
+  disabled: boolean
+  inactive: boolean
+}) {
+  const { t } = useTranslation('limits')
+  return (
+    <div className="mt-3 space-y-2">
+      <div className="flex items-center justify-between gap-3">
+        <span className="text-sm">{label}</span>
+        <Switch
+          aria-label={label}
+          checked={mode === 'alert_only'}
+          disabled={disabled || inactive}
+          onCheckedChange={(checked) => change(checked ? 'alert_only' : 'stop')}
+        />
+      </div>
+      <p className="text-xs text-muted-foreground">
+        {t(mode === 'alert_only' ? 'monthlyAlertOnly' : 'monthlyStop')}
+      </p>
+      {inactive && <p className="text-xs text-muted-foreground">{t('monthlyModeInactive')}</p>}
+    </div>
   )
 }

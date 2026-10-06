@@ -326,10 +326,21 @@ func (q *Queue) checkQuotaAdmission(tx *bolt.Tx, id string, policies []QuotaLimi
 	return entry, limitAccounts, nil
 }
 
+// Team monthly modes apply only to the aggregate account, never to the reserved
+// team_member namespace. The suffix has the same bounded ASCII identity contract
+// as Team Session admission; membership pair digests remain separate hard accounts.
+func monthlyBehaviorAccount(account string) bool {
+	if strings.HasPrefix(account, "user_") && len(account) > len("user_") {
+		return true
+	}
+	suffix, ok := strings.CutPrefix(account, "team_")
+	return ok && !strings.HasPrefix(account, "team_member_") && len(suffix) > 0 && len(suffix) <= 30 && validKey.MatchString(suffix)
+}
+
 func checkQuota(tx *bolt.Tx, policy QuotaLimit, bound QuotaBound, metadata quotaMetadata, instant, monthStart int64, activeJournal, establish bool) error {
 	tokenBehavior, tokenErr := limits.CanonicalMonthlyBehavior(policy.TokensMonthBehavior)
 	moneyBehavior, moneyErr := limits.CanonicalMonthlyBehavior(policy.MoneyMonthBehavior)
-	if tokenErr != nil || moneyErr != nil || (tokenBehavior != "" || moneyBehavior != "") && (!strings.HasPrefix(policy.Account, "user_") || len(policy.Account) <= len("user_")) {
+	if tokenErr != nil || moneyErr != nil || (tokenBehavior != "" || moneyBehavior != "") && !monthlyBehaviorAccount(policy.Account) {
 		return ErrInvalid
 	}
 	if !validKey.MatchString(policy.Revision) {

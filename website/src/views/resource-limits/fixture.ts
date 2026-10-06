@@ -44,7 +44,7 @@ export function teamFixture(member = false): LimitRecord {
         tpm: null,
         concurrency: null,
       }
-    : policy
+    : { ...policy, tokens_month_behavior: 'stop' as const, money_month_behavior: 'stop' as const }
   return {
     kind: member ? 'team_member' : 'team',
     id: member ? 'usr_member' : 'tea_test',
@@ -54,11 +54,23 @@ export function teamFixture(member = false): LimitRecord {
     ...(member ? { parent_etag: 'b'.repeat(64) } : {}),
     editable_fields: member
       ? ['tokens_month', 'money_month', 'rpm', 'tpm', 'concurrency']
-      : ['tokens_5h', 'tokens_7d', 'tokens_month', 'money_month', 'rpm', 'tpm', 'concurrency'],
+      : [
+          'tokens_5h',
+          'tokens_7d',
+          'tokens_month',
+          'money_month',
+          'rpm',
+          'tpm',
+          'concurrency',
+          'tokens_month_behavior',
+          'money_month_behavior',
+        ],
     platform_currency: 'USD',
     stored,
     effective: policy,
-    ip_policies: member ? [policy, stored] : [stored],
+    ip_policies: member
+      ? [{ ...policy, tokens_month_behavior: 'stop', money_month_behavior: 'stop' }, stored]
+      : [stored],
     quota_usage: null,
     rpm_used: null,
     active: null,

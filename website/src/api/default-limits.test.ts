@@ -130,3 +130,48 @@ describe('Default limit API contracts', () => {
     ).rejects.toThrow()
   })
 })
+
+it('reads exact Team aggregate modes but only confirms a hard-stop default reset', async () => {
+  context.limit.stored.tokens_month_behavior = 'alert_only'
+  context.limit.stored.money_month_behavior = 'alert_only'
+  response = context
+  await expect(getDefaultReset({ kind: 'team', id: 'tea_test' })).resolves.toMatchObject({
+    limit: { stored: { tokens_month_behavior: 'alert_only', money_month_behavior: 'alert_only' } },
+  })
+  const result = {
+    kind: 'team',
+    id: 'tea_test',
+    saved: true,
+    default_reset_etag: context.etag,
+    applied_default_etag: record.rule_etag,
+    runtime_applied: true,
+    limit: {
+      ...context.limit,
+      enforced: true,
+      stored: {
+        ...context.limit.stored,
+        ...record.policy,
+        tokens_month_behavior: 'alert_only',
+        money_month_behavior: 'stop',
+      },
+    },
+  }
+  response = result
+  await expect(
+    restoreDefaultLimits({ kind: 'team', id: 'tea_test' }, context, 'Original review', 'csrf'),
+  ).rejects.toThrow('Unconfirmed')
+  response = {
+    ...result,
+    limit: { ...result.limit, stored: { ...result.limit.stored, tokens_month_behavior: 'stop' } },
+  }
+  await expect(
+    restoreDefaultLimits({ kind: 'team', id: 'tea_test' }, context, 'Original review', 'csrf'),
+  ).resolves.toMatchObject({ runtime_applied: true })
+})
+
+it('does not infer Team reset stop from missing stored mode attestation', async () => {
+  const stored = { ...context.limit.stored }
+  delete stored.tokens_month_behavior
+  response = { ...context, limit: { ...context.limit, stored } }
+  await expect(getDefaultReset({ kind: 'team', id: 'tea_test' })).rejects.toThrow()
+})

@@ -79,5 +79,5 @@ func validMonthlyBehaviorAudit(kind string, policy limits.Policy) bool {
 		return false
 	}
 	money, err := limits.CanonicalMonthlyBehavior(policy.MoneyMonthBehavior)
-	return err == nil && (kind == "user" || tokens == "" && money == "")
+	return err == nil && (kind == "user" || kind == "team" || tokens == "" && money == "")
 }

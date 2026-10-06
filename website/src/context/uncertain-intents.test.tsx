@@ -237,6 +237,7 @@ async function mount(path = '/admin/teams/new') {
         children: [
           { path: '/admin/teams/new', element: <Probe /> },
           { path: '/admin/members/:memberId', element: <Probe /> },
+          { path: '/teams/:teamId', element: <Probe /> },
           { path: '/other', element: <p>Other private route</p> },
         ],
       },
@@ -553,6 +554,38 @@ describe('private AuthGate submitted-intent lifetime', () => {
       }),
     ).toBeNull()
     expect(owner.epoch).toBe(0)
+  })
+  it('retains only historical Team stored modes and strips modes from numeric defaults', async () => {
+    const review = resetReview()
+    review.kind = 'team'
+    review.id = 'tea_subject'
+    review.limit.kind = 'team'
+    review.limit.id = 'tea_subject'
+    review.default_rule.kind = 'team'
+    review.limit.stored.tokens_month_behavior = 'alert_only'
+    review.limit.stored.money_month_behavior = 'stop'
+    Object.assign(review.default_rule.policy, {
+      tokens_month_behavior: 'alert_only',
+      secret: 'not-retained',
+    })
+    submission = {
+      kind: 'restore-defaults',
+      payload: {
+        target: { kind: 'team', id: 'tea_subject' },
+        review,
+        reason: 'Original Team reset',
+      },
+    }
+    await mount('/teams/tea_subject?tab=resources')
+    await clickSubmit()
+    review.limit.stored.tokens_month_behavior = 'stop'
+    const retained = latestOwner!.recover(actor)!
+    if (retained.kind !== 'restore-defaults') throw new Error('Expected restore')
+    expect(retained.payload.review.limit.stored.tokens_month_behavior).toBe('alert_only')
+    expect(retained.payload.review.limit.stored.money_month_behavior).toBe('stop')
+    expect(retained.payload.review.default_rule.policy).not.toHaveProperty('tokens_month_behavior')
+    expect(JSON.stringify(retained)).not.toContain('not-retained')
+    expect(retained.payload.review.limit).not.toHaveProperty('quota_usage')
   })
   it('clears a Restore target on navigation during500 without relying on child cleanup', async () => {
     submission = {

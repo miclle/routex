@@ -1,6 +1,7 @@
 import client from './client'
 import {
   teamLimitFields,
+  teamMonthlyBehaviorFields,
   type TeamLimitInput,
   type TeamLimitScope,
   type LimitInput,
@@ -116,7 +117,7 @@ function validateTeamLimits(value: unknown, scope: TeamLimitScope): LimitRecord 
     new Set(value.editable_fields).size !== value.editable_fields.length ||
     value.editable_fields.some(
       (field) =>
-        !teamLimitFields.includes(field) ||
+        ![...teamLimitFields, ...(scope.userId ? [] : teamMonthlyBehaviorFields)].includes(field) ||
         (scope.userId && (field === 'tokens_5h' || field === 'tokens_7d')),
     ) ||
     !object(value.stored) ||
@@ -131,6 +132,18 @@ function validateTeamLimits(value: unknown, scope: TeamLimitScope): LimitRecord 
     !(value.quota_usage === null || object(value.quota_usage))
   )
     throw new Error('Invalid Team limit response')
+  if (teamMonthlyBehaviorFields.some((field) => Object.hasOwn(value.effective as object, field)))
+    throw new Error('Invalid Team effective monthly behavior')
+  for (const [index, policy] of [value.stored, ...value.ip_policies].entries()) {
+    if (!object(policy)) throw new Error('Invalid Team monthly behavior policy')
+    const aggregate = !scope.userId || index === 1
+    if (
+      teamMonthlyBehaviorFields.some((field) =>
+        aggregate ? !validMonthlyBehavior(policy[field]) : Object.hasOwn(policy, field),
+      )
+    )
+      throw new Error('Invalid Team monthly behavior scope')
+  }
   for (const policy of [value.stored, value.effective, ...value.ip_policies]) {
     if (!object(policy)) throw new Error('Invalid Team parent policy')
     for (const field of teamLimitFields) {
@@ -217,6 +230,13 @@ export async function saveTeamLimits(
   input: TeamLimitInput,
   csrf: string,
 ) {
+  if (
+    teamMonthlyBehaviorFields.some(
+      (field) =>
+        Object.hasOwn(input, field) && (scope.userId || !validMonthlyBehavior(input[field])),
+    )
+  )
+    throw new Error('Invalid Team monthly behavior input')
   const data = validateTeamLimits(
     (
       await client.put<unknown>(`${teamLimitPath(scope)}/limits`, input, {
@@ -227,6 +247,9 @@ export async function saveTeamLimits(
   )
   if (
     !data.enforced ||
+    teamMonthlyBehaviorFields.some(
+      (field) => Object.hasOwn(input, field) && input[field] !== data.stored[field],
+    ) ||
     teamLimitFields.some(
       (field) =>
         Object.hasOwn(input, field) &&

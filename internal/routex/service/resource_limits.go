@@ -62,7 +62,7 @@ func policyFromRow(row entity.ResourceLimit) (limits.Policy, error) {
 		}
 	}
 	normalized, err := limits.Normalize(policy)
-	if err != nil || row.ScopeKind != "user" && (normalized.TokensMonthBehavior != "" || normalized.MoneyMonthBehavior != "") {
+	if err != nil || row.ScopeKind != "user" && row.ScopeKind != "team" && (normalized.TokensMonthBehavior != "" || normalized.MoneyMonthBehavior != "") {
 		return policy, limits.ErrInvalid
 	}
 	return normalized, nil
@@ -261,12 +261,12 @@ func (s *Service) resourceLimitRecord(db *gorm.DB, target LimitTarget, resolved 
 		result.QuotaUsage = quota
 	}
 	// Decorate only after all stored-vs-published equality checks. Internal stop
-	// remains canonical legacy empty; wire User policies always spell it explicitly.
-	if resolved.kind == "user" {
+	// remains canonical legacy empty; wire User/Team policies spell it explicitly.
+	if resolved.kind == "user" || resolved.kind == "team" {
 		result.Stored = userMonthlyBehaviorWire(result.Stored)
 		result.IPPolicies[0] = userMonthlyBehaviorWire(result.IPPolicies[0])
 	}
-	if resolved.parentKind == "user" {
+	if resolved.parentKind == "user" || resolved.parentKind == "team" {
 		result.IPPolicies[0] = userMonthlyBehaviorWire(result.IPPolicies[0])
 	}
 	return result, nil

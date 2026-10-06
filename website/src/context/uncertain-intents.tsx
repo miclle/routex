@@ -82,7 +82,10 @@ function restoreReview(value: RetainedRestoreReview): RetainedRestoreReview {
       account_id: value.limit.account_id,
       etag: value.limit.etag,
       platform_currency: value.limit.platform_currency,
-      stored: policy(value.limit.stored, value.limit.kind === 'user'),
+      stored: policy(
+        value.limit.stored,
+        value.limit.kind === 'user' || value.limit.kind === 'team',
+      ),
     },
   }
 }

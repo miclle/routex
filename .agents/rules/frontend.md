@@ -1006,3 +1006,25 @@ A matching GET never resolves uncertainty. A successful retry confirms the curre
 name and runtime publication, not the original historical operation. Actor, target
 or logout clears intent. Do not edit child records, secrets or quality policy.
 Keep paired catalogue translations and local Base UI confirmation.
+
+## Team aggregate monthly behavior
+
+Team aggregate monthly Token and money behavior belongs beside each cap in the
+existing Team Limits editor. Use independent `teams.tokens.write` and
+`teams.money.write` authority for the corresponding `stop`/`alert_only` control,
+including mode-only sparse writes. Omitted Team modes preserve their saved values;
+creation/default/reset copy hard stop. Null caps make modes inactive; zero remains
+a real threshold. Keep exact decimals, composite review ETags and explicit Base UI
+confirmation. Preserve original uncertain target/body/modes/ETag through failed
+manual retries with fresh same-actor authority and current CSRF; matching GET is
+not historical success. Ordinary Team saves retain component-local intent only;
+do not imply recovery after an AuthGate unmount. Retained default-restore reviews
+carry authoritative Team modes through the existing shared intent boundary.
+
+Team-member local policies remain hard-only and expose aggregate modes only in
+the parent chain. A soft aggregate monthly dimension may permit a larger hard
+member cap; rolling Tokens, rates, concurrency, IP, finite reservation/price proof,
+unknown usage, currency, coverage, exact births and current runtime lease remain
+hard gates. Numeric effective minima are configured-cap facts, not a merged stop
+mode or proof of callability. Preserve Project/Key behavior, accounting, warning
+recipient/read-state semantics and paired limits translations.

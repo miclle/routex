@@ -1018,3 +1018,21 @@ owned resources, process and listeners are absent. Acceptance SHA-256:
 `ccb38e2b4b508f6304c2246b0d161e18e66263a0d023fd7ca332970af26b4ac2`.
 The older private 1,036-backend R2 is separate historical evidence.
 Current delivery is tracked in [Implementation](IMPLEMENTATION.md).
+
+## Team aggregate monthly behavior (V71)
+
+Frozen GORM V71 reuses V70's two width-16 behavior columns and replaces
+only the scope constraint to permit exact User and Team aggregate alert-only
+policies. Team-member, Project and Key rows remain hard-only. It performs bounded
+validation and portable GORM Migrator constraint recovery; no column widening,
+ledger rewrite, counter reset, row normalization or historical migration edit is
+introduced. Released V1–V70 schema definitions remain unchanged.
+
+The registry appends Team migration/lifecycle after the exact 133-case prefix,
+with current ledger 71 and 135 scenarios per database. The V70 fixture continues
+to test V70's historical User-only contract and then replays V71 for the current
+schema. Portable upgrade/repeat/concurrent/partial-DDL and scope-value assertions
+remain strict. Focus R3 accepts the two new cases and seven relevant predecessors
+on both databases; complete private135 passes. The exact staged 1,040-backend
+candidate passes its own 18-case focused dual-driver run and complete Task/check/build.
+These remain separate evidence; earlier failed fixture records are retained.

@@ -142,7 +142,7 @@ beforeEach(async () => {
             stored: {
               ...committedContext.limit.stored,
               ...committedContext.default_rule.policy,
-              ...(committedContext.kind === 'user'
+              ...(committedContext.kind === 'user' || committedContext.kind === 'team'
                 ? {
                     tokens_month_behavior: resetResultBehavior,
                     money_month_behavior: resetResultBehavior,
@@ -454,4 +454,39 @@ it('retains exact User monthly modes through AuthGate500 remount and requires st
   }
   expect(JSON.parse(original.data)).toEqual({ reason: 'Captured restoration' })
   expect(owner!.recover(actor)).toBeNull()
+})
+
+it('retains historical Team modes across AuthGate500 and never confirms a soft default-reset result', async () => {
+  context.limit.stored.tokens_month_behavior = 'alert_only'
+  context.limit.stored.money_month_behavior = 'stop'
+  committedContext = structuredClone(context)
+  await mountAndSubmit()
+  const original = writes[0]
+  expect(document.body.textContent).toContain('Alert only at this threshold')
+  await sessionError()
+  context.limit.stored.tokens_month_behavior = 'stop'
+  context.limit.stored.money_month_behavior = 'alert_only'
+  await recoverSession()
+  await click('Restore defaults')
+  await until(() => expect(button('Retry original request').disabled).toBe(false))
+  const recovered = owner!.recover(actor)!
+  if (recovered.kind !== 'restore-defaults') throw new Error('Expected restore')
+  expect(recovered.payload.review.limit.stored.tokens_month_behavior).toBe('alert_only')
+  expect(recovered.payload.review.limit.stored.money_month_behavior).toBe('stop')
+  expect(recovered.payload.review.default_rule.policy).not.toHaveProperty('tokens_month_behavior')
+  writeFailure = 0
+  resetResultBehavior = 'alert_only'
+  await click('Retry original request')
+  await until(() => expect(button('Retry original request').disabled).toBe(false))
+  expect(owner!.recover(actor)).not.toBeNull()
+  expect(host.textContent).not.toContain('Defaults restored and applied')
+  resetResultBehavior = 'stop'
+  await click('Retry original request')
+  await until(() => expect(host.textContent).toContain('Defaults restored and applied'))
+  expect(writes).toHaveLength(3)
+  for (const retry of writes.slice(1)) {
+    expect(retry.data).toBe(original.data)
+    expect(retry.headers.get('If-Match')).toBe(original.headers.get('If-Match'))
+    expect(retry.headers.get('X-CSRF-Token')).toBe('csrf-renewed')
+  }
 })

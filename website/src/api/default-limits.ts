@@ -95,8 +95,8 @@ function validLimit(value: unknown, target: DefaultResetTarget) {
     object(value.stored) &&
     ['tokens_month_behavior', 'money_month_behavior'].every(
       (field) =>
-        !Object.hasOwn(value.stored as object, field) ||
-        (target.kind === 'user' &&
+        (target.kind !== 'team' && !Object.hasOwn(value.stored as object, field)) ||
+        ((target.kind === 'user' || target.kind === 'team') &&
           ((value.stored as Record<string, unknown>)[field] === 'stop' ||
             (value.stored as Record<string, unknown>)[field] === 'alert_only')),
     ) &&
@@ -159,7 +159,7 @@ export async function restoreDefaultLimits(
     typeof value.runtime_applied !== 'boolean' ||
     !object(value.limit) ||
     value.runtime_applied !== value.limit.enforced ||
-    (target.kind === 'user' &&
+    ((target.kind === 'user' || target.kind === 'team') &&
       object(value.limit.stored) &&
       ((value.limit.stored.tokens_month_behavior ?? 'stop') !== 'stop' ||
         (value.limit.stored.money_month_behavior ?? 'stop') !== 'stop')) ||

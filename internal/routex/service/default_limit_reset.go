@@ -86,7 +86,7 @@ func loadDefaultLimitReset(tx *gorm.DB, actorID string, target LimitTarget, writ
 			return nil, errLimitConflict
 		}
 		state.Team, state.Resolved, state.Row, state.Stored, state.Pricing = current, current.Resolved, current.Row, current.Stored, current.Pricing
-		state.Editable = len(current.Editable) == len(teamLimitFields)
+		state.Editable = len(current.Editable) == len(teamResourceLimitFields)
 		if write && !state.Editable {
 			return nil, apperrors.ErrForbidden
 		}

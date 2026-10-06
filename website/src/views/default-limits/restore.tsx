@@ -423,7 +423,7 @@ function RestoreDialog({
                   policy={context.limit.stored as DefaultLimitPolicy}
                   currency={context.limit.platform_currency}
                 />
-                {context.limit.kind === 'user' && (
+                {(context.limit.kind === 'user' || context.limit.kind === 'team') && (
                   <div className="mt-3 space-y-1 text-sm">
                     <p>
                       {limitText('tokensMonthBehavior')}:{' '}
@@ -452,9 +452,11 @@ function RestoreDialog({
                   policy={context.default_rule.policy}
                   currency={context.default_rule.platform_currency}
                 />
-                {context.limit.kind === 'user' && (
+                {(context.limit.kind === 'user' || context.limit.kind === 'team') && (
                   <p className="mt-3 text-sm text-muted-foreground">
-                    {limitText('monthlyResetStop')}
+                    {limitText(
+                      context.limit.kind === 'team' ? 'teamMonthlyResetStop' : 'monthlyResetStop',
+                    )}
                   </p>
                 )}
               </section>

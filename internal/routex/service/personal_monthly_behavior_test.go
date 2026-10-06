@@ -59,7 +59,7 @@ func TestPersonalMonthlyBehaviorStoredScopeAndReset(t *testing.T) {
 		row.TokensMonthBehavior = "alert_only"
 		row.TokensMonth = limitNumber(0)
 		p, err := policyFromRow(row)
-		if kind == "user" {
+		if kind == "user" || kind == "team" {
 			if err != nil || p.TokensMonthBehavior != "alert_only" || *p.TokensMonth != 0 {
 				t.Fatal("User soft zero", err)
 			}

@@ -15,6 +15,45 @@ import (
 // released historical schema. The harness first exercises empty startup.
 func testPersonalMonthlyBehaviorMigration(t *testing.T, db *gorm.DB) {
 	const version = 70
+	// Exercise the immutable User-only V70 contract, then restore the current
+	// V71 schema and complete ledger. Keep V71 recorded during the controlled
+	// V70 replay so the original User-only scope assertions exercise V70, then
+	// explicitly replay V71 in teardown. Later support must not weaken V70.
+	var currentLedger []int
+	if err := db.Table("schema_migrations").Order("version").Pluck("version", &currentLedger).Error; err != nil {
+		t.Fatal(err)
+	}
+	seenV71 := 0
+	for i, v := range currentLedger {
+		if v != i+1 {
+			t.Fatal("incomplete current ledger", currentLedger)
+		}
+		if v == 71 {
+			seenV71++
+		}
+	}
+	if seenV71 != 1 {
+		t.Fatal("expected V71 once", currentLedger)
+	}
+	if db.Migrator().HasConstraint(&entity.ResourceLimit{}, "ck_resource_limits_monthly_behavior_scope_v71") {
+		if err := db.Migrator().DropConstraint(&entity.ResourceLimit{}, "ck_resource_limits_monthly_behavior_scope_v71"); err != nil {
+			t.Fatal(err)
+		}
+	}
+	defer func() {
+		if result := db.Table("schema_migrations").Where("version = ?", 71).Delete(&struct{}{}); result.Error != nil || result.RowsAffected != 1 {
+			t.Error("restore V71 ledger boundary", result.Error)
+			return
+		}
+		if err := database.Migrate(context.Background(), db); err != nil {
+			t.Error("restore V71 after historical fixture", err)
+			return
+		}
+		var restored []int
+		if err := db.Table("schema_migrations").Order("version").Pluck("version", &restored).Error; err != nil || !reflect.DeepEqual(restored, currentLedger) {
+			t.Error("current ledger changed after V70 fixture", err, restored)
+		}
+	}()
 	var baseline []int
 	if err := db.Table("schema_migrations").Order("version").Pluck("version", &baseline).Error; err != nil {
 		t.Fatal(err)

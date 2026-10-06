@@ -36,7 +36,7 @@ export interface QuotaUsage {
 export interface LimitRecord {
   kind: 'user' | 'project' | 'personal_key' | 'project_key' | 'team' | 'team_member'
   team_id?: string
-  editable_fields?: TeamLimitField[]
+  editable_fields?: TeamLimitEditableField[]
   id: string
   account_id: string
   etag: string
@@ -67,11 +67,14 @@ export const teamLimitFields = [
   'concurrency',
 ] as const
 export type TeamLimitField = (typeof teamLimitFields)[number]
+export const teamMonthlyBehaviorFields = ['tokens_month_behavior', 'money_month_behavior'] as const
+export type TeamMonthlyBehaviorField = (typeof teamMonthlyBehaviorFields)[number]
+export type TeamLimitEditableField = TeamLimitField | TeamMonthlyBehaviorField
 export interface TeamLimitScope {
   teamId: string
   userId?: string
 }
-export type TeamLimitInput = Partial<Pick<LimitPolicy, TeamLimitField>> & {
+export type TeamLimitInput = Partial<Pick<LimitPolicy, TeamLimitEditableField>> & {
   currency?: string
   reason: string
 }

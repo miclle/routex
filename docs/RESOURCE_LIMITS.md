@@ -114,7 +114,7 @@ checked delivery remain pending. See [Governance](GOVERNANCE.md#administrative-m
 - Policy, runtime counters, and asynchronous usage reports are separate. Reports cannot authorize spending or reset counters.
 - Every admission resolves one resource context, freezes its policy and price basis, and atomically checks all applicable aggregate and child constraints before dispatch.
 - Zero is a closed allowance. Null is not zero: it means no local constraint, or inherited parent constraint where a parent exists.
-- Numeric child overrides only narrow a parent. IP restrictions are an intersection of predicates, not a replacement allowlist.
+- Numeric child overrides only narrow a hard parent cap. A soft Team aggregate monthly threshold may be lower than its hard member cap; other parent dimensions remain hard. IP restrictions are an intersection of predicates, not a replacement allowlist.
 - User and Team defaults are templates for new resources. Changing a template does not silently change existing accounts. Reset is an explicit audited copy of the current template and never clears usage.
 - Hard Token, TPM, and money limits require a verified finite reservation bound. Character counts, JSON sizes, estimated tokenizers, missing usage, and absent prices cannot be treated as exact limits or free usage.
 - The first implementation is one gateway process with a persistent, exclusively locked local journal. It is not a multi-node quota service.
@@ -346,4 +346,42 @@ attempts and four pre-admission rejections with null usage and no attempts.
 Same-artifact restart preserves original Sessions and sampled rows; owned cleanup
 is verified. Acceptance SHA-256: `75b6b5265014caa9c63b531275c0f89f98ab8fb7512e00c217a446388eccf8cc`.
 Current contextual main checks and delivery are tracked in [Implementation](IMPLEMENTATION.md).
-F17 remains partial; Team monthly behavior is a separate phase.
+F17 remains partial; the following Team monthly behavior is delivered separately.
+
+## Team aggregate monthly stop and alert behavior
+
+The existing Team aggregate GET/PUT `/api/v1/teams/:team_id/limits` exposes
+independent `tokens_month_behavior` and `money_month_behavior` values, exactly
+`stop` or `alert_only`. Stored aggregate policy and the aggregate parent-chain
+entry include canonical modes; absent/legacy hard values read as stop. Numeric
+`effective` values do not merge these modes or establish remaining allowance.
+The member endpoint keeps hard-only local policy and shows modes only on its Team
+parent. Project and Key policies retain their existing hard boundaries.
+
+Token/money modes require their independent Team dimension write permission;
+ownership or read permission is insufficient. A sparse omission preserves the
+corresponding saved mode, including ordinary cap/request changes. Mode-only writes
+are permitted with fresh authority. Explicit null/invalid modes and every mode on
+the member endpoint are rejected. Exact money, denomination, reason and reviewed
+composite If-Match remain mandatory. First conflicts require explicit review;
+uncertain publication retains the exact original target/body/ETag through rejected
+manual retries. A matching current GET cannot resolve the historical uncertainty.
+
+Null caps disable only their own controls; zero is a real threshold. Alert-only
+bypasses that exact aggregate monthly capacity comparison, while hard member,
+other monthly dimension, rolling Token/rate/IP/concurrency gates, finite bounds,
+prices/currency, journal coverage/unknowns, exact births and current lease remain
+required. Reservations and settlement continue; missing usage is not zero.
+A soft parent numerical ceiling does not prevent a larger hard member cap.
+Creation/default restoration copy hard stop modes and never reset counters.
+Existing near/critical/exhaustion notifications and recipient history are unchanged.
+
+The Team editor uses the existing layout, local Base UI controls and paired
+English/Chinese labels. Normal saves retain local uncertain intent while mounted;
+this is not a new AuthGate-remount guarantee. The existing shared Restore boundary
+retains the original non-secret Team modes for explicit authorized reset retries.
+Private controlled browser/native/restart acceptance passes. Exact staged checking,
+complete Task (4,402 frontend cases), build and its own focused dual-driver
+regression pass; the containing commit delivers this bounded phase.
+Source, staged focused-driver and full-private evidence are tracked separately in
+[Implementation](IMPLEMENTATION.md).

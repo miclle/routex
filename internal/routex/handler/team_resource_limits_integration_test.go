@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"path/filepath"
+	"slices"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -127,7 +128,7 @@ func testTeamResourceLimitsLifecycle(t *testing.T, db *gorm.DB) {
 		t.Fatal("minimal workspace marker missing")
 	}
 	token := get(path, tokenCookie)
-	if len(token.EditableFields) != 3 {
+	if !slices.Equal(token.EditableFields, []string{"tokens_5h", "tokens_7d", "tokens_month", "tokens_month_behavior"}) {
 		t.Fatal("token authority broadened", token.EditableFields)
 	}
 	for _, validator := range []string{"", token.ETag, `W/"` + token.ETag + `"`, `"` + strings.ToUpper(token.ETag) + `"`} {

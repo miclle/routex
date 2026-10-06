@@ -24,6 +24,11 @@ import (
 )
 
 var teamLimitFields = []string{"tokens_5h", "tokens_7d", "tokens_month", "money_month", "rpm", "tpm", "concurrency"}
+
+// Creation/default policies retain the original seven caps. Only existing Team
+// resource writes expose the two independent monthly behavior fields.
+var teamResourceLimitFields = append(append([]string(nil), teamLimitFields...), "tokens_month_behavior", "money_month_behavior")
+
 var teamMemberLimitFields = []string{"tokens_month", "money_month", "rpm", "tpm", "concurrency"}
 
 // TeamLimitInput preserves omitted fields independently of explicit null and zero.
@@ -48,7 +53,7 @@ func (input *TeamLimitInput) UnmarshalJSON(raw []byte) error {
 			return apperrors.ErrBadRequest
 		}
 		name, ok := token.(string)
-		if !ok || seen[name] || name != "reason" && name != "currency" && !slices.Contains(teamLimitFields, name) {
+		if !ok || seen[name] || name != "reason" && name != "currency" && !slices.Contains(teamResourceLimitFields, name) {
 			return apperrors.ErrBadRequest
 		}
 		seen[name] = true
@@ -81,7 +86,7 @@ func validateTeamLimitPolicy(kind string, policy limits.Policy) error {
 	if kind != "team" && kind != "team_member" || policy.IPMode != "" && policy.IPMode != "none" || len(policy.IPRanges) != 0 {
 		return limits.ErrInvalid
 	}
-	if kind == "team_member" && (policy.Tokens5H != nil || policy.Tokens7D != nil) {
+	if kind == "team_member" && (policy.Tokens5H != nil || policy.Tokens7D != nil || policy.TokensMonthBehavior != "" && policy.TokensMonthBehavior != "stop" || policy.MoneyMonthBehavior != "" && policy.MoneyMonthBehavior != "stop") {
 		return limits.ErrInvalid
 	}
 	return nil
@@ -89,9 +94,9 @@ func validateTeamLimitPolicy(kind string, policy limits.Policy) error {
 
 func teamLimitPermission(field string) string {
 	switch field {
-	case "tokens_5h", "tokens_7d", "tokens_month":
+	case "tokens_5h", "tokens_7d", "tokens_month", "tokens_month_behavior":
 		return "teams.tokens.write"
-	case "money_month", "currency":
+	case "money_month", "currency", "money_month_behavior":
 		return "teams.money.write"
 	default:
 		return "teams.rates.write"
@@ -99,7 +104,7 @@ func teamLimitPermission(field string) string {
 }
 
 func teamLimitEditableFields(tx *gorm.DB, actor entity.User, kind string) ([]string, error) {
-	fields := teamLimitFields
+	fields := teamResourceLimitFields
 	if kind == "team_member" {
 		fields = teamMemberLimitFields
 	}
@@ -264,7 +269,7 @@ func applyTeamLimitInput(before limits.Policy, input TeamLimitInput, kind string
 	if len(input.Fields) == 0 {
 		return before, apperrors.ErrBadRequest
 	}
-	supported := teamLimitFields
+	supported := teamResourceLimitFields
 	if kind == "team_member" {
 		supported = teamMemberLimitFields
 	}
@@ -278,6 +283,18 @@ func applyTeamLimitInput(before limits.Policy, input TeamLimitInput, kind string
 		}
 		if !slices.Contains(editable, field) {
 			return before, apperrors.ErrForbidden
+		}
+		if field == "tokens_month_behavior" || field == "money_month_behavior" {
+			var mode string
+			if json.Unmarshal(raw, &mode) != nil || mode != limits.MonthlyBehaviorStop && mode != limits.MonthlyBehaviorAlertOnly {
+				return before, apperrors.ErrBadRequest
+			}
+			if field == "tokens_month_behavior" {
+				result.TokensMonthBehavior = mode
+			} else {
+				result.MoneyMonthBehavior = mode
+			}
+			continue
 		}
 		if field == "money_month" {
 			var value *string
