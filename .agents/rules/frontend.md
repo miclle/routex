@@ -869,3 +869,10 @@ already dispatched IDs/token with the original UUID/body/If-Match. Candidate
 refreshes, Model changes and renewed Sessions never rewrite an uncertain intent.
 Creation receipts confirm saved configuration and complete current grant
 publication, independently of route availability or native inference success.
+
+Single-model Playground elapsed time is a transient monotonic browser observation
+from native dispatch to settlement or explicit cancellation. Finalize it once,
+exclude asynchronous attachment cleanup, and keep native completion, authoritative
+usage and Provider latency separate. Preserve cancellation, exchange and resource
+generation fences so late responses cannot restore cleared history. Never persist
+this observation or add it to native payloads or generated request examples.

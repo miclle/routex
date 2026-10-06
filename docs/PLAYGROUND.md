@@ -262,3 +262,29 @@ revocation and Session-preserving restart without replay. Bilingual controls and
 empty transient state were verified; warnings/errors were absent. Full main
 check/test/build and PostgreSQL/MySQL regression passed. This controlled proof
 does not establish external-provider compatibility.
+
+
+## Single-model elapsed observation
+
+Conversation responses display a finalized browser-observed elapsed duration next
+to existing request and usage facts. A monotonic clock starts at native dispatch
+and ends once on settlement or explicit cancellation, before attachment cleanup.
+The value is transient; it does not measure Provider latency, first-token time,
+server call duration, quota usage or native completion. Zero is visible, while
+non-finite or backwards observations remain absent. Language switching preserves
+the value; model/protocol changes, Clear and leaving the conversation discard it.
+Late settlement cannot change a canceled observation or restore cleared history.
+
+The 30 focused elapsed lifecycle cases and complete 3,789-case frontend suite
+pass, alongside mandatory checks, the embedded build and production asset race
+test. Controlled production browser acceptance covers 13 native dispatches across
+all four protocols, English/Chinese switching, parameter reset, a real HTTP
+failure, cancellation with a real five-second delayed attachment DELETE, Clear,
+model change after Stop, and leaving the conversation. The canceled 415 ms value
+remained identical after cleanup. Model selection is disabled while running;
+direct generation changes, zero and invalid clocks remain unit-test evidence.
+The observer buffers SSE, so this run establishes native terminal parsing rather
+than progressive browser delivery. Owned processes, Compose resources and five
+ports were independently cleared. External-provider compatibility and broader
+attachment/F20 acceptance remain separate; detailed evidence is recorded in
+`docs/IMPLEMENTATION.md`.

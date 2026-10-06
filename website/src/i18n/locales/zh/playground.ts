@@ -98,6 +98,9 @@ export default {
   waiting: '等待发送对比消息',
   waitingOutput: '等待输出…',
   noText: '未返回文本内容。',
+  browserElapsed: '浏览器耗时：{{duration}} 毫秒',
+  browserElapsedHelp:
+    '浏览器观察到的原生请求发出至结束或取消的时间，不含附件清理。这不是 Provider 延迟或首个 Token 的等待时间。',
   requestId: '请求 ID',
   usage: '输入 {{input}} · 输出 {{output}} · 总计 {{total}} Token',
   noUsage: '上游未返回用量数据',

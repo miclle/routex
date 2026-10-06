@@ -1501,3 +1501,45 @@ boundary without changing released migration steps. The original failed log
 SHA256 is`213b48a8e23b4b14f3add2285ba791e2f2e298410142e2f4c950677c9038408a`.
 This separate candidate failure does not relabel the already accepted Model121
 run or the scoped Team Model production evidence.
+
+## Accepted browser elapsed phase, 2026-10-06
+
+Initial Team Model access V66 is committed and pushed as
+`3e21b8d268e945a694f3bae98369a005943030e0`, with exact remote main read-back.
+Single-model browser elapsed now passes mandatory checks, all 3,789 frontend
+cases across 159 files, four Node workflow tests, the embedded build, and the
+production asset race test. The 30 focused elapsed cases cover every native
+protocol, cancellation, delayed cleanup, language changes, zero and invalid
+clocks, and discarded generations.
+
+A fresh embedded-binary browser run completed exactly 13 controlled native calls:
+six Chat, three Responses, two Messages and two Gemini. Eight ordinary/stream
+requests retained their native completion and usage facts alongside elapsed.
+English/Chinese switching and parameter reset preserved recorded values and the
+unsent draft. A real HTTP 400 retained failed state and finalized elapsed. A real
+PNG upload was canceled at 415 ms; its actual DELETE was delayed five seconds,
+returned 200, and left that elapsed and stopped state unchanged. Clear removed
+history; Stop followed by model change and leaving for comparison prevented late
+responses from restoring history or the transient Key. Model selection remains
+disabled during active requests, so direct generation changes are unit evidence.
+The observer buffers SSE; this proves terminal parsing, not progressive delivery.
+
+Both owned helpers exited zero in order. The root independently confirmed no
+owned containers, networks, volumes or five listeners, exact source/index and
+artifact/config bytes, and no browser warnings/errors. The scoped root receipt
+SHA256 is `d8d9e913b2e388385281e43c311e8bba50dd2ec97c6981da692b3046b7877069`.
+An earlier Compose-ID preflight failure and a two-call idle timeout remain failed;
+a file-chooser locator timeout is retained as an automation failure. The first
+eight terminal article excerpts were preserved from actual tool output after
+that timeout reset the browser automation context; bilingual screenshots and
+later live evidence remain separate. Build-generated lock metadata was restored
+to its reviewed pre-build bytes after teardown; no dependency change is shipped.
+No external-provider or complete F20/A17 acceptance is claimed.
+
+Role and Connection now share an isolated complete 124-scenario matrix on
+PostgreSQL and MySQL, with original 123 scenarios preserved. Its result remains
+pending. The migration-cache repair passed eight real-driver focused cases and
+changes test fixtures only. Connection's GORM revision-field fix passed both
+real-driver focused cases; its frontend whitespace fidelity passed 113 cases.
+Role/Connection production browser gates and delivery remain pending. Capability
+totals remain 11 complete, 16 partial and 3 unstarted; the full objective continues.

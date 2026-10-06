@@ -63,6 +63,7 @@ type Exchange = ChatResult & {
   prompt: string
   attachments: string[]
   model: string
+  elapsedMs?: number
   status:
     | 'running'
     | 'completed'
@@ -582,6 +583,27 @@ export default function ChatWorkbench({
           current.map((exchange) => (exchange.id === id ? { ...exchange, ...patch } : exchange)),
         )
     }
+    const observeElapsed = async <Args extends unknown[], Result>(
+      execute: (...args: Args) => Promise<Result>,
+      ...args: Args
+    ): Promise<Result> => {
+      const started = performance.now()
+      let finished = false
+      const finish = () => {
+        if (finished) return
+        finished = true
+        const elapsedMs = performance.now() - started
+        if (controller.current === abort && Number.isFinite(elapsedMs) && elapsedMs >= 0)
+          update({ elapsedMs }, true)
+      }
+      abort.signal.addEventListener('abort', finish, { once: true })
+      try {
+        return await execute(...args)
+      } finally {
+        finish()
+        abort.signal.removeEventListener('abort', finish)
+      }
+    }
     const teamCSRF = liveSession.current?.csrf_token ?? ''
     try {
       const parameters = {
@@ -595,7 +617,8 @@ export default function ChatWorkbench({
           source === 'team'
             ? runTeamGemini.bind(null, teamId, teamCSRF)
             : runGemini.bind(null, key.trim())
-        const result = await execute(
+        const result = await observeElapsed(
+          execute,
           {
             model,
             stream,
@@ -635,7 +658,8 @@ export default function ChatWorkbench({
           source === 'team'
             ? runTeamMessages.bind(null, teamId, teamCSRF)
             : runMessages.bind(null, key.trim())
-        const result = await execute(
+        const result = await observeElapsed(
+          execute,
           {
             ...parameters,
             messages: [
@@ -664,7 +688,8 @@ export default function ChatWorkbench({
           source === 'team'
             ? runTeamResponses.bind(null, teamId, teamCSRF)
             : runResponses.bind(null, key.trim())
-        const result = await execute(
+        const result = await observeElapsed(
+          execute,
           {
             ...parameters,
             input: [
@@ -714,7 +739,8 @@ export default function ChatWorkbench({
                 signal: AbortSignal,
                 onUpdate: Parameters<typeof runChat>[3],
               ) => runChat(key.trim(), request, signal, onUpdate)
-        const result = await executeChat(
+        const result = await observeElapsed(
+          executeChat,
           {
             ...parameters,
             messages: [...messages, currentMessage],
@@ -1172,6 +1198,13 @@ export default function ChatWorkbench({
                     </p>
                   )}
                   <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
+                    {exchange.elapsedMs !== undefined && (
+                      <span title={t('playground:browserElapsedHelp')}>
+                        {t('playground:browserElapsed', {
+                          duration: Math.round(exchange.elapsedMs),
+                        })}
+                      </span>
+                    )}
                     {exchange.requestId && (
                       <span className="break-all">
                         {t('requestId')}: {exchange.requestId}

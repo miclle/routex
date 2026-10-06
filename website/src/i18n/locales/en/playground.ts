@@ -112,6 +112,9 @@ export default {
   waiting: 'Waiting for a comparison message',
   waitingOutput: 'Waiting for output…',
   noText: 'No text content was returned.',
+  browserElapsed: 'Browser elapsed: {{duration}} ms',
+  browserElapsedHelp:
+    'Time observed in this browser from native request dispatch to settlement or cancellation, excluding attachment cleanup. This is not Provider latency or time to first token.',
   requestId: 'Request ID',
   usage: 'Input {{input}} · Output {{output}} · Total {{total}} Tokens',
   noUsage: 'No upstream usage data',
