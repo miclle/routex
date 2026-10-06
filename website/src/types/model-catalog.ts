@@ -1,3 +1,5 @@
+import type { MemberModelPriceCell } from '@/types/member-models'
+
 export const modelCatalogProtocols = [
   'openai_chat',
   'openai_responses',
@@ -29,6 +31,11 @@ export interface ModelCatalogRecord {
   created_at: string
   protocols: string[]
   input_capabilities: Record<string, ModelInputCapability[]>
+  input_price: MemberModelPriceCell
+  output_price: MemberModelPriceCell
   personal_available: boolean
   sources: ModelAccessSource[]
 }
+
+// Discovery records carry authorized metadata without a catalogue price projection.
+export type ModelCatalogMetadata = Omit<ModelCatalogRecord, 'input_price' | 'output_price'>

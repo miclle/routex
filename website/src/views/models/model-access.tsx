@@ -5,7 +5,7 @@ import { Link } from 'react-router'
 import { Bot, Copy, RefreshCw } from 'lucide-react'
 import { getPersonalModelCandidate } from '@/api/personal-model-requests'
 import AccessRequestFooter from '@/views/team-model-requests/footer'
-import type { ModelCatalogRecord } from '@/types/model-catalog'
+import type { ModelCatalogMetadata } from '@/types/model-catalog'
 import { getModelCatalogRecord, modelCatalogError } from '@/api/model-catalog'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -51,7 +51,7 @@ export default function ModelAccess({
   const query = useQuery({
     queryKey,
     enabled: visible,
-    queryFn: async ({ signal }): Promise<ModelCatalogRecord> => {
+    queryFn: async ({ signal }): Promise<ModelCatalogMetadata> => {
       if (!requestable) return getModelCatalogRecord(modelID, signal)
       const candidate = await getPersonalModelCandidate(modelID, signal)
       return {
@@ -136,7 +136,7 @@ export default function ModelAccess({
     }
   }, [example, isCurrent])
   function currentExample() {
-    const detail = cache.getQueryState<ModelCatalogRecord>(queryKey)
+    const detail = cache.getQueryState<ModelCatalogMetadata>(queryKey)
     return (
       isCurrent() &&
       visible &&

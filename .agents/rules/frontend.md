@@ -252,7 +252,13 @@ labels, and the existing card/table/520px drawer. List, discovery and detail cac
 keys include the current actor and successful Session network generation; detail
 also includes the exact Model. Cancel obsolete reads and hide private facts/actions
 during renewal, errors or revocation. Key navigation requires confirmed current
-personal availability. Render missing price/member/request facts as unknown.
+personal availability. Render unrecorded member/request facts as unknown. Catalogue
+input/output base-price cells require independent current `prices.read` and a
+coherent complete eligible route set. Preserve exact decimal strings, zero,
+disabled rates and distinct server missing/heterogeneous/unavailable/unauthorized
+states in the existing card/table slots. Requestable candidates remain price-free.
+Never choose a route price, convert money, infer a billing quote, or fetch the
+administrative price catalogue/per-row metadata to fill these cells.
 
 Member Model examples select an exact Personal or named Team source separately
 from list filters. A sole source may initialize the selector; multiple sources

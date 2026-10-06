@@ -13,6 +13,8 @@ function fixture(): ModelCatalogRecord {
     created_at: '2026-09-01T00:00:00Z',
     protocols: ['openai_chat'],
     input_capabilities: { openai_chat: ['image', 'pdf'] },
+    input_price: { state: 'unauthorized', rate: null },
+    output_price: { state: 'unauthorized', rate: null },
     personal_available: false,
     sources: [
       {
@@ -143,3 +145,86 @@ it('keeps Personal source identity distinct from an exact safe legacy Team ID', 
   data = r
   expect(await getModelCatalogRecord('mdl_one')).toEqual(r)
 })
+
+it.each(['unauthorized', 'unavailable', 'missing', 'heterogeneous'] as const)(
+  'preserves the exact %s state without inventing a price or additional request',
+  async (state) => {
+    const row = fixture()
+    row.input_price = row.output_price = { state, rate: null }
+    data = { items: [row] }
+    expect((await listModelCatalog())[0].input_price).toEqual({ state, rate: null })
+    expect(requests.map((request) => request.url)).toEqual(['/model-catalog'])
+  },
+)
+it.each(['priced', 'disabled'] as const)(
+  'retains exact %s decimal strings including zero and maximum precision',
+  async (state) => {
+    const row = fixture()
+    row.input_price = { state, rate: { amount: '0', unit: '1M_TOKEN', currency: 'USD' } }
+    row.output_price = {
+      state,
+      rate: { amount: '999999999999999999.123456789012345678', unit: '1M_TOKEN', currency: 'CNY' },
+    }
+    data = row
+    expect(await getModelCatalogRecord(row.id)).toEqual(row)
+  },
+)
+it.each([
+  ['absent', undefined],
+  ['null', null],
+  ['unknown state', { state: 'estimated', rate: null }],
+  [
+    'unauthorized with a rate',
+    { state: 'unauthorized', rate: { amount: '1', unit: '1M_TOKEN', currency: 'USD' } },
+  ],
+  ['priced without a rate', { state: 'priced', rate: null }],
+  ['disabled without a rate', { state: 'disabled', rate: null }],
+  ['number amount', { state: 'priced', rate: { amount: 0.1, unit: '1M_TOKEN', currency: 'USD' } }],
+  [
+    'rounded canonical zero',
+    { state: 'priced', rate: { amount: '0.00', unit: '1M_TOKEN', currency: 'USD' } },
+  ],
+  [
+    'scientific amount',
+    { state: 'priced', rate: { amount: '1e-8', unit: '1M_TOKEN', currency: 'USD' } },
+  ],
+  [
+    'negative amount',
+    { state: 'priced', rate: { amount: '-1', unit: '1M_TOKEN', currency: 'USD' } },
+  ],
+  ['leading zero', { state: 'priced', rate: { amount: '01', unit: '1M_TOKEN', currency: 'USD' } }],
+  [
+    'excess integer precision',
+    { state: 'priced', rate: { amount: '1000000000000000000', unit: '1M_TOKEN', currency: 'USD' } },
+  ],
+  [
+    'excess fraction precision',
+    {
+      state: 'priced',
+      rate: { amount: '0.1234567890123456789', unit: '1M_TOKEN', currency: 'USD' },
+    },
+  ],
+  ['wrong unit', { state: 'priced', rate: { amount: '1', unit: '1_TOKEN', currency: 'USD' } }],
+  [
+    'unknown currency',
+    { state: 'priced', rate: { amount: '1', unit: '1M_TOKEN', currency: 'CAD' } },
+  ],
+  [
+    'unrecorded supplier',
+    {
+      state: 'priced',
+      rate: { amount: '1', unit: '1M_TOKEN', currency: 'USD', supplier: 'private' },
+    },
+  ],
+  ['extra private cell field', { state: 'missing', rate: null, supplier: 'private' }],
+])(
+  'rejects %s price data in both list and detail before caching a partial record',
+  async (_label, price) => {
+    data = { ...fixture(), input_price: price }
+    await expect(getModelCatalogRecord('mdl_one')).rejects.toThrow(
+      'Invalid model catalogue response',
+    )
+    data = { items: [fixture(), { ...fixture(), id: 'mdl_other', output_price: price }] }
+    await expect(listModelCatalog()).rejects.toThrow('Invalid model catalogue response')
+  },
+)

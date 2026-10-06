@@ -27,6 +27,8 @@ function fixture(): ModelCatalogRecord {
     created_at: '2026-09-01T00:00:00Z',
     protocols: ['openai_chat'],
     input_capabilities: {},
+    input_price: { state: 'unauthorized', rate: null },
+    output_price: { state: 'unauthorized', rate: null },
     personal_available: true,
     sources: [
       { type: 'personal', team_id: null, team_name: null, invocation_supported: true },

@@ -5,6 +5,8 @@ import type {
   ModelCatalogRecord,
   ModelInputCapability,
 } from '@/types/model-catalog'
+import type { MemberModelPriceCell } from '@/types/member-models'
+import { currencies } from '@/types/pricing'
 import client from './client'
 import { catalogError } from './catalog'
 
@@ -60,6 +62,39 @@ function source(value: unknown): ModelAccessSource {
     }
   throw new Error('Invalid model catalogue response')
 }
+function price(value: unknown): MemberModelPriceCell {
+  const cell = object(value)
+  if (Object.keys(cell).length !== 2 || !('state' in cell) || !('rate' in cell))
+    throw new Error('Invalid model catalogue response')
+  if (cell.state === 'priced' || cell.state === 'disabled') {
+    const rate = object(cell.rate)
+    if (
+      Object.keys(rate).length !== 3 ||
+      typeof rate.amount !== 'string' ||
+      !/^(0|[1-9]\d{0,17})(\.\d{0,17}[1-9])?$/.test(rate.amount) ||
+      rate.unit !== '1M_TOKEN' ||
+      !currencies.includes(rate.currency as (typeof currencies)[number])
+    )
+      throw new Error('Invalid model catalogue response')
+    return {
+      state: cell.state,
+      rate: {
+        amount: rate.amount,
+        unit: '1M_TOKEN',
+        currency: rate.currency as (typeof currencies)[number],
+      },
+    }
+  }
+  if (
+    (cell.state === 'unauthorized' ||
+      cell.state === 'unavailable' ||
+      cell.state === 'missing' ||
+      cell.state === 'heterogeneous') &&
+    cell.rate === null
+  )
+    return { state: cell.state, rate: null }
+  throw new Error('Invalid model catalogue response')
+}
 function record(value: unknown): ModelCatalogRecord {
   const item = object(value)
   if (
@@ -99,6 +134,8 @@ function record(value: unknown): ModelCatalogRecord {
     created_at: created,
     protocols: protocols(item.protocols),
     input_capabilities: capabilities,
+    input_price: price(item.input_price),
+    output_price: price(item.output_price),
     personal_available: item.personal_available,
     sources,
   }

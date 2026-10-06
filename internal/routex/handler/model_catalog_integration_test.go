@@ -17,6 +17,7 @@ import (
 
 	"github.com/miclle/routex/internal/routex/entity"
 	"github.com/miclle/routex/internal/routex/service"
+	"github.com/miclle/routex/pkg/pricing"
 	"github.com/miclle/routex/pkg/secretstore"
 )
 
@@ -169,7 +170,7 @@ func testMemberModelCatalogLifecycle(t *testing.T, db *gorm.DB) {
 	if err := json.Unmarshal(get(path+"/"+model.ID).Body.Bytes(), &wire); err != nil {
 		t.Fatal(err)
 	}
-	expectedFields := []string{"id", "name", "status", "created_at", "protocols", "input_capabilities", "personal_available", "sources"}
+	expectedFields := []string{"id", "name", "status", "created_at", "protocols", "input_capabilities", "personal_available", "sources", "input_price", "output_price"}
 	if len(wire) != len(expectedFields) {
 		t.Fatal("public directory shape expanded")
 	}
@@ -256,6 +257,8 @@ func testMemberModelCatalogLifecycle(t *testing.T, db *gorm.DB) {
 	if auditAfter != auditBefore+1 {
 		t.Fatalf("directory reads wrote audit events: before=%d after=%d", auditBefore, auditAfter)
 	}
+	// Isolated price checks follow the original audit baseline assertions.
+	testMemberCatalogPriceFacts(t, db, svc, admin.User.ID, member.User.ID, model.ID, pm.ID, get)
 	testMemberCatalogOverflow(t, db, get, member.User.ID)
 	// Expired publication yields503 rather than fabricated protocols or stale404.
 	svc.StopRuntime()
@@ -341,5 +344,65 @@ func testMemberCatalogOverflow(t *testing.T, db *gorm.DB, get func(string) *http
 	expectStatus(t, get("/api/v1/model-catalog/"+models[0].ID), 200)
 	if err := db.Where("team_id LIKE ?", "tem_directory_cap_%").Delete(&entity.TeamModelGrant{}).Error; err != nil {
 		t.Fatal(err)
+	}
+}
+
+func testMemberCatalogPriceFacts(t *testing.T, db *gorm.DB, svc *service.Service, adminID, memberID, modelID, pmID string, get func(string) *httptest.ResponseRecorder) {
+	t.Helper()
+	ctx := context.Background()
+	// The existing late lifecycle has removed the direct grant and retained Team sources.
+	// Restore the ordinary member role spelling used by its original corruption probe.
+	if err := db.Model(&entity.TeamMembership{}).Where("user_id = ?", memberID).Update("role", "member").Error; err != nil {
+		t.Fatal(err)
+	}
+	if err := svc.RefreshRuntime(ctx); err != nil {
+		t.Fatal(err)
+	}
+	target := "/api/v1/model-catalog/" + modelID
+	before := decodeCatalogResponse[service.MemberModelCatalogRecord](t, get(target), 200)
+	if before.InputPrice.State != "unauthorized" || before.InputPrice.Rate != nil || before.OutputPrice.State != "unauthorized" {
+		t.Fatal("member catalogue granted price authority", before)
+	}
+	role, err := svc.SaveRole(ctx, adminID, "", "Catalogue price reader", []string{"prices.read"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := svc.SetMemberRoles(ctx, adminID, memberID, []string{role.Role.ID}); err != nil {
+		t.Fatal(err)
+	}
+	page, err := svc.ListPrices(ctx, adminID, service.PriceFilter{ProviderModelID: pmID})
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = svc.WritePrices(ctx, adminID, page.ETag, []service.PriceInput{{ProviderModelID: pmID, Rates: []pricing.Rate{
+		{Metric: pricing.Input, Tier: pricing.Base, Unit: pricing.Unit, Currency: "USD", Amount: "0", Enabled: true},
+		{Metric: pricing.Output, Tier: pricing.Base, Unit: pricing.Unit, Currency: "USD", Amount: "0.123456789012345678", Enabled: false},
+	}}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := svc.RefreshRuntime(ctx); err != nil {
+		t.Fatal(err)
+	}
+	current := decodeCatalogResponse[service.MemberModelCatalogRecord](t, get(target), 200)
+	if current.InputPrice.State != "priced" || current.InputPrice.Rate == nil || current.InputPrice.Rate.Amount != "0" || current.OutputPrice.State != "disabled" || current.OutputPrice.Rate == nil || current.OutputPrice.Rate.Amount != "0.123456789012345678" {
+		t.Fatal("exact catalogue base prices lost", current)
+	}
+	var wire map[string]json.RawMessage
+	if err := json.Unmarshal(get(target).Body.Bytes(), &wire); err != nil {
+		t.Fatal(err)
+	}
+	for _, field := range []string{"input_price", "output_price"} {
+		var cell map[string]json.RawMessage
+		if err := json.Unmarshal(wire[field], &cell); err != nil || len(cell) != 2 || cell["state"] == nil || cell["rate"] == nil {
+			t.Fatal("unsafe price cell shape", field, err)
+		}
+	}
+	if _, err := svc.SetMemberRoles(ctx, adminID, memberID, []string{}); err != nil {
+		t.Fatal(err)
+	}
+	current = decodeCatalogResponse[service.MemberModelCatalogRecord](t, get(target), 200)
+	if current.InputPrice.State != "unauthorized" || current.InputPrice.Rate != nil || current.OutputPrice.Rate != nil {
+		t.Fatal("revoked price permission leaked stored values", current)
 	}
 }

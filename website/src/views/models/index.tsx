@@ -13,7 +13,12 @@ import { Dialog } from '@/components/ui/dialog'
 import ModelRequestHistory from '@/views/team-model-requests/history'
 import { useCatalogueAuthority } from './catalogue-authority'
 import { protocolLabel, protocolLabels } from '@/lib/protocols'
-import type { ModelCatalogRecord, ModelInputCapability } from '@/types/model-catalog'
+import type {
+  ModelCatalogRecord,
+  ModelCatalogMetadata,
+  ModelInputCapability,
+} from '@/types/model-catalog'
+import type { MemberModelPriceCell } from '@/types/member-models'
 import ModelAccessSources from './access-sources'
 import ModelAccess from './model-access'
 import {
@@ -83,7 +88,7 @@ export default function ModelsPage() {
     },
     [cache, actorID, query, generation, fresh],
   )
-  const candidateRecords: ModelCatalogRecord[] =
+  const candidateRecords: ModelCatalogMetadata[] =
     actorID && fresh && candidates.isSuccess && !candidates.isFetching
       ? candidates.data.pages
           .flatMap((page) => page.items)
@@ -101,7 +106,10 @@ export default function ModelsPage() {
       : []
   const grantedRecords =
     actorID && fresh && models.isSuccess && !models.isFetching ? models.data : []
-  const records = requesting ? candidateRecords : grantedRecords
+  const records: (ModelCatalogMetadata &
+    Partial<Pick<ModelCatalogRecord, 'input_price' | 'output_price'>>)[] = requesting
+    ? candidateRecords
+    : grantedRecords
   const sources = orderedModelSources([
     ...new Map(
       records.flatMap((model) => model.sources).map((item) => [modelSourceKey(item), item]),
@@ -138,7 +146,22 @@ export default function ModelsPage() {
           minute: '2-digit',
         }).format(parsed)
   }
-  const capabilityLabels = (model: ModelCatalogRecord) => {
+  const price = (cell: MemberModelPriceCell | undefined) =>
+    cell?.rate ? (
+      <>
+        <span className="block break-all whitespace-normal">
+          {t('memberModels.amount', { amount: cell.rate.amount, currency: cell.rate.currency })}
+        </span>
+        {cell.state === 'disabled' && (
+          <Badge variant="outline">{t('memberModels.priceDisabled')}</Badge>
+        )}
+      </>
+    ) : cell ? (
+      t(`memberModels.price_${cell.state}`)
+    ) : (
+      t('memberModels.unknown')
+    )
+  const capabilityLabels = (model: ModelCatalogMetadata) => {
     const capabilities = declaredCapabilities(model)
     return capabilities.length
       ? capabilities.map((value) => t(`memberModels.${value}`)).join(' · ')
@@ -329,12 +352,14 @@ export default function ModelsPage() {
               />
               <dl className="space-y-2 text-sm">
                 {[
-                  ['memberModels.inputPrice', 'memberModels.unknown'],
-                  ['memberModels.outputPrice', 'memberModels.unknown'],
-                ].map(([label, value]) => (
+                  ['memberModels.inputPrice', 'input_price'],
+                  ['memberModels.outputPrice', 'output_price'],
+                ].map(([label, field]) => (
                   <div key={label} className="flex justify-between gap-3">
-                    <dt className="text-muted-foreground">{t(label)}</dt>
-                    <dd>{t(value)}</dd>
+                    <dt className="shrink-0 text-muted-foreground">{t(label)}</dt>
+                    <dd className="min-w-0 text-right">
+                      {price(field === 'input_price' ? model.input_price : model.output_price)}
+                    </dd>
                   </div>
                 ))}
               </dl>
@@ -381,8 +406,8 @@ export default function ModelsPage() {
                     t('memberModels.unavailableProtocol')}
                 </td>
                 <td>{capabilityLabels(model)}</td>
-                <td>{t('memberModels.unknown')}</td>
-                <td>{t('memberModels.unknown')}</td>
+                <td>{price(model.input_price)}</td>
+                <td>{price(model.output_price)}</td>
                 <td className="whitespace-nowrap">{date(model.created_at)}</td>
                 <td>{t('memberModels.unknown')}</td>
                 <td>{t('memberModels.unknown')}</td>

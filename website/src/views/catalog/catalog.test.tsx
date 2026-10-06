@@ -139,6 +139,8 @@ beforeEach(() => {
       created_at: '2026-09-23T00:00:00Z',
       protocols: item.protocols ?? [item.protocol],
       input_capabilities: item.input_capabilities ?? {},
+      input_price: { state: 'unauthorized', rate: null },
+      output_price: { state: 'unauthorized', rate: null },
       personal_available:
         item.status === 'active' && (item.protocols ?? [item.protocol]).length > 0,
       sources: [{ type: 'personal', team_id: null, team_name: null, invocation_supported: true }],

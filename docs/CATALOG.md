@@ -408,7 +408,7 @@ and inference authorization remain unchanged.
 
 Each record contains only `id`, current `name`, `status`, authoritative UTC
 `created_at`, eligible native `protocols`, per-protocol `input_capabilities`,
-`personal_available` and `sources`. Personal sources have null Team fields and
+`input_price`, `output_price`, `personal_available` and `sources`. Personal sources have null Team fields and
 `invocation_supported: true` for the implemented personal authentication path.
 Team sources contain their authorized Team ID/name and independently ready
 `invocation_protocols`; input capabilities remain on the Model's per-protocol map.
@@ -440,8 +440,9 @@ actor/model query, never from the list as a permission fallback; cached detail
 is hidden during refresh, error or revoked access. Native examples require the
 explicit currently available Personal or Team source and its ready protocol;
 Key navigation requires confirmed current personal availability. Historical
-creation time is known; route-dependent prices and global member/request facts
-remain unknown where the layout displays them.
+creation time is known. Input/output base-price cells use the current server-owned
+projection described below; global member/request facts remain unknown where the
+layout displays them. Requestable candidate discovery has no price projection.
 
 Parallel backend/UI ownership delivered this scope. Dedicated frontend coverage
 passed 27 cases plus eight i18n cases. Complete format/check/test passed (677
@@ -709,3 +710,40 @@ original retry, which confirmed current runtime application with no additional
 audit. Three typed name updates and independent owned-resource cleanup were
 verified. This is controlled local acceptance, not external routing or historical
 operation proof. The containing commit delivers this slice; F11 stays partial.
+
+
+## Member catalogue configured base prices
+
+Catalogue list and resource-scoped detail add required `input_price` and
+`output_price` cells. Each is `{state, rate}` with `unauthorized`, `unavailable`,
+`missing`, `heterogeneous`, `priced`, or `disabled`. Only priced/disabled has
+`{amount, unit: "1M_TOKEN", currency}`; all other rates are null. Amounts remain
+canonical decimal strings, including zero and 18 fractional places. The existing
+cards and table show these facts without changing layout, filters or examples.
+
+Price reading requires independent current `prices.read`, even for an intrinsic
+administrator. Catalogue Model visibility and Personal/Team sources remain
+separately authorized; price authority grants no Model. A fresh read-only snapshot
+rechecks actor birth, exact source identity and permission after the independent
+metadata fallback releases its connection. Unauthorized readers hydrate no prices,
+Credentials or supplier metadata. Only already-visible exact Model IDs are batched.
+This preserves single-connection operation and bounded query counts.
+
+A price is the configured base rate across the complete coherent, ready, enabled,
+positive-weight published route set. Equal amount/unit/currency/enablement yields
+priced or disabled; entirely absent rates yield missing, and mixed/partly absent
+rates yield heterogeneous. Missing/expired/incoherent publication and contention
+remain unavailable. No chosen-route rate, quote, currency conversion or invocation
+promise is inferred. Requestable candidates remain price-free and render Unknown.
+
+Private source checks pass 34 related Go race tests and 127 scoped frontend cases,
+including strict DTO/decimal validation, live language switching and held Session
+renewal privacy. The existing catalogue lifecycle passes on real PostgreSQL and
+MySQL with zero/18-place disabled rates, immediate permission removal, exact source
+isolation and a single-connection pool. Main format/check/full Task and build pass
+with 3,973 frontend cases in 163 files. Controlled production/browser acceptance
+passes English cards, Chinese table, permission removal/restoration and original
+Sessions after same-artifact restart, with zero inference calls. The composed
+full126 transaction matrix passes 126 ordered scenarios per database, eight
+constraints and 4,570 matched named results. The containing commit delivers this
+bounded slice. No schema, endpoint, registry or dependency change is introduced.

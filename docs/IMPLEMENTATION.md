@@ -23,8 +23,16 @@ corrections pass 106 focused cases, final mandatory check and build. Controlled
 bilingual Finance assignment/removal, builtin denials and original-Session restart
 pass. Four transient GET500 and one GET503 remain cause/receipt-unproven; no
 all-request health claim is made. Owned app/tab and Compose resources are absent.
-The containing commit delivers the bounded duty workflow. Private catalogue prices pass both real-driver
-focused lifecycles and scoped frontend tests; that separate carry is pending. These slices do not change the
+Commit `c800466` delivers the bounded duty workflow. Private catalogue prices pass both real-driver
+focused lifecycles and scoped frontend tests. Price17 is now carried after
+Duty `c800466`; its mandatory composed full126 is running. Main checking passed,
+but the first complete frontend run failed one obsolete reactivation-copy assertion
+(3,972 passed / one failed). The narrow explicit-assignment assertion repair
+preserves historical offboarding and request checks and is delivered as `7e55509`.
+Renewed main format/check/full Task passes 3,973 frontend cases in 163 files,
+Go race/coverage, four Node checks, two development lifecycle checks and
+production assets; the production build passes. Browser acceptance is pending.
+The separate source-selected monthly interface remains private. These slices do not change the
 11 complete / 16 partial / three unstarted capability totals.
 
 Project, Team-member, transient Restore recovery and Team creation limits phases
@@ -6242,5 +6250,49 @@ The server log also records four transient GET500 and one GET503 around refreshe
 reads. Existing cancellation and error mapping are possible causes, but original
 errors and client receipt were not captured. Fresh functional reads pass; no
 all-request HTTP-health or cancellation-cause claim is made. Owned app, tab and
-Compose resources are independently absent. The containing commit delivers this
+Compose resources are independently absent. Commit `c800466` delivers this
 bounded functional scope; F05 and the complete product objective remain open.
+
+
+## Member catalogue configured price acceptance, 2026-10-06
+
+The carried 17-file slice adds exact configured input/output base-price cells to
+existing member catalogue cards and table. Independent price authority, current
+actor/source reauthorization and coherent complete-route intersection retain
+unknown, unauthorized, missing, heterogeneous, disabled and priced states.
+Zero and 18-place decimals remain strings; candidate discovery remains price-free.
+No new schema, endpoint or dependency is introduced.
+
+Main format/check/full Task and embedded build pass, including 3,973 frontend
+cases in 163 files, Go race/coverage, four Node checks, two development lifecycle
+checks and production assets. The first full frontend run retained one stale
+Member reactivation-copy assertion; the narrow test-only repair is delivered as
+`7e55509`, preserving all original state and exact-request assertions. The real
+dual-driver focused catalogue lifecycle passes. The unchanged complete126
+transaction matrix passes in its isolated frozen source copy: 126 ordered cases
+per driver, eight constraints and 4,570 matched named RUN/PASS results, with no
+failures, skips or races. Total elapsed time was 2,797.017 seconds; PostgreSQL
+1,209.24 seconds and MySQL 1,549.25 seconds. Acceptance SHA-256 is
+`b7fed0eafa8cce6cf0b05ebdce2c30d50eebb342f9afffd25b80841915e75958`.
+Root independently reviewed the complete log, all 519 current production Go
+files and exact owned Compose cleanup.
+
+Controlled R3 PostgreSQL production/browser acceptance passes English cards,
+Chinese table, literal exact decimal/zero/disabled/missing/heterogeneous display,
+reviewed Finance removal/restoration with three unchanged Model grants, and
+original API and browser Sessions after restart of the identical artifact/config/
+database/journal. Production binary SHA-256 is
+`afe8befa89cf35f2add4bdbdfc64c68ac109362be860cdb4cc39c5e086a3985a`;
+root acceptance SHA-256 is
+`88557d59abe4461433a20bfe02c14c0cde6a9805ed77a20ddf380e7bb07e50ce`.
+Twenty bounded actual permission/catalogue responses were captured before
+assertions. All four observation rounds passed without unavailable stabilization;
+this does not establish the cause of earlier failures. R1 setup and R2 final
+assertions remain failed historical records whose failed response bodies were
+not captured. No native inference call occurred. All owned browser tabs,
+listeners, containers, networks and volumes are independently absent.
+
+Final main mandatory check passes. The containing commit delivers this bounded
+price projection. Monthly usage and Provider Models table proposals remain
+separate private work. F19 and overall 11 complete /
+16 partial / three unstarted totals are unchanged.

@@ -382,6 +382,7 @@ export default {
     rateLimited: '429 attempts',
     serverErrors: '5xx attempts',
     unknown: 'Unknown',
+
     observedWindow: 'Observed window',
     evaluatedAt: 'Evaluated at',
     dataThrough: 'Data through',
@@ -505,10 +506,16 @@ export default {
     members: 'Members using model',
     monthlyCalls: 'Monthly requests',
     unknown: 'Unknown',
+    price_unauthorized: 'Unknown',
+    price_unavailable: 'Unknown',
+    price_missing: 'Not configured',
+    price_heterogeneous: 'Multiple schedules',
+    priceDisabled: 'Disabled',
+    amount: '{{amount}} {{currency}} / 1M Tokens',
     memberUsageUnknown: 'Member usage unknown',
     monthlyCallsUnknown: 'Monthly requests unknown',
     unknownFields:
-      'Prices, member usage and monthly requests are not provided by this catalogue. These values remain unknown.',
+      'Price cells show only server-confirmed current base rates. Member usage and monthly requests remain unknown.',
     nativeFormat:
       'Native request paths, parameters and response formats are preserved. Available protocols and input capabilities come from eligible routes.',
     authenticationHeader: 'Authentication header',

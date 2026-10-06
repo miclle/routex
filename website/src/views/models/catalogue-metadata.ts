@@ -22,7 +22,7 @@ export function orderedModelSources(sources: ModelAccessSource[], selectedSource
   })
 }
 
-export function knownModelProtocols(model: ModelCatalogRecord) {
+export function knownModelProtocols(model: Pick<ModelCatalogRecord, 'status' | 'protocols'>) {
   return model.status === 'active'
     ? [...new Set(model.protocols)].filter((protocol) =>
         modelCatalogProtocols.some((known) => known === protocol),
@@ -30,7 +30,9 @@ export function knownModelProtocols(model: ModelCatalogRecord) {
     : []
 }
 
-export function personallyAvailable(model: ModelCatalogRecord) {
+export function personallyAvailable(
+  model: Pick<ModelCatalogRecord, 'status' | 'protocols' | 'personal_available' | 'sources'>,
+) {
   return (
     model.personal_available &&
     model.sources.some((source) => source.type === 'personal' && source.invocation_supported) &&
@@ -38,7 +40,10 @@ export function personallyAvailable(model: ModelCatalogRecord) {
   )
 }
 
-export function declaredCapabilities(model: ModelCatalogRecord, protocol = 'all') {
+export function declaredCapabilities(
+  model: Pick<ModelCatalogRecord, 'status' | 'protocols' | 'input_capabilities'>,
+  protocol = 'all',
+) {
   const protocols = knownModelProtocols(model).filter(
     (candidate) => protocol === 'all' || candidate === protocol,
   )

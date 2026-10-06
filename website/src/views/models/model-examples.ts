@@ -1,4 +1,4 @@
-import type { ModelAccessSource, ModelCatalogRecord } from '@/types/model-catalog'
+import type { ModelAccessSource, ModelCatalogMetadata } from '@/types/model-catalog'
 import type { PlaygroundProtocol } from '@/types/playground'
 import { buildTeamPlaygroundSnippet } from '@/lib/playground-team-snippet'
 import { isGeminiModelName } from '@/lib/protocols'
@@ -8,12 +8,12 @@ import {
   teamInvocationProtocols,
 } from './catalogue-metadata'
 
-export function exampleProtocols(model: ModelCatalogRecord, source?: ModelAccessSource) {
+export function exampleProtocols(model: ModelCatalogMetadata, source?: ModelAccessSource) {
   return source?.type === 'team' ? teamInvocationProtocols(source) : knownModelProtocols(model)
 }
 
 export function modelExample(
-  model: ModelCatalogRecord,
+  model: ModelCatalogMetadata,
   source: ModelAccessSource | undefined,
   protocol: string | undefined,
   origin: string,

@@ -33,7 +33,7 @@ retry after same-artifact restart without authenticated document reload. The
 retry added no audit; all owned resources are absent. The containing commit
 delivers this checked Role/Connection phase.
 
-The containing commit delivers immutable, explicitly assignable Procurement,
+Commit `c800466` delivers immutable, explicitly assignable Procurement,
 Finance and Operations duty templates through frozen GORM V68 and the existing
 reviewed Member assignment workflow. Complete126 passes 252 ordered PostgreSQL/
 MySQL scenarios, eight constraints and 4,540 matching named results. The initial
@@ -54,12 +54,22 @@ Recorded scoped access-summary names remain recorded content. The server recorde
 original cause and browser receipt are unproven. Cancellation is only an inference.
 Functional saves and fresh reads pass; no all-request health claim is made. Owned
 app, browser tab and labelled Compose resources are independently absent. The
-containing commit delivers this bounded functional slice. The full objective and capability totals remain unchanged.
+`c800466` commit delivers this bounded functional slice. The full objective and capability totals remain unchanged.
 
 Separate private member-catalogue input/output price source passes focused real
 PostgreSQL/MySQL and 127 frontend cases. A further private monthly-request-count
 slice passes 155 related frontend cases; it uses one Personal or exact Team report,
-with explicit scope and returned UTC/freshness metadata. Neither is carried yet.
+with explicit scope and returned UTC/freshness metadata. Price is now carried on
+delivered Duty main; monthly counts remain private. Its complete126 transaction
+gate is running. Main checking passed; complete frontend testing initially passed
+3,972 cases and failed one old reactivation-copy assertion. The narrow test-only
+repair expects explicit assignments, retaining all original state and request
+assertions and is committed/pushed as `7e55509`, with exact remote read-back.
+Focused MemberState/localization passes 29 cases. Renewed format/check/full Task
+passes 3,973 frontend cases in 163 files, Go race/coverage, four Node checks,
+two development lifecycle checks and production assets; the production build
+passes. Price controlled browser/restart acceptance and complete126 transaction
+matrix pass; the containing commit delivers the bounded price slice.
 
 Team focused R4–R8 remain failed. R4 exposed a pinned PostgreSQL GORM DropIndex
 fixture syntax error and missing private context headers; R5 confirmed the
@@ -1595,5 +1605,31 @@ The requestable candidate endpoint remains price-free. Offline source checks
 pass 34 related Go race tests and 127 focused frontend tests. The existing real
 catalogue lifecycle passes on both PostgreSQL and MySQL, including explicit zero,
 18-place disabled prices, immediate permission removal, isolation and single-
-connection fallback. Owned resources are absent. These private copies are not
-carried or delivered; composition, complete checks and browser acceptance remain.
+connection fallback. Owned resources are absent. The exact Price17 is now carried on main after Duty delivery `c800466`.
+The mandatory composed transaction full126 passes in its isolated copy; main
+format/check/full Task/build passes after the separate `7e55509` test repair
+(3,973 frontend cases / 163 files). Controlled R3 browser acceptance now passes
+English cards, Chinese table, reviewed Finance removal/restoration and original
+API/browser Sessions after same-artifact restart. The exact production binary is
+`afe8befa89cf35f2add4bdbdfc64c68ac109362be860cdb4cc39c5e086a3985a`.
+Root acceptance digest is
+`88557d59abe4461433a20bfe02c14c0cde6a9805ed77a20ddf380e7bb07e50ce`.
+All 20 bounded responses were retained; all four observation rounds passed
+without stabilization, and native calls remained zero. Earlier R1 setup and R2
+finish assertions remain failed with uncaptured failure bodies, so their causes
+remain unknown. Owned tabs, app and Compose resources are independently absent.
+The separate monthly interface is still private and excluded from this gate;
+its composed non-database regression is now running independently.
+
+
+Price full126 final acceptance covers 126 ordered scenarios per driver, eight
+constraints and 4,570 matched named RUN/PASS results, with no failure, skip or
+race. Elapsed time was 2,797.017 seconds (PostgreSQL 1,209.24; MySQL 1,549.25).
+Acceptance SHA-256 is
+`b7fed0eafa8cce6cf0b05ebdce2c30d50eebb342f9afffd25b80841915e75958`.
+Root independently reviewed the complete log, all 519 current production Go
+files and absence of the exact owned Compose resources. Main final mandatory
+check passes; product sources remain identical to accepted gates. The containing
+commit delivers the bounded price projection. Monthly source separately passes
+its composed complete Task (4,001 frontend cases / 164 files) and build, but is
+not carried or accepted in the browser yet.

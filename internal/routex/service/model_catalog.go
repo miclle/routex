@@ -39,6 +39,8 @@ type MemberModelCatalogRecord struct {
 	InputCapabilities map[string][]string        `json:"input_capabilities"`
 	PersonalAvailable bool                       `json:"personal_available"`
 	Sources           []MemberModelCatalogSource `json:"sources"`
+	InputPrice        MemberModelPriceCell       `json:"input_price"`
+	OutputPrice       MemberModelPriceCell       `json:"output_price"`
 }
 
 type memberCatalogGrant struct {
@@ -146,27 +148,14 @@ func (s *Service) GetMemberModelCatalog(ctx context.Context, actorID, modelID st
 
 func (s *Service) memberModelCatalog(ctx context.Context, actorID, modelID string) ([]MemberModelCatalogRecord, error) {
 	var items []MemberModelCatalogRecord
+	var actor entity.User
 	err := s.authDB(ctx).Transaction(func(tx *gorm.DB) error {
-		if _, err := registrationAdmittedUser(tx, actorID, false); err != nil {
-			return err
-		}
-		base := func() *gorm.DB {
-			query := tx.Table("models m").Joins("JOIN model_names n ON n.current_model_id = m.id").Where("m.status = ?", entity.ResourceActive)
-			if modelID != "" {
-				query = query.Where("m.id = ?", modelID)
-			}
-			return query.Limit(memberCatalogGrantLimit + 1)
-		}
-		var personal, teams []memberCatalogGrant
-		columns := "m.id AS model_id,n.current_model_id AS name_model_id,n.model_id AS name_owner_id,g.model_id AS grant_model_id,n.name,m.status,m.created_at"
-		if err := base().Select(columns+",g.user_id").Joins("JOIN user_model_grants g ON g.model_id = m.id").Where("g.user_id = ?", actorID).Scan(&personal).Error; err != nil {
-			return err
-		}
-		if err := base().Select(columns+",tm.user_id,t.id AS team_id,tm.team_id AS membership_team_id,g.team_id AS grant_team_id,t.name AS team_name,t.status AS team_status,tm.status AS membership_status,tm.role").Joins("JOIN team_model_grants g ON g.model_id = m.id").Joins("JOIN teams t ON t.id = g.team_id").Joins("JOIN team_memberships tm ON tm.team_id = t.id").Where("tm.user_id = ? AND tm.status = ? AND t.status = ?", actorID, entity.ResourceActive, entity.ResourceActive).Scan(&teams).Error; err != nil {
-			return err
-		}
 		var err error
-		items, err = memberCatalogRecords(personal, teams, actorID, modelID)
+		actor, err = registrationAdmittedUser(tx, actorID, false)
+		if err != nil {
+			return err
+		}
+		items, err = readMemberCatalogRecords(tx, actorID, modelID)
 		return err
 	}, &sql.TxOptions{Isolation: sql.LevelRepeatableRead, ReadOnly: true})
 	if err != nil {
@@ -180,6 +169,9 @@ func (s *Service) memberModelCatalog(ctx context.Context, actorID, modelID strin
 	}
 	metadata, err := s.gatewayModelMetadata(ctx, ids)
 	if err != nil {
+		return nil, catalogError(err)
+	}
+	if err := s.readMemberCatalogPrices(ctx, actor, modelID, items); err != nil {
 		return nil, catalogError(err)
 	}
 	applyMemberCatalogMetadata(items, metadata, s.runtime != nil)
@@ -210,4 +202,24 @@ func applyMemberCatalogMetadata(items []MemberModelCatalogRecord, metadata map[s
 		}
 		items[i].PersonalAvailable = len(items[i].Protocols) > 0 && slices.ContainsFunc(items[i].Sources, func(source MemberModelCatalogSource) bool { return source.Type == "personal" })
 	}
+}
+
+// Keep the complete source query identical for the initial and final authority reads.
+func readMemberCatalogRecords(tx *gorm.DB, actorID, modelID string) ([]MemberModelCatalogRecord, error) {
+	base := func() *gorm.DB {
+		query := tx.Table("models m").Joins("JOIN model_names n ON n.current_model_id = m.id").Where("m.status = ?", entity.ResourceActive)
+		if modelID != "" {
+			query = query.Where("m.id = ?", modelID)
+		}
+		return query.Limit(memberCatalogGrantLimit + 1)
+	}
+	var personal, teams []memberCatalogGrant
+	columns := "m.id AS model_id,n.current_model_id AS name_model_id,n.model_id AS name_owner_id,g.model_id AS grant_model_id,n.name,m.status,m.created_at"
+	if err := base().Select(columns+",g.user_id").Joins("JOIN user_model_grants g ON g.model_id = m.id").Where("g.user_id = ?", actorID).Scan(&personal).Error; err != nil {
+		return nil, err
+	}
+	if err := base().Select(columns+",tm.user_id,t.id AS team_id,tm.team_id AS membership_team_id,g.team_id AS grant_team_id,t.name AS team_name,t.status AS team_status,tm.status AS membership_status,tm.role").Joins("JOIN team_model_grants g ON g.model_id = m.id").Joins("JOIN teams t ON t.id = g.team_id").Joins("JOIN team_memberships tm ON tm.team_id = t.id").Where("tm.user_id = ? AND tm.status = ? AND t.status = ?", actorID, entity.ResourceActive, entity.ResourceActive).Scan(&teams).Error; err != nil {
+		return nil, err
+	}
+	return memberCatalogRecords(personal, teams, actorID, modelID)
 }

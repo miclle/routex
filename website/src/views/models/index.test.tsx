@@ -44,6 +44,8 @@ function model(
     protocols,
     input_capabilities: {},
     sources,
+    input_price: { state: 'unauthorized', rate: null },
+    output_price: { state: 'unauthorized', rate: null },
     personal_available:
       sources.some((source) => source.type === 'personal') && protocols.length > 0,
   }
@@ -433,7 +435,7 @@ describe('Authorized member model catalogue', () => {
     expect(table.textContent).toContain('Image input · PDF input')
     expect(table.textContent).toContain('2026')
     expect(table.textContent).toContain('Unknown')
-    expect(host.textContent).toContain('Prices, member usage and monthly requests are not provided')
+    expect(host.textContent).toContain('Price cells show only server-confirmed current base rates')
     await act(async () => button('API access').click())
     await until(() =>
       expect(drawer().querySelector('select[aria-label="Example access source"]')).not.toBeNull(),
@@ -951,4 +953,79 @@ describe('Authorized member model catalogue', () => {
     await until(() => expect(document.querySelector('[role="dialog"]')).toBeNull())
     expect(requests.filter((request) => request.method === 'post')).toHaveLength(2)
   })
+})
+
+it('renders exact catalogue price facts in existing cards and table, retaining filters and live language', async () => {
+  const priced = model('priced-model')
+  priced.input_price = {
+    state: 'priced',
+    rate: { amount: '999999999999999999.123456789012345678', unit: '1M_TOKEN', currency: 'USD' },
+  }
+  priced.output_price = {
+    state: 'disabled',
+    rate: { amount: '0', unit: '1M_TOKEN', currency: 'CNY' },
+  }
+  const missing = model('missing-model')
+  missing.input_price = { state: 'missing', rate: null }
+  missing.output_price = { state: 'heterogeneous', rate: null }
+  models = [priced, missing]
+  await mount()
+  expect(host.textContent).toContain('999999999999999999.123456789012345678 USD / 1M Tokens')
+  expect(host.textContent).toContain('0 CNY / 1M Tokens')
+  expect(host.textContent).toContain('Disabled')
+  expect(host.textContent).toContain('Not configured')
+  expect(host.textContent).toContain('Multiple schedules')
+  expect(requests.map((request) => request.url)).toEqual(['/auth/session', '/model-catalog'])
+  await search('priced')
+  await act(async () => button('Table').click())
+  expect(host.querySelector('table')?.textContent).toContain(
+    '999999999999999999.123456789012345678 USD / 1M Tokens',
+  )
+  expect(host.querySelector('table')?.textContent).not.toContain('missing-model')
+  await act(async () => i18n.changeLanguage('zh'))
+  expect(host.textContent).toContain('999999999999999999.123456789012345678 USD / 百万 Tokens')
+  expect(host.textContent).toContain('已停用')
+  expect(host.querySelector<HTMLInputElement>('input[type="search"]')?.value).toBe('priced')
+  expect(requests.map((request) => request.url)).toEqual(['/auth/session', '/model-catalog'])
+})
+
+it('hides prior private price facts while Session renews and after current price authority is lost', async () => {
+  const prior = model('price-private')
+  prior.input_price = {
+    state: 'priced',
+    rate: { amount: '17.123456789012345678', unit: '1M_TOKEN', currency: 'USD' },
+  }
+  models = [prior]
+  await mount()
+  expect(host.textContent).toContain('17.123456789012345678')
+  let release!: () => void
+  const barrier = new Promise<void>((resolve) => {
+    release = resolve
+  })
+  const adapter = client.defaults.adapter
+  client.defaults.adapter = async (config) => {
+    if (config.url === '/auth/session') await barrier
+    return typeof adapter === 'function'
+      ? adapter(config)
+      : Promise.reject(new Error('adapter missing'))
+  }
+  models = [{ ...prior, input_price: { state: 'unauthorized', rate: null } }]
+  let renewed!: Promise<void>
+  await act(async () => {
+    renewed = cache.invalidateQueries({ queryKey: ['auth', 'session'] })
+  })
+  await until(() => expect(host.textContent).not.toContain('17.123456789012345678'))
+  expect(cache.getQueryState(['auth', 'session'])?.fetchStatus).toBe('fetching')
+  await act(async () => {
+    release()
+    await renewed
+  })
+  await until(() => expect(visibleNames()).toEqual(['price-private']))
+  expect(host.textContent).not.toContain('17.123456789012345678')
+  expect(host.querySelector('article')?.textContent).toContain('Unknown')
+  expect(
+    requests.some(
+      (request) => request.url?.startsWith('/admin/') || request.url?.includes('/price'),
+    ),
+  ).toBe(false)
 })
