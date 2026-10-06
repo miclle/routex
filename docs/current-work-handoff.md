@@ -7,8 +7,10 @@ three unstarted** after accepting F06 initial Team Model access selection. Earli
 
 ## Current work and next gates
 
-Current delivered main is whole-item catalogue access
-`fc7dfff96c8a7b0d706ca9bcdf5ec1a765510059`, pushed with exact remote read-back.
+The delivered predecessor is Home identity labels
+`d8d80ffc6bf8c0b84527ff6d05855fbd095de645`, pushed with exact remote read-back.
+The exact-head remote CI, Actionlint and GolangCI-Lint checks completed successfully; [CI run](https://github.com/miclle/routex/actions/runs/37455048465) verifies that delivered revision.
+Whole-item catalogue access `fc7dfff` remains its delivered predecessor.
 Provider Models table remains its checked predecessor `228dfd9`.
 Its complete Task passes 4,021 frontend cases in 165 files, main check/build and
 controlled bilingual permission/original-Session restart acceptance; zero native
@@ -20,7 +22,7 @@ original-Session restart acceptance. All 1,602 tested product paths match main;
 zero calls/attempts and independently absent owned resources are verified. Earlier
 failed focus/idle evidence remains historical.
 
-The containing commit delivers self-only Home Role labels and bilingual current
+Commit `d8d80ff` delivers self-only Home Role labels and bilingual current
 Role/Team identity labels. Complete Task testing passes 4,099 frontend cases/166
 files, Node4/dev2, Go race/coverage and embedded assets; final main format,
 mandatory checking and build pass. Actual full127 R2 passes 127 ordered scenarios
@@ -30,10 +32,13 @@ and all owned matrix resources/ports/processes are absent. Controlled Home
 browser/restart acceptance and exact zero call/attempt/Key counts pass. Earlier
 FK-invalid, diagnostic-loss and ENOSPC attempts remain failed historical evidence.
 
-Provider Model binding source/driver preparations remain private and unaccepted
-on main. The user confirmed member usage counts mean monthly distinct recorded
-callers in the selected resource account; that private implementation now proceeds
-in parallel. Keep the full goal active and formal 11/16/3 totals unchanged.
+The containing commit delivers the complete Provider Model binding projection and frozen GORM V69 reverse index. Main format/check, complete Task (4,154 frontend cases/167 files, Go race, Node4/dev2 and embedded assets) and production build pass. Actual complete129 R3 passes 129 ordered scenarios per database, 258 direct lifecycle cases, eight constraints and 4,672 balanced named RUN/PASS results in 3,074.113 seconds. Root independently verifies all 1,016 Go/Task source paths and modes, the exact original 127-case prefix, and absent owned resources, ports and process. Acceptance digest: `9b80eba1dd786bbb475b8d75b9048a592ae31d4cc900ff0d9355535e40301683`.
+
+Controlled bilingual bindings, filters, current-name links, independent permissions and three original-browser-Session restart gates pass, with exact zero calls/attempts/Keys and owned cleanup. Browser warnings/errors are empty. Ten unrelated notification/Home/registration HTTP 500 responses remain unexplained; cancellation can map to sanitized 500, but its historical cause was not recorded. This is bounded functional acceptance, not an all-request health claim. Initial index-removal failures, the first copy-mode preparation failure and complete129 R2's stale whole-ledger V68 duty fixture failure remain historical. The reviewed V1–V68-prefix test-only correction retains later versions and passes focused and complete dual-driver validation; released migrations remain unchanged.
+
+The user confirmed monthly distinct recorded callers in the selected resource account. Caller and workbook source remain private. Corrected caller full130 R3 and workbook full130 R2 are still running and not accepted. Private caller composition passes mandatory checking, complete Task (4,199 frontend cases/167 files, Node4/dev2, Go race/assets) and build; workbook composition passes the same gates with 4,218/168. Root verifies their frozen sources, modes, logs and binary hashes, and workbook backend agreement with its 1,020-path matrix. XLSX focused real PostgreSQL/MySQL validation passes. Genuine caller browser and workbook download/restart acceptance remain pending. Earlier intentionally stopped matrices remain unaccepted.
+
+The next independent work is bounded catalogue connection-text copy/Bash highlighting and Personal monthly Token/money stop-versus-alert configuration. The user confirmed each account and dimension is independent; a soft Personal cap never lowers a higher hard Key cap. Preserve accounting, unknown coverage, prices, publication and all other hard controls. These private phases are not delivered. Named template CRUD and Personal quota applications are not established parity requirements by the reviewed source. Keep the full goal active and formal 11/16/3 totals unchanged.
 
 ## Earlier delivery checkpoints
 
@@ -1902,3 +1907,45 @@ for the selected resource account, without identities. Backend and frontend
 preparation proceeds privately; existing monthly requests remain unchanged until
 its own gates. Provider Model binding actual focused driver acceptance and final
 composition/full129/browser remain separate pending gates.
+
+
+## Historical ledger correction and Excel source preparation, 2026-10-06
+
+The reviewed historical duty-role fixture now bounds its ledger reads to V1–V68
+and checks every ordered version. It retains exact V1–V67 reconstruction and all
+seed/grant/assignment/collision checks; the global harness separately verifies
+the full current V69 ledger. This test-only correction is carried on main as a
+20th source leaf. Corrected complete129 R3 and caller complete130 R2 are prepared
+with exact foreign source bytes and executable modes; focused repair passes both databases; binding complete129 R3 continues; caller complete130 R2 was subsequently stopped for the lint successor below. No released migration changed.
+
+The independent Excel download source preserves the existing price page download
+step with Excel before CSV. The server generates one visible Prices sheet with
+literal text cells, exact decimal strings, bounded complete snapshot and XLSX
+limits; CSV and upload batch limits remain unchanged. Download needs independent
+current price-read authority. Both formats cancel and discard late files/notices
+on authority renewal, error, actor replacement, expiry or unmount. No client
+workbook generation, numeric conversion or persisted Blob is introduced.
+
+Backend source has 58 balanced focused results; frontend source has 65 cases in
+four suites, types/lint/format and meaningful late-response regressions. Root
+independently verifies frozen artifacts and payloads. An independent openpyxl
+reader confirms 45 text cells, exact Unicode/formula-looking values and no formulas,
+links or macros. These are source/data-only gates; actual database, final composed
+Task/build, browser file delivery and phase delivery remain pending. The complete
+Home identity CI is confirmed successful at its exact delivered SHA.
+
+
+## Composed caller lint gate, 2026-10-06
+
+The private final composition preserves the reviewed caller payloads but its
+mandatory check reports QF1001 at the historical-actor character classifier.
+Root approved one Boolean-equivalent predicate rewrite; exhaustive byte checks
+cover all 256 values and all other function bytes remain unchanged. The failed
+check remains historical evidence. No main caller source is carried.
+
+Root intentionally stopped caller complete130 R2 and workbook complete130 R1
+against the superseded predicate. Neither observed an integration failure before
+the stop; both remain unaccepted. Source stays exact and root independently
+verifies absent owned resources, listeners and process. Binding complete129 R3
+continues unaffected. Revised caller/workbook source gates and fresh complete
+validation are required before their separate deliveries.

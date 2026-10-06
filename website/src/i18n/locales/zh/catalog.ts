@@ -1,5 +1,17 @@
 export default {
   providerModels: {
+    bindingFilter: '筛选已保存的模型绑定',
+    allBindings: '全部绑定状态',
+    boundBindings: '已绑定',
+    unboundBindings: '未绑定',
+    models: '模型',
+    unbound: '没有已保存的模型绑定',
+    bindingHelp: '绑定是已保存的关系，包含已停用的模型和零权重关系，不代表路由可用。',
+    bindingsRestricted: '模型绑定需要当前有效的供应商和模型读取权限。未知不代表未绑定。',
+    bindingsLoading: '正在更新模型绑定…',
+    bindingsChanged: '供应商模型集合已改变，请更新完整的模型绑定。',
+    bindingsUnavailable: '无法确认模型绑定。',
+    refreshBindings: '更新模型绑定',
     filters: '供应商模型筛选',
     search: '搜索模型标识',
     connectionFilter: '筛选模型所属接入',

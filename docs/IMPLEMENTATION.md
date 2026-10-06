@@ -4,25 +4,26 @@ Updated: 2026-10-06. This document records engineering contracts, work packages,
 
 ## Current delivery and active queue
 
-Current delivered main is `fc7dfff96c8a7b0d706ca9bcdf5ec1a765510059`
-(whole-item catalogue access), following Provider Models table `228dfd9`, following configured catalogue prices `20d6049` and
+Current delivered main is `d8d80ffc6bf8c0b84527ff6d05855fbd095de645`
+(Home identity labels), following whole-item catalogue access `fc7dfff`, following Provider Models table `228dfd9`, following configured catalogue prices `20d6049` and
 repaired monthly counts `daddd4e`. Their complete tests, controlled browser and
 original-Session restart evidence are recorded below. Provider Models passes
 4,021 frontend cases/165 files and mandatory main checking/build.
 
 Whole-item catalogue activation and current-target dismissal focus repair are
-accepted in the containing commit after 4,055 frontend cases/165 files, complete
+accepted in `fc7dfff` after 4,055 frontend cases/165 files, complete
 Task, mandatory main checking/build and controlled bilingual browser/restart. The first browser run
 remains repair-required and its independent idle failure is preserved.
 
-The containing commit additionally delivers self-only Home Role labels and
+Commit `d8d80ff` delivers self-only Home Role labels and
 bilingual current Role/Team identity labels after complete Task testing (4,099
 frontend cases/166 files), final main format/check/build and controlled Home
 browser/original-Session restart acceptance. Actual full127 R2 passes 127 ordered
 scenarios per database, 254 direct cases, eight constraints and 4,609 balanced
 named results. Root independently verifies current source and owned cleanup.
-Earlier failed attempts remain historical. Provider Model binding and monthly
-distinct recorded member counts continue privately; the latter follows the user's
+Earlier failed attempts remain historical. Provider Model binding is carried into
+the uncommitted main working tree for complete acceptance. Monthly distinct
+recorded member counts continue privately; the latter follows the user's
 confirmed selected-resource/monthly definition. The full goal continues; totals
 remain 11 complete / 16 partial / three unstarted.
 
@@ -496,7 +497,7 @@ The binary capability count is 11 completed, 16 partially completed, and 3 not s
 | F08 | Personal and Project Key lifecycle | Completed | One-time delivery, confirmation, editing, rotation, revocation, expiration, scope, and history are implemented with controlled dual-database evidence. |
 | F09 | Key Token, money, RPM, TPM, concurrency, and IP restrictions | Completed | Personal, Project, and Key admission policies are enforced in the native gateway for the documented single-node architecture. Multi-node enforcement remains a separate release-architecture gate. |
 | F10 | Offboarding, inventory, handover, and emergency disable | Partially completed | Transactional local-account offboarding and continuity workflows exist; external-identity and complete enterprise continuity behavior remain open. |
-| F11 | Provider, Connection, Credential, discovery, and rotation | Partially completed | The management workspace, encrypted credentials, controlled verification, and activation boundaries exist; explicit provider-model capacity attestations, credential-pool filtering/verification timestamps, reviewed name/priority editing, reviewed deletion, staged replacement preparation, immutable per-attempt Credential/publication attribution, and parser-owned native completion evidence are available; evidence-gated predecessor retirement with historical receipt/current-application separation is available; Provider Models six-column table, conjunctive filters and resource links have controlled bilingual permission/restart acceptance; complete binding projection, real-provider acceptance and complete pool operations remain open. |
+| F11 | Provider, Connection, Credential, discovery, and rotation | Partially completed | The management workspace, encrypted credentials, controlled verification, and activation boundaries exist; explicit provider-model capacity attestations, credential-pool filtering/verification timestamps, reviewed name/priority editing, reviewed deletion, staged replacement preparation, immutable per-attempt Credential/publication attribution, and parser-owned native completion evidence are available; evidence-gated predecessor retirement with historical receipt/current-application separation is available; Provider Models table, conjunctive filters, resource links and complete stored-binding projection have controlled bilingual permission/restart and full129 dual-driver acceptance; real-provider acceptance and complete pool operations remain open. |
 | F12 | Model catalog, names, bindings, weights, and catalog assistance | Partially completed | Stable models, renames, bindings, weights, grants, and availability controls exist; reviewed compatibility-name Early stop has complete controlled source, dual-driver, native/browser/restart and full-matrix delivery. Guided batch creation has complete source, repaired driver, production/browser/restart and full-matrix acceptance, with one atomic reviewed transaction, bounded historical receipts and no implicit grants or existing-Key expansion. Advisory public-name assistance and its bounded popup-label compatibility repair have complete controlled source and final R2 browser/native/restart acceptance; checked delivery is represented by the containing acceptance-record commit, with new remote CI pending. Complete public-catalog assistance and broader routing acceptance remain open. |
 | F13 | Four native protocols, streaming, health, retries, and failover | Partially completed | Chat Completions, Responses, Messages, and Gemini now use bounded replay-safe same-protocol failover with process-local health, one admission/settlement, durable ordered diagnostics, and no retry after a usable response. Real-provider and measured multi-node health acceptance remain open. |
 | F14 | Managed egress and staged network diagnostics | Partially completed | Direct, default, SOCKS5, verified CONNECT, endpoint-bound saved authentication, complete-tunnel proxy-address fallback, and diagnostics exist. External proxy and production performance acceptance remain open. |
@@ -6578,3 +6579,134 @@ for the selected resource account, without identities. Backend and frontend
 preparation proceeds privately; existing monthly requests remain unchanged until
 its own gates. Provider Model binding actual focused driver acceptance and final
 composition/full129/browser remain separate pending gates.
+
+## Complete Provider binding candidate, 2026-10-06
+
+The existing Provider Models table gains a complete scoped stored-binding
+projection, current Model names, a Models column and Bound/Unbound filter.
+Independent current Provider and Model read authority, exact complete catalogue
+matching and fail-closed freshness are mandatory. Frozen GORM V69 adds a
+nonunique reverse binding index without changing grants, weights or readiness.
+
+Root carried 19 reviewed source leaves with exact contextual beforeimages.
+Main formatting, mandatory check, complete Task (4,154 frontend cases/167 files,
+Go race, Node4/dev2 and embedded assets) and production build pass. Initial
+focused real PostgreSQL/MySQL
+R1 passed both projection children but failed both fixture-only index-removal
+steps. The reviewed repair changes only those fault-simulation adapters, retains
+all constraints/assertions and preserves production V69 and deadlines. Fresh
+focused R2 passes all four children on both databases, including index lifecycle
+and complete/overflow projection assertions. Controlled browser/restart acceptance is recorded below. Complete129 R2 finished with only the two historical duty-role migration children failing: their entire-ledger count of 68 is stale after V69. New binding/index cases passed on both databases; the complete gate remains failed. The first complete129 launch failed
+before Compose/tests because root did not preserve a script executable mode in
+the isolated copy; its corrected fresh successor preserves bytes and modes. The frozen complete candidate preserves all original127 ordered
+scenarios and appends exactly two projection/index scenarios. No candidate
+delivery or F11 completion is claimed.
+
+
+## Provider binding controlled browser acceptance, 2026-10-06
+
+The checked embedded binary passed English/Chinese table and conjunctive filters,
+current Model names after a real rename, exact resource links, menu keyboard
+focus, real Model-read withdrawal/restoration and normal actor replacement.
+Provider-only authority shows Unknown and disables only Bound/Unbound choices;
+the filter trigger and All bindings remain usable. All three original browser
+Sessions and helper Sessions reread after identical binary/configuration/database/
+journal restart. The owned database contains zero Calls, Attempts and Personal/
+Project Keys. Browser warnings/errors are empty; all owned tabs, current process,
+listener and labelled Compose resources are independently absent.
+
+Root functional receipt: `eae410839f0dd1cf71a5888ded577ccfadc997df3b6265b670eef18d1b5d7080`.
+The separate limitations receipt is `0161d7842e8d1055a92b64aa6160b7e0a6c8002f1981cd9159d712c0ed2bd497`.
+Held/error/obsolete-response races, legacy null names and disabled logical Models
+remain source/driver evidence. Access-log windows are not browser network traces.
+Two global Model directory reads belong to the existing explicit Provider Model
+detail workflow; the table projection does not reconstruct bindings from them.
+An unconfigured detail price returns its expected404. Ten unrelated shared-read
+GET500s (five notifications, one registration, one Home Usage, one Home roles and
+two Home accounts) remain unexplained. Source paths allow canceled authentication
+and some shared reads to map to sanitized500, but no original cancellation/error
+classification or browser-abort correlation was recorded. This does not establish
+the historical cause or all-request health. Preserve that limitation and the
+failed attempts. Complete129 R2 failed at the stale historical duty-role fixture described above; corrected complete validation and phased delivery remain pending.
+
+
+## Recorded-caller isolated validation, 2026-10-06
+
+The separate caller candidate retains one existing bounded Usage report and
+adds Model-only `members` coverage plus `distinct_recorded_actors` provenance.
+Repeated recorded actors deduplicate across historical Team relationship IDs;
+unknown attribution retains Unknown with an exact known subtotal. No identities
+are returned and existing request/amount/CSV contracts remain unchanged.
+
+First focused PostgreSQL/MySQL execution failed because new test-only historical
+Team rows omitted the existing required subject fields. The frozen fixture-only
+repair supplies a nonempty malformed historical actor for unknown coverage and
+historical membership IDs for legacy/bulk rows. No production, migration,
+constraint, statistic assertion or timeout changed. Fresh focused R2 passes both
+database cases (6.86s/9.01s), five balanced named results and no failures/skips/races;
+all 1,018 source paths stay exact and owned resources/ports are independently absent.
+The focused receipt is
+`dd7df442ebed49fbfaa46ae8d49c4309c1ef9eda317c03190d981507f2db72cf`.
+
+Root launched the full 130-scenario suite in another uniquely owned isolated database project. After complete129 exposed the unchanged historical duty-role ledger-count defect, root intentionally stopped the exact owned full130 process group. This run observed no failure before the stop, remains unaccepted, and preserves captured output; root independently verifies unchanged source and absent owned resources, ports and process. A reviewed fixture correction verifies the exact bounded V1–V68 prefix while leaving full-current V69 checking in the harness; fresh focused repair passes six ordered children/nine balanced named results; corrected complete129 R3 and complete130 R2 now run independently. It preserves all original 129 scenarios and adds only
+`usage_members`; all source bytes and executable script modes are frozen.
+Independent concurrent validation does not transfer parent acceptance or merge
+this candidate early. Main remains the uncommitted F11 binding phase until its
+own complete gates pass. Caller full130, main composition, final production
+artifact and controlled native/bilingual/original-Session browser acceptance
+remain pending. Real XLSX price export is being prepared independently as the
+next F15 slice. F11/F15/F19 stay partial; totals remain 11 complete, 16 partial and three unstarted.
+
+
+## Historical ledger correction and Excel source preparation, 2026-10-06
+
+The reviewed historical duty-role fixture now bounds its ledger reads to V1–V68
+and checks every ordered version. It retains exact V1–V67 reconstruction and all
+seed/grant/assignment/collision checks; the global harness separately verifies
+the full current V69 ledger. This test-only correction is carried on main as a
+20th source leaf. Corrected complete129 R3 and caller complete130 R2 are prepared
+with exact foreign source bytes and executable modes; focused repair passes both databases; binding complete129 R3 continues; caller complete130 R2 was subsequently stopped for the lint successor below. No released migration changed.
+
+The independent Excel download source preserves the existing price page download
+step with Excel before CSV. The server generates one visible Prices sheet with
+literal text cells, exact decimal strings, bounded complete snapshot and XLSX
+limits; CSV and upload batch limits remain unchanged. Download needs independent
+current price-read authority. Both formats cancel and discard late files/notices
+on authority renewal, error, actor replacement, expiry or unmount. No client
+workbook generation, numeric conversion or persisted Blob is introduced.
+
+Backend source has 58 balanced focused results; frontend source has 65 cases in
+four suites, types/lint/format and meaningful late-response regressions. Root
+independently verifies frozen artifacts and payloads. An independent openpyxl
+reader confirms 45 text cells, exact Unicode/formula-looking values and no formulas,
+links or macros. These are source/data-only gates; actual database, final composed
+Task/build, browser file delivery and phase delivery remain pending. The complete
+Home identity CI is confirmed successful at its exact delivered SHA.
+
+
+## Composed caller lint gate, 2026-10-06
+
+The private final composition preserves the reviewed caller payloads but its
+mandatory check reports QF1001 at the historical-actor character classifier.
+Root approved one Boolean-equivalent predicate rewrite; exhaustive byte checks
+cover all 256 values and all other function bytes remain unchanged. The failed
+check remains historical evidence. No main caller source is carried.
+
+Root intentionally stopped caller complete130 R2 and workbook complete130 R1
+against the superseded predicate. Neither observed an integration failure before
+the stop; both remain unaccepted. Source stays exact and root independently
+verifies absent owned resources, listeners and process. Binding complete129 R3
+continues unaffected. Revised caller/workbook source gates and fresh complete
+validation are required before their separate deliveries.
+
+## Current composed successors, 2026-10-06
+
+The equivalent recorded-actor predicate passes mandatory lint and all-byte Go equivalence testing. Private caller composition passes complete Task (4,199 frontend cases/167 files), checking and production build. Private workbook composition passes complete Task (4,218 frontend cases/168 files), checking and production build; root independently verifies the final 1,692-path source floor and 1,020-path backend agreement with the new matrix. Known build-generated platform libc metadata was preserved, proven to be the only lock delta, and restored. No dependencies changed.
+
+Binding full129 R3, caller full130 R3 and workbook full130 R2 are running; complete database acceptance and later phase delivery remain pending. Caller production browser and genuine workbook download/restart acceptance have not run. The user confirmed independent account/dimension stop-versus-alert semantics for the next bounded Personal monthly Token/money phase. Catalogue connection-text copy controls and Bash highlighting are also being prepared privately. These statements do not change the 11/16/3 capability totals.
+
+## Provider binding phase delivery, 2026-10-06
+
+The containing commit delivers the scoped stored-binding read, existing-table Bound/Unbound controls and frozen GORM V69 reverse index. Main format/check, complete Task (4,154 frontend cases/167 files; Node4/dev2, Go race/assets) and production build pass. Complete129 R3 passes all 129 ordered scenarios per database, 258 direct lifecycles, eight constraints and 4,672 balanced named results in 3,074.113 seconds. Root independently verifies all 1,016 Go/Task source paths/modes match main, original127 prefix preservation and owned-resource/port/process absence. The acceptance digest is `9b80eba1dd786bbb475b8d75b9048a592ae31d4cc900ff0d9355535e40301683`.
+
+The previously recorded bilingual permission/current-name/original-Session restart browser gate passes with zero calls, attempts and Keys. Its ten unexplained shared-read HTTP 500 responses remain a bounded health limitation. Earlier failed index/copy/duty-fixture runs retain their failed status. Only the historical duty-role test now reads its bounded V1–V68 prefix; later ledger versions and released migrations stay intact. Caller/workbook full130 and future production/browser delivery remain pending; F11 remains partial and formal totals stay 11/16/3.

@@ -74,11 +74,16 @@ func dutyFixtureEqualRoles(left, right []entity.Role) bool {
 func testDutyRoleMigration(t *testing.T, db *gorm.DB) {
 	ctx := context.Background()
 	var ledger []int
-	if err := db.Table("schema_migrations").Order("version").Pluck("version", &ledger).Error; err != nil {
+	if err := db.Table("schema_migrations").Where("version <= ?", 68).Order("version").Pluck("version", &ledger).Error; err != nil {
 		t.Fatal(err)
 	}
-	if len(ledger) != 68 || ledger[67] != 68 {
-		t.Fatal("V68 must be registered after the exact V67 prefix")
+	if len(ledger) != 68 {
+		t.Fatal("historical V1-V68 ledger prefix is incomplete")
+	}
+	for i, version := range ledger {
+		if version != i+1 {
+			t.Fatal("historical V1-V68 ledger prefix changed", ledger)
+		}
 	}
 	roles, grants := dutyFixtureRows(t, db)
 	if len(roles) != 3 || len(grants) != 17 {
@@ -169,7 +174,7 @@ func testDutyRoleMigration(t *testing.T, db *gorm.DB) {
 			t.Fatal(err)
 		}
 		var got []int
-		if err := db.Table("schema_migrations").Order("version").Pluck("version", &got).Error; err != nil || !slices.Equal(got, ledger) {
+		if err := db.Table("schema_migrations").Where("version <= ?", 68).Order("version").Pluck("version", &got).Error; err != nil || !slices.Equal(got, ledger) {
 			t.Fatal("ledger changed", err)
 		}
 	}
@@ -197,8 +202,9 @@ func testDutyRoleMigration(t *testing.T, db *gorm.DB) {
 			t.Fatal("rejected seed changed retained rows or ledger", err)
 		}
 	}
-	// Reconstruct an existing V67 database with same-name custom history before
-	// the first duty seed. Remove only this fixture's three rows and 17 grants.
+	// Reconstruct the exact V1-V67 historical prefix with same-name custom
+	// history before the first duty seed. Later migration ledger rows remain
+	// outside this fixture's scope; remove only V68, its three rows and 17 grants.
 	removeLedger()
 	seedIDs := []string{"rol_finance", "rol_operations", "rol_procurement"}
 	if q := db.Where("role_id IN ?", seedIDs).Delete(&entity.RolePermission{}); q.Error != nil || q.RowsAffected != 17 {
@@ -210,7 +216,7 @@ func testDutyRoleMigration(t *testing.T, db *gorm.DB) {
 	checkRetained()
 	missingRoles, missingGrants := dutyFixtureRows(t, db)
 	var beforeUpgrade []int
-	if err := db.Table("schema_migrations").Order("version").Pluck("version", &beforeUpgrade).Error; err != nil || !slices.Equal(beforeUpgrade, ledger[:67]) || len(missingRoles) != 0 || len(missingGrants) != 0 {
+	if err := db.Table("schema_migrations").Where("version <= ?", 68).Order("version").Pluck("version", &beforeUpgrade).Error; err != nil || !slices.Equal(beforeUpgrade, ledger[:67]) || len(missingRoles) != 0 || len(missingGrants) != 0 {
 		t.Fatal("existing V67 upgrade baseline", err)
 	}
 	seedStarted := time.Now().UTC().Truncate(time.Millisecond)

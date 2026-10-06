@@ -3,6 +3,8 @@ import { Link } from 'react-router'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { listProviders } from '@/api/catalog'
+import { getProviderModelBindings } from '@/api/provider-model-bindings'
+import type { ProviderModelBindings } from '@/types/provider-model-bindings'
 import { getPermissions } from '@/api/governance'
 import type { Provider } from '@/types/catalog'
 import type { Session } from '@/types/auth'
@@ -103,16 +105,65 @@ function Models({ providerId, session, onAdd }: Props) {
   const [query, setQuery] = useState('')
   const [connection, setConnection] = useState('all')
   const [enabled, setEnabled] = useState('all')
+  const [binding, setBinding] = useState<'all' | 'bound' | 'unbound'>('all')
   const allRows =
     provider?.connections.flatMap((item) =>
       item.provider_models.map((model) => ({ connection: item, model })),
     ) ?? []
+  const bindingsKey = [
+    'admin',
+    'providers',
+    actor,
+    providerId,
+    'model-bindings',
+    authority.revision,
+    context.revision,
+  ]
+  const canReadBindings = fresh() && access.data?.includes('models.read_all') === true
+  const bindings = useQuery({
+    queryKey: bindingsKey,
+    queryFn: ({ signal }) => getProviderModelBindings(providerId, signal),
+    enabled: canReadBindings && !!provider,
+    retry: false,
+    gcTime: 0,
+    refetchOnMount: 'always',
+  })
+  const bindingRevision = useConnectionQueryRevision([bindingsKey])
+  const bindingFresh = () => {
+    const current = cache.getQueryState<ProviderModelBindings>(bindingsKey)
+    return (
+      fresh() &&
+      access.data?.includes('models.read_all') === true &&
+      bindingRevision.snapshot() === bindingRevision.revision &&
+      current?.status === 'success' &&
+      current.fetchStatus === 'idle' &&
+      !current.error &&
+      !current.isInvalidated &&
+      current.data?.provider_id === providerId
+    )
+  }
+  const projection = bindingFresh() ? bindings.data : undefined
+  const projectedRows = new Map(
+    projection?.items.map((item) => [item.provider_model_id, item]) ?? [],
+  )
+  const matched =
+    !!projection &&
+    projectedRows.size === allRows.length &&
+    new Set(allRows.map(({ model }) => model.id)).size === allRows.length &&
+    allRows.every(
+      ({ connection, model }) => projectedRows.get(model.id)?.connection_id === connection.id,
+    )
+  const bindingRows = matched ? projectedRows : null
+  const currentBindings = () => bindingFresh() && matched
   const normalizedQuery = query.trim().toLowerCase()
   const rows = allRows.filter(
     (row) =>
       (!normalizedQuery || row.model.upstream_name.toLowerCase().includes(normalizedQuery)) &&
       (connection === 'all' || row.connection.id === connection) &&
-      (enabled === 'all' || row.model.enabled === (enabled === 'enabled')),
+      (enabled === 'all' || row.model.enabled === (enabled === 'enabled')) &&
+      (!bindingRows ||
+        binding === 'all' ||
+        bindingRows.get(row.model.id)!.binding_count > 0 === (binding === 'bound')),
   )
   const declaration = (value: boolean) =>
     typeof value !== 'boolean'
@@ -175,6 +226,35 @@ function Models({ providerId, session, onAdd }: Props) {
                 </Menu>
               )}
               <Menu
+                label={t('providerModels.bindingFilter')}
+                trigger={t(
+                  bindingRows ? `providerModels.${binding}Bindings` : 'providerModels.allBindings',
+                )}
+                triggerClassName="w-[180px] border"
+                side="bottom"
+                align="start"
+              >
+                <MenuItem onClick={() => setBinding('all')}>
+                  {t('providerModels.allBindings')}
+                </MenuItem>
+                <MenuItem
+                  disabled={!bindingRows}
+                  onClick={() => {
+                    if (currentBindings()) setBinding('bound')
+                  }}
+                >
+                  {t('providerModels.boundBindings')}
+                </MenuItem>
+                <MenuItem
+                  disabled={!bindingRows}
+                  onClick={() => {
+                    if (currentBindings()) setBinding('unbound')
+                  }}
+                >
+                  {t('providerModels.unboundBindings')}
+                </MenuItem>
+              </Menu>
+              <Menu
                 label={t('providerModels.enabledFilter')}
                 trigger={
                   enabled === 'all'
@@ -209,10 +289,43 @@ function Models({ providerId, session, onAdd }: Props) {
             {t('providerModels.filtered', { count: rows.length, total: allRows.length })}
           </p>
           <p className="text-sm text-muted-foreground">{t('providerModels.declarationHelp')}</p>
+          <p className="text-sm text-muted-foreground">{t('providerModels.bindingHelp')}</p>
+          {!bindingRows && (
+            <div
+              className="flex items-center gap-2 text-sm text-muted-foreground"
+              role={bindings.isError ? 'alert' : 'status'}
+            >
+              <span>
+                {t(
+                  !canReadBindings
+                    ? 'providerModels.bindingsRestricted'
+                    : bindings.isFetching || bindings.isPending
+                      ? 'providerModels.bindingsLoading'
+                      : projection
+                        ? 'providerModels.bindingsChanged'
+                        : 'providerModels.bindingsUnavailable',
+                )}
+              </span>
+              {canReadBindings && !bindings.isFetching && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    if (!fresh() || !access.data?.includes('models.read_all')) return
+                    if (projection && !matched) void catalogue.refetch()
+                    else void bindings.refetch()
+                  }}
+                >
+                  {t('providerModels.refreshBindings')}
+                </Button>
+              )}
+            </div>
+          )}
           <Table aria-label={t('providerModels.list')}>
             <thead>
               <tr>
                 <th>{t('providers.modelIdentifier')}</th>
+                <th>{t('providerModels.models')}</th>
                 <th>{t('providers.connection')}</th>
                 <th>{t('common.protocolType')}</th>
                 <th>{t('providerModels.enabled')}</th>
@@ -231,6 +344,28 @@ function Models({ providerId, session, onAdd }: Props) {
                       {model.upstream_name}
                     </Link>
                   </td>
+                  <td>
+                    {!bindingRows ? (
+                      t('providers.unknown')
+                    ) : bindingRows.get(model.id)!.models.length === 0 ? (
+                      t('providerModels.unbound')
+                    ) : (
+                      <div className="flex flex-col">
+                        {bindingRows.get(model.id)!.models.map((logical) => (
+                          <Link
+                            key={logical.id}
+                            className="text-primary"
+                            to={`/admin/models/${encodeURIComponent(logical.id)}`}
+                            onClick={(event) => {
+                              if (!currentBindings()) event.preventDefault()
+                            }}
+                          >
+                            {logical.name ?? logical.id}
+                          </Link>
+                        ))}
+                      </div>
+                    )}
+                  </td>
                   <td>{item.name}</td>
                   <td>{protocolLabel(item.protocol)}</td>
                   <td>
@@ -246,7 +381,7 @@ function Models({ providerId, session, onAdd }: Props) {
               ))}
               {rows.length === 0 && (
                 <tr>
-                  <td colSpan={6}>{t('providerModels.empty')}</td>
+                  <td colSpan={7}>{t('providerModels.empty')}</td>
                 </tr>
               )}
             </tbody>

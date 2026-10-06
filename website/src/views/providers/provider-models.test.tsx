@@ -8,6 +8,7 @@ import client from '@/api/client'
 import i18n from '@/i18n'
 import { sessionKey, useSession } from '@/hooks/use-auth'
 import type { Provider, ProviderModel } from '@/types/catalog'
+import type { ProviderModelBindings } from '@/types/provider-model-bindings'
 import ProviderModelTable from './provider-models'
 import ProvidersPage from './index'
 
@@ -16,7 +17,9 @@ const originalAdapter = client.defaults.adapter
 let root: Root, host: HTMLDivElement, cache: QueryClient
 let router: ReturnType<typeof createMemoryRouter>
 let requests: InternalAxiosRequestConfig[], permissions: string[], actor: string
-let permissionError: boolean, catalogueError: boolean
+let permissionError: boolean, catalogueError: boolean, bindingError: boolean
+let bindingPages: Record<string, ProviderModelBindings>
+let cataloguePages: Provider[]
 let holdUrl: string | null,
   held: { release: () => void; signal: InternalAxiosRequestConfig['signal'] }[]
 const add = vi.fn()
@@ -88,7 +91,53 @@ beforeEach(async () => {
   actor = 'usr_first'
   permissions = ['providers.read', 'providers.write']
   requests = []
-  permissionError = catalogueError = false
+  permissionError = catalogueError = bindingError = false
+  bindingPages = {
+    prv_first: {
+      provider_id: 'prv_first',
+      items: [
+        {
+          provider_model_id: 'pmd_alpha',
+          connection_id: 'con_primary',
+          binding_count: 2,
+          models: [
+            { id: 'mdl_a', name: 'current/name' },
+            { id: 'mdl_b', name: null },
+          ],
+        },
+        {
+          provider_model_id: 'pmd_disabled',
+          connection_id: 'con_primary',
+          binding_count: 1,
+          models: [{ id: 'mdl_disabled', name: 'Disabled/stored' }],
+        },
+        {
+          provider_model_id: 'pmd_duplicate',
+          connection_id: 'con_secondary',
+          binding_count: 0,
+          models: [],
+        },
+        {
+          provider_model_id: 'pmd_literal',
+          connection_id: 'con_secondary',
+          binding_count: 0,
+          models: [],
+        },
+      ],
+    },
+    prv_second: {
+      provider_id: 'prv_second',
+      items: [
+        {
+          provider_model_id: 'pmd_other',
+          connection_id: 'con_other',
+          binding_count: 1,
+          models: [{ id: 'mdl_other', name: 'Other/current' }],
+        },
+      ],
+    },
+  }
+  cataloguePages = structuredClone(providers)
   holdUrl = null
   held = []
   add.mockClear()
@@ -113,11 +162,15 @@ beforeEach(async () => {
       }
     else if (config.url === '/auth/permissions') response.data = { permissions: [...permissions] }
     else if (config.url === '/admin/providers')
-      response.data = { items: structuredClone(providers) }
-    else throw new Error(`Unexpected directory request: ${config.url}`)
+      response.data = { items: structuredClone(cataloguePages) }
+    else if (/^\/admin\/providers\/prv_(first|second)\/model-bindings$/.test(config.url!)) {
+      response.data = structuredClone(bindingPages[config.url!.split('/')[3]])
+      response.headers.set('Cache-Control', 'no-store')
+    } else throw new Error(`Unexpected directory request: ${config.url}`)
     if (
       (permissionError && config.url === '/auth/permissions') ||
-      (catalogueError && config.url === '/admin/providers')
+      (catalogueError && config.url === '/admin/providers') ||
+      (bindingError && config.url?.endsWith('/model-bindings'))
     )
       throw new AxiosError('Controlled read failure', '', config, undefined, {
         ...response,
@@ -170,9 +223,10 @@ async function mount(fullPage = false, ready = true) {
   )
   if (ready) await until(() => expect(table()).not.toBeNull())
 }
-const table = () => host.querySelector<HTMLTableElement>('table[aria-label="Provider models"]')
-const names = () =>
-  [...table()!.querySelectorAll('tbody tr')]
+const table = (label = 'Provider models') =>
+  host.querySelector<HTMLTableElement>(`table[aria-label="${label}"]`)
+const names = (label = 'Provider models') =>
+  [...table(label)!.querySelectorAll('tbody tr')]
     .filter((row) => row.children.length > 1)
     .map((row) => row.children[0].textContent)
 const button = (label: string) =>
@@ -240,7 +294,7 @@ it('renders independent stored enabled/image/PDF declarations without readiness 
   const row = [...table()!.querySelectorAll('tbody tr')].find((item) =>
     item.textContent?.includes('alpha disabled'),
   )!
-  expect([...row.children].map((item) => item.textContent).slice(3)).toEqual([
+  expect([...row.children].map((item) => item.textContent).slice(4)).toEqual([
     'Disabled',
     'Declared',
     'Declared',
@@ -386,4 +440,222 @@ it('returns keyboard focus to the local filter trigger after Escape', async () =
   )
   await until(() => expect(document.querySelector('[role="menu"]')).toBeNull())
   await until(() => expect(document.activeElement).toBe(trigger))
+})
+
+const bindingKeys = () => catalogueKeys().filter((key) => key[4] === 'model-bindings')
+const logicalNames = (label = 'Provider models') =>
+  [...table(label)!.querySelectorAll('a[href^="/admin/models/"]')].map((link) => link.textContent)
+const bindingUrl = '/admin/providers/prv_first/model-bindings'
+
+it('shows complete current stored Model names and null-ID fallback from one scoped projection', async () => {
+  permissions.push('models.read_all')
+  await mount()
+  await until(() => expect(logicalNames()).toEqual(['current/name', 'mdl_b', 'Disabled/stored']))
+  expect(requests.filter((r) => r.url === bindingUrl)).toHaveLength(1)
+  expect(requests.some((r) => r.url === '/admin/models' || /^\/admin\/models\//.test(r.url!))).toBe(
+    false,
+  )
+  expect(table()!.querySelector('a[href="/admin/models/mdl_b"]')).not.toBeNull()
+  expect(host.textContent).toContain('including disabled Models and zero weights')
+})
+it('keeps Provider-only rows while binding facts are Unknown and restricted filters cannot apply', async () => {
+  await mount()
+  expect(names()).toHaveLength(4)
+  expect(logicalNames()).toEqual([])
+  expect(requests.some((r) => r.url?.endsWith('/model-bindings'))).toBe(false)
+  await click('Filter stored Model bindings')
+  await until(() => expect(button('Bound')).toBeTruthy())
+  expect(button('Bound').getAttribute('aria-disabled')).toBe('true')
+  expect(button('Unbound').getAttribute('aria-disabled')).toBe('true')
+  await click('Bound')
+  expect(names()).toHaveLength(4)
+  expect(host.textContent).toContain('Unknown is not Unbound')
+})
+it('intersects complete Bound/Unbound with literal search, Connection and stored enabled controls', async () => {
+  permissions.push('models.read_all')
+  await mount()
+  await until(() => expect(logicalNames()).toHaveLength(3))
+  await select('Filter stored Model bindings', 'Bound')
+  expect(names()).toEqual(['Alpha', 'alpha disabled'])
+  await select('Filter model enabled state', 'Disabled')
+  expect(names()).toEqual(['alpha disabled'])
+  await select('Filter stored Model bindings', 'Unbound')
+  expect(names()).toEqual(['literal %_[test]'])
+  await select('Filter model Connection', 'Secondary')
+  await search('%_[test]')
+  expect(names()).toEqual(['literal %_[test]'])
+})
+it('preserves binding filters and current names on live language switching', async () => {
+  permissions.push('models.read_all')
+  await mount()
+  await until(() => expect(logicalNames()).toHaveLength(3))
+  await select('Filter stored Model bindings', 'Bound')
+  const before = requests.length
+  await act(async () => i18n.changeLanguage('zh'))
+  expect(table('供应商模型')).not.toBeNull()
+  expect(names('供应商模型')).toEqual(['Alpha', 'alpha disabled'])
+  expect(host.textContent).toContain('已绑定')
+  expect(logicalNames('供应商模型')).toEqual(['current/name', 'mdl_b', 'Disabled/stored'])
+  expect(requests).toHaveLength(before)
+  await act(async () => i18n.changeLanguage('en'))
+  expect(host.textContent).toContain('Bound')
+})
+it('hides binding names/filter facts during permission renewal and never requests them after Model-read removal', async () => {
+  permissions.push('models.read_all')
+  await mount()
+  await until(() => expect(logicalNames()).toHaveLength(3))
+  holdUrl = '/auth/permissions'
+  permissions = ['providers.read', 'providers.write']
+  await renew(permissionKeys())
+  await until(() => expect(held).toHaveLength(1))
+  expect(table()).toBeNull()
+  holdUrl = null
+  await act(async () => held[0].release())
+  await until(() => expect(table()).not.toBeNull())
+  expect(names()).toHaveLength(4)
+  expect(logicalNames()).toEqual([])
+  expect(requests.filter((r) => r.url === bindingUrl)).toHaveLength(1)
+})
+it('keeps only Unknown binding cells during an independent projection renewal or failure', async () => {
+  permissions.push('models.read_all')
+  await mount()
+  await until(() => expect(logicalNames()).toHaveLength(3))
+  await select('Filter stored Model bindings', 'Bound')
+  holdUrl = bindingUrl
+  await renew(bindingKeys())
+  await until(() => expect(held).toHaveLength(1))
+  expect(table()).not.toBeNull()
+  expect(names()).toHaveLength(4)
+  expect(logicalNames()).toEqual([])
+  holdUrl = null
+  await act(async () => held[0].release())
+  await until(() => expect(names()).toHaveLength(2))
+  bindingError = true
+  await renew(bindingKeys())
+  await until(() => expect(host.textContent).toContain('Model bindings could not be confirmed'))
+  expect(names()).toHaveLength(4)
+  expect(logicalNames()).toEqual([])
+  bindingError = false
+  await click('Refresh Model bindings')
+  await until(() => expect(names()).toHaveLength(2))
+})
+it.each(['missing', 'extra', 'connection'])(
+  'rejects a %s catalogue/projection set mismatch before names or filtering',
+  async (kind) => {
+    permissions.push('models.read_all')
+    if (kind === 'missing') bindingPages.prv_first.items.pop()
+    if (kind === 'extra')
+      bindingPages.prv_first.items.push({
+        provider_model_id: 'pmd_z_extra',
+        connection_id: 'con_primary',
+        binding_count: 0,
+        models: [],
+      })
+    if (kind === 'connection') bindingPages.prv_first.items[0].connection_id = 'con_secondary'
+    await mount()
+    await until(() => expect(host.textContent).toContain('Provider Model set has changed'))
+    expect(names()).toHaveLength(4)
+    expect(logicalNames()).toEqual([])
+    await click('Filter stored Model bindings')
+    await until(() => expect(button('Bound')).toBeTruthy())
+    expect(button('Bound').getAttribute('aria-disabled')).toBe('true')
+  },
+)
+it('cancels obsolete binding projection on Provider change and resets the binding filter', async () => {
+  permissions.push('models.read_all')
+  holdUrl = bindingUrl
+  await mount()
+  await until(() => expect(held).toHaveLength(1))
+  const stale = held[0]
+  holdUrl = null
+  await act(async () => router.navigate('/admin/providers/prv_second?tab=models'))
+  await until(() => expect(logicalNames()).toEqual(['Other/current']))
+  expect(stale.signal?.aborted).toBe(true)
+  await act(async () => stale.release())
+  expect(names()).toEqual(['Other model'])
+  expect(logicalNames()).toEqual(['Other/current'])
+  expect(button('Filter stored Model bindings').textContent).toBe('All bindings')
+})
+it('cancels an old actor binding projection and uses new actor/current authority only', async () => {
+  permissions.push('models.read_all')
+  holdUrl = bindingUrl
+  await mount()
+  await until(() => expect(held).toHaveLength(1))
+  const stale = held[0]
+  actor = 'usr_new_actor'
+  holdUrl = null
+  await renew([sessionKey])
+  await until(() => expect(logicalNames()).toHaveLength(3))
+  expect(stale.signal?.aborted).toBe(true)
+  await act(async () => stale.release())
+  expect(cache.getQueryData<{ user: { id: string } }>(sessionKey)?.user.id).toBe('usr_new_actor')
+  expect(logicalNames()).toHaveLength(3)
+})
+it('fetches a new complete projection after catalogue renewal and blocks stale links immediately', async () => {
+  permissions.push('models.read_all')
+  await mount()
+  await until(() => expect(logicalNames()).toHaveLength(3))
+  const old = table()!.querySelector<HTMLAnchorElement>('a[href="/admin/models/mdl_a"]')!
+  holdUrl = '/admin/providers'
+  await act(async () => {
+    for (const key of catalogueKeys().filter((key) => key[4] === 'provider-models'))
+      void cache.invalidateQueries({ queryKey: key, exact: true })
+    old.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+    expect(router.state.location.pathname).toBe('/admin/providers/prv_first')
+  })
+  await until(() => expect(held).toHaveLength(1))
+  expect(table()).toBeNull()
+  holdUrl = null
+  await act(async () => held[0].release())
+  await until(() => expect(logicalNames()).toHaveLength(3))
+  expect(requests.filter((r) => r.url === bindingUrl)).toHaveLength(2)
+})
+it('supports keyboard binding selector and restores focus after Escape', async () => {
+  permissions.push('models.read_all')
+  await mount()
+  await until(() => expect(logicalNames()).toHaveLength(3))
+  const trigger = button('Filter stored Model bindings')
+  await act(async () => {
+    trigger.focus()
+    trigger.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true }))
+  })
+  await until(() => expect(document.querySelector('[role="menu"]')).not.toBeNull())
+  await act(async () =>
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })),
+  )
+  await until(() => expect(document.querySelector('[role="menu"]')).toBeNull())
+  await until(() => expect(document.activeElement).toBe(trigger))
+})
+
+it('refreshes a mismatched catalogue before exactly one fresh complete binding projection', async () => {
+  permissions.push('models.read_all')
+  bindingPages.prv_first.items.push({
+    provider_model_id: 'pmd_z_new',
+    connection_id: 'con_primary',
+    binding_count: 1,
+    models: [{ id: 'mdl_z_new', name: 'New/current' }],
+  })
+  await mount()
+  await until(() => expect(host.textContent).toContain('Provider Model set has changed'))
+  expect(logicalNames()).toEqual([])
+  expect(names()).toHaveLength(4)
+  expect(requests.filter((r) => r.url === bindingUrl)).toHaveLength(1)
+  cataloguePages[0].connections[0].provider_models.push(model('pmd_z_new', 'New model', true))
+  holdUrl = '/admin/providers'
+  await click('Refresh Model bindings')
+  await until(() => expect(held).toHaveLength(1))
+  expect(table()).toBeNull()
+  expect(button('Filter stored Model bindings')).toBeUndefined()
+  expect(host.querySelector('a[href="/admin/models/mdl_z_new"]')).toBeNull()
+  expect(requests.filter((r) => r.url === bindingUrl)).toHaveLength(1)
+  holdUrl = null
+  await act(async () => held[0].release())
+  await until(() =>
+    expect(logicalNames()).toEqual(['current/name', 'mdl_b', 'Disabled/stored', 'New/current']),
+  )
+  expect(names()).toEqual(['Alpha', 'alpha disabled', 'New model', 'Alpha', 'literal %_[test]'])
+  expect(requests.filter((r) => r.url === '/admin/providers')).toHaveLength(2)
+  expect(requests.filter((r) => r.url === bindingUrl)).toHaveLength(2)
+  await select('Filter stored Model bindings', 'Bound')
+  expect(names()).toEqual(['Alpha', 'alpha disabled', 'New model'])
 })

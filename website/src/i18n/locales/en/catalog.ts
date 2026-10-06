@@ -1,5 +1,19 @@
 export default {
   providerModels: {
+    bindingFilter: 'Filter stored Model bindings',
+    allBindings: 'All bindings',
+    boundBindings: 'Bound',
+    unboundBindings: 'Unbound',
+    models: 'Models',
+    unbound: 'No stored Model bindings',
+    bindingHelp:
+      'Bindings are stored relationships, including disabled Models and zero weights. They do not confirm routing availability.',
+    bindingsRestricted:
+      'Model bindings need current Provider and Model read access. Unknown is not Unbound.',
+    bindingsLoading: 'Refreshing Model bindings…',
+    bindingsChanged: 'The Provider Model set has changed. Refresh its complete Model bindings.',
+    bindingsUnavailable: 'Model bindings could not be confirmed.',
+    refreshBindings: 'Refresh Model bindings',
     filters: 'Provider model filters',
     search: 'Search model identifiers',
     connectionFilter: 'Filter model Connection',

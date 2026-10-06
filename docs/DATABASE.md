@@ -977,3 +977,22 @@ controlled Finance browser assignment/removal pass. No released migration change
 or repeat full-matrix run were needed for the copy correction. Owned browser/app
 and Compose resources are independently absent. The containing commit delivers
 this slice; unrelated transient read diagnostics are retained separately.
+
+## Provider Model reverse binding index (V69)
+
+Frozen GORM migration V69 adds the nonunique
+`idx_bindings_provider_model(provider_model_id,model_id,id)` index with
+`HasIndex`/`CreateIndex`. Its schema does not use evolving business entities.
+The index supports the complete Provider-scoped stored-binding projection; it
+changes neither relationships nor routing weights. Creation, upgrade, repeat, interrupted-ledger and concurrent-startup acceptance
+passes on PostgreSQL and MySQL in the complete129 gate.
+
+Index-removal fault simulation has two fixture-only adapters. The pinned
+PostgreSQL GORM `DropIndex` generates invalid schema-expression syntax, so the
+fixture drops one fixed index with documented SQL. MySQL may use that reverse
+index to support an existing foreign key; the fixture creates a frozen GORM
+supporting index before removal and removes it only after V69 restores the full
+physical key. Foreign keys are never disabled. Production migration stays GORM.
+The initial focused run retains both removal failures as failed evidence.
+
+V69 complete dual-driver acceptance passes 129 ordered scenarios per database, including empty/upgrade/repeat/concurrent/index paths. The historical duty-role reconstruction fixture now checks exactly V1–V68 while retaining later ledger entries. This changes test scope only, never a released migration.

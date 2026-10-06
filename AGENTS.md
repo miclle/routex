@@ -952,8 +952,9 @@ conjunctively; reset controls on actor/Provider change. Render stored image/PDF
 declarations independently of routing readiness, capacity and pricing. Require
 fresh exact actor/Provider catalogue and independent read/write permissions, hide
 private rows during renewed reads/errors, and forward AbortSignal for obsolete
-catalogue reads. Do not fetch Model directories or infer binding state. Keep paired
-English/Chinese labels and existing resource links.
+catalogue reads. Keep binding facts separate from routing readiness; use only the
+complete scoped projection described below. Keep paired English/Chinese labels
+and existing resource links.
 
 Member model catalogue cards and native table rows support whole-item pointer
 and focused Enter/Space activation of the existing exact-target access drawer.
@@ -980,3 +981,12 @@ Hide private facts during Session/resource renewal and errors, and retain one ex
 Session observer. A base-role discrepancy requires one fresh Session check without mixed
 labels or an automatic loop. Explicit identity refresh resets the collection; standalone
 monthly accounts and independent usage reports retain their contracts.
+
+Provider Models retain the existing table and compact conjunctive filters. Stored
+Model names and Bound/Unbound filters use one complete Provider-scoped projection,
+with fresh independent providers.read and models.read_all authority. Match the
+complete ProviderModel/Connection set before displaying links or applying binding
+filters. Provider-only readers retain Unknown without a Model directory read.
+Hide prior binding facts during renewal, errors or mismatches; explicit mismatch
+recovery refreshes the catalogue before the projection. Stored disabled or
+zero-weight relationships do not prove routing readiness.

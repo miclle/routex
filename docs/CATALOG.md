@@ -804,3 +804,26 @@ checking/build and controlled bilingual pointer/keyboard, permission, actor and
 original-Session restart acceptance. Text-selection and held/error authority races
 remain focused source evidence. This bounded slice is delivered by the containing
 commit; F19 remains partial.
+
+## Complete Provider Model binding projection
+
+`GET /api/v1/admin/providers/:provider_id/model-bindings` requires both current
+`providers.read` and `models.read_all`; Provider read alone cannot reveal logical
+Model names or binding counts. The read-only endpoint accepts no query parameters
+and returns `Cache-Control: no-store`, including rejected reads. Its complete
+envelope is `{provider_id,items}`. Every item contains
+`{provider_model_id,connection_id,binding_count,models}`, and every Model contains
+only `{id,name}`. A missing historical current name remains null.
+
+The projection covers every current Provider Model, including empty bindings and
+stored disabled or zero-weight relationships. It uses exact identities, current
+names and one bounded read-only repeatable-read transaction. It exposes no grants,
+recipients, credentials, aliases, historical names or readiness claims. More than
+10,000 relevant records fails without returning a partial projection.
+
+The existing Provider Models table adds a Models column and conjunctive Bound/
+Unbound filter. It accepts the projection only when the complete Provider Model/
+Connection set matches the fresh catalogue. Provider-only readers see Unknown
+and cannot use binding filters. Renewal, errors and mismatches hide saved facts;
+explicit mismatch recovery refreshes the catalogue before requesting a new
+projection. Rendering the table never reconstructs bindings from a Model directory.

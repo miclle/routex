@@ -307,6 +307,7 @@ func (ctrl *Ctrl) RegisterRoutes(r *fox.Engine) {
 	admin.GET("/calls/export.csv", ctrl.RequirePermission("calls.read_all"), ctrl.ExportAdminCalls)
 	admin.GET("/calls/:request_id", ctrl.RequirePermission("calls.read_all"), ctrl.GetAdminCall)
 	admin.GET("/providers", ctrl.RequirePermission("providers.read"), ctrl.ListProviders)
+	admin.GET("/providers/:provider_id/model-bindings", ctrl.RequirePermission("providers.read"), ctrl.RequirePermission("models.read_all"), ctrl.GetProviderModelBindings)
 	admin.GET("/providers/:provider_id/quality", ctrl.RequirePermission("providers.read"), ctrl.ProviderQuality)
 	admin.GET("/providers/:provider_id/quality-policy", ctrl.RequirePermission("system.read"), ctrl.ProviderQualityPolicy)
 	admin.PUT("/providers/:provider_id/quality-policy", sameOrigin, requireCSRF, jsonManagementRequest, ctrl.RequirePermission("system.write"), ctrl.WriteProviderQualityPolicy)
