@@ -160,7 +160,7 @@ The policy table is a bounded discriminated resource association, not an arbitra
 
 `limit_defaults` snapshots and reset semantics avoid tri-state default ambiguity: null on a resource aggregate means unlimited; null on a Key or Team member means inherit. A per-field override can be cleared with an explicit null to return that child field to inheritance. Reset-to-default replaces all aggregate fields with the current template and records before/after values. No usage-reset API is included. Direct platform edits require a reason and If-Match/ETag; stale edits return 409.
 
-Token/money behavior is `stop` for all Project, Team and Key hard limits. Personal quota policies may later support `alert_only`; that mode must be visibly nonblocking and still meter actual usage. RPM, TPM, concurrency and IP are always hard admission rules. A child cannot soften a hard parent. Until durable threshold notifications exist, APIs must reject `alert_only` and alert-setting writes rather than expose inactive controls. Threshold delivery is a separate feature slice with deduplication by account, dimension, period and threshold crossing.
+Project, Team and Key policies retain hard-stop behavior. The Personal User monthly slice below permits independent stop/alert-only for only its own monthly dimensions. Accounting, currency/price, rolling, rates, concurrency and IP remain independent gates; fixed warning history is unchanged. Configurable thresholds and other scopes are separate phases.
 
 ## Windows, money and reset boundaries
 
@@ -308,3 +308,42 @@ regression, mandatory check, both-driver auth/process lifecycle and R3
 native/browser/restart acceptance, this phase is ready for a scoped main commit
 and push. Previous failed fixture/helper runs remain explicit historical
 evidence. Remote delivery and CI are not yet claimed.
+
+## Personal User monthly behavior
+
+Only a User's own monthly Tokens and money caps support independent `stop` or
+`alert_only`, through the existing Member Limits API/editor. User stored policy
+and its User entry in `ip_policies` expose canonical `tokens_month_behavior` and
+`money_month_behavior`. Omission on full replacement resolves to stop; explicit
+null/empty/non-string/unknown modes are invalid. Defaults/reset normalize to stop.
+Other stored scopes reject behavior fields. A null cap is disabled and retains an
+inert saved mode; zero is a real threshold.
+
+Alert-only bypasses only the matching User monthly capacity-exceeded decision.
+Accounting availability, known coverage, holds, conservative reservation bounds,
+price/currency checks, account birth/current publication, rolling tokens, rates,
+concurrency, IP and every other account remain independent gates. Metering and
+fixed warning/exhaustion history are unchanged. A Personal Key's hard cap still
+applies when its User parent is alert-only. User `[stored]` and Personal Key
+`[User parent, Key stored]` chains retain their exact ownership; numeric effective
+minima are informational configured-cap projections, not one stopping policy.
+
+The editor confirms complete caps/modes/currency/reason/ETag. Definite first
+validation/conflict failures retain an editable draft for explicit review; after
+uncertain publication every failed retry retains the original exact intent.
+Restore preserves historical non-secret modes but sends its unchanged reset
+request and confirms current canonical stop modes. No Key mode editor is added.
+
+The scoped Personal/Provider candidate excludes pending Excel changes and passes
+its own exact-source full133 regression: 266 direct lifecycle cases, eight
+constraints and 4,756 balanced named results. Acceptance SHA-256:
+`ccb38e2b4b508f6304c2246b0d161e18e66263a0d023fd7ca332970af26b4ac2`.
+Its 1,034 backend paths differ from the older private 1,036-backend candidate. Controlled Personal browser/native R4 verifies independent
+zero stopping, alert-only admission, inactive null caps, English/Chinese drafts,
+keyboard confirmation, independent permissions and a hard Key cap under an
+alert-only User parent. Seven gateway calls produce three completed native
+attempts and four pre-admission rejections with null usage and no attempts.
+Same-artifact restart preserves original Sessions and sampled rows; owned cleanup
+is verified. Acceptance SHA-256: `75b6b5265014caa9c63b531275c0f89f98ab8fb7512e00c217a446388eccf8cc`.
+Current contextual main checks and delivery are tracked in [Implementation](IMPLEMENTATION.md).
+F17 remains partial; Team monthly behavior is a separate phase.

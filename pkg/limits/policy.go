@@ -11,20 +11,56 @@ var ErrInvalid = errors.New("invalid admission policy")
 
 const MaxInteger int64 = 9007199254740991
 
+const (
+	MonthlyBehaviorStop      = "stop"
+	MonthlyBehaviorAlertOnly = "alert_only"
+)
+
+// CanonicalMonthlyBehavior keeps legacy stop policies byte-compatible internally.
+// Wire readers may expose the explicit stop spelling; it is never a third mode.
+func CanonicalMonthlyBehavior(value string) (string, error) {
+	switch value {
+	case "", MonthlyBehaviorStop:
+		return "", nil
+	case MonthlyBehaviorAlertOnly:
+		return value, nil
+	default:
+		return "", ErrInvalid
+	}
+}
+
+func StoredMonthlyBehavior(value string) string {
+	if value == "" {
+		return MonthlyBehaviorStop
+	}
+	return value
+}
+
 type Policy struct {
-	Tokens5H    *int64   `json:"tokens_5h"`
-	Tokens7D    *int64   `json:"tokens_7d"`
-	TokensMonth *int64   `json:"tokens_month"`
-	TPM         *int64   `json:"tpm"`
-	MoneyMonth  *string  `json:"money_month"`
-	Currency    string   `json:"currency"`
-	RPM         *int64   `json:"rpm"`
-	Concurrency *int64   `json:"concurrency"`
-	IPMode      string   `json:"ip_mode"`
-	IPRanges    []string `json:"ip_ranges"`
+	Tokens5H            *int64   `json:"tokens_5h"`
+	Tokens7D            *int64   `json:"tokens_7d"`
+	TokensMonthBehavior string   `json:"tokens_month_behavior,omitempty"`
+	MoneyMonthBehavior  string   `json:"money_month_behavior,omitempty"`
+	TokensMonth         *int64   `json:"tokens_month"`
+	TPM                 *int64   `json:"tpm"`
+	MoneyMonth          *string  `json:"money_month"`
+	Currency            string   `json:"currency"`
+	RPM                 *int64   `json:"rpm"`
+	Concurrency         *int64   `json:"concurrency"`
+	IPMode              string   `json:"ip_mode"`
+	IPRanges            []string `json:"ip_ranges"`
 }
 
 func Normalize(p Policy) (Policy, error) {
+	var err error
+	p.TokensMonthBehavior, err = CanonicalMonthlyBehavior(p.TokensMonthBehavior)
+	if err != nil {
+		return Policy{}, err
+	}
+	p.MoneyMonthBehavior, err = CanonicalMonthlyBehavior(p.MoneyMonthBehavior)
+	if err != nil {
+		return Policy{}, err
+	}
 	for _, value := range []*int64{p.RPM, p.Concurrency} {
 		if value != nil && (*value < 0 || *value > MaxInteger) {
 			return Policy{}, ErrInvalid

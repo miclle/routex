@@ -50,7 +50,13 @@ export type ConnectionNameSubmittedIntent = {
   etag: string
   input: { name: string; reason: string }
 }
+export type ProviderNameSubmittedIntent = {
+  provider_id: string
+  etag: string
+  input: { name: string; reason: string }
+}
 export type SubmittedIntent =
+  | { kind: 'provider-name'; payload: ProviderNameSubmittedIntent }
   | { kind: 'connection-name'; payload: ConnectionNameSubmittedIntent }
   | { kind: 'team-create'; payload: TeamCreateSubmittedIntent }
   | { kind: 'default-limit-save'; payload: DefaultLimitSaveSubmittedIntent }

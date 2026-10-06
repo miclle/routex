@@ -123,6 +123,7 @@ function RestoreDialog({
   managed?: { canDispatch: () => boolean; generation: string }
 }) {
   const { t } = useTranslation('defaultLimits')
+  const { t: limitText } = useTranslation('limits')
   const cache = useQueryClient()
   const queryKey = managed
     ? ['default-reset', actor, target.kind, target.id, managed.generation]
@@ -422,6 +423,26 @@ function RestoreDialog({
                   policy={context.limit.stored as DefaultLimitPolicy}
                   currency={context.limit.platform_currency}
                 />
+                {context.limit.kind === 'user' && (
+                  <div className="mt-3 space-y-1 text-sm">
+                    <p>
+                      {limitText('tokensMonthBehavior')}:{' '}
+                      {limitText(
+                        context.limit.stored.tokens_month_behavior === 'alert_only'
+                          ? 'monthlyAlertOnly'
+                          : 'monthlyStop',
+                      )}
+                    </p>
+                    <p>
+                      {limitText('moneyMonthBehavior')}:{' '}
+                      {limitText(
+                        context.limit.stored.money_month_behavior === 'alert_only'
+                          ? 'monthlyAlertOnly'
+                          : 'monthlyStop',
+                      )}
+                    </p>
+                  </div>
+                )}
               </section>
               <section aria-label={t(owner.state.intent ? 'capturedDefaults' : 'defaults')}>
                 <h3 className="mb-4 font-medium">
@@ -431,6 +452,11 @@ function RestoreDialog({
                   policy={context.default_rule.policy}
                   currency={context.default_rule.platform_currency}
                 />
+                {context.limit.kind === 'user' && (
+                  <p className="mt-3 text-sm text-muted-foreground">
+                    {limitText('monthlyResetStop')}
+                  </p>
+                )}
               </section>
             </div>
             <FormField label={t('reason')}>

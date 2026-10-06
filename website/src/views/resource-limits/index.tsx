@@ -8,9 +8,15 @@ import { getLimits, saveLimits } from '@/api/resource-limits'
 import { useSession } from '@/hooks/use-auth'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { Switch } from '@/components/ui/switch'
 import { Dialog } from '@/components/ui/dialog'
 import { FormField, QueryState } from '@/components/app/CatalogUI'
-import type { LimitInput, LimitRecord, TeamLimitScope } from '@/types/resource-limits'
+import type {
+  LimitInput,
+  LimitRecord,
+  MonthlyQuotaBehavior,
+  TeamLimitScope,
+} from '@/types/resource-limits'
 import {
   integerDraft,
   integerFields,
@@ -144,6 +150,8 @@ function ResourceLimitContent(props: Props) {
 }
 export function LimitSummary({ record, child }: { record: LimitRecord; child?: boolean }) {
   const { t, i18n } = useTranslation('limits')
+  const personalMonthly = record.kind === 'user' || record.kind === 'personal_key'
+  const userParent = record.kind === 'personal_key' ? record.ip_policies[0] : null
   const format = (value: number | null | undefined, fallback: string) =>
     value == null ? t(fallback) : value.toLocaleString(i18n.resolvedLanguage)
   return (
@@ -159,8 +167,28 @@ export function LimitSummary({ record, child }: { record: LimitRecord; child?: b
               {t('stored')}: {format(record.stored[field], child ? 'inherited' : 'unlimited')}
             </dd>
             <dd>
-              {t('effective')}: {format(record.effective[field], 'unlimited')}
+              {t(
+                personalMonthly && field === 'tokens_month'
+                  ? 'monthlyConfiguredMinimum'
+                  : 'effective',
+              )}
+              : {format(record.effective[field], 'unlimited')}
             </dd>
+            {record.kind === 'user' && field === 'tokens_month' && (
+              <dd>
+                {t('tokensMonthBehavior')}:{' '}
+                {t(
+                  record.stored.tokens_month_behavior === 'alert_only'
+                    ? 'monthlyAlertOnly'
+                    : 'monthlyStop',
+                )}
+              </dd>
+            )}
+            {record.kind === 'user' &&
+              field === 'tokens_month' &&
+              record.stored.tokens_month == null && (
+                <dd className="text-muted-foreground">{t('monthlyModeInactive')}</dd>
+              )}
           </div>
         ))}
         <div>
@@ -172,11 +200,24 @@ export function LimitSummary({ record, child }: { record: LimitRecord; child?: b
               : `${record.stored.money_month} ${record.stored.currency}`}
           </dd>
           <dd>
-            {t('effective')}:{' '}
+            {t(personalMonthly ? 'monthlyConfiguredMinimum' : 'effective')}:{' '}
             {record.effective.money_month == null
               ? t('unlimited')
               : `${record.effective.money_month} ${record.effective.currency}`}
           </dd>
+          {record.kind === 'user' && (
+            <dd>
+              {t('moneyMonthBehavior')}:{' '}
+              {t(
+                record.stored.money_month_behavior === 'alert_only'
+                  ? 'monthlyAlertOnly'
+                  : 'monthlyStop',
+              )}
+            </dd>
+          )}
+          {record.kind === 'user' && record.stored.money_month == null && (
+            <dd className="text-muted-foreground">{t('monthlyModeInactive')}</dd>
+          )}
         </div>
         <div>
           <dt className="text-muted-foreground">{t('usage')}</dt>
@@ -187,6 +228,36 @@ export function LimitSummary({ record, child }: { record: LimitRecord; child?: b
           <dd>{format(record.active, 'unknown')}</dd>
         </div>
       </dl>
+      {personalMonthly && (
+        <p className="text-xs text-muted-foreground">{t('monthlyProjectionHelp')}</p>
+      )}
+      {userParent && (
+        <div className="space-y-1 text-xs text-muted-foreground">
+          <p>
+            {t('userParentMonthlyTokens', {
+              value: format(userParent.tokens_month, 'unlimited'),
+              behavior: t(
+                userParent.tokens_month_behavior === 'alert_only'
+                  ? 'monthlyAlertOnly'
+                  : 'monthlyStop',
+              ),
+            })}
+          </p>
+          <p>
+            {t('userParentMonthlyMoney', {
+              value:
+                userParent.money_month == null
+                  ? t('unlimited')
+                  : `${userParent.money_month} ${userParent.currency}`,
+              behavior: t(
+                userParent.money_month_behavior === 'alert_only'
+                  ? 'monthlyAlertOnly'
+                  : 'monthlyStop',
+              ),
+            })}
+          </p>
+        </div>
+      )}
       <QuotaUsageSummary usage={record.quota_usage} />
       <div>
         <h4 className="font-medium">{t('ip')}</h4>
@@ -238,6 +309,14 @@ export function LimitEditor({
   const [reviewed, setReviewed] = useState(current)
   const [numbers, setNumbers] = useState(() => integerDraft(current.stored))
   const [money, setMoney] = useState(current.stored.money_month ?? '')
+  const personalMonthly = current.kind === 'user' && /^\/admin\/members\/[^/]+$/.test(path)
+  const [tokensBehavior, setTokensBehavior] = useState<MonthlyQuotaBehavior>(
+    current.stored.tokens_month_behavior ?? 'stop',
+  )
+  const [moneyBehavior, setMoneyBehavior] = useState<MonthlyQuotaBehavior>(
+    current.stored.money_month_behavior ?? 'stop',
+  )
+  const [confirmation, setConfirmation] = useState<{ etag: string; input: LimitInput } | null>(null)
   const [mode, setMode] = useState(current.stored.ip_mode)
   const [ranges, setRanges] = useState(current.stored.ip_ranges.join('\n'))
   const [reason, setReason] = useState('')
@@ -246,13 +325,15 @@ export function LimitEditor({
   const lock = useRef(false)
   const intent = useRef<{ etag: string; input: LimitInput } | null>(null)
   const stale =
+    current.kind !== reviewed.kind ||
+    current.id !== reviewed.id ||
     current.etag !== reviewed.etag ||
     current.parent_etag !== reviewed.parent_etag ||
     current.platform_currency !== reviewed.platform_currency
   const [uncertainIntent, setUncertainIntent] = useState(false)
   const uncertain = issue === 'uncertain' || (!!savePolicy && uncertainIntent)
   const blocked = stale || issue === 'conflict' || issue === 'failed'
-  async function dispatch(retry = false) {
+  async function dispatch(retry = false, confirmed = false) {
     if (
       !visible ||
       !canEdit ||
@@ -262,12 +343,12 @@ export function LimitEditor({
       (!retry && (blocked || uncertain))
     )
       return
-    if (!retry) {
+    if (!retry && !confirmed) {
       const numeric = Object.fromEntries(
         integerFields.map((field) => [field, parseInteger(numbers[field])]),
       )
       if (integerFields.some((field) => numeric[field] === undefined)) {
-        setIssue('invalidNumber')
+        setIssue(personalMonthly ? 'personalMonthlyInvalidNumber' : 'invalidNumber')
         return
       }
       const amount = money.trim() || null
@@ -284,12 +365,20 @@ export function LimitEditor({
         parent &&
         (integerFields.some(
           (field) =>
-            numeric[field] != null && parent[field] != null && numeric[field]! > parent[field]!,
+            numeric[field] != null &&
+            parent[field] != null &&
+            !(
+              current.kind === 'personal_key' &&
+              field === 'tokens_month' &&
+              parent.tokens_month_behavior === 'alert_only'
+            ) &&
+            numeric[field]! > parent[field]!,
         ) ||
           (amount !== null &&
             parent.money_month != null &&
             (parent.currency !== reviewed.platform_currency ||
-              moneyAbove(amount, parent.money_month))))
+              (!(current.kind === 'personal_key' && parent.money_month_behavior === 'alert_only') &&
+                moneyAbove(amount, parent.money_month)))))
       ) {
         setIssue('aboveParent')
         return
@@ -309,7 +398,7 @@ export function LimitEditor({
         setIssue('requiredRanges')
         return
       }
-      intent.current = {
+      const captured = {
         etag: reviewed.etag,
         input: {
           tokens_5h: numeric.tokens_5h!,
@@ -323,8 +412,24 @@ export function LimitEditor({
           ip_mode: mode,
           ip_ranges: entries,
           reason: reason.trim(),
+          ...(personalMonthly
+            ? { tokens_month_behavior: tokensBehavior, money_month_behavior: moneyBehavior }
+            : {}),
         },
       }
+      if (personalMonthly) {
+        setConfirmation(captured)
+        return
+      }
+      intent.current = captured
+    }
+    if (confirmed) {
+      if (!confirmation || stale || blocked || uncertain) return
+      intent.current = {
+        etag: confirmation.etag,
+        input: { ...confirmation.input, ip_ranges: [...confirmation.input.ip_ranges] },
+      }
+      setConfirmation(null)
     }
     if (!intent.current) return
     lock.current = true
@@ -359,6 +464,7 @@ export function LimitEditor({
     pending(true)
     try {
       setReviewed(await reload())
+      setConfirmation(null)
       intent.current = null
       setIssue(null)
     } catch {
@@ -379,13 +485,23 @@ export function LimitEditor({
         void dispatch()
       }}
     >
-      <p className="text-sm text-muted-foreground">{t(child ? 'childHelp' : 'aggregateHelp')}</p>
+      <p className="text-sm text-muted-foreground">
+        {t(
+          personalMonthly
+            ? 'personalMonthlyHelp'
+            : current.kind === 'personal_key'
+              ? 'personalKeyHelp'
+              : child
+                ? 'childHelp'
+                : 'aggregateHelp',
+        )}
+      </p>
       {(issue || stale) && (
         <p role="alert" className="text-sm text-destructive">
           {t(savePolicy && uncertain ? 'uncertain' : stale && !uncertain ? 'conflict' : issue!)}
         </p>
       )}
-      <fieldset disabled={busy || uncertain} className="space-y-4">
+      <fieldset disabled={busy || uncertain || !!confirmation} className="space-y-4">
         <details open className="rounded-lg border p-4">
           <summary className="cursor-pointer font-medium">{t('budgetQuotas')}</summary>
           <p className="mt-2 text-xs text-muted-foreground">{t('quotaHelp')}</p>
@@ -403,14 +519,29 @@ export function LimitEditor({
               <p className="mt-2 text-xs text-muted-foreground">
                 {t('platformCurrency', { value: reviewed.platform_currency || t('unknown') })}
               </p>
+              {personalMonthly && (
+                <MonthlyBehaviorControl
+                  label={t('moneyMonthBehavior')}
+                  value={moneyBehavior}
+                  change={setMoneyBehavior}
+                  disabled={busy || uncertain || !!confirmation}
+                  inactive={!money.trim()}
+                />
+              )}
               {child && (
                 <p className="mt-2 text-xs text-muted-foreground">
-                  {t('parentMaximum', {
-                    value:
-                      reviewed.ip_policies[0]?.money_month == null
-                        ? t('unlimited')
-                        : `${reviewed.ip_policies[0].money_month} ${reviewed.ip_policies[0].currency}`,
-                  })}
+                  {t(
+                    current.kind === 'personal_key' &&
+                      reviewed.ip_policies[0]?.money_month_behavior === 'alert_only'
+                      ? 'parentAlertThreshold'
+                      : 'parentMaximum',
+                    {
+                      value:
+                        reviewed.ip_policies[0]?.money_month == null
+                          ? t('unlimited')
+                          : `${reviewed.ip_policies[0].money_month} ${reviewed.ip_policies[0].currency}`,
+                    },
+                  )}
                 </p>
               )}
             </div>
@@ -425,11 +556,27 @@ export function LimitEditor({
                     placeholder={t(child ? 'inherited' : 'unlimited')}
                   />
                 </FormField>
+                {personalMonthly && field === 'tokens_month' && (
+                  <MonthlyBehaviorControl
+                    label={t('tokensMonthBehavior')}
+                    value={tokensBehavior}
+                    change={setTokensBehavior}
+                    disabled={busy || uncertain || !!confirmation}
+                    inactive={!numbers.tokens_month.trim()}
+                  />
+                )}
                 {child && (
                   <p className="mt-2 text-xs text-muted-foreground">
-                    {t('parentMaximum', {
-                      value: reviewed.ip_policies[0]?.[field] ?? t('unlimited'),
-                    })}
+                    {t(
+                      current.kind === 'personal_key' &&
+                        field === 'tokens_month' &&
+                        reviewed.ip_policies[0]?.tokens_month_behavior === 'alert_only'
+                        ? 'parentAlertThreshold'
+                        : 'parentMaximum',
+                      {
+                        value: reviewed.ip_policies[0]?.[field] ?? t('unlimited'),
+                      },
+                    )}
                   </p>
                 )}
               </div>
@@ -499,7 +646,7 @@ export function LimitEditor({
         </FormField>
       </fieldset>
       <div className="flex flex-wrap gap-2">
-        <Button type="submit" disabled={busy || blocked || uncertain}>
+        <Button type="submit" disabled={busy || blocked || uncertain || !!confirmation}>
           {t(busy ? 'loading' : 'save')}
         </Button>
         {uncertain && (
@@ -521,6 +668,126 @@ export function LimitEditor({
           {t('cancel')}
         </Button>
       </div>
+      {personalMonthly && confirmation && (
+        <Dialog
+          open
+          busy={busy}
+          onOpenChange={(open) => {
+            if (!open) setConfirmation(null)
+          }}
+          title={t('monthlyConfirmTitle')}
+          description={t('monthlyConfirmHelp')}
+        >
+          {(stale || blocked) && (
+            <p role="alert" className="mb-4 text-destructive">
+              {t('conflict')}
+            </p>
+          )}
+          <dl className="space-y-3 text-sm">
+            <div>
+              <dt>{t('tokens_month')}</dt>
+              <dd>{confirmation.input.tokens_month ?? t('unlimited')}</dd>
+              <dd>
+                {t('tokensMonthBehavior')}:{' '}
+                {t(
+                  confirmation.input.tokens_month_behavior === 'alert_only'
+                    ? 'monthlyAlertOnly'
+                    : 'monthlyStop',
+                )}
+              </dd>
+            </div>
+            <div>
+              <dt>{t('money_month')}</dt>
+              <dd>
+                {confirmation.input.money_month == null
+                  ? t('unlimited')
+                  : `${confirmation.input.money_month} ${confirmation.input.currency}`}
+              </dd>
+              <dd>
+                {t('moneyMonthBehavior')}:{' '}
+                {t(
+                  confirmation.input.money_month_behavior === 'alert_only'
+                    ? 'monthlyAlertOnly'
+                    : 'monthlyStop',
+                )}
+              </dd>
+            </div>
+            {integerFields
+              .filter((field) => field !== 'tokens_month')
+              .map((field) => (
+                <div key={field}>
+                  <dt>{t(field)}</dt>
+                  <dd>{confirmation.input[field] ?? t('unlimited')}</dd>
+                </div>
+              ))}
+            <div>
+              <dt>{t('ip')}</dt>
+              <dd>{t(confirmation.input.ip_mode)}</dd>
+              {confirmation.input.ip_ranges.map((range) => (
+                <dd key={range} className="break-all">
+                  {range}
+                </dd>
+              ))}
+            </div>
+            <div>
+              <dt>{t('reason')}</dt>
+              <dd className="whitespace-pre-wrap break-words">{confirmation.input.reason}</dd>
+            </div>
+          </dl>
+          <div className="mt-6 flex gap-2">
+            <Button
+              type="button"
+              disabled={
+                busy || blocked || uncertain || !canEdit || (canDispatch ? !canDispatch() : false)
+              }
+              onClick={() => void dispatch(false, true)}
+            >
+              {t('monthlyConfirm')}
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              disabled={busy}
+              onClick={() => setConfirmation(null)}
+            >
+              {t('cancel')}
+            </Button>
+          </div>
+        </Dialog>
+      )}
     </form>
+  )
+}
+
+function MonthlyBehaviorControl({
+  label,
+  value,
+  change,
+  disabled,
+  inactive,
+}: {
+  label: string
+  value: MonthlyQuotaBehavior
+  change: (value: MonthlyQuotaBehavior) => void
+  disabled: boolean
+  inactive: boolean
+}) {
+  const { t } = useTranslation('limits')
+  return (
+    <div className="mt-3 space-y-2">
+      <div className="flex items-center justify-between gap-3">
+        <span className="text-sm">{label}</span>
+        <Switch
+          aria-label={label}
+          checked={value === 'alert_only'}
+          disabled={disabled || inactive}
+          onCheckedChange={(checked) => change(checked ? 'alert_only' : 'stop')}
+        />
+      </div>
+      <p className="text-xs text-muted-foreground">
+        {t(value === 'alert_only' ? 'monthlyAlertOnly' : 'monthlyStop')}
+      </p>
+      {inactive && <p className="text-xs text-muted-foreground">{t('monthlyModeInactive')}</p>}
+    </div>
   )
 }

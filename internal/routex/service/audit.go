@@ -226,6 +226,9 @@ func auditRecord(row entity.AuditEvent) AuditRecord {
 		if json.Unmarshal([]byte(*row.DetailsJSON), &detail) != nil {
 			return result
 		}
+		if !validMonthlyBehaviorAudit(row.ResourceType, detail.Before) || !validMonthlyBehaviorAudit(row.ResourceType, detail.After) {
+			return result
+		}
 		if row.ResourceType == "team" || row.ResourceType == "team_member" {
 			if !safeTeamSessionID(detail.TeamID) || !strings.HasPrefix(detail.TeamID, "tea_") || row.ResourceType == "team" && row.ResourceID != detail.TeamID || row.ResourceType == "team_member" && (!safeTeamSessionID(row.ResourceID) || !strings.HasPrefix(row.ResourceID, "usr_")) || validateTeamLimitPolicy(row.ResourceType, detail.Before) != nil || validateTeamLimitPolicy(row.ResourceType, detail.After) != nil {
 				return result
@@ -237,6 +240,12 @@ func auditRecord(row entity.AuditEvent) AuditRecord {
 	case "model.alias.retire":
 		var valid bool
 		changes, valid = modelAliasRetirementAuditProjection(row)
+		if !valid {
+			return result
+		}
+	case "provider.metadata.update":
+		var valid bool
+		changes, valid = providerMetadataAuditProjection(row)
 		if !valid {
 			return result
 		}

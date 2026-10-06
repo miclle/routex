@@ -701,3 +701,61 @@ describe('default-rule submitted intent', () => {
     },
   )
 })
+describe('Provider name submitted intent', () => {
+  it('clones only exact submitted target/name/reason/etag and renews claims across real Gate500', async () => {
+    await mount()
+    const submitted: SubmittedIntent = {
+      kind: 'provider-name',
+      payload: {
+        provider_id: 'prv_one',
+        etag: `${'a'.repeat(64)}.${'b'.repeat(64)}`,
+        input: { name: '\ufeffSubmitted', reason: 'Exact reason' },
+      },
+    }
+    Object.assign(submitted.payload, { birth: 'not public', metadata: { can_edit: true } })
+    Object.assign(submitted.payload.input, { secret: 'not retained' })
+    let claim: SubmittedIntentClaim | null = null
+    await act(async () => {
+      claim = latestOwner!.capture(actor, submitted)
+    })
+    expect(claim).not.toBeNull()
+    const original = latestOwner!.recover(actor)!
+    expect(original.claim.targetScope).toBe(JSON.stringify(['provider-name', 'prv_one']))
+    expect(original.payload).toEqual({
+      provider_id: 'prv_one',
+      etag: submitted.payload.etag,
+      input: { name: '\ufeffSubmitted', reason: 'Exact reason' },
+    })
+    submitted.payload.input.name = 'Mutated source'
+    if (original.kind !== 'provider-name') throw new Error('Wrong intent kind')
+    original.payload.input.reason = 'Mutated recovery'
+    await renewal(500)
+    expect(latestOwner?.recover(actor)).toBeNull()
+    await renewal(200)
+    await until(() => expect(latestOwner!.recover(actor)?.kind).toBe('provider-name'))
+    const next = latestOwner!.recover(actor)!
+    expect(next.claim).not.toBe(claim)
+    expect(latestOwner!.clear(claim!)).toBe(false)
+    expect(next.payload).toEqual({
+      provider_id: 'prv_one',
+      etag: submitted.payload.etag,
+      input: { name: '\ufeffSubmitted', reason: 'Exact reason' },
+    })
+    expect(cache.getMutationCache().getAll()).toHaveLength(0)
+  })
+  it.each(['prv_', 'PRV_one', 'prv_one ', 'prv_' + 'x'.repeat(27), 'prv_一'])(
+    'rejects provider target %s without borrowing an intent slot',
+    async (provider_id) => {
+      await mount()
+      let claim: SubmittedIntentClaim | null = null
+      await act(async () => {
+        claim = latestOwner!.capture(actor, {
+          kind: 'provider-name',
+          payload: { provider_id, etag: 'review', input: { name: 'Name', reason: 'Reason' } },
+        })
+      })
+      expect(claim).toBeNull()
+      expect(latestOwner!.recover(actor)).toBeNull()
+    },
+  )
+})

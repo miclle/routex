@@ -1,4 +1,37 @@
 export default {
+  providerMetadata: {
+    identityChanged: '已审阅的供应商身份已不再有效。原始请求仍未解决；新审阅前请明确放弃该请求。',
+    title: '基本信息',
+    description: '供应商用于标识服务提供方；协议、地址、网络出口和凭证在接入配置中管理。',
+    loading: '正在加载当前供应商信息…',
+    loadFailed: '无法加载供应商信息。',
+    readDenied: '需要供应商读取权限。',
+    readOnly: '你可以查看此名称，但无权编辑。',
+    nameValidation: '请输入不超过 100 个字符且不含控制字符的名称。',
+    reasonValidation: '请输入不超过 1024 个 UTF-8 字节且不含控制字符的原因。',
+    save: '保存更改',
+    reason: '变更原因',
+    confirmTitle: '确认更改供应商名称',
+    confirmDescription: '仅保存已审阅的供应商名称。接入配置及其他设置保持不变。',
+    confirmName: '供应商名称：{{name}}',
+    confirm: '确认名称变更',
+    stale: '当前供应商已发生变化。准备新请求前请重新审阅。',
+    review: '审阅当前供应商',
+    reviewed: '已审阅当前供应商。请明确确认新请求。',
+    uncertain: '名称可能已保存，但尚未确认当前运行时发布。',
+    conflict: '已审阅名称与当前供应商冲突。原始请求已保留。',
+    retained: '当前读取结果不能完成此请求。请使用原始名称、原因和审阅版本重试，或明确放弃。',
+    retry: '重试原始请求',
+    abandon: '放弃保留的请求',
+    abandonTitle: '放弃保留的供应商名称请求？',
+    abandonDescription:
+      '此操作仅清除保留的请求，不会撤销已保存的名称，也不能证明此前发生了什么。新请求前请审阅当前供应商。',
+    confirmAbandon: '放弃请求',
+    abandoned: '已清除保留的请求。准备新请求前请审阅当前供应商。',
+    saved: '已确认当前供应商名称及运行时发布。这不能证明此前操作的结果。',
+    unavailable: '当前权限状态无法保留此请求。',
+  },
+
   modelAccess: {
     sdkTitle: '官方 SDK 使用指引',
     sdkChat:

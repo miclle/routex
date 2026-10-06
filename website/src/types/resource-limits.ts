@@ -1,4 +1,7 @@
+export type MonthlyQuotaBehavior = 'stop' | 'alert_only'
 export interface LimitPolicy {
+  tokens_month_behavior?: MonthlyQuotaBehavior
+  money_month_behavior?: MonthlyQuotaBehavior
   tokens_5h?: number | null
   tokens_7d?: number | null
   tokens_month?: number | null
@@ -40,7 +43,10 @@ export interface LimitRecord {
   parent_etag?: string
   platform_currency: string
   stored: LimitPolicy
-  effective: Omit<LimitPolicy, 'ip_mode' | 'ip_ranges'>
+  effective: Omit<
+    LimitPolicy,
+    'ip_mode' | 'ip_ranges' | 'tokens_month_behavior' | 'money_month_behavior'
+  >
   quota_usage: QuotaUsage | null
   ip_policies: LimitPolicy[]
   rpm_used: number | null

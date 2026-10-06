@@ -37,10 +37,11 @@ type QuotaLimit struct {
 	Revision string
 	// CreatedAt is trusted resource creation metadata, never a caller override.
 	// Zero means unknown prehistory. Rotation uses the original Key account date.
-	CreatedAt                            time.Time
-	Tokens5H, Tokens7D, TokensMonth, TPM *int64
-	MoneyMonth                           *string
-	Currency                             string
+	CreatedAt                               time.Time
+	Tokens5H, Tokens7D, TokensMonth, TPM    *int64
+	MoneyMonth                              *string
+	Currency                                string
+	TokensMonthBehavior, MoneyMonthBehavior string
 }
 type QuotaBound struct {
 	Tokens        *int64  `json:"tokens"`

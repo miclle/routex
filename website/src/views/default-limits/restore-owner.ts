@@ -125,6 +125,9 @@ export type RestoreOwner = ReturnType<typeof useRestoreOwner>
 
 // This is a historical submission review, never current usage or authority.
 function restoredReview(value: RetainedRestoreReview): DefaultLimitResetContext {
+  const effective = structuredClone(value.limit.stored)
+  delete effective.tokens_month_behavior
+  delete effective.money_month_behavior
   return {
     kind: value.kind,
     id: value.id,
@@ -147,7 +150,7 @@ function restoredReview(value: RetainedRestoreReview): DefaultLimitResetContext 
       etag: value.limit.etag,
       platform_currency: value.limit.platform_currency,
       stored: structuredClone(value.limit.stored),
-      effective: structuredClone(value.limit.stored),
+      effective,
       ip_policies: [],
       quota_usage: null,
       rpm_used: null,

@@ -979,3 +979,30 @@ zero-weight relationships do not prove routing readiness.
 Model access drawers place a separate Official SDK guidance card after the native request example. Bind it to the fresh exact source and selected eligible protocol; hide it during renewed or failed reads and actor/target changes. Personal guidance uses the matching native client configuration and official documentation: OpenAI uses /v1, while Messages and Gemini use the gateway origin with their client-owned version path. Team guidance keeps the standalone Session/current-CSRF request and never substitutes a Personal Key. Guidance is not a runnable SDK program, a compatibility guarantee, or proof that inference will succeed. Preserve existing copy bytes and add no discovery or directory reads.
 
 Model routing drafts are transient actor- and Model-scoped page state. Renewed Session, permission or detail reads hide private routing controls while retaining unsent weights. Dispatch requires fresh authority and the exact reviewed binding identities; changed identities block submission until explicit current-route review replaces the draft. Preserve bilingual guidance and focus after review. No browser storage, automatic save or undispatched-draft recovery through an AuthGate unmount is implied.
+
+Personal User monthly Token and money behavior belongs beside its own cap in the
+existing Member Limits editor. Use local Base UI Switches and explicit User-only
+confirmation for `stop` or `alert_only`. A null cap disables its control and shows
+inactive guidance; zero is a real threshold. Confirmation/uncertainty locks do not
+label a configured cap inactive. Keep other scopes and rolling/rate/IP controls
+unchanged. Omitted User modes and copied/reset defaults resolve to stop.
+
+Capture both modes with the complete policy, reason and reviewed ETag. Definite
+first validation/conflict responses retain an editable draft for explicit fresh
+review. Once publication is uncertain, every failed retry retains the original
+body/ETag/modes; retry manually with fresh same-actor authority and current CSRF.
+Retained Restore reviews preserve non-secret User modes across AuthGate remounts.
+Personal Key summaries may show the authoritative User parent mode, but have no
+behavior editor. Numeric effective minima are configured-cap projections, not a
+merged stopping policy or a promise that inference will succeed. Keep paired
+limits copy and language-switch/authority/retry tests.
+
+Provider Settings keeps the existing Basic information name editor. Read and write
+permissions are independent. Submit the exact reviewed strong If-Match, name and
+required reason; retain drafts on conflict and require explicit current review.
+After uncertain publication retain the immutable transient intent through Session
+errors and rejected retries, with fresh same-actor authority before manual retry.
+A matching GET never resolves uncertainty. A successful retry confirms the current
+name and runtime publication, not the original historical operation. Actor, target
+or logout clears intent. Do not edit child records, secrets or quality policy.
+Keep paired catalogue translations and local Base UI confirmation.

@@ -31,6 +31,20 @@ import (
 // any notified resource is created; no historical accounting is manufactured.
 func testMonthlyQuotaNotificationLifecycle(t *testing.T, db *gorm.DB) {
 	ctx := context.Background()
+	// Reuse the proven fixture-owned publisher fence; ordinary API/observer reads
+	// remain unmarked and each positive observation runs exactly once.
+	var publicationBarrier personalKeyWarningFixturePublicationBarrier
+	workerCtx := context.WithValue(ctx, personalKeyWarningFixtureWorkerContext{}, &publicationBarrier)
+	const publicationCallback = "test:monthly-quota-notification-positive-publication"
+	if err := db.Callback().Query().Before("gorm:query").Register(publicationCallback, publicationBarrier.beforeQuery); err != nil {
+		t.Fatal(err)
+	}
+	defer func() {
+		publicationBarrier.armed.Store(false)
+		if err := db.Callback().Query().Remove(publicationCallback); err != nil {
+			t.Error(err)
+		}
+	}()
 	store, err := secretstore.New(bytes.Repeat([]byte{97}, 32))
 	if err != nil {
 		t.Fatal(err)
@@ -113,7 +127,7 @@ func testMonthlyQuotaNotificationLifecycle(t *testing.T, db *gorm.DB) {
 		}
 	}
 	spool := filepath.Join(t.TempDir(), "quota-notifications.db")
-	if err := svc.StartRuntime(ctx); err != nil {
+	if err := svc.StartRuntime(workerCtx); err != nil {
 		t.Fatal(err)
 	}
 	if err := svc.StartCallRecorder(ctx, spool); err != nil {
@@ -186,7 +200,7 @@ func testMonthlyQuotaNotificationLifecycle(t *testing.T, db *gorm.DB) {
 	}
 	reconcile := func() {
 		t.Helper()
-		if err := svc.ReconcileMonthlyQuotaNotifications(ctx); err != nil {
+		if err := publicationBarrier.observePublished(func() error { return svc.RefreshRuntime(ctx) }, func() error { return svc.ReconcileMonthlyQuotaNotifications(ctx) }); err != nil {
 			t.Fatal(err)
 		}
 	}
@@ -362,7 +376,7 @@ func testMonthlyQuotaNotificationLifecycle(t *testing.T, db *gorm.DB) {
 		t.Fatal(err)
 	}
 	svc = makeService()
-	if err := svc.StartRuntime(ctx); err != nil {
+	if err := svc.StartRuntime(workerCtx); err != nil {
 		t.Fatal(err)
 	}
 	if err := svc.StartCallRecorder(ctx, spool); err != nil {
@@ -393,7 +407,9 @@ func testMonthlyQuotaNotificationLifecycle(t *testing.T, db *gorm.DB) {
 		_, err := svc.ListNotifications(deadline, member.User.ID, service.NotificationFilter{})
 		failures <- err
 	})
-	wait.Go(func() { failures <- svc.ReconcileMonthlyQuotaNotifications(deadline) })
+	wait.Go(func() {
+		failures <- publicationBarrier.observePublished(func() error { return svc.RefreshRuntime(deadline) }, func() error { return svc.ReconcileMonthlyQuotaNotifications(deadline) })
+	})
 	wait.Wait()
 	close(failures)
 	for err := range failures {

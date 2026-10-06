@@ -22,7 +22,8 @@ var errLimitConflict = &apperrors.Error{Code: 409, Message: "resource limit poli
 type LimitTarget struct{ Kind, ID, ProjectID, TeamID string }
 type LimitInput struct {
 	limits.Policy
-	Reason string `json:"reason"`
+	Reason                 string `json:"reason"`
+	monthlyBehaviorPresent bool
 }
 type EffectiveLimitValues struct {
 	Tokens5H    *int64  `json:"tokens_5h"`
@@ -54,13 +55,17 @@ type LimitRecord struct {
 type resolvedLimitTarget struct{ kind, id, parentKind, parentID, teamID, userID string }
 
 func policyFromRow(row entity.ResourceLimit) (limits.Policy, error) {
-	policy := limits.Policy{Tokens5H: row.Tokens5H, Tokens7D: row.Tokens7D, TokensMonth: row.TokensMonth, TPM: row.TPM, MoneyMonth: row.MoneyMonth, Currency: row.Currency, RPM: row.RPM, Concurrency: row.Concurrency, IPMode: row.IPMode}
+	policy := limits.Policy{TokensMonthBehavior: row.TokensMonthBehavior, MoneyMonthBehavior: row.MoneyMonthBehavior, Tokens5H: row.Tokens5H, Tokens7D: row.Tokens7D, TokensMonth: row.TokensMonth, TPM: row.TPM, MoneyMonth: row.MoneyMonth, Currency: row.Currency, RPM: row.RPM, Concurrency: row.Concurrency, IPMode: row.IPMode}
 	if row.IPRangesJSON != "" {
 		if json.Unmarshal([]byte(row.IPRangesJSON), &policy.IPRanges) != nil {
 			return policy, limits.ErrInvalid
 		}
 	}
-	return limits.Normalize(policy)
+	normalized, err := limits.Normalize(policy)
+	if err != nil || row.ScopeKind != "user" && (normalized.TokensMonthBehavior != "" || normalized.MoneyMonthBehavior != "") {
+		return policy, limits.ErrInvalid
+	}
+	return normalized, nil
 }
 func readLimitPolicy(db *gorm.DB, kind, scopeID string) (entity.ResourceLimit, limits.Policy, error) {
 	row := entity.ResourceLimit{ScopeKind: kind, ScopeID: scopeID, ETag: "0"}
@@ -101,6 +106,9 @@ func resolveLimitTarget(db *gorm.DB, actor string, target LimitTarget, write boo
 		var user entity.User
 		if err := db.First(&user, "id = ?", target.ID).Error; err != nil {
 			return resolved, err
+		}
+		if user.ID != target.ID {
+			return resolved, apperrors.ErrNotFound
 		}
 		if write && user.Disabled {
 			return resolved, errLimitConflict
@@ -208,7 +216,11 @@ func (s *Service) resourceLimitRecord(db *gorm.DB, target LimitTarget, resolved 
 	}
 	result.PlatformCurrency = pricingSetting.PlatformCurrency
 	if resolved.parentKind != "" {
-		parentRow, parent, err := read(db, resolved.parentKind, resolved.parentID)
+		parentRead := read
+		if resolved.parentKind == "user" {
+			parentRead = readDefaultResourceLimitPolicy
+		}
+		parentRow, parent, err := parentRead(db, resolved.parentKind, resolved.parentID)
 		if err != nil {
 			return nil, err
 		}
@@ -248,12 +260,21 @@ func (s *Service) resourceLimitRecord(db *gorm.DB, target LimitTarget, resolved 
 		}
 		result.QuotaUsage = quota
 	}
+	// Decorate only after all stored-vs-published equality checks. Internal stop
+	// remains canonical legacy empty; wire User policies always spell it explicitly.
+	if resolved.kind == "user" {
+		result.Stored = userMonthlyBehaviorWire(result.Stored)
+		result.IPPolicies[0] = userMonthlyBehaviorWire(result.IPPolicies[0])
+	}
+	if resolved.parentKind == "user" {
+		result.IPPolicies[0] = userMonthlyBehaviorWire(result.IPPolicies[0])
+	}
 	return result, nil
 }
 func (s *Service) SetResourceLimit(ctx context.Context, actor string, target LimitTarget, etag string, input LimitInput) (*LimitRecord, error) {
 	policy, err := limits.Normalize(input.Policy)
 	reason := strings.TrimSpace(input.Reason)
-	if err != nil || etag == "" || len(reason) == 0 || len(reason) > 2000 {
+	if err != nil || target.Kind != "user" && (input.monthlyBehaviorPresent || input.TokensMonthBehavior != "" || input.MoneyMonthBehavior != "") || etag == "" || len(reason) == 0 || len(reason) > 2000 {
 		return nil, apperrors.ErrBadRequest
 	}
 	// Serialize publication against the final admission check, not the earlier
@@ -271,7 +292,11 @@ func (s *Service) SetResourceLimit(ctx context.Context, actor string, target Lim
 		if err != nil {
 			return err
 		}
-		row, before, err := readLimitPolicy(tx, resolved.kind, resolved.id)
+		read := readLimitPolicy
+		if resolved.kind == "user" {
+			read = readDefaultResourceLimitPolicy
+		}
+		row, before, err := read(tx, resolved.kind, resolved.id)
 		if err != nil {
 			return err
 		}
@@ -291,7 +316,11 @@ func (s *Service) SetResourceLimit(ctx context.Context, actor string, target Lim
 			}
 		}
 		if resolved.parentKind != "" {
-			_, parent, err := readLimitPolicy(tx, resolved.parentKind, resolved.parentID)
+			parentRead := readLimitPolicy
+			if resolved.parentKind == "user" {
+				parentRead = readDefaultResourceLimitPolicy
+			}
+			_, parent, err := parentRead(tx, resolved.parentKind, resolved.parentID)
 			if err != nil {
 				return err
 			}
@@ -330,7 +359,7 @@ func persistResourceLimitPolicyWithDefault(tx *gorm.DB, actor string, resolved r
 	if err != nil {
 		return row, err
 	}
-	row = entity.ResourceLimit{ScopeKind: resolved.kind, ScopeID: resolved.id, ETag: revision, PreviousETag: row.ETag, ActorID: actor, Reason: reason, Tokens5H: policy.Tokens5H, Tokens7D: policy.Tokens7D, TokensMonth: policy.TokensMonth, TPM: policy.TPM, MoneyMonth: policy.MoneyMonth, Currency: policy.Currency, RPM: policy.RPM, Concurrency: policy.Concurrency, IPMode: policy.IPMode, IPRangesJSON: string(ranges)}
+	row = entity.ResourceLimit{TokensMonthBehavior: limits.StoredMonthlyBehavior(policy.TokensMonthBehavior), MoneyMonthBehavior: limits.StoredMonthlyBehavior(policy.MoneyMonthBehavior), ScopeKind: resolved.kind, ScopeID: resolved.id, ETag: revision, PreviousETag: row.ETag, ActorID: actor, Reason: reason, Tokens5H: policy.Tokens5H, Tokens7D: policy.Tokens7D, TokensMonth: policy.TokensMonth, TPM: policy.TPM, MoneyMonth: policy.MoneyMonth, Currency: policy.Currency, RPM: policy.RPM, Concurrency: policy.Concurrency, IPMode: policy.IPMode, IPRangesJSON: string(ranges)}
 	if provenance != nil {
 		row.AppliedDefaultETag = &provenance.RuleETag
 		row.DefaultResetETag = &provenance.ReviewETag

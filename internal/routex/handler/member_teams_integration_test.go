@@ -126,7 +126,7 @@ func testMemberTeamsLifecycle(t *testing.T, db *gorm.DB) {
 	if scopeID == review.AccountID || scopeID == "" {
 		t.Fatal("missing authoritative pair account", review)
 	}
-	policy := entity.ResourceLimit{ScopeKind: "team_member", ScopeID: scopeID, ETag: "lim_member_teams", TokensMonth: &zero, MoneyMonth: &money, Currency: "USD", RPM: &rpm}
+	policy := entity.ResourceLimit{ScopeKind: "team_member", ScopeID: scopeID, ETag: "lim_member_teams", TokensMonthBehavior: "stop", MoneyMonthBehavior: "stop", TokensMonth: &zero, MoneyMonth: &money, Currency: "USD", RPM: &rpm}
 	// Team creation already persists its default policy. The review above only
 	// reads the pair policy; seed just these controls without rewriting defaults,
 	// actor/reason metadata, ownership or recorded timestamps of an existing row.

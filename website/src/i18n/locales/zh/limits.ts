@@ -1,4 +1,26 @@
 export default {
+  parentAlertThreshold: '当前上级仅提醒阈值：{{value}}',
+  personalKeyHelp:
+    '留空以继承当前上级。显式限制只能收紧上级的停止调用限制；User 月度仅提醒阈值不代表 Key 上限。上级和 Key 的 IP 规则必须同时允许来源。轮换共享此策略及其计数。',
+  monthlyResetStop: '恢复默认值会将两项个人月度行为重置为停止调用，不会重置用量。',
+  monthlyConfiguredMinimum: '已配置月度最小值',
+  monthlyProjectionHelp:
+    '已配置月度最小值仅汇总数值策略，不代表统一的停止调用阈值。各账户按自己的已保存行为执行；Key 限制及其他检查仍然适用。',
+  userParentMonthlyTokens: '个人 User 月度 Token：{{value}} · {{behavior}}',
+  userParentMonthlyMoney: '个人 User 月度预算：{{value}} · {{behavior}}',
+  personalMonthlyInvalidNumber:
+    '请输入非负安全整数，或留空。零是实际阈值；仅提醒只适用于选定的月度维度。',
+  tokensMonthBehavior: '月度 Token 阈值行为',
+  moneyMonthBehavior: '月度预算阈值行为',
+  monthlyStop: '达到此阈值时停止调用',
+  monthlyAlertOnly: '达到此阈值时仅提醒',
+  monthlyModeInactive: '未设置上限，此维度已保存的行为暂不生效。',
+  personalMonthlyHelp:
+    '个人月度 Token 和预算分别设置阈值行为。零是实际阈值，留空会禁用该维度。其他限制和计量要求仍然适用，保存不会重置用量。',
+  monthlyConfirmTitle: '确认个人月度阈值行为',
+  monthlyConfirmHelp:
+    '请核对确切的月度上限、行为和原因。仅提醒不保证请求成功，其他限制和计量检查仍然适用。',
+  monthlyConfirm: '确认限制',
   teamTitle: '团队预算、配额与限制',
   teamMemberTitle: '成员资源',
   teamMemberEdit: '调整成员资源',

@@ -44,7 +44,11 @@ func MoneyMinimum(a, b *string) *string {
 	return b
 }
 func narrowerQuota(parent, child Policy) bool {
-	for _, pair := range [][2]*int64{{parent.Tokens5H, child.Tokens5H}, {parent.Tokens7D, child.Tokens7D}, {parent.TokensMonth, child.TokensMonth}, {parent.TPM, child.TPM}} {
+	monthly := parent.TokensMonth
+	if parent.TokensMonthBehavior == MonthlyBehaviorAlertOnly {
+		monthly = nil
+	}
+	for _, pair := range [][2]*int64{{parent.Tokens5H, child.Tokens5H}, {parent.Tokens7D, child.Tokens7D}, {monthly, child.TokensMonth}, {parent.TPM, child.TPM}} {
 		if pair[0] != nil && pair[1] != nil && *pair[1] > *pair[0] {
 			return false
 		}
@@ -58,7 +62,7 @@ func narrowerQuota(parent, child Policy) bool {
 			return false
 		}
 		right, ok := new(big.Rat).SetString(*child.MoneyMonth)
-		if !ok || right.Cmp(left) > 0 {
+		if !ok || parent.MoneyMonthBehavior != MonthlyBehaviorAlertOnly && right.Cmp(left) > 0 {
 			return false
 		}
 	}

@@ -1,4 +1,27 @@
 export default {
+  parentAlertThreshold: 'Current parent alert-only threshold: {{value}}',
+  personalKeyHelp:
+    'Leave blank to inherit the current parent. Explicit limits can only narrow hard-stop parent limits; an alert-only User monthly cap is not a Key maximum. Parent and Key IP rules must both permit the source. Rotation shares this policy and its counters.',
+  monthlyResetStop:
+    'Restoring defaults resets both Personal monthly behaviors to stop. It never resets usage.',
+  monthlyConfiguredMinimum: 'Configured monthly minimum',
+  monthlyProjectionHelp:
+    'The configured monthly minimum is a numeric policy summary, not a combined stopping threshold. Each account applies its own saved behavior; Key limits and all other checks still apply.',
+  userParentMonthlyTokens: 'Personal User monthly tokens: {{value}} · {{behavior}}',
+  userParentMonthlyMoney: 'Personal User monthly budget: {{value}} · {{behavior}}',
+  personalMonthlyInvalidNumber:
+    'Use a nonnegative safe integer, or leave blank. Zero is a real threshold; alert-only applies only to selected monthly dimensions.',
+  tokensMonthBehavior: 'Monthly token threshold behavior',
+  moneyMonthBehavior: 'Monthly budget threshold behavior',
+  monthlyStop: 'Stop calling at this threshold',
+  monthlyAlertOnly: 'Alert only at this threshold',
+  monthlyModeInactive: 'No cap is set. The saved behavior is inactive for this dimension.',
+  personalMonthlyHelp:
+    'Personal monthly tokens and budget have separate threshold behavior. Zero is a real threshold; a blank cap disables that dimension. Other limits and accounting requirements still apply. Saving never resets usage.',
+  monthlyConfirmTitle: 'Confirm Personal monthly behavior',
+  monthlyConfirmHelp:
+    'Review the exact monthly caps, behavior and reason. Alert-only does not guarantee that a request succeeds; other limits and accounting checks still apply.',
+  monthlyConfirm: 'Confirm limits',
   teamTitle: 'Team budgets, quotas and limits',
   teamMemberTitle: 'Member resources',
   teamMemberEdit: 'Adjust member resources',

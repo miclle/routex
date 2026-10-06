@@ -996,3 +996,25 @@ physical key. Foreign keys are never disabled. Production migration stays GORM.
 The initial focused run retains both removal failures as failed evidence.
 
 V69 complete dual-driver acceptance passes 129 ordered scenarios per database, including empty/upgrade/repeat/concurrent/index paths. The historical duty-role reconstruction fixture now checks exactly V1–V68 while retaining later ledger entries. This changes test scope only, never a released migration.
+
+## Personal User monthly behavior (V70)
+
+Frozen GORM V70 adds only `resource_limits.tokens_month_behavior` and
+`money_month_behavior`: VARCHAR(16), NOT NULL, default stop. Two exact byte/length
+value constraints accept only stop/alert_only, and the scope constraint permits
+alert-only only for exact User scope. Storage16 preserves invalid trailing-space
+suffixes for CHECK rejection instead of MySQL truncating them to valid values.
+Partial valid DDL resumes through bounded GORM Migrator checks of width,
+nullability/default and missing constraints. Released V1–V69 remain unchanged;
+no usage, receipt, identity, relationship or warning history is reset.
+
+The registry appends the two Personal migration/lifecycle cases and Provider
+metadata after the unchanged 130-case prefix: 133 scenarios per driver and ledger
+version 70. V68/V69 fixtures retain bounded historical prefix/replay checks. The
+exact scoped candidate excludes pending Excel changes and passes its own full133:
+266 direct PostgreSQL/MySQL lifecycle cases, eight constraints and 4,756 balanced
+named results. Its 1,034 backend paths and all 1,718 source paths/modes are verified;
+owned resources, process and listeners are absent. Acceptance SHA-256:
+`ccb38e2b4b508f6304c2246b0d161e18e66263a0d023fd7ca332970af26b4ac2`.
+The older private 1,036-backend R2 is separate historical evidence.
+Current delivery is tracked in [Implementation](IMPLEMENTATION.md).

@@ -69,8 +69,10 @@ func testDefaultLimitMigration(t *testing.T, db *gorm.DB) {
 			}
 		}
 	}()
+	// Explicit current fields preserve full comparisons across reordered fixture DDL.
+	// SELECT * can invalidate PostgreSQL cached row descriptors after column repair.
 	var before entity.ResourceLimit
-	if err := db.First(&before, "scope_kind = ? AND scope_id = ?", legacy.ScopeKind, legacy.ScopeID).Error; err != nil {
+	if err := db.Session(&gorm.Session{QueryFields: true}).First(&before, "scope_kind = ? AND scope_id = ?", legacy.ScopeKind, legacy.ScopeID).Error; err != nil {
 		t.Fatal(err)
 	}
 	provenance := &defaultProvenanceV42Fixture{}
@@ -134,7 +136,7 @@ func testDefaultLimitMigration(t *testing.T, db *gorm.DB) {
 			t.Fatal("V42 repeat execution", err)
 		}
 		var after entity.ResourceLimit
-		if err := db.First(&after, "scope_kind = ? AND scope_id = ?", legacy.ScopeKind, legacy.ScopeID).Error; err != nil || !reflect.DeepEqual(before, after) {
+		if err := db.Session(&gorm.Session{QueryFields: true}).First(&after, "scope_kind = ? AND scope_id = ?", legacy.ScopeKind, legacy.ScopeID).Error; err != nil || !reflect.DeepEqual(before, after) {
 			t.Fatal("V42 changed historical policy, IP, provenance or timestamp", err)
 		}
 		var rules []entity.DefaultLimitRule

@@ -7,7 +7,7 @@ import {
   type LimitRecord,
 } from '@/types/resource-limits'
 export async function getLimits(path: string, signal?: AbortSignal) {
-  return (await client.get<LimitRecord>(`${path}/limits`, { signal })).data
+  return validateMonthlyBehaviors((await client.get<unknown>(`${path}/limits`, { signal })).data)
 }
 export async function saveLimits(
   path: string,
@@ -16,12 +16,78 @@ export async function saveLimits(
   csrf: string,
   signal?: AbortSignal,
 ) {
-  return (
-    await client.put<LimitRecord>(`${path}/limits`, input, {
-      headers: { 'If-Match': `"${etag}"`, 'X-CSRF-Token': csrf },
-      signal,
-    })
-  ).data
+  for (const field of monthlyBehaviorFields) {
+    if (
+      Object.hasOwn(input, field) &&
+      (!/^\/admin\/members\/[^/]+$/.test(path) || !validMonthlyBehavior(input[field]))
+    )
+      throw new Error('Invalid Personal monthly behavior input')
+  }
+  return validateMonthlyBehaviors(
+    (
+      await client.put<unknown>(`${path}/limits`, input, {
+        headers: { 'If-Match': `"${etag}"`, 'X-CSRF-Token': csrf },
+        signal,
+      })
+    ).data,
+  )
+}
+
+const monthlyBehaviorFields = ['tokens_month_behavior', 'money_month_behavior'] as const
+function validMonthlyBehavior(value: unknown) {
+  return value === 'stop' || value === 'alert_only'
+}
+function validateMonthlyBehaviors(value: unknown): LimitRecord {
+  if (
+    !object(value) ||
+    !object(value.stored) ||
+    !object(value.effective) ||
+    !Array.isArray(value.ip_policies)
+  )
+    throw new Error('Invalid resource limit response')
+  if (monthlyBehaviorFields.some((field) => Object.hasOwn(value.effective as object, field)))
+    throw new Error('Invalid effective monthly behavior')
+  const expectedPolicies =
+    value.kind === 'user' || value.kind === 'project'
+      ? 1
+      : value.kind === 'personal_key' || value.kind === 'project_key'
+        ? 2
+        : null
+  if (expectedPolicies === null || value.ip_policies.length !== expectedPolicies)
+    throw new Error('Invalid resource policy chain')
+  const user = value.kind === 'user'
+  if (!user && monthlyBehaviorFields.some((field) => Object.hasOwn(value.stored as object, field)))
+    throw new Error('Invalid stored monthly behavior scope')
+  const isUserParent = (index: number) => index === 0 && (user || value.kind === 'personal_key')
+  for (const [index, policy] of value.ip_policies.entries()) {
+    if (
+      object(policy) &&
+      !isUserParent(index) &&
+      monthlyBehaviorFields.some((field) => Object.hasOwn(policy, field))
+    )
+      throw new Error('Invalid parent monthly behavior scope')
+  }
+  for (const policy of [value.stored, ...value.ip_policies]) {
+    if (
+      !object(policy) ||
+      monthlyBehaviorFields.some(
+        (field) => Object.hasOwn(policy, field) && !validMonthlyBehavior(policy[field]),
+      )
+    )
+      throw new Error('Invalid monthly behavior')
+  }
+  const canonicalUserPolicy = (policy: Record<string, unknown>) => ({
+    ...policy,
+    tokens_month_behavior: policy.tokens_month_behavior ?? 'stop',
+    money_month_behavior: policy.money_month_behavior ?? 'stop',
+  })
+  return {
+    ...value,
+    stored: user ? canonicalUserPolicy(value.stored) : value.stored,
+    ip_policies: value.ip_policies.map((policy, index) =>
+      isUserParent(index) ? canonicalUserPolicy(policy) : policy,
+    ),
+  } as unknown as LimitRecord
 }
 
 const strongETag = /^[a-f0-9]{64}$/

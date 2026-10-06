@@ -81,7 +81,7 @@ func defaultLimitAuditProjection(row entity.AuditEvent) (any, bool) {
 		}
 		before, beforeErr := limits.Normalize(*detail.Before)
 		after, afterErr := limits.Normalize(*detail.After)
-		if beforeErr != nil || afterErr != nil || before.IPMode != after.IPMode || !reflect.DeepEqual(before.IPRanges, after.IPRanges) ||
+		if beforeErr != nil || afterErr != nil || !validMonthlyBehaviorAudit(row.ResourceType, before) || after.TokensMonthBehavior != "" || after.MoneyMonthBehavior != "" || before.IPMode != after.IPMode || !reflect.DeepEqual(before.IPRanges, after.IPRanges) ||
 			row.ResourceType == "team" && (before.IPMode != "none" || after.IPMode != "none") {
 			return nil, false
 		}

@@ -48,9 +48,15 @@ function initialLimits(value: NonNullable<TeamCreateSubmittedIntent['body']['ini
   return result
 }
 
-function policy(value: LimitPolicy): LimitPolicy {
+function policy(value: LimitPolicy, user: boolean): LimitPolicy {
   return {
     ...caps(value),
+    ...(user
+      ? {
+          tokens_month_behavior: value.tokens_month_behavior ?? 'stop',
+          money_month_behavior: value.money_month_behavior ?? 'stop',
+        }
+      : {}),
     rpm: value.rpm,
     concurrency: value.concurrency,
     ip_mode: value.ip_mode,
@@ -76,7 +82,7 @@ function restoreReview(value: RetainedRestoreReview): RetainedRestoreReview {
       account_id: value.limit.account_id,
       etag: value.limit.etag,
       platform_currency: value.limit.platform_currency,
-      stored: policy(value.limit.stored),
+      stored: policy(value.limit.stored, value.limit.kind === 'user'),
     },
   }
 }
@@ -89,6 +95,16 @@ function defaultSaveInput(value: DefaultLimitSaveSubmittedIntent['input']) {
   return result
 }
 function copySubmission(value: SubmittedIntent): SubmittedIntent {
+  if (value.kind === 'provider-name') {
+    return {
+      kind: value.kind,
+      payload: {
+        provider_id: value.payload.provider_id,
+        etag: value.payload.etag,
+        input: { name: value.payload.input.name, reason: value.payload.input.reason },
+      },
+    }
+  }
   if (value.kind === 'connection-name') {
     return {
       kind: value.kind,
@@ -211,6 +227,12 @@ function createOwner(cache: QueryClient, routeScope: string) {
       )
         return null
       if (
+        submission.kind === 'provider-name' &&
+        (!/^prv_[A-Za-z0-9_-]+$/.test(submission.payload.provider_id) ||
+          submission.payload.provider_id.length > 30)
+      )
+        return null
+      if (
         submission.kind === 'connection-name' &&
         (!/^prv_[A-Za-z0-9_-]*$/.test(submission.payload.provider_id) ||
           submission.payload.provider_id.length > 30 ||
@@ -224,21 +246,23 @@ function createOwner(cache: QueryClient, routeScope: string) {
         routeScope,
         epoch: ++epoch,
         targetScope:
-          submission.kind === 'connection-name'
-            ? JSON.stringify([
-                submission.kind,
-                submission.payload.provider_id,
-                submission.payload.connection_id,
-              ])
-            : submission.kind === 'team-create'
-              ? JSON.stringify([submission.kind, submission.payload.body.creation_id])
-              : submission.kind === 'default-limit-save'
-                ? JSON.stringify([submission.kind, submission.payload.target])
-                : JSON.stringify([
-                    submission.kind,
-                    submission.payload.target.kind,
-                    submission.payload.target.id,
-                  ]),
+          submission.kind === 'provider-name'
+            ? JSON.stringify([submission.kind, submission.payload.provider_id])
+            : submission.kind === 'connection-name'
+              ? JSON.stringify([
+                  submission.kind,
+                  submission.payload.provider_id,
+                  submission.payload.connection_id,
+                ])
+              : submission.kind === 'team-create'
+                ? JSON.stringify([submission.kind, submission.payload.body.creation_id])
+                : submission.kind === 'default-limit-save'
+                  ? JSON.stringify([submission.kind, submission.payload.target])
+                  : JSON.stringify([
+                      submission.kind,
+                      submission.payload.target.kind,
+                      submission.payload.target.id,
+                    ]),
       })
       retained = { ...copySubmission(submission), claim, uncertain: true }
       changed()

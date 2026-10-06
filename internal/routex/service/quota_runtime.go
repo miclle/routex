@@ -118,7 +118,7 @@ func (s *Service) gatewayQuotaPolicies(ctx context.Context, result *GatewayResul
 		if revision == "" {
 			revision = "0"
 		}
-		output = append(output, eventqueue.QuotaLimit{Limit: item, Revision: revision, CreatedAt: createdAt, Tokens5H: policy.Tokens5H, Tokens7D: policy.Tokens7D, TokensMonth: policy.TokensMonth, TPM: policy.TPM, MoneyMonth: policy.MoneyMonth, Currency: policy.Currency})
+		output = append(output, eventqueue.QuotaLimit{Limit: item, Revision: revision, CreatedAt: createdAt, TokensMonthBehavior: policy.TokensMonthBehavior, MoneyMonthBehavior: policy.MoneyMonthBehavior, Tokens5H: policy.Tokens5H, Tokens7D: policy.Tokens7D, TokensMonth: policy.TokensMonth, TPM: policy.TPM, MoneyMonth: policy.MoneyMonth, Currency: policy.Currency})
 	}
 	return output, data, nil
 }

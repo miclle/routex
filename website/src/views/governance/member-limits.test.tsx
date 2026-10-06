@@ -8,6 +8,7 @@ import { beforeEach, afterEach, expect, it, vi } from 'vitest'
 import client from '@/api/client'
 import i18n from '@/i18n'
 import MembersPage from './members'
+import { LimitSummary } from '@/views/resource-limits'
 import type { LimitRecord } from '@/types/resource-limits'
 import type { DefaultLimitResetContext } from '@/types/default-limits'
 
@@ -175,10 +176,13 @@ beforeEach(async () => {
         if (putStatus) throw fail(config, putStatus)
         const policy = JSON.parse(config.data)
         delete policy.reason
+        const effectivePolicy = { ...policy }
+        delete effectivePolicy.tokens_month_behavior
+        delete effectivePolicy.money_month_behavior
         record = {
           ...record,
           stored: policy,
-          effective: policy,
+          effective: effectivePolicy,
           ip_policies: [policy],
           etag: 'b'.repeat(64),
           enforced,
@@ -267,6 +271,10 @@ async function draft() {
   await input('Monthly budget', '10.000000000000000001')
   await input('Reason for change', 'Original reason')
 }
+async function save() {
+  await click('Save limits')
+  await click('Confirm limits')
+}
 const puts = () => requests.filter((r) => r.method === 'put')
 const resets = () => requests.filter((r) => r.method === 'post')
 async function uncertain() {
@@ -274,7 +282,7 @@ async function uncertain() {
   await edit()
   await draft()
   putStatus = 503
-  await click('Save limits')
+  await save()
   await until(() => expect(button('Retry application')).toBeTruthy())
 }
 
@@ -370,7 +378,7 @@ it('fresh currency conflict keeps exact input and requires explicit review befor
   )
   await click('Reload current policy')
   await until(() => expect(button('Save limits')?.disabled).toBe(false))
-  await click('Save limits')
+  await save()
   await until(() => expect(puts()).toHaveLength(1))
   expect(JSON.parse(puts()[0].data).currency).toBe('EUR')
 })
@@ -379,7 +387,7 @@ it('renewal aborts an in-flight write and cannot accept its late success as conf
   await edit()
   await draft()
   putGate = deferred()
-  await click('Save limits')
+  await save()
   await until(() => expect(puts()).toHaveLength(1))
   const first = puts()[0]
   sessionGate = deferred()
@@ -424,7 +432,7 @@ it('pending runtime application remains uncertain rather than reporting enforcem
   await edit()
   await draft()
   enforced = false
-  await click('Save limits')
+  await save()
   await until(() => expect(button('Retry application')).toBeTruthy())
   expect(host.textContent).not.toContain('Limits saved and applied.')
 })
@@ -599,4 +607,317 @@ it('retains first409 Member restoration across real dismissal and permission fai
   expect(resets()[1].headers.get('If-Match')).toBe(original.headers.get('If-Match'))
   expect(resets()[1].headers.get('X-CSRF-Token')).toBe('renewed-csrf')
   expect(cache.getMutationCache().getAll()).toHaveLength(0)
+})
+
+function behavior(label: string) {
+  return document.querySelector<HTMLElement>(`[role="switch"][aria-label="${label}"]`)!
+}
+async function toggleBehavior(label: string) {
+  await act(async () => behavior(label).click())
+}
+it('reviews exact independent Personal modes, zero and decimal before any dispatch', async () => {
+  await render()
+  await edit()
+  await draft()
+  await toggleBehavior('Monthly token threshold behavior')
+  expect(behavior('Monthly token threshold behavior').getAttribute('aria-checked')).toBe('true')
+  expect(behavior('Monthly budget threshold behavior').getAttribute('aria-checked')).toBe('false')
+  await click('Save limits')
+  expect(puts()).toHaveLength(0)
+  const dialog = document.querySelector('[role="dialog"]')!
+  expect(dialog.textContent).toContain('10.000000000000000001 USD')
+  expect(dialog.textContent).toContain('Original reason')
+  expect(dialog.textContent).toContain('Alert only at this threshold')
+  await click('Confirm limits')
+  await until(() => expect(puts()).toHaveLength(1))
+  expect(JSON.parse(puts()[0].data)).toMatchObject({
+    tokens_month_behavior: 'alert_only',
+    money_month_behavior: 'stop',
+    tokens_month: 33,
+    money_month: '10.000000000000000001',
+    currency: 'USD',
+    reason: 'Original reason',
+  })
+  expect(puts()[0].headers.get('If-Match')).toBe('"' + 'a'.repeat(64) + '"')
+})
+it('null cap disables its own mode without erasing inert stored selection; zero stays editable', async () => {
+  record = {
+    ...record,
+    stored: {
+      ...record.stored,
+      tokens_month: null,
+      tokens_month_behavior: 'alert_only',
+      money_month: '0',
+      money_month_behavior: 'stop',
+    },
+  }
+  record.ip_policies = [record.stored]
+  await mount()
+  await until(() => expect(button('Edit limits')).toBeTruthy())
+  await edit()
+  expect(behavior('Monthly token threshold behavior').hasAttribute('data-disabled')).toBe(true)
+  expect(behavior('Monthly token threshold behavior').getAttribute('aria-checked')).toBe('true')
+  expect(behavior('Monthly budget threshold behavior').hasAttribute('data-disabled')).toBe(false)
+  await input('Monthly token quota', '0')
+  expect(behavior('Monthly token threshold behavior').hasAttribute('data-disabled')).toBe(false)
+  await toggleBehavior('Monthly token threshold behavior')
+  await input('Monthly token quota', '')
+  expect(behavior('Monthly token threshold behavior').getAttribute('aria-checked')).toBe('false')
+  await input('Reason for change', 'Keep null cap')
+  await save()
+  await until(() => expect(puts()).toHaveLength(1))
+  expect(JSON.parse(puts()[0].data)).toMatchObject({
+    tokens_month: null,
+    tokens_month_behavior: 'stop',
+    money_month: '0',
+  })
+})
+it('a fresh policy generation blocks the captured confirmation and keeps the mode draft', async () => {
+  await render()
+  await edit()
+  await draft()
+  await toggleBehavior('Monthly token threshold behavior')
+  await click('Save limits')
+  record = { ...record, etag: 'c'.repeat(64), platform_currency: 'EUR' }
+  await act(async () => cache.refetchQueries({ queryKey: ['resource-limits'] }))
+  await until(() => expect(button('Confirm limits')?.disabled).toBe(true))
+  await click('Confirm limits')
+  expect(puts()).toHaveLength(0)
+  await act(async () =>
+    document.querySelector<HTMLButtonElement>('[role="dialog"] [aria-label="Close"]')!.click(),
+  )
+  expect(behavior('Monthly token threshold behavior').getAttribute('aria-checked')).toBe('true')
+  await click('Reload current policy')
+  await save()
+  await until(() => expect(puts()).toHaveLength(1))
+  expect(JSON.parse(puts()[0].data)).toMatchObject({
+    currency: 'EUR',
+    tokens_month_behavior: 'alert_only',
+  })
+})
+it('first definite conflict allows explicit review while retaining both mode drafts', async () => {
+  await render()
+  await edit()
+  await draft()
+  await toggleBehavior('Monthly budget threshold behavior')
+  putStatus = 409
+  await save()
+  await until(() => expect(button('Reload current policy')).toBeTruthy())
+  expect(behavior('Monthly budget threshold behavior').getAttribute('aria-checked')).toBe('true')
+  expect(behavior('Monthly budget threshold behavior').hasAttribute('data-disabled')).toBe(false)
+  expect(button('Retry application')).toBeUndefined()
+  record = { ...record, etag: 'c'.repeat(64) }
+  await click('Reload current policy')
+  putStatus = 0
+  await save()
+  await until(() => expect(puts()).toHaveLength(2))
+  expect(puts()[1].headers.get('If-Match')).toBe('"' + 'c'.repeat(64) + '"')
+  expect(JSON.parse(puts()[1].data).money_month_behavior).toBe('alert_only')
+})
+it.each([400, 403, 409])(
+  'uncertain mode intent survives later %i and renewed current CSRF exactly',
+  async (status) => {
+    await render()
+    await edit()
+    await draft()
+    await toggleBehavior('Monthly token threshold behavior')
+    putStatus = 503
+    await save()
+    await until(() => expect(button('Retry application')).toBeTruthy())
+    const first = puts()[0]
+    csrf = 'mode-renewed'
+    await act(async () => cache.refetchQueries({ queryKey: ['auth', 'session'] }))
+    await until(() => expect(button('Retry application')).toBeTruthy())
+    putStatus = status
+    await click('Retry application')
+    await until(() => expect(puts()).toHaveLength(2))
+    expect(puts()[1].data).toBe(first.data)
+    expect(puts()[1].headers.get('If-Match')).toBe(first.headers.get('If-Match'))
+    expect(puts()[1].headers.get('X-CSRF-Token')).toBe('mode-renewed')
+    expect(behavior('Monthly token threshold behavior').hasAttribute('data-disabled')).toBe(true)
+    const selected = behavior('Monthly token threshold behavior').getAttribute('aria-checked')
+    await toggleBehavior('Monthly token threshold behavior')
+    expect(behavior('Monthly token threshold behavior').getAttribute('aria-checked')).toBe(selected)
+    expect(button('Reload current policy')).toBeUndefined()
+    putStatus = 0
+    await click('Retry application')
+    await until(() => expect(puts()).toHaveLength(3))
+    expect(puts()[2].data).toBe(first.data)
+  },
+)
+it('live EN/ZH modes preserve exact drafts and confirmation rather than changing the request', async () => {
+  await render()
+  await edit()
+  await draft()
+  await toggleBehavior('Monthly budget threshold behavior')
+  await act(async () => i18n.changeLanguage('zh'))
+  expect(behavior('月度预算阈值行为').getAttribute('aria-checked')).toBe('true')
+  await click('保存限制')
+  expect(puts()).toHaveLength(0)
+  expect(document.querySelector('[role="dialog"]')?.textContent).toContain(
+    '10.000000000000000001 USD',
+  )
+  await act(async () => i18n.changeLanguage('en'))
+  await click('Confirm limits')
+  await until(() => expect(puts()).toHaveLength(1))
+  expect(JSON.parse(puts()[0].data)).toMatchObject({
+    money_month_behavior: 'alert_only',
+    reason: 'Original reason',
+  })
+})
+
+it('same-event Session renewal blocks an already rendered confirmation and uses only fresh recovery authority', async () => {
+  await render()
+  await edit()
+  await draft()
+  await click('Save limits')
+  const confirm = button('Confirm limits')!
+  sessionGate = deferred()
+  csrf = 'confirmation-renewed'
+  let renewing!: Promise<void>
+  await act(async () => {
+    renewing = cache.refetchQueries({ queryKey: ['auth', 'session'] })
+    confirm.click()
+  })
+  expect(puts()).toHaveLength(0)
+  await until(() => expect(button('Confirm limits')).toBeUndefined())
+  sessionGate.release()
+  await act(async () => renewing)
+  await until(() => expect(button('Confirm limits')).toBeTruthy())
+  await click('Confirm limits')
+  await until(() => expect(puts()).toHaveLength(1))
+  expect(puts()[0].headers.get('X-CSRF-Token')).toBe('confirmation-renewed')
+})
+it('current publication with a different stored mode cannot complete the captured request', async () => {
+  await render()
+  await edit()
+  await draft()
+  await toggleBehavior('Monthly token threshold behavior')
+  const adapter = client.defaults.adapter
+  if (typeof adapter !== 'function') throw new Error('Expected controlled API adapter')
+  client.defaults.adapter = async (config) => {
+    const response = await adapter(config)
+    if (config.method === 'put' && config.url?.endsWith('/limits')) {
+      response.data = {
+        ...response.data,
+        stored: { ...response.data.stored, tokens_month_behavior: 'stop' },
+      }
+    }
+    return response
+  }
+  await save()
+  await until(() => expect(button('Retry application')).toBeTruthy())
+  expect(host.textContent).not.toContain('Limits saved and applied.')
+  expect(JSON.parse(puts()[0].data).tokens_month_behavior).toBe('alert_only')
+  expect(button('Reload current policy')).toBeUndefined()
+})
+it('the local mode Switch supports keyboard selection without dispatching a policy', async () => {
+  await render()
+  await edit()
+  const control = behavior('Monthly token threshold behavior')
+  await act(async () => {
+    control.focus()
+    control.dispatchEvent(new KeyboardEvent('keydown', { key: ' ', code: 'Space', bubbles: true }))
+    control.dispatchEvent(new KeyboardEvent('keyup', { key: ' ', code: 'Space', bubbles: true }))
+  })
+  expect(control.getAttribute('aria-checked')).toBe('true')
+  expect(puts()).toHaveLength(0)
+})
+
+it('first definite validation failure keeps correctable mode drafts and requires a fresh reviewed request', async () => {
+  await render()
+  await edit()
+  await draft()
+  await toggleBehavior('Monthly token threshold behavior')
+  putStatus = 400
+  await save()
+  await until(() => expect(button('Reload current policy')).toBeTruthy())
+  await toggleBehavior('Monthly token threshold behavior')
+  expect(behavior('Monthly token threshold behavior').getAttribute('aria-checked')).toBe('false')
+  expect(button('Retry application')).toBeUndefined()
+  await click('Reload current policy')
+  putStatus = 0
+  await save()
+  await until(() => expect(puts()).toHaveLength(2))
+  expect(JSON.parse(puts()[0].data).tokens_month_behavior).toBe('alert_only')
+  expect(JSON.parse(puts()[1].data).tokens_month_behavior).toBe('stop')
+})
+
+it('qualifies the numeric Personal Key minimum and shows exact own User parent behavior without Key controls', async () => {
+  const key: LimitRecord = {
+    ...record,
+    kind: 'personal_key',
+    stored: { ...record.stored, tokens_month: 200 },
+    effective: { ...record.effective, tokens_month: 100 },
+    ip_policies: [
+      {
+        ...record.stored,
+        tokens_month: 100,
+        tokens_month_behavior: 'alert_only',
+        money_month: '0.000000000000000001',
+        currency: 'USD',
+        money_month_behavior: 'stop',
+      },
+      { ...record.stored, tokens_month: 200 },
+    ],
+  }
+  await act(async () => root.render(<LimitSummary record={key} child />))
+  expect(host.textContent).toContain('Configured monthly minimum: 100')
+  expect(host.textContent).toContain(
+    'Personal User monthly tokens: 100 · Alert only at this threshold',
+  )
+  expect(host.textContent).toContain(
+    'Personal User monthly budget: 0.000000000000000001 USD · Stop calling at this threshold',
+  )
+  expect(host.textContent).toContain('not a combined stopping threshold')
+  expect(host.querySelector('[role="switch"]')).toBeNull()
+  await act(async () => {
+    await i18n.changeLanguage('zh')
+  })
+  expect(host.textContent).toContain('个人 User 月度 Token：100 · 达到此阈值时仅提醒')
+  expect(host.textContent).toContain('不代表统一的停止调用阈值')
+})
+
+it('shows cap inactivity guidance on its null-cap control independently of write locks', async () => {
+  record.stored = {
+    ...record.stored,
+    tokens_month: null,
+    money_month: '0',
+    tokens_month_behavior: 'alert_only',
+  }
+  record.ip_policies = [record.stored]
+  await render()
+  await edit()
+  const token = behavior('Monthly token threshold behavior')
+  const money = behavior('Monthly budget threshold behavior')
+  expect(token.hasAttribute('data-disabled')).toBe(true)
+  expect(token.parentElement!.parentElement!.textContent).toContain(
+    'No cap is set. The saved behavior is inactive',
+  )
+  expect(money.hasAttribute('data-disabled')).toBe(false)
+  expect(money.parentElement!.parentElement!.textContent).not.toContain('No cap is set.')
+  await act(async () => {
+    await i18n.changeLanguage('zh')
+  })
+  expect(token.parentElement!.parentElement!.textContent).toContain('未设置上限')
+})
+it('confirmation and uncertainty locks do not label enabled monthly caps inactive', async () => {
+  await render()
+  await edit()
+  await draft()
+  await click('Save limits')
+  for (const label of ['Monthly token threshold behavior', 'Monthly budget threshold behavior']) {
+    const control = behavior(label)
+    expect(control.hasAttribute('data-disabled')).toBe(true)
+    expect(control.parentElement!.parentElement!.textContent).not.toContain('No cap is set.')
+  }
+  putStatus = 503
+  await click('Confirm limits')
+  await until(() => expect(button('Retry application')).toBeTruthy())
+  for (const label of ['Monthly token threshold behavior', 'Monthly budget threshold behavior']) {
+    const control = behavior(label)
+    expect(control.hasAttribute('data-disabled')).toBe(true)
+    expect(control.parentElement!.parentElement!.textContent).not.toContain('No cap is set.')
+  }
+  expect(puts()).toHaveLength(1)
 })

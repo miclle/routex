@@ -92,6 +92,18 @@ function validLimit(value: unknown, target: DefaultResetTarget) {
     typeof value.etag === 'string' &&
     (target.kind === 'team' ? etag.test(value.etag) : /^[A-Za-z0-9_-]{1,64}$/.test(value.etag)) &&
     validPolicy(value.stored) &&
+    object(value.stored) &&
+    ['tokens_month_behavior', 'money_month_behavior'].every(
+      (field) =>
+        !Object.hasOwn(value.stored as object, field) ||
+        (target.kind === 'user' &&
+          ((value.stored as Record<string, unknown>)[field] === 'stop' ||
+            (value.stored as Record<string, unknown>)[field] === 'alert_only')),
+    ) &&
+    object(value.effective) &&
+    !['tokens_month_behavior', 'money_month_behavior'].some((field) =>
+      Object.hasOwn(value.effective as object, field),
+    ) &&
     validPolicy(value.effective) &&
     typeof value.enforced === 'boolean' &&
     typeof value.platform_currency === 'string' &&
@@ -147,6 +159,10 @@ export async function restoreDefaultLimits(
     typeof value.runtime_applied !== 'boolean' ||
     !object(value.limit) ||
     value.runtime_applied !== value.limit.enforced ||
+    (target.kind === 'user' &&
+      object(value.limit.stored) &&
+      ((value.limit.stored.tokens_month_behavior ?? 'stop') !== 'stop' ||
+        (value.limit.stored.money_month_behavior ?? 'stop') !== 'stop')) ||
     !samePolicy(value.limit.stored as DefaultLimitRecord['policy'], review.default_rule.policy) ||
     (object(value.limit.stored) &&
       (value.limit.stored.ip_mode !== review.limit.stored.ip_mode ||

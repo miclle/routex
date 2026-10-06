@@ -919,3 +919,36 @@ replacement and live language switching. Complete local mandatory checking and
 Task testing pass (4,298 frontend cases in 173 files, four Node checks, Go
 race/unit, development lifecycle and production assets). Actual production browser acceptance
 and broader Model management remain separate from source tests.
+
+## Provider name editing
+
+The existing Provider Settings Basic information card edits only the display name.
+`GET /api/v1/admin/providers/:provider_id/metadata` requires `providers.read`;
+`PUT` requires independent `providers.write`, current Session/CSRF, the reviewed
+strong `If-Match` and a required reason. Exact actor/resource identity and creation
+identity are checked regardless of database collation. Names retain the existing
+catalogue label bounds; reasons use the existing credential metadata bounds.
+
+The GORM transaction changes only `Provider.Name` and writes a typed
+`provider.metadata.update` audit with before/after names and reason. Connections,
+Credentials, models, routing weights and quality policy remain unchanged. The
+response reports success only after runtime publication and a fresh authorized
+confirmation of the requested name. Identical current content may reconcile the
+name/publication after an uncertain write without another audit; it does not prove
+the historical operation or exclude intervening edits.
+
+The editor preserves reviewed drafts through explicit conflict review. Once a
+write is uncertain, its exact name/reason/If-Match remains in transient actor- and
+Provider-scoped state through Session errors and manual retry. Refreshing metadata
+does not resolve uncertainty. Actor/target changes and logout discard that state.
+Read-only actors see disabled controls; actors without read permission receive no
+private content. English and Chinese copy updates live, using local Base UI dialogs.
+
+Controlled browser R6 covers two conflicts, explicit review, successful publication,
+withheld response, actual Session-error recovery and identical retry after process
+restart. The five editor results are 409/409/200/200/200; the fourth is observed as
+503. Three typed audits and unchanged child records are verified. Original Sessions
+survive restart, no inference or Keys are created, and owned resources are removed.
+Acceptance SHA-256: `3688b5cc9932c45f552f80697bec9e8063b45955223521864dab732a8cfcfa97`.
+The separate full133 PostgreSQL/MySQL gate includes the metadata lifecycle.
+Current main composition checks and delivery are tracked in [Implementation](IMPLEMENTATION.md).

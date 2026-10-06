@@ -26,6 +26,7 @@ let context: DefaultLimitResetContext, owner: SubmittedIntentOwner | null
 let committedContext: DefaultLimitResetContext
 let pendingWrite: Promise<void> | undefined, writeFailure: number
 let resetHold: Promise<void> | undefined
+let resetResultBehavior: 'stop' | 'alert_only'
 
 function currentSession(): Session {
   return {
@@ -45,7 +46,7 @@ function Page() {
       unmounts++
     }
   }, [])
-  return <RestoreDefaults target={{ kind: 'team', id: target }} />
+  return <RestoreDefaults target={{ kind: context.kind, id: target }} />
 }
 beforeEach(async () => {
   await i18n.changeLanguage('en')
@@ -64,6 +65,7 @@ beforeEach(async () => {
   owner = null
   pendingWrite = undefined
   resetHold = undefined
+  resetResultBehavior = 'stop'
   writeFailure = 503
   const limit = teamFixture()
   limit.stored.ip_mode = 'allowlist'
@@ -114,7 +116,9 @@ beforeEach(async () => {
     } else if (config.url?.endsWith('/default-reset')) {
       if (config.method === 'get') {
         if (resetHold) await resetHold
-        const target = config.url.split('/')[2]
+        const target = config.url.startsWith('/admin/members/')
+          ? config.url.split('/')[3]
+          : config.url.split('/')[2]
         response.data = {
           ...structuredClone(context),
           id: target,
@@ -126,8 +130,8 @@ beforeEach(async () => {
         if (pendingWrite) await pendingWrite
         failure = failureAtDispatch
         response.data = {
-          kind: 'team',
-          id: 'tea_test',
+          kind: committedContext.kind,
+          id: committedContext.id,
           saved: true,
           default_reset_etag: 'c'.repeat(64),
           applied_default_etag: 'b'.repeat(64),
@@ -138,6 +142,12 @@ beforeEach(async () => {
             stored: {
               ...committedContext.limit.stored,
               ...committedContext.default_rule.policy,
+              ...(committedContext.kind === 'user'
+                ? {
+                    tokens_month_behavior: resetResultBehavior,
+                    money_month_behavior: resetResultBehavior,
+                  }
+                : {}),
             },
           },
         }
@@ -158,7 +168,10 @@ beforeEach(async () => {
             <AuthGate mode="private" />
           </UncertainIntentProvider>
         ),
-        children: [{ path: '/teams/:target', element: <Page /> }],
+        children: [
+          { path: '/teams/:target', element: <Page /> },
+          { path: '/members/:target', element: <Page /> },
+        ],
       },
       { path: '/login', element: <p>Signed out</p> },
     ],
@@ -382,3 +395,63 @@ it.each(['target', 'tab', 'actor', 'logout', 'expiry'] as const)(
     expect(writes).toHaveLength(1)
   },
 )
+
+it('retains exact User monthly modes through AuthGate500 remount and requires stop on default-reset confirmation', async () => {
+  permissions = ['limits.users.write']
+  context.kind = 'user'
+  context.id = 'usr_target'
+  context.limit = {
+    ...context.limit,
+    kind: 'user',
+    id: 'usr_target',
+    stored: {
+      ...context.limit.stored,
+      tokens_month_behavior: 'alert_only',
+      money_month_behavior: 'stop',
+    },
+  }
+  context.default_rule.kind = 'user'
+  committedContext = structuredClone(context)
+  await router.navigate('/members/usr_target?tab=limits')
+  await mountAndSubmit()
+  const original = writes[0]
+  expect(document.body.textContent).toContain('Alert only at this threshold')
+  await sessionError()
+  context.limit.stored.tokens_month_behavior = 'stop'
+  context.limit.stored.money_month_behavior = 'alert_only'
+  await recoverSession()
+  await click('Restore defaults')
+  await until(() => expect(button('Retry original request').disabled).toBe(false))
+  const recovered = owner!.recover(actor)!
+  if (recovered.kind !== 'restore-defaults') throw new Error('Expected restore')
+  expect(recovered.payload.review.limit.stored.tokens_month_behavior).toBe('alert_only')
+  expect(recovered.payload.review.limit.stored.money_month_behavior).toBe('stop')
+  expect(recovered.payload.review.default_rule.policy).not.toHaveProperty('tokens_month_behavior')
+  expect(document.body.textContent).toContain('Alert only at this threshold')
+  expect(document.body.textContent).toContain('resets both Personal monthly behaviors to stop')
+  await act(async () => {
+    await i18n.changeLanguage('zh')
+  })
+  expect(document.body.textContent).toContain('达到此阈值时仅提醒')
+  expect(document.body.textContent).toContain('重置为停止调用')
+  await act(async () => {
+    await i18n.changeLanguage('en')
+  })
+  writeFailure = 0
+  resetResultBehavior = 'alert_only'
+  await click('Retry original request')
+  await until(() => expect(button('Retry original request').disabled).toBe(false))
+  expect(owner!.recover(actor)).not.toBeNull()
+  expect(host.textContent).not.toContain('Defaults restored and applied')
+  resetResultBehavior = 'stop'
+  await click('Retry original request')
+  await until(() => expect(host.textContent).toContain('Defaults restored and applied'))
+  expect(writes).toHaveLength(3)
+  for (const retry of writes.slice(1)) {
+    expect(retry.data).toBe(original.data)
+    expect(retry.headers.get('If-Match')).toBe(original.headers.get('If-Match'))
+    expect(retry.headers.get('X-CSRF-Token')).toBe('csrf-renewed')
+  }
+  expect(JSON.parse(original.data)).toEqual({ reason: 'Captured restoration' })
+  expect(owner!.recover(actor)).toBeNull()
+})

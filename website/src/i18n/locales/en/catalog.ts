@@ -1,4 +1,44 @@
 export default {
+  providerMetadata: {
+    identityChanged:
+      'The reviewed Provider identity is no longer current. The original request remains unresolved; abandon it explicitly before a new review.',
+    title: 'Basic Information',
+    description:
+      'The Provider identifies the service supplier. Protocols, addresses, network egress and credentials are managed under Connections.',
+    loading: 'Loading current Provider information…',
+    loadFailed: 'Provider information could not be loaded.',
+    readDenied: 'Provider read permission is required.',
+    readOnly: 'You can read this name but cannot edit it.',
+    nameValidation: 'Enter a name of up to 100 characters without control characters.',
+    reasonValidation: 'Enter a reason of up to 1024 UTF-8 bytes without control characters.',
+    save: 'Save changes',
+    reason: 'Change reason',
+    confirmTitle: 'Confirm Provider name change',
+    confirmDescription:
+      'Save only the reviewed Provider name. Connections and other settings stay unchanged.',
+    confirmName: 'Provider name: {{name}}',
+    confirm: 'Confirm name change',
+    stale: 'The current Provider has changed. Review it before preparing a new request.',
+    review: 'Review current Provider',
+    reviewed: 'Current Provider reviewed. Confirm a new request explicitly.',
+    uncertain: 'The name may have been saved, but current publication was not confirmed.',
+    conflict:
+      'The reviewed name conflicts with the current Provider. The original request is retained.',
+    retained:
+      'A current read cannot complete this request. Retry its original name, reason and review, or explicitly abandon it.',
+    retry: 'Retry original request',
+    abandon: 'Abandon retained request',
+    abandonTitle: 'Abandon retained Provider name request?',
+    abandonDescription:
+      'This clears the retained request only. It does not undo a saved name or prove what happened. Review the current Provider before a new request.',
+    confirmAbandon: 'Abandon request',
+    abandoned:
+      'The retained request was cleared. Review the current Provider before preparing a new request.',
+    saved:
+      'The current Provider name and runtime publication are confirmed. This does not attest an earlier operation.',
+    unavailable: 'This request cannot be captured with current authority.',
+  },
+
   modelAccess: {
     sdkTitle: 'Official SDK guidance',
     sdkChat:

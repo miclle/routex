@@ -98,7 +98,7 @@ beforeEach(async () => {
           etag: 'saved',
           stored: policy,
           effective: { rpm: policy.rpm, concurrency: policy.concurrency },
-          ip_policies: [record.ip_policies[0], policy],
+          ip_policies: record.kind === 'project' ? [policy] : [record.ip_policies[0], policy],
         }
       }
       response.data = structuredClone(record)
@@ -580,4 +580,43 @@ describe('Scoped limit drafts', () => {
     expect(writes()[1].headers.get('If-Match')).toBe('"second"')
     expect(JSON.parse(writes()[1].data).money_month).toBe('12.500000000000000001')
   })
+})
+
+it('permits a Personal Key monthly ceiling above its alert-only User parent without adding Key behavior input', async () => {
+  record.ip_policies[0] = {
+    ...record.ip_policies[0],
+    tokens_month: 100,
+    tokens_month_behavior: 'alert_only',
+    money_month: '1.000000000000000001',
+    money_month_behavior: 'alert_only',
+    currency: 'USD',
+  }
+  await mount()
+  await click('Edit restrictions')
+  expect(document.body.textContent).toContain('Current parent alert-only threshold: 100')
+  await fill('Monthly token quota', '200')
+  await fill('Monthly budget', '2.000000000000000002')
+  await fill('Reason for change', 'Independent Key stop')
+  await click('Save limits')
+  await until(() => expect(writes()).toHaveLength(1))
+  const body = JSON.parse(writes()[0].data)
+  expect(body.tokens_month).toBe(200)
+  expect(body.money_month).toBe('2.000000000000000002')
+  expect(body).not.toHaveProperty('tokens_month_behavior')
+  expect(body).not.toHaveProperty('money_month_behavior')
+})
+it('retains currency validation under an alert-only User money parent', async () => {
+  record.ip_policies[0] = {
+    ...record.ip_policies[0],
+    money_month: '1',
+    money_month_behavior: 'alert_only',
+    currency: 'EUR',
+  }
+  await mount()
+  await click('Edit restrictions')
+  await fill('Monthly budget', '2')
+  await fill('Reason for change', 'Currency mismatch')
+  await click('Save limits')
+  expect(document.body.textContent).toContain('cannot exceed')
+  expect(writes()).toHaveLength(0)
 })

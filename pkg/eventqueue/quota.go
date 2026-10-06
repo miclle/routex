@@ -7,6 +7,9 @@ import (
 	"math"
 	"math/big"
 	"regexp"
+	"strings"
+
+	"github.com/miclle/routex/pkg/limits"
 	"time"
 
 	bolt "go.etcd.io/bbolt"
@@ -324,6 +327,11 @@ func (q *Queue) checkQuotaAdmission(tx *bolt.Tx, id string, policies []QuotaLimi
 }
 
 func checkQuota(tx *bolt.Tx, policy QuotaLimit, bound QuotaBound, metadata quotaMetadata, instant, monthStart int64, activeJournal, establish bool) error {
+	tokenBehavior, tokenErr := limits.CanonicalMonthlyBehavior(policy.TokensMonthBehavior)
+	moneyBehavior, moneyErr := limits.CanonicalMonthlyBehavior(policy.MoneyMonthBehavior)
+	if tokenErr != nil || moneyErr != nil || (tokenBehavior != "" || moneyBehavior != "") && (!strings.HasPrefix(policy.Account, "user_") || len(policy.Account) <= len("user_")) {
+		return ErrInvalid
+	}
 	if !validKey.MatchString(policy.Revision) {
 		return ErrInvalid
 	}
@@ -369,7 +377,8 @@ func checkQuota(tx *bolt.Tx, policy QuotaLimit, bound QuotaBound, metadata quota
 		if *window.ceiling < 0 {
 			return ErrInvalid
 		}
-		if *window.ceiling == 0 {
+		soft := window.name == monthWindow(monthStart) && tokenBehavior == limits.MonthlyBehaviorAlertOnly
+		if *window.ceiling == 0 && !soft {
 			return ErrQuotaTokens
 		}
 		if window.start < metadata.CoverageStart && created < metadata.CoverageStart {
@@ -389,12 +398,14 @@ func checkQuota(tx *bolt.Tx, policy QuotaLimit, bound QuotaBound, metadata quota
 		if used.TokensUnknown > 0 || active.TokensUnknown > 0 {
 			return ErrQuotaUnknown
 		}
-		remaining := *window.ceiling
-		for _, amount := range []int64{used.TokensUsed, used.TokensHeld, active.TokensUsed, active.TokensHeld, *bound.Tokens} {
-			if amount > remaining {
-				return ErrQuotaTokens
+		if !soft {
+			remaining := *window.ceiling
+			for _, amount := range []int64{used.TokensUsed, used.TokensHeld, active.TokensUsed, active.TokensHeld, *bound.Tokens} {
+				if amount > remaining {
+					return ErrQuotaTokens
+				}
+				remaining -= amount
 			}
-			remaining -= amount
 		}
 	}
 	if policy.MoneyMonth != nil {
@@ -403,7 +414,8 @@ func checkQuota(tx *bolt.Tx, policy QuotaLimit, bound QuotaBound, metadata quota
 		if err != nil {
 			return err
 		}
-		if maximum.Sign() == 0 {
+		soft := moneyBehavior == limits.MonthlyBehaviorAlertOnly
+		if maximum.Sign() == 0 && !soft {
 			return ErrQuotaMoney
 		}
 		if !quotaCurrency.MatchString(policy.Currency) {
@@ -442,7 +454,7 @@ func checkQuota(tx *bolt.Tx, policy QuotaLimit, bound QuotaBound, metadata quota
 			}
 		}
 		reservation, _ := quotaUnits(*bound.Money)
-		if maximum.Cmp(reservation) < 0 {
+		if maximum.Cmp(reservation) < 0 && !soft {
 			return ErrQuotaMoney
 		}
 	}
