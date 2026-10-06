@@ -309,7 +309,7 @@ it('requires an explicit base-role confirmation and exact reason/IfMatch/current
   expect(request.headers.get('X-CSRF-Token')).toBe(csrf)
   await until(() => expect(document.body.textContent).toContain('current base identity'))
 })
-it('reactivation preserves historical offboarding without promising old credential/custom-role restoration', async () => {
+it('reactivation preserves historical offboarding without promising old credential/explicit-role restoration', async () => {
   state = {
     ...state,
     disabled: true,
@@ -323,7 +323,7 @@ it('reactivation preserves historical offboarding without promising old credenti
     'Historical offboarding remains',
   )
   expect(document.querySelector('[role="dialog"]')?.textContent).toContain(
-    'custom roles are not restored',
+    'explicit role assignments are not restored',
   )
   await reason()
   await click('Confirm reactivation')
