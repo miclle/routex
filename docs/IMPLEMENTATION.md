@@ -1,28 +1,24 @@
 # RouteX Implementation and Acceptance Index
 
-Updated: 2026-10-07. This document records engineering contracts, work packages, and acceptance checks. Interfaces, tables, pages, and metrics marked as planned are not necessarily implemented; delivery evidence appears at the end. The active goal covers all F01–F30 capabilities and A01–A20 acceptance cases; completed stages do not end implementation. The full product is delivered incrementally through P0–P6.
+Updated: 2026-10-07. This document records engineering contracts, work packages and acceptance checks. Planned interfaces and metrics are not implementation evidence. The active objective covers F01–F30 and A01–A20 through incremental P0–P6 delivery.
 
 ## Current delivery and active queue
 
-The containing commit delivers Model access SDK guidance after final main
-checking, 4,267 frontend cases/171 files, four Node checks, embedded build and
-controlled bilingual clipboard/authority/actor/original-Session restart. Root
-acceptance is `53278838e4c85610dfde1c5dc236cbe589bae3da22eadc039803c769e72667b5`.
-Six original Session rows are unchanged; Calls/Attempts/Keys/Projects remain zero
-and all owned resources are independently absent. The finite F19 inventory is
-complete; current totals are **12 complete, 15 partial and three unstarted**.
-The full objective remains active. SDK guidance does not certify client versions.
+Current delivered main is `b9b0f4edc4032c55dbb7661c6232ca59895e1f7f`: protocol-grouped routing drafts, following configured protocol search and DOM Storage test isolation. Formatting, mandatory checking, complete Task tests (4,298 frontend cases in 173 files, four Node checks, two development lifecycle checks, Go race/unit and asset checks) and production build pass. Remote CI37505212258 passes Backend, Frontend, PostgreSQL/MySQL integration and build artifacts; GolangCI and Actionlint also pass. Source delivery and the browser findings below are separate. Overall totals remain **12 complete, 15 partial, three unstarted**; the full objective is active.
 
-Delivered predecessors are connection copy/highlighting `b592448`, monthly
-recorded callers `72fb5a6`, Provider bindings `10dcfde`, Home identity `d8d80ff`
-and whole-item access `fc7dfff`. Their historical acceptance remains below.
+The private Personal monthly behavior and Provider metadata composition passes full133 R2: 266 direct lifecycle cases, eight constraints, 4,773 balanced named results and five package completions in 2,868.425 seconds. Source/modes and independent cleanup pass. Acceptance SHA-256: `520d9fd6acaf059e21703ac2a4e18983007e0360d36bd57b791ef7d3d05f9536`. These features are not yet delivered on main.
 
-Continue partial F11/F15/F17 work. Workbook export has accepted dual-driver
-backend evidence but genuine browser file delivery remains pending. Personal
-monthly stop/alert modes and Provider name editing remain private; their focused
-dual-driver gates pass and one complete133 matrix is running. Production native
-quota and Provider browser/restart gates remain required before delivery. Do not
-transfer historical receipts to new source or claim a separate full132 run.
+Current acceptance work:
+
+- **Routing drafts:** R1 passes page, permission and original-Session restart checks but fails on a duplicate terminal evidence filename. Corrected helper R2 exposes a product defect: renewed authority removes the form and loses its unsent draft; a successful save submits stored weights instead of the intended 60/40. Repair the transient actor/Model draft owner, retain private-content hiding and require fresh binding identities before submission. Both failed runs remain retained.
+- **Personal monthly behavior:** R1 passes bilingual controls, zero/null semantics, permissions and Key parent guidance, then fails its durable-history assertion. Diagnostic R2 records three priced successful calls and four `quota_exceeded` calls with null Token usage, no attempts and `not_captured` pricing. Source review confirms that failed admission has no admitted-work evidence or captured price basis; null usage and uncaptured pricing are intentional. Correct the script to require these exact facts, rejecting inferred zeros. Seven gateway requests and three upstream posts meet the original bounds. Restart remains pending.
+- **Provider metadata:** R2 fails during login without retaining the first proxy error. Diagnostic R3 records `B_SESSION` on an unclassified GET after Session401. Source inspection identifies public pre-login registration discovery incorrectly classified as private by the QA proxy; the retained actual path is unknown. Review the exact public GET exception and bounded diagnostic categories, preserving all other guards.
+- **Team monthly behavior:** final composition passes 197 focused frontend tests, mandatory checking, complete Task (4,369 frontend cases in 173 files) and build. Nine selected scenarios per database are now running, including inherited enforcement, existing notifications and the two new migration/lifecycle cases. Full135 and controlled browser/restart acceptance remain pending.
+- **Excel price export:** source and dual-driver checks pass; genuine saved browser downloads remain unresolved. HTTP200 and API workbook inspection do not prove browser file delivery. Keep the current source uncommitted until that gate is resolved.
+
+Root independently verifies owned resource, process and port cleanup for failed Personal, Provider and routing runs. Failures are retained and are not relabelled as accepted delivery.
+
+SDK guidance `c67f752d20f26ba62f44e0afe4cfd664e8f73b64` completes the finite F19 scope. Its mandatory check, 4,267 frontend tests, build, eleven controlled browser checkpoints, six unchanged original Sessions and independent cleanup pass. Acceptance: `53278838e4c85610dfde1c5dc236cbe589bae3da22eadc039803c769e72667b5`. All three exact-head workflows pass. This does not certify SDK version compatibility or complete broader release cases.
 
 ## Earlier delivery checkpoints
 
@@ -6738,6 +6734,129 @@ predicate corrections do not relax authority, coverage, 10,000-row/overflow or
 one-fact-SELECT assertions. Sixteen Caller payloads are carried onto the delivered
 F11 predecessor. Main formatting, mandatory checking and production build pass. All 1,628 tested product paths and 1,018 backend/Task paths match the accepted candidates. Controlled EN/ZH cards/table/keyboard acceptance confirms Personal 2 requests/1 distinct caller, shared Team 3 requests/2 callers and unused Model zero. Real peer removal hides stale Model/usage facts; authorized readers retain two historical callers, and rejoin restores the shared view. Ordinary member-to-peer logout/login hides Personal facts. Three original browser Sessions and three original API Sessions remain usable after a same-binary/configuration/database/journal restart without relogin. Exactly five native calls, five persisted Calls and five Attempts, including exact private actor groups, are independently verified. Owned Compose resources, application/stub/database ports and temporary tabs are absent. Browser warning/error logs are empty. Functional acceptance SHA-256: `63ed9cffadfcfd4b1e7ae1c8fe8a9e40d8685d348ca5799c9d7b5ed9ad76d008`. Initial browser prices were Unknown and recovered to the unchanged exact rates on normal refresh; their initial cause remains unproven. Legacy unknown-attribution and obsolete-response cases remain source/driver evidence. The first noninteractive fixture launch reached setup then failed on stdin EOF with zero native calls; its cleanup and failed status are retained. The containing commit delivers this bounded Caller phase; F19 and formal 11/16/3 totals remain unchanged.
 
+
+## Price XLSX export: accepted isolated matrix and carried candidate, 2026-10-06
+
+Twelve workbook export payloads are carried onto delivered Caller
+`72fb5a69b7db3e5fc048c125a659313db85c3c73`. The new read-only Excel endpoint
+requires independent `prices.read` and serves a complete text-cell workbook;
+the existing download step presents Excel before CSV. Exact decimals, zero,
+disabled rates and recorded names are preserved. Current actor/Session/read
+permission generations, abort/duplicate guards and the original transient Blob
+prevent obsolete downloads. No price write, CSRF requirement, native inference,
+schema or dependency change is introduced.
+
+Exports retain the complete 500-model/5,000-rate ceiling and independent 512 KiB
+compressed/4 MiB expanded limits. Imports remain 200 rows/20 models, 32 KiB CSV
+or 512 KiB workbook; larger complete exports need upload batches. A successful
+empty export is distinct from an invalid empty import. Exact contracts are in
+[Pricing](PRICING.md#price-workbook-export).
+
+The isolated full130 R2 passes 130 ordered cases per database, 260 direct
+lifecycles, eight constraints and 4,697 balanced named results in 3,163.583
+seconds. Both price-import lifecycles pass (PostgreSQL 4.66 seconds; MySQL 7.81
+seconds), including the new export cases. All 1,020 backend/Task paths match the
+frozen matrix and owned resources/ports are independently absent. Acceptance
+SHA-256: `83598b3bfa94f3d5489eca8f02a460f8613f3f3a55a7c04419fe875443648a2b`.
+Private composed formatting, mandatory checking, complete Task (4,218 frontend
+cases/168 files, four Node checks, two development lifecycle checks, Go
+race/coverage and embedded assets) and build pass. The known build-only lock
+metadata delta is retained and restored with dependency versions unchanged.
+Earlier stopped predecessor matrices remain unaccepted historical evidence.
+
+Main format, mandatory check and production build pass, with all 1,631 tested
+product paths and 1,020 backend paths exact. The first controlled run failed
+before browser work because its helper incorrectly required a 64-hex price ETag;
+the corrected helper requires the exact captured strongly quoted URL-safe
+catalogue token. The failed run and independent cleanup remain retained.
+The next run verifies EN/ZH export labels, real read-permission revocation and
+restoration, write-only denial, ordinary actor replacement and original API and
+browser Sessions after the identical binary/configuration/database/journal
+restart. Root independently reads zero Calls, Attempts and Keys. Openpyxl 3.1.5
+reads the original and restart API workbooks as 27 exact text cells, zero formulas
+and identical bytes; this is API-content evidence only. Both documented browser
+download event waits timed out despite prepared notices and HTTP 200 responses.
+Native inventory reports a locked Mac; its causal relationship remains unproven.
+The fixed five-minute idle bound then fails with X_IDLE while awaiting unlock.
+That failed outcome is retained; root independently verifies owned resources and
+listeners absent and closes only the two temporary tabs. Genuine browser-saved
+Excel/CSV files and scoped commit/push remain pending. No API artifact substitutes for browser file delivery. F15 and formal 11/16/3 totals remain
+unchanged; no complete price-maintenance or release acceptance is claimed.
+
+## Personal monthly behavior: first real focus failure, 2026-10-06
+
+The corrected private UI composition passes formatting, mandatory checking,
+complete Task (4,291 frontend cases/171 files, Node4/dev2, Go race/assets) and
+build. The first focused PostgreSQL/MySQL run fails before either new scenario:
+V70 records 70 migration versions while the current common harness still expects
+69. Both real failures remain retained; the frozen source is unchanged and owned
+resources/listeners are independently absent. A narrow current-version assertion
+successor is being prepared. Historical migration definitions and bounded
+historical-prefix checks remain unchanged. Renewed focus/full132, production
+acceptance and delivery are pending; no F17 completion is claimed.
+
+## Personal monthly behavior: renewed focus remains failed, 2026-10-06
+
+The private current-ledger70 successor passes complete source gates. Renewed real
+focus fails on PostgreSQL cached SELECT-star result descriptors after provenance
+fixture DDL, MySQL pre-CHECK trailing-space truncation in VARCHAR10, and a
+Personal Key fixture using the administrator Session instead of the exact owner.
+The bounded MySQL-only diagnostic confirms installed checks and token-mode
+readback: 11/17-byte trailing-space values become the valid 10-byte value. Its
+later rejected update remains a failed diagnostic, not acceptance. Root verifies
+focus/probe cleanup independently. Two narrow fixture repairs preserve complete
+row comparisons and use a normal exact-owner login; an unreleased V70 width16
+successor preserves the API and CHECK grammar. New focused/full132 and production
+acceptance remain pending. No released migration or product authority is weakened.
+
+Provider Settings name editing is being implemented in parallel with independent
+permissions, current-content identity-bound review, atomic typed audit and runtime
+confirmation. Its backend related source races pass123 cases; actual drivers and
+complete frontend/composition/browser gates remain pending. F11/F17 and formal
+11/16/3 totals remain unchanged.
+
+Exact delivered Caller72fb5a6 remote CI37475089293 now succeeds, including both
+databases, authentication restart and build artifacts. Actionlint37475089183 and
+GolangCI-Lint37475089373 succeed separately. Binding CI37470737278 remains
+cancelled after the Caller push; later success does not relabel that run.
+
+## Model access copy: controlled browser acceptance, 2026-10-06
+
+Private complete Task passes4,250 frontend cases/170 files, Node4/dev2, Go
+race/assets, formatting, mandatory checking and build. Its backend is exactly
+the accepted1020-path full130 XLSX backend. Controlled actual clipboard reads
+confirm original displayed Base URL, Personal authentication placeholder and
+complete example bytes in EN/ZH; Team sources expose no fake Key header. Normal
+keyboard activation and dismissal focus pass. Real grant withdrawal empties
+renewed member/peer lists, restoration recovers actual controls, and ordinary
+logout/login removes Personal access from the replacement actor. Withdrawal was
+observed on fresh lists with closed drawers; open-drawer late replies remain
+source-test evidence. Two original browser Sessions and three original API
+Sessions remain usable after identical binary/configuration/database/journal
+restart. Root verifies zero Calls/Attempts/Keys/Projects and owned cleanup.
+Console warnings/errors are empty. The helper guide's nonexistent detail URL
+returned404 and an initially guessed Chinese selector failed; both were recovered
+through the existing catalogue card/drawer and actual accessible labels.
+Functional acceptance SHA256:
+`e20ef5f70f13992cdfb46fc8cebe61bb44ba4aaff3f78a0e7a11e98c1de7f9aa`.
+This is private functional acceptance; main source carry/check and delivery
+remain pending. F19 and formal11/16/3 totals remain unchanged.
+
+Renewed focusR3 now passes both new migration children on PostgreSQL/MySQL,
+including exact width16 and rejected-write preservation. Both lifecycle children
+remain failed403: the denial-probe login accidentally replaces the owner Cookie
+while the Key helper retains the original CSRF token. The unchanged CSRF gate
+correctly rejects the mismatched pair before service authorization. A one-leaf
+fixture successor gives the denial probe its own Cookie. All failed runs remain
+retained and root independently verifies cleanup. No permission, enforcement,
+status assertion or timeout changes; full132 stays pending.
+
+## Current acceptance gates, 2026-10-06
+
+A fresh unlocked-desktop Excel/CSV run reproduces actual download-event timeouts (15s/10s), with prepared notices and no console warnings/errors. No saved file path is returned. Native Codex inspection is blocked by Computer Use, with no bypass. Root retains the failure and verifies its owned resources/listeners absent; the temporary tab is closed. Lock causality stays unproven; browser file delivery remains pending.
+
+The one-fixture Personal monthly R5 passes format/check/Task4,291/171/build; fresh focused4 is running against the exact1705 source floor. Provider133 R2 passes format/check, uncached related race/compile, Task4,346/173 and build; six-case/full133 and production browser gates remain pending. Clean Model access copy delivery passes format/check/Task4,231/169/build with unchanged accepted Caller1018 backend. Its own binary browser replay remains pending; historical private1020 receipt is not transferred. Formal11/16/3 totals stay unchanged.
+
 ## Model access copy and highlighting: scoped delivery, 2026-10-06
 
 The existing Model access drawer adds accessible copy controls for its displayed
@@ -6769,6 +6888,14 @@ Session field and was corrected to the actual recorded fields without product
 changes. Acceptance SHA-256: `eed88b6d189b45b3c365710cf3c5a68f61d83f87a9973f419320d623f7776ae7`. The historical
 private XLSX candidate receipt does not substitute. The containing commit
 delivers this bounded slice; F19 remains partial and totals stay 11/16/3.
+
+Model connection copy/highlighting is committed and pushed as `b5924487ef06f3b3fbbed7398ab45dcf2c15c23e`, with exact remote main read-back. Current main check and unchanged tested product bytes pass. Clean delivery Task4,231/169 and exact-binary controlled EN/ZH clipboard, authority changes, actor replacement and identical-artifact original-Session restart pass; zero Calls/Attempts/Keys/Projects and owned cleanup are independently verified. Acceptance `eed88b6d189b45b3c365710cf3c5a68f61d83f87a9973f419320d623f7776ae7`. F19 remains partial and formal11/16/3 unchanged. Latest Personal monthly focused4 still fails in both lifecycle children at a test-only CallRecord Order(id); two before/after sorts are being corrected to request_id, preserving full-row equality and CallAttempt id. Both migration children pass; failed resources/listeners are independently absent. R6/ProviderR3 private source gates run before renewed real focus/full acceptance.
+
+Personal monthly R6 real focus passes both migration and lifecycle scenarios on each driver: four direct cases, seven balanced named events,120.257s. Strict reviewer/root confirm exact1705 source/modes and owned resources/listeners absent. Focus acceptance `bec298ecdf3e88f9d17a8128d7eeb5ed559f0fd5b3c1912083051ad469c0fb29`. All prior failed focuses remain retained. The latest additive Provider candidate still needs its own focused6 and complete133, followed by native quota/browser and Provider browser/restart acceptance; no full132 or delivery is claimed.
+
+Provider name metadata R3 passes exact PostgreSQL/MySQL focused6 (six direct cases, nine balanced named events, 125.274s), including monthly behavior migration/lifecycle. Root independently verifies unchanged source/modes and owned cleanup; acceptance `697e8538dd42feecfd98bc7047f2bd7e6eff43322e8a788e3cdc6e78f2428d18`. One fresh complete133 matrix is running against this candidate, retaining the complete132 prefix and original bounds. Separate full132 acceptance is not claimed.
+
+Model access SDK guidance is carried for main checking and production review. The existing drawer adds a protocol/source-bound card and primary client documentation. Source validation passes 145 cases/six suites, including 17 new cases, types, lint and formatting. Existing copy/highlighting remains intact. Actual browser and delivery gates remain pending; no SDK compatibility or full F19 completion is claimed.
 
 ## Model access SDK guidance and F19 acceptance, 2026-10-07
 
@@ -6818,6 +6945,41 @@ F19-specific negative evidence is indexed independently of broader release cases
 | A02 | Exact actor/Model catalogue and request authorization; unavailable or revoked sources hide details/examples; current actor replacement and server denials. See [catalogue contracts](CATALOG.md) and `model_catalog_integration_test.go`, `personal_model_requests_integration_test.go`, `team_model_requests_integration_test.go`. | Future enterprise/operations boundaries remain open. |
 | A04 | Explicit Personal/individual Team source; Team visibility grants no Personal Key access; four native standalone Team programs preserve exact Team/User/membership and one debit through removal/rejoin and restart. See [Team catalogue examples](CATALOG.md#explicit-source-member-examples). | Global end-to-end release acceptance remains partial. |
 | A06 | Stable Model ID across rename; expired aliases stop resolving and historical names stay reserved, covered by `catalog_integration_test.go` and `model_alias_retirement_integration_test.go` on both supported databases. | Final platform-wide release acceptance remains partial. |
+
+## Complete133 failure checkpoint, 2026-10-07
+
+The latest exact ProviderR3/F17 complete133 matrix fails after 2,858.254 seconds. Both new monthly-mode migration/lifecycle and Provider metadata scenarios pass on PostgreSQL/MySQL, but the existing member_teams scenario fails on both drivers and monthly_quota_notifications fails on PostgreSQL. Raw log SHA-256 `195087f038eef5727d5a14d00c016adceff222450eafe005ca3172e69e8fa4cb`. Source/modes remain unchanged; root independently verifies exact owned containers/networks/volumes absent, both captured listeners explicitly refuse connections, and the root PID is absent. This is failed evidence; no complete133, separate full132, native-production/browser or main delivery acceptance is transferred. Independent root-cause diagnosis is in progress. SDK c67f752/F19 delivery remains separate and accepted.
+
+## Download delivery diagnostic, 2026-10-07
+
+A disposable private diagnostic build tested retained Blob URLs and one fresh user gesture against the same Excel Blob. Both Excel A/B observations timed out after 10 seconds without a readable saved file, despite genuine activation and HTTP200. CSV A likewise timed out; real Session renewal removed its prepared handle before B could dispatch, so CSV B was not executed and no extra export retry was made. The two browser export GETs are separate from two authorized read-only expected-byte GETs; no native calls, Keys, Models, Providers or prices were created. Console warnings/errors were empty. Neither lifetime nor activation is established as the cause; the exact browser/platform/tool mechanism remains unknown.
+
+The private binary SHA-256 is `8672b62752a03b6e203dd526f4b34865408db5dcaae0b81bfc34cd62cb179d3a`; root diagnostic receipt is `4687cc239a522ecd892f4512388f527cd6a33cfb5188081d51d44ae327fe74e2`. All 1,696 source paths/modes remain exact, main source/index stayed unchanged during the experiment, and root independently verifies owned process, Compose resources and both listeners absent. The initial diagnostic setup assertion incorrectly expected HTTP200 rather than actual201; that orchestration-only failure was cleaned and retained before the corrected run. No diagnostic UI is proposed for shipment. XLSX source and dual-driver evidence remain pending genuine browser file delivery.
+
+The complete133 failure is retained. A private successor now composes only two narrow test-fixture corrections: explicit legacy stop defaults in the member-team whole-row fixture, and the existing fixture-owned publication fence for one-shot positive monthly-notification observation. Assertions, deadlines, native inputs, policies and production guards remain unchanged. The original notification failure branch remains unknown; fresh focused and complete PostgreSQL/MySQL results are required.
+
+## SDK remote checks, 2026-10-07
+
+All current-head checks for SDK commit `c67f752d20f26ba62f44e0afe4cfd664e8f73b64` have completed successfully: CI37495947051 (Backend, Frontend, PostgreSQL/MySQL integration and build artifacts), GolangCI37495947077 and Actionlint37495947120. This remote result is separate from the pending private Provider/F17 successor and unresolved XLSX browser delivery.
+
+## Renewed Provider/F17 focus, 2026-10-07
+
+The exact two-fixture R5 successor passes all ten renewed real database scenarios in 180.338 seconds: monthly notifications, member Teams, monthly behavior migration/lifecycle and Provider metadata on both PostgreSQL and MySQL. Thirteen named RUN/PASS events balance; source1,717/modes stay exact and root independently verifies captured owned containers/networks/volumes, process and both explicitly refused listeners. Focus acceptance SHA-256 `d0720c258d34cae20a36def91f0ab227f820ccd2e58822dcaa1d5cf3af00e38a`; raw log `77d8d3cc815f26c204047e877a4b58b300b38501762edf7a34bd9a0dc4942a43`.
+
+A separately authorized fresh complete133 matrix is now running against this same source under the original bounds. It must pass 266 ordered direct cases, eight constraints and five package terminals before native/browser/restart delivery. Historical failed Full133 R1 remains retained; the original notification failure branch remains unknown. Model protocol search and grouped routing feedback are independent frontend candidates; they do not inherit or modify this database result.
+
+### Model protocol search and DOM Storage test isolation (2026-10-07)
+
+Main `9952edbb32d8e7a829ee4a953f7d9b45355d04e1` is committed and pushed, after
+`5e16bc0` test environment isolation. Search uses recorded protocol identifiers
+and displayed labels alongside current names, with no additional reads or
+authority. Eleven search regressions and two real DOM Storage regressions pass;
+mandatory checking, formatting, complete Task testing (4,280 frontend cases in
+172 files, four Node checks, Go race/unit, development lifecycle and production
+assets) and production build pass. Exact-head remote checks remain pending.
+F12 remains partial; source-only routing and Team aggregate behavior work does
+not establish actual browser, native, schema or runtime acceptance. The full
+objective remains active.
 
 ### Model protocol search and grouped routing drafts (2026-10-07)
 
