@@ -159,3 +159,40 @@ Seeded encrypted-row preservation, source tests and a successful response alone
 do not prove Provider inference, proxy execution, SMTP delivery, Storage reads or
 MFA sign-in after rotation. Actual controlled product-operation and restart
 evidence is required before this candidate is delivered.
+
+## External Token probe client foundation
+
+`pkg/vault` provides bounded KV-v2 probe operations using a dedicated
+`upstream.NewNonReplayingClient`. The existing inference client is unchanged.
+The probe client retains outbound address validation, verified TLS, no redirects
+and no environment proxy; it uses HTTP/1 with dedicated connections and does
+not replay an ambiguous request. Tokens and probe markers are transient and
+never appear in returned observations. Writer and reader Tokens must differ;
+this does not establish distinct remote principals.
+
+`Prepare` makes no HTTP request. It generates an opaque probe identity and
+marker, returning a nonsecret plan bound to the descriptor and marker digest.
+`Write` consumes the prepared attempt and sends at most one CAS-zero creation.
+`ReadAndCleanup` or `CleanupOwned` checks the exact live version-one metadata
+and marker digest before one conditional version-one destruction request. A
+failed or mismatched read never authorizes cleanup. Later versions and metadata
+remain intact; absence or a lost response cannot prove acknowledgement.
+
+The future service must persist the plan and immutable authentication revisions
+and durably claim each command before any HTTP. It must not hold a database
+transaction across the read/cleanup sequence or replay an uncertain command.
+Recovery can establish current ownership without inventing original Write
+success. KV-v2 supplies no atomic path-incarnation fence between read and
+destroy; the remote probe prefix must exclude concurrent path replacement.
+The package does not activate external secret storage or implement switching.
+
+Controlled HTTP/TLS tests cover replay prevention, bounded response parsing,
+independent observations, failed-read cleanup rejection and staged operations.
+These are source-level tests, not real Vault, identity, migration, management
+API, browser or process-restart acceptance. The separate durable configuration
+backend and administration workspace remain in progress under F28.
+
+This bounded foundation passes mandatory checking, the complete Task suite and
+production build against its exact source composition, including 4,402 frontend
+cases and all Go race/coverage tests. The containing commit delivers these package
+operations. Real Vault and durable configuration acceptance remain separate.

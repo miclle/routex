@@ -95,6 +95,20 @@ func NewClient(allowPrivate bool) *http.Client {
 	return newClient(allowPrivate, net.DefaultResolver.LookupNetIP, dialer.DialContext)
 }
 
+// NewNonReplayingClient keeps NewClient's address, TLS and redirect policy,
+// but uses a fresh HTTP/1 connection for every request. HTTP/2 REFUSED_STREAM
+// replay and HTTP/1 stale-idle-connection replay are therefore unavailable.
+// It does not prove whether a failed request committed a remote side effect.
+func NewNonReplayingClient(allowPrivate bool) *http.Client {
+	client := NewClient(allowPrivate)
+	transport := client.Transport.(*policyTransport).base
+	transport.Protocols = new(http.Protocols)
+	transport.Protocols.SetHTTP1(true)
+	transport.ForceAttemptHTTP2 = false
+	transport.DisableKeepAlives = true
+	return client
+}
+
 type lookupFunc func(context.Context, string, string) ([]netip.Addr, error)
 type dialFunc func(context.Context, string, string) (net.Conn, error)
 
