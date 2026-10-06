@@ -1,5 +1,7 @@
 import type {
   DefaultLimitRecord,
+  DefaultLimitInput,
+  DefaultLimitKind,
   DefaultLimitResetContext,
   DefaultResetTarget,
 } from './default-limits'
@@ -35,8 +37,14 @@ export type RestoreSubmittedIntent = {
   review: RetainedRestoreReview
   reason: string
 }
+export type DefaultLimitSaveSubmittedIntent = {
+  target: DefaultLimitKind
+  etag: string
+  input: DefaultLimitInput
+}
 export type SubmittedIntent =
   | { kind: 'team-create'; payload: TeamCreateSubmittedIntent }
+  | { kind: 'default-limit-save'; payload: DefaultLimitSaveSubmittedIntent }
   | { kind: 'restore-defaults'; payload: RestoreSubmittedIntent }
 
 // Identity is opaque. Callers must keep the returned claim, not reconstruct it.

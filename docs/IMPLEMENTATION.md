@@ -4,8 +4,10 @@ Updated: 2026-10-06. This document records engineering contracts, work packages,
 
 ## Current delivery and active queue
 
-Project, Team-member and transient Restore recovery phases are committed and
-pushed. Latest delivered main is `e9003c972bf1d1ee3f2f3495d51cb7cf224091f8`;
+Project, Team-member, transient Restore recovery and Team creation limits phases
+are committed and pushed. Team creation predecessor is
+`8f17d12f0b59ab56eab9601748feede326616db2`; Restore predecessor is
+`e9003c972bf1d1ee3f2f3495d51cb7cf224091f8`;
 Member delivery is `f7b31b1a111937b5bc2885b942b12f087c27b08b`.
 Member full113 passed both databases, eight constraints and 3,861 named events;
 current-main bilingual private-history/restart acceptance also passed. Restore
@@ -14,7 +16,7 @@ checks, embedded build and production asset race tests. Its separately identifie
 controlled PostgreSQL browser acceptance preserves the original dispatched
 request through transient same-actor Session failure and process restart.
 
-The containing commit delivers Team creation initial limits V63, with
+Commit `8f17d12` delivers Team creation initial limits V63, with
 Member and Restore rules preserved. Actual focused R4–R8 failed on narrow adapter/fixture defects, including an
 index-removal test adapter and response privacy headers. Their failures remain
 recorded; the corrected registered route installs `private, no-store` before
@@ -38,11 +40,38 @@ Personal and Project Key monthly warnings are composed in a separate V64/V65
 candidate: complete Task passed, including 3,661 frontend cases/156 files,
 Go race/coverage, Node, development lifecycle and production asset checks.
 They retain the unchanged115-case prefix and target119 cases. Actual driver,
-native/browser and delivery gates remain pending. Actual focus R6 passed 12/16
-direct cases; strict controlled-operational diagnostic and fresh GORM receiver
-fixture successors are under review. These source repairs do not accept full119.
+native/browser and delivery gates remain pending. Focus R6 passed 12/16 direct
+cases; corrected R7 passed 14/16, with both remaining Project failures at a
+downstream global operational-zero oracle. Strict captured-source operational
+diagnostics preserve SMTP-zero, recipient privacy, history and all original
+assertions. Fresh R8 passed all16 selected cases and87 named pass events, with no failures
+or skips and independently absent owned resources. Full119 and actual Key
+browser/native delivery remain pending.
 All warnings use the approved
 80% reminder/90% critical thresholds, without estimating unknown settled usage.
+
+The default-rule SAVE recovery candidate passed mandatory checking, complete
+Task (3,557 frontend cases/157 files), production build and a bounded controlled
+PostgreSQL browser workflow. Nine browser PUTs cover first conflict review, two
+committed responses withheld as labeled503, exact replay, real Session200
+withheld as labeled500, actual private-interface unmount and manual gate Retry,
+explicit abandonment with Escape/focus return, fresh review and original-Session
+process restart. Eight action-filtered default-update audits were counted; their
+metadata was not independently decoded. Existing resource policies and zero
+native resources stayed unchanged; owned resources are independently absent.
+This is saved future-creation configuration, not current-policy enforcement.
+A separate ordinary, undispatched draft-loss defect was observed during a
+successful background Session renewal. The cause is editor unmount during
+generation-scoped authorization reads. The reviewed two-file successor now passes110 focused cases and complete main
+checking/Task (3,565 frontend cases/157 files), with a fresh embedded production
+build. The repaired production artifact
+`e3b22ba6d074094db21219ec57d1b9b5f82155dad5dce6203a2d29907479e2e6`
+passed both ordinary pre-submit renewal cases and the complete controlled
+nine-PUT uncertainty/manual-gate/bilingual/original-Session restart workflow.
+Existing policies and zero native resources stayed exact; owned resources are
+independently absent. Source, backend/schema and inherited full115 boundaries
+are recorded in [Default limits](DEFAULT_LIMITS.md). The containing commit
+delivers this UI recovery phase; Key full119 remains in progress.
 
 A current layout audit reopened F06: Team creation still lacks its initial Model
 access selection. The full objective stays active: 10 complete, 17 partial and
@@ -5864,3 +5893,22 @@ generation handling. Earlier input-channel and timestamp failures remain
 separate. F06/F17 and totals of 10 complete/17 partial/three unstarted remain
 unchanged; initial Model selection, Key warnings and Default save recovery have
 independent pending gates.
+
+### Default-rule save recovery source and main gates, 2026-10-06
+
+The existing User/Team editor now uses the transient submitted-intent owner for
+already-dispatched default saves. Fresh same-actor Session, permission and target
+reads precede recovery; only an authorized matching mutation response confirms
+success. Original target/body/reason/If-Match remain immutable across uncertain
+retries. First pre-write409, rejected uncertain retry and explicit local
+abandonment have separate behavior. No unsent draft or sensitive token is
+retained. Paired rules and English/Chinese copy are updated. Backend/schema,
+Team V63 and accepted full115 remain unchanged.
+
+Reviewed source passed 136 related cases/eight suites, types, lint and formatting.
+Current main formatting, mandatory check, complete Task (3,557 frontend cases
+in 157 files, four Node checks, two development lifecycle checks, Go race/coverage
+and production asset race tests) and embedded build passed. Binary SHA256:
+`802eb41426cf139f5141e5ab1da08ea4dfbf78d10419d9df1230bbc9f45e1ab8`.
+Controlled production/browser/original-Session restart acceptance remains pending.
+This source gate does not complete F17 or change the formal 10/17/3 totals.

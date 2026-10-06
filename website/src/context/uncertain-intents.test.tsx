@@ -614,3 +614,62 @@ describe('private AuthGate submitted-intent lifetime', () => {
     expect(requests.filter((r) => r.url === '/submitted-intent')).toHaveLength(1)
   })
 })
+
+describe('default-rule submitted intent', () => {
+  it('clones only submitted policy/reason/target/etag in original order and isolates both source and recovered mutations', async () => {
+    await mount('/admin/members/usr_subject?tab=limits')
+    const submitted: SubmittedIntent = {
+      kind: 'default-limit-save',
+      payload: {
+        target: 'team',
+        etag: 'd'.repeat(64),
+        input: { reason: 'Original reason', policy: { ...integerPolicy } },
+      },
+    }
+    const original = JSON.stringify(submitted.payload.input)
+    Object.assign(submitted.payload, { csrf_token: 'never retained', response: { saved: true } })
+    Object.assign(submitted.payload.input, { session: 'never retained' })
+    Object.assign(submitted.payload.input.policy, { unknown: 'never retained' })
+    let claim: SubmittedIntentClaim | null = null
+    await act(async () => {
+      claim = latestOwner!.capture(actor, submitted)
+    })
+    expect(claim).not.toBeNull()
+    const recovered = latestOwner!.recover(actor)!
+    expect(recovered.kind).toBe('default-limit-save')
+    if (recovered.kind !== 'default-limit-save') throw new Error('Wrong intent kind')
+    expect(JSON.stringify(recovered.payload.input)).toBe(original)
+    expect(Object.keys(recovered.payload)).toEqual(['target', 'etag', 'input'])
+    expect(Object.keys(recovered.payload.input)).toEqual(['reason', 'policy'])
+    expect(recovered.claim.targetScope).toBe(JSON.stringify(['default-limit-save', 'team']))
+    submitted.payload.input.reason = 'Source changed'
+    submitted.payload.input.policy.money_month = '99'
+    recovered.payload.input.reason = 'Recovered changed'
+    recovered.payload.input.policy.tokens_5h = 100
+    const next = latestOwner!.recover(actor)!
+    expect(JSON.stringify(next.payload)).toBe(
+      JSON.stringify({ target: 'team', etag: 'd'.repeat(64), input: JSON.parse(original) }),
+    )
+    expect(cache.getMutationCache().getAll()).toHaveLength(0)
+  })
+  it.each(['TEAM', 'team ', 'project'])(
+    'rejects noncanonical default target %s without borrowing a slot',
+    async (target) => {
+      await mount()
+      let claim: SubmittedIntentClaim | null = null
+      await act(async () => {
+        claim = latestOwner!.capture(actor, {
+          kind: 'default-limit-save',
+          payload: {
+            target: target as 'team',
+            etag: 'd'.repeat(64),
+            input: { policy: { ...integerPolicy }, reason: 'Original' },
+          },
+        })
+      })
+      expect(claim).toBeNull()
+      expect(latestOwner!.recover(actor)).toBeNull()
+      expect(latestOwner!.epoch).toBe(0)
+    },
+  )
+})

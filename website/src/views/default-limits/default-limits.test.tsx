@@ -321,7 +321,11 @@ describe('Default limits', () => {
     await act(async () => release())
     await until(() => expect(host.textContent).toContain('Monthly budget'))
     expect(host.textContent).not.toContain('Default rule saved')
-    expect(cache.getQueryData(['default-limits', 'usr_other', 'user'])).toBeDefined()
+    expect(
+      cache
+        .getQueriesData({ queryKey: ['default-limits', 'usr_other', 'user'] })
+        .some(([, data]) => data !== undefined),
+    ).toBe(true)
   })
   it('switches language with preserved draft', async () => {
     await mount()

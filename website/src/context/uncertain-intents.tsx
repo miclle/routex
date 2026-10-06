@@ -7,6 +7,7 @@ import type { Session } from '@/types/auth'
 import type { DefaultLimitPolicy } from '@/types/default-limits'
 import type { LimitPolicy } from '@/types/resource-limits'
 import type {
+  DefaultLimitSaveSubmittedIntent,
   RetainedRestoreReview,
   RetainedSubmittedIntent,
   SubmittedIntent,
@@ -79,7 +80,25 @@ function restoreReview(value: RetainedRestoreReview): RetainedRestoreReview {
     },
   }
 }
+function defaultSaveInput(value: DefaultLimitSaveSubmittedIntent['input']) {
+  const result = {} as typeof value
+  for (const field of Object.keys(value)) {
+    if (field === 'policy') result.policy = caps(value.policy) as DefaultLimitPolicy
+    else if (field === 'reason') result.reason = value.reason
+  }
+  return result
+}
 function copySubmission(value: SubmittedIntent): SubmittedIntent {
+  if (value.kind === 'default-limit-save') {
+    return {
+      kind: value.kind,
+      payload: {
+        target: value.payload.target,
+        etag: value.payload.etag,
+        input: defaultSaveInput(value.payload.input),
+      },
+    }
+  }
   if (value.kind === 'team-create') {
     const body = value.payload.body
     return {
@@ -161,6 +180,12 @@ function createOwner(cache: QueryClient, routeScope: string) {
           submission.payload.target.id !== submission.payload.review.limit.id)
       )
         return null
+      if (
+        submission.kind === 'default-limit-save' &&
+        submission.payload.target !== 'user' &&
+        submission.payload.target !== 'team'
+      )
+        return null
       const claim = Object.freeze({
         identity: Symbol('submitted intent'),
         actor,
@@ -169,11 +194,13 @@ function createOwner(cache: QueryClient, routeScope: string) {
         targetScope:
           submission.kind === 'team-create'
             ? JSON.stringify([submission.kind, submission.payload.body.creation_id])
-            : JSON.stringify([
-                submission.kind,
-                submission.payload.target.kind,
-                submission.payload.target.id,
-              ]),
+            : submission.kind === 'default-limit-save'
+              ? JSON.stringify([submission.kind, submission.payload.target])
+              : JSON.stringify([
+                  submission.kind,
+                  submission.payload.target.kind,
+                  submission.payload.target.id,
+                ]),
       })
       retained = { ...copySubmission(submission), claim, uncertain: true }
       changed()

@@ -195,3 +195,42 @@ the original request, explicit abandonment permits fresh review, and a lost
 committed response reconciles by exact retry after defaults change. Prior focused failures remain
 failed. Existing Restore and monthly-warning contracts are preserved by this
 phase.
+
+## Submitted default-rule save recovery
+
+The existing User/Team default editor retains only an already-dispatched
+non-secret target, complete policy/reason and reviewed If-Match through transient
+same-actor Session failure. Fresh Session, permission and target reads precede
+recovery of the original tab. Matching GET data never confirms a historical save;
+explicit original retry uses current CSRF. A first pre-write409 permits explicit
+review, while a rejected uncertain retry retains the original intent. Base UI
+local abandonment clears retry ownership only, preserves the draft and requires
+fresh review. Definitive authentication loss, actor or route departure clears
+the transient owner. Mandatory checking, full Task (3,557 frontend cases/157 files) and production
+build passed. Bounded controlled PostgreSQL browser acceptance also passed:
+nine exact browser PUTs, real first/retry conflicts, committed response loss,
+Session-error private-interface unmount and manual Retry, bilingual original
+intent recovery, Escape/focus, explicit abandonment and original-Session process
+restart. Eight action-filtered update audits were counted, without independent
+metadata decoding. Existing resource policies and zero native resources stayed
+unchanged; owned resources are absent.
+
+A separate undispatched ordinary draft-loss defect was observed during a
+successful background Session renewal. Generation-scoped authorization reads
+unmount the local editor before its renewed target read completes. The reviewed two-file successor now keeps the local editor mounted through
+renewed reads using an actor/target initialization seed. Fields remain hidden
+until fresh authority returns, and changed policy/currency still requires explicit
+review; the seed never authorizes dispatch. Ordinary drafts never enter the
+submitted-intent owner and are still discarded by a real AuthGate error unmount.
+The baseline regression failed before the repair; the successor passes110 related
+cases, including both targets before submission, changed ETag/currency review,
+permission/target read errors, actor replacement and target departure. Main mandatory checking, complete Task (3,565 frontend cases/157 files) and
+production build also pass. Actual repaired PostgreSQL acceptance now passes on embedded artifact
+`e3b22ba6d074094db21219ec57d1b9b5f82155dad5dce6203a2d29907479e2e6`.
+Both ordinary targets retained exact drafted values and reasons across real
+periodic Session renewal before explicit save. The same nine-PUT conflict/lost-
+response/manual-gate-recovery/abandonment/restart workflow passed again with
+English and Chinese views, unchanged existing resource policies and zero native
+resources. Browser console warnings/errors were absent. The exact owned
+application, observer, tab and Compose resources are independently absent.
+No backend/schema change or new dual-driver matrix is claimed by this UI phase.

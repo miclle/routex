@@ -824,3 +824,19 @@ unmount private pages. Fresh same-actor Session, permissions and target/context
 reads are required before manual recovery/retry. Preserve exact original intent
 and reject stale claims; no automatic POST. Logout, expiry, actor or route/tab
 changes clear retained intent. Historical defaults not recorded remain unknown.
+
+Default-rule saves reuse the transient submitted-intent owner above AuthGate.
+Retain only a dispatched User/Team target, reviewed If-Match and exact policy/reason.
+Recover the original tab after fresh same-actor Session, permission and target reads;
+never submit automatically or acknowledge a historical save from matching GET data.
+Require current write authority and CSRF for explicit original retries, preserve
+uncertainty through renewed reads, and use Base UI confirmation for local abandonment.
+Keep definitive authentication loss, actor change and route departure destructive
+to retained ownership; default persistence is separate from runtime enforcement.
+
+Ordinary default-rule drafts stay local to the mounted actor/target editor during
+successful Session renewal. Keep fields hidden until fresh permission and target
+reads complete; an initialization seed never authorizes a save or adopts a newer
+ETag. Require explicit review for changed policy/currency, clear on actor/target
+departure or completion, and keep undispatched drafts out of the submitted-intent
+owner. AuthGate error unmounts still discard ordinary undispatched drafts.

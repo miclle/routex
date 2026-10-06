@@ -38,6 +38,15 @@ export default {
   review: 'Review latest policy',
   retry: 'Retry original request',
   saved: 'Default rule saved for future creation.',
+  saveNoCurrency: 'Not applicable without a monthly budget',
+  capturedSave: 'These are the original submitted values, not a fresh policy review.',
+  abandonSave: 'Abandon original save',
+  abandonSaveTitle: 'Abandon unconfirmed default save?',
+  abandonSaveHelp:
+    'This clears only local retry intent. The previous request may already have changed the default rule. Review current policy before saving a new request.',
+  confirmAbandonSave: 'Abandon save request',
+  saveAbandoned:
+    'The previous outcome remains unknown. The submitted draft is retained; explicitly review current policy before a new save.',
   restore: 'Restore defaults',
   restoreTitle: 'Restore current defaults',
   restoreHelp:

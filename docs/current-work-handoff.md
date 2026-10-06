@@ -8,13 +8,17 @@ selector. Earlier checkpoint counts below remain historical. The coordinated roa
 
 ## Current work and next gates
 
-The containing commit delivers Team creation initial limits V63 after mandatory
+Commit `8f17d12` delivers Team creation initial limits V63 after mandatory
 checks, complete Task testing, full115 on PostgreSQL/MySQL and controlled
 production/bilingual/original-Session restart acceptance. Its delivered
 predecessor is Restore recovery `e9003c972bf1d1ee3f2f3495d51cb7cf224091f8`;
 Member warnings were delivered as `f7b31b1a111937b5bc2885b942b12f087c27b08b`.
-Preserve delivered Member rules and Restore consumers. Next gates belong to
-isolated Key warnings, Default save recovery and initial Team Model selection.
+The containing commit additionally delivers default-rule SAVE recovery and
+ordinary local draft renewal, preserving Member/Restore/Team behavior. Mandatory
+checking, complete Task (3,565 frontend cases/157 files), production build and
+controlled PostgreSQL bilingual/original-Session restart acceptance pass. Both
+ordinary targets also retain exact drafts across genuine periodic Session reads.
+Next gates belong to isolated Key119, initial Team Model121 and Role descriptions.
 
 Team focused R4–R8 remain failed. R4 exposed a pinned PostgreSQL GORM DropIndex
 fixture syntax error and missing private context headers; R5 confirmed the
@@ -36,7 +40,7 @@ per database, eight constraints and 3,963 named RUN/PASS events. PostgreSQL took
 1,584-path source/index stayed exact; owned containers/networks/volumes are
 independently absent. Controlled production acceptance subsequently passed.
 A length-only source audit did not establish
-canonical identifier validity and is explicitly superseded. Current main complete Task passed
+canonical identifier validity and is explicitly superseded. Delivered Team main Task passed
 3,539 frontend cases/156 files, Go race/coverage, four Node checks, development
 lifecycle and production assets. Both databases also passed real-process Session,
 gateway and persistent-revocation lifecycle checks on this carried source.
@@ -46,10 +50,14 @@ Personal+Project Key V64/V65 warnings remain isolated. Complete Task passed on
 Go race/coverage, development lifecycle and production assets. Both inherited
 Team corrections are carried with narrow race/check gates. The 119-case real
 matrix and native/bilingual original-Session browser acceptance remain pending.
-Actual focused R6 passed 12 of 16 direct cases; both drivers exposed a global
-operational-notification fixture oracle and a reused nonzero GORM receiver.
-Strict source-bound diagnostic validation and a fresh receiver are being reviewed
-as test-only successors. No failed focus or unexecuted full119 is accepted.
+Actual focused R6 passed 12 of 16 direct cases; source-bound Personal operational
+diagnostics and a fresh Project receiver then passed their reached assertions
+in R7 on both drivers. R7 ended with 14/16 passes: both Project lifecycle cases
+exposed a downstream global operational-zero oracle. A test-only Project
+diagnostic successor preserves exact captured publication/job/recipient provenance
+and SMTP-zero checks. Fresh R8 passed16 direct cases/87 named events with
+exact source/index and independently absent owned resources. Full119 is now
+running; no failed focus or unexecuted full119 is accepted.
 Warning thresholds are 80% reminder and 90% critical; unknown settled coverage
 never becomes an estimated percentage.
 
@@ -58,6 +66,32 @@ GolangCI-Lint37384395016 passed. CI37384395198 is now successful at the exact
 delivered Restore head, including both databases, authentication/native process
 restart and artifact builds. Member CI37383852751 was cancelled after the later Restore push;
 its interrupted checks are not passes. Member independent lint workflows passed.
+
+## Delivered default-rule save recovery
+
+The containing commit extends the existing transient submitted-intent owner to
+already-dispatched User/Team default saves. Exact policy/reason/If-Match survive
+transient AuthGate unmount, with fresh Session/permissions/target reads required
+before manual recovery. Matching GET never proves historical save success.
+First pre-write409 and rejected uncertain retry remain separate; explicit local
+abandonment retains the unknown outcome and requires fresh review.
+
+A successful ordinary Session renewal previously unmounted an undispatched
+editor. The narrow local actor/target seed now preserves that mounted draft
+while hiding it until renewed authority succeeds. It never authorizes a save or
+retains ordinary drafts above AuthGate; actor/target departure still clears it.
+Changed policy/currency requires explicit review. The baseline regression failed
+before repair;110 related cases and complete main3,565-case frontend tests pass.
+
+Artifact `e3b22ba6d074094db21219ec57d1b9b5f82155dad5dce6203a2d29907479e2e6`
+passed both ordinary pre-submit periodic renewals and nine controlled browser
+PUTs covering conflicts, committed response loss, manual gate Retry, exact replay,
+abandonment/Escape/focus, bilingual reads and original-Session process restart.
+Eight action-filtered update audits were counted; metadata decoding is not
+claimed. Existing resource policies and zero native resources remained unchanged;
+owned listeners, tab and Compose resources are independently absent. Backend,
+schema and accepted full115 remain unchanged. Defaults stay future-creation
+templates, separate from current account enforcement.
 
 ## Next Team creation gap
 
@@ -1221,3 +1255,42 @@ generation handling. Earlier input-channel and timestamp failures remain
 separate. F06/F17 and totals of 10 complete/17 partial/three unstarted remain
 unchanged; initial Model selection, Key warnings and Default save recovery have
 independent pending gates.
+
+## Earlier bounded SAVE acceptance before the draft repair
+
+The controlled PostgreSQL SAVE workflow completed successfully with nine actual
+browser PUTs, eight action-filtered default-update audits, bilingual original
+intent recovery, manual AuthGate Retry and same-original-Session process restart.
+Owned application/observer listeners, browser tab and Compose resources are
+independently absent. Audit metadata decoding is not claimed. The production
+artifact remains `802eb41426cf139f5141e5ab1da08ea4dfbf78d10419d9df1230bbc9f45e1ab8`.
+A separate ordinary undispatched draft was lost during successful periodic
+Session renewal; generation-scoped reads unmount its local editor. The narrow
+source successor and pre-submit regression are in progress. Do not commit this
+phase until that defect is fixed and relevant checks pass. Focus Key R8 is
+currently running; full119 and Key production acceptance remain pending.
+
+## Draft-renewal successor source gates
+
+The reviewed two-file successor is carried with paired frontend guidance.
+Mandatory checking, complete Task (3,565 frontend cases/157 files), four Node
+checks, two development lifecycle checks and production assets pass. New
+embedded binary SHA256: `e3b22ba6d074094db21219ec57d1b9b5f82155dad5dce6203a2d29907479e2e6`. Actual pre-submit renewal and
+uncertain-intent browser acceptance is pending on this distinct artifact.
+Key focus R8 passed all16 direct cases/87 named events and independent cleanup;
+the actual full119 run is in progress and its candidate worktree stays protected.
+
+## Repaired SAVE phase ready for delivery
+
+Actual PostgreSQL acceptance passed on the distinct `e3b22ba6…79e2e6` artifact.
+Both ordinary User/Team drafts retain exact values and reasons across genuine
+periodic Session renewal before save. Nine actual browser PUTs also pass first
+conflict, committed response loss, manual AuthGate Retry, identical replay,
+uncertain409, explicit abandonment/Escape/focus, fresh review and same-original-
+Session process restart. Eight action-filtered audits were counted; typed
+metadata decoding is not claimed. Existing policies and zero native resources
+stay exact; owned listeners/tab/Compose resources are independently absent.
+Mandatory check, complete Task (3,565 frontend cases/157 files) and production
+build pass. The containing commit delivers the phase. Key full119 is running
+in its protected candidate; Model121 and Role-description preparation are
+separate, unaccepted future stages. The all-capability objective remains active.
