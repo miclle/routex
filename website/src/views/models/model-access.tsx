@@ -22,6 +22,25 @@ import {
 import { exampleProtocols, modelExample } from './model-examples'
 import { bashTokens } from './bash-tokens'
 
+const officialSDKs: Record<string, { guidance: string; documentation: string }> = {
+  openai_chat: {
+    guidance: 'modelAccess.sdkChat',
+    documentation: 'https://github.com/openai/openai-python',
+  },
+  openai_responses: {
+    guidance: 'modelAccess.sdkResponses',
+    documentation: 'https://github.com/openai/openai-python',
+  },
+  anthropic_messages: {
+    guidance: 'modelAccess.sdkMessages',
+    documentation: 'https://github.com/anthropics/anthropic-sdk-python',
+  },
+  gemini_generate_content: {
+    guidance: 'modelAccess.sdkGemini',
+    documentation: 'https://github.com/googleapis/python-genai',
+  },
+}
+
 export default function ModelAccess({
   actorID,
   modelID,
@@ -128,6 +147,7 @@ export default function ModelAccess({
   const example = model
     ? modelExample(model, selectedSource, activeProtocol, window.location.origin)
     : undefined
+  const sdk = activeProtocol ? officialSDKs[activeProtocol] : undefined
   const [copyScope, setCopyScope] = useState({ example, endpoint, authHeader, model, queryKey })
   if (
     copyScope.example !== example ||
@@ -447,6 +467,38 @@ export default function ModelAccess({
                 </pre>
               )}
             </section>
+            {example && selectedSource && activeProtocol && sdk && currentExample() && (
+              <section
+                aria-label={t('modelAccess.sdkTitle')}
+                className="space-y-3 rounded-lg border p-4"
+              >
+                <h3 className="text-sm font-medium">{t('modelAccess.sdkTitle')}</h3>
+                <p className="break-words text-sm">
+                  {selectedSource.type === 'team'
+                    ? t('modelAccess.sdkTeam')
+                    : t(sdk.guidance, {
+                        baseURL:
+                          activeProtocol === 'anthropic_messages' || gemini
+                            ? window.location.origin
+                            : endpoint,
+                        model: model.name,
+                        authentication: authHeader,
+                      })}
+                </p>
+                <a
+                  href={sdk.documentation}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-sm text-primary underline underline-offset-4"
+                  onClick={(event) => {
+                    if (!currentExample()) event.preventDefault()
+                  }}
+                >
+                  {t('modelAccess.sdkDocumentation', { protocol: protocolLabel(activeProtocol) })}
+                </a>
+                <p className="text-xs text-muted-foreground">{t('modelAccess.sdkCompatibility')}</p>
+              </section>
+            )}
             {notice && notice.scope === copyScope && currentExample() && (
               <p role="status" className="text-sm">
                 {t(notice.value)}

@@ -1,5 +1,19 @@
 export default {
   modelAccess: {
+    sdkTitle: 'Official SDK guidance',
+    sdkChat:
+      'For Personal access, configure the OpenAI Python client base_url as {{baseURL}} and use chat.completions with model {{model}}. Its api_key supplies the authentication shown above: {{authentication}}.',
+    sdkResponses:
+      'For Personal access, configure the OpenAI Python client base_url as {{baseURL}} and use responses with model {{model}}. Its api_key supplies the authentication shown above: {{authentication}}.',
+    sdkMessages:
+      'For Personal access, configure the Anthropic Python client base_url as {{baseURL}} and use messages with model {{model}}. The client appends /v1/messages; do not add /v1 to its base_url. Its api_key supplies the authentication shown above: {{authentication}}.',
+    sdkGemini:
+      'For Personal access, configure the Google Gen AI Python client HttpOptions base_url as {{baseURL}} and api_version as v1beta, then use models.generate_content with model {{model}}. Do not append /v1beta to base_url. Use API Key authentication as shown above: {{authentication}}; this is not a Vertex configuration.',
+    sdkTeam:
+      'For this Team source, use the standalone request example above with the current Session cookie and CSRF token. Personal API Keys and native SDK base_url settings do not replace the Team endpoint.',
+    sdkDocumentation: '{{protocol}} official SDK documentation',
+    sdkCompatibility:
+      'Check the documentation for your client version. This guidance does not verify SDK compatibility or guarantee that an inference request will succeed.',
     copyBaseURL: 'Copy Base URL',
     copyAuthenticationHeader: 'Copy authentication header template',
   },

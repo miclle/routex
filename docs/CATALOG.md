@@ -853,3 +853,29 @@ Connection set matches the fresh catalogue. Provider-only readers see Unknown
 and cannot use binding filters. Renewal, errors and mismatches hide saved facts;
 explicit mismatch recovery refreshes the catalogue before requesting a new
 projection. Rendering the table never reconstructs bindings from a Model directory.
+
+## Model access SDK guidance
+
+The existing Model access drawer places Official SDK guidance after its native
+request example. Guidance follows the fresh actor/Model detail, explicitly
+selected access source and eligible native protocol. Renewed or failed reads,
+missing sources/routes and unsafe Gemini paths hide it. A captured link checks
+current authority again before navigation. The card makes no extra API request
+and adds no client dependency or executable SDK program.
+
+Personal OpenAI guidance uses the gateway's `/v1` base URL for Chat Completions
+or Responses. Messages and Gemini client configuration uses the gateway origin,
+with the SDK-owned path/version; Gemini explicitly selects `v1beta`. The native
+request Base URL and its exact copied bytes stay unchanged. Official client
+links are version references, not compatibility or inference-success proof.
+Team guidance retains the standalone Session/current-CSRF request example and
+does not substitute a Personal Key or native SDK base URL for its scoped endpoint.
+
+English and Chinese guidance switches without changing the selected source,
+protocol or request example. Existing Base URL/header/example copying, Bash
+highlighting, keyboard activation and current-target focus remain preserved.
+Seventeen SDK tests cover protocol path joins, literal Model names, Team scope,
+authority renewal/error/replacement, live language changes and absent routes.
+Main checking, complete frontend tests and controlled bilingual clipboard,
+authority, actor replacement and original-Session restart acceptance pass.
+No SDK runtime compatibility is certified. See [F19 acceptance](IMPLEMENTATION.md#model-access-sdk-guidance-and-f19-acceptance-2026-10-07).

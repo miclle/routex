@@ -973,3 +973,5 @@ filters. Provider-only readers retain Unknown without a Model directory read.
 Hide prior binding facts during renewal, errors or mismatches; explicit mismatch
 recovery refreshes the catalogue before the projection. Stored disabled or
 zero-weight relationships do not prove routing readiness.
+
+Model access drawers place a separate Official SDK guidance card after the native request example. Bind it to the fresh exact source and selected eligible protocol; hide it during renewed or failed reads and actor/target changes. Personal guidance uses the matching native client configuration and official documentation: OpenAI uses /v1, while Messages and Gemini use the gateway origin with their client-owned version path. Team guidance keeps the standalone Session/current-CSRF request and never substitutes a Personal Key. Guidance is not a runnable SDK program, a compatibility guarantee, or proof that inference will succeed. Preserve existing copy bytes and add no discovery or directory reads.

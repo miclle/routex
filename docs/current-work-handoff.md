@@ -1,47 +1,31 @@
 # Current implementation handoff
 
-Updated: 2026-10-06. Status: active. Continue the full RouteX objective and
-prioritize partial capabilities. Current totals are **11 complete, 16 partial,
-three unstarted** after accepting F06 initial Team Model access selection. Earlier checkpoint counts below remain historical. The coordinated roadmap lives outside this repository;
+Updated: 2026-10-07. Status: active. Continue the full RouteX objective and
+prioritize partial capabilities. Current totals are **12 complete, 15 partial,
+three unstarted** after accepting F19 model access and guidance. Earlier checkpoint counts below remain historical. The coordinated roadmap lives outside this repository;
 [Implementation](IMPLEMENTATION.md) records the independent historical gates.
 
 ## Current work and next gates
 
-The delivered predecessor is Provider Model binding projection and V69 index
-`10dcfde38474ea56959989333a299179c916d6ae`, pushed with exact remote read-back.
-Home identity labels `d8d80ff` remain its delivered predecessor.
-Home exact-head remote CI, Actionlint and GolangCI-Lint checks completed successfully; [CI run](https://github.com/miclle/routex/actions/runs/37455048465) verifies `d8d80ff`, not the later binding/Caller source.
-Whole-item catalogue access `fc7dfff` remains its delivered predecessor.
-Provider Models table remains its checked predecessor `228dfd9`.
-Its complete Task passes 4,021 frontend cases in 165 files, main check/build and
-controlled bilingual permission/original-Session restart acceptance; zero native
-calls and owned cleanup are verified. Catalogue prices `20d6049` and repaired
-Monthly counts `daddd4e` remain delivered. The containing commit additionally delivers whole-item catalogue access and its
-current-target dismissal focus repair after 4,055 frontend cases/165 files,
-complete Task, mandatory main checking/build and controlled bilingual browser/
-original-Session restart acceptance. All 1,602 tested product paths match main;
-zero calls/attempts and independently absent owned resources are verified. Earlier
-failed focus/idle evidence remains historical.
+The containing commit delivers Model access SDK guidance after final main
+checking, 4,267 frontend cases/171 files, four Node checks, embedded build and
+controlled bilingual clipboard/authority/actor/original-Session restart. Root
+acceptance is `53278838e4c85610dfde1c5dc236cbe589bae3da22eadc039803c769e72667b5`.
+Six original Session rows are unchanged; Calls/Attempts/Keys/Projects remain zero
+and all owned resources are independently absent. The finite F19 inventory is
+complete; current totals are **12 complete, 15 partial and three unstarted**.
+The full objective remains active. SDK guidance does not certify client versions.
 
-Commit `d8d80ff` delivers self-only Home Role labels and bilingual current
-Role/Team identity labels. Complete Task testing passes 4,099 frontend cases/166
-files, Node4/dev2, Go race/coverage and embedded assets; final main format,
-mandatory checking and build pass. Actual full127 R2 passes 127 ordered scenarios
-per database, 254 direct cases, eight constraints and 4,609 balanced named
-RUN/PASS results. Root independently verifies all 998 Go/Task sources match main
-and all owned matrix resources/ports/processes are absent. Controlled Home
-browser/restart acceptance and exact zero call/attempt/Key counts pass. Earlier
-FK-invalid, diagnostic-loss and ENOSPC attempts remain failed historical evidence.
+Delivered predecessors are connection copy/highlighting `b592448`, monthly
+recorded callers `72fb5a6`, Provider bindings `10dcfde`, Home identity `d8d80ff`
+and whole-item access `fc7dfff`. Their historical acceptance remains below.
 
-The containing commit delivers the complete Provider Model binding projection and frozen GORM V69 reverse index. Main format/check, complete Task (4,154 frontend cases/167 files, Go race, Node4/dev2 and embedded assets) and production build pass. Actual complete129 R3 passes 129 ordered scenarios per database, 258 direct lifecycle cases, eight constraints and 4,672 balanced named RUN/PASS results in 3,074.113 seconds. Root independently verifies all 1,016 Go/Task source paths and modes, the exact original 127-case prefix, and absent owned resources, ports and process. Acceptance digest: `9b80eba1dd786bbb475b8d75b9048a592ae31d4cc900ff0d9355535e40301683`.
-
-Controlled bilingual bindings, filters, current-name links, independent permissions and three original-browser-Session restart gates pass, with exact zero calls/attempts/Keys and owned cleanup. Browser warnings/errors are empty. Ten unrelated notification/Home/registration HTTP 500 responses remain unexplained; cancellation can map to sanitized 500, but its historical cause was not recorded. This is bounded functional acceptance, not an all-request health claim. Initial index-removal failures, the first copy-mode preparation failure and complete129 R2's stale whole-ledger V68 duty fixture failure remain historical. The reviewed V1–V68-prefix test-only correction retains later versions and passes focused and complete dual-driver validation; released migrations remain unchanged.
-
-The containing commit delivers monthly distinct recorded callers in the selected resource account. Isolated complete130 R3 passes 130 scenarios per database, 260 direct cases, eight constraints and 4,680 balanced named results, with exact 1,018 backend/Task paths and absent owned resources/ports. Matrix acceptance SHA-256: `61243e471486d2059fc70532f3cce61395e2adc022a09d67bd5ec4ed8767cf7f`. Private complete Task passes 4,199 frontend cases/167 files, Node4/dev2, Go race/coverage and assets. Main formatting, mandatory checking and production build pass. All 1,628 tested product paths and 1,018 backend/Task paths match the accepted candidates. Controlled EN/ZH cards/table/keyboard acceptance confirms Personal 2 requests/1 distinct caller, shared Team 3 requests/2 callers and unused Model zero. Real peer removal hides stale Model/usage facts; authorized readers retain two historical callers, and rejoin restores the shared view. Ordinary member-to-peer logout/login hides Personal facts. Three original browser Sessions and three original API Sessions remain usable after a same-binary/configuration/database/journal restart without relogin. Exactly five native calls, five persisted Calls and five Attempts, including exact private actor groups, are independently verified. Owned Compose resources, application/stub/database ports and temporary tabs are absent. Browser warning/error logs are empty. Functional acceptance SHA-256: `63ed9cffadfcfd4b1e7ae1c8fe8a9e40d8685d348ca5799c9d7b5ed9ad76d008`. Initial browser prices were Unknown and recovered to the unchanged exact rates on normal refresh; their initial cause remains unproven. Legacy unknown-attribution and obsolete-response cases remain source/driver evidence. The first noninteractive fixture launch reached setup then failed on stdin EOF with zero native calls; its cleanup and failed status are retained. The containing commit delivers this bounded Caller phase; F19 and formal 11/16/3 totals remain unchanged.
-
-Workbook full130 R2 separately passes 130 scenarios per database, 260 direct cases, eight constraints and 4,697 balanced named results in 3,163.583 seconds. Its exact 1,020-path backend source and owned cleanup are verified. Acceptance SHA-256: `83598b3bfa94f3d5489eca8f02a460f8613f3f3a55a7c04419fe875443648a2b`. Workbook source remains private; genuine file-download/browser/restart and later main delivery are pending. Earlier intentionally stopped matrices remain unaccepted.
-
-The next independent work is bounded catalogue connection-text copy/Bash highlighting and Personal monthly Token/money stop-versus-alert configuration. The user confirmed each account and dimension is independent; a soft Personal cap never lowers a higher hard Key cap. Preserve accounting, unknown coverage, prices, publication and all other hard controls. These private phases are not delivered. Named template CRUD and Personal quota applications are not established parity requirements by the reviewed source. Keep the full goal active and formal 11/16/3 totals unchanged.
+Continue partial F11/F15/F17 work. Workbook export has accepted dual-driver
+backend evidence but genuine browser file delivery remains pending. Personal
+monthly stop/alert modes and Provider name editing remain private; their focused
+dual-driver gates pass and one complete133 matrix is running. Production native
+quota and Provider browser/restart gates remain required before delivery. Do not
+transfer historical receipts to new source or claim a separate full132 run.
 
 ## Earlier delivery checkpoints
 
@@ -1984,3 +1968,52 @@ Session field and was corrected to the actual recorded fields without product
 changes. Acceptance SHA-256: `eed88b6d189b45b3c365710cf3c5a68f61d83f87a9973f419320d623f7776ae7`. The historical
 private XLSX candidate receipt does not substitute. The containing commit
 delivers this bounded slice; F19 remains partial and totals stay 11/16/3.
+
+## Model access SDK guidance and F19 acceptance, 2026-10-07
+
+The containing commit completes the finite F19 capability inventory: own
+Overview/identity, authorized catalogue/details, explicit Personal/Team sources,
+filters/cards/table, scoped requests, prices/monthly requests/distinct recorded
+callers, native examples/exact copying, keyboard/focus and SDK guidance. Team
+Session authentication is the documented ownership adaptation. No additional
+Overview field is specified. SDK configuration guidance does not certify client
+versions or external-provider compatibility; the overall objective remains active.
+Current totals are **12 complete, 15 partial and three unstarted**.
+
+The existing drawer adds source/protocol-bound bilingual guidance and official
+client links without a new API, dependency, schema or native request. Main
+formatting, mandatory checking, complete frontend tests (4,267 cases in 171
+files plus four Node checks) and embedded production build pass. Its 1,020
+backend paths match the separately accepted XLSX full130 source; this UI phase
+adds no persistence change or new database-matrix claim. The first full frontend
+run remains failed (4,266 pass, one immediate held-renewal observation failure).
+The narrow test successor waits for actual held fetching/loading and the rendered
+403 before the unchanged absence assertions, within the original budget. All
+145 focused cases, including 17 SDK cases, pass; no product workaround was added.
+
+The final main binary passes eleven real browser checkpoints: English/Chinese
+Personal and Team clipboard equality, native Base URL/header placeholders,
+Team-only guidance, normal grant withdrawal/restoration, normal logout/login
+actor replacement and identical-artifact restart with both original browser
+documents. Six original Session rows remain byte-for-byte equal; Calls, Attempts,
+Personal/Project Keys and Projects remain zero. One discovery GET and no native
+POST occur; browser warning/error logs are empty. Root independently verifies
+source/modes/HEAD/index and absent owned processes, containers, networks, volumes
+and all three listeners. Root acceptance SHA-256:
+`53278838e4c85610dfde1c5dc236cbe589bae3da22eadc039803c769e72667b5`.
+Earlier prelaunch, stdin-EOF and idle-timeout attempts remain failed and cleaned.
+
+Only Chat configuration was exercised in this browser fixture. Other native
+configuration paths and unsafe Gemini names are covered by source tests. The
+header language changes were made after closing the modal; source tests cover
+live translation with retained selections. Withdrawal used renewed closed-drawer
+lists; held late replies remain source evidence. No downloaded workbook or SDK
+execution is inferred from this acceptance.
+
+F19-specific negative evidence is indexed independently of broader release cases:
+
+| Case | Delivered F19 evidence | Remaining broader acceptance |
+| --- | --- | --- |
+| A02 | Exact actor/Model catalogue and request authorization; unavailable or revoked sources hide details/examples; current actor replacement and server denials. See [catalogue contracts](CATALOG.md) and `model_catalog_integration_test.go`, `personal_model_requests_integration_test.go`, `team_model_requests_integration_test.go`. | Future enterprise/operations boundaries remain open. |
+| A04 | Explicit Personal/individual Team source; Team visibility grants no Personal Key access; four native standalone Team programs preserve exact Team/User/membership and one debit through removal/rejoin and restart. See [Team catalogue examples](CATALOG.md#explicit-source-member-examples). | Global end-to-end release acceptance remains partial. |
+| A06 | Stable Model ID across rename; expired aliases stop resolving and historical names stay reserved, covered by `catalog_integration_test.go` and `model_alias_retirement_integration_test.go` on both supported databases. | Final platform-wide release acceptance remains partial. |

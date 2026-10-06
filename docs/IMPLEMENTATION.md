@@ -1,33 +1,28 @@
 # RouteX Implementation and Acceptance Index
 
-Updated: 2026-10-06. This document records engineering contracts, work packages, and acceptance checks. Interfaces, tables, pages, and metrics marked as planned are not necessarily implemented; delivery evidence appears at the end. The active goal covers all F01–F30 capabilities and A01–A20 acceptance cases; completed stages do not end implementation. The full product is delivered incrementally through P0–P6.
+Updated: 2026-10-07. This document records engineering contracts, work packages, and acceptance checks. Interfaces, tables, pages, and metrics marked as planned are not necessarily implemented; delivery evidence appears at the end. The active goal covers all F01–F30 capabilities and A01–A20 acceptance cases; completed stages do not end implementation. The full product is delivered incrementally through P0–P6.
 
 ## Current delivery and active queue
 
-Current delivered main is `10dcfde38474ea56959989333a299179c916d6ae`
-(Provider Model binding projection and V69 reverse index), following Home identity
-labels `d8d80ff`, whole-item catalogue access `fc7dfff`, Provider Models table
-`228dfd9`, configured catalogue prices `20d6049` and
-repaired monthly counts `daddd4e`. Their complete tests, controlled browser and
-original-Session restart evidence are recorded below. Provider Models passes
-4,021 frontend cases/165 files and mandatory main checking/build.
+The containing commit delivers Model access SDK guidance after final main
+checking, 4,267 frontend cases/171 files, four Node checks, embedded build and
+controlled bilingual clipboard/authority/actor/original-Session restart. Root
+acceptance is `53278838e4c85610dfde1c5dc236cbe589bae3da22eadc039803c769e72667b5`.
+Six original Session rows are unchanged; Calls/Attempts/Keys/Projects remain zero
+and all owned resources are independently absent. The finite F19 inventory is
+complete; current totals are **12 complete, 15 partial and three unstarted**.
+The full objective remains active. SDK guidance does not certify client versions.
 
-Whole-item catalogue activation and current-target dismissal focus repair are
-accepted in `fc7dfff` after 4,055 frontend cases/165 files, complete
-Task, mandatory main checking/build and controlled bilingual browser/restart. The first browser run
-remains repair-required and its independent idle failure is preserved.
+Delivered predecessors are connection copy/highlighting `b592448`, monthly
+recorded callers `72fb5a6`, Provider bindings `10dcfde`, Home identity `d8d80ff`
+and whole-item access `fc7dfff`. Their historical acceptance remains below.
 
-Commit `d8d80ff` delivers self-only Home Role labels and
-bilingual current Role/Team identity labels after complete Task testing (4,099
-frontend cases/166 files), final main format/check/build and controlled Home
-browser/original-Session restart acceptance. Actual full127 R2 passes 127 ordered
-scenarios per database, 254 direct cases, eight constraints and 4,609 balanced
-named results. Root independently verifies current source and owned cleanup.
-Earlier failed attempts remain historical. Provider Model binding is delivered
-as `10dcfde`; its complete129 and controlled acceptance are recorded below.
-The containing commit delivers monthly distinct recorded callers after final main
-and controlled browser/restart acceptance, following the user's selected-resource/monthly definition. The full goal
-continues; totals remain 11 complete / 16 partial / three unstarted.
+Continue partial F11/F15/F17 work. Workbook export has accepted dual-driver
+backend evidence but genuine browser file delivery remains pending. Personal
+monthly stop/alert modes and Provider name editing remain private; their focused
+dual-driver gates pass and one complete133 matrix is running. Production native
+quota and Provider browser/restart gates remain required before delivery. Do not
+transfer historical receipts to new source or claim a separate full132 run.
 
 ## Earlier delivery checkpoints
 
@@ -485,7 +480,7 @@ Status terms in this section are deliberately strict:
 - **Partially completed** means material implementation exists, but one or more required behaviors or acceptance gates remain open. It does not mean that work has not started.
 - **Not started** means no material implementation of the capability exists. A prerequisite or design note may still be present.
 
-The binary capability count is 11 completed, 16 partially completed, and 3 not started. F06 initial Model access selection has passed its scoped acceptance. This is a completion count, not an effort percentage: several partially completed capabilities contain substantial delivered work. The user resumed implementation on 2026-10-02 and prioritized partially completed capabilities. Status changes require current implementation and acceptance evidence; a package delivery alone does not complete an entire capability.
+The binary capability count is 12 completed, 15 partially completed, and 3 not started. F06 initial Model access selection has passed its scoped acceptance. This is a completion count, not an effort percentage: several partially completed capabilities contain substantial delivered work. The user resumed implementation on 2026-10-02 and prioritized partially completed capabilities. Status changes require current implementation and acceptance evidence; a package delivery alone does not complete an entire capability.
 
 | ID | Capability | Status | Delivered and remaining scope |
 |---|---|---|---|
@@ -507,7 +502,7 @@ The binary capability count is 11 completed, 16 partially completed, and 3 not s
 | F16 | Platform currency, exchange rates, and historical price snapshots | Completed | Decimal-string currency/rate management, exact quoting, and immutable per-call assessment are implemented. |
 | F17 | User and Team defaults, overrides, budgets, alerts, and stop policy | Partially completed | Personal, Project, Key and Team aggregate/member enforcement plus budget/token/TPM controls, authoritative quota snapshots, and installation-calendar configuration exist; current-policy Personal/Project monthly settled-exhaustion inboxes have focused acceptance, Team aggregate monthly settled-exhaustion inboxes have complete controlled acceptance; private Team member monthly notices have passed controlled local source, dual-driver, native/browser/restart and full-matrix acceptance, with final mandatory check passed and checked source committed/pushed as 5363d3c; distinct remote checks remain in progress, and creation-default settings and explicit restores have complete local acceptance; Personal, Team aggregate, Project and private Team-member fixed 80%/90% settled monthly warnings have complete local source, dual-driver/full and controlled PostgreSQL bilingual/restart acceptance; Member warnings are committed/pushed as f7b31b1a, and separate Restore recovery as e9003c97; Personal/Project Key warnings V64/V65 are delivered as cf05c57 after full119, mandatory main checks, both authentication lifecycles and two controlled PostgreSQL scenarios totaling12 native calls,10 observations and15 inbox rows; Team creation V63 is delivered as8f17d12. Chinese Key titles are corrected in8a47ac2; templates, broader alerts, and configurable stop-calling policy remain open. |
 | F18 | Quota, model, and request-limit approvals | Completed | Project model/monthly quota/RPM/TPM/concurrency and Team monthly Token/money requests have controlled acceptance: owner-first assignment, escalation, independent dimensions, read-only platform records, atomic final policies and immutable receipts with current application. Distributed acknowledgements belong to F30; release-wide acceptance remains separate. |
-| F19 | Member overview, model sources, requests, and examples | Partially completed | Actor-scoped Personal/Team source attribution, native metadata, filters, details and examples are available; explicit-source Team catalogue examples and successful Session-generation guards have complete local source and four-native production/browser/restart acceptance; Project requests and four native Team Session protocols exist; Personal single-Model requests and independent scoped review are available; Shared Team model requests and independently scoped review are available; Two-to-four native Team comparison lanes are implemented; Independent Team native code export is accepted; self-only monthly Overview accounts and Personal thirty-day Home cards/trend/history have complete local source, database and controlled browser acceptance; Creator-private Team media has complete local source, migration and controlled production acceptance; configured base price cells, scoped Personal/shared-Team monthly request counts and whole-item catalogue access with current-target focus have complete local acceptance; direct Role/Team identity labels have complete source, dual-driver, full-matrix and controlled browser/restart acceptance in the containing commit; monthly distinct recorded member counts and broader overview facts remain open. |
+| F19 | Member overview, model sources, requests, and examples | Completed | Own Overview/identity, explicit Personal/Team sources, catalogue/details/filters, scoped requests, native examples, configured prices, monthly requests/distinct callers, exact copy/highlighting, keyboard/focus and SDK guidance are delivered. Source, dual-driver and controlled browser/restart evidence is indexed below. SDK configuration guidance does not certify external clients or Providers; broader A02/A04/A06 release cases remain partial. |
 | F20 | Playground, comparison, attachments, and code examples | Partially completed | Four native conversation paths, two-to-four-lane comparison, cancellation, executable examples, per-protocol image/PDF discovery, user/Project attachment resolution, single/comparison attachment lifecycle interfaces, and conservative token/TPM/money admission with exact per-occurrence media prices exist; Team comparison, independent native code export, parameter Reset and creator-private Team attachments have complete local acceptance; external acceptance remains open. |
 | F21 | Personal, Project, and platform call records and CSV | Completed | Isolated list/detail queries, incremental loading, redacted drawers, bounded server-side CSV export, filter parity, formula protection, and bilingual download actions are implemented with dual-database evidence. |
 | F22 | Usage trends, amounts, and multidimensional filters | Partially completed | Personal, Team, Project and platform usage interfaces plus immutable Provider attribution exist. Current-member aggregation and controlled replay/restart are accepted. Scoped CSV, exact-ID selection and genuine-native freshness passed current-source checks and the complete dual-driver regression; measured capacity/release evidence remain open. |
@@ -6774,3 +6769,52 @@ Session field and was corrected to the actual recorded fields without product
 changes. Acceptance SHA-256: `eed88b6d189b45b3c365710cf3c5a68f61d83f87a9973f419320d623f7776ae7`. The historical
 private XLSX candidate receipt does not substitute. The containing commit
 delivers this bounded slice; F19 remains partial and totals stay 11/16/3.
+
+## Model access SDK guidance and F19 acceptance, 2026-10-07
+
+The containing commit completes the finite F19 capability inventory: own
+Overview/identity, authorized catalogue/details, explicit Personal/Team sources,
+filters/cards/table, scoped requests, prices/monthly requests/distinct recorded
+callers, native examples/exact copying, keyboard/focus and SDK guidance. Team
+Session authentication is the documented ownership adaptation. No additional
+Overview field is specified. SDK configuration guidance does not certify client
+versions or external-provider compatibility; the overall objective remains active.
+Current totals are **12 complete, 15 partial and three unstarted**.
+
+The existing drawer adds source/protocol-bound bilingual guidance and official
+client links without a new API, dependency, schema or native request. Main
+formatting, mandatory checking, complete frontend tests (4,267 cases in 171
+files plus four Node checks) and embedded production build pass. Its 1,020
+backend paths match the separately accepted XLSX full130 source; this UI phase
+adds no persistence change or new database-matrix claim. The first full frontend
+run remains failed (4,266 pass, one immediate held-renewal observation failure).
+The narrow test successor waits for actual held fetching/loading and the rendered
+403 before the unchanged absence assertions, within the original budget. All
+145 focused cases, including 17 SDK cases, pass; no product workaround was added.
+
+The final main binary passes eleven real browser checkpoints: English/Chinese
+Personal and Team clipboard equality, native Base URL/header placeholders,
+Team-only guidance, normal grant withdrawal/restoration, normal logout/login
+actor replacement and identical-artifact restart with both original browser
+documents. Six original Session rows remain byte-for-byte equal; Calls, Attempts,
+Personal/Project Keys and Projects remain zero. One discovery GET and no native
+POST occur; browser warning/error logs are empty. Root independently verifies
+source/modes/HEAD/index and absent owned processes, containers, networks, volumes
+and all three listeners. Root acceptance SHA-256:
+`53278838e4c85610dfde1c5dc236cbe589bae3da22eadc039803c769e72667b5`.
+Earlier prelaunch, stdin-EOF and idle-timeout attempts remain failed and cleaned.
+
+Only Chat configuration was exercised in this browser fixture. Other native
+configuration paths and unsafe Gemini names are covered by source tests. The
+header language changes were made after closing the modal; source tests cover
+live translation with retained selections. Withdrawal used renewed closed-drawer
+lists; held late replies remain source evidence. No downloaded workbook or SDK
+execution is inferred from this acceptance.
+
+F19-specific negative evidence is indexed independently of broader release cases:
+
+| Case | Delivered F19 evidence | Remaining broader acceptance |
+| --- | --- | --- |
+| A02 | Exact actor/Model catalogue and request authorization; unavailable or revoked sources hide details/examples; current actor replacement and server denials. See [catalogue contracts](CATALOG.md) and `model_catalog_integration_test.go`, `personal_model_requests_integration_test.go`, `team_model_requests_integration_test.go`. | Future enterprise/operations boundaries remain open. |
+| A04 | Explicit Personal/individual Team source; Team visibility grants no Personal Key access; four native standalone Team programs preserve exact Team/User/membership and one debit through removal/rejoin and restart. See [Team catalogue examples](CATALOG.md#explicit-source-member-examples). | Global end-to-end release acceptance remains partial. |
+| A06 | Stable Model ID across rename; expired aliases stop resolving and historical names stay reserved, covered by `catalog_integration_test.go` and `model_alias_retirement_integration_test.go` on both supported databases. | Final platform-wide release acceptance remains partial. |

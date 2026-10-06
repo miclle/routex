@@ -1,5 +1,19 @@
 export default {
   modelAccess: {
+    sdkTitle: '官方 SDK 使用指引',
+    sdkChat:
+      '个人访问可将 OpenAI Python 客户端的 base_url 设为 {{baseURL}}，通过 chat.completions 调用模型 {{model}}。其 api_key 提供上方显示的认证：{{authentication}}。',
+    sdkResponses:
+      '个人访问可将 OpenAI Python 客户端的 base_url 设为 {{baseURL}}，通过 responses 调用模型 {{model}}。其 api_key 提供上方显示的认证：{{authentication}}。',
+    sdkMessages:
+      '个人访问可将 Anthropic Python 客户端的 base_url 设为 {{baseURL}}，通过 messages 调用模型 {{model}}。客户端会追加 /v1/messages，请勿在 base_url 中再添加 /v1。其 api_key 提供上方显示的认证：{{authentication}}。',
+    sdkGemini:
+      '个人访问可将 Google Gen AI Python 客户端 HttpOptions 的 base_url 设为 {{baseURL}}、api_version 设为 v1beta，通过 models.generate_content 调用模型 {{model}}。请勿在 base_url 中追加 /v1beta。使用上方显示的 API Key 认证：{{authentication}}；这不是 Vertex 配置。',
+    sdkTeam:
+      '此团队来源应使用上方的独立请求示例，并提供当前 Session Cookie 和 CSRF 令牌。个人 API Key 和原生 SDK 的 base_url 设置不能替代团队端点。',
+    sdkDocumentation: '{{protocol}} 官方 SDK 文档',
+    sdkCompatibility:
+      '请查阅所用客户端版本的文档。此指引不代表 SDK 兼容性已验证，也不保证推理请求成功。',
     copyBaseURL: '复制 Base URL',
     copyAuthenticationHeader: '复制认证请求头模板',
   },
