@@ -41,6 +41,26 @@ import type {
 } from '@/types/catalog'
 import axios from 'axios'
 
+type RoutingDraft = { identities: string; values: Record<string, string> }
+function routingIdentities(model: Model) {
+  return JSON.stringify(
+    model.bindings
+      .map((binding) =>
+        JSON.stringify([
+          binding.id,
+          binding.provider_model_id,
+          binding.provider_id,
+          binding.connection_id,
+          binding.protocol,
+        ]),
+      )
+      .sort(),
+  )
+}
+function routingValues(model: Model) {
+  return Object.fromEntries(model.bindings.map((binding) => [binding.id, String(binding.weight)]))
+}
+
 type Action =
   { kind: 'create' } | { kind: 'rename' | 'binding' | 'weights' | 'grants'; model: Model }
 export default function AdminModelsPage() {
@@ -132,6 +152,8 @@ function AdminModels({
   })
   const selected = readable && detail.isSuccess && !detail.isFetching ? detail.data : undefined
   const [action, setAction] = useState<Action | null>(null)
+  // This actor/Model-keyed owner outlives the conditional fresh private form, not AuthGate.
+  const [routingDraft, setRoutingDraft] = useState<RoutingDraft | null>(null)
   const [search, setSearch] = useState('')
   const [aliasName, setAliasName] = useState<string | null>(null)
   const [aliasOpen, setAliasOpen] = useState(false)
@@ -471,8 +493,26 @@ function AdminModels({
             </div>
           </section>
           <RoutingWeights
-            key={JSON.stringify(selected.bindings)}
+            key={selected.id}
             model={selected}
+            draft={routingDraft?.values ?? routingValues(selected)}
+            reviewRequired={
+              !!routingDraft && routingDraft.identities !== routingIdentities(selected)
+            }
+            onDraftChange={(bindingId, value) => {
+              if (!writeReady() || mutation.isPending) return
+              setRoutingDraft((draft) => {
+                const original = draft ?? {
+                  identities: routingIdentities(selected),
+                  values: routingValues(selected),
+                }
+                if (original.identities !== routingIdentities(selected)) return original
+                return { ...original, values: { ...original.values, [bindingId]: value } }
+              })
+            }}
+            onReviewCurrent={() => {
+              if (writeReady() && !mutation.isPending) setRoutingDraft(null)
+            }}
             actor={actor}
             generation={detailGeneration}
             providers={providerData}
@@ -481,7 +521,15 @@ function AdminModels({
             pending={mutation.isPending}
             error={!action ? mutation.error : null}
             onSave={(weights) => {
-              if (mutation.isPending || !writeReady()) return
+              const current = cache.getQueryData<Model>(detailKey)
+              if (
+                mutation.isPending ||
+                !writeReady() ||
+                current?.id !== selected.id ||
+                routingIdentities(current) !== routingIdentities(selected) ||
+                (routingDraft && routingDraft.identities !== routingIdentities(current))
+              )
+                return
               mutation.mutate({
                 path: `/admin/models/${selected.id}/weights`,
                 method: 'put',

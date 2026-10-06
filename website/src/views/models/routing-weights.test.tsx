@@ -32,6 +32,8 @@ let permissionWait: Promise<void> | null
 let permissionFailure: boolean
 let writeFailure: boolean
 let writeWait: Promise<void> | null
+let detailWait: Promise<void> | null
+let detailFailure: boolean
 
 beforeEach(async () => {
   await i18n.changeLanguage('en')
@@ -41,7 +43,8 @@ beforeEach(async () => {
     user: { id: 'usr_1', name: 'User', email: 'user@example.com', role: 'admin' },
     csrf_token: 'csrf',
   }
-  sessionWait = permissionWait = writeWait = null
+  sessionWait = permissionWait = writeWait = detailWait = null
+  detailFailure = false
   permissionFailure = writeFailure = false
   model = {
     id: 'mdl_1',
@@ -74,8 +77,10 @@ beforeEach(async () => {
     if (path === '/auth/session' && sessionWait) await sessionWait
     if (path === '/auth/permissions' && permissionWait) await permissionWait
     if (config.method === 'put' && writeWait) await writeWait
+    if (path === '/admin/models/mdl_1' && detailWait) await detailWait
     const failed =
       (path === '/auth/permissions' && permissionFailure) ||
+      (path === '/admin/models/mdl_1' && detailFailure) ||
       (config.method === 'put' && writeFailure)
     const response = {
       config,
@@ -372,6 +377,7 @@ describe('Protocol-grouped routing weight drafts', () => {
   it('hides drafts during a real Session renewal and reauthorizes before restoring current routing', async () => {
     await mount()
     await fill('bind_0_0', '60')
+    await fill('bind_0_1', '40')
     const originalForm = form()!
     const wait = deferred()
     sessionWait = wait.promise
@@ -391,6 +397,14 @@ describe('Protocol-grouped routing weight drafts', () => {
     expect(total('openai_chat').textContent).toBe('Draft weights total 100%')
     expect(writes()).toHaveLength(0)
     expect(requests.filter((request) => request.url === '/admin/models/mdl_1')).toHaveLength(2)
+    expect(container.querySelector<HTMLInputElement>('input[name="bind_0_0"]')!.value).toBe('60')
+    expect(container.querySelector<HTMLInputElement>('input[name="bind_0_1"]')!.value).toBe('40')
+    await submit()
+    await until(() => expect(writes()).toHaveLength(1))
+    expect(JSON.parse(writes()[0].data).weights.slice(0, 2)).toEqual([
+      { binding_id: 'bind_0_0', weight: 60 },
+      { binding_id: 'bind_0_1', weight: 40 },
+    ])
   })
   it('hides all routing during permission refresh/error and does not restore write controls after revocation', async () => {
     await mount()
@@ -433,6 +447,14 @@ describe('Protocol-grouped routing weight drafts', () => {
     expect(container.textContent).not.toContain('openai_chat-0')
     await submit(previous)
     expect(writes()).toHaveLength(0)
+    permissions = ['models.read_all', 'models.write']
+    await act(async () => {
+      await cache.refetchQueries({ queryKey: ['permissions', 'usr_2'] })
+    })
+    await until(() => expect(form()).not.toBeNull())
+    expect(container.querySelector<HTMLInputElement>('input[name="bind_0_0"]')!.value).toBe('100')
+    expect(container.querySelector<HTMLInputElement>('input[name="bind_0_1"]')!.value).toBe('0')
+    expect(writes()).toHaveLength(0)
   })
   it('replaces the editor on target change and never submits the departed target', async () => {
     await mount()
@@ -448,7 +470,103 @@ describe('Protocol-grouped routing weight drafts', () => {
     )
     expect(previous.isConnected).toBe(false)
     expect(total('openai_chat').textContent).toBe('Draft weights total 100%')
+    expect(container.querySelector<HTMLInputElement>('input[name="bind_0_0"]')!.value).toBe('100')
+    expect(container.querySelector<HTMLInputElement>('input[name="bind_0_1"]')!.value).toBe('0')
     await submit(previous)
+    expect(writes()).toHaveLength(0)
+  })
+
+  it.each(['permissions', 'detail'])(
+    'retains exact edited weights through same-actor %s pending/error/recovery without automatic writes',
+    async (kind) => {
+      await mount()
+      await fill('bind_0_0', '60')
+      await fill('bind_0_1', '40')
+      const old = form()!
+      const wait = deferred()
+      if (kind === 'permissions') permissionWait = wait.promise
+      else detailWait = wait.promise
+      let renewal!: Promise<void>
+      await act(async () => {
+        renewal = cache.refetchQueries({
+          queryKey: kind === 'permissions' ? ['permissions'] : ['admin', 'models', 'detail'],
+        })
+      })
+      await until(() => expect(form()).toBeNull())
+      expect(old.isConnected).toBe(false)
+      await submit(old)
+      expect(writes()).toHaveLength(0)
+      if (kind === 'permissions') permissionFailure = true
+      else detailFailure = true
+      await act(async () => {
+        wait.resolve()
+        await renewal
+      })
+      expect(form()).toBeNull()
+      expect(container.textContent).not.toContain('openai_chat-0')
+      permissionWait = detailWait = null
+      permissionFailure = detailFailure = false
+      await act(async () => {
+        await cache.refetchQueries({
+          queryKey: kind === 'permissions' ? ['permissions'] : ['admin', 'models', 'detail'],
+        })
+      })
+      await until(() => expect(form()).not.toBeNull())
+      expect(container.querySelector<HTMLInputElement>('input[name="bind_0_0"]')!.value).toBe('60')
+      expect(container.querySelector<HTMLInputElement>('input[name="bind_0_1"]')!.value).toBe('40')
+      expect(writes()).toHaveLength(0)
+    },
+  )
+  it('requires an explicit fresh binding review before replacing a draft after binding removal', async () => {
+    await mount()
+    await fill('bind_0_0', '60')
+    await fill('bind_0_1', '40')
+    model.bindings = model.bindings.filter((b) => b.id !== 'bind_0_1')
+    await act(async () => {
+      await cache.refetchQueries({ queryKey: ['admin', 'models', 'detail'] })
+    })
+    await until(() => expect(form()).not.toBeNull())
+    expect(container.textContent).toContain('The current route identities have changed')
+    expect(save().disabled).toBe(true)
+    await submit()
+    expect(writes()).toHaveLength(0)
+    await act(async () => i18n.changeLanguage('zh'))
+    expect(container.textContent).toContain('当前路由身份已变更')
+    await act(async () => i18n.changeLanguage('en'))
+    const review = Array.from(container.querySelectorAll('button')).find(
+      (b) => b.textContent === 'Review current routes',
+    )!
+    await act(async () => review.click())
+    expect(container.querySelector<HTMLInputElement>('input[name="bind_0_0"]')!.value).toBe('100')
+    expect(container.querySelector('input[name="bind_0_1"]')).toBeNull()
+    expect(document.activeElement).toBe(container.querySelector('input[name="bind_0_0"]'))
+    expect(writes()).toHaveLength(0)
+    await submit()
+    await until(() => expect(writes()).toHaveLength(1))
+    expect(JSON.parse(writes()[0].data).weights).toHaveLength(7)
+    expect(
+      JSON.parse(writes()[0].data).weights.some(
+        (b: { binding_id: string }) => b.binding_id === 'bind_0_1',
+      ),
+    ).toBe(false)
+  })
+  it('blocks an obsolete save callback when the current binding identity changes before rendering', async () => {
+    await mount()
+    await fill('bind_0_0', '60')
+    await fill('bind_0_1', '40')
+    const old = form()!
+    const key = cache
+      .getQueryCache()
+      .findAll({ queryKey: ['admin', 'models', 'detail'] })[0].queryKey
+    await act(async () => {
+      cache.setQueryData<Model>(key, {
+        ...model,
+        bindings: model.bindings.map((b, i) =>
+          i === 0 ? { ...b, provider_model_id: 'pmd_replaced' } : b,
+        ),
+      })
+      old.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+    })
     expect(writes()).toHaveLength(0)
   })
   it('switches live feedback and accessible names to Chinese without losing the weight draft', async () => {

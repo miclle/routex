@@ -671,6 +671,9 @@ export default {
     weightsInvalid: 'Enter whole-number weights from 0 to 100 for every binding.',
     weightsUnavailable:
       'Current routing is unavailable. The server checks credential eligibility when saving; configured weights do not establish availability.',
+    weightsRoutesChanged:
+      'The current route identities have changed. Review current routes to replace this draft before saving.',
+    weightsReviewCurrent: 'Review current routes',
     weightsConfiguredHelp:
       'Draft totals describe configured weights, not routing availability. Zero-weight bindings receive no traffic.',
     providerModel: 'Provider model',

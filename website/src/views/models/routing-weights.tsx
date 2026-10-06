@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react'
+import { useLayoutEffect, useRef, type FormEvent } from 'react'
 import { useTranslation } from 'react-i18next'
 import { ErrorNotice, SaveButton } from '@/components/app/CatalogUI'
 import { Button } from '@/components/ui/button'
@@ -10,6 +10,10 @@ import RoutePrices from './route-prices'
 
 export default function RoutingWeights({
   model,
+  draft,
+  reviewRequired,
+  onDraftChange,
+  onReviewCurrent,
   actor,
   generation,
   providers,
@@ -23,6 +27,10 @@ export default function RoutingWeights({
   refreshDetail,
 }: {
   model: Model
+  draft: Record<string, string>
+  reviewRequired: boolean
+  onDraftChange: (bindingId: string, value: string) => void
+  onReviewCurrent: () => void
   actor: string
   generation: number
   providers: Provider[] | undefined
@@ -36,9 +44,14 @@ export default function RoutingWeights({
   refreshDetail: () => void
 }) {
   const { t } = useTranslation('catalog')
-  const [draft, setDraft] = useState<Record<string, string>>(() =>
-    Object.fromEntries(model.bindings.map((binding) => [binding.id, String(binding.weight)])),
-  )
+  const firstWeight = useRef<HTMLInputElement>(null)
+  const focusReviewed = useRef(false)
+  useLayoutEffect(() => {
+    if (focusReviewed.current && !reviewRequired) {
+      focusReviewed.current = false
+      if (!pending && canWrite && firstWeight.current?.isConnected) firstWeight.current.focus()
+    }
+  }, [reviewRequired, pending, canWrite])
   const groups = [...new Set(model.bindings.map((binding) => binding.protocol))].map((protocol) => {
     const bindings = model.bindings.filter((binding) => binding.protocol === protocol)
     const values = bindings.map((binding) => {
@@ -62,7 +75,7 @@ export default function RoutingWeights({
   const valid = groups.length > 0 && groups.every((group) => group.valid)
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
-    if (!canWrite || pending || !valid) return
+    if (!canWrite || pending || reviewRequired || !valid) return
     onSave(
       model.bindings.map((binding) => ({
         binding_id: binding.id,
@@ -72,6 +85,24 @@ export default function RoutingWeights({
   }
   return (
     <form aria-label={t('adminModels.weightsLabel')} className="space-y-4" onSubmit={submit}>
+      {reviewRequired && (
+        <div className="space-y-2">
+          <p role="alert" className="text-sm text-destructive">
+            {t('adminModels.weightsRoutesChanged')}
+          </p>
+          <Button
+            type="button"
+            variant="outline"
+            disabled={pending || !canWrite}
+            onClick={() => {
+              focusReviewed.current = true
+              onReviewCurrent()
+            }}
+          >
+            {t('adminModels.weightsReviewCurrent')}
+          </Button>
+        </div>
+      )}
       {groups.map((group) => {
         const protocol = protocolLabel(group.protocol)
         const feedback =
@@ -138,11 +169,10 @@ export default function RoutingWeights({
                           max={100}
                           step={1}
                           required
-                          value={draft[binding.id]}
-                          onValueChange={(value) =>
-                            setDraft((current) => ({ ...current, [binding.id]: value }))
-                          }
-                          disabled={pending || !canWrite}
+                          ref={binding.id === model.bindings[0]?.id ? firstWeight : undefined}
+                          value={draft[binding.id] ?? ''}
+                          onValueChange={(value) => onDraftChange(binding.id, value)}
+                          disabled={pending || !canWrite || reviewRequired}
                           className="w-24"
                         />
                         %
@@ -179,7 +209,7 @@ export default function RoutingWeights({
         <Button disabled={pending || !canWrite} variant="outline" onClick={onGrants}>
           {t('adminModels.grant')}
         </Button>
-        <SaveButton pending={pending} disabled={!canWrite || !valid}>
+        <SaveButton pending={pending} disabled={!canWrite || reviewRequired || !valid}>
           {t('adminModels.saveWeights')}
         </SaveButton>
       </div>

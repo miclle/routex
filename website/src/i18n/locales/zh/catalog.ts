@@ -605,6 +605,8 @@ export default {
     weightsOver: '草稿权重合计 {{total}}%，需减少 {{difference}}%',
     weightsInvalid: '请为每条供应关系填写 0 到 100 的整数权重。',
     weightsUnavailable: '当前路由不可用。保存时由服务端检查凭证资格；配置权重不代表路由可用。',
+    weightsRoutesChanged: '当前路由身份已变更。请审阅当前路由，以替换此草稿后再保存。',
+    weightsReviewCurrent: '审阅当前路由',
     weightsConfiguredHelp:
       '草稿总计表示配置权重，不代表路由可用。权重为 0 的供应关系不会接收流量。',
     providerModel: '供应商模型',
