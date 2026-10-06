@@ -188,3 +188,41 @@ does not revive the original receipt's application proof.
 form with independently authorized initial models and limits or atomic separate
 pending requests. Reviewed context/currency and a stable creation receipt separate
 historical commit from renewed current authority and runtime application.
+
+## Team creation and initial limits
+
+The existing Team creation form retains Basic information, explicit owners and
+Resource limits. Its actor-scoped creation context exposes only independently
+authorized default fields and currency. Owners are selected through the current
+resource-specific candidate endpoint; creation attribution grants no implicit
+ownership or model access.
+
+Seven aggregate caps use sparse presence-aware input: omission copies the
+reviewed default, null removes that cap, and zero is preserved. Money remains an
+exact decimal string. A strong reviewed context ETag, stable UUID creation ID
+and required override reason bind the complete request. Metadata, explicit
+owner memberships, default copies, authorized overrides, audit and durable
+receipt commit atomically. Initial creation returns201; an identical authorized
+retry returns200 with historical commit and current runtime application reported
+separately. Stale defaults or ownership require explicit review; uncertain
+publication retains the original intent through transient Session errors.
+
+V63 source/race/check and candidate Task gates passed. Failed real-driver
+predecessors exposed a test-only index removal adapter and private response
+headers; corrected registered-route regressions pass. Corrected R9 passed all
+ten selected PostgreSQL/MySQL cases, with exact source/index and independently
+verified cleanup. Unfiltered full115 then passed 115 ordered scenarios per
+database, eight constraints and 3,963 named RUN/PASS events on the exact source
+and index. Controlled PostgreSQL bilingual production and original-Session
+restart acceptance also passed against the rebuilt artifact. Strict RFC3339
+timestamps accept both UTC and numeric offsets without changing the identity
+or receipt checks. Owned resources are independently absent. The containing
+commit delivers this bounded phase; F06 remains partial.
+
+The creation Model access selector is still pending. It belongs between Basic
+information and Resource limits in the specified form. Its future submission
+must use explicit selected model identities and independent grant authority;
+empty selection grants no models. This authorization contract explains the
+empty-selection difference, but does not replace the missing interaction. F06
+remains partially completed until this section and its atomic/retry acceptance
+are delivered.

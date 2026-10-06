@@ -1,15 +1,96 @@
 # Current implementation handoff
 
 Updated: 2026-10-06. Status: active. Continue the full RouteX objective and
-prioritize partial capabilities. Formal totals remain **11 complete, 16 partial,
-three unstarted**. The coordinated roadmap lives outside this repository;
+prioritize partial capabilities. Current totals are **10 complete, 17 partial,
+three unstarted** after reopening F06 for its missing creation Model access
+selector. Earlier checkpoint counts below remain historical. The coordinated roadmap lives outside this repository;
 [Implementation](IMPLEMENTATION.md) records the independent historical gates.
 
-## Checked Member warnings and Restore recovery
+## Current work and next gates
+
+The containing commit delivers Team creation initial limits V63 after mandatory
+checks, complete Task testing, full115 on PostgreSQL/MySQL and controlled
+production/bilingual/original-Session restart acceptance. Its delivered
+predecessor is Restore recovery `e9003c972bf1d1ee3f2f3495d51cb7cf224091f8`;
+Member warnings were delivered as `f7b31b1a111937b5bc2885b942b12f087c27b08b`.
+Preserve delivered Member rules and Restore consumers. Next gates belong to
+isolated Key warnings, Default save recovery and initial Team Model selection.
+
+Team focused R4–R8 remain failed. R4 exposed a pinned PostgreSQL GORM DropIndex
+fixture syntax error and missing private context headers; R5 confirmed the
+index fix but found unauthenticated rejection happened before the controller
+header. The sole context GET now installs the existing private header middleware
+before the original Session gate; service authority and assertions are unchanged.
+Source regression/race/check gates passed. R6 passed eight direct cases but
+failed both lifecycle cases at missing review: expected428, actual400. A narrow
+Team-only required-header successor has passed source checking; malformed400 and legacy
+behavior remain unchanged. Source/index and independent cleanup passed. R7/R8 later exposed fixture-only
+offboarding column and uppercase approval-ID errors. Offboarding now uses the
+actual timestamp with exact persisted readbacks; approval data now uses
+the project identifier generator. Both test-only corrections have passed narrow
+race tests and mandatory checks on main and the isolated Key candidate. Fresh
+R9 passed all ten selected PostgreSQL/MySQL cases, with exact source/index and
+independently verified cleanup. Unfiltered full115 then passed 115 ordered cases
+per database, eight constraints and 3,963 named RUN/PASS events. PostgreSQL took
+1,029.52s, MySQL 1,404.50s and the whole command 2,471.304s. The complete
+1,584-path source/index stayed exact; owned containers/networks/volumes are
+independently absent. Controlled production acceptance subsequently passed.
+A length-only source audit did not establish
+canonical identifier validity and is explicitly superseded. Current main complete Task passed
+3,539 frontend cases/156 files, Go race/coverage, four Node checks, development
+lifecycle and production assets. Both databases also passed real-process Session,
+gateway and persistent-revocation lifecycle checks on this carried source.
+
+Personal+Project Key V64/V65 warnings remain isolated. Complete Task passed on
+1,616 exact source paths: 3,661 frontend cases/156 files, four Node checks,
+Go race/coverage, development lifecycle and production assets. Both inherited
+Team corrections are carried with narrow race/check gates. The 119-case real
+matrix and native/bilingual original-Session browser acceptance remain pending.
+Actual focused R6 passed 12 of 16 direct cases; both drivers exposed a global
+operational-notification fixture oracle and a reused nonzero GORM receiver.
+Strict source-bound diagnostic validation and a fresh receiver are being reviewed
+as test-only successors. No failed focus or unexecuted full119 is accepted.
+Warning thresholds are 80% reminder and 90% critical; unknown settled coverage
+never becomes an estimated percentage.
+
+Restore remote frontend/backend, Actionlint37384395141 and
+GolangCI-Lint37384395016 passed. CI37384395198 is now successful at the exact
+delivered Restore head, including both databases, authentication/native process
+restart and artifact builds. Member CI37383852751 was cancelled after the later Restore push;
+its interrupted checks are not passes. Member independent lint workflows passed.
+
+## Next Team creation gap
+
+Current creation UI and strict request have no initial Model access selection.
+The approved form includes that section between Basic information and Resource
+limits. Reopen F06 as partial and add it in a separate tested phase after the
+current V63/Key warning work. Preserve this composition using local shadcn/Base
+UI, independent model-read/write authority, exact selected identities and atomic
+explicit grants. Empty selection grants no access; do not import an implicit
+all-models behavior. Record this security-contract difference in the product
+requirements. Reconciliation must preserve existing V63 receipts and historical
+commit/current-application separation.
+
+The next Model-selection phase is now being implemented in an isolated worktree
+with separate backend and frontend owners. It uses one aggregate selected-set
+review, atomic explicit grants and normalized private receipt provenance. Its
+Key V64/V65 predecessor and all actual driver/browser delivery gates remain
+pending; source implementation is not accepted completion.
+
+The isolated frontend source passed 212 related cases across eight suites,
+TypeScript, scoped ESLint and formatting checks. The full frontend regression
+also passed 3,706 cases across 157 files on the unchanged frontend source. The picker preserves the
+three-column composition, retained off-page selections, Provider-name redaction
+and the original dispatched selected-set review through same-actor recovery.
+Backend source, real migrations, native calls and browser acceptance remain
+separate pending gates; these frontend checks do not complete F06.
+
+## Historical Member warnings and Restore recovery
+
 
 Member warning main and remote are `f7b31b1a111937b5bc2885b942b12f087c27b08b`.
-Member V62 is checked/committed/pushed with exact remote read-back; current
-dirty main is the separate Restore recovery phase.
+Member V62 is checked/committed/pushed with exact remote read-back. Restore
+recovery was subsequently delivered as the separate e9003c9 phase.
 Project V61 and Team-member V62 are delivered. The Member phase included
 real-driver fixtures, measured integration deadline, paired rules and four
 related documents. Corrected PostgreSQL/MySQL focus, mandatory main checking,
@@ -1090,3 +1171,53 @@ per-query/request/readiness deadlines and assertions are unchanged. Main now
 carries the exact runtime/UI/fixture afterimages. Final mandatory checking,
 current production/bilingual/privacy/original-Session restart, full regression
 and phased delivery remain pending. F17/F23 and formal 11/16/3 remain unchanged.
+
+## Default-rule save recovery in progress
+
+An independent frontend slice is implementing recovery of dispatched User/Team
+default-rule saves after a transient same-actor Session failure. Preserve the
+original target, seven-cap policy, reason and reviewed If-Match in the existing
+nonpersistent submitted-intent owner; recovery stays idle until an explicit retry.
+Current rule reads do not confirm the historical save, and saved defaults apply
+to future creation rather than retroactively enforcing existing resources.
+No schema or admission change is planned. Source tests, controlled production
+and restart acceptance are pending; this work does not complete F17.
+
+### Team creation production response-format blocker
+
+Controlled production QA returned actual browser creation responses 409, 409 and 201. The backend committed one Team and independently confirmed its current runtime policy, but the frontend retained an unknown outcome with a generic failure. A separate, explicitly non-acceptance same-binary replay returned 200 and exposed a valid numeric-offset Team timestamp (`2026-10-06T08:36:07.379764+08:00`) alongside a UTC receipt timestamp. The client currently accepts only UTC `Z` timestamps. This production/browser stage failed; it does not alter the accepted full 115-scenario database result. Both disposable Compose projects, owned listeners and the QA tab were removed. Preserve the first input-channel failure and this response-format failure. Fix and test strict RFC3339 offset handling before rebuilding and repeating actual browser acceptance.
+
+### Team creation offset repair and final production acceptance, 2026-10-06
+
+The preceding response-format failure remains failed evidence. The strict client
+validator now accepts RFC3339 UTC or numeric-offset timestamps, retaining
+Gregorian validity, finite instant and every original identity/receipt check.
+After formatting, mandatory checks, complete Task testing (3,539 frontend cases
+in 156 files, four Node checks, two development lifecycle checks, Go race/coverage
+and production asset race tests) and embedded build passed. Backend/schema and
+the accepted full115 source remain unchanged. Rebuilt binary SHA256:
+`38820984a00c1a79a8a23eba769b15065feafab03869a907b1a26ff270de989a`.
+
+Fresh controlled PostgreSQL production/bilingual browser acceptance passed five
+real Team creation requests: 409, 409, 201, withheld committed201, exact replay200.
+The first conflict and identical retry retained the original reviewed request;
+explicit local abandonment and fresh review created the first Team. A second
+committed response was withheld as labeled503. Real periodic Session refresh
+then returned a labeled500; the observed AuthGate hid the private form, and
+fresh same-actor Session, permission, context and owner reads restored the
+original dispatched draft without borrowing changed defaults. Original Sessions,
+artifact, database and journal survived process restart. Explicit replay used
+the original JSON/UUID/If-Match and current CSRF, then navigated to that Team.
+
+English/Chinese views, decimal precision, zero/null distinction, Base UI Escape
+and focus return were observed. There were exactly two Teams, receipts and typed
+creation audits, zero native calls/attempts/Keys/grants/Providers/Projects, and
+no browser console warnings/errors. Owned Compose resources, listeners and QA
+tab were independently removed. A blank initial document required one reload
+before login; no document reload occurred during submitted intent. Native window
+focus was unavailable on the locked Mac; genuine periodic Session refresh
+triggered recovery instead. Network observations alone do not prove query-cache
+generation handling. Earlier input-channel and timestamp failures remain
+separate. F06/F17 and totals of 10 complete/17 partial/three unstarted remain
+unchanged; initial Model selection, Key warnings and Default save recovery have
+independent pending gates.

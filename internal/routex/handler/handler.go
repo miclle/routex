@@ -184,6 +184,7 @@ func (ctrl *Ctrl) RegisterRoutes(r *fox.Engine) {
 	identity.PUT("/admin/members/:user_id/metadata", memberMetadataResponseHeaders, ctrl.requireSession, sameOrigin, requireCSRF, jsonManagementRequest, ctrl.SetMemberMetadata)
 	identity.GET("/admin/members/:user_id/state", memberMetadataResponseHeaders, ctrl.requireSession, ctrl.GetMemberState)
 	identity.PATCH("/admin/members/:user_id", memberMetadataResponseHeaders, ctrl.requireSession, sameOrigin, requireCSRF, jsonManagementRequest, ctrl.RequirePermission("members.write"), ctrl.SetReviewedMemberState)
+	identity.GET("/admin/teams/creation-context", memberMetadataResponseHeaders, ctrl.requireSession, ctrl.GetTeamCreationContext)
 	admin := identity.Group("/admin")
 	admin.Use(ctrl.requireSession)
 	admin.GET("/members/:user_id/model-access-workspace", ctrl.MemberModelAccessWorkspace)

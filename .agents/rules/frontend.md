@@ -793,6 +793,28 @@ rejoining restores independent read state, and later members receive no backfill
 Render recorded Team names or stable IDs without directory reads; retain paired
 English/Chinese snapshot fields and never expose private birth proofs.
 
+Team creation uses the existing Basic information and Resource limits cards with
+an exact actor-scoped creation context, authorized-only default previews and
+current owner reads. Preserve decimal strings, sparse omitted/null/zero caps,
+independent dimension permissions and the current reviewed currency. Capture a
+stable UUID, original body and strong If-Match before explicit confirmation;
+retain every failed dispatched intent, including the first conflict. A durable
+creation receipt proves commitment independently of current runtime application.
+Fresh GET, dismissal and language changes never resolve uncertainty; explicit
+retry uses current CSRF and the original request, and Abandon leaves the prior
+outcome unknown. Keep legacy Team and Project creation behavior separate.
+
+The private-route submitted-intent boundary retains only cloned already-dispatched
+non-secret fields across transient Session errors while AuthGate unmounts private
+content. It adds no Session observer or storage. Fresh same-actor Session,
+permissions, creation context and owner reads are required before idle uncertain
+recovery; never submit automatically or reuse cached authority. Reacquire the
+current opaque claim after renewal, even if local intent stayed mounted, and fence
+late callbacks and clearing to the exact dispatched claim. Definitive auth loss,
+actor or route/tab exit destroys retention; unsent drafts and credentials are not
+retained. Preserve English-default/live-Chinese copy and real AuthGate regression
+coverage.
+
 Submitted Team creation and default-reset intents use the private-route
 `UncertainIntentProvider` above `AuthGate`, with its local hook and narrow types.
 Retain only already-dispatched non-secret body/ETag and reviewed configuration

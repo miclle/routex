@@ -135,7 +135,10 @@ remaining creation/overview scope.
 [User and Team defaults](docs/DEFAULT_LIMITS.md) provide reviewed seven-field
 creation templates and explicit restore controls. Template changes affect future
 accounts only; restores preserve recorded usage, holds, IP restrictions and Key
-identity, and distinguish saved policy from confirmed runtime application.
+identity, and distinguish saved policy from confirmed runtime application. Team creation
+uses a reviewed default generation, explicit owners and sparse initial overrides;
+durable receipts reconcile the exact original request after uncertain responses.
+Initial Team Model selection remains a separate pending capability.
 
 Gateway and delivery contracts: [Chat inference](docs/GATEWAY.md), [native Responses](docs/RESPONSES.md), [native Messages](docs/MESSAGES.md), [native Gemini](docs/GEMINI.md), [Playground](docs/PLAYGROUND.md), [Team Session inference](docs/TEAM_INFERENCE.md), [Team resource limits](docs/TEAM_LIMITS.md), [Team monthly requests](docs/TEAM_REQUESTS.md), [Team roles](docs/TEAM_ROLES.md), [managed egress](docs/EGRESS.md), [SMTP administration and controlled test delivery](docs/SMTP.md), [operational alerts and notifications](docs/NOTIFICATIONS.md), [Provider quality](docs/PROVIDER_QUALITY.md), [object storage and owned attachments](docs/STORAGE.md), [runtime publication](docs/RUNTIME.md), [durable call records](docs/CALLS.md), [usage queries](docs/USAGE.md), [Team usage](docs/TEAM_USAGE.md), [System Status](docs/SYSTEM_STATUS.md), [audit log](docs/AUDIT.md), [governance](docs/GOVERNANCE.md), [Teams and Projects](docs/RESOURCES.md), [Project Keys](docs/PROJECT_KEYS.md), [Project resource requests](docs/PROJECT_REQUESTS.md), [offboarding](docs/OFFBOARDING.md), and [site settings and announcements](docs/SITE.md), [account security](docs/ACCOUNT.md), and [two-step verification](docs/MFA.md). [Internal secret storage and root rotation](docs/SECRETS.md) documents the keyring and guarded five-domain workflow; source, complete database regression and controlled production/browser/restart acceptance passed. Preserve the encryption root key and the configured local call-journal file across restarts. The journal requires persistent writable storage; production remains one process, with external integration and performance acceptance still open.
 

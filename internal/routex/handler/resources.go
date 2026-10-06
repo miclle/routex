@@ -74,11 +74,7 @@ type TeamsResponse struct {
 	Items      []TeamResponse `json:"items"`
 	NextCursor *string        `json:"next_cursor"`
 }
-type CreateTeamRequest struct {
-	Name        string   `json:"name"`
-	Description string   `json:"description"`
-	OwnerIDs    []string `json:"owner_ids"`
-}
+type CreateTeamRequest = service.TeamCreationInput
 type UpdateTeamRequest struct {
 	TeamID      string  `uri:"team_id" json:"-"`
 	Name        *string `json:"name"`
@@ -114,7 +110,37 @@ func (ctrl *Ctrl) GetTeam(c *fox.Context, request TeamPath) (*TeamResponse, erro
 	}
 	return teamResponse(item), nil
 }
-func (ctrl *Ctrl) CreateTeam(c *fox.Context, request CreateTeamRequest) error {
+func (ctrl *Ctrl) CreateTeam(c *fox.Context) error {
+	if c.Request.URL.RawQuery != "" {
+		return apperrors.ErrBadRequest
+	}
+	var request CreateTeamRequest
+	if err := decodeStrictRequest(c, &request); err != nil {
+		return err
+	}
+	if request.CreationID != "" || request.InitialLimits != nil {
+		if len(c.Request.Header.Values("If-Match")) == 0 {
+			return &apperrors.Error{Code: http.StatusPreconditionRequired, Message: "If-Match is required"}
+		}
+		reviewed, err := personalModelHeader(c)
+		if err != nil {
+			return err
+		}
+		request.ReviewETag = reviewed
+		result, err := ctrl.service.CreateTeamWithInitialLimits(c.Request.Context(), currentAuthentication(c).User.ID, request)
+		if err != nil {
+			return err
+		}
+		status := http.StatusOK
+		if result.Created {
+			status = http.StatusCreated
+		}
+		c.JSON(status, teamCreationResponse(result))
+		return nil
+	}
+	if len(c.Request.Header.Values("If-Match")) != 0 {
+		return apperrors.ErrBadRequest
+	}
 	item, err := ctrl.service.CreateResource(c.Request.Context(), currentAuthentication(c).User.ID, service.TeamResource, request.Name, request.Description, request.OwnerIDs)
 	if err != nil {
 		return err

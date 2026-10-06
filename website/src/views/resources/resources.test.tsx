@@ -112,7 +112,16 @@ beforeEach(() => {
         csrf_token: 'csrf-fixture',
       }
     else if (config.url === '/auth/permissions') response.data = { permissions }
-    else if (config.url === '/teams/tea_1/limits/default-reset')
+    else if (config.url === '/admin/teams/creation-context') {
+      response.headers.set('ETag', `"${'a'.repeat(64)}"`)
+      response.data = {
+        review_etag: 'a'.repeat(64),
+        default_rule_etag: 'b'.repeat(64),
+        platform_currency: null,
+        editable_fields: [],
+        default_policy: {},
+      }
+    } else if (config.url === '/teams/tea_1/limits/default-reset')
       response.data =
         config.method === 'get'
           ? structuredClone(restoreContext)
@@ -179,6 +188,7 @@ beforeEach(() => {
       team = {
         ...team,
         ...body,
+        ...(body.creation_id ? { model_ids: [] } : {}),
         members: body.owner_ids.map((id: string) => ({
           ...person,
           user_id: id,
@@ -186,7 +196,19 @@ beforeEach(() => {
           status: 'active',
         })),
       }
-      response.data = team
+      response.data = body.creation_id
+        ? {
+            team,
+            receipt: {
+              creation_id: body.creation_id,
+              team_id: team.id,
+              created_at: team.created_at,
+            },
+            committed: true,
+            runtime_applied: true,
+            application_status: 'applied',
+          }
+        : team
     } else if (config.url === '/projects' && config.method === 'post') {
       project = { ...project, ...body, model_ids: [] }
       response.data = project
@@ -482,28 +504,40 @@ describe('Team and Project resource workflows', () => {
     expect(requests.some((r) => r.url === '/admin/teams')).toBe(false)
     expect(host.querySelector('a[href="/admin/teams"]')).toBeNull()
   })
-  it('creates a Team with scoped owner candidates and retries a server rejection', async () => {
+  it('creates a reviewed Team with scoped owner candidates and retries only its immutable rejected intent', async () => {
     permissions = ['teams.write']
     await mount('/admin/teams/new')
     await until(() => expect(host.querySelector('form[aria-label="Create Team"]')).not.toBeNull())
+    await until(() => expect(host.querySelector('[role="switch"]')).not.toBeNull())
     await fill('name', 'New Team')
     await act(async () => {
-      document.querySelector<HTMLInputElement>('input[type="checkbox"]')!.click()
+      document.querySelector<HTMLElement>('[role="switch"]')!.click()
     })
     failure['post /admin/teams'] = 400
     await submit()
-    await until(() => expect(host.querySelector('[role="alert"]')).not.toBeNull())
+    await until(() => expect(document.querySelector('[role="dialog"]')).not.toBeNull())
+    await act(async () => {
+      ;[...document.querySelectorAll('button')]
+        .find((button) => button.textContent === 'Confirm creation')!
+        .click()
+    })
+    await until(() => expect(host.textContent).toContain('creation outcome remains unknown'))
     const request = requests.find((r) => r.method === 'post' && r.url === '/admin/teams')!
     expect(JSON.parse(request.data)).toEqual({
+      creation_id: expect.stringMatching(/^[0-9a-f-]{36}$/),
       name: 'New Team',
       description: '',
       owner_ids: ['usr_1'],
     })
     expect(request.headers.get('X-CSRF-Token')).toBe('csrf-fixture')
+    expect(request.headers.get('If-Match')).toBe(`"${'a'.repeat(64)}"`)
     expect(requests.some((r) => r.url === '/admin/members')).toBe(false)
     delete failure['post /admin/teams']
-    await submit()
+    await click('Retry original creation')
     await until(() => expect(router.state.location.pathname).toBe('/admin/teams/tea_1'))
+    const retried = requests.filter((r) => r.method === 'post' && r.url === '/admin/teams')[1]
+    expect(retried.data).toBe(request.data)
+    expect(retried.headers.get('If-Match')).toBe(request.headers.get('If-Match'))
   })
   it('shows Team membership read-only without fetching mutation candidates', async () => {
     await mount('/teams/tea_1?tab=members')

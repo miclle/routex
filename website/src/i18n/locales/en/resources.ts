@@ -1,4 +1,47 @@
 export default {
+  teamCreation: {
+    searchInvalid: 'Search must be valid text of at most 200 UTF-8 bytes.',
+    previousUnknown: 'Local retries were abandoned. The previous creation outcome remains unknown.',
+    fieldsChanged:
+      'An override permission is unavailable. Use current defaults or wait for restored authority.',
+    defaultsAll: 'Use current defaults for all fields',
+    limits: 'Resource limits',
+    limitHelp:
+      'Untouched controls copy the reviewed current default. Clear a changed control to remove that cap; zero is a finite cap.',
+    money_month: 'Monthly budget {{currency}}',
+    tokens_5h: 'Five-hour limit (M Tokens)',
+    tokens_7d: 'Seven-day limit (M Tokens)',
+    tokens_month: 'Monthly limit (M Tokens)',
+    rpm: 'RPM',
+    tpm: 'TPM',
+    concurrency: 'Maximum concurrency',
+    notSet: 'Not set',
+    originalDefaultUnknown: 'Original default not retained',
+    hiddenDefault: 'Current default will be applied',
+    useDefault: 'Use current default',
+    reason: 'Reason for initial limits',
+    review: 'Review current defaults',
+    stale: 'Defaults or currency changed. Review the current context before creating.',
+    invalid:
+      'Enter a valid Team name, at least one owner, exact nonnegative limits and a reason for overrides.',
+    unknown:
+      'The creation outcome remains unknown. Retry only the original request with current authority, or explicitly abandon local retries.',
+    retry: 'Retry original creation',
+    abandon: 'Abandon local retries',
+    abandonWarning:
+      'Abandoning does not undo a saved Team or prove failure. The previous outcome remains unknown.',
+    abandonConfirm: 'Abandon and review a new request',
+    resume: 'Resume creation',
+    pending: 'The Team is saved. Current runtime application is not confirmed.',
+    superseded: 'The Team is saved, but its initial configuration has changed.',
+    unavailable: 'The saved Team is currently unavailable.',
+    confirm: 'Confirm creation',
+    confirmHelp:
+      'Create the Team and copy the reviewed defaults with only your explicit overrides. A saved receipt alone does not prove runtime application.',
+    cancel: 'Cancel',
+    create: 'Create Team',
+    denied: 'Current Team creation authority is unavailable.',
+  },
   projectKeyCount: 'Project Keys',
   storedMonthlyTokens: 'Monthly token policy',
   storedMonthlyMoney: 'Monthly money policy',

@@ -140,3 +140,42 @@ export interface ProjectCreationReceipt {
   runtime_applied: boolean
   application_status: 'pending' | 'applied' | 'superseded' | 'unavailable'
 }
+
+export const teamCreationFields = [
+  'tokens_5h',
+  'tokens_7d',
+  'tokens_month',
+  'money_month',
+  'rpm',
+  'tpm',
+  'concurrency',
+] as const
+export type TeamCreationField = (typeof teamCreationFields)[number]
+export interface TeamCreationContext {
+  review_etag: string
+  default_rule_etag: string
+  platform_currency: string | null
+  editable_fields: TeamCreationField[]
+  default_policy: Partial<Record<TeamCreationField, string | null>> & { currency?: string }
+}
+export type TeamInitialLimits = Partial<
+  Record<Exclude<TeamCreationField, 'money_month'>, number | null>
+> & { money_month?: string | null; currency?: string; reason: string }
+export interface TeamCreationInput {
+  creation_id: string
+  name: string
+  description: string
+  owner_ids: string[]
+  initial_limits?: TeamInitialLimits
+}
+export interface TeamCreationIntent {
+  body: TeamCreationInput
+  etag: string
+}
+export interface TeamCreationReceipt {
+  team: ResourceRecord | null
+  receipt: { creation_id: string; team_id: string; created_at: string }
+  committed: true
+  runtime_applied: boolean
+  application_status: 'pending' | 'applied' | 'superseded' | 'unavailable'
+}

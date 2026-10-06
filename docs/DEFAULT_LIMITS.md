@@ -173,3 +173,25 @@ tests and a rebuilt embedded executable. All16 accepted UI afterimages remain
 exact; the Member backend/schema is unchanged. The prior controlled browser
 artifact remains separately identified from this later composed build. The
 containing commit records this UI recovery phase.
+
+## Reviewed Team creation
+
+Team creation copies the explicitly reviewed current Team defaults within the
+creation transaction. The form displays only fields the current actor may read
+and override; token, money and rate authority stay independent. Sparse omitted,
+null and zero values remain distinct, and money strings retain exact precision.
+A changed default/context generation requires explicit review before a new
+creation intent. Reconciliation of an already dispatched intent uses its original
+reviewed request, not a rewritten current default. Historical creation commit
+and renewed runtime application are separate confirmations. See
+[Team creation](RESOURCES.md#team-creation-and-initial-limits).
+
+Corrected R9 passed all ten selected PostgreSQL/MySQL cases, with exact
+source/index and independently verified cleanup. Unfiltered full115 then passed
+115 ordered scenarios per database, eight constraints and 3,963 named RUN/PASS
+events on the exact source/index. Controlled PostgreSQL bilingual production
+and original-Session restart also passed: stale generation conflicts preserve
+the original request, explicit abandonment permits fresh review, and a lost
+committed response reconciles by exact retry after defaults change. Prior focused failures remain
+failed. Existing Restore and monthly-warning contracts are preserved by this
+phase.

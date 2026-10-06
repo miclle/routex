@@ -833,3 +833,28 @@ Main retains an assertion-equivalent Member fixture initializer lint correction
 outside the frozen worktree; its focused pure race and final mandatory checks
 passed. The containing commit records this phase. F17/F23 and formal11/16/3
 remain unchanged.
+
+## Team creation receipts V63
+
+Frozen private GORM V63 adds durable creation receipts with exact actor/Team birth
+proofs, a unique actor/creation intent and bounded immutable snapshot. There are
+no live foreign keys to deletable resources. MySQL uses MEDIUMTEXT for the
+128 KiB snapshot bound; precision3 birth timestamps match the persisted resource
+identities. Services use GORM transactions and database-layer exact comparisons;
+metadata, owners, copied defaults, authorized sparse overrides, audit and receipt
+commit together. Startup retains released V62 unchanged.
+
+Migration fixtures cover empty/repeated creation, existing-data upgrade, partial
+DDL and concurrent startup on both databases. The pinned PostgreSQL GORM adapter
+cannot express this fixture's fixed unqualified index removal correctly; only
+the test fault-injection step uses a documented fixed DROP INDEX, with presence
+checks before/after. MySQL keeps GORM DropIndex. The production migration uses
+GORM and its schema definition is unchanged. The earlier failed fixture run is
+retained. Corrected R9 passed all ten selected PostgreSQL/MySQL cases, preserving
+the exact source/index and independently verified cleanup. Unfiltered full115
+then passed 115 ordered scenarios per database, eight constraints and 3,963
+named RUN/PASS events. All 1,584 source paths and the semantic index stayed
+exact, and owned resources are independently absent. Controlled PostgreSQL
+production/browser/original-Session restart passed with exactly two Teams, two
+receipts and two typed creation audits, without inference dispatch. No MySQL
+browser run is claimed; dual-driver migration/lifecycle proof is the full115 gate.
