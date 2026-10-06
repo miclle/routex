@@ -13,12 +13,12 @@ checks, complete Task testing, full115 on PostgreSQL/MySQL and controlled
 production/bilingual/original-Session restart acceptance. Its delivered
 predecessor is Restore recovery `e9003c972bf1d1ee3f2f3495d51cb7cf224091f8`;
 Member warnings were delivered as `f7b31b1a111937b5bc2885b942b12f087c27b08b`.
-The containing commit additionally delivers default-rule SAVE recovery and
+Commit `4adaad2` additionally delivers default-rule SAVE recovery and
 ordinary local draft renewal, preserving Member/Restore/Team behavior. Mandatory
 checking, complete Task (3,565 frontend cases/157 files), production build and
 controlled PostgreSQL bilingual/original-Session restart acceptance pass. Both
 ordinary targets also retain exact drafts across genuine periodic Session reads.
-Next gates belong to isolated Key119, initial Team Model121 and Role descriptions.
+Key119 and controlled production acceptance now pass; the containing commit records the checked Key phase. Initial Team Model121 and Role descriptions are the next gates.
 
 Team focused R4–R8 remain failed. R4 exposed a pinned PostgreSQL GORM DropIndex
 fixture syntax error and missing private context headers; R5 confirmed the
@@ -45,19 +45,21 @@ canonical identifier validity and is explicitly superseded. Delivered Team main 
 lifecycle and production assets. Both databases also passed real-process Session,
 gateway and persistent-revocation lifecycle checks on this carried source.
 
-Personal+Project Key V64/V65 warnings remain isolated. Complete Task passed on
+Personal+Project Key V64/V65 warnings now have a reviewed main source carry;
+final main and production gates have passed. The isolated candidate passed complete Task on
 1,616 exact source paths: 3,661 frontend cases/156 files, four Node checks,
 Go race/coverage, development lifecycle and production assets. Both inherited
 Team corrections are carried with narrow race/check gates. The 119-case real
-matrix and native/bilingual original-Session browser acceptance remain pending.
+matrix and native/bilingual original-Session browser acceptance subsequently passed.
 Actual focused R6 passed 12 of 16 direct cases; source-bound Personal operational
 diagnostics and a fresh Project receiver then passed their reached assertions
 in R7 on both drivers. R7 ended with 14/16 passes: both Project lifecycle cases
 exposed a downstream global operational-zero oracle. A test-only Project
 diagnostic successor preserves exact captured publication/job/recipient provenance
 and SMTP-zero checks. Fresh R8 passed16 direct cases/87 named events with
-exact source/index and independently absent owned resources. Full119 is now
-running; no failed focus or unexecuted full119 is accepted.
+exact source/index and independently absent owned resources. Full119 passed both drivers: 119 ordered cases per driver, eight constraints,
+and 4,370 named RUN/PASS events without failures/skips. Owned resources are
+independently absent; prior failed runs retain their failed status.
 Warning thresholds are 80% reminder and 90% critical; unknown settled coverage
 never becomes an estimated percentage.
 
@@ -69,7 +71,7 @@ its interrupted checks are not passes. Member independent lint workflows passed.
 
 ## Delivered default-rule save recovery
 
-The containing commit extends the existing transient submitted-intent owner to
+Commit `4adaad2` extends the existing transient submitted-intent owner to
 already-dispatched User/Team default saves. Exact policy/reason/If-Match survive
 transient AuthGate unmount, with fresh Session/permissions/target reads required
 before manual recovery. Matching GET never proves historical save success.
@@ -108,8 +110,10 @@ commit/current-application separation.
 The next Model-selection phase is now being implemented in an isolated worktree
 with separate backend and frontend owners. It uses one aggregate selected-set
 review, atomic explicit grants and normalized private receipt provenance. Its
-Key V64/V65 predecessor and all actual driver/browser delivery gates remain
-pending; source implementation is not accepted completion.
+Key V64/V65 predecessor has passed its delivery gates. Model Focus R3 passed
+16 direct cases on both drivers after a fixture-only parent correction; full121
+is running. Native/browser delivery remains pending. Source implementation does
+not complete F06.
 
 The isolated frontend source passed 212 related cases across eight suites,
 TypeScript, scoped ESLint and formatting checks. The full frontend regression
@@ -1294,3 +1298,59 @@ Mandatory check, complete Task (3,565 frontend cases/157 files) and production
 build pass. The containing commit delivers the phase. Key full119 is running
 in its protected candidate; Model121 and Role-description preparation are
 separate, unaccepted future stages. The all-capability objective remains active.
+
+
+### Current Key source carry
+
+Reviewed Key code is present in the main working tree, without a commit or
+acceptance claim. The 45 exact candidate outputs preserve all delivered
+Member/Restore/Team/default-save behavior and add only V64/V65/119 registry
+entries. The 1,617-path carried floor differs from the running 1,616-path
+candidate through retained documentation, rules and frontend recovery/timestamp
+fixes. Of 947 Go files, 946 are hash-exact; the remaining V62 migration differs
+only in two release-status comment lines. All scripts, Go dependencies, Compose
+files and Taskfile are exact. Complete119 evidence must retain its original
+candidate provenance, with this separately reviewed backend equivalence.
+Private composed frontend checks passed 650 cases/eight suites, an additional
+22 delivered SAVE lifetime cases and both TypeScript configurations. Main checking, complete Task (3,714 frontend cases/157 files), production
+build and both real-process authentication/gateway lifecycle gates passed.
+Actual Key production/browser/native/restart and delivery remain pending. Independent Role-description source smoke separately passed eight
+PostgreSQL/MySQL scenarios and 36 events; it does not accept Model121/whole123
+or final Role delivery. The full objective remains active.
+
+
+### Complete Key119 acceptance
+
+The isolated V64/V65 candidate passed 119 ordered scenarios per driver, eight
+constraints and 4,370 named RUN/PASS events, without failures/skips/race reports.
+PostgreSQL took 1,201.57s, MySQL 1,485.34s and the whole command 2,770.780s.
+All 1,616 protected source paths and the semantic index stayed exact; owned
+containers/networks/volumes are independently absent. Log SHA256:
+`01d4ae20460d3e9606e795afb9ab321b2a4162dffffb3804eaeda1896be39dfb`.
+This matrix ran on the original isolated candidate; current main inherits its
+compiled backend through the separately verified comment-only equivalence.
+Main check, complete Task (3,714 frontend cases/157 files), production build and
+both real-process authentication/gateway lifecycle gates passed. Controlled Key
+production/bilingual/original-Session restart acceptance also passed as recorded below.
+
+### Controlled Key production acceptance
+
+The final production artifact
+`ce55e0d3e30e3b3e1f88bfec8e0d1ff375c45477f9aaa19c07a814aba875b8ed`
+passed two separate PostgreSQL environments on the reviewed 1,617-path main
+source floor. Personal acceptance recorded six native calls, five observations
+and five original-owner inbox rows. Project acceptance recorded six native
+calls, five observations and ten independently read original-manager inbox rows.
+Normal browser sign-in, default English/live Chinese, original rotation-root
+labels, exact decimal amounts, single-read200/read-all204, recipient isolation
+and Escape/focus passed. All seven original browser Sessions reread after an
+identical-artifact/config/database/journal process restart without reloading
+those authenticated documents, logging in again or replaying inference.
+
+The Project API acceptance separately verified removal/rejoining and no late
+manager backfill. Its ten-second disabled interval confirms no new or changed
+observations during that interval; it does not prove worker invocation. Unknown
+coverage, holds, currency mismatches and hard stops remain dual-driver matrix
+evidence rather than claimed browser scenarios. Owned tabs, listeners and both
+Compose projects' containers/networks/volumes are independently absent. The
+combined result is 12 native calls/attempts, ten observations and 15 inbox rows.

@@ -858,3 +858,54 @@ exact, and owned resources are independently absent. Controlled PostgreSQL
 production/browser/original-Session restart passed with exactly two Teams, two
 receipts and two typed creation audits, without inference dispatch. No MySQL
 browser run is claimed; dual-driver migration/lifecycle proof is the full115 gate.
+
+## Key monthly warning observations V64/V65
+
+Frozen private GORM V64 and V65 add separate Personal and Project Key warning
+observations and recipient inboxes. Exact original rotation-root/resource/User
+births, calendar, policy generation and complete settled journal coverage fence
+publication. Unique observation identities and independent inbox read state are
+persistent; live foreign keys cannot erase retained historical facts.
+Released V63 and earlier steps remain immutable. The new migration/lifecycle
+cases append to the unchanged 115-case prefix. Focused dual-driver acceptance
+passed; complete119 subsequently passed both drivers. Controlled production
+acceptance also passed; the containing commit records this checked phase. The measured predecessor
+plus successful focused cases justify the finite 55-minute aggregate Go limit;
+query, request, readiness, race and assertion boundaries remain unchanged.
+
+
+### Complete Key119 acceptance
+
+The isolated V64/V65 candidate passed 119 ordered scenarios per driver, eight
+constraints and 4,370 named RUN/PASS events, without failures/skips/race reports.
+PostgreSQL took 1,201.57s, MySQL 1,485.34s and the whole command 2,770.780s.
+All 1,616 protected source paths and the semantic index stayed exact; owned
+containers/networks/volumes are independently absent. Log SHA256:
+`01d4ae20460d3e9606e795afb9ab321b2a4162dffffb3804eaeda1896be39dfb`.
+This matrix ran on the original isolated candidate; current main inherits its
+compiled backend through the separately verified comment-only equivalence.
+Main check, complete Task (3,714 frontend cases/157 files), production build and
+both real-process authentication/gateway lifecycle gates passed. Controlled Key
+production/bilingual/original-Session restart acceptance also passed as recorded below.
+
+### Controlled Key production acceptance
+
+The final production artifact
+`ce55e0d3e30e3b3e1f88bfec8e0d1ff375c45477f9aaa19c07a814aba875b8ed`
+passed two separate PostgreSQL environments on the reviewed 1,617-path main
+source floor. Personal acceptance recorded six native calls, five observations
+and five original-owner inbox rows. Project acceptance recorded six native
+calls, five observations and ten independently read original-manager inbox rows.
+Normal browser sign-in, default English/live Chinese, original rotation-root
+labels, exact decimal amounts, single-read200/read-all204, recipient isolation
+and Escape/focus passed. All seven original browser Sessions reread after an
+identical-artifact/config/database/journal process restart without reloading
+those authenticated documents, logging in again or replaying inference.
+
+The Project API acceptance separately verified removal/rejoining and no late
+manager backfill. Its ten-second disabled interval confirms no new or changed
+observations during that interval; it does not prove worker invocation. Unknown
+coverage, holds, currency mismatches and hard stops remain dual-driver matrix
+evidence rather than claimed browser scenarios. Owned tabs, listeners and both
+Compose projects' containers/networks/volumes are independently absent. The
+combined result is 12 native calls/attempts, ten observations and 15 inbox rows.

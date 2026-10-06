@@ -27,9 +27,9 @@ mysql_address=$("${compose[@]}" port mysql 3306)
 export ROUTEX_TEST_POSTGRES_DSN="host=127.0.0.1 port=${postgres_address##*:} user=routex password=routex-test dbname=routex_test sslmode=disable"
 export ROUTEX_TEST_MYSQL_DSN="routex:routex-test@tcp(${mysql_address})/routex_test?charset=utf8mb4&parseTime=True&loc=UTC"
 
-# The complete 111-case dual-database handler matrix measured 2299.13 seconds
-# under the race detector, leaving less than two minutes in the former bound.
-# Two Team-member lifecycle cases and their reset tables extend that matrix.
-# Keep a finite 45-minute aggregate limit; per-query, request and readiness
-# deadlines, every assertion and the race detector remain unchanged.
-go test -trimpath -race -count=1 -timeout 45m -tags development ./internal/routex/...
+# The complete 115-case dual-database race matrix measured 2471.304 seconds.
+# The focused Key warning run measured another 357.93 seconds including shared
+# cases and compilation: a conservative 2829.234-second total exceeds 45 minutes.
+# Keep a finite 55-minute aggregate limit for the complete 119-case matrix.
+# Per-query, request and readiness deadlines, all assertions and race stay unchanged.
+go test -trimpath -race -count=1 -timeout 55m -tags development ./internal/routex/...

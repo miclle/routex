@@ -36,8 +36,8 @@ Main mandatory checking, complete Task (3,539 frontend cases/156 files) and both
 real-process authentication/gateway lifecycle checks passed on the carried
 source. Controlled production/bilingual/original-Session restart acceptance
 also passed; the RFC3339 offset correction and its acceptance are recorded below.
-Personal and Project Key monthly warnings are composed in a separate V64/V65
-candidate: complete Task passed, including 3,661 frontend cases/156 files,
+Personal and Project Key monthly warnings have a reviewed V64/V65 main source
+carry, with final gates pending. Their separate protected candidate: complete Task passed, including 3,661 frontend cases/156 files,
 Go race/coverage, Node, development lifecycle and production asset checks.
 They retain the unchanged115-case prefix and target119 cases. Actual driver,
 native/browser and delivery gates remain pending. Focus R6 passed 12/16 direct
@@ -45,8 +45,8 @@ cases; corrected R7 passed 14/16, with both remaining Project failures at a
 downstream global operational-zero oracle. Strict captured-source operational
 diagnostics preserve SMTP-zero, recipient privacy, history and all original
 assertions. Fresh R8 passed all16 selected cases and87 named pass events, with no failures
-or skips and independently absent owned resources. Full119 and actual Key
-browser/native delivery remain pending.
+or skips and independently absent owned resources. Full119 subsequently passed both drivers with 4,370 named RUN/PASS events
+and eight constraints. Actual Key browser/native delivery remains pending.
 All warnings use the approved
 80% reminder/90% critical thresholds, without estimating unknown settled usage.
 
@@ -5912,3 +5912,60 @@ and production asset race tests) and embedded build passed. Binary SHA256:
 `802eb41426cf139f5141e5ab1da08ea4dfbf78d10419d9df1230bbc9f45e1ab8`.
 Controlled production/browser/original-Session restart acceptance remains pending.
 This source gate does not complete F17 or change the formal 10/17/3 totals.
+
+
+### Current Key source carry
+
+Reviewed Key code is present in the main working tree with accepted checks
+and controlled production evidence; the containing commit records this checked phase. The 45 exact candidate outputs preserve all delivered
+Member/Restore/Team/default-save behavior and add only V64/V65/119 registry
+entries. The 1,617-path carried floor differs from the accepted 1,616-path
+candidate through retained documentation, rules and frontend recovery/timestamp
+fixes. Of 947 Go files, 946 are hash-exact; the remaining V62 migration differs
+only in two release-status comment lines. All scripts, Go dependencies, Compose
+files and Taskfile are exact. Complete119 evidence must retain its original
+candidate provenance, with this separately reviewed backend equivalence.
+Private composed frontend checks passed 650 cases/eight suites, an additional
+22 delivered SAVE lifetime cases and both TypeScript configurations. Main checking, complete Task (3,714 frontend cases/157 files), production
+build and both real-process authentication/gateway lifecycle gates passed.
+Actual Key production/browser/native/restart acceptance subsequently passed,
+as recorded below; the containing commit records this checked phase. Independent Role-description source smoke separately passed eight
+PostgreSQL/MySQL scenarios and 36 events; it does not accept Model121/whole123
+or final Role delivery. The full objective remains active.
+
+
+### Complete Key119 acceptance
+
+The isolated V64/V65 candidate passed 119 ordered scenarios per driver, eight
+constraints and 4,370 named RUN/PASS events, without failures/skips/race reports.
+PostgreSQL took 1,201.57s, MySQL 1,485.34s and the whole command 2,770.780s.
+All 1,616 protected source paths and the semantic index stayed exact; owned
+containers/networks/volumes are independently absent. Log SHA256:
+`01d4ae20460d3e9606e795afb9ab321b2a4162dffffb3804eaeda1896be39dfb`.
+This matrix ran on the original isolated candidate; current main inherits its
+compiled backend through the separately verified comment-only equivalence.
+Main check, complete Task (3,714 frontend cases/157 files), production build and
+both real-process authentication/gateway lifecycle gates passed. Controlled Key
+production/bilingual/original-Session restart acceptance also passed as recorded below.
+
+### Controlled Key production acceptance
+
+The final production artifact
+`ce55e0d3e30e3b3e1f88bfec8e0d1ff375c45477f9aaa19c07a814aba875b8ed`
+passed two separate PostgreSQL environments on the reviewed 1,617-path main
+source floor. Personal acceptance recorded six native calls, five observations
+and five original-owner inbox rows. Project acceptance recorded six native
+calls, five observations and ten independently read original-manager inbox rows.
+Normal browser sign-in, default English/live Chinese, original rotation-root
+labels, exact decimal amounts, single-read200/read-all204, recipient isolation
+and Escape/focus passed. All seven original browser Sessions reread after an
+identical-artifact/config/database/journal process restart without reloading
+those authenticated documents, logging in again or replaying inference.
+
+The Project API acceptance separately verified removal/rejoining and no late
+manager backfill. Its ten-second disabled interval confirms no new or changed
+observations during that interval; it does not prove worker invocation. Unknown
+coverage, holds, currency mismatches and hard stops remain dual-driver matrix
+evidence rather than claimed browser scenarios. Owned tabs, listeners and both
+Compose projects' containers/networks/volumes are independently absent. The
+combined result is 12 native calls/attempts, ten observations and 15 inbox rows.

@@ -840,3 +840,20 @@ reads complete; an initialization seed never authorizes a save or adopts a newer
 ETag. Require explicit review for changed policy/currency, clear on actor/target
 departure or completion, and keep undispatched drafts out of the submitted-intent
 owner. AuthGate error unmounts still discard ordinary undispatched drafts.
+
+Personal Key monthly warnings use the existing recipient-scoped notification menu.
+Render only server-recorded 80% and 90% settled observations, paired English and
+Chinese copy, and the original shared rotation-root account label. Keep exact
+original Key IDs and decimal amounts; never fetch the Key directory, expose Key
+material, infer current allowance or calculate warning levels in the browser.
+Retained revoked roots preserve authorized owner history; successor Keys share
+the original quota account without expanding notification recipients.
+
+Project Key monthly warnings reuse the notification menu with exact original
+rotation-root subject/scope, `project-key-monthly-80-90-v1` and `jwo_`/`jwi_`
+identities. Render recorded original names or stable IDs and shared-rotation
+account guidance; never infer current allowance or fetch a manager/Key directory.
+Only current admitted Project managers may read their original recipient rows;
+creator/admin attribution grants no access. Removal hides history, same-birth
+rejoin preserves original read state, and late managers receive no replay fanout.
+Keep Personal and Project Key scopes distinct and paired English/Chinese copy.

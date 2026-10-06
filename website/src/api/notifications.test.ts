@@ -766,3 +766,297 @@ it.each([
     )
   },
 )
+
+function personalKeyWarningNotice(
+  overrides: Partial<MonthlyQuotaWarningSnapshot> = {},
+): Notification {
+  return {
+    ...warningNotice({
+      scope_kind: 'personal_key',
+      scope_id: 'key_original',
+      threshold_generation: 'personal-key-monthly-80-90-v1',
+      ...overrides,
+    }),
+    id: 'kwi_1',
+    quota_warning_observation_id: 'kwo_1',
+    subject_type: 'personal_key',
+    subject_id: 'key_original',
+    subject_name: 'Original recorded Key',
+  }
+}
+
+describe('Recorded Personal Key shared-account monthly warning boundary', () => {
+  it.each([
+    { dimension: 'tokens', level: 'near', threshold: 80, currency: null },
+    { dimension: 'tokens', level: 'critical', threshold: 90, currency: null },
+    { dimension: 'money', level: 'near', threshold: 80, currency: 'USD' },
+    { dimension: 'money', level: 'critical', threshold: 90, currency: 'USD' },
+  ] as const)(
+    'retains $dimension/$level exact original-root facts without deriving a current successor',
+    async (snapshot) => {
+      const notification = personalKeyWarningNotice({
+        ...snapshot,
+        limit: snapshot.dimension === 'money' ? '9007199254740993.123456789012345678' : '100',
+        settled: snapshot.dimension === 'money' ? '8907199254740993.123456789012345678' : '93',
+      })
+      const before = structuredClone(notification)
+      expect(recordedMonthlyQuotaWarning(notification, 'usr_current')).toBe(
+        notification.quota_warning,
+      )
+      const get = vi.spyOn(client, 'get').mockResolvedValueOnce({
+        data: { items: [notification], unread_count: 1, next_cursor: 'recipient-bound' },
+      })
+      expect((await getNotifications('all', 'prior', undefined, 'usr_current')).items).toEqual([
+        before,
+      ])
+      expect(get).toHaveBeenCalledWith('/notifications', {
+        params: { status: 'all', cursor: 'prior' },
+        signal: undefined,
+      })
+      expect(notification).toEqual(before)
+      expect(Object.keys(notification.quota_warning!)).toHaveLength(14)
+    },
+  )
+
+  it.each([undefined, null, '', 'Original historical Key', '名'.repeat(100)])(
+    'retains only the optional recorded original name %#',
+    (subject_name) => {
+      const notification = { ...personalKeyWarningNotice(), subject_name }
+      expect(recordedMonthlyQuotaWarning(notification, 'usr_current')).toBe(
+        notification.quota_warning,
+      )
+    },
+  )
+
+  it.each([
+    ['Personal inbox', { id: 'qwi_1' }],
+    ['Team inbox', { id: 'twi_1' }],
+    ['Project inbox', { id: 'pwi_1' }],
+    ['Member inbox', { id: 'mwi_1' }],
+    ['Personal observation', { quota_warning_observation_id: 'qwo_1' }],
+    ['Team observation', { quota_warning_observation_id: 'two_1' }],
+    ['Project observation', { quota_warning_observation_id: 'pwo_1' }],
+    ['Member observation', { quota_warning_observation_id: 'mwo_1' }],
+    ['case alias', { subject_id: 'KEY_ORIGINAL' }],
+    ['trailing alias', { subject_id: 'key_original ' }],
+    ['current successor', { subject_id: 'key_successor' }],
+    ['missing root', { subject_id: undefined }],
+    ['wrong subject', { subject_type: 'user' }],
+    ['missing subject kind', { subject_type: undefined }],
+    ['unsafe name', { subject_name: 'Original\nKey' }],
+    ['invalid text', { subject_name: '\ud800' }],
+    ['alert authority', { alert_id: 'alt_private' }],
+    ['SMTP authority', { delivery_status: 'accepted' }],
+    ['exhaustion observation', { quota_observation_id: 'qob_private' }],
+    ['occurrence aggregation', { occurrence_count: 2 }],
+  ])('keeps %s unavailable rather than exposing original root details', (_, changes) => {
+    expect(
+      recordedMonthlyQuotaWarning(
+        { ...personalKeyWarningNotice(), ...changes } as Notification,
+        'usr_current',
+      ),
+    ).toBeUndefined()
+  })
+
+  it.each([
+    ['Personal generation', { threshold_generation: 'personal-monthly-80-90-v1' }],
+    ['Team generation', { threshold_generation: 'team-monthly-80-90-v1' }],
+    ['Project generation', { threshold_generation: 'project-monthly-80-90-v1' }],
+    ['Member generation', { threshold_generation: 'team-member-monthly-80-90-v1' }],
+    ['unknown generation', { threshold_generation: 'personal-key-future' }],
+    ['wrong scope', { scope_kind: 'user' }],
+    ['wrong root', { scope_id: 'key_successor' }],
+    ['trailing root', { scope_id: 'key_original ' }],
+    ['unsafe root', { scope_id: 'key/original' }],
+    ['numeric root', { scope_id: 1 }],
+    ['legacy Team tuple', { team_id: 'tem_private' }],
+    ['legacy member tuple', { member_user_id: 'usr_private' }],
+    ['unknown usage', { settled: null }],
+    ['numeric usage', { settled: 80 }],
+    ['zero limit', { limit: '0' }],
+    ['overflow', { settled: '9223372036854775808' }],
+    ['token currency', { currency: 'USD' }],
+    ['unknown threshold', { threshold: 85 }],
+    ['contradictory level', { level: 'critical' }],
+    ['calendar', { time_zone: 'Unknown/Zone' }],
+    ['exclusive end', { as_of: '2026-11-01T00:00:00Z' }],
+  ])('keeps %s unavailable without inference or directory lookup', (_, changes) => {
+    const notice = personalKeyWarningNotice()
+    notice.quota_warning = { ...notice.quota_warning, ...changes } as MonthlyQuotaWarningSnapshot
+    expect(recordedMonthlyQuotaWarning(notice, 'usr_current')).toBeUndefined()
+  })
+
+  it('preserves malformed warning history for localized unavailable rendering', async () => {
+    const notice = personalKeyWarningNotice({
+      threshold_generation: 'future-v2' as MonthlyQuotaWarningSnapshot['threshold_generation'],
+    })
+    vi.spyOn(client, 'get').mockResolvedValueOnce({ data: { items: [notice], unread_count: 1 } })
+    const page = await getNotifications('all', null, undefined, 'usr_current')
+    expect(page.items).toEqual([notice])
+    expect(recordedMonthlyQuotaWarning(page.items[0], 'usr_current')).toBeUndefined()
+  })
+
+  it('requires a safe recipient but does not confuse the root account with the User identity', () => {
+    for (const recipient of ['', 'usr_current ', 'usr_current/'])
+      expect(recordedMonthlyQuotaWarning(personalKeyWarningNotice(), recipient)).toBeUndefined()
+    expect(recordedMonthlyQuotaWarning(personalKeyWarningNotice(), 'usr_current')).toBeDefined()
+    expect(
+      recordedMonthlyQuotaWarning(
+        warningNotice({ threshold_generation: 'personal-key-monthly-80-90-v1' }),
+        'usr_member',
+      ),
+    ).toBeUndefined()
+    expect(
+      recordedMonthlyQuotaWarning({ ...warningNotice(), id: 'kwi_1' }, 'usr_member'),
+    ).toBeUndefined()
+  })
+})
+
+function projectKeyWarningNotice(
+  overrides: Partial<MonthlyQuotaWarningSnapshot> = {},
+): Notification {
+  return {
+    ...warningNotice({
+      scope_kind: 'project_key',
+      scope_id: 'pky_original',
+      threshold_generation: 'project-key-monthly-80-90-v1',
+      ...overrides,
+    }),
+    id: 'jwi_1',
+    quota_warning_observation_id: 'jwo_1',
+    subject_type: 'project_key',
+    subject_id: 'pky_original',
+    subject_name: 'Original recorded Key',
+  }
+}
+
+describe('Recorded Project Key shared-account monthly warning boundary', () => {
+  it.each([
+    { dimension: 'tokens', level: 'near', threshold: 80, currency: null },
+    { dimension: 'tokens', level: 'critical', threshold: 90, currency: null },
+    { dimension: 'money', level: 'near', threshold: 80, currency: 'USD' },
+    { dimension: 'money', level: 'critical', threshold: 90, currency: 'USD' },
+  ] as const)(
+    'retains $dimension/$level exact original-root facts without deriving a current successor',
+    async (snapshot) => {
+      const notification = projectKeyWarningNotice({
+        ...snapshot,
+        limit: snapshot.dimension === 'money' ? '9007199254740993.123456789012345678' : '100',
+        settled: snapshot.dimension === 'money' ? '8907199254740993.123456789012345678' : '93',
+      })
+      const before = structuredClone(notification)
+      expect(recordedMonthlyQuotaWarning(notification, 'usr_current')).toBe(
+        notification.quota_warning,
+      )
+      const get = vi.spyOn(client, 'get').mockResolvedValueOnce({
+        data: { items: [notification], unread_count: 1, next_cursor: 'recipient-bound' },
+      })
+      expect((await getNotifications('all', 'prior', undefined, 'usr_current')).items).toEqual([
+        before,
+      ])
+      expect(get).toHaveBeenCalledWith('/notifications', {
+        params: { status: 'all', cursor: 'prior' },
+        signal: undefined,
+      })
+      expect(notification).toEqual(before)
+      expect(Object.keys(notification.quota_warning!)).toHaveLength(14)
+    },
+  )
+
+  it.each([undefined, null, '', 'Original historical Key', '名'.repeat(100)])(
+    'retains only the optional recorded original name %#',
+    (subject_name) => {
+      const notification = { ...projectKeyWarningNotice(), subject_name }
+      expect(recordedMonthlyQuotaWarning(notification, 'usr_current')).toBe(
+        notification.quota_warning,
+      )
+    },
+  )
+
+  it.each([
+    ['Personal inbox', { id: 'qwi_1' }],
+    ['Personal Key inbox', { id: 'kwi_1' }],
+    ['Personal Key observation', { quota_warning_observation_id: 'kwo_1' }],
+    ['Personal Key subject', { subject_type: 'personal_key' }],
+    ['Team inbox', { id: 'twi_1' }],
+    ['Project inbox', { id: 'pwi_1' }],
+    ['Member inbox', { id: 'mwi_1' }],
+    ['Personal observation', { quota_warning_observation_id: 'qwo_1' }],
+    ['Team observation', { quota_warning_observation_id: 'two_1' }],
+    ['Project observation', { quota_warning_observation_id: 'pwo_1' }],
+    ['Member observation', { quota_warning_observation_id: 'mwo_1' }],
+    ['case alias', { subject_id: 'PKY_ORIGINAL' }],
+    ['trailing alias', { subject_id: 'pky_original ' }],
+    ['current successor', { subject_id: 'pky_successor' }],
+    ['missing root', { subject_id: undefined }],
+    ['wrong subject', { subject_type: 'user' }],
+    ['missing subject kind', { subject_type: undefined }],
+    ['unsafe name', { subject_name: 'Original\nKey' }],
+    ['invalid text', { subject_name: '\ud800' }],
+    ['alert authority', { alert_id: 'alt_private' }],
+    ['SMTP authority', { delivery_status: 'accepted' }],
+    ['exhaustion observation', { quota_observation_id: 'qob_private' }],
+    ['occurrence aggregation', { occurrence_count: 2 }],
+  ])('keeps %s unavailable rather than exposing original root details', (_, changes) => {
+    expect(
+      recordedMonthlyQuotaWarning(
+        { ...projectKeyWarningNotice(), ...changes } as Notification,
+        'usr_current',
+      ),
+    ).toBeUndefined()
+  })
+
+  it.each([
+    ['Personal generation', { threshold_generation: 'personal-monthly-80-90-v1' }],
+    ['Personal Key generation', { threshold_generation: 'personal-key-monthly-80-90-v1' }],
+    ['Team generation', { threshold_generation: 'team-monthly-80-90-v1' }],
+    ['Project generation', { threshold_generation: 'project-monthly-80-90-v1' }],
+    ['Member generation', { threshold_generation: 'team-member-monthly-80-90-v1' }],
+    ['unknown generation', { threshold_generation: 'project-key-future' }],
+    ['wrong scope', { scope_kind: 'user' }],
+    ['wrong root', { scope_id: 'pky_successor' }],
+    ['trailing root', { scope_id: 'pky_original ' }],
+    ['unsafe root', { scope_id: 'pky/original' }],
+    ['numeric root', { scope_id: 1 }],
+    ['legacy Team tuple', { team_id: 'tem_private' }],
+    ['legacy member tuple', { member_user_id: 'usr_private' }],
+    ['unknown usage', { settled: null }],
+    ['numeric usage', { settled: 80 }],
+    ['zero limit', { limit: '0' }],
+    ['overflow', { settled: '9223372036854775808' }],
+    ['token currency', { currency: 'USD' }],
+    ['unknown threshold', { threshold: 85 }],
+    ['contradictory level', { level: 'critical' }],
+    ['calendar', { time_zone: 'Unknown/Zone' }],
+    ['exclusive end', { as_of: '2026-11-01T00:00:00Z' }],
+  ])('keeps %s unavailable without inference or directory lookup', (_, changes) => {
+    const notice = projectKeyWarningNotice()
+    notice.quota_warning = { ...notice.quota_warning, ...changes } as MonthlyQuotaWarningSnapshot
+    expect(recordedMonthlyQuotaWarning(notice, 'usr_current')).toBeUndefined()
+  })
+
+  it('preserves malformed warning history for localized unavailable rendering', async () => {
+    const notice = projectKeyWarningNotice({
+      threshold_generation: 'future-v2' as MonthlyQuotaWarningSnapshot['threshold_generation'],
+    })
+    vi.spyOn(client, 'get').mockResolvedValueOnce({ data: { items: [notice], unread_count: 1 } })
+    const page = await getNotifications('all', null, undefined, 'usr_current')
+    expect(page.items).toEqual([notice])
+    expect(recordedMonthlyQuotaWarning(page.items[0], 'usr_current')).toBeUndefined()
+  })
+
+  it('requires a safe recipient but does not confuse the root account with the User identity', () => {
+    for (const recipient of ['', 'usr_current ', 'usr_current/'])
+      expect(recordedMonthlyQuotaWarning(projectKeyWarningNotice(), recipient)).toBeUndefined()
+    expect(recordedMonthlyQuotaWarning(projectKeyWarningNotice(), 'usr_current')).toBeDefined()
+    expect(
+      recordedMonthlyQuotaWarning(
+        warningNotice({ threshold_generation: 'project-key-monthly-80-90-v1' }),
+        'usr_member',
+      ),
+    ).toBeUndefined()
+    expect(
+      recordedMonthlyQuotaWarning({ ...warningNotice(), id: 'jwi_1' }, 'usr_member'),
+    ).toBeUndefined()
+  })
+})

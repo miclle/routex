@@ -28,13 +28,17 @@ function itemText(
     const warning = recordedMonthlyQuotaWarning(notification, recipientId)
     if (!warning) return t('items.monthly_quota_warning.default')
     const key =
-      warning.scope_kind === 'team_member'
-        ? 'team_member_monthly_quota_warning'
-        : warning.scope_kind === 'team'
-          ? 'team_monthly_quota_warning'
-          : warning.scope_kind === 'project'
-            ? 'project_monthly_quota_warning'
-            : 'monthly_quota_warning'
+      warning.scope_kind === 'project_key'
+        ? 'project_key_monthly_quota_warning'
+        : warning.scope_kind === 'personal_key'
+          ? 'personal_key_monthly_quota_warning'
+          : warning.scope_kind === 'team_member'
+            ? 'team_member_monthly_quota_warning'
+            : warning.scope_kind === 'team'
+              ? 'team_monthly_quota_warning'
+              : warning.scope_kind === 'project'
+                ? 'project_monthly_quota_warning'
+                : 'monthly_quota_warning'
     return t(`items.${key}.${notification.detail_code}`, {
       defaultValue: t(`items.${key}.default`),
     })
@@ -93,23 +97,31 @@ function QuotaSnapshot({
     <span className="mt-1 block space-y-1 text-xs [overflow-wrap:anywhere]">
       <span className="block">
         {t(
-          warning?.scope_kind === 'team_member'
+          warning?.scope_kind === 'project_key'
             ? scopeName
-              ? 'quota.memberWarningScopeNamed'
-              : 'quota.memberWarningScope'
-            : quota.scope_kind === 'user'
-              ? 'quota.personalScope'
-              : quota.scope_kind === 'team_member'
+              ? 'quota.projectKeyScopeNamed'
+              : 'quota.projectKeyScope'
+            : warning?.scope_kind === 'personal_key'
+              ? scopeName
+                ? 'quota.personalKeyScopeNamed'
+                : 'quota.personalKeyScope'
+              : warning?.scope_kind === 'team_member'
                 ? scopeName
-                  ? 'quota.teamMemberScopeNamed'
-                  : 'quota.teamMemberScope'
-                : quota.scope_kind === 'team'
-                  ? scopeName
-                    ? 'quota.teamScopeNamed'
-                    : 'quota.teamScope'
-                  : scopeName
-                    ? 'quota.projectScopeNamed'
-                    : 'quota.projectScope',
+                  ? 'quota.memberWarningScopeNamed'
+                  : 'quota.memberWarningScope'
+                : quota.scope_kind === 'user'
+                  ? 'quota.personalScope'
+                  : quota.scope_kind === 'team_member'
+                    ? scopeName
+                      ? 'quota.teamMemberScopeNamed'
+                      : 'quota.teamMemberScope'
+                    : quota.scope_kind === 'team'
+                      ? scopeName
+                        ? 'quota.teamScopeNamed'
+                        : 'quota.teamScope'
+                      : scopeName
+                        ? 'quota.projectScopeNamed'
+                        : 'quota.projectScope',
           {
             id:
               warning?.scope_kind === 'team_member'

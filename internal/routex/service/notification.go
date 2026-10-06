@@ -263,6 +263,18 @@ func (s *Service) ListNotifications(ctx context.Context, actor string, filter No
 		}
 		records = append(records, memberWarnings...)
 		page.UnreadCount += memberWarningUnread
+		keyWarnings, keyWarningUnread, err := personalKeyQuotaWarningPage(tx, access, filter, limit, cursorTime, cursorID)
+		if err != nil {
+			return err
+		}
+		records = append(records, keyWarnings...)
+		page.UnreadCount += keyWarningUnread
+		projectKeyWarnings, projectKeyWarningUnread, err := projectKeyQuotaWarningPage(tx, access, filter, limit, cursorTime, cursorID)
+		if err != nil {
+			return err
+		}
+		records = append(records, projectKeyWarnings...)
+		page.UnreadCount += projectKeyWarningUnread
 		page.Items, page.NextCursor = mergeNotificationRecords(records, limit)
 		return nil
 	}, &sql.TxOptions{Isolation: sql.LevelRepeatableRead, ReadOnly: true})
@@ -360,6 +372,22 @@ func (s *Service) MarkNotificationRead(ctx context.Context, actor, notificationI
 			record = memberWarning
 			return nil
 		}
+		keyWarning, keyFound, keyErr := markPersonalKeyQuotaWarningRead(tx, access, notificationID)
+		if keyErr != nil && !errors.Is(keyErr, gorm.ErrRecordNotFound) {
+			return keyErr
+		}
+		if keyFound {
+			record = keyWarning
+			return nil
+		}
+		projectKeyWarning, projectKeyFound, projectKeyErr := markProjectKeyQuotaWarningRead(tx, access, notificationID)
+		if projectKeyErr != nil && !errors.Is(projectKeyErr, gorm.ErrRecordNotFound) {
+			return projectKeyErr
+		}
+		if projectKeyFound {
+			record = projectKeyWarning
+			return nil
+		}
 		if !access.Operational {
 			return apperrors.ErrNotFound
 		}
@@ -414,7 +442,13 @@ func (s *Service) MarkAllNotificationsRead(ctx context.Context, actor string) er
 		if err := projectQuotaWarningMutationQuery(tx, access).Where("read_at IS NULL").Update("read_at", now).Error; err != nil {
 			return err
 		}
-		return teamMemberQuotaWarningMutationQuery(tx, access).Where("read_at IS NULL").Update("read_at", now).Error
+		if err := teamMemberQuotaWarningMutationQuery(tx, access).Where("read_at IS NULL").Update("read_at", now).Error; err != nil {
+			return err
+		}
+		if err := personalKeyQuotaWarningMutationQuery(tx, access).Where("read_at IS NULL").Update("read_at", now).Error; err != nil {
+			return err
+		}
+		return projectKeyQuotaWarningMutationQuery(tx, access).Where("read_at IS NULL").Update("read_at", now).Error
 	}, &sql.TxOptions{Isolation: sql.LevelReadCommitted})
 	return catalogError(err)
 }

@@ -1402,3 +1402,552 @@ describe('Recorded Team member monthly warning menu', () => {
     expect(button('Mark all read')).toBeUndefined()
   })
 })
+
+function personalKeyWarning(snapshot: Partial<MonthlyQuotaWarningSnapshot> = {}): Notification {
+  return {
+    ...warning({
+      scope_kind: 'personal_key',
+      scope_id: 'key_original',
+      threshold_generation: 'personal-key-monthly-80-90-v1',
+      ...snapshot,
+    }),
+    id: 'kwi_1',
+    quota_warning_observation_id: 'kwo_1',
+    subject_type: 'personal_key',
+    subject_id: 'key_original',
+    subject_name: 'Original recorded Key',
+  }
+}
+
+describe('Recorded Personal Key shared-account monthly warning menu', () => {
+  it.each([
+    {
+      dimension: 'tokens',
+      level: 'near',
+      threshold: 80,
+      currency: null,
+      en: 'Personal Key monthly token warning recorded.',
+      zh: '已记录个人 Key 月度 Token 预警。',
+    },
+    {
+      dimension: 'tokens',
+      level: 'critical',
+      threshold: 90,
+      currency: null,
+      en: 'Critical Personal Key monthly token warning recorded.',
+      zh: '已记录个人 Key 月度 Token 严重预警。',
+    },
+    {
+      dimension: 'money',
+      level: 'near',
+      threshold: 80,
+      currency: 'USD',
+      en: 'Personal Key monthly money warning recorded.',
+      zh: '已记录个人 Key 月度金额预警。',
+    },
+    {
+      dimension: 'money',
+      level: 'critical',
+      threshold: 90,
+      currency: 'USD',
+      en: 'Critical Personal Key monthly money warning recorded.',
+      zh: '已记录个人 Key 月度金额严重预警。',
+    },
+  ] as const)(
+    'renders $dimension/$level recorded facts and switches language live',
+    async (value) => {
+      const { en, zh, ...snapshot } = value
+      const money = snapshot.dimension === 'money'
+      const settled = money ? '8907199254740993.123456789012345678' : '93'
+      const limit = money ? '9007199254740993.123456789012345678' : '100'
+      page.items = [personalKeyWarning({ ...snapshot, settled, limit })]
+      await mount()
+      await until(() => expect(menu().textContent).toContain(en))
+      expect(menu().textContent).toContain(
+        'Personal Key shared rotation quota: Original recorded Key (original Key key_original)',
+      )
+      expect(menu().textContent).toContain(`Recorded warning threshold: ${snapshot.threshold}%`)
+      expect(menu().textContent).toContain(`Settled: ${settled} ${money ? 'USD' : 'tokens'}`)
+      expect(menu().textContent).toContain(`Limit: ${limit} ${money ? 'USD' : 'tokens'}`)
+      expect(menu().textContent).toContain('Recorded month: Sep 1, 2026')
+      expect(menu().textContent).toContain('Calendar time zone: UTC')
+      expect(menu().textContent).toContain('As of Sep 17, 2026')
+      expect(menu().textContent).toContain('Policy revision: policy-4')
+      expect(menu().textContent).toContain('Fixed settled-usage observation')
+      expect(menu().textContent).not.toContain('93%')
+      expect(menu().textContent).not.toContain('7 tokens')
+      expect(menu().textContent).not.toContain('Personal quota')
+      expect(menu().textContent).not.toContain('Email')
+      expect(requests.map((request) => request.url)).toEqual(['/auth/session', '/notifications'])
+      await act(async () => i18n.changeLanguage('zh'))
+      expect(menu().textContent).toContain(zh)
+      expect(menu().textContent).toContain('Original recorded Key')
+      expect(menu().textContent).toContain('key_original')
+      expect(menu().textContent).toContain(`记录的预警阈值：${snapshot.threshold}%`)
+      expect(menu().textContent).toContain(`已结算：${settled} ${money ? 'USD' : 'Token'}`)
+      expect(menu().textContent).toContain('不代表当前剩余额度')
+      expect(menu().querySelector('[aria-label="通知历史筛选"]')).not.toBeNull()
+    },
+  )
+
+  it.each([undefined, null, '', '   '])(
+    'falls back to exact original root Key ID for absent recorded original root name %#',
+    async (subject_name) => {
+      page.items = [{ ...personalKeyWarning(), subject_name }]
+      await mount()
+      await until(() =>
+        expect(menu().textContent).toContain(
+          'Personal Key shared rotation quota: original Key key_original',
+        ),
+      )
+      expect(menu().textContent).not.toContain('Original recorded Key')
+      expect(requests.map((request) => request.url)).toEqual(['/auth/session', '/notifications'])
+      await act(async () => i18n.changeLanguage('zh'))
+      expect(menu().textContent).toContain('key_original')
+    },
+  )
+
+  it('marks only the exact original root inbox identity read and retains immutable mixed history', async () => {
+    const original = personalKeyWarning({
+      dimension: 'money',
+      currency: 'USD',
+      level: 'critical',
+      threshold: 90,
+      limit: '1.000000000000000001',
+      settled: '0.900000000000000001',
+    })
+    page.items = [original, warning(), teamWarning()]
+    page.unread_count = 3
+    await mount()
+    await until(() =>
+      expect(menu().textContent).toContain('Critical Personal Key monthly money warning recorded.'),
+    )
+    const rootItem = [...menu().querySelectorAll<HTMLElement>('[role="menuitem"]')].find((row) =>
+      row.textContent?.includes('Personal Key shared rotation quota: Original recorded Key'),
+    )!
+    await act(async () => rootItem.click())
+    await until(() => expect(page.items[0].read).toBe(true))
+    const read = requests.filter((request) => request.method === 'post')
+    expect(read).toHaveLength(1)
+    expect(read[0].url).toBe('/notifications/kwi_1/read')
+    expect(read[0].headers.get('X-CSRF-Token')).toBe('csrf-usr_member')
+    expect(page.items[0].quota_warning).toEqual(original.quota_warning)
+    expect(page.items[1].read).toBe(false)
+    expect(page.items[2].read).toBe(false)
+    await click('Notifications')
+    await until(() => expect(menu()).not.toBeNull())
+    await click('All')
+    await until(() => expect(menu().querySelectorAll('[role="menuitem"]')).toHaveLength(3))
+    expect(menu().textContent).toContain('Settled: 0.900000000000000001 USD')
+    expect(menu().textContent).toContain('Personal monthly token warning recorded.')
+    expect(menu().textContent).toContain('Team monthly token warning recorded.')
+    expect(menu().textContent).toContain('Team: Recorded Team (tem_recorded)')
+    await act(async () => i18n.changeLanguage('zh'))
+    expect(button('全部')?.getAttribute('aria-pressed')).toBe('true')
+    expect(menu().textContent).toContain('已记录个人 Key 月度金额严重预警。')
+    expect(menu().textContent).toContain('0.900000000000000001 USD')
+    expect(page.items[0].subject_name).toBe('Original recorded Key')
+    expect(page.items[0].quota_warning_observation_id).toBe('kwo_1')
+  })
+
+  it.each([
+    ['wrong root subject', { subject_id: 'key_other' }],
+    ['aliased root subject', { subject_id: 'KEY_ORIGINAL' }],
+    ['Team inbox identity', { id: 'twi_1' }],
+    [
+      'Team generation',
+      {
+        quota_warning: {
+          ...personalKeyWarning().quota_warning,
+          threshold_generation: 'team-monthly-80-90-v1',
+        },
+      },
+    ],
+    [
+      'Personal generation',
+      {
+        quota_warning: {
+          ...personalKeyWarning().quota_warning,
+          threshold_generation: 'personal-monthly-80-90-v1',
+        },
+      },
+    ],
+    [
+      'unknown settled usage',
+      { quota_warning: { ...personalKeyWarning().quota_warning, settled: null } },
+    ],
+    [
+      'unsupported threshold',
+      { quota_warning: { ...personalKeyWarning().quota_warning, threshold: 85 } },
+    ],
+    [
+      'borrowed operational identity',
+      { subject_type: 'provider', subject_name: 'Private Provider', delivery_status: 'accepted' },
+    ],
+  ])(
+    'renders localized unavailable for %s without exposing captured original root facts',
+    async (_, changes) => {
+      page.items = [{ ...personalKeyWarning(), ...changes } as Notification]
+      await mount()
+      await until(() =>
+        expect(menu().textContent).toContain(
+          'The monthly quota snapshot was not recorded or is unavailable.',
+        ),
+      )
+      expect(menu().textContent).toContain('A monthly quota warning was recorded.')
+      expect(menu().textContent).not.toContain('Original recorded Key')
+      expect(menu().textContent).not.toContain('key_original')
+      expect(menu().textContent).not.toContain('Private Provider')
+      expect(menu().textContent).not.toContain('Settled:')
+      expect(menu().textContent).not.toContain('Recorded warning threshold:')
+      expect(menu().textContent).not.toContain('Email')
+      await act(async () => i18n.changeLanguage('zh'))
+      expect(menu().textContent).toContain('月度额度快照未记录或不可用。')
+      expect(menu().textContent).toContain('已记录月度额度预警。')
+    },
+  )
+
+  it('hides original root snapshots during recipient renewal and cannot restore denied facts', async () => {
+    page.items = [personalKeyWarning()]
+    await mount()
+    await until(() =>
+      expect(menu().textContent).toContain(
+        'Personal Key shared rotation quota: Original recorded Key',
+      ),
+    )
+    getGate = barrier()
+    getFailure = 403
+    await refresh()
+    await until(() => expect(menu().textContent).toContain('Loading notifications'))
+    expect(menu().textContent).not.toContain('Original recorded Key')
+    expect(menu().textContent).not.toContain('93 tokens')
+    expect(unreadBadge()).toBeNull()
+    await act(async () => getGate!.release())
+    await until(() => expect(menu().textContent).toContain('Notifications could not be loaded.'))
+    expect(menu().textContent).not.toContain('Original recorded Key')
+    expect(button('Mark all read')).toBeUndefined()
+  })
+})
+
+it('marks all mixed warning scopes read without changing original root history', async () => {
+  const original = personalKeyWarning({
+    dimension: 'money',
+    currency: 'USD',
+    limit: '1.000000000000000001',
+    settled: '0.800000000000000001',
+  })
+  page.items = [original, warning(), teamWarning(), projectWarning(), memberWarning()]
+  page.unread_count = 5
+  const before = structuredClone(page.items)
+  await mount()
+  await until(() => expect(menu().querySelectorAll('[role="menuitem"]')).toHaveLength(5))
+  await click('Mark all read')
+  await until(() => expect(page.items.every((row) => row.read)).toBe(true))
+  const writes = requests.filter((request) => request.method === 'post')
+  expect(writes).toHaveLength(1)
+  expect(writes[0].url).toBe('/notifications/read-all')
+  expect(writes[0].headers.get('X-CSRF-Token')).toBe('csrf-usr_member')
+  expect(
+    page.items.map((row, index) => ({
+      ...row,
+      read: before[index].read,
+      read_at: before[index].read_at,
+    })),
+  ).toEqual(before)
+  await until(() => expect(menu().textContent).toContain('No new notifications'))
+  await click('All')
+  await until(() => expect(menu().querySelectorAll('[role="menuitem"]')).toHaveLength(5))
+  expect(menu().textContent).toContain('Original recorded Key (original Key key_original)')
+  expect(menu().textContent).toContain('0.800000000000000001 USD')
+  expect(menu().textContent).toContain('Your member quota in Recorded Team')
+  expect(
+    requests.every(
+      (request) => request.url === '/auth/session' || request.url?.startsWith('/notifications'),
+    ),
+  ).toBe(true)
+})
+
+function projectKeyWarning(snapshot: Partial<MonthlyQuotaWarningSnapshot> = {}): Notification {
+  return {
+    ...warning({
+      scope_kind: 'project_key',
+      scope_id: 'pky_original',
+      threshold_generation: 'project-key-monthly-80-90-v1',
+      ...snapshot,
+    }),
+    id: 'jwi_1',
+    quota_warning_observation_id: 'jwo_1',
+    subject_type: 'project_key',
+    subject_id: 'pky_original',
+    subject_name: 'Original recorded Key',
+  }
+}
+
+describe('Recorded Project Key shared-account monthly warning menu', () => {
+  it.each([
+    {
+      dimension: 'tokens',
+      level: 'near',
+      threshold: 80,
+      currency: null,
+      en: 'Project Key monthly token warning recorded.',
+      zh: '已记录Project Key 月度 Token 预警。',
+    },
+    {
+      dimension: 'tokens',
+      level: 'critical',
+      threshold: 90,
+      currency: null,
+      en: 'Critical Project Key monthly token warning recorded.',
+      zh: '已记录Project Key 月度 Token 严重预警。',
+    },
+    {
+      dimension: 'money',
+      level: 'near',
+      threshold: 80,
+      currency: 'USD',
+      en: 'Project Key monthly money warning recorded.',
+      zh: '已记录Project Key 月度金额预警。',
+    },
+    {
+      dimension: 'money',
+      level: 'critical',
+      threshold: 90,
+      currency: 'USD',
+      en: 'Critical Project Key monthly money warning recorded.',
+      zh: '已记录Project Key 月度金额严重预警。',
+    },
+  ] as const)(
+    'renders $dimension/$level recorded facts and switches language live',
+    async (value) => {
+      const { en, zh, ...snapshot } = value
+      const money = snapshot.dimension === 'money'
+      const settled = money ? '8907199254740993.123456789012345678' : '93'
+      const limit = money ? '9007199254740993.123456789012345678' : '100'
+      page.items = [projectKeyWarning({ ...snapshot, settled, limit })]
+      await mount()
+      await until(() => expect(menu().textContent).toContain(en))
+      expect(menu().textContent).toContain(
+        'Project Key shared rotation quota: Original recorded Key (original Key pky_original)',
+      )
+      expect(menu().textContent).toContain(`Recorded warning threshold: ${snapshot.threshold}%`)
+      expect(menu().textContent).toContain(`Settled: ${settled} ${money ? 'USD' : 'tokens'}`)
+      expect(menu().textContent).toContain(`Limit: ${limit} ${money ? 'USD' : 'tokens'}`)
+      expect(menu().textContent).toContain('Recorded month: Sep 1, 2026')
+      expect(menu().textContent).toContain('Calendar time zone: UTC')
+      expect(menu().textContent).toContain('As of Sep 17, 2026')
+      expect(menu().textContent).toContain('Policy revision: policy-4')
+      expect(menu().textContent).toContain('Fixed settled-usage observation')
+      expect(menu().textContent).not.toContain('93%')
+      expect(menu().textContent).not.toContain('7 tokens')
+      expect(menu().textContent).not.toContain('Personal quota')
+      expect(menu().textContent).not.toContain('Email')
+      expect(requests.map((request) => request.url)).toEqual(['/auth/session', '/notifications'])
+      await act(async () => i18n.changeLanguage('zh'))
+      expect(menu().textContent).toContain(zh)
+      expect(menu().textContent).toContain('Original recorded Key')
+      expect(menu().textContent).toContain('pky_original')
+      expect(menu().textContent).toContain(`记录的预警阈值：${snapshot.threshold}%`)
+      expect(menu().textContent).toContain(`已结算：${settled} ${money ? 'USD' : 'Token'}`)
+      expect(menu().textContent).toContain('不代表当前剩余额度')
+      expect(menu().querySelector('[aria-label="通知历史筛选"]')).not.toBeNull()
+    },
+  )
+
+  it.each([undefined, null, '', '   '])(
+    'falls back to exact original root Key ID for absent recorded original root name %#',
+    async (subject_name) => {
+      page.items = [{ ...projectKeyWarning(), subject_name }]
+      await mount()
+      await until(() =>
+        expect(menu().textContent).toContain(
+          'Project Key shared rotation quota: original Key pky_original',
+        ),
+      )
+      expect(menu().textContent).not.toContain('Original recorded Key')
+      expect(requests.map((request) => request.url)).toEqual(['/auth/session', '/notifications'])
+      await act(async () => i18n.changeLanguage('zh'))
+      expect(menu().textContent).toContain('pky_original')
+    },
+  )
+
+  it('marks only the exact original root inbox identity read and retains immutable mixed history', async () => {
+    const original = projectKeyWarning({
+      dimension: 'money',
+      currency: 'USD',
+      level: 'critical',
+      threshold: 90,
+      limit: '1.000000000000000001',
+      settled: '0.900000000000000001',
+    })
+    page.items = [original, warning(), teamWarning()]
+    page.unread_count = 3
+    await mount()
+    await until(() =>
+      expect(menu().textContent).toContain('Critical Project Key monthly money warning recorded.'),
+    )
+    const rootItem = [...menu().querySelectorAll<HTMLElement>('[role="menuitem"]')].find((row) =>
+      row.textContent?.includes('Project Key shared rotation quota: Original recorded Key'),
+    )!
+    await act(async () => rootItem.click())
+    await until(() => expect(page.items[0].read).toBe(true))
+    const read = requests.filter((request) => request.method === 'post')
+    expect(read).toHaveLength(1)
+    expect(read[0].url).toBe('/notifications/jwi_1/read')
+    expect(read[0].headers.get('X-CSRF-Token')).toBe('csrf-usr_member')
+    expect(page.items[0].quota_warning).toEqual(original.quota_warning)
+    expect(page.items[1].read).toBe(false)
+    expect(page.items[2].read).toBe(false)
+    await click('Notifications')
+    await until(() => expect(menu()).not.toBeNull())
+    await click('All')
+    await until(() => expect(menu().querySelectorAll('[role="menuitem"]')).toHaveLength(3))
+    expect(menu().textContent).toContain('Settled: 0.900000000000000001 USD')
+    expect(menu().textContent).toContain('Personal monthly token warning recorded.')
+    expect(menu().textContent).toContain('Team monthly token warning recorded.')
+    expect(menu().textContent).toContain('Team: Recorded Team (tem_recorded)')
+    await act(async () => i18n.changeLanguage('zh'))
+    expect(button('全部')?.getAttribute('aria-pressed')).toBe('true')
+    expect(menu().textContent).toContain('已记录Project Key 月度金额严重预警。')
+    expect(menu().textContent).toContain('0.900000000000000001 USD')
+    expect(page.items[0].subject_name).toBe('Original recorded Key')
+    expect(page.items[0].quota_warning_observation_id).toBe('jwo_1')
+  })
+
+  it.each([
+    ['wrong root subject', { subject_id: 'pky_other' }],
+    ['aliased root subject', { subject_id: 'PKY_ORIGINAL' }],
+    ['Team inbox identity', { id: 'twi_1' }],
+    ['Personal Key inbox identity', { id: 'kwi_1' }],
+    ['Personal Key subject identity', { subject_type: 'personal_key' }],
+    [
+      'Personal Key generation',
+      {
+        quota_warning: {
+          ...projectKeyWarning().quota_warning,
+          threshold_generation: 'personal-key-monthly-80-90-v1',
+        },
+      },
+    ],
+    [
+      'Team generation',
+      {
+        quota_warning: {
+          ...projectKeyWarning().quota_warning,
+          threshold_generation: 'team-monthly-80-90-v1',
+        },
+      },
+    ],
+    [
+      'Personal generation',
+      {
+        quota_warning: {
+          ...projectKeyWarning().quota_warning,
+          threshold_generation: 'personal-monthly-80-90-v1',
+        },
+      },
+    ],
+    [
+      'unknown settled usage',
+      { quota_warning: { ...projectKeyWarning().quota_warning, settled: null } },
+    ],
+    [
+      'unsupported threshold',
+      { quota_warning: { ...projectKeyWarning().quota_warning, threshold: 85 } },
+    ],
+    [
+      'borrowed operational identity',
+      { subject_type: 'provider', subject_name: 'Private Provider', delivery_status: 'accepted' },
+    ],
+  ])(
+    'renders localized unavailable for %s without exposing captured original root facts',
+    async (_, changes) => {
+      page.items = [{ ...projectKeyWarning(), ...changes } as Notification]
+      await mount()
+      await until(() =>
+        expect(menu().textContent).toContain(
+          'The monthly quota snapshot was not recorded or is unavailable.',
+        ),
+      )
+      expect(menu().textContent).toContain('A monthly quota warning was recorded.')
+      expect(menu().textContent).not.toContain('Original recorded Key')
+      expect(menu().textContent).not.toContain('pky_original')
+      expect(menu().textContent).not.toContain('Private Provider')
+      expect(menu().textContent).not.toContain('Settled:')
+      expect(menu().textContent).not.toContain('Recorded warning threshold:')
+      expect(menu().textContent).not.toContain('Email')
+      await act(async () => i18n.changeLanguage('zh'))
+      expect(menu().textContent).toContain('月度额度快照未记录或不可用。')
+      expect(menu().textContent).toContain('已记录月度额度预警。')
+    },
+  )
+
+  it('hides original root snapshots during recipient renewal and cannot restore denied facts', async () => {
+    page.items = [projectKeyWarning()]
+    await mount()
+    await until(() =>
+      expect(menu().textContent).toContain(
+        'Project Key shared rotation quota: Original recorded Key',
+      ),
+    )
+    getGate = barrier()
+    getFailure = 403
+    await refresh()
+    await until(() => expect(menu().textContent).toContain('Loading notifications'))
+    expect(menu().textContent).not.toContain('Original recorded Key')
+    expect(menu().textContent).not.toContain('93 tokens')
+    expect(unreadBadge()).toBeNull()
+    await act(async () => getGate!.release())
+    await until(() => expect(menu().textContent).toContain('Notifications could not be loaded.'))
+    expect(menu().textContent).not.toContain('Original recorded Key')
+    expect(button('Mark all read')).toBeUndefined()
+  })
+})
+
+it('marks all mixed warning scopes read without changing original Project root history', async () => {
+  const original = projectKeyWarning({
+    dimension: 'money',
+    currency: 'USD',
+    limit: '1.000000000000000001',
+    settled: '0.800000000000000001',
+  })
+  page.items = [
+    original,
+    personalKeyWarning(),
+    warning(),
+    teamWarning(),
+    projectWarning(),
+    memberWarning(),
+  ]
+  page.unread_count = 6
+  const before = structuredClone(page.items)
+  await mount()
+  await until(() => expect(menu().querySelectorAll('[role="menuitem"]')).toHaveLength(6))
+  await click('Mark all read')
+  await until(() => expect(page.items.every((row) => row.read)).toBe(true))
+  const writes = requests.filter((request) => request.method === 'post')
+  expect(writes).toHaveLength(1)
+  expect(writes[0].url).toBe('/notifications/read-all')
+  expect(writes[0].headers.get('X-CSRF-Token')).toBe('csrf-usr_member')
+  expect(
+    page.items.map((row, index) => ({
+      ...row,
+      read: before[index].read,
+      read_at: before[index].read_at,
+    })),
+  ).toEqual(before)
+  await until(() => expect(menu().textContent).toContain('No new notifications'))
+  await click('All')
+  await until(() => expect(menu().querySelectorAll('[role="menuitem"]')).toHaveLength(6))
+  expect(menu().textContent).toContain('Original recorded Key (original Key pky_original)')
+  expect(menu().textContent).toContain('0.800000000000000001 USD')
+  expect(menu().textContent).toContain('Your member quota in Recorded Team')
+  expect(menu().textContent).toContain(
+    'Personal Key shared rotation quota: Original recorded Key (original Key key_original)',
+  )
+  expect(
+    requests.every(
+      (request) => request.url === '/auth/session' || request.url?.startsWith('/notifications'),
+    ),
+  ).toBe(true)
+})

@@ -580,3 +580,75 @@ Main retains an assertion-equivalent Member fixture initializer lint correction
 outside the frozen worktree; its focused pure race and final mandatory checks
 passed. The containing commit records this phase. F17/F23 and formal11/16/3
 remain unchanged.
+
+## Personal and Project Key monthly warnings
+
+Personal and Project Keys share monthly quota accounts across their recorded
+rotation lineage. The recipient menu displays the original root Key name or
+stable ID, never secret material or current inferred allowance. Complete known
+settled Tokens and exact decimal money produce immutable observations at the
+approved 80% reminder and 90% critical thresholds. Unknown coverage, holds,
+unpublished policy generations and mismatched resource births do not produce
+estimated warning percentages. Existing exhaustion and hard-stop behavior stays
+separate; these warnings do not add SMTP delivery.
+
+Personal observations use `kwo_` and original-owner inboxes use `kwi_` with
+`personal-key-monthly-80-90-v1`. Revoked predecessors retain authorized original
+owner history while eligible successors share the same root quota account.
+Project observations use `jwo_` and separate original-manager inboxes use `jwi_`
+with `project-key-monthly-80-90-v1`. Creator or administrator attribution grants
+no recipient access. Current admitted original managers keep independent read
+state; removal hides history, same-birth rejoining restores it, and later
+managers receive no historical backfill. Public records exclude private birth,
+manager, credential and lineage proofs.
+
+Frozen GORM V64/V65 and scenarios 116–119 extend the unchanged 115-case prefix.
+Focused PostgreSQL/MySQL R8 passed 16 direct cases and 87 named events without
+failures or skips; owned resources are independently absent. The complete119
+matrix passed against its protected candidate source: 4,370 named events and
+eight constraints, without failures or skips. Current main carries
+the exact Key outputs while preserving delivered default-rule drafts, submitted
+intent ownership and strict Team timestamps. All 947 Go files match the candidate
+except one proven two-line V62 release-status comment; scripts, dependencies and
+Compose descriptors are exact. This mapping does not claim that the matrix ran
+on the later main source floor. Main mandatory checking, complete Task (3,714 frontend cases/157 files),
+production build and both real-process authentication/gateway lifecycle gates
+passed. Controlled Key native/bilingual original-Session browser acceptance
+also passed as recorded below; the containing commit records this checked phase.
+
+
+### Complete Key119 acceptance
+
+The isolated V64/V65 candidate passed 119 ordered scenarios per driver, eight
+constraints and 4,370 named RUN/PASS events, without failures/skips/race reports.
+PostgreSQL took 1,201.57s, MySQL 1,485.34s and the whole command 2,770.780s.
+All 1,616 protected source paths and the semantic index stayed exact; owned
+containers/networks/volumes are independently absent. Log SHA256:
+`01d4ae20460d3e9606e795afb9ab321b2a4162dffffb3804eaeda1896be39dfb`.
+This matrix ran on the original isolated candidate; current main inherits its
+compiled backend through the separately verified comment-only equivalence.
+Main check, complete Task (3,714 frontend cases/157 files), production build and
+both real-process authentication/gateway lifecycle gates passed. Controlled Key
+production/bilingual/original-Session restart acceptance also passed as recorded below.
+
+### Controlled Key production acceptance
+
+The final production artifact
+`ce55e0d3e30e3b3e1f88bfec8e0d1ff375c45477f9aaa19c07a814aba875b8ed`
+passed two separate PostgreSQL environments on the reviewed 1,617-path main
+source floor. Personal acceptance recorded six native calls, five observations
+and five original-owner inbox rows. Project acceptance recorded six native
+calls, five observations and ten independently read original-manager inbox rows.
+Normal browser sign-in, default English/live Chinese, original rotation-root
+labels, exact decimal amounts, single-read200/read-all204, recipient isolation
+and Escape/focus passed. All seven original browser Sessions reread after an
+identical-artifact/config/database/journal process restart without reloading
+those authenticated documents, logging in again or replaying inference.
+
+The Project API acceptance separately verified removal/rejoining and no late
+manager backfill. Its ten-second disabled interval confirms no new or changed
+observations during that interval; it does not prove worker invocation. Unknown
+coverage, holds, currency mismatches and hard stops remain dual-driver matrix
+evidence rather than claimed browser scenarios. Owned tabs, listeners and both
+Compose projects' containers/networks/volumes are independently absent. The
+combined result is 12 native calls/attempts, ten observations and 15 inbox rows.
