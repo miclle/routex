@@ -89,11 +89,11 @@ export default {
       money_month_critical: '已记录个人 Key 月度金额严重预警。',
     },
     project_key_monthly_quota_warning: {
-      default: '已记录Project Key 共用账户月度额度预警。',
-      tokens_month_near: '已记录Project Key 月度 Token 预警。',
-      tokens_month_critical: '已记录Project Key 月度 Token 严重预警。',
-      money_month_near: '已记录Project Key 月度金额预警。',
-      money_month_critical: '已记录Project Key 月度金额严重预警。',
+      default: '已记录 Project Key 共用账户月度额度预警。',
+      tokens_month_near: '已记录 Project Key 月度 Token 预警。',
+      tokens_month_critical: '已记录 Project Key 月度 Token 严重预警。',
+      money_month_near: '已记录 Project Key 月度金额预警。',
+      money_month_critical: '已记录 Project Key 月度金额严重预警。',
     },
     team_monthly_quota_warning: {
       default: '已记录 Team 月度额度预警。',

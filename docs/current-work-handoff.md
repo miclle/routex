@@ -18,7 +18,9 @@ ordinary local draft renewal, preserving Member/Restore/Team behavior. Mandatory
 checking, complete Task (3,565 frontend cases/157 files), production build and
 controlled PostgreSQL bilingual/original-Session restart acceptance pass. Both
 ordinary targets also retain exact drafts across genuine periodic Session reads.
-Key119 and controlled production acceptance now pass; the containing commit records the checked Key phase. Initial Team Model121 and Role descriptions are the next gates.
+Key119 and controlled production acceptance were committed and pushed as
+`cf05c57121ea770b1af04163b2c5b7f59c5fab58`, with exact remote main read-back.
+Initial Team Model121 and Role descriptions are the next gates.
 
 Team focused R4–R8 remain failed. R4 exposed a pinned PostgreSQL GORM DropIndex
 fixture syntax error and missing private context headers; R5 confirmed the
@@ -1354,3 +1356,14 @@ coverage, holds, currency mismatches and hard stops remain dual-driver matrix
 evidence rather than claimed browser scenarios. Owned tabs, listeners and both
 Compose projects' containers/networks/volumes are independently absent. The
 combined result is 12 native calls/attempts, ten observations and 15 inbox rows.
+
+### Project Key Chinese copy spacing
+
+A browser-observed copy correction separates Chinese prose from `Project Key`
+in the five warning titles. It changes no notification identity, threshold,
+recipient, read-state, schema or runtime behavior.
+
+The copy correction passed 145 focused notification/localization cases, the
+complete 3,714-case frontend suite across 157 files, formatting and mandatory
+checking. The initial five stale title expectations remain a failed checkpoint;
+they were updated without changing behavior assertions.

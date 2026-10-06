@@ -652,3 +652,12 @@ coverage, holds, currency mismatches and hard stops remain dual-driver matrix
 evidence rather than claimed browser scenarios. Owned tabs, listeners and both
 Compose projects' containers/networks/volumes are independently absent. The
 combined result is 12 native calls/attempts, ten observations and 15 inbox rows.
+
+Project Key warning titles separate Chinese prose from the English resource
+name consistently. This presentation correction changes no recorded warning
+or recipient behavior.
+
+The copy correction passed 145 focused notification/localization cases, the
+complete 3,714-case frontend suite across 157 files, formatting and mandatory
+checking. The initial five stale title expectations remain a failed checkpoint;
+they were updated without changing behavior assertions.

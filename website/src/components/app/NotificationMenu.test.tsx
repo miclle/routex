@@ -1691,7 +1691,7 @@ describe('Recorded Project Key shared-account monthly warning menu', () => {
       threshold: 80,
       currency: null,
       en: 'Project Key monthly token warning recorded.',
-      zh: '已记录Project Key 月度 Token 预警。',
+      zh: '已记录 Project Key 月度 Token 预警。',
     },
     {
       dimension: 'tokens',
@@ -1699,7 +1699,7 @@ describe('Recorded Project Key shared-account monthly warning menu', () => {
       threshold: 90,
       currency: null,
       en: 'Critical Project Key monthly token warning recorded.',
-      zh: '已记录Project Key 月度 Token 严重预警。',
+      zh: '已记录 Project Key 月度 Token 严重预警。',
     },
     {
       dimension: 'money',
@@ -1707,7 +1707,7 @@ describe('Recorded Project Key shared-account monthly warning menu', () => {
       threshold: 80,
       currency: 'USD',
       en: 'Project Key monthly money warning recorded.',
-      zh: '已记录Project Key 月度金额预警。',
+      zh: '已记录 Project Key 月度金额预警。',
     },
     {
       dimension: 'money',
@@ -1715,7 +1715,7 @@ describe('Recorded Project Key shared-account monthly warning menu', () => {
       threshold: 90,
       currency: 'USD',
       en: 'Critical Project Key monthly money warning recorded.',
-      zh: '已记录Project Key 月度金额严重预警。',
+      zh: '已记录 Project Key 月度金额严重预警。',
     },
   ] as const)(
     'renders $dimension/$level recorded facts and switches language live',
@@ -1808,7 +1808,7 @@ describe('Recorded Project Key shared-account monthly warning menu', () => {
     expect(menu().textContent).toContain('Team: Recorded Team (tem_recorded)')
     await act(async () => i18n.changeLanguage('zh'))
     expect(button('全部')?.getAttribute('aria-pressed')).toBe('true')
-    expect(menu().textContent).toContain('已记录Project Key 月度金额严重预警。')
+    expect(menu().textContent).toContain('已记录 Project Key 月度金额严重预警。')
     expect(menu().textContent).toContain('0.900000000000000001 USD')
     expect(page.items[0].subject_name).toBe('Original recorded Key')
     expect(page.items[0].quota_warning_observation_id).toBe('jwo_1')
