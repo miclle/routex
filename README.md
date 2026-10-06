@@ -57,6 +57,11 @@ npm --prefix website run lint   # Frontend ESLint
 npm --prefix website run format # Format frontend source with Prettier
 ```
 
+Frontend DOM tests use jsdom's `localStorage` and `sessionStorage`. Vitest workers
+disable Node's experimental process-global Web Storage so local Node upgrades do
+not shadow the browser implementation. Storage regression tests cover the real
+DOM implementation, literal values and separate local/session stores.
+
 From the repository root:
 
 ```bash
