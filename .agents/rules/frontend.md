@@ -936,3 +936,14 @@ callers retain Base UI defaults. Catalogue dismissal resolves the current
 authorized actor/model/representation trigger after Session renewal replaces DOM
 nodes. Never focus disconnected, hidden, removed or unauthorized targets. Keep
 unchanged-node focus tests and renewed-node and negative regressions.
+
+Home identity labels use self-only Role pages and share the current self-account page
+with the existing monthly table. Keep intrinsic identity separate from explicit
+duty/custom assignments. Translate only the finite assigned builtin duty names; preserve
+custom names and null-name exact-ID fallback. Pages are fresh observations, not a
+coherent accumulated membership list or runtime permission proof. Qualify
+partial/current pages and show No current Teams only for an empty terminal first page.
+Hide private facts during Session/resource renewal and errors, and retain one existing
+Session observer. A base-role discrepancy requires one fresh Session check without mixed
+labels or an automatic loop. Explicit identity refresh resets the collection; standalone
+monthly accounts and independent usage reports retain their contracts.

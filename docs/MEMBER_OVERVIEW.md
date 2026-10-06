@@ -65,7 +65,8 @@ cannot restore them. Pagination stays bounded. Usage links retain `/usage` or
 `/usage?team=<canonical-team-id>` scope. English is the default; both catalogs
 cover all labels, dates, status, empty/error and accessible names.
 
-Thirty-day cards, trends and Model/Key breakdowns are separate unfinished work.
+Personal thirty-day cards, trends and Model/Key breakdowns are accepted in the
+separate bounded package documented below.
 
 Source verification completed with `go tool task check`, `go tool task test` and
 `go tool task build`. The isolated frontend suite passed 83 files and 1,408 tests; the integrated main
@@ -294,3 +295,54 @@ coverage and zero attempts/dispatch; production semantics were unchanged. The
 successful run's assertion checked three unknown records, while its printed
 summary initially retained a stale value of two. That reporting field is corrected
 for future runs; it is not used as coverage proof.
+
+
+## Self identity Role and Team labels
+
+The existing member identity card separates intrinsic Administrator/Member from
+explicitly assigned duty/custom Roles. `GET /api/v1/overview/roles` accepts only
+self-scoped cursor/limit controls (default 10, maximum 50). It returns exactly
+`actor_user_id`, UTC `observed_at`, `identity_role`, `roles`, and `next_cursor`;
+each label contains only `id`, nullable `name`, `builtin`, and
+`assignment_kind: explicit`. It exposes no permissions, membership directory,
+credential material, historical receipt or runtime application proof.
+
+A five-second read-only repeatable-read transaction validates the current exact
+enabled actor, retained own assignments, and selected-page Role metadata. The
+assignment inventory is capped at 10,000 plus one overflow sentinel; malformed,
+intrinsic explicit, duplicated, aliased or missing selected relationships fail
+closed. Page order uses exact Role IDs; names missing or invalid in legacy data
+remain null and the interface displays the exact ID. Metadata validation covers
+the selected page, not a claim about every Role definition in the database.
+
+The Home workspace shares one current self-account query between the identity
+Team names and the existing monthly table. Either set of Team paging controls
+changes both views; pages never accumulate into a coherent membership snapshot.
+Partial/current-page qualifications are explicit. Only an empty terminal first
+page says No current Teams; renewed/error/later empty reads remain Unknown.
+Role labels paginate independently. Known assigned builtin duties localize;
+custom names remain exact. English is the default and live language switching
+retains the selected page.
+
+Queries use the exact actor and successful Session generation and propagate
+AbortSignal. Session renewal hides old private labels and table facts; obsolete
+responses cannot restore them. Intrinsic-role disagreement hides labels and
+requests one Session renewal without an automatic loop. Explicit identity refresh
+resets both collections. There is one existing Session observer, no additional
+global directories, and no changed monthly accounting or thirty-day report
+contract. Standalone monthly-account callers remain supported.
+
+The containing commit delivers this bounded slice after 132 scoped frontend
+cases/six suites, complete Task testing (4,099 cases/166 files), final main
+format/check/build, and controlled Home browser/original-Session restart acceptance.
+Actual full127 R2 passes both databases: 254 direct scenarios, eight constraints
+and 4,609 balanced named results. All 998 Go/Task sources match main; exact owned
+resources and ports are independently absent. Earlier fixture, diagnostic-loss
+and ENOSPC attempts remain failed historical evidence. F19 remains partial.
+
+The browser confirms joint Team/monthly paging, independent Role paging, bilingual
+finite labels, explicit refresh, real Finance assignment and Team membership
+removal, ordinary actor replacement and original current browser/API Sessions
+across same-artifact restart. Scheduled Session renewal resets collection pages
+with fresh authorization; no action-only causal trace is claimed for overlapping
+windows. Legacy null names and held/error races remain source/driver evidence.

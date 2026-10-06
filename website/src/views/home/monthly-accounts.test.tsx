@@ -7,13 +7,17 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import client from '@/api/client'
 import { sessionKey } from '@/hooks/use-auth'
 import i18n from '@/i18n'
-import type { MonthlyAccount, OverviewAccountsPage } from '@/types/overview'
+import type { MonthlyAccount, OverviewAccountsPage, OverviewRolesPage } from '@/types/overview'
 import Home from './index'
+import MonthlyAccounts from './monthly-accounts'
 import { homeUsageFixture } from './usage-overview-fixture'
 
 Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true })
 const originalAdapter = client.defaults.adapter
 let host: HTMLDivElement, root: Root, cache: QueryClient
+let currentIdentityRole: 'admin' | 'member'
+let secondRoles: OverviewRolesPage
+let roles: OverviewRolesPage, rolesFailure: number, roleGate: ReturnType<typeof barrier> | null
 let actor: string, name: string, data: OverviewAccountsPage, second: OverviewAccountsPage
 let requests: InternalAxiosRequestConfig[], overviewFailure: number, sessionFailure: number
 let sessionGate: ReturnType<typeof barrier> | null, overviewGate: ReturnType<typeof barrier> | null
@@ -75,7 +79,7 @@ function monthlyTable() {
 }
 function session() {
   return {
-    user: { id: actor, role: 'member', name, email: actor + '@example.invalid' },
+    user: { id: actor, role: currentIdentityRole, name, email: actor + '@example.invalid' },
     csrf_token: 'current-proof',
   }
 }
@@ -125,6 +129,7 @@ beforeEach(async () => {
   document.body.append(host)
   root = createRoot(host)
   cache = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+  currentIdentityRole = 'member'
   actor = 'usr_member'
   name = 'Current member'
   data = page()
@@ -134,6 +139,16 @@ beforeEach(async () => {
     next_cursor: null,
   }
   requests = []
+  roles = {
+    actor_user_id: actor,
+    observed_at: data.observed_at,
+    identity_role: 'member',
+    roles: [],
+    next_cursor: null,
+  }
+  secondRoles = { ...roles }
+  rolesFailure = 0
+  roleGate = null
   overviewFailure = 0
   sessionFailure = 0
   sessionGate = null
@@ -155,12 +170,19 @@ beforeEach(async () => {
       if (gate) await gate.promise
       if (failure) throw error(config, failure)
       response = saved
+    } else if (config.url === '/overview/roles') {
+      const saved = structuredClone(config.params?.cursor ? secondRoles : roles)
+      const failure = rolesFailure
+      if (roleGate) await roleGate.promise
+      if (failure) throw error(config, failure)
+      response = saved
     } else if (config.url === '/usage') response = homeUsageFixture(true)
     else throw new Error('Unexpected API ' + config.url)
     return { config, status: 200, statusText: '', headers: new AxiosHeaders(), data: response }
   }
 })
 afterEach(async () => {
+  roleGate?.release()
   sessionGate?.release()
   overviewGate?.release()
   await act(async () => root.unmount())
@@ -193,7 +215,7 @@ describe('monthly member Overview', () => {
       '/usage?team=tem_exact',
     )
     expect(new Set(requests.map((r) => r.url))).toEqual(
-      new Set(['/auth/session', '/overview/accounts', '/usage']),
+      new Set(['/auth/session', '/overview/accounts', '/overview/roles', '/usage']),
     )
     expect(requests.filter((r) => r.url === '/auth/session')).toHaveLength(1)
   })
@@ -315,6 +337,16 @@ describe('monthly member Overview', () => {
       expect(host.textContent).not.toContain('server-private')
       expect(monthlyTable()).toBeNull()
       overviewGate = null
+      roles = {
+        actor_user_id: actor,
+        observed_at: data.observed_at,
+        identity_role: 'member',
+        roles: [],
+        next_cursor: null,
+      }
+      secondRoles = { ...roles }
+      rolesFailure = 0
+      roleGate = null
       overviewFailure = 0
       data.teams = []
       await click('Refresh accounts')
@@ -469,4 +501,295 @@ describe('monthly member Overview', () => {
     expect(host.textContent).toContain('Monthly accounts could not be confirmed')
     expect(host.textContent).not.toContain('Recorded Team')
   })
+})
+
+function identityText() {
+  return host.querySelector('[data-identity-labels]')?.textContent ?? ''
+}
+async function identityReady(check: () => void) {
+  for (let n = 0; n < 60; n++) {
+    await flush()
+    try {
+      check()
+      return
+    } catch (error) {
+      if (n === 59) throw error
+    }
+  }
+}
+const roleCursor = (id: string) => btoa(`${actor}|${id}`).replace(/=+$/, '')
+describe('fresh self identity labels', () => {
+  it('shares one first account page with the monthly table and labels only explicit duties/custom Roles', async () => {
+    roles.roles = [
+      { id: 'rol_custom', name: '原始 Role name', builtin: false, assignment_kind: 'explicit' },
+      { id: 'rol_finance', name: 'Recorded Finance', builtin: true, assignment_kind: 'explicit' },
+      { id: 'rol_unknown', name: null, builtin: false, assignment_kind: 'explicit' },
+    ]
+    await mount()
+    await identityReady(() => expect(identityText()).toContain('Finance'))
+    expect(identityText()).toContain('Direct Roles: 原始 Role name, Finance, rol_unknown')
+    expect(identityText()).toContain('Teams: Recorded Team')
+    expect(identityText()).not.toContain('Administrator')
+    expect(requests.filter((r) => r.url === '/overview/accounts')).toHaveLength(1)
+    expect(requests.filter((r) => r.url === '/overview/roles')).toHaveLength(1)
+    expect(requests.filter((r) => r.url === '/auth/session')).toHaveLength(1)
+    const count = requests.length
+    await act(async () => i18n.changeLanguage('zh'))
+    expect(identityText()).toContain('直接分配的角色：原始 Role name, 财务, rol_unknown')
+    expect(identityText()).toContain('所属 Team：Recorded Team')
+    expect(requests).toHaveLength(count)
+    await act(async () => i18n.changeLanguage('en'))
+    expect(identityText()).toContain('Finance')
+    expect(requests).toHaveLength(count)
+  })
+  it('qualifies ten first-page Teams and pages to the eleventh without duplicate account requests or accumulation', async () => {
+    data.teams = Array.from({ length: 10 }, (_, n) => ({
+      ...page().teams[0],
+      id: `tem_${n}`,
+      membership_id: `membership_${n}`,
+      name: `Team ${n}`,
+    }))
+    data.next_cursor = 'accounts-next'
+    second.teams = [{ ...second.teams[0], name: 'Eleventh Team' }]
+    await mount()
+    expect(identityText()).toContain('Team page 1')
+    expect(identityText()).toContain('some current Team memberships')
+    await click('More Team names')
+    await identityReady(() => expect(identityText()).toContain('Eleventh Team'))
+    expect(identityText()).not.toContain('Team 0')
+    expect(identityText()).toContain('Team page 2')
+    expect(monthlyTable()?.textContent).toContain('Eleventh Team')
+    expect(requests.filter((r) => r.url === '/overview/accounts')).toHaveLength(2)
+    await click('Refresh identity labels')
+    await identityReady(() => expect(identityText()).toContain('Team 0'))
+    expect(identityText()).toContain('Team page 1')
+    expect(requests.filter((r) => r.url === '/overview/accounts')).toHaveLength(3)
+  })
+  it('uses fresh bounded Role pages, retains no accumulated complete-set claim, and resets on identity refresh', async () => {
+    roles.roles = Array.from({ length: 10 }, (_, n) => ({
+      id: `rol_${String(n).padStart(2, '0')}`,
+      name: `Custom ${n}`,
+      builtin: false,
+      assignment_kind: 'explicit' as const,
+    }))
+    roles.next_cursor = roleCursor('rol_09')
+    secondRoles = {
+      ...roles,
+      roles: [{ id: 'rol_10', name: 'Eleventh Role', builtin: false, assignment_kind: 'explicit' }],
+      next_cursor: null,
+    }
+    await mount()
+    await identityReady(() => expect(identityText()).toContain('Custom 0'))
+    expect(identityText()).toContain('some direct assignments')
+    await click('More Role labels')
+    await identityReady(() => expect(identityText()).toContain('Eleventh Role'))
+    expect(identityText()).not.toContain('Custom 0')
+    expect(identityText()).toContain('Role page 2')
+    expect(requests.filter((r) => r.url === '/overview/roles')[1].params.cursor).toBe(
+      roles.next_cursor,
+    )
+    await click('Refresh identity labels')
+    await identityReady(() => expect(identityText()).toContain('Custom 0'))
+    expect(requests.filter((r) => r.url === '/overview/roles')).toHaveLength(3)
+  })
+  it('claims no current Teams only on an empty terminal first page, not an empty later page', async () => {
+    data.teams = []
+    await mount()
+    expect(identityText()).toContain('Teams: No current Teams')
+    expect(identityText()).toContain('No directly assigned Roles')
+    data = page()
+    data.next_cursor = 'next'
+    second.teams = []
+    await click('Refresh identity labels')
+    await identityReady(() => expect(identityText()).toContain('Recorded Team'))
+    await click('More Team names')
+    await identityReady(() => expect(identityText()).toContain('Team page 2'))
+    expect(identityText()).toContain('Teams: Unknown')
+    expect(identityText()).not.toContain('No current Teams')
+  })
+  it.each([401, 403, 503])(
+    'fails closed on Role admission/read status %s without directory fallback',
+    async (status) => {
+      rolesFailure = status
+      await mount()
+      await flush()
+      expect(identityText()).toContain('Direct Roles: Unknown')
+      expect(identityText()).not.toContain('No directly assigned Roles')
+      expect(new Set(requests.map((r) => r.url))).toEqual(
+        new Set(['/auth/session', '/overview/accounts', '/overview/roles', '/usage']),
+      )
+    },
+  )
+  it('hides cached Role labels throughout renewal and errors while retaining the independent fresh Team page', async () => {
+    roles.roles = [
+      { id: 'rol_finance', name: 'Finance', builtin: true, assignment_kind: 'explicit' },
+    ]
+    await mount()
+    await identityReady(() => expect(identityText()).toContain('Finance'))
+    roleGate = barrier()
+    await act(async () => {
+      void cache.invalidateQueries({ queryKey: ['overview-roles'] })
+    })
+    await flush()
+    expect(identityText()).toContain('Direct Roles: Unknown')
+    expect(identityText()).not.toContain('Finance')
+    rolesFailure = 503
+    roleGate.release()
+    roleGate = null
+    await act(async () => {
+      void cache.invalidateQueries({ queryKey: ['overview-roles'] })
+    })
+    await flush()
+    expect(identityText()).not.toContain('Finance')
+    expect(identityText()).toContain('Recorded Team')
+  })
+  it('hides both shared Team surfaces during an account refresh and cannot show malformed labels as an empty set', async () => {
+    await mount()
+    overviewGate = barrier()
+    await act(async () => {
+      void cache.invalidateQueries({ queryKey: ['overview-accounts'] })
+    })
+    await flush()
+    expect(identityText()).toContain('Teams: Unknown')
+    expect(identityText()).not.toContain('Recorded Team')
+    expect(monthlyTable()).toBeNull()
+    overviewGate.release()
+    overviewGate = null
+    data.teams[0].name = 'Bad\nTeam'
+    await act(async () => {
+      void cache.invalidateQueries({ queryKey: ['overview-accounts'] })
+    })
+    await flush()
+    expect(identityText()).toContain('Teams: Unknown')
+    expect(identityText()).not.toContain('No current Teams')
+  })
+  it('requests one Session renewal on an intrinsic-role discrepancy and never mixes Role labels with it', async () => {
+    roles.identity_role = 'admin'
+    roles.roles = [
+      { id: 'rol_finance', name: 'Finance', builtin: true, assignment_kind: 'explicit' },
+    ]
+    await mount()
+    await identityReady(() =>
+      expect(requests.filter((r) => r.url === '/auth/session')).toHaveLength(2),
+    )
+    expect(identityText()).not.toContain('Finance')
+    expect(identityText()).toContain('Direct Roles: Unknown')
+    await act(async () => {
+      void cache.invalidateQueries({ queryKey: ['overview-roles'] })
+    })
+    await flush()
+    expect(requests.filter((r) => r.url === '/auth/session')).toHaveLength(2)
+  })
+  it('discards old Role responses across renewed Session and actor changes', async () => {
+    roleGate = barrier()
+    roles.roles = [
+      { id: 'rol_old', name: 'Private old role', builtin: false, assignment_kind: 'explicit' },
+    ]
+    await mount()
+    expect(identityText()).not.toContain('Private old role')
+    actor = 'usr_new'
+    name = 'New actor'
+    data = page()
+    roles = {
+      actor_user_id: actor,
+      identity_role: 'member',
+      observed_at: data.observed_at,
+      roles: [{ id: 'rol_new', name: 'New role', builtin: false, assignment_kind: 'explicit' }],
+      next_cursor: null,
+    }
+    const old = roleGate
+    roleGate = null
+    await act(async () => {
+      void cache.invalidateQueries({ queryKey: sessionKey })
+    })
+    await flush()
+    old.release()
+    await identityReady(() => expect(identityText()).toContain('New role'))
+    expect(host.textContent).not.toContain('Private old role')
+    expect(requests.filter((r) => r.url === '/auth/session')).toHaveLength(2)
+  })
+})
+
+it('preserves standalone MonthlyAccounts with one own account request and no Session/Role observer', async () => {
+  await act(async () =>
+    root.render(
+      <QueryClientProvider client={cache}>
+        <MemoryRouter>
+          <MonthlyAccounts actorId={actor} />
+        </MemoryRouter>
+      </QueryClientProvider>,
+    ),
+  )
+  await settle()
+  expect(new Set(requests.map((request) => request.url))).toEqual(new Set(['/overview/accounts']))
+  expect(requests).toHaveLength(1)
+  expect(monthlyTable()?.textContent).toContain('Recorded Team')
+})
+
+it('localizes only the finite assigned duty names, leaving intrinsic identity separate', async () => {
+  roles.roles = ['rol_finance', 'rol_operations', 'rol_procurement'].map((id) => ({
+    id,
+    name: null,
+    builtin: true,
+    assignment_kind: 'explicit',
+  }))
+  await mount()
+  await identityReady(() => expect(identityText()).toContain('Finance, Operations, Procurement'))
+  await act(async () => i18n.changeLanguage('zh'))
+  expect(identityText()).toContain('财务, 运维, 采购')
+  expect(requests.filter((request) => request.url === '/overview/roles')).toHaveLength(1)
+})
+it('recovers coherent labels only after one successful intrinsic Session renewal', async () => {
+  await mount()
+  roles.identity_role = 'admin'
+  currentIdentityRole = 'admin'
+  roles.roles = [{ id: 'rol_finance', name: 'Finance', builtin: true, assignment_kind: 'explicit' }]
+  await act(async () => {
+    void cache.invalidateQueries({ queryKey: ['overview-roles'] })
+  })
+  await identityReady(() => expect(identityText()).toContain('Finance'))
+  expect(cache.getQueryData<{ user: { role: string } }>(sessionKey)?.user.role).toBe('admin')
+  expect(requests.filter((request) => request.url === '/auth/session')).toHaveLength(2)
+})
+it('discards a held old second Role page when a fresh Session starts a new collection', async () => {
+  roles.roles = [{ id: 'rol_a', name: 'First Role', builtin: false, assignment_kind: 'explicit' }]
+  roles.next_cursor = roleCursor('rol_a')
+  secondRoles = {
+    ...roles,
+    roles: [
+      { id: 'rol_z', name: 'Obsolete private page', builtin: false, assignment_kind: 'explicit' },
+    ],
+    next_cursor: null,
+  }
+  await mount()
+  await identityReady(() => expect(identityText()).toContain('First Role'))
+  roleGate = barrier()
+  await click('More Role labels')
+  await flush()
+  expect(identityText()).not.toContain('First Role')
+  const old = roleGate
+  roleGate = null
+  roles = { ...roles, roles: [], next_cursor: null }
+  await act(async () => {
+    void cache.invalidateQueries({ queryKey: sessionKey })
+  })
+  await identityReady(() => expect(identityText()).toContain('No directly assigned Roles'))
+  old.release()
+  await flush()
+  expect(identityText()).not.toContain('Obsolete private page')
+  expect(identityText()).not.toContain('Role page 2')
+})
+
+it('permits one new explicit discrepancy check without an automatic Session retry loop', async () => {
+  roles.identity_role = 'admin'
+  await mount()
+  await identityReady(() =>
+    expect(requests.filter((request) => request.url === '/auth/session')).toHaveLength(2),
+  )
+  await click('Refresh identity labels')
+  await identityReady(() =>
+    expect(requests.filter((request) => request.url === '/auth/session')).toHaveLength(3),
+  )
+  await flush()
+  expect(requests.filter((request) => request.url === '/auth/session')).toHaveLength(3)
 })

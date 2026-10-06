@@ -12,6 +12,7 @@ import { homeUsageFixture } from './usage-overview-fixture'
 import type { UsageReport } from '@/types/usage'
 vi.mock('./monthly-accounts', () => ({
   default: () => <div data-monthly-placeholder>Monthly accounts retained</div>,
+  MonthlyAccountsContent: () => <div data-monthly-placeholder>Monthly accounts retained</div>,
 }))
 Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true })
 const original = client.defaults.adapter
@@ -65,6 +66,16 @@ beforeEach(async () => {
     if (config.url === '/auth/session') {
       data = structuredClone(session())
       if (sessionGate) await sessionGate.promise
+    } else if (config.url === '/overview/roles') {
+      data = {
+        actor_user_id: actor,
+        observed_at: '2026-10-06T00:00:00Z',
+        identity_role: role,
+        roles: [],
+        next_cursor: null,
+      }
+    } else if (config.url === '/overview/accounts') {
+      throw error(config, 503)
     } else if (config.url === '/usage') {
       data = structuredClone(report)
       if (usageGate) await usageGate.promise
@@ -138,7 +149,7 @@ it.each(['member', 'admin'] as const)(
     expect(host.querySelector('svg[role="img"] path[d*="C"]')).not.toBeNull()
     expect(usageCalls()).toHaveLength(1)
     expect(new Set(requests.map((request) => request.url))).toEqual(
-      new Set(['/auth/session', '/usage']),
+      new Set(['/auth/session', '/overview/roles', '/overview/accounts', '/usage']),
     )
     expect(usageCalls()[0].params).toEqual({
       period: '30d',

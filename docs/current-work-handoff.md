@@ -7,8 +7,9 @@ three unstarted** after accepting F06 initial Team Model access selection. Earli
 
 ## Current work and next gates
 
-Current delivered main is Provider Models table
-`228dfd9cfeb232d86e7e64fca1cb44ae87aed525`, pushed with exact remote read-back.
+Current delivered main is whole-item catalogue access
+`fc7dfff96c8a7b0d706ca9bcdf5ec1a765510059`, pushed with exact remote read-back.
+Provider Models table remains its checked predecessor `228dfd9`.
 Its complete Task passes 4,021 frontend cases in 165 files, main check/build and
 controlled bilingual permission/original-Session restart acceptance; zero native
 calls and owned cleanup are verified. Catalogue prices `20d6049` and repaired
@@ -19,15 +20,20 @@ original-Session restart acceptance. All 1,602 tested product paths match main;
 zero calls/attempts and independently absent owned resources are verified. Earlier
 failed focus/idle evidence remains historical.
 
-The self-only Home Role-label endpoint and ten-file bilingual identity UI remain
-private. Focused real PostgreSQL/MySQL endpoint checks now pass; earlier FK-invalid
-and diagnostic-loss failures are retained. The mandatory full 127-per-driver run
-was interrupted by proven ENOSPC, so it has no acceptance. Owned processes and
-ports are absent; exact Compose cleanup is now independently verified and full127 R2 is running. The
-reproducible Go cache was cleared, recovering approximately 83 GB while preserving
-source, database and evidence. The Home UI passes 132 scoped cases/six suites;
-its complete composition is being checked separately. Keep the full goal active
-and formal 11/16/3 totals unchanged.
+The containing commit delivers self-only Home Role labels and bilingual current
+Role/Team identity labels. Complete Task testing passes 4,099 frontend cases/166
+files, Node4/dev2, Go race/coverage and embedded assets; final main format,
+mandatory checking and build pass. Actual full127 R2 passes 127 ordered scenarios
+per database, 254 direct cases, eight constraints and 4,609 balanced named
+RUN/PASS results. Root independently verifies all 998 Go/Task sources match main
+and all owned matrix resources/ports/processes are absent. Controlled Home
+browser/restart acceptance and exact zero call/attempt/Key counts pass. Earlier
+FK-invalid, diagnostic-loss and ENOSPC attempts remain failed historical evidence.
+
+Provider Model binding source/driver preparations remain private and unaccepted
+on main. The user confirmed member usage counts mean monthly distinct recorded
+callers in the selected resource account; that private implementation now proceeds
+in parallel. Keep the full goal active and formal 11/16/3 totals unchanged.
 
 ## Earlier delivery checkpoints
 
@@ -1809,3 +1815,90 @@ ports/Compose labels are independently absent. Root browser receipt digest is
 `2a3229a4d621c3a6ba24746bbbcd4479b5dab30fad3e0de24f76b2fef3433ef9`.
 The first focus finding and separate idle failure remain historical. The
 containing commit delivers this bounded slice; F19 and 11/16/3 remain unchanged.
+
+
+## Home identity labels carried candidate, 2026-10-06
+
+Seventeen exact Go/UI outputs add a bounded self-only Role-label read and
+bilingual identity Role/current Team labels sharing one monthly account page.
+Paired frontend rules and Member Overview contracts are updated. Complete private
+format/check/Task/build passes with 4,099 frontend cases/166 files, Node4/dev2,
+Go race/coverage and embedded assets; root verifies all 1,609 product paths.
+Private gate receipt is
+`e060ec9029924ba00dc1cfc686c52644250d40f79245dc9ddfd1b89d73425b81`.
+The frozen127 registry retains its entire released126 prefix; five new Go files
+bring the production-Go inventory to521. Focused real PostgreSQL/MySQL checks
+pass. Full127 R1 failed with proven ENOSPC; the first fixture/diagnostic-loss
+failures remain recorded independently. Recovered exact Compose cleanup is
+verified and full127 R2 is running with unchanged bounds/source. No complete
+database, actual browser or phase-delivery claim is made yet. The full goal
+continues, with F19 and 11/16/3 unchanged.
+
+## Home identity actual browser acceptance, 2026-10-06
+
+Final main format, mandatory checking and production build pass. The exact
+1,675-path floor and artifact `5773edc91bd763d83aad57b62e8b2938509278949abfd303eedd14e0dd864896`
+passed controlled Home browser acceptance: normal member login, Team identity and
+monthly table shared paging in both directions, independent Role paging, finite
+Finance English/Chinese labels with unchanged user content, explicit identity
+refresh, real Role assignment and Team membership removal, and ordinary
+member-to-peer logout/login without cached member facts. A separate original
+member browser Session and the current peer browser Session survive same-artifact,
+config/database/journal restart without reload or login. Three original API
+Sessions are unchanged. Independent call, attempt, Personal Key and Project Key
+counts are zero; both browser warning/error logs are empty. Both app PIDs, both
+owned ports, all Compose resources and both agent tabs are independently absent.
+Root browser receipt: `2f34a4faf787230d5d6e17363f293e03caec07a4fdac08d606e1933bf007af96`.
+
+Captured paging windows show one account request for forward pages and one Role
+request for Role paging. Normal permission/notification polling and Session
+renewal overlap other windows; renewed authorization resets collections and no
+all-window single-request claim is made. Language-only switching preserves page
+choices with no Role/accounts request in its captured window. Legacy null names
+and held/error/obsolete-response races remain source/driver evidence. The actual
+full127 R2 is still running, so this is browser acceptance rather than database
+or phase delivery. F19 and formal totals remain unchanged.
+
+## Next private preparation, 2026-10-06
+
+Provider Model stored-binding projection is prepared privately with independent
+Provider/Model read authorization, a complete bounded current relationship
+response, exact ownership checks and a candidate frozen GORM reverse index.
+Its existing table adds the approved Model names and conjunctive Bound/Unbound
+selector; Provider-only readers retain Unknown without privileged requests.
+A meaningful source regression reproduced catalogue/projection mismatch recovery;
+the narrow successor refreshes the catalogue before one fresh projection.
+The private UI passes 107 related cases/four suites and scoped types/lint/format.
+Backend source passes 58 balanced named tests; an evidence-only successor
+explicitly binds the accepted final log while preserving an earlier failed log.
+V69 registration, focused real-driver/query-plan/upgrade acceptance, the complete
+129-scenario matrix, final composition and actual browser remain pending. No
+private candidate is delivered on main, and F11 remains partial.
+
+Member catalogue usage-member counts remain Unknown pending the user's choice
+between monthly distinct recorded callers and current grant recipients. Existing
+source-selected monthly request counts remain delivered and unchanged. No caller
+identities, global member directories or guessed historical totals are planned.
+
+## Home identity final database gates and delivery, 2026-10-06
+
+The actual complete PostgreSQL/MySQL full127 R2 passes 254 direct scenarios,
+eight constraints and 4,609 balanced named RUN/PASS results in 2,748.615s.
+PostgreSQL completes in 1,184.07s and MySQL in 1,515.30s; the new endpoint case
+completes in 7.22s and 9.00s. Managed/ordinary/overflow reads retain four/three/two
+queries and the five-second budget. The complete 10,000-assignment reads take
+approximately 123ms and 118ms; 10,001 overflows fail without a partial result.
+Root independently reviews the exact ordered inventory, all 998 Go/Task sources,
+original126 prefix, captured bytes and absent owned resources/ports/process.
+Accepted full receipt: `ad361bc26afaff114c7d99b9d7b500b196ec239dde3de8ec32e0a5070e31aacc`.
+Combined root gates: `ba84d5dfae8639f4cf1f56c9f39958dcbcd168a7aa937fea7120f7edd2ad5105`.
+Together with complete Task, mandatory main checking/build and the separate
+controlled browser receipt, this completes the bounded Home identity phase in
+the containing commit. This does not complete F19 or the full goal. Earlier
+failed/unknown attempts and their independently recovered cleanup remain retained.
+
+The user confirmed model usage-member counts as monthly distinct recorded callers
+for the selected resource account, without identities. Backend and frontend
+preparation proceeds privately; existing monthly requests remain unchanged until
+its own gates. Provider Model binding actual focused driver acceptance and final
+composition/full129/browser remain separate pending gates.

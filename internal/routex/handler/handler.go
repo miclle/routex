@@ -59,6 +59,7 @@ func (ctrl *Ctrl) RegisterRoutes(r *fox.Engine) {
 	identity.POST("/auth/mfa/verify", sameOrigin, jsonAuthRequest, ctrl.CompleteMFALogin)
 	identity.GET("/auth/session", ctrl.requireSession, ctrl.CurrentSession)
 	identity.GET("/overview/accounts", ctrl.requireSession, ctrl.MemberOverviewAccounts)
+	identity.GET("/overview/roles", ctrl.requireSession, ctrl.MemberOverviewRoles)
 	identity.POST("/auth/logout", sameOrigin, ctrl.requireSession, requireCSRF, ctrl.Logout)
 	identity.GET("/admin/status", ctrl.requireSession, requireAdmin, ctrl.AdminStatus)
 

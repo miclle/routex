@@ -1,12 +1,13 @@
 import { useId, useState } from 'react'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, type UseQueryResult } from '@tanstack/react-query'
 import { Link } from 'react-router'
 import { ArrowRight, RefreshCw, Users, User } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { getOverviewAccounts, overviewAccountsKey } from '@/api/overview'
 import { Button } from '@/components/ui/button'
 import { Table } from '@/components/ui/table'
-import type { MonthlyAccount } from '@/types/overview'
+import type { MonthlyAccount, OverviewAccountsPage } from '@/types/overview'
+import type { Dispatch, SetStateAction } from 'react'
 import { exactDecimal, exactInteger, tokenPercentage } from './monthly-account-values'
 
 function AccountFacts({
@@ -156,7 +157,6 @@ function AccountFacts({
 }
 
 export default function MonthlyAccounts({ actorId }: { actorId: string }) {
-  const { t, i18n } = useTranslation('overview')
   // This component mounts only under a fresh Session and has no Session observer.
   // A new mount gets a new generation; obsolete actor/session reads cannot reuse it.
   const generation = useId()
@@ -169,6 +169,19 @@ export default function MonthlyAccounts({ actorId }: { actorId: string }) {
     staleTime: 0,
     refetchOnMount: 'always',
   })
+  return <MonthlyAccountsContent query={query} cursors={cursors} setCursors={setCursors} />
+}
+
+export function MonthlyAccountsContent({
+  query,
+  cursors,
+  setCursors,
+}: {
+  query: UseQueryResult<OverviewAccountsPage, Error>
+  cursors: (string | null)[]
+  setCursors: Dispatch<SetStateAction<(string | null)[]>>
+}) {
+  const { t, i18n } = useTranslation('overview')
   const data = !query.isFetching && !query.isError && query.isSuccess ? query.data : null
   const language = i18n.resolvedLanguage === 'zh' ? 'zh-CN' : 'en-US'
   return (

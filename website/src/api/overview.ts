@@ -1,10 +1,12 @@
 import axios from 'axios'
 import client from './client'
+import { validRoleAssignment } from '@/lib/role-assignment'
 import type {
   AdminOverview,
   OperationalAlert,
   UpdateOperationalAlertInput,
   OverviewAccountsPage,
+  OverviewRolesPage,
 } from '@/types/overview'
 
 export const adminOverviewKey = ['admin', 'overview'] as const
@@ -140,4 +142,91 @@ export async function getOverviewAccounts(
   )
     throw new Error('Invalid monthly overview response')
   return data as unknown as OverviewAccountsPage
+}
+
+const fields = (value: Record<string, unknown>, keys: string[]) =>
+  Object.keys(value).length === keys.length && keys.every((key) => Object.hasOwn(value, key))
+const roleID = (value: unknown): value is string =>
+  identity(value) && typeof value === 'string' && value.startsWith('rol_')
+export const validOverviewRoleName = (value: unknown): value is string =>
+  typeof value === 'string' &&
+  value.length > 0 &&
+  [...value].length <= 100 &&
+  !/[\p{Cc}\p{Cs}]/u.test(value) &&
+  value.replace(/^\p{White_Space}+|\p{White_Space}+$/gu, '') === value
+function observedUTC(value: unknown): value is string {
+  if (
+    typeof value !== 'string' ||
+    !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,9})?Z$/.test(value)
+  )
+    return false
+  const date = new Date(value)
+  return (
+    Number.isFinite(date.getTime()) &&
+    date.getTime() !== -62135596800000 &&
+    Number(value.slice(0, 4)) > 0 &&
+    date.toISOString().slice(0, 19) === value.slice(0, 19)
+  )
+}
+function roleCursor(value: string, actorId: string): string | null {
+  if (!/^[A-Za-z0-9_-]{1,128}$/.test(value)) return null
+  try {
+    const raw = atob(
+      value.replace(/-/g, '+').replace(/_/g, '/') + '='.repeat((4 - (value.length % 4)) % 4),
+    )
+    const [owner, id, extra] = raw.split('|')
+    const canonical = btoa(raw).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '')
+    return owner === actorId && roleID(id) && extra === undefined && canonical === value ? id : null
+  } catch {
+    return null
+  }
+}
+export const overviewRolesKey = (actorId: string, generation: string, cursor: string | null) =>
+  ['overview-roles', actorId, generation, cursor] as const
+export async function getOverviewRoles(
+  actorId: string,
+  cursor: string | null,
+  signal?: AbortSignal,
+) {
+  if (!identity(actorId) || (cursor !== null && !roleCursor(cursor, actorId)))
+    throw new Error('Invalid self Role page request')
+  const data: unknown = (
+    await client.get('/overview/roles', {
+      params: { cursor: cursor ?? undefined, limit: 10 },
+      signal,
+    })
+  ).data
+  if (
+    !object(data) ||
+    !fields(data, ['actor_user_id', 'observed_at', 'identity_role', 'roles', 'next_cursor']) ||
+    data.actor_user_id !== actorId ||
+    !observedUTC(data.observed_at) ||
+    (data.identity_role !== 'admin' && data.identity_role !== 'member') ||
+    !Array.isArray(data.roles) ||
+    data.roles.length > 10
+  )
+    throw new Error('Invalid self Role labels response')
+  let previous = cursor === null ? '' : roleCursor(cursor, actorId)!
+  for (const row of data.roles) {
+    if (
+      !object(row) ||
+      !fields(row, ['id', 'name', 'builtin', 'assignment_kind']) ||
+      !roleID(row.id) ||
+      row.id <= previous ||
+      row.assignment_kind !== 'explicit' ||
+      !validRoleAssignment(row) ||
+      (row.name !== null && !validOverviewRoleName(row.name))
+    )
+      throw new Error('Invalid self Role label')
+    previous = row.id
+  }
+  if (
+    data.next_cursor !== null &&
+    (typeof data.next_cursor !== 'string' ||
+      data.roles.length === 0 ||
+      data.next_cursor === cursor ||
+      roleCursor(data.next_cursor, actorId) !== previous)
+  )
+    throw new Error('Invalid self Role cursor')
+  return data as unknown as OverviewRolesPage
 }

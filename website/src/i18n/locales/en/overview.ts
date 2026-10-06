@@ -1,4 +1,19 @@
 export default {
+  identity: {
+    directRoles: 'Direct Roles: {{names}}',
+    teams: 'Teams: {{names}}',
+    noRoles: 'No directly assigned Roles',
+    noTeams: 'No current Teams',
+    partialRoles: 'This page shows some direct assignments. More Roles are available.',
+    partialTeams: 'This page shows some current Team memberships. More Teams are available.',
+    rolePage: 'Role page {{number}}',
+    previousRoles: 'Previous Role labels',
+    moreRoles: 'More Role labels',
+    previousTeams: 'Previous Team names',
+    moreTeams: 'More Team names',
+    refresh: 'Refresh identity labels',
+    roleChanged: 'Your intrinsic role differs from the current Session. Refresh to confirm.',
+  },
   title: 'This month’s resource accounts',
   description:
     'Personal and Team usage is recorded separately. Team aggregate and your member policy apply together; their allowances are not added.',

@@ -1,6 +1,14 @@
-import { useCallback, useSyncExternalStore } from 'react'
-import { useQueryClient } from '@tanstack/react-query'
-import MonthlyAccounts from './monthly-accounts'
+import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { MonthlyAccountsContent } from './monthly-accounts'
+import IdentityLabels from './identity-labels'
+import {
+  getOverviewAccounts,
+  getOverviewRoles,
+  overviewAccountsKey,
+  overviewRolesKey,
+} from '@/api/overview'
+import type { Session } from '@/types/auth'
 import UsageOverview from './usage-overview'
 import { Button } from '@/components/ui/button'
 import { t } from '@/i18n'
@@ -23,6 +31,28 @@ export default function Home() {
   const generation = useSyncExternalStore(subscribe, version, version)
   const current = useSession()
   const session = current.data
+  const requestedIdentity = useRef<string | null>(null)
+  const refetchSession = current.refetch
+  const onRefreshIdentity = useCallback(() => {
+    requestedIdentity.current = null
+  }, [])
+  const onMismatch = useCallback(
+    (role: 'admin' | 'member') => {
+      const key = `${session?.user.id}:${role}`
+      if (requestedIdentity.current === key) return
+      requestedIdentity.current = key
+      void refetchSession()
+    },
+    [refetchSession, session?.user.id],
+  )
+  useEffect(() => {
+    if (
+      !current.isFetching &&
+      current.isSuccess &&
+      requestedIdentity.current === `${session?.user.id}:${session?.user.role}`
+    )
+      requestedIdentity.current = null
+  }, [current.isFetching, current.isSuccess, session?.user.id, session?.user.role])
   if (current.isFetching || current.isPending)
     return <p role="status">{overview('sessionLoading')}</p>
   if (current.isError || !session)
@@ -34,6 +64,53 @@ export default function Home() {
         </Button>
       </div>
     )
+  return (
+    <HomeWorkspace
+      key={`${session.user.id}:${generation}`}
+      session={session}
+      generation={generation}
+      onMismatch={onMismatch}
+      onRefreshIdentity={onRefreshIdentity}
+    />
+  )
+}
+
+function HomeWorkspace({
+  session,
+  generation,
+  onMismatch,
+  onRefreshIdentity,
+}: {
+  session: Session
+  generation: number
+  onMismatch: (role: 'admin' | 'member') => void
+  onRefreshIdentity: () => void
+}) {
+  const [teamCursors, setTeamCursors] = useState<(string | null)[]>([null])
+  const [roleCursors, setRoleCursors] = useState<(string | null)[]>([null])
+  const teamCursor = teamCursors.at(-1)!
+  const roleCursor = roleCursors.at(-1)!
+  const accounts = useQuery({
+    queryKey: overviewAccountsKey(session.user.id, String(generation), teamCursor),
+    queryFn: ({ signal }) => getOverviewAccounts(session.user.id, teamCursor, signal),
+    retry: false,
+    staleTime: 0,
+    refetchOnMount: 'always',
+  })
+  const roles = useQuery({
+    queryKey: overviewRolesKey(session.user.id, String(generation), roleCursor),
+    queryFn: ({ signal }) => getOverviewRoles(session.user.id, roleCursor, signal),
+    retry: false,
+    staleTime: 0,
+    refetchOnMount: 'always',
+  })
+  const refresh = () => {
+    onRefreshIdentity()
+    if (teamCursor === null) void accounts.refetch()
+    if (roleCursor === null) void roles.refetch()
+    setTeamCursors([null])
+    setRoleCursors([null])
+  }
   return (
     <section className="space-y-6">
       <h1 className="sr-only">
@@ -56,10 +133,29 @@ export default function Home() {
               ? t('common:administrator_ef84e')
               : t('common:memberRole')}
           </p>
+          <IdentityLabels
+            roles={roles}
+            accounts={accounts}
+            rolePage={roleCursors.length}
+            teamPage={teamCursors.length}
+            identityRole={session.user.role}
+            onMismatch={onMismatch}
+            previousRoles={() => setRoleCursors((values) => values.slice(0, -1))}
+            nextRoles={() => {
+              if (roles.data?.next_cursor)
+                setRoleCursors((values) => [...values, roles.data.next_cursor])
+            }}
+            previousTeams={() => setTeamCursors((values) => values.slice(0, -1))}
+            nextTeams={() => {
+              if (accounts.data?.next_cursor)
+                setTeamCursors((values) => [...values, accounts.data.next_cursor])
+            }}
+            refresh={refresh}
+          />
         </div>
         <Badge variant="outline">{t('common:active_f78d0')}</Badge>
       </section>
-      <MonthlyAccounts key={`${session.user.id}:${generation}`} actorId={session.user.id} />
+      <MonthlyAccountsContent query={accounts} cursors={teamCursors} setCursors={setTeamCursors} />
       <UsageOverview
         key={`usage:${session.user.id}:${generation}`}
         actorId={session.user.id}

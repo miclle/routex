@@ -4,8 +4,8 @@ Updated: 2026-10-06. This document records engineering contracts, work packages,
 
 ## Current delivery and active queue
 
-Current delivered main is `228dfd9cfeb232d86e7e64fca1cb44ae87aed525`
-(Provider Models table), following configured catalogue prices `20d6049` and
+Current delivered main is `fc7dfff96c8a7b0d706ca9bcdf5ec1a765510059`
+(whole-item catalogue access), following Provider Models table `228dfd9`, following configured catalogue prices `20d6049` and
 repaired monthly counts `daddd4e`. Their complete tests, controlled browser and
 original-Session restart evidence are recorded below. Provider Models passes
 4,021 frontend cases/165 files and mandatory main checking/build.
@@ -15,12 +15,16 @@ accepted in the containing commit after 4,055 frontend cases/165 files, complete
 Task, mandatory main checking/build and controlled bilingual browser/restart. The first browser run
 remains repair-required and its independent idle failure is preserved.
 
-Self-only Home Role labels and bilingual current Role/Team identity UI remain
-private. Focused real PostgreSQL/MySQL checks and 132 scoped UI cases/six suites
-pass. A mandatory full 127-per-driver attempt was interrupted by proven ENOSPC;
-it has no full acceptance. Reproducible cache cleanup recovered disk capacity,
-and exact owned Compose cleanup is verified; full127 R2 is running. The full goal
-continues; totals remain 11 complete / 16 partial / three unstarted.
+The containing commit additionally delivers self-only Home Role labels and
+bilingual current Role/Team identity labels after complete Task testing (4,099
+frontend cases/166 files), final main format/check/build and controlled Home
+browser/original-Session restart acceptance. Actual full127 R2 passes 127 ordered
+scenarios per database, 254 direct cases, eight constraints and 4,609 balanced
+named results. Root independently verifies current source and owned cleanup.
+Earlier failed attempts remain historical. Provider Model binding and monthly
+distinct recorded member counts continue privately; the latter follows the user's
+confirmed selected-resource/monthly definition. The full goal continues; totals
+remain 11 complete / 16 partial / three unstarted.
 
 ## Earlier delivery checkpoints
 
@@ -492,7 +496,7 @@ The binary capability count is 11 completed, 16 partially completed, and 3 not s
 | F08 | Personal and Project Key lifecycle | Completed | One-time delivery, confirmation, editing, rotation, revocation, expiration, scope, and history are implemented with controlled dual-database evidence. |
 | F09 | Key Token, money, RPM, TPM, concurrency, and IP restrictions | Completed | Personal, Project, and Key admission policies are enforced in the native gateway for the documented single-node architecture. Multi-node enforcement remains a separate release-architecture gate. |
 | F10 | Offboarding, inventory, handover, and emergency disable | Partially completed | Transactional local-account offboarding and continuity workflows exist; external-identity and complete enterprise continuity behavior remain open. |
-| F11 | Provider, Connection, Credential, discovery, and rotation | Partially completed | The management workspace, encrypted credentials, controlled verification, and activation boundaries exist; explicit provider-model capacity attestations, credential-pool filtering/verification timestamps, reviewed name/priority editing, reviewed deletion, staged replacement preparation, immutable per-attempt Credential/publication attribution, and parser-owned native completion evidence are available; evidence-gated predecessor retirement with historical receipt/current-application separation is available; real-provider acceptance and complete pool operations remain open. |
+| F11 | Provider, Connection, Credential, discovery, and rotation | Partially completed | The management workspace, encrypted credentials, controlled verification, and activation boundaries exist; explicit provider-model capacity attestations, credential-pool filtering/verification timestamps, reviewed name/priority editing, reviewed deletion, staged replacement preparation, immutable per-attempt Credential/publication attribution, and parser-owned native completion evidence are available; evidence-gated predecessor retirement with historical receipt/current-application separation is available; Provider Models six-column table, conjunctive filters and resource links have controlled bilingual permission/restart acceptance; complete binding projection, real-provider acceptance and complete pool operations remain open. |
 | F12 | Model catalog, names, bindings, weights, and catalog assistance | Partially completed | Stable models, renames, bindings, weights, grants, and availability controls exist; reviewed compatibility-name Early stop has complete controlled source, dual-driver, native/browser/restart and full-matrix delivery. Guided batch creation has complete source, repaired driver, production/browser/restart and full-matrix acceptance, with one atomic reviewed transaction, bounded historical receipts and no implicit grants or existing-Key expansion. Advisory public-name assistance and its bounded popup-label compatibility repair have complete controlled source and final R2 browser/native/restart acceptance; checked delivery is represented by the containing acceptance-record commit, with new remote CI pending. Complete public-catalog assistance and broader routing acceptance remain open. |
 | F13 | Four native protocols, streaming, health, retries, and failover | Partially completed | Chat Completions, Responses, Messages, and Gemini now use bounded replay-safe same-protocol failover with process-local health, one admission/settlement, durable ordered diagnostics, and no retry after a usable response. Real-provider and measured multi-node health acceptance remain open. |
 | F14 | Managed egress and staged network diagnostics | Partially completed | Direct, default, SOCKS5, verified CONNECT, endpoint-bound saved authentication, complete-tunnel proxy-address fallback, and diagnostics exist. External proxy and production performance acceptance remain open. |
@@ -500,7 +504,7 @@ The binary capability count is 11 completed, 16 partially completed, and 3 not s
 | F16 | Platform currency, exchange rates, and historical price snapshots | Completed | Decimal-string currency/rate management, exact quoting, and immutable per-call assessment are implemented. |
 | F17 | User and Team defaults, overrides, budgets, alerts, and stop policy | Partially completed | Personal, Project, Key and Team aggregate/member enforcement plus budget/token/TPM controls, authoritative quota snapshots, and installation-calendar configuration exist; current-policy Personal/Project monthly settled-exhaustion inboxes have focused acceptance, Team aggregate monthly settled-exhaustion inboxes have complete controlled acceptance; private Team member monthly notices have passed controlled local source, dual-driver, native/browser/restart and full-matrix acceptance, with final mandatory check passed and checked source committed/pushed as 5363d3c; distinct remote checks remain in progress, and creation-default settings and explicit restores have complete local acceptance; Personal, Team aggregate, Project and private Team-member fixed 80%/90% settled monthly warnings have complete local source, dual-driver/full and controlled PostgreSQL bilingual/restart acceptance; Member warnings are committed/pushed as f7b31b1a, and separate Restore recovery as e9003c97; Personal/Project Key warnings V64/V65 are delivered as cf05c57 after full119, mandatory main checks, both authentication lifecycles and two controlled PostgreSQL scenarios totaling12 native calls,10 observations and15 inbox rows; Team creation V63 is delivered as8f17d12. Chinese Key titles are corrected in8a47ac2; templates, broader alerts, and configurable stop-calling policy remain open. |
 | F18 | Quota, model, and request-limit approvals | Completed | Project model/monthly quota/RPM/TPM/concurrency and Team monthly Token/money requests have controlled acceptance: owner-first assignment, escalation, independent dimensions, read-only platform records, atomic final policies and immutable receipts with current application. Distributed acknowledgements belong to F30; release-wide acceptance remains separate. |
-| F19 | Member overview, model sources, requests, and examples | Partially completed | Actor-scoped Personal/Team source attribution, native metadata, filters, details and examples are available; explicit-source Team catalogue examples and successful Session-generation guards have complete local source and four-native production/browser/restart acceptance; Project requests and four native Team Session protocols exist; Personal single-Model requests and independent scoped review are available; Shared Team model requests and independently scoped review are available; Two-to-four native Team comparison lanes are implemented; Independent Team native code export is accepted; self-only monthly Overview accounts and Personal thirty-day Home cards/trend/history have complete local source, database and controlled browser acceptance; Creator-private Team media has complete local source, migration and controlled production acceptance; broader overview/price/usage facts remain open. |
+| F19 | Member overview, model sources, requests, and examples | Partially completed | Actor-scoped Personal/Team source attribution, native metadata, filters, details and examples are available; explicit-source Team catalogue examples and successful Session-generation guards have complete local source and four-native production/browser/restart acceptance; Project requests and four native Team Session protocols exist; Personal single-Model requests and independent scoped review are available; Shared Team model requests and independently scoped review are available; Two-to-four native Team comparison lanes are implemented; Independent Team native code export is accepted; self-only monthly Overview accounts and Personal thirty-day Home cards/trend/history have complete local source, database and controlled browser acceptance; Creator-private Team media has complete local source, migration and controlled production acceptance; configured base price cells, scoped Personal/shared-Team monthly request counts and whole-item catalogue access with current-target focus have complete local acceptance; direct Role/Team identity labels have complete source, dual-driver, full-matrix and controlled browser/restart acceptance in the containing commit; monthly distinct recorded member counts and broader overview facts remain open. |
 | F20 | Playground, comparison, attachments, and code examples | Partially completed | Four native conversation paths, two-to-four-lane comparison, cancellation, executable examples, per-protocol image/PDF discovery, user/Project attachment resolution, single/comparison attachment lifecycle interfaces, and conservative token/TPM/money admission with exact per-occurrence media prices exist; Team comparison, independent native code export, parameter Reset and creator-private Team attachments have complete local acceptance; external acceptance remains open. |
 | F21 | Personal, Project, and platform call records and CSV | Completed | Isolated list/detail queries, incremental loading, redacted drawers, bounded server-side CSV export, filter parity, formula protection, and bilingual download actions are implemented with dual-database evidence. |
 | F22 | Usage trends, amounts, and multidimensional filters | Partially completed | Personal, Team, Project and platform usage interfaces plus immutable Provider attribution exist. Current-member aggregation and controlled replay/restart are accepted. Scoped CSV, exact-ID selection and genuine-native freshness passed current-source checks and the complete dual-driver regression; measured capacity/release evidence remain open. |
@@ -6508,3 +6512,69 @@ ports/Compose labels are independently absent. Root browser receipt digest is
 `2a3229a4d621c3a6ba24746bbbcd4479b5dab30fad3e0de24f76b2fef3433ef9`.
 The first focus finding and separate idle failure remain historical. The
 containing commit delivers this bounded slice; F19 and 11/16/3 remain unchanged.
+
+
+## Home identity labels carried candidate, 2026-10-06
+
+Seventeen exact Go/UI outputs add a bounded self-only Role-label read and
+bilingual identity Role/current Team labels sharing one monthly account page.
+Paired frontend rules and Member Overview contracts are updated. Complete private
+format/check/Task/build passes with 4,099 frontend cases/166 files, Node4/dev2,
+Go race/coverage and embedded assets; root verifies all 1,609 product paths.
+Private gate receipt is
+`e060ec9029924ba00dc1cfc686c52644250d40f79245dc9ddfd1b89d73425b81`.
+The frozen127 registry retains its entire released126 prefix; five new Go files
+bring the production-Go inventory to521. Focused real PostgreSQL/MySQL checks
+pass. Full127 R1 failed with proven ENOSPC; the first fixture/diagnostic-loss
+failures remain recorded independently. Recovered exact Compose cleanup is
+verified and full127 R2 is running with unchanged bounds/source. No complete
+database, actual browser or phase-delivery claim is made yet. The full goal
+continues, with F19 and 11/16/3 unchanged.
+
+## Home identity actual browser acceptance, 2026-10-06
+
+Final main format, mandatory checking and production build pass. The exact
+1,675-path floor and artifact `5773edc91bd763d83aad57b62e8b2938509278949abfd303eedd14e0dd864896`
+passed controlled Home browser acceptance: normal member login, Team identity and
+monthly table shared paging in both directions, independent Role paging, finite
+Finance English/Chinese labels with unchanged user content, explicit identity
+refresh, real Role assignment and Team membership removal, and ordinary
+member-to-peer logout/login without cached member facts. A separate original
+member browser Session and the current peer browser Session survive same-artifact,
+config/database/journal restart without reload or login. Three original API
+Sessions are unchanged. Independent call, attempt, Personal Key and Project Key
+counts are zero; both browser warning/error logs are empty. Both app PIDs, both
+owned ports, all Compose resources and both agent tabs are independently absent.
+Root browser receipt: `2f34a4faf787230d5d6e17363f293e03caec07a4fdac08d606e1933bf007af96`.
+
+Captured paging windows show one account request for forward pages and one Role
+request for Role paging. Normal permission/notification polling and Session
+renewal overlap other windows; renewed authorization resets collections and no
+all-window single-request claim is made. Language-only switching preserves page
+choices with no Role/accounts request in its captured window. Legacy null names
+and held/error/obsolete-response races remain source/driver evidence. The actual
+full127 R2 is still running, so this is browser acceptance rather than database
+or phase delivery. F19 and formal totals remain unchanged.
+
+## Home identity final database gates and delivery, 2026-10-06
+
+The actual complete PostgreSQL/MySQL full127 R2 passes 254 direct scenarios,
+eight constraints and 4,609 balanced named RUN/PASS results in 2,748.615s.
+PostgreSQL completes in 1,184.07s and MySQL in 1,515.30s; the new endpoint case
+completes in 7.22s and 9.00s. Managed/ordinary/overflow reads retain four/three/two
+queries and the five-second budget. The complete 10,000-assignment reads take
+approximately 123ms and 118ms; 10,001 overflows fail without a partial result.
+Root independently reviews the exact ordered inventory, all 998 Go/Task sources,
+original126 prefix, captured bytes and absent owned resources/ports/process.
+Accepted full receipt: `ad361bc26afaff114c7d99b9d7b500b196ec239dde3de8ec32e0a5070e31aacc`.
+Combined root gates: `ba84d5dfae8639f4cf1f56c9f39958dcbcd168a7aa937fea7120f7edd2ad5105`.
+Together with complete Task, mandatory main checking/build and the separate
+controlled browser receipt, this completes the bounded Home identity phase in
+the containing commit. This does not complete F19 or the full goal. Earlier
+failed/unknown attempts and their independently recovered cleanup remain retained.
+
+The user confirmed model usage-member counts as monthly distinct recorded callers
+for the selected resource account, without identities. Backend and frontend
+preparation proceeds privately; existing monthly requests remain unchanged until
+its own gates. Provider Model binding actual focused driver acceptance and final
+composition/full129/browser remain separate pending gates.

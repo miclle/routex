@@ -123,3 +123,18 @@ export interface OverviewAccountsPage {
   teams: OverviewTeamAccount[]
   next_cursor: string | null
 }
+
+export interface OverviewRoleLabel {
+  id: string
+  name: string | null
+  builtin: boolean
+  assignment_kind: 'explicit'
+}
+
+export interface OverviewRolesPage {
+  actor_user_id: string
+  observed_at: string
+  identity_role: 'admin' | 'member'
+  roles: OverviewRoleLabel[]
+  next_cursor: string | null
+}
