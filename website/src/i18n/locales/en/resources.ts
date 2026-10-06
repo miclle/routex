@@ -1,5 +1,21 @@
 export default {
   teamCreation: {
+    help: 'Create a Team with reviewed owners and initial configuration.',
+    models: {
+      next: 'More Models',
+      authorityChanged:
+        'Model access permission is unavailable. Keep the submitted request unchanged, or clear an unsubmitted selection.',
+      title: 'Model access',
+      help: 'Choose the Models Team members may use.',
+      label: 'Model access',
+      placeholder: 'Select currently available Models',
+      emptyHelp: 'Leaving this empty grants no Model access.',
+      model: 'Model',
+      provider: 'Provider',
+      protocol: 'Protocol',
+      clear: 'Clear Model selection',
+      remove: 'Remove {{name}}',
+    },
     searchInvalid: 'Search must be valid text of at most 200 UTF-8 bytes.',
     previousUnknown: 'Local retries were abandoned. The previous creation outcome remains unknown.',
     fieldsChanged:

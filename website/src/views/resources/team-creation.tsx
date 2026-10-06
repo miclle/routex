@@ -1,4 +1,5 @@
 import { t } from '@/i18n'
+import { isAxiosError } from 'axios'
 import { useTranslation } from 'react-i18next'
 import {
   useEffect,
@@ -15,6 +16,8 @@ import {
   createTeamWithInitialLimits,
   getTeamCreationContext,
   getTeamCreationOwners,
+  getTeamCreationModels,
+  reviewTeamCreationModels,
   resourcePath,
 } from '@/api/resources'
 import { useSession, sessionKey } from '@/hooks/use-auth'
@@ -33,9 +36,11 @@ import type {
   TeamCreationContext,
   TeamCreationIntent,
   TeamCreationReceipt,
+  TeamCreationModelReview,
 } from '@/types/resources'
 import { ResourceSection } from './shared'
 import TeamCreationLimits from './team-creation-limits'
+import TeamCreationModels from './team-creation-models'
 import {
   teamCreationLimits,
   teamCreationSearch,
@@ -105,6 +110,22 @@ function TeamCreation({
   const contextKey = ['team-creation-context', actor, generation] as const
   const [q, setQ] = useState(''),
     [owners, setOwners] = useState<string[]>([])
+  const [modelQ, setModelQ] = useState(''),
+    [modelCursor, setModelCursor] = useState<string | null>(null),
+    [modelIDs, setModelIDs] = useState<string[]>([])
+  const [modelReview, setModelReview] = useState<
+    (TeamCreationModelReview & { etag: string }) | null
+  >(null)
+  const permissionRevision = cache.getQueryState(permissionKey)?.dataUpdateCount ?? 0
+  const modelKey = [
+    'team-creation-models',
+    actor,
+    generation,
+    permissionRevision,
+    cache.getQueryData<TeamCreationContext>(contextKey)?.review_etag,
+    modelQ,
+    modelCursor,
+  ] as const
   const ownerKey = ['team-creation-owners', actor, generation, q] as const
   const keys = [sessionKey, permissionKey, contextKey, ownerKey]
   useSyncExternalStore(
@@ -158,6 +179,16 @@ function TeamCreation({
     enabled: current && teamCreationSearch(q),
     ...options,
   })
+  const canSetModels =
+    current &&
+    context.data?.can_set_models === true &&
+    permissions.data?.includes('teams.models.write') === true
+  const models = useQuery({
+    queryKey: modelKey,
+    queryFn: ({ signal }) => getTeamCreationModels(modelQ, modelCursor, signal),
+    enabled: canSetModels && teamCreationSearch(modelQ),
+    ...options,
+  })
   const [review, setReview] = useState<TeamCreationContext | null>(null)
   if (current && !review) setReview(context.data!)
   const [name, setName] = useState(''),
@@ -203,6 +234,8 @@ function TeamCreation({
       setName(original.body.name)
       setDescription(original.body.description)
       setOwners([...original.body.owner_ids])
+      setModelIDs([...(original.body.model_ids ?? [])])
+      setModelReview(null)
       const limits = original.body.initial_limits
       const restored: TeamLimitDrafts = {}
       if (limits) {
@@ -258,6 +291,13 @@ function TeamCreation({
       )
     )
       return null
+    const selected = intentRef.current?.body.model_ids ?? modelIDs
+    if (
+      checkFields &&
+      selected.length &&
+      (!latest.can_set_models || !grants.includes('teams.models.write'))
+    )
+      return null
     return { session: cache.getQueryData<Session>(sessionKey)!, context: latest }
   }
   function version() {
@@ -274,6 +314,14 @@ function TeamCreation({
     let captured = intentRef.current
     if (!captured) {
       if (!review || review.review_etag !== auth.context.review_etag || !fresh(ownerKey)) return
+      if (
+        modelIDs.length &&
+        (!modelReview ||
+          modelReview.etag !== review.review_etag ||
+          modelReview.model_ids.length !== modelIDs.length ||
+          modelReview.model_ids.some((id) => !modelIDs.includes(id)))
+      )
+        return
       try {
         if (!teamCreationMetadata(name, description) || !owners.length || owners.length > 1000)
           throw new Error('invalid')
@@ -284,6 +332,12 @@ function TeamCreation({
             name: name.trim(),
             description,
             owner_ids: [...owners],
+            ...(modelIDs.length && modelReview
+              ? {
+                  model_ids: [...modelReview.model_ids],
+                  model_review_token: modelReview.model_review_token,
+                }
+              : {}),
             ...(Object.keys(drafts).length
               ? { initial_limits: teamCreationLimits(drafts, auth.context, reason) }
               : {}),
@@ -353,21 +407,66 @@ function TeamCreation({
       }
     }
   }
-  function submit(event: FormEvent) {
+  async function submit(event: FormEvent) {
     event.preventDefault()
-    if (!authority() || intentRef.current || needsReview || busy) return
+    const auth = authority(true)
+    if (!auth || intentRef.current || needsReview || busy || operation.current) return
     try {
-      if (!teamCreationMetadata(name, description) || !owners.length) throw new Error('invalid')
-      teamCreationLimits(drafts, context.data!, reason)
+      if (
+        !teamCreationMetadata(name, description) ||
+        !owners.length ||
+        owners.length > 1000 ||
+        modelIDs.length > 1000
+      )
+        throw new Error('invalid')
+      teamCreationLimits(drafts, auth.context, reason)
       setInvalid(false)
-      setConfirm(true)
     } catch {
       setInvalid(true)
+      return
+    }
+    if (!modelIDs.length) {
+      setModelReview(null)
+      setConfirm(true)
+      return
+    }
+    const selected = [...modelIDs],
+      before = version(),
+      token = Symbol('model-review')
+    operation.current = token
+    setBusy(true)
+    setError(null)
+    controller.current = new AbortController()
+    try {
+      const result = await reviewTeamCreationModels(
+        selected,
+        auth.context.review_etag,
+        auth.session.csrf_token,
+        controller.current.signal,
+      )
+      if (!authority(true) || before !== version() || !alive.current || intentRef.current) return
+      setModelReview({ ...result, etag: auth.context.review_etag })
+      setConfirm(true)
+    } catch (failure) {
+      if (authority() && before === version() && alive.current && !intentRef.current) {
+        setError(failure)
+        if (isAxiosError(failure) && failure.response?.status === 409) {
+          void context.refetch()
+          void models.refetch()
+        }
+      }
+    } finally {
+      if (operation.current === token) {
+        operation.current = null
+        if (alive.current) setBusy(false)
+      }
     }
   }
   function reviewCurrent() {
     if (!authority() || intentRef.current) return
     setReview(context.data!)
+    setModelReview(null)
+    setConfirm(false)
     setInvalid(false)
     setError(null)
   }
@@ -426,10 +525,21 @@ function TeamCreation({
             : 'teams.rates.write',
       ),
   )
+  const modelAuthority = !(intent?.body.model_ids ?? modelIDs).length || canSetModels
+  const modelPageFresh = fresh(modelKey) && !models.isFetching && !models.isPending
+  const modelOptions =
+    canSetModels && modelPageFresh
+      ? (models.data?.items ?? []).map((item) => ({
+          value: item.id,
+          label: item.name || item.id,
+          providerNames: permissions.data?.includes('providers.read') ? (item.providers ?? []) : [],
+          protocols: item.protocols,
+        }))
+      : []
   return (
     <Page
       title={t('common:create_value_91d65', { v0: t('resources:team') })}
-      description={t('resources:newHelp', { kind: t('resources:team') })}
+      description={t('resources:teamCreation.help')}
     >
       <div className="max-w-[960px]">
         {previousUnknown && (
@@ -563,9 +673,63 @@ function TeamCreation({
                     </div>
                   )}
                 </fieldset>
-                <p className="text-sm text-muted-foreground">
-                  {t('resources:newHelp', { kind: t('resources:team') })}
-                </p>
+                <p className="text-sm text-muted-foreground">{t('resources:teamCreation.help')}</p>
+                <TeamCreationModels
+                  authorized={canSetModels}
+                  options={modelOptions}
+                  selected={modelIDs.map((id) => ({
+                    value: id,
+                    label: modelOptions.find((item) => item.value === id)?.label ?? id,
+                  }))}
+                  search={modelQ}
+                  onSearchChange={(value) => {
+                    if (authority() && !intentRef.current && !busy) {
+                      setModelQ(value)
+                      setModelCursor(null)
+                    }
+                  }}
+                  onValueChange={(value) => {
+                    if (!authority() || !canSetModels || intentRef.current || busy) return
+                    if (value.length > 1000) {
+                      setInvalid(true)
+                      return
+                    }
+                    setModelIDs(value.map((item) => item.value))
+                    setModelReview(null)
+                    setConfirm(false)
+                  }}
+                  disabled={busy || !!intent}
+                  footer={
+                    canSetModels && (
+                      <div className="space-y-2 border-t p-2 text-sm">
+                        {!teamCreationSearch(modelQ) ? (
+                          <p role="alert">{t('resources:teamCreation.searchInvalid')}</p>
+                        ) : (
+                          <QueryState
+                            pending={models.isPending || models.isFetching}
+                            error={models.error}
+                            retry={() => void models.refetch()}
+                            empty={modelPageFresh && models.data?.items.length === 0}
+                          />
+                        )}
+                        {modelPageFresh && models.data?.next_cursor && (
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="outline"
+                            disabled={busy || !!intent}
+                            onClick={() => {
+                              if (authority() && canSetModels && !intentRef.current && !busy)
+                                setModelCursor(models.data!.next_cursor)
+                            }}
+                          >
+                            {t('resources:teamCreation.models.next')}
+                          </Button>
+                        )}
+                      </div>
+                    )
+                  }
+                />
                 <TeamCreationLimits
                   context={visibleContext}
                   retainedDefaultsUnknown={retainedDefaultsUnknown}
@@ -582,6 +746,24 @@ function TeamCreation({
               </fieldset>
               {needsReview && !intent && <p role="alert">{t('resources:teamCreation.stale')}</p>}
               {invalid && <p role="alert">{t('resources:teamCreation.invalid')}</p>}
+              {!modelAuthority && (
+                <p role="alert">{t('resources:teamCreation.models.authorityChanged')}</p>
+              )}
+              {!intent && !modelAuthority && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  disabled={busy}
+                  onClick={() => {
+                    if (authority() && !intentRef.current) {
+                      setModelIDs([])
+                      setModelReview(null)
+                    }
+                  }}
+                >
+                  {t('resources:teamCreation.models.clear')}
+                </Button>
+              )}
               {!intent && !fieldAuthority && (
                 <p role="alert">{t('resources:teamCreation.fieldsChanged')}</p>
               )}
@@ -620,7 +802,7 @@ function TeamCreation({
                   <>
                     <Button
                       type="button"
-                      disabled={busy || !fieldAuthority}
+                      disabled={busy || !fieldAuthority || !modelAuthority}
                       onClick={() => void dispatch()}
                     >
                       {t('resources:teamCreation.retry')}
@@ -639,7 +821,13 @@ function TeamCreation({
                   <Button
                     ref={createTrigger}
                     type="submit"
-                    disabled={busy || !!needsReview || !fresh(ownerKey) || !fieldAuthority}
+                    disabled={
+                      busy ||
+                      !!needsReview ||
+                      !fresh(ownerKey) ||
+                      !fieldAuthority ||
+                      !modelAuthority
+                    }
                   >
                     {t('resources:teamCreation.create')}
                   </Button>
@@ -661,7 +849,10 @@ function TeamCreation({
         description={t('resources:teamCreation.confirmHelp')}
         busy={busy}
       >
-        <Button onClick={() => void dispatch()} disabled={busy || !fieldAuthority}>
+        <Button
+          onClick={() => void dispatch()}
+          disabled={busy || !fieldAuthority || !modelAuthority}
+        >
           {t('resources:teamCreation.confirm')}
         </Button>
       </Dialog>
@@ -684,6 +875,8 @@ function TeamCreation({
             setRetainedDefaultsUnknown(false)
             intentRef.current = null
             setIntent(null)
+            setModelIDs([])
+            setModelReview(null)
             setPreviousUnknown(true)
             setUnknown(false)
             setReceipt(null)

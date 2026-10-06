@@ -219,10 +219,46 @@ timestamps accept both UTC and numeric offsets without changing the identity
 or receipt checks. Owned resources are independently absent. The containing
 commit delivers this bounded phase; F06 remains partial.
 
-The creation Model access selector is still pending. It belongs between Basic
-information and Resource limits in the specified form. Its future submission
-must use explicit selected model identities and independent grant authority;
-empty selection grants no models. This authorization contract explains the
-empty-selection difference, but does not replace the missing interaction. F06
-remains partially completed until this section and its atomic/retry acceptance
-are delivered.
+## Initial Team Model selection
+
+The checked V66 phase adds Model access between Basic information and Resource
+limits in the existing creation form. It preserves explicit owners, sparse caps,
+exact money, current currency and the V63 creation receipt. Source, dual-driver and controlled native/browser acceptance remain separately
+identified; the complete phase closes the remaining F06 creation gap.
+
+The purpose-scoped candidate endpoint requires both `teams.write` and
+`teams.models.write`, returns at most 50 options per page, and exposes canonical
+Model identity/name and actual eligible protocols. Provider labels require
+independent `providers.read`; otherwise they remain unknown. Selections outside
+a search page remain selected. Empty selection creates no grants.
+
+One read-only aggregate review binds up to 1,000 exact Model IDs to a server token
+and the strong creation-context ETag. Nonempty creation submits `model_ids` and
+`model_review_token` with the original UUID/body/If-Match. Fresh authority,
+Model birth and current selected readiness are checked before Team, owners,
+limits, explicit grants, receipt children and audits commit atomically. Creator
+or owner attribution never supplies an implicit grant.
+
+The reviewed Team POST caps actual streamed bytes at 128 KiB when If-Match is
+present; absent-header legacy creation and other management routes retain
+64 KiB. Header presence selects only a body bound, never authority. Model review
+writes no rows or audits, and private response headers precede authentication.
+
+V66 stores the complete original Model births and private creation-source
+provenance without changing released V63 snapshots or empty-request hashes.
+Identical authorized retries never reinstall grants. Removal/re-addition, extra
+grants or a changed Model birth supersede the original configuration. Complete
+current grant publication remains distinct from route availability and native
+inference success. Only already-dispatched IDs/token join the transient intent
+owner; unsent choices and candidate metadata are not retained across unmounts.
+
+Focus R2 failed its two migration cases because the fixture omitted required
+live Team and Model parents; both new creation lifecycle cases passed. The
+fixture-only correction preserves foreign keys and historical checks. Corrected
+Focus R3 passed sixteen direct cases on both drivers. Unfiltered full121 passed on its isolated code floor. Main mandatory checks,
+complete Task, both authentication/gateway lifecycle drivers and production build
+passed. Controlled bilingual/original-Session recovery and four native probes
+confirm exact Team-only access; separate read-only review validates durable
+grants, receipts, audits and completed attempts. The original final collector
+failed its denied-usage oracle and remains failed; post-stop active-calendar API
+coverage is unobserved. See [Implementation](IMPLEMENTATION.md#accepted-initial-team-model-access-2026-10-06).

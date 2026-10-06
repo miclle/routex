@@ -320,6 +320,34 @@ describe('private AuthGate submitted-intent lifetime', () => {
       ),
     ).not.toContain('607aa1a1')
   })
+  it('clones only submitted Model IDs/token, preserves serialized order and never retains candidate metadata', async () => {
+    submission = teamIntent()
+    if (submission.kind !== 'team-create') throw new Error('fixture')
+    submission.payload.body = {
+      ...submission.payload.body,
+      model_review_token: 'f'.repeat(64),
+      model_ids: ['mdl_Case', 'mdl_case'],
+    }
+    Object.assign(submission.payload.body, {
+      candidates: [{ name: 'Private Model', provider: 'Private Provider' }],
+      csrf: 'never-retain',
+    })
+    await mount()
+    await clickSubmit()
+    const recovered = latestOwner!.recover(actor)!
+    if (recovered.kind !== 'team-create') throw new Error('fixture')
+    const original = Object.fromEntries(
+      Object.entries(submission.payload.body).filter(
+        ([key]) => !['candidates', 'csrf'].includes(key),
+      ),
+    )
+    expect(JSON.stringify(recovered.payload.body)).toBe(JSON.stringify(original))
+    submission.payload.body.model_ids!.push('mdl_later')
+    submission.payload.body.model_review_token = 'e'.repeat(64)
+    expect(latestOwner!.recover(actor)?.payload).toEqual(recovered.payload)
+    expect(JSON.stringify(recovered.payload)).not.toContain('Private Model')
+    expect(JSON.stringify(recovered.payload)).not.toContain('never-retain')
+  })
   it('does not turn a recovered claim into target/permission authority', async () => {
     await mount()
     await clickSubmit()

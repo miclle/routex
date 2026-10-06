@@ -13,14 +13,13 @@ import (
 	"sync/atomic"
 	"time"
 
-	"gorm.io/gorm"
-
 	"github.com/miclle/routex/internal/routex/entity"
 	apperrors "github.com/miclle/routex/internal/routex/errors"
 	"github.com/miclle/routex/pkg/id"
 	"github.com/miclle/routex/pkg/limits"
 	"github.com/miclle/routex/pkg/secret"
 	"github.com/miclle/routex/pkg/upstream"
+	"gorm.io/gorm"
 )
 
 const runtimeRefreshInterval = time.Second
@@ -67,6 +66,7 @@ type runtimeAuthorization struct {
 	ProjectCreationStates  map[string]runtimeProjectCreationState
 	PersonalGrantSources   map[string]map[string]string
 	TeamGrantSources       map[string]map[string]string
+	TeamCreationGrants     map[string]map[string]runtimeTeamCreationGrant
 	SourceDigest           string
 	CredentialRevisions    map[string]string
 	ProviderModelRevisions map[string]string

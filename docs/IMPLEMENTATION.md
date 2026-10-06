@@ -36,17 +36,20 @@ Main mandatory checking, complete Task (3,539 frontend cases/156 files) and both
 real-process authentication/gateway lifecycle checks passed on the carried
 source. Controlled production/bilingual/original-Session restart acceptance
 also passed; the RFC3339 offset correction and its acceptance are recorded below.
-Personal and Project Key monthly warnings have a reviewed V64/V65 main source
-carry, with final gates pending. Their separate protected candidate: complete Task passed, including 3,661 frontend cases/156 files,
-Go race/coverage, Node, development lifecycle and production asset checks.
-They retain the unchanged115-case prefix and target119 cases. Actual driver,
-native/browser and delivery gates remain pending. Focus R6 passed 12/16 direct
-cases; corrected R7 passed 14/16, with both remaining Project failures at a
-downstream global operational-zero oracle. Strict captured-source operational
-diagnostics preserve SMTP-zero, recipient privacy, history and all original
-assertions. Fresh R8 passed all16 selected cases and87 named pass events, with no failures
-or skips and independently absent owned resources. Full119 subsequently passed both drivers with 4,370 named RUN/PASS events
-and eight constraints. Actual Key browser/native delivery remains pending.
+Personal and Project Key monthly warnings V64/V65 are delivered in `cf05c57`.
+Their isolated candidate passed complete Task (3,661 frontend cases/156 files)
+and full119: 119 ordered scenarios per database, eight constraints and 4,370
+named RUN/PASS events, preserving the original115 prefix. Earlier focused
+failures remain recorded below; corrected R8 passed all16 selected cases.
+The composed main source passed mandatory checks, complete Task (3,714 frontend
+cases/157 files), both real-process authentication/gateway lifecycles and the
+production build. Two independent PostgreSQL production/browser environments
+then passed twelve native calls/attempts, ten observations, fifteen original
+recipient inbox rows and seven original Sessions after process restart. Owned
+resources are independently absent. A separate title-spacing correction is
+committed and pushed as `8a47ac2`, with145 focused and3,714 complete frontend
+cases plus mandatory checking. Its initial stale-expectation failure is retained;
+that copy-only correction does not relabel the earlier production artifact.
 All warnings use the approved
 80% reminder/90% critical thresholds, without estimating unknown settled usage.
 
@@ -71,11 +74,88 @@ nine-PUT uncertainty/manual-gate/bilingual/original-Session restart workflow.
 Existing policies and zero native resources stayed exact; owned resources are
 independently absent. Source, backend/schema and inherited full115 boundaries
 are recorded in [Default limits](DEFAULT_LIMITS.md). The containing commit
-delivers this UI recovery phase; Key full119 remains in progress.
+delivers this UI recovery phase; Key full119 and controlled delivery subsequently passed.
 
-A current layout audit reopened F06: Team creation still lacks its initial Model
-access selection. The full objective stays active: 10 complete, 17 partial and
-three unstarted. Earlier checkpoint totals below remain historical.
+F06 now has accepted initial Team Model selection, closing its remaining creation
+gap. The full objective stays active:11 complete,16 partial and three unstarted.
+Earlier checkpoint totals and candidate failures below remain historical.
+
+## Initial Team Model access acceptance
+
+The checked V66 main phase adds the existing creation form's Model
+selector, independently authorized paged candidates, one aggregate selected-set
+review and atomic explicit grants. It preserves delivered SAVE/editor seeds,
+submitted-intent lifetime, Key warnings and V63 limits/receipts. Empty selection
+grants no Models. Applied confirmation proves complete saved grant publication,
+independently of usable inference. See [Resources](RESOURCES.md#initial-team-model-selection)
+and [Database](DATABASE.md#initial-team-model-receipt-provenance-v66).
+
+Focus R2 passed fourteen direct cases and failed two migration fixtures because
+live Team/Model parents were absent; both new lifecycle cases passed. The
+fixture-only correction preserves foreign keys/history. Focus R3 passed sixteen
+direct cases and nineteen named events on both drivers. Unfiltered full121 passed on its exact isolated 1,630-path floor: 121 ordered
+scenarios per driver, eight constraints and 4,397 matching named RUN/PASS events. The forty-four-file candidate
+was independently carried into main for checking, complete testing and build;
+that carry preserves all1,586 unowned main paths and changes no staged index.
+Main formatting, mandatory checking, complete Task (3,759 frontend cases/158
+files, Go race/coverage, Node/dev lifecycle/production asset tests), both real
+authentication/gateway lifecycle drivers and production build passed. The binary
+SHA256 is `652af948378cfe8e61b2bf68fae1943ac462ab0bcbd1e6d138a1c3e3e4668d09`.
+The isolated runner verified its complete source and Git/index floor before
+execution and again after exit. A later strict live review failed because that
+worktree had disappeared; the failure remains recorded. Root accepted the
+completed matrix from its unchanged logs, captured final guard, exact current
+956-file Go equivalence and independent owned-resource absence. This does not
+claim a later live worktree check passed. Native/bilingual/original-Session restart and scoped post-run evidence acceptance
+subsequently passed as recorded below. This documentation is outside the isolated
+matrix floor.
+
+
+The first controlled production run reached normal three-user sign-in, paged
+selection, redacted Provider labels, unauthorized selector hiding and an empty
+Team 201 with zero assigned Models. Its evidence collector then failed by
+selecting an unused `created_at` column absent from `team_model_grants`. This is
+a failed helper run, not accepted native/browser/restart delivery. Its exact
+application listeners and Compose resources are independently absent. The narrow
+collector correction was separately frozen and used by a fresh run.
+
+The second controlled production run passed all ten browser checkpoints through
+original-request replay: three normal logins, paged selection and Provider
+redaction, unauthorized empty creation, a real selected-review409, committed201
+withheld as503, actual AuthGate unmount/manual recovery, EN–ZH–EN retained fields,
+same-artifact restart and byte-identical original200. It then failed before any
+native request at a helper precondition. The first diagnosis identified an
+independent incorrect active-coverage requirement; subsequent source review and
+fresh database readback established that the earlier global-zero personal-grant
+assertion fails first. Model creation explicitly grants each Model to its creating
+controller; these existing grants must be preserved rather than deleted. The
+RPM-only calendar must still be checked inactive before admission and active
+after successful calls. Independent readback confirmed zero calls and
+attempts, inactive UTC accounting, two Teams/receipts/grants/receipt children; all
+owned application/database listeners and Compose resources are absent. This run
+remains failed, and native acceptance is not claimed. A narrow helper successor
+must validate the actual inactive-to-active accounting transition using only the
+four disclosed probes, without warmup, journal reset or fabricated coverage.
+The preserved root failure receipt SHA256 is
+`73e87cb6c201a6763b3da2d6ce139d85ca42bce9741f370212e8a89c37817be7`.
+
+
+The third production run was rejected before forwarding the original retry:
+root clicked before all postrestart creation-authority reads had completed. Its
+actual browser checkpoints and cleanup are retained, but it is not accepted.
+The fourth run waited for fresh reads and passed all ten browser checkpoints,
+including the byte-identical original200 replay without duplicate creation. It
+then failed before any native probe because the helper required zero global
+personal grants. Readback confirmed exactly51 explicit setup-controller grants,
+zero grants for all three browser actors, zero calls/attempts/Keys/Projects and
+exactly two Teams/receipts/Team grants/receipt children. The source at
+`internal/routex/service/catalog_models.go` intentionally creates those controller
+grants. All owned tabs, listeners and Compose resources are independently absent.
+A narrow source-only helper successor must retain the exact51 baseline rows,
+prove the browser actors remain grant-free and keep the same four native probes
+and two upstream requests. This corrects the oracle without changing product
+behavior or weakening Team isolation. Fourth-run failure receipt SHA256:
+`cdc26cff9e531ee035f21069915349e769540bd860bdadbcb701bcf7e97888a1`.
 
 ## Checked repository price source and grouped Role permissions
 
@@ -347,7 +427,7 @@ Status terms in this section are deliberately strict:
 - **Partially completed** means material implementation exists, but one or more required behaviors or acceptance gates remain open. It does not mean that work has not started.
 - **Not started** means no material implementation of the capability exists. A prerequisite or design note may still be present.
 
-The binary capability count is 10 completed, 17 partially completed, and 3 not started. F06 was reopened after the current layout audit identified missing initial Model access selection. This is a completion count, not an effort percentage: several partially completed capabilities contain substantial delivered work. The user resumed implementation on 2026-10-02 and prioritized partially completed capabilities. Status changes require current implementation and acceptance evidence; a package delivery alone does not complete an entire capability.
+The binary capability count is 11 completed, 16 partially completed, and 3 not started. F06 initial Model access selection has passed its scoped acceptance. This is a completion count, not an effort percentage: several partially completed capabilities contain substantial delivered work. The user resumed implementation on 2026-10-02 and prioritized partially completed capabilities. Status changes require current implementation and acceptance evidence; a package delivery alone does not complete an entire capability.
 
 | ID | Capability | Status | Delivered and remaining scope |
 |---|---|---|---|
@@ -356,7 +436,7 @@ The binary capability count is 10 completed, 17 partially completed, and 3 not s
 | F03 | Enterprise SSO, LDAP, OAuth, and emergency recovery | Not started | Provider configuration, callbacks, identity binding, enforced SSO, and enterprise recovery remain unimplemented. |
 | F04 | Member administration, direct grants, roles, and resource policies | Partially completed | Member Overview, Keys, Limits, Teams, Models, metadata, list, effective Models, recent login, Access, direct Roles and State are checked deliveries. Approval b10eb6cf is locally delivered; CI run 37314987013 failed integration, so remote convergence is not claimed. Role-definition source checks, build, race-focused drivers and bilingual retry/restart passed with zero calls. Both drivers passed 103 ordered scenarios and constraints; final UI checks and current production keyboard/retry/restart acceptance passed. Role ecd130b is committed/pushed; its CI37332855651 failed the MySQL bounded Member Roles read as recorded above. Team-role review and remaining resource-policy acceptance stay open. |
 | F05 | Built-in and custom roles with composed permissions | Partially completed | Current-domain role and permission management is implemented; later enterprise and operations domains still require permission integration and negative acceptance. |
-| F06 | Team membership, ownership, models, quotas, and member rules | Partially completed | Team membership/ownership, model relationships, finite aggregate/member policies and monthly requests are accepted. Durable Team-assigned roles, exact Team-only action unions, reviewed administrator assignment and the existing Roles interface have controlled dual-database and browser evidence. Team creation initial limits V63 awaits full driver/browser delivery; its initial Model access selector and atomic explicit grants remain open. Empty selection must never authorize all models. |
+| F06 | Team membership, ownership, models, quotas, and member rules | Completed | Membership, ownership, model relationships, finite aggregate/member policies, monthly requests and durable Team-assigned roles have dual-driver and controlled acceptance. Initial limits V63 is delivered as8f17d12. Initial Model access V66 passed complete121, main3,759 frontend cases, both auth/gateway lifecycles and controlled bilingual/original-Session restart with four native probes. Separate read-only review confirms exact grants, receipts and completed attempts; the original helper denial-oracle failure remains retained. Empty selection grants no Models. |
 | F07 | Project lifecycle, managers, models, Keys, and requests | Completed | Exact current management, lifecycle/continuity, multi-manager creation, initial direct resources and combined requests, scoped Overview, Project Keys, resource limits and model/quota/rate approvals are implemented with controlled dual-database/browser/native/restart evidence. Both lists now show authorized total retained Key counts; administrative stored-policy summaries, literal name/ID search and authorized legacy tab replacement have full main acceptance. |
 | F08 | Personal and Project Key lifecycle | Completed | One-time delivery, confirmation, editing, rotation, revocation, expiration, scope, and history are implemented with controlled dual-database evidence. |
 | F09 | Key Token, money, RPM, TPM, concurrency, and IP restrictions | Completed | Personal, Project, and Key admission policies are enforced in the native gateway for the documented single-node architecture. Multi-node enforcement remains a separate release-architecture gate. |
@@ -367,13 +447,13 @@ The binary capability count is 10 completed, 17 partially completed, and 3 not s
 | F14 | Managed egress and staged network diagnostics | Partially completed | Direct, default, SOCKS5, verified CONNECT, endpoint-bound saved authentication, complete-tunnel proxy-address fallback, and diagnostics exist. External proxy and production performance acceptance remain open. |
 | F15 | Prices, spreadsheet/CSV workflows, API, and repository sync | Partially completed | Current prices, ETags, CSV/XLS/XLSX import, preview, commit, and export exist; repository-file mappings, reviewed synchronization, custom-rate protection and selected restoration passed complete current-main source, dual-driver and controlled production/browser/restart gates; three embedded model entries/six base USD rates now have controlled dual-driver preview/apply/receipt/replay and same-artifact restart acceptance; missing cache rates remain absent, while broader external/release acceptance remains open. |
 | F16 | Platform currency, exchange rates, and historical price snapshots | Completed | Decimal-string currency/rate management, exact quoting, and immutable per-call assessment are implemented. |
-| F17 | User and Team defaults, overrides, budgets, alerts, and stop policy | Partially completed | Personal, Project, Key and Team aggregate/member enforcement plus budget/token/TPM controls, authoritative quota snapshots, and installation-calendar configuration exist; current-policy Personal/Project monthly settled-exhaustion inboxes have focused acceptance, Team aggregate monthly settled-exhaustion inboxes have complete controlled acceptance; private Team member monthly notices have passed controlled local source, dual-driver, native/browser/restart and full-matrix acceptance, with final mandatory check passed and checked source committed/pushed as 5363d3c; distinct remote checks remain in progress, and creation-default settings and explicit restores have complete local acceptance; Personal, Team aggregate, Project and private Team-member fixed 80%/90% settled monthly warnings have complete local source, dual-driver/full and controlled PostgreSQL bilingual/restart acceptance; Member warnings are committed/pushed as f7b31b1a, and separate Restore recovery as e9003c97; Personal/Project Key warning V64/V65 and Team creation V63 have source gates but await their actual driver/production delivery gates; templates, broader alerts, and configurable stop-calling policy remain open. |
+| F17 | User and Team defaults, overrides, budgets, alerts, and stop policy | Partially completed | Personal, Project, Key and Team aggregate/member enforcement plus budget/token/TPM controls, authoritative quota snapshots, and installation-calendar configuration exist; current-policy Personal/Project monthly settled-exhaustion inboxes have focused acceptance, Team aggregate monthly settled-exhaustion inboxes have complete controlled acceptance; private Team member monthly notices have passed controlled local source, dual-driver, native/browser/restart and full-matrix acceptance, with final mandatory check passed and checked source committed/pushed as 5363d3c; distinct remote checks remain in progress, and creation-default settings and explicit restores have complete local acceptance; Personal, Team aggregate, Project and private Team-member fixed 80%/90% settled monthly warnings have complete local source, dual-driver/full and controlled PostgreSQL bilingual/restart acceptance; Member warnings are committed/pushed as f7b31b1a, and separate Restore recovery as e9003c97; Personal/Project Key warnings V64/V65 are delivered as cf05c57 after full119, mandatory main checks, both authentication lifecycles and two controlled PostgreSQL scenarios totaling12 native calls,10 observations and15 inbox rows; Team creation V63 is delivered as8f17d12. Chinese Key titles are corrected in8a47ac2; templates, broader alerts, and configurable stop-calling policy remain open. |
 | F18 | Quota, model, and request-limit approvals | Completed | Project model/monthly quota/RPM/TPM/concurrency and Team monthly Token/money requests have controlled acceptance: owner-first assignment, escalation, independent dimensions, read-only platform records, atomic final policies and immutable receipts with current application. Distributed acknowledgements belong to F30; release-wide acceptance remains separate. |
 | F19 | Member overview, model sources, requests, and examples | Partially completed | Actor-scoped Personal/Team source attribution, native metadata, filters, details and examples are available; explicit-source Team catalogue examples and successful Session-generation guards have complete local source and four-native production/browser/restart acceptance; Project requests and four native Team Session protocols exist; Personal single-Model requests and independent scoped review are available; Shared Team model requests and independently scoped review are available; Two-to-four native Team comparison lanes are implemented; Independent Team native code export is accepted; self-only monthly Overview accounts and Personal thirty-day Home cards/trend/history have complete local source, database and controlled browser acceptance; Creator-private Team media has complete local source, migration and controlled production acceptance; broader overview/price/usage facts remain open. |
 | F20 | Playground, comparison, attachments, and code examples | Partially completed | Four native conversation paths, two-to-four-lane comparison, cancellation, executable examples, per-protocol image/PDF discovery, user/Project attachment resolution, single/comparison attachment lifecycle interfaces, and conservative token/TPM/money admission with exact per-occurrence media prices exist; Team comparison, independent native code export, parameter Reset and creator-private Team attachments have complete local acceptance; external acceptance remains open. |
 | F21 | Personal, Project, and platform call records and CSV | Completed | Isolated list/detail queries, incremental loading, redacted drawers, bounded server-side CSV export, filter parity, formula protection, and bilingual download actions are implemented with dual-database evidence. |
 | F22 | Usage trends, amounts, and multidimensional filters | Partially completed | Personal, Team, Project and platform usage interfaces plus immutable Provider attribution exist. Current-member aggregation and controlled replay/restart are accepted. Scoped CSV, exact-ID selection and genuine-native freshness passed current-source checks and the complete dual-driver regression; measured capacity/release evidence remain open. |
-| F23 | Operations overview, quality, alerts, and notifications | Partially completed | The real-data operations overview, immutable Provider-attempt quality, revisioned success/P95 thresholds, grouped Provider-quality and route-unavailable alerts, recipient-isolated history, independent severity settings, and bounded durable operational SMTP delivery are implemented. Current-policy Personal/Project monthly settled-exhaustion inboxes have focused acceptance and Team aggregate monthly settled-exhaustion inboxes have complete controlled acceptance; private Team member monthly notices have passed controlled local source, dual-driver, native/browser/restart and full-matrix acceptance, with final mandatory check passed and checked source committed/pushed as 5363d3c; distinct remote checks remain in progress; Personal, Team aggregate, Project and private Team-member fixed 80%/90% settled monthly warnings have complete local source, dual-driver/full and controlled PostgreSQL bilingual/restart acceptance; Member warnings are committed/pushed as f7b31b1a, and separate Restore recovery as e9003c97; Personal/Project Key warning V64/V65 and Team creation V63 have source gates but await their actual driver/production delivery gates; external mail acceptance, bounce/inbox tracking, real-Provider quality acceptance, and broader quota/enterprise sources remain open. |
+| F23 | Operations overview, quality, alerts, and notifications | Partially completed | The real-data operations overview, immutable Provider-attempt quality, revisioned success/P95 thresholds, grouped Provider-quality and route-unavailable alerts, recipient-isolated history, independent severity settings, and bounded durable operational SMTP delivery are implemented. Current-policy Personal/Project monthly settled-exhaustion inboxes have focused acceptance and Team aggregate monthly settled-exhaustion inboxes have complete controlled acceptance; private Team member monthly notices have passed controlled local source, dual-driver, native/browser/restart and full-matrix acceptance, with final mandatory check passed and checked source committed/pushed as 5363d3c; distinct remote checks remain in progress; Personal, Team aggregate, Project and private Team-member fixed 80%/90% settled monthly warnings have complete local source, dual-driver/full and controlled PostgreSQL bilingual/restart acceptance; Member warnings are committed/pushed as f7b31b1a, and separate Restore recovery as e9003c97; Personal/Project Key warnings V64/V65 are delivered as cf05c57 after full119, mandatory main checks, both authentication lifecycles and two controlled PostgreSQL scenarios totaling12 native calls,10 observations and15 inbox rows; Team creation V63 is delivered as8f17d12. Chinese Key titles are corrected in8a47ac2; external mail acceptance, bounce/inbox tracking, real-Provider quality acceptance, and broader quota/enterprise sources remain open. |
 | F24 | Read-only AI operations analysis and saved reports | Not started | Authorized analysis queries, saved definitions, evaluation, exports, and hostile-input acceptance are not implemented. |
 | F25 | Site presentation, language, and announcements | Completed | Durable site name, URL, logo, footer, default language, bilingual UI behavior, and announcement lifecycle are implemented. |
 | F26 | Instances, heartbeats, resources, jobs, and offline cleanup | Completed | Distinct process generations, server-owned leases, nullable resource facts, bounded real system jobs, executor-loss reconciliation, revision-checked cleanup, audit evidence, and the bilingual administrative workspace are implemented. |
@@ -5969,3 +6049,59 @@ coverage, holds, currency mismatches and hard stops remain dual-driver matrix
 evidence rather than claimed browser scenarios. Owned tabs, listeners and both
 Compose projects' containers/networks/volumes are independently absent. The
 combined result is 12 native calls/attempts, ten observations and 15 inbox rows.
+
+## Accepted initial Team Model access, 2026-10-06
+
+The V66 phase closes the remaining F06 creation gap. The existing form keeps
+Basic information, Model access and Resource limits, with bounded search,
+retained off-page selections, independent Provider-label authority and explicit
+empty grants. Atomic creation and original-intent recovery are backed by the
+complete121 PostgreSQL/MySQL matrix, main Task testing (3,759 frontend cases),
+both authentication/gateway lifecycle drivers and the embedded production build.
+The final main mandatory check passed with no errors; two existing Fast Refresh
+warnings remain unchanged.
+
+The fifth controlled PostgreSQL run passed the ten browser checkpoints: three
+normal sign-ins, pagination and redaction, unauthorized empty creation, explicit
+selected-set conflict review, committed-response loss, private-interface unmount
+and manual recovery, EN–ZH–EN draft preservation, same-artifact/original-Session
+restart and byte-identical creation replay. Four disclosed native probes produced
+two Model authorization denials and two completed selected-Model calls, with only
+two upstream attempts. Each completed attempt retains its exact Credential,
+Connection, provider-model and published snapshot, authoritative1/1 Token usage
+and a2 USD charge. Rejected calls retain unknown usage and not-captured pricing;
+absence of an attempt never fabricates known-zero usage.
+
+The original runner remains **failed**: its final collector incorrectly required
+zero Tokens for pre-admission Model denials. A separately reviewed read-only
+post-run check passed against retained observations and exact durable facts:
+four Calls, two completed Attempts, two Teams/receipts/owner memberships, two
+selected grants/receipt children and two typed creation commits. All51 existing
+setup-controller personal grants remain present; browser actors have none.
+No Key, Project, extra replay call or duplicate creation was introduced. The
+post-run evidence receipt SHA256 is
+`6017a1ddf0cede71b1ee646610086f937bc33da0c907c55d732fd03eef364872`.
+Visual review passed and the three original tabs had no captured console
+warnings/errors. Owned containers, networks, volumes and all four listeners are
+independently absent. Post-stop active journal coverage and runtime API
+re-enforcement were not observed; the original inactive pre-native/after-denial
+checks and inherited quota tests remain separate. This acceptance closes the
+stated F06 feature criteria, without relabeling the original helper as passed.
+
+Current capability totals are11 complete,16 partial and3 unstarted. Role
+descriptions, Connection metadata and single-model elapsed observation continue
+as independent phases; the full product objective remains active.
+
+## Role matrix failure retained, 2026-10-06
+
+The isolated Role description complete123 run ended failed after2,682.073s.
+MySQL passed123 ordered scenarios and four constraints. PostgreSQL passed122
+scenarios and four constraints but failed the existing
+`local_registration_approval_migration` case at V57 with PostgreSQL's cached-plan
+result-type error. Both added Role description scenarios passed on both drivers.
+No Role delivery or complete123 acceptance is claimed. The captured final
+source/index guard passed; diagnosis is confined to the migration/connection
+boundary without changing released migration steps. The original failed log
+SHA256 is`213b48a8e23b4b14f3add2285ba791e2f2e298410142e2f4c950677c9038408a`.
+This separate candidate failure does not relabel the already accepted Model121
+run or the scoped Team Model production evidence.

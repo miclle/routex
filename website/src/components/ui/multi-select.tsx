@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { Check, ChevronDown, X } from 'lucide-react'
 import { Input } from './input'
 import { Button } from './button'
+import { cn } from '@/lib/utils'
 
 export interface MultiSelectOption {
   value: string
@@ -19,6 +20,11 @@ export function MultiSelect({
   removeLabel,
   disabled = false,
   footer,
+  renderOption,
+  popupHeader,
+  clearLabel,
+  placeholder,
+  popupClassName,
 }: {
   label: string
   options: MultiSelectOption[]
@@ -29,6 +35,11 @@ export function MultiSelect({
   removeLabel: (label: string) => string
   disabled?: boolean
   footer?: ReactNode
+  renderOption?: (option: MultiSelectOption) => ReactNode
+  popupHeader?: ReactNode
+  clearLabel?: string
+  placeholder?: string
+  popupClassName?: string
 }) {
   const { t } = useTranslation('common')
   const [open, setOpen] = useState(false)
@@ -117,7 +128,25 @@ export function MultiSelect({
           render={<Input className="min-w-32 flex-1 border-0 px-1 focus-visible:ring-0" />}
           aria-label={label}
           maxLength={200}
+          placeholder={placeholder}
         />
+        {clearLabel && value.length > 0 && (
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            disabled={disabled}
+            aria-label={clearLabel}
+            onClick={() => {
+              if (!disabled) {
+                onValueChange([])
+                input.current?.focus()
+              }
+            }}
+          >
+            <X className="size-4" aria-hidden="true" />
+          </Button>
+        )}
         <Combobox.Trigger render={<Button variant="ghost" size="icon" />} aria-label={label}>
           <ChevronDown className="size-4" aria-hidden="true" />
         </Combobox.Trigger>
@@ -127,19 +156,37 @@ export function MultiSelect({
           <Combobox.Positioner sideOffset={4} className="z-50">
             <Combobox.Popup
               ref={popupRef}
-              className="w-[var(--anchor-width)] min-w-60 rounded-md border bg-popover p-1 text-popover-foreground shadow-md"
+              className={cn(
+                'w-[var(--anchor-width)] min-w-60 rounded-md border bg-popover p-1 text-popover-foreground shadow-md',
+                popupClassName,
+              )}
             >
-              <Combobox.List className="max-h-56 overflow-auto">
+              {popupHeader}
+              <Combobox.List
+                className={cn('max-h-56 overflow-auto', popupHeader && 'w-max min-w-full')}
+              >
                 {(option: MultiSelectOption) => (
                   <Combobox.Item
                     key={option.value}
                     value={option}
                     className="flex cursor-default items-center gap-2 rounded-sm px-3 py-2 text-sm outline-none data-[highlighted]:bg-accent"
                   >
-                    <Combobox.ItemIndicator>
-                      <Check className="size-4" aria-hidden="true" />
-                    </Combobox.ItemIndicator>
-                    <span className="min-w-0 truncate">{option.label}</span>
+                    {renderOption ? (
+                      <span className="size-4 shrink-0">
+                        <Combobox.ItemIndicator>
+                          <Check className="size-4" aria-hidden="true" />
+                        </Combobox.ItemIndicator>
+                      </span>
+                    ) : (
+                      <Combobox.ItemIndicator>
+                        <Check className="size-4" aria-hidden="true" />
+                      </Combobox.ItemIndicator>
+                    )}
+                    {renderOption ? (
+                      renderOption(option)
+                    ) : (
+                      <span className="min-w-0 truncate">{option.label}</span>
+                    )}
                   </Combobox.Item>
                 )}
               </Combobox.List>

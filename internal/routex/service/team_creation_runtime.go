@@ -10,7 +10,7 @@ import (
 
 // Reconcile only leased current authorization. Receipt snapshots are never
 // inserted into runtime state and never restore original memberships or limits.
-func (s *Service) teamCreationApplication(receipt entity.TeamCreationReceipt, current *ResourceRecord) (bool, string) {
+func (s *Service) teamCreationApplication(receipt entity.TeamCreationReceipt, current *ResourceRecord, selections ...[]entity.TeamCreationReceiptModel) (bool, string) {
 	if current == nil || current.ID != receipt.TeamID {
 		return false, "unavailable"
 	}
@@ -30,7 +30,19 @@ func (s *Service) teamCreationApplication(receipt entity.TeamCreationReceipt, cu
 		return false, "pending"
 	}
 	team, exists := auth.Teams[receipt.TeamID]
-	if !exists || !team.CreatedAt.Equal(receipt.TeamCreatedAt) || len(team.Members) != len(snapshot.Owners) || len(team.Models) != 0 {
+	if !exists || !team.CreatedAt.Equal(receipt.TeamCreatedAt) || len(team.Members) != len(snapshot.Owners) {
+		return false, "pending"
+	}
+	var children []entity.TeamCreationReceiptModel
+	if len(selections) > 0 {
+		children = selections[0]
+	}
+	for id := range team.Models {
+		if _, exists := auth.TeamCreationGrants[receipt.TeamID][id]; !exists {
+			return false, "pending"
+		}
+	}
+	if !teamCreationPublishedModelsMatch(auth, receipt, children) {
 		return false, "pending"
 	}
 	for _, owner := range snapshot.Owners {
@@ -56,4 +68,30 @@ func (s *Service) teamCreationApplication(receipt entity.TeamCreationReceipt, cu
 		return false, "pending"
 	}
 	return true, "applied"
+}
+
+type runtimeTeamCreationGrant struct {
+	ModelCreatedAt time.Time
+	CreationID     string
+	RequestID      string
+}
+
+func teamCreationPublishedModelsMatch(auth *runtimeAuthorization, receipt entity.TeamCreationReceipt, children []entity.TeamCreationReceiptModel) bool {
+	stored, exists := auth.TeamCreationGrants[receipt.TeamID]
+	if !exists || len(stored) != len(children) || len(children) != receipt.ModelCount {
+		return false
+	}
+	if receipt.ModelSnapshotVersion == 0 {
+		return len(children) == 0 && receipt.ModelDigest == nil
+	}
+	if receipt.ModelSnapshotVersion != 1 || receipt.ModelDigest == nil || teamCreationModelsDigest(children) != *receipt.ModelDigest {
+		return false
+	}
+	for _, child := range children {
+		grant, exists := stored[child.ModelID]
+		if !exists || child.CreationID != receipt.CreationID || child.ModelCreatedAt.IsZero() || !grant.ModelCreatedAt.Equal(child.ModelCreatedAt) || grant.CreationID != receipt.CreationID || grant.RequestID != "" {
+			return false
+		}
+	}
+	return true
 }

@@ -1,5 +1,20 @@
 export default {
   teamCreation: {
+    help: '创建团队，并确认所有者与初始配置。',
+    models: {
+      next: '更多模型',
+      authorityChanged: '模型授权权限当前不可用。保留已提交请求，或清空尚未提交的选择。',
+      title: '模型访问',
+      help: '选择团队成员可以使用的模型。',
+      label: '模型访问',
+      placeholder: '选择当前可用的模型',
+      emptyHelp: '留空不会授予任何模型访问权限。',
+      model: '模型',
+      provider: '供应商',
+      protocol: '协议',
+      clear: '清空模型选择',
+      remove: '移除 {{name}}',
+    },
     searchInvalid: '搜索内容必须是有效文本，且不超过 200 个 UTF-8 字节。',
     previousUnknown: '已放弃本地重试。之前的创建结果仍未知。',
     fieldsChanged: '某项覆盖权限不可用。请使用当前默认值，或等待权限恢复。',

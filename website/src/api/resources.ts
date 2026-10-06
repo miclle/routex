@@ -15,6 +15,8 @@ import type {
   TeamCreationContext,
   TeamCreationIntent,
   TeamCreationReceipt,
+  TeamCreationModelPage,
+  TeamCreationModelReview,
 } from '@/types/resources'
 export const resourcePath = (kind: ResourceKind, admin: boolean) =>
   `${admin ? '/admin' : ''}/${kind}`
@@ -438,7 +440,9 @@ export async function getTeamCreationContext(signal?: AbortSignal): Promise<Team
       'platform_currency',
       'editable_fields',
       'default_policy',
+      'can_set_models',
     ]) ||
+    typeof value.can_set_models !== 'boolean' ||
     typeof value.review_etag !== 'string' ||
     !/^[a-f0-9]{64}$/.test(value.review_etag) ||
     typeof value.default_rule_etag !== 'string' ||
@@ -537,7 +541,16 @@ export async function createTeamWithInitialLimits(
     !csrf ||
     !object(body) ||
     Object.keys(body).some(
-      (key) => !['creation_id', 'name', 'description', 'owner_ids', 'initial_limits'].includes(key),
+      (key) =>
+        ![
+          'creation_id',
+          'name',
+          'description',
+          'owner_ids',
+          'initial_limits',
+          'model_ids',
+          'model_review_token',
+        ].includes(key),
     ) ||
     !/^[a-f0-9]{64}$/.test(intent.etag) ||
     !/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/.test(
@@ -559,6 +572,15 @@ export async function createTeamWithInitialLimits(
     new Set(body.owner_ids).size !== body.owner_ids.length
   )
     throw new Error('Invalid Team creation intent')
+  const models = body.model_ids
+  if (
+    (models !== undefined && !teamCreationModelIDs(models, true)) ||
+    ((models?.length ?? 0) > 0
+      ? typeof body.model_review_token !== 'string' ||
+        !/^[a-f0-9]{64}$/.test(body.model_review_token)
+      : Object.hasOwn(body, 'model_review_token'))
+  )
+    throw new Error('Invalid Team creation Models')
   const limits = body.initial_limits
   if (limits !== undefined) {
     const fields = [
@@ -637,7 +659,7 @@ export async function createTeamWithInitialLimits(
     !Array.isArray(value.team.model_ids) ||
     value.team.model_ids.length > 1000 ||
     new Set(value.team.model_ids).size !== value.team.model_ids.length ||
-    value.team.model_ids.some((id) => !teamCreationID(id)) ||
+    value.team.model_ids.some((id) => !teamCreationModelID(id)) ||
     !Array.isArray(value.team.members) ||
     value.team.members.length > 10000 ||
     value.team.members.some(
@@ -660,7 +682,8 @@ export async function createTeamWithInitialLimits(
       value.team.status !== 'active' ||
       value.team.name !== body.name ||
       value.team.description !== body.description ||
-      (value.team.model_ids as unknown[]).length !== 0 ||
+      (value.team.model_ids as string[]).length !== (models?.length ?? 0) ||
+      (value.team.model_ids as string[]).some((id) => !models?.includes(id)) ||
       (value.team.members as Record<string, unknown>[]).length !== body.owner_ids.length ||
       new Set((value.team.members as Record<string, unknown>[]).map((member) => member.user_id))
         .size !== body.owner_ids.length ||
@@ -673,4 +696,121 @@ export async function createTeamWithInitialLimits(
   )
     throw new Error('Unconfirmed Team creation application')
   return value as unknown as TeamCreationReceipt
+}
+
+function teamCreationModelID(value: unknown): value is string {
+  return teamCreationID(value) && value.startsWith('mdl_')
+}
+function teamCreationModelIDs(value: unknown, empty = false): value is string[] {
+  return (
+    Array.isArray(value) &&
+    (empty || value.length > 0) &&
+    value.length <= 1000 &&
+    value.every(teamCreationModelID) &&
+    new Set(value).size === value.length
+  )
+}
+function teamCreationLabelBefore(left: string, right: string) {
+  const a = Array.from(left),
+    b = Array.from(right)
+  for (let i = 0; i < Math.min(a.length, b.length); i++) {
+    const x = a[i].codePointAt(0)!,
+      y = b[i].codePointAt(0)!
+    if (x !== y) return x < y
+  }
+  return a.length < b.length
+}
+function teamCreationLabels(value: unknown): value is string[] {
+  return (
+    Array.isArray(value) &&
+    value.every(
+      (item) =>
+        typeof item === 'string' &&
+        item.length > 0 &&
+        !/[\p{Cc}\p{Cs}]/u.test(item) &&
+        new TextEncoder().encode(item).length <= 65536,
+    ) &&
+    value.every((item, i) => i === 0 || teamCreationLabelBefore(value[i - 1], item))
+  )
+}
+export async function getTeamCreationModels(
+  q: string,
+  cursor: string | null,
+  signal?: AbortSignal,
+): Promise<TeamCreationModelPage> {
+  if (
+    new TextEncoder().encode(q).length > 200 ||
+    /\p{Cs}/u.test(q) ||
+    (cursor !== null && !teamCreationModelID(cursor))
+  )
+    throw new Error('Invalid Team Model search')
+  const response = await client.get<unknown>('/admin/teams/creation-model-candidates', {
+    params: { q: q || undefined, cursor: cursor ?? undefined, limit: 50 },
+    signal,
+  })
+  const page = response.data
+  if (
+    response.status !== 200 ||
+    signal?.aborted ||
+    !teamCreationObject(page, ['items', 'next_cursor']) ||
+    !Array.isArray(page.items) ||
+    page.items.length > 50 ||
+    (page.next_cursor !== null &&
+      (!teamCreationModelID(page.next_cursor) || page.next_cursor === cursor)) ||
+    page.items.some(
+      (item) =>
+        !teamCreationObject(item, ['id', 'name', 'providers', 'protocols']) ||
+        !teamCreationModelID(item.id) ||
+        typeof item.name !== 'string' ||
+        /[\p{Cc}\p{Cs}]/u.test(item.name) ||
+        new TextEncoder().encode(item.name).length > 65536 ||
+        (item.providers !== null && !teamCreationLabels(item.providers)) ||
+        !teamCreationLabels(item.protocols) ||
+        !item.protocols.length ||
+        item.protocols.some(
+          (protocol) =>
+            ![
+              'openai_chat',
+              'openai_responses',
+              'anthropic_messages',
+              'gemini_generate_content',
+            ].includes(protocol),
+        ),
+    ) ||
+    new Set(page.items.map((item) => item.id)).size !== page.items.length
+  )
+    throw new Error('Invalid Team Model candidates')
+  return page as unknown as TeamCreationModelPage
+}
+export async function reviewTeamCreationModels(
+  modelIDs: string[],
+  etag: string,
+  csrf: string,
+  signal?: AbortSignal,
+): Promise<TeamCreationModelReview> {
+  if (!teamCreationModelIDs(modelIDs) || !/^[a-f0-9]{64}$/.test(etag) || !csrf)
+    throw new Error('Invalid Team Model review')
+  const response = await client.post<unknown>(
+    '/admin/teams/creation-model-review',
+    { model_ids: [...modelIDs] },
+    {
+      signal,
+      headers: { 'If-Match': `"${etag}"`, 'X-CSRF-Token': csrf },
+    },
+  )
+  const value = response.data
+  if (
+    response.status !== 200 ||
+    signal?.aborted ||
+    !teamCreationObject(value, ['model_ids', 'model_review_token']) ||
+    !teamCreationModelIDs(value.model_ids) ||
+    value.model_ids.length !== modelIDs.length ||
+    value.model_ids.some(
+      (id, i) => !modelIDs.includes(id) || (i > 0 && (value.model_ids as string[])[i - 1] >= id),
+    ) ||
+    typeof value.model_review_token !== 'string' ||
+    !/^[a-f0-9]{64}$/.test(value.model_review_token)
+  )
+    throw new Error('Unconfirmed Team Model review')
+  return value as unknown as TeamCreationModelReview
 }

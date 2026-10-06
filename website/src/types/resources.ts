@@ -152,6 +152,7 @@ export const teamCreationFields = [
 ] as const
 export type TeamCreationField = (typeof teamCreationFields)[number]
 export interface TeamCreationContext {
+  can_set_models: boolean
   review_etag: string
   default_rule_etag: string
   platform_currency: string | null
@@ -167,6 +168,8 @@ export interface TeamCreationInput {
   description: string
   owner_ids: string[]
   initial_limits?: TeamInitialLimits
+  model_ids?: string[]
+  model_review_token?: string
 }
 export interface TeamCreationIntent {
   body: TeamCreationInput
@@ -178,4 +181,19 @@ export interface TeamCreationReceipt {
   committed: true
   runtime_applied: boolean
   application_status: 'pending' | 'applied' | 'superseded' | 'unavailable'
+}
+
+export interface TeamCreationModelCandidate {
+  id: string
+  name: string
+  providers: string[] | null
+  protocols: string[]
+}
+export interface TeamCreationModelPage {
+  items: TeamCreationModelCandidate[]
+  next_cursor: string | null
+}
+export interface TeamCreationModelReview {
+  model_ids: string[]
+  model_review_token: string
 }

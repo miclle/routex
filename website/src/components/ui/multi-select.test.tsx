@@ -23,9 +23,11 @@ const options = [
 function Harness({
   disabled = false,
   items = options,
+  clearLabel,
 }: {
   disabled?: boolean
   items?: MultiSelectOption[]
+  clearLabel?: string
 }) {
   const [value, setValue] = useState<MultiSelectOption[]>([]),
     [search, setSearch] = useState('')
@@ -38,6 +40,7 @@ function Harness({
       onSearchChange={setSearch}
       onValueChange={setValue}
       disabled={disabled}
+      clearLabel={clearLabel}
       removeLabel={(label) => `Remove ${label}`}
     />
   )
@@ -116,4 +119,20 @@ it('live bilingual dismissal update leaves controlled selections and literal sea
   expect(host.querySelector('[aria-label="Remove One"]')).not.toBeNull()
   expect(document.querySelectorAll('[aria-label="Dismiss"]')).toHaveLength(0)
   expect(input.value).toBe('')
+})
+
+it('returns keyboard clear focus to the search input after its clear control disappears', async () => {
+  await act(async () => root.render(<Harness clearLabel="Clear selected roles" />))
+  const input = await open()
+  await act(async () => document.querySelectorAll<HTMLElement>('[role="option"]')[0].click())
+  const clear = host.querySelector<HTMLButtonElement>('[aria-label="Clear selected roles"]')!
+  await act(async () => {
+    clear.focus()
+    clear.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }))
+    clear.click()
+  })
+  expect(host.querySelector('[aria-label="Remove One"]')).toBeNull()
+  expect(host.querySelector('[aria-label="Clear selected roles"]')).toBeNull()
+  expect(document.activeElement).toBe(input)
+  expect(input.disabled).toBe(false)
 })

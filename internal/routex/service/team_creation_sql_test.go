@@ -23,6 +23,7 @@ import (
 // Extend the existing finite recipient fake, without a second storage harness.
 // No driver, server, network, runtime or integration fixture is invoked.
 type teamCreationSQLFixture struct {
+	children     []entity.TeamCreationReceiptModel
 	users        []entity.User
 	applications []entity.RegistrationApprovalApplication
 	members      []entity.TeamMembership
@@ -69,6 +70,17 @@ func (c *teamCreationSQLConnection) QueryContext(ctx context.Context, q string, 
 		}
 	}
 	switch {
+	case strings.Contains(q, `FROM "team_creation_receipt_models"`):
+		if !strings.Contains(q, "LIMIT") || !strings.Contains(q, `"creation_id" =`) {
+			return nil, errors.New("unbounded receipt child read")
+		}
+		rows := []entity.TeamCreationReceiptModel{}
+		for _, row := range f.children {
+			if slices.Contains(selected, row.CreationID) {
+				rows = append(rows, row)
+			}
+		}
+		return effectiveSQLRows(rows)
 	case strings.Contains(q, `FROM "users"`):
 		if !strings.Contains(q, " IN ") || !strings.Contains(q, `"id" =`) || !strings.Contains(q, "LIMIT") || len(selected) > 500 {
 			return nil, errors.New("owner read lost finite exact batch")
@@ -287,5 +299,19 @@ func TestTeamCreationOwnerQueriesPortableExactIndexNarrowing(t *testing.T) {
 				t.Fatal("empty selection read directory", empty.SQL.String())
 			}
 		})
+	}
+}
+
+func TestTeamCreationEmptyReceiptRejectsUnexpectedChildren(t *testing.T) {
+	_, receipt, _, _ := teamCreationPublicationFixture(t)
+	for _, corrupt := range []bool{false, true} {
+		f := &teamCreationSQLFixture{}
+		if corrupt {
+			f.children = []entity.TeamCreationReceiptModel{{CreationID: receipt.CreationID, ModelID: "mdl_injected", ModelCreatedAt: time.Now()}}
+		}
+		rows, err := readTeamCreationReceiptModels(teamCreationSQLDatabase(t, f), receipt)
+		if corrupt && err == nil || !corrupt && (err != nil || len(rows) != 0) || len(f.queries) != 1 {
+			t.Fatal("legacy corruption normalized to empty", corrupt, rows, err, len(f.queries))
+		}
 	}
 }

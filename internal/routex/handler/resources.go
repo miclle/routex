@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/fox-gonic/fox"
-
 	apperrors "github.com/miclle/routex/internal/routex/errors"
 	"github.com/miclle/routex/internal/routex/service"
 )
@@ -118,7 +117,7 @@ func (ctrl *Ctrl) CreateTeam(c *fox.Context) error {
 	if err := decodeStrictRequest(c, &request); err != nil {
 		return err
 	}
-	if request.CreationID != "" || request.InitialLimits != nil {
+	if request.CreationID != "" || request.InitialLimits != nil || request.ModelsPresent || request.ModelReviewToken != "" {
 		if len(c.Request.Header.Values("If-Match")) == 0 {
 			return &apperrors.Error{Code: http.StatusPreconditionRequired, Message: "If-Match is required"}
 		}

@@ -44,6 +44,7 @@ beforeEach(async () => {
   context = {
     review_etag: 'a'.repeat(64),
     default_rule_etag: 'b'.repeat(64),
+    can_set_models: false,
     platform_currency: 'USD',
     editable_fields: [
       'tokens_5h',
@@ -87,6 +88,32 @@ beforeEach(async () => {
       response.headers.set('ETag', `"${context.review_etag}"`)
     } else if (config.url === '/admin/team-member-candidates')
       response.data = { items: structuredClone(owners) }
+    else if (config.url === '/admin/teams/creation-model-candidates')
+      response.data = {
+        items: config.params.cursor
+          ? [
+              {
+                id: 'mdl_second',
+                name: 'Second Model',
+                providers: permissions.includes('providers.read') ? ['Visible Provider'] : null,
+                protocols: ['openai_responses'],
+              },
+            ]
+          : [
+              {
+                id: 'mdl_first',
+                name: 'First Model',
+                providers: permissions.includes('providers.read') ? ['Visible Provider'] : null,
+                protocols: ['openai_chat'],
+              },
+            ],
+        next_cursor: config.params.cursor ? null : 'mdl_first',
+      }
+    else if (config.url === '/admin/teams/creation-model-review')
+      response.data = {
+        model_ids: JSON.parse(config.data).model_ids.toSorted(),
+        model_review_token: 'f'.repeat(64),
+      }
     else if (config.url === '/admin/teams' && config.method === 'post') {
       const body = JSON.parse(config.data)
       response.data = {
@@ -99,7 +126,7 @@ beforeEach(async () => {
                 description: body.description,
                 status: 'active',
                 created_at: '2026-10-06T03:00:00Z',
-                model_ids: [],
+                model_ids: body.model_ids ?? [],
                 members: body.owner_ids.map((id: string) => ({
                   id: 'tme_' + id,
                   user_id: id,
@@ -1028,4 +1055,254 @@ describe('Team submitted intent across the real private AuthGate boundary', () =
       expect(posts()).toHaveLength(1)
     },
   )
+})
+
+describe('Team creation initial Model selection', () => {
+  function enableModels() {
+    context = { ...context, can_set_models: true }
+    permissions.push('teams.models.write', 'providers.read')
+  }
+  async function selectFirst() {
+    const input = host.querySelector<HTMLInputElement>('[aria-label="Model access"]')!
+    await act(async () => {
+      input.focus()
+      input.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, button: 0 }))
+    })
+    await until(() =>
+      expect(
+        [...document.querySelectorAll('[role="option"]')].some((n) =>
+          n.textContent?.includes('First Model'),
+        ),
+      ).toBe(true),
+    )
+    await act(async () =>
+      [...document.querySelectorAll<HTMLElement>('[role="option"]')]
+        .find((n) => n.textContent?.includes('First Model'))!
+        .click(),
+    )
+  }
+  it('omits the picker and candidate request without independent server and platform Model authority', async () => {
+    await mount()
+    expect(host.querySelector('[aria-label="Model access"]')).toBeNull()
+    expect(requests.some((r) => r.url?.includes('creation-model-'))).toBe(false)
+    context = { ...context, can_set_models: true }
+    await refresh('team-creation-context')
+    expect(host.querySelector('[aria-label="Model access"]')).toBeNull()
+    expect(requests.some((r) => r.url?.includes('creation-model-'))).toBe(false)
+  })
+  it('reviews selected Models before confirmation and creates only after explicit confirmation', async () => {
+    enableModels()
+    await mount()
+    await prepare()
+    await selectFirst()
+    await click('More Models')
+    await until(() =>
+      expect(
+        [...document.querySelectorAll('[role="option"]')].some((n) =>
+          n.textContent?.includes('Second Model'),
+        ),
+      ).toBe(true),
+    )
+    expect(host.querySelector('[aria-label="Remove First Model"]')).toBeNull()
+    expect(host.querySelector('[aria-label="Remove mdl_first"]')).toBeTruthy()
+    await act(async () =>
+      [...document.querySelectorAll<HTMLElement>('[role="option"]')]
+        .find((n) => n.textContent?.includes('Second Model'))!
+        .click(),
+    )
+    await act(async () =>
+      host
+        .querySelector('input[aria-label="Model access"]')!
+        .dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })),
+    )
+    await act(async () =>
+      host
+        .querySelector('form')!
+        .dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })),
+    )
+    await until(() => expect(document.querySelector('[role="dialog"]')).toBeTruthy())
+    expect(posts()).toHaveLength(0)
+    const review = requests.find((r) => r.url === '/admin/teams/creation-model-review')!
+    expect(JSON.parse(review.data)).toEqual({ model_ids: ['mdl_first', 'mdl_second'] })
+    expect(review.headers.get('If-Match')).toBe(`"${context.review_etag}"`)
+    await click('Confirm creation')
+    await until(() => expect(posts()).toHaveLength(1))
+    expect(JSON.parse(posts()[0].data)).toMatchObject({
+      model_ids: ['mdl_first', 'mdl_second'],
+      model_review_token: 'f'.repeat(64),
+    })
+    expect(cache.getMutationCache().getAll()).toHaveLength(0)
+    expect(
+      JSON.stringify(
+        cache
+          .getQueryCache()
+          .getAll()
+          .map((q) => q.state.data),
+      ),
+    ).not.toContain('model_review_token')
+  })
+  it('preserves selected IDs after review failure and never dispatches an unreviewed create', async () => {
+    enableModels()
+    statuses['/admin/teams/creation-model-review'] = 409
+    await mount()
+    await prepare()
+    await selectFirst()
+    await act(async () =>
+      host
+        .querySelector('form')!
+        .dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })),
+    )
+    await until(() =>
+      expect(host.textContent).toContain('This action conflicts with current state'),
+    )
+    expect(posts()).toHaveLength(0)
+    expect(document.querySelector('[role="dialog"]')).toBeNull()
+    expect(host.querySelector('[aria-label="Remove First Model"]')).toBeTruthy()
+  })
+  it('requires explicit current-context review after a selected-review409 without changing the selected IDs', async () => {
+    enableModels()
+    statuses['/admin/teams/creation-model-review'] = 409
+    const reviewing = deferred()
+    holds['/admin/teams/creation-model-review'] = () => reviewing.promise
+    await mount()
+    await prepare()
+    await selectFirst()
+    await act(async () =>
+      host
+        .querySelector('form')!
+        .dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })),
+    )
+    context = { ...context, review_etag: 'c'.repeat(64) }
+    delete holds['/admin/teams/creation-model-review']
+    reviewing.release()
+    await until(() => expect(host.textContent).toContain('Defaults or currency changed'))
+    expect(posts()).toHaveLength(0)
+    expect(host.querySelector('[aria-label="Remove First Model"]')).toBeTruthy()
+    expect(
+      [...host.querySelectorAll<HTMLButtonElement>('button')].find(
+        (b) => b.textContent === 'Create Team',
+      )!.disabled,
+    ).toBe(true)
+    delete statuses['/admin/teams/creation-model-review']
+    await click('Review current defaults')
+    await submit()
+    await until(() => expect(posts()).toHaveLength(1))
+    const reviews = requests.filter((r) => r.url === '/admin/teams/creation-model-review')
+    expect(reviews[1].headers.get('If-Match')).toBe(`"${context.review_etag}"`)
+    expect(JSON.parse(posts()[0].data).model_ids).toEqual(['mdl_first'])
+  })
+  it('hides cached Provider labels through permission renewal and rereads the redacted candidate set', async () => {
+    enableModels()
+    await mount()
+    await selectFirst()
+    expect(document.body.textContent).toContain('Visible Provider')
+    const renewing = deferred()
+    holds['/auth/permissions'] = () => renewing.promise
+    await act(async () => {
+      void cache.invalidateQueries({ queryKey: ['team-creation-permissions'] })
+    })
+    await until(() => expect(host.querySelector('[aria-label="Model access"]')).toBeNull())
+    expect(document.body.textContent).not.toContain('Visible Provider')
+    permissions = permissions.filter((p) => p !== 'providers.read')
+    delete holds['/auth/permissions']
+    renewing.release()
+    // The held permission response was already captured. A second fresh permission read returns the revocation.
+    await until(() => expect(host.querySelector('[name="name"]')).toBeTruthy())
+    await refresh('team-creation-permissions')
+    await until(() =>
+      expect(
+        requests.filter((r) => r.url === '/admin/teams/creation-model-candidates').length,
+      ).toBeGreaterThanOrEqual(2),
+    )
+    const input = host.querySelector<HTMLInputElement>('[aria-label="Model access"]')!
+    await act(async () => {
+      input.focus()
+      input.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, button: 0 }))
+    })
+    await until(() => expect(document.querySelector('[role="option"]')).toBeTruthy())
+    expect(document.body.textContent).not.toContain('Visible Provider')
+    expect(document.body.textContent).toContain('Unknown')
+    expect(host.querySelector('[aria-label="Remove First Model"]')).toBeTruthy()
+  })
+  it('cannot restore Provider labels from a superseded candidate response after independent permission revocation', async () => {
+    enableModels()
+    await mount()
+    await selectFirst()
+    const obsolete = deferred()
+    holds['/admin/teams/creation-model-candidates'] = () => obsolete.promise
+    await act(async () => {
+      void cache.invalidateQueries({ queryKey: ['team-creation-models'] })
+    })
+    await until(() => expect(document.body.textContent).not.toContain('Visible Provider'))
+    permissions = permissions.filter((p) => p !== 'providers.read')
+    delete holds['/admin/teams/creation-model-candidates']
+    await refresh('team-creation-permissions')
+    await until(() => expect(host.querySelector('[aria-label="Model access"]')).toBeTruthy())
+    const input = host.querySelector<HTMLInputElement>('[aria-label="Model access"]')!
+    await act(async () => {
+      input.focus()
+      input.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, button: 0 }))
+    })
+    await until(() => expect(document.querySelector('[role="option"]')).toBeTruthy())
+    await act(async () => {
+      obsolete.release()
+      await obsolete.promise
+    })
+    expect(document.body.textContent).not.toContain('Visible Provider')
+    expect(document.body.textContent).toContain('Unknown')
+    expect(host.querySelector('[aria-label="Remove First Model"]')).toBeTruthy()
+  })
+  it('clears only an unsubmitted selection on Model permission loss and creates no implicit grant', async () => {
+    enableModels()
+    await mount()
+    await prepare()
+    await selectFirst()
+    permissions = permissions.filter((p) => p !== 'teams.models.write')
+    await refresh('team-creation-permissions')
+    expect(host.querySelector('[aria-label="Model access"]')).toBeNull()
+    expect(host.textContent).toContain('Model access permission is unavailable')
+    const create = [...host.querySelectorAll<HTMLButtonElement>('button')].find(
+      (b) => b.textContent === 'Create Team',
+    )!
+    expect(create.disabled).toBe(true)
+    await click('Clear Model selection')
+    await submit()
+    await until(() => expect(posts()).toHaveLength(1))
+    expect(JSON.parse(posts()[0].data)).not.toHaveProperty('model_ids')
+    expect(JSON.parse(posts()[0].data)).not.toHaveProperty('model_review_token')
+    expect(requests.some((r) => r.url === '/admin/teams/creation-model-review')).toBe(false)
+  })
+  it('recovers original submitted Models/token through actual AuthGate500 without automatic review or create', async () => {
+    enableModels()
+    statuses['/admin/teams'] = 409
+    await mount(true)
+    await prepare()
+    await selectFirst()
+    await submit()
+    await until(() => expect(host.textContent).toContain('Retry original creation'))
+    const original = posts()[0],
+      reviews = requests.filter((r) => r.url === '/admin/teams/creation-model-review').length
+    statuses['/auth/session'] = 500
+    await act(async () => {
+      void cache.invalidateQueries({ queryKey: sessionKey })
+    })
+    await until(() => expect(host.textContent).toContain('Unable to check'))
+    expect(host.querySelector('form')).toBeNull()
+    delete statuses['/auth/session']
+    identity = { ...identity, csrf_token: 'renewed-model-csrf' }
+    context = { ...context, review_etag: 'c'.repeat(64) }
+    await click('Retry')
+    await until(() => expect(host.textContent).toContain('Retry original creation'))
+    expect(posts()).toHaveLength(1)
+    expect(requests.filter((r) => r.url === '/admin/teams/creation-model-review')).toHaveLength(
+      reviews,
+    )
+    delete statuses['/admin/teams']
+    outcome = 'applied'
+    await click('Retry original creation')
+    await until(() => expect(router.state.location.pathname).toBe('/admin/teams/tea_created'))
+    expect(posts()[1].data).toBe(original.data)
+    expect(posts()[1].headers.get('If-Match')).toBe(original.headers.get('If-Match'))
+    expect(posts()[1].headers.get('X-CSRF-Token')).toBe('renewed-model-csrf')
+  })
 })

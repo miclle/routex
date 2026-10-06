@@ -22,10 +22,28 @@ import (
 	"gorm.io/gorm"
 )
 
+// Frozen test schema isolates V63 reconstruction from later additive columns.
+type teamCreationReceiptFixtureV63 struct {
+	CreationID     string    `gorm:"primaryKey;size:36;check:ck_team_creation_intent,CHAR_LENGTH(creation_id) = 36 AND CHAR_LENGTH(request_hash) = 64 AND CHAR_LENGTH(review_etag) = 64"`
+	ActorID        string    `gorm:"size:30;not null;index:idx_team_creation_actor"`
+	ActorCreatedAt time.Time `gorm:"precision:6;not null"`
+	TeamID         string    `gorm:"size:30;not null;uniqueIndex:uq_team_creation_team"`
+	TeamCreatedAt  time.Time `gorm:"precision:6;not null"`
+	RequestHash    string    `gorm:"size:64;not null"`
+	ReviewETag     string    `gorm:"column:review_etag;size:64;not null"`
+	SnapshotJSON   string    `gorm:"size:131072;not null;check:ck_team_creation_snapshot,OCTET_LENGTH(snapshot_json) <= 131072"`
+	CreatedAt      time.Time `gorm:"precision:6;not null"`
+}
+
+func (teamCreationReceiptFixtureV63) TableName() string { return "team_creation_receipts" }
+
 // Root assigns V63 after all checked predecessors; the fixture never invokes an
 // unexported migration or registers a candidate on its own.
 func testTeamCreationLimitsMigration(t *testing.T, db *gorm.DB) {
 	const candidateVersion = 63
+	// An explicit frozen projection prevents prepared SELECT * result shapes
+	// from changing when V66 adds columns after the V63 reconstruction.
+	receiptColumns := []string{"creation_id", "actor_id", "actor_created_at", "team_id", "team_created_at", "request_hash", "review_etag", "snapshot_json", "created_at"}
 	ctx := context.Background()
 	var baseline []int
 	if err := db.Table("schema_migrations").Order("version").Pluck("version", &baseline).Error; err != nil {
@@ -141,7 +159,7 @@ func testTeamCreationLimitsMigration(t *testing.T, db *gorm.DB) {
 			t.Fatal("V63 modified predecessor history")
 		}
 	}
-	model := &entity.TeamCreationReceipt{}
+	model := &teamCreationReceiptFixtureV63{}
 	if err := db.Migrator().DropTable(model); err != nil {
 		t.Fatal(err)
 	}
@@ -186,17 +204,17 @@ func testTeamCreationLimitsMigration(t *testing.T, db *gorm.DB) {
 	if err != nil || len(raw) <= 65535 || len(raw) > 131072 {
 		t.Fatal("1000-owner production snapshot boundary", err, len(raw))
 	}
-	original := entity.TeamCreationReceipt{CreationID: "63000000-0000-4000-8000-000000000001", ActorID: "usr_deleted_tc63", ActorCreatedAt: stamp, TeamID: "tea_deleted_tc63", TeamCreatedAt: stamp, RequestHash: strings.Repeat("b", 64), ReviewETag: strings.Repeat("c", 64), SnapshotJSON: string(raw), CreatedAt: stamp.Add(time.Hour)}
+	original := teamCreationReceiptFixtureV63{CreationID: "63000000-0000-4000-8000-000000000001", ActorID: "usr_deleted_tc63", ActorCreatedAt: stamp, TeamID: "tea_deleted_tc63", TeamCreatedAt: stamp, RequestHash: strings.Repeat("b", 64), ReviewETag: strings.Repeat("c", 64), SnapshotJSON: string(raw), CreatedAt: stamp.Add(time.Hour)}
 	if err := db.Create(&original).Error; err != nil {
 		t.Fatal("receipt must survive absent live actors/Teams", err)
 	}
-	if err := db.Take(&original, "creation_id = ?", original.CreationID).Error; err != nil {
+	if err := db.Select(receiptColumns).Take(&original, "creation_id = ?", original.CreationID).Error; err != nil {
 		t.Fatal(err)
 	}
 	persisted := func() {
 		t.Helper()
-		var got entity.TeamCreationReceipt
-		if err := db.Take(&got, "creation_id = ?", original.CreationID).Error; err != nil || !teamCreationReceiptFixtureEqual(got, original) {
+		var got teamCreationReceiptFixtureV63
+		if err := db.Select(receiptColumns).Take(&got, "creation_id = ?", original.CreationID).Error; err != nil || !teamCreationFixtureHistoryEqual(got, original) {
 			t.Fatal("immutable receipt changed", err)
 		}
 	}
@@ -212,8 +230,8 @@ func testTeamCreationLimitsMigration(t *testing.T, db *gorm.DB) {
 	}
 	for i, sample := range []struct {
 		name   string
-		modify func(*entity.TeamCreationReceipt)
-	}{{"request_hash", func(r *entity.TeamCreationReceipt) { r.RequestHash = "short" }}, {"review_etag", func(r *entity.TeamCreationReceipt) { r.ReviewETag = "short" }}, {"creation_id", func(r *entity.TeamCreationReceipt) { r.CreationID = "short" }}, {"snapshot_bytes", func(r *entity.TeamCreationReceipt) { r.SnapshotJSON = strings.Repeat("界", 43691) }}} {
+		modify func(*teamCreationReceiptFixtureV63)
+	}{{"request_hash", func(r *teamCreationReceiptFixtureV63) { r.RequestHash = "short" }}, {"review_etag", func(r *teamCreationReceiptFixtureV63) { r.ReviewETag = "short" }}, {"creation_id", func(r *teamCreationReceiptFixtureV63) { r.CreationID = "short" }}, {"snapshot_bytes", func(r *teamCreationReceiptFixtureV63) { r.SnapshotJSON = strings.Repeat("界", 43691) }}} {
 		bad := original
 		bad.CreationID = "63000000-0000-4000-8000-0000000000" + teamCreationFixtureDecimal(10+i)
 		bad.TeamID = "tea_tc63_bad_" + sample.name
@@ -254,11 +272,25 @@ func testTeamCreationLimitsMigration(t *testing.T, db *gorm.DB) {
 	assertSchema()
 	persisted()
 	history()
-	var receipts []entity.TeamCreationReceipt
-	if err := db.Find(&receipts).Error; err != nil || len(receipts) != 1 {
+	var receipts []teamCreationReceiptFixtureV63
+	if err := db.Select(receiptColumns).Find(&receipts).Error; err != nil || len(receipts) != 1 {
 		t.Fatal("invalid inserts/DDL duplicated receipt", err, len(receipts))
 	}
 	ledger(baseline)
+	// Reconstructing V63 deliberately used its frozen schema. Later additive
+	// columns are restored through their own immutable version before any current
+	// entity or following lifecycle is used; no predecessor ledger is discarded.
+	if slices.Contains(baseline, 66) {
+		res := db.Table("schema_migrations").Where("version = ?", 66).Delete(&struct{}{})
+		if res.Error != nil || res.RowsAffected != 1 {
+			t.Fatal("restore additive model schema", res.Error)
+		}
+		migrate()
+		var current entity.TeamCreationReceipt
+		if err := db.Session(&gorm.Session{QueryFields: true}).Take(&current, "creation_id = ?", original.CreationID).Error; err != nil || current.ModelSnapshotVersion != 0 || current.ModelCount != 0 || current.ModelDigest != nil {
+			t.Fatal("historical empty receipt compatibility", err)
+		}
+	}
 }
 
 func teamCreationFixtureDecimal(value int) string {

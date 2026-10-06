@@ -3,7 +3,6 @@ package handler
 
 import (
 	"github.com/fox-gonic/fox"
-
 	"github.com/miclle/routex/internal/routex/service"
 	"github.com/miclle/routex/website"
 )
@@ -185,6 +184,8 @@ func (ctrl *Ctrl) RegisterRoutes(r *fox.Engine) {
 	identity.GET("/admin/members/:user_id/state", memberMetadataResponseHeaders, ctrl.requireSession, ctrl.GetMemberState)
 	identity.PATCH("/admin/members/:user_id", memberMetadataResponseHeaders, ctrl.requireSession, sameOrigin, requireCSRF, jsonManagementRequest, ctrl.RequirePermission("members.write"), ctrl.SetReviewedMemberState)
 	identity.GET("/admin/teams/creation-context", memberMetadataResponseHeaders, ctrl.requireSession, ctrl.GetTeamCreationContext)
+	identity.GET("/admin/teams/creation-model-candidates", memberMetadataResponseHeaders, ctrl.requireSession, ctrl.ListTeamCreationModelCandidates)
+	identity.POST("/admin/teams/creation-model-review", memberMetadataResponseHeaders, ctrl.requireSession, sameOrigin, requireCSRF, jsonManagementRequest, ctrl.ReviewTeamCreationModels)
 	admin := identity.Group("/admin")
 	admin.Use(ctrl.requireSession)
 	admin.GET("/members/:user_id/model-access-workspace", ctrl.MemberModelAccessWorkspace)
@@ -195,7 +196,7 @@ func (ctrl *Ctrl) RegisterRoutes(r *fox.Engine) {
 	admin.GET("/resource-model-candidates", ctrl.ResourceModelCandidates)
 	admin.GET("/teams", ctrl.RequirePermission("teams.read_all"), ctrl.ListAdminTeams)
 	admin.GET("/teams/:team_id", ctrl.GetTeam)
-	admin.POST("/teams", sameOrigin, requireCSRF, jsonManagementRequest, ctrl.CreateTeam)
+	admin.POST("/teams", sameOrigin, requireCSRF, jsonTeamCreationRequest, ctrl.CreateTeam)
 	admin.PATCH("/teams/:team_id", sameOrigin, requireCSRF, jsonManagementRequest, ctrl.UpdateTeam)
 	admin.PUT("/teams/:team_id/members", sameOrigin, requireCSRF, jsonManagementRequest, ctrl.SetTeamMembers)
 	admin.PUT("/teams/:team_id/models", sameOrigin, requireCSRF, jsonManagementRequest, ctrl.SetTeamModels)

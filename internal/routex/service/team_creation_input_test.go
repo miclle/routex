@@ -187,7 +187,7 @@ func TestTeamCreationPreviewRedactionExactIntegersAndCoherentFence(t *testing.T)
 	proof := runtimeAdmissionProof{CreatedAt: actor.CreatedAt, Eligible: true, State: "not_required"}
 	rule := entity.DefaultLimitRule{RuleETag: strings.Repeat("b", 64)}
 	pricing := entity.PricingSetting{ETag: strings.Repeat("c", 64), PlatformCurrency: "USD"}
-	tag := teamCreationReviewHash(actor, proof, rule, policy, pricing, nil)
+	tag := teamCreationReviewHash(actor, proof, rule, policy, pricing, nil, false)
 	for name, change := range map[string]func(*entity.User, *runtimeAdmissionProof, *entity.DefaultLimitRule, *limits.Policy, *entity.PricingSetting, *[]string){
 		"birth": func(a *entity.User, _ *runtimeAdmissionProof, _ *entity.DefaultLimitRule, _ *limits.Policy, _ *entity.PricingSetting, _ *[]string) {
 			a.CreatedAt = a.CreatedAt.Add(time.Millisecond)
@@ -216,7 +216,7 @@ func TestTeamCreationPreviewRedactionExactIntegersAndCoherentFence(t *testing.T)
 			a, p, r, v, c := actor, proof, rule, policy, pricing
 			var e []string
 			change(&a, &p, &r, &v, &c, &e)
-			if teamCreationReviewHash(a, p, r, v, c, e) == tag {
+			if teamCreationReviewHash(a, p, r, v, c, e, false) == tag {
 				t.Fatal("coherent fence ignored changed generation")
 			}
 		})

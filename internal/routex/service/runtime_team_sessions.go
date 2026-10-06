@@ -7,10 +7,9 @@ import (
 	"sort"
 	"time"
 
-	"gorm.io/gorm"
-
 	"github.com/miclle/routex/internal/routex/entity"
 	"github.com/miclle/routex/pkg/secret"
+	"gorm.io/gorm"
 )
 
 // TeamSessionIdentity is an exact request-local Team invocation subject. Its
@@ -76,8 +75,10 @@ func addTeamSessionRuntimeAuthorization(auth *runtimeAuthorization, data *teamSe
 			auth.TeamSessions[session.TokenHash] = runtimeTeamSession{ID: session.ID, UserID: session.UserID, TokenHash: session.TokenHash, ExpiresAt: session.ExpiresAt}
 		}
 	}
+	auth.TeamCreationGrants = map[string]map[string]runtimeTeamCreationGrant{}
 	for _, team := range data.Teams {
 		if safeTeamSessionID(team.ID) && team.Status == entity.ResourceActive {
+			auth.TeamCreationGrants[team.ID] = map[string]runtimeTeamCreationGrant{}
 			auth.Teams[team.ID] = runtimeTeam{CreatedAt: team.CreatedAt, Members: map[string]string{}, Models: map[string]bool{}}
 		}
 	}
@@ -88,6 +89,17 @@ func addTeamSessionRuntimeAuthorization(auth *runtimeAuthorization, data *teamSe
 		}
 	}
 	for _, grant := range data.Grants {
+		if stored, exists := auth.TeamCreationGrants[grant.TeamID]; exists {
+			source := ""
+			if grant.SourceCreationReceiptID != nil {
+				source = *grant.SourceCreationReceiptID
+			}
+			request := ""
+			if grant.SourceRequestID != nil {
+				request = *grant.SourceRequestID
+			}
+			stored[grant.ModelID] = runtimeTeamCreationGrant{ModelCreatedAt: auth.ModelCreated[grant.ModelID], CreationID: source, RequestID: request}
+		}
 		team, exists := auth.Teams[grant.TeamID]
 		if exists && auth.Models[grant.ModelID] {
 			team.Models[grant.ModelID] = true

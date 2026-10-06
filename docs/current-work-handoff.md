@@ -1,9 +1,8 @@
 # Current implementation handoff
 
 Updated: 2026-10-06. Status: active. Continue the full RouteX objective and
-prioritize partial capabilities. Current totals are **10 complete, 17 partial,
-three unstarted** after reopening F06 for its missing creation Model access
-selector. Earlier checkpoint counts below remain historical. The coordinated roadmap lives outside this repository;
+prioritize partial capabilities. Current totals are **11 complete, 16 partial,
+three unstarted** after accepting F06 initial Team Model access selection. Earlier checkpoint counts below remain historical. The coordinated roadmap lives outside this repository;
 [Implementation](IMPLEMENTATION.md) records the independent historical gates.
 
 ## Current work and next gates
@@ -20,7 +19,8 @@ controlled PostgreSQL bilingual/original-Session restart acceptance pass. Both
 ordinary targets also retain exact drafts across genuine periodic Session reads.
 Key119 and controlled production acceptance were committed and pushed as
 `cf05c57121ea770b1af04163b2c5b7f59c5fab58`, with exact remote main read-back.
-Initial Team Model121 and Role descriptions are the next gates.
+Initial Team Model121 acceptance is complete. Role descriptions, Connection
+metadata and single-model elapsed observation are the next independent phases.
 
 Team focused R4–R8 remain failed. R4 exposed a pinned PostgreSQL GORM DropIndex
 fixture syntax error and missing private context headers; R5 confirmed the
@@ -97,33 +97,80 @@ owned listeners, tab and Compose resources are independently absent. Backend,
 schema and accepted full115 remain unchanged. Defaults stay future-creation
 templates, separate from current account enforcement.
 
-## Next Team creation gap
+## Accepted initial Team Model access
 
-Current creation UI and strict request have no initial Model access selection.
-The approved form includes that section between Basic information and Resource
-limits. Reopen F06 as partial and add it in a separate tested phase after the
-current V63/Key warning work. Preserve this composition using local shadcn/Base
-UI, independent model-read/write authority, exact selected identities and atomic
-explicit grants. Empty selection grants no access; do not import an implicit
-all-models behavior. Record this security-contract difference in the product
-requirements. Reconciliation must preserve existing V63 receipts and historical
-commit/current-application separation.
+The checked V66 phase restores Model access between Basic information
+and Resource limits without changing V63 limits, SAVE/editor seeds or Key
+warnings. Current create/model authority, Provider-label redaction, retained
+off-page selections and one aggregate selected-set proof fence atomic explicit
+grants. Empty selection grants no Models. Dispatched IDs/token remain with the
+original UUID/body/If-Match through same-actor recovery. Complete current grant
+publication is separate from route availability and native inference success.
 
-The next Model-selection phase is now being implemented in an isolated worktree
-with separate backend and frontend owners. It uses one aggregate selected-set
-review, atomic explicit grants and normalized private receipt provenance. Its
-Key V64/V65 predecessor has passed its delivery gates. Model Focus R3 passed
-16 direct cases on both drivers after a fixture-only parent correction; full121
-is running. Native/browser delivery remains pending. Source implementation does
-not complete F06.
+The isolated frontend passed212 related cases and3,706 full cases/157 files,
+plus types/lint/format. Focus R2 retains fourteen passes and two migration fixture
+failures. The one-file live-parent correction preserves foreign keys/history;
+Focus R3 passed sixteen direct cases and nineteen events on both drivers.
+Full121 passed on the unchanged isolated 1,630-path floor: 121 ordered scenarios
+per driver, eight constraints and 4,397 matching named results. The runner passed
+its complete source/Git/index guard before and after execution. Its worktree
+subsequently disappeared, so a later strict live review failed and is retained.
+Root closed the completed run using the captured final guard, unchanged text
+review, exact current Go/dependency equivalence and independent resource absence;
+no later live worktree check is claimed. Main has an independent forty-four-file
+candidate carry preserving unowned paths/staged identities. Main format/check,
+complete Task (3,759 cases/158 frontend files), dual-driver auth/gateway lifecycle
+and production build passed. Actual native/browser/restart and separate durable-evidence review subsequently
+passed as recorded below; the original failed helper remains failed. The production helper's first source draft had incorrect POST
+phase indices; an unexecuted two-line successor passed57 preparation checks.
+Those source checks are not browser or runtime acceptance.
 
-The isolated frontend source passed 212 related cases across eight suites,
-TypeScript, scoped ESLint and formatting checks. The full frontend regression
-also passed 3,706 cases across 157 files on the unchanged frontend source. The picker preserves the
-three-column composition, retained off-page selections, Provider-name redaction
-and the original dispatched selected-set review through same-actor recovery.
-Backend source, real migrations, native calls and browser acceptance remain
-separate pending gates; these frontend checks do not complete F06.
+
+The first controlled production run reached normal three-user sign-in, paged
+selection, redacted Provider labels, unauthorized selector hiding and an empty
+Team 201 with zero assigned Models. Its evidence collector then failed by
+selecting an unused `created_at` column absent from `team_model_grants`. This is
+a failed helper run, not accepted native/browser/restart delivery. Its exact
+application listeners and Compose resources are independently absent. The narrow
+collector correction was separately frozen and used by a fresh run.
+
+The second controlled production run passed all ten browser checkpoints through
+original-request replay: three normal logins, paged selection and Provider
+redaction, unauthorized empty creation, a real selected-review409, committed201
+withheld as503, actual AuthGate unmount/manual recovery, EN–ZH–EN retained fields,
+same-artifact restart and byte-identical original200. It then failed before any
+native request at a helper precondition. The first diagnosis identified an
+independent incorrect active-coverage requirement; subsequent source review and
+fresh database readback established that the earlier global-zero personal-grant
+assertion fails first. Model creation explicitly grants each Model to its creating
+controller; these existing grants must be preserved rather than deleted. The
+RPM-only calendar must still be checked inactive before admission and active
+after successful calls. Independent readback confirmed zero calls and
+attempts, inactive UTC accounting, two Teams/receipts/grants/receipt children; all
+owned application/database listeners and Compose resources are absent. This run
+remains failed, and native acceptance is not claimed. A narrow helper successor
+must validate the actual inactive-to-active accounting transition using only the
+four disclosed probes, without warmup, journal reset or fabricated coverage.
+The preserved root failure receipt SHA256 is
+`73e87cb6c201a6763b3da2d6ce139d85ca42bce9741f370212e8a89c37817be7`.
+
+
+The third production run was rejected before forwarding the original retry:
+root clicked before all postrestart creation-authority reads had completed. Its
+actual browser checkpoints and cleanup are retained, but it is not accepted.
+The fourth run waited for fresh reads and passed all ten browser checkpoints,
+including the byte-identical original200 replay without duplicate creation. It
+then failed before any native probe because the helper required zero global
+personal grants. Readback confirmed exactly51 explicit setup-controller grants,
+zero grants for all three browser actors, zero calls/attempts/Keys/Projects and
+exactly two Teams/receipts/Team grants/receipt children. The source at
+`internal/routex/service/catalog_models.go` intentionally creates those controller
+grants. All owned tabs, listeners and Compose resources are independently absent.
+A narrow source-only helper successor must retain the exact51 baseline rows,
+prove the browser actors remain grant-free and keep the same four native probes
+and two upstream requests. This corrects the oracle without changing product
+behavior or weakening Team isolation. Fourth-run failure receipt SHA256:
+`cdc26cff9e531ee035f21069915349e769540bd860bdadbcb701bcf7e97888a1`.
 
 ## Historical Member warnings and Restore recovery
 
@@ -1367,3 +1414,90 @@ The copy correction passed 145 focused notification/localization cases, the
 complete 3,714-case frontend suite across 157 files, formatting and mandatory
 checking. The initial five stale title expectations remain a failed checkpoint;
 they were updated without changing behavior assertions.
+
+### Active Model and Role queue
+
+Model Focus R3 passed sixteen direct PostgreSQL/MySQL cases and nineteen
+named events on the exact 1,630-path source floor after a fixture-only live-parent
+correction. R2 retains fourteen passes and two fixture failures. Full121 is
+running against that same code floor, with no documentation overlay or success
+claim. The forty-four-file main-context proposal preserves delivered SAVE,
+RFC3339 and Key behavior; an independent uncommitted main carry now permits source gates while the complete
+database matrix stays protected. No delivery is claimed.
+
+Role description preparation composes twenty-one backend and fourteen UI files
+onto this Model floor without conflicts; private V67/two-case registration brings
+the proposal to123 cases. Its 250 focused frontend tests/types and earlier eight
+real-driver smoke cases remain independent source evidence. Accepted Model121,
+actual full123, final production/browser/restart and delivery remain pending.
+
+### Prepared Connection management follow-up
+
+After the Model and Role gates, the next bounded F11 phase adds literal-name
+and protocol filters plus reviewed name editing to the existing Connections
+table. Backend and frontend source preparation is parallel and independent;
+no carry, production or delivery is claimed. Reuse the shared Connection/egress
+revision, independent Provider read/write authority, required reason and manual
+identical uncertain retries. Protocol, Base URL, egress, Credentials, Models and
+weights remain outside this name-edit phase. Real persisted Connection state
+and dispatch enforcement precede a later status filter or lifecycle control.
+
+Configurable quota behavior has no approved editable interaction or complete
+parent/child safety contract. Existing hard stops remain enforced; the broader
+capability stays partial while independent product gaps continue.
+
+## Accepted initial Team Model access, 2026-10-06
+
+The V66 phase closes the remaining F06 creation gap. The existing form keeps
+Basic information, Model access and Resource limits, with bounded search,
+retained off-page selections, independent Provider-label authority and explicit
+empty grants. Atomic creation and original-intent recovery are backed by the
+complete121 PostgreSQL/MySQL matrix, main Task testing (3,759 frontend cases),
+both authentication/gateway lifecycle drivers and the embedded production build.
+The final main mandatory check passed with no errors; two existing Fast Refresh
+warnings remain unchanged.
+
+The fifth controlled PostgreSQL run passed the ten browser checkpoints: three
+normal sign-ins, pagination and redaction, unauthorized empty creation, explicit
+selected-set conflict review, committed-response loss, private-interface unmount
+and manual recovery, EN–ZH–EN draft preservation, same-artifact/original-Session
+restart and byte-identical creation replay. Four disclosed native probes produced
+two Model authorization denials and two completed selected-Model calls, with only
+two upstream attempts. Each completed attempt retains its exact Credential,
+Connection, provider-model and published snapshot, authoritative1/1 Token usage
+and a2 USD charge. Rejected calls retain unknown usage and not-captured pricing;
+absence of an attempt never fabricates known-zero usage.
+
+The original runner remains **failed**: its final collector incorrectly required
+zero Tokens for pre-admission Model denials. A separately reviewed read-only
+post-run check passed against retained observations and exact durable facts:
+four Calls, two completed Attempts, two Teams/receipts/owner memberships, two
+selected grants/receipt children and two typed creation commits. All51 existing
+setup-controller personal grants remain present; browser actors have none.
+No Key, Project, extra replay call or duplicate creation was introduced. The
+post-run evidence receipt SHA256 is
+`6017a1ddf0cede71b1ee646610086f937bc33da0c907c55d732fd03eef364872`.
+Visual review passed and the three original tabs had no captured console
+warnings/errors. Owned containers, networks, volumes and all four listeners are
+independently absent. Post-stop active journal coverage and runtime API
+re-enforcement were not observed; the original inactive pre-native/after-denial
+checks and inherited quota tests remain separate. This acceptance closes the
+stated F06 feature criteria, without relabeling the original helper as passed.
+
+Current capability totals are11 complete,16 partial and3 unstarted. Role
+descriptions, Connection metadata and single-model elapsed observation continue
+as independent phases; the full product objective remains active.
+
+## Role matrix failure retained, 2026-10-06
+
+The isolated Role description complete123 run ended failed after2,682.073s.
+MySQL passed123 ordered scenarios and four constraints. PostgreSQL passed122
+scenarios and four constraints but failed the existing
+`local_registration_approval_migration` case at V57 with PostgreSQL's cached-plan
+result-type error. Both added Role description scenarios passed on both drivers.
+No Role delivery or complete123 acceptance is claimed. The captured final
+source/index guard passed; diagnosis is confined to the migration/connection
+boundary without changing released migration steps. The original failed log
+SHA256 is`213b48a8e23b4b14f3add2285ba791e2f2e298410142e2f4c950677c9038408a`.
+This separate candidate failure does not relabel the already accepted Model121
+run or the scoped Team Model production evidence.

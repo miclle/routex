@@ -5,6 +5,8 @@ import {
   getTeamCreationContext,
   createTeamWithInitialLimits,
   getTeamCreationOwners,
+  getTeamCreationModels,
+  reviewTeamCreationModels,
 } from './resources'
 import type { TeamCreationContext, TeamCreationIntent } from '@/types/resources'
 const original = client.defaults.adapter
@@ -13,6 +15,7 @@ let responseStatus: number
 const ctx: TeamCreationContext = {
   review_etag: 'a'.repeat(64),
   default_rule_etag: 'b'.repeat(64),
+  can_set_models: false,
   platform_currency: 'USD',
   editable_fields: [
     'tokens_5h',
@@ -51,7 +54,7 @@ function receipt() {
       description: '',
       status: 'active',
       created_at: '2026-10-06T01:00:00Z',
-      model_ids: [],
+      model_ids: [] as string[],
       members: [
         {
           id: 'tme_one',
@@ -323,5 +326,183 @@ describe('Team reviewed creation transport', () => {
     await expect(getTeamCreationOwners('界'.repeat(67))).rejects.toThrow()
     await expect(getTeamCreationOwners('\ud800')).rejects.toThrow()
     expect(requests).toHaveLength(0)
+  })
+})
+
+describe('Team initial Model access transport', () => {
+  const row = { id: 'mdl_case', name: '中文 Model', providers: null, protocols: ['openai_chat'] }
+  it('keeps purpose pagination, literal search, redacted labels and exact current protocols', async () => {
+    value = { items: [row], next_cursor: 'mdl_next' }
+    const signal = new AbortController().signal
+    expect(await getTeamCreationModels('%_中文', null, signal)).toEqual(value)
+    expect(requests[0].url).toBe('/admin/teams/creation-model-candidates')
+    expect(requests[0].params).toEqual({ q: '%_中文', cursor: undefined, limit: 50 })
+    expect(requests[0].signal).toBe(signal)
+    value = { items: [], next_cursor: 'mdl_later' }
+    expect((await getTeamCreationModels('', 'mdl_next')).next_cursor).toBe('mdl_later')
+  })
+  it.each([
+    { ...row, providers: ['Private', 'Private'] },
+    { ...row, providers: ['z', 'a'] },
+    { ...row, provider_ids: ['pro_private'] },
+    { ...row, protocols: [] },
+    { ...row, protocols: ['guessed_protocol'] },
+    { ...row, protocols: ['openai_responses', 'openai_chat'] },
+    { ...row, id: 'usr_model' },
+    { ...row, name: 'bad\u0000name' },
+  ])('rejects malformed or excessive candidate disclosure %#', async (item) => {
+    value = { items: [item], next_cursor: null }
+    await expect(getTeamCreationModels('', null)).rejects.toThrow()
+  })
+  it('preserves portable Unicode scalar label ordering and empty authorized Provider labels', async () => {
+    value = { items: [{ ...row, providers: ['\ue000', '😀'] }], next_cursor: null }
+    expect((await getTeamCreationModels('', null)).items[0].providers).toEqual(['\ue000', '😀'])
+    value = { items: [{ ...row, providers: [] }], next_cursor: null }
+    expect((await getTeamCreationModels('', null)).items[0].providers).toEqual([])
+  })
+  it('rejects oversize pages, duplicate identities, bad cursor and excessive UTF-8 search', async () => {
+    value = {
+      items: Array.from({ length: 51 }, (_, i) => ({ ...row, id: `mdl_${i}` })),
+      next_cursor: null,
+    }
+    await expect(getTeamCreationModels('', null)).rejects.toThrow()
+    value = { items: [row, row], next_cursor: null }
+    await expect(getTeamCreationModels('', null)).rejects.toThrow()
+    value = { items: [], next_cursor: 'mdl_same' }
+    await expect(getTeamCreationModels('', 'mdl_same')).rejects.toThrow()
+    requests = []
+    await expect(getTeamCreationModels('中'.repeat(67), null)).rejects.toThrow()
+    await expect(getTeamCreationModels('', 'mdl_bad ')).rejects.toThrow()
+    expect(requests).toHaveLength(0)
+  })
+  it('uses a read-only reviewed selected set without changing a creation UUID/body', async () => {
+    value = { model_ids: ['mdl_Case', 'mdl_case'], model_review_token: 'f'.repeat(64) }
+    const signal = new AbortController().signal
+    expect(
+      await reviewTeamCreationModels(
+        ['mdl_case', 'mdl_Case'],
+        ctx.review_etag,
+        'current-csrf',
+        signal,
+      ),
+    ).toEqual(value)
+    expect(requests[0].url).toBe('/admin/teams/creation-model-review')
+    expect(JSON.parse(requests[0].data)).toEqual({ model_ids: ['mdl_case', 'mdl_Case'] })
+    expect(requests[0].headers.get('If-Match')).toBe(`"${ctx.review_etag}"`)
+    expect(requests[0].headers.get('X-CSRF-Token')).toBe('current-csrf')
+    expect(requests[0].signal).toBe(signal)
+    expect(requests.some((r) => r.url === '/admin/teams')).toBe(false)
+  })
+  it.each([
+    { model_ids: ['mdl_case', 'mdl_Case'], model_review_token: 'f'.repeat(64) },
+    { model_ids: ['mdl_other'], model_review_token: 'f'.repeat(64) },
+    { model_ids: ['mdl_case', 'mdl_case'], model_review_token: 'f'.repeat(64) },
+    { model_ids: ['mdl_Case', 'mdl_case'], model_review_token: 'F'.repeat(64) },
+    {
+      model_ids: ['mdl_Case', 'mdl_case'],
+      model_review_token: 'f'.repeat(64),
+      secret: 'unexpected',
+    },
+  ])('fails closed on an unconfirmed selected review %#', async (response) => {
+    value = response
+    await expect(
+      reviewTeamCreationModels(['mdl_case', 'mdl_Case'], ctx.review_etag, 'csrf'),
+    ).rejects.toThrow()
+  })
+  it('supports the complete1000 selection boundary and rejects1001 before dispatch', async () => {
+    const ids = Array.from({ length: 1000 }, (_, i) => `mdl_${String(i).padStart(4, '0')}`)
+    value = { model_ids: ids, model_review_token: 'f'.repeat(64) }
+    expect((await reviewTeamCreationModels(ids, ctx.review_etag, 'csrf')).model_ids).toHaveLength(
+      1000,
+    )
+    requests = []
+    await expect(
+      reviewTeamCreationModels([...ids, 'mdl_more'], ctx.review_etag, 'csrf'),
+    ).rejects.toThrow()
+    await expect(reviewTeamCreationModels([], ctx.review_etag, 'csrf')).rejects.toThrow()
+    expect(requests).toHaveLength(0)
+  })
+  it('submits the complete1000-owner plus1000-Model contract within the reviewed128KiB bound', async () => {
+    const ownerIDs = Array.from({ length: 1000 }, (_, i) => `usr_${String(i).padStart(26, '0')}`)
+    const models = Array.from({ length: 1000 }, (_, i) => `mdl_${String(i).padStart(26, '0')}`)
+    const complete = {
+      ...intent,
+      body: {
+        ...intent.body,
+        owner_ids: ownerIDs,
+        model_ids: models,
+        model_review_token: 'f'.repeat(64),
+      },
+    }
+    const response = receipt()
+    response.team.model_ids = models
+    response.team.members = ownerIDs.map((user_id, i) => ({
+      ...response.team.members[0],
+      id: `tme_${String(i).padStart(26, '0')}`,
+      user_id,
+    }))
+    response.runtime_applied = true
+    response.application_status = 'applied'
+    value = response
+    expect((await createTeamWithInitialLimits(complete, 'csrf')).runtime_applied).toBe(true)
+    const bytes = new TextEncoder().encode(requests[0].data).length
+    expect(bytes).toBeGreaterThan(64 * 1024)
+    expect(bytes).toBeLessThanOrEqual(128 * 1024)
+    expect(JSON.parse(requests[0].data).owner_ids).toHaveLength(1000)
+    expect(JSON.parse(requests[0].data).model_ids).toHaveLength(1000)
+  })
+  it('retains exact original token/body and validates only complete applied configured grants', async () => {
+    const original = {
+      ...intent,
+      body: {
+        ...intent.body,
+        model_ids: ['mdl_Case', 'mdl_case'],
+        model_review_token: 'f'.repeat(64),
+      },
+    }
+    const response = receipt()
+    response.team.model_ids = ['mdl_case', 'mdl_Case']
+    response.runtime_applied = true
+    response.application_status = 'applied'
+    value = response
+    expect((await createTeamWithInitialLimits(original, 'csrf')).runtime_applied).toBe(true)
+    expect(requests[0].data).toBe(JSON.stringify(original.body))
+    response.team.model_ids = ['mdl_case']
+    await expect(createTeamWithInitialLimits(original, 'csrf')).rejects.toThrow('application')
+    response.team.model_ids = ['mdl_case', 'mdl_other']
+    await expect(createTeamWithInitialLimits(original, 'csrf')).rejects.toThrow('application')
+  })
+  it.each([
+    { model_ids: ['mdl_case'] },
+    { model_ids: [], model_review_token: 'f'.repeat(64) },
+    { model_ids: null },
+    { model_ids: ['mdl_case', 'mdl_case'], model_review_token: 'f'.repeat(64) },
+    { model_ids: ['mdl_case '], model_review_token: 'f'.repeat(64) },
+  ])('rejects incomplete/aliased Model intent before creation %#', async (fields) => {
+    await expect(
+      createTeamWithInitialLimits(
+        { ...intent, body: { ...intent.body, ...fields } } as TeamCreationIntent,
+        'csrf',
+      ),
+    ).rejects.toThrow()
+    expect(requests).toHaveLength(0)
+  })
+  it('preserves explicit empty Model omission semantics without requesting a review token or grants', async () => {
+    const empty = { ...intent, body: { ...intent.body, model_ids: [] } }
+    const response = receipt()
+    response.runtime_applied = true
+    response.application_status = 'applied'
+    value = response
+    expect((await createTeamWithInitialLimits(empty, 'csrf')).runtime_applied).toBe(true)
+    expect(JSON.parse(requests[0].data)).toEqual(empty.body)
+    expect(requests).toHaveLength(1)
+  })
+  it('requires the server Model-authority boolean and treats false as no authority', async () => {
+    value = { ...ctx, can_set_models: false }
+    expect((await getTeamCreationContext()).can_set_models).toBe(false)
+    value = { ...ctx, can_set_models: true }
+    expect((await getTeamCreationContext()).can_set_models).toBe(true)
+    value = { ...ctx, can_set_models: undefined }
+    await expect(getTeamCreationContext()).rejects.toThrow()
   })
 })

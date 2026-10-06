@@ -7,16 +7,16 @@ import (
 	"strconv"
 	"time"
 
-	"gorm.io/gorm"
-
 	"github.com/miclle/routex/internal/routex/entity"
 	apperrors "github.com/miclle/routex/internal/routex/errors"
 	"github.com/miclle/routex/pkg/limits"
+	"gorm.io/gorm"
 )
 
 // Only independently editable groups appear; null means a stored unset value,
 // never redaction. Preview integers remain decimal strings through browser JSON.
 type TeamCreationContext struct {
+	CanSetModels     bool               `json:"can_set_models"`
 	ReviewETag       string             `json:"review_etag"`
 	DefaultRuleETag  string             `json:"default_rule_etag"`
 	PlatformCurrency *string            `json:"platform_currency"`
@@ -32,16 +32,17 @@ type teamCreationReview struct {
 	Policy  limits.Policy
 }
 
-func teamCreationReviewHash(actor entity.User, proof runtimeAdmissionProof, rule entity.DefaultLimitRule, policy limits.Policy, pricing entity.PricingSetting, editable []string) string {
+func teamCreationReviewHash(actor entity.User, proof runtimeAdmissionProof, rule entity.DefaultLimitRule, policy limits.Policy, pricing entity.PricingSetting, editable []string, canSetModels bool) string {
 	proof.CreatedAt = proof.CreatedAt.UTC()
 	proof.ApplicationCreatedAt = proof.ApplicationCreatedAt.UTC()
 	return personalHash(struct {
 		Domain, Actor, Role, IdentityRevision, DefaultRevision, PricingRevision, Currency string
 		Born, Updated                                                                     time.Time
 		Admission                                                                         runtimeAdmissionProof
+		CanSetModels                                                                      bool
 		Editable                                                                          []string
 		Policy                                                                            limits.Policy
-	}{"routex.team-creation.context.v1", actor.ID, actor.Role, actor.MemberRoleRevision, rule.RuleETag, pricing.ETag, pricing.PlatformCurrency, actor.CreatedAt.UTC(), actor.UpdatedAt.UTC(), proof, slices.Clone(editable), policy})
+	}{"routex.team-creation.context.v2", actor.ID, actor.Role, actor.MemberRoleRevision, rule.RuleETag, pricing.ETag, pricing.PlatformCurrency, actor.CreatedAt.UTC(), actor.UpdatedAt.UTC(), proof, canSetModels, slices.Clone(editable), policy})
 }
 
 func teamCreationPreview(policy limits.Policy, editable []string) map[string]*string {
@@ -72,6 +73,10 @@ func loadTeamCreationReview(tx *gorm.DB, actor entity.User, lock bool) (*teamCre
 	}
 	if !allowed {
 		return nil, apperrors.ErrForbidden
+	}
+	canSetModels, err := exactGovernancePermissionForAdmittedActor(tx, actor, "teams.models.write")
+	if err != nil {
+		return nil, err
 	}
 	editable := []string{}
 	for _, permission := range []string{"teams.tokens.write", "teams.money.write", "teams.rates.write"} {
@@ -110,12 +115,12 @@ func loadTeamCreationReview(tx *gorm.DB, actor entity.User, lock bool) (*teamCre
 	if !proof.Eligible {
 		return nil, apperrors.ErrUnauthorized
 	}
-	public := TeamCreationContext{DefaultRuleETag: rule.RuleETag, EditableFields: editable, DefaultPolicy: teamCreationPreview(policy, editable)}
+	public := TeamCreationContext{CanSetModels: canSetModels, DefaultRuleETag: rule.RuleETag, EditableFields: editable, DefaultPolicy: teamCreationPreview(policy, editable)}
 	if slices.Contains(editable, "money_month") {
 		currency := pricing.PlatformCurrency
 		public.PlatformCurrency = &currency
 	}
-	public.ReviewETag = teamCreationReviewHash(actor, proof, rule, policy, pricing, editable)
+	public.ReviewETag = teamCreationReviewHash(actor, proof, rule, policy, pricing, editable, canSetModels)
 	return &teamCreationReview{Public: public, Actor: actor, Pricing: pricing, Rule: rule, Policy: policy}, nil
 }
 

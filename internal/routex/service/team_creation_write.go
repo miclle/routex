@@ -14,14 +14,13 @@ import (
 	"unicode"
 	"unicode/utf8"
 
-	"gorm.io/gorm"
-	"gorm.io/gorm/clause"
-
 	"github.com/miclle/routex/internal/routex/database"
 	"github.com/miclle/routex/internal/routex/entity"
 	apperrors "github.com/miclle/routex/internal/routex/errors"
 	"github.com/miclle/routex/pkg/id"
 	"github.com/miclle/routex/pkg/limits"
+	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 const teamCreationSnapshotBytes = 128 * 1024
@@ -255,8 +254,12 @@ func teamCreationConfigurationMatches(tx *gorm.DB, receipt entity.TeamCreationRe
 	if err != nil {
 		return false, err
 	}
-	if current == nil || current.ID != receipt.TeamID || !current.CreatedAt.Equal(receipt.TeamCreatedAt) || current.Status != entity.ResourceActive || current.Name != snapshot.Name || current.Description != snapshot.Description || len(current.ModelIDs) != 0 || len(current.Members) != len(snapshot.Owners) {
+	if current == nil || current.ID != receipt.TeamID || !current.CreatedAt.Equal(receipt.TeamCreatedAt) || current.Status != entity.ResourceActive || current.Name != snapshot.Name || current.Description != snapshot.Description || len(current.Members) != len(snapshot.Owners) {
 		return false, nil
+	}
+	modelsMatch, err := teamCreationCurrentModelsMatch(tx, receipt, current.ModelIDs)
+	if err != nil || !modelsMatch {
+		return false, err
 	}
 	var members []entity.TeamMembership
 	if err := personalExact(tx, "team_id", receipt.TeamID).Limit(1001).Find(&members).Error; err != nil {
@@ -351,12 +354,21 @@ func (s *Service) CreateTeamWithInitialLimits(ctx context.Context, actorID strin
 		if err := teamCreationPermissions(tx, actor, fields); err != nil {
 			return err
 		}
+		if len(input.ModelIDs) > 0 {
+			if err := teamCreationModelPermissions(tx, actor); err != nil {
+				return err
+			}
+		}
 		err = personalExact(tx, "creation_id", input.CreationID).Take(&receipt).Error
 		if err == nil {
 			if !teamCreationReceiptMatches(receipt, actor, input) {
 				return catalogConflict
 			}
 			_, err = readTeamCreationSnapshot(receipt)
+			if err != nil {
+				return err
+			}
+			_, err = readTeamCreationReceiptModels(tx, receipt)
 			return err
 		}
 		if !errors.Is(err, gorm.ErrRecordNotFound) {
@@ -373,6 +385,10 @@ func (s *Service) CreateTeamWithInitialLimits(ctx context.Context, actorID strin
 			return apperrors.ErrForbidden
 		}
 		owners, err := teamCreationOwners(tx, input.OwnerIDs, true)
+		if err != nil {
+			return err
+		}
+		selectedModels, err := s.validateTeamCreationSelectedModels(tx, review, input)
 		if err != nil {
 			return err
 		}
@@ -459,6 +475,9 @@ func (s *Service) CreateTeamWithInitialLimits(ctx context.Context, actorID strin
 			return apperrors.ErrBadRequest
 		}
 		receipt = entity.TeamCreationReceipt{CreationID: input.CreationID, ActorID: actor.ID, ActorCreatedAt: actor.CreatedAt, TeamID: team.ID, TeamCreatedAt: team.CreatedAt, RequestHash: teamCreationHash(actor.ID, input), ReviewETag: input.ReviewETag, SnapshotJSON: string(raw)}
+		if err := persistTeamCreationModels(tx, &receipt, selectedModels); err != nil {
+			return err
+		}
 		if err := tx.Create(&receipt).Error; err != nil {
 			return err
 		}
@@ -468,12 +487,7 @@ func (s *Service) CreateTeamWithInitialLimits(ctx context.Context, actorID strin
 		if _, err := readTeamCreationSnapshot(receipt); err != nil {
 			return err
 		}
-		if err := appendDefaultLimitAudit(tx, actor.ID, "team.creation.commit", "team", teamID, struct {
-			CreationID string   `json:"creation_id"`
-			OwnerCount int      `json:"owner_count"`
-			Fields     []string `json:"submitted_fields"`
-			Reason     string   `json:"reason"`
-		}{receipt.CreationID, len(owners), fields, reason}); err != nil {
+		if err := appendDefaultLimitAudit(tx, actor.ID, "team.creation.commit", "team", teamID, teamCreationCommitAudit{CreationID: receipt.CreationID, OwnerCount: len(owners), Fields: fields, Reason: reason, ModelSnapshotVersion: receipt.ModelSnapshotVersion, ModelCount: receipt.ModelCount, ModelDigest: receipt.ModelDigest}); err != nil {
 			return err
 		}
 		created = true
@@ -505,6 +519,11 @@ func (s *Service) CreateTeamWithInitialLimits(ctx context.Context, actorID strin
 		if err := teamCreationPermissions(tx, actor, snapshot.SubmittedFields); err != nil {
 			return err
 		}
+		if len(input.ModelIDs) > 0 {
+			if err := teamCreationModelPermissions(tx, actor); err != nil {
+				return err
+			}
+		}
 		current, err := teamCreationCurrent(tx, actorID, receipt.TeamID)
 		if err != nil {
 			return err
@@ -523,7 +542,11 @@ func (s *Service) CreateTeamWithInitialLimits(ctx context.Context, actorID strin
 			return nil
 		}
 		if publicationOK {
-			result.RuntimeApplied, result.ApplicationStatus = s.teamCreationApplication(receipt, current)
+			children, err := readTeamCreationReceiptModels(tx, receipt)
+			if err != nil {
+				return err
+			}
+			result.RuntimeApplied, result.ApplicationStatus = s.teamCreationApplication(receipt, current, children)
 		}
 		return nil
 	}, &sql.TxOptions{Isolation: sql.LevelReadCommitted})

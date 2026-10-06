@@ -101,24 +101,37 @@ function copySubmission(value: SubmittedIntent): SubmittedIntent {
   }
   if (value.kind === 'team-create') {
     const body = value.payload.body
-    return {
-      kind: value.kind,
-      payload: {
-        etag: value.payload.etag,
-        body: {
-          creation_id: body.creation_id,
-          name: body.name,
-          description: body.description,
-          owner_ids: [...body.owner_ids],
-          ...(body.initial_limits !== undefined
-            ? {
-                initial_limits: initialLimits(body.initial_limits),
-              }
-            : {}),
-        },
-      },
+    const copied = {} as TeamCreateSubmittedIntent['body']
+    for (const key of Object.keys(body)) {
+      switch (key) {
+        case 'creation_id':
+          copied.creation_id = body.creation_id
+          break
+        case 'name':
+          copied.name = body.name
+          break
+        case 'description':
+          copied.description = body.description
+          break
+        case 'owner_ids':
+          copied.owner_ids = [...body.owner_ids]
+          break
+        case 'model_ids':
+          if (body.model_ids !== undefined) copied.model_ids = [...body.model_ids]
+          break
+        case 'model_review_token':
+          if (body.model_review_token !== undefined)
+            copied.model_review_token = body.model_review_token
+          break
+        case 'initial_limits':
+          if (body.initial_limits !== undefined)
+            copied.initial_limits = initialLimits(body.initial_limits)
+          break
+      }
     }
+    return { kind: value.kind, payload: { etag: value.payload.etag, body: copied } }
   }
+
   return {
     kind: value.kind,
     payload: {

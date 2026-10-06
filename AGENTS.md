@@ -890,3 +890,15 @@ Only current admitted Project managers may read their original recipient rows;
 creator/admin attribution grants no access. Removal hides history, same-birth
 rejoin preserves original read state, and late managers receive no replay fanout.
 Keep Personal and Project Key scopes distinct and paired English/Chinese copy.
+
+Team creation Model access stays between Basic information and Resource limits in
+the existing form. Use the local MultiSelect wrapper for the searchable
+Model/Provider/Protocol columns, retained off-page selections and clear action.
+Require independent current create/model authority; do not fetch candidates while
+that authority is hidden. Provider labels remain unknown without Provider read
+permission. Empty selection grants no Models. Review the complete selected IDs
+with one opaque server token before explicit creation confirmation; retain only
+already dispatched IDs/token with the original UUID/body/If-Match. Candidate
+refreshes, Model changes and renewed Sessions never rewrite an uncertain intent.
+Creation receipts confirm saved configuration and complete current grant
+publication, independently of route availability or native inference success.

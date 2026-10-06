@@ -14,6 +14,8 @@ export type TeamCreateSubmittedIntent = {
     name: string
     description: string
     owner_ids: string[]
+    model_ids?: string[]
+    model_review_token?: string
     initial_limits?: Partial<
       Record<
         'tokens_5h' | 'tokens_7d' | 'tokens_month' | 'rpm' | 'tpm' | 'concurrency',

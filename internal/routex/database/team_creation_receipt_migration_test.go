@@ -19,7 +19,7 @@ func TestTeamCreationReceiptFrozenPortableBoundedSchema(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if frozen.Table != "team_creation_receipts" || frozen.Table != current.Table || len(frozen.Fields) != len(current.Fields) || len(frozen.Relationships.Relations) != 0 || len(current.Relationships.Relations) != 0 {
+	if frozen.Table != "team_creation_receipts" || frozen.Table != current.Table || len(frozen.Fields)+3 != len(current.Fields) || len(frozen.Relationships.Relations) != 0 || len(current.Relationships.Relations) != 0 {
 		t.Fatal("historical receipt acquired live relationships")
 	}
 	for _, field := range frozen.Fields {

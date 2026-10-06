@@ -909,3 +909,33 @@ coverage, holds, currency mismatches and hard stops remain dual-driver matrix
 evidence rather than claimed browser scenarios. Owned tabs, listeners and both
 Compose projects' containers/networks/volumes are independently absent. The
 combined result is 12 native calls/attempts, ten observations and 15 inbox rows.
+
+## Initial Team Model receipt provenance V66
+
+Frozen private GORM V66 adds version/count/digest fields to creation receipts,
+`team_creation_receipt_models` keyed by creation/Model identity with precision-six
+original Model births, and nullable `source_creation_receipt_id` to Team grants.
+Version zero retains count zero, null digest and no children; nonempty version
+one binds 1–1,000 complete sorted identities. Readers reject missing, extra or
+corrupt children rather than interpreting them as empty. Released V63 snapshot
+bounds and normalized empty-request hashes stay unchanged; no historical Model
+or source provenance is invented. Receipt children have no new live-resource
+foreign keys that could erase retained history.
+
+Creation writes explicit grants, receipt children and typed audits in the same
+transaction. Current publication compares complete stored grants and their
+original source/birth facts independently of eligible invocation routes. A
+saved receipt never proves usable inference and a retry never restores removed
+grants. Scenarios 120–121 append to the unchanged 119-case prefix; the ledger is V66. Empty creation, upgrade, repeated/concurrent startup, partial
+DDL, constraints and historical preservation passed complete real-driver gates.
+
+Focus R2 recorded 14 direct passes and two migration failures caused by omitted
+fixture Team/Model parents, before V66 assertions. Both new lifecycle cases
+passed. The corrected fixture supplies valid persisted parents and retains the
+released foreign keys. Focus R3 passed sixteen direct cases on the unchanged guarded 1,630-path
+code floor; complete121 subsequently passed on both drivers. Main checking,
+Task, authentication/gateway lifecycle and build gates also passed. Controlled
+bilingual/original-Session recovery and native invocation have separate accepted
+evidence. The original final collector remains failed at its denied-usage oracle;
+read-only review confirms exact durable grants/receipt births/audits and native
+attribution. This main documentation is outside that protected matrix.

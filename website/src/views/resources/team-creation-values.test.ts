@@ -9,6 +9,7 @@ import type { TeamCreationContext } from '@/types/resources'
 const context: TeamCreationContext = {
   review_etag: 'a'.repeat(64),
   default_rule_etag: 'b'.repeat(64),
+  can_set_models: false,
   platform_currency: 'USD',
   editable_fields: [
     'tokens_5h',
