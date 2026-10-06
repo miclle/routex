@@ -406,7 +406,7 @@ describe('Read-only exact Model route prices', () => {
   it('retains the existing weight and rename mutations with current CSRF and without pricing writes', async () => {
     permissions = ['models.read_all', 'models.write', 'prices.read']
     await ready()
-    await fill('bnd_mdl_one', '50')
+    await fill('bnd_mdl_one', '100')
     await act(async () =>
       host
         .querySelector('form[aria-label="Provider routing weights"]')!
@@ -414,7 +414,7 @@ describe('Read-only exact Model route prices', () => {
     )
     await until(() => expect(requests.some((item) => item.method === 'put')).toBe(true))
     expect(JSON.parse(requests.find((item) => item.method === 'put')!.data)).toEqual({
-      weights: [{ binding_id: 'bnd_mdl_one', weight: 50 }],
+      weights: [{ binding_id: 'bnd_mdl_one', weight: 100 }],
     })
     expect(requests.find((item) => item.method === 'put')!.headers.get('X-CSRF-Token')).toBe(
       'csrf-one',

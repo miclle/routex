@@ -23,7 +23,7 @@ import {
 } from '@/api/catalog'
 import { sessionKey, useSession } from '@/hooks/use-auth'
 import type { Session } from '@/types/auth'
-import RoutePrices from './route-prices'
+import RoutingWeights from './routing-weights'
 import { Page, QueryState, ErrorNotice, FormField, SaveButton } from '@/components/app/CatalogUI'
 import { getPermissions } from '@/api/governance'
 import { useSessionGeneration } from '@/hooks/use-session-generation'
@@ -470,113 +470,28 @@ function AdminModels({
               )}
             </div>
           </section>
-          <form
+          <RoutingWeights
             key={JSON.stringify(selected.bindings)}
-            aria-label={t('adminModels.weightsLabel')}
-            className="space-y-4"
-            onSubmit={(event) => {
-              event.preventDefault()
+            model={selected}
+            actor={actor}
+            generation={detailGeneration}
+            providers={providerData}
+            canWrite={access.can('models.write')}
+            pricesReadable={readable && access.can('prices.read')}
+            pending={mutation.isPending}
+            error={!action ? mutation.error : null}
+            onSave={(weights) => {
               if (mutation.isPending || !writeReady()) return
-              const values = new FormData(event.currentTarget)
               mutation.mutate({
                 path: `/admin/models/${selected.id}/weights`,
                 method: 'put',
-                data: {
-                  weights: selected.bindings.map((binding) => ({
-                    binding_id: binding.id,
-                    weight: Number(values.get(binding.id)),
-                  })),
-                },
+                data: { weights },
               })
             }}
-          >
-            <section className="rounded-lg border">
-              <h3 className="border-b px-6 py-4 font-semibold">{t('adminModels.routing')}</h3>
-              <Table>
-                <thead>
-                  <tr>
-                    <th>{t('common.provider')}</th>
-                    <th>{t('adminModels.providerModel')}</th>
-                    <th>{t('common.protocol')}</th>
-                    <th>{t('adminModels.status')}</th>
-                    <th>{t('adminModels.inputBasePrice')}</th>
-                    <th>{t('adminModels.outputBasePrice')}</th>
-                    <th>{t('adminModels.weight')}</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {selected.bindings.map((binding) => (
-                    <tr key={binding.id}>
-                      <td>
-                        {providerData?.find((p) => p.id === binding.provider_id)?.name ??
-                          binding.provider_id}
-                      </td>
-                      <td>{binding.upstream_name}</td>
-                      <td>{protocolLabel(binding.protocol)}</td>
-                      <td>
-                        {binding.ready
-                          ? t('adminModels.connectionReady')
-                          : t('adminModels.connectionNotReady')}
-                      </td>
-                      <RoutePrices
-                        actor={actor}
-                        modelID={selected.id}
-                        generation={detailGeneration}
-                        binding={binding}
-                        readable={readable && access.can('prices.read')}
-                        refreshDetail={() => void detail.refetch()}
-                      />
-                      <td>
-                        <div className="flex items-center gap-2">
-                          <Input
-                            aria-label={t('adminModels.weightLabel', {
-                              name: binding.upstream_name,
-                            })}
-                            name={binding.id}
-                            type="number"
-                            min={0}
-                            max={100}
-                            step={1}
-                            required
-                            defaultValue={binding.weight}
-                            disabled={mutation.isPending || !access.can('models.write')}
-                            className="w-24"
-                          />
-                          %
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </Table>
-              <p className="px-4 pt-4 text-xs text-muted-foreground">
-                {t('adminModels.routePriceHelp')}
-              </p>
-              <div className="flex items-center justify-between gap-4 p-4">
-                <Button
-                  disabled={!access.can('models.write')}
-                  variant="outline"
-                  onClick={() => open({ kind: 'binding', model: selected })}
-                >
-                  {t('adminModels.addBinding')}
-                </Button>
-                <p className="text-sm text-muted-foreground">{t('adminModels.weightsTotal')}</p>
-              </div>
-            </section>
-            <ErrorNotice error={!action ? mutation.error : null} />
-            <div className="flex justify-end gap-3">
-              <Button
-                disabled={!access.can('models.write')}
-                variant="outline"
-                onClick={() => open({ kind: 'grants', model: selected })}
-              >
-                {t('adminModels.grant')}
-              </Button>
-              <SaveButton pending={mutation.isPending} disabled={!access.can('models.write')}>
-                {t('adminModels.saveWeights')}
-              </SaveButton>
-            </div>
-          </form>
+            onAddBinding={() => open({ kind: 'binding', model: selected })}
+            onGrants={() => open({ kind: 'grants', model: selected })}
+            refreshDetail={() => void detail.refetch()}
+          />
         </>
       )}
       {modelId && (

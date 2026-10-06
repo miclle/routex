@@ -895,3 +895,27 @@ switching. The related suite passes 106 cases. Complete local check, test and
 production build pass, including 4,280 frontend cases in 172 files, Go race/unit,
 Node checks, development lifecycle and production asset checks. Broader Model
 management acceptance remains tracked separately in the implementation index.
+
+## Protocol-grouped routing weight drafts
+
+The existing Model detail routes are grouped by their recorded native protocol.
+Each group retains Provider/upstream names, current readiness and independently
+authorized prices, and shows its live configured weight total. Save submits one
+complete binding set atomically after every protocol has whole-number weights
+from zero to 100 and a total of 100. Zero-weight candidates stay in that set.
+
+Readiness is advisory: the public projection combines model availability and
+credential coverage, while the server checks credential eligibility on writes.
+A disabled Provider Model may retain positive configured weights when its
+credentials qualify. Draft totals are neither route health nor actual traffic
+percentages. Existing actor/target renewal gates, read/write permissions, generic
+Add binding and grant actions remain in place. English/Chinese switching preserves
+the draft and updates feedback and accessible names.
+
+Eighteen focused regression cases cover independent groups, invalid under/over/fractional drafts,
+complete atomic saves, pending duplicate protection, zero candidates, server
+acceptance/rejection, price permissions, authorization renewal, actor/target
+replacement and live language switching. Complete local mandatory checking and
+Task testing pass (4,298 frontend cases in 173 files, four Node checks, Go
+race/unit, development lifecycle and production assets). Actual production browser acceptance
+and broader Model management remain separate from source tests.

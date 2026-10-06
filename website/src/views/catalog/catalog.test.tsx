@@ -633,7 +633,7 @@ describe('catalog and Key workflows', () => {
   it('sends all binding weights and shows server validation failures', async () => {
     await render(<AdminModelsPage />, '/admin/models/mdl_1')
     await until(() => expect(document.body.textContent).toContain('upstream-model'))
-    await fill('bind_1', '50')
+    await fill('bind_1', '100')
     failures['put /admin/models/mdl_1/weights'] = 400
     await act(async () => {
       container
@@ -642,7 +642,7 @@ describe('catalog and Key workflows', () => {
     })
     await until(() => expect(container.querySelector('[role="alert"]')).not.toBeNull())
     expect(JSON.parse(requests.find((r) => r.method === 'put')!.data)).toEqual({
-      weights: [{ binding_id: 'bind_1', weight: 50 }],
+      weights: [{ binding_id: 'bind_1', weight: 100 }],
     })
   })
   it('updates explicit grants without granting every administrator implicitly', async () => {

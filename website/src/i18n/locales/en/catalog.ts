@@ -662,6 +662,17 @@ export default {
     unavailable: 'No longer available',
     weightsLabel: 'Provider routing weights',
     routing: 'Provider routing',
+    protocolRouting: '{{protocol}} routing',
+    protocolRoutesLabel: '{{name}} {{protocol}} provider routes',
+    weightsTotalLabel: '{{protocol}} draft weight total',
+    weightsDraftTotal: 'Draft weights total {{total}}%',
+    weightsUnder: 'Draft weights total {{total}}%; allocate {{difference}}% more',
+    weightsOver: 'Draft weights total {{total}}%; reduce by {{difference}}%',
+    weightsInvalid: 'Enter whole-number weights from 0 to 100 for every binding.',
+    weightsUnavailable:
+      'Current routing is unavailable. The server checks credential eligibility when saving; configured weights do not establish availability.',
+    weightsConfiguredHelp:
+      'Draft totals describe configured weights, not routing availability. Zero-weight bindings receive no traffic.',
     providerModel: 'Provider model',
     weight: 'Routing weight',
     connectionReady: 'Connection ready',

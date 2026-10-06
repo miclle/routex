@@ -2017,3 +2017,23 @@ F19-specific negative evidence is indexed independently of broader release cases
 | A02 | Exact actor/Model catalogue and request authorization; unavailable or revoked sources hide details/examples; current actor replacement and server denials. See [catalogue contracts](CATALOG.md) and `model_catalog_integration_test.go`, `personal_model_requests_integration_test.go`, `team_model_requests_integration_test.go`. | Future enterprise/operations boundaries remain open. |
 | A04 | Explicit Personal/individual Team source; Team visibility grants no Personal Key access; four native standalone Team programs preserve exact Team/User/membership and one debit through removal/rejoin and restart. See [Team catalogue examples](CATALOG.md#explicit-source-member-examples). | Global end-to-end release acceptance remains partial. |
 | A06 | Stable Model ID across rename; expired aliases stop resolving and historical names stay reserved, covered by `catalog_integration_test.go` and `model_alias_retirement_integration_test.go` on both supported databases. | Final platform-wide release acceptance remains partial. |
+
+### Model protocol search and grouped routing drafts (2026-10-07)
+
+Configured Model protocol search is delivered by `9952edb`, after `5e16bc0`
+DOM Storage test isolation. Search includes raw protocol identifiers and current
+displayed labels without additional catalogue reads. Routing now uses the existing
+Model detail tables grouped by protocol, with live configured draft totals and one
+complete-set save. Only integer 0–100 weights and per-protocol totals of 100 gate
+local submission; readiness remains advisory and credential eligibility belongs
+to the server. Existing price permissions, current actor/target renewal, generic
+Add binding and grants are preserved. English/Chinese switching retains drafts.
+
+Eleven search cases, two Storage cases and eighteen routing regression cases
+pass. Mandatory checking, formatting and complete Task testing pass, including
+4,298 frontend cases in 173 files, four Node checks, Go race/unit, development
+lifecycle and production asset tests. The production build passes. Actual grouped
+routing browser acceptance remains pending; these source checks do not prove
+external Provider compatibility, inference or fleet application. F12 and the
+full objective remain active. Independent price-file browser delivery and Personal
+monthly behavior/Provider metadata native/browser/restart gates remain pending.
