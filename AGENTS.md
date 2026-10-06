@@ -925,3 +925,14 @@ conflict, response loss and AuthGate interruption; current metadata reads cannot
 resolve original uncertainty. Confirm runtime application before reporting a
 saved name. Protocol, URL, egress, credentials, models, weights and grants remain
 separate operations; no historical operation receipt is implied.
+
+Duty templates retain immutable definitions but use explicit assignment. Treat
+`assignment_kind` as authoritative: Administrator/Member are intrinsic identity
+roles; Procurement/Finance/Operations are canonical explicitly assignable builtins;
+custom roles are explicit. Never derive assignability from `builtin` alone or
+make intrinsic identities removable. Localize only the finite known builtin names
+across tables, definition titles and candidate/selected labels; preserve recorded
+custom/unknown names, IDs and literal server search. Keep the existing Member and
+Team assignment workflows, fresh authority, reason/ETag reviews and uncertain
+intent guards. Duty grants use current implemented permissions only and confer no
+implicit Model access, resource ownership or protected administrator identity.

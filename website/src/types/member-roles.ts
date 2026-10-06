@@ -1,7 +1,10 @@
+import type { RoleAssignmentKind } from './governance'
+
 export interface MemberRoleSummary {
   id: string
   name: string
   builtin: boolean
+  assignment_kind: RoleAssignmentKind
   permission_count: number
   definition_etag: string
 }

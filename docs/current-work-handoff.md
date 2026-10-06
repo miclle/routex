@@ -33,15 +33,33 @@ retry after same-artifact restart without authenticated document reload. The
 retry added no audit; all owned resources are absent. The containing commit
 delivers this checked Role/Connection phase.
 
-Three immutable, explicitly assignable duty templates (Procurement, Finance
-and Operations) are prepared in private backend, frozen GORM migration and
-frontend copies. The corrected focused PostgreSQL/MySQL run passes all four
-direct cases and seven named events; its owned resources are absent. The
-original focused run retains its test-only HTTP-status oracle failure. The
-unchanged complete126 matrix is running; no full-matrix, production or delivery
-acceptance is claimed. The final interface passes 256 focused cases, 3,854
-complete frontend cases, four Node checks, types, ESLint and formatting.
-Existing catalogue limits and query budgets remain fixed.
+The containing commit delivers immutable, explicitly assignable Procurement,
+Finance and Operations duty templates through frozen GORM V68 and the existing
+reviewed Member assignment workflow. Complete126 passes 252 ordered PostgreSQL/
+MySQL scenarios, eight constraints and 4,540 matching named results. The initial
+focus retains its test-only HTTP-status oracle failure; corrected focus passes.
+Main format/check/full Task pass (3,948 frontend cases in 163 files), along with
+both real authentication/gateway persistence lifecycles. Browser preflight found
+stale intrinsic-versus-explicit guidance; the paired locale-only correction passes
+106 focused cases, final mandatory checking and production build. Backend source
+remains unchanged from the accepted matrix and persistence tests.
+
+Controlled PostgreSQL browser acceptance confirms bilingual immutable duty views,
+finite candidate labels, a non-mutating draft, two real reviewed PUT200 saves,
+exact Finance grants/counts (0 → 3 → 0 permissions; 0 → 1 → 0 assignments), retained
+Member identity, ten builtin PUT/DELETE403 responses and unchanged definitions.
+Original API Sessions and the administrator browser remain usable after same-
+artifact restart, without authenticated document reload between add/remove.
+Recorded scoped access-summary names remain recorded content. The server recorded four GET500 and one GET503 during refreshed reads; the
+original cause and browser receipt are unproven. Cancellation is only an inference.
+Functional saves and fresh reads pass; no all-request health claim is made. Owned
+app, browser tab and labelled Compose resources are independently absent. The
+containing commit delivers this bounded functional slice. The full objective and capability totals remain unchanged.
+
+Separate private member-catalogue input/output price source passes focused real
+PostgreSQL/MySQL and 127 frontend cases. A further private monthly-request-count
+slice passes 155 related frontend cases; it uses one Personal or exact Team report,
+with explicit scope and returned UTC/freshness metadata. Neither is carried yet.
 
 Team focused R4–R8 remain failed. R4 exposed a pinned PostgreSQL GORM DropIndex
 fixture syntax error and missing private context headers; R5 confirmed the
@@ -1566,3 +1584,16 @@ changes test fixtures only. Connection's GORM revision-field fix passed both
 real-driver focused cases; its frontend whitespace fidelity passed 113 cases.
 Role/Connection production browser gates and delivery remain pending. Capability
 totals remain 11 complete, 16 partial and 3 unstarted; the full objective continues.
+
+
+## Next member catalogue price slice
+
+Private backend and frontend copies add exact input/output base-price cells to
+the existing catalogue cards and table. Missing, heterogeneous, unauthorized and
+unavailable facts remain separate; priced/disabled rates preserve decimal strings.
+The requestable candidate endpoint remains price-free. Offline source checks
+pass 34 related Go race tests and 127 focused frontend tests. The existing real
+catalogue lifecycle passes on both PostgreSQL and MySQL, including explicit zero,
+18-place disabled prices, immediate permission removal, isolation and single-
+connection fallback. Owned resources are absent. These private copies are not
+carried or delivered; composition, complete checks and browser acceptance remain.

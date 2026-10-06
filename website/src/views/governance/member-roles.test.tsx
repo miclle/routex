@@ -824,3 +824,91 @@ it('changed selected and builtin definitions reject original reconciliation with
   expect(document.body.textContent).toContain('unconfirmed')
   expect(document.body.textContent).not.toContain('Current member roles confirmed')
 })
+
+it('duty classification displays immutable Finance as an explicitly removable assignment, preserving intrinsic Member', async () => {
+  Object.assign(page.builtin_role, { assignment_kind: 'intrinsic' })
+  page.assigned_roles = [
+    roleSummary(),
+    { ...roleSummary('rol_finance', 'Finance'), builtin: true, assignment_kind: 'explicit' },
+  ]
+  await mount()
+  expect(host.textContent).toContain('Finance')
+  expect(host.textContent).toContain('Member')
+  const remove = host.querySelector<HTMLButtonElement>('button[aria-label="Remove Finance"]')!
+  expect(remove.disabled).toBe(false)
+  expect(host.querySelector('button[aria-label="Remove Member"]')).toBeNull()
+  await act(async () => remove.click())
+  expect(host.textContent).not.toContain('Finance')
+  expect(calls.filter((r) => r.method === 'put')).toHaveLength(0)
+  await click('Save member roles')
+  await reason('Reviewed Finance removal')
+  expect(calls.filter((r) => r.method === 'put')).toHaveLength(0)
+  await click('Confirm roles')
+  await until(() => expect(calls.filter((r) => r.method === 'put')).toHaveLength(1))
+  const write = calls.find((r) => r.method === 'put')!
+  expect(write.headers.get('If-Match')).toBe(`"${'a'.repeat(64)}"`)
+  expect(JSON.parse(write.data)).toEqual({
+    role_ids: ['rol_custom'],
+    role_definitions: [{ id: 'rol_custom', etag: 'b'.repeat(64) }],
+    builtin_definition_etag: 'b'.repeat(64),
+    reason: 'Reviewed Finance removal',
+  })
+  expect(page.builtin_role.id).toBe('rol_member')
+  expect(page.assigned_roles.map((r) => r.id)).toEqual(['rol_custom'])
+})
+
+it('duty names switch live while a same-named custom assignment keeps its recorded name', async () => {
+  page.assigned_roles = [
+    roleSummary(),
+    { ...roleSummary('rol_finance', 'Finance'), builtin: true, assignment_kind: 'explicit' },
+    roleSummary('rol_same_name', 'Finance'),
+  ]
+  await mount()
+  await act(async () => i18n.changeLanguage('zh'))
+  expect(host.querySelector('button[aria-label="移除 财务"]')).not.toBeNull()
+  expect(host.querySelector('button[aria-label="移除 Finance"]')).not.toBeNull()
+  expect(calls.filter((r) => r.method === 'put')).toHaveLength(0)
+})
+
+it('localizes duty picker options and selected chips live, retaining a same-named custom Role and exact assignment IDs', async () => {
+  candidates = [
+    { ...roleSummary('rol_finance', 'Finance'), builtin: true, assignment_kind: 'explicit' },
+    roleSummary('rol_same_name', 'Finance'),
+  ]
+  await mount()
+  await until(() =>
+    expect(
+      host.querySelector<HTMLButtonElement>('button[aria-label="Search roles to add"]')?.disabled,
+    ).toBe(false),
+  )
+  await act(async () =>
+    host.querySelector<HTMLButtonElement>('button[aria-label="Search roles to add"]')!.click(),
+  )
+  await until(() => expect(document.querySelectorAll('[role="option"]')).toHaveLength(2))
+  const reads = calls.filter((r) => r.url?.endsWith('/candidates')).length
+  await act(async () => i18n.changeLanguage('zh'))
+  const options = [...document.querySelectorAll<HTMLElement>('[role="option"]')]
+  expect(options.map((r) => r.textContent)).toEqual(['财务', 'Finance'])
+  await act(async () => options.find((r) => r.textContent === '财务')!.click())
+  await until(() =>
+    expect(host.querySelector('button[aria-label="移除已选角色 财务"]')).not.toBeNull(),
+  )
+  await act(async () => i18n.changeLanguage('en'))
+  expect(host.querySelector('button[aria-label="Remove selected role Finance"]')).not.toBeNull()
+  expect(calls.filter((r) => r.url?.endsWith('/candidates'))).toHaveLength(reads)
+  expect(calls.filter((r) => r.method === 'put')).toHaveLength(0)
+  await click('Add')
+  expect(host.querySelector('button[aria-label="Remove Finance"]')).not.toBeNull()
+  await click('Save member roles')
+  await reason('Explicit Finance duty assignment')
+  await click('Confirm roles')
+  await until(() => expect(calls.filter((r) => r.method === 'put')).toHaveLength(1))
+  const write = calls.find((r) => r.method === 'put')!
+  expect(JSON.parse(write.data).role_ids).toEqual(['rol_custom', 'rol_finance'])
+  expect(JSON.parse(write.data).role_definitions).toEqual([
+    { id: 'rol_custom', etag: 'b'.repeat(64) },
+    { id: 'rol_finance', etag: 'b'.repeat(64) },
+  ])
+  expect(write.headers.get('If-Match')).toBe(`"${roleReviewETag}"`)
+  expect(page.builtin_role.id).toBe('rol_member')
+})

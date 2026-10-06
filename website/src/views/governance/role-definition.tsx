@@ -18,6 +18,7 @@ import type { Session } from '@/types/auth'
 import type { PlatformRole } from '@/types/governance'
 import type { RoleDefinition, RoleDefinitionInput } from '@/types/role-definition'
 import { approvalActorCurrent, useApprovalCacheRevision } from './approval-authority'
+import { builtinRoleNameKey } from '@/lib/role-assignment'
 
 interface Props {
   actor: string
@@ -268,6 +269,8 @@ export function RoleDefinitionEditor({
         )}
       </Dialog>
     )
+  const roleNameKey = builtinRoleNameKey(query.data)
+  const roleName = roleNameKey ? t(roleNameKey) : query.data.name
   const choices = [...new Set([...query.data.available_permissions, ...permissions])].sort()
   const unknown = permissions.filter((p) => !query.data.available_permissions.includes(p))
   return (
@@ -279,9 +282,7 @@ export function RoleDefinitionEditor({
         }}
         busy={busy}
         width={mode === 'view' ? 640 : 720}
-        title={
-          mode === 'view' ? t('roles.viewTitle', { name: query.data.name }) : t('roles.editTitle')
-        }
+        title={mode === 'view' ? t('roles.viewTitle', { name: roleName }) : t('roles.editTitle')}
         description={t(mode === 'view' ? 'roles.viewDescription' : 'roleDefinition.reviewHelp')}
         finalFocus={() => (ownerCurrent() ? returnFocus() : false)}
       >

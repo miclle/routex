@@ -48,12 +48,13 @@ type CreateMemberRequest struct {
 	Role     string `json:"role"`
 }
 type RoleResponse struct {
-	Description string   `json:"description"`
-	ID          string   `json:"id"`
-	Name        string   `json:"name"`
-	Builtin     bool     `json:"builtin"`
-	Permissions []string `json:"permissions"`
-	MemberCount *int64   `json:"member_count,omitempty"`
+	Description    string                     `json:"description"`
+	ID             string                     `json:"id"`
+	Name           string                     `json:"name"`
+	Builtin        bool                       `json:"builtin"`
+	AssignmentKind service.RoleAssignmentKind `json:"assignment_kind"`
+	Permissions    []string                   `json:"permissions"`
+	MemberCount    *int64                     `json:"member_count,omitempty"`
 }
 type RolesResponse struct {
 	Items                []RoleResponse `json:"items"`
@@ -89,7 +90,7 @@ func memberResponse(item service.MemberRecord) *MemberResponse {
 	return &MemberResponse{ID: item.User.ID, Email: item.User.Email, Name: item.User.Name, Role: item.User.Role, Disabled: item.User.Disabled, OffboardedAt: item.User.OffboardedAt, CreatedAt: item.User.CreatedAt, RoleIDs: item.RoleIDs}
 }
 func roleResponse(item service.RoleRecord) *RoleResponse {
-	return &RoleResponse{ID: item.Role.ID, Name: item.Role.Name, Description: item.Role.Description, Builtin: item.Role.Builtin, Permissions: item.Permissions, MemberCount: item.MemberCount}
+	return &RoleResponse{ID: item.Role.ID, Name: item.Role.Name, Description: item.Role.Description, Builtin: item.Role.Builtin, AssignmentKind: item.AssignmentKind, Permissions: item.Permissions, MemberCount: item.MemberCount}
 }
 
 func (ctrl *Ctrl) RegistrationStatus(c *fox.Context) (*RegistrationResponse, error) {

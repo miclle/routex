@@ -1,4 +1,5 @@
 import client from './client'
+import { validRoleAssignment } from '@/lib/role-assignment'
 import { validRecordedRoleDescription } from './role-definition'
 import type { Member, MemberFilters, MemberList, RoleList } from '@/types/governance'
 export { registerLocal as register } from './registration-approval'
@@ -29,6 +30,8 @@ export async function getMember(id: string, signal?: AbortSignal) {
 }
 export async function getRoles(signal?: AbortSignal): Promise<RoleList> {
   const data = (await client.get<RoleList>('/admin/roles', { signal })).data
+  if (data.items.some((role) => !validRoleAssignment(role)))
+    throw new Error('Invalid Role assignment classification')
   if (data.items.some((role) => !validRecordedRoleDescription(role.description)))
     throw new Error('Invalid recorded Role description')
   return {

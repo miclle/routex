@@ -131,7 +131,7 @@ export default {
       'Enable {{name}}. Old Sessions and Personal Keys remain revoked; this does not guarantee a callable model.',
     reactivateTitle: 'Reactivate member access',
     reactivateDescription:
-      'Reactivate {{name}} and clear the current offboarding marker. Historical offboarding remains; old Sessions, Personal Keys and custom roles are not restored.',
+      'Reactivate {{name}} and clear the current offboarding marker. Historical offboarding remains; old Sessions, Personal Keys and explicit role assignments are not restored.',
     reactivate: 'Reactivate',
     reason: 'Reason',
     confirm_baseRole: 'Confirm base identity',
@@ -177,7 +177,7 @@ export default {
     table: 'Assigned member roles',
     permissions: 'Permissions',
     actions: 'Actions',
-    help: 'Direct roles configure platform permissions. Add or remove custom roles in a draft, then explicitly save. Team roles are maintained separately.',
+    help: 'Direct roles configure platform permissions. Add or remove duty or custom roles in a draft, then explicitly save. Team roles are maintained separately.',
     viewPermissions: 'View full permissions for {{name}}',
     permissionCount_one: '{{count}} permission',
     permissionCount_other: '{{count}} permissions',
@@ -200,7 +200,7 @@ export default {
     resume: 'Resume role confirmation',
     confirmTitle: 'Confirm member roles',
     confirmHelp:
-      'Save the complete custom role replacement with the reviewed definitions and reason. The builtin identity is retained.',
+      'Save the complete explicit role replacement with the reviewed definitions and reason. The intrinsic identity is retained.',
     reason: 'Reason',
     confirm: 'Confirm roles',
     retry: 'Retry original role request',
@@ -221,7 +221,7 @@ export default {
     needsReviewHelp:
       'Some selected definitions need review. Find those roles in the Add picker before saving.',
     replacementLimit:
-      'A complete new replacement may contain at most 100 custom roles. Explicitly remove roles to reach this limit.',
+      'A complete new replacement may contain at most 100 explicit roles. Explicitly remove roles to reach this limit.',
     inactive:
       'Saved direct permissions are retained while this member is inactive; they do not grant current access.',
     noPermissions: 'No permissions',
@@ -472,6 +472,9 @@ export default {
     observed: 'Observed: {{date}} · Platform currency: {{currency}}',
   },
   common: {
+    procurement: 'Procurement',
+    finance: 'Finance',
+    operations: 'Operations',
     offboarded: 'Offboarded',
     member: 'Member',
     admin: 'Administrator',
@@ -552,7 +555,7 @@ export default {
     title: 'Roles and permissions',
     description: 'Combine permissions into roles for each responsibility.',
     explanation:
-      'Combine permissions into roles. Built-in roles provide a baseline; custom roles refine access by resource and action.',
+      'Administrator and Member identities provide the baseline. Assign duty or custom roles to combine permissions by responsibility, resource and action.',
     create: 'Create custom role',
     members: 'Members',
     memberCount: '{{count}} members',
@@ -560,7 +563,7 @@ export default {
     memberCount_other: '{{count}} members',
     memberCountUnknown: 'Unknown',
     memberCountHelp:
-      'Counts retained accounts by base identity for built-in roles or direct global assignment for custom roles, including inactive, pending and rejected accounts. Team assignments are excluded.',
+      'Counts retained accounts by intrinsic Administrator/Member identity or explicit global duty/custom-role assignment, including inactive, pending and rejected accounts. Team assignments are excluded.',
     listLabel: 'Role list',
     permissions: 'Permissions',
     view: 'View permissions',

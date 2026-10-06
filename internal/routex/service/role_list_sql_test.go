@@ -81,7 +81,8 @@ func (c *roleListSQLConnection) QueryContext(ctx context.Context, query string, 
 		for _, binding := range c.current().assignments {
 			user, userOK := c.current().users[binding.UserID]
 			role, roleOK := c.current().roles[binding.RoleID]
-			if userOK && roleOK && user.ID == binding.UserID && role.ID == binding.RoleID && !role.Builtin {
+			kind, kindErr := roleAssignmentKind(role)
+			if userOK && roleOK && user.ID == binding.UserID && role.ID == binding.RoleID && kindErr == nil && kind == RoleAssignmentExplicit {
 				counts[role.ID]++
 			}
 		}

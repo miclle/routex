@@ -5,6 +5,7 @@ import {
   type RawAxiosResponseHeaders,
 } from 'axios'
 import client from './client'
+import { validRoleAssignment } from '@/lib/role-assignment'
 import type {
   RoleDefinition,
   RoleDefinitionInput,
@@ -115,6 +116,7 @@ export function validateRoleDefinition(v: unknown, target: string): RoleDefiniti
       'name',
       'description',
       'builtin',
+      'assignment_kind',
       'permissions',
       'available_permissions',
       'definition_etag',
@@ -125,7 +127,7 @@ export function validateRoleDefinition(v: unknown, target: string): RoleDefiniti
     v.id !== target ||
     !recordedName(v.name) ||
     !validRecordedRoleDescription(v.description) ||
-    typeof v.builtin !== 'boolean' ||
+    !validRoleAssignment(v) ||
     !sorted(v.permissions, code) ||
     !sorted(v.available_permissions, assignableCode) ||
     JSON.stringify(v.available_permissions) !== JSON.stringify(catalogue) ||

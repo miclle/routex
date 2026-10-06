@@ -63,6 +63,7 @@ const page = () => ({
   name: 'Retained role',
   description: '',
   builtin: false,
+  assignment_kind: 'explicit',
   permissions: ['projects.models.WRITE', 'providers.read'],
   available_permissions: [...available],
   definition_etag: definition,
@@ -377,4 +378,21 @@ it('preserves FEFF description byte bounds without changing Name or Reason valid
     expect(validRoleDefinitionDescription(space + 'Scope')).toBe(false)
     expect(validRoleDefinitionDescription('Scope' + space)).toBe(false)
   }
+})
+
+it('duty classification keeps immutable explicit Role definitions readable without editing authority', () => {
+  const p = {
+    ...page(),
+    id: 'rol_finance',
+    name: 'Finance',
+    builtin: true,
+    assignment_kind: 'explicit',
+    identity_etag: null,
+    can_edit: false,
+  }
+  expect(validateRoleDefinition(p, 'rol_finance')).toMatchObject({
+    builtin: true,
+    assignment_kind: 'explicit',
+    can_edit: false,
+  })
 })

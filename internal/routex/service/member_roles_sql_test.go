@@ -160,8 +160,9 @@ func (c *rolesSQLConnection) QueryContext(ctx context.Context, q string, args []
 	case strings.Contains(q, `FROM "roles"`):
 		rows := []entity.Role{}
 		for _, row := range d.roles {
-			if strings.Contains(q, "WHERE builtin =") {
-				if !row.Builtin {
+			if strings.Contains(q, `WHERE ("builtin" =`) {
+				kind, err := roleAssignmentKind(row)
+				if err != nil || kind == RoleAssignmentExplicit {
 					rows = append(rows, row)
 				}
 			} else if slices.Contains(values, row.ID) {

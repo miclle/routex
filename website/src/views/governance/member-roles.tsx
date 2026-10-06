@@ -1,3 +1,4 @@
+import { builtinRoleNameKey } from '@/lib/role-assignment'
 import { useCallback, useLayoutEffect, useRef, useState, useSyncExternalStore } from 'react'
 import { useInfiniteQuery, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
@@ -266,7 +267,7 @@ function Roles({ actor, target, generation, ready, targetQueryKey }: Props) {
     !!viewing &&
     viewing.etag === page?.etag &&
     viewing.scope === operationScope &&
-    (viewing.role.builtin ||
+    (viewing.role.assignment_kind === 'intrinsic' ||
       baseline.includes(viewing.role.id) ||
       (editable && known.get(viewing.role.id)?.definition_etag === viewing.role.definition_etag))
   const detail = useQuery({
@@ -408,8 +409,10 @@ function Roles({ actor, target, generation, ready, targetQueryKey }: Props) {
       }
     }
   }
-  const roleName = (r: MemberRoleSummary) =>
-    r.builtin ? t(r.id === 'rol_admin' ? 'common.admin' : 'common.member') : r.name
+  const roleName = (r: MemberRoleSummary) => {
+    const key = builtinRoleNameKey(r)
+    return key ? t(key) : r.name
+  }
   const selectedRows = chosen && page && chosen.etag === page.etag ? chosen.rows : []
   function openPermissions(role: MemberRoleSummary) {
     if (current()) setViewing({ etag: page!.etag, scope: operationScope, role })
@@ -457,6 +460,7 @@ function Roles({ actor, target, generation, ready, targetQueryKey }: Props) {
                         id,
                         name: id,
                         builtin: false,
+                        assignment_kind: 'explicit' as const,
                         permission_count: 0,
                         definition_etag: '',
                       },
@@ -484,7 +488,7 @@ function Roles({ actor, target, generation, ready, targetQueryKey }: Props) {
                       )}
                     </td>
                     <td>
-                      {role.builtin ? (
+                      {role.assignment_kind === 'intrinsic' ? (
                         <span className="text-sm text-muted-foreground">
                           {t('members.baseIdentity')}
                         </span>
@@ -513,10 +517,10 @@ function Roles({ actor, target, generation, ready, targetQueryKey }: Props) {
                         label={t('memberRoles.search')}
                         options={candidateRows
                           .filter((r) => !ids.includes(r.id) || !known.has(r.id))
-                          .map((r) => ({ value: r.id, label: r.name }))}
+                          .map((r) => ({ value: r.id, label: roleName(r) }))}
                         value={
                           candidateCurrent()
-                            ? selectedRows.map((r) => ({ value: r.id, label: r.name }))
+                            ? selectedRows.map((r) => ({ value: r.id, label: roleName(r) }))
                             : []
                         }
                         search={search}

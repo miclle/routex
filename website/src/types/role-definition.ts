@@ -1,8 +1,11 @@
+import type { RoleAssignmentKind } from './governance'
+
 export interface RoleDefinition {
   id: string
   name: string
   description: string
   builtin: boolean
+  assignment_kind: RoleAssignmentKind
   permissions: string[]
   available_permissions: string[]
   definition_etag: string

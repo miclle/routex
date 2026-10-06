@@ -1,6 +1,6 @@
 # Member Governance and Platform Permissions
 
-This phase adds controlled public registration, administrator member management, protected built-in roles, additive custom roles, and database-backed platform authorization. Model call grants remain separate from platform permissions. Team and Project responsibilities are documented separately in [resource governance](RESOURCES.md). Complete employee offboarding and enterprise identity synchronization remain subsequent work packages.
+This phase adds controlled public registration, administrator member management, protected built-in definitions, explicitly assigned duty/custom roles, and database-backed platform authorization. Model call grants remain separate from platform permissions. Team and Project responsibilities are documented separately in [resource governance](RESOURCES.md). Complete employee offboarding and enterprise identity synchronization remain subsequent work packages.
 
 ## Registration and Member Lifecycle
 
@@ -16,7 +16,7 @@ Disabling an account deletes its browser sessions and revokes all of its persona
 
 ## Roles and Authorization
 
-`users.role` remains the persisted built-in identity: `admin` or `member`. Schema version 6 adds protected role metadata (`rol_admin`, `rol_member`), role-to-permission rows, and explicit user-to-custom-role bindings. A user's effective platform permission set is the union of their built-in role and all assigned custom roles. Built-in role definitions cannot be edited or deleted, and built-in IDs cannot be inserted through custom-role assignment APIs.
+`users.role` remains the persisted intrinsic identity: `admin` or `member`. Schema version 6 adds protected identity role metadata, role-to-permission rows, and explicit user-role bindings. Version 68 adds the immutable Procurement, Finance and Operations duty templates. Their definitions are built-in, while their assignments are explicit. A user's effective platform permissions are the union of the intrinsic identity and all valid explicit roles. Intrinsic IDs cannot be inserted into assignment APIs; immutable duty definitions remain assignable through the existing reviewed workflow. Built-in definitions cannot be edited or deleted.
 
 The implemented resource/action vocabulary is:
 
@@ -39,7 +39,7 @@ The implemented resource/action vocabulary is:
 
 `roles.write`, `registration.write` and `members.approvals.write` are reserved for the protected administrator identity. They cannot be assigned through custom roles. The API's `available_permissions` list contains only permissions that may be placed in a custom role; built-in administrator metadata additionally includes the reserved powers. Defining a permission boundary does not claim that every corresponding product page or operational capability has been implemented.
 
-Custom roles are additive and confer only implemented platform actions. They do not grant model invocation, ownership of another user's Keys, Team ownership, Project management, or unrestricted access to personal endpoints. Unknown or duplicate permission values are rejected. A role still assigned to users or Teams cannot be deleted. Role replacement and assignment validate the whole request before committing, preventing partial changes.
+Explicit roles are additive and confer only implemented platform actions. They do not grant model invocation, ownership of another user's Keys, Team ownership, Project management, or unrestricted access to personal endpoints. Unknown or duplicate permission values are rejected. A role still assigned to users or Teams cannot be deleted. Role replacement and assignment validate the whole request before committing, preventing partial changes.
 
 A delegated member manager may create ordinary members and change other ordinary members' enabled state. They cannot create administrators, change any base role, modify an administrator, suspend themselves, create/edit/delete roles, assign roles, or change registration policy. These restrictions are enforced in the service transaction as well as at the HTTP boundary, so direct method use cannot turn a delegated permission into a privilege escalation.
 
@@ -66,13 +66,13 @@ Paths are relative to `/api/v1`. Mutations use the established same-origin, JSON
 | `POST /admin/members` | `{email,name,password,role?}` | `201`, Member; `members.write`, with administrator creation restricted |
 | `PATCH /admin/members/:user_id` | `{disabled?,role?}` | Member; `members.write`, subject to target and continuity restrictions |
 | `GET /admin/roles` | None | `{items:Role[],available_permissions:[]}`; authoritative retained `member_count` on list items; `roles.read` |
-| `POST /admin/roles` | `{name,permissions:[]}` | `201`, Role; platform administrator |
+| `POST /admin/roles` | `{name,description?,permissions:[]}` | `201`, Role; platform administrator |
 | `GET /admin/roles/:role_id` | None | Complete reviewed definition and strong ETag; current `roles.read` |
-| `PUT /admin/roles/:role_id` | `{name,permissions:[],identity_etag,reason}`, strong reviewed If-Match | Current definition confirmation; admitted intrinsic platform administrator, independently of `roles.read` |
+| `PUT /admin/roles/:role_id` | `{name,description,permissions:[],identity_etag,reason}`, strong reviewed If-Match | Current definition confirmation; admitted intrinsic platform administrator, independently of `roles.read` |
 | `DELETE /admin/roles/:role_id` | None | `204`; platform administrator, custom unassigned roles only |
-| `PUT /admin/members/:user_id/roles` | `{role_ids:[]}` | Member; platform administrator, custom-role IDs only |
+| `PUT /admin/members/:user_id/roles` | `{role_ids:[],role_definitions:[],builtin_definition_etag,reason}`, strong reviewed If-Match | Current-database confirmation; intrinsic platform administrator, explicit-role IDs only |
 
-A Member contains `{id,email,name,role,disabled,created_at,role_ids}`. `role_ids` lists custom assignments; `role` identifies the built-in membership. A Role contains `{id,name,builtin,permissions}`.
+A Member contains `{id,email,name,role,disabled,offboarded_at,created_at,role_ids}`. `role_ids` lists explicit assignments; `role` identifies the intrinsic membership. A Role list item contains `{id,name,description,builtin,assignment_kind,permissions,member_count}`. `builtin` protects the definition; `assignment_kind` determines whether the role may be explicitly assigned. The reviewed definition and assignment DTOs below retain their separate validators.
 
 Member searches treat `%` and `_` as literal input rather than SQL wildcards. Status is `active` or `disabled`; base role is `admin` or `member`. Pagination orders by stable user ID, defaults to 40 results, and limits pages to 100. Invalid input returns `400`, insufficient privileges return `403`, missing resources return `404`, and uniqueness, assigned-role deletion, or last-administrator conflicts return `409` using sanitized errors.
 
@@ -1265,3 +1265,45 @@ browser PUTs returned 200, 409, 409 and 200; three typed description updates wer
 recorded. Owned resources are absent. This proves the current-target workflow,
 not whole-subtree recovery or a historical operation receipt. The containing
 commit delivers this slice; F05 remains partial.
+
+## Canonical duty templates V68
+
+The frozen GORM data migration adds three immutable definitions and exactly 17
+permission relationships. It preserves historical custom roles, including a
+custom role named Finance, and never overwrites incompatible or aliased seeds.
+Repeated and concurrent migration and partial-seed recovery are bounded; retained
+extra grants and collisions fail without silently changing existing authority.
+
+| Template | Explicit grants |
+| --- | --- |
+| Procurement | `models.read_all`, `prices.read`, `providers.read` |
+| Finance | `prices.read`, `providers.read`, `teams.money.write` |
+| Operations | `calls.read_all`, `egress.read`, `egress.test`, `egress.write`, `models.read_all`, `prices.read`, `providers.read`, `providers.write`, `system.read`, `system.write`, `teams.tokens.write` |
+
+Role list/definition and Member assignment DTOs expose `assignment_kind`.
+Administrator and Member are intrinsic; the three canonical duties and custom
+roles are explicit. Server classification uses exact identity and builtin state,
+rejecting corrupted reserved or unknown builtin records. Definitions remain
+immutable. Assignment preserves the existing reviewed validators, complete sets,
+transactional audit and authorization boundaries. Team projection still grants
+only its independently supported Team powers; no Model grant, ownership, Key,
+Project access or protected administrator authority is implied.
+
+Member counts remain exact platform assignments, including inactive users and
+users outside Teams. Existing catalogue bounds, overflow behavior and query
+budgets remain unchanged. The isolated 126-case PostgreSQL/MySQL matrix passes
+252 ordered scenarios, eight constraints and 4,540 matching named results; all
+1,661 candidate source files remain exact and owned resources are absent.
+Main format/check and complete Task pass (3,948 frontend cases in 163 files).
+Both real-process authentication/gateway persistence lifecycles pass. A browser
+preflight corrected stale intrinsic/explicit guidance in paired locales; 106
+focused cases, final mandatory checking and the embedded production build pass.
+Controlled PostgreSQL browser acceptance verifies bilingual read-only views,
+reviewed Finance addition/removal, exact current permission/count changes and
+retained identity. All five builtins reject valid reviewed PUT and DELETE with
+403 and unchanged definitions. Original Sessions survive same-artifact restart;
+the administrator browser removes Finance without authenticated document reload.
+Fresh functional reads pass. Four transient GET500 and one GET503 are recorded
+without original-cause or browser-receipt evidence; cancellation remains an
+inference. No all-request health claim is made. Owned app/tab and labelled Compose
+resources are independently absent. The containing commit delivers this slice.

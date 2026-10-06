@@ -27,12 +27,27 @@ import (
 )
 
 type memberRolesFixtureSummary struct {
-	ID              string `json:"id"`
-	Name            string `json:"name"`
-	Builtin         bool   `json:"builtin"`
-	PermissionCount int    `json:"permission_count"`
-	DefinitionETag  string `json:"definition_etag"`
+	ID              string                     `json:"id"`
+	Name            string                     `json:"name"`
+	Builtin         bool                       `json:"builtin"`
+	AssignmentKind  service.RoleAssignmentKind `json:"assignment_kind"`
+	PermissionCount int                        `json:"permission_count"`
+	DefinitionETag  string                     `json:"definition_etag"`
 }
+
+func memberRolesFixtureSummaryFields(t *testing.T, raw json.RawMessage) {
+	t.Helper()
+	var fields map[string]json.RawMessage
+	if json.Unmarshal(raw, &fields) != nil || len(fields) != 6 {
+		t.Fatal("incomplete compact Role summary")
+	}
+	for _, key := range []string{"id", "name", "builtin", "assignment_kind", "permission_count", "definition_etag"} {
+		if _, ok := fields[key]; !ok {
+			t.Fatal("missing compact Role summary field", key)
+		}
+	}
+}
+
 type memberRolesFixtureWorkspace struct {
 	UserID               string                      `json:"user_id"`
 	ObservedAt           time.Time                   `json:"observed_at"`
@@ -167,8 +182,17 @@ func testMemberRolesLifecycle(t *testing.T, db *gorm.DB) {
 		if value.AssignedRoles == nil || value.EffectivePermissions == nil || value.EditBlockers == nil || !slices.IsSorted(value.EffectivePermissions) {
 			t.Fatal("incomplete projection", value)
 		}
+		memberRolesFixtureSummaryFields(t, fields["builtin_role"])
+		if value.BuiltinRole.AssignmentKind != service.RoleAssignmentIntrinsic {
+			t.Fatal("base Role is not intrinsic")
+		}
+		var assignedFields []json.RawMessage
+		if json.Unmarshal(fields["assigned_roles"], &assignedFields) != nil || len(assignedFields) != len(value.AssignedRoles) {
+			t.Fatal("incomplete assigned Role summaries")
+		}
 		for i, row := range value.AssignedRoles {
-			if row.Builtin || len(row.DefinitionETag) != 64 || row.PermissionCount < 0 || row.PermissionCount > 100 || i > 0 && value.AssignedRoles[i-1].ID >= row.ID {
+			memberRolesFixtureSummaryFields(t, assignedFields[i])
+			if row.AssignmentKind != service.RoleAssignmentExplicit || len(row.DefinitionETag) != 64 || row.PermissionCount < 0 || row.PermissionCount > 100 || i > 0 && value.AssignedRoles[i-1].ID >= row.ID {
 				t.Fatal("invalid assigned summary", row)
 			}
 		}
@@ -187,6 +211,11 @@ func testMemberRolesLifecycle(t *testing.T, db *gorm.DB) {
 		if json.Unmarshal(out.Body.Bytes(), &value) != nil || value.UserID != id || value.Role.ID != roleID || value.ETag != etag || out.Header().Get("ETag") != strconv.Quote(etag) || len(value.Permissions) != value.Role.PermissionCount || !slices.IsSorted(value.Permissions) {
 			t.Fatal(out.Body.String())
 		}
+		var fields map[string]json.RawMessage
+		if json.Unmarshal(out.Body.Bytes(), &fields) != nil || value.Role.AssignmentKind != service.RoleAssignmentExplicit {
+			t.Fatal("invalid detail assignment kind")
+		}
+		memberRolesFixtureSummaryFields(t, fields["role"])
 		return value.Role
 	}
 	input := func(review memberRolesFixtureWorkspace, ids []string) memberRolesFixtureInput {

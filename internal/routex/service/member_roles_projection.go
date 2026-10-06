@@ -41,6 +41,10 @@ func projectMemberRoleDefinition(role entity.Role, permissions []string) (member
 	if !memberRoleID(role.ID) || !memberAccessLabel(role.Name) || !validMemberRoleDigest(role.DefinitionRevision) || len(permissions) > 100 {
 		return memberRoleDefinition{}, memberRolesUnavailable
 	}
+	kind, err := roleAssignmentKind(role)
+	if err != nil {
+		return memberRoleDefinition{}, err
+	}
 	permissions = slices.Clone(permissions)
 	slices.Sort(permissions)
 	for i, code := range permissions {
@@ -57,7 +61,7 @@ func projectMemberRoleDefinition(role entity.Role, permissions []string) (member
 		Builtin            bool
 		Permissions        []string
 	}{"member.role.definition.v1", role.ID, role.Name, role.DefinitionRevision, role.Builtin, permissions})
-	return memberRoleDefinition{MemberRoleSummary{role.ID, role.Name, role.Builtin, len(permissions), etag}, permissions}, err
+	return memberRoleDefinition{MemberRoleSummary{ID: role.ID, Name: role.Name, Builtin: role.Builtin, AssignmentKind: kind, PermissionCount: len(permissions), DefinitionETag: etag}, permissions}, err
 }
 func memberRolesUnion(definitions map[string]memberRoleDefinition, ids []string) []string {
 	result := []string{}
@@ -80,7 +84,7 @@ func projectMemberRoles(actor, subject entity.User, assigned, catalogue []string
 		builtin = "rol_admin"
 	}
 	implicit, ok := definitions[builtin]
-	if !ok || !implicit.Summary.Builtin {
+	if !ok || implicit.Summary.AssignmentKind != RoleAssignmentIntrinsic {
 		return nil, memberRolesUnavailable
 	}
 	if len(assigned) > memberRolesReadBudget {
@@ -93,14 +97,14 @@ func projectMemberRoles(actor, subject entity.User, assigned, catalogue []string
 	page := MemberRolesWorkspace{UserID: subject.ID, ObservedAt: time.Now().UTC(), IdentityRole: subject.Role, SubjectStatus: "active", BuiltinRole: implicit.Summary, AssignedRoles: []MemberRoleSummary{}, PermissionUse: "active", EditBlockers: []string{}, CandidateStatus: "available"}
 	for i, id := range assigned {
 		d, ok := definitions[id]
-		if !ok || d.Summary.Builtin || i > 0 && assigned[i-1] == id {
+		if !ok || d.Summary.AssignmentKind != RoleAssignmentExplicit || i > 0 && assigned[i-1] == id {
 			return nil, memberRolesUnavailable
 		}
 		page.AssignedRoles = append(page.AssignedRoles, d.Summary)
 	}
 	for i, id := range catalogue {
 		d, ok := definitions[id]
-		if !ok || d.Summary.Builtin || i > 0 && catalogue[i-1] == id {
+		if !ok || d.Summary.AssignmentKind != RoleAssignmentExplicit || i > 0 && catalogue[i-1] == id {
 			return nil, memberRolesUnavailable
 		}
 	}
@@ -162,7 +166,7 @@ func memberRolesReview(snapshot *memberRolesSnapshot, etag string, input MemberR
 	}
 	for _, proof := range input.RoleDefinitions {
 		d, ok := snapshot.Definitions[proof.ID]
-		if !ok || d.Summary.Builtin || !slices.Contains(snapshot.Catalogue, proof.ID) {
+		if !ok || d.Summary.AssignmentKind != RoleAssignmentExplicit || !slices.Contains(snapshot.Catalogue, proof.ID) {
 			return apperrors.ErrBadRequest
 		}
 		if d.Summary.DefinitionETag != proof.ETag {

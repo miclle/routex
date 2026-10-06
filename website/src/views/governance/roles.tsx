@@ -1,3 +1,4 @@
+import { builtinRoleNameKey } from '@/lib/role-assignment'
 import { useTranslation } from 'react-i18next'
 import { useState, type FormEvent, type MouseEvent } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
@@ -95,12 +96,10 @@ export default function RolesPage() {
 }
 function Roles() {
   const { t } = useTranslation('governance')
-  const roleName = (role: PlatformRole) =>
-    role.builtin && role.id === 'rol_admin'
-      ? t('common.admin')
-      : role.builtin && role.id === 'rol_member'
-        ? t('common.member')
-        : role.name
+  const roleName = (role: PlatformRole) => {
+    const key = builtinRoleNameKey(role)
+    return key ? t(key) : role.name
+  }
   const session = useSession()
   usePermissions()
   const cache = useQueryClient()

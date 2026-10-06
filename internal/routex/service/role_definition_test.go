@@ -105,10 +105,10 @@ func TestRoleDefinitionPrivateGenerationBirthAndExactReadShape(t *testing.T) {
 		t.Fatal(err)
 	}
 	var body map[string]json.RawMessage
-	if json.Unmarshal(raw, &body) != nil || len(body) != 10 {
+	if json.Unmarshal(raw, &body) != nil || len(body) != 11 {
 		t.Fatal("noncontract read fields", string(raw))
 	}
-	for _, name := range []string{"id", "name", "description", "builtin", "permissions", "available_permissions", "definition_etag", "identity_etag", "review_etag", "can_edit"} {
+	for _, name := range []string{"id", "name", "description", "builtin", "assignment_kind", "permissions", "available_permissions", "definition_etag", "identity_etag", "review_etag", "can_edit"} {
 		if body[name] == nil {
 			t.Fatal("missing read field", name)
 		}
@@ -135,6 +135,7 @@ func TestRoleDefinitionPrivateGenerationBirthAndExactReadShape(t *testing.T) {
 	if err != nil || *identity != *first.Record.IdentityETag {
 		t.Fatal("stored instant normalized inconsistently", err)
 	}
+	role.ID = "rol_finance"
 	role.Builtin = true
 	builtin, err := projectRoleDefinition(first.Actor, runtimeAdmissionProof{Eligible: true}, role, first.Record.Permissions)
 	if err != nil || builtin.Record.CanEdit {

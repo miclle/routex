@@ -4,8 +4,8 @@ Updated: 2026-10-06. This document records engineering contracts, work packages,
 
 ## Current delivery and active queue
 
-The containing commit delivers Role descriptions and Connection names; its
-delivered predecessor is `d3afeac70a84d761edcc559ecd6afab5f988c3e9`.
+Delivered Role descriptions and Connection names are on main as
+`3d80bd1701f32cef85b00579eae7b53be2eafc98`.
 Role descriptions and Connection metadata have passed the complete124
 PostgreSQL/MySQL matrix, main checking, complete Task testing (3,929 frontend
 cases in 163 files), and the production build. Role browser and original-Session
@@ -15,8 +15,16 @@ resources are absent. A fresh Connection run passed all five browser PUTs,
 response-loss and Session recovery, original-Session restart and the exact retry
 without another audit; owned resources are absent. The containing commit
 delivers this checked phase.
-Private duty templates passed their corrected four-case dual-driver
-focus; the complete126 matrix is running. These slices do not change the
+Duty templates passed their corrected four-case dual-driver focus and complete
+126-case matrix: 252 ordered scenarios, eight constraints and 4,540 matching
+named results. Main carries the reviewed Duty source and passes complete Task (3,948 frontend
+cases in 163 files) and both real persistence lifecycles. Locale-only guidance
+corrections pass 106 focused cases, final mandatory check and build. Controlled
+bilingual Finance assignment/removal, builtin denials and original-Session restart
+pass. Four transient GET500 and one GET503 remain cause/receipt-unproven; no
+all-request health claim is made. Owned app/tab and Compose resources are absent.
+The containing commit delivers the bounded duty workflow. Private catalogue prices pass both real-driver
+focused lifecycles and scoped frontend tests; that separate carry is pending. These slices do not change the
 11 complete / 16 partial / three unstarted capability totals.
 
 Project, Team-member, transient Restore recovery and Team creation limits phases
@@ -450,7 +458,7 @@ The binary capability count is 11 completed, 16 partially completed, and 3 not s
 | F02 | Profile, password, MFA, recovery codes, and session revocation | Completed | Profile and password changes, authenticator enrollment, single-use recovery codes, and individual-session revocation are implemented. |
 | F03 | Enterprise SSO, LDAP, OAuth, and emergency recovery | Not started | Provider configuration, callbacks, identity binding, enforced SSO, and enterprise recovery remain unimplemented. |
 | F04 | Member administration, direct grants, roles, and resource policies | Partially completed | Member Overview, Keys, Limits, Teams, Models, metadata, list, effective Models, recent login, Access, direct Roles and State are checked deliveries. Approval b10eb6cf is locally delivered; CI run 37314987013 failed integration, so remote convergence is not claimed. Role-definition source checks, build, race-focused drivers and bilingual retry/restart passed with zero calls. Both drivers passed 103 ordered scenarios and constraints; final UI checks and current production keyboard/retry/restart acceptance passed. Role ecd130b is committed/pushed; its CI37332855651 failed the MySQL bounded Member Roles read as recorded above. Team-role review and remaining resource-policy acceptance stay open. |
-| F05 | Built-in and custom roles with composed permissions | Partially completed | Current-domain role and permission management is implemented; later enterprise and operations domains still require permission integration and negative acceptance. |
+| F05 | Built-in and custom roles with composed permissions | Partially completed | Current-domain role and permission management, reviewed definitions/descriptions, and immutable Procurement/Finance/Operations templates with explicit assignment are implemented and accepted. Later enterprise and operations domains still require permission integration and negative acceptance. |
 | F06 | Team membership, ownership, models, quotas, and member rules | Completed | Membership, ownership, model relationships, finite aggregate/member policies, monthly requests and durable Team-assigned roles have dual-driver and controlled acceptance. Initial limits V63 is delivered as8f17d12. Initial Model access V66 passed complete121, main3,759 frontend cases, both auth/gateway lifecycles and controlled bilingual/original-Session restart with four native probes. Separate read-only review confirms exact grants, receipts and completed attempts; the original helper denial-oracle failure remains retained. Empty selection grants no Models. |
 | F07 | Project lifecycle, managers, models, Keys, and requests | Completed | Exact current management, lifecycle/continuity, multi-manager creation, initial direct resources and combined requests, scoped Overview, Project Keys, resource limits and model/quota/rate approvals are implemented with controlled dual-database/browser/native/restart evidence. Both lists now show authorized total retained Key counts; administrative stored-policy summaries, literal name/ID search and authorized legacy tab replacement have full main acceptance. |
 | F08 | Personal and Project Key lifecycle | Completed | One-time delivery, confirmation, editing, rotation, revocation, expiration, scope, and history are implemented with controlled dual-database evidence. |
@@ -6203,3 +6211,36 @@ These gates establish controlled local current-target behavior, not external
 routing, historical operation receipts or whole Role-subtree recovery. F05 and
 F11 remain partial; overall totals remain 11 complete, 16 partial and three
 unstarted. The containing commit delivers this checked phase.
+
+
+## Duty template V68 delivery acceptance
+
+Procurement, Finance and Operations are immutable canonical definitions with
+explicit Member assignment. Their exact three/three/eleven grants remain separate
+from intrinsic identity, Model invocation grants and resource ownership. Frozen
+GORM V68 adds three Roles and 17 relationships without changing released steps
+or historical custom Roles. `assignment_kind` separates intrinsic Administrator/
+Member identities from explicit duties/custom Roles in the existing interfaces.
+
+The accepted isolated full126 covers 252 ordered PostgreSQL/MySQL scenarios and
+eight constraints, with 4,540 matching named RUN/PASS results. Main format/check,
+complete Task testing (3,948 frontend cases in 163 files), Go race/coverage, four
+Node checks, development lifecycle and embedded assets pass. Both real-process
+authentication/gateway persistence lifecycles pass. Locale-only guidance repairs
+retain this backend; 106 focused cases and final mandatory check/build pass.
+
+Controlled PostgreSQL browser acceptance covers bilingual read-only definitions
+and candidate labels, intrinsic-role exclusion, a draft without mutation, two
+reviewed PUT200 saves and Finance permission/count transitions, all five builtin
+PUT/DELETE403 denials, and original Sessions after same-artifact restart. The
+administrator browser completes removal without authenticated document reload.
+The scoped access-summary projection preserves recorded names rather than
+inventing builtin metadata. Two preflight artifacts and their stale-copy findings
+remain separate from the final accepted artifact.
+
+The server log also records four transient GET500 and one GET503 around refreshed
+reads. Existing cancellation and error mapping are possible causes, but original
+errors and client receipt were not captured. Fresh functional reads pass; no
+all-request HTTP-health or cancellation-cause claim is made. Owned app, tab and
+Compose resources are independently absent. The containing commit delivers this
+bounded functional scope; F05 and the complete product objective remain open.

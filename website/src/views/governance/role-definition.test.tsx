@@ -33,6 +33,7 @@ const fixture = (): RoleDefinition => ({
   name: 'Original role',
   description: 'Original business scope',
   builtin: false,
+  assignment_kind: 'explicit',
   permissions: ['providers.read'],
   available_permissions: ['models.read_all', 'providers.read'],
   definition_etag: changed,
@@ -154,7 +155,15 @@ beforeEach(async () => {
   cache.setQueryData(['auth', 'session'], session())
   cache.setQueryData(['permissions', actor], ['roles.read'])
   cache.setQueryData(context(), {
-    items: [{ id: target, name: page.name, builtin: false, permissions: ['providers.read'] }],
+    items: [
+      {
+        id: target,
+        name: page.name,
+        builtin: false,
+        assignment_kind: 'explicit',
+        permissions: ['providers.read'],
+      },
+    ],
   })
   host = document.createElement('div')
   document.body.append(host)
@@ -166,8 +175,20 @@ beforeEach(async () => {
   vi.mocked(getPermissions).mockResolvedValue(['roles.read'])
   vi.mocked(getRoles).mockImplementation(async () => ({
     items: [
-      { id: 'rol_custom', name: 'Original role', builtin: false, permissions: ['providers.read'] },
-      { id: 'rol_admin', name: 'Admin', builtin: true, permissions: ['roles.read'] },
+      {
+        id: 'rol_custom',
+        name: 'Original role',
+        builtin: false,
+        assignment_kind: 'explicit',
+        permissions: ['providers.read'],
+      },
+      {
+        id: 'rol_admin',
+        name: 'Admin',
+        builtin: true,
+        assignment_kind: 'intrinsic',
+        permissions: ['roles.read'],
+      },
     ],
     available_permissions: ['providers.read'],
   }))
@@ -462,7 +483,7 @@ it('live Chinese switching preserves name/reason and the immutable original requ
 it('builtin fresh View is read-only and exposes no replacement controls', async () => {
   target = 'rol_admin'
   mode = 'view'
-  page = { ...fixture(), id: target, builtin: true, can_edit: false }
+  page = { ...fixture(), id: target, builtin: true, assignment_kind: 'intrinsic', can_edit: false }
   cache.setQueryData(context(), { items: [{ id: target, builtin: true }] })
   await draw()
   expect(getRoleDefinition).toHaveBeenCalledWith(target, expect.any(AbortSignal))
@@ -791,7 +812,18 @@ it('captures trimmed multiline description once and retains it through first con
 })
 
 it('shows recorded builtin absence in both languages without an edit description control', async () => {
-  page = { ...page, builtin: true, can_edit: false, description: '' }
+  target = 'rol_admin'
+  page = {
+    ...page,
+    id: target,
+    builtin: true,
+    assignment_kind: 'intrinsic',
+    can_edit: false,
+    description: '',
+  }
+  cache.setQueryData(context(), {
+    items: [{ id: target, builtin: true, assignment_kind: 'intrinsic' }],
+  })
   mode = 'view'
   await draw()
   expect(document.body.textContent).toContain('Not provided')
@@ -845,4 +877,44 @@ it('trims only Go whitespace from a description draft while preserving boundary 
   await edit('textarea[name=description]', ' \u00a0' + captured + '\u3000 ')
   await send()
   expect(requests[0].input.description).toBe(captured)
+})
+
+it.each([
+  ['rol_procurement', 'Procurement', '采购'],
+  ['rol_finance', 'Finance', '财务'],
+  ['rol_operations', 'Operations', '运维'],
+])(
+  'localizes the immutable %s view title live without translating recorded description or issuing writes',
+  async (id, name, translated) => {
+    target = id
+    mode = 'view'
+    page = { ...fixture(), id, name, builtin: true, assignment_kind: 'explicit', can_edit: false }
+    cache.setQueryData(context(), { items: [{ ...page }] })
+    await draw()
+    await vi.waitFor(() =>
+      expect(document.querySelector('[role="dialog"] h2')?.textContent).toBe(`${name} permissions`),
+    )
+    expect(document.body.textContent).toContain('Original business scope')
+    const reads = vi.mocked(getRoleDefinition).mock.calls.length
+    await act(async () => i18n.changeLanguage('zh'))
+    expect(document.querySelector('[role="dialog"] h2')?.textContent).toBe(`${translated}权限`)
+    expect(document.body.textContent).toContain('Original business scope')
+    expect(document.querySelector('[role="dialog"] textarea')).toBeNull()
+    expect(vi.mocked(getRoleDefinition).mock.calls).toHaveLength(reads)
+    expect(requests).toHaveLength(0)
+    await act(async () => i18n.changeLanguage('en'))
+    expect(document.querySelector('[role="dialog"] h2')?.textContent).toBe(`${name} permissions`)
+  },
+)
+
+it('keeps the recorded same-named custom Role view title when language changes', async () => {
+  mode = 'view'
+  page = { ...fixture(), name: 'Finance' }
+  await draw()
+  await vi.waitFor(() =>
+    expect(document.querySelector('[role="dialog"] h2')?.textContent).toBe('Finance permissions'),
+  )
+  await act(async () => i18n.changeLanguage('zh'))
+  expect(document.querySelector('[role="dialog"] h2')?.textContent).toBe('Finance权限')
+  expect(requests).toHaveLength(0)
 })

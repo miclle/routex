@@ -1,4 +1,5 @@
 import client from './client'
+import { validRoleAssignment } from '@/lib/role-assignment'
 import type {
   MemberRoleCandidatePage,
   MemberRoleDetail,
@@ -98,24 +99,31 @@ function sorted(v: unknown, max: number, check: (item: unknown) => boolean): v i
 function summary(v: unknown): v is MemberRoleSummary {
   return (
     object(v) &&
-    fields(v, ['id', 'name', 'builtin', 'permission_count', 'definition_etag']) &&
+    fields(v, [
+      'id',
+      'name',
+      'builtin',
+      'assignment_kind',
+      'permission_count',
+      'definition_etag',
+    ]) &&
     identity(v.id) &&
     name(v.name) &&
-    typeof v.builtin === 'boolean' &&
+    validRoleAssignment(v) &&
     Number.isSafeInteger(v.permission_count) &&
     (v.permission_count as number) >= 0 &&
     (v.permission_count as number) <= 100 &&
     proof(v.definition_etag)
   )
 }
-function customRows(v: unknown, max: number): v is MemberRoleSummary[] {
+function explicitRows(v: unknown, max: number): v is MemberRoleSummary[] {
   return (
     Array.isArray(v) &&
     v.length <= max &&
     v.every(
       (r, i) =>
         summary(r) &&
-        !r.builtin &&
+        r.assignment_kind === 'explicit' &&
         !['rol_admin', 'rol_member'].includes(r.id) &&
         (i === 0 || v[i - 1].id < r.id),
     )
@@ -144,9 +152,9 @@ export function validateMemberRoles(v: unknown, target: string): MemberRolesWork
     !['admin', 'member'].includes(v.identity_role as string) ||
     !['active', 'disabled', 'offboarded'].includes(v.subject_status as string) ||
     !summary(v.builtin_role) ||
-    !v.builtin_role.builtin ||
+    v.builtin_role.assignment_kind !== 'intrinsic' ||
     v.builtin_role.id !== `rol_${v.identity_role}` ||
-    !customRows(v.assigned_roles, 10000) ||
+    !explicitRows(v.assigned_roles, 10000) ||
     !sorted(
       v.effective_permissions,
       codes.length,
@@ -178,7 +186,7 @@ export function validateMemberRoleCandidates(v: unknown, review: string): Member
     !object(v) ||
     !fields(v, ['items', 'next_cursor', 'etag']) ||
     v.etag !== review ||
-    !customRows(v.items, 50) ||
+    !explicitRows(v.items, 50) ||
     !(v.next_cursor === null || cursor(v.next_cursor))
   )
     invalid()

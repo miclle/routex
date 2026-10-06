@@ -59,13 +59,20 @@ func roleDefinitionFixtureReview(t *testing.T, router http.Handler, cookie *http
 	expectStatus(t, out, 200)
 	var result service.RoleDefinitionRecord
 	var fields map[string]json.RawMessage
-	if json.Unmarshal(out.Body.Bytes(), &result) != nil || json.Unmarshal(out.Body.Bytes(), &fields) != nil || len(fields) != 10 || result.ID != roleID || result.Permissions == nil || result.AvailablePermissions == nil || !slices.IsSorted(result.Permissions) || !slices.IsSorted(result.AvailablePermissions) || len(result.DefinitionETag) != 64 || len(result.ReviewETag) != 64 || out.Header().Get("ETag") != strconv.Quote(result.ReviewETag) || out.Header().Get("Cache-Control") != "private, no-store" {
+	if json.Unmarshal(out.Body.Bytes(), &result) != nil || json.Unmarshal(out.Body.Bytes(), &fields) != nil || len(fields) != 11 || result.ID != roleID || result.Permissions == nil || result.AvailablePermissions == nil || !slices.IsSorted(result.Permissions) || !slices.IsSorted(result.AvailablePermissions) || len(result.DefinitionETag) != 64 || len(result.ReviewETag) != 64 || out.Header().Get("ETag") != strconv.Quote(result.ReviewETag) || out.Header().Get("Cache-Control") != "private, no-store" {
 		t.Fatal("invalid complete role resource review")
 	}
-	for _, key := range []string{"id", "name", "builtin", "permissions", "available_permissions", "definition_etag", "identity_etag", "review_etag", "can_edit"} {
+	for _, key := range []string{"id", "name", "description", "builtin", "assignment_kind", "permissions", "available_permissions", "definition_etag", "identity_etag", "review_etag", "can_edit"} {
 		if _, ok := fields[key]; !ok {
 			t.Fatal("missing role review field", key)
 		}
+	}
+	wantKind := service.RoleAssignmentExplicit
+	if roleID == "rol_admin" || roleID == "rol_member" {
+		wantKind = service.RoleAssignmentIntrinsic
+	}
+	if result.AssignmentKind != wantKind {
+		t.Fatal("unexpected reviewed Role assignment kind")
 	}
 	return result
 }

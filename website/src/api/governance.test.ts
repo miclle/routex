@@ -14,6 +14,7 @@ function serveCount(count: unknown) {
     name: 'Retained role',
     description: '',
     builtin: false,
+    assignment_kind: 'explicit',
     permissions: ['providers.read'],
     ...(count === undefined ? {} : { member_count: count }),
   }
@@ -74,7 +75,16 @@ it.each([
     statusText: '',
     headers: new AxiosHeaders(),
     data: {
-      items: [{ id: 'rol_custom', name: 'Role', description, builtin: false, permissions: [] }],
+      items: [
+        {
+          id: 'rol_custom',
+          name: 'Role',
+          description,
+          builtin: false,
+          assignment_kind: 'explicit',
+          permissions: [],
+        },
+      ],
       available_permissions: [],
     },
   })
@@ -90,3 +100,39 @@ it.each(['\uFEFFRecorded scope', 'Recorded scope\uFEFF', '\uFEFFScope\n审批职
     expect(requests.map((request) => request.url)).toEqual(['/admin/roles'])
   },
 )
+
+it('duty classification rejects omitted or mismatched server assignment kind in Role lists', async () => {
+  const { row } = serveCount(0)
+  Reflect.deleteProperty(row, 'assignment_kind')
+  await expect(getRoles()).rejects.toThrow('Invalid Role assignment classification')
+})
+it('duty classification accepts immutable explicit templates without relabeling same-named custom roles', async () => {
+  const { row } = serveCount(2)
+  Object.assign(row, {
+    id: 'rol_finance',
+    name: 'Finance',
+    builtin: true,
+    assignment_kind: 'explicit',
+  })
+  expect((await getRoles()).items[0]).toMatchObject({
+    id: 'rol_finance',
+    builtin: true,
+    assignment_kind: 'explicit',
+    member_count: 2,
+  })
+})
+
+it.each([
+  { id: 'rol_finance', builtin: false, assignment_kind: 'explicit' },
+  { id: 'rol_finance', builtin: true, assignment_kind: 'intrinsic' },
+  { id: 'rol_member', builtin: true, assignment_kind: 'explicit' },
+  { id: 'rol_member', builtin: false, assignment_kind: 'explicit' },
+  { id: 'rol_unknown', builtin: true, assignment_kind: 'explicit' },
+  { id: 'rol_custom', builtin: false, assignment_kind: 'intrinsic' },
+  { id: 'rol_custom', builtin: false, assignment_kind: ['explicit'] },
+  { id: 'rol_custom', builtin: false, assignment_kind: null },
+])('rejects unsupported or contradictory Role classification %j', async (classification) => {
+  const { row } = serveCount(0)
+  Object.assign(row, classification)
+  await expect(getRoles()).rejects.toThrow('Invalid Role assignment classification')
+})

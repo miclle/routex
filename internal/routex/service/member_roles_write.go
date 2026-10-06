@@ -80,7 +80,7 @@ func (s *Service) setMemberRolesReviewed(ctx context.Context, actorID, userID, e
 			input.RoleDefinitions = []MemberRoleDefinitionProof{}
 			for _, id := range input.RoleIDs {
 				d, ok := before.Definitions[id]
-				if !ok || d.Summary.Builtin {
+				if !ok || d.Summary.AssignmentKind != RoleAssignmentExplicit {
 					return apperrors.ErrBadRequest
 				}
 				input.RoleDefinitions = append(input.RoleDefinitions, MemberRoleDefinitionProof{id, d.Summary.DefinitionETag})

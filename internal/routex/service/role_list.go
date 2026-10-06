@@ -34,7 +34,11 @@ func roleListMemberCounts(tx *gorm.DB, roles []entity.Role) (map[string]int64, e
 	custom := make(map[string]bool, len(roles))
 	for _, role := range roles {
 		counts[role.ID] = 0
-		if !role.Builtin {
+		kind, err := roleAssignmentKind(role)
+		if err != nil {
+			return nil, err
+		}
+		if kind == RoleAssignmentExplicit {
 			custom[role.ID] = true
 		}
 	}
@@ -67,7 +71,7 @@ func roleListMemberCounts(tx *gorm.DB, roles []entity.Role) (map[string]int64, e
 			{Type: clause.InnerJoin, Table: clause.Table{Name: "roles", Alias: "selected_role"}, ON: clause.Where{Exprs: []clause.Expression{database.ExactTextColumns(tx, clause.Column{Table: "selected_role", Name: "id"}, clause.Column{Table: "assignment", Name: "role_id"})}}},
 		},
 	}).Select("selected_role.id AS role_id, COUNT(*) AS member_count").
-		Where(clause.Eq{Column: clause.Column{Table: "selected_role", Name: "builtin"}, Value: false}).
+		Where(explicitRoleScope(tx, "selected_role")).
 		Group("selected_role.id").Limit(memberRolesCatalogueBudget + 1).Scan(&assigned).Error
 	if err != nil {
 		return nil, err
@@ -117,7 +121,8 @@ func (s *Service) ListRoles(ctx context.Context, actorID string) ([]RoleRecord, 
 		}
 		ids := map[string]bool{}
 		for _, role := range roles {
-			if !validRoleDescription(role.Description, true) || ids[role.ID] || !memberRoleID(role.ID) || role.Builtin != (role.ID == "rol_admin" || role.ID == "rol_member") {
+			_, kindErr := roleAssignmentKind(role)
+			if !validRoleDescription(role.Description, true) || ids[role.ID] || kindErr != nil {
 				return memberRolesUnavailable
 			}
 			ids[role.ID] = true
@@ -140,7 +145,7 @@ func (s *Service) ListRoles(ctx context.Context, actorID string) ([]RoleRecord, 
 				return err
 			}
 			count := counts[role.ID]
-			result = append(result, RoleRecord{Role: role, Permissions: slices.Clone(definition.Permissions), MemberCount: &count})
+			result = append(result, RoleRecord{Role: role, AssignmentKind: definition.Summary.AssignmentKind, Permissions: slices.Clone(definition.Permissions), MemberCount: &count})
 		}
 		return nil
 	}, &sql.TxOptions{Isolation: sql.LevelRepeatableRead, ReadOnly: true})

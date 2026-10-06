@@ -20,16 +20,17 @@ var roleDefinitionUnavailable = &apperrors.Error{Code: http.StatusServiceUnavail
 
 // RoleDefinitionRecord is a complete current resource review, without assignment facts.
 type RoleDefinitionRecord struct {
-	Description          string   `json:"description"`
-	ID                   string   `json:"id"`
-	Name                 string   `json:"name"`
-	Builtin              bool     `json:"builtin"`
-	Permissions          []string `json:"permissions"`
-	AvailablePermissions []string `json:"available_permissions"`
-	DefinitionETag       string   `json:"definition_etag"`
-	IdentityETag         *string  `json:"identity_etag"`
-	ReviewETag           string   `json:"review_etag"`
-	CanEdit              bool     `json:"can_edit"`
+	Description          string             `json:"description"`
+	ID                   string             `json:"id"`
+	Name                 string             `json:"name"`
+	Builtin              bool               `json:"builtin"`
+	AssignmentKind       RoleAssignmentKind `json:"assignment_kind"`
+	Permissions          []string           `json:"permissions"`
+	AvailablePermissions []string           `json:"available_permissions"`
+	DefinitionETag       string             `json:"definition_etag"`
+	IdentityETag         *string            `json:"identity_etag"`
+	ReviewETag           string             `json:"review_etag"`
+	CanEdit              bool               `json:"can_edit"`
 }
 
 // RoleDefinitionInput replaces the entire reviewed custom definition.

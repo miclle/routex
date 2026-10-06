@@ -958,3 +958,22 @@ and original-Session restart acceptance pass. Connection conflict, response-loss
 Session-recovery and same-artifact restart acceptance also pass in a fresh
 controlled environment; its earlier actual-503 run remains failed. The containing
 commit delivers this checked phase.
+
+## Frozen duty template migration V68
+
+V68 is a data-only GORM transaction using private frozen Role and permission
+structs. It adds three immutable duty roles and 17 exact grants, with stable
+namespaced definition/name keys and preserved birth timestamps for valid partial
+seeds. Bounded pre/post validation refuses aliases, incompatible identities and
+extra permissions instead of overwriting historical authority. Released schema
+steps and custom roles remain unchanged; no handwritten DDL is introduced.
+
+The complete 126-case matrix passes empty creation, V67 upgrade, repeat and
+concurrent startup, partial-seed repair and collision rejection on PostgreSQL and
+MySQL. Existing global catalogue bounds and query budgets also pass. This is
+isolated candidate acceptance. Main complete Task and both authentication/gateway
+persistence lifecycles also pass; paired locale-only successor checking/build and
+controlled Finance browser assignment/removal pass. No released migration changes
+or repeat full-matrix run were needed for the copy correction. Owned browser/app
+and Compose resources are independently absent. The containing commit delivers
+this slice; unrelated transient read diagnostics are retained separately.

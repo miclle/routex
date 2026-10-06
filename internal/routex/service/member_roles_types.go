@@ -19,11 +19,12 @@ var memberRolesOverflow = &apperrors.Error{Code: http.StatusUnprocessableEntity,
 var memberRolesUnavailable = &apperrors.Error{Code: http.StatusServiceUnavailable, Message: "member roles unavailable"}
 
 type MemberRoleSummary struct {
-	ID              string `json:"id"`
-	Name            string `json:"name"`
-	Builtin         bool   `json:"builtin"`
-	PermissionCount int    `json:"permission_count"`
-	DefinitionETag  string `json:"definition_etag"`
+	ID              string             `json:"id"`
+	Name            string             `json:"name"`
+	Builtin         bool               `json:"builtin"`
+	AssignmentKind  RoleAssignmentKind `json:"assignment_kind"`
+	PermissionCount int                `json:"permission_count"`
+	DefinitionETag  string             `json:"definition_etag"`
 }
 type MemberRolesWorkspace struct {
 	UserID               string              `json:"user_id"`

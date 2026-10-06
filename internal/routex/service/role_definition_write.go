@@ -96,6 +96,9 @@ func (s *Service) mutateRoleDefinition(ctx context.Context, actorID, roleID, eta
 			if !validRoleDescription(role.Description, true) {
 				return roleDefinitionUnavailable
 			}
+			if _, err := roleAssignmentKind(role); err != nil {
+				return err
+			}
 			if role.Builtin {
 				return apperrors.ErrForbidden
 			}
@@ -114,7 +117,7 @@ func (s *Service) mutateRoleDefinition(ctx context.Context, actorID, roleID, eta
 				}
 			}
 			if role.Name == input.Name && role.Description == input.Description && slices.Equal(before, input.Permissions) {
-				result = RoleRecord{Role: role, Permissions: slices.Clone(before)}
+				result = RoleRecord{Role: role, AssignmentKind: RoleAssignmentExplicit, Permissions: slices.Clone(before)}
 				return nil
 			}
 			if reviewed {
@@ -168,7 +171,7 @@ func (s *Service) mutateRoleDefinition(ctx context.Context, actorID, roleID, eta
 		if err != nil {
 			return err
 		}
-		result = RoleRecord{Role: role, Permissions: slices.Clone(input.Permissions)}
+		result = RoleRecord{Role: role, AssignmentKind: RoleAssignmentExplicit, Permissions: slices.Clone(input.Permissions)}
 		return nil
 	}, &sql.TxOptions{Isolation: sql.LevelReadCommitted})
 	if err != nil {

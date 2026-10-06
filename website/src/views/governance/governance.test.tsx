@@ -111,13 +111,28 @@ beforeEach(() => {
     role_ids: ['rol_custom'],
   }
   roles = [
-    { id: 'rol_admin', name: 'Administrator', description: '', builtin: true, permissions },
-    { id: 'rol_member', name: 'Member', description: '', builtin: true, permissions: [] },
+    {
+      id: 'rol_admin',
+      name: 'Administrator',
+      description: '',
+      builtin: true,
+      assignment_kind: 'intrinsic',
+      permissions,
+    },
+    {
+      id: 'rol_member',
+      name: 'Member',
+      description: '',
+      builtin: true,
+      assignment_kind: 'intrinsic',
+      permissions: [],
+    },
     {
       id: 'rol_custom',
       name: 'Provider Reader',
       description: 'Read provider records',
       builtin: false,
+      assignment_kind: 'explicit',
       permissions: ['providers.read'],
     },
   ]
@@ -203,6 +218,7 @@ beforeEach(() => {
       const summarize = (role: PlatformRole) => ({
         ...roleSummary(role.id, role.name),
         builtin: role.builtin,
+        assignment_kind: role.assignment_kind,
         permission_count: role.permissions.length,
       })
       page.builtin_role = summarize(roles.find((role) => role.id === `rol_${target.role}`)!)
@@ -253,6 +269,7 @@ beforeEach(() => {
         name: role.name,
         description: role.description ?? '',
         builtin: role.builtin,
+        assignment_kind: role.assignment_kind,
         permissions: [...role.permissions].sort(),
         available_permissions: [...roleDefinitionAvailablePermissions],
         definition_etag: roleETag,
@@ -337,7 +354,12 @@ beforeEach(() => {
       response.data = structuredClone(target)
     }
     if (key === 'post /admin/roles') {
-      roles.push({ ...JSON.parse(config.data), id: 'rol_new', builtin: false })
+      roles.push({
+        ...JSON.parse(config.data),
+        id: 'rol_new',
+        builtin: false,
+        assignment_kind: 'explicit',
+      })
       response.data = structuredClone(roles.at(-1))
     }
     if (key === 'post /auth/register') {

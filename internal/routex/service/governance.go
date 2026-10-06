@@ -18,9 +18,10 @@ import (
 var AvailablePermissions = []string{"secrets.read", "secrets.rotate", "members.read", "members.approvals.write", "members.write", "members.keys.disable", "members.models.write", "roles.read", "roles.write", "registration.write", "providers.read", "providers.write", "models.read_all", "models.write", "calls.read_all", "audit.read", "system.read", "system.write", "teams.read_all", "teams.write", "teams.models.write", "teams.tokens.write", "teams.money.write", "teams.rates.write", "teams.quota_requests.read_all", "projects.read_all", "projects.write", "projects.models.write", "prices.read", "prices.write", "limits.users.write", "limits.settings.write", "projects.limits.write", "site.write", "announcements.write", "egress.read", "egress.write", "egress.test", "smtp.read", "smtp.write", "smtp.test", "storage.read", "storage.write", "storage.test"}
 
 type RoleRecord struct {
-	Role        entity.Role
-	Permissions []string
-	MemberCount *int64
+	Role           entity.Role
+	Permissions    []string
+	AssignmentKind RoleAssignmentKind
+	MemberCount    *int64
 }
 type MemberRecord struct {
 	User    entity.User
@@ -180,6 +181,9 @@ func (s *Service) DeleteRole(ctx context.Context, actorID, roleID string) error 
 		}
 		var role entity.Role
 		if err := memberRolesExact(memberRolesDB(tx).Clauses(clause.Locking{Strength: "UPDATE"}), "id", roleID).First(&role).Error; err != nil {
+			return err
+		}
+		if _, err := roleAssignmentKind(role); err != nil {
 			return err
 		}
 		if role.Builtin {

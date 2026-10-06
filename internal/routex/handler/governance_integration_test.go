@@ -64,8 +64,18 @@ func testGovernanceLifecycle(t *testing.T, db *gorm.DB) {
 	policyReview = approvalFixturePolicyReview(t, router, adminCookie, admin.CSRFToken)
 	expectStatus(t, approvalFixtureRequest(t, router, "PATCH", "/api/v1/admin/registration", map[string]any{"enabled": false, "approval_required": false, "allowed_email_domains": []string{}, "reason": "Verify registration member denial"}, memberCookie, member.CSRFToken, policyReview.ReviewETag), 403)
 	roles := decodeCatalogResponse[RolesResponse](t, request("GET", "/api/v1/admin/roles", nil), 200)
-	if len(roles.Items) != 2 || len(roles.AvailablePermissions) == 0 {
+	if len(roles.Items) != 5 || len(roles.AvailablePermissions) == 0 {
 		t.Fatal("builtin roles or permission allowlist missing")
+	}
+	expectedKinds := map[string]string{"rol_admin": "intrinsic", "rol_member": "intrinsic", "rol_procurement": "explicit", "rol_finance": "explicit", "rol_operations": "explicit"}
+	for _, item := range roles.Items {
+		if !item.Builtin || expectedKinds[item.ID] == "" || string(item.AssignmentKind) != expectedKinds[item.ID] {
+			t.Fatal("unexpected seeded Role classification", item.ID)
+		}
+		delete(expectedKinds, item.ID)
+	}
+	if len(expectedKinds) != 0 {
+		t.Fatal("missing exact duty/intrinsic Role seed")
 	}
 	adminRoleReview := roleDefinitionFixtureReview(t, router, adminCookie, "rol_admin")
 	adminRoleIdentity := strings.Repeat("a", 64)

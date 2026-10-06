@@ -153,7 +153,7 @@ func projectRoleDefinition(actor entity.User, admission runtimeAdmissionProof, r
 		return nil, roleDefinitionUnavailable
 	}
 	return &roleDefinitionSnapshot{Actor: actor, Role: role, Record: RoleDefinitionRecord{
-		ID: role.ID, Name: role.Name, Description: role.Description, Builtin: role.Builtin,
+		ID: role.ID, Name: role.Name, Description: role.Description, Builtin: role.Builtin, AssignmentKind: definition.Summary.AssignmentKind,
 		Permissions: definition.Permissions, AvailablePermissions: catalogue,
 		DefinitionETag: definitionETag, IdentityETag: identity,
 		ReviewETag: review, CanEdit: canEdit,

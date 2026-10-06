@@ -20,6 +20,7 @@ const custom = {
   id: 'rol_custom',
   name: 'Recorded role',
   builtin: false,
+  assignment_kind: 'explicit' as const,
   permission_count: 1,
   definition_etag: definition,
 }
@@ -28,7 +29,14 @@ const workspace = () => ({
   observed_at: '2026-10-05T03:04:05.123456789Z',
   identity_role: 'member',
   subject_status: 'active',
-  builtin_role: { ...custom, id: 'rol_member', name: 'Member', builtin: true, permission_count: 0 },
+  builtin_role: {
+    ...custom,
+    id: 'rol_member',
+    name: 'Member',
+    builtin: true,
+    assignment_kind: 'intrinsic',
+    permission_count: 0,
+  },
   assigned_roles: [{ ...custom }],
   effective_permissions: ['providers.read'],
   permission_use: 'active',
@@ -401,4 +409,29 @@ it('recognizes builtin-only approval permission in the complete44-code administr
     effective_permissions: [...page.effective_permissions, 'unknown.permission'].sort(),
   }
   expect(() => validateMemberRoles(foreign, 'usr_target')).toThrow()
+})
+
+it('duty classification accepts explicit immutable assignments, candidates and exact permission detail', () => {
+  const p = workspace()
+  Object.assign(p.builtin_role, { assignment_kind: 'intrinsic' })
+  const duty = {
+    ...custom,
+    id: 'rol_finance',
+    name: 'Finance',
+    builtin: true,
+    assignment_kind: 'explicit' as const,
+  }
+  p.assigned_roles = [duty]
+  expect(validateMemberRoles(p, 'usr_target').assigned_roles[0]).toEqual(duty)
+  expect(
+    validateMemberRoleCandidates({ items: [duty], next_cursor: null, etag }, etag).items[0],
+  ).toEqual(duty)
+  expect(
+    validateMemberRoleDetail(
+      { user_id: 'usr_target', role: duty, permissions: ['providers.read'], etag },
+      'usr_target',
+      etag,
+      duty,
+    ).role,
+  ).toEqual(duty)
 })

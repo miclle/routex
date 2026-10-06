@@ -1,3 +1,5 @@
+export type RoleAssignmentKind = 'intrinsic' | 'explicit'
+
 export interface Member {
   id: string
   email: string
@@ -13,6 +15,7 @@ export interface PlatformRole {
   name: string
   description?: string
   builtin: boolean
+  assignment_kind: RoleAssignmentKind
   permissions: string[]
   member_count?: number | null
 }

@@ -183,13 +183,14 @@ func loadMemberRoles(tx *gorm.DB, actor, subject entity.User) (*memberRolesSnaps
 	catalogueRows := []entity.Role{}
 	// Ineligible readers never query an unrelated Role catalogue.
 	if actor.Role == entity.RoleAdmin && subject.OffboardedAt == nil && len(assigned) <= memberRolesWriteBeforeBudget {
-		if err := memberRolesDB(tx).Model(&entity.Role{}).Select("ID", "Name", "Builtin", "DefinitionRevision").Where("builtin = ?", false).Limit(memberRolesCatalogueBudget + 1).Find(&catalogueRows).Error; err != nil {
+		if err := memberRolesDB(tx).Model(&entity.Role{}).Select("ID", "Name", "Builtin", "DefinitionRevision").Where(explicitRoleScope(tx, "")).Limit(memberRolesCatalogueBudget + 1).Find(&catalogueRows).Error; err != nil {
 			return nil, err
 		}
 		catalogueOverflow = len(catalogueRows) > memberRolesCatalogueBudget
 		if !catalogueOverflow {
 			for _, row := range catalogueRows {
-				if row.Builtin || !memberRoleID(row.ID) {
+				kind, err := roleAssignmentKind(row)
+				if err != nil || kind != RoleAssignmentExplicit {
 					return nil, memberRolesUnavailable
 				}
 				catalogue = append(catalogue, row.ID)

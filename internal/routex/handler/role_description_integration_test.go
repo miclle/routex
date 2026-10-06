@@ -114,8 +114,11 @@ func testRoleDescriptions(t *testing.T, db *gorm.DB) {
 				t.Fatal("list lost recorded description")
 			}
 		}
-		if item.Builtin && item.Description != "" {
-			t.Fatal("builtin description invented")
+		if item.AssignmentKind == service.RoleAssignmentIntrinsic && item.Description != "" {
+			t.Fatal("intrinsic description invented")
+		}
+		if item.Builtin && item.AssignmentKind == service.RoleAssignmentExplicit && item.Description == "" {
+			t.Fatal("recorded duty description missing")
 		}
 	}
 	if !found {
