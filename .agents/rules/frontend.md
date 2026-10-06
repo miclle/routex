@@ -260,6 +260,9 @@ states in the existing card/table slots. Requestable candidates remain price-fre
 Never choose a route price, convert money, infer a billing quote, or fetch the
 administrative price catalogue/per-row metadata to fill these cells.
 
+Catalogue monthly request cells reuse one existing scoped usage report only after selecting Personal or one current named Team source. Personal counts are the actor's persisted Personal requests; Team counts are shared Team aggregate requests. Render server-returned UTC from/to/queried-at and may-lag qualification. All sources, requestable models, denied/error/incomplete/renewed reads remain Unknown; exact absent Model groups become zero only after a complete validated report. Preserve actor/source/generation fences, prices and layout, and add no per-row or administrative usage/directory reads. Never infer global member usage, sum sources, remaining allowance or quota reset behavior. Member counts remain Unknown.
+Refresh the catalogue first; each successful catalogue read starts one fresh scoped usage query, including unchanged fast responses. Never dispatch an eager parallel usage refresh.
+
 Member Model examples select an exact Personal or named Team source separately
 from list filters. A sole source may initialize the selector; multiple sources
 require an explicit choice. Use the selected source's ready native protocols,

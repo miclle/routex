@@ -21,6 +21,7 @@ import type {
 import type { MemberModelPriceCell } from '@/types/member-models'
 import ModelAccessSources from './access-sources'
 import ModelAccess from './model-access'
+import { useMonthlyModelUsage } from './monthly-usage'
 import {
   declaredCapabilities,
   knownModelProtocols,
@@ -134,6 +135,33 @@ export default function ModelsPage() {
     (requesting
       ? candidates.isSuccess && !candidates.isFetching
       : models.isSuccess && !models.isFetching)
+  const usageSource = sources.find((item) => modelSourceKey(item) === source)
+  const monthly = useMonthlyModelUsage({
+    actorID,
+    generation,
+    source: usageSource,
+    current,
+    isCurrent,
+  })
+  const monthlyLabel = usageSource
+    ? t(
+        usageSource.type === 'personal'
+          ? 'memberModels.personalMonthlyCalls'
+          : 'memberModels.teamMonthlyCalls',
+      )
+    : t('memberModels.monthlyCalls')
+  const monthlyCount = (id: string) => {
+    const count = monthly.count(id)
+    return count === undefined
+      ? t('memberModels.unknown')
+      : new Intl.NumberFormat(i18n.language).format(count)
+  }
+  const usageDate = (value: string) =>
+    new Intl.DateTimeFormat(i18n.language, {
+      dateStyle: 'medium',
+      timeStyle: 'short',
+      timeZone: 'UTC',
+    }).format(new Date(value))
   const date = (value: string) => {
     const parsed = new Date(value)
     return Number.isNaN(parsed.valueOf())
@@ -294,6 +322,21 @@ export default function ModelsPage() {
           </Button>
         </div>
       </div>
+      {current && usageSource && (
+        <p className="text-xs text-muted-foreground" role="status">
+          {monthly.report
+            ? t('memberModels.monthlyUsagePeriod', {
+                scope:
+                  usageSource.type === 'personal'
+                    ? t('memberModels.personalGrant')
+                    : usageSource.team_name,
+                from: usageDate(monthly.report.current.from),
+                to: usageDate(monthly.report.current.to),
+                queriedAt: usageDate(monthly.report.queried_at),
+              })
+            : t('memberModels.monthlyUsageUnknown')}
+        </p>
+      )}
       {busy && (
         <p role="status" className="py-8 text-sm text-muted-foreground">
           {t('memberModels.loadingCatalogue')}
@@ -365,7 +408,9 @@ export default function ModelsPage() {
               </dl>
               <div className="flex justify-between gap-3 text-xs text-muted-foreground">
                 <span>{t('memberModels.memberUsageUnknown')}</span>
-                <span>{t('memberModels.monthlyCallsUnknown')}</span>
+                <span>
+                  {monthlyLabel}: {monthlyCount(model.id)}
+                </span>
               </div>
             </article>
           ))}
@@ -386,7 +431,7 @@ export default function ModelsPage() {
                 'memberModels.monthlyCalls',
                 'common.actions',
               ].map((key) => (
-                <th key={key}>{t(key)}</th>
+                <th key={key}>{key === 'memberModels.monthlyCalls' ? monthlyLabel : t(key)}</th>
               ))}
             </tr>
           </thead>
@@ -410,7 +455,7 @@ export default function ModelsPage() {
                 <td>{price(model.output_price)}</td>
                 <td className="whitespace-nowrap">{date(model.created_at)}</td>
                 <td>{t('memberModels.unknown')}</td>
-                <td>{t('memberModels.unknown')}</td>
+                <td>{monthlyCount(model.id)}</td>
                 <td>
                   <Button
                     size="sm"

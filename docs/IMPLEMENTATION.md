@@ -6296,3 +6296,83 @@ Final main mandatory check passes. The containing commit delivers this bounded
 price projection. Monthly usage and Provider Models table proposals remain
 separate private work. F19 and overall 11 complete /
 16 partial / three unstarted totals are unchanged.
+
+
+## Member catalogue monthly requests carried source, 2026-10-06
+
+Six frontend outputs bind existing Personal or exact Team usage reports to the
+approved source selector and request cells. Complete server-owned UTC reports
+provide counts and freshness; All/requestable/denied/incomplete reads remain
+Unknown. Team values are shared aggregate calls rather than the actor's Personal
+usage. No quota reset, remaining allowance or global member count is inferred.
+Current actor/Session/source/catalogue generation fences retain privacy during
+renewal and reject obsolete reads. Prices and the existing layout stay intact.
+
+All 1,600 relevant product/test/dependency/Task paths in the main carry match the
+accepted isolated composed source. Its format/check/full Task/build pass: 4,001
+frontend cases in 164 files, four Node tests, two development lifecycle tests,
+Go race/coverage and production assets. Acceptance digest is
+`bdc4aa3aae7bcad4843659c57e60970b8c4636e75ee24c1e16b497950e27faf4`.
+Only Markdown differs through root-owned documentation updates. No backend,
+schema, endpoint, permission or dependency changes, and no additional database
+matrix is required for this frontend composition. Main mandatory check and embedded build pass with all 1,600 product paths exact.
+Actual controlled native/browser/restart acceptance remains pending. The Price
+predecessor is pushed as `20d6049`; F19 and formal totals remain unchanged.
+
+
+Monthly current-main format/check/build pass on the exact accepted product map.
+The first controlled helper failed at setup with captured GET404 for an
+unregistered administrative Team limits path, before native calls or browser
+execution. The actual Team aggregate read is Session-scoped at
+`/api/v1/teams/:team_id/limits`. Failed evidence is retained and owned resources
+are independently absent; only the helper path requires correction. This is not
+accepted native/browser evidence or a product-code defect.
+
+
+Monthly corrected-helper controlled API/native/restart facts passed exactly
+three calls with Personal1/sharedTeam2 and peerPersonal0, and browser EN/ZH,
+price precision, scope isolation and original Sessions after restart. The first
+corrected launch used plain pipes and reached EOF after setup, with zero calls;
+that failed invocation remains separate. All owned resources are absent.
+The subsequent functional browser run is repair-required: manual refresh starts
+an eager usage read before catalogue completion and then another after fresh
+catalogue authority. A later Session generation produces another legitimate read.
+One server log status was503, without original-error/client-receipt proof; source
+regressions prove eager request duplication without assuming its server cause.
+A private refresh-generation repair is underway, including fast identical
+catalogue responses. New final gates and rebuilt-artifact acceptance are pending.
+
+
+The three-leaf refresh repair removes eager usage dispatch and scopes each report
+query to the successful catalogue read generation. Identical fast metadata reads
+therefore still refresh usage once. Four new regressions cover Personal/Team
+held metadata, exactly one later usage read, usage failure Unknown and failed
+metadata/no report request. All 175 related cases, types, scoped lint, formatting
+and patch roundtrip pass; previous RED evidence is retained. Composed full Task,
+main final check/build and repaired-artifact browser/native/restart are pending.
+
+
+## Repaired member catalogue monthly requests: accepted delivery
+
+The exact repaired source passes complete Task testing (4,005 frontend cases /
+164 files), Node4/dev2, Go race/coverage and production asset tests, mandatory
+checking and build. All 1,600 product/test/dependency/Task paths match main.
+Root main format/check and embedded build pass; no backend/schema changes occur,
+so the accepted Price full126 remains the unchanged backend evidence.
+
+Fresh controlled R4 passes exactly three native calls and attempts with exact
+Personal/Team attribution, reports Personal1/sharedTeam2/peerPersonal0, EN/ZH
+cards/table, decimal prices, filters, All Unknown, requestable empty state and
+original API/browser Sessions after same-artifact restart. Separate bounded app
+access-log slices show one catalogue200 then one scoped usage200 per manual
+refresh for both sources; no browser network-trace claim is made. Pending peer
+reads show Unknown; one member price Unknown after restart recovers on a further
+explicit read without claiming its cause or all-request HTTP health.
+Binary digest is
+`d3e661a0e5bc44fe7c10672faaae5397841412c39b023b39a1daa8fdd671eedd`;
+root receipt digest is
+`7f98318ac7de3fad1ce6868521e2d3fea30b09f37a2631b68da95e1e0ece6da7`.
+Owned resources are independently absent. Original wrong-path404, plain-pipeEOF,
+eager-request RED and intermediate unchanged-catalogue stale-count RED stay
+retained. The containing commit delivers this bounded monthly interface; F19 and
+formal 11 complete / 16 partial / three unstarted totals remain unchanged.

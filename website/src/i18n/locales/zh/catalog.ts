@@ -448,6 +448,11 @@ export default {
     createdAt: '创建时间',
     members: '使用成员',
     monthlyCalls: '本月请求',
+    personalMonthlyCalls: '你的个人本月请求',
+    teamMonthlyCalls: 'Team 共享本月请求',
+    monthlyUsagePeriod:
+      '{{scope}} · {{from}}–{{to}} UTC · 查询于 {{queriedAt}} UTC。已持久化请求可能延迟，包含成功、失败和已取消的请求。',
+    monthlyUsageUnknown: '本月请求未知。请选择一个当前授权来源；不可用或不完整的用量不代表零。',
     unknown: '未知',
     price_unauthorized: '未知',
     price_unavailable: '未知',
@@ -457,7 +462,8 @@ export default {
     amount: '{{amount}} {{currency}} / 百万 Tokens',
     memberUsageUnknown: '使用成员未知',
     monthlyCallsUnknown: '本月请求未知',
-    unknownFields: '价格单元格仅显示服务端确认的当前基础费率。使用成员及本月请求数据保持未知。',
+    unknownFields:
+      '价格单元格仅显示服务端确认的当前基础费率。使用成员仍为未知；本月请求需选择个人或一个 Team 来源，全部来源及可申请模型保持未知。',
     nativeFormat: '保留原生请求路径、参数和响应格式。可用协议和输入能力来自符合条件的路由。',
     authenticationHeader: '认证请求头',
     unavailableProtocol: '不可用',

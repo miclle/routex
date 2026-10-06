@@ -747,3 +747,32 @@ Sessions after same-artifact restart, with zero inference calls. The composed
 full126 transaction matrix passes 126 ordered scenarios per database, eight
 constraints and 4,570 matched named results. The containing commit delivers this
 bounded slice. No schema, endpoint, registry or dependency change is introduced.
+
+
+## Member catalogue monthly requests
+
+Selecting Personal or one exact named Team source enables one existing scoped
+usage report for all visible Models. Personal counts reflect the current actor's
+Personal calls; Team counts are shared aggregate calls, including other Team
+members. All sources and requestable candidates remain Unknown rather than
+summing or guessing. Member counts remain Unknown.
+
+Reads use the server's UTC month-to-query period, separate from quota reset
+configuration. The existing cards/table show returned from/to/queried-at and a
+may-lag qualification. Only complete validated reports can show zero for an absent
+current Model; denied, failed, incomplete and renewed reads hide old values.
+Actor, source, Session and catalogue generations guard queries and refreshes.
+Manual refresh reads the catalogue first; each successful metadata generation
+then starts one fresh scoped report, even when its metadata is unchanged.
+There are no per-row or administrative usage/directory reads. Prices, filters,
+examples and layout remain intact. Counts include retained failed/canceled calls;
+they are not remaining quota or a prediction of callability.
+
+The repaired composed source passes complete Task testing (4,005 frontend cases /
+164 files), checking and build in an isolated copy. All 1,600 relevant product,
+test, dependency and Task paths match current main exactly. Main final checking
+and embedded build pass. Controlled three-native EN/ZH browser/restart acceptance
+passes Personal1/sharedTeam2, peer scope isolation and one catalogue read followed
+by one scoped report per manual refresh. Owned resources are independently absent.
+The containing commit delivers this bounded slice. No backend, schema, endpoint,
+permission or dependency change is introduced.

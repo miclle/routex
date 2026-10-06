@@ -505,6 +505,12 @@ export default {
     createdAt: 'Created',
     members: 'Members using model',
     monthlyCalls: 'Monthly requests',
+    personalMonthlyCalls: 'Your Personal requests this month',
+    teamMonthlyCalls: 'Shared Team requests this month',
+    monthlyUsagePeriod:
+      '{{scope}} · {{from}}–{{to}} UTC · Queried {{queriedAt}} UTC. Persisted requests may lag; includes successful, failed and canceled requests.',
+    monthlyUsageUnknown:
+      'Monthly requests unknown. Choose one current source; unavailable or incomplete usage is never zero.',
     unknown: 'Unknown',
     price_unauthorized: 'Unknown',
     price_unavailable: 'Unknown',
@@ -515,7 +521,7 @@ export default {
     memberUsageUnknown: 'Member usage unknown',
     monthlyCallsUnknown: 'Monthly requests unknown',
     unknownFields:
-      'Price cells show only server-confirmed current base rates. Member usage and monthly requests remain unknown.',
+      'Price cells show only server-confirmed current base rates. Member usage remains unknown. Monthly requests require one selected Personal or shared Team source; all sources and requestable models remain unknown.',
     nativeFormat:
       'Native request paths, parameters and response formats are preserved. Available protocols and input capabilities come from eligible routes.',
     authenticationHeader: 'Authentication header',

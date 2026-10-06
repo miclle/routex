@@ -111,7 +111,41 @@ beforeEach(async () => {
         user: { id: actorID, name: 'Member', email: 'member@example.com', role: 'member' },
         csrf_token: 'csrf-test',
       }
-    else if (config.url === '/model-catalog') response.data = { items: structuredClone(models) }
+    else if (config.url === '/usage') {
+      const zero = {
+        requests: 0,
+        successes: 0,
+        errors: 0,
+        canceled: 0,
+        success_rate: null,
+        average_duration_ms: null,
+        tokens: {
+          input: { value: '0', known: '0', unknown_calls: 0 },
+          output: { value: '0', known: '0', unknown_calls: 0 },
+          total: { value: '0', known: '0', unknown_calls: 0 },
+        },
+        amounts: [],
+        unknown_amount_calls: 0,
+        pricing_statuses: {},
+      }
+      response.data = {
+        timezone: 'UTC',
+        granularity: 'month',
+        queried_at: '2026-10-06T05:00:00Z',
+        latest_completed_at: null,
+        source: 'persisted_call_records',
+        may_lag: true,
+        available_dimensions: ['model', 'key'],
+        current: {
+          from: '2026-10-01T00:00:00Z',
+          to: '2026-10-06T05:00:00Z',
+          summary: zero,
+          models: [],
+          keys: [],
+          trend: [{ start: '2026-10-01T00:00:00Z', end: '2026-11-01T00:00:00Z', stats: zero }],
+        },
+      }
+    } else if (config.url === '/model-catalog') response.data = { items: structuredClone(models) }
     else if (config.url?.startsWith('/model-catalog/')) {
       const id = decodeURIComponent(config.url.slice('/model-catalog/'.length))
       const record = detailOverrides[id] ?? models.find((item) => item.id === id)
@@ -303,7 +337,14 @@ describe('Authorized member model catalogue', () => {
     await search('image other')
     expect(visibleNames()).toEqual([])
     expect(statistic('Total models')).toBe('4')
-    expect(requests).toHaveLength(2)
+    expect(requests.filter((row) => row.url !== '/usage')).toHaveLength(2)
+    expect(requests.filter((row) => row.url === '/usage')).toHaveLength(1)
+    expect(requests.find((row) => row.url === '/usage')?.params).toEqual({
+      period: 'month',
+      timezone: 'UTC',
+      granularity: 'month',
+      compare: false,
+    })
   })
 
   it('shows two source chips and expands all actual sources without opening API access or nesting buttons', async () => {
