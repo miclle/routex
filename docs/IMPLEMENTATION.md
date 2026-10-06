@@ -4,6 +4,26 @@ Updated: 2026-10-06. This document records engineering contracts, work packages,
 
 ## Current delivery and active queue
 
+Current delivered main is `228dfd9cfeb232d86e7e64fca1cb44ae87aed525`
+(Provider Models table), following configured catalogue prices `20d6049` and
+repaired monthly counts `daddd4e`. Their complete tests, controlled browser and
+original-Session restart evidence are recorded below. Provider Models passes
+4,021 frontend cases/165 files and mandatory main checking/build.
+
+Whole-item catalogue activation and current-target dismissal focus repair are
+accepted in the containing commit after 4,055 frontend cases/165 files, complete
+Task, mandatory main checking/build and controlled bilingual browser/restart. The first browser run
+remains repair-required and its independent idle failure is preserved.
+
+Self-only Home Role labels and bilingual current Role/Team identity UI remain
+private. Focused real PostgreSQL/MySQL checks and 132 scoped UI cases/six suites
+pass. A mandatory full 127-per-driver attempt was interrupted by proven ENOSPC;
+it has no full acceptance. Reproducible cache cleanup recovered disk capacity,
+and exact owned Compose cleanup is verified; full127 R2 is running. The full goal
+continues; totals remain 11 complete / 16 partial / three unstarted.
+
+## Earlier delivery checkpoints
+
 Delivered Role descriptions and Connection names are on main as
 `3d80bd1701f32cef85b00579eae7b53be2eafc98`.
 Role descriptions and Connection metadata have passed the complete124
@@ -6413,3 +6433,78 @@ Delayed/error authority holds remain focused source evidence, not injected
 browser acceptance. Earlier 4,017 results remain predecessor evidence only.
 The containing commit delivers this bounded table slice. F11 and formal totals
 remain 11 complete / 16 partial / three unstarted.
+
+## Whole-item catalogue access composition, 2026-10-06
+
+Two frontend leaves extend existing cards/native rows with passive-content click
+and focused Enter/Space into the exact Model access drawer. Existing native
+buttons/source menus, literal content, scope, prices and repaired monthly reads
+remain. Dispatch freshly checks the actor, Session generation, successful idle
+catalogue/candidate query and exact target presence. Menu portals, nested controls,
+text selection, repeated/composing keys and non-primary clicks do not activate
+containing items. No backend, schema, endpoint or permission change occurs.
+
+The frozen source passes 166 related cases in six suites, including 21 new cases
+and 13 meaningful failures against its exact beforeimage. App/Node types, scoped
+lint, formatting and patch round-trip pass. Current-main formatting/check/build
+pass. Complete Task testing passes 4,042 frontend cases in 165 files, Node four,
+development lifecycle two, Go race/coverage and production asset tests. Root
+verifies all 1,602 tested product paths against main. Private gate receipt digest
+is `2e603d91da1cd99129d1b435b90df8a2acc81c738a477d3f5f5541a1e2608b17`.
+Controlled browser acceptance remains pending; these gates do not claim browser
+activation. F19 and
+formal 11 complete / 16 partial / three unstarted totals remain unchanged.
+
+
+The first controlled whole-item browser run verifies English card composition,
+passive-content and Enter/Space exact-target access, and unchanged table layout.
+It is repair-required: after keyboard activation, Close leaves focus on BODY.
+Server logs show an intervening successful Session/catalogue renewal, while source
+analysis identifies default focus restoration depending on an old connected node.
+This is context, not a browser DOM cause trace. Existing source tests covered only
+the original unchanged focus node. A successor must resolve the current exact
+actor/Model/representation target and cover replacement, removal and actor changes.
+The helper separately reaches its finite idle deadline; cleanup succeeds and all
+owned processes, ports and Compose labels are independently absent. Remaining
+browser steps and phase delivery are unaccepted. Earlier gates remain evidence
+for their exact pre-repair bytes.
+
+
+The focus repair is carried as five exact frontend leaves. The local Drawer
+forwards an optional typed finalFocus target; catalogue dismissal resolves the
+current authorized actor/Model/representation control after successful Session
+renewal replaces its DOM node. Removed, hidden, disconnected, pending, failed or
+unauthorized targets receive no forced focus. Thirteen added regressions include
+six meaningful failures against the exact predecessor; all 180 related cases in
+seven suites pass privately, with types, lint, formatting and exact patch
+round-trip. The original unchanged-node focus tests remain intact. Fresh complete
+main/private gates and corrected controlled browser acceptance are pending. The
+first failed browser run and its separately reached idle deadline remain recorded;
+earlier 4,042 results do not accept these repaired bytes.
+
+
+## Repaired whole-item catalogue access: local acceptance, 2026-10-06
+
+The five-file focus repair passes fresh complete Task testing: 4,055 frontend
+cases in 165 files, Node four, development lifecycle two, Go race/coverage and
+embedded production assets. Mandatory checking and build pass in the private
+composition and main; root independently verifies all 1,602 product paths and
+the private gate receipt `4f2e0da9443d145bfc13df8886ff95c8b71e63682ec3d075bd43d404e38844a4`.
+
+Controlled production/browser acceptance passes passive card/cell and Tab,
+Enter/Space activation, Close/Escape focus to current article/row/native action,
+source-menu isolation, Team-only and blank requestable detail, EN/ZH with retained
+source/table filters, real Personal grant removal and normal actor replacement.
+Original API and both original browser Sessions remain authorized after identical
+artifact/config/database/journal restart without document reload or login.
+Recorded Session/catalogue renewals corroborate the workflow; no DOM cause trace
+is inferred. Text-selection gestures and delayed/error/obsolete authority races
+remain focused source evidence. Recovered selector mistakes and normal
+unauthenticated/logout Session401 are retained; no all-request health claim occurs.
+The independent database has zero calls/attempts, discovery is one GET with zero
+native POSTs, warning/error browser logs are empty, and all owned tabs/processes/
+ports/Compose labels are independently absent. Root browser receipt digest is
+`585ca88a59fe33e6f1c7cfa6ae44e699630940225fd9d1f4101bfccc8203cf7d`; production artifact is
+`2a3229a4d621c3a6ba24746bbbcd4479b5dab30fad3e0de24f76b2fef3433ef9`.
+The first focus finding and separate idle failure remain historical. The
+containing commit delivers this bounded slice; F19 and 11/16/3 remain unchanged.

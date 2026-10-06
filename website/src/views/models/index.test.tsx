@@ -1070,3 +1070,479 @@ it('hides prior private price facts while Session renews and after current price
     ),
   ).toBe(false)
 })
+
+describe('Whole-item catalogue detail activation', () => {
+  async function surface(view: 'card' | 'table', name: string) {
+    if (view === 'table') await act(async () => button('Table').click())
+    return (
+      view === 'card'
+        ? [...host.querySelectorAll<HTMLElement>('article')].find(
+            (item) => item.querySelector('h2')?.textContent === name,
+          )
+        : [...host.querySelectorAll<HTMLElement>('tbody tr')].find(
+            (item) => item.querySelector('td')?.textContent === name,
+          )
+    )!
+  }
+  const detailCalls = (id: string, requestable = false) =>
+    requests.filter(
+      (request) =>
+        request.url === `${requestable ? '/model-access-candidates/' : '/model-catalog/'}${id}`,
+    )
+
+  it.each(['card', 'table'] as const)(
+    'opens the exact %s target from passive content and preserves controls',
+    async (view) => {
+      models = [model('other'), model('whole-target')]
+      await mount()
+      const item = await surface(view, models[1].name)
+      expect(item.getAttribute('tabindex')).toBe('0')
+      expect(item.getAttribute('aria-label')).toBe('Open API access for whole-target')
+      expect(item.getAttribute('aria-haspopup')).toBe('dialog')
+      expect(item.querySelector('button button')).toBeNull()
+      const passive = item.querySelector<HTMLElement>(view === 'card' ? 'dd' : 'td:nth-child(5)')!
+      await act(async () => passive.click())
+      await until(() =>
+        expect(drawer()?.querySelector('h2.break-words')?.textContent).toBe('whole-target'),
+      )
+      expect(detailCalls(models[1].id)).toHaveLength(1)
+      expect(detailCalls(models[0].id)).toHaveLength(0)
+    },
+  )
+
+  it.each([
+    ['card', 'Enter'],
+    ['card', ' '],
+    ['table', 'Enter'],
+    ['table', ' '],
+  ] as const)(
+    'activates focused %s with %s without scrolling or duplicate reads',
+    async (view, key) => {
+      models = [model('keyboard-target')]
+      await mount()
+      const item = await surface(view, models[0].name)
+      item.focus()
+      expect(document.activeElement).toBe(item)
+      const event = new KeyboardEvent('keydown', { key, bubbles: true, cancelable: true })
+      await act(async () => item.dispatchEvent(event))
+      expect(event.defaultPrevented).toBe(true)
+      await until(() =>
+        expect(drawer()?.querySelector('h2.break-words')?.textContent).toBe(models[0].name),
+      )
+      expect(detailCalls(models[0].id)).toHaveLength(1)
+      await act(async () => button('Close').click())
+      await until(() => expect(drawer()).toBeNull())
+      await until(() => expect(document.activeElement).toBe(item))
+    },
+  )
+
+  it.each(['card', 'table'] as const)(
+    'opens Team-only and requestable %s items through their own authorized endpoint',
+    async (view) => {
+      models = [
+        model('Team-only', ['openai_chat'], [team('tea_owned', 'Owned Team')]),
+        model('requestable', ['openai_chat'], []),
+      ]
+      await mount()
+      const baselineItem = await surface(view, models[0].name)
+      const baselineButton =
+        view === 'card'
+          ? button('Open API access for Team-only')
+          : baselineItem.querySelector<HTMLButtonElement>('td:last-child button')!
+      await act(async () => baselineButton.click())
+      await until(() =>
+        expect(drawer()?.textContent).toContain('A personal Key cannot use this Team grant'),
+      )
+      const baselineReads = detailCalls(models[0].id).length
+      await act(async () => button('Close').click())
+      await until(() => expect(drawer()).toBeNull())
+      const teamItem = await surface(view, models[0].name)
+      await act(async () => teamItem.click())
+      await until(() =>
+        expect(drawer()?.textContent).toContain('A personal Key cannot use this Team grant'),
+      )
+      // Existing request footer renews Session; whole-item activation preserves the native-button lifecycle.
+      expect(detailCalls(models[0].id).length - baselineReads).toBe(baselineReads)
+      expect(drawer().querySelector('a[href="/keys"]')).toBeNull()
+      await act(async () => button('Close').click())
+      await until(() => expect(drawer()).toBeNull())
+      await select('Access source', 'requestable')
+      await until(() => expect(host.textContent).toContain('requestable'))
+      const baselineCandidate = await surface(view, models[1].name)
+      const candidateButton =
+        view === 'card'
+          ? button('Open API access for requestable')
+          : baselineCandidate.querySelector<HTMLButtonElement>('td:last-child button')!
+      await act(async () => candidateButton.click())
+      await until(() =>
+        expect(drawer()?.querySelector('h2.break-words')?.textContent).toBe('requestable'),
+      )
+      await until(() => expect(button('Submit request')).toBeDefined())
+      const baselineCandidateReads = detailCalls(models[1].id, true).length
+      await act(async () => button('Close').click())
+      await until(() => expect(drawer()).toBeNull())
+      const candidate = await surface(view, models[1].name)
+      candidate.focus()
+      await act(async () =>
+        candidate.dispatchEvent(
+          new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true }),
+        ),
+      )
+      await until(() =>
+        expect(drawer()?.querySelector('h2.break-words')?.textContent).toBe('requestable'),
+      )
+      await until(() => expect(button('Submit request')).toBeDefined())
+      expect(detailCalls(models[1].id, true).length - baselineCandidateReads).toBe(
+        baselineCandidateReads,
+      )
+      expect(detailCalls(models[1].id)).toHaveLength(0)
+      expect(button('Submit request')).toBeDefined()
+      expect(requests.some((request) => request.method !== 'get')).toBe(false)
+    },
+  )
+
+  it.each(['card', 'table'] as const)(
+    'isolates nested %s source menus and existing API controls',
+    async (view) => {
+      models = [
+        model(
+          'nested-menu',
+          ['openai_chat'],
+          [personal, team('tea_a', 'Alpha'), team('tea_b', 'Beta')],
+        ),
+      ]
+      await mount()
+      const item = await surface(view, models[0].name)
+      const trigger = button('View 1 more access source for nested-menu')
+      const beforeMenu = requests.length
+      const closeMenu = async () => {
+        const popup = document.querySelector<HTMLElement>('[role="menu"]')
+        if (popup) {
+          await act(async () =>
+            popup.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })),
+          )
+          await until(() => expect(document.querySelector('[role="menu"]')).toBeNull())
+        }
+      }
+      await act(async () => trigger.dispatchEvent(new MouseEvent('mousedown', { bubbles: true })))
+      expect(drawer()).toBeNull()
+      await closeMenu()
+      for (const key of ['Enter', ' ']) {
+        await act(async () =>
+          trigger.dispatchEvent(
+            new KeyboardEvent('keydown', { key, bubbles: true, cancelable: true }),
+          ),
+        )
+        expect(drawer()).toBeNull()
+        await closeMenu()
+      }
+      await act(async () => trigger.click())
+      await until(() => expect(document.querySelector('[role="menu"]')).not.toBeNull())
+      const popup = document.querySelector<HTMLElement>('[role="menu"]')!
+      await act(async () => {
+        popup.click()
+        popup.dispatchEvent(
+          new KeyboardEvent('keydown', { key: ' ', bubbles: true, cancelable: true }),
+        )
+      })
+      expect(drawer()).toBeNull()
+      expect(detailCalls(models[0].id)).toHaveLength(0)
+      expect(requests).toHaveLength(beforeMenu)
+      await act(async () =>
+        popup.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })),
+      )
+      await until(() => expect(document.querySelector('[role="menu"]')).toBeNull())
+      const api =
+        view === 'card'
+          ? button('Open API access for nested-menu')
+          : item.querySelector<HTMLButtonElement>('td:last-child button')!
+      await act(async () => api.click())
+      await until(() =>
+        expect(drawer()?.querySelector('h2.break-words')?.textContent).toBe(models[0].name),
+      )
+      expect(detailCalls(models[0].id)).toHaveLength(1)
+      expect(requests.some((request) => request.method !== 'get')).toBe(false)
+    },
+  )
+
+  it.each(['card', 'table'] as const)(
+    'does not activate %s while selecting text or using other keyboard/mouse gestures',
+    async (view) => {
+      models = [model('selectable')]
+      await mount()
+      const item = await surface(view, models[0].name)
+      const text = item.querySelector(view === 'card' ? 'h2' : 'td')!.firstChild!
+      const range = document.createRange()
+      range.selectNodeContents(text)
+      const selection = window.getSelection()!
+      selection.removeAllRanges()
+      selection.addRange(range)
+      try {
+        await act(async () =>
+          item.dispatchEvent(new MouseEvent('click', { bubbles: true, button: 0 })),
+        )
+        expect(drawer()).toBeNull()
+        selection.removeAllRanges()
+        for (const key of ['Escape', 'ArrowDown', 'Tab'])
+          await act(async () =>
+            item.dispatchEvent(
+              new KeyboardEvent('keydown', { key, bubbles: true, cancelable: true }),
+            ),
+          )
+        await act(async () =>
+          item.dispatchEvent(new MouseEvent('click', { bubbles: true, button: 2 })),
+        )
+        expect(drawer()).toBeNull()
+        expect(detailCalls(models[0].id)).toHaveLength(0)
+      } finally {
+        selection.removeAllRanges()
+      }
+    },
+  )
+
+  it.each(['card', 'table'] as const)(
+    'preserves nested focusable %s controls and their native keyboard defaults',
+    async (view) => {
+      models = [model('nested-control')]
+      await mount()
+      const item = await surface(view, models[0].name)
+      const location = view === 'card' ? item : item.querySelector('td')!
+      const link = document.createElement('a')
+      link.href = '#local-control'
+      link.textContent = 'Local destination'
+      const checkbox = document.createElement('input')
+      checkbox.type = 'checkbox'
+      location.append(link, checkbox)
+      try {
+        await act(async () => checkbox.click())
+        expect(checkbox.checked).toBe(true)
+        link.focus()
+        for (const key of ['Enter', ' ']) {
+          const event = new KeyboardEvent('keydown', { key, bubbles: true, cancelable: true })
+          await act(async () => link.dispatchEvent(event))
+          expect(event.defaultPrevented).toBe(false)
+        }
+        const before = requests.length
+        const click = new MouseEvent('click', { bubbles: true, cancelable: true })
+        // Prevent jsdom navigation at the native control, without rewriting the catalogue handler.
+        link.addEventListener('click', (event) => event.preventDefault(), { once: true })
+        await act(async () => link.dispatchEvent(click))
+        expect(drawer()).toBeNull()
+        expect(detailCalls(models[0].id)).toHaveLength(0)
+        expect(requests).toHaveLength(before)
+      } finally {
+        link.remove()
+        checkbox.remove()
+      }
+    },
+  )
+
+  it.each(['session-fetch', 'list-fetch', 'list-error', 'missing-id', 'actor-change'] as const)(
+    'rejects stale activation synchronously at the %s boundary',
+    async (boundary) => {
+      models = [model('authority-target')]
+      await mount()
+      const item = await surface('card', models[0].name)
+      const list = cache
+        .getQueryCache()
+        .find({ queryKey: ['model-catalog', 'list'], exact: false })!
+      const sessionQuery = cache.getQueryCache().find({ queryKey: ['auth', 'session'] })!
+      await act(async () => {
+        if (boundary === 'session-fetch') sessionQuery.setState({ fetchStatus: 'fetching' })
+        else if (boundary === 'list-fetch') list.setState({ fetchStatus: 'fetching' })
+        else if (boundary === 'list-error')
+          list.setState({ status: 'error', error: new Error('Unavailable') })
+        else if (boundary === 'missing-id') list.setState({ data: [] })
+        else
+          cache.setQueryData(['auth', 'session'], {
+            user: { id: 'usr_other', role: 'member' },
+            csrf_token: 'new',
+          })
+        item.click()
+        item.querySelector<HTMLButtonElement>('button')!.click()
+        item.dispatchEvent(
+          new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true }),
+        )
+      })
+      expect(drawer()).toBeNull()
+      expect(detailCalls(models[0].id)).toHaveLength(0)
+      if (boundary !== 'actor-change')
+        await until(() => expect(host.querySelector('article')).toBeNull())
+    },
+  )
+
+  it('requires the current candidate page and ungranted exact ID without substituting the catalogue', async () => {
+    models = [model('candidate-only', ['openai_chat'], [])]
+    await mount()
+    await select('Access source', 'requestable')
+    await until(() => expect(host.querySelector('article')).not.toBeNull())
+    const item = await surface('card', models[0].name)
+    const candidateQuery = cache
+      .getQueryCache()
+      .find({ queryKey: ['personal-model-candidates'], exact: false })!
+    const data = candidateQuery.state.data as {
+      pages: { items: { personal_granted: boolean }[] }[]
+    }
+    await act(async () => {
+      candidateQuery.setState({
+        data: {
+          ...data,
+          pages: data.pages.map((page) => ({
+            ...page,
+            items: page.items.map((record) => ({ ...record, personal_granted: true })),
+          })),
+        },
+      })
+      item.click()
+      item.querySelector<HTMLButtonElement>('button')!.click()
+    })
+    expect(drawer()).toBeNull()
+    expect(detailCalls(models[0].id, true)).toHaveLength(0)
+    expect(detailCalls(models[0].id)).toHaveLength(0)
+  })
+
+  it('switches live labels without resetting filters or opening any mutation', async () => {
+    models = [model('localized-target')]
+    await mount()
+    await search('localized')
+    await act(async () => i18n.changeLanguage('zh'))
+    const item = host.querySelector<HTMLElement>('article')!
+    expect(item.getAttribute('aria-label')).toBe(
+      i18n.t('catalog:memberModels.openAPI', { name: models[0].name }),
+    )
+    expect(host.querySelector<HTMLInputElement>('input[type="search"]')!.value).toBe('localized')
+    await act(async () => item.click())
+    await until(() =>
+      expect(drawer()?.querySelector('h2.break-words')?.textContent).toBe(models[0].name),
+    )
+    expect(detailCalls(models[0].id)).toHaveLength(1)
+    expect(requests.some((request) => request.method !== 'get')).toBe(false)
+  })
+})
+
+describe('Current catalogue trigger focus after drawer dismissal', () => {
+  function target(view: 'card' | 'table', id: string) {
+    return [...host.querySelectorAll<HTMLElement>(view === 'card' ? 'article' : 'tbody tr')].find(
+      (node) => node.getAttribute('aria-label') === `Open API access for ${id}`,
+    )!
+  }
+  async function show(view: 'card' | 'table') {
+    await mount()
+    if (view === 'table') await act(async () => button('Table').click())
+  }
+  async function dismiss(mode: 'close' | 'escape') {
+    await act(async () => {
+      if (mode === 'close') button('Close').click()
+      else drawer().dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }))
+    })
+    await until(() => expect(drawer()).toBeNull())
+  }
+
+  it.each(['card', 'table'] as const)(
+    'returns a passive %s click to its whole surface',
+    async (view) => {
+      models = [model('passive-focus')]
+      await show(view)
+      const item = target(view, models[0].name)
+      button(view === 'card' ? 'Cards' : 'Table').focus()
+      await act(async () => item.querySelector<HTMLElement>(view === 'card' ? 'dd' : 'td')!.click())
+      await until(() =>
+        expect(drawer()?.querySelector('h2.break-words')?.textContent).toBe(models[0].name),
+      )
+      await dismiss('close')
+      await until(() => expect(document.activeElement).toBe(item))
+    },
+  )
+
+  it.each([
+    ['card', 'surface', 'close'],
+    ['card', 'action', 'escape'],
+    ['table', 'surface', 'escape'],
+    ['table', 'action', 'close'],
+  ] as const)('returns renewed %s %s to its current node after %s', async (view, kind, mode) => {
+    models = [model('renewed-focus')]
+    await show(view)
+    const old = target(view, models[0].name)
+    const trigger = kind === 'surface' ? old : old.querySelector<HTMLButtonElement>('button')!
+    trigger.focus()
+    await act(async () => {
+      if (kind === 'surface')
+        trigger.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }))
+      else trigger.click()
+    })
+    await until(() =>
+      expect(drawer()?.querySelector('h2.break-words')?.textContent).toBe(models[0].name),
+    )
+    await act(async () => cache.refetchQueries({ queryKey: ['auth', 'session'], exact: true }))
+    await until(() => expect(target(view, models[0].name)).toBeDefined())
+    const renewed = target(view, models[0].name)
+    expect(old.isConnected).toBe(false)
+    expect(renewed).not.toBe(old)
+    const expected =
+      kind === 'surface' ? renewed : renewed.querySelector<HTMLButtonElement>('button')!
+    await dismiss(mode)
+    await until(() => expect(document.activeElement).toBe(expected))
+  })
+
+  it('never restores a requestable surface that became personally granted', async () => {
+    models = [model('request-focus', ['openai_chat'], [])]
+    await mount(false)
+    await until(() =>
+      expect(host.querySelector('select[aria-label="Access source"]')).not.toBeNull(),
+    )
+    await select('Access source', 'requestable')
+    await until(() => expect(target('card', 'request-focus')).toBeDefined())
+    const old = target('card', 'request-focus')
+    old.focus()
+    await act(async () =>
+      old.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true })),
+    )
+    await until(() =>
+      expect(drawer()?.querySelector('h2.break-words')?.textContent).toBe('request-focus'),
+    )
+    models = [model('request-focus')]
+    await act(async () => cache.refetchQueries({ queryKey: ['auth', 'session'], exact: true }))
+    await until(() => expect(target('card', 'request-focus')).toBeUndefined())
+    await dismiss('escape')
+    expect(document.activeElement).not.toBe(old)
+    expect([...host.querySelectorAll('article, article button')]).not.toContain(
+      document.activeElement,
+    )
+  })
+
+  it.each(['removed', 'actor', 'view', 'pending', 'error'] as const)(
+    'never restores a %s stale target',
+    async (change) => {
+      models = [model('stale-focus'), model('other-focus')]
+      await show('card')
+      const old = target('card', models[0].name)
+      old.focus()
+      await act(async () =>
+        old.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true })),
+      )
+      await until(() => expect(drawer()).not.toBeNull())
+      if (change === 'view') await act(async () => button('Table').click())
+      else if (change === 'pending') {
+        await act(async () =>
+          cache
+            .getQueryCache()
+            .find({ queryKey: ['model-catalog', 'list'], exact: false })
+            ?.setState({ fetchStatus: 'fetching' }),
+        )
+      } else if (change === 'error') {
+        failures['/model-catalog'] = 503
+        await act(async () =>
+          cache.refetchQueries({ queryKey: ['model-catalog', 'list'], exact: false }),
+        )
+      } else {
+        if (change === 'removed') models = [models[1]]
+        else actorID = 'usr_new'
+        await act(async () => cache.refetchQueries({ queryKey: ['auth', 'session'], exact: true }))
+      }
+      if (drawer()) await dismiss('close')
+      expect(document.activeElement).not.toBe(old)
+      const all = [...host.querySelectorAll('article,tbody tr,article button,tbody tr button')]
+      expect(all).not.toContain(document.activeElement)
+    },
+  )
+})

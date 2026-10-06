@@ -921,3 +921,18 @@ fresh exact actor/Provider catalogue and independent read/write permissions, hid
 private rows during renewed reads/errors, and forward AbortSignal for obsolete
 catalogue reads. Do not fetch Model directories or infer binding state. Keep paired
 English/Chinese labels and existing resource links.
+
+Member model catalogue cards and native table rows support whole-item pointer
+and focused Enter/Space activation of the existing exact-target access drawer.
+Retain list/table semantics and existing native title/API buttons and source menu.
+Interactive descendants, portaled menus and mouse text selection cannot activate
+containing items. Dispatch requires the exact actor/Session generation and a
+successful idle catalogue or candidate query containing the target; add no new
+permissions, directory reads or inference. Reuse openAPI translated accessible
+names, visible focus rings and local drawer focus restoration.
+
+The local Drawer accepts an optional typed finalFocus target or callback; other
+callers retain Base UI defaults. Catalogue dismissal resolves the current
+authorized actor/model/representation trigger after Session renewal replaces DOM
+nodes. Never focus disconnected, hidden, removed or unauthorized targets. Keep
+unchanged-node focus tests and renewed-node and negative regressions.

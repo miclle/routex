@@ -1,4 +1,4 @@
-import { useLayoutEffect, useState } from 'react'
+import { useLayoutEffect, useRef, useState, type KeyboardEvent, type MouseEvent } from 'react'
 import { useInfiniteQuery, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { Bot, Grid2X2, List, RefreshCw } from 'lucide-react'
@@ -50,6 +50,14 @@ export default function ModelsPage() {
   const [view, setView] = useState('card')
   const [history, setHistory] = useState(false)
   const [historyBusy, setHistoryBusy] = useState(false)
+  const triggers = useRef(new Map<string, HTMLElement>())
+  const focusOwner = useRef<{
+    actorID: string
+    id: string
+    view: string
+    kind: 'surface' | 'action'
+    requesting: boolean
+  } | null>(null)
   const [selectedID, setSelectedID] = useState<string | null>(null)
   const [selectionOwner, setSelectionOwner] = useState(actorID)
   if (selectionOwner !== actorID) {
@@ -135,6 +143,100 @@ export default function ModelsPage() {
     (requesting
       ? candidates.isSuccess && !candidates.isFetching
       : models.isSuccess && !models.isFetching)
+  const canOpenModel = (id: string) => {
+    if (!current || !isCurrent()) return false
+    if (requesting) {
+      const read = cache.getQueryState<NonNullable<typeof candidates.data>>([
+        'personal-model-candidates',
+        actorID,
+        query,
+        generation,
+      ])
+      if (
+        read?.status !== 'success' ||
+        read.fetchStatus !== 'idle' ||
+        !read.data?.pages.some((page) =>
+          page.items.some((model) => model.id === id && !model.personal_granted),
+        )
+      )
+        return false
+    } else {
+      const read = cache.getQueryState<NonNullable<typeof models.data>>([
+        'model-catalog',
+        'list',
+        actorID,
+        generation,
+      ])
+      if (
+        read?.status !== 'success' ||
+        read.fetchStatus !== 'idle' ||
+        !read.data?.some((model) => model.id === id)
+      )
+        return false
+    }
+    return true
+  }
+  const openModel = (id: string, kind: 'surface' | 'action' = 'surface') => {
+    if (!actorID || !canOpenModel(id)) return
+    focusOwner.current = { actorID, id, view, kind, requesting }
+    setSelectedID(id)
+  }
+  const registerTrigger = (id: string, kind: 'surface' | 'action', node: HTMLElement | null) => {
+    if (!node) return
+    const key = `${actorID}:${view}:${kind}:${id}`
+    triggers.current.set(key, node)
+    return () => {
+      if (triggers.current.get(key) === node) triggers.current.delete(key)
+    }
+  }
+  const restoreTriggerFocus = () => {
+    const owner = focusOwner.current
+    if (
+      !owner ||
+      owner.actorID !== actorID ||
+      owner.view !== view ||
+      owner.requesting !== requesting ||
+      !items.some((item) => item.id === owner.id) ||
+      !canOpenModel(owner.id)
+    )
+      return false
+    const node = triggers.current.get(`${owner.actorID}:${owner.view}:${owner.kind}:${owner.id}`)
+    return node?.isConnected && !node.closest('[hidden],[inert]') ? node : false
+  }
+  const activateClick = (event: MouseEvent<HTMLElement>, id: string) => {
+    if (
+      event.defaultPrevented ||
+      event.button !== 0 ||
+      !(event.target instanceof Element) ||
+      !event.currentTarget.contains(event.target)
+    )
+      return
+    const control = event.target.closest(
+      'a,button,input,select,textarea,summary,[role="button"],[role="menu"],[role="menuitem"],[contenteditable],[tabindex]',
+    )
+    if (control && control !== event.currentTarget) return
+    const selection = window.getSelection()
+    if (
+      selection &&
+      !selection.isCollapsed &&
+      (event.currentTarget.contains(selection.anchorNode) ||
+        event.currentTarget.contains(selection.focusNode))
+    )
+      return
+    openModel(id)
+  }
+  const activateKey = (event: KeyboardEvent<HTMLElement>, id: string) => {
+    if (
+      event.target !== event.currentTarget ||
+      event.defaultPrevented ||
+      event.repeat ||
+      event.nativeEvent.isComposing ||
+      (event.key !== 'Enter' && event.key !== ' ')
+    )
+      return
+    event.preventDefault()
+    openModel(id)
+  }
   const usageSource = sources.find((item) => modelSourceKey(item) === source)
   const monthly = useMonthlyModelUsage({
     actorID,
@@ -364,14 +466,19 @@ export default function ModelsPage() {
           {items.map((model) => (
             <article
               key={model.id}
+              ref={(node) => registerTrigger(model.id, 'surface', node)}
               role="listitem"
-              className={`space-y-4 rounded-lg border p-3 ${personallyAvailable(model) ? 'border-foreground' : ''}`}
+              tabIndex={0}
+              aria-label={t('memberModels.openAPI', { name: model.name })}
+              aria-haspopup="dialog"
+              onClick={(event) => activateClick(event, model.id)}
+              onKeyDown={(event) => activateKey(event, model.id)}
+              className={`cursor-pointer space-y-4 rounded-lg border p-3 outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ${personallyAvailable(model) ? 'border-foreground' : ''}`}
             >
               <button
                 type="button"
-                onClick={() => {
-                  if (isCurrent()) setSelectedID(model.id)
-                }}
+                ref={(node) => registerTrigger(model.id, 'action', node)}
+                onClick={() => openModel(model.id, 'action')}
                 aria-label={t('memberModels.openAPI', { name: model.name })}
                 aria-haspopup="dialog"
                 className="flex w-full items-center gap-2 text-left"
@@ -437,7 +544,16 @@ export default function ModelsPage() {
           </thead>
           <tbody>
             {items.map((model) => (
-              <tr key={model.id}>
+              <tr
+                key={model.id}
+                ref={(node) => registerTrigger(model.id, 'surface', node)}
+                tabIndex={0}
+                aria-label={t('memberModels.openAPI', { name: model.name })}
+                aria-haspopup="dialog"
+                onClick={(event) => activateClick(event, model.id)}
+                onKeyDown={(event) => activateKey(event, model.id)}
+                className="cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"
+              >
                 <td>{model.name}</td>
                 <td>
                   <ModelAccessSources
@@ -460,9 +576,8 @@ export default function ModelsPage() {
                   <Button
                     size="sm"
                     variant="ghost"
-                    onClick={() => {
-                      if (isCurrent()) setSelectedID(model.id)
-                    }}
+                    ref={(node) => registerTrigger(model.id, 'action', node)}
+                    onClick={() => openModel(model.id, 'action')}
                   >
                     {t('common.apiAccess')}
                   </Button>
@@ -506,6 +621,7 @@ export default function ModelsPage() {
           generation={generation}
           isCurrent={isCurrent}
           visible={fresh}
+          finalFocus={restoreTriggerFocus}
           onClose={() => setSelectedID(null)}
         />
       )}

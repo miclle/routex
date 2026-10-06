@@ -7,19 +7,27 @@ three unstarted** after accepting F06 initial Team Model access selection. Earli
 
 ## Current work and next gates
 
-Delivered main is Monthly request counts `daddd4e`, after catalogue prices
-`20d6049` and the narrow reactivation-copy test repair `7e55509`. The containing
-commit adds the bounded Provider Models table. Final format/check/full Task/build
-pass with 4,021 frontend cases in 165 files; all 1,602 tested product paths match
-main. Controlled bilingual filters, target reset, keyboard/Add/detail navigation,
-independent read/write denial, original-Session same-artifact restart, and browser
-account replacement pass. The database contains zero calls/attempts and all owned
-runtime resources/tabs are absent. F11 remains partial because complete binding
-projection/filtering is unavailable. Next, deliver the privately tested whole-item
-catalogue activation and validate the self-only Home Role-label endpoint on both
-databases. Its first PostgreSQL run found an invalid test-fixture foreign-key
-mutation; the unchanged product has no accepted driver result yet. The full goal
-remains active, with 11 complete / 16 partial / three unstarted capabilities.
+Current delivered main is Provider Models table
+`228dfd9cfeb232d86e7e64fca1cb44ae87aed525`, pushed with exact remote read-back.
+Its complete Task passes 4,021 frontend cases in 165 files, main check/build and
+controlled bilingual permission/original-Session restart acceptance; zero native
+calls and owned cleanup are verified. Catalogue prices `20d6049` and repaired
+Monthly counts `daddd4e` remain delivered. The containing commit additionally delivers whole-item catalogue access and its
+current-target dismissal focus repair after 4,055 frontend cases/165 files,
+complete Task, mandatory main checking/build and controlled bilingual browser/
+original-Session restart acceptance. All 1,602 tested product paths match main;
+zero calls/attempts and independently absent owned resources are verified. Earlier
+failed focus/idle evidence remains historical.
+
+The self-only Home Role-label endpoint and ten-file bilingual identity UI remain
+private. Focused real PostgreSQL/MySQL endpoint checks now pass; earlier FK-invalid
+and diagnostic-loss failures are retained. The mandatory full 127-per-driver run
+was interrupted by proven ENOSPC, so it has no acceptance. Owned processes and
+ports are absent; exact Compose cleanup is now independently verified and full127 R2 is running. The
+reproducible Go cache was cleared, recovering approximately 83 GB while preserving
+source, database and evidence. The Home UI passes 132 scoped cases/six suites;
+its complete composition is being checked separately. Keep the full goal active
+and formal 11/16/3 totals unchanged.
 
 ## Earlier delivery checkpoints
 
@@ -1761,3 +1769,43 @@ mandatory check/build passing. Current controlled browser/restart acceptance is
 recorded in Implementation, root receipt
 `c58ce56bbb4626992713c21b6f272012165d9b902b46eacd72daee8c845ccbbb`.
 All owned resources are absent. Earlier 4,017 evidence remains historical only.
+
+
+The focus repair is carried as five exact frontend leaves. The local Drawer
+forwards an optional typed finalFocus target; catalogue dismissal resolves the
+current authorized actor/Model/representation control after successful Session
+renewal replaces its DOM node. Removed, hidden, disconnected, pending, failed or
+unauthorized targets receive no forced focus. Thirteen added regressions include
+six meaningful failures against the exact predecessor; all 180 related cases in
+seven suites pass privately, with types, lint, formatting and exact patch
+round-trip. The original unchanged-node focus tests remain intact. Fresh complete
+main/private gates and corrected controlled browser acceptance are pending. The
+first failed browser run and its separately reached idle deadline remain recorded;
+earlier 4,042 results do not accept these repaired bytes.
+
+
+## Repaired whole-item catalogue access: local acceptance, 2026-10-06
+
+The five-file focus repair passes fresh complete Task testing: 4,055 frontend
+cases in 165 files, Node four, development lifecycle two, Go race/coverage and
+embedded production assets. Mandatory checking and build pass in the private
+composition and main; root independently verifies all 1,602 product paths and
+the private gate receipt `4f2e0da9443d145bfc13df8886ff95c8b71e63682ec3d075bd43d404e38844a4`.
+
+Controlled production/browser acceptance passes passive card/cell and Tab,
+Enter/Space activation, Close/Escape focus to current article/row/native action,
+source-menu isolation, Team-only and blank requestable detail, EN/ZH with retained
+source/table filters, real Personal grant removal and normal actor replacement.
+Original API and both original browser Sessions remain authorized after identical
+artifact/config/database/journal restart without document reload or login.
+Recorded Session/catalogue renewals corroborate the workflow; no DOM cause trace
+is inferred. Text-selection gestures and delayed/error/obsolete authority races
+remain focused source evidence. Recovered selector mistakes and normal
+unauthenticated/logout Session401 are retained; no all-request health claim occurs.
+The independent database has zero calls/attempts, discovery is one GET with zero
+native POSTs, warning/error browser logs are empty, and all owned tabs/processes/
+ports/Compose labels are independently absent. Root browser receipt digest is
+`585ca88a59fe33e6f1c7cfa6ae44e699630940225fd9d1f4101bfccc8203cf7d`; production artifact is
+`2a3229a4d621c3a6ba24746bbbcd4479b5dab30fad3e0de24f76b2fef3433ef9`.
+The first focus finding and separate idle failure remain historical. The
+containing commit delivers this bounded slice; F19 and 11/16/3 remain unchanged.

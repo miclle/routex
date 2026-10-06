@@ -1,6 +1,6 @@
 import { t } from '@/i18n'
 import { useTranslation } from 'react-i18next'
-import type { ReactNode } from 'react'
+import type { ComponentProps, ReactNode } from 'react'
 import { Dialog as BaseDialog } from '@base-ui/react/dialog'
 import { X } from 'lucide-react'
 import { Button } from './button'
@@ -15,6 +15,7 @@ export function Drawer({
   side = 'right',
   width = 736,
   bodyClassName = 'p-6',
+  finalFocus,
 }: {
   open: boolean
   onOpenChange: (open: boolean) => void
@@ -25,6 +26,7 @@ export function Drawer({
   side?: 'left' | 'right'
   width?: number
   bodyClassName?: string
+  finalFocus?: ComponentProps<typeof BaseDialog.Popup>['finalFocus']
 }) {
   useTranslation()
 
@@ -38,6 +40,7 @@ export function Drawer({
       <BaseDialog.Portal>
         <BaseDialog.Backdrop className="fixed inset-0 z-50 bg-black/40" />
         <BaseDialog.Popup
+          finalFocus={finalFocus}
           style={{ width, maxWidth: '100vw' }}
           className={`fixed inset-y-0 z-50 flex flex-col bg-background shadow-xl outline-none ${side === 'left' ? 'left-0' : 'right-0'}`}
         >

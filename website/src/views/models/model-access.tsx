@@ -1,4 +1,4 @@
-import { useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { useLayoutEffect, useMemo, useRef, useState, type ComponentProps } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router'
@@ -29,6 +29,7 @@ export default function ModelAccess({
   generation = 0,
   isCurrent = () => true,
   onClose,
+  finalFocus,
 }: {
   actorID: string
   modelID: string
@@ -37,6 +38,7 @@ export default function ModelAccess({
   generation?: number
   isCurrent?: () => boolean
   onClose: () => void
+  finalFocus?: ComponentProps<typeof Drawer>['finalFocus']
 }) {
   const { t } = useTranslation('catalog')
   const cache = useQueryClient()
@@ -160,6 +162,7 @@ export default function ModelAccess({
 
   return (
     <Drawer
+      finalFocus={finalFocus}
       open
       onOpenChange={(open) => {
         if (!open) onClose()

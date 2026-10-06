@@ -776,3 +776,31 @@ passes Personal1/sharedTeam2, peer scope isolation and one catalogue read follow
 by one scoped report per manual refresh. Owned resources are independently absent.
 The containing commit delivers this bounded slice. No backend, schema, endpoint,
 permission or dependency change is introduced.
+
+## Whole-item member catalogue access
+
+The existing catalogue cards and native table rows open the exact Model access
+review from passive content or focused Enter/Space. Existing title/API buttons
+and source menus remain separately operable. Interactive descendants, portaled
+menu events, non-primary clicks and mouse text selection do not activate the
+containing item. Visible focus and the local Base UI drawer preserve keyboard
+navigation and focus restoration.
+
+Dispatch checks the current actor/Session generation and successful idle catalogue
+or candidate query containing the exact target; requestable entries must still
+lack a Personal grant. Opening a review adds no authority, directory endpoint,
+request mutation or inference. Existing Team/requestable footer authorization
+reads remain independent; this interface does not promise one total detail read
+for every scope. Twenty-one new regressions retain the previous tests, prices,
+filters, source selection and Monthly refresh repair. Actual composed gates and
+controlled browser evidence are recorded in Implementation when accepted.
+
+Dismissal resolves a current authorized card, row or native action by exact actor,
+Model and representation after Session renewal replaces DOM nodes. The optional
+local Drawer focus target retains default behavior for other callers. Removed or
+unavailable targets receive no forced focus; unchanged-node and renewed-node
+regressions remain covered. The repaired composition passes 4,055 frontend cases/165 files, mandatory
+checking/build and controlled bilingual pointer/keyboard, permission, actor and
+original-Session restart acceptance. Text-selection and held/error authority races
+remain focused source evidence. This bounded slice is delivered by the containing
+commit; F19 remains partial.
