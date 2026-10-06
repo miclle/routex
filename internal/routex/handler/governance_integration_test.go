@@ -72,7 +72,7 @@ func testGovernanceLifecycle(t *testing.T, db *gorm.DB) {
 	if adminRoleReview.IdentityETag != nil {
 		adminRoleIdentity = *adminRoleReview.IdentityETag
 	}
-	expectStatus(t, roleDefinitionFixtureRequest(t, router, "PUT", "rol_admin", map[string]any{"name": "Changed admin", "permissions": []string{}, "identity_etag": adminRoleIdentity, "reason": "Verify builtin definition denial"}, adminCookie, admin.CSRFToken, adminRoleReview.ReviewETag), 403)
+	expectStatus(t, roleDefinitionFixtureRequest(t, router, "PUT", "rol_admin", map[string]any{"name": "Changed admin", "permissions": []string{}, "description": "Builtin role remains read-only", "identity_etag": adminRoleIdentity, "reason": "Verify builtin definition denial"}, adminCookie, admin.CSRFToken, adminRoleReview.ReviewETag), 403)
 	expectStatus(t, request("DELETE", "/api/v1/admin/roles/rol_member", nil), 403)
 	expectStatus(t, request("POST", "/api/v1/admin/roles", map[string]any{"name": "Unknown permission", "permissions": []string{"arbitrary.superuser"}}), 400)
 	reader := decodeCatalogResponse[RoleResponse](t, request("POST", "/api/v1/admin/roles", map[string]any{"name": "Catalog reader", "permissions": []string{"members.read", "providers.read"}}), 201)

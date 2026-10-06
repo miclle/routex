@@ -53,7 +53,7 @@ func roleDefinitionActor(tx *gorm.DB, actorID string, read, lock bool) (entity.U
 func loadRoleDefinition(tx *gorm.DB, roleID string, lock bool) (entity.Role, []string, error) {
 	var role entity.Role
 	q := memberRolesExact(memberRolesDB(tx).Model(&entity.Role{}), "id", roleID).
-		Select("ID", "Name", "NameKey", "Builtin", "CreatedAt", "DefinitionRevision")
+		Select("ID", "Name", "Description", "NameKey", "Builtin", "CreatedAt", "DefinitionRevision")
 	if lock {
 		q = q.Clauses(clause.Locking{Strength: "UPDATE"})
 	}
@@ -112,7 +112,7 @@ func roleDefinitionIdentity(role entity.Role) (*string, error) {
 }
 
 func projectRoleDefinition(actor entity.User, admission runtimeAdmissionProof, role entity.Role, permissions []string) (*roleDefinitionSnapshot, error) {
-	if !validMemberRoleDigest(actor.MemberRoleRevision) {
+	if !validRoleDescription(role.Description, true) || !validMemberRoleDigest(actor.MemberRoleRevision) {
 		return nil, roleDefinitionUnavailable
 	}
 	if len(permissions) > roleDefinitionPermissionBudget {
@@ -130,6 +130,10 @@ func projectRoleDefinition(actor entity.User, admission runtimeAdmissionProof, r
 	if err != nil {
 		return nil, roleDefinitionUnavailable
 	}
+	definitionETag, err := teamQuotaHash(struct{ Version, Definition, Description string }{"role.definition.contents.v2", definition.Summary.DefinitionETag, role.Description})
+	if err != nil {
+		return nil, roleDefinitionUnavailable
+	}
 	admission.CreatedAt = admission.CreatedAt.UTC()
 	admission.ApplicationCreatedAt = admission.ApplicationCreatedAt.UTC()
 	canEdit := actor.Role == entity.RoleAdmin && admission.Eligible && !role.Builtin && identity != nil
@@ -140,17 +144,18 @@ func projectRoleDefinition(actor entity.User, admission runtimeAdmissionProof, r
 		ActorRevision          string
 		Admission              runtimeAdmissionProof
 		RoleID, DefinitionETag string
+		Description            string
 		IdentityETag           *string
 		AvailablePermissions   []string
 		CanEdit                bool
-	}{"role.definition.review.v1", actor.ID, actor.Role, actor.CreatedAt.UTC(), actor.MemberRoleRevision, admission, role.ID, definition.Summary.DefinitionETag, identity, catalogue, canEdit})
+	}{"role.definition.review.v2", actor.ID, actor.Role, actor.CreatedAt.UTC(), actor.MemberRoleRevision, admission, role.ID, definitionETag, role.Description, identity, catalogue, canEdit})
 	if err != nil {
 		return nil, roleDefinitionUnavailable
 	}
 	return &roleDefinitionSnapshot{Actor: actor, Role: role, Record: RoleDefinitionRecord{
-		ID: role.ID, Name: role.Name, Builtin: role.Builtin,
+		ID: role.ID, Name: role.Name, Description: role.Description, Builtin: role.Builtin,
 		Permissions: definition.Permissions, AvailablePermissions: catalogue,
-		DefinitionETag: definition.Summary.DefinitionETag, IdentityETag: identity,
+		DefinitionETag: definitionETag, IdentityETag: identity,
 		ReviewETag: review, CanEdit: canEdit,
 	}}, nil
 }

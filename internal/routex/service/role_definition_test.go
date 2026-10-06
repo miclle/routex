@@ -13,7 +13,7 @@ import (
 )
 
 func roleDefinitionTestInput() RoleDefinitionInput {
-	return RoleDefinitionInput{Name: "Reviewed role", Permissions: []string{"members.read", "prices.read"}, IdentityETag: strings.Repeat("a", 64), Reason: "Controlled permission replacement"}
+	return RoleDefinitionInput{Name: "Reviewed role", Description: "Recorded purpose", Permissions: []string{"members.read", "prices.read"}, IdentityETag: strings.Repeat("a", 64), Reason: "Controlled permission replacement"}
 }
 
 func TestRoleDefinitionStrictCompleteInput(t *testing.T) {
@@ -82,7 +82,7 @@ func roleDefinitionTestSnapshot(t *testing.T, permissions []string) *roleDefinit
 	t.Helper()
 	birth := time.Date(2026, 10, 5, 0, 0, 0, 123456000, time.UTC)
 	actor := entity.User{ID: "usr_admin", Role: entity.RoleAdmin, CreatedAt: birth, MemberRoleRevision: memberRoleBaseline}
-	role := entity.Role{ID: "rol_legacyExact", Name: "Reviewed role", CreatedAt: birth, DefinitionRevision: memberRoleBaseline}
+	role := entity.Role{ID: "rol_legacyExact", Name: "Reviewed role", Description: "Recorded purpose", CreatedAt: birth, DefinitionRevision: memberRoleBaseline}
 	result, err := projectRoleDefinition(actor, runtimeAdmissionProof{CreatedAt: birth, State: "not_required", Eligible: true}, role, permissions)
 	if err != nil {
 		t.Fatal(err)
@@ -105,10 +105,10 @@ func TestRoleDefinitionPrivateGenerationBirthAndExactReadShape(t *testing.T) {
 		t.Fatal(err)
 	}
 	var body map[string]json.RawMessage
-	if json.Unmarshal(raw, &body) != nil || len(body) != 9 {
+	if json.Unmarshal(raw, &body) != nil || len(body) != 10 {
 		t.Fatal("noncontract read fields", string(raw))
 	}
-	for _, name := range []string{"id", "name", "builtin", "permissions", "available_permissions", "definition_etag", "identity_etag", "review_etag", "can_edit"} {
+	for _, name := range []string{"id", "name", "description", "builtin", "permissions", "available_permissions", "definition_etag", "identity_etag", "review_etag", "can_edit"} {
 		if body[name] == nil {
 			t.Fatal("missing read field", name)
 		}
@@ -190,8 +190,9 @@ func TestRoleDefinitionCurrentOnlyRetryCannotChangeStaleOrRecreatedTarget(t *tes
 }
 
 func TestRoleDefinitionTypedAuditExcludesUnknownAndPrivateData(t *testing.T) {
-	before := roleDefinitionAuditValues{"Retained name", []string{"Historical.Mixed_CASE"}}
-	after := roleDefinitionAuditValues{"Reviewed name", []string{"members.read"}}
+	beforeDescription, afterDescription := "", "Reviewed purpose"
+	before := roleDefinitionAuditValues{Name: "Retained name", Permissions: []string{"Historical.Mixed_CASE"}, Description: &beforeDescription}
+	after := roleDefinitionAuditValues{Name: "Reviewed name", Permissions: []string{"members.read"}, Description: &afterDescription}
 	raw, err := encodeRoleDefinitionAudit("rol_legacy", "Reviewed replacement", before, after)
 	if err != nil {
 		t.Fatal(err)

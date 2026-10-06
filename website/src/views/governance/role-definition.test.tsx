@@ -31,6 +31,7 @@ const review = 'a'.repeat(64),
 const fixture = (): RoleDefinition => ({
   id: 'rol_custom',
   name: 'Original role',
+  description: 'Original business scope',
   builtin: false,
   permissions: ['providers.read'],
   available_permissions: ['models.read_all', 'providers.read'],
@@ -129,7 +130,7 @@ async function edit(selector: string, value: string) {
 }
 async function send() {
   await edit('input:not([type=checkbox])', 'Reviewed role')
-  await edit('textarea', 'Reviewed definition')
+  await edit('textarea[name=reason]', 'Reviewed definition')
   await click('roleDefinition.reviewSave')
   await click('roleDefinition.confirm')
 }
@@ -188,6 +189,7 @@ beforeEach(async () => {
     return {
       id,
       name: input.name,
+      description: input.description,
       permissions: [...input.permissions],
       identity_etag: input.identity_etag,
       etag: changed,
@@ -217,7 +219,7 @@ it('reads only the exact Role and never puts a reviewed draft into a mutation ca
 it('requires full explicit confirmation and confirms only the exact current stored definition', async () => {
   await draw()
   await edit('input:not([type=checkbox])', 'Reviewed role')
-  await edit('textarea', 'Reviewed definition')
+  await edit('textarea[name=reason]', 'Reviewed definition')
   await click('roleDefinition.reviewSave')
   expect(requests).toEqual([])
   expect(document.body.textContent).toContain(label('roleDefinition.confirmHelp'))
@@ -229,6 +231,7 @@ it('requires full explicit confirmation and confirms only the exact current stor
       csrf: 'csrf-first',
       input: {
         name: 'Reviewed role',
+        description: 'Original business scope',
         permissions: ['providers.read'],
         identity_etag: identity,
         reason: 'Reviewed definition',
@@ -261,7 +264,9 @@ it('an initial409 preserves exact uncertain intent; matching GET never reports s
   await settle()
   expect(button('roleDefinition.retry')).toBeDefined()
   expect(document.body.textContent).not.toContain(label('roleDefinition.confirmed'))
-  expect(document.querySelector<HTMLTextAreaElement>('textarea')!.value).toBe('Reviewed definition')
+  expect(document.querySelector<HTMLTextAreaElement>('textarea[name=reason]')!.value).toBe(
+    'Reviewed definition',
+  )
   expect(requests).toHaveLength(1)
 })
 it('Cancel and same-target reopen retain original birth/review/body through a fresh review', async () => {
@@ -328,7 +333,7 @@ it.each(['permission', 'list', 'session'] as const)(
   'renewed %s hides all private content and portals synchronously',
   async (kind) => {
     await draw()
-    await edit('textarea', 'Draft reason')
+    await edit('textarea[name=reason]', 'Draft reason')
     await click('roleDefinition.reviewSave')
     const key =
       kind === 'permission'
@@ -389,12 +394,14 @@ it('read error hides old definition; recovery keeps the original uncertain reque
     await cache.invalidateQueries({ queryKey: ['admin', 'role-definition'] })
   })
   await settle()
-  expect(document.querySelector('textarea')).toBeNull()
+  expect(document.querySelector('textarea[name=reason]')).toBeNull()
   expect(document.body.textContent).not.toContain('Reviewed definition')
   readFailure = false
   await click('roleDefinition.refresh')
   expect(button('roleDefinition.retry')).toBeDefined()
-  expect(document.querySelector<HTMLTextAreaElement>('textarea')!.value).toBe('Reviewed definition')
+  expect(document.querySelector<HTMLTextAreaElement>('textarea[name=reason]')!.value).toBe(
+    'Reviewed definition',
+  )
 })
 it('actor or target changes cannot inherit another scope’s retry intent', async () => {
   failures = [503]
@@ -421,7 +428,7 @@ it('delegated roles.write cannot replace intrinsic admin; unknown recorded alias
   page.permissions = ['projects.models.WRITE', 'providers.read']
   await draw()
   expect(document.body.textContent).toContain('projects.models.WRITE')
-  await edit('textarea', 'Reviewed definition')
+  await edit('textarea[name=reason]', 'Reviewed definition')
   expect(button('roleDefinition.reviewSave').disabled).toBe(true)
   const unknown = [...document.querySelectorAll('label')]
     .find((node) => node.textContent?.includes('projects.models.WRITE'))!
@@ -460,7 +467,7 @@ it('builtin fresh View is read-only and exposes no replacement controls', async 
   await draw()
   expect(getRoleDefinition).toHaveBeenCalledWith(target, expect.any(AbortSignal))
   expect(document.body.textContent).toContain('providers.read')
-  expect(document.querySelector('textarea')).toBeNull()
+  expect(document.querySelector('textarea[name=reason]')).toBeNull()
   expect(setRoleDefinition).not.toHaveBeenCalled()
 })
 it('Escape hides the editor without discarding uncertain intent and restores only its connected row trigger', async () => {
@@ -513,7 +520,7 @@ it('parent table preserves Create/Delete and scopes custom Edit to fresh GET rat
   await settle()
   expect(getRoleDefinition).toHaveBeenCalledWith('rol_custom', expect.any(AbortSignal))
   expect(setRoleDefinition).not.toHaveBeenCalled()
-  expect(document.querySelector('textarea')).not.toBeNull()
+  expect(document.querySelector('textarea[name=reason]')).not.toBeNull()
 })
 it('parent hides cached rows/actions/dialogs on read renewal and denies stale dispatch/focus', async () => {
   await act(async () =>
@@ -526,7 +533,7 @@ it('parent hides cached rows/actions/dialogs on read renewal and denies stale di
   await settle()
   await settle()
   await click('roles.edit')
-  await edit('textarea', 'Private draft')
+  await edit('textarea[name=reason]', 'Private draft')
   const staleSave = button('roleDefinition.reviewSave')
   await act(async () => {
     void cache.invalidateQueries({ queryKey: ['permissions', actor], refetchType: 'none' })
@@ -575,7 +582,7 @@ it('an obsolete Role read cannot restore another target or dispatch from a detac
 
 async function openWriteConfirmation() {
   await edit('input:not([type=checkbox])', 'Reviewed role')
-  await edit('textarea', 'Reviewed definition')
+  await edit('textarea[name=reason]', 'Reviewed definition')
   await click('roleDefinition.reviewSave')
   expect(requests).toEqual([])
 }
@@ -597,7 +604,9 @@ it('fresh generation changes disable an open confirmation and explain the requir
   await act(async () => button('roleDefinition.confirm').click())
   expect(requests).toEqual([])
   await click('roleDefinition.cancel')
-  expect(document.querySelector<HTMLTextAreaElement>('textarea')!.value).toBe('Reviewed definition')
+  expect(document.querySelector<HTMLTextAreaElement>('textarea[name=reason]')!.value).toBe(
+    'Reviewed definition',
+  )
   expect(button('roleDefinition.reviewSave').disabled).toBe(true)
   await click('roleDefinition.reviewCurrent')
   await click('roleDefinition.reviewSave')
@@ -643,7 +652,9 @@ it('local abandonment remains available after fresh writer loss and does not cla
   await settle()
   expect(button('roleDefinition.confirmAbandon').disabled).toBe(false)
   await click('roleDefinition.confirmAbandon')
-  expect(document.querySelector<HTMLTextAreaElement>('textarea')!.value).toBe('Reviewed definition')
+  expect(document.querySelector<HTMLTextAreaElement>('textarea[name=reason]')!.value).toBe(
+    'Reviewed definition',
+  )
   expect(requests).toHaveLength(1)
   expect(document.body.textContent).toContain(label('roleDefinition.abandoned'))
   expect(document.body.textContent).not.toContain(label('roleDefinition.confirmed'))
@@ -735,4 +746,103 @@ it('group controls hide during renewed reads and cannot grant delegated writer a
   expect(groupToggle('providers').matches(':disabled')).toBe(true)
   await act(async () => groupToggle('providers').click())
   expect(requests).toEqual([])
+})
+
+it('requires an explicit description for a legacy empty role without inventing recorded text', async () => {
+  page.description = ''
+  await draw()
+  await edit('textarea[name=reason]', 'Reviewed scope')
+  expect(button('roleDefinition.reviewSave').disabled).toBe(true)
+  const field = document.querySelector<HTMLTextAreaElement>('textarea[name=description]')!
+  expect(field.value).toBe('')
+  expect(field.rows).toBe(2)
+  await edit('textarea[name=description]', 'Business scope\nSecond line')
+  expect(button('roleDefinition.reviewSave').disabled).toBe(false)
+  await edit('textarea[name=description]', 'é'.repeat(1001))
+  expect(button('roleDefinition.reviewSave').disabled).toBe(true)
+  await edit('textarea[name=description]', 'Business\tScope')
+  expect(button('roleDefinition.reviewSave').disabled).toBe(true)
+  expect(setRoleDefinition).not.toHaveBeenCalled()
+})
+
+it('captures trimmed multiline description once and retains it through first conflict, changed reads, renewal and language switching', async () => {
+  failures = [409, 412]
+  await draw()
+  await edit('textarea[name=description]', '  Exact business scope\n中文业务  ')
+  await send()
+  const original = structuredClone(requests[0])
+  expect(original.input.description).toBe('Exact business scope\n中文业务')
+  page = { ...page, description: 'Different current scope', review_etag: changed }
+  await act(async () => {
+    await cache.invalidateQueries({ queryKey: ['admin', 'role-definition'] })
+    cache.setQueryData(['auth', 'session'], session(actor, 'csrf-current'))
+    await i18n.changeLanguage('zh')
+  })
+  await settle()
+  expect(document.querySelector<HTMLTextAreaElement>('textarea[name=description]')!.value).toBe(
+    '  Exact business scope\n中文业务  ',
+  )
+  await click('roleDefinition.retry')
+  expect(requests[1]).toEqual({ ...original, csrf: 'csrf-current' })
+  expect(button('roleDefinition.retry')).toBeDefined()
+  await click('roleDefinition.retry')
+  expect(requests[2]).toEqual({ ...original, csrf: 'csrf-current' })
+  expect(requests).toHaveLength(3)
+})
+
+it('shows recorded builtin absence in both languages without an edit description control', async () => {
+  page = { ...page, builtin: true, can_edit: false, description: '' }
+  mode = 'view'
+  await draw()
+  expect(document.body.textContent).toContain('Not provided')
+  expect(document.querySelector('textarea[name=description]')).toBeNull()
+  await act(async () => i18n.changeLanguage('zh'))
+  expect(document.body.textContent).toContain('未提供')
+  expect(setRoleDefinition).not.toHaveBeenCalled()
+})
+
+it('preserves recorded FEFF description in name-only edits, confirmation and exact conflict retries', async () => {
+  page.description = '\uFEFFRecorded scope\n审批职责\uFEFF'
+  const recorded = page.description
+  failures = [409, 412]
+  await draw()
+  expect(document.querySelector<HTMLTextAreaElement>('textarea[name=description]')!.value).toBe(
+    recorded,
+  )
+  await edit('input:not([type=checkbox])', 'Name-only edit')
+  await edit('textarea[name=reason]', 'Reviewed name change')
+  await click('roleDefinition.reviewSave')
+  expect(document.querySelector('[role=dialog]')!.textContent).toContain(recorded)
+  await click('roleDefinition.confirm')
+  expect(requests).toHaveLength(1)
+  expect(requests[0].input.description).toBe(recorded)
+  expect(requests[0].input.name).toBe('Name-only edit')
+  const original = structuredClone(requests[0])
+  page = { ...page, description: 'Different current scope', review_etag: changed }
+  await act(async () => {
+    await cache.invalidateQueries({ queryKey: ['admin', 'role-definition'] })
+    cache.setQueryData(['auth', 'session'], session(actor, 'csrf-renewed'))
+    await i18n.changeLanguage('zh')
+  })
+  await settle()
+  expect(document.querySelector<HTMLTextAreaElement>('textarea[name=description]')!.value).toBe(
+    recorded,
+  )
+  expect(
+    document
+      .querySelector<HTMLTextAreaElement>('textarea[name=description]')!
+      .getAttribute('aria-label'),
+  ).toBe('角色说明')
+  await click('roleDefinition.retry')
+  await click('roleDefinition.retry')
+  expect(requests).toHaveLength(3)
+  for (const request of requests.slice(1))
+    expect(request).toEqual({ ...original, csrf: 'csrf-renewed' })
+})
+it('trims only Go whitespace from a description draft while preserving boundary FEFF and LF', async () => {
+  await draw()
+  const captured = '\uFEFFScope\n审批职责\uFEFF'
+  await edit('textarea[name=description]', ' \u00a0' + captured + '\u3000 ')
+  await send()
+  expect(requests[0].input.description).toBe(captured)
 })

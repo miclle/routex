@@ -48,6 +48,7 @@ type CreateMemberRequest struct {
 	Role     string `json:"role"`
 }
 type RoleResponse struct {
+	Description string   `json:"description"`
 	ID          string   `json:"id"`
 	Name        string   `json:"name"`
 	Builtin     bool     `json:"builtin"`
@@ -59,6 +60,7 @@ type RolesResponse struct {
 	AvailablePermissions []string       `json:"available_permissions"`
 }
 type SaveRoleRequest struct {
+	Description *string   `json:"description,omitempty"`
 	RoleID      string    `uri:"role_id" json:"-"`
 	Name        string    `json:"name"`
 	Permissions *[]string `json:"permissions"`
@@ -87,7 +89,7 @@ func memberResponse(item service.MemberRecord) *MemberResponse {
 	return &MemberResponse{ID: item.User.ID, Email: item.User.Email, Name: item.User.Name, Role: item.User.Role, Disabled: item.User.Disabled, OffboardedAt: item.User.OffboardedAt, CreatedAt: item.User.CreatedAt, RoleIDs: item.RoleIDs}
 }
 func roleResponse(item service.RoleRecord) *RoleResponse {
-	return &RoleResponse{ID: item.Role.ID, Name: item.Role.Name, Builtin: item.Role.Builtin, Permissions: item.Permissions, MemberCount: item.MemberCount}
+	return &RoleResponse{ID: item.Role.ID, Name: item.Role.Name, Description: item.Role.Description, Builtin: item.Role.Builtin, Permissions: item.Permissions, MemberCount: item.MemberCount}
 }
 
 func (ctrl *Ctrl) RegistrationStatus(c *fox.Context) (*RegistrationResponse, error) {
@@ -169,7 +171,13 @@ func (ctrl *Ctrl) CreateRole(c *fox.Context, request SaveRoleRequest) error {
 	if request.Permissions == nil {
 		return apperrors.ErrBadRequest
 	}
-	item, err := ctrl.service.SaveRole(c.Request.Context(), currentAuthentication(c).User.ID, "", request.Name, *request.Permissions)
+	var item *service.RoleRecord
+	var err error
+	if request.Description == nil {
+		item, err = ctrl.service.SaveRole(c.Request.Context(), currentAuthentication(c).User.ID, "", request.Name, *request.Permissions)
+	} else {
+		item, err = ctrl.service.CreateRoleWithDescription(c.Request.Context(), currentAuthentication(c).User.ID, request.Name, *request.Description, *request.Permissions)
+	}
 	if err != nil {
 		return err
 	}

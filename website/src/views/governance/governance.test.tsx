@@ -111,9 +111,15 @@ beforeEach(() => {
     role_ids: ['rol_custom'],
   }
   roles = [
-    { id: 'rol_admin', name: 'Administrator', builtin: true, permissions },
-    { id: 'rol_member', name: 'Member', builtin: true, permissions: [] },
-    { id: 'rol_custom', name: 'Provider Reader', builtin: false, permissions: ['providers.read'] },
+    { id: 'rol_admin', name: 'Administrator', description: '', builtin: true, permissions },
+    { id: 'rol_member', name: 'Member', description: '', builtin: true, permissions: [] },
+    {
+      id: 'rol_custom',
+      name: 'Provider Reader',
+      description: 'Read provider records',
+      builtin: false,
+      permissions: ['providers.read'],
+    },
   ]
   container = document.createElement('div')
   document.body.append(container)
@@ -245,6 +251,7 @@ beforeEach(() => {
       response.data = {
         id: role.id,
         name: role.name,
+        description: role.description ?? '',
         builtin: role.builtin,
         permissions: [...role.permissions].sort(),
         available_permissions: [...roleDefinitionAvailablePermissions],
@@ -408,9 +415,16 @@ async function click(text: string) {
 }
 async function fill(name: string, value: string) {
   await act(async () => {
-    const input = document.querySelector<HTMLInputElement>(`input[name="${name}"]`)!
+    const input = document.querySelector<HTMLInputElement | HTMLTextAreaElement>(
+      `input[name="${name}"], textarea[name="${name}"]`,
+    )!
     expect(input).not.toBeNull()
-    Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!.call(input, value)
+    Object.getOwnPropertyDescriptor(
+      input instanceof HTMLTextAreaElement
+        ? HTMLTextAreaElement.prototype
+        : HTMLInputElement.prototype,
+      'value',
+    )!.set!.call(input, value)
     input.dispatchEvent(new Event('input', { bubbles: true }))
   })
 }
@@ -591,6 +605,7 @@ describe('member governance', () => {
     expect(container.querySelectorAll('tbody tr')[0].textContent).not.toContain('Edit role')
     await click('Create custom role')
     await fill('name', 'Reader')
+    await fill('description', 'Read member records')
     await act(async () =>
       document.querySelector<HTMLInputElement>('input[value="members.read"]')!.click(),
     )
@@ -598,6 +613,7 @@ describe('member governance', () => {
     await until(() => expect(document.querySelector('[role="dialog"]')).toBeNull())
     expect(JSON.parse(requests.find((r) => r.method === 'post')!.data)).toEqual({
       name: 'Reader',
+      description: 'Read member records',
       permissions: ['members.read'],
     })
   })
@@ -606,6 +622,7 @@ describe('member governance', () => {
     await until(() => expect(container.textContent).toContain('Provider Reader'))
     await click('Create custom role')
     await fill('name', 'Grouped reader')
+    await fill('description', 'Read members and providers')
     const toggle = () =>
       document.querySelector<HTMLInputElement>(
         'input[aria-label="' +
@@ -641,6 +658,7 @@ describe('member governance', () => {
     await until(() => expect(document.querySelector('[role="dialog"]')).toBeNull())
     expect(JSON.parse(requests.find((r) => r.method === 'post')!.data)).toEqual({
       name: 'Grouped reader',
+      description: 'Read members and providers',
       permissions: ['members.read', 'providers.read', 'providers.write'],
     })
   })
@@ -940,3 +958,79 @@ async function fillApprovalReason() {
     field.dispatchEvent(new Event('change', { bubbles: true }))
   })
 }
+
+it('shows only recorded role descriptions or localized absence and creates an exact trimmed multiline scope', async () => {
+  await mount('/admin/roles')
+  await until(() => expect(container.textContent).toContain('Read provider records'))
+  expect(container.textContent).toContain('Not provided')
+  await click('Create custom role')
+  await fill('name', 'Business role')
+  const description = document.querySelector<HTMLTextAreaElement>('textarea[name=description]')!
+  expect(description.rows).toBe(2)
+  await fill('description', '  Business scope\n审批职责  ')
+  await act(async () => i18n.changeLanguage('zh'))
+  expect(description.value).toBe('  Business scope\n审批职责  ')
+  expect(description.getAttribute('aria-label')).toBe('角色说明')
+  await submit()
+  await until(() => expect(document.querySelector('[role=dialog]')).toBeNull())
+  expect(JSON.parse(requests.find((r) => r.method === 'post')!.data)).toEqual({
+    name: 'Business role',
+    description: 'Business scope\n审批职责',
+    permissions: [],
+  })
+})
+
+it('does not dispatch custom role creation with empty, over-byte-bound or control-bearing description', async () => {
+  await mount('/admin/roles')
+  await until(() => expect(container.textContent).toContain('Provider Reader'))
+  await click('Create custom role')
+  await fill('name', 'Business role')
+  for (const value of ['', '  ', 'é'.repeat(1001), 'Business\tScope']) {
+    await fill('description', value)
+    await submit()
+    expect(requests.filter((r) => r.method === 'post')).toHaveLength(0)
+  }
+  await fill('description', 'é'.repeat(1000))
+  await submit()
+  await until(() => expect(requests.filter((r) => r.method === 'post')).toHaveLength(1))
+  expect(JSON.parse(requests.find((r) => r.method === 'post')!.data).description).toBe(
+    'é'.repeat(1000),
+  )
+})
+
+it('renders exact FEFF descriptions and preserves them when creating from a bilingual draft', async () => {
+  const recorded = '\uFEFFRecorded scope\n审批职责\uFEFF'
+  roles[2].description = recorded
+  await mount('/admin/roles')
+  await until(() => expect(container.textContent).toContain(recorded))
+  expect(container.textContent).toContain('Not provided')
+  await click('Create custom role')
+  await fill('name', 'Business role')
+  const captured = '\uFEFFNew scope\n审批职责\uFEFF'
+  await fill('description', ' \u00a0' + captured + '\u3000 ')
+  await act(async () => i18n.changeLanguage('zh'))
+  expect(
+    document
+      .querySelector<HTMLTextAreaElement>('textarea[name=description]')!
+      .getAttribute('aria-label'),
+  ).toBe('角色说明')
+  await submit()
+  await until(() => expect(requests.filter((request) => request.method === 'post')).toHaveLength(1))
+  expect(JSON.parse(requests.find((request) => request.method === 'post')!.data)).toEqual({
+    name: 'Business role',
+    description: captured,
+    permissions: [],
+  })
+})
+it('preserves FEFF in new descriptions without treating it as an absent draft', async () => {
+  await mount('/admin/roles')
+  await until(() => expect(container.textContent).toContain('Provider Reader'))
+  await click('Create custom role')
+  await fill('name', 'Format role')
+  await fill('description', '\uFEFF')
+  await submit()
+  await until(() => expect(requests.filter((request) => request.method === 'post')).toHaveLength(1))
+  expect(JSON.parse(requests.find((request) => request.method === 'post')!.data).description).toBe(
+    '\uFEFF',
+  )
+})

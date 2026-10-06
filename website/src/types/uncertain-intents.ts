@@ -44,7 +44,14 @@ export type DefaultLimitSaveSubmittedIntent = {
   etag: string
   input: DefaultLimitInput
 }
+export type ConnectionNameSubmittedIntent = {
+  provider_id: string
+  connection_id: string
+  etag: string
+  input: { name: string; reason: string }
+}
 export type SubmittedIntent =
+  | { kind: 'connection-name'; payload: ConnectionNameSubmittedIntent }
   | { kind: 'team-create'; payload: TeamCreateSubmittedIntent }
   | { kind: 'default-limit-save'; payload: DefaultLimitSaveSubmittedIntent }
   | { kind: 'restore-defaults'; payload: RestoreSubmittedIntent }

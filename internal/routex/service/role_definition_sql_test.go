@@ -128,6 +128,9 @@ func roleDefinitionSQLService(t *testing.T) (*Service, *rolesSQLFixture, *roleDe
 	birth := fixture.data.users["usr_admin"].CreatedAt
 	for id, role := range fixture.data.roles {
 		role.CreatedAt = birth
+		if !role.Builtin {
+			role.Description = "Recorded role purpose"
+		}
 		fixture.data.roles[id] = role
 	}
 	control := &roleDefinitionSQLControl{applications: map[string]entity.RegistrationApprovalApplication{}}
@@ -145,7 +148,7 @@ func roleDefinitionSQLInput(t *testing.T, s *Service) (*RoleDefinitionRecord, Ro
 	if err != nil || record.IdentityETag == nil {
 		t.Fatal(record, err)
 	}
-	return record, RoleDefinitionInput{Name: "Reviewed changed role", Permissions: []string{"prices.read"}, IdentityETag: *record.IdentityETag, Reason: "Controlled reviewed definition"}
+	return record, RoleDefinitionInput{Name: "Reviewed changed role", Description: "Reviewed changed purpose", Permissions: []string{"prices.read"}, IdentityETag: *record.IdentityETag, Reason: "Controlled reviewed definition"}
 }
 func roleDefinitionSQLPending(fixture *rolesSQLFixture, control *roleDefinitionSQLControl) {
 	actor := fixture.data.users["usr_admin"]
@@ -166,7 +169,7 @@ func TestRoleDefinitionSQLIndependentAuthorityAndPrivateReadBounds(t *testing.T)
 		if err != nil || record.CanEdit || len(fixture.writes) != 0 {
 			t.Fatal(record, err)
 		}
-		input := RoleDefinitionInput{Name: record.Name, Permissions: record.Permissions, IdentityETag: *record.IdentityETag, Reason: "Delegated writer cannot edit"}
+		input := RoleDefinitionInput{Name: record.Name, Description: record.Description, Permissions: record.Permissions, IdentityETag: *record.IdentityETag, Reason: "Delegated writer cannot edit"}
 		if result, err := s.SetReviewedRoleDefinition(ctx, actor.ID, record.ID, record.ReviewETag, input); result != nil || err != apperrors.ErrForbidden || len(fixture.writes) != 0 {
 			t.Fatal(result, err)
 		}
@@ -249,6 +252,7 @@ func TestRoleDefinitionSQLAtomicAuditNoopAndUncertainRetry(t *testing.T) {
 			record, input := roleDefinitionSQLInput(t, s)
 			original := fixture.data.clone()
 			if mode == "noop" {
+				input.Description = record.Description
 				input.Name = record.Name
 				input.Permissions = slices.Clone(record.Permissions)
 			}
@@ -290,10 +294,10 @@ func TestRoleDefinitionSQLAtomicAuditNoopAndUncertainRetry(t *testing.T) {
 			if result != nil {
 				raw, marshalErr := json.Marshal(result)
 				var fields map[string]json.RawMessage
-				if marshalErr != nil || json.Unmarshal(raw, &fields) != nil || len(fields) != 7 {
+				if marshalErr != nil || json.Unmarshal(raw, &fields) != nil || len(fields) != 8 {
 					t.Fatal("noncontract receipt", string(raw), marshalErr)
 				}
-				for _, key := range []string{"id", "name", "permissions", "identity_etag", "etag", "confirmation", "effect"} {
+				for _, key := range []string{"id", "name", "description", "permissions", "identity_etag", "etag", "confirmation", "effect"} {
 					if fields[key] == nil {
 						t.Fatal("missing receipt field", key)
 					}
@@ -330,7 +334,7 @@ func TestRoleDefinitionSQLABAIdentityAndTrustedZeroBirthCompatibility(t *testing
 		if result, err := s.SetReviewedRoleDefinition(ctx, "usr_admin", record.ID, record.ReviewETag, input); result != nil || err != catalogConflict || len(fixture.writes) != 0 {
 			t.Fatal("changing ABA review accepted", result, err)
 		}
-		input.Name, input.Permissions = record.Name, slices.Clone(record.Permissions)
+		input.Name, input.Description, input.Permissions = record.Name, record.Description, slices.Clone(record.Permissions)
 		if result, err := s.SetReviewedRoleDefinition(ctx, "usr_admin", record.ID, record.ReviewETag, input); result == nil || err != nil || len(fixture.writes) != 0 || !reflect.DeepEqual(fixture.data, before) {
 			t.Fatal("same current incarnation equality wrote or failed", result, err)
 		}
@@ -338,7 +342,7 @@ func TestRoleDefinitionSQLABAIdentityAndTrustedZeroBirthCompatibility(t *testing
 	t.Run("reused_exact_ID_cannot_reconcile_equal_content", func(t *testing.T) {
 		s, fixture, _ := roleDefinitionSQLService(t)
 		record, input := roleDefinitionSQLInput(t, s)
-		input.Name, input.Permissions = record.Name, slices.Clone(record.Permissions)
+		input.Name, input.Description, input.Permissions = record.Name, record.Description, slices.Clone(record.Permissions)
 		role := fixture.data.roles[record.ID]
 		role.CreatedAt = role.CreatedAt.Add(time.Microsecond)
 		fixture.data.roles[record.ID] = role
@@ -356,7 +360,7 @@ func TestRoleDefinitionSQLABAIdentityAndTrustedZeroBirthCompatibility(t *testing
 		if err != nil || record.IdentityETag != nil || record.CanEdit {
 			t.Fatal("unknown provenance not read-only", record, err)
 		}
-		input := RoleDefinitionInput{Name: record.Name, Permissions: record.Permissions, IdentityETag: strings.Repeat("a", 64), Reason: "Unknown birth cannot confirm"}
+		input := RoleDefinitionInput{Name: record.Name, Description: record.Description, Permissions: record.Permissions, IdentityETag: strings.Repeat("a", 64), Reason: "Unknown birth cannot confirm"}
 		before := fixture.data.clone()
 		if result, err := s.SetReviewedRoleDefinition(ctx, "usr_admin", role.ID, record.ReviewETag, input); result != nil || err != catalogConflict || len(fixture.writes) != 0 || !reflect.DeepEqual(before, fixture.data) {
 			t.Fatal("public equal intent gained unknown birth", result, err)
@@ -375,7 +379,7 @@ func TestRoleDefinitionSQLABAIdentityAndTrustedZeroBirthCompatibility(t *testing
 		if err != nil {
 			t.Fatal(err)
 		}
-		input := RoleDefinitionInput{Name: record.Name, Permissions: record.Permissions, IdentityETag: *record.IdentityETag, Reason: "No historical grant"}
+		input := RoleDefinitionInput{Name: record.Name, Description: record.Description, Permissions: record.Permissions, IdentityETag: *record.IdentityETag, Reason: "No historical grant"}
 		if result, err := s.SetReviewedRoleDefinition(ctx, "usr_admin", record.ID, record.ReviewETag, input); result != nil || err != apperrors.ErrBadRequest || len(fixture.writes) != 0 {
 			t.Fatal("recorded code became assignable through equality", result, err)
 		}

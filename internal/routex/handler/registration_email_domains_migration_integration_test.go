@@ -90,11 +90,26 @@ func testRegistrationEmailDomainsMigration(t *testing.T, db *gorm.DB) {
 			t.Fatal("V58 ledger reconstruction", q.Error)
 		}
 	}
+	// This fixture changes a retained column's type/width deliberately. No
+	// transaction or migration goroutine is active at these drain boundaries.
+	// Closing idle physical connections clears driver-owned prepared descriptions;
+	// restore database/sql's default idle allowance, without changing production Open.
+	drainMigrationCache := func() {
+		t.Helper()
+		pool, err := db.DB()
+		if err != nil {
+			t.Fatal(err)
+		}
+		pool.SetMaxIdleConns(0)
+		pool.SetMaxIdleConns(2)
+	}
 	migrate := func() {
 		t.Helper()
+		drainMigrationCache()
 		if err := database.Migrate(ctx, db); err != nil {
 			t.Fatal(err)
 		}
+		drainMigrationCache()
 		if ledger() != 1 {
 			t.Fatal("V58 candidate was not registered exactly once")
 		}
@@ -171,8 +186,9 @@ func testRegistrationEmailDomainsMigration(t *testing.T, db *gorm.DB) {
 	if err := db.Model(&entity.GovernanceSetting{}).Where("id = ?", 1).UpdateColumn("RegistrationAllowedEmailDomains", invalid).Error; err != nil {
 		t.Fatal(err)
 	}
-	if err := database.Migrate(ctx, db); err == nil || ledger() != 0 {
-		t.Fatal("corrupt retained policy silently reset or accepted")
+	drainMigrationCache()
+	if err := database.Migrate(ctx, db); err == nil || err.Error() != "migration 58: invalid retained registration domain policy" || ledger() != 0 {
+		t.Fatal("corrupt retained policy must fail its validation without recording a ledger row", err)
 	}
 	read()
 	if current.RegistrationAllowedEmailDomains != invalid {

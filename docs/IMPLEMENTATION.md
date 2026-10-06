@@ -4,6 +4,21 @@ Updated: 2026-10-06. This document records engineering contracts, work packages,
 
 ## Current delivery and active queue
 
+The containing commit delivers Role descriptions and Connection names; its
+delivered predecessor is `d3afeac70a84d761edcc559ecd6afab5f988c3e9`.
+Role descriptions and Connection metadata have passed the complete124
+PostgreSQL/MySQL matrix, main checking, complete Task testing (3,929 frontend
+cases in 163 files), and the production build. Role browser and original-Session
+restart acceptance pass. The first Connection browser run stopped at a real
+503 before the planned response-loss fault; it remains failed and its owned
+resources are absent. A fresh Connection run passed all five browser PUTs,
+response-loss and Session recovery, original-Session restart and the exact retry
+without another audit; owned resources are absent. The containing commit
+delivers this checked phase.
+Private duty templates passed their corrected four-case dual-driver
+focus; the complete126 matrix is running. These slices do not change the
+11 complete / 16 partial / three unstarted capability totals.
+
 Project, Team-member, transient Restore recovery and Team creation limits phases
 are committed and pushed. Team creation predecessor is
 `8f17d12f0b59ab56eab9601748feede326616db2`; Restore predecessor is
@@ -6141,9 +6156,50 @@ to its reviewed pre-build bytes after teardown; no dependency change is shipped.
 No external-provider or complete F20/A17 acceptance is claimed.
 
 Role and Connection now share an isolated complete 124-scenario matrix on
-PostgreSQL and MySQL, with original 123 scenarios preserved. Its result remains
-pending. The migration-cache repair passed eight real-driver focused cases and
+PostgreSQL and MySQL, with original 123 scenarios preserved. It passes124
+ordered cases per driver,248 direct cases,eight constraints and4,491 matched
+RUN/PASS events in2,763.823s. Root independently verifies all1,654 source paths,
+HEAD/empty staging and absent owned containers/networks/volumes. The migration-cache repair passed eight real-driver focused cases and
 changes test fixtures only. Connection's GORM revision-field fix passed both
 real-driver focused cases; its frontend whitespace fidelity passed 113 cases.
 Role/Connection production browser gates and delivery remain pending. Capability
 totals remain 11 complete, 16 partial and 3 unstarted; the full objective continues.
+
+
+## Accepted Role descriptions and Connection name metadata
+
+The carried V67 source passes mandatory checking, complete Task testing
+(3,929 frontend cases in 163 files, Go race/coverage, Node and development
+lifecycle checks, and production assets), and the embedded production build.
+The isolated complete124 matrix passes both real databases: 124 ordered cases
+per driver, eight constraints and 4,491 matching named RUN/PASS events. All
+production Go files match that accepted source; one test-only lint correction
+uses the equivalent promoted `db.Name()` method. The original full123 prepared-
+statement fixture failure remains retained.
+
+The production binary digest is
+`0a42108ddd5b06e1f58b6286273350d1757d0d0e1066cca04f14ab312f4f263e`.
+Controlled Role description acceptance covers EN/ZH, LF/U+FEFF fidelity, empty
+legacy values, independent read/write authority, explicit conflict review and
+original Sessions after restart. Four browser PUTs returned 200, 409, 409 and
+200; three typed description updates were recorded. Root acceptance digest is
+`27d6c004cf8ad33b83759626d1bcf3e2be747747a30863930a2cc77de7a7942f`.
+
+The first Connection run remains failed: its fourth actual save returned 503
+before the response-loss injection. A fresh unchanged-product run passed actual
+browser statuses 409, 409, 200, 200 and 200, with the fourth successful response
+withheld as 503. Matching GETs retained the unknown intent. An actual Session
+200 withheld as 500 hid private content; manual Retry recovered the original
+actor. Same-artifact restart preserved all original Sessions and authenticated
+documents; fresh authority and target reads preceded an identical final retry.
+Only three typed name updates exist; the final current-target reconciliation
+added no audit. Root acceptance digest is
+`32393eefce6824191c9189472695acb86554b470b88f3eface984f066d7e7495`.
+
+Both environments' exact owned containers, networks, volumes, listeners and
+browser tabs are absent. Initial browser module-load failures were retained and
+recovered before the workflow baseline; no all-time clean-console claim is made.
+These gates establish controlled local current-target behavior, not external
+routing, historical operation receipts or whole Role-subtree recovery. F05 and
+F11 remain partial; overall totals remain 11 complete, 16 partial and three
+unstarted. The containing commit delivers this checked phase.

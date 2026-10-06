@@ -939,3 +939,22 @@ bilingual/original-Session recovery and native invocation have separate accepted
 evidence. The original final collector remains failed at its denied-usage oracle;
 read-only review confirms exact durable grants/receipt births/audits and native
 attribution. This main documentation is outside that protected matrix.
+
+## Recorded Role description V67
+
+The frozen private schema adds only roles.description through GORM AddColumn and
+creates the named 2,000-byte constraint through Migrator. Its empty default
+preserves existing records. HasColumn/HasConstraint checks resume partially
+applied MySQL DDL. Released steps are unchanged; no handwritten DDL is added.
+
+Both real databases pass the new upgrade/repeat/concurrent/constraint cases in
+the complete124 matrix. Schema-reset fixtures renew physical pools around schema
+recreation and migration replay so retained PostgreSQL statement descriptions
+are not reused after DDL. This test-only repair leaves production connections and
+released migrations unchanged. Earlier full123 failed and remains failed; the
+subsequent complete124 is independently accepted. Main checks, complete Task
+testing and the production build also pass. Controlled Role description browser
+and original-Session restart acceptance pass. Connection conflict, response-loss,
+Session-recovery and same-artifact restart acceptance also pass in a fresh
+controlled environment; its earlier actual-503 run remains failed. The containing
+commit delivers this checked phase.

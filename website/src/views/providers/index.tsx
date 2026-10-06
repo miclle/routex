@@ -1,5 +1,5 @@
 import { egressSelection } from '@/api/egress'
-import { ConnectionEgressControl, EgressSelect } from '@/views/egress/connection'
+import { EgressSelect } from '@/views/egress/connection'
 import { protocolLabel, protocolLabels } from '@/lib/protocols'
 import { useTranslation } from 'react-i18next'
 import { useState, type FormEvent } from 'react'
@@ -21,6 +21,7 @@ import { Menu, MenuItem } from '@/components/ui/menu'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { ProviderOverview, ProviderSettings } from './detail'
 import CredentialMetadataDialog from './credential-metadata'
+import ConnectionTable from './connections'
 import CredentialDeleteDialog from './credential-delete'
 import CredentialReplacementDialog from './credential-replacements'
 import CredentialReadinessDialog from './credential-readiness'
@@ -243,7 +244,8 @@ export default function ProvidersPage() {
 }
 function Providers() {
   const { t } = useTranslation('catalog')
-  const { data: session } = useSession()
+  const sessionQuery = useSession()
+  const { data: session } = sessionQuery
   const cache = useQueryClient()
   const access = usePermissions()
   const providers = useQuery({ queryKey: ['admin', 'providers'], queryFn: listProviders })
@@ -497,40 +499,12 @@ function Providers() {
               <ProviderOverview provider={selected} onSelectTab={selectTab} />
             </TabsContent>
             <TabsContent value="connections">
-              <div className="mb-4 flex justify-end">
-                <Button
-                  disabled={!access.can('providers.write')}
-                  onClick={() => open({ kind: 'connection', id: selected.id })}
-                >
-                  {t('providers.addConnection')}
-                </Button>
-              </div>
-              <Table>
-                <thead>
-                  <tr>
-                    <th>{t('common.connectionName')}</th>
-                    <th>{t('common.protocolType')}</th>
-                    <th>{t('common.baseURL')}</th>
-                    <th>{t('egress:selection')}</th>
-                    <th>{t('common.credentials')}</th>
-                    <th>{t('common.models')}</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {selected.connections.map((c) => (
-                    <tr key={c.id}>
-                      <td>{c.name}</td>
-                      <td>{protocolLabel(c.protocol)}</td>
-                      <td className="break-all">{c.base_url}</td>
-                      <td>
-                        <ConnectionEgressControl connection={c} />
-                      </td>
-                      <td>{c.credentials.length}</td>
-                      <td>{c.provider_models.length}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </Table>
+              <ConnectionTable
+                key={selected.id}
+                providerId={selected.id}
+                session={sessionQuery}
+                onAdd={() => open({ kind: 'connection', id: selected.id })}
+              />
             </TabsContent>
             <TabsContent value="credentials">
               <div className="mb-4 flex flex-wrap justify-end gap-2">

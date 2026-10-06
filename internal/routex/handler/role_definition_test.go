@@ -15,7 +15,7 @@ func TestRoleDefinitionHandlerStrictBoundary(t *testing.T) {
 	router.GET("/roles/:role_id", ctrl.GetRoleDefinition)
 	router.PUT("/roles/:role_id", ctrl.SetReviewedRoleDefinition)
 	proof := strings.Repeat("a", 64)
-	valid := `{"name":"Reviewed role","permissions":[],"identity_etag":"` + proof + `","reason":"Reviewed replacement"}`
+	valid := `{"name":"Reviewed role","description":"Reviewed purpose","permissions":[],"identity_etag":"` + proof + `","reason":"Reviewed replacement"}`
 	quoted := `"` + proof + `"`
 	cases := []struct {
 		name, method, path, body string

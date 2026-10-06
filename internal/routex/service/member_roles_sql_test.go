@@ -242,6 +242,8 @@ func (c *rolesSQLConnection) ExecContext(ctx context.Context, q string, args []d
 			switch field {
 			case "definition_revision":
 				role.DefinitionRevision = args[i].Value.(string)
+			case "description":
+				role.Description = args[i].Value.(string)
 			case "name":
 				role.Name = args[i].Value.(string)
 			case "name_key":

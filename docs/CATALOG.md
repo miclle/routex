@@ -676,3 +676,36 @@ All owned services, Compose resources and the browser tab were removed. Backend
 code and migrations are unchanged from the separately accepted `4fed603`
 PostgreSQL/MySQL matrix; no redundant full database run is claimed. Broader F19
 price/usage/overview and external-provider acceptance remain open.
+
+## Reviewed Connection names
+
+The existing Connections tab has six data columns and row actions, literal name and protocol
+filters and a row-menu name dialog. Resource-scoped metadata GET requires
+providers.read; PUT separately requires providers.write, a strong reviewed
+If-Match, normalized name and reason. The token binds the exact Connection and
+Provider incarnation and shared revision. Protocol, URL, egress and child
+configuration are separate operations.
+
+Only an authorized exact PUT with runtime_applied confirms the current name.
+Retain original bytes/token through conflicts, response loss and AuthGate errors;
+a matching current GET cannot prove the original historical operation. Explicit
+Abandon and fresh review are required to replace an uncertain intent. Original
+requests may reconcile current equality without another audit. Names/reasons use
+Go White_Space normalization and retain U+FEFF.
+
+The real-driver metadata cases pass in the complete124 matrix; the GORM field
+update uses the model field ETag and its existing portable column mapping.
+Main checking, complete Task testing and the production build pass. The first
+controlled browser run verified read/write separation, filters, English/Chinese
+views, two real conflicts and explicit review followed by a successful save.
+Its fourth save actually returned 503 before the planned response-loss fault.
+That failed run remains retained. A fresh run with unchanged product code passed
+five browser PUTs: actual statuses 409, 409, 200, 200 and 200; the fourth successful
+response was withheld as 503. Matching reads retained the original request.
+An actual Session 200 withheld as 500 hid private content; manual Retry restored
+the original actor. The same binary, configuration and database then restarted
+without reloading authenticated documents. Fresh reads preceded the exact
+original retry, which confirmed current runtime application with no additional
+audit. Three typed name updates and independent owned-resource cleanup were
+verified. This is controlled local acceptance, not external routing or historical
+operation proof. The containing commit delivers this slice; F11 stays partial.

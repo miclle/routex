@@ -8,6 +8,7 @@ import {
   validateRoleDefinitionInput,
   validateRoleDefinitionResult,
   validRoleDefinitionName,
+  validRoleDefinitionDescription,
   validRoleDefinitionReason,
 } from './role-definition'
 
@@ -60,6 +61,7 @@ const available = [
 const page = () => ({
   id: 'rol_Custom',
   name: 'Retained role',
+  description: '',
   builtin: false,
   permissions: ['projects.models.WRITE', 'providers.read'],
   available_permissions: [...available],
@@ -70,6 +72,7 @@ const page = () => ({
 })
 const input = () => ({
   name: 'Reviewed role',
+  description: 'Reviewed business scope',
   permissions: ['providers.read'],
   identity_etag: identity,
   reason: 'Reviewed definition',
@@ -77,6 +80,7 @@ const input = () => ({
 const result = () => ({
   id: 'rol_Custom',
   name: 'Reviewed role',
+  description: 'Reviewed business scope',
   permissions: ['providers.read'],
   identity_etag: identity,
   etag: definition,
@@ -244,4 +248,133 @@ describe('resource-scoped Role definition wire contract', () => {
     })
     await expect(setRoleDefinition('rol_Custom', review, input(), 'csrf')).rejects.toThrow()
   })
+})
+
+describe('Role description exact wire and UTF-8 bounds', () => {
+  it.each([
+    'Business scope',
+    'One line\nSecond line',
+    '界'.repeat(666) + 'ab',
+    'x'.repeat(2000),
+    '😀'.repeat(500),
+  ])('accepts exact supported description %s', (description) => {
+    expect(validRoleDefinitionDescription(description)).toBe(true)
+    expect(validateRoleDefinitionInput({ ...input(), description }).description).toBe(description)
+  })
+  it.each([
+    '',
+    ' ',
+    ' leading',
+    'trailing ',
+    '\nline',
+    'line\n',
+    'a\tb',
+    'a\rb',
+    'a\u0000b',
+    'a\u0085b',
+    '\ud800',
+    '\udc00',
+    '界'.repeat(667),
+    'x'.repeat(2001),
+    '😀'.repeat(501),
+  ])('rejects invalid submitted description %j', (description) => {
+    expect(validRoleDefinitionDescription(description)).toBe(false)
+    expect(() => validateRoleDefinitionInput({ ...input(), description })).toThrow()
+  })
+  it('requires the new exact GET10/input5/result8 fields while retaining historical empty read', () => {
+    expect(validateRoleDefinition({ ...page(), description: '' }, 'rol_Custom').description).toBe(
+      '',
+    )
+    const oldPage: Record<string, unknown> = { ...page() }
+    delete oldPage.description
+    const oldInput: Record<string, unknown> = { ...input() }
+    delete oldInput.description
+    const oldResult: Record<string, unknown> = { ...result() }
+    delete oldResult.description
+    expect(() => validateRoleDefinition(oldPage, 'rol_Custom')).toThrow()
+    expect(() => validateRoleDefinitionInput(oldInput)).toThrow()
+    expect(() => validateRoleDefinitionResult(oldResult, 'rol_Custom', input())).toThrow()
+    expect(() =>
+      validateRoleDefinitionResult(
+        { ...result(), description: 'Other current text' },
+        'rol_Custom',
+        input(),
+      ),
+    ).toThrow()
+    expect(() => validateRoleDefinition({ ...page(), description: null }, 'rol_Custom')).toThrow()
+  })
+  it('captures exact multiline description and rejects a mismatching confirmation after dispatch', async () => {
+    const captured = { ...input(), description: 'Read catalogue\nReview provider facts' }
+    let body = ''
+    client.defaults.adapter = async (config) => {
+      body = String(config.data)
+      return {
+        config,
+        status: 200,
+        statusText: '',
+        headers: new AxiosHeaders({
+          ETag: `"${definition}"`,
+          'Cache-Control': 'private, no-store',
+        }),
+        data: { ...result(), description: 'A different current description' },
+      }
+    }
+    await expect(
+      setRoleDefinition('rol_Custom', review, captured, 'csrf-current'),
+    ).rejects.toThrow()
+    expect(JSON.parse(body).description).toBe(captured.description)
+  })
+})
+
+const formattedDescriptions = [
+  '\uFEFFBusiness scope',
+  'Business scope\uFEFF',
+  '\uFEFFScope\n审批职责\uFEFF',
+]
+it.each(formattedDescriptions)(
+  'reads and writes exact server-valid description format characters: %s',
+  async (description) => {
+    const seen: InternalAxiosRequestConfig[] = []
+    client.defaults.adapter = async (config) => {
+      seen.push(config)
+      return {
+        config,
+        status: 200,
+        statusText: '',
+        data: config.method === 'get' ? { ...page(), description } : { ...result(), description },
+        headers: new AxiosHeaders({
+          ETag: `"${config.method === 'get' ? review : definition}"`,
+          'Cache-Control': 'private, no-store',
+        }),
+      }
+    }
+    expect((await getRoleDefinition('rol_Custom')).description).toBe(description)
+    const submitted = { ...input(), description }
+    expect(
+      (await setRoleDefinition('rol_Custom', review, submitted, 'fresh-csrf')).description,
+    ).toBe(description)
+    expect(seen).toHaveLength(2)
+    expect(seen[1].data).toBe(JSON.stringify(submitted))
+    expect(seen[1].headers.get('If-Match')).toBe(`"${review}"`)
+  },
+)
+it('preserves FEFF description byte bounds without changing Name or Reason validation', () => {
+  expect(validRoleDefinitionDescription('\uFEFF' + 'x'.repeat(1994) + '\uFEFF')).toBe(true)
+  expect(validRoleDefinitionDescription('\uFEFF' + 'x'.repeat(1995) + '\uFEFF')).toBe(false)
+  expect(validRoleDefinitionName('\uFEFFName')).toBe(false)
+  expect(validRoleDefinitionReason('\uFEFFReason')).toBe(false)
+  for (const space of [
+    ' ',
+    '\u00a0',
+    '\u1680',
+    '\u2000',
+    '\u2028',
+    '\u2029',
+    '\u202f',
+    '\u205f',
+    '\u3000',
+  ]) {
+    expect(validRoleDefinitionDescription(space + 'Scope')).toBe(false)
+    expect(validRoleDefinitionDescription('Scope' + space)).toBe(false)
+  }
 })

@@ -496,6 +496,12 @@ export default {
     confirmDisable: '确认停用',
   },
   roles: {
+    descriptionLabel: '角色说明',
+    descriptionPlaceholder: '说明该角色负责的业务范围',
+    descriptionNotProvided: '未提供',
+    invalidDescription:
+      '请输入去除首尾空白后非空且不超过 2,000 个 UTF-8 字节的说明。允许换行，不允许其他控制字符。',
+
     title: '角色与权限',
     description: '通过角色组合职责权限。',
     explanation: '通过角色组合职责权限。内置角色提供权限基线，自定义角色可按资源和动作细化授权。',

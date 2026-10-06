@@ -33,7 +33,7 @@ func reviewRoleDefinition(snapshot *roleDefinitionSnapshot, etag string, input R
 	}
 	// An equal definition confirms current contents, never the historical request.
 	// Incarnation, protected authority and current assignability still precede equality.
-	if snapshot.Role.Name == input.Name && slices.Equal(snapshot.Record.Permissions, input.Permissions) {
+	if snapshot.Role.Name == input.Name && snapshot.Role.Description == input.Description && slices.Equal(snapshot.Record.Permissions, input.Permissions) {
 		return nil
 	}
 	if etag != snapshot.Record.ReviewETag {
@@ -85,7 +85,7 @@ func (s *Service) mutateRoleDefinition(ctx context.Context, actorID, roleID, eta
 		if err := roleDefinitionAssignable(input.Permissions, catalogue); err != nil {
 			return err
 		}
-		role := entity.Role{ID: roleID, Name: input.Name, NameKey: secret.SHA256Hex(input.Name)}
+		role := entity.Role{ID: roleID, Name: input.Name, Description: input.Description, NameKey: secret.SHA256Hex(input.Name)}
 		var before []string
 		audit := ""
 		if !creating {
@@ -93,8 +93,14 @@ func (s *Service) mutateRoleDefinition(ctx context.Context, actorID, roleID, eta
 			if err != nil {
 				return err
 			}
+			if !validRoleDescription(role.Description, true) {
+				return roleDefinitionUnavailable
+			}
 			if role.Builtin {
 				return apperrors.ErrForbidden
+			}
+			if !reviewed {
+				input.Description = role.Description
 			}
 			slices.Sort(before)
 			if reviewed {
@@ -107,14 +113,14 @@ func (s *Service) mutateRoleDefinition(ctx context.Context, actorID, roleID, eta
 					return err
 				}
 			}
-			if role.Name == input.Name && slices.Equal(before, input.Permissions) {
+			if role.Name == input.Name && role.Description == input.Description && slices.Equal(before, input.Permissions) {
 				result = RoleRecord{Role: role, Permissions: slices.Clone(before)}
 				return nil
 			}
 			if reviewed {
 				audit, err = encodeRoleDefinitionAudit(role.ID, input.Reason,
-					roleDefinitionAuditValues{role.Name, before},
-					roleDefinitionAuditValues{input.Name, input.Permissions})
+					roleDefinitionAuditValues{Name: role.Name, Permissions: before, Description: &role.Description},
+					roleDefinitionAuditValues{Name: input.Name, Permissions: input.Permissions, Description: &input.Description})
 				if err != nil {
 					return err
 				}
@@ -125,6 +131,7 @@ func (s *Service) mutateRoleDefinition(ctx context.Context, actorID, roleID, eta
 			return err
 		}
 		role.Name = input.Name
+		role.Description = input.Description
 		role.NameKey = secret.SHA256Hex(input.Name)
 		if creating {
 			if reviewed {
@@ -135,7 +142,7 @@ func (s *Service) mutateRoleDefinition(ctx context.Context, actorID, roleID, eta
 			}
 		} else {
 			updated := memberRolesExact(memberRolesDB(tx).Model(&entity.Role{}), "id", role.ID).
-				Updates(map[string]any{"name": role.Name, "name_key": role.NameKey, "definition_revision": role.DefinitionRevision})
+				Updates(map[string]any{"name": role.Name, "description": role.Description, "name_key": role.NameKey, "definition_revision": role.DefinitionRevision})
 			if updated.Error != nil {
 				return updated.Error
 			}
@@ -143,12 +150,14 @@ func (s *Service) mutateRoleDefinition(ctx context.Context, actorID, roleID, eta
 				return catalogConflict
 			}
 		}
-		if err := memberRolesExact(memberRolesDB(tx), "role_id", role.ID).Delete(&entity.RolePermission{}).Error; err != nil {
-			return err
-		}
-		for _, permission := range input.Permissions {
-			if err := memberRolesDB(tx).Create(&entity.RolePermission{RoleID: role.ID, Permission: permission}).Error; err != nil {
+		if creating || !slices.Equal(before, input.Permissions) {
+			if err := memberRolesExact(memberRolesDB(tx), "role_id", role.ID).Delete(&entity.RolePermission{}).Error; err != nil {
 				return err
+			}
+			for _, permission := range input.Permissions {
+				if err := memberRolesDB(tx).Create(&entity.RolePermission{RoleID: role.ID, Permission: permission}).Error; err != nil {
+					return err
+				}
 			}
 		}
 		if reviewed {
@@ -179,10 +188,10 @@ func (s *Service) confirmRoleDefinition(ctx context.Context, actorID, roleID str
 		if err := reviewRoleDefinition(current, current.Record.ReviewETag, input); err != nil {
 			return err
 		}
-		if current.Role.Name != input.Name || !slices.Equal(current.Record.Permissions, input.Permissions) {
+		if current.Role.Name != input.Name || current.Role.Description != input.Description || !slices.Equal(current.Record.Permissions, input.Permissions) {
 			return catalogConflict
 		}
-		result = &RoleDefinitionResult{ID: roleID, Name: current.Role.Name,
+		result = &RoleDefinitionResult{ID: roleID, Name: current.Role.Name, Description: current.Role.Description,
 			Permissions: slices.Clone(current.Record.Permissions), IdentityETag: *current.Record.IdentityETag,
 			ETag: current.Record.ReviewETag, Confirmation: "current_role_definition", Effect: "current_database"}
 		return nil

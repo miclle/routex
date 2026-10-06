@@ -89,6 +89,17 @@ function defaultSaveInput(value: DefaultLimitSaveSubmittedIntent['input']) {
   return result
 }
 function copySubmission(value: SubmittedIntent): SubmittedIntent {
+  if (value.kind === 'connection-name') {
+    return {
+      kind: value.kind,
+      payload: {
+        provider_id: value.payload.provider_id,
+        connection_id: value.payload.connection_id,
+        etag: value.payload.etag,
+        input: { name: value.payload.input.name, reason: value.payload.input.reason },
+      },
+    }
+  }
   if (value.kind === 'default-limit-save') {
     return {
       kind: value.kind,
@@ -199,21 +210,35 @@ function createOwner(cache: QueryClient, routeScope: string) {
         submission.payload.target !== 'team'
       )
         return null
+      if (
+        submission.kind === 'connection-name' &&
+        (!/^prv_[A-Za-z0-9_-]*$/.test(submission.payload.provider_id) ||
+          submission.payload.provider_id.length > 30 ||
+          !/^con_[A-Za-z0-9_-]*$/.test(submission.payload.connection_id) ||
+          submission.payload.connection_id.length > 30)
+      )
+        return null
       const claim = Object.freeze({
         identity: Symbol('submitted intent'),
         actor,
         routeScope,
         epoch: ++epoch,
         targetScope:
-          submission.kind === 'team-create'
-            ? JSON.stringify([submission.kind, submission.payload.body.creation_id])
-            : submission.kind === 'default-limit-save'
-              ? JSON.stringify([submission.kind, submission.payload.target])
-              : JSON.stringify([
-                  submission.kind,
-                  submission.payload.target.kind,
-                  submission.payload.target.id,
-                ]),
+          submission.kind === 'connection-name'
+            ? JSON.stringify([
+                submission.kind,
+                submission.payload.provider_id,
+                submission.payload.connection_id,
+              ])
+            : submission.kind === 'team-create'
+              ? JSON.stringify([submission.kind, submission.payload.body.creation_id])
+              : submission.kind === 'default-limit-save'
+                ? JSON.stringify([submission.kind, submission.payload.target])
+                : JSON.stringify([
+                    submission.kind,
+                    submission.payload.target.kind,
+                    submission.payload.target.id,
+                  ]),
       })
       retained = { ...copySubmission(submission), claim, uncertain: true }
       changed()

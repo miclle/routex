@@ -81,6 +81,22 @@ function invalid(): never {
 export function validRoleDefinitionName(v: unknown): v is string {
   return recordedName(v) && v.length > 0 && v.trim() === v && !/\p{Cc}/u.test(v)
 }
+// Match strings.TrimSpace for descriptions; JavaScript trim also removes U+FEFF.
+export function trimRoleDefinitionDescription(value: string): string {
+  return value.replace(/^\p{White_Space}+|\p{White_Space}+$/gu, '')
+}
+export function validRoleDefinitionDescription(v: unknown): v is string {
+  return (
+    text(v) &&
+    v.length > 0 &&
+    trimRoleDefinitionDescription(v) === v &&
+    !/\p{Cc}/u.test(v.replace(/\n/g, '')) &&
+    new TextEncoder().encode(v).length <= 2000
+  )
+}
+export function validRecordedRoleDescription(v: unknown): v is string {
+  return v === '' || validRoleDefinitionDescription(v)
+}
 export function validRoleDefinitionReason(v: unknown): v is string {
   return (
     text(v) &&
@@ -97,6 +113,7 @@ export function validateRoleDefinition(v: unknown, target: string): RoleDefiniti
     !fields(v, [
       'id',
       'name',
+      'description',
       'builtin',
       'permissions',
       'available_permissions',
@@ -107,6 +124,7 @@ export function validateRoleDefinition(v: unknown, target: string): RoleDefiniti
     ]) ||
     v.id !== target ||
     !recordedName(v.name) ||
+    !validRecordedRoleDescription(v.description) ||
     typeof v.builtin !== 'boolean' ||
     !sorted(v.permissions, code) ||
     !sorted(v.available_permissions, assignableCode) ||
@@ -124,8 +142,9 @@ export function validateRoleDefinition(v: unknown, target: string): RoleDefiniti
 export function validateRoleDefinitionInput(v: unknown): RoleDefinitionInput {
   if (
     !object(v) ||
-    !fields(v, ['name', 'permissions', 'identity_etag', 'reason']) ||
+    !fields(v, ['name', 'description', 'permissions', 'identity_etag', 'reason']) ||
     !validRoleDefinitionName(v.name) ||
+    !validRoleDefinitionDescription(v.description) ||
     !sorted(v.permissions, assignableCode) ||
     !proof(v.identity_etag) ||
     !validRoleDefinitionReason(v.reason)
@@ -142,9 +161,19 @@ export function validateRoleDefinitionResult(
   if (
     !id(target) ||
     !object(v) ||
-    !fields(v, ['id', 'name', 'permissions', 'identity_etag', 'etag', 'confirmation', 'effect']) ||
+    !fields(v, [
+      'id',
+      'name',
+      'description',
+      'permissions',
+      'identity_etag',
+      'etag',
+      'confirmation',
+      'effect',
+    ]) ||
     v.id !== target ||
     v.name !== input.name ||
+    v.description !== input.description ||
     !sorted(v.permissions, assignableCode) ||
     JSON.stringify(v.permissions) !== JSON.stringify(input.permissions) ||
     v.identity_etag !== input.identity_etag ||

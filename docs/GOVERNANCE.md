@@ -1098,12 +1098,12 @@ intrinsic platform administrator. Delegated `roles.write` does not authorize it.
 Built-ins remain readable and immutable. Existing creation/deletion and
 Member/Team assignments are separate operations.
 
-GET returns exactly `id`, `name`, `builtin`, complete recorded `permissions`,
+GET returns exactly `id`, `name`, `description`, `builtin`, complete recorded `permissions`,
 current `available_permissions`, `definition_etag`, nullable `identity_etag`,
 `review_etag` and `can_edit`. Safe unknown recorded codes remain visible but do
 not become assignable; complete definition reads and replacement are bounded to
 100 permission codes. Unknown creation provenance yields a read-only review.
-PUT replaces the full sorted unique permission set, including explicit empty
+PUT replaces the name, description and full sorted unique permission set, including explicit empty
 arrays, with the recorded identity proof, a strong quoted review If-Match and a
 nonempty reason. Names retain the existing 100-code-point bound; reasons are
 trim-exact, control-free UTF-8 at most 1,024 bytes, within a 64-KiB request.
@@ -1234,3 +1234,34 @@ full log SHA256 is
 `7dc6857e3ae6df5e2afcd2f76e64afcd4937e0d48dae4fd1f6ae0b06fd9a2ec6`.
 The containing checked commit delivers this bounded workflow slice; F04/F05 and
 formal11/16/3 remain unchanged.
+
+## Recorded Role descriptions V67
+
+The existing table shows each recorded description beneath the Role name; the
+Edit/View dialog uses the local Base UI textarea between name and permissions.
+New custom Role creation/replacement requires a nonempty description, trimmed
+with Go White_Space rules and bounded to 2,000 UTF-8 bytes. Internal LF and U+FEFF
+are retained; other controls and malformed Unicode are rejected. Historical empty
+values remain empty and display localized Not provided. Builtins remain immutable.
+
+PUT requires the original reviewed incarnation, strong If-Match and reason.
+Description-only changes advance the durable definition revision and record typed
+version-2 before/after description facts; exact current-target retries add no
+audit. Only the authorized PUT confirms current database contents, independently
+of historical operation evidence. Whole AuthGate-subtree recovery and lost Role
+creation responses are outside this slice.
+
+The isolated complete124 matrix passes both databases and all eight constraints,
+with 4,491 matching named RUN/PASS events. All production Go files match that
+accepted candidate. One test-only lint correction uses the equivalent promoted
+`db.Name()` method; the other 970 Go files remain byte-exact.
+
+The carried source passes mandatory checking, complete Task testing (3,929
+frontend cases in 163 files), and the embedded production build. Controlled
+PostgreSQL browser acceptance covers English/Chinese descriptions, retained LF
+and U+FEFF, read-only access, legacy empty descriptions, conflict review, exact
+retries, no duplicate audit, and original Sessions after process restart. Four
+browser PUTs returned 200, 409, 409 and 200; three typed description updates were
+recorded. Owned resources are absent. This proves the current-target workflow,
+not whole-subtree recovery or a historical operation receipt. The containing
+commit delivers this slice; F05 remains partial.

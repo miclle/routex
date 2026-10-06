@@ -240,6 +240,12 @@ func auditRecord(row entity.AuditEvent) AuditRecord {
 		if !valid {
 			return result
 		}
+	case "connection.metadata.update":
+		var valid bool
+		changes, valid = connectionMetadataAuditProjection(row)
+		if !valid {
+			return result
+		}
 	case "credential.metadata.update":
 		type values struct {
 			Name     string `json:"name"`

@@ -19,8 +19,29 @@ controlled PostgreSQL bilingual/original-Session restart acceptance pass. Both
 ordinary targets also retain exact drafts across genuine periodic Session reads.
 Key119 and controlled production acceptance were committed and pushed as
 `cf05c57121ea770b1af04163b2c5b7f59c5fab58`, with exact remote main read-back.
-Initial Team Model121 acceptance is complete. Role descriptions, Connection
-metadata and single-model elapsed observation are the next independent phases.
+Initial Team Model access is delivered as `3e21b8d`; single-model browser elapsed
+time is delivered as `d3afeac`, with exact remote main read-back. Role descriptions and Connection metadata passed complete124 on both databases:
+124 ordered cases per driver, eight constraints and 4,491 matching named events.
+The carried main source passes mandatory checking, complete Task testing
+(3,929 frontend cases in 163 files), and the production build. Controlled Role
+description browser and original-Session restart acceptance pass. Connection
+filters, permission separation, two conflicts and a reviewed save passed, but
+its fourth real save returned 503 before the planned response-loss fault. That
+run remains failed; its owned resources are absent. A fresh run passed all five
+browser PUTs, response-loss and Session-error recovery, and exact original
+retry after same-artifact restart without authenticated document reload. The
+retry added no audit; all owned resources are absent. The containing commit
+delivers this checked Role/Connection phase.
+
+Three immutable, explicitly assignable duty templates (Procurement, Finance
+and Operations) are prepared in private backend, frozen GORM migration and
+frontend copies. The corrected focused PostgreSQL/MySQL run passes all four
+direct cases and seven named events; its owned resources are absent. The
+original focused run retains its test-only HTTP-status oracle failure. The
+unchanged complete126 matrix is running; no full-matrix, production or delivery
+acceptance is claimed. The final interface passes 256 focused cases, 3,854
+complete frontend cases, four Node checks, types, ESLint and formatting.
+Existing catalogue limits and query budgets remain fixed.
 
 Team focused R4–R8 remain failed. R4 exposed a pinned PostgreSQL GORM DropIndex
 fixture syntax error and missing private context headers; R5 confirmed the
@@ -1537,8 +1558,10 @@ to its reviewed pre-build bytes after teardown; no dependency change is shipped.
 No external-provider or complete F20/A17 acceptance is claimed.
 
 Role and Connection now share an isolated complete 124-scenario matrix on
-PostgreSQL and MySQL, with original 123 scenarios preserved. Its result remains
-pending. The migration-cache repair passed eight real-driver focused cases and
+PostgreSQL and MySQL, with original 123 scenarios preserved. It passes124
+ordered cases per driver,248 direct cases,eight constraints and4,491 matched
+RUN/PASS events in2,763.823s. Root independently verifies all1,654 source paths,
+HEAD/empty staging and absent owned containers/networks/volumes. The migration-cache repair passed eight real-driver focused cases and
 changes test fixtures only. Connection's GORM revision-field fix passed both
 real-driver focused cases; its frontend whitespace fidelity passed 113 cases.
 Role/Connection production browser gates and delivery remain pending. Capability

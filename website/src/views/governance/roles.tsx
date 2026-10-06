@@ -3,6 +3,10 @@ import { useState, type FormEvent, type MouseEvent } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Plus, ShieldCheck } from 'lucide-react'
 import { getRoles } from '@/api/governance'
+import {
+  validRoleDefinitionDescription,
+  trimRoleDefinitionDescription,
+} from '@/api/role-definition'
 import { writeCatalog } from '@/api/catalog'
 import { useSession } from '@/hooks/use-auth'
 import { usePermissions } from '@/hooks/use-permissions'
@@ -12,6 +16,7 @@ import { Page, QueryState, FormField, ErrorNotice, SaveButton } from '@/componen
 import { Table } from '@/components/ui/table'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
 import { Dialog } from '@/components/ui/dialog'
 import { Badge } from '@/components/ui/badge'
 import type { PlatformRole } from '@/types/governance'
@@ -130,6 +135,7 @@ function Roles() {
   const writer = () => current() && approvalActorCurrent(cache, actor, 'roles.read', true)
   const [editor, setEditor] = useState<'new' | null>(null)
   const [creationPermissions, setCreationPermissions] = useState<string[]>([])
+  const [creationDescription, setCreationDescription] = useState('')
   const [definition, setDefinition] = useState<{
     actor: string
     id: string
@@ -182,13 +188,20 @@ function Roles() {
   })
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
-    if (editor !== 'new' || !writer() || mutation.isPending) return
+    if (
+      editor !== 'new' ||
+      !writer() ||
+      mutation.isPending ||
+      !validRoleDefinitionDescription(trimRoleDefinitionDescription(creationDescription))
+    )
+      return
     const form = new FormData(event.currentTarget)
     mutation.mutate({
       method: 'post',
       path: '/admin/roles',
       data: {
         name: String(form.get('name')).trim(),
+        description: trimRoleDefinitionDescription(creationDescription),
         permissions: form.getAll('permissions').map(String).sort(),
       },
     })
@@ -204,6 +217,7 @@ function Roles() {
               if (!writer()) return
               mutation.reset()
               setCreationPermissions([])
+              setCreationDescription('')
               setEditor('new')
             }}
           >
@@ -237,6 +251,9 @@ function Roles() {
                   <span className="flex items-center gap-2">
                     <ShieldCheck className="size-4" />
                     {roleName(role)}
+                  </span>
+                  <span className="mt-1 block max-w-md break-words whitespace-pre-wrap text-sm text-muted-foreground">
+                    {role.description || t('roles.descriptionNotProvided')}
                   </span>
                 </td>
                 <td>
@@ -318,6 +335,30 @@ function Roles() {
             <FormField label={t('roles.name')}>
               <Input name="name" defaultValue="" required maxLength={100} />
             </FormField>
+            <FormField label={t('roles.descriptionLabel')}>
+              <Textarea
+                name="description"
+                aria-label={t('roles.descriptionLabel')}
+                rows={2}
+                className="min-h-16 max-h-28 overflow-y-auto [field-sizing:content]"
+                required
+                value={creationDescription}
+                placeholder={t('roles.descriptionPlaceholder')}
+                aria-invalid={
+                  creationDescription.length > 0 &&
+                  !validRoleDefinitionDescription(
+                    trimRoleDefinitionDescription(creationDescription),
+                  )
+                }
+                onChange={(event) => {
+                  if (writer() && !mutation.isPending) setCreationDescription(event.target.value)
+                }}
+              />
+              {creationDescription.length > 0 &&
+                !validRoleDefinitionDescription(
+                  trimRoleDefinitionDescription(creationDescription),
+                ) && <p role="alert">{t('roles.invalidDescription')}</p>}
+            </FormField>
             <div className="divide-y">
               {[...new Set(roles.data?.available_permissions.map((p) => p.split('.')[0]))].map(
                 (resource) => {
@@ -390,7 +431,14 @@ function Roles() {
           </fieldset>
           <ErrorNotice error={mutation.error} />
           <div className="flex justify-end">
-            <SaveButton pending={mutation.isPending}>{t('roles.save')}</SaveButton>
+            <SaveButton
+              pending={mutation.isPending}
+              disabled={
+                !validRoleDefinitionDescription(trimRoleDefinitionDescription(creationDescription))
+              }
+            >
+              {t('roles.save')}
+            </SaveButton>
           </div>
         </form>
       </Dialog>

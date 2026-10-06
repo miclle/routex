@@ -543,6 +543,12 @@ export default {
     confirmDisable: 'Confirm disable',
   },
   roles: {
+    descriptionLabel: 'Role description',
+    descriptionPlaceholder: 'Describe the business scope of this role',
+    descriptionNotProvided: 'Not provided',
+    invalidDescription:
+      'Enter a non-empty description of up to 2,000 UTF-8 bytes after trimming. Line breaks are allowed; other control characters are not.',
+
     title: 'Roles and permissions',
     description: 'Combine permissions into roles for each responsibility.',
     explanation:

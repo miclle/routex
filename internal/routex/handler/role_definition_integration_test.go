@@ -59,7 +59,7 @@ func roleDefinitionFixtureReview(t *testing.T, router http.Handler, cookie *http
 	expectStatus(t, out, 200)
 	var result service.RoleDefinitionRecord
 	var fields map[string]json.RawMessage
-	if json.Unmarshal(out.Body.Bytes(), &result) != nil || json.Unmarshal(out.Body.Bytes(), &fields) != nil || len(fields) != 9 || result.ID != roleID || result.Permissions == nil || result.AvailablePermissions == nil || !slices.IsSorted(result.Permissions) || !slices.IsSorted(result.AvailablePermissions) || len(result.DefinitionETag) != 64 || len(result.ReviewETag) != 64 || out.Header().Get("ETag") != strconv.Quote(result.ReviewETag) || out.Header().Get("Cache-Control") != "private, no-store" {
+	if json.Unmarshal(out.Body.Bytes(), &result) != nil || json.Unmarshal(out.Body.Bytes(), &fields) != nil || len(fields) != 10 || result.ID != roleID || result.Permissions == nil || result.AvailablePermissions == nil || !slices.IsSorted(result.Permissions) || !slices.IsSorted(result.AvailablePermissions) || len(result.DefinitionETag) != 64 || len(result.ReviewETag) != 64 || out.Header().Get("ETag") != strconv.Quote(result.ReviewETag) || out.Header().Get("Cache-Control") != "private, no-store" {
 		t.Fatal("invalid complete role resource review")
 	}
 	for _, key := range []string{"id", "name", "builtin", "permissions", "available_permissions", "definition_etag", "identity_etag", "review_etag", "can_edit"} {
@@ -249,7 +249,11 @@ func testRoleDefinitionLifecycle(t *testing.T, db *gorm.DB) {
 		if review.IdentityETag == nil {
 			t.Fatal("ordinary created role lacks identity proof")
 		}
-		return service.RoleDefinitionInput{Name: name, Permissions: permissions, IdentityETag: *review.IdentityETag, Reason: "Reviewed exact custom definition"}
+		description := review.Description
+		if description == "" {
+			description = "Reviewed role purpose"
+		}
+		return service.RoleDefinitionInput{Name: name, Description: description, Permissions: permissions, IdentityETag: *review.IdentityETag, Reason: "Reviewed exact custom definition"}
 	}
 	put := func(cookie *http.Cookie, csrf string, review service.RoleDefinitionRecord, body service.RoleDefinitionInput, status int) service.RoleDefinitionResult {
 		t.Helper()
@@ -266,7 +270,7 @@ func testRoleDefinitionLifecycle(t *testing.T, db *gorm.DB) {
 			return result
 		}
 		var fields map[string]json.RawMessage
-		if json.Unmarshal(out.Body.Bytes(), &result) != nil || json.Unmarshal(out.Body.Bytes(), &fields) != nil || len(fields) != 7 || result.ID != id || result.Name != body.Name || !slices.Equal(result.Permissions, body.Permissions) || result.IdentityETag != body.IdentityETag || result.Confirmation != "current_role_definition" || result.Effect != "current_database" || out.Header().Get("ETag") != strconv.Quote(result.ETag) {
+		if json.Unmarshal(out.Body.Bytes(), &result) != nil || json.Unmarshal(out.Body.Bytes(), &fields) != nil || len(fields) != 8 || result.ID != id || result.Name != body.Name || result.Description != body.Description || !slices.Equal(result.Permissions, body.Permissions) || result.IdentityETag != body.IdentityETag || result.Confirmation != "current_role_definition" || result.Effect != "current_database" || out.Header().Get("ETag") != strconv.Quote(result.ETag) {
 			t.Fatal("role writer did not confirm exact current database contents")
 		}
 		for _, key := range []string{"id", "name", "permissions", "identity_etag", "etag", "confirmation", "effect"} {
@@ -305,7 +309,7 @@ func testRoleDefinitionLifecycle(t *testing.T, db *gorm.DB) {
 		if builtin.IdentityETag != nil {
 			builtinProof = *builtin.IdentityETag
 		}
-		expectStatus(t, roleDefinitionFixtureRequest(t, router, "PUT", "rol_admin", service.RoleDefinitionInput{Name: builtin.Name, Permissions: []string{}, IdentityETag: builtinProof, Reason: "Verify builtin definition denial"}, adminCookie, admin.CSRFToken, builtin.ReviewETag), 403)
+		expectStatus(t, roleDefinitionFixtureRequest(t, router, "PUT", "rol_admin", service.RoleDefinitionInput{Name: builtin.Name, Description: "Builtin role remains read-only", Permissions: []string{}, IdentityETag: builtinProof, Reason: "Verify builtin definition denial"}, adminCookie, admin.CSRFToken, builtin.ReviewETag), 403)
 		if builtin.CanEdit {
 			t.Fatal("builtin editable")
 		}

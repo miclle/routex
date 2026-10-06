@@ -11,6 +11,7 @@ export interface Member {
 export interface PlatformRole {
   id: string
   name: string
+  description?: string
   builtin: boolean
   permissions: string[]
   member_count?: number | null

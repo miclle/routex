@@ -109,7 +109,7 @@ func (s *Service) ListRoles(ctx context.Context, actorID string) ([]RoleRecord, 
 			return apperrors.ErrForbidden
 		}
 		var roles []entity.Role
-		if err := memberRolesDB(tx).Select("ID", "Name", "Builtin", "DefinitionRevision").Order("builtin DESC, name, id").Limit(memberRolesCatalogueBudget + 1).Find(&roles).Error; err != nil {
+		if err := memberRolesDB(tx).Select("ID", "Name", "Description", "Builtin", "DefinitionRevision").Order("builtin DESC, name, id").Limit(memberRolesCatalogueBudget + 1).Find(&roles).Error; err != nil {
 			return err
 		}
 		if len(roles) > memberRolesCatalogueBudget {
@@ -117,7 +117,7 @@ func (s *Service) ListRoles(ctx context.Context, actorID string) ([]RoleRecord, 
 		}
 		ids := map[string]bool{}
 		for _, role := range roles {
-			if ids[role.ID] || !memberRoleID(role.ID) || role.Builtin != (role.ID == "rol_admin" || role.ID == "rol_member") {
+			if !validRoleDescription(role.Description, true) || ids[role.ID] || !memberRoleID(role.ID) || role.Builtin != (role.ID == "rol_admin" || role.ID == "rol_member") {
 				return memberRolesUnavailable
 			}
 			ids[role.ID] = true

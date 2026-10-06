@@ -124,7 +124,7 @@ scripts/                      # Shell helpers invoked by Taskfile (build, check,
 - Authentication pages use `/setup` and `/login`; `AuthGate` protects the application shell. Session and setup state are React Query resources; cookies remain HttpOnly and CSRF tokens stay in memory.
 - `/account` updates the profile; `/account/security` rotates passwords and sessions and revokes individual sessions. Password changes replace cached session/CSRF data; revoking the current session clears private caches and returns to login.
 - `/playground` invokes native inference with a transient personal or Project Key, without browser storage or mutation-cache persistence. `/calls` and `/admin/calls` use separate list/detail query keys and permission boundaries.
-- Catalog routes include `/admin/providers`, `/admin/models`, `/models`, and `/keys`. Administrative views use `AdminOnly` in addition to server authorization; the app navigation follows the session role.
+- Catalog routes include `/admin/providers`, `/admin/models`, `/models`, and `/keys`. Administrative views and navigation use effective permission gates in addition to server authorization; intrinsic administrator checks protect reserved role and registration powers.
 - Planned Personal/Project Key retirement requires a persisted exact-owner replacement call whose successful last attempt carries native `completed` evidence after Key creation. HTTP/call success, known usage, delivery, handoff, blocking, truncation and unknown history are insufficient. Preserve historical completed-retirement retries and current authorization; UI guidance reflects the server gate without inferring eligibility.
 - One-time Key secrets stay only in component state until confirmed or revoked; never return secrets from a React Query mutation into its cache. Local `Dialog` wraps Base UI for modal focus and keyboard behavior.
 - Use the local Base UI `Input` wrapper for form controls, with labels, autocomplete, validation, and pending states.
@@ -909,3 +909,19 @@ exclude asynchronous attachment cleanup, and keep native completion, authoritati
 usage and Provider latency separate. Preserve cancellation, exchange and resource
 generation fences so late responses cannot restore cleared history. Never persist
 this observation or add it to native payloads or generated request examples.
+
+Role descriptions use the existing Role table and Edit/View dialogs. New custom
+Role writes require the complete name, description and permission set. Preserve
+recorded empty history, internal LF and U+FEFF; match Go White_Space trimming and
+the 2,000 UTF-8-byte limit. The local textarea wraps Base UI Field Control. Keep
+builtin definitions read-only, reviewed identity/If-Match/reason and exact
+uncertain retries; success confirms current database contents only.
+
+Connection name maintenance uses the existing Connections row menu and Base UI
+dialog, with the compact six-column table and conjunctive literal name/protocol
+filters. Keep providers.read and providers.write independent. Preserve the exact
+actor, Provider, Connection, reviewed token, normalized name and reason across
+conflict, response loss and AuthGate interruption; current metadata reads cannot
+resolve original uncertainty. Confirm runtime application before reporting a
+saved name. Protocol, URL, egress, credentials, models, weights and grants remain
+separate operations; no historical operation receipt is implied.

@@ -20,6 +20,7 @@ var roleDefinitionUnavailable = &apperrors.Error{Code: http.StatusServiceUnavail
 
 // RoleDefinitionRecord is a complete current resource review, without assignment facts.
 type RoleDefinitionRecord struct {
+	Description          string   `json:"description"`
 	ID                   string   `json:"id"`
 	Name                 string   `json:"name"`
 	Builtin              bool     `json:"builtin"`
@@ -33,6 +34,7 @@ type RoleDefinitionRecord struct {
 
 // RoleDefinitionInput replaces the entire reviewed custom definition.
 type RoleDefinitionInput struct {
+	Description  string   `json:"description"`
 	Name         string   `json:"name"`
 	Permissions  []string `json:"permissions"`
 	IdentityETag string   `json:"identity_etag"`
@@ -41,6 +43,7 @@ type RoleDefinitionInput struct {
 
 // RoleDefinitionResult confirms current database contents, never a historical operation.
 type RoleDefinitionResult struct {
+	Description  string   `json:"description"`
 	ID           string   `json:"id"`
 	Name         string   `json:"name"`
 	Permissions  []string `json:"permissions"`
@@ -55,7 +58,7 @@ func validRoleDefinitionReason(reason string) bool {
 }
 
 func validateRoleDefinitionInput(input RoleDefinitionInput) error {
-	if !validCatalogLabel(input.Name) || input.Permissions == nil || len(input.Permissions) > roleDefinitionPermissionBudget || !slices.IsSorted(input.Permissions) || !validMemberRoleDigest(input.IdentityETag) || !validRoleDefinitionReason(input.Reason) {
+	if !validRoleDescription(input.Description, false) || !validCatalogLabel(input.Name) || input.Permissions == nil || len(input.Permissions) > roleDefinitionPermissionBudget || !slices.IsSorted(input.Permissions) || !validMemberRoleDigest(input.IdentityETag) || !validRoleDefinitionReason(input.Reason) {
 		return apperrors.ErrBadRequest
 	}
 	for i, code := range input.Permissions {
@@ -72,7 +75,7 @@ func (input *RoleDefinitionInput) UnmarshalJSON(raw []byte) error {
 		return apperrors.ErrBadRequest
 	}
 	fields, err := memberRolesObject(raw)
-	if err != nil || len(fields) != 4 {
+	if err != nil || len(fields) != 5 {
 		return apperrors.ErrBadRequest
 	}
 	var next RoleDefinitionInput
@@ -81,6 +84,8 @@ func (input *RoleDefinitionInput) UnmarshalJSON(raw []byte) error {
 			return apperrors.ErrBadRequest
 		}
 		switch name {
+		case "description":
+			err = json.Unmarshal(value, &next.Description)
 		case "name":
 			err = json.Unmarshal(value, &next.Name)
 		case "permissions":

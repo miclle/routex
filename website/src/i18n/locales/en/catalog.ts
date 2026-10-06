@@ -1,4 +1,52 @@
 export default {
+  connectionMetadata: {
+    filters: 'Connection filters',
+    search: 'Search connection names',
+    protocolFilter: 'Filter connection protocol',
+    allProtocols: 'All protocols',
+    filtered: '{{count}} of {{total}} connections',
+    list: 'Connection configurations',
+    empty: 'No matching connections.',
+    actions: 'Actions for {{name}}',
+    edit: 'Edit name',
+    title: 'Edit connection name',
+    description:
+      'Review this connection before renaming it. Other connection settings are read-only.',
+    reason: 'Change reason',
+    readonlyHelp:
+      'Protocol, Base URL and network egress are recorded configuration. This action changes only the name.',
+    validation:
+      'Enter a name of 1–100 characters and a reason of 1–1,024 UTF-8 bytes without control characters.',
+    save: 'Review name change',
+    confirmTitle: 'Confirm connection name change?',
+    confirmDescription:
+      'Save the reviewed name with the captured reason. Credentials, models and routing weights remain unchanged.',
+    confirmName: 'New name: {{name}}',
+    confirmReason: 'Reason: {{reason}}',
+    confirm: 'Confirm name change',
+    review: 'Review current configuration',
+    reviewed: 'Current configuration reviewed. Your name and reason are preserved.',
+    stale:
+      'The reviewed connection configuration changed. Review the current configuration explicitly before submitting.',
+    readOnly: 'Current write authority is unavailable.',
+    denied: 'Your account does not have permission to read Connections.',
+    unavailable:
+      'The request cannot be captured right now. Check current authority and retry explicitly.',
+    uncertain:
+      'The outcome of the submitted request is unknown. Its original name, reason and reviewed ETag are retained. A current read cannot resolve it; retry the exact request explicitly.',
+    retained: 'A connection name request still has an unknown outcome.',
+    resume: 'Resume name request',
+    retry: 'Retry exact name request',
+    abandon: 'Abandon original request',
+    abandonTitle: 'Abandon this retained request?',
+    abandonDescription:
+      'The previous outcome remains unknown. Keep the draft, abandon its original request and explicitly review the current configuration before starting another request.',
+    confirmAbandon: 'Abandon request',
+    abandoned:
+      'The original request was abandoned locally. Its previous outcome remains unknown. Your draft is preserved; explicitly review the current configuration.',
+    saved:
+      'The response confirmed the current saved name and local runtime publication. It does not prove the original operation or route availability.',
+  },
   aliasRetirement: {
     names: 'Compatibility names and history',
     configuredName: 'Recorded name',

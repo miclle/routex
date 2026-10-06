@@ -4,6 +4,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { listProviders } from '@/api/catalog'
 import { EgressError, egressSelection, listEgress, saveConnectionEgress } from '@/api/egress'
 import type { Connection } from '@/types/catalog'
+import type { Session } from '@/types/auth'
 import { useSession } from '@/hooks/use-auth'
 import { usePermissions } from '@/hooks/use-permissions'
 import { FormField, QueryState } from '@/components/app/CatalogUI'
@@ -57,10 +58,47 @@ export function EgressSelect({
     </div>
   )
 }
-export function ConnectionEgressControl({ connection }: { connection: Connection }) {
+export interface ConnectionEgressAuthority {
+  session: () => Session | null | undefined
+  canWrite: () => boolean
+  isCurrent?: () => boolean
+}
+export function ConnectionEgressControl({
+  connection,
+  authority,
+}: {
+  connection: Connection
+  authority?: ConnectionEgressAuthority
+}) {
+  return authority ? (
+    <AuthorizedConnectionEgressControl connection={connection} authority={authority} />
+  ) : (
+    <ObservedConnectionEgressControl connection={connection} />
+  )
+}
+function ObservedConnectionEgressControl({ connection }: { connection: Connection }) {
+  const access = usePermissions()
+  return (
+    <AuthorizedConnectionEgressControl
+      connection={connection}
+      canWrite={() => access.can('providers.write')}
+    />
+  )
+}
+// A fresh table can supply its single Session/permission observation. Mounting a
+// control per row must not start another Session read and remount the table.
+function AuthorizedConnectionEgressControl({
+  connection,
+  authority,
+  canWrite,
+}: {
+  connection: Connection
+  authority?: ConnectionEgressAuthority
+  canWrite?: () => boolean
+}) {
   const { t } = useTranslation('egress'),
-    access = usePermissions(),
     [open, setOpen] = useState(false)
+  const writable = authority?.canWrite ?? canWrite ?? (() => false)
   const label =
     connection.egress_mode === 'proxy'
       ? connection.egress_id
@@ -70,19 +108,63 @@ export function ConnectionEgressControl({ connection }: { connection: Connection
       <Button
         variant="ghost"
         size="sm"
-        disabled={!access.can('providers.write') || !connection.etag}
-        onClick={() => setOpen(true)}
+        disabled={!writable() || !connection.etag}
+        onClick={() => writable() && setOpen(true)}
       >
         {label}
       </Button>
-      {open && <ConnectionEditor initial={connection} onClose={() => setOpen(false)} />}
+      {open && (
+        <ConnectionEditor
+          initial={connection}
+          authority={authority}
+          onClose={() => setOpen(false)}
+        />
+      )}
     </>
   )
 }
-function ConnectionEditor({ initial, onClose }: { initial: Connection; onClose: () => void }) {
+function ConnectionEditor({
+  initial,
+  authority,
+  onClose,
+}: {
+  initial: Connection
+  authority?: ConnectionEgressAuthority
+  onClose: () => void
+}) {
+  return authority ? (
+    <ConnectionEditorCore initial={initial} authority={authority} onClose={onClose} />
+  ) : (
+    <ObservedConnectionEditor initial={initial} onClose={onClose} />
+  )
+}
+function ObservedConnectionEditor({
+  initial,
+  onClose,
+}: {
+  initial: Connection
+  onClose: () => void
+}) {
+  const session = useSession(),
+    access = usePermissions()
+  return (
+    <ConnectionEditorCore
+      initial={initial}
+      authority={{ session: () => session.data, canWrite: () => access.can('providers.write') }}
+      onClose={onClose}
+    />
+  )
+}
+function ConnectionEditorCore({
+  initial,
+  authority,
+  onClose,
+}: {
+  initial: Connection
+  authority: ConnectionEgressAuthority
+  onClose: () => void
+}) {
   const { t } = useTranslation('egress'),
-    session = useSession(),
-    access = usePermissions(),
     cache = useQueryClient(),
     [row, setRow] = useState(initial),
     [value, setValue] = useState(valueFor(initial)),
@@ -90,7 +172,14 @@ function ConnectionEditor({ initial, onClose }: { initial: Connection; onClose: 
     [error, setError] = useState<number | null>(null),
     lock = useRef(false)
   async function run(reload = false) {
-    if (lock.current || !session.data || (!reload && !access.can('providers.write'))) return
+    const session = authority.session()
+    if (
+      lock.current ||
+      !session ||
+      authority.isCurrent?.() === false ||
+      (!reload && !authority.canWrite())
+    )
+      return
     lock.current = true
     setBusy(true)
     setError(null)
@@ -106,7 +195,7 @@ function ConnectionEditor({ initial, onClose }: { initial: Connection; onClose: 
         await saveConnectionEgress(
           initial.id,
           { etag: row.etag!, mode: choice.egress_mode, egress_id: choice.egress_id },
-          session.data.csrf_token,
+          session.csrf_token,
         )
         await cache.invalidateQueries({ queryKey: ['admin', 'providers'] })
         onClose()
@@ -157,9 +246,7 @@ function ConnectionEditor({ initial, onClose }: { initial: Connection; onClose: 
           </Button>
           <Button
             type="submit"
-            disabled={
-              busy || !access.can('providers.write') || !row.etag || error === 409 || error === 503
-            }
+            disabled={busy || !authority.canWrite() || !row.etag || error === 409 || error === 503}
           >
             {t(busy ? 'saving' : 'save')}
           </Button>

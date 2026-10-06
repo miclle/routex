@@ -1,6 +1,7 @@
 export interface RoleDefinition {
   id: string
   name: string
+  description: string
   builtin: boolean
   permissions: string[]
   available_permissions: string[]
@@ -12,6 +13,7 @@ export interface RoleDefinition {
 
 export interface RoleDefinitionInput {
   name: string
+  description: string
   permissions: string[]
   identity_etag: string
   reason: string
@@ -20,6 +22,7 @@ export interface RoleDefinitionInput {
 export interface RoleDefinitionResult {
   id: string
   name: string
+  description: string
   permissions: string[]
   identity_etag: string
   etag: string

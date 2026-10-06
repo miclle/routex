@@ -876,3 +876,19 @@ exclude asynchronous attachment cleanup, and keep native completion, authoritati
 usage and Provider latency separate. Preserve cancellation, exchange and resource
 generation fences so late responses cannot restore cleared history. Never persist
 this observation or add it to native payloads or generated request examples.
+
+Role descriptions use the existing Role table and Edit/View dialogs. New custom
+Role writes require the complete name, description and permission set. Preserve
+recorded empty history, internal LF and U+FEFF; match Go White_Space trimming and
+the 2,000 UTF-8-byte limit. The local textarea wraps Base UI Field Control. Keep
+builtin definitions read-only, reviewed identity/If-Match/reason and exact
+uncertain retries; success confirms current database contents only.
+
+Connection name maintenance uses the existing Connections row menu and Base UI
+dialog, with the compact six-column table and conjunctive literal name/protocol
+filters. Keep providers.read and providers.write independent. Preserve the exact
+actor, Provider, Connection, reviewed token, normalized name and reason across
+conflict, response loss and AuthGate interruption; current metadata reads cannot
+resolve original uncertainty. Confirm runtime application before reporting a
+saved name. Protocol, URL, egress, credentials, models, weights and grants remain
+separate operations; no historical operation receipt is implied.

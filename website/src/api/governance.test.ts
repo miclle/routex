@@ -12,6 +12,7 @@ function serveCount(count: unknown) {
   const row = {
     id: 'rol_custom',
     name: 'Retained role',
+    description: '',
     builtin: false,
     permissions: ['providers.read'],
     ...(count === undefined ? {} : { member_count: count }),
@@ -44,5 +45,48 @@ it.each([undefined, null, -1, 1.5, '2', NaN, Infinity, Number.MAX_SAFE_INTEGER +
     const page = await getRoles()
     expect(page.items[0].member_count).toBeNull()
     expect('member_count' in row ? row.member_count : undefined).toBe(count)
+  },
+)
+
+it('preserves exact recorded Role descriptions with no directory lookup', async () => {
+  const { row, requests } = serveCount(0)
+  row.description = 'Read providers\nMaintain catalogue'
+  const page = await getRoles()
+  expect(page.items[0].description).toBe(row.description)
+  expect(requests).toHaveLength(1)
+})
+it.each([
+  undefined,
+  null,
+  1,
+  ' leading',
+  'trailing ',
+  'x\r\ny',
+  'x\tvalue',
+  'x\u0000',
+  '\ud800',
+  'x'.repeat(2001),
+])('rejects malformed additive recorded description %j', async (description) => {
+  serveCount(0)
+  client.defaults.adapter = async (config) => ({
+    config,
+    status: 200,
+    statusText: '',
+    headers: new AxiosHeaders(),
+    data: {
+      items: [{ id: 'rol_custom', name: 'Role', description, builtin: false, permissions: [] }],
+      available_permissions: [],
+    },
+  })
+  await expect(getRoles()).rejects.toThrow('Invalid recorded Role description')
+})
+
+it.each(['\uFEFFRecorded scope', 'Recorded scope\uFEFF', '\uFEFFScope\n审批职责\uFEFF'])(
+  'preserves exact recorded description in list: %s',
+  async (description) => {
+    const { row, requests } = serveCount(0)
+    row.description = description
+    expect((await getRoles()).items[0].description).toBe(description)
+    expect(requests.map((request) => request.url)).toEqual(['/admin/roles'])
   },
 )

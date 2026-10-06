@@ -62,6 +62,8 @@ func (ctrl *Ctrl) RegisterRoutes(r *fox.Engine) {
 	identity.POST("/auth/logout", sameOrigin, ctrl.requireSession, requireCSRF, ctrl.Logout)
 	identity.GET("/admin/status", ctrl.requireSession, requireAdmin, ctrl.AdminStatus)
 
+	identity.GET("/admin/connections/:connection_id/metadata", memberMetadataResponseHeaders, ctrl.requireSession, ctrl.GetConnectionMetadata)
+	identity.PUT("/admin/connections/:connection_id/metadata", memberMetadataResponseHeaders, ctrl.requireSession, sameOrigin, requireCSRF, jsonManagementRequest, ctrl.WriteConnectionMetadata)
 	identity.GET("/admin/roles/:role_id", memberMetadataResponseHeaders, ctrl.requireSession, ctrl.GetRoleDefinition)
 	identity.PUT("/admin/roles/:role_id", memberMetadataResponseHeaders, ctrl.requireSession, sameOrigin, requireCSRF, jsonManagementRequest, ctrl.SetReviewedRoleDefinition)
 

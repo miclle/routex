@@ -5,6 +5,8 @@ import {
   getRoleDefinition,
   setRoleDefinition,
   validRoleDefinitionName,
+  validRoleDefinitionDescription,
+  trimRoleDefinitionDescription,
   validRoleDefinitionReason,
 } from '@/api/role-definition'
 import { Button } from '@/components/ui/button'
@@ -108,6 +110,7 @@ export function RoleDefinitionEditor({
     query.data.identity_etag !== null
   const [review, setReview] = useState<RoleDefinition | null>(null)
   const [name, setName] = useState('')
+  const [description, setDescription] = useState('')
   const [permissions, setPermissions] = useState<string[]>([])
   const [reason, setReason] = useState('')
   const [intent, setIntent] = useState<Intent | null>(null)
@@ -122,6 +125,7 @@ export function RoleDefinitionEditor({
       initialized.current = true
       setReview(query.data)
       setName(query.data.name)
+      setDescription(query.data.description)
       setPermissions([...query.data.permissions])
     }
   })
@@ -137,6 +141,7 @@ export function RoleDefinitionEditor({
     review?.identity_etag === query.data?.identity_etag
   const validDraft =
     validRoleDefinitionName(name) &&
+    validRoleDefinitionDescription(trimRoleDefinitionDescription(description)) &&
     validRoleDefinitionReason(reason) &&
     permissions.length <= 100 &&
     permissions.every((p) => query.data?.available_permissions.includes(p))
@@ -174,7 +179,13 @@ export function RoleDefinitionEditor({
         actor,
         target,
         etag: review.review_etag,
-        input: { name, permissions: [...permissions], identity_etag: review.identity_etag, reason },
+        input: {
+          name,
+          description: trimRoleDefinitionDescription(description),
+          permissions: [...permissions],
+          identity_etag: review.identity_etag,
+          reason,
+        },
       }
       setIntent(exact)
     }
@@ -276,6 +287,9 @@ export function RoleDefinitionEditor({
       >
         {mode === 'view' ? (
           <>
+            <p className="mb-4 break-words whitespace-pre-wrap text-sm text-muted-foreground">
+              {query.data.description || t('roles.descriptionNotProvided')}
+            </p>
             {renderPermissions(query.data.permissions)}
             <p className="mt-4 text-sm text-muted-foreground">{t('roleDefinition.recorded')}</p>
           </>
@@ -290,6 +304,23 @@ export function RoleDefinitionEditor({
                   value={name}
                   onChange={(e) => {
                     if (writable() && !busy && !intent) setName(e.target.value)
+                  }}
+                />
+              </FormField>
+              <FormField label={t('roles.descriptionLabel')}>
+                <Textarea
+                  name="description"
+                  aria-label={t('roles.descriptionLabel')}
+                  rows={2}
+                  className="min-h-16 max-h-28 overflow-y-auto [field-sizing:content]"
+                  required
+                  value={description}
+                  placeholder={t('roles.descriptionPlaceholder')}
+                  aria-invalid={
+                    !validRoleDefinitionDescription(trimRoleDefinitionDescription(description))
+                  }
+                  onChange={(e) => {
+                    if (writable() && !busy && !intent) setDescription(e.target.value)
                   }}
                 />
               </FormField>
@@ -360,12 +391,17 @@ export function RoleDefinitionEditor({
               {unknown.length > 0 && <p>{t('roleDefinition.removeUnknown')}</p>}
               <FormField label={t('roleDefinition.reason')}>
                 <Textarea
+                  name="reason"
+                  aria-label={t('roleDefinition.reason')}
                   value={reason}
                   onChange={(e) => {
                     if (writable() && !busy && !intent) setReason(e.target.value)
                   }}
                 />
               </FormField>
+              {!validRoleDefinitionDescription(trimRoleDefinitionDescription(description)) && (
+                <p role="alert">{t('roles.invalidDescription')}</p>
+              )}
               {!validRoleDefinitionName(name) && <p>{t('roleDefinition.invalidName')}</p>}
               {reason.length > 0 && !validRoleDefinitionReason(reason) && (
                 <p>{t('roleDefinition.invalidReason')}</p>
@@ -428,6 +464,9 @@ export function RoleDefinitionEditor({
           <div className="space-y-4">
             {review && !snapshotCurrent && <p role="alert">{t('roleDefinition.reviewChanged')}</p>}
             <p className="break-words whitespace-pre-wrap">{name}</p>
+            <p className="break-words whitespace-pre-wrap">
+              {trimRoleDefinitionDescription(description)}
+            </p>
             {renderPermissions(permissions)}
             <p className="break-words whitespace-pre-wrap">{reason}</p>
           </div>
