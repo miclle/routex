@@ -11,6 +11,7 @@ import (
 	"path/filepath"
 	"reflect"
 	"strings"
+	"sync"
 	"sync/atomic"
 	"testing"
 
@@ -25,10 +26,75 @@ import (
 
 type personalMonthlyBehaviorFaultContext struct{}
 
+// Callbacks are installed before workers start. Only immutable target pointers
+// and atomic fault state change while the shared GORM processor is executing.
+type personalMonthlyBehaviorFaults struct {
+	auditRoot       atomic.Pointer[string]
+	publicationRoot atomic.Pointer[string]
+	committed       atomic.Bool
+}
+
+func (f *personalMonthlyBehaviorFaults) beforeCreate(tx *gorm.DB) {
+	root := f.auditRoot.Load()
+	if root == nil || tx.Statement.Table != "audit_events" {
+		return
+	}
+	if row, ok := tx.Statement.Dest.(*entity.AuditEvent); ok && row.Action == "limits.update" && row.ResourceID == *root {
+		_ = tx.AddError(errors.New("controlled audit persistence failure"))
+	}
+}
+
+func (f *personalMonthlyBehaviorFaults) afterCreate(tx *gorm.DB) {
+	root := f.publicationRoot.Load()
+	if root == nil || tx.Error != nil || tx.Statement.Table != "audit_events" || tx.Statement.Context.Value(personalMonthlyBehaviorFaultContext{}) != true {
+		return
+	}
+	if row, ok := tx.Statement.Dest.(*entity.AuditEvent); ok && row.Action == "limits.update" && row.ResourceID == *root {
+		f.committed.Store(true)
+	}
+}
+
+func (f *personalMonthlyBehaviorFaults) beforeQuery(tx *gorm.DB) {
+	if f.publicationRoot.Load() != nil && f.committed.Load() && tx.Statement.Context.Value(personalMonthlyBehaviorFaultContext{}) == true {
+		_ = tx.AddError(errors.New("controlled postcommit publication read failure"))
+	}
+}
+
 // The root appends this new scenario after the unchanged 130-case predecessor.
 // All native facts come from the existing native parser and real admission path.
 func testPersonalMonthlyBehaviorLifecycle(t *testing.T, db *gorm.DB) {
 	ctx := context.Background()
+	var faults personalMonthlyBehaviorFaults
+	const auditCallback = "test:monthly-behavior-audit-rollback"
+	const armCallback = "test:monthly-behavior-publication-arm"
+	const readCallback = "test:monthly-behavior-publication-read"
+	if err := db.Callback().Create().Before("gorm:create").Register(auditCallback, faults.beforeCreate); err != nil {
+		t.Fatal(err)
+	}
+	defer func() {
+		faults.auditRoot.Store(nil)
+		if err := db.Callback().Create().Remove(auditCallback); err != nil {
+			t.Error(err)
+		}
+	}()
+	if err := db.Callback().Create().After("gorm:create").Register(armCallback, faults.afterCreate); err != nil {
+		t.Fatal(err)
+	}
+	defer func() {
+		faults.publicationRoot.Store(nil)
+		if err := db.Callback().Create().Remove(armCallback); err != nil {
+			t.Error(err)
+		}
+	}()
+	if err := db.Callback().Query().Before("gorm:query").Register(readCallback, faults.beforeQuery); err != nil {
+		t.Fatal(err)
+	}
+	defer func() {
+		faults.publicationRoot.Store(nil)
+		if err := db.Callback().Query().Remove(readCallback); err != nil {
+			t.Error(err)
+		}
+	}()
 	store, err := secretstore.New(bytes.Repeat([]byte{103}, 32))
 	if err != nil {
 		t.Fatal(err)
@@ -48,6 +114,8 @@ func testPersonalMonthlyBehaviorLifecycle(t *testing.T, db *gorm.DB) {
 		return svc
 	}
 	svc := makeService()
+	// Registered earlier: workers are joined before callback processor teardown.
+	defer func() { svc.StopRuntime(); _ = svc.StopCallRecorder() }()
 	router := fox.New()
 	New(svc).RegisterRoutes(router)
 	setup := identityRequest(router, "POST", "/api/v1/setup", `{"email":"behavior-admin@example.invalid","password":"monthly-behavior-password","name":"Behavior admin"}`, nil, "")
@@ -117,7 +185,6 @@ func testPersonalMonthlyBehaviorLifecycle(t *testing.T, db *gorm.DB) {
 	if err := svc.StartCallRecorder(ctx, spool); err != nil {
 		t.Fatal(err)
 	}
-	defer func() { svc.StopRuntime(); _ = svc.StopCallRecorder() }()
 	call := func(bearer string) *httptest.ResponseRecorder {
 		req := httptest.NewRequest("POST", "/v1/chat/completions", strings.NewReader(`{"model":"monthly-behavior-model","messages":[{"role":"user","content":"hello"}],"max_completion_tokens":50}`))
 		req.Header.Set("Content-Type", "application/json")
@@ -243,53 +310,23 @@ func testPersonalMonthlyBehaviorLifecycle(t *testing.T, db *gorm.DB) {
 		t.Fatal("soft exact settlement changed", usage.QuotaUsage)
 	}
 	// Typed audit failure rolls both modes/revision back in the same transaction.
-	const auditCallback = "test:monthly-behavior-audit-rollback"
-	if err := db.Callback().Create().Before("gorm:create").Register(auditCallback, func(tx *gorm.DB) {
-		if tx.Statement.Table == "audit_events" {
-			if row, ok := tx.Statement.Dest.(*entity.AuditEvent); ok && row.Action == "limits.update" && row.ResourceID == member.User.ID {
-				_ = tx.AddError(errors.New("controlled audit persistence failure"))
-			}
-		}
-	}); err != nil {
-		t.Fatal(err)
-	}
+	faultTarget := member.User.ID // Immutable value before atomic publication.
+	faults.auditRoot.Store(&faultTarget)
 	expectStatus(t, request("PUT", userPath, map[string]any{"tokens_month_behavior": "stop", "money_month_behavior": "stop", "reason": "Atomic rollback"}, both.ETag, false), 500)
-	if err := db.Callback().Create().Remove(auditCallback); err != nil {
-		t.Fatal(err)
-	}
+	faults.auditRoot.Store(nil)
 	if got := read(userPath); got.ETag != both.ETag || got.Stored.TokensMonthBehavior != "alert_only" || got.Stored.MoneyMonthBehavior != "alert_only" {
 		t.Fatal("failed audit committed behavior")
 	}
 	// A scoped read fault happens only after the genuine audit insert. It forces
 	// publication unavailable without disabling the live worker or changing SQL.
-	var committed atomic.Bool
-	const armCallback = "test:monthly-behavior-publication-arm"
-	const readCallback = "test:monthly-behavior-publication-read"
-	if err := db.Callback().Create().After("gorm:create").Register(armCallback, func(tx *gorm.DB) {
-		if tx.Statement.Table == "audit_events" && tx.Statement.Context.Value(personalMonthlyBehaviorFaultContext{}) == true {
-			committed.Store(true)
-		}
-	}); err != nil {
-		t.Fatal(err)
-	}
-	if err := db.Callback().Query().Before("gorm:query").Register(readCallback, func(tx *gorm.DB) {
-		if committed.Load() && tx.Statement.Context.Value(personalMonthlyBehaviorFaultContext{}) == true {
-			_ = tx.AddError(errors.New("controlled postcommit publication read failure"))
-		}
-	}); err != nil {
-		t.Fatal(err)
-	}
+	faults.committed.Store(false)
+	faults.publicationRoot.Store(&faultTarget)
 	faultBody := map[string]any{"tokens_month": nil, "tokens_month_behavior": "alert_only", "money_month": nil, "money_month_behavior": "alert_only", "reason": "Original uncertain null-cap request"}
 	expectStatus(t, request("PUT", userPath, faultBody, both.ETag, true), 503)
-	if !committed.Load() {
+	if !faults.committed.Load() {
 		t.Fatal("failure did not follow genuine commit")
 	}
-	if err := db.Callback().Query().Remove(readCallback); err != nil {
-		t.Fatal(err)
-	}
-	if err := db.Callback().Create().Remove(armCallback); err != nil {
-		t.Fatal(err)
-	}
+	faults.publicationRoot.Store(nil)
 	var persisted entity.ResourceLimit
 	if err := db.Take(&persisted, "scope_kind = ? AND scope_id = ?", "user", member.User.ID).Error; err != nil {
 		t.Fatal(err)
@@ -345,5 +382,137 @@ func testPersonalMonthlyBehaviorLifecycle(t *testing.T, db *gorm.DB) {
 	}
 	if !reflect.DeepEqual(afterCalls, calls) || !reflect.DeepEqual(afterAttempts, attempts) || dispatches.Load() != 3 {
 		t.Fatal("restart changed immutable facts or dispatched")
+	}
+}
+
+func personalMonthlyBehaviorFaultTx(table string, dest any, tagged bool) *gorm.DB {
+	ctx := context.Background()
+	if tagged {
+		ctx = context.WithValue(ctx, personalMonthlyBehaviorFaultContext{}, true)
+	}
+	return &gorm.DB{Config: &gorm.Config{}, Statement: &gorm.Statement{Table: table, Dest: dest, Context: ctx}}
+}
+
+func TestPersonalMonthlyBehaviorFaultScopes(t *testing.T) {
+	const root = "usr_exact_root"
+	var faults personalMonthlyBehaviorFaults
+	target := root // Fully initialized immutable copy before atomic publication.
+	row := &entity.AuditEvent{Action: "limits.update", ResourceID: root}
+	plain := personalMonthlyBehaviorFaultTx("audit_events", row, false)
+	faults.beforeCreate(plain)
+	if plain.Error != nil {
+		t.Fatal("unarmed audit callback changed a normal write")
+	}
+	faults.auditRoot.Store(&target)
+	for _, test := range []struct {
+		name  string
+		table string
+		dest  any
+		want  bool
+	}{
+		{"exact", "audit_events", row, true},
+		{"other-root", "audit_events", &entity.AuditEvent{Action: "limits.update", ResourceID: "usr_other_root"}, false},
+		{"other-action", "audit_events", &entity.AuditEvent{Action: "resource.create", ResourceID: root}, false},
+		{"other-table", "call_records", row, false},
+		{"other-destination", "audit_events", &entity.ResourceLimit{}, false},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			tx := personalMonthlyBehaviorFaultTx(test.table, test.dest, false)
+			faults.beforeCreate(tx)
+			if (tx.Error != nil) != test.want {
+				t.Fatal("audit rollback escaped exact armed target", tx.Error)
+			}
+		})
+	}
+	faults.auditRoot.Store(nil)
+	plain = personalMonthlyBehaviorFaultTx("audit_events", row, false)
+	faults.beforeCreate(plain)
+	if plain.Error != nil {
+		t.Fatal("disarmed rollback callback remained active")
+	}
+	faults.publicationRoot.Store(&target)
+	for _, test := range []struct {
+		name   string
+		table  string
+		dest   any
+		tagged bool
+		failed bool
+	}{
+		{"untagged", "audit_events", row, false, false},
+		{"failed-create", "audit_events", row, true, true},
+		{"other-table", "call_records", row, true, false},
+		{"other-root", "audit_events", &entity.AuditEvent{Action: "limits.update", ResourceID: "usr_other_root"}, true, false},
+		{"other-action", "audit_events", &entity.AuditEvent{Action: "resource.create", ResourceID: root}, true, false},
+	} {
+		t.Run("publication-"+test.name, func(t *testing.T) {
+			faults.committed.Store(false)
+			tx := personalMonthlyBehaviorFaultTx(test.table, test.dest, test.tagged)
+			if test.failed {
+				tx.Error = errors.New("controlled insert failure")
+			}
+			faults.afterCreate(tx)
+			if faults.committed.Load() {
+				t.Fatal("publication fault claimed an unrelated or failed audit")
+			}
+		})
+	}
+	faults.committed.Store(false)
+	before := personalMonthlyBehaviorFaultTx("resource_limits", nil, true)
+	faults.beforeQuery(before)
+	if before.Error != nil {
+		t.Fatal("publication read failed before the audit insert")
+	}
+	faults.afterCreate(personalMonthlyBehaviorFaultTx("audit_events", row, true))
+	if !faults.committed.Load() {
+		t.Fatal("exact tagged successful audit did not arm postcommit read")
+	}
+	untagged := personalMonthlyBehaviorFaultTx("resource_limits", nil, false)
+	faults.beforeQuery(untagged)
+	if untagged.Error != nil {
+		t.Fatal("publication fault affected the untagged background worker")
+	}
+	tagged := personalMonthlyBehaviorFaultTx("resource_limits", nil, true)
+	faults.beforeQuery(tagged)
+	if tagged.Error == nil {
+		t.Fatal("exact committed tagged read did not inject publication failure")
+	}
+	faults.publicationRoot.Store(nil)
+	after := personalMonthlyBehaviorFaultTx("resource_limits", nil, true)
+	faults.beforeQuery(after)
+	if after.Error != nil || !faults.committed.Load() {
+		t.Fatal("disarming did not preserve committed fact and release later reads")
+	}
+}
+
+func TestPersonalMonthlyBehaviorFaultConcurrentArming(t *testing.T) {
+	var faults personalMonthlyBehaviorFaults
+	var workers sync.WaitGroup
+	for worker := range 8 {
+		workers.Go(func() {
+			for range 1000 {
+				target := "usr_immutable_concurrent" // Never mutate after Store.
+				if worker%2 == 0 {
+					faults.auditRoot.Store(&target)
+					faults.publicationRoot.Store(&target)
+					faults.committed.Store(false)
+					faults.auditRoot.Store(nil)
+					faults.publicationRoot.Store(nil)
+				} else {
+					row := &entity.AuditEvent{Action: "limits.update", ResourceID: target}
+					faults.beforeCreate(personalMonthlyBehaviorFaultTx("audit_events", row, false))
+					faults.afterCreate(personalMonthlyBehaviorFaultTx("audit_events", row, true))
+					faults.beforeQuery(personalMonthlyBehaviorFaultTx("resource_limits", nil, true))
+				}
+			}
+		})
+	}
+	workers.Wait()
+	faults.auditRoot.Store(nil)
+	faults.publicationRoot.Store(nil)
+	plain := personalMonthlyBehaviorFaultTx("audit_events", &entity.AuditEvent{Action: "limits.update", ResourceID: "usr_immutable_concurrent"}, true)
+	faults.beforeCreate(plain)
+	faults.beforeQuery(plain)
+	if plain.Error != nil {
+		t.Fatal("concurrent disarming left the fixture fault active")
 	}
 }
