@@ -1,4 +1,8 @@
-export type VaultAuthInput = { action: 'keep' | 'remove' } | { action: 'replace'; token: string }
+export type VaultAuthMethod = 'token' | 'approle'
+export type VaultAuthInput =
+  | { action: 'keep' | 'remove' }
+  | { action: 'replace'; method?: 'token'; token: string }
+  | { action: 'replace'; method: 'approle'; auth_mount: string; role_id: string; secret_id: string }
 export interface VaultDescriptor {
   endpoint: string
   namespace: string
@@ -45,8 +49,8 @@ export interface VaultIntegration {
   name: string
   revision_id: string
   descriptor: VaultDescriptor
-  writer_auth: { method: 'token'; configured: boolean }
-  reader_auth: { method: 'token'; configured: boolean }
+  writer_auth: { method: VaultAuthMethod; configured: boolean }
+  reader_auth: { method: VaultAuthMethod; configured: boolean }
   review_etag: string
   can_write: boolean
   can_test: boolean

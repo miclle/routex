@@ -12,7 +12,7 @@ import (
 )
 
 func vaultTestInput() VaultConfigInput {
-	return VaultConfigInput{RequestID: "11111111-1111-4111-8111-111111111111", Name: "Vault\ufeff", Descriptor: VaultDescriptor{"https://vault.example", "", "kv", "routex-probes", "value"}, WriterAuth: VaultAuthInput{"replace", "writer-secret-for-test"}, ReaderAuth: VaultAuthInput{"replace", "reader-secret-for-test"}, Reason: "Reviewed\ufeff"}
+	return VaultConfigInput{RequestID: "11111111-1111-4111-8111-111111111111", Name: "Vault\ufeff", Descriptor: VaultDescriptor{"https://vault.example", "", "kv", "routex-probes", "value"}, WriterAuth: VaultAuthInput{Action: "replace", Token: "writer-secret-for-test"}, ReaderAuth: VaultAuthInput{Action: "replace", Token: "reader-secret-for-test"}, Reason: "Reviewed\ufeff"}
 }
 func TestVaultStrictConfigAndStageInputs(t *testing.T) {
 	good := vaultTestInput()
@@ -73,10 +73,10 @@ func TestVaultIntentDoesNotPersistSecretFingerprints(t *testing.T) {
 	if vaultIntent(changed) == raw {
 		t.Fatal("auth intent not captured")
 	}
-	if _, e := vaultAuthValue(VaultAuthInput{"keep", ""}, "", false); e == nil {
+	if _, e := vaultAuthValue(VaultAuthInput{Action: "keep"}, "", false); e == nil {
 		t.Fatal("unconfigured keep accepted")
 	}
-	if _, e := vaultAuthValue(VaultAuthInput{"keep", ""}, "old", true); e == nil {
+	if _, e := vaultAuthValue(VaultAuthInput{Action: "keep"}, "old", true); e == nil {
 		t.Fatal("creation keep accepted")
 	}
 }

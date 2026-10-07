@@ -53,13 +53,15 @@ func (d vaultCommandData) clone() vaultCommandData {
 }
 
 type vaultCommandFixture struct {
-	mu         sync.Mutex
-	data       vaultCommandData
-	active     *vaultCommandData
-	failResult bool
-	calls      int
-	marker     string
-	requests   []string
+	mu          sync.Mutex
+	data        vaultCommandData
+	active      *vaultCommandData
+	failResult  bool
+	calls       int
+	marker      string
+	requests    []string
+	logins      []string
+	loginDenied bool
 }
 
 func (f *vaultCommandFixture) current() *vaultCommandData {
@@ -217,6 +219,30 @@ func vaultCommandService(t *testing.T) (*Service, *vaultCommandFixture, *rolesSQ
 		if !claimed {
 			t.Error("remote effect before durable plan/claim")
 		}
+		if r.URL.Path == "/v1/auth/custom/approle/login" {
+			if r.Method != http.MethodPost || r.Header.Get("X-Vault-Token") != "" {
+				t.Error("login inherited KV identity or method")
+			}
+			var auth struct {
+				RoleID   string `json:"role_id"`
+				SecretID string `json:"secret_id"`
+			}
+			if json.NewDecoder(r.Body).Decode(&auth) != nil || (auth.RoleID != "writer-role" && auth.RoleID != "reader-role") || auth.SecretID != auth.RoleID+"-reusable" {
+				t.Error("wrong retained AppRole tuple")
+			}
+			f.logins = append(f.logins, auth.RoleID)
+			if f.loginDenied {
+				w.WriteHeader(403)
+				return
+			}
+			token := "reader-token"
+			if auth.RoleID == "writer-role" {
+				token = "writer-token"
+			}
+			w.Header().Set("Content-Type", "application/json")
+			_ = json.NewEncoder(w).Encode(map[string]any{"auth": map[string]any{"client_token": token, "lease_duration": 60}})
+			return
+		}
 		switch r.Method {
 		case http.MethodPost:
 			var v struct {
@@ -260,8 +286,8 @@ func vaultCommandService(t *testing.T) (*Service, *vaultCommandFixture, *rolesSQ
 	if e != nil {
 		t.Fatal(e)
 	}
-	f.data.writer = entity.VaultWriterAuth{ID: revID, SecretGeneration: "vag_writer"}
-	f.data.reader = entity.VaultReaderAuth{ID: revID, SecretGeneration: "vag_reader"}
+	f.data.writer = entity.VaultWriterAuth{ID: revID, SecretGeneration: "vag_writer", Method: "token"}
+	f.data.reader = entity.VaultReaderAuth{ID: revID, SecretGeneration: "vag_reader", Method: "token"}
 	f.data.writer.AuthCiphertext, e = store.Seal(rootReference("vault_writer_auth", revID, "vag_writer"), "writer-token")
 	if e != nil {
 		t.Fatal(e)

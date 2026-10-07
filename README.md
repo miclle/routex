@@ -10,6 +10,12 @@ Team examples use the current Session and CSRF contract. SDK guidance is
 configuration help; it does not certify client-version compatibility.
 See [catalogue contracts](docs/CATALOG.md).
 
+Vault integrations configure independent Token or administrator-provided reusable
+AppRole identities. Saved method/configured metadata is separate from remote
+login or KV success; finite operations use retained auth outside publication
+locks, while inference consumes prepared values without Vault login. See
+[Vault authentication and acceptance boundaries](docs/VAULT_TOKEN_INTEGRATIONS.md).
+
 ## Development
 
 The application uses Go 1.27.1, fox-gonic/fox, GORM, and PostgreSQL (or MySQL), with React 19, TypeScript 6, Vite 8, Tailwind CSS 4, React Router 8, and React Query 5. Reusable UI components follow shadcn/ui and Base UI patterns.

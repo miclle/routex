@@ -32,7 +32,7 @@ func TestTeamMemberMonthlyBehaviorFrozenExactScopeAndRegistry(t *testing.T) {
 	}
 	for _, dialect := range []string{"postgres", "mysql"} {
 		steps := migrationSteps(dialect)
-		if len(steps) != 77 || reflect.ValueOf(steps[76]).Pointer() != reflect.ValueOf(credentialStorageMigration).Pointer() || reflect.ValueOf(steps[75]).Pointer() != reflect.ValueOf(migrateConnectionEnablementV76).Pointer() || reflect.ValueOf(steps[74]).Pointer() != reflect.ValueOf(teamMemberMonthlyBehaviorMigration).Pointer() || reflect.ValueOf(steps[73]).Pointer() != reflect.ValueOf(projectMonthlyBehaviorMigration).Pointer() || reflect.ValueOf(steps[72]).Pointer() != reflect.ValueOf(personalKeyMonthlyBehaviorMigration).Pointer() || reflect.ValueOf(steps[71]).Pointer() != reflect.ValueOf(vaultIntegrationMigration).Pointer() || reflect.ValueOf(steps[70]).Pointer() != reflect.ValueOf(teamMonthlyBehaviorMigration).Pointer() {
+		if len(steps) != 78 || reflect.ValueOf(steps[76]).Pointer() != reflect.ValueOf(credentialStorageMigration).Pointer() || reflect.ValueOf(steps[75]).Pointer() != reflect.ValueOf(migrateConnectionEnablementV76).Pointer() || reflect.ValueOf(steps[74]).Pointer() != reflect.ValueOf(teamMemberMonthlyBehaviorMigration).Pointer() || reflect.ValueOf(steps[73]).Pointer() != reflect.ValueOf(projectMonthlyBehaviorMigration).Pointer() || reflect.ValueOf(steps[72]).Pointer() != reflect.ValueOf(personalKeyMonthlyBehaviorMigration).Pointer() || reflect.ValueOf(steps[71]).Pointer() != reflect.ValueOf(vaultIntegrationMigration).Pointer() || reflect.ValueOf(steps[70]).Pointer() != reflect.ValueOf(teamMonthlyBehaviorMigration).Pointer() {
 			t.Fatal("ordered V71/V72/V73/V75 registration changed", dialect)
 		}
 	}

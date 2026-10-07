@@ -25,9 +25,17 @@ func (d VaultDescriptor) client() vault.Descriptor {
 }
 
 type VaultAuthInput struct {
-	Action string `json:"action"`
-	Token  string `json:"token,omitempty"`
+	Action    string `json:"action"`
+	Token     string `json:"token,omitempty"`
+	Method    string `json:"method,omitempty"`
+	AuthMount string `json:"auth_mount,omitempty"`
+	RoleID    string `json:"role_id,omitempty"`
+	SecretID  string `json:"secret_id,omitempty"`
 }
+
+func (VaultAuthInput) String() string     { return "Vault authentication input (redacted)" }
+func (v VaultAuthInput) GoString() string { return v.String() }
+
 type VaultConfigInput struct {
 	RequestID  string          `json:"request_id"`
 	Name       string          `json:"name"`
@@ -142,27 +150,43 @@ func (d *VaultDescriptor) UnmarshalJSON(raw []byte) error {
 	return nil
 }
 func (a *VaultAuthInput) UnmarshalJSON(raw []byte) error {
-	f, e := vaultStrict(raw, []string{"action"})
-	if e != nil {
-		f, e = vaultStrict(raw, []string{"action", "token"})
-	}
+	f, e := modelCreationObject(raw, "action", "token", "method", "auth_mount", "role_id", "secret_id")
 	if e != nil {
 		return e
 	}
 	var v VaultAuthInput
-	if bytes.Equal(bytes.TrimSpace(f["action"]), []byte("null")) || json.Unmarshal(f["action"], &v.Action) != nil {
-		return apperrors.ErrBadRequest
-	}
-	token, present := f["token"]
-	if present && (bytes.Equal(bytes.TrimSpace(token), []byte("null")) || json.Unmarshal(token, &v.Token) != nil) {
-		return apperrors.ErrBadRequest
-	}
-	if v.Action == "replace" {
-		if !present || !vaultToken(v.Token) {
+	fields := map[string]*string{"action": &v.Action, "token": &v.Token, "method": &v.Method, "auth_mount": &v.AuthMount, "role_id": &v.RoleID, "secret_id": &v.SecretID}
+	for k, value := range f {
+		if bytes.Equal(bytes.TrimSpace(value), []byte("null")) || json.Unmarshal(value, fields[k]) != nil {
 			return apperrors.ErrBadRequest
 		}
-	} else if (v.Action != "keep" && v.Action != "remove") || present {
+	}
+	if v.Action == "keep" || v.Action == "remove" {
+		if len(f) != 1 {
+			return apperrors.ErrBadRequest
+		}
+	} else if v.Action != "replace" {
 		return apperrors.ErrBadRequest
+	} else {
+		switch v.Method {
+		case "", "token":
+			want := 2
+			if _, present := f["method"]; present {
+				if v.Method != "token" {
+					return apperrors.ErrBadRequest
+				}
+				want++
+			}
+			if len(f) != want || !vaultToken(v.Token) {
+				return apperrors.ErrBadRequest
+			}
+		case "approle":
+			if len(f) != 5 || !vaultAppRoleMount(v.AuthMount) || !vaultToken(v.RoleID) || !vaultToken(v.SecretID) {
+				return apperrors.ErrBadRequest
+			}
+		default:
+			return apperrors.ErrBadRequest
+		}
 	}
 	*a = v
 	return nil

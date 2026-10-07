@@ -2,13 +2,14 @@ package database
 
 import (
 	"errors"
-	"github.com/miclle/routex/internal/routex/entity"
-	"gorm.io/gorm"
-	"gorm.io/gorm/schema"
 	"reflect"
 	"strings"
 	"sync"
 	"testing"
+
+	"github.com/miclle/routex/internal/routex/entity"
+	"gorm.io/gorm"
+	"gorm.io/gorm/schema"
 )
 
 func TestVaultFrozenSchemasAndRetainedReferences(t *testing.T) {
@@ -22,7 +23,15 @@ func TestVaultFrozenSchemasAndRetainedReferences(t *testing.T) {
 		if e != nil {
 			t.Fatal(e)
 		}
-		if frozen.Table != current.Table || len(frozen.Fields) != len(current.Fields) || len(frozen.Relationships.Relations) != 0 {
+		extra := 0
+		if frozen.Table == "vault_writer_auth" || frozen.Table == "vault_reader_auth" {
+			extra = 1 // V78 is additive; every historical V72 field remains exact.
+			method := current.LookUpField("Method")
+			if method == nil || method.DBName != "method" || method.DefaultValue != "token" {
+				t.Fatal("missing explicit V78 discriminator")
+			}
+		}
+		if frozen.Table != current.Table || len(frozen.Fields)+extra != len(current.Fields) || len(frozen.Relationships.Relations) != 0 {
 			t.Fatal("unbounded migration", frozen.Table)
 		}
 		for _, field := range frozen.Fields {

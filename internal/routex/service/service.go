@@ -23,6 +23,7 @@ type Service struct {
 	db                    *gorm.DB
 	credentialValuesMu    sync.RWMutex
 	credentialValues      map[string]string
+	credentialAuthProofs  map[string]string
 	limitMu               sync.RWMutex
 	trustedProxies        []netip.Prefix
 	runtime               *gatewayRuntime

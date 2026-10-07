@@ -95,7 +95,8 @@ PostgreSQL/MySQL lifecycles and nineteen named JSON events in 255.360 seconds.
 Root independently verifies raw events, 1,830 source paths/modes, 111 composition
 artifacts, captured processes/ports and owned resource absence. Acceptance:
 `fb18ea54d2eecd1b1227e0143c2fa12c738d9a745824cff8842d398f5e9181e2`.
-Complete Full150 acceptance remains pending. The nine-file frontend
+Complete Full150 acceptance now passes on this unchanged candidate; the detailed
+receipt is recorded below. The nine-file frontend
 proposal passes 185 related tests plus types, lint and formatting and is bound
 into that reviewed final composition. Browser checks remain pending.
 
@@ -132,13 +133,39 @@ seven domains. Historical uncertain writes remain distinct from their recovery.
 Root verifies unchanged source/modes and absence of owned Compose resources,
 process groups and all five listeners. Root acceptance:
 `20477f1be1c168efad4c24f737d5d92df7645e71e87409e1b4022063d775a286`.
-Complete Full150, browser acceptance and saved AppRole delivery remain pending.
+Complete Full150 passes under the original 55-minute Go and 3,600-second
+supervisor bounds: 300 ordered PostgreSQL/MySQL lifecycles, eight constraints,
+5,194 balanced named results and five package completions in 3,098.321 seconds.
+Root independently confirms all 1,830 source bytes/modes, 111 composition
+artifacts and raw output, with owned Compose resources, captured PID/PGID and
+both database ports absent. Acceptance SHA-256:
+`7ddd2ec2d07e1aa9a2aecf791837ee2c20721316c548eb2e560bd4bcfd6b7287`;
+root review SHA-256:
+`2d875bbb55cb72d117d116f00c6c866fd7fa1b8b6936690aa83460b215c41ad7`.
+The exact forty-seven-path AppRole proposal is applied in the main working
+checkout, with formatting and mandatory main checking passed. Every non-status
+source byte and tracked executable mode matches the tested candidate;
+pre-existing local permission bits are preserved. Browser acceptance remains
+pending. This phase delivers saved independent writer/reader AppRole identities,
+bounded transient Login and frozen GORM V78; F28 remains partial.
 
 The user selects administrator preview and explicit confirmation for
 cleanup of Provider credential objects with no remaining RouteX reference.
 In-flight calls and uncertain writes must retain their objects. Automatic
-scheduled deletion is not part of the initial cleanup workflow. Implementation
-and cleanup-failure acceptance remain pending.
+scheduled deletion is not part of the initial cleanup workflow. The bounded
+never-committed creation slice passes independent backend and interface review.
+Its frozen GORM V80 retains the original 152-scenario prefix and appends two
+cleanup cases. Durable creation dispositions, full-operation local holders and
+recorded process-use proof block active, previously exposed and uncertain objects,
+including references from retained expired or retired peers. UI confirmation
+requires an independent transient Cleanup Token; exact nonsecret intent survives
+uncertainty, and reconciliation does not repeat remote destruction. Four localized
+confirmation/receipt messages explicitly limit acknowledged cleanup to owned
+version 1, retaining later versions and metadata. Backend review SHA-256:
+`617ef9223bdb6319ba670ec04a60b71d9ab124a438a5ac1cc51ceaf3564bcba0`.
+The combined source checks are running; real database, Vault and browser acceptance
+and delivery remain pending. Previously published objects still require a
+complete native-call and stream drain before eligibility can be implemented.
 
 The next already-partial protocol slice is Azure OpenAI upstream adaptation.
 The user selected explicit administrator deployment attestation, separate from
@@ -150,15 +177,20 @@ Go races, Node/development helpers and production assets) and build. Its first
 real Focus8 fails startup on both PostgreSQL and MySQL at frozen V79: the GORM
 column name and explicit coverage-review column validation disagree. No selected
 scenario executes; owned resources and unchanged source/modes are independently
-verified. A narrow explicit-column mapping correction is being prepared. No
-Azure driver, runtime, browser activation or delivery is claimed. Project quota
+verified. A narrow explicit-column mapping correction now passes renewed
+coherent formatting, mandatory checking, complete Task and build with unchanged
+4,756 frontend tests in 188 files. Fresh Focus8 is running against this corrected
+source and is not accepted yet. No Azure driver, runtime, browser activation or
+delivery is claimed. Project quota
 and rate applications are already complete and are not reopened by stale stage summaries.
 
 A bounded Member list parity gap is being implemented privately: expose a
 recorded current handover plan and an authorized detail action, preserving the
 account's actual enabled/disabled state. No schema, global directory or new
-permission is introduced. Source/driver/browser acceptance and delivery remain
-pending.
+permission is introduced. Frozen source and independent review pass: 117 focused
+frontend cases, types/lint/format and 46 named Go race results with vet and
+staticcheck. This source is being composed with Azure and cleanup before fresh
+combined driver acceptance; browser acceptance and delivery remain pending.
 
 Formal totals remain 12 complete, 15 partial and three unstarted. The full
 objective remains active. Older checkpoints retain their original source and

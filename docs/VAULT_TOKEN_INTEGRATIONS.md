@@ -1,4 +1,4 @@
-# Vault Token integrations
+# Vault Token and AppRole integrations
 
 Status: Token integrations and their two encrypted root domains are delivered by
 `c2368ddb0251415e72bfeee948ad23ed7a173ee4`, with exact remote main read-back.
@@ -26,7 +26,7 @@ The existing Secrets workspace exposes an addressable Vault tab at `/admin/secre
 
 An enabled, admitted administrator requires independent permissions: `secrets.read` for inspection, `secrets.write` for configuration, `secrets.test` for explicit probes and `secrets.rotate` for internal root rotation. Assigning a permission does not bypass the administrator requirement. Configuration and probe actions repeat current server authorization.
 
-Each saved revision records a name, guarded endpoint, optional namespace, KV-v2 mount, path prefix and data field. Writer and reader support Token authentication only, with explicit keep/replace/remove actions. Their distinct Token strings establish local separation; they do not prove separate remote principals or least privilege. Tokens remain transient in the mounted form and encrypted in separate immutable server records. They are absent from returned DTOs, mutation caches, browser storage and audit metadata. Dismissal, authority loss and unmount clear transient material; secret retry recovery across remount is not supported.
+Each saved revision records a name, guarded endpoint, optional namespace, KV-v2 mount, path prefix and data field. Writer and reader independently select Token or AppRole authentication with explicit keep/replace/remove actions. Token replacement preserves the legacy input shape; AppRole replacement requires the complete authentication mount, Role ID and administrator-provided reusable Secret ID. Saved metadata exposes only the recorded method and configured state. Distinct literal material does not prove separate remote principals or least privilege. Replacement material remains transient in the mounted form and encrypted in the existing separate immutable server records. It is absent from returned DTOs, mutation caches, browser storage and audit metadata. Method/action changes clear obsolete inputs; dismissal, authority loss and unmount clear transient material. Secret retry recovery across remount is not supported.
 
 A save requires a current strong If-Match, reason and UUIDv4 intent. The descriptor and both auth references change atomically. A durable receipt proves that exact historical configuration commit, not routing activation or remote verification. Conflicts require explicit current review; uncertain retries retain their exact mounted request. A configuration change makes earlier probe observations historical. Root ciphertext rewrap alone does not change the logical configuration revision.
 
@@ -34,7 +34,7 @@ A save requires a current strong If-Match, reason and UUIDv4 intent. The descrip
 
 Write test persists a server-owned random plan and an execution claim before a single KV-v2 CAS-zero write. The path, marker and expected version are never caller choices. Read test uses the exact saved plan and current configuration revision, verifies the owned version-one content and live metadata, then performs the explicitly confirmed version-one destruction. Separate cleanup revalidates ownership using the original retained descriptor/auth revision; it cannot perform a fresh Read test of a changed configuration.
 
-Each command is finite: Write makes at most one request; Read or Cleanup makes at most one read and one destroy request. The client suppresses automatic transport replay, follows the upstream DNS/network policy and rejects redirects. The service durably claims the complete command before its first HTTP request. It cannot persist a Read success between the client-owned read and conditional destroy. A crash or failed result persistence leaves independent observations unknown; no database lock spans remote HTTP. An unresolved plan blocks another Write until cleanup disposition is confirmed. Repeating the original UUID returns current recorded observations without dispatching again; those observations do not prove an earlier command succeeded.
+Each command is finite: Write makes at most one KV request; Read or Cleanup makes at most one ownership read and one destroy request. Saved AppRole authentication adds at most one bounded login per required writer/reader identity for that command; Token authentication adds no login. The client suppresses automatic transport replay, follows the upstream DNS/network policy and rejects redirects. The service durably claims the complete command before its first HTTP request. It cannot persist a Read success between the client-owned read and conditional destroy. A crash or failed result persistence leaves independent observations unknown; no database lock spans remote HTTP. An unresolved plan blocks another Write until cleanup disposition is confirmed. Repeating the original UUID returns current recorded observations without dispatching again; those observations do not prove an earlier command succeeded.
 
 Write, Read and Cleanup observations remain separate. A cleanup acknowledgement records the remote exact-version destruction acknowledgement; it does not mean metadata/path deletion, physical erasure or removal of later versions. Lost responses and persistence failures remain uncertain. Exact-version read and destroy are separate remote requests and provide no atomic fence against a concurrently privileged metadata delete/recreate.
 
@@ -85,14 +85,26 @@ Existing KV primitives retain their request counts and do not authenticate
 automatically. The SDK provides no Token cache, renewal, persistence or
 Integration management. Higher layers must own durable claims and total
 operation deadlines. A failed login may consume a Secret ID use and is not
-retried. This primitive does not enable AppRole in saved integrations, Provider
-storage or Gateway requests; those service, schema, UI and runtime contracts
-remain separate unfinished work. Package tests do not establish real Vault
-ACLs, browser controls or persistent restart acceptance.
+retried. The primitive itself grants no service authorization or durable claim.
+The saved-auth service below uses it explicitly for finite operations; Gateway
+inference never logs in. Package tests do not establish real Vault ACLs, browser
+controls or persistent restart acceptance.
+
+## Saved AppRole authentication
+
+The configuration union accepts action-only keep/remove, legacy Token replacement, explicit method=token with Token, or method=approle with the complete auth_mount/role_id/secret_id tuple. Unknown, null, duplicate, mixed or incomplete fields are rejected. Token, Role ID and Secret ID each require 1..4096 printable ASCII bytes; the authentication mount is independently bounded to 128 bytes and safe slash-separated segments. Configuration retains a 64 KiB encoded-body limit. Maximum quote/backslash-escaped auth fields with complete descriptor/name/reason inputs fit that limit; over-limit encodings are rejected without truncation.
+
+Frozen GORM V78 adds an exact Token/AppRole discriminator to the existing writer and reader auth records and backfills legacy rows to Token without rewriting ciphertext or generations. The complete AppRole tuple is encrypted under the original auth reference. Keep preserves the exact retained method/material; remove reports canonical unconfigured Token metadata. Literal duplicate tuples of the same method are rejected, without inferring remote principal equality across methods.
+
+Configuration save and exact receipt replay do not log in. A durable creation/probe claim precedes any AppRole login for that finite command. Verify, Enable, original-source ownership recovery and finite startup preparation authenticate with the exact retained tuple outside database, governance and publication locks. Login Tokens are transient and closed after the command, with no cache, renewal, implicit replay or extra login during uncertain Write recovery. Secret ID use limits, expiry and policy remain Vault-owned; RouteX neither creates nor rotates Secret IDs.
+
+Inference and periodic publication authenticate the retained encrypted tuple locally and use prepared credential values. Their private cache proof includes method and exact authenticated material, remains stable through root ciphertext rewrap, and rejects changed material or missing prepared values. It enters no DTO, journal, database or extra root inventory domain. Existing current-reader removal, Integration birth/revision, auth-generation and root-epoch fences remain required. No cleanup authority is added.
+
+This candidate registers two AppRole migration/lifecycle cases after the exact 148-case prefix. Source and controlled package/decoder tests remain separate from real PostgreSQL/MySQL, reusable AppRole ACL, root retirement, same-artifact restart and browser acceptance. See [Implementation](IMPLEMENTATION.md) for current evidence.
 
 ## Remaining scope
 
-Saved AppRole integration, TLS/client authentication, Kubernetes authentication, automatic orphan recovery, API Key delivery and fleet coordination remain unfinished. A configured integration or successful controlled probe does not establish any of those capabilities. See [Implementation](IMPLEMENTATION.md), [Root rotation](SECRETS.md) and [Secret storage](SECRET_STORAGE.md) for separately recorded delivery and acceptance evidence.
+Saved AppRole external and browser acceptance, TLS/client authentication, Kubernetes authentication, automatic orphan recovery, API Key delivery and fleet coordination remain unfinished. A configured integration or successful controlled probe does not establish any of those capabilities. See [Implementation](IMPLEMENTATION.md), [Root rotation](SECRETS.md) and [Secret storage](SECRET_STORAGE.md) for separately recorded delivery and acceptance evidence.
 
 ## Provider credential write policy
 
@@ -129,7 +141,8 @@ inputs stay transient, outside browser storage and query/mutation caches.
 All seven existing root inventory domains remain in scope, including retained
 writer/reader auth revisions. Ciphertext rewrap does not change logical creation
 intent or auth revision. No automatic orphan cleanup authority is introduced;
-unknown remote effects remain unknown. AppRole login remains a standalone SDK
-primitive, with no saved AppRole auth, policy UI or automatic authentication.
+unknown remote effects remain unknown. Saved Token/AppRole authentication uses
+the exact retained auth method and material; it does not introduce an inference
+login, automatic Token renewal or a per-credential authentication override.
 These source contracts do not replace fresh real-driver, real-Vault, same-artifact
 restart or browser acceptance, and they do not complete F28 or A16.

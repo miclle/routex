@@ -104,7 +104,7 @@ func vaultSnapshot(tx *gorm.DB, target string, lock bool) (entity.VaultIntegrati
 	if err == nil {
 		err = personalExact(vaultDB(tx), "id", rev.ID).Take(&r).Error
 	}
-	if err == nil && (w.ID != rev.ID || r.ID != rev.ID || !rootSafeIdentity(w.SecretGeneration, 30) || !rootSafeIdentity(r.SecretGeneration, 30)) {
+	if err == nil && (w.ID != rev.ID || r.ID != rev.ID || !rootSafeIdentity(w.SecretGeneration, 30) || !rootSafeIdentity(r.SecretGeneration, 30) || !vaultStoredMethod(w.Method) || !vaultStoredMethod(r.Method) || w.AuthCiphertext == "" && w.Method != "token" || r.AuthCiphertext == "" && r.Method != "token") {
 		err = vaultUnavailable
 	}
 	if err == nil {
@@ -127,7 +127,10 @@ func (s *Service) vaultView(tx *gorm.DB, actor entity.User, row entity.VaultInte
 	if e != nil {
 		return VaultIntegrationView{}, e
 	}
-	v := VaultIntegrationView{row.ID, row.Name, rev.ID, vaultDescriptor(rev), VaultAuthView{"token", w.AuthCiphertext != ""}, VaultAuthView{"token", r.AuthCiphertext != ""}, vaultReview(actor, row, rev), write, test, nil}
+	if !vaultStoredMethod(w.Method) || !vaultStoredMethod(r.Method) || w.AuthCiphertext == "" && w.Method != "token" || r.AuthCiphertext == "" && r.Method != "token" {
+		return VaultIntegrationView{}, vaultUnavailable
+	}
+	v := VaultIntegrationView{row.ID, row.Name, rev.ID, vaultDescriptor(rev), VaultAuthView{w.Method, w.AuthCiphertext != ""}, VaultAuthView{r.Method, r.AuthCiphertext != ""}, vaultReview(actor, row, rev), write, test, nil}
 	var probes []entity.VaultProbe
 	if e = vaultDB(tx).Where("integration_id = ?", row.ID).Order("created_at DESC, id DESC").Limit(1).Find(&probes).Error; e != nil {
 		return v, e

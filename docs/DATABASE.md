@@ -1049,6 +1049,12 @@ remain not_scanned/null; zero/unknown versions reject. Nonterminal version1 jobs
 require explicit Resume and a fresh seven-domain proof. Completed historical
 jobs are not relabeled. See [Vault Token integrations](VAULT_TOKEN_INTEGRATIONS.md).
 
+## Saved Vault AppRole authentication (V78 candidate)
+
+Frozen GORM V78 follows V77 and adds a size 16, non-null, Token-default method column to the existing writer and reader auth tables. Exact byte-length and character constraints admit only token and approle under either database collation. Legacy backfill preserves every ciphertext, auth generation and original root reference; released V1-V77 steps remain unchanged. A partially applied column must have the exact type, width, nullability and default before bounded Migrator constraint repair can proceed.
+
+No new secret table or root domain is introduced: the complete AppRole tuple remains encrypted in the existing auth row. Two proposed real-driver cases append after the exact 148-case prefix, covering empty creation, retained-data upgrade, repeat/concurrent startup, partial DDL, constraints and ordinary configuration/probe lifecycle. Registration and source tests do not establish actual database or Vault acceptance; the candidate requires fresh matching evidence.
+
 ## Personal Key monthly behavior (V73)
 
 Frozen GORM V73 reuses V70's width16, non-null, stop-default columns. It installs

@@ -60,7 +60,7 @@ func vaultValidObservation(v VaultObservationView) bool {
 			return false
 		}
 		switch v.Failure.Code {
-		case "invalid_descriptor", "invalid_tokens", "invalid_plan", "random_unavailable", "invalid_response", "verification_failed", "canceled", "timed_out", "transport", "http_status", "response_too_large", "invalid_request", "interrupted", "already_attempted", "prepared_closed":
+		case "invalid_descriptor", "invalid_tokens", "invalid_plan", "random_unavailable", "invalid_response", "verification_failed", "canceled", "timed_out", "transport", "http_status", "response_too_large", "invalid_request", "interrupted", "already_attempted", "prepared_closed", "invalid_auth", "auth_expired":
 		default:
 			return false
 		}
@@ -341,36 +341,65 @@ func (s *Service) RunVaultProbe(ctx context.Context, actorID, target, probeID, k
 	var ownership VaultObservationView
 	var stageErr error
 	plan := vault.ProbePlan{ProbeID: p.ID, ExpectedSHA256: p.ExpectedSHA256, DescriptorSHA256: p.DescriptorSHA256}
-	switch kind {
-	case "write":
-		result, err := client.Write(ctx, wt, prepared)
-		stageErr = err
-		p.Version = result.Version
-		p.WriteJSON = vaultJSON(vaultObservation(result.Write))
-		p.State = "awaiting_read"
-		if err != nil {
+	// Authentication belongs to the already claimed finite command. Login
+	// failures never claim that a KV operation was attempted.
+	writerToken, readerToken := wt, rt
+	var login vault.Observation
+	var closeWriter, closeReader func()
+	closeWriter, closeReader = func() {}, func() {}
+	if kind != "write" {
+		readerToken, closeReader, login, stageErr = vaultCommandToken(ctx, client, r.Method, rt)
+	}
+	if stageErr == nil {
+		writerToken, closeWriter, login, stageErr = vaultCommandToken(ctx, client, w.Method, wt)
+	}
+	defer closeWriter()
+	defer closeReader()
+	if stageErr != nil {
+		failed := vaultLoginFailure(login)
+		p.State = "cleanup_pending"
+		p.CleanupJSON = vaultJSON(VaultCleanupView{"unknown", vaultEmptyObservation()})
+		switch kind {
+		case "write":
 			p.State = "interrupted"
-			p.CleanupJSON = vaultJSON(VaultCleanupView{"unknown", vaultEmptyObservation()})
+			p.WriteJSON = vaultJSON(failed)
+		case "read":
+			p.ReadJSON = vaultJSON(failed)
+		case "cleanup":
+			ownership = failed
 		}
-	case "read":
-		result, err := client.ReadAndCleanup(ctx, rt, wt, plan)
-		stageErr = err
-		p.Version = max(p.Version, result.Version)
-		p.ReadJSON = vaultJSON(vaultObservation(result.Read))
-		p.CleanupJSON = vaultJSON(vaultCleanup(result.Cleanup))
-		p.State = "cleanup_pending"
-		if result.Cleanup.State == "acknowledged" {
-			p.State = "completed"
-		}
-	case "cleanup":
-		result, err := client.CleanupOwned(ctx, rt, wt, plan)
-		stageErr = err
-		p.Version = max(p.Version, result.Version)
-		ownership = vaultObservation(result.Ownership)
-		p.CleanupJSON = vaultJSON(vaultCleanup(result.Cleanup))
-		p.State = "cleanup_pending"
-		if result.Cleanup.State == "acknowledged" {
-			p.State = "completed"
+	} else {
+		switch kind {
+		case "write":
+			result, err := client.Write(ctx, writerToken, prepared)
+			stageErr = err
+			p.Version = result.Version
+			p.WriteJSON = vaultJSON(vaultObservation(result.Write))
+			p.State = "awaiting_read"
+			if err != nil {
+				p.State = "interrupted"
+				p.CleanupJSON = vaultJSON(VaultCleanupView{"unknown", vaultEmptyObservation()})
+			}
+		case "read":
+			result, err := client.ReadAndCleanup(ctx, readerToken, writerToken, plan)
+			stageErr = err
+			p.Version = max(p.Version, result.Version)
+			p.ReadJSON = vaultJSON(vaultObservation(result.Read))
+			p.CleanupJSON = vaultJSON(vaultCleanup(result.Cleanup))
+			p.State = "cleanup_pending"
+			if result.Cleanup.State == "acknowledged" {
+				p.State = "completed"
+			}
+		case "cleanup":
+			result, err := client.CleanupOwned(ctx, readerToken, writerToken, plan)
+			stageErr = err
+			p.Version = max(p.Version, result.Version)
+			ownership = vaultObservation(result.Ownership)
+			p.CleanupJSON = vaultJSON(vaultCleanup(result.Cleanup))
+			p.State = "cleanup_pending"
+			if result.Cleanup.State == "acknowledged" {
+				p.State = "completed"
+			}
 		}
 	}
 	_ = stageErr // Sanitized client observations, never the raw error, are the operation result.

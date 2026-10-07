@@ -57,16 +57,19 @@ func cloneStorageMap[T any](in map[string]T) map[string]T {
 }
 
 type credentialStorageFixture struct {
-	mu                    sync.Mutex
-	data                  credentialStorageData
-	active                *credentialStorageData
-	vault                 *vaultCommandFixture
-	posts, gets           int
-	values                map[string]map[string]string
-	lostWrite, readDenied bool
-	retained              *vaultCommandData
-	afterWrite            func()
-	failStage             bool
+	mu                        sync.Mutex
+	data                      credentialStorageData
+	active                    *credentialStorageData
+	vault                     *vaultCommandFixture
+	posts, gets               int
+	logins                    []string
+	loginDenied               bool
+	allowUnclaimedReaderLogin bool
+	values                    map[string]map[string]string
+	lostWrite, readDenied     bool
+	retained                  *vaultCommandData
+	afterWrite                func()
+	failStage                 bool
 }
 
 func (f *credentialStorageFixture) current() *credentialStorageData {
@@ -184,13 +187,13 @@ func (c *credentialStorageConnection) QueryContext(ctx context.Context, q string
 	case strings.Contains(q, `vault_revisions AS rev`):
 		v := c.f.vault.data
 		type row struct {
-			RevisionID, IntegrationID                                                                                                                                                                          string
-			IntegrationBirth, CurrentBirth                                                                                                                                                                     time.Time
-			Endpoint, Namespace, Mount, Prefix, DataField, ReaderID, ReaderGeneration, ReaderCiphertext, CurrentReaderID, CurrentReaderCiphertext, CurrentWriterID, CurrentWriterCiphertext, CurrentRevisionID string
+			RevisionID, IntegrationID                                                                                                                                                                                                                                  string
+			IntegrationBirth, CurrentBirth                                                                                                                                                                                                                             time.Time
+			Endpoint, Namespace, Mount, Prefix, DataField, ReaderID, ReaderGeneration, ReaderCiphertext, CurrentReaderID, CurrentReaderCiphertext, CurrentWriterID, CurrentWriterCiphertext, CurrentRevisionID, ReaderMethod, CurrentReaderMethod, CurrentWriterMethod string
 		}
 		rows := []row{}
 		if matches(v.rev.ID) {
-			rows = append(rows, row{v.rev.ID, v.row.ID, v.rev.IntegrationBirth, v.row.CreatedAt, v.rev.Endpoint, v.rev.Namespace, v.rev.Mount, v.rev.Prefix, v.rev.DataField, v.reader.ID, v.reader.SecretGeneration, v.reader.AuthCiphertext, v.reader.ID, v.reader.AuthCiphertext, v.writer.ID, v.writer.AuthCiphertext, v.row.RevisionID})
+			rows = append(rows, row{v.rev.ID, v.row.ID, v.rev.IntegrationBirth, v.row.CreatedAt, v.rev.Endpoint, v.rev.Namespace, v.rev.Mount, v.rev.Prefix, v.rev.DataField, v.reader.ID, v.reader.SecretGeneration, v.reader.AuthCiphertext, v.reader.ID, v.reader.AuthCiphertext, v.writer.ID, v.writer.AuthCiphertext, v.row.RevisionID, v.reader.Method, v.reader.Method, v.writer.Method})
 		}
 		c.f.mu.Unlock()
 		return effectiveSQLRows(rows)
@@ -254,10 +257,36 @@ func credentialStorageSQLService(t *testing.T) (*Service, *credentialStorageFixt
 				claimed = true
 			}
 		}
-		if !claimed && r.Method == http.MethodPost {
+		if !claimed && r.Method == http.MethodPost && r.URL.Path != "/v1/auth/custom/approle/login" {
 			t.Error("external write precedes durable plan")
 		}
 		w.Header().Set("Content-Type", "application/json")
+		if r.URL.Path == "/v1/auth/custom/approle/login" {
+			if r.Method != http.MethodPost || r.Header.Get("X-Vault-Token") != "" {
+				t.Error("login method/identity/claim boundary")
+			}
+			var auth struct {
+				RoleID   string `json:"role_id"`
+				SecretID string `json:"secret_id"`
+			}
+			if json.NewDecoder(r.Body).Decode(&auth) != nil || (auth.RoleID != "writer-role" && auth.RoleID != "reader-role") || auth.SecretID != auth.RoleID+"-reusable" {
+				t.Error("wrong retained AppRole tuple")
+			}
+			if !claimed && (!f.allowUnclaimedReaderLogin || auth.RoleID != "reader-role") {
+				t.Error("creation login precedes durable claim")
+			}
+			f.logins = append(f.logins, auth.RoleID)
+			if f.loginDenied {
+				w.WriteHeader(403)
+				return
+			}
+			token := "reader-token"
+			if auth.RoleID == "writer-role" {
+				token = "writer-token"
+			}
+			_ = json.NewEncoder(w).Encode(map[string]any{"auth": map[string]any{"client_token": token, "lease_duration": 60}})
+			return
+		}
 		key := r.URL.Path
 		switch r.Method {
 		case http.MethodPost:

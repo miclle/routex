@@ -115,7 +115,7 @@ func (s *Service) createVaultCredential(ctx context.Context, actorID, requestID,
 		if e != nil {
 			return e
 		}
-		if rev.ID != *policy.RevisionID || !row.CreatedAt.Equal(*policy.IntegrationBirth) || w.AuthCiphertext == "" || r.AuthCiphertext == "" {
+		if rev.ID != *policy.RevisionID || !row.CreatedAt.Equal(*policy.IntegrationBirth) || w.AuthCiphertext == "" || r.AuthCiphertext == "" || !vaultStoredMethod(w.Method) || !vaultStoredMethod(r.Method) {
 			return catalogConflict
 		}
 		writer, reader = w, r
@@ -166,8 +166,15 @@ func (s *Service) createVaultCredential(ctx context.Context, actorID, requestID,
 		return &credentialCreationResult{op, dispatchWrite}, vaultUnavailable
 	}
 	if dispatchWrite {
+		token, closeToken, login, loginErr := vaultCommandToken(ctx, client, writer.Method, wt)
+		if loginErr != nil {
+			op.WriteJSON, op.State = vaultJSON(vaultLoginFailure(login)), "unknown"
+			_ = s.persistCredentialStage(ctx, op, claim, map[string]any{"write_json": op.WriteJSON, "state": op.State})
+			return &credentialCreationResult{op, dispatchWrite}, vaultUnavailable
+		}
 		transient := []byte(secret)
-		result, writeErr := client.WriteCredential(ctx, wt, prepared, transient)
+		result, writeErr := client.WriteCredential(ctx, token, prepared, transient)
+		closeToken()
 		clear(transient)
 		observation := vaultJSON(vaultObservation(result.Write))
 		state := "awaiting_read"
@@ -182,7 +189,14 @@ func (s *Service) createVaultCredential(ctx context.Context, actorID, requestID,
 			return &credentialCreationResult{op, dispatchWrite}, vaultUnavailable
 		}
 	}
-	value, read, e := client.ReadCredential(ctx, rt, credentialPlan(ref))
+	token, closeToken, login, loginErr := vaultCommandToken(ctx, client, reader.Method, rt)
+	if loginErr != nil {
+		op.ReadJSON, op.State = vaultJSON(vaultLoginFailure(login)), credentialUnresolvedState(op, "unknown")
+		_ = s.persistCredentialStage(ctx, op, claim, map[string]any{"read_json": op.ReadJSON, "state": op.State})
+		return &credentialCreationResult{op, dispatchWrite}, vaultUnavailable
+	}
+	value, read, e := client.ReadCredential(ctx, token, credentialPlan(ref))
+	closeToken()
 	if e != nil {
 		_ = s.persistCredentialStage(ctx, op, claim, map[string]any{"read_json": vaultJSON(vaultObservation(read.Read)), "state": credentialUnresolvedState(op, "unknown")})
 		return &credentialCreationResult{op, dispatchWrite}, vaultUnavailable
@@ -378,6 +392,12 @@ func (s *Service) commitVaultCredential(ctx context.Context, actorID string, i c
 			}
 		}
 		if o.IntegrationBirth == nil || !row.CreatedAt.Equal(*o.IntegrationBirth) || cw.AuthCiphertext == "" || cr.AuthCiphertext == "" || rev.ID != o.RevisionID || rev.IntegrationID != o.IntegrationID || !rev.IntegrationBirth.Equal(*o.IntegrationBirth) || w.ID != o.RevisionID || r.ID != o.RevisionID || w.SecretGeneration != o.WriterGeneration || r.SecretGeneration != o.ReaderGeneration || w.AuthCiphertext == "" || r.AuthCiphertext == "" {
+			return catalogConflict
+		}
+		if !vaultStoredMethod(cw.Method) || !vaultStoredMethod(cr.Method) {
+			return catalogConflict
+		}
+		if _, _, e = s.vaultOpen(w, r); e != nil {
 			return catalogConflict
 		}
 		p, c, credential, e := s.credentialCreationObjects(tx, i)

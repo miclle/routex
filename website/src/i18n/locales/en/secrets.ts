@@ -172,6 +172,20 @@ export default {
     authentication: 'Authentication and links',
     notSet: 'Not set',
     token: 'Token',
+    approle: 'AppRole',
+    writerMethod: 'Writer authentication method',
+    readerMethod: 'Reader authentication method',
+    writer_auth_mount: 'Writer authentication mount',
+    reader_auth_mount: 'Reader authentication mount',
+    writer_role_id: 'Writer Role ID',
+    reader_role_id: 'Reader Role ID',
+    writer_secret_id: 'Writer Secret ID',
+    reader_secret_id: 'Reader Secret ID',
+    keepAppRole: 'Keep saved AppRole',
+    replaceAppRole: 'Replace AppRole',
+    removeAppRole: 'Remove AppRole',
+    appRoleGuidance:
+      'Use an administrator-provided reusable Secret ID. Authentication mount is separate from KV mount. Login failure may consume a use; RouteX does not renew Secret IDs or login Tokens.',
     rowActions: 'More actions for {{name}}',
 
     version: 'Recorded owned version',
@@ -186,7 +200,7 @@ export default {
     add: 'Add integration',
     edit: 'Integration configuration',
     drawerDescription:
-      'Save descriptor and separate Token actions. This does not switch active storage or prove remote privileges.',
+      'Save descriptor and separate authentication actions. This does not switch active storage or prove remote privileges.',
     name: 'Integration name',
     endpoint: 'Vault address',
     namespace: 'Namespace (optional)',
@@ -197,7 +211,7 @@ export default {
     reader: 'Read identity',
     writerGuidance: 'Used for the owned CAS=0 write and exact-version cleanup.',
     readerGuidance:
-      'Used for the saved owned-version read. Different Token strings do not prove different remote principals.',
+      'Used for the saved owned-version read. Different authentication material does not prove different remote principals.',
     writerToken: 'Writer Token',
     readerToken: 'Reader Token',
     configured: 'Configured',
@@ -206,11 +220,11 @@ export default {
     replace: 'Replace Token',
     remove: 'Remove Token',
     validation:
-      'Use canonical relative ASCII paths and a name of 1–100 characters. Tokens must be different, contain 1–4,096 printable ASCII bytes, and contain no spaces. A reason of 1–1,000 characters is required.',
+      'Use canonical relative ASCII paths and a name of 1–100 characters. Token, Role ID and Secret ID use 1–4,096 printable ASCII bytes without spaces. Writer and reader authentication must be independent. A reason of 1–1,000 characters is required.',
     save: 'Save configuration',
     confirmSave: 'Confirm Vault configuration',
     confirmSaveDescription:
-      'Submit the captured descriptor and Token actions once with the reviewed ETag. Saving configuration does not perform a probe.',
+      'Submit the captured descriptor and authentication actions once with the reviewed ETag. Saving configuration does not perform a probe.',
     saved: 'Configuration receipt committed. Review fresh configuration separately.',
     unknown:
       'The outcome is unknown. Explicitly retry the exact original request; reviewing current configuration does not prove the original operation.',
@@ -218,7 +232,7 @@ export default {
       'The reviewed configuration changed. Your draft is retained. Review current configuration before a new submission.',
     rejected: 'The request was rejected. Your draft is retained for explicit review.',
     secretLifetime:
-      'Tokens remain only in this open form. Closing it or leaving the authorized page clears them; it does not resolve an unknown operation.',
+      'Replacement authentication material remains only in this open form. Closing it or leaving the authorized page clears it; it does not resolve an unknown operation.',
     noWrite: 'Write permission and current server editability are required.',
     loadError: 'The current Vault integration list could not be confirmed.',
     location: 'Vault location',
@@ -237,9 +251,9 @@ export default {
       'Commands use the saved revision. Write and Read are separate actions; no command switches active storage.',
     confirmProbe: 'Confirm saved-revision command',
     writeDescription:
-      'Create one owned CAS=0 probe with the saved writer Token. No automatic Read is performed.',
+      'Create one owned CAS=0 probe with the saved writer identity. No automatic Read is performed.',
     readDescription:
-      'Read the exact owned version and conditionally destroy only that owned version with the saved writer Token. Cleanup acknowledgement is not physical-erasure proof.',
+      'Read the exact owned version and conditionally destroy only that owned version with the saved writer identity. Cleanup acknowledgement is not physical-erasure proof.',
     recorded:
       'Current recorded probe observations were returned. This does not prove an earlier command succeeded.',
     savedFacts: 'Saved probe observations',

@@ -1,6 +1,7 @@
 import axios from 'axios'
 import client from './client'
 import type {
+  VaultAuthInput,
   VaultConfigIntent,
   VaultDescriptor,
   VaultIntegration,
@@ -65,7 +66,7 @@ function date(value: unknown): string {
   return Number.isFinite(Date.parse(result)) ? result : fail()
 }
 export function validVaultToken(value: string): boolean {
-  return /^[\x21-\x7e]{1,4096}$/.test(value)
+  return typeof value === 'string' && /^[\x21-\x7e]{1,4096}$/.test(value)
 }
 export function validVaultName(value: string): boolean {
   return (
@@ -91,6 +92,9 @@ function segment(value: string): boolean {
 function path(value: string, max: number, empty = false): boolean {
   return value === '' ? empty : value.length <= max && value.split('/').every(segment)
 }
+export function validVaultAuthMount(value: string): boolean {
+  return typeof value === 'string' && path(value, 128)
+}
 export function validVaultDescriptor(value: VaultDescriptor): boolean {
   try {
     const url = new URL(value.endpoint)
@@ -115,6 +119,16 @@ export function validVaultDescriptor(value: VaultDescriptor): boolean {
   } catch {
     return false
   }
+}
+export function sameVaultAuthReplacement(left: VaultAuthInput, right: VaultAuthInput): boolean {
+  if (left.action !== 'replace' || right.action !== 'replace') return false
+  if (left.method === 'approle' && right.method === 'approle')
+    return (
+      left.auth_mount === right.auth_mount &&
+      left.role_id === right.role_id &&
+      left.secret_id === right.secret_id
+    )
+  return left.method !== 'approle' && right.method !== 'approle' && left.token === right.token
 }
 function descriptor(value: unknown): VaultDescriptor {
   const row = object(value, ['endpoint', 'namespace', 'mount', 'prefix', 'data_field'])
@@ -215,7 +229,10 @@ export function parseVaultIntegration(value: unknown): VaultIntegration {
   ])
   function auth(value: unknown) {
     const item = object(value, ['method', 'configured'])
-    return { method: oneOf(item.method, ['token'] as const), configured: bool(item.configured) }
+    const method = oneOf(item.method, ['token', 'approle'] as const)
+    const configured = bool(item.configured)
+    if (!configured && method !== 'token') return fail()
+    return { method, configured }
   }
   const result: VaultIntegration = {
     id: text(row.id, 30, identity),
@@ -336,22 +353,27 @@ export async function saveVaultIntegration(
   )
     return fail()
   for (const auth of [input.writer_auth, input.reader_auth]) {
-    object(auth, auth.action === 'replace' ? ['action', 'token'] : ['action'])
-    if (
-      auth.action === 'replace'
-        ? !validVaultToken(auth.token)
-        : !['keep', 'remove'].includes(auth.action) ||
-          Object.hasOwn(auth, 'token') ||
-          (!intent.id && auth.action === 'keep')
-    )
-      return fail()
+    if (auth.action === 'replace') {
+      if (auth.method === 'approle') {
+        object(auth, ['action', 'method', 'auth_mount', 'role_id', 'secret_id'])
+        if (
+          !validVaultAuthMount(auth.auth_mount) ||
+          !validVaultToken(auth.role_id) ||
+          !validVaultToken(auth.secret_id)
+        )
+          return fail()
+      } else {
+        object(auth, ['action', 'token'], ['method'])
+        if ((auth.method !== undefined && auth.method !== 'token') || !validVaultToken(auth.token))
+          return fail()
+      }
+    } else {
+      object(auth, ['action'])
+      if (!['keep', 'remove'].includes(auth.action) || (!intent.id && auth.action === 'keep'))
+        return fail()
+    }
   }
-  if (
-    input.writer_auth.action === 'replace' &&
-    input.reader_auth.action === 'replace' &&
-    input.writer_auth.token === input.reader_auth.token
-  )
-    return fail()
+  if (sameVaultAuthReplacement(input.writer_auth, input.reader_auth)) return fail()
   const response = await request(
     intent.id ? 'put' : 'post',
     '/admin/secrets/integrations' + (intent.id ? '/' + intent.id : ''),

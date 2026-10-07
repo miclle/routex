@@ -2,6 +2,8 @@ import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import {
   saveVaultIntegration,
+  sameVaultAuthReplacement,
+  validVaultAuthMount,
   validVaultDescriptor,
   validVaultName,
   validVaultReason,
@@ -10,6 +12,7 @@ import {
 } from '@/api/vault-integrations'
 import type {
   VaultAuthInput,
+  VaultAuthMethod,
   VaultConfigIntent,
   VaultDescriptor,
   VaultIntegration,
@@ -21,6 +24,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 
+type AppRoleDraft = { auth_mount: string; role_id: string; secret_id: string }
+const emptyAppRole = (): AppRoleDraft => ({ auth_mount: 'approle', role_id: '', secret_id: '' })
 export interface VaultAuthority {
   csrf: string
   epoch: number
@@ -67,6 +72,14 @@ export function VaultDrawer({
   const [reader, setReader] = useState<VaultAuthInput['action']>(
     id && integration?.reader_auth.configured ? 'keep' : 'replace',
   )
+  const [writerMethod, setWriterMethod] = useState<VaultAuthMethod>(
+    integration?.writer_auth.method ?? 'token',
+  )
+  const [readerMethod, setReaderMethod] = useState<VaultAuthMethod>(
+    integration?.reader_auth.method ?? 'token',
+  )
+  const [writerRole, setWriterRole] = useState<AppRoleDraft>(emptyAppRole)
+  const [readerRole, setReaderRole] = useState<AppRoleDraft>(emptyAppRole)
   const [writerToken, setWriterToken] = useState(''),
     [readerToken, setReaderToken] = useState(''),
     [reason, setReason] = useState('')
@@ -91,13 +104,32 @@ export function VaultDrawer({
     if (!visible) controller.current?.abort()
   }, [visible])
   const currentReview = reviewed === etag
+  const auth = (
+    action: VaultAuthInput['action'],
+    method: VaultAuthMethod,
+    token: string,
+    role: AppRoleDraft,
+  ): VaultAuthInput =>
+    action === 'replace'
+      ? method === 'token'
+        ? { action, token }
+        : { action, method, ...role }
+      : { action }
+  const writerInput = auth(writer, writerMethod, writerToken, writerRole)
+  const readerInput = auth(reader, readerMethod, readerToken, readerRole)
+  const validReplacement = (method: VaultAuthMethod, token: string, role: AppRoleDraft) =>
+    method === 'token'
+      ? validVaultToken(token)
+      : validVaultAuthMount(role.auth_mount) &&
+        validVaultToken(role.role_id) &&
+        validVaultToken(role.secret_id)
   const valid =
     validVaultName(name) &&
     validVaultReason(reason) &&
     validVaultDescriptor(descriptor) &&
-    (writer !== 'replace' || validVaultToken(writerToken)) &&
-    (reader !== 'replace' || validVaultToken(readerToken)) &&
-    !(writer === 'replace' && reader === 'replace' && writerToken === readerToken)
+    (writer !== 'replace' || validReplacement(writerMethod, writerToken, writerRole)) &&
+    (reader !== 'replace' || validReplacement(readerMethod, readerToken, readerRole)) &&
+    !sameVaultAuthReplacement(writerInput, readerInput)
   function capture() {
     if (
       !visible ||
@@ -109,8 +141,6 @@ export function VaultDrawer({
       lock.current
     )
       return
-    const auth = (action: VaultAuthInput['action'], token: string): VaultAuthInput =>
-      action === 'replace' ? { action, token } : { action }
     setIntent({
       ...(id ? { id } : {}),
       etag: reviewed,
@@ -118,8 +148,8 @@ export function VaultDrawer({
         request_id: crypto.randomUUID(),
         name,
         descriptor: { ...descriptor },
-        writer_auth: auth(writer, writerToken),
-        reader_auth: auth(reader, readerToken),
+        writer_auth: writerInput,
+        reader_auth: readerInput,
         reason,
       },
     })
@@ -143,6 +173,8 @@ export function VaultDrawer({
       }
       setWriterToken('')
       setReaderToken('')
+      setWriterRole(emptyAppRole())
+      setReaderRole(emptyAppRole())
       setIntent(undefined)
       setUncertain(false)
       setNotice('saved')
@@ -179,13 +211,20 @@ export function VaultDrawer({
     token: string,
     setToken: (value: string) => void,
     configured: boolean,
+    method: VaultAuthMethod,
+    setMethod: (value: VaultAuthMethod) => void,
+    role: AppRoleDraft,
+    setRole: (value: AppRoleDraft) => void,
   ) => (
     <Card role="group" aria-label={t(`vault.${kind}`)}>
       <CardHeader>
         <CardTitle>{t(`vault.${kind}`)}</CardTitle>
       </CardHeader>
       <CardContent className="space-y-3">
-        <p>{t(configured ? 'vault.configured' : 'vault.notConfigured')}</p>
+        <p>
+          {t(configured ? 'vault.configured' : 'vault.notConfigured')} ·{' '}
+          {t(`vault.${integration?.[`${kind}_auth`].method ?? 'token'}`)}
+        </p>
         <p className="text-sm text-muted-foreground">{t(`vault.${kind}Guidance`)}</p>
         <div className="flex gap-2">
           {(['keep', 'replace', 'remove'] as const)
@@ -199,23 +238,65 @@ export function VaultDrawer({
                 onClick={() => {
                   setAction(value)
                   setToken('')
+                  setRole(emptyAppRole())
                 }}
               >
-                {t(`vault.${value}`)}
+                {t(
+                  `vault.${value}${(value === 'replace' ? method : integration?.[`${kind}_auth`].method) === 'approle' ? 'AppRole' : ''}`,
+                )}
               </Button>
             ))}
         </div>
         {action === 'replace' && (
-          <label className="block space-y-1">
-            <span>{t(`vault.${kind}Token`)}</span>
-            <Input
-              type="password"
-              autoComplete="new-password"
-              value={token}
-              disabled={busy || uncertain}
-              onChange={(event) => setToken(event.target.value)}
-            />
-          </label>
+          <>
+            <div role="group" aria-label={t(`vault.${kind}Method`)} className="flex gap-2">
+              {(['token', 'approle'] as const).map((value) => (
+                <Button
+                  key={value}
+                  variant={value === method ? 'default' : 'outline'}
+                  aria-pressed={value === method}
+                  disabled={busy || uncertain}
+                  onClick={() => {
+                    if (value !== method) {
+                      setMethod(value)
+                      setToken('')
+                      setRole(emptyAppRole())
+                    }
+                  }}
+                >
+                  {t(`vault.${value}`)}
+                </Button>
+              ))}
+            </div>
+            {method === 'token' ? (
+              <label className="block space-y-1">
+                <span>{t(`vault.${kind}Token`)}</span>
+                <Input
+                  type="password"
+                  autoComplete="new-password"
+                  value={token}
+                  disabled={busy || uncertain}
+                  onChange={(event) => setToken(event.target.value)}
+                />
+              </label>
+            ) : (
+              <>
+                <p className="text-sm text-muted-foreground">{t('vault.appRoleGuidance')}</p>
+                {(['auth_mount', 'role_id', 'secret_id'] as const).map((field) => (
+                  <label key={field} className="block space-y-1">
+                    <span>{t(`vault.${kind}_${field}`)}</span>
+                    <Input
+                      type={field === 'secret_id' ? 'password' : 'text'}
+                      autoComplete={field === 'secret_id' ? 'new-password' : 'off'}
+                      value={role[field]}
+                      disabled={busy || uncertain}
+                      onChange={(event) => setRole({ ...role, [field]: event.target.value })}
+                    />
+                  </label>
+                ))}
+              </>
+            )}
+          </>
         )}
       </CardContent>
     </Card>
@@ -258,6 +339,10 @@ export function VaultDrawer({
           writerToken,
           setWriterToken,
           integration?.writer_auth.configured === true,
+          writerMethod,
+          setWriterMethod,
+          writerRole,
+          setWriterRole,
         )}
         {tokenCard(
           'reader',
@@ -266,6 +351,10 @@ export function VaultDrawer({
           readerToken,
           setReaderToken,
           integration?.reader_auth.configured === true,
+          readerMethod,
+          setReaderMethod,
+          readerRole,
+          setReaderRole,
         )}
         <label className="block space-y-1">
           <span>{t('reason')}</span>

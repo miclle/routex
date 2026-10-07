@@ -44,10 +44,15 @@ Tests cover randomized envelope round trips, key ownership, wrong keys and refer
 
 Managed egress uses the same envelope store for proxy username/password pairs, with an authenticated reference containing the proxy ID and a fresh secret-generation ID. Read APIs expose only whether authentication is configured. Proxy credentials are decrypted while building the runtime transport snapshot, and never forwarded as target headers. The independent proxy endpoint policy and transport/diagnostic contracts are documented in [Managed Egress](EGRESS.md).
 
-## Vault Token integration boundary
+## Vault authentication integration boundary
 
-[Vault Token integrations](VAULT_TOKEN_INTEGRATIONS.md) persist guarded descriptors,
-separate encrypted writer/reader Token revisions and explicit bounded probes.
+[Vault integrations](VAULT_TOKEN_INTEGRATIONS.md) persist guarded descriptors,
+separate encrypted writer/reader Token or complete AppRole tuple revisions and
+explicit bounded probes. Frozen V78 adds only the exact auth method discriminator;
+the original two auth root domains and immutable encryption references remain
+unchanged. Login Tokens are finite-command state, never persisted or prepared
+Gateway credentials. Local prepared-value authentication includes exact retained
+method/material without remote login; root rewrap preserves that logical proof.
 Configuration receipts and recorded remote observations remain distinct. The
 earlier Token integration phase did not switch active Provider credential storage.
 The Provider write policy below is a separate contract; Gateway inference does

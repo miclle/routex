@@ -88,7 +88,7 @@ func (s *Service) credentialStoragePolicyView(tx *gorm.DB, actor entity.User, p 
 		if e != nil {
 			return nil, e
 		}
-		if w.AuthCiphertext != "" && r.AuthCiphertext != "" {
+		if w.AuthCiphertext != "" && r.AuthCiphertext != "" && vaultStoredMethod(w.Method) && vaultStoredMethod(r.Method) {
 			choices = append(choices, CredentialStorageChoice{exact.ID, exact.Name, exact.CreatedAt.UTC(), rev.ID})
 		}
 	}
@@ -157,7 +157,7 @@ func (s *Service) SaveCredentialStoragePolicy(ctx context.Context, actorID, etag
 			if e != nil {
 				return e
 			}
-			if rev.ID != *input.RevisionID || w.AuthCiphertext == "" || r.AuthCiphertext == "" {
+			if rev.ID != *input.RevisionID || w.AuthCiphertext == "" || r.AuthCiphertext == "" || !vaultStoredMethod(w.Method) || !vaultStoredMethod(r.Method) {
 				return catalogConflict
 			}
 			birth := row.CreatedAt

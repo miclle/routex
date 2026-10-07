@@ -23,6 +23,7 @@ let root: Root,
   writes: InternalAxiosRequestConfig[],
   getStatus: number,
   readGate: Promise<void> | undefined
+let listingMethod: 'token' | 'approle' = 'token'
 let listingProbe = false
 let listingRevision: string | undefined
 let detailValue = vault()
@@ -90,6 +91,7 @@ beforeEach(async () => {
   reads = []
   writes = []
   getStatus = 200
+  listingMethod = 'token'
   listingProbe = false
   listingRevision = undefined
   detailValue = vault()
@@ -114,6 +116,7 @@ beforeEach(async () => {
       if (path === '/auth/session') return response(session)
       if (path === '/auth/permissions') return response({ permissions: [...permissions] })
       const captured = vault()
+      captured.writer_auth.method = listingMethod
       if (listingProbe) captured.last_probe = probe()
       if (listingRevision) captured.revision_id = listingRevision
       if (readGate) await readGate
@@ -509,4 +512,21 @@ it('shows retained old-revision probe facts as historical, blocks Read and retai
     await i18n.changeLanguage('zh')
   })
   expect(document.body.textContent).toContain('历史修订的观测结果')
+})
+
+it('read-only listing shows recorded AppRole and Token methods without secret inputs or write authority', async () => {
+  listingMethod = 'approle'
+  permissions = ['secrets.read']
+  await mount()
+  const rows = [...document.querySelectorAll('tbody tr')]
+  expect(rows).toHaveLength(1)
+  expect(rows[0].textContent).toContain('AppRole')
+  expect(rows[0].textContent).toContain('Token')
+  expect(document.querySelector('input[type=password]')).toBeNull()
+  expect(button('Add integration').disabled).toBe(true)
+  await act(async () => {
+    await i18n.changeLanguage('zh')
+  })
+  expect(rows[0].textContent).toContain('AppRole')
+  expect(writes).toHaveLength(0)
 })

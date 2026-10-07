@@ -554,7 +554,7 @@ export function VaultWorkspace({
                       {(['writer', 'reader'] as const).map((kind, index) => (
                         <div key={kind} className="flex flex-wrap items-center gap-2">
                           <span className="text-muted-foreground">{t(`vault.${kind}`)}</span>
-                          <span>{t('vault.token')}</span>
+                          <span>{t(`vault.${row[`${kind}_auth`].method}`)}</span>
                           <span>
                             {t(
                               row[`${kind}_auth`].configured

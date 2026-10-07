@@ -269,3 +269,161 @@ it('retains exact canonical cursor and rejects malformed outgoing cursors withou
   await expect(getVaultIntegrations('arbitrary')).rejects.toThrow(VaultError)
   expect(spy).not.toHaveBeenCalled()
 })
+
+describe('saved AppRole authentication', () => {
+  it('decodes only the recorded method and configured state for each identity', () => {
+    const value = vault()
+    Object.assign(value.writer_auth, { method: 'approle' })
+    expect(parseVaultIntegration(value).writer_auth).toEqual({
+      method: 'approle',
+      configured: true,
+    })
+  })
+  it('sends the complete replacement tuple unchanged with the reviewed headers and signal', async () => {
+    const intent = configuration()
+    Object.assign(intent.input, {
+      writer_auth: {
+        action: 'replace',
+        method: 'approle',
+        auth_mount: 'custom/team',
+        role_id: 'writer-role',
+        secret_id: 'writer-secret-id',
+      },
+    })
+    const signal = new AbortController().signal
+    const spy = vi.spyOn(client, 'request').mockResolvedValue({
+      status: 200,
+      data: {
+        request_id: requestID,
+        integration_id: vaultID,
+        revision_id: vault().revision_id,
+        committed: true,
+        changed: true,
+      },
+    })
+    await saveVaultIntegration(intent, 'c'.repeat(64), signal)
+    expect(spy).toHaveBeenCalledOnce()
+    expect(spy.mock.calls[0][0]).toMatchObject({
+      method: 'put',
+      url: '/admin/secrets/integrations/' + vaultID,
+      data: intent.input,
+      signal,
+      headers: { 'If-Match': '"' + vaultETag + '"', 'X-CSRF-Token': 'c'.repeat(64) },
+    })
+  })
+})
+
+describe('AppRole strict replacement and privacy', () => {
+  const appRole = () => ({
+    action: 'replace',
+    method: 'approle',
+    auth_mount: 'custom/team',
+    role_id: 'writer-role',
+    secret_id: 'writer-secret-id',
+  })
+  it.each([
+    'missing-role',
+    'missing-secret',
+    'missing-mount',
+    'null-role',
+    'numeric-secret',
+    'token-mixed',
+    'unknown-method',
+    'case-method',
+    'null-method',
+    'keep-fields',
+    'remove-fields',
+    'empty-segment',
+    'traversal',
+    'trailing-dot',
+    'leading-slash',
+    'long-mount',
+    'space-role',
+    'long-secret',
+    'duplicate-tuple',
+  ])('rejects %s before HTTP without exposing material', async (fault) => {
+    const intent = configuration()
+    const value: Record<string, unknown> = appRole()
+    if (fault === 'missing-role') delete value.role_id
+    if (fault === 'missing-secret') delete value.secret_id
+    if (fault === 'missing-mount') delete value.auth_mount
+    if (fault === 'null-role') value.role_id = null
+    if (fault === 'numeric-secret') value.secret_id = 123
+    if (fault === 'token-mixed') value.token = 'not-public'
+    if (fault === 'unknown-method') value.method = 'tls'
+    if (fault === 'case-method') value.method = 'AppRole'
+    if (fault === 'null-method') value.method = null
+    if (fault === 'keep-fields') value.action = 'keep'
+    if (fault === 'remove-fields') value.action = 'remove'
+    if (fault === 'empty-segment') value.auth_mount = 'custom//team'
+    if (fault === 'traversal') value.auth_mount = 'custom/../team'
+    if (fault === 'trailing-dot') value.auth_mount = 'custom/team.'
+    if (fault === 'leading-slash') value.auth_mount = '/approle'
+    if (fault === 'long-mount') value.auth_mount = 'a'.repeat(129)
+    if (fault === 'space-role') value.role_id = 'bad role'
+    if (fault === 'long-secret') value.secret_id = 's'.repeat(4097)
+    Object.assign(intent.input, { writer_auth: value })
+    if (fault === 'duplicate-tuple')
+      Object.assign(intent.input, { reader_auth: structuredClone(value) })
+    const spy = vi.spyOn(client, 'request')
+    await expect(saveVaultIntegration(intent, 'c'.repeat(64))).rejects.toThrow(
+      'Vault integration request failed',
+    )
+    expect(spy).not.toHaveBeenCalled()
+  })
+  it.each(['token', 'role_id', 'secret_id', 'auth_mount', 'login_token'])(
+    'rejects returned auth material %s',
+    (key) => {
+      const value = vault()
+      Object.assign(value.reader_auth, { method: 'approle', [key]: 'not-public' })
+      expect(() => parseVaultIntegration(value)).toThrow(VaultError)
+    },
+  )
+  it('rejects noncanonical unconfigured AppRole metadata', () => {
+    const value = vault()
+    Object.assign(value.reader_auth, { method: 'approle', configured: false })
+    expect(() => parseVaultIntegration(value)).toThrow(VaultError)
+  })
+  it('preserves explicit Token compatibility and never infers mixed-method principal equality', async () => {
+    const spy = vi.spyOn(client, 'request').mockResolvedValue({
+      status: 200,
+      data: {
+        request_id: requestID,
+        integration_id: vaultID,
+        revision_id: vault().revision_id,
+        committed: true,
+        changed: false,
+      },
+    })
+    const intent = configuration()
+    Object.assign(intent.input.writer_auth, { method: 'token' })
+    await saveVaultIntegration(intent, 'c'.repeat(64))
+    expect(spy.mock.calls[0][0].data).toMatchObject({
+      writer_auth: {
+        action: 'replace',
+        method: 'token',
+        token: 'writer-secret',
+      },
+    })
+    Object.assign(intent.input, {
+      writer_auth: appRole(),
+      reader_auth: { action: 'replace', token: 'writer-secret-id' },
+    })
+    await saveVaultIntegration(intent, 'c'.repeat(64))
+    expect(spy).toHaveBeenCalledTimes(2)
+  })
+  it('keeps preparation login failure separate from unattempted KV facts', () => {
+    const value = probe()
+    value.state = 'interrupted'
+    value.version = null
+    value.write = {
+      attempted: false,
+      succeeded: false,
+      duration_ms: '10',
+      failure: { stage: 'prepare', code: 'auth_expired', http_status: 0 },
+    }
+    expect(parseVaultProbe(value).write).toEqual(value.write)
+    value.write.failure!.code = 'invalid_auth'
+    expect(parseVaultProbe(value).write.succeeded).toBe(false)
+  })
+})

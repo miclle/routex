@@ -63,15 +63,15 @@ func attachCredentialSources(tx *gorm.DB, rows []entity.ProviderCredential) erro
 		revisions = append(revisions, r.RevisionID)
 	}
 	type sourceRow struct {
-		RevisionID                                                                                            string
-		IntegrationID                                                                                         string
-		IntegrationBirth                                                                                      time.Time
-		CurrentBirth                                                                                          time.Time
-		Endpoint, Namespace, Mount, Prefix, DataField, ReaderID, ReaderGeneration, ReaderCiphertext           string
-		CurrentReaderID, CurrentReaderCiphertext, CurrentWriterID, CurrentWriterCiphertext, CurrentRevisionID string
+		RevisionID                                                                                                                                      string
+		IntegrationID                                                                                                                                   string
+		IntegrationBirth                                                                                                                                time.Time
+		CurrentBirth                                                                                                                                    time.Time
+		Endpoint, Namespace, Mount, Prefix, DataField, ReaderID, ReaderGeneration, ReaderCiphertext, ReaderMethod                                       string
+		CurrentReaderID, CurrentReaderCiphertext, CurrentWriterID, CurrentWriterCiphertext, CurrentRevisionID, CurrentReaderMethod, CurrentWriterMethod string
 	}
 	contexts := []sourceRow{}
-	q := vaultDB(tx).Table("vault_revisions AS rev").Select("rev.id AS revision_id, rev.integration_id,rev.integration_birth,integration.created_at AS current_birth,rev.endpoint,rev.namespace,rev.mount,rev.prefix,rev.data_field,reader.id AS reader_id,reader.secret_generation AS reader_generation,reader.auth_ciphertext AS reader_ciphertext,integration.revision_id AS current_revision_id,current_reader.id AS current_reader_id,current_reader.auth_ciphertext AS current_reader_ciphertext,current_writer.id AS current_writer_id,current_writer.auth_ciphertext AS current_writer_ciphertext").Joins("JOIN vault_integrations AS integration ON integration.id = rev.integration_id").Joins("JOIN vault_reader_auth AS reader ON reader.id = rev.id").Joins("JOIN vault_reader_auth AS current_reader ON current_reader.id = integration.revision_id").Joins("JOIN vault_writer_auth AS current_writer ON current_writer.id = integration.revision_id").Where("rev.id IN ?", revisions).Limit(len(revisions) + 1)
+	q := vaultDB(tx).Table("vault_revisions AS rev").Select("rev.id AS revision_id, rev.integration_id,rev.integration_birth,integration.created_at AS current_birth,rev.endpoint,rev.namespace,rev.mount,rev.prefix,rev.data_field,reader.id AS reader_id,reader.secret_generation AS reader_generation,reader.auth_ciphertext AS reader_ciphertext,reader.method AS reader_method,integration.revision_id AS current_revision_id,current_reader.id AS current_reader_id,current_reader.auth_ciphertext AS current_reader_ciphertext,current_writer.id AS current_writer_id,current_writer.auth_ciphertext AS current_writer_ciphertext,current_reader.method AS current_reader_method,current_writer.method AS current_writer_method").Joins("JOIN vault_integrations AS integration ON integration.id = rev.integration_id").Joins("JOIN vault_reader_auth AS reader ON reader.id = rev.id").Joins("JOIN vault_reader_auth AS current_reader ON current_reader.id = integration.revision_id").Joins("JOIN vault_writer_auth AS current_writer ON current_writer.id = integration.revision_id").Where("rev.id IN ?", revisions).Limit(len(revisions) + 1)
 	if e := q.Scan(&contexts).Error; e != nil {
 		return e
 	}
@@ -85,19 +85,20 @@ func attachCredentialSources(tx *gorm.DB, rows []entity.ProviderCredential) erro
 	for i := range refs {
 		r := &refs[i]
 		context, ok := byRevision[r.RevisionID]
-		if !ok || context.IntegrationID != r.IntegrationID || !context.IntegrationBirth.Equal(r.IntegrationBirth) || !context.CurrentBirth.Equal(r.IntegrationBirth) || context.ReaderID != r.RevisionID || context.ReaderGeneration != r.ReaderGeneration || context.ReaderCiphertext == "" || context.CurrentReaderCiphertext == "" || context.CurrentWriterCiphertext == "" || !vaultRevisionID.MatchString(context.CurrentRevisionID) || context.CurrentReaderID != context.CurrentRevisionID || context.CurrentWriterID != context.CurrentRevisionID {
+		if !ok || context.IntegrationID != r.IntegrationID || !context.IntegrationBirth.Equal(r.IntegrationBirth) || !context.CurrentBirth.Equal(r.IntegrationBirth) || context.ReaderID != r.RevisionID || context.ReaderGeneration != r.ReaderGeneration || !vaultStoredMethod(context.ReaderMethod) || !vaultStoredMethod(context.CurrentReaderMethod) || !vaultStoredMethod(context.CurrentWriterMethod) || context.ReaderCiphertext == "" || context.CurrentReaderCiphertext == "" || context.CurrentWriterCiphertext == "" || !vaultRevisionID.MatchString(context.CurrentRevisionID) || context.CurrentReaderID != context.CurrentRevisionID || context.CurrentWriterID != context.CurrentRevisionID {
 			r.SourceContext = ""
 			continue
 		}
 		context.IntegrationBirth = context.IntegrationBirth.UTC()
 		context.CurrentBirth = context.CurrentBirth.UTC()
 		r.ReaderCiphertext = context.ReaderCiphertext
+		r.ReaderMethod = context.ReaderMethod
 		context.ReaderCiphertext = ""
 		// Current configured auth is an eligibility gate, not a source revision.
 		// Reconfiguration and root-key rewrap must not repoint retained references.
 		context.CurrentReaderID, context.CurrentReaderCiphertext = "", ""
 		context.CurrentWriterID, context.CurrentWriterCiphertext = "", ""
-		context.CurrentRevisionID = ""
+		context.CurrentRevisionID, context.CurrentReaderMethod, context.CurrentWriterMethod = "", "", ""
 		raw, _ := json.Marshal(context)
 		r.SourceContext = rootHash(string(raw))
 	}
@@ -128,7 +129,7 @@ func (s *Service) credentialReferenceClient(ctx context.Context, r entity.Creden
 	var reader entity.VaultReaderAuth
 	e := s.authDB(ctx).Transaction(func(tx *gorm.DB) error {
 		current, _, cw, cr, err := vaultSnapshot(tx, r.IntegrationID, false)
-		if err != nil || !current.CreatedAt.Equal(r.IntegrationBirth) || cw.AuthCiphertext == "" || cr.AuthCiphertext == "" {
+		if err != nil || !current.CreatedAt.Equal(r.IntegrationBirth) || cw.AuthCiphertext == "" || cr.AuthCiphertext == "" || !vaultStoredMethod(cw.Method) || !vaultStoredMethod(cr.Method) {
 			return vaultUnavailable
 		}
 		for _, q := range []struct {
@@ -139,7 +140,7 @@ func (s *Service) credentialReferenceClient(ctx context.Context, r entity.Creden
 				return e
 			}
 		}
-		if integration.ID != r.IntegrationID || !integration.CreatedAt.Equal(r.IntegrationBirth) || rev.ID != r.RevisionID || rev.IntegrationID != r.IntegrationID || !rev.IntegrationBirth.Equal(r.IntegrationBirth) || reader.ID != r.RevisionID || reader.SecretGeneration != r.ReaderGeneration || reader.AuthCiphertext == "" || w.ID != r.RevisionID {
+		if integration.ID != r.IntegrationID || !integration.CreatedAt.Equal(r.IntegrationBirth) || rev.ID != r.RevisionID || rev.IntegrationID != r.IntegrationID || !rev.IntegrationBirth.Equal(r.IntegrationBirth) || reader.ID != r.RevisionID || reader.SecretGeneration != r.ReaderGeneration || reader.AuthCiphertext == "" || !vaultStoredMethod(reader.Method) || !vaultStoredMethod(w.Method) || w.ID != r.RevisionID {
 			return vaultUnavailable
 		}
 		return nil
@@ -177,6 +178,11 @@ func (s *Service) resolveCredential(ctx context.Context, c entity.ProviderCreden
 	if e != nil {
 		return "", vaultUnavailable
 	}
+	token, closeLogin, _, e := vaultCommandToken(ctx, client, reader.Method, token)
+	if e != nil {
+		return "", vaultUnavailable
+	}
+	defer closeLogin()
 	value, _, e := client.ReadCredential(ctx, token, credentialPlan(*c.VaultReference))
 	if e != nil {
 		return "", vaultUnavailable
@@ -194,6 +200,10 @@ func (s *Service) cacheCredentialValue(ctx context.Context, c entity.ProviderCre
 	if c.StorageSource != "vault" {
 		return nil
 	}
+	authProof, err := preparedCredentialAuthProof(c, s.openSecret)
+	if err != nil {
+		return err
+	}
 	// No global publication/DB lock spans remote reads. This local cache lock
 	// serializes pruning with other preparers; compiled attempts own their values.
 	s.credentialValuesMu.Lock()
@@ -205,7 +215,11 @@ func (s *Service) cacheCredentialValue(ctx context.Context, c entity.ProviderCre
 	if s.credentialValues == nil {
 		s.credentialValues = map[string]string{}
 	}
+	if s.credentialAuthProofs == nil {
+		s.credentialAuthProofs = map[string]string{}
+	}
 	prunePreparedCredentialValues(s.credentialValues, keep)
+	prunePreparedCredentialValues(s.credentialAuthProofs, keep)
 	if !keep[proof] {
 		return catalogConflict
 	}
@@ -213,6 +227,7 @@ func (s *Service) cacheCredentialValue(ctx context.Context, c entity.ProviderCre
 		return vaultUnavailable
 	}
 	s.credentialValues[proof] = value
+	s.credentialAuthProofs[proof] = authProof
 	return nil
 }
 
@@ -251,6 +266,7 @@ func (s *Service) pruneCredentialValues(ctx context.Context) error {
 		return err
 	}
 	prunePreparedCredentialValues(s.credentialValues, keep)
+	prunePreparedCredentialValues(s.credentialAuthProofs, keep)
 	return nil
 }
 func prunePreparedCredentialValues(values map[string]string, keep map[string]bool) {
@@ -272,18 +288,35 @@ func (s *Service) preparedCredentialValueWithReader(c entity.ProviderCredential,
 	if proof == "" || c.VaultReference.ReaderCiphertext == "" {
 		return "", vaultUnavailable
 	}
-	ref := c.VaultReference
-	token, e := openReader(rootReference("vault_reader_auth", ref.RevisionID, ref.ReaderGeneration), ref.ReaderCiphertext)
-	if e != nil || !vaultToken(token) {
-		return "", vaultUnavailable
+	authProof, e := preparedCredentialAuthProof(c, openReader)
+	if e != nil {
+		return "", e
 	}
 	s.credentialValuesMu.RLock()
 	value, ok := s.credentialValues[proof]
+	cachedAuth := s.credentialAuthProofs[proof]
 	s.credentialValuesMu.RUnlock()
-	if !ok {
+	if !ok || cachedAuth == "" || !vaultTextEqual(cachedAuth, authProof) {
 		return "", vaultUnavailable
 	}
 	return value, nil
+}
+
+// The private digest is local cache state only, never persisted or published.
+// Rewrap changes ciphertext, not the authenticated immutable auth material.
+func preparedCredentialAuthProof(c entity.ProviderCredential, openReader func(string, string) (string, error)) (string, error) {
+	ref := c.VaultReference
+	if ref == nil || ref.ReaderCiphertext == "" {
+		return "", vaultUnavailable
+	}
+	material, e := openReader(rootReference("vault_reader_auth", ref.RevisionID, ref.ReaderGeneration), ref.ReaderCiphertext)
+	if e != nil {
+		return "", vaultUnavailable
+	}
+	if _, e = vaultAuthMaterial(ref.ReaderMethod, material); e != nil {
+		return "", e
+	}
+	return personalHash(ref.ReaderMethod + "\x00" + material), nil
 }
 
 // Startup performs finite preparation before publication locks. Periodic
@@ -303,6 +336,7 @@ func (s *Service) prepareStartupCredentialValues(ctx context.Context) error {
 		return e
 	}
 	prepared := map[string]string{}
+	authProofs := map[string]string{}
 	for _, c := range rows {
 		if c.StorageSource != "vault" || credentialSourceProof(c) == "" {
 			continue
@@ -316,10 +350,16 @@ func (s *Service) prepareStartupCredentialValues(ctx context.Context) error {
 			// Independent inline routes and the management plane remain usable.
 			continue
 		}
+		authProof, e := preparedCredentialAuthProof(c, s.openSecret)
+		if e != nil {
+			continue
+		}
 		prepared[credentialSourceProof(c)] = value
+		authProofs[credentialSourceProof(c)] = authProof
 	}
 	s.credentialValuesMu.Lock()
 	s.credentialValues = prepared
+	s.credentialAuthProofs = authProofs
 	s.credentialValuesMu.Unlock()
 	return nil
 }

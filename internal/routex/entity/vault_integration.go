@@ -30,11 +30,13 @@ type VaultRevision struct {
 
 // Separate tables make each auth material an exact root-rotation inventory row.
 type VaultWriterAuth struct {
+	Method           string `gorm:"size:16;not null;default:token;check:ck_vault_writer_method,(OCTET_LENGTH(method) = 5 AND ASCII(SUBSTRING(method,1,1)) = 116 AND ASCII(SUBSTRING(method,2,1)) = 111 AND ASCII(SUBSTRING(method,3,1)) = 107 AND ASCII(SUBSTRING(method,4,1)) = 101 AND ASCII(SUBSTRING(method,5,1)) = 110) OR (OCTET_LENGTH(method) = 7 AND ASCII(SUBSTRING(method,1,1)) = 97 AND ASCII(SUBSTRING(method,2,1)) = 112 AND ASCII(SUBSTRING(method,3,1)) = 112 AND ASCII(SUBSTRING(method,4,1)) = 114 AND ASCII(SUBSTRING(method,5,1)) = 111 AND ASCII(SUBSTRING(method,6,1)) = 108 AND ASCII(SUBSTRING(method,7,1)) = 101)" json:"-"`
 	ID               string `gorm:"primaryKey;size:30"`
 	SecretGeneration string `gorm:"size:30;not null"`
 	AuthCiphertext   string `gorm:"type:text;not null" json:"-"`
 }
 type VaultReaderAuth struct {
+	Method           string `gorm:"size:16;not null;default:token;check:ck_vault_reader_method,(OCTET_LENGTH(method) = 5 AND ASCII(SUBSTRING(method,1,1)) = 116 AND ASCII(SUBSTRING(method,2,1)) = 111 AND ASCII(SUBSTRING(method,3,1)) = 107 AND ASCII(SUBSTRING(method,4,1)) = 101 AND ASCII(SUBSTRING(method,5,1)) = 110) OR (OCTET_LENGTH(method) = 7 AND ASCII(SUBSTRING(method,1,1)) = 97 AND ASCII(SUBSTRING(method,2,1)) = 112 AND ASCII(SUBSTRING(method,3,1)) = 112 AND ASCII(SUBSTRING(method,4,1)) = 114 AND ASCII(SUBSTRING(method,5,1)) = 111 AND ASCII(SUBSTRING(method,6,1)) = 108 AND ASCII(SUBSTRING(method,7,1)) = 101)" json:"-"`
 	ID               string `gorm:"primaryKey;size:30"`
 	SecretGeneration string `gorm:"size:30;not null"`
 	AuthCiphertext   string `gorm:"type:text;not null" json:"-"`

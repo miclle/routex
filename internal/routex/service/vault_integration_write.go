@@ -16,8 +16,8 @@ import (
 )
 
 func vaultIntent(v VaultConfigInput) string {
-	v.WriterAuth.Token = ""
-	v.ReaderAuth.Token = ""
+	v.WriterAuth.Token, v.WriterAuth.AuthMount, v.WriterAuth.RoleID, v.WriterAuth.SecretID = "", "", "", ""
+	v.ReaderAuth.Token, v.ReaderAuth.AuthMount, v.ReaderAuth.RoleID, v.ReaderAuth.SecretID = "", "", "", ""
 	b, _ := json.Marshal(v)
 	return string(b)
 }
@@ -30,14 +30,24 @@ func (s *Service) vaultOpen(w entity.VaultWriterAuth, r entity.VaultReaderAuth) 
 	var err error
 	if w.AuthCiphertext != "" {
 		wt, err = s.openSecret(rootReference("vault_writer_auth", w.ID, w.SecretGeneration), w.AuthCiphertext)
-		if err != nil || !vaultToken(wt) {
+		if err != nil {
 			return "", "", vaultUnavailable
 		}
 	}
 	if r.AuthCiphertext != "" {
 		rt, err = s.openSecret(rootReference("vault_reader_auth", r.ID, r.SecretGeneration), r.AuthCiphertext)
-		if err != nil || !vaultToken(rt) {
+		if err != nil {
 			return "", "", vaultUnavailable
+		}
+	}
+	if wt != "" {
+		if _, e := vaultAuthMaterial(w.Method, wt); e != nil {
+			return "", "", e
+		}
+	}
+	if rt != "" {
+		if _, e := vaultAuthMaterial(r.Method, rt); e != nil {
+			return "", "", e
 		}
 	}
 	if wt != "" && rt != "" && vaultTextEqual(wt, rt) {
@@ -48,17 +58,18 @@ func (s *Service) vaultOpen(w entity.VaultWriterAuth, r entity.VaultReaderAuth) 
 func vaultAuthValue(v VaultAuthInput, old string, creation bool) (string, error) {
 	switch v.Action {
 	case "replace":
-		if !vaultToken(v.Token) {
+		value, e := vaultAuthReplacement(v)
+		if e != nil {
 			return "", apperrors.ErrBadRequest
 		}
-		return v.Token, nil
+		return value, nil
 	case "keep":
-		if creation || old == "" || v.Token != "" {
+		if creation || old == "" || (v.Token != "" || v.Method != "" || v.AuthMount != "" || v.RoleID != "" || v.SecretID != "") {
 			return "", apperrors.ErrBadRequest
 		}
 		return old, nil
 	case "remove":
-		if v.Token != "" {
+		if v.Token != "" || v.Method != "" || v.AuthMount != "" || v.RoleID != "" || v.SecretID != "" {
 			return "", apperrors.ErrBadRequest
 		}
 		return "", nil
@@ -107,7 +118,9 @@ func (s *Service) vaultReceiptMatch(tx *gorm.DB, actor entity.User, target, etag
 	if err != nil {
 		return nil, err
 	}
-	if input.WriterAuth.Action == "replace" && !vaultTextEqual(wt, input.WriterAuth.Token) || input.ReaderAuth.Action == "replace" && !vaultTextEqual(rt, input.ReaderAuth.Token) {
+	expectedW, ew := vaultAuthValue(input.WriterAuth, wt, false)
+	expectedR, er := vaultAuthValue(input.ReaderAuth, rt, false)
+	if ew != nil || er != nil || input.WriterAuth.Action == "replace" && !vaultTextEqual(wt, expectedW) || input.ReaderAuth.Action == "replace" && !vaultTextEqual(rt, expectedR) {
 		return nil, catalogConflict
 	}
 	return &VaultConfigResult{receipt.RequestID, receipt.IntegrationID, receipt.RevisionID, true, receipt.Changed}, nil
@@ -186,8 +199,8 @@ func (s *Service) SaveVaultIntegration(ctx context.Context, actorID, target, eta
 		return nil, apperrors.ErrInternal
 	}
 	epoch := s.secretEpoch()
-	w := entity.VaultWriterAuth{ID: revisionID, SecretGeneration: wg}
-	r := entity.VaultReaderAuth{ID: revisionID, SecretGeneration: rg}
+	w := entity.VaultWriterAuth{ID: revisionID, SecretGeneration: wg, Method: vaultAuthMethod(wt)}
+	r := entity.VaultReaderAuth{ID: revisionID, SecretGeneration: rg, Method: vaultAuthMethod(rt)}
 	if wt != "" {
 		w.AuthCiphertext, err = s.sealSecret(rootReference("vault_writer_auth", revisionID, wg), wt)
 		if err != nil {

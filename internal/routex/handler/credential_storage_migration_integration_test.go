@@ -28,7 +28,7 @@ func (credentialStorageBadColumnFixture) TableName() string { return "provider_c
 func testProviderCredentialStorageMigration(t *testing.T, db *gorm.DB) {
 	ctx := context.Background()
 	before := personalKeyBehaviorLedger(t, db)
-	if len(before) != 77 || before[74].Version != 75 || before[75].Version != 76 || before[76].Version != 77 {
+	if len(before) != 78 || before[74].Version != 75 || before[75].Version != 76 || before[76].Version != 77 {
 		t.Fatal("exact ordered V77 after V75/V76 required")
 	}
 	for i, row := range before {
@@ -221,6 +221,13 @@ func TestCredentialStorageExactRegistry148(t *testing.T) {
 	for _, m := range matches {
 		names = append(names, m[1]+":"+m[2])
 	}
+	if len(names) == 150 {
+		parent, ok := vaultAppRoleRegistryParent(names)
+		if !ok {
+			t.Fatal("unreviewed AppRole tail")
+		}
+		names = parent
+	}
 	if len(names) != 148 || !connectionEnablementRegistryPrefix(names) || !personalKeyBehaviorRegistryMatches(names) || !projectKeyMonthlyBehaviorRegistryMatches(names) || !teamMemberMonthlyRegistryTail(names) {
 		t.Fatal("exact146 prefix plus two source cases required")
 	}
@@ -235,7 +242,7 @@ func TestCredentialStorageExactRegistry148(t *testing.T) {
 			t.Fatal("changed/missing/reordered/extra source registry accepted")
 		}
 	}
-	if !strings.Contains(string(raw), "versions != 77") {
+	if !strings.Contains(string(raw), "versions != 78") {
 		t.Fatal("current V77 harness not bound")
 	}
 }

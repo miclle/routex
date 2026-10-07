@@ -52,6 +52,7 @@ type CredentialStorageOperation struct {
 // CredentialVaultReference survives credential deletion so unresolved external
 // objects never become falsely absent. It is not a cleanup authorization.
 type CredentialVaultReference struct {
+	ReaderMethod         string    `gorm:"-" json:"-"`
 	ReaderCiphertext     string    `gorm:"-" json:"-"`
 	SourceContext        string    `gorm:"-" json:"-"`
 	CredentialID         string    `gorm:"primaryKey;size:30"`

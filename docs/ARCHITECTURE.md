@@ -97,6 +97,8 @@ The initial model should distinguish at least:
 
 Internal identifiers should remain stable even when public model names change.
 
+Vault integration authentication belongs to the Control Plane. Independent writer/reader records retain an exact Token or complete administrator-supplied reusable AppRole tuple. Finite authorized operations log in outside database and publication locks; configuration receipts, remote authentication and KV observations remain distinct. The Gateway consumes prepared Provider credential values and authenticates their retained method/material locally, without login or per-request Vault access. Root rewrap preserves that source identity, and existing revocation and current-root proof gates remain fail-closed. AppRole adds no cleanup identity, automatic Secret ID rotation or root inventory domain.
+
 ## Extension model
 
 RouteX should make optional capabilities extensible without requiring them to be
