@@ -54,4 +54,33 @@ Vault dependency to Gateway inference.
 
 ## Controlled Token integration checkpoint
 
-The durable Token integration API passes its R7 controlled configuration/probe, real root observation/retirement and persistent restart gate. This is API-only evidence with zero native Calls/Attempts/Keys; active Provider storage remains internal. Browser and delivery remain pending. See [Vault evidence](VAULT_TOKEN_INTEGRATIONS.md#controlled-api-evidence-and-remaining-gates).
+The durable Token integration API passes its R7 controlled configuration/probe, real root observation/retirement and persistent restart gate. This is API-only evidence with zero native Calls/Attempts/Keys; active Provider storage remains internal. Commit `c2368ddb0251415e72bfeee948ad23ed7a173ee4` delivers the bounded Token integration and root-domain support with exact remote main read-back; browser and complete F28 acceptance remain pending. See [Vault evidence](VAULT_TOKEN_INTEGRATIONS.md#controlled-api-evidence-and-remaining-gates).
+
+## Provider credential KV-v2 SDK
+
+`pkg/vault` provides additive Provider-credential transport operations separately
+from diagnostic probes. `PrepareCredential` generates an exclusive reference and
+an independent high-entropy ownership marker; `WriteCredential` makes one bounded
+CAS0 write and accepts only confirmed version1. `ReadCredential` reads exactly
+version1 and returns a transient private value only after live metadata and marker
+verification. Plans retain the marker digest, never a credential-value digest.
+
+`CleanupCredentialOwned` uses an explicitly supplied cleanup Token after one fresh
+ownership read and destroys only the owned version1. Missing, changed or unknown
+ownership never becomes cleanup success. Literal reader/cleanup Token inequality
+does not prove separate remote principals. KV-v2 supplies no atomic path-incarnation
+check between ownership read and destroy; exclusive-path access restrictions
+remain required. Later versions and metadata are preserved.
+
+Write and Read each allow at most one HTTP request and ten seconds; Cleanup allows
+at most one ownership GET and one conditional destroy within twenty seconds.
+Existing TLS, destination policy and nonreplaying transport remain unchanged.
+Values and Tokens are transient; sanitized observations contain no secret material.
+There is no implicit retry, HTTP404 success or plaintext fallback.
+
+A future service must durably claim exact source, descriptor/auth revisions and
+ownership plan before effects, release database locks before HTTP, and record
+unknown outcomes without rewriting historical success. The SDK implements no such
+durable business claim, storage switch, compensation coordinator or runtime
+publication. Active Provider credential storage remains internal. Controlled local
+package tests are not actual Vault or F28/A16 acceptance.
