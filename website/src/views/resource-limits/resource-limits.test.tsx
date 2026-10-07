@@ -11,6 +11,9 @@ Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true })
 let root: Root, host: HTMLDivElement, cache: QueryClient
 let record: LimitRecord, requests: InternalAxiosRequestConfig[], failure: number
 let hold: Promise<void> | undefined
+let sessionData: { user: { id: string; name: string; role: string }; csrf_token: string } | null
+let completedWrites: number
+let sessionFailure: number
 const originalAdapter = client.defaults.adapter
 beforeEach(async () => {
   await i18n.changeLanguage('en')
@@ -20,10 +23,11 @@ beforeEach(async () => {
   cache = new QueryClient({
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
   })
-  cache.setQueryData(['auth', 'session'], {
+  sessionData = {
     user: { id: 'usr_limits', name: 'Limits', role: 'member' },
     csrf_token: 'limits-csrf',
-  })
+  }
+  cache.setQueryData(['auth', 'session'], sessionData)
   const parent = {
     rpm: 60,
     concurrency: 4,
@@ -59,6 +63,8 @@ beforeEach(async () => {
   requests = []
   failure = 0
   hold = undefined
+  completedWrites = 0
+  sessionFailure = 0
   client.defaults.adapter = async (config) => {
     requests.push(config)
     const response = {
@@ -68,14 +74,16 @@ beforeEach(async () => {
       headers: new AxiosHeaders(),
       data: {} as unknown,
     }
-    if (config.url === '/auth/session')
-      response.data = {
-        user: { id: 'usr_limits', name: 'Limits', role: 'member' },
-        csrf_token: 'limits-csrf',
+    if (config.url === '/auth/session') {
+      if (sessionFailure) {
+        response.status = sessionFailure
+        throw new AxiosError('Session fixture', '', config, undefined, response)
       }
-    else if (config.url?.endsWith('/limits')) {
+      response.data = structuredClone(sessionData)
+    } else if (config.url?.endsWith('/limits')) {
       if (config.method === 'put') {
         if (hold) await hold
+        completedWrites++
         if (failure) {
           response.status = failure
           throw new AxiosError('Fixture', '', config, undefined, response)
@@ -92,7 +100,10 @@ beforeEach(async () => {
           concurrency: payload.concurrency,
           ip_mode: payload.ip_mode,
           ip_ranges: payload.ip_ranges,
-          ...(record.kind === 'personal_key' || record.kind === 'user' || record.kind === 'project'
+          ...(record.kind === 'personal_key' ||
+          record.kind === 'project_key' ||
+          record.kind === 'user' ||
+          record.kind === 'project'
             ? {
                 tokens_month_behavior: payload.tokens_month_behavior ?? 'stop',
                 money_month_behavior: payload.money_month_behavior ?? 'stop',
@@ -298,7 +309,10 @@ describe('Resource admission controls', () => {
     await fill('RPM', '5')
     record = { ...record, parent_etag: 'changed' }
     await act(async () => {
-      cache.setQueryData(['resource-limits', '/keys/key_test'], structuredClone(record))
+      cache.setQueryData(
+        ['resource-limits', '/keys/key_test', 'usr_limits'],
+        structuredClone(record),
+      )
     })
     await until(() => expect(button('Save limits').disabled).toBe(true))
     await click('Reload current policy')
@@ -446,7 +460,10 @@ describe('Resource quota controls', () => {
     await fill('Reason for change', 'Set budget')
     record = { ...record, platform_currency: 'EUR' }
     await act(async () => {
-      cache.setQueryData(['resource-limits', '/keys/key_test'], structuredClone(record))
+      cache.setQueryData(
+        ['resource-limits', '/keys/key_test', 'usr_limits'],
+        structuredClone(record),
+      )
     })
     await until(() => expect(button('Save limits').disabled).toBe(true))
     expect(document.querySelector<HTMLInputElement>('[aria-label="Monthly budget"]')!.value).toBe(
@@ -495,7 +512,10 @@ describe('Resource quota controls', () => {
       },
     }
     await act(async () =>
-      cache.setQueryData(['resource-limits', '/keys/key_test'], structuredClone(record)),
+      cache.setQueryData(
+        ['resource-limits', '/keys/key_test', 'usr_limits'],
+        structuredClone(record),
+      ),
     )
     await until(() => expect(host.textContent).toContain('Historical usage is unknown, not zero.'))
     expect(host.textContent).not.toContain('Known tokens used: 0')
@@ -550,7 +570,10 @@ describe('Resource quota controls', () => {
     await until(() => expect(button('Retry application')).toBeDefined())
     record = { ...record, platform_currency: 'EUR' }
     await act(async () => {
-      cache.setQueryData(['resource-limits', '/keys/key_test'], structuredClone(record))
+      cache.setQueryData(
+        ['resource-limits', '/keys/key_test', 'usr_limits'],
+        structuredClone(record),
+      )
     })
     failure = 0
     await click('Retry application')
@@ -701,17 +724,45 @@ it('never clears the original uncertain Key modes after rejected retries or poli
   expect(writes()[4].data).toBe(original)
 })
 
-it('keeps Project Key controls hard and cannot dispatch monthly mode fields', async () => {
+it('reviews Project Key independent modes on its exact current route and keeps original bytes after uncertainty', async () => {
   record.kind = 'project_key'
-  await mount(true, true, '/projects/prj_test/keys/key_test')
+  record.id = 'pky_test'
+  await mount(true, true, '/projects/prj_test/keys/pky_test')
   await click('Edit restrictions')
-  expect(document.querySelector('[aria-label="Monthly token threshold behavior"]')).toBeNull()
-  expect(document.querySelector('[aria-label="Monthly budget threshold behavior"]')).toBeNull()
-  await fill('Reason for change', 'Project remains hard')
-  await click('Save limits')
+  await toggle('Monthly token threshold behavior')
+  await fill('Reason for change', 'Project Key independent review')
+  failure = 503
+  await click('Save limits', false)
+  expect(writes()).toHaveLength(0)
+  expect(document.body.textContent).toContain('Confirm Project Key monthly behavior')
+  await act(async () => {
+    await i18n.changeLanguage('zh')
+  })
+  expect(document.body.textContent).toContain('确认 Project Key 月度行为')
+  await act(async () => {
+    await i18n.changeLanguage('en')
+  })
+  await click('Confirm limits')
   await until(() => expect(writes()).toHaveLength(1))
-  expect(JSON.parse(writes()[0].data)).not.toHaveProperty('tokens_month_behavior')
-  expect(JSON.parse(writes()[0].data)).not.toHaveProperty('money_month_behavior')
+  const original = writes()[0].data
+  expect(JSON.parse(original)).toMatchObject({
+    tokens_month_behavior: 'alert_only',
+    money_month_behavior: 'stop',
+  })
+  failure = 409
+  await click('Retry application')
+  await until(() => expect(writes()).toHaveLength(2))
+  expect(writes()[1].data).toBe(original)
+  expect(writes()[1].headers.get('If-Match')).toBe('"old"')
+  expect(
+    [...document.querySelectorAll('button')].some(
+      (item) => item.textContent === 'Reload current policy',
+    ),
+  ).toBe(false)
+  failure = 0
+  await click('Retry application')
+  await until(() => expect(host.textContent).toContain('Limits saved and applied.'))
+  expect(writes()[2].data).toBe(original)
 })
 
 async function toggle(label: string) {
@@ -720,7 +771,7 @@ async function toggle(label: string) {
   await act(async () => control!.click())
 }
 
-it('keeps Project Key hard while a soft Project monthly parent permits a larger child cap', async () => {
+it('keeps independent Project Key stop while a soft Project parent permits a larger child cap', async () => {
   record.kind = 'project_key'
   record.stored.tokens_month = 100
   record.stored.money_month = '1'
@@ -739,7 +790,9 @@ it('keeps Project Key hard while a soft Project monthly parent permits a larger 
   ]
   await mount(true, true, '/projects/prj_exact/keys/key_test')
   await click('Edit restrictions')
-  expect(document.querySelector('[role="switch"]')).toBeNull()
+  expect(
+    document.querySelector('[role="switch"][aria-label="Monthly token threshold behavior"]'),
+  ).not.toBeNull()
   await fill('Monthly token quota', '200')
   await fill('Monthly budget', '2.000000000000000001')
   await fill('Reason for change', 'Hard child under soft Project parent')
@@ -748,6 +801,163 @@ it('keeps Project Key hard while a soft Project monthly parent permits a larger 
   const body = JSON.parse(writes()[0].data)
   expect(body.tokens_month).toBe(200)
   expect(body.money_month).toBe('2.000000000000000001')
-  expect(body).not.toHaveProperty('tokens_month_behavior')
-  expect(body).not.toHaveProperty('money_month_behavior')
+  expect(body.tokens_month_behavior).toBe('stop')
+  expect(body.money_month_behavior).toBe('stop')
+})
+
+it('hides queued Project Key confirmation when current edit authority is withdrawn', async () => {
+  record.kind = 'project_key'
+  await mount(true, true, '/projects/prj_test/keys/key_test')
+  await click('Edit restrictions')
+  await fill('Reason for change', 'Queued exact review')
+  await click('Save limits', false)
+  const queued = button('Confirm limits')
+  await act(async () =>
+    root.render(
+      <QueryClientProvider client={cache}>
+        <ResourceLimits path="/projects/prj_test/keys/key_test" canEdit={false} child />
+      </QueryClientProvider>,
+    ),
+  )
+  await act(async () => queued.click())
+  expect(writes()).toHaveLength(0)
+  expect(document.querySelector('[aria-label="Monthly token threshold behavior"]')).toBeNull()
+})
+it('hides a Project Key response returned for a different Key target', async () => {
+  record.kind = 'project_key'
+  await act(async () =>
+    root.render(
+      <QueryClientProvider client={cache}>
+        <ResourceLimits path="/projects/prj_test/keys/key_other" canEdit child />
+      </QueryClientProvider>,
+    ),
+  )
+  await until(() => expect(host.textContent).toContain('The action failed.'))
+  expect(host.textContent).not.toContain('key_original')
+  expect(
+    [...document.querySelectorAll('button')].some(
+      (item) => item.textContent === 'Edit restrictions',
+    ),
+  ).toBe(false)
+  expect(document.querySelector('[aria-label="Monthly token threshold behavior"]')).toBeNull()
+  expect(writes()).toHaveLength(0)
+})
+
+describe('Generic Key limit response ownership', () => {
+  for (const kind of ['personal_key', 'project_key'] as const) {
+    for (const status of [200, 503]) {
+      it(`retains exact ${kind} intent after a renewed Session's late ${status} and retries manually with fresh CSRF`, async () => {
+        record.kind = kind
+        const path = kind === 'project_key' ? '/projects/prj_test/keys/key_test' : '/keys/key_test'
+        await mount(true, true, path)
+        await click('Edit restrictions')
+        await fill('Monthly token quota', '0')
+        await fill('Monthly budget', '')
+        await toggle('Monthly token threshold behavior')
+        await fill('Reason for change', 'Exact renewed Key intent')
+        let release!: () => void
+        hold = new Promise<void>((resolve) => {
+          release = resolve
+        })
+        failure = status === 200 ? 0 : status
+        await click('Save limits')
+        await until(() => expect(writes()).toHaveLength(1))
+        const original = writes()[0]
+        sessionData = { ...sessionData!, csrf_token: 'renewed-key-csrf' }
+        await act(async () => {
+          await cache.refetchQueries({ queryKey: ['auth', 'session'] })
+        })
+        await until(() =>
+          expect(cache.getQueryState(['auth', 'session'])?.fetchStatus).toBe('idle'),
+        )
+        await act(async () => release())
+        await until(() => {
+          expect(completedWrites).toBe(1)
+          expect(button('Retry application').disabled).toBe(false)
+        })
+        expect(document.body.textContent).not.toContain('Limits saved and applied.')
+        expect(cache.getQueryData<LimitRecord>(['resource-limits', path, 'usr_limits'])?.etag).toBe(
+          'old',
+        )
+        expect(writes()).toHaveLength(1)
+        hold = undefined
+        failure = 0
+        await click('Retry application')
+        await until(() => expect(host.textContent).toContain('Limits saved and applied.'))
+        expect(writes()).toHaveLength(2)
+        expect(writes()[1].data).toBe(original.data)
+        expect(writes()[1].headers.get('If-Match')).toBe(original.headers.get('If-Match'))
+        expect(writes()[1].headers.get('X-CSRF-Token')).toBe('renewed-key-csrf')
+        expect(JSON.parse(writes()[1].data)).toMatchObject({
+          tokens_month: 0,
+          tokens_month_behavior: 'alert_only',
+          money_month: null,
+          money_month_behavior: 'stop',
+        })
+      })
+    }
+  }
+  for (const change of ['unmount', 'actor', 'expiry', 'target'] as const) {
+    it(`cannot recreate a private policy cache or notice after ${change}`, async () => {
+      await mount()
+      await click('Edit restrictions')
+      await fill('Reason for change', 'Destroyed Key owner')
+      let release!: () => void
+      hold = new Promise<void>((resolve) => {
+        release = resolve
+      })
+      await click('Save limits')
+      await until(() => expect(writes()).toHaveLength(1))
+      if (change === 'unmount') await act(async () => root.render(null))
+      else if (change === 'target') {
+        record = { ...record, id: 'key_second', account_id: 'key_second_account', etag: 'second' }
+        await act(async () =>
+          root.render(
+            <QueryClientProvider client={cache}>
+              <ResourceLimits path="/keys/key_second" canEdit child />
+            </QueryClientProvider>,
+          ),
+        )
+        await until(() => expect(host.textContent).toContain('key_second_account'))
+      } else {
+        if (change === 'expiry') sessionFailure = 401
+        sessionData =
+          change === 'expiry'
+            ? null
+            : { ...sessionData!, user: { ...sessionData!.user, id: 'usr_replacement' } }
+        await act(async () => {
+          await cache.refetchQueries({ queryKey: ['auth', 'session'] })
+        })
+      }
+      await act(async () =>
+        cache.removeQueries({
+          queryKey: ['resource-limits', '/keys/key_test', 'usr_limits'],
+          exact: true,
+        }),
+      )
+      await act(async () => release())
+      await until(() => expect(completedWrites).toBe(1))
+      expect(
+        cache.getQueryData(['resource-limits', '/keys/key_test', 'usr_limits']),
+      ).toBeUndefined()
+      expect(document.body.textContent).not.toContain('Limits saved and applied.')
+      expect(document.body.textContent).not.toContain('Retry application')
+      expect(writes()).toHaveLength(1)
+    })
+  }
+})
+
+it('reads the current Key CSRF at same-event confirmation dispatch without waiting for a hook render', async () => {
+  await mount()
+  await click('Edit restrictions')
+  await fill('Reason for change', 'Current dispatch CSRF')
+  await click('Save limits', false)
+  sessionData = { ...sessionData!, csrf_token: 'same-event-csrf' }
+  await act(async () => {
+    cache.setQueryData(['auth', 'session'], structuredClone(sessionData))
+    button('Confirm limits').click()
+  })
+  await until(() => expect(writes()).toHaveLength(1))
+  expect(writes()[0].headers.get('X-CSRF-Token')).toBe('same-event-csrf')
+  await until(() => expect(host.textContent).toContain('Limits saved and applied.'))
 })

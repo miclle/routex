@@ -6,7 +6,7 @@ const adapter = client.defaults.adapter
 afterEach(() => {
   client.defaults.adapter = adapter
 })
-const policy = () => ({ rpm: null, concurrency: null, ip_mode: 'none', ip_ranges: [] })
+const policy = () => ({ rpm: null, concurrency: null, ip_mode: 'none' as const, ip_ranges: [] })
 function response(kind = 'personal_key') {
   return {
     kind,
@@ -57,7 +57,7 @@ it.each(['stop', 'alert_only'] as const)(
   },
 )
 it.each(['project_key'])(
-  'rejects foreign %s soft policy without accepting response',
+  'rejects %s returned through an unrelated aggregate endpoint',
   async (kind) => {
     const data = response(kind)
     Object.assign(data.stored, { tokens_month_behavior: 'alert_only' })
@@ -74,7 +74,7 @@ it.each([null, '', 'ALERT_ONLY', 'alert_only ', [], 1])(
     await expect(getLimits('/keys/key_test')).rejects.toThrow('monthly behavior')
   },
 )
-it('rejects mode input on Project Key route before any HTTP dispatch', async () => {
+it('rejects malformed mode input on Project Key route before any HTTP dispatch', async () => {
   let calls = 0
   client.defaults.adapter = async () => {
     calls++
@@ -84,7 +84,7 @@ it('rejects mode input on Project Key route before any HTTP dispatch', async () 
     saveLimits(
       '/projects/prj_test/keys/key_test',
       'current',
-      { ...policy(), ip_mode: 'none', tokens_month_behavior: 'stop', reason: 'r' },
+      { ...policy(), ip_mode: 'none', tokens_month_behavior: 'ALERT_ONLY' as 'stop', reason: 'r' },
       'csrf',
     ),
   ).rejects.toThrow('Invalid Personal')
@@ -101,4 +101,32 @@ it('rejects mixed scalar effective behavior and malformed policy-chain lengths',
     serve(x)
     await expect(getLimits('/keys/key_test')).rejects.toThrow('chain')
   }
+})
+
+it('accepts exact Project Key stored modes through the selected resource while rejecting another Key response', async () => {
+  const data = response('project_key')
+  data.id = 'pky_test'
+  Object.assign(data.stored, { tokens_month_behavior: 'alert_only', money_month_behavior: 'stop' })
+  data.ip_policies[1] = { ...data.stored }
+  serve(data)
+  expect((await getLimits('/projects/prj_test/keys/pky_test')).stored.tokens_month_behavior).toBe(
+    'alert_only',
+  )
+  await expect(getLimits('/projects/prj_test/keys/pky_other')).rejects.toThrow('scope')
+})
+
+it('rejects a valid-enum Project Key PUT result that differs from the captured monthly intent', async () => {
+  const data = response('project_key')
+  data.id = 'pky_test'
+  Object.assign(data.stored, { tokens_month_behavior: 'alert_only', money_month_behavior: 'stop' })
+  data.ip_policies[1] = { ...data.stored }
+  serve(data)
+  await expect(
+    saveLimits(
+      '/projects/prj_test/keys/pky_test',
+      'original',
+      { ...policy(), tokens_month_behavior: 'stop', reason: 'Original hard decision' },
+      'csrf',
+    ),
+  ).rejects.toThrow('confirmation mismatch')
 })

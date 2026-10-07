@@ -340,6 +340,11 @@ func monthlyBehaviorAccount(account string) bool {
 	return ok && !strings.HasPrefix(account, "team_member_") && len(suffix) > 0 && len(suffix) <= 30 && validKey.MatchString(suffix)
 }
 
+func projectKeyBehaviorAccount(account string) bool {
+	suffix, ok := strings.CutPrefix(account, "key_")
+	return ok && strings.HasPrefix(suffix, "pky_") && len(suffix) > len("pky_") && len(suffix) <= 30 && validKey.MatchString(suffix)
+}
+
 func personalKeyBehaviorAccount(account string) bool {
 	suffix, ok := strings.CutPrefix(account, "key_")
 	return ok && len(suffix) > 0 && len(suffix) <= 30 && validKey.MatchString(suffix)
@@ -348,7 +353,7 @@ func personalKeyBehaviorAccount(account string) bool {
 func checkQuota(tx *bolt.Tx, policy QuotaLimit, bound QuotaBound, metadata quotaMetadata, instant, monthStart int64, activeJournal, establish bool) error {
 	tokenBehavior, tokenErr := limits.CanonicalMonthlyBehavior(policy.TokensMonthBehavior)
 	moneyBehavior, moneyErr := limits.CanonicalMonthlyBehavior(policy.MoneyMonthBehavior)
-	if tokenErr != nil || moneyErr != nil || (tokenBehavior != "" || moneyBehavior != "") && !monthlyBehaviorAccount(policy.Account) && (!policy.PersonalKey || !personalKeyBehaviorAccount(policy.Account)) {
+	if tokenErr != nil || moneyErr != nil || policy.PersonalKey && policy.ProjectKey || (tokenBehavior != "" || moneyBehavior != "") && !monthlyBehaviorAccount(policy.Account) && (!policy.PersonalKey || !personalKeyBehaviorAccount(policy.Account)) && (!policy.ProjectKey || !projectKeyBehaviorAccount(policy.Account)) {
 		return ErrInvalid
 	}
 	if !validKey.MatchString(policy.Revision) {

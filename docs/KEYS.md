@@ -100,22 +100,32 @@ the list immediately and does not guarantee row focus. Rebuilt-artifact native/b
 state confirmation and retained immutable history. New remote CI remains unknown. See
 [Implementation evidence](IMPLEMENTATION.md).
 
-## Personal Key monthly threshold behavior (candidate)
+## Personal Key monthly threshold behavior
 
 Owner-scoped Personal Key limits expose separate monthly Token and money stop
 or alert-only modes in the existing detail editor. Rotation shares the original
 quota root, exact owner, usage and policy. User and Key thresholds are evaluated
 independently; a soft ancestor removes only its own monthly stopping decision.
-Project Keys retain hard stored limits. All accounting, reservation, currency,
+Project Keys use their separately proved Project/root identity. All accounting, reservation, currency,
 rolling-window and rate boundaries continue to apply. See
-[Resource limits](RESOURCE_LIMITS.md#personal-key-monthly-behavior-v73-candidate)
-for the candidate contract and current acceptance boundary.
+[Resource limits](RESOURCE_LIMITS.md#personal-key-monthly-behavior-v73)
+for the delivered contract and current acceptance boundary.
 
-Project Key stored modes remain hard even when the exact Project parent has an
-alert-only monthly dimension. Its parent summary exposes canonical Project modes
-separately; it never grants child soft-mode authority or borrows a manager's
-Personal policy. See [Project aggregate behavior](RESOURCE_LIMITS.md#project-aggregate-monthly-behavior-v74-candidate).
+Project Key stored modes operate independently of the exact Project parent's
+monthly decisions. Its parent summary exposes canonical Project modes separately;
+its own controls require immutable Project/root proof and never borrow a
+manager's Personal policy. See [Project aggregate behavior](RESOURCE_LIMITS.md#project-aggregate-monthly-behavior-v74).
 
 ## Controlled Personal Key API checkpoint
 
-The R6 API/native/restart fixture passes 19 logical calls, seven native attempts (six priced and one unknown), 12 no-attempt denials, four warning inboxes with one read and five original Sessions. Bounded database snapshots and exact owned cleanup pass independently. It binds the old R3 artifact; the later parent-callback test repair does not relabel that receipt. Browser, AuthGate and delivery remain pending. See [Acceptance boundary](RESOURCE_LIMITS.md#candidate-verification-boundary).
+The R6 API/native/restart fixture passes 19 logical calls, seven native attempts (six priced and one unknown), 12 no-attempt denials, four warning inboxes with one read and five original Sessions. Bounded database snapshots and exact owned cleanup pass independently. It binds the old R3 artifact; the later parent-callback test repair does not relabel that receipt. The containing phase is delivered as `c2368dd`; browser and AuthGate remain pending. See [Acceptance boundary](RESOURCE_LIMITS.md#candidate-verification-boundary).
+
+## Project Key monthly threshold behavior
+
+The Project Key limits dialog preserves current Project management authority
+and the oldest retained immutable rotation root. Token and money modes operate
+independently for that root and its Project parent, with complete-policy
+omission-to-stop, explicit conflict review and original uncertain intent.
+A soft account never bypasses another hard account or accounting, reservation,
+price/currency, rolling/rate/IP guards. See
+[Project Key policy](RESOURCE_LIMITS.md#project-key-monthly-behavior).

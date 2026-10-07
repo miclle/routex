@@ -72,7 +72,7 @@ func (s *Service) observeMonthlyProjectKeyQuotaWarning(ctx context.Context, kind
 		if err != nil {
 			return err
 		}
-		policy, err := policyFromRow(row)
+		policy, err := projectKeyPolicyFromRow(row, root, project)
 		if err != nil {
 			return nil
 		}

@@ -357,6 +357,12 @@ func TestPersonalKeyBehaviorFixtureLedgerReplayPreservesLaterVersions(t *testing
 }
 
 func personalKeyBehaviorRegistryMatches(names []string) bool {
+	if len(names) == 142 {
+		if names[141] != "project_key_monthly_behavior:testProjectKeyMonthlyBehaviorLifecycle" {
+			return false
+		}
+		names = slices.Clone(names[:141])
+	}
 	if len(names) == 141 && names[137] == "personal_key_monthly_behavior_migration:testProjectBehaviorPersonalKeyMigrationAtCurrentSchema" && names[139] == "project_monthly_behavior_migration:testProjectMonthlyBehaviorMigration" && names[140] == "project_monthly_behavior:testProjectMonthlyBehaviorLifecycle" {
 		names = slices.Clone(names[:139])
 		names[137] = "personal_key_monthly_behavior_migration:testPersonalKeyMonthlyBehaviorMigration"
@@ -409,6 +415,26 @@ func TestPersonalKeyBehaviorFixtureExactRegistryPrefixAndNewPair(t *testing.T) {
 	} {
 		if personalKeyBehaviorRegistryMatches(mutate(slices.Clone(names))) {
 			t.Fatal("missing/replaced/reordered/duplicate registry accepted")
+		}
+	}
+	if len(names) == 142 {
+		for _, prefix := range []int{139, 141} {
+			retained := slices.Clone(names[:prefix])
+			if prefix == 139 {
+				retained[137] = "personal_key_monthly_behavior_migration:testPersonalKeyMonthlyBehaviorMigration"
+			}
+			if !personalKeyBehaviorRegistryMatches(retained) {
+				t.Fatal("historical139 or141 registry rejected", prefix)
+			}
+		}
+		for _, mutate := range []func([]string) []string{
+			func(x []string) []string { x[141] = "project_key_monthly_behavior:unreviewed"; return x },
+			func(x []string) []string { x[140], x[141] = x[141], x[140]; return x },
+			func(x []string) []string { return append(x, "extra:unreviewed") },
+		} {
+			if personalKeyBehaviorRegistryMatches(mutate(slices.Clone(names))) {
+				t.Fatal("unreviewed/reordered/extra142 registry accepted")
+			}
 		}
 	}
 	if !strings.Contains(string(raw), "versions != 74") || !strings.Contains(string(raw), "personalKeyBehaviorHistoricalReplay(t, db, test.run)") {

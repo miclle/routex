@@ -215,6 +215,15 @@ Price file maintenance belongs in `views/price-imports` at `/admin/prices`, with
 
 Admission controls use `views/resource-limits` within the addressable Member Limits tab, Project Resource configuration, and existing Key detail dialogs. Supported controls are rolling five-hour/seven-day tokens, monthly tokens and money, TPM, RPM, concurrency, and IP. Preserve stored/effective/inherited values, zero versus null, conjunctive parent IP restrictions, scoped query keys, reason/If-Match writes, explicit stale-policy review, and identical-intent publication retries. Runtime application must be confirmed before reporting enforcement. Read the platform denomination only from the resource-authorized `platform_currency` field. Preserve exact money strings and require explicit review after currency changes. Display authoritative quota windows, coverage, holds, and unknown values separately; never invent remaining allowance.
 
+Personal and Project Key limit reads use actor- and resource-scoped query lifetimes.
+An asynchronous save may publish facts only to the same mounted owner, target,
+and current Session generation. A same-owner renewal retains the original save
+as uncertain and releases the pending state; manual retry uses fresh authority
+and CSRF with the original policy and review token. Actor changes, expired or
+missing Sessions, target changes and unmount discard stale completion callbacks.
+Never recreate private cache entries or report enforcement from an obsolete response.
+
+
 Provider-model availability and input capabilities belong in the existing detail page before prices. Treat image and PDF input support as explicit provider-model declarations rather than inferring them from names or protocols. Save availability and capabilities atomically with one reviewed ETag, keep them separate from routing weights, and reconcile uncertain publication before retrying. Public model capability metadata must be the per-protocol intersection across every ready, enabled, positive-weight route.
 
 Two-step verification uses the existing sign-in card and security settings card/dialogs. A login HTTP 202 is a transient challenge, never a Session or authenticated navigation. Keep challenges, proofs, enrollment material, and one-time recovery codes in component state only; sensitive operations must not use mutation caches or browser storage. Render the server-issued authenticator URI locally with the pinned QR library, without external QR services. Clear sensitive state on completion, dismissal, expiry, and unmount. Handle generic proof failures locally, refresh the real session when appropriate, and replace the current Session/CSRF while resetting private queries after successful MFA changes. Keep paired `mfa` translations and license notices.
@@ -1042,7 +1051,7 @@ review. Once publication is uncertain, every failed retry retains the original
 body/ETag/modes; retry manually with fresh same-actor authority and current CSRF.
 Retained Restore reviews preserve non-secret User modes across AuthGate remounts.
 Personal Key summaries show the authoritative User parent mode separately from
-their own monthly behavior controls. Project Key stored policies remain hard.
+their own monthly behavior controls. Project Key stored policies use their own exact Project/root proof.
 Numeric effective minima are configured-cap projections, not a
 merged stopping policy or a promise that inference will succeed. Keep paired
 limits copy and language-switch/authority/retry tests.
@@ -1088,7 +1097,7 @@ complete-policy writes. Omitted modes resolve to stop; null caps disable only
 that dimension and zero remains a real threshold. Show User parent modes
 separately. A soft parent can permit a larger hard Key cap; each account and
 monthly dimension keeps its own stopping decision. Rotation preserves the exact
-owner, shared quota root, policy and usage. Project Key stored modes remain hard.
+owner, shared quota root, policy and usage. Project Key stored modes use their separately proved immutable Project/root identity.
 
 Unknown accounting, coverage, holds, finite bounds, pricing, currency, rolling
 Tokens, request rates, concurrency, IP and runtime publication remain required.
@@ -1112,7 +1121,24 @@ first dispatch. Preserve exact decimals, denomination, reason, If-Match and the
 original uncertain request through every failed manual retry. Matching current
 GET is not historical success. Retain the mounted-only intent lifetime; add no
 browser storage, global drafts or claimed remount recovery. Project Key stored
-policies stay hard and have no behavior control; their read-only parent summary
+policies have independent monthly behavior controls; their parent summary
 separates Project behavior from the numeric effective minimum. Team-member
 policies remain hard. Configured thresholds never imply remaining allowance,
 routing readiness or historical/runtime application.
+
+## Project Key monthly behavior
+
+Use the existing Project Key limits dialog for separate monthly Token and money
+stop/alert-only controls, with local Base UI confirmation and paired limits copy.
+Keep current Project management authorization, exact Project and immutable
+rotation-root identity, complete-policy omission-to-stop semantics, null/zero
+distinction, exact money, reviewed If-Match and required reason. Personal identity
+never proves a Project Key account. Rotation retains the original root and usage.
+
+Only the matching proved account/dimension capacity rejection may be bypassed.
+Hard parent/child decisions, accounting coverage, unknowns, holds, finite bounds,
+prices/currency, rolling/rates/concurrency/IP and current runtime authority remain
+independent gates. Preserve original mounted uncertain intent through failed
+retries and explicit conflict review; current GET does not prove historical
+publication. Warning recipients remain current enabled Project managers; creators
+and unrelated platform readers receive no implicit inbox authority.

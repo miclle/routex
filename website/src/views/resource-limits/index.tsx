@@ -1,11 +1,12 @@
 import RestoreDefaults from '@/views/default-limits/restore'
 import type { RestoreOwner } from '@/views/default-limits/restore-owner'
-import { useRef, useState } from 'react'
+import { useLayoutEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { isAxiosError } from 'axios'
 import { getLimits, saveLimits } from '@/api/resource-limits'
-import { useSession } from '@/hooks/use-auth'
+import { sessionKey, useSession } from '@/hooks/use-auth'
+import type { Session } from '@/types/auth'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Switch } from '@/components/ui/switch'
@@ -55,16 +56,33 @@ export default function ResourceLimits(props: Props) {
   return <ResourceLimitContent key={props.path} {...props} />
 }
 function ResourceLimitContent(props: Props) {
+  // Observe existing Session ownership without starting another Session read.
+  const owner = useSession(false)
+  const keyPath = /^\/keys\/[^/]+$|^\/projects\/[^/]+\/keys\/[^/]+$/.test(props.path)
+  return (
+    <ResourceLimitOwnedContent
+      key={keyPath ? (owner.data?.user.id ?? 'unavailable') : props.path}
+      {...props}
+      keyPath={keyPath}
+      actorID={owner.data?.user.id}
+    />
+  )
+}
+function ResourceLimitOwnedContent(props: Props & { keyPath: boolean; actorID?: string }) {
   const { t } = useTranslation('limits')
   const cache = useQueryClient()
+  const queryKey = props.keyPath
+    ? ['resource-limits', props.path, props.actorID ?? null]
+    : ['resource-limits', props.path]
   const query = useQuery({
-    queryKey: ['resource-limits', props.path],
+    queryKey,
+    enabled: !props.keyPath || !!props.actorID,
     queryFn: ({ signal }) => getLimits(props.path, signal),
   })
   const [editing, setEditing] = useState(false)
   const [writing, setWriting] = useState(false)
   const [notice, setNotice] = useState<'applied' | 'pending' | null>(null)
-  const body = query.data && (
+  const body = query.data && (!props.keyPath || props.actorID) && (
     <LimitEditor
       {...props}
       current={query.data}
@@ -76,7 +94,7 @@ function ResourceLimitContent(props: Props) {
       }}
       close={() => setEditing(false)}
       saved={(data) => {
-        cache.setQueryData(['resource-limits', props.path], data)
+        cache.setQueryData(queryKey, data)
         void cache.invalidateQueries({ queryKey: ['resource-limits'] })
         setNotice(data.enforced ? 'applied' : 'pending')
         setEditing(false)
@@ -182,7 +200,7 @@ export function LimitSummary({ record, child }: { record: LimitRecord; child?: b
               )}
               : {format(record.effective[field], 'unlimited')}
             </dd>
-            {personalMonthly && record.kind !== 'project_key' && field === 'tokens_month' && (
+            {personalMonthly && field === 'tokens_month' && (
               <dd>
                 {t('tokensMonthBehavior')}:{' '}
                 {t(
@@ -192,12 +210,9 @@ export function LimitSummary({ record, child }: { record: LimitRecord; child?: b
                 )}
               </dd>
             )}
-            {personalMonthly &&
-              record.kind !== 'project_key' &&
-              field === 'tokens_month' &&
-              record.stored.tokens_month == null && (
-                <dd className="text-muted-foreground">{t('monthlyModeInactive')}</dd>
-              )}
+            {personalMonthly && field === 'tokens_month' && record.stored.tokens_month == null && (
+              <dd className="text-muted-foreground">{t('monthlyModeInactive')}</dd>
+            )}
           </div>
         ))}
         <div>
@@ -214,7 +229,7 @@ export function LimitSummary({ record, child }: { record: LimitRecord; child?: b
               ? t('unlimited')
               : `${record.effective.money_month} ${record.effective.currency}`}
           </dd>
-          {personalMonthly && record.kind !== 'project_key' && (
+          {personalMonthly && (
             <dd>
               {t('moneyMonthBehavior')}:{' '}
               {t(
@@ -224,11 +239,9 @@ export function LimitSummary({ record, child }: { record: LimitRecord; child?: b
               )}
             </dd>
           )}
-          {personalMonthly &&
-            record.kind !== 'project_key' &&
-            record.stored.money_month == null && (
-              <dd className="text-muted-foreground">{t('monthlyModeInactive')}</dd>
-            )}
+          {personalMonthly && record.stored.money_month == null && (
+            <dd className="text-muted-foreground">{t('monthlyModeInactive')}</dd>
+          )}
         </div>
         <div>
           <dt className="text-muted-foreground">{t('usage')}</dt>
@@ -327,10 +340,92 @@ export function LimitEditor({
 }) {
   const { t } = useTranslation('limits')
   const session = useSession(!parentManagedSession)
+  const cache = useQueryClient()
+  const alive = useRef(true)
+  const sessionGeneration = useRef(0)
+  const live = useRef({
+    path,
+    kind: current.kind,
+    id: current.id,
+    account: current.account_id,
+    canEdit,
+    visible,
+    canDispatch,
+  })
+  useLayoutEffect(() => {
+    live.current = {
+      path,
+      kind: current.kind,
+      id: current.id,
+      account: current.account_id,
+      canEdit,
+      visible,
+      canDispatch,
+    }
+  }, [path, current.kind, current.id, current.account_id, canEdit, visible, canDispatch])
+  useLayoutEffect(() => {
+    alive.current = true
+    const unsubscribe = cache.getQueryCache().subscribe((event) => {
+      if (
+        event.type === 'updated' &&
+        event.query.queryKey.length === 2 &&
+        event.query.queryKey[0] === 'auth' &&
+        event.query.queryKey[1] === 'session'
+      )
+        sessionGeneration.current++
+    })
+    return () => {
+      alive.current = false
+      unsubscribe()
+    }
+  }, [cache])
   const [reviewed, setReviewed] = useState(current)
   const [numbers, setNumbers] = useState(() => integerDraft(current.stored))
   const [money, setMoney] = useState(current.stored.money_month ?? '')
-  const keyMonthly = current.kind === 'personal_key' && /^\/keys\/[^/]+$/.test(path)
+  const keyMonthly =
+    (current.kind === 'personal_key' && /^\/keys\/[^/]+$/.test(path)) ||
+    (current.kind === 'project_key' &&
+      path === `/projects/${path.split('/')[2]}/keys/${current.id}` &&
+      /^\/projects\/[^/]+\/keys\/[^/]+$/.test(path))
+  const directKey = keyMonthly && !savePolicy
+  type KeyOwner = {
+    actor: string
+    path: string
+    kind: LimitRecord['kind']
+    id: string
+    account: string
+  }
+  function sameKeyOwner(owner: KeyOwner) {
+    return (
+      alive.current &&
+      live.current.path === owner.path &&
+      live.current.kind === owner.kind &&
+      live.current.id === owner.id &&
+      live.current.account === owner.account &&
+      cache.getQueryData<Session | null>(sessionKey)?.user.id === owner.actor
+    )
+  }
+  function freshKeyAuthority(owner: KeyOwner) {
+    const auth = cache.getQueryState<Session | null>(sessionKey)
+    const policy = cache.getQueryState<LimitRecord>(['resource-limits', owner.path, owner.actor])
+    return (
+      sameKeyOwner(owner) &&
+      live.current.canEdit &&
+      live.current.visible &&
+      (!live.current.canDispatch || live.current.canDispatch()) &&
+      auth?.status === 'success' &&
+      auth.fetchStatus === 'idle' &&
+      !auth.error &&
+      !auth.isInvalidated &&
+      policy?.status === 'success' &&
+      policy.fetchStatus === 'idle' &&
+      !policy.error &&
+      !policy.isInvalidated &&
+      policy.data?.kind === owner.kind &&
+      policy.data.id === owner.id &&
+      policy.data.account_id === owner.account
+    )
+  }
   const personalMonthly =
     (current.kind === 'project' && /^\/projects\/[^/]+$/.test(path)) ||
     keyMonthly ||
@@ -359,7 +454,18 @@ export function LimitEditor({
   const uncertain = issue === 'uncertain' || ((!!savePolicy || keyMonthly) && uncertainIntent)
   const blocked = stale || issue === 'conflict' || issue === 'failed'
   async function dispatch(retry = false, confirmed = false) {
+    const owner: KeyOwner | null =
+      directKey && session.data
+        ? {
+            actor: session.data.user.id,
+            path,
+            kind: current.kind,
+            id: current.id,
+            account: current.account_id,
+          }
+        : null
     if (
+      (directKey && (!owner || !freshKeyAuthority(owner))) ||
       !visible ||
       !canEdit ||
       lock.current ||
@@ -460,29 +566,51 @@ export function LimitEditor({
       setConfirmation(null)
     }
     if (!intent.current) return
+    const generation = sessionGeneration.current
     lock.current = true
     setBusy(true)
     pending(true)
     setIssue(null)
     try {
-      saved(
-        savePolicy
-          ? await savePolicy(intent.current.etag, intent.current.input)
-          : await saveLimits(
-              path,
-              intent.current.etag,
-              intent.current.input,
-              session.data.csrf_token,
-            ),
-      )
+      const result = savePolicy
+        ? await savePolicy(intent.current.etag, intent.current.input)
+        : await saveLimits(
+            path,
+            intent.current.etag,
+            intent.current.input,
+            owner ? cache.getQueryData<Session>(sessionKey)!.csrf_token : session.data.csrf_token,
+          )
+      if (owner) {
+        if (!sameKeyOwner(owner)) return
+        if (
+          generation !== sessionGeneration.current ||
+          !freshKeyAuthority(owner) ||
+          result.kind !== owner.kind ||
+          result.id !== owner.id ||
+          result.account_id !== owner.account
+        ) {
+          setUncertainIntent(true)
+          setIssue('uncertain')
+          return
+        }
+      }
+      saved(result)
     } catch (error) {
+      if (owner && !sameKeyOwner(owner)) return
+      if (owner && (generation !== sessionGeneration.current || !freshKeyAuthority(owner))) {
+        setUncertainIntent(true)
+        setIssue('uncertain')
+        return
+      }
       const status = isAxiosError(error) ? error.response?.status : undefined
       if ((savePolicy || keyMonthly) && (!status || status >= 500)) setUncertainIntent(true)
       setIssue(status === 409 ? 'conflict' : !status || status >= 500 ? 'uncertain' : 'failed')
     } finally {
       lock.current = false
-      setBusy(false)
-      pending(false)
+      if (!owner || sameKeyOwner(owner)) {
+        setBusy(false)
+        pending(false)
+      }
     }
   }
   async function reconcile() {
@@ -524,7 +652,9 @@ export function LimitEditor({
             ? current.kind === 'project'
               ? 'projectMonthlyHelp'
               : keyMonthly
-                ? 'personalKeyMonthlyHelp'
+                ? current.kind === 'project_key'
+                  ? 'projectKeyMonthlyHelp'
+                  : 'personalKeyMonthlyHelp'
                 : 'personalMonthlyHelp'
             : current.kind === 'personal_key'
               ? 'personalKeyHelp'
@@ -722,7 +852,9 @@ export function LimitEditor({
             current.kind === 'project'
               ? 'projectMonthlyConfirmTitle'
               : keyMonthly
-                ? 'personalKeyMonthlyConfirmTitle'
+                ? current.kind === 'project_key'
+                  ? 'projectKeyMonthlyConfirmTitle'
+                  : 'personalKeyMonthlyConfirmTitle'
                 : 'monthlyConfirmTitle',
           )}
           description={t('monthlyConfirmHelp')}

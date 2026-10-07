@@ -1,6 +1,9 @@
 export default {
+  projectKeyMonthlyConfirmTitle: 'Confirm Project Key monthly behavior',
+  projectKeyMonthlyHelp:
+    'Project Key monthly tokens and budget have independent saved behavior. A blank Key cap adds no Key threshold; the Project parent still applies its own policy. Zero is a real threshold. Rotation shares this policy and usage; all other checks remain required.',
   projectMonthlyHelp:
-    'Project monthly tokens and budget have independent saved behavior. A blank cap disables that dimension; zero is a real threshold. Project Key hard limits and all other checks still apply. Saving never resets usage.',
+    'Project monthly tokens and budget have independent saved behavior. A blank cap disables that dimension; zero is a real threshold. Project Key policies and all other checks still apply. Saving never resets usage.',
   projectMonthlyConfirmTitle: 'Confirm Project monthly behavior',
   projectParentMonthlyTokens: 'Project monthly tokens: {{value}} · {{behavior}}',
   projectParentMonthlyMoney: 'Project monthly budget: {{value}} · {{behavior}}',

@@ -22,7 +22,7 @@ func projectKeyMonthlyWarnings(row entity.ResourceLimit, root entity.ProjectKey,
 	if !usage.AsOf.Equal(frame.AsOf) || !usage.CoverageStart.Equal(frame.CoverageStart) || usage.TimeZone != frame.TimeZone || !validMonthlyQuotaFacts(row, root.CreatedAt, &usage, 30) {
 		return nil
 	}
-	policy, err := policyFromRow(row)
+	policy, err := projectKeyPolicyFromRow(row, root, project)
 	if err != nil {
 		return nil
 	}

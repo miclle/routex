@@ -80,6 +80,7 @@ func compileRuntimeLimits(data *runtimeData) error {
 	data.LimitPolicies = map[string]limits.Policy{}
 	teamAccounts := runtimeTeamLimitAccounts(data)
 	personalRoots := runtimePersonalKeyRoots(data)
+	projectRoots := runtimeProjectKeyRoots(data)
 	for _, row := range data.Limits {
 		if row.ScopeKind != "user" && row.ScopeKind != "project" && row.ScopeKind != "key" && row.ScopeKind != "team" && row.ScopeKind != "team_member" {
 			return limits.ErrInvalid
@@ -88,6 +89,8 @@ func compileRuntimeLimits(data *runtimeData) error {
 		if err != nil && row.ScopeKind == "key" {
 			if root, exists := personalRoots[row.ScopeID]; exists {
 				policy, err = personalKeyPolicyFromRow(row, root, root.UserID)
+			} else if identity, exists := projectRoots[row.ScopeID]; exists {
+				policy, err = projectKeyPolicyFromRow(row, identity.Root, identity.Project)
 			}
 		}
 		if err != nil {

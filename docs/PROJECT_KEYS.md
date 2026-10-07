@@ -87,3 +87,18 @@ Schema version 9 creates `project_api_keys` and `project_api_key_models` through
 `testProjectKeyLifecycle` exercises the real router, HTTP upstream fixture, durable call recorder, and runtime snapshot against PostgreSQL and MySQL. Coverage includes one-time secret safety, pending/expired/revoked rejection, authorization intersections, Project disable/reactivation, independent creator departure, accurate call ownership, native-completed replacement retirement, actual HTTP 200 non-completion exclusions, adversarial ownership/timing/terminal/case proof, historical completion replay, and manager-removal, Project-disable, and revoke races. Retirement proof belongs to the immutable Project rather than the creator or acting manager; current authority, lifecycle, expiry and effective model scope are still checked before a new completion. The shared isolated harness owns database reset and migration; run `go tool task test-integration` after registering the helper.
 
 Project/Key token and money limits, RPM/TPM/concurrency, and IP restrictions are implemented separately from Key lifecycle. Approval workflows, Vault integration, and managed delivery coordination remain outside this slice. The implemented model/lifecycle and attachment checks do not stand in for those later controls.
+
+## Independent monthly threshold behavior
+
+The existing Project Key limit editor supports separate monthly Token/money
+stop/alert-only modes. The service proves the exact immutable Project and
+rotation root before publishing them; shared Key storage and a manager's
+Personal identity never establish that proof. Parent and root remain independent
+accounts, and overlapping/rotated credentials preserve policy and usage.
+
+Current Project managers retain existing scoped management authority. Complete
+PUT omission resets modes to stop; null caps are inert, zero is real, money is
+an exact decimal, and writes require reason, reviewed If-Match and explicit UI
+confirmation. Unknown usage, finite bounds, prices/currency, rolling/rates,
+concurrency and IP remain hard gates. See
+[Resource limits](RESOURCE_LIMITS.md#project-key-monthly-behavior) for details.

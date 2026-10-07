@@ -472,14 +472,14 @@ func testProjectMonthlyBehaviorLifecycle(t *testing.T, db *gorm.DB) {
 	}
 	write(primaryKeyPath, map[string]any{"tokens_month": 200})
 	key := read(primaryKeyPath)
-	if key.Kind != "project_key" || key.Stored.TokensMonthBehavior != "" || len(key.IPPolicies) != 2 || key.IPPolicies[0].TokensMonthBehavior != "alert_only" || key.IPPolicies[1].TokensMonthBehavior != "" || key.Effective.TokensMonth == nil || *key.Effective.TokensMonth != 100 {
+	if key.Kind != "project_key" || key.ID != created.Key.ID || key.AccountID != "key_"+created.Key.ID || key.Stored.TokensMonthBehavior != "stop" || key.Stored.MoneyMonthBehavior != "stop" || len(key.IPPolicies) != 2 || key.IPPolicies[0].TokensMonthBehavior != "alert_only" || key.IPPolicies[1].TokensMonthBehavior != "stop" || key.IPPolicies[1].MoneyMonthBehavior != "stop" || key.Effective.TokensMonth == nil || *key.Effective.TokensMonth != 100 {
 		t.Fatal("hard child/soft Project numeric projection changed")
 	}
 	for _, mode := range []any{nil, "ALERT_ONLY", "alert_only ", []string{"stop"}} {
 		expectStatus(t, request("PUT", primaryPath, map[string]any{"tokens_month_behavior": mode, "reason": "Invalid"}, applied.ETag, false), 400)
 	}
-	for _, mode := range []string{"stop", "alert_only"} {
-		expectStatus(t, request("PUT", primaryKeyPath, map[string]any{"tokens_month_behavior": mode, "reason": "Project Key remains hard"}, key.ETag, false), 400)
+	for _, mode := range []any{nil, "ALERT_ONLY", "alert_only ", []string{"stop"}} {
+		expectStatus(t, request("PUT", primaryKeyPath, map[string]any{"tokens_month_behavior": mode, "reason": "Reject noncanonical Project Key mode"}, key.ETag, false), 400)
 	}
 	expectStatus(t, call(memberBearer), 200)
 	usage := read(primaryPath)
@@ -513,7 +513,10 @@ func testProjectMonthlyBehaviorLifecycle(t *testing.T, db *gorm.DB) {
 	hard := write(primaryPath, map[string]any{"tokens_month": 100})
 	canonical(hard, "stop", "stop")
 	expectStatus(t, call(memberBearer), 429)
-	expectStatus(t, request("PUT", primaryKeyPath, map[string]any{"tokens_month_behavior": "alert_only", "reason": "Unsupported soft child"}, read(primaryKeyPath).ETag, false), 400)
+	softChild := decodeCatalogResponse[service.LimitRecord](t, request("PUT", primaryKeyPath, map[string]any{"tokens_month_behavior": "alert_only", "reason": "Reviewed soft Key under hard Project"}, read(primaryKeyPath).ETag, false), 200)
+	if softChild.Kind != "project_key" || softChild.ID != created.Key.ID || softChild.AccountID != "key_"+created.Key.ID || softChild.Stored.TokensMonthBehavior != "alert_only" || softChild.Stored.MoneyMonthBehavior != "stop" || len(softChild.IPPolicies) != 2 || softChild.IPPolicies[0].TokensMonthBehavior != "stop" || softChild.IPPolicies[1].TokensMonthBehavior != "alert_only" || softChild.IPPolicies[1].MoneyMonthBehavior != "stop" || !softChild.Enforced {
+		t.Fatal("independent soft Key changed hard Project identity or modes")
+	}
 	expectStatus(t, call(memberBearer), 429)
 	// Sparse numeric requests preserve both reviewed modes and unrelated controls.
 	write(primaryPath, map[string]any{"tokens_month": 250, "tokens_month_behavior": "alert_only", "money_month": "0", "money_month_behavior": "alert_only", "currency": "USD", "tokens_5h": 1000})
@@ -644,12 +647,12 @@ func testProjectMonthlyBehaviorLifecycle(t *testing.T, db *gorm.DB) {
 			}
 		}
 	}
-	// Rotation retains the immutable hard Key root and the same Project account.
+	// Rotation retains the immutable Key root, its saved modes and the same Project account.
 	rotated := decodeCatalogResponse[CreatedProjectKeyResponse](t, request("POST", keyBase+"/"+created.Key.ID+"/rotate", map[string]any{"delivery_mode": "manual"}, "", false), 201)
 	expectStatus(t, request("POST", keyBase+"/"+rotated.Key.ID+"/confirm", nil, "", false), 200)
 	expectStatus(t, request("DELETE", keyBase+"/"+created.Key.ID, nil, "", false), 204)
 	replacementPath := keyBase + "/" + rotated.Key.ID + "/limits"
-	if got := read(replacementPath); got.AccountID != "key_"+created.Key.ID || got.Stored.TokensMonthBehavior != "" || got.IPPolicies[0].TokensMonthBehavior != "alert_only" || got.QuotaUsage.Month.TokensUsed != 600 {
+	if got := read(replacementPath); got.AccountID != "key_"+created.Key.ID || got.Stored.TokensMonthBehavior != "alert_only" || got.Stored.MoneyMonthBehavior != "stop" || got.IPPolicies[0].TokensMonthBehavior != "alert_only" || got.QuotaUsage.Month.TokensUsed != 600 {
 		t.Fatal("rotation lost shared root/accounting", got.AccountID)
 	}
 	expectStatus(t, call(rotated.Secret), 200)
@@ -1074,9 +1077,11 @@ func TestProjectBehaviorRegistryAppendAndHistoricalWrapperGuard(t *testing.T) {
 	for _, pair := range matches {
 		names = append(names, pair[1]+":"+pair[2])
 	}
-	if len(names) != 141 || !personalKeyBehaviorRegistryMatches(names) {
+	if len(names) != 142 || names[141] != "project_key_monthly_behavior:testProjectKeyMonthlyBehaviorLifecycle" || !personalKeyBehaviorRegistryMatches(names[:141]) {
 		t.Fatal("exact139 inherited names+reviewed wrapper+Project pair changed", len(names))
 	}
+	// Preserve every historical prefix mutation oracle against exactly that prefix.
+	names = names[:141]
 	for _, mutate := range []func([]string) []string{
 		func(x []string) []string { return x[:140] },
 		func(x []string) []string { x[139], x[140] = x[140], x[139]; return x },

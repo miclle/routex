@@ -470,6 +470,8 @@ func testCredentialRetirementLifecycle(t *testing.T, db *gorm.DB) {
 	if err := fresh.StartRuntime(ctx); err != nil {
 		t.Fatal(err)
 	}
+	// Join the restarted publisher before deterministic replay and capture.
+	fresh.StopRuntime()
 	defer fresh.StopRuntime()
 	restarted := decodeCatalogResponse[service.CredentialRetirementRecord](t, post(freshRouter, path, intent, etag, writeCookie, writeIdentity), 200)
 	if !restarted.Committed || !restarted.RuntimeApplied || restarted.CurrentSnapshotID == nil || *restarted.CurrentSnapshotID == intent.SnapshotID || !restarted.CommittedAt.Equal(saved.CommittedAt) {

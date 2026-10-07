@@ -8,7 +8,10 @@ import {
   type LimitRecord,
 } from '@/types/resource-limits'
 export async function getLimits(path: string, signal?: AbortSignal) {
-  return validateMonthlyBehaviors((await client.get<unknown>(`${path}/limits`, { signal })).data)
+  return validateMonthlyBehaviors(
+    (await client.get<unknown>(`${path}/limits`, { signal })).data,
+    path,
+  )
 }
 export async function saveLimits(
   path: string,
@@ -20,26 +23,35 @@ export async function saveLimits(
   for (const field of monthlyBehaviorFields) {
     if (
       Object.hasOwn(input, field) &&
-      (!/^\/(?:admin\/members|keys|projects)\/[^/]+$/.test(path) ||
+      (!/^(?:\/(?:admin\/members|keys|projects)\/[^/]+|\/projects\/[^/]+\/keys\/[^/]+)$/.test(
+        path,
+      ) ||
         !validMonthlyBehavior(input[field]))
     )
       throw new Error('Invalid Personal monthly behavior input')
   }
-  return validateMonthlyBehaviors(
+  const record = validateMonthlyBehaviors(
     (
       await client.put<unknown>(`${path}/limits`, input, {
         headers: { 'If-Match': `"${etag}"`, 'X-CSRF-Token': csrf },
         signal,
       })
     ).data,
+    path,
   )
+  if (
+    record.kind === 'project_key' &&
+    monthlyBehaviorFields.some((field) => record.stored[field] !== (input[field] ?? 'stop'))
+  )
+    throw new Error('Project Key monthly behavior confirmation mismatch')
+  return record
 }
 
 const monthlyBehaviorFields = ['tokens_month_behavior', 'money_month_behavior'] as const
 function validMonthlyBehavior(value: unknown) {
   return value === 'stop' || value === 'alert_only'
 }
-function validateMonthlyBehaviors(value: unknown): LimitRecord {
+function validateMonthlyBehaviors(value: unknown, path: string): LimitRecord {
   if (
     !object(value) ||
     !object(value.stored) ||
@@ -57,16 +69,24 @@ function validateMonthlyBehaviors(value: unknown): LimitRecord {
         : null
   if (expectedPolicies === null || value.ip_policies.length !== expectedPolicies)
     throw new Error('Invalid resource policy chain')
+  if (value.kind === 'project_key') {
+    const target = /^\/projects\/[^/]+\/keys\/([^/]+)$/.exec(path)
+    if (!target || value.id !== target[1])
+      throw new Error('Invalid Project Key monthly behavior scope')
+  }
   const user = value.kind === 'user'
-  const personal = user || value.kind === 'personal_key' || value.kind === 'project'
+  const personal =
+    user ||
+    value.kind === 'personal_key' ||
+    value.kind === 'project' ||
+    value.kind === 'project_key'
   if (
     !personal &&
     monthlyBehaviorFields.some((field) => Object.hasOwn(value.stored as object, field))
   )
     throw new Error('Invalid stored monthly behavior scope')
   const ownsMonthlyBehavior = (index: number) =>
-    (personal && (index === 0 || value.kind === 'personal_key')) ||
-    (value.kind === 'project_key' && index === 0)
+    personal && (index === 0 || value.kind === 'personal_key' || value.kind === 'project_key')
   for (const [index, policy] of value.ip_policies.entries()) {
     if (
       object(policy) &&

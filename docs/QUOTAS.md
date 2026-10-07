@@ -24,7 +24,7 @@ Existing resource-limit GET/PUT endpoints accept these additional fields:
 
 Personal/Project/Key PUT is a complete policy replacement. Clients must retain the full supported policy when editing one section; omitted fields become null/unrestricted at an aggregate or inherited at a Key. A strong `If-Match`, CSRF, same-origin validation, current resource authority, and nonempty reason are required. Stale edits return 409. Identical retries with the prior ETag, same actor, normalized policy, and reason retry publication without another audit event.
 
-Integers are nonnegative safe JSON integers. Money is an exact nonnegative decimal string with at most 18 integer and 18 fractional digits; scientific notation and numeric JSON money are rejected. A finite monetary policy must use the current platform currency. Null money clears its local currency. Zero is a real threshold: stop rejects exhaustion, while an eligible monthly alert-only dimension keeps accounting without its own capacity rejection. Child limits must narrow hard parent dimensions; an eligible soft parent monthly dimension does not impose that numeric ceiling. Project Key stored policy remains hard. Overlapping rotation credentials share the oldest immutable ancestor's policy and counters.
+Integers are nonnegative safe JSON integers. Money is an exact nonnegative decimal string with at most 18 integer and 18 fractional digits; scientific notation and numeric JSON money are rejected. A finite monetary policy must use the current platform currency. Null money clears its local currency. Zero is a real threshold: stop rejects exhaustion, while an eligible monthly alert-only dimension keeps accounting without its own capacity rejection. Child limits must narrow hard parent dimensions; an eligible soft parent monthly dimension does not impose that numeric ceiling. Project Key monthly modes require exact immutable Project/root proof. Overlapping rotation credentials share the oldest immutable ancestor's policy and counters.
 
 A Team Session call checks Team plus stable Team/User accounts atomically; its sparse policy API and permission boundaries are documented in [Team resource limits](TEAM_LIMITS.md). A personal call checks user plus Key accounts. A Project call checks Project plus Key accounts, independently of its creator or managers' personal accounts. Policy edits, grants, disabling, re-enabling, and Key rotation do not clear history.
 
@@ -121,7 +121,7 @@ Focused tests exercise native cap classification, all four protocols, immutable 
 
 The standalone ledger tests also kill real subprocesses after activation, admission, completion, and acknowledgment. The phase passed the full check and test suite with 361 Vitest cases, Go race coverage, development lifecycle checks, and production asset serving. The serialized PostgreSQL/MySQL lifecycle suite passed in 257.255 seconds, and both database process suites passed initialization, restart persistence, ordinary and streaming native inference, reporting, logout, and revocation. Production capacity measurements and the remaining Team/template/approval/alert scope are separate checkpoints, so this slice does not claim full F09/F17/F18 completion.
 
-## Independent Personal Key monthly modes (candidate)
+## Independent Personal Key monthly modes
 
 A server-selected exact Personal Key quota root may carry independent monthly
 Token and money stop/alert-only modes. Neither caller DTOs nor journal records
@@ -129,18 +129,18 @@ can designate a foreign account as Personal. User and Key scopes retain distinct
 monthly decisions, and rotation keeps the original root and usage. Soft modes
 never bypass unknown coverage, reservation or pricing failure;
 `quota_usage_unknown` remains HTTP503, while exhausted hard allowances return
-HTTP429. Project Keys and Team-member policies retain hard stored boundaries.
-The V73 publication candidate is tracked in [Resource limits](RESOURCE_LIMITS.md).
+HTTP429. Project Keys use separate immutable Project/root proof; Team-member policies retain hard stored boundaries.
+The delivered V73 publication contract is tracked in [Resource limits](RESOURCE_LIMITS.md).
 
-## Independent Project aggregate monthly modes (candidate)
+## Independent Project aggregate monthly modes
 
 V74 adds independent monthly Token/money decisions for the exact Project
-aggregate; Project Key and Team-member stored policies stay hard. Suppression
+aggregate; Project Key policy uses separate root proof, and Team-member stored policies stay hard. Suppression
 covers only that account/dimension capacity rejection, preserving every other
 admission, reservation, unknown-usage and settlement gate. Current managers and
 original rotation roots retain their existing identities; numeric quota requests
-and approvals preserve current modes. See [Resource limits](RESOURCE_LIMITS.md#project-aggregate-monthly-behavior-v74-candidate)
-for the scoped API and pending combined acceptance.
+and approvals preserve current modes. See [Resource limits](RESOURCE_LIMITS.md#project-aggregate-monthly-behavior-v74)
+for the scoped API, accepted combined regression and remaining browser boundary.
 
 Known monthly usage is evaluated independently for Tokens and money. Unknown
 money cannot establish a monetary percentage, but does not erase complete known
@@ -150,4 +150,14 @@ unknown-money exclusion; this changes no journal facts or admission policy.
 
 ## Controlled monthly-mode API checkpoint
 
-Personal Key R6 proves the bounded 19-call/seven-attempt/12-denial API lifecycle and original-Session restart. Actual TPM rejection is quota_exceeded; RPM is rate_limit_exceeded. Six priced calls and one unknown completion remain distinct, and unknown usage still blocks admission. This is API-only R3 artifact evidence, not current Full141 or browser acceptance. See [Acceptance boundary](RESOURCE_LIMITS.md#candidate-verification-boundary).
+Personal Key R6 proves the bounded 19-call/seven-attempt/12-denial API lifecycle and original-Session restart. Actual TPM rejection is quota_exceeded; RPM is rate_limit_exceeded. Six priced calls and one unknown completion remain distinct, and unknown usage still blocks admission. This remains API-only R3 artifact evidence. The later test-only R4 successor independently passes Full141; neither receipt establishes browser acceptance. See [Acceptance boundary](RESOURCE_LIMITS.md#candidate-verification-boundary).
+
+## Independent Project Key monthly modes
+
+Each proved Project Key rotation root has independent monthly Token and money
+stop/alert-only decisions alongside its Project parent. The server and journal
+require Project-specific identity evidence; a caller cannot designate an arbitrary
+shared Key account as soft. Rotation/revocation preserves the original root and
+usage. Every hard parent or child dimension still stops at its own cap, and all
+coverage/unknown/reservation/pricing/rolling/rate/IP guards remain mandatory.
+See [Resource limits](RESOURCE_LIMITS.md#project-key-monthly-behavior).

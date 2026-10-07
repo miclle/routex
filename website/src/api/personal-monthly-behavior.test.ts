@@ -96,10 +96,36 @@ it('allows canonical User parent modes alongside a legacy hard Personal Key', as
   expect(key.stored.tokens_month_behavior).toBe('stop')
   expect(key.ip_policies[0].money_month_behavior).toBe('alert_only')
 })
-it.each(['/projects/prj_member/keys/key_member'])(
-  'never submits behavior fields to other stored scopes %s',
+it('submits canonical independent Project Key modes only through its resource route', async () => {
+  const stored = {
+    tokens_month: 0,
+    money_month: null,
+    tokens_month_behavior: 'alert_only',
+    money_month_behavior: 'stop',
+  }
+  response = {
+    ...policy(),
+    kind: 'project_key',
+    id: 'pky_exact',
+    stored,
+    ip_policies: [{ tokens_month_behavior: 'stop', money_month_behavior: 'alert_only' }, stored],
+  }
+  const input = { ...stored, reason: 'Exact Project Key review' } as LimitInput
+  const record = await saveLimits(
+    '/projects/prj_member/keys/pky_exact',
+    'a'.repeat(64),
+    input,
+    'csrf',
+  )
+  expect(JSON.parse(dispatched!.data as string)).toEqual(input)
+  expect(dispatched!.url).toBe('/projects/prj_member/keys/pky_exact/limits')
+  expect(record.stored).toEqual(stored)
+  expect(record.ip_policies[0].money_month_behavior).toBe('alert_only')
+  expect(record.effective).not.toHaveProperty('tokens_month_behavior')
+})
+it.each(['/teams/team_member/keys/pky_exact', '/projects/prj_member/keys/pky_exact/extra'])(
+  'rejects modes on unsupported nested path %s',
   async (path) => {
-    response = policy()
     await expect(
       saveLimits(
         path,
@@ -107,7 +133,7 @@ it.each(['/projects/prj_member/keys/key_member'])(
         { tokens_month_behavior: 'stop', reason: 'Review' } as LimitInput,
         'csrf',
       ),
-    ).rejects.toThrow('Invalid Personal monthly behavior input')
+    ).rejects.toThrow()
   },
 )
 
@@ -170,21 +196,32 @@ it('submits both independent Project modes without rewriting the reviewed policy
   expect(record.enforced).toBe(true)
 })
 
-it.each(['project_key', 'team', 'team_member'])(
+it.each(['team', 'team_member'])(
   'rejects User behaviors on nonuser %s IP policies',
   async (kind) => {
     response = { ...policy(), kind, stored: {} }
     await expect(getLimits('/projects/prj_member')).rejects.toThrow()
   },
 )
-it('rejects behaviors on the Project Key child policy', async () => {
+it('canonicalizes legacy Project and Key modes independently and rejects invalid child modes', async () => {
   response = {
     ...policy(),
     kind: 'project_key',
+    id: 'pky_exact',
     stored: {},
-    ip_policies: [{}, { tokens_month_behavior: 'stop' }],
+    ip_policies: [{}, {}],
   }
-  await expect(getLimits('/keys/key_member')).rejects.toThrow()
+  const record = await getLimits('/projects/prj_member/keys/pky_exact')
+  expect(record.stored.tokens_month_behavior).toBe('stop')
+  expect(record.ip_policies.map((p) => p.money_month_behavior)).toEqual(['stop', 'stop'])
+  response = {
+    ...policy(),
+    kind: 'project_key',
+    id: 'pky_exact',
+    stored: {},
+    ip_policies: [{}, { tokens_month_behavior: ['stop'] }],
+  }
+  await expect(getLimits('/projects/prj_member/keys/pky_exact')).rejects.toThrow()
 })
 it('defaults both legacy Personal Key and User parent modes to stop', async () => {
   response = { ...policy(), kind: 'personal_key', stored: {}, ip_policies: [{}, {}] }

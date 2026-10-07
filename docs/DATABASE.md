@@ -1049,23 +1049,23 @@ remain not_scanned/null; zero/unknown versions reject. Nonterminal version1 jobs
 require explicit Resume and a fresh seven-domain proof. Completed historical
 jobs are not relabeled. See [Vault Token integrations](VAULT_TOKEN_INTEGRATIONS.md).
 
-## Personal Key monthly behavior (V73 candidate)
+## Personal Key monthly behavior (V73)
 
 Frozen GORM V73 reuses V70's width16, non-null, stop-default columns. It installs
 an exact user/team/key scope fence before removing V71's fence. Stored key scope
 alone does not authorize soft behavior: application proof requires the exact
-Personal owner/root identity and rejects Project Key soft rows. Value/kind aliases
+Personal owner/root identity. Project Keys require their separate Project/root proof. Value/kind aliases
 remain invalid on PostgreSQL and MySQL. Partial DDL is repaired with bounded
 Migrator checks; released migrations, counters and historical identities remain
 unchanged. The repaired Personal migration/lifecycle focus passes both drivers;
-this does not establish the final combined matrix or delivery.
+The containing 97-path phase is delivered as `c2368dd`; original source receipts remain distinct.
 
-## Project aggregate monthly behavior (V74 candidate)
+## Project aggregate monthly behavior (V74)
 
 Frozen GORM V74 follows V73 and adds exact project to its permitted scope fence,
 installing the new constraint before removing its predecessor. Width16, stop
-defaults and exact value checks remain. Team-member and Project Key policies
-remain hard. No released migration or retained accounting row is rewritten.
+defaults and exact value checks remain. Team-member stored policies remain hard;
+Project Key soft policy requires separate application identity proof. No released migration or retained accounting row is rewritten.
 
 The final registry preserves 139 original names/order and appends the two
 Project scenarios for 141. Three bounded historical migration fixture bindings
@@ -1075,8 +1075,8 @@ A deferred remove/replay of V74 restores the final fence; only explicitly replay
 ledger timestamps may change. Original scenario assertions remain intact. They are explicit fixture companions, not unchanged
 function bindings. Final acceptance requires empty/upgrade/repeat/concurrent,
 partial-DDL and constraints on both databases, combined focused 18 cases and the
-unfiltered 282-direct-case Full141 plus eight generic constraints. Full141 and
-controlled Project runtime/browser acceptance remain pending. See
+unfiltered 282-direct-case Full141 plus eight generic constraints. Full141 passes
+on both databases; controlled Project runtime/browser acceptance remains pending. See
 [Implementation](IMPLEMENTATION.md) for separately recorded evidence.
 
 An earlier combined focused run failed: all Vault and Personal cases passed,
@@ -1090,4 +1090,24 @@ native counts and final four observations/eight manager inboxes. Product warning
 and admission semantics are unchanged. The cumulative fixture also retains its
 exact manager setup and historical V73 reconstruction. The final source adds
 only the existing pinned pgx test dependency's direct declaration, without any
-version or go.sum change. Fresh final source gates and expanded Focus18 pass with all 1,769 source bytes and modes unchanged. Full141 is running. The separately bound Vault R7 and Personal R6 controlled API/restart runs pass; Project runtime, browser and delivery remain pending. Earlier failures stay failed. See [Controlled acceptance boundary](RESOURCE_LIMITS.md#candidate-verification-boundary) for the R3 runtime artifact versus R4 test-only source distinction.
+version or go.sum change. Fresh final source gates and expanded Focus18 pass with all 1,769 source bytes and modes unchanged. Full141 passes 282 direct lifecycle cases and eight constraints on both databases. The separately bound Vault R7 and Personal R6 controlled API/restart runs pass; Project runtime and browser remain pending; the containing phase is delivered as `c2368dd`. Earlier failures stay failed. See [Controlled acceptance boundary](RESOURCE_LIMITS.md#candidate-verification-boundary) for the R3 runtime artifact versus R4 test-only source distinction.
+
+## Project Key monthly behavior without schema changes
+
+Existing V73/V74 mode columns and exact shared `key` fence support this package.
+No migration, historical step or counter is changed. Business and runtime proof
+require exact Project identity/birth, immutable Key root/birth, complete bounded
+rotation ancestry and no Personal-Key collision before allowing soft policy.
+Generic row decoding rejects unproved soft Key accounts. The journal receives
+server-owned Project Key evidence separately from Personal Key authority.
+
+The current registry appends the Project Key lifecycle after the original 141
+ordered cases, retaining released V74 and historical constraint assertions.
+Three necessary integration fixture updates reflect canonical child stop modes,
+invalid-mode rejection and exact invalid root-birth denial. The final test-only
+successor uses a whole-second Project birth mutation that both databases can
+retain, and expects saved child modes to survive Key rotation. A below-exhaustion
+warning fixture uses settled150 against cap166 to exercise critical90 rather
+than asserting a percentage notice after exhaustion. Production warning
+thresholds and original hard denial/native counts remain unchanged. See
+[Implementation](IMPLEMENTATION.md) for actual driver and runtime results.

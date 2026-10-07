@@ -23,7 +23,7 @@ function serve(data: unknown) {
     data,
   })
 }
-it('canonicalizes legacy Project owned and Project-Key parent only', async () => {
+it('canonicalizes legacy Project and Project-Key policies independently', async () => {
   serve(response())
   const aggregate = await getLimits('/projects/prj_test')
   expect(aggregate.stored.tokens_month_behavior).toBe('stop')
@@ -31,8 +31,8 @@ it('canonicalizes legacy Project owned and Project-Key parent only', async () =>
   serve(response('project_key'))
   const child = await getLimits('/projects/prj_test/keys/key_test')
   expect(child.ip_policies[0].tokens_month_behavior).toBe('stop')
-  expect(child.stored).not.toHaveProperty('tokens_month_behavior')
-  expect(child.ip_policies[1]).not.toHaveProperty('money_month_behavior')
+  expect(child.stored.tokens_month_behavior).toBe('stop')
+  expect(child.ip_policies[1].money_month_behavior).toBe('stop')
 })
 it('emits independent reviewed Project modes and exact money, but no effective modes', async () => {
   const data = response()
@@ -65,11 +65,11 @@ it.each([null, 'ALERT_ONLY', 'alert_only ', [], false])(
     await expect(getLimits('/projects/prj_test')).rejects.toThrow('monthly behavior')
   },
 )
-it('rejects any Project Key stored mode and malformed chain without borrowing parent authority', async () => {
+it('rejects malformed Project Key stored modes and chain without borrowing parent authority', async () => {
   const data = response('project_key')
-  Object.assign(data.stored, { tokens_month_behavior: 'stop' })
+  Object.assign(data.stored, { tokens_month_behavior: 'ALERT_ONLY' })
   serve(data)
-  await expect(getLimits('/projects/prj_test/keys/key_test')).rejects.toThrow('scope')
+  await expect(getLimits('/projects/prj_test/keys/key_test')).rejects.toThrow('monthly behavior')
   serve({ ...response('project_key'), ip_policies: [policy()] })
   await expect(getLimits('/projects/prj_test/keys/key_test')).rejects.toThrow('chain')
 })

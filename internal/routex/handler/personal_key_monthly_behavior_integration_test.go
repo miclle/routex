@@ -693,7 +693,10 @@ func personalKeyBehaviorProjectNegative(t *testing.T, ctx context.Context, svc *
 	// Project routes need the same exact manager cookie as Personal routes.
 	// This helper's default admin is independently authorized for Project limits.
 	original := decodeCatalogResponse[service.LimitRecord](t, request("GET", path, nil, "", false), 200)
-	expectStatus(t, request("PUT", path, map[string]any{"tokens_month_behavior": "alert_only", "reason": "No Project soft policy"}, original.ETag, false), 400)
+	if original.Kind != "project_key" || original.ID != created.Record.Key.ID || original.AccountID != "key_"+created.Record.Key.ID || original.Stored.TokensMonthBehavior != "stop" || original.Stored.MoneyMonthBehavior != "stop" || len(original.IPPolicies) != 2 || original.IPPolicies[1].TokensMonthBehavior != "stop" || original.IPPolicies[1].MoneyMonthBehavior != "stop" {
+		t.Fatal("Project Key default lost canonical independent stop modes")
+	}
+	expectStatus(t, request("PUT", path, map[string]any{"tokens_month_behavior": "alert_only ", "reason": "Reject noncanonical Project Key mode"}, original.ETag, false), 400)
 	hard := decodeCatalogResponse[service.LimitRecord](t, request("PUT", path, map[string]any{"tokens_month": 0, "reason": "Explicit Project hard zero"}, original.ETag, false), 200)
 	expectStatus(t, call(created.Secret), 429)
 	var before entity.ResourceLimit
@@ -703,9 +706,20 @@ func personalKeyBehaviorProjectNegative(t *testing.T, ctx context.Context, svc *
 	if hard.ETag != before.ETag {
 		t.Fatal("Project hard policy revision mismatch")
 	}
-	// V73's shared key storage cannot join parent tables. Exact Project identity
-	// must still reject deliberately corrupt raw soft rows in runtime publication.
+	// Current Project Keys may be soft, but only after exact immutable parent
+	// identity is proved. A root born before its Project must never publish soft.
+	var originalRoot entity.ProjectKey
+	var originalProject entity.Project
+	if err := db.Take(&originalRoot, "id = ?", created.Record.Key.ID).Error; err != nil {
+		t.Fatal(err)
+	}
+	if err := db.Take(&originalProject, "id = ?", project).Error; err != nil {
+		t.Fatal(err)
+	}
 	defer func() {
+		if err := db.Model(&entity.ProjectKey{}).Where("id = ?", originalRoot.ID).UpdateColumn("CreatedAt", originalRoot.CreatedAt).Error; err != nil {
+			t.Error(err)
+		}
 		if err := db.Model(&entity.ResourceLimit{}).Where("scope_kind = ? AND scope_id = ?", "key", created.Record.Key.ID).UpdateColumns(map[string]any{"TokensMonthBehavior": before.TokensMonthBehavior, "MoneyMonthBehavior": before.MoneyMonthBehavior}).Error; err != nil {
 			t.Error(err)
 		}
@@ -716,8 +730,19 @@ func personalKeyBehaviorProjectNegative(t *testing.T, ctx context.Context, svc *
 	if err := db.Model(&entity.ResourceLimit{}).Where("scope_kind = ? AND scope_id = ?", "key", created.Record.Key.ID).UpdateColumn("TokensMonthBehavior", "alert_only").Error; err != nil {
 		t.Fatal(err)
 	}
+	invalidBirth := originalProject.CreatedAt.Truncate(time.Second).Add(-time.Second)
+	if err := db.Model(&entity.ProjectKey{}).Where("id = ?", originalRoot.ID).UpdateColumn("CreatedAt", invalidBirth).Error; err != nil {
+		t.Fatal(err)
+	}
+	var invalidRoot entity.ProjectKey
+	if err := db.Take(&invalidRoot, "id = ?", originalRoot.ID).Error; err != nil || !invalidRoot.CreatedAt.Equal(invalidBirth) || !invalidRoot.CreatedAt.Before(originalProject.CreatedAt) {
+		t.Fatal("Project invalid birth was not stored exactly", err)
+	}
 	if err := svc.RefreshRuntime(ctx); err == nil {
-		t.Fatal("raw Project soft policy published")
+		t.Fatal("unproved Project root birth published a soft policy")
+	}
+	if err := db.Model(&entity.ProjectKey{}).Where("id = ?", originalRoot.ID).UpdateColumn("CreatedAt", originalRoot.CreatedAt).Error; err != nil {
+		t.Fatal(err)
 	}
 	if err := db.Model(&entity.ResourceLimit{}).Where("scope_kind = ? AND scope_id = ?", "key", created.Record.Key.ID).UpdateColumn("TokensMonthBehavior", before.TokensMonthBehavior).Error; err != nil {
 		t.Fatal(err)
@@ -728,6 +753,10 @@ func personalKeyBehaviorProjectNegative(t *testing.T, ctx context.Context, svc *
 	var after entity.ResourceLimit
 	if err := db.Session(&gorm.Session{QueryFields: true}).Take(&after, "scope_kind = ? AND scope_id = ?", "key", created.Record.Key.ID).Error; err != nil || !teamBehaviorSameLimit(before, after) {
 		t.Fatal("Project negative changed original policy", err)
+	}
+	var restoredRoot entity.ProjectKey
+	if err := db.Take(&restoredRoot, "id = ?", originalRoot.ID).Error; err != nil || !reflect.DeepEqual(restoredRoot, originalRoot) {
+		t.Fatal("Project negative changed retained root identity", err)
 	}
 }
 

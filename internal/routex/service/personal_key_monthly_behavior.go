@@ -74,6 +74,9 @@ func readGatewayLimitPolicy(db *gorm.DB, kind, scopeID string, result *GatewayRe
 		}
 		return readPersonalKeyLimitPolicy(db, scopeID, result.UserID)
 	}
+	if kind == "key" && result.ProjectID != "" && result.UserID == "" && result.TeamID == "" {
+		return readProjectKeyLimitPolicy(db, scopeID, result.ProjectID, result.KeyID)
+	}
 	return readLimitPolicy(db, kind, scopeID)
 }
 
@@ -121,15 +124,15 @@ func runtimePersonalKeyRoots(data *runtimeData) map[string]entity.APIKey {
 }
 
 func personalKeyAuditParent(target resolvedLimitTarget) string {
-	if target.kind == "key" && target.parentKind == "user" {
-		return "user"
+	if target.kind == "key" && (target.parentKind == "user" || target.parentKind == "project") {
+		return target.parentKind
 	}
 	return ""
 }
 
 func validLimitAuditBehavior(row entity.AuditEvent, parentKind string, policy limits.Policy) bool {
 	if parentKind != "" {
-		if row.ResourceType != "key" || parentKind != "user" || !safeTeamSessionID(row.ResourceID) {
+		if row.ResourceType != "key" || (parentKind != "user" && parentKind != "project") || !safeTeamSessionID(row.ResourceID) || parentKind == "project" && !projectWarningKeyID(row.ResourceID) {
 			return false
 		}
 		_, err := limits.Normalize(policy)

@@ -1,6 +1,9 @@
 export default {
+  projectKeyMonthlyConfirmTitle: '确认 Project Key 月度行为',
+  projectKeyMonthlyHelp:
+    'Project Key 的月度 Tokens 和预算分别保存阈值行为。Key 上限留空不会新增 Key 阈值，Project 父级仍独立执行自己的策略。零是实际阈值。轮换共享此策略和用量，其他检查仍然有效。',
   projectMonthlyHelp:
-    'Project 月度 Tokens 和预算分别保存阈值行为。留空停用该维度，零是实际阈值。Project Key 硬限制及其他检查仍然生效，保存不会重置用量。',
+    'Project 月度 Tokens 和预算分别保存阈值行为。留空停用该维度，零是实际阈值。Project Key 策略及其他检查仍然生效，保存不会重置用量。',
   projectMonthlyConfirmTitle: '确认 Project 月度阈值行为',
   projectParentMonthlyTokens: 'Project 月度 Tokens：{{value}} · {{behavior}}',
   projectParentMonthlyMoney: 'Project 月度预算：{{value}} · {{behavior}}',

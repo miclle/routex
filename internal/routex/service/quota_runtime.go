@@ -72,6 +72,7 @@ func (s *Service) gatewayQuotaPolicies(ctx context.Context, result *GatewayResul
 	var data *runtimeQuotaData
 	var auth *runtimeAuthorization
 	fallbackPersonalRoot := ""
+	fallbackProjectRoot := ""
 	if s.runtime != nil {
 		auth = s.runtime.auth.Load()
 		if auth == nil || !time.Now().Before(auth.ValidUntil) || auth.Quota == nil || runtimeDenied(&s.runtime.deniedLimits, "quota_settings") {
@@ -100,6 +101,9 @@ func (s *Service) gatewayQuotaPolicies(ctx context.Context, result *GatewayResul
 			if kind == "key" && result.ProjectID == "" && result.TeamID == "" {
 				fallbackPersonalRoot = scopeID
 			}
+			if kind == "key" && result.ProjectID != "" && result.UserID == "" && result.TeamID == "" {
+				fallbackProjectRoot = scopeID
+			}
 			data.Revisions[item.Account] = row.ETag
 			created, err := s.quotaAccountCreated(ctx, kind, scopeID, result.ProjectID != "")
 			if err != nil {
@@ -127,7 +131,11 @@ func (s *Service) gatewayQuotaPolicies(ctx context.Context, result *GatewayResul
 		if s.runtime == nil && fallbackPersonalRoot != "" {
 			personal = item.Account == limitAccount("key", fallbackPersonalRoot)
 		}
-		output = append(output, eventqueue.QuotaLimit{Limit: item, PersonalKey: personal, Revision: revision, CreatedAt: createdAt, TokensMonthBehavior: policy.TokensMonthBehavior, MoneyMonthBehavior: policy.MoneyMonthBehavior, Tokens5H: policy.Tokens5H, Tokens7D: policy.Tokens7D, TokensMonth: policy.TokensMonth, TPM: policy.TPM, MoneyMonth: policy.MoneyMonth, Currency: policy.Currency})
+		project := projectKeyQuotaProof(auth, result, item.Account)
+		if s.runtime == nil && fallbackProjectRoot != "" {
+			project = item.Account == limitAccount("key", fallbackProjectRoot)
+		}
+		output = append(output, eventqueue.QuotaLimit{Limit: item, PersonalKey: personal, ProjectKey: project, Revision: revision, CreatedAt: createdAt, TokensMonthBehavior: policy.TokensMonthBehavior, MoneyMonthBehavior: policy.MoneyMonthBehavior, Tokens5H: policy.Tokens5H, Tokens7D: policy.Tokens7D, TokensMonth: policy.TokensMonth, TPM: policy.TPM, MoneyMonth: policy.MoneyMonth, Currency: policy.Currency})
 	}
 	return output, data, nil
 }

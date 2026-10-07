@@ -2,6 +2,96 @@
 
 Updated: 2026-10-07. This document records engineering contracts, work packages and acceptance checks. Planned interfaces and metrics are not implementation evidence. The active objective covers F01–F30 and A01–A20 through incremental P0–P6 delivery.
 
+## Current Project Key continuation (2026-10-07)
+
+Latest delivered main: `78c76d204e7745eaf11a4df4828ddac551f99623`
+(credential SDK), after `c2368ddb0251415e72bfeee948ad23ed7a173ee4`
+(Vault Token/root inventory and Personal Key/Project aggregate monthly modes).
+The c2368dd full CI run was cancelled after the SDK push; cancellation is not
+integration acceptance. Current SDK-head Actionlint and GolangCI pass. Full CI37554117091
+passes all four jobs: backend, frontend, PostgreSQL/MySQL integration and build. Earlier sections retain their original source and time.
+
+The Project Key candidate adds independent monthly Token and money modes to
+its stable rotation account. A child `alert_only` mode never weakens a hard
+Project parent. Limits keep null and zero distinct, decimal money exact, and
+existing rate, unknown-usage and missing-price rejection rules intact. Current
+Project managers receive recipient-scoped settled-usage warnings at 80/90 percent;
+platform Key management authority grants no implicit notification membership.
+The existing Key limits editor supplies bilingual controls, reviewed revisions,
+conflict review and identical-intent publication retries.
+
+The final Key ownership candidate passes formatting, mandatory checking, complete Task
+(4,520 frontend tests in 181 files, four Node checks, two development lifecycle
+checks, Go race/coverage and production assets) and build. Focus20 passes 20
+direct PostgreSQL/MySQL cases and 23 balanced named results in 310.590 seconds;
+acceptance `e7c4f233e41a84b4914edac2d323d9d1908cc2de5b3363ccd9d5d0a7f751e97f`.
+Controlled API/restart passes 11 Calls, five native completed Attempts, six
+pre-admission denials, two 90 percent warning dimensions/four current-manager
+inboxes and all five original API Sessions. Nineteen fixed database projections
+remain identical across restart. Root independently verifies exact source,
+binary and owned resource/process/port cleanup; root review
+`b6042ef5d52a380832ab5c949dcd07ed3baa8b4e19c797ed29cfaf92e2068b28`.
+The binary is `941297373484eb2a66d5b1c64fea819d665c9fb18f595fff924770c05fcd70a2`.
+Full142 on the original R4 backend exits201 in 3,227.939 seconds: 283 of 284
+lifecycle cases and all eight constraints pass; only MySQL Credential retirement
+fails at the final current-runtime assertion. Its fresh intent is durably committed
+but reports `runtime_unavailable`. Source/modes and owned resources, ports and
+processes are independently verified. This run remains failed. The fixture leaves
+a restarted Service's background publisher running while its readiness path uses
+a nonblocking publication lock. The quiescent fixture successor preserves all
+requests and the final applied assertion; its targeted PostgreSQL/MySQL run passes
+both retirement lifecycles in 95.223 seconds, with independent source and owned
+cleanup verification. Acceptance: `d73addd111c42427a3aac3f8b4cea5269e2156127f54872d27d6a10813185fb2`.
+The original failing internal branch remains unrecorded. The historical Full142
+run remains failed; the passing targeted repair and existing passing source/API
+gates support this bounded phase, without claiming a new Full142 run.
+
+Earlier focused failures are retained. Repairs affect only test fixtures:
+valid soft-policy PUTs, rotation mode preservation, representable Project birth,
+and warning caps that reach the intended threshold without changing settlement.
+The API helper's writer-only parent read was corrected to use an already
+privileged current manager; product authorization remains unchanged.
+
+Team-member monthly modes (V75) and Connection enablement (V76) continue in
+separate private candidates. Team's restart fixture repair passes all four direct
+PostgreSQL/MySQL cases; its Full144 regression passes 288 direct cases and all eight constraints in 3,212.747 seconds; root independently verifies the original R2 source and cleanup. A separate frontend
+repair preserves an uncertain save across same-actor Session renewal, releases
+busy state and rejects stale results; fresh complete Task passes 4,526 frontend
+tests in 181 files with mandatory checking and build. Controlled Team API R7 passes in 23.490 seconds: eight Calls, four native completed
+Attempts, four pre-admission denials and five original API Sessions survive a real
+process restart. Twenty-one bounded durable projections remain identical; four
+scoped 80/90 warnings and one read mark survive removal/rejoin and restart.
+Root independently verifies recorded Credential/Connection/Model/snapshot
+attribution, source, artifact and owned cleanup. Earlier helper failures remain
+historical. R6 exposed a legitimate additional money warning after a policy
+revision; R7 configures the existing hard-child money cap as zero, preserving
+four-warning assertions, all call budgets and unchanged product behavior.
+Connection source gates pass 4,545 frontend tests in 182 files, mandatory checking,
+Go race tests and build. Its first focused run actually selects 28 direct cases because of substring
+matching: 26 pass, while both new status cases fail on a stale role fixture. The
+anchored R2 run selects exactly 20 cases: 18 pass and both status cases fail on a
+fixture that incorrectly expects authorized logical Models to disappear when
+supply is disabled. A fixture-only R3 checks the retained Model ID, empty native
+protocols/capabilities while disabled and exact Chat metadata when enabled;
+its fresh Focus20 is active. No product discovery behavior or native call budget
+changes. Original failed evidence remains unchanged.
+
+Source review also found generic Key saves could restore private cache entries
+after unmount or Session changes. The narrow actor/query and completion guard passes 103 focused tests across
+five suites, types, lint and formatting; complete candidate formatting, mandatory checking, tests and build now pass. The
+previous delivery-candidate check remains valid only for its original source; a
+fresh check and relevant tests will cover the corrected frontend. Provider storage
+switching and durable orphan recovery remain open after the standalone SDK.
+Browser/AuthGate and genuine saved CSV/XLSX downloads remain unverified because
+desktop control still reported a locked Mac after the latest unlock reply.
+Overall totals stay **12 complete, 15 partial, three unstarted**; F17 and F28
+remain partial. Continue partial capabilities after every checked phase delivery.
+
+## Historical checkpoints
+
+The following checkpoints are historical. Their pending/running labels describe
+the recorded checkpoint, not current main or the acceptance status above.
+
 ## Provider credential KV-v2 SDK boundary (2026-10-07)
 
 The standalone additive `pkg/vault` SDK supplies bounded credential CAS0 Write,
@@ -548,7 +638,7 @@ The binary capability count is 12 completed, 15 partially completed, and 3 not s
 | F14 | Managed egress and staged network diagnostics | Partially completed | Direct, default, SOCKS5, verified CONNECT, endpoint-bound saved authentication, complete-tunnel proxy-address fallback, and diagnostics exist. External proxy and production performance acceptance remain open. |
 | F15 | Prices, spreadsheet/CSV workflows, API, and repository sync | Partially completed | Current prices, ETags, CSV/XLS/XLSX import, preview, commit, and export exist; repository-file mappings, reviewed synchronization, custom-rate protection and selected restoration passed complete current-main source, dual-driver and controlled production/browser/restart gates; three embedded model entries/six base USD rates now have controlled dual-driver preview/apply/receipt/replay and same-artifact restart acceptance; missing cache rates remain absent, while broader external/release acceptance remains open. |
 | F16 | Platform currency, exchange rates, and historical price snapshots | Completed | Decimal-string currency/rate management, exact quoting, and immutable per-call assessment are implemented. |
-| F17 | User and Team defaults, overrides, budgets, alerts, and stop policy | Partially completed | Personal, Project, Key and Team aggregate/member enforcement plus budget/token/TPM controls, authoritative quota snapshots, and installation-calendar configuration exist; current-policy Personal/Project monthly settled-exhaustion inboxes have focused acceptance, Team aggregate monthly settled-exhaustion inboxes have complete controlled acceptance; private Team member monthly notices have passed controlled local source, dual-driver, native/browser/restart and full-matrix acceptance, with final mandatory check passed and checked source committed/pushed as 5363d3c; distinct remote checks remain in progress, and creation-default settings and explicit restores have complete local acceptance; Personal, Team aggregate, Project and private Team-member fixed 80%/90% settled monthly warnings have complete local source, dual-driver/full and controlled PostgreSQL bilingual/restart acceptance; Member warnings are committed/pushed as f7b31b1a, and separate Restore recovery as e9003c97; Personal/Project Key warnings V64/V65 are delivered as cf05c57 after full119, mandatory main checks, both authentication lifecycles and two controlled PostgreSQL scenarios totaling12 native calls,10 observations and15 inbox rows; Team creation V63 is delivered as8f17d12. Chinese Key titles are corrected in8a47ac2; fixed default templates and explicit restores are available. Independent Personal monthly Token/money stop or alert-only behavior is delivered as03c6fe1; the containing commit delivers Team aggregate monthly modes V71, preserving hard Team-member policies. Personal and Project Key monthly modes, explicit Project monthly mode controls and distributed enforcement remain open; named template CRUD, configurable warning percentages and arbitrary periods are not established requirements. |
+| F17 | User and Team defaults, overrides, budgets, alerts, and stop policy | Partially completed | Personal, Project, Key and Team aggregate/member enforcement plus budget/token/TPM controls, authoritative quota snapshots, and installation-calendar configuration exist; current-policy Personal/Project monthly settled-exhaustion inboxes have focused acceptance, Team aggregate monthly settled-exhaustion inboxes have complete controlled acceptance; private Team member monthly notices have passed controlled local source, dual-driver, native/browser/restart and full-matrix acceptance, with final mandatory check passed and checked source committed/pushed as 5363d3c; distinct remote checks remain in progress, and creation-default settings and explicit restores have complete local acceptance; Personal, Team aggregate, Project and private Team-member fixed 80%/90% settled monthly warnings have complete local source, dual-driver/full and controlled PostgreSQL bilingual/restart acceptance; Member warnings are committed/pushed as f7b31b1a, and separate Restore recovery as e9003c97; Personal/Project Key warnings V64/V65 are delivered as cf05c57 after full119, mandatory main checks, both authentication lifecycles and two controlled PostgreSQL scenarios totaling12 native calls,10 observations and15 inbox rows; Team creation V63 is delivered as8f17d12. Chinese Key titles are corrected in8a47ac2; fixed default templates and explicit restores are available. Independent Personal monthly Token/money stop or alert-only behavior is delivered as03c6fe1; the containing commit delivers Team aggregate monthly modes V71, preserving hard Team-member policies. Personal Key and explicit Project aggregate monthly modes are delivered in c2368ddb; independent Project Key modes and Team-member modes are undergoing separately identified acceptance before delivery. Distributed enforcement remains open; named template CRUD, configurable warning percentages and arbitrary periods are not established requirements. |
 | F18 | Quota, model, and request-limit approvals | Completed | Project model/monthly quota/RPM/TPM/concurrency and Team monthly Token/money requests have controlled acceptance: owner-first assignment, escalation, independent dimensions, read-only platform records, atomic final policies and immutable receipts with current application. Distributed acknowledgements belong to F30; release-wide acceptance remains separate. |
 | F19 | Member overview, model sources, requests, and examples | Completed | Own Overview/identity, explicit Personal/Team sources, catalogue/details/filters, scoped requests, native examples, configured prices, monthly requests/distinct callers, exact copy/highlighting, keyboard/focus and SDK guidance are delivered. Source, dual-driver and controlled browser/restart evidence is indexed below. SDK configuration guidance does not certify external clients or Providers; broader A02/A04/A06 release cases remain partial. |
 | F20 | Playground, comparison, attachments, and code examples | Partially completed | Four native conversation paths, two-to-four-lane comparison, cancellation, executable examples, per-protocol image/PDF discovery, user/Project attachment resolution, single/comparison attachment lifecycle interfaces, and conservative token/TPM/money admission with exact per-occurrence media prices exist; Team comparison, independent native code export, parameter Reset and creator-private Team attachments have complete local acceptance; external acceptance remains open. |
@@ -559,7 +649,7 @@ The binary capability count is 12 completed, 15 partially completed, and 3 not s
 | F25 | Site presentation, language, and announcements | Completed | Durable site name, URL, logo, footer, default language, bilingual UI behavior, and announcement lifecycle are implemented. |
 | F26 | Instances, heartbeats, resources, jobs, and offline cleanup | Completed | Distinct process generations, server-owned leases, nullable resource facts, bounded real system jobs, executor-loss reconciliation, revision-checked cleanup, audit evidence, and the bilingual administrative workspace are implemented. |
 | F27 | S3, owned attachments, SMTP, and notifications | Partially completed | S3-compatible configuration and administration UI, explicit user/Project attachment APIs, cleanup recovery, Key-scoped inference reads, single/comparison attachment interfaces, SMTP administration/test delivery, and durable operational email intents exist. External storage/mail acceptance, bounce handling, and inbox tracking remain open. |
-| F28 | Internal encryption, root-key rotation, and Vault switching | Partially completed | Internal Provider, egress, SMTP, retained Storage and MFA encryption is implemented. Guarded root rotation passed source, complete dual-driver regression and controlled production/browser/restart acceptance, including final mandatory checks. External Vault identities, compensation and storage switching remain open. |
+| F28 | Internal encryption, root-key rotation, and Vault switching | Partially completed | Internal Provider, egress, SMTP, retained Storage and MFA encryption is implemented. Guarded root rotation passed source, complete dual-driver regression and controlled production/browser/restart acceptance, including final mandatory checks. Vault Token settings, retained revisions, diagnostic probes and seven-domain root inventory are delivered in c2368ddb; the bounded credential KV-v2 SDK is delivered in 78c76d2. Provider storage switching, durable compensation and independent cleanup authority remain open. |
 | F29 | API Key Vault delivery and application identities | Not started | Application identities, Profiles, descriptors, coordinator state, and no-plaintext-fallback delivery are not implemented. |
 | F30 | Configuration publication, acknowledgement, rollback, revocation, and audit | Partially completed | Immutable runtime publication, durable events, current revocation, and audit foundations exist; node acknowledgement, complete rollback, and distributed emergency-revocation acceptance remain open. |
 
@@ -584,7 +674,7 @@ A01 and A13 are fully accepted across their defined controlled scope. Other case
 | A13 | Self, repeated, concurrent approval and Team overflow | Completed | Real PostgreSQL/MySQL controlled tests reject self/duplicate/stale decisions, serialize owner approve/approve and approve/reject competitors, retain one winner and audit, atomically raise Team/member caps, roll back exact audit failure, and preserve receipts/current use through restart. This is controlled single-process acceptance. |
 | A14 | Control Plane, Vault, analytics failure, invalid snapshots, and replay | Partially completed | Runtime and durable replay foundations exist; Vault and the complete failure matrix remain open. |
 | A15 | SSO, OAuth, LDAP, MFA, and recovery | Partially completed | MFA is implemented; enterprise identity is not. |
-| A16 | Vault compensation, rotation, and cleanup failure | Not started | Vault integration is not implemented. |
+| A16 | Vault compensation, rotation, and cleanup failure | Not started | Vault Token configuration/probes and credential SDK operations exist; durable Provider compensation, rotation and cleanup-failure acceptance remain unimplemented. |
 | A17 | Images/PDF, object authorization, and model comparison | Partially completed | Object backend, comparison, conservative route capability discovery, owner-bound user/Project byte reads, current-manager Project lifecycle, native inline rewriting, both Playground attachment interfaces, and attested token/TPM/money reservation with exact media occurrence settlement exist; external acceptance remains open. |
 | A18 | Call queries, CSV, reports, and hostile analysis inputs | Partially completed | Call queries, usage views, and safe scoped call-record CSV exports have controlled evidence; AI analysis, saved reports, and their hostile-input acceptance remain open. |
 | A19 | S3, SMTP, site, announcements, instances, and jobs | Partially completed | Controlled local coverage now includes storage, SMTP configuration/test and durable notification delivery, site/announcements, authoritative instances, and actual system jobs. External services, bounce/inbox behavior, production clock/capacity assumptions, and release acceptance remain open. |
