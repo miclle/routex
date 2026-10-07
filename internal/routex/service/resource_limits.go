@@ -66,7 +66,10 @@ func decodeLimitPolicy(row entity.ResourceLimit, provedKey bool) (limits.Policy,
 		}
 	}
 	normalized, err := limits.Normalize(policy)
-	if err != nil || row.ScopeKind != "user" && row.ScopeKind != "team" && row.ScopeKind != "project" && (!provedKey || row.ScopeKind != "key") && (normalized.TokensMonthBehavior != "" || normalized.MoneyMonthBehavior != "") {
+	if err != nil || row.ScopeKind != "user" && row.ScopeKind != "team" && row.ScopeKind != "project" && row.ScopeKind != "team_member" && (!provedKey || row.ScopeKind != "key") && (normalized.TokensMonthBehavior != "" || normalized.MoneyMonthBehavior != "") {
+		return policy, limits.ErrInvalid
+	}
+	if row.ScopeKind == "team_member" && (normalized.TokensMonthBehavior != "" || normalized.MoneyMonthBehavior != "") && !canonicalTeamMemberScopeID(row.ScopeID) {
 		return policy, limits.ErrInvalid
 	}
 	if row.ScopeKind == "project" && (normalized.TokensMonthBehavior != "" || normalized.MoneyMonthBehavior != "") && !projectMonthlyID(row.ScopeID) {
@@ -295,7 +298,7 @@ func (s *Service) resourceLimitRecord(db *gorm.DB, target LimitTarget, resolved 
 	}
 	// Decorate only after all stored-vs-published equality checks. Internal stop
 	// remains canonical legacy empty; wire User/Team policies spell it explicitly.
-	if resolved.kind == "user" || resolved.kind == "team" || resolved.kind == "project" || resolved.kind == "key" && (resolved.parentKind == "user" || resolved.parentKind == "project") {
+	if resolved.kind == "user" || resolved.kind == "team" || resolved.kind == "team_member" || resolved.kind == "project" || resolved.kind == "key" && (resolved.parentKind == "user" || resolved.parentKind == "project") {
 		result.Stored = userMonthlyBehaviorWire(result.Stored)
 		result.IPPolicies[len(result.IPPolicies)-1] = userMonthlyBehaviorWire(result.IPPolicies[len(result.IPPolicies)-1])
 	}

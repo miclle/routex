@@ -51,12 +51,22 @@ function TeamLimitContent({
   restoreHostCurrent?: () => boolean
 }) {
   const { t } = useTranslation('limits')
+  const session = useSession()
+  const generation = scope.userId ? session.dataUpdatedAt : undefined
+  const sessionFresh = !session.isFetching && !session.isError && session.data?.user.id === actor
   const cache = useQueryClient()
-  const queryKey = ['resource-limits', 'team', actor, scope.teamId, scope.userId ?? 'aggregate']
+  const queryKey = [
+    'resource-limits',
+    'team',
+    actor,
+    scope.teamId,
+    scope.userId ?? 'aggregate',
+    ...(scope.userId ? [generation] : []),
+  ]
   const query = useQuery({
     queryKey,
     queryFn: ({ signal }) => getTeamLimits(scope, signal),
-    enabled: !!actor,
+    enabled: !!actor && (!scope.userId || sessionFresh),
     retry: false,
     staleTime: 0,
     gcTime: 0,
@@ -65,7 +75,19 @@ function TeamLimitContent({
   })
   const [editing, setEditing] = useState(false)
   const [notice, setNotice] = useState<'applied' | 'teamUncertainClosed' | null>(null)
-  const fresh = !!query.data && !query.isFetching && !query.isError && !!actor
+  const fresh =
+    !!query.data &&
+    !query.isFetching &&
+    !query.isError &&
+    !!actor &&
+    (!scope.userId || sessionFresh)
+  const [retained, setRetained] = useState<LimitRecord | undefined>()
+  if (scope.userId && fresh && query.data !== retained) {
+    setRetained(query.data)
+  }
+  // Only this mounted actor/target owner keeps the last review while new reads
+  // hide the form. No response becomes permission authority during renewal.
+  const editorRecord = query.data ?? (scope.userId ? retained : undefined)
   const editable = canEdit && !!query.data?.editable_fields?.length
   return (
     <section className="space-y-4" aria-label={t(scope.userId ? 'teamMemberTitle' : 'teamTitle')}>
@@ -119,11 +141,12 @@ function TeamLimitContent({
           }}
         />
       )}
-      {editing && query.data && (
+      {editing && editorRecord && (
         <TeamLimitEditor
           scope={scope}
           actor={actor}
-          current={query.data}
+          current={editorRecord}
+          generation={generation}
           visible={fresh}
           canEdit={editable}
           reload={async () => {
@@ -194,9 +217,23 @@ function TeamLimitSummary({ record, member }: { record: LimitRecord; member: boo
                   </dd>
                   {(field === 'tokens_month' || field === 'money_month') && (
                     <dd className="mt-1 text-xs text-muted-foreground">
-                      {t(member ? 'teamParentBehavior' : 'teamStoredBehavior')}:{' '}
+                      {t(member ? 'teamMemberStoredBehavior' : 'teamStoredBehavior')}:{' '}
                       {t(
-                        (member ? record.ip_policies[0] : record.stored)[
+                        record.stored[
+                          field === 'tokens_month'
+                            ? 'tokens_month_behavior'
+                            : 'money_month_behavior'
+                        ] === 'alert_only'
+                          ? 'monthlyAlertOnly'
+                          : 'monthlyStop',
+                      )}
+                    </dd>
+                  )}
+                  {member && (field === 'tokens_month' || field === 'money_month') && (
+                    <dd className="text-xs text-muted-foreground">
+                      {t('teamParentBehavior')}:{' '}
+                      {t(
+                        record.ip_policies[0][
                           field === 'tokens_month'
                             ? 'tokens_month_behavior'
                             : 'money_month_behavior'
@@ -243,6 +280,7 @@ function TeamLimitEditor({
   scope,
   actor,
   current,
+  generation,
   visible,
   canEdit,
   reload,
@@ -252,6 +290,7 @@ function TeamLimitEditor({
   scope: TeamLimitScope
   actor: string
   current: LimitRecord
+  generation?: number
   visible: boolean
   canEdit: boolean
   reload: () => Promise<LimitRecord>
@@ -291,14 +330,16 @@ function TeamLimitEditor({
     mounted.current = true
     return () => {
       mounted.current = false
+      intent.current = null
     }
   }, [])
+  const sameOwner = () => mounted.current && currentSession()?.user.id === actor
   const active = () =>
-    mounted.current &&
+    sameOwner() &&
     identity.current === actor &&
-    currentSession()?.user.id === actor &&
     cache.getQueryState(sessionKey)?.status === 'success' &&
-    cache.getQueryState(sessionKey)?.fetchStatus === 'idle'
+    cache.getQueryState(sessionKey)?.fetchStatus === 'idle' &&
+    (!scope.userId || cache.getQueryState(sessionKey)?.dataUpdatedAt === generation)
   const currentTarget = () => {
     const state = cache.getQueryState<LimitRecord>([
       'resource-limits',
@@ -306,6 +347,7 @@ function TeamLimitEditor({
       actor,
       scope.teamId,
       scope.userId ?? 'aggregate',
+      ...(scope.userId ? [generation] : []),
     ])
     return state?.status === 'success' &&
       state.fetchStatus === 'idle' &&
@@ -385,7 +427,7 @@ function TeamLimitEditor({
           if (numeric !== (reviewed.stored[field] ?? null)) input[field] = numeric
         }
       }
-      if (!scope.userId) {
+      {
         for (const field of teamMonthlyBehaviorFields) {
           const mode = field === 'tokens_month_behavior' ? tokensBehavior : moneyBehavior
           if (editable(field) && mode !== reviewed.stored[field]) input[field] = mode
@@ -401,7 +443,7 @@ function TeamLimitEditor({
         actor,
         platformCurrency: reviewed.platform_currency,
       }
-      if (!scope.userId) {
+      {
         setConfirmation({
           etag: reviewed.etag,
           input,
@@ -439,22 +481,23 @@ function TeamLimitEditor({
         original.input,
         latestSession.csrf_token,
       )
-      if (active()) {
-        if (visibleRef.current) saved(data)
-        else {
-          setUncertain(true)
-          setIssue('uncertain')
-        }
+      if (!sameOwner()) return
+      if (active() && visibleRef.current) saved(data)
+      else {
+        // A renewed authority generation cannot adopt this older response.
+        // Keep its dispatched intent for an explicit retry after fresh review.
+        setUncertain(true)
+        setIssue('uncertain')
       }
     } catch (error) {
-      if (!active()) return
+      if (!sameOwner()) return
       const status = isAxiosError(error) ? error.response?.status : undefined
-      const unknown = !status || status >= 500
+      const unknown = !active() || !visibleRef.current || !status || status >= 500
       setUncertain((previous) => previous || unknown)
       setIssue(unknown || uncertain ? 'uncertain' : status === 409 ? 'conflict' : 'failed')
     } finally {
       lock.current = false
-      if (active()) setBusy(false)
+      if (sameOwner()) setBusy(false)
     }
   }
   async function review() {
@@ -474,7 +517,7 @@ function TeamLimitEditor({
       /* Keep the original intent and draft until an authorized read succeeds. */
     } finally {
       lock.current = false
-      if (active()) setBusy(false)
+      if (sameOwner()) setBusy(false)
     }
   }
   if (!visible) return null
@@ -525,7 +568,7 @@ function TeamLimitEditor({
                         placeholder={t(scope.userId ? 'inherited' : 'unlimited')}
                       />
                     </FormField>
-                    {!scope.userId && (field === 'tokens_month' || field === 'money_month') && (
+                    {(field === 'tokens_month' || field === 'money_month') && (
                       <TeamBehaviorControl
                         label={t(
                           field === 'tokens_month' ? 'tokensMonthBehavior' : 'moneyMonthBehavior',
@@ -596,11 +639,11 @@ function TeamLimitEditor({
           {t('cancel')}
         </Button>
       </div>
-      {!scope.userId && confirmation && (
+      {confirmation && (
         <Dialog
           open
           busy={busy}
-          title={t('teamMonthlyConfirmTitle')}
+          title={t(scope.userId ? 'teamMemberMonthlyConfirmTitle' : 'teamMonthlyConfirmTitle')}
           description={t('monthlyConfirmHelp')}
           onOpenChange={(open) => {
             if (!open) setConfirmation(null)

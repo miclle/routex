@@ -1111,3 +1111,29 @@ warning fixture uses settled150 against cap166 to exercise critical90 rather
 than asserting a percentage notice after exhaustion. Production warning
 thresholds and original hard denial/native counts remain unchanged. See
 [Implementation](IMPLEMENTATION.md) for actual driver and runtime results.
+
+## Team-member monthly behavior (V75 source candidate)
+
+Frozen GORM V75 extends the exact monthly-mode scope fence to `team_member` using
+private schema definitions. It adds no columns and does not alter released V70–V74.
+Width16, non-null stop defaults and exact case/length/value checks remain. Install
+the successor scope CHECK before removing V74's fence; repeat/partial-DDL startup
+must preserve rows and repair only the bounded schema. PostgreSQL/MySQL collation
+aliases, unsupported scopes and invalid modes remain rejected. Database scope alone
+cannot authorize soft behavior: application proof binds current Team/User/member
+identity, original Team birth and the complete retained pair account.
+
+Historical test reconstruction extends the existing bounded helper to retain V75's
+ledger while rebuilding the original V70/V71/V73/V74 fences and assertions, then
+restores V75. Unrelated ledger timestamps must remain exact. The original V74 body
+is retained in a private historical helper; the 142 registry names/function bindings
+remain and only two Team-member cases are appended. These are explicit test-only
+compatibility deltas, not changes to released migrations or relaxed constraints.
+
+The private Team R3 source candidate passes mandatory checking, complete Task
+and build with 4,526 frontend tests; its backend bytes/modes are identical to R2.
+Real empty/upgrade/repeat/concurrent, partial-DDL and constraint evidence must keep
+its own PostgreSQL/MySQL source binding. The original failed lifecycle restart and
+its fixture-only startup repair remain separate history, preserving accounting,
+Session, CallRecord/Attempt and no-new-native assertions. See
+[Implementation](IMPLEMENTATION.md) for current driver and runtime acceptance.

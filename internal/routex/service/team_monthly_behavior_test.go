@@ -31,8 +31,8 @@ func TestTeamMonthlyBehaviorSparseModesAndAuthority(t *testing.T) {
 	if _, err = applyTeamLimitInput(before, input, "team", []string{"money_month_behavior"}, "USD"); !errors.Is(err, apperrors.ErrForbidden) {
 		t.Fatal("money writer acquired Token behavior", err)
 	}
-	if _, err = applyTeamLimitInput(limits.Policy{}, input, "team_member", teamMemberLimitFields, "USD"); !errors.Is(err, apperrors.ErrBadRequest) {
-		t.Fatal("child accepted mode", err)
+	if _, err = applyTeamLimitInput(limits.Policy{}, input, "team_member", []string{"money_month_behavior"}, "USD"); !errors.Is(err, apperrors.ErrForbidden) {
+		t.Fatal("money writer acquired member token mode", err)
 	}
 	for _, body := range []string{`{"tokens_month_behavior":null}`, `{"tokens_month_behavior":""}`, `{"tokens_month_behavior":"STOP"}`, `{"money_month_behavior":"alert_only "}`, `{"money_month_behavior":1}`, `{"money_month_behavior":"stop","money_month_behavior":"alert_only"}`} {
 		var input TeamLimitInput
@@ -123,8 +123,8 @@ func TestTeamMonthlyBehaviorReviewRequestsAndAudit(t *testing.T) {
 	if len(auditRecord(entity.AuditEvent{Action: "limits.update", ResourceType: "team", ResourceID: team.ID, DetailsJSON: &detail}).Changes) == 0 {
 		t.Fatal("Team typed audit lost modes")
 	}
-	if validateTeamLimitPolicy("team_member", before) == nil {
-		t.Fatal("member soft policy validated")
+	if validateTeamLimitPolicy("team_member", before) != nil {
+		t.Fatal("member monthly mode rejected")
 	}
 	defaults, _ := limits.Normalize(limits.Policy{TokensMonth: limitNumber(100)})
 	reset, err := defaultLimitResetPolicy(&defaultLimitResetState{Target: LimitTarget{Kind: "team"}, Stored: before, Policy: defaults})

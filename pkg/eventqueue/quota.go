@@ -326,9 +326,9 @@ func (q *Queue) checkQuotaAdmission(tx *bolt.Tx, id string, policies []QuotaLimi
 	return entry, limitAccounts, nil
 }
 
-// Team monthly modes apply only to the aggregate account, never to the reserved
-// team_member namespace. The suffix has the same bounded ASCII identity contract
-// as Team Session admission; membership pair digests remain separate hard accounts.
+// Aggregate monthly accounts use bounded ASCII identities. Team-member pair
+// digests require the separate trusted current-membership proof; an account
+// prefix alone never enables their monthly modes.
 func monthlyBehaviorAccount(account string) bool {
 	if suffix, ok := strings.CutPrefix(account, "project_"); ok {
 		return strings.HasPrefix(suffix, "prj_") && len(suffix) > len("prj_") && len(suffix) <= 30 && validKey.MatchString(suffix)
@@ -353,7 +353,7 @@ func personalKeyBehaviorAccount(account string) bool {
 func checkQuota(tx *bolt.Tx, policy QuotaLimit, bound QuotaBound, metadata quotaMetadata, instant, monthStart int64, activeJournal, establish bool) error {
 	tokenBehavior, tokenErr := limits.CanonicalMonthlyBehavior(policy.TokensMonthBehavior)
 	moneyBehavior, moneyErr := limits.CanonicalMonthlyBehavior(policy.MoneyMonthBehavior)
-	if tokenErr != nil || moneyErr != nil || policy.PersonalKey && policy.ProjectKey || (tokenBehavior != "" || moneyBehavior != "") && !monthlyBehaviorAccount(policy.Account) && (!policy.PersonalKey || !personalKeyBehaviorAccount(policy.Account)) && (!policy.ProjectKey || !projectKeyBehaviorAccount(policy.Account)) {
+	if tokenErr != nil || moneyErr != nil || policy.PersonalKey && policy.ProjectKey || policy.TeamMember && (policy.PersonalKey || policy.ProjectKey) || (tokenBehavior != "" || moneyBehavior != "") && !monthlyBehaviorAccount(policy.Account) && (!policy.PersonalKey || !personalKeyBehaviorAccount(policy.Account)) && (!policy.ProjectKey || !projectKeyBehaviorAccount(policy.Account)) && (!policy.TeamMember || !teamMemberBehaviorAccount(policy.Account)) {
 		return ErrInvalid
 	}
 	if !validKey.MatchString(policy.Revision) {

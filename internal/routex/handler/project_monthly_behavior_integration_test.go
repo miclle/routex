@@ -44,6 +44,14 @@ func (projectBehaviorFrozenV73) TableName() string { return "resource_limits" }
 
 // The coordinator registers these two scenarios only after the V73 predecessor.
 func testProjectMonthlyBehaviorMigration(t *testing.T, db *gorm.DB) {
+	if db.Migrator().HasConstraint(&entity.ResourceLimit{}, "ck_resource_limits_monthly_behavior_scope_v75") {
+		projectBehaviorHistoricalReplay(t, db, testProjectMonthlyBehaviorMigrationV74)
+		return
+	}
+	testProjectMonthlyBehaviorMigrationV74(t, db)
+}
+
+func testProjectMonthlyBehaviorMigrationV74(t *testing.T, db *gorm.DB) {
 	ctx := context.Background()
 	const current = "ck_resource_limits_monthly_behavior_scope_v74"
 	if !db.Migrator().HasConstraint(&entity.ResourceLimit{}, current) {
@@ -1012,7 +1020,19 @@ func projectBehaviorHistoricalReplay(t *testing.T, db *gorm.DB, historical func(
 	t.Helper()
 	ctx := context.Background()
 	before := personalKeyBehaviorLedger(t, db)
-	if len(before) != 74 || before[73].Version != 74 || !db.Migrator().HasConstraint(&entity.ResourceLimit{}, "ck_resource_limits_monthly_behavior_scope_v74") {
+	hasV75 := db.Migrator().HasConstraint(&entity.ResourceLimit{}, "ck_resource_limits_monthly_behavior_scope_v75")
+	if hasV75 {
+		if len(before) != 75 || before[74].Version != 75 {
+			t.Fatal("exact V75 predecessor required")
+		}
+		if err := db.Migrator().DropConstraint(&entity.ResourceLimit{}, "ck_resource_limits_monthly_behavior_scope_v75"); err != nil {
+			t.Fatal(err)
+		}
+		if err := db.Migrator().CreateConstraint(&teamMemberBehaviorFrozenV74{}, "ck_resource_limits_monthly_behavior_scope_v74"); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if (len(before) != 74 && len(before) != 75) || before[73].Version != 74 || !db.Migrator().HasConstraint(&entity.ResourceLimit{}, "ck_resource_limits_monthly_behavior_scope_v74") {
 		t.Fatal("exact V74 predecessor required")
 	}
 	defer func() {
@@ -1025,16 +1045,35 @@ func projectBehaviorHistoricalReplay(t *testing.T, db *gorm.DB, historical func(
 			return
 		}
 		replayed := []int{74, 73, 71}
+		if hasV75 {
+			if err := db.Table("schema_migrations").Where("version = ?", 75).Delete(&struct{}{}).Error; err != nil {
+				t.Error(err)
+				return
+			}
+			if err := database.Migrate(ctx, db); err != nil {
+				t.Error("restore V75", err)
+				return
+			}
+			replayed = append(replayed, 75)
+		}
 		if reflect.ValueOf(historical).Pointer() == reflect.ValueOf(testPersonalMonthlyBehaviorMigration).Pointer() {
 			replayed = append(replayed, 70)
 		}
 		if !personalKeyBehaviorLedgerPreserved(before, personalKeyBehaviorLedger(t, db), replayed...) {
 			t.Error("unrelated ledger timestamp/version changed")
 		}
-		if !db.Migrator().HasConstraint(&entity.ResourceLimit{}, "ck_resource_limits_monthly_behavior_scope_v74") || db.Migrator().HasConstraint(&entity.ResourceLimit{}, "ck_resource_limits_monthly_behavior_scope_v73") {
-			t.Error("V74 fence not restored")
+		currentFence := "ck_resource_limits_monthly_behavior_scope_v74"
+		if hasV75 {
+			currentFence = "ck_resource_limits_monthly_behavior_scope_v75"
+		}
+		if !db.Migrator().HasConstraint(&entity.ResourceLimit{}, currentFence) || db.Migrator().HasConstraint(&entity.ResourceLimit{}, "ck_resource_limits_monthly_behavior_scope_v73") || hasV75 && db.Migrator().HasConstraint(&entity.ResourceLimit{}, "ck_resource_limits_monthly_behavior_scope_v74") {
+			t.Error("current exact monthly fence not restored")
 		}
 	}()
+	if reflect.ValueOf(historical).Pointer() == reflect.ValueOf(testProjectMonthlyBehaviorMigrationV74).Pointer() {
+		historical(t, db)
+		return
+	}
 	if err := db.Migrator().DropConstraint(&entity.ResourceLimit{}, "ck_resource_limits_monthly_behavior_scope_v74"); err != nil {
 		t.Fatal(err)
 	}
@@ -1077,6 +1116,10 @@ func TestProjectBehaviorRegistryAppendAndHistoricalWrapperGuard(t *testing.T) {
 	for _, pair := range matches {
 		names = append(names, pair[1]+":"+pair[2])
 	}
+	if !teamMemberMonthlyRegistryTail(names) {
+		t.Fatal("exact144 registry tail changed")
+	}
+	names = names[:142]
 	if len(names) != 142 || names[141] != "project_key_monthly_behavior:testProjectKeyMonthlyBehaviorLifecycle" || !personalKeyBehaviorRegistryMatches(names[:141]) {
 		t.Fatal("exact139 inherited names+reviewed wrapper+Project pair changed", len(names))
 	}
@@ -1094,7 +1137,7 @@ func TestProjectBehaviorRegistryAppendAndHistoricalWrapperGuard(t *testing.T) {
 			t.Fatal("missing/reordered/extra/unreviewed scenario accepted")
 		}
 	}
-	if !strings.Contains(string(raw), "versions != 74") || !strings.Contains(string(raw), "projectBehaviorHistoricalReplay(t, db, test.run)") || !strings.Contains(string(raw), "personalKeyBehaviorHistoricalReplay(t, db, test.run)") {
+	if !strings.Contains(string(raw), "versions != 75") || !strings.Contains(string(raw), "projectBehaviorHistoricalReplay(t, db, test.run)") || !strings.Contains(string(raw), "personalKeyBehaviorHistoricalReplay(t, db, test.run)") {
 		t.Fatal("current74 or retained historical71/73 companion not bound")
 	}
 }

@@ -160,7 +160,7 @@ The policy table is a bounded discriminated resource association, not an arbitra
 
 `limit_defaults` snapshots and reset semantics avoid tri-state default ambiguity: null on a resource aggregate means unlimited; null on a Key or Team member means inherit. A per-field override can be cleared with an explicit null to return that child field to inheritance. Reset-to-default replaces all aggregate fields with the current template and records before/after values. No usage-reset API is included. Direct platform edits require a reason and If-Match/ETag; stale edits return 409.
 
-The delivered Personal User and Team aggregate monthly slices below permit independent stop/alert-only for their own dimensions. Released V73/V74 extend this to exact Personal Key roots and Project aggregates. Project Key policies use separate immutable Project/root proof; Team-member stored policies remain hard-only. Accounting, currency/price, rolling, rates, concurrency and IP remain independent gates; fixed warning history is unchanged. Configurable thresholds and other scopes are separate phases.
+The delivered Personal User and Team aggregate monthly slices below permit independent stop/alert-only for their own dimensions. Released V73/V74 extend this to exact Personal Key roots and Project aggregates. Project Key policies use separate immutable Project/root proof; the V75 source candidate adds independent Team-member modes with separate current Team/User proof. Accounting, currency/price, rolling, rates, concurrency and IP remain independent gates; fixed warning history is unchanged. Configurable thresholds and other scopes are separate phases.
 
 ## Windows, money and reset boundaries
 
@@ -355,22 +355,23 @@ independent `tokens_month_behavior` and `money_month_behavior` values, exactly
 `stop` or `alert_only`. Stored aggregate policy and the aggregate parent-chain
 entry include canonical modes; absent/legacy hard values read as stop. Numeric
 `effective` values do not merge these modes or establish remaining allowance.
-The member endpoint keeps hard-only local policy and shows modes only on its Team
-parent. Project aggregate and proved Personal/Project Key root behavior are
+The V75 member endpoint exposes independent local modes and the separate Team
+parent modes. Project aggregate and proved Personal/Project Key root behavior are
 covered by their separate sections below.
 
 Token/money modes require their independent Team dimension write permission;
 ownership or read permission is insufficient. A sparse omission preserves the
 corresponding saved mode, including ordinary cap/request changes. Mode-only writes
-are permitted with fresh authority. Explicit null/invalid modes and every mode on
-the member endpoint are rejected. Exact money, denomination, reason and reviewed
+are permitted with fresh authority. Explicit null/invalid modes are rejected; the
+V75 member endpoint accepts only its independently authorized monthly modes. Exact
+money, denomination, reason and reviewed
 composite If-Match remain mandatory. First conflicts require explicit review;
 uncertain publication retains the exact original target/body/ETag through rejected
 manual retries. A matching current GET cannot resolve the historical uncertainty.
 
 Null caps disable only their own controls; zero is a real threshold. Alert-only
-bypasses that exact aggregate monthly capacity comparison, while hard member,
-other monthly dimension, rolling Token/rate/IP/concurrency gates, finite bounds,
+bypasses that exact aggregate monthly capacity comparison, while each independently
+hard member dimension, other monthly dimension, rolling Token/rate/IP/concurrency gates, finite bounds,
 prices/currency, journal coverage/unknowns, exact births and current lease remain
 required. Reservations and settlement continue; missing usage is not zero.
 A soft parent numerical ceiling does not prevent a larger hard member cap.
@@ -510,7 +511,7 @@ uncertain retries retain the original mounted intent; matching current content
 never proves the original historical write. No secret or draft enters browser
 storage. This package adds no schema version or counter reset. Source, driver,
 controlled runtime and browser acceptance are recorded separately in
-[Implementation](IMPLEMENTATION.md). Team-member soft policy is a separate phase.
+[Implementation](IMPLEMENTATION.md). Team-member V75 source behavior is described below; actual acceptance remains separate.
 
 ## Key editor asynchronous ownership
 
@@ -528,3 +529,43 @@ in 181 files) and build pass. The backend matrix failure and fixture successor
 remain separately recorded in Implementation. Accepted database and
 API receipts retain their original source and artifact identities; this guard does
 not change persistence, quotas, permissions or native dispatch.
+
+## Independent Team-member monthly modes (V75 source candidate)
+
+The existing member GET/PUT adds independently stored `tokens_month_behavior` and
+`money_month_behavior`, each exactly `stop` or `alert_only`. Stored member policy
+and chain entry 1 emit both canonical modes; entry 0 is the independent Team parent.
+Numeric effective limits remain configured-cap facts. Legacy empty modes read as
+stop. Sparse omission preserves a mode; explicit null, aliases and unknown values
+are rejected. Mode-only Token/money edits require `teams.tokens.write` and
+`teams.money.write` respectively; ownership/read access does not grant mutation.
+Rates keep their existing separate permission. Numeric quota approvals preserve modes.
+
+Only the proved member account's own monthly capacity comparison can be skipped.
+The exact current Team/User/membership and original Team birth establish that proof,
+not an account prefix. Stable pair accounting survives removal/rejoin and restart;
+removed members cannot continue admission. Hard aggregate caps, unknown usage,
+coverage, holds, finite reservation, prices/currency, rolling limits, TPM/RPM,
+concurrency, IP and publication fences remain required. Existing private member
+80/90 warnings and immutable settlement retain their original semantics.
+
+The existing member dialog exposes two independent switches and an explicit Base UI
+confirmation, with paired English/Chinese copy. Reads/rendering/manual dispatch use
+fresh Session generation, exact actor/target and published editability. Uncertain
+retries keep original bytes/modes/ETag and current CSRF; matching GET is current
+configuration, not an original-operation receipt. This intent is mounted-only;
+aggregate/default Restore and remount behavior are unchanged.
+
+The private Team R3 source candidate passes formatting, mandatory checking,
+complete Task tests and production build, including 4,526 Vitest cases in 181
+files, Go race/coverage, Node and asset checks. Its two UI completion-fence leaves
+are the only changes from Team R2; all backend bytes and modes remain identical.
+Same-owner Session renewal retains an in-flight original submission as uncertain,
+releases busy state and requires a fresh authorized manual retry, even after a
+late HTTP200. Actor/target changes, logout and unmount discard that ownership.
+
+Original failed Focus4 evidence remains retained. Database, controlled API/restart,
+browser and delivery receipts keep their exact source/artifact identities and are
+tracked separately in [Implementation](IMPLEMENTATION.md). R3 source gates do not
+relabel R2's whole-source database evidence. The registry preserves the 142-case
+prefix and appends only the two Team-member scenarios.

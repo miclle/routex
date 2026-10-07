@@ -441,6 +441,12 @@ func testProjectKeyMonthlyBehaviorLifecycle(t *testing.T, db *gorm.DB) {
 }
 
 func projectKeyMonthlyBehaviorRegistryMatches(pairs []string) bool {
+	if len(pairs) == 144 {
+		if !teamMemberMonthlyRegistryTail(pairs) {
+			return false
+		}
+		pairs = pairs[:142]
+	}
 	return len(pairs) == 142 && pairs[141] == "project_key_monthly_behavior:testProjectKeyMonthlyBehaviorLifecycle" && personalKeyBehaviorRegistryMatches(pairs[:141])
 }
 func TestProjectKeyMonthlyBehaviorRegistryTail(t *testing.T) {

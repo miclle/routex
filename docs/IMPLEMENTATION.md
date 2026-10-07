@@ -66,6 +66,13 @@ attribution, source, artifact and owned cleanup. Earlier helper failures remain
 historical. R6 exposed a legitimate additional money warning after a policy
 revision; R7 configures the existing hard-child money cap as zero, preserving
 four-warning assertions, all call budgets and unchanged product behavior.
+The contextual Team delivery candidate retains the current Key ownership guard and
+quiescent retirement fixture. Its six focused UI suites pass 176 tests; mandatory
+checking, complete Task (4,535 frontend tests in 181 files) and production build
+pass. The exact production backend remains the accepted Full144 implementation;
+the retirement test repair has separate passing two-driver evidence. Original R2
+full/API and R3 UI receipts keep their original source identities. Browser and
+phase delivery remain separate.
 Connection source gates pass 4,545 frontend tests in 182 files, mandatory checking,
 Go race tests and build. Its first focused run actually selects 28 direct cases because of substring
 matching: 26 pass, while both new status cases fail on a stale role fixture. The
@@ -73,8 +80,11 @@ anchored R2 run selects exactly 20 cases: 18 pass and both status cases fail on 
 fixture that incorrectly expects authorized logical Models to disappear when
 supply is disabled. A fixture-only R3 checks the retained Model ID, empty native
 protocols/capabilities while disabled and exact Chat metadata when enabled;
-its fresh Focus20 is active. No product discovery behavior or native call budget
-changes. Original failed evidence remains unchanged.
+its Focus20 passes all 20 direct scenarios and 87 balanced named results in
+235.271 seconds. Root verifies exact source and owned cleanup. A contextual
+complete regression will preserve the newer Key/Team UI and retirement fixture.
+No product discovery behavior or native call budget changes; original failed
+evidence remains unchanged.
 
 Source review also found generic Key saves could restore private cache entries
 after unmount or Session changes. The narrow actor/query and completion guard passes 103 focused tests across
@@ -86,6 +96,13 @@ Browser/AuthGate and genuine saved CSV/XLSX downloads remain unverified because
 desktop control still reported a locked Mac after the latest unlock reply.
 Overall totals stay **12 complete, 15 partial, three unstarted**; F17 and F28
 remain partial. Continue partial capabilities after every checked phase delivery.
+
+Project Key monthly modes and the Key ownership guard are delivered as
+`a5bb00bc59bb36c8bbe589d8bb7bc5019fed22fa`, with exact remote main read-back.
+The 35-path stage passes mandatory checking, focused UI/source gates, the original
+20-case driver focus and API/restart acceptance, and the two-driver retirement
+fixture repair. Historical Full142 remains failed; no new full142 or browser
+receipt is inferred. Team and Connection candidates continue separately.
 
 ## Historical checkpoints
 
@@ -638,7 +655,7 @@ The binary capability count is 12 completed, 15 partially completed, and 3 not s
 | F14 | Managed egress and staged network diagnostics | Partially completed | Direct, default, SOCKS5, verified CONNECT, endpoint-bound saved authentication, complete-tunnel proxy-address fallback, and diagnostics exist. External proxy and production performance acceptance remain open. |
 | F15 | Prices, spreadsheet/CSV workflows, API, and repository sync | Partially completed | Current prices, ETags, CSV/XLS/XLSX import, preview, commit, and export exist; repository-file mappings, reviewed synchronization, custom-rate protection and selected restoration passed complete current-main source, dual-driver and controlled production/browser/restart gates; three embedded model entries/six base USD rates now have controlled dual-driver preview/apply/receipt/replay and same-artifact restart acceptance; missing cache rates remain absent, while broader external/release acceptance remains open. |
 | F16 | Platform currency, exchange rates, and historical price snapshots | Completed | Decimal-string currency/rate management, exact quoting, and immutable per-call assessment are implemented. |
-| F17 | User and Team defaults, overrides, budgets, alerts, and stop policy | Partially completed | Personal, Project, Key and Team aggregate/member enforcement plus budget/token/TPM controls, authoritative quota snapshots, and installation-calendar configuration exist; current-policy Personal/Project monthly settled-exhaustion inboxes have focused acceptance, Team aggregate monthly settled-exhaustion inboxes have complete controlled acceptance; private Team member monthly notices have passed controlled local source, dual-driver, native/browser/restart and full-matrix acceptance, with final mandatory check passed and checked source committed/pushed as 5363d3c; distinct remote checks remain in progress, and creation-default settings and explicit restores have complete local acceptance; Personal, Team aggregate, Project and private Team-member fixed 80%/90% settled monthly warnings have complete local source, dual-driver/full and controlled PostgreSQL bilingual/restart acceptance; Member warnings are committed/pushed as f7b31b1a, and separate Restore recovery as e9003c97; Personal/Project Key warnings V64/V65 are delivered as cf05c57 after full119, mandatory main checks, both authentication lifecycles and two controlled PostgreSQL scenarios totaling12 native calls,10 observations and15 inbox rows; Team creation V63 is delivered as8f17d12. Chinese Key titles are corrected in8a47ac2; fixed default templates and explicit restores are available. Independent Personal monthly Token/money stop or alert-only behavior is delivered as03c6fe1; the containing commit delivers Team aggregate monthly modes V71, preserving hard Team-member policies. Personal Key and explicit Project aggregate monthly modes are delivered in c2368ddb; independent Project Key modes and Team-member modes are undergoing separately identified acceptance before delivery. Distributed enforcement remains open; named template CRUD, configurable warning percentages and arbitrary periods are not established requirements. |
+| F17 | User and Team defaults, overrides, budgets, alerts, and stop policy | Partially completed | Personal, Project, Key and Team aggregate/member enforcement plus budget/token/TPM controls, authoritative quota snapshots, and installation-calendar configuration exist; current-policy Personal/Project monthly settled-exhaustion inboxes have focused acceptance, Team aggregate monthly settled-exhaustion inboxes have complete controlled acceptance; private Team member monthly notices have passed controlled local source, dual-driver, native/browser/restart and full-matrix acceptance, with final mandatory check passed and checked source committed/pushed as 5363d3c; distinct remote checks remain in progress, and creation-default settings and explicit restores have complete local acceptance; Personal, Team aggregate, Project and private Team-member fixed 80%/90% settled monthly warnings have complete local source, dual-driver/full and controlled PostgreSQL bilingual/restart acceptance; Member warnings are committed/pushed as f7b31b1a, and separate Restore recovery as e9003c97; Personal/Project Key warnings V64/V65 are delivered as cf05c57 after full119, mandatory main checks, both authentication lifecycles and two controlled PostgreSQL scenarios totaling12 native calls,10 observations and15 inbox rows; Team creation V63 is delivered as8f17d12. Chinese Key titles are corrected in8a47ac2; fixed default templates and explicit restores are available. Independent Personal monthly Token/money stop or alert-only behavior is delivered as03c6fe1; the containing commit delivers Team aggregate monthly modes V71, preserving hard Team-member policies. Personal Key and explicit Project aggregate monthly modes are delivered in c2368ddb; independent Project Key modes and Key asynchronous ownership protection are delivered as a5bb00b; Team-member modes have passing Full144 and API/restart acceptance and await final contextual delivery. Distributed enforcement remains open; named template CRUD, configurable warning percentages and arbitrary periods are not established requirements. |
 | F18 | Quota, model, and request-limit approvals | Completed | Project model/monthly quota/RPM/TPM/concurrency and Team monthly Token/money requests have controlled acceptance: owner-first assignment, escalation, independent dimensions, read-only platform records, atomic final policies and immutable receipts with current application. Distributed acknowledgements belong to F30; release-wide acceptance remains separate. |
 | F19 | Member overview, model sources, requests, and examples | Completed | Own Overview/identity, explicit Personal/Team sources, catalogue/details/filters, scoped requests, native examples, configured prices, monthly requests/distinct callers, exact copy/highlighting, keyboard/focus and SDK guidance are delivered. Source, dual-driver and controlled browser/restart evidence is indexed below. SDK configuration guidance does not certify external clients or Providers; broader A02/A04/A06 release cases remain partial. |
 | F20 | Playground, comparison, attachments, and code examples | Partially completed | Four native conversation paths, two-to-four-lane comparison, cancellation, executable examples, per-protocol image/PDF discovery, user/Project attachment resolution, single/comparison attachment lifecycle interfaces, and conservative token/TPM/money admission with exact per-occurrence media prices exist; Team comparison, independent native code export, parameter Reset and creator-private Team attachments have complete local acceptance; external acceptance remains open. |

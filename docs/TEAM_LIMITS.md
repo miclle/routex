@@ -24,8 +24,10 @@ directories or global-list access.
 
 Aggregate policies cover rolling five-hour/seven-day Tokens, monthly Tokens,
 monthly money in the platform denomination, RPM, TPM and concurrency. Member
-policies cover monthly Tokens/money and RPM/TPM/concurrency. Null inherits the
-parent; zero is a hard cap. Member overrides may only narrow the reviewed parent.
+policies cover monthly Tokens/money and RPM/TPM/concurrency. Null clears the local
+cap while parent policy is evaluated independently. Zero is a real monthly threshold;
+stop controls its capacity rejection. Member overrides narrow hard parent dimensions;
+a soft parent monthly dimension does not impose its numeric ceiling on the child.
 A later aggregate reduction takes effect conjunctively without rewriting saved
 member policy or usage. Member allocations do not reserve or expand the shared
 Team aggregate.
@@ -34,8 +36,8 @@ Direct platform writes require independently granted `teams.tokens.write`,
 `teams.money.write` or `teams.rates.write` for the changed dimensions. Current Team
 owners receive no implicit direct mutation permission. Current-member/owner scoped
 reads and limits-only administrative projection must not expose the global member
-or model directory. Separate future owner approvals, platform escalation, default
-templates and notification workflows remain unfinished.
+or model directory. Quota requests/defaults and notification workflows keep their separate
+[review and acceptance boundaries](TEAM_REQUESTS.md).
 
 ## Accounting and review constraints
 
@@ -54,7 +56,7 @@ runtime application can be reported as enforced.
 Team PUT is a sparse policy update, unlike the existing complete-replacement
 Personal/Project/Key policy API. Each present field requires its dimension's
 current permission, even if its value is unchanged. Omitted fields are preserved;
-explicit null clears the local override, and zero closes it. Finite money requires
+explicit null clears the local override, and zero is a real threshold. Finite money requires
 the current platform currency. Unsupported Team IP controls and member rolling
 windows are rejected.
 
@@ -67,6 +69,11 @@ Publication uncertainty retains the original complete intent; an identical retry
 must recheck current authority and lifecycle, never restore a superseded policy.
 Successful application proof checks published revision, full policy, current
 member identity, lease, revocation tombstones and monetary denomination.
+
+Saved policy revisions use `lim_`-prefixed ULIDs. Private warning snapshots retain
+that stored revision; it is distinct from the 64-character lowercase hexadecimal
+composite Team review ETag submitted through If-Match. A review digest does not
+substitute for the stored warning revision or prove historical publication.
 
 ## Interface and persistence
 
@@ -118,3 +125,43 @@ escalation use [their own reviewed workflow](TEAM_REQUESTS.md). Templates,
 notifications, additional Session protocols and distributed enforcement remain
 unfinished. No paid upstream, external-provider, production-load or complete
 release acceptance is claimed by these controlled fixtures.
+
+## Independent Team-member monthly modes (V75 source candidate)
+
+The existing member GET/PUT adds independently stored `tokens_month_behavior` and
+`money_month_behavior`, each exactly `stop` or `alert_only`. Stored member policy
+and chain entry 1 emit both canonical modes; entry 0 is the independent Team parent.
+Numeric effective limits remain configured-cap facts. Legacy empty modes read as
+stop. Sparse omission preserves a mode; explicit null, aliases and unknown values
+are rejected. Mode-only Token/money edits require `teams.tokens.write` and
+`teams.money.write` respectively; ownership/read access does not grant mutation.
+Rates keep their existing separate permission. Numeric quota approvals preserve modes.
+
+Only the proved member account's own monthly capacity comparison can be skipped.
+The exact current Team/User/membership and original Team birth establish that proof,
+not an account prefix. Stable pair accounting survives removal/rejoin and restart;
+removed members cannot continue admission. Hard aggregate caps, unknown usage,
+coverage, holds, finite reservation, prices/currency, rolling limits, TPM/RPM,
+concurrency, IP and publication fences remain required. Existing private member
+80/90 warnings and immutable settlement retain their original semantics.
+
+The existing member dialog exposes two independent switches and an explicit Base UI
+confirmation, with paired English/Chinese copy. Reads/rendering/manual dispatch use
+fresh Session generation, exact actor/target and published editability. Uncertain
+retries keep original bytes/modes/ETag and current CSRF; matching GET is current
+configuration, not an original-operation receipt. This intent is mounted-only;
+aggregate/default Restore and remount behavior are unchanged.
+
+The private Team R3 source candidate passes formatting, mandatory checking,
+complete Task tests and production build, including 4,526 Vitest cases in 181
+files, Go race/coverage, Node and asset checks. Its two UI completion-fence leaves
+are the only changes from Team R2; all backend bytes and modes remain identical.
+Same-owner Session renewal retains an in-flight original submission as uncertain,
+releases busy state and requires a fresh authorized manual retry, even after a
+late HTTP200. Actor/target changes, logout and unmount discard that ownership.
+
+Original failed Focus4 evidence remains retained. Database, controlled API/restart,
+browser and delivery receipts keep their exact source/artifact identities and are
+tracked separately in [Implementation](IMPLEMENTATION.md). R3 source gates do not
+relabel R2's whole-source database evidence. The registry preserves the 142-case
+prefix and appends only the two Team-member scenarios.

@@ -129,13 +129,13 @@ can designate a foreign account as Personal. User and Key scopes retain distinct
 monthly decisions, and rotation keeps the original root and usage. Soft modes
 never bypass unknown coverage, reservation or pricing failure;
 `quota_usage_unknown` remains HTTP503, while exhausted hard allowances return
-HTTP429. Project Keys use separate immutable Project/root proof; Team-member policies retain hard stored boundaries.
+HTTP429. Project Keys use separate immutable Project/root proof; V75 Team-member modes require exact current pair proof.
 The delivered V73 publication contract is tracked in [Resource limits](RESOURCE_LIMITS.md).
 
 ## Independent Project aggregate monthly modes
 
 V74 adds independent monthly Token/money decisions for the exact Project
-aggregate; Project Key policy uses separate root proof, and Team-member stored policies stay hard. Suppression
+aggregate; Project Key policy uses separate root proof, and V75 Team-member modes require separate pair proof. Suppression
 covers only that account/dimension capacity rejection, preserving every other
 admission, reservation, unknown-usage and settlement gate. Current managers and
 original rotation roots retain their existing identities; numeric quota requests
@@ -161,3 +161,28 @@ shared Key account as soft. Rotation/revocation preserves the original root and
 usage. Every hard parent or child dimension still stops at its own cap, and all
 coverage/unknown/reservation/pricing/rolling/rate/IP guards remain mandatory.
 See [Resource limits](RESOURCE_LIMITS.md#project-key-monthly-behavior).
+
+## Independent Team-member monthly modes (V75 source candidate)
+
+Each retained Team/User member account may choose stop or alert-only independently
+for monthly Tokens and exact money, separately from aggregate Team modes. Legacy
+missing values mean stop; sparse omission preserves modes. Null disables only the
+local cap and retains its inert mode; zero is a real threshold. Soft member capacity
+does not bypass a hard aggregate's own rejection. A soft aggregate does not force a
+numeric ceiling onto a larger hard member cap.
+
+Admission trusts only exact current Team/User/membership proof and the original
+Team birth. Stable account/policy/usage survive removal and rejoin; removal still
+revokes current admission. Suppression covers only that member account/dimension's
+monthly capacity comparison. Holds, unknown/coverage, finite bounds, prices/currency,
+rolling limits, rates, concurrency, IP and current publication remain required.
+Settlement and existing 80/90 private member notices are unchanged; held or unknown
+usage never becomes settled usage or a fabricated percentage.
+
+Private Team R3 source gates pass with 4,526 frontend tests; its backend is byte-
+and mode-identical to Team R2. Actual driver, API/restart, browser and delivery
+receipts remain separately scoped in [Implementation](IMPLEMENTATION.md). Stored
+warning policy revisions are `lim_`-prefixed ULIDs, not the composite 64-hex Team
+review ETag. See [Team limits](TEAM_LIMITS.md#independent-team-member-monthly-modes-v75-source-candidate).
+Named templates, configurable warning thresholds and distributed enforcement remain
+separate F17 scope; these controls do not establish complete F17 acceptance.

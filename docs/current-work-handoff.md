@@ -66,6 +66,13 @@ attribution, source, artifact and owned cleanup. Earlier helper failures remain
 historical. R6 exposed a legitimate additional money warning after a policy
 revision; R7 configures the existing hard-child money cap as zero, preserving
 four-warning assertions, all call budgets and unchanged product behavior.
+The contextual Team delivery candidate retains the current Key ownership guard and
+quiescent retirement fixture. Its six focused UI suites pass 176 tests; mandatory
+checking, complete Task (4,535 frontend tests in 181 files) and production build
+pass. The exact production backend remains the accepted Full144 implementation;
+the retirement test repair has separate passing two-driver evidence. Original R2
+full/API and R3 UI receipts keep their original source identities. Browser and
+phase delivery remain separate.
 Connection source gates pass 4,545 frontend tests in 182 files, mandatory checking,
 Go race tests and build. Its first focused run actually selects 28 direct cases because of substring
 matching: 26 pass, while both new status cases fail on a stale role fixture. The
@@ -73,8 +80,11 @@ anchored R2 run selects exactly 20 cases: 18 pass and both status cases fail on 
 fixture that incorrectly expects authorized logical Models to disappear when
 supply is disabled. A fixture-only R3 checks the retained Model ID, empty native
 protocols/capabilities while disabled and exact Chat metadata when enabled;
-its fresh Focus20 is active. No product discovery behavior or native call budget
-changes. Original failed evidence remains unchanged.
+its Focus20 passes all 20 direct scenarios and 87 balanced named results in
+235.271 seconds. Root verifies exact source and owned cleanup. A contextual
+complete regression will preserve the newer Key/Team UI and retirement fixture.
+No product discovery behavior or native call budget changes; original failed
+evidence remains unchanged.
 
 Source review also found generic Key saves could restore private cache entries
 after unmount or Session changes. The narrow actor/query and completion guard passes 103 focused tests across
@@ -86,6 +96,13 @@ Browser/AuthGate and genuine saved CSV/XLSX downloads remain unverified because
 desktop control still reported a locked Mac after the latest unlock reply.
 Overall totals stay **12 complete, 15 partial, three unstarted**; F17 and F28
 remain partial. Continue partial capabilities after every checked phase delivery.
+
+Project Key monthly modes and the Key ownership guard are delivered as
+`a5bb00bc59bb36c8bbe589d8bb7bc5019fed22fa`, with exact remote main read-back.
+The 35-path stage passes mandatory checking, focused UI/source gates, the original
+20-case driver focus and API/restart acceptance, and the two-driver retirement
+fixture repair. Historical Full142 remains failed; no new full142 or browser
+receipt is inferred. Team and Connection candidates continue separately.
 
 ## Historical checkpoints
 

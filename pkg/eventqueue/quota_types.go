@@ -40,6 +40,9 @@ type QuotaLimit struct {
 	PersonalKey bool
 	// ProjectKey is a separate exact Project/root proof; it never borrows User ownership.
 	ProjectKey bool
+	// TeamMember is a current exact Team/User pair proof from Team Session admission.
+	// The stable pair account and original Team creation date survive membership replacement.
+	TeamMember bool
 	// CreatedAt is trusted resource creation metadata, never a caller override.
 	// Zero means unknown prehistory. Rotation uses the original Key account date.
 	CreatedAt                               time.Time

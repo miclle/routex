@@ -1,4 +1,6 @@
 export default {
+  teamMemberStoredBehavior: '已保存的成员行为',
+  teamMemberMonthlyConfirmTitle: '确认 Team 成员月度行为',
   projectKeyMonthlyConfirmTitle: '确认 Project Key 月度行为',
   projectKeyMonthlyHelp:
     'Project Key 的月度 Tokens 和预算分别保存阈值行为。Key 上限留空不会新增 Key 阈值，Project 父级仍独立执行自己的策略。零是实际阈值。轮换共享此策略和用量，其他检查仍然有效。',
@@ -15,7 +17,7 @@ export default {
   teamMonthlyHelp:
     'Team 月度 Token 与预算分别使用各自保存的行为。留空会停用该维度，0 是实际阈值。Team 成员限额及其他检查仍然有效。保存不会重置用量。',
   teamMonthlyNumericHelp:
-    '有效额度的数值最小值并非统一的停用阈值。Team 与每个成员分别执行自身保存的策略；成员限额仍为硬限制。',
+    '有效额度的数值最小值并非统一的停用阈值。Team 与每个成员分别执行自身保存的策略；双方分别执行各自的月度行为。',
   teamParentBehavior: 'Team 父级行为',
   teamStoredBehavior: '已保存的 Team 行为',
   teamMonthlyConfirmTitle: '确认 Team 月度行为',
@@ -48,7 +50,7 @@ export default {
   teamHelp:
     '留空表示不设置本地上限，零会阻止调用。团队与成员策略共同生效，保存不会重置已记录的用量。',
   teamMemberHelp:
-    '留空表示继承当前团队策略，成员显式上限只能收紧硬限制，仅提醒的 Team 月度阈值并非成员上限。成员关系变化不会重置资源账户及其已记录用量。',
+    '留空表示继承当前团队策略，成员显式上限只能收紧硬限制，仅提醒的 Team 月度阈值并非成员上限。月度 Token 与预算分别使用各自保存的行为，0 是实际阈值，其他检查仍然有效。成员关系变化不会重置资源账户及其已记录用量。',
   teamAboveParent: '成员显式上限不能超过当前团队上限。',
   teamReadOnlyField: '此字段需要独立的平台策略权限。',
   teamNoChanges: '保存前请至少修改一个可编辑的限制。',

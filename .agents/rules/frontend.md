@@ -1047,9 +1047,10 @@ not historical success. Ordinary Team saves retain component-local intent only;
 do not imply recovery after an AuthGate unmount. Retained default-restore reviews
 carry authoritative Team modes through the existing shared intent boundary.
 
-Team-member local policies remain hard-only and expose aggregate modes only in
-the parent chain. A soft aggregate monthly dimension may permit a larger hard
-member cap; rolling Tokens, rates, concurrency, IP, finite reservation/price proof,
+Team-member stored modes and aggregate modes remain separate in the parent chain.
+Each requires its own trusted current identity proof. A soft aggregate monthly
+dimension may permit a larger hard member cap; rolling Tokens, rates, concurrency,
+IP, finite reservation/price proof,
 unknown usage, currency, coverage, exact births and current runtime lease remain
 hard gates. Numeric effective minima are configured-cap facts, not a merged stop
 mode or proof of callability. Preserve Project/Key behavior, accounting, warning
@@ -1090,7 +1091,8 @@ GET is not historical success. Retain the mounted-only intent lifetime; add no
 browser storage, global drafts or claimed remount recovery. Project Key stored
 policies have independent monthly behavior controls; their parent summary
 separates Project behavior from the numeric effective minimum. Team-member
-policies remain hard. Configured thresholds never imply remaining allowance,
+monthly modes require separate current Team/User proof. Configured thresholds never
+imply remaining allowance,
 routing readiness or historical/runtime application.
 
 ## Project Key monthly behavior
@@ -1109,3 +1111,30 @@ independent gates. Preserve original mounted uncertain intent through failed
 retries and explicit conflict review; current GET does not prove historical
 publication. Warning recipients remain current enabled Project managers; creators
 and unrelated platform readers receive no implicit inbox authority.
+
+## Team-member monthly behavior
+
+Team-member monthly Token and money modes belong beside their caps in the existing
+Adjust member resources dialog. Use local Switch and explicit Base UI confirmation,
+with independent `teams.tokens.write` and `teams.money.write` authority and published
+editable fields. Sparse omission preserves modes; legacy empty reads as stop. Null
+caps disable only their controls while retaining inert modes; zero remains a real
+threshold. Keep exact decimal money, currency, reason and composite If-Match.
+
+Stored member modes and the Team parent chain remain independent; numeric effective
+minima do not carry a merged behavior or prove remaining allowance. A hard parent
+continues to reject its own exhaustion even when the member is alert-only. Trusted
+member proof requires the exact current Team/User/membership and original Team birth;
+an account prefix or digest alone never grants soft behavior. Removal/rejoin retains
+the stable account and accounting without granting access while removed.
+
+Bind member reads and dispatch to the current Session generation and exact target.
+Hide private facts/actions during renewed reads or errors. Retain the prior review
+and original uncertain body/modes/ETag only in the mounted same actor/target owner.
+Same-owner Session renewal while a write is pending retains its original submission
+as uncertain and releases busy state, even after a late HTTP200; obsolete-generation
+completion cannot restore private facts. Recheck every submitted independent
+editable field and current CSRF on manual retry;
+rejected retries or matching GET cannot resolve historical uncertainty. Actor/target
+changes, logout and unmount destroy intent. Preserve aggregate and default Restore
+semantics, all other hard gates and existing private 80/90 warning history.

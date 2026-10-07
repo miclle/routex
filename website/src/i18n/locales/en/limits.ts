@@ -1,4 +1,6 @@
 export default {
+  teamMemberStoredBehavior: 'Saved member behavior',
+  teamMemberMonthlyConfirmTitle: 'Confirm Team-member monthly behavior',
   projectKeyMonthlyConfirmTitle: 'Confirm Project Key monthly behavior',
   projectKeyMonthlyHelp:
     'Project Key monthly tokens and budget have independent saved behavior. A blank Key cap adds no Key threshold; the Project parent still applies its own policy. Zero is a real threshold. Rotation shares this policy and usage; all other checks remain required.',
@@ -16,7 +18,7 @@ export default {
   teamMonthlyHelp:
     'Team monthly tokens and budget have independent saved behavior. Blank disables that dimension; zero is a real threshold. Team-member limits and all other checks still apply. Saving never resets usage.',
   teamMonthlyNumericHelp:
-    'The numeric effective minimum is not a combined stopping threshold. The Team and each member apply their own stored policy; member limits remain hard stops.',
+    'The numeric effective minimum is not a combined stopping threshold. The Team and each member apply their own stored policy; each applies its own monthly behavior.',
   teamParentBehavior: 'Team parent behavior',
   teamStoredBehavior: 'Saved Team behavior',
   teamMonthlyConfirmTitle: 'Confirm Team monthly behavior',
@@ -50,7 +52,7 @@ export default {
   teamHelp:
     'Leave blank for no local cap. Zero blocks admission. Team and member policies apply together; saving never resets recorded usage.',
   teamMemberHelp:
-    'Leave blank to inherit the current Team policy. Explicit member limits can only narrow hard-stop parent limits; an alert-only Team monthly threshold is not a member maximum. The account and its recorded usage remain stable when membership changes.',
+    'Leave blank to inherit the current Team policy. Explicit member limits can only narrow hard-stop parent limits; an alert-only Team monthly threshold is not a member maximum. Monthly tokens and budget have independent saved behavior; zero is a real threshold. All other checks still apply. The account and its recorded usage remain stable when membership changes.',
   teamAboveParent: 'An explicit member limit cannot exceed the current Team maximum.',
   teamReadOnlyField: 'This field requires its own platform policy permission.',
   teamNoChanges: 'Change at least one editable limit before saving.',

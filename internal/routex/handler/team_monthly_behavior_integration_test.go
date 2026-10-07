@@ -190,7 +190,7 @@ func testTeamMonthlyBehaviorLifecycle(t *testing.T, db *gorm.DB) {
 	for _, bad := range []string{`{"tokens_month_behavior":null,"reason":"bad"}`, `{"tokens_month_behavior":"ALERT_ONLY","reason":"bad"}`, `{"tokens_month_behavior":"stop","tokens_month_behavior":"alert_only","reason":"bad"}`} {
 		expectStatus(t, put(path, bad, get(path, adminCookie).ETag, adminCookie, adminSession.CSRFToken), 400)
 	}
-	expectStatus(t, put(childPath, `{"tokens_month_behavior":"stop","reason":"Child must stay hard"}`, get(childPath, adminCookie).ETag, adminCookie, adminSession.CSRFToken), 400)
+	expectStatus(t, put(childPath, `{"tokens_month_behavior":"STOP","reason":"Invalid member mode"}`, get(childPath, adminCookie).ETag, adminCookie, adminSession.CSRFToken), 400)
 	reviewed := get(path, tokenCookie)
 	exact := `{"tokens_month_behavior":"alert_only","reason":"Reviewed independent Team Token mode"}`
 	expectStatus(t, put(path, exact, reviewed.ETag, tokenCookie, tokenCSRF), 200)
@@ -237,7 +237,7 @@ func testTeamMonthlyBehaviorLifecycle(t *testing.T, db *gorm.DB) {
 	write(path, `{"tokens_month":0,"tokens_month_behavior":"alert_only","money_month":"10.000000000000000002","currency":"USD","money_month_behavior":"stop","reason":"Soft aggregate Tokens with hard money"}`)
 	write(childPath, `{"tokens_month":10,"reason":"Hard child ceiling"}`)
 	child := get(childPath, memberCookie)
-	if child.Stored.TokensMonthBehavior != "" || child.IPPolicies[0].TokensMonthBehavior != "alert_only" {
+	if child.Stored.TokensMonthBehavior != "stop" || child.IPPolicies[0].TokensMonthBehavior != "alert_only" {
 		t.Fatal("mode chain merged or child softened")
 	}
 	native := func(want int) {

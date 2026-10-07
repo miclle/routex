@@ -29,7 +29,7 @@ var teamLimitFields = []string{"tokens_5h", "tokens_7d", "tokens_month", "money_
 // resource writes expose the two independent monthly behavior fields.
 var teamResourceLimitFields = append(append([]string(nil), teamLimitFields...), "tokens_month_behavior", "money_month_behavior")
 
-var teamMemberLimitFields = []string{"tokens_month", "money_month", "rpm", "tpm", "concurrency"}
+var teamMemberLimitFields = []string{"tokens_month", "money_month", "rpm", "tpm", "concurrency", "tokens_month_behavior", "money_month_behavior"}
 
 // TeamLimitInput preserves omitted fields independently of explicit null and zero.
 // A submitted field always requires its dimension's current write authority.
@@ -86,7 +86,7 @@ func validateTeamLimitPolicy(kind string, policy limits.Policy) error {
 	if kind != "team" && kind != "team_member" || policy.IPMode != "" && policy.IPMode != "none" || len(policy.IPRanges) != 0 {
 		return limits.ErrInvalid
 	}
-	if kind == "team_member" && (policy.Tokens5H != nil || policy.Tokens7D != nil || policy.TokensMonthBehavior != "" && policy.TokensMonthBehavior != "stop" || policy.MoneyMonthBehavior != "" && policy.MoneyMonthBehavior != "stop") {
+	if kind == "team_member" && (policy.Tokens5H != nil || policy.Tokens7D != nil) {
 		return limits.ErrInvalid
 	}
 	return nil

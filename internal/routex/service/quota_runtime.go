@@ -135,7 +135,7 @@ func (s *Service) gatewayQuotaPolicies(ctx context.Context, result *GatewayResul
 		if s.runtime == nil && fallbackProjectRoot != "" {
 			project = item.Account == limitAccount("key", fallbackProjectRoot)
 		}
-		output = append(output, eventqueue.QuotaLimit{Limit: item, PersonalKey: personal, ProjectKey: project, Revision: revision, CreatedAt: createdAt, TokensMonthBehavior: policy.TokensMonthBehavior, MoneyMonthBehavior: policy.MoneyMonthBehavior, Tokens5H: policy.Tokens5H, Tokens7D: policy.Tokens7D, TokensMonth: policy.TokensMonth, TPM: policy.TPM, MoneyMonth: policy.MoneyMonth, Currency: policy.Currency})
+		output = append(output, eventqueue.QuotaLimit{Limit: item, PersonalKey: personal, ProjectKey: project, TeamMember: teamMemberQuotaProof(auth, result, item.Account), Revision: revision, CreatedAt: createdAt, TokensMonthBehavior: policy.TokensMonthBehavior, MoneyMonthBehavior: policy.MoneyMonthBehavior, Tokens5H: policy.Tokens5H, Tokens7D: policy.Tokens7D, TokensMonth: policy.TokensMonth, TPM: policy.TPM, MoneyMonth: policy.MoneyMonth, Currency: policy.Currency})
 	}
 	return output, data, nil
 }

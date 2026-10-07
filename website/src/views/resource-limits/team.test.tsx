@@ -68,6 +68,7 @@ beforeEach(async () => {
         }
       }
       if (record.kind === 'team') record.ip_policies = [structuredClone(record.stored)]
+      else record.ip_policies[1] = structuredClone(record.stored)
       response.data = malformed ? { ...record, enforced: undefined } : structuredClone(record)
     }
     return response
@@ -121,6 +122,10 @@ async function confirm() {
 }
 async function click(label: string) {
   await rawClick(label)
+  if (label === 'Adjust member resources')
+    await until(() =>
+      expect(host.querySelector('input[aria-label="Reason for change"]')).toBeTruthy(),
+    )
   if (label === 'Save limits' && document.body.querySelector('[role="dialog"]')) await confirm()
 }
 async function toggle(label: string) {
@@ -402,7 +407,14 @@ describe('Team resource policies', () => {
         </QueryClientProvider>,
       ),
     )
-    const key = ['resource-limits', 'team', 'usr_member', 'tea_test', 'usr_member']
+    const key = [
+      'resource-limits',
+      'team',
+      'usr_member',
+      'tea_test',
+      'usr_member',
+      cache.getQueryState(['auth', 'session'])?.dataUpdatedAt,
+    ]
     // GC uses a timer even at zero; explicitly clear the private cache before the late response.
     cache.removeQueries({ queryKey: key, exact: true })
     const before = requests.length
@@ -412,7 +424,14 @@ describe('Team resource policies', () => {
     await until(() => expect(record.etag).toBe('c'.repeat(64)))
     expect(requests).toHaveLength(before)
     expect(
-      cache.getQueryData(['resource-limits', 'team', 'usr_member', 'tea_test', 'usr_member']),
+      cache.getQueryData([
+        'resource-limits',
+        'team',
+        'usr_member',
+        'tea_test',
+        'usr_member',
+        cache.getQueryState(['auth', 'session'])?.dataUpdatedAt,
+      ]),
     ).toBeUndefined()
   })
   it('preserves transient drafts and translates existing notices on live language changes', async () => {
@@ -540,14 +559,14 @@ describe('Team aggregate monthly threshold behavior', () => {
       money_month_behavior: 'alert_only',
     })
   })
-  it('keeps member controls hard while soft monthly parent thresholds do not narrow larger hard member caps', async () => {
+  it('keeps the member hard default while a soft Team parent permits a larger member cap', async () => {
     record = teamFixture(true)
     record.ip_policies[0].tokens_month_behavior = 'alert_only'
     record.ip_policies[0].money_month_behavior = 'alert_only'
     await render({ teamId: 'tea_test', userId: 'usr_member' })
     await until(() => expect(host.textContent).toContain('Team parent behavior'))
     await click('Adjust member resources')
-    expect(host.querySelector('[role="switch"]')).toBeNull()
+    expect(host.querySelectorAll('[role="switch"]')).toHaveLength(2)
     expect(host.textContent).toContain('Current parent alert-only threshold')
     await fill('Monthly token quota', '10001')
     await fill('Reason for change', 'Independent hard member policy')
@@ -609,4 +628,262 @@ it('keeps a hard member money ceiling and currency guard when only the Team toke
   await click('Save limits')
   expect(puts()).toHaveLength(0)
   expect(host.textContent).toContain('cannot exceed the current Team maximum')
+})
+
+it('confirms member modes independently and preserves original mode bytes on uncertainty and renewed field authority', async () => {
+  record = teamFixture(true)
+  record.stored.tokens_month = 0
+  record.stored.money_month = '0'
+  record.stored.currency = 'USD'
+  record.ip_policies[1] = { ...record.stored }
+  await render({ teamId: 'tea_test', userId: 'usr_member' })
+  await until(() => expect(host.textContent).toContain('Saved member behavior'))
+  await click('Adjust member resources')
+  await toggle('Monthly token threshold behavior')
+  await fill('Reason for change', 'Independent member alert mode')
+  await rawClick('Save limits')
+  expect(puts()).toHaveLength(0)
+  expect(document.body.querySelector('[role="dialog"]')?.textContent).toContain(
+    'Confirm Team-member monthly behavior',
+  )
+  putStatus = 503
+  await confirm()
+  await until(() => expect(puts()).toHaveLength(1))
+  expect(JSON.parse(puts()[0].data)).toEqual({
+    tokens_month_behavior: 'alert_only',
+    reason: 'Independent member alert mode',
+  })
+  csrf = 'renewed-csrf'
+  cache.setQueryData(['auth', 'session'], session())
+  putStatus = 0
+  await until(() => expect(host.textContent).toContain('Retry application'))
+  await click('Retry application')
+  await until(() => expect(puts()).toHaveLength(2))
+  expect(puts()[1].data).toBe(puts()[0].data)
+  expect(puts()[1].headers.get('If-Match')).toBe(puts()[0].headers.get('If-Match'))
+  expect(puts()[1].headers.get('X-CSRF-Token')).toBe('renewed-csrf')
+})
+it('uses independent published member editability and hides private draft during read errors', async () => {
+  record = teamFixture(true)
+  record.stored.tokens_month = 0
+  record.ip_policies[1] = { ...record.stored }
+  record.editable_fields = ['tokens_month', 'tokens_month_behavior']
+  await render({ teamId: 'tea_test', userId: 'usr_member' })
+  await until(() => expect(host.textContent).toContain('Saved member behavior'))
+  await click('Adjust member resources')
+  expect(
+    host
+      .querySelector('[role="switch"][aria-label="Monthly budget threshold behavior"]')
+      ?.getAttribute('aria-disabled'),
+  ).toBe('true')
+  await toggle('Monthly token threshold behavior')
+  await fill('Reason for change', 'Retain private mode draft')
+  await rawClick('Save limits')
+  getStatus = 403
+  await act(async () => {
+    await cache.invalidateQueries({
+      queryKey: [
+        'resource-limits',
+        'team',
+        'usr_member',
+        'tea_test',
+        'usr_member',
+        cache.getQueryState(['auth', 'session'])?.dataUpdatedAt,
+      ],
+    })
+  })
+  expect(host.textContent).not.toContain('Retain private mode draft')
+  expect(puts()).toHaveLength(0)
+})
+
+it('blocks a queued member confirmation after Session renewal revokes its exact dimension and retains draft through the renewed read', async () => {
+  record = teamFixture(true)
+  record.stored.tokens_month = 0
+  record.ip_policies[1] = { ...record.stored }
+  await render({ teamId: 'tea_test', userId: 'usr_member' })
+  await until(() => expect(host.textContent).toContain('Saved member behavior'))
+  await click('Adjust member resources')
+  await toggle('Monthly token threshold behavior')
+  await fill('Reason for change', 'Exact renewed-authority draft')
+  await rawClick('Save limits')
+  const queued = [...document.body.querySelectorAll('button')].find(
+    (x) => x.textContent === 'Confirm limits',
+  )!
+  expect(queued).toBeTruthy()
+  let release!: () => void
+  getHold = new Promise<void>((r) => {
+    release = r
+  })
+  record.editable_fields = ['money_month', 'money_month_behavior']
+  await act(async () => {
+    cache.setQueryData(['auth', 'session'], session(), {
+      updatedAt: (cache.getQueryState(['auth', 'session'])?.dataUpdatedAt ?? 0) + 1,
+    })
+  })
+  await until(() =>
+    expect(document.body.textContent).not.toContain('Exact renewed-authority draft'),
+  )
+  await act(async () => queued.click())
+  expect(puts()).toHaveLength(0)
+  await act(async () => release())
+  await until(() => expect(document.body.textContent).toContain('Exact renewed-authority draft'))
+  const current = [...document.body.querySelectorAll('button')].find(
+    (x) => x.textContent === 'Confirm limits',
+  )!
+  await act(async () => current.click())
+  expect(puts()).toHaveLength(0)
+})
+it('preserves inert member mode and exact reason while switching EN/ZH, zero re-enables its independent control', async () => {
+  record = teamFixture(true)
+  record.stored.tokens_month_behavior = 'alert_only'
+  record.ip_policies[1] = { ...record.stored }
+  await render({ teamId: 'tea_test', userId: 'usr_member' })
+  await until(() => expect(host.textContent).toContain('Saved member behavior'))
+  await click('Adjust member resources')
+  const mode = host.querySelector('[role="switch"][aria-label="Monthly token threshold behavior"]')!
+  expect(mode.getAttribute('aria-checked')).toBe('true')
+  expect(mode.getAttribute('aria-disabled')).toBe('true')
+  await fill('Monthly token quota', '0')
+  expect(mode.getAttribute('aria-disabled')).not.toBe('true')
+  await fill('Reason for change', 'Bilingual member review')
+  await act(async () => i18n.changeLanguage('zh'))
+  expect(host.textContent).toContain('仅提醒')
+  expect(host.querySelector('input[aria-label="变更原因"]')?.getAttribute('value')).toBe(
+    'Bilingual member review',
+  )
+  await act(async () => i18n.changeLanguage('en'))
+  await click('Save limits')
+  await until(() => expect(puts()).toHaveLength(1))
+  expect(JSON.parse(puts()[0].data)).toEqual({ tokens_month: 0, reason: 'Bilingual member review' })
+})
+
+describe('Team-member in-flight publication during authority renewal', () => {
+  async function pendingMemberWrite() {
+    record = teamFixture(true)
+    record.stored.tokens_month = 0
+    record.ip_policies[1] = { ...record.stored }
+    await render({ teamId: 'tea_test', userId: 'usr_member' })
+    await until(() => expect(host.textContent).toContain('Saved member behavior'))
+    await click('Adjust member resources')
+    await toggle('Monthly token threshold behavior')
+    await fill('Reason for change', 'Original in-flight member mode')
+    let release!: () => void
+    hold = new Promise<void>((resolve) => {
+      release = resolve
+    })
+    await click('Save limits')
+    await until(() => expect(puts()).toHaveLength(1))
+    return release
+  }
+
+  for (const status of [503, 0]) {
+    it(`retains an obsolete-generation ${status || 200} response as uncertain and permits only an explicit identical retry`, async () => {
+      const release = await pendingMemberWrite()
+      const originalBody = puts()[0].data
+      const originalETag = puts()[0].headers.get('If-Match')
+      let releaseRead!: () => void
+      getHold = new Promise<void>((resolve) => {
+        releaseRead = resolve
+      })
+      csrf = 'fresh-in-flight-csrf'
+      const generation = (cache.getQueryState(['auth', 'session'])?.dataUpdatedAt ?? 0) + 1
+      await act(async () =>
+        cache.setQueryData(['auth', 'session'], session(), { updatedAt: generation }),
+      )
+      await until(() => expect(host.querySelector('[aria-label="Reason for change"]')).toBeNull())
+      await act(async () => releaseRead())
+      await until(() =>
+        expect(
+          host.querySelector<HTMLInputElement>('[aria-label="Reason for change"]')?.value,
+        ).toBe('Original in-flight member mode'),
+      )
+      putStatus = status
+      await act(async () => release())
+      await until(() => expect(button('Retry application').disabled).toBe(false))
+      expect(host.textContent).not.toContain('Limits saved and applied.')
+      expect(puts()).toHaveLength(1)
+      const currentKey = [
+        'resource-limits',
+        'team',
+        'usr_member',
+        'tea_test',
+        'usr_member',
+        generation,
+      ]
+      expect(cache.getQueryData<LimitRecord>(currentKey)?.etag).toBe('a'.repeat(64))
+      putStatus = 0
+      hold = undefined
+      await click('Retry application')
+      await until(() => expect(host.textContent).toContain('Limits saved and applied.'))
+      expect(puts()).toHaveLength(2)
+      expect(puts()[1].data).toBe(originalBody)
+      expect(puts()[1].headers.get('If-Match')).toBe(originalETag)
+      expect(puts()[1].headers.get('X-CSRF-Token')).toBe('fresh-in-flight-csrf')
+    })
+  }
+
+  it('keeps the dispatched mode uncertain but blocks retry after fresh field authority is withdrawn', async () => {
+    const release = await pendingMemberWrite()
+    record.editable_fields = ['money_month', 'money_month_behavior']
+    await act(async () =>
+      cache.setQueryData(['auth', 'session'], session(), {
+        updatedAt: (cache.getQueryState(['auth', 'session'])?.dataUpdatedAt ?? 0) + 1,
+      }),
+    )
+    await until(() => expect(host.querySelector('[aria-label="Reason for change"]')).not.toBeNull())
+    putStatus = 503
+    await act(async () => release())
+    await until(() => expect(button('Retry application').disabled).toBe(false))
+    await click('Retry application')
+    expect(puts()).toHaveLength(1)
+    expect(JSON.parse(puts()[0].data)).toEqual({
+      tokens_month_behavior: 'alert_only',
+      reason: 'Original in-flight member mode',
+    })
+    expect(host.textContent).not.toContain('Limits saved and applied.')
+  })
+
+  it('destroys the old in-flight owner on actor replacement without publishing its late success', async () => {
+    const release = await pendingMemberWrite()
+    actor = 'usr_replacement'
+    await act(async () => cache.setQueryData(['auth', 'session'], session()))
+    await until(() => expect(host.textContent).toContain('Saved member behavior'))
+    expect(host.querySelector('[aria-label="Reason for change"]')).toBeNull()
+    const before = requests.length
+    await act(async () => release())
+    await until(() => expect(record.etag).toBe('c'.repeat(64)))
+    expect(requests).toHaveLength(before)
+    expect(puts()).toHaveLength(1)
+    expect(host.textContent).not.toContain('Retry application')
+    expect(host.textContent).not.toContain('Limits saved and applied.')
+  })
+
+  it('destroys the old in-flight owner on target change and cannot restore the old member draft', async () => {
+    const release = await pendingMemberWrite()
+    const original = structuredClone(record)
+    record = { ...teamFixture(true), id: 'usr_other' }
+    await render({ teamId: 'tea_test', userId: 'usr_other' })
+    await until(() => expect(host.textContent).toContain('Saved member behavior'))
+    const before = requests.length
+    record = original
+    await act(async () => release())
+    await until(() => expect(record.etag).toBe('c'.repeat(64)))
+    expect(requests).toHaveLength(before)
+    expect(puts()).toHaveLength(1)
+    expect(host.querySelector('[aria-label="Reason for change"]')).toBeNull()
+    expect(host.textContent).not.toContain('Retry application')
+    expect(host.textContent).not.toContain('Limits saved and applied.')
+  })
+
+  it('discards an unmounted in-flight failure without retrying or restoring a private owner', async () => {
+    const release = await pendingMemberWrite()
+    putStatus = 503
+    await act(async () => root.render(<span>Closed member editor</span>))
+    const before = requests.length
+    await act(async () => release())
+    expect(requests).toHaveLength(before)
+    expect(puts()).toHaveLength(1)
+    expect(host.textContent).toBe('Closed member editor')
+    expect(document.body.textContent).not.toContain('Original in-flight member mode')
+  })
 })

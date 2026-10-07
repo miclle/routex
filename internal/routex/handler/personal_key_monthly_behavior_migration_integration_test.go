@@ -357,6 +357,12 @@ func TestPersonalKeyBehaviorFixtureLedgerReplayPreservesLaterVersions(t *testing
 }
 
 func personalKeyBehaviorRegistryMatches(names []string) bool {
+	if len(names) == 144 {
+		if !teamMemberMonthlyRegistryTail(names) {
+			return false
+		}
+		names = slices.Clone(names[:142])
+	}
 	if len(names) == 142 {
 		if names[141] != "project_key_monthly_behavior:testProjectKeyMonthlyBehaviorLifecycle" {
 			return false
@@ -417,6 +423,9 @@ func TestPersonalKeyBehaviorFixtureExactRegistryPrefixAndNewPair(t *testing.T) {
 			t.Fatal("missing/replaced/reordered/duplicate registry accepted")
 		}
 	}
+	if len(names) == 144 {
+		names = slices.Clone(names[:142])
+	}
 	if len(names) == 142 {
 		for _, prefix := range []int{139, 141} {
 			retained := slices.Clone(names[:prefix])
@@ -437,7 +446,7 @@ func TestPersonalKeyBehaviorFixtureExactRegistryPrefixAndNewPair(t *testing.T) {
 			}
 		}
 	}
-	if !strings.Contains(string(raw), "versions != 74") || !strings.Contains(string(raw), "personalKeyBehaviorHistoricalReplay(t, db, test.run)") {
+	if !strings.Contains(string(raw), "versions != 75") || !strings.Contains(string(raw), "personalKeyBehaviorHistoricalReplay(t, db, test.run)") {
 		t.Fatal("current ledger or bounded historical companion not bound")
 	}
 }

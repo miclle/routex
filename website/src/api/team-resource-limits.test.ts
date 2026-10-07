@@ -90,7 +90,7 @@ describe('Team monthly behavior transport boundary', () => {
     value = { ...base, effective: { ...base.effective, tokens_month_behavior: 'alert_only' } }
     await expect(getTeamLimits({ teamId: 'tea_test' })).rejects.toThrow()
   })
-  it('accepts only aggregate modes in the exact member parent chain', async () => {
+  it('accepts independent member and aggregate modes in the exact two-policy chain', async () => {
     const base = teamFixture(true)
     base.ip_policies[0].tokens_month_behavior = 'alert_only'
     value = base
@@ -100,15 +100,15 @@ describe('Team monthly behavior transport boundary', () => {
       stored: { tokens_month: null },
       ip_policies: [{ tokens_month_behavior: 'alert_only' }, {}],
     })
-    value = { ...base, stored: { ...base.stored, tokens_month_behavior: 'stop' } }
+    value = { ...base, stored: { ...base.stored, tokens_month_behavior: 'STOP' } }
     await expect(getTeamLimits({ teamId: 'tea_test', userId: 'usr_member' })).rejects.toThrow()
   })
-  it('rejects explicit member modes without issuing a PUT and requires exact saved aggregate mode', async () => {
+  it('rejects invalid member modes without issuing a PUT and requires exact saved aggregate mode', async () => {
     await expect(
       saveTeamLimits(
         { teamId: 'tea_test', userId: 'usr_member' },
         'a'.repeat(64),
-        { tokens_month_behavior: 'stop', reason: 'Hard child' },
+        { tokens_month_behavior: 'STOP', reason: 'Invalid child' } as never,
         'csrf',
       ),
     ).rejects.toThrow()
@@ -137,5 +137,36 @@ describe('Team monthly behavior transport boundary', () => {
       tokens_month_behavior: 'alert_only',
       reason: 'Soft parent',
     })
+  })
+})
+
+describe('Team-member own monthly behavior', () => {
+  it('confirms exact independent stored modes with sparse original input', async () => {
+    const base = teamFixture(true)
+    base.stored.tokens_month_behavior = 'alert_only'
+    base.ip_policies[1] = { ...base.stored }
+    value = base
+    const input = { tokens_month_behavior: 'alert_only' as const, reason: 'Member alert threshold' }
+    await expect(
+      saveTeamLimits({ teamId: 'tea_test', userId: 'usr_member' }, base.etag, input, 'new-csrf'),
+    ).resolves.toMatchObject({
+      stored: { tokens_month_behavior: 'alert_only', money_month_behavior: 'stop' },
+    })
+    expect(JSON.parse(requests[0].data)).toEqual(input)
+    expect(requests[0].headers.get('If-Match')).toBe(`"${base.etag}"`)
+    expect(requests[0].headers.get('X-CSRF-Token')).toBe('new-csrf')
+    base.stored.tokens_month_behavior = 'stop'
+    value = base
+    await expect(
+      saveTeamLimits({ teamId: 'tea_test', userId: 'usr_member' }, base.etag, input, 'new-csrf'),
+    ).rejects.toThrow('Unconfirmed')
+  })
+  it.each(['STOP', null, [], true])('rejects invalid own and parent enum %j', async (mode) => {
+    const base = teamFixture(true)
+    value = {
+      ...base,
+      ip_policies: [base.ip_policies[0], { ...base.stored, money_month_behavior: mode }],
+    }
+    await expect(getTeamLimits({ teamId: 'tea_test', userId: 'usr_member' })).rejects.toThrow()
   })
 })
