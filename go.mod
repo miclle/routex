@@ -9,6 +9,7 @@ require (
 	github.com/aws/smithy-go v1.27.6
 	github.com/fox-gonic/fox v0.1.2
 	github.com/gin-gonic/gin v1.12.0
+	github.com/jackc/pgx/v5 v5.10.0
 	github.com/oklog/ulid/v2 v2.1.2
 	github.com/richardlehane/mscfb v1.0.8
 	github.com/spf13/viper v1.21.0
@@ -109,7 +110,6 @@ require (
 	github.com/hashicorp/go-version v1.9.0 // indirect
 	github.com/jackc/pgpassfile v1.0.0 // indirect
 	github.com/jackc/pgservicefile v0.0.0-20240606120523-5a60cdf6a761 // indirect
-	github.com/jackc/pgx/v5 v5.10.0 // indirect
 	github.com/jackc/puddle/v2 v2.2.2 // indirect
 	github.com/jinzhu/inflection v1.0.0 // indirect
 	github.com/jinzhu/now v1.1.5 // indirect

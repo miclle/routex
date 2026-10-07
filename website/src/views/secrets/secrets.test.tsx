@@ -193,7 +193,8 @@ it('renders the existing internal card and provisioned targets without root mate
     'next',
   ])
   expect(document.querySelector('input[type="password"]')).toBeNull()
-  expect(document.body.textContent).not.toContain('Vault')
+  expect(document.body.textContent).toContain('Vault integration')
+  expect(reads.some((path) => path.includes('/integrations'))).toBe(false)
   expect(writes).toHaveLength(0)
 })
 it('submits once after explicit confirmation with current manually replaced CSRF and keeps historical receipt separate', async () => {

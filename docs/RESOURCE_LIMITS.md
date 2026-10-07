@@ -1,6 +1,6 @@
 # Resource limits and admission policy
 
-Status: Personal/Project aggregate and Key policies support RPM, concurrency, IP restrictions, rolling five-hour/seven-day tokens, monthly tokens/money, and TPM. Version 19 source integrates conservative native text reservations and independent settlement; its precise API and remaining limitations are in [QUOTAS.md](QUOTAS.md). Team/session contexts, defaults, approvals, alerts, and reset-to-template remain planned extensions for F09/F17/F18 and A04/A11/A12. Database and process acceptance evidence is recorded separately from source implementation.
+Status: Personal/Project aggregate and Key policies support RPM, concurrency, IP restrictions, rolling five-hour/seven-day tokens, monthly tokens/money, and TPM. Version 19 source integrates conservative native text reservations and independent settlement; its precise API and remaining limitations are in [QUOTAS.md](QUOTAS.md). Delivered Team Session policies, User/Team defaults and scoped requests are documented separately below. Personal Key and Project aggregate monthly behavior are private candidates described in the final sections; broader templates and configurable notification thresholds remain separate scope. Database and process acceptance evidence is recorded separately from source implementation.
 
 Bounded same-protocol failover uses one logical admission. Before attachment reads or the first dispatch, RouteX retains only candidates with current capacity and price evidence and reserves the maximum token and exact decimal money bound across them. Retries reuse that reservation and revalidate caller authority, limits, capacity, price, route, and egress evidence before dispatch. They never create another RPM/concurrency debit. If every executed attempt proves that no upstream work occurred, final or crash recovery settlement releases token and money holds as exact zero; any active, completed, or ambiguous work retains normal authoritative/unknown settlement rules.
 
@@ -160,7 +160,7 @@ The policy table is a bounded discriminated resource association, not an arbitra
 
 `limit_defaults` snapshots and reset semantics avoid tri-state default ambiguity: null on a resource aggregate means unlimited; null on a Key or Team member means inherit. A per-field override can be cleared with an explicit null to return that child field to inheritance. Reset-to-default replaces all aggregate fields with the current template and records before/after values. No usage-reset API is included. Direct platform edits require a reason and If-Match/ETag; stale edits return 409.
 
-Project, Team and Key policies retain hard-stop behavior. The Personal User monthly slice below permits independent stop/alert-only for only its own monthly dimensions. Accounting, currency/price, rolling, rates, concurrency and IP remain independent gates; fixed warning history is unchanged. Configurable thresholds and other scopes are separate phases.
+The delivered Personal User and Team aggregate monthly slices below permit independent stop/alert-only for their own dimensions. The V73/V74 candidates extend this to exact Personal Key roots and Project aggregates. Project Key and Team-member stored policies remain hard-only. Accounting, currency/price, rolling, rates, concurrency and IP remain independent gates; fixed warning history is unchanged. Configurable thresholds and other scopes are separate phases.
 
 ## Windows, money and reset boundaries
 
@@ -385,3 +385,94 @@ complete Task (4,402 frontend cases), build and its own focused dual-driver
 regression pass; the containing commit delivers this bounded phase.
 Source, staged focused-driver and full-private evidence are tracked separately in
 [Implementation](IMPLEMENTATION.md).
+
+## Personal Key monthly behavior (V73 candidate)
+
+The existing owner-scoped Personal Key limit API and detail editor support
+independent monthly `tokens_month_behavior` and `money_month_behavior`: `stop`
+or `alert_only`. This extends the earlier User-only and Team-only phases; their
+acceptance records above retain their original scope. Full replacement omission
+resolves to stop; explicit null, unknown and non-string modes are rejected. A
+null cap disables that dimension while retaining its inert saved mode. Zero is
+a real threshold. Stored Personal Key policy and its own parent-chain entry
+expose canonical modes; numeric effective minima do not merge account behavior.
+
+User and Personal Key accounts enforce each monthly dimension independently.
+An alert-only User threshold of 100 does not stop a Key whose hard threshold is 200;
+the Key still stops at 200. A soft Key never bypasses a hard User threshold.
+Rotation retains the exact owner and shared quota-root identity, policy and
+usage. Project Keys remain hard and never borrow Personal Key mode authority.
+
+Only the matching monthly capacity comparison can be bypassed. Accounting
+coverage, unknown usage, conservative holds and bounds, price and currency
+checks, rolling windows, RPM, TPM, concurrency, IP, current owner and runtime
+publication remain required. Warning thresholds remain 80 percent reminder and
+90 percent critical, based only on authoritative settled usage. Saving changes
+no counters and adds no guessed allowance.
+
+The existing Base UI editor confirms complete policy, exact decimal money,
+currency, reason and reviewed If-Match. First definite conflict requires explicit
+review. Every uncertain or rejected retry retains the original immutable
+request while its owner component remains mounted. Current-content reads do
+not prove the historical write. Actor changes, logout and unmount destroy local
+state; this phase adds no secret storage or remount recovery.
+
+## Project aggregate monthly behavior (V74 candidate)
+
+The existing `GET`/`PUT /api/v1/projects/:project_id/limits` exposes canonical
+`tokens_month_behavior` and `money_month_behavior` in stored policy and its sole
+IP-policy entry. Each is `stop` or `alert_only`; effective policy stays numeric.
+Exact admitted current managers retain scoped reads and numeric requests. Direct
+editing requires existing `projects.limits.write`, with no new permission or
+creator/admin override. Full PUT omission resets each mode to stop; explicit
+null, empty, duplicate, unknown, case/space variants and non-string modes reject.
+Null caps retain an inert mode; zero is a real threshold. Money remains an exact
+decimal string in the current authorized denomination.
+
+The exact Project Key chain contains Project parent followed by hard Key policy.
+Only the parent exposes modes; a child mode, including explicit stop, rejects.
+A soft Project threshold of 100 can admit a valid 150 reservation under a hard
+Key threshold of 200. A hard Project threshold of 100 still rejects it. These
+are independent account/dimension decisions, not a synthetic numeric minimum.
+Rolling Tokens, rate/concurrency/IP, finite bounds, pricing/currency, holds,
+coverage/unknown usage, lifecycle and current publication remain required.
+
+Numeric QUOTA/RATE_LIMIT request bodies do not accept modes. Approval copies
+the current complete Project policy and changes only submitted numeric values,
+preserving both current modes. ETags, review tokens, audit and application proof
+include modes. Accounting, original Key root identity and fixed settled 80/90
+warnings retain their existing current-manager recipient and read-state rules.
+
+The existing Resource configuration uses two adjacent switches and explicit
+Base UI confirmation. Fresh exact actor/Project authority gates private fields
+and dispatch; every failed uncertain manual retry retains original bytes and
+validator. The intent is mounted-only. Project Key summaries show parent behavior
+without child controls or inferred remaining capacity.
+
+## Candidate verification boundary
+
+The repaired Personal Key candidate separately passes four selected real
+PostgreSQL/MySQL migration/lifecycle cases, unchanged-source/mode checks and
+owned cleanup. The original Vault Full137 separately passes 274 direct cases
+and eight constraints on its original source. Those receipts do not transfer to
+the later historical Cleanup correction or combined Project candidate.
+
+The final 1,769-path combined source passes formatting, mandatory checking,
+complete Task (4,506 frontend tests across 181 files), production build and
+expanded Focus18 on PostgreSQL/MySQL. Full141 remains in progress. Earlier
+obsolete API, historical migration, manager and timestamp/coverage fixture
+failures remain retained and are not reinterpreted as successful runs.
+
+Personal Key controlled API/native/restart acceptance passes 19 logical calls,
+seven native attempts, 12 pre-admission denials and five original Sessions, with
+identical bounded before/after database snapshots and independently verified
+owned cleanup. Root accepts this R6 API-only result with SHA-256
+`b5de98a326cc009864b555204203e3f60375382afc9ac33d0b4ac55b03a9e5ba`.
+TPM is observed as quota_exceeded; RPM remains rate_limit_exceeded. The earlier
+failed TPM run lacks its rejected body, so that historical body remains unknown.
+
+Controlled Vault API R7 passes configuration, retained-auth Cleanup, persistent Vault/application restart and both original API Sessions. Root independently verifies six revisions, two probes, four stage commands, ten paired Vault requests (six successful effects and four ACL denials), seven observed root domains, the real 300-second observation and completed retirement. Before/after/finish database projections are identical; source, artifact/config and exact owned cleanup remain verified. Root API-only review SHA-256: `efb14524ce1c06fe6de54be050d03e7d10946a6cd3c93fde25be6886c73cf538`. Earlier failed runs, including the restart-wait failure, remain failed; the fixed loopback-port successor does not reinterpret their missing evidence.
+
+Both Vault R7 and Personal R6 API runs use the original R3 artifact `19320f5e16792e790748feb0a69fd6f70d1c3fc4f571a5e27c6e70d8494b5df4` and source floor `1b78ece3a09c458141ceff256f702822c7e9f0b714766e8458a3b92520276101`. The later R4 parent-callback repair changes a test fixture only; its whole-source/backend-test hashes and gate receipts remain distinct even though production code is identical. API results do not become R4 whole-source acceptance. Expanded Focus18 and current Full141 belong to that later source; Full141 is still running.
+
+Browser, bilingual controls, AuthGate recovery and feature delivery remain pending for this phase. Desktop control reports a locked Mac and the in-app browser cannot attach a new webview; those observations do not prove a product cause or UI/download success. A bounded fresh normal-browser gate must verify the existing controls, independent authority and original-Session restart against an exact reviewed artifact. No complete F17/F28 or full-objective acceptance is claimed. See [Implementation](IMPLEMENTATION.md) for current scope and exact evidence.

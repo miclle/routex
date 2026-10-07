@@ -75,6 +75,7 @@ type runtimeAuthorization struct {
 	ValidUntil             time.Time
 	LimitPolicies          map[string]limits.Policy
 	LimitRoots             map[string]string
+	PersonalLimitOwners    map[string]string
 	Keys                   map[string]runtimeKey
 	KeysByID               map[string]runtimeKey
 	Names                  map[string]entity.ModelName
@@ -509,6 +510,7 @@ func buildRuntimeAuthorization(data *runtimeData, until time.Time) *runtimeAutho
 		ValidUntil:             until,
 		LimitPolicies:          data.LimitPolicies,
 		LimitRoots:             data.LimitRoots,
+		PersonalLimitOwners:    runtimePersonalLimitOwners(data),
 		Keys:                   map[string]runtimeKey{},
 		KeysByID:               map[string]runtimeKey{},
 		Names:                  map[string]entity.ModelName{},

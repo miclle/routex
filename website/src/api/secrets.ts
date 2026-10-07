@@ -2,6 +2,7 @@ import axios from 'axios'
 import client from './client'
 import {
   secretDomains,
+  legacySecretDomains,
   type SecretIntent,
   type SecretResult,
   type SecretRotation,
@@ -74,6 +75,7 @@ function unique<T>(values: T[]): T[] {
 }
 function rotation(value: unknown): SecretRotation {
   const row = object(value, [
+    'inventory_version',
     'id',
     'status',
     'phase',
@@ -85,11 +87,14 @@ function rotation(value: unknown): SecretRotation {
     'observation_eligible_at',
     'allowed_actions',
   ])
+  if (row.inventory_version !== 1 && row.inventory_version !== 2) return fail()
+  const codes = row.inventory_version === 1 ? legacySecretDomains : secretDomains
   const domains = array(
     row.domains,
     (value, index) => {
       const domain = object(value, [
         'code',
+        'coverage',
         'scanned',
         'rewrapped',
         'already_target',
@@ -97,21 +102,26 @@ function rotation(value: unknown): SecretRotation {
         'changed',
         'blocked',
       ])
-      if (domain.code !== secretDomains[index]) return fail()
+      if (domain.code !== codes[index]) return fail()
+      const coverage = oneOf(domain.coverage, ['observed', 'not_scanned'] as const)
+      const work = (value: unknown) =>
+        coverage === 'observed' ? count(value) : value === null ? null : fail()
       return {
-        code: secretDomains[index],
-        scanned: count(domain.scanned),
-        rewrapped: count(domain.rewrapped),
-        already_target: count(domain.already_target),
-        deleted: count(domain.deleted),
-        changed: count(domain.changed),
-        blocked: count(domain.blocked),
+        code: codes[index],
+        coverage,
+        scanned: work(domain.scanned),
+        rewrapped: work(domain.rewrapped),
+        already_target: work(domain.already_target),
+        deleted: work(domain.deleted),
+        changed: work(domain.changed),
+        blocked: work(domain.blocked),
       }
     },
-    5,
+    codes.length,
   )
-  if (domains.length !== 5) return fail()
+  if (domains.length !== codes.length) return fail()
   return {
+    inventory_version: row.inventory_version,
     id: string(row.id, rotationID),
     status: oneOf(row.status, [
       'migrating',
@@ -141,6 +151,7 @@ function rotation(value: unknown): SecretRotation {
 }
 export function parseSecretStore(value: unknown): SecretStore {
   const row = object(value, [
+    'inventory_version',
     'mode',
     'observed_at',
     'review_etag',
@@ -179,8 +190,9 @@ export function parseSecretStore(value: unknown): SecretStore {
       policy.write_key_id === null)
   )
     return fail()
-  if (row.mode !== 'internal' || row.can_read !== true) return fail()
+  if (row.inventory_version !== 2 || row.mode !== 'internal' || row.can_read !== true) return fail()
   return {
+    inventory_version: 2,
     mode: 'internal',
     observed_at: date(row.observed_at),
     review_etag: string(row.review_etag, etag),

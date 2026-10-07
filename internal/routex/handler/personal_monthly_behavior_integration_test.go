@@ -247,13 +247,16 @@ func testPersonalMonthlyBehaviorLifecycle(t *testing.T, db *gorm.DB) {
 		t.Fatal("current mode publication not confirmed")
 	}
 	key := write(keyPath, map[string]any{"tokens_month": 200})
-	if key.Stored.TokensMonthBehavior != "" || key.IPPolicies[0].TokensMonthBehavior != "alert_only" || key.Effective.TokensMonth == nil || *key.Effective.TokensMonth != 100 {
+	if key.Stored.TokensMonthBehavior != "stop" || key.IPPolicies[0].TokensMonthBehavior != "alert_only" || key.Effective.TokensMonth == nil || *key.Effective.TokensMonth != 100 {
 		t.Fatal("separate account and numeric summary contract")
 	}
 	for _, mode := range []any{nil, "ALERT_ONLY", "alert_only ", []string{"stop"}} {
 		expectStatus(t, request("PUT", userPath, map[string]any{"tokens_month_behavior": mode, "reason": "Invalid"}, applied.ETag, false), 400)
 	}
-	expectStatus(t, request("PUT", keyPath, map[string]any{"tokens_month_behavior": "stop", "reason": "No Key mode editor"}, key.ETag, false), 400)
+	key = decodeCatalogResponse[service.LimitRecord](t, request("PUT", keyPath, map[string]any{"tokens_month": 200, "tokens_month_behavior": "stop", "reason": "Canonical Personal Key hard policy"}, key.ETag, false), 200)
+	if key.Stored.TokensMonthBehavior != "stop" || key.Stored.MoneyMonthBehavior != "stop" || !key.Enforced {
+		t.Fatal("canonical Personal Key stop policy not published")
+	}
 	memberAuth, deniedMemberCookie := readIdentity(t, identityRequest(router, "POST", "/api/v1/auth/login", `{"email":"behavior-member@example.invalid","password":"monthly-behavior-password"}`, nil, ""))
 	denied := httptest.NewRequest("PUT", userPath, strings.NewReader(`{"tokens_month":100,"tokens_month_behavior":"alert_only","reason":"No platform permission"}`))
 	denied.Header.Set("Content-Type", "application/json")

@@ -1,4 +1,13 @@
 export default {
+  projectMonthlyHelp:
+    'Project 月度 Tokens 和预算分别保存阈值行为。留空停用该维度，零是实际阈值。Project Key 硬限制及其他检查仍然生效，保存不会重置用量。',
+  projectMonthlyConfirmTitle: '确认 Project 月度阈值行为',
+  projectParentMonthlyTokens: 'Project 月度 Tokens：{{value}} · {{behavior}}',
+  projectParentMonthlyMoney: 'Project 月度预算：{{value}} · {{behavior}}',
+
+  personalKeyMonthlyConfirmTitle: '确认个人 Key 月度行为',
+  personalKeyMonthlyHelp:
+    '个人 Key 的月度 Token 与预算分别使用各自保存的行为。Key 上限留空时不增加 Key 阈值；User 父级仍执行自身策略。0 是实际阈值。轮换共享此策略及用量，其他检查仍然有效。',
   teamMonthlyResetStop: '恢复默认值会将两项 Team 月度行为重置为停止调用，不会重置用量。',
   teamMonthlyHelp:
     'Team 月度 Token 与预算分别使用各自保存的行为。留空会停用该维度，0 是实际阈值。Team 成员限额及其他检查仍然有效。保存不会重置用量。',

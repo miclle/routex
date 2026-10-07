@@ -43,3 +43,15 @@ Tests cover randomized envelope round trips, key ownership, wrong keys and refer
 ## Managed proxy credentials
 
 Managed egress uses the same envelope store for proxy username/password pairs, with an authenticated reference containing the proxy ID and a fresh secret-generation ID. Read APIs expose only whether authentication is configured. Proxy credentials are decrypted while building the runtime transport snapshot, and never forwarded as target headers. The independent proxy endpoint policy and transport/diagnostic contracts are documented in [Managed Egress](EGRESS.md).
+
+## Vault Token integration boundary
+
+[Vault Token integrations](VAULT_TOKEN_INTEGRATIONS.md) persist guarded descriptors,
+separate encrypted writer/reader Token revisions and explicit bounded probes.
+Configuration receipts and recorded remote observations remain distinct. This
+phase does not switch active Provider credential storage or add a per-request
+Vault dependency to Gateway inference.
+
+## Controlled Token integration checkpoint
+
+The durable Token integration API passes its R7 controlled configuration/probe, real root observation/retirement and persistent restart gate. This is API-only evidence with zero native Calls/Attempts/Keys; active Provider storage remains internal. Browser and delivery remain pending. See [Vault evidence](VAULT_TOKEN_INTEGRATIONS.md#controlled-api-evidence-and-remaining-gates).

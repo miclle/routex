@@ -30,7 +30,7 @@ func personalKeyMonthlyWarnings(row entity.ResourceLimit, root entity.APIKey, ow
 	if !usage.AsOf.Equal(frame.AsOf) || !usage.CoverageStart.Equal(frame.CoverageStart) || usage.TimeZone != frame.TimeZone || !validMonthlyQuotaFacts(row, root.CreatedAt, &usage, 30) {
 		return nil
 	}
-	policy, err := policyFromRow(row)
+	policy, err := personalKeyPolicyFromRow(row, root, owner.ID)
 	if err != nil {
 		return nil
 	}
@@ -189,7 +189,18 @@ func (s *Service) observeMonthlyPersonalKeyQuotaWarning(ctx context.Context, kin
 		if err != nil {
 			return err
 		}
-		policy, err := policyFromRow(row)
+		// The shared Key policy row must not be a Project identity collision.
+		// Root/owner/rotation were read above; this one bounded projection adds
+		// no directory or secret data to the settled-warning observation.
+		var collision entity.ProjectKey
+		err = tx.Select("id").Where(database.ExactText(tx, clause.Column{Name: "id"}, rootID)).Take(&collision).Error
+		if err == nil {
+			return nil
+		}
+		if !errors.Is(err, gorm.ErrRecordNotFound) {
+			return err
+		}
+		policy, err := personalKeyPolicyFromRow(row, root, owner.ID)
 		if err != nil {
 			return nil
 		}

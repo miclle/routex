@@ -1,5 +1,6 @@
 export type MonthlyQuotaBehavior = 'stop' | 'alert_only'
 export interface LimitPolicy {
+  // Canonical on User, Team aggregate and Personal Key owned policies; legacy omissions read as stop.
   tokens_month_behavior?: MonthlyQuotaBehavior
   money_month_behavior?: MonthlyQuotaBehavior
   tokens_5h?: number | null

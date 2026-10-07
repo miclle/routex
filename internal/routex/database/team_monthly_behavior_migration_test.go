@@ -32,7 +32,7 @@ func TestTeamMonthlyBehaviorFrozenExactScopeAndRegistry(t *testing.T) {
 	}
 	for _, dialect := range []string{"postgres", "mysql"} {
 		steps := migrationSteps(dialect)
-		if len(steps) != 71 || reflect.ValueOf(steps[70]).Pointer() != reflect.ValueOf(teamMonthlyBehaviorMigration).Pointer() || reflect.ValueOf(steps[69]).Pointer() != reflect.ValueOf(personalMonthlyBehaviorMigration).Pointer() {
+		if len(steps) < 73 || reflect.ValueOf(steps[71]).Pointer() != reflect.ValueOf(vaultIntegrationMigration).Pointer() || reflect.ValueOf(steps[70]).Pointer() != reflect.ValueOf(teamMonthlyBehaviorMigration).Pointer() || reflect.ValueOf(steps[69]).Pointer() != reflect.ValueOf(personalMonthlyBehaviorMigration).Pointer() {
 			t.Fatal("historical registry or V71 append changed", dialect)
 		}
 	}

@@ -641,6 +641,22 @@ rejected retries; refresh never proves the original operation. Historical
 receipts and current write-policy/publication application remain separate. Keep
 paired `secrets` translations and clear transient action state on teardown.
 
+Vault Token integrations use the addressable `?tab=vault` branch of the existing
+Secrets workspace, with its five-column table, row menu and 720px Base UI drawer.
+Keep current administrator and independent secrets.read/write/test gates, exact
+reviewed If-Match/reason/UUIDv4, and explicit keep/replace/remove actions for
+separate writer/reader Tokens. Tokens stay in mounted component state only;
+dismissal, authority loss and unmount destroy them, including uncertain replacement
+material. Mounted retries preserve the original request and never claim secret
+recovery across remount. Write, Read and owned Cleanup use separate confirmations
+and server-owned durable plans; historical revision observations never become
+current Read verification. Replays return recorded current observations without
+new HTTP and do not prove an earlier command succeeded. The Vault tab must not
+mount or fetch root inventory. Root views distinguish historical five-domain
+inventory version1 from current seven-domain version2 and preserve missing domain
+counts as not_scanned/null. Current Provider storage remains internal. Keep paired
+secrets translations and no sensitive query/mutation caches or browser storage.
+
 Addressable historical root-rotation details expose only that recorded job's
 server-allowed actions. Global Start belongs to `/admin/secrets` and is never
 prepared from a historical task URL; the shell retains the Credential storage
@@ -1025,8 +1041,9 @@ first validation/conflict responses retain an editable draft for explicit fresh
 review. Once publication is uncertain, every failed retry retains the original
 body/ETag/modes; retry manually with fresh same-actor authority and current CSRF.
 Retained Restore reviews preserve non-secret User modes across AuthGate remounts.
-Personal Key summaries may show the authoritative User parent mode, but have no
-behavior editor. Numeric effective minima are configured-cap projections, not a
+Personal Key summaries show the authoritative User parent mode separately from
+their own monthly behavior controls. Project Key stored policies remain hard.
+Numeric effective minima are configured-cap projections, not a
 merged stopping policy or a promise that inference will succeed. Keep paired
 limits copy and language-switch/authority/retry tests.
 
@@ -1061,3 +1078,41 @@ unknown usage, currency, coverage, exact births and current runtime lease remain
 hard gates. Numeric effective minima are configured-cap facts, not a merged stop
 mode or proof of callability. Preserve Project/Key behavior, accounting, warning
 recipient/read-state semantics and paired limits translations.
+
+## Personal Key monthly behavior
+
+Personal Key monthly Token and money modes belong beside their caps in the
+existing Key limit editor, using paired limits translations and local Base UI
+confirmation. Keep owner-scoped paths, exact decimals, reviewed If-Match and
+complete-policy writes. Omitted modes resolve to stop; null caps disable only
+that dimension and zero remains a real threshold. Show User parent modes
+separately. A soft parent can permit a larger hard Key cap; each account and
+monthly dimension keeps its own stopping decision. Rotation preserves the exact
+owner, shared quota root, policy and usage. Project Key stored modes remain hard.
+
+Unknown accounting, coverage, holds, finite bounds, pricing, currency, rolling
+Tokens, request rates, concurrency, IP and runtime publication remain required.
+Retain mounted conflict drafts and immutable uncertain intent through rejected
+retries; matching current GET never proves the original write. Fresh authority
+and current CSRF are required before dispatch. Do not imply AuthGate-remount
+recovery or persist credential/draft material.
+
+## Project aggregate monthly behavior
+
+Project Resource configuration exposes independent monthly Token and money
+behavior switches beside the existing caps, using local Switch and explicit
+Base UI confirmation. Keep existing `projects.limits.write` authority; current
+managers retain scoped reads and numeric requests without new permissions or
+creator/admin overrides. A null cap disables its control while retaining the
+inert saved mode; zero remains a real threshold. Complete PUT omission resets
+modes to stop. Numeric quota/rate approvals preserve the current modes.
+
+Fresh Session, permission and exact actor/Project reads fence rendering and
+first dispatch. Preserve exact decimals, denomination, reason, If-Match and the
+original uncertain request through every failed manual retry. Matching current
+GET is not historical success. Retain the mounted-only intent lifetime; add no
+browser storage, global drafts or claimed remount recovery. Project Key stored
+policies stay hard and have no behavior control; their read-only parent summary
+separates Project behavior from the numeric effective minimum. Team-member
+policies remain hard. Configured thresholds never imply remaining allowance,
+routing readiness or historical/runtime application.

@@ -91,6 +91,16 @@ func rootRotationSeedLegacy(t *testing.T, db *gorm.DB, store *secretstore.Store)
 	create(&entity.UserMFA{UserID: orphanID, Generation: orphanGeneration, SecretCiphertext: seal("user_mfa", "user_id", orphanID, "secret_ciphertext", "mfa:"+orphanID+":"+orphanGeneration, "JBSWY3DPEHPK3PXP"), LastTOTPStep: 77, FailedAttempts: 2, UpdatedAt: stamp})
 	create(&entity.MFARecoveryCode{UserID: orphanID, CodeHash: strings.Repeat("c", 64), UsedAt: &stamp})
 	create(&entity.MFAChallenge{UserID: "usr_root_pending", Purpose: "enrollment", TokenHash: strings.Repeat("a", 64), PasswordDigest: strings.Repeat("b", 64), Generation: "root-mfa-generation-0", SessionID: "ses_root_history", ExpiresAt: stamp.Add(time.Hour), Attempts: 2})
+	// Both current and retained immutable Vault revisions participate in root
+	// rotation; their auth rows never imply an active Provider-store switch.
+	integrationID := "vlt_01aaaaaaaaaaaaaaaaaaaaaaaa"
+	create(&entity.VaultIntegration{ID: integrationID, Name: "Retained Vault", RevisionID: "vlr_01bbbbbbbbbbbbbbbbbbbbbbbb", CreatedAt: stamp, UpdatedAt: stamp})
+	for index, revisionID := range []string{"vlr_01aaaaaaaaaaaaaaaaaaaaaaaa", "vlr_01bbbbbbbbbbbbbbbbbbbbbbbb"} {
+		create(&entity.VaultRevision{ID: revisionID, IntegrationID: integrationID, IntegrationBirth: stamp, Name: "Retained Vault", Endpoint: "http://127.0.0.1:1", Mount: "kv", Prefix: "routex-probes", DataField: "value", CreatedAt: stamp})
+		writerGeneration, readerGeneration := fmt.Sprintf("vag_root_writer_%d", index), fmt.Sprintf("vag_root_reader_%d", index)
+		create(&entity.VaultWriterAuth{ID: revisionID, SecretGeneration: writerGeneration, AuthCiphertext: seal("vault_writer_auth", "id", revisionID, "auth_ciphertext", "vault-writer:"+revisionID+":"+writerGeneration, "test-only-vault-writer")})
+		create(&entity.VaultReaderAuth{ID: revisionID, SecretGeneration: readerGeneration, AuthCiphertext: seal("vault_reader_auth", "id", revisionID, "auth_ciphertext", "vault-reader:"+revisionID+":"+readerGeneration, "test-only-vault-reader")})
+	}
 	return result
 }
 
@@ -822,7 +832,7 @@ func testRootKeyRotationLifecycle(t *testing.T, db *gorm.DB) {
 	if observing.Rotation == nil || observing.Rotation.Status != "observing" || observing.Rotation.ObservationStartedAt == nil || observing.Rotation.ObservationEligibleAt == nil || observing.Rotation.ObservationEligibleAt.Sub(*observing.Rotation.ObservationStartedAt) != 300*time.Second || slices.Contains(observing.Rotation.AllowedActions, "retire") {
 		t.Fatalf("migration progress bypassed server observation: %+v", observing.Rotation)
 	}
-	expectedDomains := map[string]uint64{"provider_credentials": 2, "egresses": 1, "smtp_settings": 1, "storage_revisions": 25, "user_mfa": 4}
+	expectedDomains := map[string]uint64{"provider_credentials": 2, "egresses": 1, "smtp_settings": 1, "storage_revisions": 25, "user_mfa": 4, "vault_writer_auth": 2, "vault_reader_auth": 2}
 	if len(observing.Rotation.Domains) != len(expectedDomains) {
 		t.Fatal("global observation omitted a retained encryption domain")
 	}
@@ -948,7 +958,7 @@ func testRootKeyRotationLifecycle(t *testing.T, db *gorm.DB) {
 	}
 	for range 50 {
 		if err := svc.RunSecretRotationOnce(ctx); err != nil {
-			t.Fatal("bounded reverse five-domain pass", err)
+			t.Fatal("bounded reverse seven-domain pass", err)
 		}
 		if state := view(); state.Rotation != nil && state.Rotation.Status == "observing" {
 			break

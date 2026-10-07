@@ -35,6 +35,9 @@ var quotaBuckets = [][]byte{quotaEntryBucket, quotaCounterBucket, quotaExpiryBuc
 type QuotaLimit struct {
 	Limit
 	Revision string
+	// PersonalKey is trusted immutable-parent proof supplied by the service; it
+	// is not a public field or persisted quota receipt. Project Keys never set it.
+	PersonalKey bool
 	// CreatedAt is trusted resource creation metadata, never a caller override.
 	// Zero means unknown prehistory. Rotation uses the original Key account date.
 	CreatedAt                               time.Time

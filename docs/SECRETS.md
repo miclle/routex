@@ -12,7 +12,9 @@ The real-process authentication lifecycle passed on both databases and cleaned
 its owned resources. The complete final PostgreSQL/MySQL race matrix passed: Handler 1341.797s and
 Service 8.060s. Owned resources were removed and verified absent; all 56 frozen
 code hashes remained unchanged. The final mandatory check passed before delivery.
-External Vault identities and storage switching are separate unfinished work.
+The five-domain evidence above is historical. Current Vault Token integration
+acceptance and provider-storage switching are tracked separately in
+[Vault Token integrations](VAULT_TOKEN_INTEGRATIONS.md).
 
 ## Keyring bootstrap
 
@@ -69,7 +71,7 @@ and accessible names have paired English/Chinese translations.
 2. Start with a replacement key ID, one UUIDv4 intent and a required reason. The
    committed write-policy epoch fences every secret writer. A stale prepared
    operation rejects its whole transaction instead of replaying a secret write.
-3. The bounded durable worker scans all five retained domains, uses exact
+3. The bounded durable worker scans all seven retained domains, uses exact
    ciphertext compare-and-swap, and performs a fresh complete verification.
    Every committed page publishes the actual current inventory after releasing
    its transactions and egress locks. A failed publication preserves the durable
@@ -97,6 +99,15 @@ failed refreshes. A committed receipt and current publication are distinct.
 | SMTP authentication | Saved descriptor authentication with its exact generation reference |
 | Storage authentication | Every retained revision, including failed/candidate descriptors and historical revisions beyond the administration page limit |
 | Authenticator factors | Pending, enabled, disabled and retained/orphan factor envelopes using their immutable user/generation reference |
+| Vault writer authentication | Every retained nonempty writer Token envelope, including superseded revisions |
+| Vault reader authentication | Every retained nonempty reader Token envelope, including superseded and removed-reader history |
+
+Inventory version1 retains its historical five-domain meaning. Current jobs use
+version2 and all seven domains. Nonterminal version1 jobs require explicit reviewed
+Resume and a fresh complete scan; completed version1 history remains historical.
+Missing observations stay not_scanned with null counts. Unknown versions fail
+closed. Frozen GORM V72 appends the new inventory version and Vault domains without
+editing V48. Finite probe decrypt readers participate in root retirement draining.
 
 Passwords, Personal/Project API Key digests, Sessions and recovery-code digests
 are irreversible verification values and are outside recoverable-secret
@@ -125,7 +136,7 @@ historical commit; current policy/publication application is separately checked.
 Historical retries do not reapply cutover or recreate completed jobs. Current
 identity and permission checks remain required before receipt access.
 
-Rollback is a new write epoch and an authenticated reverse five-domain job with
+Rollback is a new write epoch and an authenticated reverse current-inventory job with
 its own verification and observation. It does not restore previous envelopes,
 undo native calls or make an old single-key binary compatible with v2 writes.
 Keep the modern keyring-capable binary and required roots throughout recovery.
@@ -196,3 +207,11 @@ This bounded foundation passes mandatory checking, the complete Task suite and
 production build against its exact source composition, including 4,402 frontend
 cases and all Go race/coverage tests. The containing commit delivers these package
 operations. Real Vault and durable configuration acceptance remain separate.
+
+## Durable configuration API checkpoint
+
+Controlled Vault API R7 passes configuration, retained-auth Cleanup, persistent Vault/application restart and both original API Sessions. Root independently verifies six revisions, two probes, four stage commands, ten paired Vault requests (six successful effects and four ACL denials), seven observed root domains, the real 300-second observation and completed retirement. Before/after/finish database projections are identical; source, artifact/config and exact owned cleanup remain verified. Root API-only review SHA-256: `efb14524ce1c06fe6de54be050d03e7d10946a6cd3c93fde25be6886c73cf538`. Earlier failed runs, including the restart-wait failure, remain failed; the fixed loopback-port successor does not reinterpret their missing evidence.
+
+Both Vault R7 and Personal R6 API runs use the original R3 artifact `19320f5e16792e790748feb0a69fd6f70d1c3fc4f571a5e27c6e70d8494b5df4` and source floor `1b78ece3a09c458141ceff256f702822c7e9f0b714766e8458a3b92520276101`. The later R4 parent-callback repair changes a test fixture only; its whole-source/backend-test hashes and gate receipts remain distinct even though production code is identical. API results do not become R4 whole-source acceptance. Expanded Focus18 and current Full141 belong to that later source; Full141 is still running.
+
+Browser, bilingual controls, AuthGate recovery and feature delivery remain pending for this phase. Desktop control reports a locked Mac and the in-app browser cannot attach a new webview; those observations do not prove a product cause or UI/download success. A bounded fresh normal-browser gate must verify the existing controls, independent authority and original-Session restart against an exact reviewed artifact. No complete F17/F28 or full-objective acceptance is claimed.

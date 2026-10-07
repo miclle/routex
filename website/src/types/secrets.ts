@@ -1,12 +1,18 @@
 export type SecretAction = 'start' | 'resume' | 'retire' | 'rollback'
-export const secretDomains = [
+export const legacySecretDomains = [
   'provider_credentials',
   'egresses',
   'smtp_settings',
   'storage_revisions',
   'user_mfa',
 ] as const
+export const secretDomains = [
+  ...legacySecretDomains,
+  'vault_writer_auth',
+  'vault_reader_auth',
+] as const
 export interface SecretRotation {
+  inventory_version: 1 | 2
   id: string
   status: 'migrating' | 'blocked' | 'observing' | 'ready' | 'completed' | 'rolled_back'
   phase: 'migration' | 'verification' | 'observation' | 'completed'
@@ -14,12 +20,13 @@ export interface SecretRotation {
   target_key_id: string
   domains: {
     code: (typeof secretDomains)[number]
-    scanned: string
-    rewrapped: string
-    already_target: string
-    deleted: string
-    changed: string
-    blocked: string
+    coverage: 'observed' | 'not_scanned'
+    scanned: string | null
+    rewrapped: string | null
+    already_target: string | null
+    deleted: string | null
+    changed: string | null
+    blocked: string | null
   }[]
   blocker_codes: string[]
   observation_started_at: string | null
@@ -27,6 +34,7 @@ export interface SecretRotation {
   allowed_actions: Exclude<SecretAction, 'start'>[]
 }
 export interface SecretStore {
+  inventory_version: 2
   mode: 'internal'
   observed_at: string
   review_etag: string

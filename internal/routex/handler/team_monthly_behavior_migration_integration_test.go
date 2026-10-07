@@ -33,14 +33,15 @@ func testTeamMonthlyBehaviorMigration(t *testing.T, db *gorm.DB) {
 	if err := db.Table("schema_migrations").Order("version").Pluck("version", &ledger).Error; err != nil {
 		t.Fatal(err)
 	}
-	if len(ledger) != 71 {
-		t.Fatal("expected current V71 ledger", ledger)
+	if len(ledger) < 71 {
+		t.Fatal("expected retained V71 migration prefix", ledger)
 	}
 	for i, v := range ledger {
 		if v != i+1 {
 			t.Fatal("incomplete ledger", ledger)
 		}
 	}
+	withoutV71 := append(append([]int(nil), ledger[:70]...), ledger[71:]...)
 	assertLedger := func(want []int) {
 		t.Helper()
 		var got []int
@@ -54,7 +55,7 @@ func testTeamMonthlyBehaviorMigration(t *testing.T, db *gorm.DB) {
 		if q.Error != nil || q.RowsAffected != 1 {
 			t.Fatal("remove V71", q.Error)
 		}
-		assertLedger(ledger[:70])
+		assertLedger(withoutV71)
 	}
 	current := func() {
 		t.Helper()
@@ -183,7 +184,7 @@ func testTeamMonthlyBehaviorMigration(t *testing.T, db *gorm.DB) {
 	if err := database.Migrate(ctx, db); err == nil {
 		t.Fatal("invalid retained member soft succeeded")
 	}
-	assertLedger(ledger[:70])
+	assertLedger(withoutV71)
 	if err := db.Model(&entity.ResourceLimit{}).Where("scope_kind = ? AND scope_id = ?", "team_member", "retained71_team_member").UpdateColumn("TokensMonthBehavior", "stop").Error; err != nil {
 		t.Fatal(err)
 	}

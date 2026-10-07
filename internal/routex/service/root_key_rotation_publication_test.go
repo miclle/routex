@@ -77,7 +77,7 @@ func rootPublicationService(t *testing.T) (*Service, *rootPublicationFixture) {
 	now := time.Now().UTC()
 	f := &rootPublicationFixture{
 		policy:   entity.SecretWritePolicy{ID: 1, Initialized: true, WriteKeyID: &key, Epoch: 4, ActiveJobID: &jobID},
-		job:      entity.SecretRotationJob{ID: jobID, SourceKeyID: "next", TargetKeyID: key, CutoverEpoch: 4, ScanGeneration: 1, Status: "migrating", Phase: "migration", Domain: 1, CountsJSON: "{}"},
+		job:      entity.SecretRotationJob{InventoryVersion: 2, ID: jobID, SourceKeyID: "next", TargetKeyID: key, CutoverEpoch: 4, ScanGeneration: 1, Status: "migrating", Phase: "migration", Domain: 1, CountsJSON: "{}"},
 		egress:   entity.Egress{ID: "egr_publication", Kind: "https", Host: "127.0.0.1", Port: 9, SecretGeneration: "sec_publication", AuthCiphertext: cipher},
 		instance: entity.SystemInstance{ID: "ins_publication", LeaseToken: "lease_publication", Role: "combined", LeaseExpiresAt: now.Add(time.Minute)},
 	}

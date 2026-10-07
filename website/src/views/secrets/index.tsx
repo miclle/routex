@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { useQuery, useQueryClient, type QueryKey } from '@tanstack/react-query'
-import { Link, useParams } from 'react-router'
+import { Link, useParams, useSearchParams } from 'react-router'
 import { useTranslation } from 'react-i18next'
 import { KeyRound } from 'lucide-react'
 import { getPermissions } from '@/api/governance'
@@ -15,6 +15,8 @@ import { Badge } from '@/components/ui/badge'
 import { Dialog } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Table } from '@/components/ui/table'
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { VaultWorkspace } from './vault'
 
 const knownBlockers = new Set([
   'key_unavailable',
@@ -26,6 +28,7 @@ const knownBlockers = new Set([
   'lease_lost',
   'dependency_remaining',
   'observation_pending',
+  'inventory_scope_changed',
 ])
 const terminal = new Set(['completed', 'rolled_back'])
 const sameKey = (left: QueryKey, right: QueryKey) => JSON.stringify(left) === JSON.stringify(right)
@@ -34,21 +37,56 @@ export default function SecretStorePage() {
   const session = useSession()
   const generation = useSessionGeneration()
   const { rotationId } = useParams()
+  const [params, setParams] = useSearchParams()
+  const { t } = useTranslation('secrets')
+  const tab = !rotationId && params.get('tab') === 'vault' ? 'vault' : 'storage'
   const actor = session.data?.user.id ?? ''
   const fresh =
     session.isSuccess &&
     !session.isFetching &&
     !session.error &&
     /^[a-f0-9]{64}$/.test(session.data?.csrf_token ?? '')
+  const workspace =
+    tab === 'vault' ? (
+      <VaultWorkspace
+        key={actor}
+        actor={actor}
+        admin={session.data?.user.role === 'admin'}
+        fresh={fresh}
+        generation={generation}
+      />
+    ) : (
+      <SecretWorkspace
+        key={`${actor}:${rotationId ?? ''}`}
+        actor={actor}
+        admin={session.data?.user.role === 'admin'}
+        fresh={fresh}
+        generation={generation}
+        rotationId={rotationId}
+      />
+    )
   return (
-    <SecretWorkspace
-      key={`${actor}:${rotationId ?? ''}`}
-      actor={actor}
-      admin={session.data?.user.role === 'admin'}
-      fresh={fresh}
-      generation={generation}
-      rotationId={rotationId}
-    />
+    <>
+      {!rotationId && (
+        <Tabs
+          value={tab}
+          onValueChange={(value) => {
+            const next = new URLSearchParams(params)
+            next.set('tab', String(value))
+            setParams(next)
+          }}
+        >
+          <TabsList>
+            <TabsTrigger value="storage">{t('tabs.storage')}</TabsTrigger>
+            <TabsTrigger value="vault">{t('tabs.vault')}</TabsTrigger>
+            <TabsTrigger value="api-key" disabled>
+              {t('tabs.apiKey')}
+            </TabsTrigger>
+          </TabsList>
+        </Tabs>
+      )}
+      {workspace}
+    </>
   )
 }
 
@@ -448,6 +486,7 @@ function SecretWorkspace({
                 <dd>{formatDate(view.process.verified_at)}</dd>
               </div>
             </dl>
+            <p className="text-xs text-muted-foreground">{t('currentInventory')}</p>
             {view.rotation ? (
               <>
                 <div className="flex flex-wrap items-center gap-2">
@@ -464,6 +503,9 @@ function SecretWorkspace({
                     )}
                   </span>
                 </div>
+                {view.rotation.inventory_version === 1 && (
+                  <p className="text-xs text-muted-foreground">{t('historicalInventory')}</p>
+                )}
                 <dl className="grid gap-3 text-sm sm:grid-cols-2">
                   <div>
                     <dt>{t('source')}</dt>
@@ -514,7 +556,7 @@ function SecretWorkspace({
                             'blocked',
                           ] as const
                         ).map((name) => (
-                          <td key={name}>{domain[name]}</td>
+                          <td key={name}>{domain[name] ?? t('notScanned')}</td>
                         ))}
                       </tr>
                     ))}

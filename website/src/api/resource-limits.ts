@@ -20,7 +20,8 @@ export async function saveLimits(
   for (const field of monthlyBehaviorFields) {
     if (
       Object.hasOwn(input, field) &&
-      (!/^\/admin\/members\/[^/]+$/.test(path) || !validMonthlyBehavior(input[field]))
+      (!/^\/(?:admin\/members|keys|projects)\/[^/]+$/.test(path) ||
+        !validMonthlyBehavior(input[field]))
     )
       throw new Error('Invalid Personal monthly behavior input')
   }
@@ -57,13 +58,19 @@ function validateMonthlyBehaviors(value: unknown): LimitRecord {
   if (expectedPolicies === null || value.ip_policies.length !== expectedPolicies)
     throw new Error('Invalid resource policy chain')
   const user = value.kind === 'user'
-  if (!user && monthlyBehaviorFields.some((field) => Object.hasOwn(value.stored as object, field)))
+  const personal = user || value.kind === 'personal_key' || value.kind === 'project'
+  if (
+    !personal &&
+    monthlyBehaviorFields.some((field) => Object.hasOwn(value.stored as object, field))
+  )
     throw new Error('Invalid stored monthly behavior scope')
-  const isUserParent = (index: number) => index === 0 && (user || value.kind === 'personal_key')
+  const ownsMonthlyBehavior = (index: number) =>
+    (personal && (index === 0 || value.kind === 'personal_key')) ||
+    (value.kind === 'project_key' && index === 0)
   for (const [index, policy] of value.ip_policies.entries()) {
     if (
       object(policy) &&
-      !isUserParent(index) &&
+      !ownsMonthlyBehavior(index) &&
       monthlyBehaviorFields.some((field) => Object.hasOwn(policy, field))
     )
       throw new Error('Invalid parent monthly behavior scope')
@@ -84,9 +91,9 @@ function validateMonthlyBehaviors(value: unknown): LimitRecord {
   })
   return {
     ...value,
-    stored: user ? canonicalUserPolicy(value.stored) : value.stored,
+    stored: personal ? canonicalUserPolicy(value.stored) : value.stored,
     ip_policies: value.ip_policies.map((policy, index) =>
-      isUserParent(index) ? canonicalUserPolicy(policy) : policy,
+      ownsMonthlyBehavior(index) ? canonicalUserPolicy(policy) : policy,
     ),
   } as unknown as LimitRecord
 }

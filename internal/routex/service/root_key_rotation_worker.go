@@ -66,6 +66,12 @@ func (s *Service) RunSecretRotationOnce(ctx context.Context) error {
 	if err := personalExact(s.authDB(ctx), "id", *p.ActiveJobID).Take(&job).Error; err != nil {
 		return catalogError(err)
 	}
+	if _, err := rootCountsChecked(job); err != nil {
+		return err
+	}
+	if job.Status != "completed" && job.Status != "rolled_back" && job.InventoryVersion != 2 {
+		return s.rootBlock(ctx, p, &job, "inventory_scope_changed")
+	}
 	if job.Status == "blocked" || job.Status == "completed" || job.Status == "rolled_back" {
 		return nil
 	}
@@ -227,6 +233,15 @@ func (s *Service) rootProcessPage(ctx context.Context, p entity.SecretWritePolic
 		return s.rootBlock(ctx, p, &job, "ciphertext_invalid")
 	}
 	if len(rows) == 0 {
+		counts := rootCounts(job)
+		if _, seen := counts[domain]; !seen {
+			counts[domain] = rootDomainCounts{}
+		}
+		encoded, err := json.Marshal(counts)
+		if err != nil {
+			return err
+		}
+		job.CountsJSON = string(encoded)
 		job.Domain++
 		job.Cursor = ""
 		return catalogError(s.rootSaveCheckpoint(ctx, p, &job))

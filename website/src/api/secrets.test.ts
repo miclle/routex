@@ -201,3 +201,38 @@ it('rejects an applied response without both application proofs', () => {
   expect(() => parseSecretResult(value, intent)).toThrow(SecretError)
   expect(validSecretReason(null)).toBe(false)
 })
+
+it('keeps historical five-domain coverage independent from current seven-domain inventory', () => {
+  const value = store()
+  value.rotation = job()
+  expect(parseSecretStore(value).rotation?.domains).toHaveLength(5)
+  value.rotation.inventory_version = 2
+  value.rotation.domains.push(
+    ...(['vault_writer_auth', 'vault_reader_auth'] as const).map((code) => ({
+      code,
+      coverage: 'not_scanned' as const,
+      scanned: null,
+      rewrapped: null,
+      already_target: null,
+      deleted: null,
+      changed: null,
+      blocked: null,
+    })),
+  )
+  expect(parseSecretStore(value).rotation?.domains).toHaveLength(7)
+  expect(parseSecretStore(value).rotation?.domains[5].scanned).toBeNull()
+  value.rotation.domains[5].scanned = '0'
+  expect(() => parseSecretStore(value)).toThrow(SecretError)
+})
+it('rejects unknown/missing inventory versions and five/seven aliasing', () => {
+  const value = store()
+  Object.assign(value, { inventory_version: 1 })
+  expect(() => parseSecretStore(value)).toThrow()
+  value.inventory_version = 2
+  value.rotation = job()
+  value.rotation.inventory_version = 2
+  expect(() => parseSecretStore(value)).toThrow()
+  value.rotation.inventory_version = 1
+  Object.assign(value.rotation.domains[0], { coverage: 'not_scanned' })
+  expect(() => parseSecretStore(value)).toThrow()
+})

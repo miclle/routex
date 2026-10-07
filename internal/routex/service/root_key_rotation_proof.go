@@ -57,7 +57,7 @@ func (s *Service) rootCurrentProofAdmission(tx *gorm.DB, p entity.SecretWritePol
 			return proof, secretStoreUnavailable
 		}
 	}
-	proof = entity.SecretProcessVerification{ProcessID: lease.id, PolicyEpoch: p.Epoch, KeyManifestDigest: rootHash(manifest), CryptoVersion: 2, LeaseToken: lease.token, RuntimeSnapshotID: routes.ID, RuntimeSourceDigest: routes.Digest, VerifiedAt: s.secretNow()}
+	proof = entity.SecretProcessVerification{ProcessID: lease.id, InventoryVersion: 2, PolicyEpoch: p.Epoch, KeyManifestDigest: rootHash(manifest), CryptoVersion: 2, LeaseToken: lease.token, RuntimeSnapshotID: routes.ID, RuntimeSourceDigest: routes.Digest, VerifiedAt: s.secretNow()}
 	return proof, nil
 }
 func (s *Service) rootPersistProof(tx *gorm.DB, p entity.SecretWritePolicy) (entity.SecretProcessVerification, error) {
@@ -69,5 +69,5 @@ func (s *Service) rootPersistProof(tx *gorm.DB, p entity.SecretWritePolicy) (ent
 	return proof, err
 }
 func rootJobETag(job entity.SecretRotationJob) string {
-	return rootHash(fmt.Sprintf("%s:%s:%s:%d:%d:%s:%s:%s:%v", job.ID, job.Status, job.Phase, job.CutoverEpoch, job.ScanGeneration, job.Cursor, job.CountsJSON, job.BlockerCode, job.ObservationStartedAt))
+	return rootHash(fmt.Sprintf("%s:%d:%s:%s:%d:%d:%s:%s:%s:%v", job.ID, job.InventoryVersion, job.Status, job.Phase, job.CutoverEpoch, job.ScanGeneration, job.Cursor, job.CountsJSON, job.BlockerCode, job.ObservationStartedAt))
 }

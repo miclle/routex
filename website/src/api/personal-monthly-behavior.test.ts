@@ -1,18 +1,23 @@
 import { beforeEach, afterEach, describe, expect, it } from 'vitest'
-import { AxiosHeaders } from 'axios'
+import { AxiosHeaders, type InternalAxiosRequestConfig } from 'axios'
 import client from './client'
 import { getLimits, saveLimits } from './resource-limits'
 import type { LimitInput } from '@/types/resource-limits'
 const original = client.defaults.adapter
 let response: unknown
+let dispatched: InternalAxiosRequestConfig | undefined
 beforeEach(() => {
-  client.defaults.adapter = async (config) => ({
-    config,
-    data: response,
-    status: 200,
-    statusText: '',
-    headers: new AxiosHeaders(),
-  })
+  dispatched = undefined
+  client.defaults.adapter = async (config) => {
+    dispatched = config
+    return {
+      config,
+      data: response,
+      status: 200,
+      statusText: '',
+      headers: new AxiosHeaders(),
+    }
+  }
 })
 afterEach(() => {
   client.defaults.adapter = original
@@ -63,11 +68,9 @@ describe('Personal monthly behavior boundary', () => {
     response = { ...policy(), ip_policies: [{ tokens_month_behavior: ['stop'] }] }
     await expect(getLimits('/admin/members/usr_member')).rejects.toThrow()
   })
-  it('rejects modes fabricated in effective projection or a nonuser stored policy', async () => {
+  it('rejects modes fabricated in effective projection', async () => {
     response = { ...policy(), effective: { tokens_month_behavior: 'stop' } }
     await expect(getLimits('/admin/members/usr_member')).rejects.toThrow()
-    response = { ...policy(), kind: 'project' }
-    await expect(getLimits('/projects/prj_member')).rejects.toThrow()
   })
   it('checks a PUT result before accepting current application', async () => {
     response = { ...policy(), stored: { tokens_month_behavior: null } }
@@ -82,7 +85,7 @@ describe('Personal monthly behavior boundary', () => {
   })
 })
 
-it('allows canonical User parent modes on a Personal Key without inventing a Key behavior', async () => {
+it('allows canonical User parent modes alongside a legacy hard Personal Key', async () => {
   response = {
     ...policy(),
     kind: 'personal_key',
@@ -90,10 +93,10 @@ it('allows canonical User parent modes on a Personal Key without inventing a Key
     ip_policies: [...policy().ip_policies, {}],
   }
   const key = await getLimits('/keys/key_member')
-  expect(key.stored).not.toHaveProperty('tokens_month_behavior')
+  expect(key.stored.tokens_month_behavior).toBe('stop')
   expect(key.ip_policies[0].money_month_behavior).toBe('alert_only')
 })
-it.each(['/keys/key_member', '/projects/prj_member'])(
+it.each(['/projects/prj_member/keys/key_member'])(
   'never submits behavior fields to other stored scopes %s',
   async (path) => {
     response = policy()
@@ -108,30 +111,92 @@ it.each(['/keys/key_member', '/projects/prj_member'])(
   },
 )
 
-it.each(['project', 'project_key', 'team', 'team_member'])(
+it('accepts canonical Project stored and sole parent modes with the actual Project identity', async () => {
+  const stored = {
+    tokens_month: 100,
+    money_month: '0.000000000000000001',
+    currency: 'USD',
+    tokens_month_behavior: 'alert_only',
+    money_month_behavior: 'stop',
+  }
+  response = { ...policy(), kind: 'project', id: 'prj_member', stored, ip_policies: [stored] }
+  const record = await getLimits('/projects/prj_member')
+  expect(record.kind).toBe('project')
+  expect(record.id).toBe('prj_member')
+  expect(record.stored).toEqual(stored)
+  expect(record.ip_policies).toEqual([stored])
+  expect(record.effective).not.toHaveProperty('tokens_month_behavior')
+  expect(record.effective).not.toHaveProperty('money_month_behavior')
+})
+it('submits both independent Project modes without rewriting the reviewed policy', async () => {
+  const input: LimitInput = {
+    tokens_month: 0,
+    money_month: null,
+    tokens_month_behavior: 'stop',
+    money_month_behavior: 'alert_only',
+    rpm: null,
+    concurrency: null,
+    ip_mode: 'none',
+    ip_ranges: [],
+    reason: 'Review Project monthly decisions',
+  }
+  const stored = {
+    tokens_month: input.tokens_month,
+    money_month: input.money_month,
+    tokens_month_behavior: input.tokens_month_behavior,
+    money_month_behavior: input.money_month_behavior,
+    rpm: input.rpm,
+    concurrency: input.concurrency,
+    ip_mode: input.ip_mode,
+    ip_ranges: input.ip_ranges,
+  }
+  response = {
+    ...policy(),
+    kind: 'project',
+    id: 'prj_member',
+    stored,
+    ip_policies: [stored],
+    enforced: true,
+  }
+  const record = await saveLimits('/projects/prj_member', 'a'.repeat(64), input, 'csrf')
+  expect(dispatched?.method).toBe('put')
+  expect(dispatched?.url).toBe('/projects/prj_member/limits')
+  expect(JSON.parse(dispatched?.data as string)).toEqual(input)
+  expect(dispatched?.headers.get('If-Match')).toBe('"' + 'a'.repeat(64) + '"')
+  expect(dispatched?.headers.get('X-CSRF-Token')).toBe('csrf')
+  expect(record.id).toBe('prj_member')
+  expect(record.stored).toEqual(stored)
+  expect(record.ip_policies).toEqual([stored])
+  expect(record.enforced).toBe(true)
+})
+
+it.each(['project_key', 'team', 'team_member'])(
   'rejects User behaviors on nonuser %s IP policies',
   async (kind) => {
     response = { ...policy(), kind, stored: {} }
     await expect(getLimits('/projects/prj_member')).rejects.toThrow()
   },
 )
-it('rejects behaviors on the Personal Key child policy', async () => {
+it('rejects behaviors on the Project Key child policy', async () => {
   response = {
     ...policy(),
-    kind: 'personal_key',
+    kind: 'project_key',
     stored: {},
     ip_policies: [{}, { tokens_month_behavior: 'stop' }],
   }
   await expect(getLimits('/keys/key_member')).rejects.toThrow()
 })
-it('defaults only the legacy Personal Key User parent modes to stop', async () => {
+it('defaults both legacy Personal Key and User parent modes to stop', async () => {
   response = { ...policy(), kind: 'personal_key', stored: {}, ip_policies: [{}, {}] }
   const record = await getLimits('/keys/key_member')
   expect(record.ip_policies[0]).toMatchObject({
     tokens_month_behavior: 'stop',
     money_month_behavior: 'stop',
   })
-  expect(record.ip_policies[1]).not.toHaveProperty('tokens_month_behavior')
+  expect(record.ip_policies[1]).toMatchObject({
+    tokens_month_behavior: 'stop',
+    money_month_behavior: 'stop',
+  })
 })
 
 it.each([

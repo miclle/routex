@@ -341,7 +341,7 @@ correction leaves migrations and rollback proof unchanged. Repaired migration
 and lifecycle focus passed under race detection on both drivers in 124.896s, preserving rollback guards; owned resources were removed
 and verified absent. The complete final PostgreSQL/MySQL race matrix passed
 (Handler 1341.797s/Service 8.060s), with frozen source and checked cleanup. See
-[internal secrets](SECRETS.md) for the five-domain workflow and recovery limits.
+[internal secrets](SECRETS.md) for the historical V48 five-domain contract, versioned inventory and recovery limits.
 
 
 ## Repository price provenance and receipts (version 49)
@@ -1036,3 +1036,58 @@ remain strict. Focus R3 accepts the two new cases and seven relevant predecessor
 on both databases; complete private135 passes. The exact staged 1,040-backend
 candidate passes its own 18-case focused dual-driver run and complete Task/check/build.
 These remain separate evidence; earlier failed fixture records are retained.
+
+## Vault Token integration and versioned inventory (V72 candidate)
+
+Frozen GORM V72 adds eight bounded tables for integrations, immutable revisions,
+separate writer/reader encrypted auth, configuration receipts, durable probe plans
+and command claims. Migrator APIs create constraints, indexes and foreign keys
+with bounded partial-MySQL-DDL recovery. Released V1-V71 definitions stay unchanged.
+Root jobs gain explicit inventory versions: historical version1 has five domains;
+version2 adds every retained Vault writer/reader auth envelope. Missing counts
+remain not_scanned/null; zero/unknown versions reject. Nonterminal version1 jobs
+require explicit Resume and a fresh seven-domain proof. Completed historical
+jobs are not relabeled. See [Vault Token integrations](VAULT_TOKEN_INTEGRATIONS.md).
+
+## Personal Key monthly behavior (V73 candidate)
+
+Frozen GORM V73 reuses V70's width16, non-null, stop-default columns. It installs
+an exact user/team/key scope fence before removing V71's fence. Stored key scope
+alone does not authorize soft behavior: application proof requires the exact
+Personal owner/root identity and rejects Project Key soft rows. Value/kind aliases
+remain invalid on PostgreSQL and MySQL. Partial DDL is repaired with bounded
+Migrator checks; released migrations, counters and historical identities remain
+unchanged. The repaired Personal migration/lifecycle focus passes both drivers;
+this does not establish the final combined matrix or delivery.
+
+## Project aggregate monthly behavior (V74 candidate)
+
+Frozen GORM V74 follows V73 and adds exact project to its permitted scope fence,
+installing the new constraint before removing its predecessor. Width16, stop
+defaults and exact value checks remain. Team-member and Project Key policies
+remain hard. No released migration or retained accounting row is rewritten.
+
+The final registry preserves 139 original names/order and appends the two
+Project scenarios for 141. Three bounded historical migration fixture bindings
+keep V74 recorded while removing its fence, explicitly reconstruct V73 and run
+the original V70/V71/V73 scenarios. Their real startup calls skip recorded V74.
+A deferred remove/replay of V74 restores the final fence; only explicitly replayed
+ledger timestamps may change. Original scenario assertions remain intact. They are explicit fixture companions, not unchanged
+function bindings. Final acceptance requires empty/upgrade/repeat/concurrent,
+partial-DDL and constraints on both databases, combined focused 18 cases and the
+unfiltered 282-direct-case Full141 plus eight generic constraints. Full141 and
+controlled Project runtime/browser acceptance remain pending. See
+[Implementation](IMPLEMENTATION.md) for separately recorded evidence.
+
+An earlier combined focused run failed: all Vault and Personal cases passed,
+while both Project lifecycles fail a test-only warning expectation. Its recorded
+coverage account has known settled150 Tokens, held150, TokensUnknown0 and
+MoneyUnknown1. A token cap187 legitimately produces a near warning from known
+settled Tokens; unknown money excludes only its own dimension. The fixture-only
+successor sets that coverage token cap200 (75% settled), retaining the exact
+money cap187 attounits, journal facts, zero-warning assertion, unknown-usage503,
+native counts and final four observations/eight manager inboxes. Product warning
+and admission semantics are unchanged. The cumulative fixture also retains its
+exact manager setup and historical V73 reconstruction. The final source adds
+only the existing pinned pgx test dependency's direct declaration, without any
+version or go.sum change. Fresh final source gates and expanded Focus18 pass with all 1,769 source bytes and modes unchanged. Full141 is running. The separately bound Vault R7 and Personal R6 controlled API/restart runs pass; Project runtime, browser and delivery remain pending. Earlier failures stay failed. See [Controlled acceptance boundary](RESOURCE_LIMITS.md#candidate-verification-boundary) for the R3 runtime artifact versus R4 test-only source distinction.

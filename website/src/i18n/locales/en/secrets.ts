@@ -1,4 +1,7 @@
 export default {
+  currentInventory: 'Current inventory covers seven secret domains.',
+  historicalInventory:
+    'This historical rotation covers five domains and does not prove current inventory coverage.',
   originalIntent: 'Original uncertain intent',
   originalETag: 'Original reviewed ETag',
   processEpoch: 'Verified process epoch',
@@ -117,4 +120,110 @@ export default {
   completedPhase: 'Completed',
   reviewed: 'Reviewed ETag',
   singleProcess: 'Proof covers the current combined process. It does not certify a fleet.',
+  tabs: { storage: 'Storage', vault: 'Vault integration', apiKey: 'API Key delivery' },
+  notScanned: 'Not scanned',
+  inventory_scope_changed:
+    'This historical rotation predates the current inventory. Resume requires a new verification of all current domains.',
+  vault_writer_auth: 'Vault writer authentication',
+  vault_reader_auth: 'Vault reader authentication',
+  vault: {
+    historicalProbe: 'Historical revision observations',
+    integration: 'Integration',
+    authentication: 'Authentication and links',
+    notSet: 'Not set',
+    token: 'Token',
+    rowActions: 'More actions for {{name}}',
+
+    version: 'Recorded owned version',
+    cleanupDescription:
+      'Confirm ownership of the exact saved probe, then conditionally destroy only owned version1. The ownership read does not become an explicit Read-test result.',
+    view: 'View saved facts',
+    usage: 'Usage',
+    prepare: 'Review command',
+    revision: 'Revision ID',
+    description:
+      'Configure a saved Vault KV-v2 integration and inspect separate Write, Read and Cleanup observations. Active credential storage remains internal.',
+    add: 'Add integration',
+    edit: 'Integration configuration',
+    drawerDescription:
+      'Save descriptor and separate Token actions. This does not switch active storage or prove remote privileges.',
+    name: 'Integration name',
+    endpoint: 'Vault address',
+    namespace: 'Namespace (optional)',
+    mount: 'KV-v2 mount',
+    prefix: 'Path prefix',
+    data_field: 'Data field',
+    writer: 'Write identity',
+    reader: 'Read identity',
+    writerGuidance: 'Used for the owned CAS=0 write and exact-version cleanup.',
+    readerGuidance:
+      'Used for the saved owned-version read. Different Token strings do not prove different remote principals.',
+    writerToken: 'Writer Token',
+    readerToken: 'Reader Token',
+    configured: 'Configured',
+    notConfigured: 'Not configured',
+    keep: 'Keep saved Token',
+    replace: 'Replace Token',
+    remove: 'Remove Token',
+    validation:
+      'Use canonical relative ASCII paths and a name of 1–100 characters. Tokens must be different, contain 1–4,096 printable ASCII bytes, and contain no spaces. A reason of 1–1,000 characters is required.',
+    save: 'Save configuration',
+    confirmSave: 'Confirm Vault configuration',
+    confirmSaveDescription:
+      'Submit the captured descriptor and Token actions once with the reviewed ETag. Saving configuration does not perform a probe.',
+    saved: 'Configuration receipt committed. Review fresh configuration separately.',
+    unknown:
+      'The outcome is unknown. Explicitly retry the exact original request; reviewing current configuration does not prove the original operation.',
+    conflict:
+      'The reviewed configuration changed. Your draft is retained. Review current configuration before a new submission.',
+    rejected: 'The request was rejected. Your draft is retained for explicit review.',
+    secretLifetime:
+      'Tokens remain only in this open form. Closing it or leaving the authorized page clears them; it does not resolve an unknown operation.',
+    noWrite: 'Write permission and current server editability are required.',
+    loadError: 'The current Vault integration list could not be confirmed.',
+    location: 'Vault location',
+    probe: 'Saved probe',
+    actions: 'Actions',
+    noProbe: 'No probe recorded',
+    write: 'Write test',
+    read: 'Read test',
+    cleanup: 'Clean up owned probe',
+    empty: 'No Vault integrations are recorded.',
+    first: 'First page',
+    more: 'More',
+    pageGuidance:
+      'This is a bounded page of authorized integrations, not a global readiness count.',
+    probeDescription:
+      'Commands use the saved revision. Write and Read are separate actions; no command switches active storage.',
+    confirmProbe: 'Confirm saved-revision command',
+    writeDescription:
+      'Create one owned CAS=0 probe with the saved writer Token. No automatic Read is performed.',
+    readDescription:
+      'Read the exact owned version and conditionally destroy only that owned version with the saved writer Token. Cleanup acknowledgement is not physical-erasure proof.',
+    recorded:
+      'Current recorded probe observations were returned. This does not prove an earlier command succeeded.',
+    savedFacts: 'Saved probe observations',
+    succeeded: 'Succeeded',
+    failed: 'Failed',
+    notAttempted: 'Not attempted',
+    failure: 'Recorded failure',
+    ms: 'ms',
+    factGuidance:
+      'Completed does not mean every stage succeeded. Cleanup ownership reads never replace the explicit Read result. Old-revision observations remain historical.',
+    states: {
+      planned: 'Planned',
+      writing: 'Writing',
+      awaiting_read: 'Awaiting Read',
+      reading: 'Reading',
+      cleanup_pending: 'Cleanup pending',
+      completed: 'Completed',
+      interrupted: 'Interrupted',
+    },
+    cleanupStates: {
+      not_attempted: 'Not attempted',
+      acknowledged: 'Acknowledged',
+      failed: 'Failed',
+      unknown: 'Unknown',
+    },
+  },
 }

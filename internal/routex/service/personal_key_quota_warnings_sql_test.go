@@ -24,6 +24,7 @@ type personalKeyObserverSQLState struct {
 	owner                               entity.User
 	apps                                []entity.RegistrationApprovalApplication
 	keys                                []entity.APIKey
+	projectKeys                         []entity.ProjectKey
 	row                                 entity.ResourceLimit
 	calendar                            entity.QuotaSetting
 	queries, writes, commits, rollbacks int
@@ -91,6 +92,11 @@ func (c personalKeyObserverSQLConnection) QueryContext(ctx context.Context, q st
 			return effectiveSQLRows(c.state.keys)
 		}
 		return effectiveSQLRows(c.state.keys[:1])
+	case strings.Contains(q, `FROM "project_api_keys"`):
+		if strings.Contains(q, "token_hash") || !strings.Contains(q, `SELECT "id"`) {
+			return nil, errors.New("unexpected Project collision projection")
+		}
+		return effectiveSQLRows(c.state.projectKeys)
 	case strings.Contains(q, `FROM "resource_limits"`):
 		return effectiveSQLRows([]entity.ResourceLimit{c.state.row})
 	case strings.Contains(q, `FROM "quota_settings"`):
@@ -145,7 +151,7 @@ func TestPersonalKeyWarningObserverFixedQueryBudgetNoFabricatedBirth(t *testing.
 				if !errors.Is(err, errQuotaNotificationIdentity) || state.queries != 5 || state.rollbacks != 1 {
 					t.Fatal("overflow truncated/read further", err, state.queries)
 				}
-			} else if err != nil || state.queries != 8 || state.commits != 1 {
+			} else if err != nil || state.queries != 9 || state.commits != 1 {
 				t.Fatal("fixed admitted-owner query budget", err, state.queries, state.commits)
 			}
 			if state.writes != 0 || state.isolation != driver.IsolationLevel(sql.LevelRepeatableRead) {
@@ -154,6 +160,13 @@ func TestPersonalKeyWarningObserverFixedQueryBudgetNoFabricatedBirth(t *testing.
 			t.Logf("observer %d rows: %d SQL queries, %s", n, state.queries, elapsed)
 			if elapsed > 3*time.Second {
 				t.Fatal("bounded observer exceeded refresh deadline")
+			}
+			if n == 500 {
+				state.projectKeys = []entity.ProjectKey{{ID: root.ID, ProjectID: "prj_collision"}}
+				state.queries, state.commits = 0, 0
+				if err := s.observeMonthlyPersonalKeyQuotaWarning(context.Background(), "key", root.ID); err != nil || state.queries != 7 || state.commits != 1 || state.writes != 0 {
+					t.Fatal("Project identity collision reached warning publication", err, state.queries, state.writes)
+				}
 			}
 		})
 	}

@@ -70,8 +70,10 @@ func loadRuntimeQuota(tx *gorm.DB, data *runtimeData) (*runtimeQuotaData, error)
 func (s *Service) gatewayQuotaPolicies(ctx context.Context, result *GatewayResult, base []eventqueue.Limit) ([]eventqueue.QuotaLimit, *runtimeQuotaData, error) {
 	policies := map[string]limits.Policy{}
 	var data *runtimeQuotaData
+	var auth *runtimeAuthorization
+	fallbackPersonalRoot := ""
 	if s.runtime != nil {
-		auth := s.runtime.auth.Load()
+		auth = s.runtime.auth.Load()
 		if auth == nil || !time.Now().Before(auth.ValidUntil) || auth.Quota == nil || runtimeDenied(&s.runtime.deniedLimits, "quota_settings") {
 			return nil, nil, runtimeUnavailable
 		}
@@ -90,11 +92,14 @@ func (s *Service) gatewayQuotaPolicies(ctx context.Context, result *GatewayResul
 		}
 		for _, item := range base {
 			kind, scopeID, _ := strings.Cut(item.Account, "_")
-			row, policy, err := readLimitPolicy(s.authDB(ctx), kind, scopeID)
+			row, policy, err := readGatewayLimitPolicy(s.authDB(ctx), kind, scopeID, result)
 			if err != nil {
 				return nil, nil, runtimeUnavailable
 			}
 			policies[item.Account] = policy
+			if kind == "key" && result.ProjectID == "" && result.TeamID == "" {
+				fallbackPersonalRoot = scopeID
+			}
 			data.Revisions[item.Account] = row.ETag
 			created, err := s.quotaAccountCreated(ctx, kind, scopeID, result.ProjectID != "")
 			if err != nil {
@@ -118,7 +123,11 @@ func (s *Service) gatewayQuotaPolicies(ctx context.Context, result *GatewayResul
 		if revision == "" {
 			revision = "0"
 		}
-		output = append(output, eventqueue.QuotaLimit{Limit: item, Revision: revision, CreatedAt: createdAt, TokensMonthBehavior: policy.TokensMonthBehavior, MoneyMonthBehavior: policy.MoneyMonthBehavior, Tokens5H: policy.Tokens5H, Tokens7D: policy.Tokens7D, TokensMonth: policy.TokensMonth, TPM: policy.TPM, MoneyMonth: policy.MoneyMonth, Currency: policy.Currency})
+		personal := personalKeyQuotaProof(auth, result, item.Account)
+		if s.runtime == nil && fallbackPersonalRoot != "" {
+			personal = item.Account == limitAccount("key", fallbackPersonalRoot)
+		}
+		output = append(output, eventqueue.QuotaLimit{Limit: item, PersonalKey: personal, Revision: revision, CreatedAt: createdAt, TokensMonthBehavior: policy.TokensMonthBehavior, MoneyMonthBehavior: policy.MoneyMonthBehavior, Tokens5H: policy.Tokens5H, Tokens7D: policy.Tokens7D, TokensMonth: policy.TokensMonth, TPM: policy.TPM, MoneyMonth: policy.MoneyMonth, Currency: policy.Currency})
 	}
 	return output, data, nil
 }

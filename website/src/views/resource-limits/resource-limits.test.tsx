@@ -92,6 +92,12 @@ beforeEach(async () => {
           concurrency: payload.concurrency,
           ip_mode: payload.ip_mode,
           ip_ranges: payload.ip_ranges,
+          ...(record.kind === 'personal_key' || record.kind === 'user' || record.kind === 'project'
+            ? {
+                tokens_month_behavior: payload.tokens_month_behavior ?? 'stop',
+                money_month_behavior: payload.money_month_behavior ?? 'stop',
+              }
+            : {}),
         }
         record = {
           ...record,
@@ -142,8 +148,14 @@ function button(label: string) {
   expect(result, label).toBeDefined()
   return result!
 }
-async function click(label: string) {
+async function click(label: string, confirm = true) {
   await act(async () => button(label).click())
+  if (confirm && label === 'Save limits') {
+    const confirmation = [...document.querySelectorAll('button')].find(
+      (item) => item.textContent === 'Confirm limits',
+    )
+    if (confirmation) await act(async () => confirmation.click())
+  }
 }
 async function fill(label: string, value: string) {
   const input = document.querySelector<HTMLInputElement | HTMLTextAreaElement>(
@@ -186,6 +198,8 @@ describe('Resource admission controls', () => {
       button('Save limits').click()
       button('Save limits').click()
     })
+    expect(writes()).toHaveLength(0)
+    await click('Confirm limits')
     await until(() => expect(writes()).toHaveLength(1))
     expect(JSON.parse(writes()[0].data)).toEqual({
       tokens_5h: 1000,
@@ -199,6 +213,8 @@ describe('Resource admission controls', () => {
       ip_mode: 'none',
       ip_ranges: [],
       reason: 'Narrow admission',
+      tokens_month_behavior: 'stop',
+      money_month_behavior: 'stop',
     })
     expect(writes()[0].headers.get('If-Match')).toBe('"old"')
     expect(writes()[0].headers.get('X-CSRF-Token')).toBe('limits-csrf')
@@ -302,7 +318,9 @@ describe('Resource admission controls', () => {
     await mount(true, false, '/projects/prj_scope')
     await click('Edit limits')
     expect(document.querySelector('[role="dialog"]')).toBeNull()
-    expect(document.body.textContent).toContain('Leave blank for no local numeric limit')
+    expect(document.body.textContent).toContain(
+      'Project monthly tokens and budget have independent saved behavior',
+    )
     await fill('Reason for change', 'Aggregate')
     await click('Save limits')
     await until(() =>
@@ -582,7 +600,7 @@ describe('Scoped limit drafts', () => {
   })
 })
 
-it('permits a Personal Key monthly ceiling above its alert-only User parent without adding Key behavior input', async () => {
+it('permits a Personal Key monthly ceiling above its alert-only User parent with canonical independent hard Key behavior input', async () => {
   record.ip_policies[0] = {
     ...record.ip_policies[0],
     tokens_month: 100,
@@ -602,8 +620,8 @@ it('permits a Personal Key monthly ceiling above its alert-only User parent with
   const body = JSON.parse(writes()[0].data)
   expect(body.tokens_month).toBe(200)
   expect(body.money_month).toBe('2.000000000000000002')
-  expect(body).not.toHaveProperty('tokens_month_behavior')
-  expect(body).not.toHaveProperty('money_month_behavior')
+  expect(body.tokens_month_behavior).toBe('stop')
+  expect(body.money_month_behavior).toBe('stop')
 })
 it('retains currency validation under an alert-only User money parent', async () => {
   record.ip_policies[0] = {
@@ -619,4 +637,117 @@ it('retains currency validation under an alert-only User money parent', async ()
   await click('Save limits')
   expect(document.body.textContent).toContain('cannot exceed')
   expect(writes()).toHaveLength(0)
+})
+
+it('reviews independent Personal Key modes before one dispatch and preserves zero/null and bilingual draft', async () => {
+  await mount()
+  await click('Edit restrictions')
+  await fill('Monthly token quota', '0')
+  await fill('Monthly budget', '')
+  await toggle('Monthly token threshold behavior')
+  await fill('Reason for change', 'Independent Key review')
+  await click('Save limits', false)
+  expect(writes()).toHaveLength(0)
+  expect(document.body.textContent).toContain('Confirm Personal Key monthly behavior')
+  expect(document.body.textContent).toContain('Alert only at this threshold')
+  await act(async () => {
+    await i18n.changeLanguage('zh')
+  })
+  expect(document.body.textContent).toContain('确认个人 Key 月度行为')
+  expect(document.body.textContent).toContain('未设置上限')
+  await act(async () => {
+    await i18n.changeLanguage('en')
+  })
+  await click('Confirm limits')
+  await until(() => expect(writes()).toHaveLength(1))
+  expect(JSON.parse(writes()[0].data)).toMatchObject({
+    tokens_month: 0,
+    tokens_month_behavior: 'alert_only',
+    money_month: null,
+    money_month_behavior: 'stop',
+    reason: 'Independent Key review',
+  })
+})
+
+it('never clears the original uncertain Key modes after rejected retries or policy review', async () => {
+  await mount()
+  await click('Edit restrictions')
+  await toggle('Monthly budget threshold behavior')
+  await fill('Reason for change', 'Retain exact soft Key intent')
+  failure = 503
+  await click('Save limits')
+  await until(() => expect(writes()).toHaveLength(1))
+  const original = writes()[0].data
+  for (const status of [409, 403, 400]) {
+    failure = status
+    await click('Retry application')
+    await until(() => expect(writes()).toHaveLength(status === 409 ? 2 : status === 403 ? 3 : 4))
+    expect(writes().at(-1)!.data).toBe(original)
+    expect(writes().at(-1)!.headers.get('If-Match')).toBe('"old"')
+    expect(
+      document
+        .querySelector<HTMLInputElement>('[aria-label="Reason for change"]')!
+        .matches(':disabled'),
+    ).toBe(true)
+    expect(
+      [...document.querySelectorAll('button')].some(
+        (item) => item.textContent === 'Reload current policy',
+      ),
+    ).toBe(false)
+  }
+  failure = 0
+  await click('Retry application')
+  await until(() => expect(host.textContent).toContain('Limits saved and applied.'))
+  expect(writes()[4].data).toBe(original)
+})
+
+it('keeps Project Key controls hard and cannot dispatch monthly mode fields', async () => {
+  record.kind = 'project_key'
+  await mount(true, true, '/projects/prj_test/keys/key_test')
+  await click('Edit restrictions')
+  expect(document.querySelector('[aria-label="Monthly token threshold behavior"]')).toBeNull()
+  expect(document.querySelector('[aria-label="Monthly budget threshold behavior"]')).toBeNull()
+  await fill('Reason for change', 'Project remains hard')
+  await click('Save limits')
+  await until(() => expect(writes()).toHaveLength(1))
+  expect(JSON.parse(writes()[0].data)).not.toHaveProperty('tokens_month_behavior')
+  expect(JSON.parse(writes()[0].data)).not.toHaveProperty('money_month_behavior')
+})
+
+async function toggle(label: string) {
+  const control = document.querySelector<HTMLElement>(`[role="switch"][aria-label="${label}"]`)
+  expect(control).not.toBeNull()
+  await act(async () => control!.click())
+}
+
+it('keeps Project Key hard while a soft Project monthly parent permits a larger child cap', async () => {
+  record.kind = 'project_key'
+  record.stored.tokens_month = 100
+  record.stored.money_month = '1'
+  record.stored.currency = 'USD'
+  delete record.stored.tokens_month_behavior
+  delete record.stored.money_month_behavior
+  record.ip_policies = [
+    {
+      ...record.stored,
+      tokens_month: 100,
+      money_month: '1',
+      tokens_month_behavior: 'alert_only',
+      money_month_behavior: 'alert_only',
+    },
+    { ...record.stored },
+  ]
+  await mount(true, true, '/projects/prj_exact/keys/key_test')
+  await click('Edit restrictions')
+  expect(document.querySelector('[role="switch"]')).toBeNull()
+  await fill('Monthly token quota', '200')
+  await fill('Monthly budget', '2.000000000000000001')
+  await fill('Reason for change', 'Hard child under soft Project parent')
+  await click('Save limits')
+  await until(() => expect(writes()).toHaveLength(1))
+  const body = JSON.parse(writes()[0].data)
+  expect(body.tokens_month).toBe(200)
+  expect(body.money_month).toBe('2.000000000000000001')
+  expect(body).not.toHaveProperty('tokens_month_behavior')
+  expect(body).not.toHaveProperty('money_month_behavior')
 })

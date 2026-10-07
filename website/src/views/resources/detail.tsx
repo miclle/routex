@@ -111,6 +111,7 @@ export default function ResourceDetailPage({
           key={`${actor}:${resourceId}`}
           kind={kind}
           resource={resource.data!}
+          projectQueryKey={['resources', kind, admin, resourceId, actor]}
           restoreOwner={restoreOwner}
           restoreHostCurrent={restoreHostCurrent}
         />
@@ -148,11 +149,13 @@ export default function ResourceDetailPage({
 function ResourceDetail({
   kind,
   resource,
+  projectQueryKey,
   restoreOwner,
   restoreHostCurrent,
 }: {
   kind: ResourceKind
   resource: ResourceRecord
+  projectQueryKey: readonly unknown[]
   restoreOwner: RestoreOwner
   restoreHostCurrent: () => boolean
 }) {
@@ -403,6 +406,17 @@ function ResourceDetail({
                 <ResourceLimits
                   key={resource.id}
                   path={`/projects/${resource.id}`}
+                  projectScope={{
+                    actor: session.data?.user.id ?? '',
+                    target: resource.id,
+                    generation: session.dataUpdatedAt,
+                    ready:
+                      !session.isFetching &&
+                      !session.isError &&
+                      !access.isFetching &&
+                      !access.isError,
+                    targetQueryKey: projectQueryKey,
+                  }}
                   canEdit={access.can('projects.limits.write') && resource.status === 'active'}
                 />
               )}

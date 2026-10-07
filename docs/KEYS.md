@@ -99,3 +99,23 @@ hidden/disconnected trigger skips restoration. Success refresh still invalidates
 the list immediately and does not guarantee row focus. Rebuilt-artifact native/browser/restart acceptance also passed with exact current
 state confirmation and retained immutable history. New remote CI remains unknown. See
 [Implementation evidence](IMPLEMENTATION.md).
+
+## Personal Key monthly threshold behavior (candidate)
+
+Owner-scoped Personal Key limits expose separate monthly Token and money stop
+or alert-only modes in the existing detail editor. Rotation shares the original
+quota root, exact owner, usage and policy. User and Key thresholds are evaluated
+independently; a soft ancestor removes only its own monthly stopping decision.
+Project Keys retain hard stored limits. All accounting, reservation, currency,
+rolling-window and rate boundaries continue to apply. See
+[Resource limits](RESOURCE_LIMITS.md#personal-key-monthly-behavior-v73-candidate)
+for the candidate contract and current acceptance boundary.
+
+Project Key stored modes remain hard even when the exact Project parent has an
+alert-only monthly dimension. Its parent summary exposes canonical Project modes
+separately; it never grants child soft-mode authority or borrows a manager's
+Personal policy. See [Project aggregate behavior](RESOURCE_LIMITS.md#project-aggregate-monthly-behavior-v74-candidate).
+
+## Controlled Personal Key API checkpoint
+
+The R6 API/native/restart fixture passes 19 logical calls, seven native attempts (six priced and one unknown), 12 no-attempt denials, four warning inboxes with one read and five original Sessions. Bounded database snapshots and exact owned cleanup pass independently. It binds the old R3 artifact; the later parent-callback test repair does not relabel that receipt. Browser, AuthGate and delivery remain pending. See [Acceptance boundary](RESOURCE_LIMITS.md#candidate-verification-boundary).

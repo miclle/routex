@@ -13,8 +13,8 @@ func TestRootSecretObservationRequiresContinuousExactGeneration(t *testing.T) {
 	last := start.Add(300 * time.Second)
 	now := last
 	svc := &Service{rootNow: func() time.Time { return now }}
-	job := entity.SecretRotationJob{Status: "ready", ObservationStartedAt: &start, ObservationLastConfirmedAt: &last, VerifiedProcessID: "ins_current", VerifiedSnapshotID: "cfg_current"}
-	proof := entity.SecretProcessVerification{ProcessID: "ins_current", RuntimeSnapshotID: "cfg_current"}
+	job := entity.SecretRotationJob{InventoryVersion: 2, Domain: 7, CountsJSON: `{"provider_credentials":{},"egresses":{},"smtp_settings":{},"storage_revisions":{},"user_mfa":{},"vault_writer_auth":{},"vault_reader_auth":{}}`, Status: "ready", ObservationStartedAt: &start, ObservationLastConfirmedAt: &last, VerifiedProcessID: "ins_current", VerifiedSnapshotID: "cfg_current"}
+	proof := entity.SecretProcessVerification{InventoryVersion: 2, ProcessID: "ins_current", RuntimeSnapshotID: "cfg_current"}
 	if !svc.rootObservationEligible(job, proof) {
 		t.Fatal("continuous300s not eligible")
 	}
@@ -62,7 +62,7 @@ func TestRootSecretInputBoundsAndReviewIdentity(t *testing.T) {
 	}
 }
 func TestRootSecretJobProgressHasNoInventedDenominator(t *testing.T) {
-	job := entity.SecretRotationJob{ID: "job", Status: "blocked", Phase: "migration", CountsJSON: `{"storage_revisions":{"Scanned":9007199254740993,"Rewrapped":1}}`, BlockerCode: "ciphertext_invalid"}
+	job := entity.SecretRotationJob{InventoryVersion: 1, ID: "job", Status: "blocked", Phase: "migration", CountsJSON: `{"storage_revisions":{"Scanned":9007199254740993,"Rewrapped":1}}`, BlockerCode: "ciphertext_invalid"}
 	view := rootRotationView(job, true, false)
 	if len(view.Domains) != 5 || view.Domains[3].Scanned != "9007199254740993" || len(view.AllowedActions) != 2 {
 		t.Fatal("exact retained history lost")
@@ -82,7 +82,7 @@ func TestRootSecretJobProgressHasNoInventedDenominator(t *testing.T) {
 	}
 }
 func TestRootSecretAllHistoricalDomainsAndReferenceIdentity(t *testing.T) {
-	if len(rootDomains) != 5 {
+	if len(rootDomains) != 7 {
 		t.Fatal("partial-domain rotation")
 	}
 	for _, domain := range rootDomains {

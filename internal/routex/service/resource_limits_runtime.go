@@ -79,13 +79,24 @@ func projectLimitRoots(keys []entity.ProjectKey) (map[string]string, error) {
 func compileRuntimeLimits(data *runtimeData) error {
 	data.LimitPolicies = map[string]limits.Policy{}
 	teamAccounts := runtimeTeamLimitAccounts(data)
+	personalRoots := runtimePersonalKeyRoots(data)
 	for _, row := range data.Limits {
 		if row.ScopeKind != "user" && row.ScopeKind != "project" && row.ScopeKind != "key" && row.ScopeKind != "team" && row.ScopeKind != "team_member" {
 			return limits.ErrInvalid
 		}
 		policy, err := policyFromRow(row)
+		if err != nil && row.ScopeKind == "key" {
+			if root, exists := personalRoots[row.ScopeID]; exists {
+				policy, err = personalKeyPolicyFromRow(row, root, root.UserID)
+			}
+		}
 		if err != nil {
 			return err
+		}
+		if row.ScopeKind == "project" && (policy.TokensMonthBehavior != "" || policy.MoneyMonthBehavior != "") {
+			if !runtimeProjectMonthlyIdentity(data, row.ScopeID) {
+				return limits.ErrInvalid
+			}
 		}
 		account := limitAccount(row.ScopeKind, row.ScopeID)
 		if row.ScopeKind == "team" || row.ScopeKind == "team_member" {
@@ -223,7 +234,7 @@ func (s *Service) gatewayLimits(ctx context.Context, result *GatewayResult) ([]e
 			root = roots[result.KeyID]
 		}
 		for _, entry := range [][2]string{{parentKind, parentID}, {"key", root}} {
-			_, policy, err := readLimitPolicy(s.authDB(ctx), entry[0], entry[1])
+			_, policy, err := readGatewayLimitPolicy(s.authDB(ctx), entry[0], entry[1], result)
 			if err != nil {
 				return nil, runtimeUnavailable
 			}

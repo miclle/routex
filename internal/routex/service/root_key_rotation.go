@@ -76,6 +76,13 @@ func (s *Service) rootAction(ctx context.Context, actor, jobID, action, etag, re
 		return nil, catalogError(err)
 	}
 	if replay {
+		var job entity.SecretRotationJob
+		if err := personalExact(s.authDB(ctx), "id", receipt.JobID).Take(&job).Error; err != nil {
+			return nil, catalogError(err)
+		}
+		if _, err := rootCountsChecked(job); err != nil {
+			return nil, err
+		}
 		return s.rootMutationResult(ctx, receipt, false), nil
 	}
 	committed := false
@@ -95,6 +102,9 @@ func (s *Service) rootAction(ctx context.Context, actor, jobID, action, etag, re
 		var job entity.SecretRotationJob
 		if err := personalExact(s.authDB(ctx), "id", jobID).Take(&job).Error; err != nil {
 			return nil, catalogError(err)
+		}
+		if _, err := rootCountsChecked(job); err != nil {
+			return nil, err
 		}
 		if err := s.rootTargetSweep(ctx, job.TargetKeyID); err != nil {
 			return nil, secretStoreUnavailable
@@ -146,6 +156,11 @@ func (s *Service) rootAction(ctx context.Context, actor, jobID, action, etag, re
 				reviewed = &job
 			}
 		}
+		if reviewed != nil {
+			if _, err := rootCountsChecked(*reviewed); err != nil {
+				return err
+			}
+		}
 		if rootReviewETag(actor, p, reviewed) != etag {
 			return catalogConflict
 		}
@@ -185,6 +200,7 @@ func (s *Service) rootAction(ctx context.Context, actor, jobID, action, etag, re
 			if p.ActiveJobID == nil || *p.ActiveJobID != job.ID || job.Status != "blocked" || p.Epoch != job.CutoverEpoch {
 				return catalogConflict
 			}
+			job.InventoryVersion = 2
 			job.Status = "migrating"
 			job.Phase = "migration"
 			job.Domain = 0
@@ -194,6 +210,9 @@ func (s *Service) rootAction(ctx context.Context, actor, jobID, action, etag, re
 			job.ObservationStartedAt = nil
 			job.ObservationLastConfirmedAt = nil
 			job.LeaseUntil = nil
+			job.LeaseToken = ""
+			job.VerifiedProcessID = ""
+			job.VerifiedSnapshotID = ""
 		case "rollback":
 			if p.ActiveJobID == nil || *p.ActiveJobID != job.ID || job.Status == "completed" || job.Status == "rolled_back" {
 				return catalogConflict
@@ -275,7 +294,7 @@ func newRootJob(source, target string, epoch uint64, now time.Time) (entity.Secr
 	if err != nil {
 		return entity.SecretRotationJob{}, err
 	}
-	job := entity.SecretRotationJob{ID: jobID, SourceKeyID: source, TargetKeyID: target, CutoverEpoch: epoch, Status: "migrating", Phase: "migration", ScanGeneration: 1, CountsJSON: "{}", CreatedAt: now, UpdatedAt: now}
+	job := entity.SecretRotationJob{ID: jobID, SourceKeyID: source, TargetKeyID: target, CutoverEpoch: epoch, Status: "migrating", Phase: "migration", InventoryVersion: 2, ScanGeneration: 1, CountsJSON: "{}", CreatedAt: now, UpdatedAt: now}
 	job.ETag = rootJobETag(job)
 	return job, nil
 }

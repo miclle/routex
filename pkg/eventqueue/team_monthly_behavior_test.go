@@ -211,7 +211,7 @@ func TestTeamMonthlyBehaviorExactAccountNamespace(t *testing.T) {
 	}{
 		{"team_tea_one", true}, {"team_" + strings.Repeat("a", 30), true},
 		{"team_", false}, {"team_" + strings.Repeat("a", 31), false}, {"TEAM_tea_one", false}, {"team_tea_one ", false}, {"team_tea_é", false},
-		{"team_member_short", false}, {"team_member_" + strings.Repeat("A", 52), false}, {"project_prj_one", false}, {"key_key_one", false}, {"project_key_key_one", false},
+		{"team_member_short", false}, {"team_member_" + strings.Repeat("A", 52), false}, {"project_key_prj_one", false}, {"key_key_one", false}, {"project_key_key_one", false},
 	} {
 		q, _ := newQuotaTest(t, "UTC")
 		p := quotaPolicy(test.account)

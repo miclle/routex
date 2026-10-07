@@ -43,6 +43,7 @@ type SecretProcessView struct {
 }
 type SecretRotationDomainView struct {
 	Code          string `json:"code"`
+	Coverage      string `json:"coverage"`
 	Scanned       string `json:"scanned"`
 	Rewrapped     string `json:"rewrapped"`
 	AlreadyTarget string `json:"already_target"`
@@ -52,6 +53,7 @@ type SecretRotationDomainView struct {
 }
 type SecretRotationView struct {
 	ID                    string                     `json:"id"`
+	InventoryVersion      int                        `json:"inventory_version"`
 	Status                string                     `json:"status"`
 	Phase                 string                     `json:"phase"`
 	SourceKeyID           string                     `json:"source_key_id"`
@@ -63,15 +65,16 @@ type SecretRotationView struct {
 	AllowedActions        []string                   `json:"allowed_actions"`
 }
 type SecretStoreView struct {
-	Mode       string                `json:"mode"`
-	ObservedAt time.Time             `json:"observed_at"`
-	ReviewETag string                `json:"review_etag"`
-	CanRead    bool                  `json:"can_read"`
-	CanRotate  bool                  `json:"can_rotate"`
-	Policy     SecretStorePolicyView `json:"policy"`
-	Keys       []SecretRootKeyView   `json:"keys"`
-	Process    SecretProcessView     `json:"process"`
-	Rotation   *SecretRotationView   `json:"rotation"`
+	Mode             string                `json:"mode"`
+	InventoryVersion int                   `json:"inventory_version"`
+	ObservedAt       time.Time             `json:"observed_at"`
+	ReviewETag       string                `json:"review_etag"`
+	CanRead          bool                  `json:"can_read"`
+	CanRotate        bool                  `json:"can_rotate"`
+	Policy           SecretStorePolicyView `json:"policy"`
+	Keys             []SecretRootKeyView   `json:"keys"`
+	Process          SecretProcessView     `json:"process"`
+	Rotation         *SecretRotationView   `json:"rotation"`
 }
 type SecretRotationReceiptView struct {
 	RequestID  string    `json:"request_id"`
@@ -90,17 +93,54 @@ type SecretRotationResult struct {
 }
 type rootDomainCounts struct{ Scanned, Rewrapped, AlreadyTarget, Deleted, Changed, Blocked uint64 }
 
-func rootCounts(job entity.SecretRotationJob) map[string]rootDomainCounts {
+func rootCountsChecked(job entity.SecretRotationJob) (map[string]rootDomainCounts, error) {
+	domains := rootInventoryDomains(job.InventoryVersion)
+	if len(domains) == 0 || len(job.CountsJSON) > 8192 || !vaultUniqueJSON([]byte(job.CountsJSON)) {
+		return nil, secretStoreUnavailable
+	}
+	var fields map[string]json.RawMessage
+	if json.Unmarshal([]byte(job.CountsJSON), &fields) != nil || fields == nil {
+		return nil, secretStoreUnavailable
+	}
 	result := map[string]rootDomainCounts{}
-	_ = json.Unmarshal([]byte(job.CountsJSON), &result)
+	for code, raw := range fields {
+		if !slices.Contains(domains, code) || string(raw) == "null" {
+			return nil, secretStoreUnavailable
+		}
+		var values map[string]json.RawMessage
+		if json.Unmarshal(raw, &values) != nil || values == nil {
+			return nil, secretStoreUnavailable
+		}
+		for k, value := range values {
+			if string(value) == "null" || !slices.Contains([]string{"Scanned", "Rewrapped", "AlreadyTarget", "Deleted", "Changed", "Blocked"}, k) {
+				return nil, secretStoreUnavailable
+			}
+		}
+		var n rootDomainCounts
+		if json.Unmarshal(raw, &n) != nil {
+			return nil, secretStoreUnavailable
+		}
+		result[code] = n
+	}
+	return result, nil
+}
+func rootCounts(job entity.SecretRotationJob) map[string]rootDomainCounts {
+	result, _ := rootCountsChecked(job)
 	return result
 }
 func rootRotationView(job entity.SecretRotationJob, canRotate bool, eligible bool) *SecretRotationView {
-	view := &SecretRotationView{ID: job.ID, Status: job.Status, Phase: job.Phase, SourceKeyID: job.SourceKeyID, TargetKeyID: job.TargetKeyID, Domains: []SecretRotationDomainView{}, BlockerCodes: []string{}, ObservationStartedAt: job.ObservationStartedAt, AllowedActions: []string{}}
-	counts := rootCounts(job)
-	for _, code := range rootDomains {
-		n := counts[code]
-		view.Domains = append(view.Domains, SecretRotationDomainView{code, fmt.Sprint(n.Scanned), fmt.Sprint(n.Rewrapped), fmt.Sprint(n.AlreadyTarget), fmt.Sprint(n.Deleted), fmt.Sprint(n.Changed), fmt.Sprint(n.Blocked)})
+	counts, err := rootCountsChecked(job)
+	if err != nil {
+		return nil
+	}
+	view := &SecretRotationView{ID: job.ID, InventoryVersion: job.InventoryVersion, Status: job.Status, Phase: job.Phase, SourceKeyID: job.SourceKeyID, TargetKeyID: job.TargetKeyID, Domains: []SecretRotationDomainView{}, BlockerCodes: []string{}, ObservationStartedAt: job.ObservationStartedAt, AllowedActions: []string{}}
+	for _, code := range rootInventoryDomains(job.InventoryVersion) {
+		n, seen := counts[code]
+		coverage := "not_scanned"
+		if seen {
+			coverage = "observed"
+		}
+		view.Domains = append(view.Domains, SecretRotationDomainView{Code: code, Coverage: coverage, Scanned: fmt.Sprint(n.Scanned), Rewrapped: fmt.Sprint(n.Rewrapped), AlreadyTarget: fmt.Sprint(n.AlreadyTarget), Deleted: fmt.Sprint(n.Deleted), Changed: fmt.Sprint(n.Changed), Blocked: fmt.Sprint(n.Blocked)})
 	}
 	if job.BlockerCode != "" {
 		view.BlockerCodes = append(view.BlockerCodes, job.BlockerCode)
@@ -187,9 +227,12 @@ func (s *Service) getSecretStore(ctx context.Context, actorID, jobID string) (*S
 		}
 		var jp *entity.SecretRotationJob
 		if job.ID != "" {
+			if _, err := rootCountsChecked(job); err != nil {
+				return err
+			}
 			jp = &job
 		}
-		view := &SecretStoreView{Mode: "internal", ObservedAt: s.secretNow(), ReviewETag: rootReviewETag(actorID, p, jp), CanRead: true, CanRotate: rotate, Policy: SecretStorePolicyView{p.WriteKeyID, strconv.FormatUint(p.Epoch, 10)}, Keys: []SecretRootKeyView{}}
+		view := &SecretStoreView{Mode: "internal", InventoryVersion: 2, ObservedAt: s.secretNow(), ReviewETag: rootReviewETag(actorID, p, jp), CanRead: true, CanRotate: rotate, Policy: SecretStorePolicyView{p.WriteKeyID, strconv.FormatUint(p.Epoch, 10)}, Keys: []SecretRootKeyView{}}
 		var configured []string
 		if s.secrets != nil {
 			configured = s.secrets.KeyIDs()
@@ -217,6 +260,51 @@ func (s *Service) getSecretStore(ctx context.Context, actorID, jobID string) (*S
 	return result, catalogError(err)
 }
 func (s *Service) rootObservationEligible(job entity.SecretRotationJob, proof entity.SecretProcessVerification) bool {
+	if job.InventoryVersion != 2 || proof.InventoryVersion != 2 || job.Domain != 7 {
+		return false
+	}
+	counts, err := rootCountsChecked(job)
+	if err != nil {
+		return false
+	}
+	for _, code := range rootDomains {
+		if _, ok := counts[code]; !ok {
+			return false
+		}
+	}
 	now := s.secretNow()
 	return job.ObservationStartedAt != nil && job.ObservationLastConfirmedAt != nil && job.VerifiedProcessID == proof.ProcessID && job.VerifiedSnapshotID == proof.RuntimeSnapshotID && now.Sub(*job.ObservationLastConfirmedAt) >= 0 && now.Sub(*job.ObservationLastConfirmedAt) <= 15*time.Second && now.Sub(*job.ObservationStartedAt) >= secretObservationDuration
+}
+
+func rootInventoryDomains(v int) []string {
+	switch v {
+	case 1:
+		return rootDomains[:5]
+	case 2:
+		return rootDomains
+	default:
+		return nil
+	}
+}
+func (v SecretRotationDomainView) MarshalJSON() ([]byte, error) {
+	type wire struct {
+		Code          string  `json:"code"`
+		Coverage      string  `json:"coverage"`
+		Scanned       *string `json:"scanned"`
+		Rewrapped     *string `json:"rewrapped"`
+		AlreadyTarget *string `json:"already_target"`
+		Deleted       *string `json:"deleted"`
+		Changed       *string `json:"changed"`
+		Blocked       *string `json:"blocked"`
+	}
+	w := wire{Code: v.Code, Coverage: v.Coverage}
+	if v.Coverage == "observed" {
+		w.Scanned = &v.Scanned
+		w.Rewrapped = &v.Rewrapped
+		w.AlreadyTarget = &v.AlreadyTarget
+		w.Deleted = &v.Deleted
+		w.Changed = &v.Changed
+		w.Blocked = &v.Blocked
+	}
+	return json.Marshal(w)
 }

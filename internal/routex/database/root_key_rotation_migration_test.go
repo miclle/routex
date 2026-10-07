@@ -19,12 +19,38 @@ func TestFrozenRootRotationSchemasKeepExactColumnsAndNoLiveHistory(t *testing.T)
 		if err != nil {
 			t.Fatal(err)
 		}
-		if frozen.Table != current.Table || len(frozen.Relationships.Relations) != 0 || len(current.Relationships.Relations) != 0 || len(frozen.Fields) != len(current.Fields) {
+		extra := 0
+		var upgrade *schema.Schema
+		switch frozen.Table {
+		case "secret_rotation_jobs":
+			extra = 1
+			upgrade, err = schema.Parse(&vaultRootJobV72{}, &sync.Map{}, schema.NamingStrategy{})
+		case "secret_process_verifications":
+			extra = 1
+			upgrade, err = schema.Parse(&vaultRootProcessV72{}, &sync.Map{}, schema.NamingStrategy{})
+		case "secret_rotation_items":
+			upgrade, err = schema.Parse(&vaultRootItemV72{}, &sync.Map{}, schema.NamingStrategy{})
+		}
+		if err != nil {
+			t.Fatal(err)
+		}
+		if extra != 0 {
+			field := current.LookUpField("InventoryVersion")
+			expected := upgrade.LookUpField("InventoryVersion")
+			if field == nil || field.Tag != expected.Tag || field.FieldType != expected.FieldType {
+				t.Fatal("unreviewed V72 inventory field")
+			}
+		}
+		if frozen.Table != current.Table || len(frozen.Relationships.Relations) != 0 || len(current.Relationships.Relations) != 0 || len(frozen.Fields)+extra != len(current.Fields) {
 			t.Fatal("schema acquired mutable relationship", frozen.Table)
 		}
 		for _, field := range frozen.Fields {
+			expected := field
+			if upgrade != nil && field.Name == "Domain" {
+				expected = upgrade.LookUpField(field.Name)
+			}
 			actual := current.LookUpField(field.Name)
-			if actual == nil || actual.Tag != field.Tag || actual.DBName != field.DBName || actual.FieldType != field.FieldType {
+			if actual == nil || actual.Tag != expected.Tag || actual.DBName != field.DBName || actual.FieldType != field.FieldType {
 				t.Fatal("frozen schema divergence", frozen.Table, field.Name)
 			}
 		}

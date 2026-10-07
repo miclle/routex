@@ -254,6 +254,13 @@ beforeEach(() => {
               : ['tokens_5h', 'tokens_7d', 'tokens_month']
             : [],
         }
+      } else if (/^\/projects\/[^/]+\/limits$/.test(config.url ?? '')) {
+        response.data = {
+          ...limitFixture(),
+          kind: 'project',
+          id: config.url!.split('/')[2],
+          account_id: 'project_' + config.url!.split('/')[2],
+        }
       } else response.data = limitFixture()
     }
     if (config.url?.endsWith('/usage')) response.data = usageFixture()
@@ -477,7 +484,7 @@ describe('Team and Project resource workflows', () => {
   })
   it('allows managers to inspect aggregate limits without platform write authority', async () => {
     await mount('/projects/prj_1?tab=resources')
-    await until(() => expect(host.textContent).toContain('user_usr_fixture'))
+    await until(() => expect(host.textContent).toContain('project_prj_1'))
     expect(host.textContent).not.toContain('Edit limits')
     expect(requests.some((request) => request.url === '/projects/prj_1/limits')).toBe(true)
     expect(
@@ -496,7 +503,7 @@ describe('Team and Project resource workflows', () => {
     permissions = ['projects.limits.write']
     project.status = 'disabled'
     await mount('/projects/prj_1?tab=resources')
-    await until(() => expect(host.textContent).toContain('user_usr_fixture'))
+    await until(() => expect(host.textContent).toContain('project_prj_1'))
     expect(host.textContent).not.toContain('Edit limits')
   })
 

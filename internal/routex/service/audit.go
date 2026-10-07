@@ -217,16 +217,17 @@ func auditRecord(row entity.AuditEvent) AuditRecord {
 		changes = detail
 	case "limits.update":
 		var detail struct {
-			TeamID string        `json:"team_id,omitempty"`
-			Before limits.Policy `json:"before"`
-			After  limits.Policy `json:"after"`
-			Reason string        `json:"reason"`
-			ETag   string        `json:"etag"`
+			TeamID     string        `json:"team_id,omitempty"`
+			ParentKind string        `json:"parent_kind,omitempty"`
+			Before     limits.Policy `json:"before"`
+			After      limits.Policy `json:"after"`
+			Reason     string        `json:"reason"`
+			ETag       string        `json:"etag"`
 		}
 		if json.Unmarshal([]byte(*row.DetailsJSON), &detail) != nil {
 			return result
 		}
-		if !validMonthlyBehaviorAudit(row.ResourceType, detail.Before) || !validMonthlyBehaviorAudit(row.ResourceType, detail.After) {
+		if !validLimitAuditBehavior(row, detail.ParentKind, detail.Before) || !validLimitAuditBehavior(row, detail.ParentKind, detail.After) {
 			return result
 		}
 		if row.ResourceType == "team" || row.ResourceType == "team_member" {
@@ -240,6 +241,12 @@ func auditRecord(row entity.AuditEvent) AuditRecord {
 	case "model.alias.retire":
 		var valid bool
 		changes, valid = modelAliasRetirementAuditProjection(row)
+		if !valid {
+			return result
+		}
+	case "vault.integration.configure", "vault.integration.write", "vault.integration.read", "vault.integration.cleanup":
+		var valid bool
+		changes, valid = vaultAuditProjection(row)
 		if !valid {
 			return result
 		}
