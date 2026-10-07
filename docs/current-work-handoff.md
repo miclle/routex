@@ -4,13 +4,23 @@ Updated: 2026-10-07. Status: active. Continue the full RouteX objective and prio
 
 ## Current monthly modes, Connection and Vault continuation (2026-10-07)
 
-Latest delivered main: `91f347de0593c0166602a80922ba7ef1016d4288`
-(explicit AppRole SDK login), after `de5b6966cc215893b64177b3b8844e82227ed93a`
+Latest delivered feature baseline: `f9e72ca5023fdde0c7495bf0e3a8092f9e5fb0ed`
+(Connection availability). The exact 54-path commit/tree and remote main read-back
+are verified. Actionlint37571163377 and GolangCI37571163243 pass. CI37571163309
+passes Backend/Frontend checks but fails its database job on a MySQL member-Key
+fixture data race; build artifacts are skipped. The index remains empty and the
+fifteen price-export paths are preserved. The current-parent delivery check passes in 65.165 seconds; the
+controlled native/restart workflow has independent review. Browser/AuthGate and
+full F11 acceptance remain separate.
+
+The preceding `91f347de0593c0166602a80922ba7ef1016d4288`
+(explicit AppRole SDK login) follows `de5b6966cc215893b64177b3b8844e82227ed93a`
 (Team-member monthly modes) and `a5bb00bc59bb36c8bbe589d8bb7bc5019fed22fa`
 (Project Key monthly modes and asynchronous ownership protection).
-All three phase commits have exact remote main read-back. Current SDK-head
-Actionlint37567989752 and GolangCI37567989801 pass. CI37567991337 has passed
-Backend and Frontend checks; PostgreSQL/MySQL integration remains running.
+All four phase commits have exact remote main read-back. Prior SDK-head
+Actionlint37567989752 and GolangCI37567989801 pass. CI37567991337 passed
+Backend and Frontend checks but was cancelled after the Connection push;
+its interrupted database job is not a passed remote regression.
 Team-head Actionlint37564319251 and GolangCI37564319317 pass. Its CI37564319287
 passed Backend and Frontend checks but was cancelled after the SDK push;
 that interrupted integration job is not a passed remote regression.
@@ -63,8 +73,8 @@ and warning caps that reach the intended threshold without changing settlement.
 The API helper's writer-only parent read was corrected to use an already
 privileged current manager; product authorization remains unchanged.
 
-Team-member monthly modes (V75) are delivered; Connection enablement (V76)
-continues in a separate private candidate. Team's restart fixture repair passes all four direct
+Team-member monthly modes (V75) and Connection enablement (V76) are delivered.
+Their separate original candidate evidence follows. Team's restart fixture repair passes all four direct
 PostgreSQL/MySQL cases; its Full144 regression passes 288 direct cases and all eight constraints in 3,212.747 seconds; root independently verifies the original R2 source and cleanup. A separate frontend
 repair preserves an uncertain save across same-actor Session renewal, releases
 busy state and rejects stale results; fresh complete Task passes 4,526 frontend
@@ -142,7 +152,7 @@ Project Key monthly modes and the Key ownership guard are delivered as
 The 35-path stage passes mandatory checking, focused UI/source gates, the original
 20-case driver focus and API/restart acceptance, and the two-driver retirement
 fixture repair. Historical Full142 remains failed; no new Full142 or browser
-receipt is inferred. Team is delivered; Connection continues separately.
+receipt is inferred. Team and Connection phases are delivered with their separate source identities.
 
 Vault Provider storage implementation continues in isolated backend and frontend
 worktrees. The bounded scope covers a reviewed future-write policy, durable creation
@@ -181,10 +191,85 @@ verified unchanged/absent. Source diagnosis identifies two product defects: the
 policy PUT reused a 129-character Connection ETag validator for its quoted
 64-character policy ETag, and an inline replacement replay mapped a deleted
 receipt result to404 instead of the existing409 contract. Minimal private fixes
-with regression tests are authorized. Root-rotation diagnosis continues. No passing Focus12 or active storage is claimed. The initial contextual check also caught a
+with regression tests pass in frozen R2. Its five-leaf successor preserves 1,815
+R1 paths and every source mode. Formatting, mandatory checking (60.026 seconds),
+complete Task (4,602 frontend tests across 185 files) and build pass on unchanged
+source; 139 uncached related race results pass. Root independently verifies its
+42 packet leaves, clean 1,820-path source and artifact; source-only review is
+`9ca7b44112f3355fc7131991b95dc3ac5e384d1dbb8223c3711b0c893f145dd6`.
+The root-rotation fixture now captures only fixed query-stage/error classes while
+preserving its five-second barrier and all epoch/finality assertions. The targeted
+two-driver diagnostic exits 1 in 110.252 seconds with five balanced named failures.
+Both driver diagnostics record `returned_nil` before an expected pause, with fixed
+stage `other_query`; the shared failure marker does not identify which gate failed.
+This is no epoch or rotation proof. Root independently verifies unchanged source,
+raw pairing and owned resource/process/port cleanup; failed-run review is
+`da6479d6258184f84ff9e074927565f9b502e1386711314c7f69931462f2c056`.
+Callback/preparation diagnosis continues; its cause remains unproven. The controlled
+runtime draft uses normal APIs and read-only projections, retaining the current
+intrinsic-administrator boundary. No passing Focus12 or active storage is claimed.
+The initial contextual check also caught a
 unit-test selector style issue; these failed checks remain failed. Real-driver migration and
 creation/recovery acceptance remain pending. No source-only result establishes
 active Provider storage, automatic compensation or browser completion.
+
+The separate R2 non-root focused run exits 1 in 165.293 seconds: eight of ten
+ordered PostgreSQL/MySQL cases pass, including both corrected policy/replacement
+flows. Only the storage lifecycle fails, at its second `StartRuntime` call.
+Source diagnosis confirms the fixture incorrectly restarts a stopped Service;
+`StartRuntime` is a one-time application lifecycle operation. A private successor
+constructs a fresh Service against the same database, key ring and network policy,
+preserving all outage, healthy startup and later preparation assertions. R4 passes
+formatting, mandatory checking, complete Task (4,602 frontend cases/185 files),
+build and one meaningful resource-free lifecycle race test. Independent source
+review is `0b720a460ded7ff244237c0319c766dcf2a4e8d7043396c0f88b93c137fe963e`;
+fresh real-driver validation remains pending. The failed run and exact
+owned cleanup remain retained; review
+`4352e8350358177aa32dcb5b29f3b3720ff07d55e08cc75dcbde147b9bad9cb3`.
+
+The R3 root diagnostic adds only five cumulative boolean observations to the
+existing fixture. All 1,819 other R2 source paths and every mode remain exact;
+formatting, mandatory checking, complete Task (4,602 frontend cases in 185 files)
+and build pass. Independent source review is
+`bb2a1d7dc137819cd96d56608577f885a4d897fdf5a5277de38ccad501e28bd6`.
+This is diagnostic preparation, with no root-cause or rotation repair claim.
+Its fresh two-driver diagnostic exits 1 in 110.244 seconds. Both governance table
+and schema queries were observed, but the captured context gate did not match,
+and the pause was never entered. This narrows diagnosis without proving a cause.
+The original deadline and assertions remain intact; unchanged source and owned
+cleanup are independently verified, review
+`7934fa56c7556bb2b79d2aafbe49068c8461fe6a1b6015b079fd8d0dae54d878`.
+
+The current-context price-export candidate adopts the existing fifteen scoped
+paths without changing main. Formatting, mandatory checking, 58 named Go race
+results, 65 frontend tests in four files and production build pass. The current
+Connection implementation and 1,788 unrelated source paths remain exact;
+source review `7093eab53ee8772b1b6632f134a2bc9daa675ee5ee7751b9aa92198fd8a1a9f6`.
+Four real-driver price scenarios pass in 90.225 seconds, with seven balanced
+named results, unchanged source and independently verified owned cleanup;
+acceptance `256a82c975932411786099ebc9b51d32796e7686a14dca7e0584d5c967c15c3a`,
+root review `da255f5bdfc472e50999ecb716f41c8835b2135d4090504407fbc080018b5227`.
+Genuine saved Excel/CSV browser delivery remains pending. No downloaded file,
+complete matrix or completed F15 capability is inferred.
+
+The current-head CI race is separate from these private feature checks. At
+`member_keys_integration_test.go:227`, the fixture registers a GORM Create callback
+while the existing runtime publisher executes that callback processor. The race
+trace identifies registration/compilation against `setRuntimeStatus` creation;
+the failed 2,949.92-second Identity run remains failed. A scoped fixture correction
+registers before workers start, atomically arms the original audit-failure request,
+and removes the callback after runtime/recorder shutdown. Production behavior,
+rollback, authority and restart assertions remain unchanged. Main mandatory
+checking passes. Fresh exact-CI-source PostgreSQL/MySQL validation passes in
+125.268 seconds with two direct lifecycles and five balanced named results;
+acceptance `55e3c3eda79a76f33ebda50be33f3fef3be9b1aa3edd73701dda2b810fa4f735`,
+root review `9a6043b01c125d9fe7fbb4c174556ea1840c706c3152e22455262febca60d1e8`.
+All 1,799 unrelated archived-head paths and source modes remain exact. Independent
+review confirms worker teardown and unchanged price paths. The containing commit
+delivers only this fixture correction and the two status documents; it does not
+deliver the fifteen pending price-export paths or private Vault storage. The
+original CI remains failed and a new complete remote result remains pending.
+
 
 A separate two-file SDK proposal adds explicit bounded AppRole login, with
 transient closeable lease material and no Token header, cache, renewal, KV request

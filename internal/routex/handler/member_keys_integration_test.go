@@ -11,6 +11,7 @@ import (
 	"path/filepath"
 	"reflect"
 	"strings"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -32,6 +33,21 @@ func testMemberKeysLifecycle(t *testing.T, db *gorm.DB) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	// Install callbacks before workers start and remove them only after shutdown.
+	var rejectAudit atomic.Bool
+	const callback = "test-member-key-audit-rollback"
+	if err := db.Callback().Create().Before("gorm:create").Register(callback, func(tx *gorm.DB) {
+		if rejectAudit.Load() && tx.Statement.Table == "audit_events" {
+			_ = tx.AddError(errors.New("test-only audit rejection"))
+		}
+	}); err != nil {
+		t.Fatal(err)
+	}
+	defer func() {
+		if err := db.Callback().Create().Remove(callback); err != nil {
+			t.Error(err)
+		}
+	}()
 	upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Header.Get("Authorization") != "Bearer member-key-fixture" {
 			t.Error("unexpected upstream credential")
@@ -223,18 +239,9 @@ func testMemberKeysLifecycle(t *testing.T, db *gorm.DB) {
 	if countAudits() != 0 {
 		t.Fatal("fixture polluted disable audit")
 	}
-	callback := "test-member-key-audit-rollback"
-	if err := db.Callback().Create().Before("gorm:create").Register(callback, func(tx *gorm.DB) {
-		if tx.Statement.Table == "audit_events" {
-			_ = tx.AddError(errors.New("test-only audit rejection"))
-		}
-	}); err != nil {
-		t.Fatal(err)
-	}
+	rejectAudit.Store(true)
 	expectStatus(t, request(writerCookie, writerCSRF, "POST", base+"/"+before.ID+"/disable", `{"reason":"Contain this Key"}`, target.ETag), 500)
-	if err := db.Callback().Create().Remove(callback); err != nil {
-		t.Fatal(err)
-	}
+	rejectAudit.Store(false)
 	if !reflect.DeepEqual(stored(before.ID), before) || countAudits() != 0 {
 		t.Fatal("failed audit escaped transactional rollback")
 	}
