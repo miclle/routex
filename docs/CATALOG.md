@@ -952,3 +952,36 @@ survive restart, no inference or Keys are created, and owned resources are remov
 Acceptance SHA-256: `3688b5cc9932c45f552f80697bec9e8063b45955223521864dab732a8cfcfa97`.
 The separate full133 PostgreSQL/MySQL gate includes the metadata lifecycle.
 Current main composition checks and delivery are tracked in [Implementation](IMPLEMENTATION.md).
+
+## Connection enablement
+
+Connections have an independent routing switch in the existing Provider Connections
+table and action menu. `GET /api/v1/admin/connections/:connection_id/status` requires
+`providers.read`; `PUT` requires independent `providers.write`, current Session/CSRF,
+a reviewed strong If-Match and a required reason. Status review binds exact actor,
+Provider/Connection birth and shared metadata/egress revisions. A status change
+invalidates prior metadata and egress reviews.
+
+Disabling excludes that Connection from new route selection, native failover and
+protocol/capability eligibility. Credentials, Provider models, binding weights and
+recorded history remain intact. Authorized logical Models remain discoverable;
+when no eligible supply remains, their protocols and capability map are empty.
+Administrative verification/discovery remain separate management operations.
+
+The local dispatch checkpoint is serialized with publication; the lock is released
+before remote HTTP dispatch. An already received native request completes using
+its original attribution. This boundary does not claim cancellation of traffic
+already sent or a network-level cutover guarantee.
+
+The Base UI confirmation retains exact reviewed status/reason/If-Match through
+uncertain retries and explicit conflict review. Success requires a fresh authorized
+confirmation that runtime applies the requested status. An identical current state
+may reconcile configuration/publication; it does not prove a historical operation.
+Actor/target changes or unmount destroy transient intent. English and Chinese copy
+uses the existing catalog namespace.
+
+The fixture-corrected PostgreSQL/MySQL Focus20 passes ten scenarios per driver.
+Earlier failed runs remain historical: stale role setup and incorrect logical
+Model visibility expectations were repaired without changing product discovery or
+native call budgets. Complete regression and delivery status are recorded in
+[Implementation](IMPLEMENTATION.md).

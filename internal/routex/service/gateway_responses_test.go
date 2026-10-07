@@ -52,7 +52,7 @@ func responsesRuntimeFixture(t *testing.T, base string) (*Service, *runtimeData,
 }
 func TestResponsesRuntimeProtocolIsolation(t *testing.T) {
 	svc, data, _ := runtimeFixture(t, "http://127.0.0.1/v1")
-	data.Connections = append(data.Connections, entity.ProviderConnection{ID: "con_responses", ProviderID: "prv_one", BaseURL: "http://127.0.0.1/v1", Protocol: entity.ProtocolOpenAIResponses})
+	data.Connections = append(data.Connections, entity.ProviderConnection{Enabled: true, CreatedAt: time.Date(2026, 10, 1, 0, 0, 0, 0, time.UTC), ID: "con_responses", ProviderID: "prv_one", BaseURL: "http://127.0.0.1/v1", Protocol: entity.ProtocolOpenAIResponses})
 	data.ProviderModels = append(data.ProviderModels, entity.ProviderModel{ID: "pmd_responses", ConnectionID: "con_responses", UpstreamName: "native-response-model"})
 	cipher, err := svc.secrets.Seal("crd_responses", "responses-secret")
 	if err != nil {

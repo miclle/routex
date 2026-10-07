@@ -52,19 +52,21 @@ type credentialReadinessRoute struct {
 // A capture retains only immutable publication pointers and public route facts.
 // Credential plaintext, clients, and full runtime routes never leave this helper.
 type credentialRetirementRuntimeCapture struct {
-	SnapshotID         string
-	SourceDigest       string
-	EligibleRouteCount int
-	Blockers           []string
-	connectionID       string
-	sourceID           string
-	replacementID      string
-	auth               *runtimeAuthorization
-	routes             *runtimeRoutes
-	epoch              uint64
-	egressGeneration   uint64
-	transportRevision  string
-	scope              []credentialReadinessRoute
+	SnapshotID           string
+	SourceDigest         string
+	EligibleRouteCount   int
+	Blockers             []string
+	connectionID         string
+	connectionBirth      time.Time
+	connectionProviderID string
+	sourceID             string
+	replacementID        string
+	auth                 *runtimeAuthorization
+	routes               *runtimeRoutes
+	epoch                uint64
+	egressGeneration     uint64
+	transportRevision    string
+	scope                []credentialReadinessRoute
 }
 
 func (s *Service) captureCredentialRetirementRuntime(connectionID, sourceID, replacementID string) (*credentialRetirementRuntimeCapture, error) {
@@ -88,6 +90,8 @@ func (s *Service) captureCredentialRetirementRuntime(connectionID, sourceID, rep
 		return capture, nil
 	}
 	capture.SnapshotID, capture.SourceDigest = routes.ID, auth.SourceDigest
+	proof := auth.Connections[connectionID]
+	capture.connectionBirth, capture.connectionProviderID = proof.Birth, proof.ProviderID
 	related := 0
 	for modelID, candidates := range routes.Models {
 		for _, candidate := range candidates {
@@ -130,6 +134,7 @@ func (s *Service) captureCredentialRetirementRuntime(connectionID, sourceID, rep
 			}
 			capture.scope = append(capture.scope, observed)
 			if !entity.SupportedNativeProtocol(route.Protocol) ||
+				!s.runtimeConnectionAllowed(auth, route) ||
 				route.Client == nil ||
 				route.EgressRevision == "" ||
 				route.EgressGeneration != capture.egressGeneration ||
@@ -185,7 +190,9 @@ func (s *Service) validateCredentialRetirementRuntimeCapture(capture *credential
 		return []string{"runtime_stale"}
 	}
 	for _, route := range capture.scope {
-		if runtimeDenied(&runtime.deniedModels, route.ModelID) ||
+		if !s.runtimeConnectionAllowed(auth, gatewayRoute{ConnectionID: capture.connectionID, ProviderID: capture.connectionProviderID, ConnectionBirth: capture.connectionBirth}) ||
+			auth.ConnectionRevisions[capture.connectionID] != capture.transportRevision ||
+			runtimeDenied(&runtime.deniedModels, route.ModelID) ||
 			runtimeDenied(&runtime.deniedProviderModels, route.ProviderModelID) ||
 			runtimeDenied(&runtime.deniedCredentials, capture.replacementID) ||
 			!s.gatewayAttemptHealthy(capture.connectionID, capture.replacementID) {
@@ -322,6 +329,8 @@ func (s *Service) credentialRetirementRuntimeScope(
 		return result, nil
 	}
 	if capture.connectionID != connection.ID ||
+		capture.connectionProviderID != connection.ProviderID ||
+		!capture.connectionBirth.Equal(connection.CreatedAt) ||
 		source.ConnectionID != connection.ID ||
 		replacement.ConnectionID != connection.ID ||
 		source.ID != capture.sourceID ||

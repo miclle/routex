@@ -50,6 +50,12 @@ export type ConnectionNameSubmittedIntent = {
   etag: string
   input: { name: string; reason: string }
 }
+export type ConnectionStatusSubmittedIntent = {
+  provider_id: string
+  connection_id: string
+  etag: string
+  input: { enabled: boolean; reason: string }
+}
 export type ProviderNameSubmittedIntent = {
   provider_id: string
   etag: string
@@ -58,6 +64,7 @@ export type ProviderNameSubmittedIntent = {
 export type SubmittedIntent =
   | { kind: 'provider-name'; payload: ProviderNameSubmittedIntent }
   | { kind: 'connection-name'; payload: ConnectionNameSubmittedIntent }
+  | { kind: 'connection-status'; payload: ConnectionStatusSubmittedIntent }
   | { kind: 'team-create'; payload: TeamCreateSubmittedIntent }
   | { kind: 'default-limit-save'; payload: DefaultLimitSaveSubmittedIntent }
   | { kind: 'restore-defaults'; payload: RestoreSubmittedIntent }

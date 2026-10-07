@@ -45,6 +45,7 @@ type gatewayRuntime struct {
 	deniedModels         sync.Map
 	deniedProviderModels sync.Map
 	deniedCredentials    sync.Map
+	deniedConnections    sync.Map
 	deniedSessions       sync.Map
 	deniedSessionUsers   sync.Map
 	deniedTeams          sync.Map
@@ -57,7 +58,14 @@ type runtimeUserProof struct {
 	Enabled   bool
 }
 
+type runtimeConnectionProof struct {
+	ProviderID string
+	Birth      time.Time
+	Enabled    bool
+}
+
 type runtimeAuthorization struct {
+	Connections            map[string]runtimeConnectionProof
 	PersonalGrantStates    map[string]runtimePersonalGrantState
 	ModelEligibilityHashes map[string]string
 	PersonalKeyStates      map[string]runtimePersonalKeyState
@@ -209,6 +217,7 @@ func (s *Service) RefreshRuntime(ctx context.Context) error {
 	// Credential revocations are also checked against the freshly published
 	// eligibility map, so clearing older tombstones cannot restore disabled keys.
 	clearRuntimeTombstones(&runtime.deniedCredentials, generation)
+	clearRuntimeTombstones(&runtime.deniedConnections, generation)
 	clearRuntimeTombstones(&runtime.deniedProviderModels, generation)
 	clearRuntimeTombstones(&runtime.deniedSessions, generation)
 	clearRuntimeTombstones(&runtime.deniedSessionUsers, generation)
@@ -403,7 +412,7 @@ func (s *Service) runtimeProtocolRoute(modelID, protocol string) (*gatewayRoute,
 	for i := range candidates {
 		weights[i] = candidates[i].Route.Weight
 		id := candidates[i].Route.ProviderModelID
-		available[i] = auth.ProviderModels[id] && !runtimeDenied(&runtime.deniedProviderModels, id) && candidates[i].Route.EgressRevision != "" && auth.ConnectionRevisions[candidates[i].Route.ConnectionID] == candidates[i].Route.EgressRevision && candidates[i].Route.EgressGeneration == s.egressGeneration.Load()
+		available[i] = s.runtimeConnectionAllowed(auth, candidates[i].Route) && auth.ProviderModels[id] && !runtimeDenied(&runtime.deniedProviderModels, id) && candidates[i].Route.EgressRevision != "" && auth.ConnectionRevisions[candidates[i].Route.ConnectionID] == candidates[i].Route.EgressRevision && candidates[i].Route.EgressGeneration == s.egressGeneration.Load()
 	}
 	chosen, err := chooseAvailableGatewayRoute(weights, available)
 	if err != nil {
@@ -497,6 +506,7 @@ func (s *Service) loadRuntimeDataTx(tx *gorm.DB) (*runtimeData, error) {
 
 func buildRuntimeAuthorization(data *runtimeData, until time.Time) *runtimeAuthorization {
 	auth := &runtimeAuthorization{
+		Connections:            runtimeConnectionProofs(data),
 		PersonalKeyStates:      runtimeMemberKeyStates(data.Keys),
 		PersonalGrantStates:    runtimePersonalGrantStates(data),
 		ModelEligibilityHashes: runtimeMemberModelsEligibility(data),
@@ -726,7 +736,7 @@ func (s *Service) buildRuntimeRoutes(data *runtimeData) (map[string][]runtimeRou
 			return nil, runtimeUnavailable
 		}
 		_, egressRevision, _ := runtimeEgressSelection(data, connection)
-		candidate := runtimeRoute{Route: gatewayRoute{Client: clients[connection.ID], EgressGeneration: data.EgressGeneration, EgressRevision: egressRevision, Protocol: connection.Protocol, PriceBasis: runtimePriceBasis(data.Pricing, pm.ID, connection.Protocol), BindingID: binding.ID, Weight: binding.Weight, ProviderID: connection.ProviderID, ProviderName: provider.Name, ProviderModelID: pm.ID, ConnectionID: connection.ID, ConnectionName: connection.Name, UpstreamName: pm.UpstreamName, BaseURL: connection.BaseURL, SupportsImageInput: pm.SupportsImageInput, SupportsPDFInput: pm.SupportsPDFInput}}
+		candidate := runtimeRoute{Route: gatewayRoute{Client: clients[connection.ID], EgressGeneration: data.EgressGeneration, EgressRevision: egressRevision, Protocol: connection.Protocol, PriceBasis: runtimePriceBasis(data.Pricing, pm.ID, connection.Protocol), BindingID: binding.ID, Weight: binding.Weight, ProviderID: connection.ProviderID, ProviderName: provider.Name, ProviderModelID: pm.ID, ConnectionID: connection.ID, ConnectionBirth: connection.CreatedAt.UTC(), ConnectionName: connection.Name, UpstreamName: pm.UpstreamName, BaseURL: connection.BaseURL, SupportsImageInput: pm.SupportsImageInput, SupportsPDFInput: pm.SupportsPDFInput}}
 		for _, credential := range credentials[connection.ID] {
 			if access[credential.ID][pm.ID] {
 				candidate.Credentials = append(candidate.Credentials, credential)

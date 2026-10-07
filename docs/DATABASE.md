@@ -1137,3 +1137,19 @@ its own PostgreSQL/MySQL source binding. The original failed lifecycle restart a
 its fixture-only startup repair remain separate history, preserving accounting,
 Session, CallRecord/Attempt and no-new-native assertions. See
 [Implementation](IMPLEMENTATION.md) for current driver and runtime acceptance.
+
+## Connection enablement (V76)
+
+Frozen GORM V76 adds `provider_connections.enabled` through the Migrator API,
+with a non-null true default. Existing and new Connections retain enabled routing
+by default. The step checks the actual column type, nullability and default after
+creation, including partial-DDL and repeated startup. It neither edits released
+migrations nor rewrites child Credentials, models, bindings or history.
+
+Status writes use a GORM transaction and map updates so false is persisted. They
+retain the Connection's shared revision and record a typed `connection.status.update`
+audit containing only before/after status and required reason. Runtime publication
+and exact identity revalidation remain application responsibilities; a stored
+boolean alone does not prove routing application. The real-driver migration and
+lifecycle evidence remains bound to its exact candidate in
+[Implementation](IMPLEMENTATION.md).

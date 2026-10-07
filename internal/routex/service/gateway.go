@@ -94,6 +94,8 @@ type GatewayResult struct {
 	ProviderID         string
 	ProviderName       string
 	ProviderModelID    string
+	ConnectionBirth    time.Time
+	ConnectionEnabled  bool
 	ConnectionID       string
 	ConnectionName     string
 	UpstreamModelName  string
@@ -498,6 +500,8 @@ type gatewayRoute struct {
 	ProviderID         string
 	ProviderName       string
 	ProviderModelID    string
+	ConnectionBirth    time.Time
+	ConnectionEnabled  bool
 	ConnectionID       string
 	ConnectionName     string
 	CredentialID       string
@@ -510,7 +514,7 @@ type gatewayRoute struct {
 
 func selectGatewayProtocolRoute(db *gorm.DB, modelID, protocol string) (*gatewayRoute, error) {
 	var routes []gatewayRoute
-	err := db.Table("model_provider_bindings AS b").Select("b.id AS binding_id, b.weight, p.id AS provider_model_id, p.upstream_name, p.disabled, p.supports_image_input, p.supports_pdf_input, c.id AS connection_id, c.provider_id, c.name AS connection_name, c.base_url, c.protocol, pr.name AS provider_name").Joins("JOIN provider_models p ON p.id = b.provider_model_id").Joins("JOIN provider_connections c ON c.id = p.connection_id").Joins("JOIN providers pr ON pr.id = c.provider_id").Where("b.model_id = ? AND c.protocol = ?", modelID, protocol).Order("b.id").Scan(&routes).Error
+	err := db.Table("model_provider_bindings AS b").Select("b.id AS binding_id, b.weight, p.id AS provider_model_id, p.upstream_name, p.disabled, p.supports_image_input, p.supports_pdf_input, c.id AS connection_id, c.created_at AS connection_birth, c.enabled AS connection_enabled, c.provider_id, c.name AS connection_name, c.base_url, c.protocol, pr.name AS provider_name").Joins("JOIN provider_models p ON p.id = b.provider_model_id").Joins("JOIN provider_connections c ON c.id = p.connection_id").Joins("JOIN providers pr ON pr.id = c.provider_id").Where("b.model_id = ? AND c.protocol = ?", modelID, protocol).Order("b.id").Scan(&routes).Error
 	if err != nil {
 		return nil, gatewayError(503, "upstream_unavailable", "Routing is temporarily unavailable.")
 	}
@@ -518,7 +522,7 @@ func selectGatewayProtocolRoute(db *gorm.DB, modelID, protocol string) (*gateway
 	available := make([]bool, len(routes))
 	for i := range routes {
 		weights[i] = routes[i].Weight
-		available[i] = !routes[i].Disabled
+		available[i] = routes[i].ConnectionEnabled && !routes[i].Disabled
 	}
 	choice, err := chooseAvailableGatewayRoute(weights, available)
 	if err != nil {

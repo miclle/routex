@@ -256,6 +256,12 @@ func auditRecord(row entity.AuditEvent) AuditRecord {
 		if !valid {
 			return result
 		}
+	case "connection.status.update":
+		var valid bool
+		changes, valid = connectionStatusAuditProjection(row)
+		if !valid {
+			return result
+		}
 	case "connection.metadata.update":
 		var valid bool
 		changes, valid = connectionMetadataAuditProjection(row)

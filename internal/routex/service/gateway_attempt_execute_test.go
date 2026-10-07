@@ -455,7 +455,7 @@ func addSecondGatewayAttemptRoute(t *testing.T, svc *Service, data *runtimeData,
 	}
 	data.Bindings[0].Weight = 50
 	data.Providers = append(data.Providers, entity.Provider{ID: "prv_two", Name: "Provider Two"})
-	data.Connections = append(data.Connections, entity.ProviderConnection{ID: "con_two", ProviderID: "prv_two", Name: "Secondary", BaseURL: baseURL, Protocol: entity.ProtocolOpenAIChat})
+	data.Connections = append(data.Connections, entity.ProviderConnection{Enabled: true, CreatedAt: time.Date(2026, 10, 1, 0, 0, 0, 0, time.UTC), ID: "con_two", ProviderID: "prv_two", Name: "Secondary", BaseURL: baseURL, Protocol: entity.ProtocolOpenAIChat})
 	data.ProviderModels = append(data.ProviderModels, entity.ProviderModel{ID: "pmd_two", ConnectionID: "con_two", UpstreamName: "provider-model-two"})
 	data.Credentials = append(data.Credentials, entity.ProviderCredential{ID: "crd_two", ConnectionID: "con_two", Ciphertext: ciphertext, Enabled: true, VerificationStatus: "verified"})
 	data.Access = append(data.Access, entity.CredentialModelAccess{CredentialID: "crd_two", ProviderModelID: "pmd_two"})

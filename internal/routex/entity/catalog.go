@@ -12,6 +12,7 @@ type Provider struct {
 }
 
 type ProviderConnection struct {
+	Enabled    bool    `gorm:"not null;default:true"`
 	EgressMode string  `gorm:"size:12;not null;default:default"`
 	EgressID   *string `gorm:"size:30"`
 	ETag       string  `gorm:"size:30;not null;default:0"`

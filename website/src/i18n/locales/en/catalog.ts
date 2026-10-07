@@ -89,6 +89,48 @@ export default {
     declarationHelp:
       'Input capabilities are stored declarations. They do not confirm routing availability, capacity or valid prices.',
   },
+  connectionStatus: {
+    title: 'Connection routing status',
+    description: 'Review the current Connection and explicitly confirm its routing status.',
+    reason: 'Change reason',
+    validation: 'Enter a nonempty reason of at most 1024 UTF-8 bytes without control characters.',
+    save: 'Review status change',
+    confirmDescription: 'This changes routing status only.',
+    confirmReason: 'Reason: {{reason}}',
+    review: 'Review current configuration',
+    reviewed: 'Current configuration reviewed. Your requested status and reason are preserved.',
+    stale:
+      'The reviewed connection configuration changed. Review the current configuration explicitly before submitting.',
+    readOnly: 'Current write authority is unavailable.',
+    unavailable:
+      'The request cannot be captured right now. Check current authority and retry explicitly.',
+    uncertain:
+      'The submitted status change remains unresolved. Review current authority, then retry the identical request.',
+    retained:
+      'Credentials, ProviderModels, weights and existing call history are retained. Requests already started may finish. Enabling does not verify or enable child records.',
+    retry: 'Retry exact status request',
+    abandon: 'Abandon original request',
+    abandonTitle: 'Abandon this retained request?',
+    abandonDescription:
+      'The previous outcome remains unknown. Keep the draft, abandon its original request and explicitly review the current configuration before starting another request.',
+    confirmAbandon: 'Abandon request',
+    abandoned:
+      'The original request was abandoned locally. Its previous outcome remains unknown. Your draft is preserved; explicitly review the current configuration.',
+    saved:
+      'Current Connection status is saved and applied to routing. This does not prove that a route is ready.',
+    status: 'Status',
+    filter: 'Connection status',
+    all: 'All statuses',
+    enabled: 'Enabled',
+    disabled: 'Disabled',
+    enable: 'Enable Connection',
+    disable: 'Disable Connection',
+    confirmEnable: 'Enable Connection?',
+    confirmDisable: 'Disable Connection?',
+    enableHelp: 'Allow {{name}} to participate in eligible new requests.',
+    disableHelp: 'Stop {{name}} from receiving new requests.',
+    recover: 'Review unresolved status change',
+  },
   connectionMetadata: {
     filters: 'Connection filters',
     search: 'Search connection names',

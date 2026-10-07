@@ -25,6 +25,7 @@ func credentialReadinessRuntimeFixture() (*Service, entity.ProviderCredential) {
 		CreatedAt:          now.Add(-time.Minute),
 	}
 	auth := buildRuntimeAuthorization(&runtimeData{
+		Connections:    []entity.ProviderConnection{{ID: "con_one", ProviderID: "prv_one", Enabled: true, CreatedAt: now.Add(-time.Hour)}},
 		Models:         []entity.Model{{ID: "mdl_one", Status: "active"}},
 		ProviderModels: []entity.ProviderModel{{ID: "pmd_one", ETag: "revision"}},
 		Credentials:    []entity.ProviderCredential{replacement},
@@ -38,7 +39,8 @@ func credentialReadinessRuntimeFixture() (*Service, entity.ProviderCredential) {
 		ID: "cfg_current", Digest: auth.SourceDigest,
 		Models: map[string][]runtimeRoute{"mdl_one": {{
 			Route: gatewayRoute{
-				Client: &http.Client{}, BindingID: "bnd_one", Weight: 100,
+				ConnectionBirth: now.Add(-time.Hour),
+				Client:          &http.Client{}, BindingID: "bnd_one", Weight: 100,
 				ProviderID: "prv_one", ProviderModelID: "pmd_one", ConnectionID: "con_one",
 				Protocol: entity.ProtocolOpenAIChat, UpstreamName: "native", EgressRevision: "transport",
 			},
@@ -74,6 +76,24 @@ func TestCredentialReadinessRequiresPublishedCandidate(t *testing.T) {
 		{"credential_cooling", "route_unavailable", func(s *Service) { s.markGatewayCredentialRejected("crd_replacement") }},
 		{"connection_cooling", "route_unavailable", func(s *Service) { s.markGatewayConnectionFailure("con_one") }},
 		{"egress_generation", "route_unavailable", func(s *Service) { s.egressGeneration.Add(1) }},
+
+		{"connection_disabled", "route_unavailable", func(s *Service) {
+			proof := s.runtime.auth.Load().Connections["con_one"]
+			proof.Enabled = false
+			s.runtime.auth.Load().Connections["con_one"] = proof
+		}},
+		{"connection_denied", "route_unavailable", func(s *Service) { s.runtime.deniedConnections.Store("con_one", uint64(1)) }},
+		{"connection_birth_changed", "route_unavailable", func(s *Service) {
+			proof := s.runtime.auth.Load().Connections["con_one"]
+			proof.Birth = proof.Birth.Add(time.Second)
+			s.runtime.auth.Load().Connections["con_one"] = proof
+		}},
+		{"connection_provider_changed", "route_unavailable", func(s *Service) {
+			proof := s.runtime.auth.Load().Connections["con_one"]
+			proof.ProviderID = "prv_other"
+			s.runtime.auth.Load().Connections["con_one"] = proof
+		}},
+		{"connection_missing", "route_unavailable", func(s *Service) { delete(s.runtime.auth.Load().Connections, "con_one") }},
 		{"transport_revision", "route_unavailable", func(s *Service) { s.runtime.auth.Load().ConnectionRevisions["con_one"] = "changed" }},
 		{"nil_client", "route_unavailable", func(s *Service) { s.runtime.routes.Load().Models["mdl_one"][0].Route.Client = nil }},
 	} {
@@ -124,6 +144,24 @@ func TestCredentialReadinessRecaptureRejectsChangedConditions(t *testing.T) {
 		{"epoch", "runtime_stale", func(s *Service) { s.runtime.epoch.Add(1) }},
 		{"egress", "runtime_stale", func(s *Service) { s.egressGeneration.Add(1) }},
 		{"lease", "runtime_unavailable", func(s *Service) { s.runtime.auth.Load().ValidUntil = time.Now().Add(-time.Second) }},
+
+		{"connection_disabled", "route_unavailable", func(s *Service) {
+			proof := s.runtime.auth.Load().Connections["con_one"]
+			proof.Enabled = false
+			s.runtime.auth.Load().Connections["con_one"] = proof
+		}},
+		{"connection_denied", "route_unavailable", func(s *Service) { s.runtime.deniedConnections.Store("con_one", uint64(1)) }},
+		{"connection_birth_changed", "route_unavailable", func(s *Service) {
+			proof := s.runtime.auth.Load().Connections["con_one"]
+			proof.Birth = proof.Birth.Add(time.Second)
+			s.runtime.auth.Load().Connections["con_one"] = proof
+		}},
+		{"connection_provider_changed", "route_unavailable", func(s *Service) {
+			proof := s.runtime.auth.Load().Connections["con_one"]
+			proof.ProviderID = "prv_other"
+			s.runtime.auth.Load().Connections["con_one"] = proof
+		}},
+		{"connection_missing", "route_unavailable", func(s *Service) { delete(s.runtime.auth.Load().Connections, "con_one") }},
 		{"health", "route_unavailable", func(s *Service) { s.markGatewayCredentialRejected("crd_replacement") }},
 	} {
 		t.Run(test.name, func(t *testing.T) {

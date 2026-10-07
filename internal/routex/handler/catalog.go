@@ -28,6 +28,7 @@ type ProviderModelResponse struct {
 	UpstreamName       string `json:"upstream_name"`
 }
 type ConnectionResponse struct {
+	Enabled        bool                    `json:"enabled"`
 	EgressMode     string                  `json:"egress_mode"`
 	EgressID       *string                 `json:"egress_id"`
 	ETag           string                  `json:"etag"`
@@ -97,7 +98,7 @@ func providerModelResponse(item entity.ProviderModel) ProviderModelResponse {
 	return ProviderModelResponse{ID: item.ID, UpstreamName: item.UpstreamName, Enabled: !item.Disabled, SupportsImageInput: item.SupportsImageInput, SupportsPDFInput: item.SupportsPDFInput, ETag: item.ETag}
 }
 func connectionResponse(item service.ConnectionCatalog) ConnectionResponse {
-	result := ConnectionResponse{EgressMode: item.Connection.EgressMode, EgressID: item.Connection.EgressID, ETag: item.Connection.ETag, ID: item.Connection.ID, Name: item.Connection.Name, BaseURL: item.Connection.BaseURL, Protocol: item.Connection.Protocol, Credentials: []CredentialResponse{}, ProviderModels: []ProviderModelResponse{}}
+	result := ConnectionResponse{Enabled: item.Connection.Enabled, EgressMode: item.Connection.EgressMode, EgressID: item.Connection.EgressID, ETag: item.Connection.ETag, ID: item.Connection.ID, Name: item.Connection.Name, BaseURL: item.Connection.BaseURL, Protocol: item.Connection.Protocol, Credentials: []CredentialResponse{}, ProviderModels: []ProviderModelResponse{}}
 	for _, credential := range item.Credentials {
 		result.Credentials = append(result.Credentials, credentialResponse(credential))
 	}

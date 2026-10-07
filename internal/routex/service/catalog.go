@@ -121,7 +121,7 @@ func loadConnectionCatalog(db *gorm.DB, connectionID string) (*ConnectionCatalog
 }
 
 func (s *Service) prepareConnection(providerID string, input CreateConnectionInput) (entity.ProviderConnection, entity.ProviderCredential, error) {
-	connection := entity.ProviderConnection{EgressMode: input.EgressMode, EgressID: input.EgressID, ETag: "0", ProviderID: providerID, Name: strings.TrimSpace(input.Name), Protocol: input.Protocol}
+	connection := entity.ProviderConnection{Enabled: true, EgressMode: input.EgressMode, EgressID: input.EgressID, ETag: "0", ProviderID: providerID, Name: strings.TrimSpace(input.Name), Protocol: input.Protocol}
 	if connection.EgressMode == "" {
 		connection.EgressMode = "default"
 	}

@@ -105,7 +105,7 @@ func (s *Service) runtimeGatewayModelMetadata(modelIDs []string, result map[stri
 
 func (s *Service) runtimeRouteReadyForDiscovery(auth *runtimeAuthorization, candidate runtimeRoute) bool {
 	route := candidate.Route
-	if route.Weight <= 0 || !auth.ProviderModels[route.ProviderModelID] || runtimeDenied(&s.runtime.deniedProviderModels, route.ProviderModelID) {
+	if !s.runtimeConnectionAllowed(auth, route) || route.Weight <= 0 || !auth.ProviderModels[route.ProviderModelID] || runtimeDenied(&s.runtime.deniedProviderModels, route.ProviderModelID) {
 		return false
 	}
 	for _, credential := range candidate.Credentials {
@@ -131,11 +131,12 @@ func (s *Service) databaseGatewayModelMetadata(ctx context.Context, modelIDs []s
 		ModelID, BindingID, Protocol, CredentialID string
 		Weight                                     int
 		Disabled                                   bool
+		ConnectionEnabled                          bool
 		SupportsImageInput                         bool
 		SupportsPDFInput                           bool
 	}
 	err := s.authDB(ctx).Table("model_provider_bindings b").
-		Select("b.model_id, b.id AS binding_id, b.weight, p.disabled, p.supports_image_input, p.supports_pdf_input, c.protocol, k.id AS credential_id").
+		Select("b.model_id, b.id AS binding_id, b.weight, p.disabled, c.enabled AS connection_enabled, p.supports_image_input, p.supports_pdf_input, c.protocol, k.id AS credential_id").
 		Joins("JOIN provider_models p ON p.id = b.provider_model_id").
 		Joins("JOIN provider_connections c ON c.id = p.connection_id").
 		Joins("LEFT JOIN credential_model_accesses a ON a.provider_model_id = p.id").
@@ -167,7 +168,7 @@ func (s *Service) databaseGatewayModelMetadata(ctx context.Context, modelIDs []s
 			item.Routes[row.BindingID] = route
 			item.Total += row.Weight
 		}
-		route.Ready = route.Ready || row.CredentialID != ""
+		route.Ready = route.Ready || row.ConnectionEnabled && row.CredentialID != ""
 	}
 	for modelID, protocols := range groups {
 		item := result[modelID]

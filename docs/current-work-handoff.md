@@ -2,16 +2,27 @@
 
 Updated: 2026-10-07. Status: active. Continue the full RouteX objective and prioritize partial capabilities. [Implementation](IMPLEMENTATION.md) records engineering contracts and historical acceptance evidence. Earlier checkpoints below remain historical.
 
-## Current Project Key continuation (2026-10-07)
+## Current monthly modes, Connection and Vault continuation (2026-10-07)
 
-Latest delivered main: `78c76d204e7745eaf11a4df4828ddac551f99623`
-(credential SDK), after `c2368ddb0251415e72bfeee948ad23ed7a173ee4`
-(Vault Token/root inventory and Personal Key/Project aggregate monthly modes).
+Latest delivered main: `91f347de0593c0166602a80922ba7ef1016d4288`
+(explicit AppRole SDK login), after `de5b6966cc215893b64177b3b8844e82227ed93a`
+(Team-member monthly modes) and `a5bb00bc59bb36c8bbe589d8bb7bc5019fed22fa`
+(Project Key monthly modes and asynchronous ownership protection).
+All three phase commits have exact remote main read-back. Current SDK-head
+Actionlint37567989752 and GolangCI37567989801 pass. CI37567991337 has passed
+Backend and Frontend checks; PostgreSQL/MySQL integration remains running.
+Team-head Actionlint37564319251 and GolangCI37564319317 pass. Its CI37564319287
+passed Backend and Frontend checks but was cancelled after the SDK push;
+that interrupted integration job is not a passed remote regression.
+Earlier deliveries include
+`78c76d204e7745eaf11a4df4828ddac551f99623` (credential SDK) and
+`c2368ddb0251415e72bfeee948ad23ed7a173ee4` (Vault Token/root inventory and
+Personal Key/Project aggregate monthly modes).
 The c2368dd full CI run was cancelled after the SDK push; cancellation is not
-integration acceptance. Current SDK-head Actionlint and GolangCI pass. Full CI37554117091
+integration acceptance. The SDK-head Actionlint and GolangCI pass. Full CI37554117091
 passes all four jobs: backend, frontend, PostgreSQL/MySQL integration and build. Earlier sections retain their original source and time.
 
-The Project Key candidate adds independent monthly Token and money modes to
+The Project Key delivery adds independent monthly Token and money modes to
 its stable rotation account. A child `alert_only` mode never weakens a hard
 Project parent. Limits keep null and zero distinct, decimal money exact, and
 existing rate, unknown-usage and missing-price rejection rules intact. Current
@@ -52,8 +63,8 @@ and warning caps that reach the intended threshold without changing settlement.
 The API helper's writer-only parent read was corrected to use an already
 privileged current manager; product authorization remains unchanged.
 
-Team-member monthly modes (V75) and Connection enablement (V76) continue in
-separate private candidates. Team's restart fixture repair passes all four direct
+Team-member monthly modes (V75) are delivered; Connection enablement (V76)
+continues in a separate private candidate. Team's restart fixture repair passes all four direct
 PostgreSQL/MySQL cases; its Full144 regression passes 288 direct cases and all eight constraints in 3,212.747 seconds; root independently verifies the original R2 source and cleanup. A separate frontend
 repair preserves an uncertain save across same-actor Session renewal, releases
 busy state and rejects stale results; fresh complete Task passes 4,526 frontend
@@ -71,8 +82,8 @@ quiescent retirement fixture. Its six focused UI suites pass 176 tests; mandator
 checking, complete Task (4,535 frontend tests in 181 files) and production build
 pass. The exact production backend remains the accepted Full144 implementation;
 the retirement test repair has separate passing two-driver evidence. Original R2
-full/API and R3 UI receipts keep their original source identities. Browser and
-phase delivery remain separate.
+full/API and R3 UI receipts keep their original source identities. The 37-path Team phase is delivered as `de5b6966cc215893b64177b3b8844e82227ed93a`,
+with exact remote read-back and final staged checking. Browser acceptance remains separate.
 Connection source gates pass 4,545 frontend tests in 182 files, mandatory checking,
 Go race tests and build. Its first focused run actually selects 28 direct cases because of substring
 matching: 26 pass, while both new status cases fail on a stale role fixture. The
@@ -81,16 +92,45 @@ fixture that incorrectly expects authorized logical Models to disappear when
 supply is disabled. A fixture-only R3 checks the retained Model ID, empty native
 protocols/capabilities while disabled and exact Chat metadata when enabled;
 its Focus20 passes all 20 direct scenarios and 87 balanced named results in
-235.271 seconds. Root verifies exact source and owned cleanup. A contextual
-complete regression will preserve the newer Key/Team UI and retirement fixture.
+235.271 seconds. Root verifies exact source and owned cleanup. The contextual
+Full146 regression exits201 in 3,118.295 seconds on its unchanged frozen source.
+Both drivers fail the old member-list summary warmup with HTTP503; its synthetic
+`ml_connection` ID is rejected by the canonical Connection identity guard. The
+new Connection scenarios pass in the raw log. Independent failure inventory verifies
+290 direct passes, two failures, eight constraint passes and all five package
+terminal events. Exact source and owned resource/process/port cleanup pass. The
+four-literal fixture-only correction passes 56 source race results and staticcheck;
+its isolated PostgreSQL/MySQL Focus2 passes both direct cases and five paired
+named results in 115.234 seconds. Root independently verifies the unchanged
+1,798-path repaired source, modes and owned cleanup; review
+`77230809513d1cadd6f967003e251b017c58b7c4de00ca076fff0610146b59ce`.
+The original Full146 remains failed and
+no complete passing Full146 is inferred. The controlled normal HTTP/native/restart
+workflow passes all five manual stages: four Calls, three native completed Attempts,
+one disabled call without Attempt, four typed status changes, one discovery GET
+and four original API Sessions. Owned app PID/groups and all three captured
+ports/Compose labels are independently absent. Root independently verifies final source, safe HTTP observations, all selected
+restart projections and retained Calls/Attempts/Sessions; native/restart review
+`16bd6d9ef46e57bf8a69a02735bb5231616a53c0a1e5b02e1e3932f9198f2a6b`.
+The current-head 1,800-path delivery candidate passes mandatory checking with
+unchanged code bytes/modes. Browser and AuthGate acceptance remain separate. An earlier root setup
+failed before controller construction because its output directory was precreated;
+zero API/native requests occurred and exact owned cleanup passed. The fresh
+workflow retains the identical helper and source.
+The separate final source/build candidate includes the two feature documents
+without changing the running matrix source. Its complete Task passes 4,560
+frontend tests in 182 files, four Node checks, development lifecycle, Go
+race/coverage and production assets; production build passes. Root independently
+verifies every source hash/mode, the two-document-only difference and rebuilt
+artifact. This source acceptance does not infer Full146 or browser results.
 No product discovery behavior or native call budget changes; original failed
 evidence remains unchanged.
 
 Source review also found generic Key saves could restore private cache entries
-after unmount or Session changes. The narrow actor/query and completion guard passes 103 focused tests across
-five suites, types, lint and formatting; complete candidate formatting, mandatory checking, tests and build now pass. The
-previous delivery-candidate check remains valid only for its original source; a
-fresh check and relevant tests will cover the corrected frontend. Provider storage
+after unmount or Session changes. The delivered actor/query and completion guard passes 103 focused tests across
+five suites, types, lint and formatting; complete candidate formatting, mandatory
+checking, tests and build pass. These receipts retain their original source
+identities; the later Team delivery preserves the guard. Provider storage
 switching and durable orphan recovery remain open after the standalone SDK.
 Browser/AuthGate and genuine saved CSV/XLSX downloads remain unverified because
 desktop control still reported a locked Mac after the latest unlock reply.
@@ -101,8 +141,73 @@ Project Key monthly modes and the Key ownership guard are delivered as
 `a5bb00bc59bb36c8bbe589d8bb7bc5019fed22fa`, with exact remote main read-back.
 The 35-path stage passes mandatory checking, focused UI/source gates, the original
 20-case driver focus and API/restart acceptance, and the two-driver retirement
-fixture repair. Historical Full142 remains failed; no new full142 or browser
-receipt is inferred. Team and Connection candidates continue separately.
+fixture repair. Historical Full142 remains failed; no new Full142 or browser
+receipt is inferred. Team is delivered; Connection continues separately.
+
+Vault Provider storage implementation continues in isolated backend and frontend
+worktrees. The bounded scope covers a reviewed future-write policy, durable creation
+plans and immutable references, source-aware verification/runtime preparation and
+matching existing management workflows. Original references pin their descriptor
+and reader generation. New Vault writes require a stable UUIDv4 creation intent;
+legacy internal writes retain compatibility. Policy review binds the selected
+Integration revision rather than silently following later configuration. Automatic
+cleanup authority remains an unanswered preference; no cleanup Token, worker or
+complete A16 compensation is selected by this independent implementation slice.
+
+The frozen backend proposal passes 259 named related race tests, development
+compilation, vet, staticcheck and formatting. Its 24 Go outputs retain their
+original source identity; V77 remains unregistered there. The matching 21-leaf
+frontend proposal passes 481 related tests, seven final policy tests and mandatory
+checking. A private composition now merges both onto the current Connection,
+Team and Key source and registers V77 after V75/V76. Its initial compile passes,
+but a new recovery regression exposed an old-policy generation fence that blocked
+original UUID recovery after future policy changes. The recovery-only correction
+passes focused policy and retained-revision cases. A new root-rewrap regression
+also failed before a current finite reader-lease epoch fence replaced the old
+historical-epoch recovery gate, preserving the immutable original plan. Fresh
+composed source race checks pass 484 named results with no failures or skips.
+The sole member-list fixture repair is included; formatting and mandatory checking
+pass on the guarded 1,820-path source. Complete Task and production build
+exit zero with source bytes/modes unchanged. Root independently verifies all
+140 packet leaves, 1,820 source hashes/modes, 64 outputs/22 additions and 1,756
+preserved parent paths; complete frontend tests pass 4,602 cases in 185 files.
+The first six-case PostgreSQL/MySQL run exits1 in 195.343 seconds: six direct
+cases pass and six fail. Migration, member-list and Vault Integration cases pass
+on both drivers; replacement, root rotation and new storage lifecycle fail on
+both. Recorded failures are HTTP404 versus409, a writer preparation/epoch gate,
+and HTTP400 versus200 respectively. The original source remains unchanged and
+owned source, process groups, label resources and captured ports are independently
+verified unchanged/absent. Source diagnosis identifies two product defects: the
+policy PUT reused a 129-character Connection ETag validator for its quoted
+64-character policy ETag, and an inline replacement replay mapped a deleted
+receipt result to404 instead of the existing409 contract. Minimal private fixes
+with regression tests are authorized. Root-rotation diagnosis continues. No passing Focus12 or active storage is claimed. The initial contextual check also caught a
+unit-test selector style issue; these failed checks remain failed. Real-driver migration and
+creation/recovery acceptance remain pending. No source-only result establishes
+active Provider storage, automatic compensation or browser completion.
+
+A separate two-file SDK proposal adds explicit bounded AppRole login, with
+transient closeable lease material and no Token header, cache, renewal, KV request
+or service activation. Its 25 new auth cases and existing Vault/guarded transport
+race cases pass (293 balanced named results). Contextual mandatory checking
+passes, and commit `91f347de0593c0166602a80922ba7ef1016d4288` delivers the exact
+three-path SDK/documentation phase with remote main read-back. Existing integration
+identities remain Token-only; saved AppRole Integration activation stays pending.
+The first controlled real-Vault SDK run fails the expired-SecretID denial: four
+login requests produce three successes and one denial, with no KV calls. Pinned
+Vault source explains periodic expiry cleanup, so its two-second fixture wait
+was insufficient; the precise historical internal path was not observed. The
+original run remains failed. A wait-only successor passes four explicit SDK
+logins in 73.567 seconds: two valid 60-second leases with local Close, and two
+HTTP400 denials. Its returned one-second Secret ID TTL is followed by an observed
+70.005-second wait. Four unique audit request/response pairs confirm exactly two
+successes, two denials and zero KV requests. Root independently verifies all
+frozen source/artifact hashes and modes, exact owned resource/process/port cleanup;
+SDK-login-only review SHA-256
+`44b20572a2339a156c0303f9305bad14ac2b097900901d67a73c271598d43988`.
+This does not establish saved Integration, namespace, ACL, Provider storage,
+native inference, restart or browser acceptance.
+
 
 ## Historical checkpoints
 

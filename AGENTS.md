@@ -1171,3 +1171,11 @@ editable field and current CSRF on manual retry;
 rejected retries or matching GET cannot resolve historical uncertainty. Actor/target
 changes, logout and unmount destroy intent. Preserve aggregate and default Restore
 semantics, all other hard gates and existing private 80/90 warning history.
+
+Connection routing status uses the existing Connections table and status-only
+resource endpoint. Keep current read/write permissions independent, require a
+reviewed strong revision, reason and explicit Base UI confirmation, and preserve
+the identical unresolved request through authority renewal and AuthGate teardown.
+Current saved status with runtime application does not prove ready routes.
+Disable blocks new local Attempt admission while retaining children and immutable
+in-flight/history facts; no publication lock is held through remote responses.

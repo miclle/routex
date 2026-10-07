@@ -23,6 +23,7 @@ let requests: InternalAxiosRequestConfig[], permissions: string[], actor: string
 let sessionStatus: number, permissionStatus: number, metadataStatus: number, failure: number
 let record: ConnectionMetadata, hold: Promise<void> | undefined
 let mounts: number, unmounts: number
+let enabled: boolean
 const add = vi.fn()
 function Host() {
   const session = useSession()
@@ -38,6 +39,7 @@ function Host() {
 function providers() {
   const connection = (id: string, name: string, protocol: string) => ({
     id,
+    enabled: id === 'con_one' ? enabled : id !== 'con_two',
     name,
     protocol,
     base_url: 'https://api.example.invalid/v1',
@@ -78,6 +80,7 @@ beforeEach(async () => {
   permissionStatus = 200
   metadataStatus = 200
   failure = 0
+  enabled = true
   hold = undefined
   mounts = 0
   unmounts = 0
@@ -118,6 +121,19 @@ beforeEach(async () => {
     } else if (config.url === '/auth/permissions') {
       if (permissionStatus !== 200) reject(permissionStatus)
       response.data = { permissions }
+    } else if (config.url === '/admin/connections/con_one/status') {
+      response.headers.set('Cache-Control', 'private, no-store')
+      response.headers.set('ETag', `"${record.etag}"`)
+      if (config.method === 'put') {
+        if (failure) reject(failure)
+        const input = JSON.parse(config.data) as { enabled: boolean; reason: string }
+        enabled = input.enabled
+        response.data = { connection: { ...record, enabled }, runtime_applied: true, changed: true }
+      } else {
+        if (hold) await hold
+        if (metadataStatus !== 200) reject(metadataStatus)
+        response.data = { ...record, enabled }
+      }
     } else if (config.url === '/admin/providers') response.data = { items: providers() }
     else if (config.url === '/admin/models') response.data = { items: [] }
     else if (config.url === '/admin/egress-options') response.data = { items: [] }
@@ -658,5 +674,132 @@ describe('Connection table and reviewed name workflow', () => {
     await act(async () => i18n.changeLanguage('zh'))
     expect(writes()[0]!.data).toBe(JSON.stringify({ name: 'Renamed', reason: 'Operational label' }))
     expect(document.body.textContent).toContain('原请求')
+  })
+})
+
+describe('Connection routing status', () => {
+  it('filters real boolean state conjunctively and resets when Provider changes', async () => {
+    await mount()
+    await click('Connection status')
+    await click('Disabled')
+    expect(host.textContent).toContain('Alpha [literal]')
+    expect(host.textContent).not.toContain('Alpha primary')
+    await change('Search connection names', 'Gamma')
+    expect(host.textContent).toContain('No matching connections.')
+    await act(async () => {
+      await router.navigate('/admin/providers/prv_two?tab=connections')
+    })
+    expect(host.textContent).toContain('Other')
+    expect(host.textContent).toContain('All statuses')
+    expect(requests.filter((x) => x.url?.endsWith('/status'))).toHaveLength(0)
+  })
+  it('requires explicit confirmation, preserves exact uncertain status through rejection and renewed read, then retries with current CSRF', async () => {
+    await mount()
+    await click('Actions for Alpha primary')
+    await click('Disable Connection')
+    await vi.waitFor(() => expect(document.body.textContent).toContain('Connection routing status'))
+    await change('Change reason', 'Reviewed stop')
+    await click('Review status change')
+    expect(requests.filter((x) => x.method === 'put' && x.url?.endsWith('/status'))).toHaveLength(0)
+    failure = 503
+    await click('Disable Connection')
+    await vi.waitFor(() =>
+      expect(document.body.textContent).toContain('Retry exact status request'),
+    )
+    const first = requests.find((x) => x.method === 'put' && x.url?.endsWith('/status'))!
+    expect(JSON.parse(first.data)).toEqual({ enabled: false, reason: 'Reviewed stop' })
+    await act(async () => {
+      await i18n.changeLanguage('zh')
+    })
+    expect(document.body.textContent).toContain('已提交的状态变更仍未确认')
+    await act(async () => {
+      await i18n.changeLanguage('en')
+    })
+    failure = 409
+    await click('Retry exact status request')
+    expect(document.body.textContent).toContain('Retry exact status request')
+    csrf = 'csrf-renewed'
+    await act(async () => {
+      await cache.refetchQueries({ queryKey: sessionKey })
+    })
+    await vi.waitFor(() => expect(document.body.textContent).toContain('Connection routing status'))
+    failure = 0
+    await click('Retry exact status request')
+    const writes = requests.filter((x) => x.method === 'put' && x.url?.endsWith('/status'))
+    expect(writes).toHaveLength(3)
+    expect(writes.map((x) => x.data)).toEqual([first.data, first.data, first.data])
+    expect(writes.map((x) => x.headers.get('If-Match'))).toEqual([
+      `"${token}"`,
+      `"${token}"`,
+      `"${token}"`,
+    ])
+    expect(writes[2].headers.get('X-CSRF-Token')).toBe('csrf-renewed')
+    await vi.waitFor(() => expect(host.textContent).toContain('Disabled'))
+  })
+  it('keeps status dispatch unavailable under independent read-only authority', async () => {
+    permissions = ['providers.read']
+    await mount()
+    await click('Actions for Alpha primary')
+    expect(
+      button('Disable Connection').disabled ||
+        button('Disable Connection').getAttribute('aria-disabled') === 'true',
+    ).toBe(true)
+    expect(requests.filter((x) => x.url?.endsWith('/status'))).toHaveLength(0)
+  })
+  it('waits for a held fresh status read and hides stale review facts before dispatch', async () => {
+    let release!: () => void
+    hold = new Promise((resolve) => {
+      release = resolve
+    })
+    await mount()
+    await click('Actions for Alpha primary')
+    await click('Disable Connection')
+    await until(() => expect(requests.some((x) => x.url?.endsWith('/status'))).toBe(true))
+    expect(document.body.textContent).not.toContain(
+      'Stop Alpha primary from receiving new requests.',
+    )
+    expect(button('Review status change')).toBeUndefined()
+    expect(requests.filter((x) => x.method === 'put' && x.url?.endsWith('/status'))).toHaveLength(0)
+    await act(async () => release())
+    await until(() => expect(button('Review status change')).toBeTruthy())
+    expect(document.body.textContent).toContain('Stop Alpha primary from receiving new requests.')
+  })
+  it('retains exact disabled intent across real AuthGate error teardown without automatic replay', async () => {
+    await mount()
+    await click('Actions for Alpha primary')
+    await click('Disable Connection')
+    await until(() => expect(button('Review status change')).toBeTruthy())
+    await change('Change reason', 'Retain exact status')
+    await click('Review status change')
+    failure = 503
+    await click('Disable Connection')
+    await until(() => expect(button('Retry exact status request').disabled).toBe(false))
+    const statusWrites = () =>
+      requests.filter((x) => x.method === 'put' && x.url?.endsWith('/status'))
+    const original = statusWrites()[0]!
+    sessionStatus = 500
+    await act(async () => {
+      await cache.invalidateQueries({ queryKey: sessionKey })
+    })
+    await until(() => expect(unmounts).toBe(1))
+    expect(document.body.textContent).not.toContain('Alpha primary')
+    expect(statusWrites()).toHaveLength(1)
+    sessionStatus = 200
+    csrf = 'csrf-renewed-status'
+    await act(async () => {
+      await cache.invalidateQueries({ queryKey: sessionKey })
+    })
+    await until(() => expect(button('Review unresolved status change')).toBeTruthy())
+    expect(mounts).toBe(2)
+    expect(statusWrites()).toHaveLength(1)
+    await click('Review unresolved status change')
+    await until(() => expect(button('Retry exact status request').disabled).toBe(false))
+    failure = 0
+    await click('Retry exact status request')
+    await until(() => expect(statusWrites()).toHaveLength(2))
+    expect(statusWrites()[1]!.data).toBe(original.data)
+    expect(JSON.parse(original.data)).toEqual({ enabled: false, reason: 'Retain exact status' })
+    expect(statusWrites()[1]!.headers.get('If-Match')).toBe(original.headers.get('If-Match'))
+    expect(statusWrites()[1]!.headers.get('X-CSRF-Token')).toBe('csrf-renewed-status')
   })
 })

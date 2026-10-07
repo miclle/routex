@@ -30,7 +30,7 @@ export const validConnectionReason = (value: unknown): value is string =>
 function invalid(): never {
   throw new Error('Connection metadata response unavailable')
 }
-function record(value: unknown): ConnectionMetadata {
+export function decodeConnectionMetadata(value: unknown): ConnectionMetadata {
   if (
     !object(value) ||
     !fields(value, [
@@ -107,7 +107,7 @@ export async function getConnectionMetadata(
 ): Promise<ConnectionMetadata> {
   if (!safeID(providerId, 'prv_') || !safeID(id, 'con_')) invalid()
   const response = await client.get<unknown>(`/admin/connections/${id}/metadata`, { signal })
-  const data = record(response.data)
+  const data = decodeConnectionMetadata(response.data)
   responseProof(response, data.etag)
   if (data.id !== id || data.provider_id !== providerId) invalid()
   return data
@@ -144,7 +144,7 @@ export async function saveConnectionMetadata(
     typeof data.changed !== 'boolean'
   )
     invalid()
-  const connection = record(data.connection)
+  const connection = decodeConnectionMetadata(data.connection)
   responseProof(response, connection.etag)
   if (
     connection.id !== id ||

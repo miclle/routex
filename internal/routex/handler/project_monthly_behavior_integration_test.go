@@ -1022,7 +1022,7 @@ func projectBehaviorHistoricalReplay(t *testing.T, db *gorm.DB, historical func(
 	before := personalKeyBehaviorLedger(t, db)
 	hasV75 := db.Migrator().HasConstraint(&entity.ResourceLimit{}, "ck_resource_limits_monthly_behavior_scope_v75")
 	if hasV75 {
-		if len(before) != 75 || before[74].Version != 75 {
+		if (len(before) != 75 && len(before) != 76) || before[74].Version != 75 || len(before) == 76 && before[75].Version != 76 {
 			t.Fatal("exact V75 predecessor required")
 		}
 		if err := db.Migrator().DropConstraint(&entity.ResourceLimit{}, "ck_resource_limits_monthly_behavior_scope_v75"); err != nil {
@@ -1032,7 +1032,7 @@ func projectBehaviorHistoricalReplay(t *testing.T, db *gorm.DB, historical func(
 			t.Fatal(err)
 		}
 	}
-	if (len(before) != 74 && len(before) != 75) || before[73].Version != 74 || !db.Migrator().HasConstraint(&entity.ResourceLimit{}, "ck_resource_limits_monthly_behavior_scope_v74") {
+	if (len(before) != 74 && len(before) != 75 && len(before) != 76) || before[73].Version != 74 || !db.Migrator().HasConstraint(&entity.ResourceLimit{}, "ck_resource_limits_monthly_behavior_scope_v74") {
 		t.Fatal("exact V74 predecessor required")
 	}
 	defer func() {
@@ -1137,7 +1137,7 @@ func TestProjectBehaviorRegistryAppendAndHistoricalWrapperGuard(t *testing.T) {
 			t.Fatal("missing/reordered/extra/unreviewed scenario accepted")
 		}
 	}
-	if !strings.Contains(string(raw), "versions != 75") || !strings.Contains(string(raw), "projectBehaviorHistoricalReplay(t, db, test.run)") || !strings.Contains(string(raw), "personalKeyBehaviorHistoricalReplay(t, db, test.run)") {
+	if !strings.Contains(string(raw), "versions != 76") || !strings.Contains(string(raw), "projectBehaviorHistoricalReplay(t, db, test.run)") || !strings.Contains(string(raw), "personalKeyBehaviorHistoricalReplay(t, db, test.run)") {
 		t.Fatal("current74 or retained historical71/73 companion not bound")
 	}
 }

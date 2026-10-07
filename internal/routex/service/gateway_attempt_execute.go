@@ -447,6 +447,11 @@ func (s *Service) executeGatewayAttempt(ctx context.Context, requestID string, r
 	if err := s.reauthorizeGatewayPublicName(ctx, result); err != nil {
 		return routeattempt.Outcome{Failure: routeattempt.PermanentFailure, Work: routeattempt.NotSent}, err, routeattempt.ErrExecution
 	}
+	release, admitted := s.pinConnectionDispatch(prepared.route)
+	if !admitted {
+		return routeattempt.Outcome{Failure: routeattempt.PermanentFailure, Work: routeattempt.NotSent}, runtimeUnavailable, routeattempt.ErrExecution
+	}
+	defer release()
 	result.AttemptID, _ = id.NewPrefixed("att")
 	if result.AttemptID == "" {
 		return routeattempt.Outcome{Failure: routeattempt.PermanentFailure, Work: routeattempt.NotSent}, gatewayError(http.StatusInternalServerError, "internal_error", "The request could not be initialized."), routeattempt.ErrExecution
@@ -464,6 +469,9 @@ func (s *Service) executeGatewayAttempt(ctx context.Context, requestID string, r
 		}
 		return routeattempt.Outcome{Failure: routeattempt.PermanentFailure, Work: routeattempt.NotSent}, err, routeattempt.ErrExecution
 	}
+	// This attempt has crossed the local dispatch boundary. A later disable
+	// leaves its captured identity and metering intact, including streaming.
+	release()
 	response, requestErr := prepared.client.Do(prepared.request)
 	result.Response = response
 	if requestErr != nil {

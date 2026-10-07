@@ -17,6 +17,7 @@ import { Table } from '@/components/ui/table'
 import { protocolLabel } from '@/lib/protocols'
 import { ConnectionEgressControl } from '@/views/egress/connection'
 import ConnectionMetadataEditor from './connection-metadata'
+import ConnectionStatusEditor from './connection-status'
 import { useConnectionQueryRevision } from './connection-authority'
 
 interface Props {
@@ -93,9 +94,29 @@ export default function ConnectionTable({ providerId, session, onAdd }: Props) {
       : null
   const [boundary, setBoundary] = useState({ owner: shared, version: 0 })
   if (boundary.owner !== shared) setBoundary({ owner: shared, version: boundary.version + 1 })
+  const [statusSavedFor, setStatusSavedFor] = useState<string | null>(null)
   const [savedFor, setSavedFor] = useState<string | null>(null)
   const [query, setQuery] = useState('')
   const [protocol, setProtocol] = useState<string>('all')
+  const [status, setStatus] = useState<'all' | 'enabled' | 'disabled'>('all')
+  const [statusEditor, setStatusEditor] = useState<{
+    actor: string
+    target: string
+    enabled: boolean
+    open: boolean
+  } | null>(null)
+  if (statusEditor && statusEditor.actor !== actor) setStatusEditor(null)
+  const recoveredStatus =
+    retained?.kind === 'connection-status' && retained.payload.provider_id === providerId
+      ? retained
+      : null
+  if (recoveredStatus && statusEditor?.target !== recoveredStatus.payload.connection_id)
+    setStatusEditor({
+      actor,
+      target: recoveredStatus.payload.connection_id,
+      enabled: recoveredStatus.payload.input.enabled,
+      open: false,
+    })
   const [editor, setEditor] = useState<{ actor: string; target: string; open: boolean } | null>(
     null,
   )
@@ -108,7 +129,8 @@ export default function ConnectionTable({ providerId, session, onAdd }: Props) {
   const rows = provider?.connections.filter(
     (item) =>
       (!normalized || item.name.toLowerCase().includes(normalized)) &&
-      (protocol === 'all' || item.protocol === protocol),
+      (protocol === 'all' || item.protocol === protocol) &&
+      (status === 'all' || item.enabled === (status === 'enabled')),
   )
   const ready = !!provider && fresh()
   const close = () => setEditor((current) => (current ? { ...current, open: false } : current))
@@ -129,6 +151,7 @@ export default function ConnectionTable({ providerId, session, onAdd }: Props) {
       {ready && (
         <>
           {savedFor === actor && <p role="status">{t('connectionMetadata.saved')}</p>}
+          {statusSavedFor === actor && <p role="status">{t('connectionStatus.saved')}</p>}
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div
               role="group"
@@ -164,6 +187,24 @@ export default function ConnectionTable({ providerId, session, onAdd }: Props) {
                 ))}
               </Menu>
             </div>
+            <Menu
+              label={t('connectionStatus.filter')}
+              trigger={t(
+                status === 'all'
+                  ? 'connectionStatus.all'
+                  : status === 'enabled'
+                    ? 'connectionStatus.enabled'
+                    : 'connectionStatus.disabled',
+              )}
+            >
+              <MenuItem onClick={() => setStatus('all')}>{t('connectionStatus.all')}</MenuItem>
+              <MenuItem onClick={() => setStatus('enabled')}>
+                {t('connectionStatus.enabled')}
+              </MenuItem>
+              <MenuItem onClick={() => setStatus('disabled')}>
+                {t('connectionStatus.disabled')}
+              </MenuItem>
+            </Menu>
             <Button disabled={!writable()} onClick={() => writable() && onAdd()}>
               {t('providers.addConnection')}
             </Button>
@@ -190,6 +231,7 @@ export default function ConnectionTable({ providerId, session, onAdd }: Props) {
             <thead>
               <tr>
                 <th>{t('common.connectionName')}</th>
+                <th>{t('connectionStatus.status')}</th>
                 <th>{t('common.protocolType')}</th>
                 <th>{t('common.baseURL')}</th>
                 <th>{t('egress:selection')}</th>
@@ -202,6 +244,15 @@ export default function ConnectionTable({ providerId, session, onAdd }: Props) {
               {rows?.map((item) => (
                 <tr key={item.id}>
                   <td>{item.name}</td>
+                  <td>
+                    {t(
+                      item.enabled === true
+                        ? 'connectionStatus.enabled'
+                        : item.enabled === false
+                          ? 'connectionStatus.disabled'
+                          : 'common.unknown',
+                    )}
+                  </td>
                   <td>{protocolLabel(item.protocol)}</td>
                   <td className="break-all">{item.base_url}</td>
                   <td>
@@ -227,17 +278,32 @@ export default function ConnectionTable({ providerId, session, onAdd }: Props) {
                       <MenuItem
                         disabled={
                           !writable() ||
-                          (!!recovered && recovered.payload.connection_id !== item.id)
+                          (!!retained &&
+                            (!recovered || recovered.payload.connection_id !== item.id))
                         }
                         onClick={() => {
                           if (
                             writable() &&
-                            (!recovered || recovered.payload.connection_id === item.id)
+                            (!retained || recovered?.payload.connection_id === item.id)
                           )
                             setEditor({ actor, target: item.id, open: true })
                         }}
                       >
                         {t('connectionMetadata.edit')}
+                      </MenuItem>
+                      <MenuItem
+                        disabled={!writable() || typeof item.enabled !== 'boolean' || !!retained}
+                        onClick={() => {
+                          if (writable() && typeof item.enabled === 'boolean' && !retained)
+                            setStatusEditor({
+                              actor,
+                              target: item.id,
+                              enabled: !item.enabled,
+                              open: true,
+                            })
+                        }}
+                      >
+                        {t(item.enabled ? 'connectionStatus.disable' : 'connectionStatus.enable')}
                       </MenuItem>
                     </Menu>
                   </td>
@@ -245,7 +311,7 @@ export default function ConnectionTable({ providerId, session, onAdd }: Props) {
               ))}
               {rows?.length === 0 && (
                 <tr>
-                  <td colSpan={7} className="text-muted-foreground">
+                  <td colSpan={8} className="text-muted-foreground">
                     {t('connectionMetadata.empty')}
                   </td>
                 </tr>
@@ -253,6 +319,32 @@ export default function ConnectionTable({ providerId, session, onAdd }: Props) {
             </tbody>
           </Table>
         </>
+      )}
+      {statusEditor && (
+        <ConnectionStatusEditor
+          key={JSON.stringify([actor, providerId, statusEditor.target, boundary.version])}
+          actor={actor}
+          providerId={providerId}
+          connectionId={statusEditor.target}
+          enabled={statusEditor.enabled}
+          generation={generation}
+          ready={ready}
+          writable={writable}
+          permissionsKey={permissionsKey}
+          catalogueKey={catalogueKey}
+          open={statusEditor.open}
+          onClose={() => setStatusEditor((x) => (x ? { ...x, open: false } : x))}
+          onSaved={() => {
+            setStatusEditor(null)
+            setStatusSavedFor(actor)
+            void cache.invalidateQueries({ queryKey: ['admin', 'providers'] })
+          }}
+        />
+      )}
+      {ready && recoveredStatus && statusEditor && !statusEditor.open && (
+        <Button onClick={() => setStatusEditor((x) => (x ? { ...x, open: true } : x))}>
+          {t('connectionStatus.recover')}
+        </Button>
       )}
       {target && (
         <ConnectionMetadataEditor

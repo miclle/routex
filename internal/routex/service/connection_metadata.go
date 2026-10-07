@@ -111,7 +111,8 @@ func connectionMetadataRecord(actor entity.User, provider entity.Provider, row e
 		Version                    string
 		Record                     ConnectionMetadataRecord
 		Revision, StoredEgressMode string
-	}{"connection.metadata.review.v1", record, row.ETag, row.EgressMode})
+		Enabled                    bool
+	}{"connection.metadata.review.v1", record, row.ETag, row.EgressMode, row.Enabled})
 	record.ETag = identity + "." + review
 	return record, nil
 }

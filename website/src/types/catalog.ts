@@ -16,6 +16,7 @@ export interface ProviderModel {
   upstream_name: string
 }
 export interface Connection {
+  enabled?: boolean // Absent catalogue state remains Unknown, never implicitly enabled.
   egress_mode?: 'default' | 'direct' | 'proxy'
   egress_id?: string | null
   etag?: string
