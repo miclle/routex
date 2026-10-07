@@ -7,10 +7,10 @@ import { rolesWorkspace, roleSummary } from './member-roles.fixture'
 import { accessSummaryFixture } from './member-access-summary.fixture'
 import { memberListPage, memberListRow } from './member-list.fixture'
 import { limitFixture } from '@/views/resource-limits/fixture'
-import { act } from 'react'
+import { act, StrictMode } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { createMemoryRouter, RouterProvider } from 'react-router'
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { MutationCache, QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { AxiosError, AxiosHeaders, type AxiosAdapter, type InternalAxiosRequestConfig } from 'axios'
 import { beforeEach, afterEach, describe, expect, it } from 'vitest'
 import client from '@/api/client'
@@ -398,7 +398,7 @@ async function until(assert: () => void) {
     }
   }
 }
-async function mount(path: string) {
+async function mount(path: string, strict = false) {
   router = createMemoryRouter(
     [
       { path: '/admin/members', element: <MembersPage /> },
@@ -421,7 +421,13 @@ async function mount(path: string) {
   await act(async () =>
     root.render(
       <QueryClientProvider client={cache}>
-        <RouterProvider router={router} />
+        {strict ? (
+          <StrictMode>
+            <RouterProvider router={router} />
+          </StrictMode>
+        ) : (
+          <RouterProvider router={router} />
+        )}
       </QueryClientProvider>,
     ),
   )
@@ -1056,3 +1062,287 @@ it('preserves FEFF in new descriptions without treating it as an absent draft', 
     '\uFEFF',
   )
 })
+
+async function roleActor(id: string, csrf: string) {
+  session = { ...session, user: { ...session.user, id }, csrf_token: csrf }
+  await act(async () => {
+    cache.setQueryData(['permissions', id], [...permissions])
+    cache.setQueryData(['auth', 'session'], structuredClone(session))
+  })
+  await until(() => expect(cache.isFetching()).toBe(0))
+  await until(() => expect(container.textContent).toContain('Provider Reader'))
+}
+async function createRoleDraft(name: string) {
+  await click('Create custom role')
+  await fill('name', name)
+  await fill('description', `${name} description`)
+}
+function roleDialogName() {
+  return document.querySelector<HTMLInputElement>('[role="dialog"] input[name="name"]')
+}
+it('role shell refuses a queued old actor form before obtaining the new actor CSRF', async () => {
+  let release!: () => void
+  const gate = new Promise<void>((resolve) => {
+    release = resolve
+  })
+  cache = new QueryClient({
+    mutationCache: new MutationCache({ onMutate: async () => gate }),
+    defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+  })
+  await mount('/admin/roles')
+  await until(() => expect(container.textContent).toContain('Provider Reader'))
+  await createRoleDraft('Queued A')
+  await submit()
+  await roleActor('usr_peer', 'csrf-peer')
+  await act(async () => {
+    release()
+  })
+  await until(() => expect(cache.isMutating()).toBe(0))
+  expect(requests.filter((r) => r.method === 'post' && r.url === '/admin/roles')).toHaveLength(0)
+  expect(roleDialogName()).toBeNull()
+})
+it.each([200, 400, 409, 503])(
+  'role shell isolates held old %s response from an A-B-A new draft',
+  async (status) => {
+    await mount('/admin/roles')
+    await until(() => expect(container.textContent).toContain('Provider Reader'))
+    const adapter = client.defaults.adapter as AxiosAdapter
+    let release!: () => void
+    const gate = new Promise<void>((resolve) => {
+      release = resolve
+    })
+    let captured: InternalAxiosRequestConfig | undefined
+    client.defaults.adapter = async (config) => {
+      if (config.method === 'post' && config.url === '/admin/roles') {
+        captured = config
+        await gate
+        const response = { config, status, statusText: '', headers: new AxiosHeaders(), data: {} }
+        if (status >= 400)
+          throw new AxiosError('Old role response', '', config, undefined, response)
+        return response
+      }
+      return adapter(config)
+    }
+    await createRoleDraft('Original A')
+    await submit()
+    await until(() => expect(captured).toBeDefined())
+    const submitted = captured!.data
+    await roleActor('usr_peer', 'csrf-peer')
+    await roleActor('usr_admin', 'csrf-new-A')
+    await createRoleDraft('Fresh A')
+    const reads = requests.filter((r) => r.method === 'get' && r.url === '/admin/roles').length
+    await act(async () => {
+      release()
+    })
+    await until(() => expect(cache.isMutating()).toBe(0))
+    expect(roleDialogName()?.value).toBe('Fresh A')
+    expect(document.querySelector<HTMLTextAreaElement>('[role="dialog"] textarea')?.value).toBe(
+      'Fresh A description',
+    )
+    expect(document.querySelector('[role="dialog"] [role="alert"]')).toBeNull()
+    expect(requests.filter((r) => r.method === 'get' && r.url === '/admin/roles')).toHaveLength(
+      reads,
+    )
+    expect(captured!.data).toBe(submitted)
+    expect(captured!.headers.get('X-CSRF-Token')).toBe('csrf')
+  },
+)
+it.each([200, 503])(
+  'role shell isolates held delete %s from a reopened creation',
+  async (status) => {
+    await mount('/admin/roles')
+    await until(() => expect(container.textContent).toContain('Provider Reader'))
+    const adapter = client.defaults.adapter as AxiosAdapter
+    let release!: () => void
+    const gate = new Promise<void>((resolve) => {
+      release = resolve
+    })
+    let started = false
+    client.defaults.adapter = async (config) => {
+      if (config.method === 'delete') {
+        started = true
+        await gate
+        const response = { config, status, statusText: '', headers: new AxiosHeaders(), data: {} }
+        if (status >= 400)
+          throw new AxiosError('Old delete response', '', config, undefined, response)
+        return response
+      }
+      return adapter(config)
+    }
+    await click('Delete role')
+    await click('Confirm deletion')
+    await until(() => expect(started).toBe(true))
+    await roleActor('usr_peer', 'csrf-peer')
+    await createRoleDraft('Peer fresh')
+    await act(async () => {
+      release()
+    })
+    await until(() => expect(cache.isMutating()).toBe(0))
+    expect(roleDialogName()?.value).toBe('Peer fresh')
+  },
+)
+
+it('role shell preserves same-owner drafts through fresh Session reads and marks a renewed in-flight success unconfirmed', async () => {
+  await mount('/admin/roles')
+  await until(() => expect(container.textContent).toContain('Provider Reader'))
+  await createRoleDraft('Session draft')
+  session.csrf_token = 'renewed-before'
+  await act(async () => {
+    await cache.refetchQueries({ queryKey: ['auth', 'session'] })
+  })
+  await until(() => expect(cache.isFetching()).toBe(0))
+  expect(roleDialogName()?.value).toBe('Session draft')
+  const adapter = client.defaults.adapter as AxiosAdapter
+  let release!: () => void
+  const gate = new Promise<void>((resolve) => {
+    release = resolve
+  })
+  let submitted: InternalAxiosRequestConfig | undefined
+  client.defaults.adapter = async (config) => {
+    if (config.method === 'post' && config.url === '/admin/roles') {
+      submitted = config
+      await gate
+      return { config, status: 201, statusText: '', headers: new AxiosHeaders(), data: {} }
+    }
+    return adapter(config)
+  }
+  await submit()
+  await until(() => expect(submitted).toBeDefined())
+  session.csrf_token = 'renewed-after'
+  await act(async () => {
+    await cache.refetchQueries({ queryKey: ['auth', 'session'] })
+  })
+  await until(() => expect(cache.isFetching()).toBe(0))
+  await act(async () => {
+    release()
+  })
+  await until(() => expect(cache.isMutating()).toBe(0))
+  expect(roleDialogName()?.value).toBe('Session draft')
+  expect(document.querySelector('[role="dialog"]')?.textContent).toContain(
+    'operation is unconfirmed',
+  )
+  expect(submitted!.headers.get('X-CSRF-Token')).toBe('renewed-before')
+  const state = JSON.stringify(
+    cache
+      .getMutationCache()
+      .getAll()
+      .map((m) => m.state),
+  )
+  expect(state).not.toContain('renewed-before')
+  expect(state).not.toContain('renewed-after')
+})
+it('role shell retains exact uncertain creation without refresh replay, switches language, and requires explicit local abandonment', async () => {
+  await mount('/admin/roles', true)
+  await until(() => expect(container.textContent).toContain('Provider Reader'))
+  await createRoleDraft('Unknown original')
+  failures['post /admin/roles'] = 503
+  await submit()
+  await until(() =>
+    expect(document.querySelector('[role="dialog"]')?.textContent).toContain(
+      'operation is unconfirmed',
+    ),
+  )
+  const posts = requests.filter((r) => r.method === 'post')
+  expect(posts).toHaveLength(1)
+  expect(JSON.parse(posts[0].data).name).toBe('Unknown original')
+  await act(async () => {
+    await cache.invalidateQueries({ queryKey: ['admin', 'roles'] })
+  })
+  await until(() => expect(cache.isFetching()).toBe(0))
+  expect(roleDialogName()?.value).toBe('Unknown original')
+  expect(roleDialogName()?.disabled).toBe(false)
+  expect(roleDialogName()?.closest('fieldset')?.disabled).toBe(true)
+  await act(async () => i18n.changeLanguage('zh'))
+  expect(document.querySelector('[role="dialog"]')?.textContent).toContain(
+    '已提交的角色操作结果尚未确认',
+  )
+  expect(roleDialogName()?.value).toBe('Unknown original')
+  expect(requests.filter((r) => r.method === 'post')).toHaveLength(1)
+  await click('放弃本地意图（不会取消操作）')
+  expect(roleDialogName()?.closest('fieldset')?.disabled).toBe(false)
+  expect(roleDialogName()?.value).toBe('Unknown original')
+  expect(requests.filter((r) => r.method === 'post')).toHaveLength(1)
+})
+it('role shell rejects queued Session renewal without dispatch and retains an editable same-owner draft', async () => {
+  let release!: () => void
+  const gate = new Promise<void>((resolve) => {
+    release = resolve
+  })
+  cache = new QueryClient({
+    mutationCache: new MutationCache({ onMutate: async () => gate }),
+    defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+  })
+  await mount('/admin/roles')
+  await until(() => expect(container.textContent).toContain('Provider Reader'))
+  await createRoleDraft('Not dispatched')
+  await submit()
+  session.csrf_token = 'different-session'
+  await act(async () => {
+    await cache.refetchQueries({ queryKey: ['auth', 'session'] })
+  })
+  await until(() => expect(cache.isFetching()).toBe(0))
+  await act(async () => {
+    release()
+  })
+  await until(() => expect(cache.isMutating()).toBe(0))
+  expect(requests.filter((r) => r.method === 'post')).toHaveLength(0)
+  expect(roleDialogName()?.value).toBe('Not dispatched')
+  expect(roleDialogName()?.closest('fieldset')?.disabled).toBe(false)
+  expect(document.querySelector('[role="dialog"]')?.textContent).not.toContain(
+    'operation is unconfirmed',
+  )
+})
+
+it.each([201, 503])(
+  'role shell leaves a new pending A intent intact when old A returns %s',
+  async (status) => {
+    await mount('/admin/roles')
+    await until(() => expect(container.textContent).toContain('Provider Reader'))
+    const adapter = client.defaults.adapter as AxiosAdapter
+    const releases: (() => void)[] = []
+    const captured: InternalAxiosRequestConfig[] = []
+    client.defaults.adapter = async (config) => {
+      if (config.method !== 'post' || config.url !== '/admin/roles') return adapter(config)
+      const index = captured.push(config) - 1
+      await new Promise<void>((resolve) => {
+        releases[index] = resolve
+      })
+      const response = {
+        config,
+        status: index === 0 ? status : 201,
+        statusText: '',
+        headers: new AxiosHeaders(),
+        data: {},
+      }
+      if (response.status >= 400)
+        throw new AxiosError('Old pending response', '', config, undefined, response)
+      return response
+    }
+    await createRoleDraft('First A')
+    await submit()
+    await until(() => expect(captured).toHaveLength(1))
+    await roleActor('usr_peer', 'csrf-peer')
+    await roleActor('usr_admin', 'new-A-csrf')
+    await createRoleDraft('Second A')
+    await submit()
+    await until(() => expect(captured).toHaveLength(2))
+    const original = captured.map((x) => x.data)
+    await act(async () => {
+      releases[0]()
+    })
+    await until(() => expect(cache.isMutating()).toBe(1))
+    expect(roleDialogName()?.value).toBe('Second A')
+    expect(roleDialogName()?.closest('fieldset')?.disabled).toBe(true)
+    expect(document.querySelector('[role="dialog"] [role="alert"]')).toBeNull()
+    expect(document.querySelector('[role="dialog"]')?.textContent).not.toContain(
+      'operation is unconfirmed',
+    )
+    expect(captured.map((x) => x.data)).toEqual(original)
+    expect(captured[1].headers.get('X-CSRF-Token')).toBe('new-A-csrf')
+    await act(async () => {
+      releases[1]()
+    })
+    await until(() => expect(cache.isMutating()).toBe(0))
+    expect(roleDialogName()).toBeNull()
+  },
+)

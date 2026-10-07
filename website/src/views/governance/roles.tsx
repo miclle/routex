@@ -1,6 +1,6 @@
 import { builtinRoleNameKey } from '@/lib/role-assignment'
 import { useTranslation } from 'react-i18next'
-import { useState, type FormEvent, type MouseEvent } from 'react'
+import { useLayoutEffect, useRef, useState, type FormEvent, type MouseEvent } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Plus, ShieldCheck } from 'lucide-react'
 import { getRoles } from '@/api/governance'
@@ -20,6 +20,7 @@ import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Dialog } from '@/components/ui/dialog'
 import { Badge } from '@/components/ui/badge'
+import type { Session } from '@/types/auth'
 import type { PlatformRole } from '@/types/governance'
 
 const resources: Record<string, string> = {
@@ -132,6 +133,21 @@ function Roles() {
     )
   }
   const writer = () => current() && approvalActorCurrent(cache, actor, 'roles.read', true)
+  const [actorContext, setActorContext] = useState({ actor, lifetime: 0 })
+  if (actorContext.actor !== actor) setActorContext({ actor, lifetime: actorContext.lifetime + 1 })
+  const lifetime = actorContext.lifetime
+  const context = useRef({ actor, lifetime, opening: 0 })
+  useLayoutEffect(() => {
+    context.current = { actor, lifetime, opening: context.current.opening + 1 }
+  }, [actor, lifetime])
+  const mounted = useRef(true)
+  useLayoutEffect(() => {
+    mounted.current = true
+    return () => {
+      mounted.current = false
+    }
+  }, [])
+  const [creationName, setCreationName] = useState('')
   const [editor, setEditor] = useState<'new' | null>(null)
   const [creationPermissions, setCreationPermissions] = useState<string[]>([])
   const [creationDescription, setCreationDescription] = useState('')
@@ -165,26 +181,95 @@ function Roles() {
     }))
   }
   const [deleting, setDeleting] = useState<PlatformRole | null>(null)
+  type Intent = {
+    actor: string
+    lifetime: number
+    opening: number
+    authority: string
+    method: 'post' | 'delete'
+    path: string
+    data?: { name: string; description: string; permissions: string[] }
+  }
+  const [submitted, setSubmitted] = useState<Intent | null>(null)
+  const [unconfirmed, setUnconfirmed] = useState(false)
+  const dispatched = useRef(new WeakSet<Intent>())
+  const sameOpening = (input: Intent) =>
+    mounted.current &&
+    cache.getQueryData<Session>(['auth', 'session'])?.user.id === input.actor &&
+    input.actor === context.current.actor &&
+    input.lifetime === context.current.lifetime &&
+    input.opening === context.current.opening
   const mutation = useMutation({
-    mutationFn: ({
-      method,
-      path,
-      data,
-    }: {
-      method: 'post' | 'delete'
-      path: string
-      data?: unknown
-    }) => {
-      if (!writer()) return Promise.reject(new Error('Role write authority is unavailable'))
-      return writeCatalog(method, path, data, session.data!.csrf_token)
+    mutationFn: (input: Intent) => {
+      if (!sameOpening(input) || !writer() || authority.snapshot() !== input.authority)
+        return Promise.reject(new Error('Role write authority is unavailable'))
+      // Resolve CSRF only after the exact captured actor/opening and current authority pass.
+      const live = cache.getQueryData<Session>(['auth', 'session'])
+      if (live?.user.id !== input.actor || !live.csrf_token)
+        return Promise.reject(new Error('Role write authority is unavailable'))
+      dispatched.current.add(input)
+      return writeCatalog(input.method, input.path, input.data, live.csrf_token)
     },
-    onSuccess: () => {
+    retry: false,
+    onSuccess: (_result, input) => {
+      if (!sameOpening(input)) return
+      if (!writer() || authority.snapshot() !== input.authority) {
+        setUnconfirmed(true)
+        return
+      }
+      setSubmitted(null)
+      setUnconfirmed(false)
       setEditor(null)
       setDeleting(null)
       void cache.invalidateQueries({ queryKey: ['admin', 'roles'] })
       void cache.invalidateQueries({ queryKey: ['permissions'] })
     },
+    onError: (error, input) => {
+      if (!sameOpening(input)) return
+      const status = (error as { response?: { status?: number } }).response?.status
+      const knownRejection = [400, 401, 403, 404, 409, 422].includes(status ?? 0)
+      if (
+        dispatched.current.has(input) &&
+        (!knownRejection || authority.snapshot() !== input.authority)
+      )
+        setUnconfirmed(true)
+      else setSubmitted(null)
+    },
   })
+  const [draftLifetime, setDraftLifetime] = useState(lifetime)
+  if (draftLifetime !== lifetime) {
+    setDraftLifetime(lifetime)
+    setEditor(null)
+    setDeleting(null)
+    setCreationName('')
+    setCreationDescription('')
+    setCreationPermissions([])
+    setSubmitted(null)
+    setUnconfirmed(false)
+  }
+  const resetMutation = mutation.reset
+  useLayoutEffect(() => {
+    resetMutation()
+  }, [lifetime, resetMutation])
+  function dispatch(method: Intent['method'], path: string, data?: Intent['data']) {
+    if (!writer() || mutation.isPending || submitted) return
+    const input: Intent = {
+      ...context.current,
+      authority: authority.snapshot(),
+      method,
+      path,
+      data,
+    }
+    setSubmitted(input)
+    mutation.mutate(input)
+  }
+  function abandon() {
+    if (!writer() || mutation.isPending || !unconfirmed) return
+    // This discards local intent only; it neither cancels nor reverses the submitted operation.
+    setSubmitted(null)
+    setUnconfirmed(false)
+    mutation.reset()
+  }
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     if (
@@ -194,15 +279,10 @@ function Roles() {
       !validRoleDefinitionDescription(trimRoleDefinitionDescription(creationDescription))
     )
       return
-    const form = new FormData(event.currentTarget)
-    mutation.mutate({
-      method: 'post',
-      path: '/admin/roles',
-      data: {
-        name: String(form.get('name')).trim(),
-        description: trimRoleDefinitionDescription(creationDescription),
-        permissions: form.getAll('permissions').map(String).sort(),
-      },
+    dispatch('post', '/admin/roles', {
+      name: creationName.trim(),
+      description: trimRoleDefinitionDescription(creationDescription),
+      permissions: [...creationPermissions].sort(),
     })
   }
   return (
@@ -214,7 +294,13 @@ function Roles() {
           <Button
             onClick={() => {
               if (!writer()) return
+              if (submitted) {
+                setEditor(submitted.method === 'post' ? 'new' : null)
+                return
+              }
+              context.current.opening += 1
               mutation.reset()
+              setCreationName('')
               setCreationPermissions([])
               setCreationDescription('')
               setEditor('new')
@@ -301,6 +387,8 @@ function Roles() {
                           size="sm"
                           onClick={() => {
                             if (!writer()) return
+                            if (submitted) return
+                            context.current.opening += 1
                             mutation.reset()
                             setDeleting(role)
                           }}
@@ -319,6 +407,17 @@ function Roles() {
         {t('roles.memberCountHelp')}
       </p>
       <p className="text-sm text-muted-foreground">{t('roles.auditNotice')}</p>
+      {unconfirmed &&
+        writer() &&
+        !editor &&
+        (!deleting || !roles.data?.items.some((row) => row.id === deleting.id)) && (
+          <div>
+            <p role="status">{t('roles.unconfirmed')}</p>
+            <Button onClick={abandon} disabled={mutation.isPending}>
+              {t('roles.abandon')}
+            </Button>
+          </div>
+        )}
       <Dialog
         open={editor !== null && writer()}
         onOpenChange={(open) => {
@@ -330,9 +429,18 @@ function Roles() {
         description={t('roles.editorDescription')}
       >
         <form onSubmit={submit} className="space-y-6">
-          <fieldset disabled={mutation.isPending} className="space-y-6">
+          <fieldset disabled={mutation.isPending || !!submitted} className="space-y-6">
             <FormField label={t('roles.name')}>
-              <Input name="name" defaultValue="" required maxLength={100} />
+              <Input
+                name="name"
+                value={creationName}
+                onChange={(event) => {
+                  if (writer() && !mutation.isPending && !submitted)
+                    setCreationName(event.target.value)
+                }}
+                required
+                maxLength={100}
+              />
             </FormField>
             <FormField label={t('roles.descriptionLabel')}>
               <Textarea
@@ -350,7 +458,8 @@ function Roles() {
                   )
                 }
                 onChange={(event) => {
-                  if (writer() && !mutation.isPending) setCreationDescription(event.target.value)
+                  if (writer() && !mutation.isPending && !submitted)
+                    setCreationDescription(event.target.value)
                 }}
               />
               {creationDescription.length > 0 &&
@@ -383,7 +492,7 @@ function Roles() {
                                 value={permission}
                                 checked={creationPermissions.includes(permission)}
                                 onChange={(event) => {
-                                  if (!writer() || mutation.isPending) return
+                                  if (!writer() || mutation.isPending || submitted) return
                                   setCreationPermissions((previous) =>
                                     event.target.checked
                                       ? [...previous, permission].sort()
@@ -410,7 +519,7 @@ function Roles() {
                               }
                             }}
                             onChange={() => {
-                              if (!writer() || mutation.isPending) return
+                              if (!writer() || mutation.isPending || submitted) return
                               setCreationPermissions((previous) => {
                                 const other = previous.filter((p) => !group.includes(p))
                                 return group.every((p) => previous.includes(p))
@@ -429,10 +538,17 @@ function Roles() {
             </div>
           </fieldset>
           <ErrorNotice error={mutation.error} />
+          {unconfirmed && <p role="status">{t('roles.unconfirmed')}</p>}
+          {unconfirmed && (
+            <Button type="button" onClick={abandon} disabled={!writer() || mutation.isPending}>
+              {t('roles.abandon')}
+            </Button>
+          )}
           <div className="flex justify-end">
             <SaveButton
               pending={mutation.isPending}
               disabled={
+                !!submitted ||
                 !validRoleDefinitionDescription(trimRoleDefinitionDescription(creationDescription))
               }
             >
@@ -487,13 +603,19 @@ function Roles() {
         description={t('roles.deleteDescription', { name: deleting ? roleName(deleting) : '' })}
       >
         <ErrorNotice error={mutation.error} />
+        {unconfirmed && <p role="status">{t('roles.unconfirmed')}</p>}
+        {unconfirmed && (
+          <Button onClick={abandon} disabled={!writer() || mutation.isPending}>
+            {t('roles.abandon')}
+          </Button>
+        )}
         <Button
-          disabled={mutation.isPending}
+          disabled={mutation.isPending || !!submitted}
           onClick={() =>
             deleting &&
             writer() &&
             roles.data?.items.some((row) => row.id === deleting.id) &&
-            mutation.mutate({ method: 'delete', path: `/admin/roles/${deleting.id}` })
+            dispatch('delete', `/admin/roles/${deleting.id}`)
           }
         >
           {t('roles.confirmDelete')}

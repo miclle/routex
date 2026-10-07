@@ -548,6 +548,9 @@ export default {
     confirmDisable: 'Confirm disable',
   },
   roles: {
+    unconfirmed:
+      'The submitted Role operation is unconfirmed. A refreshed list does not establish its outcome. Keep the original draft; do not resubmit until you explicitly abandon this local intent.',
+    abandon: 'Abandon local intent (does not cancel the operation)',
     descriptionLabel: 'Role description',
     descriptionPlaceholder: 'Describe the business scope of this role',
     descriptionNotProvided: 'Not provided',

@@ -12,8 +12,54 @@ gates and controlled Azure/Vault API/native/restart receipts retained at their
 original source. Frozen GORM V79/V80 preserve both supported databases. Previously
 published-object cleanup, real Azure and browser acceptance remain open. The
 full objective continues with the private warning/Close/Notification settings
-successor; formal capability totals remain unchanged. Remote CI is a separate
-acceptance gate.
+successor; formal capability totals remain unchanged. Exact-head CI37641339082 now passes
+Backend Checks, Frontend Checks, PostgreSQL/MySQL Integration and Build Artifacts;
+Actionlint37641339288 and GolangCI37641339075 also pass. These remote results
+belong to checkpoint `ae8d3e7e62228371d36008bf70b91b5e3287769a`.
+
+The next private warning/Close/Notification settings candidate now passes fresh
+formatting, mandatory checking, complete Task and production build on its exact
+1,878-path floor. Complete Task records 4,895 frontend tests in 191 suites, four
+Node checks, two development lifecycle checks, Go race and production assets.
+Final source manifest SHA-256:
+`f3889bdec8017c2249d71a0e8fd654389652d47eaecd47012b0c64f34734f459`;
+root source review SHA-256:
+`0eb6fd2fb5f7df6be544e00e814961b5b0f7b7f970751bd7443ac770ce5de78a`.
+The fresh binary is `f14b06568d4d84f1f62a601487bf08a74575e41f752dd87603339f5c54931d69`.
+Focus24, complete Full156 and controlled Vault/native/restart acceptance remain
+pending. These source gates do not replace database, runtime or browser proof.
+
+Fresh Focus24 on this candidate fails after 285.465 seconds: 21 direct cases pass,
+three fail. PostgreSQL's immutable-observation migration check and both drivers'
+rolling observation/inbox count assertions fail. Root verifies all 1,878 source
+paths/modes and fresh owned container/network/volume, listener and PID absence.
+Root failure receipt SHA-256:
+`5c4c82417798ae7d7ba3b195965d8f9c7e6e707aa7343b1a3036efeb74251177`.
+The failed run is retained. Complete Full156 remains unlaunched with null GO;
+trace and correct the narrow warning failures before any renewed actual run.
+
+The separate four-file Role create/delete lifetime repair is now carried on main
+with exact beforeimage checks. Independent source review verifies 1,862 source
+paths, 1,858 unchanged paths and 36 artifacts. Three actual component regressions
+and four existing error controls are retained; 198 focused cases in five files,
+types, lint and formatting pass. Queued operations check their captured actor,
+opening and authority before current CSRF; old completions cannot clear a newer
+draft. Same-owner Session uncertainty remains explicit, and local abandonment
+never cancels or reverses a dispatched operation. Backend, API, layout and
+primitives are unchanged. Paired frontend rules record the contract. Main
+mandatory checking passes on the exact four UI outputs; this UI-only phase is
+ready for its scoped commit and push;
+browser acceptance remains separate. Independent manifest SHA-256:
+`371658b8b140df582fa25276e787aef60ef14afee70c8c71e407838e33351f70`.
+
+The user requested pausing after current work. Finish only this Role repair and
+the active warning/Close/Notification settings validation and delivery; do not
+start additional capabilities. The warning driver failure has a two-test-only
+fixture successor: migration assertions compare stored instants and all recorded
+fields, while lifecycle reset clears the three V81 tables. Production code and
+the original build artifact remain byte-identical. The successor passes 35
+uncached race cases and fresh mandatory checking; renewed real-driver acceptance
+is still pending. Original failed runs and source-bound evidence remain retained.
 
 Saved AppRole is committed and pushed as
 `77ece1770394e5217ff72094083e51b01d9eb143`, with exact remote main read-back.
@@ -386,7 +432,8 @@ closes the finding: independent original regression 1/1 and targeted status,
 Session, body and queued-authority vectors 8/8 pass. The 535-case producer suite
 also passes. Independent closure manifest SHA-256:
 `1b03b9fca9ff9d48e7501dae7a986f41feeb848ef40ae8fa537284a7d92c8e70`.
-Coherent composition, whole source gates and actual acceptance remain pending.
+Coherent composition and whole source gates now pass as recorded above; fresh
+database and actual runtime acceptance remain pending.
 
 The next already-partial protocol slice is Azure OpenAI upstream adaptation.
 The user selected explicit administrator deployment attestation, separate from
@@ -1311,7 +1358,7 @@ The binary capability count is 12 completed, 15 partially completed, and 3 not s
 | F01 | Initialization, local identity, registration, and logout | Completed | Concurrent one-time setup, administrator creation, local login, registration control, durable sessions, and logout are implemented and tested. |
 | F02 | Profile, password, MFA, recovery codes, and session revocation | Completed | Profile and password changes, authenticator enrollment, single-use recovery codes, and individual-session revocation are implemented. |
 | F03 | Enterprise SSO, LDAP, OAuth, and emergency recovery | Not started | Provider configuration, callbacks, identity binding, enforced SSO, and enterprise recovery remain unimplemented. |
-| F04 | Member administration, direct grants, roles, and resource policies | Partially completed | Member Overview, Keys, Limits, Teams, Models, metadata, list, effective Models, recent login, Access, direct Roles and State are checked deliveries. Approval b10eb6cf is locally delivered; CI run 37314987013 failed integration, so remote convergence is not claimed. Role-definition source checks, build, race-focused drivers and bilingual retry/restart passed with zero calls. Both drivers passed 103 ordered scenarios and constraints; final UI checks and current production keyboard/retry/restart acceptance passed. Role ecd130b is committed/pushed; its CI37332855651 failed the MySQL bounded Member Roles read as recorded above. Team-role review and remaining resource-policy acceptance stay open. |
+| F04 | Member administration, direct grants, roles, and resource policies | Partially completed | Member Overview, Keys, Limits, Teams, Models, metadata, list, effective Models, recent login, Access, direct Roles and State are checked deliveries. Current Role definitions, descriptions and permission workflows have dual-driver and controlled acceptance; Team-assigned roles are delivered under F06. Earlier failed CI checkpoints remain historical and do not describe current functional absence. Member handover state is delivered in 5fda0737. The four-file Role create/delete lifetime repair passes independent source review and 198 focused tests; its final main submission and further Member-sensitive-input/enterprise acceptance remain open. |
 | F05 | Built-in and custom roles with composed permissions | Partially completed | Current-domain role and permission management, reviewed definitions/descriptions, and immutable Procurement/Finance/Operations templates with explicit assignment are implemented and accepted. Later enterprise and operations domains still require permission integration and negative acceptance. |
 | F06 | Team membership, ownership, models, quotas, and member rules | Completed | Membership, ownership, model relationships, finite aggregate/member policies, monthly requests and durable Team-assigned roles have dual-driver and controlled acceptance. Initial limits V63 is delivered as8f17d12. Initial Model access V66 passed complete121, main3,759 frontend cases, both auth/gateway lifecycles and controlled bilingual/original-Session restart with four native probes. Separate read-only review confirms exact grants, receipts and completed attempts; the original helper denial-oracle failure remains retained. Empty selection grants no Models. |
 | F07 | Project lifecycle, managers, models, Keys, and requests | Completed | Exact current management, lifecycle/continuity, multi-manager creation, initial direct resources and combined requests, scoped Overview, Project Keys, resource limits and model/quota/rate approvals are implemented with controlled dual-database/browser/native/restart evidence. Both lists now show authorized total retained Key counts; administrative stored-policy summaries, literal name/ID search and authorized legacy tab replacement have full main acceptance. |

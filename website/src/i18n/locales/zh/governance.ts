@@ -501,6 +501,9 @@ export default {
     confirmDisable: '确认停用',
   },
   roles: {
+    unconfirmed:
+      '已提交的角色操作结果尚未确认。刷新列表不能证明其结果。请保留原始草稿；明确放弃本地意图前，不要再次提交。',
+    abandon: '放弃本地意图（不会取消操作）',
     descriptionLabel: '角色说明',
     descriptionPlaceholder: '说明该角色负责的业务范围',
     descriptionNotProvided: '未提供',
