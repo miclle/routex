@@ -213,6 +213,20 @@ Platform currency settings use the dedicated complete-catalogue currency metadat
 
 Price file maintenance belongs in `views/price-imports` at `/admin/prices`, with download/upload steps and a separate server-derived difference preview. Apply only the captured UTF-8 CSV or original XLSX/XLS filename and base64 bytes, returned ETag, and preview digest after explicit confirmation. Keep CSV at 32 KiB and workbooks at 512 KiB; the server owns workbook parsing, text-only amount validation, and sheet/cell error locations. Never convert workbook amounts in JavaScript. Never synthesize a preview from edited data or treat an uncertain publication result as success. Keep file limits, read/write permission differences, all located errors, and paired `priceImports` translations covered by tests.
 
+Price downloads use the existing download step: Excel first, then CSV. The
+Excel GET requires independent `prices.read`, no write permission or CSRF; keep
+exact server MIME, fixed `routex-prices.xlsx` filename, private/no-store/nosniff
+headers and a quoted catalogue ETag. Download the original transient Blob after
+MIME/nonempty/512 KiB validation; never parse workbook cells or round amounts in
+JavaScript. Capture current actor and successful Session/permission generations,
+abort on renewal/error/revocation/expiry/actor change/unmount, reject late replies
+and retain the duplicate-operation lock. No cached/stored Blob, automatic export
+recovery or false browser-saved claim is allowed. Preserve complete server
+500-model/5,000-rate and XML/ZIP bounds. Uploads still require reviewed captured
+bytes/digest/ETag and independent write authority: 200 rows/20 models, CSV
+32 KiB/workbook 512 KiB. Larger successful exports need valid import batches;
+empty export is valid, empty import is not, and omission never deletes a rate.
+
 Admission controls use `views/resource-limits` within the addressable Member Limits tab, Project Resource configuration, and existing Key detail dialogs. Supported controls are rolling five-hour/seven-day tokens, monthly tokens and money, TPM, RPM, concurrency, and IP. Preserve stored/effective/inherited values, zero versus null, conjunctive parent IP restrictions, scoped query keys, reason/If-Match writes, explicit stale-policy review, and identical-intent publication retries. Runtime application must be confirmed before reporting enforcement. Read the platform denomination only from the resource-authorized `platform_currency` field. Preserve exact money strings and require explicit review after currency changes. Display authoritative quota windows, coverage, holds, and unknown values separately; never invent remaining allowance.
 
 Personal and Project Key limit reads use actor- and resource-scoped query lifetimes.

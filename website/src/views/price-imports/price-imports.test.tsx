@@ -19,6 +19,11 @@ let permissions: string[],
   result: PriceImportPreview,
   failure: number,
   hold: Promise<void> | undefined
+let exportHold: Promise<void> | undefined,
+  exportFailure: number,
+  actorID: string,
+  permissionFailure: number,
+  sessionFailure: number
 let downloaded: { name: string; url: string } | undefined
 const original = client.defaults.adapter
 const csv =
@@ -36,6 +41,11 @@ beforeEach(() => {
   failure = 0
   hold = undefined
   downloaded = undefined
+  exportHold = undefined
+  exportFailure = 0
+  actorID = 'usr_import'
+  permissionFailure = 0
+  sessionFailure = 0
   const rate = {
     metric: 'INPUT_TOKEN' as const,
     tier: 'base' as const,
@@ -86,18 +96,29 @@ beforeEach(() => {
       data: {} as unknown,
     }
     if (config.url === '/setup') response.data = { initialized: true }
-    else if (config.url === '/auth/session')
+    else if (config.url === '/auth/session') {
+      if (sessionFailure) {
+        response.status = sessionFailure
+        response.data = { message: 'Session read unavailable' }
+        throw new AxiosError('Fixture', '', config, undefined, response)
+      }
       response.data = {
         user: {
-          id: 'usr_import',
+          id: actorID,
           name: 'Reviewer',
           email: 'reviewer@example.test',
           role: 'member',
         },
         csrf_token: 'csrf-import',
       }
-    else if (config.url === '/auth/permissions') response.data = { permissions }
-    else if (config.url === '/notifications' && config.method === 'get')
+    } else if (config.url === '/auth/permissions') {
+      if (permissionFailure) {
+        response.status = permissionFailure
+        response.data = { message: 'Permission read unavailable' }
+        throw new AxiosError('Fixture', '', config, undefined, response)
+      }
+      response.data = { permissions }
+    } else if (config.url === '/notifications' && config.method === 'get')
       response.data = { items: [], unread_count: 0 }
     else if (config.url === api + 'preview') response.data = structuredClone(result)
     else if (config.url === api + 'commit') {
@@ -108,8 +129,22 @@ beforeEach(() => {
         throw new AxiosError('Fixture', '', config, undefined, response)
       }
       response.data = { preview: result, catalogue: { etag: 'saved', items: [] } }
-    } else if (config.url === '/admin/prices/export.csv')
-      response.data = new Blob([csv], { type: 'text/csv' })
+    } else if (
+      config.url === '/admin/prices/export.csv' ||
+      config.url === '/admin/prices/export.xlsx'
+    ) {
+      if (exportHold) await exportHold
+      if (exportFailure) {
+        response.status = exportFailure
+        response.data = new Blob(['rejected'], { type: 'application/json' })
+        throw new AxiosError('Fixture', '', config, undefined, response)
+      }
+      response.data = config.url.endsWith('.xlsx')
+        ? new Blob([new Uint8Array([80, 75, 3, 4])], {
+            type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+          })
+        : new Blob([csv], { type: 'text/csv' })
+    }
     return response
   }
 })
@@ -514,5 +549,203 @@ describe('Price file maintenance', () => {
     await until(() => expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:fixture'))
     expect(host.textContent).toContain('CSV download was prepared.')
     expect(commits()).toHaveLength(0)
+  })
+  it('places real Excel before CSV and allows an independent reader without price writes', async () => {
+    permissions = ['prices.read']
+    await mount()
+    const excel = button('Download Excel'),
+      csvButton = button('Download CSV')
+    expect(excel.compareDocumentPosition(csvButton) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    await click('Download Excel')
+    await until(() => expect(downloaded?.name).toBe('routex-prices.xlsx'))
+    expect(requests.filter((r) => r.url === '/admin/prices/export.xlsx')).toHaveLength(1)
+    expect(requests.some((r) => r.method === 'post' || r.method === 'put')).toBe(false)
+    expect(host.textContent).toContain('Excel download was prepared.')
+  })
+  it('never downloads a late CSV response after its mounted page departs', async () => {
+    await mount()
+    let release!: () => void
+    exportHold = new Promise((resolve) => {
+      release = resolve
+    })
+    await click('Download CSV')
+    await until(() =>
+      expect(requests.filter((r) => r.url === '/admin/prices/export.csv')).toHaveLength(1),
+    )
+    await act(async () => root.render(<div>Public destination</div>))
+    await act(async () => release())
+    await until(() => expect(downloaded).toBeUndefined())
+    expect(URL.createObjectURL).not.toHaveBeenCalled()
+  })
+  it('keeps one captured format pending across double clicks, live Chinese and the selected upload draft', async () => {
+    await mount()
+    await select(new File([csv], 'preserved.csv'))
+    let release!: () => void
+    exportHold = new Promise((resolve) => {
+      release = resolve
+    })
+    const excel = button('Download Excel'),
+      csvButton = button('Download CSV')
+    await act(async () => {
+      excel.click()
+      excel.click()
+      csvButton.click()
+    })
+    await until(() =>
+      expect(requests.filter((r) => r.url?.startsWith('/admin/prices/export.'))).toHaveLength(1),
+    )
+    expect(excel.disabled).toBe(true)
+    expect(csvButton.disabled).toBe(true)
+    await act(async () => i18n.changeLanguage('zh'))
+    expect(button('下载 Excel').disabled).toBe(true)
+    expect(button('下载 CSV').disabled).toBe(true)
+    await act(async () => release())
+    await until(() => expect(host.textContent).toContain('当前 Excel 下载已准备。'))
+    expect(downloaded?.name).toBe('routex-prices.xlsx')
+    expect(host.textContent).toContain('preserved.csv')
+    expect(requests.filter((r) => r.url === '/admin/prices/export.csv')).toHaveLength(0)
+  })
+  it('does not grant export to an independent writer without read permission', async () => {
+    permissions = ['prices.write']
+    await mount()
+    expect(host.textContent).not.toContain('Download Excel')
+    expect(host.textContent).not.toContain('Download CSV')
+    expect(requests.some((r) => r.url?.startsWith('/admin/prices/export.'))).toBe(false)
+  })
+  it('never prepares a workbook after an authoritative export rejection', async () => {
+    await mount()
+    exportFailure = 422
+    await click('Download Excel')
+    await until(() => expect(button('Download Excel').disabled).toBe(false))
+    expect(downloaded).toBeUndefined()
+    expect(URL.createObjectURL).not.toHaveBeenCalled()
+    expect(host.textContent).not.toContain('Excel download was prepared.')
+    expect(commits()).toHaveLength(0)
+  })
+  it('aborts old download authority on genuine same-actor Session renewal and requires a new explicit request', async () => {
+    await mount()
+    let release!: () => void
+    exportHold = new Promise((resolve) => {
+      release = resolve
+    })
+    await click('Download Excel')
+    await until(() =>
+      expect(requests.filter((r) => r.url === '/admin/prices/export.xlsx')).toHaveLength(1),
+    )
+    const originalDownload = requests.find((r) => r.url === '/admin/prices/export.xlsx')!
+    await act(async () => cache.refetchQueries({ queryKey: ['auth', 'session'] }))
+    expect(originalDownload.signal?.aborted).toBe(true)
+    await act(async () => release())
+    await until(() => expect(button('Download Excel').disabled).toBe(false))
+    expect(downloaded).toBeUndefined()
+    expect(host.textContent).not.toContain('Excel download was prepared.')
+    await click('Download Excel')
+    await until(() => expect(downloaded?.name).toBe('routex-prices.xlsx'))
+    expect(requests.filter((r) => r.url === '/admin/prices/export.xlsx')).toHaveLength(2)
+  })
+  it('hides revoked reader controls and discards a late workbook during permission renewal', async () => {
+    await mount()
+    let release!: () => void
+    exportHold = new Promise((resolve) => {
+      release = resolve
+    })
+    await click('Download Excel')
+    await until(() =>
+      expect(requests.filter((r) => r.url === '/admin/prices/export.xlsx')).toHaveLength(1),
+    )
+    const request = requests.find((r) => r.url === '/admin/prices/export.xlsx')!
+    permissions = ['prices.write']
+    await act(async () => cache.refetchQueries({ queryKey: ['permissions'] }))
+    expect(request.signal?.aborted).toBe(true)
+    await until(() => expect(host.textContent).not.toContain('Download Excel'))
+    await act(async () => release())
+    expect(downloaded).toBeUndefined()
+    expect(URL.createObjectURL).not.toHaveBeenCalled()
+    expect(host.textContent).not.toContain('Excel download was prepared.')
+  })
+  it('never lets the previous actor response download or announce after exact actor replacement', async () => {
+    await mount()
+    let release!: () => void
+    exportHold = new Promise((resolve) => {
+      release = resolve
+    })
+    await click('Download Excel')
+    await until(() =>
+      expect(requests.filter((r) => r.url === '/admin/prices/export.xlsx')).toHaveLength(1),
+    )
+    const request = requests.find((r) => r.url === '/admin/prices/export.xlsx')!
+    actorID = 'usr_other'
+    await act(async () => cache.refetchQueries({ queryKey: ['auth', 'session'] }))
+    expect(request.signal?.aborted).toBe(true)
+    await act(async () => release())
+    await until(() => expect(button('Download Excel').disabled).toBe(false))
+    expect(downloaded).toBeUndefined()
+    expect(URL.createObjectURL).not.toHaveBeenCalled()
+    expect(host.textContent).not.toContain('Excel download was prepared.')
+  })
+  it('blocks a pending download immediately on definitive Session expiry', async () => {
+    await mount()
+    let release!: () => void
+    exportHold = new Promise((resolve) => {
+      release = resolve
+    })
+    await click('Download Excel')
+    await until(() =>
+      expect(requests.filter((r) => r.url === '/admin/prices/export.xlsx')).toHaveLength(1),
+    )
+    const request = requests.find((r) => r.url === '/admin/prices/export.xlsx')!
+    await act(async () => window.dispatchEvent(new Event('routex:session-expired')))
+    expect(request.signal?.aborted).toBe(true)
+    await act(async () => release())
+    expect(downloaded).toBeUndefined()
+    expect(URL.createObjectURL).not.toHaveBeenCalled()
+    expect(host.textContent).not.toContain('Excel download was prepared.')
+  })
+  it('discards pending binary output when renewed permission reads fail', async () => {
+    await mount()
+    let release!: () => void
+    exportHold = new Promise((resolve) => {
+      release = resolve
+    })
+    await click('Download Excel')
+    await until(() =>
+      expect(requests.filter((r) => r.url === '/admin/prices/export.xlsx')).toHaveLength(1),
+    )
+    const request = requests.find((r) => r.url === '/admin/prices/export.xlsx')!
+    permissionFailure = 503
+    await act(async () => cache.refetchQueries({ queryKey: ['permissions'] }))
+    expect(request.signal?.aborted).toBe(true)
+    await until(() => expect(host.textContent).not.toContain('Download Excel'))
+    await act(async () => release())
+    expect(downloaded).toBeUndefined()
+    expect(URL.createObjectURL).not.toHaveBeenCalled()
+    expect(host.textContent).not.toContain('Excel download was prepared.')
+  })
+  it('unmounts private export controls on failed Session renewal and never automatically downloads after same-actor recovery', async () => {
+    await mount()
+    let release!: () => void
+    exportHold = new Promise((resolve) => {
+      release = resolve
+    })
+    await click('Download Excel')
+    await until(() =>
+      expect(requests.filter((r) => r.url === '/admin/prices/export.xlsx')).toHaveLength(1),
+    )
+    const request = requests.find((r) => r.url === '/admin/prices/export.xlsx')!
+    sessionFailure = 500
+    await act(async () => cache.refetchQueries({ queryKey: ['auth', 'session'] }))
+    expect(request.signal?.aborted).toBe(true)
+    await until(() => expect(host.textContent).not.toContain('Download Excel'))
+    await act(async () => release())
+    expect(URL.createObjectURL).not.toHaveBeenCalled()
+    expect(downloaded).toBeUndefined()
+    sessionFailure = 0
+    await act(async () => cache.refetchQueries({ queryKey: ['auth', 'session'] }))
+    await until(() => expect(button('Download Excel').disabled).toBe(false))
+    expect(requests.filter((r) => r.url === '/admin/prices/export.xlsx')).toHaveLength(1)
+    expect(host.textContent).not.toContain('Excel download was prepared.')
+    await click('Download Excel')
+    await until(() => expect(downloaded?.name).toBe('routex-prices.xlsx'))
+    expect(requests.filter((r) => r.url === '/admin/prices/export.xlsx')).toHaveLength(2)
   })
 })

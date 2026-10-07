@@ -7,7 +7,8 @@ export default {
   api: 'Management API',
   downloadStep: '1. Download current prices',
   downloadHelp:
-    'Download the complete current catalogue as CSV, then upload edited CSV or workbook batches within the import limits.',
+    'Download the complete current catalogue as Excel (XLSX) or CSV. Exports can exceed an upload batch; split edited files within the upload limits. Excel export is limited to 512 KiB and rejects oversized catalogues without partial output.',
+  downloadExcel: 'Download Excel',
   download: 'Download CSV',
   uploadStep: '2. Upload edited prices',
   uploadHelp:
@@ -69,6 +70,7 @@ export default {
     'The current catalogue rejects this file. Review all located errors before selecting a corrected file.',
   reviewAgain: 'Reload catalogue and preview again',
   saved: 'The price file changes were applied.',
+  downloadedExcel: 'The current Excel download was prepared.',
   downloaded: 'The current CSV download was prepared.',
   apiTitle: 'Price management API',
   apiHelp:

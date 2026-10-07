@@ -54,6 +54,17 @@ func (ctrl *Ctrl) ExportPriceCSV(c *fox.Context) error {
 	return nil
 }
 
+func (ctrl *Ctrl) ExportPriceXLSX(c *fox.Context) error {
+	result, err := ctrl.service.ExportPriceXLSX(c.Request.Context(), currentAuthentication(c).User.ID)
+	if err != nil {
+		return err
+	}
+	c.Header("Content-Disposition", `attachment; filename="routex-prices.xlsx"`)
+	c.Header("ETag", `"`+result.ETag+`"`)
+	c.Data(http.StatusOK, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", result.XLSX)
+	return nil
+}
+
 // Binary workbooks use base64 JSON and retain the same authenticated CSRF path.
 func jsonPriceImportRequest(c *fox.Context) error {
 	if c.ContentType() != "application/json" {

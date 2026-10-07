@@ -24,16 +24,40 @@ export async function commitPriceDocument(
     )
   ).data
 }
-export async function exportPriceCSV() {
-  return (await client.get<Blob>('/admin/prices/export.csv', { responseType: 'blob' })).data
+const workbookMIME = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+export async function exportPriceCSV(signal?: AbortSignal) {
+  return (await client.get<Blob>('/admin/prices/export.csv', { responseType: 'blob', signal })).data
 }
-export function downloadPriceCSV(blob: Blob) {
+export async function exportPriceXLSX(signal?: AbortSignal) {
+  const blob = (
+    await client.get<Blob>('/admin/prices/export.xlsx', { responseType: 'blob', signal })
+  ).data
+  if (
+    !(blob instanceof Blob) ||
+    blob.type.split(';')[0] !== workbookMIME ||
+    blob.size === 0 ||
+    blob.size > 512 * 1024
+  ) {
+    throw new Error('Invalid price workbook response')
+  }
+  return blob
+}
+function downloadPriceFile(blob: Blob, filename: 'routex-prices.csv' | 'routex-prices.xlsx') {
   const url = URL.createObjectURL(blob)
   const anchor = document.createElement('a')
   anchor.href = url
-  anchor.download = 'routex-prices.csv'
+  anchor.download = filename
   document.body.append(anchor)
-  anchor.click()
-  anchor.remove()
-  setTimeout(() => URL.revokeObjectURL(url), 0)
+  try {
+    anchor.click()
+  } finally {
+    anchor.remove()
+    setTimeout(() => URL.revokeObjectURL(url), 0)
+  }
+}
+export function downloadPriceCSV(blob: Blob) {
+  downloadPriceFile(blob, 'routex-prices.csv')
+}
+export function downloadPriceXLSX(blob: Blob) {
+  downloadPriceFile(blob, 'routex-prices.xlsx')
 }

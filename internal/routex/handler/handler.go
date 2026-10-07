@@ -55,6 +55,7 @@ func (ctrl *Ctrl) RegisterRoutes(r *fox.Engine) {
 	identity.GET("/auth/registration", ctrl.RegistrationStatus)
 	identity.POST("/auth/register", sameOrigin, jsonAuthRequest, ctrl.Register)
 	identity.GET("/auth/permissions", ctrl.requireSession, ctrl.CurrentPermissions)
+	identity.GET("/admin/prices/export.xlsx", memberMetadataResponseHeaders, ctrl.requireSession, ctrl.RequirePermission("prices.read"), ctrl.ExportPriceXLSX)
 	identity.POST("/auth/login", sameOrigin, jsonAuthRequest, ctrl.Login)
 	identity.POST("/auth/mfa/verify", sameOrigin, jsonAuthRequest, ctrl.CompleteMFALogin)
 	identity.GET("/auth/session", ctrl.requireSession, ctrl.CurrentSession)

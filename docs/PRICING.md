@@ -154,6 +154,59 @@ request fields and arbitrary request bodies are never copied to audit details.
 Ordinary non-pricing audit events continue to omit this field. Rejected mutations
 return an error and do not manufacture a successful business audit.
 
+
+## Price workbook export
+
+`GET /api/v1/admin/prices/export.xlsx` requires a current authenticated actor
+with independent `prices.read`. It needs neither `prices.write` nor a CSRF
+header and changes no price, catalogue metadata, grant or audit. The existing
+CSV endpoint and its bytes remain unchanged. Both formats use the same complete
+authorized read-only repeatable-read price snapshot; no supplier-directory or
+per-row frontend query is added.
+
+Success is a genuine ZIP-based XLSX workbook with one visible `Prices` sheet.
+Its ordered columns are `provider_model_id`, `metric`, `tier`, `unit`, `currency`,
+`amount`, `enabled`, `context_threshold` and `upstream_name`. All cells are literal
+inline text, preserving exact decimal strings, explicit zero, disabled rates,
+integer thresholds, currencies and recorded names. Formula-like names remain
+literal; XLSX does not add CSV's protective apostrophe. No formulas, external
+links, macros, hidden sheets or executable cells are emitted. Invalid UTF-8 or
+XML-incompatible text is rejected rather than silently changed.
+
+HTTP200 uses
+`application/vnd.openxmlformats-officedocument.spreadsheetml.sheet`, fixed
+`Content-Disposition: attachment; filename="routex-prices.xlsx"`, the quoted
+current catalogue ETag, `Cache-Control: private, no-store` and
+`X-Content-Type-Options: nosniff`. Authentication/permission errors remain 401/403.
+All XLSX responses are private/no-store; complete-export or text failures return
+JSON422 before a workbook body, download disposition or ETag is emitted.
+Ordinary database errors retain centralized mapping.
+
+Export permits at most 500 stored price models and
+`500 * pricing.MaxRates` rates (currently 5,000). Compressed output is at most
+512 KiB, expanded XML at most 4 MiB in total and per entry, at most 128 ZIP
+entries, 100,000 XML tokens per entry and depth 64. The serializer emits five
+fixed parts. These are independent rejection ceilings, not a promise that every
+500-model/5,000-rate catalogue fits. The export is complete or rejected; a
+header-only empty catalogue export is valid.
+
+The existing `/admin/prices` download step offers Download Excel followed by
+Download CSV. The client checks the Excel MIME, nonempty Blob and 512 KiB byte
+bound without parsing cells or converting money, then downloads the original
+Blob under `routex-prices.xlsx`. Downloads retain transient actor and successful
+Session/permission generations, an abort controller and a duplicate-operation
+lock. Renewal, error, read-permission withdrawal, expiry, actor change and
+unmount discard obsolete replies before a file or notice is prepared. Recovery
+never starts another export. No Blob enters query/mutation caches or browser
+storage; object URLs are revoked. A prepared-download notice is not proof that
+the browser saved a file.
+
+Download limits do not enlarge upload limits: CSV imports remain 32 KiB,
+workbook imports 512 KiB, and both retain 200 rows and 20 models per batch.
+Split larger valid exports into valid upload batches. Empty imports remain
+invalid, and omitted rows never imply deletion. Server previews, captured bytes,
+ETag/digest confirmation and independent write permission remain unchanged.
+
 ## HTTP contract
 
 All paths below are under `/api/v1`. Reads and quotes require `prices.read`;

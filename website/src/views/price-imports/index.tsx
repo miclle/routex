@@ -1,5 +1,5 @@
 import { RepositoryPriceCard } from './repository/card'
-import { useRef, useState, type ChangeEvent, type DragEvent } from 'react'
+import { useEffect, useRef, useState, type ChangeEvent, type DragEvent } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link } from 'react-router'
@@ -10,6 +10,8 @@ import {
   commitPriceDocument,
   exportPriceCSV,
   downloadPriceCSV,
+  exportPriceXLSX,
+  downloadPriceXLSX,
 } from '@/api/price-imports'
 import { useSession } from '@/hooks/use-auth'
 import { getPermissions } from '@/api/governance'
@@ -18,6 +20,7 @@ import { Page, ErrorNotice } from '@/components/app/CatalogUI'
 import { Button } from '@/components/ui/button'
 import { Dialog } from '@/components/ui/dialog'
 import { ResourceSection } from '@/views/resources/shared'
+import type { Session } from '@/types/auth'
 import type { PriceImportPreview, SelectedPriceFile } from '@/types/price-imports'
 import { readPriceFile, PriceFileError } from './file'
 import { PricePreviewDialog } from './preview'
@@ -30,14 +33,15 @@ function PriceImports({ session }: { session: ReturnType<typeof useSession> }) {
   const sessionGeneration = useSessionGeneration()
   const fresh =
     session.isSuccess && !session.isFetching && !session.error && !!session.data?.csrf_token
+  const permissionKey = [
+    'permissions',
+    session.data?.user.id,
+    'price-imports',
+    session.data?.user.role,
+    sessionGeneration,
+  ] as const
   const permissionQuery = useQuery({
-    queryKey: [
-      'permissions',
-      session.data?.user.id,
-      'price-imports',
-      session.data?.user.role,
-      sessionGeneration,
-    ],
+    queryKey: permissionKey,
     queryFn: ({ signal }) => getPermissions(signal),
     enabled: fresh,
     retry: false,
@@ -67,6 +71,30 @@ function PriceImports({ session }: { session: ReturnType<typeof useSession> }) {
   const [error, setError] = useState<unknown>(null)
   const [notice, setNotice] = useState('')
   const [apiOpen, setApiOpen] = useState(false)
+  const alive = useRef(true)
+  const expired = useRef(false)
+  const downloadOperation = useRef<{
+    controller: AbortController
+    authorized: () => boolean
+  } | null>(null)
+  useEffect(() => {
+    alive.current = true
+    const unsubscribe = cache.getQueryCache().subscribe(() => {
+      const operation = downloadOperation.current
+      if (operation && !operation.authorized()) operation.controller.abort()
+    })
+    const expire = () => {
+      expired.current = true
+      downloadOperation.current?.controller.abort()
+    }
+    window.addEventListener('routex:session-expired', expire)
+    return () => {
+      alive.current = false
+      downloadOperation.current?.controller.abort()
+      unsubscribe()
+      window.removeEventListener('routex:session-expired', expire)
+    }
+  }, [cache])
   async function select(files: FileList | null) {
     if (lock.current || !files?.length) return
     const turn = ++generation.current
@@ -142,20 +170,64 @@ function PriceImports({ session }: { session: ReturnType<typeof useSession> }) {
       setBusy('')
     }
   }
-  async function download() {
-    if (lock.current) return
+  async function download(format: 'csv' | 'xlsx') {
+    if (lock.current || !uploadVisible) return
+    const actor = { id: session.data!.user.id, role: session.data!.user.role }
+    const sessionCount = cache.getQueryState(['auth', 'session'])?.dataUpdateCount
+    const permissionCount = cache.getQueryState(permissionKey)?.dataUpdateCount
+    const controller = new AbortController()
+    const operation = {
+      controller,
+      authorized: () => {
+        const currentSession = cache.getQueryState<Session>(['auth', 'session'])
+        const currentPermissions = cache.getQueryState<string[]>(permissionKey)
+        return (
+          alive.current &&
+          !expired.current &&
+          !controller.signal.aborted &&
+          currentSession?.status === 'success' &&
+          currentSession.fetchStatus === 'idle' &&
+          !currentSession.error &&
+          !currentSession.isInvalidated &&
+          currentSession.dataUpdateCount === sessionCount &&
+          currentSession.data?.user.id === actor.id &&
+          currentSession.data.user.role === actor.role &&
+          currentPermissions?.status === 'success' &&
+          currentPermissions.fetchStatus === 'idle' &&
+          !currentPermissions.error &&
+          !currentPermissions.isInvalidated &&
+          currentPermissions.dataUpdateCount === permissionCount &&
+          currentPermissions.data?.includes('prices.read') === true
+        )
+      },
+    }
+    if (!operation.authorized()) return
     lock.current = true
+    downloadOperation.current = operation
     setBusy('exporting')
     setError(null)
     setNotice('')
     try {
-      downloadPriceCSV(await exportPriceCSV())
-      setNotice('downloaded')
+      const blob = await (format === 'xlsx'
+        ? exportPriceXLSX(controller.signal)
+        : exportPriceCSV(controller.signal))
+      if (!operation.authorized() || downloadOperation.current !== operation) return
+      if (format === 'xlsx') downloadPriceXLSX(blob)
+      else downloadPriceCSV(blob)
+      setNotice(format === 'xlsx' ? 'downloadedExcel' : 'downloaded')
     } catch (error) {
-      setError(error)
+      if (
+        operation.authorized() &&
+        downloadOperation.current === operation &&
+        !axios.isCancel(error)
+      )
+        setError(error)
     } finally {
-      lock.current = false
-      setBusy('')
+      if (downloadOperation.current === operation) {
+        downloadOperation.current = null
+        lock.current = false
+        if (alive.current) setBusy('')
+      }
     }
   }
   const change = (event: ChangeEvent<HTMLInputElement>) => {
@@ -197,10 +269,16 @@ function PriceImports({ session }: { session: ReturnType<typeof useSession> }) {
                   <h3 className="text-sm font-semibold">{t('downloadStep')}</h3>
                   <p className="text-sm text-muted-foreground">{t('downloadHelp')}</p>
                 </div>
-                <Button variant="outline" disabled={!!busy} onClick={() => void download()}>
-                  <Download className="size-4" />
-                  {t('download')}
-                </Button>
+                <div className="flex flex-wrap gap-2">
+                  <Button variant="outline" disabled={!!busy} onClick={() => void download('xlsx')}>
+                    <Download className="size-4" />
+                    {t('downloadExcel')}
+                  </Button>
+                  <Button variant="outline" disabled={!!busy} onClick={() => void download('csv')}>
+                    <Download className="size-4" />
+                    {t('download')}
+                  </Button>
+                </div>
               </div>
               <hr />
               <div className="space-y-2">
@@ -274,7 +352,7 @@ function PriceImports({ session }: { session: ReturnType<typeof useSession> }) {
               <p>{t('apiAuth')}</p>
               <pre className="overflow-auto rounded-md bg-muted p-4 text-xs">
                 {
-                  'POST /api/v1/admin/prices/import/preview\n{ "csv": "..." }\n{ "filename": "prices.xlsx", "content_base64": "..." }\n\nPOST /api/v1/admin/prices/import/commit\n{ "csv": "...", "etag": "...", "preview_digest": "..." }\n{ "filename": "prices.xls", "content_base64": "...", "etag": "...", "preview_digest": "..." }\n\nGET /api/v1/admin/prices/export.csv'
+                  'POST /api/v1/admin/prices/import/preview\n{ "csv": "..." }\n{ "filename": "prices.xlsx", "content_base64": "..." }\n\nPOST /api/v1/admin/prices/import/commit\n{ "csv": "...", "etag": "...", "preview_digest": "..." }\n{ "filename": "prices.xls", "content_base64": "...", "etag": "...", "preview_digest": "..." }\n\nGET /api/v1/admin/prices/export.xlsx\nGET /api/v1/admin/prices/export.csv'
                 }
               </pre>
               <p>{t('apiBinary')}</p>

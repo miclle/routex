@@ -2,15 +2,18 @@ package handler
 
 import (
 	"context"
+	"encoding/base64"
 	"encoding/csv"
 	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"reflect"
 	"strings"
 	"sync"
 	"testing"
 
+	"github.com/fox-gonic/fox"
 	"github.com/miclle/routex/internal/routex/entity"
 	"github.com/miclle/routex/internal/routex/service"
 	"github.com/miclle/routex/pkg/pricing"
@@ -52,6 +55,11 @@ func testPriceImportLifecycle(t *testing.T, db *gorm.DB) {
 	page, err := svc.ListPrices(ctx, admin.User.ID, service.PriceFilter{})
 	if err != nil {
 		t.Fatal(err)
+	}
+	emptyWorkbook := identityRequest(router, "GET", "/api/v1/admin/prices/export.xlsx", "", cookie, "")
+	expectStatus(t, emptyWorkbook, 200)
+	if !strings.HasPrefix(emptyWorkbook.Body.String(), "PK") || emptyWorkbook.Header().Get("ETag") != `"`+page.ETag+`"` {
+		t.Fatal("empty catalogue export lost genuine workbook or current generation")
 	}
 	threshold := int64(128000)
 	page, err = svc.WritePrices(ctx, admin.User.ID, page.ETag, []service.PriceInput{{ProviderModelID: "pmo_csv_a", ContextThreshold: &threshold, Rates: []pricing.Rate{{Metric: pricing.Input, Tier: pricing.Base, Unit: pricing.Unit, Currency: "USD", Amount: "1", Enabled: true}, {Metric: pricing.Output, Tier: pricing.Base, Unit: pricing.Unit, Currency: "USD", Amount: "2", Enabled: true}, {Metric: pricing.Output, Tier: pricing.Long, Unit: pricing.Unit, Currency: "USD", Amount: "4", Enabled: true}}}})
@@ -176,12 +184,58 @@ func testPriceImportLifecycle(t *testing.T, db *gorm.DB) {
 	if roundtrip := preview(export.Body.String()); !roundtrip.Valid {
 		t.Fatalf("export cannot be reimported: %+v", roundtrip.Errors)
 	}
+
+	beforeWorkbook, err := svc.ListPrices(ctx, admin.User.ID, service.PriceFilter{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	workbook := identityRequest(router, "GET", "/api/v1/admin/prices/export.xlsx", "", cookie, "")
+	expectStatus(t, workbook, 200)
+	if workbook.Header().Get("Content-Type") != "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" || workbook.Header().Get("Content-Disposition") != `attachment; filename="routex-prices.xlsx"` || workbook.Header().Get("ETag") != export.Header().Get("ETag") || workbook.Header().Get("Cache-Control") != "private, no-store" || workbook.Header().Get("X-Content-Type-Options") != "nosniff" || !strings.HasPrefix(workbook.Body.String(), "PK") {
+		t.Fatal("XLSX download identity/privacy headers or package missing")
+	}
+	workbookPreview, err := svc.PreviewPriceDocument(ctx, admin.User.ID, service.PriceImportDocument{Filename: "routex-prices.xlsx", ContentBase64: base64.StdEncoding.EncodeToString(workbook.Body.Bytes())})
+	if err != nil || !workbookPreview.Valid || len(workbookPreview.Errors) != 0 {
+		t.Fatal("exported workbook did not produce genuine valid preview", err)
+	}
+	afterWorkbook, err := svc.ListPrices(ctx, admin.User.ID, service.PriceFilter{})
+	if err != nil || !reflect.DeepEqual(beforeWorkbook, afterWorkbook) || auditCount() != baselineAudits+2 {
+		t.Fatal("read-only workbook download/preview changed prices or audits", err)
+	}
 	expectStatus(t, request("POST", "/api/v1/admin/members", map[string]any{"name": "CSV reader denied", "email": "csv-member@example.com", "password": "csv-import-password"}), 201)
 	member, memberCookie := readIdentity(t, identityRequest(router, "POST", "/api/v1/auth/login", `{"email":"csv-member@example.com","password":"csv-import-password"}`, nil, ""))
 	for _, path := range []string{base + "/preview", base + "/commit"} {
 		expectStatus(t, send(memberCookie, member.CSRFToken, "POST", path, map[string]any{"csv": valid, "etag": p.ETag, "preview_digest": p.Digest}), 403)
 	}
 	expectStatus(t, identityRequest(router, "GET", "/api/v1/admin/prices/export.csv", "", memberCookie, ""), 403)
+
+	expectStatus(t, identityRequest(router, "GET", "/api/v1/admin/prices/export.xlsx", "", memberCookie, ""), 403)
+
+	writerRole, err := svc.SaveRole(ctx, admin.User.ID, "", "Workbook writer only", []string{"prices.write"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := svc.SetMemberRoles(ctx, admin.User.ID, member.User.ID, []string{writerRole.Role.ID}); err != nil {
+		t.Fatal(err)
+	}
+	expectStatus(t, identityRequest(router, "GET", "/api/v1/admin/prices/export.xlsx", "", memberCookie, ""), 403)
+	readerRole, err := svc.SaveRole(ctx, admin.User.ID, "", "Workbook reader", []string{"prices.read"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := svc.SetMemberRoles(ctx, admin.User.ID, member.User.ID, []string{readerRole.Role.ID}); err != nil {
+		t.Fatal(err)
+	}
+	expectStatus(t, identityRequest(router, "GET", "/api/v1/admin/prices/export.xlsx", "", memberCookie, ""), 200)
+	expectStatus(t, send(memberCookie, member.CSRFToken, "POST", base+"/commit", map[string]any{"csv": valid, "etag": p.ETag, "preview_digest": p.Digest}), 403)
+	if _, err := svc.SetMemberRoles(ctx, admin.User.ID, member.User.ID, []string{}); err != nil {
+		t.Fatal(err)
+	}
+	revokedWorkbook := identityRequest(router, "GET", "/api/v1/admin/prices/export.xlsx", "", memberCookie, "")
+	expectStatus(t, revokedWorkbook, 403)
+	if strings.HasPrefix(revokedWorkbook.Body.String(), "PK") || revokedWorkbook.Header().Get("ETag") != "" || revokedWorkbook.Header().Get("Cache-Control") != "private, no-store" {
+		t.Fatal("revoked price read exposed workbook or snapshot")
+	}
 	// A complete export has a hard bound; exceeding it fails rather than silently
 	// exporting the first page. No changes to invocation grants or model status.
 	extra := []entity.ModelPrice{}
@@ -198,4 +252,21 @@ func testPriceImportLifecycle(t *testing.T, db *gorm.DB) {
 		t.Fatal(err)
 	}
 	expectStatus(t, identityRequest(router, "GET", "/api/v1/admin/prices/export.csv", "", cookie, ""), 422)
+	oversizedWorkbook := identityRequest(router, "GET", "/api/v1/admin/prices/export.xlsx", "", cookie, "")
+	expectStatus(t, oversizedWorkbook, 422)
+	if strings.HasPrefix(oversizedWorkbook.Body.String(), "PK") || oversizedWorkbook.Header().Get("Content-Disposition") != "" || oversizedWorkbook.Header().Get("ETag") != "" {
+		t.Fatal("oversized export returned partial file or snapshot headers")
+	}
+
+}
+
+func TestPriceXLSXRegisteredUnauthenticatedResponseIsPrivate(t *testing.T) {
+	router := fox.New()
+	New(nil).RegisterRoutes(router)
+	response := httptest.NewRecorder()
+	router.ServeHTTP(response, httptest.NewRequest(http.MethodGet, "/api/v1/admin/prices/export.xlsx", nil))
+	assertAPIErrorResponse(t, response, "workbook unauthenticated", ErrorResponse{Code: http.StatusUnauthorized, Message: "unauthorized"})
+	if response.Header().Get("Cache-Control") != "private, no-store" || response.Header().Get("X-Content-Type-Options") != "nosniff" || response.Header().Get("ETag") != "" || response.Header().Get("Content-Disposition") != "" || strings.HasPrefix(response.Body.String(), "PK") {
+		t.Fatal("unauthenticated export leaked workbook or snapshot")
+	}
 }

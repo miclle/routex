@@ -6,7 +6,9 @@ export default {
   uploadTitle: '上传价格',
   api: '管理 API',
   downloadStep: '1. 下载当前价格',
-  downloadHelp: '下载完整的当前价格目录 CSV，修改后按导入限制拆分 CSV 或工作簿批次上传。',
+  downloadHelp:
+    '下载完整的当前价格目录 Excel（XLSX）或 CSV。导出可能超过单次上传限制，请将修改后的文件拆分为符合上传限制的批次。Excel 导出上限为 512 KiB，超限目录会整体拒绝，不会输出部分数据。',
+  downloadExcel: '下载 Excel',
   download: '下载 CSV',
   uploadStep: '2. 上传修改后的价格',
   uploadHelp:
@@ -66,6 +68,7 @@ export default {
   invalidCommit: '当前价格目录无法接受此文件，请核对全部定位错误后重新选择修正文件。',
   reviewAgain: '重载目录并重新预览',
   saved: '价格文件变更已应用。',
+  downloadedExcel: '当前 Excel 下载已准备。',
   downloaded: '当前 CSV 下载已准备。',
   apiTitle: '价格管理 API',
   apiHelp: '先预览完整原始文件，再使用核对后的摘要及价格目录 ETag 应用变更。',

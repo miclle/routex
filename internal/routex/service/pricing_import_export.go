@@ -27,6 +27,42 @@ type PriceCSVExport struct {
 func safePriceCSVName(value string) string { return safeCSVCell(value) }
 func (s *Service) ExportPriceCSV(ctx context.Context, actorID string) (*PriceCSVExport, error) {
 	result := &PriceCSVExport{}
+	var buffer bytes.Buffer
+	writer := csv.NewWriter(&buffer)
+	header := append(append([]string{}, priceCSVColumns...), "upstream_name")
+	if err := writer.Write(header); err != nil {
+		return result, err
+	}
+	etag, err := s.exportPriceRows(ctx, actorID, priceExportTooLarge, func(row []string) error {
+		row[8] = safePriceCSVName(row[8])
+		if err := writer.Write(row); err != nil {
+			return err
+		}
+		writer.Flush()
+		if err := writer.Error(); err != nil {
+			return err
+		}
+		if buffer.Len() > priceExportBytes {
+			return priceExportTooLarge
+		}
+		return nil
+	})
+	result.ETag = etag
+	if err != nil {
+		return result, err
+	}
+	writer.Flush()
+	if err := writer.Error(); err != nil {
+		return result, pricingError(err)
+	}
+	result.CSV = bytes.Clone(buffer.Bytes())
+	return result, nil
+}
+
+// Both formats consume the same authorized, complete current snapshot. Raw
+// names reach the serializer so CSV protection never changes XLSX text cells.
+func (s *Service) exportPriceRows(ctx context.Context, actorID string, tooLarge error, consume func([]string) error) (string, error) {
+	etag := ""
 	err := s.authDB(ctx).Transaction(func(tx *gorm.DB) error {
 		if err := authorizeGovernance(tx, actorID, "prices.read"); err != nil {
 			return err
@@ -35,19 +71,13 @@ func (s *Service) ExportPriceCSV(ctx context.Context, actorID string) (*PriceCSV
 		if err := tx.First(&setting, 1).Error; err != nil {
 			return err
 		}
-		result.ETag = setting.ETag
+		etag = setting.ETag
 		var models []entity.ModelPrice
 		if err := tx.Order("id").Limit(priceExportModels + 1).Find(&models).Error; err != nil {
 			return err
 		}
 		if len(models) > priceExportModels {
-			return priceExportTooLarge
-		}
-		var buffer bytes.Buffer
-		writer := csv.NewWriter(&buffer)
-		header := append(append([]string{}, priceCSVColumns...), "upstream_name")
-		if err := writer.Write(header); err != nil {
-			return err
+			return tooLarge
 		}
 		rows := 0
 		for _, model := range models {
@@ -58,26 +88,14 @@ func (s *Service) ExportPriceCSV(ctx context.Context, actorID string) (*PriceCSV
 			for _, rate := range record.Rates {
 				rows++
 				if rows > priceExportModels*pricing.MaxRates {
-					return priceExportTooLarge
+					return tooLarge
 				}
-				if err := writer.Write([]string{record.ProviderModelID, rate.Metric, rate.Tier, rate.Unit, rate.Currency, rate.Amount, strconv.FormatBool(rate.Enabled), strconv.FormatInt(record.ContextThreshold, 10), safePriceCSVName(record.UpstreamName)}); err != nil {
+				if err := consume([]string{record.ProviderModelID, rate.Metric, rate.Tier, rate.Unit, rate.Currency, rate.Amount, strconv.FormatBool(rate.Enabled), strconv.FormatInt(record.ContextThreshold, 10), record.UpstreamName}); err != nil {
 					return err
-				}
-				writer.Flush()
-				if err := writer.Error(); err != nil {
-					return err
-				}
-				if buffer.Len() > priceExportBytes {
-					return priceExportTooLarge
 				}
 			}
 		}
-		writer.Flush()
-		if err := writer.Error(); err != nil {
-			return err
-		}
-		result.CSV = bytes.Clone(buffer.Bytes())
 		return nil
 	}, &sql.TxOptions{Isolation: sql.LevelRepeatableRead, ReadOnly: true})
-	return result, pricingError(err)
+	return etag, pricingError(err)
 }

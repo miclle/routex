@@ -4,12 +4,38 @@ Updated: 2026-10-07. This document records engineering contracts, work packages 
 
 ## Current monthly modes, Connection and Vault continuation (2026-10-07)
 
-Latest delivered feature baseline: `f9e72ca5023fdde0c7495bf0e3a8092f9e5fb0ed`
+This phase adds bounded Excel price export to the existing price-file workspace,
+with the Excel action before CSV and a text-only workbook that preserves exact
+decimal values. CSV output and import preview/confirmation remain unchanged;
+export ceilings do not enlarge the independent import limits. Downloads use
+transient Blobs, current actor/Session/permission checks, cancellation and a
+duplicate-operation guard. A prepared notice does not prove a saved file.
+
+The exact `07ce11845002a4d4a3aa9d59abe55db230bbfdb2`-based private candidate
+preserves the delivered member-Key fixture repair and changes fifteen price
+paths. Formatting, mandatory checking, 58 balanced scoped Go race results,
+65 focused frontend tests/four suites, complete Task (4,579 frontend cases in
+183 files, Node/development/Go/production assets) and production build pass.
+Independent source review is
+`225324150e41ac0784b87c32bc54539413f433cbd05d2796ee67d67a84e09bf7`;
+all 1,788 unrelated paths and source modes remain exact. The earlier price Focus4
+passes its exact prior candidate on PostgreSQL/MySQL; its receipt is not
+relabeled as a new complete matrix for this contextual candidate.
+Genuine browser-saved Excel/CSV, bilingual download interaction and browser
+Session restart remain pending. F15 stays partial, formal totals stay 12 complete,
+15 partial and three unstarted, and the full objective remains active.
+
+Commit `07ce11845002a4d4a3aa9d59abe55db230bbfdb2` is pushed and remote main
+read-back is exact. Its new Actionlint37576843297 and GolangCI37576843344 pass;
+CI37576843294 remains in progress at this checkpoint. The earlier failed
+CI37571163309 stays failed. New phase CI must be checked independently.
+
+Preceding delivered feature baseline: `f9e72ca5023fdde0c7495bf0e3a8092f9e5fb0ed`
 (Connection availability). The exact 54-path commit/tree and remote main read-back
 are verified. Actionlint37571163377 and GolangCI37571163243 pass. CI37571163309
 passes Backend/Frontend checks but fails its database job on a MySQL member-Key
-fixture data race; build artifacts are skipped. The index remains empty and the
-fifteen price-export paths are preserved. The current-parent delivery check passes in 65.165 seconds; the
+fixture data race; build artifacts are skipped. At that historical checkpoint,
+the index was empty and fifteen price-export paths were preserved. The current-parent delivery check passes in 65.165 seconds; the
 controlled native/restart workflow has independent review. Browser/AuthGate and
 full F11 acceptance remain separate.
 
@@ -240,8 +266,8 @@ The original deadline and assertions remain intact; unchanged source and owned
 cleanup are independently verified, review
 `7934fa56c7556bb2b79d2aafbe49068c8461fe6a1b6015b079fd8d0dae54d878`.
 
-The current-context price-export candidate adopts the existing fifteen scoped
-paths without changing main. Formatting, mandatory checking, 58 named Go race
+The historical Connection-head price-export candidate adopts the fifteen scoped
+paths without changing its parent main. Formatting, mandatory checking, 58 named Go race
 results, 65 frontend tests in four files and production build pass. The current
 Connection implementation and 1,788 unrelated source paths remain exact;
 source review `7093eab53ee8772b1b6632f134a2bc9daa675ee5ee7751b9aa92198fd8a1a9f6`.
@@ -251,6 +277,24 @@ acceptance `256a82c975932411786099ebc9b51d32796e7686a14dca7e0584d5c967c15c3a`,
 root review `da255f5bdfc472e50999ecb716f41c8835b2135d4090504407fbc080018b5227`.
 Genuine saved Excel/CSV browser delivery remains pending. No downloaded file,
 complete matrix or completed F15 capability is inferred.
+
+The private root-rotation R6 fixture now recognizes the exact bounded typed
+Provider inventory projection while excluding ordinary runtime catalogue reads.
+The legacy map branch, CAS context/table, five-second barrier and epoch/finality
+assertions remain intact. Twelve named race checks, both actual-method probes,
+formatting, mandatory checking, complete Task (4,602 frontend cases/185 files)
+and build pass. Independent source-only review is
+`c33e3b7f7421e6e3ae049206fb4c31de779a4a1d6b7b3d0e0d86ad08a867e3d2`.
+Fresh Focus12 exits 1 in 230.363 seconds: ten direct scenarios pass, including
+root rotation on both drivers; only the two storage lifecycles fail at their
+bounded root-migration wait. Independent source/resource/process/port failure
+review is `abae78bcae205b09b260995d8ea974f4d1859d8c9de70591933ca306ac97c91e`.
+Source and an actual-worker resource-free proof identify a fixture mismatch:
+it checks phase `observing`, while production saves status `observing` and phase
+`observation`. The actual final job state was not recorded in the failed run.
+A fixture-only successor and fresh validation are pending; controlled real-Vault
+GO remains pending. Historical failures remain failed. Vault storage remains
+private and F28 remains partial.
 
 The current-head CI race is separate from these private feature checks. At
 `member_keys_integration_test.go:227`, the fixture registers a GORM Create callback
@@ -265,9 +309,9 @@ checking passes. Fresh exact-CI-source PostgreSQL/MySQL validation passes in
 acceptance `55e3c3eda79a76f33ebda50be33f3fef3be9b1aa3edd73701dda2b810fa4f735`,
 root review `9a6043b01c125d9fe7fbb4c174556ea1840c706c3152e22455262febca60d1e8`.
 All 1,799 unrelated archived-head paths and source modes remain exact. Independent
-review confirms worker teardown and unchanged price paths. The containing commit
+review confirms worker teardown and unchanged price paths. Commit `07ce118`
 delivers only this fixture correction and the two status documents; it does not
-deliver the fifteen pending price-export paths or private Vault storage. The
+deliver the fifteen then-pending price-export paths or private Vault storage. The
 original CI remains failed and a new complete remote result remains pending.
 
 
@@ -363,7 +407,7 @@ Current acceptance work:
 - **Personal monthly behavior:** private R4 passes the complete controlled workflow: independent zero stopping, both alert-only success, blank/null inactive modes, EN/ZH drafts, Base UI Escape/keyboard confirmation, read-only/denied gates and Key parent100 alert versus Key200 hard. Seven gateway calls yield three native completed attempts and four pre-admission rejections with null usage, uncaptured pricing and no attempts. Same binary/config/database/journal restart preserves five original API Sessions, four browser Sessions and all sampled rows. Helper/root exit zero and independent owned cleanup pass. Acceptance SHA-256: `75b6b5265014caa9c63b531275c0f89f98ab8fb7512e00c217a446388eccf8cc`. The earlier null-token oracle and physical-column failures remain retained. Contextual carry is applied and current-main gates pass; the exact isolated staged regression passes and the containing commit delivers this bounded phase.
 - **Provider metadata:** controlled R6 passes independent read/write/denied gates, two conflicts, explicit current review, a response-loss publication and immutable retry after genuine Session-error recovery and same-artifact restart. Five editor writes produce three typed name audits; children, original Sessions and zero inference/Keys remain verified. Helper/root exit zero and independent cleanup pass. Acceptance SHA-256: `3688b5cc9932c45f552f80697bec9e8063b45955223521864dab732a8cfcfa97`. Earlier observer/hostname failures remain retained. The contextual carry is applied and current-main gates pass; the exact isolated staged regression passes and the containing commit delivers this bounded phase.
 - **Team monthly behavior:** final composition passes 197 focused frontend tests, mandatory checking, complete Task (4,369 frontend cases in 173 files) and build. Focus R3 passes all18 direct cases across PostgreSQL/MySQL,25 balanced named results in400.674 seconds, with unchanged source/modes and independent cleanup. Acceptance SHA-256: `b78ef44670da96ab7f14253b3401b0f22dfaeaadae697a965a1d3c16cd5ee625`. Earlier failures retain the test-only over-width PriceRate ID and insufficient conservative money-reservation allowance; production enforcement and original denial assertions remain unchanged. Full135 R1 now passes 270 direct PostgreSQL/MySQL lifecycle cases, eight constraints, 4,792 balanced named results and five package completions in 2,983.417 seconds. Source1,723/modes and independent cleanup pass; acceptance SHA-256: `658035c5b541e3a25c11084f88a05f22ad35b74ba8bc943288a33d2f2d7b639b`. This is private 1,042-backend evidence. The contextual 31-path code carry and six rebased English documentation/rule paths pass exact staged checking, complete Task (4,402 frontend cases in 175 files, four Node checks, two development lifecycle checks, Go race/coverage and production assets) and build. All 1,724 staged source bytes/modes are independently matched. This 1,040-backend candidate excludes pending Excel changes and passes its own nine-case-per-driver focused regression: 18 direct lifecycles and 25 balanced named results in 465.818 seconds; acceptance SHA-256: `36f2953fd99f1f689656f4698b88da8335ea61b34268ca05accd66c68a30e262`. Exact owned Compose resources, captured process and both ports are independently absent. The accepted predecessor full133 remains distinct from the private full135; no evidence transfer or redundant full135 claim is made. The containing commit delivers this bounded Team phase. Controlled browser R1 ended with an idle timeout and stays failed. Fresh R2 passes EN/ZH, independent token/money permissions, Escape/focus, zero stopping, alert-only admission, inactive null caps and original-document restart. Seven gateway calls produce four completed attempts, including one disclosed Personal warmup; Team settles15Tokens/USD15 while member Personal stays0. All ten original Sessions and sampled rows remain unchanged; source and owned cleanup are independently verified, and temporary tabs are closed. Acceptance SHA-256: `2297d210b6fa437d47a94bacf7d1ea9510db6bd2dcd2dc541678e270327b69ac`. Six incidental GET500 registration/notification responses are retained with unproven causes; no all-request health or ordinary editor-remount uncertainty guarantee is claimed.
-- **Excel price export:** source and dual-driver checks pass; genuine saved browser downloads remain unresolved. A fresh current shipping binary, empty disposable catalogue and real focused browser produce prepared notices for one Excel and one original CSV click, but both documented download events time out after ten seconds. All owned resources are cleaned. This does not establish a product cause or blanket browser incompatibility. HTTP200/API workbook inspection do not prove saved delivery; Excel source remains unstaged.
+- **Excel price export:** source and dual-driver checks pass; genuine saved browser downloads remain unresolved. A fresh current shipping binary, empty disposable catalogue and real focused browser produce prepared notices for one Excel and one original CSV click, but both documented download events time out after ten seconds. All owned resources are cleaned. This does not establish a product cause or blanket browser incompatibility. HTTP200/API workbook inspection do not prove saved delivery; the bounded Excel source phase is checked above and browser acceptance remains open.
 
 Root independently verifies owned resource, process and port cleanup for failed Personal, Provider and routing runs. Failures are retained and are not relabelled as accepted delivery.
 
