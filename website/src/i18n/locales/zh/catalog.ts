@@ -1,4 +1,20 @@
 export default {
+  credentialStorage: {
+    futureSource: '此新凭据的已配置来源',
+    recordedSource: '已记录存储来源',
+    inline: '内部加密存储',
+    vault: 'Vault KV v2',
+    unknown: '未知',
+    pending: '已保存的凭据处于待验证和禁用状态。请单独验证并启用；已配置存储不代表可用或路由生效。',
+    loading: '正在等待最新的供应商写入权限与存储信息。',
+    loadError: '供应商授权的存储信息不可用。',
+    stale: '已审核的存储策略发生变化。请明确审核当前策略；草稿已保留。',
+    review: '审核当前存储策略',
+    reviewed: '已审核当前存储策略，草稿已保留。',
+    retry: '重试原始创建请求',
+    uncertain: '创建结果不确定。请重试准确的原始请求或放弃，保留原始 UUID、策略标识与临时密钥。',
+    failed: '创建或策略审核失败。',
+  },
   providerMetadata: {
     identityChanged: '已审阅的供应商身份已不再有效。原始请求仍未解决；新审阅前请明确放弃该请求。',
     title: '基本信息',

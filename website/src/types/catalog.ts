@@ -1,4 +1,5 @@
 export interface Credential {
+  storage_source?: 'inline' | 'vault'
   replaces_credential_id?: string | null
   id: string
   name: string

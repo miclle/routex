@@ -31,7 +31,7 @@ func (connectionEnabledBadDefaultFixture) TableName() string { return "provider_
 func testConnectionEnablementMigration(t *testing.T, db *gorm.DB) {
 	ctx := context.Background()
 	before := personalKeyBehaviorLedger(t, db)
-	if len(before) != 76 || before[75].Version != 76 || !db.Migrator().HasColumn(&connectionEnabledV76Fixture{}, "Enabled") {
+	if (len(before) != 76 && len(before) != 77) || before[75].Version != 76 || len(before) == 77 && before[76].Version != 77 || !db.Migrator().HasColumn(&connectionEnabledV76Fixture{}, "Enabled") {
 		t.Fatal("exact V76 ledger/column required")
 	}
 	if err := db.Create(&entity.Provider{ID: "prv_enabled_upgrade", Name: "Retained"}).Error; err != nil {
@@ -143,6 +143,12 @@ func connectionEnablementSameRow(a, b entity.ProviderConnection) bool {
 }
 
 func connectionEnablementRegistryPrefix(names []string) bool {
+	if len(names) == 148 {
+		if names[146] != "provider_credential_storage_migration:testProviderCredentialStorageMigration" || names[147] != "provider_credential_storage:testProviderCredentialStorageLifecycle" {
+			return false
+		}
+		names = names[:146]
+	}
 	if len(names) != 146 || names[144] != "connection_enablement_migration:testConnectionEnablementMigration" || names[145] != "connection_status:testConnectionStatusLifecycle" {
 		return false
 	}

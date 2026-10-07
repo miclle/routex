@@ -34,12 +34,31 @@ func (s *Service) rootCurrentProofAdmission(tx *gorm.DB, p entity.SecretWritePol
 	if auth == nil || routes == nil || !time.Now().Before(auth.ValidUntil) || auth.SourceDigest == "" || auth.SourceDigest != routes.Digest {
 		return proof, secretStoreUnavailable
 	}
-	data, err := s.loadRuntimeDataTx(tx)
+	openReader := s.openSecret
+	drained := view.closed.Load()
+	drainedViewCurrent := func() bool {
+		return view.store != nil && s.rootPolicy.Load() == view && view.epoch == p.Epoch && view.writeID == *p.WriteKeyID && view.closed.Load() && s.rootReadersClosed.Load() && view.refs.Load() == 0 && s.rootReaders.Load() == 0
+	}
+	if drained {
+		if !allowClosed || !drainedViewCurrent() {
+			return proof, secretStoreUnavailable
+		}
+		// Retirement has joined ordinary readers under its publication gate.
+		// Only this proof rebuild may authenticate retained reader envelopes
+		// through the exact captured store; public readers stay closed.
+		openReader = func(reference, ciphertext string) (string, error) {
+			if !drainedViewCurrent() {
+				return "", secretStoreUnavailable
+			}
+			return view.store.Open(reference, ciphertext)
+		}
+	}
+	data, err := s.loadRuntimeDataTxWithCredentialReader(tx, openReader)
 	if err != nil {
 		return proof, err
 	}
 	digest, err := runtimeDigest(data)
-	if err != nil || digest != routes.Digest {
+	if err != nil || digest != routes.Digest || (drained && !drainedViewCurrent()) {
 		return proof, secretStoreUnavailable
 	}
 	var keys []entity.SecretRootKey
@@ -56,6 +75,9 @@ func (s *Service) rootCurrentProofAdmission(tx *gorm.DB, p entity.SecretWritePol
 		if err != nil || plain != rootProofPlaintext {
 			return proof, secretStoreUnavailable
 		}
+	}
+	if drained && !drainedViewCurrent() {
+		return proof, secretStoreUnavailable
 	}
 	proof = entity.SecretProcessVerification{ProcessID: lease.id, InventoryVersion: 2, PolicyEpoch: p.Epoch, KeyManifestDigest: rootHash(manifest), CryptoVersion: 2, LeaseToken: lease.token, RuntimeSnapshotID: routes.ID, RuntimeSourceDigest: routes.Digest, VerifiedAt: s.secretNow()}
 	return proof, nil

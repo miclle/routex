@@ -22,17 +22,20 @@ func readMemberEffectiveCipherHashes(tx *gorm.DB, credentials []entity.ProviderC
 		return hashes, nil
 	}
 	var rows []entity.ProviderCredential
-	if err := modelCreationDB(tx).Select("id", "ciphertext").Where(memberModelsExactIDs(tx, "id", ids)).Limit(5001).Find(&rows).Error; err != nil {
+	if err := modelCreationDB(tx).Select("id", "ciphertext", "storage_source", "created_at").Where(memberModelsExactIDs(tx, "id", ids)).Limit(5001).Find(&rows).Error; err != nil {
 		return nil, err
 	}
 	if len(rows) != len(ids) {
 		return nil, apperrors.ErrInternal
 	}
+	if err := attachCredentialSources(tx, rows); err != nil {
+		return nil, err
+	}
 	for _, row := range rows {
 		if !slices.Contains(ids, row.ID) || hashes[row.ID] != "" {
 			return nil, apperrors.ErrInternal
 		}
-		hashes[row.ID] = personalHash(row.Ciphertext)
+		hashes[row.ID] = credentialSourceProof(row)
 	}
 	return hashes, nil
 }

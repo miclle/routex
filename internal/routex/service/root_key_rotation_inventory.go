@@ -75,6 +75,9 @@ func rootInventoryQuery(db *gorm.DB, spec rootDomainSpec, cursor string) *gorm.D
 	return query.Clauses(clause.OrderBy{Expression: database.ByteOrder(db, column)}).Limit(50)
 }
 func (s *Service) rootInventoryPage(ctx context.Context, domain, cursor string) ([]rootInventoryRow, error) {
+	if domain == "provider_credentials" {
+		return s.rootProviderInventoryPage(ctx, cursor)
+	}
 	spec, err := rootSpec(domain)
 	if err != nil {
 		return nil, err
@@ -173,4 +176,66 @@ func rootMFALock(tx *gorm.DB, row rootInventoryRow) error {
 		return secretStoreUnavailable
 	}
 	return nil
+}
+
+// Vault references contain no value envelope. Only a valid retained reference
+// exempts its empty ciphertext; malformed/unknown sources remain fail closed.
+// Scan bounded pages until one ordinary inventory page is filled or EOF, so
+// skipped external rows cannot prematurely end rotation of later inline rows.
+func (s *Service) rootProviderInventoryPage(ctx context.Context, cursor string) ([]rootInventoryRow, error) {
+	result := []rootInventoryRow{}
+	for len(result) < 50 {
+		var rows []entity.ProviderCredential
+		q := s.authDB(ctx).Select("id", "created_at", "storage_source", "ciphertext")
+		if cursor != "" {
+			q = q.Where(database.ByteAfter(q, clause.Column{Name: "id"}, cursor))
+		}
+		if err := q.Clauses(clause.OrderBy{Expression: database.ByteOrder(q, clause.Column{Name: "id"})}).Limit(50 - len(result)).Find(&rows).Error; err != nil {
+			return nil, err
+		}
+		refs := []entity.CredentialVaultReference{}
+		ids := []string{}
+		for _, c := range rows {
+			if c.StorageSource == "vault" {
+				ids = append(ids, c.ID)
+			}
+		}
+		if len(ids) > 0 {
+			if err := s.authDB(ctx).Where(memberModelsExactIDs(s.db, "credential_id", ids)).Limit(len(ids) + 1).Find(&refs).Error; err != nil {
+				return nil, err
+			}
+		}
+		byID := map[string]entity.CredentialVaultReference{}
+		for _, r := range refs {
+			if _, dup := byID[r.CredentialID]; dup {
+				return nil, secretStoreUnavailable
+			}
+			byID[r.CredentialID] = r
+		}
+		pageSize := 50 - len(result)
+		for _, c := range rows {
+			if !rootSafeIdentity(c.ID, 30) {
+				return nil, secretStoreUnavailable
+			}
+			cursor = c.ID
+			switch c.StorageSource {
+			case "vault":
+				r, ok := byID[c.ID]
+				if !ok || c.Ciphertext != "" || !credentialVaultReferenceShape(c, r) {
+					return nil, secretStoreUnavailable
+				}
+			case "inline", "":
+				if c.Ciphertext == "" {
+					return nil, secretStoreUnavailable
+				}
+				result = append(result, rootInventoryRow{c.ID, "", c.ID, c.Ciphertext})
+			default:
+				return nil, secretStoreUnavailable
+			}
+		}
+		if len(rows) < pageSize {
+			break
+		}
+	}
+	return result, nil
 }

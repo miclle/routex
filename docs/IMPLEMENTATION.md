@@ -2,6 +2,107 @@
 
 Updated: 2026-10-07. This document records engineering contracts, work packages and acceptance checks. Planned interfaces and metrics are not implementation evidence. The active objective covers F01–F30 and A01–A20 through incremental P0–P6 delivery.
 
+## Current Vault Provider storage and saved AppRole work (2026-10-07)
+
+Commit `68dd68a182ac40f1ac9497b02ce2b46bf360d562` delivers the bounded Excel
+price-export slice. Exact remote main is verified. CI37578592197 passes all four
+jobs, including PostgreSQL/MySQL integration and Build Artifacts;
+Actionlint37578592217 and GolangCI37578592206 also pass. The preceding fixture
+CI37576843294 was superseded and cancelled. Genuine browser-saved Excel/CSV
+files and browser Session restart remain pending. F15 stays partial.
+
+Before the root-proof correction, the private Vault Provider storage candidate
+passes its source checks, complete Task tests and build. Its earlier exact-source
+Focus12 passes both databases;
+those receipts remain tied to their original source. Real Vault validation
+confirms saved-policy publication separately from configuration persistence and
+observes the resulting Key-scoped unavailable route before the native denial.
+A subsequent root-key retirement returns HTTP503 after the real 300-second
+observation. The final durable retirement state was not captured and remains
+unknown; that run remains failed, with owned resources independently absent.
+
+The diagnosed defect is the ordinary reader gate being reused inside the already
+drained root-retirement transaction. A narrow private correction validates the
+exact current drained policy before each retained envelope read and immediately
+before returning proof. Ordinary readers remain closed; source generations,
+cache material, publication digest and authorization checks remain enforced.
+Twenty-eight related uncached race checks pass, including meaningful original
+failure and late-policy-replacement regressions. After a test-only GORM selector
+correction, mandatory checking, complete Task (4,621 frontend tests in 186 files,
+Node/development/Go/production assets) and production build pass. Matching
+PostgreSQL/MySQL Focus12 passes all 12 direct lifecycles in 235.434 seconds.
+
+The corrected first real Vault run completes Retire with HTTP 200, committed
+and publication-applied results, and seven observed domains with no blocked or
+changed records. Its final inventory assertion fails because verification
+replaces per-subject outcomes with `already_target`, while cumulative counters
+retain the initial rewraps. All nine subjects and generations match. That
+failed run remains historical and does not establish inference or restart.
+
+A helper-only correction now checks every exact journal subject, generation and
+final verification outcome, plus cumulative scanned/rewrapped/already-target
+counts of 2N/N/N. Thirty-five resource-free helper checks pass. The subsequent
+real Vault workflow exits successfully on the same checked artifact: five Calls,
+four native completed Attempts and upstream requests, four CAS-zero creates,
+thirteen owned reads and four ACL denials. The seven-domain root retirement uses
+a genuine 300-second observation, and post-retirement inference, retained orphan
+recovery and inference after application/Vault restart succeed. All five original
+API Sessions survive. Root independently confirms owned processes, five ports and
+Compose resources are absent. The independent bounded receipt review passes,
+and Root rehashes all 119 safe evidence files. API/native acceptance is limited
+to that exact source and artifact. The complete 148-case-per-driver regression
+passes under its original 55-minute Go and 3,600-second supervisor bounds:
+296 direct PostgreSQL/MySQL lifecycles, eight generic constraints and 5,151
+balanced named results in 3,073.145 seconds. Root independently rehashes all
+1,824 source paths/modes, 132 composition artifacts and raw output, and confirms
+owned Compose resources, captured PID/PGID and both database ports are absent.
+Acceptance SHA-256:
+`6e203f01148a6f2573f8e259813b6d9c5382d5e2c738526d1137a2ad43894808`;
+root review SHA-256:
+`84f013744efe490f739cc84a11e423e388d9f7ce9a88746d442359f5f25c24b0`.
+This phase delivers bounded Vault-backed Provider Credential storage, exact
+retained references, durable write compensation, explicit storage policy and
+matching root-retirement proof. Browser download, saved AppRole activation and
+Provider automatic orphan cleanup remain separate pending boundaries. F28 stays
+partial; no complete feature or fleet acceptance is inferred.
+
+The user approved administrator-provided reusable SecretIDs for saved AppRole
+identities. Backend and frontend proceed in separate private workspaces, with
+independent writer/reader identities and backward-compatible Token support.
+Login Tokens remain transient, and bounded login occurs only for explicit
+verification, write/read or restart preparation. There is no automatic SecretID
+creation or rotation and no expansion of Cleanup authority. The existing AppRole
+SDK is delivered; saved Integration activation is still pending. The separate
+backend candidate registers frozen GORM V78 and appends two dedicated cases after
+the original 148-scenario prefix. Its frozen implementation and test-only
+maximum-body successor pass
+independent review and scoped race, vet, staticcheck and formatting checks.
+The first composed mandatory check retains a test-only QF1001 failure.
+An equivalent conditional successor preserves the original assertion and passes
+scoped race and mandatory checking. The final composed mandatory check, complete
+Task and production build pass
+with 4,659 frontend tests in 186 files, four Node helpers, two development
+lifecycle checks, Go race tests and production assets. Root rehashes all 111
+artifact leaves and 1,830 source files/modes, including 47 owned outputs and
+1,783 exact parent files. Matching Focus16 is now running after accepted
+parent Full148; real Vault and complete Full150 acceptance remain pending. The
+nine-file frontend proposal passes 185 related tests plus types,
+lint and formatting and is bound into that reviewed final composition. Real
+API/browser checks remain pending.
+
+The next already-partial protocol slice is Azure OpenAI upstream adaptation.
+The user selected explicit administrator deployment attestation, separate from
+Credential authentication and actual model discovery. It will retain exact
+Credential/deployment ownership, actor, reason and version, and will not issue
+paid verification calls or borrow management-plane authority. Request adaptation
+and its separately reviewed API/UI contract are being prepared privately; no
+Azure activation or delivery is claimed. Project quota and rate applications
+are already complete and are not reopened by stale stage summaries.
+
+Formal totals remain 12 complete, 15 partial and three unstarted. The full
+objective remains active. Older checkpoints retain their original source and
+acceptance scope.
+
 ## Current monthly modes, Connection and Vault continuation (2026-10-07)
 
 This phase adds bounded Excel price export to the existing price-file workspace,
@@ -900,7 +1001,7 @@ The binary capability count is 12 completed, 15 partially completed, and 3 not s
 | F25 | Site presentation, language, and announcements | Completed | Durable site name, URL, logo, footer, default language, bilingual UI behavior, and announcement lifecycle are implemented. |
 | F26 | Instances, heartbeats, resources, jobs, and offline cleanup | Completed | Distinct process generations, server-owned leases, nullable resource facts, bounded real system jobs, executor-loss reconciliation, revision-checked cleanup, audit evidence, and the bilingual administrative workspace are implemented. |
 | F27 | S3, owned attachments, SMTP, and notifications | Partially completed | S3-compatible configuration and administration UI, explicit user/Project attachment APIs, cleanup recovery, Key-scoped inference reads, single/comparison attachment interfaces, SMTP administration/test delivery, and durable operational email intents exist. External storage/mail acceptance, bounce handling, and inbox tracking remain open. |
-| F28 | Internal encryption, root-key rotation, and Vault switching | Partially completed | Internal Provider, egress, SMTP, retained Storage and MFA encryption is implemented. Guarded root rotation passed source, complete dual-driver regression and controlled production/browser/restart acceptance, including final mandatory checks. Vault Token settings, retained revisions, diagnostic probes and seven-domain root inventory are delivered in c2368ddb; the bounded credential KV-v2 SDK is delivered in 78c76d2. Provider storage switching, durable compensation and independent cleanup authority remain open. |
+| F28 | Internal encryption, root-key rotation, and Vault switching | Partially completed | Internal Provider, egress, SMTP, retained Storage and MFA encryption is implemented. Guarded root rotation passed source, complete dual-driver regression and controlled production/browser/restart acceptance, including final mandatory checks. Vault Token settings, retained revisions, diagnostic probes and seven-domain root inventory are delivered in c2368ddb; the bounded credential KV-v2 SDK is delivered in 78c76d2. Bounded Vault-backed Provider storage switching, stable retained references, durable write compensation and root retirement pass source, dual-driver and controlled API/native/restart acceptance in this phase. Saved AppRole activation, Provider automatic orphan cleanup and browser acceptance remain open. |
 | F29 | API Key Vault delivery and application identities | Not started | Application identities, Profiles, descriptors, coordinator state, and no-plaintext-fallback delivery are not implemented. |
 | F30 | Configuration publication, acknowledgement, rollback, revocation, and audit | Partially completed | Immutable runtime publication, durable events, current revocation, and audit foundations exist; node acknowledgement, complete rollback, and distributed emergency-revocation acceptance remain open. |
 
@@ -923,9 +1024,9 @@ A01 and A13 are fully accepted across their defined controlled scope. Other case
 | A11 | Concurrent quota, TPM, RPM, and concurrency contention | Partially completed | Single-process controlled enforcement exists; distributed and capacity bounds remain open. |
 | A12 | IPv4, IPv6, CIDR, and forged forwarding headers | Partially completed | Controlled source-address enforcement exists; production proxy-topology acceptance remains open. |
 | A13 | Self, repeated, concurrent approval and Team overflow | Completed | Real PostgreSQL/MySQL controlled tests reject self/duplicate/stale decisions, serialize owner approve/approve and approve/reject competitors, retain one winner and audit, atomically raise Team/member caps, roll back exact audit failure, and preserve receipts/current use through restart. This is controlled single-process acceptance. |
-| A14 | Control Plane, Vault, analytics failure, invalid snapshots, and replay | Partially completed | Runtime and durable replay foundations exist; Vault and the complete failure matrix remain open. |
+| A14 | Control Plane, Vault, analytics failure, invalid snapshots, and replay | Partially completed | Runtime and durable replay foundations exist. Bounded Vault write-response loss, retained-source changes and root retirement/restart have controlled evidence; the complete failure matrix remains open. |
 | A15 | SSO, OAuth, LDAP, MFA, and recovery | Partially completed | MFA is implemented; enterprise identity is not. |
-| A16 | Vault compensation, rotation, and cleanup failure | Not started | Vault Token configuration/probes and credential SDK operations exist; durable Provider compensation, rotation and cleanup-failure acceptance remain unimplemented. |
+| A16 | Vault compensation, rotation, and cleanup failure | Partially completed | Durable Provider write compensation, retained references and controlled root retirement/restart pass the bounded dual-driver and real Vault workflow. Saved AppRole activation, automatic orphan cleanup and the complete cleanup-failure matrix remain open. |
 | A17 | Images/PDF, object authorization, and model comparison | Partially completed | Object backend, comparison, conservative route capability discovery, owner-bound user/Project byte reads, current-manager Project lifecycle, native inline rewriting, both Playground attachment interfaces, and attested token/TPM/money reservation with exact media occurrence settlement exist; external acceptance remains open. |
 | A18 | Call queries, CSV, reports, and hostile analysis inputs | Partially completed | Call queries, usage views, and safe scoped call-record CSV exports have controlled evidence; AI analysis, saved reports, and their hostile-input acceptance remain open. |
 | A19 | S3, SMTP, site, announcements, instances, and jobs | Partially completed | Controlled local coverage now includes storage, SMTP configuration/test and durable notification delivery, site/announcements, authoritative instances, and actual system jobs. External services, bounce/inbox behavior, production clock/capacity assumptions, and release acceptance remain open. |

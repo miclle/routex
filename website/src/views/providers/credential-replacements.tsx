@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import axios from 'axios'
 import { getCredentialMetadata } from '@/api/credential-metadata'
@@ -12,6 +12,10 @@ import { FormField, QueryState } from '@/components/app/CatalogUI'
 import { Button } from '@/components/ui/button'
 import { Dialog } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
+import { useCredentialStorageContext } from './credential-storage-context'
+import { useSessionGeneration } from '@/hooks/use-session-generation'
+import { useConnectionQueryRevision } from './connection-authority'
+import type { CredentialStorageContext } from '@/types/provider-storage'
 
 type Props = {
   providerId: string
@@ -23,26 +27,60 @@ type Props = {
 }
 
 export default function CredentialReplacementDialog(props: Props) {
-  return <ReplacementDialog key={`${props.providerId}:${props.credentialId}`} {...props} />
+  const session = useSession()
+  return (
+    <ReplacementDialog
+      key={`${session.data?.user.id}:${props.providerId}:${props.credentialId}`}
+      {...props}
+    />
+  )
 }
 
 function ReplacementDialog(props: Props) {
   const { t } = useTranslation('catalog')
   const access = usePermissions()
+  const session = useSession()
+  const generation = useSessionGeneration()
+  const cache = useQueryClient()
+  const key = [
+    'admin',
+    'credential-replacement-source',
+    session.data?.user.id,
+    props.providerId,
+    props.credentialId,
+    generation,
+  ]
+  const [seed, setSeed] = useState<CredentialMetadata>()
+  const read =
+    session.isSuccess &&
+    !session.isFetching &&
+    !session.error &&
+    access.isSuccess &&
+    !access.isFetching &&
+    !access.error &&
+    access.can('providers.read')
   const query = useQuery({
-    queryKey: ['admin', 'credential-replacement-source', props.providerId, props.credentialId],
+    queryKey: key,
     queryFn: async ({ signal }) => {
       const record = await getCredentialMetadata(props.credentialId, signal)
       if (record.id !== props.credentialId || record.connection_id !== props.connectionId)
         throw new Error('Credential replacement source mismatch')
       return record
     },
-    enabled: access.can('providers.read'),
+    enabled: read,
     retry: false,
     gcTime: 0,
   })
-  if (!access.can('providers.read')) return null
-  if (!query.data)
+  const revision = useConnectionQueryRevision([key])
+  const ready = () => {
+    const state = cache.getQueryState(key)
+    return (
+      read && state?.status === 'success' && state.fetchStatus === 'idle' && !state.isInvalidated
+    )
+  }
+  if (ready() && query.data && !seed) setSeed(query.data)
+  if (!seed && access.isSuccess && !access.isFetching && !access.can('providers.read')) return null
+  if (!seed)
     return (
       <Dialog
         open
@@ -52,7 +90,7 @@ function ReplacementDialog(props: Props) {
         description={t('credentialReplacement.description')}
       >
         <QueryState
-          pending={query.isPending}
+          pending={query.isPending || query.isFetching}
           error={query.error}
           retry={() => void query.refetch()}
         />
@@ -61,8 +99,10 @@ function ReplacementDialog(props: Props) {
   return (
     <ReplacementEditor
       {...props}
-      initial={query.data}
-      current={query.data}
+      initial={seed}
+      current={ready() ? query.data : undefined}
+      sourceReady={ready}
+      sourceStamp={revision.snapshot}
       reload={async () => {
         const result = await query.refetch()
         if (result.isError) throw result.error
@@ -76,15 +116,22 @@ function ReplacementEditor({
   initial,
   current,
   reload,
+  sourceReady,
+  sourceStamp,
   ...props
 }: Props & {
   initial: CredentialMetadata
-  current: CredentialMetadata
+  current: CredentialMetadata | undefined
+  sourceReady: () => boolean
+  sourceStamp: () => string
   reload: () => Promise<CredentialMetadata>
 }) {
   const { t } = useTranslation('catalog')
-  const access = usePermissions()
-  const session = useSession()
+  const authority = useCredentialStorageContext()
+  const access = authority.permissions
+  const session = authority.session
+  const [storage, setStorage] = useState<CredentialStorageContext>()
+  if (authority.context && !storage) setStorage(authority.context)
   const [reviewed, setReviewed] = useState(initial)
   const [name, setName] = useState('')
   const [secret, setSecret] = useState('')
@@ -93,7 +140,9 @@ function ReplacementEditor({
   const [conflict, setConflict] = useState(false)
   const [uncertain, setUncertain] = useState(false)
   const [notice, setNotice] = useState('')
-  const intent = useRef<{ etag: string; body: CredentialReplacementInput } | undefined>(undefined)
+  const intent = useRef<
+    { etag: string; body: CredentialReplacementInput; source: 'inline' | 'vault' } | undefined
+  >(undefined)
   const lock = useRef(false)
   const alive = useRef(true)
   useEffect(() => {
@@ -103,8 +152,11 @@ function ReplacementEditor({
       intent.current = undefined
     }
   }, [])
-  const canWrite = access.can('providers.write')
-  const stale = conflict || reviewed.etag !== current.etag
+  const canWrite = authority.ready && sourceReady() && access.can('providers.write')
+  const stale =
+    conflict ||
+    (!!current && reviewed.etag !== current.etag) ||
+    (!!storage && !!authority.context && storage.etag !== authority.context.etag)
   const locked = busy || uncertain || !canWrite
   function dismiss() {
     intent.current = undefined
@@ -116,7 +168,10 @@ function ReplacementEditor({
     lock.current = true
     setBusy(true)
     try {
-      const record = await reload()
+      const [record, policy] = await Promise.all([reload(), authority.query.refetch()])
+      if (policy.isError || !authority.current() || !sourceReady())
+        throw new Error('Review unavailable')
+      setStorage(policy.data)
       if (!alive.current) return
       setReviewed(record)
       setConflict(false)
@@ -131,8 +186,8 @@ function ReplacementEditor({
   }
   async function submit(event?: FormEvent, retry = false) {
     event?.preventDefault()
-    if (lock.current || !canWrite || !session.data) return
-    if (retry ? !uncertain || !intent.current : uncertain || stale) return
+    if (lock.current || !authority.current() || !sourceReady() || !session.data) return
+    if (retry ? !uncertain || !intent.current : uncertain || stale || !storage) return
     let captured = intent.current
     if (!retry) {
       const trimmedName = name.trim(),
@@ -157,8 +212,10 @@ function ReplacementEditor({
       try {
         captured = {
           etag: reviewed.etag,
+          source: storage!.storage_source,
           body: {
             request_id: crypto.randomUUID(),
+            storage_policy_etag: storage!.etag,
             name: trimmedName,
             secret,
             reason: trimmedReason,
@@ -179,17 +236,28 @@ function ReplacementEditor({
       intent.current = captured
     }
     if (!captured) return
+    const stamp = authority.stamp(),
+      sourceRevision = sourceStamp()
     lock.current = true
     setBusy(true)
     setNotice('')
     try {
-      await createCredentialReplacement(
+      const result = await createCredentialReplacement(
         props.credentialId,
         props.connectionId,
         captured.etag,
         captured.body,
-        session.data.csrf_token,
+        authority.csrf()!,
       )
+      if (!alive.current) return
+      if (
+        result.storage_source !== captured.source ||
+        !authority.current() ||
+        !sourceReady() ||
+        stamp !== authority.stamp() ||
+        sourceRevision !== sourceStamp()
+      )
+        throw new Error('Authority renewed')
       if (alive.current) {
         intent.current = undefined
         setSecret('')
@@ -198,7 +266,15 @@ function ReplacementEditor({
     } catch (error) {
       if (!alive.current) return
       const status = axios.isAxiosError(error) ? error.response?.status : undefined
-      if (retry || !status || status >= 500) {
+      if (
+        retry ||
+        !status ||
+        status >= 500 ||
+        !authority.current() ||
+        !sourceReady() ||
+        stamp !== authority.stamp() ||
+        sourceRevision !== sourceStamp()
+      ) {
         setUncertain(true)
         setNotice('credentialReplacement.uncertain')
       } else {
@@ -222,12 +298,23 @@ function ReplacementEditor({
       title={t('credentialReplacement.title')}
       description={t('credentialReplacement.description')}
     >
+      {!canWrite && (
+        <p role="status">
+          {t(authority.query.error ? 'credentialStorage.loadError' : 'credentialStorage.loading')}
+        </p>
+      )}
       <form className="space-y-5" noValidate onSubmit={(event) => void submit(event)}>
-        <div className="rounded-lg border bg-muted/30 p-4 text-sm">
+        <div hidden={!canWrite} className="rounded-lg border bg-muted/30 p-4 text-sm">
           <p className="font-medium">{t('credentialReplacement.stepsTitle')}</p>
+          {storage && (
+            <p>
+              {t('credentialStorage.futureSource')}:{' '}
+              {t(`credentialStorage.${storage.storage_source}`)}
+            </p>
+          )}
           <p className="mt-1 text-muted-foreground">{t('credentialReplacement.steps')}</p>
         </div>
-        <dl className="grid grid-cols-2 gap-3 text-sm">
+        <dl hidden={!canWrite} className="grid grid-cols-2 gap-3 text-sm">
           <div>
             <dt className="text-muted-foreground">{t('credentialReplacement.source')}</dt>
             <dd className="break-all">
@@ -249,31 +336,33 @@ function ReplacementEditor({
             <dd>{t('credentialReplacement.pending')}</dd>
           </div>
         </dl>
-        <FormField label={t('credentialReplacement.name')}>
-          <Input
-            autoComplete="off"
-            value={name}
-            disabled={locked}
-            onChange={(event) => setName(event.target.value)}
-          />
-        </FormField>
-        <FormField label={t('credentialReplacement.secret')}>
-          <Input
-            type="password"
-            autoComplete="new-password"
-            value={secret}
-            disabled={locked}
-            onChange={(event) => setSecret(event.target.value)}
-          />
-        </FormField>
-        <FormField label={t('credentialReplacement.reason')}>
-          <Input
-            autoComplete="off"
-            value={reason}
-            disabled={locked}
-            onChange={(event) => setReason(event.target.value)}
-          />
-        </FormField>
+        <fieldset hidden={!canWrite} disabled={locked} className="space-y-5">
+          <FormField label={t('credentialReplacement.name')}>
+            <Input
+              autoComplete="off"
+              value={name}
+              disabled={locked}
+              onChange={(event) => setName(event.target.value)}
+            />
+          </FormField>
+          <FormField label={t('credentialReplacement.secret')}>
+            <Input
+              type="password"
+              autoComplete="new-password"
+              value={secret}
+              disabled={locked}
+              onChange={(event) => setSecret(event.target.value)}
+            />
+          </FormField>
+          <FormField label={t('credentialReplacement.reason')}>
+            <Input
+              autoComplete="off"
+              value={reason}
+              disabled={locked}
+              onChange={(event) => setReason(event.target.value)}
+            />
+          </FormField>
+        </fieldset>
         {stale && !uncertain && (
           <p role="alert" className="text-sm">
             {t('credentialReplacement.stale')}

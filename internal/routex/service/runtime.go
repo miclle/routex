@@ -145,6 +145,9 @@ func (s *Service) StartRuntime(ctx context.Context) error {
 	if s.runtime != nil {
 		return errors.New("runtime is already started")
 	}
+	if err := s.prepareStartupCredentialValues(ctx); err != nil {
+		return err
+	}
 	runCtx, cancel := context.WithCancel(ctx)
 	s.runtime = &gatewayRuntime{cancel: cancel, done: make(chan struct{})}
 	if err := s.RefreshRuntime(runCtx); err != nil {
@@ -459,9 +462,16 @@ type runtimeData struct {
 func (s *Service) loadRuntimeData(ctx context.Context) (*runtimeData, error) {
 	var data *runtimeData
 	err := s.authDB(ctx).Transaction(func(tx *gorm.DB) error { var err error; data, err = s.loadRuntimeDataTx(tx); return err }, &sql.TxOptions{Isolation: sql.LevelRepeatableRead, ReadOnly: true})
+	if err == nil {
+		err = s.pruneCredentialValues(ctx)
+	}
 	return data, err
 }
 func (s *Service) loadRuntimeDataTx(tx *gorm.DB) (*runtimeData, error) {
+	return s.loadRuntimeDataTxWithCredentialReader(tx, s.openSecret)
+}
+
+func (s *Service) loadRuntimeDataTxWithCredentialReader(tx *gorm.DB, openReader func(string, string) (string, error)) (*runtimeData, error) {
 	data := &runtimeData{EgressGeneration: s.egressGeneration.Load()}
 	err := func() error {
 		// A repeatable-read transaction prevents mixed entity generations.
@@ -482,6 +492,17 @@ func (s *Service) loadRuntimeDataTx(tx *gorm.DB) (*runtimeData, error) {
 		}
 		if err := tx.First(&data.EgressSetting, 1).Error; err != nil {
 			return err
+		}
+		if err := attachCredentialSources(tx, data.Credentials); err != nil {
+			return err
+		}
+		for i := range data.Credentials {
+			c := &data.Credentials[i]
+			if c.StorageSource == "vault" && credentialSourceProof(*c) != "" {
+				if _, err := s.preparedCredentialValueWithReader(*c, openReader); err != nil {
+					c.VaultReference.SourceContext = ""
+				}
+			}
 		}
 		data.ProjectData, err = loadProjectRuntimeData(tx)
 		if err != nil {
@@ -586,7 +607,7 @@ func buildRuntimeAuthorization(data *runtimeData, until time.Time) *runtimeAutho
 		auth.ProviderModelRevisions[model.ID] = model.ETag
 	}
 	for _, credential := range data.Credentials {
-		auth.Credentials[credential.ID] = credential.Enabled && credential.VerificationStatus == "verified"
+		auth.Credentials[credential.ID] = credential.Enabled && credential.VerificationStatus == "verified" && credentialSourceProof(credential) != ""
 		auth.CredentialRevisions[credential.ID] = credentialMetadataRecord(credential).ETag
 	}
 	for _, access := range data.Access {
@@ -624,7 +645,7 @@ func runtimeDigest(data *runtimeData) (string, error) {
 	sort.Slice(egresses, func(i, j int) bool { return egresses[i].ID < egresses[j].ID })
 	credentialSecrets := map[string]string{}
 	for _, credential := range data.Credentials {
-		credentialSecrets[credential.ID] = personalHash(credential.Ciphertext)
+		credentialSecrets[credential.ID] = credentialSourceProof(credential)
 	}
 	ciphertexts := map[string]string{}
 	for i := range egresses {
@@ -700,11 +721,14 @@ func (s *Service) buildRuntimeRoutes(data *runtimeData) (map[string][]runtimeRou
 		if s.secrets == nil {
 			return nil, runtimeUnavailable
 		}
-		plaintext, err := s.openSecret(credential.ID, credential.Ciphertext)
+		plaintext, err := s.preparedCredentialValue(credential)
 		if err != nil {
+			if credential.StorageSource == "vault" {
+				continue
+			}
 			return nil, runtimeUnavailable
 		}
-		credentials[credential.ConnectionID] = append(credentials[credential.ConnectionID], runtimeCredential{ID: credential.ID, CipherHash: personalHash(credential.Ciphertext), Plaintext: plaintext, Priority: credential.Priority, CreatedAt: credential.CreatedAt})
+		credentials[credential.ConnectionID] = append(credentials[credential.ConnectionID], runtimeCredential{ID: credential.ID, CipherHash: credentialSourceProof(credential), Plaintext: plaintext, Priority: credential.Priority, CreatedAt: credential.CreatedAt})
 	}
 	for connectionID := range credentials {
 		sort.Slice(credentials[connectionID], func(i, j int) bool {

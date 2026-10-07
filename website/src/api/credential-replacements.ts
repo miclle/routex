@@ -22,7 +22,8 @@ export async function createCredentialReplacement(
     data.id === sourceId ||
     data.connection_id !== connectionId ||
     data.replaces_credential_id !== sourceId ||
-    Object.keys(data).length !== 3
+    (data.storage_source !== 'inline' && data.storage_source !== 'vault') ||
+    Object.keys(data).length !== 4
   )
     throw new Error('Credential replacement receipt unavailable')
   return data

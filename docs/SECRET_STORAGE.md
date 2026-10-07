@@ -48,13 +48,14 @@ Managed egress uses the same envelope store for proxy username/password pairs, w
 
 [Vault Token integrations](VAULT_TOKEN_INTEGRATIONS.md) persist guarded descriptors,
 separate encrypted writer/reader Token revisions and explicit bounded probes.
-Configuration receipts and recorded remote observations remain distinct. This
-phase does not switch active Provider credential storage or add a per-request
-Vault dependency to Gateway inference.
+Configuration receipts and recorded remote observations remain distinct. The
+earlier Token integration phase did not switch active Provider credential storage.
+The Provider write policy below is a separate contract; Gateway inference does
+not fetch Vault on each native request.
 
 ## Controlled Token integration checkpoint
 
-The durable Token integration API passes its R7 controlled configuration/probe, real root observation/retirement and persistent restart gate. This is API-only evidence with zero native Calls/Attempts/Keys; active Provider storage remains internal. Commit `c2368ddb0251415e72bfeee948ad23ed7a173ee4` delivers the bounded Token integration and root-domain support with exact remote main read-back; browser and complete F28 acceptance remain pending. See [Vault evidence](VAULT_TOKEN_INTEGRATIONS.md#controlled-api-evidence-and-remaining-gates).
+The durable Token integration API passes its R7 controlled configuration/probe, real root observation/retirement and persistent restart gate. This is API-only evidence with zero native Calls/Attempts/Keys; that Token-only phase kept active Provider storage internal. Commit `c2368ddb0251415e72bfeee948ad23ed7a173ee4` delivers the bounded Token integration and root-domain support with exact remote main read-back; browser and complete F28 acceptance remain pending. See [Vault evidence](VAULT_TOKEN_INTEGRATIONS.md#controlled-api-evidence-and-remaining-gates).
 
 ## Provider credential KV-v2 SDK
 
@@ -78,9 +79,11 @@ Existing TLS, destination policy and nonreplaying transport remain unchanged.
 Values and Tokens are transient; sanitized observations contain no secret material.
 There is no implicit retry, HTTP404 success or plaintext fallback.
 
-A future service must durably claim exact source, descriptor/auth revisions and
+The Provider storage service must durably claim exact source, descriptor/auth revisions and
 ownership plan before effects, release database locks before HTTP, and record
 unknown outcomes without rewriting historical success. The SDK implements no such
 durable business claim, storage switch, compensation coordinator or runtime
-publication. Active Provider credential storage remains internal. Controlled local
-package tests are not actual Vault or F28/A16 acceptance.
+publication. Provider storage integration is a separate control-plane contract.
+Controlled local package tests are not actual Vault or F28/A16 acceptance.
+
+The Storage tab separates the future provider credential write policy from internal root-key rotation. Two configured-source cards select internal encrypted storage or Vault KV v2; the policy editor requires an exact eligible saved Integration revision, reviewed ETag, reason and explicit confirmation. Selection describes saved configuration, not service readiness. Writer and reader authentication remain independent, and there is no per-credential source/location override. Existing credentials retain their recorded source; changing this policy performs no automatic migration. The Vault tab remains independent and does not fetch policy or root inventories.

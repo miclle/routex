@@ -1,4 +1,23 @@
 export default {
+  credentialStorage: {
+    futureSource: 'Configured source for this new credential',
+    recordedSource: 'Recorded storage source',
+    inline: 'Internal encrypted storage',
+    vault: 'Vault KV v2',
+    unknown: 'Unknown',
+    pending:
+      'A saved credential is pending and disabled. Verify and enable it separately; configured storage does not prove availability or routing.',
+    loading: 'Waiting for fresh provider write authority and storage context.',
+    loadError: 'The provider-authorized storage context is unavailable.',
+    stale:
+      'The reviewed storage policy changed. Review the current policy explicitly; your draft is retained.',
+    review: 'Review current storage policy',
+    reviewed: 'Current storage policy reviewed. Your draft is retained.',
+    retry: 'Retry original creation request',
+    uncertain:
+      'Creation is uncertain. Retry the exact original request or abandon it. Keep the original UUID, policy token and transient secret.',
+    failed: 'Creation or policy review failed.',
+  },
   providerMetadata: {
     identityChanged:
       'The reviewed Provider identity is no longer current. The original request remains unresolved; abandon it explicitly before a new review.',

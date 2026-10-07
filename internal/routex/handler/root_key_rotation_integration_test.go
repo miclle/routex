@@ -19,7 +19,9 @@ import (
 	"time"
 
 	"github.com/fox-gonic/fox"
+	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 
 	"github.com/miclle/routex/internal/routex/entity"
 	apperrors "github.com/miclle/routex/internal/routex/errors"
@@ -261,17 +263,31 @@ func testRootKeyRotationLifecycle(t *testing.T, db *gorm.DB) {
 	}
 	// Call-context gates pause after preparation or inventory capture, outside SQL locks.
 	type gateContextKey struct{}
+	// Nonzero-sized immutable identity distinguishes owning fixture closures.
+	// It is compared locally only and never formatted or persisted.
+	type queryGateOwner struct{ marker byte }
+	owner := &queryGateOwner{marker: 1}
 	type queryGate struct {
-		entered, release chan struct{}
-		armed            atomic.Bool
+		owner                *queryGateOwner
+		predispatchMatched   atomic.Bool
+		callbackOwnerMatched atomic.Bool
+		entered, release     chan struct{}
+		armed                atomic.Bool
+		stage                atomic.Uint32
+		governanceSeen       atomic.Bool
+		governanceSchemaSeen atomic.Bool
+		pointerMatched       atomic.Bool
+		armedAtMatch         atomic.Bool
+		pauseEntered         atomic.Bool
 	}
-	staleGate := &queryGate{entered: make(chan struct{}), release: make(chan struct{})}
-	keepGate := &queryGate{entered: make(chan struct{}), release: make(chan struct{})}
-	casGate := &queryGate{entered: make(chan struct{}), release: make(chan struct{})}
+	staleGate := &queryGate{owner: owner, entered: make(chan struct{}), release: make(chan struct{})}
+	keepGate := &queryGate{owner: owner, entered: make(chan struct{}), release: make(chan struct{})}
+	casGate := &queryGate{owner: owner, entered: make(chan struct{}), release: make(chan struct{})}
 	pause := func(tx *gorm.DB, gate *queryGate) {
 		if !gate.armed.CompareAndSwap(true, false) {
 			return
 		}
+		gate.pauseEntered.Store(true)
 		close(gate.entered)
 		select {
 		case <-gate.release:
@@ -287,7 +303,23 @@ func testRootKeyRotationLifecycle(t *testing.T, db *gorm.DB) {
 			return
 		}
 		gate, _ := tx.Statement.Context.Value(gateContextKey{}).(*queryGate)
+		if gate != nil {
+			gate.callbackOwnerMatched.Store(gate.owner == owner)
+			gate.stage.Store(rootRotationPreparedStage(tx.Statement.Table))
+			if tx.Statement.Schema != nil && tx.Statement.Schema.Table == "governance_settings" {
+				gate.governanceSchemaSeen.Store(true)
+			}
+			if tx.Statement.Table == "governance_settings" {
+				gate.governanceSeen.Store(true)
+			}
+			if gate == staleGate || gate == keepGate {
+				gate.pointerMatched.Store(true)
+			}
+		}
 		if (gate == staleGate || gate == keepGate) && tx.Statement.Table == "governance_settings" {
+			if gate.armed.Load() {
+				gate.armedAtMatch.Store(true)
+			}
 			pause(tx, gate)
 		}
 	}); err != nil {
@@ -295,7 +327,7 @@ func testRootKeyRotationLifecycle(t *testing.T, db *gorm.DB) {
 	}
 	if err := db.Callback().Query().After("gorm:query").Register(afterQuery, func(tx *gorm.DB) {
 		gate, _ := tx.Statement.Context.Value(gateContextKey{}).(*queryGate)
-		_, inventory := tx.Statement.Dest.(*[]map[string]any)
+		inventory := rootRotationCapturedProviderInventory(tx)
 		if gate == casGate && inventory && tx.Statement.Table == "provider_credentials" {
 			pause(tx, gate)
 		}
@@ -593,12 +625,22 @@ func testRootKeyRotationLifecycle(t *testing.T, db *gorm.DB) {
 	if err := db.Take(&originalSMTP, 1).Error; err != nil {
 		t.Fatal(err)
 	}
-	waitPrepared := func(gate *queryGate) {
+	waitPrepared := func(gate *queryGate, result <-chan error) {
 		t.Helper()
+		failure := func(err error, pending bool) {
+			t.Fatalf("writer did not reach prepared epoch gate; %s", rootRotationPreparedFailure(gate.stage.Load(), err, pending, gate.governanceSeen.Load(), gate.governanceSchemaSeen.Load(), gate.pointerMatched.Load(), gate.armedAtMatch.Load(), gate.pauseEntered.Load(), gate.predispatchMatched.Load(), gate.callbackOwnerMatched.Load()))
+		}
 		select {
 		case <-gate.entered:
+		case err := <-result:
+			failure(err, false)
 		case <-time.After(5 * time.Second):
-			t.Fatal("writer did not reach prepared epoch gate")
+			select {
+			case err := <-result:
+				failure(err, false)
+			default:
+				failure(nil, true)
+			}
 		}
 	}
 	writerResult := make(chan error, 1)
@@ -607,18 +649,22 @@ func testRootKeyRotationLifecycle(t *testing.T, db *gorm.DB) {
 	keepGate.armed.Store(true)
 	writerCtx, writerCancel := context.WithTimeout(context.WithValue(ctx, gateContextKey{}, staleGate), 10*time.Second)
 	defer writerCancel()
+	markedStaleGate, _ := writerCtx.Value(gateContextKey{}).(*queryGate)
+	staleGate.predispatchMatched.Store(markedStaleGate == staleGate && markedStaleGate.owner == owner)
 	keepCtx, keepCancel := context.WithTimeout(context.WithValue(ctx, gateContextKey{}, keepGate), 60*time.Second)
 	defer keepCancel()
+	markedKeepGate, _ := keepCtx.Value(gateContextKey{}).(*queryGate)
+	keepGate.predispatchMatched.Store(markedKeepGate == keepGate && markedKeepGate.owner == owner)
 	async.Go(func() {
 		_, err := svc.WriteSMTPSettings(writerCtx, admin.User.ID, service.SMTPInput{Host: originalSMTP.Host, Port: originalSMTP.Port, Security: originalSMTP.Security, ETag: originalSMTP.ETag, Auth: service.SMTPAuthInput{Action: "replace", Username: "test-only-stale", Password: "test-only-stale-password"}})
 		writerResult <- err
 	})
-	waitPrepared(staleGate)
+	waitPrepared(staleGate, writerResult)
 	async.Go(func() {
 		_, err := svc.WriteSMTPSettings(keepCtx, admin.User.ID, service.SMTPInput{Host: originalSMTP.Host, Port: originalSMTP.Port, Security: originalSMTP.Security, ETag: originalSMTP.ETag, Auth: service.SMTPAuthInput{Action: "keep"}})
 		keepResult <- err
 	})
-	waitPrepared(keepGate)
+	waitPrepared(keepGate, keepResult)
 	armPublicationFailure.Store(true)
 	started := decodeCatalogResponse[rootRotationResultFixture](t, send("POST", "/api/v1/admin/secrets/rotations", startBody, view().ReviewETag, 201), 201)
 	if !started.Committed || started.Receipt.Action != "start" || started.Receipt.RequestID != startBody["request_id"] || started.Receipt.RotationID == "" || !started.WritePolicyApplied {
@@ -704,8 +750,10 @@ func testRootKeyRotationLifecycle(t *testing.T, db *gorm.DB) {
 	casResult := make(chan error, 1)
 	casCtx, casCancel := context.WithTimeout(context.WithValue(ctx, gateContextKey{}, casGate), 10*time.Second)
 	defer casCancel()
+	markedCASGate, _ := casCtx.Value(gateContextKey{}).(*queryGate)
+	casGate.predispatchMatched.Store(markedCASGate == casGate && markedCASGate.owner == owner)
 	async.Go(func() { casResult <- svc.RunSecretRotationOnce(casCtx) })
-	waitPrepared(casGate)
+	waitPrepared(casGate, casResult)
 	nextWriter, err := ring.WithWriteKey("next")
 	if err != nil {
 		t.Fatal(err)
@@ -1014,5 +1062,172 @@ func rootRotationCheckPrivacy(t *testing.T, response *httptest.ResponseRecorder,
 		if strings.Contains(response.Body.String(), `"`+name+`"`) {
 			t.Fatal("secret management exposed private proof field", name)
 		}
+	}
+}
+
+// Diagnostics contain only fixed stages/classes and a bounded public status.
+// Query text, raw errors and SMTP values are never copied to a failure report.
+func rootRotationPreparedStage(table string) uint32 {
+	switch table {
+	case "users", "role_permissions", "p", "user_roles":
+		return 1
+	case "smtp_settings":
+		return 2
+	case "governance_settings":
+		return 3
+	case "secret_write_policies":
+		return 4
+	case "provider_credentials":
+		return 5
+	default:
+		return 6
+	}
+}
+func rootRotationPreparedDiagnostic(stage uint32, err error, pending bool) (string, string, int) {
+	stages := []string{"not_observed", "authority_query", "smtp_row_read", "governance_lock_query", "secret_policy_query", "inventory_query", "other_query"}
+	name := "other_query"
+	if int(stage) < len(stages) {
+		name = stages[stage]
+	}
+	if pending {
+		return name, "still_pending", 0
+	}
+	if err == nil {
+		return name, "returned_nil", 0
+	}
+	if errors.Is(err, context.Canceled) {
+		return name, "context_canceled", 0
+	}
+	if errors.Is(err, context.DeadlineExceeded) {
+		return name, "deadline_exceeded", 0
+	}
+	var typed *apperrors.Error
+	if errors.As(err, &typed) {
+		status := typed.Code
+		if status < 100 || status > 599 {
+			status = 0
+		}
+		return name, "typed_http_error", status
+	}
+	return name, "untyped_error", 0
+}
+func TestRootRotationPreparedDiagnosticNeverCopiesPrivateError(t *testing.T) {
+	for _, tc := range []struct {
+		err     error
+		pending bool
+		outcome string
+		status  int
+	}{
+		{nil, true, "still_pending", 0}, {nil, false, "returned_nil", 0},
+		{context.Canceled, false, "context_canceled", 0}, {context.DeadlineExceeded, false, "deadline_exceeded", 0},
+		{&apperrors.Error{Code: 403, Message: "private token and SMTP body"}, false, "typed_http_error", 403},
+		{&apperrors.Error{Code: 10000, Message: "private ciphertext"}, false, "typed_http_error", 0},
+		{errors.New("private hostname and token"), false, "untyped_error", 0},
+	} {
+		stage, outcome, status := rootRotationPreparedDiagnostic(rootRotationPreparedStage("smtp_settings"), tc.err, tc.pending)
+		if stage != "smtp_row_read" || outcome != tc.outcome || status != tc.status {
+			t.Fatal("diagnostic classification changed")
+		}
+		if strings.Contains(stage+outcome, "private") {
+			t.Fatal("private error escaped")
+		}
+	}
+	stage, _, _ := rootRotationPreparedDiagnostic(^uint32(0), nil, true)
+	if stage != "other_query" {
+		t.Fatal("unknown stage leaked")
+	}
+}
+
+// These cumulative facts distinguish an absent query, context mismatch and
+// disarmed gate without copying SQL, table names or submitted material.
+func rootRotationPreparedFailure(stage uint32, err error, pending, governanceSeen, governanceSchemaSeen, pointerMatched, armedAtMatch, pauseEntered, predispatchMatched, callbackOwnerMatched bool) string {
+	name, outcome, status := rootRotationPreparedDiagnostic(stage, err, pending)
+	return fmt.Sprintf("prepared epoch diagnostic: stage=%s outcome=%s status=%d governance_seen=%t governance_schema_seen=%t pointer_matched=%t armed_at_match=%t pause_entered=%t predispatch_gate_matched=%t callback_owner_matched=%t", name, outcome, status, governanceSeen, governanceSchemaSeen, pointerMatched, armedAtMatch, pauseEntered, predispatchMatched, callbackOwnerMatched)
+}
+func TestRootRotationPreparedCumulativeDiagnosticPrivacyAndBounds(t *testing.T) {
+	private := errors.New("private SQL table host secret token ciphertext material")
+	for bits := uint8(0); bits < 128; bits++ {
+		seen, schemaSeen, matched, armed, entered := bits&1 != 0, bits&2 != 0, bits&4 != 0, bits&8 != 0, bits&16 != 0
+		predispatchMatched, ownerMatched := bits&32 != 0, bits&64 != 0
+		got := rootRotationPreparedFailure(^uint32(0), private, false, seen, schemaSeen, matched, armed, entered, predispatchMatched, ownerMatched)
+		expected := fmt.Sprintf("prepared epoch diagnostic: stage=other_query outcome=untyped_error status=0 governance_seen=%t governance_schema_seen=%t pointer_matched=%t armed_at_match=%t pause_entered=%t predispatch_gate_matched=%t callback_owner_matched=%t", seen, schemaSeen, matched, armed, entered, predispatchMatched, ownerMatched)
+		if got != expected || strings.Contains(got, private.Error()) {
+			t.Fatal("cumulative diagnostic copied unbounded/private input")
+		}
+	}
+	got := rootRotationPreparedFailure(6, nil, false, true, true, true, false, false, true, true)
+	if got != "prepared epoch diagnostic: stage=other_query outcome=returned_nil status=0 governance_seen=true governance_schema_seen=true pointer_matched=true armed_at_match=false pause_entered=false predispatch_gate_matched=true callback_owner_matched=true" {
+		t.Fatal("successful early writer was represented as a passed gate", got)
+	}
+}
+
+// Typed Provider Credential reads also occur during runtime refresh. Only the
+// bounded root-inventory projection represents the capture the CAS gate needs.
+func rootRotationCapturedProviderInventory(tx *gorm.DB) bool {
+	if _, legacy := tx.Statement.Dest.(*[]map[string]any); legacy {
+		return true
+	}
+	if _, typed := tx.Statement.Dest.(*[]entity.ProviderCredential); !typed || !slices.Equal(tx.Statement.Selects, []string{"id", "created_at", "storage_source", "ciphertext"}) {
+		return false
+	}
+	limit, ok := tx.Statement.Clauses["LIMIT"].Expression.(clause.Limit)
+	return ok && limit.Limit != nil && *limit.Limit > 0 && *limit.Limit <= 50 && limit.Offset == 0
+}
+
+func TestRootRotationCASGateDistinguishesCapturedInventoryFromRuntimeReads(t *testing.T) {
+	for _, tc := range []struct {
+		name    string
+		legacy  bool
+		selects []string
+		limit   *int
+		offset  int
+		want    bool
+	}{
+		{name: "historical map inventory", legacy: true, want: true},
+		{name: "current bounded inventory", selects: []string{"id", "created_at", "storage_source", "ciphertext"}, limit: new(50), want: true},
+		{name: "remaining inventory page", selects: []string{"id", "created_at", "storage_source", "ciphertext"}, limit: new(1), want: true},
+		{name: "runtime catalogue", want: false},
+		{name: "different projection", selects: []string{"id", "ciphertext"}, limit: new(50)},
+		{name: "unbounded typed inventory", selects: []string{"id", "created_at", "storage_source", "ciphertext"}},
+		{name: "zero page", selects: []string{"id", "created_at", "storage_source", "ciphertext"}, limit: new(0)},
+		{name: "oversize page", selects: []string{"id", "created_at", "storage_source", "ciphertext"}, limit: new(51)},
+		{name: "offset page", selects: []string{"id", "created_at", "storage_source", "ciphertext"}, limit: new(50), offset: 1},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			pool := &roleListCountProbePool{}
+			db, err := gorm.Open(postgres.New(postgres.Config{Conn: pool}), &gorm.Config{DisableAutomaticPing: true, DryRun: true})
+			if err != nil {
+				t.Fatal(err)
+			}
+			seen, matched := false, false
+			if err := db.Callback().Query().After("gorm:query").Register("test_root_inventory_purpose", func(tx *gorm.DB) {
+				if tx.Statement.Table != "provider_credentials" {
+					t.Fatal("query target changed")
+				}
+				seen, matched = true, rootRotationCapturedProviderInventory(tx)
+			}); err != nil {
+				t.Fatal(err)
+			}
+			query := db.Table("provider_credentials")
+			if tc.selects != nil {
+				query = query.Select(tc.selects)
+			}
+			if tc.limit != nil {
+				query = query.Limit(*tc.limit)
+			}
+			if tc.offset != 0 {
+				query = query.Offset(tc.offset)
+			}
+			if tc.legacy {
+				var rows []map[string]any
+				err = query.Find(&rows).Error
+			} else {
+				var rows []entity.ProviderCredential
+				err = query.Find(&rows).Error
+			}
+			if err != nil || !seen || matched != tc.want || pool.queries != 0 {
+				t.Fatalf("actual GORM query inventory classification: seen=%t matched=%t want=%t requests=%d err=%v", seen, matched, tc.want, pool.queries, err)
+			}
+		})
 	}
 }

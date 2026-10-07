@@ -1,4 +1,44 @@
 export default {
+  providerStorage: {
+    title: 'Provider credential storage policy',
+    mode: 'Future-write storage mode',
+    inline: 'Internal encrypted storage',
+    vault: 'Vault KV v2',
+    current: 'Configured source',
+    inlineDescription: 'Encrypt new provider credentials with the provisioned RouteX root key.',
+    vaultDescription: 'Store new provider credentials using a reviewed saved Vault Integration.',
+    inlineLocation: 'Credential ciphertext remains in the RouteX database.',
+    vaultLocation:
+      'A saved Integration owns the descriptor and independent writer and reader authentication.',
+    futureOnly:
+      'Changing this policy affects future writes only. Existing credentials keep their recorded source; no automatic migration or availability proof is implied.',
+    switch: 'Switch mode',
+    configure: 'Configure',
+    original: 'Original uncertain request',
+    integration: 'Reviewed Vault Integration revision',
+    choose: 'Choose a saved Integration',
+    ineligible:
+      'A current eligible saved revision is required. Saved policy IDs alone do not establish eligibility.',
+    reason: 'Reason',
+    cancel: 'Cancel',
+    continue: 'Continue',
+    save: 'Confirm policy change',
+    confirm:
+      'Use {{mode}} for future provider credential writes? Existing credentials remain unchanged.',
+    review: 'Review current policy',
+    reviewed: 'Current policy reviewed. Your draft is retained.',
+    retry: 'Retry original policy request',
+    stale: 'The reviewed policy changed. Review current policy explicitly before saving.',
+    uncertain:
+      'The result is uncertain. Retry the original reviewed request or abandon it; a current read does not prove historical success.',
+    saved:
+      'Future-write policy saved. This does not confirm Vault availability or runtime routing.',
+    invalid:
+      'Enter a trim-exact reason of at most 1,000 characters and choose an eligible exact saved revision for Vault.',
+    failed: 'The policy request was rejected or could not be reviewed.',
+    loading: 'Waiting for fresh storage authority and policy.',
+    loadError: 'Storage policy unavailable. Refresh its authorized read.',
+  },
   currentInventory: 'Current inventory covers seven secret domains.',
   historicalInventory:
     'This historical rotation covers five domains and does not prove current inventory coverage.',
@@ -15,7 +55,7 @@ export default {
   superseded: 'Superseded',
   applicationUnavailable: 'Unavailable',
   title: 'Credential storage',
-  description: 'Manage the internal Secret Store and its provisioned root keys.',
+  description: 'Manage future provider credential storage and the internal provisioned root keys.',
   internal: 'Internal Secret Store',
   rotate: 'Root key rotation',
   refresh: 'Refresh status',

@@ -26,7 +26,7 @@ func testTeamMemberMonthlyBehaviorMigration(t *testing.T, db *gorm.DB) {
 	const old = "ck_resource_limits_monthly_behavior_scope_v74"
 	const current = "ck_resource_limits_monthly_behavior_scope_v75"
 	before := personalKeyBehaviorLedger(t, db)
-	if (len(before) != 75 && len(before) != 76) || before[74].Version != 75 || len(before) == 76 && before[75].Version != 76 || !db.Migrator().HasConstraint(&entity.ResourceLimit{}, current) {
+	if (len(before) != 75 && len(before) != 76 && len(before) != 77) || before[74].Version != 75 || len(before) >= 76 && before[75].Version != 76 || len(before) == 77 && before[76].Version != 77 || !db.Migrator().HasConstraint(&entity.ResourceLimit{}, current) {
 		t.Fatal("exact V75 ledger/check required")
 	}
 	row := entity.ResourceLimit{ScopeKind: "team_member", ScopeID: "member_v75_retained", ETag: "retained", TokensMonthBehavior: "stop", MoneyMonthBehavior: "stop"}
@@ -109,7 +109,7 @@ func testTeamMemberMonthlyBehaviorMigration(t *testing.T, db *gorm.DB) {
 }
 
 func teamMemberMonthlyRegistryTail(names []string) bool {
-	if len(names) == 146 {
+	if len(names) == 146 || len(names) == 148 {
 		if !connectionEnablementRegistryPrefix(names) {
 			return false
 		}

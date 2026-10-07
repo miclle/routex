@@ -12,11 +12,13 @@ Root independently verifies six revisions, two probes, four stage commands,
 ten paired Vault requests (six successful effects and four ACL denials), seven
 observed root domains, the real 300-second observation and completed retirement.
 API-only review: `efb14524ce1c06fe6de54be050d03e7d10946a6cd3c93fde25be6886c73cf538`.
-Historical failures remain failed. Browser proof, active Provider storage
-switching and complete F28/A16 acceptance remain separate and unfinished.
-The independent credential SDK is delivered by `78c76d2`; it does not activate
-Provider storage. Current future-write policy and source-aware implementation
-work is tracked in [Implementation](IMPLEMENTATION.md).
+Historical failures remain failed. Browser proof and complete F28/A16 acceptance
+remain separate and unfinished. The independent credential SDK is delivered by
+`78c76d2`; the SDK itself does not activate Provider storage. The current Provider
+write-policy implementation below is a separate source phase whose fresh driver,
+real-Vault and full-current acceptance remain pending in this candidate. Its
+configured mode does not establish Vault availability. See
+[Implementation](IMPLEMENTATION.md) for separately recorded evidence.
 
 ## Configuration and authority
 
@@ -38,7 +40,7 @@ Write, Read and Cleanup observations remain separate. A cleanup acknowledgement 
 
 ## Persistence and root inventory
 
-Frozen GORM V72 adds retained integration revisions, separate writer/reader encrypted auth records, configuration receipts and durable probe claims/results. It extends root inventory with `vault_writer_auth` and `vault_reader_auth`, including every retained auth revision. Startup authentication, rewrap, verification, rollback and retirement cover both domains. Root reader draining tracks finite in-flight probes; Gateway inference continues using its existing published internal credential store.
+Frozen GORM V72 adds retained integration revisions, separate writer/reader encrypted auth records, configuration receipts and durable probe claims/results. It extends root inventory with `vault_writer_auth` and `vault_reader_auth`, including every retained auth revision. Startup authentication, rewrap, verification, rollback and retirement cover both domains. Root reader draining tracks finite in-flight probes and credential reads. The Provider storage resolver prepares routing snapshots separately; Gateway inference uses those immutable prepared snapshots rather than fetching Vault for each native request.
 
 Inventory version one preserves historical five-domain jobs. Nonterminal old jobs require explicit reviewed Resume to version two and a fresh seven-domain scan. Completed old history stays historical. Missing domain observations stay not scanned, never synthetic verified zeros. Zero and unknown inventory versions fail closed. Root retirement still requires complete current proof and server-owned observation.
 
@@ -90,4 +92,44 @@ ACLs, browser controls or persistent restart acceptance.
 
 ## Remaining scope
 
-AppRole, TLS/client authentication, Kubernetes authentication, active Provider storage switching, API Key delivery and fleet coordination remain unfinished. A configured integration or successful controlled probe does not establish any of those capabilities. See [Implementation](IMPLEMENTATION.md), [Root rotation](SECRETS.md) and [Secret storage](SECRET_STORAGE.md) for separately recorded delivery and acceptance evidence.
+Saved AppRole integration, TLS/client authentication, Kubernetes authentication, automatic orphan recovery, API Key delivery and fleet coordination remain unfinished. A configured integration or successful controlled probe does not establish any of those capabilities. See [Implementation](IMPLEMENTATION.md), [Root rotation](SECRETS.md) and [Secret storage](SECRET_STORAGE.md) for separately recorded delivery and acceptance evidence.
+
+## Provider credential write policy
+
+The Storage tab contains two stacked configured-source cards for internal encrypted
+storage and Vault KV v2, followed by the existing root rotation card. A policy
+save changes future Provider credential writes only; it neither moves existing
+credentials nor proves remote availability. Vault selection requires the exact
+server-issued eligible Integration and saved revision with writer and reader auth
+present. There is no Integration enable flag, probe prerequisite or automatic
+selection of a newer revision. Policy reads and writes retain the admitted
+platform-administrator boundary and independent `secrets.read`/`secrets.write`,
+reviewed strong If-Match, required reason and explicit confirmation.
+
+Provider, Connection and Credential creation and replacement read their
+`providers.write`-authorized nonsecret source context without Secrets directory
+access. New UI requests capture its raw 64-character `storage_policy_etag` and a UUIDv4 with
+the exact original public intent and transient secret. Vault requires both fields
+before effects; legacy inline requests may omit them. A stale review fails before
+planning. Ordinary creation returns 201, including exact UUID reconciliation;
+replacement retains 201 for its first saved result and 200 for reconciliation.
+Explicit-UUID Provider/Connection responses contain only the exact creation-owned
+bootstrap rows and their current nonsecret state. `storage_source` is recorded
+inline/Vault metadata, not proof of verification, enabled routes or native use.
+
+The service durably retains the original source, immutable descriptor/auth revision
+and owned version-one plan before remote effects. An uncertain UUID retry cannot
+rewrite that intent to follow a later policy or replay a CAS write. It may reconcile
+only the matching owned value under fresh actor, target, retained-auth and finite
+root-reader-lease authority. Current reader removal or Integration deletion/rebirth
+revokes availability; nonempty later descriptor/auth changes do not repoint old
+references. Verification and Enable remain separate explicit operations. Secret
+inputs stay transient, outside browser storage and query/mutation caches.
+
+All seven existing root inventory domains remain in scope, including retained
+writer/reader auth revisions. Ciphertext rewrap does not change logical creation
+intent or auth revision. No automatic orphan cleanup authority is introduced;
+unknown remote effects remain unknown. AppRole login remains a standalone SDK
+primitive, with no saved AppRole auth, policy UI or automatic authentication.
+These source contracts do not replace fresh real-driver, real-Vault, same-artifact
+restart or browser acceptance, and they do not complete F28 or A16.

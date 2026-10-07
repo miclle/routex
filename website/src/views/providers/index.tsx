@@ -1,5 +1,3 @@
-import { egressSelection } from '@/api/egress'
-import { EgressSelect } from '@/views/egress/connection'
 import { protocolLabels } from '@/lib/protocols'
 import { useTranslation } from 'react-i18next'
 import { useState, type FormEvent } from 'react'
@@ -26,6 +24,7 @@ import ProviderModelTable from './provider-models'
 import CredentialDeleteDialog from './credential-delete'
 import CredentialReplacementDialog from './credential-replacements'
 import CredentialReadinessDialog from './credential-readiness'
+import CredentialCreateDialog from './credential-create'
 
 type Action = { kind: 'provider' | 'connection' | 'credential' | 'model'; id?: string }
 type ProviderTab = 'overview' | 'connections' | 'credentials' | 'models' | 'settings'
@@ -137,6 +136,7 @@ function CredentialTable({
           <tr>
             <th>{t('common.credentialName')}</th>
             <th>{t('providers.connection')}</th>
+            <th>{t('credentialStorage.recordedSource')}</th>
             <th>{t('providers.verification')}</th>
             <th>{t('providers.verifiedAt')}</th>
             <th>{t('providers.enabledStatus')}</th>
@@ -156,6 +156,7 @@ function CredentialTable({
                 )}
               </td>
               <td>{item.name}</td>
+              <td>{t(`credentialStorage.${credential.storage_source ?? 'unknown'}`)}</td>
               <td>
                 <Badge variant="outline">{t(`providers.${credential.verification_status}`)}</Badge>
               </td>
@@ -225,7 +226,7 @@ function CredentialTable({
           ))}
           {!rows.length && (
             <tr>
-              <td colSpan={7} className="py-8 text-center text-muted-foreground">
+              <td colSpan={8} className="py-8 text-center text-muted-foreground">
                 {t('providers.noMatchingCredentials')}
               </td>
             </tr>
@@ -333,37 +334,6 @@ function Providers() {
     if (!action || mutation.isPending) return
     const form = new FormData(event.currentTarget)
     const value = (name: string) => String(form.get(name) ?? '').trim()
-    const secret = String(form.get('secret') ?? '')
-    if (action.kind === 'provider')
-      mutation.mutate({
-        path: '/admin/providers',
-        data: {
-          name: value('name'),
-          connection_name: value('connection_name'),
-          base_url: value('base_url'),
-          protocol: value('protocol'),
-          ...egressSelection(value('egress_selection')),
-          credential_name: value('credential_name'),
-          secret,
-        },
-      })
-    if (action.kind === 'connection')
-      mutation.mutate({
-        path: `/admin/providers/${action.id}/connections`,
-        data: {
-          name: value('name'),
-          base_url: value('base_url'),
-          protocol: value('protocol'),
-          ...egressSelection(value('egress_selection')),
-          credential_name: value('credential_name'),
-          secret,
-        },
-      })
-    if (action.kind === 'credential')
-      mutation.mutate({
-        path: `/admin/connections/${action.id}/credentials`,
-        data: { name: value('name'), secret, priority: Number(value('priority')) },
-      })
     if (action.kind === 'model')
       mutation.mutate({
         path: `/admin/connections/${action.id}/models`,
@@ -648,9 +618,35 @@ function Providers() {
           }}
         />
       )}
+      {action && action.kind !== 'model' && (
+        <CredentialCreateDialog
+          kind={action.kind}
+          id={action.id}
+          onClose={close}
+          targetCurrent={() => {
+            const state = cache.getQueryState<Provider[]>(['admin', 'providers'])
+            if (state?.status !== 'success' || state.fetchStatus !== 'idle' || state.isInvalidated)
+              return false
+            return (
+              action.kind === 'provider' ||
+              state.data?.some((item) =>
+                action.kind === 'connection'
+                  ? item.id === action.id
+                  : item.connections.some((connection) => connection.id === action.id),
+              ) === true
+            )
+          }}
+          onSaved={() => {
+            setNotice({ key: 'providers.saved' })
+            close()
+            void cache.invalidateQueries({ queryKey: ['admin', 'providers'] })
+            void cache.invalidateQueries({ queryKey: ['admin', 'models'] })
+          }}
+        />
+      )}
       <Dialog
         width={640}
-        open={!!action}
+        open={action?.kind === 'model'}
         onOpenChange={(open) => {
           if (!open) close()
         }}
@@ -659,65 +655,10 @@ function Providers() {
         description={t('providers.dialogDescription')}
       >
         <form className="space-y-5" onSubmit={submit}>
-          <fieldset
-            disabled={mutation.isPending || !access.can('providers.write')}
-            className="space-y-5"
-          >
-            {action?.kind !== 'model' && (
-              <FormField
-                label={action?.kind === 'provider' ? t('common.providerName') : t('common.name')}
-              >
-                <Input name="name" required maxLength={100} />
-              </FormField>
-            )}
-            {action?.kind === 'provider' && (
-              <FormField label={t('common.connectionName')}>
-                <Input name="connection_name" required maxLength={100} />
-              </FormField>
-            )}
-            {(action?.kind === 'provider' || action?.kind === 'connection') && (
-              <>
-                <FormField label={t('common.protocolType')}>
-                  <select
-                    name="protocol"
-                    defaultValue="openai_chat"
-                    className="h-10 w-full rounded-md border bg-background px-3"
-                  >
-                    <option value="openai_chat">OpenAI Chat</option>
-                    <option value="openai_responses">OpenAI Responses</option>
-                    <option value="anthropic_messages">Anthropic Messages</option>
-                    <option value="gemini_generate_content">Gemini Generate Content</option>
-                  </select>
-                </FormField>
-                <FormField label={t('common.baseURL')}>
-                  <Input
-                    name="base_url"
-                    type="url"
-                    required
-                    placeholder="https://api.example.com/v1"
-                  />
-                </FormField>
-                <EgressSelect />
-                <FormField label={t('common.credentialName')}>
-                  <Input name="credential_name" required maxLength={100} />
-                </FormField>
-              </>
-            )}
-            {action?.kind !== 'model' && (
-              <FormField label={t('common.upstreamAPIKey')}>
-                <Input name="secret" type="password" autoComplete="off" required />
-              </FormField>
-            )}
-            {action?.kind === 'credential' && (
-              <FormField label={t('common.priority')}>
-                <Input name="priority" type="number" min={0} step={1} defaultValue={0} required />
-              </FormField>
-            )}
-            {action?.kind === 'model' && (
-              <FormField label={t('common.upstreamModelName')}>
-                <Input name="upstream_name" required maxLength={200} />
-              </FormField>
-            )}
+          <fieldset disabled={mutation.isPending || !access.can('providers.write')}>
+            <FormField label={t('common.upstreamModelName')}>
+              <Input name="upstream_name" required maxLength={200} />
+            </FormField>
           </fieldset>
           <ErrorNotice error={mutation.error} />
           <SaveButton pending={mutation.isPending}>{t('common.save')}</SaveButton>

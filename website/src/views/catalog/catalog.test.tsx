@@ -148,6 +148,23 @@ beforeEach(() => {
     if (route === 'get /model-catalog') response.data = { items: memberCatalog }
     if (config.method === 'get' && path.startsWith('/model-catalog/'))
       response.data = memberCatalog.find((item) => item.id === path.split('/').pop())
+    if (route === 'get /admin/provider-credential-storage-context') {
+      response.data = { storage_source: 'inline', etag: 'b'.repeat(64) }
+      response.headers.set('ETag', `"${'b'.repeat(64)}"`)
+    }
+    if (route === 'post /admin/providers') {
+      response.status = 201
+      response.data = {
+        ...provider,
+        connections: provider.connections.map((item) => ({
+          ...item,
+          credentials: item.credentials.map((credential) => ({
+            ...credential,
+            storage_source: 'inline',
+          })),
+        })),
+      }
+    }
     if (route === 'get /admin/egress-options') response.data = { items: [] }
     if (route === 'get /admin/providers') response.data = { items: [structuredClone(provider)] }
     if (route === 'post /admin/models') response.data = structuredClone(model)
@@ -429,10 +446,49 @@ describe('catalog and Key workflows', () => {
     await until(() => expect(document.body.textContent).toContain('Enabled'))
     expect(requests.find((r) => r.method === 'patch')?.headers.get('X-CSRF-Token')).toBe('csrf')
   })
+  it('never places new credential secrets in mutation state after an uncertain create', async () => {
+    await render(<ProvidersPage />)
+    await until(() => expect(document.body.textContent).toContain('Provider'))
+    await click('Add provider')
+    await until(() =>
+      expect(
+        [...document.querySelectorAll<HTMLButtonElement>('button')].find(
+          (item) => item.textContent === 'Save',
+        )?.disabled,
+      ).toBe(false),
+    )
+    await fill('name', 'Provider')
+    await fill('connection_name', 'Connection')
+    await fill('base_url', 'https://api.example.com/v1')
+    await fill('credential_name', 'Credential')
+    await fill('secret', 'private-uncertain-upstream-secret')
+    failures['post /admin/providers'] = 503
+    await submit()
+    await until(() =>
+      expect(
+        requests.some((item) => item.method === 'post' && item.url === '/admin/providers'),
+      ).toBe(true),
+    )
+    expect(
+      JSON.stringify(
+        cache
+          .getMutationCache()
+          .getAll()
+          .map((item) => item.state),
+      ),
+    ).not.toContain('private-uncertain-upstream-secret')
+    expect(JSON.parse(requests.find((item) => item.method === 'post')!.data)).toMatchObject({
+      storage_policy_etag: 'b'.repeat(64),
+      request_id: expect.any(String),
+    })
+  })
   it('keeps provider form errors recoverable and sends the agreed connection contract', async () => {
     await render(<ProvidersPage />)
     await until(() => expect(document.body.textContent).toContain('Provider'))
     await click('Add provider')
+    await until(() =>
+      expect(document.body.textContent).toContain('Configured source for this new credential'),
+    )
     await fill('name', 'Another Provider')
     await fill('connection_name', 'API')
     await fill('base_url', 'https://api.example.com/v1')
@@ -441,7 +497,7 @@ describe('catalog and Key workflows', () => {
     failures['post /admin/providers'] = 400
     await submit()
     await until(() =>
-      expect(document.querySelector('[role="dialog"] [role="alert"]')).not.toBeNull(),
+      expect(document.body.textContent).toContain('Creation or policy review failed.'),
     )
     expect(JSON.parse(requests.find((r) => r.method === 'post')!.data)).toEqual({
       name: 'Another Provider',
@@ -452,6 +508,10 @@ describe('catalog and Key workflows', () => {
       protocol: 'openai_chat',
       credential_name: 'Primary credential',
       secret: 'upstream_secret',
+      request_id: expect.stringMatching(
+        /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/,
+      ),
+      storage_policy_etag: 'b'.repeat(64),
     })
     delete failures['post /admin/providers']
     await submit()
@@ -791,6 +851,9 @@ describe('native protocol catalog', () => {
       await render(<ProvidersPage />)
       await until(() => expect(document.body.textContent).toContain('Provider'))
       await click('Add provider')
+      await until(() =>
+        expect(document.body.textContent).toContain('Configured source for this new credential'),
+      )
       await fill('name', 'Responses provider')
       await fill('connection_name', 'Responses')
       await fill('base_url', 'https://api.example.com/v1')

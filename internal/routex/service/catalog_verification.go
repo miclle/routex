@@ -30,6 +30,9 @@ func (s *Service) VerifyCredential(ctx context.Context, actorID, credentialID st
 	}
 	db := s.authDB(ctx)
 	var credential entity.ProviderCredential
+	if err := exactCatalogPermission(db, actorID, "providers.write"); err != nil {
+		return nil, err
+	}
 	if err := db.First(&credential, "id = ?", credentialID).Error; err != nil {
 		return nil, catalogError(err)
 	}
@@ -41,9 +44,18 @@ func (s *Service) VerifyCredential(ctx context.Context, actorID, credentialID st
 	if err != nil {
 		return nil, err
 	}
-	plaintext, err := s.openSecret(credential.ID, credential.Ciphertext)
+	rows := []entity.ProviderCredential{credential}
+	if err := attachCredentialSources(db, rows); err != nil {
+		return nil, catalogError(err)
+	}
+	credential = rows[0]
+	sourceProof := credentialSourceProof(credential)
+	plaintext, err := s.resolveCredential(ctx, credential)
 	if err != nil {
 		return nil, apperrors.ErrInternal
+	}
+	if err := s.cacheCredentialValue(ctx, credential, plaintext); err != nil {
+		return nil, err
 	}
 	names, verified := s.discoverModels(ctx, connection, plaintext)
 	result := &CredentialVerification{Verified: verified, Message: "Credential verification failed"}
@@ -74,6 +86,13 @@ func (s *Service) VerifyCredential(ctx context.Context, actorID, credentialID st
 		}
 		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).First(&credential, "id = ?", credential.ID).Error; err != nil {
 			return err
+		}
+		rows := []entity.ProviderCredential{credential}
+		if e := attachCredentialSources(tx, rows); e != nil {
+			return e
+		}
+		if credentialSourceProof(rows[0]) != sourceProof {
+			return catalogConflict
 		}
 		// Failed native pagination preserves last-success discovery evidence,
 		// while current verification and runtime authorization are revoked.

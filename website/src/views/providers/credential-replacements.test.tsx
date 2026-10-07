@@ -44,7 +44,12 @@ beforeEach(async () => {
     verified_at: null,
     etag: 'a'.repeat(64),
   }
-  result = { id: target, connection_id: record.connection_id, replaces_credential_id: source }
+  result = {
+    id: target,
+    connection_id: record.connection_id,
+    replaces_credential_id: source,
+    storage_source: 'inline',
+  }
   responseStatus = 201
   failure = 0
   hold = undefined
@@ -109,7 +114,10 @@ beforeEach(async () => {
           { id: 'prv_other', name: 'Other', connections: [] },
         ],
       }
-    else if (config.url === '/admin/models') response.data = { items: [] }
+    else if (config.url === '/admin/provider-credential-storage-context') {
+      response.data = { storage_source: 'inline', etag: 'b'.repeat(64) }
+      response.headers.set('etag', `"${'b'.repeat(64)}"`)
+    } else if (config.url === '/admin/models') response.data = { items: [] }
     else if (config.url?.endsWith('/metadata')) response.data = structuredClone(record)
     else if (config.url?.endsWith('/replacements')) {
       if (hold) await hold
@@ -204,6 +212,7 @@ describe('credential replacement preparation', () => {
     expect(writes()[0].url).toBe(`/admin/credentials/${source}/replacements`)
     expect(JSON.parse(writes()[0].data)).toEqual({
       request_id: firstUuid,
+      storage_policy_etag: 'b'.repeat(64),
       name: 'Replacement',
       secret: ' secret-value ',
       reason: 'Scheduled rotation',

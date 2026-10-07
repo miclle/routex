@@ -2,6 +2,107 @@
 
 Updated: 2026-10-07. Status: active. Continue the full RouteX objective and prioritize partial capabilities. [Implementation](IMPLEMENTATION.md) records engineering contracts and historical acceptance evidence. Earlier checkpoints below remain historical.
 
+## Current Vault Provider storage and saved AppRole work (2026-10-07)
+
+Commit `68dd68a182ac40f1ac9497b02ce2b46bf360d562` delivers the bounded Excel
+price-export slice. Exact remote main is verified. CI37578592197 passes all four
+jobs, including PostgreSQL/MySQL integration and Build Artifacts;
+Actionlint37578592217 and GolangCI37578592206 also pass. The preceding fixture
+CI37576843294 was superseded and cancelled. Genuine browser-saved Excel/CSV
+files and browser Session restart remain pending. F15 stays partial.
+
+Before the root-proof correction, the private Vault Provider storage candidate
+passes its source checks, complete Task tests and build. Its earlier exact-source
+Focus12 passes both databases;
+those receipts remain tied to their original source. Real Vault validation
+confirms saved-policy publication separately from configuration persistence and
+observes the resulting Key-scoped unavailable route before the native denial.
+A subsequent root-key retirement returns HTTP503 after the real 300-second
+observation. The final durable retirement state was not captured and remains
+unknown; that run remains failed, with owned resources independently absent.
+
+The diagnosed defect is the ordinary reader gate being reused inside the already
+drained root-retirement transaction. A narrow private correction validates the
+exact current drained policy before each retained envelope read and immediately
+before returning proof. Ordinary readers remain closed; source generations,
+cache material, publication digest and authorization checks remain enforced.
+Twenty-eight related uncached race checks pass, including meaningful original
+failure and late-policy-replacement regressions. After a test-only GORM selector
+correction, mandatory checking, complete Task (4,621 frontend tests in 186 files,
+Node/development/Go/production assets) and production build pass. Matching
+PostgreSQL/MySQL Focus12 passes all 12 direct lifecycles in 235.434 seconds.
+
+The corrected first real Vault run completes Retire with HTTP 200, committed
+and publication-applied results, and seven observed domains with no blocked or
+changed records. Its final inventory assertion fails because verification
+replaces per-subject outcomes with `already_target`, while cumulative counters
+retain the initial rewraps. All nine subjects and generations match. That
+failed run remains historical and does not establish inference or restart.
+
+A helper-only correction now checks every exact journal subject, generation and
+final verification outcome, plus cumulative scanned/rewrapped/already-target
+counts of 2N/N/N. Thirty-five resource-free helper checks pass. The subsequent
+real Vault workflow exits successfully on the same checked artifact: five Calls,
+four native completed Attempts and upstream requests, four CAS-zero creates,
+thirteen owned reads and four ACL denials. The seven-domain root retirement uses
+a genuine 300-second observation, and post-retirement inference, retained orphan
+recovery and inference after application/Vault restart succeed. All five original
+API Sessions survive. Root independently confirms owned processes, five ports and
+Compose resources are absent. The independent bounded receipt review passes,
+and Root rehashes all 119 safe evidence files. API/native acceptance is limited
+to that exact source and artifact. The complete 148-case-per-driver regression
+passes under its original 55-minute Go and 3,600-second supervisor bounds:
+296 direct PostgreSQL/MySQL lifecycles, eight generic constraints and 5,151
+balanced named results in 3,073.145 seconds. Root independently rehashes all
+1,824 source paths/modes, 132 composition artifacts and raw output, and confirms
+owned Compose resources, captured PID/PGID and both database ports are absent.
+Acceptance SHA-256:
+`6e203f01148a6f2573f8e259813b6d9c5382d5e2c738526d1137a2ad43894808`;
+root review SHA-256:
+`84f013744efe490f739cc84a11e423e388d9f7ce9a88746d442359f5f25c24b0`.
+This phase delivers bounded Vault-backed Provider Credential storage, exact
+retained references, durable write compensation, explicit storage policy and
+matching root-retirement proof. Browser download, saved AppRole activation and
+Provider automatic orphan cleanup remain separate pending boundaries. F28 stays
+partial; no complete feature or fleet acceptance is inferred.
+
+The user approved administrator-provided reusable SecretIDs for saved AppRole
+identities. Backend and frontend proceed in separate private workspaces, with
+independent writer/reader identities and backward-compatible Token support.
+Login Tokens remain transient, and bounded login occurs only for explicit
+verification, write/read or restart preparation. There is no automatic SecretID
+creation or rotation and no expansion of Cleanup authority. The existing AppRole
+SDK is delivered; saved Integration activation is still pending. The separate
+backend candidate registers frozen GORM V78 and appends two dedicated cases after
+the original 148-scenario prefix. Its frozen implementation and test-only
+maximum-body successor pass
+independent review and scoped race, vet, staticcheck and formatting checks.
+The first composed mandatory check retains a test-only QF1001 failure.
+An equivalent conditional successor preserves the original assertion and passes
+scoped race and mandatory checking. The final composed mandatory check, complete
+Task and production build pass
+with 4,659 frontend tests in 186 files, four Node helpers, two development
+lifecycle checks, Go race tests and production assets. Root rehashes all 111
+artifact leaves and 1,830 source files/modes, including 47 owned outputs and
+1,783 exact parent files. Matching Focus16 is now running after accepted
+parent Full148; real Vault and complete Full150 acceptance remain pending. The
+nine-file frontend proposal passes 185 related tests plus types,
+lint and formatting and is bound into that reviewed final composition. Real
+API/browser checks remain pending.
+
+The next already-partial protocol slice is Azure OpenAI upstream adaptation.
+The user selected explicit administrator deployment attestation, separate from
+Credential authentication and actual model discovery. It will retain exact
+Credential/deployment ownership, actor, reason and version, and will not issue
+paid verification calls or borrow management-plane authority. Request adaptation
+and its separately reviewed API/UI contract are being prepared privately; no
+Azure activation or delivery is claimed. Project quota and rate applications
+are already complete and are not reopened by stale stage summaries.
+
+Formal totals remain 12 complete, 15 partial and three unstarted. The full
+objective remains active. Older checkpoints retain their original source and
+acceptance scope.
+
 ## Current monthly modes, Connection and Vault continuation (2026-10-07)
 
 This phase adds bounded Excel price export to the existing price-file workspace,

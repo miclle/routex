@@ -141,7 +141,7 @@ func testCredentialReplacementLifecycle(t *testing.T, db *gorm.DB) {
 		t.Helper()
 		result := decodeCatalogResponse[service.CredentialReplacementRecord](t, res, status)
 		var shape map[string]json.RawMessage
-		if err := json.Unmarshal(res.Body.Bytes(), &shape); err != nil || len(shape) != 3 || result.ID == source.ID || result.ConnectionID != connection.ID || result.ReplacesCredentialID != source.ID {
+		if err := json.Unmarshal(res.Body.Bytes(), &shape); err != nil || len(shape) != 4 || result.StorageSource != "inline" || result.ID == source.ID || result.ConnectionID != connection.ID || result.ReplacesCredentialID != source.ID {
 			t.Fatal("unsafe replacement acknowledgement shape")
 		}
 		for _, forbidden := range []string{"secret", "ciphertext", "request_hash", "runtime_applied", "verified", "enabled"} {

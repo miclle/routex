@@ -441,7 +441,7 @@ func testProjectKeyMonthlyBehaviorLifecycle(t *testing.T, db *gorm.DB) {
 }
 
 func projectKeyMonthlyBehaviorRegistryMatches(pairs []string) bool {
-	if len(pairs) == 146 {
+	if len(pairs) == 146 || len(pairs) == 148 {
 		if !connectionEnablementRegistryPrefix(pairs) {
 			return false
 		}

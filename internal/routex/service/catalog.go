@@ -35,13 +35,15 @@ type ConnectionCatalog struct {
 }
 
 type CreateConnectionInput struct {
-	EgressMode     string
-	EgressID       *string
-	Name           string
-	BaseURL        string
-	Protocol       string
-	CredentialName string
-	Secret         string
+	RequestID         string
+	StoragePolicyETag string
+	EgressMode        string
+	EgressID          *string
+	Name              string
+	BaseURL           string
+	Protocol          string
+	CredentialName    string
+	Secret            string
 }
 
 func catalogError(err error) error {
@@ -120,29 +122,46 @@ func loadConnectionCatalog(db *gorm.DB, connectionID string) (*ConnectionCatalog
 	return result, nil
 }
 
-func (s *Service) prepareConnection(providerID string, input CreateConnectionInput) (entity.ProviderConnection, entity.ProviderCredential, error) {
+func (s *Service) prepareConnectionMetadata(providerID string, input CreateConnectionInput) (entity.ProviderConnection, error) {
 	connection := entity.ProviderConnection{Enabled: true, EgressMode: input.EgressMode, EgressID: input.EgressID, ETag: "0", ProviderID: providerID, Name: strings.TrimSpace(input.Name), Protocol: input.Protocol}
 	if connection.EgressMode == "" {
 		connection.EgressMode = "default"
 	}
 	if (connection.EgressMode != "default" && connection.EgressMode != "direct" && connection.EgressMode != "proxy") || (connection.EgressMode == "proxy") != (connection.EgressID != nil) || (connection.EgressID != nil && *connection.EgressID == "") {
-		return connection, entity.ProviderCredential{}, apperrors.ErrBadRequest
+		return connection, apperrors.ErrBadRequest
 	}
 
 	if !validCatalogLabel(connection.Name) || !entity.SupportedNativeProtocol(input.Protocol) {
-		return connection, entity.ProviderCredential{}, apperrors.ErrBadRequest
+		return connection, apperrors.ErrBadRequest
 	}
 	baseURL, err := upstream.ValidateBaseURL(input.BaseURL, s.allowPrivateUpstream)
 	if err != nil {
-		return connection, entity.ProviderCredential{}, apperrors.ErrBadRequest
+		return connection, apperrors.ErrBadRequest
 	}
 	connection.BaseURL = strings.TrimRight(baseURL.String(), "/")
 	connection.ID, err = id.NewPrefixed("con")
 	if err != nil {
-		return connection, entity.ProviderCredential{}, apperrors.ErrInternal
+		return connection, apperrors.ErrInternal
 	}
-	credential, err := s.prepareCredential(connection.ID, input.CredentialName, input.Secret, 0)
-	return connection, credential, err
+	return connection, nil
+}
+
+func (s *Service) prepareConnection(providerID string, input CreateConnectionInput) (entity.ProviderConnection, entity.ProviderCredential, error) {
+	c, e := s.prepareConnectionMetadata(providerID, input)
+	if e != nil {
+		return c, entity.ProviderCredential{}, e
+	}
+	credential, e := s.prepareCredential(c.ID, input.CredentialName, input.Secret, 0)
+	return c, credential, e
+}
+func prepareCredentialMetadata(connectionID, name string, priority int) (entity.ProviderCredential, error) {
+	c := entity.ProviderCredential{ConnectionID: connectionID, Name: strings.TrimSpace(name), Priority: priority, StorageSource: "inline", VerificationStatus: "pending"}
+	if !validCatalogLabel(c.Name) || priority < 0 || priority > 10000 {
+		return c, apperrors.ErrBadRequest
+	}
+	var e error
+	c.ID, e = id.NewPrefixed("crd")
+	return c, e
 }
 
 func (s *Service) prepareCredential(connectionID, name, plaintext string, priority int) (entity.ProviderCredential, error) {
@@ -166,6 +185,26 @@ func (s *Service) prepareCredential(connectionID, name, plaintext string, priori
 }
 
 func (s *Service) CreateProvider(ctx context.Context, actorID, name string, input CreateConnectionInput) (*ProviderCatalog, error) {
+	vaultMode, e := s.useVaultCreation(ctx, actorID, input.RequestID, input.StoragePolicyETag)
+	if e != nil {
+		return nil, e
+	}
+	if vaultMode {
+		op, e := s.createVaultCredential(ctx, actorID, input.RequestID, input.Secret, credentialCreationIntent{Kind: "provider", ProviderName: strings.TrimSpace(name), Connection: input, CredentialName: input.CredentialName, PolicyETag: input.StoragePolicyETag})
+		if e != nil {
+			return nil, e
+		}
+		result, e := s.createdProviderCatalog(ctx, op.CredentialStorageOperation)
+		return result, catalogError(e)
+	}
+	if input.RequestID != "" {
+		op, e := s.createInlineCredential(ctx, actorID, input.RequestID, input.Secret, credentialCreationIntent{Kind: "provider", ProviderName: strings.TrimSpace(name), Connection: input, CredentialName: input.CredentialName, PolicyETag: input.StoragePolicyETag})
+		if e != nil {
+			return nil, e
+		}
+		result, e := s.createdProviderCatalog(ctx, op.CredentialStorageOperation)
+		return result, catalogError(e)
+	}
 	name = strings.TrimSpace(name)
 	if !validCatalogLabel(name) {
 		return nil, apperrors.ErrBadRequest
@@ -198,6 +237,9 @@ func (s *Service) CreateProvider(ctx context.Context, actorID, name string, inpu
 		if err := tx.Create(&connection).Error; err != nil {
 			return err
 		}
+		if err := requireInlineCredentialPolicy(tx); err != nil {
+			return err
+		}
 		if err := s.guardSecretWrite(tx, preparedEpoch, credential.ID, credential.Ciphertext); err != nil {
 			return err
 		}
@@ -214,6 +256,26 @@ func (s *Service) CreateProvider(ctx context.Context, actorID, name string, inpu
 }
 
 func (s *Service) CreateConnection(ctx context.Context, actorID, providerID string, input CreateConnectionInput) (*ConnectionCatalog, error) {
+	vaultMode, e := s.useVaultCreation(ctx, actorID, input.RequestID, input.StoragePolicyETag)
+	if e != nil {
+		return nil, e
+	}
+	if vaultMode {
+		op, e := s.createVaultCredential(ctx, actorID, input.RequestID, input.Secret, credentialCreationIntent{Kind: "connection", Target: providerID, Connection: input, CredentialName: input.CredentialName, PolicyETag: input.StoragePolicyETag})
+		if e != nil {
+			return nil, e
+		}
+		result, e := s.createdConnectionCatalog(ctx, op.CredentialStorageOperation)
+		return result, catalogError(e)
+	}
+	if input.RequestID != "" {
+		op, e := s.createInlineCredential(ctx, actorID, input.RequestID, input.Secret, credentialCreationIntent{Kind: "connection", Target: providerID, Connection: input, CredentialName: input.CredentialName, PolicyETag: input.StoragePolicyETag})
+		if e != nil {
+			return nil, e
+		}
+		result, e := s.createdConnectionCatalog(ctx, op.CredentialStorageOperation)
+		return result, catalogError(e)
+	}
 	preparedEpoch := s.secretEpoch()
 	connection, credential, err := s.prepareConnection(providerID, input)
 	if err != nil {
@@ -238,6 +300,9 @@ func (s *Service) CreateConnection(ctx context.Context, actorID, providerID stri
 		if err := tx.Create(&connection).Error; err != nil {
 			return err
 		}
+		if err := requireInlineCredentialPolicy(tx); err != nil {
+			return err
+		}
 		if err := s.guardSecretWrite(tx, preparedEpoch, credential.ID, credential.Ciphertext); err != nil {
 			return err
 		}
@@ -253,7 +318,40 @@ func (s *Service) CreateConnection(ctx context.Context, actorID, providerID stri
 	return result, catalogError(err)
 }
 
-func (s *Service) CreateCredential(ctx context.Context, actorID, connectionID, name, plaintext string, priority int) (*entity.ProviderCredential, error) {
+func (s *Service) CreateCredential(ctx context.Context, actorID, connectionID, name, plaintext string, priority int, requestIDs ...string) (*entity.ProviderCredential, error) {
+	requestID := ""
+	if len(requestIDs) > 2 {
+		return nil, apperrors.ErrBadRequest
+	}
+	if len(requestIDs) >= 1 {
+		requestID = requestIDs[0]
+	}
+	policyETag := ""
+	if len(requestIDs) == 2 {
+		policyETag = requestIDs[1]
+	}
+	vaultMode, e := s.useVaultCreation(ctx, actorID, requestID, policyETag)
+	if e != nil {
+		return nil, e
+	}
+	if vaultMode {
+		op, e := s.createVaultCredential(ctx, actorID, requestID, plaintext, credentialCreationIntent{Kind: "credential", Target: connectionID, CredentialName: strings.TrimSpace(name), Priority: priority, PolicyETag: policyETag})
+		if e != nil {
+			return nil, e
+		}
+		var result entity.ProviderCredential
+		e = s.authDB(ctx).Omit("ciphertext").First(&result, "id = ?", op.CredentialID).Error
+		return &result, catalogError(e)
+	}
+	if requestID != "" {
+		op, e := s.createInlineCredential(ctx, actorID, requestID, plaintext, credentialCreationIntent{Kind: "credential", Target: connectionID, CredentialName: strings.TrimSpace(name), Priority: priority, PolicyETag: policyETag})
+		if e != nil {
+			return nil, e
+		}
+		var result entity.ProviderCredential
+		e = s.authDB(ctx).Omit("ciphertext").First(&result, "id = ?", op.CredentialID).Error
+		return &result, catalogError(e)
+	}
 	preparedEpoch := s.secretEpoch()
 	credential, err := s.prepareCredential(connectionID, name, plaintext, priority)
 	if err != nil {
@@ -273,6 +371,9 @@ func (s *Service) CreateCredential(ctx context.Context, actorID, connectionID, n
 		if err := checkCredentialName(tx, connectionID, "", credential.Name); err != nil {
 			return err
 		}
+		if err := requireInlineCredentialPolicy(tx); err != nil {
+			return err
+		}
 		if err := s.guardSecretWrite(tx, preparedEpoch, credential.ID, credential.Ciphertext); err != nil {
 			return err
 		}
@@ -286,6 +387,36 @@ func (s *Service) CreateCredential(ctx context.Context, actorID, connectionID, n
 }
 
 func (s *Service) SetCredentialEnabled(ctx context.Context, actorID, credentialID string, enabled bool) (*entity.ProviderCredential, error) {
+	preparedProof := ""
+	if enabled {
+		var c entity.ProviderCredential
+		err := s.authDB(ctx).Transaction(func(tx *gorm.DB) error {
+			if e := exactCatalogPermission(tx, actorID, "providers.write"); e != nil {
+				return e
+			}
+			if e := personalExact(vaultDB(tx), "id", credentialID).Take(&c).Error; e != nil {
+				return e
+			}
+			rows := []entity.ProviderCredential{c}
+			if e := attachCredentialSources(tx, rows); e != nil {
+				return e
+			}
+			c = rows[0]
+			return nil
+		})
+		if err != nil {
+			return nil, catalogError(err)
+		}
+		preparedProof = credentialSourceProof(c)
+		value, err := s.resolveCredential(ctx, c)
+		if err != nil {
+			return nil, vaultUnavailable
+		}
+		if err = s.cacheCredentialValue(ctx, c, value); err != nil {
+			return nil, err
+		}
+	}
+
 	var credential entity.ProviderCredential
 	err := s.authDB(ctx).Transaction(func(tx *gorm.DB) error {
 		if err := tx.First(&credential, "id = ?", credentialID).Error; err != nil {
@@ -299,6 +430,13 @@ func (s *Service) SetCredentialEnabled(ctx context.Context, actorID, credentialI
 			return err
 		}
 		if enabled {
+			rows := []entity.ProviderCredential{credential}
+			if e := attachCredentialSources(tx, rows); e != nil {
+				return e
+			}
+			if credentialSourceProof(rows[0]) != preparedProof {
+				return catalogConflict
+			}
 			if credential.VerificationStatus != "verified" {
 				return credentialNotReady
 			}

@@ -121,9 +121,12 @@ func modelCreationCredentials(tx *gorm.DB, connectionID string, selected []strin
 			return nil, apperrors.ErrBadRequest
 		}
 	}
+	if err := attachCredentialSources(tx, credentials); err != nil {
+		return nil, err
+	}
 	result := make([]modelCreationCredentialProof, 0, len(credentials))
 	for _, credential := range credentials {
-		proof := modelCreationCredentialProof{ID: credential.ID, Revision: credentialMetadataRecord(credential).ETag, CipherHash: personalHash(credential.Ciphertext), CreatedAt: credential.CreatedAt.UTC(), Enabled: credential.Enabled, VerificationStatus: credential.VerificationStatus, Access: []string{}}
+		proof := modelCreationCredentialProof{ID: credential.ID, Revision: credentialMetadataRecord(credential).ETag, CipherHash: credentialSourceProof(credential), CreatedAt: credential.CreatedAt.UTC(), Enabled: credential.Enabled, VerificationStatus: credential.VerificationStatus, Access: []string{}}
 		for _, access := range accesses {
 			if access.CredentialID == credential.ID && slices.Contains(selected, access.ProviderModelID) {
 				proof.Access = append(proof.Access, access.ProviderModelID)

@@ -985,3 +985,5 @@ Earlier failed runs remain historical: stale role setup and incorrect logical
 Model visibility expectations were repaired without changing product discovery or
 native call budgets. Complete regression and delivery status are recorded in
 [Implementation](IMPLEMENTATION.md).
+
+Provider, Connection and Credential creation, and replacement preparation, read a providers.write-authorized nonsecret storage context independently of Secrets administration. The UI captures its raw policy ETag and a stable UUIDv4 with the exact original public intent and transient secret. Uncertain mounted retries use the same original request and fresh CSRF; current GETs do not prove historical success. Conflict review preserves human drafts, while dismissal, actor/target change and unmount clear transient secrets. The Credentials table reports only recorded inline/Vault source, with Unknown for legacy absent metadata. A saved creation receipt does not prove verification, enablement or runtime routing.

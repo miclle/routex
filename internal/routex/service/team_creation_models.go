@@ -198,10 +198,10 @@ func (s *Service) teamCreationModelProof(data *memberModelsData) ([]TeamCreation
 func readMemberEffectiveCipherHashesForCreation(data *memberModelsData) (map[string]string, error) {
 	hashes := map[string]string{}
 	for _, c := range data.Credentials {
-		if c.Ciphertext == "" {
+		if credentialSourceProof(c) == "" {
 			return nil, runtimeUnavailable
 		}
-		hashes[c.ID] = personalHash(c.Ciphertext)
+		hashes[c.ID] = credentialSourceProof(c)
 	}
 	return hashes, nil
 }
@@ -217,7 +217,10 @@ func readTeamCreationCiphertexts(tx *gorm.DB, data *memberModelsData) error {
 	for offset := 0; offset < len(ids); offset += 500 {
 		batch := ids[offset:min(offset+500, len(ids))]
 		var rows []entity.ProviderCredential
-		if err := modelCreationDB(tx).Select("id", "ciphertext").Where("id IN ?", batch).Where(memberModelsExactIDs(tx, "id", batch)).Limit(len(batch) + 1).Find(&rows).Error; err != nil {
+		if err := modelCreationDB(tx).Select("id", "ciphertext", "storage_source", "created_at").Where("id IN ?", batch).Where(memberModelsExactIDs(tx, "id", batch)).Limit(len(batch) + 1).Find(&rows).Error; err != nil {
+			return err
+		}
+		if err := attachCredentialSources(tx, rows); err != nil {
 			return err
 		}
 		if len(rows) != len(batch) {
@@ -232,6 +235,8 @@ func readTeamCreationCiphertexts(tx *gorm.DB, data *memberModelsData) error {
 	}
 	for i, c := range data.Credentials {
 		data.Credentials[i].Ciphertext = hashes[c.ID].Ciphertext
+		data.Credentials[i].StorageSource = hashes[c.ID].StorageSource
+		data.Credentials[i].VaultReference = hashes[c.ID].VaultReference
 	}
 	return nil
 }

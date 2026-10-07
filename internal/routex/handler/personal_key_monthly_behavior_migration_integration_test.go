@@ -357,7 +357,7 @@ func TestPersonalKeyBehaviorFixtureLedgerReplayPreservesLaterVersions(t *testing
 }
 
 func personalKeyBehaviorRegistryMatches(names []string) bool {
-	if len(names) == 146 {
+	if len(names) == 146 || len(names) == 148 {
 		if !connectionEnablementRegistryPrefix(names) {
 			return false
 		}
@@ -429,7 +429,7 @@ func TestPersonalKeyBehaviorFixtureExactRegistryPrefixAndNewPair(t *testing.T) {
 			t.Fatal("missing/replaced/reordered/duplicate registry accepted")
 		}
 	}
-	if len(names) == 146 {
+	if len(names) == 146 || len(names) == 148 {
 		if !connectionEnablementRegistryPrefix(names) {
 			t.Fatal("connection tail drift")
 		}
@@ -458,7 +458,7 @@ func TestPersonalKeyBehaviorFixtureExactRegistryPrefixAndNewPair(t *testing.T) {
 			}
 		}
 	}
-	if !strings.Contains(string(raw), "versions != 76") || !strings.Contains(string(raw), "personalKeyBehaviorHistoricalReplay(t, db, test.run)") {
+	if !strings.Contains(string(raw), "versions != 77") || !strings.Contains(string(raw), "personalKeyBehaviorHistoricalReplay(t, db, test.run)") {
 		t.Fatal("current ledger or bounded historical companion not bound")
 	}
 }

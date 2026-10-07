@@ -25,14 +25,16 @@ type ProviderConnection struct {
 }
 
 type ProviderCredential struct {
-	ReplacesCredentialID *string `gorm:"size:30;index:idx_credentials_replaces"`
-	ID                   string  `gorm:"primaryKey;size:30"`
-	ConnectionID         string  `gorm:"size:30;not null"`
-	Name                 string  `gorm:"size:100;not null"`
-	Ciphertext           string  `gorm:"type:text;not null"`
-	Priority             int     `gorm:"not null"`
-	Enabled              bool    `gorm:"not null"`
-	VerificationStatus   string  `gorm:"size:20;not null"`
+	StorageSource        string                    `gorm:"size:16;not null;default:inline;check:ck_provider_credentials_storage_source,(OCTET_LENGTH(storage_source) = 6 AND ASCII(SUBSTRING(storage_source,1,1)) = 105 AND ASCII(SUBSTRING(storage_source,2,1)) = 110 AND ASCII(SUBSTRING(storage_source,3,1)) = 108 AND ASCII(SUBSTRING(storage_source,4,1)) = 105 AND ASCII(SUBSTRING(storage_source,5,1)) = 110 AND ASCII(SUBSTRING(storage_source,6,1)) = 101) OR (OCTET_LENGTH(storage_source) = 5 AND ASCII(SUBSTRING(storage_source,1,1)) = 118 AND ASCII(SUBSTRING(storage_source,2,1)) = 97 AND ASCII(SUBSTRING(storage_source,3,1)) = 117 AND ASCII(SUBSTRING(storage_source,4,1)) = 108 AND ASCII(SUBSTRING(storage_source,5,1)) = 116)" json:"-"`
+	VaultReference       *CredentialVaultReference `gorm:"-" json:"-"`
+	ReplacesCredentialID *string                   `gorm:"size:30;index:idx_credentials_replaces"`
+	ID                   string                    `gorm:"primaryKey;size:30"`
+	ConnectionID         string                    `gorm:"size:30;not null"`
+	Name                 string                    `gorm:"size:100;not null"`
+	Ciphertext           string                    `gorm:"type:text;not null"`
+	Priority             int                       `gorm:"not null"`
+	Enabled              bool                      `gorm:"not null"`
+	VerificationStatus   string                    `gorm:"size:20;not null"`
 	VerifiedAt           *time.Time
 	CreatedAt            time.Time
 }

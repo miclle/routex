@@ -12,9 +12,11 @@ import (
 	"time"
 
 	"github.com/miclle/routex/internal/routex/entity"
+	"github.com/miclle/routex/pkg/secretstore"
 )
 
-func credentialReadinessRuntimeFixture() (*Service, entity.ProviderCredential) {
+func credentialReadinessRuntimeFixture(t *testing.T) (*Service, entity.ProviderCredential) {
+	t.Helper()
 	now := time.Now().UTC().Truncate(time.Microsecond)
 	replacement := entity.ProviderCredential{
 		ID:                 "crd_replacement",
@@ -24,6 +26,15 @@ func credentialReadinessRuntimeFixture() (*Service, entity.ProviderCredential) {
 		VerificationStatus: "verified",
 		CreatedAt:          now.Add(-time.Minute),
 	}
+	store, err := secretstore.New([]byte(strings.Repeat("k", 32)))
+	if err != nil {
+		t.Fatal(err)
+	}
+	replacement.Ciphertext, err = store.Seal(replacement.ID, "secret-must-not-leak")
+	if err != nil {
+		t.Fatal(err)
+	}
+	replacement.StorageSource = "inline"
 	auth := buildRuntimeAuthorization(&runtimeData{
 		Connections:    []entity.ProviderConnection{{ID: "con_one", ProviderID: "prv_one", Enabled: true, CreatedAt: now.Add(-time.Hour)}},
 		Models:         []entity.Model{{ID: "mdl_one", Status: "active"}},
@@ -44,10 +55,10 @@ func credentialReadinessRuntimeFixture() (*Service, entity.ProviderCredential) {
 				ProviderID: "prv_one", ProviderModelID: "pmd_one", ConnectionID: "con_one",
 				Protocol: entity.ProtocolOpenAIChat, UpstreamName: "native", EgressRevision: "transport",
 			},
-			Credentials: []runtimeCredential{{ID: replacement.ID, Plaintext: "secret-must-not-leak"}},
+			Credentials: []runtimeCredential{{ID: replacement.ID, CipherHash: credentialSourceProof(replacement), Plaintext: "secret-must-not-leak"}},
 		}}},
 	})
-	return &Service{runtime: runtime}, replacement
+	return &Service{runtime: runtime, secrets: store}, replacement
 }
 
 func TestCredentialReadinessRequiresPublishedCandidate(t *testing.T) {
@@ -98,7 +109,7 @@ func TestCredentialReadinessRequiresPublishedCandidate(t *testing.T) {
 		{"nil_client", "route_unavailable", func(s *Service) { s.runtime.routes.Load().Models["mdl_one"][0].Route.Client = nil }},
 	} {
 		t.Run(test.name, func(t *testing.T) {
-			svc, _ := credentialReadinessRuntimeFixture()
+			svc, _ := credentialReadinessRuntimeFixture(t)
 			test.change(svc)
 			capture, err := svc.captureCredentialRetirementRuntime("con_one", "crd_source", "crd_replacement")
 			if err != nil {
@@ -120,7 +131,7 @@ func TestCredentialReadinessRequiresPublishedCandidate(t *testing.T) {
 }
 
 func TestCredentialReadinessCaptureNeverWaitsForPublisher(t *testing.T) {
-	svc, _ := credentialReadinessRuntimeFixture()
+	svc, _ := credentialReadinessRuntimeFixture(t)
 	svc.runtime.mu.Lock()
 	defer svc.runtime.mu.Unlock()
 	started := time.Now()
@@ -165,7 +176,7 @@ func TestCredentialReadinessRecaptureRejectsChangedConditions(t *testing.T) {
 		{"health", "route_unavailable", func(s *Service) { s.markGatewayCredentialRejected("crd_replacement") }},
 	} {
 		t.Run(test.name, func(t *testing.T) {
-			svc, _ := credentialReadinessRuntimeFixture()
+			svc, _ := credentialReadinessRuntimeFixture(t)
 			capture, err := svc.captureCredentialRetirementRuntime("con_one", "crd_source", "crd_replacement")
 			if err != nil {
 				t.Fatal(err)
@@ -184,7 +195,7 @@ func TestCredentialReadinessRecaptureRejectsChangedConditions(t *testing.T) {
 }
 
 func TestCredentialReadinessProjectionIsBoundedAndSorted(t *testing.T) {
-	svc, _ := credentialReadinessRuntimeFixture()
+	svc, _ := credentialReadinessRuntimeFixture(t)
 	candidate := svc.runtime.routes.Load().Models["mdl_one"][0]
 	candidates := []runtimeRoute{}
 	for i := maxCredentialReadinessRoutes - 1; i >= 0; i-- {
@@ -205,7 +216,7 @@ func TestCredentialReadinessProjectionIsBoundedAndSorted(t *testing.T) {
 }
 
 func TestCredentialRetirementEvidenceRequiresExactNativeTerminalTuple(t *testing.T) {
-	svc, replacement := credentialReadinessRuntimeFixture()
+	svc, replacement := credentialReadinessRuntimeFixture(t)
 	capture, err := svc.captureCredentialRetirementRuntime("con_one", "crd_source", replacement.ID)
 	if err != nil {
 		t.Fatal(err)
@@ -281,7 +292,7 @@ func TestCredentialRetirementEvidenceRequiresExactNativeTerminalTuple(t *testing
 }
 
 func TestCredentialRetirementPublicationPinPrecedesDatabaseBorrow(t *testing.T) {
-	svc, _ := credentialReadinessRuntimeFixture()
+	svc, _ := credentialReadinessRuntimeFixture(t)
 	// The fixture has no database. A publisher crossing the pin before checking
 	// its canceled context would attempt to borrow it and fail this test.
 	release, err := svc.pinCredentialRetirementRuntime()
@@ -318,7 +329,7 @@ func TestCredentialRetirementPublicationPinPrecedesDatabaseBorrow(t *testing.T) 
 }
 
 func TestCredentialRetirementPublicationPinRejectsActivePublisher(t *testing.T) {
-	svc, _ := credentialReadinessRuntimeFixture()
+	svc, _ := credentialReadinessRuntimeFixture(t)
 	svc.runtime.publication.RLock()
 	defer svc.runtime.publication.RUnlock()
 	if release, err := svc.pinCredentialRetirementRuntime(); err == nil || release != nil {
@@ -327,7 +338,7 @@ func TestCredentialRetirementPublicationPinRejectsActivePublisher(t *testing.T) 
 }
 
 func TestCredentialRetirementApplicationRequiresDisabledAbsentSource(t *testing.T) {
-	svc, replacement := credentialReadinessRuntimeFixture()
+	svc, replacement := credentialReadinessRuntimeFixture(t)
 	source := entity.ProviderCredential{ID: "crd_source", ConnectionID: replacement.ConnectionID}
 	replacement.ReplacesCredentialID = &source.ID
 	capture, err := svc.captureCredentialRetirementRuntime(source.ConnectionID, source.ID, replacement.ID)
@@ -373,7 +384,7 @@ func TestCredentialRetirementApplicationRequiresDisabledAbsentSource(t *testing.
 }
 
 func TestCredentialRetirementCaptureFindsSourceAfterReplacement(t *testing.T) {
-	svc, _ := credentialReadinessRuntimeFixture()
+	svc, _ := credentialReadinessRuntimeFixture(t)
 	routes := svc.runtime.routes.Load()
 	candidates := routes.Models["mdl_one"]
 	candidates[0].Credentials = append(candidates[0].Credentials, runtimeCredential{ID: "crd_source"})

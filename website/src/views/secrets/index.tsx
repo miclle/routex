@@ -17,6 +17,7 @@ import { Input } from '@/components/ui/input'
 import { Table } from '@/components/ui/table'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { VaultWorkspace } from './vault'
+import ProviderStoragePolicyEditor from './provider-storage'
 
 const knownBlockers = new Set([
   'key_unavailable',
@@ -385,6 +386,13 @@ function SecretWorkspace({
       >
         {t('refresh')}
       </Button>
+      {!rotationId && (
+        <ProviderStoragePolicyEditor
+          actor={actor}
+          generation={generation}
+          permissionKey={permissionsKey}
+        />
+      )}
       {view && (
         <section className="rounded-xl border bg-card p-6">
           <header className="mb-5 flex items-center justify-between gap-4">

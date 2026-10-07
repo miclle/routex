@@ -1,6 +1,7 @@
 import { t } from '@/i18n'
 import axios from 'axios'
 import client from './client'
+import { parseCredentialStorageSource } from './provider-storage'
 import type {
   CallableModel,
   KeyDelivery,
@@ -14,7 +15,13 @@ import type {
 } from '@/types/catalog'
 
 export async function listProviders(signal?: AbortSignal) {
-  return (await client.get<{ items: Provider[] }>('/admin/providers', { signal })).data.items
+  const items = (await client.get<{ items: Provider[] }>('/admin/providers', { signal })).data.items
+  for (const provider of items)
+    for (const connection of provider.connections)
+      for (const credential of connection.credentials)
+        if (credential.storage_source !== undefined)
+          parseCredentialStorageSource(credential.storage_source)
+  return items
 }
 export async function listAdminModels() {
   return (await client.get<{ items: Model[] }>('/admin/models')).data.items
