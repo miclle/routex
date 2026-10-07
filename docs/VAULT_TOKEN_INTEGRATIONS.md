@@ -1,6 +1,22 @@
 # Vault Token integrations
 
-Status: private implementation candidate. The combined source passes formatting, mandatory check, complete Task/build and 18 focused PostgreSQL/MySQL lifecycle cases. Full141 is running. Controlled Vault API R7 passes configuration, retained-auth Cleanup, persistent Vault/application restart and both original API Sessions. Root independently verifies six revisions, two probes, four stage commands, ten paired Vault requests (six successful effects and four ACL denials), seven observed root domains, the real 300-second observation and completed retirement. Before/after/finish database projections are identical; source, artifact/config and exact owned cleanup remain verified. Root API-only review SHA-256: `efb14524ce1c06fe6de54be050d03e7d10946a6cd3c93fde25be6886c73cf538`. Earlier failed runs, including the restart-wait failure, remain failed; the fixed loopback-port successor does not reinterpret their missing evidence. Browser and delivery remain pending. Active Provider credential storage remains internal.
+Status: Token integrations and their two encrypted root domains are delivered by
+`c2368ddb0251415e72bfeee948ad23ed7a173ee4`, with exact remote main read-back.
+The accepted contextual Full141 passes 282 direct PostgreSQL/MySQL lifecycles
+and eight constraint checks. Controlled Vault API R7 covers configuration,
+retained-auth Cleanup, persistent Vault/application restart and both original
+API Sessions. Its artifact remains distinct from the later full-regression
+fixture successor; the receipts are not interchangeable.
+
+Root independently verifies six revisions, two probes, four stage commands,
+ten paired Vault requests (six successful effects and four ACL denials), seven
+observed root domains, the real 300-second observation and completed retirement.
+API-only review: `efb14524ce1c06fe6de54be050d03e7d10946a6cd3c93fde25be6886c73cf538`.
+Historical failures remain failed. Browser proof, active Provider storage
+switching and complete F28/A16 acceptance remain separate and unfinished.
+The independent credential SDK is delivered by `78c76d2`; it does not activate
+Provider storage. Current future-write policy and source-aware implementation
+work is tracked in [Implementation](IMPLEMENTATION.md).
 
 ## Configuration and authority
 
@@ -43,9 +59,34 @@ Private reads use no-store; writes and tests require current Session/CSRF and st
 
 ## Controlled API evidence and remaining gates
 
-Both Vault R7 and Personal R6 API runs use the original R3 artifact `19320f5e16792e790748feb0a69fd6f70d1c3fc4f571a5e27c6e70d8494b5df4` and source floor `1b78ece3a09c458141ceff256f702822c7e9f0b714766e8458a3b92520276101`. The later R4 parent-callback repair changes a test fixture only; its whole-source/backend-test hashes and gate receipts remain distinct even though production code is identical. API results do not become R4 whole-source acceptance. Expanded Focus18 and current Full141 belong to that later source; Full141 is still running.
+Both Vault R7 and Personal R6 API runs use the original R3 artifact `19320f5e16792e790748feb0a69fd6f70d1c3fc4f571a5e27c6e70d8494b5df4` and source floor `1b78ece3a09c458141ceff256f702822c7e9f0b714766e8458a3b92520276101`. The later R4 parent-callback repair changes a test fixture only; its whole-source/backend-test hashes and gate receipts remain distinct even though production code is identical. API results do not become R4 whole-source acceptance. Expanded Focus18 and the subsequently accepted Full141 belong to that later source; the earlier checkpoint recorded Full141 as running.
 
-Browser, bilingual controls, AuthGate recovery and feature delivery remain pending for this phase. Desktop control reports a locked Mac and the in-app browser cannot attach a new webview; those observations do not prove a product cause or UI/download success. A bounded fresh normal-browser gate must verify the existing controls, independent authority and original-Session restart against an exact reviewed artifact. No complete F17/F28 or full-objective acceptance is claimed.
+The Token integration phase is delivered. Actual browser controls, bilingual workflow and AuthGate recovery remain pending; source UI tests are separate from browser acceptance. Desktop control reports a locked Mac and the in-app browser cannot attach a new webview; those observations do not prove a product cause or UI/download success. A bounded fresh normal-browser gate must verify the existing controls, independent authority and original-Session restart against an exact reviewed artifact. No complete F17/F28 or full-objective acceptance is claimed.
+
+## Explicit AppRole SDK login
+
+The standalone `Client.LoginAppRole(ctx, authMount, roleID, secretID)` makes one
+guarded, non-retrying POST to the selected authentication mount, independently
+from the KV mount. It inherits the descriptor namespace and existing endpoint,
+DNS, network and TLS policy. It sends no Vault Token header, performs no KV
+operation, and has a ten-second deadline bounded by the caller context.
+
+The response requires a bounded Token and a positive integer lease that fits
+Go `time.Duration`. The local lease conservatively starts before dispatch.
+`LoginToken.Token` returns a transient string copy until expiry or `Close`;
+`Close` clears owned bytes and invalidates the handle without remote revocation.
+Callers must close the handle, avoid copying it, and discard any copied strings.
+Redacted formatting and null JSON prevent ordinary serialization from exposing
+auth material; this is not physical-erasure evidence.
+
+Existing KV primitives retain their request counts and do not authenticate
+automatically. The SDK provides no Token cache, renewal, persistence or
+Integration management. Higher layers must own durable claims and total
+operation deadlines. A failed login may consume a Secret ID use and is not
+retried. This primitive does not enable AppRole in saved integrations, Provider
+storage or Gateway requests; those service, schema, UI and runtime contracts
+remain separate unfinished work. Package tests do not establish real Vault
+ACLs, browser controls or persistent restart acceptance.
 
 ## Remaining scope
 
