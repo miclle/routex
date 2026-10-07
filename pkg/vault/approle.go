@@ -51,9 +51,8 @@ func (t *LoginToken) Close() {
 // Vault Token header or retries. authMount is independent from the KV mount.
 // It does not perform any KV request; callers own durable claims and total
 // operation deadlines. The conservative local lease starts before dispatch.
-func (c *Client) LoginAppRole(ctx context.Context, authMount, roleID, secretID string) (*LoginToken, Observation, error) {
+func (c *Client) LoginAppRole(ctx context.Context, authMount, roleID, secretID string) (tokenResult *LoginToken, obs Observation, resultErr error) {
 	start := time.Now()
-	obs := Observation{}
 	fail := func(code string, status int) (*LoginToken, Observation, error) {
 		obs.Duration = time.Since(start)
 		obs.Failure = &Failure{Stage: "prepare", Code: code, HTTPStatus: status}
@@ -90,6 +89,7 @@ func (c *Client) LoginAppRole(ctx context.Context, authMount, roleID, secretID s
 	obs.Attempted = true
 	response, err := c.http.Do(req)
 	if err != nil {
+		c.unprovenResponseClose()
 		if ctx.Err() != nil {
 			return contextFail()
 		}
@@ -99,7 +99,8 @@ func (c *Client) LoginAppRole(ctx context.Context, authMount, roleID, secretID s
 		}
 		return fail("transport", 0)
 	}
-	defer func() { _ = response.Body.Close() }()
+	closeResponse := c.trackResponseClose(response.Body)
+	defer func() { obs.responseCloseFailed = closeResponse() }()
 	raw, err := io.ReadAll(io.LimitReader(response.Body, maxResponseBytes+1))
 	defer clear(raw)
 	if err != nil {

@@ -93,6 +93,7 @@ func attachCredentialSources(tx *gorm.DB, rows []entity.ProviderCredential) erro
 		context.CurrentBirth = context.CurrentBirth.UTC()
 		r.ReaderCiphertext = context.ReaderCiphertext
 		r.ReaderMethod = context.ReaderMethod
+		r.PhysicalObject, _ = credentialPhysicalObject(entity.VaultRevision{Endpoint: context.Endpoint, Namespace: context.Namespace, Mount: context.Mount, Prefix: context.Prefix, DataField: context.DataField}, r.ReferenceID)
 		context.ReaderCiphertext = ""
 		// Current configured auth is an eligibility gate, not a source revision.
 		// Reconfiguration and root-key rewrap must not repoint retained references.
@@ -122,7 +123,7 @@ func attachCredentialSources(tx *gorm.DB, rows []entity.ProviderCredential) erro
 	}
 	return nil
 }
-func (s *Service) credentialReferenceClient(ctx context.Context, r entity.CredentialVaultReference) (*vault.Client, entity.VaultWriterAuth, entity.VaultReaderAuth, error) {
+func (s *Service) credentialReferenceRevision(ctx context.Context, r entity.CredentialVaultReference) (entity.VaultRevision, entity.VaultWriterAuth, entity.VaultReaderAuth, error) {
 	var integration entity.VaultIntegration
 	var rev entity.VaultRevision
 	var w entity.VaultWriterAuth
@@ -146,10 +147,9 @@ func (s *Service) credentialReferenceClient(ctx context.Context, r entity.Creden
 		return nil
 	})
 	if e != nil {
-		return nil, w, reader, e
+		return rev, w, reader, e
 	}
-	client, e := vaultClient(rev, s.allowPrivateUpstream)
-	return client, w, reader, e
+	return rev, w, reader, nil
 }
 func credentialPlan(r entity.CredentialVaultReference) vault.CredentialPlan {
 	return vault.CredentialPlan{ReferenceID: r.ReferenceID, ExpectedMarkerSHA256: r.ExpectedMarkerSHA256, DescriptorSHA256: r.DescriptorSHA256}
@@ -169,25 +169,32 @@ func (s *Service) resolveCredential(ctx context.Context, c entity.ProviderCreden
 		return "", e
 	}
 	defer release()
-	client, _, reader, e := s.credentialReferenceClient(ctx, *c.VaultReference)
+	rev, _, reader, e := s.credentialReferenceRevision(ctx, *c.VaultReference)
 	if e != nil {
 		return "", vaultUnavailable
 	}
-	defer client.Close()
+	operation, e := s.credentialFiniteOperation(rev, *c.VaultReference, reader.Method, "resolve")
+	if e != nil {
+		return "", vaultUnavailable
+	}
+	defer operation.close()
 	token, e := s.openSecret(rootReference("vault_reader_auth", reader.ID, reader.SecretGeneration), reader.AuthCiphertext)
 	if e != nil {
 		return "", vaultUnavailable
 	}
-	token, closeLogin, _, e := vaultCommandToken(ctx, client, reader.Method, token)
+	token, closeLogin, _, e := operation.token(ctx, reader.Method, token)
 	if e != nil {
 		return "", vaultUnavailable
 	}
 	defer closeLogin()
-	value, _, e := client.ReadCredential(ctx, token, credentialPlan(*c.VaultReference))
+	value, _, e := operation.read(ctx, token, credentialPlan(*c.VaultReference))
 	if e != nil {
 		return "", vaultUnavailable
 	}
 	defer value.Close()
+	if !operation.holder.admitUse() {
+		return "", vaultUnavailable
+	}
 	bytes := value.Bytes()
 	defer clear(bytes)
 	return string(bytes), nil
@@ -200,6 +207,11 @@ func (s *Service) cacheCredentialValue(ctx context.Context, c entity.ProviderCre
 	if c.StorageSource != "vault" {
 		return nil
 	}
+	holder, holderErr := s.acquireCredentialSource(c)
+	if holderErr != nil {
+		return holderErr
+	}
+	defer holder.release()
 	authProof, err := preparedCredentialAuthProof(c, s.openSecret)
 	if err != nil {
 		return err
@@ -224,6 +236,9 @@ func (s *Service) cacheCredentialValue(ctx context.Context, c entity.ProviderCre
 		return catalogConflict
 	}
 	if _, ok := s.credentialValues[proof]; !ok && len(s.credentialValues) >= 5000 {
+		return vaultUnavailable
+	}
+	if !holder.admitUse() {
 		return vaultUnavailable
 	}
 	s.credentialValues[proof] = value
@@ -284,6 +299,11 @@ func (s *Service) preparedCredentialValueWithReader(c entity.ProviderCredential,
 	if c.StorageSource == "" || c.StorageSource == "inline" {
 		return s.resolveCredential(context.Background(), c)
 	}
+	holder, holderErr := s.acquireCredentialSource(c)
+	if holderErr != nil {
+		return "", holderErr
+	}
+	defer holder.release()
 	proof := credentialSourceProof(c)
 	if proof == "" || c.VaultReference.ReaderCiphertext == "" {
 		return "", vaultUnavailable
@@ -297,6 +317,9 @@ func (s *Service) preparedCredentialValueWithReader(c entity.ProviderCredential,
 	cachedAuth := s.credentialAuthProofs[proof]
 	s.credentialValuesMu.RUnlock()
 	if !ok || cachedAuth == "" || !vaultTextEqual(cachedAuth, authProof) {
+		return "", vaultUnavailable
+	}
+	if !holder.admitUse() {
 		return "", vaultUnavailable
 	}
 	return value, nil
@@ -341,6 +364,11 @@ func (s *Service) prepareStartupCredentialValues(ctx context.Context) error {
 		if c.StorageSource != "vault" || credentialSourceProof(c) == "" {
 			continue
 		}
+		holder, holderErr := s.acquireCredentialSource(c)
+		if holderErr != nil {
+			continue
+		}
+		defer holder.release()
 		value, e := s.resolveCredential(ctx, c)
 		if parent.Err() != nil {
 			return parent.Err()
@@ -358,6 +386,31 @@ func (s *Service) prepareStartupCredentialValues(ctx context.Context) error {
 		authProofs[credentialSourceProof(c)] = authProof
 	}
 	s.credentialValuesMu.Lock()
+	var startupHolders []*credentialSourceHolder
+	defer func() {
+		for _, holder := range startupHolders {
+			holder.release()
+		}
+	}()
+	for _, c := range rows {
+		key, keyErr := credentialHolderKey(c)
+		if keyErr != nil {
+			continue
+		}
+		holder, holderErr := s.credentialSources.acquire(key)
+		if holderErr != nil {
+			delete(prepared, credentialSourceProof(c))
+			delete(authProofs, credentialSourceProof(c))
+			continue
+		}
+		if !holder.admitUse() {
+			holder.release()
+			delete(prepared, credentialSourceProof(c))
+			delete(authProofs, credentialSourceProof(c))
+			continue
+		}
+		startupHolders = append(startupHolders, holder)
+	}
 	s.credentialValues = prepared
 	s.credentialAuthProofs = authProofs
 	s.credentialValuesMu.Unlock()

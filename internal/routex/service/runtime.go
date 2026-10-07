@@ -116,11 +116,13 @@ type runtimeRoute struct {
 }
 
 type runtimeCredential struct {
-	ID         string
-	CipherHash string
-	Plaintext  string
-	Priority   int
-	CreatedAt  time.Time
+	StorageSource string
+	SourceKey     credentialSourceKey
+	ID            string
+	CipherHash    string
+	Plaintext     string
+	Priority      int
+	CreatedAt     time.Time
 }
 
 // RuntimeStatus exposes publication metadata without keys or routing secrets.
@@ -748,14 +750,26 @@ func (s *Service) buildRuntimeRoutes(data *runtimeData) (map[string][]runtimeRou
 		if s.secrets == nil {
 			return nil, runtimeUnavailable
 		}
+		holder, holderErr := s.acquireCredentialSource(credential)
+		if holderErr != nil {
+			continue
+		}
 		plaintext, err := s.preparedCredentialValue(credential)
+		defer holder.release()
 		if err != nil {
 			if credential.StorageSource == "vault" {
 				continue
 			}
 			return nil, runtimeUnavailable
 		}
-		credentials[credential.ConnectionID] = append(credentials[credential.ConnectionID], runtimeCredential{ID: credential.ID, CipherHash: credentialSourceProof(credential), Plaintext: plaintext, Priority: credential.Priority, CreatedAt: credential.CreatedAt})
+		if !holder.admitUse() {
+			continue
+		}
+		key, keyErr := credentialHolderKey(credential)
+		if keyErr != nil {
+			continue
+		}
+		credentials[credential.ConnectionID] = append(credentials[credential.ConnectionID], runtimeCredential{ID: credential.ID, CipherHash: credentialSourceProof(credential), Plaintext: plaintext, Priority: credential.Priority, CreatedAt: credential.CreatedAt, StorageSource: credential.StorageSource, SourceKey: key})
 	}
 	for connectionID := range credentials {
 		sort.Slice(credentials[connectionID], func(i, j int) bool {

@@ -1,4 +1,4 @@
-import { useEffect, useId, useMemo, useState } from 'react'
+import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import {
   Activity,
@@ -33,7 +33,10 @@ import { Dialog } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Switch } from '@/components/ui/switch'
 import { Table } from '@/components/ui/table'
-import { useSession } from '@/hooks/use-auth'
+import { sessionKey, useSession } from '@/hooks/use-auth'
+import { useSessionGeneration } from '@/hooks/use-session-generation'
+import { getPermissions } from '@/api/governance'
+import type { NotificationSettings, UpdateNotificationSettingsInput } from '@/types/notifications'
 import { usePermissions } from '@/hooks/use-permissions'
 import type {
   AdminOverview,
@@ -394,6 +397,8 @@ function AlertDetails({
   )
 }
 
+class NotificationSettingsNotDispatched extends Error {}
+
 function NotificationSettingsDialog({
   open,
   onOpenChange,
@@ -403,78 +408,252 @@ function NotificationSettingsDialog({
 }) {
   const { t } = useTranslation('notifications')
   const session = useSession()
+  const generation = useSessionGeneration()
+  const opening = useId()
   const recipientId = session.data?.user.id ?? ''
-  const key = notificationSettingsKey(recipientId)
+  const sharedPermissions = usePermissions()
+  const key = [...notificationSettingsKey(recipientId), opening, generation] as const
+  const permissionsKey = ['permissions', recipientId, 'notification-settings', opening, generation]
   const queryClient = useQueryClient()
+  const [confirmed] = useState(() => new WeakSet<object>())
+  const freshSession =
+    !!recipientId && !session.isPending && !session.isError && !session.isFetching
+  const permissions = useQuery({
+    queryKey: permissionsKey,
+    queryFn: async ({ signal }) => {
+      const value = await getPermissions(signal)
+      if (!Array.isArray(value) || !value.every((item) => typeof item === 'string'))
+        throw new Error('Invalid notification settings authority')
+      if (!signal.aborted) confirmed.add(value)
+      return value
+    },
+    enabled: open && freshSession,
+    retry: false,
+    gcTime: 0,
+    structuralSharing: false,
+    refetchOnMount: 'always',
+  })
+  const authority =
+    freshSession &&
+    permissions.isSuccess &&
+    !permissions.isFetching &&
+    confirmed.has(permissions.data) &&
+    sharedPermissions.isSuccess &&
+    !sharedPermissions.isFetching &&
+    !sharedPermissions.isError
+  const canRead =
+    authority && permissions.data.includes('system.read') && sharedPermissions.can('system.read')
+  const canWrite =
+    canRead && permissions.data.includes('system.write') && sharedPermissions.can('system.write')
   const query = useQuery({
     queryKey: key,
-    queryFn: ({ signal }) => getNotificationSettings(signal),
-    enabled: open && recipientId !== '',
+    queryFn: async ({ signal }) => {
+      const value = await getNotificationSettings(signal)
+      if (!signal.aborted) confirmed.add(value)
+      return value
+    },
+    enabled: open && freshSession,
     retry: false,
+    gcTime: 0,
+    structuralSharing: false,
+    refetchOnMount: 'always',
   })
+  const freshSettings = query.isSuccess && !query.isFetching && confirmed.has(query.data)
+  const ready = open && canRead && freshSettings
   const [email, setEmail] = useState('')
   const [emailHigh, setEmailHigh] = useState(false)
   const [emailMedium, setEmailMedium] = useState(false)
-  const [seedEtag, setSeedEtag] = useState('')
+  const [seed, setSeed] = useState<{ actor: string; etag: string } | null>(null)
   const [conflict, setConflict] = useState(false)
+  const [uncertain, setUncertain] = useState(false)
   const [conflictReviewed, setConflictReviewed] = useState(false)
   const [rejectedEtag, setRejectedEtag] = useState('')
-  useEffect(() => {
-    if (!open) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect -- closing clears the transient server-seeded draft
-      setSeedEtag('')
-      setConflict(false)
-      setConflictReviewed(false)
-      setRejectedEtag('')
-      return
+  const [rejectedValue, setRejectedValue] = useState<NotificationSettings | undefined>()
+  type SaveIntent = {
+    body: UpdateNotificationSettingsInput
+    actor: string
+    generation: number
+    opening: string
+    actorLifetime: number
+  }
+  const [submitted, setSubmitted] = useState<SaveIntent | null>(null)
+  const current = useRef({
+    recipientId,
+    generation,
+    opening,
+    ready,
+    canWrite,
+    key,
+    permissionsKey,
+    actorLifetime: 0,
+  })
+  const mounted = useRef(true)
+  useLayoutEffect(() => {
+    // The same ID after A→B→A is a new actor lifetime, independent of Session renewal.
+    const actorLifetime =
+      current.current.actorLifetime + Number(current.current.recipientId !== recipientId)
+    current.current = {
+      recipientId,
+      generation,
+      opening,
+      ready,
+      canWrite,
+      key,
+      permissionsKey,
+      actorLifetime,
     }
-    if (query.data && seedEtag === '') {
+  })
+  useLayoutEffect(() => {
+    mounted.current = true
+    return () => {
+      mounted.current = false
+    }
+  }, [])
+
+  useEffect(() => {
+    if (ready && (!seed || seed.actor !== recipientId)) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- seed only from this opening's confirmed fresh response after authority renewal
       setEmail(query.data.external_email)
       setEmailHigh(query.data.email_high)
       setEmailMedium(query.data.email_medium)
-      setSeedEtag(query.data.etag)
+      setSeed({ actor: recipientId, etag: query.data.etag })
+      setConflict(false)
+      setUncertain(false)
+      setConflictReviewed(false)
+      setSubmitted(null)
     }
-  }, [open, query.data, seedEtag])
+  }, [ready, seed, recipientId, query.data])
+  const sameOpening = (intent: SaveIntent) =>
+    mounted.current &&
+    current.current.recipientId === intent.actor &&
+    current.current.opening === intent.opening &&
+    current.current.actorLifetime === intent.actorLifetime
+  const liveAuthority = () => {
+    const sessionState = queryClient.getQueryState<NonNullable<typeof session.data>>(sessionKey)
+    const ownPermissions = queryClient.getQueryState<string[]>(current.current.permissionsKey)
+    const shared = queryClient.getQueryState<string[]>(['permissions', current.current.recipientId])
+    const settingsState = queryClient.getQueryState(current.current.key)
+    return (
+      current.current.ready &&
+      current.current.canWrite &&
+      sessionState?.status === 'success' &&
+      sessionState.fetchStatus === 'idle' &&
+      sessionState.dataUpdateCount === current.current.generation &&
+      sessionState.data?.user.id === current.current.recipientId &&
+      ownPermissions?.status === 'success' &&
+      ownPermissions.fetchStatus === 'idle' &&
+      shared?.status === 'success' &&
+      shared.fetchStatus === 'idle' &&
+      ownPermissions.data?.includes('system.read') &&
+      ownPermissions.data.includes('system.write') &&
+      shared.data?.includes('system.read') &&
+      shared.data.includes('system.write') &&
+      settingsState?.status === 'success' &&
+      settingsState.fetchStatus === 'idle'
+    )
+  }
   const mutation = useMutation({
-    mutationFn: () =>
-      updateNotificationSettings(
-        {
-          external_email: email.trim(),
-          email_high: emailHigh,
-          email_medium: emailMedium,
-          etag: seedEtag,
-        },
-        session.data!.csrf_token,
-      ),
-    onSuccess: (value) => {
-      queryClient.setQueryData(key, value)
+    mutationFn: (intent: SaveIntent) => {
+      if (
+        !sameOpening(intent) ||
+        intent.generation !== current.current.generation ||
+        !liveAuthority()
+      )
+        throw new NotificationSettingsNotDispatched('Notification settings was not dispatched')
+      // CSRF stays in the live Session cache, never in mutation variables or retained intent.
+      const liveSession = queryClient.getQueryData<typeof session.data>(sessionKey)
+      if (liveSession?.user.id !== intent.actor)
+        throw new NotificationSettingsNotDispatched('Notification settings was not dispatched')
+      return updateNotificationSettings(intent.body, liveSession.csrf_token)
+    },
+    onSuccess: (value, intent) => {
+      if (!sameOpening(intent)) return
+      if (intent.generation !== current.current.generation || !liveAuthority()) {
+        // Renewed authority cannot certify an old request; review a new current read.
+        setUncertain(true)
+        setConflictReviewed(false)
+        setRejectedValue(queryClient.getQueryData<NotificationSettings>(current.current.key))
+        void queryClient.invalidateQueries({ queryKey: current.current.key, exact: true })
+        return
+      }
+      queryClient.setQueryData(current.current.key, value)
       onOpenChange(false)
     },
-    onError: (error) => {
-      if (error instanceof NotificationError && [409, 412].includes(error.status)) {
-        setConflict(true)
-        setConflictReviewed(false)
-        setRejectedEtag(seedEtag)
-        void query.refetch()
+    onError: (error, intent) => {
+      if (!sameOpening(intent)) return
+      if (
+        error instanceof NotificationSettingsNotDispatched ||
+        (error instanceof NotificationError && [400, 401, 403].includes(error.status))
+      ) {
+        setSubmitted(null)
+        return
       }
+      const changed = error instanceof NotificationError && [409, 412].includes(error.status)
+      setConflict(changed)
+      setUncertain(!changed)
+      setConflictReviewed(false)
+      setRejectedEtag(intent.body.etag)
+      setRejectedValue(queryClient.getQueryData<NotificationSettings>(current.current.key))
+      void queryClient.invalidateQueries({ queryKey: current.current.key, exact: true })
     },
   })
+  const resetMutation = mutation.reset
+  useLayoutEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- actor changes destroy this actor's private draft even if the next read is held
+    setSeed(null)
+    setSubmitted(null)
+    setConflict(false)
+    setUncertain(false)
+    setConflictReviewed(false)
+    // Detach the old observer; its request remains recorded and is never canceled or replayed.
+    resetMutation()
+  }, [recipientId, resetMutation])
+  const needsReview = conflict || uncertain || (!!submitted && !mutation.isPending)
   const emailRequired = emailHigh || emailMedium
   const validEmail = !emailRequired || /^\S+@\S+\.\S+$/.test(email.trim())
   const conflictReady =
-    conflict &&
-    !query.isFetching &&
-    query.data?.etag !== undefined &&
-    query.data.etag !== rejectedEtag
-  const canSave = query.data && validEmail && (!conflict || (conflictReady && conflictReviewed))
-  const close = () => {
-    if (query.data) {
+    ready &&
+    canWrite &&
+    needsReview &&
+    query.data !== rejectedValue &&
+    (!conflict || query.data.etag !== rejectedEtag)
+  const canSave =
+    ready &&
+    canWrite &&
+    seed?.actor === recipientId &&
+    validEmail &&
+    !submitted &&
+    (!needsReview || (conflictReady && conflictReviewed))
+  const draftVisible = ready && seed?.actor === recipientId
+  const submit = () => {
+    if (!canSave || !liveAuthority() || mutation.isPending) return
+    const intent: SaveIntent = {
+      body: {
+        external_email: email.trim(),
+        email_high: emailHigh,
+        email_medium: emailMedium,
+        etag: seed!.etag,
+      },
+      actor: recipientId,
+      generation,
+      opening,
+      actorLifetime: current.current.actorLifetime,
+    }
+    setSubmitted(intent)
+    mutation.mutate(intent)
+  }
+  const review = (useLatest: boolean) => {
+    if (!conflictReady) return
+    if (useLatest) {
       setEmail(query.data.external_email)
       setEmailHigh(query.data.email_high)
       setEmailMedium(query.data.email_medium)
     }
-    onOpenChange(false)
+    setSeed({ actor: recipientId, etag: query.data.etag })
+    setConflictReviewed(true)
+    setSubmitted(null)
   }
+  const close = () => onOpenChange(false)
   return (
     <Dialog
       open={open}
@@ -483,83 +662,102 @@ function NotificationSettingsDialog({
       description={t('overview.settingsDescription')}
       busy={mutation.isPending}
     >
-      {query.isPending && <p role="status">{t('overview.settingsLoading')}</p>}
-      {query.isError && !conflict && (
+      {(!canRead || query.isPending || query.isFetching) && (
+        <p role="status">{t('overview.settingsLoading')}</p>
+      )}
+      {(query.isError || permissions.isError) && !conflict && (
         <div className="space-y-3">
           <p role="alert" className="text-sm text-destructive">
             {t('overview.settingsLoadFailed')}
           </p>
-          <Button variant="outline" onClick={() => void query.refetch()}>
+          <Button
+            variant="outline"
+            onClick={() => {
+              void permissions.refetch()
+              void query.refetch()
+            }}
+          >
             {t('overview.retry')}
           </Button>
         </div>
       )}
-      {query.data && (
+      {seed?.actor === recipientId && (
         <form
           className="space-y-5"
           onSubmit={(event) => {
             event.preventDefault()
-            if (canSave) mutation.mutate()
+            submit()
           }}
         >
-          <div className="rounded-lg border border-primary/20 bg-primary/5 p-4">
-            <p className="flex items-center gap-2 font-medium">
-              <BellRing className="size-4" aria-hidden />
-              {t('overview.inAppAlwaysOn')}
-            </p>
-            <p className="mt-1 text-sm text-muted-foreground">{t('overview.inAppHelp')}</p>
-          </div>
-          <label className="block space-y-2 text-sm font-medium">
-            <span>{t('overview.externalEmail')}</span>
-            <Input
-              type="email"
-              autoComplete="email"
-              value={email}
-              aria-invalid={!validEmail}
-              required={emailRequired}
-              onChange={(event) => setEmail(event.target.value)}
-            />
-            <span className="block text-xs font-normal text-muted-foreground">
-              {t('overview.externalEmailHelp')}
-            </span>
-          </label>
-          {!validEmail && (
-            <p role="alert" className="text-sm text-destructive">
-              {t('overview.invalidEmail')}
-            </p>
+          {draftVisible && (
+            <>
+              <div className="rounded-lg border border-primary/20 bg-primary/5 p-4">
+                <p className="flex items-center gap-2 font-medium">
+                  <BellRing className="size-4" aria-hidden />
+                  {t('overview.inAppAlwaysOn')}
+                </p>
+                <p className="mt-1 text-sm text-muted-foreground">{t('overview.inAppHelp')}</p>
+              </div>
+              <label className="block space-y-2 text-sm font-medium">
+                <span>{t('overview.externalEmail')}</span>
+                <Input
+                  type="email"
+                  autoComplete="email"
+                  value={email}
+                  aria-invalid={!validEmail}
+                  required={emailRequired}
+                  disabled={mutation.isPending || !!submitted}
+                  onChange={(event) => setEmail(event.target.value)}
+                />
+                <span className="block text-xs font-normal text-muted-foreground">
+                  {t('overview.externalEmailHelp')}
+                </span>
+              </label>
+              {!validEmail && (
+                <p role="alert" className="text-sm text-destructive">
+                  {t('overview.invalidEmail')}
+                </p>
+              )}
+              <div className="space-y-3 rounded-lg border p-4">
+                <label className="flex items-start justify-between gap-4 text-sm">
+                  <span>
+                    <span className="block font-medium">{t('overview.emailHigh')}</span>
+                    <span className="mt-1 block text-muted-foreground">
+                      {t('overview.emailHighHelp')}
+                    </span>
+                  </span>
+                  <Switch
+                    disabled={mutation.isPending || !!submitted}
+                    checked={emailHigh}
+                    onCheckedChange={setEmailHigh}
+                    aria-label={t('overview.emailHigh')}
+                  />
+                </label>
+                <label className="flex items-start justify-between gap-4 border-t pt-3 text-sm">
+                  <span>
+                    <span className="block font-medium">{t('overview.emailMedium')}</span>
+                    <span className="mt-1 block text-muted-foreground">
+                      {t('overview.emailMediumHelp')}
+                    </span>
+                  </span>
+                  <Switch
+                    disabled={mutation.isPending || !!submitted}
+                    checked={emailMedium}
+                    onCheckedChange={setEmailMedium}
+                    aria-label={t('overview.emailMedium')}
+                  />
+                </label>
+              </div>
+            </>
           )}
-          <div className="space-y-3 rounded-lg border p-4">
-            <label className="flex items-start justify-between gap-4 text-sm">
-              <span>
-                <span className="block font-medium">{t('overview.emailHigh')}</span>
-                <span className="mt-1 block text-muted-foreground">
-                  {t('overview.emailHighHelp')}
-                </span>
-              </span>
-              <Switch
-                checked={emailHigh}
-                onCheckedChange={setEmailHigh}
-                aria-label={t('overview.emailHigh')}
-              />
-            </label>
-            <label className="flex items-start justify-between gap-4 border-t pt-3 text-sm">
-              <span>
-                <span className="block font-medium">{t('overview.emailMedium')}</span>
-                <span className="mt-1 block text-muted-foreground">
-                  {t('overview.emailMediumHelp')}
-                </span>
-              </span>
-              <Switch
-                checked={emailMedium}
-                onCheckedChange={setEmailMedium}
-                aria-label={t('overview.emailMedium')}
-              />
-            </label>
-          </div>
-          {conflict && (
+          {needsReview && (
             <div className="space-y-3 rounded-lg border border-amber-300 bg-amber-50 p-4 text-sm text-amber-950">
-              <p className="font-medium">{t('overview.conflictTitle')}</p>
-              <p>{t('overview.conflictDescription')}</p>
+              <p className="font-medium">
+                {t(conflict ? 'overview.conflictTitle' : 'overview.uncertainTitle')}
+              </p>
+              <p>
+                {t(conflict ? 'overview.conflictDescription' : 'overview.uncertainDescription')}
+              </p>
               {conflictReady ? (
                 <p>{t('overview.latestEmail', { email: query.data.external_email || '—' })}</p>
               ) : query.isFetching ? (
@@ -579,13 +777,7 @@ function NotificationSettingsDialog({
                   type="button"
                   variant="outline"
                   disabled={!conflictReady}
-                  onClick={() => {
-                    setEmail(query.data!.external_email)
-                    setEmailHigh(query.data!.email_high)
-                    setEmailMedium(query.data!.email_medium)
-                    setSeedEtag(query.data!.etag)
-                    setConflictReviewed(true)
-                  }}
+                  onClick={() => review(true)}
                 >
                   {t('overview.useLatest')}
                 </Button>
@@ -593,10 +785,7 @@ function NotificationSettingsDialog({
                   type="button"
                   variant="outline"
                   disabled={!conflictReady}
-                  onClick={() => {
-                    setSeedEtag(query.data!.etag)
-                    setConflictReviewed(true)
-                  }}
+                  onClick={() => review(false)}
                 >
                   {t('overview.keepDraft')}
                 </Button>
@@ -606,7 +795,11 @@ function NotificationSettingsDialog({
           )}
           {mutation.isError && !conflict && (
             <p role="alert" className="text-sm text-destructive">
-              {t('overview.settingsSaveFailed')}
+              {t(
+                mutation.error instanceof NotificationSettingsNotDispatched
+                  ? 'overview.notDispatched'
+                  : 'overview.settingsSaveFailed',
+              )}
             </p>
           )}
           <div className="flex justify-end gap-2">
@@ -688,7 +881,7 @@ function AlertsCard({ overview, canWrite }: { overview: AdminOverview; canWrite:
         onOpenChange={(open) => !open && setSelected(null)}
         canWrite={canWrite}
       />
-      {canWrite && (
+      {canWrite && settingsOpen && (
         <NotificationSettingsDialog open={settingsOpen} onOpenChange={setSettingsOpen} />
       )}
     </Card>

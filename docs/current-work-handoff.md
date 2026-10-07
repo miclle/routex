@@ -1,8 +1,20 @@
 # Current implementation handoff
 
-Updated: 2026-10-07. Status: active. Continue the full RouteX objective and prioritize partial capabilities. [Implementation](IMPLEMENTATION.md) records engineering contracts and historical acceptance evidence. Earlier checkpoints below remain historical.
+Updated: 2026-10-08. Status: paused after delivery of the current tasks, as requested. Do not start new capabilities. [Implementation](IMPLEMENTATION.md) records engineering contracts and historical acceptance evidence. Earlier checkpoints below remain historical.
 
-## Current delivery and active work (2026-10-07)
+## Resume boundary
+
+Resume only after an explicit user instruction. Read this current checkpoint and
+`docs/IMPLEMENTATION.md` before historical entries, verify local/remote main and
+check the workflows for the delivered head. Install dependencies and start the
+Compose development database only when needed; preserve existing services and
+unrelated work. The next unstarted repair is initial-member-password retention in
+mutation state/cache. Genuine browser acceptance requires an available unlocked
+desktop. Durable published-source cleanup/V82, external SMTP and broader quota
+warnings remain separate unfinished work; do not infer their completion from the
+local Close or Personal rolling receipts.
+
+## Current delivery and paused work (2026-10-08)
 
 Commit `5fda07372f85fa17a013f15ecd165f91fdabbb14` delivers explicit Azure Chat deployment
 declarations, reviewed cleanup of never-committed Vault credential objects, and
@@ -11,55 +23,102 @@ mandatory main checking and complete Full154 acceptance, with original source
 gates and controlled Azure/Vault API/native/restart receipts retained at their
 original source. Frozen GORM V79/V80 preserve both supported databases. Previously
 published-object cleanup, real Azure and browser acceptance remain open. The
-full objective continues with the private warning/Close/Notification settings
-successor; formal capability totals remain unchanged. Exact-head CI37641339082 now passes
+subsequent Personal rolling warning, Close and Notification settings phase is
+delivered below; formal capability totals remain unchanged. Exact-head CI37641339082 now passes
 Backend Checks, Frontend Checks, PostgreSQL/MySQL Integration and Build Artifacts;
 Actionlint37641339288 and GolangCI37641339075 also pass. These remote results
 belong to checkpoint `ae8d3e7e62228371d36008bf70b91b5e3287769a`.
 
-The next private warning/Close/Notification settings candidate now passes fresh
-formatting, mandatory checking, complete Task and production build on its exact
-1,878-path floor. Complete Task records 4,895 frontend tests in 191 suites, four
-Node checks, two development lifecycle checks, Go race and production assets.
-Final source manifest SHA-256:
+The Role create/delete dialog lifetime repair is committed and pushed as
+`00700348a440f46039653f87d515d7d45bfe2416`, with exact remote main read-back.
+The four UI files retain captured actor/opening authority, reject obsolete
+callbacks and preserve dispatched uncertainty across same-owner Session renewal.
+Local abandonment never claims cancellation or rollback. Its 198 focused cases,
+mandatory main checking and all exact-head CI37648959571 jobs pass;
+Actionlint37648959836 and GolangCI37648959562 also pass. Browser acceptance
+remains separate, and F04/F05 are not promoted to complete.
+
+The containing commit delivers Personal rolling warnings, local response-close
+ownership and the Notification settings repair while preserving those Role
+outputs. Its original production source manifest is
 `f3889bdec8017c2249d71a0e8fd654389652d47eaecd47012b0c64f34734f459`;
-root source review SHA-256:
-`0eb6fd2fb5f7df6be544e00e814961b5b0f7b7f970751bd7443ac770ce5de78a`.
-The fresh binary is `f14b06568d4d84f1f62a601487bf08a74575e41f752dd87603339f5c54931d69`.
-Focus24, complete Full156 and controlled Vault/native/restart acceptance remain
-pending. These source gates do not replace database, runtime or browser proof.
+original source gates pass formatting, checking, complete Task (4,895 frontend
+cases/191 suites, Go race, four Node checks, two development lifecycle checks and
+production assets) and build. The inherited binary is
+`f14b06568d4d84f1f62a601487bf08a74575e41f752dd87603339f5c54931d69`.
+A four-test-file derivative corrects migration instant comparison, V81 fixture
+reset, finite-hold episode assertions and the original-Session response parser.
+Production bytes, schema and the binary remain unchanged. Fresh checking passes;
+test derivative manifest SHA-256 is
+`85dc2c545205d0eed28d9e2fa8bfa74faa33077fb4dcdf38c18ecec4e543f9f3`,
+and root source review is
+`5aceed78b827e2c9df34881ed12f5d3cc3e82cc0b27fedafa27e18d392cbdfdd`.
 
-Fresh Focus24 on this candidate fails after 285.465 seconds: 21 direct cases pass,
-three fail. PostgreSQL's immutable-observation migration check and both drivers'
-rolling observation/inbox count assertions fail. Root verifies all 1,878 source
-paths/modes and fresh owned container/network/volume, listener and PID absence.
-Root failure receipt SHA-256:
-`5c4c82417798ae7d7ba3b195965d8f9c7e6e707aa7343b1a3036efeb74251177`.
-The failed run is retained. Complete Full156 remains unlaunched with null GO;
-trace and correct the narrow warning failures before any renewed actual run.
+Fresh same-floor Focus4 and Focus24 now pass: four direct cases/23 named tests,
+then 24 direct cases/43 named tests on PostgreSQL/MySQL. Both readers run once;
+root verifies source bytes/modes and owned resource, process-group and port
+absence. Focus24 acceptance SHA-256 is
+`7fcf4f4608103de410385f26f64681c35ef71dab9e7ab47731ea05351eb7b925`.
+Controlled native/API/restart acceptance independently passes seven Calls,
+six native completed Attempts (five known usage, one missing usage), eight
+notices and six original Sessions. Finite unknown usage retains settled90,
+held2 and unknown0 before and after restart; it never rearms an episode or
+adds a notice. Native independent review SHA-256 is
+`7aac43d8b1254bd773d3e12ce5aa6230ddb5cecf077b89ae49b74aa8cc441813`.
+Real Vault API/restart independently passes five creations, two commands,
+19 KV audit pairs and two original Sessions with unchanged restart facts.
+Independent acceptance SHA-256 is
+`9b2a769d944bf96a5ce447588aabd24770f32f1153202c574c7230677c444f70`.
+Fresh composed-main format/check/complete Task/build gates pass without
+code/configuration drift. Task records 4,907 frontend cases in 191 files,
+Go race, four Node checks, two development lifecycle checks and production
+assets. Complete Full156 fails after 3,158.203 seconds: six historical
+migration fixtures fail on each database because their predecessor ledger
+checks omit the correctly retained V81 suffix. The other direct cases pass.
+The failed raw run and cleanup remain retained. Three test-only predecessor
+fixture repairs preserve the exact V81 suffix, original timestamps, rollback
+and constraint assertions. Their independent source review passes; no production,
+schema, dependency or frontend code changes. Main formatting, mandatory checking
+and all Handler race unit tests pass after these repairs. A fresh composed-main
+snapshot (1,878 files) passes Focus16 on PostgreSQL/MySQL: 16 direct cases and
+35 balanced named tests in 145.243 seconds, with unchanged source/modes and fresh
+owned resource/process/port absence. Focus acceptance SHA-256 is
+`86404795e5b4cca585b8aaf4974ac7d706354045686bfc9b31c57df7f4d8a969`;
+root review is `0c5646b6c201ab4e50461c0b15555c6b8b4d705c78d0add7fe7094659a494302`.
+Final Full156 now passes on that same composed-main snapshot: 312 direct
+PostgreSQL/MySQL lifecycle cases, eight constraint checks, 5,404 balanced named
+tests and five completed packages in 3,153.195 seconds. Original source bytes
+and modes are unchanged; the strict reader runs once after the original exit 0
+and independently verifies owned containers, networks, volumes, process group
+and ports are absent. Acceptance SHA-256 is
+`f447ab8a47f4f0bb22fc9c2295da76bbc048ba1d7660a418ad6cc97b7ec1da50`.
+Independent final raw/source/cleanup review passes with SHA-256
+`912b771c43578b29ac5cfce40510e389b328aacd2feac80648c6dc9003c94ecd`.
+The containing commit delivers this phase after the local gates above. Complete
+Task/build remain the earlier composed-main executions; renewed checking,
+Handler units, Focus16 and Full156 cover the subsequent three-test-only repair.
+Original production native and Vault restart receipts retain their original
+artifact and fixture floor; they are not relabeled as new main binary runs.
+New-head remote CI must be checked separately on resume; genuine browser and
+external-provider/mail acceptance remain open.
 
-The separate four-file Role create/delete lifetime repair is now carried on main
-with exact beforeimage checks. Independent source review verifies 1,862 source
-paths, 1,858 unchanged paths and 36 artifacts. Three actual component regressions
-and four existing error controls are retained; 198 focused cases in five files,
-types, lint and formatting pass. Queued operations check their captured actor,
-opening and authority before current CSRF; old completions cannot clear a newer
-draft. Same-owner Session uncertainty remains explicit, and local abandonment
-never cancels or reverses a dispatched operation. Backend, API, layout and
-primitives are unchanged. Paired frontend rules record the contract. Main
-mandatory checking passes on the exact four UI outputs; this UI-only phase is
-ready for its scoped commit and push;
-browser acceptance remains separate. Independent manifest SHA-256:
-`371658b8b140df582fa25276e787aef60ef14afee70c8c71e407838e33351f70`.
+Earlier failed runs remain failed and retained: original Focus24 (21 direct
+passes, three failures); first renewed Focus4 (two migration passes, two episode
+assertion failures); unchecked test Close in mandatory checking; and the next
+Focus4's login-parser failure at the original-Session restart read. The final
+fixture repairs preserve finite holds separately from settled/unknown use,
+allow only monotonic sample-order advancement, and require unchanged User/CSRF
+with no replacement Cookie. The native helper's stale post-restart hold oracle
+was also corrected before actual execution; it was a review finding rather than
+an accepted runtime run.
 
-The user requested pausing after current work. Finish only this Role repair and
-the active warning/Close/Notification settings validation and delivery; do not
-start additional capabilities. The warning driver failure has a two-test-only
-fixture successor: migration assertions compare stored instants and all recorded
-fields, while lifecycle reset clears the three V81 tables. Production code and
-the original build artifact remain byte-identical. The successor passes 35
-uncached race cases and fresh mandatory checking; renewed real-driver acceptance
-is still pending. Original failed runs and source-bound evidence remain retained.
+The current tasks are complete and the goal is paused at the user's request.
+Resume only after explicit instruction; do not start additional capabilities.
+Durable published
+Vault cleanup/V82, genuine browser acceptance, external SMTP and broader quota
+sources remain open. The separately identified initial-member-password mutation
+cache issue is assessment-only and should be prioritized after explicit resume.
+Formal totals remain 12 complete, 15 partial and three unstarted.
 
 Saved AppRole is committed and pushed as
 `77ece1770394e5217ff72094083e51b01d9eb143`, with exact remote main read-back.

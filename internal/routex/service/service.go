@@ -21,6 +21,7 @@ import (
 // Service holds the database connection and provides business logic methods.
 type Service struct {
 	db                        *gorm.DB
+	credentialSources         credentialSourceHolders
 	credentialCleanupMu       sync.Mutex
 	credentialCreationHolders map[string]int
 	credentialCleanupHolders  map[string]bool

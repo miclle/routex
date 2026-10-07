@@ -1,6 +1,11 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import client from './client'
-import { getNotifications, recordedMonthlyQuotaWarning } from './notifications'
+import {
+  getNotificationSettings,
+  updateNotificationSettings,
+  getNotifications,
+  recordedMonthlyQuotaWarning,
+} from './notifications'
 import type { Notification, MonthlyQuotaWarningSnapshot } from '@/types/notifications'
 
 const item = {
@@ -1058,5 +1063,69 @@ describe('Recorded Project Key shared-account monthly warning boundary', () => {
     expect(
       recordedMonthlyQuotaWarning({ ...warningNotice(), id: 'jwi_1' }, 'usr_member'),
     ).toBeUndefined()
+  })
+})
+
+const savedSettings = {
+  in_app_enabled: true,
+  external_email: 'alerts@example.test',
+  email_high: true,
+  email_medium: false,
+  etag: 'rev_01j00000000000000000000001',
+  updated_at: '2026-10-07T12:00:00.123456789Z',
+}
+
+describe('Exact notification settings body contract', () => {
+  it('accepts the real default revision and zero timestamp without a header promise', async () => {
+    const data = {
+      ...savedSettings,
+      external_email: '',
+      email_high: false,
+      etag: '0',
+      updated_at: '0001-01-01T00:00:00Z',
+    }
+    vi.spyOn(client, 'get').mockResolvedValueOnce({ data, headers: { etag: 'foreign-header' } })
+    expect(await getNotificationSettings()).toEqual(data)
+  })
+  it.each([
+    null,
+    [],
+    {},
+    { ...savedSettings, unexpected: true },
+    { ...savedSettings, in_app_enabled: false },
+    { ...savedSettings, external_email: 1 },
+    { ...savedSettings, external_email: 'private\ntext' },
+    { ...savedSettings, email_high: 'true' },
+    { ...savedSettings, email_medium: null },
+    { ...savedSettings, etag: '' },
+    { ...savedSettings, etag: 'settings-1' },
+    { ...savedSettings, etag: 'REV_01j00000000000000000000001' },
+    { ...savedSettings, etag: 'rev_81j00000000000000000000001' },
+    { ...savedSettings, updated_at: 'not-a-time' },
+    { ...savedSettings, updated_at: '2026-13-01T00:00:00Z' },
+    { ...savedSettings, updated_at: null },
+    { ...savedSettings, email_high: undefined },
+  ])('rejects malformed body %# without trusting a header ETag', async (data) => {
+    vi.spyOn(client, 'get').mockResolvedValueOnce({ data, headers: { etag: savedSettings.etag } })
+    await expect(getNotificationSettings()).rejects.toThrow(
+      'Invalid notification settings response',
+    )
+  })
+  it('uses the exact captured body and transient CSRF, and decodes the saved result', async () => {
+    const input = {
+      external_email: 'alerts@example.test',
+      email_high: true,
+      email_medium: false,
+      etag: '0',
+    }
+    const put = vi.spyOn(client, 'put').mockResolvedValueOnce({ data: savedSettings, headers: {} })
+    expect(await updateNotificationSettings(input, 'transient-csrf')).toEqual(savedSettings)
+    expect(put).toHaveBeenCalledWith('/notification-settings', input, {
+      headers: { 'X-CSRF-Token': 'transient-csrf', 'If-Match': '0' },
+    })
+    put.mockResolvedValueOnce({ data: { ...savedSettings, in_app_enabled: false } })
+    await expect(updateNotificationSettings(input, 'transient-csrf')).rejects.toThrow(
+      'Notification request failed',
+    )
   })
 })

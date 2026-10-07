@@ -172,6 +172,13 @@ func testVaultSavedAppRoleMigration(t *testing.T, db *gorm.DB) {
 
 // Only the reviewed AppRole pair may extend the exact retained 148-case prefix.
 func vaultAppRoleRegistryParent(names []string) ([]string, bool) {
+	if len(names) == 156 {
+		parent, ok := personalRollingWarningRegistryParent(names)
+		if !ok {
+			return nil, false
+		}
+		names = parent
+	}
 	if len(names) == 154 {
 		parent, ok := providerCleanupRegistryParent(names)
 		if !ok {
@@ -223,7 +230,7 @@ func TestVaultSavedAppRoleExactRegistry150(t *testing.T) {
 			t.Fatal("changed/missing/reordered/extra registry accepted")
 		}
 	}
-	if !strings.Contains(string(raw), "versions != 80") {
+	if !strings.Contains(string(raw), "versions != 81") {
 		t.Fatal("current V78 harness not bound")
 	}
 }

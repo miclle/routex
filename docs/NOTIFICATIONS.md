@@ -661,3 +661,48 @@ The copy correction passed 145 focused notification/localization cases, the
 complete 3,714-case frontend suite across 157 files, formatting and mandatory
 checking. The initial five stale title expectations remain a failed checkpoint;
 they were updated without changing behavior assertions.
+
+## Personal rolling Token warnings
+
+The initial rolling warning scope is a User's own stored five-hour and seven-day
+Token caps. A bounded observer uses the authoritative settled journal counters
+and the account's original registered birth. It requires the exact current User
+birth and admission state, complete coverage since the later of window start or
+User creation, no unknown Token usage in that window, and current runtime
+application of the stored cap and calendar. Reservations are not added to
+settled usage. Null and zero caps have no percentage denominator; zero remains
+an enforced admission limit. This observer changes no admission or quota policy.
+
+Frozen GORM V81 introduces current episode states, immutable rolling observations
+and recipient inboxes. Episodes are sampled, not reconstructed crossing history.
+Each window emits at most one 80% reminder and one 90% critical observation per
+episode. A first sample at or above 90%, including 100% or higher, emits only
+critical and suppresses a later lower
+reminder in that episode. A fully covered known sample below 80% rearms the
+window. Unknown or incomplete coverage preserves the prior state; elapsed time
+alone never resets it. At or above 100% no additional exhaustion event is emitted.
+
+A sampled change to the actual monitored cap or a new explicit default-reset
+review starts a new episode under fresh runtime application proof. The reset
+lineage survives subsequent ordinary full-policy saves that clear default
+provenance. Unrelated reason, money, rate or IP edits do not rearm an unchanged
+cap. Policy transitions never sampled by the observer are not reconstructed.
+The state, observation and recipient row commit in one transaction; a failed
+final application recheck rolls back the entire observation.
+
+The wire kind is `personal_rolling_quota_warning`, with
+`rolling_quota_warning_observation_id` and `rolling_quota_warning`. Its immutable
+snapshot includes exact User scope, episode, applied policy revision, window kind
+(`5h` or `7d`), window boundaries, sample and coverage times, resource birth,
+time zone, integer Token cap and settled strings, level, threshold and generation.
+The window ends at the sample time. The in-app menu renders those recorded facts
+in English or Chinese without estimating remaining allowance. Inbox reads and
+read mutations reauthorize the current recipient and exact User birth. Email
+settings remain for their existing operational sources; this slice adds no mail.
+
+Inherited caps and Personal Key, Team, Team member, Project and Project Key rolling
+warnings remain outside this initial scope. Monthly producers and their immutable
+observations remain independent. Final dual-driver/full-matrix and controlled
+native/API/restart acceptance are recorded in [Implementation](IMPLEMENTATION.md).
+The containing commit delivers this bounded scope; genuine browser acceptance,
+external mail and broader rolling-warning sources remain open.

@@ -186,3 +186,17 @@ warning policy revisions are `lim_`-prefixed ULIDs, not the composite 64-hex Tea
 review ETag. See [Team limits](TEAM_LIMITS.md#independent-team-member-monthly-modes-v75-source-candidate).
 Named templates, configurable warning thresholds and distributed enforcement remain
 separate F17 scope; these controls do not establish complete F17 acceptance.
+
+### Sampled Personal rolling warning episodes
+
+A separate bounded notification observer monitors only a User's own stored
+positive five-hour and seven-day Token caps after exact runtime application is
+confirmed. It uses settled journal counters and complete coverage with the exact
+registered User birth; holds and unknown usage never become percentage estimates.
+It emits current 80%/90% in-app observations with durable sampled episode
+suppression, not admission decisions or inferred historical threshold crossings.
+Known covered usage below 80% rearms; incomplete coverage never does. An explicit
+sampled cap/default-reset change may start a new episode; unrelated policy edits
+do not. Zero remains a hard admission cap without a warning denominator. No
+rolling 100% event, inherited-cap warning or other-account rolling warning is
+added. See `NOTIFICATIONS.md` for the snapshot and rearm contract.

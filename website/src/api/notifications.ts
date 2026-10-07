@@ -2,6 +2,7 @@ import axios from 'axios'
 import client from './client'
 import type {
   Notification,
+  PersonalRollingQuotaWarningSnapshot,
   MonthlyQuotaNotificationSnapshot,
   MonthlyQuotaWarningSnapshot,
   NotificationReadStatus,
@@ -268,9 +269,147 @@ export function recordedMonthlyQuotaWarning(
   return warning
 }
 
+export function recordedPersonalRollingQuotaWarning(
+  notification: Notification,
+  recipientId: string,
+): PersonalRollingQuotaWarningSnapshot | undefined {
+  const warning = notification.rolling_quota_warning
+  if (!warning || notification.kind !== 'personal_rolling_quota_warning') return undefined
+  const fields = [
+    'scope_kind',
+    'scope_id',
+    'window_kind',
+    'episode_id',
+    'policy_revision',
+    'window_start',
+    'window_end',
+    'as_of',
+    'coverage_start',
+    'resource_created_at',
+    'time_zone',
+    'limit',
+    'settled',
+    'level',
+    'threshold',
+    'threshold_generation',
+  ]
+  const itemFields = [
+    'id',
+    'kind',
+    'detail_code',
+    'severity',
+    'occurrence_count',
+    'read',
+    'first_seen_at',
+    'last_seen_at',
+    'read_at',
+    'subject_type',
+    'subject_id',
+    'rolling_quota_warning_observation_id',
+    'rolling_quota_warning',
+  ]
+  const safeId = /^[A-Za-z0-9_-]{1,30}$/
+  const tokens = /^(0|[1-9]\d{0,18})$/
+  if (
+    Object.keys(warning).length !== fields.length ||
+    Object.keys(warning).some((key) => !fields.includes(key)) ||
+    Object.keys(notification).some((key) => !itemFields.includes(key)) ||
+    !safeId.test(recipientId) ||
+    warning.scope_kind !== 'user' ||
+    warning.scope_id !== recipientId ||
+    notification.subject_type !== 'user' ||
+    notification.subject_id !== recipientId ||
+    typeof notification.id !== 'string' ||
+    !safeId.test(notification.id) ||
+    !notification.id.startsWith('rwi_') ||
+    typeof notification.rolling_quota_warning_observation_id !== 'string' ||
+    !safeId.test(notification.rolling_quota_warning_observation_id) ||
+    !notification.rolling_quota_warning_observation_id.startsWith('rwo_') ||
+    typeof warning.episode_id !== 'string' ||
+    !safeId.test(warning.episode_id) ||
+    !warning.episode_id.startsWith('rwe_') ||
+    typeof warning.policy_revision !== 'string' ||
+    !/^[A-Za-z0-9_-]{1,64}$/.test(warning.policy_revision) ||
+    warning.threshold_generation !== 'personal-rolling-80-90-v1' ||
+    !['5h', '7d'].includes(warning.window_kind) ||
+    notification.detail_code !== `tokens_${warning.window_kind}_${warning.level}` ||
+    notification.occurrence_count !== 1 ||
+    typeof notification.read !== 'boolean' ||
+    typeof warning.time_zone !== 'string' ||
+    !warning.time_zone ||
+    warning.time_zone === 'Local' ||
+    warning.time_zone.length > 100 ||
+    warning.time_zone.trim() !== warning.time_zone ||
+    invalidRecordedText(warning.time_zone) ||
+    typeof warning.limit !== 'string' ||
+    !tokens.test(warning.limit) ||
+    warning.limit === '0' ||
+    typeof warning.settled !== 'string' ||
+    !tokens.test(warning.settled) ||
+    BigInt(warning.limit) > 9223372036854775807n ||
+    BigInt(warning.settled) > 9223372036854775807n ||
+    !(
+      (warning.level === 'near' &&
+        warning.threshold === 80 &&
+        notification.severity === 'medium') ||
+      (warning.level === 'critical' && warning.threshold === 90 && notification.severity === 'high')
+    )
+  )
+    return undefined
+  const scaled = BigInt(warning.settled) * 100n
+  const cap = BigInt(warning.limit)
+  if (scaled < cap * BigInt(warning.threshold) || (warning.level === 'near' && scaled >= cap * 90n))
+    return undefined
+  const timestamps = [
+    warning.window_start,
+    warning.window_end,
+    warning.as_of,
+    warning.coverage_start,
+    warning.resource_created_at,
+    notification.first_seen_at,
+    notification.last_seen_at,
+  ]
+  if (
+    !timestamps.every((value) => typeof value === 'string' && Number.isFinite(Date.parse(value))) ||
+    (notification.read_at != null &&
+      (typeof notification.read_at !== 'string' ||
+        !Number.isFinite(Date.parse(notification.read_at))))
+  )
+    return undefined
+  const [start, end, asOf, coverage, birth, first, last] = timestamps.map((value) =>
+    Date.parse(value),
+  )
+  const duration = warning.window_kind === '5h' ? 5 * 60 * 60 * 1000 : 7 * 24 * 60 * 60 * 1000
+  if (
+    end !== asOf ||
+    asOf - start !== duration ||
+    Math.max(start, birth) < coverage ||
+    coverage > asOf ||
+    birth > asOf ||
+    first !== asOf ||
+    last !== asOf
+  )
+    return undefined
+  try {
+    new Intl.DateTimeFormat('en', { timeZone: warning.time_zone })
+  } catch {
+    return undefined
+  }
+  return warning
+}
+
 function validNotification(value: unknown, recipientId?: string): value is Notification {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return false
   const item = value as Record<string, unknown>
+  if (
+    item.kind === 'personal_rolling_quota_warning' ||
+    item.rolling_quota_warning != null ||
+    item.rolling_quota_warning_observation_id != null
+  )
+    return (
+      !!recipientId &&
+      !!recordedPersonalRollingQuotaWarning(item as unknown as Notification, recipientId)
+    )
   return (
     ['id', 'kind', 'detail_code', 'first_seen_at', 'last_seen_at'].every(
       (field) => typeof item[field] === 'string',
@@ -350,12 +489,41 @@ export async function markAllNotificationsRead(csrf: string) {
   }
 }
 
+function notificationSettings(value: unknown): NotificationSettings {
+  if (!value || typeof value !== 'object' || Array.isArray(value))
+    throw new Error('Invalid notification settings response')
+  const row = value as Record<string, unknown>
+  const keys = [
+    'in_app_enabled',
+    'external_email',
+    'email_high',
+    'email_medium',
+    'etag',
+    'updated_at',
+  ]
+  if (
+    Object.keys(row).length !== keys.length ||
+    !keys.every((key) => Object.hasOwn(row, key)) ||
+    row.in_app_enabled !== true ||
+    typeof row.external_email !== 'string' ||
+    invalidRecordedText(row.external_email) ||
+    typeof row.email_high !== 'boolean' ||
+    typeof row.email_medium !== 'boolean' ||
+    typeof row.etag !== 'string' ||
+    !(row.etag === '0' || /^rev_[0-7][0-9a-hjkmnp-tv-z]{25}$/.test(row.etag)) ||
+    typeof row.updated_at !== 'string' ||
+    !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,9})?(?:Z|[+-]\d{2}:\d{2})$/.test(
+      row.updated_at,
+    ) ||
+    !Number.isFinite(Date.parse(row.updated_at))
+  )
+    throw new Error('Invalid notification settings response')
+  return row as unknown as NotificationSettings
+}
+
 export async function getNotificationSettings(signal?: AbortSignal) {
-  const response = await client.get<NotificationSettings>('/notification-settings', { signal })
-  return {
-    ...response.data,
-    etag: response.data.etag || response.headers.etag || '',
-  }
+  const response = await client.get<unknown>('/notification-settings', { signal })
+  return notificationSettings(response.data)
 }
 
 export async function updateNotificationSettings(
@@ -363,13 +531,10 @@ export async function updateNotificationSettings(
   csrf: string,
 ) {
   try {
-    const response = await client.put<NotificationSettings>('/notification-settings', input, {
+    const response = await client.put<unknown>('/notification-settings', input, {
       headers: { 'X-CSRF-Token': csrf, 'If-Match': input.etag },
     })
-    return {
-      ...response.data,
-      etag: response.data.etag || response.headers.etag || '',
-    }
+    return notificationSettings(response.data)
   } catch (error) {
     throw new NotificationError(statusOf(error))
   }

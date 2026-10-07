@@ -1195,3 +1195,47 @@ The PostgreSQL missing-index fixture uses one fixed test-only DROP statement
 because the pinned GORM driver generates an invalid CURRENT_SCHEMA qualifier;
 production repair still uses the Migrator. See [Implementation](IMPLEMENTATION.md)
 for separately scoped source, real-database, real-Vault and delivery evidence.
+
+### V81: Personal rolling warning episodes
+
+Frozen V81 adds `personal_rolling_quota_warning_states`,
+`personal_rolling_quota_warning_observations` and
+`personal_rolling_quota_warning_inboxes`. State identity is exact User ID, original
+birth and rolling window. State retains sampled cap/reset lineage, an episode
+identity, emitted-level flags and the last authoritative sample time; sample time
+orders updates and is not a notification dedup key. Immutable observations have
+an episode/level unique index, exact applied revision, covered window facts and
+integer settled/cap counters. Recipient inboxes uniquely bind observation and
+recipient, with a read timestamp and paging index. History has no foreign key to
+mutable live Users, so deletion never rewrites recorded facts; service reads gate
+history against the current exact User birth.
+
+Window, level/threshold and generation checks use portable byte-exact predicates
+rather than assuming a case-sensitive database collation. Amount/window checks
+reject invalid snapshots. The migration uses bounded private frozen structs and
+GORM table/column/index/constraint APIs. Registered dual-driver fixtures specify
+partial first DDL and concurrent/repeat startup checks; released versions 1–80
+are unchanged. The new lifecycle fixture specifies genuine settled
+native use, concurrent producer deduplication, transactional inbox rollback,
+recipient isolation and restart preservation. These fixtures require separate
+actual PostgreSQL/MySQL acceptance; source compilation is not that acceptance.
+
+Positive caps and settled counters retain explicit signed-int64 bounds; settled
+use may equal or exceed the cap, so a first exhausted sample can retain its
+90% critical observation. Null and zero policy caps produce no percentage
+observation. Unknown or incomplete coverage must leave episode state intact,
+and only a fully known sample below 80% rearms the same-cap episode. Sampled
+cap/default-reset changes have separate lineage. Monthly tables and admission
+semantics are unchanged. The registry preserves the original 154-case prefix
+and appends exactly the V81 migration and lifecycle cases. Final composed-main
+Full156 passes 312 direct PostgreSQL/MySQL cases, eight constraints and 5,404
+balanced named tests; controlled native/API/restart acceptance also passes on
+the unchanged production backend. Three historical predecessor test fixtures
+now preserve the exact V81 suffix and original timestamps. Earlier failures
+remain retained; browser acceptance and other-account rolling warnings remain
+open. See [Implementation](IMPLEMENTATION.md) for the source-bound receipts.
+
+The finite Vault response-close prerequisite adds no persisted closure receipt,
+source-denial schema or migration V82. Its private, non-serialized holder and
+SDK observations cannot establish cross-process absence or authorize cleanup
+of previously published Provider sources.

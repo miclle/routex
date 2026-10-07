@@ -194,3 +194,23 @@ is manual; it does not automatically follow credential deletion. See the
 [architecture contract](docs/ARCHITECTURE.md#manual-vault-provider-orphan-cleanup),
 [frozen migration policy](docs/DATABASE.md#manual-provider-orphan-disposition-v80)
 and [current acceptance evidence](docs/IMPLEMENTATION.md).
+
+## Personal rolling warnings and notification settings
+
+The Personal rolling-warning observer monitors a User's own stored
+five-hour and seven-day Token caps. Fully covered known settled use can emit
+one 80% reminder and one 90% critical notice per sampled episode; a first
+sample at or above 90%, including 100%, emits only critical. Holds and unknown
+coverage are not percentages, and null or zero caps have no denominator.
+These notices do not change admission or add rolling-warning email delivery.
+The existing notification settings dialog keeps read and write authority
+independent and preserves exact submitted intent through uncertain responses.
+See [notification contracts](docs/NOTIFICATIONS.md) and the
+[acceptance index](docs/IMPLEMENTATION.md) for passing dual-database and
+controlled native/API/restart evidence. Genuine browser acceptance remains
+separate.
+
+Finite Vault preparation and native response ownership now have a local
+response-close prerequisite. Failed or unobserved closure cannot establish
+source drain. This prerequisite adds neither durable fleet coordination nor
+permission to clean previously published credential objects.

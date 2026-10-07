@@ -120,6 +120,13 @@ func testAzureDeploymentMigration(t *testing.T, db *gorm.DB) {
 
 // The entire original 150-case registry remains byte-exact in name/order.
 func azureDeploymentRegistryParent(names []string) ([]string, bool) {
+	if len(names) == 156 {
+		parent, ok := personalRollingWarningRegistryParent(names)
+		if !ok {
+			return nil, false
+		}
+		names = parent
+	}
 	if len(names) == 154 {
 		var ok bool
 		names, ok = providerCleanupRegistryParent(names)

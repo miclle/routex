@@ -1,8 +1,8 @@
 # RouteX Implementation and Acceptance Index
 
-Updated: 2026-10-07. This document records engineering contracts, work packages and acceptance checks. Planned interfaces and metrics are not implementation evidence. The active objective covers F01–F30 and A01–A20 through incremental P0–P6 delivery.
+Updated: 2026-10-08. This document records engineering contracts, work packages and acceptance checks. Planned interfaces and metrics are not implementation evidence. The objective covers F01–F30 and A01–A20 through incremental P0–P6 delivery and is paused at the user's request after the current tasks.
 
-## Current delivery and active work (2026-10-07)
+## Current delivery and paused work (2026-10-08)
 
 Commit `5fda07372f85fa17a013f15ecd165f91fdabbb14` delivers explicit Azure Chat deployment
 declarations, reviewed cleanup of never-committed Vault credential objects, and
@@ -11,55 +11,102 @@ mandatory main checking and complete Full154 acceptance, with original source
 gates and controlled Azure/Vault API/native/restart receipts retained at their
 original source. Frozen GORM V79/V80 preserve both supported databases. Previously
 published-object cleanup, real Azure and browser acceptance remain open. The
-full objective continues with the private warning/Close/Notification settings
-successor; formal capability totals remain unchanged. Exact-head CI37641339082 now passes
+subsequent Personal rolling warning, Close and Notification settings phase is
+delivered below; formal capability totals remain unchanged. Exact-head CI37641339082 now passes
 Backend Checks, Frontend Checks, PostgreSQL/MySQL Integration and Build Artifacts;
 Actionlint37641339288 and GolangCI37641339075 also pass. These remote results
 belong to checkpoint `ae8d3e7e62228371d36008bf70b91b5e3287769a`.
 
-The next private warning/Close/Notification settings candidate now passes fresh
-formatting, mandatory checking, complete Task and production build on its exact
-1,878-path floor. Complete Task records 4,895 frontend tests in 191 suites, four
-Node checks, two development lifecycle checks, Go race and production assets.
-Final source manifest SHA-256:
+The Role create/delete dialog lifetime repair is committed and pushed as
+`00700348a440f46039653f87d515d7d45bfe2416`, with exact remote main read-back.
+The four UI files retain captured actor/opening authority, reject obsolete
+callbacks and preserve dispatched uncertainty across same-owner Session renewal.
+Local abandonment never claims cancellation or rollback. Its 198 focused cases,
+mandatory main checking and all exact-head CI37648959571 jobs pass;
+Actionlint37648959836 and GolangCI37648959562 also pass. Browser acceptance
+remains separate, and F04/F05 are not promoted to complete.
+
+The containing commit delivers Personal rolling warnings, local response-close
+ownership and the Notification settings repair while preserving those Role
+outputs. Its original production source manifest is
 `f3889bdec8017c2249d71a0e8fd654389652d47eaecd47012b0c64f34734f459`;
-root source review SHA-256:
-`0eb6fd2fb5f7df6be544e00e814961b5b0f7b7f970751bd7443ac770ce5de78a`.
-The fresh binary is `f14b06568d4d84f1f62a601487bf08a74575e41f752dd87603339f5c54931d69`.
-Focus24, complete Full156 and controlled Vault/native/restart acceptance remain
-pending. These source gates do not replace database, runtime or browser proof.
+original source gates pass formatting, checking, complete Task (4,895 frontend
+cases/191 suites, Go race, four Node checks, two development lifecycle checks and
+production assets) and build. The inherited binary is
+`f14b06568d4d84f1f62a601487bf08a74575e41f752dd87603339f5c54931d69`.
+A four-test-file derivative corrects migration instant comparison, V81 fixture
+reset, finite-hold episode assertions and the original-Session response parser.
+Production bytes, schema and the binary remain unchanged. Fresh checking passes;
+test derivative manifest SHA-256 is
+`85dc2c545205d0eed28d9e2fa8bfa74faa33077fb4dcdf38c18ecec4e543f9f3`,
+and root source review is
+`5aceed78b827e2c9df34881ed12f5d3cc3e82cc0b27fedafa27e18d392cbdfdd`.
 
-Fresh Focus24 on this candidate fails after 285.465 seconds: 21 direct cases pass,
-three fail. PostgreSQL's immutable-observation migration check and both drivers'
-rolling observation/inbox count assertions fail. Root verifies all 1,878 source
-paths/modes and fresh owned container/network/volume, listener and PID absence.
-Root failure receipt SHA-256:
-`5c4c82417798ae7d7ba3b195965d8f9c7e6e707aa7343b1a3036efeb74251177`.
-The failed run is retained. Complete Full156 remains unlaunched with null GO;
-trace and correct the narrow warning failures before any renewed actual run.
+Fresh same-floor Focus4 and Focus24 now pass: four direct cases/23 named tests,
+then 24 direct cases/43 named tests on PostgreSQL/MySQL. Both readers run once;
+root verifies source bytes/modes and owned resource, process-group and port
+absence. Focus24 acceptance SHA-256 is
+`7fcf4f4608103de410385f26f64681c35ef71dab9e7ab47731ea05351eb7b925`.
+Controlled native/API/restart acceptance independently passes seven Calls,
+six native completed Attempts (five known usage, one missing usage), eight
+notices and six original Sessions. Finite unknown usage retains settled90,
+held2 and unknown0 before and after restart; it never rearms an episode or
+adds a notice. Native independent review SHA-256 is
+`7aac43d8b1254bd773d3e12ce5aa6230ddb5cecf077b89ae49b74aa8cc441813`.
+Real Vault API/restart independently passes five creations, two commands,
+19 KV audit pairs and two original Sessions with unchanged restart facts.
+Independent acceptance SHA-256 is
+`9b2a769d944bf96a5ce447588aabd24770f32f1153202c574c7230677c444f70`.
+Fresh composed-main format/check/complete Task/build gates pass without
+code/configuration drift. Task records 4,907 frontend cases in 191 files,
+Go race, four Node checks, two development lifecycle checks and production
+assets. Complete Full156 fails after 3,158.203 seconds: six historical
+migration fixtures fail on each database because their predecessor ledger
+checks omit the correctly retained V81 suffix. The other direct cases pass.
+The failed raw run and cleanup remain retained. Three test-only predecessor
+fixture repairs preserve the exact V81 suffix, original timestamps, rollback
+and constraint assertions. Their independent source review passes; no production,
+schema, dependency or frontend code changes. Main formatting, mandatory checking
+and all Handler race unit tests pass after these repairs. A fresh composed-main
+snapshot (1,878 files) passes Focus16 on PostgreSQL/MySQL: 16 direct cases and
+35 balanced named tests in 145.243 seconds, with unchanged source/modes and fresh
+owned resource/process/port absence. Focus acceptance SHA-256 is
+`86404795e5b4cca585b8aaf4974ac7d706354045686bfc9b31c57df7f4d8a969`;
+root review is `0c5646b6c201ab4e50461c0b15555c6b8b4d705c78d0add7fe7094659a494302`.
+Final Full156 now passes on that same composed-main snapshot: 312 direct
+PostgreSQL/MySQL lifecycle cases, eight constraint checks, 5,404 balanced named
+tests and five completed packages in 3,153.195 seconds. Original source bytes
+and modes are unchanged; the strict reader runs once after the original exit 0
+and independently verifies owned containers, networks, volumes, process group
+and ports are absent. Acceptance SHA-256 is
+`f447ab8a47f4f0bb22fc9c2295da76bbc048ba1d7660a418ad6cc97b7ec1da50`.
+Independent final raw/source/cleanup review passes with SHA-256
+`912b771c43578b29ac5cfce40510e389b328aacd2feac80648c6dc9003c94ecd`.
+The containing commit delivers this phase after the local gates above. Complete
+Task/build remain the earlier composed-main executions; renewed checking,
+Handler units, Focus16 and Full156 cover the subsequent three-test-only repair.
+Original production native and Vault restart receipts retain their original
+artifact and fixture floor; they are not relabeled as new main binary runs.
+New-head remote CI must be checked separately on resume; genuine browser and
+external-provider/mail acceptance remain open.
 
-The separate four-file Role create/delete lifetime repair is now carried on main
-with exact beforeimage checks. Independent source review verifies 1,862 source
-paths, 1,858 unchanged paths and 36 artifacts. Three actual component regressions
-and four existing error controls are retained; 198 focused cases in five files,
-types, lint and formatting pass. Queued operations check their captured actor,
-opening and authority before current CSRF; old completions cannot clear a newer
-draft. Same-owner Session uncertainty remains explicit, and local abandonment
-never cancels or reverses a dispatched operation. Backend, API, layout and
-primitives are unchanged. Paired frontend rules record the contract. Main
-mandatory checking passes on the exact four UI outputs; this UI-only phase is
-ready for its scoped commit and push;
-browser acceptance remains separate. Independent manifest SHA-256:
-`371658b8b140df582fa25276e787aef60ef14afee70c8c71e407838e33351f70`.
+Earlier failed runs remain failed and retained: original Focus24 (21 direct
+passes, three failures); first renewed Focus4 (two migration passes, two episode
+assertion failures); unchecked test Close in mandatory checking; and the next
+Focus4's login-parser failure at the original-Session restart read. The final
+fixture repairs preserve finite holds separately from settled/unknown use,
+allow only monotonic sample-order advancement, and require unchanged User/CSRF
+with no replacement Cookie. The native helper's stale post-restart hold oracle
+was also corrected before actual execution; it was a review finding rather than
+an accepted runtime run.
 
-The user requested pausing after current work. Finish only this Role repair and
-the active warning/Close/Notification settings validation and delivery; do not
-start additional capabilities. The warning driver failure has a two-test-only
-fixture successor: migration assertions compare stored instants and all recorded
-fields, while lifecycle reset clears the three V81 tables. Production code and
-the original build artifact remain byte-identical. The successor passes 35
-uncached race cases and fresh mandatory checking; renewed real-driver acceptance
-is still pending. Original failed runs and source-bound evidence remain retained.
+The current tasks are complete and the goal is paused at the user's request.
+Resume only after explicit instruction; do not start additional capabilities.
+Durable published
+Vault cleanup/V82, genuine browser acceptance, external SMTP and broader quota
+sources remain open. The separately identified initial-member-password mutation
+cache issue is assessment-only and should be prioritized after explicit resume.
+Formal totals remain 12 complete, 15 partial and three unstarted.
 
 Saved AppRole is committed and pushed as
 `77ece1770394e5217ff72094083e51b01d9eb143`, with exact remote main read-back.
@@ -1377,7 +1424,7 @@ The binary capability count is 12 completed, 15 partially completed, and 3 not s
 | F20 | Playground, comparison, attachments, and code examples | Partially completed | Four native conversation paths, two-to-four-lane comparison, cancellation, executable examples, per-protocol image/PDF discovery, user/Project attachment resolution, single/comparison attachment lifecycle interfaces, and conservative token/TPM/money admission with exact per-occurrence media prices exist; Team comparison, independent native code export, parameter Reset and creator-private Team attachments have complete local acceptance; external acceptance remains open. |
 | F21 | Personal, Project, and platform call records and CSV | Completed | Isolated list/detail queries, incremental loading, redacted drawers, bounded server-side CSV export, filter parity, formula protection, and bilingual download actions are implemented with dual-database evidence. |
 | F22 | Usage trends, amounts, and multidimensional filters | Partially completed | Personal, Team, Project and platform usage interfaces plus immutable Provider attribution exist. Current-member aggregation and controlled replay/restart are accepted. Scoped CSV, exact-ID selection and genuine-native freshness passed current-source checks and the complete dual-driver regression; measured capacity/release evidence remain open. |
-| F23 | Operations overview, quality, alerts, and notifications | Partially completed | The real-data operations overview, immutable Provider-attempt quality, revisioned success/P95 thresholds, grouped Provider-quality and route-unavailable alerts, recipient-isolated history, independent severity settings, and bounded durable operational SMTP delivery are implemented. Current-policy Personal/Project monthly settled-exhaustion inboxes have focused acceptance and Team aggregate monthly settled-exhaustion inboxes have complete controlled acceptance; private Team member monthly notices have passed controlled local source, dual-driver, native/browser/restart and full-matrix acceptance, with final mandatory check passed and checked source committed/pushed as 5363d3c; distinct remote checks remain in progress; Personal, Team aggregate, Project and private Team-member fixed 80%/90% settled monthly warnings have complete local source, dual-driver/full and controlled PostgreSQL bilingual/restart acceptance; Member warnings are committed/pushed as f7b31b1a, and separate Restore recovery as e9003c97; Personal/Project Key warnings V64/V65 are delivered as cf05c57 after full119, mandatory main checks, both authentication lifecycles and two controlled PostgreSQL scenarios totaling12 native calls,10 observations and15 inbox rows; Team creation V63 is delivered as8f17d12. Chinese Key titles are corrected in8a47ac2; external mail acceptance, bounce/inbox tracking, real-Provider quality acceptance, and broader quota/enterprise sources remain open. |
+| F23 | Operations overview, quality, alerts, and notifications | Partially completed | Real-data overview, immutable Provider-attempt quality, revisioned quality thresholds, grouped operational alerts, recipient-isolated history, independent severity settings and bounded operational SMTP delivery are implemented. Fixed monthly settled warnings cover Personal, Team aggregate/member, Project and Personal/Project Key scopes. The containing commit adds own positive Personal five-hour/seven-day Token warnings with fixed 80%/90% sampled episodes (GORM V81), dual-driver/full-matrix and controlled native/restart acceptance, and captured-authority Notification settings retries. External mail, bounce/inbox tracking, real-Provider quality acceptance and broader rolling/enterprise warning sources remain open. |
 | F24 | Read-only AI operations analysis and saved reports | Not started | Authorized analysis queries, saved definitions, evaluation, exports, and hostile-input acceptance are not implemented. |
 | F25 | Site presentation, language, and announcements | Completed | Durable site name, URL, logo, footer, default language, bilingual UI behavior, and announcement lifecycle are implemented. |
 | F26 | Instances, heartbeats, resources, jobs, and offline cleanup | Completed | Distinct process generations, server-owned leases, nullable resource facts, bounded real system jobs, executor-loss reconciliation, revision-checked cleanup, audit evidence, and the bilingual administrative workspace are implemented. |

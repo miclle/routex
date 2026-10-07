@@ -79,6 +79,7 @@ func (s *Service) TeamGatewayModels(ctx context.Context, identity *TeamSessionId
 			for _, candidate := range plan.Candidates() {
 				eligible, err := s.gatewayAttemptEligible(ctx, plan, candidate.attempt)
 				if err != nil {
+					plan.releaseSources()
 					return nil, gatewayPublicAttemptError(err)
 				}
 				if eligible {
@@ -86,6 +87,7 @@ func (s *Service) TeamGatewayModels(ctx context.Context, identity *TeamSessionId
 					intersection.include(candidate.route)
 				}
 			}
+			plan.releaseSources()
 			if available {
 				protocols = append(protocols, protocol)
 				capabilities[protocol] = intersection.values()

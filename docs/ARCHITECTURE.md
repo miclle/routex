@@ -136,6 +136,27 @@ reconciles missing occurrences, claims immutable SMTP intents with leases, and
 records explicit terminal outcomes outside the Gateway request path. See
 [Operational alerts and notifications](NOTIFICATIONS.md).
 
+Personal rolling Token notices use the account's own stored five-hour and
+seven-day caps, exact original User birth and currently applied policy. Only
+fully covered known settled windows may update an episode. Reservations are
+not settled use; unknown coverage preserves prior state. Each episode permits
+one 80% reminder and one 90% critical notice. A first sample at or above 90%,
+including 100%, is critical-only. A fully known sample below 80% rearms the
+window; elapsed time alone does not. Null and zero caps have no percentage
+denominator, while zero retains its admission meaning. Observation, episode
+state and recipient inbox commit together. Monthly notifications, admission
+and email sources remain separate.
+
+The notification settings dialog requires fresh current-actor data and
+independent system read/write authority. It does not expose cached private
+settings while authority is renewed or failed. Submitted body and reviewed
+revision remain bound to an actor lifetime and dialog opening; callbacks from
+an earlier lifetime cannot alter a later draft or cache. Same-owner Session
+renewal preserves drafts and does not resolve an uncertain dispatched save.
+Live CSRF is read only after dispatch identity checks and is never stored in
+mutation variables. Conflict review is explicit, rather than incidental
+refetch replacing the submitted revision.
+
 Provider quality reads immutable upstream-attempt snapshots. Historical rows
 without a Provider snapshot remain unattributed and are never joined to the
 mutable catalog or final logical-call route. A bounded evaluator persists closed
@@ -261,3 +282,28 @@ intent conflicts. The existing Vault row menu, scoped drawer and explicit
 confirmation preserve independent permissions, the reviewed ETag and nonsecret
 uncertain intent without caching the transient Token. This workflow adds no
 automatic schedule and makes no native-stream or cross-process drain claim.
+
+## Local Provider source ownership prerequisite
+
+A Vault-backed prepared source acquires a local holder before detached
+plaintext is exposed. Exact logical Credential birth/reference and retained
+reader-source proof remain stable through ciphertext rewrap. A separately
+derived physical-object key joins aliases without granting cleanup authority.
+Selected native ownership transfers to the response Body and lasts through
+its idempotent Close; unused, failed, canceled and non-dispatched paths release
+their holders. The final attempt start rechecks the exact source proof.
+
+Finite authentication and KV preparation use an exclusively owned SDK client
+and operation-bound closure evidence. Pending, failed or unobserved response
+Close poisons drain proof before holder release; native Body.Close errors do
+likewise. A combined ownership GET must prove its own response closure before
+destroying the reviewed version. Remote observations and request counts remain
+separate from local closure evidence, and inference adds no Vault login or
+per-request read.
+
+This is a process-local prerequisite. Private close/join does not activate
+published-object cleanup, durable source denial or fleet coordination. Expired,
+retired, missing and unknown process provenance cannot prove that another
+holder has drained. The separate durable coordinator remains outside this
+slice; no new migration, public drain receipt or root inventory domain is
+introduced by the local holder and closure changes.

@@ -51,6 +51,11 @@ func (s *Service) VerifyCredential(ctx context.Context, actorID, credentialID st
 	}
 	credential = rows[0]
 	sourceProof := credentialSourceProof(credential)
+	holder, holderErr := s.acquireCredentialSource(credential)
+	if holderErr != nil {
+		return nil, apperrors.ErrInternal
+	}
+	defer holder.release()
 	plaintext, err := s.resolveCredential(ctx, credential)
 	if err != nil {
 		return nil, apperrors.ErrInternal
@@ -72,6 +77,9 @@ func (s *Service) VerifyCredential(ctx context.Context, actorID, credentialID st
 	auditID, err := id.NewPrefixed("aud")
 	if err != nil {
 		return nil, apperrors.ErrInternal
+	}
+	if !holder.admitUse() {
+		return nil, catalogConflict
 	}
 	err = db.Transaction(func(tx *gorm.DB) error {
 		if err := lockGovernance(tx); err != nil {

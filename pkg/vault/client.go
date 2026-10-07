@@ -14,6 +14,7 @@ import (
 	"net/url"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/miclle/routex/pkg/upstream"
@@ -35,6 +36,59 @@ type Client struct {
 	descriptor Descriptor
 	endpoint   *url.URL
 	http       *http.Client
+	responses  *responseCloseTracker
+}
+
+// ResponseCloseState is private application-facing drain evidence, not a remote
+// effect receipt. Failed is sticky and includes unobservable closure after a
+// transport error; no response is not a successful Close. A
+// Client must belong to one exact operation/source for callers to attribute it.
+// Pending covers returned response bodies, not requests still awaiting headers;
+// callers must also join their exact operation holders. Copies share lifetime
+// evidence and cannot establish independent operation/source proof.
+type ResponseCloseState struct {
+	Observed bool
+	Pending  uint64
+	Failed   bool
+}
+
+type responseCloseTracker struct {
+	mu    sync.Mutex
+	state ResponseCloseState
+}
+
+// ResponseCloseState returns one coherent snapshot without error/secret material.
+// Client.Close releases idle connections and does not reset or certify this state.
+func (c *Client) ResponseCloseState() ResponseCloseState {
+	c.responses.mu.Lock()
+	defer c.responses.mu.Unlock()
+	return c.responses.state
+}
+
+func (c *Client) trackResponseClose(body io.ReadCloser) func() bool {
+	c.responses.mu.Lock()
+	c.responses.state.Observed = true
+	c.responses.state.Pending++
+	c.responses.mu.Unlock()
+	return func() bool {
+		err := body.Close() // no evidence lock over the actual synchronous Close
+		c.responses.mu.Lock()
+		if err != nil {
+			c.responses.state.Failed = true
+		}
+		c.responses.state.Pending-- // failure is recorded before publishing zero ownership
+		c.responses.mu.Unlock()
+		return err != nil
+	}
+}
+
+func (c *Client) unprovenResponseClose() {
+	// Do can close redirect bodies internally or discard a RoundTripper response
+	// returned with an error. Neither result is observable here. Never close an
+	// already closed body twice or certify drain from a nil response on this path.
+	c.responses.mu.Lock()
+	c.responses.state.Failed = true
+	c.responses.mu.Unlock()
 }
 
 // Failure contains only bounded diagnostic labels, never the upstream error/body/URL.
@@ -52,6 +106,8 @@ type Observation struct {
 	Attempted, Succeeded bool
 	Duration             time.Duration
 	Failure              *Failure
+	// Exact response closure, never serialized as a remote observation.
+	responseCloseFailed bool
 }
 
 // Cleanup describes acknowledgement separately from successful read verification.
@@ -84,7 +140,7 @@ func New(d Descriptor, allowPrivate bool) (*Client, error) {
 	endpoint.Path = strings.TrimRight(endpoint.Path, "/")
 	client := upstream.NewNonReplayingClient(allowPrivate)
 	client.Timeout = requestTimeout
-	return &Client{descriptor: d, endpoint: endpoint, http: client}, nil
+	return &Client{descriptor: d, endpoint: endpoint, http: client, responses: &responseCloseTracker{}}, nil
 }
 
 // Close releases only this client's idle connections.
@@ -177,9 +233,8 @@ func contextFailure(stage string, err error) *Failure {
 	}
 	return &Failure{Stage: stage, Code: code}
 }
-func (c *Client) request(ctx context.Context, stage, method, kind, path, query, token string, body []byte) ([]byte, Observation) {
+func (c *Client) request(ctx context.Context, stage, method, kind, path, query, token string, body []byte) (rawResult []byte, obs Observation) {
 	start := time.Now()
-	obs := Observation{}
 	fail := func(code string, status int) ([]byte, Observation) {
 		obs.Duration = time.Since(start)
 		obs.Failure = &Failure{Stage: stage, Code: code, HTTPStatus: status}
@@ -212,6 +267,7 @@ func (c *Client) request(ctx context.Context, stage, method, kind, path, query, 
 	obs.Attempted = true
 	response, err := c.http.Do(req)
 	if err != nil {
+		c.unprovenResponseClose()
 		if ctx.Err() != nil {
 			obs.Failure = contextFailure(stage, ctx.Err())
 			obs.Duration = time.Since(start)
@@ -223,7 +279,8 @@ func (c *Client) request(ctx context.Context, stage, method, kind, path, query, 
 		}
 		return fail("transport", 0)
 	}
-	defer func() { _ = response.Body.Close() }()
+	closeResponse := c.trackResponseClose(response.Body)
+	defer func() { obs.responseCloseFailed = closeResponse() }()
 	raw, err := io.ReadAll(io.LimitReader(response.Body, maxResponseBytes+1))
 	if err != nil {
 		clear(raw)

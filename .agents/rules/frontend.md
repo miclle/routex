@@ -1170,3 +1170,15 @@ or treats absence/404 as success. Do not remove rows optimistically or infer
 published-object drain; this initial slice permits only confirmed original
 never-committed orphans. Keep actor/target/Session generations and paired secrets
 copy, and fetch no root inventory from the Vault-only workspace.
+
+Personal rolling quota notices use the existing notification menu and recipient
+inbox. Render only server-recorded five-hour/seven-day settled observations with
+paired English/Chinese copy; finite holds, unknown accounting and zero/null caps
+never become estimated percentages. Own stored positive caps use fixed 80%
+reminder and 90% critical thresholds, with critical-first handling at or above
+the cap. Notification settings retain the existing Overview dialog: bind drafts
+and dispatched intent to the admitted actor, Session generation and opening
+lifetime. Capture the reviewed ETag and exact body, preserve uncertain retries,
+and reject obsolete callbacks before they read current CSRF or clear a newer
+draft. Read and write permissions remain independent; no SMTP or layout change
+is implied.

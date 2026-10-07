@@ -6,6 +6,7 @@ import {
   getNotifications,
   recordedMonthlyQuota,
   recordedMonthlyQuotaWarning,
+  recordedPersonalRollingQuotaWarning,
   markAllNotificationsRead,
   markNotificationRead,
   notificationsKey,
@@ -24,6 +25,12 @@ function itemText(
   recipientId: string,
   t: ReturnType<typeof useTranslation>['t'],
 ) {
+  if (notification.kind === 'personal_rolling_quota_warning') {
+    const warning = recordedPersonalRollingQuotaWarning(notification, recipientId)
+    return warning
+      ? t(`items.personal_rolling_quota_warning.${notification.detail_code}`)
+      : t('items.personal_rolling_quota_warning.default')
+  }
   if (notification.kind === 'monthly_quota_warning') {
     const warning = recordedMonthlyQuotaWarning(notification, recipientId)
     if (!warning) return t('items.monthly_quota_warning.default')
@@ -51,16 +58,67 @@ function itemText(
 }
 
 function deliveryText(notification: Notification, t: ReturnType<typeof useTranslation>['t']) {
-  if (notification.kind === 'monthly_quota_warning') return null
+  if (
+    notification.kind === 'monthly_quota_warning' ||
+    notification.kind === 'personal_rolling_quota_warning'
+  )
+    return null
   return notification.delivery_status ? t(`delivery.${notification.delivery_status}`) : null
 }
 
 function subjectText(notification: Notification, t: ReturnType<typeof useTranslation>['t']) {
-  if (notification.kind === 'monthly_quota_warning') return null
+  if (
+    notification.kind === 'monthly_quota_warning' ||
+    notification.kind === 'personal_rolling_quota_warning'
+  )
+    return null
   if (notification.subject_type !== 'provider' && notification.subject_type !== 'model') return null
   const value = notification.subject_name?.trim() || notification.subject_id?.trim()
   if (!value) return null
   return t(`subject.${notification.subject_type}`, { name: value })
+}
+
+function RollingQuotaSnapshot({
+  notification,
+  recipientId,
+}: {
+  notification: Notification
+  recipientId: string
+}) {
+  const { t, i18n } = useTranslation('notifications')
+  const warning = recordedPersonalRollingQuotaWarning(notification, recipientId)
+  if (!warning)
+    return <span className="mt-1 block text-xs">{t('quota.rollingSnapshotUnavailable')}</span>
+  const format = (value: string) =>
+    new Intl.DateTimeFormat(i18n.resolvedLanguage === 'zh' ? 'zh-CN' : 'en-US', {
+      dateStyle: 'medium',
+      timeStyle: 'long',
+      timeZone: warning.time_zone,
+    }).format(new Date(value))
+  return (
+    <span className="mt-1 block space-y-1 text-xs [overflow-wrap:anywhere]">
+      <span className="block">{t('quota.personalScope')}</span>
+      <span className="block">{t(`quota.rollingWindow.${warning.window_kind}`)}</span>
+      <span className="block">{t('quota.warningThreshold', { threshold: warning.threshold })}</span>
+      <span className="block">
+        {t('quota.settled', { value: t('quota.tokensValue', { amount: warning.settled }) })}
+      </span>
+      <span className="block">
+        {t('quota.limit', { value: t('quota.tokensValue', { amount: warning.limit }) })}
+      </span>
+      <span className="block">
+        {t('quota.rollingWindowRange', {
+          start: format(warning.window_start),
+          end: format(warning.window_end),
+        })}
+      </span>
+      <span className="block">{t('quota.asOf', { time: format(warning.as_of) })}</span>
+      <span className="block">
+        {t('quota.policyRevision', { revision: warning.policy_revision })}
+      </span>
+      <span className="block text-muted-foreground">{t('quota.recordedRollingWarning')}</span>
+    </span>
+  )
 }
 
 function QuotaSnapshot({
@@ -352,6 +410,9 @@ export function NotificationMenu() {
                     />
                   </span>
                   {subject && <span className="mt-1 block text-xs">{subject}</span>}
+                  {notification.kind === 'personal_rolling_quota_warning' && (
+                    <RollingQuotaSnapshot notification={notification} recipientId={recipientId} />
+                  )}
                   {(notification.kind === 'monthly_quota_exhausted' ||
                     notification.kind === 'monthly_quota_warning') && (
                     <QuotaSnapshot notification={notification} recipientId={recipientId} />

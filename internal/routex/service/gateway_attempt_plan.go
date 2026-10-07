@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"time"
 
 	"github.com/miclle/routex/pkg/routeattempt"
 )
@@ -11,6 +12,7 @@ type gatewayAttemptCandidate struct {
 	route      gatewayRoute
 	credential string
 	priority   int
+	holder     *credentialSourceHolder
 }
 
 type gatewayAttemptPlan struct {
@@ -48,12 +50,32 @@ func (s *Service) gatewayAttemptPlanWithDraw(modelID, protocol string, draw func
 	}
 	targets := []routeattempt.Target{}
 	detached := []gatewayAttemptCandidate{}
+	completed := false
+	defer func() {
+		if !completed {
+			for _, candidate := range detached {
+				candidate.holder.releasePlan()
+			}
+		}
+	}()
 	for _, candidate := range routes.Models[modelID] {
 		if candidate.Route.Protocol != protocol || candidate.Route.Weight == 0 {
 			continue
 		}
 		credentials := make([]routeattempt.Credential, 0, len(candidate.Credentials))
 		for _, credential := range candidate.Credentials {
+			var holder *credentialSourceHolder
+			if credential.StorageSource == "vault" {
+				key := credential.SourceKey
+				if key.CredentialID != credential.ID || key.CredentialBirth != credential.CreatedAt.UTC().Format(time.RFC3339Nano) || key.Proof == "" || key.Proof != credential.CipherHash {
+					continue
+				}
+				var holderErr error
+				holder, holderErr = s.credentialSources.acquire(key)
+				if holderErr != nil {
+					continue
+				}
+			}
 			credentials = append(credentials, routeattempt.Credential{ID: credential.ID, Priority: credential.Priority})
 			route := candidate.Route
 			route.PriceBasis = clonePriceBasis(candidate.Route.PriceBasis)
@@ -64,6 +86,7 @@ func (s *Service) gatewayAttemptPlanWithDraw(modelID, protocol string, draw func
 				route:      route,
 				credential: credential.Plaintext,
 				priority:   credential.Priority,
+				holder:     holder,
 			})
 		}
 		targets = append(targets, routeattempt.Target{ID: candidate.Route.BindingID, ConnectionID: candidate.Route.ConnectionID, Protocol: protocol, Weight: candidate.Route.Weight, Credentials: credentials})
@@ -75,6 +98,7 @@ func (s *Service) gatewayAttemptPlanWithDraw(modelID, protocol string, draw func
 	if err != nil {
 		return nil, runtimeUnavailable
 	}
+	completed = true
 	return &gatewayAttemptPlan{Plan: plan, modelID: modelID, protocol: protocol, snapshotID: routes.ID, candidates: detached, draw: draw}, nil
 }
 
@@ -112,6 +136,11 @@ func (s *Service) gatewayAttemptEligible(ctx context.Context, plan *gatewayAttem
 		return false, nil
 	}
 	route, _, exists := plan.Candidate(attempt)
+	if holder := plan.sourceHolder(attempt); holder != nil {
+		if !holder.admitUse() {
+			return false, nil
+		}
+	}
 	if !exists {
 		return false, nil
 	}
@@ -191,4 +220,25 @@ func (p *gatewayAttemptPlan) filtered(candidates []gatewayAttemptCandidate) (*ga
 		allowed[gatewayAttemptKey(candidate.attempt)] = true
 	}
 	return &gatewayAttemptPlan{personalGrantRevision: p.personalGrantRevision, Plan: plan, modelID: p.modelID, protocol: p.protocol, snapshotID: p.snapshotID, userID: p.userID, projectID: p.projectID, keyID: p.keyID, team: p.team, candidates: append([]gatewayAttemptCandidate(nil), candidates...), draw: p.draw, allowed: allowed}, nil
+}
+
+func (p *gatewayAttemptPlan) releaseSources() {
+	if p == nil {
+		return
+	}
+	for _, candidate := range p.candidates {
+		candidate.holder.releasePlan()
+	}
+}
+
+func (p *gatewayAttemptPlan) sourceHolder(attempt routeattempt.Attempt) *credentialSourceHolder {
+	if p == nil {
+		return nil
+	}
+	for _, candidate := range p.candidates {
+		if candidate.attempt == (routeattempt.Attempt{TargetID: attempt.TargetID, ConnectionID: attempt.ConnectionID, CredentialID: attempt.CredentialID, Protocol: attempt.Protocol}) {
+			return candidate.holder
+		}
+	}
+	return nil
 }

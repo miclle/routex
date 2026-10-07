@@ -441,6 +441,13 @@ func testProjectKeyMonthlyBehaviorLifecycle(t *testing.T, db *gorm.DB) {
 }
 
 func projectKeyMonthlyBehaviorRegistryMatches(pairs []string) bool {
+	if len(pairs) == 156 {
+		parent, ok := personalRollingWarningRegistryParent(pairs)
+		if !ok {
+			return false
+		}
+		pairs = parent
+	}
 	if len(pairs) == 154 {
 		parent, ok := providerCleanupRegistryParent(pairs)
 		if !ok {

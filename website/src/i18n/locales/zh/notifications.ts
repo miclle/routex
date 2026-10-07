@@ -22,6 +22,12 @@ export default {
   retry: '重试',
   unknownItem: '有通知需要关注。',
   quota: {
+    rollingWindow: { '5h': '滚动五小时 Token', '7d': '滚动七天 Token' },
+    rollingWindowRange: '记录的滚动窗口：{{start}} – {{end}}',
+    recordedRollingWarning:
+      '基于个人已保存上限且覆盖完整的已结算用量快照；预留和未知用量不用于百分比估算。',
+    rollingSnapshotUnavailable: '滚动配额快照不可用。',
+
     warningThreshold: '记录的预警阈值：{{threshold}}%',
     recordedWarning: '固定的已结算用量观测，不代表当前剩余额度，也不证明历史上跨越了阈值。',
     teamMemberScope: '您在 Team {{id}} 的成员额度',
@@ -74,6 +80,14 @@ export default {
     unknown: '邮件投递结果未知',
   },
   items: {
+    personal_rolling_quota_warning: {
+      default: '已记录个人滚动 Token 配额提醒。',
+      tokens_5h_near: '已记录个人滚动五小时 Token 配额提醒。',
+      tokens_5h_critical: '已记录个人滚动五小时 Token 配额严重警告。',
+      tokens_7d_near: '已记录个人滚动七天 Token 配额提醒。',
+      tokens_7d_critical: '已记录个人滚动七天 Token 配额严重警告。',
+    },
+
     monthly_quota_warning: {
       default: '已记录月度额度预警。',
       tokens_month_near: '已记录个人月度 Token 预警。',
@@ -268,6 +282,10 @@ export default {
     settingsSaved: '通知设置已保存。',
     settingsSaveFailed: '无法保存通知设置。',
     invalidEmail: '请输入有效的外部通知邮箱。',
+    notDispatched: '当前权限已变化，请求未发送。请刷新会话并查看设置后再提交。',
+    uncertainTitle: '保存结果未知',
+    uncertainDescription:
+      '上次请求可能已保存。请查看当前保存值，再明确发起新的写入；本次查看不能确认上次请求的结果。',
     conflictTitle: '设置已在其他位置更新',
     conflictDescription: '请查看最新保存值，再决定是否保留当前草稿。',
     conflictLoadFailed: '无法加载最新保存的设置。请重试后再处理当前草稿。',

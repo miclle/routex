@@ -1951,3 +1951,49 @@ it('marks all mixed warning scopes read without changing original Project root h
     ),
   ).toBe(true)
 })
+
+it('renders a recorded personal rolling window in English and Chinese without email or remaining estimates', async () => {
+  page.items = [
+    {
+      id: 'rwi_sample',
+      rolling_quota_warning_observation_id: 'rwo_sample',
+      kind: 'personal_rolling_quota_warning',
+      severity: 'medium',
+      detail_code: 'tokens_5h_near',
+      subject_type: 'user',
+      subject_id: actor,
+      occurrence_count: 1,
+      read: false,
+      read_at: null,
+      first_seen_at: '2026-10-06T12:00:00Z',
+      last_seen_at: '2026-10-06T12:00:00Z',
+      rolling_quota_warning: {
+        scope_kind: 'user',
+        scope_id: actor,
+        window_kind: '5h',
+        episode_id: 'rwe_sample',
+        policy_revision: 'lim_applied',
+        window_start: '2026-10-06T07:00:00Z',
+        window_end: '2026-10-06T12:00:00Z',
+        as_of: '2026-10-06T12:00:00Z',
+        coverage_start: '2026-10-01T00:00:00Z',
+        resource_created_at: '2026-10-01T00:00:00Z',
+        time_zone: 'UTC',
+        limit: '100',
+        settled: '80',
+        level: 'near',
+        threshold: 80,
+        threshold_generation: 'personal-rolling-80-90-v1',
+      },
+    },
+  ]
+  await mount()
+  await until(() => expect(document.body.textContent).toContain('Rolling five-hour tokens'))
+  expect(document.body.textContent).toContain('Settled: 80 tokens')
+  expect(document.body.textContent).toContain('Recorded warning threshold: 80%')
+  expect(document.body.textContent).not.toContain('Email queued')
+  await act(async () => i18n.changeLanguage('zh'))
+  await until(() => expect(document.body.textContent).toContain('滚动五小时 Token'))
+  expect(document.body.textContent).toContain('已结算：80 Token')
+  expect(requests.filter((r) => r.url === '/notifications')).toHaveLength(1)
+})

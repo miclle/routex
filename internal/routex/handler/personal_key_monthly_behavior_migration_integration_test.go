@@ -357,6 +357,13 @@ func TestPersonalKeyBehaviorFixtureLedgerReplayPreservesLaterVersions(t *testing
 }
 
 func personalKeyBehaviorRegistryMatches(names []string) bool {
+	if len(names) == 156 {
+		parent, ok := personalRollingWarningRegistryParent(names)
+		if !ok {
+			return false
+		}
+		names = parent
+	}
 	if len(names) == 154 {
 		parent, ok := providerCleanupRegistryParent(names)
 		if !ok {
@@ -482,7 +489,7 @@ func TestPersonalKeyBehaviorFixtureExactRegistryPrefixAndNewPair(t *testing.T) {
 			}
 		}
 	}
-	if !strings.Contains(string(raw), "versions != 80") || !strings.Contains(string(raw), "personalKeyBehaviorHistoricalReplay(t, db, test.run)") {
+	if !strings.Contains(string(raw), "versions != 81") || !strings.Contains(string(raw), "personalKeyBehaviorHistoricalReplay(t, db, test.run)") {
 		t.Fatal("current ledger or bounded historical companion not bound")
 	}
 }

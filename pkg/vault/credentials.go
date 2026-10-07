@@ -242,6 +242,12 @@ func (c *Client) CleanupCredentialOwned(ctx context.Context, reader, cleanupToke
 	}
 	value.Close()
 	result.Version = 1
+	// The synchronous ownership read returned only after its response Close.
+	// Preserve that read evidence, but never destroy after failed/unjoined Close.
+	if state := c.ResponseCloseState(); read.Read.responseCloseFailed || state.Pending != 0 {
+		result.Cleanup.State = "unknown"
+		return result, &Failure{Stage: "cleanup", Code: "transport"}
+	}
 	raw, obs := c.request(ctx, "cleanup", http.MethodPut, "destroy", c.credentialPath(plan), "", cleanupToken, []byte(`{"versions":[1]}`))
 	clear(raw)
 	result.Cleanup.Observation = obs

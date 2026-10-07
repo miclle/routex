@@ -23,6 +23,7 @@ type preparedGatewayAttempt struct {
 	credential string
 	request    *http.Request
 	client     *http.Client
+	holder     *credentialSourceHolder
 }
 
 func (s *Service) gatewayNativeAttempts(ctx context.Context, requestID string, result *GatewayResult, payload map[string]json.RawMessage, attachmentPlan *gatewayAttachmentPlan, options ...gatewayNativeOptions) (*GatewayResult, error) {
@@ -43,6 +44,7 @@ func (s *Service) gatewayNativeAttempts(ctx context.Context, requestID string, r
 	if err != nil {
 		return result, gatewayPublicAttemptError(err)
 	}
+	defer plan.releaseSources()
 	plan.userID, plan.projectID, plan.keyID = result.UserID, result.ProjectID, result.KeyID
 	plan.team = result.identity.team
 	if result.identity.key != nil && result.ProjectID == "" {
@@ -109,6 +111,7 @@ func (s *Service) gatewayNativeAttempts(ctx context.Context, requestID string, r
 				hookErr = prepareErr
 				return prepareErr
 			}
+			prepared.holder = plan.sourceHolder(attempt)
 			current = prepared
 			return nil
 		},
@@ -461,6 +464,10 @@ func (s *Service) executeGatewayAttempt(ctx context.Context, requestID string, r
 		return routeattempt.Outcome{Failure: routeattempt.PermanentFailure, Work: routeattempt.NotSent}, runtimeUnavailable, routeattempt.ErrExecution
 	}
 	defer release()
+	if !prepared.holder.admitUse() {
+		return routeattempt.Outcome{Failure: routeattempt.PermanentFailure, Work: routeattempt.NotSent}, runtimeUnavailable, routeattempt.ErrExecution
+	}
+	defer prepared.holder.releasePlan()
 	result.AttemptID, _ = id.NewPrefixed("att")
 	if result.AttemptID == "" {
 		return routeattempt.Outcome{Failure: routeattempt.PermanentFailure, Work: routeattempt.NotSent}, gatewayError(http.StatusInternalServerError, "internal_error", "The request could not be initialized."), routeattempt.ErrExecution
@@ -482,8 +489,14 @@ func (s *Service) executeGatewayAttempt(ctx context.Context, requestID string, r
 	// leaves its captured identity and metering intact, including streaming.
 	release()
 	response, requestErr := prepared.client.Do(prepared.request)
+	if response != nil && response.Body != nil {
+		response.Body = prepared.holder.body(response.Body)
+	}
 	result.Response = response
 	if requestErr != nil {
+		if response != nil && response.Body != nil {
+			_ = response.Body.Close()
+		}
 		if ctx.Err() != nil {
 			public := gatewayContextError(ctx.Err())
 			outcome := routeattempt.Outcome{Failure: routeattempt.PermanentFailure, Work: routeattempt.Unknown}

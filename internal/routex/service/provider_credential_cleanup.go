@@ -483,22 +483,27 @@ func (s *Service) CleanupProviderCredentialOrphan(ctx context.Context, actorID, 
 		return nil
 	})
 	if err == nil {
-		client, w, r, e := s.credentialReferenceClient(ctx, operationReference(op))
+		rev, w, r, e := s.credentialReferenceRevision(ctx, operationReference(op))
 		if e == nil {
-			defer client.Close()
-			wt, rt, openErr := s.vaultOpen(w, r)
-			if openErr == nil && (w.Method != "token" || wt != input.cleanupToken) {
-				token, closeToken, login, loginErr := vaultCommandToken(ctx, client, r.Method, rt)
-				if loginErr == nil {
-					result, err = client.CleanupCredentialOwned(ctx, token, input.cleanupToken, credentialPlan(operationReference(op)))
-					closeToken()
-				} else {
-					result.Ownership = vault.Observation{Attempted: false, Failure: &vault.Failure{Stage: "prepare", Code: "invalid_auth"}}
-					_ = login
-					err = loginErr
-				}
+			operation, operationErr := s.credentialFiniteOperation(rev, operationReference(op), r.Method, "cleanup")
+			if operationErr != nil {
+				err = operationErr
 			} else {
-				err = vaultUnavailable
+				defer operation.close()
+				wt, rt, openErr := s.vaultOpen(w, r)
+				if openErr == nil && (w.Method != "token" || wt != input.cleanupToken) {
+					token, closeToken, login, loginErr := operation.token(ctx, r.Method, rt)
+					if loginErr == nil {
+						result, err = operation.cleanup(ctx, token, input.cleanupToken, credentialPlan(operationReference(op)))
+						closeToken()
+					} else {
+						result.Ownership = vault.Observation{Attempted: false, Failure: &vault.Failure{Stage: "prepare", Code: "invalid_auth"}}
+						_ = login
+						err = loginErr
+					}
+				} else {
+					err = vaultUnavailable
+				}
 			}
 		} else {
 			err = e

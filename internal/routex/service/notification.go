@@ -45,27 +45,29 @@ type QuotaNotificationSnapshot struct {
 }
 
 type NotificationRecord struct {
-	QuotaWarningObservationID string                     `json:"quota_warning_observation_id,omitempty"`
-	QuotaWarning              *QuotaWarningSnapshot      `json:"quota_warning,omitempty"`
-	QuotaObservationID        string                     `json:"quota_observation_id,omitempty"`
-	Quota                     *QuotaNotificationSnapshot `json:"quota,omitempty"`
-	ID                        string                     `json:"id"`
-	AlertID                   string                     `json:"alert_id,omitempty"`
-	Kind                      string                     `json:"kind"`
-	Severity                  string                     `json:"severity"`
-	DetailCode                string                     `json:"detail_code"`
-	SubjectType               string                     `json:"subject_type,omitempty"`
-	SubjectID                 string                     `json:"subject_id,omitempty"`
-	SubjectName               string                     `json:"subject_name,omitempty"`
-	OccurrenceCount           int                        `json:"occurrence_count"`
-	Read                      bool                       `json:"read"`
-	FirstSeenAt               time.Time                  `json:"first_seen_at"`
-	LastSeenAt                time.Time                  `json:"last_seen_at"`
-	ReadAt                    *time.Time                 `json:"read_at"`
-	DeliveryStatus            string                     `json:"delivery_status,omitempty"`
-	DeliveryCode              string                     `json:"delivery_code,omitempty"`
-	DeliveryAttempts          int                        `json:"delivery_attempts,omitempty"`
-	DeliveryUpdatedAt         *time.Time                 `json:"delivery_updated_at,omitempty"`
+	RollingQuotaWarningObservationID string                               `json:"rolling_quota_warning_observation_id,omitempty"`
+	RollingQuotaWarning              *PersonalRollingQuotaWarningSnapshot `json:"rolling_quota_warning,omitempty"`
+	QuotaWarningObservationID        string                               `json:"quota_warning_observation_id,omitempty"`
+	QuotaWarning                     *QuotaWarningSnapshot                `json:"quota_warning,omitempty"`
+	QuotaObservationID               string                               `json:"quota_observation_id,omitempty"`
+	Quota                            *QuotaNotificationSnapshot           `json:"quota,omitempty"`
+	ID                               string                               `json:"id"`
+	AlertID                          string                               `json:"alert_id,omitempty"`
+	Kind                             string                               `json:"kind"`
+	Severity                         string                               `json:"severity"`
+	DetailCode                       string                               `json:"detail_code"`
+	SubjectType                      string                               `json:"subject_type,omitempty"`
+	SubjectID                        string                               `json:"subject_id,omitempty"`
+	SubjectName                      string                               `json:"subject_name,omitempty"`
+	OccurrenceCount                  int                                  `json:"occurrence_count"`
+	Read                             bool                                 `json:"read"`
+	FirstSeenAt                      time.Time                            `json:"first_seen_at"`
+	LastSeenAt                       time.Time                            `json:"last_seen_at"`
+	ReadAt                           *time.Time                           `json:"read_at"`
+	DeliveryStatus                   string                               `json:"delivery_status,omitempty"`
+	DeliveryCode                     string                               `json:"delivery_code,omitempty"`
+	DeliveryAttempts                 int                                  `json:"delivery_attempts,omitempty"`
+	DeliveryUpdatedAt                *time.Time                           `json:"delivery_updated_at,omitempty"`
 }
 
 type NotificationPage struct {
@@ -245,6 +247,12 @@ func (s *Service) ListNotifications(ctx context.Context, actor string, filter No
 		}
 		records = append(records, warnings...)
 		page.UnreadCount += warningUnread
+		rollingWarnings, rollingUnread, err := personalRollingWarningPage(tx, access, filter, limit, cursorTime, cursorID)
+		if err != nil {
+			return err
+		}
+		records = append(records, rollingWarnings...)
+		page.UnreadCount += rollingUnread
 		teamWarnings, teamWarningUnread, err := teamQuotaWarningPage(tx, access, filter, limit, cursorTime, cursorID)
 		if err != nil {
 			return err
@@ -348,6 +356,14 @@ func (s *Service) MarkNotificationRead(ctx context.Context, actor, notificationI
 			record = warning
 			return nil
 		}
+		rollingWarning, rollingFound, rollingErr := markPersonalRollingWarningRead(tx, access, notificationID)
+		if rollingErr != nil && !errors.Is(rollingErr, gorm.ErrRecordNotFound) {
+			return rollingErr
+		}
+		if rollingFound {
+			record = rollingWarning
+			return nil
+		}
 		teamWarning, teamFound, teamErr := markTeamQuotaWarningRead(tx, access, notificationID)
 		if teamErr != nil && !errors.Is(teamErr, gorm.ErrRecordNotFound) {
 			return teamErr
@@ -434,6 +450,9 @@ func (s *Service) MarkAllNotificationsRead(ctx context.Context, actor string) er
 			return err
 		}
 		if err := quotaWarningMutationQuery(tx, access).Where("read_at IS NULL").Update("read_at", now).Error; err != nil {
+			return err
+		}
+		if err := personalRollingWarningMutationQuery(tx, access).Where("read_at IS NULL").Update("read_at", now).Error; err != nil {
 			return err
 		}
 		if err := teamQuotaWarningMutationQuery(tx, access).Where("read_at IS NULL").Update("read_at", now).Error; err != nil {

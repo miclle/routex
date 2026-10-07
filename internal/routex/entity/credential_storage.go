@@ -52,6 +52,8 @@ type CredentialStorageOperation struct {
 // CredentialVaultReference survives credential deletion so unresolved external
 // objects never become falsely absent. It is not a cleanup authorization.
 type CredentialVaultReference struct {
+	// PhysicalObject is a local derived admission identity, never persisted or exposed.
+	PhysicalObject       string    `gorm:"-" json:"-"`
 	ReaderMethod         string    `gorm:"-" json:"-"`
 	ReaderCiphertext     string    `gorm:"-" json:"-"`
 	SourceContext        string    `gorm:"-" json:"-"`

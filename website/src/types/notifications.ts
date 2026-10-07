@@ -35,7 +35,28 @@ export interface MonthlyQuotaWarningSnapshot extends Omit<
     | 'project-key-monthly-80-90-v1'
 }
 
+export interface PersonalRollingQuotaWarningSnapshot {
+  scope_kind: 'user'
+  scope_id: string
+  window_kind: '5h' | '7d'
+  episode_id: string
+  policy_revision: string
+  window_start: string
+  window_end: string
+  as_of: string
+  coverage_start: string
+  resource_created_at: string
+  time_zone: string
+  limit: string
+  settled: string
+  level: 'near' | 'critical'
+  threshold: 80 | 90
+  threshold_generation: 'personal-rolling-80-90-v1'
+}
+
 export interface Notification {
+  rolling_quota_warning_observation_id?: string
+  rolling_quota_warning?: PersonalRollingQuotaWarningSnapshot
   id: string
   alert_id?: string
   quota_observation_id?: string

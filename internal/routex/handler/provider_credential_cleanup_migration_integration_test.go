@@ -27,8 +27,8 @@ func providerCleanupHistoricalLedger(t *testing.T, db *gorm.DB, maxVersion int) 
 func testProviderCredentialCleanupMigration(t *testing.T, db *gorm.DB) {
 	ctx := context.Background()
 	before := personalKeyBehaviorLedger(t, db)
-	if len(before) != 80 {
-		t.Fatal("exact current80 ledger required")
+	if len(before) != 81 || before[80].Version != 81 {
+		t.Fatal("exact current81 ledger required")
 	}
 	for i, row := range before {
 		if row.Version != i+1 {
@@ -50,7 +50,9 @@ func testProviderCredentialCleanupMigration(t *testing.T, db *gorm.DB) {
 		t.Fatal(e)
 	}
 	historical := personalKeyBehaviorLedger(t, db)
-	if !reflect.DeepEqual(historical, before[:79]) {
+	// Only V80 is reconstructed; preserve the exact later V81 ledger entry.
+	wantHistorical := append(append([]personalKeyBehaviorMigrationEntry{}, before[:79]...), before[80:]...)
+	if !reflect.DeepEqual(historical, wantHistorical) {
 		t.Fatal("exact original79 ledger changed")
 	}
 	// Interrupted DDL may have created the table but not its indexes/constraint.
@@ -91,7 +93,7 @@ func testProviderCredentialCleanupMigration(t *testing.T, db *gorm.DB) {
 		t.Fatal(e)
 	}
 	after := personalKeyBehaviorLedger(t, db)
-	if len(after) != 80 || after[79].Version != 80 || !reflect.DeepEqual(after[:79], before[:79]) {
+	if len(after) != 81 || after[80].Version != 81 || !reflect.DeepEqual(after[80:], before[80:]) || after[79].Version != 80 || !reflect.DeepEqual(after[:79], before[:79]) {
 		t.Fatal("V80 repeat/current ledger or original79 prefix changed")
 	}
 	var retained []entity.CredentialStorageOperation
@@ -125,6 +127,13 @@ func testProviderCredentialCleanupMigration(t *testing.T, db *gorm.DB) {
 	}
 }
 func providerCleanupRegistryParent(names []string) ([]string, bool) {
+	if len(names) == 156 {
+		parent, ok := personalRollingWarningRegistryParent(names)
+		if !ok {
+			return nil, false
+		}
+		names = parent
+	}
 	if len(names) != 154 || names[152] != "provider_orphan_cleanup_migration:testProviderCredentialCleanupMigration" || names[153] != "provider_orphan_cleanup:testProviderCredentialCleanupLifecycle" {
 		return nil, false
 	}

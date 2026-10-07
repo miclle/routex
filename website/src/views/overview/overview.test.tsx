@@ -150,18 +150,30 @@ let conflictOnce: boolean
 let settingsReadFailureOnce: boolean
 let settingsReadGate: Promise<void> | null
 let releaseSettingsRead: (() => void) | null
+let currentSession = session
+let sessionGate: Promise<void> | null
+let permissionsGate: Promise<void> | null
+let settingsWriteGate: Promise<void> | null
+let settingsWriteFailureOnce: boolean
+let settingsWriteStatusOnce: number | null
 let qualityUnavailableReason: ProviderQualityUnavailableReason | null
 
 beforeEach(async () => {
   i18n.addResourceBundle('en', 'notifications', en, true, true)
   i18n.addResourceBundle('zh', 'notifications', zh, true, true)
   await i18n.changeLanguage('en')
+  currentSession = session
+  sessionGate = null
+  permissionsGate = null
+  settingsWriteGate = null
+  settingsWriteFailureOnce = false
+  settingsWriteStatusOnce = null
   settings = {
     in_app_enabled: true,
     external_email: 'alerts@example.test',
     email_high: true,
     email_medium: true,
-    etag: 'settings-1',
+    etag: 'rev_01j00000000000000000000001',
     updated_at: '2026-09-30T00:00:00Z',
   }
   permissions = ['system.read', 'system.write']
@@ -185,9 +197,13 @@ beforeEach(async () => {
       headers: new AxiosHeaders(),
       data: {} as unknown,
     }
-    if (config.url === '/auth/session') response.data = session
-    else if (config.url === '/auth/permissions') response.data = { permissions }
-    else if (config.url === '/admin/overview') {
+    if (config.url === '/auth/session') {
+      if (sessionGate) await sessionGate
+      response.data = currentSession
+    } else if (config.url === '/auth/permissions') {
+      if (permissionsGate) await permissionsGate
+      response.data = { permissions }
+    } else if (config.url === '/admin/overview') {
       const data = structuredClone(overview)
       if (qualityUnavailableReason) {
         data.provider_readiness.items[0].quality = null
@@ -233,9 +249,31 @@ beforeEach(async () => {
       response.data = structuredClone(settings)
     } else if (config.url === '/notification-settings' && config.method === 'put') {
       const body = JSON.parse(config.data)
+      if (settingsWriteGate) await settingsWriteGate
+      if (settingsWriteStatusOnce !== null) {
+        const status = settingsWriteStatusOnce
+        settingsWriteStatusOnce = null
+        throw new AxiosError('held old request rejected', '', config, undefined, {
+          ...response,
+          status,
+          data: {},
+        })
+      }
+      if (settingsWriteFailureOnce) {
+        settingsWriteFailureOnce = false
+        throw new AxiosError('unknown save outcome', '', config, undefined, {
+          ...response,
+          status: 503,
+          data: {},
+        })
+      }
       if (conflictOnce) {
         conflictOnce = false
-        settings = { ...settings, external_email: 'newer@example.test', etag: 'settings-2' }
+        settings = {
+          ...settings,
+          external_email: 'newer@example.test',
+          etag: 'rev_01j00000000000000000000002',
+        }
         throw new AxiosError('conflict', '', config, undefined, {
           ...response,
           status: 412,
@@ -249,7 +287,7 @@ beforeEach(async () => {
           data: {},
         })
       }
-      settings = { ...settings, ...body, etag: 'settings-3' }
+      settings = { ...settings, ...body, etag: 'rev_01j00000000000000000000003' }
       response.data = structuredClone(settings)
     } else if (config.url?.endsWith('/read')) {
       response.data = {}
@@ -426,7 +464,7 @@ describe('F23 operations overview and notifications', () => {
       external_email: 'draft@example.test',
       email_high: true,
       email_medium: true,
-      etag: 'settings-2',
+      etag: 'rev_01j00000000000000000000002',
     })
   })
 
@@ -519,9 +557,7 @@ describe('F23 operations overview and notifications', () => {
     )
     expect(button('Use latest').disabled).toBe(true)
     expect(button('Keep my draft').disabled).toBe(true)
-    expect((document.querySelector('input[type="email"]') as HTMLInputElement).value).toBe(
-      'draft@example.test',
-    )
+    expect(document.querySelector('input[type="email"]')).toBeNull()
     await click('Retry')
     await until(() => expect(button('Keep my draft').disabled).toBe(false))
     expect(document.body.textContent).toContain('Latest saved email: newer@example.test')
@@ -536,14 +572,22 @@ describe('F23 operations overview and notifications', () => {
       document.querySelector<HTMLInputElement>('input[type="email"]')!,
       'draft@example.test',
     )
-    settings = { ...settings, external_email: 'newer@example.test', etag: 'settings-2' }
+    settings = {
+      ...settings,
+      external_email: 'newer@example.test',
+      etag: 'rev_01j00000000000000000000002',
+    }
     await act(async () => {
       await cache.invalidateQueries({ queryKey: ['notification-settings', 'usr_operator'] })
     })
     await until(() =>
       expect(
-        cache.getQueryData<NotificationSettings>(['notification-settings', 'usr_operator'])?.etag,
-      ).toBe('settings-2'),
+        cache
+          .getQueriesData<NotificationSettings>({
+            queryKey: ['notification-settings', 'usr_operator'],
+          })
+          .find(([, value]) => value)?.[1]?.etag,
+      ).toBe('rev_01j00000000000000000000002'),
     )
     await click('Save settings')
     await until(() => expect(document.body.textContent).toContain('Settings changed elsewhere'))
@@ -552,7 +596,7 @@ describe('F23 operations overview and notifications', () => {
     )
     expect(JSON.parse(write!.data)).toMatchObject({
       external_email: 'draft@example.test',
-      etag: 'settings-1',
+      etag: 'rev_01j00000000000000000000001',
     })
   })
 
@@ -578,3 +622,406 @@ describe('F23 operations overview and notifications', () => {
     expect(entries(en)).toEqual(entries(zh))
   })
 })
+
+describe('Notification settings fresh authority and captured intent', () => {
+  async function openSettings() {
+    await render(<AdminOverviewPage />)
+    await until(() => expect(document.body.textContent).toContain('Provider One'))
+    await click('Notification settings')
+    await until(() => expect(document.querySelector('input[type="email"]')).toBeTruthy())
+  }
+  const writes = () =>
+    requests.filter((r) => r.url === '/notification-settings' && r.method === 'put')
+  const emailInput = () => document.querySelector<HTMLInputElement>('input[type="email"]')!
+  it('does not seed from cached settings and adopts a faster detail only after held fresh permissions', async () => {
+    cache.setQueryData(['notification-settings', 'usr_operator'], {
+      ...settings,
+      external_email: 'unconfirmed@example.test',
+    })
+    await render(<AdminOverviewPage />)
+    await until(() => expect(document.body.textContent).toContain('Provider One'))
+    let release!: () => void
+    permissionsGate = new Promise<void>((resolve) => {
+      release = resolve
+    })
+    await click('Notification settings')
+    await until(() => expect(requests.some((r) => r.url === '/notification-settings')).toBe(true))
+    expect(document.querySelector('input[type="email"]')).toBeNull()
+    expect(document.body.textContent).not.toContain('unconfirmed@example.test')
+    await act(async () => {
+      permissionsGate = null
+      release()
+    })
+    await until(() => expect(emailInput()?.value).toBe('alerts@example.test'))
+    expect(writes()).toHaveLength(0)
+  })
+  it('hides drafts during background settings errors and restores the human draft after a fresh read', async () => {
+    await openSettings()
+    await setInput(emailInput(), 'draft@example.test')
+    let release!: () => void
+    settingsReadGate = new Promise<void>((resolve) => {
+      release = resolve
+    })
+    const refresh = cache.invalidateQueries({ queryKey: ['notification-settings', 'usr_operator'] })
+    await until(() => expect(document.querySelector('input[type="email"]')).toBeNull())
+    expect(button('Save settings').disabled).toBe(true)
+    settingsReadFailureOnce = true
+    await act(async () => {
+      settingsReadGate = null
+      release()
+      await refresh
+    })
+    await until(() => expect(document.body.textContent).toContain('could not be loaded'))
+    expect(document.querySelector('input[type="email"]')).toBeNull()
+    await click('Retry')
+    await until(() => expect(emailInput()?.value).toBe('draft@example.test'))
+  })
+  it('hides the draft during renewed Session and shared permission reads without replacing its ETag', async () => {
+    await openSettings()
+    await setInput(emailInput(), 'draft@example.test')
+    for (const key of [sessionKey, ['permissions', 'usr_operator']]) {
+      let release!: () => void
+      const gate = new Promise<void>((resolve) => {
+        release = resolve
+      })
+      if (key === sessionKey) sessionGate = gate
+      else permissionsGate = gate
+      const refresh = cache.invalidateQueries({ queryKey: key, exact: true })
+      await until(() => expect(document.querySelector('input[type="email"]')).toBeNull())
+      expect(button('Save settings').disabled).toBe(true)
+      await act(async () => {
+        sessionGate = null
+        permissionsGate = null
+        release()
+        await refresh
+      })
+      await until(() => expect(emailInput()?.value).toBe('draft@example.test'))
+    }
+    await click('Save settings')
+    await until(() => expect(writes()).toHaveLength(1))
+    expect(JSON.parse(writes()[0].data).etag).toBe('rev_01j00000000000000000000001')
+  })
+  it('locks the exact in-flight body and keeps CSRF out of the mutation variables', async () => {
+    await openSettings()
+    await setInput(emailInput(), 'captured@example.test')
+    let release!: () => void
+    settingsWriteGate = new Promise<void>((resolve) => {
+      release = resolve
+    })
+    await click('Save settings')
+    await until(() => expect(writes()).toHaveLength(1))
+    expect(emailInput().disabled).toBe(true)
+    expect(document.querySelector('[role="switch"]')!.hasAttribute('data-disabled')).toBe(true)
+    const body = JSON.parse(writes()[0].data)
+    expect(body).toEqual({
+      external_email: 'captured@example.test',
+      email_high: true,
+      email_medium: true,
+      etag: 'rev_01j00000000000000000000001',
+    })
+    const variables = cache
+      .getMutationCache()
+      .getAll()
+      .map((m) => m.state.variables)
+    expect(JSON.stringify(variables)).not.toContain('csrf-overview')
+    expect(variables[0]).toMatchObject({ actor: 'usr_operator', body })
+    await act(async () => {
+      settingsWriteGate = null
+      release()
+    })
+    await until(() => expect(document.querySelector('input[type="email"]')).toBeNull())
+  })
+  it('does not resolve an uncertain save by incidental refetch and requires explicit review for a new write', async () => {
+    await openSettings()
+    await setInput(emailInput(), 'captured@example.test')
+    settingsWriteFailureOnce = true
+    await click('Save settings')
+    await until(() => expect(document.body.textContent).toContain('Save outcome is unknown'))
+    await until(() => expect(button('Keep my draft').disabled).toBe(false))
+    expect(emailInput().disabled).toBe(true)
+    expect(button('Save settings').disabled).toBe(true)
+    await act(async () => {
+      await cache.invalidateQueries({ queryKey: ['notification-settings', 'usr_operator'] })
+    })
+    expect(button('Save settings').disabled).toBe(true)
+    expect(writes()).toHaveLength(1)
+    await click('Keep my draft')
+    expect(emailInput().value).toBe('captured@example.test')
+    await click('Save settings')
+    await until(() => expect(writes()).toHaveLength(2))
+    expect(JSON.parse(writes()[1].data)).toEqual(JSON.parse(writes()[0].data))
+  })
+  it('ignores an old successful mutation after another actor opens fresh settings', async () => {
+    await openSettings()
+    await setInput(emailInput(), 'old@example.test')
+    let release!: () => void
+    settingsWriteGate = new Promise<void>((resolve) => {
+      release = resolve
+    })
+    await click('Save settings')
+    await until(() => expect(writes()).toHaveLength(1))
+    currentSession = { ...session, user: { ...session.user, id: 'usr_new_actor' } }
+    await act(async () => {
+      await cache.invalidateQueries({ queryKey: sessionKey, exact: true })
+    })
+    await until(() => expect(emailInput()?.value).toBe('alerts@example.test'))
+    await act(async () => {
+      settingsWriteGate = null
+      release()
+    })
+    await until(() => expect(cache.getMutationCache().getAll()[0].state.status).toBe('success'))
+    expect(emailInput().value).toBe('alerts@example.test')
+    expect(
+      cache
+        .getQueriesData<NotificationSettings>({
+          queryKey: ['notification-settings', 'usr_new_actor'],
+        })
+        .every(([, data]) => data?.external_email !== 'old@example.test'),
+    ).toBe(true)
+  })
+  it('ignores old callbacks after the dialog is unmounted and reopened', async () => {
+    await openSettings()
+    let release!: () => void
+    settingsWriteGate = new Promise<void>((resolve) => {
+      release = resolve
+    })
+    await click('Save settings')
+    await until(() => expect(writes()).toHaveLength(1))
+    await act(async () =>
+      root.render(
+        <QueryClientProvider client={cache}>
+          <span>Other workspace</span>
+        </QueryClientProvider>,
+      ),
+    )
+    await render(<AdminOverviewPage />)
+    await until(() => expect(document.body.textContent).toContain('Provider One'))
+    await click('Notification settings')
+    await until(() => expect(emailInput()).toBeTruthy())
+    await setInput(emailInput(), 'new-opening@example.test')
+    await act(async () => {
+      settingsWriteGate = null
+      release()
+    })
+    await until(() => expect(cache.getMutationCache().getAll()[0].state.status).toBe('success'))
+    expect(emailInput().value).toBe('new-opening@example.test')
+  })
+  it('does not let a renewed successful Session certify or erase an older pending save', async () => {
+    await openSettings()
+    await setInput(emailInput(), 'captured@example.test')
+    let release!: () => void
+    settingsWriteGate = new Promise<void>((resolve) => {
+      release = resolve
+    })
+    await click('Save settings')
+    await until(() => expect(writes()).toHaveLength(1))
+    await act(async () => {
+      await cache.invalidateQueries({ queryKey: sessionKey, exact: true })
+    })
+    await until(() => expect(emailInput()?.disabled).toBe(true))
+    await act(async () => {
+      settingsWriteGate = null
+      release()
+    })
+    await until(() => expect(document.body.textContent).toContain('Save outcome is unknown'))
+    await until(() => expect(button('Keep my draft').disabled).toBe(false))
+    expect(emailInput().value).toBe('captured@example.test')
+    expect(button('Save settings').disabled).toBe(true)
+    expect(writes()).toHaveLength(1)
+  })
+  it('does not expose a draft after write authority is removed during a held renewal', async () => {
+    await openSettings()
+    await setInput(emailInput(), 'private-draft@example.test')
+    let release!: () => void
+    permissionsGate = new Promise<void>((resolve) => {
+      release = resolve
+    })
+    const refresh = cache.invalidateQueries({ queryKey: ['permissions', 'usr_operator'] })
+    await until(() => expect(document.querySelector('input[type="email"]')).toBeNull())
+    permissions = ['system.read']
+    await act(async () => {
+      permissionsGate = null
+      release()
+      await refresh
+    })
+    await until(() => expect(document.body.textContent).not.toContain('Notification settings'))
+    expect(document.body.textContent).not.toContain('private-draft@example.test')
+    expect(writes()).toHaveLength(0)
+  })
+  it('never resurrects an old actor draft after an intervening actor whose detail is held', async () => {
+    await openSettings()
+    await setInput(emailInput(), 'discarded@example.test')
+    let release!: () => void
+    settingsReadGate = new Promise<void>((resolve) => {
+      release = resolve
+    })
+    currentSession = { ...session, user: { ...session.user, id: 'usr_other_actor' } }
+    await act(async () => {
+      await cache.invalidateQueries({ queryKey: sessionKey, exact: true })
+    })
+    await until(() => expect(document.querySelector('input[type="email"]')).toBeNull())
+    currentSession = session
+    await act(async () => {
+      await cache.invalidateQueries({ queryKey: sessionKey, exact: true })
+    })
+    expect(document.querySelector('input[type="email"]')).toBeNull()
+    await act(async () => {
+      settingsReadGate = null
+      release()
+    })
+    await until(() => expect(emailInput()?.value).toBe('alerts@example.test'))
+    expect(emailInput().value).not.toBe('discarded@example.test')
+  })
+  it.each(['actor', 'generation'])(
+    'does not dispatch a captured intent after live %s/CSRF replacement',
+    async (changed) => {
+      await openSettings()
+      currentSession = {
+        ...session,
+        user: {
+          ...session.user,
+          id: changed === 'actor' ? 'usr_changed_before_dispatch' : session.user.id,
+        },
+        csrf_token: 'different-actor-csrf',
+      }
+      await act(async () => {
+        button('Save settings').click()
+        cache.setQueryData(sessionKey, currentSession)
+      })
+      await until(() => expect(cache.getMutationCache().getAll()[0].state.status).toBe('error'))
+      expect(writes()).toHaveLength(0)
+      expect(cache.getMutationCache().getAll()[0].state.error?.message).toContain('not dispatched')
+      expect(
+        JSON.stringify(
+          cache
+            .getMutationCache()
+            .getAll()
+            .map((m) => m.state.variables),
+        ),
+      ).not.toContain('csrf')
+    },
+  )
+})
+
+// Independent actor-lifetime regression; product source is unchanged.
+it('independent held save must ignore an old actor lifetime after A-B-A', async () => {
+  await render(<AdminOverviewPage />)
+  await until(() => expect(document.body.textContent).toContain('Provider One'))
+  await click('Notification settings')
+  await until(() => expect(document.querySelector('input[type="email"]')).toBeTruthy())
+  const input = () => document.querySelector<HTMLInputElement>('input[type="email"]')!
+  await setInput(input(), 'old-lifetime@example.test')
+  let release!: () => void
+  settingsWriteGate = new Promise<void>((resolve) => {
+    release = resolve
+  })
+  await click('Save settings')
+  await until(() =>
+    expect(
+      requests.filter((r) => r.url === '/notification-settings' && r.method === 'put'),
+    ).toHaveLength(1),
+  )
+  cache.setQueryData(['permissions', 'usr_other_actor'], permissions)
+  currentSession = { ...session, user: { ...session.user, id: 'usr_other_actor' } }
+  await act(async () => {
+    await cache.invalidateQueries({ queryKey: sessionKey, exact: true })
+  })
+  await until(() => expect(input()?.value).toBe('alerts@example.test'))
+  currentSession = session
+  await act(async () => {
+    await cache.invalidateQueries({ queryKey: sessionKey, exact: true })
+  })
+  await until(() => expect(input()?.value).toBe('alerts@example.test'))
+  await setInput(input(), 'new-lifetime@example.test')
+  expect(document.body.textContent).not.toContain('Save outcome is unknown')
+  await act(async () => {
+    settingsWriteGate = null
+    release()
+  })
+  await until(() => expect(cache.getMutationCache().getAll()[0].state.status).toBe('success'))
+  expect(input().value).toBe('new-lifetime@example.test')
+  expect(document.body.textContent).not.toContain('Save outcome is unknown')
+})
+
+it.each([200, 400, 409, 503])(
+  'an old actor lifetime HTTP %i cannot change a new A pending intent/cache after A-B-A',
+  async (oldStatus) => {
+    await render(<AdminOverviewPage />)
+    await until(() => expect(document.body.textContent).toContain('Provider One'))
+    await click('Notification settings')
+    const input = () => document.querySelector<HTMLInputElement>('input[type="email"]')!
+    const writes = () =>
+      requests.filter((r) => r.url === '/notification-settings' && r.method === 'put')
+    await until(() => expect(input()?.value).toBe('alerts@example.test'))
+    await setInput(input(), 'old-lifetime@example.test')
+    let releaseOld!: () => void
+    settingsWriteGate = new Promise<void>((resolve) => {
+      releaseOld = resolve
+    })
+    await click('Save settings')
+    await until(() => expect(writes()).toHaveLength(1))
+    const oldIntent = cache.getMutationCache().getAll()[0].state.variables as {
+      actorLifetime: number
+    }
+    const opening = cache.getQueriesData({
+      queryKey: ['notification-settings', 'usr_operator'],
+    })[0][0][2]
+    cache.setQueryData(['permissions', 'usr_other_actor'], permissions)
+    currentSession = { ...session, user: { ...session.user, id: 'usr_other_actor' } }
+    await act(async () => {
+      await cache.invalidateQueries({ queryKey: sessionKey, exact: true })
+    })
+    await until(() => expect(input()?.value).toBe('alerts@example.test'))
+    currentSession = session
+    await act(async () => {
+      await cache.invalidateQueries({ queryKey: sessionKey, exact: true })
+    })
+    await until(() => expect(input()?.value).toBe('alerts@example.test'))
+    expect(input().disabled).toBe(false)
+    await setInput(input(), 'new-lifetime@example.test')
+    let releaseNew!: () => void
+    settingsWriteGate = new Promise<void>((resolve) => {
+      releaseNew = resolve
+    })
+    await click('Save settings')
+    await until(() => expect(writes()).toHaveLength(2))
+    const newMutation = cache.getMutationCache().getAll()[1]
+    const newIntent = newMutation.state.variables as { actorLifetime: number; body: unknown }
+    expect(newIntent.actorLifetime).toBeGreaterThan(oldIntent.actorLifetime)
+    const currentQuery = cache
+      .getQueryCache()
+      .findAll({ queryKey: ['notification-settings', 'usr_operator'] })
+      .find((q) => q.getObserversCount() > 0)!
+    expect(currentQuery.queryKey[2]).toBe(opening)
+    const data = currentQuery.state.data
+    const beforeGets = requests.filter(
+      (r) => r.url === '/notification-settings' && r.method === 'get',
+    ).length
+    settingsWriteStatusOnce = oldStatus === 200 ? null : oldStatus
+    await act(async () => {
+      releaseOld()
+    })
+    await until(() =>
+      expect(cache.getMutationCache().getAll()[0].state.status).toBe(
+        oldStatus === 200 ? 'success' : 'error',
+      ),
+    )
+    expect(input().value).toBe('new-lifetime@example.test')
+    expect(input().disabled).toBe(true)
+    expect(newMutation.state.status).toBe('pending')
+    expect(newMutation.state.variables).toBe(newIntent)
+    expect(JSON.parse(writes()[1].data)).toEqual(newIntent.body)
+    expect(currentQuery.state.data).toBe(data)
+    expect(currentQuery.state.fetchStatus).toBe('idle')
+    expect(
+      requests.filter((r) => r.url === '/notification-settings' && r.method === 'get'),
+    ).toHaveLength(beforeGets)
+    expect(document.body.textContent).not.toContain('Save outcome is unknown')
+    expect(document.body.textContent).not.toContain('Settings changed elsewhere')
+    await act(async () => {
+      settingsWriteGate = null
+      releaseNew()
+    })
+    await until(() => expect(newMutation.state.status).not.toBe('pending'))
+  },
+)

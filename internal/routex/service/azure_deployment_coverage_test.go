@@ -192,7 +192,7 @@ func TestAzureCoverageGenerationAndRetainedVaultIdentity(t *testing.T) {
 	}
 	c.StorageSource = "vault"
 	c.Ciphertext = ""
-	c.VaultReference = &entity.CredentialVaultReference{CredentialID: c.ID, CredentialBirth: c.CreatedAt, ReferenceID: strings.Repeat("a", 32), ExpectedMarkerSHA256: strings.Repeat("b", 64), DescriptorSHA256: strings.Repeat("c", 64), IntegrationID: "vlt_00000000000000000000000000", IntegrationBirth: c.CreatedAt, RevisionID: "vlr_00000000000000000000000000", ReaderGeneration: "vag_reader", SourceContext: "current-proof", ReaderCiphertext: "encrypted-original", ReaderMethod: "token"}
+	c.VaultReference = &entity.CredentialVaultReference{CredentialID: c.ID, CredentialBirth: c.CreatedAt, ReferenceID: strings.Repeat("a", 32), ExpectedMarkerSHA256: strings.Repeat("b", 64), DescriptorSHA256: strings.Repeat("c", 64), IntegrationID: "vlt_00000000000000000000000000", IntegrationBirth: c.CreatedAt, RevisionID: "vlr_00000000000000000000000000", ReaderGeneration: "vag_reader", SourceContext: "current-proof", ReaderCiphertext: "encrypted-original", ReaderMethod: "token", PhysicalObject: rootHash("azure-fixture-object")}
 	identity := deploymentAttestationIdentity(c, connection, pm)
 	if identity == "" {
 		t.Fatal("valid retained reference unavailable")

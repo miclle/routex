@@ -397,6 +397,8 @@ func (s *Service) CreateCredential(ctx context.Context, actorID, connectionID, n
 
 func (s *Service) SetCredentialEnabled(ctx context.Context, actorID, credentialID string, enabled bool) (*entity.ProviderCredential, error) {
 	preparedProof := ""
+	var sourceHolder *credentialSourceHolder
+	defer func() { sourceHolder.release() }()
 	if enabled {
 		var c entity.ProviderCredential
 		err := s.authDB(ctx).Transaction(func(tx *gorm.DB) error {
@@ -416,6 +418,11 @@ func (s *Service) SetCredentialEnabled(ctx context.Context, actorID, credentialI
 		if err != nil {
 			return nil, catalogError(err)
 		}
+		var holderErr error
+		sourceHolder, holderErr = s.acquireCredentialSource(c)
+		if holderErr != nil {
+			return nil, vaultUnavailable
+		}
 		preparedProof = credentialSourceProof(c)
 		value, err := s.resolveCredential(ctx, c)
 		if err != nil {
@@ -426,6 +433,9 @@ func (s *Service) SetCredentialEnabled(ctx context.Context, actorID, credentialI
 		}
 	}
 
+	if !sourceHolder.admitUse() {
+		return nil, catalogConflict
+	}
 	var credential entity.ProviderCredential
 	err := s.authDB(ctx).Transaction(func(tx *gorm.DB) error {
 		if err := tx.First(&credential, "id = ?", credentialID).Error; err != nil {

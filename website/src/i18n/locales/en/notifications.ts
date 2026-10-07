@@ -22,6 +22,12 @@ export default {
   retry: 'Retry',
   unknownItem: 'A notification requires attention.',
   quota: {
+    rollingWindow: { '5h': 'Rolling five-hour tokens', '7d': 'Rolling seven-day tokens' },
+    rollingWindowRange: 'Recorded rolling window: {{start}} – {{end}}',
+    recordedRollingWarning:
+      'Fixed covered settled-use sample from your stored Personal cap; reservations and unknown usage are not percentage estimates.',
+    rollingSnapshotUnavailable: 'The rolling quota snapshot is unavailable.',
+
     warningThreshold: 'Recorded warning threshold: {{threshold}}%',
     recordedWarning:
       'Fixed settled-usage observation; not current remaining allowance or a record of a threshold crossing.',
@@ -75,6 +81,14 @@ export default {
     unknown: 'Email delivery result is unknown',
   },
   items: {
+    personal_rolling_quota_warning: {
+      default: 'A personal rolling token warning was recorded.',
+      tokens_5h_near: 'Personal rolling five-hour token warning recorded.',
+      tokens_5h_critical: 'Critical personal rolling five-hour token warning recorded.',
+      tokens_7d_near: 'Personal rolling seven-day token warning recorded.',
+      tokens_7d_critical: 'Critical personal rolling seven-day token warning recorded.',
+    },
+
     monthly_quota_warning: {
       default: 'A monthly quota warning was recorded.',
       tokens_month_near: 'Personal monthly token warning recorded.',
@@ -271,6 +285,11 @@ export default {
     settingsSaved: 'Notification settings saved.',
     settingsSaveFailed: 'Notification settings could not be saved.',
     invalidEmail: 'Enter a valid external email address.',
+    notDispatched:
+      'The request was not sent because the current authority changed. Refresh your Session and review before submitting.',
+    uncertainTitle: 'Save outcome is unknown',
+    uncertainDescription:
+      'The previous request may have saved. Review the current saved settings before explicitly starting a new write; this review does not confirm the previous request.',
     conflictTitle: 'Settings changed elsewhere',
     conflictDescription:
       'Review the latest saved value before deciding whether to keep your draft.',
