@@ -3,6 +3,11 @@ import { useTranslation } from 'react-i18next'
 import axios from 'axios'
 import client from '@/api/client'
 import { egressSelection } from '@/api/egress'
+import {
+  validAzureAPIVersion,
+  validAzureOrigin,
+  type ConnectionAdapter,
+} from '@/api/connection-transport'
 import type { CredentialStorageContext } from '@/types/provider-storage'
 import { EgressSelect } from '@/views/egress/connection'
 import { FormField } from '@/components/app/CatalogUI'
@@ -41,6 +46,9 @@ function CreateEditor({
   const { t } = useTranslation('catalog')
   const [reviewed, setReviewed] = useState<CredentialStorageContext>()
   const [secret, setSecret] = useState('')
+  const [adapter, setAdapter] = useState<ConnectionAdapter>('native')
+  const [protocol, setProtocol] = useState('openai_chat')
+  const [apiVersion, setAPIVersion] = useState('')
   const [busy, setBusy] = useState(false)
   const [uncertain, setUncertain] = useState(false)
   const [conflict, setConflict] = useState(false)
@@ -97,11 +105,26 @@ function CreateEditor({
     if (!retry && event) {
       const form = new FormData(event.currentTarget)
       const value = (field: string) => String(form.get(field) ?? '').trim()
+      const rawBaseURL = String(form.get('base_url') ?? '')
       const bytes = new TextEncoder().encode(secret).length
       if (!bytes || bytes > 2048 || /[\r\n]/.test(secret)) {
         setNotice('credentialReplacement.secretError')
         return
       }
+      if (
+        kind !== 'credential' &&
+        adapter === 'azure_openai_classic' &&
+        (protocol !== 'openai_chat' ||
+          !validAzureAPIVersion(apiVersion) ||
+          !validAzureOrigin(rawBaseURL))
+      ) {
+        setNotice('azureTransport.invalid')
+        return
+      }
+      const transport =
+        kind === 'credential'
+          ? {}
+          : { adapter, api_version: adapter === 'native' ? null : apiVersion }
       let requestId: string
       try {
         requestId = crypto.randomUUID()
@@ -118,6 +141,7 @@ function CreateEditor({
         kind === 'provider'
           ? {
               ...shared,
+              ...transport,
               name: value('name'),
               connection_name: value('connection_name'),
               base_url: value('base_url'),
@@ -128,6 +152,7 @@ function CreateEditor({
           : kind === 'connection'
             ? {
                 ...shared,
+                ...transport,
                 name: value('name'),
                 base_url: value('base_url'),
                 protocol: value('protocol'),
@@ -250,24 +275,74 @@ function CreateEditor({
             )}
             {kind !== 'credential' && (
               <>
+                <FormField label={t('azureTransport.adapter')}>
+                  <select
+                    value={adapter}
+                    aria-label={t('azureTransport.adapter')}
+                    className="h-10 w-full rounded-md border bg-background px-3"
+                    onChange={(event) => {
+                      const selected = event.target.value as ConnectionAdapter
+                      setAdapter(selected)
+                      setAPIVersion('')
+                      if (selected === 'azure_openai_classic') setProtocol('openai_chat')
+                    }}
+                  >
+                    <option value="native">{t('azureTransport.native')}</option>
+                    <option value="azure_openai_classic">{t('azureTransport.classic')}</option>
+                  </select>
+                </FormField>
+                {adapter === 'azure_openai_classic' && (
+                  <>
+                    <p className="text-sm text-muted-foreground">{t('azureTransport.guidance')}</p>
+                    <FormField label={t('azureTransport.version')}>
+                      <Input
+                        name="api_version"
+                        required
+                        maxLength={18}
+                        autoComplete="off"
+                        value={apiVersion}
+                        onChange={(event) => setAPIVersion(event.target.value)}
+                        placeholder="YYYY-MM-DD"
+                      />
+                    </FormField>
+                  </>
+                )}
                 <FormField label={t('common.protocolType')}>
                   <select
                     name="protocol"
-                    defaultValue="openai_chat"
+                    value={protocol}
+                    onChange={(event) => setProtocol(event.target.value)}
                     className="h-10 w-full rounded-md border bg-background px-3"
                   >
                     <option value="openai_chat">OpenAI Chat</option>
-                    <option value="openai_responses">OpenAI Responses</option>
-                    <option value="anthropic_messages">Anthropic Messages</option>
-                    <option value="gemini_generate_content">Gemini Generate Content</option>
+                    <option value="openai_responses" disabled={adapter === 'azure_openai_classic'}>
+                      OpenAI Responses
+                    </option>
+                    <option
+                      value="anthropic_messages"
+                      disabled={adapter === 'azure_openai_classic'}
+                    >
+                      Anthropic Messages
+                    </option>
+                    <option
+                      value="gemini_generate_content"
+                      disabled={adapter === 'azure_openai_classic'}
+                    >
+                      Gemini Generate Content
+                    </option>
                   </select>
                 </FormField>
                 <FormField label={t('common.baseURL')}>
                   <Input
                     name="base_url"
-                    type="url"
+                    type={adapter === 'azure_openai_classic' ? 'text' : 'url'}
+                    inputMode="url"
                     required
-                    placeholder="https://api.example.com/v1"
+                    placeholder={
+                      adapter === 'azure_openai_classic'
+                        ? 'https://resource.openai.azure.com'
+                        : 'https://api.example.com/v1'
+                    }
                   />
                 </FormField>
                 <EgressSelect />

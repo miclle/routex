@@ -726,3 +726,50 @@ it.each(['Cancel', 'Escape', 'Actor replacement'])(
     expect(writes()[1].headers.get('If-Match')).toBe(original.headers.get('If-Match'))
   },
 )
+
+it('shows recorded handover in the existing status cell and readonly menu without per-row reads', async () => {
+  permissions = ['members.read']
+  page.items[0].handover_plan_recorded = true
+  await mount()
+  expect(host.textContent).toContain('Handover plan recorded')
+  expect(host.textContent).toContain('Active')
+  expect(host.querySelectorAll('th')).toHaveLength(11)
+  await menu()
+  expect(document.querySelector('[role="menu"]')?.textContent).toContain('View handover')
+  expect(document.querySelector('[role="menu"]')?.textContent).not.toContain('Disable')
+  await item('View handover')
+  expect(router.state.location.pathname).toBe('/admin/members/usr_target/offboarding')
+  expect(requests.filter((r) => r.url === '/admin/members')).toHaveLength(1)
+  expect(requests.some((r) => r.url?.includes('/offboarding') || r.method !== 'get')).toBe(false)
+})
+it('localizes recorded handover without claiming execution and hides it throughout renewed list failure', async () => {
+  page.items[0].handover_plan_recorded = true
+  await mount()
+  await act(async () => i18n.changeLanguage('zh'))
+  expect(host.textContent).toContain('已记录交接计划')
+  expect(host.textContent).not.toContain('已完成交接')
+  listGate = controlledGate()
+  listError = 503
+  await invalidate(['admin', 'members'])
+  await until(() => expect(host.textContent).not.toContain('已记录交接计划'))
+  await act(async () => listGate!.release())
+  await until(() => expect(host.textContent).not.toContain('target@example.invalid'))
+  expect(host.textContent).not.toContain('已记录交接计划')
+})
+it('cannot dispatch a queued handover menu action after member read authority is revoked', async () => {
+  page.items[0].handover_plan_recorded = true
+  await mount()
+  await menu()
+  const action = [...document.querySelectorAll<HTMLElement>('[role="menuitem"]')].find(
+    (e) => e.textContent === 'View handover',
+  )!
+  expect(action).toBeDefined()
+  permissions = ['members.write']
+  permissionGate = controlledGate()
+  await invalidate(['permissions', actor])
+  await act(async () => action.click())
+  expect(router.state.location.pathname).toBe('/admin/members')
+  expect(host.textContent).not.toContain('Handover plan recorded')
+  await act(async () => permissionGate!.release())
+  expect(router.state.location.pathname).toBe('/admin/members')
+})

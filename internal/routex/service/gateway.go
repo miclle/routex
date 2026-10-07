@@ -380,6 +380,15 @@ func (s *Service) gatewayNativeIdentity(ctx context.Context, identity gatewayIde
 		req.Header.Del("Authorization")
 		req.Header.Set("x-goog-api-key", credential)
 	}
+	if route.Adapter == entity.AdapterAzureOpenAIClassic {
+		if result.NativeProtocol() != entity.ProtocolOpenAIChat || route.APIVersion == nil {
+			return result, gatewayError(503, "upstream_unavailable", "No usable upstream is available.")
+		}
+		req, err = upstream.NewAzureChatRequest(ctx, route.BaseURL, route.UpstreamName, *route.APIVersion, credential, payload, s.allowPrivateUpstream)
+		if err != nil {
+			return result, gatewayError(503, "upstream_unavailable", "No usable upstream is available.")
+		}
+	}
 	req.Header.Set("X-Request-ID", requestID)
 	if stream {
 		req.Header.Set("Accept", "text/event-stream")
@@ -488,6 +497,8 @@ func parseGatewayChat(body []byte) (map[string]json.RawMessage, string, bool, er
 }
 
 type gatewayRoute struct {
+	Adapter            string
+	APIVersion         *string
 	Client             *http.Client `gorm:"-"`
 	EgressGeneration   uint64       `gorm:"-"`
 	EgressRevision     string       `gorm:"-"`
@@ -514,7 +525,7 @@ type gatewayRoute struct {
 
 func selectGatewayProtocolRoute(db *gorm.DB, modelID, protocol string) (*gatewayRoute, error) {
 	var routes []gatewayRoute
-	err := db.Table("model_provider_bindings AS b").Select("b.id AS binding_id, b.weight, p.id AS provider_model_id, p.upstream_name, p.disabled, p.supports_image_input, p.supports_pdf_input, c.id AS connection_id, c.created_at AS connection_birth, c.enabled AS connection_enabled, c.provider_id, c.name AS connection_name, c.base_url, c.protocol, pr.name AS provider_name").Joins("JOIN provider_models p ON p.id = b.provider_model_id").Joins("JOIN provider_connections c ON c.id = p.connection_id").Joins("JOIN providers pr ON pr.id = c.provider_id").Where("b.model_id = ? AND c.protocol = ?", modelID, protocol).Order("b.id").Scan(&routes).Error
+	err := db.Table("model_provider_bindings AS b").Select("b.id AS binding_id, b.weight, p.id AS provider_model_id, p.upstream_name, p.disabled, p.supports_image_input, p.supports_pdf_input, c.id AS connection_id, c.created_at AS connection_birth, c.enabled AS connection_enabled, c.provider_id, c.name AS connection_name, c.base_url, c.protocol, c.adapter, c.api_version, pr.name AS provider_name").Joins("JOIN provider_models p ON p.id = b.provider_model_id").Joins("JOIN provider_connections c ON c.id = p.connection_id").Joins("JOIN providers pr ON pr.id = c.provider_id").Where("b.model_id = ? AND c.protocol = ?", modelID, protocol).Order("b.id").Scan(&routes).Error
 	if err != nil {
 		return nil, gatewayError(503, "upstream_unavailable", "Routing is temporarily unavailable.")
 	}
@@ -530,7 +541,23 @@ func selectGatewayProtocolRoute(db *gorm.DB, modelID, protocol string) (*gateway
 	}
 	route := &routes[choice]
 	var credential entity.ProviderCredential
-	err = db.Table("provider_credentials AS c").Select("c.*").Joins("JOIN credential_model_accesses a ON a.credential_id = c.id").Where("c.connection_id = ? AND c.enabled = ? AND c.verification_status = ? AND a.provider_model_id = ?", route.ConnectionID, true, "verified", route.ProviderModelID).Order("c.priority, c.created_at, c.id").First(&credential).Error
+	if route.Adapter == entity.AdapterAzureOpenAIClassic {
+		credentials, covered, coverageErr := connectionCredentialCoverage(db, route.ConnectionID, []string{route.ProviderModelID})
+		err = coverageErr
+		if err == nil {
+			err = gorm.ErrRecordNotFound
+			for _, candidate := range credentials {
+				if candidate.Enabled && candidate.VerificationStatus == "verified" && covered[candidate.ID][route.ProviderModelID] {
+					credential = candidate
+					err = nil
+					break
+				}
+			}
+		}
+	} else {
+		err = db.Table("provider_credentials AS c").Select("c.*").Joins("JOIN credential_model_accesses a ON a.credential_id = c.id").Where("c.connection_id = ? AND c.enabled = ? AND c.verification_status = ? AND a.provider_model_id = ?", route.ConnectionID, true, "verified", route.ProviderModelID).Order("c.priority, c.created_at, c.id").First(&credential).Error
+	}
+
 	if err != nil {
 		return nil, gatewayError(503, "upstream_unavailable", "No usable upstream is available.")
 	}

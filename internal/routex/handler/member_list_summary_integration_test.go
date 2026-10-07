@@ -108,11 +108,20 @@ func testMemberListSummaryLifecycle(t *testing.T, db *gorm.DB) {
 		mu.Lock()
 		sql := append([]string{}, queries...)
 		mu.Unlock()
+		handoverQueries := 0
+		for _, statement := range sql {
+			if strings.Contains(statement, "offboarding_cases") {
+				handoverQueries++
+			}
+		}
+		if handoverQueries != 1 {
+			t.Fatal("handover plan hydration is not one bounded page query", handoverQueries)
+		}
 		return page, sql
 	}
 	one, q1 := direct(reader.User.ID, 1)
 	page, q100 := direct(reader.User.ID, 100)
-	if len(one.Members) != 1 || len(page.Members) != 100 || len(q1) != 9 || len(q100) != 9 || one.NextCursor != subject || page.NextCursor != users[99].ID {
+	if len(one.Members) != 1 || len(page.Members) != 100 || len(q1) != 10 || len(q100) != 10 || one.NextCursor != subject || page.NextCursor != users[99].ID {
 		t.Fatal("page or fixed SQL budget", len(q1), len(q100), one.NextCursor, page.NextCursor)
 	}
 	for _, sql := range q100 {
@@ -276,13 +285,13 @@ func testMemberListSummaryLifecycle(t *testing.T, db *gorm.DB) {
 		t.Fatal(err)
 	}
 	page, qTeams := direct(both.User.ID, 100)
-	if len(qTeams) != 11 || page.Members[0].Teams.Status != "available" || len(page.Members[0].Teams.Items) != 10 || page.Members[0].Teams.Items[1].Status != entity.ResourceArchived {
+	if len(qTeams) != 12 || page.Members[0].Teams.Status != "available" || len(page.Members[0].Teams.Items) != 10 || page.Members[0].Teams.Items[1].Status != entity.ResourceArchived {
 		t.Fatal("bounded retained Team hydration", len(qTeams), page.Members[0].Teams)
 	}
 	overflow := entity.TeamMembership{ID: "ml_tm_overflow", UserID: subject, TeamID: teams[10].ID, Role: entity.TeamMember, Status: entity.ResourceActive}
 	create(&overflow)
 	page, qTeams = direct(both.User.ID, 100)
-	if len(qTeams) != 10 {
+	if len(qTeams) != 11 {
 		t.Fatal("overflow hydrated a partial Team directory", len(qTeams))
 	}
 	for _, row := range page.Members {
@@ -600,6 +609,8 @@ func testMemberListSummaryLifecycle(t *testing.T, db *gorm.DB) {
 		t.Fatal("journal restart rewrote/replayed native facts", err)
 	}
 	assertNativeRetained()
+	testMemberListRecordedHandover(t, ctx, db, restarted, restartRouter, admin.User.ID, readerCookie)
+	assertNativeRetained()
 
 }
 
@@ -621,5 +632,164 @@ func TestMemberListNativeFinalityFixtures(t *testing.T) {
 		} else if observation.Input != nil || observation.Output != nil {
 			t.Fatal("completed unknown native usage became known", observation)
 		}
+	}
+}
+
+// Recorded plans enrich one authorized list page without executing handover or
+// making a stale plan eligible. This adds no gateway request or native attempt.
+func testMemberListRecordedHandover(t *testing.T, ctx context.Context, db *gorm.DB, svc *service.Service, router *fox.Engine, adminID string, readerCookie *http.Cookie) {
+	t.Helper()
+	member, err := svc.CreateMember(ctx, adminID, "list-handover@example.invalid", "test-only-handover-password", "List handover subject", entity.RoleMember)
+	if err != nil {
+		t.Fatal(err)
+	}
+	id := member.User.ID
+	read := func() MemberListItemResponse {
+		t.Helper()
+		response := identityRequest(router, "GET", "/api/v1/admin/members?q=List+handover+subject&limit=1", "", readerCookie, "")
+		expectStatus(t, response, 200)
+		var page MemberListResponse
+		if err := json.Unmarshal(response.Body.Bytes(), &page); err != nil || len(page.Items) != 1 || page.Items[0].ID != id {
+			t.Fatal("handover list changed authorized subject", err)
+		}
+		for _, private := range []string{"assignments_json", "inventory_json", "request_hash", "planned_at", "handover reason"} {
+			if strings.Contains(response.Body.String(), private) {
+				t.Fatal("recorded plan list disclosed private case detail", private)
+			}
+		}
+		return page.Items[0]
+	}
+	if read().HandoverPlanRecorded {
+		t.Fatal("absence became a recorded plan")
+	}
+	inventory, err := svc.OffboardingInventory(ctx, adminID, id)
+	if err != nil {
+		t.Fatal(err)
+	}
+	input := service.OffboardingPlanInput{RequestID: "f0400000-0000-4000-8000-000000000001", InventoryVersion: inventory.InventoryVersion, PlannedAt: time.Now().UTC().Add(time.Hour), Reason: "handover reason"}
+	plan, err := svc.CreateOffboardingPlan(ctx, adminID, id, input)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var originalPlan entity.OffboardingCase
+	if err := db.First(&originalPlan, "id = ?", plan.ID).Error; err != nil {
+		t.Fatal(err)
+	}
+	if replay, err := svc.CreateOffboardingPlan(ctx, adminID, id, input); err != nil || replay.ID != plan.ID || replay.RequestID != plan.RequestID || replay.UserID != id || replay.Reason != plan.Reason || replay.InventoryVersion != plan.InventoryVersion {
+		t.Fatal("recorded plan replay changed intent", err)
+	}
+	var replayedPlan entity.OffboardingCase
+	if err := db.First(&replayedPlan, "id = ?", plan.ID).Error; err != nil || !reflect.DeepEqual(originalPlan, replayedPlan) {
+		t.Fatal("plan replay rewrote persisted history", err)
+	}
+	listed := read()
+	if !listed.HandoverPlanRecorded || listed.Disabled || listed.OffboardedAt != nil {
+		t.Fatal("recorded plan disabled account or was hidden", listed)
+	}
+	expectStatus(t, identityRequest(router, "GET", "/api/v1/admin/members/"+id+"/offboarding", "", readerCookie, ""), 200)
+	if current, err := svc.GetMember(ctx, adminID, id); err != nil || !reflect.DeepEqual(*member, *current) {
+		t.Fatal("preparation/list changed member state", err)
+	}
+	// A later Project responsibility invalidates the original inventory; its
+	// retained plan still exists and must never be mislabeled as current eligibility.
+	project, err := svc.CreateResource(ctx, adminID, service.ProjectResource, "List handover retained Project", "", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	// The legacy resource constructor initializes the creator; assign the
+	// actual target through the normal manager replacement before stale review.
+	managers, err := svc.SetProjectManagers(ctx, adminID, project.ID, []string{id})
+	if err != nil || managers.ID != project.ID || len(managers.Managers) != 1 || managers.Managers[0].UserID != id || managers.Managers[0].ID == "" {
+		t.Fatal("exact handover responsibility was not established", err)
+	}
+	if _, err := svc.CompleteOffboarding(ctx, adminID, id, plan.ID); err == nil {
+		t.Fatal("list recorded-plan fact bypassed current inventory review")
+	}
+	if !read().HandoverPlanRecorded {
+		t.Fatal("stale rejected plan disappeared from recorded facts")
+	}
+	var before entity.Project
+	if err := db.First(&before, "id = ?", project.ID).Error; err != nil {
+		t.Fatal(err)
+	}
+	inventory, err = svc.OffboardingInventory(ctx, adminID, id)
+	if err != nil {
+		t.Fatal(err)
+	}
+	input.RequestID = "f0400000-0000-4000-8000-000000000002"
+	input.InventoryVersion = inventory.InventoryVersion
+	input.OffboardingAssignments = service.OffboardingAssignments{Projects: []service.OffboardingProjectAssignment{{ProjectID: project.ID, ManagerUserIDs: []string{adminID}}}}
+	newPlan, err := svc.CreateOffboardingPlan(ctx, adminID, id, input)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := svc.CompleteOffboarding(ctx, adminID, id, newPlan.ID); err != nil {
+		t.Fatal(err)
+	}
+	listed = read()
+	if !listed.Disabled || listed.OffboardedAt == nil || !listed.HandoverPlanRecorded {
+		t.Fatal("completion erased a separate retained unfinished plan or account fact", listed)
+	}
+	var after entity.Project
+	if err := db.First(&after, "id = ?", project.ID).Error; err != nil || !reflect.DeepEqual(before, after) {
+		t.Fatal("list/handover rewrote the preserved Project", err)
+	}
+	// A completed-only subject remains distinguishable from the separately
+	// retained unfinished plan above. Preserve both completed receipts unchanged.
+	completedMember, err := svc.CreateMember(ctx, adminID, "list-handover-completed@example.invalid", "test-only-handover-password", "List completed subject", entity.RoleMember)
+	if err != nil {
+		t.Fatal(err)
+	}
+	inventory, err = svc.OffboardingInventory(ctx, adminID, completedMember.User.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	completedPlan, err := svc.CreateOffboardingPlan(ctx, adminID, completedMember.User.ID, service.OffboardingPlanInput{RequestID: "f0400000-0000-4000-8000-000000000003", InventoryVersion: inventory.InventoryVersion, PlannedAt: time.Now().UTC().Add(time.Hour), Reason: "handover reason"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := svc.CompleteOffboarding(ctx, adminID, completedMember.User.ID, completedPlan.ID); err != nil {
+		t.Fatal(err)
+	}
+	var retained entity.OffboardingCase
+	if err := db.First(&retained, "id = ?", completedPlan.ID).Error; err != nil || retained.Status != "completed" {
+		t.Fatal("completion receipt missing", err)
+	}
+	readCompleted := func() {
+		t.Helper()
+		response := identityRequest(router, "GET", "/api/v1/admin/members?q=List+completed+subject&limit=1", "", readerCookie, "")
+		expectStatus(t, response, 200)
+		var page MemberListResponse
+		if err := json.Unmarshal(response.Body.Bytes(), &page); err != nil || len(page.Items) != 1 || page.Items[0].ID != completedMember.User.ID || page.Items[0].HandoverPlanRecorded {
+			t.Fatal("completed/prior-birth case presented as pending", err)
+		}
+	}
+	readCompleted()
+	// Inject a separate historical fixture, never edit an existing plan or receipt.
+	historical := retained
+	historical.ID = "off_01j00000000000000000000000"
+	historical.RequestID = "f0400000-0000-4000-8000-000000000004"
+	historical.Status = "ready_to_complete"
+	historical.CompletedAt = nil
+	historical.CompletedBy = ""
+	historical.CreatedAt = completedMember.User.CreatedAt.Truncate(time.Second).Add(-time.Second)
+	if err := db.Create(&historical).Error; err != nil {
+		t.Fatal(err)
+	}
+	readCompleted()
+	// Case-insensitive database collation must not attach an alias case to the
+	// current canonical subject, even with a valid current creation timestamp.
+	alias := historical
+	alias.ID = "off_01j00000000000000000000001"
+	alias.RequestID = "f0400000-0000-4000-8000-000000000005"
+	alias.UserID = strings.ToUpper(completedMember.User.ID)
+	alias.CreatedAt = time.Now().UTC()
+	if err := db.Create(&alias).Error; err != nil {
+		t.Fatal(err)
+	}
+	readCompleted()
+	var unchanged entity.OffboardingCase
+	if err := db.First(&unchanged, "id = ?", completedPlan.ID).Error; err != nil || !reflect.DeepEqual(retained, unchanged) {
+		t.Fatal("list rewrote completed history", err)
 	}
 }

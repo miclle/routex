@@ -86,6 +86,8 @@ beforeEach(async () => {
   unmounts = 0
   add.mockClear()
   record = {
+    adapter: 'native',
+    api_version: null,
     id: 'con_one',
     provider_id: 'prv_one',
     name: 'Alpha primary',

@@ -6,6 +6,7 @@ import (
 	"errors"
 	"io"
 	"net/http"
+	"net/url"
 	"time"
 
 	"gorm.io/gorm"
@@ -62,6 +63,11 @@ func (s *Service) VerifyCredential(ctx context.Context, actorID, credentialID st
 	if verified {
 		result.Message = "Credential verified"
 		result.DiscoveredModels = len(names)
+		if entity.ConnectionAdapter(connection) == entity.AdapterAzureOpenAIClassic {
+			result.DiscoveredModels = 0
+			result.Message = "Credential authenticated; deployment coverage requires administrator attestation"
+			names = nil
+		}
 	}
 	auditID, err := id.NewPrefixed("aud")
 	if err != nil {
@@ -130,6 +136,16 @@ func (s *Service) VerifyCredential(ctx context.Context, actorID, credentialID st
 			if err := tx.Table("model_provider_bindings AS b").Joins("JOIN provider_models p ON p.id = b.provider_model_id").Where("p.connection_id = ? AND b.weight > 0 AND NOT EXISTS (SELECT 1 FROM credential_model_accesses a WHERE a.provider_model_id = p.id AND a.credential_id = ?)", connection.ID, credential.ID).Count(&missing).Error; err != nil {
 				return err
 			}
+			if entity.ConnectionAdapter(connection) == entity.AdapterAzureOpenAIClassic {
+				absent, e := credentialMissingActiveDeployment(tx, connection, credential.ID)
+				if e != nil {
+					return e
+				}
+				missing = 0
+				if absent {
+					missing = 1
+				}
+			}
 			if missing != 0 {
 				updates["enabled"] = false
 			}
@@ -178,6 +194,15 @@ func (s *Service) discoverModels(ctx context.Context, connection entity.Provider
 		return nil, false
 	}
 	req.Header.Set("Authorization", "Bearer "+plaintext)
+	if entity.ConnectionAdapter(connection) == entity.AdapterAzureOpenAIClassic {
+		if validateConnectionAdapter(connection, s.allowPrivateUpstream) != nil {
+			return nil, false
+		}
+		req.URL.Path = "/openai/models"
+		req.URL.RawQuery = url.Values{"api-version": []string{*connection.APIVersion}}.Encode()
+		req.Header.Del("Authorization")
+		req.Header.Set("api-key", plaintext)
+	}
 	req.Header.Set("Accept", "application/json")
 	resp, err := client.Do(req)
 	if err != nil {

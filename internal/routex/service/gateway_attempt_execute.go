@@ -418,6 +418,15 @@ func prepareGatewayHTTPRequest(ctx context.Context, requestID string, result *Ga
 		req.Header.Del("Authorization")
 		req.Header.Set("x-goog-api-key", credential)
 	}
+	if route.Adapter == entity.AdapterAzureOpenAIClassic {
+		if result.NativeProtocol() != entity.ProtocolOpenAIChat || route.APIVersion == nil {
+			return nil, gatewayError(503, "upstream_unavailable", "No usable upstream is available.")
+		}
+		req, err = upstream.NewAzureChatRequest(ctx, route.BaseURL, route.UpstreamName, *route.APIVersion, credential, payload, allowPrivate)
+		if err != nil {
+			return nil, gatewayError(503, "upstream_unavailable", "No usable upstream is available.")
+		}
+	}
 	req.Header.Set("X-Request-ID", requestID)
 	if result.Stream {
 		req.Header.Set("Accept", "text/event-stream")

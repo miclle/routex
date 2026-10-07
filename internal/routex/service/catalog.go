@@ -35,6 +35,8 @@ type ConnectionCatalog struct {
 }
 
 type CreateConnectionInput struct {
+	Adapter           string  `json:",omitempty"`
+	APIVersion        *string `json:",omitempty"`
 	RequestID         string
 	StoragePolicyETag string
 	EgressMode        string
@@ -123,7 +125,7 @@ func loadConnectionCatalog(db *gorm.DB, connectionID string) (*ConnectionCatalog
 }
 
 func (s *Service) prepareConnectionMetadata(providerID string, input CreateConnectionInput) (entity.ProviderConnection, error) {
-	connection := entity.ProviderConnection{Enabled: true, EgressMode: input.EgressMode, EgressID: input.EgressID, ETag: "0", ProviderID: providerID, Name: strings.TrimSpace(input.Name), Protocol: input.Protocol}
+	connection := entity.ProviderConnection{Adapter: input.Adapter, APIVersion: input.APIVersion, Enabled: true, EgressMode: input.EgressMode, EgressID: input.EgressID, ETag: "0", ProviderID: providerID, Name: strings.TrimSpace(input.Name), Protocol: input.Protocol}
 	if connection.EgressMode == "" {
 		connection.EgressMode = "default"
 	}
@@ -137,6 +139,13 @@ func (s *Service) prepareConnectionMetadata(providerID string, input CreateConne
 	baseURL, err := upstream.ValidateBaseURL(input.BaseURL, s.allowPrivateUpstream)
 	if err != nil {
 		return connection, apperrors.ErrBadRequest
+	}
+	connection.BaseURL = input.BaseURL
+	if connection.Adapter == "" {
+		connection.Adapter = entity.AdapterNative
+	}
+	if err := validateConnectionAdapter(connection, s.allowPrivateUpstream); err != nil {
+		return connection, err
 	}
 	connection.BaseURL = strings.TrimRight(baseURL.String(), "/")
 	connection.ID, err = id.NewPrefixed("con")
@@ -443,6 +452,16 @@ func (s *Service) SetCredentialEnabled(ctx context.Context, actorID, credentialI
 			var missing int64
 			if err := tx.Table("model_provider_bindings AS b").Joins("JOIN provider_models p ON p.id = b.provider_model_id").Where("p.connection_id = ? AND b.weight > 0 AND NOT EXISTS (SELECT 1 FROM credential_model_accesses a WHERE a.provider_model_id = p.id AND a.credential_id = ?)", connection.ID, credentialID).Count(&missing).Error; err != nil {
 				return err
+			}
+			if entity.ConnectionAdapter(connection) == entity.AdapterAzureOpenAIClassic {
+				absent, e := credentialMissingActiveDeployment(tx, connection, credential.ID)
+				if e != nil {
+					return e
+				}
+				missing = 0
+				if absent {
+					missing = 1
+				}
 			}
 			if missing != 0 {
 				return credentialNotReady

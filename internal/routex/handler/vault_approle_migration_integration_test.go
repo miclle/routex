@@ -172,6 +172,20 @@ func testVaultSavedAppRoleMigration(t *testing.T, db *gorm.DB) {
 
 // Only the reviewed AppRole pair may extend the exact retained 148-case prefix.
 func vaultAppRoleRegistryParent(names []string) ([]string, bool) {
+	if len(names) == 154 {
+		parent, ok := providerCleanupRegistryParent(names)
+		if !ok {
+			return nil, false
+		}
+		names = parent
+	}
+	if len(names) == 152 {
+		parent, ok := azureDeploymentRegistryParent(names)
+		if !ok {
+			return nil, false
+		}
+		names = parent
+	}
 	if len(names) != 150 || names[148] != "vault_saved_approle_migration:testVaultSavedAppRoleMigration" || names[149] != "vault_saved_approle:testVaultSavedAppRoleLifecycle" {
 		return nil, false
 	}
@@ -209,7 +223,7 @@ func TestVaultSavedAppRoleExactRegistry150(t *testing.T) {
 			t.Fatal("changed/missing/reordered/extra registry accepted")
 		}
 	}
-	if !strings.Contains(string(raw), "versions != 78") {
+	if !strings.Contains(string(raw), "versions != 80") {
 		t.Fatal("current V78 harness not bound")
 	}
 }

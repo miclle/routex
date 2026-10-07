@@ -15,6 +15,7 @@ export type MemberListTeams =
   | { status: 'not_authorized' | 'overflow' | 'unavailable'; items: null }
 export type MemberListItem = Member &
   MemberRecentLogin & {
+    handover_plan_recorded: boolean
     registration_approval: RegistrationApprovalSummary
     updated_at: string
     total_personal_keys: string

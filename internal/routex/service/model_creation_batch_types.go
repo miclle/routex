@@ -18,12 +18,14 @@ type ModelCreationFilter struct {
 	Limit         int
 }
 type ModelCreationConnection struct {
-	ID           string `json:"id"`
-	ProviderID   string `json:"provider_id"`
-	ProviderName string `json:"provider_name"`
-	Name         string `json:"name"`
-	Protocol     string `json:"protocol"`
-	BaseURL      string `json:"base_url"`
+	Adapter      string  `json:"adapter"`
+	APIVersion   *string `json:"api_version"`
+	ID           string  `json:"id"`
+	ProviderID   string  `json:"provider_id"`
+	ProviderName string  `json:"provider_name"`
+	Name         string  `json:"name"`
+	Protocol     string  `json:"protocol"`
+	BaseURL      string  `json:"base_url"`
 }
 type ModelCreationContext struct {
 	Connection ModelCreationConnection `json:"connection"`

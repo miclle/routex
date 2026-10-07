@@ -335,8 +335,8 @@ func (s *Service) credentialRetirementRuntimeScope(
 		replacement.ConnectionID != connection.ID ||
 		source.ID != capture.sourceID ||
 		replacement.ID != capture.replacementID ||
-		capture.auth.CredentialRevisions[source.ID] != credentialMetadataRecord(source).ETag ||
-		capture.auth.CredentialRevisions[replacement.ID] != credentialMetadataRecord(replacement).ETag {
+		capture.auth.CredentialRevisions[source.ID] != credentialRuntimeRevision(source) ||
+		capture.auth.CredentialRevisions[replacement.ID] != credentialRuntimeRevision(replacement) {
 		result.Blockers = appendCredentialReadinessBlocker(result.Blockers, "runtime_stale")
 		result.SnapshotID = ""
 		result.EligibleRouteCount = 0
@@ -374,6 +374,21 @@ func (s *Service) credentialRetirementRuntimeScope(
 		result.EligibleRouteCount = 0
 		return result, nil
 	}
+	if entity.ConnectionAdapter(connection) == entity.AdapterAzureOpenAIClassic {
+		_, coverage, e := connectionCredentialCoverage(tx, connection.ID, providerModelIDs)
+		if e != nil {
+			return nil, e
+		}
+		accesses = nil
+		for _, c := range []string{source.ID, replacement.ID} {
+			for m, allowed := range coverage[c] {
+				if allowed {
+					accesses = append(accesses, entity.CredentialModelAccess{CredentialID: c, ProviderModelID: m})
+				}
+			}
+		}
+	}
+
 	access := map[string]map[string]bool{source.ID: {}, replacement.ID: {}}
 	for _, row := range accesses {
 		if access[row.CredentialID] != nil {

@@ -1,5 +1,6 @@
 import { AxiosHeaders, type AxiosResponse, type RawAxiosHeaders } from 'axios'
 import client from './client'
+import { decodeConnectionTransport } from './connection-transport'
 import type {
   ConnectionMetadata,
   ConnectionMetadataInput,
@@ -34,6 +35,8 @@ export function decodeConnectionMetadata(value: unknown): ConnectionMetadata {
   if (
     !object(value) ||
     !fields(value, [
+      'adapter',
+      'api_version',
       'id',
       'provider_id',
       'name',
@@ -84,6 +87,7 @@ export function decodeConnectionMetadata(value: unknown): ConnectionMetadata {
   }
   if (value.egress_id !== null && !safeID(value.egress_id, 'egr_')) invalid()
   if ((value.egress_mode === 'proxy') !== (value.egress_id !== null)) invalid()
+  decodeConnectionTransport(value)
   return value as unknown as ConnectionMetadata
 }
 function responseProof(response: AxiosResponse<unknown>, token: string) {

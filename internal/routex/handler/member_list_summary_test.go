@@ -56,7 +56,7 @@ func TestMemberListResponsePreservesDetailAndSafeSummary(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, expected := range []string{`"last_login_at":null`, `"last_login_status":"historical_unavailable"`, `"total_personal_keys":"9007199254740993"`, `"personal_policy_stored":false`, `"items":null`, `"active_reservations":null`} {
+	for _, expected := range []string{`"last_login_at":null`, `"last_login_status":"historical_unavailable"`, `"total_personal_keys":"9007199254740993"`, `"personal_policy_stored":false`, `"handover_plan_recorded":false`, `"items":null`, `"active_reservations":null`} {
 		if !strings.Contains(string(raw), expected) {
 			t.Fatal(expected, string(raw))
 		}

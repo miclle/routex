@@ -5,7 +5,10 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { MoreHorizontal, Plus } from 'lucide-react'
 import { listProviders, writeCatalog } from '@/api/catalog'
 import type { Credential, Provider } from '@/types/catalog'
-import { useSession } from '@/hooks/use-auth'
+import { useSession, sessionKey } from '@/hooks/use-auth'
+import type { Session } from '@/types/auth'
+import { useConnectionQueryRevision } from './connection-authority'
+import DeploymentCoverageDialog from './deployment-coverage'
 import { Page, QueryState, ErrorNotice, FormField, SaveButton } from '@/components/app/CatalogUI'
 import { PermissionGate } from '@/components/app/PermissionGate'
 import { usePermissions } from '@/hooks/use-permissions'
@@ -47,8 +50,12 @@ function CredentialTable({
   onDelete,
   onReplace,
   onReadiness,
+  onCoverage,
+  coverageReady,
 }: {
   provider: Provider
+  coverageReady: boolean
+  onCoverage: (credential: Credential, connectionId: string) => void
   canWrite: boolean
   pending: boolean
   onVerify: (credential: Credential) => void
@@ -206,6 +213,14 @@ function CredentialTable({
                   >
                     {t('credentialReplacement.action')}
                   </MenuItem>
+                  {item.adapter === 'azure_openai_classic' && (
+                    <MenuItem
+                      disabled={pending || !coverageReady}
+                      onClick={() => onCoverage(credential, item.id)}
+                    >
+                      {t('deploymentCoverage.action')}
+                    </MenuItem>
+                  )}
                   {credential.replaces_credential_id && (
                     <MenuItem
                       disabled={pending}
@@ -255,6 +270,35 @@ function Providers() {
     queryFn: ({ signal }) => listProviders(signal),
   })
   const [action, setAction] = useState<Action | null>(null)
+  const [coverageTarget, setCoverageTarget] = useState<{
+    providerId: string
+    connectionId: string
+    credentialId: string
+  } | null>(null)
+  const actor = session?.user.id ?? ''
+  useConnectionQueryRevision([sessionKey, ['permissions', actor], ['admin', 'providers']])
+  const coverageCurrent = () => {
+    const auth = cache.getQueryState<Session | null>(sessionKey),
+      rights = cache.getQueryState<string[]>(['permissions', actor]),
+      catalogue = cache.getQueryState<Provider[]>(['admin', 'providers'])
+    return (
+      !!actor &&
+      auth?.data?.user.id === actor &&
+      auth.status === 'success' &&
+      auth.fetchStatus === 'idle' &&
+      !auth.error &&
+      !auth.isInvalidated &&
+      rights?.status === 'success' &&
+      rights.fetchStatus === 'idle' &&
+      !rights.error &&
+      !rights.isInvalidated &&
+      rights.data?.includes('providers.read') === true &&
+      catalogue?.status === 'success' &&
+      catalogue.fetchStatus === 'idle' &&
+      !catalogue.error &&
+      !catalogue.isInvalidated
+    )
+  }
   const [editingMetadata, setEditingMetadata] = useState<{
     providerId: string
     credentialId: string
@@ -497,6 +541,16 @@ function Providers() {
                 provider={selected}
                 canWrite={access.can('providers.write')}
                 pending={mutation.isPending}
+                coverageReady={coverageCurrent()}
+                onCoverage={(credential, connectionId) => {
+                  if (!coverageCurrent()) return
+                  setNotice(null)
+                  setCoverageTarget({
+                    providerId: selected.id,
+                    connectionId,
+                    credentialId: credential.id,
+                  })
+                }}
                 onEdit={(credential, connectionId, connectionName) => {
                   setNotice(null)
                   setEditingMetadata({
@@ -563,6 +617,16 @@ function Providers() {
             </TabsContent>
           </Tabs>
         </>
+      )}
+      {coverageTarget && selected?.id === coverageTarget.providerId && (
+        <DeploymentCoverageDialog
+          {...coverageTarget}
+          onClose={() => setCoverageTarget(null)}
+          onSaved={() => {
+            void cache.invalidateQueries({ queryKey: ['admin', 'providers'] })
+            void cache.invalidateQueries({ queryKey: ['admin', 'models'] })
+          }}
+        />
       )}
       {reviewingCredential && selected?.id === reviewingCredential.providerId && (
         <CredentialReadinessDialog
@@ -656,8 +720,33 @@ function Providers() {
       >
         <form className="space-y-5" onSubmit={submit}>
           <fieldset disabled={mutation.isPending || !access.can('providers.write')}>
-            <FormField label={t('common.upstreamModelName')}>
-              <Input name="upstream_name" required maxLength={200} />
+            <FormField
+              label={t(
+                selected?.connections.some(
+                  (c) => c.id === action?.id && c.adapter === 'azure_openai_classic',
+                )
+                  ? 'deploymentCoverage.deployment'
+                  : 'common.upstreamModelName',
+              )}
+            >
+              {selected?.connections.some(
+                (c) => c.id === action?.id && c.adapter === 'azure_openai_classic',
+              ) && (
+                <p className="mb-2 text-sm text-muted-foreground">
+                  {t('azureTransport.deploymentGuidance')}
+                </p>
+              )}
+              <Input
+                name="upstream_name"
+                required
+                maxLength={
+                  selected?.connections.some(
+                    (c) => c.id === action?.id && c.adapter === 'azure_openai_classic',
+                  )
+                    ? 255
+                    : 200
+                }
+              />
             </FormField>
           </fieldset>
           <ErrorNotice error={mutation.error} />

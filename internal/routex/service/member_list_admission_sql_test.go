@@ -18,6 +18,8 @@ import (
 )
 
 type memberListAdmissionSQLFixture struct {
+	handoverRows       []memberListHandover
+	handoverFailure    bool
 	actor              entity.User
 	actorID            string
 	users              []entity.User
@@ -97,6 +99,11 @@ func (c memberListAdmissionConnection) QueryContext(ctx context.Context, q strin
 	f := c.fixture
 	f.queries = append(f.queries, q)
 	switch {
+	case strings.Contains(q, "offboarding_cases AS handover"):
+		if f.handoverFailure {
+			return nil, errors.New("controlled handover read outage")
+		}
+		return effectiveSQLRows(f.handoverRows)
 	case strings.Contains(q, `FROM "users"`):
 		for _, arg := range args {
 			if arg.Value == f.actorID {
@@ -167,16 +174,16 @@ func TestMemberListAdmissionMaintainsOriginalMeasuredQueryBudgets(t *testing.T) 
 		for _, mode := range []string{"personal", "teams", "overflow"} {
 			t.Run(fmt.Sprintf("%s_%d", mode, count), func(t *testing.T) {
 				s, f := memberListAdmissionService(t, count)
-				want := 9
+				want := 10
 				if mode != "personal" {
 					f.permissions["teams.read_all"] = true
 					f.memberships = []entity.TeamMembership{{ID: "tmm_one", UserID: f.users[0].ID, TeamID: "tea_one", Role: entity.TeamMember, Status: entity.ResourceActive}}
 					f.teams = []entity.Team{{ID: "tea_one", Name: "Retained Team", Status: entity.ResourceActive}}
-					want = 11
+					want = 12
 				}
 				if mode == "overflow" {
 					f.memberships = make([]entity.TeamMembership, memberListTeamBudget+1)
-					want = 10
+					want = 11
 				}
 				page, err := s.ListMemberSummaries(context.Background(), f.actorID, MemberFilter{Limit: count})
 				if err != nil || page == nil || len(page.Members) != count || len(f.queries) != want {
@@ -230,7 +237,7 @@ func TestMemberListAdmissionHydratesActorOnceAndSubjectsInOneBatch(t *testing.T)
 		f.applications = append(f.applications, app)
 	}
 	page, err := s.ListMemberSummaries(context.Background(), f.actorID, MemberFilter{Limit: 100})
-	if err != nil || page == nil || len(f.queries) != 11 {
+	if err != nil || page == nil || len(f.queries) != 12 {
 		t.Fatal(err, page != nil, len(f.queries))
 	}
 	apps := 0
@@ -309,5 +316,26 @@ func TestMemberListAdmissionRejectsUnprovenActorsBeforePermissionOrTargetReads(t
 				t.Fatal("denied read wrote state")
 			}
 		})
+	}
+}
+
+func TestMemberListHandoverReadFailureNeverBecomesNoPlan(t *testing.T) {
+	s, f := memberListAdmissionService(t, 2)
+	f.handoverRows = []memberListHandover{{UserID: f.users[0].ID}}
+	page, err := s.ListMemberSummaries(context.Background(), f.actorID, MemberFilter{Limit: 2})
+	if err != nil || page == nil || !page.Members[0].HandoverPlanRecorded || page.Members[1].HandoverPlanRecorded {
+		t.Fatal("batch did not preserve a recorded case separately from admission", err)
+	}
+	if page.Members[0].User.Disabled || page.Members[0].User.OffboardedAt != nil {
+		t.Fatal("recorded plan changed account state")
+	}
+	f.handoverFailure = true
+	if page, err := s.ListMemberSummaries(context.Background(), f.actorID, MemberFilter{Limit: 2}); page != nil || err == nil {
+		t.Fatal("failed case read became an authorized no-plan response", err)
+	}
+	f.handoverFailure = false
+	f.handoverRows[0].UserID = strings.ToUpper(f.users[0].ID)
+	if page, err := s.ListMemberSummaries(context.Background(), f.actorID, MemberFilter{Limit: 2}); page != nil || err == nil {
+		t.Fatal("collation alias case was attributed to current subject", err)
 	}
 }

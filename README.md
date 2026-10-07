@@ -177,3 +177,20 @@ membership can use them; Personal/Project Keys, other members and platform
 administrators receive no ownership bypass. Server expiry and durable cleanup
 remain independent of browser state. See [Team inference](docs/TEAM_INFERENCE.md)
 for the contract and its separate acceptance status.
+
+## Classic Azure Chat transport
+
+An explicit classic Azure OpenAI Connection uses Chat only, a resource-origin URL and an operator-selected dated API version. Native transport remains the default. Authentication against a model catalogue does not discover deployments. Configure exact deployment identifiers and independently review each Credential’s complete deployment attestation set through its existing row menu. Attestation confirms reviewed local configuration and runtime publication, not remote deployment existence or version compatibility.
+
+### Manual Vault orphan cleanup
+
+The existing Vault Integration menu provides a scoped preview and explicit
+confirmation for confirmed-owned, never-committed Provider credential objects.
+The workflow requires independent cleanup authority, preserves uncertain
+commands and in-flight creation/recovery, and destroys only the reviewed
+version 1 while retaining later versions and metadata. Previously published or
+deleted credentials remain blocked pending complete source-drain proof. Cleanup
+is manual; it does not automatically follow credential deletion. See the
+[architecture contract](docs/ARCHITECTURE.md#manual-vault-provider-orphan-cleanup),
+[frozen migration policy](docs/DATABASE.md#manual-provider-orphan-disposition-v80)
+and [current acceptance evidence](docs/IMPLEMENTATION.md).

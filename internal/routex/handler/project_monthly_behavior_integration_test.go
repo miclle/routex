@@ -1022,7 +1022,7 @@ func projectBehaviorHistoricalReplay(t *testing.T, db *gorm.DB, historical func(
 	before := personalKeyBehaviorLedger(t, db)
 	hasV75 := db.Migrator().HasConstraint(&entity.ResourceLimit{}, "ck_resource_limits_monthly_behavior_scope_v75")
 	if hasV75 {
-		if (len(before) != 75 && len(before) != 76 && len(before) != 77 && len(before) != 78) || before[74].Version != 75 || len(before) >= 76 && before[75].Version != 76 || len(before) >= 77 && before[76].Version != 77 || len(before) == 78 && before[77].Version != 78 {
+		if (len(before) != 75 && len(before) != 76 && len(before) != 77 && len(before) != 78 && len(before) != 79 && len(before) != 80) || before[74].Version != 75 || len(before) >= 76 && before[75].Version != 76 || len(before) >= 77 && before[76].Version != 77 || len(before) >= 78 && before[77].Version != 78 || len(before) >= 79 && before[78].Version != 79 || len(before) == 80 && before[79].Version != 80 {
 			t.Fatal("exact V75 predecessor required")
 		}
 		if err := db.Migrator().DropConstraint(&entity.ResourceLimit{}, "ck_resource_limits_monthly_behavior_scope_v75"); err != nil {
@@ -1032,7 +1032,7 @@ func projectBehaviorHistoricalReplay(t *testing.T, db *gorm.DB, historical func(
 			t.Fatal(err)
 		}
 	}
-	if (len(before) != 74 && len(before) != 75 && len(before) != 76 && len(before) != 77 && len(before) != 78) || before[73].Version != 74 || !db.Migrator().HasConstraint(&entity.ResourceLimit{}, "ck_resource_limits_monthly_behavior_scope_v74") {
+	if (len(before) != 74 && len(before) != 75 && len(before) != 76 && len(before) != 77 && len(before) != 78 && len(before) != 79 && len(before) != 80) || before[73].Version != 74 || !db.Migrator().HasConstraint(&entity.ResourceLimit{}, "ck_resource_limits_monthly_behavior_scope_v74") {
 		t.Fatal("exact V74 predecessor required")
 	}
 	defer func() {
@@ -1137,7 +1137,7 @@ func TestProjectBehaviorRegistryAppendAndHistoricalWrapperGuard(t *testing.T) {
 			t.Fatal("missing/reordered/extra/unreviewed scenario accepted")
 		}
 	}
-	if !strings.Contains(string(raw), "versions != 78") || !strings.Contains(string(raw), "projectBehaviorHistoricalReplay(t, db, test.run)") || !strings.Contains(string(raw), "personalKeyBehaviorHistoricalReplay(t, db, test.run)") {
+	if !strings.Contains(string(raw), "versions != 80") || !strings.Contains(string(raw), "projectBehaviorHistoricalReplay(t, db, test.run)") || !strings.Contains(string(raw), "personalKeyBehaviorHistoricalReplay(t, db, test.run)") {
 		t.Fatal("current74 or retained historical71/73 companion not bound")
 	}
 }

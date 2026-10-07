@@ -348,3 +348,92 @@ it('201 UUID reconciliation retains original Vault source despite a changed conf
   await until(() => expect(saved).toHaveBeenCalledOnce())
   expect(writes()[1].data).toBe(originalBody)
 })
+
+async function selectAdapter(value: string) {
+  await act(async () => {
+    const control = document.querySelector<HTMLSelectElement>(
+      'select[aria-label="Connection adapter"]',
+    )!
+    control.value = value
+    control.dispatchEvent(new Event('change', { bubbles: true }))
+  })
+}
+it.each(['provider', 'connection'] as const)(
+  'creates explicit Azure %s with Chat/date/origin and stable source intent',
+  async (kind) => {
+    await mount(kind)
+    await draft(kind)
+    await selectAdapter('azure_openai_classic')
+    await fill('base_url', 'https://azure.example.invalid')
+    await fill('api_version', '2024-10-21-preview')
+    expect(document.querySelector<HTMLSelectElement>('select[name="protocol"]')!.value).toBe(
+      'openai_chat',
+    )
+    expect(
+      [...document.querySelectorAll<HTMLOptionElement>('select[name="protocol"] option')]
+        .filter((o) => o.value !== 'openai_chat')
+        .every((o) => o.disabled),
+    ).toBe(true)
+    status = 503
+    await submit()
+    await until(() => expect(button('Retry original creation request')).toBeDefined())
+    const first = JSON.parse(writes()[0].data)
+    expect(first).toMatchObject({
+      adapter: 'azure_openai_classic',
+      api_version: '2024-10-21-preview',
+      base_url: 'https://azure.example.invalid',
+      protocol: 'openai_chat',
+      request_id: uuid,
+    })
+    context = { storage_source: 'inline', etag: 'c'.repeat(64) }
+    status = 201
+    await act(async () => cache.setQueryData(sessionKey, { ...session, csrf_token: 'new-csrf' }))
+    await act(async () => button('Retry original creation request').click())
+    await until(() => expect(saved).toHaveBeenCalledOnce())
+    expect(JSON.parse(writes()[1].data)).toEqual(first)
+    expect(writes()[1].headers.get('X-CSRF-Token')).toBe('new-csrf')
+  },
+)
+it.each([
+  ['2025-02-29', 'https://azure.example.invalid'],
+  ['', 'https://azure.example.invalid'],
+  ['2024-10-21', 'https://azure.example.invalid/v1'],
+  ['2024-10-21', 'https://azure.example.invalid/?token=x'],
+])('blocks invalid Azure configuration %s %s before creation', async (version, origin) => {
+  await mount('connection')
+  await draft('connection')
+  await selectAdapter('azure_openai_classic')
+  await fill('base_url', origin)
+  await fill('api_version', version)
+  await submit()
+  expect(writes()).toHaveLength(0)
+  expect(document.body.textContent).toContain('No API version is chosen automatically.')
+})
+it('native creation keeps native/null and switching back clears obsolete Azure version', async () => {
+  await mount('connection')
+  await draft('connection')
+  await selectAdapter('azure_openai_classic')
+  await fill('api_version', '2024-10-21')
+  await selectAdapter('native')
+  expect(document.querySelector('input[name="api_version"]')).toBeNull()
+  await submit()
+  await until(() => expect(saved).toHaveBeenCalledOnce())
+  expect(JSON.parse(writes()[0].data)).toMatchObject({ adapter: 'native', api_version: null })
+})
+
+it.each([
+  'https://azure.example.invalid/a/..',
+  'https://azure.example.invalid/./',
+  'https://azure.example.invalid/%2e/',
+  ' https://azure.example.invalid',
+  'https://azure.example.invalid ',
+])('rejects original Azure form URL before trimming or dispatch %s', async (origin) => {
+  await mount('connection')
+  await draft('connection')
+  await selectAdapter('azure_openai_classic')
+  await fill('api_version', '2024-10-21')
+  await fill('base_url', origin)
+  await submit()
+  expect(writes()).toHaveLength(0)
+  expect(document.body.textContent).toContain('No API version is chosen automatically.')
+})

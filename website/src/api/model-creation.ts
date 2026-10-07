@@ -1,5 +1,6 @@
 import { isAxiosError } from 'axios'
 import client from './client'
+import { decodeConnectionTransport } from './connection-transport'
 import type {
   ModelCreationConnection,
   ModelCreationContext,
@@ -58,6 +59,8 @@ function connection(v: unknown, expected?: string): ModelCreationConnection {
     !text(v.base_url)
   )
     invalid()
+  if (Object.keys(v).length !== 8) invalid()
+  decodeConnectionTransport(v)
   return v as unknown as ModelCreationConnection
 }
 function providerModel(v: unknown): ModelCreationProviderModel {

@@ -1,4 +1,51 @@
 export default {
+  azureTransport: {
+    adapter: 'Connection adapter',
+    native: 'Native',
+    classic: 'Azure OpenAI classic Chat',
+    version: 'API version',
+    guidance:
+      'Classic Azure uses Chat only, the resource origin and an explicitly selected date API version. Authentication is separate from deployment attestation. This does not prove upstream version compatibility.',
+    deploymentGuidance:
+      'Enter the exact deployment identifier. Model catalogue authentication does not discover deployments; attest access separately for each Credential.',
+    invalid:
+      'Use a resource origin, Chat protocol and a real YYYY-MM-DD date with optional -preview. No API version is chosen automatically.',
+  },
+  deploymentCoverage: {
+    action: 'Review deployment coverage',
+    title: 'Deployment coverage',
+    description:
+      'Review this Credential’s complete Connection model set and independently attest exact deployment access.',
+    advisory:
+      'Administrator attestation is separate from authenticated catalogue discovery. It does not prove remote deployment existence, inference completion or fleet application.',
+    authentication: 'Catalogue authentication',
+    models: 'Authorized deployment models',
+    select: 'Selected',
+    deployment: 'Deployment identifier',
+    attestation: 'Current attestation',
+    selectDeployment: 'Attest {{name}}',
+    unreviewable: 'Cannot attest this identifier',
+    attested: 'Attested',
+    unattested: 'Not attested',
+    empty: 'No ProviderModels are configured on this Connection.',
+    reason: 'Reason',
+    refresh: 'Refresh coverage',
+    review: 'Review latest coverage',
+    reviewed: 'Current coverage reviewed; your draft is preserved.',
+    revoke: 'Clear all selections',
+    save: 'Replace deployment coverage',
+    retry: 'Retry exact coverage request',
+    stale: 'Coverage changed. Explicitly review current coverage before confirming your draft.',
+    failed: 'The request was rejected. Review the entered information and current authority.',
+    uncertain:
+      'Publication outcome is uncertain. Refreshing or a failed retry does not resolve the original request; retry only the exact captured intent with fresh authority.',
+    saved:
+      'The exact current coverage and local runtime publication are confirmed. This does not prove the original historical operation or remote deployment access.',
+    confirmTitle: 'Confirm deployment coverage',
+    confirmDescription:
+      'Replace the complete set with {{count}} selected deployments. An empty set revokes all attestation for this Credential.',
+    confirm: 'Confirm full replacement',
+  },
   credentialStorage: {
     futureSource: 'Configured source for this new credential',
     recordedSource: 'Recorded storage source',

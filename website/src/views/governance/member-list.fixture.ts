@@ -19,6 +19,7 @@ export function memberListRow(base: Partial<Member> = {}): MemberListItem {
     updated_at: '2026-10-04T00:00:00Z',
     last_login_at: null,
     last_login_status: 'historical_unavailable',
+    handover_plan_recorded: false,
     total_personal_keys: '9007199254740993',
     personal_policy_stored: true,
     personal: {

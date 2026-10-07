@@ -93,7 +93,7 @@ func (index memberModelsEligibilityIndex) hash(model entity.Model) string {
 		}
 		proofs := []memberModelsCredentialProof{}
 		for _, credential := range index.credentials[c.ID] {
-			proofs = append(proofs, memberModelsCredentialProof{credential.ID, credentialMetadataRecord(credential).ETag, index.access[credential.ID][p.ID]})
+			proofs = append(proofs, memberModelsCredentialProof{credential.ID, credentialRuntimeRevision(credential), index.access[credential.ID][p.ID]})
 		}
 		slices.SortFunc(proofs, func(a, b memberModelsCredentialProof) int { return strings.Compare(a.ID, b.ID) })
 		b.CreatedAt = b.CreatedAt.UTC()
@@ -115,7 +115,7 @@ func (index memberModelsEligibilityIndex) hash(model entity.Model) string {
 	}{model, name, rows})
 }
 func runtimeMemberModelsEligibility(data *runtimeData) map[string]string {
-	index := memberModelsIndex(&memberModelsData{EgressSetting: data.EgressSetting, Egresses: data.Egresses, Names: data.Names, Bindings: data.Bindings, ProviderModels: data.ProviderModels, Connections: data.Connections, Credentials: data.Credentials, Access: data.Access})
+	index := memberModelsIndex(&memberModelsData{EgressSetting: data.EgressSetting, Egresses: data.Egresses, Names: data.Names, Bindings: data.Bindings, ProviderModels: data.ProviderModels, Connections: data.Connections, Credentials: data.Credentials, Access: deploymentCoverageProjection(data.Credentials, data.Connections, data.ProviderModels, data.Access, data.Attestations)})
 	result := map[string]string{}
 	for _, m := range data.Models {
 		result[m.ID] = index.hash(m)

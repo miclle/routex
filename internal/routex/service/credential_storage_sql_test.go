@@ -29,6 +29,7 @@ import (
 // persistence tables are modeled. The controlled remote checks durable state
 // and that no database transaction spans its HTTP request.
 type credentialStorageData struct {
+	uses        map[string]entity.ProviderCredentialCreationUse
 	policy      entity.CredentialStoragePolicy
 	ops         map[string]entity.CredentialStorageOperation
 	refs        map[string]entity.CredentialVaultReference
@@ -40,6 +41,7 @@ type credentialStorageData struct {
 
 func (d credentialStorageData) clone() credentialStorageData {
 	out := d
+	out.uses = cloneStorageMap(d.uses)
 	out.ops = cloneStorageMap(d.ops)
 	out.refs = cloneStorageMap(d.refs)
 	out.providers = cloneStorageMap(d.providers)
@@ -162,6 +164,18 @@ func (c *credentialStorageConnection) QueryContext(ctx context.Context, q string
 		}
 	}
 	switch {
+	case strings.Contains(q, `FROM "provider_credential_creation_uses"`):
+		rows := []entity.ProviderCredentialCreationUse{}
+		for _, r := range d.uses {
+			if matches(r.CreationRequestID) {
+				rows = append(rows, r)
+			}
+		}
+		c.f.mu.Unlock()
+		return effectiveSQLRows(rows)
+	case strings.Contains(q, `FROM "provider_credential_cleanups"`):
+		c.f.mu.Unlock()
+		return effectiveSQLRows([]entity.ProviderCredentialCleanup{})
 	case strings.Contains(q, `FROM "credential_storage_policies"`):
 		v := d.policy
 		c.f.mu.Unlock()
@@ -244,7 +258,7 @@ func credentialStorageSQLService(t *testing.T) (*Service, *credentialStorageFixt
 	t.Helper()
 	s, v, roles := vaultCommandService(t)
 	_, _, control := roleDefinitionSQLService(t)
-	f := &credentialStorageFixture{vault: v, values: map[string]map[string]string{}, data: credentialStorageData{ops: map[string]entity.CredentialStorageOperation{}, refs: map[string]entity.CredentialVaultReference{}, providers: map[string]entity.Provider{}, connections: map[string]entity.ProviderConnection{}, credentials: map[string]entity.ProviderCredential{}, receipts: map[string]entity.CredentialReplacementReceipt{}}}
+	f := &credentialStorageFixture{vault: v, values: map[string]map[string]string{}, data: credentialStorageData{uses: map[string]entity.ProviderCredentialCreationUse{}, ops: map[string]entity.CredentialStorageOperation{}, refs: map[string]entity.CredentialVaultReference{}, providers: map[string]entity.Provider{}, connections: map[string]entity.ProviderConnection{}, credentials: map[string]entity.ProviderCredential{}, receipts: map[string]entity.CredentialReplacementReceipt{}}}
 	stub := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		f.mu.Lock()
 		defer f.mu.Unlock()
@@ -347,6 +361,8 @@ func credentialStorageSQLService(t *testing.T) (*Service, *credentialStorageFixt
 		d := f.current()
 		owned := true
 		switch x := tx.Statement.Dest.(type) {
+		case *entity.ProviderCredentialCreationUse:
+			d.uses[x.CreationRequestID] = *x
 		case *entity.Provider:
 			d.providers[x.ID] = *x
 		case *entity.ProviderConnection:
@@ -373,6 +389,16 @@ func credentialStorageSQLService(t *testing.T) (*Service, *credentialStorageFixt
 	}
 	update := callbacks.Update(&callbacks.Config{})
 	if e = db.Callback().Update().Replace("gorm:update", func(tx *gorm.DB) {
+		if tx.Statement.Table == "provider_credential_creation_uses" {
+			f.mu.Lock()
+			defer f.mu.Unlock()
+			for id, row := range f.current().uses {
+				row.Exposed = true
+				f.current().uses[id] = row
+			}
+			tx.RowsAffected = 1
+			return
+		}
 		if tx.Statement.Table != "credential_storage_operations" {
 			update(tx)
 			return

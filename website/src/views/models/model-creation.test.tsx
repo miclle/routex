@@ -32,6 +32,8 @@ const connection = {
   provider_name: 'Private Provider',
   name: 'Private Connection',
   protocol: 'openai_chat',
+  adapter: 'native',
+  api_version: null,
   base_url: 'https://example.invalid/v1',
 }
 const pm = (id = 'pmd_one') => ({

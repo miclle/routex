@@ -441,6 +441,20 @@ func testProjectKeyMonthlyBehaviorLifecycle(t *testing.T, db *gorm.DB) {
 }
 
 func projectKeyMonthlyBehaviorRegistryMatches(pairs []string) bool {
+	if len(pairs) == 154 {
+		parent, ok := providerCleanupRegistryParent(pairs)
+		if !ok {
+			return false
+		}
+		pairs = parent
+	}
+	if len(pairs) == 152 {
+		parent, ok := azureDeploymentRegistryParent(pairs)
+		if !ok {
+			return false
+		}
+		pairs = parent
+	}
 	if len(pairs) == 150 {
 		parent, ok := vaultAppRoleRegistryParent(pairs)
 		if !ok {

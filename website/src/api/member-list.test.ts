@@ -235,3 +235,26 @@ it('rejects a recorded member name beyond the response bound', () => {
   page.items[0].name = '名'.repeat(101)
   expect(() => validateMemberListPage(page, 'usr_admin')).toThrow()
 })
+
+it.each([true, false])(
+  'preserves the exact recorded handover fact %s without changing account admission',
+  (recorded) => {
+    const page = memberListPage()
+    page.items[0].handover_plan_recorded = recorded
+    const row = validateMemberListPage(page, 'usr_admin').items[0]
+    expect(row.handover_plan_recorded).toBe(recorded)
+    expect(row.disabled).toBe(false)
+    expect(row.offboarded_at).toBeNull()
+    expect(row.registration_approval.admission_eligible).toBe(true)
+  },
+)
+it.each([undefined, null, 1, 'true', { status: 'ready_to_complete' }])(
+  'rejects non-boolean or missing recorded handover metadata %s',
+  (value) => {
+    const page = memberListPage()
+    const row = page.items[0] as unknown as Record<string, unknown>
+    if (value === undefined) delete row.handover_plan_recorded
+    else row.handover_plan_recorded = value
+    expect(() => validateMemberListPage(page, 'usr_admin')).toThrow()
+  },
+)

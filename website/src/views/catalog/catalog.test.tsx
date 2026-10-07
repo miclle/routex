@@ -500,6 +500,8 @@ describe('catalog and Key workflows', () => {
       expect(document.body.textContent).toContain('Creation or policy review failed.'),
     )
     expect(JSON.parse(requests.find((r) => r.method === 'post')!.data)).toEqual({
+      adapter: 'native',
+      api_version: null,
       name: 'Another Provider',
       connection_name: 'API',
       egress_mode: 'default',
@@ -532,6 +534,8 @@ describe('catalog and Key workflows', () => {
     if (typeof catalogueAdapter !== 'function') throw new Error('Catalogue adapter missing')
     const path = '/admin/connections/con_guided/model-creation'
     const connection = {
+      adapter: 'native' as const,
+      api_version: null,
       id: 'con_guided',
       provider_id: 'prv_guided',
       provider_name: 'Guided Provider',

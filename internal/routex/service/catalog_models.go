@@ -96,6 +96,26 @@ func loadModelCatalog(db *gorm.DB, modelID string) (*ModelCatalog, error) {
 }
 
 func providerModelReady(db *gorm.DB, providerModelID, connectionID string) (bool, error) {
+	var connection entity.ProviderConnection
+	if err := personalExact(modelCreationDB(db), "id", connectionID).Take(&connection).Error; err != nil {
+		return false, err
+	}
+	if entity.ConnectionAdapter(connection) == entity.AdapterAzureOpenAIClassic {
+		credentials, covered, err := connectionCredentialCoverage(db, connectionID, []string{providerModelID})
+		if err != nil {
+			return false, err
+		}
+		enabled := 0
+		for _, c := range credentials {
+			if c.Enabled && c.VerificationStatus == "verified" {
+				enabled++
+				if !covered[c.ID][providerModelID] {
+					return false, nil
+				}
+			}
+		}
+		return enabled > 0, nil
+	}
 	var enabled, covered int64
 	if err := db.Model(&entity.ProviderCredential{}).Where("connection_id = ? AND enabled = ? AND verification_status = ?", connectionID, true, "verified").Count(&enabled).Error; err != nil {
 		return false, err

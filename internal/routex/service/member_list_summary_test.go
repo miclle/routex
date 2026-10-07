@@ -159,3 +159,49 @@ func TestMemberListTeamSummaryIntegrityAndSeparateOverflow(t *testing.T) {
 		}
 	}
 }
+
+func TestMemberListRecordedHandoversAreExactPageFacts(t *testing.T) {
+	ids := []string{"usr_a", "usr_b"}
+	for _, rows := range [][]memberListHandover{nil, {{UserID: "usr_a"}}} {
+		got, err := memberListHandovers(ids, rows)
+		if err != nil || len(got) != 2 || got["usr_b"] || got["usr_a"] != (len(rows) > 0) {
+			t.Fatal("recorded case existence changed page identity or absence", got, err)
+		}
+	}
+	for _, rows := range [][]memberListHandover{{{UserID: "USR_A"}}, {{UserID: "usr_foreign"}}, {{UserID: "usr_a"}, {UserID: "usr_a"}}, {{UserID: "usr_a"}, {UserID: "usr_b"}, {UserID: "usr_c"}}} {
+		if got, err := memberListHandovers(ids, rows); got != nil || err != apperrors.ErrInternal {
+			t.Fatal("ambiguous recorded handover produced a page fact", got, err)
+		}
+	}
+}
+
+func TestMemberListHandoverBatchBindsCurrentBirthAndExactModeWithoutSensitiveColumns(t *testing.T) {
+	for _, dialect := range []gorm.Dialector{projectQuotaScopeDialector{}, personalLifecycleMySQLDialector{}} {
+		t.Run(dialect.Name(), func(t *testing.T) {
+			db, err := gorm.Open(dialect, &gorm.Config{DryRun: true, DisableAutomaticPing: true})
+			if err != nil {
+				t.Fatal(err)
+			}
+			q := memberListHandoverQuery(db, []string{"usr_a", "usr_b"})
+			q.Statement.BuildClauses = []string{"SELECT", "FROM", "WHERE", "LIMIT"}
+			callbacks.BuildQuerySQL(q)
+			sql := q.Statement.SQL.String()
+			for _, required := range []string{"DISTINCT", "subject", "handover.created_at >= subject.created_at", "handover.completed_at IS NULL", "LIMIT"} {
+				if !strings.Contains(sql, required) {
+					t.Fatal("batch omitted current retained-plan boundary", sql)
+				}
+			}
+			for _, private := range []string{"reason", "assignments_json", "inventory_json", "request_hash", "password", "SELECT *"} {
+				if strings.Contains(sql, private) {
+					t.Fatal("recorded plan list selected private metadata", sql)
+				}
+			}
+			if !reflect.DeepEqual(q.Statement.Vars, []any{"usr_a", "usr_b", "planned", "ready_to_complete", 3}) {
+				t.Fatal("unbounded or non-page query", q.Statement.Vars)
+			}
+			if dialect.Name() == "mysql" && strings.Count(sql, "AS BINARY") != 10 {
+				t.Fatal("collation aliases could mark a different subject or state", sql)
+			}
+		})
+	}
+}

@@ -122,6 +122,7 @@ beforeEach(async () => {
       if (readGate) await readGate
       if (getStatus !== 200)
         throw new AxiosError('hidden', undefined, config, undefined, response({}, getStatus))
+      if (path.includes('/provider-orphans?')) return response({ items: [], next_cursor: null })
       if (path.includes('/probes/')) return response(probe())
       if (path === `/admin/secrets/integrations/${vaultID}`) {
         const value = structuredClone(detailValue)
@@ -528,5 +529,26 @@ it('read-only listing shows recorded AppRole and Token methods without secret in
     await i18n.changeLanguage('zh')
   })
   expect(rows[0].textContent).toContain('AppRole')
+  expect(writes).toHaveLength(0)
+})
+
+it('opens the scoped Provider orphan table from the existing Vault menu with read-only authority', async () => {
+  permissions = ['secrets.read']
+  await mount()
+  await click('Provider orphan cleanup')
+  expect(document.body.textContent).toContain('No retained creation records on this page.')
+  expect(reads).toContain(`/admin/secrets/integrations/${vaultID}/provider-orphans?limit=20`)
+  expect(reads.some((path) => path.includes('/rotations') || path.includes('/roots'))).toBe(false)
+  expect(writes).toHaveLength(0)
+})
+it('queued orphan menu action after read revocation cannot start a private preview', async () => {
+  await mount()
+  await openMenu()
+  const queued = menuItem('Provider orphan cleanup')!
+  permissions = []
+  await act(async () => cache.invalidateQueries({ queryKey: ['permissions'] }))
+  await act(async () => queued.click())
+  await settle()
+  expect(reads.some((path) => path.includes('/provider-orphans'))).toBe(false)
   expect(writes).toHaveLength(0)
 })

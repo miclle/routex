@@ -140,13 +140,16 @@ func testConnectionMetadataLifecycle(t *testing.T, db *gorm.DB) {
 		res := request("GET", path, "", "", session, "")
 		row := decodeCatalogResponse[service.ConnectionMetadataRecord](t, res, 200)
 		var fields map[string]json.RawMessage
-		if err := json.Unmarshal(res.Body.Bytes(), &fields); err != nil || len(fields) != 9 || res.Header().Get("Cache-Control") != "private, no-store" || res.Header().Get("ETag") != strconv.Quote(row.ETag) || len(row.ETag) != 129 || row.ETag[64] != '.' {
+		if err := json.Unmarshal(res.Body.Bytes(), &fields); err != nil || len(fields) != 11 || res.Header().Get("Cache-Control") != "private, no-store" || res.Header().Get("ETag") != strconv.Quote(row.ETag) || len(row.ETag) != 129 || row.ETag[64] != '.' {
 			t.Fatal("metadata projection/header contract", err, res.Body.String())
 		}
-		for _, key := range []string{"id", "provider_id", "name", "protocol", "base_url", "egress_mode", "egress_id", "etag", "can_edit"} {
+		for _, key := range []string{"id", "provider_id", "name", "protocol", "base_url", "egress_mode", "egress_id", "etag", "can_edit", "adapter", "api_version"} {
 			if _, ok := fields[key]; !ok {
 				t.Fatal("missing metadata field", key)
 			}
+		}
+		if row.Adapter != "native" || row.APIVersion != nil || string(fields["api_version"]) != "null" {
+			t.Fatal("native metadata adapter/API version contract")
 		}
 		if row.ID != "con_connection_meta" || row.ProviderID != "prv_connection_meta" || row.BaseURL != upstream.URL+"/v1" || row.Protocol != entity.ProtocolOpenAIChat {
 			t.Fatal("metadata identity changed")

@@ -138,6 +138,7 @@ function row(v: unknown) {
       'last_login_at',
       'last_login_status',
       'registration_approval',
+      'handover_plan_recorded',
       'total_personal_keys',
       'personal_policy_stored',
       'personal',
@@ -152,6 +153,7 @@ function row(v: unknown) {
     (v.offboarded_at === null || stamp(v.offboarded_at)) &&
     stamp(v.created_at) &&
     stamp(v.updated_at) &&
+    typeof v.handover_plan_recorded === 'boolean' &&
     isRegistrationApprovalSummary(v.registration_approval) &&
     (!v.registration_approval.admission_eligible || (!v.disabled && v.offboarded_at === null)) &&
     isMemberRecentLogin(v) &&

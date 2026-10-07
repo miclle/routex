@@ -275,13 +275,21 @@ it('requires mandatory private-free list/detail summaries without changing ordin
   const { memberListPage } = await import('@/views/governance/member-list.fixture')
   const list = memberListPage(),
     row = list.items[0]
-  const { updated_at, total_personal_keys, personal_policy_stored, personal, teams, ...detail } =
-    row
+  const {
+    updated_at,
+    total_personal_keys,
+    personal_policy_stored,
+    personal,
+    teams,
+    handover_plan_recorded,
+    ...detail
+  } = row
   void updated_at
   void total_personal_keys
   void personal_policy_stored
   void personal
   void teams
+  void handover_plan_recorded
   expect(validateMemberDetail(detail, row.id).registration_approval).toEqual(
     row.registration_approval,
   )

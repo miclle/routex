@@ -1,6 +1,7 @@
 import { t } from '@/i18n'
 import axios from 'axios'
 import client from './client'
+import { decodeConnectionTransport } from './connection-transport'
 import { parseCredentialStorageSource } from './provider-storage'
 import type {
   CallableModel,
@@ -17,10 +18,13 @@ import type {
 export async function listProviders(signal?: AbortSignal) {
   const items = (await client.get<{ items: Provider[] }>('/admin/providers', { signal })).data.items
   for (const provider of items)
-    for (const connection of provider.connections)
+    for (const connection of provider.connections) {
+      if (connection.adapter !== undefined || connection.api_version !== undefined)
+        decodeConnectionTransport(connection)
       for (const credential of connection.credentials)
         if (credential.storage_source !== undefined)
           parseCredentialStorageSource(credential.storage_source)
+    }
   return items
 }
 export async function listAdminModels() {

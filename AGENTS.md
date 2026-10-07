@@ -237,7 +237,6 @@ and CSRF with the original policy and review token. Actor changes, expired or
 missing Sessions, target changes and unmount discard stale completion callbacks.
 Never recreate private cache entries or report enforcement from an obsolete response.
 
-
 Provider-model availability and input capabilities belong in the existing detail page before prices. Treat image and PDF input support as explicit provider-model declarations rather than inferring them from names or protocols. Save availability and capabilities atomically with one reviewed ETag, keep them separate from routing weights, and reconcile uncertain publication before retrying. Public model capability metadata must be the per-protocol intersection across every ready, enabled, positive-weight route.
 
 Two-step verification uses the existing sign-in card and security settings card/dialogs. A login HTTP 202 is a transient challenge, never a Session or authenticated navigation. Keep challenges, proofs, enrollment material, and one-time recovery codes in component state only; sensitive operations must not use mutation caches or browser storage. Render the server-issued authenticator URI locally with the pinned QR library, without external QR services. Clear sensitive state on completion, dismissal, expiry, and unmount. Handle generic proof failures locally, refresh the real session when appropriate, and replace the current Session/CSRF while resetting private queries after successful MFA changes. Keep paired `mfa` translations and license notices.
@@ -314,7 +313,6 @@ intent through incidental focus/reconnect events, with fresh authority on mount
 and dispatch. Runtime confirmation includes the complete policy, revision, current
 membership and monetary denomination; persistence alone never proves enforcement.
 
-
 Credential planned retirement extends the existing replacement readiness dialog.
 Keep providers.read and providers.write independent, require a reason and explicit
 Base UI confirmation, and dispatch the exact reviewed replacement, native attempt,
@@ -324,13 +322,11 @@ uncertainty. A durable receipt confirms historical commit independently of curre
 runtime application. Never optimistically disable rows, treat a re-enabled or
 missing predecessor as currently applied, or claim supplier/fleet revocation.
 
-
 Member catalogue availability counts only active models with eligible supported
 native protocols. Explicit empty protocols and unknown/disabled models must never
 fabricate a Chat endpoint or cURL example. Keep localized unavailable guidance,
 disabled copy and the native Gemini name guard; Key creation cannot repair route
 availability. Team visibility and Personal Key authority remain separate.
-
 
 Member source visibility uses actor-scoped `model-catalog` queries, separate from
 the direct personal `/models` Key selector. Deduplicate models and actual sources;
@@ -383,7 +379,6 @@ prefix. Keep all visible example guidance in the paired catalog translations.
 
 Model access drawers copy only their displayed Base URL, nonsecret Personal authentication header template, and exact generated example text. Team examples never offer a Key header. Reuse current actor/Model/source/protocol and successful idle detail-query authority for every copy action; renewed reads, errors, changed selections and unmount invalidate pending clipboard feedback. Preserve the original example characters when applying local Bash token highlighting, render tokens as escaped React text, and leave standalone Team here-document bodies opaque. Highlighting and copying perform no login, inference or grant operation. Keep accessible copy labels and feedback in paired catalog translations.
 
-
 Monthly quota exhaustion uses the existing notification menu and recipient-scoped
 inbox routes. Enabled members may read their own Personal notices; Project
 notices require current enabled manager authority and an active Project at each
@@ -395,7 +390,6 @@ crossings, percentages, remaining allowance or exhaustion from holds. Hide stale
 rows, unread counts and actions during refresh or authorization failure, and bind
 read retries/cache invalidation to the captured actor.
 
-
 Project monthly quota requests reuse Resource configuration and scoped request
 history. QUOTA requests accept finite monthly targets only: blank omits a field,
 zero is valid and money remains an exact decimal string. Preserve independent
@@ -405,7 +399,6 @@ UUID, payload and validator through uncertain retries. Fresh details separate
 historical baseline, requested targets and current policy. Saved approval never
 proves runtime application, and superseded approval retries never restore an old
 policy. Keep paired projectRequests copy and explicit conflict review.
-
 
 Project rate-limit requests extend the existing Resource adjustment form with
 RPM, TPM and concurrency fields. RATE_LIMIT and QUOTA use independent request
@@ -430,7 +423,6 @@ active member's own immutable actor facts; directory permissions do not broaden
 that route. Preserve actor/Team query keys, fail-closed refreshes and transient
 state cleanup. Historical Team membership IDs never define accounting identities.
 
-
 Team monthly quota requests use `views/team-requests`, `/quota-requests` and the
 read-only `/admin/quota-requests` workspace. Preserve owner-first review, independent
 Token/money platform stages, no self-approval, exact string targets and server-owned
@@ -443,7 +435,6 @@ render the server-issued stage effect preview and require the same reviewed ETag
 owner escalation explicitly changes no quota. Global records expose a workspace
 link only when the server confirms a current assigned reviewer. Never fetch a global Team
 directory for the personal workspace or enable mutations in global records.
-
 
 ## Team role scope
 
@@ -464,7 +455,6 @@ Changed role definitions require explicit review. Never query role or candidate
 data from a minimal quota-only projection. Keep English/Chinese role copy in
 `resources`, hide stale authority on refresh/denial, and distinguish saved role
 assignment from runtime policy publication.
-
 
 ## Team usage reports
 
@@ -1197,3 +1187,17 @@ in-flight/history facts; no publication lock is held through remote responses.
 Provider credential storage uses two stacked configured-source mode cards followed by the existing root rotation card. Policy changes affect future writes only and never migrate existing credentials or prove Vault availability. Require an exact current eligible saved Integration revision, independent secrets.read/write, reviewed strong If-Match, a reason and explicit Base UI confirmation. Vault-only navigation fetches neither policy nor root inventory. Provider creators read only their providers.write-authorized source context; capture the raw policy token and a stable UUIDv4 in all secret-bearing creation and replacement requests. Keep the original secret/body/source transient outside query/mutation caches and browser storage, preserve mounted uncertain intent through explicit identical retries, and clear it on dismissal, actor/target change or unmount. Show only recorded credential storage_source; legacy missing metadata remains Unknown. Verification and enablement are separate operations.
 
 Vault authentication configuration keeps writer and reader identities independent. Token replacements preserve the existing request shape; AppRole replacements require an authentication mount, Role ID and reusable administrator-provided Secret ID together. Saved metadata exposes only the recorded method and configured state. Keep replacement material and uncertain exact intent in component state; clear obsolete inputs on method/action changes, success and teardown. A save does not prove remote login or KV access, and differing literal material does not prove separate remote principals.
+
+Azure classic Chat is an explicit immutable Connection adapter with a required selected dated API version and resource-origin URL. Existing creation controls retain native/null defaults, transient credential/source intent and Chat-only Azure guidance. Deployment access is a separate administrator attestation reviewed from the existing Credential row menu: independent providers.read/write, the complete authorized target model set, a required UTF-8 reason and exact strong composite If-Match. Confirm the complete replacement or empty-set revocation through Base UI, freeze IDs/reason/review proof, and preserve that immutable intent through uncertain manual retries with fresh Session/CSRF authority. GET, matching content and rejected retries never prove an original operation succeeded. Hide obsolete fields/actions on actor, target, permission, Session or resource renewal; current successful publication is not remote deployment, historical operation or fleet evidence. Keep all visible copy paired and English-default. Validate the original Azure URL authority and optional single trailing slash before browser normalization; reject raw dot/path segments, controls, whitespace and escaped paths. Preserve native input compatibility.
+
+Provider orphan cleanup belongs in the existing Vault Integration row menu and a
+scoped Drawer/Table. Preview requires intrinsic current administrator and
+secrets.read; dispatch additionally requires secrets.write and providers.write.
+A fresh exact creation review precedes Base UI danger confirmation. Cleanup
+Token stays in component state and is cleared on dispatch, dismissal, authority
+loss and unmount; retained uncertain intent contains only command UUID, review
+and reason. Token-free command reconciliation never authorizes another destroy
+or treats absence/404 as success. Do not remove rows optimistically or infer
+published-object drain; this initial slice permits only confirmed original
+never-committed orphans. Keep actor/target/Session generations and paired secrets
+copy, and fetch no root inventory from the Vault-only workspace.

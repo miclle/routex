@@ -58,6 +58,11 @@ func (s *Service) createVaultCredential(ctx context.Context, actorID, requestID,
 	if !utf8.ValidString(secret) || secret == "" || len(secret) > 2048 || strings.ContainsAny(secret, "\r\n") {
 		return nil, apperrors.ErrBadRequest
 	}
+	releaseCreation, e := s.credentialCreationLease(requestID)
+	if e != nil {
+		return nil, e
+	}
+	defer releaseCreation()
 	release, e := s.vaultReadLease()
 	if e != nil {
 		return nil, e
@@ -90,11 +95,17 @@ func (s *Service) createVaultCredential(ctx context.Context, actorID, requestID,
 		}
 		prior := personalExact(vaultDB(tx), "request_id", requestID).Clauses(clause.Locking{Strength: "UPDATE"}).Take(&op).Error
 		if prior == nil {
+			if e := credentialCleanupAdmission(tx, requestID); e != nil {
+				return e
+			}
 			if op.RequestID != requestID || op.ActorID != actor.ID || !op.ActorBirth.Equal(actor.CreatedAt) || op.IntentJSON != credentialCreationJSON(intent) {
 				return catalogConflict
 			}
 			if op.StorageSource != "vault" || op.ClaimedUntil.After(s.secretNow()) {
 				return catalogConflict
+			}
+			if e := s.recordCredentialCreationUse(tx, requestID, false); e != nil {
+				return e
 			}
 			// Preserve original source even after a future-write policy change.
 			op.Claim = claim
@@ -139,6 +150,9 @@ func (s *Service) createVaultCredential(ctx context.Context, actorID, requestID,
 		now := s.secretNow()
 		op = entity.CredentialStorageOperation{StorageSource: "vault", RequestID: requestID, ActorID: actor.ID, ActorBirth: actor.CreatedAt, Kind: intent.Kind, TargetID: intent.Target, TargetBirth: targetBirth, PolicyGeneration: policy.Generation, IntentJSON: credentialCreationJSON(intent), CredentialID: proposedCredential.ID, CredentialBirth: now, ProviderID: proposedProvider.ID, ProviderBirth: proposedProvider.CreatedAt, ConnectionID: proposedConnection.ID, ConnectionBirth: proposedConnection.CreatedAt, ReferenceID: plan.ReferenceID, ExpectedMarkerSHA256: plan.ExpectedMarkerSHA256, DescriptorSHA256: plan.DescriptorSHA256, IntegrationID: row.ID, IntegrationBirth: &row.CreatedAt, RevisionID: rev.ID, WriterGeneration: w.SecretGeneration, ReaderGeneration: r.SecretGeneration, RootEpoch: s.secretEpoch(), State: "writing", Claim: claim, ClaimedUntil: now.Add(30 * time.Second), WriteJSON: vaultJSON(vaultEmptyObservation()), ReadJSON: vaultJSON(vaultEmptyObservation()), CreatedAt: now}
 		if e = vaultDB(tx).Create(&op).Error; e != nil {
+			return e
+		}
+		if e = s.recordCredentialCreationUse(tx, requestID, true); e != nil {
 			return e
 		}
 		dispatchWrite = true
@@ -328,6 +342,12 @@ func (s *Service) commitVaultCredential(ctx context.Context, actorID string, i c
 		}
 		var live entity.CredentialStorageOperation
 		if e = personalExact(vaultDB(tx), "request_id", o.RequestID).Clauses(clause.Locking{Strength: "UPDATE"}).Take(&live).Error; e != nil {
+			return e
+		}
+		if e := credentialCleanupAdmission(tx, o.RequestID); e != nil {
+			return e
+		}
+		if e := s.recordCredentialCreationUse(tx, o.RequestID, false); e != nil {
 			return e
 		}
 		if live.Claim != claim {

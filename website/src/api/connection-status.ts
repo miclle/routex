@@ -17,7 +17,7 @@ export function decodeConnectionStatus(value: unknown): ConnectionStatus {
     !value ||
     typeof value !== 'object' ||
     Array.isArray(value) ||
-    Object.keys(value).length !== 10 ||
+    Object.keys(value).length !== 12 ||
     !Object.hasOwn(value, 'enabled')
   )
     invalid()

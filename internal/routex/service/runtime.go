@@ -456,6 +456,7 @@ type runtimeData struct {
 	Credentials          []entity.ProviderCredential
 	ProviderModels       []entity.ProviderModel
 	Access               []entity.CredentialModelAccess
+	Attestations         []entity.CredentialDeploymentAttestation
 	Bindings             []entity.ModelProviderBinding
 }
 
@@ -490,6 +491,18 @@ func (s *Service) loadRuntimeDataTxWithCredentialReader(tx *gorm.DB, openReader 
 				return err
 			}
 		}
+		azure := false
+		for _, c := range data.Connections {
+			if entity.ConnectionAdapter(c) == entity.AdapterAzureOpenAIClassic {
+				azure = true
+				break
+			}
+		}
+		if azure {
+			if err := tx.Find(&data.Attestations).Error; err != nil {
+				return err
+			}
+		}
 		if err := tx.First(&data.EgressSetting, 1).Error; err != nil {
 			return err
 		}
@@ -504,6 +517,7 @@ func (s *Service) loadRuntimeDataTxWithCredentialReader(tx *gorm.DB, openReader 
 				}
 			}
 		}
+		data.Access = deploymentCoverageProjection(data.Credentials, data.Connections, data.ProviderModels, data.Access, data.Attestations)
 		data.ProjectData, err = loadProjectRuntimeData(tx)
 		if err != nil {
 			return err
@@ -608,9 +622,9 @@ func buildRuntimeAuthorization(data *runtimeData, until time.Time) *runtimeAutho
 	}
 	for _, credential := range data.Credentials {
 		auth.Credentials[credential.ID] = credential.Enabled && credential.VerificationStatus == "verified" && credentialSourceProof(credential) != ""
-		auth.CredentialRevisions[credential.ID] = credentialMetadataRecord(credential).ETag
+		auth.CredentialRevisions[credential.ID] = credentialRuntimeRevision(credential)
 	}
-	for _, access := range data.Access {
+	for _, access := range deploymentCoverageProjection(data.Credentials, data.Connections, data.ProviderModels, data.Access, data.Attestations) {
 		if auth.CredentialAccess[access.CredentialID] == nil {
 			auth.CredentialAccess[access.CredentialID] = map[string]bool{}
 		}
@@ -621,6 +635,13 @@ func buildRuntimeAuthorization(data *runtimeData, until time.Time) *runtimeAutho
 
 func runtimeDigest(data *runtimeData) (string, error) {
 	// Serialize sorted rows so query order cannot trigger a spurious publication.
+	sort.Slice(data.Attestations, func(i, j int) bool {
+		a, b := data.Attestations[i], data.Attestations[j]
+		if a.CredentialID != b.CredentialID {
+			return a.CredentialID < b.CredentialID
+		}
+		return a.ProviderModelID < b.ProviderModelID
+	})
 	// Ciphertexts are hashed only; plaintext is never part of this source object.
 	sort.Slice(data.Providers, func(i, j int) bool { return data.Providers[i].ID < data.Providers[j].ID })
 	sort.Slice(data.Connections, func(i, j int) bool { return data.Connections[i].ID < data.Connections[j].ID })
@@ -644,8 +665,12 @@ func runtimeDigest(data *runtimeData) (string, error) {
 	egresses := append([]entity.Egress(nil), data.Egresses...)
 	sort.Slice(egresses, func(i, j int) bool { return egresses[i].ID < egresses[j].ID })
 	credentialSecrets := map[string]string{}
+	coverageRevisions := map[string]int64{}
 	for _, credential := range data.Credentials {
 		credentialSecrets[credential.ID] = credentialSourceProof(credential)
+		if credential.CoverageRevision != 0 {
+			coverageRevisions[credential.ID] = credential.CoverageRevision
+		}
 	}
 	ciphertexts := map[string]string{}
 	for i := range egresses {
@@ -666,10 +691,12 @@ func runtimeDigest(data *runtimeData) (string, error) {
 		Connections       []entity.ProviderConnection
 		Credentials       []entity.ProviderCredential
 		CredentialSecrets map[string]string
+		CoverageRevisions map[string]int64
 		ProviderModels    []entity.ProviderModel
 		Bindings          []entity.ModelProviderBinding
+		Attestations      []entity.CredentialDeploymentAttestation
 		Access            []entity.CredentialModelAccess
-	}{data.Quota, egresses, ciphertexts, data.EgressSetting, data.EgressGeneration, data.Limits, data.Pricing, data.Providers, data.Connections, data.Credentials, credentialSecrets, data.ProviderModels, data.Bindings, data.Access})
+	}{data.Quota, egresses, ciphertexts, data.EgressSetting, data.EgressGeneration, data.Limits, data.Pricing, data.Providers, data.Connections, data.Credentials, credentialSecrets, coverageRevisions, data.ProviderModels, data.Bindings, data.Attestations, data.Access})
 	if err != nil {
 		return "", err
 	}
@@ -694,7 +721,7 @@ func (s *Service) buildRuntimeRoutes(data *runtimeData) (map[string][]runtimeRou
 		providers[provider.ID] = provider
 	}
 	for _, connection := range data.Connections {
-		if !entity.SupportedNativeProtocol(connection.Protocol) {
+		if !entity.SupportedNativeProtocol(connection.Protocol) || validateConnectionAdapter(connection, s.allowPrivateUpstream) != nil {
 			continue
 		}
 		if _, err := upstream.ValidateBaseURL(connection.BaseURL, s.allowPrivateUpstream); err != nil {
@@ -707,7 +734,7 @@ func (s *Service) buildRuntimeRoutes(data *runtimeData) (map[string][]runtimeRou
 		providerModels[model.ID] = model
 	}
 	access := map[string]map[string]bool{}
-	for _, grant := range data.Access {
+	for _, grant := range deploymentCoverageProjection(data.Credentials, data.Connections, data.ProviderModels, data.Access, data.Attestations) {
 		if access[grant.CredentialID] == nil {
 			access[grant.CredentialID] = map[string]bool{}
 		}
@@ -760,7 +787,7 @@ func (s *Service) buildRuntimeRoutes(data *runtimeData) (map[string][]runtimeRou
 			return nil, runtimeUnavailable
 		}
 		_, egressRevision, _ := runtimeEgressSelection(data, connection)
-		candidate := runtimeRoute{Route: gatewayRoute{Client: clients[connection.ID], EgressGeneration: data.EgressGeneration, EgressRevision: egressRevision, Protocol: connection.Protocol, PriceBasis: runtimePriceBasis(data.Pricing, pm.ID, connection.Protocol), BindingID: binding.ID, Weight: binding.Weight, ProviderID: connection.ProviderID, ProviderName: provider.Name, ProviderModelID: pm.ID, ConnectionID: connection.ID, ConnectionBirth: connection.CreatedAt.UTC(), ConnectionName: connection.Name, UpstreamName: pm.UpstreamName, BaseURL: connection.BaseURL, SupportsImageInput: pm.SupportsImageInput, SupportsPDFInput: pm.SupportsPDFInput}}
+		candidate := runtimeRoute{Route: gatewayRoute{Client: clients[connection.ID], EgressGeneration: data.EgressGeneration, EgressRevision: egressRevision, Adapter: entity.ConnectionAdapter(connection), APIVersion: connection.APIVersion, Protocol: connection.Protocol, PriceBasis: runtimePriceBasis(data.Pricing, pm.ID, connection.Protocol), BindingID: binding.ID, Weight: binding.Weight, ProviderID: connection.ProviderID, ProviderName: provider.Name, ProviderModelID: pm.ID, ConnectionID: connection.ID, ConnectionBirth: connection.CreatedAt.UTC(), ConnectionName: connection.Name, UpstreamName: pm.UpstreamName, BaseURL: connection.BaseURL, SupportsImageInput: pm.SupportsImageInput, SupportsPDFInput: pm.SupportsPDFInput}}
 		for _, credential := range credentials[connection.ID] {
 			if access[credential.ID][pm.ID] {
 				candidate.Credentials = append(candidate.Credentials, credential)

@@ -4,6 +4,19 @@ Updated: 2026-10-07. Status: active. Continue the full RouteX objective and prio
 
 ## Current Vault Provider storage and saved AppRole work (2026-10-07)
 
+Saved AppRole is committed and pushed as
+`77ece1770394e5217ff72094083e51b01d9eb143`, with exact remote main read-back.
+Mandatory main checking, complete Task/build, Focus16, the real Vault
+API/native/root-key/original-Session restart workflow and Full150 pass. Browser
+acceptance remains pending. CI37610482389 passes all four jobs, including
+PostgreSQL/MySQL integration, authentication restart and Build Artifacts;
+Actionlint37610482397 and GolangCI37610482371 also pass. These remote results
+belong to the delivered AppRole commit. F28 remains partial, and the full
+objective continues.
+Desktop inventory at 13:15 UTC still reports the Mac locked, with no native
+apps available. Genuine browser downloads, focus and browser-Session restart
+remain unaccepted; independent database/source work continues.
+
 Commit `e1e78fe75224c2682c2cd9f99d54e7213617e86a` delivers the bounded
 Provider storage phase below. Exact remote main is verified, and mandatory main
 checking passes. CI37596642907 now passes all four jobs, including
@@ -163,9 +176,202 @@ uncertainty, and reconciliation does not repeat remote destruction. Four localiz
 confirmation/receipt messages explicitly limit acknowledged cleanup to owned
 version 1, retaining later versions and metadata. Backend review SHA-256:
 `617ef9223bdb6319ba670ec04a60b71d9ab124a438a5ac1cc51ceaf3564bcba0`.
-The combined source checks are running; real database, Vault and browser acceptance
-and delivery remain pending. Previously published objects still require a
-complete native-call and stream drain before eligibility can be implemented.
+The first combined mandatory check retains a style-only QF1003 failure. An
+independently reviewed equivalent switch correction passes renewed checking.
+The next complete Task fails after 216.846 seconds, with 4,822 frontend passes
+and one registration-approval fixture failure. Strict detail decoding correctly
+rejects the list-only handover flag left in its list-to-detail test projection.
+A test-only projection correction passes 160 related API cases.
+
+The coherent R3 candidate passes formatting, mandatory checking, complete Task
+(4,823 frontend tests in 190 suites plus Go race, Node/development and production
+assets) and build. Root verifies all 1,862 source paths/modes and 125 composition
+artifacts. Source acceptance SHA-256:
+`ec0c7c06a3c36ada5e7e173aaeb2922949be61d3664dec15f7cc74d90c077729`;
+root source review SHA-256:
+`5ef5dc81e93ca7dc75577a6b3ce66f9d25f72d71dc690c881c6a89a0ae70fa19`.
+The exact 108-file functional carry (32 new and 76 existing files) is applied to
+main. Mandatory main checking passes and all 1,860 non-status source files match
+the candidate; root progress documents are retained independently.
+
+Fresh Focus28 fails after 325.474 seconds: all 28 selected direct cases start,
+with 23 passing and five failing. Root verifies unchanged source/modes and raw
+output, with owned Compose resources, captured PID/PGID and both ports absent.
+Failure review SHA-256:
+`e13f5ba25d5f8312e27cb679aebd44e7638e78a5f6d82ffe87f384ff71b0e51b`.
+Both databases expose outdated retained-Team query budgets and a real cleanup
+claim audit defect: a 36-character creation UUID exceeds the 30-character audit
+resource ID column, returning HTTP503 before remote destruction. PostgreSQL
+also exposes the pinned GORM DropIndex CURRENT_SCHEMA syntax defect in the
+migration fixture. A four-file successor is being composed: exact Team page-query
+budgets and one-query checks, canonical Credential audit identity with safe
+creation/command correlation and schema-bound regression, and a narrowly
+explained test-only index adapter. Released migrations and policy, permission
+and finality assertions stay unchanged. The three cleanup successor leaves pass
+26 service and two handler race cases, mandatory checking and a schema-bound
+negative control that rejects the original UUID audit before destruction. Root
+source review SHA-256:
+`bc444bd59759e67761b028fdeb576d85cb12e1c5d816fa84a5e3048017c2936d`.
+The combined four-file R4 candidate passes formatting, mandatory checking,
+complete Task (4,823 frontend tests in 190 suites plus Go race and asset checks)
+and production build. Root verifies all 1,862 source paths/modes and 128 artifacts;
+source acceptance SHA-256:
+`5313be64688894cd93b520b2f81e5f96f1fabd280b2c6d446c93bf570ad2aa10`;
+root source review SHA-256:
+`fa0f6dd1db7484f4534122055ab53c80b5d4012de624f41db22ccabb20c9c0cb`.
+The four corrections are carried to main with all 1,860 non-status paths matching
+R4 and root status documents preserved. Fresh main checking passes. Fresh
+Focus28 passes on the exact R4 source: 28 direct lifecycles and 31 balanced
+named results in 335.459 seconds. Source/modes, raw JSON events, owned Compose
+resources, captured PID/PGID and both ports are independently verified.
+Acceptance SHA-256:
+`6cd01bf91c2ba2421ffe33e5c1ad54aa0c78b5376d99997084f6f33a4c9eb9fd`;
+root review SHA-256:
+`70cea15d3a7ef7580a77291ce0c624398285e1e553ba7d84673dd800ba37aeff`.
+The first real Vault cleanup workflow fails before preview/destruction after one
+real creation Write and original Read. The helper incorrectly requires a
+canonical Provider target ID for a new-Provider intent whose target is empty.
+Its original operation DTO and precise failure label were not retained; a
+narrow helper correction and safe fixed-label diagnostics are being prepared.
+Root verifies unchanged source/artifact and complete owned resource/process/port
+absence; failure review SHA-256:
+`cff8d913fac5cd9c8d83f16a188edf00cd9a8ba031cefa37900183acf9ec7a7e`.
+The corrected real Vault workflow passes independent root review: five creation
+operations, two explicit cleanup commands, 13 product KV effects, six QA effects,
+19 request/response audit pairs and 68 normal API requests. The two original
+Sessions and all retained non-instance database projections stay exact through
+restart. Dedicated cleanup ACL refusal, unknown original writes, committed
+references and changed-process blockers are checked; version two and retained
+metadata remain unchanged after acknowledged version-one destruction. Root
+verifies 101 safe evidence files, unchanged source/artifact and owned resource,
+process and port absence without reading private authentication/configuration,
+raw audit or application logs. Review SHA-256:
+`bf17f9661d68cbffcedcf9810d78e3ccd177f866cdccb47f19af0d28d17d0ecb`.
+Full154 fails after 3,143.003 seconds on the exact R4 source, with the original
+55-minute Go and 3,600-second outer bounds. Both databases execute all 154 ordered
+scenarios: 304 direct cases and eight constraints pass; four Connection metadata
+and status cases fail because old exact DTO assertions omit the additive adapter
+and API-version fields. All 5,271 named starts have terminal results (5,264 passes
+and seven failures including parent suites). Root independently verifies unchanged
+source, raw output and absence of owned resources, PID/PGID and ports. The failure
+is retained. The strict two-fixture successor passes mandatory main checking;
+complete field sets and native/null transport assertions are retained. Renewed
+four-case dual-driver focus initially fails after 120.337 seconds: metadata passes
+both drivers, but status reaches one further obsolete disabled-metadata field
+count. Root retains its JSON/raw/source and complete owned cleanup evidence. A
+strict 11-field/native/null singleton correction passes renewed mandatory main
+checking. Fresh Focus4 passes all four direct cases and seven balanced JSON
+results in 120.309 seconds. Root independently verifies source, raw results,
+owned resources, ports and PID/PGID absence. Review SHA-256:
+`4450400dfd4f3a423cda08f645a4bb2c14df2f6e50461cccf003ae1a7ff77f5b`.
+Renewed Full154 passes on exact R6 under the original 55-minute Go and
+3,600-second supervisor bounds: 308 ordered PostgreSQL/MySQL lifecycles, eight
+constraints, 5,271 balanced named results and five package completions in
+3,138.407 seconds. Root independently verifies all 1,862 source paths/modes,
+raw text-v counts and complete owned process, port and Compose cleanup.
+Acceptance SHA-256:
+`f4076c07d8b2bd21ef58a47a93f6f4964a03089a92e3366b7903be1100b022f3`;
+root review SHA-256:
+`dbef9ff9dfca14b1f86c8b62d2031901b3a54ebf683d5ca0dea3aad1695099ca`.
+Original failed runs remain historical. The three scoped technical documents
+now include the creation-orphan cleanup boundary and frozen GORM V80. Final
+mandatory main checking now passes. The phase is ready for a scoped commit;
+browser acceptance remains separate.
+Browser and feature delivery remain pending. Previously published objects still
+require complete native-call and stream drain before cleanup eligibility.
+
+A separate ten-file local source-holder prerequisite passes 251 service and 64
+parser race cases plus deliberate regression controls. Independent review finds
+one availability defect: unused open holder states accumulate until a 5,000-state
+limit rejects new sources. The two-file correction passes 24 race cases and
+independent review; only open zero-holder entries are reclaimed, while closed denial tombstones remain
+retained. The clean R2 foundation passes formatting, mandatory checking,
+complete Task (4,823 frontend cases/190 suites plus Go race and asset checks) and
+production build. Its first mandatory check retains a test-only unchecked Close
+failure; the exact checked-discard correction preserves production bytes and
+ownership assertions. Root verifies 1,864 source paths/modes, ten outputs and
+1,854 unchanged R4 paths. Source review SHA-256:
+`f5f9d52eb6f4976cdcd283f071c3a2a3498d9f77d12b9f837de4f72ff4d2cbcb`.
+Separate seven-scenario-per-driver native/Vault acceptance is prepared on the
+exact 1,864-file holder source. Root verifies all 34 support artifacts, finite
+scenario selection, unchanged assertions and original timeout/resource bounds.
+It remains unlaunched. The known Connection fixture corrections must be composed
+before new driver runs. The failed R4 Full154 cannot substitute for this source. This prerequisite is
+not part of R4 and does not activate published-object cleanup or prove fleet drain.
+
+The V82 published/deleted-object proposal uses stable physical object denial,
+sticky Close-error uncertainty and required process registration/first-exposure
+interlocks. New capable processes may register with durable zero-exposure denial
+acknowledgements before Vault preparation; interrupted claims quarantine their
+objects without preventing unrelated startup. Every old or unproven generation
+continues to block cleanup. Independent review requires one amendment: finite
+KV/AppRole response Close errors are currently discarded, so native-only joins
+cannot prove complete drain. A private fixed closure-result seam must record
+poison before holder release without rewriting original remote observations.
+The amended proposal passes independent review. Its four-file private SDK
+response-closure prerequisite passes 216 named race checks and independent source
+review, preserving explicit recovery and original remote observations. Service
+ownership, poison-before-release integration and durable activation are pending. Durable activation still
+has no migration/runtime acceptance and follows the separately reserved V81
+warning feature.
+
+The next bounded F23 slice is Personal-user own stored five-hour/seven-day
+Token warnings in the existing recipient-private inbox. V81 is reserved privately
+for sampled durable episodes and immutable observations. The selected 80%/90%
+thresholds apply only to fully covered, known settled use under a proven current
+cap; holds, unknown use and zero-denominator caps produce no inferred percentage.
+Each episode emits at most one reminder and one critical warning, rearming only
+below 80% with complete authoritative coverage. This does not change admission,
+monthly warnings, email delivery or other-account/inherited warning scope. Source
+implementation is in progress: 62 balanced named scoped Go/race results and 513
+focused frontend cases pass in the private workspace. A later repetition fails
+at the handler linker with host ENOSPC and remains failed; only ignored copied
+dependencies are reclaimed. Root then finds first-sample100% suppression; a
+narrow rolling-only successor must preserve the90% critical warning at or above
+the cap across producer, schema, inbox and decoder without changing monthly
+behavior. Its meaningful oldRED/newGREEN source checks, 44 balanced race cases
+and 519 frontend cases pass; independent exact-source review closes the issue
+without changing monthly/admission behavior. The 1,875-file holder-plus-warning composition is prepared privately, with the
+known Connection fixture corrections still to be composed. Its first coherent mandatory check fails two test-only errcheck findings;
+complete Task/build never start and all source bytes remain exact. A narrow
+explicit-discard/checked-removal fixture successor preserves error injection and
+callback timing. Renewed R4 format/check/complete Task/build pass, including
+4,859 frontend cases in 191 suites and Go race/production asset checks. Root
+verifies 1,875 source paths/modes, 128 artifacts, 53 cumulative outputs and the
+unchanged 154-case registry prefix before the two new warning cases. The separate
+24-case driver profile is prepared; real-driver, runtime and delivery acceptance
+remain pending.
+
+The operational warning runtime helper passes independent source review and
+32 resource-free checks. It preserves normal management API provisioning,
+seven Calls, six native completed Attempts, eight notices and six original
+Sessions through restart. This is a reviewed plan, not executed runtime evidence;
+real database and native acceptance remain pending.
+
+A separate F23 follow-up repairs the existing Overview Notification settings
+dialog's fresh actor-authorized reads and captured save intent. It preserves
+layout, independent read/write permissions, drafts and explicit ETag conflict
+review, and prevents obsolete completions from changing a reopened dialog or
+another actor's cache. Private implementation and focused tests are in progress;
+no backend schema or SMTP integration is added. Existing SMTP implementation
+and external relay/inbox acceptance remain separate.
+
+The local Close prerequisite now passes independent source review and root
+verification: 136 service and 24 SDK named race cases pass, with 1,878 source
+paths/modes and 61 packet artifacts verified. Finite operations own fresh clients;
+physical aliases retain Close uncertainty before holder release. This changes no
+schema or published-object cleanup eligibility, and durable V82 activation remains
+excluded. The next coherent candidate combines this prerequisite, V81 warnings
+and the separate Notification settings repair. Earlier warning-only Focus24 and
+Full156 preparations remain unlaunched; their source gates and helper reviews are
+retained at their original source rather than transferred to the successor.
+
+Independent review of the six-file Notification settings candidate finds one
+callback ownership defect: an old pending save for actor A can affect a new A
+lifetime after A-to-B-to-A. A real component regression reproduces the failure;
+the initial 530-case source checks do not close it. The original candidate and
+CHANGES_REQUIRED review are retained. A narrow actor-lifetime successor and
+success/error ABA tests are in progress before coherent composition or gates.
 
 The next already-partial protocol slice is Azure OpenAI upstream adaptation.
 The user selected explicit administrator deployment attestation, separate from
@@ -179,9 +385,29 @@ column name and explicit coverage-review column validation disagree. No selected
 scenario executes; owned resources and unchanged source/modes are independently
 verified. A narrow explicit-column mapping correction now passes renewed
 coherent formatting, mandatory checking, complete Task and build with unchanged
-4,756 frontend tests in 188 files. Fresh Focus8 is running against this corrected
-source and is not accepted yet. No Azure driver, runtime, browser activation or
-delivery is claimed. Project quota
+4,756 frontend tests in 188 files. Fresh Focus8 now passes all eight direct PostgreSQL/MySQL scenarios and eleven
+balanced named results in 155.254 seconds. Root verifies the exact 1,847 source
+bytes/modes, 161 composition artifacts, raw output and absence of owned processes,
+ports and Compose resources. Acceptance SHA-256:
+`edc2fd51638dbe225f0be3053634d77ef231afb9fbf6ee142642dc1eb6134824`;
+root review SHA-256:
+`6acbd0becd3d9806f27069bb33fa0b57bba3bb6d3fdb942a9730efe71c49607e`.
+Controlled local API/native/restart acceptance now passes on this corrected
+artifact: six Calls, four native completed Attempts, two pre-dispatch denials,
+five original API Sessions, one Azure foundation listing with zero discovered
+deployments, and one native discovery listing. Four observed upstream requests
+match exact adapter authentication, path, body and attribution. Coverage complete
+sets, withdrawal, stale/ABA conflicts, explicit current review and replacement
+noninheritance pass. Five original Call rows and three Attempt rows survive
+restart unchanged, followed by exactly one additional Call/Attempt; all other
+fixed projections and original public/session response digests remain equal.
+Root rehashes 143 safe evidence files and all 1,847 source bytes/modes and confirms
+all owned Compose resources, both app PID/PGID pairs and three listeners absent.
+Root acceptance SHA-256:
+`ef576b6d83f0b4c9ca89c3353d745d927081b5ccf9a5b1444cbc0f3ccf1d034d`.
+This is controlled local upstream proof; real Azure, browser activation and
+delivery remain pending. A fresh combined Full154 will cover Azure and cleanup,
+rather than a redundant Full152. Project quota
 and rate applications are already complete and are not reopened by stale stage summaries.
 
 A bounded Member list parity gap is being implemented privately: expose a

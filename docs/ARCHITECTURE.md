@@ -227,3 +227,37 @@ publish independently authorized aggregate/member rules into leased immutable
 snapshots and atomically admit both stable accounts without synchronous Control
 Plane reads. Approval workflows, additional Session protocols and fleet-wide
 immediate revocation remain separate acceptance boundaries.
+
+### Immutable classic Chat adapters and deployment attestation
+
+Connection transport selection is immutable. Classic Azure Chat binds the exact origin, selected dated API version and ProviderModel deployment identifier while retaining the public native Chat surface, per-attempt attribution and existing quotas. It does not introduce a new public inference protocol or silently fall back to native routing.
+
+Catalogue authentication and deployment access remain separate. A bounded explicit administrator attestation relation carries current Credential/source, Connection/transport and ProviderModel identities; it is not discovered access. Read and write permissions are independent. Full-set replacement and empty-set revocation require a reviewed strong composite ETag and explicit confirmation. Current exact set/publication reconciliation cannot establish historical operation success. Coverage generation prevents old uncertain nonempty intent from restoring withdrawn access under an equality shortcut.
+
+Source storage, retained Vault authentication, root epochs and current revocation retain their existing boundaries. Prepared routing consumes only currently authenticated and applicable coverage; weights, enablement and verification remain independent. Existing dispatched attempts preserve immutable attribution. External provider compatibility, controlled native evidence, browser workflows and final delivery remain separate acceptance gates.
+
+## Manual Vault Provider orphan cleanup
+
+Cleanup is an explicit Control Plane operation scoped to a current Vault
+Integration. Enabled intrinsic administrators need `secrets.read` for preview
+and both `secrets.write` and `providers.write` for confirmation. The initial
+scope is a never-committed creation whose original Write and ownership Read
+succeeded, with exact same-process provenance and no live/reference dependency.
+Unknown writes, active recovery, retained peers and previously published or
+deleted credentials stay blocked. Heartbeat expiry is not source-drain proof.
+
+A durable one-command disposition closes creation admission and final commit
+before any remote operation; the finite creation/recovery holder must join. The
+saved Reader performs one fresh ownership GET, and a separate transient cleanup
+Token permits conditional destruction of version 1. There is no Writer fallback
+or metadata deletion. Later versions remain intact. Missing data/HTTP404 never
+proves success, and the remote API provides no path-incarnation compare-and-swap.
+Acknowledgement is exact-version response evidence, not physical erasure.
+
+Original stages, new ownership observations and new cleanup observations remain
+separate immutable facts. Pending, failed and unknown dispositions stay fenced.
+Exact token-free receipt reads/retries never repeat GET or destroy; changed
+intent conflicts. The existing Vault row menu, scoped drawer and explicit
+confirmation preserve independent permissions, the reviewed ETag and nonsecret
+uncertain intent without caching the transient Token. This workflow adds no
+automatic schedule and makes no native-stream or cross-process drain claim.

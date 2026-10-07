@@ -1159,3 +1159,39 @@ and exact identity revalidation remain application responsibilities; a stored
 boolean alone does not prove routing application. The real-driver migration and
 lifecycle evidence remains bound to its exact candidate in
 [Implementation](IMPLEMENTATION.md).
+
+## Classic Azure deployment coverage (V79 candidate)
+
+Frozen GORM V79 follows V78. It adds the immutable Connection adapter (native by default) and nullable dated API version. Exact constraints preserve native/null defaults and require Azure classic Chat with an explicit version. Partial MySQL DDL must have the expected column type, width, nullability and default before bounded Migrator repair proceeds; released V1-V78 remain unchanged.
+
+The credential_deployment_attestations table stores the exact Credential/ProviderModel pair and retained identity proof. It introduces no copied discovery access or live foreign keys. Current applicability requires the exact Credential, source, Connection transport and ProviderModel identities. Credential coverage_revision is monotonic and nonnegative; bounded coverage_review_etag and coverage_intent_sha256 retain the immediately preceding reviewed change for exact current reconciliation, preventing old uncertain intent from restoring withdrawn coverage. These fields contain no credential material.
+
+The two Azure migration and coverage lifecycle cases append after the unchanged 150-case registry prefix. Source checks and registration remain separate from real PostgreSQL/MySQL migration, controlled native, browser and final delivery evidence.
+
+## Manual Provider orphan disposition (V80)
+
+Frozen GORM V80 adds `provider_credential_cleanups` and
+`provider_credential_creation_uses` after V79 without changing released steps.
+Private frozen structs, model tags and the database-layer Migrator create and
+repair this bounded schema on PostgreSQL and MySQL. The cleanup table uses the
+original creation UUID as its primary key and a unique command UUID, enforcing
+one retained disposition per creation. Exact enum checks distinguish `pending`,
+`unknown`, `failed` and `acknowledged`. Actor/Integration births, reviewed ETag,
+operation proof, root epoch, reason and separate ownership/cleanup observations
+remain private retained command facts; no cleanup Token is stored or hashed.
+
+Creation-use rows retain the exact process identity/generation and exposure
+fact. Missing or foreign provenance is a blocker. Historical instance rows
+remain relevant after lease expiry, stopping or retirement; removing heartbeat
+liveness does not prove that source material has drained. Original creation
+stages and credential reference history remain unchanged.
+
+Creation admission and final commit use the same governance serialization as
+the durable disposition. Remote authentication, ownership reads and destruction
+run after database locks are released. Exact token-free retries only read the
+recorded receipt; persistence or response loss never authorizes another remote
+effect. Both migration/lifecycle cases follow the unchanged 152-scenario prefix.
+The PostgreSQL missing-index fixture uses one fixed test-only DROP statement
+because the pinned GORM driver generates an invalid CURRENT_SCHEMA qualifier;
+production repair still uses the Migrator. See [Implementation](IMPLEMENTATION.md)
+for separately scoped source, real-database, real-Vault and delivery evidence.

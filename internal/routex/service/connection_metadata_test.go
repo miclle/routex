@@ -118,7 +118,7 @@ func TestConnectionMetadataIdentitySharedRevisionAndReconciliation(t *testing.T)
 	raw, _ := json.Marshal(original)
 	var fields map[string]json.RawMessage
 	_ = json.Unmarshal(raw, &fields)
-	if len(fields) != 9 || fields["created_at"] != nil || fields["ciphertext"] != nil {
+	if len(fields) != 11 || string(fields["adapter"]) != `"native"` || string(fields["api_version"]) != "null" || fields["created_at"] != nil || fields["ciphertext"] != nil {
 		t.Fatal(string(raw))
 	}
 	for _, bad := range []string{"", strings.Repeat("a", 129), original.ETag[:64] + "/" + original.ETag[65:], strings.ToUpper(original.ETag)} {

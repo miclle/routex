@@ -31,7 +31,7 @@ func (connectionEnabledBadDefaultFixture) TableName() string { return "provider_
 func testConnectionEnablementMigration(t *testing.T, db *gorm.DB) {
 	ctx := context.Background()
 	before := personalKeyBehaviorLedger(t, db)
-	if (len(before) != 76 && len(before) != 77 && len(before) != 78) || before[75].Version != 76 || len(before) >= 77 && before[76].Version != 77 || len(before) == 78 && before[77].Version != 78 || !db.Migrator().HasColumn(&connectionEnabledV76Fixture{}, "Enabled") {
+	if (len(before) != 76 && len(before) != 77 && len(before) != 78 && len(before) != 79 && len(before) != 80) || before[75].Version != 76 || len(before) >= 77 && before[76].Version != 77 || len(before) >= 78 && before[77].Version != 78 || len(before) >= 79 && before[78].Version != 79 || len(before) == 80 && before[79].Version != 80 || !db.Migrator().HasColumn(&connectionEnabledV76Fixture{}, "Enabled") {
 		t.Fatal("exact V76 ledger/column required")
 	}
 	if err := db.Create(&entity.Provider{ID: "prv_enabled_upgrade", Name: "Retained"}).Error; err != nil {
@@ -143,6 +143,20 @@ func connectionEnablementSameRow(a, b entity.ProviderConnection) bool {
 }
 
 func connectionEnablementRegistryPrefix(names []string) bool {
+	if len(names) == 154 {
+		parent, ok := providerCleanupRegistryParent(names)
+		if !ok {
+			return false
+		}
+		names = parent
+	}
+	if len(names) == 152 {
+		parent, ok := azureDeploymentRegistryParent(names)
+		if !ok {
+			return false
+		}
+		names = parent
+	}
 	if len(names) == 150 {
 		parent, ok := vaultAppRoleRegistryParent(names)
 		if !ok {

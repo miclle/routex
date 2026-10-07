@@ -13,6 +13,8 @@ const row = () => ({
   provider_id: 'prv_one',
   name: 'Primary',
   protocol: 'openai_chat',
+  adapter: 'native',
+  api_version: null,
   base_url: 'https://upstream.example.invalid/v1',
   egress_mode: 'direct',
   egress_id: null,

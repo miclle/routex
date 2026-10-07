@@ -155,8 +155,16 @@ func testConnectionStatusLifecycle(t *testing.T, db *gorm.DB) {
 		out := request("GET", path, "", "", session, "")
 		row := decodeCatalogResponse[service.ConnectionStatusRecord](t, out, 200)
 		var fields map[string]json.RawMessage
-		if err := json.Unmarshal(out.Body.Bytes(), &fields); err != nil || len(fields) != 10 || out.Header().Get("ETag") != strconv.Quote(row.ETag) || out.Header().Get("Cache-Control") != "private, no-store" {
-			t.Fatal("status10/header", err, out.Body.String())
+		if err := json.Unmarshal(out.Body.Bytes(), &fields); err != nil || len(fields) != 12 || out.Header().Get("ETag") != strconv.Quote(row.ETag) || out.Header().Get("Cache-Control") != "private, no-store" {
+			t.Fatal("status12/header", err, out.Body.String())
+		}
+		for _, key := range []string{"id", "provider_id", "name", "protocol", "base_url", "egress_mode", "egress_id", "etag", "can_edit", "enabled", "adapter", "api_version"} {
+			if _, ok := fields[key]; !ok {
+				t.Fatal("missing status field", key)
+			}
+		}
+		if row.Adapter != "native" || row.APIVersion != nil || string(fields["api_version"]) != "null" {
+			t.Fatal("native status adapter/API version contract")
 		}
 		if row.ID != "con_status_gate" || row.ProviderID != "prv_status_gate" {
 			t.Fatal("wrong exact target")
@@ -352,11 +360,19 @@ func testConnectionStatusLifecycle(t *testing.T, db *gorm.DB) {
 	if children() != originalChildren {
 		t.Fatal("disable modified Credential/model/access/weights")
 	}
-	// Disabled Connections remain administratively inspectable. No metadata wire expansion.
+	// Disabled Connections retain the same administrative metadata projection.
 	out := request("GET", "/api/v1/admin/connections/con_status_gate/metadata", "", "", cookie, "")
 	var meta map[string]json.RawMessage
-	if err := json.Unmarshal(out.Body.Bytes(), &meta); err != nil || len(meta) != 9 {
-		t.Fatal("disabled metadata9 unavailable", err)
+	if err := json.Unmarshal(out.Body.Bytes(), &meta); err != nil || len(meta) != 11 {
+		t.Fatal("disabled metadata11 unavailable", err)
+	}
+	for _, key := range []string{"id", "provider_id", "name", "protocol", "base_url", "egress_mode", "egress_id", "etag", "can_edit", "adapter", "api_version"} {
+		if _, ok := meta[key]; !ok {
+			t.Fatal("missing disabled metadata field", key)
+		}
+	}
+	if string(meta["adapter"]) != `"native"` || string(meta["api_version"]) != "null" {
+		t.Fatal("disabled native metadata adapter/API version contract")
 	}
 	// Logical grant visibility survives; disabled supply advertises no usable protocol.
 	assertDiscovery(false)

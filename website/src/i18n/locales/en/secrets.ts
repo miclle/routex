@@ -1,4 +1,66 @@
 export default {
+  orphans: {
+    title: 'Provider orphan cleanup',
+    description:
+      'Review never-committed Provider credential objects in this Vault integration. Published objects and unresolved writes remain blocked.',
+    creation: 'Creation request',
+    credential: 'Credential',
+    state: 'Recorded state',
+    ownership: 'Ownership',
+    actions: 'Actions',
+    recorded: 'Original ownership recorded',
+    unconfirmed: 'Original ownership unconfirmed',
+    empty: 'No retained creation records on this page.',
+    reviewTitle: 'Review exact creation',
+    revision: 'Retained revision',
+    recordedGuidance:
+      'Original Write and Read are recorded facts. Cleanup requires a new ownership check and explicit confirmation; this view does not prove a drained or previously published object.',
+    blocked: 'Cleanup is blocked by an unrecognized server condition.',
+    prepare: 'Review cleanup',
+    confirmTitle: 'Confirm orphan cleanup',
+    confirmDescription:
+      'Permanently fence recovery of this never-committed creation and request destruction of its exact owned version 1; later versions and metadata are preserved. Failed or unknown outcomes require investigation; no automatic retry or physical erasure is promised.',
+    token: 'Independent cleanup Token',
+    confirm: 'Confirm cleanup',
+    receipt: 'Recorded cleanup command',
+    receiptGuidance:
+      'Only an acknowledged receipt confirms this command’s saved destroy response. Current absence, 404, timeout or a matching review is not success.',
+    reviewReceipt: 'Review recorded command',
+    retry: 'Reconcile exact command',
+    cancel: 'Cancel waiting',
+    states: {
+      writing: 'Writing',
+      awaiting_read: 'Awaiting Read',
+      unknown: 'Unknown',
+      owned: 'Ownership recorded',
+      orphan: 'Orphan recorded',
+      committed: 'Committed',
+    },
+    notices: {
+      pending: 'Cleanup command is still pending. Review its recorded result explicitly.',
+      unknown: 'Cleanup outcome is unknown; investigate before further action.',
+      failed: 'Cleanup command recorded a failure; no success is confirmed.',
+      acknowledged:
+        'Exact owned-version destroy acknowledged and recorded for version 1. Later versions and metadata are preserved; physical erasure is not implied.',
+      uncertain:
+        'The dispatched command is unconfirmed. Review or reconcile its original token-free intent; no new destroy will be requested.',
+      reviewFailed: 'A fresh eligible review is required before confirmation.',
+      identityChanged: 'The current identity changed. The previous transient review was discarded.',
+    },
+    blockers: {
+      unconfirmed_ownership: 'Original ownership is unconfirmed.',
+      creation_unresolved: 'Creation outcome is unresolved.',
+      previously_published: 'This object was previously published.',
+      live_credential: 'A live Credential still uses this object.',
+      retained_reference: 'A retained reference still uses this object.',
+      active_creation: 'An active creation or recovery holds this object.',
+      cleanup_claimed: 'Cleanup disposition is already claimed. Review the original command.',
+      source_unavailable: 'The retained source is unavailable.',
+      process_ownership_unknown:
+        'The original creation is not exclusively owned by this process generation.',
+      fleet_ambiguous: 'Sole-instance authority is unconfirmed.',
+    },
+  },
   providerStorage: {
     title: 'Provider credential storage policy',
     mode: 'Future-write storage mode',

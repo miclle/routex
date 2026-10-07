@@ -361,6 +361,8 @@ export default {
     menu: 'Member actions for {{name}}',
     details: 'Member details',
     manageKeys: 'Manage API Keys',
+    handoverRecorded: 'Handover plan recorded',
+    viewHandover: 'View handover',
     offboarding: 'Review offboarding',
     adjustLimits: 'Adjust limits',
     reviewLimits: 'Review limits',

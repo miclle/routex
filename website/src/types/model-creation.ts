@@ -1,6 +1,8 @@
 export type ModelCreationProtocol =
   'openai_chat' | 'openai_responses' | 'anthropic_messages' | 'gemini_generate_content'
 export interface ModelCreationConnection {
+  adapter: 'native' | 'azure_openai_classic'
+  api_version: string | null
   id: string
   provider_id: string
   provider_name: string

@@ -320,3 +320,27 @@ describe('provider credential filters', () => {
     expect(writes()).toHaveLength(0)
   })
 })
+it('adds Azure coverage review to the existing credential row menu with independent read authority; native rows remain unchanged', async () => {
+  permissions = ['providers.read']
+  providers[0].connections[0].adapter = 'azure_openai_classic'
+  providers[0].connections[0].api_version = '2024-10-21'
+  await mount()
+  await act(async () => table().querySelector<HTMLButtonElement>('button')!.click())
+  await until(() =>
+    expect(
+      [...document.querySelectorAll<HTMLElement>('[role="menuitem"]')].some(
+        (item) => item.textContent === 'Review deployment coverage',
+      ),
+    ).toBe(true),
+  )
+  const item = [...document.querySelectorAll<HTMLElement>('[role="menuitem"]')].find(
+    (item) => item.textContent === 'Review deployment coverage',
+  )!
+  expect(item.getAttribute('aria-disabled')).not.toBe('true')
+  expect(
+    [...document.querySelectorAll<HTMLElement>('[role="menuitem"]')]
+      .filter((n) => n !== item)
+      .every((n) => n.getAttribute('aria-disabled') === 'true'),
+  ).toBe(true)
+  expect(writes()).toHaveLength(0)
+})

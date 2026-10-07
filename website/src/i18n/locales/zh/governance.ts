@@ -320,6 +320,8 @@ export default {
     menu: '{{name}} 的成员操作',
     details: '查看成员详情',
     manageKeys: '管理 API Keys',
+    handoverRecorded: '已记录交接计划',
+    viewHandover: '查看交接计划',
     offboarding: '查看离职交接',
     adjustLimits: '调整限额',
     reviewLimits: '查看限额',

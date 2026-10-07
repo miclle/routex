@@ -66,6 +66,8 @@ func (ctrl *Ctrl) RegisterRoutes(r *fox.Engine) {
 
 	identity.GET("/admin/providers/:provider_id/metadata", memberMetadataResponseHeaders, ctrl.requireSession, ctrl.GetProviderMetadata)
 	identity.PUT("/admin/providers/:provider_id/metadata", memberMetadataResponseHeaders, ctrl.requireSession, sameOrigin, requireCSRF, jsonManagementRequest, ctrl.WriteProviderMetadata)
+	identity.GET("/admin/credentials/:credential_id/deployment-coverage", memberMetadataResponseHeaders, ctrl.requireSession, ctrl.GetDeploymentCoverage)
+	identity.PUT("/admin/credentials/:credential_id/deployment-coverage", memberMetadataResponseHeaders, ctrl.requireSession, sameOrigin, requireCSRF, jsonManagementRequest, ctrl.WriteDeploymentCoverage)
 	identity.GET("/admin/connections/:connection_id/metadata", memberMetadataResponseHeaders, ctrl.requireSession, ctrl.GetConnectionMetadata)
 	identity.PUT("/admin/connections/:connection_id/metadata", memberMetadataResponseHeaders, ctrl.requireSession, sameOrigin, requireCSRF, jsonManagementRequest, ctrl.WriteConnectionMetadata)
 	identity.GET("/admin/connections/:connection_id/status", memberMetadataResponseHeaders, ctrl.requireSession, ctrl.GetConnectionStatus)
@@ -262,6 +264,11 @@ func (ctrl *Ctrl) RegisterRoutes(r *fox.Engine) {
 	admin.POST("/secrets/integrations/:integration_id/probes/write", memberMetadataResponseHeaders, requireAdmin, sameOrigin, requireCSRF, jsonManagementRequest, ctrl.RequirePermission("secrets.test"), ctrl.WriteVaultProbe)
 	admin.POST("/secrets/integrations/:integration_id/probes/:probe_id/read", memberMetadataResponseHeaders, requireAdmin, sameOrigin, requireCSRF, jsonManagementRequest, ctrl.RequirePermission("secrets.test"), ctrl.ReadVaultProbe)
 	admin.POST("/secrets/integrations/:integration_id/probes/:probe_id/cleanup", memberMetadataResponseHeaders, requireAdmin, sameOrigin, requireCSRF, jsonManagementRequest, ctrl.RequirePermission("secrets.test"), ctrl.CleanupVaultProbe)
+
+	admin.GET("/secrets/integrations/:integration_id/provider-orphans", memberMetadataResponseHeaders, requireAdmin, ctrl.RequirePermission("secrets.read"), ctrl.ListProviderCredentialOrphans)
+	admin.GET("/secrets/integrations/:integration_id/provider-orphans/:creation_request_id", memberMetadataResponseHeaders, requireAdmin, ctrl.RequirePermission("secrets.read"), ctrl.GetProviderCredentialOrphan)
+	admin.GET("/secrets/integrations/:integration_id/provider-orphans/:creation_request_id/commands/:command_id", memberMetadataResponseHeaders, requireAdmin, ctrl.RequirePermission("secrets.read"), ctrl.GetProviderCredentialCleanup)
+	admin.POST("/secrets/integrations/:integration_id/provider-orphans/:creation_request_id/cleanup", memberMetadataResponseHeaders, requireAdmin, sameOrigin, requireCSRF, jsonManagementRequest, ctrl.RequirePermission("secrets.write"), ctrl.RequirePermission("providers.write"), ctrl.CleanupProviderCredentialOrphan)
 
 	admin.GET("/secrets/rotations/:rotation_id", requireAdmin, ctrl.RequirePermission("secrets.read"), ctrl.GetSecretRotation)
 	admin.POST("/secrets/rotations", requireAdmin, sameOrigin, requireCSRF, jsonManagementRequest, ctrl.RequirePermission("secrets.rotate"), ctrl.StartSecretRotation)

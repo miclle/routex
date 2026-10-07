@@ -15,6 +15,8 @@ import (
 
 func egressRevision(connection entity.ProviderConnection, setting entity.EgressSetting, row *entity.Egress) string {
 	value := struct {
+		Adapter                                           string
+		APIVersion                                        *string
 		ConnectionID, BaseURL, Mode, ConnectionRevision   string
 		ConnectionEnabled                                 bool
 		EgressID                                          *string
@@ -23,7 +25,7 @@ func egressRevision(connection entity.ProviderConnection, setting entity.EgressS
 		ProxyID, Kind, Host, SecretGeneration, Ciphertext string
 		Port                                              int
 		Enabled                                           bool
-	}{ConnectionID: connection.ID, ConnectionRevision: connection.ETag, ConnectionEnabled: connection.Enabled, BaseURL: connection.BaseURL, Mode: connection.EgressMode, EgressID: connection.EgressID}
+	}{Adapter: entity.ConnectionAdapter(connection), APIVersion: connection.APIVersion, ConnectionID: connection.ID, ConnectionRevision: connection.ETag, ConnectionEnabled: connection.Enabled, BaseURL: connection.BaseURL, Mode: connection.EgressMode, EgressID: connection.EgressID}
 	if value.Mode == "" {
 		value.Mode = "default"
 	}

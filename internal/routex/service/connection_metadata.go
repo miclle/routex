@@ -24,6 +24,8 @@ type ConnectionMetadataInput struct {
 	Reason string `json:"reason"`
 }
 type ConnectionMetadataRecord struct {
+	Adapter    string  `json:"adapter"`
+	APIVersion *string `json:"api_version"`
 	ID         string  `json:"id"`
 	ProviderID string  `json:"provider_id"`
 	Name       string  `json:"name"`
@@ -98,7 +100,7 @@ func connectionMetadataRecord(actor entity.User, provider entity.Provider, row e
 	if mode != "default" && mode != "direct" && mode != "proxy" || row.EgressID != nil && (!safeTeamSessionID(*row.EgressID) || !strings.HasPrefix(*row.EgressID, "egr_")) || mode == "proxy" && row.EgressID == nil || mode == "direct" && row.EgressID != nil {
 		return ConnectionMetadataRecord{}, connectionMetadataUnavailable
 	}
-	record := ConnectionMetadataRecord{ID: row.ID, ProviderID: row.ProviderID, Name: row.Name, Protocol: row.Protocol, BaseURL: row.BaseURL, EgressMode: mode, CanEdit: write}
+	record := ConnectionMetadataRecord{Adapter: entity.ConnectionAdapter(row), APIVersion: row.APIVersion, ID: row.ID, ProviderID: row.ProviderID, Name: row.Name, Protocol: row.Protocol, BaseURL: row.BaseURL, EgressMode: mode, CanEdit: write}
 	if row.EgressID != nil {
 		value := *row.EgressID
 		record.EgressID = &value

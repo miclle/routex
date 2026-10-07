@@ -188,6 +188,11 @@ export default function MemberList({
                         : 'common.active',
                   )}
                 </Badge>
+                {row.handover_plan_recorded && (
+                  <div className="mt-1">
+                    <Badge variant="outline">{t('memberList.handoverRecorded')}</Badge>
+                  </div>
+                )}
                 <div className="mt-1">
                   <RegistrationApprovalStatus summary={row.registration_approval} />
                 </div>
@@ -282,10 +287,14 @@ export default function MemberList({
                     <KeyRound aria-hidden className="size-4" />
                     {t('memberList.manageKeys')}
                   </MenuItem>
-                  {!row.offboarded_at && (
+                  {(!row.offboarded_at || row.handover_plan_recorded) && (
                     <MenuItem onClick={() => navigateRow(row, `${base}/offboarding`)}>
                       <ArrowRightLeft aria-hidden className="size-4" />
-                      {t('memberList.offboarding')}
+                      {t(
+                        row.handover_plan_recorded
+                          ? 'memberList.viewHandover'
+                          : 'memberList.offboarding',
+                      )}
                     </MenuItem>
                   )}
                   <MenuItem

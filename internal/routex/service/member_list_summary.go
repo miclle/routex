@@ -34,6 +34,7 @@ type MemberListPage struct {
 type MemberListSummary struct {
 	MemberRecord
 	RegistrationApproval RegistrationApprovalSummary
+	HandoverPlanRecorded bool
 	TotalPersonalKeys    string
 	PersonalPolicyStored bool
 	Personal             MemberOverviewMonthlyAccount
@@ -93,6 +94,40 @@ func memberListIDs(tx *gorm.DB, col clause.Column, ids []string) clause.Expressi
 	}
 	return clause.Or(terms...)
 }
+
+type memberListHandover struct {
+	UserID string
+}
+
+func memberListHandoverQuery(tx *gorm.DB, ids []string) *gorm.DB {
+	// A recorded plan is not a current inventory check or a completed handover.
+	// Cases do not store a User birth; exclude records predating the current subject.
+	return tx.Session(&gorm.Session{}).Table("offboarding_cases AS handover").Distinct("subject.id AS user_id").
+		Joins("JOIN users AS subject ON ?", database.ExactTextColumns(tx, clause.Column{Table: "subject", Name: "id"}, clause.Column{Table: "handover", Name: "user_id"})).
+		Where(memberListIDs(tx, clause.Column{Table: "subject", Name: "id"}, ids)).
+		Where(database.ExactText(tx, clause.Column{Table: "handover", Name: "mode"}, "planned")).
+		Where(database.ExactText(tx, clause.Column{Table: "handover", Name: "status"}, "ready_to_complete")).
+		Where("handover.created_at >= subject.created_at AND handover.completed_at IS NULL").Limit(len(ids) + 1)
+}
+
+func memberListHandovers(ids []string, rows []memberListHandover) (map[string]bool, error) {
+	result := make(map[string]bool, len(ids))
+	for _, id := range ids {
+		result[id] = false
+	}
+	if len(rows) > len(ids) {
+		return nil, apperrors.ErrInternal
+	}
+	for _, row := range rows {
+		seen, found := result[row.UserID]
+		if !found || seen {
+			return nil, apperrors.ErrInternal
+		}
+		result[row.UserID] = true
+	}
+	return result, nil
+}
+
 func memberListKeyCountQuery(tx *gorm.DB, ids []string) *gorm.DB {
 	// Group on retained primary identities, never a collation-folded owner value.
 	return tx.Session(&gorm.Session{}).Table("api_keys AS retained_key").Select("subject.id AS user_id, COUNT(*) AS count").
@@ -266,7 +301,16 @@ func (s *Service) ListMemberSummaries(ctx context.Context, actorID string, filte
 		counts := map[string]string{}
 		stored := map[string]bool{}
 		teamSummaries := map[string]MemberListTeams{}
+		handovers := map[string]bool{}
 		if len(ids) > 0 {
+			var handoverRows []memberListHandover
+			if err := memberListHandoverQuery(tx, ids).Scan(&handoverRows).Error; err != nil {
+				return err
+			}
+			handovers, err = memberListHandovers(ids, handoverRows)
+			if err != nil {
+				return err
+			}
 			var roleRows []entity.UserRole
 			if err := tx.Session(&gorm.Session{}).Where(memberListIDs(tx, clause.Column{Name: "user_id"}, ids)).Limit(memberListRoleBudget + 1).Find(&roleRows).Error; err != nil {
 				return err
@@ -339,7 +383,7 @@ func (s *Service) ListMemberSummaries(ctx context.Context, actorID string, filte
 			}
 			personal := s.memberOverviewMonthlyAccount(targets[i], targets, batch, auth, u.ID, setting, result.PlatformCurrency)
 			personal.RuntimeApplied = personal.RuntimeApplied && s.memberOverviewSubjectApplied(auth, u, targets[i], setting, result.PlatformCurrency, apps)
-			result.Members = append(result.Members, MemberListSummary{MemberRecord: MemberRecord{User: u, RoleIDs: roles[u.ID]}, TotalPersonalKeys: counts[u.ID], PersonalPolicyStored: stored[u.ID], Personal: personal, Teams: teams, RegistrationApproval: approval})
+			result.Members = append(result.Members, MemberListSummary{MemberRecord: MemberRecord{User: u, RoleIDs: roles[u.ID]}, TotalPersonalKeys: counts[u.ID], PersonalPolicyStored: stored[u.ID], Personal: personal, Teams: teams, RegistrationApproval: approval, HandoverPlanRecorded: handovers[u.ID]})
 		}
 		// Never claim application from a generation replaced while projecting a page.
 		for i := range result.Members {

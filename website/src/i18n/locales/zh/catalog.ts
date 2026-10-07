@@ -1,4 +1,49 @@
 export default {
+  azureTransport: {
+    adapter: 'Connection 适配器',
+    native: '原生',
+    classic: 'Azure OpenAI 经典 Chat',
+    version: 'API 版本',
+    guidance:
+      '经典 Azure 仅支持 Chat，使用资源源地址和明确选择的日期 API 版本。身份验证与部署声明相互独立，不证明上游版本兼容性。',
+    deploymentGuidance:
+      '输入准确的部署标识符。模型目录身份验证不会发现部署；请为每个 Credential 单独声明访问范围。',
+    invalid:
+      '请使用资源源地址、Chat 协议及真实的 YYYY-MM-DD 日期，可附加 -preview。系统不会自动选择 API 版本。',
+  },
+  deploymentCoverage: {
+    action: '查看部署覆盖范围',
+    title: '部署覆盖范围',
+    description: '查看此 Credential 所属 Connection 的完整模型集，并独立声明准确的部署访问范围。',
+    advisory:
+      '管理员声明与模型目录身份验证相互独立，不证明远程部署存在、推理完成或整个集群已应用。',
+    authentication: '模型目录身份验证',
+    models: '已授权的部署模型',
+    select: '已选择',
+    deployment: '部署标识符',
+    attestation: '当前声明',
+    selectDeployment: '声明 {{name}}',
+    unreviewable: '无法声明此标识符',
+    attested: '已声明',
+    unattested: '未声明',
+    empty: '此 Connection 尚未配置 ProviderModel。',
+    reason: '原因',
+    refresh: '刷新覆盖范围',
+    review: '复核最新覆盖范围',
+    reviewed: '已复核当前覆盖范围，草稿保持不变。',
+    revoke: '清空全部选择',
+    save: '替换部署覆盖范围',
+    retry: '重试原始覆盖范围请求',
+    stale: '覆盖范围已变化，请明确复核当前范围后再确认草稿。',
+    failed: '请求已被拒绝，请检查输入信息和当前权限。',
+    uncertain:
+      '发布结果不确定。刷新或失败的重试不能消除原始请求的不确定性；仅能在权限更新后重试原始请求。',
+    saved: '已确认准确的当前覆盖范围和本机运行时发布状态，不证明原始历史操作或远程部署访问。',
+    confirmTitle: '确认部署覆盖范围',
+    confirmDescription:
+      '将完整集合替换为所选的 {{count}} 个部署。空集合将撤销此 Credential 的全部声明。',
+    confirm: '确认完整替换',
+  },
   credentialStorage: {
     futureSource: '此新凭据的已配置来源',
     recordedSource: '已记录存储来源',

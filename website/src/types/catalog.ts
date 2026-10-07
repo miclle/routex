@@ -17,6 +17,8 @@ export interface ProviderModel {
   upstream_name: string
 }
 export interface Connection {
+  adapter?: 'native' | 'azure_openai_classic'
+  api_version?: string | null
   enabled?: boolean // Absent catalogue state remains Unknown, never implicitly enabled.
   egress_mode?: 'default' | 'direct' | 'proxy'
   egress_id?: string | null

@@ -41,7 +41,7 @@ func modelCreationConnection(tx *gorm.DB, connectionID string) (entity.ProviderC
 	return connection, provider, nil
 }
 func modelCreationConnectionView(c entity.ProviderConnection, p entity.Provider) ModelCreationConnection {
-	return ModelCreationConnection{ID: c.ID, ProviderID: p.ID, ProviderName: p.Name, Name: c.Name, Protocol: c.Protocol, BaseURL: c.BaseURL}
+	return ModelCreationConnection{Adapter: entity.ConnectionAdapter(c), APIVersion: c.APIVersion, ID: c.ID, ProviderID: p.ID, ProviderName: p.Name, Name: c.Name, Protocol: c.Protocol, BaseURL: c.BaseURL}
 }
 func (s *Service) GetModelCreationContext(ctx context.Context, actor, connectionID string) (*ModelCreationContext, error) {
 	if !modelCreationID(connectionID, "con") {
@@ -124,9 +124,25 @@ func modelCreationCredentials(tx *gorm.DB, connectionID string, selected []strin
 	if err := attachCredentialSources(tx, credentials); err != nil {
 		return nil, err
 	}
+	var connection entity.ProviderConnection
+	if err := personalExact(modelCreationDB(tx), "id", connectionID).Take(&connection).Error; err != nil {
+		return nil, err
+	}
+	var models []entity.ProviderModel
+	if len(selected) > 0 {
+		if err := personalExact(modelCreationDB(tx), "connection_id", connectionID).Where(memberModelsExactIDs(tx, "id", selected)).Limit(201).Find(&models).Error; err != nil {
+			return nil, err
+		}
+	}
+	projected, err := loadDeploymentCoverage(tx, credentials, []entity.ProviderConnection{connection}, models, accesses, 10200)
+	if err != nil {
+		return nil, err
+	}
+	accesses = projected
+
 	result := make([]modelCreationCredentialProof, 0, len(credentials))
 	for _, credential := range credentials {
-		proof := modelCreationCredentialProof{ID: credential.ID, Revision: credentialMetadataRecord(credential).ETag, CipherHash: credentialSourceProof(credential), CreatedAt: credential.CreatedAt.UTC(), Enabled: credential.Enabled, VerificationStatus: credential.VerificationStatus, Access: []string{}}
+		proof := modelCreationCredentialProof{ID: credential.ID, Revision: credentialRuntimeRevision(credential), CipherHash: credentialSourceProof(credential), CreatedAt: credential.CreatedAt.UTC(), Enabled: credential.Enabled, VerificationStatus: credential.VerificationStatus, Access: []string{}}
 		for _, access := range accesses {
 			if access.CredentialID == credential.ID && slices.Contains(selected, access.ProviderModelID) {
 				proof.Access = append(proof.Access, access.ProviderModelID)

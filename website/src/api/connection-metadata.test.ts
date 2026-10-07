@@ -17,6 +17,8 @@ const row = (): ConnectionMetadata => ({
   provider_id: 'prv_one',
   name: 'Primary',
   protocol: 'openai_chat',
+  adapter: 'native',
+  api_version: null,
   base_url: 'https://upstream.example.invalid/v1',
   egress_mode: 'default',
   egress_id: null,
@@ -203,3 +205,27 @@ it.each([' ', '\u00a0', '\u1680', '\u2000', '\u2028', '\u2029', '\u202f', '\u205
     expect(validConnectionReason(`First${space}Second`)).toBe(true)
   },
 )
+it('accepts canonical classic transport and keeps metadata writes name-only', async () => {
+  data = {
+    ...row(),
+    adapter: 'azure_openai_classic',
+    api_version: '2024-10-21',
+    base_url: 'https://azure.example.invalid',
+  }
+  expect((await getConnectionMetadata('prv_one', 'con_one')).adapter).toBe('azure_openai_classic')
+})
+it.each([
+  { adapter: undefined },
+  { api_version: undefined },
+  { adapter: 'native', api_version: '2024-10-21' },
+  { adapter: 'azure_openai_classic', api_version: null },
+  { adapter: 'azure_openai_classic', api_version: '2024-10-21', protocol: 'openai_responses' },
+  {
+    adapter: 'azure_openai_classic',
+    api_version: '2024-10-21',
+    base_url: 'https://azure.example.invalid/v1',
+  },
+])('rejects noncanonical immutable Connection transport', async (change) => {
+  data = { ...row(), ...change }
+  await expect(getConnectionMetadata('prv_one', 'con_one')).rejects.toThrow()
+})

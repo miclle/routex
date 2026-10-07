@@ -26,6 +26,7 @@ import { Dialog } from '@/components/ui/dialog'
 import { Menu, MenuItem } from '@/components/ui/menu'
 import { MoreHorizontal, Plus } from 'lucide-react'
 import { VaultDrawer } from './vault-drawer'
+import { ProviderOrphans } from './provider-orphans'
 
 const same = (a: QueryKey, b: QueryKey) => JSON.stringify(a) === JSON.stringify(b)
 export function VaultWorkspace({
@@ -47,6 +48,7 @@ export function VaultWorkspace({
   const detailCandidate = useRef<{ nonce: number; query: Query; value: VaultIntegration } | null>(
     null,
   )
+  const [orphanID, setOrphanID] = useState('')
   const [history, setHistory] = useState<Record<string, VaultProbe>>({})
   const [cursor, setCursor] = useState(''),
     [selection, setSelection] = useState<{
@@ -160,6 +162,7 @@ export function VaultWorkspace({
       setIntent(undefined)
       setReason('')
       setHistory({})
+      setOrphanID('')
     }
     window.addEventListener('routex:session-expired', expire)
     return () => window.removeEventListener('routex:session-expired', expire)
@@ -238,6 +241,7 @@ export function VaultWorkspace({
               setIntent(undefined)
               setReason('')
               setHistory({})
+              setOrphanID('')
             }
           }
           if (
@@ -347,6 +351,31 @@ export function VaultWorkspace({
     )
       return null
     return { csrf: session.csrf_token, epoch: epoch.current }
+  }
+  function chooseOrphans(id: string) {
+    const session = cache.getQueryState<Session>(sessionKey),
+      allowed = cache.getQueryState<string[]>(current.current.permissionsKey),
+      page = cache.getQueryState<VaultPage>(current.current.listKey)
+    if (
+      expired.current ||
+      !fresh ||
+      !admin ||
+      session?.status !== 'success' ||
+      session.fetchStatus !== 'idle' ||
+      session.isInvalidated ||
+      session.data?.user.id !== actor ||
+      session.data.user.role !== 'admin' ||
+      allowed?.status !== 'success' ||
+      allowed.fetchStatus !== 'idle' ||
+      allowed.isInvalidated ||
+      !allowed.data?.includes('secrets.read') ||
+      page?.status !== 'success' ||
+      page.fetchStatus !== 'idle' ||
+      page.isInvalidated ||
+      !page.data?.items.some((row) => row.id === id)
+    )
+      return
+    setOrphanID(id)
   }
   const canWrite =
     visible &&
@@ -593,6 +622,9 @@ export function VaultWorkspace({
                         side="bottom"
                         align="end"
                       >
+                        <MenuItem onClick={() => chooseOrphans(row.id)}>
+                          {t('orphans.title')}
+                        </MenuItem>
                         <MenuItem onClick={() => choose(row.id, 'edit')}>
                           {t('vault.edit')}
                         </MenuItem>
@@ -660,6 +692,17 @@ export function VaultWorkspace({
           </div>
           <p className="text-xs text-muted-foreground">{t('vault.pageGuidance')}</p>
         </>
+      )}
+      {orphanID && (
+        <ProviderOrphans
+          key={`${actor}:${orphanID}`}
+          actor={actor}
+          integration={orphanID}
+          admin={admin}
+          fresh={fresh}
+          generation={generation}
+          close={() => setOrphanID('')}
+        />
       )}
       {selection?.action === 'edit' &&
         (!!selection.seed || (!selection.id && !!selection.initialETag)) && (

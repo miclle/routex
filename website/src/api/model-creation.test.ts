@@ -22,6 +22,8 @@ const connection = {
   provider_name: 'Provider',
   name: 'Connection',
   protocol: 'openai_chat',
+  adapter: 'native',
+  api_version: null,
   base_url: 'https://example.invalid/v1',
 }
 const pm = {

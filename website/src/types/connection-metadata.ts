@@ -1,6 +1,8 @@
 import type { Connection } from './catalog'
 
 export interface ConnectionMetadata {
+  adapter: 'native' | 'azure_openai_classic'
+  api_version: string | null
   id: string
   provider_id: string
   name: string
