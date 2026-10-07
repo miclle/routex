@@ -2,7 +2,18 @@
 
 Updated: 2026-10-07. This document records engineering contracts, work packages and acceptance checks. Planned interfaces and metrics are not implementation evidence. The active objective covers F01–F30 and A01–A20 through incremental P0–P6 delivery.
 
-## Current Vault Provider storage and saved AppRole work (2026-10-07)
+## Current delivery and active work (2026-10-07)
+
+Commit `5fda07372f85fa17a013f15ecd165f91fdabbb14` delivers explicit Azure Chat deployment
+declarations, reviewed cleanup of never-committed Vault credential objects, and
+recorded member handover status. Its exact 112-path phase passes formatting,
+mandatory main checking and complete Full154 acceptance, with original source
+gates and controlled Azure/Vault API/native/restart receipts retained at their
+original source. Frozen GORM V79/V80 preserve both supported databases. Previously
+published-object cleanup, real Azure and browser acceptance remain open. The
+full objective continues with the private warning/Close/Notification settings
+successor; formal capability totals remain unchanged. Remote CI is a separate
+acceptance gate.
 
 Saved AppRole is committed and pushed as
 `77ece1770394e5217ff72094083e51b01d9eb143`, with exact remote main read-back.
@@ -275,9 +286,9 @@ root review SHA-256:
 `dbef9ff9dfca14b1f86c8b62d2031901b3a54ebf683d5ca0dea3aad1695099ca`.
 Original failed runs remain historical. The three scoped technical documents
 now include the creation-orphan cleanup boundary and frozen GORM V80. Final
-mandatory main checking now passes. The phase is ready for a scoped commit;
+mandatory main checking passes. The phase is committed as `5fda07372f85fa17a013f15ecd165f91fdabbb14`;
 browser acceptance remains separate.
-Browser and feature delivery remain pending. Previously published objects still
+Browser acceptance remains pending. Previously published objects still
 require complete native-call and stream drain before cleanup eligibility.
 
 A separate ten-file local source-holder prerequisite passes 251 service and 64
@@ -352,7 +363,7 @@ A separate F23 follow-up repairs the existing Overview Notification settings
 dialog's fresh actor-authorized reads and captured save intent. It preserves
 layout, independent read/write permissions, drafts and explicit ETag conflict
 review, and prevents obsolete completions from changing a reopened dialog or
-another actor's cache. Private implementation and focused tests are in progress;
+another actor's cache. Private implementation and focused source tests pass;
 no backend schema or SMTP integration is added. Existing SMTP implementation
 and external relay/inbox acceptance remain separate.
 
@@ -370,8 +381,12 @@ Independent review of the six-file Notification settings candidate finds one
 callback ownership defect: an old pending save for actor A can affect a new A
 lifetime after A-to-B-to-A. A real component regression reproduces the failure;
 the initial 530-case source checks do not close it. The original candidate and
-CHANGES_REQUIRED review are retained. A narrow actor-lifetime successor and
-success/error ABA tests are in progress before coherent composition or gates.
+CHANGES_REQUIRED review are retained. The narrow R2 actor-lifetime successor
+closes the finding: independent original regression 1/1 and targeted status,
+Session, body and queued-authority vectors 8/8 pass. The 535-case producer suite
+also passes. Independent closure manifest SHA-256:
+`1b03b9fca9ff9d48e7501dae7a986f41feeb848ef40ae8fa537284a7d92c8e70`.
+Coherent composition, whole source gates and actual acceptance remain pending.
 
 The next already-partial protocol slice is Azure OpenAI upstream adaptation.
 The user selected explicit administrator deployment attestation, separate from
@@ -1305,7 +1320,7 @@ The binary capability count is 12 completed, 15 partially completed, and 3 not s
 | F10 | Offboarding, inventory, handover, and emergency disable | Partially completed | Transactional local-account offboarding and continuity workflows exist; external-identity and complete enterprise continuity behavior remain open. |
 | F11 | Provider, Connection, Credential, discovery, and rotation | Partially completed | The management workspace, encrypted credentials, controlled verification, and activation boundaries exist; explicit provider-model capacity attestations, credential-pool filtering/verification timestamps, reviewed name/priority editing, reviewed deletion, staged replacement preparation, immutable per-attempt Credential/publication attribution, and parser-owned native completion evidence are available; evidence-gated predecessor retirement with historical receipt/current-application separation is available; Provider Models table, conjunctive filters, resource links and complete stored-binding projection have controlled bilingual permission/restart and full129 dual-driver acceptance; real-provider acceptance and complete pool operations remain open. |
 | F12 | Model catalog, names, bindings, weights, and catalog assistance | Partially completed | Stable models, renames, bindings, weights, grants, and availability controls exist; reviewed compatibility-name Early stop has complete controlled source, dual-driver, native/browser/restart and full-matrix delivery. Guided batch creation has complete source, repaired driver, production/browser/restart and full-matrix acceptance, with one atomic reviewed transaction, bounded historical receipts and no implicit grants or existing-Key expansion. Advisory public-name assistance and its bounded popup-label compatibility repair have complete controlled source and final R2 browser/native/restart acceptance; checked delivery is represented by the containing acceptance-record commit, with new remote CI pending. Complete public-catalog assistance and broader routing acceptance remain open. |
-| F13 | Four native protocols, streaming, health, retries, and failover | Partially completed | Chat Completions, Responses, Messages, and Gemini now use bounded replay-safe same-protocol failover with process-local health, one admission/settlement, durable ordered diagnostics, and no retry after a usable response. Real-provider and measured multi-node health acceptance remain open. |
+| F13 | Four native protocols, streaming, health, retries, and failover | Partially completed | Chat Completions, Responses, Messages, and Gemini now use bounded replay-safe same-protocol failover with process-local health, one admission/settlement, durable ordered diagnostics, and no retry after a usable response. Azure Chat adaptation and exact Credential deployment declarations are delivered as 5fda0737 with controlled dual-driver/native/restart evidence; real-provider and measured multi-node health acceptance remain open. |
 | F14 | Managed egress and staged network diagnostics | Partially completed | Direct, default, SOCKS5, verified CONNECT, endpoint-bound saved authentication, complete-tunnel proxy-address fallback, and diagnostics exist. External proxy and production performance acceptance remain open. |
 | F15 | Prices, spreadsheet/CSV workflows, API, and repository sync | Partially completed | Current prices, ETags, CSV/XLS/XLSX import, preview, commit, and export exist; repository-file mappings, reviewed synchronization, custom-rate protection and selected restoration passed complete current-main source, dual-driver and controlled production/browser/restart gates; three embedded model entries/six base USD rates now have controlled dual-driver preview/apply/receipt/replay and same-artifact restart acceptance; missing cache rates remain absent, while broader external/release acceptance remains open. |
 | F16 | Platform currency, exchange rates, and historical price snapshots | Completed | Decimal-string currency/rate management, exact quoting, and immutable per-call assessment are implemented. |
@@ -1320,7 +1335,7 @@ The binary capability count is 12 completed, 15 partially completed, and 3 not s
 | F25 | Site presentation, language, and announcements | Completed | Durable site name, URL, logo, footer, default language, bilingual UI behavior, and announcement lifecycle are implemented. |
 | F26 | Instances, heartbeats, resources, jobs, and offline cleanup | Completed | Distinct process generations, server-owned leases, nullable resource facts, bounded real system jobs, executor-loss reconciliation, revision-checked cleanup, audit evidence, and the bilingual administrative workspace are implemented. |
 | F27 | S3, owned attachments, SMTP, and notifications | Partially completed | S3-compatible configuration and administration UI, explicit user/Project attachment APIs, cleanup recovery, Key-scoped inference reads, single/comparison attachment interfaces, SMTP administration/test delivery, and durable operational email intents exist. External storage/mail acceptance, bounce handling, and inbox tracking remain open. |
-| F28 | Internal encryption, root-key rotation, and Vault switching | Partially completed | Internal Provider, egress, SMTP, retained Storage and MFA encryption is implemented. Guarded root rotation passed source, complete dual-driver regression and controlled production/browser/restart acceptance, including final mandatory checks. Vault Token settings, retained revisions, diagnostic probes and seven-domain root inventory are delivered in c2368ddb; the bounded credential KV-v2 SDK is delivered in 78c76d2. Bounded Vault-backed Provider storage switching, stable retained references, durable write compensation and root retirement pass source, dual-driver and controlled API/native/restart acceptance in this phase. Saved independent writer/reader AppRole activation is delivered as 77ece177 after source gates, Focus16, complete Full150 and real Vault API/native/root-key/original-Session restart acceptance. Administrator-previewed, explicitly confirmed Provider orphan cleanup is being validated privately; automatic scheduled deletion is excluded from the approved initial workflow. Browser acceptance and previously published object drain remain open. |
+| F28 | Internal encryption, root-key rotation, and Vault switching | Partially completed | Internal Provider, egress, SMTP, retained Storage and MFA encryption is implemented. Guarded root rotation passed source, complete dual-driver regression and controlled production/browser/restart acceptance, including final mandatory checks. Vault Token settings, retained revisions, diagnostic probes and seven-domain root inventory are delivered in c2368ddb; the bounded credential KV-v2 SDK is delivered in 78c76d2. Bounded Vault-backed Provider storage switching, stable retained references, durable write compensation and root retirement pass source, dual-driver and controlled API/native/restart acceptance in this phase. Saved independent writer/reader AppRole activation is delivered as 77ece177 after source gates, Focus16, complete Full150 and real Vault API/native/root-key/original-Session restart acceptance. Administrator-previewed, explicitly confirmed cleanup of never-committed Provider objects is delivered as 5fda0737 after source, Full154 and real Vault API/restart acceptance; automatic scheduled deletion is excluded. Browser acceptance and previously published object drain remain open. |
 | F29 | API Key Vault delivery and application identities | Not started | Application identities, Profiles, descriptors, coordinator state, and no-plaintext-fallback delivery are not implemented. |
 | F30 | Configuration publication, acknowledgement, rollback, revocation, and audit | Partially completed | Immutable runtime publication, durable events, current revocation, and audit foundations exist; node acknowledgement, complete rollback, and distributed emergency-revocation acceptance remain open. |
 

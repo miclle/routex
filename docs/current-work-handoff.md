@@ -2,7 +2,18 @@
 
 Updated: 2026-10-07. Status: active. Continue the full RouteX objective and prioritize partial capabilities. [Implementation](IMPLEMENTATION.md) records engineering contracts and historical acceptance evidence. Earlier checkpoints below remain historical.
 
-## Current Vault Provider storage and saved AppRole work (2026-10-07)
+## Current delivery and active work (2026-10-07)
+
+Commit `5fda07372f85fa17a013f15ecd165f91fdabbb14` delivers explicit Azure Chat deployment
+declarations, reviewed cleanup of never-committed Vault credential objects, and
+recorded member handover status. Its exact 112-path phase passes formatting,
+mandatory main checking and complete Full154 acceptance, with original source
+gates and controlled Azure/Vault API/native/restart receipts retained at their
+original source. Frozen GORM V79/V80 preserve both supported databases. Previously
+published-object cleanup, real Azure and browser acceptance remain open. The
+full objective continues with the private warning/Close/Notification settings
+successor; formal capability totals remain unchanged. Remote CI is a separate
+acceptance gate.
 
 Saved AppRole is committed and pushed as
 `77ece1770394e5217ff72094083e51b01d9eb143`, with exact remote main read-back.
@@ -275,9 +286,9 @@ root review SHA-256:
 `dbef9ff9dfca14b1f86c8b62d2031901b3a54ebf683d5ca0dea3aad1695099ca`.
 Original failed runs remain historical. The three scoped technical documents
 now include the creation-orphan cleanup boundary and frozen GORM V80. Final
-mandatory main checking now passes. The phase is ready for a scoped commit;
+mandatory main checking passes. The phase is committed as `5fda07372f85fa17a013f15ecd165f91fdabbb14`;
 browser acceptance remains separate.
-Browser and feature delivery remain pending. Previously published objects still
+Browser acceptance remains pending. Previously published objects still
 require complete native-call and stream drain before cleanup eligibility.
 
 A separate ten-file local source-holder prerequisite passes 251 service and 64
@@ -352,7 +363,7 @@ A separate F23 follow-up repairs the existing Overview Notification settings
 dialog's fresh actor-authorized reads and captured save intent. It preserves
 layout, independent read/write permissions, drafts and explicit ETag conflict
 review, and prevents obsolete completions from changing a reopened dialog or
-another actor's cache. Private implementation and focused tests are in progress;
+another actor's cache. Private implementation and focused source tests pass;
 no backend schema or SMTP integration is added. Existing SMTP implementation
 and external relay/inbox acceptance remain separate.
 
@@ -370,8 +381,12 @@ Independent review of the six-file Notification settings candidate finds one
 callback ownership defect: an old pending save for actor A can affect a new A
 lifetime after A-to-B-to-A. A real component regression reproduces the failure;
 the initial 530-case source checks do not close it. The original candidate and
-CHANGES_REQUIRED review are retained. A narrow actor-lifetime successor and
-success/error ABA tests are in progress before coherent composition or gates.
+CHANGES_REQUIRED review are retained. The narrow R2 actor-lifetime successor
+closes the finding: independent original regression 1/1 and targeted status,
+Session, body and queued-authority vectors 8/8 pass. The 535-case producer suite
+also passes. Independent closure manifest SHA-256:
+`1b03b9fca9ff9d48e7501dae7a986f41feeb848ef40ae8fa537284a7d92c8e70`.
+Coherent composition, whole source gates and actual acceptance remain pending.
 
 The next already-partial protocol slice is Azure OpenAI upstream adaptation.
 The user selected explicit administrator deployment attestation, separate from
