@@ -4,6 +4,12 @@ Updated: 2026-10-07. This document records engineering contracts, work packages 
 
 ## Current Vault Provider storage and saved AppRole work (2026-10-07)
 
+Commit `e1e78fe75224c2682c2cd9f99d54e7213617e86a` delivers the bounded
+Provider storage phase below. Exact remote main is verified, and mandatory main
+checking passes. CI37596642907 now passes all four jobs, including
+PostgreSQL/MySQL, authentication restart and Build Artifacts;
+Actionlint37596642705 and GolangCI37596642831 also pass.
+
 Commit `68dd68a182ac40f1ac9497b02ce2b46bf360d562` delivers the bounded Excel
 price-export slice. Exact remote main is verified. CI37578592197 passes all four
 jobs, including PostgreSQL/MySQL integration and Build Artifacts;
@@ -84,20 +90,75 @@ Task and production build pass
 with 4,659 frontend tests in 186 files, four Node helpers, two development
 lifecycle checks, Go race tests and production assets. Root rehashes all 111
 artifact leaves and 1,830 source files/modes, including 47 owned outputs and
-1,783 exact parent files. Matching Focus16 is now running after accepted
-parent Full148; real Vault and complete Full150 acceptance remain pending. The
-nine-file frontend proposal passes 185 related tests plus types,
-lint and formatting and is bound into that reviewed final composition. Real
-API/browser checks remain pending.
+1,783 exact parent files. Matching Focus16 now passes all sixteen direct
+PostgreSQL/MySQL lifecycles and nineteen named JSON events in 255.360 seconds.
+Root independently verifies raw events, 1,830 source paths/modes, 111 composition
+artifacts, captured processes/ports and owned resource absence. Acceptance:
+`fb18ea54d2eecd1b1227e0143c2fa12c738d9a745824cff8842d398f5e9181e2`.
+Complete Full150 acceptance remains pending. The nine-file frontend
+proposal passes 185 related tests plus types, lint and formatting and is bound
+into that reviewed final composition. Browser checks remain pending.
+
+The first real-AppRole validate-only attempt fails before creating resources:
+the helper retains its inherited six-case selector while requiring the new
+eight-case/16-direct receipt. Real Focus16 remains accepted. A helper-only
+successor must preserve the complete original eight-case order, operation
+oracles and budgets; no failed validation is relabeled as runtime success.
+
+The next real-AppRole run failed in the helper's compatibility branch: the
+existing integration handler returned HTTP200 while the assertion expected
+HTTP201. The preceding native/root/restart workflow observed seventeen actual
+successful AppRole logins and seventeen credential KV operations; the final
+Token compatibility and two denied-login checks did not complete. All owned
+resources, five ports and application processes are independently absent.
+The complete run remains failed. A narrow helper-only successor fixes five
+completed HTTP200 assertions and passes 46 pure tests. The exact Vault remote
+denial contract is being checked before retry. Full150 and delivery stay open.
+
+The next complete real-Vault run also remains failed: its original
+API/native/root/restart workflow completed, then Probe Read returned HTTP409
+because the helper submitted the Integration ETag rather than the Probe ETag.
+Root verifies all five ports, both application process groups and Compose
+resources are absent; all 1,830 source paths/modes remain exact. The matching
+HTTP400 Login oracle is now source-verified for the pinned Vault version.
+A checked helper successor passes 67 pure tests and now uses the exact Probe
+review and separate integrations for the two denied Login plans. Its fresh
+real workflow passes independent safe-projection and root review: nineteen real
+Logins (seventeen successful and two denied), twenty credential KV operations,
+four ACL denials and forty-three paired audit records. Five Calls, four native
+completed Attempts and five original Sessions are retained through restart.
+Root-key rotation observes the full 300-second interval across nine subjects and
+seven domains. Historical uncertain writes remain distinct from their recovery.
+Root verifies unchanged source/modes and absence of owned Compose resources,
+process groups and all five listeners. Root acceptance:
+`20477f1be1c168efad4c24f737d5d92df7645e71e87409e1b4022063d775a286`.
+Complete Full150, browser acceptance and saved AppRole delivery remain pending.
+
+The user selects administrator preview and explicit confirmation for
+cleanup of Provider credential objects with no remaining RouteX reference.
+In-flight calls and uncertain writes must retain their objects. Automatic
+scheduled deletion is not part of the initial cleanup workflow. Implementation
+and cleanup-failure acceptance remain pending.
 
 The next already-partial protocol slice is Azure OpenAI upstream adaptation.
 The user selected explicit administrator deployment attestation, separate from
 Credential authentication and actual model discovery. It will retain exact
 Credential/deployment ownership, actor, reason and version, and will not issue
-paid verification calls or borrow management-plane authority. Request adaptation
-and its separately reviewed API/UI contract are being prepared privately; no
-Azure activation or delivery is claimed. Project quota and rate applications
-are already complete and are not reopened by stale stage summaries.
+paid verification calls or borrow management-plane authority. The final
+coherent source passes renewed checking, complete Task (4,756 frontend tests in 188 files plus
+Go races, Node/development helpers and production assets) and build. Its first
+real Focus8 fails startup on both PostgreSQL and MySQL at frozen V79: the GORM
+column name and explicit coverage-review column validation disagree. No selected
+scenario executes; owned resources and unchanged source/modes are independently
+verified. A narrow explicit-column mapping correction is being prepared. No
+Azure driver, runtime, browser activation or delivery is claimed. Project quota
+and rate applications are already complete and are not reopened by stale stage summaries.
+
+A bounded Member list parity gap is being implemented privately: expose a
+recorded current handover plan and an authorized detail action, preserving the
+account's actual enabled/disabled state. No schema, global directory or new
+permission is introduced. Source/driver/browser acceptance and delivery remain
+pending.
 
 Formal totals remain 12 complete, 15 partial and three unstarted. The full
 objective remains active. Older checkpoints retain their original source and
