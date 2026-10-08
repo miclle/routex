@@ -20,6 +20,18 @@ browser, local SMTP/S3 and external-provider acceptance remain separate.
 Future V85–V88 features are isolated and excluded from this delivery. Formal
 status remains 13 Completed / 14 Partial / 3 Not started; the goal stays active.
 
+Current delivery is `7aad9d7682abf421a6bc7452c92676693544e613`, verified at
+both local and remote main. Current-head GolangCI-Lint37792504153 and
+Actionlint37792504162 pass; CI37792504167 is still running and is not yet accepted.
+Controlled local SMTP also passes on the retained current executable in 45.579
+seconds: one DATA250 acceptance, one lost final reply recorded Unknown, distinct
+messages with one attempt per occurrence, and two original-Session restarts
+without replay. Root independently verifies all three app process groups, four
+listeners and project-labelled Compose resources absent. Acceptance SHA-256:
+`bf3bd7e7ffa90c34191a5849e7c82cb691810a653a69aadf87c1e72751cab00d`.
+This is local SMTP process evidence only; external TLS/authentication, mailbox
+delivery and browser acceptance remain unknown. The prior failed runs stay failed.
+
 The candidate fixture repair passes renewed mandatory checking and the complete
 Project monthly lifecycle on real PostgreSQL and MySQL: two direct scenarios,
 five named tests in 331.082 seconds, with original privacy assertions intact.
@@ -254,13 +266,14 @@ creation, recorded metadata, rename compatibility and protocol routing. None of
 these future source candidates is included in current main or its Full162 run;
 combined database/runtime/browser and delivery acceptance remain pending.
 
-Local versioned-S3 and SMTP process qualification remain prepared only. SMTP
+Local versioned-S3 process qualification remains prepared only. The earlier
+SMTP preparation checkpoint below is now superseded by the accepted controlled
+run recorded above. SMTP
 R4 preserves the prior operational/cleanup logic and qualifies the exact
 aggregate-budget script change, observed source check and private-copy
 permission normalization. Twenty-eight pure source checks and independent
-source review pass. The prior Task/build remain inherited evidence. No actual
-local SMTP database, service or process qualification has run. Actual SMTP and S3 acceptance follows
-the current database gate and remains separate from external service acceptance.
+source review pass. The prior Task/build remain inherited evidence. The subsequent genuine local SMTP process run passes as recorded above. Actual
+S3 acceptance remains pending and separate from external service acceptance.
 The bounded F20 assessment confirms existing Key/Team Session and
 three-language code-copy functionality. Its code-dialog presentation candidate
 implements inert lossless highlighting within the existing tabs, without
@@ -286,11 +299,58 @@ owned ESLint and formatting, plus independent source review at SHA-256
 `e80a90b99863608dcd515407933578e9006b48d2cbbf71b35116da5100231a3b`.
 Its backend remains in progress, including durable known-no-effect receipts and
 explicit fresh-intent retries only after proven drain. Database, Vault, browser
-and delivery acceptance remain pending. The current 105-path main phase now
-passes its complete PostgreSQL/MySQL gate and is being submitted separately.
+and delivery acceptance remain pending. The current 105-path main phase passes its complete PostgreSQL/MySQL gate and
+is delivered separately by `7aad9d7`.
 The prior PostgreSQL Team foreign-feed failure remains unproven and is retained
 below. F12/F17/F23/F28/F30 remain Partial, formal totals stay 13 Completed / 14 Partial
 / 3 Not started, and the full objective continues.
+
+The first current local S3 run fails before application startup in 11.638
+seconds with `P_LOOPBACK_PORT`; it is not accepted. Root independently verifies
+the original project-labelled resources absent and no app process started.
+A separate bounded diagnostic reproduces PostgreSQL reporting `invalid IP:0`
+on the internal network and S3 exiting with a data-directory permission error.
+Its owned resources are also absent. A Compose-only successor is being prepared;
+endpoint validation, native/versioning/API oracles and cleanup remain unchanged.
+No local S3, AWS or browser acceptance is claimed.
+
+Future R5 has not run Full168. Source inspection identifies ten real-driver
+fixtures whose complete current-ledger checks still require V85 despite the
+V87 registry. The isolated R6 fixture successor preserves all 1,987 foreign
+paths and every mode, corrects exactly ten leaves, and keeps historical
+reconstruction/data/timestamp assertions. Seventeen extracted predicate cases
+and eleven existing checks with twelve nested cases pass under resource-free
+race checks; the original R5 predicates reject V87 in all seventeen controls.
+R6 source floor is
+`393eabbc358e5df7736de8049999787c1f82376bf54adec7d1cf2491d3b5e5e8`.
+Fresh composed checking/Task/build and actual Full168 remain pending; R5 gate
+results retain their original source identity.
+
+The separate F28 backend V88/170 source is frozen with 34 owned leaves and
+passes nine top-level/twenty-five nested pure mocked race tests plus handler
+compile-only checks. The frontend R2 passes 95 focused mocked tests, types,
+owned ESLint and formatting. It retains the original failed command receipt
+and requires a separate fresh server-eligible review and confirmation before
+a new UUID. Neither public failure status nor timeout proves no remote effect.
+Both successors are undergoing independent source review. Real database,
+Vault, browser and delivery gates remain pending. Offline generations without
+joined acknowledgment stay blocked; process-wide graceful shutdown proof is
+an explicit remaining gap. No historical acknowledgment is synthesized.
+These overlapping source-test counts are not added into an acceptance total.
+
+Frontend R2 independent source review passes with no actionable findings;
+review SHA-256:
+`c5fb72a842df0cc560ab3737833313d0193c0ebedb41dfc3a8aeda7190a28231`.
+Backend R1 review requires one correction: the final permanent remote claim does
+not recheck the caller's current exact registration/generation and live lease
+after joining holders. R1 remains frozen and unaccepted. A narrow R2 source
+repair is in progress, with stopped/expired/changed-generation negatives; it must
+preserve positively joined historical holders and all irreversible-claim rules.
+Independent R1 review SHA-256:
+`6d0c11f9779dee85746c9b2af6178c6d630b6a91a007e4493bee22043cdf75e8`.
+The Compose-only S3 successor is frozen and source checked, with actual runtime
+qualification still pending. No changed source candidate is delivered by the
+current main feature commit.
 
 The earlier checkpoints below retain their original source and evidence scope.
 

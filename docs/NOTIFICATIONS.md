@@ -845,3 +845,18 @@ duplicate insert. No duplicate error is ignored and no fixture is serialized to
 hide the concurrency. The synchronized regression preserves two real concurrent
 observers and exact transaction identity. Source checks and the full real-driver regression pass; source-bound receipts
 and separate runtime/browser gates are recorded in [Implementation](IMPLEMENTATION.md).
+
+
+## Controlled local SMTP process acceptance
+
+The `7aad9d7` production artifact passes a real local SMTP/HTTP/database workflow
+in 45.579 seconds. The controlled peer receives one notification with DATA250,
+then a distinct occurrence whose lost final reply stays Unknown. Both retain one
+delivery attempt; two application restarts preserve the original Session and do
+not replay either message. The workflow creates no Keys or native Calls. Root
+independently verifies captured app processes, four listeners and owned Compose
+resources absent. Acceptance SHA-256:
+`bf3bd7e7ffa90c34191a5849e7c82cb691810a653a69aadf87c1e72751cab00d`.
+
+This establishes local process behavior only. External SMTP TLS/authentication,
+recipient mailbox delivery and browser acceptance remain separate open gates.
