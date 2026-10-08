@@ -8,11 +8,11 @@ The goal remains active: 13 Completed / 14 Partial / 3 Not started.
 
 | Workstream | Current evidence | Remaining gate |
 | --- | --- | --- |
-| Delivered main | `3840dbf`; CI37829073181 passes all four jobs, plus Actionlint and GolangCI-Lint | The following model phase has separate local gates; its remote CI remains pending |
-| Model catalogue R8 | Complete source-bound Full168 passes both databases, all ordinary tests and independent cleanup | Reviewed payload is applied to main; mandatory check, complete Task and production build pass; browser and delivery remain pending |
+| Delivered main | `1581508`; Backend, Frontend, Actionlint and GolangCI-Lint pass | Diagnose failed Integration job; dependent Build is skipped |
+| Model catalogue R8 | Complete source-bound Full168 passes both databases, all ordinary tests and independent cleanup | Reviewed payload is applied to main; mandatory check, complete Task and production build pass; delivered as `1581508`; remote Integration failure and browser remain open |
 | Vault V88 | Corrected Full170 passes PostgreSQL; one MySQL Connection metadata scenario fails | Diagnose/reproduce; no full acceptance or controlled-run approval |
-| Vault graceful closure V89 | Composed R3 passes check, complete Task (5,440 frontend tests), build, 5,126 ordinary names and six targeted PostgreSQL/MySQL scenarios | Complete Full172 and real native/SDK graceful shutdown/restart |
-| Routing-weight history and rollback | The source assessment confirms the missing restorable history; isolated backend implementation has started | API/UI, independent review, database/runtime/browser gates and delivery |
+| Vault graceful closure V89 | Complete Full172 and the corrected local controlled shutdown/restart workflow pass independent readback | Main adoption checks, remote CI and browser remain pending; earlier controlled failure stays historical |
+| Routing-weight history and rollback | Reviewed source, formatting, mandatory check, complete Task (5,501 frontend tests), build and all 5,231 genuine ordinary names pass | V90 PostgreSQL/MySQL, Full174, native/restart/browser gates and main delivery remain pending |
 | Browser | Deferred because the computer is locked; the user expects availability about ten hours later | Real window, keyboard/focus and workflow acceptance |
 
 Complete project matrices now run one at a time, retaining parallel PostgreSQL
@@ -30,8 +30,111 @@ The ordinary run completes in 68.707 seconds with all 5,080 parent names and
 46 source-declared additions; review SHA-256:
 `04843eb749216a7804989e2b31b32673de9775b7db838ac79ff5dbd5bab95490`.
 These passes neither explain nor relabel the retained MySQL Full170 failure.
-The main progress checkpoint is committed and pushed as `3840dbf`; its
-Actionlint and GolangCI-Lint pass while its complete CI remains in progress.
+The earlier progress checkpoint `3840dbf` has passing complete CI. That
+historical result does not accept the later `1581508` source.
+
+## Corrected Vault controlled acceptance (2026-10-09)
+
+The separately reviewed R2 helper completes the genuine local Vault/native
+workflow with the accepted V89 R3 binary. Independent retained-data readback
+passes: one native-completed call with authoritative 1/1 usage and immutable
+attempt/Credential/snapshot attribution, two original Sessions across two actual
+restarts, held-holder admission closure and positive joins, exact paired old
+generation closure, a genuine current-generation acknowledgement, failed
+no-effect command A, acknowledged command B and exact replays. Seven product SDK
+effects correlate with thirteen sanitized Vault audit pairs. Version 1 is
+destroyed while version 2 is preserved. The twenty fixed native-record conditions
+all hold. All three captured application identities/groups, five ports and owned
+Compose resources are independently absent.
+
+Independent actual review SHA-256:
+`8769f9eb6fe5af2a67b4a42c261da96c85b8648bedb1052f240d389c106f9ad8`.
+Independent absence SHA-256:
+`67dbbb61c53ce4e3b0ffeb1f0c9d8f3e9179fd8145f7ee19a817b41aad1d165f`.
+Raw HTTP bodies, cookies, native wire, raw Vault audit and version-2 secret values
+are not retained: those runtime assertions depend on the unchanged reviewed
+controller's successful execution, supported by retained durable projections and
+sanitized correlation. This is bounded local controlled evidence; it does not
+claim independent replay of those raw payloads, external Vault, fleet application,
+main delivery or browser acceptance. The original failed R1 run and its unknown
+persisted failed condition remain historical.
+
+The unchanged notification isolation assertions separately pass on both real
+databases with failure-only diagnostics: four direct scenarios and all seven
+named results in 115.919 seconds, with no omitted, skipped or failed tests. All
+2,000 captured source paths/modes remain unchanged and eleven captured worker
+identities/groups, both ports and owned Compose resources are independently
+absent. Independent focused review SHA-256:
+`f9396970234b2abb874b5979b6baa2674f1584d76739d16430cd372ad73026a9`.
+This isolated reproduction emits no failure diagnostics and does not explain or
+resolve the retained exact-head remote CI failure. The diagnostic/progress phase
+will be checked and committed separately before further main adoption.
+
+## Current regression diagnostics (2026-10-09)
+
+Exact-head CI `37836965996` retains the complete original diagnostic artifact.
+All 5,032 ordinary named tests and MySQL's 430 named tests pass. PostgreSQL
+fails `project_rolling_quota_warnings` and
+`project_key_rolling_quota_warnings` at the foreign-recipient assertion;
+the authentication restart step and dependent build are skipped. The assertion
+checks an unfiltered inbox containing multiple authorized notification kinds.
+The logs do not identify the returned kind or recipient, so neither unauthorized
+Project warning delivery nor a legitimate operational notification is established
+as the cause. Add bounded, failure-only diagnostics before reproduction; retain
+all existing authorization assertions, policy thresholds and timing bounds.
+
+The initial isolated weight-history check fails at staticcheck QF1003 in the
+new SQL regression test. The independently reviewed successor changes only its
+error classification to an equivalent tagged switch and preserves every
+assertion. Its 2,040-path composition then passes formatting, mandatory checking,
+complete Task testing (5,501 frontend tests across 210 files, Go race/coverage,
+development lifecycle and production asset tests) and production build. All
+source bytes and modes remain unchanged during these gates. Gate receipt SHA-256:
+`c3edb6a9e5d4019047ca5fc247c15ab0ffc2532650f24944e01d04499d584e5d`.
+The separate uncached race-enabled ordinary run passes all 5,231 exact named
+tests in 65.854 seconds, preserving all 5,126 parent names plus 105 additions.
+Complete original Go JSON has no named skips, failures, duplicates, omissions or
+unfinished results; source bytes/modes are unchanged and the captured worker and
+group are independently absent. Ordinary review SHA-256:
+`81f12ae69a555ea8b6a04615b21510fe0f84042853e4f582a868d644ffe5fbcb`.
+V90 real-driver fixtures, Full174, controlled native and executable restart,
+browser acceptance and main delivery remain pending. The failed initial check
+and exact earlier source reviews remain historical.
+
+The failed V89 controlled run also establishes two fixture/protocol mismatches:
+the Chat stream lacks an explicit assistant role and places final usage on a
+nonempty choices chunk. Its successor will use an assistant delta and a separate
+usage-only terminal chunk, retaining all production parser rules and immutable
+record assertions. It will preserve the existing bounded database snapshot
+before the native oracle and record fixed Boolean conditions for diagnosis.
+The failed run's specific persisted condition remains unknown; no acceptance is
+inferred from the fixture correction.
+
+## Vault V89 complete regression gate (2026-10-09)
+
+The exact composed R3 passes complete Full172 in 2,181.980 seconds: 344 direct
+business scenarios, eight constraints, all 5,126 ordinary named tests and all
+434 named tests per database. Complete original Go JSON events, source bytes,
+modes, gate logs, binary identity and final ownership ledger are verified. All
+nine captured process identities, eight groups, both database ports and owned
+Compose resources are independently absent. Acceptance SHA-256:
+`34758be074a531545e6cd3b92166ef76b023cb275405ddc860fc0fe7b8ae2c83`.
+Independent absence SHA-256:
+`20ee22e79272d72dd69ee295bde3f8176a768f06085c9b9b9411d288f8038efc`.
+
+The separately reviewed real Vault/native helper is bound to this accepted
+source and binary and has passed validation before dispatch. Its actual
+shutdown/restart workflow exits one at `P_IMMUTABLE_NATIVE`, after genuine
+held-holder shutdown and first restart observations. The compound native-record
+predicate fails; its specific failed condition is not yet established. Root
+independently confirms both captured application processes/groups, all five ports
+and labelled Compose resources absent. No controlled acceptance, main adoption
+or browser acceptance is assumed. The immutable pure-test accounting note
+records 35 new and 31 inherited controls (66 total). The earlier metadata split
+was incorrect; no test was omitted, and the original frozen packet is retained.
+Historical failed Full170 and the earlier stale-clock source finding remain
+failed records; the new run does not prove their causes. Formal totals stay
+13 Completed / 14 Partial / 3 Not started, and the goal stays active.
 
 ## Model R8 complete integration gate (2026-10-09)
 
@@ -56,6 +159,14 @@ build. Browser acceptance remains pending; delivery is recorded by the containin
 feature commit. These gates do not mark the entire model capability complete.
 Formal capability totals remain 13 Completed / 14 Partial / 3 Not started.
 The older failed matrices retain their original source identity and status.
+
+The phase is committed and pushed as
+`1581508ad69a4783319a5f88159686b88eb16636`, with exact remote main read-back
+and a clean checkout at delivery. Exact-head CI37836965996 fails its Integration
+job; dependent Build is skipped. Actionlint37836966001, GolangCI-Lint37836965920,
+Backend and Frontend pass. Complete preserved diagnostic artifacts are being
+retrieved; the exact failing stage and cause remain under investigation.
+Vault V89 and routing-weight rollback are excluded from this commit.
 
 ## Current combined phase gate (2026-10-08)
 

@@ -238,8 +238,45 @@ func testProjectKeyRollingQuotaWarningLifecycle(t *testing.T, db *gorm.DB) {
 			t.Fatal("Project snapshot mismatch")
 		}
 	}
-	for _, actor := range []string{admin.User.ID, outsider.User.ID, later.User.ID} {
-		if len(page(actor).Items) != 0 {
+	for actorIndex, actor := range []string{admin.User.ID, outsider.User.ID, later.User.ID} {
+		foreign := page(actor)
+		if len(foreign.Items) != 0 {
+			// Diagnose the already returned page without changing the isolation oracle.
+			role := [...]string{"administrator", "outsider", "later_manager"}[actorIndex]
+			kindLabel := func(kind string) string {
+				switch kind {
+				case "system_job_failure", "credential_verification_failure", "provider_quality_degraded", "route_unavailable",
+					"monthly_quota_exhausted", "monthly_quota_warning", "personal_rolling_quota_warning", "personal_key_rolling_quota_warning",
+					"team_rolling_quota_warning", "project_rolling_quota_warning", "project_key_rolling_quota_warning":
+					return kind
+				default:
+					return "unknown"
+				}
+			}
+			scopeLabel := func(scope string) string {
+				switch scope {
+				case "user", "personal_key", "team", "team_member", "project", "project_key", "system_job", "credential", "provider", "model":
+					return scope
+				default:
+					return "unknown"
+				}
+			}
+			t.Logf("foreign inbox diagnostic: actor_role=%s returned_count=%d unread_count=%d has_next_cursor=%t recipient_proof=unknown", role, len(foreign.Items), foreign.UnreadCount, foreign.NextCursor != "")
+			for index, item := range foreign.Items[:min(len(foreign.Items), 20)] {
+				scope := "unknown"
+				scopeMatch, birthMatch := false, false
+				if snapshot := item.ProjectKeyRollingQuotaWarning; snapshot != nil {
+					scope = scopeLabel(snapshot.ScopeKind)
+					scopeMatch = snapshot.ScopeID == key.Record.Key.ID
+					birthMatch = snapshot.ResourceCreatedAt.Equal(key.Record.Key.CreatedAt)
+				}
+				projectMatch, projectBirthMatch := false, false
+				if snapshot := item.ProjectKeyRollingQuotaWarning; snapshot != nil {
+					projectMatch = snapshot.ProjectID == project.ID
+					projectBirthMatch = snapshot.ProjectCreatedAt.Equal(project.CreatedAt)
+				}
+				t.Logf("foreign inbox item: index=%d kind=%s subject_kind=%s subject_matches_fixture=%t snapshot_present=%t scope_kind=%s scope_matches_fixture=%t resource_birth_matches_fixture=%t project_matches_fixture=%t project_birth_matches_fixture=%t", index, kindLabel(item.Kind), scopeLabel(item.SubjectType), item.SubjectID == key.Record.Key.ID, item.ProjectKeyRollingQuotaWarning != nil, scope, scopeMatch, birthMatch, projectMatch, projectBirthMatch)
+			}
 			t.Fatal("foreign actor received history")
 		}
 	}
