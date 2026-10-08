@@ -358,6 +358,7 @@ func (ctrl *Ctrl) RegisterRoutes(r *fox.Engine) {
 	admin.GET("/model-creation/connections", ctrl.RequirePermission("models.read_all"), ctrl.RequirePermission("providers.read"), ctrl.ListModelCreationConnections)
 	admin.GET("/connections/:connection_id/model-creation", ctrl.RequirePermission("models.read_all"), ctrl.RequirePermission("providers.read"), ctrl.GetModelCreationContext)
 	admin.GET("/connections/:connection_id/model-creation/provider-models", ctrl.RequirePermission("models.read_all"), ctrl.RequirePermission("providers.read"), ctrl.ListModelCreationProviderModels)
+	admin.GET("/connections/:connection_id/model-creation/public-names", ctrl.RequirePermission("models.read_all"), ctrl.RequirePermission("providers.read"), ctrl.ListModelCreationPublicNames)
 	admin.GET("/connections/:connection_id/model-creation/models", ctrl.RequirePermission("models.read_all"), ctrl.RequirePermission("providers.read"), ctrl.ListModelCreationTargets)
 	admin.POST("/connections/:connection_id/model-creation/preview", sameOrigin, requireCSRF, jsonManagementRequest, ctrl.RequirePermission("models.read_all"), ctrl.RequirePermission("providers.read"), ctrl.PreviewModelCreationBatch)
 	admin.POST("/connections/:connection_id/model-creation", sameOrigin, requireCSRF, jsonManagementRequest, ctrl.RequirePermission("models.write"), ctrl.CreateModelBatch)

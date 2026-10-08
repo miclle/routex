@@ -138,8 +138,8 @@ func TestProjectKeyWarningObserverFixedQueryBudgetNoFabricatedBirth(t *testing.T
 			} else if err != nil || state.queries != 7 || state.commits != 1 {
 				t.Fatal("fixed admitted-owner query budget", err, state.queries, state.commits)
 			}
-			if state.writes != 0 || state.isolation != driver.IsolationLevel(sql.LevelRepeatableRead) {
-				t.Fatal("unknown birth wrote/inconsistent snapshot")
+			if state.writes != 0 || state.isolation != driver.IsolationLevel(sql.LevelReadCommitted) {
+				t.Fatal("unknown birth wrote/observer did not request fresh locked reads")
 			}
 			t.Logf("observer %d rows: %d SQL queries, %s", n, state.queries, elapsed)
 			if elapsed > 3*time.Second {

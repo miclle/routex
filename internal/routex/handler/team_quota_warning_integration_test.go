@@ -261,9 +261,26 @@ func testTeamMonthlyQuotaWarningLifecycle(t *testing.T, db *gorm.DB) {
 		}
 		return row // Team reviewed HTTP ETag differs from the recorded policy revision.
 	}
+	assertObserverReady := func(stage string) service.RuntimeStatus {
+		t.Helper()
+		status := svc.RuntimeStatus()
+		if !status.Enabled || !status.Ready || status.ErrorCode != "" || status.SnapshotID == "" || status.AuthorizationValidUntil == nil || !time.Now().Before(*status.AuthorizationValidUntil) {
+			t.Fatalf("%s: manually published observer authorization is not ready", stage)
+		}
+		return status
+	}
 	reconcileUnpublished := func() {
 		t.Helper()
-		if err := svc.ReconcileMonthlyQuotaNotifications(ctx); err != nil {
+		// StopRuntime joins the publisher but retains manual publication. Require
+		// its original live lease throughout this cycle so expiry cannot pass an
+		// unpublished-mismatch negative merely by skipping every observation.
+		before := assertObserverReady("before reconcile")
+		err := svc.ReconcileMonthlyQuotaNotifications(ctx)
+		after := assertObserverReady("after reconcile")
+		if after.SnapshotID != before.SnapshotID || !after.AuthorizationValidUntil.Equal(*before.AuthorizationValidUntil) || !reflect.DeepEqual(after.PublishedAt, before.PublishedAt) || !reflect.DeepEqual(after.LastRefreshAt, before.LastRefreshAt) {
+			t.Fatal("unpublished reconcile changed its manually captured publication")
+		}
+		if err != nil {
 			t.Fatal(err)
 		}
 	}
@@ -355,6 +372,8 @@ func testTeamMonthlyQuotaWarningLifecycle(t *testing.T, db *gorm.DB) {
 	if err := db.Take(&original, "id = ?", near.QuotaWarningObservationID).Error; err != nil {
 		t.Fatal(err)
 	}
+	// Renew the manually published authorization after inbox and fanout checks.
+	refresh()
 	single.Store(true)
 	expectStatus(t, teamCall(teamID), 200)
 	single.Store(false)
@@ -478,6 +497,8 @@ func testTeamMonthlyQuotaWarningLifecycle(t *testing.T, db *gorm.DB) {
 			t.Fatal("policy mutation did not preserve every unrelated stored field")
 		}
 	}
+	// Renew only the restored baseline, never the deliberate unpublished policy.
+	refresh()
 	if err := db.Model(&entity.ResourceLimit{}).Where("scope_kind = ? AND scope_id = ?", "team", teamID).UpdateColumn("ETag", "lim_warning_unpublished").Error; err != nil {
 		t.Fatal(err)
 	}
@@ -520,6 +541,8 @@ func testTeamMonthlyQuotaWarningLifecycle(t *testing.T, db *gorm.DB) {
 		{"time_zone", "Etc/UTC", savedCalendar.TimeZone},
 		{"accounting_started", false, savedCalendar.AccountingStarted},
 	} {
+		// Each independent negative starts from the restored calendar publication.
+		refresh()
 		if err := db.Model(&entity.QuotaSetting{}).Where("id = ?", 1).UpdateColumn(change.field, change.invalid).Error; err != nil {
 			t.Fatal(err)
 		}
@@ -558,6 +581,7 @@ func testTeamMonthlyQuotaWarningLifecycle(t *testing.T, db *gorm.DB) {
 	if err := db.Take(&savedTeam, "id = ?", teamID).Error; err != nil {
 		t.Fatal(err)
 	}
+	refresh() // Publish the original Team birth before its independent raw mutation.
 	if err := db.Model(&entity.Team{}).Where("id = ?", teamID).UpdateColumn("created_at", savedTeam.CreatedAt.Add(time.Millisecond)).Error; err != nil {
 		t.Fatal(err)
 	}
@@ -581,6 +605,7 @@ func testTeamMonthlyQuotaWarningLifecycle(t *testing.T, db *gorm.DB) {
 		t.Fatal(err)
 	}
 	changedBirth := savedUser.CreatedAt.Add(time.Millisecond)
+	refresh() // Team birth is restored; publish the original recipient birth only.
 	if err := db.Model(&entity.User{}).Where("id = ?", member.User.ID).UpdateColumn("created_at", changedBirth).Error; err != nil {
 		t.Fatal(err)
 	}
@@ -819,6 +844,7 @@ func testTeamMonthlyQuotaWarningLifecycle(t *testing.T, db *gorm.DB) {
 		}
 	}
 	// Current disabled lifecycle denies the existing recipient Session and observation.
+	refresh() // Renew the enabled baseline after the independent privacy checks.
 	if err := db.Model(&entity.User{}).Where("id = ?", member.User.ID).UpdateColumn("disabled", true).Error; err != nil {
 		t.Fatal(err)
 	}

@@ -122,6 +122,18 @@ func persistPersonalKeyQuotaWarning(tx *gorm.DB, v entity.PersonalKeyQuotaWarnin
 	return tx.Create(&entity.PersonalKeyQuotaWarningInbox{ID: inboxID, ObservationID: v.ID, RecipientID: v.OwnerID, RecipientCreatedAt: v.OwnerCreatedAt, CreatedAt: v.AsOf}).Error
 }
 func (s *Service) observeMonthlyPersonalKeyQuotaWarning(ctx context.Context, kind, rootID string) error {
+	return s.observePersonalKeyQuotaWarning(ctx, kind, rootID, func(tx *gorm.DB, row entity.ResourceLimit, root entity.APIKey, owner entity.User, frame *eventqueue.QuotaUsageProofBatch, currency string) error {
+		for _, v := range personalKeyMonthlyWarnings(row, root, owner, frame, currency) {
+			if err := persistPersonalKeyQuotaWarning(tx, v); err != nil {
+				return err
+			}
+		}
+		return nil
+	})
+}
+
+// Both warning families use the same bounded original-owner and applied graph proof.
+func (s *Service) observePersonalKeyQuotaWarning(ctx context.Context, kind, rootID string, persist func(*gorm.DB, entity.ResourceLimit, entity.APIKey, entity.User, *eventqueue.QuotaUsageProofBatch, string) error) error {
 	if kind != "key" || !memberKeyID.MatchString(rootID) || s.recorder == nil || s.recorder.queue == nil || s.runtime == nil {
 		return nil
 	}
@@ -129,6 +141,10 @@ func (s *Service) observeMonthlyPersonalKeyQuotaWarning(ctx context.Context, kin
 	defer cancel()
 	s.limitMu.RLock()
 	defer s.limitMu.RUnlock()
+	// Waiters must read warning state committed by the preceding observer. A
+	// repeatable-read snapshot is established before the governance lock wait.
+	// Governance/owner/graph/policy locks and the final runtime fence keep the
+	// authority and usage proof coherent while later reads see committed state.
 	return s.authDB(ctx).Transaction(func(tx *gorm.DB) error {
 		if err := lockGovernance(tx); err != nil {
 			return err
@@ -220,17 +236,15 @@ func (s *Service) observeMonthlyPersonalKeyQuotaWarning(ctx context.Context, kin
 		if err != nil {
 			return runtimeUnavailable
 		}
-		if frame.TimeZone != calendar.TimeZone {
+		if frame == nil || !frame.Active || frame.TimeZone != calendar.TimeZone {
 			return nil
 		}
-		for _, v := range personalKeyMonthlyWarnings(row, root, owner, frame, prices.PlatformCurrency) {
-			if err = persistPersonalKeyQuotaWarning(tx, v); err != nil {
-				return err
-			}
+		if err = persist(tx, row, root, owner, frame, prices.PlatformCurrency); err != nil {
+			return err
 		}
 		if !s.personalKeyWarningApplied(ctx, auth, owner, apps, keys, rootID, row, policy, calendar, prices.PlatformCurrency) {
 			return runtimeUnavailable
 		}
 		return nil
-	}, &sql.TxOptions{Isolation: sql.LevelRepeatableRead})
+	}, &sql.TxOptions{Isolation: sql.LevelReadCommitted})
 }

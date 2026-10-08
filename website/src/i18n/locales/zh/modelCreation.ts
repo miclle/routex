@@ -32,6 +32,8 @@ export default {
   existing: '关联现有模型',
   publicName: '{{name}} 的对外模型名',
   publicNameSuggestions: '公开名称仅作建议，也可填写自定义名称；名称是否可用由服务器审核。',
+  publicNameChecking: '正在核对当前名称保留状态…',
+  publicNameUnknown: '名称建议暂不可用。仍可输入自定义名称，预览时将核对保留状态。',
   targetModel: '{{name}} 的目标模型',
   chooseTarget: '选择现有模型',
   remove: '移除 {{name}}',

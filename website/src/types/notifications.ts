@@ -54,7 +54,36 @@ export interface PersonalRollingQuotaWarningSnapshot {
   threshold_generation: 'personal-rolling-80-90-v1'
 }
 
+export interface PersonalKeyRollingQuotaWarningSnapshot extends Omit<
+  PersonalRollingQuotaWarningSnapshot,
+  'scope_kind' | 'threshold_generation'
+> {
+  scope_kind: 'personal_key'
+  owner_id: string
+  owner_created_at: string
+  threshold_generation: 'personal-key-rolling-80-90-v1'
+}
+
+export interface ProjectRollingQuotaWarningSnapshot extends Omit<
+  PersonalRollingQuotaWarningSnapshot,
+  'scope_kind' | 'threshold_generation'
+> {
+  scope_kind: 'project'
+  threshold_generation: 'project-rolling-80-90-v1'
+}
+
+export interface TeamRollingQuotaWarningSnapshot extends Omit<
+  PersonalRollingQuotaWarningSnapshot,
+  'scope_kind' | 'threshold_generation'
+> {
+  scope_kind: 'team'
+  threshold_generation: 'team-rolling-80-90-v1'
+}
+
 export interface Notification {
+  team_rolling_quota_warning?: TeamRollingQuotaWarningSnapshot
+  project_rolling_quota_warning?: ProjectRollingQuotaWarningSnapshot
+  personal_key_rolling_quota_warning?: PersonalKeyRollingQuotaWarningSnapshot
   rolling_quota_warning_observation_id?: string
   rolling_quota_warning?: PersonalRollingQuotaWarningSnapshot
   id: string

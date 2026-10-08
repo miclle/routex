@@ -632,6 +632,18 @@ function BatchForm({
                         {selected.item.target === 'new' ? (
                           <PublicModelName
                             key={`${authority}:${row.id}`}
+                            actor={actor}
+                            connectionId={connectionId}
+                            authority={`${authority}:${row.id}`}
+                            fresh={() =>
+                              live.current &&
+                              !lock.current &&
+                              !locked &&
+                              visible &&
+                              row.selectable &&
+                              readyRef.current() &&
+                              authorityRef.current === authority
+                            }
                             label={t('publicName', { name: row.upstream_name })}
                             disabled={locked || !row.selectable}
                             value={selected.item.name}

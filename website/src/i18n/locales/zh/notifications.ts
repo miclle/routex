@@ -87,6 +87,27 @@ export default {
       tokens_7d_near: '已记录个人滚动七天 Token 配额提醒。',
       tokens_7d_critical: '已记录个人滚动七天 Token 配额严重警告。',
     },
+    personal_key_rolling_quota_warning: {
+      default: '已记录个人 Key 滚动 Token 配额提醒。',
+      tokens_5h_near: '已记录个人 Key 滚动五小时 Token 配额提醒。',
+      tokens_5h_critical: '已记录个人 Key 滚动五小时 Token 配额严重警告。',
+      tokens_7d_near: '已记录个人 Key 滚动七天 Token 配额提醒。',
+      tokens_7d_critical: '已记录个人 Key 滚动七天 Token 配额严重警告。',
+    },
+    project_rolling_quota_warning: {
+      default: '已记录项目 滚动 Token 配额提醒。',
+      tokens_5h_near: '已记录项目 滚动五小时 Token 配额提醒。',
+      tokens_5h_critical: '已记录项目 滚动五小时 Token 配额严重警告。',
+      tokens_7d_near: '已记录项目 滚动七天 Token 配额提醒。',
+      tokens_7d_critical: '已记录项目 滚动七天 Token 配额严重警告。',
+    },
+    team_rolling_quota_warning: {
+      default: '已记录团队 滚动 Token 配额提醒。',
+      tokens_5h_near: '已记录团队 滚动五小时 Token 配额提醒。',
+      tokens_5h_critical: '已记录团队 滚动五小时 Token 配额严重警告。',
+      tokens_7d_near: '已记录团队 滚动七天 Token 配额提醒。',
+      tokens_7d_critical: '已记录团队 滚动七天 Token 配额严重警告。',
+    },
 
     monthly_quota_warning: {
       default: '已记录月度额度预警。',

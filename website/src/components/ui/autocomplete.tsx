@@ -10,6 +10,7 @@ export function Autocomplete({
   suggestions,
   disabled,
   onValueChange,
+  canSelectSuggestion,
 }: {
   label: string
   descriptionId?: string
@@ -17,6 +18,7 @@ export function Autocomplete({
   suggestions: readonly string[]
   disabled?: boolean
   onValueChange: (value: string) => void
+  canSelectSuggestion?: (value: string) => boolean
 }) {
   const { t } = useTranslation('common')
   const dismissLabel = t('close_6c14b')
@@ -60,6 +62,10 @@ export function Autocomplete({
       value={value}
       onOpenChange={setOpen}
       onValueChange={(next, details) => {
+        if (details.reason === 'item-press' && canSelectSuggestion?.(next) === false) {
+          details.cancel()
+          return
+        }
         if (details.reason === 'escape-key') {
           details.cancel()
           return

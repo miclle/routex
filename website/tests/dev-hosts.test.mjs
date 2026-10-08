@@ -40,6 +40,27 @@ test('development server accepts localhost and rejects untrusted hosts', async (
         assert.equal(response.body.includes('axios.create'), status === 200)
       })
     }
+    await t.test(
+      'shared public references are served only as a declared source import',
+      async () => {
+        const origin = `http://localhost:${port}`
+        const module = await fetch(`${origin}/src/lib/public-model-references.ts`)
+        assert.equal(module.status, 200)
+        const text = await module.text()
+        const referencePath = text.match(
+          /from ["']([^"']*public-model-references\.v1\.json[^"']*)["']/,
+        )?.[1]
+        assert.ok(referencePath, 'public reference import was not transformed')
+        const reference = await fetch(new URL(referencePath, origin))
+        assert.equal(reference.status, 200)
+        assert.match(await reference.text(), /gpt-5\.2/)
+        const privatePath = new URL('../../internal/routex/service/auth.go', import.meta.url)
+          .pathname
+        // Even an explicit absolute URL must not broaden serving to Go domain source.
+        const denied = await fetch(`${origin}/@fs${privatePath}`)
+        assert.equal(denied.status, 403)
+      },
+    )
   } finally {
     // Keep the event loop alive while Vite finishes its unreferenced workers.
     const keepAlive = setInterval(() => {}, 100)

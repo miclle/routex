@@ -580,6 +580,10 @@ func testProjectMonthlyQuotaWarningLifecycle(t *testing.T, db *gorm.DB) {
 	if err := db.Take(&savedProject, "id = ?", projectID).Error; err != nil {
 		t.Fatal(err)
 	}
+	// Begin each unpublished identity negative with a fresh real authorization
+	// lease. The stopped refresh worker must not make prior HTTP checks consume
+	// the lease intended for this independent birth-mismatch assertion.
+	refresh()
 	if err := db.Model(&entity.Project{}).Where("id = ?", projectID).UpdateColumn("created_at", savedProject.CreatedAt.Add(time.Millisecond)).Error; err != nil {
 		t.Fatal(err)
 	}
@@ -601,6 +605,7 @@ func testProjectMonthlyQuotaWarningLifecycle(t *testing.T, db *gorm.DB) {
 	if err := db.Take(&restoredProject, "id = ?", projectID).Error; err != nil || !restoredProject.CreatedAt.Equal(savedProject.CreatedAt) {
 		t.Fatal("exact Project birth restoration failed", err)
 	}
+	refresh()
 	// A different birth with the same retained ID must hide old private history.
 	var savedUser entity.User
 	if err := db.Take(&savedUser, "id = ?", member.User.ID).Error; err != nil {

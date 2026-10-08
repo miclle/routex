@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { AxiosError, AxiosHeaders, type InternalAxiosRequestConfig } from 'axios'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import client from '@/api/client'
+import { searchPublicModelNames } from '@/lib/public-model-references'
 import i18n from '@/i18n'
 import { sessionKey } from '@/hooks/use-auth'
 import type { Session } from '@/types/auth'
@@ -24,6 +25,7 @@ let identity: Session,
   fail: Record<string, number>,
   holds: Record<string, (() => Promise<void>) | undefined>,
   previewBlocked: boolean,
+  reservedNames: string[],
   saved: ModelCreationResult | null
 const path = '/admin/connections/con_one/model-creation'
 const connection = {
@@ -57,6 +59,7 @@ beforeEach(async () => {
   holds = {}
   saved = null
   previewBlocked = false
+  reservedNames = []
   host = document.createElement('div')
   document.body.append(host)
   root = createRoot(host)
@@ -83,6 +86,15 @@ beforeEach(async () => {
       response.data = {
         items: [connection, { ...connection, id: 'con_two', name: 'Second Connection' }],
         next_cursor: null,
+      }
+    else if (url.endsWith('/public-names'))
+      response.data = {
+        connection_id: url.split('/')[3],
+        query: config.params?.q ?? '',
+        items: searchPublicModelNames(config.params?.q ?? '').map((name) => ({
+          name,
+          available: !reservedNames.includes(name),
+        })),
       }
     else if (url.endsWith('/provider-models'))
       response.data = config.params?.q
@@ -872,4 +884,31 @@ describe('guided atomic batch creation', () => {
     ).toEqual([{ provider_model_id: 'pmd_one', target: 'existing', model_id: 'mdl_old' }])
     expect(commits()).toHaveLength(0)
   })
+})
+
+it('filters server-reserved suggestions while preserving custom reserved text and final preview', async () => {
+  reservedNames = ['gpt-5.2']
+  await mount()
+  await selectOne()
+  const input = document.querySelector<HTMLInputElement>(
+    'input[aria-label="Public Model name for Upstream pmd_one"]',
+  )!
+  await change(input, 'gpt-5.2')
+  await act(async () => {
+    input.focus()
+    input.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, button: 0 }))
+  })
+  await until(() =>
+    expect(
+      Array.from(document.querySelectorAll('[role="option"]')).map((x) => x.textContent),
+    ).toEqual(['gpt-5.2-2025-12-11']),
+  )
+  expect(input.value).toBe('gpt-5.2')
+  expect(commits()).toHaveLength(0)
+  previewBlocked = true
+  await change(document.querySelector('textarea')!, 'Explicit reservation race review')
+  await click(en.review)
+  await until(() => expect(document.body.textContent).toContain(en.blockers.name_reserved))
+  expect(button(en.confirm).disabled).toBe(true)
+  expect(commits()).toHaveLength(0)
 })

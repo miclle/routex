@@ -1997,3 +1997,149 @@ it('renders a recorded personal rolling window in English and Chinese without em
   expect(document.body.textContent).toContain('已结算：80 Token')
   expect(requests.filter((r) => r.url === '/notifications')).toHaveLength(1)
 })
+
+it('renders a recorded Personal Key rolling window in English and Chinese without email or remaining estimates', async () => {
+  page.items = [
+    {
+      id: 'kri_sample',
+      rolling_quota_warning_observation_id: 'kro_sample',
+      kind: 'personal_key_rolling_quota_warning',
+      severity: 'medium',
+      detail_code: 'tokens_5h_near',
+      subject_type: 'personal_key',
+      subject_id: 'key_00000000000000000000000001',
+      subject_name: 'Original retained Key',
+      occurrence_count: 1,
+      read: false,
+      read_at: null,
+      first_seen_at: '2026-10-06T12:00:00Z',
+      last_seen_at: '2026-10-06T12:00:00Z',
+      personal_key_rolling_quota_warning: {
+        scope_kind: 'personal_key',
+        owner_id: actor,
+        owner_created_at: '2026-09-01T00:00:00Z',
+        scope_id: 'key_00000000000000000000000001',
+        window_kind: '5h',
+        episode_id: 'rwe_sample',
+        policy_revision: 'lim_applied',
+        window_start: '2026-10-06T07:00:00Z',
+        window_end: '2026-10-06T12:00:00Z',
+        as_of: '2026-10-06T12:00:00Z',
+        coverage_start: '2026-10-01T00:00:00Z',
+        resource_created_at: '2026-10-01T00:00:00Z',
+        time_zone: 'UTC',
+        limit: '100',
+        settled: '80',
+        level: 'near',
+        threshold: 80,
+        threshold_generation: 'personal-key-rolling-80-90-v1',
+      },
+    },
+  ]
+  await mount()
+  await until(() => expect(document.body.textContent).toContain('Rolling five-hour tokens'))
+  expect(document.body.textContent).toContain('Original retained Key')
+  expect(document.body.textContent).toContain('Settled: 80 tokens')
+  expect(document.body.textContent).toContain('Recorded warning threshold: 80%')
+  expect(document.body.textContent).not.toContain('Email queued')
+  await act(async () => i18n.changeLanguage('zh'))
+  await until(() => expect(document.body.textContent).toContain('滚动五小时 Token'))
+  expect(document.body.textContent).toContain('已结算：80 Token')
+  expect(requests.filter((r) => r.url === '/notifications')).toHaveLength(1)
+})
+
+it('renders a recorded Project rolling window in English and Chinese without email or remaining estimates', async () => {
+  page.items = [
+    {
+      id: 'jri_sample',
+      rolling_quota_warning_observation_id: 'jro_sample',
+      kind: 'project_rolling_quota_warning',
+      severity: 'medium',
+      detail_code: 'tokens_5h_near',
+      subject_type: 'project',
+      subject_id: 'prj_00000000000000000000000001',
+      subject_name: 'Original retained Project',
+      occurrence_count: 1,
+      read: false,
+      read_at: null,
+      first_seen_at: '2026-10-06T12:00:00Z',
+      last_seen_at: '2026-10-06T12:00:00Z',
+      project_rolling_quota_warning: {
+        scope_kind: 'project',
+        scope_id: 'prj_00000000000000000000000001',
+        window_kind: '5h',
+        episode_id: 'rwe_sample',
+        policy_revision: 'lim_applied',
+        window_start: '2026-10-06T07:00:00Z',
+        window_end: '2026-10-06T12:00:00Z',
+        as_of: '2026-10-06T12:00:00Z',
+        coverage_start: '2026-10-01T00:00:00Z',
+        resource_created_at: '2026-10-01T00:00:00Z',
+        time_zone: 'UTC',
+        limit: '100',
+        settled: '80',
+        level: 'near',
+        threshold: 80,
+        threshold_generation: 'project-rolling-80-90-v1',
+      },
+    },
+  ]
+  await mount()
+  await until(() => expect(document.body.textContent).toContain('Rolling five-hour tokens'))
+  expect(document.body.textContent).toContain('Original retained Project')
+  expect(document.body.textContent).toContain('Settled: 80 tokens')
+  expect(document.body.textContent).toContain('Recorded warning threshold: 80%')
+  expect(document.body.textContent).not.toContain('Email queued')
+  await act(async () => i18n.changeLanguage('zh'))
+  await until(() => expect(document.body.textContent).toContain('滚动五小时 Token'))
+  expect(document.body.textContent).toContain('已结算：80 Token')
+  expect(requests.filter((r) => r.url === '/notifications')).toHaveLength(1)
+})
+
+it('renders a recorded Team rolling window in English and Chinese without email or remaining estimates', async () => {
+  page.items = [
+    {
+      id: 'tri_sample',
+      rolling_quota_warning_observation_id: 'tro_sample',
+      kind: 'team_rolling_quota_warning',
+      severity: 'medium',
+      detail_code: 'tokens_5h_near',
+      subject_type: 'team',
+      subject_id: 'tea_00000000000000000000000001',
+      subject_name: 'Original retained Team',
+      occurrence_count: 1,
+      read: false,
+      read_at: null,
+      first_seen_at: '2026-10-06T12:00:00Z',
+      last_seen_at: '2026-10-06T12:00:00Z',
+      team_rolling_quota_warning: {
+        scope_kind: 'team',
+        scope_id: 'tea_00000000000000000000000001',
+        window_kind: '5h',
+        episode_id: 'rwe_sample',
+        policy_revision: 'lim_applied',
+        window_start: '2026-10-06T07:00:00Z',
+        window_end: '2026-10-06T12:00:00Z',
+        as_of: '2026-10-06T12:00:00Z',
+        coverage_start: '2026-10-01T00:00:00Z',
+        resource_created_at: '2026-10-01T00:00:00Z',
+        time_zone: 'UTC',
+        limit: '100',
+        settled: '80',
+        level: 'near',
+        threshold: 80,
+        threshold_generation: 'team-rolling-80-90-v1',
+      },
+    },
+  ]
+  await mount()
+  await until(() => expect(document.body.textContent).toContain('Rolling five-hour tokens'))
+  expect(document.body.textContent).toContain('Team: Original retained Team')
+  expect(document.body.textContent).toContain('Settled: 80 tokens')
+  expect(document.body.textContent).toContain('Recorded warning threshold: 80%')
+  expect(document.body.textContent).not.toContain('Email queued')
+  await act(async () => i18n.changeLanguage('zh'))
+  await until(() => expect(document.body.textContent).toContain('滚动五小时 Token'))
+  expect(document.body.textContent).toContain('已结算：80 Token')
+  expect(requests.filter((r) => r.url === '/notifications')).toHaveLength(1)
+})

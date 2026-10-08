@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"strconv"
 	"time"
@@ -187,6 +188,8 @@ func (s *Service) observePersonalRollingQuotaWarnings(ctx context.Context, kind,
 	}
 	s.limitMu.RLock()
 	defer s.limitMu.RUnlock()
+	// The governance lock serializes episodes; read committed makes a waiter
+	// see the preceding commit without relying on the database default.
 	return s.authDB(ctx).Transaction(func(tx *gorm.DB) error {
 		if err := lockGovernance(tx); err != nil {
 			return err
@@ -264,5 +267,5 @@ func (s *Service) observePersonalRollingQuotaWarnings(ctx context.Context, kind,
 			return runtimeUnavailable
 		}
 		return nil
-	})
+	}, &sql.TxOptions{Isolation: sql.LevelReadCommitted})
 }

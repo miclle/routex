@@ -2,6 +2,373 @@
 
 Updated: 2026-10-08. Status: resumed by explicit user instruction; prioritize partially completed capabilities. [Implementation](IMPLEMENTATION.md) records engineering contracts and historical acceptance evidence. Earlier checkpoints below remain historical.
 
+## Current combined phase gate (2026-10-08)
+
+The current main phase passes mandatory checking, complete Task testing and
+production build. Its source-bound full PostgreSQL/MySQL regression also passes:
+324 direct scenarios, eight constraints, all 4,813 ordinary named tests and all
+412 named tests per driver, with complete Go JSON event provenance and no skips,
+failures or races. The run completed in 2,055.583 seconds. Independent verification
+confirms all captured processes, owned Compose resources and database ports absent.
+Acceptance SHA-256:
+`58729eb521921a8a50fe3b09321d614300e3e29fde2567cd191f3009fd6777c1`.
+These results cover the 1,928-path V84/162-case source; only English documentation
+changes follow that captured tree. The containing commit delivers Personal
+root-Key, Project and Team rolling Token warnings, maintained public-name
+reservation checks and the supervised parallel database runner. Controlled
+browser, local SMTP/S3 and external-provider acceptance remain separate.
+Future V85–V88 features are isolated and excluded from this delivery. Formal
+status remains 13 Completed / 14 Partial / 3 Not started; the goal stays active.
+
+The candidate fixture repair passes renewed mandatory checking and the complete
+Project monthly lifecycle on real PostgreSQL and MySQL: two direct scenarios,
+five named tests in 331.082 seconds, with original privacy assertions intact.
+Independent focused review SHA-256:
+`97ea8c95be7da22e4b472033778fd3305ed4ef27223deecefdaad8f4a80dd8ff`.
+The renewed ordinary Task Full162 did not complete: its aggregate 85-minute
+Go alarm interrupted MySQL Connection status after that scenario had run for
+12 seconds. The stack shows ordinary runtime loading, and no assertion failure
+or named skip precedes the alarm. All 162 PostgreSQL registry cases and 146
+MySQL registry cases started, alongside four constraints per driver; starts
+are not completed acceptance. The immutable failed log is retained at SHA-256
+`c07b9d45e1921721b2b593d9bc524004ebb22f862f6e575863bd7b07026d567a`.
+Its captured 1,923-path source floor is
+`69823af401a80fb9c4b5833fe9871c8d012f5b47e260b96548c862623a55fc01`.
+The owned resources and ports are absent. No acceptance reader ran.
+
+A new candidate changes only the aggregate integration budget and status
+records: 120 minutes for Go and 7,500 seconds for supervision. Assertions,
+race detection, per-operation bounds, migrations and registry remain unchanged.
+Renewed mandatory checking passed, but the subsequent ordinary Task Full162
+failed in 4,265.04 seconds on the separate 1,923-path source floor
+`0ff35a0627841de4b0303a0c416b2efd43dcf7a154f3491c0b00f5749fd70b73`.
+PostgreSQL passed all 162 direct scenarios; MySQL passed 161 and failed the
+Team monthly quota warning critical native call with HTTP 503. All eight
+constraint checks passed and all 5,636 named starts have matching terminals.
+The raw log is retained at SHA-256
+`dacedba95a8c386abd0da4955ff76aa062b7c09a5bd69a22cdd36a0da7893c81`.
+Independent failure review is
+`188200edc3bb4838b51f12a134e5a37527e02573c1f98a77ca9a242222d7da9e`.
+Owned processes, Compose resources and captured ports are independently absent.
+No acceptance reader ran. Source review confirms a fixture lease-boundary hazard:
+periodic runtime publication is stopped, and inbox/fanout checks consume the
+five-second manually published authorization before an independent native call.
+The original generic error does not prove its exact internal branch. The candidate
+adds one explicit refresh immediately before that call, without retrying inference,
+changing production leases or weakening assertions. The complete original Team
+monthly lifecycle now passes on real PostgreSQL and MySQL: two direct scenarios,
+five named tests in 180.404 seconds on captured source floor
+`b26dfbde950e825aec09416c53e9a4db61f6eb8d3e6eb115f223025d6909e6f9`.
+The retained raw log is
+`d1781a56fac133d9a0827e68b70e09667c1bc050fab88e03b3dca95be2cbc802`;
+independent focused review is
+`84cd5ecaaf23cdfcec9587df9a939d7087953711897ae26903d5fc38005f5115`.
+Owned processes, Compose resources and ports are independently absent. This is
+focused evidence only; renewed full acceptance is still required before commit.
+
+The negative observer helper now requires a live unchanged authorization lease
+and captured snapshot both before and after each cycle, excluding expired silent
+no-ops as an alternative explanation. Five independent negatives refresh only
+the restored baseline before raw policy, calendar, Team birth, recipient birth
+or disabled-actor mutations; no mismatching target is published. The guards-only
+diagnostic passed both drivers in 200.573 seconds, so expiration was not
+reproduced there. The complete test-only guard/baseline candidate also passes
+the original two-driver lifecycle: two direct scenarios and five named tests in
+200.812 seconds on source floor
+`df4a171e6bda4c73470109eb2321e3bf80d21904bf4e3e07fca763cfb8349d9c`.
+Raw log SHA-256:
+`52c5721363ab74f5af581191a7440cd999f4d3c48472c18955d1df7738d0978f`.
+All original assertions remain intact, production is unchanged, and owned
+processes/resources/ports are independently absent. This focused evidence does
+not turn the failed Full162 into an accepted run.
+Independent timeout review is
+`12f9f6ff59ebd9a3b1cf325db73ef7a148c792a2a784fb82477f64245efc522f`.
+The source gate records actual checked main content and the three nonexecutable
+permission differences normalized only in the private copy. Earlier failed
+runs remain failed; final full acceptance and this phase's commit/push are
+pending. Later status-document updates are documentation only.
+
+Real PostgreSQL/MySQL Focus14 passed on the captured 1,923-path source at
+`185b3cd4b6d1f3d4d0fd3a981dedb579b42f6014a9d54e03e28a289e721c0631`:
+14 direct scenarios and 85 named tests in 220.346 seconds. Its acceptance remains
+historical evidence for that exact source, not a full-matrix pass.
+
+Ordinary Task Full162 subsequently failed in 4,807.108 seconds: PostgreSQL
+passed 161 of 162 direct scenarios, MySQL passed all 162, and all eight constraint
+checks passed. The only failed scenario was PostgreSQL Project monthly quota
+warnings, reporting temporary runtime unavailability at an unpublished recipient
+birth check. No acceptance reader ran. The original log is retained at SHA-256
+`2569a3452d048291140bf0a2b853b6d98add9c6dde85a175d8ebd32721952aae`;
+independent failure review is
+`6c7548f49336da7bc28541d0f4e94ff83ac5623d4ee1d5a5e585c64e45bda5c2`.
+Owned processes, Compose containers/networks/volumes and captured ports are absent.
+
+Source review identifies a lease-boundary hazard: the fixture stops periodic
+runtime refresh, then spends one five-second authorization lease across two
+independent raw birth-mismatch scenarios. The generic original error does not
+prove its exact service branch. The candidate fixture repair explicitly refreshes
+before each scenario, while leaving both raw mutations unpublished and retaining
+all private-history assertions. Production authorization leases, migrations,
+registry order and observer behavior remain unchanged. The repaired scenario passes the renewed checks above; full acceptance remains
+required before commit/push. Full162 must pass all
+324 direct driver scenarios, eight constraint cases, every named test and all
+six test-bearing packages; the maintained-name reference package is included.
+The superseded 85-minute/5,400-second run remains failed. The new 120-minute /
+7,500-second limits are finite budgets, not an ETA.
+
+The earlier complete Task (5,074 frontend tests in 197 files, Go race/coverage,
+Node/development lifecycle and production assets) and build are retained from
+their checked parent with explicit fixture/document-only derivation. No new
+Task/build execution is claimed. The unchanged executable artifact is
+`a2449af139f32377219db8492fd0e1088654eb5a1125bb1774b1d817e8eb654d`.
+
+Isolated guided-model defaults, Project root-Key rolling warnings V85, rename
+compatibility, protocol-scoped routing and Model recorded metadata V86 have
+completed source implementation and focused checks. Rename retains its legacy
+POST contract and passes 48 final focused cases. Protocol routing passes its
+mandatory check and focused Go/frontend checks. Metadata passes 57 focused and
+253 related frontend cases and independent backend source review. These source
+results overlap and are not added into a delivery total. A separate combined
+worktree now integrates the slices, including configuration timestamp writes
+for reviewed route insertion. Actual combined database/runtime/browser acceptance
+remains pending; these slices are excluded from the current main phase.
+Generic capability classification awaits a product decision and is displayed
+as Unknown rather than inferred from names or protocols.
+
+The isolated manual Model draft source passes 102 focused frontend/API cases
+and independent review, including a reproduced and repaired one-to-one receipt
+correlation defect. Its existing atomic preview/apply boundary is preserved.
+Inline Connection creation's successor passes 136 focused API/UI/i18n cases
+and independent source review. It closes both earlier findings with synchronous
+live write/options checks before dispatch and string-only status decoding.
+Selected Provider/egress reads use bounded exact-ID projections; empty UI search
+omits the HTTP query parameter. An uncertain retry preserves its original IDs,
+body and source even after a freshly authorized option list omits the target.
+Its immutable first candidate and reproduced failures remain historical.
+The separate combination also reproduces and repairs same-turn mode switching
+that could abandon a dispatched manual batch or inline credential intent.
+The first frozen combination passes 199 focused frontend cases, scoped Go
+race/type/static checks and independent composition review. Its 1,990-path
+source preserves all 1,937 foreign parent paths. The successor adds inert
+code-dialog highlighting and the finite integration budget. A complete frontend
+run found one obsolete guided-batch fixture: it did not explicitly select an
+existing Connection and omitted the required nullable initial target. A five-line
+fixture-only correction retains every original assertion. Fresh mandatory
+checking and all 5,408 frontend tests in 208 files pass on the 1,992-path source:
+`edbfbda72871b99d11e2ef5f230b3ca9b8e01b20a7b441e43ab7872d7c945cd2`.
+The earlier failed run remains retained; focused and complete test counts overlap
+and are not added. The renewed check retains two existing Fast Refresh warnings
+and no errors.
+
+Complete backend source units then reported 26 failures: historical migration
+and registry guards omit the newly appended V87/168-case suffix, and one bounded
+Model DTO guard excludes the approved nullable creation/configuration timestamps.
+The 26 fixture leaves now preserve exact historical prefixes and reviewed
+new suffixes; the bounded DTO accepts only the two approved nullable timestamps.
+Independent source review found no remaining defects. Renewed complete Go
+race/coverage source units and mandatory checking passed on the 1,992-path
+candidate at source floor
+`b70a566c33c9450d01202083e0678ec7df3a8d25b69306e84806eb3891282717`.
+All four external database DSNs were unset for source units; this is not real
+database acceptance. The unchanged frontend retains the earlier exact-tree
+5,408-test evidence; no fresh frontend execution is claimed. No production,
+migration or scenario registry was changed to mask a failure. Retained backend
+failure log SHA-256:
+`3dfd8ab3a6a98082f20dd875c120700286f52347939518e3bc15ce3130ea0c9a`.
+
+A separate managed worktree prepares a process-isolated parallel integration
+supervisor: all ordinary non-matrix tests plus complete PostgreSQL and MySQL
+matrices, with owned process-group cancellation before Compose cleanup. Fake
+process tests initially passed, but independent review found blocking diagnostic
+and cancellation defects. The repaired successor passes genuine blocked-pipe and
+private identity-ledger failure tests and independent source review. Only seven
+owned infrastructure leaves are adopted into the current 162-case/V84 candidate;
+all 1,921 foreign source paths and their modes are preserved. Each test worker
+retains uncached race checks and gains complete Go JSON event logs; exact ordinary
+named inventory and both ordered driver registries must be checked separately.
+The supervisor records child PID/PGID before further work and joins every owned
+group before Compose cleanup. It retains the finite 7,300-second lifecycle bound,
+120-second cleanup reserve and a cancel-aware ten-second terminal allowance.
+New mandatory check, complete Task and build have passed on the exact 1,928-path
+source at floor
+`7a2e59c1052215f7c761ccf5ce15999916ddd5d819144f6b957bc21fafc0ceab`.
+The fresh Task passes 5,074 frontend tests in 197 files, Go race/coverage including
+the supervisor in 11.308 seconds, five Node tests, two development lifecycle
+tests and production assets. Unaffected cached Go results are explicit. A fresh
+resource-free ordinary JSON run also passes all 4,813 named tests, preserves the
+original ordinary named multiset and pins each package/test identity for later
+full readback; all four database DSNs were unset. These overlapping results are
+not added. The fresh retained executable is
+`33d4655c0da446d6b28095d8f0f8dbedee6ed7ca0d623042f4c6684c24315820`.
+The first actual parallel database run did not complete: the outer collector
+failed after 1,951.572 seconds with two class-only PermissionError records.
+All 4,813 ordinary named tests and PostgreSQL's complete 162 scenarios, four
+constraints and 412 named tests pass strict JSON readback. MySQL started 148
+registry scenarios and was interrupted before complete terminal records; no
+full-matrix acceptance is claimed. The original exception site and errno were
+not captured and remain unknown. The supervisor completed cancellation with
+exit 143, joined every owned child group, and completed Compose cleanup.
+Root independently confirms all ten captured PIDs, nine process groups, both
+ports, and project-labelled containers/networks/volumes absent, with no further
+cleanup mutation. The captured 1,928-path source and private modes remain exact.
+Independent failed-run diagnosis SHA-256:
+`1966ffc08cc741aeaf8b8bafc429804ec566ecf3f235db3e07a2e536d7710ff1`;
+root absence/source receipt SHA-256:
+`c473d8c269a9f76baf37554dcd7beacea7c85b9a2cc0721c3cff5d3ae69fe7e0`.
+The failed run remains immutable. The independently reviewed collector successor
+passes 20 pure checks and completes a fresh ordinary Task on the same captured
+source. Both drivers pass all 162 scenarios, four constraints and 412 named tests;
+all 4,813 ordinary named tests also pass. Strict JSON readback confirms complete
+balanced events without skips, failures or races. Independent absence receipt:
+`3853076811d30dca735cb343ca6af107e393303eb1e2eb08c62480020a938e2e`.
+Diagnostic records exclude exception text, local variables and credentials.
+Stable discovery runs every 30 seconds only after exact supervisor, endpoints
+and all worker identities are captured; polling, cancellation, final/recovery
+discovery, test assertions, coverage and deadlines remain unchanged. This fresh
+accepted run does not relabel any preceding failure. The original PermissionError
+cause remains unknown.
+No measured performance improvement is claimed, and future 168-case/V87 features
+or fixtures were not copied into this phase. Later status-document edits preserve
+production and tests.
+The separate future R5 composition now has fresh mandatory check, complete
+Task and build passes on its exact 1,997-path source at floor
+`8a0b32e45183a7e942ee3fc2005605112dfa5fd7c13faefc9a1a054a13b86ae5`.
+The Task passes 5,408 frontend tests in 208 files (198.35 seconds), Go
+race/coverage, five Node tests, two development lifecycle tests and production
+assets. Unaffected cached Go results and the two existing Fast Refresh warnings
+remain explicit. The retained future executable is
+`22b7a8f188840cd1c6137c8f3e3b2a733094be14542f5e585ce93d9b9370ab38`;
+these overlapping results are not added to earlier focused totals. All 26
+fixture corrections, V87 and the ordered 168-case registry remain intact.
+Real future database/runtime/browser acceptance and delivery remain pending;
+this composition is excluded from main, whose current phase still covers 162
+cases and V84. No future gate is substituted for current-phase acceptance.
+
+Process-generation-bound routing application evidence reserves unpublished V87
+after queued V85/V86. Its backend passes 29 top-level / 70 named race-test events
+and independent source review; the corresponding read-only System jobs dialog
+passes 48 related frontend cases and independent review. This routing-only slice
+does not claim complete configuration versions, fleet convergence or rollback.
+A separate worktree is integrating these candidates while retaining guided
+creation, recorded metadata, rename compatibility and protocol routing. None of
+these future source candidates is included in current main or its Full162 run;
+combined database/runtime/browser and delivery acceptance remain pending.
+
+Local versioned-S3 and SMTP process qualification remain prepared only. SMTP
+R4 preserves the prior operational/cleanup logic and qualifies the exact
+aggregate-budget script change, observed source check and private-copy
+permission normalization. Twenty-eight pure source checks and independent
+source review pass. The prior Task/build remain inherited evidence. No actual
+local SMTP database, service or process qualification has run. Actual SMTP and S3 acceptance follows
+the current database gate and remains separate from external service acceptance.
+The bounded F20 assessment confirms existing Key/Team Session and
+three-language code-copy functionality. Its code-dialog presentation candidate
+implements inert lossless highlighting within the existing tabs, without
+changing native payloads, authentication or clipboard bytes. It passes 119
+focused tests across eight files and independent source review. It is now
+included in the separately checked Model/runtime successor, while remaining
+excluded from current main and its actual Full162 run. Real browser focus,
+clipboard and renewed-authority acceptance remain pending.
+A new isolated F28 successor now implements manual cleanup preparation for
+previously published Provider credential objects. Two workers own backend and
+frontend separately. The backend reserves unpublished V88 after queued V87 for
+durable physical-object denial, exact process-generation exposure and joined
+native/finite operations. Historical or unproven generations remain blocked;
+heartbeat expiry is not drain proof. The frontend reuses the existing review
+and confirmation drawer, preserving original uncertain command receipts and
+paired English/Chinese guidance. Preview eligibility authorizes a bounded drain
+attempt only; acknowledged cleanup means the owned version-1 destroy response,
+not erasure of the path, metadata or later versions. Automatic deletion is
+excluded. This source work is based on the frozen future R5 composition and
+changes neither current Full162 nor that earlier future Full168 candidate.
+The seven-file frontend successor passes 81 focused mocked tests, TypeScript,
+owned ESLint and formatting, plus independent source review at SHA-256
+`e80a90b99863608dcd515407933578e9006b48d2cbbf71b35116da5100231a3b`.
+Its backend remains in progress, including durable known-no-effect receipts and
+explicit fresh-intent retries only after proven drain. Database, Vault, browser
+and delivery acceptance remain pending. The current 105-path main phase now
+passes its complete PostgreSQL/MySQL gate and is being submitted separately.
+The prior PostgreSQL Team foreign-feed failure remains unproven and is retained
+below. F12/F17/F23/F28/F30 remain Partial, formal totals stay 13 Completed / 14 Partial
+/ 3 Not started, and the full objective continues.
+
+The earlier checkpoints below retain their original source and evidence scope.
+
+## Current combined validation (2026-10-08)
+
+The corrected 1,923-path source is frozen at
+`15daf479c6648d6e913fa5c320968ea586ab6cb40b47019beda35d35c15792df`.
+Renewed mandatory checking, complete Task (5,074 frontend tests in 197 files,
+Go race/coverage, five Node checks, two development lifecycle tests and
+production asset serving) and production build pass. The new artifact is
+`a2449af139f32377219db8492fd0e1088654eb5a1125bb1774b1d817e8eb654d`.
+Four reviewed documentation files changed during Task; executable and test
+sources remained unchanged. The initial whole-document floor was not captured.
+
+Fresh Focus14 fails in 260.778 seconds: 11 direct cases pass, including both
+strengthened Key concurrency regressions, all six migrations and both Model
+creation cases. PostgreSQL Team foreign-actor history and MySQL Project/Team
+recreated-identity history assertions fail. Their cause is under investigation;
+privacy assertions and authorization are not weakened. Root independently
+confirms source, raw log, owned resources, process/group and captured port
+absence. Failure review SHA-256:
+`3af16aa8a237552653dd6d474145e03f2cb370b511d84236f74e6fdc6037f1bc`.
+No acceptance reader ran. Full162 and phase commit/push remain pending.
+
+Private Project Key V85 source gates and independent review pass; real-driver
+acceptance remains pending. A separate worktree implements bounded initial
+guided-model name/target assistance while preserving custom drafts and preview
+confirmation. Local versioned-S3 R2 preparation passes independent source
+review; no actual S3 service qualification has run. F12/F17/F23 and the full
+objective remain unfinished. Formal totals remain 13/14/3.
+
+The subsequent isolated Project/Team diagnostic passes all four driver
+lifecycles in 266.617 seconds, with seven balanced named tests. Both changed
+births and their restoration are checked against persisted database values;
+the privacy assertions remain intact. Root independently verifies source/raw
+log and owned cleanup. Diagnostic review SHA-256:
+`7f87ee32f67e3b389505ef92a73aabb0ff2ec6bd9ad341ebcdadae6882a1f30a`.
+The earlier PostgreSQL Team foreign-feed failure is not reproduced and its
+cause remains unproven. This diagnostic does not substitute for new Focus14 or
+Full162. Only two lifecycle fixtures change; production and schema are unchanged.
+
+The checkpoints below retain their original source and historical scope.
+
+## Combined phase failure and repair (2026-10-08)
+
+The 1,923-path composition passes mandatory main checking, complete Task
+(5,074 frontend tests in 197 files, Go race/coverage, five Node checks, two
+lifecycle checks and production assets) and production build. Its checked
+artifact SHA-256 is
+`8b3bc4e13d0b2116c8d36edb6284aa178c7751a244a319906580c9550eaa89e3`.
+Two later catalogue/notification documentation clarifications do not change
+executable or test sources; the original Task is not relabeled as a new run.
+
+Actual Focus14 on floor
+`42c3167e73f0a69e9afbd24c9fa39e1b2bf20557f2eec9af9d615ad128d429dc`
+fails in 205.398 seconds: eight direct cases pass, including all six migration
+cases; six lifecycle cases fail. Project fixtures use a manager without quota
+write authority; Team fixtures omit the public Team target field. Those fixture
+contracts are being corrected. The PostgreSQL Key concurrent episode test exposes
+a production repeatable-read snapshot/locking defect. Five related observers now
+explicitly request portable Read Committed while retaining existing locks and
+final application/identity/accounting fences. A synchronized two-transaction
+regression verifies the real lock wait and exact transaction identity. Focused
+Service race tests, Handler compilation and renewed mandatory checking pass;
+renewed complete Task and real-driver acceptance remain pending.
+The separate two-driver Model diagnostic passes both cases in 209.758 seconds,
+so the earlier timeout's HTTP cause remains unproven. Its fixture now explicitly
+publishes restored raw catalogue rows before the sole original native call and
+captures any early response; no inference is replayed or production behavior
+changed to mask the original failure.
+
+Root independently verifies the failed source/raw log and owned resource,
+process/group and port absence. Failure review SHA-256:
+`f8b27cfc727ce166d6fa85738f1085bd1674d15542c30fce6f561cabcdbd1388`.
+No acceptance reader ran and Full162 has not started. Repairs require renewed
+checking and same-source Focus14 before complete regression and commit/push.
+Private Project Key V85 work proceeds separately without changing this phase.
+
 ## Resume boundary
 
 The user explicitly resumed implementation on 2026-10-08 and authorized
@@ -11,13 +378,38 @@ The checkout was clean at resume. Preserve existing services and unrelated work.
 
 Member initial-password lifetime is delivered and pushed as `222ea08`.
 Its exact-head CI37717567220, Actionlint37717567223 and GolangCI37717567140
-all pass. Personal Key rolling V82 is composed with passing main checks/Task;
-its test-only public-target/live-runtime repairs await fresh Focus4 then Full158.
+all pass. The documentation checkpoint `e9a7b01` also has passing exact-head
+CI37722479510, Actionlint37722479550 and GolangCI37722479416. Personal Key
+fixture repairs pass Focus4; its subsequent Full158 timed out and remains failed.
+The combined Key/Project/Team/model candidate awaits fresh composed-source gates.
 The controlled current-artifact browser acceptance below closes genuine price
 file delivery and original Reader browser Session restart gaps. Broader Role,
 Member and settings workflows retain their own outstanding browser boundaries.
 Durable published-source cleanup, external SMTP and other rolling scopes remain
 separate unfinished work. The full objective continues without a pause.
+
+## Parallel unfinished capability work
+
+The independently reviewed source candidates are composed in main without staging:
+Key V82 (41 original paths plus two test-only repairs), Project V83 (41 paths),
+Team V84 (42 paths) and bounded maintained-name reservation filtering (24 paths).
+The sequential beforeimages and afterimages are checked; overlapping edits retain
+each predecessor's changes. Composition receipt SHA-256:
+`e161cd2437fd7f9d161a668c33f825b7c75593b0f3e3fe8d7ca7b98f6cb64b38`.
+
+Project source checking, 52 focused race cases, 28 predecessor guards and 181
+frontend cases pass. Team checking, 114 focused race cases, 196 predecessor/Team
+guards and 182 frontend cases pass. Model checking, focused Go races, 74 frontend
+cases, 39 final lifetime cases and four development checks pass. These are
+source-bound worker gates, not composed-main or real-driver acceptance.
+Independent reviews identify no actionable source defects. Team warnings use
+only own aggregate stored caps; Team-member rolling controls remain unsupported.
+The existing layout, admission and monthly warning rules are preserved.
+
+A separate resource-free local versioned-S3 preparation has 15 pure checks.
+No S3 image layers, resources, API operations or real-service acceptance have
+run. It does not establish AWS/IAM/TLS compatibility or external SMTP evidence.
+The full objective remains active; formal totals remain 13/14/3.
 
 ## Controlled browser acceptance (2026-10-08)
 
@@ -89,9 +481,32 @@ transaction rollback, recipient privacy and restart assertions are retained.
 Focused Handler/Service race and Handler vet pass. Fixture SHA-256:
 `6370afbb99fe2a35cac3c710591038458713ca8fbccb6c39eb991174b08f53ae`.
 The prior complete Task/build retain their earlier source boundary. Renewed
-main checking passes; Focus4 and Full158 remain required for this derivative. Both
-failed database runs remain failed and retained. No Key delivery or whole
-F17/F23 completion is claimed.
+main checking passes. The latest same-floor Focus4 now passes all four direct
+PostgreSQL/MySQL cases and 31 balanced named tests in 151.369 seconds. Root
+independently checks raw events, source bytes/modes, and owned resource/process/
+port absence. Focus acceptance SHA-256:
+`0c426435b340d273e170fef52a423913ac721b2b54fc28149628901a0f71e827`;
+root review SHA-256:
+`bb1d81888b5203cb4352100a3ca350e9dec56fbe1089cfb84a669bdcdd1c8fea`.
+Complete Full158 failed at the 55-minute Go deadline after 3,320.365 seconds
+(Task exit 201), during MySQL `registration_email_domains`, its 105th registered
+case. PostgreSQL traversal and started children are not complete PASS evidence.
+The source remained unchanged at floor
+`df93df7a0343a67885c1d4ad860eeb3db940d7c6a4e063cc205d3d78b4259e71`.
+Root independently verified source/modes and absence of owned containers,
+networks, volumes, captured process/group and both ports. Failure review SHA-256:
+`d6be028f07612f224dc8cce6db214a177855b6992d6cdd87dfb30dae491be749`.
+All failed attempts remain retained; no acceptance reader accepted this run.
+
+Key, Project V83, Team V84 and maintained-name filtering are now composed into
+one uncommitted phase. The exact original 158-case prefix remains, followed by
+two Project and two Team cases: Full162 requires 324 direct driver cases, eight
+constraints and balanced named results. Same-source Focus14 first selects model
+creation plus the six new migration/lifecycle cases on both drivers. The new
+85-minute Go / 5,400-second supervisor ceiling is a bounded execution budget,
+not a duration or correctness claim. Fresh composed-main checks, complete Task,
+production build and real database acceptance remain pending. No standalone
+Full158/Full160 acceptance, Key delivery or whole F12/F17/F23 completion is claimed.
 
 ## Checked Member creation sensitive-input repair (2026-10-08)
 

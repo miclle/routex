@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import data from '@/data/public-model-references.v1.json'
+import data from '../../../internal/routex/modelreferences/public-model-references.v1.json'
 import {
   publicModelReferences,
   readPublicModelReferences,

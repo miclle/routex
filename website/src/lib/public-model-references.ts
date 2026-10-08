@@ -1,4 +1,4 @@
-import references from '@/data/public-model-references.v1.json'
+import references from '../../../internal/routex/modelreferences/public-model-references.v1.json'
 
 interface PublicModelReference {
   readonly name: string

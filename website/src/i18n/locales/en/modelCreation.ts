@@ -33,6 +33,9 @@ export default {
   publicName: 'Public Model name for {{name}}',
   publicNameSuggestions:
     'Public names are suggestions only. You can enter a custom name; the server reviews availability.',
+  publicNameChecking: 'Checking current name reservations…',
+  publicNameUnknown:
+    'Name suggestions are unavailable. Custom input remains available; review checks reservations.',
   targetModel: 'Target Model for {{name}}',
   chooseTarget: 'Select an existing Model',
   remove: 'Remove {{name}}',

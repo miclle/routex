@@ -18,9 +18,11 @@ afterEach(async () => {
 function Harness({
   suggestions = ['gpt-5.2', 'gpt-5.2-2025-12-11'],
   disabled = false,
+  canSelectSuggestion,
 }: {
   suggestions?: string[]
   disabled?: boolean
+  canSelectSuggestion?: (value: string) => boolean
 }) {
   const [value, setValue] = useState('')
   return (
@@ -29,6 +31,7 @@ function Harness({
       value={value}
       suggestions={suggestions}
       disabled={disabled}
+      canSelectSuggestion={canSelectSuggestion}
       onValueChange={setValue}
     />
   )
@@ -211,4 +214,27 @@ it('keeps both native labels localized through StrictMode mount and a replacemen
     '关闭',
     '关闭',
   ])
+})
+
+it('cancels an obsolete option selection synchronously while arbitrary custom typing remains usable', async () => {
+  let allowed = true
+  await act(async () => root.render(<Harness canSelectSuggestion={() => allowed} />))
+  await openSuggestions()
+  const option = document.querySelector<HTMLElement>('[role="option"]')!
+  allowed = false
+  await act(async () => option.click())
+  expect(host.querySelector('input')!.value).toBe('')
+  await type('gpt-5.2')
+  expect(host.querySelector('input')!.value).toBe('gpt-5.2')
+  await act(async () =>
+    host
+      .querySelector('input')!
+      .dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true })),
+  )
+  await act(async () =>
+    host
+      .querySelector('input')!
+      .dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true })),
+  )
+  expect(host.querySelector('input')!.value).toBe('gpt-5.2')
 })

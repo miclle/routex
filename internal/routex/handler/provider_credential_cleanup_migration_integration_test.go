@@ -27,7 +27,7 @@ func providerCleanupHistoricalLedger(t *testing.T, db *gorm.DB, maxVersion int) 
 func testProviderCredentialCleanupMigration(t *testing.T, db *gorm.DB) {
 	ctx := context.Background()
 	before := personalKeyBehaviorLedger(t, db)
-	if len(before) != 81 || before[80].Version != 81 {
+	if len(before) != 84 || before[83].Version != 84 || before[82].Version != 83 || before[80].Version != 81 || before[81].Version != 82 {
 		t.Fatal("exact current81 ledger required")
 	}
 	for i, row := range before {
@@ -93,7 +93,7 @@ func testProviderCredentialCleanupMigration(t *testing.T, db *gorm.DB) {
 		t.Fatal(e)
 	}
 	after := personalKeyBehaviorLedger(t, db)
-	if len(after) != 81 || after[80].Version != 81 || !reflect.DeepEqual(after[80:], before[80:]) || after[79].Version != 80 || !reflect.DeepEqual(after[:79], before[:79]) {
+	if len(after) != 84 || after[83].Version != 84 || after[82].Version != 83 || after[80].Version != 81 || after[81].Version != 82 || !reflect.DeepEqual(after[80:], before[80:]) || after[79].Version != 80 || !reflect.DeepEqual(after[:79], before[:79]) {
 		t.Fatal("V80 repeat/current ledger or original79 prefix changed")
 	}
 	var retained []entity.CredentialStorageOperation
@@ -127,7 +127,7 @@ func testProviderCredentialCleanupMigration(t *testing.T, db *gorm.DB) {
 	}
 }
 func providerCleanupRegistryParent(names []string) ([]string, bool) {
-	if len(names) == 156 {
+	if len(names) == 156 || len(names) == 158 || len(names) == 160 || len(names) == 162 {
 		parent, ok := personalRollingWarningRegistryParent(names)
 		if !ok {
 			return nil, false

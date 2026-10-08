@@ -722,6 +722,15 @@ exact actor/Connection/row authority and the existing server preview, reason and
 immutable creation intent; close obsolete suggestion interactions on renewed
 reads or resource changes. Keep paired modelCreation copy.
 
+The shared data-only reference lives in `internal/routex/modelreferences/`,
+embedded by Go and imported unchanged by the SPA. The Connection-scoped name
+assistance read uses existing guided-creation permissions, generates at most
+eight maintained names and checks exact retained reservations in one bounded
+batch. Render only fresh successful actor/Connection/row/text results; renewal,
+invalidation and errors hide suggestions. The local Autocomplete may gate item
+selection with current authority while preserving custom typing and keyboard
+behavior. Keep the Vite filesystem boundary and Host validation intact.
+
 Autocomplete dismissal labels use the paired common close translation. Base UI
 1.8.0 exposes no public label prop for its two native hidden dismiss controls;
 the local wrapper localizes only the exact ref-bound input/popup sibling labels.
@@ -1205,6 +1214,20 @@ or treats absence/404 as success. Do not remove rows optimistically or infer
 published-object drain; this initial slice permits only confirmed original
 never-committed orphans. Keep actor/target/Session generations and paired secrets
 copy, and fetch no root inventory from the Vault-only workspace.
+
+Personal Key rolling notices reuse the existing notification menu with the exact `personal_key_rolling_quota_warning` wire kind. Display only the recorded own positive stored root-Key five-hour/seven-day cap, settled Tokens, covered window, policy revision and original owner/root birth. Keep rotation descendants on the root account, preserve revoked-root history for its exact original owner, and never infer inherited caps, live remaining allowance, reservations or unknown usage percentages. Validate names as trimmed Unicode code points (at most 100), retain exact decimal counters and pair English/Chinese copy. Scope delivery/read mutations to current recipient authorization; no new layout, admission behavior or external mail is introduced.
+
+Project and Team aggregate rolling notices reuse the same recipient-scoped menu
+with strict distinct wire families. Render only recorded own positive stored
+five-hour/seven-day caps, settled counters, covered windows and exact births.
+Project history requires original recipient birth and current exact management;
+Team history requires original recipient birth and current enabled membership,
+preserving existing leave/rejoin semantics. Later managers/members cannot borrow
+old inbox rows. Unknown usage and finite holds never become percentage estimates.
+Recipient selection requires current published membership. Keep paired
+English/Chinese copy, immutable sampled episodes and current runtime
+proof. Team-member rolling controls remain unsupported; notices add no admission,
+monthly, email, policy-reset or layout behavior.
 
 Personal rolling quota notices use the existing notification menu and recipient
 inbox. Render only server-recorded five-hour/seven-day settled observations with

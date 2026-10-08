@@ -332,6 +332,74 @@ func testModelCreationBatchLifecycle(t *testing.T, db *gorm.DB) {
 			t.Fatal("invalid saved topology allowed commit", target, blocked)
 		}
 	}
+	// Public-name assistance assesses only the maintained names. It never exposes
+	// a global reservation directory, and final preview still owns race rejection.
+	namesPath := path + "/public-names"
+	expectStatus(t, request(nil, "", "GET", namesPath, nil, ""), 401)
+	for _, denied := range []struct {
+		cookie *http.Cookie
+		csrf   string
+	}{{writeCookie, writeCSRF}, {modelCookie, modelCSRF}, {providerCookie, providerCSRF}} {
+		expectStatus(t, request(denied.cookie, denied.csrf, "GET", namesPath, nil, ""), 403)
+	}
+	initialNames := decodeCatalogResponse[service.ModelCreationPublicNames](t, request(readCookie, "", "GET", namesPath+"?q=gpt-5.2", nil, ""), 200)
+	if initialNames.ConnectionID != connectionID || initialNames.Query != "gpt-5.2" || len(initialNames.Items) != 2 || !initialNames.Items[0].Available || !initialNames.Items[1].Available {
+		t.Fatal("bounded read-only maintained candidates missing", initialNames)
+	}
+	// Reserve these after the assistance read: advisory availability is never a commit token.
+	expired := time.Now().UTC().Add(-time.Hour)
+	active := time.Now().UTC().Add(time.Hour)
+	create(&entity.ModelName{Name: "gpt-5.2", ModelID: "mdl_batch_existing", ExpiresAt: &expired}, &entity.ModelName{Name: "gpt-5.2-2025-12-11", ModelID: "mdl_batch_existing", ExpiresAt: &active})
+	seedModel("mdl_batch_public", "claude-sonnet-4-6", "pmd_batch_old", "bnd_batch_public", 0)
+	var preservedNames []entity.ModelName
+	if err := db.Order("name").Find(&preservedNames).Error; err != nil {
+		t.Fatal(err)
+	}
+	namesView := decodeCatalogResponse[service.ModelCreationPublicNames](t, send("GET", namesPath+"?q=GPT-5.2", nil, ""), 200)
+	if len(namesView.Items) != 2 || namesView.Items[0].Name != "gpt-5.2" || namesView.Items[0].Available || namesView.Items[1].Available {
+		t.Fatal("retained historical reservations became free", namesView)
+	}
+	currentName := decodeCatalogResponse[service.ModelCreationPublicNames](t, send("GET", namesPath+"?q=claude", nil, ""), 200)
+	if len(currentName.Items) != 1 || currentName.Items[0].Available {
+		t.Fatal("current name was suggested as free", currentName)
+	}
+	unknownNames := decodeCatalogResponse[service.ModelCreationPublicNames](t, send("GET", namesPath+"?q=batch-existing", nil, ""), 200)
+	if len(unknownNames.Items) != 0 {
+		t.Fatal("arbitrary names disclosed reservation facts", unknownNames)
+	}
+	for _, query := range []string{"?names=gpt-5.2", "?q=x&q=y", "?actor_id=other", "?cursor=x", "?limit=8", "?q=%ff"} {
+		expectStatus(t, send("GET", namesPath+query, nil, ""), 400)
+	}
+	for _, alias := range []string{strings.ToLower(connectionID), connectionID + "%20"} {
+		res := send("GET", "/api/v1/admin/connections/"+alias+"/model-creation/public-names", nil, "")
+		if res.Code != 400 && res.Code != 404 {
+			t.Fatal("aliased Connection read reservation facts", res.Code)
+		}
+	}
+	if _, err := svc.ListModelCreationPublicNames(ctx, strings.ToUpper(admin.User.ID), connectionID, ""); !errors.Is(err, apperrors.ErrUnauthorized) {
+		t.Fatal("aliased actor borrowed name assistance", err)
+	}
+	namesResponse := send("GET", namesPath, nil, "")
+	expectStatus(t, namesResponse, 200)
+	if namesResponse.Header().Get("Cache-Control") != "private, no-store" || namesResponse.Header().Get("X-Content-Type-Options") != "nosniff" {
+		t.Fatal("reservation response cache headers")
+	}
+	for _, private := range []string{"model_id", "provider_id", "ciphertext", "source_url", "reviewed_at", "expires_at", "test-only-batch-secret"} {
+		if strings.Contains(namesResponse.Body.String(), private) {
+			t.Fatal("reservation response exposed unrelated metadata", private)
+		}
+	}
+	racedName := preview([]service.ModelCreationItem{{ProviderModelID: "pmd_batch_A", Target: "new", Name: "gpt-5.2"}})
+	if racedName.CanCommit || !slices.Contains(racedName.Items[0].BlockerCodes, "name_reserved") {
+		t.Fatal("reservation race bypassed authoritative preview", racedName)
+	}
+	var afterNames []entity.ModelName
+	if err := db.Order("name").Find(&afterNames).Error; err != nil || !reflect.DeepEqual(afterNames, preservedNames) {
+		t.Fatal("assistance changed retained reservation history", err)
+	}
+	if dispatches.Load() != 0 {
+		t.Fatal("assistance dispatched inference")
+	}
 	// Invalid exact identities and duplicate rows cannot mutate catalogue.
 	for _, rows := range [][]service.ModelCreationItem{{{ProviderModelID: "pmd_batch_a", Target: "new", Name: "batch-alias"}}, {{ProviderModelID: "pmd_batch_response_old", Target: "new", Name: "batch-foreign"}}} {
 		expectStatus(t, send("POST", path+"/preview", service.ModelCreationPreviewInput{Items: rows}, ""), 404)
@@ -427,6 +495,11 @@ func testModelCreationBatchLifecycle(t *testing.T, db *gorm.DB) {
 		router.ServeHTTP(res, req)
 		return res
 	}
+	// Publish the restored raw fixture catalogue before the sole original call.
+	// The periodic publisher may have observed a temporary disabled model above.
+	if err := svc.RefreshRuntime(ctx); err != nil {
+		t.Fatal("restored original route did not publish", err)
+	}
 	hold.Store(true)
 	oldCall := make(chan *httptest.ResponseRecorder, 1)
 	oldCallDone := false
@@ -443,6 +516,9 @@ func testModelCreationBatchLifecycle(t *testing.T, db *gorm.DB) {
 	go func() { oldCall <- invoke(oldKey.Secret, protocols[0], "batch-existing") }()
 	select {
 	case <-entered:
+	case result := <-oldCall:
+		oldCallDone = true
+		t.Fatal("original call ended before native attempt", result.Code, result.Body.String())
 	case <-time.After(10 * time.Second):
 		t.Fatal("original call did not enter native attempt")
 	}

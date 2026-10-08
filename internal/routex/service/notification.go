@@ -45,29 +45,32 @@ type QuotaNotificationSnapshot struct {
 }
 
 type NotificationRecord struct {
-	RollingQuotaWarningObservationID string                               `json:"rolling_quota_warning_observation_id,omitempty"`
-	RollingQuotaWarning              *PersonalRollingQuotaWarningSnapshot `json:"rolling_quota_warning,omitempty"`
-	QuotaWarningObservationID        string                               `json:"quota_warning_observation_id,omitempty"`
-	QuotaWarning                     *QuotaWarningSnapshot                `json:"quota_warning,omitempty"`
-	QuotaObservationID               string                               `json:"quota_observation_id,omitempty"`
-	Quota                            *QuotaNotificationSnapshot           `json:"quota,omitempty"`
-	ID                               string                               `json:"id"`
-	AlertID                          string                               `json:"alert_id,omitempty"`
-	Kind                             string                               `json:"kind"`
-	Severity                         string                               `json:"severity"`
-	DetailCode                       string                               `json:"detail_code"`
-	SubjectType                      string                               `json:"subject_type,omitempty"`
-	SubjectID                        string                               `json:"subject_id,omitempty"`
-	SubjectName                      string                               `json:"subject_name,omitempty"`
-	OccurrenceCount                  int                                  `json:"occurrence_count"`
-	Read                             bool                                 `json:"read"`
-	FirstSeenAt                      time.Time                            `json:"first_seen_at"`
-	LastSeenAt                       time.Time                            `json:"last_seen_at"`
-	ReadAt                           *time.Time                           `json:"read_at"`
-	DeliveryStatus                   string                               `json:"delivery_status,omitempty"`
-	DeliveryCode                     string                               `json:"delivery_code,omitempty"`
-	DeliveryAttempts                 int                                  `json:"delivery_attempts,omitempty"`
-	DeliveryUpdatedAt                *time.Time                           `json:"delivery_updated_at,omitempty"`
+	RollingQuotaWarningObservationID string                                  `json:"rolling_quota_warning_observation_id,omitempty"`
+	TeamRollingQuotaWarning          *TeamRollingQuotaWarningSnapshot        `json:"team_rolling_quota_warning,omitempty"`
+	ProjectRollingQuotaWarning       *ProjectRollingQuotaWarningSnapshot     `json:"project_rolling_quota_warning,omitempty"`
+	PersonalKeyRollingQuotaWarning   *PersonalKeyRollingQuotaWarningSnapshot `json:"personal_key_rolling_quota_warning,omitempty"`
+	RollingQuotaWarning              *PersonalRollingQuotaWarningSnapshot    `json:"rolling_quota_warning,omitempty"`
+	QuotaWarningObservationID        string                                  `json:"quota_warning_observation_id,omitempty"`
+	QuotaWarning                     *QuotaWarningSnapshot                   `json:"quota_warning,omitempty"`
+	QuotaObservationID               string                                  `json:"quota_observation_id,omitempty"`
+	Quota                            *QuotaNotificationSnapshot              `json:"quota,omitempty"`
+	ID                               string                                  `json:"id"`
+	AlertID                          string                                  `json:"alert_id,omitempty"`
+	Kind                             string                                  `json:"kind"`
+	Severity                         string                                  `json:"severity"`
+	DetailCode                       string                                  `json:"detail_code"`
+	SubjectType                      string                                  `json:"subject_type,omitempty"`
+	SubjectID                        string                                  `json:"subject_id,omitempty"`
+	SubjectName                      string                                  `json:"subject_name,omitempty"`
+	OccurrenceCount                  int                                     `json:"occurrence_count"`
+	Read                             bool                                    `json:"read"`
+	FirstSeenAt                      time.Time                               `json:"first_seen_at"`
+	LastSeenAt                       time.Time                               `json:"last_seen_at"`
+	ReadAt                           *time.Time                              `json:"read_at"`
+	DeliveryStatus                   string                                  `json:"delivery_status,omitempty"`
+	DeliveryCode                     string                                  `json:"delivery_code,omitempty"`
+	DeliveryAttempts                 int                                     `json:"delivery_attempts,omitempty"`
+	DeliveryUpdatedAt                *time.Time                              `json:"delivery_updated_at,omitempty"`
 }
 
 type NotificationPage struct {
@@ -253,6 +256,24 @@ func (s *Service) ListNotifications(ctx context.Context, actor string, filter No
 		}
 		records = append(records, rollingWarnings...)
 		page.UnreadCount += rollingUnread
+		keyRollingWarnings, keyRollingUnread, err := personalKeyRollingWarningPage(tx, access, filter, limit, cursorTime, cursorID)
+		if err != nil {
+			return err
+		}
+		records = append(records, keyRollingWarnings...)
+		page.UnreadCount += keyRollingUnread
+		projectRollingWarnings, projectRollingUnread, err := projectRollingWarningPage(tx, access, filter, limit, cursorTime, cursorID)
+		if err != nil {
+			return err
+		}
+		records = append(records, projectRollingWarnings...)
+		page.UnreadCount += projectRollingUnread
+		teamRollingWarnings, teamRollingUnread, err := teamRollingWarningPage(tx, access, filter, limit, cursorTime, cursorID)
+		if err != nil {
+			return err
+		}
+		records = append(records, teamRollingWarnings...)
+		page.UnreadCount += teamRollingUnread
 		teamWarnings, teamWarningUnread, err := teamQuotaWarningPage(tx, access, filter, limit, cursorTime, cursorID)
 		if err != nil {
 			return err
@@ -364,6 +385,30 @@ func (s *Service) MarkNotificationRead(ctx context.Context, actor, notificationI
 			record = rollingWarning
 			return nil
 		}
+		keyRollingWarning, keyRollingFound, keyRollingErr := markPersonalKeyRollingWarningRead(tx, access, notificationID)
+		if keyRollingErr != nil && !errors.Is(keyRollingErr, gorm.ErrRecordNotFound) {
+			return keyRollingErr
+		}
+		if keyRollingFound {
+			record = keyRollingWarning
+			return nil
+		}
+		projectRollingWarning, projectRollingFound, projectRollingErr := markProjectRollingWarningRead(tx, access, notificationID)
+		if projectRollingErr != nil && !errors.Is(projectRollingErr, gorm.ErrRecordNotFound) {
+			return projectRollingErr
+		}
+		if projectRollingFound {
+			record = projectRollingWarning
+			return nil
+		}
+		teamRollingWarning, teamRollingFound, teamRollingErr := markTeamRollingWarningRead(tx, access, notificationID)
+		if teamRollingErr != nil && !errors.Is(teamRollingErr, gorm.ErrRecordNotFound) {
+			return teamRollingErr
+		}
+		if teamRollingFound {
+			record = teamRollingWarning
+			return nil
+		}
 		teamWarning, teamFound, teamErr := markTeamQuotaWarningRead(tx, access, notificationID)
 		if teamErr != nil && !errors.Is(teamErr, gorm.ErrRecordNotFound) {
 			return teamErr
@@ -453,6 +498,15 @@ func (s *Service) MarkAllNotificationsRead(ctx context.Context, actor string) er
 			return err
 		}
 		if err := personalRollingWarningMutationQuery(tx, access).Where("read_at IS NULL").Update("read_at", now).Error; err != nil {
+			return err
+		}
+		if err := personalKeyRollingWarningMutationQuery(tx, access).Where("read_at IS NULL").Update("read_at", now).Error; err != nil {
+			return err
+		}
+		if err := projectRollingWarningMutationQuery(tx, access).Where("read_at IS NULL").Update("read_at", now).Error; err != nil {
+			return err
+		}
+		if err := teamRollingWarningMutationQuery(tx, access).Where("read_at IS NULL").Update("read_at", now).Error; err != nil {
 			return err
 		}
 		if err := teamQuotaWarningMutationQuery(tx, access).Where("read_at IS NULL").Update("read_at", now).Error; err != nil {

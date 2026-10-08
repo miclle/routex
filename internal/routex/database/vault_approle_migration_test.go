@@ -34,7 +34,7 @@ func TestVaultAppRoleV78FrozenExactMethods(t *testing.T) {
 	}
 	for _, dialect := range []string{"postgres", "mysql"} {
 		steps := migrationSteps(dialect)
-		if len(steps) != 81 || reflect.ValueOf(steps[80]).Pointer() != reflect.ValueOf(personalRollingQuotaWarningMigration).Pointer() || reflect.ValueOf(steps[77]).Pointer() != reflect.ValueOf(vaultAppRoleMigration).Pointer() {
+		if len(steps) != 84 || reflect.ValueOf(steps[83]).Pointer() != reflect.ValueOf(teamRollingQuotaWarningMigration).Pointer() || reflect.ValueOf(steps[82]).Pointer() != reflect.ValueOf(projectRollingQuotaWarningMigration).Pointer() || reflect.ValueOf(steps[81]).Pointer() != reflect.ValueOf(personalKeyRollingQuotaWarningMigration).Pointer() || reflect.ValueOf(steps[80]).Pointer() != reflect.ValueOf(personalRollingQuotaWarningMigration).Pointer() || reflect.ValueOf(steps[77]).Pointer() != reflect.ValueOf(vaultAppRoleMigration).Pointer() {
 			t.Fatal("V78 not registered after the exact current prefix")
 		}
 	}

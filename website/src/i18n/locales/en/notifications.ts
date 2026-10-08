@@ -88,6 +88,27 @@ export default {
       tokens_7d_near: 'Personal rolling seven-day token warning recorded.',
       tokens_7d_critical: 'Critical personal rolling seven-day token warning recorded.',
     },
+    personal_key_rolling_quota_warning: {
+      default: 'A Personal Key rolling token warning was recorded.',
+      tokens_5h_near: 'Personal Key rolling five-hour token warning recorded.',
+      tokens_5h_critical: 'Critical Personal Key rolling five-hour token warning recorded.',
+      tokens_7d_near: 'Personal Key rolling seven-day token warning recorded.',
+      tokens_7d_critical: 'Critical Personal Key rolling seven-day token warning recorded.',
+    },
+    project_rolling_quota_warning: {
+      default: 'A Project rolling token warning was recorded.',
+      tokens_5h_near: 'Project rolling five-hour token warning recorded.',
+      tokens_5h_critical: 'Critical Project rolling five-hour token warning recorded.',
+      tokens_7d_near: 'Project rolling seven-day token warning recorded.',
+      tokens_7d_critical: 'Critical Project rolling seven-day token warning recorded.',
+    },
+    team_rolling_quota_warning: {
+      default: 'A Team rolling token warning was recorded.',
+      tokens_5h_near: 'Team rolling five-hour token warning recorded.',
+      tokens_5h_critical: 'Critical Team rolling five-hour token warning recorded.',
+      tokens_7d_near: 'Team rolling seven-day token warning recorded.',
+      tokens_7d_critical: 'Critical Team rolling seven-day token warning recorded.',
+    },
 
     monthly_quota_warning: {
       default: 'A monthly quota warning was recorded.',

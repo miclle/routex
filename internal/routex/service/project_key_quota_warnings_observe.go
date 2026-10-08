@@ -20,6 +20,10 @@ func (s *Service) observeMonthlyProjectKeyQuotaWarning(ctx context.Context, kind
 	defer cancel()
 	s.limitMu.RLock()
 	defer s.limitMu.RUnlock()
+	// Waiters must read warning state committed by the preceding observer. A
+	// repeatable-read snapshot is established before the governance lock wait.
+	// Governance/owner/graph/policy locks and the final runtime fence keep the
+	// authority and usage proof coherent while later reads see committed state.
 	return s.authDB(ctx).Transaction(func(tx *gorm.DB) error {
 		if err := lockGovernance(tx); err != nil {
 			return err
@@ -117,5 +121,5 @@ func (s *Service) observeMonthlyProjectKeyQuotaWarning(ctx context.Context, kind
 			}
 		}
 		return nil
-	}, &sql.TxOptions{Isolation: sql.LevelRepeatableRead})
+	}, &sql.TxOptions{Isolation: sql.LevelReadCommitted})
 }

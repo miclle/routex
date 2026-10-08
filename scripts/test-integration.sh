@@ -1,35 +1,17 @@
 #!/usr/bin/env bash
 set -euo pipefail
+umask 077
 
 cd "$(dirname "$0")/.."
 # Never share a project or storage with the developer's database or another run.
 project="routex-test-$(date +%s)-$$-${RANDOM}"
-compose=(docker compose -p "$project" -f compose.test.yaml)
-cleanup() {
-  result=$?
-  trap - EXIT
-  if [ "$result" -ne 0 ]; then
-    "${compose[@]}" logs --no-color || true
-  fi
-  if ! "${compose[@]}" down --timeout 10; then
-    echo "Failed to clean up integration project $project" >&2
-    if [ "$result" -eq 0 ]; then result=1; fi
-  fi
-  exit "$result"
-}
-trap cleanup EXIT
+private_dir=$(mktemp -d "${TMPDIR:-/tmp}/routex-test-runner.XXXXXXXX")
+chmod 700 "$private_dir"
+# Compile only the stdlib supervisor. No go-run wrapper can orphan workers when
+# the entry point receives a signal; exec gives the supervisor this exact PID.
+trap 'rm -f "$private_dir/runner" >> "$private_dir/build.log" 2>&1' EXIT
 trap 'exit 130' INT
 trap 'exit 143' TERM
-
-"${compose[@]}" up --detach --wait --wait-timeout 180
-postgres_address=$("${compose[@]}" port postgres 5432)
-mysql_address=$("${compose[@]}" port mysql 3306)
-export ROUTEX_TEST_POSTGRES_DSN="host=127.0.0.1 port=${postgres_address##*:} user=routex password=routex-test dbname=routex_test sslmode=disable"
-export ROUTEX_TEST_MYSQL_DSN="routex:routex-test@tcp(${mysql_address})/routex_test?charset=utf8mb4&parseTime=True&loc=UTC"
-
-# The complete 115-case dual-database race matrix measured 2471.304 seconds.
-# The focused Key warning run measured another 357.93 seconds including shared
-# cases and compilation: a conservative 2829.234-second total exceeds 45 minutes.
-# Keep a finite 55-minute aggregate limit for the complete 119-case matrix.
-# Per-query, request and readiness deadlines, all assertions and race stay unchanged.
-go test -trimpath -race -count=1 -timeout 55m -tags development ./internal/routex/...
+# Keep compiler diagnostics private too, before the supervisor owns any database.
+go build -trimpath -o "$private_dir/runner" ./scripts/test-integration-runner > "$private_dir/build.log" 2>&1
+exec "$private_dir/runner" -project "$project" -private-dir "$private_dir"

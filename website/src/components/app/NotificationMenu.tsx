@@ -7,6 +7,9 @@ import {
   recordedMonthlyQuota,
   recordedMonthlyQuotaWarning,
   recordedPersonalRollingQuotaWarning,
+  recordedPersonalKeyRollingQuotaWarning,
+  recordedProjectRollingQuotaWarning,
+  recordedTeamRollingQuotaWarning,
   markAllNotificationsRead,
   markNotificationRead,
   notificationsKey,
@@ -25,6 +28,24 @@ function itemText(
   recipientId: string,
   t: ReturnType<typeof useTranslation>['t'],
 ) {
+  if (notification.kind === 'project_rolling_quota_warning') {
+    const warning = recordedProjectRollingQuotaWarning(notification, recipientId)
+    return warning
+      ? t(`items.project_rolling_quota_warning.${notification.detail_code}`)
+      : t('items.project_rolling_quota_warning.default')
+  }
+  if (notification.kind === 'team_rolling_quota_warning') {
+    const warning = recordedTeamRollingQuotaWarning(notification, recipientId)
+    return warning
+      ? t(`items.team_rolling_quota_warning.${notification.detail_code}`)
+      : t('items.team_rolling_quota_warning.default')
+  }
+  if (notification.kind === 'personal_key_rolling_quota_warning') {
+    const warning = recordedPersonalKeyRollingQuotaWarning(notification, recipientId)
+    return warning
+      ? t(`items.personal_key_rolling_quota_warning.${notification.detail_code}`)
+      : t('items.personal_key_rolling_quota_warning.default')
+  }
   if (notification.kind === 'personal_rolling_quota_warning') {
     const warning = recordedPersonalRollingQuotaWarning(notification, recipientId)
     return warning
@@ -60,7 +81,10 @@ function itemText(
 function deliveryText(notification: Notification, t: ReturnType<typeof useTranslation>['t']) {
   if (
     notification.kind === 'monthly_quota_warning' ||
-    notification.kind === 'personal_rolling_quota_warning'
+    notification.kind === 'personal_rolling_quota_warning' ||
+    notification.kind === 'personal_key_rolling_quota_warning' ||
+    notification.kind === 'project_rolling_quota_warning' ||
+    notification.kind === 'team_rolling_quota_warning'
   )
     return null
   return notification.delivery_status ? t(`delivery.${notification.delivery_status}`) : null
@@ -69,7 +93,10 @@ function deliveryText(notification: Notification, t: ReturnType<typeof useTransl
 function subjectText(notification: Notification, t: ReturnType<typeof useTranslation>['t']) {
   if (
     notification.kind === 'monthly_quota_warning' ||
-    notification.kind === 'personal_rolling_quota_warning'
+    notification.kind === 'personal_rolling_quota_warning' ||
+    notification.kind === 'personal_key_rolling_quota_warning' ||
+    notification.kind === 'project_rolling_quota_warning' ||
+    notification.kind === 'team_rolling_quota_warning'
   )
     return null
   if (notification.subject_type !== 'provider' && notification.subject_type !== 'model') return null
@@ -86,7 +113,14 @@ function RollingQuotaSnapshot({
   recipientId: string
 }) {
   const { t, i18n } = useTranslation('notifications')
-  const warning = recordedPersonalRollingQuotaWarning(notification, recipientId)
+  const warning =
+    notification.kind === 'team_rolling_quota_warning'
+      ? recordedTeamRollingQuotaWarning(notification, recipientId)
+      : notification.kind === 'project_rolling_quota_warning'
+        ? recordedProjectRollingQuotaWarning(notification, recipientId)
+        : notification.kind === 'personal_key_rolling_quota_warning'
+          ? recordedPersonalKeyRollingQuotaWarning(notification, recipientId)
+          : recordedPersonalRollingQuotaWarning(notification, recipientId)
   if (!warning)
     return <span className="mt-1 block text-xs">{t('quota.rollingSnapshotUnavailable')}</span>
   const format = (value: string) =>
@@ -97,7 +131,21 @@ function RollingQuotaSnapshot({
     }).format(new Date(value))
   return (
     <span className="mt-1 block space-y-1 text-xs [overflow-wrap:anywhere]">
-      <span className="block">{t('quota.personalScope')}</span>
+      <span className="block">
+        {notification.kind === 'team_rolling_quota_warning'
+          ? t('quota.teamScopeNamed', { name: notification.subject_name, id: warning.scope_id })
+          : notification.kind === 'project_rolling_quota_warning'
+            ? t('quota.projectScopeNamed', {
+                name: notification.subject_name,
+                id: warning.scope_id,
+              })
+            : notification.kind === 'personal_key_rolling_quota_warning'
+              ? t('quota.personalKeyScopeNamed', {
+                  name: notification.subject_name,
+                  id: warning.scope_id,
+                })
+              : t('quota.personalScope')}
+      </span>
       <span className="block">{t(`quota.rollingWindow.${warning.window_kind}`)}</span>
       <span className="block">{t('quota.warningThreshold', { threshold: warning.threshold })}</span>
       <span className="block">
@@ -410,7 +458,10 @@ export function NotificationMenu() {
                     />
                   </span>
                   {subject && <span className="mt-1 block text-xs">{subject}</span>}
-                  {notification.kind === 'personal_rolling_quota_warning' && (
+                  {(notification.kind === 'personal_rolling_quota_warning' ||
+                    notification.kind === 'personal_key_rolling_quota_warning' ||
+                    notification.kind === 'project_rolling_quota_warning' ||
+                    notification.kind === 'team_rolling_quota_warning') && (
                     <RollingQuotaSnapshot notification={notification} recipientId={recipientId} />
                   )}
                   {(notification.kind === 'monthly_quota_exhausted' ||

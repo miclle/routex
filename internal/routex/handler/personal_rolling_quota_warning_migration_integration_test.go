@@ -29,7 +29,7 @@ func testPersonalRollingQuotaWarningMigration(t *testing.T, db *gorm.DB) {
 		AppliedAt string
 	}
 	var original []ledger
-	if e := db.Table("schema_migrations").Order("version").Find(&original).Error; e != nil || len(original) != 81 || original[80].Version != 81 {
+	if e := db.Table("schema_migrations").Order("version").Find(&original).Error; e != nil || len(original) != 84 || original[83].Version != 84 || original[82].Version != 83 || original[80].Version != 81 || original[81].Version != 82 {
 		t.Fatal("exact81 ledger", e)
 	}
 	migrate := func() {
@@ -150,7 +150,7 @@ func testPersonalRollingQuotaWarningMigration(t *testing.T, db *gorm.DB) {
 	remove()
 	migrate()
 	var after []ledger
-	if e := db.Table("schema_migrations").Order("version").Find(&after).Error; e != nil || len(after) != 81 || !reflect.DeepEqual(after[:80], original[:80]) {
+	if e := db.Table("schema_migrations").Order("version").Find(&after).Error; e != nil || len(after) != 84 || after[83].Version != 84 || after[82].Version != 83 || !reflect.DeepEqual(after[:80], original[:80]) || !reflect.DeepEqual(after[81:], original[81:]) {
 		t.Fatal("original80 ledger changed", e)
 	}
 	var saved entity.PersonalRollingQuotaWarningObservation
@@ -181,6 +181,13 @@ func testPersonalRollingQuotaWarningMigration(t *testing.T, db *gorm.DB) {
 }
 
 func personalRollingWarningRegistryParent(names []string) ([]string, bool) {
+	if len(names) == 158 || len(names) == 160 || len(names) == 162 {
+		parent, ok := personalKeyRollingWarningRegistryParent(names)
+		if !ok {
+			return nil, false
+		}
+		names = parent
+	}
 	if len(names) != 156 || names[154] != "personal_rolling_quota_warning_migration:testPersonalRollingQuotaWarningMigration" || names[155] != "personal_rolling_quota_warnings:testPersonalRollingQuotaWarningLifecycle" {
 		return nil, false
 	}

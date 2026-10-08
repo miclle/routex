@@ -1236,6 +1236,69 @@ remain retained; browser acceptance and other-account rolling warnings remain
 open. See [Implementation](IMPLEMENTATION.md) for the source-bound receipts.
 
 The finite Vault response-close prerequisite adds no persisted closure receipt,
-source-denial schema or migration V82. Its private, non-serialized holder and
+source-denial schema or cleanup migration. V82 is separately allocated to Personal
+Key rolling warnings below. Its private, non-serialized holder and
 SDK observations cannot establish cross-process absence or authorize cleanup
 of previously published Provider sources.
+
+### V82: Personal Key rolling warning episodes
+
+Private frozen V82 adds `personal_key_rolling_quota_warning_states`,
+`personal_key_rolling_quota_warning_observations` and
+`personal_key_rolling_quota_warning_inboxes`. Composite state identity retains the
+exact root Key, original owner/root births and window. Observations uniquely bind
+episode and level; inboxes uniquely bind observation and recipient and retain a
+recipient/time/ID paging index. Service proof owns historical identity checks, so
+mutable resource deletion never rewrites immutable recorded facts.
+
+GORM Migrator APIs repair bounded partial tables before migrating the frozen
+structs; portable byte-exact window/level/generation constraints avoid collation
+assumptions. Signed-int64 counters, positive denominator and coherent timestamps
+are constrained. Released steps 1–81 are unchanged. Registered fixtures cover
+empty/upgrade/repeat/concurrent/partial MySQL DDL, constraints/indexes, actual
+native settled use, retained rotation, recipient privacy, rollback and restart.
+The exact original 156-case registry remains in order, with two new cases appended
+to 158, retained within the current 162-case registry. The complete current
+PostgreSQL/MySQL matrix passes, including migration lifecycle and constraint
+checks; receipts are recorded in [Implementation](IMPLEMENTATION.md).
+
+### V83/V84: Project and Team aggregate rolling warning episodes
+
+Private frozen V83 adds Project rolling state, observation and inbox tables;
+V84 adds the equivalent distinct Team aggregate tables. Both use frozen schema
+structs and GORM Migrator APIs for bounded partial-DDL repair, portable indexes
+and constraints. Prior frozen implementations remain unchanged, including the
+separately reviewed V82 implementation. The containing verified phase releases
+V82–V84; later migrations must retain these frozen steps unchanged.
+
+State retains exact resource birth, window and sampled episode lineage. Unique
+observation/level and observation/recipient indexes prevent duplicate fanout;
+recipient/time/ID indexes support private paging. Current recipient and runtime
+proofs stay in the Service layer, with atomic state/observation/inbox writes.
+Historical resource deletion never rewrites recorded identities or samples.
+
+The composed registry preserves all original 158 cases and appends exactly two
+Project and two Team scenarios, for 162. Fixtures cover empty creation, upgrades,
+repeat/concurrent execution, partially applied MySQL DDL, constraints/indexes,
+real journal facts, recipient removal/rejoin/birth, rollback and reconstruction.
+The prior Full158 reached its 55-minute deadline and remains failed. Expanded
+same-source PostgreSQL/MySQL acceptance now passes all 324 direct scenarios,
+eight constraints, 4,813 ordinary named tests and 412 named tests per driver.
+The accepted parallel run completed in 2,055.583 seconds; earlier failed runs and
+their finite budgets remain historical.
+
+
+## Locked warning transaction visibility
+
+Personal and Project Key warning observers, plus Personal, Project and Team
+rolling observers, explicitly request portable Read Committed transactions.
+The governance lock, owner or Project locks, complete retained Key graph and
+policy locks remain in place. Calendar/currency publication stays protected by
+the existing service lock, and the final runtime pointer, application lease,
+identity and accounting proof are checked before commit. A waiter must read the
+preceding observer's committed episode state; an earlier Repeatable Read snapshot
+can miss that state after waiting on PostgreSQL's governance lock and attempt a
+duplicate insert. No duplicate error is ignored and no fixture is serialized to
+hide the concurrency. The synchronized regression preserves two real concurrent
+observers and exact transaction identity. Source checks and the full real-driver regression pass; source-bound receipts
+and separate runtime/browser gates are recorded in [Implementation](IMPLEMENTATION.md).

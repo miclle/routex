@@ -700,9 +700,148 @@ in English or Chinese without estimating remaining allowance. Inbox reads and
 read mutations reauthorize the current recipient and exact User birth. Email
 settings remain for their existing operational sources; this slice adds no mail.
 
-Inherited caps and Personal Key, Team, Team member, Project and Project Key rolling
-warnings remain outside this initial scope. Monthly producers and their immutable
+Inherited caps, Team member and Project Key rolling warnings remain outside
+this initial User scope. The separate Personal Key, Project aggregate and Team
+aggregate candidates are described below. Monthly producers and their immutable
 observations remain independent. Final dual-driver/full-matrix and controlled
 native/API/restart acceptance are recorded in [Implementation](IMPLEMENTATION.md).
 The containing commit delivers this bounded scope; genuine browser acceptance,
 external mail and broader rolling-warning sources remain open.
+
+## Personal Key rolling Token warnings
+
+The composed V82 candidate samples only positive stored Personal root-Key
+five-hour/seven-day Token caps. Frozen GORM V82 adds independent episode-state,
+immutable-observation and recipient-inbox tables; released migrations remain
+unchanged.
+The monthly Key proof is reused for exact owner/root births, bounded retained
+rotation graph, shared root account and currently enabled nonexpired descendant.
+An unrelated Project Key with the same ID never qualifies. Reads preserve the
+recorded root name and exact birth-scoped history, including a revoked retained
+root; new observations still require a live eligible descendant and applied runtime
+policy/calendar. Thresholds and sampled episode semantics match Personal rolling
+warnings: 80% near, 90% critical, first exhausted sample critical only, fully known
+below-80% sample rearms, and changed stored cap starts a new episode. General ETag
+or reason edits do not reset an episode. Keys have no creation-default/reset API.
+
+Finite holds are not settled usage and do not suppress a fully covered settled
+warning; unknown usage prevents sampling and rearming. Null/zero caps have no
+denominator. State, immutable observation and recipient inbox persist atomically
+under a final applied-proof check. The wire kind is
+`personal_key_rolling_quota_warning`, with its own observation ID and exact original
+owner/root birth. The existing English/Chinese menu renders recorded counters and
+windows only; names retain up to 100 trimmed Unicode code points. Historical reads,
+merged paging and read mutations remain recipient scoped. This candidate changes
+no admission, monthly warning, external mail or layout behavior. Current source
+and remaining real-database/delivery gates are tracked in
+[Implementation](IMPLEMENTATION.md).
+
+## Project aggregate rolling Token warnings
+
+The composed V83 candidate samples an active Project's own stored five-hour and
+seven-day Token caps against the exact registered `project:<id>` journal account
+and Project birth. It does not sample Project Key or manager Personal accounts.
+Complete known coverage begins at the later of the window start or resource
+birth; held reservations are separate from settled Tokens. Unknown usage,
+incomplete coverage or unavailable application proof cannot emit or rearm a
+warning. Null and zero caps have no percentage denominator; zero remains an
+admission limit. No inherited default is materialized by observation.
+
+The sampled 80%/90% episode rules are shared with Personal rolling warnings. A
+first covered sample at or above 90%, including 100% or higher, emits critical
+only. Known settled usage below 80%, a sampled monitored-cap change or a new
+explicit creation-default reset review may rearm. Ordinary reason, revision,
+money, rate or IP edits do not reset an unchanged cap. A reviewed reset is consumed
+once, with its lineage retained across later ordinary policy saves. The observer
+requires the exact current applied stored policy, calendar, resource birth and
+live runtime pointer/lease before sampling and again before commit.
+
+Frozen GORM V83 adds Project rolling states, immutable observations and recipient
+inboxes. State, observation and the bounded complete original recipient set
+commit atomically; a failed final proof or inbox write rolls back the whole
+transition. At observation time, recipients must be exact current enabled managers
+with complete admission facts and matching published relationships. List, unread
+count and read mutations require that same original recipient birth plus current
+exact management of the active Project. Removal or inactivity hides the history;
+rejoining may restore that original user's read state, while a new manager gains
+no historical projection. Platform permissions alone grant no manager inbox.
+
+The wire kind is `project_rolling_quota_warning`, with
+`rolling_quota_warning_observation_id` and `project_rolling_quota_warning`.
+Snapshots freeze the exact Project scope/name/birth, window and coverage times,
+policy revision, episode, timezone, integer settled/cap strings, threshold and
+generation. The existing localized menu renders recorded facts only; it does not
+infer current allowance, mail delivery or stop-calling policy.
+
+## Team aggregate rolling Token warnings
+
+The composed V84 candidate samples an active Team's own stored five-hour and
+seven-day Token caps against the exact registered `team:<id>` account and Team
+birth. Team aggregate balances are separate from stable Team/member child
+balances; no child, Personal, Project or Key counter is summed into a Team
+percentage. It uses the same fully covered known settled window and sampled
+80%/90% episode rules. Finite holds stay reservations; unknown or incomplete
+coverage preserves prior episode state. Null/zero caps produce no percentage
+warning, and general policy edits do not rearm an unchanged monitored cap. A
+sampled cap change or new explicit default-reset review requires fresh applied
+runtime proof; the reset lineage is consumed once and survives ordinary saves.
+
+Frozen GORM V84 adds Team rolling states, immutable observations and original
+recipient inboxes without editing versions 1–83. Exact current Team/resource
+birth, stored policy/calendar, live publisher, current runtime pointer and lease
+are checked before observation and again before commit. State, observation and
+all inbox rows share one governance-locked transaction, so recipient overflow,
+inbox failure or a lost final proof cannot leave a partial episode.
+
+Only then-current enabled admitted owners/members of that active Team with exact
+published membership identities receive the observation, bounded to 1,000
+recipients. A platform administrator has no implicit membership. Historical
+list/count/read access uses the original recipient's recorded User birth and
+current exact enabled Team membership plus the original Team birth. Removal,
+disable, offboarding or Team inactivity suppresses access without rewriting
+read state. Rejoin can restore the same original user's recorded rows; a later
+member or recreated User/Team cannot borrow them. A membership generation proves
+current invocation authority, rather than creating a new historical recipient.
+
+The wire kind is `team_rolling_quota_warning`, with
+`rolling_quota_warning_observation_id` and `team_rolling_quota_warning`.
+Snapshots preserve exact Team scope/name/birth, episode, applied policy revision,
+window (`5h` or `7d`), sample/coverage times, timezone, settled/cap integer strings,
+level, threshold and generation. The strict notification decoder rejects mixed
+families or inconsistent scope/threshold/coverage facts. The existing bilingual
+menu, recipient-scoped query lifetimes, pagination and read actions are reused;
+renewed or failed reads hide old facts and late responses cannot restore them.
+No new email source, layout or admission writer is introduced.
+
+## Composed rolling-warning acceptance boundary
+
+The V82 Personal Key, V83 Project aggregate and V84 Team aggregate implementation
+passes current source checking, complete Task/build and the full PostgreSQL/MySQL
+matrix: 324 direct scenarios, eight constraints, 4,813 ordinary named tests and
+412 named tests per driver. The containing phase delivers these bounded scopes.
+Earlier monthly/Personal evidence retains its original source identity; controlled
+production/API/native/restart and browser acceptance remain separate.
+
+The previous Full158 attempt did not pass: it timed out at the 55-minute bound
+while MySQL reached scenario 105, with Task exit 201 after 3320.365 seconds.
+That failure remains historical evidence. The adopted parallel supervisor uses
+finite work/cleanup budgets and preserves every assertion; its fresh accepted
+Full162 completed in 2,055.583 seconds without a performance comparison claim. Controlled
+production/API/native/restart and any browser evidence remain separate gates;
+no external mail or paid-provider inference is inferred from source tests.
+
+
+## Locked warning transaction visibility
+
+Personal and Project Key warning observers, plus Personal, Project and Team
+rolling observers, explicitly request portable Read Committed transactions.
+The governance lock, owner or Project locks, complete retained Key graph and
+policy locks remain in place. Calendar/currency publication stays protected by
+the existing service lock, and the final runtime pointer, application lease,
+identity and accounting proof are checked before commit. A waiter must read the
+preceding observer's committed episode state; an earlier Repeatable Read snapshot
+can miss that state after waiting on PostgreSQL's governance lock and attempt a
+duplicate insert. No duplicate error is ignored and no fixture is serialized to
+hide the concurrency. The synchronized regression preserves two real concurrent
+observers and exact transaction identity. Source checks and the full real-driver regression pass; source-bound receipts
+and separate runtime/browser gates are recorded in [Implementation](IMPLEMENTATION.md).

@@ -569,21 +569,40 @@ provider and wider Model capability acceptance remain independent.
 
 ## Advisory public Model names
 
-The guided creation name control now offers advisory suggestions through the local
-Base UI Autocomplete while retaining fully custom input. The versioned local
-`website/src/data/public-model-references.v1.json` contains four reviewed exact
-identities: `gpt-5.2`, `gpt-5.2-2025-12-11`, `claude-sonnet-4-6` and
-`gemini-2.5-flash`. Each entry records its official documentation URL and review
-date. These are reviewed names, not claims of current availability or the latest
-provider release. No reference API, network catalogue synchronization or server
-endpoint is added.
+The composed guided-creation candidate offers advisory suggestions through the
+local Base UI Autocomplete while retaining fully custom input. The versioned
+`internal/routex/modelreferences/public-model-references.v1.json` contains the
+same four reviewed exact identities: `gpt-5.2`, `gpt-5.2-2025-12-11`,
+`claude-sonnet-4-6` and `gemini-2.5-flash`. Each entry retains its official
+documentation URL and review date. Go embeds this data-only package and the SPA
+imports the same JSON bytes; the former frontend data file is removed. These are
+maintained identity suggestions, not claims of routing availability, current
+provider releases, input capabilities, capacity or prices. No external reference
+API or automatic catalogue synchronization is introduced.
 
-The parser accepts only the version-1 schema, at most 100 unique bounded ASCII
-names, canonical credential-free HTTPS URLs on reviewed official hosts and valid
-review dates. Malformed metadata disables suggestions without disabling custom
-input. Search is literal and case-insensitive, returns original exact spelling,
-excludes only exact selected sibling names and displays at most eight results.
-The existing server preview remains authoritative for name reservation/collision.
+The strict version-1 parser accepts at most 100 unique bounded ASCII names,
+canonical credential-free HTTPS URLs on reviewed official hosts and valid review
+dates. Search is literal and case-insensitive and preserves exact spelling.
+Malformed metadata disables suggestions without disabling custom input.
+
+`GET /api/v1/admin/connections/:connection_id/model-creation/public-names?q=<literal>`
+requires the existing independent `models.read_all` and `providers.read`
+permissions, a fresh exact enabled actor and the exact guided Connection/Provider.
+This read requires no CSRF or Model-create permission. Only one optional `q` is
+accepted; it is valid UTF-8, at most 128 bytes and contains no control characters.
+Unknown or duplicate parameters are rejected. The server generates at most eight
+candidates from the maintained source, then checks their retained reservations in
+one bounded exact batch within a five-second read-only repeatable-read transaction.
+Current names and retained aliases remain reserved, including expired aliases.
+Arbitrary custom queries cannot enumerate unrelated reserved names.
+
+The response contains only `connection_id`, the exact `query`, and `items` with
+`name` and `available`. Availability describes the current public-name reservation
+only. The control displays available candidates and excludes exact selected
+sibling names; it preserves custom text even when the read is unavailable or the
+name is reserved. Assistance makes no write or upstream request. The final server
+preview remains authoritative and rejects a name reserved after the assistance
+read; suggestions never promise creation success.
 
 Arrow navigation does not fill the field. Explicit pointer or Enter selection
 changes only that row's name; Escape dismisses suggestions while retaining custom
@@ -596,13 +615,24 @@ Model or binding.
 
 Actor, exact Connection and row identity, current mode/removal, synchronous busy
 lock and fresh Session/permission/context/picker generations guard suggestion
-updates. Renewed authority hides obsolete interactions; late option events cannot
-restore private or cleared rows. Successful authority reads recreate the control.
-English/Chinese helper copy changes live while exact custom text is retained.
-Both frontend rule files append the same bounded contract, preserving all later
-Member Overview and other instructions.
+updates. The availability query also captures the current text and row authority.
+Pending, failed or invalidated reads hide old candidates, and aborted or obsolete
+responses cannot restore them. A synchronous query-cache freshness subscription
+uses the existing parent-managed Session authority. The local Autocomplete gates
+only explicit item selection with current authority while preserving ordinary
+custom typing and its existing keyboard behavior. English/Chinese pending and
+unknown guidance changes live without clearing custom text. The Vite development
+import remains inside the existing Host and filesystem protections; no whole
+repository allowlist is introduced.
 
-Final R2 acceptance passed 2162 frontend cases in 114 files, including 63 focused
+The reservation-aware backend/UI composition passes current source checking,
+complete Task/build and the full 162-scenario-per-driver PostgreSQL/MySQL matrix,
+including the guided-creation reservation scenario. The containing phase commits
+this bounded endpoint and UI. Controlled browser/native/restart acceptance for
+this successor remains separate; historical frontend-only evidence below does
+not prove its reservation read.
+
+Historical frontend-only R2 acceptance passed 2162 frontend cases in 114 files, including 63 focused
 cases in four files, source checks and production build. Controlled bilingual
 browser/native/restart proof verified localized native dismissal controls, one
 explicit creation receipt, three completed calls/dispatches, old-Key zero-dispatch
@@ -613,10 +643,12 @@ proof only. This frontend-only slice retains the accepted backend matrix and
 changes no route, schema, permission or immutable call basis. Full independent
 R1/R2 evidence is recorded in [Implementation](IMPLEMENTATION.md).
 
-The checked implementation is delivered by the commit containing this acceptance
-record; consult Git history for its SHA. Remote CI for that new commit remains
-pending. F12 and formal 11/16/3 totals are unchanged; advisory names do not establish
-official-provider supply or wider catalogue/routing acceptance.
+That historical frontend-only slice was delivered by the commit containing its
+original acceptance record. Its recorded pending CI and 11/16/3 totals describe
+that earlier checkpoint, not the current composition. The reservation-aware
+successor is delivered by the containing phase; current F12 status and totals are recorded in
+[Implementation](IMPLEMENTATION.md). Advisory names do not establish official
+provider supply or wider catalogue/routing acceptance.
 
 ## Explicit-source member examples
 

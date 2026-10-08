@@ -31,7 +31,7 @@ func (connectionEnabledBadDefaultFixture) TableName() string { return "provider_
 func testConnectionEnablementMigration(t *testing.T, db *gorm.DB) {
 	ctx := context.Background()
 	before := personalKeyBehaviorLedger(t, db)
-	if (len(before) != 76 && len(before) != 77 && len(before) != 78 && len(before) != 79 && len(before) != 80 && len(before) != 81) || before[75].Version != 76 || len(before) >= 77 && before[76].Version != 77 || len(before) >= 78 && before[77].Version != 78 || len(before) >= 79 && before[78].Version != 79 || len(before) >= 80 && before[79].Version != 80 || len(before) == 81 && before[80].Version != 81 || !db.Migrator().HasColumn(&connectionEnabledV76Fixture{}, "Enabled") {
+	if (len(before) != 76 && len(before) != 77 && len(before) != 78 && len(before) != 79 && len(before) != 80 && len(before) != 81 && len(before) != 82 && len(before) != 83 && len(before) != 84) || before[75].Version != 76 || len(before) >= 77 && before[76].Version != 77 || len(before) >= 78 && before[77].Version != 78 || len(before) >= 79 && before[78].Version != 79 || len(before) >= 80 && before[79].Version != 80 || len(before) >= 81 && before[80].Version != 81 || len(before) >= 82 && before[81].Version != 82 || len(before) >= 83 && before[82].Version != 83 || len(before) == 84 && before[83].Version != 84 || !db.Migrator().HasColumn(&connectionEnabledV76Fixture{}, "Enabled") {
 		t.Fatal("exact V76 ledger/column required")
 	}
 	if err := db.Create(&entity.Provider{ID: "prv_enabled_upgrade", Name: "Retained"}).Error; err != nil {
@@ -143,7 +143,7 @@ func connectionEnablementSameRow(a, b entity.ProviderConnection) bool {
 }
 
 func connectionEnablementRegistryPrefix(names []string) bool {
-	if len(names) == 156 {
+	if len(names) == 156 || len(names) == 158 || len(names) == 160 || len(names) == 162 {
 		parent, ok := personalRollingWarningRegistryParent(names)
 		if !ok {
 			return false
