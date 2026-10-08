@@ -39,6 +39,7 @@ func testProjectKeyRollingQuotaWarningLifecycle(t *testing.T, db *gorm.DB) {
 	var unknown, inboxFault atomic.Bool
 	var dispatches, inboxFaultHits atomic.Int64
 	var barrier personalKeyWarningFixturePublicationBarrier
+	barrier.enableMetadataFence()
 	workerCtx := context.WithValue(ctx, personalKeyWarningFixtureWorkerContext{}, &barrier)
 	callback := "fixture:project-key-rolling-inbox"
 	publisherCallback := "fixture:project-key-rolling-publisher"
@@ -54,14 +55,25 @@ func testProjectKeyRollingQuotaWarningLifecycle(t *testing.T, db *gorm.DB) {
 	if err := db.Callback().Query().Before("gorm:query").Register(publisherCallback, barrier.beforeQuery); err != nil {
 		t.Fatal(err)
 	}
+	metadataCallback := publisherCallback + "-metadata"
+	metadataRegistered := false
 	defer func() {
 		if err := db.Callback().Create().Remove(callback); err != nil {
 			t.Error(err)
+		}
+		if metadataRegistered {
+			if err := db.Callback().Create().Remove(metadataCallback); err != nil {
+				t.Error(err)
+			}
 		}
 		if err := db.Callback().Query().Remove(publisherCallback); err != nil {
 			t.Error(err)
 		}
 	}()
+	if err := db.Callback().Create().Before("gorm:create").Register(metadataCallback, barrier.beforePublicationCreate); err != nil {
+		t.Fatal(err)
+	}
+	metadataRegistered = true
 	upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		dispatches.Add(1)
 		w.Header().Set("Content-Type", "application/json")
@@ -83,6 +95,9 @@ func testProjectKeyRollingQuotaWarningLifecycle(t *testing.T, db *gorm.DB) {
 	svc := makeService()
 	defer func() {
 		svc.StopRuntime()
+		if err := barrier.purgeMetadataProofsAfterJoin(); err != nil {
+			t.Error(err)
+		}
 		if err := svc.StopCallRecorder(); err != nil {
 			t.Error(err)
 		}
@@ -441,6 +456,9 @@ func testProjectKeyRollingQuotaWarningLifecycle(t *testing.T, db *gorm.DB) {
 		t.Fatal("original native attempts", err)
 	}
 	svc.StopRuntime()
+	if err := barrier.purgeMetadataProofsAfterJoin(); err != nil {
+		t.Fatal(err)
+	}
 	if err := svc.StopCallRecorder(); err != nil {
 		t.Fatal(err)
 	}

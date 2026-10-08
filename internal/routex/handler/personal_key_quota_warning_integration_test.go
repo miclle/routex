@@ -1208,9 +1208,12 @@ func TestPersonalKeyWarningFixturePolicyAndRootAccount(t *testing.T) {
 // manual RefreshRuntime and the actual warning observer keep their real reads.
 type personalKeyWarningFixtureWorkerContext struct{}
 type personalKeyWarningFixturePublicationBarrier struct {
-	armed     atomic.Bool
-	baselined atomic.Bool
-	rejected  atomic.Int64
+	armed              atomic.Bool
+	baselined          atomic.Bool
+	rejected           atomic.Int64
+	metadataMu         sync.Mutex
+	metadataProofs     map[context.Context]struct{}
+	metadataProofError error
 }
 
 // observePublished freezes only the fixture-owned periodic publisher. One real
@@ -1265,9 +1268,79 @@ var errPersonalKeyWarningFixturePublication = errors.New("fixture-owned periodic
 func (b *personalKeyWarningFixturePublicationBarrier) beforeQuery(tx *gorm.DB) {
 	if tx.Statement != nil && tx.Statement.Context != nil && tx.Statement.Context.Value(personalKeyWarningFixtureWorkerContext{}) == b && b.armed.Load() {
 		b.rejected.Add(1)
+		clean := tx.Error == nil
+		_ = tx.AddError(errPersonalKeyWarningFixturePublication)
+		if clean && errors.Is(tx.Error, errPersonalKeyWarningFixturePublication) {
+			b.recordMetadataProof(tx.Statement.Context)
+		}
+	}
+}
+
+// Metadata fencing is enabled only by the two Project rolling fixtures. Their
+// synthetic periodic read fault must not manufacture a real operational failure.
+// A cumulative rejection count cannot identify a later refresh's failure.
+const personalKeyPublicationMetadataProofLimit = 64
+
+func (b *personalKeyWarningFixturePublicationBarrier) enableMetadataFence() {
+	b.metadataMu.Lock()
+	defer b.metadataMu.Unlock()
+	b.metadataProofs = make(map[context.Context]struct{})
+}
+
+func (b *personalKeyWarningFixturePublicationBarrier) recordMetadataProof(ctx context.Context) {
+	b.metadataMu.Lock()
+	defer b.metadataMu.Unlock()
+	if b.metadataProofs == nil {
+		return
+	}
+	if !reflect.TypeOf(ctx).Comparable() {
+		b.metadataProofError = errors.New("fixture publication context identity is not comparable")
+		return
+	}
+	if _, exists := b.metadataProofs[ctx]; exists {
+		return
+	}
+	if len(b.metadataProofs) >= personalKeyPublicationMetadataProofLimit {
+		b.metadataProofError = errors.New("fixture publication context proof bound exceeded")
+		return
+	}
+	b.metadataProofs[ctx] = struct{}{}
+}
+
+func (b *personalKeyWarningFixturePublicationBarrier) beforePublicationCreate(tx *gorm.DB) {
+	if tx == nil || tx.Error != nil || tx.Statement == nil || tx.Statement.Context == nil || tx.Statement.Schema == nil || tx.Statement.Table != "runtime_publications" || tx.Statement.Schema.Table != "runtime_publications" {
+		return
+	}
+	ctx := tx.Statement.Context
+	if ctx.Value(personalKeyWarningFixtureWorkerContext{}) != b || !reflect.TypeOf(ctx).Comparable() {
+		return
+	}
+	row, ok := tx.Statement.Dest.(*entity.RuntimePublication)
+	if !ok || row == nil || row.Status != "failed" || row.ErrorCode != "database_unavailable" {
+		return
+	}
+	b.metadataMu.Lock()
+	_, proven := b.metadataProofs[ctx]
+	if proven {
+		delete(b.metadataProofs, ctx)
+	}
+	b.metadataMu.Unlock()
+	if proven {
 		_ = tx.AddError(errPersonalKeyWarningFixturePublication)
 	}
 }
+
+// Call only after the fixture's real publisher has stopped and joined. A proof
+// survives release: its failed refresh may finish recording after that release.
+func (b *personalKeyWarningFixturePublicationBarrier) purgeMetadataProofsAfterJoin() error {
+	b.metadataMu.Lock()
+	defer b.metadataMu.Unlock()
+	clear(b.metadataProofs)
+	err := b.metadataProofError
+	b.metadataProofError = nil
+	return err
+}
+
 func TestPersonalKeyWarningFixturePublicationContextBarrier(t *testing.T) {
 	var b, other personalKeyWarningFixturePublicationBarrier
 	ctx := context.Background()

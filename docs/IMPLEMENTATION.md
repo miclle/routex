@@ -8,11 +8,11 @@ The goal remains active: 13 Completed / 14 Partial / 3 Not started.
 
 | Workstream | Current evidence | Remaining gate |
 | --- | --- | --- |
-| Delivered main | `1581508`; Backend, Frontend, Actionlint and GolangCI-Lint pass | Diagnose failed Integration job; dependent Build is skipped |
+| Main CI fixture repair | Test-only source passes independent review, mandatory checks, complete Task and the original two-case PostgreSQL/MySQL regression | Exact-head CI after delivery; original `1581508` failures and exact historical system-job provenance remain unresolved |
 | Model catalogue R8 | Complete source-bound Full168 passes both databases, all ordinary tests and independent cleanup | Reviewed payload is applied to main; mandatory check, complete Task and production build pass; delivered as `1581508`; remote Integration failure and browser remain open |
 | Vault V88 | Corrected Full170 passes PostgreSQL; one MySQL Connection metadata scenario fails | Diagnose/reproduce; no full acceptance or controlled-run approval |
 | Vault graceful closure V89 | Complete Full172 and the corrected local controlled shutdown/restart workflow pass independent readback | Main adoption checks, remote CI and browser remain pending; earlier controlled failure stays historical |
-| Routing-weight history and rollback | Reviewed source, formatting, mandatory check, complete Task (5,501 frontend tests), build and all 5,231 genuine ordinary names pass | V90 PostgreSQL/MySQL, Full174, native/restart/browser gates and main delivery remain pending |
+| Routing-weight history and rollback | Corrected V90 migrations and complete weight-history lifecycle pass PostgreSQL and MySQL: four direct scenarios, seven balanced names in 122.978 seconds; source and resource cleanup verified | Fresh whole-source checks and ordinary inventory after the runtime-builder fix, Full174, native/restart/browser gates and main delivery remain pending |
 | Browser | Deferred because the computer is locked; the user expects availability about ten hours later | Real window, keyboard/focus and workflow acceptance |
 
 Complete project matrices now run one at a time, retaining parallel PostgreSQL
@@ -32,6 +32,71 @@ The ordinary run completes in 68.707 seconds with all 5,080 parent names and
 These passes neither explain nor relabel the retained MySQL Full170 failure.
 The earlier progress checkpoint `3840dbf` has passing complete CI. That
 historical result does not accept the later `1581508` source.
+
+## Publication-fault fixture regression gate (2026-10-09)
+
+The test-only phase fences failed publication metadata only when the same
+refresh Context was rejected by its own fixture query barrier. Genuine failure
+metadata, production operational alerts and all complete unfiltered quota
+notification privacy assertions remain unchanged. Proofs survive barrier release
+and are consumed once; callbacks and proofs are removed only after publisher
+shutdown joins. Independent source review finds no remaining issue. The new
+Context keys use a private named type; the earlier SA1029 check failure is retained.
+
+The final source passes mandatory checks and twenty balanced uncached race-test
+names. Complete Task passes: 5,408 frontend tests in 208 files, Go race/coverage,
+frontend Node checks, development lifecycle and production asset serving.
+The original two-case selector passes both real databases in 153.306 seconds:
+four direct scenarios and seven balanced names, with no failure diagnostics,
+omissions, skips or races. All 2,001 captured source bytes/modes remain exact;
+eleven captured process/group identities, both ports and labelled resources are
+independently absent. Absence SHA-256:
+`20081918ec4ba60dfa039a5358346b0dd5ba0d66561c9844d0013d6e81da7106`.
+Complete original Go JSON SHA-256:
+`864c701ef87400d0ba0f08ee66f11e6cc25106f1bd5a26c6078e43b0f53477f0`.
+
+These results validate the repair without identifying the exact historical
+producer of the remote `546045e` failure. A separately instrumented old/new
+producer reproduction is still pending and is excluded from the containing
+commit. Exact-head remote CI must be checked after delivery. Earlier `1581508`
+failures remain unexplained. Vault V89 and routing rollback production changes
+are excluded; their isolated acceptance retains its own source identity.
+
+## Routing-weight history focused acceptance (2026-10-09)
+
+The corrected 2,041-path candidate passes the original migration and complete
+weight-history lifecycle selector on real PostgreSQL and MySQL in 122.978
+seconds. Complete Go JSON contains four direct scenarios and seven balanced
+named results, without failures, named skips or races. All captured source bytes
+and modes remain exact. Eleven captured process/group identities, both database
+ports and project-labelled Compose resources are independently absent.
+Actual readback SHA-256:
+`6a4925d434422e49decc10bb46a5fc050b05ecaa9ef230505237280dc592c3f6`.
+Independent absence SHA-256:
+`cca23dfcb1e80f770ead351e08a9a0a2e89e0e6ed6be8708289eb6eab262b780`.
+
+A controlled old-reset run reproduces the first rollback HTTP 409 on both
+engines: the migration retains a command UUID that the lifecycle fixture reuses,
+while its old reset omits both new tables. The corrected reset includes those
+tables. Other narrow fixture corrections compare authorized detail responses
+before and after injected audit failure and provide the required role description;
+original full-response, version, command, audit and permission assertions remain.
+
+The subsequent application failure exposes a production omission: the actual
+runtime route builder does not carry Connection enablement and Provider Model
+disablement into its route facts. The reviewed repair preserves those exact
+stored fields. Faithful old-builder controls fail and the repaired builder
+controls pass, without weakening the current-publication predicate. The renewed
+real-driver lifecycle confirms current local application, immutable receipts,
+rollback/replay/no-op behavior, audit atomicity and independent read/write access.
+
+The earlier 5,231-name inventory and complete checks remain bound to their older
+source. Fresh whole-source checks, an updated ordinary inventory, Full174,
+controlled native and executable restart, browser acceptance and main delivery
+remain pending. This focused pass does not close all F30 requirements. The
+current main CI fixture repair is being reviewed separately; production alert
+behavior and complete unfiltered notification privacy assertions are preserved.
+Earlier failed checkpoints retain their original scope and status.
 
 ## Corrected Vault controlled acceptance (2026-10-09)
 
@@ -167,6 +232,49 @@ job; dependent Build is skipped. Actionlint37836966001, GolangCI-Lint37836965920
 Backend and Frontend pass. Complete preserved diagnostic artifacts are being
 retrieved; the exact failing stage and cause remain under investigation.
 Vault V89 and routing-weight rollback are excluded from this commit.
+
+### Exact-head CI diagnostic checkpoint (2026-10-09)
+
+CI37847672744 at `546045ef4104c183d90051dfb84ecd8959c90b8a` fails only the
+Project Key rolling-warning lifecycle on PostgreSQL and MySQL. Backend,
+Frontend, Actionlint and GolangCI-Lint pass; authentication restart and the
+dependent build are skipped. The original complete twelve-file artifact
+11581739340 is retained privately; ZIP SHA-256:
+`46db2e098f4d39cb40497f371ddff5cb7f0e6b82c2b12d8e4e8e02e33763f3ff`.
+
+Both failure-only diagnostics identify the administrator inbox with one unread
+`system_job_failure` item. The item has no Project Key rolling-warning snapshot
+and does not match the controlled Key or Project. The cause of that system job
+failure and its relationship to the inbox expectation still require diagnosis;
+no quota-history disclosure or resolved privacy bug is inferred. Existing
+assertions remain unchanged. This new evidence does not identify the contents
+of the older `1581508` failed inboxes. Remote cleanup remains supervisor-reported,
+not independently queried. Vault main adoption waits for this failure to be
+handled; its isolated source-bound Full172 and controlled acceptance remain
+separate successful evidence.
+
+### Routing lifecycle diagnostic checkpoint (2026-10-09)
+
+The initial V90 focus passes the migration scenario on PostgreSQL and MySQL but
+fails both lifecycle scenarios with HTTP 409 instead of 200. The generic helper
+marker hides the failing request location; the cause remains unknown. Removing
+only the lifecycle helper marker preserves every request and assertion. Its
+renewed two-driver focus runs in 100.044 seconds and reaches the audit-failure
+rollback comparison on both drivers; it does not reproduce or explain the
+original conflict.
+
+That comparison mixes the legacy weight editor response, which omits routing
+supply metadata, with the authorized detail response, which includes it. The
+fixture now captures an authorized detail response before the injected audit
+failure and compares the complete detail response afterward. Version, command
+and audit counts and full response equality remain required; production is
+unchanged. The renewed fixture still requires real-driver acceptance. All eleven
+captured process identities, both ports and project-labelled resources from the
+failed diagnostic run are independently absent; source bytes and modes remain
+unchanged. Absence SHA-256:
+`0b5fa5b0d8f741ad57c8b2c2764bab31eb6e28b33e468694f1dcb864715c53bf`.
+Full174 and controlled native/restart execution remain unapproved pending these
+gates. Browser acceptance remains deferred while the computer is locked.
 
 ## Current combined phase gate (2026-10-08)
 
