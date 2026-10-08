@@ -78,8 +78,35 @@ jobs:
         with:
           node-version: 22.22.0
 
+      - name: Declare integration diagnostics directory
+        env:
+          ROUTEX_INTEGRATION_DIAGNOSTICS: ${{ runner.temp }}/routex-integration-${{ github.run_id }}-${{ github.run_attempt }}-database-integration
+        run: printf 'ROUTEX_TEST_RUNNER_PRIVATE_DIR=%s\n' "$ROUTEX_INTEGRATION_DIAGNOSTICS" >> "$GITHUB_ENV"
+
       - name: Test isolated databases
         run: go tool task test-integration
+
+      - name: Preserve complete integration diagnostics
+        if: ${{ always() && env.ROUTEX_TEST_RUNNER_PRIVATE_DIR != '' }}
+        timeout-minutes: 5
+        uses: actions/upload-artifact@v4
+        with:
+          name: routex-integration-${{ github.run_id }}-${{ github.run_attempt }}-database-integration
+          retention-days: 1
+          if-no-files-found: warn
+          path: |
+            ${{ env.ROUTEX_TEST_RUNNER_PRIVATE_DIR }}/build.log
+            ${{ env.ROUTEX_TEST_RUNNER_PRIVATE_DIR }}/logs/nonmatrix.log
+            ${{ env.ROUTEX_TEST_RUNNER_PRIVATE_DIR }}/logs/postgres.log
+            ${{ env.ROUTEX_TEST_RUNNER_PRIVATE_DIR }}/logs/mysql.log
+            ${{ env.ROUTEX_TEST_RUNNER_PRIVATE_DIR }}/logs/compose-up.log
+            ${{ env.ROUTEX_TEST_RUNNER_PRIVATE_DIR }}/logs/postgres-port.log
+            ${{ env.ROUTEX_TEST_RUNNER_PRIVATE_DIR }}/logs/mysql-port.log
+            ${{ env.ROUTEX_TEST_RUNNER_PRIVATE_DIR }}/logs/compose-logs.log
+            ${{ env.ROUTEX_TEST_RUNNER_PRIVATE_DIR }}/logs/compose-down.log
+            ${{ env.ROUTEX_TEST_RUNNER_PRIVATE_DIR }}/logs/status.json
+            ${{ env.ROUTEX_TEST_RUNNER_PRIVATE_DIR }}/logs/diagnostics.log
+            ${{ env.ROUTEX_TEST_RUNNER_PRIVATE_DIR }}/logs/owned-processes.jsonl
 
       - name: Test authentication across process restarts
         run: go tool task test-auth-lifecycle
@@ -166,7 +193,7 @@ jobs:
         run: go test -trimpath ./website
 
       - name: Test development task lifecycle
-        run: node --test scripts/dev.test.mjs
+        run: node --test scripts/*.test.mjs
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4

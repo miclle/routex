@@ -196,3 +196,26 @@ facts without replay. Complete rebuilt-main PostgreSQL/MySQL acceptance passed (
 seconds; Service 7.537 seconds);
 the historical personal/Project verification above is not evidence for it. See
 [Team Session inference](TEAM_INFERENCE.md) and [Playground](PLAYGROUND.md).
+
+
+## Controlled local versioned-storage acceptance
+
+The retained V84 production executable passes a controlled local process/API
+qualification in 85.064 seconds. It verifies Signature V4 denial, anonymous denial,
+conditional creation, exact-version reads/deletes and absence of delete markers.
+Real RouteX API checks preserve independent read/write/test permissions and the
+active revision after bad credentials, round-trip the recorded attachment hash,
+retain five original Sessions across restart, and recover durable pending deletion
+after a storage outage. Recovery deletes only the recorded version while an
+independent second version stays readable. No inference call, attempt or Key is
+created. An unconfirmed failed probe stays pending as required by the cleanup
+contract. Original owned processes, ports and Compose resources are independently
+absent after the test. Acceptance SHA-256:
+`45509490de0b22bd789004cf63ea2ec31a2d61526e09fc98599bd3304418a594`.
+
+This is local storage evidence; AWS, external Provider and browser acceptance
+remain separate. Earlier network/permissions and changing-endpoint fixture runs
+remain failed. The accepted disposable fixture uses fixed loopback host ports,
+an ordinary owned bridge that permits egress and a narrowly scoped S3
+DAC_OVERRIDE capability. These fixture settings are not production requirements
+or an egress-isolation guarantee.

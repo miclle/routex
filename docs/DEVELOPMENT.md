@@ -66,6 +66,24 @@ go tool actionlint
 
 `test` runs Go tests with the race detector, frontend behavior tests, development process lifecycle tests, and production asset tests. `test-integration` compiles a standard-library process supervisor, starts PostgreSQL and MySQL from `compose.test.yaml`, runs the complete nonmatrix package suite, then runs the complete PostgreSQL and MySQL handler matrices in independent concurrent processes. Every test command retains uncached race checks and a 120-minute Go timeout; the supervisor has a finite 7,300-second lifecycle budget including 120 seconds reserved for process and Compose cleanup. These budgets are limits, not measured durations or performance claims. CI uses the same entry point. Each run uses a unique Compose project, random loopback ports, and temporary in-memory storage; it does not read or modify development database volumes. Cancellation terminates and joins owned process groups before database cleanup. All worker statuses and cleanup failures affect the final exit code. A private ownership ledger records each started child PID and process group immediately; ledger failures stop and join started workers before further cleanup. Complete raw Go JSON event logs, private diagnostics and a status report remain in a private temporary directory. Terminal reporting begins after owned cleanup, has a separate ten-second allowance within the lifecycle budget, and responds promptly to cancellation even when a consumer stops reading. Pending status receipts remain explicitly incomplete until the final exit state is recorded. The runner reports the log directory when the terminal accepts output; raw replay is a bounded verbatim prefix and is explicitly marked when truncated. A successful process status alone does not establish named scenario acceptance.
 
+CI declares `ROUTEX_TEST_RUNNER_PRIVATE_DIR` before invoking the same integration
+entry point. The optional path must be absolute, canonical and exclusively new
+under a physical existing parent; reuse and symlinks fail before compilation.
+Local runs without this option retain random private directories. Compilation
+failure still preserves `build.log`; ordinary worker failure retains its original
+exit code and complete private evidence.
+
+An `always()` CI step uploads only the explicit original build/worker/Compose
+logs, lifecycle status, diagnostics and process ledger, with one-day retention
+and a five-minute upload bound. It excludes executables, configurations,
+environment dumps and unrelated paths. These artifacts contain disposable test
+fixture data and may contain diagnostic SQL; use only isolated tests without
+production credentials. Missing or pending receipts remain incomplete evidence.
+Upload after hard cancellation or runner loss is best effort, and artifact
+capture never changes a failed test into success. Read complete worker JSON and
+final status when investigating a failure beyond the bounded terminal prefix.
+
+
 The script passes the test database addresses through these environment variables:
 
 - `ROUTEX_TEST_POSTGRES_DSN`
