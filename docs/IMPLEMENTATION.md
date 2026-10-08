@@ -2,6 +2,80 @@
 
 Updated: 2026-10-08. This document records engineering contracts, work packages and acceptance checks. Planned interfaces and metrics are not implementation evidence. The objective covers F01–F30 and A01–A20 through incremental P0–P6 delivery and is resumed by the user's explicit instruction, prioritizing partially completed capabilities.
 
+## Controlled browser acceptance (2026-10-08)
+
+The newly built production artifact for delivered Member checkpoint `222ea08`
+passes a finite controlled browser run. Four genuine download events produce
+Excel and CSV files before and after an identical-artifact service restart.
+Exact two-rate text, zero, long decimal, disabled state and file hashes are
+verified against the API catalogue. The original Reader browser Session remains
+usable after restart without a new login; the fresh baseline contains nine
+Sessions and preserves all eight original API Sessions and recorded rows.
+Read revocation removes private download controls; restoration renews access.
+English/Chinese copy, four recipient notices, real mark-all-read and an unrelated
+recipient's empty menu are observed. Seven Calls, six Attempts, eight notices
+and six nondecreasing episode sample times remain authoritative API/DB facts.
+Root independently confirms owned resources, processes and ports are absent.
+
+Artifact SHA-256:
+`440c8ba49b7b57f65d5a92469c78553da13962b545c07776a0a754336578e4c9`;
+root browser review SHA-256:
+`00c637e362ec81c337426896c8ae2e7cb480941ec7051ab18fca219d9e4e2fce`.
+The first idle-expired and second database-connection-loss browser attempts
+remain failed and retained; the latter's cause is unproven. This third run does
+not accept Role CRUD, Member password creation, Notification settings Save,
+Personal Key V82 browser behavior or external mail/provider functionality.
+F15 is now Completed under the approved current-repository source contract.
+A09 remains partial for network adapters, scheduling and wider release evidence.
+Current totals are 13 complete, 14 partial and three unstarted.
+
+## Personal Key rolling warning candidate (2026-10-08)
+
+The frozen 41-path worktree candidate is composed on Member delivery `222ea08`.
+It adds sampled own-root-Key five-hour/seven-day warnings at fixed 80%/90%, using
+current owner/root birth, retained rotation graph and applied policy/calendar proof.
+Live enabled nonexpired descendants permit new observations; revoked-root history
+remains readable only by its exact original owner. Finite holds stay separate from
+settled usage; unknown coverage never rearms or estimates percentages. Cap changes
+start a new episode; Keys have no invented default/reset endpoint.
+
+Private frozen GORM V82 adds three tables with portable constraints and indexes.
+The exact 156-case prefix is preserved and two lifecycle/migration cases append
+for 158. Predecessor fixture assertions retain the exact V82 ledger suffix and
+original timestamps. Existing menu composition gains paired translations and
+strict snapshot validation, including Unicode code-point name boundaries.
+
+Independent source review found the repaired Unicode length mismatch; no further
+production/proof/privacy defect remains identified. Worktree checking, Service
+race, Database/Handler units, 223 focused frontend cases and 41 final API boundary
+cases pass. Candidate manifest SHA-256:
+`c1d48741ca336b20ca98928e7f4cad092c0368869b3fbfc218fce50dd2d2c86f`.
+Earlier malformed-tag, disk-space and missing-cache check failures remain retained.
+Composed-main formatting, mandatory checking, complete Task and production
+build pass. Task records 4,971 frontend cases in 193 suites, Go race/coverage,
+four Node checks, two development lifecycle checks and production assets.
+The first real Focus34 fails only the new lifecycle on both databases: the
+fixture used internal `key` as the public target and a foreign administrator
+for owner-only operations. The other 32 direct children pass. One test-only
+repair uses `personal_key`, the exact owner and a live rotation descendant,
+with explicit administrator/internal-kind/revoked-predecessor denials.
+Fresh main checking and focused Handler race/vet pass after that repair.
+
+The first 1,891-file fixture derivative has floor SHA-256
+`14e61561a69c1e05c197b083f1d0bc482f8723f7097fb8d787ebb3f966b375d5`.
+Its real Focus4 also fails both lifecycle children: the fixture immediately
+stops the runtime, so the existing applied-publication fence correctly prevents
+inbox persistence. Production remains unchanged. A second repair keeps the real
+publisher live, uses the existing bounded fixture publication barrier and joins
+the old publisher before reconstruction. Exact injected error/hit, root usage,
+transaction rollback, recipient privacy and restart assertions are retained.
+Focused Handler/Service race and Handler vet pass. Fixture SHA-256:
+`6370afbb99fe2a35cac3c710591038458713ca8fbccb6c39eb991174b08f53ae`.
+The prior complete Task/build retain their earlier source boundary. Renewed
+main checking passes; Focus4 and Full158 remain required for this derivative. Both
+failed database runs remain failed and retained. No Key delivery or whole
+F17/F23 completion is claimed.
+
 ## Checked Member creation sensitive-input repair (2026-10-08)
 
 The existing Members creation dialog now dispatches directly, clears the initial
@@ -132,7 +206,7 @@ rolling-warning implementation and existing browser acceptance gaps in parallel.
 These candidates remain unaccepted until their own checks and delivery finish.
 Durable published Vault cleanup, external SMTP and broader quota sources remain
 open; local response Close evidence does not establish durable fleet drain.
-Formal totals remain 12 complete, 15 partial and three unstarted.
+Current formal totals are 13 complete, 14 partial and three unstarted.
 
 Saved AppRole is committed and pushed as
 `77ece1770394e5217ff72094083e51b01d9eb143`, with exact remote main read-back.
@@ -1424,14 +1498,14 @@ Status terms in this section are deliberately strict:
 - **Partially completed** means material implementation exists, but one or more required behaviors or acceptance gates remain open. It does not mean that work has not started.
 - **Not started** means no material implementation of the capability exists. A prerequisite or design note may still be present.
 
-The binary capability count is 12 completed, 15 partially completed, and 3 not started. F06 initial Model access selection has passed its scoped acceptance. This is a completion count, not an effort percentage: several partially completed capabilities contain substantial delivered work. The user resumed implementation on 2026-10-02 and prioritized partially completed capabilities. Status changes require current implementation and acceptance evidence; a package delivery alone does not complete an entire capability.
+The binary capability count is 13 completed, 14 partially completed, and 3 not started. F15 now has complete controlled acceptance, including genuine browser downloads and original-Session restart. F06 initial Model access selection has passed its scoped acceptance. This is a completion count, not an effort percentage: several partially completed capabilities contain substantial delivered work. The user resumed implementation on 2026-10-02 and prioritized partially completed capabilities. Status changes require current implementation and acceptance evidence; a package delivery alone does not complete an entire capability.
 
 | ID | Capability | Status | Delivered and remaining scope |
 |---|---|---|---|
 | F01 | Initialization, local identity, registration, and logout | Completed | Concurrent one-time setup, administrator creation, local login, registration control, durable sessions, and logout are implemented and tested. |
 | F02 | Profile, password, MFA, recovery codes, and session revocation | Completed | Profile and password changes, authenticator enrollment, single-use recovery codes, and individual-session revocation are implemented. |
 | F03 | Enterprise SSO, LDAP, OAuth, and emergency recovery | Not started | Provider configuration, callbacks, identity binding, enforced SSO, and enterprise recovery remain unimplemented. |
-| F04 | Member administration, direct grants, roles, and resource policies | Partially completed | Member Overview, Keys, Limits, Teams, Models, metadata, list, effective Models, recent login, Access, direct Roles and State are checked deliveries. Current Role definitions, descriptions and permission workflows have dual-driver and controlled acceptance; Team-assigned roles are delivered under F06. Earlier failed CI checkpoints remain historical and do not describe current functional absence. Member handover state is delivered in 5fda0737. The Role create/delete lifetime repair is delivered in 00700348 after independent source review, 198 focused tests and mandatory checking; its exact-head CI passes. Member initial-password retention is under repair; further browser and enterprise acceptance remain open. |
+| F04 | Member administration, direct grants, roles, and resource policies | Partially completed | Member Overview, Keys, Limits, Teams, Models, metadata, list, effective Models, recent login, Access, direct Roles and State are checked deliveries. Current Role definitions, descriptions and permission workflows have dual-driver and controlled acceptance; Team-assigned roles are delivered under F06. Earlier failed CI checkpoints remain historical and do not describe current functional absence. Member handover state is delivered in 5fda0737. The Role create/delete lifetime repair is delivered in 00700348 after independent source review, 198 focused tests and mandatory checking; its exact-head CI passes. Member initial-password lifetime is delivered in 222ea08 after mandatory checking and complete Task; further browser and enterprise acceptance remain open. |
 | F05 | Built-in and custom roles with composed permissions | Partially completed | Current-domain role and permission management, reviewed definitions/descriptions, and immutable Procurement/Finance/Operations templates with explicit assignment are implemented and accepted. Later enterprise and operations domains still require permission integration and negative acceptance. |
 | F06 | Team membership, ownership, models, quotas, and member rules | Completed | Membership, ownership, model relationships, finite aggregate/member policies, monthly requests and durable Team-assigned roles have dual-driver and controlled acceptance. Initial limits V63 is delivered as8f17d12. Initial Model access V66 passed complete121, main3,759 frontend cases, both auth/gateway lifecycles and controlled bilingual/original-Session restart with four native probes. Separate read-only review confirms exact grants, receipts and completed attempts; the original helper denial-oracle failure remains retained. Empty selection grants no Models. |
 | F07 | Project lifecycle, managers, models, Keys, and requests | Completed | Exact current management, lifecycle/continuity, multi-manager creation, initial direct resources and combined requests, scoped Overview, Project Keys, resource limits and model/quota/rate approvals are implemented with controlled dual-database/browser/native/restart evidence. Both lists now show authorized total retained Key counts; administrative stored-policy summaries, literal name/ID search and authorized legacy tab replacement have full main acceptance. |
@@ -1442,7 +1516,7 @@ The binary capability count is 12 completed, 15 partially completed, and 3 not s
 | F12 | Model catalog, names, bindings, weights, and catalog assistance | Partially completed | Stable models, renames, bindings, weights, grants, and availability controls exist; reviewed compatibility-name Early stop has complete controlled source, dual-driver, native/browser/restart and full-matrix delivery. Guided batch creation has complete source, repaired driver, production/browser/restart and full-matrix acceptance, with one atomic reviewed transaction, bounded historical receipts and no implicit grants or existing-Key expansion. Advisory public-name assistance and its bounded popup-label compatibility repair have complete controlled source and final R2 browser/native/restart acceptance; checked delivery is represented by the containing acceptance-record commit, with new remote CI pending. Complete public-catalog assistance and broader routing acceptance remain open. |
 | F13 | Four native protocols, streaming, health, retries, and failover | Partially completed | Chat Completions, Responses, Messages, and Gemini now use bounded replay-safe same-protocol failover with process-local health, one admission/settlement, durable ordered diagnostics, and no retry after a usable response. Azure Chat adaptation and exact Credential deployment declarations are delivered as 5fda0737 with controlled dual-driver/native/restart evidence; real-provider and measured multi-node health acceptance remain open. |
 | F14 | Managed egress and staged network diagnostics | Partially completed | Direct, default, SOCKS5, verified CONNECT, endpoint-bound saved authentication, complete-tunnel proxy-address fallback, and diagnostics exist. External proxy and production performance acceptance remain open. |
-| F15 | Prices, spreadsheet/CSV workflows, API, and repository sync | Partially completed | Current prices, ETags, CSV/XLS/XLSX import, preview, commit, and export exist; repository-file mappings, reviewed synchronization, custom-rate protection and selected restoration passed complete current-main source, dual-driver and controlled production/browser/restart gates; three embedded model entries/six base USD rates now have controlled dual-driver preview/apply/receipt/replay and same-artifact restart acceptance; missing cache rates remain absent, while broader external/release acceptance remains open. |
+| F15 | Prices, spreadsheet/CSV workflows, API, and repository sync | Completed | Individual price editing, reviewed CSV/XLS/XLSX imports, management API and the approved embedded repository source have source, dual-driver and controlled UI/native/restart evidence. Exact mappings, manual preview/confirmation, custom/zero/disabled-rate protection, atomic row errors, ETags and omission preservation are accepted. Four genuine Excel/CSV browser downloads, independent read authority, revocation/restoration, bilingual controls and original Reader browser Session restart close the final bounded gap. Arbitrary network fetching, scheduling and wider release acceptance remain separate A09 work. |
 | F16 | Platform currency, exchange rates, and historical price snapshots | Completed | Decimal-string currency/rate management, exact quoting, and immutable per-call assessment are implemented. |
 | F17 | User and Team defaults, overrides, budgets, alerts, and stop policy | Partially completed | Personal, Project, Key and Team aggregate/member enforcement plus budget/token/TPM controls, authoritative quota snapshots, and installation-calendar configuration exist; current-policy Personal/Project monthly settled-exhaustion inboxes have focused acceptance, Team aggregate monthly settled-exhaustion inboxes have complete controlled acceptance; private Team member monthly notices have passed controlled local source, dual-driver, native/browser/restart and full-matrix acceptance, with final mandatory check passed and checked source committed/pushed as 5363d3c; distinct remote checks remain in progress, and creation-default settings and explicit restores have complete local acceptance; Personal, Team aggregate, Project and private Team-member fixed 80%/90% settled monthly warnings have complete local source, dual-driver/full and controlled PostgreSQL bilingual/restart acceptance; Member warnings are committed/pushed as f7b31b1a, and separate Restore recovery as e9003c97; Personal/Project Key warnings V64/V65 are delivered as cf05c57 after full119, mandatory main checks, both authentication lifecycles and two controlled PostgreSQL scenarios totaling12 native calls,10 observations and15 inbox rows; Team creation V63 is delivered as8f17d12. Chinese Key titles are corrected in8a47ac2; fixed default templates and explicit restores are available. Independent Personal monthly Token/money stop or alert-only behavior is delivered as03c6fe1; the containing commit delivers Team aggregate monthly modes V71, preserving hard Team-member policies. Personal Key and explicit Project aggregate monthly modes are delivered in c2368ddb; independent Project Key modes and Key asynchronous ownership protection are delivered as a5bb00b; Team-member modes are delivered as de5b696 after Full144, API/restart and final contextual source checks. Distributed enforcement remains open; named template CRUD, configurable warning percentages and arbitrary periods are not established requirements. |
 | F18 | Quota, model, and request-limit approvals | Completed | Project model/monthly quota/RPM/TPM/concurrency and Team monthly Token/money requests have controlled acceptance: owner-first assignment, escalation, independent dimensions, read-only platform records, atomic final policies and immutable receipts with current application. Distributed acknowledgements belong to F30; release-wide acceptance remains separate. |

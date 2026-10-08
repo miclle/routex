@@ -5,20 +5,93 @@ Updated: 2026-10-08. Status: resumed by explicit user instruction; prioritize pa
 ## Resume boundary
 
 The user explicitly resumed implementation on 2026-10-08 and authorized
-parallel subagents and workspaces. Current main is `352a6f7`; its exact-head
+parallel subagents and workspaces. At resume, main was `352a6f7`; its exact-head
 CI37675821518, Actionlint37675821707 and GolangCI37675821500 all pass.
 The checkout was clean at resume. Preserve existing services and unrelated work.
 
-The containing commit delivers the checked Member initial-password repair below.
-Current bounded work extends sampled rolling warnings to Personal Key roots in a
-separate managed worktree under their existing exact owner/birth/rotation proof.
-That candidate remains unaccepted pending composed-main and dual-driver gates.
-Root is preparing one current-artifact browser environment for notification,
-Role-dialog and genuine XLSX/CSV download acceptance; the desktop is available at
-this resume probe. No browser acceptance is inferred from that inventory.
+Member initial-password lifetime is delivered and pushed as `222ea08`.
+Its exact-head CI37717567220, Actionlint37717567223 and GolangCI37717567140
+all pass. Personal Key rolling V82 is composed with passing main checks/Task;
+its test-only public-target/live-runtime repairs await fresh Focus4 then Full158.
+The controlled current-artifact browser acceptance below closes genuine price
+file delivery and original Reader browser Session restart gaps. Broader Role,
+Member and settings workflows retain their own outstanding browser boundaries.
 Durable published-source cleanup, external SMTP and other rolling scopes remain
-separate unfinished work. The previously discussed durable coordinator migration
-number was only provisional; a new migration is allocated only for actual work.
+separate unfinished work. The full objective continues without a pause.
+
+## Controlled browser acceptance (2026-10-08)
+
+The newly built production artifact for delivered Member checkpoint `222ea08`
+passes a finite controlled browser run. Four genuine download events produce
+Excel and CSV files before and after an identical-artifact service restart.
+Exact two-rate text, zero, long decimal, disabled state and file hashes are
+verified against the API catalogue. The original Reader browser Session remains
+usable after restart without a new login; the fresh baseline contains nine
+Sessions and preserves all eight original API Sessions and recorded rows.
+Read revocation removes private download controls; restoration renews access.
+English/Chinese copy, four recipient notices, real mark-all-read and an unrelated
+recipient's empty menu are observed. Seven Calls, six Attempts, eight notices
+and six nondecreasing episode sample times remain authoritative API/DB facts.
+Root independently confirms owned resources, processes and ports are absent.
+
+Artifact SHA-256:
+`440c8ba49b7b57f65d5a92469c78553da13962b545c07776a0a754336578e4c9`;
+root browser review SHA-256:
+`00c637e362ec81c337426896c8ae2e7cb480941ec7051ab18fca219d9e4e2fce`.
+The first idle-expired and second database-connection-loss browser attempts
+remain failed and retained; the latter's cause is unproven. This third run does
+not accept Role CRUD, Member password creation, Notification settings Save,
+Personal Key V82 browser behavior or external mail/provider functionality.
+F15 is now Completed under the approved current-repository source contract.
+A09 remains partial for network adapters, scheduling and wider release evidence.
+Current totals are 13 complete, 14 partial and three unstarted.
+
+## Personal Key rolling warning candidate (2026-10-08)
+
+The frozen 41-path worktree candidate is composed on Member delivery `222ea08`.
+It adds sampled own-root-Key five-hour/seven-day warnings at fixed 80%/90%, using
+current owner/root birth, retained rotation graph and applied policy/calendar proof.
+Live enabled nonexpired descendants permit new observations; revoked-root history
+remains readable only by its exact original owner. Finite holds stay separate from
+settled usage; unknown coverage never rearms or estimates percentages. Cap changes
+start a new episode; Keys have no invented default/reset endpoint.
+
+Private frozen GORM V82 adds three tables with portable constraints and indexes.
+The exact 156-case prefix is preserved and two lifecycle/migration cases append
+for 158. Predecessor fixture assertions retain the exact V82 ledger suffix and
+original timestamps. Existing menu composition gains paired translations and
+strict snapshot validation, including Unicode code-point name boundaries.
+
+Independent source review found the repaired Unicode length mismatch; no further
+production/proof/privacy defect remains identified. Worktree checking, Service
+race, Database/Handler units, 223 focused frontend cases and 41 final API boundary
+cases pass. Candidate manifest SHA-256:
+`c1d48741ca336b20ca98928e7f4cad092c0368869b3fbfc218fce50dd2d2c86f`.
+Earlier malformed-tag, disk-space and missing-cache check failures remain retained.
+Composed-main formatting, mandatory checking, complete Task and production
+build pass. Task records 4,971 frontend cases in 193 suites, Go race/coverage,
+four Node checks, two development lifecycle checks and production assets.
+The first real Focus34 fails only the new lifecycle on both databases: the
+fixture used internal `key` as the public target and a foreign administrator
+for owner-only operations. The other 32 direct children pass. One test-only
+repair uses `personal_key`, the exact owner and a live rotation descendant,
+with explicit administrator/internal-kind/revoked-predecessor denials.
+Fresh main checking and focused Handler race/vet pass after that repair.
+
+The first 1,891-file fixture derivative has floor SHA-256
+`14e61561a69c1e05c197b083f1d0bc482f8723f7097fb8d787ebb3f966b375d5`.
+Its real Focus4 also fails both lifecycle children: the fixture immediately
+stops the runtime, so the existing applied-publication fence correctly prevents
+inbox persistence. Production remains unchanged. A second repair keeps the real
+publisher live, uses the existing bounded fixture publication barrier and joins
+the old publisher before reconstruction. Exact injected error/hit, root usage,
+transaction rollback, recipient privacy and restart assertions are retained.
+Focused Handler/Service race and Handler vet pass. Fixture SHA-256:
+`6370afbb99fe2a35cac3c710591038458713ca8fbccb6c39eb991174b08f53ae`.
+The prior complete Task/build retain their earlier source boundary. Renewed
+main checking passes; Focus4 and Full158 remain required for this derivative. Both
+failed database runs remain failed and retained. No Key delivery or whole
+F17/F23 completion is claimed.
 
 ## Checked Member creation sensitive-input repair (2026-10-08)
 
@@ -150,7 +223,7 @@ rolling-warning implementation and existing browser acceptance gaps in parallel.
 These candidates remain unaccepted until their own checks and delivery finish.
 Durable published Vault cleanup, external SMTP and broader quota sources remain
 open; local response Close evidence does not establish durable fleet drain.
-Formal totals remain 12 complete, 15 partial and three unstarted.
+Current formal totals are 13 complete, 14 partial and three unstarted.
 
 Saved AppRole is committed and pushed as
 `77ece1770394e5217ff72094083e51b01d9eb143`, with exact remote main read-back.

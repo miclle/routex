@@ -324,7 +324,16 @@ are omitted. Source omission neither deletes saved rates nor overrides custom
 ownership, and updates never recalculate immutable historical call amounts.
 
 The earlier empty-production-source acceptance below remains historical and
-distinct from the current seed acceptance above. F15 remains Partially completed because broader external and release acceptance remains open.
+distinct from the current seed acceptance above. F15 is Completed under the
+approved embedded repository-source contract. The 2026-10-08 controlled browser
+run closes genuine Excel/CSV delivery: four documented download events before
+and after an identical-artifact restart preserve exact zero, long decimal and
+disabled rates. Read revocation/restoration, English/Chinese controls and the
+original Reader browser Session are verified. Root browser review SHA-256:
+`00c637e362ec81c337426896c8ae2e7cb480941ec7051ab18fca219d9e4e2fce`.
+Arbitrary network fetching, automatic scheduling and wider release acceptance
+remain separate A09 work; they are not prerequisites for the approved initial
+repository source. Earlier failed browser attempts remain retained.
 
 Explicit mappings connect existing Provider-model identities to reviewed source keys.
 Configuration changes do not apply prices. A server-derived preview binds the
