@@ -12,8 +12,9 @@ failures or races. The run completed in 2,055.583 seconds. Independent verificat
 confirms all captured processes, owned Compose resources and database ports absent.
 Acceptance SHA-256:
 `58729eb521921a8a50fe3b09321d614300e3e29fde2567cd191f3009fd6777c1`.
-These results cover the 1,928-path V84/162-case source; only English documentation
-changes follow that captured tree. The containing commit delivers Personal
+These results cover the 1,928-path V84/162-case feature source. The later CI
+diagnostic plumbing has separate source and test gates; it does not relabel that
+whole-source acceptance. The feature commit delivers Personal
 root-Key, Project and Team rolling Token warnings, maintained public-name
 reservation checks and the supervised parallel database runner. Controlled
 browser, local SMTP/S3 and external-provider acceptance remain separate.
@@ -31,8 +32,20 @@ remains unknown. The accepted local Full162 is separate evidence. A narrow CI
 plumbing change preserves complete original logs, status and ownership ledger
 from an exclusively new declared directory in a one-day artifact; default local
 allocation and supervisor commands, assertions and cleanup remain unchanged.
-Eight controlled entry-point tests and Actionlint pass; remote qualification of
-this diagnostic plumbing remains pending.
+The diagnostic change is committed and pushed as
+`3720d75a5f5098f465c169026be8edb63d1931df`. Its final mandatory check, complete
+Task (5,074 frontend tests), eight controlled entry-point tests and source review
+pass. Exact-head Actionlint37806616211 and GolangCI-Lint37806615994 pass;
+CI37806616103 now passes all four jobs, including both databases, original
+Session restart checks and the dependent build. Root retrieves the original
+one-day artifact and verifies its SHA-256, exact committed Go/dependency/Compose
+source, complete JSON, status and immediate ownership ledger: all 4,813 ordinary
+named tests, 412 named tests per driver, 324 direct scenarios and eight constraints
+pass. Complete original-JSON review SHA-256 is
+`eea330d8a097d979705c351da135b5a0991aecf6725d01090d800551329ef3bd`.
+Remote process/resource absence is supervisor-reported rather than independently
+queried; no future-feature or runtime-application acceptance is inferred. The
+original older PostgreSQL failure cause remains unknown.
 Controlled local SMTP also passes on the retained current executable in 45.579
 seconds: one DATA250 acceptance, one lost final reply recorded Unknown, distinct
 messages with one attempt per occurrence, and two original-Session restarts
@@ -349,13 +362,21 @@ assets. The fresh resource-free ordinary JSON run independently verifies all
 5,005 exact named tests, retaining all 4,813 parent entries plus 192 additions.
 The retained R6 executable is
 `c4447c241f02a0337ab2004df806366b38e28dbc6ae8e7c22d18d1455dec6ad3`;
-the genuine root-owned Full168 run is now in progress. It uses complete PostgreSQL
-and MySQL registries with concurrent driver workers under unchanged finite supervision.
-Launch binding SHA-256:
-`a8cb52fd883b7771e2849c95a7b54dd6ad924e3ce6848bac2ed407589c8cc12a`.
-Completion, strict readback, independent owned cleanup, browser and main feature
-delivery remain pending. R5 receipts retain their original source identity and
-are not transferred to R6.
+the genuine root-owned Full168 run finishes failed in 2,301.284 seconds.
+Both complete driver JSON logs retain all 430 expected names with no named skips:
+PostgreSQL passes 162 direct scenarios and fails six; MySQL passes 163 and fails
+five. All 5,005 ordinary names pass. Root independently verifies all ten captured
+PIDs, nine process groups, both ports and the exact project-labelled resources
+absent. Complete failed-run review SHA-256 is
+`84cb96f53e0a6282aad7d477bbca37fb789268a253e9b1704bee00ba6f99dc21`.
+The shared failures are catalog, alias retirement, supply status, recorded-metadata
+migration and recorded metadata; PostgreSQL additionally fails runtime-application
+migration. Source diagnosis identifies five obsolete fixture boundaries and a
+PostgreSQL GORM index-drop limitation. Separate minimal repairs are being prepared,
+retaining current historical/timestamp/partial-index assertions. The original
+failed run remains failed. Fresh successor gates, focused/full database testing,
+browser and main feature delivery remain pending; the frozen R6 adoption patch
+is not applied. R5 receipts retain their original source identity.
 
 The isolated F28 backend R2 source remains 34 owned leaves and passes nine
 top-level/thirty-eight nested mocked race tests. Its final irreversible remote
@@ -378,8 +399,29 @@ no finding at
 `5f0ef8deee9ee39bb66aae00bf32989e23e00a9cdb322963354d71a2682446ff`.
 The combined 2,008-path floor is
 `bb33c5344eacd09f3aa16b8446dbb49e902d6387f54f4c03b9dfc842322cf36f`.
-Real Full170, Vault/native/process restart, browser and feature delivery remain
-pending. Offline generations without positive joined acknowledgment stay blocked;
+Fresh root mandatory checking, complete Task and production build pass on this
+exact 2,008-path composition: 5,440 frontend tests in 208 files, Go race/coverage,
+Node and development lifecycle checks, and production assets. The retained
+executable is
+`8fa3f71b23c8e2b9d5ce52a674f2b12e4de62dd36cf11a59f94b5a4bdd515380`;
+fresh gate receipt SHA-256 is
+`fd86bcab120d733ca36e35f0f91a7b7347a4ed7db39c11a3b0e6f8115d33b125`.
+A fresh resource-free ordinary JSON run passes all 5,053 exact named tests,
+retaining all 5,005 parent entries plus 48 additions with no removed entries.
+Independent root ordinary-review SHA-256 is
+`798d7351f3ddb410992664fa0fa1936bcdcfe2767e78aade91e0419f7d31101e`.
+The root-owned Full170 run is now in progress with isolated concurrent
+PostgreSQL/MySQL workers, complete 170-case registries and the unchanged finite
+supervision/cleanup budgets. Launch binding SHA-256 is
+`836496ea83b12ec3e3082c7469fbf94f88f278d153813f3d5e289198b467e1b0`.
+The independently reviewed reader extends only its finite supported registry
+cardinality list to 170; all original JSON and failure/skip assertions remain.
+Completion, strict complete-log review, independent owned-resource absence,
+Vault/native/process restart and feature delivery remain pending.
+Browser acceptance is deferred after the user reports that the locked computer
+will remain unavailable for about ten hours. No browser fixture is started;
+independent source, database and controlled API work continues. Offline
+generations without positive joined acknowledgment stay blocked;
 process-wide graceful shutdown proof remains a separate gap. No acknowledgment
 is synthesized. Overlapping source-test counts are not added into acceptance totals.
 No isolated V85–V88 feature is delivered by the current main feature commit.
