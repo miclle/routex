@@ -77,6 +77,8 @@ type Model struct {
 	ID        string `gorm:"primaryKey;size:30"`
 	Status    string `gorm:"size:20;not null"`
 	CreatedAt time.Time
+	// Excluded from historical entity-based receipts and runtime proof hashes.
+	ConfigUpdatedAt *time.Time `gorm:"column:config_updated_at;precision:6;autoCreateTime:false;autoUpdateTime:false" json:"-"`
 }
 
 // CurrentModelID is nullable and unique: at most one current name per model.

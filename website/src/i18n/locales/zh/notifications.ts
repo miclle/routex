@@ -94,6 +94,13 @@ export default {
       tokens_7d_near: '已记录个人 Key 滚动七天 Token 配额提醒。',
       tokens_7d_critical: '已记录个人 Key 滚动七天 Token 配额严重警告。',
     },
+    project_key_rolling_quota_warning: {
+      default: '已记录项目 Key 滚动 Token 配额提醒。',
+      tokens_5h_near: '已记录项目 Key 滚动五小时 Token 配额提醒。',
+      tokens_5h_critical: '已记录项目 Key 滚动五小时 Token 配额严重警告。',
+      tokens_7d_near: '已记录项目 Key 滚动七天 Token 配额提醒。',
+      tokens_7d_critical: '已记录项目 Key 滚动七天 Token 配额严重警告。',
+    },
     project_rolling_quota_warning: {
       default: '已记录项目 滚动 Token 配额提醒。',
       tokens_5h_near: '已记录项目 滚动五小时 Token 配额提醒。',

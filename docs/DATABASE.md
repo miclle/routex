@@ -1302,3 +1302,114 @@ duplicate insert. No duplicate error is ignored and no fixture is serialized to
 hide the concurrency. The synchronized regression preserves two real concurrent
 observers and exact transaction identity. Source checks and the full real-driver regression pass; source-bound receipts
 and separate runtime/browser gates are recorded in [Implementation](IMPLEMENTATION.md).
+
+
+## Corrected R8 candidate contract additions
+
+These additions describe the isolated candidate; complete dual-driver and
+composed-main acceptance remain pending. Earlier acceptance records stay
+bound to their original source.
+
+
+### Candidate V85: Project root-Key rolling warnings
+
+Private frozen GORM V85 adds distinct Project root-Key episode state, immutable
+observation and original-recipient inbox tables. It retains the released V1–V84
+steps unchanged. Own stored five-hour/seven-day Token caps, complete settled-use
+coverage, exact root/Project births and sampled 80%/90% episodes remain separate
+from inherited caps and Project aggregate balances. State, observation and inbox
+fanout share one transaction. The current migration/lifecycle fixture projection
+retains the exact full V87 ledger and all unaffected suffix timestamps; historical
+V85 reconstruction stays V85 and preserves V86/V87 suffix rows.
+
+V85–V87 are prepared candidate migrations, not released by this adoption packet.
+Actual same-source PostgreSQL/MySQL Full168, current composed main gates and
+separate controlled process/browser acceptance remain pending.
+
+### V86 candidate: recorded Model configuration timestamps
+
+A private frozen GORM schema adds only nullable `models.config_updated_at` with
+microsecond precision and no default or automatic timestamp behavior. Existing
+rows stay null. Prior numbered versions 1–85 remain byte-identical. `HasColumn` and
+`AddColumn` allow a partially completed MySQL DDL step to resume without replacing
+recorded values; there is no startup migration against the current Model entity.
+
+Configuration writers explicitly stamp within their existing transaction only
+when configuration changes. New Model births retain the released millisecond
+precision shared by both databases; configuration updates use the new portable
+microsecond column. Rollback preserves both the prior configuration and time.
+The field is excluded from entity-based historical receipt/proof JSON and is
+exposed only through explicit administrative DTOs.
+
+Two candidate scenarios append to the exact original 164-case registry, giving
+166. Migration coverage includes legacy nulls and original identities/names,
+repeat/concurrent migration, a ledger interruption with the column already
+present, nullable writes and exact microsecond SQL readback. Lifecycle coverage
+includes six configuration writers, no-op/replay/rollback preservation, independent
+catalogue/statistics permissions and UTC persisted logical counts. Complete real-driver matrix acceptance remains pending. The focused R7
+PostgreSQL/MySQL receipt is separate; resource-free checks establish no migration
+or release acceptance.
+
+### V87 candidate: routing application observations
+
+V87 appends `runtime_routing_applications` using one private frozen GORM schema.
+It follows candidate V85/V86 without changing released steps. A unique
+`(instance_id, snapshot_id)` index prevents repeated polls from replacing the
+first observation. A process/time index supports bounded history reads; recorded
+birth, route publication and application observation use microsecond precision.
+A digest-length constraint complements the service's exact lower-case digest
+and canonical ID validation. No bootstrap material, process token, Key hashes or
+runtime secrets are stored in this table.
+
+The table retains historical process observations independently of current
+registrations. It intentionally has no cascading relationship to instances;
+missing or changed registration births render current liveness unknown and can
+never authorize a positive current-state match. Existing V7 publications cannot
+supply exact process identity and are not backfilled. Original publication and
+instance rows, their timestamps and the complete earlier ledger remain unchanged.
+
+The recorder locks the exact registered process row, validates its private token
+and birth, and inserts only under a successful current routing capture. It never
+upserts an alias or overwrites a prior row. Persistence errors leave evidence
+unknown without changing published runtime or revocation. Partial MySQL DDL is
+reentered through the bounded frozen migration helper; no transactional DDL
+rollback assumption is made. New migration fixtures cover empty table creation,
+legacy preservation/no fabricated history, repeat/concurrent startup, partially
+applied indexes, unique/constraint checks and unchanged recorded values.
+
+V87 remains a candidate. Complete Full168, controlled process restart and
+composed-main gates are root-owned pending acceptance. The focused real-driver
+receipt is separate and does not establish complete integration or release.
+
+### Database-layer exact-table index drop exception
+
+The pinned `gorm.io/driver/postgres` v1.6.2 migrator emits
+`DROP INDEX CURRENT_SCHEMA().<quoted index>` for an unqualified table. PostgreSQL
+rejects that syntax; the driver's explicit table-schema path instead binds the
+schema as a value where an identifier is required. The corrected
+`database.DropIndex` adapter is confined to the database layer. Its PostgreSQL
+path uses GORM's statement/migrator parser for model names, table overrides and
+configured naming strategies, then a value-bound native catalog lookup to resolve
+the exact table namespace and index membership through the native search path.
+Same-named indexes on another table or in another namespace cannot satisfy that
+lookup. Conflicting qualified index schemas, malformed identifiers, missing
+membership and lookup failures stop before DDL. Namespace and index identifiers
+are quoted as individual GORM clause components. The MySQL path retains GORM's
+existing table-scoped migrator.
+
+GORM cannot express the corrected PostgreSQL relation/index resolution and DDL
+through its portable index-drop API, so this is a justified database-layer SQL
+exception. Catalog values are bound; identifiers are quoted. It introduces no
+dialect branching in services or handlers and changes no released migration.
+The runtime application migration fixture uses this adapter while preserving its
+original partial-index reentry assertions. Pure supported-driver adapter tests
+and the separate focused real PostgreSQL/MySQL fixture receipt cover this change;
+complete Full168 and final composed-main gates remain pending. The lookup and
+DDL are separate statements and do not promise atomicity against concurrent
+external schema replacement.
+
+The current frozen R8 source passes check, complete Task testing and build,
+5,032 ordinary named Go tests, and the separate two-driver Project warning
+lifecycle. Earlier focused R7 receipts remain bound to that source. Complete
+R8 Full168, composed-main gates, browser and delivery remain pending. These
+source-specific facts do not establish wider runtime or feature acceptance.

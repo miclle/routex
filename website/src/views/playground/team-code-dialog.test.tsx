@@ -3,7 +3,8 @@ import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import i18n from '@/i18n'
 import CodeDialog from './code-dialog'
-import type { TeamSnippetInput } from '@/lib/playground-team-snippet'
+import { buildTeamPlaygroundSnippet, type TeamSnippetInput } from '@/lib/playground-team-snippet'
+import type { SnippetLanguage } from '@/lib/playground-snippet'
 const request: TeamSnippetInput = {
   source: 'team',
   teamId: 'tea_01k6kwwwwwwwwwwwwwwwwwwwww',
@@ -26,6 +27,7 @@ let root: Root, host: HTMLDivElement, copy: ReturnType<typeof vi.fn>
 const original = Object.getOwnPropertyDescriptor(navigator, 'clipboard')
 beforeEach(async () => {
   await i18n.changeLanguage('en')
+  vi.stubGlobal('fetch', vi.fn())
   host = document.createElement('div')
   document.body.append(host)
   root = createRoot(host)
@@ -36,6 +38,7 @@ beforeEach(async () => {
 afterEach(async () => {
   await act(async () => root.unmount())
   host.remove()
+  vi.unstubAllGlobals()
   if (original) Object.defineProperty(navigator, 'clipboard', original)
   else Reflect.deleteProperty(navigator, 'clipboard')
 })
@@ -50,6 +53,13 @@ it('copies independently authenticated Team examples in all three languages with
   for (const label of ['cURL', 'Python', 'JavaScript']) {
     await click(label)
     const code = document.querySelector('pre')!.textContent!
+    expect(code).toBe(
+      buildTeamPlaygroundSnippet(
+        request,
+        label === 'cURL' ? 'curl' : (label.toLowerCase() as SnippetLanguage),
+      ),
+    )
+    expect(document.querySelector('pre code span[class]')).not.toBeNull()
     expect(code).toContain('/api/v1/teams/' + request.teamId + '/messages')
     expect(code).toContain('/api/v1/auth/login')
     expect(code).toContain('ROUTEX_EMAIL')
@@ -85,4 +95,37 @@ it('blocks invalid Team identity without fabricating a Key or Team endpoint', as
       (item) => item.textContent === 'Copy code',
     )!.disabled,
   ).toBe(true)
+})
+
+it('preserves opaque Team login heredoc and inert multiline authentication programs without dispatch', async () => {
+  const captured = {
+    ...request,
+    system: '<script>never()</script>雪🧩',
+    messages: [
+      { role: 'user' as const, content: 'Draft\n<img src=x onerror=never()>\n${never()}' },
+    ],
+  }
+  await act(async () => root.render(<CodeDialog request={captured} onClose={vi.fn()} />))
+  for (const [label, language] of [
+    ['cURL', 'curl'],
+    ['Python', 'python'],
+    ['JavaScript', 'javascript'],
+  ] as const) {
+    await click(label)
+    const expected = buildTeamPlaygroundSnippet(captured, language)
+    const pre = document.querySelector('pre')!
+    expect(pre.textContent).toBe(expected)
+    expect(pre.querySelector('script, img, iframe')).toBeNull()
+    expect(pre.querySelector('span[class]')).not.toBeNull()
+    await click('Copy code')
+    expect(copy).toHaveBeenLastCalledWith(expected)
+    if (language === 'curl') {
+      const body = [...pre.querySelectorAll('span')].find((token) =>
+        token.textContent?.includes('import http.cookiejar'),
+      )!
+      expect(body).toBeDefined()
+      expect(body.className).toBe('')
+    }
+  }
+  expect(fetch).not.toHaveBeenCalled()
 })

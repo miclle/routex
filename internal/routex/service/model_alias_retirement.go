@@ -186,6 +186,9 @@ func (s *Service) RetireModelAlias(ctx context.Context, actorID, modelID, etag s
 		if err != nil {
 			return err
 		}
+		if err := stampModelConfiguration(tx, modelID, now); err != nil {
+			return err
+		}
 		changed = true
 		return appendModelAliasRetirementAudit(tx, actorID, modelID, input.Name, before, subject.Selected.ExpiresAt, input.Reason)
 	})

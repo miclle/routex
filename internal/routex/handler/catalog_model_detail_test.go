@@ -52,8 +52,11 @@ func TestAdminModelDetailPreservesExistingBoundedDTO(t *testing.T) {
 		keys = append(keys, key)
 	}
 	slices.Sort(keys)
-	if !reflect.DeepEqual(keys, []string{"bindings", "granted_user_ids", "id", "name", "names", "status"}) {
+	if !reflect.DeepEqual(keys, []string{"bindings", "config_updated_at", "created_at", "granted_user_ids", "id", "name", "names", "status"}) {
 		t.Fatal("detail exposed uncontracted fields", keys)
+	}
+	if response.CreatedAt != nil || response.ConfigUpdatedAt != nil || string(object["created_at"]) != "null" || string(object["config_updated_at"]) != "null" {
+		t.Fatal("legacy missing Model birth/configuration dates must remain unknown", response)
 	}
 	var bindings []map[string]json.RawMessage
 	if err := json.Unmarshal(object["bindings"], &bindings); err != nil {

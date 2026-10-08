@@ -239,7 +239,9 @@ func (s *Service) captureModelCreation(tx *gorm.DB, connectionID string, items [
 	}
 	selected := make([]string, 0, len(items))
 	for _, item := range items {
-		selected = append(selected, item.ProviderModelID)
+		if item.ProviderModelID != "" {
+			selected = append(selected, item.ProviderModelID)
+		}
 	}
 	state.Credentials, err = modelCreationCredentials(tx, c.ID, selected)
 	if err != nil {
@@ -249,20 +251,29 @@ func (s *Service) captureModelCreation(tx *gorm.DB, connectionID string, items [
 	topologyRows := 0
 	for _, item := range items {
 		var pm entity.ProviderModel
-		if err := personalExact(personalExact(modelCreationDB(tx), "id", item.ProviderModelID), "connection_id", c.ID).Take(&pm).Error; err != nil {
+		if item.UpstreamName != "" {
+			pm, err = modelCreationManualProviderModel(tx, c, item.UpstreamName)
+			if err != nil {
+				return nil, nil, err
+			}
+		} else if err := personalExact(personalExact(modelCreationDB(tx), "id", item.ProviderModelID), "connection_id", c.ID).Take(&pm).Error; err != nil {
 			return nil, nil, err
 		}
 		state.ProviderModels = append(state.ProviderModels, pm)
 		var associated int64
-		if err := personalExact(modelCreationDB(tx).Model(&entity.ModelProviderBinding{}), "provider_model_id", pm.ID).Count(&associated).Error; err != nil {
-			return nil, nil, err
+		if pm.ID != "" {
+			if err := personalExact(modelCreationDB(tx).Model(&entity.ModelProviderBinding{}), "provider_model_id", pm.ID).Count(&associated).Error; err != nil {
+				return nil, nil, err
+			}
 		}
 		state.Associated = append(state.Associated, associated > 0)
 		row := ModelCreationReviewedItem{ProviderModelID: pm.ID, UpstreamName: pm.UpstreamName, Target: item.Target, Name: item.Name, Protocol: c.Protocol, InitialWeight: 100, BlockerCodes: []string{}}
 		if pm.Disabled {
 			row.BlockerCodes = append(row.BlockerCodes, "provider_model_disabled")
 		}
-		if !modelCreationReady(state.Credentials, pm.ID) {
+		if item.UpstreamName != "" {
+			row.WarningCodes = []string{"credential_coverage_unproven"}
+		} else if !modelCreationReady(state.Credentials, pm.ID) {
 			row.BlockerCodes = append(row.BlockerCodes, "credential_coverage_missing")
 		}
 		if associated > 0 {
@@ -390,12 +401,15 @@ func (s *Service) ListModelCreationProviderModels(ctx context.Context, actor, co
 	if err != nil {
 		return nil, err
 	}
+	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
 	result := &ModelCreationProviderModelPage{Items: []ModelCreationProviderModel{}}
 	err = s.authDB(ctx).Transaction(func(tx *gorm.DB) error {
 		if err := modelCreationRead(tx, actor); err != nil {
 			return err
 		}
-		if _, _, err := modelCreationConnection(tx, connectionID); err != nil {
+		connection, _, err := modelCreationConnection(tx, connectionID)
+		if err != nil {
 			return err
 		}
 		if f.Cursor != "" {
@@ -456,6 +470,9 @@ func (s *Service) ListModelCreationProviderModels(ctx context.Context, actor, co
 			result.Items = append(result.Items, row)
 		}
 		result.Items, result.NextCursor = modelCreationPage(result.Items, f.Limit, func(r ModelCreationProviderModel) string { return r.ID })
+		if err := applyModelCreationDefaults(tx, connection, result.Items); err != nil {
+			return err
+		}
 		return nil
 	}, &sql.TxOptions{Isolation: sql.LevelRepeatableRead, ReadOnly: true})
 	return result, catalogError(err)
@@ -543,6 +560,9 @@ func lockModelCreationSubjects(tx *gorm.DB, state *modelCreationState) error {
 		}
 	}
 	for _, pm := range state.ProviderModels {
+		if pm.ID == "" {
+			continue
+		}
 		var model entity.ProviderModel
 		if err := personalExact(modelCreationDB(tx), "id", pm.ID).Clauses(clause.Locking{Strength: "UPDATE"}).Take(&model).Error; err != nil {
 			return err
@@ -585,4 +605,33 @@ func normalizeModelCreationState(state *modelCreationState) {
 			}
 		}
 	}
+}
+
+// Manual names declare configuration, never credential coverage. Path-based native
+// protocols must accept the exact segment before any catalogue side effect.
+func validManualModelName(c entity.ProviderConnection, name string) bool {
+	if !validUpstreamName(name) {
+		return false
+	}
+	if entity.ConnectionAdapter(c) == entity.AdapterAzureOpenAIClassic {
+		return upstream.ValidAzureDeployment(name)
+	}
+	if c.Protocol == entity.ProtocolGeminiGenerateContent {
+		return geminiModelSegment.MatchString(name)
+	}
+	return entity.SupportedNativeProtocol(c.Protocol)
+}
+
+func modelCreationManualProviderModel(tx *gorm.DB, c entity.ProviderConnection, name string) (entity.ProviderModel, error) {
+	if !validManualModelName(c, name) {
+		return entity.ProviderModel{}, apperrors.ErrBadRequest
+	}
+	var collisions []entity.ProviderModel
+	if err := personalExact(personalExact(modelCreationDB(tx), "connection_id", c.ID), "upstream_name", name).Limit(2).Find(&collisions).Error; err != nil {
+		return entity.ProviderModel{}, err
+	}
+	if len(collisions) > 0 {
+		return entity.ProviderModel{}, catalogConflict
+	}
+	return entity.ProviderModel{ConnectionID: c.ID, UpstreamName: name}, nil
 }

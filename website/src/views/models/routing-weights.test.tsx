@@ -341,7 +341,8 @@ describe('Protocol-grouped routing weight drafts', () => {
       })),
     })
     expect(model.bindings[0]).toMatchObject({ ready: false, weight: 100 })
-    expect(container.textContent).toContain('Connection not ready')
+    expect(container.textContent).toContain('Current routing is unavailable')
+    expect(container.textContent).toContain('Unknown')
     expect(writes()).toHaveLength(1)
   })
   it('preserves independent read-only authority and blocks crafted submits without write permission', async () => {

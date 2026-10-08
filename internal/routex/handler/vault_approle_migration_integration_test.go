@@ -172,7 +172,7 @@ func testVaultSavedAppRoleMigration(t *testing.T, db *gorm.DB) {
 
 // Only the reviewed AppRole pair may extend the exact retained 148-case prefix.
 func vaultAppRoleRegistryParent(names []string) ([]string, bool) {
-	if len(names) == 156 || len(names) == 158 || len(names) == 160 || len(names) == 162 {
+	if len(names) == 156 || len(names) == 158 || len(names) == 160 || len(names) == 162 || len(names) == 164 || len(names) == 166 || len(names) == 168 {
 		parent, ok := personalRollingWarningRegistryParent(names)
 		if !ok {
 			return nil, false
@@ -207,6 +207,9 @@ func TestVaultSavedAppRoleExactRegistry150(t *testing.T) {
 	for _, p := range regexp.MustCompile(`\{"([^"\n]+)", (test[A-Za-z0-9]+)\}`).FindAllStringSubmatch(string(raw), -1) {
 		names = append(names, p[1]+":"+p[2])
 	}
+	if len(names) != 168 || !strings.Contains(string(raw), "versions != 87") {
+		t.Fatal("current exact168 registry/V87 ledger changed")
+	}
 	valid := func(values []string) bool {
 		parent, ok := vaultAppRoleRegistryParent(values)
 		if !ok {
@@ -230,7 +233,7 @@ func TestVaultSavedAppRoleExactRegistry150(t *testing.T) {
 			t.Fatal("changed/missing/reordered/extra registry accepted")
 		}
 	}
-	if !strings.Contains(string(raw), "versions != 84") {
+	if !strings.Contains(string(raw), "versions != 87") {
 		t.Fatal("current V78 harness not bound")
 	}
 }

@@ -66,3 +66,62 @@ The Key-scoped model list exposes currently eligible protocols without provider
 identities; native requests never fall back across protocol groups.
 
 Gemini uses the independent `gemini_generate_content` route group and never falls back to another native protocol.
+
+
+## Corrected R8 candidate contract additions
+
+These additions describe the isolated candidate; complete dual-driver and
+composed-main acceptance remain pending. Earlier acceptance records stay
+bound to their original source.
+
+## Routing application evidence (candidate V87)
+
+`GET /api/v1/admin/runtime/applications` requires fresh `system.read` and returns
+bounded process-scoped **routing-only** application history. It accepts optional
+`instance_id`, opaque actor/filter-bound `cursor`, and canonical `limit` (default
+20, maximum 100). Unknown or duplicate parameters, explicit empty values and
+unsafe IDs are rejected. Responses are private and not cacheable; no route digest,
+process lease token, Key material, credentials or serialized configuration is public.
+
+Each append-only record binds the exact registered `ins_` process generation and
+persisted birth to a `cfg_` routing snapshot, private source digest, original route
+publication time and first recorded application observation. Repeated successful
+polls do not rewrite that first observation. Legacy publication rows have no
+process identity and are never backfilled as application records. This records
+neither a full authorization version nor fleet acknowledgement or a job-specific
+operation receipt. There is no public write endpoint accepting node claims.
+
+The recorder runs only after successful route preparation/publication, under the
+existing publication and runtime locks. Its database transaction rechecks the
+exact process token, birth, active lease and current routing/authorization
+pointers and revocation generation. Registration-lock contention skips recording
+without waiting. It uses a maximum 250-millisecond budget,
+capped by the remaining original authorization lease and parent context. This
+may add at most that recorder budget to publication-lock occupancy; it never
+renews the lease, changes admission or performs request hot-path I/O. Failed,
+expired or obsolete captures cannot commit a new successful observation. Evidence
+persistence failure leaves history unavailable and a later successful refresh may
+retry; an already applied in-memory route remains governed by existing admission.
+
+History and current observations remain separate. `instance_status` is `online`,
+`offline` or `unknown` from the exact retained process birth and server lease.
+`current_serving_snapshot_matches` is nullable: only the serving process with a
+matching active registration, unexpired authorization, stable pointers/generation
+and no current refresh error can return true or false. Other processes, missing
+or changed identities, failed/unstable publication and expired authorization
+return null. True identifies the serving process's current routing snapshot; it
+proves neither current complete authorization nor successful inference. False
+means that exact serving process currently has a different routing snapshot.
+Restart creates a new process identity and never inherits old current evidence.
+
+V87 and its migration/lifecycle fixtures remain candidates. Separate focused
+PostgreSQL/MySQL proof does not establish complete Full168, controlled production
+process, UI or composed-main acceptance; these remain pending. Source tests alone
+do not complete F30. Complete configuration
+versions, general rollback and distributed emergency revocation remain separate.
+
+The current frozen R8 source passes check, complete Task testing and build,
+5,032 ordinary named Go tests, and the separate two-driver Project warning
+lifecycle. Earlier focused R7 receipts remain bound to that source. Complete
+R8 Full168, composed-main gates, browser and delivery remain pending. These
+source-specific facts do not establish wider runtime or feature acceptance.

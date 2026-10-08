@@ -562,6 +562,7 @@ describe('catalog and Key workflows', () => {
               selectable: true,
               input_capabilities: [],
               blocker_codes: [],
+              initial_target: null,
             },
           ],
           next_cursor: null,
@@ -635,6 +636,10 @@ describe('catalog and Key workflows', () => {
       })
     }
     await render(<CreateModelPage />)
+    await until(() =>
+      expect((button('Use an existing Connection') as HTMLButtonElement).disabled).toBe(false),
+    )
+    await click('Use an existing Connection')
     await until(() => expect(document.querySelector('option[value="con_guided"]')).not.toBeNull())
     await change('select[aria-label="Provider Connection"]', connection.id)
     await until(() =>

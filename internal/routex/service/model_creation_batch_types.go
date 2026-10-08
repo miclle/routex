@@ -36,14 +36,22 @@ type ModelCreationConnectionPage struct {
 	Items      []ModelCreationConnection `json:"items"`
 	NextCursor *string                   `json:"next_cursor"`
 }
+type ModelCreationInitialTarget struct {
+	Target        string `json:"target"`
+	Name          string `json:"name"`
+	ModelID       string `json:"model_id,omitempty"`
+	InitialWeight *int   `json:"initial_weight,omitempty"`
+}
+
 type ModelCreationProviderModel struct {
-	ID                string   `json:"id"`
-	UpstreamName      string   `json:"upstream_name"`
-	Disabled          bool     `json:"disabled"`
-	InputCapabilities []string `json:"input_capabilities"`
-	CredentialReady   bool     `json:"credential_ready"`
-	Selectable        bool     `json:"selectable"`
-	BlockerCodes      []string `json:"blocker_codes"`
+	InitialTarget     *ModelCreationInitialTarget `json:"initial_target"`
+	ID                string                      `json:"id"`
+	UpstreamName      string                      `json:"upstream_name"`
+	Disabled          bool                        `json:"disabled"`
+	InputCapabilities []string                    `json:"input_capabilities"`
+	CredentialReady   bool                        `json:"credential_ready"`
+	Selectable        bool                        `json:"selectable"`
+	BlockerCodes      []string                    `json:"blocker_codes"`
 }
 type ModelCreationProviderModelPage struct {
 	Items      []ModelCreationProviderModel `json:"items"`
@@ -61,7 +69,8 @@ type ModelCreationTargetPage struct {
 	NextCursor *string               `json:"next_cursor"`
 }
 type ModelCreationItem struct {
-	ProviderModelID string `json:"provider_model_id"`
+	ProviderModelID string `json:"provider_model_id,omitempty"`
+	UpstreamName    string `json:"upstream_name,omitempty"`
 	Target          string `json:"target"`
 	Name            string `json:"name,omitempty"`
 	ModelID         string `json:"model_id,omitempty"`
@@ -75,6 +84,7 @@ type ModelCreationBatchInput struct {
 	Items     []ModelCreationItem `json:"items"`
 }
 type ModelCreationReviewedItem struct {
+	WarningCodes    []string `json:"warning_codes,omitempty"`
 	ProviderModelID string   `json:"provider_model_id"`
 	UpstreamName    string   `json:"upstream_name"`
 	Target          string   `json:"target"`
@@ -92,13 +102,14 @@ type ModelCreationPreview struct {
 	CanCommit  bool                        `json:"can_commit"`
 }
 type ModelCreationReceiptItem struct {
-	ProviderModelID string `json:"provider_model_id"`
-	ModelID         string `json:"model_id"`
-	BindingID       string `json:"binding_id"`
-	CreatedModel    bool   `json:"created_model"`
-	Name            string `json:"name"`
-	Protocol        string `json:"protocol"`
-	Weight          int    `json:"weight"`
+	ManualUpstreamName string `json:"manual_upstream_name,omitempty"`
+	ProviderModelID    string `json:"provider_model_id"`
+	ModelID            string `json:"model_id"`
+	BindingID          string `json:"binding_id"`
+	CreatedModel       bool   `json:"created_model"`
+	Name               string `json:"name"`
+	Protocol           string `json:"protocol"`
+	Weight             int    `json:"weight"`
 }
 type ModelCreationReceipt struct {
 	RequestID    string                     `json:"request_id"`
@@ -153,7 +164,7 @@ func modelCreationObject(raw []byte, allowed ...string) (map[string]json.RawMess
 	return fields, nil
 }
 func (item *ModelCreationItem) UnmarshalJSON(raw []byte) error {
-	fields, err := modelCreationObject(raw, "provider_model_id", "target", "name", "model_id")
+	fields, err := modelCreationObject(raw, "provider_model_id", "upstream_name", "target", "name", "model_id")
 	if err != nil {
 		return err
 	}
@@ -163,6 +174,8 @@ func (item *ModelCreationItem) UnmarshalJSON(raw []byte) error {
 		switch key {
 		case "provider_model_id":
 			dst = &next.ProviderModelID
+		case "upstream_name":
+			dst = &next.UpstreamName
 		case "target":
 			dst = &next.Target
 		case "name":
@@ -174,7 +187,9 @@ func (item *ModelCreationItem) UnmarshalJSON(raw []byte) error {
 			return apperrors.ErrBadRequest
 		}
 	}
-	if !modelCreationID(next.ProviderModelID, "pmd") {
+	_, stored := fields["provider_model_id"]
+	_, manual := fields["upstream_name"]
+	if stored == manual || stored && !modelCreationID(next.ProviderModelID, "pmd") || manual && !validUpstreamName(next.UpstreamName) {
 		return apperrors.ErrBadRequest
 	}
 	switch next.Target {
@@ -231,10 +246,11 @@ func normalizeModelCreationItems(items []ModelCreationItem) ([]ModelCreationItem
 	result := slices.Clone(items)
 	pms, names, models := map[string]bool{}, map[string]bool{}, map[string]bool{}
 	for _, item := range result {
-		if !modelCreationID(item.ProviderModelID, "pmd") || pms[item.ProviderModelID] {
+		key := modelCreationItemKey(item)
+		if !validModelCreationSelector(item) || pms[key] {
 			return nil, apperrors.ErrBadRequest
 		}
-		pms[item.ProviderModelID] = true
+		pms[key] = true
 		switch item.Target {
 		case "new":
 			if item.ModelID != "" || !publicModelName.MatchString(item.Name) || names[item.Name] {
@@ -250,7 +266,9 @@ func normalizeModelCreationItems(items []ModelCreationItem) ([]ModelCreationItem
 			return nil, apperrors.ErrBadRequest
 		}
 	}
-	slices.SortFunc(result, func(a, b ModelCreationItem) int { return strings.Compare(a.ProviderModelID, b.ProviderModelID) })
+	slices.SortFunc(result, func(a, b ModelCreationItem) int {
+		return strings.Compare(modelCreationItemKey(a), modelCreationItemKey(b))
+	})
 	return result, nil
 }
 func normalizeModelCreationBatch(input ModelCreationBatchInput) (ModelCreationBatchInput, error) {
@@ -300,4 +318,22 @@ func modelCreationUnicode(raw []byte) bool {
 		i += 6
 	}
 	return true
+}
+
+func validModelCreationSelector(item ModelCreationItem) bool {
+	return item.ProviderModelID != "" && item.UpstreamName == "" && modelCreationID(item.ProviderModelID, "pmd") || item.ProviderModelID == "" && validUpstreamName(item.UpstreamName)
+}
+func modelCreationItemKey(item ModelCreationItem) string {
+	if item.UpstreamName != "" {
+		return "manual:" + item.UpstreamName
+	}
+	return item.ProviderModelID
+}
+func modelCreationHasManual(items []ModelCreationItem) bool {
+	for _, item := range items {
+		if item.UpstreamName != "" {
+			return true
+		}
+	}
+	return false
 }

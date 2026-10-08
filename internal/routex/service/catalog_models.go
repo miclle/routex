@@ -24,6 +24,8 @@ type ModelCatalog struct {
 }
 
 type BindingCatalog struct {
+	Supply *ModelRoutingSupply
+
 	Binding      entity.ModelProviderBinding
 	ProviderID   string
 	ConnectionID string
@@ -172,7 +174,7 @@ func (s *Service) CreateModel(ctx context.Context, actorID, name, providerModelI
 		if err := tx.First(&pm, "id = ?", providerModelID).Error; err != nil {
 			return err
 		}
-		model := entity.Model{ID: modelID, Status: "active"}
+		model := newRecordedModel(modelID, "active", time.Now())
 		if err := tx.Create(&model).Error; err != nil {
 			return err
 		}
@@ -218,6 +220,9 @@ func (s *Service) AddModelBinding(ctx context.Context, actorID, modelID, provide
 			return err
 		}
 		if err := tx.Create(&entity.ModelProviderBinding{ID: bindingID, ModelID: modelID, ProviderModelID: providerModelID}).Error; err != nil {
+			return err
+		}
+		if err := stampModelConfiguration(tx, modelID, time.Now()); err != nil {
 			return err
 		}
 		return appendAudit(tx, actorID, "model.binding.create", "model", modelID)
@@ -281,8 +286,18 @@ func (s *Service) SetModelWeights(ctx context.Context, actorID, modelID string, 
 				return apperrors.ErrBadRequest
 			}
 		}
+		changed := false
 		for _, binding := range catalog.Bindings {
+			if binding.Binding.Weight == requested[binding.Binding.ID] {
+				continue
+			}
+			changed = true
 			if err := tx.Model(&entity.ModelProviderBinding{}).Where("id = ?", binding.Binding.ID).Update("weight", requested[binding.Binding.ID]).Error; err != nil {
+				return err
+			}
+		}
+		if changed {
+			if err := stampModelConfiguration(tx, modelID, time.Now()); err != nil {
 				return err
 			}
 		}
@@ -323,6 +338,9 @@ func (s *Service) RenameModel(ctx context.Context, actorID, modelID, name string
 			return err
 		}
 		if err := tx.Create(&entity.ModelName{Name: name, ModelID: modelID, CurrentModelID: &modelID}).Error; err != nil {
+			return err
+		}
+		if err := stampModelConfiguration(tx, modelID, time.Now()); err != nil {
 			return err
 		}
 		return appendAudit(tx, actorID, "model.rename", "model", modelID)

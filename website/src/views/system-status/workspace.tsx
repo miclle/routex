@@ -26,6 +26,9 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Dialog } from '@/components/ui/dialog'
 import { Table } from '@/components/ui/table'
 import { ResourceGauge } from './resource-gauge'
+import { RoutingApplicationsDialog } from './routing-applications'
+import { useRoutingReadAuthority } from './routing-authority'
+import { canonicalRuntimeID } from '@/api/runtime-applications'
 
 type CleanupIssue = '' | 'conflict' | 'uncertain' | 'failed' | 'reviewFailed'
 const cleanupBatchLimit = 100
@@ -134,6 +137,11 @@ export function SystemStatusWorkspace() {
     retry: false,
     refetchOnWindowFocus: false,
   })
+  const routingAuthority = useRoutingReadAuthority()
+  const [routingSelection, setRoutingSelection] = useState<{
+    instanceID: string
+    basis: string
+  } | null>(null)
   const [reviewed, setReviewed] = useState<SystemInstance[]>([])
   const [reviewedRemaining, setReviewedRemaining] = useState(0)
   const [issue, setIssue] = useState<CleanupIssue>('')
@@ -338,10 +346,41 @@ export function SystemStatusWorkspace() {
                 {t('noJobs')}
               </p>
             )}
-            {!!jobs.data?.items.length && <JobsTable rows={jobs.data.items} />}
+            {!!jobs.data?.items.length && (
+              <JobsTable
+                rows={jobs.data.items}
+                onRecords={(job) => {
+                  if (
+                    !routingAuthority.isCurrent() ||
+                    job.code !== 'runtime_publication' ||
+                    !canonicalRuntimeID(job.executor_id, 'ins')
+                  )
+                    return
+                  setRoutingSelection({
+                    instanceID: job.executor_id,
+                    basis: routingAuthority.basis,
+                  })
+                }}
+                recordsReadable={routingAuthority.ready}
+              />
+            )}
           </CardContent>
         </Card>
       </div>
+
+      {routingSelection &&
+        routingAuthority.ready &&
+        routingAuthority.actorID &&
+        routingSelection.basis === routingAuthority.basis && (
+          <RoutingApplicationsDialog
+            key={`${routingSelection.instanceID}:${routingSelection.basis}`}
+            instanceID={routingSelection.instanceID}
+            actorID={routingAuthority.actorID}
+            authority={routingSelection.basis}
+            isCurrent={routingAuthority.isCurrent}
+            onClose={() => setRoutingSelection(null)}
+          />
+        )}
 
       <Dialog
         open={reviewed.length > 0}
@@ -541,7 +580,15 @@ function JobProgress({ job }: { job: SystemJob }) {
   )
 }
 
-function JobsTable({ rows }: { rows: SystemJob[] }) {
+function JobsTable({
+  rows,
+  onRecords,
+  recordsReadable,
+}: {
+  rows: SystemJob[]
+  onRecords: (job: SystemJob) => void
+  recordsReadable: boolean
+}) {
   const { t } = useTranslation('systemStatus')
   function jobType(code: string) {
     return code in jobTypeKeys ? t(jobTypeKeys[code as SystemJobCode]) : code
@@ -590,6 +637,16 @@ function JobsTable({ rows }: { rows: SystemJob[] }) {
               }
             >
               {detail(job)}
+              {job.code === 'runtime_publication' && canonicalRuntimeID(job.executor_id, 'ins') && (
+                <Button
+                  variant="ghost"
+                  className="mt-2 block h-auto p-0 text-xs text-primary underline"
+                  disabled={!recordsReadable}
+                  onClick={() => onRecords(job)}
+                >
+                  {t('routingRecordsAction')}
+                </Button>
+              )}
             </td>
           </tr>
         ))}

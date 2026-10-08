@@ -8,6 +8,7 @@ import {
   recordedMonthlyQuotaWarning,
   recordedPersonalRollingQuotaWarning,
   recordedPersonalKeyRollingQuotaWarning,
+  recordedProjectKeyRollingQuotaWarning,
   recordedProjectRollingQuotaWarning,
   recordedTeamRollingQuotaWarning,
   markAllNotificationsRead,
@@ -46,6 +47,12 @@ function itemText(
       ? t(`items.personal_key_rolling_quota_warning.${notification.detail_code}`)
       : t('items.personal_key_rolling_quota_warning.default')
   }
+  if (notification.kind === 'project_key_rolling_quota_warning') {
+    const warning = recordedProjectKeyRollingQuotaWarning(notification, recipientId)
+    return warning
+      ? t(`items.project_key_rolling_quota_warning.${notification.detail_code}`)
+      : t('items.project_key_rolling_quota_warning.default')
+  }
   if (notification.kind === 'personal_rolling_quota_warning') {
     const warning = recordedPersonalRollingQuotaWarning(notification, recipientId)
     return warning
@@ -82,6 +89,7 @@ function deliveryText(notification: Notification, t: ReturnType<typeof useTransl
   if (
     notification.kind === 'monthly_quota_warning' ||
     notification.kind === 'personal_rolling_quota_warning' ||
+    notification.kind === 'project_key_rolling_quota_warning' ||
     notification.kind === 'personal_key_rolling_quota_warning' ||
     notification.kind === 'project_rolling_quota_warning' ||
     notification.kind === 'team_rolling_quota_warning'
@@ -94,6 +102,7 @@ function subjectText(notification: Notification, t: ReturnType<typeof useTransla
   if (
     notification.kind === 'monthly_quota_warning' ||
     notification.kind === 'personal_rolling_quota_warning' ||
+    notification.kind === 'project_key_rolling_quota_warning' ||
     notification.kind === 'personal_key_rolling_quota_warning' ||
     notification.kind === 'project_rolling_quota_warning' ||
     notification.kind === 'team_rolling_quota_warning'
@@ -114,13 +123,15 @@ function RollingQuotaSnapshot({
 }) {
   const { t, i18n } = useTranslation('notifications')
   const warning =
-    notification.kind === 'team_rolling_quota_warning'
-      ? recordedTeamRollingQuotaWarning(notification, recipientId)
-      : notification.kind === 'project_rolling_quota_warning'
-        ? recordedProjectRollingQuotaWarning(notification, recipientId)
-        : notification.kind === 'personal_key_rolling_quota_warning'
-          ? recordedPersonalKeyRollingQuotaWarning(notification, recipientId)
-          : recordedPersonalRollingQuotaWarning(notification, recipientId)
+    notification.kind === 'project_key_rolling_quota_warning'
+      ? recordedProjectKeyRollingQuotaWarning(notification, recipientId)
+      : notification.kind === 'team_rolling_quota_warning'
+        ? recordedTeamRollingQuotaWarning(notification, recipientId)
+        : notification.kind === 'project_rolling_quota_warning'
+          ? recordedProjectRollingQuotaWarning(notification, recipientId)
+          : notification.kind === 'personal_key_rolling_quota_warning'
+            ? recordedPersonalKeyRollingQuotaWarning(notification, recipientId)
+            : recordedPersonalRollingQuotaWarning(notification, recipientId)
   if (!warning)
     return <span className="mt-1 block text-xs">{t('quota.rollingSnapshotUnavailable')}</span>
   const format = (value: string) =>
@@ -132,19 +143,24 @@ function RollingQuotaSnapshot({
   return (
     <span className="mt-1 block space-y-1 text-xs [overflow-wrap:anywhere]">
       <span className="block">
-        {notification.kind === 'team_rolling_quota_warning'
-          ? t('quota.teamScopeNamed', { name: notification.subject_name, id: warning.scope_id })
-          : notification.kind === 'project_rolling_quota_warning'
-            ? t('quota.projectScopeNamed', {
-                name: notification.subject_name,
-                id: warning.scope_id,
-              })
-            : notification.kind === 'personal_key_rolling_quota_warning'
-              ? t('quota.personalKeyScopeNamed', {
+        {notification.kind === 'project_key_rolling_quota_warning'
+          ? t('quota.projectKeyScopeNamed', {
+              name: notification.subject_name,
+              id: warning.scope_id,
+            })
+          : notification.kind === 'team_rolling_quota_warning'
+            ? t('quota.teamScopeNamed', { name: notification.subject_name, id: warning.scope_id })
+            : notification.kind === 'project_rolling_quota_warning'
+              ? t('quota.projectScopeNamed', {
                   name: notification.subject_name,
                   id: warning.scope_id,
                 })
-              : t('quota.personalScope')}
+              : notification.kind === 'personal_key_rolling_quota_warning'
+                ? t('quota.personalKeyScopeNamed', {
+                    name: notification.subject_name,
+                    id: warning.scope_id,
+                  })
+                : t('quota.personalScope')}
       </span>
       <span className="block">{t(`quota.rollingWindow.${warning.window_kind}`)}</span>
       <span className="block">{t('quota.warningThreshold', { threshold: warning.threshold })}</span>
@@ -459,6 +475,7 @@ export function NotificationMenu() {
                   </span>
                   {subject && <span className="mt-1 block text-xs">{subject}</span>}
                   {(notification.kind === 'personal_rolling_quota_warning' ||
+                    notification.kind === 'project_key_rolling_quota_warning' ||
                     notification.kind === 'personal_key_rolling_quota_warning' ||
                     notification.kind === 'project_rolling_quota_warning' ||
                     notification.kind === 'team_rolling_quota_warning') && (

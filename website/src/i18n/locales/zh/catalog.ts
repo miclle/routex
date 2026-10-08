@@ -1,4 +1,36 @@
 export default {
+  routingCandidates: {
+    connection: '连接',
+    pricesDenied: '需要价格读取权限',
+    priceMissing: '未配置',
+    tokenUnit: '百万 Token',
+    title: '添加 {{protocol}} 路由',
+    description: '以 0% 添加一条已核验的供应关系。现有路由权重保持不变，直到统一保存完整路由配置。',
+    providerSearch: '搜索兼容供应商',
+    chooseProvider: '选择兼容供应商',
+    search: '搜索供应商模型',
+    table: '兼容供应商模型',
+    select: '选择',
+    selectModel: '选择 {{name}}',
+    verification: '已记录的验证覆盖',
+    availability: '配置可用性',
+    covered: '已覆盖',
+    uncovered: '未覆盖',
+    available: '配置可用',
+    unavailable: '配置不可用',
+    unknownFact: '未知',
+    nextProviders: '下一页供应商',
+    nextModels: '下一页模型',
+    selected: '已选择：{{name}} / {{connection}}',
+    factsHelp:
+      '配置可用表示接入和供应商模型已启用，且存在已启用凭证。已记录的验证覆盖独立显示；两者都不代表运行时健康或推理保证。供应商没有独立启用开关。',
+    unknown:
+      '添加结果不确定。刷新模型不能确认原始请求的结果。仅在获得最新权限后重试完全相同的请求，或关闭而不宣称成功。',
+    review: '核验当前候选模型',
+    retry: '重试相同的添加请求',
+    confirm: '确认以 0% 添加',
+    addProtocol: '添加 {{protocol}} 供应商路由',
+  },
   azureTransport: {
     adapter: 'Connection 适配器',
     native: '原生',
@@ -699,6 +731,18 @@ export default {
     publicName: '对外模型名称',
     namePlaceholder: '调用时使用的模型名称',
   },
+  modelMetadata: {
+    capabilityType: '能力类型',
+    monthlyRequests: '本月请求',
+    created: '创建时间',
+    updated: '更新时间',
+    unknown: '未知',
+    unavailable: '不可用',
+    queryUnavailable: '完整的本月请求查询暂不可用，模型配置仍可查看。',
+    retry: '刷新本月请求',
+    source:
+      '已持久化调用记录，UTC 月份从 {{from}} 至 {{asOf}}；记录可能存在延迟。数量包含所有账户及调用结果，不按尝试次数统计。',
+  },
   adminModels: {
     inputBasePrice: '基础输入价格',
     outputBasePrice: '基础输出价格',
@@ -710,6 +754,8 @@ export default {
     description:
       '使用稳定的模型身份管理名称、供应关系和用户授权。新增供应关系权重为 0，只有发布有效权重后才接收流量。',
     renameTitle: '修改模型名称',
+    renameUncertain:
+      '修改名称的响应到达时，原有审核状态已变化，因此结果仍不确定。已保留原名称和截止时间。请在具备当前权限时明确重试；刷新无法确认此请求的结果。',
     addBinding: '添加供应关系',
     weightsTitle: '调整供应权重',
     grantsTitle: '模型授权',
@@ -717,7 +763,7 @@ export default {
     listLabel: '模型列表',
     publicName: '对外模型名',
     status: '状态',
-    members: '使用成员',
+    members: '已授权成员',
     healthy: '正常',
     pending: '待配置',
     details: '详情',
@@ -753,6 +799,14 @@ export default {
     renameDescription:
       '模型 ID 和已有授权保持不变。历史名称不能再次使用；不设置兼容期限时，旧名称立即失效。',
     bindingDescription: '选择已登记的上游模型。新模型将明确授权给创建它的管理员。',
+    keepOldName: '旧名称继续可用',
+    compatibilityPeriod: '兼容期限',
+    compatibilityDays_one: '{{count}} 天',
+    compatibilityDays_other: '{{count}} 天',
+    compatibilityWarning:
+      '兼容期限结束后，旧名称 {{name}} 将停止接受新请求。请在到期前完成调用方迁移。',
+    immediateStopWarning: '确认后，旧名称 {{name}} 将立即停止接受新请求。调用方必须改用新名称。',
+    compatibilityUntil: '{{name}} 在 {{date}} 之前解析到同一个模型。重试期间保留已确定的截止时间。',
     aliasDeadline: '旧名称兼容截止时间（可选）',
     chooseUpstream: '选择供应商 / 接入 / 模型',
     bindingCount: '{{count}} 个',

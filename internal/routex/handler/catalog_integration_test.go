@@ -278,6 +278,9 @@ func testCatalogLifecycle(t *testing.T, db *gorm.DB) {
 			}
 		}
 	}
+	// Restore the controlled peer before the independent candidate lifecycle.
+	upstreamFailure.Store(false)
+	testModelRoutingCandidates(t, db, svc, router, admin.User.ID, upstreamServer.URL, model.ID, request)
 	var auditCount int64
 	if err := db.Table("audit_events").Where("actor_id = ?", admin.User.ID).Count(&auditCount).Error; err != nil || auditCount < 10 {
 		t.Fatalf("catalog changes not audited: %d %v", auditCount, err)

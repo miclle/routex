@@ -1019,3 +1019,220 @@ native call budgets. Complete regression and delivery status are recorded in
 [Implementation](IMPLEMENTATION.md).
 
 Provider, Connection and Credential creation, and replacement preparation, read a providers.write-authorized nonsecret storage context independently of Secrets administration. The UI captures its raw policy ETag and a stable UUIDv4 with the exact original public intent and transient secret. Uncertain mounted retries use the same original request and fresh CSRF; current GETs do not prove historical success. Conflict review preserves human drafts, while dismissal, actor/target change and unmount clear transient secrets. The Credentials table reports only recorded inline/Vault source, with Unknown for legacy absent metadata. A saved creation receipt does not prove verification, enablement or runtime routing.
+
+
+## Corrected R8 candidate contract additions
+
+These additions describe the isolated candidate; complete dual-driver and
+composed-main acceptance remain pending. Earlier acceptance records stay
+bound to their original source.
+
+## Recorded Model metadata
+
+The V86 candidate adds nullable `models.config_updated_at`. Administrative Model
+list/detail DTOs expose recorded `created_at` and `config_updated_at`. Missing
+historical timestamps remain null; names, routing, grants, calls and migration
+time cannot establish an unrecorded update. Creation records the exact persisted
+Model birth. Configuration time changes atomically with actual binding additions,
+changed complete weights, renames and early alias retirement, including new and
+existing batch targets. Unchanged weights, same-name renames, already retired
+aliases, identical batch receipt retries and rolled-back writes leave it unchanged.
+Personal grants and supplier readiness remain separate. Reviewed protocol-specific
+binding insertion stamps configuration in its same transaction after Create and
+before audit; stale, duplicate, failed-stamp and audit-rollback paths retain the
+previous value. The additive entity field
+is excluded from released receipt/review serialization, preserving legacy hashes.
+
+`GET /api/v1/admin/model-monthly-requests?model_id=<id>&model_id=<id>` requires
+both `models.read_all` and independent `calls.read_all`. It returns a complete
+batch for at most 500 distinct canonical Model IDs with decimal-string request
+counts in input order. Successful empty Models return `"0"`; denied, unavailable,
+missing-target and overflow responses provide no counts. An optional statistics
+failure does not invalidate an independently authorized catalogue read or expose
+caller identities. Existing retained Personal grantee IDs are unchanged and do
+not measure monthly active members.
+
+The period is the UTC current month through captured exclusive `as_of`:
+`[period_from, period_to)`, where `period_to` equals `as_of`. Counts use persisted
+logical `call_records` for each exact stable Model ID, across outcomes and resource
+accounts. Attempts, aliases and mutable names cannot add calls. The response
+records `timezone: "UTC"`, `source: "persisted_call_records"`, and `may_lag: true`
+because durable call buffering can delay persistence. One bounded Model-ID read
+and one bounded fact read cover the batch within five seconds. More than 10,000
+selected facts rejects the whole query with HTTP 422; no truncated report is
+labeled complete. Exact Go grouping prevents collation aliases from borrowing
+counts.
+
+The earlier R7 source has separate focused PostgreSQL/MySQL migration and
+lifecycle proof, retained only for its original source. Complete Full168, composed-main gates and release remain pending.
+
+Older catalogue replies that omit both recorded metadata fields remain readable
+as unknown in the client. Current DTOs always include both nullable fields;
+present values require valid recorded timestamps. Monthly statistics have their
+own strict complete-response contract and permission lifetime. Their displayed
+month interval and observation use explicit UTC with the selected language;
+recorded configuration dates retain selected-language local presentation. Administrative
+generic model classification and input-capability facts are not added by this
+slice. Existing public per-protocol image/PDF intersections remain authoritative
+for their original scopes; partial administrative binding rows cannot substitute
+for that route eligibility proof.
+
+The Model rename dialog offers an explicit “Keep the old name available”
+checkbox and 7-, 30-, or 90-day compatibility periods. Compatibility is selected
+by default because the administrative Model response does not establish that
+there are no existing callers. The dialog warns that unchecking immediately
+stops the old name. It captures the chosen deadline at local end of day when
+opened or when the period is explicitly changed; refreshing authority, switching
+language and retrying a failed submission do not silently move that deadline.
+The displayed date uses the selected language, and the submitted UTC ISO instant
+is unchanged. Error drafts stay editable under current independent Model write
+authority; renewed reads hide the dialog until authority is fresh. A response
+from an obsolete Session, permission or Model generation cannot close the retained
+dialog or invalidate another query lifetime. It leaves explicit outcome-unknown
+guidance and the original name/deadline locked for a deliberate retry with fresh
+CSRF. Refreshing or a rejected retry cannot resolve that uncertainty. Actor,
+Model target and unmount changes discard obsolete callbacks.
+
+Rename still uses the existing `POST /admin/models/:model_id/rename` body
+`{name,alias_expires_at?}`. Omitting the deadline requests immediate expiry. This
+endpoint does not require a reason or reviewed If-Match and returns the Model
+catalogue rather than a strong runtime-application or historical-operation
+receipt. The checkbox/presets do not add those guarantees. Exact reviewed
+publication and uncertain-operation semantics of compatibility-name Early stop
+remain separate. This dialog-only source preparation does not establish actual
+database/browser acceptance or complete Model catalogue acceptance.
+
+For this candidate, Guided Model creation selects one authorized Provider
+Connection and discovered Provider-model items or component-local manual names.
+The following candidate contracts extend the retained earlier guided workflow.
+
+### Manual upstream-name drafts
+
+The existing guided table can add an exact upstream model or deployment name that
+has not been discovered. It is a component-local row until the existing batch
+confirmation; closing the Add dialog performs no catalog write. Each item supplies
+exactly one of `provider_model_id` or `upstream_name`. Existing stored-ID payloads
+and receipt fields keep their prior shape. Manual insertion additionally requires
+current `providers.write`, including retries, while preview keeps the existing
+independent `models.read_all` and `providers.read` requirements.
+
+The server validates native name grammar and exact Connection-scoped collisions.
+It never substitutes a discovered row that appears after review. A manual preview
+has an empty `provider_model_id` and the sole advisory warning
+`credential_coverage_unproven`; it does not assign a persistent identifier or infer
+coverage. The UI displays input capabilities as unknown. Configuration may be
+reviewed despite absent coverage, but no Credential access, verification, enablement,
+price, grant or native request is created. A first100 route remains unavailable
+until separately authorized coverage exists; a backup remains0 with unchanged
+stored weights. Existing topology and name conflicts still block confirmation.
+
+The same bounded transaction creates the Provider-model and Model/name/binding,
+records configuration timestamps with the existing helper, and saves the typed
+audit and immutable UUID receipt. Manual receipt items include
+`manual_upstream_name` alongside their newly assigned canonical IDs so the client
+can correlate every item to its exact original input. Stored-ID receipts omit that
+field. Current-state checks preserve this source correspondence without rewriting
+the original receipt; uncertainty retains the original name, reason, UUID and ETag.
+The existing 32 KiB JSON request and 60 KiB retained snapshot bounds still apply;
+the 50-item bound does not guarantee that every combination of maximum field
+lengths fits those byte limits. Source tests and the existing registered lifecycle
+now cover this branch. Real
+dual-driver, native and browser acceptance of this extension remain separate.
+
+### Initial guided targets
+
+The Connection-scoped Provider-model picker returns a required nullable
+`initial_target` for each row. A selectable row with a representable stored native
+name receives that exact new-name draft only if the name has no retained
+reservation. An exact current name may instead identify an active eligible
+existing Model and its server-derived initial protocol weight. Retired aliases,
+inactive targets, same-Provider/protocol duplicates, invalid configured weights
+and unrepresentable native names receive no initial target. A missing suggestion
+never establishes availability; custom input and explicit existing-target choice
+remain available.
+
+The assistance hydrates only the visible picker page in bounded exact batches
+inside its read-only transaction, with no per-row target reads or global catalogue
+scan. Existing target-search pagination cannot hide an eligible initial target;
+the row carries its independently authorized minimal label. Read failures expose
+no partial assistance. The existing independent Model/Provider read permissions
+and write/preview authorities remain unchanged.
+
+Selecting a row applies its current suggestion once. Refresh, pagination and
+Session renewal preserve an edited draft rather than replacing its name or
+selected Model. Cache invalidation hides private rows synchronously; obsolete
+actor, Connection and picker callbacks cannot apply an old default. English and
+Chinese unavailable guidance preserves custom input. No additional write or
+upstream call occurs, and final preview/confirmation remains authoritative for
+concurrent reservations, topology changes and exact immutable retry semantics.
+This source slice remains pending its own integration and runtime acceptance;
+it does not complete F12 or wider routing acceptance.
+
+### Protocol-scoped routing composition
+
+Administrative Model routing keeps one complete atomic weight save across protocol groups. Each protocol offers a resource-scoped Provider picker and bounded compatible Provider-model table. Candidate reads require independent `models.read_all` and `providers.read`; `models.write` authorizes insertion. Optional base input/output price projections require `prices.read` and preserve exact amount/currency strings; denied prices remain unavailable, not zero.
+
+Rows display the recorded Connection name, recorded verification coverage and configured availability separately. Configured availability means an enabled Connection, a non-disabled Provider model and an enabled Credential; it does not attest runtime health, inference success or a published route. Invalid retained credential sources prevent selection without rewriting historical verification facts. A Provider already retained on that protocol is excluded, including zero-weight relations. The server revalidates the exact target, protocol, current source proof and duplicate Provider predicate before inserting a reviewed relation at weight zero. Existing weights remain unchanged.
+
+The candidate dialog uses transient actor/Model/protocol-scoped drafts. Search is literal and paging is bounded to 50; off-page selections retain their captured opaque review. Fresh Session, permission, target and candidate reads gate dispatch and completion. An uncertain insertion retains its exact Provider-model ID, protocol and review token for manual authorized retry; a later GET or conflict cannot establish the original insertion outcome. Closing abandons the local draft without claiming success. Legacy unreviewed Add binding callers retain their existing wire contract. No migration or new integration registry scenario is added; real-driver assertions extend the existing catalog lifecycle and remain separately required.
+
+
+### Inline access during Model creation
+
+The creation page keeps NEW/EXISTING access configuration above the Model table
+and final summary. NEW access uses either a new Provider or an explicitly
+selected existing Provider ID, including Providers without Connections. The
+authorized Provider and named-egress pickers return bounded pages of identities
+and labels only; they do not load the full Provider directory or transport
+diagnostics. Literal Provider-name searches and case-sensitive ID prefixes are
+separate from authority equality.
+
+Access creation uses the existing reviewed credential-storage context, stable
+UUIDv4 and captured request. Provider creation atomically saves its first
+Connection and Credential; existing-Provider creation saves a Connection and its
+first Credential. Vault persistence retains its existing bounded external-write
+and uncertain ownership-read contract. Verification/discovery and any needed
+Credential enablement are separate explicit operations. The UI displays recorded
+enablement; an already enabled Credential does not trigger another toggle. No
+remote operation runs on typing, mode selection, ordinary refresh or final Model
+confirmation. Azure authentication still requires explicit deployment attestation
+in the Provider workspace; it does not establish coverage.
+
+Saved access remains when subsequent Model addition is cancelled, conflicts or
+fails. The Model batch remains the existing independently reviewed atomic
+operation with its own reason, UUID, ETag, server-derived weights and receipt;
+access creation grants no Model or Key access. Mode/Connection changes cannot
+discard a pending or uncertain Model intent. Secret-bearing Axios requests and
+status-only errors stay outside query/mutation caches and browser storage.
+Mounted unknown access creation retains the exact transient body/source for an
+explicit identical retry with fresh authority and CSRF; dismissal, actor/mode
+change or unmount destroys local plaintext. Clearing local recovery does not undo
+a possibly committed creation. An unknown Verify/Enable outcome requires an
+explicit refresh of recorded facts before another action, without claiming
+historical execution from a current metadata read.
+
+Session, permission, storage-source and candidate generations fence reads and
+late replies. Selected off-page Provider/egress IDs receive independent bounded
+current identity reads before creation. Those reads use exact_id, mutually
+exclusive with q/cursor, and return zero or one exact scoped identity; earlier
+name-search matches cannot hide a selection. Ordinary pages remain default 20
+and at most 50. Empty UI searches omit HTTP q rather than sending a rejected
+empty query parameter. The existing create request consumes
+egress mode/ID and resolves transport in its committing transaction; it has no
+historical transport-review token. Picker freshness is advisory. Actual transport
+revision capture and revalidation belong to the final Model preview and commit.
+Storage policy changes do not rewrite an already dispatched uncertain request.
+Backend restart preserves saved access and durable UUID operations; browser
+reload deliberately loses plaintext and does not transparently resume writes.
+
+This slice has resource-free API/UI, SQL adapter and compile coverage. Its
+real PostgreSQL/MySQL picker assertions extend the existing Model-creation
+lifecycle without adding a migration or integration registry case. New composed
+driver, production/browser and release acceptance remain required; source checks
+are not runtime delivery evidence.
+
+The current frozen R8 source passes check, complete Task testing and build,
+5,032 ordinary named Go tests, and the separate two-driver Project warning
+lifecycle. Earlier focused R7 receipts remain bound to that source. Complete
+R8 Full168, composed-main gates, browser and delivery remain pending. These
+source-specific facts do not establish wider runtime or feature acceptance.

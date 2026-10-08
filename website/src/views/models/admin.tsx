@@ -1,3 +1,5 @@
+import { ModelRecordedDate, ModelMonthlyCount, ModelMonthlyContext } from './model-metadata'
+import { useModelMonthlyRequests } from './use-model-metadata'
 import { protocolLabel, protocolLabels } from '@/lib/protocols'
 import { useTranslation } from 'react-i18next'
 import {
@@ -24,6 +26,10 @@ import {
 import { sessionKey, useSession } from '@/hooks/use-auth'
 import type { Session } from '@/types/auth'
 import RoutingWeights from './routing-weights'
+import ModelRenameFields from './model-rename-fields'
+import { initialModelRenameDraft, type ModelRenameDraft } from './model-rename-draft'
+import RoutingCandidates from './routing-candidates'
+import type { RoutingProtocol } from '@/types/model-routing'
 import { Page, QueryState, ErrorNotice, FormField, SaveButton } from '@/components/app/CatalogUI'
 import { getPermissions } from '@/api/governance'
 import { useSessionGeneration } from '@/hooks/use-session-generation'
@@ -125,7 +131,18 @@ function AdminModels({
     ...permissions,
     can: (permission: string) => permissions.data?.includes(permission) === true,
   }
-  const readable = visible && !access.isError && !access.isFetching && access.can('models.read_all')
+  const sessionFresh = useModelReadFresh(sessionKey)
+  const permissionFresh = useModelReadFresh(permissionKey)
+  const readable =
+    visible &&
+    sessionFresh &&
+    permissionFresh &&
+    cache.getQueryData<Session>(sessionKey)?.user.id === actor &&
+    !cache.getQueryState(sessionKey)?.isInvalidated &&
+    !cache.getQueryState(permissionKey)?.isInvalidated &&
+    !access.isError &&
+    !access.isFetching &&
+    access.can('models.read_all')
   const detailKey = ['admin', 'models', 'detail', actor, modelId, generation, permissionGeneration]
   const detail = useQuery({
     queryKey: detailKey,
@@ -139,8 +156,9 @@ function AdminModels({
     refetchOnReconnect: false,
   })
   const detailGeneration = useModelReadGeneration(detailKey)
+  const listKey = ['admin', 'models', 'list', actor, generation, permissionGeneration]
   const models = useQuery({
-    queryKey: ['admin', 'models', 'list', actor, generation, permissionGeneration],
+    queryKey: listKey,
     queryFn: listAdminModels,
     enabled: readable && !modelId,
     retry: false,
@@ -150,8 +168,30 @@ function AdminModels({
     refetchOnWindowFocus: false,
     refetchOnReconnect: false,
   })
-  const selected = readable && detail.isSuccess && !detail.isFetching ? detail.data : undefined
+  const detailFresh = useModelReadFresh(detailKey)
+  const selected =
+    readable &&
+    detailFresh &&
+    detail.isSuccess &&
+    !detail.isFetching &&
+    !cache.getQueryState(detailKey)?.isInvalidated
+      ? detail.data
+      : undefined
+  const [routingProtocol, setRoutingProtocol] = useState<RoutingProtocol | null>(null)
   const [action, setAction] = useState<Action | null>(null)
+  const [renameDraft, setRenameDraft] = useState<ModelRenameDraft | null>(null)
+  const [renameUncertain, setRenameUncertain] = useState(false)
+  const mounted = useRef(false)
+  const currentAction = useRef(action)
+  useLayoutEffect(() => {
+    mounted.current = true
+    return () => {
+      mounted.current = false
+    }
+  }, [])
+  useLayoutEffect(() => {
+    currentAction.current = action
+  }, [action])
   // This actor/Model-keyed owner outlives the conditional fresh private form, not AuthGate.
   const [routingDraft, setRoutingDraft] = useState<RoutingDraft | null>(null)
   const [search, setSearch] = useState('')
@@ -185,6 +225,34 @@ function AdminModels({
       ? providers.data
       : undefined
   const grantsFresh = readable && grantees.isSuccess && !grantees.isFetching
+  const listFresh =
+    readable &&
+    models.isSuccess &&
+    !models.isFetching &&
+    !cache.getQueryState(listKey)?.isInvalidated
+  const filteredModels = listFresh
+    ? (models.data ?? []).filter((model) =>
+        [
+          model.name,
+          model.bindings
+            .map((binding) => providerData?.find((p) => p.id === binding.provider_id)?.name)
+            .join(' '),
+          model.bindings.map((binding) => binding.protocol).join(' '),
+          model.bindings.map((binding) => protocolLabel(binding.protocol)).join(' '),
+        ]
+          .join(' ')
+          .toLowerCase()
+          .includes(search.toLowerCase()),
+      )
+    : []
+  const monthly = useModelMonthlyRequests({
+    actor,
+    generation,
+    permissionKey,
+    catalogKey: modelId ? detailKey : listKey,
+    ids: modelId ? (selected ? [selected.id] : []) : filteredModels.map((model) => model.id),
+    visible: readable && (modelId ? !!selected : listFresh),
+  })
   const writeReady = () => {
     const session = cache.getQueryData<Session>(sessionKey)
     const permissions = cache.getQueryState(permissionKey)
@@ -196,14 +264,39 @@ function AdminModels({
       cache.getQueryState(sessionKey)?.status === 'success' &&
       cache.getQueryState(sessionKey)?.fetchStatus !== 'fetching' &&
       permissions?.status === 'success' &&
+      !permissions.isInvalidated &&
+      !cache.getQueryState(sessionKey)?.isInvalidated &&
       permissions.fetchStatus !== 'fetching' &&
       permissions.dataUpdateCount === permissionGeneration &&
       cache.getQueryData<string[]>(permissionKey)?.includes('models.write') === true &&
       cache.getQueryData<string[]>(permissionKey)?.includes('models.read_all') === true &&
       (!modelId ||
         (cache.getQueryState(detailKey)?.status === 'success' &&
+          !cache.getQueryState(detailKey)?.isInvalidated &&
           cache.getQueryState(detailKey)?.fetchStatus !== 'fetching' &&
           cache.getQueryState(detailKey)?.dataUpdateCount === detailGeneration))
+    )
+  }
+  const routingReadReady = () => {
+    const state = cache.getQueryState(permissionKey)
+    const sessionState = cache.getQueryState(sessionKey)
+    const target = cache.getQueryState(detailKey)
+    return (
+      authorityGeneration.current === generation &&
+      cache.getQueryData<Session>(sessionKey)?.user.id === actor &&
+      sessionState?.status === 'success' &&
+      sessionState.fetchStatus === 'idle' &&
+      !sessionState.isInvalidated &&
+      state?.status === 'success' &&
+      state.fetchStatus === 'idle' &&
+      !state.isInvalidated &&
+      state.dataUpdateCount === permissionGeneration &&
+      cache.getQueryData<string[]>(permissionKey)?.includes('models.read_all') === true &&
+      cache.getQueryData<string[]>(permissionKey)?.includes('providers.read') === true &&
+      target?.status === 'success' &&
+      target.fetchStatus === 'idle' &&
+      !target.isInvalidated &&
+      target.dataUpdateCount === detailGeneration
     )
   }
   useLayoutEffect(() => {
@@ -221,12 +314,39 @@ function AdminModels({
       path: string
       data: unknown
       method?: 'post' | 'put'
+      renameReview?: {
+        action: Action
+        actor: string
+        modelId: string
+        generation: number
+        permissionGeneration: number
+        detailGeneration: number
+      }
     }) => {
       if (!writeReady()) throw new Error('Current Model write authority unavailable')
       return writeCatalog(method, path, data, cache.getQueryData<Session>(sessionKey)!.csrf_token)
     },
-    onSuccess: () => {
+    onSuccess: (_, { renameReview }) => {
       if (cache.getQueryData<Session>(sessionKey)?.user.id !== actor) return
+      if (renameReview) {
+        if (
+          !mounted.current ||
+          currentAction.current !== renameReview.action ||
+          renameReview.actor !== actor ||
+          renameReview.modelId !== modelId
+        )
+          return
+        if (
+          renameReview.generation !== generation ||
+          renameReview.permissionGeneration !== permissionGeneration ||
+          renameReview.detailGeneration !== detailGeneration ||
+          !writeReady()
+        ) {
+          setRenameUncertain(true)
+          return
+        }
+        setRenameUncertain(false)
+      }
       setAction(null)
       void cache.invalidateQueries({ queryKey: ['admin', 'models'] })
       void cache.invalidateQueries({ queryKey: ['models'] })
@@ -235,6 +355,10 @@ function AdminModels({
   function open(next: Action) {
     if (!readable || !selected || !access.can('models.write')) return
     mutation.reset()
+    if (next.kind === 'rename') {
+      setRenameDraft(initialModelRenameDraft(next.model.name))
+      setRenameUncertain(false)
+    }
     setAction(next)
   }
   function submit(event: FormEvent<HTMLFormElement>) {
@@ -248,7 +372,10 @@ function AdminModels({
     )
       return
     const form = new FormData(event.currentTarget)
-    const name = String(form.get('name') ?? '').trim()
+    const name =
+      action.kind === 'rename' && renameDraft
+        ? renameDraft.name.trim()
+        : String(form.get('name') ?? '').trim()
     const provider_model_id = String(form.get('provider_model_id') ?? '')
     if (action.kind === 'create')
       mutation.mutate({ path: '/admin/models', data: { name, provider_model_id } })
@@ -257,9 +384,17 @@ function AdminModels({
       if (action.kind === 'binding')
         mutation.mutate({ path: `${path}/bindings`, data: { provider_model_id } })
       if (action.kind === 'rename') {
-        const expiration = String(form.get('alias_expires_at') ?? '')
+        const expiration = renameDraft?.keepOldName ? renameDraft.expiresAt : ''
         mutation.mutate({
           path: `${path}/rename`,
+          renameReview: {
+            action,
+            actor,
+            modelId: action.model.id,
+            generation,
+            permissionGeneration,
+            detailGeneration,
+          },
           data: {
             name,
             ...(expiration ? { alias_expires_at: new Date(expiration).toISOString() } : {}),
@@ -317,7 +452,7 @@ function AdminModels({
         retry={() => void (modelId ? detail.refetch() : models.refetch())}
         empty={!modelId && readable && models.isSuccess && models.data.length === 0}
       />
-      {!modelId && readable && models.isSuccess && !models.isFetching && (
+      {!modelId && listFresh && (
         <>
           <div className="flex items-center justify-between gap-4">
             <Input
@@ -335,74 +470,68 @@ function AdminModels({
             )}
           </div>
           <div className="rounded-lg border">
-            <Table aria-label={t('adminModels.listLabel')}>
+            <Table aria-label={t('adminModels.listLabel')} className="min-w-[1250px]">
               <thead>
                 <tr>
                   <th>{t('adminModels.publicName')}</th>
                   <th>{t('common.protocolType')}</th>
+                  <th>{t('modelMetadata.capabilityType')}</th>
                   <th>{t('common.provider')}</th>
                   <th>{t('adminModels.status')}</th>
                   <th>{t('adminModels.members')}</th>
+                  <th>{t('modelMetadata.monthlyRequests')}</th>
+                  <th>{t('modelMetadata.updated')}</th>
                   <th>{t('common.actions')}</th>
                 </tr>
               </thead>
               <tbody>
-                {models.data
-                  ?.filter((model) =>
-                    [
-                      model.name,
-                      model.bindings
-                        .map(
-                          (binding) =>
-                            providerData?.find((p) => p.id === binding.provider_id)?.name,
-                        )
-                        .join(' '),
-                      model.bindings.map((binding) => binding.protocol).join(' '),
-                      model.bindings.map((binding) => protocolLabel(binding.protocol)).join(' '),
-                    ]
-                      .join(' ')
-                      .toLowerCase()
-                      .includes(search.toLowerCase()),
-                  )
-                  .map((model) => (
-                    <tr key={model.id}>
-                      <td>
-                        <Link className="text-primary" to={`/admin/models/${model.id}`}>
-                          {model.name}
-                        </Link>
-                      </td>
-                      <td>
-                        <Badge variant="outline">
-                          {protocolLabels(model.bindings.map((binding) => binding.protocol))}
-                        </Badge>
-                      </td>
-                      <td>
-                        {[
-                          ...new Set(
-                            model.bindings.map(
-                              (b) =>
-                                providerData?.find((p) => p.id === b.provider_id)?.name ??
-                                b.provider_id,
-                            ),
+                {filteredModels.map((model) => (
+                  <tr key={model.id}>
+                    <td>
+                      <Link className="text-primary" to={`/admin/models/${model.id}`}>
+                        {model.name}
+                      </Link>
+                    </td>
+                    <td>
+                      <Badge variant="outline">
+                        {protocolLabels(model.bindings.map((binding) => binding.protocol))}
+                      </Badge>
+                    </td>
+                    <td>{t('modelMetadata.unknown')}</td>
+                    <td>
+                      {[
+                        ...new Set(
+                          model.bindings.map(
+                            (b) =>
+                              providerData?.find((p) => p.id === b.provider_id)?.name ??
+                              b.provider_id,
                           ),
-                        ].join(t('common.listSeparator'))}
-                      </td>
-                      <td>
-                        {model.status === 'active'
-                          ? model.bindings.some((b) => b.ready && b.weight > 0)
-                            ? t('adminModels.healthy')
-                            : t('adminModels.pending')
-                          : t('common.disabled')}
-                      </td>
-                      <td>{model.granted_user_ids.length}</td>
-                      <td>
-                        <Link to={`/admin/models/${model.id}`}>{t('adminModels.details')}</Link>
-                      </td>
-                    </tr>
-                  ))}
+                        ),
+                      ].join(t('common.listSeparator'))}
+                    </td>
+                    <td>
+                      {model.status === 'active'
+                        ? model.bindings.some((b) => b.ready && b.weight > 0)
+                          ? t('adminModels.healthy')
+                          : t('adminModels.pending')
+                        : t('common.disabled')}
+                    </td>
+                    <td>{model.granted_user_ids.length}</td>
+                    <td>
+                      <ModelMonthlyCount view={monthly} modelId={model.id} />
+                    </td>
+                    <td className="whitespace-nowrap">
+                      <ModelRecordedDate value={model.config_updated_at} />
+                    </td>
+                    <td>
+                      <Link to={`/admin/models/${model.id}`}>{t('adminModels.details')}</Link>
+                    </td>
+                  </tr>
+                ))}
               </tbody>
             </Table>
           </div>
+          <ModelMonthlyContext view={monthly} />
         </>
       )}
       {selected && (
@@ -443,6 +572,10 @@ function AdminModels({
                   <dd>{protocolLabels(selected.bindings.map((binding) => binding.protocol))}</dd>
                 </div>
                 <div>
+                  <dt className="text-muted-foreground">{t('modelMetadata.capabilityType')}</dt>
+                  <dd>{t('modelMetadata.unknown')}</dd>
+                </div>
+                <div>
                   <dt className="text-muted-foreground">{t('adminModels.bindings')}</dt>
                   <dd>{t('adminModels.bindingCount', { count: selected.bindings.length })}</dd>
                 </div>
@@ -450,7 +583,26 @@ function AdminModels({
                   <dt className="text-muted-foreground">{t('adminModels.members')}</dt>
                   <dd>{selected.granted_user_ids.length}</dd>
                 </div>
+                <div>
+                  <dt className="text-muted-foreground">{t('modelMetadata.monthlyRequests')}</dt>
+                  <dd>
+                    <ModelMonthlyCount view={monthly} modelId={selected.id} />
+                  </dd>
+                </div>
+                <div>
+                  <dt className="text-muted-foreground">{t('modelMetadata.created')}</dt>
+                  <dd>
+                    <ModelRecordedDate value={selected.created_at} />
+                  </dd>
+                </div>
+                <div>
+                  <dt className="text-muted-foreground">{t('modelMetadata.updated')}</dt>
+                  <dd>
+                    <ModelRecordedDate value={selected.config_updated_at} />
+                  </dd>
+                </div>
               </dl>
+              <ModelMonthlyContext view={monthly} />
               {selected.names.some((name) => !name.is_current) && (
                 <section aria-label={t('aliasRetirement.names')} className="space-y-3">
                   <h3 className="text-sm font-semibold">{t('aliasRetirement.names')}</h3>
@@ -517,6 +669,7 @@ function AdminModels({
             generation={detailGeneration}
             providers={providerData}
             canWrite={access.can('models.write')}
+            canAdd={access.can('providers.read')}
             pricesReadable={readable && access.can('prices.read')}
             pending={mutation.isPending}
             error={!action ? mutation.error : null}
@@ -536,7 +689,12 @@ function AdminModels({
                 data: { weights },
               })
             }}
-            onAddBinding={() => open({ kind: 'binding', model: selected })}
+            onAddBinding={(protocol) => {
+              if (!routingReadReady()) return
+              setRoutingProtocol(
+                (protocol ?? selected.bindings[0]?.protocol ?? 'openai_chat') as RoutingProtocol,
+              )
+            }}
             onGrants={() => open({ kind: 'grants', model: selected })}
             refreshDetail={() => void detail.refetch()}
           />
@@ -562,6 +720,26 @@ function AdminModels({
           writeReady={writeReady}
         />
       )}
+      {routingProtocol && modelId && (
+        <RoutingCandidates
+          key={`${actor}:${modelId}:${routingProtocol}`}
+          actor={actor}
+          modelID={modelId}
+          protocol={routingProtocol}
+          generation={generation}
+          resourceGeneration={detailGeneration}
+          readable={readable && !!selected && access.can('providers.read')}
+          canWrite={access.can('models.write')}
+          readReady={routingReadReady}
+          writeReady={writeReady}
+          onProtocolChange={setRoutingProtocol}
+          onClose={() => setRoutingProtocol(null)}
+          onSaved={() => {
+            void cache.invalidateQueries({ queryKey: ['admin', 'models'] })
+            void cache.invalidateQueries({ queryKey: ['models'] })
+          }}
+        />
+      )}
       <Dialog
         open={!!action && readable && !!selected}
         onOpenChange={(open) => {
@@ -581,23 +759,26 @@ function AdminModels({
       >
         <form onSubmit={submit} className="space-y-5">
           <fieldset
-            disabled={mutation.isPending || !access.can('models.write')}
+            disabled={
+              mutation.isPending ||
+              !access.can('models.write') ||
+              (action?.kind === 'rename' && renameUncertain)
+            }
             className="space-y-5"
           >
-            {(action?.kind === 'create' || action?.kind === 'rename') && (
+            {action?.kind === 'create' && (
               <FormField label={t('common.modelName')}>
-                <Input
-                  name="name"
-                  required
-                  maxLength={200}
-                  defaultValue={action.kind === 'rename' ? action.model.name : ''}
-                />
+                <Input name="name" required maxLength={200} defaultValue="" />
               </FormField>
             )}
-            {action?.kind === 'rename' && (
-              <FormField label={t('adminModels.aliasDeadline')}>
-                <Input name="alias_expires_at" type="datetime-local" />
-              </FormField>
+            {action?.kind === 'rename' && renameDraft && (
+              <ModelRenameFields
+                oldName={action.model.name}
+                draft={renameDraft}
+                onChange={(draft) => {
+                  if (writeReady() && !mutation.isPending && !renameUncertain) setRenameDraft(draft)
+                }}
+              />
             )}
             {(action?.kind === 'create' || action?.kind === 'binding') && (
               <>
@@ -673,6 +854,11 @@ function AdminModels({
               </>
             )}
           </fieldset>
+          {action?.kind === 'rename' && renameUncertain && (
+            <p role="status" className="text-sm text-muted-foreground">
+              {t('adminModels.renameUncertain')}
+            </p>
+          )}
           <ErrorNotice error={mutation.error} />
           <SaveButton
             pending={mutation.isPending}
@@ -1050,5 +1236,22 @@ function useModelReadGeneration(key: unknown[]) {
     () => cache.getQueryState(JSON.parse(hash))?.dataUpdateCount ?? 0,
     [cache, hash],
   )
+  return useSyncExternalStore(subscribe, snapshot, snapshot)
+}
+
+function useModelReadFresh(key: readonly unknown[]) {
+  const cache = useQueryClient()
+  const hash = JSON.stringify(key)
+  const subscribe = useCallback(
+    (notify: () => void) =>
+      cache.getQueryCache().subscribe((event) => {
+        if (JSON.stringify(event.query.queryKey) === hash) notify()
+      }),
+    [cache, hash],
+  )
+  const snapshot = useCallback(() => {
+    const state = cache.getQueryState(JSON.parse(hash))
+    return state?.status === 'success' && state.fetchStatus === 'idle' && !state.isInvalidated
+  }, [cache, hash])
   return useSyncExternalStore(subscribe, snapshot, snapshot)
 }

@@ -35,6 +35,7 @@ var (
 
 type systemInstanceLease struct {
 	id          string
+	startedAt   time.Time
 	token       string
 	storagePath string
 	cancel      context.CancelFunc
@@ -174,7 +175,7 @@ func (s *Service) StartSystemInstance(ctx context.Context, metadata SystemInstan
 	if err != nil {
 		return err
 	}
-	now := s.instanceNow().UTC()
+	now := s.instanceNow().UTC().Truncate(time.Microsecond)
 	resources := s.instanceResources(metadata.StoragePath)
 	row := entity.SystemInstance{
 		ID: instanceID, LeaseToken: leaseToken, HeartbeatRevision: 1,
@@ -188,7 +189,7 @@ func (s *Service) StartSystemInstance(ctx context.Context, metadata SystemInstan
 		return fmt.Errorf("register system instance: %w", err)
 	}
 	run, cancel := context.WithCancel(context.WithoutCancel(ctx))
-	lease := &systemInstanceLease{id: instanceID, token: leaseToken, storagePath: metadata.StoragePath, cancel: cancel, done: make(chan struct{})}
+	lease := &systemInstanceLease{id: instanceID, startedAt: now, token: leaseToken, storagePath: metadata.StoragePath, cancel: cancel, done: make(chan struct{})}
 	s.instance = lease
 	go s.runSystemInstanceHeartbeat(run, lease)
 	return nil

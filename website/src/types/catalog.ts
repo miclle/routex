@@ -36,6 +36,8 @@ export interface Provider {
   connections: Connection[]
 }
 export interface Model {
+  created_at?: string | null
+  config_updated_at?: string | null
   id: string
   name: string
   status: 'active' | 'disabled' | 'archived'
@@ -49,6 +51,7 @@ export interface Model {
     protocol: string
     weight: number
     ready: boolean
+    supply?: import('./model-routing').RoutingSupply
   }[]
   granted_user_ids: string[]
 }

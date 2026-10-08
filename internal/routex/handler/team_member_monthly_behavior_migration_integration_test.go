@@ -8,6 +8,7 @@ import (
 	"os"
 	"reflect"
 	"regexp"
+	"strings"
 	"sync"
 	"testing"
 )
@@ -26,7 +27,12 @@ func testTeamMemberMonthlyBehaviorMigration(t *testing.T, db *gorm.DB) {
 	const old = "ck_resource_limits_monthly_behavior_scope_v74"
 	const current = "ck_resource_limits_monthly_behavior_scope_v75"
 	before := personalKeyBehaviorLedger(t, db)
-	if (len(before) != 75 && len(before) != 76 && len(before) != 77 && len(before) != 78 && len(before) != 79 && len(before) != 80 && len(before) != 81 && len(before) != 82 && len(before) != 83 && len(before) != 84) || before[74].Version != 75 || len(before) >= 76 && before[75].Version != 76 || len(before) >= 77 && before[76].Version != 77 || len(before) >= 78 && before[77].Version != 78 || len(before) >= 79 && before[78].Version != 79 || len(before) >= 80 && before[79].Version != 80 || len(before) >= 81 && before[80].Version != 81 || len(before) >= 82 && before[81].Version != 82 || len(before) >= 83 && before[82].Version != 83 || len(before) == 84 && before[83].Version != 84 || !db.Migrator().HasConstraint(&entity.ResourceLimit{}, current) {
+	for i, row := range before {
+		if row.Version != i+1 {
+			t.Fatal("noncontiguous retained migration ledger")
+		}
+	}
+	if (len(before) != 75 && len(before) != 76 && len(before) != 77 && len(before) != 78 && len(before) != 79 && len(before) != 80 && len(before) != 81 && len(before) != 82 && len(before) != 83 && len(before) != 84 && len(before) != 85 && len(before) != 86 && len(before) != 87) || before[74].Version != 75 || len(before) >= 76 && before[75].Version != 76 || len(before) >= 77 && before[76].Version != 77 || len(before) >= 78 && before[77].Version != 78 || len(before) >= 79 && before[78].Version != 79 || len(before) >= 80 && before[79].Version != 80 || len(before) >= 81 && before[80].Version != 81 || len(before) >= 82 && before[81].Version != 82 || len(before) >= 83 && before[82].Version != 83 || len(before) >= 84 && before[83].Version != 84 || len(before) >= 85 && before[84].Version != 85 || len(before) >= 86 && before[85].Version != 86 || len(before) == 87 && before[86].Version != 87 || !db.Migrator().HasConstraint(&entity.ResourceLimit{}, current) {
 		t.Fatal("exact V75 ledger/check required")
 	}
 	row := entity.ResourceLimit{ScopeKind: "team_member", ScopeID: "member_v75_retained", ETag: "retained", TokensMonthBehavior: "stop", MoneyMonthBehavior: "stop"}
@@ -109,7 +115,7 @@ func testTeamMemberMonthlyBehaviorMigration(t *testing.T, db *gorm.DB) {
 }
 
 func teamMemberMonthlyRegistryTail(names []string) bool {
-	if len(names) == 156 || len(names) == 158 || len(names) == 160 || len(names) == 162 {
+	if len(names) == 156 || len(names) == 158 || len(names) == 160 || len(names) == 162 || len(names) == 164 || len(names) == 166 || len(names) == 168 {
 		parent, ok := personalRollingWarningRegistryParent(names)
 		if !ok {
 			return false
@@ -155,6 +161,9 @@ func TestTeamMemberMonthlyBehaviorExactRegistryTail(t *testing.T) {
 	names := make([]string, 0, len(pairs))
 	for _, pair := range pairs {
 		names = append(names, pair[1]+":"+pair[2])
+	}
+	if len(names) != 168 || !strings.Contains(string(raw), "versions != 87") {
+		t.Fatal("current exact168 registry/V87 ledger changed")
 	}
 	if !teamMemberMonthlyRegistryTail(names) || !personalKeyBehaviorRegistryMatches(names) || !projectKeyMonthlyBehaviorRegistryMatches(names) {
 		t.Fatal("current144 or inherited142 registry drift")

@@ -33,6 +33,24 @@ func modelCreationFilter(c *fox.Context) (service.ModelCreationFilter, error) {
 	}
 	return service.ModelCreationFilter{Query: values["q"], Cursor: values["cursor"], Limit: limit}, nil
 }
+
+// Only the inline identity pickers accept exact_id. Other Model creation
+// endpoints retain the existing paged filter contract unchanged.
+func modelAccessPickerFilter(c *fox.Context) (service.ModelAccessPickerFilter, error) {
+	values, err := parseTeamQuotaQuery(c, map[string]bool{"q": true, "cursor": true, "limit": true, "exact_id": true})
+	if err != nil || len(values["q"]) > 200 || !utf8.ValidString(values["q"]) || values["exact_id"] != "" && (values["q"] != "" || values["cursor"] != "") {
+		return service.ModelAccessPickerFilter{}, apperrors.ErrBadRequest
+	}
+	limit := 0
+	if values["limit"] != "" {
+		limit, err = strconv.Atoi(values["limit"])
+		if err != nil || limit < 1 || limit > 50 || strconv.Itoa(limit) != values["limit"] {
+			return service.ModelAccessPickerFilter{}, apperrors.ErrBadRequest
+		}
+	}
+	return service.ModelAccessPickerFilter{ModelCreationFilter: service.ModelCreationFilter{Query: values["q"], Cursor: values["cursor"], Limit: limit}, ExactID: values["exact_id"]}, nil
+}
+
 func decodeModelCreation(c *fox.Context, target any) error {
 	if err := noTeamQuotaQuery(c); err != nil {
 		return err
@@ -50,6 +68,22 @@ func (ctrl *Ctrl) ListModelCreationConnections(c *fox.Context) (*service.ModelCr
 		return nil, err
 	}
 	return ctrl.service.ListModelCreationConnections(c.Request.Context(), currentAuthentication(c).User.ID, filter)
+}
+func (ctrl *Ctrl) ListModelCreationProviders(c *fox.Context) (*service.ModelCreationProviderPage, error) {
+	modelCreationPrivate(c)
+	filter, err := modelAccessPickerFilter(c)
+	if err != nil {
+		return nil, err
+	}
+	return ctrl.service.ListModelCreationProviders(c.Request.Context(), currentAuthentication(c).User.ID, filter)
+}
+func (ctrl *Ctrl) ListModelCreationEgresses(c *fox.Context) (*service.ModelCreationEgressPage, error) {
+	modelCreationPrivate(c)
+	filter, err := modelAccessPickerFilter(c)
+	if err != nil {
+		return nil, err
+	}
+	return ctrl.service.ListModelCreationEgresses(c.Request.Context(), currentAuthentication(c).User.ID, filter)
 }
 func (ctrl *Ctrl) GetModelCreationContext(c *fox.Context) (*service.ModelCreationContext, error) {
 	modelCreationPrivate(c)

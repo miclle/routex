@@ -49,7 +49,7 @@ func readModelCreationSnapshot(receipt entity.ModelCreationBatchReceipt) (*model
 		return nil, apperrors.ErrInternal
 	}
 	for _, item := range snapshot.Items {
-		if !modelCreationID(item.ProviderModelID, "pmd") || !validAdminModelTarget(item.ModelID) || !modelCreationID(item.BindingID, "bnd") || !publicModelName.MatchString(item.Name) || !entity.SupportedNativeProtocol(item.Protocol) || item.Weight != 0 && item.Weight != 100 {
+		if item.ManualUpstreamName != "" && !validUpstreamName(item.ManualUpstreamName) || !modelCreationID(item.ProviderModelID, "pmd") || !validAdminModelTarget(item.ModelID) || !modelCreationID(item.BindingID, "bnd") || !publicModelName.MatchString(item.Name) || !entity.SupportedNativeProtocol(item.Protocol) || item.Weight != 0 && item.Weight != 100 {
 			return nil, apperrors.ErrInternal
 		}
 	}
@@ -112,6 +112,9 @@ func (s *Service) currentModelCreationState(tx *gorm.DB, snapshot *modelCreation
 		}
 		if binding.Weight < 0 || binding.Weight > 100 {
 			return nil, nil, apperrors.ErrInternal
+		}
+		if item.ManualUpstreamName != "" && pm.UpstreamName != item.ManualUpstreamName {
+			return nil, nil, catalogConflict
 		}
 		row := item
 		row.Name = model.Name.Name
@@ -189,6 +192,11 @@ func (s *Service) CreateModelBatch(ctx context.Context, actor, connectionID, eta
 		if err := exactCatalogPermission(modelCreationDB(tx), actor, "models.write"); err != nil {
 			return err
 		}
+		if modelCreationHasManual(input.Items) {
+			if err := exactCatalogPermission(modelCreationDB(tx), actor, "providers.write"); err != nil {
+				return err
+			}
+		}
 		err := personalExact(modelCreationDB(tx), "request_id", input.RequestID).Take(&receipt).Error
 		if err == nil {
 			if receipt.ActorID != actor || receipt.ConnectionID != connectionID || receipt.RequestHash != hash || receipt.ReviewETag != etag {
@@ -216,13 +224,24 @@ func (s *Service) CreateModelBatch(ctx context.Context, actor, connectionID, eta
 		}
 		items := make([]ModelCreationReceiptItem, 0, len(input.Items))
 		for index, item := range input.Items {
+			providerModelID := item.ProviderModelID
+			if item.UpstreamName != "" {
+				providerModelID, err = id.NewPrefixed("pmd")
+				if err != nil {
+					return err
+				}
+				pm := entity.ProviderModel{ID: providerModelID, ConnectionID: connectionID, UpstreamName: item.UpstreamName}
+				if err := modelCreationDB(tx).Create(&pm).Error; err != nil {
+					return err
+				}
+			}
 			modelID := item.ModelID
 			if item.Target == "new" {
 				modelID, err = id.NewPrefixed("mdl")
 				if err != nil {
 					return err
 				}
-				model := entity.Model{ID: modelID, Status: entity.ResourceActive}
+				model := newRecordedModel(modelID, entity.ResourceActive, time.Now())
 				if err := modelCreationDB(tx).Create(&model).Error; err != nil {
 					return err
 				}
@@ -235,10 +254,15 @@ func (s *Service) CreateModelBatch(ctx context.Context, actor, connectionID, eta
 				return err
 			}
 			weight := preview.Items[index].InitialWeight
-			if err := modelCreationDB(tx).Create(&entity.ModelProviderBinding{ID: bindingID, ModelID: modelID, ProviderModelID: item.ProviderModelID, Weight: weight}).Error; err != nil {
+			if err := modelCreationDB(tx).Create(&entity.ModelProviderBinding{ID: bindingID, ModelID: modelID, ProviderModelID: providerModelID, Weight: weight}).Error; err != nil {
 				return err
 			}
-			items = append(items, ModelCreationReceiptItem{ProviderModelID: item.ProviderModelID, ModelID: modelID, BindingID: bindingID, CreatedModel: item.Target == "new", Name: preview.Items[index].Name, Protocol: preview.Items[index].Protocol, Weight: weight})
+			if item.Target != "new" {
+				if err := stampModelConfiguration(modelCreationDB(tx), modelID, time.Now()); err != nil {
+					return err
+				}
+			}
+			items = append(items, ModelCreationReceiptItem{ManualUpstreamName: item.UpstreamName, ProviderModelID: providerModelID, ModelID: modelID, BindingID: bindingID, CreatedModel: item.Target == "new", Name: preview.Items[index].Name, Protocol: preview.Items[index].Protocol, Weight: weight})
 		}
 		snapshot := &modelCreationSnapshot{Items: items, ConnectionID: connectionID}
 		current, _, err := s.currentModelCreationState(tx, snapshot)
@@ -284,6 +308,11 @@ func (s *Service) CreateModelBatch(ctx context.Context, actor, connectionID, eta
 			return err
 		}
 		var err error
+		if modelCreationHasManual(input.Items) {
+			if err := exactCatalogPermission(modelCreationDB(tx), actor, "providers.write"); err != nil {
+				return err
+			}
+		}
 		result, err = s.modelCreationResult(tx, actor, receipt, created)
 		return err
 	}, &sql.TxOptions{Isolation: sql.LevelRepeatableRead, ReadOnly: true})
@@ -295,7 +324,7 @@ func modelCreationBatchAuditProjection(row entity.AuditEvent) (any, bool) {
 		return nil, false
 	}
 	for _, item := range detail.Items {
-		if !modelCreationID(item.ProviderModelID, "pmd") || !validAdminModelTarget(item.ModelID) || !modelCreationID(item.BindingID, "bnd") || !publicModelName.MatchString(item.Name) || !entity.SupportedNativeProtocol(item.Protocol) || item.Weight != 0 && item.Weight != 100 {
+		if item.ManualUpstreamName != "" && !validUpstreamName(item.ManualUpstreamName) || !modelCreationID(item.ProviderModelID, "pmd") || !validAdminModelTarget(item.ModelID) || !modelCreationID(item.BindingID, "bnd") || !publicModelName.MatchString(item.Name) || !entity.SupportedNativeProtocol(item.Protocol) || item.Weight != 0 && item.Weight != 100 {
 			return nil, false
 		}
 	}

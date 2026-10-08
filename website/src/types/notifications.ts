@@ -64,6 +64,16 @@ export interface PersonalKeyRollingQuotaWarningSnapshot extends Omit<
   threshold_generation: 'personal-key-rolling-80-90-v1'
 }
 
+export interface ProjectKeyRollingQuotaWarningSnapshot extends Omit<
+  PersonalRollingQuotaWarningSnapshot,
+  'scope_kind' | 'threshold_generation'
+> {
+  scope_kind: 'project_key'
+  project_id: string
+  project_created_at: string
+  threshold_generation: 'project-key-rolling-80-90-v1'
+}
+
 export interface ProjectRollingQuotaWarningSnapshot extends Omit<
   PersonalRollingQuotaWarningSnapshot,
   'scope_kind' | 'threshold_generation'
@@ -81,6 +91,7 @@ export interface TeamRollingQuotaWarningSnapshot extends Omit<
 }
 
 export interface Notification {
+  project_key_rolling_quota_warning?: ProjectKeyRollingQuotaWarningSnapshot
   team_rolling_quota_warning?: TeamRollingQuotaWarningSnapshot
   project_rolling_quota_warning?: ProjectRollingQuotaWarningSnapshot
   personal_key_rolling_quota_warning?: PersonalKeyRollingQuotaWarningSnapshot

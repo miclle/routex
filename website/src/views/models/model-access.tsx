@@ -20,7 +20,7 @@ import {
   teamInvocationSupported,
 } from './catalogue-metadata'
 import { exampleProtocols, modelExample } from './model-examples'
-import { bashTokens } from './bash-tokens'
+import { bashTokens } from '@/lib/code-tokens'
 
 const officialSDKs: Record<string, { guidance: string; documentation: string }> = {
   openai_chat: {

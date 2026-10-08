@@ -1,6 +1,9 @@
 package handler
 
 import (
+	"bytes"
+	"encoding/json"
+	"io"
 	"net/http"
 	"time"
 
@@ -18,6 +21,8 @@ type ModelNameResponse struct {
 	ExpiresAt *time.Time `json:"expires_at"`
 }
 type ModelBindingResponse struct {
+	Supply *service.ModelRoutingSupply `json:"supply,omitempty"`
+
 	ID              string `json:"id"`
 	ProviderModelID string `json:"provider_model_id"`
 	ProviderID      string `json:"provider_id"`
@@ -28,12 +33,14 @@ type ModelBindingResponse struct {
 	Ready           bool   `json:"ready"`
 }
 type ModelResponse struct {
-	ID             string                 `json:"id"`
-	Name           string                 `json:"name"`
-	Status         string                 `json:"status"`
-	Names          []ModelNameResponse    `json:"names"`
-	Bindings       []ModelBindingResponse `json:"bindings"`
-	GrantedUserIDs []string               `json:"granted_user_ids"`
+	CreatedAt       *time.Time             `json:"created_at"`
+	ConfigUpdatedAt *time.Time             `json:"config_updated_at"`
+	ID              string                 `json:"id"`
+	Name            string                 `json:"name"`
+	Status          string                 `json:"status"`
+	Names           []ModelNameResponse    `json:"names"`
+	Bindings        []ModelBindingResponse `json:"bindings"`
+	GrantedUserIDs  []string               `json:"granted_user_ids"`
 }
 type ModelsResponse struct {
 	Items []ModelResponse `json:"items"`
@@ -43,9 +50,64 @@ type CreateModelRequest struct {
 	ProviderModelID string `json:"provider_model_id"`
 }
 type CreateModelBindingRequest struct {
+	Protocol   *string `json:"protocol"`
+	ReviewETag *string `json:"review_etag"`
+
 	ModelID         string `uri:"model_id" json:"-"`
 	ProviderModelID string `json:"provider_model_id"`
 }
+
+// The reviewed branch has an exact shape; old unreviewed callers retain their existing wire.
+func (request *CreateModelBindingRequest) UnmarshalJSON(raw []byte) error {
+	var fields map[string]json.RawMessage
+	if err := json.Unmarshal(raw, &fields); err != nil || fields == nil {
+		return errCatalogBadRequest
+	}
+	_, protocol := fields["protocol"]
+	_, review := fields["review_etag"]
+	if protocol || review {
+		if !protocol || !review || len(fields) != 3 || bytes.Equal(bytes.TrimSpace(fields["protocol"]), []byte("null")) || bytes.Equal(bytes.TrimSpace(fields["review_etag"]), []byte("null")) {
+			return errCatalogBadRequest
+		}
+		// Streaming field decoding rejects duplicate keys that map decoding would hide.
+		decoder := json.NewDecoder(bytes.NewReader(raw))
+		if _, err := decoder.Token(); err != nil {
+			return errCatalogBadRequest
+		}
+		seen := map[string]bool{}
+		for decoder.More() {
+			key, err := decoder.Token()
+			if err != nil {
+				return errCatalogBadRequest
+			}
+			name, ok := key.(string)
+			if !ok || seen[name] {
+				return errCatalogBadRequest
+			}
+			seen[name] = true
+			var value json.RawMessage
+			if decoder.Decode(&value) != nil {
+				return errCatalogBadRequest
+			}
+		}
+		if _, err := decoder.Token(); err != nil {
+			return errCatalogBadRequest
+		}
+		if _, err := decoder.Token(); err != io.EOF {
+			return errCatalogBadRequest
+		}
+	}
+	type wire CreateModelBindingRequest
+	var value wire
+	if err := json.Unmarshal(raw, &value); err != nil {
+		return errCatalogBadRequest
+	}
+	// URI identity is bound independently by the handler framework.
+	value.ModelID = request.ModelID
+	*request = CreateModelBindingRequest(value)
+	return nil
+}
+
 type ModelWeightRequest struct {
 	BindingID string `json:"binding_id"`
 	Weight    int    `json:"weight"`
@@ -85,11 +147,19 @@ type ModelGranteesResponse struct {
 
 func modelResponse(item service.ModelCatalog) *ModelResponse {
 	result := &ModelResponse{ID: item.Model.ID, Name: item.Name, Status: item.Model.Status, Names: []ModelNameResponse{}, Bindings: []ModelBindingResponse{}, GrantedUserIDs: item.GrantedUserIDs}
+	if !item.Model.CreatedAt.IsZero() {
+		value := item.Model.CreatedAt.UTC()
+		result.CreatedAt = &value
+	}
+	if item.Model.ConfigUpdatedAt != nil && !item.Model.ConfigUpdatedAt.IsZero() {
+		value := item.Model.ConfigUpdatedAt.UTC()
+		result.ConfigUpdatedAt = &value
+	}
 	for _, name := range item.Names {
 		result.Names = append(result.Names, ModelNameResponse{Name: name.Name, IsCurrent: name.CurrentModelID != nil, ExpiresAt: name.ExpiresAt})
 	}
 	for _, binding := range item.Bindings {
-		result.Bindings = append(result.Bindings, ModelBindingResponse{ID: binding.Binding.ID, ProviderModelID: binding.Binding.ProviderModelID, ProviderID: binding.ProviderID, ConnectionID: binding.ConnectionID, UpstreamName: binding.UpstreamName, Protocol: binding.Protocol, Weight: binding.Binding.Weight, Ready: binding.Ready})
+		result.Bindings = append(result.Bindings, ModelBindingResponse{ID: binding.Binding.ID, ProviderModelID: binding.Binding.ProviderModelID, ProviderID: binding.ProviderID, ConnectionID: binding.ConnectionID, UpstreamName: binding.UpstreamName, Protocol: binding.Protocol, Weight: binding.Binding.Weight, Ready: binding.Ready, Supply: binding.Supply})
 	}
 	return result
 }
@@ -113,7 +183,16 @@ func (ctrl *Ctrl) CreateModel(c *fox.Context, request CreateModelRequest) error 
 	return nil
 }
 func (ctrl *Ctrl) AddModelBinding(c *fox.Context, request CreateModelBindingRequest) error {
-	result, err := ctrl.service.AddModelBinding(c.Request.Context(), currentAuthentication(c).User.ID, request.ModelID, request.ProviderModelID)
+	var result *service.ModelCatalog
+	var err error
+	if request.Protocol != nil || request.ReviewETag != nil {
+		if request.Protocol == nil || request.ReviewETag == nil {
+			return apperrors.ErrBadRequest
+		}
+		result, err = ctrl.service.AddReviewedModelBinding(c.Request.Context(), currentAuthentication(c).User.ID, request.ModelID, request.ProviderModelID, *request.Protocol, *request.ReviewETag)
+	} else {
+		result, err = ctrl.service.AddModelBinding(c.Request.Context(), currentAuthentication(c).User.ID, request.ModelID, request.ProviderModelID)
+	}
 	if err != nil {
 		return err
 	}

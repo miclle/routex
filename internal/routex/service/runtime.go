@@ -65,6 +65,7 @@ type runtimeConnectionProof struct {
 }
 
 type runtimeAuthorization struct {
+	publicationEpoch       uint64
 	Connections            map[string]runtimeConnectionProof
 	PersonalGrantStates    map[string]runtimePersonalGrantState
 	ModelEligibilityHashes map[string]string
@@ -212,6 +213,7 @@ func (s *Service) RefreshRuntime(ctx context.Context) error {
 	auth := buildRuntimeAuthorization(data, started.Add(runtimeAuthorizationLease))
 	digest, digestErr := runtimeDigest(data)
 	auth.SourceDigest = digest
+	auth.publicationEpoch = generation
 	runtime.auth.Store(auth)
 	clearRuntimeTombstones(&runtime.deniedKeys, generation)
 	clearRuntimeTombstones(&runtime.deniedLimits, generation)
@@ -250,6 +252,9 @@ func (s *Service) RefreshRuntime(ctx context.Context) error {
 		}
 	}
 	s.setRuntimeStatus(ctx, started, "")
+	// Recording can add at most 250ms under the existing publication locks.
+	// Failure leaves evidence unknown and never changes runtime admission.
+	_ = s.recordRuntimeApplication(ctx, runtime.routes.Load(), auth, generation)
 	return nil
 }
 

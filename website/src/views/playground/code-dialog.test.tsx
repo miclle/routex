@@ -3,7 +3,11 @@ import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import i18n from '@/i18n'
 import CodeDialog from './code-dialog'
-import type { SnippetInput } from '@/lib/playground-snippet'
+import {
+  buildPlaygroundSnippet,
+  type SnippetInput,
+  type SnippetLanguage,
+} from '@/lib/playground-snippet'
 const request: SnippetInput = {
   origin: 'https://gateway.example.test',
   protocol: 'anthropic_messages',
@@ -22,6 +26,8 @@ let root: Root,
   copy: ReturnType<typeof vi.fn<(value: string) => Promise<void>>>,
   close: ReturnType<typeof vi.fn<() => void>>
 beforeEach(async () => {
+  await i18n.changeLanguage('en')
+  vi.stubGlobal('fetch', vi.fn())
   host = document.createElement('div')
   document.body.append(host)
   root = createRoot(host)
@@ -33,6 +39,7 @@ beforeEach(async () => {
 afterEach(async () => {
   await act(async () => root.unmount())
   host.remove()
+  vi.unstubAllGlobals()
   if (original) Object.defineProperty(navigator, 'clipboard', original)
   else Reflect.deleteProperty(navigator, 'clipboard')
 })
@@ -53,6 +60,13 @@ it('copies all three functional language tabs with environment-key references an
   ]) {
     await click(label)
     const code = document.querySelector('pre')!.textContent!
+    expect(code).toBe(
+      buildPlaygroundSnippet(
+        request,
+        label === 'cURL' ? 'curl' : (label.toLowerCase() as SnippetLanguage),
+      ),
+    )
+    expect(document.querySelector('pre code span[class]')).not.toBeNull()
     expect(code).toContain('/v1/messages')
     expect(code).toContain('x-api-key')
     expect(code).toContain('anthropic-version')
@@ -92,4 +106,30 @@ it('does not produce or copy a fake Gemini path', async () => {
   )!
   expect(button.disabled).toBe(true)
   expect(document.body.textContent).toContain('compatible public name')
+})
+
+it('renders adversarial captured code as inert highlighted text and copies original bytes without requests', async () => {
+  const captured = {
+    ...request,
+    system: '<script>never()</script>雪🧩',
+    messages: [
+      { role: 'user' as const, content: '<img src=x onerror=never()>\n${never()} `never()`' },
+    ],
+  }
+  await act(async () => root.render(<CodeDialog request={captured} onClose={close} />))
+  for (const [label, language] of [
+    ['cURL', 'curl'],
+    ['Python', 'python'],
+    ['JavaScript', 'javascript'],
+  ] as const) {
+    await click(label)
+    const expected = buildPlaygroundSnippet(captured, language)
+    const pre = document.querySelector('pre')!
+    expect(pre.textContent).toBe(expected)
+    expect(pre.querySelector('script, img, iframe')).toBeNull()
+    expect(pre.querySelector('span[class]')).not.toBeNull()
+    await click('Copy code')
+    expect(copy).toHaveBeenLastCalledWith(expected)
+  }
+  expect(fetch).not.toHaveBeenCalled()
 })

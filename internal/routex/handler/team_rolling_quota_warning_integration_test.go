@@ -250,7 +250,68 @@ func testTeamRollingQuotaWarningLifecycle(t *testing.T, db *gorm.DB) {
 			t.Fatal("Team snapshot mismatch")
 		}
 	}
-	for _, actor := range []struct{ category, id string }{{"administrator", admin.User.ID}, {"outsider", outsider.User.ID}, {"later_member", later.User.ID}} {
+	// An unrelated operational notice legitimately coexists in the administrator
+	// feed. Publish it through the real allowlisted SystemJob reconciliation path.
+	completedAt := time.Now().UTC().Truncate(time.Microsecond)
+	source := entity.SystemJob{
+		ID: "job_team_rolling_coexistence", Code: service.SystemJobRuntimePublication, Status: "failed",
+		ItemsTotal: 1, DetailCode: "publication_failed", StartedAt: completedAt, UpdatedAt: completedAt, CompletedAt: &completedAt,
+	}
+	create(&source)
+	if _, err := svc.ListOperationalAlerts(ctx, admin.User.ID, service.OperationalAlertFilter{}); err != nil {
+		t.Fatal(err)
+	}
+	var occurrence entity.OperationalAlertOccurrence
+	if err := db.Where("source_type = ? AND source_id = ?", "system_job", source.ID).Take(&occurrence).Error; err != nil {
+		t.Fatal(err)
+	}
+	if occurrence.ID == "" || occurrence.AlertID == "" || occurrence.SourceType != "system_job" || occurrence.SourceID != source.ID || occurrence.DetailCode != "publication_failed" {
+		t.Fatal("exact unrelated source occurrence missing")
+	}
+	var operational entity.Notification
+	if err := db.Where("recipient_id = ? AND alert_id = ?", admin.User.ID, occurrence.AlertID).Take(&operational).Error; err != nil {
+		t.Fatal(err)
+	}
+	if operational.ID == "" || operational.RecipientID != admin.User.ID || operational.AlertID != occurrence.AlertID || operational.Kind != "system_job_failure" || operational.DetailCode != "publication_failed" || operational.SubjectType != "" || operational.SubjectID != "" || operational.SubjectName != "" {
+		t.Fatal("exact administrator operational notice missing")
+	}
+	teamScope := func(scope string) bool { return scope == "team" || scope == "team_member" }
+	foundOperational := false
+	for _, notice := range page(admin.User.ID).Items {
+		if notice.TeamRollingQuotaWarning != nil || notice.Kind == "team_rolling_quota_warning" || teamScope(notice.SubjectType) ||
+			notice.Quota != nil && (teamScope(notice.Quota.ScopeKind) || notice.Quota.TeamID != nil) ||
+			notice.QuotaWarning != nil && teamScope(notice.QuotaWarning.ScopeKind) ||
+			notice.RollingQuotaWarning != nil && teamScope(notice.RollingQuotaWarning.ScopeKind) {
+			t.Fatalf("administrator received private Team history: kind=%s id=%s", notice.Kind, notice.ID)
+		}
+		if notice.ID == operational.ID {
+			if notice.AlertID != occurrence.AlertID || notice.Kind != "system_job_failure" || notice.DetailCode != "publication_failed" {
+				t.Fatal("known operational notice projection mismatch")
+			}
+			foundOperational = true
+		}
+	}
+	if !foundOperational {
+		t.Fatal("known administrator operational notice missing from aggregate feed")
+	}
+	for _, model := range []any{&entity.TeamRollingQuotaWarningInbox{}, &entity.TeamQuotaWarningInbox{}, &entity.TeamMemberQuotaWarningInbox{}} {
+		var fanout int64
+		if err := db.Model(model).Where("recipient_id = ?", admin.User.ID).Count(&fanout).Error; err != nil || fanout != 0 {
+			t.Fatalf("administrator received Team inbox fanout: table=%T count=%d error=%v", model, fanout, err)
+		}
+	}
+	teamObservations := db.Model(&entity.QuotaNotificationObservation{}).Select("id").Where("scope_kind IN ?", []string{"team", "team_member"})
+	var monthlyFanout int64
+	if err := db.Model(&entity.QuotaNotificationInbox{}).Where("recipient_id = ?", admin.User.ID).Where("observation_id IN (?)", teamObservations).Count(&monthlyFanout).Error; err != nil || monthlyFanout != 0 {
+		t.Fatalf("administrator received Team monthly inbox fanout: count=%d error=%v", monthlyFanout, err)
+	}
+	for _, notice := range near.Items {
+		expectStatus(t, request(adminCookie, admin.CSRFToken, "POST", "/api/v1/notifications/"+notice.ID+"/read", nil, ""), 404)
+	}
+	if page(member.User.ID).UnreadCount != 2 {
+		t.Fatal("unauthorized administrator changed member read receipts")
+	}
+	for _, actor := range []struct{ category, id string }{{"outsider", outsider.User.ID}, {"later_member", later.User.ID}} {
 		if got := page(actor.id); len(got.Items) != 0 {
 			for _, notice := range got.Items {
 				t.Logf("foreign actor category=%s received notice kind=%s id=%s", actor.category, notice.Kind, notice.ID)

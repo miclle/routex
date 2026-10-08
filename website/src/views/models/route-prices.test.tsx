@@ -3,7 +3,7 @@ import { createRoot, type Root } from 'react-dom/client'
 import { createMemoryRouter, RouterProvider } from 'react-router'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { AxiosError, AxiosHeaders, type InternalAxiosRequestConfig } from 'axios'
-import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import client from '@/api/client'
 import { getAdminModel } from '@/api/catalog'
 import { getRoutePrices } from '@/api/pricing'
@@ -159,6 +159,7 @@ afterEach(async () => {
   cache.clear()
   host.remove()
   client.defaults.adapter = originalAdapter
+  vi.useRealTimers()
 })
 async function until(assertion: () => void) {
   for (let i = 0; i < 100; i++) {
@@ -234,7 +235,9 @@ describe('Read-only exact Model route prices', () => {
     expect(row.textContent).not.toContain('1 image')
     expect(host.textContent).toContain('Base input price')
     expect(host.textContent).toContain('Base output price')
-    expect(host.querySelectorAll('tbody td')).toHaveLength(7)
+    expect(host.querySelectorAll('tbody td')).toHaveLength(8)
+    expect(host.textContent).toContain('Recorded verification coverage')
+    expect(host.textContent).toContain('Configured availability')
     expect(
       priceRequests().every((item) => item.method === 'get' && item.params === undefined),
     ).toBe(true)
@@ -403,6 +406,284 @@ describe('Read-only exact Model route prices', () => {
     expect(host.textContent).not.toContain('0.000000000000000001')
     expect(host.textContent).not.toContain('Private mdl_one')
   })
+  it('offers explicit old-name compatibility and a captured default deadline', async () => {
+    permissions = ['models.read_all', 'models.write', 'prices.read']
+    await ready()
+    await click('Rename')
+    await until(() =>
+      expect(document.querySelector('[role="dialog"] input[name="name"]')).not.toBeNull(),
+    )
+    const keep = document.querySelector<HTMLInputElement>('[role="dialog"] input[type="checkbox"]')
+    expect(keep).not.toBeNull()
+    expect(keep!.checked).toBe(true)
+    expect(document.querySelector<HTMLSelectElement>('[role="dialog"] select')?.value).toBe('30')
+    expect(
+      document.querySelector<HTMLInputElement>('[role="dialog"] input[name="alias_expires_at"]')
+        ?.value,
+    ).toMatch(/^\d{4}-\d{2}-\d{2}T/)
+  })
+  it('retries the exact compatibility deadline after conflict, renewed Session and live language change', async () => {
+    permissions = ['models.read_all', 'models.write', 'prices.read']
+    await ready()
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(new Date(2030, 0, 1, 12))
+    await click('Rename')
+    await until(() =>
+      expect(document.querySelector('[role="dialog"] input[name="name"]')).not.toBeNull(),
+    )
+    await fill('name', 'Renamed')
+    const select = document.querySelector<HTMLSelectElement>('[role="dialog"] select')!
+    await act(async () => {
+      select.value = '7'
+      select.dispatchEvent(new Event('change', { bubbles: true }))
+    })
+    const captured = document.querySelector<HTMLInputElement>(
+      'input[name="alias_expires_at"]',
+    )!.value
+    failure['/admin/models/mdl_one/rename'] = 409
+    const submit = async () =>
+      act(async () =>
+        document
+          .querySelector('[role="dialog"] form')!
+          .dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })),
+      )
+    await submit()
+    await until(() =>
+      expect(document.querySelector('[role="dialog"]')!.textContent).toContain(
+        'conflicts with current state',
+      ),
+    )
+    const first = requests.find((item) => item.url?.endsWith('/rename'))!
+    expect(JSON.parse(first.data)).toEqual({ name: 'Renamed', alias_expires_at: captured })
+    expect(first.headers.get('If-Match')).toBeUndefined()
+    vi.setSystemTime(new Date(2030, 0, 4, 12))
+    let release!: () => void
+    holds['/auth/session'] = () =>
+      new Promise<void>((resolve) => {
+        release = resolve
+      })
+    await act(async () => {
+      void cache.refetchQueries({ queryKey: sessionKey })
+    })
+    await until(() => expect(document.querySelector('[role="dialog"]')).toBeNull())
+    identity = { ...identity, csrf_token: 'csrf-renewed' }
+    delete holds['/auth/session']
+    await act(async () => release())
+    await until(() =>
+      expect(document.querySelector('[role="dialog"] input[name="name"]')).not.toBeNull(),
+    )
+    await act(async () => i18n.changeLanguage('zh'))
+    expect(document.querySelector('[role="dialog"]')!.textContent).toContain('旧名称继续可用')
+    expect(document.querySelector<HTMLInputElement>('input[name="name"]')!.value).toBe('Renamed')
+    expect(document.querySelector<HTMLInputElement>('input[name="alias_expires_at"]')!.value).toBe(
+      captured,
+    )
+    expect(requests.filter((item) => item.url?.endsWith('/rename'))).toHaveLength(1)
+    delete failure['/admin/models/mdl_one/rename']
+    await submit()
+    await until(() =>
+      expect(requests.filter((item) => item.url?.endsWith('/rename'))).toHaveLength(2),
+    )
+    const retry = requests.filter((item) => item.url?.endsWith('/rename'))[1]
+    expect(retry.data).toBe(first.data)
+    expect(retry.headers.get('X-CSRF-Token')).toBe('csrf-renewed')
+  })
+  it.each(['Session', 'permission', 'detail'] as const)(
+    'retains a rename draft when a held successful response follows %s renewal',
+    async (scope) => {
+      permissions = ['models.read_all', 'models.write', 'prices.read']
+      await ready()
+      await click('Rename')
+      await until(() =>
+        expect(document.querySelector('[role="dialog"] input[name="name"]')).not.toBeNull(),
+      )
+      await fill('name', 'Retained rename')
+      const deadline = document.querySelector<HTMLInputElement>(
+        'input[name="alias_expires_at"]',
+      )!.value
+      let release!: () => void
+      holds['/admin/models/mdl_one/rename'] = () =>
+        new Promise<void>((resolve) => {
+          release = resolve
+        })
+      await act(async () => {
+        document
+          .querySelector('[role="dialog"] form')!
+          .dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+      })
+      await until(() => expect(release).toBeTypeOf('function'))
+      const original = requests.find((item) => item.url?.endsWith('/rename'))!
+      const key =
+        scope === 'Session'
+          ? sessionKey
+          : scope === 'permission'
+            ? ['permissions', identity.user.id]
+            : ['admin', 'models', 'detail', identity.user.id, 'mdl_one']
+      if (scope === 'Session') identity = { ...identity, csrf_token: 'csrf-renewed' }
+      await act(async () => {
+        await cache.refetchQueries({ queryKey: key })
+      })
+      await until(() =>
+        expect(document.querySelector('[role="dialog"] input[name="name"]')).not.toBeNull(),
+      )
+      const readsBefore = requests.filter((item) => item.method === 'get').length
+      delete holds['/admin/models/mdl_one/rename']
+      await act(async () => release())
+      await act(async () => {
+        await new Promise((resolve) => setTimeout(resolve, 30))
+      })
+      expect(
+        document.querySelector<HTMLInputElement>('[role="dialog"] input[name="name"]')?.value,
+      ).toBe('Retained rename')
+      expect(
+        document.querySelector<HTMLInputElement>('input[name="alias_expires_at"]')?.value,
+      ).toBe(deadline)
+      expect(requests.filter((item) => item.method === 'get')).toHaveLength(readsBefore)
+      expect(document.querySelector('[role="dialog"] [role="status"]')?.textContent).toContain(
+        'outcome is uncertain',
+      )
+      expect(
+        document.querySelector<HTMLFieldSetElement>('[role="dialog"] fieldset')!.disabled,
+      ).toBe(true)
+      await act(async () => i18n.changeLanguage('zh'))
+      expect(document.querySelector('[role="dialog"] [role="status"]')?.textContent).toContain(
+        '结果仍不确定',
+      )
+      await act(async () => i18n.changeLanguage('en'))
+      failure['/admin/models/mdl_one/rename'] = 409
+      await act(async () => {
+        document
+          .querySelector('[role="dialog"] form')!
+          .dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+      })
+      await until(() =>
+        expect(requests.filter((item) => item.url?.endsWith('/rename'))).toHaveLength(2),
+      )
+      const retry = requests.filter((item) => item.url?.endsWith('/rename'))[1]
+      expect(retry.data).toBe(original.data)
+      expect(retry.headers.get('X-CSRF-Token')).toBe(
+        scope === 'Session' ? 'csrf-renewed' : 'csrf-one',
+      )
+      await until(() =>
+        expect(document.querySelector('[role="dialog"]')?.textContent).toContain(
+          'conflicts with current state',
+        ),
+      )
+      expect(document.querySelector('[role="dialog"] [role="status"]')?.textContent).toContain(
+        'outcome is uncertain',
+      )
+      expect(
+        document.querySelector<HTMLInputElement>('[role="dialog"] input[name="name"]')?.value,
+      ).toBe('Retained rename')
+      delete failure['/admin/models/mdl_one/rename']
+      await act(async () => {
+        document
+          .querySelector('[role="dialog"] form')!
+          .dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+      })
+      await until(() =>
+        expect(requests.filter((item) => item.url?.endsWith('/rename'))).toHaveLength(3),
+      )
+      expect(requests.filter((item) => item.url?.endsWith('/rename'))[2].data).toBe(original.data)
+      await until(() => expect(document.querySelector('[role="dialog"]')).toBeNull())
+    },
+  )
+  it('does not invalidate or close a new target rename dialog after the old target unmounts', async () => {
+    permissions = ['models.read_all', 'models.write', 'prices.read']
+    await ready()
+    await click('Rename')
+    await until(() =>
+      expect(document.querySelector('[role="dialog"] input[name="name"]')).not.toBeNull(),
+    )
+    await fill('name', 'Old target intent')
+    let release!: () => void
+    holds['/admin/models/mdl_one/rename'] = () =>
+      new Promise<void>((resolve) => {
+        release = resolve
+      })
+    await act(async () => {
+      document
+        .querySelector('[role="dialog"] form')!
+        .dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+    })
+    await until(() => expect(release).toBeTypeOf('function'))
+    await act(async () => {
+      await router.navigate('/admin/models/mdl_two')
+    })
+    await until(() => expect(host.textContent).toContain('12.000000000000000001 USD'))
+    await click('Rename')
+    await until(() =>
+      expect(document.querySelector('[role="dialog"] input[name="name"]')).not.toBeNull(),
+    )
+    await fill('name', 'New target intent')
+    const readsBefore = requests.filter((item) => item.method === 'get').length
+    delete holds['/admin/models/mdl_one/rename']
+    await act(async () => release())
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 30))
+    })
+    expect(
+      document.querySelector<HTMLInputElement>('[role="dialog"] input[name="name"]')?.value,
+    ).toBe('New target intent')
+    expect(requests.filter((item) => item.method === 'get')).toHaveLength(readsBefore)
+    expect(requests.filter((item) => item.url?.endsWith('/rename'))).toHaveLength(1)
+  })
+  it('sends no compatibility deadline only after explicit immediate-stop selection', async () => {
+    permissions = ['models.read_all', 'models.write', 'prices.read']
+    models.mdl_one.granted_user_ids = []
+    await ready()
+    await click('Rename')
+    await until(() =>
+      expect(document.querySelector('[role="dialog"] input[type="checkbox"]')).not.toBeNull(),
+    )
+    const keep = document.querySelector<HTMLInputElement>('[role="dialog"] input[type="checkbox"]')!
+    expect(keep.checked).toBe(true)
+    await fill('name', 'Renamed')
+    await act(async () => keep.click())
+    expect(document.querySelector('[role="dialog"]')!.textContent).toContain(
+      'immediately stop accepting new requests',
+    )
+    await act(async () =>
+      document
+        .querySelector('[role="dialog"] form')!
+        .dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })),
+    )
+    await until(() => expect(requests.some((item) => item.url?.endsWith('/rename'))).toBe(true))
+    expect(JSON.parse(requests.find((item) => item.url?.endsWith('/rename'))!.data)).toEqual({
+      name: 'Renamed',
+    })
+  })
+  it.each(['session', 'permission', 'detail'])(
+    'rejects a captured rename submit after %s invalidation',
+    async (kind) => {
+      permissions = ['models.read_all', 'models.write', 'prices.read']
+      await ready()
+      await click('Rename')
+      await until(() => expect(document.querySelector('[role="dialog"] form')).not.toBeNull())
+      await fill('name', 'Renamed')
+      const form = document.querySelector<HTMLFormElement>('[role="dialog"] form')!
+      const propsKey = Object.keys(form).find((key) => key.startsWith('__reactProps$'))!
+      const props = Reflect.get(form, propsKey) as {
+        onSubmit: (event: { preventDefault: () => void; currentTarget: HTMLFormElement }) => void
+      }
+      const key =
+        kind === 'session'
+          ? sessionKey
+          : cache
+              .getQueryCache()
+              .getAll()
+              .find(
+                (query) =>
+                  query.isActive() &&
+                  query.queryKey.includes(kind === 'permission' ? 'permissions' : 'detail'),
+              )!.queryKey
+      await act(async () => {
+        void cache.invalidateQueries({ queryKey: key, exact: true, refetchType: 'none' })
+        props.onSubmit({ preventDefault: () => {}, currentTarget: form })
+      })
+      expect(requests.some((item) => item.url?.endsWith('/rename'))).toBe(false)
+    },
+  )
   it('retains the existing weight and rename mutations with current CSRF and without pricing writes', async () => {
     permissions = ['models.read_all', 'models.write', 'prices.read']
     await ready()

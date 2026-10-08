@@ -1,4 +1,37 @@
 export default {
+  routingCandidates: {
+    connection: 'Connection',
+    pricesDenied: 'Price read permission required',
+    priceMissing: 'Not configured',
+    tokenUnit: '1M Tokens',
+    title: 'Add {{protocol}} routing',
+    description:
+      'Add one reviewed supply relation at 0%. Existing routing weights remain unchanged until the complete routing configuration is saved.',
+    providerSearch: 'Search compatible Providers',
+    chooseProvider: 'Select a compatible Provider',
+    search: 'Search Provider models',
+    table: 'Compatible Provider models',
+    select: 'Select',
+    selectModel: 'Select {{name}}',
+    verification: 'Recorded verification coverage',
+    availability: 'Configured availability',
+    covered: 'Covered',
+    uncovered: 'Not covered',
+    available: 'Available by configuration',
+    unavailable: 'Unavailable by configuration',
+    unknownFact: 'Unknown',
+    nextProviders: 'Next Provider page',
+    nextModels: 'Next model page',
+    selected: 'Selected: {{name}} / {{connection}}',
+    factsHelp:
+      'Configured availability means an enabled Connection and Provider model with an enabled Credential. Recorded coverage is separate; neither is runtime health or an inference guarantee. Providers have no independent enable flag.',
+    unknown:
+      'The insertion outcome is uncertain. Refreshing the Model does not resolve the original request. Retry only the exact request with fresh authority, or close without claiming success.',
+    review: 'Review current candidates',
+    retry: 'Retry exact insertion',
+    confirm: 'Confirm add at 0%',
+    addProtocol: 'Add {{protocol}} Provider route',
+  },
   azureTransport: {
     adapter: 'Connection adapter',
     native: 'Native',
@@ -781,6 +814,19 @@ export default {
     publicName: 'Public model name',
     namePlaceholder: 'Model name used in requests',
   },
+  modelMetadata: {
+    capabilityType: 'Capability type',
+    monthlyRequests: 'Monthly requests',
+    created: 'Created',
+    updated: 'Updated',
+    unknown: 'Unknown',
+    unavailable: 'Unavailable',
+    queryUnavailable:
+      'The complete monthly request query is unavailable. Model configuration remains visible.',
+    retry: 'Refresh monthly requests',
+    source:
+      'Persisted call records, UTC month {{from}} to {{asOf}}; facts may lag. Counts include all accounts and outcomes, not attempts.',
+  },
   adminModels: {
     inputBasePrice: 'Base input price',
     outputBasePrice: 'Base output price',
@@ -792,6 +838,8 @@ export default {
     description:
       'Manage names, provider bindings, and user grants using stable model identities. New bindings have weight 0 and receive traffic only after valid routing weights are saved.',
     renameTitle: 'Rename model',
+    renameUncertain:
+      'The rename response arrived after its review changed, so the outcome is uncertain. The original name and deadline are retained. Retry explicitly with current authority; refreshing does not confirm this request.',
     addBinding: 'Add provider binding',
     weightsTitle: 'Adjust provider weights',
     grantsTitle: 'Model grants',
@@ -839,6 +887,16 @@ export default {
       'The model ID and existing grants stay the same. Historical names cannot be reused. Without a compatibility deadline, the old name stops working immediately.',
     bindingDescription:
       'Select a registered upstream model. New models explicitly grant access to the administrator who creates them.',
+    keepOldName: 'Keep the old name available',
+    compatibilityPeriod: 'Compatibility period',
+    compatibilityDays_one: '{{count}} day',
+    compatibilityDays_other: '{{count}} days',
+    compatibilityWarning:
+      'The old name {{name}} will stop accepting new requests after the compatibility deadline. Migrate callers before it expires.',
+    immediateStopWarning:
+      'Confirming will immediately stop accepting new requests using {{name}}. Callers must use the new name.',
+    compatibilityUntil:
+      '{{name}} resolves to the same Model until {{date}}. The captured deadline stays fixed during retries.',
     aliasDeadline: 'Old name compatibility deadline (optional)',
     chooseUpstream: 'Select provider / connection / model',
     bindingCount: '{{count}}',

@@ -15,7 +15,11 @@ export interface ModelCreationContext {
   can_create: boolean
   observed_at: string
 }
+export type ModelCreationInitialTarget =
+  | { target: 'new'; name: string }
+  | { target: 'existing'; model_id: string; name: string; initial_weight: 0 | 100 }
 export interface ModelCreationProviderModel {
+  initial_target: ModelCreationInitialTarget | null
   id: string
   upstream_name: string
   disabled: boolean
@@ -35,10 +39,13 @@ export interface ModelCreationPage<T> {
   items: T[]
   next_cursor: string | null
 }
-export type ModelCreationItem =
-  | { provider_model_id: string; target: 'new'; name: string }
-  | { provider_model_id: string; target: 'existing'; model_id: string }
+export type ModelCreationSource =
+  | { provider_model_id: string; upstream_name?: never }
+  | { upstream_name: string; provider_model_id?: never }
+export type ModelCreationItem = ModelCreationSource &
+  ({ target: 'new'; name: string } | { target: 'existing'; model_id: string })
 export interface ModelCreationReviewedItem {
+  warning_codes?: ['credential_coverage_unproven']
   provider_model_id: string
   upstream_name: string
   target: 'new' | 'existing'
@@ -61,6 +68,7 @@ export interface ModelCreationInput {
   items: ModelCreationItem[]
 }
 export interface ModelCreationReceiptItem {
+  manual_upstream_name?: string
   provider_model_id: string
   model_id: string
   binding_id: string

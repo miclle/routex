@@ -120,7 +120,7 @@ func testAzureDeploymentMigration(t *testing.T, db *gorm.DB) {
 
 // The entire original 150-case registry remains byte-exact in name/order.
 func azureDeploymentRegistryParent(names []string) ([]string, bool) {
-	if len(names) == 156 || len(names) == 158 || len(names) == 160 || len(names) == 162 {
+	if len(names) == 156 || len(names) == 158 || len(names) == 160 || len(names) == 162 || len(names) == 164 || len(names) == 166 || len(names) == 168 {
 		parent, ok := personalRollingWarningRegistryParent(names)
 		if !ok {
 			return nil, false
@@ -151,6 +151,9 @@ func TestAzureExact152RegistryAndRetained150Prefix(t *testing.T) {
 	var names []string
 	for _, m := range regexp.MustCompile(`\{"([^"\n]+)", (test[A-Za-z0-9]+)\}`).FindAllStringSubmatch(string(raw), -1) {
 		names = append(names, m[1]+":"+m[2])
+	}
+	if len(names) != 168 || !strings.Contains(string(raw), "versions != 87") {
+		t.Fatal("current exact168 registry/V87 ledger changed")
 	}
 	if _, ok := azureDeploymentRegistryParent(names); !ok {
 		t.Fatal("exact150 prefix plus reviewed Azure pair required")

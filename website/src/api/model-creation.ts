@@ -40,6 +40,27 @@ function invalid(): never {
 }
 export const validModelCreationName = (v: string) =>
   /^[A-Za-z0-9][A-Za-z0-9._:/-]{0,127}$(?![\s\S])/.test(v)
+export const modelCreationItemKey = (item: ModelCreationItem) =>
+  item.upstream_name !== undefined ? `manual:${item.upstream_name}` : item.provider_model_id
+export const modelCreationSource = (item: ModelCreationItem) =>
+  item.upstream_name !== undefined
+    ? { upstream_name: item.upstream_name }
+    : { provider_model_id: item.provider_model_id }
+export function validManualModelName(value: string, connection?: ModelCreationConnection) {
+  if (
+    !value ||
+    value.trim() !== value ||
+    [...value].length > 255 ||
+    /\p{Cc}/u.test(value) ||
+    new TextDecoder().decode(new TextEncoder().encode(value)) !== value
+  )
+    return false
+  if (connection?.adapter === 'azure_openai_classic')
+    return /^[A-Za-z0-9_.-]{1,255}$(?![\s\S])/.test(value) && !['.', '..'].includes(value)
+  if (connection?.protocol === 'gemini_generate_content')
+    return /^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$(?![\s\S])/.test(value)
+  return true
+}
 export const validModelCreationReason = (v: string) =>
   !!v.trim() &&
   new TextDecoder().decode(new TextEncoder().encode(v)) === v &&
@@ -63,9 +84,26 @@ function connection(v: unknown, expected?: string): ModelCreationConnection {
   decodeConnectionTransport(v)
   return v as unknown as ModelCreationConnection
 }
+function initialTarget(v: unknown, upstream: string, selectable: boolean) {
+  if (v === null) return
+  if (!selectable || !object(v) || v.name !== upstream || !validModelCreationName(upstream))
+    invalid()
+  if (v.target === 'new') {
+    if (Object.keys(v).sort().join(',') !== 'name,target') invalid()
+  } else if (v.target === 'existing') {
+    if (
+      Object.keys(v).sort().join(',') !== 'initial_weight,model_id,name,target' ||
+      !resource(v.model_id, 'mdl') ||
+      !weight(v.initial_weight)
+    )
+      invalid()
+  } else invalid()
+}
 function providerModel(v: unknown): ModelCreationProviderModel {
   if (
     !object(v) ||
+    Object.keys(v).sort().join(',') !==
+      'blocker_codes,credential_ready,disabled,id,initial_target,input_capabilities,selectable,upstream_name' ||
     !resource(v.id, 'pmd') ||
     !text(v.upstream_name) ||
     !bool(v.disabled) ||
@@ -78,6 +116,7 @@ function providerModel(v: unknown): ModelCreationProviderModel {
     (v.selectable && (v.disabled || !v.credential_ready || v.blocker_codes.length))
   )
     invalid()
+  initialTarget(v.initial_target, v.upstream_name as string, v.selectable as boolean)
   return v as unknown as ModelCreationProviderModel
 }
 function target(v: unknown): ModelCreationTarget {
@@ -156,22 +195,30 @@ export function validateModelCreationItems(items: ModelCreationItem[]) {
   if (
     items.length < 1 ||
     items.length > 50 ||
-    new Set(items.map((x) => x.provider_model_id)).size !== items.length
+    new Set(items.map(modelCreationItemKey)).size !== items.length
   )
     throw new Error('Invalid model creation selection')
   const names = new Set<string>(),
     models = new Set<string>()
   for (const x of items) {
     if (
-      !resource(x.provider_model_id, 'pmd') ||
+      (x.upstream_name !== undefined
+        ? !validManualModelName(x.upstream_name) || x.provider_model_id !== undefined
+        : !resource(x.provider_model_id, 'pmd')) ||
       (x.target === 'new'
         ? !validModelCreationName(x.name) ||
           names.has(x.name) ||
-          Object.keys(x).sort().join(',') !== 'name,provider_model_id,target'
+          Object.keys(x).sort().join(',') !==
+            (x.upstream_name !== undefined
+              ? 'name,target,upstream_name'
+              : 'name,provider_model_id,target')
         : x.target !== 'existing' ||
           !resource(x.model_id, 'mdl') ||
           models.has(x.model_id) ||
-          Object.keys(x).sort().join(',') !== 'model_id,provider_model_id,target')
+          Object.keys(x).sort().join(',') !==
+            (x.upstream_name !== undefined
+              ? 'model_id,target,upstream_name'
+              : 'model_id,provider_model_id,target'))
     )
       throw new Error('Invalid model creation selection')
     if (x.target === 'new') names.add(x.name)
@@ -207,19 +254,31 @@ export async function previewModelCreation(
   for (const row of v.items) {
     if (
       !object(row) ||
-      !resource(row.provider_model_id, 'pmd') ||
+      !(row.provider_model_id === '' || resource(row.provider_model_id, 'pmd')) ||
       !text(row.upstream_name) ||
       !text(row.name) ||
       !protocol(row.protocol) ||
       row.protocol !== c.protocol ||
       !weight(row.initial_weight) ||
       !codes(row.blocker_codes) ||
-      seen.has(row.provider_model_id)
+      seen.has(row.provider_model_id || `manual:${row.upstream_name}`)
     )
       invalid()
-    const original = items.find((x) => x.provider_model_id === row.provider_model_id)
+    const original = items.find((x) =>
+      x.upstream_name !== undefined
+        ? row.provider_model_id === '' && x.upstream_name === row.upstream_name
+        : x.provider_model_id === row.provider_model_id,
+    )
     if (
       !original ||
+      (original.upstream_name !== undefined
+        ? Object.keys(row).sort().join(',') !==
+            'blocker_codes,initial_weight,model_id,name,protocol,provider_model_id,target,upstream_name,warning_codes' ||
+          !validManualModelName(original.upstream_name, c) ||
+          !Array.isArray(row.warning_codes) ||
+          row.warning_codes.length !== 1 ||
+          row.warning_codes[0] !== 'credential_coverage_unproven'
+        : row.warning_codes !== undefined) ||
       row.target !== original.target ||
       (original.target === 'new'
         ? row.name !== original.name || row.model_id !== null || row.initial_weight !== 100
@@ -227,13 +286,18 @@ export async function previewModelCreation(
     )
       invalid()
     if (v.can_commit && row.blocker_codes.length) invalid()
-    seen.add(row.provider_model_id)
+    seen.add(row.provider_model_id || `manual:${row.upstream_name}`)
   }
   return v as unknown as ModelCreationPreview
 }
 function receiptItem(v: unknown, current = false): ModelCreationReceiptItem {
   if (
     !object(v) ||
+    (v.manual_upstream_name !== undefined &&
+      (Object.keys(v).sort().join(',') !==
+        'binding_id,created_model,manual_upstream_name,model_id,name,protocol,provider_model_id,weight' ||
+        !text(v.manual_upstream_name) ||
+        !validManualModelName(v.manual_upstream_name))) ||
     !resource(v.provider_model_id, 'pmd') ||
     !resource(v.model_id, 'mdl') ||
     !resource(v.binding_id, 'bnd') ||
@@ -280,14 +344,26 @@ function result(
   if (
     new Set(rows.map((x) => x.provider_model_id)).size !== rows.length ||
     new Set(rows.map((x) => x.model_id)).size !== rows.length ||
-    new Set(rows.map((x) => x.binding_id)).size !== rows.length
+    new Set(rows.map((x) => x.binding_id)).size !== rows.length ||
+    new Set(
+      rows.map((x) =>
+        x.manual_upstream_name !== undefined
+          ? `manual:${x.manual_upstream_name}`
+          : x.provider_model_id,
+      ),
+    ).size !== rows.length
   )
     invalid()
   if (
     input &&
     (rows.length !== input.items.length ||
       rows.some((row) => {
-        const original = input.items.find((x) => x.provider_model_id === row.provider_model_id)
+        const original = input.items.find((x) =>
+          x.upstream_name !== undefined
+            ? row.manual_upstream_name === x.upstream_name
+            : row.manual_upstream_name === undefined &&
+              x.provider_model_id === row.provider_model_id,
+        )
         return (
           !original ||
           (original.target === 'new'
@@ -309,6 +385,7 @@ function result(
               old.model_id === row.model_id &&
               old.binding_id === row.binding_id &&
               old.created_model === row.created_model &&
+              old.manual_upstream_name === row.manual_upstream_name &&
               old.protocol === row.protocol,
           ),
       )

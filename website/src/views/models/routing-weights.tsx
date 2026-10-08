@@ -18,6 +18,7 @@ export default function RoutingWeights({
   generation,
   providers,
   canWrite,
+  canAdd = canWrite,
   pricesReadable,
   pending,
   error,
@@ -35,11 +36,12 @@ export default function RoutingWeights({
   generation: number
   providers: Provider[] | undefined
   canWrite: boolean
+  canAdd?: boolean
   pricesReadable: boolean
   pending: boolean
   error: unknown
   onSave: (weights: { binding_id: string; weight: number }[]) => void
-  onAddBinding: () => void
+  onAddBinding: (protocol?: string) => void
   onGrants: () => void
   refreshDetail: () => void
 }) {
@@ -130,8 +132,9 @@ export default function RoutingWeights({
                 <tr>
                   <th>{t('common.provider')}</th>
                   <th>{t('adminModels.providerModel')}</th>
-                  <th>{t('common.protocol')}</th>
-                  <th>{t('adminModels.status')}</th>
+                  <th>{t('routingCandidates.connection')}</th>
+                  <th>{t('routingCandidates.verification')}</th>
+                  <th>{t('routingCandidates.availability')}</th>
                   <th>{t('adminModels.inputBasePrice')}</th>
                   <th>{t('adminModels.outputBasePrice')}</th>
                   <th>{t('adminModels.weight')}</th>
@@ -141,15 +144,29 @@ export default function RoutingWeights({
                 {group.bindings.map((binding) => (
                   <tr key={binding.id}>
                     <td>
-                      {providers?.find((provider) => provider.id === binding.provider_id)?.name ??
+                      {binding.supply?.provider_name ??
+                        providers?.find((provider) => provider.id === binding.provider_id)?.name ??
                         binding.provider_id}
                     </td>
                     <td>{binding.upstream_name}</td>
-                    <td>{protocolLabel(binding.protocol)}</td>
+                    <td>{binding.supply?.connection_name ?? binding.connection_id}</td>
                     <td>
-                      {binding.ready
-                        ? t('adminModels.connectionReady')
-                        : t('adminModels.connectionNotReady')}
+                      {t(
+                        binding.supply
+                          ? binding.supply.verification_covered
+                            ? 'routingCandidates.covered'
+                            : 'routingCandidates.uncovered'
+                          : 'routingCandidates.unknownFact',
+                      )}
+                    </td>
+                    <td>
+                      {t(
+                        binding.supply
+                          ? binding.supply.configured_available
+                            ? 'routingCandidates.available'
+                            : 'routingCandidates.unavailable'
+                          : 'routingCandidates.unknownFact',
+                      )}
                     </td>
                     <RoutePrices
                       actor={actor}
@@ -183,6 +200,15 @@ export default function RoutingWeights({
               </tbody>
             </Table>
             <div className="space-y-1 p-4 text-sm">
+              <Button
+                type="button"
+                variant="outline"
+                disabled={pending || !canAdd}
+                onClick={() => onAddBinding(group.protocol)}
+                aria-label={t('routingCandidates.addProtocol', { protocol })}
+              >
+                {t('adminModels.addBinding')}
+              </Button>
               <p
                 aria-label={t('adminModels.weightsTotalLabel', { protocol })}
                 aria-live="polite"
@@ -199,7 +225,12 @@ export default function RoutingWeights({
       })}
       <p className="text-xs text-muted-foreground">{t('adminModels.routePriceHelp')}</p>
       <div className="flex items-center justify-between gap-4">
-        <Button disabled={pending || !canWrite} variant="outline" onClick={onAddBinding}>
+        <Button
+          type="button"
+          disabled={pending || !canAdd}
+          variant="outline"
+          onClick={() => onAddBinding()}
+        >
           {t('adminModels.addBinding')}
         </Button>
         <p className="text-sm text-muted-foreground">{t('adminModels.weightsConfiguredHelp')}</p>

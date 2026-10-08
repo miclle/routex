@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { codeTokens } from '@/lib/code-tokens'
 import { buildTeamPlaygroundSnippet, type TeamSnippetInput } from '@/lib/playground-team-snippet'
 import { useTranslation } from 'react-i18next'
 import { Code } from 'lucide-react'
@@ -72,7 +73,13 @@ export default function CodeDialog({
                 aria-label={t('requestCode')}
                 className="max-h-[55vh] overflow-auto rounded-lg border bg-muted/30 p-4 text-xs leading-6"
               >
-                {code}
+                <code>
+                  {codeTokens(code, language).map((token, index) => (
+                    <span key={index} className={token.className}>
+                      {token.text}
+                    </span>
+                  ))}
+                </code>
               </pre>
             ) : (
               <p role="alert" className="text-sm text-destructive">

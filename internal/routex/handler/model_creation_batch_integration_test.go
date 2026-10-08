@@ -214,6 +214,13 @@ func testModelCreationBatchLifecycle(t *testing.T, db *gorm.DB) {
 	seedModel("mdl_batch_first", "batch-first", "pmd_batch_response_old", "bnd_batch_response_old", 100)
 	seedModel("mdl_batch_zero", "batch-zero", "pmd_batch_old", "bnd_batch_zero", 0)
 	seedModel("mdl_batch_duplicate", "batch-duplicate", "pmd_batch_I", "bnd_batch_duplicate", 100)
+	// Stored native identities exercise initial targets without changing any weight.
+	for pm, name := range map[string]string{"pmd_batch_B": "batch-existing", "pmd_batch_C": "batch-first", "pmd_batch_D": "batch-old-alias"} {
+		if err := db.Model(&entity.ProviderModel{}).Where("id = ?", pm).Update("upstream_name", name).Error; err != nil {
+			t.Fatal(err)
+		}
+	}
+	create(&entity.ModelName{Name: "batch-old-alias", ModelID: "mdl_batch_existing"})
 	create(&entity.UserModelGrant{UserID: admin.User.ID, ModelID: "mdl_batch_existing"})
 	oldKey, err := svc.CreatePersonalKey(ctx, admin.User.ID, "Original immutable ceiling", []string{"mdl_batch_existing"}, nil)
 	if err != nil {
@@ -251,6 +258,16 @@ func testModelCreationBatchLifecycle(t *testing.T, db *gorm.DB) {
 	}
 	path := "/api/v1/admin/connections/" + connectionID + "/model-creation"
 	readPath := "/api/v1/admin/model-creation/connections"
+	assertModelInlineAccessPickers(t, db, send)
+	for _, picker := range []string{"/api/v1/admin/model-creation/providers", "/api/v1/admin/model-creation/egresses"} {
+		expectStatus(t, request(nil, "", "GET", picker, nil, ""), 401)
+		for _, auth := range []struct {
+			cookie *http.Cookie
+			csrf   string
+		}{{writeCookie, writeCSRF}, {modelCookie, modelCSRF}, {providerCookie, providerCSRF}} {
+			expectStatus(t, request(auth.cookie, auth.csrf, "GET", picker, nil, ""), 403)
+		}
+	}
 	expectStatus(t, request(nil, "", "GET", readPath, nil, ""), 401)
 	for _, auth := range []struct {
 		cookie *http.Cookie
@@ -289,6 +306,26 @@ func testModelCreationBatchLifecycle(t *testing.T, db *gorm.DB) {
 	literal := decodeCatalogResponse[service.ModelCreationProviderModelPage](t, send("GET", path+"/provider-models?q=%25_", nil, ""), 200)
 	if len(literal.Items) != 1 || literal.Items[0].ID != "pmd_batch_literal" {
 		t.Fatal("literal picker query treated input as a wildcard", literal)
+	}
+	for pm, want := range map[string]struct {
+		model  string
+		weight int
+	}{"pmd_batch_B": {"mdl_batch_existing", 0}, "pmd_batch_C": {"mdl_batch_first", 100}} {
+		choices := decodeCatalogResponse[service.ModelCreationProviderModelPage](t, request(readCookie, readCSRF, "GET", path+"/provider-models?q="+map[string]string{"pmd_batch_B": "batch-existing", "pmd_batch_C": "batch-first"}[pm], nil, ""), 200)
+		if len(choices.Items) != 1 || choices.Items[0].ID != pm || choices.Items[0].InitialTarget == nil || choices.Items[0].InitialTarget.Target != "existing" || choices.Items[0].InitialTarget.ModelID != want.model || choices.Items[0].InitialTarget.InitialWeight == nil || *choices.Items[0].InitialTarget.InitialWeight != want.weight {
+			t.Fatal("exact initial existing target differs", choices)
+		}
+	}
+	aliasChoice := decodeCatalogResponse[service.ModelCreationProviderModelPage](t, send("GET", path+"/provider-models?q=batch-old-alias", nil, ""), 200)
+	if len(aliasChoice.Items) != 1 || aliasChoice.Items[0].InitialTarget != nil {
+		t.Fatal("retained alias became an initial target", aliasChoice)
+	}
+	if literal.Items[0].InitialTarget != nil {
+		t.Fatal("unrepresentable native name was rewritten")
+	}
+	emptyTargets := decodeCatalogResponse[service.ModelCreationTargetPage](t, send("GET", path+"/models?q=not-present-native", nil, ""), 200)
+	if len(emptyTargets.Items) != 0 {
+		t.Fatal("controlled empty target search was not empty")
 	}
 	for _, res := range []*httptest.ResponseRecorder{send("GET", readPath, nil, ""), send("GET", path+"/provider-models", nil, ""), send("GET", path+"/models", nil, "")} {
 		expectStatus(t, res, 200)
@@ -838,6 +875,149 @@ func testModelCreationBatchLifecycle(t *testing.T, db *gorm.DB) {
 	if err := db.Where("status = ?", "success").Order("started_at,request_id").Find(&afterCalls).Error; err != nil || !reflect.DeepEqual(afterCalls, successful) {
 		t.Fatal("restart changed immutable call facts", err)
 	}
+	// Manual names are captured as unproven drafts. Their Provider Models, public
+	// names and bindings are created by this same reviewed transaction, never by
+	// a preliminary catalog write or credential verification.
+	create(&entity.Provider{ID: "prv_batch_manual", Name: "Manual supplier"})
+	seedConnection("con_batch_manual", "prv_batch_manual", protocols[0])
+	manualPath := "/api/v1/admin/connections/con_batch_manual/model-creation"
+	manualRows := []service.ModelCreationItem{
+		{UpstreamName: "not-discovered/new", Target: "new", Name: "batch-manual"},
+		{UpstreamName: "not-discovered/backup", Target: "existing", ModelID: "mdl_batch_existing"},
+	}
+	manualCounts := func() []int64 {
+		t.Helper()
+		out := counts()
+		for _, table := range []string{"provider_models", "credential_model_accesses"} {
+			var n int64
+			if err := db.Table(table).Count(&n).Error; err != nil {
+				t.Fatal(err)
+			}
+			out = append(out, n)
+		}
+		return out
+	}
+	manualBefore := manualCounts()
+	manualPreview := decodeCatalogResponse[service.ModelCreationPreview](t, send("POST", manualPath+"/preview", service.ModelCreationPreviewInput{Items: manualRows}, ""), 200)
+	if !manualPreview.CanCommit || len(manualPreview.Items) != 2 {
+		t.Fatal("manual configuration blocked", manualPreview)
+	}
+	for _, item := range manualPreview.Items {
+		if item.ProviderModelID != "" || !slices.Equal(item.WarningCodes, []string{"credential_coverage_unproven"}) || len(item.BlockerCodes) != 0 {
+			t.Fatal("manual preview invented coverage", item)
+		}
+	}
+	if !slices.Equal(manualCounts(), manualBefore) || dispatches.Load() != 6 {
+		t.Fatal("manual preview persisted or dispatched")
+	}
+	manualBody := service.ModelCreationBatchInput{RequestID: "60000000-6666-4666-8666-666666666666", Reason: "Reviewed unproven manual configurations", Items: manualRows}
+	foreignPreview := decodeCatalogResponse[service.ModelCreationPreview](t, request(foreignCookie, foreignCSRF, "POST", manualPath+"/preview", service.ModelCreationPreviewInput{Items: manualRows}, ""), 200)
+	expectStatus(t, request(foreignCookie, foreignCSRF, "POST", manualPath, manualBody, foreignPreview.ReviewETag), 403)
+	auditFailure.Store(true)
+	expectStatus(t, send("POST", manualPath, manualBody, manualPreview.ReviewETag), 500)
+	auditFailure.Store(false)
+	if !slices.Equal(manualCounts(), manualBefore) {
+		t.Fatal("manual audit failure left partial rows")
+	}
+	manual := decodeCatalogResponse[service.ModelCreationBatchResult](t, send("POST", manualPath, manualBody, manualPreview.ReviewETag), 201)
+	manualApplied := waitApplied(manualBody.RequestID)
+	if !reflect.DeepEqual(manualApplied.Receipt, manual.Receipt) {
+		t.Fatal("manual receipt changed during publication")
+	}
+	var manualModel string
+	for _, item := range manual.Receipt.Items {
+		var pm entity.ProviderModel
+		if err := db.Where("id = ?", item.ProviderModelID).Take(&pm).Error; err != nil || pm.ConnectionID != "con_batch_manual" || pm.UpstreamName != item.ManualUpstreamName || pm.Disabled || pm.SupportsImageInput || pm.SupportsPDFInput {
+			t.Fatal("manual source/capabilities incorrect", err)
+		}
+		var covered int64
+		if err := db.Model(&entity.CredentialModelAccess{}).Where("provider_model_id = ?", pm.ID).Count(&covered).Error; err != nil || covered != 0 {
+			t.Fatal("manual coverage manufactured", covered, err)
+		}
+		var model entity.Model
+		if err := db.Where("id = ?", item.ModelID).Take(&model).Error; err != nil || model.ConfigUpdatedAt == nil {
+			t.Fatal("manual binding lost configuration stamp", err)
+		}
+		if item.CreatedModel {
+			manualModel = item.ModelID
+			if item.Weight != 100 || item.ManualUpstreamName != "not-discovered/new" {
+				t.Fatal(item)
+			}
+		} else if item.Weight != 0 || item.ManualUpstreamName != "not-discovered/backup" {
+			t.Fatal(item)
+		}
+	}
+	manualAfter := manualCounts()
+	if manualAfter[len(manualAfter)-2] != manualBefore[len(manualBefore)-2]+2 || manualAfter[len(manualAfter)-1] != manualBefore[len(manualBefore)-1] {
+		t.Fatal("manual batch changed coverage or source count")
+	}
+	retry := decodeCatalogResponse[service.ModelCreationBatchResult](t, send("POST", manualPath, manualBody, manualPreview.ReviewETag), 200)
+	if retry.Changed || !reflect.DeepEqual(retry.Receipt, manual.Receipt) || !slices.Equal(manualCounts(), manualAfter) {
+		t.Fatal("manual replay rewrote original intent")
+	}
+	different := manualBody
+	different.Items = slices.Clone(manualRows)
+	different.Items[0].UpstreamName = "another-native-name"
+	expectStatus(t, send("POST", manualPath, different, manualPreview.ReviewETag), 409)
+	expectStatus(t, request(foreignCookie, foreignCSRF, "GET", "/api/v1/admin/model-creation/receipts/"+manualBody.RequestID, nil, ""), 404)
+	collisionRows := []service.ModelCreationItem{{UpstreamName: "late-discovery", Target: "new", Name: "batch-manual-collision"}}
+	collisionReview := decodeCatalogResponse[service.ModelCreationPreview](t, send("POST", manualPath+"/preview", service.ModelCreationPreviewInput{Items: collisionRows}, ""), 200)
+	create(&entity.ProviderModel{ID: "pmd_manual_collision", ConnectionID: "con_batch_manual", UpstreamName: "late-discovery"})
+	collisionBefore := manualCounts()
+	expectStatus(t, send("POST", manualPath, service.ModelCreationBatchInput{RequestID: "70000000-7777-4777-8777-777777777777", Reason: "Captured before discovery", Items: collisionRows}, collisionReview.ReviewETag), 409)
+	if !slices.Equal(manualCounts(), collisionBefore) {
+		t.Fatal("stale manual review reused discovered source")
+	}
+	// Exact spelling remains separate on every supported collation.
+	caseRows := []service.ModelCreationItem{{UpstreamName: "LATE-DISCOVERY", Target: "new", Name: "batch-manual-case"}}
+	caseReview := decodeCatalogResponse[service.ModelCreationPreview](t, send("POST", manualPath+"/preview", service.ModelCreationPreviewInput{Items: caseRows}, ""), 200)
+	if !caseReview.CanCommit {
+		t.Fatal("manual spelling normalized")
+	}
+
+	unknownRows := []service.ModelCreationItem{{UpstreamName: "manual-response-unknown", Target: "new", Name: "batch-manual-uncertain"}}
+	unknownReview := decodeCatalogResponse[service.ModelCreationPreview](t, send("POST", manualPath+"/preview", service.ModelCreationPreviewInput{Items: unknownRows}, ""), 200)
+	unknownBody := service.ModelCreationBatchInput{RequestID: "80000000-8888-4888-8888-888888888888", Reason: "Retain manual publication uncertainty", Items: unknownRows}
+	armPublication.Store(true)
+	expectStatus(t, send("POST", manualPath, unknownBody, unknownReview.ReviewETag), 503)
+	armPublication.Store(false)
+	unknownSaved := decodeCatalogResponse[service.ModelCreationBatchResult](t, send("GET", "/api/v1/admin/model-creation/receipts/"+unknownBody.RequestID, nil, ""), 200)
+	if !unknownSaved.Committed || unknownSaved.RuntimeApplied || unknownSaved.ApplicationStatus != "pending" || unknownSaved.Receipt.Items[0].ManualUpstreamName != unknownRows[0].UpstreamName {
+		t.Fatal("manual unknown lost source", unknownSaved)
+	}
+	unknownCounts := manualCounts()
+	publicationFailure.Store(false)
+	unknownRetry := decodeCatalogResponse[service.ModelCreationBatchResult](t, send("POST", manualPath, unknownBody, unknownReview.ReviewETag), 200)
+	if unknownRetry.Changed || !reflect.DeepEqual(unknownRetry.Receipt, unknownSaved.Receipt) || !slices.Equal(manualCounts(), unknownCounts) || dispatches.Load() != 6 {
+		t.Fatal("manual unknown retry repeated effects")
+	}
+	if !reflect.DeepEqual(waitApplied(unknownBody.RequestID).Receipt, unknownSaved.Receipt) {
+		t.Fatal("manual uncertain receipt changed")
+	}
+	create(&entity.UserModelGrant{UserID: admin.User.ID, ModelID: manualModel})
+	manualKey, err := svc.CreatePersonalKey(ctx, admin.User.ID, "Manual configured unavailable", []string{manualModel}, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := svc.RefreshRuntime(ctx); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := svc.ConfirmKeyDelivery(ctx, admin.User.ID, manualKey.Record.Key.ID); err != nil {
+		t.Fatal(err)
+	}
+	expectStatus(t, invoke(manualKey.Secret, protocols[0], "batch-manual"), 503)
+	if err := svc.FlushCallRecorder(ctx); err != nil {
+		t.Fatal(err)
+	}
+	var manualCalls []entity.CallRecord
+	if err := db.Where("key_id = ?", manualKey.Record.Key.ID).Find(&manualCalls).Error; err != nil || len(manualCalls) != 1 {
+		t.Fatal("manual unavailable call not retained", err)
+	}
+	var manualAttempts int64
+	if err := db.Model(&entity.CallAttempt{}).Where("request_id = ?", manualCalls[0].RequestID).Count(&manualAttempts).Error; err != nil || manualAttempts != 0 || dispatches.Load() != 6 {
+		t.Fatal("unproven manual configuration dispatched", manualAttempts, err)
+	}
+
 }
 
 func modelCreationBatchNativeBody(protocol string) string {

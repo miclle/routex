@@ -1,3 +1,5 @@
+import { validateModelRecordedMetadata } from './model-metadata'
+import { decodeRoutingSupply } from './model-routing'
 import { t } from '@/i18n'
 import axios from 'axios'
 import client from './client'
@@ -27,8 +29,12 @@ export async function listProviders(signal?: AbortSignal) {
     }
   return items
 }
-export async function listAdminModels() {
-  return (await client.get<{ items: Model[] }>('/admin/models')).data.items
+export async function listAdminModels(context?: { signal?: AbortSignal }) {
+  const items = (await client.get<{ items: Model[] }>('/admin/models', { signal: context?.signal }))
+    .data.items
+  if (!Array.isArray(items)) throw new Error('Invalid Model list response')
+  items.forEach(validateModelRecordedMetadata)
+  return items
 }
 export async function listModels() {
   return (await client.get<{ items: CallableModel[] }>('/models')).data.items
@@ -94,6 +100,10 @@ export async function getAdminModel(modelID: string, signal?: AbortSignal): Prom
   const value = (
     await client.get<unknown>(`/admin/models/${encodeURIComponent(modelID)}`, { signal })
   ).data
+  return decodeAdminModel(value, modelID)
+}
+export function decodeAdminModel(value: unknown, modelID: string): Model {
+  validateModelRecordedMetadata(value)
   const record = (item: unknown): item is Record<string, unknown> =>
     !!item && typeof item === 'object' && !Array.isArray(item)
   const text = (item: unknown) => typeof item === 'string' && item.length > 0
@@ -130,7 +140,8 @@ export async function getAdminModel(modelID: string, signal?: AbortSignal): Prom
         !Number.isSafeInteger(binding.weight) ||
         Number(binding.weight) < 0 ||
         Number(binding.weight) > 100 ||
-        typeof binding.ready !== 'boolean',
+        typeof binding.ready !== 'boolean' ||
+        (binding.supply !== undefined && !decodeRoutingSupply(binding.supply)),
     ) ||
     !unique(value.bindings.map((binding) => binding.id)) ||
     !unique(value.bindings.map((binding) => binding.provider_model_id)) ||

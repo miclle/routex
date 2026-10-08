@@ -43,7 +43,21 @@ func (s *Service) GetAdminModel(ctx context.Context, actorID, modelID string) (*
 		}
 		var err error
 		result, err = loadExactAdminModelCatalog(tx, modelID)
-		return err
+		if err != nil {
+			return err
+		}
+		user, err := exactEnabledActor(modelCreationDB(tx), actorID)
+		if err != nil {
+			return err
+		}
+		allowed, err := exactGovernancePermission(modelCreationDB(tx), user, "providers.read")
+		if err != nil {
+			return err
+		}
+		if allowed {
+			return enrichRoutingSupplies(tx, result)
+		}
+		return nil
 	}, &sql.TxOptions{Isolation: sql.LevelRepeatableRead, ReadOnly: true})
 	return result, catalogError(err)
 }

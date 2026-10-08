@@ -860,3 +860,38 @@ resources absent. Acceptance SHA-256:
 
 This establishes local process behavior only. External SMTP TLS/authentication,
 recipient mailbox delivery and browser acceptance remain separate open gates.
+
+
+## Corrected R8 candidate contract additions
+
+These additions describe the isolated candidate; complete dual-driver and
+composed-main acceptance remain pending. Earlier acceptance records stay
+bound to their original source.
+
+
+## Candidate Project root-Key rolling warnings (V85)
+
+The prepared successor observes only explicit positive stored five-hour/seven-day
+Token caps on the exact Project root-Key account. Replacement descendants retain
+that root account; Project aggregate, inherited, Team and monthly counters are
+not added into its percentage. Fully covered known settled usage supplies sampled
+80% reminders and 90% critical episodes. Unknown coverage and finite reservation
+holds never establish a percentage crossing. Exact root/Project identities,
+current applied policy/calendar and live runtime publication are checked before
+atomic episode, immutable observation and original-recipient inbox writes.
+
+Only then-current enabled exact Project managers receive the observation.
+Historical access still requires the recorded recipient/Project births and fresh
+current manager authority; recreated identities and later managers cannot borrow
+old inbox rows. The wire kind is `project_key_rolling_quota_warning`, with the
+existing rolling observation ID and a Project root-Key snapshot. Recipient query
+lifetimes and bilingual notification controls remain the same. No new email
+source or admission writer is implied. Full168 and controlled API/native/restart/
+browser acceptance remain separate pending gates; this source preparation does
+not amend the accepted V82–V84 checkpoint or establish delivery.
+
+The current frozen R8 source passes check, complete Task testing and build,
+5,032 ordinary named Go tests, and the separate two-driver Project warning
+lifecycle. Earlier focused R7 receipts remain bound to that source. Complete
+R8 Full168, composed-main gates, browser and delivery remain pending. These
+source-specific facts do not establish wider runtime or feature acceptance.

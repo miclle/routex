@@ -8,16 +8,54 @@ The goal remains active: 13 Completed / 14 Partial / 3 Not started.
 
 | Workstream | Current evidence | Remaining gate |
 | --- | --- | --- |
-| Delivered main | `274563a`; CI37819796481 passes all four jobs, plus Actionlint and GolangCI-Lint | Isolated future features are excluded |
-| Model catalogue R8 | Fresh check, complete Task, build, 5,032 ordinary names and the two-driver Project warning lifecycle pass | Renewed complete Full168, browser and delivery |
+| Delivered main | `3840dbf`; CI37829073181 passes all four jobs, plus Actionlint and GolangCI-Lint | The following model phase has separate local gates; its remote CI remains pending |
+| Model catalogue R8 | Complete source-bound Full168 passes both databases, all ordinary tests and independent cleanup | Reviewed payload is applied to main; mandatory check, complete Task and production build pass; browser and delivery remain pending |
 | Vault V88 | Corrected Full170 passes PostgreSQL; one MySQL Connection metadata scenario fails | Diagnose/reproduce; no full acceptance or controlled-run approval |
-| Vault graceful closure V89 | Lease repair passes independent source review; composed with the reviewed Project fixture | Actual checks, build, both databases and native/SDK shutdown/restart |
+| Vault graceful closure V89 | Composed R3 passes check, complete Task (5,440 frontend tests), build, 5,126 ordinary names and six targeted PostgreSQL/MySQL scenarios | Complete Full172 and real native/SDK graceful shutdown/restart |
+| Routing-weight history and rollback | The source assessment confirms the missing restorable history; isolated backend implementation has started | API/UI, independent review, database/runtime/browser gates and delivery |
 | Browser | Deferred because the computer is locked; the user expects availability about ten hours later | Real window, keyboard/focus and workflow acceptance |
 
 Complete project matrices now run one at a time, retaining parallel PostgreSQL
 and MySQL workers within each project. This controls shared local load; it is
 not proof that resource contention caused either retained failure. Source work
 and independent reviews continue in parallel worktrees.
+
+The V89 targeted run completes in 109.161 seconds, retaining all nine named
+results across both drivers. It covers frozen migration V89, generation closure
+and the unchanged Connection metadata scenario. All eleven captured worker
+identities, both database ports and labelled Compose resources are independently
+absent. Focused review SHA-256:
+`0b76479d53d5685c8d385319ce882adcdd50d718368a74212422ec40bb7590fa`.
+The ordinary run completes in 68.707 seconds with all 5,080 parent names and
+46 source-declared additions; review SHA-256:
+`04843eb749216a7804989e2b31b32673de9775b7db838ac79ff5dbd5bab95490`.
+These passes neither explain nor relabel the retained MySQL Full170 failure.
+The main progress checkpoint is committed and pushed as `3840dbf`; its
+Actionlint and GolangCI-Lint pass while its complete CI remains in progress.
+
+## Model R8 complete integration gate (2026-10-09)
+
+The isolated R8 source passes the complete PostgreSQL/MySQL integration run in
+2,136.414 seconds: 336 direct business scenarios, eight constraints, all 5,032
+ordinary named tests and all 430 named tests per driver. Complete original Go
+JSON events, source/mode identity and the final ownership ledger are verified.
+All nine captured process identities, eight process groups, both database ports
+and project-labelled Compose resources are independently absent. Acceptance
+SHA-256: `c3f70dc6c6281d686e1efd42e8d01f017604cfc5e3a95088ec81807ec7a14289`.
+Independent absence SHA-256:
+`d6437074039df915fe3f54141c4a32ebe541fc17dba70d8c2f5b4618ac380c8a`.
+
+Root applies the 151 independently reviewed product/test/rule leaves and seven
+append-only domain documents to main, preserving current progress prefixes and
+1,842 unrelated existing source leaves. The resulting 2,000-path main derivative
+retains its newer CI/entry-point diagnostic plumbing. The complete integration
+receipt belongs to the isolated R8 source. The main derivative separately passes
+mandatory checking, complete Task testing (5,408 frontend tests across 208 files,
+Go race/coverage, development lifecycle and production asset tests) and production
+build. Browser acceptance remains pending; delivery is recorded by the containing
+feature commit. These gates do not mark the entire model capability complete.
+Formal capability totals remain 13 Completed / 14 Partial / 3 Not started.
+The older failed matrices retain their original source identity and status.
 
 ## Current combined phase gate (2026-10-08)
 
@@ -8664,3 +8702,38 @@ checked, built or accepted as complete132. Main source gates:
 **[PENDING_CONTEXTUAL_FULL132]**; delivery: **[PENDING_DELIVERY]**. Keep F17 partial
 and capability totals unchanged. Preserve all earlier failed source/fixture/helper
 runs as historical evidence. Root owns final status and delivery wording.
+
+
+## Corrected R8 main adoption candidate (2026-10-09)
+
+The separate V87/168-case source candidate prepares Project root-Key rolling
+Token warnings V85, recorded Model metadata V86, process-generation routing
+observations V87, guided/manual Model creation, inline access, protocol-scoped
+routing, rename compatibility and inert request-code highlighting. Its frozen
+1,999-path source floor is
+`eb788e0beefe8c34c7756d7aec54b81f312d2eb3ce1d1ee4fddb7aafb248b777`.
+The proposed adoption contains 151 product/test/paired-guide leaves and seven
+append-only domain document changes. V88/Vault cleanup and the separate V89
+graceful-closure candidate are excluded. No main file changes during preparation.
+
+The same frozen R8 source has passing mandatory check, complete Task testing
+(5,408 frontend tests in 208 files) and production build gates. Its complete
+ordinary Go JSON contains 5,032 exact named tests. A separate focused
+PostgreSQL/MySQL Project monthly-warning lifecycle passes two direct scenarios
+and five named tests in 139.886 seconds; root independently verifies its owned
+processes, groups, resources and endpoints absent. The reviewed fixture retains
+all original cross-page positive proofs before retiring only the exact 33
+calibration monthly caps, and preserves the original negative fencing, restart,
+replay and precision assertions. It changes no product lease or threshold.
+
+Complete R8 Full168 remains root-owned and pending. The earlier failed R7
+matrix remains failed; its successful individual scenarios and historical
+focused receipts do not establish R8 full acceptance. Browser and applicable
+controlled-process acceptance, composed-main gates, source GO and delivery also
+remain pending. No capability completion total changes through this preparation.
+
+All current CI/workflow/Task/integration-entry changes and this document's entire
+current and historical prefix remain intact. Adoption creates a new main-source
+derivative. After genuine complete Full168 acceptance and explicit root approval,
+root must revalidate beforeimages, capture that derivative and complete its
+required check/Task/build and remaining acceptance before deciding delivery.

@@ -8,11 +8,32 @@ import (
 
 	"github.com/miclle/routex/internal/routex/database"
 	"github.com/miclle/routex/internal/routex/entity"
+	"github.com/miclle/routex/pkg/eventqueue"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 )
 
 func (s *Service) observeMonthlyProjectKeyQuotaWarning(ctx context.Context, kind, rootID string) error {
+	return s.observeProjectKeyQuotaWarning(ctx, kind, rootID, func(tx *gorm.DB, row entity.ResourceLimit, root entity.ProjectKey, project entity.Project, frame *eventqueue.QuotaUsageProofBatch, currency string, auth *runtimeAuthorization) ([]projectQuotaWarningRecipient, error) {
+		observations := projectKeyMonthlyWarnings(row, root, project, frame, currency)
+		if len(observations) == 0 {
+			return nil, nil
+		}
+		recipients, err := s.projectQuotaWarningRecipients(tx, auth, project.ID)
+		if err != nil {
+			return nil, err
+		}
+		for _, v := range observations {
+			if err := persistProjectKeyQuotaWarning(tx, v, recipients); err != nil {
+				return nil, err
+			}
+		}
+		return recipients, nil
+	})
+}
+
+// Both warning families use the exact retained Project root and applied graph proof.
+func (s *Service) observeProjectKeyQuotaWarning(ctx context.Context, kind, rootID string, persist func(*gorm.DB, entity.ResourceLimit, entity.ProjectKey, entity.Project, *eventqueue.QuotaUsageProofBatch, string, *runtimeAuthorization) ([]projectQuotaWarningRecipient, error)) error {
 	if kind != "key" || !projectWarningKeyID(rootID) || s.recorder == nil || s.recorder.queue == nil || s.runtime == nil {
 		return nil
 	}
@@ -96,21 +117,12 @@ func (s *Service) observeMonthlyProjectKeyQuotaWarning(ctx context.Context, kind
 		if err != nil {
 			return runtimeUnavailable
 		}
-		if frame.TimeZone != calendar.TimeZone {
+		if frame == nil || !frame.Active || frame.TimeZone != calendar.TimeZone {
 			return nil
 		}
-		observations := projectKeyMonthlyWarnings(row, root, project, frame, prices.PlatformCurrency)
-		if len(observations) == 0 {
-			return nil
-		}
-		recipients, err := s.projectQuotaWarningRecipients(tx, auth, project.ID)
+		recipients, err := persist(tx, row, root, project, frame, prices.PlatformCurrency, auth)
 		if err != nil {
 			return err
-		}
-		for _, v := range observations {
-			if err = persistProjectKeyQuotaWarning(tx, v, recipients); err != nil {
-				return err
-			}
 		}
 		if !s.projectKeyWarningApplied(ctx, auth, project, keys, rootID, row, policy, calendar, prices.PlatformCurrency) {
 			return runtimeUnavailable

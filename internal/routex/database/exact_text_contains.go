@@ -18,3 +18,13 @@ func ExactTextContains(db *gorm.DB, column clause.Column, value string) clause.E
 	}
 	return clause.Expr{SQL: "? LIKE ? ESCAPE '!'", Vars: []any{column, pattern}}
 }
+
+// ExactTextPrefix keeps literal ID prefix search portable. GORM cannot express
+// collation-independent LIKE; use the same binary-operand adapter as fragments.
+func ExactTextPrefix(db *gorm.DB, column clause.Column, value string) clause.Expression {
+	pattern := strings.NewReplacer("!", "!!", "%", "!%", "_", "!_").Replace(value) + "%"
+	if db.Name() == "mysql" {
+		return clause.Expr{SQL: "CAST(? AS BINARY) LIKE CAST(? AS BINARY) ESCAPE '!'", Vars: []any{column, pattern}}
+	}
+	return clause.Expr{SQL: "? LIKE ? ESCAPE '!'", Vars: []any{column, pattern}}
+}

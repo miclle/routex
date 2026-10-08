@@ -375,6 +375,22 @@ func testModelAliasRetirementLifecycle(t *testing.T, db *gorm.DB) {
 	}
 	// Persisted resource baselines are captured after legitimate rename/key setup.
 	baselineTables := []string{"models", "model_provider_bindings", "user_model_grants", "team_model_grants", "api_keys", "api_key_models", "model_prices", "price_rates"}
+	var baselineModel entity.Model
+	if err := db.Take(&baselineModel, "id = ?", modelID).Error; err != nil || baselineModel.ConfigUpdatedAt == nil {
+		t.Fatal("alias baseline has no recorded configuration timestamp", err)
+	}
+	recordedModel := baselineModel
+	assertRecordedModel := func(changed bool) {
+		t.Helper()
+		var current entity.Model
+		if err := db.Take(&current, "id = ?", modelID).Error; err != nil || current.ConfigUpdatedAt == nil || !current.CreatedAt.Equal(recordedModel.CreatedAt) {
+			t.Fatal("alias operation lost recorded configuration time or changed birth", err)
+		}
+		if changed && !current.ConfigUpdatedAt.After(*recordedModel.ConfigUpdatedAt) || !changed && !current.ConfigUpdatedAt.Equal(*recordedModel.ConfigUpdatedAt) {
+			t.Fatal("alias configuration time disagrees with saved change, replay or rollback")
+		}
+		recordedModel = current
+	}
 	baseline := make(map[string]string)
 	capture := func(table string) string {
 		t.Helper()
@@ -384,6 +400,21 @@ func testModelAliasRetirementLifecycle(t *testing.T, db *gorm.DB) {
 		}
 		encoded := make([]string, 0, len(rows))
 		for _, row := range rows {
+			if table == "models" {
+				var rowID string
+				switch value := row["id"].(type) {
+				case string:
+					rowID = value
+				case []byte:
+					rowID = string(value)
+				default:
+					t.Fatal("unknown persisted Model ID representation")
+				}
+				if rowID == modelID {
+					// Only legitimate expiry changes may advance this target's time.
+					delete(row, "config_updated_at")
+				}
+			}
 			raw, err := json.Marshal(row)
 			if err != nil {
 				t.Fatal(err)
@@ -404,6 +435,7 @@ func testModelAliasRetirementLifecycle(t *testing.T, db *gorm.DB) {
 	if !reflect.DeepEqual(auditBefore, savedName("alias-audit")) || auditCount() != 0 {
 		t.Fatal("audit failure committed deadline or audit")
 	}
+	assertRecordedModel(false)
 	t.Log("alias stage: genuine Personal and Team alias calls before stop")
 	var beforeIDs []string
 	teamRequestIDs := make(map[string]bool)
@@ -440,6 +472,7 @@ func testModelAliasRetirementLifecycle(t *testing.T, db *gorm.DB) {
 	if !stopped.Retired || !stopped.Changed || !stopped.RuntimeApplied || stopped.Alias == nil || stopped.Alias.State != "retired" || stopped.Alias.CanRetire || stopped.Alias.Alias.ExpiresAt == nil || stopped.Alias.Alias.ExpiresAt.Before(stopBefore.Add(-time.Millisecond)) || stopped.Alias.Alias.ExpiresAt.After(stopAfter) {
 		t.Fatalf("stop lacks saved exact deadline/current runtime proof: %+v", stopped)
 	}
+	assertRecordedModel(true)
 	release()
 	var finished *httptest.ResponseRecorder
 	select {
@@ -484,6 +517,7 @@ func testModelAliasRetirementLifecycle(t *testing.T, db *gorm.DB) {
 	if retried.Changed || !retried.Retired || !retried.RuntimeApplied || auditCount() != 1 || !reflect.DeepEqual(retained, savedName("AliasOriginal")) {
 		t.Fatal("exact retired-target retry rewrote deadline/audit")
 	}
+	assertRecordedModel(false)
 	t.Log("alias stage: publication failure is saved expiry, not runtime success")
 	outageReview := read("alias-outage")
 	armPublicationFailure.Store(true)
@@ -495,12 +529,14 @@ func testModelAliasRetirementLifecycle(t *testing.T, db *gorm.DB) {
 	if outageSaved.ExpiresAt == nil || outageSaved.ExpiresAt.After(time.Now()) || outageRead.State != "retired" || outageRead.RuntimeApplied || auditCount() != 2 {
 		t.Fatal("publication failure lost commit or claimed application")
 	}
+	assertRecordedModel(true)
 	expectStatus(t, native(router, "alias-outage", "Denied outage", false, entity.ProtocolOpenAIChat), http.StatusNotFound)
 	publicationFailure.Store(false)
 	outageRetry := decodeCatalogResponse[service.ModelAliasRetirementResult](t, request(router, http.MethodPost, path+"/alias-retirement", outageBody, strconv.Quote(outageReview.ETag), writeCookie, writeCSRF), http.StatusOK)
 	if outageRetry.Changed || !outageRetry.RuntimeApplied || auditCount() != 2 || !reflect.DeepEqual(outageSaved, savedName("alias-outage")) {
 		t.Fatal("publication retry restored expiry or duplicated audit")
 	}
+	assertRecordedModel(false)
 	for _, team := range []bool{false, true} {
 		denial := native(router, "alias-outage", "Denied Gemini", team, entity.ProtocolGeminiGenerateContent)
 		expectStatus(t, denial, http.StatusNotFound)
@@ -570,10 +606,15 @@ func testModelAliasRetirementLifecycle(t *testing.T, db *gorm.DB) {
 			t.Fatalf("alias attempt lacked genuine completed attribution: %+v", attempt)
 		}
 	}
+	assertRecordedModel(false)
 	for _, table := range baselineTables {
 		if capture(table) != baseline[table] {
 			t.Fatalf("alias stop changed unrelated resource table %s", table)
 		}
+	}
+	var afterAliasModel entity.Model
+	if err := db.Take(&afterAliasModel, "id = ?", modelID).Error; err != nil || afterAliasModel.ConfigUpdatedAt == nil || !afterAliasModel.ConfigUpdatedAt.After(*baselineModel.ConfigUpdatedAt) || !afterAliasModel.CreatedAt.Equal(baselineModel.CreatedAt) {
+		t.Fatal("legitimate alias expiry lost monotonic target configuration time or changed birth", err)
 	}
 	t.Log("alias stage: natural expiry reconciles target without historical operation claim")
 	rename("alias-final", time.Now().UTC().Add(time.Second))

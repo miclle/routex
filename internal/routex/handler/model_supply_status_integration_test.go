@@ -128,17 +128,32 @@ func testModelSupplyStatusLifecycle(t *testing.T, db *gorm.DB) {
 	if len(baseline.Bindings) != 1 || !baseline.Bindings[0].Ready || baseline.Bindings[0].Weight != 100 || len(baseline.Names) != 2 || len(baseline.GrantedUserIDs) != 2 {
 		t.Fatal("baseline supply is not configured and available", baseline)
 	}
-	assertCatalog := func(ready bool) {
+	assertCatalog := func(ready, covered bool) {
 		t.Helper()
 		want := baseline
 		want.Bindings = append([]ModelBindingResponse(nil), baseline.Bindings...)
 		want.Bindings[0].Ready = ready
+		want.Bindings[0].Supply = nil
 		for _, auth := range []struct {
 			cookie *http.Cookie
 			csrf   string
-		}{{cookie, identity.CSRFToken}, {readerCookie, readerCSRF}} {
+			supply bool
+		}{{cookie, identity.CSRFToken, true}, {readerCookie, readerCSRF, false}} {
 			detail := decodeCatalogResponse[ModelResponse](t, identityRequest(router, "GET", modelPath, "", auth.cookie, auth.csrf), http.StatusOK)
 			listed := decodeCatalogResponse[ModelsResponse](t, identityRequest(router, "GET", "/api/v1/admin/models", "", auth.cookie, auth.csrf), http.StatusOK)
+			if len(detail.Bindings) != 1 || len(listed.Items) != 1 || len(listed.Items[0].Bindings) != 1 || listed.Items[0].Bindings[0].Supply != nil {
+				t.Fatal("bounded catalogue or list-only supply contract changed")
+			}
+			supply := detail.Bindings[0].Supply
+			if auth.supply {
+				if supply == nil || supply.ProviderName != "Supply provider" || supply.ConnectionName != "Supply connection" || supply.ConfiguredAvailable != ready || supply.VerificationCovered != covered {
+					t.Fatal("detail supply lost recorded configuration/verification separation")
+				}
+			} else if supply != nil {
+				t.Fatal("Model-only reader borrowed Provider supply authority")
+			}
+			// Compare every common catalogue fact after separately checking the authorized detail-only projection.
+			detail.Bindings[0].Supply = nil
 			if !reflect.DeepEqual(detail, want) || len(listed.Items) != 1 || !reflect.DeepEqual(listed.Items[0], want) {
 				t.Fatal("availability changed weights, identities, names, grants, or list/detail agreement", detail, listed, want)
 			}
@@ -169,13 +184,13 @@ func testModelSupplyStatusLifecycle(t *testing.T, db *gorm.DB) {
 			t.Fatal("native dispatch disagrees with supply availability", before, dispatches.Load())
 		}
 	}
-	assertCatalog(true)
+	assertCatalog(true, true)
 	invoke(http.StatusOK, true)
 	disabled := decodeCatalogResponse[ProviderModelResponse](t, request("PATCH", "/api/v1/admin/provider-models/"+providerModelID, map[string]any{"enabled": false, "etag": "0"}), http.StatusOK)
 	if disabled.Enabled {
 		t.Fatal("Provider Model did not become disabled")
 	}
-	assertCatalog(false)
+	assertCatalog(false, true)
 	invoke(http.StatusServiceUnavailable, false)
 	weights := map[string]any{"weights": []map[string]any{{"binding_id": bindingID, "weight": 100}}}
 	updated := decodeCatalogResponse[ModelResponse](t, request("PUT", modelPath+"/weights", weights), http.StatusOK)
@@ -189,18 +204,18 @@ func testModelSupplyStatusLifecycle(t *testing.T, db *gorm.DB) {
 	}
 	create(&entity.ProviderCredential{ID: "crd_supply_uncovered", ConnectionID: "con_supply_status", Name: "Uncovered credential", Ciphertext: uncoveredCipher, Enabled: true, VerificationStatus: "verified"})
 	expectStatus(t, request("PUT", modelPath+"/weights", weights), http.StatusConflict)
-	assertCatalog(false)
+	assertCatalog(false, false)
 	if err := db.Model(&entity.ProviderCredential{}).Where("id = ?", "crd_supply_uncovered").Update("enabled", false).Error; err != nil {
 		t.Fatal(err)
 	}
 	expectStatus(t, request("PUT", modelPath+"/weights", weights), http.StatusOK)
-	assertCatalog(false)
+	assertCatalog(false, true)
 	invoke(http.StatusServiceUnavailable, false)
 	enabled := decodeCatalogResponse[ProviderModelResponse](t, request("PATCH", "/api/v1/admin/provider-models/"+providerModelID, map[string]any{"enabled": true, "etag": disabled.ETag}), http.StatusOK)
 	if !enabled.Enabled {
 		t.Fatal("Provider Model did not become enabled")
 	}
-	assertCatalog(true)
+	assertCatalog(true, true)
 	invoke(http.StatusOK, true)
 	// An administrator's role label does not override its current permission rows.
 	permission := entity.RolePermission{RoleID: "rol_admin", Permission: "models.read_all"}
@@ -216,5 +231,5 @@ func testModelSupplyStatusLifecycle(t *testing.T, db *gorm.DB) {
 		t.Fatal("detail service borrowed stale administrator read authority", err)
 	}
 	create(&permission)
-	assertCatalog(true)
+	assertCatalog(true, true)
 }

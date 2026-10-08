@@ -7,7 +7,7 @@ import {
   useSyncExternalStore,
 } from 'react'
 import { useInfiniteQuery, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Link } from 'react-router'
+import { Link, useSearchParams } from 'react-router'
 import { useTranslation } from 'react-i18next'
 import { getPermissions } from '@/api/governance'
 import {
@@ -18,6 +18,10 @@ import {
   listModelCreationProviderModels,
   listModelCreationTargets,
   modelCreationOutcomeUnknown,
+  modelCreationItemKey,
+  modelCreationSource,
+  validManualModelName,
+  validModelCreationName,
   previewModelCreation,
   validateModelCreationItems,
   validModelCreationReason,
@@ -39,6 +43,8 @@ import { Table } from '@/components/ui/table'
 import { Dialog } from '@/components/ui/dialog'
 import { Textarea } from '@/components/ui/textarea'
 import { PublicModelName } from './public-model-name'
+import { ModelAccessForm, ModelAccessSummary } from './model-inline-access'
+import type { ModelAccessSaved } from '@/types/model-access'
 
 function useReadCount(key: readonly unknown[]) {
   const cache = useQueryClient(),
@@ -54,6 +60,23 @@ function useReadCount(key: readonly unknown[]) {
     () => cache.getQueryState(JSON.parse(serialized))?.dataUpdateCount ?? 0,
     [cache, serialized],
   )
+  return useSyncExternalStore(subscribe, snapshot, snapshot)
+}
+
+function useReadFresh(key: readonly unknown[]) {
+  const cache = useQueryClient(),
+    serialized = JSON.stringify(key)
+  const subscribe = useCallback(
+    (notify: () => void) =>
+      cache.getQueryCache().subscribe((event) => {
+        if (JSON.stringify(event.query.queryKey) === serialized) notify()
+      }),
+    [cache, serialized],
+  )
+  const snapshot = useCallback(() => {
+    const state = cache.getQueryState(JSON.parse(serialized))
+    return state?.status === 'success' && state.fetchStatus === 'idle' && !state.isInvalidated
+  }, [cache, serialized])
   return useSyncExternalStore(subscribe, snapshot, snapshot)
 }
 
@@ -77,7 +100,9 @@ export default function CreateModelPage() {
       }),
     [cache],
   )
+  const sessionCurrent = useReadFresh(sessionKey)
   const sessionFresh =
+    sessionCurrent &&
     !!actor &&
     session.isSuccess &&
     !session.isFetching &&
@@ -93,7 +118,9 @@ export default function CreateModelPage() {
     refetchOnMount: 'always',
   })
   const accessCount = useReadCount(permissionKey)
+  const permissionsCurrent = useReadFresh(permissionKey)
   const canRead =
+    permissionsCurrent &&
     sessionFresh &&
     access.isSuccess &&
     !access.isFetching &&
@@ -102,8 +129,42 @@ export default function CreateModelPage() {
     access.data.includes('providers.read')
   const canWrite = canRead && access.data?.includes('models.write') === true
   const basis = `${generation}:${accessCount}`
-  const [selected, setSelected] = useState(''),
+  const [params] = useSearchParams()
+  const initialConnection = params.get('connectionId') ?? ''
+  const [selected, setSelected] = useState(initialConnection),
     [q, setQ] = useState('')
+  const [mode, setMode] = useState<'new' | 'existing'>(initialConnection ? 'existing' : 'new')
+  const [accessSaved, setAccessSaved] = useState<{ actor: string; saved: ModelAccessSaved } | null>(
+    null,
+  )
+  const [accessLocked, setAccessLocked] = useState(false),
+    [batchLocked, setBatchLocked] = useState(false)
+  const accessLock = useRef(false),
+    batchLock = useRef(false)
+  const reportAccessLock = useCallback((locked: boolean) => {
+    accessLock.current = locked
+    setAccessLocked(locked)
+  }, [])
+  const reportBatchLock = useCallback((locked: boolean) => {
+    batchLock.current = locked
+    setBatchLocked(locked)
+  }, [])
+  const [savedActor, setSavedActor] = useState(actor)
+  if (savedActor !== actor) {
+    setSavedActor(actor)
+    setAccessSaved(null)
+    if (mode === 'new') setSelected('')
+    setAccessLocked(false)
+    setBatchLocked(false)
+  }
+  const onAccessSaved = useCallback(
+    (saved: ModelAccessSaved) => {
+      setAccessSaved({ actor, saved })
+      setSelected(saved.connection_id)
+      void cache.invalidateQueries({ queryKey: ['model-creation', 'connections', actor] })
+    },
+    [actor, cache],
+  )
   const connectionKey = ['model-creation', 'connections', actor, basis, q] as const
   const connections = useInfiniteQuery({
     queryKey: connectionKey,
@@ -117,21 +178,32 @@ export default function CreateModelPage() {
     enabled: canRead,
     retry: false,
   })
+  const connectionsCurrent = useReadFresh(connectionKey)
   const visible =
-    canRead && connections.isSuccess && !connections.isFetching && !connections.isError
+    connectionsCurrent &&
+    canRead &&
+    connections.isSuccess &&
+    !connections.isFetching &&
+    !connections.isError
   const fresh = () => {
     const current = cache.getQueryData<Session | null>(sessionKey),
       state = cache.getQueryState(sessionKey),
-      permissions = cache.getQueryState<string[]>(permissionKey)
+      permissions = cache.getQueryState<string[]>(permissionKey),
+      connectionState = cache.getQueryState(connectionKey)
     return (
       current?.user.id === actor &&
       current.user.role === 'admin' &&
       !!current.csrf_token &&
       state?.status === 'success' &&
       state.fetchStatus === 'idle' &&
+      !state.isInvalidated &&
+      connectionState?.status === 'success' &&
+      connectionState.fetchStatus === 'idle' &&
+      !connectionState.isInvalidated &&
       networkGeneration.current === generation &&
       permissions?.status === 'success' &&
       permissions.fetchStatus === 'idle' &&
+      !permissions.isInvalidated &&
       permissions.dataUpdateCount === accessCount &&
       permissions.data?.includes('models.read_all') === true &&
       permissions.data?.includes('providers.read') === true
@@ -141,14 +213,48 @@ export default function CreateModelPage() {
   return (
     <Page title={t('title')} description={t('description')}>
       <section className="space-y-6 rounded-lg border p-6">
-        <p className="text-sm font-medium">{t('existingConnection')}</p>
+        <div role="group" aria-label={t('access.mode')} className="flex flex-wrap gap-2">
+          {(['new', 'existing'] as const).map((value) => (
+            <Button
+              key={value}
+              variant={mode === value ? 'default' : 'outline'}
+              aria-pressed={mode === value}
+              disabled={!canRead || accessLocked || batchLocked}
+              onClick={() => {
+                if (fresh() && !accessLock.current && !batchLock.current) {
+                  setMode(value)
+                  setSelected('')
+                  setAccessSaved(null)
+                }
+              }}
+            >
+              {t(value === 'new' ? 'access.newConnection' : 'existingConnection')}
+            </Button>
+          ))}
+        </div>
         <p className="text-sm text-muted-foreground">
           {t('separateSetup')}{' '}
           <Link className="underline" to="/admin/providers">
             {t('providerWorkspace')}
           </Link>
         </p>
-        {!canRead ? (
+        {mode === 'new' ? (
+          <ModelAccessForm
+            key={actor}
+            actor={actor}
+            basis={basis}
+            readable={canRead}
+            writable={access.data?.includes('providers.write') === true}
+            fresh={fresh}
+            writeFresh={() =>
+              fresh() &&
+              cache.getQueryState<string[]>(permissionKey)?.data?.includes('providers.write') ===
+                true
+            }
+            onSaved={onAccessSaved}
+            onInteractionLockChange={reportAccessLock}
+          />
+        ) : !canRead ? (
           <div role="status">
             <p>
               {session.isFetching || access.isFetching || access.isPending
@@ -177,9 +283,10 @@ export default function CreateModelPage() {
                 aria-label={t('connection')}
                 className="h-11 rounded-md border px-3"
                 value={selected}
-                disabled={!visible}
+                disabled={!visible || batchLocked}
                 onChange={(e) => {
-                  if (fresh()) setSelected(e.target.value)
+                  if (fresh() && !accessLock.current && !batchLock.current)
+                    setSelected(e.target.value)
                 }}
               >
                 <option value="">{t('chooseConnection')}</option>
@@ -228,9 +335,18 @@ export default function CreateModelPage() {
             actor={actor}
             connectionId={selected}
             basis={basis}
-            readable={canRead}
+            readable={visible}
             writable={canWrite}
+            manualWritable={canWrite && access.data?.includes('providers.write') === true}
+            writeFresh={(manual) =>
+              fresh() &&
+              cache.getQueryData<string[]>(permissionKey)?.includes('models.write') === true &&
+              (!manual ||
+                cache.getQueryData<string[]>(permissionKey)?.includes('providers.write') === true)
+            }
             fresh={fresh}
+            onInteractionLockChange={reportBatchLock}
+            accessSaved={accessSaved?.actor === actor ? accessSaved.saved : null}
           />
         )}
       </section>
@@ -247,14 +363,22 @@ function BatchForm({
   basis,
   readable,
   writable,
+  manualWritable,
+  writeFresh,
   fresh,
+  onInteractionLockChange,
+  accessSaved,
 }: {
   actor: string
   connectionId: string
   basis: string
   readable: boolean
   writable: boolean
+  manualWritable: boolean
+  writeFresh: (manual: boolean) => boolean
   fresh: () => boolean
+  onInteractionLockChange?: (locked: boolean) => void
+  accessSaved?: ModelAccessSaved | null
 }) {
   const { t, i18n } = useTranslation('modelCreation'),
     cache = useQueryClient()
@@ -270,7 +394,9 @@ function BatchForm({
   const [q, setQ] = useState(''),
     [targetQ, setTargetQ] = useState(''),
     [draft, setDraft] = useState<Draft[]>([]),
-    [reason, setReason] = useState('')
+    [reason, setReason] = useState(''),
+    [manualOpen, setManualOpen] = useState(false),
+    [manualName, setManualName] = useState('')
   const models = useInfiniteQuery({
     queryKey: [...prefix, 'provider-models', q],
     initialPageParam: undefined as string | undefined,
@@ -299,7 +425,13 @@ function BatchForm({
   })
   const modelCount = useReadCount([...prefix, 'provider-models', q]),
     targetCount = useReadCount([...prefix, 'targets', targetQ])
+  const contextFresh = useReadFresh([...prefix, 'context'])
+  const modelsFresh = useReadFresh([...prefix, 'provider-models', q])
+  const targetsFresh = useReadFresh([...prefix, 'targets', targetQ])
   const visible =
+    contextFresh &&
+    modelsFresh &&
+    targetsFresh &&
     readable &&
     context.isSuccess &&
     !context.isFetching &&
@@ -322,15 +454,19 @@ function BatchForm({
   const [intent, setIntent] = useState<{ input: ModelCreationInput; etag: string } | null>(null),
     [unknown, setUnknown] = useState(false),
     [result, setResult] = useState<ModelCreationResult | null>(null)
+  useLayoutEffect(() => {
+    onInteractionLockChange?.(busy || unknown)
+    return () => onInteractionLockChange?.(false)
+  }, [busy, unknown, onInteractionLockChange])
   const lock = useRef(false),
     controller = useRef<AbortController | null>(null),
     live = useRef(true)
   const items = draft
       .map((x) => x.item)
       .sort((a, b) =>
-        a.provider_model_id < b.provider_model_id
+        modelCreationItemKey(a) < modelCreationItemKey(b)
           ? -1
-          : a.provider_model_id > b.provider_model_id
+          : modelCreationItemKey(a) > modelCreationItemKey(b)
             ? 1
             : 0,
       ),
@@ -338,9 +474,19 @@ function BatchForm({
   const ready = () =>
     fresh() &&
     readable &&
-    cache.getQueryState([...prefix, 'context'])?.status === 'success' &&
-    cache.getQueryState([...prefix, 'context'])?.fetchStatus === 'idle' &&
-    cache.getQueryState([...prefix, 'context'])?.dataUpdateCount === contextCount
+    [
+      [[...prefix, 'context'], contextCount],
+      [[...prefix, 'provider-models', q], modelCount],
+      [[...prefix, 'targets', targetQ], targetCount],
+    ].every(([key, count]) => {
+      const state = cache.getQueryState(key as readonly unknown[])
+      return (
+        state?.status === 'success' &&
+        state.fetchStatus === 'idle' &&
+        !state.isInvalidated &&
+        state.dataUpdateCount === count
+      )
+    })
   const readyRef = useRef(ready)
   useLayoutEffect(() => {
     readyRef.current = ready
@@ -371,7 +517,7 @@ function BatchForm({
   const blockers = (codes: string[]) =>
     codes.map((code) => t(`blockers.${code}`, { defaultValue: t('blockers.unknown') })).join(' ')
   const update = (id: string, item: ModelCreationItem) => {
-    setDraft((old) => old.map((x) => (x.item.provider_model_id === id ? { ...x, item } : x)))
+    setDraft((old) => old.map((x) => (modelCreationItemKey(x.item) === id ? { ...x, item } : x)))
     setReview(null)
   }
   async function preview() {
@@ -384,6 +530,7 @@ function BatchForm({
       return
     }
     lock.current = true
+    onInteractionLockChange?.(true)
     setBusy(true)
     setNotice('')
     const capturedAuthority = authority
@@ -409,7 +556,10 @@ function BatchForm({
       if (live.current && !abort.signal.aborted) setNotice('error')
     } finally {
       lock.current = false
-      if (live.current) setBusy(false)
+      if (live.current) {
+        setBusy(false)
+        onInteractionLockChange?.(false)
+      }
     }
   }
   const reviewed =
@@ -421,7 +571,13 @@ function BatchForm({
     if (
       lock.current ||
       !(original || lookup ? readable && fresh() : visible && ready()) ||
-      (!lookup && (!writable || (!original && !context.data?.can_create)))
+      (!lookup &&
+        (!writable ||
+          !writeFresh(
+            (original ? intent?.input.items : items)?.some((x) => x.upstream_name !== undefined) ===
+              true,
+          ) ||
+          (!original && !context.data?.can_create)))
     )
       return
     const captured =
@@ -434,10 +590,12 @@ function BatchForm({
             }
           : null
     if (!captured) return
+    let retainLock = true
     setIntent(captured)
     setUnknown(true)
     setNotice('unknown')
     lock.current = true
+    onInteractionLockChange?.(true)
     setBusy(true)
     const capturedAuthority = authority
     const abort = new AbortController()
@@ -466,6 +624,7 @@ function BatchForm({
         return
       if (value.receipt.connection_id !== connectionId) throw new Error()
       setResult(value)
+      retainLock = false
       setUnknown(false)
       setNotice('')
       setOpen(false)
@@ -477,6 +636,7 @@ function BatchForm({
           setUnknown(true)
           setNotice('unknown')
         } else {
+          retainLock = false
           setUnknown(false)
           setIntent(null)
           setReview(null)
@@ -486,7 +646,10 @@ function BatchForm({
       }
     } finally {
       lock.current = false
-      if (live.current) setBusy(false)
+      if (live.current) {
+        setBusy(false)
+        onInteractionLockChange?.(retainLock)
+      }
     }
   }
   if (!visible)
@@ -555,6 +718,15 @@ function BatchForm({
           >
             {t('refresh')}
           </Button>
+          <Button
+            variant="outline"
+            disabled={locked || !manualWritable || draft.length >= 50}
+            onClick={() => {
+              if (live.current && readyRef.current() && writeFresh(true)) setManualOpen(true)
+            }}
+          >
+            {t('manualAdd')}
+          </Button>
         </div>
         <Table aria-label={t('models')}>
           <thead>
@@ -567,7 +739,7 @@ function BatchForm({
           </thead>
           <tbody>
             {displayRows.map((row) => {
-              const selected = draft.find((x) => x.item.provider_model_id === row.id)
+              const selected = draft.find((x) => modelCreationItemKey(x.item) === row.id)
               const chosen = !!selected
               return (
                 <tr key={row.id}>
@@ -577,28 +749,65 @@ function BatchForm({
                       aria-label={t('selection', { name: row.upstream_name })}
                       checked={chosen}
                       disabled={locked || (!chosen && (!row.selectable || draft.length >= 50))}
-                      onChange={() =>
+                      onChange={() => {
+                        if (
+                          !live.current ||
+                          lock.current ||
+                          locked ||
+                          !visible ||
+                          !readyRef.current() ||
+                          authorityRef.current !== authority
+                        )
+                          return
+                        for (const [key, count] of [
+                          [[...prefix, 'provider-models', q], modelCount],
+                          [[...prefix, 'targets', targetQ], targetCount],
+                        ] as const) {
+                          const state = cache.getQueryState(key)
+                          if (
+                            state?.status !== 'success' ||
+                            state.fetchStatus !== 'idle' ||
+                            state.isInvalidated ||
+                            state.dataUpdateCount !== count
+                          )
+                            return
+                        }
+                        const initial = row.initial_target
+                        const item: ModelCreationItem =
+                          initial?.target === 'existing'
+                            ? {
+                                provider_model_id: row.id,
+                                target: 'existing',
+                                model_id: initial.model_id,
+                              }
+                            : {
+                                provider_model_id: row.id,
+                                target: 'new',
+                                name: initial?.name ?? '',
+                              }
                         setDraft((old) =>
                           chosen
-                            ? old.filter((x) => x.item.provider_model_id !== row.id)
-                            : [
-                                ...old,
-                                {
-                                  metadata: row,
-                                  item: { provider_model_id: row.id, target: 'new', name: '' },
-                                },
-                              ],
+                            ? old.filter((x) => modelCreationItemKey(x.item) !== row.id)
+                            : [...old, { metadata: row, item }],
                         )
-                      }
+                        setReview(null)
+                      }}
                     />
                   </td>
-                  <td>{row.upstream_name}</td>
                   <td>
-                    {row.input_capabilities.length
-                      ? row.input_capabilities
-                          .map((cap) => t(cap === 'image' ? 'imageInput' : 'pdfInput'))
-                          .join(', ')
-                      : t('text')}
+                    {row.upstream_name}
+                    {selected?.item.upstream_name !== undefined && (
+                      <p className="text-xs text-muted-foreground">{t('manualCoverage')}</p>
+                    )}
+                  </td>
+                  <td>
+                    {selected?.item.upstream_name !== undefined
+                      ? t('unknownCapabilities')
+                      : row.input_capabilities.length
+                        ? row.input_capabilities
+                            .map((cap) => t(cap === 'image' ? 'imageInput' : 'pdfInput'))
+                            .join(', ')
+                        : t('text')}
                   </td>
                   <td>
                     {selected ? (
@@ -611,15 +820,15 @@ function BatchForm({
                           value={selected.item.target}
                           onChange={(e) =>
                             update(
-                              selected.item.provider_model_id,
+                              modelCreationItemKey(selected.item),
                               e.target.value === 'new'
                                 ? {
-                                    provider_model_id: selected.item.provider_model_id,
+                                    ...modelCreationSource(selected.item),
                                     target: 'new',
                                     name: '',
                                   }
                                 : {
-                                    provider_model_id: selected.item.provider_model_id,
+                                    ...modelCreationSource(selected.item),
                                     target: 'existing',
                                     model_id: '',
                                   },
@@ -648,7 +857,7 @@ function BatchForm({
                             disabled={locked || !row.selectable}
                             value={selected.item.name}
                             excludedNames={draft.flatMap((d) =>
-                              d.item.provider_model_id !== row.id && d.item.target === 'new'
+                              modelCreationItemKey(d.item) !== row.id && d.item.target === 'new'
                                 ? [d.item.name]
                                 : [],
                             )}
@@ -681,7 +890,7 @@ function BatchForm({
                                 return
                               setDraft((old) =>
                                 old.map((d) =>
-                                  d.item.provider_model_id === row.id && d.item.target === 'new'
+                                  modelCreationItemKey(d.item) === row.id && d.item.target === 'new'
                                     ? { ...d, item: { ...d.item, name } }
                                     : d,
                                 ),
@@ -696,8 +905,8 @@ function BatchForm({
                             disabled={locked || !row.selectable}
                             value={selected.item.model_id}
                             onChange={(e) =>
-                              update(selected.item.provider_model_id, {
-                                provider_model_id: selected.item.provider_model_id,
+                              update(modelCreationItemKey(selected.item), {
+                                ...modelCreationSource(selected.item),
                                 target: 'existing',
                                 model_id: e.target.value,
                               })
@@ -719,7 +928,11 @@ function BatchForm({
                                     : ''),
                               ) && (
                                 <option value={selected.item.model_id}>
-                                  {selected.item.model_id}
+                                  {selected.metadata.initial_target?.target === 'existing' &&
+                                  selected.metadata.initial_target.model_id ===
+                                    selected.item.model_id
+                                    ? selected.metadata.initial_target.name
+                                    : selected.item.model_id}
                                 </option>
                               )}
                           </select>
@@ -730,13 +943,18 @@ function BatchForm({
                     ) : (
                       blockers(row.blocker_codes) || t('blocked')
                     )}
+                    {selected && !selected.metadata.initial_target && (
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        {t('initialTargetUnknown')}
+                      </p>
+                    )}
                   </td>
                 </tr>
               )
             })}
           </tbody>
         </Table>
-        {!models.data.pages.some((p) => p.items.length > 0) && <p>{t('empty')}</p>}
+        {!displayRows.length && <p>{t('empty')}</p>}
         {models.hasNextPage && (
           <Button
             variant="outline"
@@ -842,6 +1060,77 @@ function BatchForm({
         </div>
       )}
       <Dialog
+        open={manualOpen && visible && manualWritable}
+        onOpenChange={(value) => {
+          setManualOpen(value)
+          if (!value) setManualName('')
+        }}
+        title={t('manualTitle')}
+        description={t('manualDescription')}
+      >
+        <label className="block space-y-2 text-sm">
+          {t('manualIdentifier')}
+          <Input value={manualName} onChange={(e) => setManualName(e.target.value)} />
+        </label>
+        <p className="mt-3 text-sm text-muted-foreground">{t('manualCoverage')}</p>
+        <Button
+          className="mt-4"
+          disabled={
+            locked ||
+            !validManualModelName(manualName, c) ||
+            draft.length >= 50 ||
+            displayRows.some((row) => row.upstream_name === manualName)
+          }
+          onClick={() => {
+            if (
+              !live.current ||
+              lock.current ||
+              locked ||
+              !readyRef.current() ||
+              !writeFresh(true) ||
+              authorityRef.current !== authority ||
+              !validManualModelName(manualName, c) ||
+              draft.length >= 50 ||
+              displayRows.some((row) => row.upstream_name === manualName)
+            )
+              return
+            const exact = allTargets.find(
+              (target) => target.name === manualName && target.selectable,
+            )
+            const item: ModelCreationItem = exact
+              ? { upstream_name: manualName, target: 'existing', model_id: exact.id }
+              : {
+                  upstream_name: manualName,
+                  target: 'new',
+                  name: validModelCreationName(manualName) ? manualName : '',
+                }
+            const metadata: ModelCreationProviderModel = {
+              id: modelCreationItemKey(item),
+              upstream_name: manualName,
+              disabled: false,
+              input_capabilities: [],
+              credential_ready: false,
+              selectable: true,
+              blocker_codes: [],
+              initial_target: exact
+                ? {
+                    target: 'existing',
+                    name: exact.name,
+                    model_id: exact.id,
+                    initial_weight: exact.initial_weight as 0 | 100,
+                  }
+                : null,
+            }
+            setDraft((old) => [...old, { metadata, item }])
+            setReview(null)
+            setManualOpen(false)
+            setManualName('')
+          }}
+        >
+          {t('manualToList')}
+        </Button>
+      </Dialog>
+      <Dialog
         open={open && visible && !unknown}
         onOpenChange={setOpen}
         title={t('confirmation')}
@@ -863,6 +1152,12 @@ function BatchForm({
                 </div>
               ))}
             </dl>
+            {accessSaved && (
+              <div className="mb-4">
+                <ModelAccessSummary saved={accessSaved} />
+                <p className="mt-2 text-sm">{t('access.retained')}</p>
+              </div>
+            )}
             <Table aria-label={t('summary')}>
               <thead>
                 <tr>
@@ -874,8 +1169,13 @@ function BatchForm({
               </thead>
               <tbody>
                 {review.value.items.map((row) => (
-                  <tr key={row.provider_model_id}>
-                    <td>{row.upstream_name}</td>
+                  <tr key={row.provider_model_id || `manual:${row.upstream_name}`}>
+                    <td>
+                      {row.upstream_name}
+                      {row.warning_codes?.includes('credential_coverage_unproven') && (
+                        <p className="text-xs text-muted-foreground">{t('manualCoverage')}</p>
+                      )}
+                    </td>
                     <td>
                       {row.name}
                       <p className="text-xs">{t(row.target)}</p>

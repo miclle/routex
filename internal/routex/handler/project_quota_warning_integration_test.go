@@ -251,9 +251,14 @@ func testProjectMonthlyQuotaWarningLifecycle(t *testing.T, db *gorm.DB) {
 		}
 		return call(bearer)
 	}
+	var lastRefreshElapsed, lastReconcileElapsed time.Duration
+	var lastReconcileBefore, lastReconcileAfter service.RuntimeStatus
 	refresh := func() {
 		t.Helper()
-		if err := svc.RefreshRuntime(ctx); err != nil {
+		started := time.Now()
+		err := svc.RefreshRuntime(ctx)
+		lastRefreshElapsed = time.Since(started)
+		if err != nil {
 			t.Fatal(err)
 		}
 	}
@@ -285,7 +290,12 @@ func testProjectMonthlyQuotaWarningLifecycle(t *testing.T, db *gorm.DB) {
 	}
 	reconcileUnpublished := func() {
 		t.Helper()
-		if err := svc.ReconcileMonthlyQuotaNotifications(ctx); err != nil {
+		lastReconcileBefore = svc.RuntimeStatus()
+		started := time.Now()
+		err := svc.ReconcileMonthlyQuotaNotifications(ctx)
+		lastReconcileElapsed = time.Since(started)
+		lastReconcileAfter = svc.RuntimeStatus()
+		if err != nil {
 			t.Fatal(err)
 		}
 	}
@@ -305,14 +315,16 @@ func testProjectMonthlyQuotaWarningLifecycle(t *testing.T, db *gorm.DB) {
 	assertCount := func(owner string, expected int64) {
 		t.Helper()
 		if got := count(owner); got != expected {
-			t.Fatalf("owner warning count %d, want %d", got, expected)
+			t.Fatalf("owner warning count %d, want %d; last_refresh=%s last_reconcile=%s runtime_before=%+v runtime_after=%+v runtime_current=%+v", got, expected, lastRefreshElapsed, lastReconcileElapsed, lastReconcileBefore, lastReconcileAfter, svc.RuntimeStatus())
 		}
 	}
 	// More than one 32-row page precedes the notified owner. Full manual reconcile
 	// must reach it; these covered-zero positive caps cannot manufacture warnings.
 	cap100 := int64(100)
+	scanIDs := make([]string, 0, 33)
 	for index := range 33 {
 		id := fmt.Sprintf("prj_000_warn_%02d", index)
+		scanIDs = append(scanIDs, id)
 		create(&entity.Project{ID: id, Name: "Covered zero Project scan", Status: entity.ResourceActive, CreatorID: admin.User.ID})
 		create(&entity.ResourceLimit{ScopeKind: "project", ScopeID: id, ETag: fmt.Sprintf("lim_warning_scan_%02d", index), ActorID: admin.User.ID, Reason: "Bounded fair warning scan", TokensMonth: &cap100, IPMode: "none", IPRangesJSON: "[]"})
 	}
@@ -377,6 +389,61 @@ func testProjectMonthlyQuotaWarningLifecycle(t *testing.T, db *gorm.DB) {
 	if err := db.Take(&original, "id = ?", near.QuotaWarningObservationID).Error; err != nil {
 		t.Fatal(err)
 	}
+	// The genuine second-page near crossing and original fanout/read proof above
+	// complete the fair-scan calibration. Retain its Projects and empty history,
+	// but remove only their artificial positive caps from later policy scans.
+	if err := db.Transaction(func(tx *gorm.DB) error {
+		var projects []entity.Project
+		if err := tx.Where("id IN ?", scanIDs).Order("id").Find(&projects).Error; err != nil {
+			return err
+		}
+		var policies []entity.ResourceLimit
+		query := tx.Model(&entity.ResourceLimit{}).Where(database.ExactText(tx, clause.Column{Name: "scope_kind"}, "project")).Where("scope_id IN ?", scanIDs)
+		if err := query.Clauses(clause.Locking{Strength: "UPDATE"}).Order("scope_id").Find(&policies).Error; err != nil {
+			return err
+		}
+		if len(projects) != 33 || len(policies) != 33 {
+			return errors.New("fair-scan calibration identities incomplete")
+		}
+		for index, row := range policies {
+			project := projects[index]
+			if row.ScopeKind != "project" || row.ScopeID != scanIDs[index] || row.ETag != fmt.Sprintf("lim_warning_scan_%02d", index) || row.ActorID != admin.User.ID || row.Reason != "Bounded fair warning scan" || row.TokensMonth == nil || *row.TokensMonth != 100 || row.MoneyMonth != nil || row.Tokens5H != nil || row.Tokens7D != nil || row.RPM != nil || row.TPM != nil || row.Concurrency != nil || row.IPMode != "none" || row.IPRangesJSON != "[]" || project.ID != scanIDs[index] || project.Name != "Covered zero Project scan" || project.Status != entity.ResourceActive || project.CreatorID != admin.User.ID || project.CreatedAt.IsZero() {
+				return errors.New("fair-scan calibration identity or policy changed")
+			}
+		}
+		var observations int64
+		if err := tx.Model(&entity.ProjectQuotaWarningObservation{}).Where("project_id IN ?", scanIDs).Count(&observations).Error; err != nil {
+			return err
+		}
+		if observations != 0 {
+			return errors.New("covered-zero fair-scan calibration created warnings")
+		}
+		updated := tx.Model(&entity.ResourceLimit{}).Where(database.ExactText(tx, clause.Column{Name: "scope_kind"}, "project")).Where("scope_id IN ? AND tokens_month = ?", scanIDs, 100).UpdateColumn("tokens_month", nil)
+		if updated.Error != nil {
+			return updated.Error
+		}
+		if updated.RowsAffected != 33 {
+			return errors.New("fair-scan calibration retirement was not exact")
+		}
+		var retainedPolicies []entity.ResourceLimit
+		if err := tx.Where(database.ExactText(tx, clause.Column{Name: "scope_kind"}, "project")).Where("scope_id IN ?", scanIDs).Order("scope_id").Find(&retainedPolicies).Error; err != nil {
+			return err
+		}
+		for index := range policies {
+			policies[index].TokensMonth = nil
+		}
+		var retainedProjects []entity.Project
+		if err := tx.Where("id IN ?", scanIDs).Order("id").Find(&retainedProjects).Error; err != nil {
+			return err
+		}
+		if !reflect.DeepEqual(policies, retainedPolicies) || !reflect.DeepEqual(projects, retainedProjects) {
+			return errors.New("fair-scan retirement changed retained policy or Project facts")
+		}
+		return nil
+	}); err != nil {
+		t.Fatal(err)
+	}
+	refresh()
 	single.Store(true)
 	expectStatus(t, projectCall(projectID), 200)
 	single.Store(false)

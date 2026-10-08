@@ -26,8 +26,13 @@ func testProjectRollingQuotaWarningMigration(t *testing.T, db *gorm.DB) {
 		AppliedAt string
 	}
 	var original []ledger
-	if e := db.Table("schema_migrations").Order("version").Find(&original).Error; e != nil || len(original) != 84 || original[83].Version != 84 || original[81].Version != 82 || original[82].Version != 83 {
-		t.Fatal("exact83 ledger", e)
+	if e := db.Table("schema_migrations").Order("version").Find(&original).Error; e != nil || len(original) != 87 || original[86].Version != 87 || original[85].Version != 86 || original[84].Version != 85 || original[83].Version != 84 || original[81].Version != 82 || original[82].Version != 83 {
+		t.Fatal("exact87 ledger", e)
+	}
+	for i, row := range original {
+		if row.Version != i+1 {
+			t.Fatal("noncontiguous complete V87 ledger")
+		}
 	}
 	migrate := func() {
 		t.Helper()
@@ -153,8 +158,13 @@ func testProjectRollingQuotaWarningMigration(t *testing.T, db *gorm.DB) {
 	remove()
 	migrate()
 	var after []ledger
-	if e := db.Table("schema_migrations").Order("version").Find(&after).Error; e != nil || len(after) != 84 || after[83].Version != 84 || !reflect.DeepEqual(after[:82], original[:82]) || !reflect.DeepEqual(after[83:], original[83:]) {
+	if e := db.Table("schema_migrations").Order("version").Find(&after).Error; e != nil || len(after) != 87 || after[86].Version != 87 || after[85].Version != 86 || after[84].Version != 85 || after[83].Version != 84 || !reflect.DeepEqual(after[:82], original[:82]) || !reflect.DeepEqual(after[83:], original[83:]) {
 		t.Fatal("original82 ledger changed", e)
+	}
+	for i, row := range after {
+		if row.Version != i+1 {
+			t.Fatal("noncontiguous complete V87 ledger")
+		}
 	}
 	var saved entity.ProjectRollingQuotaWarningObservation
 	if e := db.Where("id = ?", observation.ID).Take(&saved).Error; e != nil || !projectRollingRetainedFactsEqual(saved, storedObservation) {
@@ -184,7 +194,7 @@ func testProjectRollingQuotaWarningMigration(t *testing.T, db *gorm.DB) {
 }
 
 func projectRollingWarningRegistryParent(names []string) ([]string, bool) {
-	if len(names) == 162 {
+	if len(names) == 162 || len(names) == 164 || len(names) == 166 || len(names) == 168 {
 		parent, ok := teamRollingWarningRegistryParent(names)
 		if !ok {
 			return nil, false
@@ -238,6 +248,9 @@ func TestProjectRollingWarningExact160RegistryAnd158Prefix(t *testing.T) {
 	var names []string
 	for _, m := range regexp.MustCompile(`\{"([^"\n]+)", (test[A-Za-z0-9]+)\}`).FindAllStringSubmatch(string(raw), -1) {
 		names = append(names, m[1]+":"+m[2])
+	}
+	if len(names) != 168 || !strings.Contains(string(raw), "versions != 87") {
+		t.Fatal("current exact168 registry/V87 ledger changed")
 	}
 	if _, ok := projectRollingWarningRegistryParent(names); !ok {
 		t.Fatal("exact retained158 plus new pair required")

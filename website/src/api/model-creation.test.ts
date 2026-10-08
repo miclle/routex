@@ -12,11 +12,16 @@ import {
   previewModelCreation,
   validModelCreationName,
   validModelCreationReason,
+  validManualModelName,
 } from './model-creation'
-import type { ModelCreationInput, ModelCreationResult } from '@/types/model-creation'
+import type {
+  ModelCreationConnection,
+  ModelCreationInput,
+  ModelCreationResult,
+} from '@/types/model-creation'
 const original = client.defaults.adapter
 const requestId = '12345678-1234-4234-8234-123456789abc'
-const connection = {
+const connection: ModelCreationConnection = {
   id: 'con_one',
   provider_id: 'prv_one',
   provider_name: 'Provider',
@@ -34,6 +39,7 @@ const pm = {
   credential_ready: true,
   selectable: true,
   blocker_codes: [],
+  initial_target: null,
 }
 const target = {
   id: 'mdl_old',
@@ -263,4 +269,206 @@ describe('bounded model creation transport', () => {
     ).rejects.toThrow()
     expect(requests).toHaveLength(0)
   })
+})
+
+describe('guided initial targets', () => {
+  it('rejects missing, forged or inconsistent initial choices instead of inventing defaults', async () => {
+    for (const choice of [
+      undefined,
+      { target: 'new', name: 'other' },
+      { target: 'existing', model_id: 'MDL_bad', name: 'upstream', initial_weight: 0 },
+      { target: 'existing', model_id: 'mdl_old', name: 'other', initial_weight: 0 },
+      { target: 'existing', model_id: 'mdl_old', name: 'upstream', initial_weight: 50 },
+      { target: 'new', name: 'upstream', secret: 'bad' },
+    ]) {
+      value = { items: [{ ...pm, initial_target: choice }], next_cursor: null }
+      await expect(listModelCreationProviderModels('con_one')).rejects.toThrow(
+        'Invalid model creation response',
+      )
+    }
+  })
+})
+
+it('accepts only source-exact new/existing choices, preserving null and the authorized off-page target', async () => {
+  for (const choice of [
+    null,
+    { target: 'new', name: 'upstream' },
+    { target: 'existing', model_id: 'mdl_offpage', name: 'upstream', initial_weight: 0 },
+    { target: 'existing', model_id: 'mdl_offpage', name: 'upstream', initial_weight: 100 },
+  ]) {
+    value = { items: [{ ...pm, initial_target: choice }], next_cursor: null }
+    expect((await listModelCreationProviderModels('con_one')).items[0].initial_target).toEqual(
+      choice,
+    )
+  }
+  value = {
+    items: [
+      {
+        ...pm,
+        selectable: false,
+        blocker_codes: ['provider_model_associated'],
+        initial_target: { target: 'new', name: 'upstream' },
+      },
+    ],
+    next_cursor: null,
+  }
+  await expect(listModelCreationProviderModels('con_one')).rejects.toThrow(
+    'Invalid model creation response',
+  )
+})
+
+describe('manual upstream-name atomic selector', () => {
+  const manual = { upstream_name: 'not/discovered', target: 'new' as const, name: 'Public' }
+  const manualInput: ModelCreationInput = { ...input, items: [manual] }
+  const reviewed = () => ({
+    connection,
+    items: [
+      {
+        provider_model_id: '',
+        upstream_name: manual.upstream_name,
+        target: 'new',
+        model_id: null,
+        name: 'Public',
+        protocol: 'openai_chat',
+        initial_weight: 100,
+        blocker_codes: [],
+        warning_codes: ['credential_coverage_unproven'],
+      },
+    ],
+    review_etag: 'a'.repeat(64),
+    observed_at: '2026-10-04T00:00:00Z',
+    can_commit: true,
+  })
+  it('reviews a manual configuration with explicit unproven coverage and no invented identifier', async () => {
+    value = reviewed()
+    const got = await previewModelCreation('con_one', [manual], 'csrf')
+    expect(got.items[0].provider_model_id).toBe('')
+    expect(got.items[0].warning_codes).toEqual(['credential_coverage_unproven'])
+    expect(JSON.parse(requests[0].data)).toEqual({ items: [manual] })
+  })
+  it.each([
+    undefined,
+    [],
+    ['credential_coverage_missing'],
+    ['credential_coverage_unproven', 'extra'],
+  ])('rejects incomplete/forged manual coverage warning %j', async (warning_codes) => {
+    value = { ...reviewed(), items: [{ ...reviewed().items[0], warning_codes }] }
+    await expect(previewModelCreation('con_one', [manual], 'csrf')).rejects.toThrow()
+  })
+  it('binds newly assigned IDs to the exact original name through uncertain retry', async () => {
+    const r = result()
+    const manualRow = { ...row, name: 'Public', manual_upstream_name: manual.upstream_name }
+    r.receipt.items = [manualRow]
+    r.current_items = [manualRow]
+    value = r
+    status = 201
+    const got = await createModelBatch('con_one', manualInput, 'a'.repeat(64), 'fresh-csrf')
+    expect(got.receipt.items[0].manual_upstream_name).toBe(manual.upstream_name)
+    expect(JSON.parse(requests[0].data)).toEqual(manualInput)
+    for (const replacement of [
+      { ...manualRow, manual_upstream_name: 'other' },
+      { ...row, name: 'Public' },
+    ]) {
+      value = {
+        ...r,
+        receipt: { ...r.receipt, items: [replacement] },
+        current_items: [replacement],
+      }
+      await expect(
+        createModelBatch('con_one', manualInput, 'a'.repeat(64), 'new-csrf'),
+      ).rejects.toThrow()
+    }
+  })
+  it.each([
+    { upstream_name: 'a', provider_model_id: 'pmd_one', target: 'new', name: 'Public' },
+    { upstream_name: 'a', provider_model_id: undefined, target: 'new', name: 'Public' },
+    { upstream_name: ' a', target: 'new', name: 'Public' },
+    { upstream_name: 'a', target: 'new', name: 'Public', credential_ready: true },
+    { upstream_name: 'a', target: 'new', name: 'Public', weight: 100 },
+  ])('rejects invalid manual union before request %j', async (item) => {
+    await expect(
+      createModelBatch(
+        'con_one',
+        { ...input, items: [item] as ModelCreationInput['items'] },
+        'a'.repeat(64),
+        'csrf',
+      ),
+    ).rejects.toThrow()
+    expect(requests).toHaveLength(0)
+  })
+  it('retains native name grammar independently from public-name grammar', () => {
+    expect(validManualModelName('native/name', connection)).toBe(true)
+    expect(
+      validManualModelName('native/name', { ...connection, protocol: 'gemini_generate_content' }),
+    ).toBe(false)
+    expect(
+      validManualModelName('native/name', {
+        ...connection,
+        adapter: 'azure_openai_classic',
+        api_version: '2026-01-01',
+      }),
+    ).toBe(false)
+    expect(
+      validManualModelName('deployment-1', {
+        ...connection,
+        adapter: 'azure_openai_classic',
+        api_version: '2026-01-01',
+      }),
+    ).toBe(true)
+    for (const name of [' name', 'name ', 'a\n', 'x'.repeat(256), 'bad\ud800'])
+      expect(validManualModelName(name, connection)).toBe(false)
+  })
+})
+
+it('requires every manual original exactly once despite distinct assigned canonical IDs', async () => {
+  const two: ModelCreationInput = {
+    ...input,
+    items: [
+      { upstream_name: 'manual-A', target: 'new', name: 'PublicA' },
+      { upstream_name: 'manual-B', target: 'new', name: 'PublicB' },
+    ],
+  }
+  const first = { ...row, manual_upstream_name: 'manual-A', name: 'PublicA' }
+  const duplicate = {
+    ...first,
+    provider_model_id: 'pmd_two',
+    model_id: 'mdl_two',
+    binding_id: 'bnd_two',
+  }
+  const r = result()
+  r.receipt.items = [first, duplicate]
+  r.current_items = [first, duplicate]
+  value = r
+  status = 201
+  await expect(createModelBatch('con_one', two, 'a'.repeat(64), 'csrf')).rejects.toThrow(
+    'Invalid model creation response',
+  )
+})
+
+it('correlates reordered manual receipts with every exact original name', async () => {
+  const two: ModelCreationInput = {
+    ...input,
+    items: [
+      { upstream_name: 'manual-A', target: 'new', name: 'PublicA' },
+      { upstream_name: 'manual-B', target: 'new', name: 'PublicB' },
+    ],
+  }
+  const first = { ...row, manual_upstream_name: 'manual-A', name: 'PublicA' }
+  const second = {
+    ...row,
+    manual_upstream_name: 'manual-B',
+    name: 'PublicB',
+    provider_model_id: 'pmd_two',
+    model_id: 'mdl_two',
+    binding_id: 'bnd_two',
+  }
+  const r = result()
+  r.receipt.items = [second, first]
+  r.current_items = [second, first]
+  value = r
+  status = 201
+  expect((await createModelBatch('con_one', two, 'a'.repeat(64), 'csrf')).receipt.items).toEqual([
+    second,
+    first,
+  ])
 })

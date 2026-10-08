@@ -150,6 +150,26 @@ scripts/                      # Shell helpers invoked by Taskfile (build, check,
 
 ## Mandatory Rules
 
+Model creation keeps inline NEW/EXISTING access configuration before the existing
+Model table and summary. Create access with the reviewed credential-storage token
+and stable UUIDv4, then offer real Verify and any needed explicit Enable as
+separate actions; never chain them on typing, refresh or Model confirmation.
+Use bounded authorized Provider and egress pickers, exact IDs including Providers
+without Connections, and fresh actor/Session/permission/option generations.
+Selected identities use the exact_id picker filter, separate from name/prefix
+search and mutually exclusive with q/cursor. Empty UI searches omit HTTP q.
+Access creation consumes the existing egress mode/ID and resolves transport in
+its transaction; picker freshness is advisory and is not a server-consumed
+historical egress review token. Final Model preview owns transport revision proof.
+Secret-bearing requests and sanitized status-only errors remain outside query
+and mutation caches; mounted uncertain creation retains the original transient
+body/source for identical explicit retry, and dismissal, mode/actor change or
+unmount clears it. Block mode/Connection changes during a pending or uncertain
+Model batch. Show actual recorded enablement, never infer it from verification,
+and refresh recorded facts after an unknown stage before further actions. Saved
+access survives cancelled or failed Model addition. Azure deployment attestation
+remains explicit and separate. The Model batch remains one reviewed atomic write.
+
 - Describe RouteX independently. Keep competitor comparisons and implementation research outside the project repository; preserve any required third-party licensing notices.
 
 - Write documentation, commit titles/bodies, and PR descriptions in English.
@@ -242,6 +262,8 @@ Provider-model availability and input capabilities belong in the existing detail
 Two-step verification uses the existing sign-in card and security settings card/dialogs. A login HTTP 202 is a transient challenge, never a Session or authenticated navigation. Keep challenges, proofs, enrollment material, and one-time recovery codes in component state only; sensitive operations must not use mutation caches or browser storage. Render the server-issued authenticator URI locally with the pinned QR library, without external QR services. Clear sensitive state on completion, dismissal, expiry, and unmount. Handle generic proof failures locally, refresh the real session when appropriate, and replace the current Session/CSRF while resetting private queries after successful MFA changes. Keep paired `mfa` translations and license notices.
 
 Administrative Model routing uses protocol-grouped tables and live configured draft totals. Keep each complete protocol at 100 with whole-number 0–100 weights, keep route-readiness display advisory and leave credential eligibility to the server, and preserve one atomic complete-set save behind fresh actor/target permissions. Draft totals are not route health or actual traffic percentages. The local routing composition uses Table/Input and preserves price-read authority and the existing generic Add binding action.
+
+Protocol-scoped routing Add uses the existing local Base UI dialog and Table with an authorized bounded Provider picker. Require independent Model and Provider read authority, display recorded Connection names and separate verification/configuration facts, and preserve optional price-read denial. Retain off-page selections and immutable uncertain insertion tokens; fresh actor, Session, permission, target and candidate query generations must gate dispatch and late completion. New reviewed relations start at zero without rewriting grouped weights; only one complete atomic weight save applies the routing draft. No candidate GET, readiness label or rejected retry proves historical insertion or runtime health.
 
 Native protocol catalog controls display actual connection and model protocols. Create connections with an explicit protocol, preserve per-protocol binding weights, and generate matching member API examples. The current Chat Playground only offers models with eligible Chat routes from the Key-scoped model list. Unsupported `/v1` and `/v1beta` paths return JSON 404 rather than SPA HTML.
 
@@ -711,6 +733,17 @@ Receipts prove historical commit independently of current configuration/runtime
 application; pending/superseded/unavailable are not success. New Models receive
 no implicit grants and existing Keys never expand. Do not infer traffic readiness
 from saved zero-weight configuration or render credential material.
+
+Manual Provider-model rows stay in the guided batch component until confirmation.
+Accept an exact stored Provider-model ID or a manual upstream name, never both.
+Manual additions require fresh independent providers.write as well as models.write;
+preview remains a read operation. Show credential coverage as unproven and input
+capabilities as unknown, without automatic Verify, Enable or native requests.
+The server creates the Provider-model, Model/name, binding, timestamp, audit and
+receipt atomically. Preserve the exact native name, UUID, reason and reviewed ETag
+through uncertainty; receipt-assigned IDs must correlate to the original manual
+name. New100 means configured unavailable supply until coverage is independently
+recorded; backup0 preserves the existing complete protocol total.
 
 Public Model name assistance stays inside the guided creation name control. The
 versioned local reference file contains only reviewed official identities, source
@@ -1240,3 +1273,55 @@ lifetime. Capture the reviewed ETag and exact body, preserve uncertain retries,
 and reject obsolete callbacks before they read current CSRF or clear a newer
 draft. Read and write permissions remain independent; no SMTP or layout change
 is implied.
+
+Guided Model rows initialize only from the fresh authorized picker-row
+initial_target. Preserve exact stored native names and eligible exact current-name
+Model identities; retained aliases and unknown/blocked choices do not imply a
+new-name reservation. Keep off-page target labels resource-derived, apply defaults
+once on explicit selection, and preserve edited drafts through refresh/renewal.
+Synchronous picker invalidation hides facts and stale callbacks cannot restore
+them. Preview and confirmation remain independent and authoritative; assistance
+creates no Model, binding, grant or upstream call.
+
+Model rename uses the existing dialog and local `model-rename-fields` composition:
+explicit keep-old-name checkbox, 7/30/90 calendar-day presets, localized migration
+or immediate-stop guidance, and one captured UTC deadline. Default compatibility
+does not infer absent call history. Preserve edited fields and the captured
+expiry across renewed reads, language changes and failed retries; reject writes
+from invalidated Session, permission or Model reads. Submit only the existing
+name/optional alias_expires_at contract. Do not invent reason/If-Match/runtime
+receipt guarantees for legacy rename or alter reviewed Alias Early stop.
+Rename completion must match the mounted action, actor/target and captured
+Session/permission/Model generations before closing or invalidating queries.
+Obsolete same-owner responses retain explicit uncertainty and the original
+name/deadline for manual fresh-CSRF retry; actor/target/unmount changes discard
+the callback. Refreshes and rejected retries cannot resolve that uncertainty.
+
+Administrative Model metadata uses recorded `created_at` and Model-owned
+`config_updated_at`; missing legacy fields and null dates stay Unknown. Keep
+retained Personal grantee counts labeled Granted members, and unsupported generic
+capability type Unknown. The approved Model table has nine columns and detail
+summary eight cells. Monthly request facts use one bounded exact-ID batch for
+the displayed Models, requiring independent `calls.read_all` as well as
+`models.read_all`. Preserve decimal count strings, zero versus unknown/unavailable,
+UTC month and persisted-call/may-lag context; catalogue reads remain visible when
+statistics fail. `views/models/use-model-metadata.ts` consumes existing parent
+Session/permission/catalogue generations without another Session observer;
+renewal, invalidation, errors, actor/target/filter changes and unmount hide old
+facts and reject late replies. No per-row requests, inferred metrics, or writes.
+
+Routing application records use a read-only Base UI dialog from the existing
+System jobs Details cell. Query only the exact recorded executor after fresh
+Session, `system.read` and jobs reads; keep actor/read generations and the target
+in the key, discard late replies, and hide facts during renewal or errors. One
+bounded paged read is mounted only while the dialog is open; no per-row reads.
+Historical routing application, process liveness and nullable current serving
+process match are separate facts. They do not confirm the selected job, complete
+configuration versions, fleet convergence, revocation or rollback.
+
+Request-code presentation uses the pure `lib/code-tokens.ts` tokenizer for Bash,
+Python and JavaScript. Render tokens only as inert React text nodes and preserve
+all generated characters, whitespace and opaque Bash here-document bodies. Copy
+the original source string, never rendered markup. Highlighting cannot evaluate
+code, access credentials, create requests or alter the captured native request,
+Team authority, transient-media export gate or existing code-dialog layout.

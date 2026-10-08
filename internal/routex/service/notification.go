@@ -46,6 +46,7 @@ type QuotaNotificationSnapshot struct {
 
 type NotificationRecord struct {
 	RollingQuotaWarningObservationID string                                  `json:"rolling_quota_warning_observation_id,omitempty"`
+	ProjectKeyRollingQuotaWarning    *ProjectKeyRollingQuotaWarningSnapshot  `json:"project_key_rolling_quota_warning,omitempty"`
 	TeamRollingQuotaWarning          *TeamRollingQuotaWarningSnapshot        `json:"team_rolling_quota_warning,omitempty"`
 	ProjectRollingQuotaWarning       *ProjectRollingQuotaWarningSnapshot     `json:"project_rolling_quota_warning,omitempty"`
 	PersonalKeyRollingQuotaWarning   *PersonalKeyRollingQuotaWarningSnapshot `json:"personal_key_rolling_quota_warning,omitempty"`
@@ -274,6 +275,12 @@ func (s *Service) ListNotifications(ctx context.Context, actor string, filter No
 		}
 		records = append(records, teamRollingWarnings...)
 		page.UnreadCount += teamRollingUnread
+		projectKeyRollingWarnings, projectKeyRollingUnread, err := projectKeyRollingWarningPage(tx, access, filter, limit, cursorTime, cursorID)
+		if err != nil {
+			return err
+		}
+		records = append(records, projectKeyRollingWarnings...)
+		page.UnreadCount += projectKeyRollingUnread
 		teamWarnings, teamWarningUnread, err := teamQuotaWarningPage(tx, access, filter, limit, cursorTime, cursorID)
 		if err != nil {
 			return err
@@ -409,6 +416,14 @@ func (s *Service) MarkNotificationRead(ctx context.Context, actor, notificationI
 			record = teamRollingWarning
 			return nil
 		}
+		projectKeyRollingWarning, projectKeyRollingFound, projectKeyRollingErr := markProjectKeyRollingWarningRead(tx, access, notificationID)
+		if projectKeyRollingErr != nil && !errors.Is(projectKeyRollingErr, gorm.ErrRecordNotFound) {
+			return projectKeyRollingErr
+		}
+		if projectKeyRollingFound {
+			record = projectKeyRollingWarning
+			return nil
+		}
 		teamWarning, teamFound, teamErr := markTeamQuotaWarningRead(tx, access, notificationID)
 		if teamErr != nil && !errors.Is(teamErr, gorm.ErrRecordNotFound) {
 			return teamErr
@@ -507,6 +522,9 @@ func (s *Service) MarkAllNotificationsRead(ctx context.Context, actor string) er
 			return err
 		}
 		if err := teamRollingWarningMutationQuery(tx, access).Where("read_at IS NULL").Update("read_at", now).Error; err != nil {
+			return err
+		}
+		if err := projectKeyRollingWarningMutationQuery(tx, access).Where("read_at IS NULL").Update("read_at", now).Error; err != nil {
 			return err
 		}
 		if err := teamQuotaWarningMutationQuery(tx, access).Where("read_at IS NULL").Update("read_at", now).Error; err != nil {

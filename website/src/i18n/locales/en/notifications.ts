@@ -95,6 +95,13 @@ export default {
       tokens_7d_near: 'Personal Key rolling seven-day token warning recorded.',
       tokens_7d_critical: 'Critical Personal Key rolling seven-day token warning recorded.',
     },
+    project_key_rolling_quota_warning: {
+      default: 'A Project Key rolling token warning was recorded.',
+      tokens_5h_near: 'Project Key rolling five-hour token warning recorded.',
+      tokens_5h_critical: 'Critical Project Key rolling five-hour token warning recorded.',
+      tokens_7d_near: 'Project Key rolling seven-day token warning recorded.',
+      tokens_7d_critical: 'Critical Project Key rolling seven-day token warning recorded.',
+    },
     project_rolling_quota_warning: {
       default: 'A Project rolling token warning was recorded.',
       tokens_5h_near: 'Project rolling five-hour token warning recorded.',

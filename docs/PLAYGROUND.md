@@ -288,3 +288,23 @@ than progressive browser delivery. Owned processes, Compose resources and five
 ports were independently cleared. External-provider compatibility and broader
 attachment/F20 acceptance remain separate; detailed evidence is recorded in
 `docs/IMPLEMENTATION.md`.
+
+
+## Corrected R8 candidate contract additions
+
+These additions describe the isolated candidate; complete dual-driver and
+composed-main acceptance remain pending. Earlier acceptance records stay
+bound to their original source.
+
+The existing code dialog highlights Bash, Python and JavaScript through a pure,
+lossless presentation tokenizer. Tokens are inert React text; no HTML parsing or
+code execution occurs. Bash here-document bodies stay opaque. Copy always uses
+the original generated string, including whitespace and Unicode, rather than
+rendered markup. Highlighting is advisory presentation, not syntax validation,
+authentication, native completion or provider acceptance.
+
+The current frozen R8 source passes check, complete Task testing and build,
+5,032 ordinary named Go tests, and the separate two-driver Project warning
+lifecycle. Earlier focused R7 receipts remain bound to that source. Complete
+R8 Full168, composed-main gates, browser and delivery remain pending. These
+source-specific facts do not establish wider runtime or feature acceptance.
