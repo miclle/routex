@@ -2,6 +2,23 @@
 
 Updated: 2026-10-09. Status: resumed by explicit user instruction; prioritize partially completed capabilities. [Implementation](IMPLEMENTATION.md) records engineering contracts and historical acceptance evidence. Earlier checkpoints below remain historical.
 
+## Active continuation checkpoint (2026-10-09)
+
+The goal remains active: 13 Completed / 14 Partial / 3 Not started.
+
+| Workstream | Current evidence | Remaining gate |
+| --- | --- | --- |
+| Delivered main | `274563a`; CI37819796481 passes all four jobs, plus Actionlint and GolangCI-Lint | Isolated future features are excluded |
+| Model catalogue R8 | Fresh check, complete Task, build, 5,032 ordinary names and the two-driver Project warning lifecycle pass | Renewed complete Full168, browser and delivery |
+| Vault V88 | Corrected Full170 passes PostgreSQL; one MySQL Connection metadata scenario fails | Diagnose/reproduce; no full acceptance or controlled-run approval |
+| Vault graceful closure V89 | Lease repair passes independent source review; composed with the reviewed Project fixture | Actual checks, build, both databases and native/SDK shutdown/restart |
+| Browser | Deferred because the computer is locked; the user expects availability about ten hours later | Real window, keyboard/focus and workflow acceptance |
+
+Complete project matrices now run one at a time, retaining parallel PostgreSQL
+and MySQL workers within each project. This controls shared local load; it is
+not proof that resource contention caused either retained failure. Source work
+and independent reviews continue in parallel worktrees.
+
 ## Current combined phase gate (2026-10-08)
 
 The current main phase passes mandatory checking, complete Task testing and
@@ -391,12 +408,33 @@ Compose resources and ports independently absent. Focused review SHA-256 is
 `751b920158d5a9200c0b7aec7fd4b7924a0bafa0579b4155f99e21bb2b4cbeb1`.
 Fresh source/build gate receipt is
 `890ac688efbe1f12a29c024113aa92ce2333a2ace390db06ce7e86d42d9d25b3`.
-The corrected-source Full168 run is in progress with independent PostgreSQL
-and MySQL workers. Its launch binding is
-`a9cd493220120d45787b995479f71d2474c8c5b3c1d4749589286a6d0877b7be`.
-Complete original-log review, independent cleanup, browser and main feature
-delivery remain pending; focused success does not replace the full acceptance
-gate.
+The corrected R7 Full168 run finishes failed in 2,463.836 seconds.
+PostgreSQL passes 167 of 168 direct scenarios; only Project monthly quota
+warnings fails with observation count 4 instead of 5. MySQL passes all 168.
+All 5,032 ordinary names and eight constraints pass, and both original driver
+logs contain all 430 exact names with no skips. Root independently verifies all
+ten captured PIDs, nine process groups, both ports and owned Compose resources
+absent. Complete failure-review SHA-256 is
+`48610cb2ef7b3f3667fc877d6052b0d2b490e25946b584d20396f43405b3aaa9`.
+The source permits a silent observation skip when a stopped runtime publisher's
+five-second authorization expires, but the original log does not prove that
+branch caused this failure. The original R7 run remains failed.
+
+The R8 single-fixture successor preserves the genuine second-page near crossing,
+original fanout, read state and recipient birth proofs. Only afterward does it
+clear the 33 artificial covered-zero calibration caps, retaining their Project,
+policy and history facts. Production leases, thresholds, registry, budgets and
+all subsequent assertions remain unchanged. Failure diagnostics now record real
+refresh/reconcile duration and sanitized RuntimeStatus. Independent source review
+passes. Fresh root checking, complete Task (5,408 frontend tests in 208 files),
+production build and all 5,032 exact ordinary names pass. The complete Project
+warning lifecycle passes both databases: two direct cases and five names in
+139.886 seconds, with source/modes unchanged and all eleven captured worker
+groups, project resources and ports independently absent. Focused review is
+`c40241e0abde62befd045cae09baf2222c4734caab5fcd63d09d2c06bf118988`.
+R8 source/build receipt is
+`318c26d89f59066af5fb09b6149f92698407e574e5c0452f3106ada561a426f8`.
+New complete Full168, browser and main feature delivery remain pending.
 
 The isolated F28 backend R2 source remains 34 owned leaves and passes nine
 top-level/thirty-eight nested mocked race tests. Its final irreversible remote
@@ -451,10 +489,28 @@ repairs and exact-table index adapter without changing V88 historical guards.
 Fresh mandatory checking, complete Task (5,440 frontend tests in 208 files),
 production build and all 5,080 ordinary names pass. Gate receipt SHA-256 is
 `99fb8872c500cf071a06702bb54be329d132f6b8a23859a10af251f131df11e7`.
-Corrected-source complete Full170, controlled Vault/native/process restart and
-main feature delivery remain pending. A separate worktree is implementing a
-new additive graceful-shutdown proof; it is excluded from this V88 source and
-has no runtime acceptance yet.
+The corrected V88 Full170 run finishes failed in 2,488.784 seconds.
+PostgreSQL passes all 170 direct scenarios; MySQL passes 169 and fails Connection
+metadata's disabled-Connection update with HTTP503 instead of HTTP200. All 5,080
+ordinary names and eight constraints pass; both complete driver logs retain all
+432 exact names with no skips. Root independently verifies all ten captured PIDs,
+nine process groups, both database ports and owned resources absent. Complete
+failure-review SHA-256 is
+`5a0d1b6b111bae5a4d24a8790f899103f1aafeabd8f3d85f0bbd793b6705c433`.
+The exact internal cause remains under diagnosis; success on the same scenario
+in the separate R7 run does not resolve this failure. Complete Full170 and
+controlled Vault/native/restart acceptance remain unqualified.
+
+The separate V89 source candidate adds a private nullable generation ClosedAt
+proof only after admission closes and actual native/finite SDK lifetimes join.
+It does not backfill legacy closure or turn process absence into acknowledgment.
+Independent R1 review identifies stale lease validation across governance-lock
+waiting. R2 repairs it with a fresh clock after guarded reads, retains exact
+historical durable reconciliation and adds three faithful SQL-mock regressions:
+two reproduced failures become green; 51 named focused tests pass. Independent
+R2 source review passes. Root's 2,018-path R3 composition also carries the reviewed
+Project R8 fixture. Mandatory checks, complete Task/build, real migration and
+shutdown/cleanup acceptance are still pending; no V89 runtime proof is claimed.
 Browser acceptance is deferred after the user reports that the locked computer
 will remain unavailable for about ten hours. No browser fixture is started;
 independent source, database and controlled API work continues. Offline
