@@ -1,20 +1,51 @@
 # Current implementation handoff
 
-Updated: 2026-10-08. Status: paused after delivery of the current tasks, as requested. Do not start new capabilities. [Implementation](IMPLEMENTATION.md) records engineering contracts and historical acceptance evidence. Earlier checkpoints below remain historical.
+Updated: 2026-10-08. Status: resumed by explicit user instruction; prioritize partially completed capabilities. [Implementation](IMPLEMENTATION.md) records engineering contracts and historical acceptance evidence. Earlier checkpoints below remain historical.
 
 ## Resume boundary
 
-Resume only after an explicit user instruction. Read this current checkpoint and
-`docs/IMPLEMENTATION.md` before historical entries, verify local/remote main and
-check the workflows for the delivered head. Install dependencies and start the
-Compose development database only when needed; preserve existing services and
-unrelated work. The next unstarted repair is initial-member-password retention in
-mutation state/cache. Genuine browser acceptance requires an available unlocked
-desktop. Durable published-source cleanup/V82, external SMTP and broader quota
-warnings remain separate unfinished work; do not infer their completion from the
-local Close or Personal rolling receipts.
+The user explicitly resumed implementation on 2026-10-08 and authorized
+parallel subagents and workspaces. Current main is `352a6f7`; its exact-head
+CI37675821518, Actionlint37675821707 and GolangCI37675821500 all pass.
+The checkout was clean at resume. Preserve existing services and unrelated work.
 
-## Current delivery and paused work (2026-10-08)
+The containing commit delivers the checked Member initial-password repair below.
+Current bounded work extends sampled rolling warnings to Personal Key roots in a
+separate managed worktree under their existing exact owner/birth/rotation proof.
+That candidate remains unaccepted pending composed-main and dual-driver gates.
+Root is preparing one current-artifact browser environment for notification,
+Role-dialog and genuine XLSX/CSV download acceptance; the desktop is available at
+this resume probe. No browser acceptance is inferred from that inventory.
+Durable published-source cleanup, external SMTP and other rolling scopes remain
+separate unfinished work. The previously discussed durable coordinator migration
+number was only provisional; a new migration is allocated only for actual work.
+
+## Checked Member creation sensitive-input repair (2026-10-08)
+
+The existing Members creation dialog now dispatches directly, clears the initial
+password on submission, and retains only token-free lifetime/uncertainty facts.
+It never stores password-bearing mutation variables or raw transport errors.
+Actor/opening/Session/permission generations reject obsolete callbacks; uncertain
+outcomes require local dismissal and independent list review before a new intent.
+The parent receives only a validated Member ID and renews authoritative reads.
+This is a UI repair without backend, schema or layout changes.
+
+The original implementation fails the same cache-retention regression before the
+repair. The candidate passes 131 focused tests in six suites, including 22 dialog
+cases, scoped formatting, ESLint and TypeScript. Focused log SHA-256:
+`6b48cea8f7cce81e42146348858acbeed40bed9f412fc924f50523b75759c637`.
+Mandatory main checking and complete Task pass on the unchanged six-file UI
+floor. Complete Task records 4,929 frontend cases in 192 suites, Go race/coverage,
+four Node checks, two development lifecycle checks and production assets/build.
+Main check log SHA-256:
+`ba9e0417aee74858eeeb09acc414030835ae28ea3b9fb0465f6be5a8f4169b49`;
+complete Task log SHA-256:
+`1c6bcc12fe9eae2cfecfe4fc48a9fad1af6e736cf98cf9f419e414ea941bbbd7`.
+The containing commit delivers this bounded repair. No schema or backend change
+requires renewed dual-driver migration acceptance.
+Browser acceptance is separate; F04 and formal capability totals stay unchanged.
+
+## Current delivery and resumed work (2026-10-08)
 
 Commit `5fda07372f85fa17a013f15ecd165f91fdabbb14` delivers explicit Azure Chat deployment
 declarations, reviewed cleanup of never-committed Vault credential objects, and
@@ -99,8 +130,9 @@ Task/build remain the earlier composed-main executions; renewed checking,
 Handler units, Focus16 and Full156 cover the subsequent three-test-only repair.
 Original production native and Vault restart receipts retain their original
 artifact and fixture floor; they are not relabeled as new main binary runs.
-New-head remote CI must be checked separately on resume; genuine browser and
-external-provider/mail acceptance remain open.
+Exact-head CI37675821518, Actionlint37675821707 and GolangCI37675821500
+now all pass for delivered commit `352a6f7f4055fe87f9e5c84df40b6717b38f9cc5`.
+Genuine browser and external-provider/mail acceptance remain open.
 
 Earlier failed runs remain failed and retained: original Focus24 (21 direct
 passes, three failures); first renewed Focus4 (two migration passes, two episode
@@ -112,12 +144,12 @@ with no replacement Cookie. The native helper's stale post-restart hold oracle
 was also corrected before actual execution; it was a review finding rather than
 an accepted runtime run.
 
-The current tasks are complete and the goal is paused at the user's request.
-Resume only after explicit instruction; do not start additional capabilities.
-Durable published
-Vault cleanup/V82, genuine browser acceptance, external SMTP and broader quota
-sources remain open. The separately identified initial-member-password mutation
-cache issue is assessment-only and should be prioritized after explicit resume.
+The previous pause is revoked by the user's 2026-10-08 instruction.
+Current bounded work addresses Member initial-password lifetime, Personal Key
+rolling-warning implementation and existing browser acceptance gaps in parallel.
+These candidates remain unaccepted until their own checks and delivery finish.
+Durable published Vault cleanup, external SMTP and broader quota sources remain
+open; local response Close evidence does not establish durable fleet drain.
 Formal totals remain 12 complete, 15 partial and three unstarted.
 
 Saved AppRole is committed and pushed as

@@ -502,6 +502,10 @@ export default {
     title: 'Members',
     detailTitle: 'Member details',
     description: 'Manage member identities, access status, and platform roles.',
+    creationRejected:
+      'Member creation was rejected. Review the entered information and current permissions, then enter the password again.',
+    creationUncertain:
+      'The creation outcome is unknown. The password has been cleared. Close this dialog and check the member list before attempting another creation.',
     passwordValidation: 'Passwords must contain 12–72 UTF-8 bytes.',
     filterLabel: 'Member filters',
     searchLabel: 'Search members',

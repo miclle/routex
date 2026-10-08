@@ -457,6 +457,9 @@ export default {
     title: '成员',
     detailTitle: '成员详情',
     description: '管理成员身份、访问状态和平台角色。',
+    creationRejected: '成员创建被拒绝。请检查输入信息和当前权限，然后重新输入密码。',
+    creationUncertain:
+      '创建结果尚不确定，密码已清除。请关闭此对话框并检查成员列表，再考虑重新创建。',
     passwordValidation: '密码须为 12–72 个 UTF-8 字节。',
     filterLabel: '成员筛选',
     searchLabel: '搜索成员',

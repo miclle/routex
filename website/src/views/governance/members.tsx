@@ -4,6 +4,7 @@ import MemberApproval from './member-approval'
 import MemberMetadata from './member-metadata'
 import MemberOffboardingSummary from './member-offboarding-summary'
 import MemberList from './member-list'
+import MemberCreate from './member-create'
 import { getMemberList, validateMemberListChain } from '@/api/member-list'
 import type { MemberListItem } from '@/types/member-list'
 import type { InfiniteData } from '@tanstack/react-query'
@@ -23,21 +24,18 @@ import {
   useRef,
   useState,
   useSyncExternalStore,
-  type FormEvent,
 } from 'react'
-import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useInfiniteQuery, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useNavigate, useParams, useSearchParams } from 'react-router'
 import { Plus } from 'lucide-react'
 import MemberRoles from './member-roles'
 import MemberState from './member-state'
 import { getMemberDetail } from '@/api/member-recent-login'
-import { writeCatalog } from '@/api/catalog'
 import { useSession } from '@/hooks/use-auth'
 import { usePermissions } from '@/hooks/use-permissions'
-import { Page, QueryState, FormField, ErrorNotice, SaveButton } from '@/components/app/CatalogUI'
+import { Page, QueryState } from '@/components/app/CatalogUI'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Dialog } from '@/components/ui/dialog'
 import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import type { Session } from '@/types/auth'
@@ -122,7 +120,6 @@ function Members() {
       write: access.can('members.write'),
     }
   }, [actor, memberId, generation, authorized, session.data?.csrf_token, access.isAdmin, access])
-  const dispatching = useRef(false)
   const [filters, setFilters] = useState<MemberFilters>({})
   const [creating, setCreating] = useState(false)
   const [statusSelection, setStatusSelection] = useState<{
@@ -157,7 +154,6 @@ function Members() {
     () => ['admin', 'members', actor, generation, filters, teamRead] as const,
     [actor, generation, filters, teamRead],
   )
-  const [validation, setValidation] = useState<'members.passwordValidation' | null>(null)
   const members = useInfiniteQuery({
     queryKey: listQueryKey,
     queryFn: ({ pageParam, signal }) => getMemberList(filters, actor, pageParam, signal),
@@ -219,138 +215,15 @@ function Members() {
     gcTime: 0,
     refetchOnMount: 'always',
   })
-  const mutation = useMutation({
-    mutationFn: ({
-      method,
-      path,
-      data,
-      actor: capturedActor,
-      target: capturedTarget,
-      generation: capturedGeneration,
-    }: {
-      method: 'post'
-      path: string
-      data: unknown
-      actor: string
-      target?: string
-      generation: number
-    }) => {
-      const now = latest.current
-      const auth = cache.getQueryState<Session>(['auth', 'session'])
-      const permission = cache.getQueryState<string[]>(['permissions', now.actor])
-      if (
-        !now.authorized ||
-        !auth?.data?.csrf_token ||
-        auth.data.user.id !== now.actor ||
-        auth.error ||
-        auth.fetchStatus !== 'idle' ||
-        permission?.fetchStatus !== 'idle' ||
-        permission.error ||
-        !permission.data?.includes('members.read') ||
-        !permission.data.includes('members.write') ||
-        now.actor !== capturedActor ||
-        now.memberId !== capturedTarget ||
-        now.generation !== capturedGeneration ||
-        !now.write
-      )
-        throw new Error('Member write authority is unavailable')
-      return writeCatalog<Member>(method, path, data, auth.data.csrf_token)
-    },
-    gcTime: 0,
-    onSuccess: (result, input) => {
-      const now = latest.current
-      const auth = cache.getQueryState<Session>(['auth', 'session'])
-      const permission = cache.getQueryState<string[]>(['permissions', now.actor])
-      if (
-        !now.authorized ||
-        auth?.data?.user.id !== input.actor ||
-        auth.error ||
-        auth.fetchStatus !== 'idle' ||
-        permission?.fetchStatus !== 'idle' ||
-        permission.error ||
-        !permission.data?.includes('members.read') ||
-        now.actor !== input.actor ||
-        now.memberId !== input.target ||
-        now.generation !== input.generation
-      ) {
-        mutation.reset()
-        return
-      }
-      setCreating(false)
-      setStatusSelection(null)
-      cache.setQueryData(['admin', 'member', actor, result.id, generation], result)
-      void cache.invalidateQueries({ queryKey: ['admin', 'members'] })
-      void cache.invalidateQueries({ queryKey: ['permissions'] })
-      void cache.invalidateQueries({ queryKey: ['auth', 'session'] })
-      mutation.reset()
-      if (input.method === 'post') navigate(`/admin/members/${result.id}`)
-    },
-    onSettled: () => {
-      dispatching.current = false
-    },
-  })
   const [previousOwner, setPreviousOwner] = useState(owner)
   if (previousOwner !== owner) {
     setPreviousOwner(owner)
     setCreating(false)
     setStatusSelection(null)
-    setValidation(null)
-  }
-  const resetMutation = mutation.reset
-  useLayoutEffect(() => {
-    resetMutation()
-  }, [owner, resetMutation])
-  function dispatch(input: { method: 'post'; path: string; data: unknown }) {
-    const now = latest.current
-    const auth = cache.getQueryState<Session>(['auth', 'session'])
-    const permission = cache.getQueryState<string[]>(['permissions', now.actor])
-    if (
-      dispatching.current ||
-      !now.authorized ||
-      !auth?.data?.csrf_token ||
-      auth.data.user.id !== now.actor ||
-      auth.error ||
-      auth.fetchStatus !== 'idle' ||
-      permission?.fetchStatus !== 'idle' ||
-      permission.error ||
-      !permission.data?.includes('members.read') ||
-      !permission.data.includes('members.write') ||
-      !now.write
-    )
-      return
-    dispatching.current = true
-    mutation.mutate({
-      ...input,
-      actor: now.actor,
-      target: now.memberId,
-      generation: now.generation,
-    })
   }
   const canChange = (target: Member) =>
     access.can('members.write') &&
     (access.isAdmin || (target.role !== 'admin' && target.id !== session.data?.user.id))
-  function create(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault()
-    if (mutation.isPending) return
-    const values = new FormData(event.currentTarget)
-    const password = String(values.get('password'))
-    const bytes = new TextEncoder().encode(password).length
-    if (bytes < 12 || bytes > 72) {
-      setValidation('members.passwordValidation')
-      return
-    }
-    setValidation(null)
-    dispatch({
-      method: 'post',
-      path: '/admin/members',
-      data: {
-        name: String(values.get('name')).trim(),
-        email: String(values.get('email')).trim(),
-        password,
-        role: access.isAdmin ? String(values.get('role')) : 'member',
-      },
-    })
-  }
   const current =
     authorized &&
     !readState.targetInvalidated &&
@@ -445,8 +318,6 @@ function Members() {
             {access.can('members.write') && (
               <Button
                 onClick={() => {
-                  mutation.reset()
-                  setValidation(null)
                   setCreating(true)
                 }}
               >
@@ -646,52 +517,26 @@ function Members() {
           )}
         </>
       )}
-      <Dialog
-        open={creating}
-        onOpenChange={(open) => {
-          if (!open) {
-            setCreating(false)
-            mutation.reset()
-          }
-        }}
-        busy={mutation.isPending}
-        title={t('members.create')}
-        description={t('members.createDescription')}
-      >
-        <form onSubmit={create} className="space-y-5">
-          <fieldset disabled={mutation.isPending} className="space-y-5">
-            <FormField label={t('members.name')}>
-              <Input name="name" required maxLength={100} />
-            </FormField>
-            <FormField label={t('members.email')}>
-              <Input name="email" type="email" required maxLength={254} />
-            </FormField>
-            <FormField label={t('members.initialPassword')}>
-              <Input name="password" type="password" autoComplete="new-password" required />
-            </FormField>
-            {access.isAdmin && (
-              <FormField label={t('common.baseRole')}>
-                <select name="role" className="h-10 w-full rounded-md border bg-background px-3">
-                  <option value="member">{t('common.member')}</option>
-                  <option value="admin">{t('common.admin')}</option>
-                </select>
-              </FormField>
-            )}
-          </fieldset>
-          {validation && (
-            <p role="alert" className="text-sm text-destructive">
-              {t(validation)}
-            </p>
-          )}
-          <ErrorNotice error={mutation.error} />
-          <SaveButton pending={mutation.isPending}>{t('members.create')}</SaveButton>
-        </form>
-      </Dialog>
     </Page>
   )
   return (
     <>
       {authorized ? page : unavailable}
+      {creating && !memberId && (
+        <MemberCreate
+          key={actor}
+          actor={actor}
+          ready={authorized && access.can('members.write')}
+          onClose={() => setCreating(false)}
+          onCreated={(id) => {
+            setCreating(false)
+            void cache.invalidateQueries({ queryKey: ['admin', 'members'] })
+            void cache.invalidateQueries({ queryKey: ['permissions'] })
+            void cache.invalidateQueries({ queryKey: ['auth', 'session'] })
+            navigate(`/admin/members/${id}`)
+          }}
+        />
+      )}
       {approvalSelection && approvalSelection.owner === approvalOwner && (
         <MemberApproval
           actor={actor}

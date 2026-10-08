@@ -1,8 +1,33 @@
 # RouteX Implementation and Acceptance Index
 
-Updated: 2026-10-08. This document records engineering contracts, work packages and acceptance checks. Planned interfaces and metrics are not implementation evidence. The objective covers F01–F30 and A01–A20 through incremental P0–P6 delivery and is paused at the user's request after the current tasks.
+Updated: 2026-10-08. This document records engineering contracts, work packages and acceptance checks. Planned interfaces and metrics are not implementation evidence. The objective covers F01–F30 and A01–A20 through incremental P0–P6 delivery and is resumed by the user's explicit instruction, prioritizing partially completed capabilities.
 
-## Current delivery and paused work (2026-10-08)
+## Checked Member creation sensitive-input repair (2026-10-08)
+
+The existing Members creation dialog now dispatches directly, clears the initial
+password on submission, and retains only token-free lifetime/uncertainty facts.
+It never stores password-bearing mutation variables or raw transport errors.
+Actor/opening/Session/permission generations reject obsolete callbacks; uncertain
+outcomes require local dismissal and independent list review before a new intent.
+The parent receives only a validated Member ID and renews authoritative reads.
+This is a UI repair without backend, schema or layout changes.
+
+The original implementation fails the same cache-retention regression before the
+repair. The candidate passes 131 focused tests in six suites, including 22 dialog
+cases, scoped formatting, ESLint and TypeScript. Focused log SHA-256:
+`6b48cea8f7cce81e42146348858acbeed40bed9f412fc924f50523b75759c637`.
+Mandatory main checking and complete Task pass on the unchanged six-file UI
+floor. Complete Task records 4,929 frontend cases in 192 suites, Go race/coverage,
+four Node checks, two development lifecycle checks and production assets/build.
+Main check log SHA-256:
+`ba9e0417aee74858eeeb09acc414030835ae28ea3b9fb0465f6be5a8f4169b49`;
+complete Task log SHA-256:
+`1c6bcc12fe9eae2cfecfe4fc48a9fad1af6e736cf98cf9f419e414ea941bbbd7`.
+The containing commit delivers this bounded repair. No schema or backend change
+requires renewed dual-driver migration acceptance.
+Browser acceptance is separate; F04 and formal capability totals stay unchanged.
+
+## Current delivery and resumed work (2026-10-08)
 
 Commit `5fda07372f85fa17a013f15ecd165f91fdabbb14` delivers explicit Azure Chat deployment
 declarations, reviewed cleanup of never-committed Vault credential objects, and
@@ -87,8 +112,9 @@ Task/build remain the earlier composed-main executions; renewed checking,
 Handler units, Focus16 and Full156 cover the subsequent three-test-only repair.
 Original production native and Vault restart receipts retain their original
 artifact and fixture floor; they are not relabeled as new main binary runs.
-New-head remote CI must be checked separately on resume; genuine browser and
-external-provider/mail acceptance remain open.
+Exact-head CI37675821518, Actionlint37675821707 and GolangCI37675821500
+now all pass for delivered commit `352a6f7f4055fe87f9e5c84df40b6717b38f9cc5`.
+Genuine browser and external-provider/mail acceptance remain open.
 
 Earlier failed runs remain failed and retained: original Focus24 (21 direct
 passes, three failures); first renewed Focus4 (two migration passes, two episode
@@ -100,12 +126,12 @@ with no replacement Cookie. The native helper's stale post-restart hold oracle
 was also corrected before actual execution; it was a review finding rather than
 an accepted runtime run.
 
-The current tasks are complete and the goal is paused at the user's request.
-Resume only after explicit instruction; do not start additional capabilities.
-Durable published
-Vault cleanup/V82, genuine browser acceptance, external SMTP and broader quota
-sources remain open. The separately identified initial-member-password mutation
-cache issue is assessment-only and should be prioritized after explicit resume.
+The previous pause is revoked by the user's 2026-10-08 instruction.
+Current bounded work addresses Member initial-password lifetime, Personal Key
+rolling-warning implementation and existing browser acceptance gaps in parallel.
+These candidates remain unaccepted until their own checks and delivery finish.
+Durable published Vault cleanup, external SMTP and broader quota sources remain
+open; local response Close evidence does not establish durable fleet drain.
 Formal totals remain 12 complete, 15 partial and three unstarted.
 
 Saved AppRole is committed and pushed as
@@ -1405,7 +1431,7 @@ The binary capability count is 12 completed, 15 partially completed, and 3 not s
 | F01 | Initialization, local identity, registration, and logout | Completed | Concurrent one-time setup, administrator creation, local login, registration control, durable sessions, and logout are implemented and tested. |
 | F02 | Profile, password, MFA, recovery codes, and session revocation | Completed | Profile and password changes, authenticator enrollment, single-use recovery codes, and individual-session revocation are implemented. |
 | F03 | Enterprise SSO, LDAP, OAuth, and emergency recovery | Not started | Provider configuration, callbacks, identity binding, enforced SSO, and enterprise recovery remain unimplemented. |
-| F04 | Member administration, direct grants, roles, and resource policies | Partially completed | Member Overview, Keys, Limits, Teams, Models, metadata, list, effective Models, recent login, Access, direct Roles and State are checked deliveries. Current Role definitions, descriptions and permission workflows have dual-driver and controlled acceptance; Team-assigned roles are delivered under F06. Earlier failed CI checkpoints remain historical and do not describe current functional absence. Member handover state is delivered in 5fda0737. The four-file Role create/delete lifetime repair passes independent source review and 198 focused tests; its final main submission and further Member-sensitive-input/enterprise acceptance remain open. |
+| F04 | Member administration, direct grants, roles, and resource policies | Partially completed | Member Overview, Keys, Limits, Teams, Models, metadata, list, effective Models, recent login, Access, direct Roles and State are checked deliveries. Current Role definitions, descriptions and permission workflows have dual-driver and controlled acceptance; Team-assigned roles are delivered under F06. Earlier failed CI checkpoints remain historical and do not describe current functional absence. Member handover state is delivered in 5fda0737. The Role create/delete lifetime repair is delivered in 00700348 after independent source review, 198 focused tests and mandatory checking; its exact-head CI passes. Member initial-password retention is under repair; further browser and enterprise acceptance remain open. |
 | F05 | Built-in and custom roles with composed permissions | Partially completed | Current-domain role and permission management, reviewed definitions/descriptions, and immutable Procurement/Finance/Operations templates with explicit assignment are implemented and accepted. Later enterprise and operations domains still require permission integration and negative acceptance. |
 | F06 | Team membership, ownership, models, quotas, and member rules | Completed | Membership, ownership, model relationships, finite aggregate/member policies, monthly requests and durable Team-assigned roles have dual-driver and controlled acceptance. Initial limits V63 is delivered as8f17d12. Initial Model access V66 passed complete121, main3,759 frontend cases, both auth/gateway lifecycles and controlled bilingual/original-Session restart with four native probes. Separate read-only review confirms exact grants, receipts and completed attempts; the original helper denial-oracle failure remains retained. Empty selection grants no Models. |
 | F07 | Project lifecycle, managers, models, Keys, and requests | Completed | Exact current management, lifecycle/continuity, multi-manager creation, initial direct resources and combined requests, scoped Overview, Project Keys, resource limits and model/quota/rate approvals are implemented with controlled dual-database/browser/native/restart evidence. Both lists now show authorized total retained Key counts; administrative stored-policy summaries, literal name/ID search and authorized legacy tab replacement have full main acceptance. |

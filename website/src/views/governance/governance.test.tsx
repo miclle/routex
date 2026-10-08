@@ -549,6 +549,55 @@ describe('member governance', () => {
       ).not.toContain('fixture-initial-password'),
     )
   })
+  it('keeps the initial member password outside mutation caches while pending and after rejection', async () => {
+    await mount('/admin/members')
+    await until(() => expect(container.textContent).toContain('Target'))
+    const adapter = client.defaults.adapter as AxiosAdapter
+    let release!: () => void
+    const gate = new Promise<void>((resolve) => {
+      release = resolve
+    })
+    failures['post /admin/members'] = 409
+    client.defaults.adapter = async (config) => {
+      if (config.method === 'post' && config.url === '/admin/members') await gate
+      return adapter(config)
+    }
+    try {
+      await click('Create member')
+      await fill('name', 'Created')
+      await fill('email', 'created@example.invalid')
+      await fill('password', 'fixture-pending-initial-password')
+      await submit()
+      expect(
+        JSON.stringify(
+          cache
+            .getMutationCache()
+            .getAll()
+            .map((item) => item.state),
+        ),
+      ).not.toContain('fixture-pending-initial-password')
+      expect(
+        document.querySelector<HTMLInputElement>('[role="dialog"] input[name="password"]')?.value,
+      ).toBe('')
+      await act(async () => release())
+      await until(() =>
+        expect(document.querySelector('[role="dialog"] [role="alert"]')).not.toBeNull(),
+      )
+      expect(
+        JSON.stringify(
+          cache
+            .getMutationCache()
+            .getAll()
+            .map((item) => item.state),
+        ),
+      ).not.toContain('fixture-pending-initial-password')
+      expect(document.querySelector('[role="dialog"] [role="alert"]')?.textContent).not.toContain(
+        'fixture-pending-initial-password',
+      )
+    } finally {
+      await act(async () => release())
+    }
+  })
   it('does not offer administrator creation to delegated member managers', async () => {
     session.user.role = 'member'
     permissions = ['members.read', 'members.write']
