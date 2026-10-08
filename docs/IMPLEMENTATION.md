@@ -46,6 +46,10 @@ pass. Complete original-JSON review SHA-256 is
 Remote process/resource absence is supervisor-reported rather than independently
 queried; no future-feature or runtime-application acceptance is inferred. The
 original older PostgreSQL failure cause remains unknown.
+The next documentation checkpoint `04c8bd4` also passes exact-head
+CI37812734667 (all four jobs), Actionlint37812734636 and
+GolangCI-Lint37812734721. Those workflows exercise delivered V84 code and do
+not qualify the isolated future features.
 Controlled local SMTP also passes on the retained current executable in 45.579
 seconds: one DATA250 acceptance, one lost final reply recorded Unknown, distinct
 messages with one attempt per occurrence, and two original-Session restarts
@@ -372,11 +376,27 @@ absent. Complete failed-run review SHA-256 is
 The shared failures are catalog, alias retirement, supply status, recorded-metadata
 migration and recorded metadata; PostgreSQL additionally fails runtime-application
 migration. Source diagnosis identifies five obsolete fixture boundaries and a
-PostgreSQL GORM index-drop limitation. Separate minimal repairs are being prepared,
-retaining current historical/timestamp/partial-index assertions. The original
-failed run remains failed. Fresh successor gates, focused/full database testing,
-browser and main feature delivery remain pending; the frozen R6 adoption patch
-is not applied. R5 receipts retain their original source identity.
+PostgreSQL GORM index-drop limitation. The original failed run remains failed;
+the frozen R6 adoption patch is not applied. R5 receipts retain their original
+source identity.
+
+The corrected R7 composition contains 1,999 source paths and preserves the
+released migration and all historical/timestamp/partial-index assertions.
+Five fixture repairs and the exact-table PostgreSQL index adapter pass separate
+source reviews. Fresh mandatory checking, complete Task (5,408 frontend tests in
+208 files), production build and all 5,032 ordinary names pass. The six repaired
+scenarios pass on both real databases: 12 direct cases and 15 balanced named
+results in 215.334 seconds, with source/modes unchanged and all captured workers,
+Compose resources and ports independently absent. Focused review SHA-256 is
+`751b920158d5a9200c0b7aec7fd4b7924a0bafa0579b4155f99e21bb2b4cbeb1`.
+Fresh source/build gate receipt is
+`890ac688efbe1f12a29c024113aa92ce2333a2ace390db06ce7e86d42d9d25b3`.
+The corrected-source Full168 run is in progress with independent PostgreSQL
+and MySQL workers. Its launch binding is
+`a9cd493220120d45787b995479f71d2474c8c5b3c1d4749589286a6d0877b7be`.
+Complete original-log review, independent cleanup, browser and main feature
+delivery remain pending; focused success does not replace the full acceptance
+gate.
 
 The isolated F28 backend R2 source remains 34 owned leaves and passes nine
 top-level/thirty-eight nested mocked race tests. Its final irreversible remote
@@ -410,14 +430,31 @@ A fresh resource-free ordinary JSON run passes all 5,053 exact named tests,
 retaining all 5,005 parent entries plus 48 additions with no removed entries.
 Independent root ordinary-review SHA-256 is
 `798d7351f3ddb410992664fa0fa1936bcdcfe2767e78aade91e0419f7d31101e`.
-The root-owned Full170 run is now in progress with isolated concurrent
-PostgreSQL/MySQL workers, complete 170-case registries and the unchanged finite
-supervision/cleanup budgets. Launch binding SHA-256 is
-`836496ea83b12ec3e3082c7469fbf94f88f278d153813f3d5e289198b467e1b0`.
-The independently reviewed reader extends only its finite supported registry
-cardinality list to 170; all original JSON and failure/skip assertions remain.
-Completion, strict complete-log review, independent owned-resource absence,
-Vault/native/process restart and feature delivery remain pending.
+The root-owned Full170 run finishes failed in 2,213.157 seconds. Both
+complete 432-name driver logs retain the inherited Model failures and an
+additional Provider Vault credential bootstrap-response assertion failure:
+PostgreSQL passes 163 direct scenarios and fails seven; MySQL passes 164 and
+fails six. All 5,053 ordinary names pass. Root verifies the unchanged source,
+complete original logs, all ten captured PIDs, nine process groups, both database
+ports and every owned Compose resource absent. Failure-review SHA-256 is
+`1f0e816d7fcfb78d628f78c35f7aa636b3f929e87cea812dbab4189167135218`.
+The original run remains failed. The new Vault failure is HTTP503 instead of
+HTTP201: the old fixture omitted real process-generation registration before
+Vault admission. The independently reviewed lifecycle repair preserves the gate,
+all original success/DTO/remote-operation/history assertions and bounded stops.
+It passes both real databases: two direct cases and five balanced names in
+141.762 seconds, with unchanged source and independently absent owned resources.
+Focused review SHA-256 is
+`18fe0d1ed3ee9c5bb804c159e5cfc7dc284e35b84331168b7ff052f504e7c147`.
+The corrected 2,010-path V88 composition also contains the reviewed Model
+repairs and exact-table index adapter without changing V88 historical guards.
+Fresh mandatory checking, complete Task (5,440 frontend tests in 208 files),
+production build and all 5,080 ordinary names pass. Gate receipt SHA-256 is
+`99fb8872c500cf071a06702bb54be329d132f6b8a23859a10af251f131df11e7`.
+Corrected-source complete Full170, controlled Vault/native/process restart and
+main feature delivery remain pending. A separate worktree is implementing a
+new additive graceful-shutdown proof; it is excluded from this V88 source and
+has no runtime acceptance yet.
 Browser acceptance is deferred after the user reports that the locked computer
 will remain unavailable for about ten hours. No browser fixture is started;
 independent source, database and controlled API work continues. Offline
