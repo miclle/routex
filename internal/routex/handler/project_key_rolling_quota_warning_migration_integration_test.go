@@ -26,7 +26,7 @@ func testProjectKeyRollingQuotaWarningMigration(t *testing.T, db *gorm.DB) {
 		AppliedAt string
 	}
 	var original []ledger
-	if e := db.Table("schema_migrations").Order("version").Find(&original).Error; e != nil || len(original) != 91 || original[90].Version != 91 || original[89].Version != 90 || original[88].Version != 89 || original[87].Version != 88 || original[86].Version != 87 || original[85].Version != 86 || original[84].Version != 85 || original[83].Version != 84 {
+	if e := db.Table("schema_migrations").Order("version").Find(&original).Error; e != nil || len(original) != 92 || original[91].Version != 92 || original[90].Version != 91 || original[89].Version != 90 || original[88].Version != 89 || original[87].Version != 88 || original[86].Version != 87 || original[85].Version != 86 || original[84].Version != 85 || original[83].Version != 84 {
 		t.Fatal("exact87 ledger", e)
 	}
 	for i, row := range original {
@@ -160,7 +160,7 @@ func testProjectKeyRollingQuotaWarningMigration(t *testing.T, db *gorm.DB) {
 	remove()
 	migrate()
 	var after []ledger
-	if e := db.Table("schema_migrations").Order("version").Find(&after).Error; e != nil || len(after) != 91 || after[90].Version != 91 || after[89].Version != 90 || after[88].Version != 89 || after[87].Version != 88 || after[86].Version != 87 || after[85].Version != 86 || after[84].Version != 85 || !reflect.DeepEqual(after[:84], original[:84]) || !reflect.DeepEqual(after[85:], original[85:]) {
+	if e := db.Table("schema_migrations").Order("version").Find(&after).Error; e != nil || len(after) != 92 || after[91].Version != 92 || after[90].Version != 91 || after[89].Version != 90 || after[88].Version != 89 || after[87].Version != 88 || after[86].Version != 87 || after[85].Version != 86 || after[84].Version != 85 || !reflect.DeepEqual(after[:84], original[:84]) || !reflect.DeepEqual(after[85:], original[85:]) {
 		t.Fatal("original80 ledger changed", e)
 	}
 	for i, row := range after {
@@ -225,7 +225,32 @@ func projectKeyRollingRetainedFactsEqual(a, b any) bool {
 	return true
 }
 
+// The current successor is exact; the released 176-case prefix stays unchanged.
+func connectionDiagnosticRegistry177Current(names []string) bool {
+	if len(names) != 177 || names[176] != "connection_diagnostic:testConnectionDiagnosticLifecycle" {
+		return false
+	}
+	digest := sha256.Sum256([]byte(strings.Join(names[:176], "\n")))
+	return hex.EncodeToString(digest[:]) == "3423c0e62eae421d79195d122d0b5d2f707d3437bf89302a8b55937723c7418a"
+}
+
+func connectionTransportRegistry179Current(names []string) bool {
+	return len(names) == 179 && names[177] == "connection_transport_migration:testConnectionTransportMigration" && names[178] == "connection_transport:testConnectionTransportLifecycle" && connectionDiagnosticRegistry177Current(names[:177])
+}
+
 func projectKeyRollingWarningRegistryParent(names []string) ([]string, bool) {
+	if len(names) == 179 {
+		if !connectionTransportRegistry179Current(names) {
+			return nil, false
+		}
+		names = names[:177]
+	}
+	if len(names) == 177 {
+		if !connectionDiagnosticRegistry177Current(names) {
+			return nil, false
+		}
+		names = names[:176]
+	}
 	if len(names) == 176 {
 		if names[174] != "provider_enablement_migration:testProviderEnablementMigration" || names[175] != "provider_status:testProviderStatusLifecycle" {
 			return nil, false
@@ -272,6 +297,58 @@ func projectKeyRollingWarningRegistryParent(names []string) ([]string, bool) {
 	}
 	return names[:162], true
 }
+
+func TestConnectionDiagnosticRegistry177Preserves176AndRejectsUnreviewedSuffix(t *testing.T) {
+	raw, err := os.ReadFile("auth_integration_test.go")
+	if err != nil {
+		t.Fatal(err)
+	}
+	var names []string
+	for _, match := range regexp.MustCompile(`\{"([^"\n]+)", (test[A-Za-z0-9]+)\}`).FindAllStringSubmatch(string(raw), -1) {
+		names = append(names, match[1]+":"+match[2])
+	}
+	if !connectionTransportRegistry179Current(names) {
+		t.Fatal("current registry must be exact179")
+	}
+	names = names[:177]
+	if !connectionDiagnosticRegistry177Current(names) || !strings.Contains(string(raw), "versions != 92") {
+		t.Fatal("historical registry must be exact177 beneath current migration92")
+	}
+	currentParent, currentOK := projectKeyRollingWarningRegistryParent(names)
+	historicalParent, historicalOK := projectKeyRollingWarningRegistryParent(names[:176])
+	if !currentOK || !historicalOK || strings.Join(currentParent, "\n") != strings.Join(historicalParent, "\n") {
+		t.Fatal("reviewed current successor changed the historical parent")
+	}
+	if connectionDiagnosticRegistry177Current(names[:176]) {
+		t.Fatal("historical176 prefix fabricated current177 acceptance")
+	}
+	for index := range names {
+		changed := append([]string(nil), names...)
+		changed[index] = "unreviewed:replacement"
+		if connectionDiagnosticRegistry177Current(changed) {
+			t.Fatal("changed current or historical identity accepted", index)
+		}
+		if _, ok := projectKeyRollingWarningRegistryParent(changed); ok {
+			t.Fatal("changed successor reached historical parent", index)
+		}
+	}
+	for _, mutate := range []func([]string) []string{
+		func(x []string) []string { return append(x, "extra:unreviewed") },
+		func(x []string) []string { return append(x, x[176]) },
+		func(x []string) []string { x[175], x[176] = x[176], x[175]; return x },
+		func(x []string) []string { x[176] = x[175]; return x },
+		func(x []string) []string { x[176] = "connection_diagnostic:unreviewed"; return x },
+		func(x []string) []string { x[176] = "unreviewed:testConnectionDiagnosticLifecycle"; return x },
+	} {
+		changed := mutate(append([]string(nil), names...))
+		if connectionDiagnosticRegistry177Current(changed) {
+			t.Fatal("extra, duplicate, reordered or malformed current suffix accepted")
+		}
+		if _, ok := projectKeyRollingWarningRegistryParent(changed); ok {
+			t.Fatal("unreviewed suffix reached historical parent")
+		}
+	}
+}
 func TestProjectKeyRollingWarningExact164RegistryAnd162Prefix(t *testing.T) {
 	raw, e := os.ReadFile("auth_integration_test.go")
 	if e != nil {
@@ -281,7 +358,7 @@ func TestProjectKeyRollingWarningExact164RegistryAnd162Prefix(t *testing.T) {
 	for _, m := range regexp.MustCompile(`\{"([^"\n]+)", (test[A-Za-z0-9]+)\}`).FindAllStringSubmatch(string(raw), -1) {
 		names = append(names, m[1]+":"+m[2])
 	}
-	if len(names) != 176 || !strings.Contains(string(raw), "versions != 91") {
+	if len(names) != 179 || !strings.Contains(string(raw), "versions != 92") {
 		t.Fatal("current exact172 registry/V89 ledger changed")
 	}
 	if _, ok := projectKeyRollingWarningRegistryParent(names); !ok {
@@ -304,7 +381,7 @@ func TestReviewed168RegistryPreservesHistoricalPrefixesAndRejectsSuffixDrift(t *
 	for _, match := range regexp.MustCompile(`\{"([^"\n]+)", (test[A-Za-z0-9]+)\}`).FindAllStringSubmatch(string(raw), -1) {
 		names = append(names, match[1]+":"+match[2])
 	}
-	if len(names) != 176 || !strings.Contains(string(raw), "versions != 91") {
+	if len(names) != 179 || !strings.Contains(string(raw), "versions != 92") {
 		t.Fatal("current registry/ledger must be exactly172/V89")
 	}
 	guards := []struct {
@@ -360,5 +437,56 @@ func TestReviewed168RegistryPreservesHistoricalPrefixesAndRejectsSuffixDrift(t *
 				}
 			}
 		})
+	}
+}
+
+func TestConnectionTransportRegistry179Preserves177AndRejectsUnreviewedSuffix(t *testing.T) {
+	raw, err := os.ReadFile("auth_integration_test.go")
+	if err != nil {
+		t.Fatal(err)
+	}
+	var names []string
+	for _, match := range regexp.MustCompile(`\{"([^"\n]+)", (test[A-Za-z0-9]+)\}`).FindAllStringSubmatch(string(raw), -1) {
+		names = append(names, match[1]+":"+match[2])
+	}
+	if !connectionTransportRegistry179Current(names) || !strings.Contains(string(raw), "versions != 92") {
+		t.Fatal("current registry must be exact179 with migration92")
+	}
+	currentParent, currentOK := projectKeyRollingWarningRegistryParent(names)
+	historicalParent, historicalOK := projectKeyRollingWarningRegistryParent(names[:177])
+	if !currentOK || !historicalOK || strings.Join(currentParent, "\n") != strings.Join(historicalParent, "\n") {
+		t.Fatal("reviewed current successor changed the historical parent")
+	}
+	if connectionTransportRegistry179Current(names[:177]) || !connectionDiagnosticRegistry177Current(names[:177]) {
+		t.Fatal("historical177 must remain valid without proving current179")
+	}
+	for index := range names {
+		changed := append([]string(nil), names...)
+		changed[index] = "unreviewed:replacement"
+		if connectionTransportRegistry179Current(changed) {
+			t.Fatal("changed current or historical identity accepted", index)
+		}
+		if _, ok := projectKeyRollingWarningRegistryParent(changed); ok {
+			t.Fatal("changed successor reached historical parent", index)
+		}
+	}
+	for _, mutate := range []func([]string) []string{
+		func(x []string) []string { return x[:178] },
+		func(x []string) []string { return append(x, "extra:unreviewed") },
+		func(x []string) []string { return append(x, x[178]) },
+		func(x []string) []string { x[177], x[178] = x[178], x[177]; return x },
+		func(x []string) []string { x[178] = x[177]; return x },
+		func(x []string) []string { x[177] = "connection_transport_migration:unreviewed"; return x },
+		func(x []string) []string { x[178] = "connection_transport:unreviewed"; return x },
+		func(x []string) []string { x[177] = "unreviewed:testConnectionTransportMigration"; return x },
+		func(x []string) []string { x[178] = "unreviewed:testConnectionTransportLifecycle"; return x },
+	} {
+		changed := mutate(append([]string(nil), names...))
+		if connectionTransportRegistry179Current(changed) {
+			t.Fatal("extra, duplicate, reordered or malformed current suffix accepted")
+		}
+		if _, ok := projectKeyRollingWarningRegistryParent(changed); ok {
+			t.Fatal("unreviewed suffix reached historical parent")
+		}
 	}
 }

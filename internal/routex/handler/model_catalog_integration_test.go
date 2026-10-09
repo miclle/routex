@@ -93,7 +93,25 @@ func testMemberModelCatalogLifecycle(t *testing.T, db *gorm.DB) {
 		t.Fatal("actual discovery missing from provider aggregate")
 	}
 
-	pm = decodeCatalogResponse[ProviderModelResponse](t, adminRequest("PATCH", "/api/v1/admin/provider-models/"+pm.ID, map[string]any{"etag": pm.ETag, "supports_image_input": true, "supports_pdf_input": true}), 200)
+	// Keep the primary Service's original database-before-runtime comparison.
+	// This one capability write independently confirms a real publication.
+	func() {
+		writer, err := service.New(context.Background(), db, service.WithCredentialStorage(store), service.WithUpstreamPolicy(true), service.WithRuntimeRefreshInterval(time.Hour))
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := writer.StartRuntime(context.Background()); err != nil {
+			t.Fatal(err)
+		}
+		defer writer.StopRuntime()
+		writerRouter := fox.New()
+		New(writer).RegisterRoutes(writerRouter)
+		body, err := json.Marshal(map[string]any{"etag": pm.ETag, "capability_review_etag": pm.CapabilityReviewETag, "supports_image_input": true, "supports_pdf_input": true})
+		if err != nil {
+			t.Fatal(err)
+		}
+		pm = decodeCatalogResponse[ProviderModelResponse](t, identityRequest(writerRouter, "PATCH", "/api/v1/admin/provider-models/"+pm.ID, string(body), adminCookie, admin.CSRFToken), 200)
+	}()
 	model := decodeCatalogResponse[ModelResponse](t, adminRequest("POST", "/api/v1/admin/models", map[string]string{"name": "directory-model", "provider_model_id": pm.ID}), 201)
 	expectStatus(t, adminRequest("PUT", "/api/v1/admin/models/"+model.ID+"/weights", map[string]any{"weights": []map[string]any{{"binding_id": model.Bindings[0].ID, "weight": 100}}}), 200)
 	expectStatus(t, adminRequest("PUT", "/api/v1/admin/models/"+model.ID+"/grants", map[string]any{"user_ids": []string{member.User.ID}}), 200)

@@ -1,4 +1,5 @@
-import { useEffect, useEffectEvent, useRef, useState } from 'react'
+import { useEffect, useEffectEvent, useLayoutEffect, useRef, useState } from 'react'
+import axios from 'axios'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import {
@@ -7,8 +8,10 @@ import {
   trimConnectionMetadata,
   validConnectionName,
   validConnectionReason,
+  validConnectionTransport,
+  canonicalConnectionTransport,
 } from '@/api/connection-metadata'
-import type { ConnectionMetadata } from '@/types/connection-metadata'
+import type { ConnectionMetadata, ConnectionTransportInput } from '@/types/connection-metadata'
 import type { Session } from '@/types/auth'
 import type { ConnectionNameSubmittedIntent, SubmittedIntentClaim } from '@/types/uncertain-intents'
 import { sessionKey } from '@/hooks/use-auth'
@@ -17,6 +20,7 @@ import { FormField, QueryState } from '@/components/app/CatalogUI'
 import { Button } from '@/components/ui/button'
 import { Dialog } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
+import { selectClass } from '@/views/egress/editor'
 import { protocolLabel } from '@/lib/protocols'
 import { useConnectionQueryRevision } from './connection-authority'
 
@@ -53,21 +57,63 @@ export default function ConnectionMetadataEditor(props: Props) {
     permissionGeneration,
     catalogueGeneration,
   ]
+  const live = useRef(props)
+  useLayoutEffect(() => {
+    live.current = props
+  }, [props])
   const authority = useConnectionQueryRevision([
     sessionKey,
     props.permissionsKey,
     props.catalogueKey,
   ])
+  const pending = useRef<{ controller: AbortController; claim: SubmittedIntentClaim } | null>(null)
+  const mounted = useRef(false)
+  const owner = useRef<object | null>(null)
+  useLayoutEffect(() => {
+    mounted.current = true
+    const identity = {}
+    owner.current = identity
+    return () => {
+      mounted.current = false
+      owner.current = null
+      pending.current?.controller.abort()
+    }
+  }, [props.actor, props.providerId, props.connectionId])
   const query = useQuery({
     queryKey: key,
-    queryFn: ({ signal }) => getConnectionMetadata(props.providerId, props.connectionId, signal),
+    queryFn: async ({ signal }) => {
+      const identity = owner.current,
+        version = authority.snapshot()
+      const record = await getConnectionMetadata(props.providerId, props.connectionId, signal)
+      const auth = cache.getQueryState<Session | null>(sessionKey)
+      if (
+        signal.aborted ||
+        !mounted.current ||
+        owner.current !== identity ||
+        authority.snapshot() !== version ||
+        live.current.actor !== props.actor ||
+        live.current.providerId !== props.providerId ||
+        live.current.connectionId !== props.connectionId ||
+        live.current.generation !== props.generation ||
+        !live.current.open ||
+        !live.current.ready ||
+        auth?.status !== 'success' ||
+        auth.fetchStatus !== 'idle' ||
+        auth.error ||
+        auth.isInvalidated ||
+        auth.data?.user.id !== props.actor ||
+        auth.dataUpdateCount !== props.generation
+      )
+        throw new Error('Connection metadata read unavailable')
+      return record
+    },
     enabled: props.open && props.ready,
     retry: false,
     gcTime: 0,
     refetchOnMount: 'always',
   })
   const resource = useConnectionQueryRevision([key])
-  const fresh = () => {
+  const snapshotFresh = () => {
     const auth = cache.getQueryState<Session | null>(sessionKey)
     const target = cache.getQueryState<ConnectionMetadata>(key)
     return (
@@ -90,17 +136,27 @@ export default function ConnectionMetadataEditor(props: Props) {
       target.data.provider_id === props.providerId
     )
   }
+  const fresh = () =>
+    mounted.current &&
+    live.current.actor === props.actor &&
+    live.current.providerId === props.providerId &&
+    live.current.connectionId === props.connectionId &&
+    live.current.generation === props.generation &&
+    live.current.open &&
+    live.current.ready &&
+    snapshotFresh()
   const writable = () => fresh() && props.writable() && query.data?.can_edit === true
   const [review, setReview] = useState<ConnectionMetadata | null>(null)
   const [name, setName] = useState('')
   const [reason, setReason] = useState('')
+  const [transport, setTransport] = useState<ConnectionTransportInput | null>(null)
+  const [conflict, setConflict] = useState(false)
   const [intent, setIntent] = useState<Intent | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
   const [abandoned, setAbandoned] = useState(false)
   const [confirmation, setConfirmation] = useState<'save' | 'abandon' | null>(null)
   const [busy, setBusy] = useState(false)
   const initialized = useRef(false)
-  const pending = useRef<{ controller: AbortController; claim: SubmittedIntentClaim } | null>(null)
   const recovered = shared?.recover(props.actor)
   if (
     recovered?.kind === 'connection-name' &&
@@ -111,8 +167,10 @@ export default function ConnectionMetadataEditor(props: Props) {
     setIntent({ payload: recovered.payload, claim: recovered.claim })
     setName(recovered.payload.input.name)
     setReason(recovered.payload.input.reason)
+    if (recovered.payload.input.transport) setTransport({ ...recovered.payload.input.transport })
   }
-  const current = fresh()
+  const current = snapshotFresh()
+  const renderWritable = current && props.writable() && query.data?.can_edit === true
   const initialize = useEffectEvent(() => {
     if (
       !initialized.current &&
@@ -124,26 +182,98 @@ export default function ConnectionMetadataEditor(props: Props) {
       initialized.current = true
       setReview(query.data)
       setName(query.data.name)
+      setTransport({
+        base_url: query.data.base_url,
+        protocol: query.data.protocol,
+        adapter: query.data.adapter,
+        api_version: query.data.api_version,
+      })
     }
   })
   useEffect(() => {
     initialize()
   }, [current, query.data])
   useEffect(() => {
-    if (!current) pending.current?.controller.abort()
+    if (!current && pending.current) {
+      pending.current.controller.abort()
+      pending.current = null
+      setBusy(false)
+    }
   }, [current])
   useEffect(() => () => pending.current?.controller.abort(), [])
-  const snapshotCurrent = !!review && review.etag === query.data?.etag
+  const snapshotCurrent = !conflict && !!review && review.etag === query.data?.etag
+  const desiredTransport = transport ? canonicalConnectionTransport(transport) : null
+  const transportChanged =
+    !!review &&
+    !!desiredTransport &&
+    (['base_url', 'protocol', 'adapter', 'api_version'] as const).some(
+      (key) => review[key] !== desiredTransport[key],
+    )
+  const transportAllowed =
+    !transportChanged ||
+    (query.data?.can_edit_transport === true &&
+      !!desiredTransport &&
+      validConnectionTransport(desiredTransport) &&
+      (query.data.transport_locked !== true ||
+        (desiredTransport.protocol === query.data.protocol &&
+          desiredTransport.adapter === query.data.adapter)))
   const validDraft =
     validConnectionName(trimConnectionMetadata(name)) &&
     validConnectionReason(trimConnectionMetadata(reason))
   const canPrepare = () =>
-    writable() && !!shared && !intent && !busy && snapshotCurrent && validDraft
-  function reviewCurrent() {
-    if (!writable() || intent || busy || pending.current || !query.data) return
-    setReview(query.data)
-    setNotice('connectionMetadata.reviewed')
+    writable() &&
+    !!shared &&
+    !shared.recover(props.actor) &&
+    !intent &&
+    !busy &&
+    !pending.current &&
+    snapshotCurrent &&
+    validDraft &&
+    transportAllowed
+  const prepareAvailable =
+    renderWritable &&
+    !!shared &&
+    !recovered &&
+    !intent &&
+    !busy &&
+    snapshotCurrent &&
+    validDraft &&
+    transportAllowed
+  async function reviewCurrent() {
+    if (!writable() || intent || shared?.recover(props.actor) || busy || pending.current) return
+    const identity = owner.current,
+      version = authority.snapshot()
+    setBusy(true)
+    try {
+      const result = await query.refetch()
+      const state = cache.getQueryState<ConnectionMetadata>(key)
+      if (
+        !mounted.current ||
+        owner.current !== identity ||
+        authority.snapshot() !== version ||
+        !live.current.open ||
+        !live.current.ready ||
+        !props.writable() ||
+        result.isError ||
+        !result.data ||
+        shared?.recover(props.actor) ||
+        state?.status !== 'success' ||
+        state.fetchStatus !== 'idle' ||
+        state.error ||
+        state.isInvalidated ||
+        state.data !== result.data ||
+        result.data.id !== props.connectionId ||
+        result.data.provider_id !== props.providerId
+      )
+        return
+      setReview(result.data)
+      setConflict(false)
+      setNotice('connectionMetadata.reviewed')
+    } finally {
+      if (mounted.current && owner.current === identity) setBusy(false)
+    }
   }
+
   function abandon() {
     if (!fresh() || !intent || busy || pending.current || !shared?.isCurrent(intent.claim)) return
     if (!shared.clear(intent.claim)) return
@@ -152,6 +282,12 @@ export default function ConnectionMetadataEditor(props: Props) {
     setReview(null)
     setAbandoned(true)
     setNotice(null)
+  }
+  function close() {
+    if (mounted.current && !pending.current) props.onClose()
+  }
+  function dismissConfirmation() {
+    if (!pending.current) setConfirmation(null)
   }
   async function dispatch(retry: boolean) {
     if (!writable() || !shared || busy || pending.current) return
@@ -162,7 +298,11 @@ export default function ConnectionMetadataEditor(props: Props) {
         provider_id: props.providerId,
         connection_id: props.connectionId,
         etag: review.etag,
-        input: { name: trimConnectionMetadata(name), reason: trimConnectionMetadata(reason) },
+        input: {
+          name: trimConnectionMetadata(name),
+          reason: trimConnectionMetadata(reason),
+          ...(transportChanged && desiredTransport ? { transport: { ...desiredTransport } } : {}),
+        },
       }
       const claim = shared.capture(props.actor, { kind: 'connection-name', payload })
       if (!claim) {
@@ -184,6 +324,7 @@ export default function ConnectionMetadataEditor(props: Props) {
     const csrf = cache.getQueryData<Session>(sessionKey)?.csrf_token
     if (!csrf) return
     const operation = { controller: new AbortController(), claim: captured.claim }
+    const capturedOwner = owner.current
     const capturedAuthority = authority.snapshot(),
       capturedResource = resource.snapshot()
     pending.current = operation
@@ -200,6 +341,8 @@ export default function ConnectionMetadataEditor(props: Props) {
         operation.controller.signal,
       )
       if (
+        !mounted.current ||
+        owner.current !== capturedOwner ||
         pending.current !== operation ||
         operation.controller.signal.aborted ||
         authority.snapshot() !== capturedAuthority ||
@@ -214,10 +357,30 @@ export default function ConnectionMetadataEditor(props: Props) {
       initialized.current = false
       setNotice('connectionMetadata.saved')
       props.onSaved()
-    } catch {
-      if (pending.current === operation) setNotice('connectionMetadata.uncertain')
+    } catch (error) {
+      if (
+        !mounted.current ||
+        owner.current !== capturedOwner ||
+        pending.current !== operation ||
+        operation.controller.signal.aborted ||
+        authority.snapshot() !== capturedAuthority ||
+        !fresh()
+      )
+        return
+      if (
+        !retry &&
+        captured.payload.input.transport !== undefined &&
+        axios.isAxiosError(error) &&
+        error.response?.status === 409 &&
+        shared.isCurrent(operation.claim) &&
+        shared.clear(operation.claim)
+      ) {
+        setIntent(null)
+        setConflict(true)
+        setNotice('connectionMetadata.stale')
+      } else setNotice('connectionMetadata.uncertain')
     } finally {
-      if (pending.current === operation) {
+      if (mounted.current && owner.current === capturedOwner && pending.current === operation) {
         pending.current = null
         setBusy(false)
       }
@@ -229,7 +392,7 @@ export default function ConnectionMetadataEditor(props: Props) {
       <Dialog
         open={props.open && props.ready && confirmation === null}
         onOpenChange={(open) => {
-          if (!open) props.onClose()
+          if (!open) close()
         }}
         busy={busy}
         width={720}
@@ -254,16 +417,158 @@ export default function ConnectionMetadataEditor(props: Props) {
               <Input
                 value={name}
                 autoComplete="off"
-                disabled={!writable() || busy || !!intent}
+                disabled={!renderWritable || busy || !!intent}
                 onChange={(event) => setName(event.target.value)}
               />
             </FormField>
             <FormField label={t('common.protocolType')}>
-              <Input value={protocolLabel(context.protocol)} readOnly />
+              <select
+                className={selectClass}
+                aria-label={t('common.protocolType')}
+                value={transport?.protocol ?? context.protocol}
+                disabled={
+                  !renderWritable ||
+                  !context.can_edit_transport ||
+                  context.transport_locked ||
+                  busy ||
+                  !!intent
+                }
+                onChange={(event) => {
+                  if (
+                    pending.current ||
+                    !writable() ||
+                    !context.can_edit_transport ||
+                    context.transport_locked
+                  )
+                    return
+                  setTransport((value) =>
+                    value
+                      ? {
+                          ...value,
+                          protocol: event.target.value as ConnectionMetadata['protocol'],
+                          adapter: 'native',
+                          api_version: null,
+                        }
+                      : value,
+                  )
+                }}
+              >
+                {(
+                  [
+                    'openai_chat',
+                    'openai_responses',
+                    'anthropic_messages',
+                    'gemini_generate_content',
+                  ] as const
+                ).map((protocol) => (
+                  <option key={protocol} value={protocol}>
+                    {protocolLabel(protocol)}
+                  </option>
+                ))}
+              </select>
             </FormField>
+            {transport?.protocol === 'openai_chat' && (
+              <FormField label={t('connectionTransport.adapter')}>
+                <select
+                  className={selectClass}
+                  aria-label={t('connectionTransport.adapter')}
+                  value={transport.adapter}
+                  disabled={
+                    !renderWritable ||
+                    !context.can_edit_transport ||
+                    context.transport_locked ||
+                    busy ||
+                    !!intent
+                  }
+                  onChange={(event) => {
+                    if (
+                      pending.current ||
+                      !writable() ||
+                      !context.can_edit_transport ||
+                      context.transport_locked
+                    )
+                      return
+                    setTransport((value) =>
+                      value
+                        ? {
+                            ...value,
+                            adapter: event.target.value as ConnectionMetadata['adapter'],
+                            api_version: event.target.value === 'native' ? null : '',
+                          }
+                        : value,
+                    )
+                  }}
+                >
+                  <option value="native">{t('connectionTransport.native')}</option>
+                  <option value="azure_openai_classic">{t('connectionTransport.azure')}</option>
+                </select>
+              </FormField>
+            )}
             <FormField label={t('common.baseURL')}>
-              <Input value={context.base_url} readOnly />
+              <Input
+                aria-label={t('common.baseURL')}
+                value={transport?.base_url ?? context.base_url}
+                autoComplete="off"
+                disabled={!renderWritable || !context.can_edit_transport || busy || !!intent}
+                onChange={(event) => {
+                  if (!pending.current && writable() && context.can_edit_transport)
+                    setTransport((value) =>
+                      value ? { ...value, base_url: event.target.value } : value,
+                    )
+                }}
+              />
             </FormField>
+            {transport?.adapter === 'azure_openai_classic' && (
+              <FormField label={t('connectionTransport.apiVersion')}>
+                <Input
+                  aria-label={t('connectionTransport.apiVersion')}
+                  value={transport.api_version ?? ''}
+                  autoComplete="off"
+                  disabled={!renderWritable || !context.can_edit_transport || busy || !!intent}
+                  onChange={(event) => {
+                    if (!pending.current && writable() && context.can_edit_transport)
+                      setTransport((value) =>
+                        value ? { ...value, api_version: event.target.value } : value,
+                      )
+                  }}
+                />
+              </FormField>
+            )}
+            {!context.can_edit_transport && (
+              <p className="text-sm text-muted-foreground">
+                {t('connectionTransport.disableFirst')}
+              </p>
+            )}
+            {context.transport_locked && (
+              <p className="text-sm text-muted-foreground">{t('connectionTransport.locked')}</p>
+            )}
+            {!intent && transportChanged && (
+              <Button
+                type="button"
+                variant="outline"
+                disabled={!renderWritable || busy}
+                onClick={() => {
+                  if (!pending.current && writable())
+                    setTransport({
+                      base_url: context.base_url,
+                      protocol: context.protocol,
+                      adapter: context.adapter,
+                      api_version: context.api_version,
+                    })
+                }}
+              >
+                {t('connectionTransport.resetDraft')}
+              </Button>
+            )}
+            {transportChanged && (
+              <p role="alert" className="text-sm">
+                {t(
+                  transportAllowed
+                    ? 'connectionTransport.invalidates'
+                    : 'connectionTransport.invalid',
+                )}
+              </p>
+            )}
             <FormField label={t('egress:selection')}>
               <Input
                 value={
@@ -279,7 +584,7 @@ export default function ConnectionMetadataEditor(props: Props) {
               <Input
                 value={reason}
                 autoComplete="off"
-                disabled={!writable() || busy || !!intent}
+                disabled={!renderWritable || busy || !!intent}
                 onChange={(event) => setReason(event.target.value)}
               />
             </FormField>
@@ -287,7 +592,7 @@ export default function ConnectionMetadataEditor(props: Props) {
               <p className="text-sm text-muted-foreground">{t('connectionMetadata.validation')}</p>
             )}
             {!intent && !snapshotCurrent && <p role="alert">{t('connectionMetadata.stale')}</p>}
-            {!writable() && <p role="alert">{t('connectionMetadata.readOnly')}</p>}
+            {!renderWritable && <p role="alert">{t('connectionMetadata.readOnly')}</p>}
             {abandoned && <p role="alert">{t('connectionMetadata.abandoned')}</p>}
             {notice && <p role="status">{t(notice)}</p>}
             {intent && <p role="alert">{t('connectionMetadata.uncertain')}</p>}
@@ -296,8 +601,8 @@ export default function ConnectionMetadataEditor(props: Props) {
                 <Button
                   type="button"
                   variant="outline"
-                  disabled={!writable() || busy}
-                  onClick={reviewCurrent}
+                  disabled={!renderWritable || busy}
+                  onClick={() => void reviewCurrent()}
                 >
                   {t('connectionMetadata.review')}
                 </Button>
@@ -307,24 +612,24 @@ export default function ConnectionMetadataEditor(props: Props) {
                   <Button
                     type="button"
                     variant="outline"
-                    disabled={!fresh() || busy}
+                    disabled={!current || busy}
                     onClick={() => setConfirmation('abandon')}
                   >
                     {t('connectionMetadata.abandon')}
                   </Button>
                   <Button
                     type="button"
-                    disabled={!writable() || busy || !shared?.isCurrent(intent.claim)}
+                    disabled={!renderWritable || busy || !shared?.isCurrent(intent.claim)}
                     onClick={() => void dispatch(true)}
                   >
                     {t('connectionMetadata.retry')}
                   </Button>
                 </>
               )}
-              <Button type="button" variant="outline" disabled={busy} onClick={props.onClose}>
+              <Button type="button" variant="outline" disabled={busy} onClick={close}>
                 {t('common.cancel')}
               </Button>
-              <Button type="submit" disabled={!canPrepare()}>
+              <Button type="submit" disabled={!prepareAvailable}>
                 {t('connectionMetadata.save')}
               </Button>
             </div>
@@ -334,21 +639,52 @@ export default function ConnectionMetadataEditor(props: Props) {
       <Dialog
         open={props.open && current && confirmation === 'save'}
         onOpenChange={(open) => {
-          if (!open) setConfirmation(null)
+          if (!open) dismissConfirmation()
         }}
         title={t('connectionMetadata.confirmTitle')}
-        description={t('connectionMetadata.confirmDescription')}
+        description={t(
+          transportChanged
+            ? 'connectionTransport.confirmDescription'
+            : 'connectionMetadata.confirmDescription',
+        )}
+        busy={busy}
       >
         {!snapshotCurrent && <p role="alert">{t('connectionMetadata.stale')}</p>}
         <p>{t('connectionMetadata.confirmName', { name: trimConnectionMetadata(name) })}</p>
+        {transportChanged && review && desiredTransport && (
+          <dl className="mt-4 grid gap-4 text-sm sm:grid-cols-2">
+            <div>
+              <dt className="font-medium">{t('connectionTransport.before')}</dt>
+              <dd className="break-all whitespace-pre-wrap">
+                {t('connectionTransport.tuple', {
+                  url: review.base_url,
+                  protocol: protocolLabel(review.protocol),
+                  adapter: review.adapter,
+                  version: review.api_version ?? t('connectionTransport.noVersion'),
+                })}
+              </dd>
+            </div>
+            <div>
+              <dt className="font-medium">{t('connectionTransport.after')}</dt>
+              <dd className="break-all whitespace-pre-wrap">
+                {t('connectionTransport.tuple', {
+                  url: desiredTransport.base_url,
+                  protocol: protocolLabel(desiredTransport.protocol),
+                  adapter: desiredTransport.adapter,
+                  version: desiredTransport.api_version ?? t('connectionTransport.noVersion'),
+                })}
+              </dd>
+            </div>
+          </dl>
+        )}
         <p className="mt-2">
           {t('connectionMetadata.confirmReason', { reason: trimConnectionMetadata(reason) })}
         </p>
         <div className="mt-6 flex justify-end gap-2">
-          <Button variant="outline" onClick={() => setConfirmation(null)}>
+          <Button variant="outline" onClick={dismissConfirmation}>
             {t('common.cancel')}
           </Button>
-          <Button disabled={!canPrepare()} onClick={() => void dispatch(false)}>
+          <Button disabled={!prepareAvailable} onClick={() => void dispatch(false)}>
             {t('connectionMetadata.confirm')}
           </Button>
         </div>
@@ -356,13 +692,14 @@ export default function ConnectionMetadataEditor(props: Props) {
       <Dialog
         open={props.open && current && confirmation === 'abandon'}
         onOpenChange={(open) => {
-          if (!open) setConfirmation(null)
+          if (!open) dismissConfirmation()
         }}
         title={t('connectionMetadata.abandonTitle')}
         description={t('connectionMetadata.abandonDescription')}
+        busy={busy}
       >
         <div className="flex justify-end gap-2">
-          <Button variant="outline" onClick={() => setConfirmation(null)}>
+          <Button variant="outline" onClick={dismissConfirmation}>
             {t('common.cancel')}
           </Button>
           <Button disabled={busy || !intent || !shared?.isCurrent(intent.claim)} onClick={abandon}>

@@ -96,7 +96,7 @@ func readMemberModelMetadata(tx *gorm.DB, data *memberModelsData, modelIDs []str
 			return ErrModelCatalogOverflow
 		}
 	}
-	if err := modelCreationDB(tx).Select("id", "connection_id", "name", "priority", "enabled", "verification_status", "verified_at", "created_at", "storage_source", "coverage_revision").Where(memberModelsExactIDs(tx, "connection_id", connectionIDs)).Order("id").Limit(5001).Find(&data.Credentials).Error; err != nil {
+	if err := modelCreationDB(tx).Select("id", "connection_id", "name", "priority", "enabled", "verification_status", "verified_at", "created_at", "storage_source", "coverage_revision", "verified_transport_generation").Where(memberModelsExactIDs(tx, "connection_id", connectionIDs)).Order("id").Limit(5001).Find(&data.Credentials).Error; err != nil {
 		return err
 	}
 	if len(data.Credentials) > 5000 {

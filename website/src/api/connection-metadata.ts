@@ -5,6 +5,7 @@ import type {
   ConnectionMetadata,
   ConnectionMetadataInput,
   ConnectionMetadataResult,
+  ConnectionTransportInput,
 } from '@/types/connection-metadata'
 
 const object = (value: unknown): value is Record<string, unknown> =>
@@ -46,6 +47,9 @@ export function decodeConnectionMetadata(value: unknown): ConnectionMetadata {
       'egress_id',
       'etag',
       'can_edit',
+      'transport_generation',
+      'can_edit_transport',
+      'transport_locked',
     ])
   )
     invalid()
@@ -54,7 +58,12 @@ export function decodeConnectionMetadata(value: unknown): ConnectionMetadata {
     !safeID(value.provider_id, 'prv_') ||
     !validConnectionName(value.name) ||
     !proof(value.etag) ||
-    typeof value.can_edit !== 'boolean'
+    typeof value.can_edit !== 'boolean' ||
+    typeof value.can_edit_transport !== 'boolean' ||
+    typeof value.transport_locked !== 'boolean' ||
+    typeof value.transport_generation !== 'string' ||
+    !/^(0|rev_[0-9a-hjkmnp-tv-z]{26})$/.test(value.transport_generation) ||
+    (value.can_edit_transport && !value.can_edit)
   )
     invalid()
   if (
@@ -89,6 +98,48 @@ export function decodeConnectionMetadata(value: unknown): ConnectionMetadata {
   if ((value.egress_mode === 'proxy') !== (value.egress_id !== null)) invalid()
   decodeConnectionTransport(value)
   return value as unknown as ConnectionMetadata
+}
+export function validConnectionTransport(value: unknown): value is ConnectionTransportInput {
+  if (
+    !object(value) ||
+    !fields(value, ['base_url', 'protocol', 'adapter', 'api_version']) ||
+    !plain(value.base_url) ||
+    value.base_url.length > 2048 ||
+    !exactBoundary(value.base_url) ||
+    typeof value.protocol !== 'string' ||
+    !['openai_chat', 'openai_responses', 'anthropic_messages', 'gemini_generate_content'].includes(
+      value.protocol,
+    ) ||
+    /[\\\p{Cc}\p{Cs}]/u.test(value.base_url)
+  )
+    return false
+  try {
+    const url = new URL(value.base_url)
+    if (
+      !['http:', 'https:'].includes(url.protocol) ||
+      !url.hostname ||
+      url.username ||
+      url.password ||
+      url.search ||
+      url.hash
+    )
+      return false
+    decodeConnectionTransport(value)
+    return true
+  } catch {
+    return false
+  }
+}
+// Save and confirmation use the same canonical tuple; the server still owns network-policy validation.
+export function canonicalConnectionTransport(
+  value: ConnectionTransportInput,
+): ConnectionTransportInput {
+  return {
+    base_url: trimConnectionMetadata(value.base_url).replace(/\/+$/, ''),
+    protocol: value.protocol,
+    adapter: value.adapter,
+    api_version: value.api_version,
+  }
 }
 function responseProof(response: AxiosResponse<unknown>, token: string) {
   const headers = AxiosHeaders.from(response.headers as RawAxiosHeaders)
@@ -129,7 +180,11 @@ export async function saveConnectionMetadata(
     !safeID(id, 'con_') ||
     !proof(etag) ||
     !object(input) ||
-    !fields(input, ['name', 'reason']) ||
+    !fields(
+      input,
+      input.transport === undefined ? ['name', 'reason'] : ['name', 'reason', 'transport'],
+    ) ||
+    (input.transport !== undefined && !validConnectionTransport(input.transport)) ||
     !validConnectionName(input.name) ||
     !validConnectionReason(input.reason) ||
     !csrf
@@ -137,7 +192,11 @@ export async function saveConnectionMetadata(
     invalid()
   const response = await client.put<unknown>(
     `/admin/connections/${id}/metadata`,
-    { name: input.name, reason: input.reason },
+    {
+      name: input.name,
+      reason: input.reason,
+      ...(input.transport === undefined ? {} : { transport: { ...input.transport } }),
+    },
     { headers: { 'If-Match': `"${etag}"`, 'X-CSRF-Token': csrf }, signal },
   )
   const data = response.data
@@ -155,7 +214,13 @@ export async function saveConnectionMetadata(
     connection.provider_id !== providerId ||
     connection.name !== input.name ||
     connection.etag.split('.')[0] !== etag.split('.')[0] ||
-    !connection.can_edit
+    !connection.can_edit ||
+    (input.transport !== undefined &&
+      (!connection.can_edit_transport ||
+        connection.base_url !== input.transport.base_url ||
+        connection.protocol !== input.transport.protocol ||
+        connection.adapter !== input.transport.adapter ||
+        connection.api_version !== input.transport.api_version))
   )
     invalid()
   return { connection, runtime_applied: true, changed: data.changed }

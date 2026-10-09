@@ -7,6 +7,7 @@ export interface Credential {
   enabled: boolean
   verification_status: 'pending' | 'verified' | 'failed'
   verified_at: string | null
+  verification_transport_current?: boolean
 }
 export interface ProviderModel {
   enabled: boolean
@@ -15,6 +16,8 @@ export interface ProviderModel {
   supports_image_input: boolean
   supports_pdf_input: boolean
   upstream_name: string
+  capabilities_transport_current?: boolean
+  capability_review_etag?: string
 }
 export interface Connection {
   adapter?: 'native' | 'azure_openai_classic'

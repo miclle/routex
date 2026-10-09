@@ -178,3 +178,60 @@ is acquired after loading, so current proofs remain observable during that read.
 Cancellation and stopped-publisher checks after lock acquisition prevent late
 publication or revocation-barrier clearing by obsolete loads. These ordering
 rules do not change the authorization lease or establish native availability.
+
+
+## Connection transport generation and diagnostic checks
+
+Transport editing extends the existing Connection metadata operation. A complete
+Base URL/protocol/adapter/API-version tuple requires an explicitly disabled
+Connection, fresh write authority, the exact strong metadata If-Match and a
+required reason. Any retained ProviderModel locks protocol and adapter. Reads
+require independent read authority; write permission does not grant a read. Egress
+configuration remains a separate operation. URL/adapter validation and network
+policy still apply. Saving transport neither invokes Verify nor enables records
+or makes an inference request.
+
+A canonical tuple change advances the durable transport generation. Published
+proofs and final dispatch bind exact resource identities/births, revisions and
+that generation. Old Credential verification/discovery and Azure coverage cannot
+authorize current supply; stale ProviderModel capability declarations cannot
+admit routes or public discovery. Stale capacity evidence cannot satisfy finite
+reservation requirements. Recorded declarations, timestamps, enablement, grants,
+prices, weights and immutable history remain unchanged. Explicit capability
+review submits both declarations, even when both are false; availability-only
+Credential/ProviderModel toggles never renew evidence. Real Verify, any required
+Azure coverage/capability/capacity attestation and explicit Enable remain separate
+operations. Neither stored positive counts nor a successful diagnostic substitutes
+for these proofs.
+
+The writer installs a local Connection denial after its transaction boundary
+before runtime refresh. Confirmation reauthorizes the exact committed target and
+checks the current local source digest and egress generation. Failed postcommit
+refresh or confirmation returns unavailable and retains an uncertain outcome.
+External admission requires the exact original review; an obsolete token does
+not become valid because current values match. A fresh read is not a historical
+receipt. An abandoned local retry requires a separately reviewed and confirmed
+new operation. Already dispatched calls retain their captured client, Credential
+and snapshot attribution; new admission cannot borrow an old transport proof.
+Current local application does not establish native health or fleet application.
+
+`POST /api/v1/admin/connections/:connection_id/test` accepts only an exact
+`credential_id` and the reviewed strong metadata If-Match, behind the existing
+Session, CSRF and independent Provider read/write checks. Its ten-second parent
+budget covers source resolution and bounded native model-list GET parsing.
+Explicit pending or disabled records may be tested; no alternate Credential is
+borrowed. Azure classic reports authentication-only scope with an unknown model
+count. Other successful checks report only the bounded count from that check,
+without persisting discovery or verification. Failed and unavailable remain
+distinct, and no check establishes future callability.
+
+The diagnostic captures the exact source holder and effective egress client,
+including the default/proxy revision, identity and birth. Fresh authorization,
+review, source and transport facts are rechecked before dispatch and before
+return; changed facts or an expired request context cannot produce a successful
+result.
+Existing source-use admission and bounded shutdown/drain interlocks remain in
+force, including required Vault safety records. The private transient DTO contains
+no secret, raw upstream body or serialized configuration. It changes no catalogue,
+configuration, verification, discovery, enablement, routing, audit or persisted
+diagnostic result.

@@ -140,10 +140,10 @@ func testConnectionMetadataLifecycle(t *testing.T, db *gorm.DB) {
 		res := request("GET", path, "", "", session, "")
 		row := decodeCatalogResponse[service.ConnectionMetadataRecord](t, res, 200)
 		var fields map[string]json.RawMessage
-		if err := json.Unmarshal(res.Body.Bytes(), &fields); err != nil || len(fields) != 11 || res.Header().Get("Cache-Control") != "private, no-store" || res.Header().Get("ETag") != strconv.Quote(row.ETag) || len(row.ETag) != 129 || row.ETag[64] != '.' {
+		if err := json.Unmarshal(res.Body.Bytes(), &fields); err != nil || len(fields) != 14 || res.Header().Get("Cache-Control") != "private, no-store" || res.Header().Get("ETag") != strconv.Quote(row.ETag) || len(row.ETag) != 129 || row.ETag[64] != '.' {
 			t.Fatal("metadata projection/header contract", err, res.Body.String())
 		}
-		for _, key := range []string{"id", "provider_id", "name", "protocol", "base_url", "egress_mode", "egress_id", "etag", "can_edit", "adapter", "api_version"} {
+		for _, key := range []string{"id", "provider_id", "name", "protocol", "base_url", "egress_mode", "egress_id", "etag", "can_edit", "adapter", "api_version", "transport_generation", "can_edit_transport", "transport_locked"} {
 			if _, ok := fields[key]; !ok {
 				t.Fatal("missing metadata field", key)
 			}

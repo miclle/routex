@@ -40,7 +40,16 @@ func loadRuntimeQuota(tx *gorm.DB, data *runtimeData) (*runtimeQuotaData, error)
 		if row.MaxInputTokens <= 0 || row.MaxInputTokens > limits.MaxInteger || row.MaxOutputTokens <= 0 || row.MaxOutputTokens > limits.MaxInteger || row.ETag == "" || !entity.SupportedNativeProtocol(row.Protocol) {
 			return nil, limits.ErrInvalid
 		}
-		result.Bounds[row.ProviderModelID] = row
+		for _, pm := range data.ProviderModels {
+			if pm.ID != row.ProviderModelID {
+				continue
+			}
+			for _, c := range data.Connections {
+				if capacityTransportCurrent(row, pm, c) {
+					result.Bounds[row.ProviderModelID] = row
+				}
+			}
+		}
 	}
 	for _, user := range data.Users {
 		result.Created[limitAccount("user", user.ID)] = user.CreatedAt
@@ -87,7 +96,14 @@ func (s *Service) gatewayQuotaPolicies(ctx context.Context, result *GatewayResul
 		}
 		var bound entity.ReservationBound
 		if err := s.authDB(ctx).First(&bound, "provider_model_id = ?", result.ProviderModelID).Error; err == nil {
-			data.Bounds[result.ProviderModelID] = bound
+			var pm entity.ProviderModel
+			var c entity.ProviderConnection
+			if personalExact(s.authDB(ctx), "id", result.ProviderModelID).Take(&pm).Error != nil || personalExact(s.authDB(ctx), "id", pm.ConnectionID).Take(&c).Error != nil {
+				return nil, nil, runtimeUnavailable
+			}
+			if capacityTransportCurrent(bound, pm, c) {
+				data.Bounds[result.ProviderModelID] = bound
+			}
 		} else if !errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, nil, runtimeUnavailable
 		}

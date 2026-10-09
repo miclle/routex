@@ -105,6 +105,9 @@ func (s *Service) runtimeGatewayModelMetadata(modelIDs []string, result map[stri
 
 func (s *Service) runtimeRouteReadyForDiscovery(auth *runtimeAuthorization, candidate runtimeRoute) bool {
 	route := candidate.Route
+	if s.runtime == nil || auth == nil || !route.CapabilitiesTransportCurrent || auth.ProviderModelRevisions[route.ProviderModelID] != route.ProviderModelRevision || route.EgressRevision == "" || auth.ConnectionRevisions[route.ConnectionID] != route.EgressRevision || route.EgressGeneration != s.egressGeneration.Load() {
+		return false
+	}
 	if !s.runtimeConnectionAllowed(auth, route) || route.Weight <= 0 || !auth.ProviderModels[route.ProviderModelID] || runtimeDenied(&s.runtime.deniedProviderModels, route.ProviderModelID) {
 		return false
 	}
@@ -127,50 +130,23 @@ type databaseGatewayProtocol struct {
 }
 
 func (s *Service) databaseGatewayModelMetadata(ctx context.Context, modelIDs []string, result map[string]gatewayModelMetadata) (map[string]gatewayModelMetadata, error) {
-	var rows []struct {
-		ModelID, BindingID, Protocol, CredentialID string
-		Weight                                     int
-		Disabled                                   bool
-		ConnectionEnabled                          bool
-		ProviderEnabled                            bool
-		SupportsImageInput                         bool
-		SupportsPDFInput                           bool
-	}
-	err := s.authDB(ctx).Table("model_provider_bindings b").
-		Select("b.model_id, b.id AS binding_id, b.weight, p.disabled, c.enabled AS connection_enabled, pr.enabled AS provider_enabled, p.supports_image_input, p.supports_pdf_input, c.protocol, k.id AS credential_id").
-		Joins("JOIN provider_models p ON p.id = b.provider_model_id").
-		Joins("JOIN provider_connections c ON c.id = p.connection_id").
-		Joins("JOIN providers pr ON pr.id = c.provider_id").
-		Joins("LEFT JOIN credential_model_accesses a ON a.provider_model_id = p.id").
-		Joins("LEFT JOIN provider_credentials k ON k.id = a.credential_id AND k.connection_id = c.id AND k.enabled = ? AND k.verification_status = ?", true, "verified").
-		Where("b.model_id IN ?", modelIDs).
-		Scan(&rows).Error
+	rows, err := readDatabaseGatewayRoutes(s.authDB(ctx), modelIDs)
 	if err != nil {
 		return nil, runtimeUnavailable
 	}
 	groups := map[string]map[string]*databaseGatewayProtocol{}
 	for _, row := range rows {
+		r := row.Route
 		if groups[row.ModelID] == nil {
 			groups[row.ModelID] = map[string]*databaseGatewayProtocol{}
 		}
-		item := groups[row.ModelID][row.Protocol]
-		if item == nil {
-			item = &databaseGatewayProtocol{Routes: map[string]*databaseGatewayRoute{}}
-			groups[row.ModelID][row.Protocol] = item
+		group := groups[row.ModelID][r.Protocol]
+		if group == nil {
+			group = &databaseGatewayProtocol{Routes: map[string]*databaseGatewayRoute{}}
+			groups[row.ModelID][r.Protocol] = group
 		}
-		route := item.Routes[row.BindingID]
-		if route == nil {
-			route = &databaseGatewayRoute{Route: gatewayRoute{
-				Protocol:           row.Protocol,
-				Weight:             row.Weight,
-				Disabled:           row.Disabled,
-				SupportsImageInput: row.SupportsImageInput,
-				SupportsPDFInput:   row.SupportsPDFInput,
-			}}
-			item.Routes[row.BindingID] = route
-			item.Total += row.Weight
-		}
-		route.Ready = route.Ready || row.ProviderEnabled && row.ConnectionEnabled && row.CredentialID != ""
+		group.Routes[r.BindingID] = &databaseGatewayRoute{Route: r, Ready: r.ProviderEnabled && r.ConnectionEnabled && r.CapabilitiesTransportCurrent && row.Credential.ID != ""}
+		group.Total += r.Weight
 	}
 	for modelID, protocols := range groups {
 		item := result[modelID]

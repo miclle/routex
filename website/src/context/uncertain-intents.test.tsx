@@ -849,3 +849,213 @@ describe('Provider status submitted intent', () => {
     },
   )
 })
+
+describe('Connection transport and ProviderModel submitted intents', () => {
+  it('deep-copies exactly the complete Connection transport without retained secrets and renews its claim across real Gate500', async () => {
+    await mount()
+    const submitted: SubmittedIntent = {
+      kind: 'connection-name',
+      payload: {
+        provider_id: 'prv_one',
+        connection_id: 'con_one',
+        etag: `${'a'.repeat(64)}.${'b'.repeat(64)}`,
+        input: {
+          name: 'Primary',
+          reason: 'Endpoint review',
+          transport: {
+            base_url: 'https://new.example.invalid/v1',
+            protocol: 'openai_chat',
+            adapter: 'native',
+            api_version: null,
+          },
+        },
+      },
+    }
+    Object.assign(submitted.payload.input.transport!, { secret: 'not-retained', enabled: true })
+    Object.assign(submitted.payload.input, { egress_id: 'not-retained' })
+    let claim: SubmittedIntentClaim | null = null
+    await act(async () => {
+      claim = latestOwner!.capture(actor, submitted)
+    })
+    const first = latestOwner!.recover(actor)!
+    expect(first.kind).toBe('connection-name')
+    expect(first.claim.targetScope).toBe(JSON.stringify(['connection-name', 'prv_one', 'con_one']))
+    const exact = {
+      provider_id: 'prv_one',
+      connection_id: 'con_one',
+      etag: submitted.payload.etag,
+      input: {
+        name: 'Primary',
+        reason: 'Endpoint review',
+        transport: {
+          base_url: 'https://new.example.invalid/v1',
+          protocol: 'openai_chat',
+          adapter: 'native',
+          api_version: null,
+        },
+      },
+    }
+    expect(first.payload).toEqual(exact)
+    submitted.payload.input.transport!.base_url = 'https://mutated.example.invalid'
+    if (first.kind !== 'connection-name') throw new Error('Wrong intent')
+    first.payload.input.transport!.protocol = 'openai_responses'
+    await renewal(500)
+    expect(latestOwner?.recover(actor)).toBeNull()
+    await renewal(200)
+    await until(() => expect(latestOwner!.recover(actor)?.kind).toBe('connection-name'))
+    const recovered = latestOwner!.recover(actor)!
+    expect(recovered.claim).not.toBe(claim)
+    expect(latestOwner!.clear(claim!)).toBe(false)
+    expect(recovered.payload).toEqual(exact)
+    expect(cache.getMutationCache().getAll()).toHaveLength(0)
+  })
+  it.each(['availability', 'capabilities', 'combined'] as const)(
+    'retains exact %s body without widening the capability operation',
+    async (mode) => {
+      await mount()
+      const input =
+        mode === 'availability'
+          ? { etag: '0', enabled: false }
+          : {
+              etag: '0',
+              capability_review_etag: 'a'.repeat(64),
+              supports_image_input: true,
+              supports_pdf_input: false,
+              ...(mode === 'combined' ? { enabled: false } : {}),
+            }
+      const submitted: SubmittedIntent = {
+        kind: 'provider-model-state',
+        payload: {
+          provider_id: 'prv_one',
+          connection_id: 'con_one',
+          provider_model_id: 'pmo_one',
+          input,
+        },
+      }
+      Object.assign(submitted.payload.input, { secret: 'not-retained', reason: 'unsupported' })
+      let claim: SubmittedIntentClaim | null = null
+      await act(async () => {
+        claim = latestOwner!.capture(actor, submitted)
+      })
+      const expected =
+        mode === 'availability'
+          ? { etag: '0', enabled: false }
+          : {
+              etag: '0',
+              capability_review_etag: 'a'.repeat(64),
+              supports_image_input: true,
+              supports_pdf_input: false,
+              ...(mode === 'combined' ? { enabled: false } : {}),
+            }
+      const first = latestOwner!.recover(actor)!
+      expect(first.claim.targetScope).toBe(
+        JSON.stringify(['provider-model-state', 'prv_one', 'con_one', 'pmo_one']),
+      )
+      expect(first.payload).toEqual({
+        provider_id: 'prv_one',
+        connection_id: 'con_one',
+        provider_model_id: 'pmo_one',
+        input: expected,
+      })
+      submitted.payload.input.etag = 'mutated'
+      if (first.kind !== 'provider-model-state') throw new Error('Wrong intent')
+      first.payload.input.etag = 'mutated-recovered'
+      await renewal(500)
+      await renewal(200)
+      await until(() => expect(latestOwner!.recover(actor)?.kind).toBe('provider-model-state'))
+      const next = latestOwner!.recover(actor)!
+      expect(next.claim).not.toBe(claim)
+      expect(latestOwner!.clear(claim!)).toBe(false)
+      expect(next.payload).toEqual({
+        provider_id: 'prv_one',
+        connection_id: 'con_one',
+        provider_model_id: 'pmo_one',
+        input: expected,
+      })
+      expect(cache.getMutationCache().getAll()).toHaveLength(0)
+    },
+  )
+  it('retains the exact four-field capacity body/current review and isolates both source and recovery mutations', async () => {
+    await mount()
+    const submitted: SubmittedIntent = {
+      kind: 'provider-model-capacity',
+      payload: {
+        provider_id: 'prv_one',
+        connection_id: 'con_one',
+        provider_model_id: 'pmo_one',
+        etag: 'a'.repeat(64),
+        input: {
+          max_input_tokens: 8000,
+          max_output_tokens: 2000,
+          evidence: 'Native contract\nCurrent endpoint',
+          reason: 'Explicit review',
+        },
+      },
+    }
+    Object.assign(submitted.payload.input, {
+      supports_image_input: true,
+      secret: 'not-retained',
+      runtime_applied: true,
+    })
+    Object.assign(submitted.payload, { revision: 'not-a-review', transport_current: true })
+    await act(async () => {
+      latestOwner!.capture(actor, submitted)
+    })
+    const original = latestOwner!.recover(actor)!
+    expect(original.claim.targetScope).toBe(
+      JSON.stringify(['provider-model-capacity', 'prv_one', 'con_one', 'pmo_one']),
+    )
+    const exact = {
+      provider_id: 'prv_one',
+      connection_id: 'con_one',
+      provider_model_id: 'pmo_one',
+      etag: 'a'.repeat(64),
+      input: {
+        max_input_tokens: 8000,
+        max_output_tokens: 2000,
+        evidence: 'Native contract\nCurrent endpoint',
+        reason: 'Explicit review',
+      },
+    }
+    expect(original.payload).toEqual(exact)
+    submitted.payload.input.max_input_tokens = 1
+    if (original.kind !== 'provider-model-capacity') throw new Error('Wrong intent')
+    original.payload.input.reason = 'mutated recovery'
+    expect(latestOwner!.recover(actor)!.payload).toEqual(exact)
+    await act(async () => {
+      void router.navigate('/other')
+    })
+    expect(latestOwner?.recover(actor)).toBeNull()
+    expect(cache.getMutationCache().getAll()).toHaveLength(0)
+  })
+  it.each(['provider-model-state', 'provider-model-capacity'] as const)(
+    'rejects malformed parent/target identities for %s without allocating an intent',
+    async (kind) => {
+      await mount()
+      const payload =
+        kind === 'provider-model-state'
+          ? {
+              provider_id: 'prv_one',
+              connection_id: 'con_one',
+              provider_model_id: 'bad model',
+              input: { etag: '0', enabled: false },
+            }
+          : {
+              provider_id: 'prv_one',
+              connection_id: 'con_one',
+              provider_model_id: 'bad model',
+              etag: 'a'.repeat(64),
+              input: {
+                max_input_tokens: 8000,
+                max_output_tokens: 2000,
+                evidence: 'Evidence',
+                reason: 'Reason',
+              },
+            }
+      await act(async () => {
+        expect(latestOwner!.capture(actor, { kind, payload } as SubmittedIntent)).toBeNull()
+      })
+      expect(latestOwner!.recover(actor)).toBeNull()
+    },
+  )
+})

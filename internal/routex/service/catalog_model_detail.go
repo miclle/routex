@@ -6,9 +6,7 @@ import (
 	"strings"
 
 	"gorm.io/gorm"
-	"gorm.io/gorm/clause"
 
-	"github.com/miclle/routex/internal/routex/database"
 	"github.com/miclle/routex/internal/routex/entity"
 	apperrors "github.com/miclle/routex/internal/routex/errors"
 )
@@ -105,16 +103,5 @@ func loadExactAdminModelCatalog(tx *gorm.DB, modelID string) (*ModelCatalog, err
 }
 
 func exactProviderModelReady(tx *gorm.DB, providerModelID, connectionID string) (bool, error) {
-	var enabled, covered int64
-	if err := personalExact(personalExact(tx.Model(&entity.ProviderCredential{}), "connection_id", connectionID), "verification_status", "verified").Where("enabled = ?", true).Count(&enabled).Error; err != nil {
-		return false, err
-	}
-	if err := tx.Table("provider_credentials AS c").
-		Joins("JOIN credential_model_accesses AS a ON ?", database.ExactTextColumns(tx, clause.Column{Table: "a", Name: "credential_id"}, clause.Column{Table: "c", Name: "id"})).
-		Where(database.ExactText(tx, clause.Column{Table: "c", Name: "connection_id"}, connectionID)).
-		Where(database.ExactText(tx, clause.Column{Table: "a", Name: "provider_model_id"}, providerModelID)).
-		Where(database.ExactText(tx, clause.Column{Table: "c", Name: "verification_status"}, "verified")).Where("c.enabled = ?", true).Count(&covered).Error; err != nil {
-		return false, err
-	}
-	return enabled > 0 && enabled == covered, nil
+	return providerModelReady(tx, providerModelID, connectionID)
 }

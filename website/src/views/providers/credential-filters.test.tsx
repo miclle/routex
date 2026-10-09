@@ -7,6 +7,8 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import client from '@/api/client'
 import i18n from '@/i18n'
 import type { Credential, Provider } from '@/types/catalog'
+import { sessionKey } from '@/hooks/use-auth'
+import { MenuItem } from '@/components/ui/menu'
 import ProvidersPage from './index'
 
 Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true })
@@ -17,6 +19,9 @@ let root: Root,
   router: ReturnType<typeof createMemoryRouter>
 let requests: InternalAxiosRequestConfig[], permissions: string[], providers: Provider[]
 let hold: Promise<void> | undefined
+let diagnosticHold: Promise<void> | undefined, releaseDiagnostic: (() => void) | undefined
+let diagnosticSignal: AbortSignal | undefined
+const diagnosticToken = `${'c'.repeat(64)}.${'d'.repeat(64)}`
 const credential = (
   id: string,
   name: string,
@@ -35,6 +40,9 @@ beforeEach(async () => {
   permissions = ['providers.read', 'providers.write']
   requests = []
   hold = undefined
+  diagnosticHold = undefined
+  releaseDiagnostic = undefined
+  diagnosticSignal = undefined
   providers = [
     {
       id: 'prv_first',
@@ -42,6 +50,7 @@ beforeEach(async () => {
       connections: [
         {
           id: 'con_primary',
+          enabled: true,
           name: 'Primary',
           base_url: 'https://primary.example.invalid',
           protocol: 'openai_chat',
@@ -54,6 +63,7 @@ beforeEach(async () => {
         },
         {
           id: 'con_secondary',
+          enabled: true,
           name: 'Secondary',
           base_url: 'https://secondary.example.invalid',
           protocol: 'openai_responses',
@@ -72,6 +82,7 @@ beforeEach(async () => {
       connections: [
         {
           id: 'con_other',
+          enabled: true,
           name: 'Other',
           base_url: 'https://other.example.invalid',
           protocol: 'anthropic_messages',
@@ -109,7 +120,42 @@ beforeEach(async () => {
     else if (config.url === '/admin/providers')
       response.data = { items: structuredClone(providers) }
     else if (config.url === '/admin/models') response.data = { items: [] }
-    else if (config.url?.startsWith('/admin/credentials/')) {
+    else if (config.url?.startsWith('/admin/connections/') && config.url.endsWith('/metadata')) {
+      const connectionId = config.url.split('/')[3]
+      const connection = providers
+        .flatMap((row) => row.connections)
+        .find((row) => row.id === connectionId)!
+      response.headers.set('Cache-Control', 'private, no-store')
+      response.headers.set('ETag', `"${diagnosticToken}"`)
+      response.data = {
+        id: connectionId,
+        provider_id: 'prv_first',
+        name: connection.name,
+        adapter: 'native',
+        api_version: null,
+        protocol: connection.protocol,
+        base_url: connection.base_url,
+        egress_mode: 'direct',
+        egress_id: null,
+        etag: diagnosticToken,
+        can_edit: true,
+        transport_generation: '0',
+        can_edit_transport: false,
+        transport_locked: false,
+      }
+    } else if (config.url?.startsWith('/admin/connections/') && config.url.endsWith('/test')) {
+      diagnosticSignal = config.signal as AbortSignal
+      if (diagnosticHold) await diagnosticHold
+      response.headers.set('Cache-Control', 'private, no-store')
+      response.data = {
+        connection_id: config.url.split('/')[3],
+        credential_id: JSON.parse(config.data).credential_id,
+        outcome: 'passed',
+        scope: 'model_discovery',
+        discovered_model_count: 0,
+        checked_at: '2026-10-09T01:02:03Z',
+      }
+    } else if (config.url?.startsWith('/admin/credentials/')) {
       if (hold) await hold
       if (config.url.endsWith('/verify')) response.data = { verified: true, discovered_models: 2 }
       else {
@@ -127,6 +173,7 @@ beforeEach(async () => {
   }
 })
 afterEach(async () => {
+  releaseDiagnostic?.()
   await act(async () => root.unmount())
   router.dispose()
   cache.clear()
@@ -303,7 +350,7 @@ describe('provider credential filters', () => {
       'Actions for Alpha.Primary',
     )
     await act(async () => table().querySelector<HTMLButtonElement>('button')!.click())
-    await until(() => expect(document.querySelectorAll('[role="menuitem"]')).toHaveLength(5))
+    await until(() => expect(document.querySelectorAll('[role="menuitem"]')).toHaveLength(6))
     expect(
       [...document.querySelectorAll('[role="menuitem"]')].every(
         (item) => item.getAttribute('aria-disabled') === 'true',
@@ -344,3 +391,172 @@ it('adds Azure coverage review to the existing credential row menu with independ
   ).toBe(true)
   expect(writes()).toHaveLength(0)
 })
+
+async function openCredentialTest(name: string) {
+  const trigger = host.querySelector<HTMLButtonElement>(`button[aria-label="Actions for ${name}"]`)!
+  expect(trigger).toBeTruthy()
+  await act(async () => trigger.click())
+  await until(() => expect(document.querySelector('[role="menuitem"]')).not.toBeNull())
+  const action = [...document.querySelectorAll<HTMLElement>('[role="menuitem"]')].find(
+    (row) => row.textContent === 'Test connection',
+  )!
+  expect(action).toBeTruthy()
+  return { trigger, action }
+}
+const diagnosticPosts = () => requests.filter((request) => request.url?.endsWith('/test'))
+it('opens a Credential-row test locked to its exact Connection and pending disabled record', async () => {
+  await mount()
+  const { action, trigger } = await openCredentialTest('Alpha Pending')
+  await act(async () => action.click())
+  await until(() =>
+    expect(document.querySelector('[aria-label="Selected credential"]')).not.toBeNull(),
+  )
+  expect(document.querySelector('[aria-label="Selected credential"]')?.textContent).toContain(
+    'crd_pending',
+  )
+  expect(document.querySelector('[aria-label="Credential to test"]')).toBeNull()
+  expect(diagnosticPosts()).toHaveLength(0)
+  const run = [...document.querySelectorAll<HTMLButtonElement>('button')].find(
+    (row) => row.textContent === 'Run new test',
+  )!
+  await act(async () => {
+    run.click()
+    run.click()
+  })
+  await until(() => expect(document.body.textContent).toContain('This test passed.'))
+  expect(diagnosticPosts()).toHaveLength(1)
+  expect(diagnosticPosts()[0].url).toBe('/admin/connections/con_primary/test')
+  expect(JSON.parse(diagnosticPosts()[0].data)).toEqual({ credential_id: 'crd_pending' })
+  expect(diagnosticPosts()[0].headers.get('If-Match')).toBe(`"${diagnosticToken}"`)
+  expect(diagnosticPosts()[0].headers.get('X-CSRF-Token')).toBe('credential-csrf')
+  expect(writes()).toHaveLength(1)
+  expect(cache.getMutationCache().getAll()).toHaveLength(0)
+  await act(async () => i18n.changeLanguage('zh'))
+  expect(document.body.textContent).toContain('本次测试通过。')
+  expect(document.querySelector('[aria-label="已选择的凭证"]')?.textContent).toContain(
+    'crd_pending',
+  )
+  const close = [...document.querySelectorAll<HTMLButtonElement>('button')].find(
+    (row) => row.textContent === '关闭',
+  )!
+  await act(async () => close.click())
+  await until(() => expect(document.activeElement).toBe(trigger))
+})
+it('keeps identical names on distinct Connections bound to the clicked Credential row', async () => {
+  providers[0].connections[1].credentials[0].name = 'Alpha Pending'
+  await mount()
+  await filter('Credential connection filter', 'con_secondary')
+  const { action } = await openCredentialTest('Alpha Pending')
+  await act(async () => action.click())
+  await until(() =>
+    expect(document.querySelector('[aria-label="Selected credential"]')).not.toBeNull(),
+  )
+  const run = [...document.querySelectorAll<HTMLButtonElement>('button')].find(
+    (row) => row.textContent === 'Run new test',
+  )!
+  await act(async () => run.click())
+  await until(() => expect(document.body.textContent).toContain('This test passed.'))
+  expect(diagnosticPosts()).toHaveLength(1)
+  expect(diagnosticPosts()[0].url).toBe('/admin/connections/con_secondary/test')
+  expect(JSON.parse(diagnosticPosts()[0].data)).toEqual({ credential_id: 'crd_secondary' })
+})
+it.each(['providers.read', 'providers.write'])(
+  'independently denies the Credential diagnostic without %s',
+  async (denied) => {
+    permissions = permissions.filter((permission) => permission !== denied)
+    await act(async () =>
+      root.render(
+        <QueryClientProvider client={cache}>
+          <RouterProvider router={router} />
+        </QueryClientProvider>,
+      ),
+    )
+    if (denied === 'providers.read') {
+      await until(() => expect(host.textContent).toContain('permission'))
+      expect(document.querySelector('[aria-label="Selected credential"]')).toBeNull()
+    } else {
+      await until(() => expect(host.querySelector('table')).not.toBeNull())
+      const { action } = await openCredentialTest('Alpha Pending')
+      expect(action.getAttribute('aria-disabled')).toBe('true')
+      await act(async () => action.click())
+      expect(document.querySelector('[aria-label="Selected credential"]')).toBeNull()
+    }
+    expect(diagnosticPosts()).toHaveLength(0)
+  },
+)
+it('aborts a held Credential-row result on Session renewal without recreating private test facts', async () => {
+  diagnosticHold = new Promise((resolve) => {
+    releaseDiagnostic = resolve
+  })
+  await mount()
+  const { action } = await openCredentialTest('Alpha Pending')
+  await act(async () => action.click())
+  await until(() =>
+    expect(document.querySelector('[aria-label="Selected credential"]')).not.toBeNull(),
+  )
+  const run = [...document.querySelectorAll<HTMLButtonElement>('button')].find(
+    (row) => row.textContent === 'Run new test',
+  )!
+  await act(async () => run.click())
+  await until(() => expect(diagnosticSignal).toBeTruthy())
+  await act(async () =>
+    cache.setQueryData(sessionKey, {
+      user: { id: 'usr_credentials', role: 'member' },
+      csrf_token: 'renewed',
+    }),
+  )
+  expect(diagnosticSignal?.aborted).toBe(true)
+  await act(async () => releaseDiagnostic?.())
+  expect(document.querySelector('[aria-label="Selected credential"]')).toBeNull()
+  expect(document.body.textContent).not.toContain('This test passed.')
+  expect(diagnosticPosts()).toHaveLength(1)
+  expect(
+    JSON.stringify(
+      cache
+        .getQueryCache()
+        .getAll()
+        .map((query) => query.state.data),
+    ),
+  ).not.toContain('checked_at')
+})
+
+function captureCredentialTestAction(action: HTMLElement) {
+  interface Fiber {
+    type: unknown
+    return: Fiber | null
+    memoizedProps: { onClick?: () => void }
+  }
+  const key = Object.keys(action).find((value) => value.startsWith('__reactFiber$'))!
+  let fiber = (action as unknown as Record<string, Fiber>)[key]
+  while (fiber && fiber.type !== MenuItem) fiber = fiber.return!
+  expect(fiber?.memoizedProps.onClick).toBeTypeOf('function')
+  return fiber.memoizedProps.onClick!
+}
+it.each(['session', 'permission', 'credential', 'expiry'])(
+  'denies a captured Credential-row action in the same turn as %s loss',
+  async (boundary) => {
+    await mount()
+    const { action } = await openCredentialTest('Alpha Pending')
+    const invoke = captureCredentialTestAction(action)
+    await act(async () => {
+      if (boundary === 'expiry') window.dispatchEvent(new Event('routex:session-expired'))
+      else if (boundary === 'permission')
+        cache.setQueryData(['permissions', 'usr_credentials'], ['providers.read'])
+      else if (boundary === 'credential') {
+        const next = structuredClone(providers)
+        next[0].connections[0].credentials = next[0].connections[0].credentials.filter(
+          (row) => row.id !== 'crd_pending',
+        )
+        cache.setQueryData(['admin', 'providers'], next)
+      } else
+        cache.setQueryData(sessionKey, {
+          user: { id: 'usr_credentials', role: 'member' },
+          csrf_token: 'renewed',
+        })
+      invoke()
+    })
+    expect(document.querySelector('[aria-label="Selected credential"]')).toBeNull()
+    expect(diagnosticPosts()).toHaveLength(0)
+    expect(requests.some((request) => request.url?.endsWith('/metadata'))).toBe(false)
+  },
+)

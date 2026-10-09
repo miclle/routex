@@ -32,6 +32,9 @@ func modelCreationConnection(tx *gorm.DB, connectionID string) (entity.ProviderC
 	if err := personalExact(modelCreationDB(tx), "id", connectionID).Take(&connection).Error; err != nil {
 		return connection, provider, err
 	}
+	if !validTransportGeneration(connection.TransportGeneration) {
+		return connection, provider, connectionMetadataUnavailable
+	}
 	if connection.ID != connectionID {
 		return connection, provider, apperrors.ErrNotFound
 	}
@@ -71,6 +74,8 @@ func (s *Service) GetModelCreationContext(ctx context.Context, actor, connection
 }
 
 type modelCreationCredentialProof struct {
+	TransportCurrent         bool   `json:"-"`
+	TransportGeneration      string `json:",omitempty"`
 	ID, Revision, CipherHash string
 	CreatedAt                time.Time
 	Enabled                  bool
@@ -89,6 +94,7 @@ type modelCreationModelProof struct {
 	Topology []modelCreationTopology
 }
 type modelCreationState struct {
+	TransportProof map[string]string `json:",omitempty"`
 	Connection     entity.ProviderConnection
 	Provider       entity.Provider
 	EgressRevision string
@@ -142,7 +148,11 @@ func modelCreationCredentials(tx *gorm.DB, connectionID string, selected []strin
 
 	result := make([]modelCreationCredentialProof, 0, len(credentials))
 	for _, credential := range credentials {
-		proof := modelCreationCredentialProof{ID: credential.ID, Revision: credentialRuntimeRevision(credential), CipherHash: credentialSourceProof(credential), CreatedAt: credential.CreatedAt.UTC(), Enabled: credential.Enabled, VerificationStatus: credential.VerificationStatus, Access: []string{}}
+		var generation string
+		if credential.VerifiedTransportGeneration != "0" {
+			generation = credential.VerifiedTransportGeneration
+		}
+		proof := modelCreationCredentialProof{TransportCurrent: verifiedTransportCurrent(credential, connection), TransportGeneration: generation, ID: credential.ID, Revision: credentialRuntimeRevision(credential), CipherHash: credentialSourceProof(credential), CreatedAt: credential.CreatedAt.UTC(), Enabled: credential.Enabled, VerificationStatus: credential.VerificationStatus, Access: []string{}}
 		for _, access := range accesses {
 			if access.CredentialID == credential.ID && slices.Contains(selected, access.ProviderModelID) {
 				proof.Access = append(proof.Access, access.ProviderModelID)
@@ -156,7 +166,7 @@ func modelCreationCredentials(tx *gorm.DB, connectionID string, selected []strin
 func modelCreationReady(credentials []modelCreationCredentialProof, pm string) bool {
 	count := 0
 	for _, c := range credentials {
-		if c.Enabled && c.VerificationStatus == "verified" {
+		if c.Enabled && c.TransportCurrent && c.VerificationStatus == "verified" {
 			count++
 			if !slices.Contains(c.Access, pm) {
 				return false
@@ -268,7 +278,7 @@ func (s *Service) captureModelCreation(tx *gorm.DB, connectionID string, items [
 		}
 		state.Associated = append(state.Associated, associated > 0)
 		row := ModelCreationReviewedItem{ProviderModelID: pm.ID, UpstreamName: pm.UpstreamName, Target: item.Target, Name: item.Name, Protocol: c.Protocol, InitialWeight: 100, BlockerCodes: []string{}}
-		if pm.Disabled {
+		if pm.Disabled || pm.ID != "" && !capabilityTransportCurrent(pm, c) {
 			row.BlockerCodes = append(row.BlockerCodes, "provider_model_disabled")
 		}
 		if item.UpstreamName != "" {
@@ -312,6 +322,7 @@ func (s *Service) captureModelCreation(tx *gorm.DB, connectionID string, items [
 		result.CanCommit = result.CanCommit && len(row.BlockerCodes) == 0
 		result.Items = append(result.Items, row)
 	}
+	state.TransportProof = modelCreationTransportProof(state)
 	normalizeModelCreationState(state)
 	result.ReviewETag = personalHash(struct {
 		Items []ModelCreationItem
@@ -447,7 +458,7 @@ func (s *Service) ListModelCreationProviderModels(ctx context.Context, actor, co
 			}
 		}
 		for _, pm := range models {
-			row := ModelCreationProviderModel{ID: pm.ID, UpstreamName: pm.UpstreamName, Disabled: pm.Disabled, InputCapabilities: []string{}, CredentialReady: modelCreationReady(credentials, pm.ID), BlockerCodes: []string{}}
+			row := ModelCreationProviderModel{ID: pm.ID, UpstreamName: pm.UpstreamName, Disabled: pm.Disabled, InputCapabilities: []string{}, CredentialReady: capabilityTransportCurrent(pm, connection) && modelCreationReady(credentials, pm.ID), BlockerCodes: []string{}}
 			if pm.SupportsImageInput {
 				row.InputCapabilities = append(row.InputCapabilities, "image")
 			}

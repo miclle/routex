@@ -74,12 +74,14 @@ type memberModelsCredentialProof struct {
 	Access       bool
 }
 type memberModelsRouteProof struct {
-	Binding     entity.ModelProviderBinding
-	Model       entity.ProviderModel
-	Connection  entity.ProviderConnection
-	Provider    runtimeProviderProof
-	EgressProof string
-	Credentials []memberModelsCredentialProof
+	Binding              entity.ModelProviderBinding
+	Model                entity.ProviderModel
+	Connection           entity.ProviderConnection
+	Provider             runtimeProviderProof
+	EgressProof          string
+	TransportGeneration  string `json:",omitempty"`
+	CapabilityGeneration string `json:",omitempty"`
+	Credentials          []memberModelsCredentialProof
 }
 
 func (index memberModelsEligibilityIndex) hash(model entity.Model) string {
@@ -105,7 +107,14 @@ func (index memberModelsEligibilityIndex) hash(model entity.Model) string {
 		b.CreatedAt = b.CreatedAt.UTC()
 		p.CreatedAt = p.CreatedAt.UTC()
 		c.CreatedAt = c.CreatedAt.UTC()
-		rows = append(rows, memberModelsRouteProof{Binding: b, Model: p, Connection: c, Provider: provider, Credentials: proofs, EgressProof: index.egressProof(c)})
+		var generation, capability string
+		if c.TransportGeneration != "0" {
+			generation = c.TransportGeneration
+		}
+		if p.CapabilityTransportGeneration != "0" {
+			capability = p.CapabilityTransportGeneration
+		}
+		rows = append(rows, memberModelsRouteProof{TransportGeneration: generation, CapabilityGeneration: capability, Binding: b, Model: p, Connection: c, Provider: provider, Credentials: proofs, EgressProof: index.egressProof(c)})
 	}
 	slices.SortFunc(rows, func(a, b memberModelsRouteProof) int { return strings.Compare(a.Binding.ID, b.Binding.ID) })
 	name, exists := index.names[model.ID]
@@ -129,9 +138,12 @@ func runtimeMemberModelsEligibility(data *runtimeData) map[string]string {
 	return result
 }
 func (index memberModelsEligibilityIndex) covered(pm entity.ProviderModel) bool {
+	if !capabilityTransportCurrent(pm, index.connections[pm.ConnectionID]) {
+		return false
+	}
 	enabled := 0
 	for _, c := range index.credentials[pm.ConnectionID] {
-		if c.Enabled && c.VerificationStatus == "verified" {
+		if c.Enabled && verifiedTransportCurrent(c, index.connections[pm.ConnectionID]) {
 			enabled++
 			if !index.access[c.ID][pm.ID] {
 				return false

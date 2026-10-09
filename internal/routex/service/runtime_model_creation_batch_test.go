@@ -10,15 +10,15 @@ import (
 func modelCreationPublicationFixture() (*Service, *modelCreationState) {
 	now := time.Now().UTC().Truncate(time.Microsecond)
 	modelID := "mdl_one"
-	connection := entity.ProviderConnection{ID: "con_one", ProviderID: "prv_one", Protocol: entity.ProtocolOpenAIChat, BaseURL: "https://example.test/v1", CreatedAt: now}
-	pm := entity.ProviderModel{ID: "pmd_one", ConnectionID: connection.ID, UpstreamName: "upstream", ETag: "revision", CreatedAt: now}
+	connection := entity.ProviderConnection{TransportGeneration: "0", Enabled: true, ID: "con_one", ProviderID: "prv_one", Protocol: entity.ProtocolOpenAIChat, BaseURL: "https://example.test/v1", CreatedAt: now}
+	pm := entity.ProviderModel{CapabilityTransportGeneration: "0", ID: "pmd_one", ConnectionID: connection.ID, UpstreamName: "upstream", ETag: "revision", CreatedAt: now}
 	name := entity.ModelName{Name: "Public", ModelID: modelID, CurrentModelID: &modelID, CreatedAt: now}
 	model := modelCreationModelProof{Model: entity.Model{ID: modelID, Status: entity.ResourceActive, CreatedAt: now}, Name: name, Topology: []modelCreationTopology{{Binding: entity.ModelProviderBinding{ID: "bnd_one", ModelID: modelID, ProviderModelID: pm.ID, Weight: 100, CreatedAt: now}, ProviderModel: pm, Connection: connection, EgressRevision: "egress"}}}
 	provider := entity.Provider{ID: connection.ProviderID, CreatedAt: now, Enabled: true, ETag: "0"}
-	state := &modelCreationState{Provider: provider, Connection: connection, EgressRevision: "egress", ProviderModels: []entity.ProviderModel{pm}, Models: []modelCreationModelProof{model}, Credentials: []modelCreationCredentialProof{{ID: "crd_one", Revision: "credential", CipherHash: "exact-cipher", CreatedAt: now, Enabled: true, VerificationStatus: "verified", Access: []string{pm.ID}}}}
+	state := &modelCreationState{Provider: provider, Connection: connection, EgressRevision: "egress", ProviderModels: []entity.ProviderModel{pm}, Models: []modelCreationModelProof{model}, Credentials: []modelCreationCredentialProof{{TransportCurrent: true, ID: "crd_one", Revision: "credential", CipherHash: "exact-cipher", CreatedAt: now, Enabled: true, VerificationStatus: "verified", Access: []string{pm.ID}}}}
 	s := &Service{runtime: &gatewayRuntime{}}
-	auth := &runtimeAuthorization{Providers: map[string]runtimeProviderProof{provider.ID: {Birth: now, Enabled: true, Revision: provider.ETag}}, ValidUntil: now.Add(time.Minute), SourceDigest: "same", ConnectionRevisions: map[string]string{connection.ID: "egress"}, ProviderModels: map[string]bool{pm.ID: true}, ProviderModelRevisions: map[string]string{pm.ID: pm.ETag}, Credentials: map[string]bool{"crd_one": true}, CredentialRevisions: map[string]string{"crd_one": "credential"}, CredentialAccess: map[string]map[string]bool{"crd_one": {pm.ID: true}}, Models: map[string]bool{modelID: true}, ModelCreated: map[string]time.Time{modelID: now}, Names: map[string]entity.ModelName{name.Name: name}}
-	route := runtimeRoute{Route: gatewayRoute{Protocol: connection.Protocol, BindingID: "bnd_one", Weight: 100, ProviderModelID: pm.ID, ConnectionID: connection.ID, ProviderID: connection.ProviderID, ProviderBirth: now, ProviderEnabled: true, ProviderRevision: provider.ETag, UpstreamName: pm.UpstreamName, BaseURL: connection.BaseURL, EgressRevision: "egress"}, Credentials: []runtimeCredential{{ID: "crd_one", CipherHash: "exact-cipher", CreatedAt: now}}}
+	auth := &runtimeAuthorization{Providers: map[string]runtimeProviderProof{provider.ID: {Birth: now, Enabled: true, Revision: provider.ETag}}, ValidUntil: now.Add(time.Minute), SourceDigest: "same", Connections: map[string]runtimeConnectionProof{connection.ID: {TransportGeneration: "0", ProviderID: connection.ProviderID, Birth: now, Enabled: true}}, ConnectionRevisions: map[string]string{connection.ID: "egress"}, ProviderModels: map[string]bool{pm.ID: true}, ProviderModelRevisions: map[string]string{pm.ID: pm.ETag}, Credentials: map[string]bool{"crd_one": true}, CredentialRevisions: map[string]string{"crd_one": "credential"}, CredentialAccess: map[string]map[string]bool{"crd_one": {pm.ID: true}}, Models: map[string]bool{modelID: true}, ModelCreated: map[string]time.Time{modelID: now}, Names: map[string]entity.ModelName{name.Name: name}}
+	route := runtimeRoute{Route: gatewayRoute{ProviderModelBirth: now, ProviderModelRevision: pm.ETag, CapabilityTransportGeneration: "0", ConnectionTransportGeneration: "0", CapabilitiesTransportCurrent: true, ConnectionBirth: now, ConnectionEnabled: true, Protocol: connection.Protocol, BindingID: "bnd_one", Weight: 100, ProviderModelID: pm.ID, ConnectionID: connection.ID, ProviderID: connection.ProviderID, ProviderBirth: now, ProviderEnabled: true, ProviderRevision: provider.ETag, UpstreamName: pm.UpstreamName, BaseURL: connection.BaseURL, EgressRevision: "egress"}, Credentials: []runtimeCredential{{ID: "crd_one", CipherHash: "exact-cipher", CreatedAt: now}}}
 	s.runtime.auth.Store(auth)
 	s.runtime.routes.Store(&runtimeRoutes{Digest: "same", Models: map[string][]runtimeRoute{modelID: {route}}})
 	return s, state
@@ -103,5 +103,35 @@ func TestModelCreationBatchNameTimesUseInstants(t *testing.T) {
 	s.runtime.auth.Load().Names["Public"] = name
 	if !s.modelCreationRuntimeApplied(state) {
 		t.Fatal("same persisted instant changed current-name proof")
+	}
+}
+
+func TestModelCreationPublicationTransportContinuity(t *testing.T) {
+	for _, kind := range []string{"connection generation", "capability stamp", "credential stamp", "captured route generation", "captured capability flags", "generation ABA"} {
+		t.Run(kind, func(t *testing.T) {
+			s, state := modelCreationPublicationFixture()
+			if !s.modelCreationRuntimeApplied(state) {
+				t.Fatal("current legacy proof rejected")
+			}
+			switch kind {
+			case "connection generation":
+				state.Connection.TransportGeneration = transportTestA
+			case "capability stamp":
+				state.ProviderModels[0].CapabilityTransportGeneration = transportTestA
+			case "credential stamp":
+				state.Credentials[0].TransportCurrent = false
+			case "captured route generation":
+				s.runtime.routes.Load().Models["mdl_one"][0].Route.ConnectionTransportGeneration = transportTestA
+			case "captured capability flags":
+				s.runtime.routes.Load().Models["mdl_one"][0].Route.CapabilitiesTransportCurrent = false
+			case "generation ABA":
+				proof := s.runtime.auth.Load().Connections[state.Connection.ID]
+				proof.TransportGeneration = transportTestB
+				s.runtime.auth.Load().Connections[state.Connection.ID] = proof
+			}
+			if s.modelCreationRuntimeApplied(state) {
+				t.Fatal("stale guided publication applied", kind)
+			}
+		})
 	}
 }

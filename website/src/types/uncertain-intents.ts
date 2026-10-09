@@ -1,3 +1,6 @@
+import type { ConnectionMetadataInput } from './connection-metadata'
+import type { ProviderModelCapacityInput } from './provider-model-capacity'
+import type { ProviderModelStateInput } from './provider-model-state'
 import type {
   DefaultLimitRecord,
   DefaultLimitInput,
@@ -48,7 +51,20 @@ export type ConnectionNameSubmittedIntent = {
   provider_id: string
   connection_id: string
   etag: string
-  input: { name: string; reason: string }
+  input: ConnectionMetadataInput
+}
+export type ProviderModelStateSubmittedIntent = {
+  provider_id: string
+  connection_id: string
+  provider_model_id: string
+  input: ProviderModelStateInput
+}
+export type ProviderModelCapacitySubmittedIntent = {
+  provider_id: string
+  connection_id: string
+  provider_model_id: string
+  etag: string
+  input: ProviderModelCapacityInput
 }
 export type ConnectionStatusSubmittedIntent = {
   provider_id: string
@@ -67,6 +83,8 @@ export type ProviderStatusSubmittedIntent = {
   input: { enabled: boolean; reason: string }
 }
 export type SubmittedIntent =
+  | { kind: 'provider-model-state'; payload: ProviderModelStateSubmittedIntent }
+  | { kind: 'provider-model-capacity'; payload: ProviderModelCapacitySubmittedIntent }
   | { kind: 'provider-status'; payload: ProviderStatusSubmittedIntent }
   | { kind: 'provider-name'; payload: ProviderNameSubmittedIntent }
   | { kind: 'connection-name'; payload: ConnectionNameSubmittedIntent }

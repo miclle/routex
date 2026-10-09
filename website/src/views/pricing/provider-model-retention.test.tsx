@@ -7,6 +7,7 @@ import { beforeEach, afterEach, expect, it } from 'vitest'
 import client from '@/api/client'
 import i18n from '@/i18n'
 import { sessionKey } from '@/hooks/use-auth'
+import { UncertainIntentProvider } from '@/context/uncertain-intents'
 import ProviderModelPage from './provider-model'
 Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true })
 let root: Root,
@@ -71,6 +72,8 @@ beforeEach(async () => {
                     supports_image_input: false,
                     supports_pdf_input: false,
                     etag: '0',
+                    capabilities_transport_current: false,
+                    capability_review_etag: 'a'.repeat(64),
                   },
                 ],
               },
@@ -83,10 +86,14 @@ beforeEach(async () => {
         response.status = failure
         throw new AxiosError('publication unknown', '', config, undefined, response)
       }
+      response.headers.set('Cache-Control', 'private, no-store')
+      response.headers.set('ETag', `"${'b'.repeat(64)}"`)
       response.data = {
         provider_model_id: 'pmo_one',
         protocol: 'openai_chat',
-        etag: '0',
+        etag: 'b'.repeat(64),
+        revision: '0',
+        transport_current: false,
         configured: false,
         max_input_tokens: 0,
         max_output_tokens: 0,
@@ -128,12 +135,14 @@ async function render() {
     root.render(
       <QueryClientProvider client={cache}>
         <MemoryRouter initialEntries={['/admin/providers/prv_one/models/pmo_one']}>
-          <Routes>
-            <Route
-              path="/admin/providers/:providerId/models/:modelId"
-              element={<ProviderModelPage />}
-            />
-          </Routes>
+          <UncertainIntentProvider>
+            <Routes>
+              <Route
+                path="/admin/providers/:providerId/models/:modelId"
+                element={<ProviderModelPage />}
+              />
+            </Routes>
+          </UncertainIntentProvider>
         </MemoryRouter>
       </QueryClientProvider>,
     ),
@@ -163,17 +172,13 @@ async function loseAndRestore() {
   await act(async () => {
     await cache.refetchQueries({ queryKey: sessionKey, exact: true })
   })
-  await until(() =>
-    expect(document.body.textContent).not.toContain('Publication could not be confirmed'),
-  )
+  await until(() => expect(document.body.textContent).not.toContain('submitted result is unknown'))
   expect(document.body.textContent).not.toContain('Verified original capacity')
   permissionFailure = 0
   await act(async () => {
     await cache.refetchQueries({ queryKey: sessionKey, exact: true })
   })
-  await until(() =>
-    expect(document.body.textContent).toContain('Publication could not be confirmed'),
-  )
+  await until(() => expect(document.body.textContent).toContain('submitted result is unknown'))
 }
 it('retains existing availability uncertainty without displaying it during fresh parent authority failure', async () => {
   await render()
@@ -182,7 +187,8 @@ it('retains existing availability uncertainty without displaying it during fresh
   )!
   await act(async () => toggle.click())
   await click('Save configuration')
-  await until(() => expect(host.textContent).toContain('Publication could not be confirmed'))
+  await click('Confirm change')
+  await until(() => expect(host.textContent).toContain('submitted result is unknown'))
   const written = requests.filter((request) => request.method === 'patch')
   expect(written).toHaveLength(1)
   await loseAndRestore()
@@ -205,15 +211,18 @@ it('retains exact existing capacity intent across fresh parent authority hiding 
   await fill('Capacity evidence', 'Verified original capacity')
   await fill('Reason for attestation', 'Retain exact original review')
   await click('Save attestation')
-  await until(() =>
-    expect(document.body.textContent).toContain('Publication could not be confirmed'),
-  )
+  await click('Confirm change')
+  await until(() => expect(document.body.textContent).toContain('submitted result is unknown'))
   const first = requests.find((request) => request.method === 'put')!
   await loseAndRestore()
+  await click('Edit capacity attestation')
+  await until(() =>
+    expect(document.querySelector('input[aria-label="Capacity evidence"]')).not.toBeNull(),
+  )
   expect(
     document.querySelector<HTMLInputElement>('input[aria-label="Capacity evidence"]')!.value,
   ).toBe('Verified original capacity')
-  await click('Retry publication')
+  await click('Retry exact request')
   await until(() => expect(requests.filter((request) => request.method === 'put')).toHaveLength(2))
   const retry = requests.filter((request) => request.method === 'put')[1]
   expect(retry.data).toBe(first.data)

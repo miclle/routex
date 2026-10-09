@@ -497,75 +497,67 @@ func parseGatewayChat(body []byte) (map[string]json.RawMessage, string, bool, er
 }
 
 type gatewayRoute struct {
-	Adapter            string
-	APIVersion         *string
-	Client             *http.Client `gorm:"-"`
-	EgressGeneration   uint64       `gorm:"-"`
-	EgressRevision     string       `gorm:"-"`
-	Protocol           string
-	Disabled           bool
-	PriceBasis         *CallPriceBasis `gorm:"-"`
-	SnapshotID         string
-	BindingID          string
-	Weight             int
-	ProviderID         string
-	ProviderBirth      time.Time
-	ProviderEnabled    bool
-	ProviderRevision   string
-	ProviderName       string
-	ProviderModelID    string
-	ConnectionBirth    time.Time
-	ConnectionEnabled  bool
-	ConnectionID       string
-	ConnectionName     string
-	CredentialID       string
-	Ciphertext         string
-	UpstreamName       string
-	BaseURL            string
-	SupportsImageInput bool
-	SupportsPDFInput   bool
+	ProviderModelBirth            time.Time
+	CapabilityTransportGeneration string
+	ProviderModelRevision         string
+	ConnectionTransportGeneration string
+	CapabilitiesTransportCurrent  bool `gorm:"-"`
+	Adapter                       string
+	APIVersion                    *string
+	Client                        *http.Client `gorm:"-"`
+	EgressGeneration              uint64       `gorm:"-"`
+	EgressRevision                string       `gorm:"-"`
+	Protocol                      string
+	Disabled                      bool
+	PriceBasis                    *CallPriceBasis `gorm:"-"`
+	SnapshotID                    string
+	BindingID                     string
+	Weight                        int
+	ProviderID                    string
+	ProviderBirth                 time.Time
+	ProviderEnabled               bool
+	ProviderRevision              string
+	ProviderName                  string
+	ProviderModelID               string
+	ConnectionBirth               time.Time
+	ConnectionEnabled             bool
+	ConnectionID                  string
+	ConnectionName                string
+	CredentialID                  string
+	Ciphertext                    string
+	UpstreamName                  string
+	BaseURL                       string
+	SupportsImageInput            bool
+	SupportsPDFInput              bool
 }
 
 func selectGatewayProtocolRoute(db *gorm.DB, modelID, protocol string) (*gatewayRoute, error) {
-	var routes []gatewayRoute
-	err := db.Table("model_provider_bindings AS b").Select("b.id AS binding_id, b.weight, p.id AS provider_model_id, p.upstream_name, p.disabled, p.supports_image_input, p.supports_pdf_input, c.id AS connection_id, c.created_at AS connection_birth, c.enabled AS connection_enabled, c.provider_id, c.name AS connection_name, c.base_url, c.protocol, c.adapter, c.api_version, pr.name AS provider_name, pr.created_at AS provider_birth, pr.enabled AS provider_enabled, pr.e_tag AS provider_revision").Joins("JOIN provider_models p ON p.id = b.provider_model_id").Joins("JOIN provider_connections c ON c.id = p.connection_id").Joins("JOIN providers pr ON pr.id = c.provider_id").Where("b.model_id = ? AND c.protocol = ?", modelID, protocol).Order("b.id").Scan(&routes).Error
+	rows, err := readDatabaseGatewayRoutes(db, []string{modelID})
 	if err != nil {
 		return nil, gatewayError(503, "upstream_unavailable", "Routing is temporarily unavailable.")
 	}
+	routes := []gatewayRoute{}
+	credentials := []entity.ProviderCredential{}
+	for _, row := range rows {
+		if row.Route.Protocol == protocol {
+			routes = append(routes, row.Route)
+			credentials = append(credentials, row.Credential)
+		}
+	}
 	weights := make([]int, len(routes))
 	available := make([]bool, len(routes))
-	for i := range routes {
-		weights[i] = routes[i].Weight
-		available[i] = routes[i].ProviderEnabled && routes[i].ConnectionEnabled && !routes[i].Disabled
+	for i, r := range routes {
+		weights[i] = r.Weight
+		available[i] = r.ProviderEnabled && r.ConnectionEnabled && !r.Disabled && r.CapabilitiesTransportCurrent && credentials[i].ID != ""
 	}
 	choice, err := chooseAvailableGatewayRoute(weights, available)
 	if err != nil {
 		return nil, err
 	}
-	route := &routes[choice]
-	var credential entity.ProviderCredential
-	if route.Adapter == entity.AdapterAzureOpenAIClassic {
-		credentials, covered, coverageErr := connectionCredentialCoverage(db, route.ConnectionID, []string{route.ProviderModelID})
-		err = coverageErr
-		if err == nil {
-			err = gorm.ErrRecordNotFound
-			for _, candidate := range credentials {
-				if candidate.Enabled && candidate.VerificationStatus == "verified" && covered[candidate.ID][route.ProviderModelID] {
-					credential = candidate
-					err = nil
-					break
-				}
-			}
-		}
-	} else {
-		err = db.Table("provider_credentials AS c").Select("c.*").Joins("JOIN credential_model_accesses a ON a.credential_id = c.id").Where("c.connection_id = ? AND c.enabled = ? AND c.verification_status = ? AND a.provider_model_id = ?", route.ConnectionID, true, "verified", route.ProviderModelID).Order("c.priority, c.created_at, c.id").First(&credential).Error
-	}
-
-	if err != nil {
-		return nil, gatewayError(503, "upstream_unavailable", "No usable upstream is available.")
-	}
-	route.CredentialID, route.Ciphertext = credential.ID, credential.Ciphertext
-	return route, nil
+	route := routes[choice]
+	route.CredentialID = credentials[choice].ID
+	route.Ciphertext = credentials[choice].Ciphertext
+	return &route, nil
 }
 
 func chooseGatewayRoute(weights []int) (int, error) {

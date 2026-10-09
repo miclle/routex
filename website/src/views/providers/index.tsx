@@ -1,6 +1,6 @@
 import { protocolLabels } from '@/lib/protocols'
 import { useTranslation } from 'react-i18next'
-import { useState, type FormEvent } from 'react'
+import { useLayoutEffect, useRef, useState, type FormEvent } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { MoreHorizontal, Plus } from 'lucide-react'
 import { listProviders, writeCatalog } from '@/api/catalog'
@@ -23,6 +23,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { ProviderOverview, ProviderSettings } from './detail'
 import CredentialMetadataDialog from './credential-metadata'
 import ConnectionTable from './connections'
+import ConnectionTester from './connection-test'
 import ProviderModelTable from './provider-models'
 import CredentialDeleteDialog from './credential-delete'
 import CredentialReplacementDialog from './credential-replacements'
@@ -45,6 +46,8 @@ function CredentialTable({
   canWrite,
   pending,
   onVerify,
+  onTest,
+  testReady,
   onToggle,
   onEdit,
   onDelete,
@@ -59,6 +62,8 @@ function CredentialTable({
   canWrite: boolean
   pending: boolean
   onVerify: (credential: Credential) => void
+  onTest: (credential: Credential, connectionId: string, finalFocus?: HTMLElement) => void
+  testReady: () => boolean
   onToggle: (credential: Credential) => void
   onEdit: (credential: Credential, connectionId: string, connectionName: string) => void
   onDelete: (credential: Credential, connectionId: string, connectionName: string) => void
@@ -66,6 +71,7 @@ function CredentialTable({
   onReadiness: (credential: Credential, connectionId: string, connectionName: string) => void
 }) {
   const { t, i18n } = useTranslation('catalog')
+  const actionTriggers = useRef(new Map<string, HTMLButtonElement>())
   const [query, setQuery] = useState('')
   const [connection, setConnection] = useState('all')
   const [verification, setVerification] = useState('all')
@@ -183,6 +189,10 @@ function CredentialTable({
               <td>
                 <Menu
                   label={t('credentialMetadata.actions', { name: credential.name })}
+                  triggerRef={(node) => {
+                    if (node) actionTriggers.current.set(credential.id, node)
+                    else actionTriggers.current.delete(credential.id)
+                  }}
                   trigger={<MoreHorizontal className="size-4" aria-hidden="true" />}
                   side="bottom"
                   align="end"
@@ -190,6 +200,15 @@ function CredentialTable({
                 >
                   <MenuItem disabled={pending || !canWrite} onClick={() => onVerify(credential)}>
                     {t('providers.verify')}
+                  </MenuItem>
+                  <MenuItem
+                    disabled={pending || !testReady()}
+                    onClick={() => {
+                      if (!pending && testReady())
+                        onTest(credential, item.id, actionTriggers.current.get(credential.id))
+                    }}
+                  >
+                    {t('connectionTest.action')}
                   </MenuItem>
                   <MenuItem
                     disabled={
@@ -276,7 +295,27 @@ function Providers() {
     credentialId: string
   } | null>(null)
   const actor = session?.user.id ?? ''
-  useConnectionQueryRevision([sessionKey, ['permissions', actor], ['admin', 'providers']])
+  const diagnosticAuthority = useConnectionQueryRevision([
+    sessionKey,
+    ['permissions', actor],
+    ['admin', 'providers'],
+  ])
+  const diagnosticGeneration = cache.getQueryState(sessionKey)?.dataUpdateCount ?? 0
+  const diagnosticOwner = useRef<{
+    actor: string
+    providerId: string
+    generation: number
+    tab: ProviderTab
+  } | null>(null)
+  const [testingCredential, setTestingCredential] = useState<{
+    actor: string
+    providerId: string
+    connectionId: string
+    credentialId: string
+    generation: number
+    authority: string
+    finalFocus?: HTMLElement
+  } | null>(null)
   const coverageCurrent = () => {
     const auth = cache.getQueryState<Session | null>(sessionKey),
       rights = cache.getQueryState<string[]>(['permissions', actor]),
@@ -329,6 +368,36 @@ function Providers() {
   const [params, setParams] = useSearchParams()
   const selected = providers.data?.find((provider) => provider.id === providerId)
   const tab = providerTab(params.get('tab'))
+  useLayoutEffect(() => {
+    const owner = { actor, providerId: providerId ?? '', generation: diagnosticGeneration, tab }
+    diagnosticOwner.current = owner
+    const expire = () => {
+      if (diagnosticOwner.current === owner) diagnosticOwner.current = null
+    }
+    window.addEventListener('routex:session-expired', expire)
+    return () => {
+      if (diagnosticOwner.current === owner) diagnosticOwner.current = null
+      window.removeEventListener('routex:session-expired', expire)
+    }
+  }, [actor, providerId, diagnosticGeneration, tab])
+  const diagnosticReady = () => {
+    const auth = cache.getQueryState<Session | null>(sessionKey)
+    return (
+      coverageCurrent() &&
+      diagnosticAuthority.snapshot() === diagnosticAuthority.revision &&
+      auth?.dataUpdateCount === diagnosticGeneration &&
+      !!auth.data?.csrf_token &&
+      cache.getQueryData<string[]>(['permissions', actor])?.includes('providers.write') === true
+    )
+  }
+  const diagnosticCurrent =
+    testingCredential &&
+    tab === 'credentials' &&
+    testingCredential.actor === actor &&
+    testingCredential.providerId === selected?.id &&
+    testingCredential.generation === diagnosticGeneration &&
+    testingCredential.authority === diagnosticAuthority.revision &&
+    diagnosticReady()
   const selectTab = (value: ProviderTab) =>
     setParams(value === 'overview' ? {} : { tab: value }, { replace: true })
   const mutation = useMutation({
@@ -542,6 +611,32 @@ function Providers() {
                 canWrite={access.can('providers.write')}
                 pending={mutation.isPending}
                 coverageReady={coverageCurrent()}
+                testReady={diagnosticReady}
+                onTest={(credential, connectionId, finalFocus) => {
+                  if (
+                    !diagnosticReady() ||
+                    diagnosticOwner.current?.actor !== actor ||
+                    diagnosticOwner.current.providerId !== selected.id ||
+                    diagnosticOwner.current.generation !== diagnosticGeneration ||
+                    diagnosticOwner.current.tab !== 'credentials' ||
+                    !cache
+                      .getQueryData<Provider[]>(['admin', 'providers'])
+                      ?.find((row) => row.id === selected.id)
+                      ?.connections.find((row) => row.id === connectionId)
+                      ?.credentials.some((row) => row.id === credential.id)
+                  )
+                    return
+                  setNotice(null)
+                  setTestingCredential({
+                    actor,
+                    providerId: selected.id,
+                    connectionId,
+                    credentialId: credential.id,
+                    generation: diagnosticGeneration,
+                    authority: diagnosticAuthority.revision,
+                    finalFocus,
+                  })
+                }}
                 onCoverage={(credential, connectionId) => {
                   if (!coverageCurrent()) return
                   setNotice(null)
@@ -617,6 +712,32 @@ function Providers() {
             </TabsContent>
           </Tabs>
         </>
+      )}
+      {testingCredential && diagnosticCurrent && (
+        <ConnectionTester
+          key={JSON.stringify([
+            testingCredential.actor,
+            testingCredential.providerId,
+            testingCredential.connectionId,
+            testingCredential.credentialId,
+            testingCredential.generation,
+            testingCredential.authority,
+          ])}
+          actor={testingCredential.actor}
+          providerId={testingCredential.providerId}
+          connectionId={testingCredential.connectionId}
+          credentialId={testingCredential.credentialId}
+          generation={testingCredential.generation}
+          permissionsKey={['permissions', actor]}
+          catalogueKey={['admin', 'providers']}
+          finalFocus={testingCredential.finalFocus}
+          onClose={() => {
+            setTestingCredential((current) => (current === testingCredential ? null : current))
+          }}
+          onManage={() => {
+            if (diagnosticReady()) selectTab('credentials')
+          }}
+        />
       )}
       {coverageTarget && selected?.id === coverageTarget.providerId && (
         <DeploymentCoverageDialog

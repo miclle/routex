@@ -308,13 +308,13 @@ func testResponsesLifecycle(t *testing.T, db *gorm.DB) {
 	if err := db.First(&pm, "id = ?", pm.ID).Error; err != nil {
 		t.Fatal(err)
 	}
-	if _, err := outcomeService.SetProviderModelState(ctx, admin.User.ID, pm.ID, pm.ETag, true); err != nil {
-		t.Fatal(err)
-	}
 	if err := outcomeService.StartRuntime(ctx); err != nil {
 		t.Fatal(err)
 	}
 	defer outcomeService.StopRuntime()
+	if _, err := outcomeService.SetProviderModelState(ctx, admin.User.ID, pm.ID, pm.ETag, true); err != nil {
+		t.Fatal(err)
+	}
 	outcomeRouter := fox.New()
 	New(outcomeService).RegisterRoutes(outcomeRouter)
 	for _, outcome := range []struct{ mode, want string }{

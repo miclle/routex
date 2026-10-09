@@ -98,34 +98,31 @@ func loadModelCatalog(db *gorm.DB, modelID string) (*ModelCatalog, error) {
 }
 
 func providerModelReady(db *gorm.DB, providerModelID, connectionID string) (bool, error) {
+	var pm entity.ProviderModel
 	var connection entity.ProviderConnection
+	if err := personalExact(modelCreationDB(db), "id", providerModelID).Take(&pm).Error; err != nil {
+		return false, err
+	}
 	if err := personalExact(modelCreationDB(db), "id", connectionID).Take(&connection).Error; err != nil {
 		return false, err
 	}
-	if entity.ConnectionAdapter(connection) == entity.AdapterAzureOpenAIClassic {
-		credentials, covered, err := connectionCredentialCoverage(db, connectionID, []string{providerModelID})
-		if err != nil {
-			return false, err
-		}
-		enabled := 0
-		for _, c := range credentials {
-			if c.Enabled && c.VerificationStatus == "verified" {
-				enabled++
-				if !covered[c.ID][providerModelID] {
-					return false, nil
-				}
+	if pm.ConnectionID != connectionID || !capabilityTransportCurrent(pm, connection) {
+		return false, nil
+	}
+	credentials, covered, err := connectionCredentialCoverage(db, connectionID, []string{providerModelID})
+	if err != nil {
+		return false, err
+	}
+	enabled := 0
+	for _, c := range credentials {
+		if c.Enabled && verifiedTransportCurrent(c, connection) {
+			enabled++
+			if !covered[c.ID][providerModelID] {
+				return false, nil
 			}
 		}
-		return enabled > 0, nil
 	}
-	var enabled, covered int64
-	if err := db.Model(&entity.ProviderCredential{}).Where("connection_id = ? AND enabled = ? AND verification_status = ?", connectionID, true, "verified").Count(&enabled).Error; err != nil {
-		return false, err
-	}
-	if err := db.Table("provider_credentials AS c").Joins("JOIN credential_model_accesses a ON a.credential_id = c.id").Where("c.connection_id = ? AND c.enabled = ? AND c.verification_status = ? AND a.provider_model_id = ?", connectionID, true, "verified", providerModelID).Count(&covered).Error; err != nil {
-		return false, err
-	}
-	return enabled > 0 && enabled == covered, nil
+	return enabled > 0, nil
 }
 
 func (s *Service) ListAdminModels(ctx context.Context) ([]ModelCatalog, error) {

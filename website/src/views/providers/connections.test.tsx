@@ -25,6 +25,7 @@ let sessionStatus: number, permissionStatus: number, metadataStatus: number, fai
 let record: ConnectionMetadata, hold: Promise<void> | undefined
 let mounts: number, unmounts: number
 let enabled: boolean
+let applyBeforeFailure: boolean, ignoreMetadataAbort: boolean
 let actorRole: string, firstConnectionID: string, unkeyed: boolean
 const add = vi.fn()
 function Host() {
@@ -90,6 +91,8 @@ beforeEach(async () => {
   metadataStatus = 200
   failure = 0
   enabled = true
+  applyBeforeFailure = false
+  ignoreMetadataAbort = false
   actorRole = 'admin'
   firstConnectionID = 'con_one'
   unkeyed = false
@@ -109,6 +112,9 @@ beforeEach(async () => {
     egress_id: null,
     etag: token,
     can_edit: true,
+    transport_generation: '0',
+    can_edit_transport: false,
+    transport_locked: false,
   }
   client.defaults.adapter = async (config) => {
     requests.push(config)
@@ -156,9 +162,22 @@ beforeEach(async () => {
     else if (config.url?.endsWith('/metadata')) {
       if (config.method === 'put') {
         if (hold) await hold
-        if (failure) reject(failure)
         const input = JSON.parse(config.data)
-        record = { ...record, name: input.name, etag: nextToken }
+        if (!failure || applyBeforeFailure)
+          record = {
+            ...record,
+            name: input.name,
+            etag: nextToken,
+            ...(input.transport
+              ? {
+                  ...input.transport,
+                  transport_generation: `rev_${'0'.repeat(26)}`,
+                  can_edit_transport: !enabled,
+                }
+              : {}),
+          }
+        if (ignoreMetadataAbort) config.signal = undefined
+        if (failure) reject(failure)
         response.data = {
           connection: structuredClone(record),
           runtime_applied: true,
@@ -253,8 +272,8 @@ async function mount(fullPage = false) {
 }
 async function open() {
   await click('Actions for Alpha primary')
-  await until(() => expect(button('Edit name')).toBeTruthy())
-  await click('Edit name')
+  await until(() => expect(button('Edit')).toBeTruthy())
+  await click('Edit')
   await until(() => expect(input('Connection name').value).toBe('Alpha primary'))
 }
 async function draft() {
@@ -262,10 +281,44 @@ async function draft() {
   await change('Change reason', '  Operational label  ')
 }
 const writes = () => requests.filter((r) => r.method === 'put')
+it('opens the explicit connection test from its existing row menu, guides empty credentials, and restores focus', async () => {
+  await mount()
+  const trigger = button('Actions for Alpha primary')
+  await click('Actions for Alpha primary')
+  await until(() => expect(button('Test connection')).toBeTruthy())
+  await click('Test connection')
+  await until(() => expect(document.body.textContent).toContain('no retained credentials'))
+  expect(button('Manage credentials')).toBeTruthy()
+  expect(requests.filter((row) => row.url?.endsWith('/test'))).toHaveLength(0)
+  await click('Close')
+  await until(() => expect(document.querySelector('[role="dialog"]')).toBeNull())
+  await until(() => expect(document.activeElement).toBe(trigger))
+})
+it('requires independent write authority for the connection test action', async () => {
+  permissions = ['providers.read']
+  await mount()
+  await click('Actions for Alpha primary')
+  await until(() => expect(button('Test connection')).toBeTruthy())
+  expect(button('Test connection').getAttribute('aria-disabled')).toBe('true')
+  await click('Test connection')
+  expect(document.querySelector('[role="dialog"]')).toBeNull()
+  expect(requests.filter((row) => row.url?.endsWith('/metadata'))).toHaveLength(0)
+})
+it('uses the existing addressable Credentials tab when the tested connection has no credentials', async () => {
+  await mount()
+  await click('Actions for Alpha primary')
+  await until(() => expect(button('Test connection')).toBeTruthy())
+  await click('Test connection')
+  await until(() => expect(button('Manage credentials')).toBeTruthy())
+  await click('Manage credentials')
+  expect(router.state.location.pathname).toBe('/admin/providers/prv_one')
+  expect(router.state.location.search).toBe('?tab=credentials')
+  expect(requests.filter((row) => row.url?.endsWith('/test'))).toHaveLength(0)
+})
 async function submit() {
   await draft()
-  await click('Review name change')
-  await click('Confirm name change')
+  await click('Review changes')
+  await click('Confirm changes')
   await until(() => expect(writes()).toHaveLength(1))
 }
 async function invalidateMetadata() {
@@ -328,15 +381,21 @@ describe('Connection table and reviewed name workflow', () => {
   it('preserves protocol/URL/egress context as read-only and requires reason and explicit review before exact PUT', async () => {
     await mount()
     await open()
-    expect(input('Protocol type').readOnly).toBe(true)
-    expect(input('Base URL').readOnly).toBe(true)
+    const protocol = document.querySelector<HTMLSelectElement>(
+      'select[aria-label="Protocol type"]',
+    )!
+    expect(protocol).toBeTruthy()
+    expect(protocol.disabled).toBe(true)
+    expect(protocol.value).toBe(record.protocol)
+    expect(input('Base URL').disabled).toBe(true)
+    expect(input('Base URL').value).toBe(record.base_url)
     expect(input('Network egress').readOnly).toBe(true)
-    expect(button('Review name change').disabled).toBe(true)
+    expect(button('Review changes').disabled).toBe(true)
     expect(document.querySelector('input[type="password"]')).toBeNull()
     await draft()
-    await click('Review name change')
+    await click('Review changes')
     expect(writes()).toHaveLength(0)
-    await click('Confirm name change')
+    await click('Confirm changes')
     await until(() => expect(writes()).toHaveLength(1))
     const request = writes()[0]!
     expect(JSON.parse(request.data)).toEqual({ name: 'Renamed', reason: 'Operational label' })
@@ -349,16 +408,16 @@ describe('Connection table and reviewed name workflow', () => {
     const originalReason = '\uFEFFOperational label\uFEFF'
     await mount()
     await click(`Actions for ${originalName}`)
-    await click('Edit name')
+    await click('Edit')
     await until(() => expect(input('Connection name').value).toBe(originalName))
     await change('Change reason', originalReason)
     failure = 409
-    await click('Review name change')
+    await click('Review changes')
     expect(document.body.textContent).toContain(originalName)
-    await click('Confirm name change')
+    await click('Confirm changes')
     await until(() => expect(writes()).toHaveLength(1))
     expect(writes()[0]!.data).toBe(JSON.stringify({ name: originalName, reason: originalReason }))
-    await until(() => expect(button('Retry exact name request').disabled).toBe(false))
+    await until(() => expect(button('Retry exact configuration request').disabled).toBe(false))
     sessionStatus = 500
     await act(async () => {
       await cache.invalidateQueries({ queryKey: sessionKey })
@@ -370,13 +429,13 @@ describe('Connection table and reviewed name workflow', () => {
     await act(async () => {
       await cache.invalidateQueries({ queryKey: sessionKey })
     })
-    await until(() => expect(button('Resume name request')).toBeTruthy())
+    await until(() => expect(button('Resume configuration request')).toBeTruthy())
     expect(writes()).toHaveLength(1)
-    await click('Resume name request')
+    await click('Resume configuration request')
     await until(() => expect(input('Connection name').value).toBe(originalName))
     expect(input('Change reason').value).toBe(originalReason)
     failure = 0
-    await click('Retry exact name request')
+    await click('Retry exact configuration request')
     await until(() => expect(writes()).toHaveLength(2))
     expect(writes()[1]!.data).toBe(writes()[0]!.data)
     expect(writes()[1]!.headers.get('If-Match')).toBe(`"${token}"`)
@@ -386,14 +445,14 @@ describe('Connection table and reviewed name workflow', () => {
     record.name = 'Alpha primary\n'
     await mount()
     await click(`Actions for ${record.name}`)
-    await click('Edit name')
+    await click('Edit')
     await until(() =>
       expect(document.body.textContent).toContain(
         'The action failed. Check the service connection and retry.',
       ),
     )
     expect(document.querySelector('label input')).toBeNull()
-    expect(button('Review name change')).toBeUndefined()
+    expect(button('Review changes')).toBeUndefined()
     expect(writes()).toHaveLength(0)
   })
   it('normalizes only Go White_Space and keeps accepted format characters in the confirmed payload', async () => {
@@ -401,10 +460,10 @@ describe('Connection table and reviewed name workflow', () => {
     await open()
     await change('Connection name', '\u00a0\uFEFFRenamed\uFEFF\u0085')
     await change('Change reason', '\u0085\uFEFFOperational label\uFEFF\u00a0')
-    await click('Review name change')
+    await click('Review changes')
     expect(document.body.textContent).toContain('\uFEFFRenamed\uFEFF')
     expect(document.body.textContent).toContain('\uFEFFOperational label\uFEFF')
-    await click('Confirm name change')
+    await click('Confirm changes')
     await until(() => expect(writes()).toHaveLength(1))
     expect(writes()[0]!.data).toBe(
       JSON.stringify({ name: '\uFEFFRenamed\uFEFF', reason: '\uFEFFOperational label\uFEFF' }),
@@ -415,19 +474,19 @@ describe('Connection table and reviewed name workflow', () => {
     await open()
     await change('Connection name', `\uFEFF${'😀'.repeat(99)}\uFEFF`)
     await change('Change reason', 'Required reason')
-    expect(button('Review name change').disabled).toBe(true)
+    expect(button('Review changes').disabled).toBe(true)
     await change('Connection name', `\uFEFF${'😀'.repeat(98)}\uFEFF`)
     await change('Change reason', `\uFEFF${'r'.repeat(1019)}\uFEFF`)
-    expect(button('Review name change').disabled).toBe(true)
+    expect(button('Review changes').disabled).toBe(true)
     await change('Change reason', `\uFEFF${'r'.repeat(1018)}\uFEFF`)
-    expect(button('Review name change').disabled).toBe(false)
+    expect(button('Review changes').disabled).toBe(false)
     expect(writes()).toHaveLength(0)
   })
   it('does not enable edits for a read-only actor or fetch a private Connection when read permission is absent', async () => {
     permissions = ['providers.read']
     await mount()
     await click('Actions for Alpha primary')
-    await until(() => expect(button('Edit name').getAttribute('aria-disabled')).toBe('true'))
+    await until(() => expect(button('Edit').getAttribute('aria-disabled')).toBe('true'))
     expect(requests.filter((r) => r.url?.endsWith('/metadata'))).toHaveLength(0)
     permissions = ['providers.write']
     await act(async () => {
@@ -443,17 +502,17 @@ describe('Connection table and reviewed name workflow', () => {
     await mount()
     await open()
     await draft()
-    await click('Review name change')
+    await click('Review changes')
     record = { ...record, etag: nextToken }
     await invalidateMetadata()
-    expect(button('Confirm name change').disabled).toBe(true)
-    await click('Confirm name change')
+    expect(button('Confirm changes').disabled).toBe(true)
+    await click('Confirm changes')
     expect(writes()).toHaveLength(0)
     await click('Cancel')
     expect(input('Connection name').value).toBe('  Renamed  ')
     await click('Review current configuration')
-    await click('Review name change')
-    await click('Confirm name change')
+    await click('Review changes')
+    await click('Confirm changes')
     await until(() => expect(writes()).toHaveLength(1))
     expect(writes()[0]!.headers.get('If-Match')).toBe(`"${nextToken}"`)
   })
@@ -462,17 +521,17 @@ describe('Connection table and reviewed name workflow', () => {
     await open()
     failure = 409
     await submit()
-    await until(() => expect(button('Retry exact name request').disabled).toBe(false))
+    await until(() => expect(button('Retry exact configuration request').disabled).toBe(false))
     failure = 503
-    await click('Retry exact name request')
+    await click('Retry exact configuration request')
     await until(() => expect(writes()).toHaveLength(2))
-    await until(() => expect(button('Retry exact name request').disabled).toBe(false))
+    await until(() => expect(button('Retry exact configuration request').disabled).toBe(false))
     failure = 409
-    await click('Retry exact name request')
+    await click('Retry exact configuration request')
     await until(() => expect(writes()).toHaveLength(3))
-    await until(() => expect(button('Retry exact name request').disabled).toBe(false))
+    await until(() => expect(button('Retry exact configuration request').disabled).toBe(false))
     failure = 0
-    await click('Retry exact name request')
+    await click('Retry exact configuration request')
     await until(() => expect(writes()).toHaveLength(4))
     for (const request of writes()) {
       expect(request.data).toBe(writes()[0]!.data)
@@ -487,13 +546,13 @@ describe('Connection table and reviewed name workflow', () => {
       await open()
       failure = status
       await submit()
-      await until(() => expect(button('Retry exact name request').disabled).toBe(false))
+      await until(() => expect(button('Retry exact configuration request').disabled).toBe(false))
       await invalidateMetadata()
-      expect(button('Retry exact name request').disabled).toBe(false)
+      expect(button('Retry exact configuration request').disabled).toBe(false)
       expect(input('Connection name').disabled).toBe(true)
       expect(writes()).toHaveLength(1)
       failure = 0
-      await click('Retry exact name request')
+      await click('Retry exact configuration request')
       await until(() => expect(writes()).toHaveLength(2))
       expect(writes()[1]!.data).toBe(writes()[0]!.data)
       expect(writes()[1]!.headers.get('If-Match')).toBe(`"${token}"`)
@@ -508,41 +567,41 @@ describe('Connection table and reviewed name workflow', () => {
     await open()
     failure = 503
     await submit()
-    expect(button('Retry exact name request').disabled).toBe(true)
-    await click('Retry exact name request')
+    expect(button('Retry exact configuration request').disabled).toBe(true)
+    await click('Retry exact configuration request')
     expect(writes()).toHaveLength(1)
     await act(async () => release())
-    await until(() => expect(button('Retry exact name request').disabled).toBe(false))
+    await until(() => expect(button('Retry exact configuration request').disabled).toBe(false))
   })
   it('retains request through Cancel/Escape and incidental GET; only deliberate Abandon permits a new reviewed intent', async () => {
     await mount()
     await open()
     failure = 503
     await submit()
-    await until(() => expect(button('Retry exact name request').disabled).toBe(false))
+    await until(() => expect(button('Retry exact configuration request').disabled).toBe(false))
     await click('Cancel')
-    await until(() => expect(button('Resume name request')).toBeTruthy())
-    await click('Resume name request')
+    await until(() => expect(button('Resume configuration request')).toBeTruthy())
+    await click('Resume configuration request')
     await until(() => expect(input('Connection name').value).toBe('Renamed'))
     expect(input('Connection name').disabled).toBe(true)
     expect(writes()).toHaveLength(1)
     await act(async () =>
       document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })),
     )
-    await until(() => expect(button('Resume name request')).toBeTruthy())
-    await click('Resume name request')
-    await until(() => expect(button('Retry exact name request')).toBeTruthy())
+    await until(() => expect(button('Resume configuration request')).toBeTruthy())
+    await click('Resume configuration request')
+    await until(() => expect(button('Retry exact configuration request')).toBeTruthy())
     record = { ...record, name: 'Renamed', etag: nextToken }
     await invalidateMetadata()
-    expect(button('Retry exact name request')).toBeTruthy()
+    expect(button('Retry exact configuration request')).toBeTruthy()
     expect(writes()).toHaveLength(1)
     await click('Abandon original request')
     expect(writes()).toHaveLength(1)
     await click('Abandon request')
     expect(input('Connection name').value).toBe('Renamed')
-    expect(button('Review name change').disabled).toBe(true)
+    expect(button('Review changes').disabled).toBe(true)
     await click('Review current configuration')
-    expect(button('Review name change').disabled).toBe(false)
+    expect(button('Review changes').disabled).toBe(false)
     expect(document.body.textContent).toContain('previous outcome remains unknown')
   })
   it('hides private values on permission errors and recovers manual retry under fresh authority', async () => {
@@ -550,7 +609,7 @@ describe('Connection table and reviewed name workflow', () => {
     await open()
     failure = 503
     await submit()
-    await until(() => expect(button('Retry exact name request').disabled).toBe(false))
+    await until(() => expect(button('Retry exact configuration request').disabled).toBe(false))
     permissionStatus = 500
     await act(async () => {
       await cache.invalidateQueries({ predicate: (q) => q.queryKey[0] === 'permissions' })
@@ -562,9 +621,9 @@ describe('Connection table and reviewed name workflow', () => {
     await act(async () => {
       await cache.invalidateQueries({ predicate: (q) => q.queryKey[0] === 'permissions' })
     })
-    await until(() => expect(button('Retry exact name request').disabled).toBe(false))
+    await until(() => expect(button('Retry exact configuration request').disabled).toBe(false))
     failure = 0
-    await click('Retry exact name request')
+    await click('Retry exact configuration request')
     await until(() => expect(writes()).toHaveLength(2))
     expect(writes()[1]!.data).toBe(writes()[0]!.data)
     expect(writes()[1]!.headers.get('If-Match')).toBe(`"${token}"`)
@@ -574,7 +633,7 @@ describe('Connection table and reviewed name workflow', () => {
     await open()
     failure = 503
     await submit()
-    await until(() => expect(button('Retry exact name request').disabled).toBe(false))
+    await until(() => expect(button('Retry exact configuration request').disabled).toBe(false))
     sessionStatus = 500
     await act(async () => {
       await cache.invalidateQueries({ queryKey: sessionKey })
@@ -587,13 +646,13 @@ describe('Connection table and reviewed name workflow', () => {
     await act(async () => {
       await cache.invalidateQueries({ queryKey: sessionKey })
     })
-    await until(() => expect(button('Resume name request')).toBeTruthy())
+    await until(() => expect(button('Resume configuration request')).toBeTruthy())
     expect(mounts).toBe(2)
     expect(writes()).toHaveLength(1)
-    await click('Resume name request')
-    await until(() => expect(button('Retry exact name request').disabled).toBe(false))
+    await click('Resume configuration request')
+    await until(() => expect(button('Retry exact configuration request').disabled).toBe(false))
     failure = 0
-    await click('Retry exact name request')
+    await click('Retry exact configuration request')
     await until(() => expect(writes()).toHaveLength(2))
     expect(writes()[1]!.data).toBe(writes()[0]!.data)
     expect(writes()[1]!.headers.get('If-Match')).toBe(`"${token}"`)
@@ -617,20 +676,20 @@ describe('Connection table and reviewed name workflow', () => {
     await act(async () => {
       await cache.invalidateQueries({ queryKey: sessionKey })
     })
-    await until(() => expect(button('Resume name request')).toBeTruthy())
-    await click('Resume name request')
-    await until(() => expect(button('Retry exact name request').disabled).toBe(false))
+    await until(() => expect(button('Resume configuration request')).toBeTruthy())
+    await click('Resume configuration request')
+    await until(() => expect(button('Retry exact configuration request').disabled).toBe(false))
     hold = new Promise((resolve) => {
       releaseNew = resolve
     })
-    await click('Retry exact name request')
+    await click('Retry exact configuration request')
     await until(() => expect(writes()).toHaveLength(2))
     failure = 503
     await act(async () => releaseOld())
-    expect(button('Retry exact name request').disabled).toBe(true)
-    expect(document.body.textContent).toContain('outcome of the submitted request is unknown')
+    expect(button('Retry exact configuration request').disabled).toBe(true)
+    expect(document.body.textContent).toContain('The submitted outcome is unknown')
     await act(async () => releaseNew())
-    await until(() => expect(button('Retry exact name request').disabled).toBe(false))
+    await until(() => expect(button('Retry exact configuration request').disabled).toBe(false))
     expect(writes()).toHaveLength(2)
     for (const request of writes()) {
       expect(request.data).toBe(writes()[0]!.data)
@@ -644,7 +703,7 @@ describe('Connection table and reviewed name workflow', () => {
       await open()
       failure = 503
       await submit()
-      await until(() => expect(button('Retry exact name request').disabled).toBe(false))
+      await until(() => expect(button('Retry exact configuration request').disabled).toBe(false))
       if (boundary === 'actor') {
         actor = 'usr_other'
         await act(async () => {
@@ -665,8 +724,8 @@ describe('Connection table and reviewed name workflow', () => {
         await act(async () => {
           window.dispatchEvent(new Event('routex:session-expired'))
         })
-      await until(() => expect(button('Retry exact name request')).toBeUndefined())
-      expect(button('Resume name request')).toBeUndefined()
+      await until(() => expect(button('Retry exact configuration request')).toBeUndefined())
+      expect(button('Resume configuration request')).toBeUndefined()
       expect(writes()).toHaveLength(1)
     },
   )
@@ -675,7 +734,7 @@ describe('Connection table and reviewed name workflow', () => {
     await open()
     await draft()
     await act(async () => i18n.changeLanguage('zh'))
-    expect(document.body.textContent).toContain('编辑接入名称')
+    expect(document.body.textContent).toContain('编辑接入')
     expect(
       [...document.querySelectorAll<HTMLInputElement>('input')].some(
         (item) => item.value === '  Renamed  ',
@@ -683,8 +742,8 @@ describe('Connection table and reviewed name workflow', () => {
     ).toBe(true)
     await act(async () => i18n.changeLanguage('en'))
     failure = 503
-    await click('Review name change')
-    await click('Confirm name change')
+    await click('Review changes')
+    await click('Confirm changes')
     await until(() => expect(writes()).toHaveLength(1))
     await act(async () => i18n.changeLanguage('zh'))
     expect(writes()[0]!.data).toBe(JSON.stringify({ name: 'Renamed', reason: 'Operational label' }))
@@ -854,7 +913,7 @@ describe('Connection-row guided Model entry', () => {
     await mount()
     await openAddModel()
     expect(button('Add model').getAttribute('aria-disabled') === 'true').toBe(!allowed)
-    expect(button('Edit name').getAttribute('aria-disabled') === 'true').toBe(
+    expect(button('Edit').getAttribute('aria-disabled') === 'true').toBe(
       !grants.includes('providers.write'),
     )
     await click('Add model')
@@ -891,7 +950,7 @@ describe('Connection-row guided Model entry', () => {
     permissions = ['providers.read', 'models.read_all', 'providers.write']
     await mount()
     await openAddModel('Alpha [literal]')
-    expect(button('Edit name').getAttribute('aria-disabled')).not.toBe('true')
+    expect(button('Edit').getAttribute('aria-disabled')).not.toBe('true')
     expect(
       button(i18n.t('catalog:connectionStatus.enable')).getAttribute('aria-disabled'),
     ).not.toBe('true')
@@ -1008,5 +1067,307 @@ describe('Connection-row guided Model entry', () => {
     await openAddModel()
     await click('Add model')
     expect(router.state.location.search).toBe('?connectionId=con_one')
+  })
+})
+
+describe('Connection transport editing', () => {
+  async function transportDraft() {
+    await open()
+    await change('Base URL', 'https://next.example.invalid/v1')
+    await change('Change reason', 'Endpoint maintenance')
+  }
+  it('requires disabled transport authority but keeps name editing available for enabled Connections', async () => {
+    await mount()
+    await open()
+    expect(input('Base URL').disabled).toBe(true)
+    expect(input('Connection name').disabled).toBe(false)
+    expect(document.body.textContent).toContain('Disable this Connection separately')
+    expect(
+      (document.querySelector('select[aria-label="Protocol type"]') as HTMLSelectElement).disabled,
+    ).toBe(true)
+    expect(writes()).toHaveLength(0)
+  })
+  it('uses the existing form and an explicit old/new complete-tuple confirmation without verification or enable calls', async () => {
+    enabled = false
+    record = { ...record, can_edit_transport: true }
+    await mount()
+    await transportDraft()
+    await click('Review changes')
+    expect(document.body.textContent).toContain('Reviewed transport')
+    expect(document.body.textContent).toContain('https://next.example.invalid/v1')
+    expect(document.body.textContent).toContain('does not verify credentials')
+    expect(writes()).toHaveLength(0)
+    await click('Confirm changes')
+    await until(() => expect(writes()).toHaveLength(1))
+    expect(JSON.parse(writes()[0].data)).toEqual({
+      name: 'Alpha primary',
+      reason: 'Endpoint maintenance',
+      transport: {
+        base_url: 'https://next.example.invalid/v1',
+        protocol: 'openai_chat',
+        adapter: 'native',
+        api_version: null,
+      },
+    })
+    expect(writes()[0].headers.get('If-Match')).toBe(`"${token}"`)
+    expect(
+      requests.filter(
+        (r) =>
+          r.url?.endsWith('/verify') ||
+          r.url?.endsWith('/status') ||
+          r.url?.endsWith('/model-creation'),
+      ),
+    ).toHaveLength(0)
+  })
+  it('locks protocol and adapter from the server retained-Model flag while allowing a Base URL edit', async () => {
+    enabled = false
+    record = { ...record, can_edit_transport: true, transport_locked: true }
+    await mount()
+    await open()
+    expect(
+      (document.querySelector('select[aria-label="Protocol type"]') as HTMLSelectElement).disabled,
+    ).toBe(true)
+    expect(
+      (document.querySelector('select[aria-label="Upstream adapter"]') as HTMLSelectElement)
+        .disabled,
+    ).toBe(true)
+    expect(input('Base URL').disabled).toBe(false)
+    expect(document.body.textContent).toContain('Retained ProviderModels lock')
+  })
+  it('requires an explicit draft reset when a new retained Model locks a previously selected protocol', async () => {
+    enabled = false
+    record = { ...record, can_edit_transport: true }
+    await mount()
+    await open()
+    await change('Connection name', 'Preserved name')
+    await change('Change reason', 'Preserved reason')
+    const protocol = document.querySelector<HTMLSelectElement>(
+      'select[aria-label="Protocol type"]',
+    )!
+    await act(async () => {
+      Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value')!.set!.call(
+        protocol,
+        'openai_responses',
+      )
+      protocol.dispatchEvent(new Event('change', { bubbles: true }))
+    })
+    record = { ...record, transport_locked: true, etag: nextToken }
+    await act(async () => {
+      await cache.invalidateQueries({ predicate: (q) => q.queryKey[1] === 'connection-metadata' })
+    })
+    const currentProtocol = () =>
+      document.querySelector<HTMLSelectElement>('select[aria-label="Protocol type"]')!
+    await until(() => expect(currentProtocol()?.disabled).toBe(true))
+    expect(currentProtocol().value).toBe('openai_responses')
+    expect(button('Review changes').disabled).toBe(true)
+    await click('Reset transport draft to current configuration')
+    expect(currentProtocol().value).toBe('openai_chat')
+    expect(input('Connection name').value).toBe('Preserved name')
+    expect(input('Change reason').value).toBe('Preserved reason')
+    await click('Review current configuration')
+    await until(() => expect(button('Review changes').disabled).toBe(false))
+    expect(writes()).toHaveLength(0)
+  })
+  it('rejects stale proof during confirmation even when the displayed transport tuple is unchanged', async () => {
+    enabled = false
+    record = { ...record, can_edit_transport: true }
+    await mount()
+    await transportDraft()
+    await click('Review changes')
+    const confirm = button('Confirm changes')
+    record = { ...record, etag: nextToken }
+    await act(async () => {
+      void cache.invalidateQueries({ predicate: (q) => q.queryKey[1] === 'connection-metadata' })
+      confirm.click()
+    })
+    expect(writes()).toHaveLength(0)
+  })
+  it('requires explicit current review after initial precommit409 while retaining the transport draft', async () => {
+    enabled = false
+    record = { ...record, can_edit_transport: true }
+    await mount()
+    await transportDraft()
+    failure = 409
+    await click('Review changes')
+    await click('Confirm changes')
+    await until(() => expect(button('Review current configuration')).toBeTruthy())
+    expect(input('Base URL').value).toBe('https://next.example.invalid/v1')
+    expect(button('Review changes').disabled).toBe(true)
+    record = { ...record, etag: nextToken }
+    failure = 0
+    await click('Review current configuration')
+    await until(() => expect(button('Review changes').disabled).toBe(false))
+    await click('Review changes')
+    await click('Confirm changes')
+    await until(() => expect(writes()).toHaveLength(2))
+    expect(writes()[1].headers.get('If-Match')).toBe(`"${nextToken}"`)
+  })
+  it('retains an applied-but-lost response and strict obsolete409 retry until explicit local abandonment and fresh separate review', async () => {
+    enabled = false
+    record = { ...record, can_edit_transport: true }
+    await mount()
+    await transportDraft()
+    failure = 503
+    applyBeforeFailure = true
+    await click('Review changes')
+    await click('Confirm changes')
+    await until(() => expect(button('Retry exact configuration request').disabled).toBe(false))
+    const first = writes()[0]
+    await invalidateMetadata()
+    expect(input('Base URL').disabled).toBe(true)
+    failure = 409
+    applyBeforeFailure = false
+    await click('Retry exact configuration request')
+    await until(() => expect(writes()).toHaveLength(2))
+    await until(() => expect(button('Retry exact configuration request').disabled).toBe(false))
+    expect(writes()[1].data).toBe(first.data)
+    expect(writes()[1].headers.get('If-Match')).toBe(first.headers.get('If-Match'))
+    expect(document.body.textContent).not.toContain('response confirmed current saved')
+    await click('Abandon original request')
+    await click('Abandon request')
+    await click('Review current configuration')
+    await until(() => expect(button('Review changes').disabled).toBe(false))
+    expect(document.body.textContent).toContain('previous outcome remains unknown')
+    failure = 0
+    await change('Base URL', 'https://separate.example.invalid/v1')
+    await click('Review changes')
+    await click('Confirm changes')
+    await until(() => expect(writes()).toHaveLength(3))
+    expect(writes()[2].headers.get('If-Match')).toBe(`"${nextToken}"`)
+  })
+  it('synchronously fences a captured cancel after Confirm before pending state renders', async () => {
+    enabled = false
+    record = { ...record, can_edit_transport: true }
+    await mount()
+    await transportDraft()
+    await click('Review changes')
+    let release!: () => void
+    hold = new Promise((resolve) => {
+      release = resolve
+    })
+    const confirm = button('Confirm changes'),
+      cancel = button('Cancel')
+    await act(async () => {
+      confirm.click()
+      cancel.click()
+      confirm.click()
+    })
+    expect(writes()).toHaveLength(1)
+    expect(document.querySelector('[role="dialog"]')).not.toBeNull()
+    await act(async () => release())
+    await until(() => expect(document.body.textContent).toContain('current saved configuration'))
+  })
+  it('synchronously rejects another-row Edit captured before transport Confirm dispatches', async () => {
+    enabled = false
+    record = { ...record, can_edit_transport: true }
+    await mount()
+    await click('Actions for Alpha [literal]')
+    await until(() => expect(button('Edit')).toBeTruthy())
+    interface Fiber {
+      type: unknown
+      return: Fiber | null
+      memoizedProps: { onClick?: () => void }
+    }
+    const control = button('Edit'),
+      fiberKey = Object.keys(control).find((key) => key.startsWith('__reactFiber$'))!
+    let fiber = (control as unknown as Record<string, Fiber>)[fiberKey]
+    while (fiber && fiber.type !== MenuItem) fiber = fiber.return!
+    const other = fiber.memoizedProps.onClick!
+    await click('Actions for Alpha [literal]')
+    await transportDraft()
+    await click('Review changes')
+    let release!: () => void
+    hold = new Promise((resolve) => {
+      release = resolve
+    })
+    const confirm = button('Confirm changes')
+    await act(async () => {
+      confirm.click()
+      other()
+    })
+    expect(writes()).toHaveLength(1)
+    expect(writes()[0].url).toBe('/admin/connections/con_one/metadata')
+    expect(document.querySelector('input[value="Alpha [literal]"]')).toBeNull()
+    await act(async () => release())
+    await until(() => expect(document.body.textContent).toContain('current saved configuration'))
+  })
+  it('preserves exact transport intent after same-owner renewal and rejects an ignored-abort old success', async () => {
+    enabled = false
+    record = { ...record, can_edit_transport: true }
+    await mount()
+    await transportDraft()
+    await click('Review changes')
+    let release!: () => void
+    hold = new Promise((resolve) => {
+      release = resolve
+    })
+    ignoreMetadataAbort = true
+    await click('Confirm changes')
+    await until(() => expect(writes()).toHaveLength(1))
+    const first = writes()[0]
+    csrf = 'csrf-renewed'
+    await act(async () => {
+      await cache.refetchQueries({ queryKey: sessionKey, exact: true })
+    })
+    await act(async () => release())
+    await until(() => expect(button('Retry exact configuration request').disabled).toBe(false))
+    expect(document.body.textContent).not.toContain('response confirmed current saved')
+    hold = undefined
+    failure = 409
+    await click('Retry exact configuration request')
+    await until(() => expect(writes()).toHaveLength(2))
+    expect(writes()[1].data).toBe(first.data)
+    expect(writes()[1].headers.get('If-Match')).toBe(first.headers.get('If-Match'))
+    expect(writes()[1].headers.get('X-CSRF-Token')).toBe('csrf-renewed')
+  })
+  it('blocks a captured other-row status callback synchronously once transport dispatch owns the transient intent', async () => {
+    enabled = false
+    record = { ...record, can_edit_transport: true }
+    await mount()
+    await click('Actions for Alpha [literal]')
+    const action = button('Enable Connection')
+    type Fiber = { type: unknown; memoizedProps: { onClick?: () => void }; return?: Fiber | null }
+    const key = Object.keys(action).find((key) => key.startsWith('__reactFiber$'))!
+    let fiber = (action as unknown as Record<string, Fiber>)[key]
+    while (fiber && fiber.type !== MenuItem) fiber = fiber.return!
+    const changeRow = fiber.memoizedProps.onClick!
+    expect(changeRow).toBeTypeOf('function')
+    await click('Actions for Alpha [literal]')
+    await transportDraft()
+    await click('Review changes')
+    let release!: () => void
+    hold = new Promise((resolve) => {
+      release = resolve
+    })
+    await act(async () => {
+      button('Confirm changes').click()
+      changeRow()
+    })
+    expect(writes()).toHaveLength(1)
+    expect(requests.some((request) => request.url?.endsWith('/status'))).toBe(false)
+    expect(document.body.textContent).not.toContain('Enable Connection?')
+    await act(async () => release())
+  })
+  it('translates confirmation and retained transport intent live without changing the request', async () => {
+    enabled = false
+    record = { ...record, can_edit_transport: true }
+    await mount()
+    await transportDraft()
+    await click('Review changes')
+    await act(async () => i18n.changeLanguage('zh'))
+    expect(document.body.textContent).toContain('拟保存的传输配置')
+    expect(document.body.textContent).toContain('https://next.example.invalid/v1')
+    await act(async () => i18n.changeLanguage('en'))
+    failure = 503
+    await click('Confirm changes')
+    await until(() => expect(button('Retry exact configuration request').disabled).toBe(false))
+    const first = writes()[0].data
+    await act(async () => i18n.changeLanguage('zh'))
+    expect(document.body.textContent).toContain('完整传输配置')
+    await act(async () => i18n.changeLanguage('en'))
+    failure = 409
+    await click('Retry exact configuration request')
+    await until(() => expect(writes()).toHaveLength(2))
+    expect(writes()[1].data).toBe(first)
   })
 })

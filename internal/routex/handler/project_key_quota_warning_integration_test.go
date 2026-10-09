@@ -61,6 +61,26 @@ func testProjectKeyMonthlyQuotaWarningLifecycle(t *testing.T, db *gorm.DB) {
 			t.Error(err)
 		}
 	}()
+	var diagnosticWriteActive atomic.Bool
+	const diagnosticCallback = "test:project-key-warning-query-diagnostic"
+	if err := db.Callback().Query().After("gorm:query").Register(diagnosticCallback, func(tx *gorm.DB) {
+		if tx.Error == nil || !diagnosticWriteActive.Load() {
+			return
+		}
+		contextClass, worker := "missing", false
+		if tx.Statement != nil && tx.Statement.Context != nil {
+			contextClass = projectKeyWarningFixtureDiagnosticClass(tx.Statement.Context.Err())
+			worker = tx.Statement.Context.Value(projectKeyWarningFixtureWorkerContext{}) == &publicationBarrier
+		}
+		t.Logf("project_key_warning_query_failure observed_at=%s error_class=%s context_class=%s fixture_worker=%t", time.Now().UTC().Format(time.RFC3339Nano), projectKeyWarningFixtureDiagnosticClass(tx.Error), contextClass, worker)
+	}); err != nil {
+		t.Fatal(err)
+	}
+	defer func() {
+		if err := db.Callback().Query().Remove(diagnosticCallback); err != nil {
+			t.Error(err)
+		}
+	}()
 	store, err := secretstore.New(bytes.Repeat([]byte{97}, 32))
 	if err != nil {
 		t.Fatal(err)
@@ -181,7 +201,8 @@ func testProjectKeyMonthlyQuotaWarningLifecycle(t *testing.T, db *gorm.DB) {
 		return res
 	}
 	boundPath := "/api/v1/admin/provider-models/pmd_jkw/reservation-bound"
-	expectStatus(t, adminRequest("PUT", boundPath, map[string]any{"max_input_tokens": 1, "max_output_tokens": 1, "evidence": "Controlled native response capacity", "reason": "Personal Key warning acceptance"}, "0"), 200)
+	capacityReview := decodeCatalogResponse[service.ReservationBoundRecord](t, adminRequest("GET", boundPath, nil, ""), 200)
+	expectStatus(t, adminRequest("PUT", boundPath, map[string]any{"max_input_tokens": 1, "max_output_tokens": 1, "evidence": "Controlled native response capacity", "reason": "Personal Key warning acceptance"}, capacityReview.ETag), 200)
 	expectStatus(t, call(adminBearer), 200)
 	if err := svc.FlushCallRecorder(ctx); err != nil {
 		t.Fatal(err)
@@ -335,11 +356,27 @@ func testProjectKeyMonthlyQuotaWarningLifecycle(t *testing.T, db *gorm.DB) {
 		return next
 	}
 	pathFor := func(id string) string { return "/api/v1/projects/" + projectID + "/keys/" + id + "/limits" }
-	write := func(keyID string, values map[string]any) entity.ResourceLimit {
+	write := func(keyID string, values map[string]any, fixtureLabel ...string) entity.ResourceLimit {
 		t.Helper()
+		label := "project_key_policy"
+		if len(fixtureLabel) == 1 && fixtureLabel[0] == "exact_10000_grandchild" {
+			label = "exact_10000_grandchild"
+			diagnosticWriteActive.Store(true)
+			defer diagnosticWriteActive.Store(false)
+		}
 		path := pathFor(keyID)
-		current := decodeCatalogResponse[service.LimitRecord](t, memberRequest("GET", path, nil, ""), 200)
-		record := decodeCatalogResponse[service.LimitRecord](t, memberRequest("PUT", path, projectKeyWarningFixturePolicy(values), current.ETag), 200)
+		reviewStarted := time.Now()
+		reviewResponse := memberRequest("GET", path, nil, "")
+		if reviewResponse.Code != http.StatusOK {
+			t.Logf("project_key_limit_fixture_failure fixture=%s stage=review_get status_code=%d elapsed_ns=%d observed_at=%s", label, reviewResponse.Code, time.Since(reviewStarted).Nanoseconds(), time.Now().UTC().Format(time.RFC3339Nano))
+		}
+		current := decodeCatalogResponse[service.LimitRecord](t, reviewResponse, 200)
+		writeStarted := time.Now()
+		writeResponse := memberRequest("PUT", path, projectKeyWarningFixturePolicy(values), current.ETag)
+		if writeResponse.Code != http.StatusOK {
+			t.Logf("project_key_limit_fixture_failure fixture=%s stage=save_put status_code=%d elapsed_ns=%d observed_at=%s", label, writeResponse.Code, time.Since(writeStarted).Nanoseconds(), time.Now().UTC().Format(time.RFC3339Nano))
+		}
+		record := decodeCatalogResponse[service.LimitRecord](t, writeResponse, 200)
 		if !record.Enforced {
 			t.Fatal("reviewed root policy was not published")
 		}
@@ -1083,7 +1120,7 @@ func testProjectKeyMonthlyQuotaWarningLifecycle(t *testing.T, db *gorm.DB) {
 	if err := db.CreateInBatches(filler, 500).Error; err != nil {
 		t.Fatal(err)
 	}
-	write(grandchild.Key.ID, map[string]any{"tokens_month": 10, "rpm": 100})
+	write(grandchild.Key.ID, map[string]any{"tokens_month": 10, "rpm": 100}, "exact_10000_grandchild")
 	reconcile()
 	// The exact10000-row graph adds one genuine observation; malformed fixture rows stay excluded only from this projection.
 	assertCount(rootID, 7)
@@ -1922,4 +1959,24 @@ func TestProjectKeyWarningFixtureOperationCapture(t *testing.T) {
 		go func() { defer snapshots.Done(); _, _ = capture.snapshot() }()
 	}
 	snapshots.Wait()
+}
+
+// Temporary fixture diagnostics classify errors without recording SQL or identities.
+func projectKeyWarningFixtureDiagnosticClass(err error) string {
+	switch {
+	case err == nil:
+		return "ok"
+	case errors.Is(err, context.DeadlineExceeded):
+		return "deadline_exceeded"
+	case errors.Is(err, context.Canceled):
+		return "canceled"
+	case errors.Is(err, gorm.ErrRecordNotFound):
+		return "not_found"
+	case errors.Is(err, gorm.ErrDuplicatedKey):
+		return "duplicate_key"
+	case errors.Is(err, errProjectKeyWarningFixturePublication):
+		return "fixture_publication_rejected"
+	default:
+		return "other"
+	}
 }

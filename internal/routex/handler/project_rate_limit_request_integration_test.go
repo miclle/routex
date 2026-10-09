@@ -204,7 +204,8 @@ func testProjectRateLimitRequestLifecycle(t *testing.T, db *gorm.DB) {
 	}
 	initial := limits.Policy{TokensMonth: number(1000), Tokens5H: number(1000), Tokens7D: number(1000), RPM: number(1), Concurrency: number(1), IPMode: "allowlist", IPRanges: []string{"127.0.0.1"}}
 	initialRecord := write(initial)
-	expectStatus(t, asAdmin("PUT", "/api/v1/admin/provider-models/pmd_rate_request/reservation-bound", map[string]any{"max_input_tokens": 4, "max_output_tokens": 1, "evidence": "Controlled five token native output", "reason": "Rate request acceptance"}, "0"), 200)
+	capacityReview := decodeCatalogResponse[service.ReservationBoundRecord](t, asAdmin("GET", "/api/v1/admin/provider-models/pmd_rate_request/reservation-bound", nil, ""), 200)
+	expectStatus(t, asAdmin("PUT", "/api/v1/admin/provider-models/pmd_rate_request/reservation-bound", map[string]any{"max_input_tokens": 4, "max_output_tokens": 1, "evidence": "Controlled five token native output", "reason": "Rate request acceptance"}, capacityReview.ETag), 200)
 	contextRecord := decodeCatalogResponse[service.ProjectRequestLimitsContext](t, asManager("GET", base+"/request-limits-context", nil, ""), 200)
 	quotaContext := decodeCatalogResponse[service.ProjectQuotaRequestContext](t, asManager("GET", base+"/request-quota-context", nil, ""), 200)
 	if contextRecord.ReviewETag != quotaContext.ReviewETag || contextRecord.PolicyETag != initialRecord.ETag || *contextRecord.CurrentRateLimit.RPM != 1 || *contextRecord.CurrentQuota.TokensMonth != 1000 {

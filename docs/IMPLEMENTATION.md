@@ -1,6 +1,153 @@
 # RouteX Implementation and Acceptance Index
 
-Updated: 2026-10-09. This document records engineering contracts, work packages and acceptance checks. Planned interfaces and metrics are not implementation evidence. The objective covers F01–F30 and A01–A20 through incremental P0–P6 delivery and is resumed by the user's explicit instruction, prioritizing partially completed capabilities.
+Updated: 2026-10-10. This document records engineering contracts, work packages and acceptance checks. Planned interfaces and metrics are not implementation evidence. The objective covers F01–F30 and A01–A20 through incremental P0–P6 delivery and is resumed by the user's explicit instruction, prioritizing partially completed capabilities.
+
+## Current execution status (2026-10-10)
+
+The full objective remains active. The containing commit delivers Connection
+diagnostics and transport V92. The previously pushed baseline
+`8152d175c6251b10f933d65d22fbdc3a89df3eeb` passes its exact-head Actionlint,
+GolangCI and complete CI checks; remote checks for this delivery require their own
+exact-head result.
+Capability totals remain **14 Completed / 13 Partial / 3 Not started**.
+
+| Work package | Current state | Verified evidence / remaining gate |
+|---|---|---|
+| Connection diagnostics and transport V92 | Delivered by the containing commit | The unchanged official third retry passes in 2,625.272 seconds: 179 ordered scenarios, four constraints and 441 named results per database, plus all 5,479 ordinary named results. All 2,092 source paths and modes remain exact. Independent inspection confirms owned processes, groups, database ports and Compose resources absent, with the original development service alive. Fresh main mandatory checking passes in 57.329 seconds with exact source/modes. Main complete Task passes in 325.569 seconds, including all 5,794 frontend cases; controlled English/Chinese browser workflows pass. Earlier failed runs remain retained. |
+| V92 fixture regressions | Complete retry passed | The full PostgreSQL/MySQL retry includes the original 10,000-Key Project Key monthly warning case and historical Gateway reconstruction without changed guards, bounds or assertions. The earlier PostgreSQL Enforced=false failure and temporary focused nonreproduction remain historical evidence; its original cause is not established by the passing isolated retry. Temporary diagnostic instrumentation is never delivered. |
+| Unbound Provider Model creation entry | Separate qualified candidate; not adopted | Complete Task retry/build and composed UI gates pass; English/Chinese exact-Connection, retained zero-weight binding and read-only browser cases pass without inference or catalogue changes. |
+| Provider Model navigation gap | Open | Two browser clicks after Back remain on the list; direct access works. All four added navigation regressions pass within the 5,821-case Vitest batch, and all five Node tests pass through the corrected invocation. The event-time cause is unknown; no speculative product fix is applied. |
+| Provider Overview unbound attention | Separate corrected candidate; not adopted | Nineteen focused cases, mandatory checking, the full 5,840-case frontend batch, five Node tests, production assets and binary build pass. Render-time ref/memoization and test-mock typing errors are fixed. The successor with the separate disabled-Connection attention row passes all 37 focused cases, mandatory checking, the full 5,858-case frontend batch in 220 files, five Node tests, production assets and binary build. Controlled owner browser checks pass in English/Chinese: exact unbound/disabled counts, zero-weight binding preservation and existing Models/Connections tab navigation. Catalogue, 0/100 weights and three history versions stay unchanged; one discovery and zero native calls are recorded. Owned processes, ports, Compose resources and tab close cleanly. Permission/error cases remain focused-test evidence. |
+| Credential inference statistics V93 | Separate candidate; not adopted | User-approved inference-only semantics, read-only authority and SQL bound tests pass. The corrected source passes mandatory checking, complete Task tests (437.727 seconds, including Go race/coverage, all 5,836 frontend cases, five Node tests, development lifecycle and production assets) and binary build. The 2,109-path composed Provider candidate passes mandatory checking, complete Task tests (5,882 frontend cases in 221 files) and binary build. Its successor also includes disabled-Connection attention and passes mandatory checking, all 5,900 frontend cases in 222 files, five Node tests, production assets and binary build. The real PostgreSQL probe exposes migration93 rejecting the chronology index: pinned GORM PostgreSQL metadata does not preserve index-column order. The database-layer ordered-inspection correction is prepared, retaining GORM index creation and strict column-order, uniqueness and prefix checks; it has not yet been executed. Real V93 migration, query-plan and browser acceptance remain pending. |
+
+| Model configured availability F12 | Source prepared and independently reviewed; not adopted | Frontend and backend source reviews find no concrete defects in the additive true/false/unknown projection, independent read authority, bounded consistent reads and unchanged routing-weight writes. Compilation, automated tests, dual-database and browser acceptance remain pending. This summary describes stored configuration, not live health. |
+| Vault and storage F28 | Existing delivery reconciled; remaining scope identified | Published-object drain and graceful closure are already delivered in V88/V89. Genuine English/Chinese Secrets, Vault, storage and orphan-cleanup browser acceptance remains pending. Certificate and workload authentication remain separate functional gaps; external compatibility and unverified cleanup-failure cases remain explicit. |
+
+V92 complete-acceptance SHA-256: `53ec4fe4f8e23f7b6b021151db2249158aba48a9422a5bb9eca2598e77997411`. The successful retry
+serializes heavy local qualification work. Earlier failures remain failed records;
+no historical cause, external native health or fleet application is inferred.
+
+V93 statistics keep manual Verify/Test results separate, retain unknown/no-records/
+lower-bound distinctions, and never automatically disable a Credential. A private
+GORM query-plan probe compiles; no database plan or bounded scan-work claim is
+accepted before actual PostgreSQL/MySQL execution. Only one qualification Compose
+project runs at a time. The original development service remains protected.
+Earlier checkpoints below are historical, including failed commands and fixtures.
+
+## V92 focused regression result (2026-10-09)
+
+The corrected fixture candidate passes formatting, staticcheck and Go race/coverage.
+The focused 16-scenario run closes after 482.319 seconds with 15 passes per driver.
+PostgreSQL Gateway still returns HTTP500 after historical schema reconstruction;
+MySQL Project Key monthly warnings return HTTP503 at the 10,000-row fixture write.
+Their exact causes remain under investigation. Every other selected scenario passes,
+including the held-call history check. This is not full integration acceptance.
+Owned processes/groups, database ports and Compose resources are independently
+confirmed absent; the original development service remains alive. Failure evidence
+is retained. Production guards and all negative assertions remain unchanged.
+
+The separate disposable browser check confirms the unbound ProviderModel entry
+in English/Chinese with the exact Connection preselected, no action for retained
+bindings including zero weight, and no creation action for a read-only Member.
+The original catalogue, 0/100 weights and three history versions remain exact;
+stubs record one discovery and zero inference. Temporary processes, ports,
+Compose resources and the tab are closed. Two model-list detail clicks after Back
+remain on the list; direct access succeeds and the event-time cancellation cause
+is unknown. This navigation gap remains open. Credential statistics are composed
+and formatted in an isolated V93 source candidate; no V93 tests, database
+acceptance or main adoption are claimed. Connection publication is still blocked
+by the two database regressions; their diagnostic two-scenario run is active.
+
+## V92 PostgreSQL regression failures under correction (2026-10-09)
+
+The official full179 run closed with Task exit201 after 2,930.271 seconds.
+Both PostgreSQL and MySQL report the same 16 failed scenarios; the ordinary worker
+passes. This candidate is not accepted, committed or pushed. The original source
+and raw JSON evidence remain retained. All eight owned workers joined; independent
+checks confirm all captured processes/groups, ports and Compose resources are
+absent and the original development service is alive.
+
+Source diagnosis establishes missing live-runtime setup for three capability/state
+write fixtures, eleven capacity fixtures still using the obsolete raw revision
+instead of the new reviewed transport-bound token, and a missing SQL flush barrier
+before the new held-call history assertion. The latter compound failure does not
+yet identify which asserted term failed. A historical column-drop/recreation
+fixture also reports a stale PostgreSQL SELECT-star result plan; a frozen
+preservation projection is prepared for focused validation. A separate fixture-only candidate passes formatting, mandatory checking and
+all Go race/coverage tests. The final fixture successor also passes formatting,
+handler staticcheck and all Go race/coverage tests after preserving the exact typed
+capability review plus enable/disable audit set. A focused run of all 16 failed
+scenarios is now active on PostgreSQL and MySQL. Production confirmation and
+validity bounds remain intact. This focused run and a renewed unchanged full
+integration run must pass before publication.
+
+The independent model-entry candidate passes its unchanged complete Task retry
+and binary build. Its V92 UI composition also passes mandatory checks, all 5,817
+frontend cases in 218 files, Node tests, production assets and binary build.
+This frontend evidence does not resolve the failed database acceptance. V93
+Credential statistics and Provider Overview attention source packets are prepared
+separately and remain unexecuted/unadopted.
+
+## Connection candidate main adoption pending acceptance (2026-10-09)
+
+The qualified V92 source is now adopted into the main working tree, preserving
+the published Member focus repair, current progress and the approved planned
+Credential-statistics contract. All Go paths match the frozen qualified source;
+no V93 or unbound-model entry implementation is included. Main formatting and
+mandatory checking pass. The 2,025 non-document paths exactly match the separately
+qualified V92/Member-focus composite, whose complete Task tests passed with 5,794
+frontend cases; this is reused source-equivalent evidence, not a new main Task run. The unchanged official 179-scenario integration
+run remains active, with no recorded failure events at the latest observation.
+It has not completed; database acceptance, commit and push remain pending.
+
+## Credential inference statistics contract (2026-10-09)
+
+The user confirmed that consecutive failures and recent errors come only from
+recorded inference attempts for the exact Credential. Verify and Test connection
+results remain separate. Statistics never change enablement or routing. Legacy
+missing attribution remains unknown; logical call success, HTTP status, usage and
+native completion must not replace an attempt's recorded status.
+
+The next bounded slice is in source preparation, not implemented on main. It
+will inspect at most 100 retained attributed attempts plus an overflow sentinel,
+ordered by recorded completion time and exact ID, for at most 20 requested
+Credentials. A cancellation or unknown event is an unknown streak boundary;
+errors after it give only a lower bound. No recorded attempts, exact zero,
+clipped values and unknown coverage remain distinct. Recent sanitized error and
+its recorded time remain historical even after a later successful attempt.
+The existing Credentials table will show these read-only facts separately from
+verification and diagnostics. Backend and frontend source preparation are
+parallel; tests, both-database migration acceptance and browser proof are pending.
+
+## Unbound ProviderModel entry continuation (2026-10-09)
+
+Local Member administration is published as
+`8152d175c6251b10f933d65d22fbdc3a89df3eeb`, with verified remote main parity.
+Exact-head Actionlint, GolangCI and the complete CI all pass. F04 is
+Completed and totals remain 14 Completed / 13 Partial / 3 Not started.
+
+A separate source candidate adds the missing Add to model action inside the
+existing unbound ProviderModel detail notice. It opens the existing guided
+creation route with the exact Connection preselected; source/target selection,
+preview and submission remain explicit. It performs no binding, grant, discovery
+or weight mutation. Fresh Provider/Model reads and the destination's existing
+administrator and independent write gates are preserved. Unknown, stale and
+failed reads are not treated as an unbound result. Paired English/Chinese copy,
+paired frontend rules and pricing documentation are prepared.
+
+The candidate passes formatting, mandatory checking and 85 focused cases in
+four files, including 23 new navigation and authority-lifetime cases plus existing
+state, capacity and guided-creation regressions. Complete Task testing stopped
+at the unchanged runtime-application unit test's 250 ms deadline; its isolated
+race-enabled repeat passes without source or timeout changes. The failed run is
+retained. The separate full frontend run passes 5,653 cases in 214 files and the Node
+batch. The unchanged complete Task retry and binary build now pass; the original
+failure is retained and real browser acceptance remains pending. A separate
+V92/entry UI composition is being checked before browser use. No entry source is adopted into main.
+The independently frozen schema92 /179 Connection source is adopted separately
+with acceptance and publication pending. It remains in the
+unchanged official PostgreSQL/MySQL run. No second local Compose test project is
+started during that run.
 
 ## Local Member administration complete (2026-10-09)
 

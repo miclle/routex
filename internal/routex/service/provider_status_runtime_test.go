@@ -375,6 +375,12 @@ type providerStatusSelectorSQLFixture struct {
 	route      gatewayRoute
 	queries    []string
 	credential entity.ProviderCredential
+	connection entity.ProviderConnection
+	model      entity.ProviderModel
+	active     bool
+	begins     int
+	commits    int
+	rollbacks  int
 }
 
 type providerStatusSelectorSQLConnector struct {
@@ -403,11 +409,43 @@ func (providerStatusSelectorSQLConnection) Prepare(string) (driver.Stmt, error) 
 }
 func (providerStatusSelectorSQLConnection) Close() error { return nil }
 func (providerStatusSelectorSQLConnection) Begin() (driver.Tx, error) {
-	return nil, errors.New("read-only selector unexpectedly began a transaction")
+	return nil, errors.New("selector omitted required read-only isolation options")
+}
+func (c providerStatusSelectorSQLConnection) BeginTx(ctx context.Context, options driver.TxOptions) (driver.Tx, error) {
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
+	if !options.ReadOnly || options.Isolation != driver.IsolationLevel(sql.LevelRepeatableRead) || c.fixture.active {
+		return nil, errors.New("selector lost its read-only repeatable-read snapshot")
+	}
+	c.fixture.active = true
+	c.fixture.begins++
+	return providerStatusSelectorSQLTransaction(c), nil
+}
+
+type providerStatusSelectorSQLTransaction struct {
+	fixture *providerStatusSelectorSQLFixture
+}
+
+func (tx providerStatusSelectorSQLTransaction) Commit() error {
+	tx.fixture.active = false
+	tx.fixture.commits++
+	return nil
+}
+func (tx providerStatusSelectorSQLTransaction) Rollback() error {
+	tx.fixture.active = false
+	tx.fixture.rollbacks++
+	return nil
+}
+func (providerStatusSelectorSQLConnection) ExecContext(context.Context, string, []driver.NamedValue) (driver.Result, error) {
+	return nil, errors.New("read-only selector attempted a write")
 }
 func (c providerStatusSelectorSQLConnection) QueryContext(ctx context.Context, query string, _ []driver.NamedValue) (driver.Rows, error) {
 	if err := ctx.Err(); err != nil {
 		return nil, err
+	}
+	if !c.fixture.active {
+		return nil, errors.New("selector read escaped its repeatable-read snapshot")
 	}
 	c.fixture.queries = append(c.fixture.queries, query)
 	switch {
@@ -416,11 +454,25 @@ func (c providerStatusSelectorSQLConnection) QueryContext(ctx context.Context, q
 			!strings.Contains(query, "pr.created_at AS provider_birth") || !strings.Contains(query, "pr.enabled AS provider_enabled") {
 			return nil, errors.New("selector lost the physical Provider eligibility columns or scan aliases")
 		}
-		return effectiveSQLRows([]gatewayRoute{c.fixture.route})
-	case strings.Contains(query, "provider_credentials AS c"):
+		return effectiveSQLRows([]struct {
+			ModelID                                                           string
+			ProviderRecordID, ProviderModelConnectionID, BoundProviderModelID string
+			Route                                                             gatewayRoute `gorm:"embedded"`
+		}{{
+			ModelID: "mdl_selector", ProviderRecordID: c.fixture.route.ProviderID,
+			ProviderModelConnectionID: c.fixture.model.ConnectionID, BoundProviderModelID: c.fixture.model.ID,
+			Route: c.fixture.route,
+		}})
+	case strings.Contains(query, `FROM "provider_connections"`):
+		return effectiveSQLRows([]entity.ProviderConnection{c.fixture.connection})
+	case strings.Contains(query, `FROM "provider_credentials"`):
 		return effectiveSQLRows([]entity.ProviderCredential{c.fixture.credential})
+	case strings.Contains(query, `FROM "provider_models"`):
+		return effectiveSQLRows([]entity.ProviderModel{c.fixture.model})
+	case strings.Contains(query, `FROM "credential_model_accesses"`):
+		return effectiveSQLRows([]entity.CredentialModelAccess{{CredentialID: c.fixture.credential.ID, ProviderModelID: c.fixture.model.ID}})
 	default:
-		return nil, errors.New("selector escaped its bounded route and credential reads")
+		return nil, errors.New("selector escaped its bounded topology, transport and credential coverage reads")
 	}
 }
 
@@ -438,8 +490,12 @@ func TestProviderStatusDatabaseSelectorScansExactProviderProof(t *testing.T) {
 					ConnectionID: "con_selector", ConnectionEnabled: true, ConnectionBirth: birth,
 					ProviderID: "prv_selector", ProviderBirth: birth, ProviderEnabled: enabled,
 					ProviderRevision: "rev_selector", Protocol: entity.ProtocolOpenAIChat,
+					ProviderModelBirth: birth, ProviderModelRevision: "0", CapabilityTransportGeneration: "0",
+					ConnectionTransportGeneration: "0", Adapter: entity.AdapterNative, BaseURL: "https://example.invalid/v1",
 				},
-				credential: entity.ProviderCredential{ID: "crd_selector", ConnectionID: "con_selector", Enabled: true, VerificationStatus: "verified"},
+				credential: entity.ProviderCredential{ID: "crd_selector", ConnectionID: "con_selector", Enabled: true, VerificationStatus: "verified", CreatedAt: birth, VerifiedTransportGeneration: "0"},
+				connection: entity.ProviderConnection{ID: "con_selector", ProviderID: "prv_selector", Enabled: true, CreatedAt: birth, TransportGeneration: "0", Protocol: entity.ProtocolOpenAIChat, Adapter: entity.AdapterNative, BaseURL: "https://example.invalid/v1"},
+				model:      entity.ProviderModel{ID: "pmd_selector", ConnectionID: "con_selector", CreatedAt: birth, CapabilityTransportGeneration: "0"},
 			}
 			pool := sql.OpenDB(providerStatusSelectorSQLConnector{fixture: fixture})
 			t.Cleanup(func() { _ = pool.Close() })
@@ -448,16 +504,28 @@ func TestProviderStatusDatabaseSelectorScansExactProviderProof(t *testing.T) {
 				t.Fatal(err)
 			}
 			route, err := selectGatewayProtocolRoute(db, "mdl_selector", entity.ProtocolOpenAIChat)
+			// Hydration reads the same bounded proof tables before eligibility is
+			// filtered, even when the exact Provider is disabled.
+			wantReads := []string{"model_provider_bindings AS b", `FROM "provider_connections"`, `FROM "provider_credentials"`, `FROM "provider_models"`, `FROM "credential_model_accesses"`, `FROM "provider_connections"`}
+			if len(fixture.queries) != len(wantReads) || fixture.begins != 1 || fixture.commits != 1 || fixture.rollbacks != 0 || fixture.active {
+				t.Fatal("selector did not complete one bounded read-only snapshot", fixture.queries, fixture.begins, fixture.commits, fixture.rollbacks, fixture.active)
+			}
+			for i, table := range wantReads {
+				if !strings.Contains(fixture.queries[i], table) {
+					t.Fatal("selector proof read order changed", i, table, fixture.queries)
+				}
+			}
 			if enabled {
-				if err != nil || route == nil || len(fixture.queries) != 2 {
+				if err != nil || route == nil {
 					t.Fatal("enabled database route failed", route, err, fixture.queries)
 				}
 				if route.ProviderID != fixture.route.ProviderID || !route.ProviderBirth.Equal(birth) ||
-					!route.ProviderEnabled || route.ProviderRevision != fixture.route.ProviderRevision || route.CredentialID != fixture.credential.ID {
+					!route.ProviderEnabled || route.ProviderRevision != fixture.route.ProviderRevision || route.CredentialID != fixture.credential.ID ||
+					!route.ConnectionEnabled || !route.CapabilitiesTransportCurrent || !route.ProviderModelBirth.Equal(birth) {
 					t.Fatal("Provider physical columns did not scan into exact route authority", route)
 				}
-			} else if err == nil || route != nil || len(fixture.queries) != 1 {
-				t.Fatal("disabled Provider admitted route or read a credential", route, err, fixture.queries)
+			} else if err == nil || route != nil {
+				t.Fatal("disabled Provider admitted a route despite otherwise current eligible child proofs", route, err, fixture.queries)
 			}
 		})
 	}

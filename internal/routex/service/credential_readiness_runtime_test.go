@@ -19,12 +19,13 @@ func credentialReadinessRuntimeFixture(t *testing.T) (*Service, entity.ProviderC
 	t.Helper()
 	now := time.Now().UTC().Truncate(time.Microsecond)
 	replacement := entity.ProviderCredential{
-		ID:                 "crd_replacement",
-		ConnectionID:       "con_one",
-		Name:               "Replacement",
-		Enabled:            true,
-		VerificationStatus: "verified",
-		CreatedAt:          now.Add(-time.Minute),
+		VerifiedTransportGeneration: "0",
+		ID:                          "crd_replacement",
+		ConnectionID:                "con_one",
+		Name:                        "Replacement",
+		Enabled:                     true,
+		VerificationStatus:          "verified",
+		CreatedAt:                   now.Add(-time.Minute),
 	}
 	store, err := secretstore.New([]byte(strings.Repeat("k", 32)))
 	if err != nil {
@@ -37,9 +38,9 @@ func credentialReadinessRuntimeFixture(t *testing.T) (*Service, entity.ProviderC
 	replacement.StorageSource = "inline"
 	auth := buildRuntimeAuthorization(&runtimeData{
 		Providers:      []entity.Provider{{ID: "prv_one", Enabled: true, ETag: "0", CreatedAt: now.Add(-time.Hour)}},
-		Connections:    []entity.ProviderConnection{{ID: "con_one", ProviderID: "prv_one", Enabled: true, CreatedAt: now.Add(-time.Hour)}},
+		Connections:    []entity.ProviderConnection{{TransportGeneration: "0", ID: "con_one", ProviderID: "prv_one", Enabled: true, CreatedAt: now.Add(-time.Hour)}},
 		Models:         []entity.Model{{ID: "mdl_one", Status: "active"}},
-		ProviderModels: []entity.ProviderModel{{ID: "pmd_one", ETag: "revision"}},
+		ProviderModels: []entity.ProviderModel{{CapabilityTransportGeneration: "0", ConnectionID: "con_one", CreatedAt: now.Add(-time.Hour), ID: "pmd_one", ETag: "revision"}},
 		Credentials:    []entity.ProviderCredential{replacement},
 		Access:         []entity.CredentialModelAccess{{CredentialID: replacement.ID, ProviderModelID: "pmd_one"}},
 	}, now.Add(time.Minute))
@@ -51,6 +52,7 @@ func credentialReadinessRuntimeFixture(t *testing.T) (*Service, entity.ProviderC
 		ID: "cfg_current", Digest: auth.SourceDigest,
 		Models: map[string][]runtimeRoute{"mdl_one": {{
 			Route: gatewayRoute{
+				ProviderModelBirth: now.Add(-time.Hour), ProviderModelRevision: "revision", CapabilityTransportGeneration: "0", ConnectionTransportGeneration: "0", CapabilitiesTransportCurrent: true,
 				ConnectionBirth: now.Add(-time.Hour),
 				Client:          &http.Client{}, BindingID: "bnd_one", Weight: 100,
 				ProviderID: "prv_one", ProviderEnabled: true, ProviderBirth: now.Add(-time.Hour), ProviderRevision: "0", ProviderModelID: "pmd_one", ConnectionID: "con_one",

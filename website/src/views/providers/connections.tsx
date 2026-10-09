@@ -19,6 +19,7 @@ import { protocolLabel } from '@/lib/protocols'
 import { ConnectionEgressControl } from '@/views/egress/connection'
 import ConnectionMetadataEditor from './connection-metadata'
 import ConnectionStatusEditor from './connection-status'
+import ConnectionTester from './connection-test'
 import { useConnectionQueryRevision } from './connection-authority'
 
 interface Props {
@@ -128,6 +129,23 @@ export default function ConnectionTable({ providerId, session, onAdd }: Props) {
   const [boundary, setBoundary] = useState({ owner: shared, version: 0 })
   if (boundary.owner !== shared) setBoundary({ owner: shared, version: boundary.version + 1 })
   const [statusSavedFor, setStatusSavedFor] = useState<string | null>(null)
+  const actionTriggers = useRef(new Map<string, HTMLButtonElement>())
+  const [tester, setTester] = useState<{
+    actor: string
+    providerId: string
+    target: string
+    generation: number
+    authority: string
+    finalFocus?: HTMLElement
+  } | null>(null)
+  const testerCurrent =
+    tester?.actor === actor &&
+    tester.providerId === providerId &&
+    tester.generation === generation &&
+    tester.authority === authority.revision &&
+    fresh() &&
+    writable()
+  if (tester && !testerCurrent) setTester(null)
   const [savedFor, setSavedFor] = useState<string | null>(null)
   const [query, setQuery] = useState('')
   const [protocol, setProtocol] = useState<string>('all')
@@ -307,6 +325,10 @@ export default function ConnectionTable({ providerId, session, onAdd }: Props) {
                       side="bottom"
                       align="end"
                       triggerClassName="h-8 w-8 justify-center px-0"
+                      triggerRef={(element) => {
+                        if (element) actionTriggers.current.set(item.id, element)
+                        else actionTriggers.current.delete(item.id)
+                      }}
                     >
                       <MenuItem
                         disabled={
@@ -315,14 +337,39 @@ export default function ConnectionTable({ providerId, session, onAdd }: Props) {
                             (!recovered || recovered.payload.connection_id !== item.id))
                         }
                         onClick={() => {
+                          const live = shared?.recover(actor)
                           if (
                             writable() &&
-                            (!retained || recovered?.payload.connection_id === item.id)
+                            (!live ||
+                              (live.kind === 'connection-name' &&
+                                live.payload.provider_id === providerId &&
+                                live.payload.connection_id === item.id))
                           )
                             setEditor({ actor, target: item.id, open: true })
                         }}
                       >
                         {t('connectionMetadata.edit')}
+                      </MenuItem>
+                      <MenuItem
+                        disabled={!writable()}
+                        onClick={() => {
+                          if (
+                            writable() &&
+                            navigationOwner.current?.actor === actor &&
+                            navigationOwner.current.providerId === providerId &&
+                            navigationOwner.current.generation === generation
+                          )
+                            setTester({
+                              actor,
+                              providerId,
+                              target: item.id,
+                              generation,
+                              authority: authority.revision,
+                              finalFocus: actionTriggers.current.get(item.id),
+                            })
+                        }}
+                      >
+                        {t('connectionTest.action')}
                       </MenuItem>
                       <MenuItem
                         disabled={!canAddModel(item.id)}
@@ -344,7 +391,11 @@ export default function ConnectionTable({ providerId, session, onAdd }: Props) {
                       <MenuItem
                         disabled={!writable() || typeof item.enabled !== 'boolean' || !!retained}
                         onClick={() => {
-                          if (writable() && typeof item.enabled === 'boolean' && !retained)
+                          if (
+                            writable() &&
+                            typeof item.enabled === 'boolean' &&
+                            !shared?.recover(actor)
+                          )
                             setStatusEditor({
                               actor,
                               target: item.id,
@@ -388,6 +439,23 @@ export default function ConnectionTable({ providerId, session, onAdd }: Props) {
             setStatusEditor(null)
             setStatusSavedFor(actor)
             void cache.invalidateQueries({ queryKey: ['admin', 'providers'] })
+          }}
+        />
+      )}
+      {tester && testerCurrent && (
+        <ConnectionTester
+          key={JSON.stringify([actor, providerId, tester.target, generation, tester.authority])}
+          actor={actor}
+          providerId={providerId}
+          connectionId={tester.target}
+          generation={generation}
+          permissionsKey={permissionsKey}
+          catalogueKey={catalogueKey}
+          finalFocus={tester.finalFocus}
+          onClose={() => setTester(null)}
+          onManage={() => {
+            if (writable())
+              void navigate(`/admin/providers/${encodeURIComponent(providerId)}?tab=credentials`)
           }}
         />
       )}

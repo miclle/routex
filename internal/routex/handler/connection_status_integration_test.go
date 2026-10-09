@@ -155,10 +155,10 @@ func testConnectionStatusLifecycle(t *testing.T, db *gorm.DB) {
 		out := request("GET", path, "", "", session, "")
 		row := decodeCatalogResponse[service.ConnectionStatusRecord](t, out, 200)
 		var fields map[string]json.RawMessage
-		if err := json.Unmarshal(out.Body.Bytes(), &fields); err != nil || len(fields) != 12 || out.Header().Get("ETag") != strconv.Quote(row.ETag) || out.Header().Get("Cache-Control") != "private, no-store" {
-			t.Fatal("status12/header", err, out.Body.String())
+		if err := json.Unmarshal(out.Body.Bytes(), &fields); err != nil || len(fields) != 15 || out.Header().Get("ETag") != strconv.Quote(row.ETag) || out.Header().Get("Cache-Control") != "private, no-store" {
+			t.Fatal("status15/header", err, out.Body.String())
 		}
-		for _, key := range []string{"id", "provider_id", "name", "protocol", "base_url", "egress_mode", "egress_id", "etag", "can_edit", "enabled", "adapter", "api_version"} {
+		for _, key := range []string{"id", "provider_id", "name", "protocol", "base_url", "egress_mode", "egress_id", "etag", "can_edit", "enabled", "adapter", "api_version", "transport_generation", "can_edit_transport", "transport_locked"} {
 			if _, ok := fields[key]; !ok {
 				t.Fatal("missing status field", key)
 			}
@@ -363,10 +363,10 @@ func testConnectionStatusLifecycle(t *testing.T, db *gorm.DB) {
 	// Disabled Connections retain the same administrative metadata projection.
 	out := request("GET", "/api/v1/admin/connections/con_status_gate/metadata", "", "", cookie, "")
 	var meta map[string]json.RawMessage
-	if err := json.Unmarshal(out.Body.Bytes(), &meta); err != nil || len(meta) != 11 {
-		t.Fatal("disabled metadata11 unavailable", err)
+	if err := json.Unmarshal(out.Body.Bytes(), &meta); err != nil || len(meta) != 14 {
+		t.Fatal("disabled metadata14 unavailable", err)
 	}
-	for _, key := range []string{"id", "provider_id", "name", "protocol", "base_url", "egress_mode", "egress_id", "etag", "can_edit", "adapter", "api_version"} {
+	for _, key := range []string{"id", "provider_id", "name", "protocol", "base_url", "egress_mode", "egress_id", "etag", "can_edit", "adapter", "api_version", "transport_generation", "can_edit_transport", "transport_locked"} {
 		if _, ok := meta[key]; !ok {
 			t.Fatal("missing disabled metadata field", key)
 		}

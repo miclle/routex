@@ -12,10 +12,18 @@ export interface ConnectionMetadata {
   egress_id: string | null
   etag: string
   can_edit: boolean
+  transport_generation: string
+  can_edit_transport: boolean
+  transport_locked: boolean
 }
+export type ConnectionTransportInput = Pick<
+  ConnectionMetadata,
+  'base_url' | 'protocol' | 'adapter' | 'api_version'
+>
 export interface ConnectionMetadataInput {
   name: string
   reason: string
+  transport?: ConnectionTransportInput
 }
 export interface ConnectionMetadataResult {
   connection: ConnectionMetadata

@@ -16,7 +16,7 @@ import (
 
 func connectionMetadataTestRows() (entity.User, entity.Provider, entity.ProviderConnection) {
 	birth := time.Date(2026, 10, 6, 0, 0, 0, 123456000, time.UTC)
-	return entity.User{ID: "usr_admin", Role: entity.RoleAdmin, CreatedAt: birth}, entity.Provider{ID: "prv_target", Name: "Provider", Enabled: true, ETag: "0", CreatedAt: birth}, entity.ProviderConnection{ID: "con_target", ProviderID: "prv_target", Name: "Original", BaseURL: "https://example.invalid/v1", Protocol: "openai_chat", ETag: "0", EgressMode: "default", CreatedAt: birth}
+	return entity.User{ID: "usr_admin", Role: entity.RoleAdmin, CreatedAt: birth}, entity.Provider{ID: "prv_target", Name: "Provider", Enabled: true, ETag: "0", CreatedAt: birth}, entity.ProviderConnection{TransportGeneration: "0", ID: "con_target", ProviderID: "prv_target", Name: "Original", BaseURL: "https://example.invalid/v1", Protocol: "openai_chat", ETag: "0", EgressMode: "default", CreatedAt: birth}
 }
 func TestConnectionMetadataStrictIntentBounds(t *testing.T) {
 	invalid := []string{`{}`, `null`, `[]`, `{"name":"A","reason":null}`, `{"name":null,"reason":"R"}`, `{"Name":"A","reason":"R"}`, `{"name":"A","reason":"R","egress_mode":"direct"}`, `{"name":"A","reason":"R","name":"B"}`, `{"name":"A","reason":"R","\u006eame":"B"}`, `{"name":"A","reason":"R"} {}`, `{"name":"\ud800","reason":"R"}`, `{"name":"A","reason":"\udfff"}`, `{"name":" A","reason":"R"}`, `{"name":"A","reason":" R"}`, `{"name":"A\n","reason":"R"}`, `{"name":"A","reason":""}`, string([]byte{'{', '"', 'n', 'a', 'm', 'e', '"', ':', '"', 255, '"', '}'})}
@@ -28,14 +28,14 @@ func TestConnectionMetadataStrictIntentBounds(t *testing.T) {
 			}
 		})
 	}
-	for _, input := range []ConnectionMetadataInput{{strings.Repeat("😀", 100), strings.Repeat("r", 1024)}, {"O'Neil", "Exact reason"}} {
+	for _, input := range []ConnectionMetadataInput{{Name: strings.Repeat("😀", 100), Reason: strings.Repeat("r", 1024)}, {Name: "O'Neil", Reason: "Exact reason"}} {
 		raw, _ := json.Marshal(input)
 		var got ConnectionMetadataInput
 		if err := json.Unmarshal(raw, &got); err != nil || got != input {
 			t.Fatal(got, err)
 		}
 	}
-	for _, input := range []ConnectionMetadataInput{{strings.Repeat("😀", 101), "R"}, {"A", strings.Repeat("r", 1025)}, {"A", strings.Repeat("😀", 257)}} {
+	for _, input := range []ConnectionMetadataInput{{Name: strings.Repeat("😀", 101), Reason: "R"}, {Name: "A", Reason: strings.Repeat("r", 1025)}, {Name: "A", Reason: strings.Repeat("😀", 257)}} {
 		raw, _ := json.Marshal(input)
 		var got ConnectionMetadataInput
 		if json.Unmarshal(raw, &got) == nil {
@@ -118,7 +118,7 @@ func TestConnectionMetadataIdentitySharedRevisionAndReconciliation(t *testing.T)
 	raw, _ := json.Marshal(original)
 	var fields map[string]json.RawMessage
 	_ = json.Unmarshal(raw, &fields)
-	if len(fields) != 11 || string(fields["adapter"]) != `"native"` || string(fields["api_version"]) != "null" || fields["created_at"] != nil || fields["ciphertext"] != nil {
+	if len(fields) != 14 || string(fields["transport_generation"]) != `"0"` || string(fields["can_edit_transport"]) != "true" || string(fields["transport_locked"]) != "false" || string(fields["adapter"]) != `"native"` || string(fields["api_version"]) != "null" || fields["created_at"] != nil || fields["ciphertext"] != nil {
 		t.Fatal(string(raw))
 	}
 	for _, bad := range []string{"", strings.Repeat("a", 129), original.ETag[:64] + "/" + original.ETag[65:], strings.ToUpper(original.ETag)} {

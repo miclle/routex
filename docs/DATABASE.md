@@ -1471,3 +1471,34 @@ shape and allow reentry after partially applied MySQL DDL. There is no handwritt
 production SQL or change to released V1–V90 steps. Name and status writes advance
 the same revision. A changed status and its typed before/after/reason audit persist
 atomically; no child state, grant, price, weight or routing history is rewritten.
+
+
+### V92: Connection transport generation and bound evidence
+
+Private frozen GORM schemas add four non-null, 30-character proof columns, each
+with the literal default `0`: `provider_connections.transport_generation`,
+`provider_credentials.verified_transport_generation`,
+`provider_models.capability_transport_generation` and
+`reservation_bounds.transport_generation`. Migration V92 uses bounded
+HasColumn/AddColumn steps and validates the resulting type, length, nullability
+and default. It can reenter partially applied MySQL DDL; it does not assume
+transactional DDL rollback or alter released V1–V91 migrations.
+
+Generation `0` preserves compatibility between an unchanged legacy Connection
+and its existing evidence. It does not verify a pending Credential, configure an
+absent capacity attestation or create discovery/coverage history. Existing status,
+declarations, timestamps and relationships remain stored. A changed canonical
+Base URL/protocol/adapter/API-version tuple receives a new durable `rev_` generation
+and shared metadata revision; returning to an earlier tuple receives another
+generation. Name-only changes do not advance the transport generation. The tuple,
+generation and typed before/after/reason transport audit commit atomically. Child
+states, grants, prices, weights and immutable call/routing history are unchanged.
+
+Verification, capability and capacity writes bind their evidence to the reviewed
+current generation. Azure deployment coverage also binds that generation in its
+existing identity proof. Old declarations remain historical facts rather than
+current evidence after a transport change; status-only writes never reattest them.
+The transient Connection diagnostic adds no result/history schema and writes no
+catalogue, configuration, verification, discovery, enablement, routing or audit
+facts. Required existing Vault source-use/exposure and drain-safety bookkeeping
+still applies; this is not a zero-database-write guarantee.

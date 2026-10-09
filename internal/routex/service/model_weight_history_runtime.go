@@ -58,7 +58,7 @@ func (s *Service) modelWeightRuntimeApplied(st *modelWeightState) bool {
 			return false
 		}
 		revision := st.EgressRevisions[c.ID]
-		if revision == "" || route.EgressRevision != revision || auth.ConnectionRevisions[c.ID] != revision || route.EgressGeneration != s.egressGeneration.Load() || route.Weight != row.Weight || route.ProviderModelID != pm.ID || route.ConnectionID != c.ID || route.ProviderID != c.ProviderID || route.Protocol != c.Protocol || route.UpstreamName != pm.UpstreamName || route.BaseURL != c.BaseURL || route.Disabled != pm.Disabled || route.SupportsImageInput != pm.SupportsImageInput || route.SupportsPDFInput != pm.SupportsPDFInput || !route.ConnectionBirth.Equal(c.CreatedAt) || route.ConnectionEnabled != c.Enabled || auth.ProviderModelRevisions[pm.ID] != pm.ETag || auth.ProviderModels[pm.ID] == pm.Disabled || runtimeDenied(&s.runtime.deniedProviderModels, pm.ID) {
+		if revision == "" || route.EgressRevision != revision || auth.ConnectionRevisions[c.ID] != revision || route.EgressGeneration != s.egressGeneration.Load() || route.Weight != row.Weight || route.ProviderModelID != pm.ID || route.ConnectionID != c.ID || route.ProviderID != c.ProviderID || route.Protocol != c.Protocol || route.UpstreamName != pm.UpstreamName || route.BaseURL != c.BaseURL || route.Disabled != pm.Disabled || route.SupportsImageInput != pm.SupportsImageInput || route.SupportsPDFInput != pm.SupportsPDFInput || !route.ConnectionBirth.Equal(c.CreatedAt) || route.ConnectionEnabled != c.Enabled || auth.ProviderModelRevisions[pm.ID] != pm.ETag || auth.ProviderModels[pm.ID] != (!pm.Disabled && capabilityTransportCurrent(pm, c)) || route.ConnectionTransportGeneration != c.TransportGeneration || route.ProviderModelRevision != pm.ETag || route.CapabilitiesTransportCurrent != capabilityTransportCurrent(pm, c) || runtimeDenied(&s.runtime.deniedProviderModels, pm.ID) {
 			return false
 		}
 		supply, ok := st.Supplies[pm.ID]
@@ -67,10 +67,10 @@ func (s *Service) modelWeightRuntimeApplied(st *modelWeightState) bool {
 		}
 		expected := map[string]modelCreationCredentialProof{}
 		for _, credential := range supply.Credentials {
-			if credential.Enabled && credential.VerificationStatus == "verified" && containsModelCreationAccess(credential.Access, pm.ID) {
+			if credential.Enabled && credential.TransportCurrent && credential.VerificationStatus == "verified" && containsModelCreationAccess(credential.Access, pm.ID) {
 				expected[credential.ID] = credential
 			}
-			if auth.CredentialRevisions[credential.ID] != credential.Revision || auth.Credentials[credential.ID] != (credential.Enabled && credential.VerificationStatus == "verified") || auth.CredentialAccess[credential.ID][pm.ID] != containsModelCreationAccess(credential.Access, pm.ID) || runtimeDenied(&s.runtime.deniedCredentials, credential.ID) {
+			if auth.CredentialRevisions[credential.ID] != credential.Revision || auth.Credentials[credential.ID] != (credential.Enabled && credential.TransportCurrent && credential.VerificationStatus == "verified") || auth.CredentialAccess[credential.ID][pm.ID] != containsModelCreationAccess(credential.Access, pm.ID) || runtimeDenied(&s.runtime.deniedCredentials, credential.ID) {
 				return false
 			}
 		}

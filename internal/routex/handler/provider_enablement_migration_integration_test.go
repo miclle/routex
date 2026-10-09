@@ -25,7 +25,7 @@ func (providerEnabledBadV91Fixture) TableName() string { return "providers" }
 func testProviderEnablementMigration(t *testing.T, db *gorm.DB) {
 	ctx := context.Background()
 	before := personalKeyBehaviorLedger(t, db)
-	if len(before) != 91 || before[90].Version != 91 || before[89].Version != 90 {
+	if len(before) != 92 || before[91].Version != 92 || before[90].Version != 91 || before[89].Version != 90 {
 		t.Fatal("exact current V91 ledger")
 	}
 	for i, row := range before {

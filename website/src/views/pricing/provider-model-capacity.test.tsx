@@ -1,374 +1,396 @@
 import { act } from 'react'
-import { createRoot, type Root } from 'react-dom/client'
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { AxiosError, AxiosHeaders, type InternalAxiosRequestConfig } from 'axios'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
-import client from '@/api/client'
 import i18n from '@/i18n'
-import type { ProviderModelCapacity } from '@/types/provider-model-capacity'
-import ProviderModelCapacityCard from './provider-model-capacity'
-
-Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true })
-let host: HTMLDivElement, root: Root, cache: QueryClient
-let record: ProviderModelCapacity, permissions: string[], requests: InternalAxiosRequestConfig[]
-let failure: number, hold: Promise<void> | undefined
-const path = '/admin/provider-models/pmd_capacity/reservation-bound'
-const originalAdapter = client.defaults.adapter
-
+import { sessionKey } from '@/hooks/use-auth'
+import { transportFixture, button, click, fill, until } from './provider-model-transport.fixture'
+let f: Awaited<ReturnType<typeof transportFixture>>
 beforeEach(async () => {
-  await i18n.changeLanguage('en')
-  host = document.createElement('div')
-  document.body.append(host)
-  root = createRoot(host)
-  cache = new QueryClient({ defaultOptions: { queries: { retry: false } } })
-  record = {
-    provider_model_id: 'pmd_capacity',
-    protocol: 'openai_chat',
-    etag: '0',
-    configured: false,
-    max_input_tokens: 0,
-    max_output_tokens: 0,
-    evidence: '',
-    updated_at: '0001-01-01T00:00:00Z',
-  }
-  permissions = ['providers.read', 'providers.write']
-  requests = []
-  failure = 0
-  hold = undefined
-  client.defaults.adapter = async (config) => {
-    requests.push(config)
-    const response = {
-      config,
-      status: 200,
-      statusText: '',
-      headers: new AxiosHeaders(),
-      data: {} as unknown,
-    }
-    if (config.url === '/auth/session')
-      response.data = { user: { id: 'usr_capacity', role: 'member' }, csrf_token: 'capacity-csrf' }
-    else if (config.url === '/auth/permissions') response.data = { permissions }
-    else if (config.url?.endsWith('/reservation-bound')) {
-      if (config.method === 'put') {
-        if (hold) await hold
-        const input = JSON.parse(config.data)
-        if (!failure || failure === 503)
-          record = {
-            ...record,
-            ...input,
-            configured: true,
-            etag: 'saved',
-            updated_at: '2026-09-30T08:00:00Z',
-          }
-        if (failure) {
-          if (failure === -1) throw new AxiosError('Network result unavailable', '', config)
-          response.status = failure
-          throw new AxiosError('Capacity fixture', '', config, undefined, response)
-        }
-      }
-      response.data = structuredClone(record)
-    }
-    return response
-  }
+  f = await transportFixture()
 })
 afterEach(async () => {
-  await act(async () => root.unmount())
-  cache.clear()
-  host.remove()
-  client.defaults.adapter = originalAdapter
-  await i18n.changeLanguage('en')
+  await f.dispose()
 })
-
-async function until(assert: () => void) {
-  for (let i = 0; i < 100; i++) {
-    await act(async () => {
-      await new Promise((resolve) => setTimeout(resolve, 5))
-    })
-    try {
-      assert()
-      return
-    } catch (error) {
-      if (i === 99) throw error
-    }
-  }
-}
-async function render() {
-  await act(async () =>
-    root.render(
-      <QueryClientProvider client={cache}>
-        <ProviderModelCapacityCard modelId="pmd_capacity" />
-      </QueryClientProvider>,
-    ),
-  )
-  await until(() =>
-    expect(host.textContent).toContain(
-      record.configured ? 'Attestation recorded' : 'No attestation recorded',
-    ),
-  )
-}
-function button(label: string) {
-  const result = [...document.querySelectorAll('button')].find(
-    (item) => item.textContent === label || item.getAttribute('aria-label') === label,
-  )
-  if (!result) throw new Error(`Missing button: ${label}`)
-  return result
-}
-const writes = () => requests.filter((item) => item.method === 'put')
-const input = (label: string) =>
-  document.querySelector<HTMLInputElement>(`input[aria-label="${label}"]`)!
-async function click(label: string) {
-  await act(async () => button(label).click())
-}
-async function fill(label: string, value: string) {
-  const control = input(label)
-  expect(control).not.toBeNull()
-  await act(async () => {
-    Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!.call(control, value)
-    control.dispatchEvent(new Event('input', { bubbles: true }))
-  })
-}
 async function draft() {
   await click('Edit capacity attestation')
   await fill('Maximum billable input tokens', '128000')
   await fill('Maximum billable output tokens', '16384')
   await fill('Capacity evidence', '  Verified native contract  ')
-  await fill('Reason for attestation', '  Enable bounded quota admission  ')
+  await fill('Reason for attestation', '  Explicit transport review  ')
 }
-
-describe('provider model capacity attestation', () => {
-  it('reads the scoped unconfigured record and never invents default capacity or validity', async () => {
-    await render()
-    expect(host.textContent).toContain('No attestation recorded')
-    expect(host.textContent).toContain('does not certify current admission eligibility')
-    expect(writes()).toHaveLength(0)
-    const read = requests.find((item) => item.url === path)!
-    expect(read.signal).toBeDefined()
+async function submit() {
+  await click('Save attestation')
+  expect(f.writes()).toHaveLength(0)
+  await click('Confirm change')
+  await until(() => expect(f.writes()).toHaveLength(1))
+}
+describe('ProviderModel generation-bound capacity', () => {
+  it('displays unconfigured current-proof absence distinctly from positive recorded limits', async () => {
+    await f.mount()
+    await until(() =>
+      expect(f.host.textContent).toContain('No current configured capacity attestation'),
+    )
     await click('Edit capacity attestation')
-    expect(input('Maximum billable input tokens').value).toBe('')
-    expect(input('Maximum billable output tokens').value).toBe('')
-    expect(document.body.textContent).toContain('Reviewed revision: 0 · Protocol: openai_chat')
+    expect(
+      document.querySelector<HTMLInputElement>('input[aria-label="Maximum billable input tokens"]')!
+        .value,
+    ).toBe('')
+    expect(document.body.textContent).toContain('Reviewed revision: 0')
   })
-  it('saves positive maxima and trimmed evidence with the exact reviewed ETag and CSRF, once while pending', async () => {
-    await render()
+  it('shows historical configured evidence and raw revision even when current-transport proof is stale', async () => {
+    f.state.capacity = {
+      ...f.state.capacity,
+      configured: true,
+      revision: `bnd_${'1'.repeat(26)}`,
+      max_input_tokens: 8000,
+      max_output_tokens: 2000,
+      evidence: 'Old endpoint contract',
+      transport_current: false,
+    }
+    await f.mount()
+    await until(() => expect(f.host.textContent).toContain('Old endpoint contract'))
+    expect(f.host.textContent).toContain('earlier transport')
+    expect(f.host.textContent).toContain(`bnd_${'1'.repeat(26)}`)
+    expect(f.host.textContent).not.toContain(f.state.capacity.etag)
+  })
+  it('confirms a complete attestation with only the four original body fields and strong current review token', async () => {
+    await f.mount()
+    await until(() => expect(button('Edit capacity attestation')).toBeTruthy())
     await draft()
-    let release!: () => void
-    hold = new Promise((resolve) => {
-      release = resolve
-    })
-    await act(async () => {
-      button('Save attestation').click()
-      button('Save attestation').click()
-    })
-    await until(() => expect(writes()).toHaveLength(1))
-    expect(JSON.parse(writes()[0].data)).toEqual({
+    await submit()
+    await until(() => expect(f.host.textContent).toContain('Current capacity attestation saved'))
+    expect(JSON.parse(f.writes()[0].data)).toEqual({
       max_input_tokens: 128000,
       max_output_tokens: 16384,
       evidence: 'Verified native contract',
-      reason: 'Enable bounded quota admission',
+      reason: 'Explicit transport review',
     })
-    expect(writes()[0].headers.get('If-Match')).toBe('"0"')
-    expect(writes()[0].headers.get('X-CSRF-Token')).toBe('capacity-csrf')
-    expect(button('Close').disabled).toBe(true)
-    await act(async () => release())
-    await until(() =>
-      expect(host.textContent).toContain('Capacity attestation saved and published.'),
-    )
+    expect(f.writes()[0].headers.get('If-Match')).toBe(`"${'b'.repeat(64)}"`)
+    expect(f.writes()[0].headers.get('X-CSRF-Token')).toBe('csrf-original')
+    expect(f.host.textContent).not.toContain('saved and published')
     expect(document.querySelector('[role="dialog"]')).toBeNull()
-    expect(host.textContent).toContain('128,000')
-    expect(host.textContent).toContain('Verified native contract')
+    expect(f.state.model.supports_image_input).toBe(true)
+    expect(f.state.model.capabilities_transport_current).toBe(false)
   })
-  it('rejects nonpositive, fractional, exponent and unsafe integers and UTF-8 text overflow before dispatch', async () => {
-    await render()
+  it('retains its original target against duplicate confirm and captured cancel before React commits the lock', async () => {
+    await f.mount()
+    await until(() => expect(button('Edit capacity attestation')).toBeTruthy())
     await draft()
-    for (const value of ['0', '-1', '1.5', '1e3', '9007199254740992']) {
+    await click('Save attestation')
+    let release!: () => void
+    f.state.hold = new Promise((resolve) => {
+      release = resolve
+    })
+    const confirm = button('Confirm change'),
+      cancel = button('Cancel')
+    await act(async () => {
+      confirm.click()
+      cancel.click()
+      confirm.click()
+    })
+    expect(f.writes()).toHaveLength(1)
+    expect(document.querySelector('[role="dialog"]')).not.toBeNull()
+    await act(async () => release())
+    await until(() => expect(f.host.textContent).toContain('Current capacity attestation saved'))
+  })
+  it.each(['0', '-1', '1.5', '1e3', '9007199254740992'])(
+    'rejects invalid maximum %s before confirmation/dispatch',
+    async (value) => {
+      await f.mount()
+      await until(() => expect(button('Edit capacity attestation')).toBeTruthy())
+      await draft()
       await fill('Maximum billable input tokens', value)
       await click('Save attestation')
       expect(document.body.textContent).toContain('positive safe integers')
-    }
-    await fill('Maximum billable input tokens', '128000')
-    await fill('Maximum billable output tokens', '0')
-    await click('Save attestation')
-    expect(document.body.textContent).toContain('positive safe integers')
-    await fill('Maximum billable output tokens', '16384')
-    for (const label of ['Capacity evidence', 'Reason for attestation']) {
+      expect(f.writes()).toHaveLength(0)
+    },
+  )
+  it.each(['Capacity evidence', 'Reason for attestation'])(
+    'retains original UTF-8/nonempty %s bounds',
+    async (label) => {
+      await f.mount()
+      await until(() => expect(button('Edit capacity attestation')).toBeTruthy())
+      await draft()
       for (const value of ['   ', '证'.repeat(667)]) {
         await fill(label, value)
         await click('Save attestation')
         expect(document.body.textContent).toContain('2,000 UTF-8 bytes')
+        expect(f.writes()).toHaveLength(0)
       }
-      await fill(label, 'Verified')
-    }
-    expect(writes()).toHaveLength(0)
-  })
-  it('preserves a draft through conflict and requires explicit review before replacing the ETag', async () => {
-    await render()
-    await draft()
-    failure = 409
-    await click('Save attestation')
-    await until(() => expect(document.body.textContent).toContain('The attestation changed'))
-    expect(button('Save attestation').disabled).toBe(true)
-    record = {
-      ...record,
+    },
+  )
+  it('preserves existing multiline capacity evidence instead of inventing a control-character restriction', async () => {
+    f.state.capacity = {
+      ...f.state.capacity,
       configured: true,
-      etag: 'reviewed-new',
+      revision: `bnd_${'1'.repeat(26)}`,
+      max_input_tokens: 8000,
+      max_output_tokens: 2000,
+      evidence: 'First line\nSecond line',
+    }
+    await f.mount()
+    await until(() => expect(button('Edit capacity attestation')).toBeTruthy())
+    await click('Edit capacity attestation')
+    await fill('Reason for attestation', 'Preserve multiline evidence')
+    await submit()
+    expect(JSON.parse(f.writes()[0].data).evidence).toBe('First line\nSecond line')
+  })
+  it('preserves the draft after initial409 and requires a fresh read plus explicit review of the new token', async () => {
+    await f.mount()
+    await until(() => expect(button('Edit capacity attestation')).toBeTruthy())
+    await draft()
+    f.state.failure = 409
+    await submit()
+    await until(() =>
+      expect(document.body.textContent).toContain('configuration or transport changed'),
+    )
+    expect(button('Review current configuration').disabled).toBe(true)
+    f.state.capacity = {
+      ...f.state.capacity,
+      etag: 'c'.repeat(64),
+      revision: `bnd_${'1'.repeat(26)}`,
+      configured: true,
       max_input_tokens: 64000,
       max_output_tokens: 8000,
-      evidence: 'Another administrator',
-      updated_at: '2026-09-30T08:00:00Z',
+      evidence: 'Another operator',
+      updated_at: '2026-10-09T03:00:00Z',
     }
     await click('Load current attestation')
-    await until(() => expect(button('Save attestation').disabled).toBe(false))
-    expect(input('Maximum billable input tokens').value).toBe('128000')
-    expect(input('Capacity evidence').value).toBe('  Verified native contract  ')
-    expect(document.body.textContent).toContain(
-      'Reading saved values does not confirm runtime publication',
-    )
-    failure = 0
-    await click('Save attestation')
-    await until(() => expect(writes()).toHaveLength(2))
-    expect(writes()[1].headers.get('If-Match')).toBe('"reviewed-new"')
-  })
-  it('locks uncertain changes and retries the identical intent, retaining it through dialog dismissal', async () => {
-    await render()
-    await draft()
-    failure = 503
-    await click('Save attestation')
-    await until(() =>
-      expect(document.body.textContent).toContain('Publication could not be confirmed'),
-    )
-    expect(host.textContent).not.toContain('Capacity attestation saved and published.')
-    expect(input('Maximum billable input tokens').matches(':disabled')).toBe(true)
-    await click('Cancel')
-    await click('Edit capacity attestation')
-    expect(input('Maximum billable input tokens').matches(':disabled')).toBe(true)
-    failure = 0
-    await click('Retry publication')
-    await until(() =>
-      expect(host.textContent).toContain('Capacity attestation saved and published.'),
-    )
-    expect(writes()[1].data).toBe(writes()[0].data)
-    expect(writes()[1].headers.get('If-Match')).toBe('"0"')
-  })
-  it('reconciles uncertain storage without reporting publication as success and preserves the draft for review', async () => {
-    await render()
-    await draft()
-    failure = 503
-    await click('Save attestation')
-    await until(() =>
-      expect(document.body.textContent).toContain('Publication could not be confirmed'),
-    )
-    await click('Load current attestation')
-    await until(() => expect(button('Save attestation').disabled).toBe(false))
-    expect(host.textContent).not.toContain('Capacity attestation saved and published.')
-    expect(input('Maximum billable output tokens').value).toBe('16384')
-    expect(document.body.textContent).toContain('Reviewed revision: saved')
-    expect(writes()).toHaveLength(1)
-    failure = 0
-    await click('Save attestation')
-    await until(() => expect(writes()).toHaveLength(2))
-    expect(writes()[1].headers.get('If-Match')).toBe('"saved"')
-  })
-  it('keeps the original uncertain intent after a network failure and a rejected retry', async () => {
-    await render()
-    await draft()
-    failure = -1
-    await click('Save attestation')
-    await until(() =>
-      expect(document.body.textContent).toContain('Publication could not be confirmed'),
-    )
-    failure = 403
-    await click('Retry publication')
-    await until(() => expect(writes()).toHaveLength(2))
-    expect(input('Capacity evidence').matches(':disabled')).toBe(true)
+    await until(() => expect(button('Review current configuration')).toBeTruthy())
     expect(button('Save attestation').disabled).toBe(true)
-    expect(host.textContent).not.toContain('Capacity attestation saved and published.')
-    failure = 0
-    await click('Retry publication')
-    await until(() =>
-      expect(host.textContent).toContain('Capacity attestation saved and published.'),
-    )
-    expect(writes()).toHaveLength(3)
-    expect(writes()[1].data).toBe(writes()[0].data)
-    expect(writes()[2].data).toBe(writes()[0].data)
-    expect(writes()[2].headers.get('If-Match')).toBe('"0"')
+    await click('Review current configuration')
+    expect(
+      document.querySelector<HTMLInputElement>('input[aria-label="Maximum billable input tokens"]')!
+        .value,
+    ).toBe('128000')
+    expect(
+      document
+        .querySelector<HTMLInputElement>('input[aria-label="Capacity evidence"]')!
+        .value.trim(),
+    ).toBe('Verified native contract')
+    f.state.failure = 0
+    await click('Save attestation')
+    await click('Confirm change')
+    await until(() => expect(f.writes()).toHaveLength(2))
+    expect(f.writes()[1].headers.get('If-Match')).toBe(`"${'c'.repeat(64)}"`)
   })
-  it('blocks background revision changes until review and keeps the model-scoped cache boundary', async () => {
-    await render()
+  it.each([503, -1])(
+    'retains the exact unknown intent through dismissal, matchingGET and409 retry after %s',
+    async (failure) => {
+      await f.mount()
+      await until(() => expect(button('Edit capacity attestation')).toBeTruthy())
+      await draft()
+      f.state.failure = failure
+      await submit()
+      await until(() => expect(button('Retry exact request').disabled).toBe(false))
+      const first = f.writes()[0]
+      await click('Cancel')
+      await click('Edit capacity attestation')
+      expect(
+        document.querySelector<HTMLInputElement>('input[aria-label="Capacity evidence"]')!.disabled,
+      ).toBe(true)
+      f.state.failure = 409
+      await click('Retry exact request')
+      await until(() => expect(f.writes()).toHaveLength(2))
+      await until(() => expect(button('Retry exact request').disabled).toBe(false))
+      expect(f.writes()[1].data).toBe(first.data)
+      expect(f.writes()[1].headers.get('If-Match')).toBe(first.headers.get('If-Match'))
+      await click('Review a separate change')
+      await until(() => expect(button('Discard retry and review').disabled).toBe(false))
+      expect(f.writes()).toHaveLength(2)
+      expect(f.host.textContent).not.toContain('Current capacity attestation saved')
+      await click('Discard retry and review')
+      expect(document.body.textContent).toContain('original result remains unknown')
+      f.state.failure = 0
+      await click('Save attestation')
+      await click('Confirm change')
+      await until(() => expect(f.writes()).toHaveLength(3))
+      expect(f.writes()[2].headers.get('If-Match')).toBe(
+        `"${failure === 503 ? '4'.repeat(64) : 'b'.repeat(64)}"`,
+      )
+    },
+  )
+  it('never releases uncertain intent after a403 retry or a fresh current read', async () => {
+    await f.mount()
+    await until(() => expect(button('Edit capacity attestation')).toBeTruthy())
     await draft()
-    record = { ...record, etag: 'background' }
-    await act(async () =>
-      cache.setQueryData(['admin', 'provider-model-capacity', 'pmd_capacity'], record),
-    )
-    await until(() => expect(button('Save attestation').disabled).toBe(true))
-    await click('Load current attestation')
-    await until(() => expect(button('Save attestation').disabled).toBe(false))
-    expect(input('Maximum billable output tokens').value).toBe('16384')
-    expect(writes()).toHaveLength(0)
+    f.state.failure = -1
+    await submit()
+    await until(() => expect(button('Retry exact request').disabled).toBe(false))
+    f.state.failure = 403
+    await click('Retry exact request')
+    await until(() => expect(f.writes()).toHaveLength(2))
+    expect(button('Save attestation').disabled).toBe(true)
+    expect(document.body.textContent).toContain('result is unknown')
+    expect(f.host.textContent).not.toContain('Current capacity attestation saved')
   })
-  it('renders saved evidence without editing for read-only authority', async () => {
-    permissions = ['providers.read']
-    record = {
-      ...record,
+  it('a transport-review-only change blocks a captured confirmation even if historical capacity revision is unchanged', async () => {
+    await f.mount()
+    await until(() => expect(button('Edit capacity attestation')).toBeTruthy())
+    await draft()
+    await click('Save attestation')
+    const confirm = button('Confirm change')
+    const q = f.cache
+      .getQueryCache()
+      .getAll()
+      .find((query) => query.queryKey[1] === 'provider-model-capacity')!
+    await act(async () => {
+      f.cache.setQueryData(q.queryKey, { ...f.state.capacity, etag: 'd'.repeat(64) })
+      confirm.click()
+    })
+    expect(f.writes()).toHaveLength(0)
+  })
+  it.each(['session', 'permission', 'catalogue'])(
+    'rejects captured capacity confirm after %s authority invalidation',
+    async (scope) => {
+      await f.mount()
+      await until(() => expect(button('Edit capacity attestation')).toBeTruthy())
+      await draft()
+      await click('Save attestation')
+      const confirm = button('Confirm change')
+      await act(async () => {
+        void f.cache.invalidateQueries(
+          scope === 'session'
+            ? { queryKey: sessionKey, exact: true }
+            : {
+                predicate: (q) =>
+                  q.queryKey[0] === (scope === 'permission' ? 'permissions' : 'admin'),
+              },
+        )
+        confirm.click()
+      })
+      expect(f.writes()).toHaveLength(0)
+    },
+  )
+  it('keeps original unknown capacity across same-owner Session renewal and uses current CSRF for manual retry', async () => {
+    await f.mount()
+    await until(() => expect(button('Edit capacity attestation')).toBeTruthy())
+    await draft()
+    let release!: () => void
+    f.state.hold = new Promise((resolve) => {
+      release = resolve
+    })
+    f.state.ignoreAbort = true
+    await submit()
+    const first = f.writes()[0]
+    f.state.csrf = 'csrf-renewed'
+    await f.renew()
+    await act(async () => release())
+    await until(() => expect(button('Edit capacity attestation')).toBeTruthy())
+    await click('Edit capacity attestation')
+    await until(() => expect(button('Retry exact request').disabled).toBe(false))
+    expect(f.host.textContent).not.toContain('Current capacity attestation saved')
+    f.state.hold = undefined
+    f.state.failure = 409
+    await click('Retry exact request')
+    await until(() => expect(f.writes()).toHaveLength(2))
+    expect(f.writes()[1].data).toBe(first.data)
+    expect(f.writes()[1].headers.get('If-Match')).toBe(first.headers.get('If-Match'))
+    expect(f.writes()[1].headers.get('X-CSRF-Token')).toBe('csrf-renewed')
+  })
+  it.each(['actor', 'provider', 'target', 'unmount'])(
+    'discards late capacity response after %s change without recreating old private queries',
+    async (change) => {
+      await f.mount()
+      await until(() => expect(button('Edit capacity attestation')).toBeTruthy())
+      await draft()
+      let release!: () => void
+      f.state.hold = new Promise((resolve) => {
+        release = resolve
+      })
+      f.state.ignoreAbort = true
+      await submit()
+      const capacityQueries = () =>
+        f.cache
+          .getQueryCache()
+          .getAll()
+          .filter((q) => q.queryKey[1] === 'provider-model-capacity')
+      const obsoleteKeys = capacityQueries().map((q) => q.queryKey)
+      expect(obsoleteKeys.length).toBeGreaterThan(0)
+      if (change === 'actor') {
+        f.state.actor = 'usr_other'
+        await f.renew()
+      } else if (change === 'provider')
+        await act(async () => {
+          await f.router.navigate('/admin/providers/prv_other/models/pmo_one')
+        })
+      else if (change === 'target')
+        await act(async () => {
+          await f.router.navigate('/admin/providers/prv_one/models/pmo_other')
+        })
+      else
+        await act(async () => {
+          await f.router.navigate('/other')
+        })
+      await until(() => {
+        if (change === 'actor') expect(button('Edit capacity attestation')).toBeTruthy()
+        else
+          expect(f.host.textContent).toContain(
+            change === 'unmount' ? 'Other route' : 'The provider model is unavailable.',
+          )
+        for (const queryKey of obsoleteKeys)
+          expect(f.cache.getQueryCache().find({ queryKey, exact: true })).toBeUndefined()
+        expect(capacityQueries().every((q) => q.getObserversCount() > 0)).toBe(true)
+      })
+      const before = f.cache
+        .getQueryCache()
+        .getAll()
+        .filter((q) => q.queryKey[1] === 'provider-model-capacity')
+        .map((q) => JSON.stringify(q.queryKey))
+      await act(async () => release())
+      expect(f.writes()).toHaveLength(1)
+      expect(document.body.textContent).not.toContain('Current capacity attestation saved')
+      for (const queryKey of obsoleteKeys)
+        expect(f.cache.getQueryCache().find({ queryKey, exact: true })).toBeUndefined()
+      expect(
+        f.cache
+          .getQueryCache()
+          .getAll()
+          .filter((q) => q.queryKey[1] === 'provider-model-capacity')
+          .map((q) => JSON.stringify(q.queryKey)),
+      ).toEqual(before)
+    },
+  )
+  it('shows saved stale capacity with independent read-only authority', async () => {
+    f.state.permissions = ['providers.read']
+    f.state.capacity = {
+      ...f.state.capacity,
       configured: true,
-      etag: 'read-only',
-      max_input_tokens: 128000,
-      max_output_tokens: 16384,
-      evidence: 'Verified contract',
-      updated_at: '2026-09-30T08:00:00Z',
+      revision: `bnd_${'1'.repeat(26)}`,
+      max_input_tokens: 8000,
+      max_output_tokens: 2000,
+      evidence: 'Retained proof',
     }
-    await render()
-    expect(host.textContent).toContain('Verified contract')
-    expect(host.textContent).not.toContain('Edit capacity attestation')
-    expect(writes()).toHaveLength(0)
+    await f.mount()
+    await until(() => expect(f.host.textContent).toContain('Retained proof'))
+    expect(f.host.textContent).toContain('earlier transport')
+    expect(document.body.textContent).not.toContain('Edit capacity attestation')
   })
-  it('destroys the prior draft on resource changes and submits only against the newly reviewed model', async () => {
-    await render()
+  it('does not fetch capacity or Providers when write is present without read', async () => {
+    f.state.permissions = ['providers.write']
+    await f.mount()
+    expect(f.state.requests.filter((r) => r.url?.endsWith('/reservation-bound'))).toHaveLength(0)
+    expect(f.state.requests.filter((r) => r.url === '/admin/providers')).toHaveLength(0)
+    expect(f.writes()).toHaveLength(0)
+  })
+  it('live language changes preserve drafts and exact unknown retry while translating all new guidance', async () => {
+    await f.mount()
+    await until(() => expect(button('Edit capacity attestation')).toBeTruthy())
     await draft()
-    await click('Cancel')
-    await click('Edit capacity attestation')
-    expect(input('Maximum billable input tokens').value).toBe('128000')
-    record = { ...record, provider_model_id: 'pmd_other', protocol: 'anthropic_messages' }
-    await act(async () =>
-      root.render(
-        <QueryClientProvider client={cache}>
-          <ProviderModelCapacityCard modelId="pmd_other" />
-        </QueryClientProvider>,
-      ),
-    )
-    await until(() => expect(host.textContent).toContain('Protocol: anthropic_messages'))
-    expect(document.querySelector('[role="dialog"]')).toBeNull()
-    await click('Edit capacity attestation')
-    expect(input('Maximum billable input tokens').value).toBe('')
-    expect(input('Capacity evidence').value).toBe('')
-    await fill('Maximum billable input tokens', '64000')
-    await fill('Maximum billable output tokens', '8000')
-    await fill('Capacity evidence', 'Second model contract')
-    await fill('Reason for attestation', 'Second model')
-    await click('Save attestation')
-    await until(() => expect(writes()).toHaveLength(1))
-    expect(writes()[0].url).toBe('/admin/provider-models/pmd_other/reservation-bound')
-    expect(JSON.parse(writes()[0].data).evidence).toBe('Second model contract')
-  })
-  it('does not read the record with write-only authority', async () => {
-    permissions = ['providers.write']
-    await act(async () =>
-      root.render(
-        <QueryClientProvider client={cache}>
-          <ProviderModelCapacityCard modelId="pmd_capacity" />
-        </QueryClientProvider>,
-      ),
-    )
-    await until(() => expect(requests.some((item) => item.url === '/auth/permissions')).toBe(true))
-    expect(requests.some((item) => item.url === path)).toBe(false)
-    expect(host.textContent).toBe('')
-  })
-  it('switches labels and validation to Chinese without losing draft values', async () => {
-    await render()
-    await draft()
-    await fill('Maximum billable output tokens', '0')
-    await click('Save attestation')
     await act(async () => i18n.changeLanguage('zh'))
-    expect(document.body.textContent).toContain('请输入两个 Token 上限的正安全整数')
-    expect(input('最大计费输入 Token').value).toBe('128000')
-    expect(button('保存声明')).toBeDefined()
+    expect(
+      document.querySelector<HTMLInputElement>('input[aria-label="容量依据"]')!.value.trim(),
+    ).toBe('Verified native contract')
+    await act(async () => i18n.changeLanguage('en'))
+    f.state.failure = 503
+    await submit()
+    await until(() => expect(button('Retry exact request').disabled).toBe(false))
+    const first = f.writes()[0].data
+    await act(async () => i18n.changeLanguage('zh'))
+    expect(document.body.textContent).toContain('结果未知')
+    await act(async () => i18n.changeLanguage('en'))
+    f.state.failure = 409
+    await click('Retry exact request')
+    await until(() => expect(f.writes()).toHaveLength(2))
+    expect(f.writes()[1].data).toBe(first)
   })
 })

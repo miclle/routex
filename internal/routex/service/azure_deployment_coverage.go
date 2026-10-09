@@ -97,11 +97,18 @@ func deploymentAttestationIdentity(c entity.ProviderCredential, connection entit
 	} else if c.StorageSource != "" && c.StorageSource != "inline" || c.VaultReference != nil {
 		return ""
 	}
-	return connectionMetadataHash(struct {
+	legacy := connectionMetadataHash(struct {
 		Version, CredentialID, ConnectionID, ProviderID, ModelID, Source, Adapter, Endpoint, APIVersion, Deployment string
 		CredentialBirth, ConnectionBirth, ModelBirth                                                                time.Time
 		Reference                                                                                                   *entity.CredentialVaultReference
 	}{"azure.deployment.identity.v1", c.ID, connection.ID, connection.ProviderID, pm.ID, source, entity.ConnectionAdapter(connection), connection.BaseURL, *connection.APIVersion, pm.UpstreamName, c.CreatedAt.UTC(), connection.CreatedAt.UTC(), pm.CreatedAt.UTC(), ref})
+	if !validTransportGeneration(connection.TransportGeneration) {
+		return ""
+	}
+	if connection.TransportGeneration == "0" {
+		return legacy
+	}
+	return connectionMetadataHash(struct{ Version, LegacyIdentity, TransportGeneration string }{"azure.deployment.identity.v2", legacy, connection.TransportGeneration})
 }
 
 // Deployment evidence is projected only in memory. It never changes discovered
@@ -131,7 +138,8 @@ func deploymentCoverageProjection(credentials []entity.ProviderCredential, conne
 	for _, a := range discovered {
 		c := creds[a.CredentialID]
 		connection := cs[c.ConnectionID]
-		if entity.ConnectionAdapter(connection) != entity.AdapterAzureOpenAIClassic {
+		pm, ok := pms[a.ProviderModelID]
+		if ok && verifiedTransportCurrent(c, connection) && pm.ConnectionID == connection.ID && entity.ConnectionAdapter(connection) != entity.AdapterAzureOpenAIClassic {
 			add(a.CredentialID, a.ProviderModelID)
 		}
 	}
@@ -139,7 +147,7 @@ func deploymentCoverageProjection(credentials []entity.ProviderCredential, conne
 		c, ok := creds[a.CredentialID]
 		m, mok := pms[a.ProviderModelID]
 		connection, cok := cs[c.ConnectionID]
-		if ok && mok && cok && a.Identity != "" && a.Identity == deploymentAttestationIdentity(c, connection, m) {
+		if ok && mok && cok && verifiedTransportCurrent(c, connection) && a.Identity != "" && a.Identity == deploymentAttestationIdentity(c, connection, m) {
 			add(c.ID, m.ID)
 		}
 	}
@@ -592,6 +600,12 @@ func appendDeploymentCoverageAudit(tx *gorm.DB, actor, credential string, before
 // Coverage generations are internal publication facts, not metadata or a secret identity.
 func credentialRuntimeRevision(c entity.ProviderCredential) string {
 	metadata := credentialMetadataRecord(c).ETag
+	if c.VerifiedTransportGeneration != "0" {
+		return connectionMetadataHash(struct {
+			Version, Metadata, Generation string
+			Coverage                      int64
+		}{"credential.runtime.transport.v1", metadata, c.VerifiedTransportGeneration, c.CoverageRevision})
+	}
 	if c.CoverageRevision == 0 {
 		return metadata
 	}

@@ -124,12 +124,15 @@ func testQuotaLifecycle(t *testing.T, db *gorm.DB) {
 	boundBody := map[string]any{"max_input_tokens": 10, "max_output_tokens": 10, "evidence": "Controlled upstream enforces this finite test capacity", "reason": "Acceptance fixture"}
 	expectStatus(t, identityRequest(router, "PUT", boundPath, `{"max_input_tokens":10,"max_output_tokens":10,"evidence":"test","reason":"missing CSRF"}`, cookie, ""), 403)
 	expectStatus(t, request("PUT", boundPath, boundBody, ""), 400)
-	bound := decodeCatalogResponse[service.ReservationBoundRecord](t, request("PUT", boundPath, boundBody, "0"), 200)
+	expectStatus(t, request("PUT", boundPath, boundBody, "0"), 400)
+	capacityReview := decodeCatalogResponse[service.ReservationBoundRecord](t, request("GET", boundPath, nil, ""), 200)
+	bound := decodeCatalogResponse[service.ReservationBoundRecord](t, request("PUT", boundPath, boundBody, capacityReview.ETag), 200)
 	if !bound.Configured || bound.Protocol != entity.ProtocolOpenAIChat {
 		t.Fatal("native capacity not derived")
 	}
-	retry := decodeCatalogResponse[service.ReservationBoundRecord](t, request("PUT", boundPath, boundBody, "0"), 200)
-	if retry.ETag != bound.ETag {
+	expectStatus(t, request("PUT", boundPath, boundBody, capacityReview.ETag), 409)
+	retry := decodeCatalogResponse[service.ReservationBoundRecord](t, request("GET", boundPath, nil, ""), 200)
+	if retry.ETag != bound.ETag || retry.Revision != bound.Revision {
 		t.Fatal("capacity retry duplicated change")
 	}
 	call := func(bearer string, capped bool) *httptest.ResponseRecorder {

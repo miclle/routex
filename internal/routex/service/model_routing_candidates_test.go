@@ -173,10 +173,10 @@ func (c *routingConnection) QueryContext(ctx context.Context, q string, args []d
 func routingSQLService(t *testing.T, n int) (*Service, *routingSQLFixture) {
 	t.Helper()
 	actor, _, _ := connectionMetadataTestRows()
-	f := &routingSQLFixture{roles: &rolesSQLFixture{data: rolesSQLData{users: map[string]entity.User{actor.ID: actor}}, deny: map[string]bool{}}, model: entity.Model{ID: "mdl_target", Status: entity.ResourceActive}, provider: entity.Provider{ID: "prv_one", Name: "Literal % supplier", Enabled: true, ETag: "0", CreatedAt: time.Now().UTC()}, connections: []entity.ProviderConnection{{ID: "con_one", ProviderID: "prv_one", Name: "Recorded connection", Protocol: "openai_chat", Enabled: true}}, credentials: []entity.ProviderCredential{{ID: "crd_one", ConnectionID: "con_one", Enabled: true, VerificationStatus: "verified", Ciphertext: "retained-ciphertext", CreatedAt: time.Now().UTC()}}}
+	f := &routingSQLFixture{roles: &rolesSQLFixture{data: rolesSQLData{users: map[string]entity.User{actor.ID: actor}}, deny: map[string]bool{}}, model: entity.Model{ID: "mdl_target", Status: entity.ResourceActive}, provider: entity.Provider{ID: "prv_one", Name: "Literal % supplier", Enabled: true, ETag: "0", CreatedAt: time.Now().UTC()}, connections: []entity.ProviderConnection{{TransportGeneration: "0", CreatedAt: actor.CreatedAt, ID: "con_one", ProviderID: "prv_one", Name: "Recorded connection", Protocol: "openai_chat", Enabled: true}}, credentials: []entity.ProviderCredential{{VerifiedTransportGeneration: "0", ID: "crd_one", ConnectionID: "con_one", Enabled: true, VerificationStatus: "verified", Ciphertext: "retained-ciphertext", CreatedAt: time.Now().UTC()}}}
 	for i := 0; i < n; i++ {
 		id := "pmd_" + strings.Repeat("a", i+1)
-		f.models = append(f.models, entity.ProviderModel{ID: id, ConnectionID: "con_one", UpstreamName: "Literal%_model"})
+		f.models = append(f.models, entity.ProviderModel{CapabilityTransportGeneration: "0", CreatedAt: actor.CreatedAt, ID: id, ConnectionID: "con_one", UpstreamName: "Literal%_model"})
 		f.access = append(f.access, entity.CredentialModelAccess{CredentialID: "crd_one", ProviderModelID: id})
 	}
 	pool := sql.OpenDB(routingConnector{f})

@@ -146,6 +146,10 @@ type routingSupplyState struct {
 // One bounded batch for all visible Connections; no per-row verification or remote reads.
 func routingSupplyStates(tx *gorm.DB, connections []entity.ProviderConnection, models []entity.ProviderModel) (map[string]routingSupplyState, error) {
 	result := map[string]routingSupplyState{}
+	connectionRows := map[string]entity.ProviderConnection{}
+	for _, connection := range connections {
+		connectionRows[connection.ID] = connection
+	}
 	ids := []string{}
 	pmIDs := []string{}
 	for _, c := range connections {
@@ -192,7 +196,11 @@ func routingSupplyStates(tx *gorm.DB, connections []entity.ProviderConnection, m
 			if c.ConnectionID != pm.ConnectionID {
 				continue
 			}
-			proof := modelCreationCredentialProof{ID: c.ID, Revision: credentialRuntimeRevision(c), CipherHash: credentialSourceProof(c), CreatedAt: c.CreatedAt.UTC(), Enabled: c.Enabled, VerificationStatus: c.VerificationStatus, Access: []string{}}
+			var generation string
+			if c.VerifiedTransportGeneration != "0" {
+				generation = c.VerifiedTransportGeneration
+			}
+			proof := modelCreationCredentialProof{TransportCurrent: verifiedTransportCurrent(c, connectionRows[c.ConnectionID]), TransportGeneration: generation, ID: c.ID, Revision: credentialRuntimeRevision(c), CipherHash: credentialSourceProof(c), CreatedAt: c.CreatedAt.UTC(), Enabled: c.Enabled, VerificationStatus: c.VerificationStatus, Access: []string{}}
 			for _, a := range accesses {
 				if a.CredentialID == c.ID && a.ProviderModelID == pm.ID {
 					proof.Access = append(proof.Access, a.ProviderModelID)
@@ -204,14 +212,14 @@ func routingSupplyStates(tx *gorm.DB, connections []entity.ProviderConnection, m
 			state.Enabled = state.Enabled || c.Enabled
 			state.Credentials = append(state.Credentials, proof)
 		}
-		state.Covered = modelCreationReady(state.Credentials, pm.ID)
+		state.Covered = capabilityTransportCurrent(pm, connectionRows[pm.ConnectionID]) && modelCreationReady(state.Credentials, pm.ID)
 		result[pm.ID] = state
 	}
 	return result, nil
 }
 func routingCandidate(model entity.Model, bindings []entity.ModelProviderBinding, pm entity.ProviderModel, c entity.ProviderConnection, p entity.Provider, state routingSupplyState) ModelRoutingCandidate {
 	row := ModelRoutingCandidate{ID: pm.ID, ProviderID: p.ID, ConnectionID: c.ID, UpstreamName: pm.UpstreamName, Protocol: c.Protocol,
-		ModelRoutingSupply: ModelRoutingSupply{ProviderName: p.Name, ConnectionName: c.Name, VerificationCovered: state.Covered, ConfiguredAvailable: p.Enabled && c.Enabled && !pm.Disabled && state.Enabled}}
+		ModelRoutingSupply: ModelRoutingSupply{ProviderName: p.Name, ConnectionName: c.Name, VerificationCovered: state.Covered, ConfiguredAvailable: p.Enabled && c.Enabled && !pm.Disabled && capabilityTransportCurrent(pm, c) && state.Enabled}}
 	row.Selectable = model.Status == entity.ResourceActive && row.VerificationCovered && row.ConfiguredAvailable && state.SourceAvailable
 	// The opaque review binds exact recorded material, births, target topology and configuration.
 	raw, _ := json.Marshal(struct {
@@ -222,6 +230,14 @@ func routingCandidate(model entity.Model, bindings []entity.ModelProviderBinding
 		Provider    entity.Provider
 		Credentials []modelCreationCredentialProof
 	}{model, bindings, pm, c, p, state.Credentials})
+	proof := runtimeTransportDigestProof(&runtimeData{Connections: []entity.ProviderConnection{c}, ProviderModels: []entity.ProviderModel{pm}})
+	if len(proof) > 0 {
+		raw, _ = json.Marshal(struct {
+			Version string
+			Legacy  json.RawMessage
+			Proof   map[string]string
+		}{"routing.candidate.transport.v1", raw, proof})
+	}
 	digest := sha256.Sum256(raw)
 	row.ReviewETag = hex.EncodeToString(digest[:])
 	return row

@@ -274,6 +274,18 @@ func auditRecord(row entity.AuditEvent) AuditRecord {
 		if !valid {
 			return result
 		}
+	case "provider_model.capability.review":
+		var valid bool
+		changes, valid = capabilityTransportAuditProjection(row)
+		if !valid {
+			return result
+		}
+	case "connection.transport.update":
+		var valid bool
+		changes, valid = connectionTransportAuditProjection(row)
+		if !valid {
+			return result
+		}
 	case "connection.metadata.update":
 		var valid bool
 		changes, valid = connectionMetadataAuditProjection(row)

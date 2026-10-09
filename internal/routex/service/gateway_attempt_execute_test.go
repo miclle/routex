@@ -414,7 +414,7 @@ func TestGatewayCredentialRejectionUsesNextPriorityOnSameTarget(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	data.Credentials = append(data.Credentials, entity.ProviderCredential{ID: "crd_two", ConnectionID: "con_one", Ciphertext: ciphertext, Enabled: true, VerificationStatus: "verified", Priority: 1})
+	data.Credentials = append(data.Credentials, entity.ProviderCredential{VerifiedTransportGeneration: "0", CreatedAt: time.Date(2026, 10, 1, 0, 0, 0, 0, time.UTC), ID: "crd_two", ConnectionID: "con_one", Ciphertext: ciphertext, Enabled: true, VerificationStatus: "verified", Priority: 1})
 	data.Access = append(data.Access, entity.CredentialModelAccess{CredentialID: "crd_two", ProviderModelID: "pmd_one"})
 	publishGatewayAttemptFixture(t, svc, data)
 	result, err := svc.GatewayChat(context.Background(), bearer, []byte(`{"model":"public-model","messages":[{"role":"user","content":"hello"}]}`), "req_attempt_credential")
@@ -455,9 +455,9 @@ func addSecondGatewayAttemptRoute(t *testing.T, svc *Service, data *runtimeData,
 	}
 	data.Bindings[0].Weight = 50
 	data.Providers = append(data.Providers, entity.Provider{ID: "prv_two", Name: "Provider Two", Enabled: true, ETag: "0", CreatedAt: time.Date(2026, 10, 1, 0, 0, 0, 0, time.UTC)})
-	data.Connections = append(data.Connections, entity.ProviderConnection{Enabled: true, CreatedAt: time.Date(2026, 10, 1, 0, 0, 0, 0, time.UTC), ID: "con_two", ProviderID: "prv_two", Name: "Secondary", BaseURL: baseURL, Protocol: entity.ProtocolOpenAIChat})
-	data.ProviderModels = append(data.ProviderModels, entity.ProviderModel{ID: "pmd_two", ConnectionID: "con_two", UpstreamName: "provider-model-two"})
-	data.Credentials = append(data.Credentials, entity.ProviderCredential{ID: "crd_two", ConnectionID: "con_two", Ciphertext: ciphertext, Enabled: true, VerificationStatus: "verified"})
+	data.Connections = append(data.Connections, entity.ProviderConnection{TransportGeneration: "0", ETag: "0", Enabled: true, CreatedAt: time.Date(2026, 10, 1, 0, 0, 0, 0, time.UTC), ID: "con_two", ProviderID: "prv_two", Name: "Secondary", BaseURL: baseURL, Protocol: entity.ProtocolOpenAIChat})
+	data.ProviderModels = append(data.ProviderModels, entity.ProviderModel{CapabilityTransportGeneration: "0", ETag: "0", CreatedAt: time.Date(2026, 10, 1, 0, 0, 0, 0, time.UTC), ID: "pmd_two", ConnectionID: "con_two", UpstreamName: "provider-model-two"})
+	data.Credentials = append(data.Credentials, entity.ProviderCredential{VerifiedTransportGeneration: "0", CreatedAt: time.Date(2026, 10, 1, 0, 0, 0, 0, time.UTC), ID: "crd_two", ConnectionID: "con_two", Ciphertext: ciphertext, Enabled: true, VerificationStatus: "verified"})
 	data.Access = append(data.Access, entity.CredentialModelAccess{CredentialID: "crd_two", ProviderModelID: "pmd_two"})
 	data.Bindings = append(data.Bindings, entity.ModelProviderBinding{ID: "bnd_two", ModelID: "mdl_one", ProviderModelID: "pmd_two", Weight: 50})
 	publishGatewayAttemptFixture(t, svc, data)

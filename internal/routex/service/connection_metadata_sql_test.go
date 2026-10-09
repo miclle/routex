@@ -221,7 +221,7 @@ func TestConnectionMetadataSQLIndependentAuthorityAndExactIdentity(t *testing.T)
 		if err != nil || record.CanEdit {
 			t.Fatal(record, err)
 		}
-		got, err := s.WriteConnectionMetadata(ctx, "usr_admin", record.ID, record.ETag, ConnectionMetadataInput{"Changed", "Reviewed"})
+		got, err := s.WriteConnectionMetadata(ctx, "usr_admin", record.ID, record.ETag, ConnectionMetadataInput{Name: "Changed", Reason: "Reviewed"})
 		if got != nil || err != apperrors.ErrForbidden || len(f.writes) != 0 {
 			t.Fatal(got, err)
 		}
@@ -230,7 +230,7 @@ func TestConnectionMetadataSQLIndependentAuthorityAndExactIdentity(t *testing.T)
 		s, f, _, state := connectionMetadataSQLService(t)
 		record, _ := s.GetConnectionMetadata(ctx, "usr_admin", state.row.ID)
 		f.deny["providers.read"] = true
-		result, err := s.WriteConnectionMetadata(ctx, "usr_admin", record.ID, record.ETag, ConnectionMetadataInput{"Changed", "Reviewed"})
+		result, err := s.WriteConnectionMetadata(ctx, "usr_admin", record.ID, record.ETag, ConnectionMetadataInput{Name: "Changed", Reason: "Reviewed"})
 		if err != nil || !result.RuntimeApplied || !result.Changed || result.Connection.Name != "Changed" || len(f.data.audits) != 1 {
 			_, detailErr := s.loadRuntimeData(ctx)
 			t.Fatal(result, err, detailErr, f.queries)
@@ -249,7 +249,7 @@ func TestConnectionMetadataSQLAtomicRenameRetryAndSharedConflict(t *testing.T) {
 		original := state.row
 		record, _ := s.GetConnectionMetadata(ctx, "usr_admin", state.row.ID)
 		f.failAudit = true
-		result, err := s.WriteConnectionMetadata(ctx, "usr_admin", record.ID, record.ETag, ConnectionMetadataInput{"Changed", "Reviewed"})
+		result, err := s.WriteConnectionMetadata(ctx, "usr_admin", record.ID, record.ETag, ConnectionMetadataInput{Name: "Changed", Reason: "Reviewed"})
 		if result != nil || err != apperrors.ErrInternal || !reflect.DeepEqual(state.row, original) || len(f.data.audits) != 0 {
 			t.Fatal(result, err, state.row)
 		}
@@ -258,7 +258,7 @@ func TestConnectionMetadataSQLAtomicRenameRetryAndSharedConflict(t *testing.T) {
 		s, f, _, state := connectionMetadataSQLService(t)
 		original := state.row
 		record, _ := s.GetConnectionMetadata(ctx, "usr_admin", state.row.ID)
-		input := ConnectionMetadataInput{"Changed", "Reviewed"}
+		input := ConnectionMetadataInput{Name: "Changed", Reason: "Reviewed"}
 		result, err := s.WriteConnectionMetadata(ctx, "usr_admin", record.ID, record.ETag, input)
 		if err != nil || !result.RuntimeApplied || !result.Changed || state.row.ETag == original.ETag || state.row.EgressMode != original.EgressMode || state.row.BaseURL != original.BaseURL || state.row.Protocol != original.Protocol {
 			_, detailErr := s.loadRuntimeData(ctx)
@@ -282,7 +282,7 @@ func TestConnectionMetadataSQLAtomicRenameRetryAndSharedConflict(t *testing.T) {
 		record, _ := s.GetConnectionMetadata(ctx, "usr_admin", state.row.ID)
 		state.row.ETag = "rev_egress"
 		state.row.EgressMode = "direct"
-		result, err := s.WriteConnectionMetadata(ctx, "usr_admin", record.ID, record.ETag, ConnectionMetadataInput{"Changed", "Reviewed"})
+		result, err := s.WriteConnectionMetadata(ctx, "usr_admin", record.ID, record.ETag, ConnectionMetadataInput{Name: "Changed", Reason: "Reviewed"})
 		if result != nil || err != catalogConflict || len(f.writes) != 0 {
 			t.Fatal(result, err)
 		}
@@ -291,7 +291,7 @@ func TestConnectionMetadataSQLAtomicRenameRetryAndSharedConflict(t *testing.T) {
 		s, f, _, state := connectionMetadataSQLService(t)
 		record, _ := s.GetConnectionMetadata(ctx, "usr_admin", state.row.ID)
 		close(s.runtime.done)
-		result, err := s.WriteConnectionMetadata(ctx, "usr_admin", record.ID, record.ETag, ConnectionMetadataInput{"Changed", "Reviewed"})
+		result, err := s.WriteConnectionMetadata(ctx, "usr_admin", record.ID, record.ETag, ConnectionMetadataInput{Name: "Changed", Reason: "Reviewed"})
 		if result != nil || err != connectionMetadataUnavailable || state.row.Name != "Changed" || len(f.data.audits) != 1 {
 			t.Fatal(result, err)
 		}
@@ -320,7 +320,7 @@ func TestConnectionMetadataSQLAtomicRenameRetryAndSharedConflict(t *testing.T) {
 					state.row.Name = "Concurrent"
 				}
 			}
-			result, err := s.WriteConnectionMetadata(ctx, "usr_admin", record.ID, record.ETag, ConnectionMetadataInput{"Changed", "Reviewed"})
+			result, err := s.WriteConnectionMetadata(ctx, "usr_admin", record.ID, record.ETag, ConnectionMetadataInput{Name: "Changed", Reason: "Reviewed"})
 			if result != nil || err == nil || len(f.data.audits) != 1 {
 				t.Fatal("postcommit authority/identity lost", result, err)
 			}
@@ -331,7 +331,16 @@ func TestConnectionMetadataSQLAtomicRenameRetryAndSharedConflict(t *testing.T) {
 		if _, err := s.GetConnectionMetadata(ctx, "usr_admin", state.row.ID); err != nil {
 			t.Fatal(err)
 		}
-		if len(f.transactions) != 1 || !f.transactions[0].ReadOnly || f.transactions[0].Isolation != driver.IsolationLevel(sql.LevelRepeatableRead) || len(f.queries) != 5 || slices.ContainsFunc(f.queries, func(q string) bool { return strings.Contains(q, "provider_credentials") }) {
+		modelCounts := 0
+		for _, query := range f.queries {
+			if strings.Contains(query, `FROM "provider_models"`) {
+				if !strings.Contains(query, "count(*)") || !strings.Contains(query, "connection_id") || !strings.Contains(query, "LIMIT") {
+					t.Fatal("unbounded transport-lock projection", query)
+				}
+				modelCounts++
+			}
+		}
+		if len(f.transactions) != 1 || !f.transactions[0].ReadOnly || f.transactions[0].Isolation != driver.IsolationLevel(sql.LevelRepeatableRead) || len(f.queries) != 6 || modelCounts != 1 || slices.ContainsFunc(f.queries, func(q string) bool { return strings.Contains(q, "provider_credentials") }) {
 			t.Fatal(f.transactions, f.queries)
 		}
 	})
@@ -367,7 +376,7 @@ func TestConnectionMetadataSQLRejectsSourceChangedBetweenPublishAndConfirmation(
 		state.row.ETag = "rev_concurrent"
 		state.row.EgressMode = "direct"
 	}
-	result, err := s.WriteConnectionMetadata(context.Background(), "usr_admin", record.ID, record.ETag, ConnectionMetadataInput{"Changed", "Reviewed"})
+	result, err := s.WriteConnectionMetadata(context.Background(), "usr_admin", record.ID, record.ETag, ConnectionMetadataInput{Name: "Changed", Reason: "Reviewed"})
 	if result != nil || err != connectionMetadataUnavailable || state.row.Name != "Changed" || !state.afterRuntimeReadDone || len(f.data.audits) != 1 {
 		t.Fatal("mixed source confirmation accepted", result, err, state.row)
 	}

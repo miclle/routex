@@ -239,6 +239,7 @@ func TestTeamNativeDiscoveryIncludesIndependentlyReadyProtocols(t *testing.T) {
 		candidate.Route.BindingID = "bnd_" + protocol
 		candidate.Route.ProviderModelID = "pmd_" + protocol
 		auth.ProviderModels[candidate.Route.ProviderModelID] = true
+		auth.ProviderModelRevisions[candidate.Route.ProviderModelID] = candidate.Route.ProviderModelRevision
 		auth.CredentialAccess["crd_one"][candidate.Route.ProviderModelID] = true
 		routes.Models["mdl_one"] = append(routes.Models["mdl_one"], candidate)
 	}

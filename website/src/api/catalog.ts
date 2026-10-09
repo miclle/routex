@@ -14,7 +14,6 @@ import type {
   ModelAliasRetirementResult,
   PersonalKey,
   Provider,
-  ProviderModel,
 } from '@/types/catalog'
 
 export async function listProviders(signal?: AbortSignal) {
@@ -88,13 +87,7 @@ export function catalogError(error: unknown) {
   return t('the_action_failed_check_the_service_connection_and_65fc1')
 }
 
-export async function setProviderModelState(
-  id: string,
-  input: Pick<ProviderModel, 'etag' | 'enabled' | 'supports_image_input' | 'supports_pdf_input'>,
-  csrf: string,
-) {
-  return writeCatalog<ProviderModel>('patch', `/admin/provider-models/${id}`, input, csrf)
-}
+export { saveProviderModelState as setProviderModelState } from './provider-model-state'
 
 export async function getAdminModel(modelID: string, signal?: AbortSignal): Promise<Model> {
   const value = (

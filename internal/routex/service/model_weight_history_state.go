@@ -260,7 +260,7 @@ func (st *modelWeightState) executable(rows []ModelWeightRow) bool {
 		pm, pok := pms[row.ProviderModelID]
 		sup, ok := st.Supplies[row.ProviderModelID]
 		p, providerOK := providers[row.ProviderID]
-		if !providerOK || !p.Enabled || p.ETag == "" || !connectionMetadataBirth(p.CreatedAt) || row.ProviderCreatedAt == nil || !p.CreatedAt.Equal(*row.ProviderCreatedAt) || !cok || !pok || !ok || c.ProviderID != p.ID || pm.ConnectionID != c.ID || !c.Enabled || pm.Disabled || !sup.Covered || !sup.SourceAvailable || !st.EgressReady[c.ID] || st.EgressRevisions[c.ID] == "" {
+		if !providerOK || !p.Enabled || p.ETag == "" || !connectionMetadataBirth(p.CreatedAt) || row.ProviderCreatedAt == nil || !p.CreatedAt.Equal(*row.ProviderCreatedAt) || !cok || !pok || !ok || c.ProviderID != p.ID || pm.ConnectionID != c.ID || !c.Enabled || pm.Disabled || !capabilityTransportCurrent(pm, c) || !sup.Covered || !sup.SourceAvailable || !st.EgressReady[c.ID] || st.EgressRevisions[c.ID] == "" {
 			return false
 		}
 	}

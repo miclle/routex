@@ -42,10 +42,13 @@ func TestGatewayModelInputCapabilitiesIntersectReadyRoutes(t *testing.T) {
 
 	data.Bindings[0].Weight = 50
 	data.ProviderModels = append(data.ProviderModels, entity.ProviderModel{
-		ID:                 "pmd_two",
-		ConnectionID:       "con_one",
-		UpstreamName:       "provider-model-two",
-		SupportsImageInput: true,
+		CapabilityTransportGeneration: "0",
+		ETag:                          "0",
+		CreatedAt:                     time.Date(2026, 10, 1, 0, 0, 0, 0, time.UTC),
+		ID:                            "pmd_two",
+		ConnectionID:                  "con_one",
+		UpstreamName:                  "provider-model-two",
+		SupportsImageInput:            true,
 	})
 	data.Access = append(data.Access, entity.CredentialModelAccess{CredentialID: "crd_one", ProviderModelID: "pmd_two"})
 	data.Bindings = append(data.Bindings, entity.ModelProviderBinding{ID: "bnd_two", ModelID: "mdl_one", ProviderModelID: "pmd_two", Weight: 50})
@@ -67,9 +70,12 @@ func TestGatewayModelInputCapabilitiesIntersectReadyRoutes(t *testing.T) {
 	}
 
 	data.ProviderModels = append(data.ProviderModels, entity.ProviderModel{
-		ID:           "pmd_zero",
-		ConnectionID: "con_one",
-		UpstreamName: "provider-model-zero",
+		CapabilityTransportGeneration: "0",
+		ETag:                          "0",
+		CreatedAt:                     time.Date(2026, 10, 1, 0, 0, 0, 0, time.UTC),
+		ID:                            "pmd_zero",
+		ConnectionID:                  "con_one",
+		UpstreamName:                  "provider-model-zero",
 	})
 	data.Access = append(data.Access, entity.CredentialModelAccess{CredentialID: "crd_one", ProviderModelID: "pmd_zero"})
 	data.Bindings = append(data.Bindings, entity.ModelProviderBinding{ID: "bnd_zero", ModelID: "mdl_one", ProviderModelID: "pmd_zero"})

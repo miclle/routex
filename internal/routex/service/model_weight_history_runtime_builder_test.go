@@ -56,7 +56,7 @@ func modelWeightActualBuilderFixture(t *testing.T, connectionEnabled, secondDisa
 	for i, pm := range data.ProviderModels {
 		b := data.Bindings[i]
 		st.Rows = append(st.Rows, ModelWeightRow{BindingID: b.ID, BindingCreatedAt: modelWeightBirth(b.CreatedAt), ProviderModelID: pm.ID, ProviderModelCreatedAt: modelWeightBirth(pm.CreatedAt), ConnectionID: c.ID, ConnectionCreatedAt: modelWeightBirth(c.CreatedAt), ProviderID: c.ProviderID, ProviderCreatedAt: modelWeightBirth(data.Providers[0].CreatedAt), Protocol: c.Protocol, Weight: b.Weight})
-		st.Supplies[pm.ID] = routingSupplyState{Enabled: c.Enabled, Covered: true, SourceAvailable: true, Credentials: []modelCreationCredentialProof{{ID: credential.ID, CreatedAt: credential.CreatedAt, Revision: credentialRuntimeRevision(credential), CipherHash: credentialSourceProof(credential), Enabled: credential.Enabled, VerificationStatus: credential.VerificationStatus, Access: []string{pm.ID}}}}
+		st.Supplies[pm.ID] = routingSupplyState{Enabled: c.Enabled, Covered: true, SourceAvailable: true, Credentials: []modelCreationCredentialProof{{TransportCurrent: verifiedTransportCurrent(credential, c), ID: credential.ID, CreatedAt: credential.CreatedAt, Revision: credentialRuntimeRevision(credential), CipherHash: credentialSourceProof(credential), Enabled: credential.Enabled, VerificationStatus: credential.VerificationStatus, Access: []string{pm.ID}}}}
 	}
 	return s, st, routes
 }

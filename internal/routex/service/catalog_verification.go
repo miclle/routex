@@ -30,16 +30,23 @@ func (s *Service) VerifyCredential(ctx context.Context, actorID, credentialID st
 		return nil, secretStoreUnavailable
 	}
 	db := s.authDB(ctx)
+	capturedActor, e := exactEnabledActor(modelCreationDB(db), actorID)
+	if e != nil {
+		return nil, e
+	}
 	var credential entity.ProviderCredential
 	if err := exactCatalogPermission(db, actorID, "providers.write"); err != nil {
 		return nil, err
 	}
-	if err := db.First(&credential, "id = ?", credentialID).Error; err != nil {
+	if err := personalExact(modelCreationDB(db), "id", credentialID).Take(&credential).Error; err != nil {
 		return nil, catalogError(err)
 	}
 	var connection entity.ProviderConnection
-	if err := db.First(&connection, "id = ?", credential.ConnectionID).Error; err != nil {
+	if err := personalExact(modelCreationDB(db), "id", credential.ConnectionID).Take(&connection).Error; err != nil {
 		return nil, catalogError(err)
+	}
+	if !validTransportGeneration(connection.TransportGeneration) {
+		return nil, connectionMetadataUnavailable
 	}
 	_, _, transportRevision, err := s.resolveConnectionEgress(db, connection)
 	if err != nil {
@@ -50,6 +57,8 @@ func (s *Service) VerifyCredential(ctx context.Context, actorID, credentialID st
 		return nil, catalogError(err)
 	}
 	credential = rows[0]
+	capturedCredential := credential
+	capturedConnection := connection
 	sourceProof := credentialSourceProof(credential)
 	holder, holderErr := s.acquireCredentialSource(credential)
 	if holderErr != nil {
@@ -85,21 +94,31 @@ func (s *Service) VerifyCredential(ctx context.Context, actorID, credentialID st
 		if err := lockGovernance(tx); err != nil {
 			return err
 		}
-		if err := authorizeGovernance(tx, actorID, "providers.write"); err != nil {
+		if err := exactCatalogPermission(tx, actorID, "providers.write"); err != nil {
 			return err
 		}
-		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).First(&connection, "id = ?", connection.ID).Error; err != nil {
+		currentActor, e := exactEnabledActor(modelCreationDB(tx), actorID)
+		if e != nil {
+			return e
+		}
+		if currentActor.ID != capturedActor.ID || !currentActor.CreatedAt.Equal(capturedActor.CreatedAt) {
+			return catalogConflict
+		}
+		if err := personalExact(modelCreationDB(tx), "id", capturedConnection.ID).Clauses(clause.Locking{Strength: "UPDATE"}).Take(&connection).Error; err != nil {
 			return err
 		}
 		_, _, currentTransport, err := s.resolveConnectionEgress(tx, connection)
 		if err != nil {
 			return err
 		}
-		if currentTransport != transportRevision {
+		if currentTransport != transportRevision || connection.ID != capturedConnection.ID || !connection.CreatedAt.Equal(capturedConnection.CreatedAt) || connection.TransportGeneration != capturedConnection.TransportGeneration || !validTransportGeneration(connection.TransportGeneration) || !sameConnectionTransport(connectionTransportTuple(connection), connectionTransportTuple(capturedConnection)) {
 			return catalogConflict
 		}
-		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).First(&credential, "id = ?", credential.ID).Error; err != nil {
+		if err := personalExact(modelCreationDB(tx), "id", capturedCredential.ID).Clauses(clause.Locking{Strength: "UPDATE"}).Take(&credential).Error; err != nil {
 			return err
+		}
+		if credential.ID != capturedCredential.ID || credential.ConnectionID != capturedCredential.ConnectionID || !credential.CreatedAt.Equal(capturedCredential.CreatedAt) {
+			return catalogConflict
 		}
 		rows := []entity.ProviderCredential{credential}
 		if e := attachCredentialSources(tx, rows); e != nil {
@@ -118,6 +137,7 @@ func (s *Service) VerifyCredential(ctx context.Context, actorID, credentialID st
 		updates := map[string]any{"verification_status": "failed", "verified_at": nil, "enabled": false}
 		if verified {
 			updates["verification_status"], updates["verified_at"] = "verified", time.Now().UTC()
+			updates["verified_transport_generation"] = connection.TransportGeneration
 			// Reverification never silently re-enables a credential. If coverage
 			// shrinks below an active route, disable it until an explicit enable.
 			updates["enabled"] = credential.Enabled
@@ -129,7 +149,7 @@ func (s *Service) VerifyCredential(ctx context.Context, actorID, credentialID st
 					if err != nil {
 						return err
 					}
-					model = entity.ProviderModel{ID: modelID, ConnectionID: connection.ID, UpstreamName: name}
+					model = entity.ProviderModel{CapabilityTransportGeneration: connection.TransportGeneration, ID: modelID, ConnectionID: connection.ID, UpstreamName: name}
 					if err := tx.Create(&model).Error; err != nil {
 						return err
 					}
@@ -191,6 +211,12 @@ func (s *Service) discoverModels(ctx context.Context, connection entity.Provider
 	if client != s.upstream {
 		defer client.CloseIdleConnections()
 	}
+	return s.discoverModelsWithClient(ctx, connection, plaintext, client)
+}
+
+// The caller owns the deadline and the captured transport client. Verification
+// and transient diagnostics share native parsing without sharing mutations.
+func (s *Service) discoverModelsWithClient(ctx context.Context, connection entity.ProviderConnection, plaintext string, client *http.Client) ([]string, bool) {
 	if connection.Protocol == entity.ProtocolGeminiGenerateContent {
 		return s.discoverGeminiModels(ctx, connection, plaintext, client)
 	}

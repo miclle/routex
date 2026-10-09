@@ -24,6 +24,9 @@ const row = (): ConnectionMetadata => ({
   egress_id: null,
   etag: token,
   can_edit: true,
+  transport_generation: '0',
+  can_edit_transport: false,
+  transport_locked: false,
 })
 beforeEach(() => {
   requests = []
@@ -228,4 +231,102 @@ it.each([
 ])('rejects noncanonical immutable Connection transport', async (change) => {
   data = { ...row(), ...change }
   await expect(getConnectionMetadata('prv_one', 'con_one')).rejects.toThrow()
+})
+
+it('saves the complete reviewed transport with the exact original body/header and no status, egress or child fields', async () => {
+  const transport = {
+    base_url: 'https://new.example.invalid/v1',
+    protocol: 'openai_chat' as const,
+    adapter: 'native' as const,
+    api_version: null,
+  }
+  const input = { name: 'Primary', reason: 'Endpoint maintenance', transport }
+  data = {
+    connection: {
+      ...row(),
+      ...transport,
+      transport_generation: `rev_${'0'.repeat(26)}`,
+      can_edit_transport: true,
+    },
+    runtime_applied: true,
+    changed: true,
+  }
+  expect(
+    (await saveConnectionMetadata('prv_one', 'con_one', token, input, 'fresh-csrf')).connection
+      .base_url,
+  ).toBe(transport.base_url)
+  expect(JSON.parse(requests[0].data)).toEqual(input)
+  expect(requests[0].headers.get('If-Match')).toBe(`"${token}"`)
+  expect(requests[0].headers.get('X-CSRF-Token')).toBe('fresh-csrf')
+})
+it.each([
+  { base_url: 'https://new.example.invalid', protocol: 'openai_chat', adapter: 'native' },
+  {
+    base_url: 'https://new.example.invalid',
+    protocol: 'openai_chat',
+    adapter: 'native',
+    api_version: '2024-10-21',
+  },
+  {
+    base_url: 'https://name:secret@new.example.invalid',
+    protocol: 'openai_chat',
+    adapter: 'native',
+    api_version: null,
+  },
+  {
+    base_url: 'https://new.example.invalid/v1',
+    protocol: 'openai_responses',
+    adapter: 'azure_openai_classic',
+    api_version: '2024-10-21',
+  },
+  {
+    base_url: 'https://new.example.invalid',
+    protocol: 'openai_chat',
+    adapter: 'native',
+    api_version: null,
+    enabled: true,
+  },
+])('rejects incomplete or inconsistent transport before HTTP %#', async (transport) => {
+  await expect(
+    saveConnectionMetadata(
+      'prv_one',
+      'con_one',
+      token,
+      { name: 'Primary', reason: 'Change', transport } as never,
+      'csrf',
+    ),
+  ).rejects.toThrow('unavailable')
+  expect(requests).toHaveLength(0)
+})
+it.each([
+  { transport_generation: undefined },
+  { transport_generation: 'REV_wrong' },
+  { transport_generation: `rev_${'A'.repeat(26)}` },
+  { can_edit_transport: undefined },
+  { can_edit_transport: true, can_edit: false },
+  { transport_locked: 'false' },
+])('rejects malformed authoritative transport fields %#', async (patch) => {
+  data = { ...row(), ...patch }
+  await expect(getConnectionMetadata('prv_one', 'con_one')).rejects.toThrow('unavailable')
+})
+it('does not confirm a changed endpoint or an enabled transport-edit result after PUT', async () => {
+  const input = {
+    name: 'Primary',
+    reason: 'Change',
+    transport: {
+      base_url: 'https://new.example.invalid',
+      protocol: 'openai_chat' as const,
+      adapter: 'native' as const,
+      api_version: null,
+    },
+  }
+  data = {
+    connection: { ...row(), can_edit_transport: true },
+    runtime_applied: true,
+    changed: true,
+  }
+  await expect(saveConnectionMetadata('prv_one', 'con_one', token, input, 'csrf')).rejects.toThrow(
+    'unavailable',
+  )
+  expect(requests).toHaveLength(1)
 })

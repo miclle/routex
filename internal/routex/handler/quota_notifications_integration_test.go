@@ -143,7 +143,8 @@ func testMonthlyQuotaNotificationLifecycle(t *testing.T, db *gorm.DB) {
 		return res
 	}
 	boundPath := "/api/v1/admin/provider-models/pmd_quota_notice/reservation-bound"
-	expectStatus(t, adminRequest("PUT", boundPath, map[string]any{"max_input_tokens": 10, "max_output_tokens": 10, "evidence": "Controlled native response capacity", "reason": "Monthly notification acceptance"}, "0"), 200)
+	capacityReview := decodeCatalogResponse[service.ReservationBoundRecord](t, adminRequest("GET", boundPath, nil, ""), 200)
+	expectStatus(t, adminRequest("PUT", boundPath, map[string]any{"max_input_tokens": 10, "max_output_tokens": 10, "evidence": "Controlled native response capacity", "reason": "Monthly notification acceptance"}, capacityReview.ETag), 200)
 	expectStatus(t, call(adminBearer), 200)
 	if err := svc.FlushCallRecorder(ctx); err != nil {
 		t.Fatal(err)

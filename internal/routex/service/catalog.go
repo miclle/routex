@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"net/http"
 	"strings"
@@ -73,21 +74,33 @@ func validUpstreamName(value string) bool {
 	return value != "" && strings.TrimSpace(value) == value && utf8.ValidString(value) && utf8.RuneCountInString(value) <= 255 && !strings.ContainsFunc(value, unicode.IsControl)
 }
 
-func (s *Service) ListProviders(ctx context.Context) ([]ProviderCatalog, error) {
-	db := s.authDB(ctx)
-	var rows []entity.Provider
-	if err := db.Order("created_at, id").Find(&rows).Error; err != nil {
-		return nil, catalogError(err)
-	}
-	result := make([]ProviderCatalog, 0, len(rows))
-	for _, provider := range rows {
-		item, err := loadProviderCatalog(db, provider.ID)
-		if err != nil {
-			return nil, catalogError(err)
+func (s *Service) ListProviders(ctx context.Context, actors ...string) ([]ProviderCatalog, error) {
+	result := []ProviderCatalog{}
+	err := s.authDB(ctx).Transaction(func(tx *gorm.DB) error {
+		if len(actors) > 0 {
+			if err := exactCatalogPermission(tx, actors[0], "providers.read"); err != nil {
+				return err
+			}
 		}
-		result = append(result, *item)
-	}
-	return result, nil
+		var rows []entity.Provider
+		if err := tx.Order("created_at,id").Find(&rows).Error; err != nil {
+			return err
+		}
+		for _, provider := range rows {
+			item, err := loadProviderCatalog(tx, provider.ID)
+			if err != nil {
+				return err
+			}
+			if len(actors) > 0 {
+				if err := s.projectCatalogTransport(tx, actors[0], item); err != nil {
+					return err
+				}
+			}
+			result = append(result, *item)
+		}
+		return nil
+	}, &sql.TxOptions{Isolation: sql.LevelRepeatableRead, ReadOnly: true})
+	return result, catalogError(err)
 }
 
 func loadProviderCatalog(db *gorm.DB, providerID string) (*ProviderCatalog, error) {
@@ -148,6 +161,10 @@ func (s *Service) prepareConnectionMetadata(providerID string, input CreateConne
 		return connection, err
 	}
 	connection.BaseURL = strings.TrimRight(baseURL.String(), "/")
+	connection.TransportGeneration, err = id.NewPrefixed("rev")
+	if err != nil {
+		return connection, apperrors.ErrInternal
+	}
 	connection.ID, err = id.NewPrefixed("con")
 	if err != nil {
 		return connection, apperrors.ErrInternal
@@ -456,7 +473,7 @@ func (s *Service) SetCredentialEnabled(ctx context.Context, actorID, credentialI
 			if credentialSourceProof(rows[0]) != preparedProof {
 				return catalogConflict
 			}
-			if credential.VerificationStatus != "verified" {
+			if !verifiedTransportCurrent(credential, connection) {
 				return credentialNotReady
 			}
 			var missing int64
@@ -480,6 +497,7 @@ func (s *Service) SetCredentialEnabled(ctx context.Context, actorID, credentialI
 		if err := tx.Model(&credential).Update("enabled", enabled).Error; err != nil {
 			return err
 		}
+		credential.VerificationTransportCurrent = verifiedTransportCurrent(credential, connection)
 		return appendAudit(tx, actorID, "credential.update", "credential", credentialID)
 	})
 	if err == nil && !enabled {
@@ -499,14 +517,43 @@ func (s *Service) CreateProviderModel(ctx context.Context, actorID, connectionID
 	}
 	model := entity.ProviderModel{ID: modelID, ConnectionID: connectionID, UpstreamName: upstreamName}
 	err = s.authDB(ctx).Transaction(func(tx *gorm.DB) error {
+		if e := lockGovernance(tx); e != nil {
+			return e
+		}
+		if e := exactCatalogPermission(tx, actorID, "providers.write"); e != nil {
+			return e
+		}
 		var connection entity.ProviderConnection
-		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).First(&connection, "id = ?", connectionID).Error; err != nil {
+		if err := personalExact(modelCreationDB(tx), "id", connectionID).Clauses(clause.Locking{Strength: "UPDATE"}).Take(&connection).Error; err != nil {
 			return err
 		}
+		if connection.ID != connectionID {
+			return apperrors.ErrNotFound
+		}
+		if !validTransportGeneration(connection.TransportGeneration) {
+			return connectionMetadataUnavailable
+		}
+		model.CapabilityTransportGeneration = connection.TransportGeneration
 		if err := tx.Create(&model).Error; err != nil {
 			return err
 		}
 		return appendAudit(tx, actorID, "provider_model.create", "provider_model", modelID)
 	})
-	return &model, s.refreshAfterMutation(ctx, catalogError(err))
+	if err := s.refreshAfterMutation(ctx, catalogError(err)); err != nil {
+		return nil, err
+	}
+	err = s.authDB(ctx).Transaction(func(tx *gorm.DB) error {
+		a, p, c, pm, e := transportSubject(tx, actorID, modelID, "providers.write", false)
+		if e != nil {
+			return e
+		}
+		pm.CapabilitiesTransportCurrent = capabilityTransportCurrent(pm, c)
+		pm.CapabilityReviewETag = capabilityReviewETag(a, p, c, pm)
+		model = pm
+		return nil
+	}, &sql.TxOptions{Isolation: sql.LevelRepeatableRead, ReadOnly: true})
+	if err != nil {
+		return nil, connectionMetadataUnavailable
+	}
+	return &model, nil
 }

@@ -1,4 +1,42 @@
 export default {
+  connectionTest: {
+    action: 'Test connection',
+    title: 'Test connection',
+    description: 'Choose an exact credential to test the stored connection and access source.',
+    connection: '{{name}} · {{id}}',
+    lockedDescription:
+      'Test the exact credential selected from this row and its stored connection.',
+    lockedCredential: 'Selected credential',
+    lockedHelp: 'This test is locked to the selected credential. Close it to test a different row.',
+    credential: 'Credential to test',
+    choose: 'Select a credential',
+    option: '{{name}} · {{id}} · {{state}} · {{verification}}',
+    noCredentials: 'This connection has no retained credentials. Add one before testing.',
+    manage: 'Manage credentials',
+    boundary:
+      'Pending and disabled credentials can be tested explicitly. This test does not perform inference, verify or enable credentials, save discovery, or confirm routing readiness.',
+    loading: 'Loading current connection review…',
+    unavailable:
+      'Current connection review is unavailable. Close and reopen after refreshing authorized facts.',
+    run: 'Run new test',
+    testing: 'Testing…',
+    cancel: 'Cancel test',
+    close: 'Close',
+    passed: 'This test passed.',
+    failed: 'This test failed.',
+    denied:
+      'Current test authority was denied. Refresh authorized facts before starting a new test.',
+    reviewChanged:
+      'The reviewed connection or access source is no longer current. Refresh authorized facts and reopen the connection review.',
+    review: 'Refresh authorized facts',
+    discovery: 'Scope: model discovery',
+    authentication: 'Scope: authentication only; deployment coverage is not tested.',
+    count_one: '{{count}} model discovered',
+    count_other: '{{count}} models discovered',
+    checked: 'Checked at {{date}}',
+    unknown:
+      'The test result could not be confirmed. You may explicitly run a new test; the previous result is unknown.',
+  },
   weightHistory: {
     currentSet: 'Complete current weight set',
     proposedSet: 'Complete proposed weight set',
@@ -393,6 +431,80 @@ export default {
     disableHelp: 'Stop {{name}} from receiving new requests.',
     recover: 'Review unresolved status change',
   },
+  connectionTransport: {
+    resetDraft: 'Reset transport draft to current configuration',
+    adapter: 'Upstream adapter',
+    native: 'Native',
+    azure: 'Azure OpenAI classic',
+    apiVersion: 'Azure API version',
+    disableFirst:
+      'Disable this Connection separately before changing its transport. Name editing remains available.',
+    locked:
+      'Retained ProviderModels lock the protocol and adapter. Create another Connection to change either.',
+    invalidates:
+      'Changing transport preserves recorded facts but makes old verification, discovery, Azure coverage, capacity and capability evidence stale. Verify, review the complete capability pair, attest any required capacity and explicitly enable separately.',
+    invalid:
+      'Review a valid complete transport tuple. The Connection must remain disabled; retained ProviderModels lock protocol and adapter.',
+    confirmDescription:
+      'Save this reviewed transport while the Connection remains disabled. This does not verify credentials, attest capabilities or capacity, enable records or make paid inference calls. Existing history, prices, grants and weights remain unchanged.',
+    before: 'Reviewed transport',
+    after: 'Proposed transport',
+    tuple: '{{url}} · {{protocol}} · {{adapter}} · API version: {{version}}',
+    noVersion: 'Not applicable',
+  },
+  transportEvidence: {
+    capabilitiesCurrent:
+      'The recorded capability declaration is current for this transport. This is not a native health check.',
+    capabilitiesStale:
+      'The recorded capability declaration belongs to an earlier transport. This ProviderModel is excluded from new routing until the complete pair is explicitly reviewed again.',
+    capabilitiesUnknown:
+      'Current-transport capability evidence is unknown. Do not infer it from recorded declarations.',
+    reaffirmCapabilities: 'Review capability declaration',
+    confirmState: 'Confirm ProviderModel configuration?',
+    confirmCombined:
+      'Explicitly confirm the complete capability pair for the reviewed transport and the selected availability change in one request.',
+    confirmCapabilities:
+      'Explicitly attest the complete image/PDF declaration for the reviewed current transport, even when both values are unchanged.',
+    confirmAvailability:
+      'Change only recorded availability. This does not reattest image/PDF capabilities or any other transport evidence.',
+    confirm: 'Confirm change',
+    stateSaved:
+      'Current ProviderModel configuration saved. This does not prove a historical operation or native availability.',
+    capacityCurrent:
+      'This recorded capacity attestation is current for the transport. It does not verify runtime enforcement or native health.',
+    capacityStale:
+      'This recorded capacity attestation belongs to an earlier transport and cannot support current finite quota admission. Reattest explicitly against the current transport.',
+    capacityAbsent: 'No current configured capacity attestation is established.',
+    capacitySaved:
+      'Current capacity attestation saved. Runtime enforcement and the historical operation are not confirmed by this response.',
+    confirmCapacity: 'Confirm capacity attestation?',
+    confirmCapacityHelp:
+      'Attest these complete bounds and evidence for the reviewed current transport. This changes no capabilities, verification, availability, prices or weights.',
+    capacityNumberError:
+      'Both maxima must be positive safe integers; token estimates cannot be used as bounds.',
+    capacityTextError: 'Enter nonempty evidence and a reason of at most 2,000 UTF-8 bytes.',
+    stale:
+      'The reviewed configuration or transport changed. Load current facts, then explicitly review them before confirming another request.',
+    review: 'Review current configuration',
+    reviewed:
+      'Current configuration reviewed. The retained draft is unchanged; confirm it separately.',
+    reviewFailed:
+      'Current configuration could not be reviewed. The original draft or uncertain intent remains retained.',
+    uncertain:
+      'The submitted result is unknown. Keep the exact original body and review token for manual retry. Matching current facts or a rejected retry cannot prove its historical outcome.',
+    retry: 'Retry exact request',
+    separate: 'Review a separate change',
+    abandonTitle: 'Discard the local retry and review a separate change?',
+    abandonDescription:
+      'Freshly read the current facts, then explicitly discard only the local retry. The original operation remains unknown and is not cancelled. Confirm any separate change independently.',
+    abandon: 'Discard retry and review',
+    abandoned:
+      'The local retry was discarded. The original result remains unknown. Review and confirm the separate change independently.',
+    otherIntent:
+      'Another unconfirmed configuration request is retained. Resolve or explicitly abandon its local retry before submitting this change.',
+    currentModel: 'Current recorded configuration: {{name}} · {{status}}',
+    currentCapacity: 'Current recorded capacity revision: {{revision}}',
+  },
   connectionMetadata: {
     filters: 'Connection filters',
     search: 'Search connection names',
@@ -402,23 +514,22 @@ export default {
     list: 'Connection configurations',
     empty: 'No matching connections.',
     actions: 'Actions for {{name}}',
-    edit: 'Edit name',
+    edit: 'Edit',
     addModel: 'Add model',
-    title: 'Edit connection name',
-    description:
-      'Review this connection before renaming it. Other connection settings are read-only.',
+    title: 'Edit connection',
+    description: 'Review the Connection name and transport. Network egress is managed separately.',
     reason: 'Change reason',
     readonlyHelp:
-      'Protocol, Base URL and network egress are recorded configuration. This action changes only the name.',
+      'Transport editing requires a separately disabled Connection. Network egress remains a separate action; saving never verifies or enables records.',
     validation:
       'Enter a name of 1–100 characters and a reason of 1–1,024 UTF-8 bytes without control characters.',
-    save: 'Review name change',
-    confirmTitle: 'Confirm connection name change?',
+    save: 'Review changes',
+    confirmTitle: 'Confirm Connection changes?',
     confirmDescription:
       'Save the reviewed name with the captured reason. Credentials, models and routing weights remain unchanged.',
     confirmName: 'New name: {{name}}',
     confirmReason: 'Reason: {{reason}}',
-    confirm: 'Confirm name change',
+    confirm: 'Confirm changes',
     review: 'Review current configuration',
     reviewed: 'Current configuration reviewed. Your name and reason are preserved.',
     stale:
@@ -428,10 +539,10 @@ export default {
     unavailable:
       'The request cannot be captured right now. Check current authority and retry explicitly.',
     uncertain:
-      'The outcome of the submitted request is unknown. Its original name, reason and reviewed ETag are retained. A current read cannot resolve it; retry the exact request explicitly.',
-    retained: 'A connection name request still has an unknown outcome.',
-    resume: 'Resume name request',
-    retry: 'Retry exact name request',
+      'The submitted outcome is unknown. The exact original name, reason, optional complete transport and reviewed ETag remain retained. A current read or rejected retry cannot resolve it; retry the original request explicitly.',
+    retained: 'A Connection configuration request still has an unknown outcome.',
+    resume: 'Resume configuration request',
+    retry: 'Retry exact configuration request',
     abandon: 'Abandon original request',
     abandonTitle: 'Abandon this retained request?',
     abandonDescription:
@@ -440,7 +551,7 @@ export default {
     abandoned:
       'The original request was abandoned locally. Its previous outcome remains unknown. Your draft is preserved; explicitly review the current configuration.',
     saved:
-      'The response confirmed the current saved name and local runtime publication. It does not prove the original operation or route availability.',
+      'The response confirmed current saved configuration and local runtime publication. It does not prove the original operation or route availability.',
   },
   aliasRetirement: {
     names: 'Compatibility names and history',

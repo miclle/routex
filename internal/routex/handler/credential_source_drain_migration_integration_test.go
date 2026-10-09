@@ -19,7 +19,7 @@ func testCredentialSourceDrainMigration(t *testing.T, db *gorm.DB) {
 	t.Helper()
 	ctx := context.Background()
 	before := personalKeyBehaviorLedger(t, db)
-	if len(before) != 91 || before[90].Version != 91 || before[89].Version != 90 || before[88].Version != 89 || before[87].Version != 88 {
+	if len(before) != 92 || before[91].Version != 92 || before[90].Version != 91 || before[89].Version != 90 || before[88].Version != 89 || before[87].Version != 88 {
 		t.Fatal("exact V88 ledger required")
 	}
 	for i, row := range before {
@@ -77,7 +77,7 @@ func testCredentialSourceDrainMigration(t *testing.T, db *gorm.DB) {
 			}
 		}
 		after := personalKeyBehaviorLedger(t, db)
-		if len(after) != 91 || after[90].Version != 91 || after[89].Version != 90 || after[88].Version != 89 || after[87].Version != 88 || !reflect.DeepEqual(before[:87], after[:87]) {
+		if len(after) != 92 || after[91].Version != 92 || after[90].Version != 91 || after[89].Version != 90 || after[88].Version != 89 || after[87].Version != 88 || !reflect.DeepEqual(before[:87], after[:87]) {
 			t.Fatal("released 1..87 changed")
 		}
 	}

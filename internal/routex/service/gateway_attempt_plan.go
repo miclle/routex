@@ -183,7 +183,7 @@ func (s *Service) gatewayAttemptEligible(ctx context.Context, plan *gatewayAttem
 	if routes.ID != plan.snapshotID || route.SnapshotID != plan.snapshotID || route.Protocol != plan.protocol || route.BindingID != attempt.TargetID || route.ConnectionID != attempt.ConnectionID || route.CredentialID != attempt.CredentialID {
 		return false, nil
 	}
-	if !s.runtimeConnectionAllowed(auth, *route) || !auth.Models[plan.modelID] || runtimeDenied(&s.runtime.deniedModels, plan.modelID) ||
+	if !route.CapabilitiesTransportCurrent || auth.ProviderModelRevisions[route.ProviderModelID] != route.ProviderModelRevision || !s.runtimeConnectionAllowed(auth, *route) || !auth.Models[plan.modelID] || runtimeDenied(&s.runtime.deniedModels, plan.modelID) ||
 		!auth.ProviderModels[route.ProviderModelID] || runtimeDenied(&s.runtime.deniedProviderModels, route.ProviderModelID) ||
 		!auth.Credentials[attempt.CredentialID] || runtimeDenied(&s.runtime.deniedCredentials, attempt.CredentialID) ||
 		!auth.CredentialAccess[attempt.CredentialID][route.ProviderModelID] {

@@ -196,6 +196,16 @@ func TestModelWeightHistoryExact174RegistryPrefix(t *testing.T) {
 		}
 		functions[p[2]] = true
 	}
+	if len(names) != 179 || pairs[177][1] != "connection_transport_migration" || pairs[177][2] != "testConnectionTransportMigration" || pairs[178][1] != "connection_transport" || pairs[178][2] != "testConnectionTransportLifecycle" {
+		t.Fatal("exact Connection transport successor changed")
+	}
+	names = names[:177]
+	pairs = pairs[:177]
+	if len(names) != 177 || pairs[176][1] != "connection_diagnostic" || pairs[176][2] != "testConnectionDiagnosticLifecycle" {
+		t.Fatal("exact Connection diagnostic successor changed")
+	}
+	names = names[:176]
+	pairs = pairs[:176]
 	if len(names) != 176 || pairs[174][1] != "provider_enablement_migration" || pairs[174][2] != "testProviderEnablementMigration" || pairs[175][1] != "provider_status" || pairs[175][2] != "testProviderStatusLifecycle" {
 		t.Fatal("V91 exact tail changed")
 	}

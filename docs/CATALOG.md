@@ -1382,3 +1382,89 @@ boolean/reason/If-Match through dismissal and same-owner renewal, retries manual
 with fresh authority, and never resolves original uncertainty from a matching GET
 or a failed retry. Starting a separate change requires an explicit fresh review,
 discarding only the local retry, a new reason and another confirmation.
+
+## Planned Credential inference statistics
+
+Consecutive failures and recent errors will use recorded inference attempts
+attributed to the exact Credential. They remain independent from Verify status,
+recorded verification time and transient Test connection results, and never
+change Credential enablement or routing. Missing attribution stays unknown;
+logical call success and native completion do not replace attempt status.
+
+The planned read-only view inspects the latest 100 retained attributed attempts
+plus an overflow sentinel in deterministic completion-time and exact-ID order.
+A cancellation or unknown event stops an exact streak; subsequent known failures
+are only a lower bound. No recorded attempts is not zero or evidence of health.
+Recent errors use only sanitized machine-owned categories and recorded times.
+This section records the approved data-source contract and bounded implementation
+semantics; the endpoint, table columns and index migration are not yet delivered.
+
+## Explicit Connection diagnostics
+
+The Connections row menu opens the existing local Base UI dialog to test one
+explicitly selected retained Credential. Pending and disabled Credentials may be
+tested, as may disabled Connections and Providers; diagnostic access does not
+require routing eligibility. The dialog never chooses a pool fallback, changes
+selection automatically or treats a successful check as permission to enable a
+resource. With no retained Credential, it links to Credential management.
+
+POST `/api/v1/admin/connections/:connection_id/test` accepts only
+`{"credential_id":"crd_..."}` in a JSON body bounded to 4 KiB, with no query
+parameters. It consumes the exact strong quoted If-Match from the Connection
+metadata review. Current Session, same-origin and CSRF checks apply, and fresh
+`providers.read` and `providers.write` are required independently. Write authority
+does not imply read authority. Responses are private/no-store. Missing, weak,
+multiple or malformed review headers are bad requests (400); a stale valid review
+or changed captured source/transport is a conflict (409). Denied authority is 403;
+cancellation, deadline or unavailable source returns a sanitized unavailable
+response (503), without a diagnostic result.
+
+The operation uses the stored native adapter and effective egress with a
+ten-second overall deadline. OpenAI Chat Completions and Responses, Anthropic
+Messages and Gemini Generate Content use their native model-list GETs. Discovery
+bounds response data to 2 MiB and distinct model identifiers to 2,000; paginated
+native paths allow at most 20 pages. Invalid, incomplete or excessive discovery
+does not yield a partial successful count. Azure classic Chat uses its configured
+API version and model-list authentication endpoint; its result has scope
+`authentication_only`, never deployment coverage. Administrator deployment
+attestation remains a separate operation. No inference request or paid probe is
+issued.
+
+The transient response contains exactly `connection_id`, `credential_id`,
+`outcome` (`passed` or `failed`), `scope` (`model_discovery` or
+`authentication_only`), `discovered_model_count` and `checked_at` (UTC
+RFC3339Nano). A passed model-discovery result has an integer count from 0 through
+2,000, including a valid empty list. Failed results and all authentication-only
+results have a null count. An ordinary upstream discovery failure under unchanged
+authority and source continuity returns a failed result, not remote error text.
+Secrets, model names, upstream response bodies and source descriptors are never
+returned. Authorization, exact Credential/source identity and effective transport
+continuity are rechecked around the native request before a result is returned.
+
+Testing does not save diagnostics, update configuration, verification timestamps,
+discovery coverage, enablement, weights, grants or runtime publication, or create
+a diagnostic domain audit or inference call record. Existing Vault credential
+reads still perform their exposure/drain safety bookkeeping; this operation is
+not a blanket guarantee of zero database writes. A passed result establishes only
+this bounded diagnostic observation, never successful inference, route readiness
+or fleet health.
+
+The UI retains results only in component state, dispatches outside query/mutation
+caches, and synchronously rejects duplicate or obsolete callbacks. Renewal,
+authority errors, actor/target changes, dismissal and unmount abort the request and
+clear private results. A conflict requires fresh explicit review; an unknown
+response offers an explicit new test rather than an identical historical retry
+or an operation-completion claim. English/Chinese catalog copy follows the live
+language selection, with English as the default.
+
+### Credential-row diagnostic entry
+
+The Credentials table also offers Test connection from its existing row menu.
+The clicked retained Credential and its recorded Connection remain the exact
+locked target; a different Credential requires closing and opening that row.
+There is no automatic POST on open and no pool fallback. This entry consumes the
+same fresh independent read/write authority, Session/CSRF and strong Connection
+metadata review as the Connection-row diagnostic. Its request/result contract,
+native/Azure scope, Vault safety bookkeeping and nonmutation boundary stay the
+same. Obsolete row actions and late results are fenced across Session, authority,
+resource and tab changes; results remain transient and focus returns to the row.

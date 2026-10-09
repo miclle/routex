@@ -28,7 +28,7 @@ func (credentialStorageBadColumnFixture) TableName() string { return "provider_c
 func testProviderCredentialStorageMigration(t *testing.T, db *gorm.DB) {
 	ctx := context.Background()
 	before := personalKeyBehaviorLedger(t, db)
-	if len(before) != 91 || before[90].Version != 91 || before[89].Version != 90 || before[88].Version != 89 || before[87].Version != 88 || before[86].Version != 87 || before[85].Version != 86 || before[84].Version != 85 || before[83].Version != 84 || before[82].Version != 83 || before[80].Version != 81 || before[81].Version != 82 || before[74].Version != 75 || before[75].Version != 76 || before[76].Version != 77 || before[77].Version != 78 || before[78].Version != 79 || before[79].Version != 80 {
+	if len(before) != 92 || before[91].Version != 92 || before[90].Version != 91 || before[89].Version != 90 || before[88].Version != 89 || before[87].Version != 88 || before[86].Version != 87 || before[85].Version != 86 || before[84].Version != 85 || before[83].Version != 84 || before[82].Version != 83 || before[80].Version != 81 || before[81].Version != 82 || before[74].Version != 75 || before[75].Version != 76 || before[76].Version != 77 || before[77].Version != 78 || before[78].Version != 79 || before[79].Version != 80 {
 		t.Fatal("exact ordered V77 after V75/V76 required")
 	}
 	for i, row := range before {
@@ -221,10 +221,10 @@ func TestCredentialStorageExactRegistry148(t *testing.T) {
 	for _, m := range matches {
 		names = append(names, m[1]+":"+m[2])
 	}
-	if len(names) != 176 || !strings.Contains(string(raw), "versions != 91") {
+	if len(names) != 179 || !strings.Contains(string(raw), "versions != 92") {
 		t.Fatal("current exact172 registry/V89 ledger changed")
 	}
-	if len(names) == 156 || len(names) == 158 || len(names) == 160 || len(names) == 162 || len(names) == 164 || len(names) == 166 || len(names) == 168 || len(names) == 170 || len(names) == 172 || len(names) == 174 || len(names) == 176 {
+	if len(names) == 156 || len(names) == 158 || len(names) == 160 || len(names) == 162 || len(names) == 164 || len(names) == 166 || len(names) == 168 || len(names) == 170 || len(names) == 172 || len(names) == 174 || len(names) == 176 || len(names) == 177 || len(names) == 179 {
 		parent, ok := personalRollingWarningRegistryParent(names)
 		if !ok {
 			t.Fatal("unreviewed rolling warning tail")
@@ -266,7 +266,7 @@ func TestCredentialStorageExactRegistry148(t *testing.T) {
 			t.Fatal("changed/missing/reordered/extra source registry accepted")
 		}
 	}
-	if !strings.Contains(string(raw), "versions != 91") {
+	if !strings.Contains(string(raw), "versions != 92") {
 		t.Fatal("current V77 harness not bound")
 	}
 }

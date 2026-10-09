@@ -20,6 +20,9 @@ const row = () => ({
   egress_id: null,
   etag: token,
   can_edit: true,
+  transport_generation: '0',
+  can_edit_transport: false,
+  transport_locked: false,
   enabled: true,
 })
 let requests: InternalAxiosRequestConfig[], data: unknown, headers: AxiosHeaders

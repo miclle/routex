@@ -52,22 +52,23 @@ type credentialReadinessRoute struct {
 // A capture retains only immutable publication pointers and public route facts.
 // Credential plaintext, clients, and full runtime routes never leave this helper.
 type credentialRetirementRuntimeCapture struct {
-	SnapshotID           string
-	SourceDigest         string
-	EligibleRouteCount   int
-	Blockers             []string
-	connectionID         string
-	connectionBirth      time.Time
-	connectionProviderID string
-	providerProof        runtimeProviderProof
-	sourceID             string
-	replacementID        string
-	auth                 *runtimeAuthorization
-	routes               *runtimeRoutes
-	epoch                uint64
-	egressGeneration     uint64
-	transportRevision    string
-	scope                []credentialReadinessRoute
+	SnapshotID                    string
+	SourceDigest                  string
+	EligibleRouteCount            int
+	Blockers                      []string
+	connectionID                  string
+	connectionBirth               time.Time
+	connectionTransportGeneration string
+	connectionProviderID          string
+	providerProof                 runtimeProviderProof
+	sourceID                      string
+	replacementID                 string
+	auth                          *runtimeAuthorization
+	routes                        *runtimeRoutes
+	epoch                         uint64
+	egressGeneration              uint64
+	transportRevision             string
+	scope                         []credentialReadinessRoute
 }
 
 func (s *Service) captureCredentialRetirementRuntime(connectionID, sourceID, replacementID string) (*credentialRetirementRuntimeCapture, error) {
@@ -93,6 +94,7 @@ func (s *Service) captureCredentialRetirementRuntime(connectionID, sourceID, rep
 	capture.SnapshotID, capture.SourceDigest = routes.ID, auth.SourceDigest
 	proof := auth.Connections[connectionID]
 	capture.connectionBirth, capture.connectionProviderID = proof.Birth, proof.ProviderID
+	capture.connectionTransportGeneration = proof.TransportGeneration
 	capture.providerProof = auth.Providers[proof.ProviderID]
 	related := 0
 	for modelID, candidates := range routes.Models {
@@ -135,7 +137,7 @@ func (s *Service) captureCredentialRetirementRuntime(connectionID, sourceID, rep
 				}
 			}
 			capture.scope = append(capture.scope, observed)
-			if !entity.SupportedNativeProtocol(route.Protocol) ||
+			if !route.CapabilitiesTransportCurrent || auth.ProviderModelRevisions[route.ProviderModelID] != route.ProviderModelRevision || !entity.SupportedNativeProtocol(route.Protocol) ||
 				!s.runtimeConnectionAllowed(auth, route) ||
 				route.Client == nil ||
 				route.EgressRevision == "" ||
@@ -193,7 +195,7 @@ func (s *Service) validateCredentialRetirementRuntimeCapture(capture *credential
 	}
 	for _, route := range capture.scope {
 		if !s.runtimeConnectionAllowed(auth, gatewayRoute{
-			ConnectionID: capture.connectionID, ConnectionBirth: capture.connectionBirth,
+			ConnectionTransportGeneration: capture.connectionTransportGeneration, ConnectionID: capture.connectionID, ConnectionBirth: capture.connectionBirth,
 			ProviderID: capture.connectionProviderID, ProviderBirth: capture.providerProof.Birth,
 			ProviderEnabled: capture.providerProof.Enabled, ProviderRevision: capture.providerProof.Revision,
 		}) ||
@@ -209,19 +211,21 @@ func (s *Service) validateCredentialRetirementRuntimeCapture(capture *credential
 }
 
 type credentialReadinessDBRoute struct {
-	ModelRecordID         string
-	BoundProviderModelID  string
-	ConnectionID          string
-	ModelID               string
-	ModelStatus           string
-	BindingID             string
-	ProviderModelID       string
-	ProviderModelRevision string
-	Disabled              bool
-	UpstreamName          string
-	Weight                int
-	SupportsImageInput    bool
-	SupportsPDFInput      bool
+	ModelRecordID                 string
+	BoundProviderModelID          string
+	ConnectionID                  string
+	ModelID                       string
+	ModelStatus                   string
+	BindingID                     string
+	ProviderModelID               string
+	ProviderModelRevision         string
+	CapabilityTransportGeneration string
+	ProviderModelBirth            time.Time
+	Disabled                      bool
+	UpstreamName                  string
+	Weight                        int
+	SupportsImageInput            bool
+	SupportsPDFInput              bool
 }
 
 // pinCredentialRetirementRuntime must precede every database borrow for a
@@ -336,7 +340,7 @@ func (s *Service) credentialRetirementRuntimeScope(
 	}
 	if capture.connectionID != connection.ID ||
 		capture.connectionProviderID != connection.ProviderID ||
-		!capture.connectionBirth.Equal(connection.CreatedAt) ||
+		!capture.connectionBirth.Equal(connection.CreatedAt) || capture.connectionTransportGeneration != connection.TransportGeneration ||
 		source.ConnectionID != connection.ID ||
 		replacement.ConnectionID != connection.ID ||
 		source.ID != capture.sourceID ||
@@ -351,7 +355,7 @@ func (s *Service) credentialRetirementRuntimeScope(
 	var rows []credentialReadinessDBRoute
 	columns := "b.model_id, m.id AS model_record_id, b.provider_model_id AS bound_provider_model_id, " +
 		"p.connection_id, m.status AS model_status, b.id AS binding_id, p.id AS provider_model_id, " +
-		"p.e_tag AS provider_model_revision, p.disabled, p.upstream_name, b.weight, " +
+		"p.e_tag AS provider_model_revision, p.created_at AS provider_model_birth, p.capability_transport_generation, p.disabled, p.upstream_name, b.weight, " +
 		"p.supports_image_input, p.supports_pdf_input"
 	err := tx.Table("model_provider_bindings AS b").Select(columns).
 		Joins("JOIN models m ON m.id = b.model_id").
@@ -408,7 +412,7 @@ func (s *Service) credentialRetirementRuntimeScope(
 			result.SnapshotID = ""
 			return result, nil
 		}
-		if row.Weight <= 0 || row.ModelStatus != "active" || row.Disabled {
+		if row.Weight <= 0 || row.ModelStatus != "active" || row.Disabled || !capabilityTransportCurrent(entity.ProviderModel{ID: row.ProviderModelID, ConnectionID: row.ConnectionID, CreatedAt: row.ProviderModelBirth, CapabilityTransportGeneration: row.CapabilityTransportGeneration}, connection) {
 			continue
 		}
 		scope = append(scope, credentialReadinessRoute{
@@ -424,9 +428,9 @@ func (s *Service) credentialRetirementRuntimeScope(
 			SupportsImageInput:    row.SupportsImageInput,
 			SupportsPDFInput:      row.SupportsPDFInput,
 			SourceAccess:          access[source.ID][row.ProviderModelID],
-			SourceCandidate:       access[source.ID][row.ProviderModelID] && source.Enabled && source.VerificationStatus == "verified",
+			SourceCandidate:       access[source.ID][row.ProviderModelID] && source.Enabled && verifiedTransportCurrent(source, connection),
 			ReplacementAccess:     access[replacement.ID][row.ProviderModelID],
-			ReplacementCandidate:  access[replacement.ID][row.ProviderModelID] && replacement.Enabled && replacement.VerificationStatus == "verified",
+			ReplacementCandidate:  access[replacement.ID][row.ProviderModelID] && replacement.Enabled && verifiedTransportCurrent(replacement, connection),
 		})
 	}
 	sortCredentialReadinessScope(scope)

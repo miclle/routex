@@ -263,7 +263,8 @@ func testPersonalKeyMonthlyBehaviorLifecycle(t *testing.T, db *gorm.DB) {
 		t.Fatal(err)
 	}
 	boundPath := "/api/v1/admin/provider-models/pmd_behavior73/reservation-bound"
-	bound := decodeCatalogResponse[service.ReservationBoundRecord](t, request("PUT", boundPath, map[string]any{"max_input_tokens": 100, "max_output_tokens": 50, "evidence": "Controlled native fixture", "reason": "Finite reservation"}, "0", false), 200)
+	capacityReview := decodeCatalogResponse[service.ReservationBoundRecord](t, request("GET", boundPath, nil, "", false), 200)
+	bound := decodeCatalogResponse[service.ReservationBoundRecord](t, request("PUT", boundPath, map[string]any{"max_input_tokens": 100, "max_output_tokens": 50, "evidence": "Controlled native fixture", "reason": "Finite reservation"}, capacityReview.ETag, false), 200)
 	if !bound.Configured {
 		t.Fatal("real capacity unavailable")
 	}

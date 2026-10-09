@@ -121,6 +121,7 @@ func (s *Service) currentModelCreationState(tx *gorm.DB, snapshot *modelCreation
 		row.Weight = binding.Weight
 		current = append(current, row)
 	}
+	state.TransportProof = modelCreationTransportProof(state)
 	normalizeModelCreationState(state)
 	return state, current, nil
 }
@@ -230,7 +231,7 @@ func (s *Service) CreateModelBatch(ctx context.Context, actor, connectionID, eta
 				if err != nil {
 					return err
 				}
-				pm := entity.ProviderModel{ID: providerModelID, ConnectionID: connectionID, UpstreamName: item.UpstreamName}
+				pm := entity.ProviderModel{CapabilityTransportGeneration: initial.Connection.TransportGeneration, ID: providerModelID, ConnectionID: connectionID, UpstreamName: item.UpstreamName}
 				if err := modelCreationDB(tx).Create(&pm).Error; err != nil {
 					return err
 				}

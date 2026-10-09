@@ -19,7 +19,7 @@ import (
 func azureIdentityFixture() (entity.ProviderCredential, entity.ProviderConnection, entity.ProviderModel) {
 	birth := time.Date(2026, 10, 7, 0, 0, 0, 123456000, time.UTC)
 	version := "2024-10-21"
-	return entity.ProviderCredential{ID: "crd_one", ConnectionID: "con_one", CreatedAt: birth, StorageSource: "inline", Ciphertext: "encrypted", VerificationStatus: "verified", Enabled: true}, entity.ProviderConnection{ID: "con_one", Adapter: entity.AdapterAzureOpenAIClassic, APIVersion: &version, Protocol: entity.ProtocolOpenAIChat, BaseURL: "https://example.invalid", CreatedAt: birth}, entity.ProviderModel{ID: "pmd_one", ConnectionID: "con_one", UpstreamName: "deployment-A", CreatedAt: birth}
+	return entity.ProviderCredential{VerifiedTransportGeneration: "0", ID: "crd_one", ConnectionID: "con_one", CreatedAt: birth, StorageSource: "inline", Ciphertext: "encrypted", VerificationStatus: "verified", Enabled: true}, entity.ProviderConnection{TransportGeneration: "0", ID: "con_one", Adapter: entity.AdapterAzureOpenAIClassic, APIVersion: &version, Protocol: entity.ProtocolOpenAIChat, BaseURL: "https://example.invalid", CreatedAt: birth}, entity.ProviderModel{CapabilityTransportGeneration: "0", ID: "pmd_one", ConnectionID: "con_one", UpstreamName: "deployment-A", CreatedAt: birth}
 }
 func TestAzureAttestationLogicalIdentityAndNoDiscoveryInheritance(t *testing.T) {
 	c, connection, pm := azureIdentityFixture()

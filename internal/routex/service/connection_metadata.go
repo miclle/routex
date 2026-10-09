@@ -20,21 +20,25 @@ import (
 )
 
 type ConnectionMetadataInput struct {
-	Name   string `json:"name"`
-	Reason string `json:"reason"`
+	Transport *ConnectionTransportInput `json:"transport,omitempty"`
+	Name      string                    `json:"name"`
+	Reason    string                    `json:"reason"`
 }
 type ConnectionMetadataRecord struct {
-	Adapter    string  `json:"adapter"`
-	APIVersion *string `json:"api_version"`
-	ID         string  `json:"id"`
-	ProviderID string  `json:"provider_id"`
-	Name       string  `json:"name"`
-	Protocol   string  `json:"protocol"`
-	BaseURL    string  `json:"base_url"`
-	EgressMode string  `json:"egress_mode"`
-	EgressID   *string `json:"egress_id"`
-	ETag       string  `json:"etag"`
-	CanEdit    bool    `json:"can_edit"`
+	TransportGeneration string  `json:"transport_generation"`
+	CanEditTransport    bool    `json:"can_edit_transport"`
+	TransportLocked     bool    `json:"transport_locked"`
+	Adapter             string  `json:"adapter"`
+	APIVersion          *string `json:"api_version"`
+	ID                  string  `json:"id"`
+	ProviderID          string  `json:"provider_id"`
+	Name                string  `json:"name"`
+	Protocol            string  `json:"protocol"`
+	BaseURL             string  `json:"base_url"`
+	EgressMode          string  `json:"egress_mode"`
+	EgressID            *string `json:"egress_id"`
+	ETag                string  `json:"etag"`
+	CanEdit             bool    `json:"can_edit"`
 }
 type ConnectionMetadataWriteResult struct {
 	Connection     ConnectionMetadataRecord `json:"connection"`
@@ -51,7 +55,15 @@ func (input *ConnectionMetadataInput) UnmarshalJSON(raw []byte) error {
 	if len(raw) > 64*1024 || !utf8.Valid(raw) || !modelCreationUnicode(raw) {
 		return apperrors.ErrBadRequest
 	}
-	fields, err := decodeDefaultLimitObject(raw, []string{"name", "reason"})
+	var probe map[string]json.RawMessage
+	if json.Unmarshal(raw, &probe) != nil {
+		return apperrors.ErrBadRequest
+	}
+	keys := []string{"name", "reason"}
+	if _, ok := probe["transport"]; ok {
+		keys = append(keys, "transport")
+	}
+	fields, err := decodeDefaultLimitObject(raw, keys)
 	if err != nil {
 		return err
 	}
@@ -60,6 +72,22 @@ func (input *ConnectionMetadataInput) UnmarshalJSON(raw []byte) error {
 		if json.Unmarshal(fields[name], target) != nil || string(fields[name]) == "null" {
 			return apperrors.ErrBadRequest
 		}
+	}
+	if value, ok := fields["transport"]; ok {
+		tuple, err := decodeDefaultLimitObject(value, []string{"base_url", "protocol", "adapter", "api_version"})
+		if err != nil {
+			return err
+		}
+		var t ConnectionTransportInput
+		for key, target := range map[string]*string{"base_url": &t.BaseURL, "protocol": &t.Protocol, "adapter": &t.Adapter} {
+			if json.Unmarshal(tuple[key], target) != nil || string(tuple[key]) == "null" {
+				return apperrors.ErrBadRequest
+			}
+		}
+		if json.Unmarshal(tuple["api_version"], &t.APIVersion) != nil {
+			return apperrors.ErrBadRequest
+		}
+		next.Transport = &t
 	}
 	if !validConnectionMetadataInput(next) {
 		return apperrors.ErrBadRequest
@@ -89,7 +117,7 @@ func connectionMetadataBirth(value time.Time) bool {
 	normalized := value.UTC()
 	return !normalized.IsZero() && normalized.Year() >= 1 && normalized.Year() <= 9999
 }
-func connectionMetadataRecord(actor entity.User, provider entity.Provider, row entity.ProviderConnection, write bool) (ConnectionMetadataRecord, error) {
+func connectionMetadataRecord(actor entity.User, provider entity.Provider, row entity.ProviderConnection, write bool, locks ...bool) (ConnectionMetadataRecord, error) {
 	if !connectionMetadataBirth(actor.CreatedAt) || !connectionMetadataBirth(provider.CreatedAt) || !connectionMetadataBirth(row.CreatedAt) || provider.ID != row.ProviderID || !safeTeamSessionID(provider.ID) || !strings.HasPrefix(provider.ID, "prv_") {
 		return ConnectionMetadataRecord{}, connectionMetadataUnavailable
 	}
@@ -100,7 +128,11 @@ func connectionMetadataRecord(actor entity.User, provider entity.Provider, row e
 	if mode != "default" && mode != "direct" && mode != "proxy" || row.EgressID != nil && (!safeTeamSessionID(*row.EgressID) || !strings.HasPrefix(*row.EgressID, "egr_")) || mode == "proxy" && row.EgressID == nil || mode == "direct" && row.EgressID != nil {
 		return ConnectionMetadataRecord{}, connectionMetadataUnavailable
 	}
-	record := ConnectionMetadataRecord{Adapter: entity.ConnectionAdapter(row), APIVersion: row.APIVersion, ID: row.ID, ProviderID: row.ProviderID, Name: row.Name, Protocol: row.Protocol, BaseURL: row.BaseURL, EgressMode: mode, CanEdit: write}
+	if !validTransportGeneration(row.TransportGeneration) {
+		return ConnectionMetadataRecord{}, connectionMetadataUnavailable
+	}
+	locked := len(locks) > 0 && locks[0]
+	record := ConnectionMetadataRecord{TransportGeneration: row.TransportGeneration, CanEditTransport: write && !row.Enabled, TransportLocked: locked, Adapter: entity.ConnectionAdapter(row), APIVersion: row.APIVersion, ID: row.ID, ProviderID: row.ProviderID, Name: row.Name, Protocol: row.Protocol, BaseURL: row.BaseURL, EgressMode: mode, CanEdit: write}
 	if row.EgressID != nil {
 		value := *row.EgressID
 		record.EgressID = &value
@@ -169,7 +201,11 @@ func connectionMetadataSnapshot(tx *gorm.DB, actorID, connectionID string, write
 	if provider.ID != row.ProviderID {
 		return actor, provider, row, record, apperrors.ErrNotFound
 	}
-	record, err = connectionMetadataRecord(actor, provider, row, write)
+	locked, e := connectionTransportLocked(tx, row.ID)
+	if e != nil {
+		return actor, provider, row, record, e
+	}
+	record, err = connectionMetadataRecord(actor, provider, row, write, locked)
 	return actor, provider, row, record, err
 }
 func (s *Service) GetConnectionMetadata(ctx context.Context, actorID, connectionID string) (*ConnectionMetadataRecord, error) {

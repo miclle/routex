@@ -18,16 +18,17 @@ func (QuotaSetting) TableName() string { return "quota_settings" }
 // ReservationBound is an explicit capacity attestation for one native provider
 // model. Discovery metadata and output-cap guesses never populate it implicitly.
 type ReservationBound struct {
-	ProviderModelID string `gorm:"primaryKey;size:30"`
-	Protocol        string `gorm:"size:30;not null"`
-	MaxInputTokens  int64  `gorm:"not null"`
-	MaxOutputTokens int64  `gorm:"not null"`
-	Evidence        string `gorm:"size:2000;not null"`
-	ETag            string `gorm:"size:64;not null"`
-	PreviousETag    string `gorm:"size:64;not null"`
-	ActorID         string `gorm:"size:30;not null"`
-	Reason          string `gorm:"size:2000;not null"`
-	UpdatedAt       time.Time
+	TransportGeneration string `gorm:"column:transport_generation;size:30;not null;default:0" json:"-"`
+	ProviderModelID     string `gorm:"primaryKey;size:30"`
+	Protocol            string `gorm:"size:30;not null"`
+	MaxInputTokens      int64  `gorm:"not null"`
+	MaxOutputTokens     int64  `gorm:"not null"`
+	Evidence            string `gorm:"size:2000;not null"`
+	ETag                string `gorm:"size:64;not null"`
+	PreviousETag        string `gorm:"size:64;not null"`
+	ActorID             string `gorm:"size:30;not null"`
+	Reason              string `gorm:"size:2000;not null"`
+	UpdatedAt           time.Time
 }
 
 func (ReservationBound) TableName() string { return "reservation_bounds" }

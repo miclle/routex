@@ -90,7 +90,7 @@ func TestModelCreationBatchPreservesConfiguredWeights(t *testing.T) {
 	}
 }
 func TestModelCreationBatchCoverageIsCompleteAndExact(t *testing.T) {
-	credentials := []modelCreationCredentialProof{{ID: "crd_one", Enabled: true, VerificationStatus: "verified", Access: []string{"pmd_one"}}, {ID: "crd_two", Enabled: true, VerificationStatus: "verified", Access: []string{}}}
+	credentials := []modelCreationCredentialProof{{ID: "crd_one", Enabled: true, TransportCurrent: true, VerificationStatus: "verified", Access: []string{"pmd_one"}}, {ID: "crd_two", Enabled: true, TransportCurrent: true, VerificationStatus: "verified", Access: []string{}}}
 	if modelCreationReady(nil, "pmd_one") || modelCreationReady(credentials, "pmd_one") || modelCreationReady(credentials, "PMD_one") {
 		t.Fatal("missing coverage became ready")
 	}

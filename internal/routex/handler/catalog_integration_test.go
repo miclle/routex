@@ -57,7 +57,7 @@ func testCatalogLifecycle(t *testing.T, db *gorm.DB) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	svc, err := service.New(context.Background(), db, service.WithCredentialStorage(store), service.WithUpstreamPolicy(true))
+	svc, err := service.New(context.Background(), db, service.WithCredentialStorage(store), service.WithUpstreamPolicy(true), service.WithRuntimeRefreshInterval(time.Hour))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -111,7 +111,13 @@ func testCatalogLifecycle(t *testing.T, db *gorm.DB) {
 	if pm.SupportsImageInput || pm.SupportsPDFInput {
 		t.Fatal("manually created provider model received implicit input capabilities")
 	}
-	pm = decodeCatalogResponse[ProviderModelResponse](t, request("PATCH", "/api/v1/admin/provider-models/"+pm.ID, map[string]any{"etag": pm.ETag, "supports_image_input": true, "supports_pdf_input": true}), 200)
+	// Capability writes confirm a real current publication; the catalogue's
+	// explicit writes refresh it without a competing periodic publisher.
+	if err := svc.StartRuntime(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+	defer svc.StopRuntime()
+	pm = decodeCatalogResponse[ProviderModelResponse](t, request("PATCH", "/api/v1/admin/provider-models/"+pm.ID, map[string]any{"etag": pm.ETag, "capability_review_etag": pm.CapabilityReviewETag, "supports_image_input": true, "supports_pdf_input": true}), 200)
 	if !pm.SupportsImageInput || !pm.SupportsPDFInput {
 		t.Fatal("provider model input capabilities were not returned")
 	}
@@ -155,7 +161,21 @@ func testCatalogLifecycle(t *testing.T, db *gorm.DB) {
 			t.Fatal("discovered provider model received implicit input capabilities")
 		}
 	}
-	secondModel := decodeCatalogResponse[ProviderModelResponse](t, request("PATCH", "/api/v1/admin/provider-models/"+secondModelID, map[string]any{"etag": secondModelETag, "supports_image_input": true, "supports_pdf_input": true}), 200)
+	secondReview := ProviderModelResponse{}
+	currentProviders := decodeCatalogResponse[ProvidersResponse](t, request("GET", "/api/v1/admin/providers", nil), 200)
+	for _, provider := range currentProviders.Items {
+		for _, currentConnection := range provider.Connections {
+			for _, candidate := range currentConnection.ProviderModels {
+				if currentConnection.ID == connection.ID && candidate.ID == secondModelID {
+					secondReview = candidate
+				}
+			}
+		}
+	}
+	if secondReview.ID != secondModelID || secondReview.ETag != secondModelETag || len(secondReview.CapabilityReviewETag) != 64 {
+		t.Fatal("exact discovered model review missing")
+	}
+	secondModel := decodeCatalogResponse[ProviderModelResponse](t, request("PATCH", "/api/v1/admin/provider-models/"+secondModelID, map[string]any{"etag": secondModelETag, "capability_review_etag": secondReview.CapabilityReviewETag, "supports_image_input": true, "supports_pdf_input": true}), 200)
 	if !secondModel.SupportsImageInput || !secondModel.SupportsPDFInput {
 		t.Fatal("discovered provider model capabilities were not updated")
 	}

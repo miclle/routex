@@ -441,7 +441,8 @@ func testProjectMonthlyBehaviorLifecycle(t *testing.T, db *gorm.DB) {
 		t.Fatal(err)
 	}
 	boundPath := "/api/v1/admin/provider-models/pmd_behavior74/reservation-bound"
-	bound := decodeCatalogResponse[service.ReservationBoundRecord](t, request("PUT", boundPath, map[string]any{"max_input_tokens": 100, "max_output_tokens": 50, "evidence": "Controlled native fixture", "reason": "Finite reservation"}, "0", false), 200)
+	capacityReview := decodeCatalogResponse[service.ReservationBoundRecord](t, request("GET", boundPath, nil, "", false), 200)
+	bound := decodeCatalogResponse[service.ReservationBoundRecord](t, request("PUT", boundPath, map[string]any{"max_input_tokens": 100, "max_output_tokens": 50, "evidence": "Controlled native fixture", "reason": "Finite reservation"}, capacityReview.ETag, false), 200)
 	if !bound.Configured {
 		t.Fatal("real capacity unavailable")
 	}
@@ -1027,7 +1028,7 @@ func projectBehaviorHistoricalReplay(t *testing.T, db *gorm.DB, historical func(
 	}
 	hasV75 := db.Migrator().HasConstraint(&entity.ResourceLimit{}, "ck_resource_limits_monthly_behavior_scope_v75")
 	if hasV75 {
-		if (len(before) != 75 && len(before) != 76 && len(before) != 77 && len(before) != 78 && len(before) != 79 && len(before) != 80 && len(before) != 81 && len(before) != 82 && len(before) != 83 && len(before) != 84 && len(before) != 85 && len(before) != 86 && len(before) != 87 && len(before) != 88 && len(before) != 89 && len(before) != 90 && len(before) != 91) || before[74].Version != 75 || len(before) >= 76 && before[75].Version != 76 || len(before) >= 77 && before[76].Version != 77 || len(before) >= 78 && before[77].Version != 78 || len(before) >= 79 && before[78].Version != 79 || len(before) >= 80 && before[79].Version != 80 || len(before) >= 81 && before[80].Version != 81 || len(before) >= 82 && before[81].Version != 82 || len(before) >= 83 && before[82].Version != 83 || len(before) >= 84 && before[83].Version != 84 || len(before) >= 85 && before[84].Version != 85 || len(before) >= 86 && before[85].Version != 86 || len(before) >= 87 && before[86].Version != 87 || len(before) >= 88 && before[87].Version != 88 || (len(before) == 89 || len(before) == 90 || len(before) == 91) && before[88].Version != 89 || len(before) >= 90 && before[89].Version != 90 || len(before) == 91 && before[90].Version != 91 {
+		if (len(before) != 75 && len(before) != 76 && len(before) != 77 && len(before) != 78 && len(before) != 79 && len(before) != 80 && len(before) != 81 && len(before) != 82 && len(before) != 83 && len(before) != 84 && len(before) != 85 && len(before) != 86 && len(before) != 87 && len(before) != 88 && len(before) != 89 && len(before) != 90 && len(before) != 91 && len(before) != 92) || before[74].Version != 75 || len(before) >= 76 && before[75].Version != 76 || len(before) >= 77 && before[76].Version != 77 || len(before) >= 78 && before[77].Version != 78 || len(before) >= 79 && before[78].Version != 79 || len(before) >= 80 && before[79].Version != 80 || len(before) >= 81 && before[80].Version != 81 || len(before) >= 82 && before[81].Version != 82 || len(before) >= 83 && before[82].Version != 83 || len(before) >= 84 && before[83].Version != 84 || len(before) >= 85 && before[84].Version != 85 || len(before) >= 86 && before[85].Version != 86 || len(before) >= 87 && before[86].Version != 87 || len(before) >= 88 && before[87].Version != 88 || (len(before) == 89 || len(before) == 90 || len(before) == 91 || len(before) == 92) && before[88].Version != 89 || len(before) >= 90 && before[89].Version != 90 || len(before) >= 91 && before[90].Version != 91 || len(before) >= 92 && before[91].Version != 92 {
 			t.Fatal("exact V75 predecessor required")
 		}
 		if err := db.Migrator().DropConstraint(&entity.ResourceLimit{}, "ck_resource_limits_monthly_behavior_scope_v75"); err != nil {
@@ -1037,7 +1038,7 @@ func projectBehaviorHistoricalReplay(t *testing.T, db *gorm.DB, historical func(
 			t.Fatal(err)
 		}
 	}
-	if (len(before) != 74 && len(before) != 75 && len(before) != 76 && len(before) != 77 && len(before) != 78 && len(before) != 79 && len(before) != 80 && len(before) != 81 && len(before) != 82 && len(before) != 83 && len(before) != 84 && len(before) != 85 && len(before) != 86 && len(before) != 87 && len(before) != 88 && len(before) != 89 && len(before) != 90 && len(before) != 91) || before[73].Version != 74 || len(before) >= 81 && before[80].Version != 81 || len(before) >= 82 && before[81].Version != 82 || len(before) >= 83 && before[82].Version != 83 || len(before) >= 84 && before[83].Version != 84 || len(before) >= 85 && before[84].Version != 85 || len(before) >= 86 && before[85].Version != 86 || len(before) >= 87 && before[86].Version != 87 || len(before) >= 88 && before[87].Version != 88 || (len(before) == 89 || len(before) == 90 || len(before) == 91) && before[88].Version != 89 || len(before) >= 90 && before[89].Version != 90 || len(before) == 91 && before[90].Version != 91 || !db.Migrator().HasConstraint(&entity.ResourceLimit{}, "ck_resource_limits_monthly_behavior_scope_v74") {
+	if (len(before) != 74 && len(before) != 75 && len(before) != 76 && len(before) != 77 && len(before) != 78 && len(before) != 79 && len(before) != 80 && len(before) != 81 && len(before) != 82 && len(before) != 83 && len(before) != 84 && len(before) != 85 && len(before) != 86 && len(before) != 87 && len(before) != 88 && len(before) != 89 && len(before) != 90 && len(before) != 91 && len(before) != 92) || before[73].Version != 74 || len(before) >= 81 && before[80].Version != 81 || len(before) >= 82 && before[81].Version != 82 || len(before) >= 83 && before[82].Version != 83 || len(before) >= 84 && before[83].Version != 84 || len(before) >= 85 && before[84].Version != 85 || len(before) >= 86 && before[85].Version != 86 || len(before) >= 87 && before[86].Version != 87 || len(before) >= 88 && before[87].Version != 88 || (len(before) == 89 || len(before) == 90 || len(before) == 91 || len(before) == 92) && before[88].Version != 89 || len(before) >= 90 && before[89].Version != 90 || len(before) >= 91 && before[90].Version != 91 || len(before) >= 92 && before[91].Version != 92 || !db.Migrator().HasConstraint(&entity.ResourceLimit{}, "ck_resource_limits_monthly_behavior_scope_v74") {
 		t.Fatal("exact V74 predecessor required")
 	}
 	defer func() {
@@ -1121,7 +1122,7 @@ func TestProjectBehaviorRegistryAppendAndHistoricalWrapperGuard(t *testing.T) {
 	for _, pair := range matches {
 		names = append(names, pair[1]+":"+pair[2])
 	}
-	if len(names) != 176 || !strings.Contains(string(raw), "versions != 91") {
+	if len(names) != 179 || !strings.Contains(string(raw), "versions != 92") {
 		t.Fatal("current exact172 registry/V89 ledger changed")
 	}
 	if !teamMemberMonthlyRegistryTail(names) {
@@ -1145,7 +1146,7 @@ func TestProjectBehaviorRegistryAppendAndHistoricalWrapperGuard(t *testing.T) {
 			t.Fatal("missing/reordered/extra/unreviewed scenario accepted")
 		}
 	}
-	if !strings.Contains(string(raw), "versions != 91") || !strings.Contains(string(raw), "projectBehaviorHistoricalReplay(t, db, test.run)") || !strings.Contains(string(raw), "personalKeyBehaviorHistoricalReplay(t, db, test.run)") {
+	if !strings.Contains(string(raw), "versions != 92") || !strings.Contains(string(raw), "projectBehaviorHistoricalReplay(t, db, test.run)") || !strings.Contains(string(raw), "personalKeyBehaviorHistoricalReplay(t, db, test.run)") {
 		t.Fatal("current74 or retained historical71/73 companion not bound")
 	}
 }

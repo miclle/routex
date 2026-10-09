@@ -21,6 +21,10 @@ func quotaETag(c *fox.Context) (string, error) {
 	return raw[1 : len(raw)-1], nil
 }
 func (ctrl *Ctrl) GetReservationBound(c *fox.Context) (*service.ReservationBoundRecord, error) {
+	c.Header("Cache-Control", "private, no-store")
+	if err := noTeamQuotaQuery(c); err != nil {
+		return nil, err
+	}
 	result, err := ctrl.service.GetReservationBound(c.Request.Context(), currentAuthentication(c).User.ID, c.Param("provider_model_id"))
 	if err == nil {
 		c.Header("ETag", strconv.Quote(result.ETag))
@@ -28,6 +32,10 @@ func (ctrl *Ctrl) GetReservationBound(c *fox.Context) (*service.ReservationBound
 	return result, err
 }
 func (ctrl *Ctrl) WriteReservationBound(c *fox.Context) (*service.ReservationBoundRecord, error) {
+	c.Header("Cache-Control", "private, no-store")
+	if err := noTeamQuotaQuery(c); err != nil {
+		return nil, err
+	}
 	var input service.ReservationBoundInput
 	if err := decodeStrictRequest(c, &input); err != nil {
 		return nil, err

@@ -40,6 +40,13 @@ func egressRevision(connection entity.ProviderConnection, setting entity.EgressS
 		value.SecretGeneration, value.Ciphertext = row.SecretGeneration, row.AuthCiphertext
 	}
 	encoded, _ := json.Marshal(value)
+	if connection.TransportGeneration != "0" {
+		encoded, _ = json.Marshal(struct {
+			Version    string
+			Legacy     json.RawMessage
+			Generation string
+		}{"egress.transport.v1", encoded, connection.TransportGeneration})
+	}
 	sum := sha256.Sum256(encoded)
 	return hex.EncodeToString(sum[:])
 }

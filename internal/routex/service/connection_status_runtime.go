@@ -8,10 +8,10 @@ import (
 func runtimeConnectionProofs(data *runtimeData) map[string]runtimeConnectionProof {
 	result := make(map[string]runtimeConnectionProof, len(data.Connections))
 	for _, row := range data.Connections {
-		if connectionMetadataIDs("usr_runtime", row.ID) != nil || !connectionMetadataBirth(row.CreatedAt) {
+		if connectionMetadataIDs("usr_runtime", row.ID) != nil || !connectionMetadataBirth(row.CreatedAt) || !validTransportGeneration(row.TransportGeneration) {
 			continue
 		}
-		result[row.ID] = runtimeConnectionProof{ProviderID: row.ProviderID, Birth: row.CreatedAt.UTC(), Enabled: row.Enabled}
+		result[row.ID] = runtimeConnectionProof{TransportGeneration: row.TransportGeneration, ProviderID: row.ProviderID, Birth: row.CreatedAt.UTC(), Enabled: row.Enabled}
 	}
 	return result
 }
@@ -20,7 +20,7 @@ func (s *Service) runtimeConnectionAllowed(auth *runtimeAuthorization, route gat
 		return false
 	}
 	proof, ok := auth.Connections[route.ConnectionID]
-	return ok && proof.Enabled && proof.ProviderID == route.ProviderID && proof.Birth.Equal(route.ConnectionBirth) && !runtimeDenied(&s.runtime.deniedConnections, route.ConnectionID)
+	return ok && proof.Enabled && validTransportGeneration(route.ConnectionTransportGeneration) && proof.TransportGeneration == route.ConnectionTransportGeneration && proof.ProviderID == route.ProviderID && proof.Birth.Equal(route.ConnectionBirth) && !runtimeDenied(&s.runtime.deniedConnections, route.ConnectionID)
 }
 
 // A dispatch admitted before the status commit may finish normally. The gate
@@ -34,7 +34,7 @@ func (s *Service) pinConnectionDispatch(route *gatewayRoute) (func(), bool) {
 	var once sync.Once
 	release := func() { once.Do(runtime.publication.RUnlock) }
 	auth, routes := runtime.auth.Load(), runtime.routes.Load()
-	if auth == nil || !time.Now().Before(auth.ValidUntil) || routes == nil || routes.ID != route.SnapshotID || !s.runtimeConnectionAllowed(auth, *route) {
+	if auth == nil || !time.Now().Before(auth.ValidUntil) || routes == nil || routes.ID != route.SnapshotID || !s.runtimeConnectionAllowed(auth, *route) || !route.CapabilitiesTransportCurrent || auth.ProviderModelRevisions[route.ProviderModelID] != route.ProviderModelRevision || !auth.ProviderModels[route.ProviderModelID] || runtimeDenied(&runtime.deniedProviderModels, route.ProviderModelID) {
 		release()
 		return func() {}, false
 	}

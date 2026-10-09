@@ -37,6 +37,9 @@ func appendConnectionMetadataAudit(tx *gorm.DB, actorID, connectionID, before st
 	return tx.Create(&entity.AuditEvent{ID: auditID, ActorID: actorID, Action: "connection.metadata.update", ResourceType: "connection", ResourceID: connectionID, DetailsJSON: &text}).Error
 }
 func (s *Service) WriteConnectionMetadata(ctx context.Context, actorID, connectionID, etag string, input ConnectionMetadataInput) (*ConnectionMetadataWriteResult, error) {
+	if input.Transport != nil {
+		return s.writeConnectionTransport(ctx, actorID, connectionID, etag, input)
+	}
 	if err := connectionMetadataIDs(actorID, connectionID); err != nil {
 		return nil, err
 	}
@@ -162,7 +165,7 @@ func connectionMetadataAuditProjection(row entity.AuditEvent) (any, bool) {
 		}
 	}
 	var detail connectionMetadataAudit
-	if json.Unmarshal([]byte(*row.DetailsJSON), &detail) != nil || !validCatalogLabel(detail.Before.Name) || !validConnectionMetadataInput(ConnectionMetadataInput{detail.After.Name, detail.Reason}) || detail.Before.Name == detail.After.Name {
+	if json.Unmarshal([]byte(*row.DetailsJSON), &detail) != nil || !validCatalogLabel(detail.Before.Name) || !validConnectionMetadataInput(ConnectionMetadataInput{Name: detail.After.Name, Reason: detail.Reason}) || detail.Before.Name == detail.After.Name {
 		return nil, false
 	}
 	return detail, true

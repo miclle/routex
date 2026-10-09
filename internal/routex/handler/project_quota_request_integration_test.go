@@ -155,7 +155,8 @@ func testProjectQuotaRequestLifecycle(t *testing.T, db *gorm.DB) {
 	number := func(value int64) *int64 { return &value }
 	initial := limits.Policy{TokensMonth: number(5), Tokens5H: number(100), RPM: number(100), Concurrency: number(2)}
 	initialRecord := write(initial)
-	expectStatus(t, asAdmin("PUT", "/api/v1/admin/provider-models/pmd_quota_request/reservation-bound", map[string]any{"max_input_tokens": 4, "max_output_tokens": 1, "evidence": "Controlled five token native request", "reason": "Quota request acceptance"}, "0"), 200)
+	capacityReview := decodeCatalogResponse[service.ReservationBoundRecord](t, asAdmin("GET", "/api/v1/admin/provider-models/pmd_quota_request/reservation-bound", nil, ""), 200)
+	expectStatus(t, asAdmin("PUT", "/api/v1/admin/provider-models/pmd_quota_request/reservation-bound", map[string]any{"max_input_tokens": 4, "max_output_tokens": 1, "evidence": "Controlled five token native request", "reason": "Quota request acceptance"}, capacityReview.ETag), 200)
 	contextRecord := decodeCatalogResponse[service.ProjectQuotaRequestContext](t, asManager("GET", base+"/request-quota-context", nil, ""), 200)
 	if contextRecord.PolicyETag != initialRecord.ETag || *contextRecord.CurrentQuota.TokensMonth != 5 {
 		t.Fatal("submission context did not bind current monthly policy")

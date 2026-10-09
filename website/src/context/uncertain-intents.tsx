@@ -98,6 +98,46 @@ function defaultSaveInput(value: DefaultLimitSaveSubmittedIntent['input']) {
   return result
 }
 function copySubmission(value: SubmittedIntent): SubmittedIntent {
+  if (value.kind === 'provider-model-state') {
+    const input = value.payload.input
+    return {
+      kind: value.kind,
+      payload: {
+        provider_id: value.payload.provider_id,
+        connection_id: value.payload.connection_id,
+        provider_model_id: value.payload.provider_model_id,
+        input:
+          input.capability_review_etag === undefined
+            ? { etag: input.etag, enabled: input.enabled }
+            : {
+                etag: input.etag,
+                capability_review_etag: input.capability_review_etag,
+                supports_image_input: input.supports_image_input,
+                supports_pdf_input: input.supports_pdf_input,
+                ...(input.enabled === undefined ? {} : { enabled: input.enabled }),
+              },
+      },
+    }
+  }
+  if (value.kind === 'provider-model-capacity') {
+    const input = value.payload.input
+    return {
+      kind: value.kind,
+      payload: {
+        provider_id: value.payload.provider_id,
+        connection_id: value.payload.connection_id,
+        provider_model_id: value.payload.provider_model_id,
+        etag: value.payload.etag,
+        input: {
+          max_input_tokens: input.max_input_tokens,
+          max_output_tokens: input.max_output_tokens,
+          evidence: input.evidence,
+          reason: input.reason,
+        },
+      },
+    }
+  }
+
   if (value.kind === 'provider-status') {
     return {
       kind: value.kind,
@@ -136,7 +176,20 @@ function copySubmission(value: SubmittedIntent): SubmittedIntent {
         provider_id: value.payload.provider_id,
         connection_id: value.payload.connection_id,
         etag: value.payload.etag,
-        input: { name: value.payload.input.name, reason: value.payload.input.reason },
+        input: {
+          name: value.payload.input.name,
+          reason: value.payload.input.reason,
+          ...(value.payload.input.transport === undefined
+            ? {}
+            : {
+                transport: {
+                  base_url: value.payload.input.transport.base_url,
+                  protocol: value.payload.input.transport.protocol,
+                  adapter: value.payload.input.transport.adapter,
+                  api_version: value.payload.input.transport.api_version,
+                },
+              }),
+        },
       },
     }
   }
@@ -264,29 +317,47 @@ function createOwner(cache: QueryClient, routeScope: string) {
           submission.payload.connection_id.length > 30)
       )
         return null
+      if (
+        (submission.kind === 'provider-model-state' ||
+          submission.kind === 'provider-model-capacity') &&
+        (!/^prv_[A-Za-z0-9_-]+$/.test(submission.payload.provider_id) ||
+          submission.payload.provider_id.length > 30 ||
+          !/^con_[A-Za-z0-9_-]+$/.test(submission.payload.connection_id) ||
+          submission.payload.connection_id.length > 30 ||
+          !/^[A-Za-z0-9_-]{1,30}$/.test(submission.payload.provider_model_id))
+      )
+        return null
       const claim = Object.freeze({
         identity: Symbol('submitted intent'),
         actor,
         routeScope,
         epoch: ++epoch,
         targetScope:
-          submission.kind === 'provider-name' || submission.kind === 'provider-status'
-            ? JSON.stringify([submission.kind, submission.payload.provider_id])
-            : submission.kind === 'connection-name' || submission.kind === 'connection-status'
-              ? JSON.stringify([
-                  submission.kind,
-                  submission.payload.provider_id,
-                  submission.payload.connection_id,
-                ])
-              : submission.kind === 'team-create'
-                ? JSON.stringify([submission.kind, submission.payload.body.creation_id])
-                : submission.kind === 'default-limit-save'
-                  ? JSON.stringify([submission.kind, submission.payload.target])
-                  : JSON.stringify([
-                      submission.kind,
-                      submission.payload.target.kind,
-                      submission.payload.target.id,
-                    ]),
+          submission.kind === 'provider-model-state' ||
+          submission.kind === 'provider-model-capacity'
+            ? JSON.stringify([
+                submission.kind,
+                submission.payload.provider_id,
+                submission.payload.connection_id,
+                submission.payload.provider_model_id,
+              ])
+            : submission.kind === 'provider-name' || submission.kind === 'provider-status'
+              ? JSON.stringify([submission.kind, submission.payload.provider_id])
+              : submission.kind === 'connection-name' || submission.kind === 'connection-status'
+                ? JSON.stringify([
+                    submission.kind,
+                    submission.payload.provider_id,
+                    submission.payload.connection_id,
+                  ])
+                : submission.kind === 'team-create'
+                  ? JSON.stringify([submission.kind, submission.payload.body.creation_id])
+                  : submission.kind === 'default-limit-save'
+                    ? JSON.stringify([submission.kind, submission.payload.target])
+                    : JSON.stringify([
+                        submission.kind,
+                        submission.payload.target.kind,
+                        submission.payload.target.id,
+                      ]),
       })
       retained = { ...copySubmission(submission), claim, uncertain: true }
       changed()

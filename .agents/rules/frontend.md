@@ -1389,3 +1389,41 @@ Escape or dismissal only while its actor, Session, permissions and list target
 remain current. Use the local Dialog final-focus contract. Do not focus detached,
 disabled or obsolete controls; sensitive drafts still clear on dismissal and
 authority renewal.
+
+## Explicit Connection diagnostics
+
+Connection testing belongs in the existing Connections row menu and local Base
+UI Dialog. Require fresh independent `providers.read` and `providers.write`
+authority, the current Session and CSRF token, and the exact Connection metadata
+review. Select one retained Credential explicitly, including pending or disabled
+records; never choose the first or highest-priority Credential automatically.
+An empty Credential list guides the administrator to Credential management.
+POST only `credential_id` to the exact Connection test endpoint with the reviewed
+strong quoted If-Match.
+
+Use bounded native model-list GETs, never paid inference. Azure classic checks
+authentication only and cannot establish deployment coverage. Results describe
+this diagnostic, not persisted verification, discovery coverage, enablement,
+routing application or inference readiness. Keep configuration and domain audit
+history unchanged; existing Vault exposure/drain safety bookkeeping still applies
+to source reads.
+
+Keep results transient in component state, outside query/mutation caches and
+browser storage. Fence duplicate dispatch and stale callbacks synchronously;
+abort and clear private results on Session renewal/error, actor or target change,
+dismissal and unmount. A conflict requires fresh explicit review. After an unknown
+response, an explicit new test starts a new observation and never recovers or
+replays a claimed historical operation. Use paired catalog translations with
+English as the default and preserve the existing table, menu and dialog layout.
+
+## Credential-row Connection testing
+
+The Credentials row menu reuses the explicit Connection diagnostic dialog. The
+clicked retained Credential is the explicit selection and stays locked to its
+exact Connection; do not offer another pool member or silently fall back. Require
+fresh independent Provider read/write authority, Session/CSRF and the same strong
+Connection metadata review. Opening the dialog sends no diagnostic POST. Preserve
+the Connection-row selection workflow, transient results, cancellation and
+synchronous stale/duplicate fences. Changing actor, target, Session or active
+resource view must not restore a stale result or dispatch a captured row action.
+Keep English/Chinese copy paired and return focus to the selected row action.

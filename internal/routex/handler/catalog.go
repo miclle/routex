@@ -11,22 +11,25 @@ import (
 )
 
 type CredentialResponse struct {
-	StorageSource        string     `json:"storage_source"`
-	ReplacesCredentialID *string    `json:"replaces_credential_id"`
-	ID                   string     `json:"id"`
-	Name                 string     `json:"name"`
-	Priority             int        `json:"priority"`
-	Enabled              bool       `json:"enabled"`
-	VerificationStatus   string     `json:"verification_status"`
-	VerifiedAt           *time.Time `json:"verified_at"`
+	VerificationTransportCurrent bool       `json:"verification_transport_current"`
+	StorageSource                string     `json:"storage_source"`
+	ReplacesCredentialID         *string    `json:"replaces_credential_id"`
+	ID                           string     `json:"id"`
+	Name                         string     `json:"name"`
+	Priority                     int        `json:"priority"`
+	Enabled                      bool       `json:"enabled"`
+	VerificationStatus           string     `json:"verification_status"`
+	VerifiedAt                   *time.Time `json:"verified_at"`
 }
 type ProviderModelResponse struct {
-	Enabled            bool   `json:"enabled"`
-	SupportsImageInput bool   `json:"supports_image_input"`
-	SupportsPDFInput   bool   `json:"supports_pdf_input"`
-	ETag               string `json:"etag"`
-	ID                 string `json:"id"`
-	UpstreamName       string `json:"upstream_name"`
+	CapabilitiesTransportCurrent bool   `json:"capabilities_transport_current"`
+	CapabilityReviewETag         string `json:"capability_review_etag"`
+	Enabled                      bool   `json:"enabled"`
+	SupportsImageInput           bool   `json:"supports_image_input"`
+	SupportsPDFInput             bool   `json:"supports_pdf_input"`
+	ETag                         string `json:"etag"`
+	ID                           string `json:"id"`
+	UpstreamName                 string `json:"upstream_name"`
 }
 type ConnectionResponse struct {
 	Adapter        string                  `json:"adapter"`
@@ -106,10 +109,10 @@ type CreateProviderModelRequest struct {
 }
 
 func credentialResponse(item entity.ProviderCredential) CredentialResponse {
-	return CredentialResponse{StorageSource: credentialStorageSource(item), ID: item.ID, Name: item.Name, Priority: item.Priority, Enabled: item.Enabled, VerificationStatus: item.VerificationStatus, VerifiedAt: item.VerifiedAt, ReplacesCredentialID: item.ReplacesCredentialID}
+	return CredentialResponse{VerificationTransportCurrent: item.VerificationTransportCurrent, StorageSource: credentialStorageSource(item), ID: item.ID, Name: item.Name, Priority: item.Priority, Enabled: item.Enabled, VerificationStatus: item.VerificationStatus, VerifiedAt: item.VerifiedAt, ReplacesCredentialID: item.ReplacesCredentialID}
 }
 func providerModelResponse(item entity.ProviderModel) ProviderModelResponse {
-	return ProviderModelResponse{ID: item.ID, UpstreamName: item.UpstreamName, Enabled: !item.Disabled, SupportsImageInput: item.SupportsImageInput, SupportsPDFInput: item.SupportsPDFInput, ETag: item.ETag}
+	return ProviderModelResponse{CapabilitiesTransportCurrent: item.CapabilitiesTransportCurrent, CapabilityReviewETag: item.CapabilityReviewETag, ID: item.ID, UpstreamName: item.UpstreamName, Enabled: !item.Disabled, SupportsImageInput: item.SupportsImageInput, SupportsPDFInput: item.SupportsPDFInput, ETag: item.ETag}
 }
 func connectionResponse(item service.ConnectionCatalog) ConnectionResponse {
 	result := ConnectionResponse{Adapter: entity.ConnectionAdapter(item.Connection), APIVersion: item.Connection.APIVersion, Enabled: item.Connection.Enabled, EgressMode: item.Connection.EgressMode, EgressID: item.Connection.EgressID, ETag: item.Connection.ETag, ID: item.Connection.ID, Name: item.Connection.Name, BaseURL: item.Connection.BaseURL, Protocol: item.Connection.Protocol, Credentials: []CredentialResponse{}, ProviderModels: []ProviderModelResponse{}}
@@ -130,7 +133,7 @@ func providerResponse(item service.ProviderCatalog) ProviderResponse {
 }
 
 func (ctrl *Ctrl) ListProviders(c *fox.Context) (*ProvidersResponse, error) {
-	items, err := ctrl.service.ListProviders(c.Request.Context())
+	items, err := ctrl.service.ListProviders(c.Request.Context(), currentAuthentication(c).User.ID)
 	if err != nil {
 		return nil, err
 	}

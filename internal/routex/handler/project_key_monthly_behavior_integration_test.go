@@ -201,7 +201,8 @@ func testProjectKeyMonthlyBehaviorLifecycle(t *testing.T, db *gorm.DB) {
 	expectStatus(t, request("POST", keys+"/"+created.Key.ID+"/confirm", nil, "", false), 200)
 	keyPath := keys + "/" + created.Key.ID + "/limits"
 	parentPath := base + "/limits"
-	bound := decodeCatalogResponse[service.ReservationBoundRecord](t, requestAs(adminCookie, admin.CSRFToken, "PUT", "/api/v1/admin/provider-models/pmd_project_key_mode/reservation-bound", map[string]any{"max_input_tokens": 100, "max_output_tokens": 50, "evidence": "Controlled native fixture", "reason": "Finite capacity"}, "0", false), 200)
+	capacityReview := decodeCatalogResponse[service.ReservationBoundRecord](t, requestAs(adminCookie, admin.CSRFToken, "GET", "/api/v1/admin/provider-models/pmd_project_key_mode/reservation-bound", nil, "", false), 200)
+	bound := decodeCatalogResponse[service.ReservationBoundRecord](t, requestAs(adminCookie, admin.CSRFToken, "PUT", "/api/v1/admin/provider-models/pmd_project_key_mode/reservation-bound", map[string]any{"max_input_tokens": 100, "max_output_tokens": 50, "evidence": "Controlled native fixture", "reason": "Finite capacity"}, capacityReview.ETag, false), 200)
 	if !bound.Configured {
 		t.Fatal("finite reservation missing")
 	}
@@ -441,7 +442,7 @@ func testProjectKeyMonthlyBehaviorLifecycle(t *testing.T, db *gorm.DB) {
 }
 
 func projectKeyMonthlyBehaviorRegistryMatches(pairs []string) bool {
-	if len(pairs) == 156 || len(pairs) == 158 || len(pairs) == 160 || len(pairs) == 162 || len(pairs) == 164 || len(pairs) == 166 || len(pairs) == 168 || len(pairs) == 170 || len(pairs) == 172 || len(pairs) == 174 || len(pairs) == 176 {
+	if len(pairs) == 156 || len(pairs) == 158 || len(pairs) == 160 || len(pairs) == 162 || len(pairs) == 164 || len(pairs) == 166 || len(pairs) == 168 || len(pairs) == 170 || len(pairs) == 172 || len(pairs) == 174 || len(pairs) == 176 || len(pairs) == 177 || len(pairs) == 179 {
 		parent, ok := personalRollingWarningRegistryParent(pairs)
 		if !ok {
 			return false
@@ -493,7 +494,7 @@ func TestProjectKeyMonthlyBehaviorRegistryTail(t *testing.T) {
 	for _, pair := range matches {
 		pairs = append(pairs, pair[1]+":"+pair[2])
 	}
-	if len(pairs) != 176 || !strings.Contains(string(raw), "versions != 91") {
+	if len(pairs) != 179 || !strings.Contains(string(raw), "versions != 92") {
 		t.Fatal("current exact172 registry/V89 ledger changed")
 	}
 	if !projectKeyMonthlyBehaviorRegistryMatches(pairs) {
