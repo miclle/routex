@@ -34,8 +34,11 @@ func credentialHolderKey(c entity.ProviderCredential) (credentialSourceKey, erro
 }
 
 type credentialSourceHolders struct {
-	mu     sync.Mutex
-	states map[credentialSourceKey]*credentialSourceState
+	mu                                                 sync.Mutex
+	states                                             map[credentialSourceKey]*credentialSourceState
+	processClosed, processPoisoned, processDrainClosed bool
+	processHolders                                     int
+	processDrained                                     chan struct{}
 }
 
 type credentialSourceState struct {
@@ -86,6 +89,9 @@ func (r *credentialSourceHolders) acquire(key credentialSourceKey) (*credentialS
 	}
 	r.mu.Lock()
 	defer r.mu.Unlock()
+	if r.processClosed {
+		return nil, vaultUnavailable
+	}
 	state, err := r.stateLocked(key)
 	if err != nil {
 		return nil, err
@@ -96,6 +102,7 @@ func (r *credentialSourceHolders) acquire(key credentialSourceKey) (*credentialS
 		return nil, vaultUnavailable
 	}
 	state.holders++
+	r.processHolders++
 	return &credentialSourceHolder{registry: r, key: key, state: state}, nil
 }
 
@@ -107,8 +114,39 @@ func (s *Service) acquireCredentialSource(c entity.ProviderCredential) (*credent
 	return s.credentialSources.acquire(key)
 }
 
-// closeAndWait is deliberately private and unwired to cleanup. Cancellation
-// leaves admissions closed; zero local holders says nothing about another process.
+// closeOnly installs a sticky local denial without waiting, including during
+// registration. A poisoned zero-holder state never becomes successful drain.
+func (r *credentialSourceHolders) closeOnly(object string) bool {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	state, err := r.stateLocked(credentialSourceKey{PhysicalObject: object})
+	if err != nil {
+		return false
+	}
+	state.mu.Lock()
+	defer state.mu.Unlock()
+	if !state.closed {
+		state.closed = true
+		if state.holders == 0 {
+			close(state.drained)
+		}
+	}
+	return state.holders == 0 && !state.poisoned
+}
+func (r *credentialSourceHolders) joined(object string) bool {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	state := r.states[credentialSourceKey{PhysicalObject: object}]
+	if state == nil {
+		return false
+	}
+	state.mu.Lock()
+	defer state.mu.Unlock()
+	return state.closed && state.holders == 0 && !state.poisoned
+}
+
+// closeAndWait joins only local holders. The published cleanup coordinator must
+// separately prove durable denial and every registered generation acknowledgement.
 func (r *credentialSourceHolders) closeAndWait(ctx context.Context, key credentialSourceKey) error {
 	if key == (credentialSourceKey{}) {
 		return vaultUnavailable
@@ -156,6 +194,8 @@ func (h *credentialSourceHolder) release() {
 	defer h.registry.mu.Unlock()
 	h.state.mu.Lock()
 	h.state.holders--
+	h.registry.processHolders--
+	h.registry.processDrainedLocked()
 	if h.state.holders == 0 {
 		if h.state.closed {
 			close(h.state.drained)
@@ -177,9 +217,12 @@ func (h *credentialSourceHolder) poison() {
 	if h.released {
 		return
 	}
+	h.registry.mu.Lock()
+	defer h.registry.mu.Unlock()
 	h.state.mu.Lock()
 	defer h.state.mu.Unlock()
 	h.state.poisoned = true
+	h.registry.processPoisoned = true
 }
 
 func (h *credentialSourceHolder) releasePlan() {
@@ -204,9 +247,11 @@ func (h *credentialSourceHolder) admitUse() bool {
 	}
 	h.mu.Lock()
 	defer h.mu.Unlock()
+	h.registry.mu.Lock()
+	defer h.registry.mu.Unlock()
 	h.state.mu.Lock()
 	defer h.state.mu.Unlock()
-	return !h.released && !h.state.closed
+	return !h.released && !h.state.closed && !h.registry.processClosed
 }
 
 type credentialHeldBody struct {

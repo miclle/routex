@@ -41,6 +41,8 @@ type systemInstanceLease struct {
 	cancel      context.CancelFunc
 	done        chan struct{}
 	stopOnce    sync.Once
+	shutdownMu  sync.Mutex
+	shutdown    *systemInstanceStop
 }
 
 // SystemInstanceMetadata contains bounded non-secret process facts captured at
@@ -162,10 +164,13 @@ func (s *Service) StartSystemInstance(ctx context.Context, metadata SystemInstan
 	if err := validateSystemInstanceMetadata(metadata); err != nil {
 		return err
 	}
-	s.instanceMu.Lock()
-	defer s.instanceMu.Unlock()
-	if s.instance != nil {
-		return fmt.Errorf("system instance already started")
+	s.instanceStartMu.Lock()
+	defer s.instanceStartMu.Unlock()
+	s.instanceMu.RLock()
+	started := s.instance != nil
+	s.instanceMu.RUnlock()
+	if started || s.credentialSources.processAdmissionClosed() {
+		return fmt.Errorf("system instance already started or source admission closed")
 	}
 	instanceID, err := id.NewPrefixed("ins")
 	if err != nil {
@@ -185,12 +190,22 @@ func (s *Service) StartSystemInstance(ctx context.Context, metadata SystemInstan
 		StartedAt: now, LastHeartbeatAt: now, LeaseExpiresAt: now.Add(s.instanceLeaseDuration),
 	}
 	applySystemInstanceResources(&row, resources)
-	if err := s.authDB(ctx).Create(&row).Error; err != nil {
+	if err := s.authDB(ctx).Transaction(func(tx *gorm.DB) error {
+		if err := lockGovernance(tx); err != nil {
+			return err
+		}
+		if err := vaultDB(tx).Create(&row).Error; err != nil {
+			return err
+		}
+		return s.registerCredentialSourceProcess(tx, row)
+	}); err != nil {
 		return fmt.Errorf("register system instance: %w", err)
 	}
 	run, cancel := context.WithCancel(context.WithoutCancel(ctx))
 	lease := &systemInstanceLease{id: instanceID, startedAt: now, token: leaseToken, storagePath: metadata.StoragePath, cancel: cancel, done: make(chan struct{})}
+	s.instanceMu.Lock()
 	s.instance = lease
+	s.instanceMu.Unlock()
 	go s.runSystemInstanceHeartbeat(run, lease)
 	return nil
 }
@@ -206,6 +221,9 @@ func (s *Service) runSystemInstanceHeartbeat(ctx context.Context, lease *systemI
 		case <-ticker.C:
 			persist, cancel := context.WithTimeout(context.Background(), min(5*time.Second, s.instanceHeartbeat))
 			err := s.heartbeatSystemInstance(persist, lease)
+			if err == nil {
+				err = s.reconcileCredentialDenials(persist)
+			}
 			cancel()
 			if err != nil {
 				log.Printf("system instance heartbeat failed: %v", err)
@@ -248,7 +266,9 @@ func (s *Service) RefreshSystemInstance(ctx context.Context) error {
 	return s.heartbeatSystemInstance(ctx, lease)
 }
 
-// StopSystemInstance joins the heartbeat before recording a graceful stop.
+// StopSystemInstance records source closure only after complete positive join.
+// Concurrent callers share one bounded attempt; a failed attempt can be retried
+// without reopening admission or converting uncertainty into a closure proof.
 func (s *Service) StopSystemInstance(ctx context.Context) error {
 	s.instanceMu.RLock()
 	lease := s.instance
@@ -256,35 +276,28 @@ func (s *Service) StopSystemInstance(ctx context.Context) error {
 	if lease == nil {
 		return nil
 	}
-	lease.stopOnce.Do(lease.cancel)
-	select {
-	case <-lease.done:
-	case <-ctx.Done():
-		return ctx.Err()
+	lease.shutdownMu.Lock()
+	if attempt := lease.shutdown; attempt != nil {
+		lease.shutdownMu.Unlock()
+		select {
+		case <-attempt.done:
+			return attempt.err
+		case <-ctx.Done():
+			return ctx.Err()
+		}
 	}
-	now := s.instanceNow().UTC()
-	updates := systemInstanceResourceUpdates(s.instanceResources(lease.storagePath))
-	updates["last_heartbeat_at"] = now
-	updates["lease_expires_at"] = now
-	updates["stopped_at"] = now
-	updates["heartbeat_revision"] = gorm.Expr("heartbeat_revision + ?", 1)
-	updates["retired_at"] = nil
-	updates["retired_by"] = ""
-	result := s.authDB(ctx).Model(&entity.SystemInstance{}).
-		Where("id = ? AND lease_token = ? AND stopped_at IS NULL", lease.id, lease.token).
-		Updates(updates)
-	if result.Error != nil {
-		return result.Error
+	attempt := &systemInstanceStop{done: make(chan struct{})}
+	lease.shutdown = attempt
+	lease.shutdownMu.Unlock()
+	err := s.stopCredentialSourceProcess(ctx, lease)
+	lease.shutdownMu.Lock()
+	attempt.err = err
+	if err != nil {
+		lease.shutdown = nil
 	}
-	if result.RowsAffected != 1 {
-		return fmt.Errorf("system instance lease was replaced")
-	}
-	s.instanceMu.Lock()
-	if s.instance == lease {
-		s.instance = nil
-	}
-	s.instanceMu.Unlock()
-	return nil
+	close(attempt.done)
+	lease.shutdownMu.Unlock()
+	return err
 }
 
 func applySystemInstanceResources(row *entity.SystemInstance, resources entitySystemInstanceResources) {

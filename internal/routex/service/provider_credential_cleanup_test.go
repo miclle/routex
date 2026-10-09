@@ -117,7 +117,7 @@ func (c *orphanCleanupConnection) QueryContext(ctx context.Context, q string, ar
 		out := []entity.ProviderCredentialCleanup{}
 		for _, r := range rows {
 			for _, v := range values {
-				if v == r.CreationRequestID {
+				if v == r.CreationRequestID || v == r.RequestID {
 					out = append(out, r)
 					break
 				}
@@ -161,15 +161,14 @@ func cleanupSQLService(t *testing.T) (*Service, *credentialStorageFixture, *orph
 	t.Helper()
 	s, f, roles := credentialStorageSQLService(t)
 	_, _, control := roleDefinitionSQLService(t)
-	now := time.Now().UTC()
-	cleanup := &orphanCleanupFixture{rows: map[string]entity.ProviderCredentialCleanup{}, instances: []entity.SystemInstance{{ID: "ins_cleanup", LeaseToken: "lease-cleanup", Role: "combined", LeaseExpiresAt: now.Add(time.Hour)}}}
+	cleanup := &orphanCleanupFixture{rows: map[string]entity.ProviderCredentialCleanup{}, instances: []entity.SystemInstance{f.data.instance}}
 	auditSchema, e := schema.Parse(&entity.AuditEvent{}, &sync.Map{}, schema.NamingStrategy{})
 	if e != nil || auditSchema.LookUpField("ResourceID") == nil || auditSchema.LookUpField("ResourceID").Size != 30 {
 		t.Fatal("retained audit schema bound changed", e)
 	}
 	cleanup.auditResourceBound = auditSchema.LookUpField("ResourceID").Size
 	s.instanceNow = time.Now
-	s.instance = &systemInstanceLease{id: "ins_cleanup", token: "lease-cleanup"}
+	s.instance = &systemInstanceLease{id: f.data.instance.ID, token: f.data.instance.LeaseToken, startedAt: f.data.instance.StartedAt}
 	pool := sql.OpenDB(orphanCleanupConnector{credentialStorageConnector{vaultCommandConnector{roleDefinitionSQLConnector{roles, control}, f.vault}, f}, cleanup})
 	pool.SetMaxOpenConns(1)
 	t.Cleanup(func() { _ = pool.Close() })
@@ -562,7 +561,7 @@ func TestProviderCleanupLegacyExposureAndRetiredInstancesNeverBecomeProof(t *tes
 	if e := s.db.Transaction(func(tx *gorm.DB) error { return s.recordCredentialCreationUse(tx, op.RequestID, false) }); e != nil {
 		t.Fatal(e)
 	}
-	s.instance = &systemInstanceLease{id: "ins_cleanup", token: "lease-cleanup"}
+	s.instance = &systemInstanceLease{id: f.data.instance.ID, token: f.data.instance.LeaseToken, startedAt: f.data.instance.StartedAt}
 	owned, e := s.cleanupProcessOwned(s.db, op.RequestID)
 	if e != nil || owned || !f.data.uses[op.RequestID].Exposed {
 		t.Fatal("foreign recovery exposure was not permanent", e)

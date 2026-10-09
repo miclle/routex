@@ -123,6 +123,44 @@ it('unknown blockers remain visible blocked facts and never eligible', () => {
   expect(() => parseProviderOrphan({ ...orphan(), blocker_codes: ['future_condition'] })).toThrow()
   expect(() => parseProviderOrphan({ ...orphan(), ownership_recorded: false })).toThrow()
 })
+it('accepts server-reviewed committed eligibility without inventing a deleted creation state', () => {
+  expect(parseProviderOrphan({ ...orphan(), state: 'committed' })).toMatchObject({
+    state: 'committed',
+    eligible: true,
+    ownership_recorded: true,
+  })
+  for (const blocker of [
+    'published_process_unproven',
+    'published_source_unavailable',
+    'published_drain_unproven',
+  ]) {
+    expect(
+      parseProviderOrphan({
+        ...orphan(),
+        state: 'committed',
+        eligible: false,
+        blocker_codes: [blocker],
+      }),
+    ).toMatchObject({ eligible: false, blocker_codes: [blocker] })
+    expect(() =>
+      parseProviderOrphan({ ...orphan(), state: 'committed', blocker_codes: [blocker] }),
+    ).toThrow()
+  }
+  expect(() =>
+    parseProviderOrphan({
+      ...orphan(),
+      state: 'committed',
+      ownership_recorded: false,
+      read: observation(),
+    }),
+  ).toThrow()
+})
+it.each(['writing', 'awaiting_read', 'unknown', 'owned'])(
+  'does not broaden eligibility to unresolved creation state %s',
+  (state) => {
+    expect(() => parseProviderOrphan({ ...orphan(), state })).toThrow()
+  },
+)
 it('bounds page count, duplicate identities and cursor syntax without dispatch', async () => {
   for (const value of [
     { items: Array.from({ length: 21 }, () => orphan()), next_cursor: null },

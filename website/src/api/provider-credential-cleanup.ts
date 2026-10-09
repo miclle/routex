@@ -147,7 +147,9 @@ export function parseProviderOrphan(value: unknown): ProviderOrphan {
   if (
     result.ownership_recorded !== (result.write.succeeded && result.read.succeeded) ||
     (result.eligible &&
-      (!result.ownership_recorded || result.state !== 'orphan' || result.blocker_codes.length))
+      (!result.ownership_recorded ||
+        (result.state !== 'orphan' && result.state !== 'committed') ||
+        result.blocker_codes.length))
   )
     return fail()
   return result

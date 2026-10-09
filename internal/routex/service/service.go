@@ -49,6 +49,7 @@ type Service struct {
 	attemptHealth             gatewayAttemptHealth
 	attemptNow                func() time.Time
 	afterGatewayAdmission     func()
+	instanceStartMu           sync.Mutex
 	instanceMu                sync.RWMutex
 	instance                  *systemInstanceLease
 	instanceNow               func() time.Time

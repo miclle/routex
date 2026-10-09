@@ -150,7 +150,7 @@ func run(ctx context.Context, configPath string) (runErr error) {
 		return errors.New("listen for HTTP requests failed")
 	}
 	log.Printf("server starting on %s (commit=%s, built=%s)", listener.Addr(), CommitID, BuildTime)
-	return serveHTTP(ctx, listener, engine, 15*time.Second)
+	return serveHTTP(ctx, listener, engine, 15*time.Second, svc.BeginCredentialSourceShutdown)
 }
 
 func credentialStoreForConfig(cfg *config.Config) (*secretstore.Store, error) {
@@ -202,7 +202,12 @@ func credentialStore(encoded string) (*secretstore.Store, error) {
 	return store, nil
 }
 
-func serveHTTP(ctx context.Context, listener net.Listener, handler http.Handler, grace time.Duration) error {
+func serveHTTP(ctx context.Context, listener net.Listener, handler http.Handler, grace time.Duration, onShutdown ...func()) error {
+	closeAdmission := func() {
+		for _, close := range onShutdown {
+			close()
+		}
+	}
 	requests, cancelRequests := context.WithCancel(context.WithoutCancel(ctx))
 	defer cancelRequests()
 	server := &http.Server{
@@ -213,12 +218,14 @@ func serveHTTP(ctx context.Context, listener net.Listener, handler http.Handler,
 	go func() { finished <- server.Serve(listener) }()
 	select {
 	case err := <-finished:
+		closeAdmission()
 		_ = server.Close()
 		if errors.Is(err, http.ErrServerClosed) {
 			return nil
 		}
 		return errors.New("HTTP server failed")
 	case <-ctx.Done():
+		closeAdmission()
 		shutdown, cancel := context.WithTimeout(context.Background(), grace)
 		defer cancel()
 		if err := server.Shutdown(shutdown); err != nil {

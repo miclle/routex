@@ -219,3 +219,28 @@ remain failed. The accepted disposable fixture uses fixed loopback host ports,
 an ordinary owned bridge that permits egress and a narrowly scoped S3
 DAC_OVERRIDE capability. These fixture settings are not production requirements
 or an egress-isolation guarantee.
+
+
+## Cleanup of previously published owned Vault objects
+
+The reviewed cleanup retains the existing owned-object namespace/provenance
+check and version-one destroy operation. It first durably denies the exact
+physical source, joins every proven exposed process generation and rechecks
+dependencies/current authority before the existing ownership read and single
+remote destroy claim. An incomplete or canceled drain sends no destroy.
+Unknown generation/source proof, persistence uncertainty and poisoned Close
+remain blockers. Never-committed owned-object cleanup keeps its existing flow.
+
+An acknowledged receipt confirms only the recorded ownership check and the
+version-one destroy response. It does not prove physical erasure, destruction of
+later versions or deletion of retained audit, creation or call history. Original
+failed/unknown receipts remain immutable, with same-UUID reads performing no SDK
+redispatch. A separately confirmed new UUID requires fresh server eligibility and
+durable private known-no-effect proof after successful joins; failure alone is
+insufficient. Fresh main checks and complete PostgreSQL/MySQL qualification pass.
+A separately bound local controlled run verifies the single version-one destroy,
+later-version preservation, original receipt reconciliation and two real restarts.
+Its retained projections and sanitized audit are independently read back;
+transport and version payload assertions remain controller evidence. This does
+not establish external Vault readiness, physical erasure or fleet closure. See
+the [current acceptance boundary](IMPLEMENTATION.md#current-vault-main-integration-2026-10-09).

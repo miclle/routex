@@ -2,7 +2,7 @@ export default {
   orphans: {
     title: 'Provider orphan cleanup',
     description:
-      'Review never-committed Provider credential objects in this Vault integration. Published objects and unresolved writes remain blocked.',
+      'Review never-committed objects and deleted, previously published Provider credential objects in this Vault integration. Unconfirmed ownership and unresolved uses remain blocked.',
     creation: 'Creation request',
     credential: 'Credential',
     state: 'Recorded state',
@@ -14,18 +14,34 @@ export default {
     reviewTitle: 'Review exact creation',
     revision: 'Retained revision',
     recordedGuidance:
-      'Original Write and Read are recorded facts. Cleanup requires a new ownership check and explicit confirmation; this view does not prove a drained or previously published object.',
+      'Original Write and Read are recorded facts. Eligibility permits a bounded cleanup attempt, not proof that in-flight uses have joined. Cleanup requires fresh checks and explicit confirmation.',
+    neverCommittedGuidance:
+      'This creation was never committed. Confirmed original ownership and resolved creation are required before cleanup.',
+    publishedGuidance:
+      'This object was previously published. Its Credential must be deleted, and every exposed process generation and in-flight use must be proven drained before any destroy request. Unknown generations remain blocked.',
     blocked: 'Cleanup is blocked by an unrecognized server condition.',
     prepare: 'Review cleanup',
     confirmTitle: 'Confirm orphan cleanup',
     confirmDescription:
       'Permanently fence recovery of this never-committed creation and request destruction of its exact owned version 1; later versions and metadata are preserved. Failed or unknown outcomes require investigation; no automatic retry or physical erasure is promised.',
+    confirmPublishedDescription:
+      'Permanently deny further use of this previously published object, then wait for proven closure and joining of every exposed process generation and in-flight use. If draining fails, is canceled or remains unknown, no destroy is requested. Only its exact owned version 1 may be destroyed; later versions and metadata remain. No automatic retry or physical erasure is promised.',
     token: 'Independent cleanup Token',
     confirm: 'Confirm cleanup',
     receipt: 'Recorded cleanup command',
     receiptGuidance:
-      'Only an acknowledged receipt confirms this command’s saved destroy response. Current absence, 404, timeout or a matching review is not success.',
+      'Only an acknowledged receipt confirms this command’s saved version-1 destroy response. It does not prove path deletion, later-version destruction or physical erasure. Current absence, 404, timeout or a matching review is not success.',
     reviewReceipt: 'Review recorded command',
+    previousCommand: 'Previous failed command',
+    reviewPreviousCommand: 'Review previous command receipt',
+    originalReceiptGuidance:
+      'The original failed receipt remains unchanged. A new command requires a separate fresh eligible server review and explicit confirmation; failure or timeout alone does not permit another attempt.',
+    reviewNewAttempt: 'Review a new cleanup attempt',
+    confirmNewTitle: 'Confirm a new cleanup attempt',
+    confirmNew: 'Confirm new cleanup attempt',
+    newReason: 'Reason for the new command',
+    confirmNewDescription:
+      'A fresh server review permits this bounded attempt after the previous failed command. Confirm a new command identity with a new reason and transient cleanup Token. The original receipt remains retained. Permanent denial and proven joining still precede any exact owned version-1 destroy; unknown outcomes are not retry permission.',
     retry: 'Reconcile exact command',
     cancel: 'Cancel waiting',
     states: {
@@ -45,6 +61,10 @@ export default {
       uncertain:
         'The dispatched command is unconfirmed. Review or reconcile its original token-free intent; no new destroy will be requested.',
       reviewFailed: 'A fresh eligible review is required before confirmation.',
+      newReviewBlocked:
+        'The current review does not permit a new command. The original command and receipt remain retained; review or reconcile that original command.',
+      newReviewReady:
+        'The current server review permits a separate new confirmation. The original failed receipt remains retained; no new command has been dispatched.',
       identityChanged: 'The current identity changed. The previous transient review was discarded.',
     },
     blockers: {
@@ -59,6 +79,12 @@ export default {
       process_ownership_unknown:
         'The original creation is not exclusively owned by this process generation.',
       fleet_ambiguous: 'Sole-instance authority is unconfirmed.',
+      published_process_unproven:
+        'An old or unknown process generation may have used this published object; its closure and joining are unproven.',
+      published_source_unavailable:
+        'The original physical source of this published object cannot be proven.',
+      published_drain_unproven:
+        'Closure and joining of in-flight uses of this published object failed or remain uncertain. No destroy is permitted.',
     },
   },
   providerStorage: {

@@ -2,7 +2,62 @@
 
 Updated: 2026-10-09. Status: resumed by explicit user instruction; prioritize partially completed capabilities. [Implementation](IMPLEMENTATION.md) records engineering contracts and historical acceptance evidence. Earlier checkpoints below remain historical.
 
-## Active continuation checkpoint (2026-10-09)
+## Current Vault main integration (2026-10-09)
+
+The containing phase delivers reviewed published-Vault cleanup and positive
+credential-source process closure on main. Frozen V88/V89 preserve immutable
+receipts, exact ownership and call attribution. Cleanup joins known holders
+before its single remote attempt; uncertain exposure or persistence stays blocked.
+The existing orphan workflow retains uncertain intent and requires fresh review
+before a distinct cleanup command. No automatic cleanup is enabled.
+
+Fresh main formatting, mandatory checks, complete Task and production build
+pass. Task includes 5,440 frontend tests in 208 files. The source-bound ordinary
+run passes 5,145 named tests. Complete PostgreSQL/MySQL qualification passes
+344 direct scenarios and eight constraints, retaining all 434 balanced names per
+driver. Exact 2,019 source files and modes remain unchanged through those gates;
+all captured processes, ports and labelled Compose resources are independently
+absent. Full database acceptance SHA-256:
+`468d5fbddb094cf0d005746b9eb0e52b0b17dff89e3c50fedeff2637d3e21a40`.
+
+The same production executable passes controlled local Vault/native acceptance
+in 56.782 seconds: one native completed call with exact Credential/snapshot
+attribution, positive shutdown joins, two real restarts preserving both original
+Sessions, immutable failed-command reconciliation and a freshly reviewed cleanup
+that preserves the later secret version. Independent retained-file readback:
+`b0a3f3b68cd3b83da8c90eb6e8ac8468dda15e0e358ab978aa0b15cc53352a21`.
+Transport, holder timing and later-version payload checks rely on the reviewed
+controller's successful assertions; retained evidence does not provide an
+independent raw-payload replay. Final documentation-only updates follow these
+gates without changing the verified implementation. A fresh mandatory check is
+required immediately before the containing commit; its remote CI is separate.
+
+The parent `937e1dffe21dfb9e7d5017f8430c7929588fab08` now has passing exact-head
+CI37856201335, Actionlint37856201306 and GolangCI37856201352, including both
+databases, authentication restart and production artifacts. Earlier failures
+retain their historical scope. Browser acceptance is deferred while the computer
+is locked; external Vault and fleet acceptance remain open. Formal totals remain
+13 Completed / 14 Partial / 3 Not started.
+
+Parallel work remains isolated: routing-weight history has fresh checks, 5,260
+ordinary names and two-driver focused acceptance; Full174, controlled restart and
+delivery are next. Provider Model row actions pass 76 focused tests and independent
+review after two captured-callback regressions; main and browser acceptance are
+pending. Whole-Provider enablement has a read-only implementation assessment and
+has not started. No worktree evidence is promoted to main acceptance.
+
+The separate real-database publication-fault reproduction now demonstrates the
+fixture mechanism on both engines. Old behavior produces exactly one new failed
+publication, one source-serialized failed job and an exactly linked administrator
+notice per scenario; the original unfiltered zero-inbox assertion fails. The
+repaired behavior saves none of those synthetic failures and passes all original
+lifecycles. Both runs retain complete Go JSON and independent process/resource
+absence proofs. Correlation is enforced by reviewed runtime assertions, without
+claiming independent replay of disposed durable IDs or historical CI provenance.
+
+The earlier source checkpoints below retain their original scope.
+
+## Previous delivered-source checkpoint (2026-10-09)
 
 The goal remains active: 13 Completed / 14 Partial / 3 Not started.
 

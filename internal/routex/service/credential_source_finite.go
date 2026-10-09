@@ -45,6 +45,7 @@ type credentialFiniteOperation struct {
 	mu      sync.Mutex
 	client  *vault.Client
 	holder  *credentialSourceHolder
+	process *credentialProcessTicket
 	purpose string
 	plan    vault.CredentialPlan
 	closed  bool
@@ -52,6 +53,30 @@ type credentialFiniteOperation struct {
 }
 
 func (s *Service) credentialFiniteOperation(rev entity.VaultRevision, ref entity.CredentialVaultReference, method, purpose string) (*credentialFiniteOperation, error) {
+	return s.credentialFiniteOperationOwned(rev, ref, method, purpose, false)
+}
+
+// Exclusive cleanup is admitted only by the durable published drain coordinator.
+func (s *Service) credentialFiniteOperationOwned(rev entity.VaultRevision, ref entity.CredentialVaultReference, method, purpose string, exclusive bool) (*credentialFiniteOperation, error) {
+	ticket, err := s.credentialSources.processAcquire()
+	if err != nil {
+		return nil, err
+	}
+	operation, err := s.credentialFiniteOperationTicket(rev, ref, method, purpose, exclusive, ticket)
+	if err != nil {
+		ticket.release()
+	}
+	return operation, err
+}
+
+// The generation ticket precedes every SDK lifetime, including exclusive cleanup.
+func (s *Service) credentialFiniteOperationTicket(rev entity.VaultRevision, ref entity.CredentialVaultReference, method, purpose string, exclusive bool, ticket *credentialProcessTicket) (*credentialFiniteOperation, error) {
+	if !ticket.claim(&s.credentialSources) {
+		return nil, vaultUnavailable
+	}
+	if exclusive && purpose != "cleanup" {
+		return nil, vaultUnavailable
+	}
 	switch purpose {
 	case "resolve", "create", "recover", "cleanup":
 	default:
@@ -75,12 +100,15 @@ func (s *Service) credentialFiniteOperation(rev entity.VaultRevision, ref entity
 	}
 	raw, _ := json.Marshal(ref)
 	key := credentialSourceKey{CredentialID: ref.CredentialID, CredentialBirth: ref.CredentialBirth.UTC().Format(time.RFC3339Nano), ReferenceID: ref.ReferenceID, IntegrationID: ref.IntegrationID, IntegrationBirth: ref.IntegrationBirth.UTC().Format(time.RFC3339Nano), RevisionID: ref.RevisionID, ReaderGeneration: ref.ReaderGeneration, ReaderMethod: method, Descriptor: ref.DescriptorSHA256, Proof: rootHash(string(raw)), PhysicalObject: object, Marker: ref.ExpectedMarkerSHA256}
-	holder, err := s.credentialSources.acquire(key)
-	if err != nil {
-		client.Close()
-		return nil, err
+	var holder *credentialSourceHolder
+	if !exclusive {
+		holder, err = s.credentialSources.acquire(key)
+		if err != nil {
+			client.Close()
+			return nil, err
+		}
 	}
-	return &credentialFiniteOperation{client: client, holder: holder, purpose: purpose, plan: credentialPlan(ref)}, nil
+	return &credentialFiniteOperation{client: client, holder: holder, process: ticket, purpose: purpose, plan: credentialPlan(ref)}, nil
 }
 
 func (op *credentialFiniteOperation) admissible() bool {
@@ -91,6 +119,7 @@ func (op *credentialFiniteOperation) observe(attempted bool, err error) error {
 	if state.Failed || state.Pending != 0 || (attempted && !state.Observed) {
 		op.failed = true
 		op.holder.poison()
+		op.process.poison()
 		if err == nil {
 			err = vaultUnavailable
 		}
@@ -107,6 +136,7 @@ func (op *credentialFiniteOperation) close() {
 	_ = op.observe(false, nil)
 	op.client.Close() // Idle connection cleanup is not response-body drain proof.
 	op.holder.release()
+	op.process.release()
 }
 func (op *credentialFiniteOperation) token(ctx context.Context, method, material string) (string, func(), vault.Observation, error) {
 	op.mu.Lock()

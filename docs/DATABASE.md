@@ -1413,3 +1413,34 @@ The current frozen R8 source passes check, complete Task testing and build,
 lifecycle. Earlier focused R7 receipts remain bound to that source. Complete
 R8 Full168, composed-main gates, browser and delivery remain pending. These
 source-specific facts do not establish wider runtime or feature acceptance.
+
+
+### V88/V89: published cleanup commands and exact process closure
+
+Frozen V88 adds distinct published-cleanup command receipts and durable physical
+source denial, use and process-generation records. Each request UUID preserves
+its immutable original outcome; a permanent physical-object remote claim prevents
+a second cleanup effect. Known drain timeouts may permit a newly reviewed UUID
+only after complete joins and durable private no-SDK-effect evidence. The private
+proof is not a public DTO field, and failed/unknown remote or persistence outcomes
+cannot establish it. Released V1–V87 steps are unchanged.
+
+Frozen V89 adds positive closed-process evidence through a private frozen schema
+and bounded partial-DDL repair. Admission closes before draining; exact generation,
+instance registration/birth/token and all holders must be positively joined. A
+new closure rechecks the full fresh UTC clock after governance and instance reads
+against lease expiry, then persists one matching UTC microsecond timestamp for
+closure and stop facts atomically. Exact durable historical closure reconciliation
+retains its original timestamp even after the old lease expires; failed writes
+leave admission closed without manufacturing a positive proof. Migration fixture
+adapters retain every prior version and unaffected ledger timestamp; historical
+reconstruction keeps its original version with an explicit finite suffix.
+
+Fresh main checks, complete Task/build and the source-bound Full172 matrix pass
+on PostgreSQL and MySQL, including 344 direct scenarios, eight constraints and
+all 434 balanced names per driver. Empty creation, retained-data upgrades,
+repeat/concurrent startup and partial-DDL paths remain in the complete registry.
+The same executable also passes controlled local shutdown and two real restarts.
+See [current acceptance](IMPLEMENTATION.md#current-vault-main-integration-2026-10-09)
+for the exact source boundary. Browser, external Vault and fleet acceptance are
+separate; older isolated results are not substituted for these main gates.

@@ -173,7 +173,7 @@ func (s *Service) resolveCredential(ctx context.Context, c entity.ProviderCreden
 	if e != nil {
 		return "", vaultUnavailable
 	}
-	operation, e := s.credentialFiniteOperation(rev, *c.VaultReference, reader.Method, "resolve")
+	operation, e := s.credentialAdmissionOperation(ctx, rev, *c.VaultReference, reader.Method, "resolve")
 	if e != nil {
 		return "", vaultUnavailable
 	}

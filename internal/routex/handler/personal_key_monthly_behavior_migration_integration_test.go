@@ -357,7 +357,7 @@ func TestPersonalKeyBehaviorFixtureLedgerReplayPreservesLaterVersions(t *testing
 }
 
 func personalKeyBehaviorRegistryMatches(names []string) bool {
-	if len(names) == 156 || len(names) == 158 || len(names) == 160 || len(names) == 162 || len(names) == 164 || len(names) == 166 || len(names) == 168 {
+	if len(names) == 156 || len(names) == 158 || len(names) == 160 || len(names) == 162 || len(names) == 164 || len(names) == 166 || len(names) == 168 || len(names) == 170 || len(names) == 172 {
 		parent, ok := personalRollingWarningRegistryParent(names)
 		if !ok {
 			return false
@@ -444,8 +444,8 @@ func TestPersonalKeyBehaviorFixtureExactRegistryPrefixAndNewPair(t *testing.T) {
 		names = append(names, name+":"+second.Name)
 		return true
 	})
-	if len(names) != 168 || !strings.Contains(string(raw), "versions != 87") {
-		t.Fatal("current exact168 registry/V87 ledger changed")
+	if len(names) != 172 || !strings.Contains(string(raw), "versions != 89") {
+		t.Fatal("current exact172 registry/V89 ledger changed")
 	}
 	if !personalKeyBehaviorRegistryMatches(names) {
 		t.Fatal("original137 registry pairs or exact appended2 changed", len(names))
@@ -502,7 +502,7 @@ func TestPersonalKeyBehaviorFixtureExactRegistryPrefixAndNewPair(t *testing.T) {
 			}
 		}
 	}
-	if !strings.Contains(string(raw), "versions != 87") || !strings.Contains(string(raw), "personalKeyBehaviorHistoricalReplay(t, db, test.run)") {
+	if !strings.Contains(string(raw), "versions != 89") || !strings.Contains(string(raw), "personalKeyBehaviorHistoricalReplay(t, db, test.run)") {
 		t.Fatal("current ledger or bounded historical companion not bound")
 	}
 }

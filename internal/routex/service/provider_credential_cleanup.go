@@ -17,8 +17,8 @@ import (
 	"time"
 )
 
-// These holders cover creation/recovery only. They deliberately claim no native
-// HTTP/stream drain; any once-published reference is ineligible in this slice.
+// Creation/recovery holders protect business commit. Published cleanup also
+// requires the durable physical source barrier and complete process drain.
 func (s *Service) credentialCreationLease(request string) (func(), error) {
 	s.credentialCleanupMu.Lock()
 	defer s.credentialCleanupMu.Unlock()
@@ -151,12 +151,10 @@ func (s *Service) cleanupView(tx *gorm.DB, actor entity.User, row entity.VaultIn
 	if !confirmed {
 		codes = append(codes, "unconfirmed_ownership")
 	}
-	if op.State != "orphan" {
+	if op.State != "orphan" && op.State != "committed" {
 		codes = append(codes, "creation_unresolved")
 	}
-	if op.State == "committed" {
-		codes = append(codes, "previously_published")
-	}
+
 	if op.ClaimedUntil.After(s.secretNow()) || s.credentialCreationHeld(op.RequestID) {
 		codes = append(codes, "active_creation")
 	}
@@ -167,12 +165,14 @@ func (s *Service) cleanupView(tx *gorm.DB, actor entity.User, row entity.VaultIn
 	if live != 0 {
 		codes = append(codes, "live_credential")
 	}
-	var refs int64
-	if e := vaultDB(tx).Model(&entity.CredentialVaultReference{}).Where("credential_id = ? OR reference_id = ?", op.CredentialID, op.ReferenceID).Count(&refs).Error; e != nil {
-		return ProviderCredentialOrphanView{}, e
-	}
-	if refs != 0 {
-		codes = append(codes, "retained_reference")
+	if op.State != "committed" {
+		var refs int64
+		if e := vaultDB(tx).Model(&entity.CredentialVaultReference{}).Where("credential_id = ? OR reference_id = ?", op.CredentialID, op.ReferenceID).Count(&refs).Error; e != nil {
+			return ProviderCredentialOrphanView{}, e
+		}
+		if refs != 0 {
+			codes = append(codes, "retained_reference")
+		}
 	}
 	var dispositions []entity.ProviderCredentialCleanup
 	if e := personalExact(vaultDB(tx), "creation_request_id", op.RequestID).Limit(1).Find(&dispositions).Error; e != nil {
@@ -184,19 +184,32 @@ func (s *Service) cleanupView(tx *gorm.DB, actor entity.User, row entity.VaultIn
 	if _, w, _, e := s.credentialReferenceClientTx(tx, operationReference(op)); e != nil || w.SecretGeneration != op.WriterGeneration {
 		codes = append(codes, "source_unavailable")
 	}
-	processOwned, e := s.cleanupProcessOwned(tx, op.RequestID)
-	if e != nil {
-		return ProviderCredentialOrphanView{}, e
-	}
-	if !processOwned {
-		codes = append(codes, "process_ownership_unknown")
-	}
-	sole, e := s.cleanupSoleInstance(tx)
-	if e != nil {
-		return ProviderCredentialOrphanView{}, e
-	}
-	if !sole {
-		codes = append(codes, "fleet_ambiguous")
+	var publishedProof string
+	if op.State == "committed" {
+		_, proof, code, err := s.publishedCleanupPreview(tx, op, claiming)
+		if err != nil {
+			return ProviderCredentialOrphanView{}, err
+		}
+		publishedProof = proof
+		if code != "" {
+			codes = append(codes, code)
+		}
+	} else {
+		processOwned, e := s.cleanupProcessOwned(tx, op.RequestID)
+		if e != nil {
+			return ProviderCredentialOrphanView{}, e
+		}
+		if !processOwned {
+			codes = append(codes, "process_ownership_unknown")
+		}
+		sole, e := s.cleanupSoleInstance(tx)
+		if e != nil {
+			return ProviderCredentialOrphanView{}, e
+		}
+		if !sole {
+			codes = append(codes, "fleet_ambiguous")
+		}
+
 	}
 	can, e := exactGovernancePermission(tx, actor, "secrets.write")
 	if e != nil {
@@ -219,7 +232,8 @@ func (s *Service) cleanupView(tx *gorm.DB, actor entity.User, row entity.VaultIn
 		CurrentRevision string
 		Disposition     []entity.ProviderCredentialCleanup
 		Epoch           uint64
-	}{v, cleanupOperationProof(op), op.Claim, op.ClaimedUntil, row.RevisionID, dispositions, s.secretEpoch()})
+		PublishedProof  string
+	}{v, cleanupOperationProof(op), op.Claim, op.ClaimedUntil, row.RevisionID, dispositions, s.secretEpoch(), publishedProof})
 	// Entity JSON intentionally hides private ledger fields, so bind disposition
 	// changes independently rather than relying on its public serialization.
 	if len(dispositions) != 0 {
@@ -358,11 +372,11 @@ func (s *Service) GetProviderCredentialCleanup(ctx context.Context, actorID, tar
 		if e != nil {
 			return e
 		}
-		var ledger entity.ProviderCredentialCleanup
-		if e = personalExact(vaultDB(tx), "creation_request_id", request).Take(&ledger).Error; e != nil {
+		ledger, _, e := cleanupCommandTx(tx, command)
+		if e != nil {
 			return e
 		}
-		if ledger.RequestID != command || ledger.IntegrationID != row.ID || !ledger.IntegrationBirth.Equal(row.CreatedAt) || ledger.OperationProof != cleanupOperationProof(op) {
+		if ledger.CreationRequestID != request || ledger.RequestID != command || ledger.IntegrationID != row.ID || !ledger.IntegrationBirth.Equal(row.CreatedAt) || ledger.OperationProof != cleanupOperationProof(op) {
 			return apperrors.ErrNotFound
 		}
 		v, e = cleanupReceipt(ledger, s.secretNow())
@@ -400,6 +414,7 @@ func (s *Service) CleanupProviderCredentialOrphan(ctx context.Context, actorID, 
 	var op entity.CredentialStorageOperation
 	var ledger entity.ProviderCredentialCleanup
 	var replay bool
+	var denial entity.CredentialSourceDenial
 	var releaseLocal func()
 	err := s.authDB(ctx).Transaction(func(tx *gorm.DB) error {
 		if e := lockGovernance(tx); e != nil {
@@ -410,9 +425,10 @@ func (s *Service) CleanupProviderCredentialOrphan(ctx context.Context, actorID, 
 			return e
 		}
 		op = loaded
-		e = personalExact(vaultDB(tx), "creation_request_id", request).Take(&ledger).Error
+		var published bool
+		ledger, published, e = cleanupCommandTx(tx, input.RequestID)
 		if e == nil {
-			if !cleanupReplay(ledger, actor, op, review, input) {
+			if published != (op.State == "committed") || !cleanupReplay(ledger, actor, op, review, input) {
 				return catalogConflict
 			}
 			replay = true
@@ -420,6 +436,15 @@ func (s *Service) CleanupProviderCredentialOrphan(ctx context.Context, actorID, 
 		}
 		if !errors.Is(e, gorm.ErrRecordNotFound) {
 			return e
+		}
+		// V80 remains a singleton per creation, including its old immutable
+		// failed receipts. Only V88 published commands support safe new intents.
+		var old []entity.ProviderCredentialCleanup
+		if e = personalExact(vaultDB(tx), "creation_request_id", request).Limit(1).Find(&old).Error; e != nil {
+			return e
+		}
+		if len(old) != 0 {
+			return catalogConflict
 		}
 		if !vaultToken(input.cleanupToken) {
 			return apperrors.ErrBadRequest
@@ -435,9 +460,19 @@ func (s *Service) CleanupProviderCredentialOrphan(ctx context.Context, actorID, 
 		if v.ReviewETag != review || !v.Eligible || !v.CanCleanup {
 			return catalogConflict
 		}
-		now := s.secretNow()
+		now := s.secretNow().UTC().Truncate(time.Microsecond)
 		ledger = entity.ProviderCredentialCleanup{CreationRequestID: request, RequestID: input.RequestID, ActorID: actor.ID, ActorBirth: actor.CreatedAt, IntegrationID: row.ID, IntegrationBirth: row.CreatedAt, RevisionID: op.RevisionID, OperationProof: cleanupOperationProof(op), ReviewedETag: review, Reason: input.Reason, State: "pending", OwnershipJSON: vaultJSON(vaultEmptyObservation()), CleanupJSON: vaultJSON(VaultCleanupView{"not_attempted", vaultEmptyObservation()}), RootEpoch: s.secretEpoch(), StartedAt: now, Deadline: now.Add(30 * time.Second)}
-		if e = vaultDB(tx).Create(&ledger).Error; e != nil {
+		if op.State == "committed" {
+			denial, e = s.claimPublishedCleanup(tx, op, ledger)
+			if e != nil {
+				return e
+			}
+			command := publishedCommand(ledger, denial.PhysicalObject)
+			e = vaultDB(tx).Create(&command).Error
+		} else {
+			e = vaultDB(tx).Create(&ledger).Error
+		}
+		if e != nil {
 			if errors.Is(e, gorm.ErrDuplicatedKey) {
 				return catalogConflict
 			}
@@ -456,36 +491,67 @@ func (s *Service) CleanupProviderCredentialOrphan(ctx context.Context, actorID, 
 		return &ProviderCredentialCleanupResult{v, v.State == "pending"}, e
 	}
 	result := vault.CredentialCleanupResult{Cleanup: vault.Cleanup{State: "not_attempted"}}
+	// This private positive control-flow fact is never inferred from a timeout,
+	// HTTP response, or empty observations. Once the remote claim path is entered,
+	// any uncertainty permanently blocks a fresh command for this object.
+	remoteBoundaryEntered := false
 	// Recheck fresh actor/source/instance after the durable command claim. Root
 	// retirement cannot advance while this reader lease remains held.
-	err = s.authDB(ctx).Transaction(func(tx *gorm.DB) error {
-		_, _, live, e := cleanupTargetTx(tx, actorID, target, request, true)
-		if e != nil {
-			return e
-		}
-		if cleanupOperationProof(live) != ledger.OperationProof || s.secretEpoch() != ledger.RootEpoch {
-			return catalogConflict
-		}
-		sole, e := s.cleanupSoleInstance(tx)
-		if e != nil {
-			return e
-		}
-		if !sole {
-			return vaultUnavailable
-		}
-		owned, e := s.cleanupProcessOwned(tx, request)
-		if e != nil {
-			return e
-		}
-		if !owned {
-			return catalogConflict
-		}
-		return nil
-	})
+	if op.State == "committed" {
+		err = s.joinPublishedCleanup(ctx, denial, op)
+	}
+	if err == nil {
+		err = s.authDB(ctx).Transaction(func(tx *gorm.DB) error {
+			if op.State == "committed" {
+				if err := lockGovernance(tx); err != nil {
+					return err
+				}
+			}
+			_, _, live, e := cleanupTargetTx(tx, actorID, target, request, true)
+			if e != nil {
+				return e
+			}
+			if cleanupOperationProof(live) != ledger.OperationProof || s.secretEpoch() != ledger.RootEpoch {
+				return catalogConflict
+			}
+			if op.State == "committed" {
+				object, _, code, e := s.publishedCleanupPreview(tx, live, true)
+				if e != nil {
+					return e
+				}
+				if code != "" || object != denial.PhysicalObject || !s.credentialSources.joined(object) {
+					return vaultUnavailable
+				}
+				return nil
+			}
+			sole, e := s.cleanupSoleInstance(tx)
+			if e != nil {
+				return e
+			}
+			if !sole {
+				return vaultUnavailable
+			}
+			owned, e := s.cleanupProcessOwned(tx, request)
+			if e != nil {
+				return e
+			}
+			if !owned {
+				return catalogConflict
+			}
+			return nil
+		})
+	}
 	if err == nil {
 		rev, w, r, e := s.credentialReferenceRevision(ctx, operationReference(op))
 		if e == nil {
-			operation, operationErr := s.credentialFiniteOperation(rev, operationReference(op), r.Method, "cleanup")
+			var operation *credentialFiniteOperation
+			var operationErr error
+			if op.State == "committed" {
+				remoteBoundaryEntered = true
+				operation, operationErr = s.publishedCleanupOperation(ctx, rev, operationReference(op), r.Method, op, ledger)
+			} else {
+				operation, operationErr = s.credentialFiniteOperation(rev, operationReference(op), r.Method, "cleanup")
+			}
 			if operationErr != nil {
 				err = operationErr
 			} else {
@@ -496,6 +562,9 @@ func (s *Service) CleanupProviderCredentialOrphan(ctx context.Context, actorID, 
 					if loginErr == nil {
 						result, err = operation.cleanup(ctx, token, input.cleanupToken, credentialPlan(operationReference(op)))
 						closeToken()
+						if op.State == "committed" && err != nil && result.Cleanup.State == "acknowledged" {
+							result.Cleanup.State = "unknown"
+						}
 					} else {
 						result.Ownership = vault.Observation{Attempted: false, Failure: &vault.Failure{Stage: "prepare", Code: "invalid_auth"}}
 						_ = login
@@ -521,7 +590,7 @@ func (s *Service) CleanupProviderCredentialOrphan(ctx context.Context, actorID, 
 	ledger.State = state
 	ledger.OwnershipJSON = vaultJSON(vaultObservation(result.Ownership))
 	ledger.CleanupJSON = vaultJSON(VaultCleanupView{result.Cleanup.State, vaultObservation(result.Cleanup.Observation)})
-	now := s.secretNow()
+	now := s.secretNow().UTC().Truncate(time.Microsecond)
 	ledger.FinishedAt = &now
 	finishCtx, finishCancel := context.WithTimeout(context.WithoutCancel(ctx), 2*time.Second)
 	defer finishCancel()
@@ -529,12 +598,18 @@ func (s *Service) CleanupProviderCredentialOrphan(ctx context.Context, actorID, 
 		if e := lockGovernance(tx); e != nil {
 			return e
 		}
-		updated := vaultDB(tx).Model(&entity.ProviderCredentialCleanup{}).Where("creation_request_id = ? AND request_id = ? AND state = ?", request, input.RequestID, "pending").Updates(map[string]any{"state": ledger.State, "ownership_json": ledger.OwnershipJSON, "cleanup_json": ledger.CleanupJSON, "finished_at": ledger.FinishedAt})
-		if updated.Error != nil {
-			return updated.Error
-		}
-		if updated.RowsAffected != 1 {
-			return catalogConflict
+		if op.State == "committed" {
+			if e := s.finishPublishedCleanup(tx, ledger, denial.PhysicalObject, !remoteBoundaryEntered); e != nil {
+				return e
+			}
+		} else {
+			updated := vaultDB(tx).Model(&entity.ProviderCredentialCleanup{}).Where("creation_request_id = ? AND request_id = ? AND state = ?", request, input.RequestID, "pending").Updates(map[string]any{"state": ledger.State, "ownership_json": ledger.OwnershipJSON, "cleanup_json": ledger.CleanupJSON, "finished_at": ledger.FinishedAt})
+			if updated.Error != nil {
+				return updated.Error
+			}
+			if updated.RowsAffected != 1 {
+				return catalogConflict
+			}
 		}
 		return appendProviderCleanupAudit(tx, actorID, "credential.orphan.cleanup.observe", op, input.RequestID)
 	})

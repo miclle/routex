@@ -1236,3 +1236,32 @@ The current frozen R8 source passes check, complete Task testing and build,
 lifecycle. Earlier focused R7 receipts remain bound to that source. Complete
 R8 Full168, composed-main gates, browser and delivery remain pending. These
 source-specific facts do not establish wider runtime or feature acceptance.
+
+
+## Published Vault object cleanup and retained command intent
+
+The candidate extends the existing Provider orphan list and review/confirmation
+workflow to deleted, previously published owned Vault objects. Their creation
+state remains committed; immutable publication and call-attempt attribution are
+retained. Historical publication alone is not an active dependency, while live
+credentials, current writers, unknown process exposure and incomplete drains
+remain blockers. Server preview eligibility permits a bounded drain attempt and
+never proves that in-flight holders have already joined. Read and write authority
+remain independent, with current administrator, Secrets and Provider permissions
+rechecked at confirmation. Unknown blocker codes use generic localized guidance.
+
+Original UUID reconciliation only reads its immutable receipt; it never repeats
+a remote cleanup command. A terminal failed receipt does not prove safe retry.
+Only an explicit fresh current server review returning eligible may authorize a
+new reason/confirmation and new UUID after complete exact process joins and
+durable private no-SDK-effect proof. Pending/unknown commands, remote or
+persistence uncertainty and poisoned Close outcomes remain blocked. The UI
+retains the original receipt and uncertain intent until that authorized transition,
+keeps transient cleanup authentication out of caches/storage, and performs no
+automatic retry or optimistic eligibility update.
+
+Fresh main checks, complete testing/build and both full database matrices pass.
+The same executable passes the local native/shutdown/restart cleanup workflow;
+browser focus, keyboard and real-window acceptance remain deferred. See the
+[current acceptance boundary](IMPLEMENTATION.md#current-vault-main-integration-2026-10-09)
+for source-specific evidence and the separate external Vault/fleet gates.

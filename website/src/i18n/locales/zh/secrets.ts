@@ -2,7 +2,7 @@ export default {
   orphans: {
     title: 'Provider 孤立对象清理',
     description:
-      '查看此 Vault 集成中从未提交的 Provider 凭据对象。已发布对象和未确认写入仍禁止清理。',
+      '查看此 Vault 集成中从未提交的对象，以及凭据已删除、但曾发布的 Provider 凭据对象。所有权未确认或使用状态未解决时，仍禁止清理。',
     creation: '创建请求',
     credential: '凭据',
     state: '已记录状态',
@@ -14,18 +14,33 @@ export default {
     reviewTitle: '查看确切创建记录',
     revision: '保留版本',
     recordedGuidance:
-      '原始 Write 和 Read 是已记录事实。清理需要重新核验所有权并明确确认；此视图不证明对象已排空或曾发布对象可清理。',
+      '原始 Write 和 Read 是已记录事实。符合条件仅允许尝试有时限的清理，不证明执行中的使用已全部结束。清理需要重新核验并明确确认。',
+    neverCommittedGuidance: '此创建从未提交。清理前必须确认原始所有权，并解决创建状态。',
+    publishedGuidance:
+      '此对象曾发布。必须先删除其凭据，并确认每个曾使用该对象的进程代次及所有执行中的使用已关闭且全部结束，才可请求销毁。未知进程代次仍阻止清理。',
     blocked: '服务器返回了未知阻塞条件，禁止清理。',
     prepare: '审阅清理',
     confirmTitle: '确认清理孤立对象',
     confirmDescription:
       '永久禁止恢复此从未提交的创建，并请求销毁已核验归属的版本 1，保留后续版本和元数据。失败或未知结果需要调查；不会自动重试，也不承诺物理擦除。',
+    confirmPublishedDescription:
+      '永久禁止继续使用此曾发布的对象，再等待确认每个曾使用该对象的进程代次及所有执行中的使用已关闭且全部结束。若排空失败、被取消或仍未知，不会请求销毁。仅可销毁已核验归属的版本 1，保留后续版本和元数据。不会自动重试，也不承诺物理擦除。',
     token: '独立清理 Token',
     confirm: '确认清理',
     receipt: '已记录清理命令',
     receiptGuidance:
-      '只有已确认收据证明此命令的销毁响应已保存。当前不存在、404、超时或匹配的审阅结果均不代表成功。',
+      '只有已确认收据证明此命令的版本 1 销毁响应已保存，不证明路径删除、后续版本销毁或物理擦除。当前不存在、404、超时或匹配的审阅结果均不代表成功。',
     reviewReceipt: '查看已记录命令',
+    previousCommand: '之前失败的命令',
+    reviewPreviousCommand: '查看之前命令的收据',
+    originalReceiptGuidance:
+      '原始失败收据保持不变。新命令必须单独取得服务器最新的可清理审阅结果，并明确确认；仅有失败或超时并不允许再次尝试。',
+    reviewNewAttempt: '审阅新的清理尝试',
+    confirmNewTitle: '确认新的清理尝试',
+    confirmNew: '确认新的清理尝试',
+    newReason: '新命令的原因',
+    confirmNewDescription:
+      '服务器最新审阅允许在之前失败的命令之后进行此次有时限的尝试。请填写新原因和临时清理 Token，明确确认新的命令标识。原始收据仍保留。请求销毁已核验归属的版本 1 前，仍须永久禁止继续使用并证明所有使用已关闭且结束；未知结果不代表允许重试。',
     retry: '核对原始命令',
     cancel: '取消等待',
     states: {
@@ -43,6 +58,8 @@ export default {
       acknowledged: '已核验归属的版本 1 的销毁已确认并记录；后续版本和元数据保留，不代表物理擦除。',
       uncertain: '已派发命令尚未确认。可查看或核对原始无 Token 意图，不会请求新的销毁。',
       reviewFailed: '确认前需要重新取得可清理的审阅结果。',
+      newReviewBlocked: '当前审阅不允许新命令。原始命令及收据仍保留，可查看或核对该原始命令。',
+      newReviewReady: '服务器当前审阅允许单独确认新的尝试。原始失败收据仍保留，尚未派发新命令。',
       identityChanged: '当前身份已变化，之前的临时审阅已丢弃。',
     },
     blockers: {
@@ -56,6 +73,11 @@ export default {
       source_unavailable: '保留来源不可用。',
       process_ownership_unknown: '未确认原始创建仅由当前进程代次持有。',
       fleet_ambiguous: '未确认唯一实例权限。',
+      published_process_unproven:
+        '旧进程或未知进程代次可能使用过此曾发布的对象，尚未证明其已关闭且全部结束。',
+      published_source_unavailable: '无法证明此曾发布对象的原始物理来源。',
+      published_drain_unproven:
+        '此曾发布对象的执行中使用未能关闭并全部结束，或结果仍不确定，禁止销毁。',
     },
   },
   providerStorage: {

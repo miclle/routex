@@ -16,9 +16,15 @@ func testRuntimeApplicationMigration(t *testing.T, db *gorm.DB) {
 	t.Helper()
 	ctx := context.Background()
 	var baseline []int
-	if err := db.Table("schema_migrations").Order("version").Pluck("version", &baseline).Error; err != nil || len(baseline) != 87 || baseline[86] != 87 {
+	if err := db.Table("schema_migrations").Order("version").Pluck("version", &baseline).Error; err != nil || len(baseline) != 89 || baseline[88] != 89 || baseline[87] != 88 || baseline[86] != 87 {
 		t.Fatal("V87 ledger prefix", err)
 	}
+	for index, version := range baseline {
+		if version != index+1 {
+			t.Fatal("noncontiguous retained migration ledger")
+		}
+	}
+	retainedLedger := personalKeyBehaviorLedger(t, db)
 	birth := time.Now().UTC().Truncate(time.Microsecond)
 	instance := entity.SystemInstance{ID: "ins_01m36yee4gkbns18pfcqqc75a3", LeaseToken: "lck_preserved", HeartbeatRevision: 1, Name: "Evidence history", Hostname: "history.invalid", Role: "combined", Version: "test", GoVersion: "test", OS: "test", Arch: "test", StartedAt: birth, LastHeartbeatAt: birth, LeaseExpiresAt: birth.Add(time.Hour)}
 	publication := entity.RuntimePublication{ID: "pub_01m36yee4gkbns18pfcqqc75a3", SnapshotID: "cfg_01m36yee4gkbns18pfcqqc75a3", Status: "ready", CreatedAt: birth}
@@ -68,6 +74,9 @@ func testRuntimeApplicationMigration(t *testing.T, db *gorm.DB) {
 		var got []int
 		if err := db.Table("schema_migrations").Order("version").Pluck("version", &got).Error; err != nil || !reflect.DeepEqual(got, baseline) {
 			t.Fatal("unrelated ledger changed", err)
+		}
+		if !personalKeyBehaviorLedgerPreserved(retainedLedger, personalKeyBehaviorLedger(t, db), 87) {
+			t.Fatal("unrelated migration ledger/version/time changed")
 		}
 		i, p := readHistory()
 		if !reflect.DeepEqual(i, beforeInstance) || !reflect.DeepEqual(p, beforePublication) {

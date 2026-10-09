@@ -27,7 +27,7 @@ func providerCleanupHistoricalLedger(t *testing.T, db *gorm.DB, maxVersion int) 
 func testProviderCredentialCleanupMigration(t *testing.T, db *gorm.DB) {
 	ctx := context.Background()
 	before := personalKeyBehaviorLedger(t, db)
-	if len(before) != 87 || before[86].Version != 87 || before[85].Version != 86 || before[84].Version != 85 || before[83].Version != 84 || before[82].Version != 83 || before[80].Version != 81 || before[81].Version != 82 {
+	if len(before) != 89 || before[88].Version != 89 || before[87].Version != 88 || before[86].Version != 87 || before[85].Version != 86 || before[84].Version != 85 || before[83].Version != 84 || before[82].Version != 83 || before[80].Version != 81 || before[81].Version != 82 {
 		t.Fatal("exact current87 ledger required")
 	}
 	for i, row := range before {
@@ -93,7 +93,7 @@ func testProviderCredentialCleanupMigration(t *testing.T, db *gorm.DB) {
 		t.Fatal(e)
 	}
 	after := personalKeyBehaviorLedger(t, db)
-	if len(after) != 87 || after[86].Version != 87 || after[85].Version != 86 || after[84].Version != 85 || after[83].Version != 84 || after[82].Version != 83 || after[80].Version != 81 || after[81].Version != 82 || !reflect.DeepEqual(after[80:], before[80:]) || after[79].Version != 80 || !reflect.DeepEqual(after[:79], before[:79]) {
+	if len(after) != 89 || after[88].Version != 89 || after[87].Version != 88 || after[86].Version != 87 || after[85].Version != 86 || after[84].Version != 85 || after[83].Version != 84 || after[82].Version != 83 || after[80].Version != 81 || after[81].Version != 82 || !reflect.DeepEqual(after[80:], before[80:]) || after[79].Version != 80 || !reflect.DeepEqual(after[:79], before[:79]) {
 		t.Fatal("V80 repeat/current ledger or original79 prefix changed")
 	}
 	var retained []entity.CredentialStorageOperation
@@ -127,7 +127,7 @@ func testProviderCredentialCleanupMigration(t *testing.T, db *gorm.DB) {
 	}
 }
 func providerCleanupRegistryParent(names []string) ([]string, bool) {
-	if len(names) == 156 || len(names) == 158 || len(names) == 160 || len(names) == 162 || len(names) == 164 || len(names) == 166 || len(names) == 168 {
+	if len(names) == 156 || len(names) == 158 || len(names) == 160 || len(names) == 162 || len(names) == 164 || len(names) == 166 || len(names) == 168 || len(names) == 170 || len(names) == 172 {
 		parent, ok := personalRollingWarningRegistryParent(names)
 		if !ok {
 			return nil, false
@@ -152,8 +152,8 @@ func TestProviderCleanupExact154RegistryAnd152Prefix(t *testing.T) {
 	for _, m := range regexp.MustCompile(`\{"([^"\n]+)", (test[A-Za-z0-9]+)\}`).FindAllStringSubmatch(string(raw), -1) {
 		names = append(names, m[1]+":"+m[2])
 	}
-	if len(names) != 168 || !strings.Contains(string(raw), "versions != 87") {
-		t.Fatal("current exact168 registry/V87 ledger changed")
+	if len(names) != 172 || !strings.Contains(string(raw), "versions != 89") {
+		t.Fatal("current exact172 registry/V89 ledger changed")
 	}
 	if _, ok := providerCleanupRegistryParent(names); !ok {
 		t.Fatal("exact152 prefix+cleanup2 required")

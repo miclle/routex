@@ -34,6 +34,9 @@ const knownBlockers = new Set([
   'source_unavailable',
   'fleet_ambiguous',
   'process_ownership_unknown',
+  'published_process_unproven',
+  'published_source_unavailable',
+  'published_drain_unproven',
 ])
 export function ProviderOrphans({
   actor,
@@ -60,6 +63,13 @@ export function ProviderOrphans({
     [intent, setIntent] = useState<ProviderCleanupIntent>()
   const [receipt, setReceipt] = useState<ProviderCleanupReceipt>(),
     [notice, setNotice] = useState('')
+  const [newAttempt, setNewAttempt] = useState(false),
+    [newReason, setNewReason] = useState('')
+  const [previousCommands, setPreviousCommands] = useState<
+    { intent: ProviderCleanupIntent; receipt: ProviderCleanupReceipt }[]
+  >([])
+  const commandRef = useRef({ intent, receipt })
+  const newReviewNonce = useRef(0)
   const [authorityExpired, setAuthorityExpired] = useState(false)
   const [busy, setBusy] = useState(false),
     [confirm, setConfirm] = useState(false)
@@ -73,6 +83,7 @@ export function ProviderOrphans({
   const live = useRef({ fresh, admin, owner })
   useLayoutEffect(() => {
     live.current = { fresh, admin, owner }
+    commandRef.current = { intent, receipt }
   })
   const permissionsKey = ['permissions', actor, 'provider-orphans', generation] as const
   const listKey = ['admin', 'provider-orphans', actor, integration, generation, cursor] as const
@@ -127,11 +138,15 @@ export function ProviderOrphans({
   useLayoutEffect(() => {
     if (ownerRef.current !== owner) {
       ownerRef.current = owner
+      newReviewNonce.current++
       epoch.current++
       controller.current?.abort()
       setIntent(undefined)
       setReviewed(undefined)
       setReceipt(undefined)
+      setPreviousCommands([])
+      setNewAttempt(false)
+      setNewReason('')
       setSelected('')
       setReason('')
       setToken('')
@@ -146,8 +161,11 @@ export function ProviderOrphans({
       setToken('')
       setConfirm(false)
       setReviewed(undefined)
+      setNewAttempt(false)
+      setNewReason('')
     }
     const expire = () => {
+      newReviewNonce.current++
       expired.current = true
       setAuthorityExpired(true)
       hide()
@@ -168,6 +186,7 @@ export function ProviderOrphans({
         (event.type === 'updated' &&
           ['fetch', 'invalidate', 'error', 'success'].includes(event.action.type))
       ) {
+        if (!sameKey(event.query.queryKey, keys.current.detailKey)) newReviewNonce.current++
         // Observe synchronous cache transitions before a queued confirmation runs.
         hide()
         if (sameKey(event.query.queryKey, sessionKey)) {
@@ -182,6 +201,7 @@ export function ProviderOrphans({
             setAuthorityExpired(true)
             setIntent(undefined)
             setReceipt(undefined)
+            setPreviousCommands([])
             setReason('')
             setSelected('')
           } else if (
@@ -207,6 +227,7 @@ export function ProviderOrphans({
       setToken('')
       setConfirm(false)
       setReviewed(undefined)
+      setNewAttempt(false)
     }
   }
   if (current && intent && current.review_etag.split('.')[0] !== intent.etag.split('.')[0]) {
@@ -215,11 +236,17 @@ export function ProviderOrphans({
     setReason('')
     setToken('')
     setNotice('identityChanged')
+    setPreviousCommands([])
+    setNewAttempt(false)
+    setNewReason('')
   }
   useLayoutEffect(() => {
-    if (!fresh || !admin || !canRead) controller.current?.abort()
+    if (!fresh || !admin || !canRead) {
+      newReviewNonce.current++
+      controller.current?.abort()
+    }
   }, [fresh, admin, canRead])
-  function authority(write: boolean) {
+  function authority(write: boolean, requireDetail = true) {
     const session = cache.getQueryState<Session>(sessionKey),
       allowed = cache.getQueryState<string[]>(keys.current.permissionsKey),
       page = cache.getQueryState(keys.current.listKey),
@@ -247,6 +274,7 @@ export function ProviderOrphans({
     )
       return null
     if (
+      requireDetail &&
       selected &&
       (row?.status !== 'success' ||
         row.fetchStatus !== 'idle' ||
@@ -271,11 +299,19 @@ export function ProviderOrphans({
     permissions.data.includes('providers.write')
   const eligible =
     current?.eligible &&
-    current.state === 'orphan' &&
+    (current.state === 'orphan' || current.state === 'committed') &&
     current.ownership_recorded &&
     !current.blocker_codes.length
+  const canReviewNew =
+    current?.state === 'committed' && receipt?.state === 'failed' && !!receipt.finished_at
   function choose(row: ProviderOrphan) {
-    if (!authority(false) || locked.current) return
+    if (!authority(false, false) || locked.current) return
+    // Revisiting the same object must not discard a dispatched command's identity.
+    if (intent?.creation_request_id === row.creation_request_id) {
+      setSelected(row.creation_request_id)
+      if (selected === row.creation_request_id) void detail.refetch()
+      return
+    }
     setSelected(row.creation_request_id)
     setReason('')
     setToken('')
@@ -284,6 +320,9 @@ export function ProviderOrphans({
     setNotice('')
     setReviewed(undefined)
     setConfirm(false)
+    setNewAttempt(false)
+    setNewReason('')
+    setPreviousCommands([])
   }
   async function prepare() {
     if (locked.current || intent || !authority(true) || !validVaultReason(reason)) return
@@ -309,6 +348,63 @@ export function ProviderOrphans({
     setReviewed(result.data)
     setConfirm(true)
   }
+  async function prepareNew() {
+    const initial = authority(true)
+    if (locked.current || !initial || !intent || !receipt || !canReviewNew) return
+    const original = intent,
+      originalReceipt = receipt,
+      capturedOwner = owner,
+      capturedKey = keys.current.detailKey,
+      sessionGeneration = cache.getQueryState(sessionKey)?.dataUpdatedAt,
+      permissionGeneration = cache.getQueryState(keys.current.permissionsKey)?.dataUpdatedAt
+    const nonce = ++newReviewNonce.current
+    setToken('')
+    setReviewed(undefined)
+    setConfirm(false)
+    setNewAttempt(false)
+    locked.current = true
+    setBusy(true)
+    try {
+      const result = await detail.refetch()
+      if (!mounted.current || ownerRef.current !== capturedOwner) return
+      const auth = authority(true)
+      if (
+        !auth ||
+        nonce !== newReviewNonce.current ||
+        result.error ||
+        !result.data ||
+        auth.row !== result.data ||
+        !sameKey(capturedKey, keys.current.detailKey) ||
+        sessionGeneration !== cache.getQueryState(sessionKey)?.dataUpdatedAt ||
+        permissionGeneration !== cache.getQueryState(keys.current.permissionsKey)?.dataUpdatedAt ||
+        commandRef.current.intent !== original ||
+        commandRef.current.receipt !== originalReceipt ||
+        originalReceipt.state !== 'failed' ||
+        !originalReceipt.finished_at ||
+        result.data.state !== 'committed' ||
+        !result.data.eligible ||
+        !result.data.ownership_recorded ||
+        result.data.blocker_codes.length ||
+        result.data.integration_id !== original.integration_id ||
+        result.data.creation_request_id !== original.creation_request_id ||
+        result.data.revision_id !== original.revision_id ||
+        result.data.review_etag.split('.')[0] !== original.etag.split('.')[0]
+      ) {
+        setNotice('newReviewBlocked')
+        return
+      }
+      setNewReason('')
+      setReviewed(result.data)
+      setNewAttempt(true)
+      setConfirm(true)
+      setNotice('newReviewReady')
+    } catch {
+      if (mounted.current && ownerRef.current === capturedOwner) setNotice('newReviewBlocked')
+    } finally {
+      locked.current = false
+      if (mounted.current && ownerRef.current === capturedOwner) setBusy(false)
+    }
+  }
   async function dispatch(retry = false) {
     const auth = authority(true)
     if (locked.current || !auth || !auth.row) return
@@ -324,14 +420,24 @@ export function ProviderOrphans({
         return
     } else {
       if (
-        intent ||
+        (intent && !newAttempt) ||
         !confirm ||
         !reviewed ||
         reviewed !== auth.row ||
         !reviewed.eligible ||
         reviewed.blocker_codes.length ||
-        !validVaultReason(reason) ||
+        !validVaultReason(newAttempt ? newReason : reason) ||
         !validVaultToken(token)
+      )
+        return
+      if (
+        newAttempt &&
+        (!intent ||
+          !canReviewNew ||
+          reviewed.state !== 'committed' ||
+          !reviewed.ownership_recorded ||
+          intent.revision_id !== reviewed.revision_id ||
+          intent.etag.split('.')[0] !== reviewed.review_etag.split('.')[0])
       )
         return
       command = {
@@ -339,9 +445,12 @@ export function ProviderOrphans({
         creation_request_id: selected,
         revision_id: reviewed.revision_id,
         etag: reviewed.review_etag,
-        input: { request_id: crypto.randomUUID(), reason },
+        input: { request_id: crypto.randomUUID(), reason: newAttempt ? newReason : reason },
       }
+      if (newAttempt && intent && receipt)
+        setPreviousCommands((previous) => [...previous, { intent, receipt }])
       setIntent(command)
+      setReceipt(undefined)
     }
     if (!command) return
     const transient = retry ? undefined : token
@@ -349,6 +458,8 @@ export function ProviderOrphans({
     setToken('')
     setConfirm(false)
     setReviewed(undefined)
+    setNewAttempt(false)
+    setNewReason('')
     setBusy(true)
     setNotice('pending')
     locked.current = true
@@ -372,8 +483,8 @@ export function ProviderOrphans({
       if (mounted.current && ownerRef.current === capturedOwner) setBusy(false)
     }
   }
-  async function reconcile() {
-    if (!intent || locked.current || !authority(false)) return
+  async function reconcile(command = intent) {
+    if (!command || locked.current || !authority(false)) return
     const auth = authority(false)!
     const capturedOwner = owner
     const abort = new AbortController()
@@ -381,14 +492,22 @@ export function ProviderOrphans({
     locked.current = true
     setBusy(true)
     try {
-      const result = await getProviderCleanupReceipt(intent, abort.signal)
+      const result = await getProviderCleanupReceipt(command, abort.signal)
       if (!mounted.current || ownerRef.current !== capturedOwner) return
       if (epoch.current !== auth.epoch) {
         setNotice('uncertain')
         return
       }
-      setReceipt(result)
-      setNotice(result.state)
+      if (commandRef.current.intent === command) {
+        setReceipt(result)
+        setNotice(result.state)
+      } else {
+        setPreviousCommands((previous) =>
+          previous.map((entry) =>
+            entry.intent === command ? { ...entry, receipt: result } : entry,
+          ),
+        )
+      }
     } catch {
       if (mounted.current && ownerRef.current === capturedOwner) setNotice('uncertain')
     } finally {
@@ -396,6 +515,14 @@ export function ProviderOrphans({
       if (controller.current === abort) controller.current = null
       if (mounted.current && ownerRef.current === capturedOwner) setBusy(false)
     }
+  }
+  function cancelWaiting() {
+    setToken('')
+    newReviewNonce.current++
+    setNotice(controller.current ? 'uncertain' : 'newReviewBlocked')
+    if (!controller.current)
+      void cache.cancelQueries({ queryKey: keys.current.detailKey, exact: true })
+    controller.current?.abort()
   }
   const date = (value: string) =>
     new Date(value).toLocaleString(i18n.resolvedLanguage === 'zh' ? 'zh-CN' : 'en-US')
@@ -487,7 +614,14 @@ export function ProviderOrphans({
             </Button>
           </div>
           {selected && !current && (
-            <p role="status">{t(detail.error ? 'vault.loadError' : 'loading')}</p>
+            <div>
+              <p role="status">{t(detail.error ? 'vault.loadError' : 'loading')}</p>
+              {busy && (
+                <Button variant="outline" onClick={cancelWaiting}>
+                  {t('orphans.cancel')}
+                </Button>
+              )}
+            </div>
           )}
           {current && (
             <section className="space-y-3">
@@ -499,6 +633,13 @@ export function ProviderOrphans({
                 {t('orphans.revision')}: {current.revision_id}
               </p>
               <p>{t('orphans.recordedGuidance')}</p>
+              <p>
+                {t(
+                  current.state === 'committed'
+                    ? 'orphans.publishedGuidance'
+                    : 'orphans.neverCommittedGuidance',
+                )}
+              </p>
               {!!current.blocker_codes.length && (
                 <ul>
                   {current.blocker_codes.map((code) => (
@@ -517,6 +658,24 @@ export function ProviderOrphans({
                 />
               </label>
               {notice && <p role="status">{t(`orphans.notices.${notice}`)}</p>}
+              {previousCommands.map((previous) => (
+                <section key={previous.intent.input.request_id} className="space-y-1">
+                  <h4 className="font-medium">{t('orphans.previousCommand')}</h4>
+                  <p>
+                    {previous.intent.input.request_id} ·{' '}
+                    {t(`orphans.notices.${previous.receipt.state}`)}
+                  </p>
+                  <p>{previous.intent.input.reason}</p>
+                  <p>{t('orphans.originalReceiptGuidance')}</p>
+                  <Button
+                    variant="outline"
+                    disabled={busy}
+                    onClick={() => void reconcile(previous.intent)}
+                  >
+                    {t('orphans.reviewPreviousCommand')}
+                  </Button>
+                </section>
+              ))}
               {receipt && (
                 <section className="space-y-1">
                   <h4 className="font-medium">{t('orphans.receipt')}</h4>
@@ -552,6 +711,15 @@ export function ProviderOrphans({
                     <Button variant="outline" disabled={busy} onClick={() => void reconcile()}>
                       {t('orphans.reviewReceipt')}
                     </Button>
+                    {canReviewNew && (
+                      <Button
+                        variant="outline"
+                        disabled={busy || !writable}
+                        onClick={() => void prepareNew()}
+                      >
+                        {t('orphans.reviewNewAttempt')}
+                      </Button>
+                    )}
                     <Button
                       disabled={
                         busy ||
@@ -573,14 +741,7 @@ export function ProviderOrphans({
                   </Button>
                 )}
                 {busy && (
-                  <Button
-                    variant="outline"
-                    onClick={() => {
-                      setToken('')
-                      setNotice('uncertain')
-                      controller.current?.abort()
-                    }}
-                  >
+                  <Button variant="outline" onClick={cancelWaiting}>
                     {t('orphans.cancel')}
                   </Button>
                 )}
@@ -596,14 +757,33 @@ export function ProviderOrphans({
             setConfirm(false)
             setToken('')
             setReviewed(undefined)
+            setNewAttempt(false)
+            setNewReason('')
           }
         }}
-        title={t('orphans.confirmTitle')}
-        description={t('orphans.confirmDescription')}
+        title={t(newAttempt ? 'orphans.confirmNewTitle' : 'orphans.confirmTitle')}
+        description={t(
+          newAttempt
+            ? 'orphans.confirmNewDescription'
+            : reviewed?.state === 'committed'
+              ? 'orphans.confirmPublishedDescription'
+              : 'orphans.confirmDescription',
+        )}
       >
         <div className="space-y-4">
           <p>{reviewed?.credential_id}</p>
-          <p>{reason}</p>
+          {newAttempt ? (
+            <>
+              <p>{t('orphans.originalReceiptGuidance')}</p>
+              <p>{intent?.input.request_id}</p>
+              <label className="block space-y-1">
+                <span>{t('orphans.newReason')}</span>
+                <Input value={newReason} onChange={(event) => setNewReason(event.target.value)} />
+              </label>
+            </>
+          ) : (
+            <p>{reason}</p>
+          )}
           <label className="block space-y-1">
             <span>{t('orphans.token')}</span>
             <Input
@@ -620,16 +800,20 @@ export function ProviderOrphans({
                 setToken('')
                 setConfirm(false)
                 setReviewed(undefined)
+                setNewAttempt(false)
+                setNewReason('')
               }}
             >
               {t('close')}
             </Button>
             <Button
               className="bg-destructive text-white hover:bg-destructive/90"
-              disabled={busy || !validVaultToken(token)}
+              disabled={
+                busy || !validVaultToken(token) || (newAttempt && !validVaultReason(newReason))
+              }
               onClick={() => void dispatch()}
             >
-              {t('orphans.confirm')}
+              {t(newAttempt ? 'orphans.confirmNew' : 'orphans.confirm')}
             </Button>
           </div>
         </div>

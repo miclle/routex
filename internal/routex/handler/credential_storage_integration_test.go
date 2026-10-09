@@ -12,6 +12,7 @@ import (
 	"sync"
 	"sync/atomic"
 	"testing"
+	"time"
 
 	"github.com/fox-gonic/fox"
 	"github.com/miclle/routex/internal/routex/entity"
@@ -112,6 +113,25 @@ func testProviderCredentialStorageLifecycle(t *testing.T, db *gorm.DB) {
 		_, _ = w.Write([]byte(`{"data":[{"id":"storage-upstream"}]}`))
 	}))
 	defer supply.Close()
+	stopInstance := func(instance *service.Service) error {
+		stop, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		return instance.StopSystemInstance(stop)
+	}
+	startInstance := func(instance *service.Service, name string) {
+		t.Helper()
+		if e := instance.StartSystemInstance(ctx, service.SystemInstanceMetadata{Name: name, Hostname: "storage.invalid", Version: "test", GoVersion: "test", OS: "test", Arch: "test"}); e != nil {
+			t.Fatal(e)
+		}
+		t.Cleanup(func() {
+			if e := stopInstance(instance); e != nil {
+				t.Error(e)
+			}
+		})
+		if e := instance.RefreshSystemInstance(ctx); e != nil {
+			t.Fatal("renew actual credential source generation", e)
+		}
+	}
 	svc, err := service.New(ctx, db, service.WithCredentialStorage(ring), service.WithUpstreamPolicy(true))
 	if err != nil {
 		t.Fatal(err)
@@ -119,6 +139,7 @@ func testProviderCredentialStorageLifecycle(t *testing.T, db *gorm.DB) {
 	if err = svc.InitializeSecretStore(ctx); err != nil {
 		t.Fatal(err)
 	}
+	startInstance(svc, "Credential source creation")
 	router := fox.New()
 	New(svc).RegisterRoutes(router)
 	setup := identityRequest(router, "POST", "/api/v1/setup", `{"email":"storage-admin@example.invalid","password":"test-only-storage-password","name":"Storage admin"}`, nil, "")
@@ -387,6 +408,7 @@ func testProviderCredentialStorageLifecycle(t *testing.T, db *gorm.DB) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	startInstance(fresh, "Credential source outage")
 	denyRead.Store(true)
 	if err = fresh.StartRuntime(ctx); err != nil {
 		t.Fatal("one Vault outage blocked process startup", err)
@@ -395,11 +417,15 @@ func testProviderCredentialStorageLifecycle(t *testing.T, db *gorm.DB) {
 	if _, err = fresh.GetCredentialStorageContext(ctx, admin.User.ID); err != nil {
 		t.Fatal("control plane unavailable during Vault outage", err)
 	}
+	if err = stopInstance(fresh); err != nil {
+		t.Fatal("join outage process generation", err)
+	}
 	denyRead.Store(false)
 	fresh, err = service.New(ctx, db, service.WithCredentialStorage(ring), service.WithUpstreamPolicy(true))
 	if err != nil {
 		t.Fatal(err)
 	}
+	startInstance(fresh, "Credential source rotation")
 	if err = fresh.StartRuntime(ctx); err != nil {
 		t.Fatal(err)
 	}
@@ -429,14 +455,9 @@ func testProviderCredentialStorageLifecycle(t *testing.T, db *gorm.DB) {
 	if err = db.Take(&originalAuth, "id = ?", saved.RevisionID).Error; err != nil {
 		t.Fatal(err)
 	}
-	if err = fresh.StartSystemInstance(ctx, service.SystemInstanceMetadata{Name: "Credential source rotation", Hostname: "storage.invalid", Version: "test", GoVersion: "test", OS: "test", Arch: "test"}); err != nil {
-		t.Fatal(err)
+	if err = stopInstance(svc); err != nil {
+		t.Fatal("join original credential source generation", err)
 	}
-	defer func() {
-		if err := fresh.StopSystemInstance(ctx); err != nil {
-			t.Error(err)
-		}
-	}()
 	if err = fresh.RunSecretRotationOnce(ctx); err != nil {
 		t.Fatal("publish actual process proof", err)
 	}
@@ -503,5 +524,8 @@ func testProviderCredentialStorageLifecycle(t *testing.T, db *gorm.DB) {
 	}
 	if next.RevisionID == saved.RevisionID {
 		t.Fatal("descriptor update did not create an independent revision")
+	}
+	if err = stopInstance(fresh); err != nil {
+		t.Fatal("join final credential source generation", err)
 	}
 }

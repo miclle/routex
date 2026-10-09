@@ -29,18 +29,22 @@ import (
 // persistence tables are modeled. The controlled remote checks durable state
 // and that no database transaction spans its HTTP request.
 type credentialStorageData struct {
-	uses        map[string]entity.ProviderCredentialCreationUse
-	policy      entity.CredentialStoragePolicy
-	ops         map[string]entity.CredentialStorageOperation
-	refs        map[string]entity.CredentialVaultReference
-	providers   map[string]entity.Provider
-	connections map[string]entity.ProviderConnection
-	credentials map[string]entity.ProviderCredential
-	receipts    map[string]entity.CredentialReplacementReceipt
+	sourceProcess entity.CredentialSourceProcess
+	sourceUses    map[string]entity.CredentialSourceUse
+	instance      entity.SystemInstance
+	uses          map[string]entity.ProviderCredentialCreationUse
+	policy        entity.CredentialStoragePolicy
+	ops           map[string]entity.CredentialStorageOperation
+	refs          map[string]entity.CredentialVaultReference
+	providers     map[string]entity.Provider
+	connections   map[string]entity.ProviderConnection
+	credentials   map[string]entity.ProviderCredential
+	receipts      map[string]entity.CredentialReplacementReceipt
 }
 
 func (d credentialStorageData) clone() credentialStorageData {
 	out := d
+	out.sourceUses = cloneStorageMap(d.sourceUses)
 	out.uses = cloneStorageMap(d.uses)
 	out.ops = cloneStorageMap(d.ops)
 	out.refs = cloneStorageMap(d.refs)
@@ -150,6 +154,37 @@ func (c *credentialStorageConnection) QueryContext(ctx context.Context, q string
 	d := c.f.current()
 	values := rolesSQLStrings(args)
 	matches := func(id string) bool { return slices.Contains(values, id) }
+	switch {
+	case strings.Contains(q, `FROM "credential_published_cleanups"`):
+		c.f.mu.Unlock()
+		return effectiveSQLRows([]entity.CredentialPublishedCleanup{})
+	case strings.Contains(q, `FROM "credential_source_denials"`):
+		c.f.mu.Unlock()
+		return effectiveSQLRows([]entity.CredentialSourceDenial{})
+	case strings.Contains(q, `FROM "credential_source_processes"`):
+		rows := []entity.CredentialSourceProcess{}
+		if matches(d.sourceProcess.ProcessID) {
+			rows = append(rows, d.sourceProcess)
+		}
+		c.f.mu.Unlock()
+		return effectiveSQLRows(rows)
+	case strings.Contains(q, `FROM "credential_source_uses"`):
+		rows := []entity.CredentialSourceUse{}
+		for _, row := range d.sourceUses {
+			if matches(row.PhysicalObject) && matches(row.ProcessID) {
+				rows = append(rows, row)
+			}
+		}
+		c.f.mu.Unlock()
+		return effectiveSQLRows(rows)
+	case strings.Contains(q, `FROM "system_instances"`):
+		rows := []entity.SystemInstance{}
+		if matches(d.instance.ID) {
+			rows = append(rows, d.instance)
+		}
+		c.f.mu.Unlock()
+		return effectiveSQLRows(rows)
+	}
 	if old := c.f.retained; old != nil && matches(old.rev.ID) {
 		switch {
 		case strings.Contains(q, `FROM "vault_revisions"`):
@@ -259,6 +294,14 @@ func credentialStorageSQLService(t *testing.T) (*Service, *credentialStorageFixt
 	s, v, roles := vaultCommandService(t)
 	_, _, control := roleDefinitionSQLService(t)
 	f := &credentialStorageFixture{vault: v, values: map[string]map[string]string{}, data: credentialStorageData{uses: map[string]entity.ProviderCredentialCreationUse{}, ops: map[string]entity.CredentialStorageOperation{}, refs: map[string]entity.CredentialVaultReference{}, providers: map[string]entity.Provider{}, connections: map[string]entity.ProviderConnection{}, credentials: map[string]entity.ProviderCredential{}, receipts: map[string]entity.CredentialReplacementReceipt{}}}
+	// Exact freshly registered process facts support the production admission
+	// interlock. Legacy source ownership assertions below remain unchanged.
+	at := time.Now().UTC().Truncate(time.Microsecond).Add(-time.Minute)
+	f.data.instance = entity.SystemInstance{ID: "ins_00000000000000000000000000", LeaseToken: "lck_00000000000000000000000000", StartedAt: at, Role: systemInstanceRole, LeaseExpiresAt: at.Add(time.Hour)}
+	f.data.sourceProcess = sourceProcess(f.data.instance)
+	f.data.sourceUses = map[string]entity.CredentialSourceUse{}
+	s.instance = &systemInstanceLease{id: f.data.instance.ID, token: f.data.instance.LeaseToken, startedAt: at}
+	s.instanceNow = time.Now
 	stub := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		f.mu.Lock()
 		defer f.mu.Unlock()
@@ -361,6 +404,12 @@ func credentialStorageSQLService(t *testing.T) (*Service, *credentialStorageFixt
 		d := f.current()
 		owned := true
 		switch x := tx.Statement.Dest.(type) {
+		case *entity.CredentialSourceUse:
+			if x.ProcessID != d.sourceProcess.ProcessID || x.Generation != d.sourceProcess.Generation || !x.Birth.Equal(d.sourceProcess.Birth) || !x.Exposed {
+				_ = tx.AddError(errors.New("invalid registered exposure"))
+			} else {
+				d.sourceUses[x.PhysicalObject] = *x
+			}
 		case *entity.ProviderCredentialCreationUse:
 			d.uses[x.CreationRequestID] = *x
 		case *entity.Provider:

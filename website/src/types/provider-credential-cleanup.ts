@@ -13,6 +13,7 @@ export interface ProviderOrphan {
   write: VaultObservation
   read: VaultObservation
   ownership_recorded: boolean
+  // Server permission for a bounded cleanup attempt; never proof of joined holders.
   eligible: boolean
   blocker_codes: string[]
   can_cleanup: boolean

@@ -180,7 +180,7 @@ func (s *Service) createVaultCredential(ctx context.Context, actorID, requestID,
 	if dispatchWrite {
 		purpose = "create"
 	}
-	operation, e := s.credentialFiniteOperation(sourceRevision, ref, reader.Method, purpose)
+	operation, e := s.credentialAdmissionOperation(ctx, sourceRevision, ref, reader.Method, purpose)
 	if e != nil {
 		return &credentialCreationResult{op, dispatchWrite}, vaultUnavailable
 	}

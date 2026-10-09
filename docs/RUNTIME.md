@@ -125,3 +125,30 @@ The current frozen R8 source passes check, complete Task testing and build,
 lifecycle. Earlier focused R7 receipts remain bound to that source. Complete
 R8 Full168, composed-main gates, browser and delivery remain pending. These
 source-specific facts do not establish wider runtime or feature acceptance.
+
+
+## Credential-source admission closure
+
+Published Vault credential admission records exact physical source and serving
+process generation before a holder can use it. Cleanup permanently denies the
+physical object before a bounded drain, rechecks dependencies and current
+registered cleanup-process authority, and claims the one permitted remote attempt
+only after positive joins. Existing immutable attempt attribution is never
+rewritten by deletion or cleanup. Restart cannot borrow an old generation's live
+capability; absent/expired process observations are not closure proof.
+
+HTTP shutdown closes credential-source admission before draining requests.
+Service stop waits for its exact holder census and SDK clients, then records
+positive durable generation closure only with fresh instance/lease authority.
+Canceled drains, incomplete joins, uncertain persistence and poisoned client Close
+outcomes remain failure or unknown and cannot authorize cleanup. Previously
+committed exact closure may be reconciled without changing its timestamps or
+replaying a remote effect. These mechanisms do not establish complete-fleet
+closure, native inference completion or forced-crash/offline recovery.
+
+Fresh main acceptance includes both complete database matrices and a controlled
+local run with one native completed call and two same-binary restarts. Retained
+call/attempt identities and original Sessions remain exact; historical closure
+and a fresh joined generation are independently read back. These observations
+do not establish forced-crash recovery or fleet-wide closure. See the
+[current acceptance boundary](IMPLEMENTATION.md#current-vault-main-integration-2026-10-09).
