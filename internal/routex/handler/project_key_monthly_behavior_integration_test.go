@@ -441,7 +441,7 @@ func testProjectKeyMonthlyBehaviorLifecycle(t *testing.T, db *gorm.DB) {
 }
 
 func projectKeyMonthlyBehaviorRegistryMatches(pairs []string) bool {
-	if len(pairs) == 156 || len(pairs) == 158 || len(pairs) == 160 || len(pairs) == 162 || len(pairs) == 164 || len(pairs) == 166 || len(pairs) == 168 || len(pairs) == 170 || len(pairs) == 172 {
+	if len(pairs) == 156 || len(pairs) == 158 || len(pairs) == 160 || len(pairs) == 162 || len(pairs) == 164 || len(pairs) == 166 || len(pairs) == 168 || len(pairs) == 170 || len(pairs) == 172 || len(pairs) == 174 {
 		parent, ok := personalRollingWarningRegistryParent(pairs)
 		if !ok {
 			return false
@@ -493,7 +493,7 @@ func TestProjectKeyMonthlyBehaviorRegistryTail(t *testing.T) {
 	for _, pair := range matches {
 		pairs = append(pairs, pair[1]+":"+pair[2])
 	}
-	if len(pairs) != 172 || !strings.Contains(string(raw), "versions != 89") {
+	if len(pairs) != 174 || !strings.Contains(string(raw), "versions != 90") {
 		t.Fatal("current exact172 registry/V89 ledger changed")
 	}
 	if !projectKeyMonthlyBehaviorRegistryMatches(pairs) {

@@ -82,6 +82,12 @@ func auditRecord(row entity.AuditEvent) AuditRecord {
 	// never become an accidental credential/request-body read API.
 	var changes any
 	switch row.Action {
+	case "model.weights.update", "model.weights.rollback":
+		record, valid := modelWeightAuditProjection(row)
+		if !valid {
+			return result
+		}
+		changes = record
 	case "role.definition.update":
 		record, valid := roleDefinitionAuditProjection(row)
 		if !valid {

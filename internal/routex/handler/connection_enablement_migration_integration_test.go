@@ -36,7 +36,7 @@ func testConnectionEnablementMigration(t *testing.T, db *gorm.DB) {
 			t.Fatal("noncontiguous retained migration ledger")
 		}
 	}
-	if (len(before) != 76 && len(before) != 77 && len(before) != 78 && len(before) != 79 && len(before) != 80 && len(before) != 81 && len(before) != 82 && len(before) != 83 && len(before) != 84 && len(before) != 85 && len(before) != 86 && len(before) != 87 && len(before) != 88 && len(before) != 89) || before[75].Version != 76 || len(before) >= 77 && before[76].Version != 77 || len(before) >= 78 && before[77].Version != 78 || len(before) >= 79 && before[78].Version != 79 || len(before) >= 80 && before[79].Version != 80 || len(before) >= 81 && before[80].Version != 81 || len(before) >= 82 && before[81].Version != 82 || len(before) >= 83 && before[82].Version != 83 || len(before) >= 84 && before[83].Version != 84 || len(before) >= 85 && before[84].Version != 85 || len(before) >= 86 && before[85].Version != 86 || len(before) >= 87 && before[86].Version != 87 || len(before) >= 88 && before[87].Version != 88 || len(before) == 89 && before[88].Version != 89 || !db.Migrator().HasColumn(&connectionEnabledV76Fixture{}, "Enabled") {
+	if (len(before) != 76 && len(before) != 77 && len(before) != 78 && len(before) != 79 && len(before) != 80 && len(before) != 81 && len(before) != 82 && len(before) != 83 && len(before) != 84 && len(before) != 85 && len(before) != 86 && len(before) != 87 && len(before) != 88 && len(before) != 89 && len(before) != 90) || before[75].Version != 76 || len(before) >= 77 && before[76].Version != 77 || len(before) >= 78 && before[77].Version != 78 || len(before) >= 79 && before[78].Version != 79 || len(before) >= 80 && before[79].Version != 80 || len(before) >= 81 && before[80].Version != 81 || len(before) >= 82 && before[81].Version != 82 || len(before) >= 83 && before[82].Version != 83 || len(before) >= 84 && before[83].Version != 84 || len(before) >= 85 && before[84].Version != 85 || len(before) >= 86 && before[85].Version != 86 || len(before) >= 87 && before[86].Version != 87 || len(before) >= 88 && before[87].Version != 88 || (len(before) == 89 || len(before) == 90) && before[88].Version != 89 || len(before) == 90 && before[89].Version != 90 || !db.Migrator().HasColumn(&connectionEnabledV76Fixture{}, "Enabled") {
 		t.Fatal("exact V76 ledger/column required")
 	}
 	if err := db.Create(&entity.Provider{ID: "prv_enabled_upgrade", Name: "Retained"}).Error; err != nil {
@@ -148,7 +148,7 @@ func connectionEnablementSameRow(a, b entity.ProviderConnection) bool {
 }
 
 func connectionEnablementRegistryPrefix(names []string) bool {
-	if len(names) == 156 || len(names) == 158 || len(names) == 160 || len(names) == 162 || len(names) == 164 || len(names) == 166 || len(names) == 168 || len(names) == 170 || len(names) == 172 {
+	if len(names) == 156 || len(names) == 158 || len(names) == 160 || len(names) == 162 || len(names) == 164 || len(names) == 166 || len(names) == 168 || len(names) == 170 || len(names) == 172 || len(names) == 174 {
 		parent, ok := personalRollingWarningRegistryParent(names)
 		if !ok {
 			return false
@@ -198,7 +198,7 @@ func TestConnectionEnablementExactRegistry146(t *testing.T) {
 	for _, m := range matches {
 		names = append(names, m[1]+":"+m[2])
 	}
-	if len(names) != 172 || !strings.Contains(string(raw), "versions != 89") {
+	if len(names) != 174 || !strings.Contains(string(raw), "versions != 90") {
 		t.Fatal("current exact172 registry/V89 ledger changed")
 	}
 	if !connectionEnablementRegistryPrefix(names) || !teamMemberMonthlyRegistryTail(names) || !projectKeyMonthlyBehaviorRegistryMatches(names) || !personalKeyBehaviorRegistryMatches(names) {

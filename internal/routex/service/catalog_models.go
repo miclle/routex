@@ -247,6 +247,16 @@ func (s *Service) SetModelWeights(ctx context.Context, actorID, modelID string, 
 	}
 	db := s.authDB(ctx)
 	err := db.Transaction(func(tx *gorm.DB) error {
+		if err := lockGovernance(tx); err != nil {
+			return err
+		}
+		if _, _, err := modelWeightAuthority(tx, actorID, false, true); err != nil {
+			return err
+		}
+		observed, err := loadModelWeightState(tx, modelID, true, false)
+		if err != nil {
+			return err
+		}
 		var model entity.Model
 		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).First(&model, "id = ?", modelID).Error; err != nil {
 			return err
@@ -297,9 +307,19 @@ func (s *Service) SetModelWeights(ctx context.Context, actorID, modelID string, 
 			}
 		}
 		if changed {
-			if err := stampModelConfiguration(tx, modelID, time.Now()); err != nil {
+			after := append([]ModelWeightRow(nil), observed.Rows...)
+			for i := range after {
+				after[i].Weight = requested[after[i].BindingID]
+			}
+			now := time.Now().UTC().Truncate(time.Microsecond)
+			beforeID, afterID, err := journalModelWeightChange(tx, actorID, observed, after, "legacy_editor", nil, nil, now)
+			if err != nil {
 				return err
 			}
+			if err := stampModelConfiguration(tx, modelID, now); err != nil {
+				return err
+			}
+			return appendModelWeightAudit(tx, actorID, modelID, "model.weights.update", modelWeightAudit{SourceVersionID: beforeID, SavedVersionID: afterID, BeforeDigest: memberModelsDigest(observed.Rows), AfterDigest: memberModelsDigest(after), BindingCount: len(after), Effect: "changed"})
 		}
 		return appendAudit(tx, actorID, "model.weights.update", "model", modelID)
 	})

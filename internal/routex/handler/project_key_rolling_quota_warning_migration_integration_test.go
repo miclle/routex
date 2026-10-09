@@ -26,7 +26,7 @@ func testProjectKeyRollingQuotaWarningMigration(t *testing.T, db *gorm.DB) {
 		AppliedAt string
 	}
 	var original []ledger
-	if e := db.Table("schema_migrations").Order("version").Find(&original).Error; e != nil || len(original) != 89 || original[88].Version != 89 || original[87].Version != 88 || original[86].Version != 87 || original[85].Version != 86 || original[84].Version != 85 || original[83].Version != 84 {
+	if e := db.Table("schema_migrations").Order("version").Find(&original).Error; e != nil || len(original) != 90 || original[89].Version != 90 || original[88].Version != 89 || original[87].Version != 88 || original[86].Version != 87 || original[85].Version != 86 || original[84].Version != 85 || original[83].Version != 84 {
 		t.Fatal("exact87 ledger", e)
 	}
 	for i, row := range original {
@@ -160,7 +160,7 @@ func testProjectKeyRollingQuotaWarningMigration(t *testing.T, db *gorm.DB) {
 	remove()
 	migrate()
 	var after []ledger
-	if e := db.Table("schema_migrations").Order("version").Find(&after).Error; e != nil || len(after) != 89 || after[88].Version != 89 || after[87].Version != 88 || after[86].Version != 87 || after[85].Version != 86 || after[84].Version != 85 || !reflect.DeepEqual(after[:84], original[:84]) || !reflect.DeepEqual(after[85:], original[85:]) {
+	if e := db.Table("schema_migrations").Order("version").Find(&after).Error; e != nil || len(after) != 90 || after[89].Version != 90 || after[88].Version != 89 || after[87].Version != 88 || after[86].Version != 87 || after[85].Version != 86 || after[84].Version != 85 || !reflect.DeepEqual(after[:84], original[:84]) || !reflect.DeepEqual(after[85:], original[85:]) {
 		t.Fatal("original80 ledger changed", e)
 	}
 	for i, row := range after {
@@ -226,6 +226,12 @@ func projectKeyRollingRetainedFactsEqual(a, b any) bool {
 }
 
 func projectKeyRollingWarningRegistryParent(names []string) ([]string, bool) {
+	if len(names) == 174 {
+		if names[172] != "model_weight_history_migration:testModelWeightHistoryMigration" || names[173] != "model_weight_history:testModelWeightHistoryLifecycle" {
+			return nil, false
+		}
+		names = names[:172]
+	}
 	if len(names) == 172 {
 		if names[170] != "credential_source_closed_migration:testCredentialSourceClosedMigration" || names[171] != "credential_source_closed:testCredentialSourceClosedLifecycle" {
 			return nil, false
@@ -269,7 +275,7 @@ func TestProjectKeyRollingWarningExact164RegistryAnd162Prefix(t *testing.T) {
 	for _, m := range regexp.MustCompile(`\{"([^"\n]+)", (test[A-Za-z0-9]+)\}`).FindAllStringSubmatch(string(raw), -1) {
 		names = append(names, m[1]+":"+m[2])
 	}
-	if len(names) != 172 || !strings.Contains(string(raw), "versions != 89") {
+	if len(names) != 174 || !strings.Contains(string(raw), "versions != 90") {
 		t.Fatal("current exact172 registry/V89 ledger changed")
 	}
 	if _, ok := projectKeyRollingWarningRegistryParent(names); !ok {
@@ -292,7 +298,7 @@ func TestReviewed168RegistryPreservesHistoricalPrefixesAndRejectsSuffixDrift(t *
 	for _, match := range regexp.MustCompile(`\{"([^"\n]+)", (test[A-Za-z0-9]+)\}`).FindAllStringSubmatch(string(raw), -1) {
 		names = append(names, match[1]+":"+match[2])
 	}
-	if len(names) != 172 || !strings.Contains(string(raw), "versions != 89") {
+	if len(names) != 174 || !strings.Contains(string(raw), "versions != 90") {
 		t.Fatal("current registry/ledger must be exactly172/V89")
 	}
 	guards := []struct {

@@ -26,6 +26,7 @@ import {
 import { sessionKey, useSession } from '@/hooks/use-auth'
 import type { Session } from '@/types/auth'
 import RoutingWeights from './routing-weights'
+import RoutingWeightHistory from './routing-weight-history'
 import ModelRenameFields from './model-rename-fields'
 import { initialModelRenameDraft, type ModelRenameDraft } from './model-rename-draft'
 import RoutingCandidates from './routing-candidates'
@@ -177,6 +178,7 @@ function AdminModels({
     !cache.getQueryState(detailKey)?.isInvalidated
       ? detail.data
       : undefined
+  const [weightHistoryOpen, setWeightHistoryOpen] = useState(false)
   const [routingProtocol, setRoutingProtocol] = useState<RoutingProtocol | null>(null)
   const [action, setAction] = useState<Action | null>(null)
   const [renameDraft, setRenameDraft] = useState<ModelRenameDraft | null>(null)
@@ -275,6 +277,29 @@ function AdminModels({
           !cache.getQueryState(detailKey)?.isInvalidated &&
           cache.getQueryState(detailKey)?.fetchStatus !== 'fetching' &&
           cache.getQueryState(detailKey)?.dataUpdateCount === detailGeneration))
+    )
+  }
+  const weightHistoryReadReady = () => {
+    const state = cache.getQueryState(permissionKey)
+    const sessionState = cache.getQueryState(sessionKey)
+    const target = cache.getQueryState(detailKey)
+    return (
+      authorityGeneration.current === generation &&
+      cache.getQueryData<Session>(sessionKey)?.user.id === actor &&
+      cache.getQueryData<Session>(sessionKey)?.user.role === role &&
+      sessionState?.status === 'success' &&
+      sessionState.fetchStatus === 'idle' &&
+      !sessionState.isInvalidated &&
+      state?.status === 'success' &&
+      state.fetchStatus === 'idle' &&
+      !state.isInvalidated &&
+      state.dataUpdateCount === permissionGeneration &&
+      cache.getQueryData<string[]>(permissionKey)?.includes('models.read_all') === true &&
+      target?.status === 'success' &&
+      target.fetchStatus === 'idle' &&
+      !target.isInvalidated &&
+      target.dataUpdateCount === detailGeneration &&
+      (target.data as Model | undefined)?.id === modelId
     )
   }
   const routingReadReady = () => {
@@ -673,6 +698,9 @@ function AdminModels({
             pricesReadable={readable && access.can('prices.read')}
             pending={mutation.isPending}
             error={!action ? mutation.error : null}
+            onHistory={() => {
+              if (weightHistoryReadReady() && !mutation.isPending) setWeightHistoryOpen(true)
+            }}
             onSave={(weights) => {
               const current = cache.getQueryData<Model>(detailKey)
               if (
@@ -699,6 +727,30 @@ function AdminModels({
             refreshDetail={() => void detail.refetch()}
           />
         </>
+      )}
+      {modelId && (
+        <RoutingWeightHistory
+          key={`${actor}:${modelId}`}
+          actor={actor}
+          modelID={modelId}
+          modelBirth={selected ? (selected.created_at ?? null) : undefined}
+          generation={generation}
+          permissionGeneration={permissionGeneration}
+          resourceGeneration={detailGeneration}
+          readable={readable && !!selected}
+          canWrite={access.can('models.write')}
+          readReady={weightHistoryReadReady}
+          writeReady={writeReady}
+          open={weightHistoryOpen}
+          onOpenChange={setWeightHistoryOpen}
+          onSaved={() => {
+            void cache.invalidateQueries({ queryKey: ['admin', 'models'] })
+            void cache.invalidateQueries({ queryKey: ['models'] })
+            void cache.invalidateQueries({
+              queryKey: ['admin', 'model-weight-history', actor, modelId],
+            })
+          }}
+        />
       )}
       {modelId && (
         <AliasRetirementDialog

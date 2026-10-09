@@ -1306,3 +1306,43 @@ row removal or unmount. The table layout and other row actions are retained.
 Independent source review and 107 focused tests cover navigation, guided creation,
 permission combinations, exact identity and localization. Main checks and delivery
 are recorded in the implementation index; real-window acceptance remains deferred.
+
+## Complete weight history and reviewed rollback
+
+RouteX records immutable, complete Model weight versions and a
+reviewed restore workflow in the existing routing editor. This is weight-only
+configuration history; runtime application records remain a separate view.
+Historical rows keep exact recorded Model/binding identities, nullable recorded
+birth timestamps, protocols, explicit zero weights and actual capture times.
+The first observed baseline does not invent earlier history. Unchanged saves
+create no additional weight version.
+
+Under `/api/v1/admin/models/:model_id`, fresh `models.read_all` permits:
+
+- `GET /weight-versions` for bounded cursor history summaries.
+- `GET /weight-versions/:version_id` for one complete recorded version.
+- `GET /weights/rollback-review?version_id=...` for current/proposed weights,
+  current eligibility, blockers and a strong reviewed ETag.
+- `GET /weights/rollback-commands/:request_id` for read-only exact command recovery.
+
+`POST /weights/rollback` additionally requires current `models.write`, CSRF,
+a strong If-Match and an explicit version, UUIDv4 request ID and reason. The
+server loads the recorded complete set; the browser does not submit reconstructed
+weights. Existing safe retained IDs remain exact; newly created history IDs and
+request IDs follow their strict creation grammars.
+
+Restore requires unchanged exact topology and currently eligible positive
+routes. It cannot restore removed bindings, grant authority or make unavailable
+routes executable. Version, weight changes, durable intent and audit writes
+belong to one governance transaction. Exact repeated intent returns its original
+receipt; a changed intent using that UUID conflicts. Superseded receipts never
+reinstall obsolete weights. Changed publication uses the existing runtime fence;
+no-op and receipt replay do not invalidate the Model.
+
+The receipt proves persisted configuration intent. Current local application
+uses separate applied/pending/superseded/unknown status; route health, native
+completion and fleet convergence are outside this proof. Read failures and
+authority renewal clear obsolete application status while retaining an uncertain
+original intent in its mounted owner. History refresh and new-review clicks
+check authority at dispatch time. A new review can release the original intent
+only after a freshly confirmed terminal applied/superseded result.

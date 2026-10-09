@@ -1444,3 +1444,18 @@ The same executable also passes controlled local shutdown and two real restarts.
 See [current acceptance](IMPLEMENTATION.md#current-vault-main-integration-2026-10-09)
 for the exact source boundary. Browser, external Vault and fleet acceptance are
 separate; older isolated results are not substituted for these main gates.
+
+## Immutable routing-weight history (V90)
+
+Immutable migration V90 defines routing-weight history
+for private frozen history/command schema structs. Complete snapshot bytes use
+GORM's portable binary mapping so the 512 KiB bound remains valid on PostgreSQL
+and MySQL. Business services do not branch on driver dialect. Retained versions
+are validated as bounded typed canonical data with exact rows and digest checks;
+arbitrary JSON is never exposed as administrative metadata.
+
+Source tests cover empty creation, upgrade with existing catalog data, repeat
+execution, concurrent startup and relevant constraints, including binary payloads
+beyond 64 KiB and at the 512 KiB boundary. Verification and delivery evidence
+remain recorded separately from this schema contract. Released V1–V89 migration
+steps remain unchanged.

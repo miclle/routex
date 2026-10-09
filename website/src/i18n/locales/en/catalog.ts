@@ -1,4 +1,92 @@
 export default {
+  weightHistory: {
+    currentSet: 'Complete current weight set',
+    proposedSet: 'Complete proposed weight set',
+    modelBirth: 'Recorded Model creation time',
+    bindingCount: 'Complete binding count',
+    parentVersion: 'Parent version',
+    restoredVersion: 'Restored version',
+    action: 'History / Restore',
+    title: 'Routing weight history',
+    description: 'Review a retained complete weight set and explicitly restore it as a new change.',
+    boundary:
+      'Only routing weights are restored. Current access, credentials, availability, egress, prices and limits remain authoritative; revoked access is never restored.',
+    weights: 'Recorded complete weights',
+    comparison: 'Current and proposed complete weights',
+    binding: 'Binding and recorded route IDs',
+    protocol: 'Protocol',
+    currentWeight: 'Current weight',
+    proposedWeight: 'Proposed weight',
+    recordedWeight: 'Recorded weight',
+    unknown: 'Unknown',
+    originalCommand: 'Original restore command',
+    uncertain:
+      'The original command outcome is uncertain. Keep this exact intent and read its receipt or retry the same command manually.',
+    receipt: 'Saved command: {{effect}}. Recorded version: {{version}}.',
+    receiptBoundary:
+      'A durable receipt proves the recorded command only. Local application is separate; it does not prove native completion, traffic proportions, route health or fleet convergence.',
+    commandUnavailable:
+      'The command result is unavailable. The original intent and any known receipt remain unchanged.',
+    recover: 'Read original receipt',
+    retryOriginal: 'Retry original command',
+    anotherReview: 'Start another review',
+    loading: 'Loading current authorized facts…',
+    readUnavailable:
+      'Weight history or current review is unavailable. Refresh authorized facts before continuing.',
+    refreshHistory: 'Refresh history',
+    empty:
+      'No weight versions have been recorded. Earlier publication times and weight sets are unknown.',
+    versions: 'Retained weight versions',
+    version: 'Version ID',
+    captured: 'Recorded at',
+    source: 'Source',
+    actor: 'Recorded actor ID',
+    reason: 'Reason',
+    details: 'Details',
+    viewVersion: 'View version {{version}}',
+    firstPage: 'First page',
+    nextPage: 'Next page',
+    notRecorded: 'Not recorded',
+    recordedValid:
+      'The recorded set is structurally valid. Current eligibility still requires a fresh server review.',
+    recordedInvalid:
+      'This historical set has invalid totals or unknown identity births. Do not infer current restore eligibility.',
+    reviewCurrent: 'Review current restore eligibility',
+    reviewBoundary:
+      'The server reviews current topology, exact identity births and positive-route eligibility. Draft weights are not health or measured traffic.',
+    blocked: 'Restore is blocked by the current server review or write authority.',
+    invalidReason:
+      'Enter a nonempty reason of at most 1,024 UTF-8 bytes without control characters.',
+    confirmation:
+      'Confirm restoring this complete weight set as a new change. Existing history and revoked access remain unchanged.',
+    confirmRestore: 'Confirm restore',
+    restore: 'Restore reviewed weights',
+    effects: {
+      changed: 'changed weights',
+      noop: 'unchanged weights',
+    },
+    sources: {
+      observed_baseline: 'Observed baseline (observation time)',
+      legacy_editor: 'Configured weight editor',
+      rollback: 'Reviewed restore',
+    },
+    application: {
+      applied: 'The original result is applied to the current local serving configuration.',
+      pending: 'The command is saved; local application is pending.',
+      superseded:
+        'A newer configuration superseded this command. Reading or retrying it will not restore the old set again.',
+      unknown:
+        'Current local application is unknown. Read the original receipt with fresh authority.',
+    },
+    blockers: {
+      write_not_authorized: 'Current Model write permission is required.',
+      version_not_restorable: 'The retained version cannot be restored.',
+      topology_changed: 'Route identities, births or protocols have changed.',
+      model_inactive: 'The Model is currently inactive.',
+      positive_route_unavailable: 'A proposed positive-weight route is currently unavailable.',
+      unknown: 'An unrecognized server blocker prevents restoration.',
+    },
+  },
   routingCandidates: {
     connection: 'Connection',
     pricesDenied: 'Price read permission required',

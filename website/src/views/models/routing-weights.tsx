@@ -23,6 +23,7 @@ export default function RoutingWeights({
   pending,
   error,
   onSave,
+  onHistory,
   onAddBinding,
   onGrants,
   refreshDetail,
@@ -40,6 +41,7 @@ export default function RoutingWeights({
   pricesReadable: boolean
   pending: boolean
   error: unknown
+  onHistory?: () => void
   onSave: (weights: { binding_id: string; weight: number }[]) => void
   onAddBinding: (protocol?: string) => void
   onGrants: () => void
@@ -240,6 +242,11 @@ export default function RoutingWeights({
         <Button disabled={pending || !canWrite} variant="outline" onClick={onGrants}>
           {t('adminModels.grant')}
         </Button>
+        {onHistory && (
+          <Button type="button" variant="outline" disabled={pending} onClick={onHistory}>
+            {t('weightHistory.action')}
+          </Button>
+        )}
         <SaveButton pending={pending} disabled={!canWrite || reviewRequired || !valid}>
           {t('adminModels.saveWeights')}
         </SaveButton>

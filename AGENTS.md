@@ -1354,3 +1354,35 @@ navigation fence; captured callbacks cannot navigate after renewal/error, target
 changes, expiry, unmount or row removal. Disabled Connections may open the existing
 server review without being represented as enabled or eligible. Navigation performs
 no mutation, discovery or verification and uses paired catalogue translations.
+
+## Reviewed routing-weight history and rollback
+
+Model weight history stays inside the existing administrative Model detail and
+protocol-grouped weight editor. Use the local Table and Base UI Dialog wrappers
+for immutable history, complete current/proposed comparisons and explicit restore
+confirmation. Preserve the legacy complete-set Save workflow. History and
+read-only command recovery require fresh `models.read_all`; restore additionally
+requires independently refreshed `models.write` authority.
+
+Scope queries and mounted command state to the exact actor and Model identity.
+Hide private facts during Session, permission, Model or history renewal/errors.
+Every refetch, new-review action and restore dispatch must synchronously verify
+current authority and generation, including stale rendered clicks. Start another
+review may release an original intent only after a fresh terminal applied or
+superseded result; pending and unknown results preserve it.
+
+Keep the original version, UUIDv4 request ID, reason, strong If-Match and command
+body through uncertain saves. Manual retries use fresh authority/CSRF with that
+identical intent. Recovery is read-only and never replays weights. Retain the
+durable receipt through recovery errors while clearing obsolete current
+application claims. Report applied, pending, superseded and unknown separately;
+current weight equality never proves the original historical operation.
+
+The server restores complete weights only after current topology and positive
+route eligibility checks. Current authorization, credentials, revoked Keys,
+model grants, availability, prices, limits and egress retain their authority.
+Local publication is not fleet convergence, route health, traffic percentage or
+native completion. Unknown blocker codes use localized blocked guidance. Keep
+paired English/Chinese catalogue copy, decimal-free integer weights, bounded
+version payloads and transient command state without browser storage or mutation
+cache persistence.

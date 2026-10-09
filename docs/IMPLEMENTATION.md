@@ -2,9 +2,52 @@
 
 Updated: 2026-10-09. This document records engineering contracts, work packages and acceptance checks. Planned interfaces and metrics are not implementation evidence. The objective covers F01–F30 and A01–A20 through incremental P0–P6 delivery and is resumed by the user's explicit instruction, prioritizing partially completed capabilities.
 
+## Routing-weight history and reviewed rollback integration (2026-10-09)
+
+The V90 candidate is adopted on main through 54 exact Go afterimages and ten
+frontend leaves, including additive bilingual catalogue merges. Existing Provider
+Model row actions and the Connection model creation entry are preserved. The
+existing Model routing editor now exposes immutable history, complete version
+review and explicitly confirmed rollback. Permission checks remain independent;
+retries preserve the original command and review revision, and current local
+application is distinct from the immutable command result.
+
+The exact isolated backend passes Full174 on PostgreSQL and MySQL: 348 direct
+scenarios, eight constraints and all 436 balanced names per driver. Source-bound
+ordinary tests and complete Task pass. The same binary passes controlled native
+and restart acceptance: B to A to A, three completed calls with exact Credential,
+ProviderModel and snapshot attribution and 1/1 usage. Exact replay and denied
+replay preserve commands, versions, audit and security state. All owned processes,
+ports and labelled resources are independently absent. Retained-file readback:
+`c123e702bb5c87a2a2721778a5dc13f19148c603125f05c2388d29d8aef8c834`.
+Held-response timing, original transient Session/Key transport and zero extra SDK
+dispatch retain the reviewed controller's assertion scope; no raw-payload or fleet
+proof is claimed. Earlier two SQL-projection helper failures remain historical.
+
+Current-main formatting and mandatory checks pass. Complete Task passes,
+including 5,553 frontend tests in 211 files, five Node checks, ten development
+script checks and production assets. Fresh build, uncached asset race tests and
+5,260 source-bound ordinary names pass. The new embedded production executable
+passes native/restart/replay/denial acceptance in 34.680 seconds; all three owned
+process/group identities, three ports and labelled Compose resources are
+independently absent. Current-main retained-file readback:
+`ea013b5bea9df73ca4e8aa3ab03996b19a6fc7d6dd5d428b1ea7e0c8d94af5e5`.
+
+The original Full174 remains bound to its original source. All 1,267 backend,
+dependency, script and shared-data inputs have identical bytes; the preserved
+checksum-file mode is more restrictive and does not change execution. A reviewed
+complete 23-path delta limits other differences to UI, documentation and preserved
+license modes. Backend equivalence grants no current UI, asset or binary proof;
+those have the fresh independent gates above. Final documentation updates follow
+validation without changing implementation. Browser remains deferred while locked.
+V91 Provider enablement stays isolated; its failed two-driver assertions retain
+original evidence and are rerunning after narrow fixture/diagnostic changes.
+Formal totals remain 13 Completed / 14 Partial / 3 Not started.
+
 ## Connection row model creation entry (2026-10-09)
 
-The containing phase adds the existing Connection action menu's Add model entry,
+Commit `b24c90d8bf9c94ec5a81418356349f8ddced30a7`, pushed and remote-verified,
+adds the existing Connection action menu's Add model entry,
 reusing the registered guided creation page with an exact encoded Connection ID.
 Independent Provider/Model read authority permits review, while the destination's
 existing write gate controls submission. Disabled rows can be reviewed without

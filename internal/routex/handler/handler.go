@@ -196,6 +196,13 @@ func (ctrl *Ctrl) RegisterRoutes(r *fox.Engine) {
 	identity.GET("/admin/teams/creation-context", memberMetadataResponseHeaders, ctrl.requireSession, ctrl.GetTeamCreationContext)
 	identity.GET("/admin/teams/creation-model-candidates", memberMetadataResponseHeaders, ctrl.requireSession, ctrl.ListTeamCreationModelCandidates)
 	identity.POST("/admin/teams/creation-model-review", memberMetadataResponseHeaders, ctrl.requireSession, sameOrigin, requireCSRF, jsonManagementRequest, ctrl.ReviewTeamCreationModels)
+
+	// Routing history has entered private headers before every denial boundary.
+	identity.GET("/admin/models/:model_id/weight-versions", memberMetadataResponseHeaders, ctrl.requireSession, ctrl.RequirePermission("models.read_all"), ctrl.ListModelWeightVersions)
+	identity.GET("/admin/models/:model_id/weight-versions/:version_id", memberMetadataResponseHeaders, ctrl.requireSession, ctrl.RequirePermission("models.read_all"), ctrl.GetModelWeightVersion)
+	identity.GET("/admin/models/:model_id/weights/rollback-review", memberMetadataResponseHeaders, ctrl.requireSession, ctrl.RequirePermission("models.read_all"), ctrl.ReviewModelWeightRollback)
+	identity.POST("/admin/models/:model_id/weights/rollback", memberMetadataResponseHeaders, ctrl.requireSession, sameOrigin, requireCSRF, jsonManagementRequest, ctrl.RequirePermission("models.read_all"), ctrl.RequirePermission("models.write"), ctrl.RollbackModelWeights)
+	identity.GET("/admin/models/:model_id/weights/rollback-commands/:request_id", memberMetadataResponseHeaders, ctrl.requireSession, ctrl.RequirePermission("models.read_all"), ctrl.GetModelWeightRollbackReceipt)
 	admin := identity.Group("/admin")
 	admin.Use(ctrl.requireSession)
 	admin.GET("/members/:user_id/model-access-workspace", ctrl.MemberModelAccessWorkspace)
