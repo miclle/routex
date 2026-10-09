@@ -773,3 +773,100 @@ it('cannot dispatch a queued handover menu action after member read authority is
   await act(async () => permissionGate!.release())
   expect(router.state.location.pathname).toBe('/admin/members')
 })
+
+it.each(['Escape', 'Close'] as const)(
+  'returns unsent Member creation %s focus to the exact toolbar opener and clears the draft',
+  async (close) => {
+    await mount()
+    const trigger = [...host.querySelectorAll<HTMLButtonElement>('button')].find(
+      (element) => element.textContent === 'Create member',
+    )!
+    // Pointer activation need not focus an external toolbar button before opening.
+    expect(document.activeElement).not.toBe(trigger)
+    await button('Create member')
+    await until(() => expect(document.querySelector('[role="dialog"]')).not.toBeNull())
+    const name = document.querySelector<HTMLInputElement>('[role="dialog"] [name="name"]')!
+    const password = document.querySelector<HTMLInputElement>('[role="dialog"] [name="password"]')!
+    name.value = 'Unsent member'
+    document.querySelector<HTMLInputElement>('[role="dialog"] [name="email"]')!.value =
+      'unsent@example.invalid'
+    password.value = 'unsent-initial-password'
+    await act(async () => password.focus())
+    expect(document.querySelector('[role="dialog"]')!.contains(document.activeElement)).toBe(true)
+    await act(async () => {
+      if (close === 'Escape')
+        document
+          .querySelector('[role="dialog"]')!
+          .dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }))
+      else
+        document.querySelector<HTMLButtonElement>('[role="dialog"] [aria-label="Close"]')!.click()
+    })
+    await until(() => expect(document.querySelector('[role="dialog"]')).toBeNull())
+    await until(() => expect(document.activeElement).toBe(trigger))
+    expect(trigger.isConnected).toBe(true)
+    expect(password.value).toBe('')
+    await button('Create member')
+    await until(() => expect(document.querySelector('[role="dialog"]')).not.toBeNull())
+    expect(document.querySelector<HTMLInputElement>('[role="dialog"] [name="name"]')!.value).toBe(
+      '',
+    )
+    expect(
+      document.querySelector<HTMLInputElement>('[role="dialog"] [name="password"]')!.value,
+    ).toBe('')
+    expect(requests.some((request) => request.method === 'post')).toBe(false)
+  },
+)
+
+it.each(['permission revocation', 'Session renewal', 'actor replacement', 'navigation'] as const)(
+  'does not restore Member creation focus to the old opener after %s',
+  async (change) => {
+    await mount()
+    const trigger = [...host.querySelectorAll<HTMLButtonElement>('button')].find(
+      (element) => element.textContent === 'Create member',
+    )!
+    await button('Create member')
+    await until(() => expect(document.querySelector('[role="dialog"]')).not.toBeNull())
+    const password = document.querySelector<HTMLInputElement>('[role="dialog"] [name="password"]')!
+    password.value = 'unsent-initial-password'
+    await act(async () => password.focus())
+    const close = document.querySelector<HTMLButtonElement>('[role="dialog"] [aria-label="Close"]')!
+    const focus = vi.spyOn(trigger, 'focus')
+    if (change === 'navigation') {
+      await act(async () => {
+        await router.navigate('/admin/members/usr_target')
+      })
+      expect(router.state.location.pathname).toBe('/admin/members/usr_target')
+      expect(host.textContent).toContain('Controlled detail')
+      expect(trigger.isConnected).toBe(false)
+    } else
+      await act(async () => {
+        if (change === 'permission revocation') {
+          permissions = ['members.read', 'teams.read_all', 'calls.read_all']
+          cache.setQueryData(['permissions', actor], permissions)
+        } else if (change === 'Session renewal') {
+          cache.setQueryData(['auth', 'session'], {
+            user: { id: actor, name: 'Reader', email: 'reader@example.invalid', role: 'admin' },
+            csrf_token: 'renewed-controlled-csrf',
+          })
+        } else if (change === 'actor replacement') {
+          actor = 'usr_other_admin'
+          page = memberListPage(actor)
+          cache.setQueryData(['auth', 'session'], {
+            user: {
+              id: actor,
+              name: 'Other reader',
+              email: 'other@example.invalid',
+              role: 'admin',
+            },
+            csrf_token: 'other-controlled-csrf',
+          })
+        }
+        if (close.isConnected) close.click()
+      })
+    await until(() => expect(document.querySelector('[role="dialog"]')).toBeNull())
+    expect(focus).not.toHaveBeenCalled()
+    expect(document.activeElement).not.toBe(trigger)
+    expect(password.value).toBe('')
+    expect(requests.some((request) => request.method === 'post')).toBe(false)
+  },
+)

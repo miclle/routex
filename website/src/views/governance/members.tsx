@@ -121,7 +121,11 @@ function Members() {
     }
   }, [actor, memberId, generation, authorized, session.data?.csrf_token, access.isAdmin, access])
   const [filters, setFilters] = useState<MemberFilters>({})
-  const [creating, setCreating] = useState(false)
+  const [creating, setCreating] = useState<{
+    actor: string
+    generation: number
+    trigger: HTMLButtonElement
+  } | null>(null)
   const [statusSelection, setStatusSelection] = useState<{
     owner: string
     target: string
@@ -218,7 +222,7 @@ function Members() {
   const [previousOwner, setPreviousOwner] = useState(owner)
   if (previousOwner !== owner) {
     setPreviousOwner(owner)
-    setCreating(false)
+    setCreating(null)
     setStatusSelection(null)
   }
   const canChange = (target: Member) =>
@@ -317,8 +321,8 @@ function Members() {
             </form>
             {access.can('members.write') && (
               <Button
-                onClick={() => {
-                  setCreating(true)
+                onClick={(event) => {
+                  setCreating({ actor, generation, trigger: event.currentTarget })
                 }}
               >
                 <Plus className="size-4" />
@@ -527,9 +531,18 @@ function Members() {
           key={actor}
           actor={actor}
           ready={authorized && access.can('members.write')}
-          onClose={() => setCreating(false)}
+          onClose={() => setCreating(null)}
+          returnFocus={() =>
+            latest.current.actor === creating.actor &&
+            latest.current.generation === creating.generation &&
+            !latest.current.memberId &&
+            latest.current.authorized &&
+            latest.current.write
+              ? creating.trigger
+              : false
+          }
           onCreated={(id) => {
-            setCreating(false)
+            setCreating(null)
             void cache.invalidateQueries({ queryKey: ['admin', 'members'] })
             void cache.invalidateQueries({ queryKey: ['permissions'] })
             void cache.invalidateQueries({ queryKey: ['auth', 'session'] })

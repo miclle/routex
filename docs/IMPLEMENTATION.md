@@ -2,6 +2,88 @@
 
 Updated: 2026-10-09. This document records engineering contracts, work packages and acceptance checks. Planned interfaces and metrics are not implementation evidence. The objective covers F01–F30 and A01–A20 through incremental P0–P6 delivery and is resumed by the user's explicit instruction, prioritizing partially completed capabilities.
 
+## Local Member administration complete (2026-10-09)
+
+F04 is Completed for its defined local administration scope. Authorized lists,
+filters, details, state changes, direct Model grants, Roles, resource policies,
+Keys/Teams tabs, local creation, approval and offboarding interactions have
+implementation and controlled acceptance evidence. Enterprise identity remains
+F03; global offboarding and later permission domains remain independently scoped.
+
+The final local browser gap is repaired: Member creation captures the exact
+current toolbar opener and returns focus on Escape or Close only while actor,
+Session, permissions and list target remain current. Sensitive drafts clear on
+dismissal and authority renewal; obsolete or detached controls are never focused.
+Six regressions cover dismissal and permission/Session/actor/navigation changes.
+Real English/Chinese Escape and Close restore the correct button, and reopening
+shows an empty password. Prior real creation/validation and read-only403 evidence
+remain valid; no invitation delivery is claimed.
+
+Main formatting, mandatory `go tool task check` and complete `go tool task test`
+pass, with 5,630 frontend cases in 213 files, Go race/coverage, both Node batches,
+development lifecycle and production assets. The backend is unchanged from the
+accepted V91 dual-database and exact-head CI source. This phase changes only three
+Member UI files, paired rules and acceptance documentation. New remote CI is
+tracked separately after publication. Totals are now 14 Completed / 13 Partial /
+3 Not started; the overall goal remains active. V92 is still isolated and its
+unchanged official 179-scenario dual-database run continues.
+
+## Connection diagnostics and transport continuation (2026-10-09)
+
+Provider availability is committed and pushed as
+`322397445a54973dd7f5e7c0d774cb89288ee2e3`; remote main parity is verified.
+Exact-head Actionlint, GolangCI and the complete CI workflow now pass, including
+Backend, Frontend, PostgreSQL/MySQL Integration and Build Artifacts.
+The original development service remains unchanged.
+
+The isolated Connection diagnostics and transport candidate uses schema 92 and
+179 registered integration scenarios. Its renewed qualification passes formatting,
+mandatory checking, complete Task tests and the production binary build. All
+5,788 frontend cases in 217 files pass, together with Go race/coverage, both Node
+batches, development lifecycle and production asset tests. Earlier formatter,
+lint, transport-proof fixture and four frontend-fixture failures remain retained;
+no production validity bound or negative assertion was relaxed. Real dual-database
+acceptance and main delivery remain pending; no V92 source is adopted into main.
+
+A disposable existing-data browser fixture upgrades from the accepted V91 binary
+to the qualified V92 binary while retaining both administrator and read-only
+Sessions. English/Chinese diagnostics pass: Credential rows lock the exact target,
+Connection rows require explicit selection, and changing selection clears prior
+results. Pending disabled Credentials and disabled Connections can be tested
+without verification or enablement. Actual local model discovery reports two
+models, including after A-to-B transport editing. Retained ProviderModels lock
+protocol and adapter; an enabled Connection blocks transport editing. Separate
+reviewed disable and A-to-B-to-A edits preserve disabled state. The first status
+write returns 503 after a recorded change; an explicit identical-intent retry
+confirms current routing application, with exactly one typed audit. Its original
+historical response remains unknown. Scoped browser verification is complete: a separate real Credential Verify,
+unchanged false/false capability reaffirmations for both bound ProviderModels and
+explicit Connection Enable succeed. The pending sibling remains disabled and
+unverified; original 0/100 weights and all three history versions remain exact.
+Read-only controls are disabled and a fresh authorized metadata read followed by
+a diagnostic POST returns 403. Azure, write-only actor, held-response/fault,
+concurrent browser conflict, capacity recovery, inference and fleet branches are
+not browser-verified. Two SPA model-detail clicks remain on the list; direct access
+to the exact visible URL succeeds. Source contains an authority-freshness
+cancellation guard; the actual failing predicate is unknown and no speculative
+patch is made. All five owned processes/groups, three ports and Compose resources
+are absent after graceful cleanup; local stubs record seven discovery requests and
+zero inference. The unchanged official 179-scenario dual-database run is active.
+
+Member creation has real English/Chinese form/validation, sensitive-draft cleanup,
+one successful creation and read-only denial evidence. A helper response-wrapper
+failure is retained without repeating Role creation/assignment. Escape initially
+returns focus to the document body. A separate minimal F04 repair passes 61
+focused cases in two files, including current-trigger focus and obsolete-authority
+boundaries. Corrected navigation ordering passes against the simpler original
+repair as well, so an unnecessary mounted-state fence is omitted. Full isolated qualification now passes, including 5,794 frontend cases in 217
+files, Go race/coverage and production assets. Real English/Chinese Escape and
+Close both return focus to the exact current Create member toolbar button;
+reopening has an empty password. Only the three Member UI files and paired rule
+appendices are adopted into main for separate delivery. Main formatting, mandatory checking and complete Task tests pass. No V92 source
+is adopted. The local F04 acceptance reconciliation is complete; the newer
+completion section above records the current 14/13/3 totals.
+
 ## Provider availability accepted (2026-10-09)
 
 Provider Settings now supports reviewed enable/disable changes with a required
@@ -2937,21 +3019,21 @@ Status terms in this section are deliberately strict:
 - **Partially completed** means material implementation exists, but one or more required behaviors or acceptance gates remain open. It does not mean that work has not started.
 - **Not started** means no material implementation of the capability exists. A prerequisite or design note may still be present.
 
-The binary capability count is 13 completed, 14 partially completed, and 3 not started. F15 now has complete controlled acceptance, including genuine browser downloads and original-Session restart. F06 initial Model access selection has passed its scoped acceptance. This is a completion count, not an effort percentage: several partially completed capabilities contain substantial delivered work. The user resumed implementation on 2026-10-02 and prioritized partially completed capabilities. Status changes require current implementation and acceptance evidence; a package delivery alone does not complete an entire capability.
+The binary capability count is 14 completed, 13 partially completed, and 3 not started. F15 now has complete controlled acceptance, including genuine browser downloads and original-Session restart. F06 initial Model access selection has passed its scoped acceptance. This is a completion count, not an effort percentage: several partially completed capabilities contain substantial delivered work. The user resumed implementation on 2026-10-02 and prioritized partially completed capabilities. Status changes require current implementation and acceptance evidence; a package delivery alone does not complete an entire capability.
 
 | ID | Capability | Status | Delivered and remaining scope |
 |---|---|---|---|
 | F01 | Initialization, local identity, registration, and logout | Completed | Concurrent one-time setup, administrator creation, local login, registration control, durable sessions, and logout are implemented and tested. |
 | F02 | Profile, password, MFA, recovery codes, and session revocation | Completed | Profile and password changes, authenticator enrollment, single-use recovery codes, and individual-session revocation are implemented. |
 | F03 | Enterprise SSO, LDAP, OAuth, and emergency recovery | Not started | Provider configuration, callbacks, identity binding, enforced SSO, and enterprise recovery remain unimplemented. |
-| F04 | Member administration, direct grants, roles, and resource policies | Partially completed | Member Overview, Keys, Limits, Teams, Models, metadata, list, effective Models, recent login, Access, direct Roles and State are checked deliveries. Current Role definitions, descriptions and permission workflows have dual-driver and controlled acceptance; Team-assigned roles are delivered under F06. Earlier failed CI checkpoints remain historical and do not describe current functional absence. Member handover state is delivered in 5fda0737. The Role create/delete lifetime repair is delivered in 00700348 after independent source review, 198 focused tests and mandatory checking; its exact-head CI passes. Member initial-password lifetime is delivered in 222ea08 after mandatory checking and complete Task; further browser and enterprise acceptance remain open. |
+| F04 | Member administration, direct grants, roles, and resource policies | Completed | Authorized list/filter/detail, State, direct Model grants, current Roles, resource policies, Keys/Teams tabs and local creation/approval/offboarding interactions have controlled acceptance. Bilingual creation, validation, sensitive-draft cleanup and read-only denial are verified. The final modal focus repair passes main formatting/check/complete Task (5,630 frontend cases), six authority-lifetime regressions and real English/Chinese Escape/Close verification. Unchanged backend acceptance includes V91 full PostgreSQL/MySQL and exact-head CI. Enterprise identity remains F03; global enterprise continuity and later permission domains stay independent. |
 | F05 | Built-in and custom roles with composed permissions | Partially completed | Current-domain role and permission management, reviewed definitions/descriptions, and immutable Procurement/Finance/Operations templates with explicit assignment are implemented and accepted. Later enterprise and operations domains still require permission integration and negative acceptance. |
 | F06 | Team membership, ownership, models, quotas, and member rules | Completed | Membership, ownership, model relationships, finite aggregate/member policies, monthly requests and durable Team-assigned roles have dual-driver and controlled acceptance. Initial limits V63 is delivered as8f17d12. Initial Model access V66 passed complete121, main3,759 frontend cases, both auth/gateway lifecycles and controlled bilingual/original-Session restart with four native probes. Separate read-only review confirms exact grants, receipts and completed attempts; the original helper denial-oracle failure remains retained. Empty selection grants no Models. |
 | F07 | Project lifecycle, managers, models, Keys, and requests | Completed | Exact current management, lifecycle/continuity, multi-manager creation, initial direct resources and combined requests, scoped Overview, Project Keys, resource limits and model/quota/rate approvals are implemented with controlled dual-database/browser/native/restart evidence. Both lists now show authorized total retained Key counts; administrative stored-policy summaries, literal name/ID search and authorized legacy tab replacement have full main acceptance. |
 | F08 | Personal and Project Key lifecycle | Completed | One-time delivery, confirmation, editing, rotation, revocation, expiration, scope, and history are implemented with controlled dual-database evidence. |
 | F09 | Key Token, money, RPM, TPM, concurrency, and IP restrictions | Completed | Personal, Project, and Key admission policies are enforced in the native gateway for the documented single-node architecture. Multi-node enforcement remains a separate release-architecture gate. |
 | F10 | Offboarding, inventory, handover, and emergency disable | Partially completed | Transactional local-account offboarding and continuity workflows exist; external-identity and complete enterprise continuity behavior remain open. |
-| F11 | Provider, Connection, Credential, discovery, and rotation | Partially completed | The management workspace, encrypted credentials, controlled verification, and activation boundaries exist; explicit provider-model capacity attestations, credential-pool filtering/verification timestamps, reviewed name/priority editing, reviewed deletion, staged replacement preparation, immutable per-attempt Credential/publication attribution, and parser-owned native completion evidence are available; evidence-gated predecessor retirement with historical receipt/current-application separation is available; Provider Models table, conjunctive filters, resource links and complete stored-binding projection have controlled bilingual permission/restart and full129 dual-driver acceptance; real-provider acceptance and complete pool operations remain open. |
+| F11 | Provider, Connection, Credential, discovery, and rotation | Partially completed | The management workspace, encrypted credentials, controlled verification, and activation boundaries exist; explicit provider-model capacity attestations, credential-pool filtering/verification timestamps, reviewed name/priority editing, reviewed deletion, staged replacement preparation, immutable per-attempt Credential/publication attribution, and parser-owned native completion evidence are available; evidence-gated predecessor retirement with historical receipt/current-application separation is available; Provider Models table, conjunctive filters, resource links and complete stored-binding projection have controlled bilingual permission/restart and full129 dual-driver acceptance; Whole-Provider availability, admitted-call continuity and disabled-child preservation are delivered in `3223974` with complete dual-driver, native/restart and bilingual browser acceptance. Real-provider acceptance and complete pool operations remain open. |
 | F12 | Model catalog, names, bindings, weights, and catalog assistance | Partially completed | Stable models, renames, bindings, weights, grants, and availability controls exist; reviewed compatibility-name Early stop has complete controlled source, dual-driver, native/browser/restart and full-matrix delivery. Guided batch creation has complete source, repaired driver, production/browser/restart and full-matrix acceptance, with one atomic reviewed transaction, bounded historical receipts and no implicit grants or existing-Key expansion. Advisory public-name assistance and its bounded popup-label compatibility repair have complete controlled source and final R2 browser/native/restart acceptance; checked delivery is represented by the containing acceptance-record commit, with new remote CI pending. Complete public-catalog assistance and broader routing acceptance remain open. |
 | F13 | Four native protocols, streaming, health, retries, and failover | Partially completed | Chat Completions, Responses, Messages, and Gemini now use bounded replay-safe same-protocol failover with process-local health, one admission/settlement, durable ordered diagnostics, and no retry after a usable response. Azure Chat adaptation and exact Credential deployment declarations are delivered as 5fda0737 with controlled dual-driver/native/restart evidence; real-provider and measured multi-node health acceptance remain open. |
 | F14 | Managed egress and staged network diagnostics | Partially completed | Direct, default, SOCKS5, verified CONNECT, endpoint-bound saved authentication, complete-tunnel proxy-address fallback, and diagnostics exist. External proxy and production performance acceptance remain open. |

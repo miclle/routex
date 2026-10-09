@@ -1307,3 +1307,20 @@ Fresh functional reads pass. Four transient GET500 and one GET503 are recorded
 without original-cause or browser-receipt evidence; cancellation remains an
 inference. No all-request health claim is made. Owned app/tab and labelled Compose
 resources are independently absent. The containing commit delivers this slice.
+
+## Local Member administration acceptance
+
+The defined local Member administration scope is complete: independent server
+authorization protects lists, details, account state, direct Models, Roles,
+resource policies and the Keys/Teams tabs. Local creation requires a real email
+and transient initial password; approval and offboarding remain distinct from
+account enablement. Enterprise identity is a separate capability.
+
+Member creation captures its exact current toolbar opener. Escape and Close
+return focus only while the actor, Session, permissions and list target remain
+current; dismissal and authority renewal clear sensitive drafts. Six regression
+cases cover normal dismissal and obsolete permission/Session/actor/navigation
+boundaries. Real English/Chinese browser verification confirms focus restoration,
+empty reopened passwords and the existing read-only creation denial. Main
+formatting, mandatory checking and complete Task tests pass (5,630 frontend cases
+in 213 files); the unchanged backend retains its accepted dual-database evidence.

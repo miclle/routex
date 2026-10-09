@@ -1381,3 +1381,11 @@ and confirming a new request. Confirmed runtime application describes the curren
 local publication only. Actor/target changes, expiry and obsolete callbacks cannot
 restore private facts; do not store status intents in mutation caches or browser
 storage. Keep English/Chinese copy paired in catalog.
+
+### Member creation focus
+
+Member creation captures the exact toolbar opener and returns keyboard focus on
+Escape or dismissal only while its actor, Session, permissions and list target
+remain current. Use the local Dialog final-focus contract. Do not focus detached,
+disabled or obsolete controls; sensitive drafts still clear on dismissal and
+authority renewal.

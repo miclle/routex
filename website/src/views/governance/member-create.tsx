@@ -18,11 +18,13 @@ export default function MemberCreate({
   ready,
   onClose,
   onCreated,
+  returnFocus,
 }: {
   actor: string
   ready: boolean
   onClose: () => void
   onCreated: (id: string) => void
+  returnFocus?: () => HTMLButtonElement | false
 }) {
   const { t } = useTranslation('governance')
   const cache = useQueryClient()
@@ -30,6 +32,7 @@ export default function MemberCreate({
     ['auth', 'session'],
     ['permissions', actor],
   ])
+  const focusRevision = useRef(authority.revision)
   const form = useRef<HTMLFormElement>(null)
   const clearForm = useCallback(() => form.current?.reset(), [])
   const mounted = useRef(false)
@@ -167,6 +170,18 @@ export default function MemberCreate({
         if (!open) onClose()
       }}
       busy={pending}
+      finalFocus={() => {
+        if (
+          latest.current.actor !== actor ||
+          !latest.current.ready ||
+          authority.snapshot() !== focusRevision.current ||
+          !approvalActorCurrent(cache, actor, 'members.read') ||
+          !approvalActorCurrent(cache, actor, 'members.write')
+        )
+          return false
+        const trigger = returnFocus?.()
+        return trigger && trigger.isConnected && !trigger.disabled ? trigger : false
+      }}
       title={t('members.create')}
       description={t('members.createDescription')}
     >

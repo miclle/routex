@@ -2,6 +2,88 @@
 
 Updated: 2026-10-09. Status: resumed by explicit user instruction; prioritize partially completed capabilities. [Implementation](IMPLEMENTATION.md) records engineering contracts and historical acceptance evidence. Earlier checkpoints below remain historical.
 
+## Local Member administration complete (2026-10-09)
+
+F04 is Completed for its defined local administration scope. Authorized lists,
+filters, details, state changes, direct Model grants, Roles, resource policies,
+Keys/Teams tabs, local creation, approval and offboarding interactions have
+implementation and controlled acceptance evidence. Enterprise identity remains
+F03; global offboarding and later permission domains remain independently scoped.
+
+The final local browser gap is repaired: Member creation captures the exact
+current toolbar opener and returns focus on Escape or Close only while actor,
+Session, permissions and list target remain current. Sensitive drafts clear on
+dismissal and authority renewal; obsolete or detached controls are never focused.
+Six regressions cover dismissal and permission/Session/actor/navigation changes.
+Real English/Chinese Escape and Close restore the correct button, and reopening
+shows an empty password. Prior real creation/validation and read-only403 evidence
+remain valid; no invitation delivery is claimed.
+
+Main formatting, mandatory `go tool task check` and complete `go tool task test`
+pass, with 5,630 frontend cases in 213 files, Go race/coverage, both Node batches,
+development lifecycle and production assets. The backend is unchanged from the
+accepted V91 dual-database and exact-head CI source. This phase changes only three
+Member UI files, paired rules and acceptance documentation. New remote CI is
+tracked separately after publication. Totals are now 14 Completed / 13 Partial /
+3 Not started; the overall goal remains active. V92 is still isolated and its
+unchanged official 179-scenario dual-database run continues.
+
+## Connection diagnostics and transport continuation (2026-10-09)
+
+Provider availability is committed and pushed as
+`322397445a54973dd7f5e7c0d774cb89288ee2e3`; remote main parity is verified.
+Exact-head Actionlint, GolangCI and the complete CI workflow now pass, including
+Backend, Frontend, PostgreSQL/MySQL Integration and Build Artifacts.
+The original development service remains unchanged.
+
+The isolated Connection diagnostics and transport candidate uses schema 92 and
+179 registered integration scenarios. Its renewed qualification passes formatting,
+mandatory checking, complete Task tests and the production binary build. All
+5,788 frontend cases in 217 files pass, together with Go race/coverage, both Node
+batches, development lifecycle and production asset tests. Earlier formatter,
+lint, transport-proof fixture and four frontend-fixture failures remain retained;
+no production validity bound or negative assertion was relaxed. Real dual-database
+acceptance and main delivery remain pending; no V92 source is adopted into main.
+
+A disposable existing-data browser fixture upgrades from the accepted V91 binary
+to the qualified V92 binary while retaining both administrator and read-only
+Sessions. English/Chinese diagnostics pass: Credential rows lock the exact target,
+Connection rows require explicit selection, and changing selection clears prior
+results. Pending disabled Credentials and disabled Connections can be tested
+without verification or enablement. Actual local model discovery reports two
+models, including after A-to-B transport editing. Retained ProviderModels lock
+protocol and adapter; an enabled Connection blocks transport editing. Separate
+reviewed disable and A-to-B-to-A edits preserve disabled state. The first status
+write returns 503 after a recorded change; an explicit identical-intent retry
+confirms current routing application, with exactly one typed audit. Its original
+historical response remains unknown. Scoped browser verification is complete: a separate real Credential Verify,
+unchanged false/false capability reaffirmations for both bound ProviderModels and
+explicit Connection Enable succeed. The pending sibling remains disabled and
+unverified; original 0/100 weights and all three history versions remain exact.
+Read-only controls are disabled and a fresh authorized metadata read followed by
+a diagnostic POST returns 403. Azure, write-only actor, held-response/fault,
+concurrent browser conflict, capacity recovery, inference and fleet branches are
+not browser-verified. Two SPA model-detail clicks remain on the list; direct access
+to the exact visible URL succeeds. Source contains an authority-freshness
+cancellation guard; the actual failing predicate is unknown and no speculative
+patch is made. All five owned processes/groups, three ports and Compose resources
+are absent after graceful cleanup; local stubs record seven discovery requests and
+zero inference. The unchanged official 179-scenario dual-database run is active.
+
+Member creation has real English/Chinese form/validation, sensitive-draft cleanup,
+one successful creation and read-only denial evidence. A helper response-wrapper
+failure is retained without repeating Role creation/assignment. Escape initially
+returns focus to the document body. A separate minimal F04 repair passes 61
+focused cases in two files, including current-trigger focus and obsolete-authority
+boundaries. Corrected navigation ordering passes against the simpler original
+repair as well, so an unnecessary mounted-state fence is omitted. Full isolated qualification now passes, including 5,794 frontend cases in 217
+files, Go race/coverage and production assets. Real English/Chinese Escape and
+Close both return focus to the exact current Create member toolbar button;
+reopening has an empty password. Only the three Member UI files and paired rule
+appendices are adopted into main for separate delivery. Main formatting, mandatory checking and complete Task tests pass. No V92 source
+is adopted. The local F04 acceptance reconciliation is complete; the newer
+completion section above records the current 14/13/3 totals.
+
 ## Provider availability accepted (2026-10-09)
 
 Provider Settings now supports reviewed enable/disable changes with a required
