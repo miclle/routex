@@ -43,6 +43,7 @@ type ConnectionResponse struct {
 	ProviderModels []ProviderModelResponse `json:"provider_models"`
 }
 type ProviderResponse struct {
+	Enabled     bool                 `json:"enabled"`
 	ID          string               `json:"id"`
 	Name        string               `json:"name"`
 	Connections []ConnectionResponse `json:"connections"`
@@ -121,7 +122,7 @@ func connectionResponse(item service.ConnectionCatalog) ConnectionResponse {
 	return result
 }
 func providerResponse(item service.ProviderCatalog) ProviderResponse {
-	result := ProviderResponse{ID: item.Provider.ID, Name: item.Provider.Name, Connections: []ConnectionResponse{}}
+	result := ProviderResponse{Enabled: item.Provider.Enabled, ID: item.Provider.ID, Name: item.Provider.Name, Connections: []ConnectionResponse{}}
 	for _, connection := range item.Connections {
 		result.Connections = append(result.Connections, connectionResponse(connection))
 	}

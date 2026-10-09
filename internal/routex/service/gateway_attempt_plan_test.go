@@ -20,7 +20,7 @@ func gatewayAttemptFixture(t *testing.T) (*Service, *runtimeData) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	data.Providers = append(data.Providers, entity.Provider{ID: "prv_two", Name: "Provider Two"})
+	data.Providers = append(data.Providers, entity.Provider{ID: "prv_two", Name: "Provider Two", Enabled: true, ETag: "0", CreatedAt: time.Date(2026, 10, 1, 0, 0, 0, 0, time.UTC)})
 	data.Connections = append(data.Connections, entity.ProviderConnection{Enabled: true, CreatedAt: time.Date(2026, 10, 1, 0, 0, 0, 0, time.UTC), ID: "con_two", ProviderID: "prv_two", Name: "Secondary", BaseURL: "https://provider-two.example/v1", Protocol: entity.ProtocolOpenAIChat})
 	data.ProviderModels = append(data.ProviderModels, entity.ProviderModel{ID: "pmd_two", ConnectionID: "con_two", UpstreamName: "provider-model-two"})
 	data.Credentials = append(data.Credentials, entity.ProviderCredential{ID: "crd_two", ConnectionID: "con_two", Ciphertext: ciphertext, Enabled: true, VerificationStatus: "verified", Priority: 10})

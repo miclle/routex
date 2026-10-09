@@ -16,7 +16,7 @@ import (
 
 func connectionMetadataTestRows() (entity.User, entity.Provider, entity.ProviderConnection) {
 	birth := time.Date(2026, 10, 6, 0, 0, 0, 123456000, time.UTC)
-	return entity.User{ID: "usr_admin", Role: entity.RoleAdmin, CreatedAt: birth}, entity.Provider{ID: "prv_target", Name: "Provider", CreatedAt: birth}, entity.ProviderConnection{ID: "con_target", ProviderID: "prv_target", Name: "Original", BaseURL: "https://example.invalid/v1", Protocol: "openai_chat", ETag: "0", EgressMode: "default", CreatedAt: birth}
+	return entity.User{ID: "usr_admin", Role: entity.RoleAdmin, CreatedAt: birth}, entity.Provider{ID: "prv_target", Name: "Provider", Enabled: true, ETag: "0", CreatedAt: birth}, entity.ProviderConnection{ID: "con_target", ProviderID: "prv_target", Name: "Original", BaseURL: "https://example.invalid/v1", Protocol: "openai_chat", ETag: "0", EgressMode: "default", CreatedAt: birth}
 }
 func TestConnectionMetadataStrictIntentBounds(t *testing.T) {
 	invalid := []string{`{}`, `null`, `[]`, `{"name":"A","reason":null}`, `{"name":null,"reason":"R"}`, `{"Name":"A","reason":"R"}`, `{"name":"A","reason":"R","egress_mode":"direct"}`, `{"name":"A","reason":"R","name":"B"}`, `{"name":"A","reason":"R","\u006eame":"B"}`, `{"name":"A","reason":"R"} {}`, `{"name":"\ud800","reason":"R"}`, `{"name":"A","reason":"\udfff"}`, `{"name":" A","reason":"R"}`, `{"name":"A","reason":" R"}`, `{"name":"A\n","reason":"R"}`, `{"name":"A","reason":""}`, string([]byte{'{', '"', 'n', 'a', 'm', 'e', '"', ':', '"', 255, '"', '}'})}

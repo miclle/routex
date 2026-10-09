@@ -244,6 +244,49 @@ export default {
     copyBaseURL: 'Copy Base URL',
     copyAuthenticationHeader: 'Copy authentication header template',
   },
+  providerStatus: {
+    title: 'Provider status',
+    enabledDescription: 'Recorded as enabled for eligible routing.',
+    disabledDescription: 'Recorded as disabled for new requests.',
+    retained:
+      'Connections, Credentials, Models, grants, weights and historical Calls are retained. Already-dispatched requests can complete. Enabling the Provider does not enable its child records.',
+    disable: 'Disable Provider',
+    enable: 'Enable Provider',
+    confirmEnable: 'Enable Provider?',
+    confirmDisable: 'Disable Provider?',
+    confirmEnableAction: 'Confirm Provider enable',
+    confirmDisableAction: 'Confirm Provider disable',
+    enableHelp:
+      'Review the current configuration before restoring eligible routing through {{name}}.',
+    disableHelp: 'Review the current configuration before stopping new routing through {{name}}.',
+    reason: 'Status change reason',
+    validation: 'Enter a nonempty reason of at most 1024 UTF-8 bytes without control characters.',
+    readDenied: 'Current Provider read permission is required.',
+    readOnly: 'Current Provider write authority is unavailable.',
+    review: 'Review current Provider configuration',
+    reviewed:
+      'Current Provider configuration reviewed. The requested status and reason are retained.',
+    stale:
+      'The reviewed Provider configuration changed. Refresh and explicitly review the current configuration before confirming.',
+    uncertain:
+      'The dispatched Provider status change remains unconfirmed. Retry the identical reviewed request explicitly. A matching current status does not prove the original historical operation.',
+    retry: 'Retry identical Provider status change',
+    reviewIntent: 'Review unconfirmed Provider change',
+    identityChanged:
+      'The reviewed Provider identity changed. The original request remains unconfirmed; discard its local retry explicitly before preparing a new change.',
+    savedCurrent:
+      'Current Provider status and local runtime application are confirmed. This confirms current state only; the original operation history is not established.',
+    otherIntent:
+      'Another unconfirmed configuration request is retained. Review or discard it before starting this change.',
+    abandon: 'Review a separate Provider change',
+    abandonTitle: 'Discard the unconfirmed local retry?',
+    abandonDescription:
+      'Review the refreshed current state, then explicitly discard only the local retry. This neither cancels nor proves the original operation. A separate current-revision change needs its own reason and confirmation.',
+    confirmAbandon: 'Discard retry and review a separate change',
+    abandoned:
+      'The earlier request remains unconfirmed. The new change requires a separate reason and confirmation.',
+    current: '{{name}} is currently recorded as {{status}}.',
+  },
   providerModels: {
     currentStatus: 'Currently recorded: {{status}}',
     reviewSeparate: 'Review a separate status change',

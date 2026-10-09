@@ -55,7 +55,7 @@ func testTeamMonthlyBehaviorLifecycle(t *testing.T, db *gorm.DB) {
 	}()
 	makeService := func() *service.Service {
 		t.Helper()
-		svc, err := service.New(ctx, db, service.WithCredentialStorage(store), service.WithUpstreamPolicy(true))
+		svc, err := service.New(ctx, db, service.WithCredentialStorage(store), service.WithUpstreamPolicy(true), service.WithRuntimeRefreshInterval(time.Hour))
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -103,7 +103,6 @@ func testTeamMonthlyBehaviorLifecycle(t *testing.T, db *gorm.DB) {
 	if err := svc.StartRuntime(ctx); err != nil {
 		t.Fatal(err)
 	}
-	svc.StopRuntime()
 	spool := filepath.Join(t.TempDir(), "team-behavior.db")
 	if err := svc.StartCallRecorder(ctx, spool); err != nil {
 		t.Fatal(err)
@@ -211,8 +210,7 @@ func testTeamMonthlyBehaviorLifecycle(t *testing.T, db *gorm.DB) {
 	}
 	defer func() {
 		failPublication.Store(false)
-		_ = db.Callback().Query().Remove(callback)
-		if err := svc.RefreshRuntime(ctx); err != nil {
+		if err := db.Callback().Query().Remove(callback); err != nil {
 			t.Error(err)
 		}
 	}()
@@ -326,7 +324,6 @@ func testTeamMonthlyBehaviorLifecycle(t *testing.T, db *gorm.DB) {
 	if err := restarted.StartRuntime(ctx); err != nil {
 		t.Fatal(err)
 	}
-	restarted.StopRuntime()
 	router = fox.New()
 	New(restarted).RegisterRoutes(router)
 	identity := identityRequest(router, "GET", "/api/v1/auth/session", "", memberCookie, "")

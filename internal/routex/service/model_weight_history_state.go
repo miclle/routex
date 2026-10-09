@@ -242,6 +242,10 @@ func (st *modelWeightState) executable(rows []ModelWeightRow) bool {
 	}
 	cs := map[string]entity.ProviderConnection{}
 	pms := map[string]entity.ProviderModel{}
+	providers := map[string]entity.Provider{}
+	for _, p := range st.Providers {
+		providers[p.ID] = p
+	}
 	for _, c := range st.Connections {
 		cs[c.ID] = c
 	}
@@ -255,7 +259,8 @@ func (st *modelWeightState) executable(rows []ModelWeightRow) bool {
 		c, cok := cs[row.ConnectionID]
 		pm, pok := pms[row.ProviderModelID]
 		sup, ok := st.Supplies[row.ProviderModelID]
-		if !cok || !pok || !ok || !c.Enabled || pm.Disabled || !sup.Covered || !sup.SourceAvailable || !st.EgressReady[c.ID] || st.EgressRevisions[c.ID] == "" {
+		p, providerOK := providers[row.ProviderID]
+		if !providerOK || !p.Enabled || p.ETag == "" || !connectionMetadataBirth(p.CreatedAt) || row.ProviderCreatedAt == nil || !p.CreatedAt.Equal(*row.ProviderCreatedAt) || !cok || !pok || !ok || c.ProviderID != p.ID || pm.ConnectionID != c.ID || !c.Enabled || pm.Disabled || !sup.Covered || !sup.SourceAvailable || !st.EgressReady[c.ID] || st.EgressRevisions[c.ID] == "" {
 			return false
 		}
 	}
@@ -371,6 +376,6 @@ func (st *modelWeightState) currentEligibilityHash() string {
 			}
 		}
 	}
-	index := memberModelsIndex(&memberModelsData{EgressSetting: st.Egress.EgressSetting, Egresses: st.Egress.Egresses, Models: []entity.Model{st.Model}, Names: st.Names, Bindings: bindings, ProviderModels: st.Models, Connections: st.Connections, Credentials: st.Credentials, Access: access})
+	index := memberModelsIndex(&memberModelsData{EgressSetting: st.Egress.EgressSetting, Egresses: st.Egress.Egresses, Models: []entity.Model{st.Model}, Names: st.Names, Providers: st.Providers, Bindings: bindings, ProviderModels: st.Models, Connections: st.Connections, Credentials: st.Credentials, Access: access})
 	return index.hash(st.Model)
 }

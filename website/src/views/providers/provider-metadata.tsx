@@ -254,6 +254,7 @@ function NameEditor({ actor, providerId }: { actor: string; providerId: string }
       setNotice('providerMetadata.saved')
       void cache.invalidateQueries({ queryKey: ['admin', 'providers'] })
       void cache.invalidateQueries({ queryKey: ['admin', 'provider-metadata', actor, providerId] })
+      void cache.invalidateQueries({ queryKey: ['admin', 'provider-status', actor, providerId] })
     } catch (error) {
       if (
         pending.current === operation &&

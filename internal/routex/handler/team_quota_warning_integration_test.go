@@ -69,7 +69,7 @@ func testTeamMonthlyQuotaWarningLifecycle(t *testing.T, db *gorm.DB) {
 		upstream.Close()
 	}()
 	makeService := func() *service.Service {
-		svc, err := service.New(ctx, db, service.WithCredentialStorage(store), service.WithUpstreamPolicy(true))
+		svc, err := service.New(ctx, db, service.WithCredentialStorage(store), service.WithUpstreamPolicy(true), service.WithRuntimeRefreshInterval(time.Hour))
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -135,7 +135,6 @@ func testTeamMonthlyQuotaWarningLifecycle(t *testing.T, db *gorm.DB) {
 	if err := svc.StartRuntime(ctx); err != nil {
 		t.Fatal(err)
 	}
-	svc.StopRuntime() // Deterministic publication: later changes use only explicit RefreshRuntime.
 	if err := svc.StartCallRecorder(ctx, spool); err != nil {
 		t.Fatal(err)
 	}
@@ -284,7 +283,16 @@ func testTeamMonthlyQuotaWarningLifecycle(t *testing.T, db *gorm.DB) {
 			t.Fatal(err)
 		}
 	}
-	reconcile := func() { t.Helper(); refresh(); reconcileUnpublished() }
+	reconcile := func() {
+		t.Helper()
+		refresh()
+		assertObserverReady("before positive reconcile")
+		if err := svc.ReconcileMonthlyQuotaNotifications(ctx); err != nil {
+			t.Fatal(err)
+		}
+		refresh()
+		assertObserverReady("after positive reconcile")
+	}
 	page := func() service.NotificationPage {
 		t.Helper()
 		return decodeCatalogResponse[service.NotificationPage](t, memberRequest("GET", "/api/v1/notifications?status=all", nil), 200)
@@ -979,7 +987,6 @@ func testTeamMonthlyQuotaWarningLifecycle(t *testing.T, db *gorm.DB) {
 	if err := svc.StartRuntime(ctx); err != nil {
 		t.Fatal(err)
 	}
-	svc.StopRuntime()
 	if err := svc.StartCallRecorder(ctx, spool); err != nil {
 		t.Fatal(err)
 	}

@@ -75,7 +75,10 @@ func providerMetadataRecord(actor entity.User, row entity.Provider, write bool) 
 		Version, ActorID, ProviderID string
 		ActorBirth, ProviderBirth    time.Time
 	}{"provider.metadata.identity.v1", actor.ID, row.ID, actor.CreatedAt.UTC(), row.CreatedAt.UTC()})
-	content := connectionMetadataHash(struct{ Version, Name string }{"provider.metadata.review.v1", row.Name})
+	content := connectionMetadataHash(struct {
+		Version, Name, Revision string
+		Enabled                 bool
+	}{"provider.metadata.review.v2", row.Name, row.ETag, row.Enabled})
 	return ProviderMetadataRecord{row.ID, row.Name, identity + "." + content, write}, nil
 }
 func providerMetadataQuery(tx *gorm.DB, providerID string) *gorm.DB {

@@ -15,6 +15,7 @@ import (
 	"sync"
 	"sync/atomic"
 	"testing"
+	"time"
 
 	"github.com/fox-gonic/fox"
 	"gorm.io/gorm"
@@ -47,7 +48,7 @@ func testCredentialReplacementLifecycle(t *testing.T, db *gorm.DB) {
 		_, _ = w.Write([]byte(`{"model":"replacement-upstream","choices":[],"usage":{"prompt_tokens":1,"completion_tokens":1}}`))
 	}))
 	defer upstream.Close()
-	svc, err := service.New(ctx, db, service.WithCredentialStorage(store), service.WithUpstreamPolicy(true))
+	svc, err := service.New(ctx, db, service.WithCredentialStorage(store), service.WithUpstreamPolicy(true), service.WithRuntimeRefreshInterval(time.Hour))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -107,7 +108,7 @@ func testCredentialReplacementLifecycle(t *testing.T, db *gorm.DB) {
 	if err := svc.StartRuntime(ctx); err != nil {
 		t.Fatal(err)
 	}
-	svc.StopRuntime()
+	defer svc.StopRuntime() // Join even if recorder startup fails.
 	if err := svc.StartCallRecorder(ctx, filepath.Join(t.TempDir(), "replacement.db")); err != nil {
 		t.Fatal(err)
 	}

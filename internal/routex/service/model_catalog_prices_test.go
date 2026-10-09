@@ -99,7 +99,7 @@ func TestMemberCatalogPricesCompleteRouteSetAcrossProtocols(t *testing.T) {
 		t.Run(kind, func(t *testing.T) {
 			svc, data, items := catalogPricesFixture(t)
 			// A separate native protocol is part of the same public logical Model price.
-			published := &runtimeData{Models: data.Models, Names: data.Names, Bindings: slices.Clone(data.Bindings), ProviderModels: slices.Clone(data.ProviderModels), Connections: slices.Clone(data.Connections), Credentials: slices.Clone(data.Credentials), Access: slices.Clone(data.Access), EgressSetting: data.EgressSetting}
+			published := &runtimeData{Models: data.Models, Names: data.Names, Providers: slices.Clone(data.Providers), Bindings: slices.Clone(data.Bindings), ProviderModels: slices.Clone(data.ProviderModels), Connections: slices.Clone(data.Connections), Credentials: slices.Clone(data.Credentials), Access: slices.Clone(data.Access), EgressSetting: data.EgressSetting}
 			pm := published.ProviderModels[0]
 			pm.ID = "pmd_second"
 			pm.ConnectionID = "con_second"

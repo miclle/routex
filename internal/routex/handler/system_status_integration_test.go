@@ -40,7 +40,7 @@ func testSystemStatusLifecycle(t *testing.T, db *gorm.DB) {
 		t.Fatal(err)
 	}
 
-	svc, err := service.New(ctx, db)
+	svc, err := service.New(ctx, db, service.WithRuntimeRefreshInterval(time.Hour))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -48,6 +48,7 @@ func testSystemStatusLifecycle(t *testing.T, db *gorm.DB) {
 		t.Fatal(err)
 	}
 	t.Cleanup(func() {
+		svc.StopRuntime()
 		stop, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 		defer cancel()
 		if err := svc.StopSystemInstance(stop); err != nil {
@@ -111,7 +112,6 @@ func testSystemStatusLifecycle(t *testing.T, db *gorm.DB) {
 	if err := svc.StartRuntime(ctx); err != nil {
 		t.Fatal(err)
 	}
-	svc.StopRuntime()
 	var retained entity.SystemJob
 	if err := db.First(&retained, "id = ?", retainedRunning.ID).Error; err != nil || retained.Status != "running" {
 		t.Fatal("terminal pruning removed an active system job")

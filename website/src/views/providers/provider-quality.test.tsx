@@ -121,7 +121,18 @@ beforeEach(async () => {
     else if (config.url === '/auth/permissions') response.data = { permissions }
     else if (config.url === '/admin/providers')
       response.data = { items: [structuredClone(provider)] }
-    else if (config.url === `/admin/providers/${provider.id}/quality`)
+    else if (config.url === `/admin/providers/${provider.id}/status`) {
+      const etag = `${'a'.repeat(64)}.${'b'.repeat(64)}`
+      response.data = {
+        id: provider.id,
+        name: provider.name,
+        enabled: true,
+        can_edit: permissions.includes('providers.write'),
+        etag,
+      }
+      response.headers.set('Cache-Control', 'private, no-store')
+      response.headers.set('ETag', `"${etag}"`)
+    } else if (config.url === `/admin/providers/${provider.id}/quality`)
       response.data = structuredClone(quality)
     else if (
       config.url === `/admin/providers/${provider.id}/quality-policy` &&

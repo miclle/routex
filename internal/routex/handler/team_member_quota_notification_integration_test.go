@@ -88,7 +88,7 @@ func testTeamMemberQuotaNotificationLifecycle(t *testing.T, db *gorm.DB) {
 	}()
 	makeService := func() *service.Service {
 		t.Helper()
-		instance, err := service.New(ctx, db, service.WithCredentialStorage(store), service.WithUpstreamPolicy(true))
+		instance, err := service.New(ctx, db, service.WithCredentialStorage(store), service.WithUpstreamPolicy(true), service.WithRuntimeRefreshInterval(time.Hour))
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -153,7 +153,6 @@ func testTeamMemberQuotaNotificationLifecycle(t *testing.T, db *gorm.DB) {
 	if err := svc.StartRuntime(ctx); err != nil {
 		t.Fatal(err)
 	}
-	svc.StopRuntime() // Explicit publication keeps stale-generation assertions deterministic.
 	spool := filepath.Join(t.TempDir(), "team-notifications.db")
 	if err := svc.StartCallRecorder(ctx, spool); err != nil {
 		t.Fatal(err)
@@ -781,6 +780,7 @@ func testTeamMemberQuotaNotificationLifecycle(t *testing.T, db *gorm.DB) {
 	if err := svc.FlushCallRecorder(ctx); err != nil {
 		t.Fatal(err)
 	}
+	svc.StopRuntime() // Join the outgoing live publisher before service replacement.
 	if err := svc.StopCallRecorder(); err != nil {
 		t.Fatal(err)
 	}
@@ -792,7 +792,6 @@ func testTeamMemberQuotaNotificationLifecycle(t *testing.T, db *gorm.DB) {
 	if err := svc.StartRuntime(ctx); err != nil {
 		t.Fatal(err)
 	}
-	svc.StopRuntime()
 	if err := svc.StartCallRecorder(ctx, spool); err != nil {
 		t.Fatal(err)
 	}

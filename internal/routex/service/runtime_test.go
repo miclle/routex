@@ -39,7 +39,7 @@ func runtimeFixture(t *testing.T, baseURL string) (*Service, *runtimeData, strin
 		Grants:         []entity.UserModelGrant{{UserID: "usr_one", ModelID: modelID}},
 		Models:         []entity.Model{{ID: modelID, Status: "active", CreatedAt: time.Now().UTC()}},
 		Names:          []entity.ModelName{{Name: "public-model", ModelID: modelID, CurrentModelID: &modelID}},
-		Providers:      []entity.Provider{{ID: "prv_one", Name: "Provider One"}},
+		Providers:      []entity.Provider{{ID: "prv_one", Name: "Provider One", Enabled: true, ETag: "0", CreatedAt: time.Date(2026, 10, 1, 0, 0, 0, 0, time.UTC)}},
 		Connections:    []entity.ProviderConnection{{Enabled: true, CreatedAt: time.Date(2026, 10, 1, 0, 0, 0, 0, time.UTC), ID: "con_one", ProviderID: "prv_one", Name: "Primary", BaseURL: baseURL, Protocol: entity.ProtocolOpenAIChat}},
 		ProviderModels: []entity.ProviderModel{{ID: "pmd_one", ConnectionID: "con_one", UpstreamName: "provider-model"}},
 		Credentials:    []entity.ProviderCredential{{ID: "crd_one", ConnectionID: "con_one", Ciphertext: ciphertext, Enabled: true, VerificationStatus: "verified"}},

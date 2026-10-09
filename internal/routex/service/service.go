@@ -31,6 +31,7 @@ type Service struct {
 	limitMu                   sync.RWMutex
 	trustedProxies            []netip.Prefix
 	runtime                   *gatewayRuntime
+	runtimeRefreshInterval    time.Duration
 	recorder                  *callRecorder
 	repositorySource          *prices.Snapshot
 	secrets                   *secretstore.Store
@@ -66,6 +67,12 @@ func WithCredentialStorage(store *secretstore.Store) Option {
 	return func(s *Service) { s.secrets = store }
 }
 
+// WithRuntimeRefreshInterval configures the bootstrap publisher cadence, not
+// mutable runtime policy. The default remains one second.
+func WithRuntimeRefreshInterval(interval time.Duration) Option {
+	return func(s *Service) { s.runtimeRefreshInterval = interval }
+}
+
 func WithUpstreamPolicy(allowPrivate bool) Option {
 	return func(s *Service) {
 		s.allowPrivateUpstream = allowPrivate
@@ -85,12 +92,16 @@ func New(ctx context.Context, db *gorm.DB, options ...Option) (*Service, error) 
 
 	svc := &Service{
 		db: db, upstream: upstream.NewClient(false), attemptNow: time.Now,
-		rootNow: time.Now, instanceNow: time.Now, instanceResources: collectSystemInstanceResources,
+		runtimeRefreshInterval: runtimeRefreshInterval,
+		rootNow:                time.Now, instanceNow: time.Now, instanceResources: collectSystemInstanceResources,
 		instanceHeartbeat: 10 * time.Second, instanceLeaseDuration: 35 * time.Second,
 		instanceCleanupAfter: 5 * time.Minute,
 	}
 	for _, option := range options {
 		option(svc)
+	}
+	if svc.runtimeRefreshInterval < time.Millisecond || svc.runtimeRefreshInterval > 24*time.Hour {
+		return nil, fmt.Errorf("runtime refresh interval must be between one millisecond and 24 hours")
 	}
 	return svc, nil
 }

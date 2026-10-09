@@ -45,7 +45,7 @@ func testCredentialRetirementReadinessLifecycle(t *testing.T, db *gorm.DB) {
 		_, _ = w.Write([]byte(responseBody.Load().(string)))
 	}))
 	defer upstream.Close()
-	svc, err := service.New(ctx, db, service.WithCredentialStorage(store), service.WithUpstreamPolicy(true))
+	svc, err := service.New(ctx, db, service.WithCredentialStorage(store), service.WithUpstreamPolicy(true), service.WithRuntimeRefreshInterval(time.Hour))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -251,9 +251,8 @@ func testCredentialRetirementReadinessLifecycle(t *testing.T, db *gorm.DB) {
 	}
 	pool.SetMaxOpenConns(10)
 	pool.SetMaxIdleConns(10)
-	// Freeze the refresh ticker; retained immutable publications still have
-	// their current lease and can be explicitly republished for these fixtures.
-	svc.StopRuntime()
+	// The fixture refresh interval prevents automatic publication; retained
+	// snapshots can still be explicitly republished by the live publisher.
 	if err := db.Model(&entity.ModelProviderBinding{}).Where("id = ?", model.Bindings[0].Binding.ID).Update("weight", 90).Error; err != nil {
 		t.Fatal(err)
 	}

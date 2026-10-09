@@ -67,7 +67,7 @@ func testCredentialRetirementLifecycle(t *testing.T, db *gorm.DB) {
 		_, _ = w.Write([]byte(responseBody.Load().(string)))
 	}))
 	defer func() { releaseOnce.Do(func() { close(releaseSource) }); upstream.Close() }()
-	svc, err := service.New(ctx, db, service.WithCredentialStorage(store), service.WithUpstreamPolicy(true))
+	svc, err := service.New(ctx, db, service.WithCredentialStorage(store), service.WithUpstreamPolicy(true), service.WithRuntimeRefreshInterval(time.Hour))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -175,7 +175,6 @@ func testCredentialRetirementLifecycle(t *testing.T, db *gorm.DB) {
 		t.Fatal(err)
 	}
 	// Deterministic fixtures explicitly publish without a background refresh race.
-	svc.StopRuntime()
 	path := "/api/v1/admin/credentials/" + source.ID + "/retire"
 	readinessPath := "/api/v1/admin/credentials/" + source.ID + "/retirement-readiness?replacement_credential_id=" + prepared.ID
 	read := func() service.CredentialRetirementReadiness {
@@ -457,7 +456,7 @@ func testCredentialRetirementLifecycle(t *testing.T, db *gorm.DB) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	fresh, err := service.New(ctx, freshDB, service.WithCredentialStorage(freshStore), service.WithUpstreamPolicy(true))
+	fresh, err := service.New(ctx, freshDB, service.WithCredentialStorage(freshStore), service.WithUpstreamPolicy(true), service.WithRuntimeRefreshInterval(time.Hour))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -470,8 +469,7 @@ func testCredentialRetirementLifecycle(t *testing.T, db *gorm.DB) {
 	if err := fresh.StartRuntime(ctx); err != nil {
 		t.Fatal(err)
 	}
-	// Join the restarted publisher before deterministic replay and capture.
-	fresh.StopRuntime()
+	// The restarted live publisher uses the same deterministic refresh interval.
 	defer fresh.StopRuntime()
 	restarted := decodeCatalogResponse[service.CredentialRetirementRecord](t, post(freshRouter, path, intent, etag, writeCookie, writeIdentity), 200)
 	if !restarted.Committed || !restarted.RuntimeApplied || restarted.CurrentSnapshotID == nil || *restarted.CurrentSnapshotID == intent.SnapshotID || !restarted.CommittedAt.Equal(saved.CommittedAt) {

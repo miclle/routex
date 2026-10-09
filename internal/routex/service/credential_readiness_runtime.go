@@ -59,6 +59,7 @@ type credentialRetirementRuntimeCapture struct {
 	connectionID         string
 	connectionBirth      time.Time
 	connectionProviderID string
+	providerProof        runtimeProviderProof
 	sourceID             string
 	replacementID        string
 	auth                 *runtimeAuthorization
@@ -92,6 +93,7 @@ func (s *Service) captureCredentialRetirementRuntime(connectionID, sourceID, rep
 	capture.SnapshotID, capture.SourceDigest = routes.ID, auth.SourceDigest
 	proof := auth.Connections[connectionID]
 	capture.connectionBirth, capture.connectionProviderID = proof.Birth, proof.ProviderID
+	capture.providerProof = auth.Providers[proof.ProviderID]
 	related := 0
 	for modelID, candidates := range routes.Models {
 		for _, candidate := range candidates {
@@ -190,7 +192,11 @@ func (s *Service) validateCredentialRetirementRuntimeCapture(capture *credential
 		return []string{"runtime_stale"}
 	}
 	for _, route := range capture.scope {
-		if !s.runtimeConnectionAllowed(auth, gatewayRoute{ConnectionID: capture.connectionID, ProviderID: capture.connectionProviderID, ConnectionBirth: capture.connectionBirth}) ||
+		if !s.runtimeConnectionAllowed(auth, gatewayRoute{
+			ConnectionID: capture.connectionID, ConnectionBirth: capture.connectionBirth,
+			ProviderID: capture.connectionProviderID, ProviderBirth: capture.providerProof.Birth,
+			ProviderEnabled: capture.providerProof.Enabled, ProviderRevision: capture.providerProof.Revision,
+		}) ||
 			auth.ConnectionRevisions[capture.connectionID] != capture.transportRevision ||
 			runtimeDenied(&runtime.deniedModels, route.ModelID) ||
 			runtimeDenied(&runtime.deniedProviderModels, route.ProviderModelID) ||

@@ -111,10 +111,31 @@ func (c *providerMetadataSQLConnection) ExecContext(ctx context.Context, q strin
 			return nil, errors.New("mutation outside transaction")
 		}
 		set := strings.Split(strings.Split(q, " SET ")[1], " WHERE ")[0]
-		if strings.Trim(strings.Split(set, "=")[0], " \"`") != "name" || strings.Contains(set, ",") {
+		parts := strings.Split(set, ",")
+		if len(parts) != 2 {
 			return nil, errors.New("unexpected Provider mutation")
 		}
-		c.provider.Name = args[0].Value.(string)
+		revision := false
+		for i, part := range parts {
+			switch strings.Trim(strings.Split(part, "=")[0], " \"`") {
+			case "e_tag":
+				value, ok := args[i].Value.(string)
+				if !ok || !strings.HasPrefix(value, "rev_") {
+					return nil, errors.New("invalid revision")
+				}
+				c.provider.ETag = value
+				revision = true
+			case "name":
+				c.provider.Name = args[i].Value.(string)
+			case "enabled":
+				c.provider.Enabled = args[i].Value.(bool)
+			default:
+				return nil, errors.New("unexpected Provider field")
+			}
+		}
+		if !revision {
+			return nil, errors.New("missing shared revision")
+		}
 		return driver.RowsAffected(1), nil
 	}
 	return c.connectionMetadataSQLConnection.ExecContext(ctx, q, args)
@@ -122,6 +143,7 @@ func (c *providerMetadataSQLConnection) ExecContext(ctx context.Context, q strin
 func providerMetadataSQLService(t *testing.T) (*Service, *rolesSQLFixture, *roleDefinitionSQLControl, *providerMetadataSQLState) {
 	t.Helper()
 	_, roles, control, base := connectionMetadataSQLService(t)
+	base.provider.ETag = "0"
 	state := &providerMetadataSQLState{base: base}
 	pool := sql.OpenDB(providerMetadataSQLConnector{connectionMetadataSQLConnector{roles, control, base}, state})
 	t.Cleanup(func() { _ = pool.Close() })
@@ -225,6 +247,10 @@ func TestProviderMetadataSQLAtomicCurrentOnlyRetry(t *testing.T) {
 		}
 		expected := originalProvider
 		expected.Name = input.Name
+		expected.ETag = state.base.provider.ETag
+		if expected.ETag == originalProvider.ETag {
+			t.Fatal("shared revision unchanged")
+		}
 		if !reflect.DeepEqual(expected, state.base.provider) || !reflect.DeepEqual(originalConnection, state.base.row) || len(f.data.audits) != 1 {
 			t.Fatal(state.base.provider, state.base.row)
 		}

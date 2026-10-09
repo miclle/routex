@@ -25,7 +25,7 @@ func testTeamSessionAuthLifecycle(t *testing.T, db *gorm.DB) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	svc, err := service.New(ctx, db, service.WithCredentialStorage(store))
+	svc, err := service.New(ctx, db, service.WithCredentialStorage(store), service.WithRuntimeRefreshInterval(time.Hour))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -75,7 +75,7 @@ func testTeamSessionAuthLifecycle(t *testing.T, db *gorm.DB) {
 	if err := svc.StartRuntime(ctx); err != nil {
 		t.Fatal(err)
 	}
-	svc.StopRuntime() // Keep deterministic published state; explicit refreshes renew its lease.
+	defer svc.StopRuntime() // Final shutdown joins the live manual publisher.
 	before := svc.RuntimeStatus().SnapshotID
 	identity, err := svc.RuntimeAuthenticateTeamSession(ctx, auth.Token, teamID)
 	if err != nil {

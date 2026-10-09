@@ -61,7 +61,13 @@ export type ProviderNameSubmittedIntent = {
   etag: string
   input: { name: string; reason: string }
 }
+export type ProviderStatusSubmittedIntent = {
+  provider_id: string
+  etag: string
+  input: { enabled: boolean; reason: string }
+}
 export type SubmittedIntent =
+  | { kind: 'provider-status'; payload: ProviderStatusSubmittedIntent }
   | { kind: 'provider-name'; payload: ProviderNameSubmittedIntent }
   | { kind: 'connection-name'; payload: ConnectionNameSubmittedIntent }
   | { kind: 'connection-status'; payload: ConnectionStatusSubmittedIntent }

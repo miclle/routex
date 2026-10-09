@@ -18,7 +18,7 @@ func testCredentialSourceClosedMigration(t *testing.T, db *gorm.DB) {
 	t.Helper()
 	ctx := context.Background()
 	before := personalKeyBehaviorLedger(t, db)
-	if len(before) != 90 || before[89].Version != 90 || before[88].Version != 89 {
+	if len(before) != 91 || before[90].Version != 91 || before[89].Version != 90 || before[88].Version != 89 {
 		t.Fatal("exact V89 full ledger required")
 	}
 	var original []entity.CredentialSourceProcess
@@ -50,7 +50,7 @@ func testCredentialSourceClosedMigration(t *testing.T, db *gorm.DB) {
 		t.Fatal(err)
 	}
 	after := personalKeyBehaviorLedger(t, db)
-	if len(after) != 90 || after[89].Version != 90 || after[88].Version != 89 || !reflect.DeepEqual(before[:88], after[:88]) {
+	if len(after) != 91 || after[90].Version != 91 || after[89].Version != 90 || after[88].Version != 89 || !reflect.DeepEqual(before[:88], after[:88]) {
 		t.Fatal("released 1..88 ledger changed")
 	}
 	var saved []entity.CredentialSourceProcess

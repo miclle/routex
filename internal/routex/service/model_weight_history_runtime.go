@@ -35,6 +35,10 @@ func (s *Service) modelWeightRuntimeApplied(st *modelWeightState) bool {
 	}
 	pms := map[string]int{}
 	cs := map[string]int{}
+	providers := map[string]runtimeProviderProof{}
+	for _, p := range st.Providers {
+		providers[p.ID] = runtimeProviderProof{Birth: p.CreatedAt.UTC(), Enabled: p.Enabled, Revision: p.ETag}
+	}
 	for i, pm := range st.Models {
 		pms[pm.ID] = i
 	}
@@ -49,6 +53,10 @@ func (s *Service) modelWeightRuntimeApplied(st *modelWeightState) bool {
 			return false
 		}
 		route, pm, c := candidate.Route, st.Models[pmIndex], st.Connections[cIndex]
+		provider, providerOK := providers[c.ProviderID]
+		if !providerOK || auth.Providers[c.ProviderID] != provider || !route.ProviderBirth.Equal(provider.Birth) || route.ProviderEnabled != provider.Enabled || route.ProviderRevision != provider.Revision || runtimeDenied(&s.runtime.deniedProviders, c.ProviderID) {
+			return false
+		}
 		revision := st.EgressRevisions[c.ID]
 		if revision == "" || route.EgressRevision != revision || auth.ConnectionRevisions[c.ID] != revision || route.EgressGeneration != s.egressGeneration.Load() || route.Weight != row.Weight || route.ProviderModelID != pm.ID || route.ConnectionID != c.ID || route.ProviderID != c.ProviderID || route.Protocol != c.Protocol || route.UpstreamName != pm.UpstreamName || route.BaseURL != c.BaseURL || route.Disabled != pm.Disabled || route.SupportsImageInput != pm.SupportsImageInput || route.SupportsPDFInput != pm.SupportsPDFInput || !route.ConnectionBirth.Equal(c.CreatedAt) || route.ConnectionEnabled != c.Enabled || auth.ProviderModelRevisions[pm.ID] != pm.ETag || auth.ProviderModels[pm.ID] == pm.Disabled || runtimeDenied(&s.runtime.deniedProviderModels, pm.ID) {
 			return false

@@ -31,6 +31,7 @@ export interface Connection {
   provider_models: ProviderModel[]
 }
 export interface Provider {
+  enabled?: boolean // Absent catalogue state remains Unknown.
   id: string
   name: string
   connections: Connection[]

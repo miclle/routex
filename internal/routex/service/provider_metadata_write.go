@@ -44,6 +44,8 @@ func (s *Service) WriteProviderMetadata(ctx context.Context, actorID, providerID
 	}
 	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
+	release := s.pinPersonalKeyMutation()
+	defer release()
 	changed := false
 	err := s.authDB(ctx).Transaction(func(tx *gorm.DB) error {
 		if err := lockGovernance(tx); err != nil {
@@ -59,7 +61,11 @@ func (s *Service) WriteProviderMetadata(ctx context.Context, actorID, providerID
 		if row.Name == input.Name {
 			return nil
 		}
-		result := providerMetadataQuery(tx, providerID).Select("Name").Updates(entity.Provider{Name: input.Name})
+		revision, err := id.NewPrefixed("rev")
+		if err != nil {
+			return err
+		}
+		result := providerMetadataQuery(tx, providerID).Updates(map[string]any{"Name": input.Name, "ETag": revision})
 		if result.Error != nil {
 			return result.Error
 		}
@@ -72,6 +78,7 @@ func (s *Service) WriteProviderMetadata(ctx context.Context, actorID, providerID
 		changed = true
 		return nil
 	})
+	release()
 	if err != nil {
 		return nil, catalogError(err)
 	}

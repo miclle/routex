@@ -130,13 +130,20 @@ func TestMemberCatalogPricesFreshSnapshotAndFixedBatchBudget(t *testing.T) {
 				if err != nil || len(items) != len(f.grants) {
 					t.Fatal(items, err)
 				}
-				if len(base.queries) != 17 {
+				if len(base.queries) != 18 {
 					t.Fatal("batch query budget changed", len(base.queries), base.queries)
 				}
+				providerQueries := 0
 				for _, q := range base.queries {
 					if strings.Contains(q, `FROM "providers"`) {
-						t.Fatal("unauthorized supplier directory hydration")
+						providerQueries++
 					}
+					if strings.Contains(q, `FROM "providers"`) && (strings.Contains(q, `"name"`) || strings.Contains(q, `"etag"`) || !strings.Contains(q, `"e_tag"`) || !strings.Contains(q, `WHERE "id" =`) || !strings.Contains(q, "LIMIT")) {
+						t.Fatal("eligibility query exposed names or escaped authorized topology", q)
+					}
+				}
+				if providerQueries != 1 {
+					t.Fatal("expected one bounded internal Provider eligibility query", providerQueries)
 				}
 			}
 		})

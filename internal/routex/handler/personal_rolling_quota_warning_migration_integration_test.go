@@ -29,7 +29,7 @@ func testPersonalRollingQuotaWarningMigration(t *testing.T, db *gorm.DB) {
 		AppliedAt string
 	}
 	var original []ledger
-	if e := db.Table("schema_migrations").Order("version").Find(&original).Error; e != nil || len(original) != 90 || original[89].Version != 90 || original[88].Version != 89 || original[87].Version != 88 || original[86].Version != 87 || original[85].Version != 86 || original[84].Version != 85 || original[83].Version != 84 || original[82].Version != 83 || original[80].Version != 81 || original[81].Version != 82 {
+	if e := db.Table("schema_migrations").Order("version").Find(&original).Error; e != nil || len(original) != 91 || original[90].Version != 91 || original[89].Version != 90 || original[88].Version != 89 || original[87].Version != 88 || original[86].Version != 87 || original[85].Version != 86 || original[84].Version != 85 || original[83].Version != 84 || original[82].Version != 83 || original[80].Version != 81 || original[81].Version != 82 {
 		t.Fatal("exact87 ledger", e)
 	}
 	for i, row := range original {
@@ -155,7 +155,7 @@ func testPersonalRollingQuotaWarningMigration(t *testing.T, db *gorm.DB) {
 	remove()
 	migrate()
 	var after []ledger
-	if e := db.Table("schema_migrations").Order("version").Find(&after).Error; e != nil || len(after) != 90 || after[89].Version != 90 || after[88].Version != 89 || after[87].Version != 88 || after[86].Version != 87 || after[85].Version != 86 || after[84].Version != 85 || after[83].Version != 84 || after[82].Version != 83 || !reflect.DeepEqual(after[:80], original[:80]) || !reflect.DeepEqual(after[81:], original[81:]) {
+	if e := db.Table("schema_migrations").Order("version").Find(&after).Error; e != nil || len(after) != 91 || after[90].Version != 91 || after[89].Version != 90 || after[88].Version != 89 || after[87].Version != 88 || after[86].Version != 87 || after[85].Version != 86 || after[84].Version != 85 || after[83].Version != 84 || after[82].Version != 83 || !reflect.DeepEqual(after[:80], original[:80]) || !reflect.DeepEqual(after[81:], original[81:]) {
 		t.Fatal("original80 ledger changed", e)
 	}
 	for i, row := range after {
@@ -191,7 +191,7 @@ func testPersonalRollingQuotaWarningMigration(t *testing.T, db *gorm.DB) {
 }
 
 func personalRollingWarningRegistryParent(names []string) ([]string, bool) {
-	if len(names) == 158 || len(names) == 160 || len(names) == 162 || len(names) == 164 || len(names) == 166 || len(names) == 168 || len(names) == 170 || len(names) == 172 || len(names) == 174 {
+	if len(names) == 158 || len(names) == 160 || len(names) == 162 || len(names) == 164 || len(names) == 166 || len(names) == 168 || len(names) == 170 || len(names) == 172 || len(names) == 174 || len(names) == 176 {
 		parent, ok := personalKeyRollingWarningRegistryParent(names)
 		if !ok {
 			return nil, false
@@ -216,7 +216,7 @@ func TestPersonalRollingWarningExact156RegistryAnd154Prefix(t *testing.T) {
 	for _, m := range regexp.MustCompile(`\{"([^"\n]+)", (test[A-Za-z0-9]+)\}`).FindAllStringSubmatch(string(raw), -1) {
 		names = append(names, m[1]+":"+m[2])
 	}
-	if len(names) != 174 || !strings.Contains(string(raw), "versions != 90") {
+	if len(names) != 176 || !strings.Contains(string(raw), "versions != 91") {
 		t.Fatal("current exact172 registry/V89 ledger changed")
 	}
 	if _, ok := personalRollingWarningRegistryParent(names); !ok {

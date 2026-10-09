@@ -98,6 +98,16 @@ function defaultSaveInput(value: DefaultLimitSaveSubmittedIntent['input']) {
   return result
 }
 function copySubmission(value: SubmittedIntent): SubmittedIntent {
+  if (value.kind === 'provider-status') {
+    return {
+      kind: value.kind,
+      payload: {
+        provider_id: value.payload.provider_id,
+        etag: value.payload.etag,
+        input: { enabled: value.payload.input.enabled, reason: value.payload.input.reason },
+      },
+    }
+  }
   if (value.kind === 'provider-name') {
     return {
       kind: value.kind,
@@ -241,7 +251,7 @@ function createOwner(cache: QueryClient, routeScope: string) {
       )
         return null
       if (
-        submission.kind === 'provider-name' &&
+        (submission.kind === 'provider-name' || submission.kind === 'provider-status') &&
         (!/^prv_[A-Za-z0-9_-]+$/.test(submission.payload.provider_id) ||
           submission.payload.provider_id.length > 30)
       )
@@ -260,7 +270,7 @@ function createOwner(cache: QueryClient, routeScope: string) {
         routeScope,
         epoch: ++epoch,
         targetScope:
-          submission.kind === 'provider-name'
+          submission.kind === 'provider-name' || submission.kind === 'provider-status'
             ? JSON.stringify([submission.kind, submission.payload.provider_id])
             : submission.kind === 'connection-name' || submission.kind === 'connection-status'
               ? JSON.stringify([

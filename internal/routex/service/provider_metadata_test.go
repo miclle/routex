@@ -78,9 +78,10 @@ func TestProviderMetadataIdentityCurrentContentAndBirth(t *testing.T) {
 		t.Fatal("exact current reconciliation rejected")
 	}
 	later.Name = provider.Name
+	later.ETag = "rev_returned"
 	returned, _ := providerMetadataRecord(actor, later, true)
-	if returned.ETag != original.ETag {
-		t.Fatal("content ABA invented row revision")
+	if returned.ETag == original.ETag || providerMetadataReview(returned, original.ETag, input) != catalogConflict {
+		t.Fatal("content ABA retained stale review")
 	}
 	a, p := actor, provider
 	a.CreatedAt = a.CreatedAt.In(time.FixedZone("offset", 28800))
@@ -140,9 +141,9 @@ func TestProviderMetadataPortableNameOnlyGORMUpdate(t *testing.T) {
 			}); err != nil {
 				t.Fatal(err)
 			}
-			stmt := providerMetadataQuery(db, "prv_CASE").Select("Name").Updates(entity.Provider{Name: "Exact"}).Statement
+			stmt := providerMetadataQuery(db, "prv_CASE").Updates(map[string]any{"Name": "Exact", "ETag": "rev_changed"}).Statement
 			sql := stmt.SQL.String()
-			if !strings.Contains(sql, "name") || strings.Contains(sql, "created_at") || strings.Contains(sql, "e_tag") || strings.Contains(sql, "enabled") || !reflect.DeepEqual(stmt.Vars, []any{"Exact", "prv_CASE"}) || dialect.Name() == "mysql" && !strings.Contains(sql, "CAST(") {
+			if !strings.Contains(sql, "name") || strings.Contains(sql, "created_at") || !strings.Contains(sql, "e_tag") || strings.Contains(sql, "enabled") || !reflect.DeepEqual(stmt.Vars, []any{"rev_changed", "Exact", "prv_CASE"}) || dialect.Name() == "mysql" && !strings.Contains(sql, "CAST(") {
 				t.Fatal(sql, stmt.Vars)
 			}
 		})

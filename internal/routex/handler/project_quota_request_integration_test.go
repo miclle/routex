@@ -14,6 +14,7 @@ import (
 	"strings"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/fox-gonic/fox"
 	"github.com/miclle/routex/internal/routex/database"
@@ -39,7 +40,7 @@ func testProjectQuotaRequestLifecycle(t *testing.T, db *gorm.DB) {
 	}))
 	defer upstream.Close()
 	makeService := func() *service.Service {
-		svc, err := service.New(ctx, db, service.WithCredentialStorage(store), service.WithUpstreamPolicy(true))
+		svc, err := service.New(ctx, db, service.WithCredentialStorage(store), service.WithUpstreamPolicy(true), service.WithRuntimeRefreshInterval(time.Hour))
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -93,7 +94,6 @@ func testProjectQuotaRequestLifecycle(t *testing.T, db *gorm.DB) {
 		if err := svc.StartRuntime(ctx); err != nil {
 			t.Fatal(err)
 		}
-		svc.StopRuntime() // Acceptance relies on synchronous publication hooks.
 		if err := svc.StartCallRecorder(ctx, spool); err != nil {
 			t.Fatal(err)
 		}
@@ -603,6 +603,7 @@ func testProjectQuotaRequestLifecycle(t *testing.T, db *gorm.DB) {
 	// repeating the original patch after a later direct policy edit.
 	later.TokensMonth = number(15)
 	write(later)
+	svc.StopRuntime() // Join the outgoing live publisher before service replacement.
 	if err := svc.StopCallRecorder(); err != nil {
 		t.Fatal(err)
 	}

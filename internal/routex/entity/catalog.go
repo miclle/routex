@@ -6,6 +6,8 @@ const ProtocolOpenAIChat = "openai_chat"
 
 // Provider is a stable upstream supplier; transport and secrets belong to connections.
 type Provider struct {
+	Enabled   bool   `gorm:"not null;default:true"`
+	ETag      string `gorm:"size:30;not null;default:0"`
 	ID        string `gorm:"primaryKey;size:30"`
 	Name      string `gorm:"size:100;not null"`
 	CreatedAt time.Time

@@ -12,6 +12,7 @@ import (
 	"sync"
 	"sync/atomic"
 	"testing"
+	"time"
 
 	"github.com/fox-gonic/fox"
 	"gorm.io/gorm"
@@ -32,7 +33,7 @@ func testTeamResourceLimitsLifecycle(t *testing.T, db *gorm.DB) {
 		t.Fatal(err)
 	}
 	t.Cleanup(func() { _ = db.Callback().Query().Remove(callback) })
-	svc, err := service.New(ctx, db)
+	svc, err := service.New(ctx, db, service.WithRuntimeRefreshInterval(time.Hour))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -62,6 +63,7 @@ func testTeamResourceLimitsLifecycle(t *testing.T, db *gorm.DB) {
 		t.Fatal(err)
 	}
 	defer func() {
+		svc.StopRuntime()
 		if err := svc.StopCallRecorder(); err != nil {
 			t.Error(err)
 		}
@@ -69,7 +71,6 @@ func testTeamResourceLimitsLifecycle(t *testing.T, db *gorm.DB) {
 	if err := svc.StartRuntime(ctx); err != nil {
 		t.Fatal(err)
 	}
-	svc.StopRuntime()
 	path := "/api/v1/teams/" + team.ID + "/limits"
 	childPath := "/api/v1/teams/" + team.ID + "/members/" + member.User.ID + "/limits"
 	get := func(path string, cookie *http.Cookie) service.LimitRecord {

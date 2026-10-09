@@ -173,7 +173,7 @@ func (c *routingConnection) QueryContext(ctx context.Context, q string, args []d
 func routingSQLService(t *testing.T, n int) (*Service, *routingSQLFixture) {
 	t.Helper()
 	actor, _, _ := connectionMetadataTestRows()
-	f := &routingSQLFixture{roles: &rolesSQLFixture{data: rolesSQLData{users: map[string]entity.User{actor.ID: actor}}, deny: map[string]bool{}}, model: entity.Model{ID: "mdl_target", Status: entity.ResourceActive}, provider: entity.Provider{ID: "prv_one", Name: "Literal % supplier"}, connections: []entity.ProviderConnection{{ID: "con_one", ProviderID: "prv_one", Name: "Recorded connection", Protocol: "openai_chat", Enabled: true}}, credentials: []entity.ProviderCredential{{ID: "crd_one", ConnectionID: "con_one", Enabled: true, VerificationStatus: "verified", Ciphertext: "retained-ciphertext", CreatedAt: time.Now().UTC()}}}
+	f := &routingSQLFixture{roles: &rolesSQLFixture{data: rolesSQLData{users: map[string]entity.User{actor.ID: actor}}, deny: map[string]bool{}}, model: entity.Model{ID: "mdl_target", Status: entity.ResourceActive}, provider: entity.Provider{ID: "prv_one", Name: "Literal % supplier", Enabled: true, ETag: "0", CreatedAt: time.Now().UTC()}, connections: []entity.ProviderConnection{{ID: "con_one", ProviderID: "prv_one", Name: "Recorded connection", Protocol: "openai_chat", Enabled: true}}, credentials: []entity.ProviderCredential{{ID: "crd_one", ConnectionID: "con_one", Enabled: true, VerificationStatus: "verified", Ciphertext: "retained-ciphertext", CreatedAt: time.Now().UTC()}}}
 	for i := 0; i < n; i++ {
 		id := "pmd_" + strings.Repeat("a", i+1)
 		f.models = append(f.models, entity.ProviderModel{ID: id, ConnectionID: "con_one", UpstreamName: "Literal%_model"})
@@ -235,7 +235,7 @@ func TestModelRoutingIndependentAuthorityAndUnknownPrices(t *testing.T) {
 	}
 }
 func TestModelRoutingConfiguredAvailabilityIsNotCoverage(t *testing.T) {
-	for _, kind := range []string{"unverified", "disabled_credential", "disabled_connection", "disabled_model", "missing_material"} {
+	for _, kind := range []string{"unverified", "disabled_credential", "disabled_connection", "disabled_provider", "disabled_model", "missing_material"} {
 		t.Run(kind, func(t *testing.T) {
 			s, f := routingSQLService(t, 1)
 			switch kind {
@@ -243,6 +243,8 @@ func TestModelRoutingConfiguredAvailabilityIsNotCoverage(t *testing.T) {
 				f.credentials[0].VerificationStatus = "pending"
 			case "disabled_credential":
 				f.credentials[0].Enabled = false
+			case "disabled_provider":
+				f.provider.Enabled = false
 			case "disabled_connection":
 				f.connections[0].Enabled = false
 			case "disabled_model":

@@ -16,7 +16,7 @@ func runtimeConnectionProofs(data *runtimeData) map[string]runtimeConnectionProo
 	return result
 }
 func (s *Service) runtimeConnectionAllowed(auth *runtimeAuthorization, route gatewayRoute) bool {
-	if s.runtime == nil || auth == nil {
+	if s.runtime == nil || auth == nil || !s.runtimeProviderAllowed(auth, route) {
 		return false
 	}
 	proof, ok := auth.Connections[route.ConnectionID]

@@ -69,7 +69,7 @@ func testProjectMonthlyQuotaWarningLifecycle(t *testing.T, db *gorm.DB) {
 		upstream.Close()
 	}()
 	makeService := func() *service.Service {
-		svc, err := service.New(ctx, db, service.WithCredentialStorage(store), service.WithUpstreamPolicy(true))
+		svc, err := service.New(ctx, db, service.WithCredentialStorage(store), service.WithUpstreamPolicy(true), service.WithRuntimeRefreshInterval(time.Hour))
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -135,7 +135,6 @@ func testProjectMonthlyQuotaWarningLifecycle(t *testing.T, db *gorm.DB) {
 	if err := svc.StartRuntime(ctx); err != nil {
 		t.Fatal(err)
 	}
-	svc.StopRuntime() // Deterministic publication: later changes use only explicit RefreshRuntime.
 	if err := svc.StartCallRecorder(ctx, spool); err != nil {
 		t.Fatal(err)
 	}
@@ -340,6 +339,7 @@ func testProjectMonthlyQuotaWarningLifecycle(t *testing.T, db *gorm.DB) {
 	reconcile()
 	assertCount(projectID, 0)
 	for index := range 3 {
+		refresh()
 		expectStatus(t, projectCall(projectID), 200)
 		flush()
 		reconcile()
@@ -348,6 +348,7 @@ func testProjectMonthlyQuotaWarningLifecycle(t *testing.T, db *gorm.DB) {
 			t.Fatal("unexpected dispatch before near level")
 		}
 	}
+	refresh()
 	expectStatus(t, projectCall(projectID), 200)
 	flush()
 	// Settlement alone never sends an inbox warning through the gateway.
@@ -1063,7 +1064,6 @@ func testProjectMonthlyQuotaWarningLifecycle(t *testing.T, db *gorm.DB) {
 	if err := svc.StartRuntime(ctx); err != nil {
 		t.Fatal(err)
 	}
-	svc.StopRuntime()
 	if err := svc.StartCallRecorder(ctx, spool); err != nil {
 		t.Fatal(err)
 	}

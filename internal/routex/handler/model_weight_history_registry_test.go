@@ -196,6 +196,10 @@ func TestModelWeightHistoryExact174RegistryPrefix(t *testing.T) {
 		}
 		functions[p[2]] = true
 	}
+	if len(names) != 176 || pairs[174][1] != "provider_enablement_migration" || pairs[174][2] != "testProviderEnablementMigration" || pairs[175][1] != "provider_status" || pairs[175][2] != "testProviderStatusLifecycle" {
+		t.Fatal("V91 exact tail changed")
+	}
+	names = names[:174]
 	if !slices.Equal(names, expected) || len(names) != 174 || pairs[172][2] != "testModelWeightHistoryMigration" || pairs[173][2] != "testModelWeightHistoryLifecycle" {
 		t.Fatal("released172 prefix or actual appended function changed")
 	}

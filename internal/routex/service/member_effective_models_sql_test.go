@@ -257,7 +257,19 @@ func TestMemberEffectiveModelsMeasuredReadBudgetAndUnauthorizedTeamOmission(t *t
 				want = 20
 			}
 			if name == "private_metadata" {
-				want = 18
+				want = 19
+				providerQueries := 0
+				for _, q := range f.queries {
+					if strings.Contains(q, `FROM "providers"`) {
+						providerQueries++
+						if strings.Contains(q, `"name"`) || strings.Contains(q, `"etag"`) || !strings.Contains(q, `"e_tag"`) || !strings.Contains(q, `WHERE "id" =`) || !strings.Contains(q, "LIMIT") {
+							t.Fatal("internal eligibility escaped scoped unnamed Provider query", q)
+						}
+					}
+				}
+				if providerQueries != 1 {
+					t.Fatal("eligibility Provider query must remain one bounded batch", providerQueries)
+				}
 				if result.Items[0].Providers != nil || result.Items[0].InputPrice.State != "unauthorized" || result.Items[0].OutputPrice.State != "unauthorized" {
 					t.Fatal("independent metadata gates", result)
 				}

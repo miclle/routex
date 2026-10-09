@@ -16,6 +16,7 @@ import (
 	"sync"
 	"sync/atomic"
 	"testing"
+	"time"
 
 	"github.com/fox-gonic/fox"
 	"gorm.io/gorm"
@@ -83,7 +84,7 @@ func testProjectInitialResourcesLifecycle(t *testing.T, db *gorm.DB) {
 	}()
 	makeService := func() *service.Service {
 		t.Helper()
-		instance, err := service.New(ctx, db, service.WithCredentialStorage(store), service.WithUpstreamPolicy(true))
+		instance, err := service.New(ctx, db, service.WithCredentialStorage(store), service.WithUpstreamPolicy(true), service.WithRuntimeRefreshInterval(time.Hour))
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -259,7 +260,6 @@ func testProjectInitialResourcesLifecycle(t *testing.T, db *gorm.DB) {
 		if err := svc.StartRuntime(ctx); err != nil {
 			t.Fatal(err)
 		}
-		svc.StopRuntime() // Synchronous publications keep controlled failure boundaries deterministic.
 	}
 	start()
 	native := func(bearer, name string) *httptest.ResponseRecorder {

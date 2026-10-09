@@ -243,13 +243,13 @@ func testProviderMetadataLifecycle(t *testing.T, db *gorm.DB) {
 	if !reflect.DeepEqual(beforeFault, readProvider()) || auditCount() != beforeAudit {
 		t.Fatal("audit rollback lost original row")
 	}
-	// A content return is intentionally the same validator, not an operation receipt.
+	// A content return advances the shared revision and invalidates stale edits.
 	current := get(cookie)
 	put(cookie, admin.CSRFToken, current.ETag, "Temporary", "content change", 200)
 	temporary := get(cookie)
 	returned := put(cookie, admin.CSRFToken, temporary.ETag, current.Name, "content return", 200)
-	if returned.Provider.ETag != current.ETag {
-		t.Fatal("current-content ABA contract changed")
+	if returned.Provider.ETag == current.ETag {
+		t.Fatal("ABA retained stale metadata review")
 	}
 	review = get(cookie)
 	for _, target := range []struct {
@@ -284,6 +284,10 @@ func testProviderMetadataLifecycle(t *testing.T, db *gorm.DB) {
 	}
 	expected := original
 	expected.Name = "Pending publication"
+	expected.ETag = readProvider().ETag
+	if expected.ETag == original.ETag {
+		t.Fatal("metadata write did not advance shared revision")
+	}
 	if !reflect.DeepEqual(readProvider(), expected) || childSnapshot() != children {
 		t.Fatal("rename changed identities/children/quality policy")
 	}

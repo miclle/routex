@@ -12,6 +12,7 @@ import (
 	"strings"
 	"sync/atomic"
 	"testing"
+	"time"
 
 	"github.com/fox-gonic/fox"
 	"github.com/miclle/routex/internal/routex/entity"
@@ -31,7 +32,7 @@ func testTeamQuotaRequestLifecycle(t *testing.T, db *gorm.DB) {
 		t.Fatal(err)
 	}
 	t.Cleanup(func() { _ = db.Callback().Query().Remove(callback) })
-	svc, err := service.New(ctx, db)
+	svc, err := service.New(ctx, db, service.WithRuntimeRefreshInterval(time.Hour))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -59,7 +60,6 @@ func testTeamQuotaRequestLifecycle(t *testing.T, db *gorm.DB) {
 	if err := svc.StartRuntime(ctx); err != nil {
 		t.Fatal(err)
 	}
-	svc.StopRuntime()
 	team, err := svc.CreateResource(ctx, admin.User.ID, service.TeamResource, "Monthly requests", "Current owner first", []string{owner.User.ID, otherOwner.User.ID})
 	if err != nil {
 		t.Fatal(err)

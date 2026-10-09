@@ -20,6 +20,10 @@ func (s *Service) modelCreationRuntimeApplied(state *modelCreationState) bool {
 	if auth == nil || routes == nil || !time.Now().Before(auth.ValidUntil) || auth.SourceDigest == "" || auth.SourceDigest != routes.Digest || auth.ConnectionRevisions[state.Connection.ID] != state.EgressRevision {
 		return false
 	}
+	providerProof, providerOK := auth.Providers[state.Provider.ID]
+	if !providerOK || !state.Provider.Enabled || providerProof.Enabled != state.Provider.Enabled || !providerProof.Birth.Equal(state.Provider.CreatedAt) || providerProof.Revision != state.Provider.ETag || runtimeDenied(&s.runtime.deniedProviders, state.Provider.ID) {
+		return false
+	}
 	for _, pm := range state.ProviderModels {
 		if !auth.ProviderModels[pm.ID] || auth.ProviderModelRevisions[pm.ID] != pm.ETag || runtimeDenied(&s.runtime.deniedProviderModels, pm.ID) {
 			return false
@@ -59,7 +63,7 @@ func (s *Service) modelCreationRuntimeApplied(state *modelCreationState) bool {
 		for _, row := range model.Topology {
 			route, exists := actual[row.Binding.ID]
 			r := route.Route
-			if !exists || r.Weight != row.Binding.Weight || r.ProviderModelID != row.ProviderModel.ID || r.ConnectionID != row.Connection.ID || r.ProviderID != row.Connection.ProviderID || r.UpstreamName != row.ProviderModel.UpstreamName || r.BaseURL != row.Connection.BaseURL || r.SupportsImageInput != row.ProviderModel.SupportsImageInput || r.SupportsPDFInput != row.ProviderModel.SupportsPDFInput || r.EgressRevision != row.EgressRevision || r.EgressGeneration != s.egressGeneration.Load() || auth.ConnectionRevisions[row.Connection.ID] != row.EgressRevision || auth.ProviderModelRevisions[row.ProviderModel.ID] != row.ProviderModel.ETag || auth.ProviderModels[row.ProviderModel.ID] == row.ProviderModel.Disabled || runtimeDenied(&s.runtime.deniedProviderModels, row.ProviderModel.ID) {
+			if !exists || (!s.runtimeProviderMatches(auth, r) || r.Weight > 0 && !s.runtimeProviderAllowed(auth, r)) || r.Weight != row.Binding.Weight || r.ProviderModelID != row.ProviderModel.ID || r.ConnectionID != row.Connection.ID || r.ProviderID != row.Connection.ProviderID || r.UpstreamName != row.ProviderModel.UpstreamName || r.BaseURL != row.Connection.BaseURL || r.SupportsImageInput != row.ProviderModel.SupportsImageInput || r.SupportsPDFInput != row.ProviderModel.SupportsPDFInput || r.EgressRevision != row.EgressRevision || r.EgressGeneration != s.egressGeneration.Load() || auth.ConnectionRevisions[row.Connection.ID] != row.EgressRevision || auth.ProviderModelRevisions[row.ProviderModel.ID] != row.ProviderModel.ETag || auth.ProviderModels[row.ProviderModel.ID] == row.ProviderModel.Disabled || runtimeDenied(&s.runtime.deniedProviderModels, row.ProviderModel.ID) {
 				return false
 			}
 			if row.Connection.ID == state.Connection.ID {

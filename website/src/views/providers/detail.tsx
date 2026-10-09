@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import ProviderMetadataCard from './provider-metadata'
+import ProviderStatusCard from './provider-status'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Activity, CircleAlert, Gauge, Settings, Timer, Waypoints } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
@@ -621,6 +622,7 @@ export function ProviderSettings({ provider }: { provider: Provider }) {
   return (
     <div className="space-y-4">
       <ProviderMetadataCard providerId={provider.id} />
+      <ProviderStatusCard providerId={provider.id} />
       <Card>
         <CardHeader className="gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div>

@@ -16,6 +16,7 @@ import (
 	"sync"
 	"sync/atomic"
 	"testing"
+	"time"
 
 	"github.com/fox-gonic/fox"
 	"github.com/miclle/routex/internal/routex/database"
@@ -72,7 +73,7 @@ func testMemberEffectiveModelsLifecycle(t *testing.T, db *gorm.DB) {
 	}
 	newService := func() *service.Service {
 		t.Helper()
-		s, err := service.New(ctx, db, service.WithCredentialStorage(store), service.WithUpstreamPolicy(true))
+		s, err := service.New(ctx, db, service.WithCredentialStorage(store), service.WithUpstreamPolicy(true), service.WithRuntimeRefreshInterval(time.Hour))
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -149,7 +150,6 @@ func testMemberEffectiveModelsLifecycle(t *testing.T, db *gorm.DB) {
 	if err := svc.StartRuntime(ctx); err != nil {
 		t.Fatal(err)
 	}
-	svc.StopRuntime()
 	path := func(user string) string { return "/api/v1/admin/members/" + url.PathEscape(user) + "/effective-models" }
 	get := func(cookie *http.Cookie) service.MemberEffectiveModelsPage {
 		t.Helper()
@@ -450,7 +450,6 @@ func testMemberEffectiveModelsLifecycle(t *testing.T, db *gorm.DB) {
 	if err := svc.StartRuntime(ctx); err != nil {
 		t.Fatal(err)
 	}
-	svc.StopRuntime()
 	current = get(fullCookie)
 	current.ObservedAt = beforeRestart.ObservedAt
 	if !reflect.DeepEqual(current, beforeRestart) {

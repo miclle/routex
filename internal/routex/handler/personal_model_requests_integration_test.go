@@ -15,6 +15,7 @@ import (
 	"sync"
 	"sync/atomic"
 	"testing"
+	"time"
 
 	"github.com/fox-gonic/fox"
 	"gorm.io/gorm"
@@ -61,7 +62,7 @@ func testPersonalModelRequestsLifecycle(t *testing.T, db *gorm.DB) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	svc, err := service.New(ctx, db, service.WithCredentialStorage(store), service.WithUpstreamPolicy(true))
+	svc, err := service.New(ctx, db, service.WithCredentialStorage(store), service.WithUpstreamPolicy(true), service.WithRuntimeRefreshInterval(time.Hour))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -172,7 +173,6 @@ func testPersonalModelRequestsLifecycle(t *testing.T, db *gorm.DB) {
 		t.Fatal(err)
 	}
 	defer svc.StopRuntime()
-	svc.StopRuntime() // Polling must not hide a missing synchronous mutation publication.
 	const candidates = "/api/v1/model-access-candidates"
 	const personal = "/api/v1/personal-model-requests"
 	memberPath := func(userID string) string { return "/api/v1/admin/members/" + userID + "/model-requests" }

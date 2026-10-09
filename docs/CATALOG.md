@@ -1346,3 +1346,39 @@ authority renewal clear obsolete application status while retaining an uncertain
 original intent in its mounted owner. History refresh and new-review clicks
 check authority at dispatch time. A new review can release the original intent
 only after a freshly confirmed terminal applied/superseded result.
+
+## Whole-Provider enablement
+
+Provider Settings retains Basic information, Provider status and Quality policy
+in that order. GET `/api/v1/admin/providers/:provider_id/status` returns the exact
+recorded identity, name, enablement, opaque review ETag and independent editability.
+PUT submits only `enabled` and a required reason with the reviewed strong quoted
+If-Match. Both reads and writes use private/no-store responses. GET independently
+requires `providers.read`; PUT retains Origin/CSRF and independently requires
+`providers.write`. Write authority never implies read authority.
+The UI reviews current facts behind fresh read authority and independently gates
+changes with fresh write authority. Name and status share a revision, preventing
+stale confirmation after either changes.
+
+Disabling a Provider excludes its routes from public Model discovery and new
+native dispatch without rewriting child enablement, binding weights, grants,
+prices or credentials. Already
+admitted calls retain immutable attribution and can complete. Enabling does not
+make disabled or otherwise ineligible children usable. Recorded enablement is
+configured availability, not native health or successful inference. Successful writes confirm
+current local runtime publication, including Providers with no Connections; they
+do not establish a historical command outcome or fleet convergence.
+
+The opaque status review binds the actor and Provider incarnations as well as the
+shared name/status revision. A retry for the same identity and already-current
+desired status may confirm current configuration and local publication without
+creating another status change or audit. It is not a UUID command receipt and
+does not prove which historical request established that state.
+
+Status and its typed audit change atomically. Known precommit conflicts remain
+conflicts; any later publication or confirmation error is unavailable/503 because
+the durable change may already have occurred. The UI retains the exact dispatched
+boolean/reason/If-Match through dismissal and same-owner renewal, retries manually
+with fresh authority, and never resolves original uncertainty from a matching GET
+or a failed retry. Starting a separate change requires an explicit fresh review,
+discarding only the local retry, a new reason and another confirmation.

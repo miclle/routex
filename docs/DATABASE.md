@@ -1459,3 +1459,15 @@ execution, concurrent startup and relevant constraints, including binary payload
 beyond 64 KiB and at the 512 KiB boundary. Verification and delivery evidence
 remain recorded separately from this schema contract. Released V1–V89 migration
 steps remain unchanged.
+
+
+### V91: Provider enablement and shared review revision
+
+A private frozen GORM schema adds `providers.enabled` (non-null, default true)
+and `providers.e_tag` (non-null, 30 characters, default `0`). Existing Providers
+remain enabled when the column is added; already present false values and
+revisions are preserved. Bounded HasColumn/AddColumn steps validate the resulting
+shape and allow reentry after partially applied MySQL DDL. There is no handwritten
+production SQL or change to released V1–V90 steps. Name and status writes advance
+the same revision. A changed status and its typed before/after/reason audit persist
+atomically; no child state, grant, price, weight or routing history is rewritten.

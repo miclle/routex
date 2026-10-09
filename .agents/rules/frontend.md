@@ -1359,3 +1359,25 @@ native completion. Unknown blocker codes use localized blocked guidance. Keep
 paired English/Chinese catalogue copy, decimal-free integer weights, bounded
 version payloads and transient command state without browser storage or mutation
 cache persistence.
+
+## Whole-Provider status and runtime proof
+
+Whole-Provider enablement belongs in the existing Provider Settings tab after
+Basic information and before Quality policy. Use the local Card/Input and Base
+UI Dialog; preserve the tab hierarchy. Read the exact scoped status endpoint and
+independently gate writes with fresh Provider read/write authority, Session and
+resource generations. PUT only the reviewed boolean and required reason with a
+strong quoted If-Match; Provider name and status share a revision. Child states,
+routing weights, grants, prices and credentials remain unchanged. Recorded
+enablement is configured availability, never proof of native health.
+
+Synchronously fence confirmation, dismissal and retarget callbacks before HTTP
+I/O. Same-owner renewal retains an exact dispatched uncertain request in the
+transient intent owner; retry uses fresh authority and CSRF. Initial precommit
+conflicts require explicit fresh review; postcommit 503 and every failed uncertain
+retry retain uncertainty. Matching GET never establishes historical completion.
+An explicit separate-change flow discards only the local retry before reviewing
+and confirming a new request. Confirmed runtime application describes the current
+local publication only. Actor/target changes, expiry and obsolete callbacks cannot
+restore private facts; do not store status intents in mutation caches or browser
+storage. Keep English/Chinese copy paired in catalog.

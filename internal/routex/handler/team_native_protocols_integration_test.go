@@ -112,7 +112,7 @@ func testTeamNativeProtocolsLifecycle(t *testing.T, db *gorm.DB) {
 	}()
 	makeService := func() *service.Service {
 		t.Helper()
-		value, err := service.New(ctx, db, service.WithCredentialStorage(store), service.WithUpstreamPolicy(true))
+		value, err := service.New(ctx, db, service.WithCredentialStorage(store), service.WithUpstreamPolicy(true), service.WithRuntimeRefreshInterval(time.Hour))
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -169,7 +169,6 @@ func testTeamNativeProtocolsLifecycle(t *testing.T, db *gorm.DB) {
 	if err := svc.StartRuntime(ctx); err != nil {
 		t.Fatal(err)
 	}
-	svc.StopRuntime()
 	spool := filepath.Join(t.TempDir(), "team-native.db")
 	if err := svc.StartCallRecorder(ctx, spool); err != nil {
 		t.Fatal(err)
@@ -660,7 +659,6 @@ func testTeamNativeProtocolsLifecycle(t *testing.T, db *gorm.DB) {
 	if err := svc.StartRuntime(ctx); err != nil {
 		t.Fatal(err)
 	}
-	svc.StopRuntime()
 	if err := svc.StartCallRecorder(ctx, spool); err != nil {
 		t.Fatal(err)
 	}

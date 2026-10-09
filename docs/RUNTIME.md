@@ -152,3 +152,29 @@ call/attempt identities and original Sessions remain exact; historical closure
 and a fresh joined generation are independently read back. These observations
 do not establish forced-crash recovery or fleet-wide closure. See the
 [current acceptance boundary](IMPLEMENTATION.md#current-vault-main-integration-2026-10-09).
+
+## Whole-Provider dispatch gate
+
+Published authorization retains exact Provider identity, birth, enablement and
+shared review revision. Route plans and retirement readiness captures retain
+that same proof; fresh mutable catalogue facts cannot substitute for a captured
+Provider incarnation. New discovery, route candidates, weight rollback eligibility
+and final dispatch require the matching enabled Provider, independently of child
+Connection, Credential and Provider Model gates. Unknown proof remains denied.
+
+A committed disable publishes a synchronous local denial before refresh; a failed
+refresh cannot reopen dispatch. Current application checks bind the exact current
+digest, publication epoch, egress generation and Provider proof, including a
+Provider with no Connections. Held admitted native calls retain their captured
+Credential/snapshot attribution and may finish without changing history. Failed
+and interrupted attempts also retain their exact captured identities; a status
+write never manufactures native completion evidence. Enabling
+preserves every child state and configured weight. Local publication confirmation
+is separate from historical operation identity and fleet coverage.
+
+Complete runtime refreshes serialize the read-through-publication pipeline.
+Publication admission precedes borrowing a database connection; the effects lock
+is acquired after loading, so current proofs remain observable during that read.
+Cancellation and stopped-publisher checks after lock acquisition prevent late
+publication or revocation-barrier clearing by obsolete loads. These ordering
+rules do not change the authorization lease or establish native availability.

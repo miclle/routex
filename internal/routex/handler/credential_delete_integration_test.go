@@ -60,7 +60,7 @@ func testCredentialDeleteLifecycle(t *testing.T, db *gorm.DB) {
 	}))
 	defer upstream.Close()
 	defer releaseUpstream()
-	svc, err := service.New(ctx, db, service.WithCredentialStorage(store), service.WithUpstreamPolicy(true))
+	svc, err := service.New(ctx, db, service.WithCredentialStorage(store), service.WithUpstreamPolicy(true), service.WithRuntimeRefreshInterval(time.Hour))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -140,9 +140,9 @@ func testCredentialDeleteLifecycle(t *testing.T, db *gorm.DB) {
 	if err := svc.StartRuntime(ctx); err != nil {
 		t.Fatal(err)
 	}
-	// Explicit publication makes fault injection deterministic; the same stopped
-	// publisher still handles every mutation and is safe to join on cleanup.
-	svc.StopRuntime()
+	// A one-hour refresh interval keeps fault injection deterministic while
+	// the live publisher still handles explicit mutations and final cleanup.
+	defer svc.StopRuntime() // Join even if recorder startup fails.
 	if err := svc.StartCallRecorder(ctx, filepath.Join(t.TempDir(), "credential-delete.db")); err != nil {
 		t.Fatal(err)
 	}

@@ -24,7 +24,7 @@ import (
 func testOffboardingLifecycle(t *testing.T, db *gorm.DB) {
 	t.Helper()
 	ctx := context.Background()
-	svc, err := service.New(ctx, db)
+	svc, err := service.New(ctx, db, service.WithRuntimeRefreshInterval(time.Hour))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -80,7 +80,6 @@ func testOffboardingLifecycle(t *testing.T, db *gorm.DB) {
 		t.Fatal(err)
 	}
 	defer svc.StopRuntime()
-	svc.StopRuntime()
 	inventory, err := svc.OffboardingInventory(ctx, admin.User.ID, "usr_departing")
 	if err != nil {
 		t.Fatal(err)

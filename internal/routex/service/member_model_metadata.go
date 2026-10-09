@@ -126,25 +126,31 @@ func readMemberModelMetadata(tx *gorm.DB, data *memberModelsData, modelIDs []str
 	}
 	data.Access = projected
 
-	if data.ProvidersRead {
-		ids := []string{}
-		for _, c := range data.Connections {
-			if !slices.Contains(connectionIDs, c.ID) {
-				return apperrors.ErrInternal
-			}
-			ids = append(ids, c.ProviderID)
+	// Provider eligibility is internal authority, independent of directory reads.
+	// Hydrate only Providers reached through this authorized bounded topology.
+	ids := []string{}
+	for _, c := range data.Connections {
+		if !slices.Contains(connectionIDs, c.ID) {
+			return apperrors.ErrInternal
 		}
-		slices.Sort(ids)
-		ids = slices.Compact(ids)
-		if err := modelCreationDB(tx).Select("id", "name").Where(memberModelsExactIDs(tx, "id", ids)).Limit(5001).Find(&data.Providers).Error; err != nil {
+		ids = append(ids, c.ProviderID)
+	}
+	slices.Sort(ids)
+	ids = slices.Compact(ids)
+	columns := []string{"id", "created_at", "enabled", "e_tag"}
+	if data.ProvidersRead {
+		columns = append(columns, "name")
+	}
+	if len(ids) > 0 {
+		if err := modelCreationDB(tx).Select(columns).Where(memberModelsExactIDs(tx, "id", ids)).Limit(5001).Find(&data.Providers).Error; err != nil {
 			return err
 		}
-		if len(data.Providers) > 5000 {
-			return ErrModelCatalogOverflow
-		}
+	}
+	if len(data.Providers) != len(ids) {
+		return apperrors.ErrInternal
 	}
 	for _, provider := range data.Providers {
-		if !validCatalogLabel(provider.Name) {
+		if !slices.Contains(ids, provider.ID) || !connectionMetadataBirth(provider.CreatedAt) || provider.ETag == "" || data.ProvidersRead && !validCatalogLabel(provider.Name) {
 			return apperrors.ErrInternal
 		}
 	}

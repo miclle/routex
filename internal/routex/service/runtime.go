@@ -31,6 +31,7 @@ var runtimeUnavailable = &apperrors.Error{Code: 503, Message: "runtime configura
 type gatewayRuntime struct {
 	cancel               context.CancelFunc
 	done                 chan struct{}
+	refreshMu            sync.Mutex
 	mu                   sync.Mutex
 	publication          sync.RWMutex
 	auth                 atomic.Pointer[runtimeAuthorization]
@@ -46,6 +47,7 @@ type gatewayRuntime struct {
 	deniedProviderModels sync.Map
 	deniedCredentials    sync.Map
 	deniedConnections    sync.Map
+	deniedProviders      sync.Map
 	deniedSessions       sync.Map
 	deniedSessionUsers   sync.Map
 	deniedTeams          sync.Map
@@ -67,6 +69,7 @@ type runtimeConnectionProof struct {
 type runtimeAuthorization struct {
 	publicationEpoch       uint64
 	Connections            map[string]runtimeConnectionProof
+	Providers              map[string]runtimeProviderProof
 	PersonalGrantStates    map[string]runtimePersonalGrantState
 	ModelEligibilityHashes map[string]string
 	PersonalKeyStates      map[string]runtimePersonalKeyState
@@ -158,9 +161,14 @@ func (s *Service) StartRuntime(ctx context.Context) error {
 		close(s.runtime.done)
 		return err
 	}
+	interval := s.runtimeRefreshInterval
+	if interval == 0 {
+		// Existing internal fixtures may construct Service directly.
+		interval = runtimeRefreshInterval
+	}
 	go func() {
 		defer close(s.runtime.done)
-		ticker := time.NewTicker(runtimeRefreshInterval)
+		ticker := time.NewTicker(interval)
 		defer ticker.Stop()
 		for {
 			select {
@@ -194,18 +202,49 @@ func (s *Service) RefreshRuntime(ctx context.Context) error {
 	}
 	ctx, cancel := context.WithTimeout(ctx, runtimeRefreshTimeout)
 	defer cancel()
+	// Serialize the complete read/effect pipeline, so a later refresh drains
+	// earlier reads instead of publishing a snapshot that can be overwritten.
+	// Admission precedes publication.RLock: queued refreshes hold neither the
+	// publication gate nor a database connection. Current proofs use only mu.
+	runtime.refreshMu.Lock()
+	defer runtime.refreshMu.Unlock()
+	if ctx.Err() != nil {
+		return runtimeUnavailable
+	}
+	select {
+	case <-runtime.done:
+		return runtimeUnavailable
+	default:
+	}
 	// Acquire publication admission before borrowing a database connection.
 	// Retirement holds the exclusive gate through commit and invalidation.
 	runtime.publication.RLock()
 	defer runtime.publication.RUnlock()
+	if ctx.Err() != nil {
+		return runtimeUnavailable
+	}
+	select {
+	case <-runtime.done:
+		return runtimeUnavailable
+	default:
+	}
+	generation := runtime.epoch.Load()
+	started := time.Now().UTC()
+	data, err := s.loadRuntimeData(ctx)
+	// Current publication proofs stay observable while a new database snapshot
+	// is loading. Serialize effects only after the read has completed.
 	runtime.mu.Lock()
 	defer runtime.mu.Unlock()
 	if ctx.Err() != nil {
 		return runtimeUnavailable
 	}
-	generation := runtime.epoch.Load()
-	started := time.Now().UTC()
-	data, err := s.loadRuntimeData(ctx)
+	// A stopped publisher cannot publish or clear revocation barriers, including
+	// when shutdown completed while its database snapshot was being read.
+	select {
+	case <-runtime.done:
+		return runtimeUnavailable
+	default:
+	}
 	if err != nil {
 		s.setRuntimeStatus(ctx, started, "database_unavailable")
 		return runtimeUnavailable
@@ -225,6 +264,7 @@ func (s *Service) RefreshRuntime(ctx context.Context) error {
 	// eligibility map, so clearing older tombstones cannot restore disabled keys.
 	clearRuntimeTombstones(&runtime.deniedCredentials, generation)
 	clearRuntimeTombstones(&runtime.deniedConnections, generation)
+	clearRuntimeTombstones(&runtime.deniedProviders, generation)
 	clearRuntimeTombstones(&runtime.deniedProviderModels, generation)
 	clearRuntimeTombstones(&runtime.deniedSessions, generation)
 	clearRuntimeTombstones(&runtime.deniedSessionUsers, generation)
@@ -549,6 +589,7 @@ func (s *Service) loadRuntimeDataTxWithCredentialReader(tx *gorm.DB, openReader 
 func buildRuntimeAuthorization(data *runtimeData, until time.Time) *runtimeAuthorization {
 	auth := &runtimeAuthorization{
 		Connections:            runtimeConnectionProofs(data),
+		Providers:              runtimeProviderProofs(data),
 		PersonalKeyStates:      runtimeMemberKeyStates(data.Keys),
 		PersonalGrantStates:    runtimePersonalGrantStates(data),
 		ModelEligibilityHashes: runtimeMemberModelsEligibility(data),
@@ -806,7 +847,7 @@ func (s *Service) buildRuntimeRoutes(data *runtimeData) (map[string][]runtimeRou
 			return nil, runtimeUnavailable
 		}
 		_, egressRevision, _ := runtimeEgressSelection(data, connection)
-		candidate := runtimeRoute{Route: gatewayRoute{Client: clients[connection.ID], EgressGeneration: data.EgressGeneration, EgressRevision: egressRevision, Adapter: entity.ConnectionAdapter(connection), APIVersion: connection.APIVersion, Protocol: connection.Protocol, PriceBasis: runtimePriceBasis(data.Pricing, pm.ID, connection.Protocol), BindingID: binding.ID, Weight: binding.Weight, ProviderID: connection.ProviderID, ProviderName: provider.Name, ProviderModelID: pm.ID, ConnectionID: connection.ID, ConnectionBirth: connection.CreatedAt.UTC(), ConnectionEnabled: connection.Enabled, Disabled: pm.Disabled, ConnectionName: connection.Name, UpstreamName: pm.UpstreamName, BaseURL: connection.BaseURL, SupportsImageInput: pm.SupportsImageInput, SupportsPDFInput: pm.SupportsPDFInput}}
+		candidate := runtimeRoute{Route: gatewayRoute{Client: clients[connection.ID], EgressGeneration: data.EgressGeneration, EgressRevision: egressRevision, Adapter: entity.ConnectionAdapter(connection), APIVersion: connection.APIVersion, Protocol: connection.Protocol, PriceBasis: runtimePriceBasis(data.Pricing, pm.ID, connection.Protocol), BindingID: binding.ID, Weight: binding.Weight, ProviderID: connection.ProviderID, ProviderBirth: provider.CreatedAt.UTC(), ProviderEnabled: provider.Enabled, ProviderRevision: provider.ETag, ProviderName: provider.Name, ProviderModelID: pm.ID, ConnectionID: connection.ID, ConnectionBirth: connection.CreatedAt.UTC(), ConnectionEnabled: connection.Enabled, Disabled: pm.Disabled, ConnectionName: connection.Name, UpstreamName: pm.UpstreamName, BaseURL: connection.BaseURL, SupportsImageInput: pm.SupportsImageInput, SupportsPDFInput: pm.SupportsPDFInput}}
 		for _, credential := range credentials[connection.ID] {
 			if access[credential.ID][pm.ID] {
 				candidate.Credentials = append(candidate.Credentials, credential)

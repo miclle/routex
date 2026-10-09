@@ -68,7 +68,7 @@ func TestMemberModelsReviewETagCoversIdentityProvenanceAndEligibilityOnly(t *tes
 	svc, data, _ := memberModelsProjectionFixture(t)
 	data.TeamBasis = []memberModelsTeamBasis{{TeamID: "tea_one", MembershipID: "tmm_one", ModelID: "mdl_team"}}
 	original := svc.projectMemberModels("usr_reader", data).ETag
-	data.Providers = []entity.Provider{{ID: "prv_one", Name: "Renamed Provider"}}
+	data.Providers[0].Name = "Renamed Provider"
 	data.Prices = []entity.ModelPrice{{ID: "price", ProviderModelID: "pmd_one"}}
 	data.Rates = []entity.PriceRate{{ModelPriceID: "price", Metric: pricing.Input, Tier: pricing.Base, Unit: pricing.Unit, Currency: "USD", Amount: "9", Enabled: true}}
 	if current := svc.projectMemberModels("usr_reader", data).ETag; current != original {

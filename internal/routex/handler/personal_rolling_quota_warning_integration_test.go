@@ -63,7 +63,7 @@ func testPersonalRollingQuotaWarningLifecycle(t *testing.T, db *gorm.DB) {
 	defer upstream.Close()
 	makeService := func() *service.Service {
 		t.Helper()
-		svc, e := service.New(ctx, db, service.WithCredentialStorage(store), service.WithUpstreamPolicy(true))
+		svc, e := service.New(ctx, db, service.WithCredentialStorage(store), service.WithUpstreamPolicy(true), service.WithRuntimeRefreshInterval(time.Hour))
 		if e != nil {
 			t.Fatal(e)
 		}
@@ -95,7 +95,6 @@ func testPersonalRollingQuotaWarningLifecycle(t *testing.T, db *gorm.DB) {
 	if e := svc.StartRuntime(ctx); e != nil {
 		t.Fatal(e)
 	}
-	svc.StopRuntime()
 	if e := svc.StartCallRecorder(ctx, spool); e != nil {
 		t.Fatal(e)
 	}
@@ -342,6 +341,7 @@ func testPersonalRollingQuotaWarningLifecycle(t *testing.T, db *gorm.DB) {
 			t.Fatal("held usage rearmed episode")
 		}
 	}
+	svc.StopRuntime() // Join the outgoing live publisher before service replacement.
 	if e := svc.StopCallRecorder(); e != nil {
 		t.Fatal(e)
 	}
@@ -349,7 +349,6 @@ func testPersonalRollingQuotaWarningLifecycle(t *testing.T, db *gorm.DB) {
 	if e := svc.StartRuntime(ctx); e != nil {
 		t.Fatal(e)
 	}
-	svc.StopRuntime()
 	if e := svc.StartCallRecorder(ctx, spool); e != nil {
 		t.Fatal(e)
 	}

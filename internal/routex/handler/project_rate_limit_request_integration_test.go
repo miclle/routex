@@ -88,7 +88,7 @@ func testProjectRateLimitRequestLifecycle(t *testing.T, db *gorm.DB) {
 		}
 	}()
 	makeService := func() *service.Service {
-		svc, err := service.New(ctx, db, service.WithCredentialStorage(store), service.WithUpstreamPolicy(true))
+		svc, err := service.New(ctx, db, service.WithCredentialStorage(store), service.WithUpstreamPolicy(true), service.WithRuntimeRefreshInterval(time.Hour))
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -142,7 +142,6 @@ func testProjectRateLimitRequestLifecycle(t *testing.T, db *gorm.DB) {
 		if err := svc.StartRuntime(ctx); err != nil {
 			t.Fatal(err)
 		}
-		svc.StopRuntime() // Acceptance relies on synchronous publication hooks.
 		if err := svc.StartCallRecorder(ctx, spool); err != nil {
 			t.Fatal(err)
 		}
@@ -563,14 +562,13 @@ func testProjectRateLimitRequestLifecycle(t *testing.T, db *gorm.DB) {
 		t.Fatal(err)
 	}
 	defer func() { p, _ := independent.DB(); _ = p.Close() }()
-	fresh, err := service.New(ctx, independent, service.WithCredentialStorage(store), service.WithUpstreamPolicy(true))
+	fresh, err := service.New(ctx, independent, service.WithCredentialStorage(store), service.WithUpstreamPolicy(true), service.WithRuntimeRefreshInterval(time.Hour))
 	if err != nil {
 		t.Fatal(err)
 	}
 	if err := fresh.StartRuntime(ctx); err != nil {
 		t.Fatal(err)
 	}
-	fresh.StopRuntime()
 	defer fresh.StopRuntime()
 	if err := fresh.StartCallRecorder(ctx, spool); err != nil {
 		t.Fatal(err)

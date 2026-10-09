@@ -67,7 +67,7 @@ func testPersonalMonthlyQuotaWarningLifecycle(t *testing.T, db *gorm.DB) {
 		upstream.Close()
 	}()
 	makeService := func() *service.Service {
-		svc, err := service.New(ctx, db, service.WithCredentialStorage(store), service.WithUpstreamPolicy(true))
+		svc, err := service.New(ctx, db, service.WithCredentialStorage(store), service.WithUpstreamPolicy(true), service.WithRuntimeRefreshInterval(time.Hour))
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -133,7 +133,6 @@ func testPersonalMonthlyQuotaWarningLifecycle(t *testing.T, db *gorm.DB) {
 	if err := svc.StartRuntime(ctx); err != nil {
 		t.Fatal(err)
 	}
-	svc.StopRuntime() // Deterministic publication: later changes use only explicit RefreshRuntime.
 	if err := svc.StartCallRecorder(ctx, spool); err != nil {
 		t.Fatal(err)
 	}
@@ -206,7 +205,50 @@ func testPersonalMonthlyQuotaWarningLifecycle(t *testing.T, db *gorm.DB) {
 			t.Fatal(err)
 		}
 	}
-	reconcile := func() { t.Helper(); refresh(); reconcileUnpublished() }
+	// Refresh before the positive owner page, outside per-owner transactions.
+	// Deliberate unpublished fault intervals retain the original unmarked
+	// reconcileUnpublished helper above.
+	type positiveQuotaPageContext struct{}
+	callbackName := "test:personal-quota-positive-owner-page"
+	if err := db.Callback().Query().Before("gorm:query").Register(callbackName, func(tx *gorm.DB) {
+		positive, _ := tx.Statement.Context.Value(positiveQuotaPageContext{}).(bool)
+		if !positive || tx.Statement.Schema == nil || tx.Statement.Schema.Table != "resource_limits" || len(tx.Statement.Selects) != 2 || tx.Statement.Selects[0] != "scope_kind" || tx.Statement.Selects[1] != "scope_id" {
+			return
+		}
+		where, ok := tx.Statement.Clauses["WHERE"].Expression.(clause.Where)
+		if !ok {
+			return
+		}
+		precedingOwnerPage := false
+		for _, expression := range where.Exprs {
+			value, ok := expression.(clause.Expr)
+			if !ok || value.SQL != "scope_kind > ? OR (scope_kind = ? AND scope_id > ?)" || len(value.Vars) != 3 || value.Vars[0] != "user" || value.Vars[1] != "user" {
+				continue
+			}
+			cursor, ok := value.Vars[2].(string)
+			precedingOwnerPage = ok && strings.HasPrefix(cursor, "usr_000_warn_")
+		}
+		if !precedingOwnerPage {
+			return
+		}
+		if err := svc.RefreshRuntime(tx.Statement.Context); err != nil {
+			_ = tx.AddError(err)
+		}
+	}); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() {
+		if err := db.Callback().Query().Remove(callbackName); err != nil {
+			t.Error(err)
+		}
+	})
+	reconcile := func() {
+		t.Helper()
+		refresh()
+		if err := svc.ReconcileMonthlyQuotaNotifications(context.WithValue(ctx, positiveQuotaPageContext{}, true)); err != nil {
+			t.Fatal(err)
+		}
+	}
 	page := func() service.NotificationPage {
 		t.Helper()
 		return decodeCatalogResponse[service.NotificationPage](t, memberRequest("GET", "/api/v1/notifications?status=all", nil), 200)
@@ -238,6 +280,7 @@ func testPersonalMonthlyQuotaWarningLifecycle(t *testing.T, db *gorm.DB) {
 	reconcile()
 	assertCount(member.User.ID, 0)
 	for index := range 3 {
+		refresh()
 		expectStatus(t, call(personalBearer), 200)
 		flush()
 		reconcile()
@@ -246,6 +289,7 @@ func testPersonalMonthlyQuotaWarningLifecycle(t *testing.T, db *gorm.DB) {
 			t.Fatal("unexpected dispatch before near level")
 		}
 	}
+	refresh()
 	expectStatus(t, call(personalBearer), 200)
 	flush()
 	// Settlement alone never sends an inbox warning through the gateway.
@@ -273,6 +317,7 @@ func testPersonalMonthlyQuotaWarningLifecycle(t *testing.T, db *gorm.DB) {
 		t.Fatal(err)
 	}
 	single.Store(true)
+	refresh()
 	expectStatus(t, call(personalBearer), 200)
 	single.Store(false)
 	flush()
@@ -643,7 +688,6 @@ func testPersonalMonthlyQuotaWarningLifecycle(t *testing.T, db *gorm.DB) {
 	if err := svc.StartRuntime(ctx); err != nil {
 		t.Fatal(err)
 	}
-	svc.StopRuntime()
 	if err := svc.StartCallRecorder(ctx, spool); err != nil {
 		t.Fatal(err)
 	}

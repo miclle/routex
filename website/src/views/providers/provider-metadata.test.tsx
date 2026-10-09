@@ -70,6 +70,10 @@ beforeEach(async () => {
     } else if (config.url === '/auth/permissions') {
       if (permissionStatus !== 200) reject(permissionStatus)
       response.data = { permissions }
+    } else if (config.url?.endsWith('/status')) {
+      response.data = { ...record, id: config.url.split('/')[3], enabled: true }
+      response.headers.set('Cache-Control', 'private, no-store')
+      response.headers.set('ETag', `"${record.etag}"`)
     } else if (config.url?.endsWith('/metadata')) {
       if (config.method === 'put') {
         if (hold) await hold

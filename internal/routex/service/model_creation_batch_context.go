@@ -227,7 +227,7 @@ func (s *Service) captureModelCreation(tx *gorm.DB, connectionID string, items [
 		return nil, nil, err
 	}
 	state := &modelCreationState{Connection: c, Provider: p, ProviderModels: []entity.ProviderModel{}, Models: []modelCreationModelProof{}, ReservedNames: []*entity.ModelName{}, Associated: []bool{}, TransportReady: true}
-	if !entity.SupportedNativeProtocol(c.Protocol) {
+	if !p.Enabled || !entity.SupportedNativeProtocol(c.Protocol) {
 		state.TransportReady = false
 	}
 	if _, err := upstream.ValidateBaseURL(c.BaseURL, s.allowPrivateUpstream); err != nil {

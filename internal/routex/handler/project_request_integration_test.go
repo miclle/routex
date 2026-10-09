@@ -7,6 +7,7 @@ import (
 	"strings"
 	"sync"
 	"testing"
+	"time"
 
 	"gorm.io/gorm"
 
@@ -19,7 +20,7 @@ import (
 func testProjectRequestLifecycle(t *testing.T, db *gorm.DB) {
 	t.Helper()
 	ctx := context.Background()
-	svc, err := service.New(ctx, db)
+	svc, err := service.New(ctx, db, service.WithRuntimeRefreshInterval(time.Hour))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -61,7 +62,6 @@ func testProjectRequestLifecycle(t *testing.T, db *gorm.DB) {
 		t.Fatal(err)
 	}
 	defer svc.StopRuntime()
-	svc.StopRuntime() // All changes must publish synchronously; polling cannot mask a missing hook.
 	input := service.ProjectRequestInput{RequestID: "req_request_one", ModelIDs: []string{"mdl_request_b"}, Reason: "New application"}
 	if _, err := svc.CreateProjectRequest(ctx, admin.User.ID, projectID, input); !errors.Is(err, apperrors.ErrForbidden) {
 		t.Fatal("administrator bypassed actual-manager creation requirement")

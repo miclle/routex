@@ -441,7 +441,7 @@ func testProjectKeyMonthlyBehaviorLifecycle(t *testing.T, db *gorm.DB) {
 }
 
 func projectKeyMonthlyBehaviorRegistryMatches(pairs []string) bool {
-	if len(pairs) == 156 || len(pairs) == 158 || len(pairs) == 160 || len(pairs) == 162 || len(pairs) == 164 || len(pairs) == 166 || len(pairs) == 168 || len(pairs) == 170 || len(pairs) == 172 || len(pairs) == 174 {
+	if len(pairs) == 156 || len(pairs) == 158 || len(pairs) == 160 || len(pairs) == 162 || len(pairs) == 164 || len(pairs) == 166 || len(pairs) == 168 || len(pairs) == 170 || len(pairs) == 172 || len(pairs) == 174 || len(pairs) == 176 {
 		parent, ok := personalRollingWarningRegistryParent(pairs)
 		if !ok {
 			return false
@@ -493,7 +493,7 @@ func TestProjectKeyMonthlyBehaviorRegistryTail(t *testing.T) {
 	for _, pair := range matches {
 		pairs = append(pairs, pair[1]+":"+pair[2])
 	}
-	if len(pairs) != 174 || !strings.Contains(string(raw), "versions != 90") {
+	if len(pairs) != 176 || !strings.Contains(string(raw), "versions != 91") {
 		t.Fatal("current exact172 registry/V89 ledger changed")
 	}
 	if !projectKeyMonthlyBehaviorRegistryMatches(pairs) {
@@ -504,6 +504,10 @@ func TestProjectKeyMonthlyBehaviorRegistryTail(t *testing.T) {
 		func(x []string) []string { x[141] = "project_key_monthly_behavior:unreviewed"; return x },
 		func(x []string) []string { x[140], x[141] = x[141], x[140]; return x },
 		func(x []string) []string { x[137] = "personal_key_monthly_behavior_migration:unreviewed"; return x },
+		func(x []string) []string { return x[:175] },
+		func(x []string) []string { x[174], x[175] = x[175], x[174]; return x },
+		func(x []string) []string { x[174] = "provider_enablement_migration:unreviewed"; return x },
+		func(x []string) []string { x[175] = "provider_status:unreviewed"; return x },
 		func(x []string) []string { return append(x, "extra:unreviewed") },
 	} {
 		if projectKeyMonthlyBehaviorRegistryMatches(mutate(append([]string(nil), pairs...))) {

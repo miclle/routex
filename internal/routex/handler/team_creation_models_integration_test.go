@@ -51,7 +51,7 @@ func testTeamCreationModelsLifecycle(t *testing.T, db *gorm.DB) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	svc, err := service.New(ctx, db, service.WithCredentialStorage(store), service.WithUpstreamPolicy(true))
+	svc, err := service.New(ctx, db, service.WithCredentialStorage(store), service.WithUpstreamPolicy(true), service.WithRuntimeRefreshInterval(time.Hour))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -188,7 +188,6 @@ func testTeamCreationModelsLifecycle(t *testing.T, db *gorm.DB) {
 	if err := svc.StartRuntime(ctx); err != nil {
 		t.Fatal(err)
 	}
-	svc.StopRuntime()
 	journalPath := filepath.Join(t.TempDir(), "initial-model.db")
 	if err := svc.StartCallRecorder(ctx, journalPath); err != nil {
 		t.Fatal(err)
@@ -559,7 +558,7 @@ func testTeamCreationModelsLifecycle(t *testing.T, db *gorm.DB) {
 	if err := svc.StopCallRecorder(); err != nil {
 		t.Error(err)
 	}
-	restarted, err := service.New(ctx, db, service.WithCredentialStorage(store), service.WithUpstreamPolicy(true))
+	restarted, err := service.New(ctx, db, service.WithCredentialStorage(store), service.WithUpstreamPolicy(true), service.WithRuntimeRefreshInterval(time.Hour))
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -132,13 +132,15 @@ func (s *Service) databaseGatewayModelMetadata(ctx context.Context, modelIDs []s
 		Weight                                     int
 		Disabled                                   bool
 		ConnectionEnabled                          bool
+		ProviderEnabled                            bool
 		SupportsImageInput                         bool
 		SupportsPDFInput                           bool
 	}
 	err := s.authDB(ctx).Table("model_provider_bindings b").
-		Select("b.model_id, b.id AS binding_id, b.weight, p.disabled, c.enabled AS connection_enabled, p.supports_image_input, p.supports_pdf_input, c.protocol, k.id AS credential_id").
+		Select("b.model_id, b.id AS binding_id, b.weight, p.disabled, c.enabled AS connection_enabled, pr.enabled AS provider_enabled, p.supports_image_input, p.supports_pdf_input, c.protocol, k.id AS credential_id").
 		Joins("JOIN provider_models p ON p.id = b.provider_model_id").
 		Joins("JOIN provider_connections c ON c.id = p.connection_id").
+		Joins("JOIN providers pr ON pr.id = c.provider_id").
 		Joins("LEFT JOIN credential_model_accesses a ON a.provider_model_id = p.id").
 		Joins("LEFT JOIN provider_credentials k ON k.id = a.credential_id AND k.connection_id = c.id AND k.enabled = ? AND k.verification_status = ?", true, "verified").
 		Where("b.model_id IN ?", modelIDs).
@@ -168,7 +170,7 @@ func (s *Service) databaseGatewayModelMetadata(ctx context.Context, modelIDs []s
 			item.Routes[row.BindingID] = route
 			item.Total += row.Weight
 		}
-		route.Ready = route.Ready || row.ConnectionEnabled && row.CredentialID != ""
+		route.Ready = route.Ready || row.ProviderEnabled && row.ConnectionEnabled && row.CredentialID != ""
 	}
 	for modelID, protocols := range groups {
 		item := result[modelID]

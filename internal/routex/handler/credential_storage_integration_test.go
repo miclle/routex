@@ -124,6 +124,7 @@ func testProviderCredentialStorageLifecycle(t *testing.T, db *gorm.DB) {
 			t.Fatal(e)
 		}
 		t.Cleanup(func() {
+			instance.StopRuntime()
 			if e := stopInstance(instance); e != nil {
 				t.Error(e)
 			}
@@ -132,7 +133,7 @@ func testProviderCredentialStorageLifecycle(t *testing.T, db *gorm.DB) {
 			t.Fatal("renew actual credential source generation", e)
 		}
 	}
-	svc, err := service.New(ctx, db, service.WithCredentialStorage(ring), service.WithUpstreamPolicy(true))
+	svc, err := service.New(ctx, db, service.WithCredentialStorage(ring), service.WithUpstreamPolicy(true), service.WithRuntimeRefreshInterval(time.Hour))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -338,7 +339,6 @@ func testProviderCredentialStorageLifecycle(t *testing.T, db *gorm.DB) {
 	if err = svc.StartRuntime(ctx); err != nil {
 		t.Fatal(err)
 	}
-	svc.StopRuntime()
 	defer svc.StopRuntime()
 	beforeReads := reads.Load()
 	if err = svc.RefreshRuntime(ctx); err != nil || reads.Load() != beforeReads {
@@ -421,7 +421,7 @@ func testProviderCredentialStorageLifecycle(t *testing.T, db *gorm.DB) {
 		t.Fatal("join outage process generation", err)
 	}
 	denyRead.Store(false)
-	fresh, err = service.New(ctx, db, service.WithCredentialStorage(ring), service.WithUpstreamPolicy(true))
+	fresh, err = service.New(ctx, db, service.WithCredentialStorage(ring), service.WithUpstreamPolicy(true), service.WithRuntimeRefreshInterval(time.Hour))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -429,7 +429,6 @@ func testProviderCredentialStorageLifecycle(t *testing.T, db *gorm.DB) {
 	if err = fresh.StartRuntime(ctx); err != nil {
 		t.Fatal(err)
 	}
-	fresh.StopRuntime()
 	beforeReads = reads.Load()
 	if err = fresh.RefreshRuntime(ctx); err != nil || reads.Load() != beforeReads {
 		t.Fatal("periodic publication retried Vault", err)

@@ -2,6 +2,58 @@
 
 Updated: 2026-10-09. This document records engineering contracts, work packages and acceptance checks. Planned interfaces and metrics are not implementation evidence. The objective covers F01–F30 and A01–A20 through incremental P0–P6 delivery and is resumed by the user's explicit instruction, prioritizing partially completed capabilities.
 
+## Provider availability accepted (2026-10-09)
+
+Provider Settings now supports reviewed enable/disable changes with a required
+reason, independent read/write permissions, optimistic concurrency, typed atomic
+audits and confirmed local runtime publication. Disabling a Provider stops new
+calls through its routes while admitted calls retain their original attribution
+and may finish. Re-enabling preserves disabled children, Credentials, weights,
+grants and history. The authorized logical Model catalogue remains visible;
+available protocol and input-capability metadata reflects route eligibility.
+
+Formatting, mandatory `go tool task check`, and the complete `go tool task test`
+pass: 5,624 frontend assertions in 213 files, Go race/coverage, both Node batches,
+development lifecycle checks and production assets. The unchanged official
+`go tool task test-integration` passes in 2,441.503 seconds: 5,385 ordinary named
+Go tests, and all 176 registered scenarios plus four constraints / 438 named
+outcomes on each database. Source integrity and owned-resource cleanup are
+independently verified. Main's final mandatory check also passes, with all
+2,064 non-progress paths byte/mode-identical to the qualified source.
+
+Real English/Chinese browser verification passes required-reason confirmation,
+cancellation, focus return and disable/enable restoration. Child records, 0/100
+routing weights and the original three history versions remain unchanged; two
+typed audits match the submitted reasons. The isolated browser fixture creates
+no Key or inference. The original development service/data remain untouched.
+Browser processes are absent; its temporary database disappeared when the
+original integration supervisor removed the shared completed-worker container.
+The later manual SQL drop failed against that absent container and is retained
+as a failed cleanup attempt, rather than a claimed successful SQL drop.
+
+Controlled native acceptance passes in 30.343 seconds: three completed Chat
+calls, four denied new calls, completion of the already admitted call with its
+original snapshot/Credential, unaffected routing through another Provider,
+original Session/Key continuity across a same-binary/configuration restart and
+preservation of the disabled child Connection. Independent readback confirms
+three persisted completed calls/attempts, two status audits, six unchanged weight
+versions and three unchanged weight audits, source integrity and complete owned
+process/port/Compose cleanup. Denied-record counts are not inferred from the
+asynchronous journal. Two earlier helper attempts failed before inference because
+of incorrect initial-weight and logical-catalogue assumptions; both failures and
+cleanup evidence remain retained. Their corrections use real APIs and the
+existing public contract without changing product source or weakening later checks.
+
+Official integration readback SHA-256:
+`da4cb03ba8c8e4f200bc01ca339307a0c89a06200f956e7a0cf9b32d18f893f3`.
+Native independent readback SHA-256:
+`b8d499ca3b5a0de4d5cc616a5b6bc7007ed620ce4902e0fb9647a01cd1fde595`.
+These results cover the local runtime; remote CI for the new phase is checked
+separately after push. Totals remain 13 Completed / 14 Partial / 3 Not started.
+Next priority is the prepared Connection diagnostic/transport candidate; its
+source reviews are not runtime acceptance. Earlier checkpoints below remain
+historical and do not supersede this acceptance.
+
 ## Provider enablement continuation after browser repairs (2026-10-09)
 
 Browser-boundary fixes are committed and remote-verified as
@@ -99,13 +151,58 @@ complete regression. Temporary instrumentation is excluded from delivery.
 Native/browser/main adoption remains blocked by the failed complete regression.
 Earlier successful focused witnesses retain only their scope.
 
-A separate minimal fixture correction adds only three Personal and two Project
-positive pre-admission refresh statements, preserving production leases, original
-assertions and all negative/unpublished paths. Source review passes. Temporary
-old/new controls will require a real crossing of the existing authorization
-deadline before the fourth positive admission; actual validation remains pending.
-The Connection transport successor is being merged separately, preserving newer
-diagnostic and Credential-row interfaces; it has no current qualification claim.
+A minimal fixture correction adds only three Personal and two Project positive
+pre-admission refresh statements, preserving production leases, original
+assertions and every negative/unpublished path. Source review passes. Temporary
+old controls fail exactly at the fourth expected-200 native admission on both
+databases after four verified initially-live deadline crossings, in 183.362
+seconds. New controls pass all four direct scenarios and eight named outcomes
+after the same real crossings and real refreshes, in 190.272 seconds. Both
+2,066-file source bytes/modes and fifteen captured PIDs, thirteen groups, two
+ports and owned Compose absence are independently verified per variant. Old
+readback is `a4ce3a65cbcc555e0ae50a655515f27353dbe9f7b559012622fd43b597752e6a`;
+new is `8786a66e25673d79c03ac11e63633bb24d42fcf5a223a0d267fdf80d1a8c54ac`.
+These controls establish the scheduling mechanism, not the historical producer
+or complete regression. Temporary waits never enter delivery.
+
+Team positive reconciliation has a separately reviewed helper correction:
+one complete observer cycle, preserved error, then real refresh/current proof.
+The negative unpublished helper retains every same-publication/readiness check
+byte-exact. Its old controls fail at the original after-reconcile readiness check
+on both databases after verified initially-live deadline crossings, in 104.813
+seconds. New controls pass both complete original scenarios and six named
+outcomes after equivalent crossings/real refreshes, in 161.122 seconds. Both
+2,066-file source bytes/modes, thirteen captured PIDs/groups, two ports and
+owned Compose absence are independently verified per variant. Old readback is
+`2f173950617a62b6cf1adef13bd15e39323ecb5745c8180ab1200b02dad7c3f3`;
+new is `665cf0fd1c9fc048875ad182a1a3860479541691262427e83f0286fe05c69a8e`.
+The post-close lineage samples contain no live descendants; no child-PID census
+is claimed beyond captured root/worker identities and their absent groups.
+Temporary controls remain excluded. A fresh clean candidate combines only the
+three reviewed fixture corrections for renewed complete qualification.
+
+The clean three-fixture successor passes renewed source review, formatting,
+mandatory check and the complete Task suite: 5,624 frontend assertions in 213
+files, Go race/coverage, five Node checks, ten development lifecycle checks and
+production assets. Its exact 2,066-file floor is
+`6bc116a15c761d2b2b43bd02436e9e4954335680eb54fed95402783c8b093e06`;
+all source modes remain unchanged. Independent readback confirms the four gate
+process groups are absent and the production binary SHA-256 is
+`fce688b7e9639f6283e2408c8d7138c8562fd6780e8ce08dc72b27639dc8e44f`.
+A fresh official complete PostgreSQL/MySQL regression is running from a clean
+source-only copy with the original 176-scenario registry and unchanged bounds.
+Its ordinary phase independently passes all 5,385 expected names; complete
+driver results remain pending. No final database, native, browser or
+main-adoption acceptance is inferred.
+The future Connection transport successor also carries exactly these three clean
+fixture deltas; its other 2,089 paths, all modes, schema 92 and 179-scenario
+registry remain unchanged, with independent source review passing. Actual
+qualification of that future source remains pending.
+
+The Connection transport source successor composes 2,092 paths at schema 92
+with the exact 179-scenario registry, preserving newer diagnostic and Credential
+row interfaces. Independent Go and UI/compatibility source reviews pass; no
+actual formatting, compilation, test qualification or adoption is claimed.
 
 The screen is unlocked again. A separate source-only Connection diagnostic
 successor adds the missing Credentials-row Test connection action, locked to

@@ -77,7 +77,7 @@ func testTeamLimitsGatewayLifecycle(t *testing.T, db *gorm.DB) {
 		}
 	}()
 	makeService := func() *service.Service {
-		svc, err := service.New(ctx, db, service.WithCredentialStorage(store), service.WithUpstreamPolicy(true))
+		svc, err := service.New(ctx, db, service.WithCredentialStorage(store), service.WithUpstreamPolicy(true), service.WithRuntimeRefreshInterval(time.Hour))
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -125,7 +125,6 @@ func testTeamLimitsGatewayLifecycle(t *testing.T, db *gorm.DB) {
 	if err := svc.StartRuntime(ctx); err != nil {
 		t.Fatal(err)
 	}
-	svc.StopRuntime()
 	spool := filepath.Join(t.TempDir(), "team-limits.db")
 	if err := svc.StartCallRecorder(ctx, spool); err != nil {
 		t.Fatal(err)
@@ -292,6 +291,7 @@ func testTeamLimitsGatewayLifecycle(t *testing.T, db *gorm.DB) {
 	if after := assertUsage(first.User.ID, 5); after.AccountID != pairAccount || after.Stored.TokensMonth == nil || *after.Stored.TokensMonth != 50 {
 		t.Fatal("rejoin reset member account or policy", after)
 	}
+	svc.StopRuntime() // Join the outgoing live publisher before service replacement.
 	if err := svc.StopCallRecorder(); err != nil {
 		t.Fatal(err)
 	}
@@ -301,7 +301,6 @@ func testTeamLimitsGatewayLifecycle(t *testing.T, db *gorm.DB) {
 	if err := svc.StartRuntime(ctx); err != nil {
 		t.Fatal(err)
 	}
-	svc.StopRuntime()
 	if err := svc.StartCallRecorder(ctx, spool); err != nil {
 		t.Fatal(err)
 	}

@@ -211,7 +211,7 @@ func routingSupplyStates(tx *gorm.DB, connections []entity.ProviderConnection, m
 }
 func routingCandidate(model entity.Model, bindings []entity.ModelProviderBinding, pm entity.ProviderModel, c entity.ProviderConnection, p entity.Provider, state routingSupplyState) ModelRoutingCandidate {
 	row := ModelRoutingCandidate{ID: pm.ID, ProviderID: p.ID, ConnectionID: c.ID, UpstreamName: pm.UpstreamName, Protocol: c.Protocol,
-		ModelRoutingSupply: ModelRoutingSupply{ProviderName: p.Name, ConnectionName: c.Name, VerificationCovered: state.Covered, ConfiguredAvailable: c.Enabled && !pm.Disabled && state.Enabled}}
+		ModelRoutingSupply: ModelRoutingSupply{ProviderName: p.Name, ConnectionName: c.Name, VerificationCovered: state.Covered, ConfiguredAvailable: p.Enabled && c.Enabled && !pm.Disabled && state.Enabled}}
 	row.Selectable = model.Status == entity.ResourceActive && row.VerificationCovered && row.ConfiguredAvailable && state.SourceAvailable
 	// The opaque review binds exact recorded material, births, target topology and configuration.
 	raw, _ := json.Marshal(struct {

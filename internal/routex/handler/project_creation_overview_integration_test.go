@@ -43,7 +43,7 @@ func testProjectCreationOverviewLifecycle(t *testing.T, db *gorm.DB) {
 		_, _ = io.WriteString(w, chatCompletionFixture("stop", `{"role":"assistant","content":"Project response"}`, `{"prompt_tokens":2,"completion_tokens":1}`, false, 0))
 	}))
 	defer upstream.Close()
-	svc, err := service.New(ctx, db, service.WithCredentialStorage(store), service.WithUpstreamPolicy(true))
+	svc, err := service.New(ctx, db, service.WithCredentialStorage(store), service.WithUpstreamPolicy(true), service.WithRuntimeRefreshInterval(time.Hour))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -215,7 +215,6 @@ func testProjectCreationOverviewLifecycle(t *testing.T, db *gorm.DB) {
 	if err := svc.StartRuntime(ctx); err != nil {
 		t.Fatal(err)
 	}
-	svc.StopRuntime()
 	native := func(bearer string) *httptest.ResponseRecorder {
 		req := httptest.NewRequest("POST", "http://routex.test/v1/chat/completions",
 			strings.NewReader(`{"model":"overview-model","messages":[{"role":"user","content":"Scoped usage"}],"max_completion_tokens":1}`))

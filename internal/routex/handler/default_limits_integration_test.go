@@ -13,6 +13,7 @@ import (
 	"strings"
 	"sync/atomic"
 	"testing"
+	"time"
 
 	"github.com/fox-gonic/fox"
 	"gorm.io/gorm"
@@ -57,7 +58,7 @@ func testDefaultLimitsLifecycle(t *testing.T, db *gorm.DB) {
 		_, _ = io.WriteString(w, chatCompletionFixture("stop", `{"role":"assistant","content":"Default acceptance"}`, `{"prompt_tokens":2,"completion_tokens":1,"prompt_tokens_details":{"cached_tokens":0,"cache_write_tokens":0}}`, false, 0))
 	}))
 	defer upstream.Close()
-	svc, err := service.New(ctx, db, service.WithCredentialStorage(store), service.WithUpstreamPolicy(true))
+	svc, err := service.New(ctx, db, service.WithCredentialStorage(store), service.WithUpstreamPolicy(true), service.WithRuntimeRefreshInterval(time.Hour))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -197,7 +198,6 @@ func testDefaultLimitsLifecycle(t *testing.T, db *gorm.DB) {
 	if err := svc.StartRuntime(ctx); err != nil {
 		t.Fatal(err)
 	}
-	svc.StopRuntime()
 	refresh := func() {
 		t.Helper()
 		if err := svc.RefreshRuntime(ctx); err != nil {

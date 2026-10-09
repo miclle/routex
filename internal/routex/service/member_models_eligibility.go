@@ -33,6 +33,7 @@ type memberModelsEligibilityIndex struct {
 	egressSetting entity.EgressSetting
 	egresses      []entity.Egress
 	names         map[string]entity.ModelName
+	providers     map[string]runtimeProviderProof
 	bindings      map[string][]entity.ModelProviderBinding
 	models        map[string]entity.ProviderModel
 	connections   map[string]entity.ProviderConnection
@@ -41,7 +42,7 @@ type memberModelsEligibilityIndex struct {
 }
 
 func memberModelsIndex(data *memberModelsData) memberModelsEligibilityIndex {
-	index := memberModelsEligibilityIndex{egressSetting: data.EgressSetting, egresses: data.Egresses, names: map[string]entity.ModelName{}, bindings: map[string][]entity.ModelProviderBinding{}, models: map[string]entity.ProviderModel{}, connections: map[string]entity.ProviderConnection{}, credentials: map[string][]entity.ProviderCredential{}, access: map[string]map[string]bool{}}
+	index := memberModelsEligibilityIndex{egressSetting: data.EgressSetting, egresses: data.Egresses, names: map[string]entity.ModelName{}, providers: runtimeProviderProofs(&runtimeData{Providers: data.Providers}), bindings: map[string][]entity.ModelProviderBinding{}, models: map[string]entity.ProviderModel{}, connections: map[string]entity.ProviderConnection{}, credentials: map[string][]entity.ProviderCredential{}, access: map[string]map[string]bool{}}
 	for _, n := range data.Names {
 		if n.CurrentModelID != nil && *n.CurrentModelID == n.ModelID {
 			index.names[n.ModelID] = n
@@ -76,6 +77,7 @@ type memberModelsRouteProof struct {
 	Binding     entity.ModelProviderBinding
 	Model       entity.ProviderModel
 	Connection  entity.ProviderConnection
+	Provider    runtimeProviderProof
 	EgressProof string
 	Credentials []memberModelsCredentialProof
 }
@@ -91,6 +93,10 @@ func (index memberModelsEligibilityIndex) hash(model entity.Model) string {
 		if !exists {
 			return ""
 		}
+		provider, exists := index.providers[c.ProviderID]
+		if !exists {
+			return ""
+		}
 		proofs := []memberModelsCredentialProof{}
 		for _, credential := range index.credentials[c.ID] {
 			proofs = append(proofs, memberModelsCredentialProof{credential.ID, credentialRuntimeRevision(credential), index.access[credential.ID][p.ID]})
@@ -99,7 +105,7 @@ func (index memberModelsEligibilityIndex) hash(model entity.Model) string {
 		b.CreatedAt = b.CreatedAt.UTC()
 		p.CreatedAt = p.CreatedAt.UTC()
 		c.CreatedAt = c.CreatedAt.UTC()
-		rows = append(rows, memberModelsRouteProof{Binding: b, Model: p, Connection: c, Credentials: proofs, EgressProof: index.egressProof(c)})
+		rows = append(rows, memberModelsRouteProof{Binding: b, Model: p, Connection: c, Provider: provider, Credentials: proofs, EgressProof: index.egressProof(c)})
 	}
 	slices.SortFunc(rows, func(a, b memberModelsRouteProof) int { return strings.Compare(a.Binding.ID, b.Binding.ID) })
 	name, exists := index.names[model.ID]
@@ -115,7 +121,7 @@ func (index memberModelsEligibilityIndex) hash(model entity.Model) string {
 	}{model, name, rows})
 }
 func runtimeMemberModelsEligibility(data *runtimeData) map[string]string {
-	index := memberModelsIndex(&memberModelsData{EgressSetting: data.EgressSetting, Egresses: data.Egresses, Names: data.Names, Bindings: data.Bindings, ProviderModels: data.ProviderModels, Connections: data.Connections, Credentials: data.Credentials, Access: deploymentCoverageProjection(data.Credentials, data.Connections, data.ProviderModels, data.Access, data.Attestations)})
+	index := memberModelsIndex(&memberModelsData{EgressSetting: data.EgressSetting, Egresses: data.Egresses, Names: data.Names, Providers: data.Providers, Bindings: data.Bindings, ProviderModels: data.ProviderModels, Connections: data.Connections, Credentials: data.Credentials, Access: deploymentCoverageProjection(data.Credentials, data.Connections, data.ProviderModels, data.Access, data.Attestations)})
 	result := map[string]string{}
 	for _, m := range data.Models {
 		result[m.ID] = index.hash(m)

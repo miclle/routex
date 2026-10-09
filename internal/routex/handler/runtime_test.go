@@ -53,7 +53,7 @@ func testRuntimeLifecycle(t *testing.T, db *gorm.DB) {
 		t.Fatal(err)
 	}
 	defer func() { _ = pool.Close() }()
-	svc, err := service.New(ctx, privateDB, service.WithCredentialStorage(store), service.WithUpstreamPolicy(true))
+	svc, err := service.New(ctx, privateDB, service.WithCredentialStorage(store), service.WithUpstreamPolicy(true), service.WithRuntimeRefreshInterval(time.Hour))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -89,9 +89,8 @@ func testRuntimeLifecycle(t *testing.T, db *gorm.DB) {
 		t.Fatal(err)
 	}
 	defer svc.StopRuntime()
-	// Use explicit refreshes for deterministic fault injection; production polls
-	// run under the same publisher and are joined rather than leaked by this test.
-	svc.StopRuntime()
+	// Use explicit refreshes with a one-hour interval for deterministic fault
+	// injection; final shutdown joins the live publisher rather than leaking it.
 	first := svc.RuntimeStatus()
 	if !first.Enabled || !first.Ready || first.SnapshotID == "" {
 		t.Fatal("initial snapshot not ready")

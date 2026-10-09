@@ -143,7 +143,7 @@ func testModelAliasRetirementLifecycle(t *testing.T, db *gorm.DB) {
 	}
 	makeService := func() *service.Service {
 		t.Helper()
-		svc, err := service.New(ctx, db, service.WithCredentialStorage(store), service.WithUpstreamPolicy(true))
+		svc, err := service.New(ctx, db, service.WithCredentialStorage(store), service.WithUpstreamPolicy(true), service.WithRuntimeRefreshInterval(time.Hour))
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -243,7 +243,6 @@ func testModelAliasRetirementLifecycle(t *testing.T, db *gorm.DB) {
 		t.Fatal(err)
 	}
 	// Explicit refreshes keep deterministic publication faults out of ticker races.
-	svc.StopRuntime()
 	journal := filepath.Join(t.TempDir(), "alias-calls.db")
 	if err := svc.StartCallRecorder(ctx, journal); err != nil {
 		t.Fatal(err)
@@ -641,6 +640,7 @@ func testModelAliasRetirementLifecycle(t *testing.T, db *gorm.DB) {
 	if caseDistinct.ID == modelID || caseDistinct.Name != "aliasoriginal" {
 		t.Fatal("reserved exact name consumed case-distinct identity")
 	}
+	svc.StopRuntime() // Join the outgoing live publisher before service replacement.
 	if err := svc.StopCallRecorder(); err != nil {
 		t.Fatal(err)
 	}
@@ -651,7 +651,6 @@ func testModelAliasRetirementLifecycle(t *testing.T, db *gorm.DB) {
 	if err := restarted.StartRuntime(ctx); err != nil {
 		t.Fatal(err)
 	}
-	restarted.StopRuntime()
 	if err := restarted.StartCallRecorder(ctx, journal); err != nil {
 		t.Fatal(err)
 	}

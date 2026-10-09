@@ -36,6 +36,7 @@ func credentialReadinessRuntimeFixture(t *testing.T) (*Service, entity.ProviderC
 	}
 	replacement.StorageSource = "inline"
 	auth := buildRuntimeAuthorization(&runtimeData{
+		Providers:      []entity.Provider{{ID: "prv_one", Enabled: true, ETag: "0", CreatedAt: now.Add(-time.Hour)}},
 		Connections:    []entity.ProviderConnection{{ID: "con_one", ProviderID: "prv_one", Enabled: true, CreatedAt: now.Add(-time.Hour)}},
 		Models:         []entity.Model{{ID: "mdl_one", Status: "active"}},
 		ProviderModels: []entity.ProviderModel{{ID: "pmd_one", ETag: "revision"}},
@@ -52,7 +53,7 @@ func credentialReadinessRuntimeFixture(t *testing.T) (*Service, entity.ProviderC
 			Route: gatewayRoute{
 				ConnectionBirth: now.Add(-time.Hour),
 				Client:          &http.Client{}, BindingID: "bnd_one", Weight: 100,
-				ProviderID: "prv_one", ProviderModelID: "pmd_one", ConnectionID: "con_one",
+				ProviderID: "prv_one", ProviderEnabled: true, ProviderBirth: now.Add(-time.Hour), ProviderRevision: "0", ProviderModelID: "pmd_one", ConnectionID: "con_one",
 				Protocol: entity.ProtocolOpenAIChat, UpstreamName: "native", EgressRevision: "transport",
 			},
 			Credentials: []runtimeCredential{{ID: replacement.ID, CipherHash: credentialSourceProof(replacement), Plaintext: "secret-must-not-leak"}},
@@ -93,6 +94,33 @@ func TestCredentialReadinessRequiresPublishedCandidate(t *testing.T) {
 			proof.Enabled = false
 			s.runtime.auth.Load().Connections["con_one"] = proof
 		}},
+		{"provider_disabled", "route_unavailable", func(s *Service) {
+			proof := s.runtime.auth.Load().Providers["prv_one"]
+			proof.Enabled = false
+			s.runtime.auth.Load().Providers["prv_one"] = proof
+		}},
+		{"provider_reborn", "route_unavailable", func(s *Service) {
+			proof := s.runtime.auth.Load().Providers["prv_one"]
+			proof.Birth = proof.Birth.Add(time.Second)
+			s.runtime.auth.Load().Providers["prv_one"] = proof
+		}},
+		{"provider_revised", "route_unavailable", func(s *Service) {
+			proof := s.runtime.auth.Load().Providers["prv_one"]
+			proof.Revision = "rev_changed"
+			s.runtime.auth.Load().Providers["prv_one"] = proof
+		}},
+		{"provider_missing", "route_unavailable", func(s *Service) { delete(s.runtime.auth.Load().Providers, "prv_one") }},
+		{"provider_birth_unknown", "route_unavailable", func(s *Service) {
+			proof := s.runtime.auth.Load().Providers["prv_one"]
+			proof.Birth = time.Time{}
+			s.runtime.auth.Load().Providers["prv_one"] = proof
+		}},
+		{"provider_revision_unknown", "route_unavailable", func(s *Service) {
+			proof := s.runtime.auth.Load().Providers["prv_one"]
+			proof.Revision = ""
+			s.runtime.auth.Load().Providers["prv_one"] = proof
+		}},
+		{"provider_denied", "route_unavailable", func(s *Service) { s.runtime.deniedProviders.Store("prv_one", uint64(1)) }},
 		{"connection_denied", "route_unavailable", func(s *Service) { s.runtime.deniedConnections.Store("con_one", uint64(1)) }},
 		{"connection_birth_changed", "route_unavailable", func(s *Service) {
 			proof := s.runtime.auth.Load().Connections["con_one"]
@@ -161,6 +189,33 @@ func TestCredentialReadinessRecaptureRejectsChangedConditions(t *testing.T) {
 			proof.Enabled = false
 			s.runtime.auth.Load().Connections["con_one"] = proof
 		}},
+		{"provider_disabled", "route_unavailable", func(s *Service) {
+			proof := s.runtime.auth.Load().Providers["prv_one"]
+			proof.Enabled = false
+			s.runtime.auth.Load().Providers["prv_one"] = proof
+		}},
+		{"provider_reborn", "route_unavailable", func(s *Service) {
+			proof := s.runtime.auth.Load().Providers["prv_one"]
+			proof.Birth = proof.Birth.Add(time.Second)
+			s.runtime.auth.Load().Providers["prv_one"] = proof
+		}},
+		{"provider_revised", "route_unavailable", func(s *Service) {
+			proof := s.runtime.auth.Load().Providers["prv_one"]
+			proof.Revision = "rev_changed"
+			s.runtime.auth.Load().Providers["prv_one"] = proof
+		}},
+		{"provider_missing", "route_unavailable", func(s *Service) { delete(s.runtime.auth.Load().Providers, "prv_one") }},
+		{"provider_birth_unknown", "route_unavailable", func(s *Service) {
+			proof := s.runtime.auth.Load().Providers["prv_one"]
+			proof.Birth = time.Time{}
+			s.runtime.auth.Load().Providers["prv_one"] = proof
+		}},
+		{"provider_revision_unknown", "route_unavailable", func(s *Service) {
+			proof := s.runtime.auth.Load().Providers["prv_one"]
+			proof.Revision = ""
+			s.runtime.auth.Load().Providers["prv_one"] = proof
+		}},
+		{"provider_denied", "route_unavailable", func(s *Service) { s.runtime.deniedProviders.Store("prv_one", uint64(1)) }},
 		{"connection_denied", "route_unavailable", func(s *Service) { s.runtime.deniedConnections.Store("con_one", uint64(1)) }},
 		{"connection_birth_changed", "route_unavailable", func(s *Service) {
 			proof := s.runtime.auth.Load().Connections["con_one"]
@@ -181,6 +236,16 @@ func TestCredentialReadinessRecaptureRejectsChangedConditions(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
+			if len(capture.Blockers) != 0 || capture.EligibleRouteCount != 1 {
+				t.Fatal("recapture fixture was not eligible", capture)
+			}
+			published := svc.runtime.routes.Load().Models["mdl_one"][0].Route
+			if capture.providerProof != svc.runtime.auth.Load().Providers[published.ProviderID] ||
+				!capture.providerProof.Enabled ||
+				!capture.providerProof.Birth.Equal(published.ProviderBirth) ||
+				capture.providerProof.Revision != published.ProviderRevision {
+				t.Fatal("capture lost admitted Provider identity/status/revision")
+			}
 			test.change(svc)
 			blockers := svc.validateCredentialRetirementRuntimeCapture(capture)
 			if test.want == "" {
@@ -189,6 +254,33 @@ func TestCredentialReadinessRecaptureRejectsChangedConditions(t *testing.T) {
 				}
 			} else if !slices.Contains(blockers, test.want) {
 				t.Fatalf("blockers %v want %s", blockers, test.want)
+			}
+		})
+	}
+}
+
+func TestCredentialReadinessCaptureNeverBorrowsFreshProviderProof(t *testing.T) {
+	for _, test := range []struct {
+		name   string
+		change func(*credentialRetirementRuntimeCapture)
+	}{
+		{"unknown", func(c *credentialRetirementRuntimeCapture) { c.providerProof = runtimeProviderProof{} }},
+		{"disabled", func(c *credentialRetirementRuntimeCapture) { c.providerProof.Enabled = false }},
+		{"reborn", func(c *credentialRetirementRuntimeCapture) {
+			c.providerProof.Birth = c.providerProof.Birth.Add(time.Second)
+		}},
+		{"revised", func(c *credentialRetirementRuntimeCapture) { c.providerProof.Revision = "rev_old" }},
+		{"borrowed_identity", func(c *credentialRetirementRuntimeCapture) { c.connectionProviderID = "prv_other" }},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			svc, _ := credentialReadinessRuntimeFixture(t)
+			capture, err := svc.captureCredentialRetirementRuntime("con_one", "crd_source", "crd_replacement")
+			if err != nil || len(capture.Blockers) != 0 || len(svc.validateCredentialRetirementRuntimeCapture(capture)) != 0 {
+				t.Fatal("positive capture was rejected", capture, err)
+			}
+			test.change(capture)
+			if got := svc.validateCredentialRetirementRuntimeCapture(capture); !slices.Contains(got, "route_unavailable") {
+				t.Fatal("unknown or stale captured proof borrowed fresh authorization", got)
 			}
 		})
 	}
