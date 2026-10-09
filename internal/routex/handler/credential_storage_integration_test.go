@@ -5,9 +5,11 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"net"
 	"net/http"
 	"net/http/httptest"
 	"reflect"
+	"strconv"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -31,6 +33,8 @@ func testProviderCredentialStorageLifecycle(t *testing.T, db *gorm.DB) {
 	values := map[string]map[string]string{}
 	var writes, reads, discovery atomic.Int32
 	var lostWrite, denyRead atomic.Bool
+	var changeDiagnosticSource atomic.Bool
+	var diagnosticCredentialID string
 	vaultStub := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		if !strings.HasPrefix(r.URL.Path, "/v1/kv/data/") {
@@ -87,6 +91,13 @@ func testProviderCredentialStorageLifecycle(t *testing.T, db *gorm.DB) {
 				w.WriteHeader(503)
 				return
 			}
+			if changeDiagnosticSource.Swap(false) {
+				if err := db.Model(&entity.CredentialVaultReference{}).Where("credential_id = ?", diagnosticCredentialID).Update("reader_generation", "changed-during-diagnostic").Error; err != nil {
+					t.Error("controlled retained source mutation failed", err)
+					w.WriteHeader(500)
+					return
+				}
+			}
 			data, ok := values[r.URL.Path]
 			if !ok {
 				w.WriteHeader(404)
@@ -100,6 +111,13 @@ func testProviderCredentialStorageLifecycle(t *testing.T, db *gorm.DB) {
 	}))
 	defer vaultStub.Close()
 	supply := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == "GET" && r.URL.Path == "/egress-probe/models" {
+			if r.Header.Get("Authorization") != "" {
+				t.Error("transport-only setup probe carried a Provider secret")
+			}
+			w.WriteHeader(200)
+			return
+		}
 		if r.Method != "GET" || r.URL.Path != "/v1/models" {
 			t.Error("unexpected native inference")
 			w.WriteHeader(400)
@@ -133,7 +151,7 @@ func testProviderCredentialStorageLifecycle(t *testing.T, db *gorm.DB) {
 			t.Fatal("renew actual credential source generation", e)
 		}
 	}
-	svc, err := service.New(ctx, db, service.WithCredentialStorage(ring), service.WithUpstreamPolicy(true), service.WithRuntimeRefreshInterval(time.Hour))
+	svc, err := service.New(ctx, db, service.WithCredentialStorage(ring), service.WithUpstreamPolicy(true), service.WithEgressPolicy(true), service.WithRuntimeRefreshInterval(time.Hour))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -336,6 +354,108 @@ func testProviderCredentialStorageLifecycle(t *testing.T, db *gorm.DB) {
 	if _, err = svc.SetCredentialEnabled(ctx, admin.User.ID, credential.ID, true); err != nil {
 		t.Fatal(err)
 	}
+	// A saved candidate is independent of this Connection's configured egress.
+	// Reuse the real retained Reader/version stub; never synthesize source ACKs.
+	proxyAddress, candidateProxyCalls := egressSOCKSFixture(t, strings.TrimPrefix(supply.URL, "http://"))
+	proxyHost, proxyPort, err := net.SplitHostPort(proxyAddress)
+	if err != nil {
+		t.Fatal(err)
+	}
+	port, err := strconv.Atoi(proxyPort)
+	if err != nil {
+		t.Fatal(err)
+	}
+	disabledCandidate := false
+	candidate, err := svc.WriteEgress(ctx, admin.User.ID, "", service.EgressInput{Name: "Vault candidate diagnostic", Kind: "socks5", Host: proxyHost, Port: port, Enabled: &disabledCandidate, Auth: service.EgressAuthInput{Action: "replace", Username: "proxy-user", Password: "test-only-proxy-password"}, TestTargetBaseURL: supply.URL + "/egress-probe"})
+	if err != nil {
+		t.Fatal("candidate proxy fixture", err)
+	}
+	var retainedBefore entity.CredentialVaultReference
+	if err := db.First(&retainedBefore, "credential_id = ?", credential.ID).Error; err != nil {
+		t.Fatal(err)
+	}
+	var sourceBefore entity.ProviderCredential
+	if err := db.First(&sourceBefore, "id = ?", credential.ID).Error; err != nil {
+		t.Fatal(err)
+	}
+	if sourceBefore.StorageSource != "vault" || sourceBefore.Ciphertext != "" || retainedBefore.CredentialID != credential.ID || !retainedBefore.CredentialBirth.Equal(sourceBefore.CreatedAt) || retainedBefore.RevisionID != saved.RevisionID || retainedBefore.IntegrationID != saved.IntegrationID {
+		t.Fatal("candidate did not retain exact original Vault source")
+	}
+	var usesBefore []entity.CredentialSourceUse
+	if err := db.Order("physical_object, process_id").Find(&usesBefore).Error; err != nil || len(usesBefore) == 0 {
+		t.Fatal("missing genuine registered exposure", err)
+	}
+	for _, use := range usesBefore {
+		if !use.Exposed || use.JoinedAt != nil {
+			t.Fatal("fixture source exposure was fabricated or already closed")
+		}
+	}
+	var callsBefore, attemptsBefore, accessBefore int64
+	if err := db.Model(&entity.CallRecord{}).Count(&callsBefore).Error; err != nil {
+		t.Fatal(err)
+	}
+	if err := db.Model(&entity.CallAttempt{}).Count(&attemptsBefore).Error; err != nil {
+		t.Fatal(err)
+	}
+	if err := db.Model(&entity.CredentialModelAccess{}).Count(&accessBefore).Error; err != nil {
+		t.Fatal(err)
+	}
+	readBefore, writeBefore, discoveryBefore, proxyBefore := reads.Load(), writes.Load(), discovery.Load(), candidateProxyCalls.Load()
+	result := decodeCatalogResponse[service.EgressDiagnosticView](t, request("POST", "/api/v1/admin/egresses/"+candidate.ID+"/test", service.EgressDiagnosticInput{ETag: candidate.ETag, ConnectionID: sourceBefore.ConnectionID}, "", cookie, admin.CSRFToken), 200)
+	if result.Stale || !result.TransportOK || !result.APIOK || reads.Load() != readBefore+1 || writes.Load() != writeBefore || discovery.Load() != discoveryBefore+1 || candidateProxyCalls.Load() <= proxyBefore {
+		t.Fatal("retained version-1 candidate diagnostic was bypassed, replayed or failed")
+	}
+	var retainedAfter entity.CredentialVaultReference
+	var sourceAfter entity.ProviderCredential
+	var usesAfter []entity.CredentialSourceUse
+	if err := db.First(&retainedAfter, "credential_id = ?", credential.ID).Error; err != nil {
+		t.Fatal(err)
+	}
+	if err := db.First(&sourceAfter, "id = ?", credential.ID).Error; err != nil {
+		t.Fatal(err)
+	}
+	if err := db.Order("physical_object, process_id").Find(&usesAfter).Error; err != nil {
+		t.Fatal(err)
+	}
+	if !reflect.DeepEqual(retainedBefore, retainedAfter) || !reflect.DeepEqual(sourceBefore, sourceAfter) || !reflect.DeepEqual(usesBefore, usesAfter) {
+		t.Fatal("diagnostic rewrote source, verification or exposure history")
+	}
+	var candidateStored entity.Egress
+	if err := db.First(&candidateStored, "id = ?", candidate.ID).Error; err != nil || candidateStored.Enabled {
+		t.Fatal("diagnostic enabled its candidate", err)
+	}
+	for _, forbidden := range []string{"fixture-storage-secret", "storage-reader", "storage-writer", "proxy-user", "test-only-proxy-password", "reference_id", "reader_generation"} {
+		if strings.Contains(candidateStored.LastDiagnostic, forbidden) {
+			t.Fatal("saved diagnostic disclosed source or authentication material")
+		}
+	}
+	diagnosticBefore, checkedBefore := candidateStored.LastDiagnostic, candidateStored.LastCheckedAt
+	diagnosticCredentialID = credential.ID
+	changeDiagnosticSource.Store(true)
+	readBefore, discoveryBefore, proxyBefore = reads.Load(), discovery.Load(), candidateProxyCalls.Load()
+	expectStatus(t, request("POST", "/api/v1/admin/egresses/"+candidate.ID+"/test", service.EgressDiagnosticInput{ETag: candidate.ETag, ConnectionID: sourceBefore.ConnectionID}, "", cookie, admin.CSRFToken), 503)
+	if reads.Load() != readBefore+1 || discovery.Load() != discoveryBefore || candidateProxyCalls.Load() != proxyBefore || writes.Load() != writeBefore {
+		t.Fatal("changed retained source dispatched metadata or fell back")
+	}
+	if err := db.First(&candidateStored, "id = ?", candidate.ID).Error; err != nil || candidateStored.LastDiagnostic != diagnosticBefore || candidateStored.LastCheckedAt == nil || checkedBefore == nil || !candidateStored.LastCheckedAt.Equal(*checkedBefore) {
+		t.Fatal("stale source overwrote candidate diagnostic", err)
+	}
+	if err := db.Model(&entity.CredentialVaultReference{}).Where("credential_id = ?", credential.ID).Update("reader_generation", retainedBefore.ReaderGeneration).Error; err != nil {
+		t.Fatal(err)
+	}
+	var callsAfter, attemptsAfter, accessAfter int64
+	if err := db.Model(&entity.CallRecord{}).Count(&callsAfter).Error; err != nil {
+		t.Fatal(err)
+	}
+	if err := db.Model(&entity.CallAttempt{}).Count(&attemptsAfter).Error; err != nil {
+		t.Fatal(err)
+	}
+	if err := db.Model(&entity.CredentialModelAccess{}).Count(&accessAfter).Error; err != nil {
+		t.Fatal(err)
+	}
+	if callsAfter != callsBefore || attemptsAfter != attemptsBefore || accessAfter != accessBefore {
+		t.Fatal("diagnostic changed invocation, metering or discovery facts")
+	}
 	if err = svc.StartRuntime(ctx); err != nil {
 		t.Fatal(err)
 	}
@@ -518,7 +638,8 @@ func testProviderCredentialStorageLifecycle(t *testing.T, db *gorm.DB) {
 	if err = db.Model(&entity.CallAttempt{}).Count(&attempts).Error; err != nil || attempts != 0 {
 		t.Fatal("unexpected native attempt", err)
 	}
-	if writes.Load() != 5 || discovery.Load() != 2 || reads.Load() < 7 {
+	// The candidate diagnostic adds one metadata GET to the two verifications.
+	if writes.Load() != 5 || discovery.Load() != 3 || reads.Load() < 7 {
 		t.Fatal("bounded source effects differ", writes.Load(), discovery.Load(), reads.Load())
 	}
 	if next.RevisionID == saved.RevisionID {

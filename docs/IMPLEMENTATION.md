@@ -50,6 +50,10 @@ Current UI browser acceptance SHA-256:
 Independent browser cleanup SHA-256:
 `7c39475d5e1719644f89d94312436aa0196cbd2464602714885dc49dbc9623a7`.
 
+The sampling layout is delivered as `5f06516bb988220656c83a077c393b1bbf936fcc`
+with exact remote-main parity. CI run 37996319087 completed successfully;
+Actionlint and GolangCI-Lint also pass.
+
 F20 sampling controls now share the approved equal-width two-column row inside
 the existing fixed configuration sidebar. The wrapper-only correction preserves
 parameter values, validation, events and native payloads. Formatting, all 52
@@ -211,7 +215,43 @@ Independent cleanup SHA-256:
 | Model configured availability F12 | Delivered in this phase | R7 passes mandatory checking in 100.529 seconds, complete Task in 335.348 seconds (5,924 frontend cases/223 files, Go race/coverage, five HTTP and ten lifecycle checks, production assets), and binary build in 2.637 seconds. All 2,116 source paths/modes remain exact and owned groups close. Genuine English/Chinese owner list/detail reads show Ready; a normal-API-created model-only reader without providers.read receives null and sees Unknown, stable IDs and disabled writes, without retained owner facts. The original complete Task test-integration passes in 2,747.853 seconds: all 5,595 ordinary named results and schema93 with 182 ordered scenarios plus four constraints/444 named results per database. Strict complete-stream validation and independent process/group/port/Compose cleanup pass; original development remains alive. The earlier failed fixture and Tasks remain retained. |
 | Provider pool recorded metadata | Complete local acceptance | Connections show recorded Native/Azure adapters without inference from protocol or URL. Credentials show the last recorded exact-Credential inference completion with separate no-records and Unknown states; this is not manual verification, health or successful native completion. All 147 focused UI cases in five files pass after the paired Unknown correction; current complete dual-driver and genuine bilingual native-backed browser acceptance pass. |
 | Module tidy file permissions | Committed and pushed | Portable cp -p backups preserve original go.mod/go.sum bytes and modes under umask 077 on success, tidy-change rejection and Go failure. Three isolated fake-Go regressions and complete Task pass. Fresh main mandatory checking passes; commit 2d9ae34 is pushed with remote parity. No dependency or production behavior changes. |
-| Vault and storage F28 | Existing delivery reconciled; remaining scope identified | Published-object drain and graceful closure are already delivered in V88/V89. Genuine English/Chinese Secrets, Vault, storage and orphan-cleanup browser acceptance remains pending. Certificate and workload authentication remain separate functional gaps. The operation-local certificate SDK is committed and pushed as 810ab3b and passes component qualification. Its first real-Vault audit-readback failure is retained. The corrected reader passes nine pure controls, and the controlled retry passes all seven SDK cases with three matching audit pairs, four zero-HTTP controls and zero KV operations; independent owned cleanup passes. This is named-role SDK login evidence only, not saved identity or general compatibility. The combined candidate passes complete Task with 5,950 frontend cases and production build. Mixed real-Vault API/browser checks and independent cleanup pass; full pure-UI acceptance and mutation-dismiss focus restoration remain outstanding. Saved certificate-material storage still awaits the user decision. External compatibility and unverified cleanup-failure cases remain explicit. |
+| Vault and storage F28 | Existing delivery reconciled; remaining scope identified | Published-object drain and graceful closure are already delivered in V88/V89. Genuine English/Chinese Secrets, Vault, storage and orphan-cleanup browser acceptance remains pending. Certificate and workload authentication remain separate functional gaps. The operation-local certificate SDK is committed and pushed as 810ab3b and passes component qualification. Its first real-Vault audit-readback failure is retained. The corrected reader passes nine pure controls, and the controlled retry passes all seven SDK cases with three matching audit pairs, four zero-HTTP controls and zero KV operations; independent owned cleanup passes. This is named-role SDK login evidence only, not saved identity or general compatibility. The combined candidate passes complete Task with 5,950 frontend cases and production build. Mixed real-Vault API/browser checks and independent cleanup pass. The subsequent abd8ced browser scope confirms English Close and Chinese Escape restore the current authorized row trigger after distinct successful Write commands. Full seven-checkpoint pure-UI acceptance remains outstanding. Saved certificate-material storage still awaits the user decision. External compatibility and unverified cleanup-failure cases remain explicit. |
+
+The F14 saved-Egress Connection diagnostic now resolves the exact captured
+inline or retained Vault Credential source and honors the native protocol or
+Azure adapter/API-version metadata request. The tested proxy remains the candidate
+transport independently of the Connection's configured egress. No schema,
+permission or UI change is introduced: the existing UI still tests an explicit
+target URL; the corrected Connection-ID branch is API-only.
+
+Fresh main qualification passes mandatory checking (84.333 seconds), complete
+Task testing (293.762 seconds: 5,972 frontend cases in 223 files, Go race/coverage,
+lifecycle/HTTP and production assets), and binary build (8.674 seconds) for 2,124
+source files. The fresh ordinary inventory has 5,647 named Go tests: all previous
+5,596 plus exactly 51 service tests. Focused service and upstream suites pass 51
+and 11 tests respectively, and independent R2 source review passes. The initial
+focused fixture run remains retained with 50 passes and 12 failures; the fixture
+repair does not change production authority.
+
+The complete `go tool task test-integration` passes in 2,333.842 seconds on the
+qualified code: schema 93, 5,647 ordinary named results, and 182 ordered scenarios
+plus four constraints/444 named results per database. Complete-stream validation
+rejects missing, skipped, failed or racy results. Independent cleanup confirms
+all captured process IDs and groups, both listeners and exact-project
+Compose resources are absent; original development remains alive.
+Full-matrix readback SHA-256: `f636dc17184e56b2e3c9fec973d2d1ed2f46529b7370bc034ab1289c44da4444`.
+Independent cleanup SHA-256: `810f8ab08ff2ca8934e0cb32d5041881e4fca24cfe0d2332ee52fe26c01bbe2d`.
+ No external proxy/provider, actual Vault plus candidate
+Egress combination, production-performance or new browser acceptance is claimed.
+F14 remains Partial; capability totals and the active overall objective are unchanged.
+
+F13 source review establishes no further bounded local omission; live Provider
+compatibility and measured multi-node health remain open. F24 requires an
+explicit authorized analysis/retention contract rather than simulated answers.
+F29 has a domain specification, but its initial caller-authentication template,
+Provisioner ownership proof and fail-closed unknown-write recovery must be settled
+before a useful delivery slice. Neither assessment starts runtime implementation
+or changes capability status.
 
 Rolling-warning scope reconciliation confirms existing Personal, Personal root-Key,
 Project aggregate, Team aggregate and Project root-Key producers. Replacement Keys
@@ -3395,7 +3435,7 @@ The binary capability count is 14 completed, 13 partially completed, and 3 not s
 | F08 | Personal and Project Key lifecycle | Completed | One-time delivery, confirmation, editing, rotation, revocation, expiration, scope, and history are implemented with controlled dual-database evidence. |
 | F09 | Key Token, money, RPM, TPM, concurrency, and IP restrictions | Completed | Personal, Project, and Key admission policies are enforced in the native gateway for the documented single-node architecture. Multi-node enforcement remains a separate release-architecture gate. |
 | F10 | Offboarding, inventory, handover, and emergency disable | Partially completed | Transactional local-account offboarding and continuity workflows exist; external-identity and complete enterprise continuity behavior remain open. |
-| F11 | Provider, Connection, Credential, discovery, and rotation | Partially completed | The management workspace, encrypted credentials, controlled verification, and activation boundaries exist; explicit provider-model capacity attestations, credential-pool filtering/verification timestamps, reviewed name/priority editing, reviewed deletion, staged replacement preparation, immutable per-attempt Credential/publication attribution, and parser-owned native completion evidence are available; evidence-gated predecessor retirement with historical receipt/current-application separation is available; Provider Models table, conjunctive filters, resource links and complete stored-binding projection have controlled bilingual permission/restart and full129 dual-driver acceptance; Whole-Provider availability, admitted-call continuity and disabled-child preservation are delivered in `3223974` with complete dual-driver, native/restart and bilingual browser acceptance. Real-provider acceptance and complete pool operations remain open. |
+| F11 | Provider, Connection, Credential, discovery, and rotation | Partially completed | The management workspace, encrypted credentials, controlled verification, and activation boundaries exist; explicit provider-model capacity attestations, credential-pool filtering/verification timestamps, reviewed name/priority editing, reviewed deletion, staged replacement preparation, immutable per-attempt Credential/publication attribution, and parser-owned native completion evidence are available; evidence-gated predecessor retirement with historical receipt/current-application separation is available; Provider Models table, conjunctive filters, resource links and complete stored-binding projection have controlled bilingual permission/restart and full129 dual-driver acceptance; Whole-Provider availability, admitted-call continuity and disabled-child preservation are delivered in `3223974` with complete dual-driver, native/restart and bilingual browser acceptance. Recorded inference statistics, adapter metadata and directory stored Status now have controlled local acceptance. No additional finite pool workflow was established by source review; real-provider and wider release acceptance remain open. |
 | F12 | Model catalog, names, bindings, weights, and catalog assistance | Partially completed | Stable models, renames, bindings, weights, grants, and availability controls exist; reviewed compatibility-name Early stop has complete controlled source, dual-driver, native/browser/restart and full-matrix delivery. Guided batch creation has complete source, repaired driver, production/browser/restart and full-matrix acceptance, with one atomic reviewed transaction, bounded historical receipts and no implicit grants or existing-Key expansion. Advisory public-name assistance and its bounded popup-label compatibility repair have complete controlled source and final R2 browser/native/restart acceptance; checked delivery is represented by the containing acceptance-record commit, with new remote CI pending. Complete public-catalog assistance and broader routing acceptance remain open. |
 | F13 | Four native protocols, streaming, health, retries, and failover | Partially completed | Chat Completions, Responses, Messages, and Gemini now use bounded replay-safe same-protocol failover with process-local health, one admission/settlement, durable ordered diagnostics, and no retry after a usable response. Azure Chat adaptation and exact Credential deployment declarations are delivered as 5fda0737 with controlled dual-driver/native/restart evidence; real-provider and measured multi-node health acceptance remain open. |
 | F14 | Managed egress and staged network diagnostics | Partially completed | Direct, default, SOCKS5, verified CONNECT, endpoint-bound saved authentication, complete-tunnel proxy-address fallback, and diagnostics exist. External proxy and production performance acceptance remain open. |

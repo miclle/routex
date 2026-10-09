@@ -3,8 +3,6 @@ package service
 import (
 	"context"
 	"encoding/json"
-	"net/http"
-	"strings"
 	"time"
 
 	"gorm.io/gorm"
@@ -85,13 +83,19 @@ func (s *Service) TestEgressDraft(ctx context.Context, actor, egressID string, i
 	return result, nil
 }
 func (s *Service) TestEgress(ctx context.Context, actor, egressID string, input EgressDiagnosticInput) (*EgressDiagnosticView, error) {
+	// Secret resolution, transport and final continuity checks share one budget.
+	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
+	defer cancel()
 	db := s.authDB(ctx)
 	if err := authorizeGovernance(db, actor, "egress.test"); err != nil {
 		return nil, err
 	}
 	var row entity.Egress
-	if err := db.First(&row, "id = ?", egressID).Error; err != nil {
+	if err := memberRolesExact(memberRolesDB(db).Model(&entity.Egress{}), "id", egressID).First(&row).Error; err != nil {
 		return nil, catalogError(err)
+	}
+	if row.ID != egressID || !connectionMetadataBirth(row.CreatedAt) {
+		return nil, apperrors.ErrNotFound
 	}
 	if input.ETag == "" || input.ETag != row.ETag {
 		return nil, catalogConflict
@@ -102,18 +106,53 @@ func (s *Service) TestEgress(ctx context.Context, actor, egressID string, input 
 	}
 	var diagnostic upstream.Diagnostic
 	var proof *egressAPIProof
+	var holder *credentialSourceHolder
 	if input.ConnectionID == "" {
 		diagnostic, err = s.diagnoseEgress(ctx, input.TargetBaseURL, config)
 	} else {
 		if input.TargetBaseURL != "" {
 			return nil, apperrors.ErrBadRequest
 		}
-		request, captured, requestErr := s.egressAPIRequest(ctx, db, actor, input.ConnectionID)
-		proof = captured
+		captured, captureErr := s.egressAPICapture(ctx, actor, input.ConnectionID, "")
+		if captureErr != nil {
+			return nil, captureErr
+		}
+		proof = &captured
+		holder, err = s.acquireCredentialSource(captured.Credential)
+		if err != nil {
+			return nil, connectionDiagnosticError(err)
+		}
+		// A retained source remains admitted until the response body is closed and
+		// the final transactional source/adapter proof has been checked.
+		defer holder.release()
+		plaintext, resolveErr := s.resolveCredential(ctx, captured.Credential)
+		if resolveErr != nil {
+			return nil, connectionDiagnosticError(resolveErr)
+		}
+		request, requestErr := s.egressDiagnosticRequest(ctx, captured.Connection, plaintext)
 		if requestErr != nil {
 			return nil, requestErr
 		}
+		current, captureErr := s.egressAPICapture(ctx, actor, input.ConnectionID, captured.Credential.ID)
+		if captureErr != nil {
+			return nil, captureErr
+		}
+		var currentEgress entity.Egress
+		if err := memberRolesExact(memberRolesDB(db).Model(&entity.Egress{}), "id", egressID).First(&currentEgress).Error; err != nil {
+			return nil, catalogError(err)
+		}
+		if !captured.same(current) || !egressDiagnosticSame(row, currentEgress) || !holder.admitUse() {
+			return nil, catalogConflict
+		}
+		if ctx.Err() != nil {
+			return nil, connectionDiagnosticUnavailable
+		}
+		// The explicitly selected candidate overrides the Connection's transport.
+		// It is a diagnostic, so the candidate may itself be stored disabled.
 		diagnostic, err = upstream.Diagnose(ctx, request, s.allowPrivateUpstream, s.allowPrivateEgress, config)
+	}
+	if ctx.Err() != nil {
+		return nil, connectionDiagnosticUnavailable
 	}
 	if err != nil {
 		return nil, apperrors.ErrBadRequest
@@ -127,84 +166,30 @@ func (s *Service) TestEgress(ctx context.Context, actor, egressID string, input 
 			return err
 		}
 		var current entity.Egress
-		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).First(&current, "id = ?", egressID).Error; err != nil {
+		if err := memberRolesExact(memberRolesDB(tx).Model(&entity.Egress{}), "id", egressID).Clauses(clause.Locking{Strength: "UPDATE"}).First(&current).Error; err != nil {
 			return err
 		}
 		if proof != nil {
-			if err := authorizeGovernance(tx, actor, "providers.write"); err != nil {
+			currentProof, err := s.egressAPISnapshot(tx, actor, input.ConnectionID, proof.Credential.ID)
+			if err != nil {
 				return err
 			}
-			var connection entity.ProviderConnection
-			var credential entity.ProviderCredential
-			if err := tx.First(&connection, "id = ?", proof.Connection.ID).Error; err != nil {
-				return err
-			}
-			if err := tx.First(&credential, "id = ?", proof.Credential.ID).Error; err != nil {
-				return err
-			}
-			if !proof.matches(connection, credential) {
+			if !proof.same(currentProof) || !holder.admitUse() {
 				result.Stale = true
 				return nil
 			}
 		}
-		if current.ETag != input.ETag {
+		if !egressDiagnosticSame(row, current) {
 			result.Stale = true
 			return nil
+		}
+		if ctx.Err() != nil {
+			return connectionDiagnosticUnavailable
 		}
 		encoded, _ := json.Marshal(diagnostic)
 		return tx.Model(&current).Updates(map[string]any{"last_diagnostic": string(encoded), "last_checked_at": time.Now().UTC()}).Error
 	})
 	return result, catalogError(err)
-}
-
-type egressAPIProof struct {
-	Connection entity.ProviderConnection
-	Credential entity.ProviderCredential
-}
-
-func (p *egressAPIProof) matches(c entity.ProviderConnection, k entity.ProviderCredential) bool {
-	return c.ID == p.Connection.ID && c.BaseURL == p.Connection.BaseURL && c.Protocol == p.Connection.Protocol && c.ETag == p.Connection.ETag && k.Enabled && k.VerificationStatus == "verified" && k.ID == p.Credential.ID && k.ConnectionID == c.ID && k.Ciphertext == p.Credential.Ciphertext
-}
-func (s *Service) egressAPIRequest(ctx context.Context, db *gorm.DB, actor, connectionID string) (*http.Request, *egressAPIProof, error) {
-	if err := authorizeGovernance(db, actor, "providers.write"); err != nil {
-		return nil, nil, err
-	}
-	var connection entity.ProviderConnection
-	if err := db.First(&connection, "id = ?", connectionID).Error; err != nil {
-		return nil, nil, catalogError(err)
-	}
-	var credential entity.ProviderCredential
-	if err := db.Where("connection_id = ? AND enabled = ? AND verification_status = ?", connection.ID, true, "verified").Order("priority, created_at, id").First(&credential).Error; err != nil {
-		return nil, nil, catalogError(err)
-	}
-	if s.secrets == nil {
-		return nil, nil, secretStoreUnavailable
-	}
-	plaintext, err := s.openSecret(credential.ID, credential.Ciphertext)
-	if err != nil {
-		return nil, nil, secretStoreUnavailable
-	}
-	base, err := upstream.ValidateBaseURL(connection.BaseURL, s.allowPrivateUpstream)
-	if err != nil {
-		return nil, nil, apperrors.ErrBadRequest
-	}
-	request, err := http.NewRequestWithContext(ctx, http.MethodGet, strings.TrimRight(base.String(), "/")+"/models", nil)
-	if err != nil {
-		return nil, nil, apperrors.ErrBadRequest
-	}
-	switch connection.Protocol {
-	case entity.ProtocolAnthropicMessages:
-		request.Header.Set("x-api-key", plaintext)
-		request.Header.Set("anthropic-version", "2023-06-01")
-	case entity.ProtocolGeminiGenerateContent:
-		request.Header.Set("x-goog-api-key", plaintext)
-	case entity.ProtocolOpenAIChat, entity.ProtocolOpenAIResponses:
-		request.Header.Set("Authorization", "Bearer "+plaintext)
-	default:
-		return nil, nil, apperrors.ErrBadRequest
-	}
-	request.Header.Set("Accept", "application/json")
-	return request, &egressAPIProof{Connection: connection, Credential: credential}, nil
 }
 
 func (s *Service) SetEgressDefault(ctx context.Context, actor string, input EgressDefaultView) (*EgressDefaultView, error) {

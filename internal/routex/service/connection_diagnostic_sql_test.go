@@ -25,15 +25,16 @@ import (
 // This wrapper retains existing actor/permission/Connection fixture behavior.
 // Its extra selected Credential row and read-only commits never model a real DB.
 type connectionDiagnosticSQLState struct {
-	base          *connectionMetadataSQLState
-	credential    entity.ProviderCredential
-	egress        *entity.Egress
-	egressAlias   bool
-	alias         bool
-	missing       bool
-	commits       int
-	readOptions   []driver.TxOptions
-	afterSnapshot func(int)
+	base                 *connectionMetadataSQLState
+	credential           entity.ProviderCredential
+	egress               *entity.Egress
+	egressAlias          bool
+	egressTestPermission bool
+	alias                bool
+	missing              bool
+	commits              int
+	readOptions          []driver.TxOptions
+	afterSnapshot        func(int)
 }
 
 type connectionDiagnosticSQLConnector struct {
@@ -73,6 +74,19 @@ func (c *connectionDiagnosticSQLConnection) BeginTx(ctx context.Context, options
 }
 
 func (c *connectionDiagnosticSQLConnection) QueryContext(ctx context.Context, query string, args []driver.NamedValue) (driver.Rows, error) {
+	// Only the Egress fixture opts into the legacy permission-list projection.
+	// Other fixtures retain their original query behavior, including denials.
+	if c.state.egressTestPermission && strings.Contains(query, "SELECT DISTINCT p.permission") {
+		if err := ctx.Err(); err != nil {
+			return nil, err
+		}
+		c.f.queries = append(c.f.queries, query)
+		rows := []struct{ Permission string }{}
+		if !c.f.deny["egress.test"] {
+			rows = append(rows, struct{ Permission string }{"egress.test"})
+		}
+		return effectiveSQLRows(rows)
+	}
 	if strings.Contains(query, `FROM "egresses"`) && c.state.egress != nil {
 		c.f.queries = append(c.f.queries, query)
 		row := *c.state.egress

@@ -43,7 +43,11 @@ func Diagnose(ctx context.Context, request *http.Request, targetPrivate, proxyPr
 	if request == nil || request.URL == nil {
 		return Diagnostic{}, errURL
 	}
-	if _, err := ValidateBaseURL(request.URL.String(), targetPrivate); err != nil {
+	// Stored base URLs remain query-free. Explicit native requests may include
+	// provider query parameters; the guarded transport validates the actual URL.
+	base := *request.URL
+	base.RawQuery, base.ForceQuery = "", false
+	if _, err := ValidateBaseURL(base.String(), targetPrivate); err != nil {
 		return Diagnostic{}, err
 	}
 	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)

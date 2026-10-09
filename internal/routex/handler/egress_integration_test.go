@@ -119,11 +119,62 @@ func testEgressLifecycle(t *testing.T, db *gorm.DB) {
 	ctx := context.Background()
 	var upstreamCalls atomic.Int32
 	var pauseDiagnostic atomic.Bool
+	var diagnosticMutationMu sync.Mutex
+	var diagnosticMutation func() error
 	diagnosticEntered := make(chan struct{}, 1)
 	diagnosticContinue := make(chan struct{})
 	target := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Header.Get("Proxy-Authorization") != "" {
 			t.Error("proxy authentication leaked to target")
+		}
+		if strings.HasSuffix(r.URL.Path, "/models") {
+			diagnosticMutationMu.Lock()
+			mutate := diagnosticMutation
+			diagnosticMutation = nil
+			diagnosticMutationMu.Unlock()
+			if mutate != nil {
+				if err := mutate(); err != nil {
+					t.Error("controlled diagnostic mutation failed", err)
+					w.WriteHeader(500)
+					return
+				}
+			}
+		}
+		if r.URL.Path != "/v1/models" && strings.HasSuffix(r.URL.Path, "/models") {
+			wantHeader := map[string]string{
+				"/chat/models": "Authorization", "/responses/models": "Authorization",
+				"/messages/models": "x-api-key", "/gemini/models": "x-goog-api-key", "/openai/models": "api-key",
+			}[r.URL.Path]
+			if wantHeader == "" || r.Method != "GET" || r.Header.Get("Accept") != "application/json" {
+				t.Error("incorrect candidate diagnostic endpoint")
+				w.WriteHeader(400)
+				return
+			}
+			for _, header := range []string{"Authorization", "x-api-key", "x-goog-api-key", "api-key"} {
+				want := ""
+				if header == wantHeader {
+					want = "test-only-candidate-secret"
+					if header == "Authorization" {
+						want = "Bearer " + want
+					}
+				}
+				if r.Header.Get(header) != want {
+					t.Error("incorrect candidate diagnostic authentication", header)
+				}
+			}
+			if (r.URL.Path == "/messages/models") != (r.Header.Get("anthropic-version") == "2023-06-01") {
+				t.Error("incorrect candidate Messages version")
+			}
+			wantQuery := ""
+			if r.URL.Path == "/openai/models" {
+				wantQuery = "api-version=2024-10-21"
+			}
+			if r.URL.RawQuery != wantQuery {
+				t.Error("incorrect candidate adapter version query")
+			}
+			w.Header().Set("Content-Type", "application/json")
+			_, _ = io.WriteString(w, `{"data":[]}`)
+			return
 		}
 		if r.URL.Path == "/v1/models" {
 			if pauseDiagnostic.CompareAndSwap(true, false) {
@@ -304,6 +355,101 @@ func testEgressLifecycle(t *testing.T, db *gorm.DB) {
 	}
 	if stored.Enabled {
 		t.Fatal("diagnostic re-enabled proxy")
+	}
+	// Connection diagnostics use the selected disabled candidate even though
+	// this Connection is explicitly direct. They perform no inference operation.
+	before = proxyCalls.Load()
+	nativeBefore := upstreamCalls.Load()
+	candidateResult := decodeCatalogResponse[service.EgressDiagnosticView](t, request("POST", "/api/v1/admin/egresses/"+row.ID+"/test", service.EgressDiagnosticInput{ETag: row.ETag, ConnectionID: connection.ID}), 200)
+	if !candidateResult.TransportOK || !candidateResult.APIOK || candidateResult.Stale || proxyCalls.Load() <= before || upstreamCalls.Load() != nativeBefore {
+		t.Fatal("candidate transport was bypassed or diagnostic invoked inference")
+	}
+	var directAfter entity.ProviderConnection
+	if err := db.First(&directAfter, "id = ?", connection.ID).Error; err != nil || directAfter.EgressMode != "direct" || directAfter.EgressID != nil || directAfter.ETag != direct.ETag {
+		t.Fatal("candidate diagnostic changed Connection transport", err)
+	}
+	version := "2024-10-21"
+	for _, tc := range []struct {
+		name, protocol, adapter, path string
+		version                       *string
+	}{
+		{"Chat", entity.ProtocolOpenAIChat, entity.AdapterNative, "/chat", nil},
+		{"Responses", entity.ProtocolOpenAIResponses, entity.AdapterNative, "/responses", nil},
+		{"Messages", entity.ProtocolAnthropicMessages, entity.AdapterNative, "/messages", nil},
+		{"Gemini", entity.ProtocolGeminiGenerateContent, entity.AdapterNative, "/gemini", nil},
+		{"Azure", entity.ProtocolOpenAIChat, entity.AdapterAzureOpenAIClassic, "", &version},
+	} {
+		candidateProvider, err := svc.CreateProvider(ctx, auth.User.ID, "Diagnostic "+tc.name, service.CreateConnectionInput{Name: tc.name, BaseURL: target.URL + tc.path, Protocol: tc.protocol, Adapter: tc.adapter, APIVersion: tc.version, EgressMode: "direct", CredentialName: "Candidate", Secret: "test-only-candidate-secret"})
+		if err != nil {
+			t.Fatal("candidate fixture creation", tc.name, err)
+		}
+		candidateConnection := candidateProvider.Connections[0].Connection
+		candidateCredential := candidateProvider.Connections[0].Credentials[0]
+		// Fixture eligibility only: the diagnostic must not Verify or Enable it.
+		if err := db.Model(&entity.ProviderCredential{}).Where("id = ?", candidateCredential.ID).Updates(map[string]any{"enabled": true, "verification_status": "verified"}).Error; err != nil {
+			t.Fatal(err)
+		}
+		var credentialBefore entity.ProviderCredential
+		if err := db.First(&credentialBefore, "id = ?", candidateCredential.ID).Error; err != nil {
+			t.Fatal(err)
+		}
+		before = proxyCalls.Load()
+		result := decodeCatalogResponse[service.EgressDiagnosticView](t, request("POST", "/api/v1/admin/egresses/"+row.ID+"/test", service.EgressDiagnosticInput{ETag: row.ETag, ConnectionID: candidateConnection.ID}), 200)
+		if result.Stale || !result.TransportOK || !result.APIOK || proxyCalls.Load() <= before || upstreamCalls.Load() != nativeBefore {
+			t.Fatal("native adapter candidate diagnostic failed", tc.name)
+		}
+		var credentialAfter entity.ProviderCredential
+		if err := db.First(&credentialAfter, "id = ?", candidateCredential.ID).Error; err != nil || credentialAfter.Ciphertext != credentialBefore.Ciphertext || credentialAfter.Enabled != credentialBefore.Enabled || credentialAfter.VerificationStatus != credentialBefore.VerificationStatus || credentialAfter.VerifiedAt != nil {
+			t.Fatal("diagnostic changed verification or secret source", tc.name, err)
+		}
+		if tc.adapter == entity.AdapterAzureOpenAIClassic {
+			if err := db.First(&stored, "id = ?", row.ID).Error; err != nil {
+				t.Fatal(err)
+			}
+			beforeDiagnostic, beforeChecked := stored.LastDiagnostic, stored.LastCheckedAt
+			diagnosticMutationMu.Lock()
+			diagnosticMutation = func() error {
+				return db.Model(&entity.ProviderConnection{}).Where("id = ?", candidateConnection.ID).Update("api_version", "2025-01-01-preview").Error
+			}
+			diagnosticMutationMu.Unlock()
+			staleAdapter := decodeCatalogResponse[service.EgressDiagnosticView](t, request("POST", "/api/v1/admin/egresses/"+row.ID+"/test", service.EgressDiagnosticInput{ETag: row.ETag, ConnectionID: candidateConnection.ID}), 200)
+			if !staleAdapter.Stale {
+				t.Fatal("changed adapter accepted after native diagnostic")
+			}
+			if err := db.First(&stored, "id = ?", row.ID).Error; err != nil || stored.LastDiagnostic != beforeDiagnostic || stored.LastCheckedAt == nil || beforeChecked == nil || !stored.LastCheckedAt.Equal(*beforeChecked) {
+				t.Fatal("stale adapter diagnostic persisted", err)
+			}
+		}
+	}
+	if err := db.First(&stored, "id = ?", row.ID).Error; err != nil {
+		t.Fatal(err)
+	}
+	beforeDiagnostic, beforeChecked := stored.LastDiagnostic, stored.LastCheckedAt
+	var originalCredential entity.ProviderCredential
+	if err := db.First(&originalCredential, "id = ?", credential.ID).Error; err != nil {
+		t.Fatal(err)
+	}
+	replacementCipher, err := store.Seal(credential.ID, "test-only-replaced-provider-secret")
+	if err != nil {
+		t.Fatal(err)
+	}
+	diagnosticMutationMu.Lock()
+	diagnosticMutation = func() error {
+		return db.Model(&entity.ProviderCredential{}).Where("id = ?", credential.ID).Update("ciphertext", replacementCipher).Error
+	}
+	diagnosticMutationMu.Unlock()
+	staleSource := decodeCatalogResponse[service.EgressDiagnosticView](t, request("POST", "/api/v1/admin/egresses/"+row.ID+"/test", service.EgressDiagnosticInput{ETag: row.ETag, ConnectionID: connection.ID}), 200)
+	if !staleSource.Stale {
+		t.Fatal("changed credential source accepted after native diagnostic")
+	}
+	if err := db.First(&stored, "id = ?", row.ID).Error; err != nil || stored.LastDiagnostic != beforeDiagnostic || stored.LastCheckedAt == nil || beforeChecked == nil || !stored.LastCheckedAt.Equal(*beforeChecked) {
+		t.Fatal("stale source diagnostic persisted", err)
+	}
+	if err := db.Model(&entity.ProviderCredential{}).Where("id = ?", credential.ID).Update("ciphertext", originalCredential.Ciphertext).Error; err != nil {
+		t.Fatal(err)
+	}
+	if upstreamCalls.Load() != nativeBefore {
+		t.Fatal("diagnostic generated an inference request")
 	}
 	// The slow check belongs to the old revision and must not overwrite a newer edit.
 	pauseDiagnostic.Store(true)

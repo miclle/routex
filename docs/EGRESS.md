@@ -41,7 +41,33 @@ Stale revisions return 409. Invalid configuration returns 400. A completed save-
 
 ## Diagnostics
 
-Saved diagnostics take `{etag, target_base_url}` or `{etag, connection_id}`. The Connection form additionally requires current `providers.write` authority and uses one enabled, verified provider credential with the protocol's authentication header. It rechecks Connection/credential state and authority before persisting results. An explicit target check sends no provider credential.
+Saved diagnostics take `{etag, target_base_url}` or `{etag, connection_id}`.
+An explicit target check sends no provider Credential. The Connection form
+additionally requires current `providers.write`, independently of
+`providers.read`, and fixes one enabled, verified Credential for the check.
+The saved Egress under test remains the candidate transport even when the
+Connection is configured as direct or uses another proxy. Testing a disabled
+candidate does not enable it or change the Connection's selection.
+
+Connection diagnostics resolve the captured inline or retained Vault source
+without falling back to another Credential. A Vault source holder spans secret
+resolution, the bounded response read and final continuity checks. Exact actor,
+Provider, Connection, Credential and source identities, births, adapter/version
+and candidate Egress configuration are rechecked before dispatch and before
+saving results. Superseded facts never replace current diagnostic metadata.
+Secret resolution and network work share the ten-second command deadline.
+
+Native metadata requests use the protocol's authentication header. Azure classic
+Chat uses `GET /openai/models?api-version=<configured-version>` with `api-key`
+and no Bearer header. Request query support does not relax query-free stored
+base URLs or guarded target/proxy policy. This checks bounded metadata HTTP
+behavior; it neither verifies deployment access nor performs inference,
+discovery publication, Credential verification or enablement.
+
+The existing Egress UI continues to submit an explicit target URL. The
+Connection-ID diagnostic branch described above is API-only; this correction
+adds no schema, permission or UI behavior. No actual Vault-plus-candidate-Egress
+or external-provider acceptance is implied by source support.
 
 A diagnostic returns `transport_ok`, `api_ok`, optional `http_status`, total `duration_ms`, `stale`, and ordered stages:
 
@@ -61,4 +87,9 @@ Transport revisions include the effective default selection, Connection identity
 
 Focused tests use controlled local HTTP/TLS/SOCKS5 peers and injected DNS/dial functions; no provider account or external probe is required. They cover independent endpoint policy, IPv4/IPv6 numeric tunneling, proxy and target TLS names, credential separation, endpoint-bound saved authentication, authentication failure, complete-tunnel fallback across proxy addresses, canceled/stalled negotiation, redirects, measured diagnostic states, encrypted storage, and admission ordering.
 
-The serialized PostgreSQL/MySQL integration helper exercises encrypted CRUD and strict HTTP requests, ETag conflicts, initial direct routing, default proxy routing for ordinary/SSE calls, disabled-proxy rejection, explicit direct override, stale diagnostic rejection, and service restart. Full dual-database acceptance is recorded by the coordinating test pipeline; focused package tests alone are not a claim of database acceptance.
+The PostgreSQL/MySQL integration suite exercises encrypted CRUD and strict HTTP requests, ETag conflicts, initial direct routing, default proxy routing for ordinary/SSE calls, disabled-proxy rejection, explicit direct override, stale diagnostic rejection, and service restart. Full dual-database acceptance is recorded by the coordinating test pipeline; focused package tests alone are not a claim of database acceptance.
+
+Saved-Connection regressions also cover native/Azure metadata requests through
+the selected candidate, controlled Vault source reads, and source/adapter
+changes that must not overwrite current diagnostics. These use controlled local
+HTTP peers; they do not certify external Vault or provider compatibility.
