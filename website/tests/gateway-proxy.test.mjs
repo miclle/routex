@@ -30,7 +30,13 @@ test('development server proxies native model and streaming inference requests',
   try {
     server = await createServer({
       cacheDir,
-      server: { host: '127.0.0.1', port: 0, strictPort: false, hmr: false },
+      server: {
+        host: '127.0.0.1',
+        port: 0,
+        strictPort: false,
+        hmr: false,
+        watch: null,
+      },
       optimizeDeps: { noDiscovery: true, include: [] },
     })
     await server.listen()
