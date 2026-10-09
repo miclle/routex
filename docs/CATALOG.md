@@ -1265,3 +1265,24 @@ The same executable passes the local native/shutdown/restart cleanup workflow;
 browser focus, keyboard and real-window acceptance remain deferred. See the
 [current acceptance boundary](IMPLEMENTATION.md#current-vault-main-integration-2026-10-09)
 for source-specific evidence and the separate external Vault/fleet gates.
+
+## Provider Model row actions
+
+The Provider Models table offers resource details, an explicit enable/disable
+confirmation, and management links from the authorized Provider binding projection.
+Status actions PATCH the exact Provider Model with only `enabled` and the reviewed
+opaque body `etag`. The existing endpoint does not accept a reason or consume an
+If-Match header. Capability declarations, relationships, prices and routing weights
+are retained. A confirmed response refreshes recorded catalogue facts; it does not
+prove routing health or fleet application. Conflicts require explicit current-state
+review. Unconfirmed dispatches retain the exact original request for manual retry;
+matching refreshed state never proves historical completion.
+
+An unconfirmed status operation can be left unknown while starting a separate
+change: refresh recorded facts, explicitly confirm discarding only the local
+retry, then separately confirm the new current-revision change. A discarded
+retry neither cancels the original operation nor proves its historical outcome.
+
+Status dispatch synchronously locks its selected target before HTTP I/O. Close
+and retarget callbacks consult that live lock and exact selection, so callbacks
+captured before React renders cannot discard or replace a dispatched intent.

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { Link } from 'react-router'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
@@ -17,6 +17,7 @@ import { Table } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
 import { protocolLabel } from '@/lib/protocols'
 import { useConnectionQueryRevision } from './connection-authority'
+import { ProviderModelRowMenu, ProviderModelStatusConfirmation } from './provider-model-row-actions'
 
 interface Props {
   providerId: string
@@ -106,6 +107,14 @@ function Models({ providerId, session, onAdd }: Props) {
   const [connection, setConnection] = useState('all')
   const [enabled, setEnabled] = useState('all')
   const [binding, setBinding] = useState<'all' | 'bound' | 'unbound'>('all')
+  const [statusTarget, setStatusTarget] = useState<string | null>(null)
+  const [statusOpen, setStatusOpen] = useState(false)
+  const [statusLocked, setStatusLocked] = useState(false)
+  const [statusSaved, setStatusSaved] = useState(false)
+  const statusSelection = useRef<string | null>(null)
+  const statusVisible = useRef(false)
+  const statusActivity = useRef({ pending: false, uncertain: false })
+  const actionTriggers = useRef(new Map<string, HTMLButtonElement>())
   const allRows =
     provider?.connections.flatMap((item) =>
       item.provider_models.map((model) => ({ connection: item, model })),
@@ -170,6 +179,7 @@ function Models({ providerId, session, onAdd }: Props) {
       ? t('providers.unknown')
       : t(value ? 'providerModels.declared' : 'providerModels.notDeclared')
   const writable = () => fresh() && access.data?.includes('providers.write') === true
+  const currentModel = allRows.find(({ model }) => model.id === statusTarget)?.model
   return (
     <div className="space-y-4">
       <QueryState
@@ -187,6 +197,7 @@ function Models({ providerId, session, onAdd }: Props) {
       {fresh() && !provider && <p role="alert">{t('providerModels.missing')}</p>}
       {provider && (
         <>
+          {statusSaved && <p role="status">{t('providerModels.statusSaved')}</p>}
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div
               role="group"
@@ -331,6 +342,7 @@ function Models({ providerId, session, onAdd }: Props) {
                 <th>{t('providerModels.enabled')}</th>
                 <th>{t('providerModels.image')}</th>
                 <th>{t('providerModels.pdf')}</th>
+                <th>{t('providerModels.actions')}</th>
               </tr>
             </thead>
             <tbody>
@@ -340,6 +352,9 @@ function Models({ providerId, session, onAdd }: Props) {
                     <Link
                       className="text-primary"
                       to={`/admin/providers/${encodeURIComponent(providerId)}/models/${encodeURIComponent(model.id)}`}
+                      onClick={(event) => {
+                        if (!fresh()) event.preventDefault()
+                      }}
                     >
                       {model.upstream_name}
                     </Link>
@@ -377,16 +392,85 @@ function Models({ providerId, session, onAdd }: Props) {
                   </td>
                   <td>{declaration(model.supports_image_input)}</td>
                   <td>{declaration(model.supports_pdf_input)}</td>
+                  <td>
+                    <ProviderModelRowMenu
+                      providerId={providerId}
+                      model={model}
+                      readable={fresh}
+                      writable={() => writable() && (!statusLocked || statusTarget === model.id)}
+                      bindings={bindingRows?.get(model.id)?.models}
+                      bindingsFresh={currentBindings}
+                      triggerRef={(node) => {
+                        if (node) actionTriggers.current.set(model.id, node)
+                        else actionTriggers.current.delete(model.id)
+                      }}
+                      onStatus={() => {
+                        if (
+                          !writable() ||
+                          statusActivity.current.pending ||
+                          (statusActivity.current.uncertain && statusSelection.current !== model.id)
+                        )
+                          return
+                        statusSelection.current = model.id
+                        statusVisible.current = true
+                        setStatusTarget(model.id)
+                        setStatusOpen(true)
+                        setStatusSaved(false)
+                      }}
+                    />
+                  </td>
                 </tr>
               ))}
               {rows.length === 0 && (
                 <tr>
-                  <td colSpan={7}>{t('providerModels.empty')}</td>
+                  <td colSpan={8}>{t('providerModels.empty')}</td>
                 </tr>
               )}
             </tbody>
           </Table>
         </>
+      )}
+      {statusTarget && (
+        <ProviderModelStatusConfirmation
+          key={statusTarget}
+          actor={actor}
+          model={currentModel}
+          open={statusOpen}
+          readable={fresh}
+          writable={writable}
+          permissionsKey={permissionsKey}
+          catalogueKey={catalogueKey}
+          onClose={() => {
+            if (statusSelection.current !== statusTarget || statusActivity.current.pending) return
+            statusVisible.current = false
+            setStatusOpen(false)
+            if (!statusActivity.current.uncertain) {
+              statusSelection.current = null
+              setStatusTarget(null)
+            }
+          }}
+          isCurrentTarget={() => statusSelection.current === statusTarget && statusVisible.current}
+          onActivity={(activity) => {
+            if (statusSelection.current !== statusTarget) return
+            statusActivity.current = activity
+            setStatusLocked(activity.pending || activity.uncertain)
+          }}
+          refresh={() => void catalogue.refetch()}
+          finalFocus={() => actionTriggers.current.get(statusTarget) ?? false}
+          onSaved={() => {
+            if (statusSelection.current !== statusTarget || !statusVisible.current || !writable())
+              return
+            statusSelection.current = null
+            statusVisible.current = false
+            statusActivity.current = { pending: false, uncertain: false }
+            setStatusTarget(null)
+            setStatusOpen(false)
+            setStatusLocked(false)
+            setStatusSaved(true)
+            void cache.invalidateQueries({ queryKey: ['admin', 'providers'], exact: true })
+            void cache.invalidateQueries({ queryKey: ['admin', 'providers', actor] })
+          }}
+        />
       )}
     </div>
   )

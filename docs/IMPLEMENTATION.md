@@ -2,9 +2,40 @@
 
 Updated: 2026-10-09. This document records engineering contracts, work packages and acceptance checks. Planned interfaces and metrics are not implementation evidence. The objective covers F01–F30 and A01–A20 through incremental P0–P6 delivery and is resumed by the user's explicit instruction, prioritizing partially completed capabilities.
 
+## Current Provider Model row actions (2026-10-09)
+
+The phase adds the existing Provider Models table's Actions menu, resource
+details and explicitly reviewed enable/disable confirmation. Management links
+come from the scoped binding projection and require independent Model read
+authority. Status writes preserve capabilities, relationships, prices and weights;
+the current endpoint consumes only `enabled` and its opaque body `etag`.
+A saved configuration does not prove route health or fleet application.
+
+Unconfirmed writes retain their exact request. Explicit review may discard only
+the local retry before a separately confirmed current-revision change, leaving
+the original historical outcome unknown. Dispatch synchronously fences close,
+retarget and obsolete confirmation callbacks before HTTP I/O. Both original
+same-turn failure witnesses pass after repair; independent review has no remaining
+finding. English/Chinese copy and the paired frontend rules are updated.
+
+After exact reviewed-code adoption and an append-only catalogue-document merge,
+main formatting passes, all 5,471 frontend tests in 209 files pass, and frontend
+Node checks, mandatory checks, production build and production asset race tests
+pass. The final progress update changes documentation only. No backend or schema
+changes enter this phase;
+the delivered Vault implementation is preserved. Browser acceptance remains
+deferred while the computer is locked.
+
+Next work remains separate: Full174 is running for routing-weight history and
+rollback. Whole-Provider enablement is being implemented in an isolated worktree
+by schema/API, runtime/eligibility and frontend workers; V91 and those changes
+have no acceptance or main delivery yet. Formal totals remain
+13 Completed / 14 Partial / 3 Not started.
+
 ## Current Vault main integration (2026-10-09)
 
-The containing phase delivers reviewed published-Vault cleanup and positive
+Commit `6ade4a8e37220831a42ac9bcffd6e4a4e2add29b` delivers reviewed
+published-Vault cleanup and positive
 credential-source process closure on main. Frozen V88/V89 preserve immutable
 receipts, exact ownership and call attribution. Cleanup joins known holders
 before its single remote attempt; uncertain exposure or persistence stays blocked.

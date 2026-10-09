@@ -20,6 +20,7 @@ let requests: InternalAxiosRequestConfig[], permissions: string[], actor: string
 let permissionError: boolean, catalogueError: boolean, bindingError: boolean
 let bindingPages: Record<string, ProviderModelBindings>
 let cataloguePages: Provider[]
+let patchFailure: number | null, ignorePatchAbort: boolean
 let holdUrl: string | null,
   held: { release: () => void; signal: InternalAxiosRequestConfig['signal'] }[]
 const add = vi.fn()
@@ -138,6 +139,8 @@ beforeEach(async () => {
     },
   }
   cataloguePages = structuredClone(providers)
+  patchFailure = null
+  ignorePatchAbort = false
   holdUrl = null
   held = []
   add.mockClear()
@@ -161,7 +164,23 @@ beforeEach(async () => {
         csrf_token: 'current-csrf',
       }
     else if (config.url === '/auth/permissions') response.data = { permissions: [...permissions] }
-    else if (config.url === '/admin/providers')
+    else if (config.method === 'patch' && config.url?.startsWith('/admin/provider-models/')) {
+      const target = cataloguePages
+        .flatMap((provider) =>
+          provider.connections.flatMap((connection) => connection.provider_models),
+        )
+        .find((item) => item.id === config.url!.split('/').at(-1))!
+      const input = JSON.parse(config.data)
+      const status = patchFailure ?? (target.etag === input.etag ? null : 409)
+      if (status)
+        throw new AxiosError('Controlled status failure', '', config, undefined, {
+          ...response,
+          status,
+        })
+      target.enabled = input.enabled
+      target.etag = 'saved-revision'
+      response.data = structuredClone(target)
+    } else if (config.url === '/admin/providers')
       response.data = { items: structuredClone(cataloguePages) }
     else if (/^\/admin\/providers\/prv_(first|second)\/model-bindings$/.test(config.url!)) {
       response.data = structuredClone(bindingPages[config.url!.split('/')[3]])
@@ -179,11 +198,12 @@ beforeEach(async () => {
     if (config.url === holdUrl)
       await new Promise<void>((resolve, reject) => {
         held.push({ release: resolve, signal: config.signal })
-        config.signal?.addEventListener?.(
-          'abort',
-          () => reject(new CanceledError(undefined, config)),
-          { once: true },
-        )
+        if (!(config.method === 'patch' && ignorePatchAbort))
+          config.signal?.addEventListener?.(
+            'abort',
+            () => reject(new CanceledError(undefined, config)),
+            { once: true },
+          )
       })
     return response
   }
@@ -294,7 +314,7 @@ it('renders independent stored enabled/image/PDF declarations without readiness 
   const row = [...table()!.querySelectorAll('tbody tr')].find((item) =>
     item.textContent?.includes('alpha disabled'),
   )!
-  expect([...row.children].map((item) => item.textContent).slice(4)).toEqual([
+  expect([...row.children].map((item) => item.textContent).slice(4, 7)).toEqual([
     'Disabled',
     'Declared',
     'Declared',
@@ -658,4 +678,432 @@ it('refreshes a mismatched catalogue before exactly one fresh complete binding p
   expect(requests.filter((r) => r.url === bindingUrl)).toHaveLength(2)
   await select('Filter stored Model bindings', 'Bound')
   expect(names()).toEqual(['Alpha', 'alpha disabled', 'New model'])
+})
+
+const statusWrites = () => requests.filter((request) => request.method === 'patch')
+const statusDialog = () => document.querySelector<HTMLElement>('[role="dialog"]')
+const alphaActions = () => table()!.querySelectorAll<HTMLButtonElement>('tbody tr button')[0]
+async function openAlphaStatus() {
+  await act(async () => alphaActions().click())
+  await until(() => expect(button('Disable model')).toBeTruthy())
+  await click('Disable model')
+  await until(() => expect(statusDialog()).not.toBeNull())
+}
+it('confirms one exact row status-only write and refreshes recorded table and detail queries', async () => {
+  await mount()
+  cache.setQueryData(
+    ['admin', 'providers', actor, 'prv_first', 'pmd_alpha', 'member', 1],
+    providers,
+  )
+  cache.setQueryData(['admin', 'providers'], providers)
+  await openAlphaStatus()
+  expect(statusWrites()).toHaveLength(0)
+  expect(statusDialog()!.textContent).toContain('Existing relationships and prices are retained')
+  await click('Confirm disable')
+  await until(() => expect(host.textContent).toContain('The model status response was confirmed'))
+  expect(statusWrites()).toHaveLength(1)
+  const write = statusWrites()[0]
+  expect(write.url).toBe('/admin/provider-models/pmd_alpha')
+  expect(JSON.parse(write.data)).toEqual({ etag: 'recorded-revision', enabled: false })
+  expect(write.headers.get('X-CSRF-Token')).toBe('current-csrf')
+  expect(write.headers.get('If-Match')).toBeUndefined()
+  await until(() =>
+    expect(table()!.querySelector('tbody tr')!.children[4].textContent).toBe('Disabled'),
+  )
+  expect(
+    cache.getQueryState(['admin', 'providers', actor, 'prv_first', 'pmd_alpha', 'member', 1])
+      ?.isInvalidated,
+  ).toBe(true)
+  expect(cache.getQueryState(['admin', 'providers'])?.isInvalidated).toBe(true)
+  expect(cataloguePages[0].connections[0].provider_models[1].supports_image_input).toBe(true)
+  expect(cataloguePages[0].connections[0].provider_models[1].supports_pdf_input).toBe(true)
+})
+it('cancels the confirmation without dispatch and restores the exact row trigger', async () => {
+  await mount()
+  await openAlphaStatus()
+  await click('Cancel')
+  await until(() => expect(statusDialog()).toBeNull())
+  expect(statusWrites()).toHaveLength(0)
+  await until(() => expect(document.activeElement).toBe(alphaActions()))
+})
+it('keeps details available with read-only authority and exposes only scoped bound Model actions', async () => {
+  permissions = ['providers.read', 'models.read_all']
+  await mount()
+  await until(() => expect(logicalNames()).toHaveLength(3))
+  await act(async () => alphaActions().click())
+  await until(() => expect(button('View model details')).toBeTruthy())
+  expect(button('Disable model').getAttribute('aria-disabled')).toBe('true')
+  expect(button('Manage current/name')).toBeTruthy()
+  expect(button('Manage mdl_b')).toBeTruthy()
+  expect(statusWrites()).toHaveLength(0)
+  expect(requests.some((request) => request.url === '/admin/models')).toBe(false)
+})
+it('localizes an open confirmation without changing reviewed identity or submitting', async () => {
+  await mount()
+  await openAlphaStatus()
+  const before = requests.length
+  await act(async () => i18n.changeLanguage('zh'))
+  expect(statusDialog()!.textContent).toContain('停用模型？')
+  expect(statusDialog()!.textContent).toContain('Alpha')
+  expect(button('确认停用')).toBeTruthy()
+  expect(requests).toHaveLength(before)
+  await act(async () => i18n.changeLanguage('en'))
+  expect(button('Confirm disable')).toBeTruthy()
+})
+it('requires explicit conflict review and preserves requested status after current state changes', async () => {
+  await mount()
+  await openAlphaStatus()
+  patchFailure = 409
+  cataloguePages[0].connections[0].provider_models[0].etag = 'conflict-revision'
+  cataloguePages[0].connections[0].provider_models[0].enabled = false
+  await click('Confirm disable')
+  await until(() => expect(button('Review current configuration')).toBeTruthy())
+  expect(button('Confirm disable').hasAttribute('disabled')).toBe(true)
+  await click('Review current configuration')
+  expect(button('Confirm disable').hasAttribute('disabled')).toBe(false)
+  patchFailure = null
+  await click('Confirm disable')
+  await until(() => expect(statusWrites()).toHaveLength(2))
+  expect(JSON.parse(statusWrites()[1].data)).toEqual({ etag: 'conflict-revision', enabled: false })
+})
+it('retains identical uncertain request through dismissal, matching refresh, and repeated conflict retry', async () => {
+  await mount()
+  await openAlphaStatus()
+  patchFailure = 503
+  await click('Confirm disable')
+  await until(() =>
+    expect(button('Retry identical status change').hasAttribute('disabled')).toBe(false),
+  )
+  const original = statusWrites()[0].data
+  await click('Cancel')
+  expect(statusDialog()).toBeNull()
+  const target = cataloguePages[0].connections[0].provider_models[0]
+  target.etag = 'unknown-new-revision'
+  target.enabled = false
+  await renew(catalogueKeys().filter((key) => key[4] === 'provider-models'))
+  await until(() => expect(table()).not.toBeNull())
+  await act(async () => alphaActions().click())
+  await until(() => expect(button('Enable model')).toBeTruthy())
+  await click('Enable model')
+  await until(() => expect(button('Retry identical status change')).toBeTruthy())
+  expect(statusDialog()!.textContent).toContain('Disable model?')
+  patchFailure = 409
+  await click('Retry identical status change')
+  await until(() => expect(statusWrites()).toHaveLength(2))
+  expect(statusWrites()[1].data).toBe(original)
+  expect(statusDialog()!.textContent).toContain('unconfirmed')
+  expect(button('Review current configuration')).toBeUndefined()
+  expect(host.textContent).not.toContain('The model status response was confirmed')
+})
+it('retries an unconfirmed write with fresh same-actor Session authority and the original body', async () => {
+  await mount()
+  await openAlphaStatus()
+  patchFailure = 503
+  await click('Confirm disable')
+  await until(() =>
+    expect(button('Retry identical status change').hasAttribute('disabled')).toBe(false),
+  )
+  const original = statusWrites()[0].data
+  await renew([sessionKey])
+  await until(() => expect(statusDialog()).not.toBeNull())
+  patchFailure = null
+  await click('Retry identical status change')
+  await until(() => expect(host.textContent).toContain('The model status response was confirmed'))
+  expect(statusWrites()[1].data).toBe(original)
+})
+it.each(['session', 'permission', 'actor', 'provider', 'unmount'])(
+  'rejects a late successful status callback after %s lifetime changes',
+  async (kind) => {
+    await mount()
+    await openAlphaStatus()
+    holdUrl = '/admin/provider-models/pmd_alpha'
+    ignorePatchAbort = true
+    await click('Confirm disable')
+    await until(() => expect(held).toHaveLength(1))
+    const stale = held[0]
+    holdUrl = null
+    const before = requests.filter((request) => request.url === '/admin/providers').length
+    if (kind === 'unmount') await act(async () => root.render(null))
+    else if (kind === 'provider')
+      await act(async () => router.navigate('/admin/providers/prv_second?tab=models'))
+    else if (kind === 'permission') {
+      permissions = ['providers.read']
+      await renew(permissionKeys())
+    } else {
+      if (kind === 'actor') actor = 'usr_changed'
+      await renew([sessionKey])
+    }
+    await until(() => expect(stale.signal?.aborted).toBe(true))
+    if (kind !== 'unmount') await until(() => expect(table()).not.toBeNull())
+    const afterRenewal = requests.filter((request) => request.url === '/admin/providers').length
+    await act(async () => stale.release())
+    expect(host.textContent).not.toContain('The model status response was confirmed')
+    expect(requests.filter((request) => request.url === '/admin/providers')).toHaveLength(
+      afterRenewal,
+    )
+    expect(afterRenewal).toBeGreaterThanOrEqual(before)
+    if (kind === 'session') {
+      expect(statusDialog()!.textContent).toContain('unconfirmed')
+      expect(button('Retry identical status change').hasAttribute('disabled')).toBe(false)
+    }
+  },
+)
+it('enables the exact disabled row without rewriting its image or PDF declarations', async () => {
+  await mount()
+  const trigger = table()!.querySelectorAll<HTMLButtonElement>('tbody tr button')[1]
+  await act(async () => trigger.click())
+  await until(() => expect(button('Enable model')).toBeTruthy())
+  await click('Enable model')
+  await until(() => expect(button('Confirm enable')).toBeTruthy())
+  await click('Confirm enable')
+  await until(() => expect(host.textContent).toContain('The model status response was confirmed'))
+  expect(statusWrites()[0].url).toBe('/admin/provider-models/pmd_disabled')
+  expect(JSON.parse(statusWrites()[0].data)).toEqual({ etag: 'recorded-revision', enabled: true })
+  const target = cataloguePages[0].connections[0].provider_models[1]
+  expect(target.enabled).toBe(true)
+  expect(target.supports_image_input).toBe(true)
+  expect(target.supports_pdf_input).toBe(true)
+})
+it('targets a second duplicate upstream name by its immutable row ID', async () => {
+  await mount()
+  const trigger = table()!.querySelectorAll<HTMLButtonElement>('tbody tr button')[2]
+  await act(async () => trigger.click())
+  await until(() => expect(button('Disable model')).toBeTruthy())
+  await click('Disable model')
+  await until(() => expect(button('Confirm disable')).toBeTruthy())
+  await click('Confirm disable')
+  await until(() => expect(statusWrites()).toHaveLength(1))
+  expect(statusWrites()[0].url).toBe('/admin/provider-models/pmd_duplicate')
+  expect(cataloguePages[0].connections[0].provider_models[0].enabled).toBe(true)
+})
+it('blocks dispatch from obsolete confirmation DOM immediately upon Session invalidation', async () => {
+  await mount()
+  await openAlphaStatus()
+  const submit = button('Confirm disable')
+  holdUrl = '/auth/session'
+  await act(async () => {
+    void cache.invalidateQueries({ queryKey: sessionKey, exact: true })
+    submit.click()
+  })
+  await until(() => expect(held).toHaveLength(1))
+  expect(statusWrites()).toHaveLength(0)
+  expect(statusDialog()).toBeNull()
+  holdUrl = null
+  await act(async () => held[0].release())
+  await until(() => expect(statusDialog()).not.toBeNull())
+  await click('Cancel')
+  await until(() => expect(document.activeElement).toBe(alphaActions()))
+})
+it('keeps unbound menus scoped to details and status without an invented joining action', async () => {
+  permissions.push('models.read_all')
+  await mount()
+  await until(() => expect(logicalNames()).toHaveLength(3))
+  await act(async () => table()!.querySelectorAll<HTMLButtonElement>('tbody tr button')[2].click())
+  await until(() => expect(button('Disable model')).toBeTruthy())
+  const menu = document.querySelector('[role="menu"]')!
+  expect([...menu.querySelectorAll('[role="menuitem"]')].map((item) => item.textContent)).toEqual([
+    'View model details',
+    'Disable model',
+  ])
+  expect(requests.some((request) => request.url === '/admin/models')).toBe(false)
+})
+it('locks duplicate confirmation before React rerenders', async () => {
+  await mount()
+  await openAlphaStatus()
+  holdUrl = '/admin/provider-models/pmd_alpha'
+  const submit = button('Confirm disable')
+  await act(async () => {
+    submit.click()
+    submit.click()
+  })
+  await until(() => expect(held).toHaveLength(1))
+  expect(statusWrites()).toHaveLength(1)
+  holdUrl = null
+  await act(async () => held[0].release())
+  await until(() => expect(statusDialog()).toBeNull())
+})
+it('does not recreate private query entries after a null Session and late status response', async () => {
+  await mount()
+  await openAlphaStatus()
+  holdUrl = '/admin/provider-models/pmd_alpha'
+  ignorePatchAbort = true
+  await click('Confirm disable')
+  await until(() => expect(held).toHaveLength(1))
+  const stale = held[0]
+  await act(async () => cache.setQueryData(sessionKey, null))
+  await until(() => expect(stale.signal?.aborted).toBe(true))
+  await act(async () => cache.removeQueries({ queryKey: ['admin'] }))
+  const reads = requests.filter((request) => request.url === '/admin/providers').length
+  await act(async () => stale.release())
+  // Disabled mounted observers can recreate empty query shells, but no private facts.
+  expect(
+    cache
+      .getQueryCache()
+      .findAll({ queryKey: ['admin'] })
+      .every((query) => query.state.data === undefined),
+  ).toBe(true)
+  expect(requests.filter((request) => request.url === '/admin/providers')).toHaveLength(reads)
+  expect(statusDialog()).toBeNull()
+  expect(table()).toBeNull()
+  expect(host.textContent).not.toContain('The model status response was confirmed')
+})
+it('explicitly leaves lost-response history unknown before reviewing and confirming a separate current-state change', async () => {
+  await mount()
+  await openAlphaStatus()
+  patchFailure = 503
+  await click('Confirm disable')
+  await until(() =>
+    expect(button('Retry identical status change').hasAttribute('disabled')).toBe(false),
+  )
+  const original = statusWrites()[0].data
+  const target = cataloguePages[0].connections[0].provider_models[0]
+  target.enabled = false
+  target.etag = 'applied-but-lost-revision'
+  patchFailure = null
+  await click('Retry identical status change')
+  await until(() => expect(statusWrites()).toHaveLength(2))
+  expect(statusWrites()[1].data).toBe(original)
+  expect(statusDialog()!.textContent).toContain('unconfirmed')
+  const before = requests.filter((request) => request.url === '/admin/providers').length
+  await click('Review a separate status change')
+  await until(() => expect(button('Discard retry and review current state')).toBeTruthy())
+  expect(requests.filter((request) => request.url === '/admin/providers')).toHaveLength(before + 1)
+  expect(statusDialog()!.textContent).toContain('Currently recorded: Disabled')
+  expect(statusDialog()!.textContent).toContain('does not cancel or prove the original operation')
+  expect(statusWrites()).toHaveLength(2)
+  await click('Cancel')
+  expect(button('Retry identical status change')).toBeTruthy()
+  await click('Retry identical status change')
+  await until(() => expect(statusWrites()).toHaveLength(3))
+  expect(statusWrites()[2].data).toBe(original)
+  await click('Review a separate status change')
+  await until(() => expect(button('Discard retry and review current state')).toBeTruthy())
+  await click('Discard retry and review current state')
+  expect(statusWrites()).toHaveLength(3)
+  expect(statusDialog()!.textContent).toContain('The earlier request remains unconfirmed')
+  expect(button('Confirm enable')).toBeTruthy()
+  await click('Confirm enable')
+  await until(() => expect(host.textContent).toContain('The model status response was confirmed'))
+  expect(JSON.parse(statusWrites()[3].data)).toEqual({
+    etag: 'applied-but-lost-revision',
+    enabled: true,
+  })
+  expect(statusWrites()[3].url).toBe('/admin/provider-models/pmd_alpha')
+})
+it('does not discard an uncertain intent from obsolete separate-review DOM during read renewal', async () => {
+  await mount()
+  await openAlphaStatus()
+  patchFailure = 503
+  await click('Confirm disable')
+  await until(() =>
+    expect(button('Retry identical status change').hasAttribute('disabled')).toBe(false),
+  )
+  await click('Review a separate status change')
+  await until(() => expect(button('Discard retry and review current state')).toBeTruthy())
+  const discard = button('Discard retry and review current state')
+  holdUrl = '/admin/providers'
+  await act(async () => {
+    for (const key of catalogueKeys().filter((key) => key[4] === 'provider-models'))
+      void cache.invalidateQueries({ queryKey: key, exact: true })
+    discard.click()
+  })
+  await until(() => expect(held).toHaveLength(1))
+  expect(statusDialog()).toBeNull()
+  holdUrl = null
+  await act(async () => held[0].release())
+  await until(() => expect(button('Discard retry and review current state')).toBeTruthy())
+  await click('Cancel')
+  expect(button('Retry identical status change')).toBeTruthy()
+  expect(statusDialog()!.textContent).toContain('unconfirmed')
+  expect(statusWrites()).toHaveLength(1)
+})
+
+interface CapturedRowFiber {
+  return?: CapturedRowFiber
+  type?: { name?: string }
+  memoizedProps?: { model: ProviderModel; onStatus: () => void }
+}
+function captureStatusCallback(index: number, id: string) {
+  // Exercise a previously captured row callback even while its menu is closed.
+  const trigger = table()!.querySelectorAll<HTMLButtonElement>('tbody tr button')[index]
+  const key = Object.keys(trigger).find((name) => name.startsWith('__reactFiber$'))!
+  let fiber: CapturedRowFiber | undefined = (
+    trigger as unknown as Record<string, CapturedRowFiber>
+  )[key]
+  while (fiber && fiber.type?.name !== 'ProviderModelRowMenu') fiber = fiber.return
+  expect(fiber?.memoizedProps?.model.id).toBe(id)
+  return fiber!.memoizedProps!.onStatus
+}
+it('locks captured Cancel synchronously when confirmation dispatches in the same turn', async () => {
+  await mount()
+  await openAlphaStatus()
+  holdUrl = '/admin/provider-models/pmd_alpha'
+  ignorePatchAbort = true
+  const submit = button('Confirm disable')
+  const cancel = button('Cancel')
+  await act(async () => {
+    submit.click()
+    cancel.click()
+  })
+  await until(() => expect(held).toHaveLength(1))
+  expect(statusWrites()).toHaveLength(1)
+  expect(statusDialog()!.textContent).toContain('Disable model?')
+  expect(held[0].signal?.aborted).not.toBe(true)
+  const original = statusWrites()[0].data
+  holdUrl = null
+  await renew([sessionKey])
+  await until(() => expect(held[0].signal?.aborted).toBe(true))
+  await until(() => expect(button('Retry identical status change')).toBeTruthy())
+  await act(async () => held[0].release())
+  expect(statusDialog()!.textContent).toContain('unconfirmed')
+  expect(host.textContent).not.toContain('The model status response was confirmed')
+  await click('Retry identical status change')
+  await until(() => expect(statusWrites()).toHaveLength(2))
+  expect(statusWrites()[1].data).toBe(original)
+})
+it('locks captured other-row callbacks synchronously when confirmation dispatches in the same turn', async () => {
+  await mount()
+  await openAlphaStatus()
+  const changeRow = captureStatusCallback(1, 'pmd_disabled')
+  holdUrl = '/admin/provider-models/pmd_alpha'
+  ignorePatchAbort = true
+  const submit = button('Confirm disable')
+  await act(async () => {
+    submit.click()
+    changeRow()
+  })
+  await until(() => expect(held).toHaveLength(1))
+  expect(statusWrites()).toHaveLength(1)
+  expect(statusWrites()[0].url).toBe('/admin/provider-models/pmd_alpha')
+  expect(statusDialog()!.textContent).toContain('Disable model?')
+  expect(held[0].signal?.aborted).not.toBe(true)
+  holdUrl = null
+  await act(async () => held[0].release())
+  await until(() => expect(host.textContent).toContain('The model status response was confirmed'))
+  expect(cataloguePages[0].connections[0].provider_models[1].enabled).toBe(false)
+})
+it('rejects captured confirmation after a same-turn cancellation closes the target', async () => {
+  await mount()
+  await openAlphaStatus()
+  const submit = button('Confirm disable')
+  const cancel = button('Cancel')
+  await act(async () => {
+    cancel.click()
+    submit.click()
+  })
+  expect(statusWrites()).toHaveLength(0)
+  expect(statusDialog()).toBeNull()
+})
+it('rejects captured confirmation after a same-turn row change replaces its target', async () => {
+  await mount()
+  await openAlphaStatus()
+  const changeRow = captureStatusCallback(1, 'pmd_disabled')
+  const submit = button('Confirm disable')
+  await act(async () => {
+    changeRow()
+    submit.click()
+  })
+  expect(statusWrites()).toHaveLength(0)
+  expect(statusDialog()!.textContent).toContain('Enable model?')
+  expect(statusDialog()!.textContent).toContain('alpha disabled')
 })

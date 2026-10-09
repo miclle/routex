@@ -1293,3 +1293,21 @@ all generated characters, whitespace and opaque Bash here-document bodies. Copy
 the original source string, never rendered markup. Highlighting cannot evaluate
 code, access credentials, create requests or alter the captured native request,
 Team authority, transient-media export gate or existing code-dialog layout.
+
+Provider Models row actions use the existing local Menu and Base UI confirmation
+Dialog. Enable/disable writes consume the reviewed opaque body `etag` and only
+`enabled`; the state endpoint has no reason or If-Match contract. Keep independent
+fresh Provider read/write authority, exact row identity and Session lifetimes.
+Explicitly review conflicts; retain identical uncertain requests through same-actor
+renewal and dismissal, and reject obsolete callbacks. A confirmed exact response
+refreshes recorded tables and details without inferring routing health.
+Management links use the authorized scoped binding projection.
+
+An unconfirmed status operation can be left unknown while starting a separate
+change: refresh recorded facts, explicitly confirm discarding only the local
+retry, then separately confirm the new current-revision change. A discarded
+retry neither cancels the original operation nor proves its historical outcome.
+
+Status dispatch synchronously locks its selected target before HTTP I/O. Close
+and retarget callbacks consult that live lock and exact selection, so callbacks
+captured before React renders cannot discard or replace a dispatched intent.

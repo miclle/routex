@@ -157,6 +157,38 @@ export default {
     copyAuthenticationHeader: 'Copy authentication header template',
   },
   providerModels: {
+    currentStatus: 'Currently recorded: {{status}}',
+    reviewSeparate: 'Review a separate status change',
+    discardTitle: 'Start a separate status change?',
+    discardHelp:
+      'The original operation remains unconfirmed. Discard only its local retry after reviewing current recorded facts; this does not cancel or prove the original operation. The new change needs a separate confirmation.',
+    confirmDiscard: 'Discard retry and review current state',
+    abandoned:
+      'The earlier request remains unconfirmed. This is a separate change based on the newly reviewed configuration.',
+    actions: 'Actions',
+    actionsFor: 'More actions for {{name}}',
+    viewDetails: 'View model details',
+    enable: 'Enable model',
+    disable: 'Disable model',
+    manageModel: 'Manage {{name}}',
+    confirmEnable: 'Enable model?',
+    confirmDisable: 'Disable model?',
+    confirmEnableAction: 'Confirm enable',
+    confirmDisableAction: 'Confirm disable',
+    enableHelp: 'Enable “{{name}}” so it can participate in eligible requests again.',
+    disableHelp:
+      'Disable “{{name}}” so it stops participating in new requests. Existing relationships and prices are retained.',
+    statusOnly:
+      'This changes the stored enabled state only. Input declarations and routing weights are retained; this is not a routing-health check.',
+    stale:
+      'The reviewed model configuration changed. Refresh and explicitly review the current configuration before confirming.',
+    reviewCurrent: 'Review current configuration',
+    reviewed: 'Current configuration reviewed. Confirm the requested change explicitly.',
+    uncertain:
+      'The dispatched status change is unconfirmed. Retry the identical request explicitly; a matching current state does not confirm the original operation.',
+    retryStatus: 'Retry identical status change',
+    writeUnavailable: 'Current write authority is unavailable.',
+    statusSaved: 'The model status response was confirmed. Refreshing recorded configuration.',
     bindingFilter: 'Filter stored Model bindings',
     allBindings: 'All bindings',
     boundBindings: 'Bound',
