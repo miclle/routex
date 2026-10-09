@@ -1343,3 +1343,14 @@ retry neither cancels the original operation nor proves its historical outcome.
 Status dispatch synchronously locks its selected target before HTTP I/O. Close
 and retarget callbacks consult that live lock and exact selection, so callbacks
 captured before React renders cannot discard or replace a dispatched intent.
+
+
+Provider Connection row menus offer Add model through the registered guided
+creation URL with the exact encoded Connection ID. Fresh Provider read and
+models.read_all permit read-only review; models.write remains the destination's
+independent submit gate, and providers.write still gates Connection editing.
+Keep current Session, actor, Provider and catalogue-query revisions in a live
+navigation fence; captured callbacks cannot navigate after renewal/error, target
+changes, expiry, unmount or row removal. Disabled Connections may open the existing
+server review without being represented as enabled or eligible. Navigation performs
+no mutation, discovery or verification and uses paired catalogue translations.

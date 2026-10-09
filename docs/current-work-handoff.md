@@ -2,9 +2,33 @@
 
 Updated: 2026-10-09. Status: resumed by explicit user instruction; prioritize partially completed capabilities. [Implementation](IMPLEMENTATION.md) records engineering contracts and historical acceptance evidence. Earlier checkpoints below remain historical.
 
+## Connection row model creation entry (2026-10-09)
+
+The containing phase adds the existing Connection action menu's Add model entry,
+reusing the registered guided creation page with an exact encoded Connection ID.
+Independent Provider/Model read authority permits review, while the destination's
+existing write gate controls submission. Disabled rows can be reviewed without
+claiming eligibility or changing any resource. Synchronous owner/query-revision
+fences protect captured callbacks. Paired catalogue copy and frontend rules match.
+
+The exact four reviewed frontend afterimages are adopted on main. Independent
+source review and 107 isolated focused tests pass. Fresh main formatting, all 107 focused tests, mandatory checks, production
+build and uncached production asset race tests pass. No new backend or schema
+changes enter this phase. Browser remains deferred.
+
+Parallel backend work remains separate. F30 Full174 passes all 348 scenarios, eight
+constraints and 436 named results per driver in 2,348.191 seconds, with independent
+owned cleanup. Its first controlled native helper fails while reading the initial
+SQL projection; that failed result and cleanup remain retained, and column mapping
+is under review. V91 source review, mandatory checks and all 5,540 frontend tests
+pass, while the first ordinary Go run finds fixture/registry compatibility failures
+being diagnosed. No native/V91 delivery acceptance is inferred. Formal totals
+remain 13 Completed / 14 Partial / 3 Not started.
+
 ## Current Provider Model row actions (2026-10-09)
 
-The phase adds the existing Provider Models table's Actions menu, resource
+Commit `a356b564233d5d10d78ca9de2b0baab52926a907`, pushed and remote-verified,
+adds the existing Provider Models table's Actions menu, resource
 details and explicitly reviewed enable/disable confirmation. Management links
 come from the scoped binding projection and require independent Model read
 authority. Status writes preserve capabilities, relationships, prices and weights;
@@ -26,10 +50,8 @@ changes enter this phase;
 the delivered Vault implementation is preserved. Browser acceptance remains
 deferred while the computer is locked.
 
-Next work remains separate: Full174 is running for routing-weight history and
-rollback. Whole-Provider enablement is being implemented in an isolated worktree
-by schema/API, runtime/eligibility and frontend workers; V91 and those changes
-have no acceptance or main delivery yet. Formal totals remain
+Current continuation is recorded above. Whole-Provider enablement remains
+isolated and has no complete backend acceptance or main delivery yet. Formal totals remain
 13 Completed / 14 Partial / 3 Not started.
 
 ## Current Vault main integration (2026-10-09)
@@ -60,8 +82,9 @@ that preserves the later secret version. Independent retained-file readback:
 Transport, holder timing and later-version payload checks rely on the reviewed
 controller's successful assertions; retained evidence does not provide an
 independent raw-payload replay. Final documentation-only updates follow these
-gates without changing the verified implementation. A fresh mandatory check is
-required immediately before the containing commit; its remote CI is separate.
+gates without changing the verified implementation. The final mandatory precommit check passed. Exact-head CI37863641746,
+Actionlint37863641834 and GolangCI37863641767 pass, including both databases,
+authentication restart and production artifacts.
 
 The parent `937e1dffe21dfb9e7d5017f8430c7929588fab08` now has passing exact-head
 CI37856201335, Actionlint37856201306 and GolangCI37856201352, including both

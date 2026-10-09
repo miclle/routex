@@ -1,4 +1,5 @@
-import { useState } from 'react'
+import { useLayoutEffect, useRef, useState } from 'react'
+import { useNavigate } from 'react-router'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { MoreHorizontal } from 'lucide-react'
@@ -34,11 +35,29 @@ const protocols = [
 
 export default function ConnectionTable({ providerId, session, onAdd }: Props) {
   const { t } = useTranslation('catalog')
+  const navigate = useNavigate()
   const cache = useQueryClient()
   const shared = useUncertainIntents()
   const actor = session.data?.user.id ?? ''
   const authState = cache.getQueryState<Session | null>(sessionKey)
   const generation = authState?.dataUpdateCount ?? 0
+  const navigationOwner = useRef<{
+    actor: string
+    providerId: string
+    generation: number
+  } | null>(null)
+  useLayoutEffect(() => {
+    const owner = { actor, providerId, generation }
+    navigationOwner.current = owner
+    const expire = () => {
+      if (navigationOwner.current === owner) navigationOwner.current = null
+    }
+    window.addEventListener('routex:session-expired', expire)
+    return () => {
+      if (navigationOwner.current === owner) navigationOwner.current = null
+      window.removeEventListener('routex:session-expired', expire)
+    }
+  }, [actor, providerId, generation])
   const sessionFresh =
     session.isSuccess && !session.isFetching && !!actor && !authState?.isInvalidated
   const permissionsKey = ['permissions', actor, 'connections', generation]
@@ -87,6 +106,20 @@ export default function ConnectionTable({ providerId, session, onAdd }: Props) {
   }
   const provider = fresh() ? catalogue.data?.find((row) => row.id === providerId) : undefined
   const writable = () => fresh() && access.data?.includes('providers.write') === true
+  const canAddModel = (connectionId: string) => {
+    const auth = cache.getQueryData<Session | null>(sessionKey)
+    const permissions = cache.getQueryData<string[]>(permissionsKey)
+    const currentProvider = cache
+      .getQueryData<Provider[]>(catalogueKey)
+      ?.find((item) => item.id === providerId)
+    return (
+      fresh() &&
+      auth?.user.role === 'admin' &&
+      !!auth.csrf_token &&
+      permissions?.includes('models.read_all') === true &&
+      currentProvider?.connections.some((item) => item.id === connectionId) === true
+    )
+  }
   const retained = sessionFresh ? shared?.recover(actor) : null
   const recovered =
     retained?.kind === 'connection-name' && retained.payload.provider_id === providerId
@@ -290,6 +323,23 @@ export default function ConnectionTable({ providerId, session, onAdd }: Props) {
                         }}
                       >
                         {t('connectionMetadata.edit')}
+                      </MenuItem>
+                      <MenuItem
+                        disabled={!canAddModel(item.id)}
+                        onClick={() => {
+                          const owner = navigationOwner.current
+                          if (
+                            owner?.actor === actor &&
+                            owner.providerId === providerId &&
+                            owner.generation === generation &&
+                            canAddModel(item.id)
+                          )
+                            void navigate(
+                              `/admin/models/new?connectionId=${encodeURIComponent(item.id)}`,
+                            )
+                        }}
+                      >
+                        {t('connectionMetadata.addModel')}
                       </MenuItem>
                       <MenuItem
                         disabled={!writable() || typeof item.enabled !== 'boolean' || !!retained}

@@ -272,6 +272,7 @@ export default {
     empty: 'No matching connections.',
     actions: 'Actions for {{name}}',
     edit: 'Edit name',
+    addModel: 'Add model',
     title: 'Edit connection name',
     description:
       'Review this connection before renaming it. Other connection settings are read-only.',

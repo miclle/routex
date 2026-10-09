@@ -10,6 +10,7 @@ import AuthGate from '@/components/app/AuthGate'
 import { UncertainIntentProvider } from '@/context/uncertain-intents'
 import { sessionKey, useSession } from '@/hooks/use-auth'
 import ConnectionTable from './connections'
+import { MenuItem } from '@/components/ui/menu'
 import ProvidersPage from './index'
 import type { ConnectionMetadata } from '@/types/connection-metadata'
 
@@ -24,6 +25,7 @@ let sessionStatus: number, permissionStatus: number, metadataStatus: number, fai
 let record: ConnectionMetadata, hold: Promise<void> | undefined
 let mounts: number, unmounts: number
 let enabled: boolean
+let actorRole: string, firstConnectionID: string, unkeyed: boolean
 const add = vi.fn()
 function Host() {
   const session = useSession()
@@ -34,7 +36,14 @@ function Host() {
       unmounts++
     }
   }, [])
-  return <ConnectionTable key={providerId} providerId={providerId} session={session} onAdd={add} />
+  return (
+    <ConnectionTable
+      key={unkeyed ? undefined : providerId}
+      providerId={providerId}
+      session={session}
+      onAdd={add}
+    />
+  )
 }
 function providers() {
   const connection = (id: string, name: string, protocol: string) => ({
@@ -54,7 +63,7 @@ function providers() {
       id: 'prv_one',
       name: 'Supplier',
       connections: [
-        connection('con_one', record.name, 'openai_chat'),
+        connection(firstConnectionID, record.name, 'openai_chat'),
         connection('con_two', 'Alpha [literal]', 'openai_responses'),
         connection('con_three', 'Gamma', 'anthropic_messages'),
       ],
@@ -81,6 +90,9 @@ beforeEach(async () => {
   metadataStatus = 200
   failure = 0
   enabled = true
+  actorRole = 'admin'
+  firstConnectionID = 'con_one'
+  unkeyed = false
   hold = undefined
   mounts = 0
   unmounts = 0
@@ -117,7 +129,7 @@ beforeEach(async () => {
     else if (config.url === '/auth/session') {
       if (sessionStatus !== 200) reject(sessionStatus)
       response.data = {
-        user: { id: actor, role: 'admin', name: 'Actor', email: 'actor@example.invalid' },
+        user: { id: actor, role: actorRole, name: 'Actor', email: 'actor@example.invalid' },
         csrf_token: csrf,
       }
     } else if (config.url === '/auth/permissions') {
@@ -223,6 +235,7 @@ async function mount(fullPage = false) {
             element: fullPage ? <ProvidersPage /> : <Host />,
           },
           { path: '/other', element: <p>Other route</p> },
+          { path: '/admin/models/new', element: <p>Guided Model review</p> },
         ],
       },
       { path: '/login', element: <p>Login required</p> },
@@ -803,5 +816,197 @@ describe('Connection routing status', () => {
     expect(JSON.parse(original.data)).toEqual({ enabled: false, reason: 'Retain exact status' })
     expect(statusWrites()[1]!.headers.get('If-Match')).toBe(original.headers.get('If-Match'))
     expect(statusWrites()[1]!.headers.get('X-CSRF-Token')).toBe('csrf-renewed-status')
+  })
+})
+
+function captureAddModel() {
+  interface Fiber {
+    type: unknown
+    return: Fiber | null
+    memoizedProps: { onClick?: () => void }
+  }
+  const control = button('Add model')
+  const key = Object.keys(control).find((value) => value.startsWith('__reactFiber$'))!
+  let fiber = (control as unknown as Record<string, Fiber>)[key]
+  while (fiber && fiber.type !== MenuItem) fiber = fiber.return!
+  expect(fiber?.memoizedProps.onClick).toBeTypeOf('function')
+  return fiber.memoizedProps.onClick!
+}
+async function openAddModel(name = 'Alpha primary') {
+  await click(`Actions for ${name}`)
+  await until(() => expect(button('Add model')).toBeTruthy())
+}
+const modelReviewPath = () => router.state.location.pathname === '/admin/models/new'
+
+describe('Connection-row guided Model entry', () => {
+  it.each([
+    ['Provider read only', ['providers.read'], false],
+    ['Provider writer only', ['providers.read', 'providers.write'], false],
+    ['Model writer without Model read', ['providers.read', 'models.write'], false],
+    ['Model reader without write', ['providers.read', 'models.read_all'], true],
+    [
+      'Model writer with independent reads',
+      ['providers.read', 'models.read_all', 'models.write'],
+      true,
+    ],
+  ])('uses the existing review permission boundary: %s', async (_, grants, allowed) => {
+    permissions = grants as string[]
+    await mount()
+    await openAddModel()
+    expect(button('Add model').getAttribute('aria-disabled') === 'true').toBe(!allowed)
+    expect(button('Edit name').getAttribute('aria-disabled') === 'true').toBe(
+      !grants.includes('providers.write'),
+    )
+    await click('Add model')
+    expect(modelReviewPath()).toBe(allowed)
+    if (allowed) expect(router.state.location.search).toBe('?connectionId=con_one')
+    expect(requests.some((request) => request.url === '/admin/models')).toBe(false)
+    expect(requests.filter((request) => request.method !== 'get')).toHaveLength(0)
+  })
+  it('does not fetch the Provider catalogue or expose an action when independent Provider read is missing', async () => {
+    permissions = ['models.read_all', 'models.write', 'providers.write']
+    router = createMemoryRouter([{ path: '/admin/providers/:providerId', element: <Host /> }], {
+      initialEntries: ['/admin/providers/prv_one'],
+    })
+    cache.setQueryData(sessionKey, {
+      user: { id: actor, role: actorRole },
+      csrf_token: csrf,
+    })
+    await act(async () =>
+      root.render(
+        <QueryClientProvider client={cache}>
+          <RouterProvider router={router} />
+        </QueryClientProvider>,
+      ),
+    )
+    await until(() =>
+      expect(host.textContent).toContain(
+        'Your account does not have permission to read Connections.',
+      ),
+    )
+    expect(button('Add model')).toBeUndefined()
+    expect(requests.some((request) => request.url === '/admin/providers')).toBe(false)
+  })
+  it('opens the selected disabled Connection exactly without enabling it or changing existing Edit/status actions', async () => {
+    permissions = ['providers.read', 'models.read_all', 'providers.write']
+    await mount()
+    await openAddModel('Alpha [literal]')
+    expect(button('Edit name').getAttribute('aria-disabled')).not.toBe('true')
+    expect(
+      button(i18n.t('catalog:connectionStatus.enable')).getAttribute('aria-disabled'),
+    ).not.toBe('true')
+    await click('Add model')
+    expect(router.state.location.pathname).toBe('/admin/models/new')
+    expect(router.state.location.search).toBe('?connectionId=con_two')
+    expect(requests.filter((request) => request.method !== 'get')).toHaveLength(0)
+    expect(requests.some((request) => request.url?.endsWith('/status'))).toBe(false)
+  })
+  it('encodes the selected Connection ID as one query value without adding Provider or protocol scope', async () => {
+    permissions = ['providers.read', 'models.read_all']
+    firstConnectionID = 'con_selected/?#&= other'
+    await mount()
+    await openAddModel()
+    await click('Add model')
+    expect(router.state.location.search).toBe(
+      `?connectionId=${encodeURIComponent(firstConnectionID)}`,
+    )
+    const values = new URLSearchParams(router.state.location.search)
+    expect([...values.entries()]).toEqual([['connectionId', firstConnectionID]])
+  })
+  it('uses live translated menu copy without another fetch or changed selected identity', async () => {
+    permissions = ['providers.read', 'models.read_all']
+    await mount()
+    await openAddModel('Alpha [literal]')
+    const count = requests.length
+    await act(async () => i18n.changeLanguage('zh'))
+    expect(button('添加模型')).toBeTruthy()
+    expect(requests).toHaveLength(count)
+    await click('添加模型')
+    expect(router.state.location.search).toBe('?connectionId=con_two')
+  })
+  it.each(['permissions', 'catalogue', 'session'])(
+    'rejects a captured action synchronously when %s is invalidated',
+    async (kind) => {
+      permissions = ['providers.read', 'models.read_all']
+      await mount()
+      await openAddModel()
+      const invoke = captureAddModel()
+      await act(async () => {
+        void cache.invalidateQueries({
+          predicate: (query) =>
+            kind === 'session'
+              ? JSON.stringify(query.queryKey) === JSON.stringify(sessionKey)
+              : kind === 'permissions'
+                ? query.queryKey[0] === 'permissions'
+                : query.queryKey[0] === 'admin' && query.queryKey[1] === 'providers',
+        })
+        invoke()
+      })
+      expect(modelReviewPath()).toBe(false)
+      expect(requests.filter((request) => request.method !== 'get')).toHaveLength(0)
+    },
+  )
+  it.each([
+    'actor',
+    'Provider',
+    'same-owner renewal',
+    'unmount',
+    'expiry',
+    'removed Connection',
+    'permission error',
+  ])('rejects captured callbacks after %s changes the review lifetime', async (kind) => {
+    permissions = ['providers.read', 'models.read_all']
+    unkeyed = true
+    await mount()
+    await openAddModel()
+    const invoke = captureAddModel()
+    await act(async () => {
+      if (kind === 'actor') {
+        actor = 'usr_other'
+        await cache.invalidateQueries({ queryKey: sessionKey })
+      } else if (kind === 'Provider')
+        await router.navigate('/admin/providers/prv_two?tab=connections')
+      else if (kind === 'same-owner renewal') {
+        csrf = 'csrf-renewed'
+        await cache.invalidateQueries({ queryKey: sessionKey })
+      } else if (kind === 'unmount') await router.navigate('/other')
+      else if (kind === 'expiry') window.dispatchEvent(new Event('routex:session-expired'))
+      else if (kind === 'removed Connection') {
+        firstConnectionID = 'con_replacement'
+        await cache.invalidateQueries({
+          predicate: (query) => query.queryKey[0] === 'admin' && query.queryKey[1] === 'providers',
+        })
+      } else {
+        permissionStatus = 503
+        await cache.invalidateQueries({ predicate: (query) => query.queryKey[0] === 'permissions' })
+      }
+    })
+    await act(async () => invoke())
+    expect(modelReviewPath()).toBe(false)
+  })
+  it('matches the existing creation page Session role gate even when permission strings are present', async () => {
+    actorRole = 'user'
+    permissions = ['providers.read', 'models.read_all', 'models.write']
+    await mount()
+    await openAddModel()
+    expect(button('Add model').getAttribute('aria-disabled')).toBe('true')
+    await click('Add model')
+    expect(modelReviewPath()).toBe(false)
+  })
+  it('allows a newly authorized menu action after same-owner renewal while rejecting its captured predecessor', async () => {
+    permissions = ['providers.read', 'models.read_all']
+    await mount()
+    await openAddModel()
+    const invoke = captureAddModel()
+    await act(async () => {
+      csrf = 'csrf-current'
+      await cache.invalidateQueries({ queryKey: sessionKey })
+    })
+    await until(() => expect(button('Actions for Alpha primary')).toBeTruthy())
+    await act(async () => invoke())
+    expect(modelReviewPath()).toBe(false)
+    await openAddModel()
+    await click('Add model')
+    expect(router.state.location.search).toBe('?connectionId=con_one')
   })
 })

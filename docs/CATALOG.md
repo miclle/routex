@@ -1286,3 +1286,23 @@ retry neither cancels the original operation nor proves its historical outcome.
 Status dispatch synchronously locks its selected target before HTTP I/O. Close
 and retarget callbacks consult that live lock and exact selection, so callbacks
 captured before React renders cannot discard or replace a dispatched intent.
+
+
+## Connection row model creation entry
+
+The existing Connection action menu exposes Add model at
+`/admin/models/new?connectionId=<exact-encoded-id>`. The guided page reauthorizes
+and reviews that exact Connection through its existing scoped server context.
+Fresh Provider read and Model catalogue read authority permit opening the review;
+its existing independent Model write gate still controls creation. Provider write
+authority remains separate for Connection editing and status.
+
+Disabled Connections may open that same read-only context; the entry does not
+claim readiness, enable a resource, verify a credential or initiate discovery.
+A synchronous actor/Provider/Session/query-generation and current-row fence
+rejects captured obsolete callbacks after renewal, errors, expiry, target changes,
+row removal or unmount. The table layout and other row actions are retained.
+
+Independent source review and 107 focused tests cover navigation, guided creation,
+permission combinations, exact identity and localization. Main checks and delivery
+are recorded in the implementation index; real-window acceptance remains deferred.

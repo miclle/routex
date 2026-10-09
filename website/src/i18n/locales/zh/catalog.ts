@@ -247,6 +247,7 @@ export default {
     empty: '没有匹配的接入。',
     actions: '{{name}} 的操作',
     edit: '编辑名称',
+    addModel: '添加模型',
     title: '编辑接入名称',
     description: '修改名称前复核此接入。其他接入配置为只读。',
     reason: '变更理由',
