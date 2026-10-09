@@ -4,17 +4,26 @@ Updated: 2026-10-10. Status: resumed by explicit user instruction; prioritize pa
 
 ## Current execution status (2026-10-10)
 
-The full objective remains active. The containing phase integrates Credential
-inference-attempt statistics (GORM V93), existing Provider Overview attention and
-creation/navigation flows, and permission-scoped Model configured availability.
-It follows the pushed HTTP fixture watcher correction
-`26d233fc50388f13ea3cbfe594d0e338e70f80d0` and Connection transport V92.
-The exact composed source passes complete application tests and the official
-PostgreSQL/MySQL matrix; genuine bilingual production browser checks also pass.
-Fresh main formatting, mandatory checking and complete application tests are
-required before this phase is committed and pushed. Configuration availability
+The full objective remains active. Credential inference-attempt statistics
+(GORM V93), Provider Overview attention and creation/navigation flows, and
+permission-scoped Model configured availability are delivered in
+`c1eb18fcc2f3068141f81ed759790565677d088e`, with exact remote-main readback.
+Fresh main formatting, mandatory checking and complete Task pass, including
+5,924 frontend cases in 223 files. The official PostgreSQL/MySQL matrix and
+genuine bilingual production browser checks also pass. Configuration availability
 is not native health, and statistics do not automatically disable Credentials.
 Capability totals remain **14 Completed / 13 Partial / 3 Not started**.
+
+The Vault integration description now distinguishes saved integration/probe
+configuration from the reviewed Storage policy governing future Provider
+credential writes. English/Chinese switching retains that distinction without
+fetching the storage-policy endpoint or issuing writes. Focused Vault and
+internationalization tests pass (30 cases); formatting and mandatory checking
+pass, with owned gate processes closed and original development preserved.
+Certificate SDK qualification remains open: its first focused run exposed incorrect 307/308 test expectations under
+Go 1.27.1. Those responses are returned without replay; the production redirect
+barrier remains unchanged. The failed run is preserved and a test-only successor
+is being qualified. This is not saved certificate identity or real-Vault acceptance.
 
 | Work package | Current state | Verified evidence / remaining gate |
 |---|---|---|
@@ -26,7 +35,7 @@ Capability totals remain **14 Completed / 13 Partial / 3 Not started**.
 | Provider Overview unbound attention | Delivered in this phase | Genuine English/Chinese reads show one unbound ProviderModel and one disabled Connection, with actions navigating to the existing Models and Connections tabs. Zero-weight stored bindings remain bound. Unknown, renewal and error boundaries retain focused-test coverage. |
 | Credential inference statistics V93 | Delivered in this phase | Inference-only exact-Credential statistics remain separate from manual Verify/Test, preserve unknown/no-records/lower-bound distinctions, and never auto-disable a Credential. Frozen GORM V93 migration and ordered index validation pass the complete dual-driver upgrade/concurrent-startup matrix. The independent top101 probe passes both databases across 30,600 synthetic attempts; LIMIT 101 bounds returned rows, not scan work. Genuine production calls produce upstream 401/401/200 and gateway 502/502/200 once each, with real cooldowns and normal-API persistence reads. English/Chinese tables show failure streak 2 then 0, retain the second recent error and original manual Verified/enabled facts, and leave the pending sibling disabled/no-records. Catalogue, grants, 0/100 weights and immutable history remain exact; browser errors are absent and independent owned cleanup passes. The public call DTO does not expose per-attempt Credential IDs or the private native-completion enum; no such API proof is claimed. |
 | Model configured availability F12 | Delivered in this phase | R7 passes mandatory checking in 100.529 seconds, complete Task in 335.348 seconds (5,924 frontend cases/223 files, Go race/coverage, five HTTP and ten lifecycle checks, production assets), and binary build in 2.637 seconds. All 2,116 source paths/modes remain exact and owned groups close. Genuine English/Chinese owner list/detail reads show Ready; a normal-API-created model-only reader without providers.read receives null and sees Unknown, stable IDs and disabled writes, without retained owner facts. The original complete Task test-integration passes in 2,747.853 seconds: all 5,595 ordinary named results and schema93 with 182 ordered scenarios plus four constraints/444 named results per database. Strict complete-stream validation and independent process/group/port/Compose cleanup pass; original development remains alive. The earlier failed fixture and Tasks remain retained. |
-| Vault and storage F28 | Existing delivery reconciled; remaining scope identified | Published-object drain and graceful closure are already delivered in V88/V89. Genuine English/Chinese Secrets, Vault, storage and orphan-cleanup browser acceptance remains pending. Certificate and workload authentication remain separate functional gaps. The operation-local certificate SDK R2 resolves the strict leading-PEM review finding and passes independent source review; formatting, compilation, tests, real Vault compatibility and adoption remain pending. Saved certificate-material storage still awaits the user decision. External compatibility and unverified cleanup-failure cases remain explicit. |
+| Vault and storage F28 | Existing delivery reconciled; remaining scope identified | Published-object drain and graceful closure are already delivered in V88/V89. Genuine English/Chinese Secrets, Vault, storage and orphan-cleanup browser acceptance remains pending. Certificate and workload authentication remain separate functional gaps. The operation-local certificate SDK R2 resolves the strict leading-PEM review finding and passes independent source review; the first focused qualification fails only the 307/308 fixture classification and a test-only successor is in progress. Compilation, successful tests, real Vault compatibility and adoption remain pending. Saved certificate-material storage still awaits the user decision. External compatibility and unverified cleanup-failure cases remain explicit. |
 
 Rolling-warning scope reconciliation confirms existing Personal, Personal root-Key,
 Project aggregate, Team aggregate and Project root-Key producers. Replacement Keys

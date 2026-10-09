@@ -261,7 +261,7 @@ export default {
     prepare: '审阅命令',
     revision: '修订 ID',
     description:
-      '配置已保存的 Vault KV-v2 集成，分别查看写入、读取和清理结果。当前凭据仍使用内部存储。',
+      '配置已保存的 Vault KV-v2 集成，分别查看写入、读取和清理结果。保存集成或运行测试不会改变当前 Provider 凭据存储。未来 Provider 凭据写入由“存储”选项卡中已审阅的策略决定。',
     add: '添加集成',
     edit: '集成配置',
     drawerDescription: '保存描述信息及独立的认证操作。这不会切换当前存储，也不证明远端权限。',

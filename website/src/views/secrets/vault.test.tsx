@@ -204,12 +204,24 @@ it('test permission does not grant configuration write authority', async () => {
 })
 it('live language change preserves selected table and replaces visible/accessibility labels', async () => {
   await mount()
+  expect(document.body.textContent).toContain(
+    'Saving integrations or running probes does not change active Provider credential storage.',
+  )
+  expect(document.body.textContent).toContain(
+    'The reviewed policy on the Storage tab governs future Provider credential writes.',
+  )
+  expect(reads).not.toContain('/admin/secrets/provider-storage')
   await act(async () => {
     await i18n.changeLanguage('zh')
   })
   expect(document.body.textContent).toContain('添加集成')
   expect(document.body.textContent).toContain('写入身份')
   expect(document.body.textContent).toContain('QA Vault')
+  expect(document.body.textContent).toContain('保存集成或运行测试不会改变当前 Provider 凭据存储。')
+  expect(document.body.textContent).toContain(
+    '未来 Provider 凭据写入由“存储”选项卡中已审阅的策略决定。',
+  )
+  expect(reads).not.toContain('/admin/secrets/provider-storage')
   expect(writes).toHaveLength(0)
 })
 it('renewed list authority hides cached rows and late old reads cannot restore them after actor change', async () => {

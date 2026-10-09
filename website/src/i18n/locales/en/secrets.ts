@@ -284,7 +284,7 @@ export default {
     prepare: 'Review command',
     revision: 'Revision ID',
     description:
-      'Configure a saved Vault KV-v2 integration and inspect separate Write, Read and Cleanup observations. Active credential storage remains internal.',
+      'Configure a saved Vault KV-v2 integration and inspect separate Write, Read and Cleanup observations. Saving integrations or running probes does not change active Provider credential storage. The reviewed policy on the Storage tab governs future Provider credential writes.',
     add: 'Add integration',
     edit: 'Integration configuration',
     drawerDescription:
