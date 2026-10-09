@@ -19,3 +19,11 @@ Generator under MIT. The unmodified notices are retained in
 [`website/public/licenses/qrcode.react-4.2.0.txt`](../../website/public/licenses/qrcode.react-4.2.0.txt)
 and included in the embedded frontend assets at `/licenses/qrcode.react-4.2.0.txt`.
 QR encoding runs locally; no enrollment secret is sent to a QR service.
+
+## OpenID Connect verification
+
+`github.com/coreos/go-oidc/v3` v3.21.0 is used unmodified under Apache-2.0.
+Its original license is retained in `go-oidc-APACHE-2.0.txt`; the module contains
+no separate NOTICE file. Signature parsing also uses the existing
+`github.com/go-jose/go-jose/v4` v4.1.4 dependency, and authorization-code requests
+use the existing `golang.org/x/oauth2` v0.36.0 dependency.
