@@ -3,8 +3,8 @@
 # Exits non-zero if `go mod tidy` would change anything.
 set -euo pipefail
 
-cp go.mod go.mod.bak
-cp go.sum go.sum.bak
+cp -p go.mod go.mod.bak
+cp -p go.sum go.sum.bak
 trap 'mv go.mod.bak go.mod; mv go.sum.bak go.sum' EXIT
 
 go mod tidy
