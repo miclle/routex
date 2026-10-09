@@ -1364,6 +1364,11 @@ confirmation. Preserve the legacy complete-set Save workflow. History and
 read-only command recovery require fresh `models.read_all`; restore additionally
 requires independently refreshed `models.write` authority.
 
+Restore history-dialog focus to the current connected, enabled history button
+through the local Dialog's `finalFocus`. Resolve the current button after a save
+and detail remount; require the opening Session and Model birth plus fresh read
+authority. Never focus a removed trigger or an obsolete private view.
+
 Scope queries and mounted command state to the exact actor and Model identity.
 Hide private facts during Session, permission, Model or history renewal/errors.
 Every refetch, new-review action and restore dispatch must synchronously verify

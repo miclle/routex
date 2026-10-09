@@ -287,3 +287,82 @@ func TestModelWeightRuntimeProjectionUsesExistingPublicationIndex(t *testing.T) 
 		t.Fatal("captured runtime projected changed database set as applied")
 	}
 }
+
+func TestModelWeightHistoryUTCWirePreservesExactBirth(t *testing.T) {
+	for _, recorded := range []string{"2026-10-09T14:27:38.676+08:00", "2026-10-09T14:27:38.676123456+08:00", "2026-10-09T01:27:38.676123456-05:00"} {
+		t.Run(recorded, func(t *testing.T) {
+			birth, err := time.Parse(time.RFC3339Nano, recorded)
+			if err != nil {
+				t.Fatal(err)
+			}
+			stored := entity.ModelWeightVersion{ModelBirth: &birth, CapturedAt: birth}
+			summary := modelWeightSummary(stored)
+			if summary.ModelCreatedAt == nil || summary.ModelCreatedAt == stored.ModelBirth || !summary.ModelCreatedAt.Equal(birth) || summary.ModelCreatedAt.Location() != time.UTC || summary.ModelCreatedAt.Nanosecond() != birth.Nanosecond() || stored.ModelBirth.Format(time.RFC3339Nano) != recorded {
+				t.Fatal("UTC projection changed or mutated exact recorded birth")
+			}
+			raw, err := json.Marshal(summary)
+			if err != nil {
+				t.Fatal(err)
+			}
+			var fields map[string]json.RawMessage
+			if err := json.Unmarshal(raw, &fields); err != nil {
+				t.Fatal(err)
+			}
+			expected, _ := json.Marshal(birth.UTC().Format(time.RFC3339Nano))
+			if string(fields["model_created_at"]) != string(expected) || string(fields["captured_at"]) != string(expected) {
+				t.Fatal("summary wire did not match strict UTC Model detail identity")
+			}
+			later := birth.Add(time.Nanosecond)
+			if modelWeightSameBirth(summary.ModelCreatedAt, &later) {
+				t.Fatal("UTC projection rounded distinct retained births together")
+			}
+		})
+	}
+	if modelWeightSummary(entity.ModelWeightVersion{}).ModelCreatedAt != nil {
+		t.Fatal("unknown legacy birth became a recorded identity")
+	}
+	zero := time.Time{}
+	if value := modelWeightSummary(entity.ModelWeightVersion{ModelBirth: &zero}).ModelCreatedAt; value == nil || !value.IsZero() {
+		t.Fatal("invalid recorded zero birth was silently changed into unknown")
+	}
+}
+
+func TestModelWeightHistoryOtherWireDatesRemainUTC(t *testing.T) {
+	birth, err := time.Parse(time.RFC3339Nano, "2026-10-09T14:27:38.676123456+08:00")
+	if err != nil {
+		t.Fatal(err)
+	}
+	st := weightTestState()
+	st.Model.CreatedAt = birth
+	row := st.Rows[0]
+	row.BindingCreatedAt, row.ProviderModelCreatedAt, row.ConnectionCreatedAt, row.ProviderCreatedAt = &birth, &birth, &birth, &birth
+	raw, err := json.Marshal([]ModelWeightRow{row})
+	if err != nil {
+		t.Fatal(err)
+	}
+	current := row
+	current.BindingCreatedAt, current.ProviderModelCreatedAt, current.ConnectionCreatedAt, current.ProviderCreatedAt = modelWeightBirth(birth), modelWeightBirth(birth), modelWeightBirth(birth), modelWeightBirth(birth)
+	_, digest, err := modelWeightSnapshot([]ModelWeightRow{current})
+	if err != nil {
+		t.Fatal(err)
+	}
+	rows, _, err := decodeModelWeightSnapshot(raw, 1, digest)
+	if err != nil || len(rows) != 1 {
+		t.Fatal("offset snapshot lost canonical logical identity", err)
+	}
+	for _, value := range []*time.Time{rows[0].BindingCreatedAt, rows[0].ProviderModelCreatedAt, rows[0].ConnectionCreatedAt, rows[0].ProviderCreatedAt} {
+		if value == nil || value.Location() != time.UTC || !value.Equal(birth) || value.Nanosecond() != birth.Nanosecond() {
+			t.Fatal("retained topology birth lost exact UTC precision")
+		}
+	}
+	st.Rows = rows
+	target := entity.ModelWeightVersion{ModelBirth: &birth, ValidWeightSet: true}
+	review := modelWeightReview(entity.User{}, false, st, target, rows, nil)
+	if review.ObservedAt.Location() != time.UTC || review.ObservedAt.IsZero() {
+		t.Fatal("review timestamp left the strict UTC boundary")
+	}
+	receipt := modelWeightCommandReceipt(entity.ModelWeightRollbackCommand{CreatedAt: birth})
+	if receipt.CreatedAt.Location() != time.UTC || !receipt.CreatedAt.Equal(birth) || receipt.CreatedAt.Nanosecond() != birth.Nanosecond() {
+		t.Fatal("rollback and recovered receipt timestamp lost exact UTC precision")
+	}
+}

@@ -1017,7 +1017,12 @@ func testModelCreationBatchLifecycle(t *testing.T, db *gorm.DB) {
 	if err := db.Model(&entity.CallAttempt{}).Where("request_id = ?", manualCalls[0].RequestID).Count(&manualAttempts).Error; err != nil || manualAttempts != 0 || dispatches.Load() != 6 {
 		t.Fatal("unproven manual configuration dispatched", manualAttempts, err)
 	}
-
+	assertModelCreationConnectionTransportProjection(t, db, func(path string) *httptest.ResponseRecorder {
+		return request(readCookie, readCSRF, "GET", path, nil, "")
+	})
+	if dispatches.Load() != 6 {
+		t.Fatal("connection transport picker dispatched inference")
+	}
 }
 
 func modelCreationBatchNativeBody(protocol string) string {

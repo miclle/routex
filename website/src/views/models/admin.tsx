@@ -179,6 +179,8 @@ function AdminModels({
       ? detail.data
       : undefined
   const [weightHistoryOpen, setWeightHistoryOpen] = useState(false)
+  const weightHistoryTrigger = useRef<HTMLButtonElement | null>(null)
+  const weightHistoryFocusOwner = useRef<{ generation: number; birth: string | null } | null>(null)
   const [routingProtocol, setRoutingProtocol] = useState<RoutingProtocol | null>(null)
   const [action, setAction] = useState<Action | null>(null)
   const [renameDraft, setRenameDraft] = useState<ModelRenameDraft | null>(null)
@@ -698,8 +700,14 @@ function AdminModels({
             pricesReadable={readable && access.can('prices.read')}
             pending={mutation.isPending}
             error={!action ? mutation.error : null}
+            historyTriggerRef={weightHistoryTrigger}
             onHistory={() => {
-              if (weightHistoryReadReady() && !mutation.isPending) setWeightHistoryOpen(true)
+              if (!weightHistoryReadReady() || mutation.isPending) return
+              weightHistoryFocusOwner.current = {
+                generation,
+                birth: selected.created_at ?? null,
+              }
+              setWeightHistoryOpen(true)
             }}
             onSave={(weights) => {
               const current = cache.getQueryData<Model>(detailKey)
@@ -742,6 +750,18 @@ function AdminModels({
           readReady={weightHistoryReadReady}
           writeReady={writeReady}
           open={weightHistoryOpen}
+          finalFocus={() => {
+            const owner = weightHistoryFocusOwner.current
+            const trigger = weightHistoryTrigger.current
+            return mounted.current &&
+              owner?.generation === generation &&
+              owner.birth === (selected?.created_at ?? null) &&
+              weightHistoryReadReady() &&
+              trigger?.isConnected &&
+              !trigger.disabled
+              ? trigger
+              : false
+          }}
           onOpenChange={setWeightHistoryOpen}
           onSaved={() => {
             void cache.invalidateQueries({ queryKey: ['admin', 'models'] })

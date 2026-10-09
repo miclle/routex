@@ -374,7 +374,7 @@ func (s *Service) ListModelCreationConnections(ctx context.Context, actor string
 		if err := modelCreationRead(tx, actor); err != nil {
 			return err
 		}
-		query := modelCreationDB(tx).Table("provider_connections AS c").Select("c.id,c.provider_id,p.name AS provider_name,c.name,c.protocol,c.base_url").Joins("JOIN providers AS p ON ?", database.ExactTextColumns(tx, clause.Column{Table: "p", Name: "id"}, clause.Column{Table: "c", Name: "provider_id"})).Where("LOWER(c.name) LIKE ? ESCAPE '!'", pattern)
+		query := modelCreationDB(tx).Table("provider_connections AS c").Select("c.id,c.provider_id,p.name AS provider_name,c.name,c.protocol,c.base_url,c.adapter,c.api_version").Joins("JOIN providers AS p ON ?", database.ExactTextColumns(tx, clause.Column{Table: "p", Name: "id"}, clause.Column{Table: "c", Name: "provider_id"})).Where("LOWER(c.name) LIKE ? ESCAPE '!'", pattern)
 		if f.Cursor != "" {
 			var cursor entity.ProviderConnection
 			if err := personalExact(modelCreationDB(tx), "id", f.Cursor).Take(&cursor).Error; err != nil {

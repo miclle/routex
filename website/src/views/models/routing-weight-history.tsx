@@ -1,4 +1,11 @@
-import { useCallback, useLayoutEffect, useRef, useState, useSyncExternalStore } from 'react'
+import {
+  useCallback,
+  useLayoutEffect,
+  useRef,
+  useState,
+  useSyncExternalStore,
+  type ComponentProps,
+} from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import {
@@ -123,6 +130,7 @@ export default function RoutingWeightHistory({
   readReady,
   writeReady,
   open,
+  finalFocus,
   onOpenChange,
   onSaved,
 }: {
@@ -137,6 +145,7 @@ export default function RoutingWeightHistory({
   readReady: () => boolean
   writeReady: () => boolean
   open: boolean
+  finalFocus?: ComponentProps<typeof Dialog>['finalFocus']
   onOpenChange: (value: boolean) => void
   onSaved: () => void
 }) {
@@ -388,6 +397,7 @@ export default function RoutingWeightHistory({
   return (
     <Dialog
       open={open && readable}
+      finalFocus={finalFocus}
       onOpenChange={onOpenChange}
       title={t('weightHistory.title')}
       description={t('weightHistory.description')}

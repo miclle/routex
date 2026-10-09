@@ -2,6 +2,206 @@
 
 Updated: 2026-10-09. Status: resumed by explicit user instruction; prioritize partially completed capabilities. [Implementation](IMPLEMENTATION.md) records engineering contracts and historical acceptance evidence. Earlier checkpoints below remain historical.
 
+## Active continuation and browser availability (2026-10-09)
+
+Baseline main `9bce12826e25f393f0d7873f6fc8a22eb6c201be` is pushed and
+remote-verified. Its exact-head CI37871692337, Actionlint37871692295 and
+GolangCI37871692404 are successful, including both database integration,
+authentication restart checks and production builds. The cancelled predecessor
+CI remains historical; descendant success does not change its outcome.
+
+The screen is unlocked. A separate Compose PostgreSQL fixture verifies
+English/Chinese Provider Model row actions, keyboard detail navigation,
+cancellation and explicit disable/enable restoration. History restoration passes
+separate review/confirmation and explicit original-receipt reconciliation, with
+final 0/100 weights. Connection model creation passes the manual-draft workflow
+with separate confirmation, no implicit grant and no invented verification.
+Discovered-model creation and independent browser permission roles remain untested.
+No Key or native inference is created by this fixture.
+
+This phase repairs three browser-discovered defects: database-loaded history
+births now receive a copied UTC projection without precision loss; Connection
+choices include stored adapter/API-version columns; history dismissal uses the
+current mounted trigger with opening Session authority. Focus returns after an
+authorized detail remount and deliberately stays suppressed for obsolete authority.
+Strict client validation, permissions, bounded reads and complete-set writes are
+preserved. Original UTC and focus regression witnesses fail before the repairs.
+
+Final mandatory checks, formatting and complete Task pass: all 5,555 frontend
+assertions across 211 files, Go race/coverage, five frontend Node checks, ten
+development lifecycle checks, production build and production asset serving.
+Five focused UI/API files pass 182 assertions. Both-driver model-creation and
+weight-history lifecycle regression passes four direct scenarios/seven balanced
+names in 256.470 seconds, with all 2,046 source bytes/modes exact. Twelve captured
+process/group identities, two ports and owned Compose resources are independently
+absent. No schema or authentication contract changes in this phase.
+
+The first complete Task failure remains retained: four initial 5-second timeouts,
+37 following same-file mount/control failures and one pre-Escape preparation
+assertion, totaling 42 failed/5,513 passed. The four unchanged affected files pass
+100 assertions in a fresh configured run; their initial timeout producers remain
+unknown. The one-test focus correction waits for the exact original receipt and
+enabled current controls, then focuses Close before the retained containment,
+Escape and return-focus assertions. Independent review confirms unchanged
+production guards, original assertions and polling bounds. No timeout is increased.
+
+The browser fixture drains gracefully; its six captured process/group identities,
+three ports and Compose resources are independently absent. The original
+development service, authenticated page, database and durable journal are preserved.
+These fixes are locally qualified for a phased main delivery; new exact-head
+remote CI remains pending. The full objective stays active with no new formal
+feature-completion claim.
+
+Whole-Provider enablement remains isolated. The prior captured source passes
+5,540 frontend tests, 5,370 internal ordinary Go names and four direct
+migration/lifecycle scenarios across both real databases. Its complete Full176
+finishes unsuccessfully on both drivers: each runs all 180 direct scenarios and
+reports 42 failures, with different failed-case sets. All owned resources are
+independently absent. Legacy fixtures use terminal stop to pause polling before
+manual refresh; those fixtures now retain a live long-interval publisher while
+preserving genuine stop and restart checks. The Member list positive fixture now
+uses a canonical Provider ID. A controlled runtime witness fails on the old
+implementation and passes with the repair; ten focused race-test names and fresh
+mandatory checks pass. This proves the controlled publication-proof contention
+mechanism, not the exact producer of the historical Provider retry 503. The
+separate MySQL model-creation migration deadline remains unexplained. The frozen
+repair passes 5,374 complete internal ordinary race-test names, fresh build and
+uncached production assets. Its five-case real-driver selector passes ten direct
+scenarios and all thirteen named results in 234.988 seconds; source bytes/modes,
+twelve process/group identities, both ports and labelled resources are
+independently verified. The original failure is not relabeled by this pass.
+The renewed Full176 executes that exact repair with parallel PostgreSQL/MySQL
+workers and every original scenario, constraint and timeout preserved.
+Its independent helper review and all thirty-six pure controls pass. The
+current run has completed all 5,374 ordinary Go names successfully. PostgreSQL
+finishes all 180 direct scenarios and 438 named results, with three failed direct
+cases: Personal Key quota warning provenance, Team monthly behavior cleanup,
+and Project monthly behavior's expected quota denial. Provider status passes.
+MySQL also finishes all 180 direct scenarios and 438 named results, with
+three failed direct cases: local registration approval's Project Key call,
+Personal Key warning provenance, and Team monthly cleanup. The complete run
+closes unsuccessfully in 2,304.151 seconds with Task exit 201 and no cancellation.
+All eight captured process identities, seven groups, the outer collector, both
+ports and labelled resources are independently absent; all captured source bytes
+and modes are unchanged. The Team failure is traced to cleanup refreshing an
+already-stopped original service after restart. Concurrent runtime reads can
+finish effects out of read order; controlled reproduction is required before
+attributing the Project or warning failures to that mechanism. The MySQL Project
+Key HTTP 500 producer remains unknown. A separate whole-refresh serialization
+repair and faithful fixture correction are being authored; native and main
+adoption remain gated. Earlier helper self-check and
+preflight failures remain retained. Complete regression,
+native/restart acceptance and fresh main gates remain required; no current
+Full176 success is claimed. Earlier failures are retained.
+
+The successor serializes the complete refresh admission/read/effect pipeline
+with a separate mutex while keeping the current publication-proof mutex free
+during database reads. It rejects cancelled or stopped queued callers before
+borrowing the database. Team fixture cleanup keeps the real shutdown/restart
+and removes only the unnecessary refresh of the stopped original instance.
+The frozen 2,059-path successor passes twelve balanced focused runtime names,
+all 5,380 internal ordinary race-test names in 75.580 seconds, and fresh mandatory
+checks. The original R3 plus the exact compatible witness fails both controlled
+read/drain subcases without races or skips; this is controlled mechanism
+evidence, not attribution of the historical Project denial or MySQL HTTP 500.
+Fresh production build and uncached production asset race tests also pass on
+that exact source. The twelve focused runtime names retain cancellation, stop,
+publication-proof visibility and complete worker joins. Nine-case focused
+PostgreSQL/MySQL regression passes all eighteen direct scenarios and all
+twenty-seven parent/child names in 360.670 seconds. The strict root readback
+confirms exact start/completion order, no skips/races/failures, empty stderr,
+twelve owned process/group identities absent, both ports closed, no labelled
+resources and unchanged 2,059 source bytes/modes. This successor pass does not
+establish the original historical Project denial or MySQL HTTP 500 producer.
+Complete Full176, native and main gates remain pending. Existing frontend warnings remain unchanged.
+
+The earlier renewed Full176 launcher was withheld. Its resource-denied control run
+executes 67 retained/current controls and closes unsuccessfully with four
+failures and twenty errors. Causes include historical fixture context, the
+`/tmp` versus resolved `/private/tmp` reader path, and an invalid assertion that
+parallel package completion must follow a static package order. A source-only
+control successor must preserve exact six-package membership, complete raw
+5,380-name balance, all driver assertions and receipt pins. No database
+qualification resource was launched by this failed control run.
+The repaired control successor passes all 67 resource-denied controls and
+actual root preflight against the exact source, ordinary and focused receipts.
+The complete Full176 successor closes unsuccessfully in 2,766.285 seconds,
+with Task exit 201 and no cancellation. Both drivers complete all 180 direct
+scenarios (including four constraints) and 438 named results. PostgreSQL has two
+failed direct cases: personal monthly quota warning merge semantics (observed
+counts 7 and 1), and maximum Team owner/model creation. MySQL has two different
+failed cases: Team native protocols reports temporary runtime unavailability;
+Team monthly quota warnings rejects the observer's post-reconcile authorization
+proof. All 5,380 ordinary names pass. Independent readback confirms ten captured
+process identities, nine groups and the outer collector absent, both ports closed,
+zero project-labelled resources and all 2,059 source bytes/modes unchanged.
+The failures remain unaccepted; native and main gates stay blocked. Temporary
+failure-only diagnostics preserve original assertions, limits, timeouts and
+privacy checks and will never enter delivery source. These observations do not
+identify the exact failed proof clause or historical producer. Earlier failures
+remain retained.
+
+The separate Connection test implementation has independent backend/UI source
+reviews. Its current source passes 203 focused frontend tests and two actual Go
+race runs covering 65 diagnostic and 173 related verifier/source/egress names,
+with complete event balance and no skips or failures. The existing Vault source
+exposure/drain safety ledger remains required. Both-driver lifecycle acceptance,
+full regression, mandatory project checks and browser acceptance are pending;
+no main delivery is claimed. Formal totals remain
+13 Completed / 14 Partial / 3 Not started.
+
+Connection transport editing is being implemented in a separate managed
+worktree with parallel backend and frontend ownership. The existing edit dialog
+and Provider Model cards remain the interaction surfaces. A changed canonical
+transport receives a new generation; old Credential verification, capability
+and capacity evidence cannot authorize the new tuple. Frozen migration V92,
+strict original review and separate internal postcommit target checks are
+frozen in a fifty-file Go source packet. The independent frontend packet has
+twenty-nine owned files, nine focused test files and forty-six paired catalogue
+keys; scoped Prettier and static translation parity pass. Independent source
+review remains pending. Its first root-executed focused Vitest run closes with
+267 passing and four failing tests out of 271, with no pending tests and unchanged
+source. Failures concern Connection dialog targeting, renewed uncertainty, live
+capacity-language draft lookup and the status-change confirmation branch. The
+original failure is retained while the frontend owner diagnoses a successor.
+A bounded successor corrects only three test files, preserving all production
+code and the original assertion multiplicities. Its root rerun passes all 271
+assertions across nine files with no pending tests or stderr, and independent
+source review passes. Backend preflight first fails on an undefined Connection
+variable in model-creation eligibility; a one-reference correction preserves
+the other forty-nine leaves. All seven internal packages then compile, and
+thirteen focused top-level tests pass with twenty-seven balanced named results,
+no named skips/races/failures and empty stderr. These are isolated source-level
+checks: whole frontend, runtime-repair composition, real-driver V92 migration
+and lifecycle qualification remain pending. Its first whole frontend run reports
+5,637 passing and one failing assertion out of 5,638, with no pending tests or
+stderr. The sole late-capacity-response test sampled before scheduled query
+cleanup completed; a one-test-file successor waits within the original bound
+for old/unobserved query absence before capturing the baseline. It preserves
+all late-response assertions and strengthens old-key absence, with no product
+changes. Independent source review and all 271 focused assertions pass on that
+successor. Its second complete frontend run closes unsuccessfully in 429.887
+seconds: 5,637 of 5,638 assertions pass, with no pending tests and unchanged
+source. The remaining late-state-response test has the same scheduled-cache
+cleanup boundary; its original failure is retained. TypeScript passes, while
+full ESLint finds 23 React ref-during-render errors in the Connection metadata,
+Provider Model state and capacity views, in addition to two existing warnings.
+A bounded successor must separate reactive render predicates from imperative
+fresh-authority and stale-response guards, preserving all dispatch fences and
+late-response assertions. Whole frontend and lint acceptance remain pending;
+no main delivery is claimed. The five-path repair now separates reactive
+render facts from imperative lifetime/authority guards and preserves synchronous
+Session-expiry revocation. All 271 prior focused assertions plus one new
+same-turn expiry regression pass (272 total, nine files); TypeScript and full
+ESLint pass with zero errors and the two existing warnings. The complete
+frontend rerun passes all 5,639 assertions in 213 files in 419.728 seconds,
+with zero pending tests, empty stderr and unchanged twenty-nine source bytes/modes.
+All 5,638 original assertion multiplicities remain, with one additive expiry
+regression. Independent source review passes. This proves the isolated frontend;
+composed backend/runtime, real-driver V92 and fresh main gates remain pending.
+This phase follows the separately reviewed Connection diagnostic; neither enters
+V91.
+
 ## Routing-weight history and reviewed rollback integration (2026-10-09)
 
 The V90 candidate is adopted on main through 54 exact Go afterimages and ten

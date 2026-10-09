@@ -1,4 +1,4 @@
-import { useLayoutEffect, useRef, type FormEvent } from 'react'
+import { useLayoutEffect, useRef, type FormEvent, type Ref } from 'react'
 import { useTranslation } from 'react-i18next'
 import { ErrorNotice, SaveButton } from '@/components/app/CatalogUI'
 import { Button } from '@/components/ui/button'
@@ -24,6 +24,7 @@ export default function RoutingWeights({
   error,
   onSave,
   onHistory,
+  historyTriggerRef,
   onAddBinding,
   onGrants,
   refreshDetail,
@@ -42,6 +43,7 @@ export default function RoutingWeights({
   pending: boolean
   error: unknown
   onHistory?: () => void
+  historyTriggerRef?: Ref<HTMLButtonElement>
   onSave: (weights: { binding_id: string; weight: number }[]) => void
   onAddBinding: (protocol?: string) => void
   onGrants: () => void
@@ -243,7 +245,13 @@ export default function RoutingWeights({
           {t('adminModels.grant')}
         </Button>
         {onHistory && (
-          <Button type="button" variant="outline" disabled={pending} onClick={onHistory}>
+          <Button
+            ref={historyTriggerRef}
+            type="button"
+            variant="outline"
+            disabled={pending}
+            onClick={onHistory}
+          >
             {t('weightHistory.action')}
           </Button>
         )}

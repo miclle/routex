@@ -54,6 +54,52 @@ describe('Model weight history private exact contract', () => {
     expect(calls[0].headers.get('X-CSRF-Token')).toBeUndefined()
     expect(calls).toHaveLength(1)
   })
+  it('requires UTC wire dates without converting exact birth identities from offsets', async () => {
+    const offset = '2026-10-09T14:27:38.676+08:00'
+    for (const field of ['model_created_at', 'captured_at'] as const) {
+      const version = { ...detailFixture().version, [field]: offset }
+      value = { model_id: modelID, items: [version], next_cursor: null }
+      await expect(listModelWeightVersions(modelID)).rejects.toThrow('response unavailable')
+      value = { ...detailFixture(), version }
+      await expect(getModelWeightVersion(modelID, versionID)).rejects.toThrow(
+        'response unavailable',
+      )
+    }
+    for (const field of [
+      'binding_created_at',
+      'provider_model_created_at',
+      'connection_created_at',
+      'provider_created_at',
+    ] as const) {
+      const detail = detailFixture()
+      detail.weights[0][field] = offset
+      value = detail
+      await expect(getModelWeightVersion(modelID, versionID)).rejects.toThrow(
+        'response unavailable',
+      )
+      for (const set of ['current_weights', 'proposed_weights'] as const) {
+        const review = reviewFixture()
+        review[set][0][field] = offset
+        value = review
+        await expect(reviewModelWeightRollback(modelID, versionID)).rejects.toThrow(
+          'response unavailable',
+        )
+      }
+    }
+    value = { ...reviewFixture(), observed_at: offset }
+    await expect(reviewModelWeightRollback(modelID, versionID)).rejects.toThrow(
+      'response unavailable',
+    )
+    const result = resultFixture()
+    result.receipt.created_at = offset
+    value = result
+    await expect(rollbackModelWeights(modelID, reviewETag, input, 'csrf')).rejects.toThrow(
+      'response unavailable',
+    )
+    await expect(getModelWeightRollbackCommand(modelID, input)).rejects.toThrow(
+      'response unavailable',
+    )
+  })
   it('keeps opaque actor-bound cursor bytes and does not select a version or fetch snapshots', async () => {
     value = { model_id: modelID, items: [detailFixture().version], next_cursor: 'opaque+/=' }
     expect((await listModelWeightVersions(modelID, 'opaque+/=')).next_cursor).toBe('opaque+/=')

@@ -17,7 +17,14 @@ import (
 const modelWeightSummaryColumns = "id,model_id,model_birth,sequence,captured_at,source,parent_version_id,rollback_version_id,actor_id,reason,binding_count,valid_weight_set"
 
 func modelWeightSummary(v entity.ModelWeightVersion) ModelWeightVersionSummary {
-	return ModelWeightVersionSummary{v.ID, v.ModelID, v.ModelBirth, v.CapturedAt.UTC(), v.Source, v.ParentVersionID, v.RollbackVersionID, v.ActorID, v.Reason, v.BindingCount, v.ValidWeightSet}
+	// Match the recorded Model detail boundary without mutating the loaded birth
+	// or changing its precision; the client compares this exact UTC identity.
+	birth := v.ModelBirth
+	if birth != nil {
+		value := birth.UTC()
+		birth = &value
+	}
+	return ModelWeightVersionSummary{v.ID, v.ModelID, birth, v.CapturedAt.UTC(), v.Source, v.ParentVersionID, v.RollbackVersionID, v.ActorID, v.Reason, v.BindingCount, v.ValidWeightSet}
 }
 func modelWeightVersion(tx *gorm.DB, st *modelWeightState, versionID string) (entity.ModelWeightVersion, []ModelWeightRow, error) {
 	var v entity.ModelWeightVersion

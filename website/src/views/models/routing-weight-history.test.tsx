@@ -193,6 +193,58 @@ function deferred() {
   return { promise, resolve }
 }
 
+async function renderAdminHistory(permissions = ['models.read_all']) {
+  const historyAdapter = client.defaults.adapter as (
+    config: InternalAxiosRequestConfig,
+  ) => Promise<unknown>
+  client.defaults.adapter = async (config) => {
+    if (config.url?.startsWith('/auth/') || config.url === '/admin/models/' + modelID) {
+      calls.push(config)
+      return {
+        config,
+        status: 200,
+        statusText: '',
+        headers: new AxiosHeaders(),
+        data:
+          config.url === '/auth/session'
+            ? {
+                user: {
+                  id: props.actor,
+                  role: 'admin',
+                  name: 'Current',
+                  email: 'current@example.com',
+                },
+                csrf_token: 'current-csrf',
+              }
+            : config.url === '/auth/permissions'
+              ? { permissions }
+              : {
+                  id: modelID,
+                  created_at: birth,
+                  config_updated_at: null,
+                  name: 'Current Model',
+                  status: 'active',
+                  names: [{ name: 'Current Model', is_current: true, expires_at: null }],
+                  bindings: [],
+                  granted_user_ids: [],
+                },
+      }
+    }
+    return (await historyAdapter(config)) as never
+  }
+  await act(async () =>
+    root.render(
+      <QueryClientProvider client={cache}>
+        <MemoryRouter initialEntries={['/admin/models/' + modelID]}>
+          <Routes>
+            <Route path="/admin/models/:modelId" element={<AdminModelsPage />} />
+          </Routes>
+        </MemoryRouter>
+      </QueryClientProvider>,
+    ),
+  )
+}
+
 describe('Reviewed weight restore in the existing Model detail composition', () => {
   it('does not automatically select, preview or restore a history row and uses no provider directory', async () => {
     await render()
@@ -207,55 +259,7 @@ describe('Reviewed weight restore in the existing Model detail composition', () 
     expect(calls.some((x) => x.url?.includes('providers'))).toBe(false)
   })
   it('wires the secondary action beside legacy Save using only fresh Model read authority', async () => {
-    const historyAdapter = client.defaults.adapter as (
-      config: InternalAxiosRequestConfig,
-    ) => Promise<unknown>
-    client.defaults.adapter = async (config) => {
-      if (config.url?.startsWith('/auth/') || config.url === '/admin/models/' + modelID) {
-        calls.push(config)
-        return {
-          config,
-          status: 200,
-          statusText: '',
-          headers: new AxiosHeaders(),
-          data:
-            config.url === '/auth/session'
-              ? {
-                  user: {
-                    id: props.actor,
-                    role: 'admin',
-                    name: 'Current',
-                    email: 'current@example.com',
-                  },
-                  csrf_token: 'current-csrf',
-                }
-              : config.url === '/auth/permissions'
-                ? { permissions: ['models.read_all'] }
-                : {
-                    id: modelID,
-                    created_at: birth,
-                    config_updated_at: null,
-                    name: 'Current Model',
-                    status: 'active',
-                    names: [{ name: 'Current Model', is_current: true, expires_at: null }],
-                    bindings: [],
-                    granted_user_ids: [],
-                  },
-        }
-      }
-      return (await historyAdapter(config)) as never
-    }
-    await act(async () =>
-      root.render(
-        <QueryClientProvider client={cache}>
-          <MemoryRouter initialEntries={['/admin/models/' + modelID]}>
-            <Routes>
-              <Route path="/admin/models/:modelId" element={<AdminModelsPage />} />
-            </Routes>
-          </MemoryRouter>
-        </QueryClientProvider>,
-      ),
-    )
+    await renderAdminHistory()
     await until(() => expect(button('History / Restore')).toBeTruthy())
     expect(button('Save routing weights').disabled).toBe(true)
     expect(calls.some((c) => c.url?.includes('weight-versions'))).toBe(false)
@@ -263,6 +267,128 @@ describe('Reviewed weight restore in the existing Model detail composition', () 
     await until(() => expect(button('Details')).toBeTruthy())
     expect(calls.some((c) => c.url?.includes('providers'))).toBe(false)
     expect(posts()).toHaveLength(0)
+    const trigger = button('History / Restore')
+    await until(() =>
+      expect(document.querySelector('[role="dialog"]')?.contains(document.activeElement)).toBe(
+        true,
+      ),
+    )
+    await act(async () => {
+      document.activeElement!.dispatchEvent(
+        new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }),
+      )
+    })
+    await until(() => expect(document.querySelector('[role="dialog"]')).toBeNull())
+    await until(() => expect(document.activeElement).toBe(trigger))
+    await act(async () => i18n.changeLanguage('zh'))
+    expect(button('历史 / 恢复')).toBe(trigger)
+    await act(async () => {
+      trigger.blur()
+      trigger.click()
+    })
+    await until(() =>
+      expect(document.querySelector('[role="dialog"]')?.contains(document.activeElement)).toBe(
+        true,
+      ),
+    )
+    await act(async () => {
+      document.activeElement!.dispatchEvent(
+        new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }),
+      )
+    })
+    await until(() => expect(document.querySelector('[role="dialog"]')).toBeNull())
+    await until(() => expect(document.activeElement).toBe(trigger))
+    expect(posts()).toHaveLength(0)
+  })
+  it('restores focus to the remounted history trigger after a saved and separately read receipt', async () => {
+    await renderAdminHistory(['models.read_all', 'models.write'])
+    await until(() => expect(button('History / Restore')).toBeTruthy())
+    const originalTrigger = button('History / Restore')
+    const adminAdapter = client.defaults.adapter as (
+      config: InternalAxiosRequestConfig,
+    ) => Promise<unknown>
+    const gate = deferred()
+    let holdDetail = false
+    let completedReceipt: ModelWeightRollbackResult | undefined
+    client.defaults.adapter = async (config) => {
+      if (holdDetail && config.url === '/admin/models/' + modelID) await gate.promise
+      const response = await adminAdapter(config)
+      if (config.method === 'get' && config.url?.includes('/rollback-commands/'))
+        completedReceipt = (response as { data: ModelWeightRollbackResult }).data
+      return response as never
+    }
+    try {
+      await click('History / Restore')
+      await until(() => expect(button('Details')).toBeTruthy())
+      await click('Details')
+      await until(() => expect(button('Review current restore eligibility')).toBeTruthy())
+      await click('Review current restore eligibility')
+      await until(() => expect(button('Restore reviewed weights')).toBeTruthy())
+      await fill('Restore reviewed complete set')
+      await click('Restore reviewed weights')
+      holdDetail = true
+      await click('Confirm restore')
+      await until(() => expect(originalTrigger.isConnected).toBe(false))
+      const originalIntent = JSON.parse(posts()[0].data) as ModelWeightRollbackInput
+      holdDetail = false
+      await act(async () => gate.resolve())
+      await until(() => expect(button('Read original receipt')).toBeTruthy())
+      await until(() => {
+        expect(button('Read original receipt').disabled).toBe(false)
+        expect(button('History / Restore')?.isConnected).toBe(true)
+        const dialog = document.querySelector('[role="dialog"]')
+        expect(dialog?.contains(button('Read original receipt'))).toBe(true)
+        expect(
+          dialog?.querySelector<HTMLButtonElement>('button[aria-label="Close"]')?.disabled,
+        ).toBe(false)
+      })
+      await click('Read original receipt')
+      await until(() => {
+        expect(completedReceipt?.receipt.request_id).toBe(originalIntent.request_id)
+        expect(completedReceipt?.receipt.version_id).toBe(originalIntent.version_id)
+        expect(completedReceipt?.receipt.reason).toBe(originalIntent.reason)
+        expect(document.body.textContent).toContain(
+          'The original result is applied to the current local serving configuration.',
+        )
+        expect(button('Read original receipt').disabled).toBe(false)
+        expect(
+          document.querySelector<HTMLButtonElement>('[role="dialog"] button[aria-label="Close"]')
+            ?.disabled,
+        ).toBe(false)
+      })
+      await until(() =>
+        expect(calls.some((call) => call.url?.includes('/rollback-commands/'))).toBe(true),
+      )
+      const receiptCalls = calls.filter((call) => call.url?.includes('/rollback-commands/'))
+      expect(receiptCalls).toHaveLength(1)
+      expect(receiptCalls[0].method).toBe('get')
+      expect(receiptCalls[0].url).toBe(
+        '/admin/models/' + modelID + '/weights/rollback-commands/' + originalIntent.request_id,
+      )
+      await until(() => expect(button('History / Restore')?.isConnected).toBe(true))
+      const close = document.querySelector<HTMLButtonElement>(
+        '[role="dialog"] button[aria-label="Close"]',
+      )!
+      await act(async () => close.focus())
+      expect(document.activeElement).toBe(close)
+      await until(() =>
+        expect(document.querySelector('[role="dialog"]')?.contains(document.activeElement)).toBe(
+          true,
+        ),
+      )
+      const currentTrigger = button('History / Restore')
+      expect(currentTrigger).not.toBe(originalTrigger)
+      expect(currentTrigger.disabled).toBe(false)
+      expect(posts()).toHaveLength(1)
+      expect(document.body.textContent).toContain(JSON.parse(posts()[0].data).request_id)
+      await act(async () => {
+        close.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }))
+      })
+      await until(() => expect(document.querySelector('[role="dialog"]')).toBeNull())
+      await until(() => expect(document.activeElement).toBe(currentTrigger))
+    } finally {
+      await act(async () => gate.resolve())
+    }
   })
   it('preserves the first UUID on rapid duplicate confirmation clicks', async () => {
     await ready()
