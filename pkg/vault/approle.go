@@ -61,6 +61,17 @@ func (c *Client) LoginAppRole(ctx context.Context, authMount, roleID, secretID s
 	if !validPath(authMount, 128, false) || !validToken(roleID) || !validToken(secretID) {
 		return fail("invalid_auth", 0)
 	}
+	return c.login(ctx, authMount, map[string]string{"role_id": roleID, "secret_id": secretID}, start)
+}
+
+// login shares only the finite request, strict response and transient lease
+// handling. Authentication-specific admission stays in each public method.
+func (c *Client) login(ctx context.Context, authMount string, fields map[string]string, start time.Time) (tokenResult *LoginToken, obs Observation, resultErr error) {
+	fail := func(code string, status int) (*LoginToken, Observation, error) {
+		obs.Duration = time.Since(start)
+		obs.Failure = &Failure{Stage: "prepare", Code: code, HTTPStatus: status}
+		return nil, obs, obs.Failure
+	}
 	ctx, cancel := context.WithTimeout(ctx, requestTimeout)
 	defer cancel()
 	contextFail := func() (*LoginToken, Observation, error) {
@@ -71,7 +82,7 @@ func (c *Client) LoginAppRole(ctx context.Context, authMount, roleID, secretID s
 	if ctx.Err() != nil {
 		return contextFail()
 	}
-	body, _ := json.Marshal(map[string]string{"role_id": roleID, "secret_id": secretID})
+	body, _ := json.Marshal(fields)
 	defer clear(body)
 	endpoint := *c.endpoint
 	endpoint.Path += "/v1/auth/" + authMount + "/login"

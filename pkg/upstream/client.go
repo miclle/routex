@@ -136,10 +136,11 @@ type policyTransport struct {
 	base            *http.Transport
 	allowPrivate    bool
 	bindDialContext bool
+	httpsOnly       bool
 }
 
 func (t *policyTransport) RoundTrip(req *http.Request) (*http.Response, error) {
-	if req.URL == nil || req.URL.User != nil || req.URL.Fragment != "" || req.URL.Opaque != "" {
+	if req.URL == nil || req.URL.User != nil || req.URL.Fragment != "" || req.URL.Opaque != "" || t.httpsOnly && req.URL.Scheme != "https" {
 		return nil, preRequestFailure(errURL)
 	}
 	// Request paths may include provider query parameters. Base URLs may not.

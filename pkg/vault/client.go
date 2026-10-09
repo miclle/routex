@@ -33,10 +33,11 @@ type Descriptor struct{ Endpoint, Namespace, Mount, Prefix, DataField string }
 
 // Client retains configuration and guarded transport, but no authentication tokens.
 type Client struct {
-	descriptor Descriptor
-	endpoint   *url.URL
-	http       *http.Client
-	responses  *responseCloseTracker
+	descriptor      Descriptor
+	endpoint        *url.URL
+	http            *http.Client
+	responses       *responseCloseTracker
+	certificateAuth bool
 }
 
 // ResponseCloseState is private application-facing drain evidence, not a remote

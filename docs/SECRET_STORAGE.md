@@ -35,7 +35,7 @@ These controls validate destination addresses; they do not replace an outbound f
 ## Verification
 
 ```bash
-go test -race -count=1 ./pkg/secretstore ./pkg/upstream
+go test -race -count=1 ./pkg/secretstore ./pkg/upstream ./pkg/vault
 ```
 
 Tests cover randomized envelope round trips, key ownership, wrong keys and references, tampering, malformed envelopes, concurrent store access, IPv4/IPv6 policy boundaries, DNS pinning and mixed answers, redirect rejection, ignored proxy environment variables, TLS hostname validation, and request cancellation. HTTP tests use local controlled servers or injected DNS/dial functions and do not require external network access or provider credentials.
@@ -57,6 +57,27 @@ Configuration receipts and recorded remote observations remain distinct. The
 earlier Token integration phase did not switch active Provider credential storage.
 The Provider write policy below is a separate contract; Gateway inference does
 not fetch Vault on each native request.
+
+## Operation-local certificate authentication SDK
+
+`upstream.NewCertificateClient` and `vault.NewCertificate` accept transient
+in-memory client certificate/key PEM and optional server-CA PEM, each bounded to
+64 KiB. Strict parsing rejects malformed leading blocks, unexpected material and
+trailing garbage. HTTPS and normal server-chain/hostname verification are
+mandatory. Empty server-CA PEM uses system trust; an explicit CA replaces that
+trust and is independent from the client certificate issuer. The existing guarded
+DNS/address policy, no environment proxy, no redirects and no replay remain intact.
+
+`LoginCertificate` makes one POST to `/v1/auth/<mount>/login` with exactly the
+explicit nonempty named role in `{ "name": "<role>" }`, without a Vault Token
+header or any KV operation. Login is bounded to ten seconds and caller
+cancellation. The returned `LoginToken` is a transient finite local lease, never
+renewed, cached or persisted; its `Close` invalidates and clears owned token bytes
+without HTTP. Callers must join or cancel outstanding requests, close the client
+and discard the operation-local material. Parsed Go private-key objects have no
+guaranteed cryptographic erasure. Failures expose sanitized classifications only.
+This SDK neither configures saved certificate authentication nor changes Provider
+storage policy, verification or Gateway runtime state.
 
 ## Controlled Token integration checkpoint
 
