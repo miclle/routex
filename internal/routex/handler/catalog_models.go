@@ -33,6 +33,7 @@ type ModelBindingResponse struct {
 	Ready           bool   `json:"ready"`
 }
 type ModelResponse struct {
+	ConfiguredReady *bool                  `json:"configured_ready"`
 	CreatedAt       *time.Time             `json:"created_at"`
 	ConfigUpdatedAt *time.Time             `json:"config_updated_at"`
 	ID              string                 `json:"id"`
@@ -146,7 +147,7 @@ type ModelGranteesResponse struct {
 }
 
 func modelResponse(item service.ModelCatalog) *ModelResponse {
-	result := &ModelResponse{ID: item.Model.ID, Name: item.Name, Status: item.Model.Status, Names: []ModelNameResponse{}, Bindings: []ModelBindingResponse{}, GrantedUserIDs: item.GrantedUserIDs}
+	result := &ModelResponse{ConfiguredReady: item.ConfiguredReady, ID: item.Model.ID, Name: item.Name, Status: item.Model.Status, Names: []ModelNameResponse{}, Bindings: []ModelBindingResponse{}, GrantedUserIDs: item.GrantedUserIDs}
 	if !item.Model.CreatedAt.IsZero() {
 		value := item.Model.CreatedAt.UTC()
 		result.CreatedAt = &value
@@ -164,7 +165,7 @@ func modelResponse(item service.ModelCatalog) *ModelResponse {
 	return result
 }
 func (ctrl *Ctrl) ListAdminModels(c *fox.Context) (*ModelsResponse, error) {
-	items, err := ctrl.service.ListAdminModels(c.Request.Context())
+	items, err := ctrl.service.ListAdminModels(c.Request.Context(), currentAuthentication(c).User.ID)
 	if err != nil {
 		return nil, err
 	}

@@ -1427,3 +1427,74 @@ the Connection-row selection workflow, transient results, cancellation and
 synchronous stale/duplicate fences. Changing actor, target, Session or active
 resource view must not restore a stale result or dispatch a captured row action.
 Keep English/Chinese copy paired and return focus to the selected row action.
+
+### Unbound provider-model guided entry
+
+The existing provider-model detail Routing eligibility section offers Add to
+model only for a freshly confirmed unbound source. Navigate to the existing
+guided creation route with the exact encoded Connection ID; keep selection,
+preview, submission, grants and routing weights in their existing workflows.
+Fresh independent Provider and Model read permissions permit review, while the
+destination retains its independent Model write gate. Match its administrator
+Session role gate. Disabled recorded facts may open review and never imply
+selectability or routing eligibility.
+
+Keep Session, permission, Provider catalogue and Model catalogue revisions in
+the live navigation fence. Unknown, refreshing, invalidated and failed reads
+are not an unbound result. Obsolete callbacks after actor, Session, target,
+expiry, unmount, source removal or new binding cannot navigate. The entry
+performs no mutation, discovery, verification or implicit grant and uses paired
+pricing translations.
+
+Provider Overview retains its existing attention panel. Its unbound ProviderModel
+row uses only the complete Provider-scoped stored-binding projection under fresh
+independent `providers.read` and `models.read_all`. Match every exact ProviderModel
+and Connection before counting zero stored bindings; retained zero-weight or
+disabled relations remain bound. Renewed, restricted, failed, incomplete and
+overflow reads are Unknown, never zero. Reuse existing workspace Session,
+permission and catalogue reads, hide obsolete counts, and guard captured Models
+tab navigation synchronously. Counts are configured relationships, not route
+health, current runtime application or traffic. This row performs no mutation.
+
+### Recorded Credential inference-attempt statistics
+
+Keep consecutive recorded failures and recent recorded error in the existing
+Credential table, independent from Verify status/time and Test connection.
+Use one read-only Provider-scoped batch for at most 20 visible exact Credential
+IDs; reuse fresh Session, actor, Provider/Credential-list and independent
+providers.read authority. Write permission never grants this read. Paginate the
+existing filtered table in 20-row pages and reset on filter, Provider or Session
+generation changes; never fan out per-row metadata or call-detail requests.
+
+Display only the server's latest-100 recorded-attempt projection. Distinguish no
+records from exact zero, capped lower bounds and unknown boundaries. Recent
+sanitized error code/time remains historical after a newer success resets the
+streak. Missing attribution, delivery lag and concurrent completion order do not
+establish complete live history, native completion, secret validity or health.
+Never borrow a logical call's final Credential, replacement or current catalogue
+identity, auto-disable supply, alter verification or introduce a cooldown.
+
+Hide statistics during Session/permission/list renewal or error. Abort and reject
+obsolete replies after actor, target, Credential-list, Session or expiry changes
+and unmount; they must not restore private cache entries. Keep English/Chinese
+labels and timestamps live, preserve all existing filters/row actions, and return
+no secret fragments, raw upstream messages or request bodies.
+
+Provider Overview separately counts only explicitly stored disabled Connections
+(`enabled === false`) and opens the existing Connections tab. Reuse fresh
+Provider-authorized workspace reads, with no new request or write authority.
+Missing enablement is Unknown and prevents a no-issues claim; it is neither
+implicitly enabled nor disabled. Preserve configured-completeness counters,
+unbound Model attention and unrelated issues. Hide obsolete counts and fence
+captured navigation with exact actor, Session, Provider and catalogue generations.
+This attention item does not infer health or routing eligibility or enable supply.
+
+Administrative Model list/detail configured availability uses only the nullable
+server `configured_ready` summary from the fresh authorized catalogue read.
+Render true as Ready, false as Unavailable, and null or legacy absence as Unknown;
+reject other present wire types. Independent `providers.read` is required to
+show known summary facts. Never reconstruct this summary from `bindings[].ready`,
+weights, Provider labels, native completion, or the current browser catalogue.
+Keep stored configuration separate from live health and runtime publication.
+Preserve existing actor/Session/permission/target read lifetimes and original
+binding/credential eligibility for routing writes. Introduce no per-row reads.

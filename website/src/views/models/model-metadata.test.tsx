@@ -186,7 +186,7 @@ describe('Administrative Model recorded metadata and independent monthly facts',
       'Protocol type',
       'Capability type',
       'Provider',
-      'Status',
+      'Configured availability',
       'Granted members',
       'Monthly requests',
       'Updated',
@@ -478,5 +478,115 @@ describe('Administrative Model recorded metadata and independent monthly facts',
     expect(
       cache.getQueryCache().findAll({ queryKey: ['admin', 'model-monthly-requests'] }),
     ).toHaveLength(0)
+  })
+})
+
+describe('Administrative Model server-configured availability', () => {
+  const cases = [
+    'ready summary with legacy binding not ready',
+    'disabled Provider or Connection summary with legacy binding ready',
+    'incomplete summary with legacy binding ready',
+    'legacy absent summary with legacy binding ready',
+    'disabled Model',
+    'archived Model',
+    'zero-weight Model',
+    'empty Model',
+    'restricted Provider read',
+  ]
+  it.each(cases)('uses only the server summary for %s in list and detail', async (scenario) => {
+    const record = row('mdl_one')
+    record.configured_ready = false
+    let expected = 'Unavailable'
+    if (scenario === cases[0]) {
+      record.configured_ready = true
+      record.bindings[0].ready = false
+      expected = 'Ready'
+    } else if (scenario === cases[2] || scenario === cases[8]) {
+      record.configured_ready = null
+      expected = 'Unknown'
+      if (scenario === cases[8]) permissions = ['models.read_all']
+    } else if (scenario === cases[3]) {
+      delete record.configured_ready
+      expected = 'Unknown'
+    } else if (scenario === cases[4]) record.status = 'disabled'
+    else if (scenario === cases[5]) record.status = 'archived'
+    else if (scenario === cases[6]) record.bindings[0].weight = 0
+    else if (scenario === cases[7]) record.bindings = []
+    models = [record]
+    await mount()
+    await until(() =>
+      expect(host.querySelector('tbody tr')?.querySelectorAll('td')[4].textContent).toBe(expected),
+    )
+    expect(host.textContent).toContain('Stored configuration only, not live service health')
+    expect(requests.filter((request) => request.url === '/admin/models')).toHaveLength(1)
+    expect(requests.filter((request) => request.url?.startsWith('/admin/models/'))).toHaveLength(0)
+    await act(async () => router.navigate('/admin/models/mdl_one'))
+    await until(() =>
+      expect(
+        host.querySelector(`[aria-label="Configured availability: ${expected}"]`)?.textContent,
+      ).toBe(expected),
+    )
+    expect(requests.filter((request) => request.url === '/admin/models/mdl_one')).toHaveLength(1)
+    expect(requests.every((request) => request.method === 'get')).toBe(true)
+  })
+  it('updates all three localized states and guidance without another catalogue request', async () => {
+    models = [row('mdl_one'), row('mdl_two'), row('mdl_three')]
+    models[0].configured_ready = true
+    models[1].configured_ready = false
+    models[2].configured_ready = null
+    await mount()
+    const statuses = () =>
+      [...host.querySelectorAll('tbody tr')].map((tr) => tr.querySelectorAll('td')[4].textContent)
+    await until(() => expect(statuses()).toEqual(['Ready', 'Unavailable', 'Unknown']))
+    const requestCount = requests.length
+    await act(async () => i18n.changeLanguage('zh'))
+    expect(statuses()).toEqual(['就绪', '不可用', '未知'])
+    expect(host.textContent).toContain('配置可用性')
+    expect(host.textContent).toContain('不代表实时服务健康状况或运行时发布')
+    expect(requests).toHaveLength(requestCount)
+    await act(async () => router.navigate('/admin/models/mdl_two'))
+    await until(() =>
+      expect(host.querySelector('[aria-label="配置可用性：不可用"]')?.textContent).toBe('不可用'),
+    )
+    expect(host.textContent).toContain('不代表实时服务健康状况或运行时发布')
+  })
+  it('hides an earlier Ready summary on catalogue invalidation until a new authorized read', async () => {
+    models = [{ ...row('mdl_one'), configured_ready: true }]
+    await mount()
+    await until(() =>
+      expect(host.querySelector('tbody tr')?.querySelectorAll('td')[4].textContent).toBe('Ready'),
+    )
+    const key = cache
+      .getQueryCache()
+      .findAll()
+      .find((query) => query.queryKey[2] === 'list')!.queryKey
+    await act(async () =>
+      cache.invalidateQueries({ queryKey: key, exact: true, refetchType: 'none' }),
+    )
+    expect(host.querySelector('tbody')).toBeNull()
+    models[0].configured_ready = false
+    await act(async () => cache.refetchQueries({ queryKey: key, exact: true }))
+    await until(() =>
+      expect(host.querySelector('tbody tr')?.querySelectorAll('td')[4].textContent).toBe(
+        'Unavailable',
+      ),
+    )
+  })
+  it('requires fresh independent Provider read authority even if an earlier summary was Ready', async () => {
+    models = [{ ...row('mdl_one'), configured_ready: true }]
+    await mount()
+    await until(() =>
+      expect(host.querySelector('tbody tr')?.querySelectorAll('td')[4].textContent).toBe('Ready'),
+    )
+    permissions = ['models.read_all']
+    const key = cache
+      .getQueryCache()
+      .findAll()
+      .find((query) => query.queryKey.includes('permissions'))!.queryKey
+    await act(async () => cache.refetchQueries({ queryKey: key, exact: true }))
+    await until(() =>
+      expect(host.querySelector('tbody tr')?.querySelectorAll('td')[4].textContent).toBe('Unknown'),
+    )
+    expect(host.textContent).toContain('Private mdl_one')
   })
 })

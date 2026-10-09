@@ -196,6 +196,19 @@ func TestModelWeightHistoryExact174RegistryPrefix(t *testing.T) {
 		}
 		functions[p[2]] = true
 	}
+	currentIdentities := make([]string, 0, len(pairs))
+	for _, pair := range pairs {
+		currentIdentities = append(currentIdentities, pair[1]+":"+pair[2])
+	}
+	if !adminModelConfiguredReadinessRegistry182Current(currentIdentities) {
+		t.Fatal("exact182 configured availability successor changed")
+	}
+	currentIdentities = currentIdentities[:181]
+	if !credentialAttemptStatisticsRegistry181Current(currentIdentities) {
+		t.Fatal("exact V93/181 successor changed")
+	}
+	names = names[:179]
+	pairs = pairs[:179]
 	if len(names) != 179 || pairs[177][1] != "connection_transport_migration" || pairs[177][2] != "testConnectionTransportMigration" || pairs[178][1] != "connection_transport" || pairs[178][2] != "testConnectionTransportLifecycle" {
 		t.Fatal("exact Connection transport successor changed")
 	}

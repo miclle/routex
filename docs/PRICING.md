@@ -379,3 +379,13 @@ the empty production-source boundary. Owned resources were removed and checked.
 Complete main race regression passed Handler 1314.101s/Service 8.002s and the
 mandatory check passed;
 separately labelled synthetic prices are test-only.
+
+## Unbound ProviderModel entry
+
+The existing detail Routing eligibility section offers Add to model for a
+freshly confirmed unbound ProviderModel. It opens guided creation with the exact
+Connection preselected; users still explicitly choose the stored ProviderModel
+and new or existing target. Opening review grants no access and changes no
+weights. Current Provider and Model read permissions protect the entry, while
+the destination keeps its independent submission permissions and administrator
+Session gate. Unknown or stale catalogue reads do not prove absence of bindings.

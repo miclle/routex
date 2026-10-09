@@ -120,7 +120,26 @@ beforeEach(async () => {
     else if (config.url === '/admin/providers')
       response.data = { items: structuredClone(providers) }
     else if (config.url === '/admin/models') response.data = { items: [] }
-    else if (config.url?.startsWith('/admin/connections/') && config.url.endsWith('/metadata')) {
+    else if (config.url?.endsWith('/credential-attempt-statistics')) {
+      const provider = providers.find((row) => row.id === config.url?.split('/')[3])!
+      response.headers.set('Cache-Control', 'private, no-store')
+      response.data = {
+        provider_id: provider.id,
+        observed_at: '2026-10-09T01:02:03Z',
+        attempt_limit: 100,
+        recorded_only: true,
+        items: (config.params as URLSearchParams).getAll('credential_id').map((id) => ({
+          credential_id: id,
+          connection_id: provider.connections.find((row) =>
+            row.credentials.some((credential) => credential.id === id),
+          )!.id,
+          inspected_attempts: 0,
+          has_more: false,
+          failure_streak: { state: 'no_records', count: null, lower_bound: 0 },
+          recent_error: { state: 'no_records', code: null, completed_at: null },
+        })),
+      }
+    } else if (config.url?.startsWith('/admin/connections/') && config.url.endsWith('/metadata')) {
       const connectionId = config.url.split('/')[3]
       const connection = providers
         .flatMap((row) => row.connections)

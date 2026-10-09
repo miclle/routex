@@ -1383,21 +1383,46 @@ with fresh authority, and never resolves original uncertainty from a matching GE
 or a failed retry. Starting a separate change requires an explicit fresh review,
 discarding only the local retry, a new reason and another confirmation.
 
-## Planned Credential inference statistics
+## Credential recorded inference-attempt statistics
 
-Consecutive failures and recent errors will use recorded inference attempts
-attributed to the exact Credential. They remain independent from Verify status,
-recorded verification time and transient Test connection results, and never
-change Credential enablement or routing. Missing attribution stays unknown;
-logical call success and native completion do not replace attempt status.
+The existing Credentials table displays consecutive recorded failures and recent
+recorded error independently from Verify state/time and transient Test connection
+results. Its filtered table uses 20-row pages and requests only the exact visible
+Credential IDs through GET
+`/api/v1/admin/providers/:provider_id/credential-attempt-statistics`, with repeated
+`credential_id` query parameters. Current independent `providers.read` is
+required; write authority and CSRF are not required for this read. Responses are
+private/no-store and scoped to the exact current Provider and Credential parents.
 
-The planned read-only view inspects the latest 100 retained attributed attempts
-plus an overflow sentinel in deterministic completion-time and exact-ID order.
-A cancellation or unknown event stops an exact streak; subsequent known failures
-are only a lower bound. No recorded attempts is not zero or evidence of health.
-Recent errors use only sanitized machine-owned categories and recorded times.
-This section records the approved data-source contract and bounded implementation
-semantics; the endpoint, table columns and index migration are not yet delivered.
+Each row describes the latest 100 retained attributable inference attempts, with
+a separate overflow sentinel, across all snapshots in completion-time descending
+and byte-exact attempt-ID descending order. The UTC observation timestamp marks
+read admission, not a timestamp filter or live-traffic cutoff. Invalid or future
+timestamps remain inspected unknown boundaries rather than being omitted into
+apparent zero or no records. This is recorded history, not complete live traffic
+or causality across concurrent work.
+Delivery lag and missing attribution remain limitations; replacement Credentials
+never inherit predecessor history, and current transport does not relabel old
+attempts. No Credential incarnation or runtime-application proof is inferred.
+
+Recorded success ends the failure suffix; error adds to it. Cancellation or an
+unknown/invalid event stops exact counting instead of bridging the surrounding
+failures. The UI preserves no records, exact zero, a `100+` lower bound and
+unknown with a known lower bound as separate states. Recent error is independently
+the newest provable error within the inspected suffix and remains visible after
+a later success. A newer unknown status, invalid timestamp or future timestamp
+prevents identifying an older error as most recent; valid cancellation is a known
+non-error and does not itself block that search. A missing sanitized code is
+Unknown; no inspected/retained error
+is distinct from incomplete inspection. Only allowlisted codes and recorded UTC
+timestamps cross this boundary, never raw upstream or arbitrary stored strings.
+
+The read changes no Credential status, verification, discovery, routing, grants,
+weights or health policy and never auto-disables supply. Fresh actor/Session and
+permission/list generations gate data display and late replies. Filter changes,
+renewal/errors and target changes hide obsolete statistics; expiry and unmount
+cannot restore their private facts. English and Chinese labels and date
+formatting follow the current selected language.
 
 ## Explicit Connection diagnostics
 
@@ -1468,3 +1493,55 @@ metadata review as the Connection-row diagnostic. Its request/result contract,
 native/Azure scope, Vault safety bookkeeping and nonmutation boundary stay the
 same. Obsolete row actions and late results are fenced across Session, authority,
 resource and tab changes; results remain transient and focus returns to the row.
+
+## Provider Overview unbound attention
+
+The existing Provider Overview attention panel includes the number of retained
+ProviderModels with no stored Model binding. It reuses the complete Provider-scoped
+binding projection and requires independent `providers.read` and
+`models.read_all`. Zero-weight and disabled supply relations remain stored
+bindings. The projection must match every current ProviderModel and Connection;
+restricted, failed, pending, mismatched or overflow reads never imply zero.
+
+The read-only action opens the existing Models tab for review. It does not create
+or select a binding, filter or Model automatically, change weights, verify access
+or confirm routing readiness. Actor, Session, permission, Provider and catalogue
+generations hide obsolete facts and fence captured navigation. English/Chinese
+copy describes configured absence without claiming health or live traffic.
+
+## Provider Overview disabled Connections
+
+The existing attention panel separately reports Connections whose recorded
+`enabled` value is exactly false. Its read-only action opens the existing
+Connections tab; independent Provider write authority still controls status
+changes. No diagnostic, discovery, enablement or new request runs from this item.
+
+Missing enablement remains Unknown, and neither disabled nor unknown Connections
+allow a no-configuration-issues claim. Existing configuration completeness and
+unbound Model counts stay distinct. These stored-state facts do not establish
+live route eligibility, health, traffic or runtime application. Actor, Session,
+permission, Provider and catalogue generations hide obsolete counts and reject
+captured navigation. English and Chinese copy switch without changing state.
+
+This source proposal requires composed checks and browser/delivery acceptance;
+no new runtime or external-provider acceptance is established.
+
+### Administrative Model configured availability
+
+Administrative Model list and detail responses emit `configured_ready` as
+`true`, `false`, or `null`. The frontend accepts legacy absence as Unknown and
+rejects other present types before showing a response. Ready means the authorized
+stored projection contains an active Model with an eligible positive-weight
+configured route; Unavailable means the complete projection establishes none.
+Disabled or archived Models and complete empty or zero-weight routes are
+Unavailable. Unknown includes missing independent `providers.read` or incomplete
+configuration facts. It must not be inferred from the legacy binding readiness
+flag. Unenriched mutation responses remain null; refresh the authorized catalogue
+to obtain current configuration facts.
+
+The existing list column and detail badge show Ready, Unavailable, or Unknown
+with English/Chinese guidance. These facts do not prove live upstream health,
+runtime publication, native completion or actual traffic. They add no browser
+requests and preserve existing Session, permission, actor and Model lifetimes.
+The summary does not change the separate Credential eligibility checks used to
+save routing weights.

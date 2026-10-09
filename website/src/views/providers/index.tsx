@@ -1,6 +1,8 @@
 import { protocolLabels } from '@/lib/protocols'
 import { useTranslation } from 'react-i18next'
 import { useLayoutEffect, useRef, useState, type FormEvent } from 'react'
+import { getCredentialAttemptStatistics } from '@/api/credential-attempt-statistics'
+import type { CredentialAttemptStatisticsItem } from '@/types/credential-attempt-statistics'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { MoreHorizontal, Plus } from 'lucide-react'
 import { listProviders, writeCatalog } from '@/api/catalog'
@@ -43,6 +45,8 @@ function providerTab(value: string | null): ProviderTab {
 
 function CredentialTable({
   provider,
+  statisticsActor,
+  statisticsGeneration,
   canWrite,
   pending,
   onVerify,
@@ -57,6 +61,8 @@ function CredentialTable({
   coverageReady,
 }: {
   provider: Provider
+  statisticsActor: string
+  statisticsGeneration: number
   coverageReady: boolean
   onCoverage: (credential: Credential, connectionId: string) => void
   canWrite: boolean
@@ -87,6 +93,135 @@ function CredentialTable({
       (verification === 'all' || row.credential.verification_status === verification) &&
       (enabled === 'all' || row.credential.enabled === (enabled === 'enabled')),
   )
+  const cache = useQueryClient()
+  const statisticsAuthority = useConnectionQueryRevision([
+    sessionKey,
+    ['permissions', statisticsActor],
+    ['admin', 'providers'],
+  ])
+  const ownerIdentity = JSON.stringify([statisticsActor, provider.id, statisticsGeneration])
+  const [expiredOwner, setExpiredOwner] = useState<string | null>(null)
+  const expired = expiredOwner === ownerIdentity
+  const statisticsLifetime = useRef({ mounted: false, expired: false })
+  useLayoutEffect(() => {
+    const owner = { mounted: true, expired: false }
+    statisticsLifetime.current = owner
+    const expire = () => {
+      owner.expired = true
+      setExpiredOwner(ownerIdentity)
+      const queryKey = ['admin', 'credential-attempt-statistics', statisticsActor, provider.id]
+      void cache.cancelQueries({ queryKey })
+      cache.removeQueries({ queryKey })
+    }
+    window.addEventListener('routex:session-expired', expire)
+    return () => {
+      owner.mounted = false
+      window.removeEventListener('routex:session-expired', expire)
+    }
+  }, [cache, statisticsActor, provider.id, ownerIdentity])
+  const scope = JSON.stringify([
+    statisticsActor,
+    provider.id,
+    statisticsGeneration,
+    statisticsAuthority.revision,
+    query,
+    connection,
+    verification,
+    enabled,
+  ])
+  const [pageScope, setPageScope] = useState(scope)
+  const [page, setPage] = useState(0)
+  if (pageScope !== scope) {
+    setPageScope(scope)
+    setPage(0)
+  }
+  const pageCount = Math.max(1, Math.ceil(rows.length / 20))
+  const currentPage = pageScope === scope ? Math.min(page, pageCount - 1) : 0
+  const visibleRows = rows.slice(currentPage * 20, currentPage * 20 + 20)
+  const targets = visibleRows.map((row) => ({
+    credentialId: row.credential.id,
+    connectionId: row.connection.id,
+  }))
+  const readableStatistics = () => {
+    const auth = cache.getQueryState<Session | null>(sessionKey)
+    const rights = cache.getQueryState<string[]>(['permissions', statisticsActor])
+    const catalogue = cache.getQueryState<Provider[]>(['admin', 'providers'])
+    const currentProvider = catalogue?.data?.find((row) => row.id === provider.id)
+    return (
+      statisticsAuthority.snapshot() === statisticsAuthority.revision &&
+      !!statisticsActor &&
+      auth?.data?.user.id === statisticsActor &&
+      auth.dataUpdateCount === statisticsGeneration &&
+      [auth, rights, catalogue].every(
+        (state) =>
+          state?.status === 'success' &&
+          state.fetchStatus === 'idle' &&
+          !state.isInvalidated &&
+          !state.error,
+      ) &&
+      rights?.data?.includes('providers.read') === true &&
+      currentProvider === provider &&
+      targets.every(
+        (target) =>
+          currentProvider?.connections.some(
+            (item) =>
+              item.id === target.connectionId &&
+              item.credentials.some((row) => row.id === target.credentialId),
+          ) === true,
+      )
+    )
+  }
+  const statisticsReadable = !expired && readableStatistics()
+  const statistics = useQuery({
+    queryKey: [
+      'admin',
+      'credential-attempt-statistics',
+      statisticsActor,
+      provider.id,
+      statisticsGeneration,
+      statisticsAuthority.revision,
+      expiredOwner,
+      targets,
+    ],
+    enabled: statisticsReadable && targets.length > 0,
+    queryFn: async ({ signal }) => {
+      const owner = statisticsLifetime.current
+      const revision = statisticsAuthority.snapshot()
+      if (!owner.mounted || owner.expired || !readableStatistics())
+        throw new Error('Statistics authority unavailable')
+      const result = await getCredentialAttemptStatistics(provider.id, targets, signal)
+      if (
+        signal.aborted ||
+        !owner.mounted ||
+        owner.expired ||
+        statisticsLifetime.current !== owner ||
+        revision !== statisticsAuthority.snapshot() ||
+        !readableStatistics()
+      )
+        throw new Error('Statistics authority unavailable')
+      return result
+    },
+    retry: false,
+    gcTime: 0,
+    refetchOnMount: 'always',
+  })
+  const statisticsCurrent =
+    statisticsReadable && statistics.isSuccess && !statistics.isFetching && !statistics.error
+  const currentStatistics = statisticsCurrent ? statistics.data : undefined
+  const statisticsByID = new Map<string, CredentialAttemptStatisticsItem>(
+    currentStatistics?.items.map((item) => [item.credential_id, item]) ?? [],
+  )
+  const streak = (item?: CredentialAttemptStatisticsItem) => {
+    if (!item) return t('credentialAttempts.unknown')
+    const value = item.failure_streak
+    if (value.state === 'no_records') return t('credentialAttempts.noRecords')
+    if (value.state === 'exact') return t('credentialAttempts.exact', { count: value.count })
+    if (value.state === 'lower_bound')
+      return t('credentialAttempts.lowerBound', { count: value.lower_bound })
+    return value.lower_bound > 0
+      ? t('credentialAttempts.unknownBound', { count: value.lower_bound })
+      : t('credentialAttempts.unknown')
+  }
   const selectClass = 'h-10 rounded-md border bg-background px-3 text-sm'
   return (
     <div className="space-y-4">
@@ -144,6 +279,40 @@ function CredentialTable({
       <p role="status" className="text-sm text-muted-foreground">
         {t('providers.filteredCredentials', { count: rows.length, total: credentials.length })}
       </p>
+      <div
+        className="space-y-2 text-sm text-muted-foreground"
+        aria-label={t('credentialAttempts.coverageLabel')}
+      >
+        <p>{t('credentialAttempts.coverage')}</p>
+        {currentStatistics && (
+          <p>
+            {t('credentialAttempts.observed')}{' '}
+            <time dateTime={currentStatistics.observed_at}>
+              {new Date(currentStatistics.observed_at).toLocaleString(
+                i18n.resolvedLanguage === 'zh' ? 'zh-CN' : 'en-US',
+              )}
+            </time>
+          </p>
+        )}
+        {statisticsReadable && statistics.isFetching && (
+          <p role="status">{t('credentialAttempts.loading')}</p>
+        )}
+        {statisticsReadable && statistics.isError && (
+          <p role="alert">
+            {t('credentialAttempts.unavailable')}{' '}
+            <Button
+              variant="outline"
+              onClick={() => {
+                const owner = statisticsLifetime.current
+                if (owner.mounted && !owner.expired && readableStatistics())
+                  void statistics.refetch()
+              }}
+            >
+              {t('credentialAttempts.retry')}
+            </Button>
+          </p>
+        )}
+      </div>
       <Table aria-label={t('providers.credentialListLabel')}>
         <thead>
           <tr>
@@ -152,13 +321,15 @@ function CredentialTable({
             <th>{t('credentialStorage.recordedSource')}</th>
             <th>{t('providers.verification')}</th>
             <th>{t('providers.verifiedAt')}</th>
+            <th>{t('credentialAttempts.streak')}</th>
+            <th>{t('credentialAttempts.recent')}</th>
             <th>{t('providers.enabledStatus')}</th>
             <th>{t('common.priority')}</th>
             <th>{t('common.actions')}</th>
           </tr>
         </thead>
         <tbody>
-          {rows.map(({ connection: item, credential }) => (
+          {visibleRows.map(({ connection: item, credential }) => (
             <tr key={credential.id}>
               <td>
                 <span>{credential.name}</span>
@@ -183,6 +354,25 @@ function CredentialTable({
                 ) : (
                   t('providers.verificationNotRecorded')
                 )}
+              </td>
+              <td>{streak(statisticsByID.get(credential.id))}</td>
+              <td>
+                {(() => {
+                  const recent = statisticsByID.get(credential.id)?.recent_error
+                  if (!recent || recent.state === 'unknown') return t('credentialAttempts.unknown')
+                  if (recent.state === 'no_records') return t('credentialAttempts.noRecords')
+                  if (recent.state === 'none') return t('credentialAttempts.noError')
+                  return (
+                    <div className="space-y-1 text-sm">
+                      <p>{recent.code ?? t('credentialAttempts.unknownCode')}</p>
+                      <time dateTime={recent.completed_at!}>
+                        {new Date(recent.completed_at!).toLocaleString(
+                          i18n.resolvedLanguage === 'zh' ? 'zh-CN' : 'en-US',
+                        )}
+                      </time>
+                    </div>
+                  )
+                })()}
               </td>
               <td>{credential.enabled ? t('providers.enabled') : t('common.disabled')}</td>
               <td>{credential.priority}</td>
@@ -260,13 +450,35 @@ function CredentialTable({
           ))}
           {!rows.length && (
             <tr>
-              <td colSpan={8} className="py-8 text-center text-muted-foreground">
+              <td colSpan={10} className="py-8 text-center text-muted-foreground">
                 {t('providers.noMatchingCredentials')}
               </td>
             </tr>
           )}
         </tbody>
       </Table>
+      {rows.length > 20 && (
+        <div
+          className="flex items-center justify-end gap-3"
+          aria-label={t('credentialAttempts.pagination')}
+        >
+          <Button
+            variant="outline"
+            disabled={currentPage === 0}
+            onClick={() => setPage((value) => Math.max(0, value - 1))}
+          >
+            {t('credentialAttempts.previous')}
+          </Button>
+          <span>{t('credentialAttempts.page', { page: currentPage + 1, total: pageCount })}</span>
+          <Button
+            variant="outline"
+            disabled={currentPage + 1 >= pageCount}
+            onClick={() => setPage((value) => Math.min(pageCount - 1, value + 1))}
+          >
+            {t('credentialAttempts.next')}
+          </Button>
+        </div>
+      )}
     </div>
   )
 }
@@ -608,6 +820,8 @@ function Providers() {
               <CredentialTable
                 key={selected.id}
                 provider={selected}
+                statisticsActor={actor}
+                statisticsGeneration={diagnosticGeneration}
                 canWrite={access.can('providers.write')}
                 pending={mutation.isPending}
                 coverageReady={coverageCurrent()}

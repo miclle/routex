@@ -1,6 +1,8 @@
 import { useState } from 'react'
 import ProviderMetadataCard from './provider-metadata'
 import ProviderStatusCard from './provider-status'
+import ProviderUnboundAttention from './provider-unbound-attention'
+import ProviderDisabledConnectionAttention from './provider-disabled-connection-attention'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Activity, CircleAlert, Gauge, Settings, Timer, Waypoints } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
@@ -293,9 +295,6 @@ export function ProviderOverview({
             <CardTitle>{t('providers.attentionTitle')}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
-            {attention.length === 0 && (
-              <p className="text-sm text-muted-foreground">{t('providers.noAttention')}</p>
-            )}
             {attention.map((item) => (
               <div key={item.key} className="flex items-center justify-between gap-3 text-sm">
                 <span>{item.text}</span>
@@ -304,6 +303,18 @@ export function ProviderOverview({
                 </Button>
               </div>
             ))}
+            <ProviderDisabledConnectionAttention
+              provider={provider}
+              onReview={() => onSelectTab('connections')}
+            />
+            <ProviderUnboundAttention
+              provider={provider}
+              showEmpty={
+                attention.length === 0 &&
+                provider.connections.every((connection) => connection.enabled === true)
+              }
+              onReview={() => onSelectTab('models')}
+            />
           </CardContent>
         </Card>
       </div>

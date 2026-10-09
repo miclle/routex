@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"database/sql"
 	"regexp"
 	"time"
 
@@ -16,11 +17,13 @@ import (
 var publicModelName = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9._:/-]{0,127}$`)
 
 type ModelCatalog struct {
-	Model          entity.Model
-	Name           string
-	Names          []entity.ModelName
-	Bindings       []BindingCatalog
-	GrantedUserIDs []string
+	// ConfiguredReady is optional authorized stored configuration, not runtime health.
+	ConfiguredReady *bool
+	Model           entity.Model
+	Name            string
+	Names           []entity.ModelName
+	Bindings        []BindingCatalog
+	GrantedUserIDs  []string
 }
 
 type BindingCatalog struct {
@@ -125,19 +128,29 @@ func providerModelReady(db *gorm.DB, providerModelID, connectionID string) (bool
 	return enabled > 0, nil
 }
 
-func (s *Service) ListAdminModels(ctx context.Context) ([]ModelCatalog, error) {
-	db := s.authDB(ctx)
-	var models []entity.Model
-	if err := db.Order("created_at, id").Find(&models).Error; err != nil {
-		return nil, catalogError(err)
-	}
-	result := make([]ModelCatalog, 0, len(models))
-	for _, model := range models {
-		item, err := loadModelCatalog(db, model.ID)
-		if err != nil {
-			return nil, catalogError(err)
+func (s *Service) ListAdminModels(ctx context.Context, actorID string) ([]ModelCatalog, error) {
+	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
+	result := []ModelCatalog{}
+	err := s.authDB(ctx).Transaction(func(tx *gorm.DB) error {
+		if err := exactCatalogPermission(tx, actorID, "models.read_all"); err != nil {
+			return err
 		}
-		result = append(result, *item)
+		var models []entity.Model
+		if err := tx.Order("created_at, id").Find(&models).Error; err != nil {
+			return err
+		}
+		for _, model := range models {
+			item, err := loadExactAdminModelCatalog(tx, model.ID)
+			if err != nil {
+				return err
+			}
+			result = append(result, *item)
+		}
+		return enrichModelConfiguredReadiness(tx, actorID, result)
+	}, &sql.TxOptions{Isolation: sql.LevelRepeatableRead, ReadOnly: true})
+	if err != nil {
+		return nil, catalogError(err)
 	}
 	return result, nil
 }

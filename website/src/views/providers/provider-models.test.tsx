@@ -5,6 +5,9 @@ import { createMemoryRouter, RouterProvider, useParams } from 'react-router'
 import { AxiosError, AxiosHeaders, CanceledError, type InternalAxiosRequestConfig } from 'axios'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import client from '@/api/client'
+import type { AxiosAdapter } from 'axios'
+import ProviderModelPage from '@/views/pricing/provider-model'
+import CreateModelPage from '@/views/models/create'
 import i18n from '@/i18n'
 import { sessionKey, useSession } from '@/hooks/use-auth'
 import type { Provider, ProviderModel } from '@/types/catalog'
@@ -1107,3 +1110,180 @@ it('rejects captured confirmation after a same-turn row change replaces its targ
   expect(statusDialog()!.textContent).toContain('Enable model?')
   expect(statusDialog()!.textContent).toContain('alpha disabled')
 })
+
+// Use the production list, detail and Add route; only HTTP facts are fixture-owned.
+async function mountProductionModelNavigation() {
+  permissions = ['providers.read', 'providers.write', 'models.read_all', 'models.write']
+  const previous = client.defaults.adapter as AxiosAdapter
+  const selectedConnection = {
+    id: 'con_secondary',
+    provider_id: 'prv_first',
+    provider_name: 'First provider',
+    name: 'Secondary',
+    protocol: 'openai_responses',
+    adapter: 'native',
+    api_version: null,
+    base_url: 'https://two.example.invalid',
+  }
+  client.defaults.adapter = async (config) => {
+    const url = config.url
+    let data: unknown
+    const headers = new AxiosHeaders()
+    if (url === '/admin/models') data = { items: [] }
+    else if (url === '/admin/model-creation/connections')
+      data = { items: [selectedConnection], next_cursor: null }
+    else if (url === '/admin/connections/con_secondary/model-creation')
+      data = {
+        connection: selectedConnection,
+        can_create: true,
+        observed_at: '2026-10-09T00:00:00Z',
+      }
+    else if (
+      url === '/admin/connections/con_secondary/model-creation/provider-models' ||
+      url === '/admin/connections/con_secondary/model-creation/models'
+    )
+      data = { items: [], next_cursor: null }
+    else if (url?.endsWith('/reservation-bound')) {
+      data = {
+        provider_model_id: url.split('/')[3],
+        protocol: 'openai_responses',
+        etag: 'a'.repeat(64),
+        revision: '0',
+        transport_current: true,
+        configured: false,
+        max_input_tokens: 0,
+        max_output_tokens: 0,
+        evidence: '',
+        updated_at: '2026-10-09T00:00:00Z',
+      }
+      headers.set('Cache-Control', 'private, no-store')
+      headers.set('ETag', `"${'a'.repeat(64)}"`)
+    } else {
+      const response = await previous(config)
+      if (url === '/auth/session')
+        response.data = { ...response.data, user: { ...response.data.user, role: 'admin' } }
+      return response
+    }
+    requests.push(config)
+    expect(config.method).toBe('get')
+    return { config, status: 200, statusText: '', headers, data }
+  }
+  router = createMemoryRouter(
+    [
+      { path: '/admin/providers/:providerId', element: <ProvidersPage /> },
+      {
+        path: '/admin/providers/:providerId/models/:modelId',
+        element: <ProviderModelPage />,
+      },
+      { path: '/admin/models/new', element: <CreateModelPage /> },
+    ],
+    { initialEntries: ['/admin/providers/prv_first?tab=models'] },
+  )
+  await act(async () =>
+    root.render(
+      <QueryClientProvider client={cache}>
+        <RouterProvider router={router} />
+      </QueryClientProvider>,
+    ),
+  )
+  await until(() => {
+    expect(table()).not.toBeNull()
+    expect(cache.isFetching()).toBe(0)
+  })
+}
+const currentUnboundModelLink = () =>
+  table()!.querySelector<HTMLAnchorElement>(
+    'a[href="/admin/providers/prv_first/models/pmd_duplicate"]',
+  )!
+async function returnFromProductionAddModel() {
+  await mountProductionModelNavigation()
+  const original = currentUnboundModelLink()
+  expect(original.textContent).toBe('Alpha')
+  await act(async () => original.click())
+  await until(() => {
+    expect(router.state.location.pathname).toBe('/admin/providers/prv_first/models/pmd_duplicate')
+    expect(button('Add to model')).toBeTruthy()
+    expect(cache.isFetching()).toBe(0)
+  })
+  await click('Add to model')
+  await until(() => {
+    expect(router.state.location.pathname).toBe('/admin/models/new')
+    expect(router.state.location.search).toBe('?connectionId=con_secondary')
+    const selection = host.querySelector<HTMLSelectElement>(
+      'select[aria-label="Provider Connection"]',
+    )
+    expect(selection?.value).toBe('con_secondary')
+    expect(selection?.disabled).toBe(false)
+    expect(cache.isFetching()).toBe(0)
+  })
+  await act(async () => router.navigate(-1))
+  await until(() => {
+    expect(router.state.location.pathname).toBe('/admin/providers/prv_first/models/pmd_duplicate')
+    expect(button('Add to model')).toBeTruthy()
+    expect(cache.isFetching()).toBe(0)
+  })
+  await act(async () => router.navigate(-1))
+  await until(() => {
+    expect(router.state.location.pathname).toBe('/admin/providers/prv_first')
+    expect(router.state.location.search).toBe('?tab=models')
+    expect(table()).not.toBeNull()
+    expect(cache.isFetching()).toBe(0)
+  })
+  expect(original.isConnected).toBe(false)
+  expect(currentUnboundModelLink()).not.toBe(original)
+}
+it('navigates the current Provider Model link after production detail/Add and two Back remounts', async () => {
+  await returnFromProductionAddModel()
+  const current = currentUnboundModelLink()
+  await act(async () => current.click())
+  await until(() => {
+    expect(router.state.location.pathname).toBe('/admin/providers/prv_first/models/pmd_duplicate')
+    expect(button('Add to model')).toBeTruthy()
+    expect(cache.isFetching()).toBe(0)
+  })
+  expect(requests.every((request) => request.method === 'get')).toBe(true)
+})
+it.each(['Session', 'permission', 'catalogue'])(
+  'cancels a same-turn %s-invalidated link after Back and restores only freshly authorized navigation',
+  async (kind) => {
+    await returnFromProductionAddModel()
+    const obsolete = currentUnboundModelLink()
+    holdUrl =
+      kind === 'Session'
+        ? '/auth/session'
+        : kind === 'permission'
+          ? '/auth/permissions'
+          : '/admin/providers'
+    const keys =
+      kind === 'Session'
+        ? [sessionKey]
+        : kind === 'permission'
+          ? permissionKeys().filter((key) => key[2] === 'provider-models')
+          : catalogueKeys().filter((key) => key[4] === 'provider-models')
+    expect(keys).toHaveLength(1)
+    await act(async () => {
+      for (const key of keys) void cache.invalidateQueries({ queryKey: key, exact: true })
+      obsolete.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+      expect(router.state.location.pathname).toBe('/admin/providers/prv_first')
+    })
+    await until(() => expect(held.length).toBeGreaterThan(0))
+    expect(table()).toBeNull()
+    holdUrl = null
+    await act(async () => {
+      for (const pending of held) pending.release()
+    })
+    await until(() => {
+      expect(table()).not.toBeNull()
+      expect(cache.isFetching()).toBe(0)
+    })
+    const current = currentUnboundModelLink()
+    expect(current).not.toBe(obsolete)
+    await act(async () => current.click())
+    await until(() => {
+      expect(router.state.location.pathname).toBe('/admin/providers/prv_first/models/pmd_duplicate')
+      expect(button('Add to model')).toBeTruthy()
+      expect(cache.isFetching()).toBe(0)
+    })
+    expect(requests.every((request) => request.method === 'get')).toBe(true)
+  },
+)

@@ -66,6 +66,9 @@ export default {
   detail: 'Provider model details',
   routing: 'Routing eligibility',
   noBindings: 'This provider model is not bound to a platform model.',
+  addModel: 'Add to model',
+  addModelHelp:
+    'Select this connection in the model creation flow to create a model or join an existing model.',
   routingHelp: 'Routing weights and model availability are managed in the model workspace.',
   manageModel: 'Manage {{name}}',
   ready: 'Ready',

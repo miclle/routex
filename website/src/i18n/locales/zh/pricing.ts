@@ -62,6 +62,8 @@ export default {
   detail: '供应商模型详情',
   routing: '路由资格',
   noBindings: '该供应商模型尚未接入对外模型。',
+  addModel: '添加到模型',
+  addModelHelp: '从添加模型流程选择当前接入，可以创建新模型或加入现有模型。',
   routingHelp: '路由权重和模型可用性在模型工作台中管理。',
   manageModel: '管理 {{name}}',
   ready: '可路由',

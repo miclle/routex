@@ -1,16 +1,17 @@
-import { useState } from 'react'
-import type { ProviderModel } from '@/types/catalog'
+import { useLayoutEffect, useRef, useState } from 'react'
+import type { ProviderModel, Provider, Model } from '@/types/catalog'
+import type { Session } from '@/types/auth'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { Link, useParams } from 'react-router'
+import { Link, useNavigate, useParams } from 'react-router'
 import { useTranslation } from 'react-i18next'
 import { listAdminModels, listProviders } from '@/api/catalog'
 import { Page, QueryState } from '@/components/app/CatalogUI'
 import { getPermissions } from '@/api/governance'
-import { useConnectionQueryRevision } from '@/views/providers/connection-authority'
-import type { Session } from '@/types/auth'
 import { sessionKey, useSession } from '@/hooks/use-auth'
 import { useSessionGeneration } from '@/hooks/use-session-generation'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { useConnectionQueryRevision } from '@/views/providers/connection-authority'
 import ModelPriceTable from './model-price-table'
 import ProviderModelState from './provider-model-state'
 import ProviderModelCapacity from './provider-model-capacity'
@@ -38,19 +39,64 @@ function ProviderModelDetail({
 }) {
   const { t } = useTranslation('pricing'),
     generation = useSessionGeneration()
-  const cache = useQueryClient()
+  const cache = useQueryClient(),
+    navigate = useNavigate(),
+    actor = session.data?.user.id ?? ''
+  const navigationOwner = useRef<{
+    actor: string
+    providerId?: string
+    modelId?: string
+    generation: number
+  } | null>(null)
+  useLayoutEffect(() => {
+    const current = { actor, providerId, modelId, generation }
+    navigationOwner.current = current
+    const expire = () => {
+      if (navigationOwner.current === current) navigationOwner.current = null
+    }
+    window.addEventListener('routex:session-expired', expire)
+    return () => {
+      if (navigationOwner.current === current) navigationOwner.current = null
+      window.removeEventListener('routex:session-expired', expire)
+    }
+  }, [actor, providerId, modelId, generation])
+  const permissionsKey = [
+    'permissions',
+    session.data?.user.id,
+    'provider-price',
+    providerId,
+    modelId,
+    session.data?.user.role,
+    generation,
+  ]
+  const providersKey = [
+    'admin',
+    'providers',
+    session.data?.user.id,
+    providerId,
+    modelId,
+    session.data?.user.role,
+    generation,
+  ]
+  const modelsKey = [
+    'admin',
+    'models',
+    session.data?.user.id,
+    providerId,
+    modelId,
+    session.data?.user.role,
+    generation,
+  ]
+  const navigationAuthority = useConnectionQueryRevision([
+    sessionKey,
+    permissionsKey,
+    providersKey,
+    modelsKey,
+  ])
   const fresh =
     session.isSuccess && !session.isFetching && !session.error && !!session.data?.csrf_token
   const permissions = useQuery({
-    queryKey: [
-      'permissions',
-      session.data?.user.id,
-      'provider-price',
-      providerId,
-      modelId,
-      session.data?.user.role,
-      generation,
-    ],
+    queryKey: permissionsKey,
     queryFn: ({ signal }) => getPermissions(signal),
     enabled: fresh,
     retry: false,
@@ -67,15 +113,7 @@ function ProviderModelDetail({
       permissions.data.includes(permission),
   }
   const providers = useQuery({
-    queryKey: [
-      'admin',
-      'providers',
-      session.data?.user.id,
-      providerId,
-      modelId,
-      session.data?.user.role,
-      generation,
-    ],
+    queryKey: providersKey,
     queryFn: ({ signal }) => listProviders(signal),
     enabled: access.can('providers.read'),
     retry: false,
@@ -83,44 +121,18 @@ function ProviderModelDetail({
     staleTime: 0,
   })
   const models = useQuery({
-    queryKey: [
-      'admin',
-      'models',
-      session.data?.user.id,
-      providerId,
-      modelId,
-      session.data?.user.role,
-      generation,
-    ],
+    queryKey: modelsKey,
     queryFn: listAdminModels,
     enabled: access.can('models.read_all'),
     retry: false,
     gcTime: 0,
     staleTime: 0,
   })
-  const permissionsKey = [
-    'permissions',
-    session.data?.user.id,
-    'provider-price',
-    providerId,
-    modelId,
-    session.data?.user.role,
-    generation,
-  ]
-  const catalogueKey = [
-    'admin',
-    'providers',
-    session.data?.user.id,
-    providerId,
-    modelId,
-    session.data?.user.role,
-    generation,
-  ]
-  const revisions = useConnectionQueryRevision([sessionKey, permissionsKey, catalogueKey])
+  const revisions = useConnectionQueryRevision([sessionKey, permissionsKey, providersKey])
   const parentFresh = () => {
     const auth = cache.getQueryState<Session | null>(sessionKey),
       allowed = cache.getQueryState<string[]>(permissionsKey),
-      catalogue = cache.getQueryState<import('@/types/catalog').Provider[]>(catalogueKey)
+      catalogue = cache.getQueryState<import('@/types/catalog').Provider[]>(providersKey)
     return (
       revisions.snapshot() === revisions.revision &&
       auth?.status === 'success' &&
@@ -158,7 +170,7 @@ function ProviderModelDetail({
     connectionId: connection?.id ?? '',
     generation: cache.getQueryState(sessionKey)?.dataUpdateCount ?? 0,
     permissionsKey,
-    catalogueKey,
+    catalogueKey: providersKey,
     readable: () =>
       parentFresh() &&
       !!providerId &&
@@ -178,6 +190,37 @@ function ProviderModelDetail({
         .filter((binding) => binding.provider_model_id === modelId)
         .map((binding) => ({ platform, binding })),
     ) ?? []
+  const isUnbound = () => {
+    const auth = cache.getQueryState<Session | null>(sessionKey)
+    const permission = cache.getQueryState<string[]>(permissionsKey)
+    const catalogue = cache.getQueryState<Provider[]>(providersKey)
+    const directory = cache.getQueryState<Model[]>(modelsKey)
+    const currentConnection = catalogue?.data
+      ?.find((item) => item.id === providerId)
+      ?.connections.find((item) => item.id === connection?.id)
+    return (
+      navigationAuthority.snapshot() === navigationAuthority.revision &&
+      !!actor &&
+      auth?.data?.user.id === actor &&
+      !!auth.data.csrf_token &&
+      auth.dataUpdateCount === generation &&
+      [auth, permission, catalogue, directory].every(
+        (state) =>
+          state?.status === 'success' &&
+          state.fetchStatus === 'idle' &&
+          !state.isInvalidated &&
+          !state.error,
+      ) &&
+      permission?.data?.includes('providers.read') === true &&
+      permission.data.includes('models.read_all') &&
+      currentConnection?.provider_models.some((item) => item.id === modelId) === true &&
+      directory?.data?.every((item) =>
+        item.bindings.every((binding) => binding.provider_model_id !== modelId),
+      ) === true
+    )
+  }
+  const canAddModel = () =>
+    isUnbound() && cache.getQueryData<Session | null>(sessionKey)?.user.role === 'admin'
   return (
     <Page title={model?.upstream_name ?? t('detail')} description={t('detail')}>
       <Link className="text-sm text-primary" to={`/admin/providers/${providerId}?tab=models`}>
@@ -220,8 +263,33 @@ function ProviderModelDetail({
                 error={models.error}
                 retry={() => void models.refetch()}
               />
-              {models.isSuccess && !bindings.length && (
-                <p className="text-sm text-muted-foreground">{t('noBindings')}</p>
+              {isUnbound() && connection && (
+                <div className="flex flex-wrap items-center justify-between gap-3 rounded-md border p-4">
+                  <div className="space-y-2">
+                    <p>{t('noBindings')}</p>
+                    <p className="text-sm text-muted-foreground">{t('addModelHelp')}</p>
+                  </div>
+                  {canAddModel() && (
+                    <Button
+                      variant="outline"
+                      onClick={() => {
+                        const current = navigationOwner.current
+                        if (
+                          current?.actor === actor &&
+                          current.providerId === providerId &&
+                          current.modelId === modelId &&
+                          current.generation === generation &&
+                          canAddModel()
+                        )
+                          void navigate(
+                            `/admin/models/new?connectionId=${encodeURIComponent(connection.id)}`,
+                          )
+                      }}
+                    >
+                      {t('addModel')}
+                    </Button>
+                  )}
+                </div>
               )}
               {bindings.map(({ platform, binding }) => (
                 <div

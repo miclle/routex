@@ -400,6 +400,9 @@ func enrichRoutingSupplies(tx *gorm.DB, model *ModelCatalog) error {
 		return connectionMetadataUnavailable
 	}
 	if len(ids) == 0 {
+		items := []ModelCatalog{*model}
+		projectModelConfiguredReadiness(items, nil, nil, nil, nil)
+		model.ConfiguredReady = items[0].ConfiguredReady
 		return nil
 	}
 	var pms []entity.ProviderModel
@@ -453,6 +456,9 @@ func enrichRoutingSupplies(tx *gorm.DB, model *ModelCatalog) error {
 			return connectionMetadataUnavailable
 		}
 	}
+	items := []ModelCatalog{*model}
+	projectModelConfiguredReadiness(items, pms, connections, providers, states)
+	model.ConfiguredReady = items[0].ConfiguredReady
 	return nil
 }
 

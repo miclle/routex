@@ -32,7 +32,10 @@ export async function listAdminModels(context?: { signal?: AbortSignal }) {
   const items = (await client.get<{ items: Model[] }>('/admin/models', { signal: context?.signal }))
     .data.items
   if (!Array.isArray(items)) throw new Error('Invalid Model list response')
-  items.forEach(validateModelRecordedMetadata)
+  items.forEach((item) => {
+    validateModelRecordedMetadata(item)
+    validateModelConfiguredAvailability(item)
+  })
   return items
 }
 export async function listModels() {
@@ -95,8 +98,20 @@ export async function getAdminModel(modelID: string, signal?: AbortSignal): Prom
   ).data
   return decodeAdminModel(value, modelID)
 }
+function validateModelConfiguredAvailability(value: unknown) {
+  if (
+    value === null ||
+    typeof value !== 'object' ||
+    Array.isArray(value) ||
+    ('configured_ready' in value &&
+      value.configured_ready !== null &&
+      typeof value.configured_ready !== 'boolean')
+  )
+    throw new Error('Invalid Model configured availability')
+}
 export function decodeAdminModel(value: unknown, modelID: string): Model {
   validateModelRecordedMetadata(value)
+  validateModelConfiguredAvailability(value)
   const record = (item: unknown): item is Record<string, unknown> =>
     !!item && typeof item === 'object' && !Array.isArray(item)
   const text = (item: unknown) => typeof item === 'string' && item.length > 0

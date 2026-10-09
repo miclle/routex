@@ -64,6 +64,7 @@ func (ctrl *Ctrl) RegisterRoutes(r *fox.Engine) {
 	identity.POST("/auth/logout", sameOrigin, ctrl.requireSession, requireCSRF, ctrl.Logout)
 	identity.GET("/admin/status", ctrl.requireSession, requireAdmin, ctrl.AdminStatus)
 
+	identity.GET("/admin/providers/:provider_id/credential-attempt-statistics", memberMetadataResponseHeaders, ctrl.requireSession, ctrl.GetCredentialAttemptStatistics)
 	identity.GET("/admin/providers/:provider_id/status", memberMetadataResponseHeaders, ctrl.requireSession, ctrl.GetProviderStatus)
 	identity.PUT("/admin/providers/:provider_id/status", memberMetadataResponseHeaders, ctrl.requireSession, sameOrigin, requireCSRF, jsonManagementRequest, ctrl.WriteProviderStatus)
 	identity.GET("/admin/providers/:provider_id/metadata", memberMetadataResponseHeaders, ctrl.requireSession, ctrl.GetProviderMetadata)

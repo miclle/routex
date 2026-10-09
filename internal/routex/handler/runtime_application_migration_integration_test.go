@@ -16,7 +16,7 @@ func testRuntimeApplicationMigration(t *testing.T, db *gorm.DB) {
 	t.Helper()
 	ctx := context.Background()
 	var baseline []int
-	if err := db.Table("schema_migrations").Order("version").Pluck("version", &baseline).Error; err != nil || len(baseline) != 92 || baseline[91] != 92 || baseline[90] != 91 || baseline[89] != 90 || baseline[88] != 89 || baseline[87] != 88 || baseline[86] != 87 {
+	if err := db.Table("schema_migrations").Order("version").Pluck("version", &baseline).Error; err != nil || len(baseline) != 93 || baseline[92] != 93 || baseline[91] != 92 || baseline[90] != 91 || baseline[89] != 90 || baseline[88] != 89 || baseline[87] != 88 || baseline[86] != 87 {
 		t.Fatal("V87 ledger prefix", err)
 	}
 	for index, version := range baseline {

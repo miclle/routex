@@ -45,6 +45,8 @@ export interface Model {
   id: string
   name: string
   status: 'active' | 'disabled' | 'archived'
+  // Legacy absence and null mean unknown; this is stored configuration, not runtime health.
+  configured_ready?: boolean | null
   names: { name: string; is_current: boolean; expires_at: string | null }[]
   bindings: {
     id: string

@@ -52,11 +52,14 @@ func TestAdminModelDetailPreservesExistingBoundedDTO(t *testing.T) {
 		keys = append(keys, key)
 	}
 	slices.Sort(keys)
-	if !reflect.DeepEqual(keys, []string{"bindings", "config_updated_at", "created_at", "granted_user_ids", "id", "name", "names", "status"}) {
+	if !reflect.DeepEqual(keys, []string{"bindings", "config_updated_at", "configured_ready", "created_at", "granted_user_ids", "id", "name", "names", "status"}) {
 		t.Fatal("detail exposed uncontracted fields", keys)
 	}
 	if response.CreatedAt != nil || response.ConfigUpdatedAt != nil || string(object["created_at"]) != "null" || string(object["config_updated_at"]) != "null" {
 		t.Fatal("legacy missing Model birth/configuration dates must remain unknown", response)
+	}
+	if response.ConfiguredReady != nil || string(object["configured_ready"]) != "null" {
+		t.Fatal("unavailable or restricted configuration summary must remain unknown")
 	}
 	var bindings []map[string]json.RawMessage
 	if err := json.Unmarshal(object["bindings"], &bindings); err != nil {
@@ -73,5 +76,30 @@ func TestAdminModelDetailPreservesExistingBoundedDTO(t *testing.T) {
 	empty := modelResponse(service.ModelCatalog{Model: entity.Model{ID: modelID}, GrantedUserIDs: []string{}})
 	if empty.Names == nil || empty.Bindings == nil || empty.GrantedUserIDs == nil {
 		t.Fatal("empty Model detail invented null collections")
+	}
+}
+
+func TestAdminModelConfiguredReadinessDTOThreeStates(t *testing.T) {
+	ready, unavailable := true, false
+	for _, scenario := range []struct {
+		name  string
+		value *bool
+		wire  string
+	}{{"unknown", nil, "null"}, {"ineligible", &unavailable, "false"}, {"eligible", &ready, "true"}} {
+		t.Run(scenario.name, func(t *testing.T) {
+			row := service.ModelCatalog{Model: entity.Model{ID: "mdl_exact"}, ConfiguredReady: scenario.value, Bindings: []service.BindingCatalog{{Binding: entity.ModelProviderBinding{ID: "bnd_exact"}, Ready: true}}}
+			response := modelResponse(row)
+			raw, err := json.Marshal(response)
+			if err != nil {
+				t.Fatal(err)
+			}
+			var object map[string]json.RawMessage
+			if err := json.Unmarshal(raw, &object); err != nil {
+				t.Fatal(err)
+			}
+			if string(object["configured_ready"]) != scenario.wire || !response.Bindings[0].Ready || response.ConfiguredReady != scenario.value {
+				t.Fatal("nullable Model summary changed legacy route readiness or lost explicit state")
+			}
+		})
 	}
 }

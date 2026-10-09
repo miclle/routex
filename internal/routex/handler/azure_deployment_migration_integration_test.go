@@ -152,7 +152,15 @@ func TestAzureExact152RegistryAndRetained150Prefix(t *testing.T) {
 	for _, m := range regexp.MustCompile(`\{"([^"\n]+)", (test[A-Za-z0-9]+)\}`).FindAllStringSubmatch(string(raw), -1) {
 		names = append(names, m[1]+":"+m[2])
 	}
-	if len(names) != 179 || !strings.Contains(string(raw), "versions != 92") {
+	if !adminModelConfiguredReadinessRegistry182Current(names) {
+		t.Fatal("exact182 configured availability successor changed")
+	}
+	names = names[:181]
+	if !credentialAttemptStatisticsRegistry181Current(names) {
+		t.Fatal("exact V93/181 successor changed")
+	}
+	names = names[:179]
+	if len(names) != 179 || !strings.Contains(string(raw), "versions != 93") {
 		t.Fatal("current exact172 registry/V89 ledger changed")
 	}
 	if _, ok := azureDeploymentRegistryParent(names); !ok {

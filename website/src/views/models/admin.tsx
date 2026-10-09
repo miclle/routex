@@ -70,6 +70,14 @@ function routingValues(model: Model) {
 
 type Action =
   { kind: 'create' } | { kind: 'rename' | 'binding' | 'weights' | 'grants'; model: Model }
+function configuredAvailabilityKey(value: boolean | null | undefined) {
+  return value === true
+    ? 'adminModels.configuredReady'
+    : value === false
+      ? 'adminModels.configuredUnavailable'
+      : 'adminModels.configuredUnknown'
+}
+
 export default function AdminModelsPage() {
   const session = useSession()
   const generation = useSessionGeneration()
@@ -504,7 +512,7 @@ function AdminModels({
                   <th>{t('common.protocolType')}</th>
                   <th>{t('modelMetadata.capabilityType')}</th>
                   <th>{t('common.provider')}</th>
-                  <th>{t('adminModels.status')}</th>
+                  <th>{t('adminModels.configuredAvailability')}</th>
                   <th>{t('adminModels.members')}</th>
                   <th>{t('modelMetadata.monthlyRequests')}</th>
                   <th>{t('modelMetadata.updated')}</th>
@@ -537,11 +545,11 @@ function AdminModels({
                       ].join(t('common.listSeparator'))}
                     </td>
                     <td>
-                      {model.status === 'active'
-                        ? model.bindings.some((b) => b.ready && b.weight > 0)
-                          ? t('adminModels.healthy')
-                          : t('adminModels.pending')
-                        : t('common.disabled')}
+                      {t(
+                        configuredAvailabilityKey(
+                          access.can('providers.read') ? model.configured_ready : null,
+                        ),
+                      )}
                     </td>
                     <td>{model.granted_user_ids.length}</td>
                     <td>
@@ -558,6 +566,9 @@ function AdminModels({
               </tbody>
             </Table>
           </div>
+          <p className="text-sm text-muted-foreground">
+            {t('adminModels.configuredAvailabilityHelp')}
+          </p>
           <ModelMonthlyContext view={monthly} />
         </>
       )}
@@ -567,12 +578,21 @@ function AdminModels({
             <header className="flex items-center justify-between gap-3 border-b px-6 py-4">
               <h2 className="font-semibold">
                 {selected.name}{' '}
-                <Badge variant="outline">
-                  {selected.status === 'active'
-                    ? selected.bindings.some((binding) => binding.ready && binding.weight > 0)
-                      ? t('adminModels.healthy')
-                      : t('adminModels.pending')
-                    : t('common.disabled')}
+                <Badge
+                  variant="outline"
+                  aria-label={t('adminModels.configuredAvailabilityLabel', {
+                    status: t(
+                      configuredAvailabilityKey(
+                        access.can('providers.read') ? selected.configured_ready : null,
+                      ),
+                    ),
+                  })}
+                >
+                  {t(
+                    configuredAvailabilityKey(
+                      access.can('providers.read') ? selected.configured_ready : null,
+                    ),
+                  )}
                 </Badge>
               </h2>
               <div className="flex items-center gap-3">
@@ -589,6 +609,9 @@ function AdminModels({
               </div>
             </header>
             <div className="space-y-4 p-6">
+              <p className="text-sm text-muted-foreground">
+                {t('adminModels.configuredAvailabilityHelp')}
+              </p>
               <dl className="grid grid-cols-2 gap-4 text-sm lg:grid-cols-4">
                 <div>
                   <dt className="text-muted-foreground">{t('adminModels.modelID')}</dt>
