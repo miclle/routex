@@ -4,6 +4,14 @@ Updated: 2026-10-10. Status: resumed by explicit user instruction; prioritize pa
 
 ## Current execution status (2026-10-10)
 
+Latest feature delivery: `fd7157473d60837bf26ee333f3280ec4b22d951e` fixes saved-Egress
+Credential sources and native/Azure diagnostics, with exact remote-main parity.
+Fresh final mandatory checking passes. Actionlint and GolangCI-Lint pass; CI run
+38003692213 is still in progress. F28 seven-flow browser acceptance is waiting
+for the local screen to be unlocked; no new browser fixture has started.
+F03 remains source assessment only, and the F24 saved-report ownership/range
+question remains open. Neither preparation changes a capability status.
+
 The full objective remains active. Credential inference-attempt statistics
 (GORM V93), Provider Overview attention and creation/navigation flows, and
 permission-scoped Model configured availability are delivered in

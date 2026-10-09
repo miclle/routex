@@ -4,6 +4,14 @@ Updated: 2026-10-10. This document records engineering contracts, work packages 
 
 ## Current execution status (2026-10-10)
 
+Latest feature delivery: `fd7157473d60837bf26ee333f3280ec4b22d951e` fixes saved-Egress
+Credential sources and native/Azure diagnostics, with exact remote-main parity.
+Fresh final mandatory checking passes. Actionlint and GolangCI-Lint pass; CI run
+38003692213 is still in progress. F28 seven-flow browser acceptance is waiting
+for the local screen to be unlocked; no new browser fixture has started.
+F03 remains source assessment only, and the F24 saved-report ownership/range
+question remains open. Neither preparation changes a capability status.
+
 The full objective remains active. Credential inference-attempt statistics
 (GORM V93), Provider Overview attention and creation/navigation flows, and
 permission-scoped Model configured availability are delivered in
@@ -3421,7 +3429,7 @@ Status terms in this section are deliberately strict:
 - **Partially completed** means material implementation exists, but one or more required behaviors or acceptance gates remain open. It does not mean that work has not started.
 - **Not started** means no material implementation of the capability exists. A prerequisite or design note may still be present.
 
-The binary capability count is 14 completed, 13 partially completed, and 3 not started. F15 now has complete controlled acceptance, including genuine browser downloads and original-Session restart. F06 initial Model access selection has passed its scoped acceptance. This is a completion count, not an effort percentage: several partially completed capabilities contain substantial delivered work. The user resumed implementation on 2026-10-02 and prioritized partially completed capabilities. Status changes require current implementation and acceptance evidence; a package delivery alone does not complete an entire capability.
+The binary capability count is 15 completed, 12 partially completed, and 3 not started. F22 is reconciled as Completed from existing scoped implementation and controlled evidence. F15 now has complete controlled acceptance, including genuine browser downloads and original-Session restart. F06 initial Model access selection has passed its scoped acceptance. This is a completion count, not an effort percentage: several partially completed capabilities contain substantial delivered work. The user resumed implementation on 2026-10-02 and prioritized partially completed capabilities. Status changes require current implementation and acceptance evidence; a package delivery alone does not complete an entire capability.
 
 | ID | Capability | Status | Delivered and remaining scope |
 |---|---|---|---|
