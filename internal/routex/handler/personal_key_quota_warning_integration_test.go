@@ -1277,7 +1277,7 @@ func (b *personalKeyWarningFixturePublicationBarrier) beforeQuery(tx *gorm.DB) {
 	}
 }
 
-// Metadata fencing is enabled only by the two Project rolling fixtures. Their
+// Metadata fencing is enabled only by the Personal and two Project rolling fixtures. Their
 // synthetic periodic read fault must not manufacture a real operational failure.
 // A cumulative rejection count cannot identify a later refresh's failure.
 const personalKeyPublicationMetadataProofLimit = 64

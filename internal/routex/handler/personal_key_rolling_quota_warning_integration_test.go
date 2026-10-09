@@ -31,17 +31,29 @@ type personalKeyRollingConcurrencyContext struct{}
 func testPersonalKeyRollingQuotaWarningLifecycle(t *testing.T, db *gorm.DB) {
 	ctx := context.Background()
 	var publicationBarrier personalKeyWarningFixturePublicationBarrier
+	publicationBarrier.enableMetadataFence()
 	workerCtx := context.WithValue(ctx, personalKeyWarningFixtureWorkerContext{}, &publicationBarrier)
 	const publicationCallback = "fixture:personal-key-rolling-publication"
+	const metadataCallback = publicationCallback + "-metadata"
+	metadataRegistered := false
 	if e := db.Callback().Query().Before("gorm:query").Register(publicationCallback, publicationBarrier.beforeQuery); e != nil {
 		t.Fatal(e)
 	}
 	defer func() {
 		publicationBarrier.armed.Store(false)
+		if metadataRegistered {
+			if e := db.Callback().Create().Remove(metadataCallback); e != nil {
+				t.Error(e)
+			}
+		}
 		if e := db.Callback().Query().Remove(publicationCallback); e != nil {
 			t.Error(e)
 		}
 	}()
+	if e := db.Callback().Create().Before("gorm:create").Register(metadataCallback, publicationBarrier.beforePublicationCreate); e != nil {
+		t.Fatal(e)
+	}
+	metadataRegistered = true
 	// Force a real transaction snapshot before the second governance-lock wait.
 	// The first observer holds that lock after finding the episode absent. With
 	// repeatable read, the second observer later attempts a duplicate INSERT;
@@ -146,7 +158,13 @@ func testPersonalKeyRollingQuotaWarningLifecycle(t *testing.T, db *gorm.DB) {
 		return svc
 	}
 	svc := makeService()
-	defer func() { svc.StopRuntime(); _ = svc.StopCallRecorder() }()
+	defer func() {
+		svc.StopRuntime()
+		if e := publicationBarrier.purgeMetadataProofsAfterJoin(); e != nil {
+			t.Error(e)
+		}
+		_ = svc.StopCallRecorder()
+	}()
 	router := fox.New()
 	New(svc).RegisterRoutes(router)
 	setup := identityRequest(router, "POST", "/api/v1/setup", `{"email":"rolling-admin@example.invalid","password":"rolling-warning-password","name":"Rolling admin"}`, nil, "")
@@ -238,6 +256,9 @@ func testPersonalKeyRollingQuotaWarningLifecycle(t *testing.T, db *gorm.DB) {
 	setBound := func(input int64) {
 		t.Helper()
 		get := identityRequest(router, "GET", "/api/v1/admin/provider-models/pmd_rolling_warning/reservation-bound", "", adminCookie, "")
+		if get.Code != http.StatusOK {
+			t.Logf("reservation-bound GET input=%d status=%d runtime=%+v", input, get.Code, svc.RuntimeStatus())
+		}
 		expectStatus(t, get, 200)
 		reviewed := decodeCatalogResponse[service.ReservationBoundRecord](t, get, 200)
 		req := httptest.NewRequest("PUT", "http://routex.test/api/v1/admin/provider-models/pmd_rolling_warning/reservation-bound", strings.NewReader(fmt.Sprintf(`{"max_input_tokens":%d,"max_output_tokens":1,"evidence":"Controlled native fixture","reason":"Rolling quota test"}`, input)))
@@ -249,6 +270,9 @@ func testPersonalKeyRollingQuotaWarningLifecycle(t *testing.T, db *gorm.DB) {
 		req.Header.Set("X-CSRF-Token", admin.CSRFToken)
 		res := httptest.NewRecorder()
 		router.ServeHTTP(res, req)
+		if res.Code != http.StatusOK {
+			t.Logf("reservation-bound PUT input=%d status=%d runtime=%+v", input, res.Code, svc.RuntimeStatus())
+		}
 		expectStatus(t, res, 200)
 	}
 	setBound(80)
@@ -503,6 +527,9 @@ func testPersonalKeyRollingQuotaWarningLifecycle(t *testing.T, db *gorm.DB) {
 		t.Fatal(e)
 	}
 	svc.StopRuntime()
+	if e := publicationBarrier.purgeMetadataProofsAfterJoin(); e != nil {
+		t.Fatal(e)
+	}
 	svc = makeService()
 	if e := svc.StartRuntime(workerCtx); e != nil {
 		t.Fatal(e)
