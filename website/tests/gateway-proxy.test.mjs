@@ -30,15 +30,26 @@ test('development server proxies native model and streaming inference requests',
   try {
     server = await createServer({
       cacheDir,
+      plugins: [
+        {
+          name: 'routex-http-fixture-no-watch',
+          enforce: 'post',
+          config(config) {
+            // A null inline override is dropped when Vite merges the file config.
+            config.server ??= {}
+            config.server.watch = null
+          },
+        },
+      ],
       server: {
         host: '127.0.0.1',
         port: 0,
         strictPort: false,
         hmr: false,
-        watch: null,
       },
       optimizeDeps: { noDiscovery: true, include: [] },
     })
+    assert.equal(server.config.server.watch, null, 'HTTP fixture must disable file watching')
     await server.listen()
     const origin = `http://127.0.0.1:${server.httpServer.address().port}`
     const headers = { Authorization: 'Bearer disposable-proxy-test' }

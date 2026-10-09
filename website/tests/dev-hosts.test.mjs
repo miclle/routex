@@ -10,15 +10,26 @@ test('development server accepts localhost and rejects untrusted hosts', async (
   const cacheDir = await mkdtemp(join(tmpdir(), 'routex-vite-hosts-'))
   const server = await createServer({
     cacheDir,
+    plugins: [
+      {
+        name: 'routex-http-fixture-no-watch',
+        enforce: 'post',
+        config(config) {
+          // A null inline override is dropped when Vite merges the file config.
+          config.server ??= {}
+          config.server.watch = null
+        },
+      },
+    ],
     server: {
       host: '127.0.0.1',
       port: 0,
       strictPort: false,
-      watch: null,
     },
     optimizeDeps: { noDiscovery: true, include: [] },
   })
   try {
+    assert.equal(server.config.server.watch, null, 'HTTP fixture must disable file watching')
     await server.listen()
     const port = server.httpServer.address().port
     for (const [host, status] of [
