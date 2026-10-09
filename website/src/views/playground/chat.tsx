@@ -1030,30 +1030,32 @@ export default function ChatWorkbench({
                 {t('playground:parametersReset')}
               </p>
             )}
-            <FormField label={t('temperature')}>
-              <Input
-                name="temperature"
-                type="number"
-                min={0}
-                max={protocol === 'anthropic_messages' ? 1 : 2}
-                step={0.1}
-                value={parameters.temperature}
-                onValueChange={(value) => changeParameter('temperature', value)}
-                required
-              />
-            </FormField>
-            <FormField label={t('topP')}>
-              <Input
-                name="top_p"
-                type="number"
-                min={0}
-                max={1}
-                step={0.05}
-                value={parameters.topP}
-                onValueChange={(value) => changeParameter('topP', value)}
-                required
-              />
-            </FormField>
+            <div className="grid grid-cols-2 gap-3">
+              <FormField label={t('temperature')}>
+                <Input
+                  name="temperature"
+                  type="number"
+                  min={0}
+                  max={protocol === 'anthropic_messages' ? 1 : 2}
+                  step={0.1}
+                  value={parameters.temperature}
+                  onValueChange={(value) => changeParameter('temperature', value)}
+                  required
+                />
+              </FormField>
+              <FormField label={t('topP')}>
+                <Input
+                  name="top_p"
+                  type="number"
+                  min={0}
+                  max={1}
+                  step={0.05}
+                  value={parameters.topP}
+                  onValueChange={(value) => changeParameter('topP', value)}
+                  required
+                />
+              </FormField>
+            </div>
             <FormField label={t('maximum_output_tokens_1863d')}>
               <Input
                 name="max_tokens"

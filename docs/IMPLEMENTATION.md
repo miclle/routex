@@ -50,12 +50,29 @@ Current UI browser acceptance SHA-256:
 Independent browser cleanup SHA-256:
 `7c39475d5e1719644f89d94312436aa0196cbd2464602714885dc49dbc9623a7`.
 
-F20 source review establishes no additional missing finite function, but finds
-one presentation mismatch: Temperature and Top P should share the approved
-single two-column row. Its reviewed one-file wrapper-only correction is source
-preparation; adoption, focused checks and browser proof remain pending. External
-Provider/storage/mail acceptance and the previously requested capability/identity
-and distribution decisions remain separate outstanding work.
+F20 sampling controls now share the approved equal-width two-column row inside
+the existing fixed configuration sidebar. The wrapper-only correction preserves
+parameter values, validation, events and native payloads. Formatting, all 52
+focused parameter/Playground/Session tests, mandatory main checking (49.552
+seconds), frontend production build and production binary build pass. A fresh
+isolated PostgreSQL production service confirms both languages retain two
+133.5px controls at the same vertical position with a 12px gap and unchanged
+0.7/1 defaults; browser errors are absent. No Key or inference call is needed
+for this presentation check. Owned browser/process groups/listeners/Compose
+resources are independently closed, source and binary remain exact, and the
+original development service is preserved. Browser readback SHA-256:
+`8465e54fda257828119852f13d1e95ff03cbd9c06d8677624060cb6cdd3aefde`.
+Independent cleanup SHA-256:
+`461bb30015f84067277e6963ad0255f8c3b16012642101217e0b7931bb3fdf58`.
+F20 external acceptance and the previously requested capability/identity and
+distribution decisions remain outstanding; capability totals do not change.
+
+Provider Status and Vault focus are delivered as `abd8ced` with exact remote-main
+parity. Its Actionlint and GolangCI-Lint workflows pass. CI run 37995544339 fails
+before database tests: Docker Hub authentication times out while pulling MySQL
+8.4, interrupting the PostgreSQL pull. This infrastructure failure is separate
+from the earlier synthetic metadata-fault failure and the accepted local
+focused dual-driver repair; no remote database-test success is claimed.
 
 
 The Vault integration description now distinguishes saved integration/probe
