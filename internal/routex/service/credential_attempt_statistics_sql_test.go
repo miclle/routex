@@ -145,7 +145,7 @@ func TestCredentialAttemptStatisticsSQLAuthorityAndBoundedRead(t *testing.T) {
 				t.Fatal("coherent read-only snapshot required")
 			}
 			if got != nil {
-				if len(got.Items) != 1 || got.Items[0].FailureStreak.State != "no_records" || got.Items[0].ConnectionID != provider.base.row.ID || !got.RecordedOnly {
+				if len(got.Items) != 1 || got.Items[0].LastAttempt.State != "no_records" || got.Items[0].LastAttempt.CompletedAt != nil || got.Items[0].FailureStreak.State != "no_records" || got.Items[0].ConnectionID != provider.base.row.ID || !got.RecordedOnly {
 					t.Fatal(got)
 				}
 				if stats.attemptQueries != 1 || len(stats.attemptArgs) != 3 ||
@@ -164,6 +164,22 @@ func TestCredentialAttemptStatisticsSQLAuthorityAndBoundedRead(t *testing.T) {
 				}
 			}
 		})
+	}
+	{
+		s, roles, _, provider, stats := credentialStatisticsSQLService(t)
+		completedAt := time.Now().UTC().Add(-time.Minute).Truncate(time.Microsecond)
+		stats.rows = []credentialStatisticsAttempt{
+			{ID: "att_latest", CredentialID: "crd_target", Status: "canceled", StartedAt: completedAt.Add(-time.Second), CompletedAt: completedAt},
+			{ID: "att_older", CredentialID: "crd_target", Status: "error", ErrorCode: "upstream_timeout", StartedAt: completedAt.Add(-3 * time.Second), CompletedAt: completedAt.Add(-2 * time.Second)},
+		}
+		got, err := s.GetCredentialAttemptStatistics(context.Background(), "usr_admin", provider.base.provider.ID, []string{"crd_target"})
+		if err != nil || got == nil || len(got.Items) != 1 || stats.attemptQueries != 1 || len(roles.writes) != 0 {
+			t.Fatal("latest completion must reuse the bounded read", got, err)
+		}
+		last, recent := got.Items[0].LastAttempt, got.Items[0].RecentError
+		if last.State != "recorded" || last.CompletedAt == nil || !last.CompletedAt.Equal(completedAt) || recent.CompletedAt == nil || !recent.CompletedAt.Equal(stats.rows[1].CompletedAt) {
+			t.Fatal("canceled completion and older recorded error must remain independent", got)
+		}
 	}
 	s, roles, _, p, stats := credentialStatisticsSQLService(t)
 	ctx, cancel := context.WithCancel(context.Background())

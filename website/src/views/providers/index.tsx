@@ -321,6 +321,7 @@ function CredentialTable({
             <th>{t('credentialStorage.recordedSource')}</th>
             <th>{t('providers.verification')}</th>
             <th>{t('providers.verifiedAt')}</th>
+            <th title={t('credentialAttempts.lastGuidance')}>{t('credentialAttempts.last')}</th>
             <th>{t('credentialAttempts.streak')}</th>
             <th>{t('credentialAttempts.recent')}</th>
             <th>{t('providers.enabledStatus')}</th>
@@ -354,6 +355,20 @@ function CredentialTable({
                 ) : (
                   t('providers.verificationNotRecorded')
                 )}
+              </td>
+              <td>
+                {(() => {
+                  const last = statisticsByID.get(credential.id)?.last_attempt
+                  if (!last || last.state === 'unknown') return t('credentialAttempts.unknown')
+                  if (last.state === 'no_records') return t('credentialAttempts.noRecords')
+                  return (
+                    <time dateTime={last.completed_at!}>
+                      {new Date(last.completed_at!).toLocaleString(
+                        i18n.resolvedLanguage === 'zh' ? 'zh-CN' : 'en-US',
+                      )}
+                    </time>
+                  )
+                })()}
               </td>
               <td>{streak(statisticsByID.get(credential.id))}</td>
               <td>
@@ -450,7 +465,7 @@ function CredentialTable({
           ))}
           {!rows.length && (
             <tr>
-              <td colSpan={10} className="py-8 text-center text-muted-foreground">
+              <td colSpan={11} className="py-8 text-center text-muted-foreground">
                 {t('providers.noMatchingCredentials')}
               </td>
             </tr>

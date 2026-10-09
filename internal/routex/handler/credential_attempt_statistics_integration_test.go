@@ -143,6 +143,14 @@ func testCredentialAttemptStatistics(t *testing.T, db *gorm.DB) {
 	if d.CredentialID != ids[3] || d.RecentError.State != "recorded" || d.RecentError.Code != nil || d.RecentError.CompletedAt == nil {
 		t.Fatal("unsafe retained code not echoed or replaced")
 	}
+	for _, item := range []service.CredentialAttemptStatistics{c, a, b, d} {
+		if item.LastAttempt.State != "recorded" || item.LastAttempt.CompletedAt == nil || !item.LastAttempt.CompletedAt.Equal(now) {
+			t.Fatal("exact latest recorded completion missing", item.CredentialID, item.LastAttempt)
+		}
+	}
+	if empty.LastAttempt.State != "no_records" || empty.LastAttempt.CompletedAt != nil {
+		t.Fatal("empty history is not a never-used claim", empty.LastAttempt)
+	}
 	futureResponse := get(provider.ID, []string{"crd_stats_future"}, readerCookie)
 	expectStatus(t, futureResponse, 200)
 	var future service.CredentialAttemptStatisticsBatch
@@ -151,6 +159,9 @@ func testCredentialAttemptStatistics(t *testing.T, db *gorm.DB) {
 	}
 	if len(future.Items) != 1 || future.Items[0].InspectedAttempts != 2 || future.Items[0].FailureStreak.State != "unknown" || future.Items[0].FailureStreak.Count != nil || future.Items[0].RecentError.State != "unknown" || future.Items[0].RecentError.Code != nil {
 		t.Fatal("future attributable row was dropped or bridged")
+	}
+	if future.Items[0].LastAttempt.State != "unknown" || future.Items[0].LastAttempt.CompletedAt != nil {
+		t.Fatal("future newest completion must not fall back to older history", future.Items[0].LastAttempt)
 	}
 	twenty := get(provider.ID, allIDs, readerCookie)
 	expectStatus(t, twenty, 200)

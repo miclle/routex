@@ -13,6 +13,9 @@ export default {
     loading: 'Loading recorded attempts…',
     unavailable: 'Recorded attempt statistics are unavailable.',
     retry: 'Refresh recorded attempts',
+    last: 'Last recorded inference attempt',
+    lastGuidance:
+      'Completion time of the latest recorded inference attempt attributed to this Credential, including errors and cancellations. Recorded history may lag and is separate from manual verification and live availability. Unrecorded use is excluded; no recorded attempts does not mean never used.',
     streak: 'Consecutive recorded failures',
     recent: 'Recent recorded error',
     unknown: 'Unknown',
@@ -811,6 +814,7 @@ export default {
     reviewed: 'Latest metadata reviewed. Your draft is preserved; review it before saving.',
   },
   common: {
+    unknown: 'Unknown',
     provider: 'Provider',
     protocolType: 'Protocol type',
     protocol: 'Protocol',
@@ -877,14 +881,22 @@ export default {
     modelsTab: 'Models {{count}}',
     overviewTab: 'Overview',
     settingsTab: 'Settings',
-    serviceStatus: 'Service readiness',
+    serviceStatus: 'Stored configuration',
     serviceConfigured: 'Configuration ready',
     serviceNotConfigured: 'Configuration incomplete',
+    configurationDisabled: 'Disabled by configuration',
+    configurationUnknown: 'Configuration availability: Unknown',
+    configurationDisabledDescription:
+      'The Provider is disabled, or every recorded connection is disabled. Stored credential and model configuration is retained.',
+    configurationUnknownDescription:
+      'Provider or Connection enablement is not fully recorded, so configuration availability is unknown.',
+    configurationAdvisory:
+      'Child counts describe stored configuration only. Public route eligibility remains model-specific; these facts do not confirm live health or runtime application.',
     serviceReadyDescription:
-      '{{ready}} connections have a verified credential and enabled upstream model; {{models}} provider models are enabled. Public route eligibility remains model-specific.',
+      'The Provider is enabled and at least one enabled connection has a verified, enabled credential and an enabled upstream model.',
     serviceNotConfiguredDescription:
-      'No connection currently has both a verified credential and an enabled upstream model.',
-    readyConnections: 'Connections ready',
+      'The enabled Provider has no enabled connection with both a verified, enabled credential and an enabled upstream model.',
+    readyConnections: 'Connections with required configuration',
     availableCredentials: 'Available credentials',
     enabledModels: 'Enabled models',
     protocolCount: 'Protocol types',
@@ -900,9 +912,9 @@ export default {
     modelsNeedAttention_one: '{{count}} provider model is disabled',
     modelsNeedAttention_other: '{{count}} provider models are disabled',
     reviewAction: 'Review',
-    connectionRuntime: 'Connection runtime',
+    connectionRuntime: 'Connection configuration',
     manageConnections: 'Manage connections',
-    runtimeStatus: 'Runtime status',
+    runtimeStatus: 'Configuration status',
     connectionReady: 'Ready',
     connectionNeedsConfiguration: 'Needs configuration',
     noConnections: 'No connections are configured.',

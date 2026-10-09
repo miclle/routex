@@ -3,6 +3,10 @@ export interface CredentialAttemptStatisticsItem {
   connection_id: string
   inspected_attempts: number
   has_more: boolean
+  last_attempt: {
+    state: 'no_records' | 'recorded' | 'unknown'
+    completed_at: string | null
+  }
   failure_streak: {
     state: 'no_records' | 'exact' | 'lower_bound' | 'unknown'
     count: number | null

@@ -284,6 +284,7 @@ export default function ConnectionTable({ providerId, session, onAdd }: Props) {
                 <th>{t('common.connectionName')}</th>
                 <th>{t('connectionStatus.status')}</th>
                 <th>{t('common.protocolType')}</th>
+                <th>{t('connectionTransport.adapter')}</th>
                 <th>{t('common.baseURL')}</th>
                 <th>{t('egress:selection')}</th>
                 <th>{t('common.credentials')}</th>
@@ -305,6 +306,15 @@ export default function ConnectionTable({ providerId, session, onAdd }: Props) {
                     )}
                   </td>
                   <td>{protocolLabel(item.protocol)}</td>
+                  <td>
+                    {t(
+                      item.adapter === 'native'
+                        ? 'connectionTransport.native'
+                        : item.adapter === 'azure_openai_classic'
+                          ? 'connectionTransport.azure'
+                          : 'common.unknown',
+                    )}
+                  </td>
                   <td className="break-all">{item.base_url}</td>
                   <td>
                     <ConnectionEgressControl
@@ -412,7 +422,7 @@ export default function ConnectionTable({ providerId, session, onAdd }: Props) {
               ))}
               {rows?.length === 0 && (
                 <tr>
-                  <td colSpan={8} className="text-muted-foreground">
+                  <td colSpan={9} className="text-muted-foreground">
                     {t('connectionMetadata.empty')}
                   </td>
                 </tr>

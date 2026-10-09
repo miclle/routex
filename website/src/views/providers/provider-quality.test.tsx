@@ -21,10 +21,12 @@ const session = {
 const provider: Provider = {
   id: 'prv_quality',
   name: 'Quality Provider',
+  enabled: true,
   connections: [
     {
       id: 'con_quality',
       name: 'Primary route',
+      enabled: true,
       base_url: 'https://provider.example.test/v1',
       protocol: 'openai_responses',
       credentials: [

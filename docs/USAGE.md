@@ -143,9 +143,10 @@ Removing membership and refreshing the real English/Chinese interface hides the
 old aggregate and denies access. Rejoining restores the same immutable aggregate;
 an independent process restart preserves it. The platform Team filter displays
 the same totals with authorized provider groups and no fabricated Key controls.
-Owned browser/process/config/journal/Compose resources were removed. This evidence
-does not establish measured capacity, external providers or complete release
-acceptance; F22 remains partial.
+Owned browser/process/config/journal/Compose resources were removed. Together
+with the committed CSV and native-freshness evidence below, these records support
+Completed status for the finite F22 usage-report scope. Measured capacity, external providers and wider
+A10/A14/A18/P6 release acceptance remain open.
 
 ## Member monthly account Overview
 
@@ -165,10 +166,15 @@ member Home uses this preset with UTC daily buckets and no comparison; see
 
 ## Scoped CSV export
 
-Implementation candidate, 2026-10-04. Frozen source is carried onto checked
-Team-notice main. Current-main source/build, actual PostgreSQL/MySQL,
-production/browser download and complete regression acceptance remain gates;
-source-only checks are not a delivered file workflow.
+Delivered in `e4f87ab1816b766bb57f9a2a8804312483126b67`, following the Team
+report delivery in `598ffd17e00f8ef651b8a8a4f7bbfbae864f8c48`. Recorded acceptance
+includes mandatory checks, production build, complete PostgreSQL/MySQL regression,
+five native calls per driver with historical pricing and replay/restart, and
+thirteen authenticated CSV/report captures across four scopes. Controlled
+bilingual browser checks cover prepared downloads, revocation, restart and filter
+drafts. HTTP captures prove complete CSV bytes; no browser-saved file path was
+observed. These are maintained committed acceptance records, not a fresh
+revalidation of historical raw artifacts or measured-capacity certification.
 
 The existing filter row adds its final Export CSV action. It sends the last
 applied filters, independently of unsaved filter drafts, to one fresh

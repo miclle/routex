@@ -135,6 +135,7 @@ beforeEach(async () => {
           )!.id,
           inspected_attempts: 0,
           has_more: false,
+          last_attempt: { state: 'no_records', completed_at: null },
           failure_streak: { state: 'no_records', count: null, lower_bound: 0 },
           recent_error: { state: 'no_records', code: null, completed_at: null },
         })),

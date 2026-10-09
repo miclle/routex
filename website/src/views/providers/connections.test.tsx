@@ -328,6 +328,66 @@ async function invalidateMetadata() {
 }
 
 describe('Connection table and reviewed name workflow', () => {
+  it('distinguishes recorded Native and Azure adapters for the same protocol and translates without another read', async () => {
+    permissions = ['providers.read']
+    const adapter = client.defaults.adapter
+    if (typeof adapter !== 'function') throw new Error('Controlled adapter unavailable')
+    client.defaults.adapter = async (config) => {
+      const response = await adapter(config)
+      if (config.url === '/admin/providers')
+        response.data = {
+          items: providers().map((provider) => ({
+            ...provider,
+            connections: provider.connections.map((connection) =>
+              connection.id === 'con_one' || connection.id === 'con_two'
+                ? {
+                    ...connection,
+                    protocol: 'openai_chat',
+                    base_url: 'https://api.example.invalid',
+                    adapter: connection.id === 'con_one' ? 'native' : 'azure_openai_classic',
+                    api_version: connection.id === 'con_one' ? null : '2024-10-21',
+                  }
+                : connection,
+            ),
+          })),
+        }
+      return response
+    }
+    await mount(true)
+    const cells = (name: string) => {
+      const row = [...document.querySelectorAll('tbody tr')].find(
+        (item) => item.querySelector('td')?.textContent === name,
+      )!
+      return [...row.querySelectorAll('td')].slice(0, 4).map((item) => item.textContent)
+    }
+    expect([...document.querySelectorAll('th')].map((item) => item.textContent)).toContain(
+      'Upstream adapter',
+    )
+    expect(cells('Alpha primary')).toEqual(['Alpha primary', 'Enabled', 'OpenAI Chat', 'Native'])
+    expect(cells('Alpha [literal]')).toEqual([
+      'Alpha [literal]',
+      'Disabled',
+      'OpenAI Chat',
+      'Azure OpenAI classic',
+    ])
+    expect(cells('Gamma')[3]).toBe('Unknown')
+    const reads = requests.map((request) => [request.method, request.url])
+    await act(async () => {
+      await i18n.changeLanguage('zh')
+    })
+    expect([...document.querySelectorAll('th')].map((item) => item.textContent)).toContain(
+      '上游接口类型',
+    )
+    expect(cells('Alpha primary')[3]).toBe('原生接口')
+    expect(cells('Alpha [literal]')[3]).toBe('Azure OpenAI classic')
+    expect(cells('Gamma')[3]).toBe('未知')
+    expect(cells('Alpha primary')[2]).toBe('OpenAI Chat')
+    expect(cells('Alpha [literal]')[2]).toBe('OpenAI Chat')
+    expect(requests.map((request) => [request.method, request.url])).toEqual(reads)
+    expect(requests.every((request) => request.method === 'get')).toBe(true)
+    expect(requests.filter((request) => request.url?.endsWith('/metadata'))).toHaveLength(0)
+    expect(requests.filter((request) => request.url?.endsWith('/status'))).toHaveLength(0)
+  })
   it('uses the actual Provider page table with literal conjunctive filters and no status or per-row metadata fetches', async () => {
     await mount(true)
     await change('Search connection names', '[')

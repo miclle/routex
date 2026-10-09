@@ -1530,3 +1530,23 @@ weights, Provider labels, native completion, or the current browser catalogue.
 Keep stored configuration separate from live health and runtime publication.
 Preserve existing actor/Session/permission/target read lifetimes and original
 binding/credential eligibility for routing writes. Introduce no per-row reads.
+
+Provider Connections tables show the recorded upstream adapter in a localized
+column separate from protocol and stored enablement. Reuse the authorized
+catalogue's Connection.adapter and existing Native/Azure labels; missing legacy
+adapter stays Unknown. Never infer adapter from protocol or Base URL, add per-row
+reads, or treat the label as verification, discovery coverage or runtime health.
+Preserve existing Session, actor, permission, list and uncertain-action guards.
+
+Credential inference recency displays only the server-projected completion time
+of the newest recorded exact-Credential inference attempt, including errors and
+cancellations. Keep No recorded attempts and Unknown distinct; never infer
+never-used history, current availability, or recency from manual verification
+or recent-error time. Reuse the existing bounded statistics batch and all
+actor/Session/permission/target freshness fences without extra row reads.
+
+Provider Overview reports stored configuration availability with independent
+ready, disabled, incomplete and unknown states. Require explicit Provider and
+Connection enablement before a positive state; missing flags stay unknown.
+Retain structural child counts under configuration labels and never present
+them as Model route eligibility, live health or runtime application.

@@ -27,6 +27,7 @@ function item(id: string): CredentialAttemptStatisticsItem {
     connection_id: 'con_exact',
     inspected_attempts: 0,
     has_more: false,
+    last_attempt: { state: 'no_records', completed_at: null },
     failure_streak: { state: 'no_records', count: null, lower_bound: 0 },
     recent_error: { state: 'no_records', code: null, completed_at: null },
   }
@@ -163,6 +164,7 @@ function recordError(id = 'crd_0') {
   items.set(id, {
     ...item(id),
     inspected_attempts: 3,
+    last_attempt: { state: 'recorded', completed_at: '2026-10-09T01:02:02.5Z' },
     failure_streak: { state: 'exact', count: 3, lower_bound: 3 },
     recent_error: {
       state: 'recorded',
@@ -187,8 +189,13 @@ describe('Credential recorded inference statistics in the existing table', () =>
     ])
     expect(cells('Credential 0')[3].textContent).toBe('Pending verification')
     expect(cells('Credential 0')[4].textContent).toBe('Not recorded')
-    expect(cells('Credential 0')[5].textContent).toBe('3')
-    expect(cells('Credential 0')[7].textContent).toBe('Disabled')
+    expect(cells('Credential 0')[5].querySelector('time')?.dateTime).toBe('2026-10-09T01:02:02.5Z')
+    expect(host.querySelector('th[title]')?.textContent).toBe('Last recorded inference attempt')
+    expect(host.querySelector('th[title]')?.getAttribute('title')).toContain(
+      'Unrecorded use is excluded',
+    )
+    expect(cells('Credential 0')[6].textContent).toBe('3')
+    expect(cells('Credential 0')[8].textContent).toBe('Disabled')
     expect(requests.every((request) => request.method === 'get')).toBe(true)
     expect(cache.getMutationCache().getAll()).toHaveLength(0)
     expect(host.textContent).toContain('Verify and Test connection are separate.')
@@ -197,6 +204,7 @@ describe('Credential recorded inference statistics in the existing table', () =>
     items.set('crd_1', {
       ...item('crd_1'),
       inspected_attempts: 2,
+      last_attempt: { state: 'recorded', completed_at: observed },
       failure_streak: { state: 'exact', count: 0, lower_bound: 0 },
       recent_error: { state: 'recorded', code: null, completed_at: '2026-10-09T01:02:02Z' },
     })
@@ -204,6 +212,7 @@ describe('Credential recorded inference statistics in the existing table', () =>
       ...item('crd_2'),
       inspected_attempts: 100,
       has_more: true,
+      last_attempt: { state: 'recorded', completed_at: observed },
       failure_streak: { state: 'lower_bound', count: null, lower_bound: 100 },
       recent_error: {
         state: 'recorded',
@@ -214,23 +223,29 @@ describe('Credential recorded inference statistics in the existing table', () =>
     items.set('crd_3', {
       ...item('crd_3'),
       inspected_attempts: 3,
+      last_attempt: { state: 'unknown', completed_at: null },
       failure_streak: { state: 'unknown', count: null, lower_bound: 2 },
       recent_error: { state: 'unknown', code: null, completed_at: null },
     })
     items.set('crd_4', {
       ...item('crd_4'),
       inspected_attempts: 1,
+      last_attempt: { state: 'recorded', completed_at: observed },
       failure_streak: { state: 'exact', count: 0, lower_bound: 0 },
       recent_error: { state: 'none', code: null, completed_at: null },
     })
     await mount()
-    await until(() => expect(cells('Credential 2')[5].textContent).toBe('100+'))
+    await until(() => expect(cells('Credential 2')[6].textContent).toBe('100+'))
+    expect(cells('Credential 0')[6].textContent).toBe('No recorded attempts')
+    expect(cells('Credential 1')[6].textContent).toBe('0')
+    expect(cells('Credential 1')[7].textContent).toContain('Unknown error code')
+    expect(cells('Credential 3')[6].textContent).toBe('Unknown (at least 2)')
+    expect(cells('Credential 3')[7].textContent).toBe('Unknown')
+    expect(cells('Credential 4')[7].textContent).toBe('No recorded error')
     expect(cells('Credential 0')[5].textContent).toBe('No recorded attempts')
-    expect(cells('Credential 1')[5].textContent).toBe('0')
-    expect(cells('Credential 1')[6].textContent).toContain('Unknown error code')
-    expect(cells('Credential 3')[5].textContent).toBe('Unknown (at least 2)')
-    expect(cells('Credential 3')[6].textContent).toBe('Unknown')
-    expect(cells('Credential 4')[6].textContent).toBe('No recorded error')
+    expect(cells('Credential 3')[5].textContent).toBe('Unknown')
+    expect(cells('Credential 1')[5].querySelector('time')?.dateTime).toBe(observed)
+    expect(cells('Credential 1')[7].querySelector('time')?.dateTime).toBe('2026-10-09T01:02:02Z')
   })
   it('limits each page to twenty exact IDs and resets pagination when a filter changes', async () => {
     providers[0].connections[0].credentials = rows(21)
@@ -277,11 +292,19 @@ describe('Credential recorded inference statistics in the existing table', () =>
     recordError()
     await mount()
     await until(() => expect(row('Credential 0').textContent).toContain('upstream_timeout'))
+    expect(cells('Credential 0')[5].querySelector('time')?.textContent).toBe(
+      new Date('2026-10-09T01:02:02.5Z').toLocaleString('en-US'),
+    )
     await act(async () => i18n.changeLanguage('zh'))
     expect(host.textContent).toContain('连续失败（已记录）')
     expect(host.textContent).toContain('最近错误（已记录）')
+    expect(host.querySelector('th[title]')?.textContent).toBe('最近已记录的推理尝试')
+    expect(host.querySelector('th[title]')?.getAttribute('title')).toContain('不包含尚未记录的使用')
+    expect(cells('Credential 0')[5].querySelector('time')?.textContent).toBe(
+      new Date('2026-10-09T01:02:02.5Z').toLocaleString('zh-CN'),
+    )
     expect(row('Credential 0').textContent).toContain('upstream_timeout')
-    expect(row('Credential 0').querySelector('time')?.textContent).toBe(
+    expect(cells('Credential 0')[7].querySelector('time')?.textContent).toBe(
       new Date('2026-10-09T01:02:02Z').toLocaleString('zh-CN'),
     )
     expect(reads()).toHaveLength(1)
@@ -298,7 +321,9 @@ describe('Credential recorded inference statistics in the existing table', () =>
       expect(host.textContent).toContain('Recorded attempt statistics are unavailable.'),
     )
     expect(host.textContent).not.toContain('upstream_timeout')
+    expect(cells('Credential 0')[6].textContent).toBe('Unknown')
     expect(cells('Credential 0')[5].textContent).toBe('Unknown')
+    expect(cells('Credential 0')[5].querySelector('time')).toBeNull()
     fail = 0
     await act(async () => button('Refresh recorded attempts').click())
     await until(() => expect(row('Credential 0').textContent).toContain('upstream_timeout'))
@@ -321,6 +346,7 @@ describe('Credential recorded inference statistics in the existing table', () =>
     items.set('crd_0', {
       ...item('crd_0'),
       inspected_attempts: 2,
+      last_attempt: { state: 'recorded', completed_at: observed },
       failure_streak: { state: 'exact', count: 2, lower_bound: 2 },
       recent_error: {
         state: 'recorded',
@@ -346,7 +372,8 @@ describe('Credential recorded inference statistics in the existing table', () =>
           .some((query) => oldKeys.includes(query.queryHash)),
       ).toBe(false),
     )
-    expect(cells('Credential 0')[5].textContent).toBe('2')
+    expect(cells('Credential 0')[6].textContent).toBe('2')
+    expect(cells('Credential 0')[5].querySelector('time')?.dateTime).toBe(observed)
     expect(host.textContent).not.toContain('upstream_timeout')
     expect(
       JSON.stringify(
@@ -419,6 +446,14 @@ describe('Credential recorded inference statistics in the existing table', () =>
         ).toBe(false),
       )
       expect(host.textContent).not.toContain('upstream_timeout')
+      expect(
+        JSON.stringify(
+          cache
+            .getQueryCache()
+            .getAll()
+            .map((query) => query.state.data),
+        ),
+      ).not.toContain('2026-10-09T01:02:02.5Z')
       expect(
         JSON.stringify(
           cache

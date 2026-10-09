@@ -108,6 +108,7 @@ export function decodeCredentialAttemptStatistics(value: unknown): CredentialAtt
         'has_more',
         'failure_streak',
         'recent_error',
+        'last_attempt',
       ]) ||
       !id(item.credential_id, 'crd_') ||
       seen.has(item.credential_id) ||
@@ -116,19 +117,24 @@ export function decodeCredentialAttemptStatistics(value: unknown): CredentialAtt
       typeof item.has_more !== 'boolean' ||
       (item.has_more && item.inspected_attempts !== 100) ||
       !object(item.failure_streak) ||
-      !object(item.recent_error)
+      !object(item.recent_error) ||
+      !object(item.last_attempt)
     )
       invalid()
     seen.add(item.credential_id)
     const streak = item.failure_streak,
-      recent = item.recent_error
+      recent = item.recent_error,
+      last = item.last_attempt
     if (
       !keys(streak, ['state', 'count', 'lower_bound']) ||
       !bounded(streak.lower_bound) ||
       streak.lower_bound > item.inspected_attempts ||
       !['no_records', 'exact', 'lower_bound', 'unknown'].includes(String(streak.state)) ||
       !keys(recent, ['state', 'code', 'completed_at']) ||
-      !['no_records', 'recorded', 'none', 'unknown'].includes(String(recent.state))
+      !['no_records', 'recorded', 'none', 'unknown'].includes(String(recent.state)) ||
+      !keys(last, ['state', 'completed_at']) ||
+      typeof last.state !== 'string' ||
+      !['no_records', 'recorded', 'unknown'].includes(last.state)
     )
       invalid()
     if (item.inspected_attempts === 0) {
@@ -137,10 +143,23 @@ export function decodeCredentialAttemptStatistics(value: unknown): CredentialAtt
         streak.state !== 'no_records' ||
         streak.count !== null ||
         streak.lower_bound !== 0 ||
-        recent.state !== 'no_records'
+        recent.state !== 'no_records' ||
+        last.state !== 'no_records'
       )
         invalid()
-    } else if (streak.state === 'no_records' || recent.state === 'no_records') invalid()
+    } else if (
+      streak.state === 'no_records' ||
+      recent.state === 'no_records' ||
+      last.state === 'no_records'
+    )
+      invalid()
+    if (last.state === 'recorded') {
+      if (
+        !timestamp(last.completed_at) ||
+        timestampOrder(last.completed_at) > timestampOrder(value.observed_at)
+      )
+        invalid()
+    } else if (last.completed_at !== null) invalid()
     if (streak.state === 'exact') {
       if (
         !bounded(streak.count) ||

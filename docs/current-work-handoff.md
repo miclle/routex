@@ -12,7 +12,18 @@ Fresh main formatting, mandatory checking and complete Task pass, including
 5,924 frontend cases in 223 files. The official PostgreSQL/MySQL matrix and
 genuine bilingual production browser checks also pass. Configuration availability
 is not native health, and statistics do not automatically disable Credentials.
-Capability totals remain **14 Completed / 13 Partial / 3 Not started**.
+Capability totals are **15 Completed / 12 Partial / 3 Not started**.
+
+F22 usage reports are reconciled as Completed at the capability level. Existing
+commits `598ffd17e00f8ef651b8a8a4f7bbfbae864f8c48` and
+`e4f87ab1816b766bb57f9a2a8804312483126b67` record scoped reports, exact historical
+identity/currency, native freshness, durable replay/restart, dual-driver tests and
+controlled bilingual CSV interactions. Current source covers the finite F22
+criteria; no additional functional omission was established. This reconciles an
+outdated status rather than adding new runtime acceptance. Historical raw CSV
+artifacts were not revalidated, and no browser-saved file path is claimed.
+Measured capacity, wider A10/A14/A18 and P6 release acceptance remain open.
+
 
 The Vault integration description now distinguishes saved integration/probe
 configuration from the reviewed Storage policy governing future Provider
@@ -86,8 +97,39 @@ acceptance. The save helper wrongly expected201 but observed200; no command was
 replayed, and only fresh current configuration was reconciled. After successful
 Write dismissal AX focus was on the WebArea; mutation-dismiss trigger restoration
 remains a follow-up rather than a claimed pass. Read-only/cancel focus returns to
-the row trigger. Complete schema93 Full182 and positive Credential recency/adapter
-browser acceptance remain pending for the combined candidate.
+the row trigger.
+
+The current 2,121-path combined candidate now passes the official schema93
+PostgreSQL/MySQL matrix in 2,620.280 seconds: all 5,596 ordinary named Go tests,
+182 ordered scenarios plus four constraints and 444 named results per driver.
+Complete-stream readback and independent owned cleanup pass. Genuine bilingual
+production browser reads also pass after three normal-API native calls:
+upstream401/401/200 and Gateway502/502/200, consecutive failures1/2/0,
+advancing exact recorded attempt timestamps, retained recent error and unchanged
+manual verification. Pending siblings remain disabled with no recorded attempts.
+Connections show recorded Native adapters separately from protocol and enablement.
+No Azure or missing-adapter browser acceptance is claimed; focused tests cover
+those branches. Catalogue weights, grants and immutable history remain unchanged,
+browser errors are absent, and all owned processes/ports/Compose resources are
+independently closed while original development remains alive.
+
+Fresh main mandatory checking passes in 51.081 seconds with exact source/modes
+and independently absent owned process groups.
+
+The preceding remote CI run for bf72129 is failed, not superseded by local results:
+PostgreSQL Personal Key rolling-quota warnings received503 during reservation-bound
+metadata adjustment; the exact GET/PUT/internal branch was not retained. Remote
+MySQL passes all444 named results. A source-reviewed fixture correction reuses
+existing exact-context fencing for synthetic periodic failures, with stage-specific
+diagnostics and unchanged assertions/deadlines; execution remains pending.
+
+Current complete-matrix readback SHA-256:
+`ca4699eb9445f0cba761715d5550a402cee208bffae0fcdf221d6aae3739828c`.
+Current Credential browser readback SHA-256:
+`1ace853f723be646f18db0620f613796a166a637f62da30273268a304446abfd`.
+Current Credential independent cleanup SHA-256:
+`9f2ad844656a0b228e1d2acd473d1c8caa664a62a20ac3d117362ed48995b82b`.
+
 
 Mixed API/browser readback SHA-256:
 `9495db5364b7eb155066ef0574492cbd2d3110cd52eef3188c1173ff09db429e`.
@@ -104,7 +146,7 @@ Independent cleanup SHA-256:
 | Provider Overview unbound attention | Delivered in this phase | Genuine English/Chinese reads show one unbound ProviderModel and one disabled Connection, with actions navigating to the existing Models and Connections tabs. Zero-weight stored bindings remain bound. Unknown, renewal and error boundaries retain focused-test coverage. |
 | Credential inference statistics V93 | Delivered in this phase | Inference-only exact-Credential statistics remain separate from manual Verify/Test, preserve unknown/no-records/lower-bound distinctions, and never auto-disable a Credential. Frozen GORM V93 migration and ordered index validation pass the complete dual-driver upgrade/concurrent-startup matrix. The independent top101 probe passes both databases across 30,600 synthetic attempts; LIMIT 101 bounds returned rows, not scan work. Genuine production calls produce upstream 401/401/200 and gateway 502/502/200 once each, with real cooldowns and normal-API persistence reads. English/Chinese tables show failure streak 2 then 0, retain the second recent error and original manual Verified/enabled facts, and leave the pending sibling disabled/no-records. Catalogue, grants, 0/100 weights and immutable history remain exact; browser errors are absent and independent owned cleanup passes. The public call DTO does not expose per-attempt Credential IDs or the private native-completion enum; no such API proof is claimed. |
 | Model configured availability F12 | Delivered in this phase | R7 passes mandatory checking in 100.529 seconds, complete Task in 335.348 seconds (5,924 frontend cases/223 files, Go race/coverage, five HTTP and ten lifecycle checks, production assets), and binary build in 2.637 seconds. All 2,116 source paths/modes remain exact and owned groups close. Genuine English/Chinese owner list/detail reads show Ready; a normal-API-created model-only reader without providers.read receives null and sees Unknown, stable IDs and disabled writes, without retained owner facts. The original complete Task test-integration passes in 2,747.853 seconds: all 5,595 ordinary named results and schema93 with 182 ordered scenarios plus four constraints/444 named results per database. Strict complete-stream validation and independent process/group/port/Compose cleanup pass; original development remains alive. The earlier failed fixture and Tasks remain retained. |
-| Provider pool recorded metadata | Source adopted; acceptance pending | Connections show recorded Native/Azure adapters without inference from protocol or URL. Credentials show the last recorded exact-Credential inference completion with separate no-records and Unknown states; this is not manual verification, health or successful native completion. All 147 focused UI cases in five files pass after the paired Unknown correction; browser acceptance remains pending. |
+| Provider pool recorded metadata | Complete local acceptance | Connections show recorded Native/Azure adapters without inference from protocol or URL. Credentials show the last recorded exact-Credential inference completion with separate no-records and Unknown states; this is not manual verification, health or successful native completion. All 147 focused UI cases in five files pass after the paired Unknown correction; browser acceptance remains pending. |
 | Module tidy file permissions | Committed and pushed | Portable cp -p backups preserve original go.mod/go.sum bytes and modes under umask 077 on success, tidy-change rejection and Go failure. Three isolated fake-Go regressions and complete Task pass. Fresh main mandatory checking passes; commit 2d9ae34 is pushed with remote parity. No dependency or production behavior changes. |
 | Vault and storage F28 | Existing delivery reconciled; remaining scope identified | Published-object drain and graceful closure are already delivered in V88/V89. Genuine English/Chinese Secrets, Vault, storage and orphan-cleanup browser acceptance remains pending. Certificate and workload authentication remain separate functional gaps. The operation-local certificate SDK is committed and pushed as 810ab3b and passes component qualification. Its first real-Vault audit-readback failure is retained. The corrected reader passes nine pure controls, and the controlled retry passes all seven SDK cases with three matching audit pairs, four zero-HTTP controls and zero KV operations; independent owned cleanup passes. This is named-role SDK login evidence only, not saved identity or general compatibility. The combined candidate passes complete Task with 5,950 frontend cases and production build. Mixed real-Vault API/browser checks and independent cleanup pass; full pure-UI acceptance and mutation-dismiss focus restoration remain outstanding. Saved certificate-material storage still awaits the user decision. External compatibility and unverified cleanup-failure cases remain explicit. |
 

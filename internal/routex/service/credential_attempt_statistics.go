@@ -32,6 +32,10 @@ type CredentialRecentError struct {
 	CompletedAt *time.Time `json:"completed_at"`
 }
 
+type CredentialLastAttempt struct {
+	State       string     `json:"state"`
+	CompletedAt *time.Time `json:"completed_at"`
+}
 type CredentialAttemptStatistics struct {
 	CredentialID      string                  `json:"credential_id"`
 	ConnectionID      string                  `json:"connection_id"`
@@ -39,6 +43,7 @@ type CredentialAttemptStatistics struct {
 	HasMore           bool                    `json:"has_more"`
 	FailureStreak     CredentialFailureStreak `json:"failure_streak"`
 	RecentError       CredentialRecentError   `json:"recent_error"`
+	LastAttempt       CredentialLastAttempt   `json:"last_attempt"`
 }
 
 type CredentialAttemptStatisticsBatch struct {
@@ -84,7 +89,8 @@ func credentialStatisticsKnown(row credentialStatisticsAttempt, credentialID str
 // overflow sentinel. Unknown and canceled streak boundaries are never bridged.
 func projectCredentialAttemptStatistics(credentialID, connectionID string, rows []credentialStatisticsAttempt, observedAt time.Time) CredentialAttemptStatistics {
 	out := CredentialAttemptStatistics{CredentialID: credentialID, ConnectionID: connectionID,
-		FailureStreak: CredentialFailureStreak{State: "no_records"}, RecentError: CredentialRecentError{State: "no_records"}}
+		FailureStreak: CredentialFailureStreak{State: "no_records"}, RecentError: CredentialRecentError{State: "no_records"},
+		LastAttempt: CredentialLastAttempt{State: "no_records"}}
 	out.HasMore = len(rows) > credentialAttemptLimit
 	if out.HasMore {
 		rows = rows[:credentialAttemptLimit]
@@ -92,6 +98,13 @@ func projectCredentialAttemptStatistics(credentialID, connectionID string, rows 
 	out.InspectedAttempts = len(rows)
 	if len(rows) == 0 {
 		return out
+	}
+	// The bounded query orders completion time and byte-sensitive ID descending.
+	// An invalid newest row remains unknown; older valid rows cannot replace it.
+	out.LastAttempt.State = "unknown"
+	if credentialStatisticsKnown(rows[0], credentialID, observedAt) {
+		completedAt := rows[0].CompletedAt.UTC()
+		out.LastAttempt = CredentialLastAttempt{State: "recorded", CompletedAt: &completedAt}
 	}
 	out.FailureStreak.State = "unknown"
 	out.RecentError.State = "none"

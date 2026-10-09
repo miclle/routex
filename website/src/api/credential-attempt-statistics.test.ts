@@ -20,6 +20,7 @@ function fixture() {
         connection_id: 'con_exact',
         inspected_attempts: 2,
         has_more: false,
+        last_attempt: { state: 'recorded', completed_at: '2026-10-09T01:02:03Z' },
         failure_streak: { state: 'exact', count: 0, lower_bound: 0 },
         recent_error: {
           state: 'recorded',
@@ -64,6 +65,10 @@ describe('Credential inference-attempt statistics boundary', () => {
     expect(requests[0].headers.get('If-Match')).toBeUndefined()
     expect(result.items[0].failure_streak.count).toBe(0)
     expect(result.items[0].recent_error.code).toBe('upstream_timeout')
+    expect(result.items[0].last_attempt).toEqual({
+      state: 'recorded',
+      completed_at: '2026-10-09T01:02:03Z',
+    })
     expect(result.observed_at).toBe('2026-10-09T01:02:03.123456789Z')
   })
   it('keeps requested order and repeated query IDs exact across different Connections', async () => {
@@ -191,6 +196,7 @@ describe('Credential inference-attempt statistics boundary', () => {
       has_more: false,
       failure_streak: { state: 'no_records', count: null, lower_bound: 0 },
       recent_error: { state: 'no_records', code: null, completed_at: null },
+      last_attempt: { state: 'no_records', completed_at: null },
     })
     expect(decodeCredentialAttemptStatistics(value).items[0].failure_streak.count).toBeNull()
     Object.assign(row, {
@@ -198,6 +204,7 @@ describe('Credential inference-attempt statistics boundary', () => {
       has_more: true,
       failure_streak: { state: 'lower_bound', count: null, lower_bound: 100 },
       recent_error: { state: 'recorded', code: null, completed_at: '2026-10-09T01:02:02Z' },
+      last_attempt: { state: 'recorded', completed_at: '2026-10-09T01:02:03Z' },
     })
     expect(decodeCredentialAttemptStatistics(value).items[0].failure_streak.state).toBe(
       'lower_bound',
@@ -207,8 +214,46 @@ describe('Credential inference-attempt statistics boundary', () => {
       has_more: false,
       failure_streak: { state: 'unknown', count: null, lower_bound: 2 },
       recent_error: { state: 'unknown', code: null, completed_at: null },
+      last_attempt: { state: 'unknown', completed_at: null },
     })
     expect(decodeCredentialAttemptStatistics(value).items[0].failure_streak.lower_bound).toBe(2)
+  })
+  it.each([
+    'missing',
+    'extra',
+    'arrayState',
+    'recordedNull',
+    'unknownTime',
+    'emptyNonempty',
+    'futureNano',
+    'calendar',
+    'offset',
+  ])('rejects malformed last recorded completion: %s', (kind) => {
+    const row = value.items[0]
+    if (kind === 'missing') Reflect.deleteProperty(row, 'last_attempt')
+    else if (kind === 'extra') Object.assign(row.last_attempt, { code: 'upstream_error' })
+    else if (kind === 'arrayState') Object.assign(row.last_attempt, { state: ['recorded'] })
+    else if (kind === 'recordedNull') Object.assign(row.last_attempt, { completed_at: null })
+    else if (kind === 'unknownTime') row.last_attempt.state = 'unknown'
+    else if (kind === 'emptyNonempty')
+      Object.assign(row.last_attempt, { state: 'no_records', completed_at: null })
+    else if (kind === 'futureNano') row.last_attempt.completed_at = '2026-10-09T01:02:03.123456790Z'
+    else if (kind === 'calendar') row.last_attempt.completed_at = '2026-02-30T01:02:03Z'
+    else row.last_attempt.completed_at = '2026-10-09T09:02:03+08:00'
+    expect(() => decodeCredentialAttemptStatistics(value)).toThrow('unavailable')
+  })
+  it('keeps latest completion independent from recent error and preserves exact nanoseconds', () => {
+    const completedAt = '2026-10-09T01:02:03.123456789Z'
+    value.items[0].last_attempt.completed_at = completedAt
+    const decoded = decodeCredentialAttemptStatistics(value)
+    expect(decoded.items[0].last_attempt.completed_at).toBe(completedAt)
+    expect(decoded.items[0].recent_error.completed_at).toBe('2026-10-09T01:02:02Z')
+    value.items[0].last_attempt.state = 'unknown'
+    Object.assign(value.items[0].last_attempt, { completed_at: null })
+    expect(decodeCredentialAttemptStatistics(value).items[0].last_attempt).toEqual({
+      state: 'unknown',
+      completed_at: null,
+    })
   })
   it('rejects an ignored-abort reply', async () => {
     let release!: () => void

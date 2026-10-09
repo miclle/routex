@@ -224,6 +224,7 @@ it('preserves unbound Model attention alongside disabled Connections', async () 
 it('preserves no-attention after explicitly enabled configuration and complete zero unbound count', async () => {
   replaceProvider({
     ...provider,
+    enabled: true,
     connections: [{ ...provider.connections[0], enabled: true }],
   })
   await render(true)
@@ -309,4 +310,152 @@ it('switches EN→ZH→EN without reading or changing catalogue facts', async ()
   expect(reviewButton().textContent).toBe('Review connections')
   expect(requested).not.toHaveBeenCalled()
   expect(provider.connections[0].enabled).toBe(false)
+})
+
+function configurationBadge() {
+  const heading = [...host.querySelectorAll('h3')].find(
+    (item) => item.textContent === i18n.t('catalog:providers.serviceStatus'),
+  )
+  expect(heading).toBeDefined()
+  return heading!.parentElement!.querySelector('span')!
+}
+function connectionConfigurationCells() {
+  const table = [...host.querySelectorAll('table')].find(
+    (item) => item.getAttribute('aria-label') === i18n.t('catalog:providers.connectionRuntime'),
+  )
+  expect(table).toBeDefined()
+  return [...table!.querySelectorAll('tbody tr')].map((row) => row.querySelectorAll('td')[2])
+}
+function structuralConnectionCount() {
+  const label = [...host.querySelectorAll('dt')].find(
+    (item) => item.textContent === i18n.t('catalog:providers.readyConnections'),
+  )
+  expect(label).toBeDefined()
+  return label!.nextElementSibling!.textContent
+}
+function enabledOverviewProvider() {
+  return {
+    ...provider,
+    enabled: true,
+    connections: [{ ...provider.connections[0], enabled: true }],
+  }
+}
+
+it('shows stored configuration readiness for an explicitly enabled read-only Provider and Connection', async () => {
+  replaceProvider(enabledOverviewProvider())
+  cache.setQueryData(['permissions', actor], ['providers.read'])
+  await render(true)
+  expect(configurationBadge().textContent).toBe('Configuration ready')
+  expect(connectionConfigurationCells()[0].textContent).toBe('Configuration ready')
+  expect(structuralConnectionCount()).toBe('1 / 1')
+  expect(host.textContent).toContain(
+    'these facts do not confirm live health or runtime application',
+  )
+  expect(requested).not.toHaveBeenCalled()
+})
+
+it.each(['Provider', 'Connection'])(
+  'never presents disabled %s configuration as ready and preserves structural counts',
+  async (kind) => {
+    const value = enabledOverviewProvider()
+    if (kind === 'Provider') value.enabled = false
+    else value.connections[0].enabled = false
+    replaceProvider(value)
+    await render(true)
+    expect(configurationBadge().textContent).toBe('Disabled by configuration')
+    expect(connectionConfigurationCells()[0].textContent).toBe('Disabled by configuration')
+    expect(structuralConnectionCount()).toBe('1 / 1')
+    expect(host.textContent).not.toContain(i18n.t('catalog:providers.noAttention'))
+    expect(provider.connections[0].credentials[0].enabled).toBe(true)
+    expect(provider.connections[0].provider_models[0].enabled).toBe(true)
+  },
+)
+
+it.each(['Provider', 'Connection'])(
+  'keeps absent %s enablement unknown rather than ready, disabled or incomplete',
+  async (kind) => {
+    const value: Provider = enabledOverviewProvider()
+    if (kind === 'Provider') delete value.enabled
+    else delete value.connections[0].enabled
+    replaceProvider(value)
+    await render(true)
+    expect(configurationBadge().textContent).toBe('Configuration availability: Unknown')
+    expect(connectionConfigurationCells()[0].textContent).toBe(
+      'Configuration availability: Unknown',
+    )
+    expect(structuralConnectionCount()).toBe('1 / 1')
+    expect(host.textContent).not.toContain(i18n.t('catalog:providers.noAttention'))
+  },
+)
+
+it('separates mixed ready, disabled and unknown Connection rows without redefining child counts', async () => {
+  const value = enabledOverviewProvider()
+  replaceProvider({
+    ...value,
+    connections: [
+      value.connections[0],
+      { ...value.connections[0], id: 'con_disabled', enabled: false },
+      { ...value.connections[0], id: 'con_unknown', enabled: undefined },
+    ],
+  })
+  await render(true)
+  expect(configurationBadge().textContent).toBe('Configuration ready')
+  expect(connectionConfigurationCells().map((cell) => cell.textContent)).toEqual([
+    'Configuration ready',
+    'Disabled by configuration',
+    'Configuration availability: Unknown',
+  ])
+  expect(structuralConnectionCount()).toBe('3 / 3')
+})
+
+it('does not turn an enabled incomplete Connection plus unknown enablement into known unavailability', async () => {
+  const value = enabledOverviewProvider()
+  replaceProvider({
+    ...value,
+    connections: [
+      { ...value.connections[0], credentials: [] },
+      { ...value.connections[0], id: 'con_unknown', enabled: undefined },
+    ],
+  })
+  await render(true)
+  expect(configurationBadge().textContent).toBe('Configuration availability: Unknown')
+  expect(connectionConfigurationCells()[0].textContent).toBe('Configuration incomplete')
+})
+
+it.each(['empty', 'missing credential', 'missing model'])(
+  'keeps known %s configuration incomplete instead of unknown',
+  async (kind) => {
+    const value = enabledOverviewProvider()
+    if (kind === 'empty') value.connections = []
+    else if (kind === 'missing credential') value.connections[0].credentials = []
+    else value.connections[0].provider_models = []
+    replaceProvider(value)
+    await render(true)
+    expect(configurationBadge().textContent).toBe('Configuration incomplete')
+  },
+)
+
+it('updates disabled and unknown stored configuration guidance live in EN and ZH', async () => {
+  const value: Provider = enabledOverviewProvider()
+  delete value.connections[0].enabled
+  replaceProvider(value)
+  await render(true)
+  expect(configurationBadge().textContent).toBe('Configuration availability: Unknown')
+  await act(async () => {
+    await i18n.changeLanguage('zh')
+  })
+  expect(configurationBadge().textContent).toBe('配置可用性：未知')
+  expect(connectionConfigurationCells()[0].textContent).toBe('配置可用性：未知')
+  expect(host.textContent).toContain('这些信息不证明实时健康状态或运行时配置已应用')
+  replaceProvider({ ...provider, enabled: false })
+  await render(true)
+  expect(configurationBadge().textContent).toBe('配置已停用')
+  await act(async () => {
+    await i18n.changeLanguage('en')
+  })
+  expect(configurationBadge().textContent).toBe('Disabled by configuration')
+  expect(connectionConfigurationCells()[0].textContent).toBe('Disabled by configuration')
+  expect(host.textContent).toContain(
+    'these facts do not confirm live health or runtime application',
+  )
 })

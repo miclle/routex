@@ -75,6 +75,9 @@ func TestCredentialAttemptStatisticsSentinelAndSanitization(t *testing.T) {
 	if got.InspectedAttempts != 100 || !got.HasMore || got.FailureStreak.State != "lower_bound" || got.FailureStreak.Count != nil || got.FailureStreak.LowerBound != 100 || got.RecentError.Code != nil {
 		t.Fatal(got)
 	}
+	if got.LastAttempt.State != "recorded" || got.LastAttempt.CompletedAt == nil || !got.LastAttempt.CompletedAt.Equal(now) {
+		t.Fatal("sentinel must not hide the newest recorded completion", got)
+	}
 	rows[0].Status = "success"
 	got = projectCredentialAttemptStatistics("crd_target", "con_target", rows, now)
 	if got.FailureStreak.State != "exact" || got.FailureStreak.Count == nil || *got.FailureStreak.Count != 0 || got.RecentError.State != "recorded" {
@@ -99,5 +102,50 @@ func TestCredentialAttemptStatisticsRejectsInvalidBatchBeforeDatabase(t *testing
 		if got, err := s.GetCredentialAttemptStatistics(context.Background(), "usr_actor", "prv_target", ids); got != nil || err != apperrors.ErrBadRequest {
 			t.Fatal(got, err, ids)
 		}
+	}
+}
+
+func TestCredentialAttemptStatisticsLastRecordedCompletion(t *testing.T) {
+	now := time.Date(2026, 10, 9, 12, 0, 0, 123456000, time.UTC)
+	newest := credentialStatisticsAttempt{ID: "att_newest", CredentialID: "crd_target", Status: "success", StartedAt: now.Add(-time.Second), CompletedAt: now}
+	older := newest
+	older.ID, older.Status, older.ErrorCode = "att_older", "error", "upstream_timeout"
+	older.StartedAt, older.CompletedAt = now.Add(-3*time.Second), now.Add(-2*time.Second)
+	for _, status := range []string{"success", "error", "canceled"} {
+		newest.Status = status
+		got := projectCredentialAttemptStatistics("crd_target", "con_target", []credentialStatisticsAttempt{newest, older}, now)
+		if got.LastAttempt.State != "recorded" || got.LastAttempt.CompletedAt == nil || !got.LastAttempt.CompletedAt.Equal(now) || got.LastAttempt.CompletedAt.Location() != time.UTC {
+			t.Fatalf("latest %s completion not retained: %+v", status, got.LastAttempt)
+		}
+		if status != "error" && (got.RecentError.CompletedAt == nil || !got.RecentError.CompletedAt.Equal(older.CompletedAt)) {
+			t.Fatal("latest attempt must remain separate from the older recorded error", got)
+		}
+	}
+	for _, corrupt := range []string{"status", "credential", "id", "start", "completion", "chronology", "future"} {
+		row := newest
+		switch corrupt {
+		case "status":
+			row.Status = "legacy_unknown"
+		case "credential":
+			row.CredentialID = "CRD_TARGET"
+		case "id":
+			row.ID = "att_invalid "
+		case "start":
+			row.StartedAt = time.Time{}
+		case "completion":
+			row.CompletedAt = time.Time{}
+		case "chronology":
+			row.StartedAt = now.Add(time.Second)
+		case "future":
+			row.CompletedAt = now.Add(time.Nanosecond)
+		}
+		got := projectCredentialAttemptStatistics("crd_target", "con_target", []credentialStatisticsAttempt{row, older}, now)
+		if got.LastAttempt.State != "unknown" || got.LastAttempt.CompletedAt != nil {
+			t.Fatalf("%s newest row must not fall back to an older completion: %+v", corrupt, got.LastAttempt)
+		}
+	}
+	empty := projectCredentialAttemptStatistics("crd_target", "con_target", nil, now)
+	if empty.LastAttempt.State != "no_records" || empty.LastAttempt.CompletedAt != nil {
+		t.Fatal("no recorded attempts is distinct from unknown completion", empty)
 	}
 }

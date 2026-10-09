@@ -44,6 +44,42 @@ function connectionReady(connection: Connection) {
   return readyCredentialCount(connection) > 0 && enabledModelCount(connection) > 0
 }
 
+type ConfigurationState = 'ready' | 'incomplete' | 'disabled' | 'unknown'
+
+function connectionConfigurationState(
+  provider: Provider,
+  connection: Connection,
+): ConfigurationState {
+  if (provider.enabled === false || connection.enabled === false) return 'disabled'
+  if (provider.enabled !== true || connection.enabled !== true) return 'unknown'
+  return connectionReady(connection) ? 'ready' : 'incomplete'
+}
+
+function providerConfigurationState(provider: Provider): ConfigurationState {
+  if (provider.enabled === false) return 'disabled'
+  if (provider.enabled !== true) return 'unknown'
+  const states = provider.connections.map((connection) =>
+    connectionConfigurationState(provider, connection),
+  )
+  if (states.includes('ready')) return 'ready'
+  if (states.includes('unknown')) return 'unknown'
+  if (states.length > 0 && states.every((state) => state === 'disabled')) return 'disabled'
+  return 'incomplete'
+}
+
+const configurationLabels = {
+  ready: 'providers.serviceConfigured',
+  incomplete: 'providers.serviceNotConfigured',
+  disabled: 'providers.configurationDisabled',
+  unknown: 'providers.configurationUnknown',
+} as const
+const configurationDescriptions = {
+  ready: 'providers.serviceReadyDescription',
+  incomplete: 'providers.serviceNotConfiguredDescription',
+  disabled: 'providers.configurationDisabledDescription',
+  unknown: 'providers.configurationUnknownDescription',
+} as const
+
 function formatTime(value: string, locale: string) {
   return new Intl.DateTimeFormat(locale, {
     dateStyle: 'medium',
@@ -207,6 +243,7 @@ export function ProviderOverview({
   onSelectTab: (tab: ProviderTab) => void
 }) {
   const { t } = useTranslation('catalog')
+  const configurationState = providerConfigurationState(provider)
   const readyConnections = provider.connections.filter(connectionReady).length
   const validCredentials = provider.connections.reduce(
     (total, connection) => total + readyCredentialCount(connection),
@@ -252,20 +289,14 @@ export function ProviderOverview({
         <Card className="xl:col-span-2">
           <CardHeader className="gap-2 sm:flex-row sm:items-center sm:justify-between">
             <CardTitle>{t('providers.serviceStatus')}</CardTitle>
-            <Badge variant={readyConnections > 0 ? 'success' : 'outline'}>
-              {readyConnections > 0
-                ? t('providers.serviceConfigured')
-                : t('providers.serviceNotConfigured')}
+            <Badge variant={configurationState === 'ready' ? 'success' : 'outline'}>
+              {t(configurationLabels[configurationState])}
             </Badge>
           </CardHeader>
           <CardContent className="space-y-5">
             <p className="text-sm text-muted-foreground">
-              {readyConnections > 0
-                ? t('providers.serviceReadyDescription', {
-                    ready: readyConnections,
-                    models: enabledModels,
-                  })
-                : t('providers.serviceNotConfiguredDescription')}
+              {t(configurationDescriptions[configurationState])}{' '}
+              {t('providers.configurationAdvisory')}
             </p>
             <dl className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
               {[
@@ -311,6 +342,7 @@ export function ProviderOverview({
               provider={provider}
               showEmpty={
                 attention.length === 0 &&
+                provider.enabled === true &&
                 provider.connections.every((connection) => connection.enabled === true)
               }
               onReview={() => onSelectTab('models')}
@@ -342,10 +374,14 @@ export function ProviderOverview({
                   <td>{connection.name}</td>
                   <td>{protocolLabel(connection.protocol)}</td>
                   <td>
-                    <Badge variant={connectionReady(connection) ? 'success' : 'outline'}>
-                      {connectionReady(connection)
-                        ? t('providers.connectionReady')
-                        : t('providers.connectionNeedsConfiguration')}
+                    <Badge
+                      variant={
+                        connectionConfigurationState(provider, connection) === 'ready'
+                          ? 'success'
+                          : 'outline'
+                      }
+                    >
+                      {t(configurationLabels[connectionConfigurationState(provider, connection)])}
                     </Badge>
                   </td>
                   <td>
