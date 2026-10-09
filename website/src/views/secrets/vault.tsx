@@ -441,6 +441,7 @@ export function VaultWorkspace({
     setConfirm(false)
     const abort = new AbortController()
     controller.current = abort
+    let refreshList = false
     try {
       const result = await runVaultProbe(intent, gate.csrf, abort.signal)
       if (!mounted.current) return
@@ -454,7 +455,7 @@ export function VaultWorkspace({
       setIntent(undefined)
       setUncertain(false)
       setNotice('recorded')
-      void list.refetch()
+      refreshList = true
     } catch (error) {
       if (!mounted.current) return
       const status = error instanceof VaultError ? error.status : 0
@@ -475,6 +476,14 @@ export function VaultWorkspace({
       if (controller.current === abort) controller.current = null
       if (mounted.current) setBusy(false)
     }
+    // A completed command must settle before its own list fetch revokes read freshness.
+    if (
+      refreshList &&
+      mounted.current &&
+      !abort.signal.aborted &&
+      authority('test')?.epoch === gate.epoch
+    )
+      void list.refetch()
   }
   const formatDate = (value: string) =>
     new Date(value).toLocaleString(i18n.resolvedLanguage === 'zh' ? 'zh-CN' : 'en-US')

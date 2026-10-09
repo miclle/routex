@@ -564,3 +564,109 @@ it('queued orphan menu action after read revocation cannot start a private previ
   expect(reads.some((path) => path.includes('/provider-orphans'))).toBe(false)
   expect(writes).toHaveLength(0)
 })
+
+for (const { action, label, suffix } of [
+  { action: 'write', label: 'Write test', suffix: 'write' },
+  { action: 'read', label: 'Read test', suffix: `${probe().id}/read` },
+  { action: 'cleanup', label: 'Clean up owned probe', suffix: `${probe().id}/cleanup` },
+]) {
+  it(`settles a successful ${action} before its own list refresh without unknown intent or duplicate command`, async () => {
+    listingProbe = action !== 'write'
+    await mount()
+    await click(label)
+    await changeInput('Reason', 'Reviewed completed command')
+    await click('Review command')
+    const listReads = reads.filter((path) => path.startsWith('/admin/secrets/integrations?')).length
+    listGate = new Promise((done) => {
+      resolveList = done
+    })
+    const confirm = button('Confirm action')
+    await act(async () => {
+      confirm.click()
+      confirm.click()
+    })
+    await settle()
+    expect(writes).toHaveLength(1)
+    expect(writes[0].url).toBe(`/admin/secrets/integrations/${vaultID}/probes/${suffix}`)
+    expect(writes[0].signal?.aborted).toBe(false)
+    const submitted = JSON.parse(writes[0].data)
+    expect(submitted).toEqual({
+      request_id: expect.stringMatching(
+        /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/,
+      ),
+      reason: 'Reviewed completed command',
+    })
+    expect(writes[0].headers['If-Match']).toBe(`"${vaultETag}"`)
+    expect(writes[0].headers['X-CSRF-Token']).toBe(session.csrf_token)
+    expect(reads.filter((path) => path.startsWith('/admin/secrets/integrations?'))).toHaveLength(
+      listReads + 1,
+    )
+    expect(
+      cache
+        .getQueryCache()
+        .findAll()
+        .find((query) => query.queryKey[1] === 'vault')?.state.fetchStatus,
+    ).toBe('fetching')
+    resolveList!()
+    await settle()
+    expect(document.body.textContent).toContain(
+      'Current recorded probe observations were returned.',
+    )
+    expect(document.body.textContent).toContain(probe().id)
+    expect(document.body.textContent).toContain('Recorded owned version: 1')
+    expect(document.body.textContent).not.toContain('The outcome is unknown.')
+    expect(button('Retry original intent')).toBeUndefined()
+    expect(writes).toHaveLength(1)
+    expect(writes[0].signal?.aborted).toBe(false)
+    expect(cache.getMutationCache().getAll()).toHaveLength(0)
+  })
+}
+
+it('external list renewal during a pending probe keeps the exact uncertain request for explicit retry', async () => {
+  await mount()
+  await click('Write test')
+  await changeInput('Reason', 'Retain externally interrupted command')
+  await click('Review command')
+  const previous = client.defaults.adapter
+  let releaseCommand: (() => void) | undefined
+  const commandGate = new Promise<void>((done) => {
+    releaseCommand = done
+  })
+  client.defaults.adapter = async (config) => {
+    const result = await (previous as (c: InternalAxiosRequestConfig) => Promise<unknown>)(config)
+    if (config.method === 'post') await commandGate
+    return result as never
+  }
+  try {
+    await click('Confirm action')
+    expect(writes).toHaveLength(1)
+    const submitted = writes[0].data
+    const reviewedETag = writes[0].headers['If-Match']
+    await act(async () => {
+      await cache.refetchQueries({ queryKey: ['admin', 'vault'] })
+    })
+    expect(writes[0].signal?.aborted).toBe(true)
+    releaseCommand!()
+    await settle()
+    expect(document.body.textContent).toContain('The outcome is unknown.')
+    expect(document.body.textContent).not.toContain(
+      'Current recorded probe observations were returned.',
+    )
+    expect(button('Retry original intent')).toBeDefined()
+    expect(writes).toHaveLength(1)
+    await click('Retry original intent')
+    expect(writes).toHaveLength(2)
+    expect(writes[1].url).toBe(writes[0].url)
+    expect(writes[1].data).toBe(submitted)
+    expect(writes[1].headers['If-Match']).toBe(reviewedETag)
+    expect(writes[1].signal?.aborted).toBe(false)
+    expect(document.body.textContent).toContain(
+      'Current recorded probe observations were returned.',
+    )
+    expect(document.body.textContent).not.toContain('The outcome is unknown.')
+    expect(button('Retry original intent')).toBeUndefined()
+    expect(cache.getMutationCache().getAll()).toHaveLength(0)
+  } finally {
+    releaseCommand?.()
+  }
+})
