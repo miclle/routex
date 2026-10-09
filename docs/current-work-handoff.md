@@ -20,10 +20,79 @@ credential writes. English/Chinese switching retains that distinction without
 fetching the storage-policy endpoint or issuing writes. Focused Vault and
 internationalization tests pass (30 cases); formatting and mandatory checking
 pass, with owned gate processes closed and original development preserved.
-Certificate SDK qualification remains open: its first focused run exposed incorrect 307/308 test expectations under
-Go 1.27.1. Those responses are returned without replay; the production redirect
-barrier remains unchanged. The failed run is preserved and a test-only successor
-is being qualified. This is not saved certificate identity or real-Vault acceptance.
+The operation-local certificate SDK is delivered in
+`810ab3bb7e48d58623fb1e91ebf71d897b2fcccb`, with exact remote-main parity. Its
+component qualification passes formatting, focused tests, mandatory checking,
+complete Task testing (5,794 frontend cases in 217 files) and binary build. The
+first real-Vault run matches all seven SDK observations but fails audit readback:
+Vault records the denial in hashed response.data.error rather than outer error.
+That failed run remains preserved. The corrected R7 reader passes nine pure
+controls, and the controlled real-Vault retry passes all seven cases: three audit
+pairs (two successful leases and one missing-role denial), four zero-HTTP controls
+and zero KV operations. Independent owned cleanup passes with original development
+preserved. This proves only explicit named-role SDK login, not saved certificate
+identity or general external-provider compatibility.
+
+The Connection table now shows the recorded adapter, with Unknown for missing
+metadata. Credential tables show the last recorded inference completion separately
+from Verify/Test and recent errors; no records and unknown facts remain distinct.
+The module-tidy check preserves original file permissions with cp -p. Main
+preflight formatting, three isolated mode-preservation regressions and Credential
+statistics Go tests pass. After correcting the missing paired Unknown translation,
+all 147 focused UI cases in five files pass; the initial failure remains preserved.
+The preceding 2,121-path candidate passes mandatory checking (111.411 seconds),
+complete Task testing (336.873 seconds, 5,935 frontend cases in 223 files) and
+production build (9.960 seconds), with exact source/modes and independent process
+closure. The module-permission fix is delivered as
+`2d9ae349f4e11c65a33e8080bf9035d234db0596`, with exact remote-main parity and a
+fresh main mandatory check (70.145 seconds). Its three focused regressions pass.
+
+The first ordinary Vault browser run confirms bilingual navigation, saved Token
+configuration and canceled-draft cleanup, but fails the Write-test outcome:
+accepted server facts are shown as unknown after the command triggers its own
+list refresh. The failed run remains failed. Independent inspection confirms all
+owned processes, listeners and Compose resources absent; the original development
+service remains alive. Four new regressions reproduce the accepted-command abort,
+including a successful explicit retry after a genuine external refresh. The
+adopted correction settles the command before its own refresh while preserving
+external authority-change guards. Provider Overview separately distinguishes
+stored ready, disabled, incomplete and unknown configuration, retaining structural
+counts without claiming route eligibility or live health. The first subsequent
+complete qualification retains one failed legacy quality fixture: its ready
+assertion omitted stored Provider and Connection enablement. Adding those two
+explicit true values preserves every navigation assertion and all unknown/disabled
+negative cases. The fresh 2,121-path retry passes mandatory checking (103.531
+seconds), complete Task testing (321.702 seconds, 5,950 frontend cases in 223
+files, Go race/coverage, five HTTP cases, thirteen script cases and production
+assets), and binary build (3.641 seconds), with exact bytes/modes and independent
+process closure. All 186 focused cases pass. Fresh main mandatory checking passes
+in 63.455 seconds. The Vault result correction is delivered in
+`96b26896efb67f6190c9b3094a482b8b75cb63b6`, with exact remote-main parity.
+
+The controlled real-Vault successor passes mixed API/browser checkpoints with
+independent cleanup. Two ordinary production-UI Write commands show Succeeded
+and Awaiting Read without a false unknown result. API Read A succeeds with
+conditional cleanup acknowledgement; cleanup-only B retains Read Not attempted.
+Browser saved facts distinguish both results. Reviewed future-write policy creates
+one Vault-backed pending disabled Credential while the inline control stays
+unchanged. Live orphan references block cleanup; a reviewed Credential deletion,
+fresh eligible review and independent cleanup Token yield the exact acknowledged
+receipt. Future policy is restored to inline. Bilingual navigation, incomplete
+Provider configuration, canceled replacement drafts, and ordinary-member API403
+and UI denial pass; browser errors are absent. All owned groups, listeners and
+Compose resources are independently absent and original development remains alive.
+This is mixed API/browser evidence, not seven pure-UI checkpoints or complete F28
+acceptance. The save helper wrongly expected201 but observed200; no command was
+replayed, and only fresh current configuration was reconciled. After successful
+Write dismissal AX focus was on the WebArea; mutation-dismiss trigger restoration
+remains a follow-up rather than a claimed pass. Read-only/cancel focus returns to
+the row trigger. Complete schema93 Full182 and positive Credential recency/adapter
+browser acceptance remain pending for the combined candidate.
+
+Mixed API/browser readback SHA-256:
+`9495db5364b7eb155066ef0574492cbd2d3110cd52eef3188c1173ff09db429e`.
+Independent cleanup SHA-256:
+`173bbf0bb1444ba0c8b320d94c13c1930d020210d86f419c1fd47ac2ca63675f`.
 
 | Work package | Current state | Verified evidence / remaining gate |
 |---|---|---|
@@ -35,7 +104,9 @@ is being qualified. This is not saved certificate identity or real-Vault accepta
 | Provider Overview unbound attention | Delivered in this phase | Genuine English/Chinese reads show one unbound ProviderModel and one disabled Connection, with actions navigating to the existing Models and Connections tabs. Zero-weight stored bindings remain bound. Unknown, renewal and error boundaries retain focused-test coverage. |
 | Credential inference statistics V93 | Delivered in this phase | Inference-only exact-Credential statistics remain separate from manual Verify/Test, preserve unknown/no-records/lower-bound distinctions, and never auto-disable a Credential. Frozen GORM V93 migration and ordered index validation pass the complete dual-driver upgrade/concurrent-startup matrix. The independent top101 probe passes both databases across 30,600 synthetic attempts; LIMIT 101 bounds returned rows, not scan work. Genuine production calls produce upstream 401/401/200 and gateway 502/502/200 once each, with real cooldowns and normal-API persistence reads. English/Chinese tables show failure streak 2 then 0, retain the second recent error and original manual Verified/enabled facts, and leave the pending sibling disabled/no-records. Catalogue, grants, 0/100 weights and immutable history remain exact; browser errors are absent and independent owned cleanup passes. The public call DTO does not expose per-attempt Credential IDs or the private native-completion enum; no such API proof is claimed. |
 | Model configured availability F12 | Delivered in this phase | R7 passes mandatory checking in 100.529 seconds, complete Task in 335.348 seconds (5,924 frontend cases/223 files, Go race/coverage, five HTTP and ten lifecycle checks, production assets), and binary build in 2.637 seconds. All 2,116 source paths/modes remain exact and owned groups close. Genuine English/Chinese owner list/detail reads show Ready; a normal-API-created model-only reader without providers.read receives null and sees Unknown, stable IDs and disabled writes, without retained owner facts. The original complete Task test-integration passes in 2,747.853 seconds: all 5,595 ordinary named results and schema93 with 182 ordered scenarios plus four constraints/444 named results per database. Strict complete-stream validation and independent process/group/port/Compose cleanup pass; original development remains alive. The earlier failed fixture and Tasks remain retained. |
-| Vault and storage F28 | Existing delivery reconciled; remaining scope identified | Published-object drain and graceful closure are already delivered in V88/V89. Genuine English/Chinese Secrets, Vault, storage and orphan-cleanup browser acceptance remains pending. Certificate and workload authentication remain separate functional gaps. The operation-local certificate SDK R2 resolves the strict leading-PEM review finding and passes independent source review; the first focused qualification fails only the 307/308 fixture classification and a test-only successor is in progress. Compilation, successful tests, real Vault compatibility and adoption remain pending. Saved certificate-material storage still awaits the user decision. External compatibility and unverified cleanup-failure cases remain explicit. |
+| Provider pool recorded metadata | Source adopted; acceptance pending | Connections show recorded Native/Azure adapters without inference from protocol or URL. Credentials show the last recorded exact-Credential inference completion with separate no-records and Unknown states; this is not manual verification, health or successful native completion. All 147 focused UI cases in five files pass after the paired Unknown correction; browser acceptance remains pending. |
+| Module tidy file permissions | Committed and pushed | Portable cp -p backups preserve original go.mod/go.sum bytes and modes under umask 077 on success, tidy-change rejection and Go failure. Three isolated fake-Go regressions and complete Task pass. Fresh main mandatory checking passes; commit 2d9ae34 is pushed with remote parity. No dependency or production behavior changes. |
+| Vault and storage F28 | Existing delivery reconciled; remaining scope identified | Published-object drain and graceful closure are already delivered in V88/V89. Genuine English/Chinese Secrets, Vault, storage and orphan-cleanup browser acceptance remains pending. Certificate and workload authentication remain separate functional gaps. The operation-local certificate SDK is committed and pushed as 810ab3b and passes component qualification. Its first real-Vault audit-readback failure is retained. The corrected reader passes nine pure controls, and the controlled retry passes all seven SDK cases with three matching audit pairs, four zero-HTTP controls and zero KV operations; independent owned cleanup passes. This is named-role SDK login evidence only, not saved identity or general compatibility. The combined candidate passes complete Task with 5,950 frontend cases and production build. Mixed real-Vault API/browser checks and independent cleanup pass; full pure-UI acceptance and mutation-dismiss focus restoration remain outstanding. Saved certificate-material storage still awaits the user decision. External compatibility and unverified cleanup-failure cases remain explicit. |
 
 Rolling-warning scope reconciliation confirms existing Personal, Personal root-Key,
 Project aggregate, Team aggregate and Project root-Key producers. Replacement Keys
@@ -53,7 +124,7 @@ The remaining F30 version/acknowledgement scope requires an explicit deployment
 target contract; routing history does not prove complete authorization or fleet
 revocation.
 
-Current schema93 full-matrix acceptance SHA-256:
+Preceding schema93 full-matrix acceptance SHA-256 (the combined successor remains pending):
 `dd780747d8764edf0b1c2e357bb8a96e65278a0079fd8a428a519c3dfe693f0b`.
 Positive Credential browser/readback SHA-256:
 `ed7faa656dddf67e9175606102d150dd9d800e419d66c8c38634cf1f7e4f3635`.
