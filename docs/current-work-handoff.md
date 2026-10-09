@@ -2,6 +2,122 @@
 
 Updated: 2026-10-09. Status: resumed by explicit user instruction; prioritize partially completed capabilities. [Implementation](IMPLEMENTATION.md) records engineering contracts and historical acceptance evidence. Earlier checkpoints below remain historical.
 
+## Provider enablement continuation after browser repairs (2026-10-09)
+
+Browser-boundary fixes are committed and remote-verified as
+`96abc062756162a205ad9ee7ab1ad2a19bb33780`. Exact-head Actionlint37898807803
+and GolangCI37898807664 pass. CI37898807741 now succeeds completely: Backend,
+Frontend, PostgreSQL/MySQL Integration and Build Artifacts all pass.
+
+An earlier separate Compose diagnostic selected the original Team native protocol,
+Personal quota warning, Team quota warning and maximum Team creation cases on
+both databases. Its nine temporary diagnostic leaves preserve original assertions
+and bounds and are excluded from delivery. The run closes unsuccessfully in
+567.113 seconds: seven direct scenarios pass; PostgreSQL Team native protocols
+fails at the unknown-usage native invocation's pre-request runtime refresh
+(exact frozen caller line534; helper line226/227), before the later direct Team
+Session authentication at543/545. The initial unnumbered-source interpretation
+was corrected; this differs from the historical MySQL outsider-creation failure.
+All eight direct scenarios/eleven named outcomes are balanced; 2,061 source
+bytes/modes remain exact, and twelve captured process/group identities, two ports
+and owned Compose resources are independently absent. Exact current proof clauses
+and historical producers remain unknown. A standalone positive second-page
+quota-proof witness is independently source-reviewed. Its old variant closes
+with exactly the expected 7/1 merge failure on both engines after one verified
+original-deadline-plus-1ms crossing per driver, in 210.799 seconds. All five named
+outcomes balance, 2,059 source bytes/modes remain exact and twelve owned identities,
+two ports and Compose resources are independently absent. The one-boolean new
+comparison passes both original scenarios and all five named outcomes in 238.015
+seconds. Each driver crosses the unchanged original deadline exactly once, then
+executes a real refresh; every original assertion remains intact. Its 2,059 source
+bytes/modes and twelve identities, two ports and Compose absence are independently
+verified. This proves the controlled positive-fixture expiry mechanism, not the
+historical failure producer. The positive-page fixture correction is selected
+for a new clean candidate; production validity bounds and negative fault intervals
+remain unchanged. A separately reviewed three-leaf temporary Team diagnostic passes
+both original scenarios/all five names in 181.544 seconds. Its 2,061 source
+bytes/modes and twelve identities, two ports and Compose absence are independently
+verified. No unavailable return guard was reproduced, so the historical Team
+failure cause remains unknown; temporary diagnostics are excluded from delivery.
+The initial source review caught an ignored GORM AddError result; the qualified
+clean candidate below includes its explicit result assignment.
+
+The next V91 source composition starts from the complete current-main foundation,
+preserves all delivered history/Connection/row-action interfaces and adds only the
+original 141 V91 code paths. Independent review passes the exact 2,066-file
+capture, both overlap merges, 1,925 preserved non-adoption paths and protected
+file modes. A separate five-file append-only domain/rules proposal also passes
+review, retaining current focus rules and excluding progress documents.
+The new root qualification source includes the reviewed positive-quota fixture
+with the explicit AddError result assignment and all five domain/rule afterimages.
+Its 2,066-path floor is `bde3464f43a51d9f65a3bec67cac09f44da0ebf4c2223d160d62252cce5c0973`.
+Both paired rules explicitly restore the delivered focus paragraph before the
+new appendices; 2,061 other paths and every file mode remain exact. Independent
+review passes this boundary. Formatting, mandatory check and complete Task pass
+on this source: 5,624 frontend assertions in 213 files, Go race/coverage, five
+frontend Node checks, ten development lifecycle checks, production build/assets.
+All four owned qualification process groups are independently absent and all
+source bytes/modes remain exact. Production binary SHA-256 is
+`bcd8f94dac975863b0c9cedcdaa8c4584598936fe210e31d92cf6c1af6f54916`.
+The complete dual-driver run used the unchanged official
+`go tool task test-integration` entry point, preserving original 176 scenarios
+and bounds on an exact source-only copy; its failed outcome is recorded below.
+Its compiled supervisor matches the previously reviewed helper exactly. All 5,385 ordinary internal Go names pass:
+the original 5,380 remain present and exactly five delivered UTC regressions are
+added. Native-helper source census advances only to 2,066; all 48 resource-denied
+pure controls pass, while native launch authority remains unbound. Complete
+integration, native/browser and main-adoption acceptance remain pending.
+No formal capability total changes.
+
+
+The current official Full176 closes unsuccessfully in 3,755.286 seconds,
+Task exit 201 without cancellation or outer timeout. All 5,385 ordinary names
+pass; both drivers emit their complete 438-name inventories and 180 direct
+scenarios including four constraints. PostgreSQL has seven direct failures:
+Project creation overview; Personal, Team and Project monthly warnings; Personal
+Key warning; Project Key monthly and rolling warnings. MySQL has four: Team
+attachments, Member Teams, Team monthly warnings and Project monthly warnings.
+All eight supervised workers join. Exact 2,066 source bytes/modes and fourteen
+captured PIDs, nine process groups, two ports and all owned Compose resources
+are independently verified unchanged/absent. Complete failed-readback SHA-256 is
+`087e244a37cc45147149136b1c128dd574de2bfeebd5c1709f1390dd8b1cea9d`.
+No common producer is established. Four temporary request-local stage/timing
+diagnostic packets are now composed and independently source-reviewed. The
+2,067-file diagnostic derivative preserves original operations, assertions and
+time limits and passes compile-only checks with zero tests selected. Its nine
+direct scenarios per driver cover all distinct failures. Both original driver
+streams finish with all nine direct scenarios and eleven named results passing
+per driver, without skips, races or failure traces. The root closes in 419.663
+seconds. The collector records RUNNER_FAIL because 9,467,752 combined output
+bytes exceed its unchanged 8 MiB ceiling; its final exit zero is not treated as
+collector success. Both complete original streams remain retained. Independent
+readback verifies all 2,067 source bytes/modes, fifteen captured PIDs, thirteen
+groups, two ports and owned Compose absence. Readback SHA-256 is
+`4ed2254551b43516d6681d7b03381096665af065400ccc9410b93705e52970b0`.
+No original failed guard was reproduced, and this diagnostic does not replace
+complete regression. Temporary instrumentation is excluded from delivery.
+Native/browser/main adoption remains blocked by the failed complete regression.
+Earlier successful focused witnesses retain only their scope.
+
+A separate minimal fixture correction adds only three Personal and two Project
+positive pre-admission refresh statements, preserving production leases, original
+assertions and all negative/unpublished paths. Source review passes. Temporary
+old/new controls will require a real crossing of the existing authorization
+deadline before the fourth positive admission; actual validation remains pending.
+The Connection transport successor is being merged separately, preserving newer
+diagnostic and Credential-row interfaces; it has no current qualification claim.
+
+The screen is unlocked again. A separate source-only Connection diagnostic
+successor adds the missing Credentials-row Test connection action, locked to
+the exact selected Credential and Connection. It reuses the existing diagnostic
+dialog/API and preserves the Connection-row selector, fresh Session authority,
+reviewed metadata, independent permissions and transient results. Independent
+source review passes both the six-file UI addon and the complete 2,077-path
+composition: 38 changed paths, 2,039 preserved byte/mode-exact, schema 91 and
+original 176 scenarios plus diagnostic 177. Formatting, actual tests and browser
+acceptance remain pending; no backend/schema or diagnostic delivery is claimed.
+
+
 ## Active continuation and browser availability (2026-10-09)
 
 Baseline main `9bce12826e25f393f0d7873f6fc8a22eb6c201be` is pushed and
@@ -48,8 +164,8 @@ production guards, original assertions and polling bounds. No timeout is increas
 The browser fixture drains gracefully; its six captured process/group identities,
 three ports and Compose resources are independently absent. The original
 development service, authenticated page, database and durable journal are preserved.
-These fixes are locally qualified for a phased main delivery; new exact-head
-remote CI remains pending. The full objective stays active with no new formal
+These fixes are delivered as 96abc062756162a205ad9ee7ab1ad2a19bb33780; all
+exact-head remote CI jobs now pass. The full objective stays active with no new formal
 feature-completion claim.
 
 Whole-Provider enablement remains isolated. The prior captured source passes
