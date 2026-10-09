@@ -19,6 +19,7 @@ let root: Root
 let container: HTMLDivElement
 let cache: QueryClient
 let role: 'admin' | 'member'
+let providerPermissions: string[] | null
 let requests: InternalAxiosRequestConfig[]
 let failures: Record<string, number>
 let keys: PersonalKey[]
@@ -42,6 +43,7 @@ const makeKey = (status: PersonalKey['status'] = 'pending'): PersonalKey => ({
 beforeEach(() => {
   callableModels = [{ id: 'mdl_1', name: 'Model', status: 'active', protocol: 'openai_chat' }]
   role = 'admin'
+  providerPermissions = null
   requests = []
   failures = {}
   keys = []
@@ -123,9 +125,10 @@ beforeEach(() => {
     if (route === 'get /auth/permissions')
       response.data = {
         permissions:
-          role === 'admin'
+          providerPermissions ??
+          (role === 'admin'
             ? ['providers.read', 'providers.write', 'models.read_all', 'models.write']
-            : [],
+            : []),
       }
     if (route === 'get /keys') response.data = { items: structuredClone(keys) }
     if (route === 'get /models')
@@ -1030,3 +1033,154 @@ it.each(['vendor/model', 'model:latest', 'unsafe name', '-invalid', 'a'.repeat(1
     expect(copy.disabled).toBe(true)
   },
 )
+
+describe('Provider directory stored status', () => {
+  beforeEach(async () => {
+    await i18n.changeLanguage('en')
+    providerPermissions = ['providers.read']
+    role = 'member'
+  })
+
+  function statusCell() {
+    return container.querySelector<HTMLTableCellElement>('tbody tr td:nth-child(2)')
+  }
+
+  it.each([
+    { enabled: true, label: 'Enabled' },
+    { enabled: false, label: 'Disabled' },
+    { enabled: undefined, label: 'Unknown' },
+    { enabled: null, label: 'Unknown' },
+    { enabled: 'true', label: 'Unknown' },
+    { enabled: 0, label: 'Unknown' },
+  ])(
+    'shows stored $label for $enabled without extra authority or requests',
+    async ({ enabled, label }) => {
+      provider.enabled = enabled as Provider['enabled']
+      await render(<ProvidersPage />)
+      await until(() => expect(statusCell()?.textContent).toBe(label))
+      expect([...container.querySelectorAll('thead th')].map((cell) => cell.textContent)).toEqual([
+        'Provider',
+        'Enabled status',
+        'Connection settings',
+        'Protocol type',
+        'Valid credentials',
+        'Models',
+      ])
+      expect(
+        [...container.querySelectorAll('tbody tr td')].slice(2).map((cell) => cell.textContent),
+      ).toEqual(['1', 'OpenAI Chat', '0', '1'])
+      expect(button('Add provider').disabled).toBe(true)
+      expect(container.querySelector('tbody a')?.getAttribute('href')).toBe(
+        '/admin/providers/prv_1',
+      )
+      expect(requests.filter((request) => request.url === '/admin/providers')).toHaveLength(1)
+      expect(requests.every((request) => request.method === 'get')).toBe(true)
+      expect(new Set(requests.map((request) => request.url))).toEqual(
+        new Set(['/auth/session', '/auth/permissions', '/admin/providers']),
+      )
+      expect(statusCell()?.querySelector('span')?.title).toBe(
+        'Stored Provider enablement only; this is not health or routing readiness.',
+      )
+    },
+  )
+
+  it('updates the visible status and explanation with the selected language without new reads', async () => {
+    provider.enabled = false
+    await render(<ProvidersPage />)
+    await until(() => expect(statusCell()?.textContent).toBe('Disabled'))
+    const readCount = requests.length
+    await act(async () => {
+      await i18n.changeLanguage('zh')
+    })
+    expect(statusCell()?.textContent).toBe('已停用')
+    expect(container.querySelector('thead th:nth-child(2)')?.textContent).toBe('启用状态')
+    expect(statusCell()?.querySelector('span')?.title).toBe(
+      '仅表示已保存的供应商启用状态，不代表健康状况或路由就绪状态。',
+    )
+    expect(container.querySelector('tbody a')?.getAttribute('href')).toBe('/admin/providers/prv_1')
+    expect(requests).toHaveLength(readCount)
+    await act(async () => {
+      await i18n.changeLanguage('en')
+    })
+    expect(statusCell()?.textContent).toBe('Disabled')
+  })
+
+  it.each([
+    { scope: 'Session', key: ['auth', 'session'] },
+    { scope: 'permissions', key: ['permissions', 'usr_1'] },
+    { scope: 'catalogue', key: ['admin', 'providers'] },
+  ])('hides recorded status during $scope invalidation without an extra GET', async ({ key }) => {
+    provider.enabled = true
+    await render(<ProvidersPage />)
+    await until(() => expect(statusCell()?.textContent).toBe('Enabled'))
+    const readCount = requests.length
+    await act(async () => {
+      await cache.invalidateQueries({ queryKey: key, exact: true, refetchType: 'none' })
+    })
+    expect(statusCell()?.textContent).toBe('Unknown')
+    expect(requests).toHaveLength(readCount)
+  })
+
+  it.each([
+    { scope: 'Session', key: ['auth', 'session'] },
+    { scope: 'permissions', key: ['permissions', 'usr_1'] },
+    { scope: 'catalogue', key: ['admin', 'providers'] },
+  ])('does not render retained enablement after a $scope read error', async ({ key }) => {
+    provider.enabled = true
+    await render(<ProvidersPage />)
+    await until(() => expect(statusCell()?.textContent).toBe('Enabled'))
+    await act(async () => {
+      cache
+        .getQueryCache()
+        .find({ queryKey: key, exact: true })!
+        .setState({
+          status: 'error',
+          error: new Error('Controlled read failure'),
+          errorUpdateCount: 1,
+        })
+    })
+    expect(statusCell()?.textContent).not.toBe('Enabled')
+  })
+
+  it('uses the current catalogue result after renewal rather than retaining the old badge', async () => {
+    provider.enabled = true
+    await render(<ProvidersPage />)
+    await until(() => expect(statusCell()?.textContent).toBe('Enabled'))
+    await act(async () => {
+      await cache.invalidateQueries({ queryKey: ['admin', 'providers'], refetchType: 'none' })
+    })
+    expect(statusCell()?.textContent).toBe('Unknown')
+    await act(async () => {
+      cache.setQueryData(['admin', 'providers'], [{ ...provider, enabled: false }])
+    })
+    expect(statusCell()?.textContent).toBe('Disabled')
+  })
+
+  it('does not restore old status after actor replacement with no Provider read authority', async () => {
+    provider.enabled = true
+    await render(<ProvidersPage />)
+    await until(() => expect(statusCell()?.textContent).toBe('Enabled'))
+    providerPermissions = []
+    await act(async () => {
+      cache.setQueryData(['permissions', 'usr_other'], [])
+      cache.setQueryData(['auth', 'session'], {
+        user: { id: 'usr_other', name: 'Other', email: 'other@example.invalid', role: 'member' },
+        csrf_token: 'other-test-csrf',
+      })
+      cache.setQueryData(['admin', 'providers'], [{ ...provider, enabled: true }])
+    })
+    expect(statusCell()).toBeNull()
+    expect(container.querySelector('table')).toBeNull()
+  })
+
+  it('hides enablement after the current reader loses Provider read authority', async () => {
+    provider.enabled = true
+    await render(<ProvidersPage />)
+    await until(() => expect(statusCell()?.textContent).toBe('Enabled'))
+    await act(async () => {
+      cache.setQueryData(['permissions', 'usr_1'], [])
+    })
+    expect(statusCell()).toBeNull()
+    expect(container.querySelector('table')).toBeNull()
+  })
+})

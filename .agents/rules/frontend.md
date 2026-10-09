@@ -1518,3 +1518,11 @@ ready, disabled, incomplete and unknown states. Require explicit Provider and
 Connection enablement before a positive state; missing flags stay unknown.
 Retain structural child counts under configuration labels and never present
 them as Model route eligibility, live health or runtime application.
+
+Provider directory keeps stored enablement immediately after the Provider name.
+Use the existing catalogue response and local Badge: strict true is Enabled,
+strict false is Disabled, and absent or malformed values are Unknown. This is
+stored configuration, never health or routing readiness. Hide status facts during
+renewed or failed Session, permission or catalogue reads; keep Provider read
+independent of write and Model permissions. Preserve child counts, resource links
+and the existing Settings workflow without per-row reads or directory mutations.

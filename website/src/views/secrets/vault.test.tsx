@@ -670,3 +670,124 @@ it('external list renewal during a pending probe keeps the exact uncertain reque
     releaseCommand?.()
   }
 })
+
+async function writeWithHeldListRefresh() {
+  await mount()
+  const openingTrigger = document.querySelector<HTMLButtonElement>(
+    '[aria-label="More actions for QA Vault"]',
+  )!
+  await click('Write test')
+  await changeInput('Reason', 'Recorded focus command')
+  await click('Review command')
+  listGate = new Promise((done) => {
+    resolveList = done
+  })
+  await click('Confirm action')
+  expect(writes).toHaveLength(1)
+  expect(writes[0].url).toBe('/admin/secrets/integrations/' + vaultID + '/probes/write')
+  expect(openingTrigger.isConnected).toBe(false)
+  expect(document.querySelector('[role=dialog]')).toBeNull()
+  resolveList!()
+  await settle()
+  const currentTrigger = document.querySelector<HTMLButtonElement>(
+    '[aria-label="More actions for QA Vault"]',
+  )!
+  expect(currentTrigger).not.toBe(openingTrigger)
+  expect(currentTrigger.isConnected).toBe(true)
+  expect(document.body.textContent).toContain('Current recorded probe observations were returned.')
+  expect(button('Retry original intent')).toBeUndefined()
+  return currentTrigger
+}
+
+for (const language of ['en', 'zh'] as const) {
+  for (const gesture of ['close', 'escape'] as const) {
+    it(
+      'restores the fresh Vault row after Write refresh on ' + gesture + ' in ' + language,
+      async () => {
+        const currentTrigger = await writeWithHeldListRefresh()
+        if (language === 'zh') {
+          await act(async () => {
+            await i18n.changeLanguage('zh')
+          })
+        }
+        const dialog = document.querySelector<HTMLElement>('[role=dialog]')!
+        const close = [...dialog.querySelectorAll<HTMLButtonElement>('button')].find(
+          (node) => node.textContent === (language === 'zh' ? '关闭' : 'Close'),
+        )!
+        const readCount = reads.length
+        await act(async () => {
+          close.focus()
+          if (gesture === 'close') close.click()
+          else close.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }))
+        })
+        await settle()
+        expect(document.querySelector('[role=dialog]')).toBeNull()
+        expect(document.activeElement).toBe(currentTrigger)
+        expect(currentTrigger.getAttribute('aria-label')).toBe(
+          language === 'zh' ? 'QA Vault 的更多操作' : 'More actions for QA Vault',
+        )
+        expect(reads).toHaveLength(readCount)
+        expect(writes).toHaveLength(1)
+        expect(cache.getMutationCache().getAll()).toHaveLength(0)
+      },
+    )
+  }
+}
+
+it('does not restore a private Vault row when Session renewal starts in the closing turn', async () => {
+  const currentTrigger = await writeWithHeldListRefresh()
+  const focus = vi.spyOn(currentTrigger, 'focus')
+  const dialog = document.querySelector<HTMLElement>('[role=dialog]')!
+  const close = [...dialog.querySelectorAll<HTMLButtonElement>('button')].find(
+    (node) => node.textContent === 'Close',
+  )!
+  readGate = new Promise((done) => {
+    resolveRead = done
+  })
+  const previous = client.defaults.adapter
+  client.defaults.adapter = async (config) => {
+    if (config.url === '/auth/session') {
+      await readGate
+      return { data: session, status: 200, statusText: '200', headers: {}, config }
+    }
+    return (previous as (c: InternalAxiosRequestConfig) => Promise<unknown>)(config) as never
+  }
+  await act(async () => {
+    void cache.refetchQueries({ queryKey: sessionKey })
+    close.click()
+  })
+  await settle()
+  expect(focus).not.toHaveBeenCalled()
+  expect(currentTrigger.isConnected).toBe(false)
+  expect(document.querySelector('[role=dialog]')).toBeNull()
+  expect(writes).toHaveLength(1)
+  resolveRead!()
+  await settle()
+  expect(focus).not.toHaveBeenCalled()
+  expect(writes).toHaveLength(1)
+})
+
+it('does not restore the same Vault ID after the command refresh returns a different revision', async () => {
+  await mount()
+  await click('Write test')
+  await changeInput('Reason', 'Recorded old revision command')
+  await click('Review command')
+  listingRevision = 'vlr_01k00000000000000000000001'
+  await click('Confirm action')
+  const currentTrigger = document.querySelector<HTMLButtonElement>(
+    '[aria-label="More actions for QA Vault"]',
+  )!
+  const focus = vi.spyOn(currentTrigger, 'focus')
+  const dialog = document.querySelector<HTMLElement>('[role=dialog]')!
+  const close = [...dialog.querySelectorAll<HTMLButtonElement>('button')].find(
+    (node) => node.textContent === 'Close',
+  )!
+  await act(async () => {
+    close.focus()
+    close.click()
+  })
+  await settle()
+  expect(document.querySelector('[role=dialog]')).toBeNull()
+  expect(focus).not.toHaveBeenCalled()
+  expect(writes).toHaveLength(1)
+})

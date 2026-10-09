@@ -758,6 +758,7 @@ export default {
     connection: '所属接入',
     verification: '业务验证',
     enabledStatus: '启用状态',
+    directoryStatusDescription: '仅表示已保存的供应商启用状态，不代表健康状况或路由就绪状态。',
     verified: '已验证',
     failed: '验证失败',
     pending: '待验证',

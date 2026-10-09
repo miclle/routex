@@ -860,6 +860,8 @@ export default {
     connection: 'Connection',
     verification: 'Verification',
     enabledStatus: 'Enabled status',
+    directoryStatusDescription:
+      'Stored Provider enablement only; this is not health or routing readiness.',
     verified: 'Verified',
     failed: 'Verification failed',
     pending: 'Pending verification',

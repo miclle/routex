@@ -45,6 +45,15 @@ export function VaultWorkspace({
   const expired = useRef(false)
   const [suspended, setSuspended] = useState(false)
   const nextSelection = useRef(0)
+  const rowTriggers = useRef(new Map<string, HTMLButtonElement>())
+  const focusOwner = useRef<{
+    actor: string
+    generation: number
+    id: string
+    revision: string
+    session: Query
+    sessionCount: number
+  } | null>(null)
   const detailCandidate = useRef<{ nonce: number; query: Query; value: VaultIntegration } | null>(
     null,
   )
@@ -389,6 +398,21 @@ export function VaultWorkspace({
     savedProbe?: VaultProbe,
   ) {
     if (action === 'edit' && !id && !authority('write')) return
+    const openingSession = cache.getQueryCache().find({ queryKey: sessionKey, exact: true })
+    const row = cache
+      .getQueryData<VaultPage>(current.current.listKey)
+      ?.items.find((item) => item.id === id)
+    focusOwner.current =
+      id && row && openingSession
+        ? {
+            actor,
+            generation,
+            id,
+            revision: row.revision_id,
+            session: openingSession,
+            sessionCount: openingSession.state.dataUpdateCount,
+          }
+        : null
     detailCandidate.current = null
     setSelection({
       id,
@@ -402,6 +426,43 @@ export function VaultWorkspace({
     setNotice('')
     setReceipt(savedProbe)
     setConfirm(false)
+  }
+  // A successful command renews the list and replaces its row trigger. Resolve it only on close.
+  function finalProbeFocus() {
+    const owner = focusOwner.current
+    const session = cache.getQueryCache().find({ queryKey: sessionKey, exact: true })
+    const state = session?.state
+    const value = state?.data as Session | undefined
+    const allowed = cache.getQueryState<string[]>(current.current.permissionsKey)
+    const page = cache.getQueryState<VaultPage>(current.current.listKey)
+    const row = page?.data?.items.find((item) => item.id === owner?.id)
+    const trigger = owner ? rowTriggers.current.get(owner.id) : undefined
+    return mounted.current &&
+      !expired.current &&
+      fresh &&
+      admin &&
+      owner?.actor === actor &&
+      owner.generation === generation &&
+      session === owner.session &&
+      state?.dataUpdateCount === owner.sessionCount &&
+      state.status === 'success' &&
+      state.fetchStatus === 'idle' &&
+      !state.isInvalidated &&
+      value?.user.id === actor &&
+      value.user.role === 'admin' &&
+      /^[a-f0-9]{64}$/.test(value.csrf_token) &&
+      allowed?.status === 'success' &&
+      allowed.fetchStatus === 'idle' &&
+      !allowed.isInvalidated &&
+      allowed.data?.includes('secrets.read') &&
+      page?.status === 'success' &&
+      page.fetchStatus === 'idle' &&
+      !page.isInvalidated &&
+      row?.revision_id === owner.revision &&
+      trigger?.isConnected &&
+      !trigger.disabled
+      ? trigger
+      : false
   }
   function close() {
     controller.current?.abort()
@@ -628,6 +689,10 @@ export function VaultWorkspace({
                         label={t('vault.rowActions', { name: row.name })}
                         trigger={<MoreHorizontal className="size-4" aria-hidden="true" />}
                         triggerClassName="size-8 justify-center"
+                        triggerRef={(node) => {
+                          if (node) rowTriggers.current.set(row.id, node)
+                          else rowTriggers.current.delete(row.id)
+                        }}
                         side="bottom"
                         align="end"
                       >
@@ -741,6 +806,7 @@ export function VaultWorkspace({
           onOpenChange={(value) => {
             if (!value) close()
           }}
+          finalFocus={finalProbeFocus}
           title={t(`vault.${selection.action}`)}
           description={t('vault.probeDescription')}
           busy={busy}

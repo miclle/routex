@@ -680,6 +680,8 @@ function Providers() {
         data: { upstream_name: value('upstream_name') },
       })
   }
+  const directoryStatusReadable =
+    coverageCurrent() && diagnosticAuthority.snapshot() === diagnosticAuthority.revision
   const titles = {
     provider: t('providers.addProvider'),
     connection: t('providers.addConnection'),
@@ -736,6 +738,9 @@ function Providers() {
           <thead>
             <tr>
               <th>{t('common.provider')}</th>
+              <th title={t('providers.directoryStatusDescription')}>
+                {t('providers.enabledStatus')}
+              </th>
               <th>{t('common.connectionSettings')}</th>
               <th>{t('common.protocolType')}</th>
               <th>{t('providers.validCredentials')}</th>
@@ -755,6 +760,20 @@ function Providers() {
                     </span>
                     {provider.name}
                   </Link>
+                </td>
+                <td>
+                  <Badge
+                    variant={
+                      directoryStatusReadable && provider.enabled === true ? 'success' : 'outline'
+                    }
+                    title={t('providers.directoryStatusDescription')}
+                  >
+                    {directoryStatusReadable && provider.enabled === true
+                      ? t('providers.enabled')
+                      : directoryStatusReadable && provider.enabled === false
+                        ? t('common.disabled')
+                        : t('providers.unknown')}
+                  </Badge>
                 </td>
                 <td>{provider.connections.length}</td>
                 <td>

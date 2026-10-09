@@ -25,6 +25,39 @@ artifacts were not revalidated, and no browser-saved file path is claimed.
 Measured capacity, wider A10/A14/A18 and P6 release acceptance remain open.
 
 
+The Provider directory stored-Status column and Vault mutation-dismiss focus
+correction now pass fresh eight-leaf UI qualification: formatting 7.591 seconds,
+85 focused tests, mandatory main checking 51.823 seconds, complete Task 269.580
+seconds (5,972 frontend tests in 223 files, Go race/coverage, lifecycle/HTTP and
+production-asset checks), and production binary build 3.520 seconds. All 2,121
+source paths/modes remain exact and every owned qualification group is absent.
+A fresh controlled real-Vault browser fixture confirms English Close and Chinese
+Escape return to the current authorized row trigger after two distinct successful
+UI Write commands. API setup, explicit Read A and cleanup-only B remain mixed
+evidence; no seven pure-UI or complete F28 acceptance is claimed. A real existing
+Provider disable workflow updates the list from Enabled to Disabled in both
+languages, retaining the distinction from health/readiness. Browser errors are
+absent. Owned processes/groups/listeners/Compose resources are independently gone,
+with original development preserved. Missing/Unknown Provider values and authority
+renewal negatives are covered by focused tests, not manufactured browser facts.
+The earlier mutation-dismiss focus gap is closed for this controlled scope.
+The preceding full matrix remains bound to its original source; the subsequent
+test-only fence repair has separate focused dual-driver acceptance. No new schema,
+transaction or authentication behavior is introduced by these eight UI leaves.
+
+Current UI browser acceptance SHA-256:
+`ae55a5b9fd1ecfbe3e345ef3d620357ce96f3a8d10fe7722afe9bba6a982e0fd`.
+Independent browser cleanup SHA-256:
+`7c39475d5e1719644f89d94312436aa0196cbd2464602714885dc49dbc9623a7`.
+
+F20 source review establishes no additional missing finite function, but finds
+one presentation mismatch: Temperature and Top P should share the approved
+single two-column row. Its reviewed one-file wrapper-only correction is source
+preparation; adoption, focused checks and browser proof remain pending. External
+Provider/storage/mail acceptance and the previously requested capability/identity
+and distribution decisions remain separate outstanding work.
+
+
 The Vault integration description now distinguishes saved integration/probe
 configuration from the reviewed Storage policy governing future Provider
 credential writes. English/Chinese switching retains that distinction without
