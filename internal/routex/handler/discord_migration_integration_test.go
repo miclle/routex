@@ -1,17 +1,17 @@
 package handler
 
 import (
- "context"
- "errors"
- "fmt"
- "reflect"
- "strings"
- "sync"
- "testing"
- "time"
- "github.com/miclle/routex/internal/routex/database"
- "github.com/miclle/routex/internal/routex/entity"
- "gorm.io/gorm"
+	"context"
+	"errors"
+	"fmt"
+	"github.com/miclle/routex/internal/routex/database"
+	"github.com/miclle/routex/internal/routex/entity"
+	"gorm.io/gorm"
+	"reflect"
+	"strings"
+	"sync"
+	"testing"
+	"time"
 )
 
 // Independent literal V101 projections; the separately captured V99 checks below
@@ -100,7 +100,6 @@ type discordFixtureRootProcessV101 struct {
 
 func (discordFixtureRootProcessV101) TableName() string { return "secret_process_verifications" }
 
-
 type discordHistoricalSessionProofV100 struct {
 	PrimaryMethod string `gorm:"size:20;not null;default:'';check:ck_sessions_oidc_primary,((((OCTET_LENGTH(primary_method) = 0 AND OCTET_LENGTH(oidc_binding_id) = 0 AND oidc_binding_created_at IS NULL AND OCTET_LENGTH(oidc_config_revision) = 0 AND OCTET_LENGTH(oidc_policy_revision) = 0 AND oidc_user_created_at IS NULL AND OCTET_LENGTH(oauth_binding_id) = 0 AND oauth_binding_created_at IS NULL AND OCTET_LENGTH(oauth_config_revision) = 0 AND OCTET_LENGTH(oauth_policy_revision) = 0 AND oauth_user_created_at IS NULL AND OCTET_LENGTH(ldap_binding_id) = 0 AND ldap_binding_created_at IS NULL AND OCTET_LENGTH(ldap_config_revision) = 0 AND OCTET_LENGTH(ldap_policy_revision) = 0 AND ldap_user_created_at IS NULL AND OCTET_LENGTH(saml_binding_id) = 0 AND saml_binding_created_at IS NULL AND OCTET_LENGTH(saml_config_revision) = 0 AND OCTET_LENGTH(saml_policy_revision) = 0 AND saml_user_created_at IS NULL) OR (OCTET_LENGTH(primary_method) = 4 AND ASCII(SUBSTRING(primary_method,1,1)) = 111 AND ASCII(SUBSTRING(primary_method,2,1)) = 105 AND ASCII(SUBSTRING(primary_method,3,1)) = 100 AND ASCII(SUBSTRING(primary_method,4,1)) = 99 AND CHAR_LENGTH(oidc_binding_id) > 0 AND oidc_binding_created_at IS NOT NULL AND CHAR_LENGTH(oidc_config_revision) = 64 AND CHAR_LENGTH(oidc_policy_revision) = 64 AND oidc_user_created_at IS NOT NULL AND OCTET_LENGTH(oauth_binding_id) = 0 AND oauth_binding_created_at IS NULL AND OCTET_LENGTH(oauth_config_revision) = 0 AND OCTET_LENGTH(oauth_policy_revision) = 0 AND oauth_user_created_at IS NULL AND OCTET_LENGTH(ldap_binding_id) = 0 AND ldap_binding_created_at IS NULL AND OCTET_LENGTH(ldap_config_revision) = 0 AND OCTET_LENGTH(ldap_policy_revision) = 0 AND ldap_user_created_at IS NULL AND OCTET_LENGTH(saml_binding_id) = 0 AND saml_binding_created_at IS NULL AND OCTET_LENGTH(saml_config_revision) = 0 AND OCTET_LENGTH(saml_policy_revision) = 0 AND saml_user_created_at IS NULL) OR (OCTET_LENGTH(primary_method) = 5 AND ASCII(SUBSTRING(primary_method,1,1)) = 111 AND ASCII(SUBSTRING(primary_method,2,1)) = 97 AND ASCII(SUBSTRING(primary_method,3,1)) = 117 AND ASCII(SUBSTRING(primary_method,4,1)) = 116 AND ASCII(SUBSTRING(primary_method,5,1)) = 104 AND CHAR_LENGTH(oauth_binding_id) > 0 AND oauth_binding_created_at IS NOT NULL AND CHAR_LENGTH(oauth_config_revision) = 64 AND CHAR_LENGTH(oauth_policy_revision) = 64 AND oauth_user_created_at IS NOT NULL AND OCTET_LENGTH(oidc_binding_id) = 0 AND oidc_binding_created_at IS NULL AND OCTET_LENGTH(oidc_config_revision) = 0 AND OCTET_LENGTH(oidc_policy_revision) = 0 AND oidc_user_created_at IS NULL AND OCTET_LENGTH(ldap_binding_id) = 0 AND ldap_binding_created_at IS NULL AND OCTET_LENGTH(ldap_config_revision) = 0 AND OCTET_LENGTH(ldap_policy_revision) = 0 AND ldap_user_created_at IS NULL AND OCTET_LENGTH(saml_binding_id) = 0 AND saml_binding_created_at IS NULL AND OCTET_LENGTH(saml_config_revision) = 0 AND OCTET_LENGTH(saml_policy_revision) = 0 AND saml_user_created_at IS NULL) OR (OCTET_LENGTH(primary_method) = 4 AND ASCII(SUBSTRING(primary_method,1,1)) = 108 AND ASCII(SUBSTRING(primary_method,2,1)) = 100 AND ASCII(SUBSTRING(primary_method,3,1)) = 97 AND ASCII(SUBSTRING(primary_method,4,1)) = 112 AND CHAR_LENGTH(ldap_binding_id) > 0 AND ldap_binding_created_at IS NOT NULL AND CHAR_LENGTH(ldap_config_revision) = 64 AND CHAR_LENGTH(ldap_policy_revision) = 64 AND ldap_user_created_at IS NOT NULL AND OCTET_LENGTH(oidc_binding_id) = 0 AND oidc_binding_created_at IS NULL AND OCTET_LENGTH(oidc_config_revision) = 0 AND OCTET_LENGTH(oidc_policy_revision) = 0 AND oidc_user_created_at IS NULL AND OCTET_LENGTH(oauth_binding_id) = 0 AND oauth_binding_created_at IS NULL AND OCTET_LENGTH(oauth_config_revision) = 0 AND OCTET_LENGTH(oauth_policy_revision) = 0 AND oauth_user_created_at IS NULL AND OCTET_LENGTH(saml_binding_id) = 0 AND saml_binding_created_at IS NULL AND OCTET_LENGTH(saml_config_revision) = 0 AND OCTET_LENGTH(saml_policy_revision) = 0 AND saml_user_created_at IS NULL) OR (OCTET_LENGTH(primary_method) = 4 AND ASCII(SUBSTRING(primary_method,1,1)) = 115 AND ASCII(SUBSTRING(primary_method,2,1)) = 97 AND ASCII(SUBSTRING(primary_method,3,1)) = 109 AND ASCII(SUBSTRING(primary_method,4,1)) = 108 AND CHAR_LENGTH(saml_binding_id) > 0 AND saml_binding_created_at IS NOT NULL AND CHAR_LENGTH(saml_config_revision) = 64 AND CHAR_LENGTH(saml_policy_revision) = 64 AND saml_user_created_at IS NOT NULL AND OCTET_LENGTH(oidc_binding_id) = 0 AND oidc_binding_created_at IS NULL AND OCTET_LENGTH(oidc_config_revision) = 0 AND OCTET_LENGTH(oidc_policy_revision) = 0 AND oidc_user_created_at IS NULL AND OCTET_LENGTH(oauth_binding_id) = 0 AND oauth_binding_created_at IS NULL AND OCTET_LENGTH(oauth_config_revision) = 0 AND OCTET_LENGTH(oauth_policy_revision) = 0 AND oauth_user_created_at IS NULL AND OCTET_LENGTH(ldap_binding_id) = 0 AND ldap_binding_created_at IS NULL AND OCTET_LENGTH(ldap_config_revision) = 0 AND OCTET_LENGTH(ldap_policy_revision) = 0 AND ldap_user_created_at IS NULL)) AND OCTET_LENGTH(named_identity_provider_id) = 0 AND OCTET_LENGTH(named_identity_profile_id) = 0 AND OCTET_LENGTH(named_identity_binding_id) = 0 AND named_identity_binding_created_at IS NULL AND OCTET_LENGTH(named_identity_config_revision) = 0 AND OCTET_LENGTH(named_identity_policy_revision) = 0 AND named_identity_user_created_at IS NULL) OR (OCTET_LENGTH(primary_method) = 6 AND ASCII(SUBSTRING(primary_method,1,1)) = 103 AND ASCII(SUBSTRING(primary_method,2,1)) = 105 AND ASCII(SUBSTRING(primary_method,3,1)) = 116 AND ASCII(SUBSTRING(primary_method,4,1)) = 104 AND ASCII(SUBSTRING(primary_method,5,1)) = 117 AND ASCII(SUBSTRING(primary_method,6,1)) = 98 AND OCTET_LENGTH(named_identity_provider_id) = 6 AND ASCII(SUBSTRING(named_identity_provider_id,1,1)) = 103 AND ASCII(SUBSTRING(named_identity_provider_id,2,1)) = 105 AND ASCII(SUBSTRING(named_identity_provider_id,3,1)) = 116 AND ASCII(SUBSTRING(named_identity_provider_id,4,1)) = 104 AND ASCII(SUBSTRING(named_identity_provider_id,5,1)) = 117 AND ASCII(SUBSTRING(named_identity_provider_id,6,1)) = 98 AND OCTET_LENGTH(named_identity_profile_id) = 23 AND ASCII(SUBSTRING(named_identity_profile_id,1,1)) = 103 AND ASCII(SUBSTRING(named_identity_profile_id,2,1)) = 105 AND ASCII(SUBSTRING(named_identity_profile_id,3,1)) = 116 AND ASCII(SUBSTRING(named_identity_profile_id,4,1)) = 104 AND ASCII(SUBSTRING(named_identity_profile_id,5,1)) = 117 AND ASCII(SUBSTRING(named_identity_profile_id,6,1)) = 98 AND ASCII(SUBSTRING(named_identity_profile_id,7,1)) = 46 AND ASCII(SUBSTRING(named_identity_profile_id,8,1)) = 99 AND ASCII(SUBSTRING(named_identity_profile_id,9,1)) = 111 AND ASCII(SUBSTRING(named_identity_profile_id,10,1)) = 109 AND ASCII(SUBSTRING(named_identity_profile_id,11,1)) = 46 AND ASCII(SUBSTRING(named_identity_profile_id,12,1)) = 111 AND ASCII(SUBSTRING(named_identity_profile_id,13,1)) = 97 AND ASCII(SUBSTRING(named_identity_profile_id,14,1)) = 117 AND ASCII(SUBSTRING(named_identity_profile_id,15,1)) = 116 AND ASCII(SUBSTRING(named_identity_profile_id,16,1)) = 104 AND ASCII(SUBSTRING(named_identity_profile_id,17,1)) = 45 AND ASCII(SUBSTRING(named_identity_profile_id,18,1)) = 97 AND ASCII(SUBSTRING(named_identity_profile_id,19,1)) = 112 AND ASCII(SUBSTRING(named_identity_profile_id,20,1)) = 112 AND ASCII(SUBSTRING(named_identity_profile_id,21,1)) = 46 AND ASCII(SUBSTRING(named_identity_profile_id,22,1)) = 118 AND ASCII(SUBSTRING(named_identity_profile_id,23,1)) = 49 AND CHAR_LENGTH(named_identity_binding_id) > 0 AND named_identity_binding_created_at IS NOT NULL AND CHAR_LENGTH(named_identity_config_revision) = 64 AND CHAR_LENGTH(named_identity_policy_revision) = 64 AND named_identity_user_created_at IS NOT NULL AND OCTET_LENGTH(oidc_binding_id) = 0 AND oidc_binding_created_at IS NULL AND OCTET_LENGTH(oidc_config_revision) = 0 AND OCTET_LENGTH(oidc_policy_revision) = 0 AND oidc_user_created_at IS NULL AND OCTET_LENGTH(oauth_binding_id) = 0 AND oauth_binding_created_at IS NULL AND OCTET_LENGTH(oauth_config_revision) = 0 AND OCTET_LENGTH(oauth_policy_revision) = 0 AND oauth_user_created_at IS NULL AND OCTET_LENGTH(ldap_binding_id) = 0 AND ldap_binding_created_at IS NULL AND OCTET_LENGTH(ldap_config_revision) = 0 AND OCTET_LENGTH(ldap_policy_revision) = 0 AND ldap_user_created_at IS NULL AND OCTET_LENGTH(saml_binding_id) = 0 AND saml_binding_created_at IS NULL AND OCTET_LENGTH(saml_config_revision) = 0 AND OCTET_LENGTH(saml_policy_revision) = 0 AND saml_user_created_at IS NULL)) OR (OCTET_LENGTH(primary_method) = 6 AND ASCII(SUBSTRING(primary_method,1,1)) = 103 AND ASCII(SUBSTRING(primary_method,2,1)) = 111 AND ASCII(SUBSTRING(primary_method,3,1)) = 111 AND ASCII(SUBSTRING(primary_method,4,1)) = 103 AND ASCII(SUBSTRING(primary_method,5,1)) = 108 AND ASCII(SUBSTRING(primary_method,6,1)) = 101 AND OCTET_LENGTH(named_identity_provider_id) = 6 AND ASCII(SUBSTRING(named_identity_provider_id,1,1)) = 103 AND ASCII(SUBSTRING(named_identity_provider_id,2,1)) = 111 AND ASCII(SUBSTRING(named_identity_provider_id,3,1)) = 111 AND ASCII(SUBSTRING(named_identity_provider_id,4,1)) = 103 AND ASCII(SUBSTRING(named_identity_provider_id,5,1)) = 108 AND ASCII(SUBSTRING(named_identity_provider_id,6,1)) = 101 AND OCTET_LENGTH(named_identity_profile_id) = 14 AND ASCII(SUBSTRING(named_identity_profile_id,1,1)) = 103 AND ASCII(SUBSTRING(named_identity_profile_id,2,1)) = 111 AND ASCII(SUBSTRING(named_identity_profile_id,3,1)) = 111 AND ASCII(SUBSTRING(named_identity_profile_id,4,1)) = 103 AND ASCII(SUBSTRING(named_identity_profile_id,5,1)) = 108 AND ASCII(SUBSTRING(named_identity_profile_id,6,1)) = 101 AND ASCII(SUBSTRING(named_identity_profile_id,7,1)) = 46 AND ASCII(SUBSTRING(named_identity_profile_id,8,1)) = 111 AND ASCII(SUBSTRING(named_identity_profile_id,9,1)) = 105 AND ASCII(SUBSTRING(named_identity_profile_id,10,1)) = 100 AND ASCII(SUBSTRING(named_identity_profile_id,11,1)) = 99 AND ASCII(SUBSTRING(named_identity_profile_id,12,1)) = 46 AND ASCII(SUBSTRING(named_identity_profile_id,13,1)) = 118 AND ASCII(SUBSTRING(named_identity_profile_id,14,1)) = 49 AND CHAR_LENGTH(named_identity_binding_id) > 0 AND named_identity_binding_created_at IS NOT NULL AND CHAR_LENGTH(named_identity_config_revision) = 64 AND CHAR_LENGTH(named_identity_policy_revision) = 64 AND named_identity_user_created_at IS NOT NULL AND OCTET_LENGTH(oidc_binding_id) = 0 AND oidc_binding_created_at IS NULL AND OCTET_LENGTH(oidc_config_revision) = 0 AND OCTET_LENGTH(oidc_policy_revision) = 0 AND oidc_user_created_at IS NULL AND OCTET_LENGTH(oauth_binding_id) = 0 AND oauth_binding_created_at IS NULL AND OCTET_LENGTH(oauth_config_revision) = 0 AND OCTET_LENGTH(oauth_policy_revision) = 0 AND oauth_user_created_at IS NULL AND OCTET_LENGTH(ldap_binding_id) = 0 AND ldap_binding_created_at IS NULL AND OCTET_LENGTH(ldap_config_revision) = 0 AND OCTET_LENGTH(ldap_policy_revision) = 0 AND ldap_user_created_at IS NULL AND OCTET_LENGTH(saml_binding_id) = 0 AND saml_binding_created_at IS NULL AND OCTET_LENGTH(saml_config_revision) = 0 AND OCTET_LENGTH(saml_policy_revision) = 0 AND saml_user_created_at IS NULL)" json:"-"`
 }
@@ -150,7 +149,7 @@ func discordPristineV101(db *gorm.DB) error {
 	if !reflect.DeepEqual(provider, discordFixtureProviderV101{ID: "discord", ProfileID: discordFixtureProfile, IdentityIssuer: discordFixtureNamespace, ReviewRevision: strings.Repeat("0", 64), ConfigRevision: strings.Repeat("0", 64), PolicyRevision: strings.Repeat("0", 64), SecretGeneration: "0"}) {
 		return errors.New("historical rewind cannot discard configured Discord state")
 	}
- return discordNoRetainedV101Authority(db)
+	return discordNoRetainedV101Authority(db)
 }
 
 func discordNoRetainedV101Authority(db *gorm.DB) error {
@@ -179,73 +178,183 @@ func discordNoRetainedV101Authority(db *gorm.DB) error {
 	return nil
 }
 
-
 func legacyDiscordBeforeV100(t *testing.T, db *gorm.DB) {
- t.Helper()
- rows:=personalKeyBehaviorLedger(t,db)
- if len(rows)==100 { for i,r:=range rows { if r.Version!=i+1 {t.Fatal("bounded100 ledger gap",i)} }; var n int64; if db.Table("named_identity_providers").Where("id = ?","discord").Count(&n).Error!=nil || n!=0 {t.Fatal("bounded100 retained Discord seed")}; if err:=discordNoRetainedV101Authority(db);err!=nil{t.Fatal("bounded100 retained future authority",err)}; return }
- if err:=discordPristineV101(db);err!=nil {t.Fatal("pristine Discord rewind",err)}
- if database.MigrateThrough(db.Statement.Context,db,100)==nil || !reflect.DeepEqual(rows,personalKeyBehaviorLedger(t,db)){t.Fatal("bounded100 must reject current101 before DDL")}
- deleted:=db.Table("named_identity_providers").Where("id = ? AND profile_id = ?","discord",discordFixtureProfile).Delete(&struct{}{})
- if deleted.Error!=nil || deleted.RowsAffected!=1 {t.Fatal("remove only pristine Discord singleton")}
- for _,v:=range []struct{model any;name string}{
- {&googleFixtureProviderV99{},"ck_namedidentityprovider_profile"},{&googleFixtureProviderV99{},"ck_namedidentityprovider_issuer"},{&googleFixtureProviderV99{},"ck_named_identity_singleton"},
- {&googleFixtureBindingV99{},"ck_namedidentitybinding_profile"},{&googleFixtureBindingV99{},"ck_namedidentitybinding_issuer"},{&googleFixtureBindingV99{},"ck_named_identity_binding_provider"},{&googleFixtureBindingV99{},"ck_named_identity_binding_kind"},
- {&googleFixtureCeremonyV99{},"ck_namedidentityceremony_profile"},{&googleFixtureCeremonyV99{},"ck_namedidentityceremony_issuer"},{&googleFixtureCeremonyV99{},"ck_named_identity_ceremony_provider"},{&googleFixtureCeremonyV99{},"ck_named_identity_ceremony_kind"},{&googleFixtureCeremonyV99{},"ck_named_identity_ceremonies_purpose"},{&googleFixtureCeremonyV99{},"ck_named_identity_ceremonies_status"},
- {&discordHistoricalSessionProofV100{},"ck_sessions_oidc_primary"},{&discordHistoricalMFAProofV100{},"ck_mfa_challenges_oidc_primary"},
- {&discordHistoricalRootJobV100{},"ck_secret_inventory_version"},{&discordHistoricalRootJobV100{},"ck_secret_rotation_domain"},{&discordHistoricalRootProcessV100{},"ck_secret_process_inventory_version"},
- } {if db.Migrator().DropConstraint(v.model,v.name)!=nil || db.Migrator().CreateConstraint(v.model,v.name)!=nil {t.Fatal("restore frozen V100 check",v.name)}}
- removed:=db.Table("schema_migrations").Where("version = ?",101).Delete(&struct{}{})
- if removed.Error!=nil || removed.RowsAffected!=1 || !reflect.DeepEqual(rows[:100],personalKeyBehaviorLedger(t,db)){t.Fatal("remove only101 preserving every100 receipt")}
+	t.Helper()
+	rows := personalKeyBehaviorLedger(t, db)
+	if len(rows) == 100 {
+		for i, r := range rows {
+			if r.Version != i+1 {
+				t.Fatal("bounded100 ledger gap", i)
+			}
+		}
+		var n int64
+		if db.Table("named_identity_providers").Where("id = ?", "discord").Count(&n).Error != nil || n != 0 {
+			t.Fatal("bounded100 retained Discord seed")
+		}
+		if err := discordNoRetainedV101Authority(db); err != nil {
+			t.Fatal("bounded100 retained future authority", err)
+		}
+		return
+	}
+	if err := discordPristineV101(db); err != nil {
+		t.Fatal("pristine Discord rewind", err)
+	}
+	if database.MigrateThrough(db.Statement.Context, db, 100) == nil || !reflect.DeepEqual(rows, personalKeyBehaviorLedger(t, db)) {
+		t.Fatal("bounded100 must reject current101 before DDL")
+	}
+	deleted := db.Table("named_identity_providers").Where("id = ? AND profile_id = ?", "discord", discordFixtureProfile).Delete(&struct{}{})
+	if deleted.Error != nil || deleted.RowsAffected != 1 {
+		t.Fatal("remove only pristine Discord singleton")
+	}
+	for _, v := range []struct {
+		model any
+		name  string
+	}{
+		{&googleFixtureProviderV99{}, "ck_namedidentityprovider_profile"}, {&googleFixtureProviderV99{}, "ck_namedidentityprovider_issuer"}, {&googleFixtureProviderV99{}, "ck_named_identity_singleton"},
+		{&googleFixtureBindingV99{}, "ck_namedidentitybinding_profile"}, {&googleFixtureBindingV99{}, "ck_namedidentitybinding_issuer"}, {&googleFixtureBindingV99{}, "ck_named_identity_binding_provider"}, {&googleFixtureBindingV99{}, "ck_named_identity_binding_kind"},
+		{&googleFixtureCeremonyV99{}, "ck_namedidentityceremony_profile"}, {&googleFixtureCeremonyV99{}, "ck_namedidentityceremony_issuer"}, {&googleFixtureCeremonyV99{}, "ck_named_identity_ceremony_provider"}, {&googleFixtureCeremonyV99{}, "ck_named_identity_ceremony_kind"}, {&googleFixtureCeremonyV99{}, "ck_named_identity_ceremonies_purpose"}, {&googleFixtureCeremonyV99{}, "ck_named_identity_ceremonies_status"},
+		{&discordHistoricalSessionProofV100{}, "ck_sessions_oidc_primary"}, {&discordHistoricalMFAProofV100{}, "ck_mfa_challenges_oidc_primary"},
+		{&discordHistoricalRootJobV100{}, "ck_secret_inventory_version"}, {&discordHistoricalRootJobV100{}, "ck_secret_rotation_domain"}, {&discordHistoricalRootProcessV100{}, "ck_secret_process_inventory_version"},
+	} {
+		if db.Migrator().DropConstraint(v.model, v.name) != nil || db.Migrator().CreateConstraint(v.model, v.name) != nil {
+			t.Fatal("restore frozen V100 check", v.name)
+		}
+	}
+	removed := db.Table("schema_migrations").Where("version = ?", 101).Delete(&struct{}{})
+	if removed.Error != nil || removed.RowsAffected != 1 || !reflect.DeepEqual(rows[:100], personalKeyBehaviorLedger(t, db)) {
+		t.Fatal("remove only101 preserving every100 receipt")
+	}
 }
 
-func testDiscordMigration(t *testing.T,db *gorm.DB){
- ctx,cancel:=context.WithTimeout(context.Background(),180*time.Second);defer cancel();db=db.WithContext(ctx)
- original:=personalKeyBehaviorLedger(t,db)
- if len(original)!=101 {t.Fatal("exact current101 ledger")};for i,r:=range original {if r.Version!=i+1 {t.Fatal("released prefix gap",i)}}
- readProvider:=func(id string)discordFixtureProviderV101{t.Helper();var p discordFixtureProviderV101;if db.Session(&gorm.Session{QueryFields:true}).Take(&p,"id = ?",id).Error!=nil {t.Fatal("read exact named singleton",id)};return p}
- initial:=readProvider("discord")
- if initial.CreatedAt.IsZero() || initial.UpdatedAt.IsZero(){t.Fatal("missing default singleton birth")}
- blank:=initial;blank.CreatedAt=time.Time{};blank.UpdatedAt=time.Time{}
- if !reflect.DeepEqual(blank,discordFixtureProviderV101{ID:"discord",ProfileID:discordFixtureProfile,IdentityIssuer:discordFixtureNamespace,SecretGeneration:"0",ReviewRevision:strings.Repeat("0",64),ConfigRevision:strings.Repeat("0",64),PolicyRevision:strings.Repeat("0",64)}) {t.Fatal("empty Discord invented configuration")}
- for table,want:=range map[string]int64{"named_identity_providers":3,"named_identity_bindings":0,"named_identity_ceremonies":0,"runtime_installation_observations":0}{var n int64;if db.Table(table).Count(&n).Error!=nil || n!=want {t.Fatal("empty current state",table,n)}}
- githubBefore,googleBefore:=readProvider("github"),readProvider("google")
- for _,bound:=range []int{0,-1,100,102}{if database.MigrateThrough(ctx,db,bound)==nil || !reflect.DeepEqual(original,personalKeyBehaviorLedger(t,db)){t.Fatal("invalid/newer bound admitted",bound)}}
- // Rollback-only dirtiness controls prove the rewind cannot discard live authority.
- dirtyBirth:=time.Now().UTC().Truncate(time.Microsecond)
- rollbackDirty:=errors.New("rollback Discord pristine control")
- for _,kind:=range []string{"configured_provider","binding","ceremony","session","mfa","root_job","process_observation","rotation_item"}{
-  if err:=discordPristineV101(db);err!=nil {t.Fatal("positive pristine guard",kind,err)}
-  err:=db.Transaction(func(tx *gorm.DB)error{
-   switch kind {
-   case "configured_provider": if tx.Model(&discordFixtureProviderV101{}).Where("id = ?","discord").Update("name","Retained configuration").Error!=nil {t.Fatal("dirty provider")}
-   case "binding":if tx.Create(&discordFixtureBindingV101{ID:"nib_discord_dirty",ProviderID:"discord",ProfileID:discordFixtureProfile,IdentityIssuer:discordFixtureNamespace,UserID:"usr_discord_dirty",UserCreatedAt:dirtyBirth,ConfigRevision:strings.Repeat("a",64),SubjectKind:"string",Subject:"303",SubjectDigest:strings.Repeat("d",64),CreatedAt:dirtyBirth}).Error!=nil {t.Fatal("dirty binding")}
-   case "ceremony":if tx.Create(&discordFixtureCeremonyV101{ID:"nic_discord_dirty",ProviderID:"discord",ProfileID:discordFixtureProfile,IdentityIssuer:discordFixtureNamespace,ProviderCreatedAt:initial.CreatedAt,StateHash:strings.Repeat("c",64),CookieHash:strings.Repeat("d",64),Purpose:"login",Reason:"Pristine guard",Status:"pending",ConfigRevision:initial.ConfigRevision,PolicyRevision:initial.PolicyRevision,ExpiresAt:dirtyBirth.Add(time.Minute),CreatedAt:dirtyBirth}).Error!=nil {t.Fatal("dirty ceremony")}
-   case "session","mfa":
-    u:=entity.User{ID:"usr_discord_dirty",Email:"discord-dirty@example.invalid",Name:"Migration only",Role:entity.RoleMember,PasswordHash:"not-authentication-proof"};if tx.Create(&u).Error!=nil {t.Fatal("dirty proof user")}
-    if kind=="session" {row:=entity.Session{ID:"ses_discord_dirty",UserID:u.ID,TokenHash:strings.Repeat("d",64),ExpiresAt:dirtyBirth.Add(time.Minute),PrimaryMethod:"discord",NamedIdentityProviderID:"discord",NamedIdentityProfileID:discordFixtureProfile,NamedIdentityBindingID:"nib_discord_dirty",NamedIdentityBindingCreatedAt:&dirtyBirth,NamedIdentityConfigRevision:strings.Repeat("a",64),NamedIdentityPolicyRevision:strings.Repeat("b",64),NamedIdentityUserCreatedAt:&u.CreatedAt};if tx.Create(&row).Error!=nil {t.Fatal("dirty Session")}} else {row:=entity.MFAChallenge{UserID:u.ID,Purpose:"login",TokenHash:strings.Repeat("d",64),PasswordDigest:strings.Repeat("a",64),Generation:strings.Repeat("b",64),ExpiresAt:dirtyBirth.Add(time.Minute),PrimaryMethod:"discord",NamedIdentityProviderID:"discord",NamedIdentityProfileID:discordFixtureProfile,NamedIdentityBindingID:"nib_discord_dirty",NamedIdentityBindingCreatedAt:&dirtyBirth,NamedIdentityConfigRevision:strings.Repeat("a",64),NamedIdentityPolicyRevision:strings.Repeat("b",64),NamedIdentityUserCreatedAt:&u.CreatedAt};if tx.Create(&row).Error!=nil {t.Fatal("dirty MFA")}}
-   case "root_job","rotation_item":
-    version:=8;if kind=="rotation_item"{version=7};job:=entity.SecretRotationJob{ID:"srj_discord_dirty",SourceKeyID:"source",TargetKeyID:"target",CutoverEpoch:1,ETag:strings.Repeat("a",64),Status:"migrating",Phase:"migration",InventoryVersion:version,ScanGeneration:1,CountsJSON:"{}"};if tx.Create(&job).Error!=nil {t.Fatal("dirty root job")};if kind=="rotation_item"{if tx.Create(&entity.SecretRotationItem{JobID:job.ID,Domain:"named_identity_providers",SubjectID:"discord",SubjectGeneration:"fixture",Reference:"fixture",OriginalDigest:strings.Repeat("d",64),ResultDigest:strings.Repeat("e",64),Outcome:"rewrapped",Attempts:1}).Error!=nil {t.Fatal("dirty rotation item")}}
-   case "process_observation": if tx.Create(&entity.SecretProcessVerification{ProcessID:"spv_discord_dirty",InventoryVersion:8,PolicyEpoch:1,KeyManifestDigest:strings.Repeat("b",64),CryptoVersion:2,RuntimeSourceDigest:strings.Repeat("c",64),VerifiedAt:dirtyBirth}).Error!=nil {t.Fatal("dirty process observation")}
-   }
-   if discordPristineV101(tx)==nil {t.Fatal("dirty rewind admitted",kind)}
-   if !reflect.DeepEqual(original,personalKeyBehaviorLedger(t,tx)){t.Fatal("dirty guard changed ledger",kind)}
-   return rollbackDirty
-  });if !errors.Is(err,rollbackDirty){t.Fatal("dirty rollback",kind,err)}
-  if !reflect.DeepEqual(initial,readProvider("discord")) || !reflect.DeepEqual(original,personalKeyBehaviorLedger(t,db)) || discordPristineV101(db)!=nil {t.Fatal("dirty control changed original facts",kind)}
- }
- legacyDiscordBeforeV100(t,db)
- prefix:=personalKeyBehaviorLedger(t,db);if len(prefix)!=100 || !reflect.DeepEqual(prefix,original[:100]){t.Fatal("V100 rewind changed exact prefix")}
- // Migration fixtures preserve records; they are never authentication proof.
+func testDiscordMigration(t *testing.T, db *gorm.DB) {
+	ctx, cancel := context.WithTimeout(context.Background(), 180*time.Second)
+	defer cancel()
+	db = db.WithContext(ctx)
+	original := personalKeyBehaviorLedger(t, db)
+	if len(original) != 101 {
+		t.Fatal("exact current101 ledger")
+	}
+	for i, r := range original {
+		if r.Version != i+1 {
+			t.Fatal("released prefix gap", i)
+		}
+	}
+	readProvider := func(id string) discordFixtureProviderV101 {
+		t.Helper()
+		var p discordFixtureProviderV101
+		if db.Session(&gorm.Session{QueryFields: true}).Take(&p, "id = ?", id).Error != nil {
+			t.Fatal("read exact named singleton", id)
+		}
+		return p
+	}
+	initial := readProvider("discord")
+	if initial.CreatedAt.IsZero() || initial.UpdatedAt.IsZero() {
+		t.Fatal("missing default singleton birth")
+	}
+	blank := initial
+	blank.CreatedAt = time.Time{}
+	blank.UpdatedAt = time.Time{}
+	if !reflect.DeepEqual(blank, discordFixtureProviderV101{ID: "discord", ProfileID: discordFixtureProfile, IdentityIssuer: discordFixtureNamespace, SecretGeneration: "0", ReviewRevision: strings.Repeat("0", 64), ConfigRevision: strings.Repeat("0", 64), PolicyRevision: strings.Repeat("0", 64)}) {
+		t.Fatal("empty Discord invented configuration")
+	}
+	for table, want := range map[string]int64{"named_identity_providers": 3, "named_identity_bindings": 0, "named_identity_ceremonies": 0, "runtime_installation_observations": 0} {
+		var n int64
+		if db.Table(table).Count(&n).Error != nil || n != want {
+			t.Fatal("empty current state", table, n)
+		}
+	}
+	githubBefore, googleBefore := readProvider("github"), readProvider("google")
+	for _, bound := range []int{0, -1, 100, 102} {
+		if database.MigrateThrough(ctx, db, bound) == nil || !reflect.DeepEqual(original, personalKeyBehaviorLedger(t, db)) {
+			t.Fatal("invalid/newer bound admitted", bound)
+		}
+	}
+	// Rollback-only dirtiness controls prove the rewind cannot discard live authority.
+	dirtyBirth := time.Now().UTC().Truncate(time.Microsecond)
+	rollbackDirty := errors.New("rollback Discord pristine control")
+	for _, kind := range []string{"configured_provider", "binding", "ceremony", "session", "mfa", "root_job", "process_observation", "rotation_item"} {
+		if err := discordPristineV101(db); err != nil {
+			t.Fatal("positive pristine guard", kind, err)
+		}
+		err := db.Transaction(func(tx *gorm.DB) error {
+			switch kind {
+			case "configured_provider":
+				if tx.Model(&discordFixtureProviderV101{}).Where("id = ?", "discord").Update("name", "Retained configuration").Error != nil {
+					t.Fatal("dirty provider")
+				}
+			case "binding":
+				if tx.Create(&discordFixtureBindingV101{ID: "nib_discord_dirty", ProviderID: "discord", ProfileID: discordFixtureProfile, IdentityIssuer: discordFixtureNamespace, UserID: "usr_discord_dirty", UserCreatedAt: dirtyBirth, ConfigRevision: strings.Repeat("a", 64), SubjectKind: "string", Subject: "303", SubjectDigest: strings.Repeat("d", 64), CreatedAt: dirtyBirth}).Error != nil {
+					t.Fatal("dirty binding")
+				}
+			case "ceremony":
+				if tx.Create(&discordFixtureCeremonyV101{ID: "nic_discord_dirty", ProviderID: "discord", ProfileID: discordFixtureProfile, IdentityIssuer: discordFixtureNamespace, ProviderCreatedAt: initial.CreatedAt, StateHash: strings.Repeat("c", 64), CookieHash: strings.Repeat("d", 64), Purpose: "login", Reason: "Pristine guard", Status: "pending", ConfigRevision: initial.ConfigRevision, PolicyRevision: initial.PolicyRevision, ExpiresAt: dirtyBirth.Add(time.Minute), CreatedAt: dirtyBirth}).Error != nil {
+					t.Fatal("dirty ceremony")
+				}
+			case "session", "mfa":
+				u := entity.User{ID: "usr_discord_dirty", Email: "discord-dirty@example.invalid", Name: "Migration only", Role: entity.RoleMember, PasswordHash: "not-authentication-proof"}
+				if tx.Create(&u).Error != nil {
+					t.Fatal("dirty proof user")
+				}
+				if kind == "session" {
+					row := entity.Session{ID: "ses_discord_dirty", UserID: u.ID, TokenHash: strings.Repeat("d", 64), ExpiresAt: dirtyBirth.Add(time.Minute), PrimaryMethod: "discord", NamedIdentityProviderID: "discord", NamedIdentityProfileID: discordFixtureProfile, NamedIdentityBindingID: "nib_discord_dirty", NamedIdentityBindingCreatedAt: &dirtyBirth, NamedIdentityConfigRevision: strings.Repeat("a", 64), NamedIdentityPolicyRevision: strings.Repeat("b", 64), NamedIdentityUserCreatedAt: &u.CreatedAt}
+					if tx.Create(&row).Error != nil {
+						t.Fatal("dirty Session")
+					}
+				} else {
+					row := entity.MFAChallenge{UserID: u.ID, Purpose: "login", TokenHash: strings.Repeat("d", 64), PasswordDigest: strings.Repeat("a", 64), Generation: strings.Repeat("b", 64), ExpiresAt: dirtyBirth.Add(time.Minute), PrimaryMethod: "discord", NamedIdentityProviderID: "discord", NamedIdentityProfileID: discordFixtureProfile, NamedIdentityBindingID: "nib_discord_dirty", NamedIdentityBindingCreatedAt: &dirtyBirth, NamedIdentityConfigRevision: strings.Repeat("a", 64), NamedIdentityPolicyRevision: strings.Repeat("b", 64), NamedIdentityUserCreatedAt: &u.CreatedAt}
+					if tx.Create(&row).Error != nil {
+						t.Fatal("dirty MFA")
+					}
+				}
+			case "root_job", "rotation_item":
+				version := 8
+				if kind == "rotation_item" {
+					version = 7
+				}
+				job := entity.SecretRotationJob{ID: "srj_discord_dirty", SourceKeyID: "source", TargetKeyID: "target", CutoverEpoch: 1, ETag: strings.Repeat("a", 64), Status: "migrating", Phase: "migration", InventoryVersion: version, ScanGeneration: 1, CountsJSON: "{}"}
+				if tx.Create(&job).Error != nil {
+					t.Fatal("dirty root job")
+				}
+				if kind == "rotation_item" {
+					if tx.Create(&entity.SecretRotationItem{JobID: job.ID, Domain: "named_identity_providers", SubjectID: "discord", SubjectGeneration: "fixture", Reference: "fixture", OriginalDigest: strings.Repeat("d", 64), ResultDigest: strings.Repeat("e", 64), Outcome: "rewrapped", Attempts: 1}).Error != nil {
+						t.Fatal("dirty rotation item")
+					}
+				}
+			case "process_observation":
+				if tx.Create(&entity.SecretProcessVerification{ProcessID: "spv_discord_dirty", InventoryVersion: 8, PolicyEpoch: 1, KeyManifestDigest: strings.Repeat("b", 64), CryptoVersion: 2, RuntimeSourceDigest: strings.Repeat("c", 64), VerifiedAt: dirtyBirth}).Error != nil {
+					t.Fatal("dirty process observation")
+				}
+			}
+			if discordPristineV101(tx) == nil {
+				t.Fatal("dirty rewind admitted", kind)
+			}
+			if !reflect.DeepEqual(original, personalKeyBehaviorLedger(t, tx)) {
+				t.Fatal("dirty guard changed ledger", kind)
+			}
+			return rollbackDirty
+		})
+		if !errors.Is(err, rollbackDirty) {
+			t.Fatal("dirty rollback", kind, err)
+		}
+		if !reflect.DeepEqual(initial, readProvider("discord")) || !reflect.DeepEqual(original, personalKeyBehaviorLedger(t, db)) || discordPristineV101(db) != nil {
+			t.Fatal("dirty control changed original facts", kind)
+		}
+	}
+	legacyDiscordBeforeV100(t, db)
+	prefix := personalKeyBehaviorLedger(t, db)
+	if len(prefix) != 100 || !reflect.DeepEqual(prefix, original[:100]) {
+		t.Fatal("V100 rewind changed exact prefix")
+	}
+	// Migration fixtures preserve records; they are never authentication proof.
 	birth := time.Now().UTC().Truncate(time.Microsecond)
 	var sessions []entity.Session
 	var challenges []entity.MFAChallenge
 	for i, method := range []string{"", "oidc", "oauth", "ldap", "saml", "github", "google"} {
-  user := entity.User{ID:fmt.Sprintf("usr_discord_retained_%d",i),Email:fmt.Sprintf("discord-retained-%d@example.invalid",i),Name:"Retained member",Role:entity.RoleMember,PasswordHash:"retained-not-proof"}
+		user := entity.User{ID: fmt.Sprintf("usr_discord_retained_%d", i), Email: fmt.Sprintf("discord-retained-%d@example.invalid", i), Name: "Retained member", Role: entity.RoleMember, PasswordHash: "retained-not-proof"}
 		if db.Create(&user).Error != nil {
 			t.Fatal("retained user")
 		}
-		row := entity.Session{ID: fmt.Sprintf("ses_discord_retained_%d",i), UserID: user.ID, TokenHash: strings.Repeat(string(rune('a'+i)), 64), CreatedAt: birth, ExpiresAt: birth.Add(time.Hour), PrimaryMethod: method}
+		row := entity.Session{ID: fmt.Sprintf("ses_discord_retained_%d", i), UserID: user.ID, TokenHash: strings.Repeat(string(rune('a'+i)), 64), CreatedAt: birth, ExpiresAt: birth.Add(time.Hour), PrimaryMethod: method}
 		c := entity.MFAChallenge{UserID: user.ID, Purpose: "login", TokenHash: strings.Repeat(string(rune('f'+i)), 64), PasswordDigest: strings.Repeat("a", 64), Generation: strings.Repeat("b", 64), ExpiresAt: birth.Add(time.Minute), PrimaryMethod: method}
 		switch method {
 		case "oidc":
@@ -295,8 +404,10 @@ func testDiscordMigration(t *testing.T,db *gorm.DB){
 		case "github", "google":
 			row.NamedIdentityProviderID = method
 			row.NamedIdentityProfileID = "github.com.oauth-app.v1"
-   if method=="google"{row.NamedIdentityProfileID=googleFixtureProfile}
-			row.NamedIdentityBindingID = "nib_retained_"+method
+			if method == "google" {
+				row.NamedIdentityProfileID = googleFixtureProfile
+			}
+			row.NamedIdentityBindingID = "nib_retained_" + method
 			row.NamedIdentityBindingCreatedAt = &birth
 			row.NamedIdentityConfigRevision = strings.Repeat("a", 64)
 			row.NamedIdentityPolicyRevision = strings.Repeat("b", 64)
@@ -330,17 +441,69 @@ func testDiscordMigration(t *testing.T,db *gorm.DB){
 		}
 	}
 
-
- oldJob:=entity.SecretRotationJob{ID:"srj_discord_retained_v7",SourceKeyID:"source",TargetKeyID:"target",CutoverEpoch:1,ETag:strings.Repeat("a",64),Status:"migrating",Phase:"migration",InventoryVersion:7,Domain:11,ScanGeneration:1,CountsJSON:"{}"}
- oldProcess:=entity.SecretProcessVerification{ProcessID:"spv_discord_retained_v7",InventoryVersion:7,PolicyEpoch:1,KeyManifestDigest:strings.Repeat("b",64),CryptoVersion:2,RuntimeSourceDigest:strings.Repeat("c",64),VerifiedAt:birth}
- if db.Create(&oldJob).Error!=nil || db.Create(&oldProcess).Error!=nil || db.Session(&gorm.Session{QueryFields:true}).Take(&oldJob,"id = ?",oldJob.ID).Error!=nil || db.Session(&gorm.Session{QueryFields:true}).Take(&oldProcess,"process_id = ?",oldProcess.ProcessID).Error!=nil {t.Fatal("capture retained V7 inventory")}
- retainedRows:=retained
- retained=func(){t.Helper();retainedRows();var j entity.SecretRotationJob;var p entity.SecretProcessVerification;if db.Session(&gorm.Session{QueryFields:true}).Take(&j,"id = ?",oldJob.ID).Error!=nil || db.Session(&gorm.Session{QueryFields:true}).Take(&p,"process_id = ?",oldProcess.ProcessID).Error!=nil || !reflect.DeepEqual(j,oldJob) || !reflect.DeepEqual(p,oldProcess){t.Fatal("V101 promoted/changed historical V7 receipt")}}
- ledger:=func(present bool){t.Helper();rows:=personalKeyBehaviorLedger(t,db);n:=100;if present{n=101};if len(rows)!=n || !reflect.DeepEqual(rows[:100],prefix) || present && rows[100].Version!=101 {t.Fatal("exact100 prefix/101 suffix")}}
- remove:=func(){t.Helper();x:=db.Table("schema_migrations").Where("version = ?",101).Delete(&struct{}{});if x.Error!=nil || x.RowsAffected!=1 {t.Fatal("remove only101")};ledger(false)}
- migrate:=func(){t.Helper();if e:=database.Migrate(ctx,db);e!=nil{t.Fatal("V101 startup",e)};ledger(true);retained();if !reflect.DeepEqual(githubBefore,readProvider("github")) || !reflect.DeepEqual(googleBefore,readProvider("google")){t.Fatal("V101 changed independent named configuration")}}
- var wg sync.WaitGroup;results:=make(chan error,2);for range 2 {wg.Go(func(){results<-database.Migrate(ctx,db)})};wg.Wait();close(results);for e:=range results{if e!=nil{t.Fatal("concurrent V101",e)}}
- migrate();discordBefore:=readProvider("discord");migrate();if !reflect.DeepEqual(discordBefore,readProvider("discord")){t.Fatal("repeat changed Discord birth/state")}
+	oldJob := entity.SecretRotationJob{ID: "srj_discord_retained_v7", SourceKeyID: "source", TargetKeyID: "target", CutoverEpoch: 1, ETag: strings.Repeat("a", 64), Status: "migrating", Phase: "migration", InventoryVersion: 7, Domain: 11, ScanGeneration: 1, CountsJSON: "{}"}
+	oldProcess := entity.SecretProcessVerification{ProcessID: "spv_discord_retained_v7", InventoryVersion: 7, PolicyEpoch: 1, KeyManifestDigest: strings.Repeat("b", 64), CryptoVersion: 2, RuntimeSourceDigest: strings.Repeat("c", 64), VerifiedAt: birth}
+	if db.Create(&oldJob).Error != nil || db.Create(&oldProcess).Error != nil || db.Session(&gorm.Session{QueryFields: true}).Take(&oldJob, "id = ?", oldJob.ID).Error != nil || db.Session(&gorm.Session{QueryFields: true}).Take(&oldProcess, "process_id = ?", oldProcess.ProcessID).Error != nil {
+		t.Fatal("capture retained V7 inventory")
+	}
+	retainedRows := retained
+	retained = func() {
+		t.Helper()
+		retainedRows()
+		var j entity.SecretRotationJob
+		var p entity.SecretProcessVerification
+		if db.Session(&gorm.Session{QueryFields: true}).Take(&j, "id = ?", oldJob.ID).Error != nil || db.Session(&gorm.Session{QueryFields: true}).Take(&p, "process_id = ?", oldProcess.ProcessID).Error != nil || !reflect.DeepEqual(j, oldJob) || !reflect.DeepEqual(p, oldProcess) {
+			t.Fatal("V101 promoted/changed historical V7 receipt")
+		}
+	}
+	ledger := func(present bool) {
+		t.Helper()
+		rows := personalKeyBehaviorLedger(t, db)
+		n := 100
+		if present {
+			n = 101
+		}
+		if len(rows) != n || !reflect.DeepEqual(rows[:100], prefix) || present && rows[100].Version != 101 {
+			t.Fatal("exact100 prefix/101 suffix")
+		}
+	}
+	remove := func() {
+		t.Helper()
+		x := db.Table("schema_migrations").Where("version = ?", 101).Delete(&struct{}{})
+		if x.Error != nil || x.RowsAffected != 1 {
+			t.Fatal("remove only101")
+		}
+		ledger(false)
+	}
+	migrate := func() {
+		t.Helper()
+		if e := database.Migrate(ctx, db); e != nil {
+			t.Fatal("V101 startup", e)
+		}
+		ledger(true)
+		retained()
+		if !reflect.DeepEqual(githubBefore, readProvider("github")) || !reflect.DeepEqual(googleBefore, readProvider("google")) {
+			t.Fatal("V101 changed independent named configuration")
+		}
+	}
+	var wg sync.WaitGroup
+	results := make(chan error, 2)
+	for range 2 {
+		wg.Go(func() { results <- database.Migrate(ctx, db) })
+	}
+	wg.Wait()
+	close(results)
+	for e := range results {
+		if e != nil {
+			t.Fatal("concurrent V101", e)
+		}
+	}
+	migrate()
+	discordBefore := readProvider("discord")
+	migrate()
+	if !reflect.DeepEqual(discordBefore, readProvider("discord")) {
+		t.Fatal("repeat changed Discord birth/state")
+	}
 	// A MySQL partial DDL interruption leaves the ledger absent; replay must restore
 	// the dropped CHECK without fabricating a new singleton or changing any old fact.
 	if db.Migrator().DropConstraint(&discordFixtureBindingV101{}, "ck_namedidentitybinding_profile") != nil {
@@ -386,7 +549,7 @@ func testDiscordMigration(t *testing.T,db *gorm.DB){
 		migrate()
 	}
 
-	for _, bad := range []map[string]any{{"id": "Discord"}, {"id": "discord "}, {"profile_id": "github.com.oauth-app.v1"}, {"identity_issuer": "https://github.com"}, {"profile_id":"google.oidc.v1"}, {"identity_issuer":"https://accounts.google.com"}, {"profile_id": "discord.oauth2.v1 "}, {"identity_issuer": "discord.com"}} {
+	for _, bad := range []map[string]any{{"id": "Discord"}, {"id": "discord "}, {"profile_id": "github.com.oauth-app.v1"}, {"identity_issuer": "https://github.com"}, {"profile_id": "google.oidc.v1"}, {"identity_issuer": "https://accounts.google.com"}, {"profile_id": "discord.oauth2.v1 "}, {"identity_issuer": "discord.com"}} {
 		if !reflect.DeepEqual(discordBefore, readProvider("discord")) {
 			t.Fatal("positive before provider tuple denial")
 		}
@@ -407,7 +570,7 @@ func testDiscordMigration(t *testing.T,db *gorm.DB){
 	if db.Session(&gorm.Session{QueryFields: true}).Take(&bindingBefore, "id = ?", binding.ID).Error != nil {
 		t.Fatal("capture stored Discord binding")
 	}
-	for _, bad := range []map[string]any{{"provider_id": "github"}, {"profile_id": "github.com.oauth-app.v1"}, {"identity_issuer": "https://github.com"}, {"profile_id":"google.oidc.v1"}, {"identity_issuer":"https://accounts.google.com"}, {"subject_kind": "integer"}, {"provider_id": "Discord"}, {"provider_id": "discord "}, {"profile_id": "discord.oauth2.v1 "}, {"identity_issuer": "discord.com"}} {
+	for _, bad := range []map[string]any{{"provider_id": "github"}, {"profile_id": "github.com.oauth-app.v1"}, {"identity_issuer": "https://github.com"}, {"profile_id": "google.oidc.v1"}, {"identity_issuer": "https://accounts.google.com"}, {"subject_kind": "integer"}, {"provider_id": "Discord"}, {"provider_id": "discord "}, {"profile_id": "discord.oauth2.v1 "}, {"identity_issuer": "discord.com"}} {
 		var good discordFixtureBindingV101
 		if db.Session(&gorm.Session{QueryFields: true}).Take(&good, "id = ?", binding.ID).Error != nil || !reflect.DeepEqual(good, bindingBefore) {
 			t.Fatal("positive before correlated binding denial")
@@ -424,8 +587,12 @@ func testDiscordMigration(t *testing.T,db *gorm.DB){
 	if e := db.Transaction(func(tx *gorm.DB) error { return tx.Create(&duplicate).Error }); !errors.Is(e, gorm.ErrDuplicatedKey) {
 		t.Fatal("per-provider unique member", e)
 	}
- sameSubject:=bindingBefore;sameSubject.ID="nib_discord_same_subject";sameSubject.UserID=sessions[1].UserID
- if e:=db.Transaction(func(tx *gorm.DB)error{return tx.Create(&sameSubject).Error});!errors.Is(e,gorm.ErrDuplicatedKey){t.Fatal("per-provider typed subject digest uniqueness",e)}
+	sameSubject := bindingBefore
+	sameSubject.ID = "nib_discord_same_subject"
+	sameSubject.UserID = sessions[1].UserID
+	if e := db.Transaction(func(tx *gorm.DB) error { return tx.Create(&sameSubject).Error }); !errors.Is(e, gorm.ErrDuplicatedKey) {
+		t.Fatal("per-provider typed subject digest uniqueness", e)
+	}
 	ceremony := discordFixtureCeremonyV101{ID: "nic_discord_constraint", ProviderID: "discord", ProfileID: discordFixtureProfile, IdentityIssuer: discordFixtureNamespace, ProviderCreatedAt: discordBefore.CreatedAt, StateHash: strings.Repeat("a", 64), CookieHash: strings.Repeat("b", 64), Purpose: "login", Reason: "Constraint test", Status: "pending", ConfigRevision: discordBefore.ConfigRevision, PolicyRevision: discordBefore.PolicyRevision, ExpiresAt: birth.Add(time.Minute), CreatedAt: birth}
 	if db.Create(&ceremony).Error != nil {
 		t.Fatal("positive Discord ceremony")
@@ -473,7 +640,7 @@ func testDiscordMigration(t *testing.T,db *gorm.DB){
 			t.Fatal("enum positive did not roll back", db.Name(), goodIndex, good.column, fields)
 		}
 	}
-	for badIndex, bad := range []map[string]any{{"provider_id": "github"}, {"profile_id": "github.com.oauth-app.v1"}, {"identity_issuer": "https://github.com"}, {"profile_id":"google.oidc.v1"}, {"identity_issuer":"https://accounts.google.com"}, {"subject_kind": "integer"}, {"purpose":""}, {"purpose":"LOGIN"}, {"purpose":"unknown"}, {"purpose": "login "}, {"status":""}, {"status":"VERIFIED"}, {"status":"unknown"}, {"status": "verified "}, {"subject_kind": " "}} {
+	for badIndex, bad := range []map[string]any{{"provider_id": "github"}, {"profile_id": "github.com.oauth-app.v1"}, {"identity_issuer": "https://github.com"}, {"profile_id": "google.oidc.v1"}, {"identity_issuer": "https://accounts.google.com"}, {"subject_kind": "integer"}, {"purpose": ""}, {"purpose": "LOGIN"}, {"purpose": "unknown"}, {"purpose": "login "}, {"status": ""}, {"status": "VERIFIED"}, {"status": "unknown"}, {"status": "verified "}, {"subject_kind": " "}} {
 		var good discordFixtureCeremonyV101
 		if db.Session(&gorm.Session{QueryFields: true}).Take(&good, "id = ?", ceremony.ID).Error != nil {
 			t.Fatal("positive before ceremony denial read", db.Name(), badIndex)
@@ -503,16 +670,26 @@ func testDiscordMigration(t *testing.T,db *gorm.DB){
 		args         []any
 	}{{"sessions", "id = ?", []any{sessions[0].ID}}, {"mfa_challenges", "user_id = ? AND purpose = ?", []any{challenges[0].UserID, "login"}}} {
 		positive := map[string]any{"primary_method": "discord", "named_identity_provider_id": "discord", "named_identity_profile_id": discordFixtureProfile, "named_identity_binding_id": binding.ID, "named_identity_binding_created_at": birth, "named_identity_config_revision": strings.Repeat("a", 64), "named_identity_policy_revision": strings.Repeat("b", 64), "named_identity_user_created_at": birth}
-		for _, bad := range []map[string]any{{"primary_method": "github"}, {"primary_method":"google"}, {"primary_method":"DISCORD"}, {"primary_method": "discord "}, {"named_identity_provider_id": "github"}, {"named_identity_profile_id": "github.com.oauth-app.v1"}, {"named_identity_provider_id":"google"}, {"named_identity_profile_id":"google.oidc.v1"}, {"named_identity_binding_id": ""}, {"named_identity_binding_created_at": nil}, {"named_identity_config_revision": "short"}, {"named_identity_policy_revision":"short"}, {"named_identity_user_created_at": nil}, {"oidc_binding_id": " "}, {"oauth_binding_id": "oab_mixed"}, {"ldap_binding_created_at": birth}, {"saml_binding_id": "smb_mixed"}} {
+		for _, bad := range []map[string]any{{"primary_method": "github"}, {"primary_method": "google"}, {"primary_method": "DISCORD"}, {"primary_method": "discord "}, {"named_identity_provider_id": "github"}, {"named_identity_profile_id": "github.com.oauth-app.v1"}, {"named_identity_provider_id": "google"}, {"named_identity_profile_id": "google.oidc.v1"}, {"named_identity_binding_id": ""}, {"named_identity_binding_created_at": nil}, {"named_identity_config_revision": "short"}, {"named_identity_policy_revision": "short"}, {"named_identity_user_created_at": nil}, {"oidc_binding_id": " "}, {"oauth_binding_id": "oab_mixed"}, {"ldap_binding_created_at": birth}, {"saml_binding_id": "smb_mixed"}} {
 			if db.Table(target.table).Where(target.where, target.args...).Updates(positive).Error != nil {
 				t.Fatal("complete Discord primary positive", target.table)
 			}
-   var before any = &entity.Session{}
-   if target.table=="mfa_challenges"{before=&entity.MFAChallenge{}}
-   if db.Table(target.table).Session(&gorm.Session{QueryFields:true}).Where(target.where,target.args...).Take(before).Error!=nil {t.Fatal("capture complete primary",target.table)}
-   if db.Transaction(func(tx *gorm.DB)error{return tx.Table(target.table).Where(target.where,target.args...).Updates(bad).Error})==nil {t.Fatal("Discord admitted mixed/partial primary",target.table)}
-   after:=reflect.New(reflect.TypeOf(before).Elem()).Interface()
-   if db.Table(target.table).Session(&gorm.Session{QueryFields:true}).Where(target.where,target.args...).Take(after).Error!=nil || !reflect.DeepEqual(before,after){t.Fatal("failed primary changed complete stored row",target.table)}
+			var before any = &entity.Session{}
+			if target.table == "mfa_challenges" {
+				before = &entity.MFAChallenge{}
+			}
+			if db.Table(target.table).Session(&gorm.Session{QueryFields: true}).Where(target.where, target.args...).Take(before).Error != nil {
+				t.Fatal("capture complete primary", target.table)
+			}
+			if db.Transaction(func(tx *gorm.DB) error {
+				return tx.Table(target.table).Where(target.where, target.args...).Updates(bad).Error
+			}) == nil {
+				t.Fatal("Discord admitted mixed/partial primary", target.table)
+			}
+			after := reflect.New(reflect.TypeOf(before).Elem()).Interface()
+			if db.Table(target.table).Session(&gorm.Session{QueryFields: true}).Where(target.where, target.args...).Take(after).Error != nil || !reflect.DeepEqual(before, after) {
+				t.Fatal("failed primary changed complete stored row", target.table)
+			}
 
 		}
 		local := map[string]any{"primary_method": "", "named_identity_provider_id": "", "named_identity_profile_id": "", "named_identity_binding_id": "", "named_identity_binding_created_at": nil, "named_identity_config_revision": "", "named_identity_policy_revision": "", "named_identity_user_created_at": nil}
@@ -526,9 +703,16 @@ func testDiscordMigration(t *testing.T,db *gorm.DB){
 	migrate()
 	discordAssertRootInventoryV101(t, db)
 
- beforeRepeat:=personalKeyBehaviorLedger(t,db);migrate();if !reflect.DeepEqual(beforeRepeat,personalKeyBehaviorLedger(t,db)){t.Fatal("repeat changed current ledger timestamps")}
- if !reflect.DeepEqual(discordBefore,readProvider("discord")){t.Fatal("constraint controls changed configured seed")}
+	beforeRepeat := personalKeyBehaviorLedger(t, db)
+	migrate()
+	if !reflect.DeepEqual(beforeRepeat, personalKeyBehaviorLedger(t, db)) {
+		t.Fatal("repeat changed current ledger timestamps")
+	}
+	if !reflect.DeepEqual(discordBefore, readProvider("discord")) {
+		t.Fatal("constraint controls changed configured seed")
+	}
 }
+
 // V8 admits Discord in the existing eleven-domain envelope; old receipts keep their versions.
 func discordAssertRootInventoryV101(t *testing.T, db *gorm.DB) {
 	t.Helper()

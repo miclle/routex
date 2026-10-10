@@ -20,7 +20,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
- "reflect"
+	"reflect"
 	"strings"
 	"sync"
 	"testing"
@@ -29,8 +29,8 @@ import (
 	"github.com/fox-gonic/fox"
 	"github.com/miclle/routex/internal/routex/entity"
 	"github.com/miclle/routex/internal/routex/service"
+	"github.com/miclle/routex/pkg/secret"
 	"github.com/miclle/routex/pkg/secretstore"
- "github.com/miclle/routex/pkg/secret"
 	"gorm.io/gorm"
 )
 
@@ -58,9 +58,9 @@ type discordTLSFixture struct {
 	tokenCalls, profileCalls, closes int
 	hold                             *discordTokenHold
 	profileID                        any
-	duplicateID bool
-	unexpected int
-	github *githubTLSFixture
+	duplicateID                      bool
+	unexpected                       int
+	github                           *githubTLSFixture
 }
 
 // The service still sees the literal public HTTPS URLs. Only this per-Service
@@ -112,17 +112,28 @@ func (p *discordTLSFixture) transport() *http.Transport {
 		return (&net.Dialer{}).DialContext(ctx, network, p.server.Listener.Addr().String())
 	}}
 }
-type discordCombinedTransport struct { discord, github *http.Transport }
+
+type discordCombinedTransport struct{ discord, github *http.Transport }
+
 func (t discordCombinedTransport) RoundTrip(r *http.Request) (*http.Response, error) {
- switch r.URL.Host { case "discord.com": return t.discord.RoundTrip(r); case "github.com", "api.github.com": return t.github.RoundTrip(r) }
- return nil, errors.New("fixture destination rejected")
+	switch r.URL.Host {
+	case "discord.com":
+		return t.discord.RoundTrip(r)
+	case "github.com", "api.github.com":
+		return t.github.RoundTrip(r)
+	}
+	return nil, errors.New("fixture destination rejected")
 }
 func (p *discordTLSFixture) factory(context.Context) (service.NamedIdentityTransport, error) {
- discordTransport, githubTransport := p.transport(), p.github.transport()
- return service.NamedIdentityTransport{RoundTripper: discordCombinedTransport{discordTransport, githubTransport}, Close: func() error {
-  discordTransport.CloseIdleConnections(); githubTransport.CloseIdleConnections()
-  p.mu.Lock(); p.closes++; p.mu.Unlock(); return nil
- }}, nil
+	discordTransport, githubTransport := p.transport(), p.github.transport()
+	return service.NamedIdentityTransport{RoundTripper: discordCombinedTransport{discordTransport, githubTransport}, Close: func() error {
+		discordTransport.CloseIdleConnections()
+		githubTransport.CloseIdleConnections()
+		p.mu.Lock()
+		p.closes++
+		p.mu.Unlock()
+		return nil
+	}}, nil
 }
 func (p *discordTLSFixture) holdToken(t *testing.T) *discordTokenHold {
 	t.Helper()
@@ -150,8 +161,16 @@ func (p *discordTLSFixture) serve(w http.ResponseWriter, r *http.Request) {
 	case "discord.com/oauth2/authorize":
 		q := r.URL.Query()
 		subject := r.Header.Get("X-Test-Subject")
-  if r.Method != "GET" || len(q) != 7 || q.Get("client_id") != "18446744073709551615" || q.Get("response_type") != "code" || q.Get("scope") != "identify" || q.Get("redirect_uri") != "https://routex.test/api/v1/auth/discord/callback" || q.Get("code_challenge_method") != "S256" || len(q.Get("state")) != 43 || len(q.Get("code_challenge")) != 43 || subject == "" { w.WriteHeader(400); return }
-  for _, values := range q { if len(values) != 1 { w.WriteHeader(400); return } }
+		if r.Method != "GET" || len(q) != 7 || q.Get("client_id") != "18446744073709551615" || q.Get("response_type") != "code" || q.Get("scope") != "identify" || q.Get("redirect_uri") != "https://routex.test/api/v1/auth/discord/callback" || q.Get("code_challenge_method") != "S256" || len(q.Get("state")) != 43 || len(q.Get("code_challenge")) != 43 || subject == "" {
+			w.WriteHeader(400)
+			return
+		}
+		for _, values := range q {
+			if len(values) != 1 {
+				w.WriteHeader(400)
+				return
+			}
+		}
 
 		raw := make([]byte, 32)
 		if _, e := rand.Read(raw); e != nil {
@@ -168,11 +187,19 @@ func (p *discordTLSFixture) serve(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(302)
 	case "discord.com/api/v10/oauth2/token":
 		r.Body = http.MaxBytesReader(w, r.Body, 8192)
-  clientID, clientSecret, basic := r.BasicAuth()
-  clientID, idErr := url.QueryUnescape(clientID)
-  clientSecret, secretErr := url.QueryUnescape(clientSecret)
-  if r.Method != "POST" || r.URL.RawQuery != "" || !basic || idErr != nil || secretErr != nil || clientID != "18446744073709551615" || clientSecret != "test-only-discord-client-secret" || r.ParseForm() != nil || len(r.PostForm) != 4 { w.WriteHeader(400); return }
-  for _, values := range r.PostForm { if len(values) != 1 { w.WriteHeader(400); return } }
+		clientID, clientSecret, basic := r.BasicAuth()
+		clientID, idErr := url.QueryUnescape(clientID)
+		clientSecret, secretErr := url.QueryUnescape(clientSecret)
+		if r.Method != "POST" || r.URL.RawQuery != "" || !basic || idErr != nil || secretErr != nil || clientID != "18446744073709551615" || clientSecret != "test-only-discord-client-secret" || r.ParseForm() != nil || len(r.PostForm) != 4 {
+			w.WriteHeader(400)
+			return
+		}
+		for _, values := range r.PostForm {
+			if len(values) != 1 {
+				w.WriteHeader(400)
+				return
+			}
+		}
 
 		p.mu.Lock()
 		saved, ok := p.codes[r.Form.Get("code")]
@@ -221,14 +248,19 @@ func (p *discordTLSFixture) serve(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(401)
 			return
 		}
-		if duplicate { _, _ = io.WriteString(w, `{"id":"202","id":"202"}`); return }
+		if duplicate {
+			_, _ = io.WriteString(w, `{"id":"202","id":"202"}`)
+			return
+		}
 		var value any = subject
 		if override != nil {
 			value = override
 		}
 		_ = json.NewEncoder(w).Encode(map[string]any{"id": value, "login": "not-a-binding-identity", "email": "not-a-binding@example.invalid"})
 	default:
-		p.mu.Lock(); p.unexpected++; p.mu.Unlock()
+		p.mu.Lock()
+		p.unexpected++
+		p.mu.Unlock()
 		w.WriteHeader(404)
 	}
 }
@@ -550,26 +582,43 @@ func discordChallenge(t *testing.T, f *discordApplicationFixture, subject string
 }
 func testDiscordLifecycle(t *testing.T, db *gorm.DB) {
 	f := newDiscordApplicationFixture(t, db)
- var googleBefore entity.NamedIdentityProvider
- if db.Session(&gorm.Session{QueryFields:true}).Take(&googleBefore,"id = ?","google").Error != nil { t.Fatal("capture independent Google singleton") }
- defer func(){ var current entity.NamedIdentityProvider; if db.Session(&gorm.Session{QueryFields:true}).Take(&current,"id = ?","google").Error != nil || !reflect.DeepEqual(current,googleBefore) { t.Error("Discord lifecycle changed independent Google configuration") } }()
- t.Run("configuration_review_and_canonical_client_id",func(t *testing.T){
-  review:=f.config(t)
-  var before entity.NamedIdentityProvider
-  if db.Session(&gorm.Session{QueryFields:true}).Take(&before,"id = ?","discord").Error!=nil {t.Fatal("capture current configuration")}
-  a,b,c:=f.peer.counts()
-  for _,id:=range []any{"0","01","18446744073709551616",json.Number("202")} {
-   discordApplicationStatus(t,f.request("PUT","/api/v1/admin/auth/discord",map[string]any{"name":review.Name,"client_id":id,"callback_url":review.CallbackURL,"secret_action":"keep","reason":"Reject noncanonical client identity"},review.ReviewETag,f.admin.CSRFToken,f.adminCookie),400)
-  }
-  discordApplicationStatus(t,f.request("PUT","/api/v1/admin/auth/discord",map[string]any{"name":review.Name,"client_id":review.ClientID,"callback_url":review.CallbackURL,"secret_action":"keep","reason":""},review.ReviewETag,f.admin.CSRFToken,f.adminCookie),400)
-  stale:=strings.Repeat("e",64);if stale==review.ReviewETag{stale=strings.Repeat("f",64)}
-  discordApplicationStatus(t,f.request("PUT","/api/v1/admin/auth/discord/status",map[string]any{"enabled":false,"reason":"Reject stale review"},stale,f.admin.CSRFToken,f.adminCookie),409)
-  x,y,z:=f.peer.counts();var after entity.NamedIdentityProvider
-  if a!=x || b!=y || c!=z || db.Session(&gorm.Session{QueryFields:true}).Take(&after,"id = ?","discord").Error!=nil || !reflect.DeepEqual(before,after){t.Fatal("invalid review changed configuration or performed remote I/O")}
-  raw:=f.request("GET","/api/v1/admin/auth/discord",nil,"","",f.adminCookie)
-  discordApplicationStatus(t,raw,200)
-  if strings.Contains(raw.Body.String(),before.AuthCiphertext) || strings.Contains(raw.Body.String(),"test-only-discord-client-secret"){t.Fatal("config response exposed secret material")}
- })
+	var googleBefore entity.NamedIdentityProvider
+	if db.Session(&gorm.Session{QueryFields: true}).Take(&googleBefore, "id = ?", "google").Error != nil {
+		t.Fatal("capture independent Google singleton")
+	}
+	defer func() {
+		var current entity.NamedIdentityProvider
+		if db.Session(&gorm.Session{QueryFields: true}).Take(&current, "id = ?", "google").Error != nil || !reflect.DeepEqual(current, googleBefore) {
+			t.Error("Discord lifecycle changed independent Google configuration")
+		}
+	}()
+	t.Run("configuration_review_and_canonical_client_id", func(t *testing.T) {
+		review := f.config(t)
+		var before entity.NamedIdentityProvider
+		if db.Session(&gorm.Session{QueryFields: true}).Take(&before, "id = ?", "discord").Error != nil {
+			t.Fatal("capture current configuration")
+		}
+		a, b, c := f.peer.counts()
+		for _, id := range []any{"0", "01", "18446744073709551616", json.Number("202")} {
+			discordApplicationStatus(t, f.request("PUT", "/api/v1/admin/auth/discord", map[string]any{"name": review.Name, "client_id": id, "callback_url": review.CallbackURL, "secret_action": "keep", "reason": "Reject noncanonical client identity"}, review.ReviewETag, f.admin.CSRFToken, f.adminCookie), 400)
+		}
+		discordApplicationStatus(t, f.request("PUT", "/api/v1/admin/auth/discord", map[string]any{"name": review.Name, "client_id": review.ClientID, "callback_url": review.CallbackURL, "secret_action": "keep", "reason": ""}, review.ReviewETag, f.admin.CSRFToken, f.adminCookie), 400)
+		stale := strings.Repeat("e", 64)
+		if stale == review.ReviewETag {
+			stale = strings.Repeat("f", 64)
+		}
+		discordApplicationStatus(t, f.request("PUT", "/api/v1/admin/auth/discord/status", map[string]any{"enabled": false, "reason": "Reject stale review"}, stale, f.admin.CSRFToken, f.adminCookie), 409)
+		x, y, z := f.peer.counts()
+		var after entity.NamedIdentityProvider
+		if a != x || b != y || c != z || db.Session(&gorm.Session{QueryFields: true}).Take(&after, "id = ?", "discord").Error != nil || !reflect.DeepEqual(before, after) {
+			t.Fatal("invalid review changed configuration or performed remote I/O")
+		}
+		raw := f.request("GET", "/api/v1/admin/auth/discord", nil, "", "", f.adminCookie)
+		discordApplicationStatus(t, raw, 200)
+		if strings.Contains(raw.Body.String(), before.AuthCiphertext) || strings.Contains(raw.Body.String(), "test-only-discord-client-secret") {
+			t.Fatal("config response exposed secret material")
+		}
+	})
 	t.Run("fixed_profile_manual_completion_and_replay", func(t *testing.T) {
 		c := f.start(t, "/api/v1/auth/discord/start", discordMemberSubject, nil, "", "", "")
 		c.callback += "&scope=identify&future_decoration=ignored&iss=untrusted-decoration&nonce=not-authority"
@@ -611,16 +660,23 @@ func testDiscordLifecycle(t *testing.T, db *gorm.DB) {
 	t.Run("state_and_duplicate_cookie_fail_before_exchange", func(t *testing.T) {
 		c := f.start(t, "/api/v1/auth/discord/start", discordMemberSubject, nil, "", "", "")
 		tokens, profiles, closed := f.peer.counts()
-  for _, kind := range []string{"missing_state", "duplicate_code", "code_and_error", "duplicate_decoration", "escaped_duplicate_state"} {
-   callback, err := url.Parse(c.callback)
-   if err != nil { t.Fatal("controlled callback URI") }
-   q := callback.Query()
-   switch kind {
-   case "missing_state": q.Del("state")
-   case "duplicate_code": q.Add("code", q.Get("code"))
-   case "code_and_error": q.Set("error", "access_denied")
-   case "duplicate_decoration": q.Add("scope", "identify"); q.Add("scope", "identify")
-   }
+		for _, kind := range []string{"missing_state", "duplicate_code", "code_and_error", "duplicate_decoration", "escaped_duplicate_state"} {
+			callback, err := url.Parse(c.callback)
+			if err != nil {
+				t.Fatal("controlled callback URI")
+			}
+			q := callback.Query()
+			switch kind {
+			case "missing_state":
+				q.Del("state")
+			case "duplicate_code":
+				q.Add("code", q.Get("code"))
+			case "code_and_error":
+				q.Set("error", "access_denied")
+			case "duplicate_decoration":
+				q.Add("scope", "identify")
+				q.Add("scope", "identify")
+			}
 
 			callback.RawQuery = q.Encode()
 			if kind == "escaped_duplicate_state" {
@@ -666,33 +722,55 @@ func testDiscordLifecycle(t *testing.T, db *gorm.DB) {
 		session, cookie := discordApplicationSession(t, f.finish(c, nil, ""))
 		discordAssertPrimary(t, db, cookie, session.User.ID)
 	})
- t.Run("canonical_string_identity_and_fixed_namespace", func(t *testing.T) {
-  for _, bad := range []struct{name string; value any; duplicate bool}{
-   {"unknown", "303", false}, {"zero", "0", false}, {"leading_zero", "0202", false}, {"overflow", "18446744073709551616", false}, {"numeric_JSON", json.Number("202"), false}, {"duplicate_id", nil, true},
-  } {
-   admitted, cookie := f.login(t, discordMemberSubject)
-   discordAssertPrimary(t, db, cookie, admitted.User.ID)
-   var usersBefore int64
-   if db.Model(&entity.User{}).Count(&usersBefore).Error != nil { t.Fatal("count existing members") }
-   f.peer.mu.Lock(); f.peer.profileID = bad.value; f.peer.duplicateID = bad.duplicate; f.peer.mu.Unlock()
-   c := f.start(t, "/api/v1/auth/discord/start", discordMemberSubject, nil, "", "", "")
-   tokens, profiles, _ := f.peer.counts()
-   f.stage(t, c)
-   discordApplicationStatus(t, f.finish(c, nil, ""), 401)
-   a,b,_ := f.peer.counts()
-   if a != tokens+1 || b != profiles+1 { t.Fatal("identity denial skipped or replayed fixed exchange", bad.name) }
-   var proof entity.NamedIdentityCeremony
-   var usersAfter int64
-   if db.Where("cookie_hash = ?", secret.SHA256Hex(c.cookie.Value)).Take(&proof).Error != nil || proof.Status == "verified" || proof.VerifiedAt != nil || db.Model(&entity.User{}).Count(&usersAfter).Error != nil || usersAfter != usersBefore { t.Fatal("invalid/unbound identity staged proof or provisioned member", bad.name) }
-   f.peer.mu.Lock(); f.peer.profileID = nil; f.peer.duplicateID = false; f.peer.mu.Unlock()
-  }
-  admitted,cookie := f.login(t,discordMemberSubject)
-  row := discordAssertPrimary(t,db,cookie,admitted.User.ID)
-  var binding entity.NamedIdentityBinding
-  if db.Take(&binding,"id = ?",row.NamedIdentityBindingID).Error != nil || binding.IdentityIssuer != discordFixtureNamespace || binding.Subject != discordMemberSubject { t.Fatal("fixed resource namespace or exact subject changed") }
-  f.peer.mu.Lock(); unexpected := f.peer.unexpected; f.peer.mu.Unlock()
-  if unexpected != 0 { t.Fatal("Discord exchange fetched an unapproved endpoint") }
- })
+	t.Run("canonical_string_identity_and_fixed_namespace", func(t *testing.T) {
+		for _, bad := range []struct {
+			name      string
+			value     any
+			duplicate bool
+		}{
+			{"unknown", "303", false}, {"zero", "0", false}, {"leading_zero", "0202", false}, {"overflow", "18446744073709551616", false}, {"numeric_JSON", json.Number("202"), false}, {"duplicate_id", nil, true},
+		} {
+			admitted, cookie := f.login(t, discordMemberSubject)
+			discordAssertPrimary(t, db, cookie, admitted.User.ID)
+			var usersBefore int64
+			if db.Model(&entity.User{}).Count(&usersBefore).Error != nil {
+				t.Fatal("count existing members")
+			}
+			f.peer.mu.Lock()
+			f.peer.profileID = bad.value
+			f.peer.duplicateID = bad.duplicate
+			f.peer.mu.Unlock()
+			c := f.start(t, "/api/v1/auth/discord/start", discordMemberSubject, nil, "", "", "")
+			tokens, profiles, _ := f.peer.counts()
+			f.stage(t, c)
+			discordApplicationStatus(t, f.finish(c, nil, ""), 401)
+			a, b, _ := f.peer.counts()
+			if a != tokens+1 || b != profiles+1 {
+				t.Fatal("identity denial skipped or replayed fixed exchange", bad.name)
+			}
+			var proof entity.NamedIdentityCeremony
+			var usersAfter int64
+			if db.Where("cookie_hash = ?", secret.SHA256Hex(c.cookie.Value)).Take(&proof).Error != nil || proof.Status == "verified" || proof.VerifiedAt != nil || db.Model(&entity.User{}).Count(&usersAfter).Error != nil || usersAfter != usersBefore {
+				t.Fatal("invalid/unbound identity staged proof or provisioned member", bad.name)
+			}
+			f.peer.mu.Lock()
+			f.peer.profileID = nil
+			f.peer.duplicateID = false
+			f.peer.mu.Unlock()
+		}
+		admitted, cookie := f.login(t, discordMemberSubject)
+		row := discordAssertPrimary(t, db, cookie, admitted.User.ID)
+		var binding entity.NamedIdentityBinding
+		if db.Take(&binding, "id = ?", row.NamedIdentityBindingID).Error != nil || binding.IdentityIssuer != discordFixtureNamespace || binding.Subject != discordMemberSubject {
+			t.Fatal("fixed resource namespace or exact subject changed")
+		}
+		f.peer.mu.Lock()
+		unexpected := f.peer.unexpected
+		f.peer.mu.Unlock()
+		if unexpected != 0 {
+			t.Fatal("Discord exchange fetched an unapproved endpoint")
+		}
+	})
 	t.Run("cross_profile_primary_proofs_never_mix", func(t *testing.T) {
 		admitted, cookie := f.login(t, discordMemberSubject)
 		before := discordAssertPrimary(t, db, cookie, admitted.User.ID)
@@ -758,22 +836,55 @@ func testDiscordLifecycle(t *testing.T, db *gorm.DB) {
 		admitted, admittedCookie := discordApplicationSession(t, f.finish(c, nil, ""))
 		discordAssertPrimary(t, db, admittedCookie, admitted.User.ID)
 	})
- t.Run("cancelled_callback_never_stages_proof",func(t *testing.T){
-  c:=f.start(t,"/api/v1/auth/discord/start",discordMemberSubject,nil,"","","")
-  hold:=f.peer.holdToken(t)
-  bound,boundCancel:=context.WithTimeout(f.ctx,10*time.Second);defer boundCancel()
-  requestCtx,requestCancel:=context.WithCancel(bound);defer requestCancel()
-  done:=make(chan *httptest.ResponseRecorder,1);joined:=false
-  defer func(){hold.release();requestCancel();if !joined{select{case <-done:case <-bound.Done():t.Error("cancelled callback failed original join bound")}}}()
-  go func(){done<-discordApplicationRequest(requestCtx,f.router,"GET",c.callback,nil,"","",c.cookie)}()
-  select{case <-hold.entered:case <-done:joined=true;t.Fatal("cancel control did not reach held token");case <-bound.Done():t.Fatal("cancel admission exceeded original bound")}
-  requestCancel();hold.release()
-  select{case r:=<-done:joined=true;discordApplicationStatus(t,r,303);case <-bound.Done():t.Fatal("cancelled callback failed to join")}
-  if bound.Err()!=nil{t.Fatal("late cancelled callback join")}
-  var proof entity.NamedIdentityCeremony
-  if db.Where("cookie_hash = ?",secret.SHA256Hex(c.cookie.Value)).Take(&proof).Error!=nil || proof.Status=="verified" || proof.VerifiedAt!=nil {t.Fatal("cancelled callback staged usable proof")}
-  discordApplicationStatus(t,f.finish(c,nil,""),401)
- })
+	t.Run("cancelled_callback_never_stages_proof", func(t *testing.T) {
+		c := f.start(t, "/api/v1/auth/discord/start", discordMemberSubject, nil, "", "", "")
+		hold := f.peer.holdToken(t)
+		bound, boundCancel := context.WithTimeout(f.ctx, 10*time.Second)
+		defer boundCancel()
+		requestCtx, requestCancel := context.WithCancel(bound)
+		defer requestCancel()
+		done := make(chan *httptest.ResponseRecorder, 1)
+		joined := false
+		defer func() {
+			hold.release()
+			requestCancel()
+			if !joined {
+				select {
+				case <-done:
+				case <-bound.Done():
+					t.Error("cancelled callback failed original join bound")
+				}
+			}
+		}()
+		go func() {
+			done <- discordApplicationRequest(requestCtx, f.router, "GET", c.callback, nil, "", "", c.cookie)
+		}()
+		select {
+		case <-hold.entered:
+		case <-done:
+			joined = true
+			t.Fatal("cancel control did not reach held token")
+		case <-bound.Done():
+			t.Fatal("cancel admission exceeded original bound")
+		}
+		requestCancel()
+		hold.release()
+		select {
+		case r := <-done:
+			joined = true
+			discordApplicationStatus(t, r, 303)
+		case <-bound.Done():
+			t.Fatal("cancelled callback failed to join")
+		}
+		if bound.Err() != nil {
+			t.Fatal("late cancelled callback join")
+		}
+		var proof entity.NamedIdentityCeremony
+		if db.Where("cookie_hash = ?", secret.SHA256Hex(c.cookie.Value)).Take(&proof).Error != nil || proof.Status == "verified" || proof.VerifiedAt != nil {
+			t.Fatal("cancelled callback staged usable proof")
+		}
+		discordApplicationStatus(t, f.finish(c, nil, ""), 401)
+	})
 	t.Run("held_verification_rechecks_original_session_before_staging", func(t *testing.T) {
 		original, originalCookie := discordApplicationSession(t, f.request("POST", "/api/v1/auth/login", LoginRequest{Email: f.admin.User.Email, Password: discordFixturePassword}, "", ""))
 		view := discordApplicationDecode[service.DiscordProviderView](t, f.request("GET", "/api/v1/admin/auth/discord", nil, "", "", originalCookie), 200)

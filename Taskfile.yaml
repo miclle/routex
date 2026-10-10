@@ -126,7 +126,7 @@ tasks:
   check-backend:
     internal: true
     cmds:
-      - gofmt -l .
+      - ./scripts/check-gofmt.sh
       - go vet -tags development $(./scripts/go-packages.sh)
       - go tool staticcheck -tags development $(./scripts/go-packages.sh)
       - ./scripts/check-lint.sh

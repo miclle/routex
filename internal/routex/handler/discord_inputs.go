@@ -18,7 +18,7 @@ const discordCallbackPath = discordAuthPath + "/callback"
 type discordInputsKey struct{}
 type discordInputs struct {
 	cookie, state, code, remoteError string
-	invalid                                          bool
+	invalid                          bool
 }
 
 // DiscordInputs removes browser correlation before downstream observation. The

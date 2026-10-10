@@ -14,6 +14,7 @@ import (
 
 const discordProviderID = "discord"
 const discordProfileID = "discord.oauth2.v1"
+
 // This is the fixed identity namespace, not an OIDC issuer claim.
 const discordIdentityIssuer = "https://discord.com"
 const discordAuthorizationURL = "https://discord.com/oauth2/authorize"

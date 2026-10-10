@@ -55,14 +55,21 @@ func (f discordTestRoundTrip) RoundTrip(r *http.Request) (*http.Response, error)
 
 type discordTestBody struct {
 	io.ReadCloser
-	closed *atomic.Int32
-	fail   bool
+	closed      *atomic.Int32
+	fail        bool
 	readEntered chan<- struct{}
-	readOnce sync.Once
+	readOnce    sync.Once
 }
 
 func (b *discordTestBody) Read(p []byte) (int, error) {
-	if b.readEntered != nil { b.readOnce.Do(func() { select { case b.readEntered <- struct{}{}: default: } }) }
+	if b.readEntered != nil {
+		b.readOnce.Do(func() {
+			select {
+			case b.readEntered <- struct{}{}:
+			default:
+			}
+		})
+	}
 	return b.ReadCloser.Read(p)
 }
 
@@ -84,8 +91,8 @@ type discordTLSFixture struct {
 	mu                                                sync.Mutex
 	deadlines                                         []time.Time
 	badTrust, bodyCloseFailure, transportCloseFailure bool
-	responseReadPath string
-	responseReadEntered chan<- struct{}
+	responseReadPath                                  string
+	responseReadEntered                               chan<- struct{}
 }
 
 // Only the socket is redirected locally; the real TLS handshake still verifies
@@ -139,7 +146,9 @@ func newDiscordTLSFixture(t *testing.T, serverName string, handler http.HandlerF
 			if response != nil && response.Body != nil {
 				f.exposed.Add(1)
 				var readEntered chan<- struct{}
-				if r.URL.Path == f.responseReadPath { readEntered = f.responseReadEntered }
+				if r.URL.Path == f.responseReadPath {
+					readEntered = f.responseReadEntered
+				}
 				response.Body = &discordTestBody{ReadCloser: response.Body, closed: &f.bodies, fail: f.bodyCloseFailure, readEntered: readEntered}
 			}
 			return response, err
@@ -405,20 +414,36 @@ func TestDiscordTLSCancellationJoinsOwnedRequest(t *testing.T) {
 				if blocked {
 					w.Header().Set("Content-Type", "application/json")
 					w.WriteHeader(200)
-					if flusher, ok := w.(http.Flusher); ok { flusher.Flush() }
-					select { case entered <- struct{}{}: default: }
-					select { case <-r.Context().Done(): case <-release: }
+					if flusher, ok := w.(http.Flusher); ok {
+						flusher.Flush()
+					}
+					select {
+					case entered <- struct{}{}:
+					default:
+					}
+					select {
+					case <-r.Context().Done():
+					case <-release:
+					}
 					return
 				}
 				discordTestJSON(w, 200, `{"access_token":"opaque","token_type":"Bearer"}`)
 			})
 			f.responseReadPath = "/api/v10/oauth2/token"
-			if phase == "profile" { f.responseReadPath = "/api/v10/users/@me" }
+			if phase == "profile" {
+				f.responseReadPath = "/api/v10/users/@me"
+			}
 			f.responseReadEntered = readEntered
 			ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 			client, closeClient, err := f.svc.namedIdentityProfileProtocol(ctx, f.provider)
-			if err != nil { cancel(); t.Fatal("construct") }
-			type result struct { identity namedIdentityRemoteIdentity; err error }
+			if err != nil {
+				cancel()
+				t.Fatal("construct")
+			}
+			type result struct {
+				identity namedIdentityRemoteIdentity
+				err      error
+			}
 			completed := make(chan result, 1)
 			exchangeDone := make(chan struct{})
 			joined, peerJoined := false, false
@@ -429,30 +454,69 @@ func TestDiscordTLSCancellationJoinsOwnedRequest(t *testing.T) {
 				// One existing one-second cleanup allowance, shared by both joins.
 				limit := time.NewTimer(time.Second)
 				defer limit.Stop()
-				if !joined { select { case <-exchangeDone: joined = true; case <-limit.C: t.Error("owned exchange did not join"); return } }
-				if handlerStarted.Load() && !peerJoined { select { case <-handlerDone: peerJoined = true; case <-limit.C: t.Error("owned TLS handler did not join"); return } }
+				if !joined {
+					select {
+					case <-exchangeDone:
+						joined = true
+					case <-limit.C:
+						t.Error("owned exchange did not join")
+						return
+					}
+				}
+				if handlerStarted.Load() && !peerJoined {
+					select {
+					case <-handlerDone:
+						peerJoined = true
+					case <-limit.C:
+						t.Error("owned TLS handler did not join")
+						return
+					}
+				}
 			})
 			go func() {
 				defer close(exchangeDone)
 				identity, err := client.Exchange(ctx, discordTestCallback())
 				completed <- result{identity, err}
 			}()
-			select { case <-entered: case <-ctx.Done(): t.Fatal("controlled phase not reached") }
+			select {
+			case <-entered:
+			case <-ctx.Done():
+				t.Fatal("controlled phase not reached")
+			}
 			// Server Flush alone does not prove RoundTrip exposed a response. Wait
 			// for the SDK to enter its owned body Read before canceling.
-			select { case <-readEntered: case <-ctx.Done(): t.Fatal("owned response read not reached") }
+			select {
+			case <-readEntered:
+			case <-ctx.Done():
+				t.Fatal("owned response read not reached")
+			}
 			cancel()
 			joinLimit := time.NewTimer(time.Second)
 			defer joinLimit.Stop()
 			select {
 			case got := <-completed:
-				if !errors.Is(got.err, namedIdentityUnavailable) || got.identity != (namedIdentityRemoteIdentity{}) { t.Fatal("canceled proof admitted") }
-			case <-joinLimit.C: t.Fatal("owned request failed to join")
+				if !errors.Is(got.err, namedIdentityUnavailable) || got.identity != (namedIdentityRemoteIdentity{}) {
+					t.Fatal("canceled proof admitted")
+				}
+			case <-joinLimit.C:
+				t.Fatal("owned request failed to join")
 			}
-			select { case <-exchangeDone: joined = true; case <-joinLimit.C: t.Fatal("owned exchange did not exit") }
-			select { case <-handlerDone: peerJoined = true; case <-time.After(time.Second): t.Fatal("TLS peer did not observe cancellation") }
+			select {
+			case <-exchangeDone:
+				joined = true
+			case <-joinLimit.C:
+				t.Fatal("owned exchange did not exit")
+			}
+			select {
+			case <-handlerDone:
+				peerJoined = true
+			case <-time.After(time.Second):
+				t.Fatal("TLS peer did not observe cancellation")
+			}
 			want := int32(1)
-			if phase == "profile" { want = 2 }
+			if phase == "profile" {
+				want = 2
+			}
 			if peerInvalid.Load() || f.requests.Load() != want || f.exposed.Load() != want || f.bodies.Load() != f.exposed.Load() {
 				t.Fatal("canceled response leaked or replayed")
 			}

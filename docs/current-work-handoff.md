@@ -4,6 +4,29 @@ Updated: 2026-10-11. Status: resumed by explicit user instruction; prioritize pa
 
 ## Current execution status (2026-10-11)
 
+A follow-up formatting maintenance phase corrects nine Go files and changes
+`check-backend` to fail when `gofmt` reports unformatted source, using
+`scripts/check-gofmt.sh`. The existing `lint` command remains the automatic fix.
+Isolated negative/positive controls confirm that the check rejects unformatted
+files, accepts formatted files and does not modify source. The Discord commit's
+remote Backend Checks failure at Verify gofmt is retained; its successful local
+check had only listed the drift instead of failing. This maintenance changes no
+product behavior, released migration, authentication policy or API-Key delivery
+implementation.
+
+Formatting, mandatory checking and complete Task pass on the unchanged
+2,397-path maintenance source: 6,539 frontend tests in 240 files, Go race/coverage,
+development lifecycle and embedded production assets. Complete Task SHA-256:
+`00406f46e8e9142b4bd0becf8fdd592811362dcb740fed68b495638b9b9c140e`.
+Documentation is then synchronized and mandatory checking renewed before commit.
+Prior complete dual-driver and authentication-lifecycle evidence keeps its exact
+accepted source boundary; no new real-database, browser or external-provider
+acceptance is inferred from a whitespace/check-only change. F03/A15 remain Partial,
+and the overall objective remains active. API-Key delivery and forced SSO remain
+separate private candidates awaiting their own complete qualification.
+
+## Historical formatting and feature checkpoints
+
 The current bounded phase implements existing-member Discord login, explicit
 linking/verification, native MFA, reviewed enablement, callback/manual completion,
 revocation/offboarding and root-inventory V8 coverage with frozen GORM V101.
