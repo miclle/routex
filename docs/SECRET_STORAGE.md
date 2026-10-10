@@ -122,3 +122,17 @@ successful body closure and a live original context acknowledge the write;
 post-dispatch failures remain unknown. See [Vault API-Key writer](VAULT_API_KEY_WRITER.md)
 for component bounds and the still-separate application authentication, durable
 recovery and Key activation requirements.
+
+## Headerless cleanup response loss
+
+A destroy that loses response headers has an unknown remote outcome and cannot
+prove response closure. Keep its process source-closure ledger unclosed rather
+than fabricating stopped or retired timestamps. Fresh authorization may read the
+retained receipt or repeat the exact command identity to reconcile that receipt;
+this grants no new remote destroy. A different command cannot bypass the retained
+claim or unknown process ownership. Historical ownership is not renewed eligibility.
+
+The controlled headerless-loss regression passes on PostgreSQL and MySQL. It
+separately joins request, peer and runtime work; it does not certify graceful whole
+process shutdown or external Vault readiness. See the [current recovery
+qualification](IMPLEMENTATION.md#ambiguous-remote-storage-recovery-regression-2026-10-10).

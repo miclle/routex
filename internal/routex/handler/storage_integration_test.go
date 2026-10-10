@@ -9,6 +9,7 @@ import (
 	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
+	"reflect"
 	"strings"
 	"sync"
 	"testing"
@@ -487,5 +488,387 @@ func testStorageLifecycle(t *testing.T, db *gorm.DB) {
 	}
 	if !seenCompleted || !seenFailed {
 		t.Fatalf("real storage cleanup outcomes were not reported accurately: %+v", cleanupJobs)
+	}
+	storageLateAcceptedUpload(t, db, store, svc, router, auth, cookie)
+}
+
+// Exercise cancellation with a real attempted PUT and durable intent, rather
+// than seeding an aged uploading row. Service reconstruction is not a process restart.
+func storageLateAcceptedUpload(t *testing.T, db *gorm.DB, store *secretstore.Store, svc *service.Service, router *fox.Engine, auth SessionResponse, cookie *http.Cookie) {
+	t.Helper()
+	caseCtx, cancelCase := context.WithTimeout(context.Background(), 60*time.Second)
+	defer cancelCase()
+	var oldObjects []entity.StorageObject
+	var oldRevisions []entity.StorageRevision
+	if err := db.WithContext(caseCtx).Order("id").Find(&oldObjects).Error; err != nil {
+		t.Fatal("late upload original object readback", err)
+	}
+	if err := db.WithContext(caseCtx).Order("id").Find(&oldRevisions).Error; err != nil {
+		t.Fatal("late upload original revision readback", err)
+	}
+	unchanged := []struct {
+		model any
+		count int64
+	}{{model: &entity.APIKey{}}, {model: &entity.ProjectKey{}}, {model: &entity.CallRecord{}}, {model: &entity.CallAttempt{}}}
+	for i := range unchanged {
+		if err := db.WithContext(caseCtx).Model(unchanged[i].model).Count(&unchanged[i].count).Error; err != nil {
+			t.Fatal("late upload native/key baseline", err)
+		}
+	}
+	payload := []byte("%PDF-1.7\nlate accepted original upload\n%%EOF")
+	const targetVersion = "late-owned-version"
+	var mu sync.Mutex
+	objects := map[string]storageFixtureObject{}
+	armed, heldStarted := false, false
+	var publishedRevision, targetPath string
+	puts, gets, heads, deletes := 0, 0, 0, 0
+	entered := make(chan entity.StorageObject, 1)
+	release := make(chan struct{})
+	putDone := make(chan struct{})
+	var releaseOnce sync.Once
+	releasePut := func() { releaseOnce.Do(func() { close(release) }) }
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if !strings.HasPrefix(r.Header.Get("Authorization"), "AWS4-HMAC-SHA256 Credential=test-only-access/") || !strings.HasPrefix(r.URL.Path, "/routex-test/late/routex/") {
+			t.Error("late upload storage authority/path")
+			w.WriteHeader(403)
+			return
+		}
+		if r.Method == "PUT" {
+			owner := r.Header.Get("X-Amz-Meta-Routex-Id")
+			if owner == "" || r.URL.Path != "/routex-test/late/routex/"+owner || r.URL.RawQuery != "x-id=PutObject" || r.Header.Get("If-None-Match") != "*" {
+				t.Error("late upload conditional ownership")
+				w.WriteHeader(400)
+				return
+			}
+			data, err := io.ReadAll(io.LimitReader(r.Body, objectstore.MaxBytes+1))
+			if err != nil || len(data) > objectstore.MaxBytes {
+				t.Error("late upload bounded body")
+				w.WriteHeader(400)
+				return
+			}
+			mu.Lock()
+			_, duplicate := objects[r.URL.Path]
+			hold := armed
+			if hold {
+				armed, heldStarted = false, true
+				targetPath = r.URL.Path
+			}
+			isTarget := r.URL.Path == targetPath
+			if isTarget {
+				puts++
+			}
+			revision := publishedRevision
+			mu.Unlock()
+			if duplicate || isTarget && !hold {
+				t.Error("late upload repeated conditional PUT")
+				w.WriteHeader(412)
+				return
+			}
+			version := "probe-version"
+			if hold {
+				defer close(putDone)
+				var intent entity.StorageObject
+				if err := db.WithContext(caseCtx).Take(&intent, "id = ?", owner).Error; err != nil || intent.ID != owner || intent.OwnerKind != entity.StorageOwnerUser || intent.OwnerID != auth.User.ID || intent.RevisionID != revision || intent.Purpose != "attachment" || intent.State != "uploading" || intent.UploadConfirmed || intent.VersionID != "" || intent.Size != int64(len(payload)) || !bytes.Equal(data, payload) {
+					t.Error("late upload network entry lacks exact committed intent")
+					w.WriteHeader(400)
+					return
+				}
+				entered <- intent
+				// Deliberately model a server that has already read the request and
+				// can accept it after the caller cancels. The case deadline remains
+				// authoritative; no detached unbounded work is permitted.
+				select {
+				case <-release:
+				case <-caseCtx.Done():
+					return
+				}
+				version = targetVersion
+			}
+			mu.Lock()
+			objects[r.URL.Path] = storageFixtureObject{data: data, owner: owner, version: version}
+			mu.Unlock()
+			w.Header().Set("X-Amz-Version-Id", version)
+			return
+		}
+		mu.Lock()
+		isTarget := r.URL.Path == targetPath
+		if isTarget {
+			switch r.Method {
+			case "GET":
+				gets++
+			case "HEAD":
+				heads++
+			case "DELETE":
+				deletes++
+			}
+		}
+		object, found := objects[r.URL.Path]
+		mu.Unlock()
+		if !found {
+			w.WriteHeader(404)
+			return
+		}
+		query := r.URL.Query()
+		// The pinned S3 SDK adds an operation selector to GET and DELETE.
+		// Admit only that exact selector before checking the owned version.
+		operation := ""
+		switch r.Method {
+		case "GET":
+			operation = "GetObject"
+		case "DELETE":
+			operation = "DeleteObject"
+		}
+		if operation != "" {
+			if len(query["x-id"]) != 1 || query.Get("x-id") != operation {
+				t.Error("late upload nonexact SDK operation selection")
+				w.WriteHeader(400)
+				return
+			}
+			query.Del("x-id")
+		}
+		if len(query) > 1 || len(query) != 0 && (len(query["versionId"]) != 1 || query.Get("versionId") != object.version) {
+			t.Error("late upload nonexact version selection")
+			w.WriteHeader(400)
+			return
+		}
+		w.Header().Set("X-Amz-Version-Id", object.version)
+		w.Header().Set("X-Amz-Meta-Routex-Id", object.owner)
+		switch r.Method {
+		case "GET":
+			_, _ = w.Write(object.data)
+		case "HEAD":
+			w.Header().Set("Content-Length", fmt.Sprint(len(object.data)))
+		case "DELETE":
+			if query.Get("versionId") != object.version {
+				t.Error("late upload cleanup omitted the resolved exact version")
+				w.WriteHeader(400)
+				return
+			}
+			mu.Lock()
+			delete(objects, r.URL.Path)
+			mu.Unlock()
+			w.WriteHeader(204)
+		default:
+			t.Error("late upload extra storage operation")
+			w.WriteHeader(400)
+		}
+	}))
+	var apiDone chan *httptest.ResponseRecorder
+	apiJoined, putJoined := false, false
+	cancelUpload := func() {}
+	defer func() {
+		cancelUpload()
+		cancelCase()
+		releasePut()
+		if apiDone != nil && !apiJoined {
+			select {
+			case <-apiDone:
+				apiJoined = true
+			case <-time.After(5 * time.Second):
+				t.Error("late upload API handler did not join during cleanup")
+			}
+		}
+		mu.Lock()
+		started := heldStarted
+		mu.Unlock()
+		if started && !putJoined {
+			select {
+			case <-putDone:
+				putJoined = true
+			case <-time.After(5 * time.Second):
+				t.Error("late upload origin handler did not join during cleanup")
+			}
+		}
+		server.Close()
+	}()
+	request := func(method, path string, input any) *httptest.ResponseRecorder {
+		encoded, err := json.Marshal(input)
+		if err != nil {
+			t.Fatal("late upload request encoding", err)
+		}
+		req := httptest.NewRequestWithContext(caseCtx, method, "http://example.com"+path, bytes.NewReader(encoded))
+		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Origin", "http://example.com")
+		req.Header.Set("X-CSRF-Token", auth.CSRFToken)
+		req.AddCookie(cookie)
+		response := httptest.NewRecorder()
+		router.ServeHTTP(response, req)
+		for _, forbidden := range []string{"test-only-access", "test-only-secret", "AWS4-HMAC-SHA256", "auth_ciphertext", "secret_generation"} {
+			if strings.Contains(response.Body.String(), forbidden) {
+				t.Error("late upload response exposed private storage material")
+			}
+		}
+		return response
+	}
+	current := decodeCatalogResponse[service.StorageView](t, request("GET", "/api/v1/admin/storage", nil), 200)
+	enabled := decodeCatalogResponse[service.StorageView](t, request("PUT", "/api/v1/admin/storage", service.StorageInput{Enabled: true, Endpoint: server.URL, Region: "us-east-1", Bucket: "routex-test", Prefix: "late", ETag: current.ETag, Auth: service.StorageAuthInput{Action: "replace", AccessKey: "test-only-access", SecretKey: "test-only-secret"}}), 200)
+	if !enabled.Enabled || enabled.Revision == nil || enabled.Revision.VerifiedAt == nil {
+		t.Fatal("late upload configuration was not genuinely verified")
+	}
+	mu.Lock()
+	if len(objects) != 0 {
+		mu.Unlock()
+		t.Fatal("late upload configuration probe did not clean its exact object")
+	}
+	publishedRevision, armed = enabled.Revision.ID, true
+	mu.Unlock()
+	var content bytes.Buffer
+	writer := multipart.NewWriter(&content)
+	part, err := writer.CreateFormFile("file", "late.pdf")
+	if err != nil {
+		t.Fatal("late upload multipart file", err)
+	}
+	if _, err = part.Write(payload); err != nil {
+		t.Fatal("late upload multipart bytes", err)
+	}
+	if err = writer.Close(); err != nil {
+		t.Fatal("late upload multipart close", err)
+	}
+	uploadCtx, stopUpload := context.WithCancel(caseCtx)
+	cancelUpload = stopUpload
+	req := httptest.NewRequestWithContext(uploadCtx, "POST", "http://example.com/api/v1/attachments", &content)
+	req.Header.Set("Content-Type", writer.FormDataContentType())
+	req.Header.Set("Origin", "http://example.com")
+	req.Header.Set("X-CSRF-Token", auth.CSRFToken)
+	req.AddCookie(cookie)
+	apiDone = make(chan *httptest.ResponseRecorder, 1)
+	go func() {
+		response := httptest.NewRecorder()
+		router.ServeHTTP(response, req)
+		apiDone <- response
+	}()
+	var intent entity.StorageObject
+	select {
+	case intent = <-entered:
+	case <-caseCtx.Done():
+		t.Fatal("late upload case expired before original PUT entry")
+	case <-time.After(5 * time.Second):
+		t.Fatal("late upload original PUT did not enter")
+	}
+	cancelUpload()
+	select {
+	case response := <-apiDone:
+		apiJoined = true
+		expectStatus(t, response, 503)
+		if strings.Contains(response.Body.String(), "test-only") || strings.Contains(response.Body.String(), targetVersion) {
+			t.Fatal("late upload failure exposed storage material")
+		}
+	case <-time.After(5 * time.Second):
+		t.Fatal("late upload cancellation did not join API persistence")
+	}
+	var abandoned entity.StorageObject
+	if err = db.WithContext(caseCtx).Take(&abandoned, "id = ?", intent.ID).Error; err != nil || abandoned.State != "delete_pending" || abandoned.UploadConfirmed || abandoned.VersionID != "" || abandoned.Name != intent.Name || abandoned.MIME != intent.MIME || abandoned.Purpose != intent.Purpose || abandoned.OwnerKind != intent.OwnerKind || abandoned.OwnerID != intent.OwnerID || abandoned.RevisionID != intent.RevisionID || abandoned.SHA256 != intent.SHA256 || abandoned.Size != intent.Size || !abandoned.CreatedAt.Equal(intent.CreatedAt) {
+		t.Fatal("late upload cancellation did not independently persist exact intent", err)
+	}
+	firstStarted := time.Now().UTC()
+	if err = svc.FlushStorageCleanup(caseCtx, 32); err != nil {
+		t.Fatal("late upload absent-object cleanup", err)
+	}
+	firstFinished := time.Now().UTC()
+	var pending entity.StorageObject
+	if err = db.WithContext(caseCtx).Take(&pending, "id = ?", intent.ID).Error; err != nil || pending.State != "delete_pending" || pending.CleanupCode != "upload_uncertain" || pending.CleanupAttempts != 1 || pending.UploadConfirmed || pending.VersionID != "" || pending.LeaseToken != "" || pending.LeaseUntil != nil {
+		t.Fatal("late upload HEAD404 erased uncertainty", err)
+	}
+	// Released storage timestamp columns share at least millisecond precision.
+	// Bracket the actual persisted ten-second delay without changing any clock.
+	if pending.NextCleanupAt.Before(firstStarted.Add(10*time.Second).Truncate(time.Millisecond)) || pending.NextCleanupAt.After(firstFinished.Add(10*time.Second)) {
+		t.Fatal("late upload did not persist the original ten-second backoff")
+	}
+	mu.Lock()
+	_, exists := objects[targetPath]
+	beforeLate := []int{puts, gets, heads, deletes}
+	mu.Unlock()
+	if exists || !reflect.DeepEqual(beforeLate, []int{1, 0, 1, 0}) {
+		t.Fatal("late upload absence/replay evidence changed", exists, beforeLate)
+	}
+	releasePut()
+	select {
+	case <-putDone:
+		putJoined = true
+	case <-caseCtx.Done():
+		t.Fatal("late upload case expired joining original PUT")
+	case <-time.After(5 * time.Second):
+		t.Fatal("late upload original PUT did not join after release")
+	}
+	mu.Lock()
+	late, exists := objects[targetPath]
+	mu.Unlock()
+	if !exists || late.owner != intent.ID || late.version != targetVersion || !bytes.Equal(late.data, payload) {
+		t.Fatal("late upload original request did not actually commit its owned version")
+	}
+	fresh, err := service.New(caseCtx, db, service.WithCredentialStorage(store), service.WithStoragePolicy(true))
+	if err != nil {
+		t.Fatal("late upload Service reconstruction", err)
+	}
+	var restored entity.StorageObject
+	if err = db.WithContext(caseCtx).Take(&restored, "id = ?", intent.ID).Error; err != nil || !reflect.DeepEqual(pending, restored) {
+		t.Fatal("late upload reconstruction changed persisted uncertainty/backoff", err)
+	}
+	wait := time.Until(restored.NextCleanupAt)
+	if wait <= 0 {
+		t.Fatal("late upload backoff elapsed before its early-cleanup control")
+	}
+	if err = fresh.FlushStorageCleanup(caseCtx, 32); err != nil {
+		t.Fatal("late upload pre-backoff cleanup", err)
+	}
+	var early entity.StorageObject
+	if err = db.WithContext(caseCtx).Take(&early, "id = ?", intent.ID).Error; err != nil || !reflect.DeepEqual(restored, early) {
+		t.Fatal("late upload cleaned before its persisted retry time", err)
+	}
+	mu.Lock()
+	earlyCounts := []int{puts, gets, heads, deletes}
+	mu.Unlock()
+	if !reflect.DeepEqual(earlyCounts, beforeLate) {
+		t.Fatal("late upload dispatched cleanup before durable backoff", earlyCounts)
+	}
+	// Wait for the actual retained timestamp under the same outer deadline.
+	timer := time.NewTimer(max(time.Duration(0), time.Until(restored.NextCleanupAt)))
+	defer timer.Stop()
+	select {
+	case <-timer.C:
+	case <-caseCtx.Done():
+		t.Fatal("late upload case expired during genuine retry backoff")
+	}
+	if time.Now().Before(restored.NextCleanupAt) {
+		t.Fatal("late upload retry timer returned before the stored timestamp")
+	}
+	if err = fresh.FlushStorageCleanup(caseCtx, 32); err != nil {
+		t.Fatal("late upload retained-version recovery", err)
+	}
+	var cleaned entity.StorageObject
+	if err = db.WithContext(caseCtx).Take(&cleaned, "id = ?", intent.ID).Error; err != nil || cleaned.State != "deleted" || cleaned.CleanupAttempts != 2 || cleaned.CleanupCode != "" || cleaned.LeaseToken != "" || cleaned.LeaseUntil != nil || cleaned.UploadConfirmed || cleaned.VersionID != "" || cleaned.Name != intent.Name || cleaned.MIME != intent.MIME || cleaned.Purpose != intent.Purpose || cleaned.OwnerKind != intent.OwnerKind || cleaned.OwnerID != intent.OwnerID || cleaned.RevisionID != intent.RevisionID || cleaned.SHA256 != intent.SHA256 || cleaned.Size != intent.Size || !cleaned.CreatedAt.Equal(intent.CreatedAt) {
+		t.Fatal("late upload recovery changed identity or fabricated acknowledgement", err)
+	}
+	if err = fresh.FlushStorageCleanup(caseCtx, 32); err != nil {
+		t.Fatal("late upload repeated recovery", err)
+	}
+	var repeated entity.StorageObject
+	if err = db.WithContext(caseCtx).Take(&repeated, "id = ?", intent.ID).Error; err != nil || !reflect.DeepEqual(cleaned, repeated) {
+		t.Fatal("late upload repeated cleanup changed retained history", err)
+	}
+	mu.Lock()
+	remaining := len(objects)
+	finalCounts := []int{puts, gets, heads, deletes}
+	mu.Unlock()
+	if remaining != 0 || !reflect.DeepEqual(finalCounts, []int{1, 0, 3, 1}) {
+		t.Fatal("late upload exact cleanup/replay counts", remaining, finalCounts)
+	}
+	for _, original := range oldObjects {
+		var current entity.StorageObject
+		if err = db.WithContext(caseCtx).Take(&current, "id = ?", original.ID).Error; err != nil || !reflect.DeepEqual(original, current) {
+			t.Fatal("late upload changed another retained object", err)
+		}
+	}
+	for _, original := range oldRevisions {
+		var current entity.StorageRevision
+		if err = db.WithContext(caseCtx).Take(&current, "id = ?", original.ID).Error; err != nil || !reflect.DeepEqual(original, current) {
+			t.Fatal("late upload changed an original descriptor", err)
+		}
+	}
+	for _, baseline := range unchanged {
+		var count int64
+		if err = db.WithContext(caseCtx).Model(baseline.model).Count(&count).Error; err != nil || count != baseline.count {
+			t.Fatal("late upload created native/key effects", err, count, baseline.count)
+		}
 	}
 }

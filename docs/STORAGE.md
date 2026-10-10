@@ -244,3 +244,16 @@ Its retained projections and sanitized audit are independently read back;
 transport and version payload assertions remain controller evidence. This does
 not establish external Vault readiness, physical erasure or fleet closure. See
 the [current acceptance boundary](IMPLEMENTATION.md#current-vault-main-integration-2026-10-09).
+
+## Cancelled upload with a late remote effect
+
+A cancelled upload is not proof of remote absence. Retain its durable cleanup
+intent when the first HEAD returns 404; the original in-flight PUT may still take
+effect. A fresh Service respects the stored retry time and rechecks the exact
+owned object/version before deletion. Missing or unknown versions do not become
+successful cleanup, and recovery never repeats the original upload.
+
+The normal-API controlled regression passes on PostgreSQL and MySQL, including
+natural persisted backoff and the same late PUT. See the [current recovery
+qualification](IMPLEMENTATION.md#ambiguous-remote-storage-recovery-regression-2026-10-10).
+External storage and browser acceptance remain separate.

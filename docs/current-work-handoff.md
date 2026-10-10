@@ -4,6 +4,38 @@ Updated: 2026-10-10. Status: resumed by explicit user instruction; prioritize pa
 
 ## Current execution status (2026-10-10)
 
+## Ambiguous remote storage recovery regression, 2026-10-10
+
+Two controlled normal-API recovery scenarios pass on real PostgreSQL and MySQL:
+
+- A cancelled attachment upload retains its durable cleanup intent when an initial
+  HEAD sees no object. The original PUT can take effect later; a fresh Service
+  waits for the persisted backoff and deletes only the recorded owned version.
+- A version-one Vault destroy takes effect but loses response headers. The receipt
+  remains unknown, process source closure stays unproven, and fresh authorization
+  can read/reconcile only the same immutable command without another SDK call.
+  A different command cannot bypass the retained claim or unknown ownership.
+
+Renewed format, mandatory check and complete Task pass, including 6,378 frontend
+cases in 237 files, Go race/coverage, development lifecycle and production assets.
+Complete Task SHA-256:
+`23b519bf192e5b6a928e32b4fba59ef74c1a83240913317d56dfe683b5d1e2b5`.
+The two-scenario focus passes four balanced names per database and 8,853 ordinary
+passes with three intentional TLS helper skips. Independent readback SHA-256:
+`4f922a2d0af9def2ddf53570ad11f31cb403e4f3cd31e2138e4c0096666be5a5`.
+All owned workers/groups/Compose resources are absent, both database ports refuse
+connections and are freshly bindable, all 2,351 source paths/modes remain unchanged,
+and original development is preserved. No restart application is part of this focus.
+
+The first run remains failed history: its S3 fixture rejected the pinned SDK's
+operation selector, and its Vault fixture incorrectly expected proven shutdown
+following headerless response loss. Narrow test corrections preserve production
+behavior, ownership, real backoff, exact request joins and no-replay assertions.
+These are controlled regression results, not real external S3/Vault, browser,
+whole-process restart or new original-full-matrix acceptance. F27/F28 remain Partial;
+current totals stay **15 Completed / 14 Partial / 1 Not started**. The overall
+objective remains active; F30 and Discord successor qualification remain pending.
+
 ## API-Key Vault writer component qualification, 2026-10-10
 
 The dedicated `pkg/vault` SDK implements one restricted KV-v2 CAS-zero write per
