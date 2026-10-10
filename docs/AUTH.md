@@ -82,12 +82,13 @@ Database tests read `ROUTEX_TEST_POSTGRES_DSN` and `ROUTEX_TEST_MYSQL_DSN` and r
 Coverage includes upgrades preserving existing `Example` data, concurrent and repeated migrations, rejection of future schema versions, foreign keys and indexes, concurrent initialization creating only one administrator, field validation, password hashing, bearer digests, sanitized errors, failed logins, persistent sessions, fixed expiration, logout revocation, member authorization failures, disabled accounts, CSRF, Origin, and TLS cookie behavior. The `test-auth-lifecycle` task separately verifies persistence across application process restarts. See the [implementation record](IMPLEMENTATION.md) for phase-level evidence and remaining scope.
 
 
-## Existing-member OpenID Connect candidate
+## Existing-member OpenID Connect
 
 The OIDC integration adds explicit member linking and one reviewed provider, while
 preserving local passwords, registration admission and native RouteX MFA. Read
 [OIDC](OIDC.md) for ceremony, configuration, revocation and verification boundaries.
 No remote email/role claim grants local authority. Callback exchange alone never
 creates a Session; clean-page completion and any required MFA must succeed first.
-Application verification remains pending; the separately delivered protocol component
-is not full enterprise sign-in acceptance.
+The application is delivered in `62c01baf77278b67a774d5777ee218c3a14c5ac6`.
+Complete PostgreSQL/MySQL and real-process lifecycle acceptance pass. Bilingual
+browser and external-provider acceptance remain pending; F03/A15 remain Partial.

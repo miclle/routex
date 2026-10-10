@@ -104,10 +104,12 @@ failed refreshes. A committed receipt and current publication are distinct.
 | OIDC client authentication | Every retained nonempty provider client-secret envelope, including disabled configuration, under its exact generation |
 
 Inventory version1 retains its historical five-domain meaning; version2 retains
-seven domains. The V94 candidate adds version3 and the eighth OIDC domain. Current
-candidate jobs use V3; nonterminal V1/V2 jobs require explicit reviewed Resume and a
-fresh complete scan. Completed historical jobs keep their original coverage. V3
-rotation and process-restart acceptance remain pending.
+seven domains. V94 adds version3 and the eighth OIDC domain. Current jobs use V3;
+nonterminal V1/V2 jobs require explicit reviewed Resume and a fresh complete scan.
+Completed historical jobs keep their original coverage. The complete dual-driver
+matrix passes the current root-rotation lifecycle with a retained encrypted OIDC
+secret; controlled same-source process restart acceptance also passes. Broader
+browser, external-provider and release acceptance remain independent open gates.
 Missing observations stay not_scanned with null counts. Unknown versions fail
 closed. Frozen GORM V72 appends the new inventory version and Vault domains without
 editing V48. Finite probe decrypt readers participate in root retirement draining.

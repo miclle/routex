@@ -1504,7 +1504,7 @@ facts. Required existing Vault source-use/exposure and drain-safety bookkeeping
 still applies; this is not a zero-database-write guarantee.
 
 
-## Existing-member OIDC and root inventory V3 (V94 candidate)
+## Existing-member OIDC and root inventory V3 (V94)
 
 Frozen GORM V94 adds `oidc_providers`, `oidc_bindings` and `oidc_ceremonies` and six
 additive provenance fields on Sessions/MFA challenges. Their physical `oidc_*`
@@ -1520,5 +1520,7 @@ precision, uninvented time defaults, primary keys and ordered complete unique in
 The singleton and primary-method checks reject collation aliases. V94 appends root
 inventory V3/eight domains while preserving V1/five and V2/seven definitions and rows;
 released V48/V72 remain unchanged. A failed step must not acquire a version ledger row.
-Real dual-driver empty/upgrade/repeat/concurrent/partial-DDL acceptance is pending.
-See [OIDC](OIDC.md) for application contracts.
+The official complete PostgreSQL/MySQL matrix passes the V94 creation, upgrade,
+repeat, concurrent, partial-DDL and constraint cases, along with authentication
+and same-source restart scenarios. Separate process lifecycle acceptance also
+passes. Browser and real-provider acceptance remain open; see [OIDC](OIDC.md).
