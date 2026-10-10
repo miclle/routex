@@ -4,6 +4,30 @@ Updated: 2026-10-10. This document records engineering contracts, work packages 
 
 ## Current execution status (2026-10-10)
 
+F14 now has focused controlled real-Vault acceptance on PostgreSQL and MySQL.
+The optional test-only adapter reuses the existing `provider_credential_storage`
+scenario: three balanced named passes per driver, including its two parents.
+Separate finite Writer and Reader tokens perform fresh CAS0 writes and exact
+retained version-1 reads. The append-only audit suffix has 38 UUID-paired
+request/response pairs (76 events): ten creates and 28 reads, with accessor-HMAC
+role provenance. Saved-Egress diagnostics retain the original controlled candidate
+SOCKS proxy checks; Vault access uses its separate direct transport. Whole-lifecycle
+audit pairing does not assign a particular audit UUID to a diagnostic phase.
+
+Candidate checking passes. Independent cleanup confirms the unchanged 2,243-path
+source/mode floor, all captured owned processes/groups and Compose resources
+absent, all three ports refused and fresh-bindable, and original development on
+723 preserved. Final acceptance SHA-256:
+`1764906122507a14474bcf9f51e410aaa6419f0be7bfcb916dde4d5e040b293d`.
+The original reader's `AUDIT_OPERATION` failure remains retained; the reviewed R3
+two-literal create/read correction passes on the same retained evidence.
+
+This adds test-only acceptance, with no production, schema, permission or UI
+change. It does not certify external TLS/provider interoperability, browser or
+fleet behavior. F14 remains Partial and totals remain **15 Completed / 13 Partial /
+2 Not started**. Main mandatory checking also passes. Check-log SHA-256:
+`4fcba8f76f29781b5b446a47526e8a0730abff66cdf4ea868927ab5c7ebd3d62`.
+
 Existing-member LDAP passes controlled application qualification for frozen GORM
 V96 and root inventory V5. Official full matrix R2 passes all 453 named results
 on each database, covering 191 ordered business scenarios and four constraints,
@@ -25,9 +49,10 @@ explicit binding, native MFA and same-source LDAP Session restart.
 Expanded legacy focus R1 already passes 26 scenarios and 82 named results per
 driver, with readback
 `3e66b7516fc2c568ff6720f50e7d3be6e23591a394d47a5c043b3d8c18c94118`.
-Earlier failed gates and matrix R1 remain failed history. Published component CI
-`38025992086` qualifies its original component commit; application remote CI
-remains pending publication and is not inferred from local success.
+Earlier failed gates and matrix R1 remain failed history. LDAP application commit
+`e74b112` is published with exact remote parity. Its Backend and Frontend Checks,
+Actionlint and GolangCI-Lint pass; CI `38032811543` still runs database integration.
+Pending integration/build results are not inferred from local success.
 
 Enforced SSO will accept verified OIDC and LDAP only. The emergency administrator
 policy remains a separate decision; enforcement and recovery are not delivered

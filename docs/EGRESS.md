@@ -65,9 +65,9 @@ behavior; it neither verifies deployment access nor performs inference,
 discovery publication, Credential verification or enablement.
 
 The existing Egress UI continues to submit an explicit target URL. The
-Connection-ID diagnostic branch described above is API-only; this correction
-adds no schema, permission or UI behavior. No actual Vault-plus-candidate-Egress
-or external-provider acceptance is implied by source support.
+Connection-ID diagnostic branch described above is API-only; it adds no schema,
+permission or UI behavior. Controlled real-Vault acceptance is recorded below;
+external-provider and browser acceptance are separate.
 
 A diagnostic returns `transport_ok`, `api_ok`, optional `http_status`, total `duration_ms`, `stale`, and ordered stages:
 
@@ -93,3 +93,25 @@ Saved-Connection regressions also cover native/Azure metadata requests through
 the selected candidate, controlled Vault source reads, and source/adapter
 changes that must not overwrite current diagnostics. These use controlled local
 HTTP peers; they do not certify external Vault or provider compatibility.
+
+A separate controlled real-Vault run passes the existing
+`provider_credential_storage` scenario on PostgreSQL and MySQL, with three balanced
+named passes per driver including both parents. Its optional test-only adapter
+forwards fresh CAS0 writes and retained version-1 reads to a disposable Vault with
+separate finite Writer and Reader tokens. The saved-Egress diagnostic retains the
+original controlled candidate SOCKS proxy checks; Vault access itself uses direct
+transport. No production code or registry changes are required.
+
+The append-only audit suffix pairs all 38 request UUIDs with responses (76 events):
+ten creates and 28 reads, with exact object hashes and accessor-HMAC role provenance.
+This whole-lifecycle pairing is separate from diagnostic counter checks and does
+not identify a particular diagnostic audit UUID. The first reader failed
+`AUDIT_OPERATION`; the reviewed R3 correction requires POST/create and GET/read
+for this fresh-object profile, then passes against the same retained evidence.
+Independent cleanup confirms the unchanged 2,243-path source/mode floor, owned
+process/group and Compose closure, refused and fresh-bindable ports, and preservation
+of original development. Final acceptance SHA-256:
+`1764906122507a14474bcf9f51e410aaa6419f0be7bfcb916dde4d5e040b293d`.
+
+This is controlled local real-Vault evidence, not external TLS/provider, browser,
+fleet or general compatibility certification. F14 remains Partial.

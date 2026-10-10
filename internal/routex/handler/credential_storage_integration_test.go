@@ -29,12 +29,19 @@ func testProviderCredentialStorageLifecycle(t *testing.T, db *gorm.DB) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	realVault := newF14VaultAcceptance(t)
+	writerToken, readerToken := "storage-writer", "storage-reader"
+	if realVault != nil {
+		writerToken, readerToken = realVault.input.WriterToken, realVault.input.ReaderToken
+	}
 	var mu sync.Mutex
 	values := map[string]map[string]string{}
 	var writes, reads, discovery atomic.Int32
 	var lostWrite, denyRead atomic.Bool
 	var changeDiagnosticSource atomic.Bool
+	var changeDiagnosticAdapter atomic.Bool
 	var diagnosticCredentialID string
+	var supplyBaseURL string
 	vaultStub := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		if !strings.HasPrefix(r.URL.Path, "/v1/kv/data/") {
@@ -47,7 +54,7 @@ func testProviderCredentialStorageLifecycle(t *testing.T, db *gorm.DB) {
 		switch r.Method {
 		case "POST":
 			writes.Add(1)
-			if r.Header.Get("X-Vault-Token") != "storage-writer" {
+			if r.Header.Get("X-Vault-Token") != writerToken {
 				t.Error("writer identity was not used")
 				w.WriteHeader(403)
 				return
@@ -74,15 +81,28 @@ func testProviderCredentialStorageLifecycle(t *testing.T, db *gorm.DB) {
 			if e := db.Model(&entity.CredentialStorageOperation{}).Where("state = ? AND claim <> ?", "writing", "").Count(&count).Error; e != nil || count < 1 {
 				t.Error("remote Write preceded durable claim")
 			}
+			var realReply []byte
+			if realVault != nil {
+				var ok bool
+				realReply, ok = realVault.forward(t, r, body, body.Data)
+				if !ok {
+					w.WriteHeader(502)
+					return
+				}
+			}
 			values[r.URL.Path] = body.Data
 			if lostWrite.Swap(false) {
 				w.WriteHeader(503)
 				return
 			}
+			if realVault != nil {
+				_, _ = w.Write(realReply)
+				return
+			}
 			_, _ = w.Write([]byte(`{"data":{"version":1,"destroyed":false,"deletion_time":""}}`))
 		case "GET":
 			reads.Add(1)
-			if r.Header.Get("X-Vault-Token") != "storage-reader" || r.URL.RawQuery != "version=1" {
+			if r.Header.Get("X-Vault-Token") != readerToken || r.URL.RawQuery != "version=1" {
 				t.Error("exact retained reader/version not used")
 				w.WriteHeader(403)
 				return
@@ -98,9 +118,31 @@ func testProviderCredentialStorageLifecycle(t *testing.T, db *gorm.DB) {
 					return
 				}
 			}
+			if changeDiagnosticAdapter.Swap(false) {
+				var selected entity.ProviderCredential
+				if err := db.First(&selected, "id = ?", diagnosticCredentialID).Error; err != nil {
+					t.Error("controlled diagnostic adapter target failed")
+					w.WriteHeader(500)
+					return
+				}
+				if err := db.Model(&entity.ProviderConnection{}).Where("id = ?", selected.ConnectionID).Updates(map[string]any{"adapter": "azure_openai_classic", "api_version": "2024-10-21", "base_url": strings.TrimSuffix(supplyBaseURL, "/v1")}).Error; err != nil {
+					t.Error("controlled diagnostic adapter mutation failed")
+					w.WriteHeader(500)
+					return
+				}
+			}
 			data, ok := values[r.URL.Path]
 			if !ok {
 				w.WriteHeader(404)
+				return
+			}
+			if realVault != nil {
+				raw, ok := realVault.forward(t, r, nil, data)
+				if !ok {
+					w.WriteHeader(502)
+					return
+				}
+				_, _ = w.Write(raw)
 				return
 			}
 			_ = json.NewEncoder(w).Encode(map[string]any{"data": map[string]any{"data": data, "metadata": map[string]any{"version": 1, "destroyed": false, "deletion_time": ""}}})
@@ -131,6 +173,7 @@ func testProviderCredentialStorageLifecycle(t *testing.T, db *gorm.DB) {
 		_, _ = w.Write([]byte(`{"data":[{"id":"storage-upstream"}]}`))
 	}))
 	defer supply.Close()
+	supplyBaseURL = supply.URL + "/v1"
 	stopInstance := func(instance *service.Service) error {
 		stop, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
@@ -199,6 +242,9 @@ func testProviderCredentialStorageLifecycle(t *testing.T, db *gorm.DB) {
 				t.Fatal("private source material in public response")
 			}
 		}
+		if realVault != nil && (strings.Contains(out.Body.String(), writerToken) || strings.Contains(out.Body.String(), readerToken)) {
+			t.Fatal("real Vault identity exposed in public response")
+		}
 		return out
 	}
 	contextRead := func(session *http.Cookie) service.CredentialStorageContext {
@@ -253,7 +299,7 @@ func testProviderCredentialStorageLifecycle(t *testing.T, db *gorm.DB) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	config := service.VaultConfigInput{RequestID: uuid(2), Name: "Credential Vault", Descriptor: service.VaultDescriptor{Endpoint: vaultStub.URL, Mount: "kv", Prefix: "provider-secrets", DataField: "value"}, WriterAuth: service.VaultAuthInput{Action: "replace", Token: "storage-writer"}, ReaderAuth: service.VaultAuthInput{Action: "replace", Token: "storage-reader"}, Reason: "Reviewed credential source"}
+	config := service.VaultConfigInput{RequestID: uuid(2), Name: "Credential Vault", Descriptor: service.VaultDescriptor{Endpoint: vaultStub.URL, Mount: "kv", Prefix: "provider-secrets", DataField: "value"}, WriterAuth: service.VaultAuthInput{Action: "replace", Token: writerToken}, ReaderAuth: service.VaultAuthInput{Action: "replace", Token: readerToken}, Reason: "Reviewed credential source"}
 	saved, err := svc.SaveVaultIntegration(ctx, admin.User.ID, "", integrations.ReviewETag, config)
 	if err != nil {
 		t.Fatal(err)
@@ -400,6 +446,25 @@ func testProviderCredentialStorageLifecycle(t *testing.T, db *gorm.DB) {
 	if err := db.Model(&entity.CredentialModelAccess{}).Count(&accessBefore).Error; err != nil {
 		t.Fatal(err)
 	}
+	var diagnosticConnection entity.ProviderConnection
+	var diagnosticDefault entity.EgressSetting
+	if err := db.First(&diagnosticConnection, "id = ?", sourceBefore.ConnectionID).Error; err != nil || diagnosticConnection.EgressMode != "default" || diagnosticConnection.EgressID != nil {
+		t.Fatal("diagnostic Connection transport baseline changed")
+	}
+	if err := db.First(&diagnosticDefault, 1).Error; err != nil || diagnosticDefault.DefaultEgressID != nil {
+		t.Fatal("diagnostic configured transport must remain direct through empty default")
+	}
+	_, egressOnlyCookie, egressOnlyCSRF := createSystemStatusMember(t, svc, router, admin.User.ID, "storage-egress-only", []string{"egress.test"})
+	permissionReads, permissionDiscovery, permissionProxy := reads.Load(), discovery.Load(), candidateProxyCalls.Load()
+	for _, actor := range []struct {
+		cookie *http.Cookie
+		csrf   string
+	}{{writerCookie, writerCSRF}, {egressOnlyCookie, egressOnlyCSRF}} {
+		expectStatus(t, request("POST", "/api/v1/admin/egresses/"+candidate.ID+"/test", service.EgressDiagnosticInput{ETag: candidate.ETag, ConnectionID: sourceBefore.ConnectionID}, "", actor.cookie, actor.csrf), 403)
+	}
+	if reads.Load() != permissionReads || discovery.Load() != permissionDiscovery || candidateProxyCalls.Load() != permissionProxy {
+		t.Fatal("independent diagnostic authority denial reached Vault or candidate proxy")
+	}
 	readBefore, writeBefore, discoveryBefore, proxyBefore := reads.Load(), writes.Load(), discovery.Load(), candidateProxyCalls.Load()
 	result := decodeCatalogResponse[service.EgressDiagnosticView](t, request("POST", "/api/v1/admin/egresses/"+candidate.ID+"/test", service.EgressDiagnosticInput{ETag: candidate.ETag, ConnectionID: sourceBefore.ConnectionID}, "", cookie, admin.CSRFToken), 200)
 	if result.Stale || !result.TransportOK || !result.APIOK || reads.Load() != readBefore+1 || writes.Load() != writeBefore || discovery.Load() != discoveryBefore+1 || candidateProxyCalls.Load() <= proxyBefore {
@@ -442,6 +507,20 @@ func testProviderCredentialStorageLifecycle(t *testing.T, db *gorm.DB) {
 	}
 	if err := db.Model(&entity.CredentialVaultReference{}).Where("credential_id = ?", credential.ID).Update("reader_generation", retainedBefore.ReaderGeneration).Error; err != nil {
 		t.Fatal(err)
+	}
+	// A valid but changed adapter tuple after retained resolution must be rejected
+	// before the already-built native request enters the candidate proxy.
+	changeDiagnosticAdapter.Store(true)
+	readBefore, discoveryBefore, proxyBefore = reads.Load(), discovery.Load(), candidateProxyCalls.Load()
+	expectStatus(t, request("POST", "/api/v1/admin/egresses/"+candidate.ID+"/test", service.EgressDiagnosticInput{ETag: candidate.ETag, ConnectionID: sourceBefore.ConnectionID}, "", cookie, admin.CSRFToken), 409)
+	if reads.Load() != readBefore+1 || discovery.Load() != discoveryBefore || candidateProxyCalls.Load() != proxyBefore || writes.Load() != writeBefore {
+		t.Fatal("changed adapter dispatched metadata or fell back")
+	}
+	if err := db.First(&candidateStored, "id = ?", candidate.ID).Error; err != nil || candidateStored.LastDiagnostic != diagnosticBefore || candidateStored.LastCheckedAt == nil || checkedBefore == nil || !candidateStored.LastCheckedAt.Equal(*checkedBefore) {
+		t.Fatal("changed adapter overwrote saved diagnostic")
+	}
+	if err := db.Model(&entity.ProviderConnection{}).Where("id = ?", diagnosticConnection.ID).Updates(map[string]any{"adapter": diagnosticConnection.Adapter, "api_version": diagnosticConnection.APIVersion, "base_url": diagnosticConnection.BaseURL}).Error; err != nil {
+		t.Fatal("restore controlled adapter tuple")
 	}
 	var callsAfter, attemptsAfter, accessAfter int64
 	if err := db.Model(&entity.CallRecord{}).Count(&callsAfter).Error; err != nil {
@@ -516,7 +595,7 @@ func testProviderCredentialStorageLifecycle(t *testing.T, db *gorm.DB) {
 		t.Fatal(err)
 	}
 	config.RequestID = uuid(12)
-	config.ReaderAuth = service.VaultAuthInput{Action: "replace", Token: "storage-reader"}
+	config.ReaderAuth = service.VaultAuthInput{Action: "replace", Token: readerToken}
 	restored, err := svc.SaveVaultIntegration(ctx, admin.User.ID, saved.IntegrationID, integration.ReviewETag, config)
 	if err != nil {
 		t.Fatal(err)
@@ -576,6 +655,18 @@ func testProviderCredentialStorageLifecycle(t *testing.T, db *gorm.DB) {
 	}
 	if err = stopInstance(svc); err != nil {
 		t.Fatal("join original credential source generation", err)
+	}
+	// Real Stop joins all admitted native/SDK holders. It does not fabricate
+	// object JoinedAt values; closed process-generation evidence is separate.
+	for _, use := range usesBefore {
+		var process entity.CredentialSourceProcess
+		var instance entity.SystemInstance
+		if err := db.First(&process, "process_id = ?", use.ProcessID).Error; err != nil || process.ProcessID != use.ProcessID || process.Generation != use.Generation || !process.Birth.Equal(use.Birth) || process.ClosedAt == nil {
+			t.Fatal("diagnostic source process did not close exactly after joins")
+		}
+		if err := db.First(&instance, "id = ?", use.ProcessID).Error; err != nil || instance.StoppedAt == nil || !instance.StoppedAt.Equal(*process.ClosedAt) {
+			t.Fatal("diagnostic source close did not match actual stopped generation")
+		}
 	}
 	if err = fresh.RunSecretRotationOnce(ctx); err != nil {
 		t.Fatal("publish actual process proof", err)
