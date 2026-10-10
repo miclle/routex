@@ -72,9 +72,9 @@ func testVaultIntegrationMigration(t *testing.T, db *gorm.DB) {
 	}
 	remove := func() {
 		t.Helper()
-		r := db.Table("schema_migrations").Where("version IN ?", []int{72, 94, 95, 96}).Delete(&struct{}{})
-		if r.Error != nil || r.RowsAffected != 4 {
-			t.Fatal("reconstruct V72 and additive V94/V95/V96 ledgers independently", r.Error)
+		r := db.Table("schema_migrations").Where("version IN ?", []int{72, 94, 95, 96, 97}).Delete(&struct{}{})
+		if r.Error != nil || r.RowsAffected != 5 {
+			t.Fatal("reconstruct V72 and additive V94/V95/V96/V97 ledgers independently", r.Error)
 		}
 	}
 	// Historical predecessor lacked inventory_version. Preserve the old sentinel.

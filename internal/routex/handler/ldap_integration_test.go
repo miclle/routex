@@ -12,6 +12,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"reflect"
 	"strings"
 	"sync"
 	"testing"
@@ -461,6 +462,92 @@ func TestLDAPLifecycleTLSChild(t *testing.T) {
 			}
 		}
 	}
+	stage = "enterprise_offboarding"
+	// The preceding security-reset checks intentionally removed all bindings.
+	// Re-establish real directory and native-MFA authority without changing them.
+	_, tag = configReview()
+	config.UserFilter = "(uid={username})"
+	status(request("PUT", "/api/v1/admin/auth/ldap", config, adminCookie, admin.CSRFToken, tag), 200)
+	_, tag = configReview()
+	status(request("POST", "/api/v1/admin/auth/ldap/verify", proof("admin", ""), adminCookie, admin.CSRFToken, tag), 200)
+	_, tag = configReview()
+	status(request("PUT", "/api/v1/admin/auth/ldap/status", service.LDAPStatusInput{Enabled: true, Reason: "Controlled offboarding authority baseline"}, adminCookie, admin.CSRFToken, tag), 200)
+	_, selfTag = selfReview()
+	status(request("POST", "/api/v1/account/identity/ldap/bind", proof("member", recovery.RecoveryCodes[2]), memberCookie, memberSession.CSRFToken, selfTag), 200)
+
+	r = login("member")
+	status(r, 202)
+	var offboardFactor service.MFALoginChallenge
+	if json.Unmarshal(r.Body.Bytes(), &offboardFactor) != nil || offboardFactor.ChallengeToken == "" {
+		t.Fatal("offboarding requires a genuine LDAP native-MFA challenge")
+	}
+	r = request("POST", "/api/v1/auth/mfa/verify", MFALoginRequest{ChallengeToken: offboardFactor.ChallengeToken, RecoveryCode: recovery.RecoveryCodes[3]}, nil, "", "")
+	status(r, 200)
+	_, offboardCookie := session(r)
+	var offboardSession entity.Session
+	var offboardMember entity.User
+	var offboardProvider entity.LDAPProvider
+	var offboardBinding entity.LDAPBinding
+	var offboardBindings []entity.LDAPBinding
+	if db.Where("token_hash = ?", secret.SHA256Hex(offboardCookie.Value)).Take(&offboardSession).Error != nil || db.Where("id = ?", member.ID).Take(&offboardMember).Error != nil || db.Where("id = ?", "ldap").Take(&offboardProvider).Error != nil || db.Where("user_id = ?", member.ID).Take(&offboardBinding).Error != nil || db.Order("id").Find(&offboardBindings).Error != nil {
+		t.Fatal("capture durable LDAP offboarding authority")
+	}
+	if offboardSession.UserID != member.ID || offboardSession.PrimaryMethod != "ldap" || offboardSession.LDAPBindingID != offboardBinding.ID || offboardSession.LDAPBindingCreatedAt == nil || !offboardSession.LDAPBindingCreatedAt.Equal(offboardBinding.CreatedAt) || offboardSession.LDAPUserCreatedAt == nil || !offboardSession.LDAPUserCreatedAt.Equal(offboardMember.CreatedAt) || !offboardBinding.UserCreatedAt.Equal(offboardMember.CreatedAt) || offboardSession.LDAPConfigRevision != offboardProvider.ConfigRevision || offboardBinding.ConfigRevision != offboardProvider.ConfigRevision || offboardSession.LDAPPolicyRevision != offboardProvider.PolicyRevision || offboardBinding.ProviderID != "ldap" || offboardBinding.IdentityAttribute != "entryUUID" || !offboardProvider.Enabled || len(offboardBindings) != 2 {
+		t.Fatal("offboarding lacks current exact LDAP binding and native-MFA Session proof")
+	}
+	status(request("GET", "/api/v1/auth/session", nil, offboardCookie, "", ""), 200)
+	status(request("GET", "/api/v1/auth/session", nil, memberCookie, "", ""), 200)
+	var localBeforeDeparture entity.Session
+	if db.Where("token_hash = ?", secret.SHA256Hex(memberCookie.Value)).Take(&localBeforeDeparture).Error != nil || localBeforeDeparture.UserID != member.ID || localBeforeDeparture.PrimaryMethod != "" {
+		t.Fatal("offboarding lacks retained independent local Session baseline")
+	}
+
+	r = login("member")
+	status(r, 202)
+	var offboardPendingFactor service.MFALoginChallenge
+	if json.Unmarshal(r.Body.Bytes(), &offboardPendingFactor) != nil || offboardPendingFactor.ChallengeToken == "" {
+		t.Fatal("offboarding requires a genuine pending LDAP factor")
+	}
+	var pendingBeforeDeparture entity.MFAChallenge
+	if db.Where("token_hash = ?", secret.SHA256Hex(offboardPendingFactor.ChallengeToken)).Take(&pendingBeforeDeparture).Error != nil || pendingBeforeDeparture.UserID != member.ID || pendingBeforeDeparture.PrimaryMethod != "ldap" || pendingBeforeDeparture.LDAPBindingID != offboardBinding.ID || pendingBeforeDeparture.LDAPBindingCreatedAt == nil || !pendingBeforeDeparture.LDAPBindingCreatedAt.Equal(offboardBinding.CreatedAt) || pendingBeforeDeparture.LDAPUserCreatedAt == nil || !pendingBeforeDeparture.LDAPUserCreatedAt.Equal(offboardMember.CreatedAt) || pendingBeforeDeparture.LDAPConfigRevision != offboardProvider.ConfigRevision || pendingBeforeDeparture.LDAPPolicyRevision != offboardProvider.PolicyRevision {
+		t.Fatal("pending factor lost current exact directory provenance")
+	}
+	var recoveryBeforeDeparture []entity.MFARecoveryCode
+	if db.Where("user_id = ?", member.ID).Order("code_hash").Find(&recoveryBeforeDeparture).Error != nil {
+		t.Fatal("capture unconsumed recovery proof baseline")
+	}
+	// The shared helper uses normal reviewed offboarding HTTP APIs. LDAP has no
+	// callback cookie; reject any attempted extra-cookie use of this adapter.
+	offboardingRequest := func(method, path string, body any, cookie *http.Cookie, csrf, etag string, extra *http.Cookie) *httptest.ResponseRecorder {
+		if extra != nil {
+			t.Fatal("LDAP offboarding does not use callback correlation cookies")
+		}
+		return request(method, path, body, cookie, csrf, etag)
+	}
+	assertOffboardingRetained := exerciseEnterpriseOffboarding(t, ctx, db, svc, "ldap", member.ID, admin, adminCookie, offboardingRequest)
+	status(request("GET", "/api/v1/auth/session", nil, offboardCookie, "", ""), 401)
+	status(request("GET", "/api/v1/auth/session", nil, memberCookie, "", ""), 401)
+	deniedFactor := request("POST", "/api/v1/auth/mfa/verify", MFALoginRequest{ChallengeToken: offboardPendingFactor.ChallengeToken, RecoveryCode: recovery.RecoveryCodes[4]}, nil, "", "")
+	status(deniedFactor, 401)
+	deniedLogin := login("member")
+	status(deniedLogin, 401)
+	for _, denied := range []*httptest.ResponseRecorder{deniedFactor, deniedLogin} {
+		for _, cookie := range denied.Result().Cookies() {
+			if cookie.Name == sessionCookie {
+				t.Fatal("departed LDAP member received a Session cookie")
+			}
+		}
+	}
+	var recoveryAfterDeparture []entity.MFARecoveryCode
+	var providerAfterDeparture entity.LDAPProvider
+	var bindingsAfterDeparture []entity.LDAPBinding
+	if db.Where("user_id = ?", member.ID).Order("code_hash").Find(&recoveryAfterDeparture).Error != nil || !reflect.DeepEqual(recoveryBeforeDeparture, recoveryAfterDeparture) {
+		t.Fatal("revoked directory factor consumed a recovery proof")
+	}
+	if db.Where("id = ?", "ldap").Take(&providerAfterDeparture).Error != nil || db.Order("id").Find(&bindingsAfterDeparture).Error != nil || !reflect.DeepEqual(offboardProvider, providerAfterDeparture) || !reflect.DeepEqual(offboardBindings, bindingsAfterDeparture) {
+		t.Fatal("departure rewrote directory configuration or explicit binding history")
+	}
+	assertOffboardingRetained()
 	stage = "complete"
 }
 

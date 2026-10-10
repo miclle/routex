@@ -28,6 +28,7 @@ import MFAChallengeForm from './mfa-challenge'
 import OIDCLoginButton from '@/views/oidc/login-button'
 import OAuthLoginButton from '@/views/oauth/login-button'
 import LDAPLoginButton from '@/views/ldap/login-button'
+import SAMLLoginButton from '@/views/saml/login-button'
 import type { LDAPLoginResult } from '@/types/ldap'
 
 export default function AuthPage({ mode }: { mode: 'login' | 'setup' | 'register' }) {
@@ -454,6 +455,7 @@ function Auth({ mode }: { mode: 'login' | 'setup' | 'register' }) {
               <OIDCLoginButton disabled={pending} acquire={acquireOIDC} />
               <OAuthLoginButton disabled={pending} acquire={acquireOIDC} />
               <LDAPLoginButton disabled={pending} acquire={acquireOIDC} />
+              <SAMLLoginButton disabled={pending} acquire={acquireOIDC} />
             </>
           )}
         </div>

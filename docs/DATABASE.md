@@ -1579,6 +1579,41 @@ five/seven/eight/nine-domain meaning; their completed records do not prove V5
 retirement. Every retained nonempty LDAP service-password envelope, including
 disabled configuration, is included using `ldap:ldap:<generation>`.
 
-The complete integration registry appends LDAP migration, lifecycle and
-same-source process restart scenarios, bringing the current business inventory
-to 191. Execution and final qualification are in progress; see [LDAP](LDAP.md).
+The V96 integration registry appended LDAP migration, lifecycle and same-source
+process restart scenarios, bringing that historical business inventory to 191.
+Controlled PostgreSQL/MySQL and real-process restart qualification pass; see
+[LDAP](LDAP.md). The V97 inventory and acceptance are recorded below.
+
+## Existing-member SAML application (V97)
+
+Frozen GORM V97 adds four tables: the initially disabled, unconfigured
+`saml_providers` singleton, `saml_bindings`, `saml_ceremonies` and
+`saml_assertion_receipts`. Each Session and native MFA challenge gains five SAML
+proof columns: binding ID, binding creation time, configuration revision, policy
+revision and member creation time. Primary-method constraints admit the exact
+SAML arm while requiring all other methods' proof fields to be empty or null;
+local, OIDC, OAuth and LDAP provenance remains independently checked. Existing
+members and historical Sessions receive no inferred SAML identity or proof.
+
+Private frozen models and GORM Migrator operations define table, column, index
+and constraint changes. V1–V96 remain unchanged. Retained data and frozen column
+and index definitions are validated before replacing primary-method checks;
+interrupted MySQL DDL is replayable without assuming rollback. The V97 ledger
+entry is written only after the complete migration succeeds.
+
+Bindings have unique member and issuer/subject-digest identities, with exact
+issuer and persistent subject bytes retained privately. Ceremonies uniquely bind
+request ID and independent browser proof hashes to provider/configuration/policy
+and admitted actor facts. Governance transactions serialize bounded admission and
+one-use consumption. Live ceremonies and assertion receipts each have a 1,024-row
+admission cap; at most 128 expired rows are pruned per admission. Assertion receipt
+expiry covers the full signed proof and survives configuration changes and binding
+deletion, so those operations cannot reset replay protection.
+
+Only public IdP certificate material is stored. Root inventory remains V5 with ten
+domains; no SAML root-secret domain is introduced. V97 empty/upgrade/repeat,
+concurrent startup, interrupted DDL, constraint/index, signed application lifecycle
+and restart controls pass the original complete PostgreSQL/MySQL integration
+matrix: 194 business scenarios plus four constraints and 467 balanced names per
+driver. The separate real-process authentication lifecycle also passes. See
+[SAML](SAML.md) for the evidence and open browser/external IdP boundaries.

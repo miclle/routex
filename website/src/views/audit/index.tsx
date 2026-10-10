@@ -13,6 +13,7 @@ import type {
   OIDCIdentityAuditChanges,
   OAuthIdentityAuditChanges,
   LDAPIdentityAuditChanges,
+  SAMLIdentityAuditChanges,
 } from '@/types/audit'
 import { Page, QueryState, ErrorNotice } from '@/components/app/CatalogUI'
 import { PermissionGate } from '@/components/app/PermissionGate'
@@ -36,12 +37,17 @@ function isCleanupChanges(changes: AuditChanges): changes is SystemInstanceClean
 }
 function isIdentityChanges(
   changes: AuditChanges,
-): changes is OIDCIdentityAuditChanges | OAuthIdentityAuditChanges | LDAPIdentityAuditChanges {
+): changes is
+  | OIDCIdentityAuditChanges
+  | OAuthIdentityAuditChanges
+  | LDAPIdentityAuditChanges
+  | SAMLIdentityAuditChanges {
   return (
     'kind' in changes &&
     (changes.kind === 'oidc_identity' ||
       changes.kind === 'oauth_identity' ||
-      changes.kind === 'ldap_identity')
+      changes.kind === 'ldap_identity' ||
+      changes.kind === 'saml_identity')
   )
 }
 export default function AuditPage() {

@@ -26,6 +26,12 @@ type User struct {
 
 // Session stores only a digest of the bearer secret.
 type Session struct {
+	SAMLBindingID        string     `gorm:"column:saml_binding_id;size:30;not null;default:''" json:"-"`
+	SAMLBindingCreatedAt *time.Time `gorm:"column:saml_binding_created_at;precision:6" json:"-"`
+	SAMLConfigRevision   string     `gorm:"column:saml_config_revision;size:64;not null;default:''" json:"-"`
+	SAMLPolicyRevision   string     `gorm:"column:saml_policy_revision;size:64;not null;default:''" json:"-"`
+	SAMLUserCreatedAt    *time.Time `gorm:"column:saml_user_created_at;precision:6" json:"-"`
+
 	LDAPBindingID         string     `gorm:"column:ldap_binding_id;size:30;not null;default:''" json:"-"`
 	LDAPBindingCreatedAt  *time.Time `gorm:"column:ldap_binding_created_at;precision:6" json:"-"`
 	LDAPConfigRevision    string     `gorm:"column:ldap_config_revision;size:64;not null;default:''" json:"-"`

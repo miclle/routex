@@ -279,15 +279,15 @@ func TestOAuthV95RootChecksPreserveV1V2V3(t *testing.T) {
 func TestMigrateThroughBoundsAndCurrentPrefix(t *testing.T) {
 	for _, dialect := range []string{"postgres", "mysql"} {
 		all := migrationSteps(dialect)
-		if len(all) != 96 || reflect.ValueOf(all[95]).Pointer() != reflect.ValueOf(ldapMigration).Pointer() || reflect.ValueOf(all[93]).Pointer() != reflect.ValueOf(oidcMigration).Pointer() || reflect.ValueOf(all[94]).Pointer() != reflect.ValueOf(oauthMigration).Pointer() {
+		if len(all) != 97 || reflect.ValueOf(all[96]).Pointer() != reflect.ValueOf(samlMigration).Pointer() || reflect.ValueOf(all[95]).Pointer() != reflect.ValueOf(ldapMigration).Pointer() || reflect.ValueOf(all[93]).Pointer() != reflect.ValueOf(oidcMigration).Pointer() || reflect.ValueOf(all[94]).Pointer() != reflect.ValueOf(oauthMigration).Pointer() {
 			t.Fatal("current migration suffix changed", dialect)
 		}
-		for _, bound := range []int{-1, 0, 97} {
+		for _, bound := range []int{-1, 0, 98} {
 			if _, err := migrationPrefix(all, bound); err == nil {
 				t.Fatal("invalid bound accepted", bound)
 			}
 		}
-		for _, bound := range []int{1, 94, 95, 96} {
+		for _, bound := range []int{1, 94, 95, 96, 97} {
 			got, err := migrationPrefix(all, bound)
 			if err != nil || len(got) != bound {
 				t.Fatal("valid bound rejected", bound, err)

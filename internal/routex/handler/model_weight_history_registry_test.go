@@ -200,8 +200,8 @@ func TestModelWeightHistoryExact174RegistryPrefix(t *testing.T) {
 	for _, pair := range pairs {
 		currentIdentities = append(currentIdentities, pair[1]+":"+pair[2])
 	}
-	if !ldapRegistry191Current(currentIdentities) {
-		t.Fatal("exact191 LDAP successor changed")
+	if !samlRegistry194Current(currentIdentities) {
+		t.Fatal("exact194 SAML successor changed")
 	}
 	currentIdentities = currentIdentities[:181]
 	if !credentialAttemptStatisticsRegistry181Current(currentIdentities) {

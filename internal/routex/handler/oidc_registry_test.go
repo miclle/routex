@@ -26,8 +26,8 @@ func TestOIDCRegistry185Preserves182AndRejectsIdentityDrift(t *testing.T) {
 	for _, match := range regexp.MustCompile(`\{"([^"\n]+)", (test[A-Za-z0-9]+)\}`).FindAllStringSubmatch(string(raw), -1) {
 		names = append(names, match[1]+":"+match[2])
 	}
-	if !ldapRegistry191Current(names) {
-		t.Fatal("exact191 ordered LDAP successor required")
+	if !samlRegistry194Current(names) {
+		t.Fatal("exact194 ordered SAML successor required")
 	}
 	names = names[:185]
 	if !oidcRegistry185Current(names) {

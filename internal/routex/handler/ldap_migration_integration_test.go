@@ -204,6 +204,7 @@ func testLDAPMigration(t *testing.T, db *gorm.DB) {
 	ctx, cancel := context.WithTimeout(context.Background(), 180*time.Second)
 	defer cancel()
 	db = db.WithContext(ctx)
+	legacyMigrationBeforeV97(t, db)
 	original := personalKeyBehaviorLedger(t, db)
 	if len(original) != 96 {
 		t.Fatal("exact V96 ledger required")
@@ -234,7 +235,7 @@ func testLDAPMigration(t *testing.T, db *gorm.DB) {
 	}
 	migrate := func() {
 		t.Helper()
-		if e := database.Migrate(ctx, db); e != nil {
+		if e := database.MigrateThrough(ctx, db, 96); e != nil {
 			t.Fatal("restore V96", e)
 		}
 		ledger(true)
@@ -266,7 +267,7 @@ func testLDAPMigration(t *testing.T, db *gorm.DB) {
 		}
 	}
 	assertDefault()
-	for _, bound := range []int{0, -1, 95, 97} {
+	for _, bound := range []int{0, -1, 95, 98} {
 		before := personalKeyBehaviorLedger(t, db)
 		if database.MigrateThrough(ctx, db, bound) == nil || !reflect.DeepEqual(before, personalKeyBehaviorLedger(t, db)) {
 			t.Fatal("bounded ledger rejection", bound)
@@ -386,7 +387,7 @@ func testLDAPMigration(t *testing.T, db *gorm.DB) {
 	var wg sync.WaitGroup
 	results := make(chan error, 2)
 	for range 2 {
-		wg.Go(func() { results <- database.Migrate(ctx, db) })
+		wg.Go(func() { results <- database.MigrateThrough(ctx, db, 96) })
 	}
 	wg.Wait()
 	close(results)
@@ -432,7 +433,7 @@ func testLDAPMigration(t *testing.T, db *gorm.DB) {
 			t.Fatal("install wrong shape")
 		}
 		remove()
-		if database.Migrate(ctx, db) == nil {
+		if database.MigrateThrough(ctx, db, 96) == nil {
 			t.Fatal("wrong column accepted", bad.field)
 		}
 		ledger(false)
@@ -448,7 +449,7 @@ func testLDAPMigration(t *testing.T, db *gorm.DB) {
 			t.Fatal("install wrong index")
 		}
 		remove()
-		if database.Migrate(ctx, db) == nil {
+		if database.MigrateThrough(ctx, db, 96) == nil {
 			t.Fatal("wrong index accepted")
 		}
 		ledger(false)
@@ -513,6 +514,20 @@ func testLDAPMigration(t *testing.T, db *gorm.DB) {
 		}
 	}
 	current("after_primary_negatives")
+	// V96 was deliberately replayed above; preserve its current durable receipt
+	// and the original V1-V95 prefix while appending only the V97 suffix.
+	beforeSuffix := personalKeyBehaviorLedger(t, db)
+	if len(beforeSuffix) != 96 || beforeSuffix[95].Version != 96 || !reflect.DeepEqual(original[:95], beforeSuffix[:95]) {
+		t.Fatal("LDAP historical closure lost retained V1-V95 prefix or current V96 receipt")
+	}
+	if err := database.Migrate(ctx, db); err != nil {
+		t.Fatal("restore current after historical LDAP fixture", err)
+	}
+	finalLedger := personalKeyBehaviorLedger(t, db)
+	if len(finalLedger) != 97 || finalLedger[96].Version != 97 || !reflect.DeepEqual(beforeSuffix, finalLedger[:96]) {
+		t.Fatal("LDAP historical closure lost retained V96 prefix or V97 suffix")
+	}
+
 }
 
 // Use the frozen V96 projections against actual rows, without retaining test

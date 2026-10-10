@@ -38,12 +38,17 @@ export interface OAuthIdentityAuditChanges {
   kind: 'oauth_identity'
   reason: string
 }
+export interface SAMLIdentityAuditChanges {
+  kind: 'saml_identity'
+  reason: string
+}
 export type AuditChanges =
   | AuditBeforeAfterChanges
   | SystemInstanceCleanupAuditChanges
   | OIDCIdentityAuditChanges
   | OAuthIdentityAuditChanges
   | LDAPIdentityAuditChanges
+  | SAMLIdentityAuditChanges
 export interface AuditRecord {
   id: string
   actor_id: string

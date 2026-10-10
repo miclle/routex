@@ -67,11 +67,12 @@ beforeEach(async () => {
         'get /account/identity',
         'get /account/identity/oauth',
         'get /account/identity/ldap',
+        'get /account/identity/saml',
       ].includes(route)
     ) {
       const etag = 'a'.repeat(64)
       response.headers.set('ETag', `"${etag}"`)
-      if (route === 'get /account/identity/ldap') {
+      if (route === 'get /account/identity/ldap' || route === 'get /account/identity/saml') {
         response.headers.set('Cache-Control', 'private, no-store')
         response.headers.set('X-Content-Type-Options', 'nosniff')
       }

@@ -4,6 +4,50 @@ Updated: 2026-10-10. Status: resumed by explicit user instruction; prioritize pa
 
 ## Current execution status (2026-10-10)
 
+## Existing-member SAML application qualification, 2026-10-10
+
+Frozen GORM V97, reviewed public trust configuration, explicit persistent-NameID
+linking, durable one-use browser/assertion correlation and manual same-origin
+completion now pass controlled application qualification. The existing sign-in,
+authentication settings and Account Security surfaces use local shadcn/Base UI
+and paired English/Chinese translations. Native MFA preserves exact SAML primary
+provenance; security changes, unlink and departure revoke the relevant RouteX
+authority without changing independent authentication methods or Project assets.
+
+Final repaired-source mandatory check R4 and complete Task R2 pass: 6,228 frontend
+tests/232 files, Go race, development lifecycle and embedded production assets.
+Check SHA-256: `96ba818efd6dd154a54e8827dc8275669f02b17e73797eb493a3db76362d9dba`.
+Task SHA-256: `f8e75dc26c9377c297f7f397401bf4ef7e976286d8f8c430bcd6be16a8e48b07`.
+The original complete integration Task passes in 2,949.064 seconds: 194 business
+scenarios plus four constraints and 467 balanced names on each database, with
+8,095 ordinary passes and three intentional TLS helper skips. Its 16 production
+restart processes include genuine OIDC, OAuth, LDAP and SAML generations.
+Independent readback SHA-256:
+`2997180c2ed1703b6e58b63aac87b08b10c3d3764aa80dc8f742bf11bf1356cd`.
+
+The separate original authentication lifecycle passes with eight observed process
+starts across both databases. Readback SHA-256:
+`932056b2fd3b7844e60f9bf7358cad2680e5272177aa91cea23a67fb38ca75e8`.
+Both readbacks verify exact 2,286-path source/mode closure, owned process/group
+and Compose cleanup, refused and fresh-bindable ports, removed temporary helpers,
+and preservation of original development. Earlier focused fixture failures and
+the GORM issuer-column projection diagnostic remain failed history. The final
+field-based projection and exact-instant/nilness fixture comparisons execute in
+the passing original matrix; no timeout or assertion is weakened.
+
+Genuine LDAP and SAML departure controls now pass alongside the delivered OIDC
+and custom OAuth controls. F10 remains Partial for its remaining scope. Bilingual
+browser and external IdP acceptance remain open. Enforced SSO accepts verified
+OIDC/LDAP only; enforcement and emergency recovery are independent unfinished
+work. F03/A15 remain Partial, with **15 Completed / 13 Partial / 2 Not started**.
+Final main frontend formatting and mandatory checking pass without implementation
+drift. Main check SHA-256:
+`4fcba8f76f29781b5b446a47526e8a0730abff66cdf4ea868927ab5c7ebd3d62`.
+GitHub and Google application candidates continue separately; their source and
+focused checks do not constitute full application acceptance. WeChat is deferred
+by the user because no verification service or wire contract exists. The overall
+objective remains active. Earlier checkpoints below are historical.
+
 ## Enterprise offboarding receipt and authentication regression, 2026-10-10
 
 Planned offboarding now returns receipts at persisted database timestamp precision.

@@ -1,3 +1,5 @@
+import enSAML from './locales/en/saml'
+import zhSAML from './locales/zh/saml'
 import enLDAP from './locales/en/ldap'
 import zhLDAP from './locales/zh/ldap'
 import enOAuth from './locales/en/oauth'
@@ -106,6 +108,7 @@ void i18n.use(initReactI18next).init({
       oidc: enOIDC,
       oauth: enOAuth,
       ldap: enLDAP,
+      saml: enSAML,
       modelCreation: enModelCreation,
       secrets: enSecrets,
       overview: enOverview,
@@ -141,6 +144,7 @@ void i18n.use(initReactI18next).init({
       oidc: zhOIDC,
       oauth: zhOAuth,
       ldap: zhLDAP,
+      saml: zhSAML,
       modelCreation: zhModelCreation,
       secrets: zhSecrets,
       overview: zhOverview,

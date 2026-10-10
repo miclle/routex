@@ -236,7 +236,14 @@ response-close prerequisite. Failed or unobserved closure cannot establish
 source drain. This prerequisite adds neither durable fleet coordination nor
 permission to clean previously published credential objects.
 
-The [SAML protocol component](docs/SAML.md) verifies bounded SP-initiated signed
-identity proofs with explicit pinned configuration. Existing-member application
-linking, durable replay protection and browser completion are in progress; the
-component alone enables no SAML login.
+[Existing-member SAML](docs/SAML.md) combines bounded SP-initiated signed proofs
+with explicit persistent-NameID linking, durable replay receipts, two host-only
+browser correlation cookies and manual same-origin completion. Configuration,
+administrator verification and enablement remain separate reviewed actions;
+native MFA and exact Session provenance remain required. Frozen GORM V97 adds
+application persistence without changing the encrypted root-key inventory.
+Mandatory checking and complete Task pass, including 6,228 frontend tests. The
+original PostgreSQL/MySQL integration matrix and separate real-process
+authentication lifecycle pass. Bilingual browser and external IdP acceptance
+remain open.
+SAML does not satisfy the verified OIDC/LDAP-only enforced-SSO policy.

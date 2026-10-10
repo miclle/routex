@@ -494,15 +494,15 @@ func TestProjectKeyMonthlyBehaviorRegistryTail(t *testing.T) {
 	for _, pair := range matches {
 		pairs = append(pairs, pair[1]+":"+pair[2])
 	}
-	if !ldapRegistry191Current(pairs) {
-		t.Fatal("exact191 LDAP successor changed")
+	if !samlRegistry194Current(pairs) {
+		t.Fatal("exact194 SAML successor changed")
 	}
 	pairs = pairs[:181]
 	if !credentialAttemptStatisticsRegistry181Current(pairs) {
 		t.Fatal("exact V93/181 successor changed")
 	}
 	pairs = pairs[:179]
-	if len(pairs) != 179 || !strings.Contains(string(raw), "versions != 96") {
+	if len(pairs) != 179 || !strings.Contains(string(raw), "versions != 97") {
 		t.Fatal("current exact172 registry/V89 ledger changed")
 	}
 	if !projectKeyMonthlyBehaviorRegistryMatches(pairs) {

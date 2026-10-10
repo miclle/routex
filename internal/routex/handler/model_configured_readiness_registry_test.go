@@ -23,11 +23,11 @@ func TestAdminModelConfiguredReadinessRegistry182Preserves181AndRejectsSuffixDri
 	for _, match := range regexp.MustCompile(`\{"([^"\n]+)", (test[A-Za-z0-9]+)\}`).FindAllStringSubmatch(string(raw), -1) {
 		names = append(names, match[1]+":"+match[2])
 	}
-	if !ldapRegistry191Current(names) {
-		t.Fatal("exact191 LDAP successor changed")
+	if !samlRegistry194Current(names) {
+		t.Fatal("exact194 SAML successor changed")
 	}
 	names = names[:182]
-	if !adminModelConfiguredReadinessRegistry182Current(names) || !strings.Contains(string(raw), "versions != 96") {
+	if !adminModelConfiguredReadinessRegistry182Current(names) || !strings.Contains(string(raw), "versions != 97") {
 		t.Fatal("exact182 and unchanged migration93 required")
 	}
 	if adminModelConfiguredReadinessRegistry182Current(names[:181]) || !credentialAttemptStatisticsRegistry181Current(names[:181]) {

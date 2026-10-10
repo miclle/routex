@@ -112,13 +112,35 @@ Local-password and native-MFA proofs protect linking, verification and unlinking
 LDAP login uses the existing native challenge when MFA is enabled. Security tuple
 changes revoke only LDAP authority and remove its bindings; disabling retains
 bindings but revokes its Sessions/challenges. Local, OIDC and OAuth remain
-independent. V96 and root inventory V5 are additive. Application qualification is
-in progress; real-directory and bilingual browser acceptance remain open.
+independent. V96 and root inventory V5 are additive. Complete PostgreSQL/MySQL
+and real-process authentication lifecycle qualification pass for the delivered
+LDAP application. Real-directory and bilingual browser acceptance remain open.
 
-## SAML component boundary
+## Existing-member SAML application
 
-The independent [SAML protocol component](SAML.md) creates bounded SP-initiated
-requests and validates signed persistent identities. It creates no Session or
-member binding. Application lifecycle and durable two-cookie browser correlation
-are being implemented separately; local, OIDC, OAuth and LDAP behavior is unchanged.
-SAML is outside the approved OIDC/LDAP-only enforced-SSO allowlist.
+The [SAML application](SAML.md) adds explicit existing-member linking and reviewed
+public trust configuration to the independently qualified protocol component.
+SP-initiated requests and signed persistent NameIDs are correlated through durable
+one-use ceremonies and separate exact host-only start and delivery cookies. A
+cross-site ACS POST only stages proof and redirects to a clean page; explicit
+same-origin completion requires both proofs and current authority. Native MFA
+remains required where enabled, and SAML Sessions/challenges carry exact binding,
+member-birth, configuration and policy provenance.
+
+Security configuration changes reset verification, disable admission, remove
+bindings and revoke SAML authority; name-only edits preserve it. Disable retains
+bindings, and explicit password/MFA-reviewed unlink revokes one binding. Local,
+OIDC, OAuth and LDAP remain independent. No provisioning, email/group mapping,
+metadata discovery or remote logout is added. SAML remains outside the approved
+OIDC/LDAP-only enforced-SSO allowlist. Controlled application, PostgreSQL/MySQL
+and real-process restart qualification pass. Bilingual browser and external IdP
+acceptance remain open; controlled results do not establish those outcomes.
+F03/A15 remain Partial.
+
+## Named login profiles
+
+Independent Google, GitHub, Discord and Telegram settings are separate remaining
+work; the single custom OAuth provider does not implement those independent
+profiles. WeChat login is deferred by the user because no verification service
+or wire contract currently exists. Do not invent a bridge protocol or treat a
+static QR image as proof of identity.

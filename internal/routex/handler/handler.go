@@ -25,7 +25,7 @@ func (ctrl *Ctrl) RegisterRoutes(r *fox.Engine) {
 	// Native query credentials must never be reflected by pre-middleware redirects.
 	r.RedirectTrailingSlash = false
 	r.RedirectFixedPath = false
-	r.Engine.Use(GeminiQueryCredentials, TeamNativeInputs, OIDCInputs, OAuthInputs)
+	r.Engine.Use(GeminiQueryCredentials, TeamNativeInputs, OIDCInputs, OAuthInputs, SAMLInputs)
 	// embed website assets
 	website.EmbedAssets(r)
 
@@ -81,6 +81,19 @@ func (ctrl *Ctrl) RegisterRoutes(r *fox.Engine) {
 	identity.PUT("/admin/auth/oauth", sameOrigin, ctrl.requireSession, requireCSRF, jsonManagementRequest, ctrl.SaveOAuthProvider)
 	identity.POST("/admin/auth/oauth/verify", sameOrigin, ctrl.requireSession, requireCSRF, jsonManagementRequest, ctrl.StartOAuthVerification)
 	identity.PUT("/admin/auth/oauth/status", sameOrigin, ctrl.requireSession, requireCSRF, jsonManagementRequest, ctrl.SetOAuthEnabled)
+
+	identity.GET("/auth/saml", samlPrivate, ctrl.PublicSAML)
+	identity.POST("/auth/saml/start", samlPrivate, sameOrigin, jsonAuthRequest, ctrl.StartSAMLLogin)
+	identity.POST("/auth/saml/acs", samlPrivate, ctrl.SAMLACS)
+	identity.POST("/auth/saml/complete", samlPrivate, sameOrigin, jsonAuthRequest, ctrl.CompleteSAML)
+	identity.POST("/auth/saml/abandon", samlPrivate, sameOrigin, jsonAuthRequest, ctrl.AbandonSAML)
+	identity.GET("/admin/auth/saml", samlPrivate, ctrl.requireSession, ctrl.GetSAML)
+	identity.PUT("/admin/auth/saml", samlPrivate, sameOrigin, ctrl.requireSession, requireCSRF, jsonManagementRequest, ctrl.SaveSAML)
+	identity.POST("/admin/auth/saml/verify", samlPrivate, sameOrigin, ctrl.requireSession, requireCSRF, jsonManagementRequest, ctrl.StartSAMLVerification)
+	identity.PUT("/admin/auth/saml/status", samlPrivate, sameOrigin, ctrl.requireSession, requireCSRF, jsonManagementRequest, ctrl.SetSAMLStatus)
+	identity.GET("/account/identity/saml", samlPrivate, ctrl.requireSession, ctrl.AccountSAML)
+	identity.POST("/account/identity/saml/bind", samlPrivate, sameOrigin, ctrl.requireSession, requireCSRF, jsonManagementRequest, ctrl.StartSAMLBinding)
+	identity.POST("/account/identity/saml/unlink", samlPrivate, sameOrigin, ctrl.requireSession, requireCSRF, jsonManagementRequest, ctrl.UnlinkSAML)
 
 	identity.GET("/auth/ldap", ldapPrivate, ctrl.PublicLDAP)
 	identity.POST("/auth/ldap/login", ldapPrivate, sameOrigin, jsonManagementRequest, ctrl.LoginLDAP)

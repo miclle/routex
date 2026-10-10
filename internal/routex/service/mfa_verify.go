@@ -235,7 +235,7 @@ func (s *Service) CompleteMFALogin(ctx context.Context, token string, proof MFAP
 	var auth *Authentication
 	rejected := false
 	err := s.authDB(ctx).Transaction(func(tx *gorm.DB) error {
-		if before.PrimaryMethod == "oidc" || before.PrimaryMethod == "oauth" || before.PrimaryMethod == "ldap" {
+		if before.PrimaryMethod == "oidc" || before.PrimaryMethod == "oauth" || before.PrimaryMethod == "ldap" || before.PrimaryMethod == "saml" {
 			if err := lockGovernance(tx); err != nil {
 				return err
 			}
@@ -320,6 +320,17 @@ func (s *Service) CompleteMFALogin(ctx context.Context, token string, proof MFAP
 			auth.Session.LDAPConfigRevision = challenge.LDAPConfigRevision
 			auth.Session.LDAPPolicyRevision = challenge.LDAPPolicyRevision
 			auth.Session.LDAPUserCreatedAt = challenge.LDAPUserCreatedAt
+			if err := tx.Save(&auth.Session).Error; err != nil {
+				return err
+			}
+		}
+		if challenge.PrimaryMethod == "saml" {
+			auth.Session.PrimaryMethod = challenge.PrimaryMethod
+			auth.Session.SAMLBindingID = challenge.SAMLBindingID
+			auth.Session.SAMLBindingCreatedAt = challenge.SAMLBindingCreatedAt
+			auth.Session.SAMLConfigRevision = challenge.SAMLConfigRevision
+			auth.Session.SAMLPolicyRevision = challenge.SAMLPolicyRevision
+			auth.Session.SAMLUserCreatedAt = challenge.SAMLUserCreatedAt
 			if err := tx.Save(&auth.Session).Error; err != nil {
 				return err
 			}

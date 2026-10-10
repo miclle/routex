@@ -74,7 +74,7 @@ func primaryRuntimeSession(row entity.Session, op *entity.OIDCProvider, ob map[s
 	oe := primaryProofEmpty(row.OIDCBindingID, row.OIDCBindingCreatedAt, row.OIDCConfigRevision, row.OIDCPolicyRevision, row.OIDCUserCreatedAt)
 	ae := primaryProofEmpty(row.OAuthBindingID, row.OAuthBindingCreatedAt, row.OAuthConfigRevision, row.OAuthPolicyRevision, row.OAuthUserCreatedAt)
 	le := primaryProofEmpty(row.LDAPBindingID, row.LDAPBindingCreatedAt, row.LDAPConfigRevision, row.LDAPPolicyRevision, row.LDAPUserCreatedAt)
-	if !le {
+	if !le || !primaryProofEmpty(row.SAMLBindingID, row.SAMLBindingCreatedAt, row.SAMLConfigRevision, row.SAMLPolicyRevision, row.SAMLUserCreatedAt) {
 		return false
 	}
 	switch row.PrimaryMethod {
@@ -92,6 +92,9 @@ func primaryRuntimeSession(row entity.Session, op *entity.OIDCProvider, ob map[s
 // The old dispatcher remains available to existing callers and rejects LDAP
 // proof without its complete current publication input.
 func primaryRuntimeSessionWithLDAP(row entity.Session, op *entity.OIDCProvider, ob map[string]entity.OIDCBinding, p *entity.OAuthProvider, b map[string]entity.OAuthBinding, lp *entity.LDAPProvider, lb map[string]entity.LDAPBinding, users map[string]entity.User) bool {
+	if !primaryProofEmpty(row.SAMLBindingID, row.SAMLBindingCreatedAt, row.SAMLConfigRevision, row.SAMLPolicyRevision, row.SAMLUserCreatedAt) {
+		return false
+	}
 	if row.PrimaryMethod != "ldap" {
 		return primaryRuntimeSession(row, op, ob, p, b, users)
 	}

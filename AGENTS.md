@@ -1608,3 +1608,17 @@ callback route, browser credential storage or private mutation-cache result is
 allowed. Secret inventory V5 appends LDAP service-password coverage while
 retaining exact historical V1–V4 scopes; typed LDAP audit changes render only
 server-projected reasons.
+
+
+SAML uses the existing authentication card, method drawer and Account Security
+card/dialogs with paired `saml` translations. Keep the clean completion route
+outside AuthGate and require manual completion after a fresh Session read.
+SP-initiated persistent NameID binding never links by email, provisions accounts
+or synchronizes roles. The cross-site ACS stages verified identity only; both
+exact host-only Strict correlation cookies and current authority are required
+for completion. Native HTTP 202 remains a transient MFA challenge. Configuration,
+verification, enablement and unlink remain separate reviewed actions. Keep all
+passwords, proofs and one-time results in transient component state, fence late
+responses by actor/Session lifetime, and settle the real Session after revoking
+writes. Explicit abandonment confirms cookie cleanup only. SAML does not satisfy
+the OIDC/LDAP-only enforced-SSO policy.
