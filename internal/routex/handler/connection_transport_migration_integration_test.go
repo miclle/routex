@@ -39,7 +39,7 @@ func (capacityTransportMigrationColumn) TableName() string { return "reservation
 func testConnectionTransportMigration(t *testing.T, db *gorm.DB) {
 	ctx := context.Background()
 	before := personalKeyBehaviorLedger(t, db)
-	if len(before) != 95 || before[94].Version != 95 || before[93].Version != 94 || before[92].Version != 93 || before[91].Version != 92 || before[90].Version != 91 {
+	if len(before) != 96 || before[95].Version != 96 || before[94].Version != 95 || before[93].Version != 94 || before[92].Version != 93 || before[91].Version != 92 || before[90].Version != 91 {
 		t.Fatal("exact V92 ledger")
 	}
 	for _, row := range []any{&entity.Provider{ID: "prv_transport_migrate", Name: "Retained supplier"}, &entity.ProviderConnection{ID: "con_transport_migrate", ProviderID: "prv_transport_migrate", Name: "Retained", Protocol: entity.ProtocolOpenAIChat, BaseURL: "https://example.invalid/v1", EgressMode: "direct"}, &entity.ProviderCredential{ID: "crd_transport_migrate", ConnectionID: "con_transport_migrate", Name: "Retained verified", Ciphertext: "retained encrypted fixture", Enabled: true, VerificationStatus: "verified"}, &entity.ProviderModel{ID: "pmd_transport_migrate", ConnectionID: "con_transport_migrate", UpstreamName: "retained", SupportsImageInput: true}, &entity.ReservationBound{ProviderModelID: "pmd_transport_migrate", Protocol: entity.ProtocolOpenAIChat, ETag: "bnd_retained", PreviousETag: "0", ActorID: "usr_retained", Reason: "Historical reason", Evidence: "Historical capacity", MaxInputTokens: 100, MaxOutputTokens: 20}} {

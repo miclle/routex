@@ -1592,3 +1592,19 @@ react only to actual `updated` and `removed` events for their exact scoped keys.
 Observer bookkeeping and pending query creation can occur during render and must
 not notify another component. Keep Session/permission invalidation, cancellation,
 and uncertain-intent fences synchronous for actual state transitions.
+
+
+LDAP sign-in uses the existing authentication card, method configuration drawer,
+and Account Security card/dialogs, with a paired `ldap` namespace. Require an
+explicit stable entryUUID or objectGUID selection and system-trusted LDAPS;
+never guess a directory identity, provision an account or synchronize profile
+or roles. Separate transient directory credentials from current local password
+and native MFA proof. Administrator Verify and link never enables sign-in;
+Enable remains a reviewed separate action. Native HTTP 202 is only an MFA
+challenge. Bind/verify proofs are never replayed automatically. Preserve exact
+actor, Session, permission, resource review and cancellation lifetimes, and
+settle the actual Session after mutations before reporting completion. No LDAP
+callback route, browser credential storage or private mutation-cache result is
+allowed. Secret inventory V5 appends LDAP service-password coverage while
+retaining exact historical V1–V4 scopes; typed LDAP audit changes render only
+server-projected reasons.

@@ -211,11 +211,12 @@ func (oidcHistoricalRootProcessV94) TableName() string { return "secret_process_
 
 func testOIDCMigration(t *testing.T, db *gorm.DB) {
 	ctx := context.Background()
+	legacyMigrationBeforeV96(t, db)
 	// This historical fixture may reconstruct V94 only on an exclusively owned
 	// integration database with untouched, disabled V95 objects and no OAuth proof.
 	initialLedger := personalKeyBehaviorLedger(t, db)
 	if len(initialLedger) != 95 {
-		t.Fatal("historical V94 fixture requires exact current V95 ledger")
+		t.Fatal("historical V94 fixture requires exact V95 boundary")
 	}
 	for i, row := range initialLedger {
 		if row.Version != i+1 {
@@ -646,7 +647,7 @@ func testOIDCMigration(t *testing.T, db *gorm.DB) {
 		t.Fatal("restore current after bounded historical fixture", err)
 	}
 	finalLedger := personalKeyBehaviorLedger(t, db)
-	if len(finalLedger) != 95 || !reflect.DeepEqual(ledger[:93], finalLedger[:93]) || finalLedger[94].Version != 95 {
+	if len(finalLedger) != 96 || !reflect.DeepEqual(ledger[:93], finalLedger[:93]) || finalLedger[94].Version != 95 || finalLedger[95].Version != 96 {
 		t.Fatal("historical closure lost current suffix or retained prefix")
 	}
 

@@ -189,7 +189,7 @@ func TestVaultTypedAuditProjectsOnlySafeConfigurationFacts(t *testing.T) {
 }
 
 func TestVaultRootUnknownInventoryNeverGrantsActionsOrHistory(t *testing.T) {
-	for _, version := range []int{0, -1, 5} {
+	for _, version := range []int{0, -1, 6} {
 		job := entity.SecretRotationJob{InventoryVersion: version, CountsJSON: "{}", Status: "blocked"}
 		if _, err := rootCountsChecked(job); err == nil {
 			t.Fatal("unknown inventory accepted", version)
@@ -198,7 +198,7 @@ func TestVaultRootUnknownInventoryNeverGrantsActionsOrHistory(t *testing.T) {
 			t.Fatal("unknown history or action authority", version)
 		}
 	}
-	for _, inventory := range []struct{ version, domains int }{{1, 5}, {2, 7}, {3, 8}, {4, 9}} {
+	for _, inventory := range []struct{ version, domains int }{{1, 5}, {2, 7}, {3, 8}, {4, 9}, {5, 10}} {
 		for _, status := range []string{"completed", "rolled_back"} {
 			view := rootRotationView(entity.SecretRotationJob{InventoryVersion: inventory.version, CountsJSON: "{}", Status: status, Domain: inventory.domains}, true, true)
 			if view == nil || view.InventoryVersion != inventory.version || len(view.Domains) != inventory.domains || len(view.AllowedActions) != 0 {
@@ -206,17 +206,21 @@ func TestVaultRootUnknownInventoryNeverGrantsActionsOrHistory(t *testing.T) {
 			}
 		}
 		_, err := rootCountsChecked(entity.SecretRotationJob{InventoryVersion: inventory.version, CountsJSON: `{"oidc_providers":{}}`})
-		if (err == nil) != (inventory.version == 3 || inventory.version == 4) {
+		if (err == nil) != (inventory.version == 3 || inventory.version == 4 || inventory.version == 5) {
 			t.Fatal("OIDC domain coverage escaped its inventory version", inventory.version)
 		}
 		_, err = rootCountsChecked(entity.SecretRotationJob{InventoryVersion: inventory.version, CountsJSON: `{"oauth_providers":{}}`})
-		if (err == nil) != (inventory.version == 4) {
+		if (err == nil) != (inventory.version == 4 || inventory.version == 5) {
 			t.Fatal("OAuth domain coverage escaped its inventory version", inventory.version)
+		}
+		_, err = rootCountsChecked(entity.SecretRotationJob{InventoryVersion: inventory.version, CountsJSON: `{"ldap_providers":{}}`})
+		if (err == nil) != (inventory.version == 5) {
+			t.Fatal("LDAP domain coverage escaped its inventory version", inventory.version)
 		}
 	}
 }
 func TestVaultRootWorkerRejectsUnknownInventoryWithoutRewrap(t *testing.T) {
-	for _, version := range []int{0, 5} {
+	for _, version := range []int{0, 6} {
 		svc, f := rootPublicationService(t)
 		f.job.InventoryVersion = version
 		before := f.egress.AuthCiphertext

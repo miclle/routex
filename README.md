@@ -135,11 +135,15 @@ Contributions are welcome. See [CONTRIBUTING.md](CONTRIBUTING.md) before submitt
 
 ## Product implementation
 
-The bounded [LDAP protocol component](docs/LDAP.md) requires an explicit
-`entryUUID` or `objectGUID`, performs verified LDAPS service bind, escaped
-search, user bind and an exact post-bind identity reread. Controlled race tests,
-mandatory checking and complete project tests pass. It adds no application login,
-account binding, provisioning or Session authority; that integration is in progress.
+[Existing-member LDAP](docs/LDAP.md) uses explicit `entryUUID` or `objectGUID`,
+verified LDAPS and exact post-bind identity rereads. Reviewed configuration,
+account linking, native MFA and independent Session revocation preserve existing
+member admission and local authentication. Controlled final project checks,
+complete PostgreSQL/MySQL migration and lifecycle coverage, same-source LDAP
+Session restarts and the separate authentication lifecycle pass; exact evidence
+is recorded in [the implementation index](docs/IMPLEMENTATION.md).
+Bilingual browser and real-directory interoperability remain open, as do
+enforced SSO and enterprise emergency recovery. F03 remains Partial.
 
 The [generic OAuth protocol component](docs/OAUTH.md) provides bounded explicit
 endpoint exchange and exact typed subjects. Its existing-member application adds
@@ -149,7 +153,7 @@ real-provider deployment acceptance remain open.
 
 [Existing-member OIDC](docs/OIDC.md) supports one reviewed provider with explicit
 account linking, bounded callbacks, native MFA and revocable Sessions. Controlled
-automated acceptance passes; bilingual browser and real-provider acceptance, LDAP,
+automated acceptance passes; bilingual browser and real-provider acceptance,
 additional OAuth providers, enforced SSO and enterprise recovery remain open.
 
 The active implementation goal covers the complete capability and acceptance inventory in [the implementation index](docs/IMPLEMENTATION.md). Current catalog and personal Key contracts are documented in [CATALOG](docs/CATALOG.md) and [KEYS](docs/KEYS.md). The [price catalogue and exact text quote API](docs/PRICING.md) provide price and currency administration. [Immutable gateway text assessments](docs/METERING.md) preserve each call's price basis; [token and monetary quotas](docs/QUOTAS.md) use the [durable quota ledger](docs/QUOTA_LEDGER.md) for native gateway admission and settlement. [Native attempt planning](docs/ROUTE_ATTEMPTS.md) defines the active bounded same-protocol failover and replay-safety contract. Configure [encrypted credential storage and upstream network policy](docs/SECRET_STORAGE.md) before adding provider credentials.
@@ -174,7 +178,7 @@ uses a reviewed default generation, explicit owners and sparse initial overrides
 durable receipts reconcile the exact original request after uncertain responses.
 Initial Team Model selection remains a separate pending capability.
 
-Gateway and delivery contracts: [Chat inference](docs/GATEWAY.md), [native Responses](docs/RESPONSES.md), [native Messages](docs/MESSAGES.md), [native Gemini](docs/GEMINI.md), [Playground](docs/PLAYGROUND.md), [Team Session inference](docs/TEAM_INFERENCE.md), [Team resource limits](docs/TEAM_LIMITS.md), [Team monthly requests](docs/TEAM_REQUESTS.md), [Team roles](docs/TEAM_ROLES.md), [managed egress](docs/EGRESS.md), [SMTP administration and controlled test delivery](docs/SMTP.md), [operational alerts and notifications](docs/NOTIFICATIONS.md), [Provider quality](docs/PROVIDER_QUALITY.md), [object storage and owned attachments](docs/STORAGE.md), [runtime publication](docs/RUNTIME.md), [durable call records](docs/CALLS.md), [usage queries](docs/USAGE.md), [Team usage](docs/TEAM_USAGE.md), [System Status](docs/SYSTEM_STATUS.md), [audit log](docs/AUDIT.md), [governance](docs/GOVERNANCE.md), [Teams and Projects](docs/RESOURCES.md), [Project Keys](docs/PROJECT_KEYS.md), [Project resource requests](docs/PROJECT_REQUESTS.md), [offboarding](docs/OFFBOARDING.md), and [site settings and announcements](docs/SITE.md), [account security](docs/ACCOUNT.md), and [two-step verification](docs/MFA.md). [Internal secret storage and root rotation](docs/SECRETS.md) documents the keyring and guarded eight-domain inventory V3, preserving historical V1/five and V2/seven meaning. Current OIDC expansion has complete controlled database and process acceptance; bilingual OIDC browser and real-provider acceptance remain open. Preserve the encryption root key and the configured local call-journal file across restarts. The journal requires persistent writable storage; production remains one process, with external integration and performance acceptance still open.
+Gateway and delivery contracts: [Chat inference](docs/GATEWAY.md), [native Responses](docs/RESPONSES.md), [native Messages](docs/MESSAGES.md), [native Gemini](docs/GEMINI.md), [Playground](docs/PLAYGROUND.md), [Team Session inference](docs/TEAM_INFERENCE.md), [Team resource limits](docs/TEAM_LIMITS.md), [Team monthly requests](docs/TEAM_REQUESTS.md), [Team roles](docs/TEAM_ROLES.md), [managed egress](docs/EGRESS.md), [SMTP administration and controlled test delivery](docs/SMTP.md), [operational alerts and notifications](docs/NOTIFICATIONS.md), [Provider quality](docs/PROVIDER_QUALITY.md), [object storage and owned attachments](docs/STORAGE.md), [runtime publication](docs/RUNTIME.md), [durable call records](docs/CALLS.md), [usage queries](docs/USAGE.md), [Team usage](docs/TEAM_USAGE.md), [System Status](docs/SYSTEM_STATUS.md), [audit log](docs/AUDIT.md), [governance](docs/GOVERNANCE.md), [Teams and Projects](docs/RESOURCES.md), [Project Keys](docs/PROJECT_KEYS.md), [Project resource requests](docs/PROJECT_REQUESTS.md), [offboarding](docs/OFFBOARDING.md), and [site settings and announcements](docs/SITE.md), [account security](docs/ACCOUNT.md), and [two-step verification](docs/MFA.md). [Internal secret storage and root rotation](docs/SECRETS.md) documents the keyring and guarded ten-domain inventory V5, preserving historical V1/five, V2/seven, V3/eight and V4/nine meanings. Current OIDC expansion has complete controlled database and process acceptance; bilingual OIDC browser and real-provider acceptance remain open. Preserve the encryption root key and the configured local call-journal file across restarts. The journal requires persistent writable storage; production remains one process, with external integration and performance acceptance still open.
 
 Member model visibility and native API availability are displayed separately.
 Unavailable protocols have localized guidance without fabricated request examples;

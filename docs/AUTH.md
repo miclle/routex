@@ -102,3 +102,15 @@ completion, native MFA and independently revocable primary provenance. It adds n
 provisioning, email linking, provider presets or enforced SSO. Complete Task,
 the 188-scenario PostgreSQL/MySQL matrix and real-process authentication lifecycle
 pass. Browser and external-provider acceptance remain open; F03/A15 stay Partial.
+
+## Existing-member LDAP
+
+The separate [LDAP integration](LDAP.md) authenticates an explicitly selected
+immutable directory identity for an already admitted and explicitly linked member.
+A verified service bind/search/user bind/reread does not itself grant a Session.
+Local-password and native-MFA proofs protect linking, verification and unlinking;
+LDAP login uses the existing native challenge when MFA is enabled. Security tuple
+changes revoke only LDAP authority and remove its bindings; disabling retains
+bindings but revokes its Sessions/challenges. Local, OIDC and OAuth remain
+independent. V96 and root inventory V5 are additive. Application qualification is
+in progress; real-directory and bilingual browser acceptance remain open.

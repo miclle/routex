@@ -4,7 +4,102 @@ Updated: 2026-10-10. Status: resumed by explicit user instruction; prioritize pa
 
 ## Current execution status (2026-10-10)
 
-A subsequent backend CI job `114134808054` passes standalone staticcheck but
+Existing-member LDAP passes controlled application qualification for frozen GORM
+V96 and root inventory V5. Official full matrix R2 passes all 453 named results
+on each database, covering 191 ordered business scenarios and four constraints,
+with no failures or skips. Its ordinary run passes 7,451 tests with three
+intentional TLS process-helper skips. Full readback SHA-256:
+`a2e24d20ef4bac7a2677843dca708e7cdbb5984c29891302590e6c1a2db077da`.
+
+The separate real-process authentication lifecycle passes both databases with
+eight observed application starts. Readback SHA-256:
+`98a1dd36335d868702c9e6e27c6a3101b6ca49f34bbd43c32cbfdc3fb479c52a`.
+Both readbacks confirm the unchanged 2,242-path R10 source/mode floor, owned
+process and Compose cleanup, refused and freshly bindable ports, and preservation
+of the original development service. The immediate lifecycle readback found two
+refused application ports not yet bindable; bounded independent rechecking
+confirmed release without rerunning or relabeling the tests.
+The matrix's LDAP scenarios separately exercise reviewed directory configuration,
+explicit binding, native MFA and same-source LDAP Session restart.
+
+Expanded legacy focus R1 already passes 26 scenarios and 82 named results per
+driver, with readback
+`3e66b7516fc2c568ff6720f50e7d3be6e23591a394d47a5c043b3d8c18c94118`.
+Earlier failed gates and matrix R1 remain failed history. Published component CI
+`38025992086` qualifies its original component commit; application remote CI
+remains pending publication and is not inferred from local success.
+
+Enforced SSO will accept verified OIDC and LDAP only. The emergency administrator
+policy remains a separate decision; enforcement and recovery are not delivered
+by LDAP. Bilingual browser and real-directory acceptance remain open. F03/A15
+remain Partial, with **15 Completed / 13 Partial / 2 Not started** capabilities.
+The overall objective stays active.
+
+Complete Task R1 remains failed history: two retained account tests used an
+adapter without LDAP metadata, so a valid service-error alert preceded password
+validation. Its other 6,175 frontend cases and Go race/coverage passed; later
+stages did not execute. The exact unconfigured LDAP response and required
+private/no-store/nosniff headers were added without changing those test bodies or
+assertions. Complete Task R2 now passes Go race/coverage, all 6,177 frontend cases
+in 230 files, development lifecycle, production build and production asset tests.
+Its raw-log SHA-256 is
+`539d29a09eb231b89a7f969be9d2ff1bc8eb7f228fb585150790e3e6ec630844`.
+The separate CI-denial fixture correction joins the peer before inspecting its
+post-response observation, retaining production behavior and all denial checks.
+
+Published component/fixture commit `df1ec5008d70496cf09aade9814ddc025630e8e2`
+now passes CI run `38025992086`: Backend Checks, Frontend Checks,
+PostgreSQL/MySQL Integration and Build Artifacts all succeed. Actionlint
+`38025992061` and GolangCI-Lint `38025992074` also pass. These are published
+component gates; they do not qualify the LDAP application candidate.
+
+The F03 candidate integrates LDAP with admitted-member linking, native MFA,
+independently revocable Sessions, reviewed directory configuration and the existing
+bilingual authentication/account surfaces. Frozen GORM V96 and root inventory V5
+append LDAP without changing released migrations or prior inventory meaning.
+Source composition and narrow protocol/application reviews are complete. Focused
+frontend regressions pass 180 cases in seven files, and TypeScript passes. Earlier
+syntax, stale-registry, fault-fixture and lint failures remain recorded. Mandatory
+checking R3 passes. Focused R4 acceptance passes six business cases per driver on
+PostgreSQL and MySQL: eight balanced named passes per driver, with no skips or
+selected constraint cases. Its scoped nonmatrix run has 610 passes and one
+intentional process-helper skip; four same-source LDAP application starts and
+owned resource cleanup are recorded. This is focused evidence, not complete
+application acceptance.
+
+Official full matrix R1 failed on both databases. Each driver records 399 named
+runs, 375 passes and 24 failures: 22 legacy migration scenarios reject the stale
+current-V95 ledger expectation, plus the driver and integration parent failures.
+The three LDAP scenarios have no direct failure in those streams. The ordinary
+run records 7,451 passes, three intentional helper skips and no failures. The
+original failed matrix remains unaccepted. Independent cleanup verifies all 12
+captured application identities/groups, nine workers and the outer processes are
+absent, labelled Compose resources are empty, and database ports 56964/56962 are
+refused and fresh-bindable. The frozen 2,242-path R8 source/mode floor is unchanged;
+the original development service on 723/19000 is preserved. Cleanup SHA-256:
+`02bbe8a3468f2eb27ae04974130cef2e36b3a944c2a64294298f688e5a10f0ea`.
+
+A source-reviewed 20-file legacy migration fixture correction is adopted exactly;
+gofmt produces no additional changes. It extends current-ledger checks to V96,
+replays V96 when root tables are reconstructed, and preserves exact historical
+V94/V95 OIDC/OAuth boundaries behind pristine-LDAP guards before restoring current
+V96. Production, released migrations, LDAP helpers and the 191-scenario registry
+are unchanged. Independent source review SHA-256:
+`33b3e56b7ef637f75a6de0aa60ffb5c7fe620bb83a8181fb92891033c0c1bd6b`.
+Mandatory checking R5 passes after the fixture correction; its raw-log SHA-256
+is `679977dda485902268f82462d2c8557674a18329f024175304bf650da29bce59`.
+Expanded legacy focus R1 subsequently passes all 26 selected scenarios and
+82 named results per driver, with readback
+`3e66b7516fc2c568ff6720f50e7d3be6e23591a394d47a5c043b3d8c18c94118`.
+Official full matrix R2, separate authentication lifecycle and final successor
+qualification are recorded in the current summary above. Complete Task R2
+predates the fixture-only correction and is retained as that earlier source's
+acceptance; it is not relabeled as the final successor's complete Task.
+Bilingual browser and external-directory acceptance remain open. F03/A15 stay
+Partial; the overall objective remains active.
+
+Commit `df1ec5008d70496cf09aade9814ddc025630e8e2` delivers the peer-observation
+correction; exact remote-main parity is verified. A subsequent backend CI job `114134808054` passes standalone staticcheck but
 fails the service-bind denial test because the client can receive LDAP code49
 before the peer resumes and records its observation flag. The returned error is
 the expected authentication sentinel. The narrow test correction performs the
@@ -12,8 +107,9 @@ existing bounded peer join before inspecting that flag, retaining exact error,
 empty identity, privacy, no-anonymous/no-retry and EOF assertions. Production
 behavior is unchanged. Mandatory checking passes, the affected denial test
 passes 100 uncached repetitions, and all 137 named LDAP race tests pass without
-failures or skips. The failed CI run remains unaccepted; replacement remote CI
-is not yet accepted.
+failures or skips. The failed CI run remains unaccepted; replacement remote CI now passes in
+run `38025992086` for the published component. It does not qualify the LDAP
+application candidate.
 
 A CI parity correction retains the intentional negative test. Backend job `114126778345` of run
 `38022640877` rejected the intentional nil-Context LDAP negative test with SA1012;
@@ -23,9 +119,11 @@ standalone annotation. `go tool task check` now also runs pinned standalone
 staticcheck, matching the workflow before GolangCI-Lint. Updated mandatory checking passes, including standalone staticcheck and
 GolangCI-Lint. All 137 named LDAP race results pass without failures or skips;
 development/integration-entry/module-check script regressions also pass. The
-original CI failure remains recorded; replacement remote CI is not yet accepted.
+original CI failure remains recorded; replacement remote CI now passes as
+recorded above, independently of the LDAP application candidate.
 
-This phase adds the bounded [LDAP protocol component](LDAP.md). It requires
+Commit `756d466f57d970cedccc8981b0e5dd3af7b92de1` adds the bounded
+[LDAP protocol component](LDAP.md). It requires
 explicit `entryUUID` or `objectGUID`, verified LDAPS service bind, one escaped
 subtree search, user bind and an exact-DN base-object reread before returning
 owned opaque identity bytes. It adds no application login, member binding,
@@ -38,10 +136,10 @@ source/mode floor remains unchanged during execution. Two initial lint failures
 remain failed history; equivalent predicates, fixture closure and an explicit
 nil-context negative-test suppression resolve them without weakening assertions.
 All four LDAP operations share ten-second bounded I/O; separate one-second cleanup
-observation does not prove dependency-private-worker joins. Application service,
-frozen GORM V96 and bilingual existing-surface work are being prepared in parallel;
-their execution and real-directory/browser acceptance remain open. F03/A15 and
-the overall objective remain Partial and active.
+observation does not prove dependency-private-worker joins. The application
+candidate and its separately scoped focused acceptance are recorded above;
+complete application qualification and real-directory/browser acceptance remain
+open. F03/A15 and the overall objective remain Partial and active.
 
 Commit `df1e9a54ade733539603e283b6adb05a13723079` delivers the existing-member
 custom OAuth application with explicit

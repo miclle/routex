@@ -593,7 +593,7 @@ it('shows historical V2 scope and its retirement blocker through live language c
   }
   await mount(`/admin/secrets/rotations/${rotationId}`)
   await click('Root key rotation')
-  expect(document.body.textContent).toContain('Current inventory covers nine secret domains.')
+  expect(document.body.textContent).toContain('Current inventory covers ten secret domains.')
   expect(document.body.textContent).toContain('This historical rotation covers 7 domains')
   expect(document.body.textContent).toContain('does not prove current inventory coverage')
   expect(document.body.textContent).toContain(
@@ -611,13 +611,13 @@ it('shows historical V2 scope and its retirement blocker through live language c
   ).toBe(false)
   const originalReads = [...reads]
   await act(async () => i18n.changeLanguage('zh'))
-  expect(document.body.textContent).toContain('当前清单覆盖九个密钥领域。')
+  expect(document.body.textContent).toContain('当前清单覆盖十个密钥领域。')
   expect(document.body.textContent).toContain('此历史轮换覆盖 7 个领域，不证明当前清单的覆盖情况。')
   expect(table.querySelectorAll('tbody tr')).toHaveLength(7)
   expect(reads).toEqual(originalReads)
   expect(writes).toHaveLength(0)
 })
-it('renders current V4 OIDC and OAuth counts only after a fresh authorized read and clears them during renewal', async () => {
+it('renders historical V4 OIDC and OAuth counts only after a fresh authorized read and clears them during renewal', async () => {
   view.rotation = job(4)
   await mount()
   await click('Root key rotation')
@@ -625,7 +625,7 @@ it('renders current V4 OIDC and OAuth counts only after a fresh authorized read 
   expect(table.querySelectorAll('tbody tr')).toHaveLength(9)
   expect(table.textContent).toContain('OIDC provider client secrets')
   expect(table.textContent).toContain('Custom OAuth provider client secrets')
-  expect(document.body.textContent).not.toContain('This historical rotation covers')
+  expect(document.body.textContent).toContain('This historical rotation covers 9 domains')
   await act(async () => i18n.changeLanguage('zh'))
   expect(table.textContent).toContain('OIDC 提供方客户端密钥')
   expect(table.textContent).toContain('自定义 OAuth 提供方客户端密钥')
@@ -673,5 +673,31 @@ it('shows historical V3 scope and never substitutes current OAuth coverage or re
   expect(table.querySelectorAll('tbody tr')).toHaveLength(8)
   expect(table.textContent).not.toContain('自定义 OAuth 提供方客户端密钥')
   expect(reads).toEqual(originalReads)
+  expect(writes).toHaveLength(0)
+})
+
+it('shows current V5 LDAP coverage bilingually and hides it during renewed reads', async () => {
+  view.rotation = job(5)
+  await mount()
+  await click('Root key rotation')
+  expect(
+    document.querySelector('table[aria-label="Secret domain"]')!.querySelectorAll('tbody tr'),
+  ).toHaveLength(10)
+  expect(document.body.textContent).toContain('LDAP service bind passwords')
+  expect(document.body.textContent).not.toContain('This historical rotation covers')
+  const originalReads = [...reads]
+  await act(async () => i18n.changeLanguage('zh'))
+  expect(document.body.textContent).toContain('LDAP 服务绑定密码')
+  expect(reads).toEqual(originalReads)
+  readGate = deferred<void>()
+  await renew()
+  expect(document.body.textContent).not.toContain('LDAP 服务绑定密码')
+  await act(async () => readGate!.resolve())
+  readGate = undefined
+  await settle()
+  await settle()
+  expect(
+    document.querySelector('table[aria-label="秘密数据域"]')!.querySelectorAll('tbody tr'),
+  ).toHaveLength(10)
   expect(writes).toHaveLength(0)
 })

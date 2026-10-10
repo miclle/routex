@@ -7,8 +7,8 @@ import (
 	"testing"
 )
 
-// The exact185 predicate remains historical and unchanged. Current188 binds
-// every appended OAuth scenario name and function before selecting that prefix.
+// The exact185 predicate remains historical and unchanged. This historical188
+// predicate binds every appended OAuth scenario name and function.
 func oauthRegistry188Current(names []string) bool {
 	return len(names) == 188 &&
 		names[185] == "oauth_migration:testOAuthMigration" &&
@@ -26,8 +26,12 @@ func TestOAuthRegistry188Preserves185AndRejectsIdentityDrift(t *testing.T) {
 	for _, match := range regexp.MustCompile(`\{"([^"\n]+)", (test[A-Za-z0-9]+)\}`).FindAllStringSubmatch(string(raw), -1) {
 		names = append(names, match[1]+":"+match[2])
 	}
+	if !ldapRegistry191Current(names) {
+		t.Fatal("exact191 ordered LDAP successor required")
+	}
+	names = names[:188]
 	if !oauthRegistry188Current(names) {
-		t.Fatal("exact188 ordered OAuth successor required")
+		t.Fatal("historical188 prefix changed")
 	}
 	if !oidcRegistry185Current(names[:185]) || oauthRegistry188Current(names[:185]) {
 		t.Fatal("historical185 must remain valid without proving188")

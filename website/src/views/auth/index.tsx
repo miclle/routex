@@ -27,6 +27,8 @@ import { verifyMFALogin, MFARequestError } from '@/api/mfa'
 import MFAChallengeForm from './mfa-challenge'
 import OIDCLoginButton from '@/views/oidc/login-button'
 import OAuthLoginButton from '@/views/oauth/login-button'
+import LDAPLoginButton from '@/views/ldap/login-button'
+import type { LDAPLoginResult } from '@/types/ldap'
 
 export default function AuthPage({ mode }: { mode: 'login' | 'setup' | 'register' }) {
   return <Auth key={mode} mode={mode} />
@@ -98,9 +100,9 @@ function Auth({ mode }: { mode: 'login' | 'setup' | 'register' }) {
       request.current?.abort()
     }
   }, [])
-  async function complete(session: Session, turn: number) {
+  async function complete(session: Session, turn: number, current: () => boolean = () => true) {
     await queryClient.cancelQueries({ predicate: (query) => query.queryKey[0] !== 'site' })
-    if (turn !== attempt.current) return
+    if (turn !== attempt.current || !current()) return
     queryClient.removeQueries({ predicate: (query) => query.queryKey[0] !== 'site' })
     queryClient.getMutationCache().clear()
     queryClient.setQueryData(setupKey, { initialized: true })
@@ -115,6 +117,17 @@ function Auth({ mode }: { mode: 'login' | 'setup' | 'register' }) {
     setPending(true)
     return {
       current: () => turn === attempt.current,
+      accept: async (result: LDAPLoginResult, current: () => boolean) => {
+        if (turn !== attempt.current || !current()) return
+        if (result.kind === 'challenge') {
+          await queryClient.cancelQueries({ queryKey: sessionKey })
+          if (turn !== attempt.current || !current()) return
+          setValidation('')
+          setErrorStatus(null)
+          setChallenge(result.challenge)
+          queryClient.setQueryData(sessionKey, null)
+        } else await complete(result.session, turn, current)
+      },
       release: () => {
         if (turn === attempt.current) {
           locked.current = false
@@ -440,6 +453,7 @@ function Auth({ mode }: { mode: 'login' | 'setup' | 'register' }) {
             <>
               <OIDCLoginButton disabled={pending} acquire={acquireOIDC} />
               <OAuthLoginButton disabled={pending} acquire={acquireOIDC} />
+              <LDAPLoginButton disabled={pending} acquire={acquireOIDC} />
             </>
           )}
         </div>

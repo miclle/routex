@@ -48,7 +48,7 @@ func (extraPrefixCredentialAttemptIndexV93) TableName() string { return "call_at
 func testCredentialAttemptStatisticsMigration(t *testing.T, db *gorm.DB) {
 	ctx := context.Background()
 	before := personalKeyBehaviorLedger(t, db)
-	if len(before) != 95 || before[94].Version != 95 || before[93].Version != 94 || before[92].Version != 93 || before[91].Version != 92 {
+	if len(before) != 96 || before[95].Version != 96 || before[94].Version != 95 || before[93].Version != 94 || before[92].Version != 93 || before[91].Version != 92 {
 		t.Fatal("exact V93 ledger")
 	}
 	const index = "idx_attempts_credential_time"
@@ -85,7 +85,7 @@ func testCredentialAttemptStatisticsMigration(t *testing.T, db *gorm.DB) {
 			t.Fatal("index migration rewrote retained attempt")
 		}
 		currentLedger := personalKeyBehaviorLedger(t, db)
-		if len(currentLedger) != 95 || currentLedger[94].Version != 95 || currentLedger[93].Version != 94 || currentLedger[92].Version != 93 || !reflect.DeepEqual(before[:92], currentLedger[:92]) || !reflect.DeepEqual(before[93:], currentLedger[93:]) {
+		if len(currentLedger) != 96 || currentLedger[95].Version != 96 || currentLedger[94].Version != 95 || currentLedger[93].Version != 94 || currentLedger[92].Version != 93 || !reflect.DeepEqual(before[:92], currentLedger[:92]) || !reflect.DeepEqual(before[93:], currentLedger[93:]) {
 			t.Fatal("released migration prefix changed")
 		}
 	}

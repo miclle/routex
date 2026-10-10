@@ -136,6 +136,22 @@ func rootRotationSeedLegacy(t *testing.T, db *gorm.DB, store *secretstore.Store)
 	if oauth.Error != nil || oauth.RowsAffected != 1 {
 		t.Fatal("seed retained OAuth singleton", oauth.Error, oauth.RowsAffected)
 	}
+	// Disabled LDAP configuration retains its independently encrypted service password.
+	ldapID, ldapGeneration := "ldap", strings.Repeat("f", 64)
+	ldap := db.Model(&entity.LDAPProvider{}).Where("id = ?", ldapID).Updates(map[string]any{
+		"Name":              "Retained LDAP provider",
+		"Endpoint":          "ldaps://directory.example.invalid:636",
+		"BindDN":            "cn=service,dc=example,dc=invalid",
+		"BaseDN":            "dc=example,dc=invalid",
+		"UserFilter":        "(uid={username})",
+		"IdentityAttribute": "entryUUID",
+		"Enabled":           false,
+		"SecretGeneration":  ldapGeneration,
+		"AuthCiphertext":    seal("ldap_providers", "id", ldapID, "auth_ciphertext", "ldap:"+ldapID+":"+ldapGeneration, "test-only-retained-ldap-service-password"),
+	})
+	if ldap.Error != nil || ldap.RowsAffected != 1 {
+		t.Fatal("seed retained LDAP singleton", ldap.Error, ldap.RowsAffected)
+	}
 	return result
 }
 
@@ -913,7 +929,7 @@ func testRootKeyRotationLifecycle(t *testing.T, db *gorm.DB) {
 	if observing.Rotation == nil || observing.Rotation.Status != "observing" || observing.Rotation.ObservationStartedAt == nil || observing.Rotation.ObservationEligibleAt == nil || observing.Rotation.ObservationEligibleAt.Sub(*observing.Rotation.ObservationStartedAt) != 300*time.Second || slices.Contains(observing.Rotation.AllowedActions, "retire") {
 		t.Fatalf("migration progress bypassed server observation: %+v", observing.Rotation)
 	}
-	expectedDomains := map[string]uint64{"provider_credentials": 2, "egresses": 1, "smtp_settings": 1, "storage_revisions": 25, "user_mfa": 4, "vault_writer_auth": 2, "vault_reader_auth": 2, "oidc_providers": 1, "oauth_providers": 1}
+	expectedDomains := map[string]uint64{"provider_credentials": 2, "egresses": 1, "smtp_settings": 1, "storage_revisions": 25, "user_mfa": 4, "vault_writer_auth": 2, "vault_reader_auth": 2, "oidc_providers": 1, "oauth_providers": 1, "ldap_providers": 1}
 	if len(observing.Rotation.Domains) != len(expectedDomains) {
 		t.Fatal("global observation omitted a retained encryption domain")
 	}

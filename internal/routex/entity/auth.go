@@ -26,6 +26,11 @@ type User struct {
 
 // Session stores only a digest of the bearer secret.
 type Session struct {
+	LDAPBindingID         string     `gorm:"column:ldap_binding_id;size:30;not null;default:''" json:"-"`
+	LDAPBindingCreatedAt  *time.Time `gorm:"column:ldap_binding_created_at;precision:6" json:"-"`
+	LDAPConfigRevision    string     `gorm:"column:ldap_config_revision;size:64;not null;default:''" json:"-"`
+	LDAPPolicyRevision    string     `gorm:"column:ldap_policy_revision;size:64;not null;default:''" json:"-"`
+	LDAPUserCreatedAt     *time.Time `gorm:"column:ldap_user_created_at;precision:6" json:"-"`
 	OAuthBindingID        string     `gorm:"column:oauth_binding_id;size:30;not null;default:''" json:"-"`
 	OAuthBindingCreatedAt *time.Time `gorm:"column:oauth_binding_created_at;precision:6" json:"-"`
 	OAuthConfigRevision   string     `gorm:"column:oauth_config_revision;size:64;not null;default:''" json:"-"`

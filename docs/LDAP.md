@@ -1,12 +1,109 @@
-# Operation-local LDAP identity component
+# Existing-member LDAP authentication
 
-The `pkg/ldap` component authenticates and rechecks one directory
-identity attribute for an operation. It does not enable an application login
-method, save directory configuration, provision members, link accounts, assign
-roles, enforce SSO or issue a Session. F03 and A15 remain Partial. Dependency
-integration, formatting, compilation, controlled TLS race tests and
-complete project testing pass. Application and real-directory acceptance remain
-open; controlled protocol qualification does not establish either gate.
+RouteX integrates one reviewed LDAP directory with existing admitted members,
+local passwords and native MFA. Directory identity never provisions a member,
+links by email, imports groups or roles, or grants platform permissions. Local,
+OIDC and custom OAuth authentication remain independently available. F03 and A15
+remain Partial; real-directory and bilingual browser acceptance remain open.
+
+## Configuration and enablement
+
+In the existing registration authentication methods, an intrinsic administrator
+with `registration.write` configures a named directory. Supply an explicit
+`ldaps://host:port`, service Bind DN and password, Base DN, a filter containing
+exactly one `{username}`, and either `entryUUID` or `objectGUID`. There is no
+default identity attribute. TLS uses verified system trust and the existing
+upstream network policy; environment proxies and plaintext LDAP are unsupported.
+
+Configuration reads return safe metadata and a quoted review ETag, never the
+service password. Save a complete reviewed configuration with a required reason
+and `If-Match`; keep the existing secret or explicitly replace it. The encrypted
+service password uses `ldap:ldap:<generation>` as its associated reference.
+Changing endpoint, DN, base, filter, identity attribute or secret disables and
+unverifies the configuration, removes directory bindings, and revokes LDAP
+Sessions and pending login challenges. Name-only edits preserve those facts.
+
+Verify the reviewed configuration using the administrator's own directory
+credentials, current local password and native MFA when enabled. Verification
+links that already admitted account and records its exact configuration and
+binding. It does not enable login. A separate reviewed Enable operation checks
+that the verifier and binding are still eligible. Disable revokes LDAP Sessions
+and pending challenges while retaining bindings. No operation disables another
+primary authentication method or changes Keys, model grants or roles.
+
+## Account binding and login
+
+Account Security provides explicit link and unlink dialogs. Linking requires a
+current Session, enabled verified directory, current account review ETag, local
+password, directory username/password, reason and native MFA when enabled.
+Directory credentials and transient returned DNs are never persisted. The
+binding stores exact opaque identity bytes, their canonical attribute and a
+separate domain-bound lookup digest; exact retained bytes are rechecked after
+lookup. A username, DN or email is never durable account ownership.
+
+The sign-in card presents a directory credential dialog only when the method is
+available. Successful directory authentication resolves an existing binding;
+unknown or ineligible members receive a generic failure. A login HTTP 202 is a
+native MFA challenge, not a Session. Successful Session issuance retains exact
+binding, member birth, configuration and policy proofs for later authorization.
+Unlink requires current local password and any native MFA, removes only the
+reviewed binding, and revokes that binding's LDAP Sessions and challenges.
+
+Known-account operations capture Session/member/binding/configuration/MFA facts
+before directory I/O, then reauthorize under a final local transaction. No DB
+lock is held over remote I/O. Public login cannot identify a local member before
+authenticating the opaque directory subject; its final transaction requires an
+exact binding that predates the operation. Stale or cancelled work cannot consume
+a one-time MFA proof or publish a Session.
+
+## HTTP and interface boundary
+
+All paths below are under `/api/v1`. Private responses use no-store headers.
+Writes require same-origin JSON, CSRF where authenticated, reviewed `If-Match`
+and a reason; malformed, duplicate, unknown and null fields are rejected.
+
+| Operation | Endpoint |
+| --- | --- |
+| Public availability | `GET /auth/ldap` |
+| Directory login | `POST /auth/ldap/login` |
+| Read/save configuration | `GET` / `PUT /admin/auth/ldap` |
+| Verify and link the administrator | `POST /admin/auth/ldap/verify` |
+| Explicit enable/disable | `PUT /admin/auth/ldap/status` |
+| Read own binding | `GET /account/identity/ldap` |
+| Link own account | `POST /account/identity/ldap/bind` |
+| Unlink own account | `POST /account/identity/ldap/unlink` |
+
+The English-default English/Chinese interface uses the existing method card,
+drawer, Account Security and sign-in composition with local shadcn/Base UI
+primitives. Proofs remain transient component state, outside browser storage and
+mutation caches. Actor, Session, permission, resource and mount changes fence
+held work. Confirmation cancellation invalidates captured callbacks. Uncertain
+configuration/status retries retain the original body and ETag; a fresh read is
+not historical success. Directory or local authentication proofs are never
+replayed automatically after an uncertain response.
+
+## Schema and qualification
+
+Frozen GORM V96 adds `ldap_providers`, `ldap_bindings` and five LDAP provenance
+columns on both Sessions and native MFA challenges. Complete primary-method
+checks accept exact local, OIDC, OAuth or LDAP tuples with blank/null nonmatching
+proofs. Root inventory V5 appends LDAP as domain ten, preserving V1–V4 meaning.
+Released migrations remain immutable; interrupted MySQL DDL resumes through the
+same bounded migration runner without assumed transactional rollback.
+
+Controlled application qualification passes final root gates, the complete
+PostgreSQL/MySQL matrix and separate real-process authentication lifecycle.
+Current matrix and same-source LDAP restart evidence is bound in the
+[implementation index](IMPLEMENTATION.md); earlier protocol-only acceptance
+remains historical below. These controlled fixtures establish no external
+directory interoperability, genuine bilingual browser acceptance, forced SSO or
+emergency recovery. F03/A15 remain Partial.
+
+## Operation-local protocol component
+
+The `pkg/ldap` component authenticates and rechecks one directory identity
+attribute for an operation. Its returned identity is not local authorization;
+the application enforces the account and policy boundaries described above.
 
 ## Explicit identity and authentication flow
 

@@ -71,7 +71,7 @@ and accessible names have paired English/Chinese translations.
 2. Start with a replacement key ID, one UUIDv4 intent and a required reason. The
    committed write-policy epoch fences every secret writer. A stale prepared
    operation rejects its whole transaction instead of replaying a secret write.
-3. The bounded durable worker scans all eight retained domains, uses exact
+3. The bounded durable worker scans all ten retained domains, uses exact
    ciphertext compare-and-swap, and performs a fresh complete verification.
    Every committed page publishes the actual current inventory after releasing
    its transactions and egress locks. A failed publication preserves the durable
@@ -103,18 +103,24 @@ failed refreshes. A committed receipt and current publication are distinct.
 | Vault reader authentication | Every retained nonempty reader Token envelope, including superseded and removed-reader history |
 | OIDC client authentication | Every retained nonempty provider client-secret envelope, including disabled configuration, under its exact generation |
 | Custom OAuth client authentication | Every retained nonempty independent OAuth client-secret envelope, including disabled configuration, under its exact generation |
+| LDAP service authentication | Every retained nonempty directory service-password envelope, including disabled configuration, under its exact generation |
 
 Inventory version1 retains its historical five-domain meaning; version2 retains
-seven domains; version3 retains its eight-domain OIDC scope. V95 adds current
-version4 with OAuth as domain nine. Nonterminal V1/V2/V3
-jobs require explicit reviewed Resume and a fresh complete scan; completed history
-keeps its original coverage and cannot prove V4 retirement. The complete dual-driver
-matrix passes the current root-rotation lifecycle with retained encrypted OIDC
-and OAuth secrets; controlled same-source process restart acceptance also passes. Broader
-browser, external-provider and release acceptance remain independent open gates.
+seven domains; version3 retains its eight-domain OIDC scope; version4 retains its
+nine-domain OAuth scope. V96 adds current version5 with LDAP as domain ten.
+Nonterminal V1–V4 jobs require explicit reviewed Resume and a fresh complete scan;
+completed history keeps its original coverage and cannot prove V5 retirement.
+The earlier V4 complete dual-driver root-rotation lifecycle and controlled
+same-source process restart acceptance include retained encrypted OIDC and OAuth
+secrets. That historical evidence does not qualify the expanded V5 inventory.
+Current V5 root-rotation fixture coverage passes in the complete dual-driver
+matrix, with exact current source and owned cleanup bound in the
+[implementation index](IMPLEMENTATION.md). Controlled LDAP process restarts are
+separate from real-directory and browser compatibility. No earlier V1–V4 receipt
+is relabeled as V5 acceptance; external-provider and release gates remain open.
 Missing observations stay not_scanned with null counts. Unknown versions fail
-closed. Frozen GORM V72 appends the new inventory version and Vault domains without
-editing V48. Finite probe decrypt readers participate in root retirement draining.
+closed. Frozen GORM V72 appended the Vault inventory domains without editing V48.
+Finite probe decrypt readers participate in root retirement draining.
 
 Passwords, Personal/Project API Key digests, Sessions and recovery-code digests
 are irreversible verification values and are outside recoverable-secret
@@ -223,13 +229,28 @@ Both Vault R7 and Personal R6 API runs use the original R3 artifact `19320f5e167
 
 Browser, bilingual controls, AuthGate recovery and feature delivery remain pending for this phase. Desktop control reports a locked Mac and the in-app browser cannot attach a new webview; those observations do not prove a product cause or UI/download success. A bounded fresh normal-browser gate must verify the existing controls, independent authority and original-Session restart against an exact reviewed artifact. No complete F17/F28 or full-objective acceptance is claimed.
 
-## Custom OAuth inventory acceptance
+## Custom OAuth inventory V4 acceptance (historical)
 
 Every retained OAuth client secret uses `oauth:<provider-id>:<secret-generation>`
-for authenticated encryption and the existing root-epoch/CAS lifecycle. The current
-rotation fixture includes an actual encrypted disabled OAuth singleton beside OIDC,
-so renewed dual-driver acceptance must prove rewrap, immutable payload/reference,
-metadata preservation and privacy. Renewed V4 source, complete dual-driver and
-same-source process restart gates pass with the V4 nine-domain inventory. Prior
-V3 acceptance is not transferred to the expanded inventory. Browser, external
-provider and broader release acceptance remain open.
+for authenticated encryption and the existing root-epoch/CAS lifecycle. The
+accepted V4 rotation fixture included an actual encrypted disabled OAuth singleton
+beside OIDC, proving rewrap, immutable payload/reference, metadata preservation
+and privacy in that scope. V4 source, complete dual-driver and same-source process
+restart gates passed with the nine-domain inventory. Prior V3 acceptance was not
+transferred to V4, and V4 acceptance is not transferred to current V5. Browser,
+external-provider and broader release acceptance remain open.
+
+## LDAP inventory V5
+
+V96 appends LDAP service authentication as inventory domain ten; V1–V4 retain
+their historical scopes. Every retained nonempty encrypted service password uses
+`ldap:ldap:<secret-generation>` as its exact associated reference, including
+disabled directory configuration. Pending or completed earlier-version jobs
+cannot establish V5 retirement. User directory passwords and returned user DNs
+are transient and are never root-inventory records. Final project checks and the
+complete PostgreSQL/MySQL matrix pass, including the retained V5 root-rotation
+fixture and LDAP migration/lifecycle/same-source restart scenarios. Their exact
+current-source readbacks are recorded in [LDAP](LDAP.md) and the
+[implementation index](IMPLEMENTATION.md); earlier focused and V4 evidence is
+not transferred. This does not establish external-directory, browser or broader
+release acceptance.

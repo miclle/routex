@@ -228,7 +228,7 @@ it('rejects unknown/missing inventory versions and five/seven aliasing', () => {
   const value = store()
   Object.assign(value, { inventory_version: 1 })
   expect(() => parseSecretStore(value)).toThrow()
-  value.inventory_version = 4
+  value.inventory_version = 5
   value.rotation = job()
   value.rotation.inventory_version = 2
   expect(() => parseSecretStore(value)).toThrow()
@@ -237,7 +237,7 @@ it('rejects unknown/missing inventory versions and five/seven aliasing', () => {
   expect(() => parseSecretStore(value)).toThrow()
 })
 
-it.each([1, 2, 3, 4] as const)(
+it.each([1, 2, 3, 4, 5] as const)(
   'preserves the exact ordered domain scope of inventory V%s in status and receipts',
   (version) => {
     const value = store()
@@ -250,10 +250,11 @@ it.each([1, 2, 3, 4] as const)(
       'user_mfa',
       ...(version >= 2 ? ['vault_writer_auth', 'vault_reader_auth'] : []),
       ...(version >= 3 ? ['oidc_providers'] : []),
-      ...(version === 4 ? ['oauth_providers'] : []),
+      ...(version >= 4 ? ['oauth_providers'] : []),
+      ...(version === 5 ? ['ldap_providers'] : []),
     ]
     const parsed = parseSecretStore(value)
-    expect(parsed.inventory_version).toBe(4)
+    expect(parsed.inventory_version).toBe(5)
     expect(parsed.rotation?.inventory_version).toBe(version)
     expect(parsed.rotation?.domains.map((domain) => domain.code)).toEqual(expected)
     expect(parsed.rotation?.domains[0].scanned).toBe('9007199254740993')
@@ -262,7 +263,7 @@ it.each([1, 2, 3, 4] as const)(
     expect(parseSecretResult(result, intent).rotation).toEqual(value.rotation)
   },
 )
-it.each([1, 2, 3, 5, null, undefined])(
+it.each([1, 2, 3, 4, 6, null, undefined])(
   'rejects inventory %s as current process/status coverage',
   (version) => {
     const value = store()
@@ -287,7 +288,7 @@ it.each([
       value.rotation.domains[6],
     ]
   if (kind === 'duplicate-tail') value.rotation.domains[7] = value.rotation.domains[6]
-  if (kind === 'unknown-version') Object.assign(value.rotation, { inventory_version: 5 })
+  if (kind === 'unknown-version') Object.assign(value.rotation, { inventory_version: 6 })
   expect(() => parseSecretStore(value)).toThrow(SecretError)
   const result = receipt(intent)
   result.rotation = value.rotation
@@ -354,7 +355,7 @@ it('retains V3 blockers and actions without claiming OAuth coverage or retiremen
     allowed_actions: ['resume', 'rollback'],
   }
   const parsed = parseSecretStore(value)
-  expect(parsed.inventory_version).toBe(4)
+  expect(parsed.inventory_version).toBe(5)
   expect(parsed.rotation).toEqual(value.rotation)
   expect(parsed.rotation?.domains.map((row) => row.code)).not.toContain('oauth_providers')
   expect(parsed.rotation?.domains).toHaveLength(8)
@@ -374,5 +375,56 @@ it('keeps unscanned current OAuth counts unknown rather than zero', () => {
   })
   expect(parseSecretStore(value).rotation?.domains[8]).toEqual(value.rotation.domains[8])
   value.rotation.domains[8].scanned = '0'
+  expect(() => parseSecretStore(value)).toThrow(SecretError)
+})
+
+it.each([
+  'missing-ldap',
+  'extra-ldap-in-v4',
+  'reordered-ldap',
+  'duplicate-ldap',
+  'null-ldap-count',
+])('rejects V5 aliasing while retaining V4: %s', (kind) => {
+  const value = store()
+  value.rotation = job(5)
+  if (kind === 'missing-ldap') value.rotation.domains.pop()
+  if (kind === 'extra-ldap-in-v4') value.rotation.inventory_version = 4
+  if (kind === 'reordered-ldap')
+    [value.rotation.domains[8], value.rotation.domains[9]] = [
+      value.rotation.domains[9],
+      value.rotation.domains[8],
+    ]
+  if (kind === 'duplicate-ldap') value.rotation.domains[9] = value.rotation.domains[8]
+  if (kind === 'null-ldap-count') value.rotation.domains[9].scanned = null
+  expect(() => parseSecretStore(value)).toThrow(SecretError)
+  const result = receipt(intent)
+  result.rotation = value.rotation
+  expect(() => parseSecretResult(result, intent)).toThrow(SecretError)
+})
+it('retains V4 history and keeps current unscanned LDAP unknown', () => {
+  const value = store()
+  value.rotation = {
+    ...job(4),
+    status: 'blocked',
+    blocker_codes: ['inventory_scope_changed'],
+    allowed_actions: ['resume', 'rollback'],
+  }
+  expect(parseSecretStore(value).rotation?.domains).toHaveLength(9)
+  expect(parseSecretStore(value).rotation?.domains.map((row) => row.code)).not.toContain(
+    'ldap_providers',
+  )
+  expect(parseSecretStore(value).rotation?.allowed_actions).not.toContain('retire')
+  value.rotation = job(5)
+  Object.assign(value.rotation.domains[9], {
+    coverage: 'not_scanned',
+    scanned: null,
+    rewrapped: null,
+    already_target: null,
+    deleted: null,
+    changed: null,
+    blocked: null,
+  })
+  expect(parseSecretStore(value).rotation?.domains[9]).toEqual(value.rotation.domains[9])
+  value.rotation.domains[9].scanned = '0'
   expect(() => parseSecretStore(value)).toThrow(SecretError)
 })

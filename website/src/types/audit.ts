@@ -30,6 +30,10 @@ export interface OIDCIdentityAuditChanges {
   kind: 'oidc_identity'
   reason: string
 }
+export interface LDAPIdentityAuditChanges {
+  kind: 'ldap_identity'
+  reason: string
+}
 export interface OAuthIdentityAuditChanges {
   kind: 'oauth_identity'
   reason: string
@@ -39,6 +43,7 @@ export type AuditChanges =
   | SystemInstanceCleanupAuditChanges
   | OIDCIdentityAuditChanges
   | OAuthIdentityAuditChanges
+  | LDAPIdentityAuditChanges
 export interface AuditRecord {
   id: string
   actor_id: string

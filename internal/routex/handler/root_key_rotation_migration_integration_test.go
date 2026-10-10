@@ -88,8 +88,8 @@ func testRootKeyRotationMigration(t *testing.T, db *gorm.DB) {
 				t.Fatal(err)
 			}
 		}
-		if result := db.Table("schema_migrations").Where("version IN ?", []int{48, 72, 94, 95}).Delete(&struct{}{}); result.Error != nil || result.RowsAffected != 4 {
-			t.Fatal("reconstruct V48 and additive V72/V94/V95 ledgers independently", result.Error, result.RowsAffected)
+		if result := db.Table("schema_migrations").Where("version IN ?", []int{48, 72, 94, 95, 96}).Delete(&struct{}{}); result.Error != nil || result.RowsAffected != 5 {
+			t.Fatal("reconstruct V48 and additive V72/V94/V95/V96 ledgers independently", result.Error, result.RowsAffected)
 		}
 		// Reconstruct the released operational code guard without touching its rows.
 		if err := db.Migrator().DropConstraint(&rootSystemJobCodeV47Fixture{}, "ck_system_jobs_code"); err != nil {

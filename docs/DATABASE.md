@@ -1555,3 +1555,30 @@ including V95 empty/upgrade/repeat/concurrent/partial-DDL, exact provenance chec
 root-key rotation and same-source OAuth restart. Complete Task and the separate
 real-process authentication lifecycle pass. Browser and real-provider acceptance
 remain open. See [OAuth](OAUTH.md).
+
+## Existing-member LDAP and root inventory V5 (V96)
+
+Frozen GORM V96 adds an initially unconfigured disabled `ldap_providers`
+singleton, `ldap_bindings` with exact retained identity and domain-bound digest,
+and five LDAP proof columns each on Sessions and native MFA challenges. It
+supersedes primary-method checks with four exact local/OIDC/OAuth/LDAP arms;
+nonmatching proof columns must remain byte-empty or null. No historical member
+birth or primary proof is guessed or backfilled. The unconfigured singleton has
+an empty identity attribute; configured identity must be `entryUUID` or
+`objectGUID`.
+
+Private frozen models and GORM Migrator operations own schema changes. Existing
+V1–V95 steps remain unchanged. Retained rows and bounded column/index definitions
+are validated before constraint replacement; interrupted MySQL DDL can resume
+without a version ledger row or assumed DDL rollback. Failed migration never
+publishes V96. Current-schema tests retain independent V95 literal projections
+and the exact earlier migration prefix assertions.
+
+Root inventory V5 appends LDAP as domain ten. Earlier versions retain their
+five/seven/eight/nine-domain meaning; their completed records do not prove V5
+retirement. Every retained nonempty LDAP service-password envelope, including
+disabled configuration, is included using `ldap:ldap:<generation>`.
+
+The complete integration registry appends LDAP migration, lifecycle and
+same-source process restart scenarios, bringing the current business inventory
+to 191. Execution and final qualification are in progress; see [LDAP](LDAP.md).

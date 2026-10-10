@@ -207,15 +207,15 @@ func TestVaultSavedAppRoleExactRegistry150(t *testing.T) {
 	for _, p := range regexp.MustCompile(`\{"([^"\n]+)", (test[A-Za-z0-9]+)\}`).FindAllStringSubmatch(string(raw), -1) {
 		names = append(names, p[1]+":"+p[2])
 	}
-	if !oauthRegistry188Current(names) {
-		t.Fatal("exact188 OAuth successor changed")
+	if !ldapRegistry191Current(names) {
+		t.Fatal("exact191 LDAP successor changed")
 	}
 	names = names[:181]
 	if !credentialAttemptStatisticsRegistry181Current(names) {
 		t.Fatal("exact V93/181 successor changed")
 	}
 	names = names[:179]
-	if len(names) != 179 || !strings.Contains(string(raw), "versions != 95") {
+	if len(names) != 179 || !strings.Contains(string(raw), "versions != 96") {
 		t.Fatal("current exact172 registry/V89 ledger changed")
 	}
 	valid := func(values []string) bool {
@@ -241,7 +241,7 @@ func TestVaultSavedAppRoleExactRegistry150(t *testing.T) {
 			t.Fatal("changed/missing/reordered/extra registry accepted")
 		}
 	}
-	if !strings.Contains(string(raw), "versions != 95") {
+	if !strings.Contains(string(raw), "versions != 96") {
 		t.Fatal("current V78 harness not bound")
 	}
 }

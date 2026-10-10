@@ -214,8 +214,88 @@ type oauthExactPrimaryFixtureV95 struct {
 	OAuthUserCreatedAt    *time.Time `gorm:"column:oauth_user_created_at"`
 }
 
+// legacyMigrationBeforeV96 reconstructs only the historical boundary on this
+// exclusively owned integration database. LDAP columns/tables remain as a valid
+// partial-DDL prefix; no configured identity or V5 inventory may be discarded.
+// The caller restores current V96 with normal Migrate after its historical test.
+func legacyMigrationBeforeV96(t *testing.T, db *gorm.DB) {
+	t.Helper()
+	ctx := context.Background()
+	before := personalKeyBehaviorLedger(t, db)
+	if len(before) != 96 || before[95].Version != 96 {
+		t.Fatal("historical fixture requires exact current V96 ledger")
+	}
+	for i, row := range before {
+		if row.Version != i+1 {
+			t.Fatal("noncontiguous current ledger", i)
+		}
+	}
+	for table, want := range map[string]int64{"ldap_providers": 1, "ldap_bindings": 0} {
+		var count int64
+		if err := db.Table(table).Count(&count).Error; err != nil || count != want {
+			t.Fatal("historical fixture requires pristine LDAP objects", table, count, err)
+		}
+	}
+	var provider entity.LDAPProvider
+	if err := db.Session(&gorm.Session{QueryFields: true}).Take(&provider, "id = ?", "ldap").Error; err != nil {
+		t.Fatal(err)
+	}
+	if provider.CreatedAt.IsZero() || provider.UpdatedAt.IsZero() {
+		t.Fatal("missing default LDAP birth")
+	}
+	provider.CreatedAt, provider.UpdatedAt = time.Time{}, time.Time{}
+	if !reflect.DeepEqual(provider, entity.LDAPProvider{ID: "ldap", ReviewRevision: strings.Repeat("0", 64), ConfigRevision: strings.Repeat("0", 64), PolicyRevision: strings.Repeat("0", 64), SecretGeneration: "0"}) {
+		t.Fatal("historical fixture cannot remove configured LDAP provenance")
+	}
+	for _, table := range []string{"sessions", "mfa_challenges"} {
+		var count int64
+		if err := db.Table(table).Where("OCTET_LENGTH(ldap_binding_id) <> 0 OR ldap_binding_created_at IS NOT NULL OR OCTET_LENGTH(ldap_config_revision) <> 0 OR OCTET_LENGTH(ldap_policy_revision) <> 0 OR ldap_user_created_at IS NOT NULL OR primary_method = ?", "ldap").Count(&count).Error; err != nil || count != 0 {
+			t.Fatal("historical fixture contains LDAP primary", table, count, err)
+		}
+	}
+	for _, table := range []string{"secret_rotation_jobs", "secret_process_verifications"} {
+		var count int64
+		if err := db.Table(table).Where("inventory_version > ?", 4).Count(&count).Error; err != nil || count != 0 {
+			t.Fatal("historical fixture contains V5 inventory", table, count, err)
+		}
+	}
+	var ldapItems int64
+	if err := db.Table("secret_rotation_items").Where("domain = ?", "ldap_providers").Count(&ldapItems).Error; err != nil || ldapItems != 0 {
+		t.Fatal("historical fixture contains LDAP root items", ldapItems, err)
+	}
+	if err := database.MigrateThrough(ctx, db, 95); err == nil {
+		t.Fatal("bounded V95 migration accepted newer V96 ledger")
+	}
+	if !reflect.DeepEqual(before, personalKeyBehaviorLedger(t, db)) {
+		t.Fatal("rejected bound changed current ledger")
+	}
+	for _, check := range []struct {
+		model any
+		name  string
+	}{
+		{&oauthFixtureSessionProofV95{}, "ck_sessions_oidc_primary"}, {&oauthFixtureMFAProofV95{}, "ck_mfa_challenges_oidc_primary"},
+		{&ldapHistoricalRootJobV95{}, "ck_secret_inventory_version"}, {&ldapHistoricalRootJobV95{}, "ck_secret_rotation_domain"},
+		{&ldapHistoricalRootItemV95{}, "ck_secret_item_domain"}, {&ldapHistoricalRootProcessV95{}, "ck_secret_process_inventory_version"},
+	} {
+		if err := db.Migrator().DropConstraint(check.model, check.name); err != nil {
+			t.Fatal("drop current constraint for bounded historical fixture", check.name, err)
+		}
+		if err := db.Migrator().CreateConstraint(check.model, check.name); err != nil {
+			t.Fatal("restore exact frozen V95 constraint", check.name, err)
+		}
+	}
+	removed := db.Table("schema_migrations").Where("version = ?", 96).Delete(&struct{}{})
+	if removed.Error != nil || removed.RowsAffected != 1 {
+		t.Fatal("remove only V96 ledger in owned historical fixture", removed.Error, removed.RowsAffected)
+	}
+	if !reflect.DeepEqual(before[:95], personalKeyBehaviorLedger(t, db)) {
+		t.Fatal("historical V95 boundary changed a retained ledger row")
+	}
+}
+
 func testOAuthMigration(t *testing.T, db *gorm.DB) {
 	ctx := context.Background()
+	legacyMigrationBeforeV96(t, db)
 	ledger := personalKeyBehaviorLedger(t, db)
 	if len(ledger) != 95 {
 		t.Fatal("OAuth requires the exact 95-version ledger")
@@ -246,7 +326,7 @@ func testOAuthMigration(t *testing.T, db *gorm.DB) {
 	}
 	migrate := func() {
 		t.Helper()
-		if err := database.Migrate(ctx, db); err != nil {
+		if err := database.MigrateThrough(ctx, db, 95); err != nil {
 			t.Fatal("restore V95", err)
 		}
 		assertLedger(true)
@@ -278,7 +358,7 @@ func testOAuthMigration(t *testing.T, db *gorm.DB) {
 		}
 	}
 	assertDefault()
-	for _, bound := range []int{0, -1, 96, 94} {
+	for _, bound := range []int{0, -1, 97, 94} {
 		before := personalKeyBehaviorLedger(t, db)
 		if err := database.MigrateThrough(ctx, db, bound); err == nil {
 			t.Fatal("invalid/newer-ledger bound accepted", bound)
@@ -289,10 +369,10 @@ func testOAuthMigration(t *testing.T, db *gorm.DB) {
 		assertDefault()
 	}
 	if err := database.MigrateThrough(ctx, db, 95); err != nil {
-		t.Fatal("full-current bounded equivalent", err)
+		t.Fatal("historical V95 bounded equivalent", err)
 	}
 	if !reflect.DeepEqual(ledger, personalKeyBehaviorLedger(t, db)) {
-		t.Fatal("full-current bound changed ledger")
+		t.Fatal("historical V95 bound changed ledger")
 	}
 	birth := time.Now().UTC().Truncate(time.Microsecond)
 	user := entity.User{ID: "usr_oauth_migration", Email: "oauth-migration@example.invalid", Name: "Retained local member", Role: entity.RoleMember, PasswordHash: "retained-not-an-authentication-secret", PersonalGrantRevision: strings.Repeat("0", 64)}
@@ -389,7 +469,7 @@ func testOAuthMigration(t *testing.T, db *gorm.DB) {
 	var wg sync.WaitGroup
 	results := make(chan error, 2)
 	for range 2 {
-		wg.Go(func() { results <- database.Migrate(ctx, db) })
+		wg.Go(func() { results <- database.MigrateThrough(ctx, db, 95) })
 	}
 	wg.Wait()
 	close(results)
@@ -466,7 +546,7 @@ func testOAuthMigration(t *testing.T, db *gorm.DB) {
 			t.Fatal("install incompatible fixture", bad.name, err)
 		}
 		remove95()
-		if err := database.Migrate(ctx, db); err == nil {
+		if err := database.MigrateThrough(ctx, db, 95); err == nil {
 			t.Fatal("incompatible OAuth column accepted", bad.name)
 		}
 		assertLedger(false)
@@ -494,7 +574,7 @@ func testOAuthMigration(t *testing.T, db *gorm.DB) {
 			t.Fatal(err)
 		}
 		remove95()
-		if err := database.Migrate(ctx, db); err == nil {
+		if err := database.MigrateThrough(ctx, db, 95); err == nil {
 			t.Fatal("wrong-shape OAuth index accepted", bad.name)
 		}
 		assertLedger(false)
@@ -786,7 +866,7 @@ func testOAuthMigration(t *testing.T, db *gorm.DB) {
 		t.Fatal("install retained unproven OAuth field under historical check", err)
 	}
 	remove95()
-	if err := database.Migrate(ctx, db); err == nil {
+	if err := database.MigrateThrough(ctx, db, 95); err == nil {
 		t.Fatal("V95 accepted retained whitespace blank provenance")
 	}
 	assertLedger(false)
@@ -808,5 +888,13 @@ func testOAuthMigration(t *testing.T, db *gorm.DB) {
 	current()
 	if !reflect.DeepEqual(bindingBaseline, readBinding()) {
 		t.Fatal("V95 repeat changed exact binding subject/birth")
+	}
+	// Restore full current after all exact V94/V95 historical assertions.
+	if err := database.Migrate(ctx, db); err != nil {
+		t.Fatal("restore current after bounded OAuth fixture", err)
+	}
+	finalLedger := personalKeyBehaviorLedger(t, db)
+	if len(finalLedger) != 96 || !reflect.DeepEqual(ledger[:94], finalLedger[:94]) || finalLedger[94].Version != 95 || finalLedger[95].Version != 96 {
+		t.Fatal("historical OAuth closure lost current suffix or retained prefix")
 	}
 }

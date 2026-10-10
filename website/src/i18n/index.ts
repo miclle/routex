@@ -1,3 +1,5 @@
+import enLDAP from './locales/en/ldap'
+import zhLDAP from './locales/zh/ldap'
 import enOAuth from './locales/en/oauth'
 import zhOAuth from './locales/zh/oauth'
 import enOIDC from './locales/en/oidc'
@@ -103,6 +105,7 @@ void i18n.use(initReactI18next).init({
       common: en,
       oidc: enOIDC,
       oauth: enOAuth,
+      ldap: enLDAP,
       modelCreation: enModelCreation,
       secrets: enSecrets,
       overview: enOverview,
@@ -137,6 +140,7 @@ void i18n.use(initReactI18next).init({
       common: zh,
       oidc: zhOIDC,
       oauth: zhOAuth,
+      ldap: zhLDAP,
       modelCreation: zhModelCreation,
       secrets: zhSecrets,
       overview: zhOverview,

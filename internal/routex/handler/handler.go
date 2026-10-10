@@ -82,6 +82,16 @@ func (ctrl *Ctrl) RegisterRoutes(r *fox.Engine) {
 	identity.POST("/admin/auth/oauth/verify", sameOrigin, ctrl.requireSession, requireCSRF, jsonManagementRequest, ctrl.StartOAuthVerification)
 	identity.PUT("/admin/auth/oauth/status", sameOrigin, ctrl.requireSession, requireCSRF, jsonManagementRequest, ctrl.SetOAuthEnabled)
 
+	identity.GET("/auth/ldap", ldapPrivate, ctrl.PublicLDAP)
+	identity.POST("/auth/ldap/login", ldapPrivate, sameOrigin, jsonManagementRequest, ctrl.LoginLDAP)
+	identity.GET("/admin/auth/ldap", ldapPrivate, ctrl.requireSession, ctrl.GetLDAPProvider)
+	identity.PUT("/admin/auth/ldap", ldapPrivate, sameOrigin, ctrl.requireSession, requireCSRF, jsonManagementRequest, ctrl.SaveLDAPProvider)
+	identity.POST("/admin/auth/ldap/verify", ldapPrivate, sameOrigin, ctrl.requireSession, requireCSRF, jsonManagementRequest, ctrl.VerifyLDAP)
+	identity.PUT("/admin/auth/ldap/status", ldapPrivate, sameOrigin, ctrl.requireSession, requireCSRF, jsonManagementRequest, ctrl.SetLDAPEnabled)
+	identity.GET("/account/identity/ldap", ldapPrivate, ctrl.requireSession, ctrl.AccountLDAP)
+	identity.POST("/account/identity/ldap/bind", ldapPrivate, sameOrigin, ctrl.requireSession, requireCSRF, jsonManagementRequest, ctrl.BindLDAP)
+	identity.POST("/account/identity/ldap/unlink", ldapPrivate, sameOrigin, ctrl.requireSession, requireCSRF, jsonManagementRequest, ctrl.UnlinkLDAP)
+
 	identity.GET("/auth/session", ctrl.requireSession, ctrl.CurrentSession)
 	identity.GET("/overview/accounts", ctrl.requireSession, ctrl.MemberOverviewAccounts)
 	identity.GET("/overview/roles", ctrl.requireSession, ctrl.MemberOverviewRoles)

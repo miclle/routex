@@ -1,6 +1,7 @@
 import { useLayoutEffect, useRef, useState } from 'react'
 import OIDCConfiguration from '@/views/oidc/config'
 import OAuthConfiguration from '@/views/oauth/config'
+import LDAPConfiguration from '@/views/ldap/config'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { AxiosError } from 'axios'
@@ -271,6 +272,7 @@ function Policy({ actor }: { actor: string }) {
       )}
       <OIDCConfiguration />
       <OAuthConfiguration />
+      <LDAPConfiguration />
       <Drawer
         open={open && !!page}
         onOpenChange={(value) => {
