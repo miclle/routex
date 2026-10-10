@@ -4,6 +4,21 @@ Updated: 2026-10-10. This document records engineering contracts, work packages 
 
 ## Current execution status (2026-10-10)
 
+The bounded [SAML protocol component](SAML.md) passes focused race validation:
+104 named tests, with no failures or skips. Mandatory checking and complete Task
+pass, including Go race/coverage, all 6,177 frontend tests in 230 files,
+development lifecycle, production build and embedded assets. SAML statement
+coverage is 85.2%. Full Task log SHA-256:
+`6b39034a38cfaca9ba9f92523ffde69c1c4b273458c6e82a2ac3d4d4dbfc4579`.
+
+Earlier duplicate-signature and canonicalized-away namespace fixture failures
+remain failed history. Their test-only corrections retain production validation;
+five equivalent De Morgan expression rewrites satisfy the existing linter.
+Dependencies and verbatim notices are pinned. This component creates no Session,
+binding or replay authority. SAML application service, HTTP and existing bilingual
+surfaces are in progress; real-browser and external IdP acceptance remain open.
+F03/A15 and capability totals remain unchanged.
+
 F14 now has focused controlled real-Vault acceptance on PostgreSQL and MySQL.
 The optional test-only adapter reuses the existing `provider_credential_storage`
 scenario: three balanced named passes per driver, including its two parents.
@@ -51,8 +66,9 @@ driver, with readback
 `3e66b7516fc2c568ff6720f50e7d3be6e23591a394d47a5c043b3d8c18c94118`.
 Earlier failed gates and matrix R1 remain failed history. LDAP application commit
 `e74b112` is published with exact remote parity. Its Backend and Frontend Checks,
-Actionlint and GolangCI-Lint pass; CI `38032811543` still runs database integration.
-Pending integration/build results are not inferred from local success.
+Actionlint and GolangCI-Lint pass. CI `38032811543` later ended cancelled during
+database integration after the next phase push; integration/build are not passed.
+The recorded complete local database/lifecycle qualification remains separate.
 
 Enforced SSO will accept verified OIDC and LDAP only. The emergency administrator
 policy remains a separate decision; enforcement and recovery are not delivered

@@ -114,3 +114,11 @@ changes revoke only LDAP authority and remove its bindings; disabling retains
 bindings but revokes its Sessions/challenges. Local, OIDC and OAuth remain
 independent. V96 and root inventory V5 are additive. Application qualification is
 in progress; real-directory and bilingual browser acceptance remain open.
+
+## SAML component boundary
+
+The independent [SAML protocol component](SAML.md) creates bounded SP-initiated
+requests and validates signed persistent identities. It creates no Session or
+member binding. Application lifecycle and durable two-cookie browser correlation
+are being implemented separately; local, OIDC, OAuth and LDAP behavior is unchanged.
+SAML is outside the approved OIDC/LDAP-only enforced-SSO allowlist.

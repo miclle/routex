@@ -7,7 +7,9 @@ require (
 	github.com/aws/aws-sdk-go-v2/credentials v1.19.34
 	github.com/aws/aws-sdk-go-v2/service/s3 v1.106.5
 	github.com/aws/smithy-go v1.27.6
+	github.com/beevik/etree v1.7.0
 	github.com/coreos/go-oidc/v3 v3.21.0
+	github.com/crewjam/saml v0.5.1
 	github.com/fox-gonic/fox v0.1.2
 	github.com/gin-gonic/gin v1.12.0
 	github.com/go-asn1-ber/asn1-ber v1.5.8
@@ -16,6 +18,7 @@ require (
 	github.com/jackc/pgx/v5 v5.10.0
 	github.com/oklog/ulid/v2 v2.1.2
 	github.com/richardlehane/mscfb v1.0.8
+	github.com/russellhaering/goxmldsig v1.6.1
 	github.com/spf13/viper v1.21.0
 	go.etcd.io/bbolt v1.5.0
 	golang.org/x/crypto v0.56.0
@@ -119,6 +122,7 @@ require (
 	github.com/jinzhu/inflection v1.0.0 // indirect
 	github.com/jinzhu/now v1.1.5 // indirect
 	github.com/joho/godotenv v1.5.1 // indirect
+	github.com/jonboulle/clockwork v0.5.0 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
 	github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51 // indirect
 	github.com/klauspost/compress v1.19.2 // indirect
@@ -126,6 +130,7 @@ require (
 	github.com/klauspost/pgzip v1.2.6 // indirect
 	github.com/leodido/go-urn v1.5.0 // indirect
 	github.com/lucasb-eyer/go-colorful v1.4.1 // indirect
+	github.com/mattermost/xml-roundtrip-validator v0.1.0 // indirect
 	github.com/mattn/go-colorable v0.1.15 // indirect
 	github.com/mattn/go-isatty v0.0.24 // indirect
 	github.com/mattn/go-runewidth v0.0.27 // indirect

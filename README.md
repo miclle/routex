@@ -235,3 +235,8 @@ Finite Vault preparation and native response ownership now have a local
 response-close prerequisite. Failed or unobserved closure cannot establish
 source drain. This prerequisite adds neither durable fleet coordination nor
 permission to clean previously published credential objects.
+
+The [SAML protocol component](docs/SAML.md) verifies bounded SP-initiated signed
+identity proofs with explicit pinned configuration. Existing-member application
+linking, durable replay protection and browser completion are in progress; the
+component alone enables no SAML login.
