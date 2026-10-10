@@ -4,6 +4,30 @@ Updated: 2026-10-10. Status: resumed by explicit user instruction; prioritize pa
 
 ## Current execution status (2026-10-10)
 
+## API-Key Vault writer component qualification, 2026-10-10
+
+The dedicated `pkg/vault` SDK implements one restricted KV-v2 CAS-zero write per
+prepared handle, exact descriptor/resource binding, guarded transport and explicit
+acknowledged/unknown outcomes. Copies share one consumed claim. Failures cause no
+retry, read compensation or plaintext fallback. In-flight work remains caller-owned;
+closing a handle prevents future claims, while writer Close disposes idle connections.
+
+Mandatory check passes (`eeb6dd7c7b6937c24c8ff02d95d5a8e900f12c5f7ea79aaee583012cf305b77b`). Complete Task passes (`0b5451fb3676c1fddbc6b2834c79c4dc231d1607e5e44557c44c729af6becec0`), including 6,378
+frontend tests in 237 files, Go race/coverage, development lifecycle and embedded
+production assets. Focused Vault/upstream race regression passes (`619174b116ef73d7dbc856f6f13b174fa12c8eeb4a7c9e306e7e58987b9af67e`). Root
+verifies all 2,351 qualified source paths and modes unchanged after both gates.
+This component is delivered by this phase commit; remote parity is recorded in the
+coordination roadmap after push.
+
+F29 becomes Partial; current totals are **15 Completed / 14 Partial / 1 Not started**,
+with F24 the sole Not started capability. Application caller authentication, saved
+identities/Profiles, persisted descriptors, Provisioner ownership, durable no-read
+recovery, coordinator/rotation state and Key activation remain unimplemented. This
+component qualification establishes no application, real-Vault, database, browser
+or external acceptance. WeChat remains deferred; enforced SSO/emergency recovery
+and other partially completed work remain open. The overall objective is active.
+Earlier checkpoints below retain their historical totals and evidence.
+
 ## GitHub and Google controlled application qualification, 2026-10-10
 
 GitHub and Google are composed into one named-login application phase. Local
@@ -673,10 +697,13 @@ F14 remains Partial; capability totals and the active overall objective are unch
 F13 source review establishes no further bounded local omission; live Provider
 compatibility and measured multi-node health remain open. F24 requires an
 explicit authorized analysis/retention contract rather than simulated answers.
-F29 has a domain specification, but its initial caller-authentication template,
-Provisioner ownership proof and fail-closed unknown-write recovery must be settled
-before a useful delivery slice. Neither assessment starts runtime implementation
-or changes capability status.
+F29 has a dedicated restricted write-only KV-v2 SDK; its component qualification
+is recorded separately from application delivery. Caller authentication, saved
+identities/Profiles, persisted descriptors, Provisioner ownership, durable no-read
+unknown-write recovery and Key activation remain unimplemented. F29 is Partial; F24 is the only Not started capability and totals
+are 15 Completed / 14 Partial / 1 Not started. The overall goal remains active;
+browser and external acceptance stay open. The F13/F24 assessments above do not
+establish their remaining runtime acceptance.
 
 Rolling-warning scope reconciliation confirms existing Personal, Personal root-Key,
 Project aggregate, Team aggregate and Project root-Key producers. Replacement Keys

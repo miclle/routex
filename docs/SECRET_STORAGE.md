@@ -113,3 +113,12 @@ publication. Provider storage integration is a separate control-plane contract.
 Controlled local package tests are not actual Vault or F28/A16 acceptance.
 
 The Storage tab separates the future provider credential write policy from internal root-key rotation. Two configured-source cards select internal encrypted storage or Vault KV v2; the policy editor requires an exact eligible saved Integration revision, reviewed ETag, reason and explicit confirmation. Selection describes saved configuration, not service readiness. Writer and reader authentication remain independent, and there is no per-credential source/location override. Existing credentials retain their recorded source; changing this policy performs no automatic migration. The Vault tab remains independent and does not fetch policy or root inventories.
+
+## API-Key write-only SDK
+
+`pkg/vault` provides a restricted one-shot CAS-zero API-Key writer with no read,
+retry, cleanup or fallback capability. Only a validated version-one response,
+successful body closure and a live original context acknowledge the write;
+post-dispatch failures remain unknown. See [Vault API-Key writer](VAULT_API_KEY_WRITER.md)
+for component bounds and the still-separate application authentication, durable
+recovery and Key activation requirements.
