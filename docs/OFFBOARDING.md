@@ -47,7 +47,7 @@ Emergency completion uses the same atomic revocation, relationship removal, audi
 
 ## Idempotency, Publication, and Reactivation
 
-A creation or emergency `request_id` binds its actor, target member, operation, and normalized payload. Reusing it for a different action returns a conflict. Repeating the same plan request returns the original receipt, and concurrent completion of one case produces one completion audit. The emergency password proof is checked again on retries and is excluded from persisted idempotency data.
+A creation or emergency `request_id` binds its actor, target member, operation, and normalized payload. Reusing it for a different action returns a conflict. Repeating the same plan request returns its persisted case receipt, and concurrent completion of one case produces one completion audit. The first response reads back the saved row inside the original transaction, so its timestamps use the same database precision as a retry. Replaying a still-unchanged case preserves the receipt exactly; after completion, a plan replay returns the current completed case rather than claiming the earlier planned state. The emergency password proof is checked again on retries and is excluded from persisted idempotency data.
 
 Mutations take the governance lock and user locks in stable order. Read-committed transactions ensure completion sees personal keys committed before it acquires the departing account lock. Key issuance takes that account lock too, preventing a key from being issued across account disable. After commit, runtime user and affected-project tombstones are installed and authorization is republished before a successful response. Publication failure returns 503 after the database transaction has committed; retry the same case or request ID. Browser session deletion is already part of the database transaction, and the runtime's background publisher continues retrying publication.
 
@@ -62,7 +62,7 @@ go test -race -tags development ./internal/routex/service ./internal/routex/hand
 go tool task test-integration
 ```
 
-This implementation revokes local sessions. External identity-provider sessions, external credential access profiles, notification delivery, scheduled execution, and a durable notification outbox are not implemented by this workflow. The control-plane transaction and local runtime publication do not establish multi-node or external-identity revocation guarantees.
+This implementation revokes every RouteX browser Session for the departing member, including Sessions established through local authentication, OIDC, custom OAuth, and native MFA. It also invalidates pending native-MFA completion through current member authority. A late verified OIDC or custom OAuth callback cannot restore an offboarded member's RouteX access; explicit identity bindings and provider configuration remain retained. External identity-provider sessions, external credential access profiles, notification delivery, scheduled execution, and a durable notification outbox are not implemented by this workflow. The control-plane transaction and local runtime publication do not establish multi-node or external-identity revocation guarantees.
 
 ## Web workflow
 

@@ -723,6 +723,131 @@ func TestOAuthLifecycleTLSChild(t *testing.T) {
 		t.Fatal("security save falsely retained verified availability")
 	}
 	requireStatus(request("PUT", "/api/v1/admin/auth/oauth/status", map[string]any{"enabled": true, "reason": "New security configuration must verify again"}, adminCookie, admin.CSRFToken, freshSecurityETag, nil), 409)
+	stage = "enterprise_offboarding"
+	// Re-establish genuine authority after the original security-save assertions.
+	_, offboardConfigETag := reviewConfig()
+	offboardVerification, _ := start("/api/v1/admin/auth/oauth/verify", "admin-subject", adminCookie, admin.CSRFToken, offboardConfigETag, identityInput(""))
+	requireStatus(complete(offboardVerification, adminCookie, admin.CSRFToken), 200)
+	_, offboardEnableETag := reviewConfig()
+	requireStatus(request("PUT", "/api/v1/admin/auth/oauth/status", map[string]any{"enabled": true, "reason": "Controlled offboarding authority baseline"}, adminCookie, admin.CSRFToken, offboardEnableETag, nil), 200)
+	_, offboardSelfETag := reviewSelf(memberCookie)
+	offboardBinding, _ := start("/api/v1/account/identity/oauth/bind", "member-subject", memberCookie, memberSession.CSRFToken, offboardSelfETag, identityInput(recovery.RecoveryCodes[5]))
+	requireStatus(complete(offboardBinding, memberCookie, memberSession.CSRFToken), 200)
+	offboardFactor := pendingFactor()
+	offboardLogin := request("POST", "/api/v1/auth/mfa/verify", MFALoginRequest{ChallengeToken: offboardFactor.ChallengeToken, RecoveryCode: recovery.RecoveryCodes[6]}, nil, "", "", nil)
+	requireStatus(offboardLogin, 200)
+	_, offboardCookie := readSession(offboardLogin)
+	var offboardSession entity.Session
+	if db.Where("token_hash = ?", secret.SHA256Hex(offboardCookie.Value)).Take(&offboardSession).Error != nil || offboardSession.UserID != member.ID || offboardSession.PrimaryMethod != "oauth" || offboardSession.OAuthBindingID == "" || offboardSession.OAuthBindingCreatedAt == nil || offboardSession.OAuthUserCreatedAt == nil || !offboardSession.OAuthUserCreatedAt.Equal(member.CreatedAt) {
+		t.Fatal("offboarding baseline lacks genuine exact enterprise MFA Session")
+	}
+	requireStatus(request("GET", "/api/v1/auth/session", nil, offboardCookie, "", "", nil), 200)
+	requireStatus(request("GET", "/api/v1/auth/session", nil, memberCookie, "", "", nil), 200)
+	offboardPendingFactor := pendingFactor()
+	var recoveryBefore []entity.MFARecoveryCode
+	if db.Where("user_id = ?", member.ID).Order("code_hash").Find(&recoveryBefore).Error != nil {
+		t.Fatal("read unconsumed recovery proof baseline")
+	}
+	offboardProvider := readStoredProvider()
+	offboardBindings := readStoredBindings()
+	if len(offboardBindings) != 2 || !offboardProvider.Enabled {
+		t.Fatal("offboarding lacks live identity binding baseline")
+	}
+	if offboardSession.OAuthConfigRevision != offboardProvider.ConfigRevision || offboardSession.OAuthPolicyRevision != offboardProvider.PolicyRevision {
+		t.Fatal("offboarding Session differs from current provider proof")
+	}
+	matchedBinding := false
+	for _, binding := range offboardBindings {
+		if binding.UserID == member.ID && binding.ID == offboardSession.OAuthBindingID && binding.CreatedAt.Equal(*offboardSession.OAuthBindingCreatedAt) && binding.UserCreatedAt.Equal(member.CreatedAt) {
+			matchedBinding = true
+		}
+	}
+	if !matchedBinding {
+		t.Fatal("offboarding Session differs from exact retained binding birth")
+	}
+	// A public login callback has no admitted user until completion. Holding it
+	// across departure must not grant Session or native-MFA completion authority.
+	func() {
+		correlation, callback := start("/api/v1/auth/oauth/start", "member-subject", nil, "", "", map[string]any{}, true)
+		hold := provider.holdNextToken(t)
+		operation, stop := context.WithTimeout(ctx, 10*time.Second)
+		defer stop()
+		done := make(chan *httptest.ResponseRecorder, 1)
+		joined := false
+		defer func() {
+			hold.release()
+			stop()
+			if !joined {
+				select {
+				case <-done:
+				case <-ctx.Done():
+					t.Error("offboarding callback did not join within original child deadline")
+				}
+			}
+		}()
+		before := provider.tokenCount()
+		req := httptest.NewRequest("GET", "https://routex.test"+callback, nil).WithContext(operation)
+		req.AddCookie(correlation)
+		go func() { response := httptest.NewRecorder(); router.ServeHTTP(response, req); done <- response }()
+		select {
+		case <-hold.entered:
+		case <-done:
+			joined = true
+			t.Fatal("offboarding callback returned before controlled token hold")
+		case <-operation.Done():
+			t.Fatal("offboarding token hold exceeded original operation bound")
+		}
+		var ceremony entity.OAuthCeremony
+		if db.Where("cookie_hash = ?", secret.SHA256Hex(correlation.Value)).Take(&ceremony).Error != nil || ceremony.Purpose != "login" || ceremony.Status != "exchanging" || ceremony.Subject != "" || ceremony.VerifiedAt != nil {
+			t.Fatal("offboarding callback lacks claimed pre-HTTP baseline")
+		}
+		assertRetained := exerciseEnterpriseOffboarding(t, ctx, db, svc, "oauth", member.ID, admin, adminCookie, request)
+		requireStatus(request("GET", "/api/v1/auth/session", nil, offboardCookie, "", "", nil), 401)
+		requireStatus(request("GET", "/api/v1/auth/session", nil, memberCookie, "", "", nil), 401)
+		deniedFactor := request("POST", "/api/v1/auth/mfa/verify", MFALoginRequest{ChallengeToken: offboardPendingFactor.ChallengeToken, RecoveryCode: recovery.RecoveryCodes[9]}, nil, "", "", nil)
+		requireStatus(deniedFactor, 401)
+		hold.release()
+		var response *httptest.ResponseRecorder
+		select {
+		case response = <-done:
+			joined = true
+		case <-operation.Done():
+			t.Fatal("offboarding callback exceeded original operation bound")
+		}
+		if operation.Err() != nil {
+			t.Fatal("offboarding callback completed outside original operation bound")
+		}
+		requireStatus(response, 303)
+		if response.Header().Get("Location") != "/auth/oauth/complete" || response.Header().Get("Referrer-Policy") != "no-referrer" || response.Header().Get("Cache-Control") != "no-store" {
+			t.Fatal("offboarding callback lost fixed private completion route")
+		}
+		ceremony = entity.OAuthCeremony{}
+		if db.Where("cookie_hash = ?", secret.SHA256Hex(correlation.Value)).Take(&ceremony).Error != nil || ceremony.Status != "verified" || ceremony.Subject != "1" || ceremony.SubjectKind != "integer" || ceremony.VerifiedAt == nil {
+			t.Fatal("held offboarding callback lacks genuine verified remote identity")
+		}
+		deniedCompletion := complete(correlation, nil, "")
+		requireStatus(deniedCompletion, 401)
+		for _, result := range []*httptest.ResponseRecorder{response, deniedFactor, deniedCompletion} {
+			for _, cookie := range result.Result().Cookies() {
+				if cookie.Name == sessionCookie {
+					t.Fatal("departure or late callback issued a Session cookie")
+				}
+			}
+		}
+		requireStatus(complete(correlation, nil, ""), 401)
+		requireStatus(request("GET", callback, nil, nil, "", "", correlation), 303)
+		if provider.tokenCount() != before+1 {
+			t.Fatal("offboarding replay repeated remote identity exchange")
+		}
+		var recoveryAfter []entity.MFARecoveryCode
+		if db.Where("user_id = ?", member.ID).Order("code_hash").Find(&recoveryAfter).Error != nil || !reflect.DeepEqual(recoveryBefore, recoveryAfter) {
+			t.Fatal("revoked pending factor consumed a recovery proof")
+		}
+		if !reflect.DeepEqual(offboardProvider, readStoredProvider()) || !reflect.DeepEqual(offboardBindings, readStoredBindings()) {
+			t.Fatal("offboarding rewrote provider configuration or explicit binding history")
+		}
+		assertRetained()
+	}()
 	stage = "complete"
 }
 

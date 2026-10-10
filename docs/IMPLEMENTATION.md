@@ -4,6 +4,48 @@ Updated: 2026-10-10. This document records engineering contracts, work packages 
 
 ## Current execution status (2026-10-10)
 
+## Enterprise offboarding receipt and authentication regression, 2026-10-10
+
+Planned offboarding now returns receipts at persisted database timestamp precision.
+The initial plan and completion reread their saved case inside the original
+transaction, so identical unchanged-state retries return the same durable facts.
+A later plan retry after completion returns the current completed case.
+
+Genuine OIDC and custom OAuth controls now exercise departure through normal
+reviewed APIs, including native MFA Sessions, pending MFA and a held public
+callback. Departure revokes personal Keys and RouteX Sessions and rejects late
+proof; Project Keys, grants, ownership continuity and immutable history survive.
+The OAuth fixture retains its original integer member identity instead of its
+string test selector. No external identity binding or provider is deleted.
+
+The original complete `go tool task test-integration` passes in 2,844.164 seconds:
+191 ordered business scenarios plus four constraints, 453 balanced named results
+per database, no driver failures/skips/races, and 7,451 ordinary passes with three
+intentional TLS helper skips. All 12 distinct production restart processes,
+owned worker groups and Compose resources are absent; both database ports are
+refused and fresh-bindable. All 2,256 captured source paths/modes remain exact,
+and the original development service is preserved. Independent readback SHA-256:
+`d1f5caf4c4193837cfb6f6102beb28ce89031fd3139adb9e19b749281ef16405`.
+
+Mandatory candidate check and complete Task R2 pass, including all 6,177 frontend
+tests/230 files, development lifecycle and embedded production assets. Full Task
+SHA-256: `1dd03a9f1746c59bb8860f25eb378d72c6feae8f905526022bc05d8bf6264709`. That Task result precedes the two
+OAuth expected-identity literal corrections; the complete integration result above
+executes the corrected fixture. Earlier failed diagnostics and the derivative
+runner's helper-cleanup failure remain failed history, not passing acceptance.
+
+Final main mandatory checking and frontend formatting pass; formatting changes
+no tracked frontend source. Main check SHA-256:
+`4fcba8f76f29781b5b446a47526e8a0730abff66cdf4ea868927ab5c7ebd3d62`.
+
+LDAP and SAML departure controls are prepared in the separate SAML candidate and
+await database/runtime qualification. F10 and F03 remain Partial; capability totals
+stay **15 Completed / 13 Partial / 2 Not started**. Remote IdP logout is outside
+the local departure contract. SAML application/browser acceptance, enforced SSO
+and emergency recovery remain independent work. The user defers WeChat login
+because no verification service or wire contract currently exists.
+
+
 The bounded [SAML protocol component](SAML.md) passes focused race validation:
 104 named tests, with no failures or skips. Mandatory checking and complete Task
 pass, including Go race/coverage, all 6,177 frontend tests in 230 files,

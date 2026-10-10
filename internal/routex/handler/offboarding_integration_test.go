@@ -1,10 +1,12 @@
 package handler
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
 	"net/http"
+	"net/http/httptest"
 	"net/url"
 	"reflect"
 	"strings"
@@ -398,4 +400,133 @@ func testOffboardedAdministratorReactivation(t *testing.T, db *gorm.DB, svc *ser
 			t.Fatal("administrator role removal lacks a single audit receipt")
 		}
 	}
+}
+
+// exerciseEnterpriseOffboarding uses the normal reviewed HTTP handover workflow.
+// Protocol-issued Session/challenge prerequisites belong to the calling TLS fixture.
+func exerciseEnterpriseOffboarding(t *testing.T, ctx context.Context, db *gorm.DB, svc *service.Service, protocol, userID string, admin SessionResponse, adminCookie *http.Cookie, request func(string, string, any, *http.Cookie, string, string, *http.Cookie) *httptest.ResponseRecorder) func() {
+	t.Helper()
+	checkStatus := func(response *httptest.ResponseRecorder, want int) {
+		t.Helper()
+		if response.Code != want {
+			t.Fatalf("%s offboarding HTTP status=%d want=%d", protocol, response.Code, want)
+		}
+	}
+	modelID, projectID := "mdl_"+protocol+"_offboard", "prj_"+protocol+"_offboard"
+	personalID, projectKeyID := "key_"+protocol+"_offboard", "pky_"+protocol+"_offboard"
+	personalBearer, projectBearer := "rx_"+strings.Repeat("p", 43), "rxp_"+strings.Repeat("q", 43)
+	// These are ordinary ownership fixtures, not fabricated native call evidence.
+	rows := []any{
+		&entity.Model{ID: modelID, Status: entity.ResourceActive},
+		&entity.ModelName{Name: protocol + "-offboard-model", ModelID: modelID, CurrentModelID: &modelID},
+		&entity.UserModelGrant{UserID: userID, ModelID: modelID},
+		&entity.APIKey{ID: personalID, UserID: userID, Name: "Departing personal Key", Prefix: personalBearer[:11], TokenHash: secret.SHA256Hex(personalBearer), Status: entity.KeyActive},
+		&entity.APIKeyModel{KeyID: personalID, ModelID: modelID},
+		&entity.Project{ID: projectID, Name: "Retained enterprise Project", Status: entity.ResourceActive, CreatorID: userID},
+		&entity.ProjectManager{ID: "pjm_" + protocol + "_departing", ProjectID: projectID, UserID: userID},
+		&entity.ProjectManager{ID: "pjm_" + protocol + "_remaining", ProjectID: projectID, UserID: admin.User.ID},
+		&entity.ProjectModelGrant{ProjectID: projectID, ModelID: modelID},
+		&entity.ProjectKey{ID: projectKeyID, ProjectID: projectID, CreatorID: userID, Name: "Retained Project Key", Prefix: projectBearer[:12], TokenHash: secret.SHA256Hex(projectBearer), Status: entity.KeyActive, DeliveryMode: "manual"},
+		&entity.ProjectKeyModel{KeyID: projectKeyID, ModelID: modelID},
+	}
+	for _, row := range rows {
+		if err := db.Create(row).Error; err != nil {
+			t.Fatal(err)
+		}
+	}
+	personal, err := svc.AuthenticateAPIKey(ctx, personalBearer)
+	if err != nil || personal.Key.UserID != userID {
+		t.Fatal("personal Key lacks admitted pre-offboarding baseline")
+	}
+	projectAuth, err := svc.AuthenticateAPIKey(ctx, projectBearer)
+	if err != nil || projectAuth.ProjectID != projectID {
+		t.Fatal("Project Key lacks admitted pre-offboarding baseline")
+	}
+	var projectBefore entity.Project
+	var projectKeyBefore entity.ProjectKey
+	var grantBefore entity.ProjectModelGrant
+	var auditsBefore []entity.AuditEvent
+	if db.Where("id = ?", projectID).Take(&projectBefore).Error != nil || db.Where("id = ?", projectKeyID).Take(&projectKeyBefore).Error != nil || db.Where("project_id = ? AND model_id = ?", projectID, modelID).Take(&grantBefore).Error != nil || db.Order("id").Find(&auditsBefore).Error != nil {
+		t.Fatal("capture retained ownership and identity audit facts")
+	}
+	base := "/api/v1/admin/members/" + userID + "/offboarding"
+	inventoryResponse := request("GET", base, nil, adminCookie, "", "", nil)
+	checkStatus(inventoryResponse, 200)
+	var inventory service.OffboardingInventory
+	if json.Unmarshal(inventoryResponse.Body.Bytes(), &inventory) != nil || inventory.UserID != userID || inventory.Disabled || len(inventory.Projects) != 1 || inventory.Projects[0].ID != projectID || inventory.Projects[0].RequiresSuccessor {
+		t.Fatal("offboarding inventory lost shared Project baseline")
+	}
+	input := OffboardingPlanRequest{RequestID: "req_" + protocol + "_enterprise_offboard", InventoryVersion: inventory.InventoryVersion, PlannedAt: time.Now().UTC().Truncate(time.Microsecond).Add(time.Hour), Reason: "Controlled enterprise identity departure"}
+	planned := request("POST", base+"/plans", input, adminCookie, admin.CSRFToken, "", nil)
+	checkStatus(planned, 201)
+	var plan service.OffboardingCaseRecord
+	if json.Unmarshal(planned.Body.Bytes(), &plan) != nil || plan.ID == "" || plan.UserID != userID || plan.ActorID != admin.User.ID || plan.RequestID != input.RequestID || plan.Status != "ready_to_complete" {
+		t.Fatal("invalid original offboarding plan receipt")
+	}
+	planReplay := request("POST", base+"/plans", input, adminCookie, admin.CSRFToken, "", nil)
+	checkStatus(planReplay, 201)
+	if !bytes.Equal(planned.Body.Bytes(), planReplay.Body.Bytes()) {
+		t.Fatal("identical plan replay changed original receipt")
+	}
+	completed := request("POST", base+"/"+plan.ID+"/complete", nil, adminCookie, admin.CSRFToken, "", nil)
+	checkStatus(completed, 200)
+	var receipt service.OffboardingCaseRecord
+	if json.Unmarshal(completed.Body.Bytes(), &receipt) != nil || receipt.ID != plan.ID || receipt.RequestID != input.RequestID || receipt.Status != "completed" || receipt.CompletedAt == nil || receipt.CompletedBy != admin.User.ID {
+		t.Fatal("offboarding did not return exact completed receipt")
+	}
+	replay := request("POST", base+"/"+plan.ID+"/complete", nil, adminCookie, admin.CSRFToken, "", nil)
+	checkStatus(replay, 200)
+	if !bytes.Equal(completed.Body.Bytes(), replay.Body.Bytes()) {
+		t.Fatal("completion replay changed original receipt")
+	}
+	var durableReceipt entity.OffboardingCase
+	if db.Where("id = ?", plan.ID).Take(&durableReceipt).Error != nil {
+		t.Fatal("read original durable offboarding receipt")
+	}
+	assertRetained := func() {
+		t.Helper()
+		for _, target := range []any{&entity.Session{}, &entity.MFAChallenge{}, &entity.ProjectManager{}} {
+			var count int64
+			if db.Model(target).Where("user_id = ?", userID).Count(&count).Error != nil || count != 0 {
+				t.Fatalf("%s departure retained personal authority %T count=%d", protocol, target, count)
+			}
+		}
+		var member entity.User
+		if db.Where("id = ?", userID).Take(&member).Error != nil || !member.Disabled || member.OffboardedAt == nil {
+			t.Fatal("offboarding lost exact disabled departure state")
+		}
+		if _, err := svc.AuthenticateAPIKey(ctx, personalBearer); !errors.Is(err, apperrors.ErrUnauthorized) {
+			t.Fatal("enterprise departure retained personal Key authority")
+		}
+		projectAuth, err := svc.AuthenticateAPIKey(ctx, projectBearer)
+		if err != nil || projectAuth.ProjectID != projectID {
+			t.Fatal("enterprise departure revoked independent Project Key")
+		}
+		var projectAfter entity.Project
+		var keyAfter entity.ProjectKey
+		var grantAfter entity.ProjectModelGrant
+		var receiptAfter entity.OffboardingCase
+		if db.Where("id = ?", projectID).Take(&projectAfter).Error != nil || db.Where("id = ?", projectKeyID).Take(&keyAfter).Error != nil || db.Where("project_id = ? AND model_id = ?", projectID, modelID).Take(&grantAfter).Error != nil || db.Where("id = ?", plan.ID).Take(&receiptAfter).Error != nil || !reflect.DeepEqual(projectBefore, projectAfter) || !reflect.DeepEqual(projectKeyBefore, keyAfter) || !reflect.DeepEqual(grantBefore, grantAfter) || !reflect.DeepEqual(durableReceipt, receiptAfter) {
+			t.Fatal("departure or late callback changed retained Project or original receipt")
+		}
+		var managers []entity.ProjectManager
+		if db.Where("project_id = ?", projectID).Find(&managers).Error != nil || len(managers) != 1 || managers[0].UserID != admin.User.ID {
+			t.Fatal("departure did not retain exact independent Project manager")
+		}
+		for _, action := range []string{"offboarding.plan", "offboarding.complete"} {
+			var count int64
+			if db.Model(&entity.AuditEvent{}).Where("action = ? AND resource_id = ?", action, plan.ID).Count(&count).Error != nil || count != 1 {
+				t.Fatalf("%s duplicated or lost %s audit count=%d", protocol, action, count)
+			}
+		}
+		for _, original := range auditsBefore {
+			var current entity.AuditEvent
+			if db.Where("id = ?", original.ID).Take(&current).Error != nil || !reflect.DeepEqual(original, current) {
+				t.Fatal("offboarding rewrote prior identity audit history")
+			}
+		}
+		checkStatus(request("GET", "/api/v1/auth/session", nil, adminCookie, "", "", nil), 200)
+	}
+	assertRetained()
+	return assertRetained
 }

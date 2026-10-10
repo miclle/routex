@@ -302,5 +302,9 @@ func applyOffboarding(tx *gorm.DB, actorID string, inventory *OffboardingInvento
 	if err := appendAudit(tx, actorID, "offboarding.complete", "offboarding_case", row.ID); err != nil {
 		return nil, err
 	}
+	// Initial completion and idempotent retries expose the same persisted receipt.
+	if err := tx.Session(&gorm.Session{NewDB: true}).Where("id = ?", row.ID).Take(row).Error; err != nil {
+		return nil, err
+	}
 	return projects, nil
 }

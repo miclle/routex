@@ -201,6 +201,10 @@ func newOffboardingCase(tx *gorm.DB, actorID, userID, requestID, requestHash, mo
 	if err := tx.Create(row).Error; err != nil {
 		return nil, err
 	}
+	// Return the durable timestamp precision used by subsequent receipt replay.
+	if err := tx.Session(&gorm.Session{NewDB: true}).Where("id = ?", row.ID).Take(row).Error; err != nil {
+		return nil, err
+	}
 	return row, nil
 }
 
