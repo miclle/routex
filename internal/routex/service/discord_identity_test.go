@@ -121,7 +121,8 @@ func TestDiscordNamespaceDerivationAndRootEpochDoNotAliasLegacy(t *testing.T) {
 	if rootInventoryDomains(9) != nil {
 		t.Fatal("future inventory admitted")
 	}
-	now := time.Now().UTC()
+	// Match persisted observation precision on every platform.
+	now := time.Date(2026, 10, 10, 0, 0, 0, 123456000, time.UTC)
 	started, confirmed := now.Add(-secretObservationDuration), now
 	counts := map[string]rootDomainCounts{}
 	for _, domain := range rootDomains {
@@ -136,6 +137,18 @@ func TestDiscordNamespaceDerivationAndRootEpochDoNotAliasLegacy(t *testing.T) {
 	proof := entity.SecretProcessVerification{InventoryVersion: 8, ProcessID: "process", RuntimeSnapshotID: "snapshot"}
 	if !svc.rootObservationEligible(job, proof) {
 		t.Fatal("complete current coverage rejected")
+	}
+	beforeBoundary := job
+	shortStart := started.Add(time.Microsecond)
+	beforeBoundary.ObservationStartedAt = &shortStart
+	if svc.rootObservationEligible(beforeBoundary, proof) {
+		t.Fatal("observation eligible before the exact duration boundary")
+	}
+	futureConfirmation := job
+	future := confirmed.Add(time.Microsecond)
+	futureConfirmation.ObservationLastConfirmedAt = &future
+	if svc.rootObservationEligible(futureConfirmation, proof) {
+		t.Fatal("future confirmation eligible")
 	}
 	for _, version := range []int{6, 7} {
 		oldJob, oldProof := job, proof

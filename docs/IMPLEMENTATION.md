@@ -4,6 +4,26 @@ Updated: 2026-10-11. This document records engineering contracts, work packages 
 
 ## Current execution status (2026-10-11)
 
+A test-only follow-up makes the Discord root-observation fixture deterministic at
+persisted microsecond precision. Its existing exact-duration positive remains,
+with added denials one microsecond before the boundary and for a future confirmation.
+Production clock precision, observation eligibility and all root-inventory V8
+history predicates remain unchanged. This corrects the Linux Backend Checks failure
+in CI `38091365922`; the failed run remains historical evidence.
+
+Focused race coverage, formatting, mandatory checking and complete Task pass on the
+unchanged 2,397-path source: 6,539 frontend tests in 240 files, backend race/coverage,
+development lifecycle and embedded production assets. Complete Task SHA-256:
+`d0ddfde707f18f881361d33fb3d543b1cd5a4fd777b09c3e14a1e1177e9a22c1`.
+Documentation is then synchronized and mandatory checking renewed before commit.
+This fixture-only change supplies no new database, browser or external-provider
+acceptance. Browser validation remains pending while the user cannot unlock.
+F03/A15 remain Partial; totals remain **15 Completed / 14 Partial / 1 Not started**.
+API-Key delivery and forced SSO remain private candidates, and the overall objective
+stays active.
+
+## Historical clock and formatting checkpoints
+
 A follow-up formatting maintenance phase corrects nine Go files and changes
 `check-backend` to fail when `gofmt` reports unformatted source, using
 `scripts/check-gofmt.sh`. The existing `lint` command remains the automatic fix.
