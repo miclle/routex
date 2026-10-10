@@ -178,7 +178,7 @@ uses a reviewed default generation, explicit owners and sparse initial overrides
 durable receipts reconcile the exact original request after uncertain responses.
 Initial Team Model selection remains a separate pending capability.
 
-Gateway and delivery contracts: [Chat inference](docs/GATEWAY.md), [native Responses](docs/RESPONSES.md), [native Messages](docs/MESSAGES.md), [native Gemini](docs/GEMINI.md), [Playground](docs/PLAYGROUND.md), [Team Session inference](docs/TEAM_INFERENCE.md), [Team resource limits](docs/TEAM_LIMITS.md), [Team monthly requests](docs/TEAM_REQUESTS.md), [Team roles](docs/TEAM_ROLES.md), [managed egress](docs/EGRESS.md), [SMTP administration and controlled test delivery](docs/SMTP.md), [operational alerts and notifications](docs/NOTIFICATIONS.md), [Provider quality](docs/PROVIDER_QUALITY.md), [object storage and owned attachments](docs/STORAGE.md), [runtime publication](docs/RUNTIME.md), [durable call records](docs/CALLS.md), [usage queries](docs/USAGE.md), [Team usage](docs/TEAM_USAGE.md), [System Status](docs/SYSTEM_STATUS.md), [audit log](docs/AUDIT.md), [governance](docs/GOVERNANCE.md), [Teams and Projects](docs/RESOURCES.md), [Project Keys](docs/PROJECT_KEYS.md), [Project resource requests](docs/PROJECT_REQUESTS.md), [offboarding](docs/OFFBOARDING.md), and [site settings and announcements](docs/SITE.md), [account security](docs/ACCOUNT.md), and [two-step verification](docs/MFA.md). [Internal secret storage and root rotation](docs/SECRETS.md) documents the keyring and guarded ten-domain inventory V5, preserving historical V1/five, V2/seven, V3/eight and V4/nine meanings. Current OIDC expansion has complete controlled database and process acceptance; bilingual OIDC browser and real-provider acceptance remain open. Preserve the encryption root key and the configured local call-journal file across restarts. The journal requires persistent writable storage; production remains one process, with external integration and performance acceptance still open.
+Gateway and delivery contracts: [Chat inference](docs/GATEWAY.md), [native Responses](docs/RESPONSES.md), [native Messages](docs/MESSAGES.md), [native Gemini](docs/GEMINI.md), [Playground](docs/PLAYGROUND.md), [Team Session inference](docs/TEAM_INFERENCE.md), [Team resource limits](docs/TEAM_LIMITS.md), [Team monthly requests](docs/TEAM_REQUESTS.md), [Team roles](docs/TEAM_ROLES.md), [managed egress](docs/EGRESS.md), [SMTP administration and controlled test delivery](docs/SMTP.md), [operational alerts and notifications](docs/NOTIFICATIONS.md), [Provider quality](docs/PROVIDER_QUALITY.md), [object storage and owned attachments](docs/STORAGE.md), [runtime publication](docs/RUNTIME.md), [durable call records](docs/CALLS.md), [usage queries](docs/USAGE.md), [Team usage](docs/TEAM_USAGE.md), [System Status](docs/SYSTEM_STATUS.md), [audit log](docs/AUDIT.md), [governance](docs/GOVERNANCE.md), [Teams and Projects](docs/RESOURCES.md), [Project Keys](docs/PROJECT_KEYS.md), [Project resource requests](docs/PROJECT_REQUESTS.md), [offboarding](docs/OFFBOARDING.md), and [site settings and announcements](docs/SITE.md), [account security](docs/ACCOUNT.md), and [two-step verification](docs/MFA.md). [Internal secret storage and root rotation](docs/SECRETS.md) documents the keyring and guarded current eleven-domain inventory V7, preserving historical V1/five, V2/seven, V3/eight, V4/nine, V5/ten and V6/eleven GitHub-only coverage. Current OIDC expansion has complete controlled database and process acceptance; bilingual OIDC browser and real-provider acceptance remain open. Preserve the encryption root key and the configured local call-journal file across restarts. The journal requires persistent writable storage; production remains one process, with external integration and performance acceptance still open.
 
 Member model visibility and native API availability are displayed separately.
 Unavailable protocols have localized guidance without fabricated request examples;
@@ -247,3 +247,21 @@ original PostgreSQL/MySQL integration matrix and separate real-process
 authentication lifecycle pass. Bilingual browser and external IdP acceptance
 remain open.
 SAML does not satisfy the verified OIDC/LDAP-only enforced-SSO policy.
+
+[Existing-member GitHub](docs/GITHUB.md) provides a separate fixed GitHub.com OAuth
+App configuration, explicit local-proof linking, manual clean completion and
+native MFA. It creates no members and grants no claim-derived roles. Controlled
+application, database and restart qualification is `passed`;
+root-confirmed combined phase evidence is recorded in
+[Implementation](docs/IMPLEMENTATION.md). Registered OAuth App interoperability
+and bilingual browser acceptance remain open.
+
+
+[Existing-member Google](docs/GOOGLE.md) adds an independent fixed OIDC profile
+with state, nonce, S256, signed ID-token validation and exact string-subject
+linking. It uses the existing authentication and Account Security layout, explicit
+verification/enablement and native MFA, without automatic provisioning or email
+matching. Root inventory V7 keeps eleven domains while preserving historical V6
+coverage. Controlled qualification is `passed`; root-confirmed
+combined phase evidence is recorded in [Implementation](docs/IMPLEMENTATION.md).
+Bilingual browser and external-provider acceptance remain open.

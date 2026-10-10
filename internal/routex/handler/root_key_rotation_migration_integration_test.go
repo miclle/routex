@@ -88,8 +88,8 @@ func testRootKeyRotationMigration(t *testing.T, db *gorm.DB) {
 				t.Fatal(err)
 			}
 		}
-		if result := db.Table("schema_migrations").Where("version IN ?", []int{48, 72, 94, 95, 96, 97}).Delete(&struct{}{}); result.Error != nil || result.RowsAffected != 6 {
-			t.Fatal("reconstruct V48 and additive V72/V94/V95/V96/V97 ledgers independently", result.Error, result.RowsAffected)
+		if result := db.Table("schema_migrations").Where("version IN ?", []int{48, 72, 94, 95, 96, 97, 98, 99}).Delete(&struct{}{}); result.Error != nil || result.RowsAffected != 8 {
+			t.Fatal("reconstruct V48 and additive V72/V94/V95/V96/V97/V98/V99 ledgers independently", result.Error, result.RowsAffected)
 		}
 		// Reconstruct the released operational code guard without touching its rows.
 		if err := db.Migrator().DropConstraint(&rootSystemJobCodeV47Fixture{}, "ck_system_jobs_code"); err != nil {
@@ -173,6 +173,7 @@ func testRootKeyRotationMigration(t *testing.T, db *gorm.DB) {
 			}
 		}
 	}
+	assertRetainedRootInventoryV7(t, db, "v48", stamp)
 	var adminPermissions, memberPermissions int64
 	if err := db.Table("role_permissions").Where("role_id = ? AND permission IN ?", "rol_admin", []string{"secrets.read", "secrets.rotate"}).Count(&adminPermissions).Error; err != nil {
 		t.Fatal(err)
@@ -264,5 +265,43 @@ func testRootKeyRotationMigration(t *testing.T, db *gorm.DB) {
 	}
 	if err := db.Model(&entity.SecretProcessVerification{}).Where("process_id = ?", proof.ProcessID).Update("CryptoVersion", 1).Error; err == nil {
 		t.Fatal("V48 accepted unsupported crypto process proof")
+	}
+}
+
+// Historical reconstruction must replay every additive root-inventory step.
+// Use separate current-envelope rows so retained legacy history is never relabeled.
+func assertRetainedRootInventoryV7(t *testing.T, db *gorm.DB, label string, stamp time.Time) {
+	t.Helper()
+	job := entity.SecretRotationJob{ID: "srt_v7_" + label, InventoryVersion: 7, SourceKeyID: "source", TargetKeyID: "target", CutoverEpoch: 1, ScanGeneration: 1, ETag: strings.Repeat("f", 64), Status: "migrating", Phase: "migration", Domain: 11, CountsJSON: "{}", CreatedAt: stamp, UpdatedAt: stamp}
+	if err := db.Create(&job).Error; err != nil {
+		t.Fatal("reconstructed current V7 eleven-domain job rejected", label, err)
+	}
+	var savedJob entity.SecretRotationJob
+	if err := db.Take(&savedJob, "id = ?", job.ID).Error; err != nil || savedJob.InventoryVersion != 7 || savedJob.Domain != 11 {
+		t.Fatal("reconstructed current V7 job facts changed", label, err)
+	}
+	for _, change := range []map[string]any{{"Domain": -1}, {"Domain": 12}, {"InventoryVersion": 8}} {
+		if err := db.Model(&entity.SecretRotationJob{}).Where("id = ?", job.ID).Updates(change).Error; err == nil {
+			t.Fatal("reconstructed current V7 job accepted invalid envelope", label, change)
+		}
+		var observed entity.SecretRotationJob
+		if err := db.Take(&observed, "id = ?", job.ID).Error; err != nil || !reflect.DeepEqual(savedJob, observed) {
+			t.Fatal("rejected current inventory change altered durable job", label, err)
+		}
+	}
+	proof := entity.SecretProcessVerification{ProcessID: "ins_v7_" + label, InventoryVersion: 7, PolicyEpoch: 1, CryptoVersion: 2, KeyManifestDigest: strings.Repeat("d", 64), LeaseToken: "lck_v7_" + label, RuntimeSnapshotID: "cfg_v7_" + label, RuntimeSourceDigest: strings.Repeat("e", 64), VerifiedAt: stamp}
+	if err := db.Create(&proof).Error; err != nil {
+		t.Fatal("reconstructed current V7 process proof rejected", label, err)
+	}
+	var savedProof entity.SecretProcessVerification
+	if err := db.Take(&savedProof, "process_id = ?", proof.ProcessID).Error; err != nil || savedProof.InventoryVersion != 7 {
+		t.Fatal("reconstructed current V7 process facts changed", label, err)
+	}
+	if err := db.Model(&entity.SecretProcessVerification{}).Where("process_id = ?", proof.ProcessID).Update("InventoryVersion", 8).Error; err == nil {
+		t.Fatal("reconstructed process accepted unsupported future inventory", label)
+	}
+	var observed entity.SecretProcessVerification
+	if err := db.Take(&observed, "process_id = ?", proof.ProcessID).Error; err != nil || !reflect.DeepEqual(savedProof, observed) {
+		t.Fatal("rejected future inventory changed durable process proof", label, err)
 	}
 }

@@ -152,6 +152,54 @@ func rootRotationSeedLegacy(t *testing.T, db *gorm.DB, store *secretstore.Store)
 	if ldap.Error != nil || ldap.RowsAffected != 1 {
 		t.Fatal("seed retained LDAP singleton", ldap.Error, ldap.RowsAffected)
 	}
+	// The fixed named profile remains distinct from the configurable OAuth domain.
+	githubID, githubGeneration := "github", strings.Repeat("9", 64)
+	github := db.Model(&entity.NamedIdentityProvider{}).Where("id = ?", githubID).Updates(map[string]any{
+		"Name": "Retained GitHub provider", "ClientID": "test-only-root-github-client",
+		"CallbackURL": "https://routex.example.invalid/api/v1/auth/github/callback",
+		"Enabled":     false, "SecretGeneration": githubGeneration,
+		"AuthCiphertext": seal("named_identity_providers", "id", githubID, "auth_ciphertext", "named-identity:github.com.oauth-app.v1:github:"+githubGeneration, "test-only-retained-github-client-secret"),
+	})
+	if github.Error != nil || github.RowsAffected != 1 {
+		t.Fatal("seed retained fixed named singleton", github.Error, github.RowsAffected)
+	}
+	var githubSecret struct{ AuthCiphertext string }
+	if db.Table("named_identity_providers").Select("auth_ciphertext").Where("id = ?", githubID).Take(&githubSecret).Error != nil {
+		t.Fatal("read controlled encrypted named secret")
+	}
+	validReference := "named-identity:github.com.oauth-app.v1:github:" + githubGeneration
+	if plaintext, err := store.Open(validReference, githubSecret.AuthCiphertext); err != nil || plaintext != "test-only-retained-github-client-secret" {
+		t.Fatal("exact named secret AAD positive")
+	}
+	for _, wrong := range []string{"named-identity:github.com.oauth-app.v2:github:" + githubGeneration, "named-identity:github.com.oauth-app.v1:other:" + githubGeneration, "named-identity:github.com.oauth-app.v1:github:" + strings.Repeat("8", 64), "oauth:oauth:" + githubGeneration} {
+		if _, err := store.Open(wrong, githubSecret.AuthCiphertext); err == nil {
+			t.Fatal("named secret accepted another profile/provider/generation/domain")
+		}
+	}
+	// The fixed named profile remains distinct from the configurable OAuth domain.
+	googleID, googleGeneration := "google", strings.Repeat("a", 64)
+	google := db.Model(&entity.NamedIdentityProvider{}).Where("id = ?", googleID).Updates(map[string]any{
+		"Name": "Retained Google provider", "ClientID": "test-only-root-google-client",
+		"CallbackURL": "https://routex.example.invalid/api/v1/auth/google/callback",
+		"Enabled":     false, "SecretGeneration": googleGeneration,
+		"AuthCiphertext": seal("named_identity_providers", "id", googleID, "auth_ciphertext", "named-identity:google.oidc.v1:google:"+googleGeneration, "test-only-retained-google-client-secret"),
+	})
+	if google.Error != nil || google.RowsAffected != 1 {
+		t.Fatal("seed retained fixed named singleton", google.Error, google.RowsAffected)
+	}
+	var googleSecret struct{ AuthCiphertext string }
+	if db.Table("named_identity_providers").Select("auth_ciphertext").Where("id = ?", googleID).Take(&googleSecret).Error != nil {
+		t.Fatal("read controlled encrypted named secret")
+	}
+	googleReference := "named-identity:google.oidc.v1:google:" + googleGeneration
+	if plaintext, err := store.Open(googleReference, googleSecret.AuthCiphertext); err != nil || plaintext != "test-only-retained-google-client-secret" {
+		t.Fatal("exact named secret AAD positive")
+	}
+	for _, wrong := range []string{"named-identity:google.oidc.v2:google:" + googleGeneration, "named-identity:google.oidc.v1:other:" + googleGeneration, "named-identity:google.oidc.v1:google:" + strings.Repeat("8", 64), "oauth:oauth:" + googleGeneration, "named-identity:github.com.oauth-app.v1:github:" + googleGeneration} {
+		if _, err := store.Open(wrong, googleSecret.AuthCiphertext); err == nil {
+			t.Fatal("named secret accepted another profile/provider/generation/domain")
+		}
+	}
 	return result
 }
 
@@ -929,7 +977,7 @@ func testRootKeyRotationLifecycle(t *testing.T, db *gorm.DB) {
 	if observing.Rotation == nil || observing.Rotation.Status != "observing" || observing.Rotation.ObservationStartedAt == nil || observing.Rotation.ObservationEligibleAt == nil || observing.Rotation.ObservationEligibleAt.Sub(*observing.Rotation.ObservationStartedAt) != 300*time.Second || slices.Contains(observing.Rotation.AllowedActions, "retire") {
 		t.Fatalf("migration progress bypassed server observation: %+v", observing.Rotation)
 	}
-	expectedDomains := map[string]uint64{"provider_credentials": 2, "egresses": 1, "smtp_settings": 1, "storage_revisions": 25, "user_mfa": 4, "vault_writer_auth": 2, "vault_reader_auth": 2, "oidc_providers": 1, "oauth_providers": 1, "ldap_providers": 1}
+	expectedDomains := map[string]uint64{"provider_credentials": 2, "egresses": 1, "smtp_settings": 1, "storage_revisions": 25, "user_mfa": 4, "vault_writer_auth": 2, "vault_reader_auth": 2, "oidc_providers": 1, "oauth_providers": 1, "ldap_providers": 1, "named_identity_providers": 2}
 	if len(observing.Rotation.Domains) != len(expectedDomains) {
 		t.Fatal("global observation omitted a retained encryption domain")
 	}

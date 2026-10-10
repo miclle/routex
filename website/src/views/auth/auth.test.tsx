@@ -77,8 +77,18 @@ beforeEach(() => {
         etag: 0,
       }
     if (key === 'get /announcements') response.data = { items: [] }
-    if (key === 'get /auth/oauth' || key === 'get /auth/oidc')
+    if (
+      key === 'get /auth/oauth' ||
+      key === 'get /auth/oidc' ||
+      key === 'get /auth/github' ||
+      key === 'get /auth/google'
+    )
       response.data = { available: false, name: '' }
+    if (key === 'get /auth/github' || key === 'get /auth/google') {
+      response.headers.set('Cache-Control', 'private, no-store')
+      response.headers.set('X-Content-Type-Options', 'nosniff')
+      response.headers.set('Referrer-Policy', 'no-referrer')
+    }
     if (key === 'get /auth/registration')
       response.data = {
         enabled: registrationEnabled,

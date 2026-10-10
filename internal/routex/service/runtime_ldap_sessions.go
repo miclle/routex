@@ -61,6 +61,9 @@ func loadLDAPSessionRuntimeData(tx *gorm.DB, data *teamSessionRuntimeData) error
 }
 
 func ldapRuntimePrimary(row entity.Session, p *entity.LDAPProvider, bindings map[string]entity.LDAPBinding, users map[string]entity.User) bool {
+	if !namedIdentityProofEmpty(row) {
+		return false
+	}
 	if row.PrimaryMethod == "" {
 		return row.LDAPBindingID == "" && row.LDAPBindingCreatedAt == nil && row.LDAPConfigRevision == "" && row.LDAPPolicyRevision == "" && row.LDAPUserCreatedAt == nil
 	}

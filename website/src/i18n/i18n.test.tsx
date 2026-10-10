@@ -142,7 +142,13 @@ describe('localization contract', () => {
     for (const [file, value] of Object.entries(sources)) {
       if (file.includes('.test.')) continue
       const source = value as string
-      const namespace = source.match(/useTranslation\(['"]([^'"]+)['"]\)/)?.[1] ?? 'common'
+      const sharedNamedMethod =
+        /\/views\/github\/(account|config|complete|login-button)\.tsx$/.test(file) &&
+        /useTranslation\((method|profile)\)/.test(source)
+      // Google contains every shared key; its setup-only keys stay inside the Google branch.
+      const namespace =
+        source.match(/useTranslation\(['"]([^'"]+)['"]\)/)?.[1] ??
+        (sharedNamedMethod ? 'google' : 'common')
       for (const match of source.matchAll(/\bt\(['"]([^'"]+)['"]/g)) {
         expect(
           i18n.exists(match[1], { ns: namespace, lng: 'en', count: 2 }),

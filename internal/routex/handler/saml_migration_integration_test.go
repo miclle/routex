@@ -156,6 +156,7 @@ func (samlWrongOwnerColumnV97) TableName() string { return "saml_bindings" }
 // identity, assertion receipt or provenance may be discarded by older fixtures.
 func legacyMigrationBeforeV97(t *testing.T, db *gorm.DB) {
 	t.Helper()
+	legacyMigrationBeforeV98(t, db)
 	rows := personalKeyBehaviorLedger(t, db)
 	if len(rows) != 97 {
 		t.Fatal("historical fixture requires exact current V97 ledger")
@@ -206,6 +207,7 @@ func testSAMLMigration(t *testing.T, db *gorm.DB) {
 	ctx, cancel := context.WithTimeout(context.Background(), 180*time.Second)
 	defer cancel()
 	db = db.WithContext(ctx)
+	legacyMigrationBeforeV98(t, db)
 	original := personalKeyBehaviorLedger(t, db)
 	if len(original) != 97 {
 		t.Fatal("exact V97 ledger required")
@@ -239,7 +241,7 @@ func testSAMLMigration(t *testing.T, db *gorm.DB) {
 	}
 	migrate := func() {
 		t.Helper()
-		if e := database.Migrate(ctx, db); e != nil {
+		if e := database.MigrateThrough(ctx, db, 97); e != nil {
 			t.Fatal("restore V97", e)
 		}
 		ledger(true)
@@ -270,7 +272,7 @@ func testSAMLMigration(t *testing.T, db *gorm.DB) {
 		}
 	}
 	assertDefault()
-	for _, bound := range []int{0, -1, 96, 98} {
+	for _, bound := range []int{0, -1, 96, 100} {
 		before := personalKeyBehaviorLedger(t, db)
 		if database.MigrateThrough(ctx, db, bound) == nil || !reflect.DeepEqual(before, personalKeyBehaviorLedger(t, db)) {
 			t.Fatal("invalid/newer bound admitted", bound)
@@ -368,7 +370,7 @@ func testSAMLMigration(t *testing.T, db *gorm.DB) {
 	var wg sync.WaitGroup
 	results := make(chan error, 2)
 	for range 2 {
-		wg.Go(func() { results <- database.Migrate(ctx, db) })
+		wg.Go(func() { results <- database.MigrateThrough(ctx, db, 97) })
 	}
 	wg.Wait()
 	close(results)
@@ -408,7 +410,7 @@ func testSAMLMigration(t *testing.T, db *gorm.DB) {
 			t.Fatal("install incompatible shape", bad.field)
 		}
 		remove()
-		if database.Migrate(ctx, db) == nil {
+		if database.MigrateThrough(ctx, db, 97) == nil {
 			t.Fatal("incompatible shape accepted", bad.field)
 		}
 		ledger(false)
@@ -424,7 +426,7 @@ func testSAMLMigration(t *testing.T, db *gorm.DB) {
 			t.Fatal("install incompatible index")
 		}
 		remove()
-		if database.Migrate(ctx, db) == nil {
+		if database.MigrateThrough(ctx, db, 97) == nil {
 			t.Fatal("incompatible index accepted")
 		}
 		ledger(false)
@@ -588,7 +590,7 @@ func testSAMLMigration(t *testing.T, db *gorm.DB) {
 		t.Fatal("install retained unproven tuple")
 	}
 	remove()
-	if database.Migrate(ctx, db) == nil {
+	if database.MigrateThrough(ctx, db, 97) == nil {
 		t.Fatal("V97 accepted retained unproven tuple")
 	}
 	ledger(false)
@@ -603,6 +605,19 @@ func testSAMLMigration(t *testing.T, db *gorm.DB) {
 	}
 	migrate()
 	current("retained_invalid_repaired")
+	// V97 was deliberately replayed; preserve its current durable receipt and
+	// original V1-V96 prefix while appending only the current V98 successor.
+	beforeSuccessor := personalKeyBehaviorLedger(t, db)
+	if len(beforeSuccessor) != 97 || beforeSuccessor[96].Version != 97 || !reflect.DeepEqual(original[:96], beforeSuccessor[:96]) {
+		t.Fatal("historical V97 closure lost retained prefix or current V97 receipt")
+	}
+	if err := database.Migrate(ctx, db); err != nil {
+		t.Fatal("restore full V98 after historical V97", err)
+	}
+	final := personalKeyBehaviorLedger(t, db)
+	if len(final) != 99 || final[98].Version != 99 || final[97].Version != 98 || !reflect.DeepEqual(beforeSuccessor, final[:97]) {
+		t.Fatal("historical V97 closure lost original rows or V98 suffix")
+	}
 }
 
 // samlMigrationDifferentFields preserves every field. Only timestamps use exact

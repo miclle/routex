@@ -267,7 +267,7 @@ func testLDAPMigration(t *testing.T, db *gorm.DB) {
 		}
 	}
 	assertDefault()
-	for _, bound := range []int{0, -1, 95, 98} {
+	for _, bound := range []int{0, -1, 95, 100} {
 		before := personalKeyBehaviorLedger(t, db)
 		if database.MigrateThrough(ctx, db, bound) == nil || !reflect.DeepEqual(before, personalKeyBehaviorLedger(t, db)) {
 			t.Fatal("bounded ledger rejection", bound)
@@ -515,7 +515,7 @@ func testLDAPMigration(t *testing.T, db *gorm.DB) {
 	}
 	current("after_primary_negatives")
 	// V96 was deliberately replayed above; preserve its current durable receipt
-	// and the original V1-V95 prefix while appending only the V97 suffix.
+	// and original V1-V95 prefix while appending the V97/V98 suffix.
 	beforeSuffix := personalKeyBehaviorLedger(t, db)
 	if len(beforeSuffix) != 96 || beforeSuffix[95].Version != 96 || !reflect.DeepEqual(original[:95], beforeSuffix[:95]) {
 		t.Fatal("LDAP historical closure lost retained V1-V95 prefix or current V96 receipt")
@@ -524,8 +524,8 @@ func testLDAPMigration(t *testing.T, db *gorm.DB) {
 		t.Fatal("restore current after historical LDAP fixture", err)
 	}
 	finalLedger := personalKeyBehaviorLedger(t, db)
-	if len(finalLedger) != 97 || finalLedger[96].Version != 97 || !reflect.DeepEqual(beforeSuffix, finalLedger[:96]) {
-		t.Fatal("LDAP historical closure lost retained V96 prefix or V97 suffix")
+	if len(finalLedger) != 99 || finalLedger[98].Version != 99 || finalLedger[97].Version != 98 || finalLedger[96].Version != 97 || !reflect.DeepEqual(beforeSuffix, finalLedger[:96]) {
+		t.Fatal("LDAP historical closure lost retained V96 prefix or V97/V98 suffix")
 	}
 
 }

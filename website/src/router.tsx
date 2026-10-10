@@ -6,6 +6,14 @@ import { UncertainIntentProvider } from '@/context/uncertain-intents'
 
 const routes: RouteObject[] = [
   {
+    path: '/auth/google/complete',
+    lazy: async () => ({ Component: (await import('@/views/google/complete')).default }),
+  },
+  {
+    path: '/auth/github/complete',
+    lazy: async () => ({ Component: (await import('@/views/github/complete')).default }),
+  },
+  {
     path: '/auth/saml/complete',
     lazy: async () => ({ Component: (await import('@/views/saml/complete')).default }),
   },

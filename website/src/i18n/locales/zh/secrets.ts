@@ -114,7 +114,7 @@ export default {
     loading: '正在等待最新的存储权限与策略。',
     loadError: '存储策略不可用，请刷新已授权的读取。',
   },
-  currentInventory: '当前清单覆盖十个密钥领域。',
+  currentInventory: '当前 V7 清单覆盖十一个密钥领域，包括 GitHub 和 Google 客户端密钥。',
   historicalInventory: '此历史轮换覆盖 {{count}} 个领域，不证明当前清单的覆盖情况。',
   originalIntent: '原始结果未知的意图',
   originalETag: '原始复核 ETag',
@@ -340,4 +340,5 @@ export default {
       unknown: '未知',
     },
   },
+  named_identity_providers: '命名身份提供方客户端密钥',
 }

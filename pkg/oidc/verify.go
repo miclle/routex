@@ -77,14 +77,22 @@ func readKeys(ctx context.Context, client *http.Client, rawURL string) ([]jose.J
 }
 
 func (c *Client) verify(ctx context.Context, raw string, nonce string, keys []jose.JSONWebKey, accessToken string) (Identity, error) {
+	issuer := c.config.Issuer
+	if c.config.google {
+		var err error
+		issuer, err = googleTokenIssuer(raw)
+		if err != nil {
+			return Identity{}, ErrProtocol
+		}
+	}
 	selected, err := selectKeys(raw, c.algorithms, keys)
 	if err != nil {
 		return Identity{}, err
 	}
-	verifier := coreoidc.NewVerifier(c.config.Issuer, &coreoidc.StaticKeySet{PublicKeys: selected},
+	verifier := coreoidc.NewVerifier(issuer, &coreoidc.StaticKeySet{PublicKeys: selected},
 		&coreoidc.Config{ClientID: c.config.ClientID, SupportedSigningAlgs: c.algorithms})
 	token, err := verifier.Verify(ctx, raw)
-	if err != nil || ctx.Err() != nil || token.Issuer != c.config.Issuer || !subject(token.Subject) ||
+	if err != nil || ctx.Err() != nil || token.Issuer != issuer || !subject(token.Subject) ||
 		subtle.ConstantTimeCompare([]byte(token.Nonce), []byte(nonce)) != 1 {
 		return Identity{}, ErrProtocol
 	}
@@ -119,7 +127,10 @@ func (c *Client) verify(ctx context.Context, raw string, nonce string, keys []jo
 	if ctx.Err() != nil {
 		return Identity{}, ErrUnavailable
 	}
-	return Identity{Issuer: token.Issuer, Subject: token.Subject}, nil
+	if c.config.google {
+		issuer = googleIssuer
+	}
+	return Identity{Issuer: issuer, Subject: token.Subject}, nil
 }
 
 func subject(value string) bool {

@@ -101,6 +101,11 @@ func (t *boundedTransport) RoundTrip(request *http.Request) (*http.Response, err
 	if response.StatusCode != http.StatusOK || mediaErr != nil || mediaType != "application/json" {
 		return nil, ErrProtocol
 	}
+	if t.config.google {
+		if _, err := googleJSONObject(body); err != nil {
+			return nil, ErrProtocol
+		}
+	}
 	copyResponse := *response
 	copyResponse.Body = io.NopCloser(bytes.NewReader(body))
 	copyResponse.ContentLength = int64(len(body))

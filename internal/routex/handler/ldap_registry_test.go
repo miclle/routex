@@ -26,7 +26,7 @@ func TestLDAPRegistry191Preserves188AndRejectsIdentityDrift(t *testing.T) {
 	for _, match := range regexp.MustCompile(`\{"([^"\n]+)", (test[A-Za-z0-9]+)\}`).FindAllStringSubmatch(string(raw), -1) {
 		names = append(names, match[1]+":"+match[2])
 	}
-	if !samlRegistry194Current(names) {
+	if !googleRegistry200Current(names) {
 		t.Fatal("exact194 ordered SAML successor required")
 	}
 	names = names[:191]
@@ -89,9 +89,10 @@ func TestSAMLRegistry194Preserves191AndRejectsIdentityDrift(t *testing.T) {
 	for _, match := range regexp.MustCompile(`\{"([^"\n]+)", (test[A-Za-z0-9]+)\}`).FindAllStringSubmatch(string(raw), -1) {
 		names = append(names, match[1]+":"+match[2])
 	}
-	if !samlRegistry194Current(names) {
+	if !googleRegistry200Current(names) {
 		t.Fatal("exact194 ordered SAML successor required")
 	}
+	names = names[:194]
 	if !ldapRegistry191Current(names[:191]) || samlRegistry194Current(names[:191]) {
 		t.Fatal("historical191 must remain valid without proving194")
 	}

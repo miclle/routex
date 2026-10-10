@@ -13,7 +13,7 @@ func TestRootSecretObservationRequiresContinuousExactGeneration(t *testing.T) {
 	last := start.Add(300 * time.Second)
 	now := last
 	svc := &Service{rootNow: func() time.Time { return now }}
-	job := entity.SecretRotationJob{InventoryVersion: rootInventoryVersion, Domain: 10, CountsJSON: `{"provider_credentials":{},"egresses":{},"smtp_settings":{},"storage_revisions":{},"user_mfa":{},"vault_writer_auth":{},"vault_reader_auth":{},"oidc_providers":{},"oauth_providers":{},"ldap_providers":{}}`, Status: "ready", ObservationStartedAt: &start, ObservationLastConfirmedAt: &last, VerifiedProcessID: "ins_current", VerifiedSnapshotID: "cfg_current"}
+	job := entity.SecretRotationJob{InventoryVersion: rootInventoryVersion, Domain: 11, CountsJSON: `{"provider_credentials":{},"egresses":{},"smtp_settings":{},"storage_revisions":{},"user_mfa":{},"vault_writer_auth":{},"vault_reader_auth":{},"oidc_providers":{},"oauth_providers":{},"ldap_providers":{},"named_identity_providers":{}}`, Status: "ready", ObservationStartedAt: &start, ObservationLastConfirmedAt: &last, VerifiedProcessID: "ins_current", VerifiedSnapshotID: "cfg_current"}
 	proof := entity.SecretProcessVerification{InventoryVersion: rootInventoryVersion, ProcessID: "ins_current", RuntimeSnapshotID: "cfg_current"}
 	if !svc.rootObservationEligible(job, proof) {
 		t.Fatal("continuous300s not eligible")
@@ -82,7 +82,7 @@ func TestRootSecretJobProgressHasNoInventedDenominator(t *testing.T) {
 	}
 }
 func TestRootSecretAllHistoricalDomainsAndReferenceIdentity(t *testing.T) {
-	if len(rootDomains) != 10 {
+	if len(rootDomains) != 11 {
 		t.Fatal("partial-domain rotation")
 	}
 	for _, domain := range rootDomains {
@@ -90,7 +90,11 @@ func TestRootSecretAllHistoricalDomainsAndReferenceIdentity(t *testing.T) {
 		if err != nil || spec.ciphertext == "" {
 			t.Fatal("missing actual envelope domain")
 		}
-		reference := rootReference(domain, "subject", "generation")
+		subject := "subject"
+		if domain == "named_identity_providers" {
+			subject = githubProviderID
+		}
+		reference := rootReference(domain, subject, "generation")
 		if reference == "" {
 			t.Fatal("missing exact reference")
 		}
@@ -180,4 +184,11 @@ func TestRootOIDCInventoryKeepsHistoricalScopesSeparate(t *testing.T) {
 	if s.rootObservationEligible(job, proof) {
 		t.Fatal("old nine-domain proof authorized ten-domain retirement")
 	}
+	job.InventoryVersion = 5
+	job.Domain = 10
+	proof.InventoryVersion = 5
+	if s.rootObservationEligible(job, proof) {
+		t.Fatal("old ten-domain proof authorized eleven-domain retirement")
+	}
+
 }

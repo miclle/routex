@@ -25,7 +25,7 @@ func (ctrl *Ctrl) RegisterRoutes(r *fox.Engine) {
 	// Native query credentials must never be reflected by pre-middleware redirects.
 	r.RedirectTrailingSlash = false
 	r.RedirectFixedPath = false
-	r.Engine.Use(GeminiQueryCredentials, TeamNativeInputs, OIDCInputs, OAuthInputs, SAMLInputs)
+	r.Engine.Use(GeminiQueryCredentials, TeamNativeInputs, OIDCInputs, OAuthInputs, SAMLInputs, GitHubInputs, GoogleInputs)
 	// embed website assets
 	website.EmbedAssets(r)
 
@@ -81,6 +81,32 @@ func (ctrl *Ctrl) RegisterRoutes(r *fox.Engine) {
 	identity.PUT("/admin/auth/oauth", sameOrigin, ctrl.requireSession, requireCSRF, jsonManagementRequest, ctrl.SaveOAuthProvider)
 	identity.POST("/admin/auth/oauth/verify", sameOrigin, ctrl.requireSession, requireCSRF, jsonManagementRequest, ctrl.StartOAuthVerification)
 	identity.PUT("/admin/auth/oauth/status", sameOrigin, ctrl.requireSession, requireCSRF, jsonManagementRequest, ctrl.SetOAuthEnabled)
+
+	identity.GET("/auth/github", identityPrivate, ctrl.PublicGitHub)
+	identity.POST("/auth/github/start", identityPrivate, sameOrigin, jsonAuthRequest, ctrl.StartGitHubLogin)
+	identity.GET("/auth/github/callback", identityPrivate, ctrl.GitHubCallback)
+	identity.POST("/auth/github/complete", identityPrivate, sameOrigin, jsonAuthRequest, ctrl.CompleteGitHub)
+	identity.POST("/auth/github/abandon", identityPrivate, sameOrigin, jsonAuthRequest, ctrl.AbandonGitHub)
+	identity.GET("/admin/auth/github", identityPrivate, ctrl.requireSession, ctrl.GetGitHubProvider)
+	identity.PUT("/admin/auth/github", identityPrivate, sameOrigin, ctrl.requireSession, requireCSRF, jsonManagementRequest, ctrl.SaveGitHubProvider)
+	identity.POST("/admin/auth/github/verify", identityPrivate, sameOrigin, ctrl.requireSession, requireCSRF, jsonManagementRequest, ctrl.StartGitHubVerification)
+	identity.PUT("/admin/auth/github/status", identityPrivate, sameOrigin, ctrl.requireSession, requireCSRF, jsonManagementRequest, ctrl.SetGitHubEnabled)
+	identity.GET("/account/identity/github", identityPrivate, ctrl.requireSession, ctrl.AccountGitHub)
+	identity.POST("/account/identity/github/bind", identityPrivate, sameOrigin, ctrl.requireSession, requireCSRF, jsonManagementRequest, ctrl.StartGitHubBinding)
+	identity.POST("/account/identity/github/unlink", identityPrivate, sameOrigin, ctrl.requireSession, requireCSRF, jsonManagementRequest, ctrl.UnlinkGitHub)
+
+	identity.GET("/auth/google", identityPrivate, ctrl.PublicGoogle)
+	identity.POST("/auth/google/start", identityPrivate, sameOrigin, jsonAuthRequest, ctrl.StartGoogleLogin)
+	identity.GET("/auth/google/callback", identityPrivate, ctrl.GoogleCallback)
+	identity.POST("/auth/google/complete", identityPrivate, sameOrigin, jsonAuthRequest, ctrl.CompleteGoogle)
+	identity.POST("/auth/google/abandon", identityPrivate, sameOrigin, jsonAuthRequest, ctrl.AbandonGoogle)
+	identity.GET("/admin/auth/google", identityPrivate, ctrl.requireSession, ctrl.GetGoogleProvider)
+	identity.PUT("/admin/auth/google", identityPrivate, sameOrigin, ctrl.requireSession, requireCSRF, jsonManagementRequest, ctrl.SaveGoogleProvider)
+	identity.POST("/admin/auth/google/verify", identityPrivate, sameOrigin, ctrl.requireSession, requireCSRF, jsonManagementRequest, ctrl.StartGoogleVerification)
+	identity.PUT("/admin/auth/google/status", identityPrivate, sameOrigin, ctrl.requireSession, requireCSRF, jsonManagementRequest, ctrl.SetGoogleEnabled)
+	identity.GET("/account/identity/google", identityPrivate, ctrl.requireSession, ctrl.AccountGoogle)
+	identity.POST("/account/identity/google/bind", identityPrivate, sameOrigin, ctrl.requireSession, requireCSRF, jsonManagementRequest, ctrl.StartGoogleBinding)
+	identity.POST("/account/identity/google/unlink", identityPrivate, sameOrigin, ctrl.requireSession, requireCSRF, jsonManagementRequest, ctrl.UnlinkGoogle)
 
 	identity.GET("/auth/saml", samlPrivate, ctrl.PublicSAML)
 	identity.POST("/auth/saml/start", samlPrivate, sameOrigin, jsonAuthRequest, ctrl.StartSAMLLogin)

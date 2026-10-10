@@ -1,7 +1,6 @@
 package handler
 
 import (
-	"errors"
 	"net/http"
 	"strconv"
 
@@ -10,29 +9,8 @@ import (
 	"github.com/miclle/routex/internal/routex/service"
 )
 
-func oauthReviewETag(c *fox.Context) (string, error) {
-	headers := c.Request.Header.Values("If-Match")
-	if len(headers) != 1 {
-		return "", apperrors.ErrBadRequest
-	}
-	value := headers[0]
-	if len(value) != 66 || value[0] != '"' || value[65] != '"' {
-		return "", apperrors.ErrBadRequest
-	}
-	value = value[1:65]
-	for _, ch := range value {
-		if (ch < '0' || ch > '9') && (ch < 'a' || ch > 'f') {
-			return "", apperrors.ErrBadRequest
-		}
-	}
-	return value, nil
-}
-func oauthNoQuery(c *fox.Context) error {
-	if c.Request.URL.RawQuery != "" || c.Request.URL.ForceQuery || c.Request.ContentLength > 64<<10 {
-		return apperrors.ErrBadRequest
-	}
-	return nil
-}
+func oauthReviewETag(c *fox.Context) (string, error) { return identityReviewETag(c) }
+func oauthNoQuery(c *fox.Context) error              { return identityNoQuery(c) }
 func (ctrl *Ctrl) PublicOAuth(c *fox.Context) (*service.OAuthPublic, error) {
 	if captureOAuthInputs(c.Request).invalid {
 		return nil, apperrors.ErrBadRequest
@@ -46,18 +24,7 @@ func oauthClearCookie(c *fox.Context) {
 	http.SetCookie(c.Writer, &http.Cookie{Name: oauthCookie, Value: "", Path: oauthCookiePath, Secure: true, HttpOnly: true, SameSite: http.SameSiteLaxMode, MaxAge: -1})
 }
 func (ctrl *Ctrl) optionalOAuthSession(c *fox.Context) (*service.Authentication, error) {
-	cookie, err := c.Request.Cookie(sessionCookie)
-	if errors.Is(err, http.ErrNoCookie) {
-		return nil, nil
-	}
-	if err != nil {
-		return nil, apperrors.ErrUnauthorized
-	}
-	auth, err := ctrl.service.Authenticate(c.Request.Context(), cookie.Value)
-	if errors.Is(err, apperrors.ErrUnauthorized) {
-		return nil, nil
-	}
-	return auth, err
+	return ctrl.optionalIdentitySession(c)
 }
 func (ctrl *Ctrl) StartOAuthLogin(c *fox.Context) (*service.OAuthStart, error) {
 	if captureOAuthInputs(c.Request).invalid {

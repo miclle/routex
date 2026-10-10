@@ -14,9 +14,9 @@ import (
 	"gorm.io/gorm/clause"
 )
 
-const rootInventoryVersion = 5
+const rootInventoryVersion = 7
 
-var rootDomains = []string{"provider_credentials", "egresses", "smtp_settings", "storage_revisions", "user_mfa", "vault_writer_auth", "vault_reader_auth", "oidc_providers", "oauth_providers", "ldap_providers"}
+var rootDomains = []string{"provider_credentials", "egresses", "smtp_settings", "storage_revisions", "user_mfa", "vault_writer_auth", "vault_reader_auth", "oidc_providers", "oauth_providers", "ldap_providers", "named_identity_providers"}
 
 type rootInventoryRow struct{ id, generation, reference, ciphertext string }
 type rootDomainSpec struct{ table, id, generation, ciphertext string }
@@ -25,7 +25,7 @@ func rootSpec(domain string) (rootDomainSpec, error) {
 	switch domain {
 	case "provider_credentials":
 		return rootDomainSpec{domain, "id", "", "ciphertext"}, nil
-	case "egresses", "storage_revisions", "vault_writer_auth", "vault_reader_auth", "oidc_providers", "oauth_providers", "ldap_providers":
+	case "egresses", "storage_revisions", "vault_writer_auth", "vault_reader_auth", "oidc_providers", "oauth_providers", "ldap_providers", "named_identity_providers":
 		return rootDomainSpec{domain, "id", "secret_generation", "auth_ciphertext"}, nil
 	case "smtp_settings":
 		return rootDomainSpec{domain, "id", "secret_generation", "auth_ciphertext"}, nil
@@ -51,6 +51,12 @@ func rootReference(domain, id, generation string) string {
 		return "vault-writer:" + id + ":" + generation
 	case "vault_reader_auth":
 		return "vault-reader:" + id + ":" + generation
+	case "named_identity_providers":
+		d, ok := namedIdentityDescriptor(id)
+		if !ok || !rootSafeIdentity(generation, 64) {
+			return ""
+		}
+		return "named-identity:" + d.profile + ":" + id + ":" + generation
 	case "ldap_providers":
 		return "ldap:" + id + ":" + generation
 	case "oauth_providers":
@@ -68,6 +74,9 @@ func rootInventoryQuery(db *gorm.DB, spec rootDomainSpec, cursor string) *gorm.D
 	fields := []string{spec.id, spec.ciphertext}
 	if spec.generation != "" {
 		fields = append(fields, spec.generation)
+	}
+	if spec.table == "named_identity_providers" {
+		fields = append(fields, "profile_id", "identity_issuer")
 	}
 	query = query.Select(fields)
 	if spec.table == "smtp_settings" {
@@ -104,7 +113,14 @@ func (s *Service) rootInventoryPage(ctx context.Context, domain, cursor string) 
 		if !rootSafeIdentity(id, 64) || (spec.generation != "" && !rootSafeIdentity(generation, 64)) || (domain == "smtp_settings" && id != "1") {
 			return nil, secretStoreUnavailable
 		}
-		result = append(result, rootInventoryRow{id, generation, rootReference(domain, id, generation), rootSQLString(row[spec.ciphertext])})
+		if domain == "named_identity_providers" && !namedIdentityProfile(id, rootSQLString(row["profile_id"]), rootSQLString(row["identity_issuer"])) {
+			return nil, secretStoreUnavailable
+		}
+		reference := rootReference(domain, id, generation)
+		if reference == "" {
+			return nil, secretStoreUnavailable
+		}
+		result = append(result, rootInventoryRow{id, generation, reference, rootSQLString(row[spec.ciphertext])})
 	}
 	return result, nil
 }
@@ -121,6 +137,13 @@ func rootExactSubject(tx *gorm.DB, spec rootDomainSpec, row rootInventoryRow) *g
 	q := personalExact(tx.Session(&gorm.Session{}).Table(spec.table), spec.id, row.id)
 	if spec.generation != "" {
 		q = personalExact(q, spec.generation, row.generation)
+	}
+	if spec.table == "named_identity_providers" {
+		d, ok := namedIdentityDescriptor(row.id)
+		if !ok {
+			return q.Where("1 = ?", 0)
+		}
+		q = q.Where(database.ExactText(tx, clause.Column{Name: "profile_id"}, d.profile)).Where(database.ExactText(tx, clause.Column{Name: "identity_issuer"}, d.issuer))
 	}
 	return q.Where(database.ExactText(tx, clause.Column{Name: spec.ciphertext}, row.ciphertext))
 }

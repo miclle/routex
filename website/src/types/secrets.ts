@@ -13,9 +13,10 @@ export const v2SecretDomains = [
 ] as const
 export const v3SecretDomains = [...v2SecretDomains, 'oidc_providers'] as const
 export const v4SecretDomains = [...v3SecretDomains, 'oauth_providers'] as const
-export const secretDomains = [...v4SecretDomains, 'ldap_providers'] as const
+export const v5SecretDomains = [...v4SecretDomains, 'ldap_providers'] as const
+export const secretDomains = [...v5SecretDomains, 'named_identity_providers'] as const
 export interface SecretRotation {
-  inventory_version: 1 | 2 | 3 | 4 | 5
+  inventory_version: 1 | 2 | 3 | 4 | 5 | 6 | 7
   id: string
   status: 'migrating' | 'blocked' | 'observing' | 'ready' | 'completed' | 'rolled_back'
   phase: 'migration' | 'verification' | 'observation' | 'completed'
@@ -37,7 +38,7 @@ export interface SecretRotation {
   allowed_actions: Exclude<SecretAction, 'start'>[]
 }
 export interface SecretStore {
-  inventory_version: 5
+  inventory_version: 7
   mode: 'internal'
   observed_at: string
   review_etag: string

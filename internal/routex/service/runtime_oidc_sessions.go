@@ -59,6 +59,9 @@ func loadOIDCSessionRuntimeData(tx *gorm.DB, data *teamSessionRuntimeData) error
 }
 
 func oidcRuntimePrimary(row entity.Session, p *entity.OIDCProvider, bindings map[string]entity.OIDCBinding, users map[string]entity.User) bool {
+	if !namedIdentityProofEmpty(row) {
+		return false
+	}
 	if row.PrimaryMethod == "" {
 		return row.OIDCBindingID == "" && row.OIDCBindingCreatedAt == nil && row.OIDCConfigRevision == "" && row.OIDCPolicyRevision == "" && row.OIDCUserCreatedAt == nil
 	}

@@ -4,6 +4,57 @@ Updated: 2026-10-10. Status: resumed by explicit user instruction; prioritize pa
 
 ## Current execution status (2026-10-10)
 
+## GitHub and Google controlled application qualification, 2026-10-10
+
+GitHub and Google are composed into one named-login application phase. Local
+mandatory checking and complete Task R6 pass, including 6,378 frontend tests in
+237 files, Go race/coverage, development lifecycle and embedded production assets.
+Complete Task SHA-256:
+`699dc3d30f30bb4f7a1547b4512b6a87ae55a5088c31945be7716ad814a6b3cf`.
+
+Focused dual-database R1 fails five migration scenarios per driver. OAuth, LDAP
+and SAML historical fixtures incorrectly reject now-supported successor bounds;
+GitHub and Google lack the required exact ceremony-purpose/status constraints,
+and GitHub uses an authored-versus-persisted timestamp comparison. These failures
+remain retained. The reviewed corrections now pass focused Go race tests, formatting and final
+mandatory/complete Task checks. The intervening R5 lint-only diagnostic-selector
+failure is retained; its equivalent promoted-method correction changes no
+assertion. That failed focused run establishes no complete application or
+database acceptance. Genuine GitHub/Google lifecycle and restart
+scenarios pass within that failed run, and its ordinary stream passes 8,835 named
+tests with three intentional TLS helper skips. Independent failed-run cleanup
+confirms all owned workers and eight restart applications absent, removed Compose
+resources, refused/fresh-bindable database ports, exact 2,348-path source/mode
+closure and preserved original development. Cleanup SHA-256:
+`c0533f8f5828ec1b64a7f992090ec4470afd2e203d947364b427164c51e14e47`.
+
+The original complete integration R1 also remains failed: two migration scenario
+children per database reject retained ledger/inventory fixtures. Its unfiltered
+ordinary stream records 8,853 passes and three intentional TLS helper skips. The
+run contains 491 named tests per database and 24 restart applications; these
+inventories do not turn the failed run into acceptance. Three reviewed fixture
+corrections preserve historical migration definitions and assertions.
+
+Final qualification on the corrected source passes:
+
+- Mandatory check R7: `passed`; evidence SHA-256 `b48cb5768b0d0f8310b56c68c558e05f5fd63aa6ba7c1a5f306ed77a7dae704b`.
+- Complete Task R7: `passed (6,378 frontend tests in 237 files, Go race/coverage, development lifecycle and production assets)`; evidence SHA-256 `17cfa6a7337fefc0a955f96492332015370164f1ac4a683cdeacf44ca2fa805a`.
+- Renewed original complete integration R2: `passed (200 business scenarios plus four constraints / 491 balanced names per database, 8,853 ordinary passes plus three intentional TLS helper skips, 24 restart applications)`; readback SHA-256 `55f97eaa97507ecc516abc789aeeea74acdeb2d9e4c5532c85b94007b29f24fb`.
+- Separate original authentication lifecycle: `passed (eight original authentication lifecycle application starts)`; readback SHA-256 `93f299c2afa555b09ae5e956c52e49b00e844641d13341219e55eaac086b4f90`.
+- Final exact source and independent closure: `2,348` paths, `verified unchanged qualified code and modes; seven documentation leaves refreshed`; evidence SHA-256 `7c19d8701871ffb5b98a36865a9cf022be47d0c16c7ddb817af080a7ca9be8b3`.
+
+The renewed full acceptance inventory is 200 ordered business scenarios plus four
+constraints and 491 balanced named results on each database, 8,853 ordinary
+passes with three intentional TLS helper skips, and 24 restart applications.
+Root independently verifies these counts against the original closed streams.
+Earlier failures remain failed history and are not qualified by later results.
+Browser and external-provider acceptance remain separate and open. WeChat is
+deferred because no verification service or wire contract exists. Enforced SSO
+admits verified OIDC/LDAP only; enforcement and emergency recovery remain open.
+F03/A15 remain Partial, totals stay **15 Completed / 13 Partial / 2 Not started**,
+and the overall objective is active. The delivered SAML evidence below remains
+valid for its own source and does not qualify this successor.
+
 ## Existing-member SAML application qualification, 2026-10-10
 
 Frozen GORM V97, reviewed public trust configuration, explicit persistent-NameID
@@ -43,8 +94,8 @@ work. F03/A15 remain Partial, with **15 Completed / 13 Partial / 2 Not started**
 Final main frontend formatting and mandatory checking pass without implementation
 drift. Main check SHA-256:
 `4fcba8f76f29781b5b446a47526e8a0730abff66cdf4ea868927ab5c7ebd3d62`.
-GitHub and Google application candidates continue separately; their source and
-focused checks do not constitute full application acceptance. WeChat is deferred
+GitHub and Google now share the successor qualification phase described above;
+its focused results do not constitute full application acceptance. WeChat is deferred
 by the user because no verification service or wire contract exists. The overall
 objective remains active. Earlier checkpoints below are historical.
 

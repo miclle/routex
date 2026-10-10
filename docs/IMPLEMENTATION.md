@@ -4,6 +4,57 @@ Updated: 2026-10-10. This document records engineering contracts, work packages 
 
 ## Current execution status (2026-10-10)
 
+## GitHub and Google controlled application qualification, 2026-10-10
+
+GitHub and Google are composed into one named-login application phase. Local
+mandatory checking and complete Task R6 pass, including 6,378 frontend tests in
+237 files, Go race/coverage, development lifecycle and embedded production assets.
+Complete Task SHA-256:
+`699dc3d30f30bb4f7a1547b4512b6a87ae55a5088c31945be7716ad814a6b3cf`.
+
+Focused dual-database R1 fails five migration scenarios per driver. OAuth, LDAP
+and SAML historical fixtures incorrectly reject now-supported successor bounds;
+GitHub and Google lack the required exact ceremony-purpose/status constraints,
+and GitHub uses an authored-versus-persisted timestamp comparison. These failures
+remain retained. The reviewed corrections now pass focused Go race tests, formatting and final
+mandatory/complete Task checks. The intervening R5 lint-only diagnostic-selector
+failure is retained; its equivalent promoted-method correction changes no
+assertion. That failed focused run establishes no complete application or
+database acceptance. Genuine GitHub/Google lifecycle and restart
+scenarios pass within that failed run, and its ordinary stream passes 8,835 named
+tests with three intentional TLS helper skips. Independent failed-run cleanup
+confirms all owned workers and eight restart applications absent, removed Compose
+resources, refused/fresh-bindable database ports, exact 2,348-path source/mode
+closure and preserved original development. Cleanup SHA-256:
+`c0533f8f5828ec1b64a7f992090ec4470afd2e203d947364b427164c51e14e47`.
+
+The original complete integration R1 also remains failed: two migration scenario
+children per database reject retained ledger/inventory fixtures. Its unfiltered
+ordinary stream records 8,853 passes and three intentional TLS helper skips. The
+run contains 491 named tests per database and 24 restart applications; these
+inventories do not turn the failed run into acceptance. Three reviewed fixture
+corrections preserve historical migration definitions and assertions.
+
+Final qualification on the corrected source passes:
+
+- Mandatory check R7: `passed`; evidence SHA-256 `b48cb5768b0d0f8310b56c68c558e05f5fd63aa6ba7c1a5f306ed77a7dae704b`.
+- Complete Task R7: `passed (6,378 frontend tests in 237 files, Go race/coverage, development lifecycle and production assets)`; evidence SHA-256 `17cfa6a7337fefc0a955f96492332015370164f1ac4a683cdeacf44ca2fa805a`.
+- Renewed original complete integration R2: `passed (200 business scenarios plus four constraints / 491 balanced names per database, 8,853 ordinary passes plus three intentional TLS helper skips, 24 restart applications)`; readback SHA-256 `55f97eaa97507ecc516abc789aeeea74acdeb2d9e4c5532c85b94007b29f24fb`.
+- Separate original authentication lifecycle: `passed (eight original authentication lifecycle application starts)`; readback SHA-256 `93f299c2afa555b09ae5e956c52e49b00e844641d13341219e55eaac086b4f90`.
+- Final exact source and independent closure: `2,348` paths, `verified unchanged qualified code and modes; seven documentation leaves refreshed`; evidence SHA-256 `7c19d8701871ffb5b98a36865a9cf022be47d0c16c7ddb817af080a7ca9be8b3`.
+
+The renewed full acceptance inventory is 200 ordered business scenarios plus four
+constraints and 491 balanced named results on each database, 8,853 ordinary
+passes with three intentional TLS helper skips, and 24 restart applications.
+Root independently verifies these counts against the original closed streams.
+Earlier failures remain failed history and are not qualified by later results.
+Browser and external-provider acceptance remain separate and open. WeChat is
+deferred because no verification service or wire contract exists. Enforced SSO
+admits verified OIDC/LDAP only; enforcement and emergency recovery remain open.
+F03/A15 remain Partial, totals stay **15 Completed / 13 Partial / 2 Not started**,
+and the overall objective is active. The delivered SAML evidence below remains
+valid for its own source and does not qualify this successor.
+
 ## Existing-member SAML application qualification, 2026-10-10
 
 Frozen GORM V97, reviewed public trust configuration, explicit persistent-NameID
@@ -43,8 +94,8 @@ work. F03/A15 remain Partial, with **15 Completed / 13 Partial / 2 Not started**
 Final main frontend formatting and mandatory checking pass without implementation
 drift. Main check SHA-256:
 `4fcba8f76f29781b5b446a47526e8a0730abff66cdf4ea868927ab5c7ebd3d62`.
-GitHub and Google application candidates continue separately; their source and
-focused checks do not constitute full application acceptance. WeChat is deferred
+GitHub and Google now share the successor qualification phase described above;
+its focused results do not constitute full application acceptance. WeChat is deferred
 by the user because no verification service or wire contract exists. The overall
 objective remains active. Earlier checkpoints below are historical.
 
@@ -3778,14 +3829,14 @@ The binary capability count is 15 completed, 13 partially completed, and 2 not s
 |---|---|---|---|
 | F01 | Initialization, local identity, registration, and logout | Completed | Concurrent one-time setup, administrator creation, local login, registration control, durable sessions, and logout are implemented and tested. |
 | F02 | Profile, password, MFA, recovery codes, and session revocation | Completed | Profile and password changes, authenticator enrollment, single-use recovery codes, and individual-session revocation are implemented. |
-| F03 | Enterprise SSO, LDAP, OAuth, and emergency recovery | Partially completed | Existing-member OIDC, custom OAuth and LDAP have controlled automated, complete dual-driver and process acceptance under their separately bound evidence. LDAP adds reviewed binding, native MFA, provenance-fenced Sessions, frozen GORM V96 and root inventory V5; final application evidence is recorded in the current summary. Earlier failed gates and matrix R1 remain historical. Bilingual browser and real-provider/directory acceptance, additional enterprise providers, enforced SSO and emergency recovery remain open. |
+| F03 | Enterprise SSO, LDAP, OAuth, and emergency recovery | Partially completed | Existing-member OIDC, custom OAuth, LDAP and SAML have controlled automated, complete dual-driver and process acceptance under their separately bound evidence. GitHub and Google successor qualification is `passed`; only the root-confirmed final results above establish its controlled application acceptance. Earlier focused/full migration failures remain retained. Bilingual browser and real-provider/directory acceptance, further named providers, enforced OIDC/LDAP SSO and emergency recovery remain open. WeChat is explicitly deferred because no service or wire contract exists. |
 | F04 | Member administration, direct grants, roles, and resource policies | Completed | Authorized list/filter/detail, State, direct Model grants, current Roles, resource policies, Keys/Teams tabs and local creation/approval/offboarding interactions have controlled acceptance. Bilingual creation, validation, sensitive-draft cleanup and read-only denial are verified. The final modal focus repair passes main formatting/check/complete Task (5,630 frontend cases), six authority-lifetime regressions and real English/Chinese Escape/Close verification. Unchanged backend acceptance includes V91 full PostgreSQL/MySQL and exact-head CI. Enterprise identity remains F03; global enterprise continuity and later permission domains stay independent. |
 | F05 | Built-in and custom roles with composed permissions | Partially completed | Current-domain role and permission management, reviewed definitions/descriptions, and immutable Procurement/Finance/Operations templates with explicit assignment are implemented and accepted. Later enterprise and operations domains still require permission integration and negative acceptance. |
 | F06 | Team membership, ownership, models, quotas, and member rules | Completed | Membership, ownership, model relationships, finite aggregate/member policies, monthly requests and durable Team-assigned roles have dual-driver and controlled acceptance. Initial limits V63 is delivered as8f17d12. Initial Model access V66 passed complete121, main3,759 frontend cases, both auth/gateway lifecycles and controlled bilingual/original-Session restart with four native probes. Separate read-only review confirms exact grants, receipts and completed attempts; the original helper denial-oracle failure remains retained. Empty selection grants no Models. |
 | F07 | Project lifecycle, managers, models, Keys, and requests | Completed | Exact current management, lifecycle/continuity, multi-manager creation, initial direct resources and combined requests, scoped Overview, Project Keys, resource limits and model/quota/rate approvals are implemented with controlled dual-database/browser/native/restart evidence. Both lists now show authorized total retained Key counts; administrative stored-policy summaries, literal name/ID search and authorized legacy tab replacement have full main acceptance. |
 | F08 | Personal and Project Key lifecycle | Completed | One-time delivery, confirmation, editing, rotation, revocation, expiration, scope, and history are implemented with controlled dual-database evidence. |
 | F09 | Key Token, money, RPM, TPM, concurrency, and IP restrictions | Completed | Personal, Project, and Key admission policies are enforced in the native gateway for the documented single-node architecture. Multi-node enforcement remains a separate release-architecture gate. |
-| F10 | Offboarding, inventory, handover, and emergency disable | Partially completed | Transactional local-account offboarding and continuity workflows exist; external-identity and complete enterprise continuity behavior remain open. |
+| F10 | Offboarding, inventory, handover, and emergency disable | Partially completed | Transactional local-account offboarding and continuity workflows are implemented. Genuine OIDC, custom OAuth, LDAP, SAML, GitHub and Google departure controls pass controlled complete dual-driver qualification, preserving Project assets while revoking personal authority. Bilingual browser, external IdP and complete enterprise continuity acceptance remain open; local departure does not claim remote IdP logout or account deletion. |
 | F11 | Provider, Connection, Credential, discovery, and rotation | Partially completed | The management workspace, encrypted credentials, controlled verification, and activation boundaries exist; explicit provider-model capacity attestations, credential-pool filtering/verification timestamps, reviewed name/priority editing, reviewed deletion, staged replacement preparation, immutable per-attempt Credential/publication attribution, and parser-owned native completion evidence are available; evidence-gated predecessor retirement with historical receipt/current-application separation is available; Provider Models table, conjunctive filters, resource links and complete stored-binding projection have controlled bilingual permission/restart and full129 dual-driver acceptance; Whole-Provider availability, admitted-call continuity and disabled-child preservation are delivered in `3223974` with complete dual-driver, native/restart and bilingual browser acceptance. Recorded inference statistics, adapter metadata and directory stored Status now have controlled local acceptance. No additional finite pool workflow was established by source review; real-provider and wider release acceptance remain open. |
 | F12 | Model catalog, names, bindings, weights, and catalog assistance | Partially completed | Stable models, renames, bindings, weights, grants, and availability controls exist; reviewed compatibility-name Early stop has complete controlled source, dual-driver, native/browser/restart and full-matrix delivery. Guided batch creation has complete source, repaired driver, production/browser/restart and full-matrix acceptance, with one atomic reviewed transaction, bounded historical receipts and no implicit grants or existing-Key expansion. Advisory public-name assistance and its bounded popup-label compatibility repair have complete controlled source and final R2 browser/native/restart acceptance; checked delivery is represented by the containing acceptance-record commit, with new remote CI pending. Complete public-catalog assistance and broader routing acceptance remain open. |
 | F13 | Four native protocols, streaming, health, retries, and failover | Partially completed | Chat Completions, Responses, Messages, and Gemini now use bounded replay-safe same-protocol failover with process-local health, one admission/settlement, durable ordered diagnostics, and no retry after a usable response. Azure Chat adaptation and exact Credential deployment declarations are delivered as 5fda0737 with controlled dual-driver/native/restart evidence; real-provider and measured multi-node health acceptance remain open. |

@@ -139,8 +139,22 @@ F03/A15 remain Partial.
 
 ## Named login profiles
 
-Independent Google, GitHub, Discord and Telegram settings are separate remaining
-work; the single custom OAuth provider does not implement those independent
-profiles. WeChat login is deferred by the user because no verification service
-or wire contract currently exists. Do not invent a bridge protocol or treat a
-static QR image as proof of identity.
+The separate [GitHub profile](GITHUB.md) implements reviewed GitHub.com OAuth App
+configuration and explicit existing-member linking. Controlled application,
+database and restart qualification is `passed`; root-confirmed
+combined phase evidence is recorded in [Implementation](IMPLEMENTATION.md).
+External OAuth App and bilingual browser acceptance remain open. Independent
+Discord and Telegram settings remain separate work; the custom OAuth provider
+does not implement those independent profiles. WeChat login is deferred by the
+user because no verification service or wire contract currently exists. Do not
+invent a bridge protocol or treat a static QR image as proof of identity.
+
+
+The separate [Google profile](GOOGLE.md) uses fixed Google OIDC endpoints, exact
+string subjects and explicit existing-member linking. Its state/nonce/S256 flow,
+manual clean completion and native MFA remain independent from enterprise OIDC
+and GitHub. It performs no automatic provisioning or email matching and does
+not satisfy enforced SSO. Controlled qualification is `passed`;
+root-confirmed combined phase evidence is recorded in
+[Implementation](IMPLEMENTATION.md). Bilingual browser and external-provider
+acceptance remain open.

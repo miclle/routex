@@ -29,38 +29,40 @@ const runtimeRefreshTimeout = 3 * time.Second
 var runtimeUnavailable = &apperrors.Error{Code: 503, Message: "runtime configuration is temporarily unavailable"}
 
 type gatewayRuntime struct {
-	cancel               context.CancelFunc
-	done                 chan struct{}
-	refreshMu            sync.Mutex
-	mu                   sync.Mutex
-	publication          sync.RWMutex
-	auth                 atomic.Pointer[runtimeAuthorization]
-	routes               atomic.Pointer[runtimeRoutes]
-	status               atomic.Pointer[RuntimeStatus]
-	epoch                atomic.Uint64
-	deniedKeys           sync.Map
-	deniedLimits         sync.Map
-	deniedUsers          sync.Map
-	deniedPersonalGrants sync.Map
-	deniedProjects       sync.Map
-	deniedModels         sync.Map
-	deniedProviderModels sync.Map
-	deniedCredentials    sync.Map
-	deniedConnections    sync.Map
-	deniedProviders      sync.Map
-	deniedSessions       sync.Map
-	deniedOIDCPolicies   sync.Map
-	deniedOAuthPolicies  sync.Map
-	deniedSAMLPolicies   sync.Map
-	deniedSAMLBindings   sync.Map
-	deniedLDAPPolicies   sync.Map
-	deniedLDAPBindings   sync.Map
-	deniedOAuthBindings  sync.Map
-	deniedOIDCBindings   sync.Map
-	deniedSessionUsers   sync.Map
-	deniedTeams          sync.Map
-	deniedTeamMembers    sync.Map
-	lastRecordedState    string
+	cancel                      context.CancelFunc
+	done                        chan struct{}
+	refreshMu                   sync.Mutex
+	mu                          sync.Mutex
+	publication                 sync.RWMutex
+	auth                        atomic.Pointer[runtimeAuthorization]
+	routes                      atomic.Pointer[runtimeRoutes]
+	status                      atomic.Pointer[RuntimeStatus]
+	epoch                       atomic.Uint64
+	deniedKeys                  sync.Map
+	deniedLimits                sync.Map
+	deniedUsers                 sync.Map
+	deniedPersonalGrants        sync.Map
+	deniedProjects              sync.Map
+	deniedModels                sync.Map
+	deniedProviderModels        sync.Map
+	deniedCredentials           sync.Map
+	deniedConnections           sync.Map
+	deniedProviders             sync.Map
+	deniedSessions              sync.Map
+	deniedOIDCPolicies          sync.Map
+	deniedOAuthPolicies         sync.Map
+	deniedSAMLPolicies          sync.Map
+	deniedNamedIdentityPolicies sync.Map
+	deniedNamedIdentityBindings sync.Map
+	deniedSAMLBindings          sync.Map
+	deniedLDAPPolicies          sync.Map
+	deniedLDAPBindings          sync.Map
+	deniedOAuthBindings         sync.Map
+	deniedOIDCBindings          sync.Map
+	deniedSessionUsers          sync.Map
+	deniedTeams                 sync.Map
+	deniedTeamMembers           sync.Map
+	lastRecordedState           string
 }
 
 type runtimeUserProof struct {
@@ -281,6 +283,8 @@ func (s *Service) RefreshRuntime(ctx context.Context) error {
 	clearRuntimeTombstones(&runtime.deniedOAuthPolicies, generation)
 	clearRuntimeTombstones(&runtime.deniedOAuthBindings, generation)
 	clearRuntimeTombstones(&runtime.deniedSAMLPolicies, generation)
+	clearRuntimeTombstones(&runtime.deniedNamedIdentityPolicies, generation)
+	clearRuntimeTombstones(&runtime.deniedNamedIdentityBindings, generation)
 	clearRuntimeTombstones(&runtime.deniedSAMLBindings, generation)
 	clearRuntimeTombstones(&runtime.deniedLDAPPolicies, generation)
 	clearRuntimeTombstones(&runtime.deniedLDAPBindings, generation)

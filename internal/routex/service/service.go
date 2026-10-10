@@ -20,44 +20,45 @@ import (
 
 // Service holds the database connection and provides business logic methods.
 type Service struct {
-	db                        *gorm.DB
-	credentialSources         credentialSourceHolders
-	credentialCleanupMu       sync.Mutex
-	credentialCreationHolders map[string]int
-	credentialCleanupHolders  map[string]bool
-	credentialValuesMu        sync.RWMutex
-	credentialValues          map[string]string
-	credentialAuthProofs      map[string]string
-	limitMu                   sync.RWMutex
-	trustedProxies            []netip.Prefix
-	runtime                   *gatewayRuntime
-	runtimeRefreshInterval    time.Duration
-	recorder                  *callRecorder
-	repositorySource          *prices.Snapshot
-	secrets                   *secretstore.Store
-	rootPolicy                atomic.Pointer[secretPolicyView]
-	rootNow                   func() time.Time
-	rootMutation              sync.Mutex
-	rootReaders               atomic.Int64
-	rootReadersClosed         atomic.Bool
-	upstream                  *http.Client
-	allowPrivateUpstream      bool
-	allowPrivateSMTP          bool
-	allowPrivateStorage       bool
-	allowPrivateEgress        bool
-	egressMu                  sync.RWMutex
-	egressGeneration          atomic.Uint64
-	attemptHealth             gatewayAttemptHealth
-	attemptNow                func() time.Time
-	afterGatewayAdmission     func()
-	instanceStartMu           sync.Mutex
-	instanceMu                sync.RWMutex
-	instance                  *systemInstanceLease
-	instanceNow               func() time.Time
-	instanceResources         func(string) entitySystemInstanceResources
-	instanceHeartbeat         time.Duration
-	instanceLeaseDuration     time.Duration
-	instanceCleanupAfter      time.Duration
+	namedIdentityTransportFactory NamedIdentityTransportFactory
+	db                            *gorm.DB
+	credentialSources             credentialSourceHolders
+	credentialCleanupMu           sync.Mutex
+	credentialCreationHolders     map[string]int
+	credentialCleanupHolders      map[string]bool
+	credentialValuesMu            sync.RWMutex
+	credentialValues              map[string]string
+	credentialAuthProofs          map[string]string
+	limitMu                       sync.RWMutex
+	trustedProxies                []netip.Prefix
+	runtime                       *gatewayRuntime
+	runtimeRefreshInterval        time.Duration
+	recorder                      *callRecorder
+	repositorySource              *prices.Snapshot
+	secrets                       *secretstore.Store
+	rootPolicy                    atomic.Pointer[secretPolicyView]
+	rootNow                       func() time.Time
+	rootMutation                  sync.Mutex
+	rootReaders                   atomic.Int64
+	rootReadersClosed             atomic.Bool
+	upstream                      *http.Client
+	allowPrivateUpstream          bool
+	allowPrivateSMTP              bool
+	allowPrivateStorage           bool
+	allowPrivateEgress            bool
+	egressMu                      sync.RWMutex
+	egressGeneration              atomic.Uint64
+	attemptHealth                 gatewayAttemptHealth
+	attemptNow                    func() time.Time
+	afterGatewayAdmission         func()
+	instanceStartMu               sync.Mutex
+	instanceMu                    sync.RWMutex
+	instance                      *systemInstanceLease
+	instanceNow                   func() time.Time
+	instanceResources             func(string) entitySystemInstanceResources
+	instanceHeartbeat             time.Duration
+	instanceLeaseDuration         time.Duration
+	instanceCleanupAfter          time.Duration
 }
 
 // Option configures bootstrap dependencies, never mutable business policy.

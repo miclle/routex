@@ -235,7 +235,7 @@ func (s *Service) CompleteMFALogin(ctx context.Context, token string, proof MFAP
 	var auth *Authentication
 	rejected := false
 	err := s.authDB(ctx).Transaction(func(tx *gorm.DB) error {
-		if before.PrimaryMethod == "oidc" || before.PrimaryMethod == "oauth" || before.PrimaryMethod == "ldap" || before.PrimaryMethod == "saml" {
+		if before.PrimaryMethod == "oidc" || before.PrimaryMethod == "oauth" || before.PrimaryMethod == "ldap" || before.PrimaryMethod == "saml" || namedIdentityMethod(before.PrimaryMethod) {
 			if err := lockGovernance(tx); err != nil {
 				return err
 			}
@@ -331,6 +331,19 @@ func (s *Service) CompleteMFALogin(ctx context.Context, token string, proof MFAP
 			auth.Session.SAMLConfigRevision = challenge.SAMLConfigRevision
 			auth.Session.SAMLPolicyRevision = challenge.SAMLPolicyRevision
 			auth.Session.SAMLUserCreatedAt = challenge.SAMLUserCreatedAt
+			if err := tx.Save(&auth.Session).Error; err != nil {
+				return err
+			}
+		}
+		if namedIdentityMethod(challenge.PrimaryMethod) {
+			auth.Session.PrimaryMethod = challenge.PrimaryMethod
+			auth.Session.NamedIdentityProviderID = challenge.NamedIdentityProviderID
+			auth.Session.NamedIdentityProfileID = challenge.NamedIdentityProfileID
+			auth.Session.NamedIdentityBindingID = challenge.NamedIdentityBindingID
+			auth.Session.NamedIdentityBindingCreatedAt = challenge.NamedIdentityBindingCreatedAt
+			auth.Session.NamedIdentityConfigRevision = challenge.NamedIdentityConfigRevision
+			auth.Session.NamedIdentityPolicyRevision = challenge.NamedIdentityPolicyRevision
+			auth.Session.NamedIdentityUserCreatedAt = challenge.NamedIdentityUserCreatedAt
 			if err := tx.Save(&auth.Session).Error; err != nil {
 				return err
 			}

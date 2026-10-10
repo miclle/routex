@@ -286,7 +286,9 @@ func rootInventoryDomains(v int) []string {
 		return rootDomains[:8]
 	case 4:
 		return rootDomains[:9]
-	case rootInventoryVersion:
+	case 5:
+		return rootDomains[:10]
+	case 6, rootInventoryVersion:
 		return rootDomains
 	default:
 		return nil

@@ -3,6 +3,8 @@ import OIDCConfiguration from '@/views/oidc/config'
 import OAuthConfiguration from '@/views/oauth/config'
 import LDAPConfiguration from '@/views/ldap/config'
 import SAMLConfiguration from '@/views/saml/config'
+import GitHubConfiguration from '@/views/github/config'
+import GoogleConfiguration from '@/views/google/config'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { AxiosError } from 'axios'
@@ -275,6 +277,8 @@ function Policy({ actor }: { actor: string }) {
       <OAuthConfiguration />
       <LDAPConfiguration />
       <SAMLConfiguration />
+      <GitHubConfiguration />
+      <GoogleConfiguration />
       <Drawer
         open={open && !!page}
         onOpenChange={(value) => {

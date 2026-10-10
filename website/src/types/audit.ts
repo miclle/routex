@@ -42,6 +42,14 @@ export interface SAMLIdentityAuditChanges {
   kind: 'saml_identity'
   reason: string
 }
+export interface GitHubIdentityAuditChanges {
+  kind: 'github_identity'
+  reason: string
+}
+export interface GoogleIdentityAuditChanges {
+  kind: 'google_identity'
+  reason: string
+}
 export type AuditChanges =
   | AuditBeforeAfterChanges
   | SystemInstanceCleanupAuditChanges
@@ -49,6 +57,8 @@ export type AuditChanges =
   | OAuthIdentityAuditChanges
   | LDAPIdentityAuditChanges
   | SAMLIdentityAuditChanges
+  | GitHubIdentityAuditChanges
+  | GoogleIdentityAuditChanges
 export interface AuditRecord {
   id: string
   actor_id: string

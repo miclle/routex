@@ -1617,3 +1617,35 @@ and restart controls pass the original complete PostgreSQL/MySQL integration
 matrix: 194 business scenarios plus four constraints and 467 balanced names per
 driver. The separate real-process authentication lifecycle also passes. See
 [SAML](SAML.md) for the evidence and open browser/external IdP boundaries.
+
+## Named identity and root inventory V6 (V98)
+
+Frozen GORM V98 adds `named_identity_providers`, `named_identity_bindings` and
+`named_identity_ceremonies`. Only the fixed GitHub.com OAuth App profile is admitted
+initially. Session and MFA provenance adds seven fields for provider/profile,
+exact binding birth, member birth and configuration/policy revisions. Exact
+primary-method constraints require complete named proof and empty other-method
+proof; legacy methods reject named contamination. Existing enterprise identity
+namespaces and V1–V97 migrations remain unchanged. The migration validates
+retained rows and frozen columns/indexes before publishing its ledger entry and
+supports repeated partial MySQL DDL through GORM Migrator operations.
+
+Root inventory V6 appends encrypted named-provider authentication as domain eleven,
+with profile/provider/generation-bound references and AAD. V1–V5 retain their
+historical meanings; older jobs and verification receipts never acquire the new
+coverage. Controlled qualification of these V98 contracts is
+`passed` within the combined V99 phase; root-confirmed database
+and root-rotation evidence is recorded in [Implementation](IMPLEMENTATION.md).
+
+
+## Google profile and root inventory V7 (V99)
+
+Frozen GORM V99 extends the existing named-identity constraints with the correlated `google` / `google.oidc.v1` / `https://accounts.google.com` / string-subject tuple and an empty disabled, unverified seed. It reuses the three named-identity tables and seven Session/MFA provenance fields, preserves all V1–V98 migration definitions, and bounds partial MySQL DDL recovery through Migrator operations. Exact ASCII subjects never depend on database collation.
+
+Root inventory V7 keeps eleven domains and admits both fixed named profiles with
+exact provider/profile/generation-bound encryption context. Historical V6 remains
+eleven-domain GitHub coverage; old jobs, observations and verified receipts keep
+their original meanings and cannot cover Google retrospectively. Controlled
+dual-database migration, constraints, runtime and rotation qualification is
+`passed`; root-confirmed combined phase evidence is recorded in
+[Implementation](IMPLEMENTATION.md).

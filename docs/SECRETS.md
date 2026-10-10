@@ -107,13 +107,13 @@ failed refreshes. A committed receipt and current publication are distinct.
 
 Inventory version1 retains its historical five-domain meaning; version2 retains
 seven domains; version3 retains its eight-domain OIDC scope; version4 retains its
-nine-domain OAuth scope. V96 adds current version5 with LDAP as domain ten.
+nine-domain OAuth scope. V96 adds version5 with LDAP as domain ten.
 Nonterminal V1–V4 jobs require explicit reviewed Resume and a fresh complete scan;
 completed history keeps its original coverage and cannot prove V5 retirement.
 The earlier V4 complete dual-driver root-rotation lifecycle and controlled
 same-source process restart acceptance include retained encrypted OIDC and OAuth
 secrets. That historical evidence does not qualify the expanded V5 inventory.
-Current V5 root-rotation fixture coverage passes in the complete dual-driver
+V5 root-rotation fixture coverage passes in the complete dual-driver
 matrix, with exact current source and owned cleanup bound in the
 [implementation index](IMPLEMENTATION.md). Controlled LDAP process restarts are
 separate from real-directory and browser compatibility. No earlier V1–V4 receipt
@@ -237,7 +237,7 @@ accepted V4 rotation fixture included an actual encrypted disabled OAuth singlet
 beside OIDC, proving rewrap, immutable payload/reference, metadata preservation
 and privacy in that scope. V4 source, complete dual-driver and same-source process
 restart gates passed with the nine-domain inventory. Prior V3 acceptance was not
-transferred to V4, and V4 acceptance is not transferred to current V5. Browser,
+transferred to V4, and V4 acceptance is not transferred to V5 or V6. Browser,
 external-provider and broader release acceptance remain open.
 
 ## LDAP inventory V5
@@ -254,3 +254,21 @@ current-source readbacks are recorded in [LDAP](LDAP.md) and the
 [implementation index](IMPLEMENTATION.md); earlier focused and V4 evidence is
 not transferred. This does not establish external-directory, browser or broader
 release acceptance.
+
+
+## Named-provider inventory V6 (historical GitHub scope)
+
+V98 adds named-provider client authentication as domain eleven. The initial fixed
+GitHub profile encrypts its client secret with exact profile/provider/generation
+references and AAD; remote access tokens remain transient and are not inventory
+records. Disabled retained configurations remain covered. V1–V5 prefixes and their
+historical jobs, process verification and retirement meanings remain unchanged.
+Controlled PostgreSQL/MySQL root-inventory and runtime qualification now covers
+the retained GitHub encrypted fixture and profile/domain/generation AAD negatives
+in the combined GitHub and Google phase, whose current inventory is V7. Earlier
+V5 acceptance alone does not establish V6 or V7 retirement readiness.
+
+
+## Current Google coverage in inventory V7
+
+Google reuses the named-provider credential domain with exact Google provider/profile/generation-bound references and AAD. Root inventory V7 has eleven domains, including both fixed named profiles; V6 retains its historical eleven-domain GitHub coverage. No twelfth domain is added. Old jobs and verified observations do not acquire Google coverage, and nonterminal old-version jobs cannot proceed under the expanded inventory. Disabled retained Google configurations remain covered; access tokens and ID tokens are transient rather than root inventory records. Controlled PostgreSQL/MySQL database, restart and root-rotation qualification passes in the combined GitHub and Google phase. Browser and external-provider acceptance remain open.

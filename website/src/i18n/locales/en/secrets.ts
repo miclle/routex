@@ -127,7 +127,8 @@ export default {
     loading: 'Waiting for fresh storage authority and policy.',
     loadError: 'Storage policy unavailable. Refresh its authorized read.',
   },
-  currentInventory: 'Current inventory covers ten secret domains.',
+  currentInventory:
+    'Current inventory V7 covers eleven secret domains, including GitHub and Google client secrets.',
   historicalInventory:
     'This historical rotation covers {{count}} domains and does not prove current inventory coverage.',
   originalIntent: 'Original uncertain intent',
@@ -371,4 +372,5 @@ export default {
       unknown: 'Unknown',
     },
   },
+  named_identity_providers: 'Named identity provider client secrets',
 }

@@ -3,6 +3,8 @@ import OIDCAccount from '@/views/oidc/account'
 import OAuthAccount from '@/views/oauth/account'
 import LDAPAccount from '@/views/ldap/account'
 import SAMLAccount from '@/views/saml/account'
+import GitHubAccount from '@/views/github/account'
+import GoogleAccount from '@/views/google/account'
 import { useTranslation } from 'react-i18next'
 import { useRef, useState, type FormEvent } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
@@ -162,6 +164,8 @@ export default function AccountPage({ security = false }: { security?: boolean }
           <OAuthAccount />
           <LDAPAccount />
           <SAMLAccount />
+          <GitHubAccount />
+          <GoogleAccount />
           <Card>
             <CardHeader>
               <CardTitle>{t('account.password')}</CardTitle>

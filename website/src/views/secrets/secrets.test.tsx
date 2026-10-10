@@ -593,7 +593,9 @@ it('shows historical V2 scope and its retirement blocker through live language c
   }
   await mount(`/admin/secrets/rotations/${rotationId}`)
   await click('Root key rotation')
-  expect(document.body.textContent).toContain('Current inventory covers ten secret domains.')
+  expect(document.body.textContent).toContain(
+    'Current inventory V7 covers eleven secret domains, including GitHub and Google client secrets.',
+  )
   expect(document.body.textContent).toContain('This historical rotation covers 7 domains')
   expect(document.body.textContent).toContain('does not prove current inventory coverage')
   expect(document.body.textContent).toContain(
@@ -611,7 +613,9 @@ it('shows historical V2 scope and its retirement blocker through live language c
   ).toBe(false)
   const originalReads = [...reads]
   await act(async () => i18n.changeLanguage('zh'))
-  expect(document.body.textContent).toContain('当前清单覆盖十个密钥领域。')
+  expect(document.body.textContent).toContain(
+    '当前 V7 清单覆盖十一个密钥领域，包括 GitHub 和 Google 客户端密钥。',
+  )
   expect(document.body.textContent).toContain('此历史轮换覆盖 7 个领域，不证明当前清单的覆盖情况。')
   expect(table.querySelectorAll('tbody tr')).toHaveLength(7)
   expect(reads).toEqual(originalReads)
@@ -676,7 +680,7 @@ it('shows historical V3 scope and never substitutes current OAuth coverage or re
   expect(writes).toHaveLength(0)
 })
 
-it('shows current V5 LDAP coverage bilingually and hides it during renewed reads', async () => {
+it('retains historical V5 LDAP coverage bilingually and hides it during renewed reads', async () => {
   view.rotation = job(5)
   await mount()
   await click('Root key rotation')
@@ -684,7 +688,7 @@ it('shows current V5 LDAP coverage bilingually and hides it during renewed reads
     document.querySelector('table[aria-label="Secret domain"]')!.querySelectorAll('tbody tr'),
   ).toHaveLength(10)
   expect(document.body.textContent).toContain('LDAP service bind passwords')
-  expect(document.body.textContent).not.toContain('This historical rotation covers')
+  expect(document.body.textContent).toContain('This historical rotation covers 10 domains')
   const originalReads = [...reads]
   await act(async () => i18n.changeLanguage('zh'))
   expect(document.body.textContent).toContain('LDAP 服务绑定密码')
@@ -699,5 +703,37 @@ it('shows current V5 LDAP coverage bilingually and hides it during renewed reads
   expect(
     document.querySelector('table[aria-label="秘密数据域"]')!.querySelectorAll('tbody tr'),
   ).toHaveLength(10)
+  expect(writes).toHaveLength(0)
+})
+
+it('shows V6 named identity coverage without upgrading a V5 historical job', async () => {
+  view.rotation = job(6)
+  await mount()
+  await click('Root key rotation')
+  expect(
+    document.querySelector('table[aria-label="Secret domain"]')!.querySelectorAll('tbody tr'),
+  ).toHaveLength(11)
+  expect(document.body.textContent).toContain('Named identity provider client secrets')
+  expect(document.body.textContent).toContain('This historical rotation covers 11 domains')
+  const originalReads = [...reads]
+  await act(async () => i18n.changeLanguage('zh'))
+  expect(document.body.textContent).toContain('命名身份提供方客户端密钥')
+  expect(reads).toEqual(originalReads)
+  expect(writes).toHaveLength(0)
+})
+
+it('shows current V7 eleven-domain coverage without promoting retained V6 retirement authority', async () => {
+  view.rotation = job(7)
+  await mount()
+  await click('Root key rotation')
+  expect(
+    document.querySelector('table[aria-label="Secret domain"]')!.querySelectorAll('tbody tr'),
+  ).toHaveLength(11)
+  expect(document.body.textContent).toContain('Current inventory V7 covers eleven secret domains')
+  expect(document.body.textContent).not.toContain('This historical rotation covers')
+  const originalReads = [...reads]
+  await act(async () => i18n.changeLanguage('zh'))
+  expect(document.body.textContent).toContain('当前 V7 清单覆盖十一个密钥领域')
+  expect(reads).toEqual(originalReads)
   expect(writes).toHaveLength(0)
 })

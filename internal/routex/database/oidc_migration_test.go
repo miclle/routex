@@ -24,6 +24,62 @@ func oidcV94Schema(t *testing.T, model any) *schema.Schema {
 	return s
 }
 
+// Historical primary columns predate the complete named-identity CHECK. Admit
+// only the exact current frozen proof tag and the exact retained base tag.
+func legacyUpgradeGORMTagsEqual(t *testing.T, table string, frozen, current *schema.Field) bool {
+	t.Helper()
+	if frozen == nil || current == nil {
+		return false
+	}
+	if frozen.DBName != "primary_method" {
+		return frozen.Tag.Get("gorm") == current.Tag.Get("gorm")
+	}
+	var model any
+	switch table {
+	case "sessions":
+		model = &googleIdentitySessionProofV99{}
+	case "mfa_challenges":
+		model = &googleIdentityMFAChallengeProofV99{}
+	default:
+		return false
+	}
+	expected := oidcV94Schema(t, model).FieldsByDBName["primary_method"]
+	return expected != nil && frozen.FieldType == expected.FieldType && current.FieldType == expected.FieldType && current.DBName == expected.DBName && frozen.Tag.Get("gorm") == "size:20;not null;default:''" && current.Tag.Get("gorm") == expected.Tag.Get("gorm")
+}
+
+func TestLegacyPrimaryParityRequiresExactCurrentProof(t *testing.T) {
+	for _, model := range []any{&entity.Session{}, &entity.MFAChallenge{}} {
+		s := oidcV94Schema(t, model)
+		current := s.FieldsByDBName["primary_method"]
+		if current == nil {
+			t.Fatal("missing current primary column", s.Table)
+		}
+		frozen := *current
+		frozen.Tag = reflect.StructTag(`gorm:"size:20;not null;default:''"`)
+		if !legacyUpgradeGORMTagsEqual(t, s.Table, &frozen, current) {
+			t.Fatal("exact current proof and historical base rejected", s.Table)
+		}
+		for _, tag := range []string{
+			"size:20;not null;default:''",
+			current.Tag.Get("gorm") + ";check:ck_unreviewed,1 = 1",
+			strings.Replace(current.Tag.Get("gorm"), "size:20", "size:21", 1),
+			strings.Replace(current.Tag.Get("gorm"), "default:''", "default:'github'", 1),
+			strings.Replace(current.Tag.Get("gorm"), "OCTET_LENGTH(primary_method)", "CHAR_LENGTH(primary_method)", 1),
+		} {
+			changed := *current
+			changed.Tag = reflect.StructTag(fmt.Sprintf("gorm:%q", tag))
+			if tag == current.Tag.Get("gorm") || legacyUpgradeGORMTagsEqual(t, s.Table, &frozen, &changed) {
+				t.Fatal("unreviewed current proof admitted", s.Table)
+			}
+		}
+		changed := frozen
+		changed.Tag = reflect.StructTag(`gorm:"size:21;not null;default:''"`)
+		if legacyUpgradeGORMTagsEqual(t, s.Table, &changed, current) || legacyUpgradeGORMTagsEqual(t, "unreviewed", &frozen, current) {
+			t.Fatal("historical base or table changed", s.Table)
+		}
+	}
+}
+
 // Literal V94 entity projection captured before V95 advances current root tags.
 type oidcHistoricalEntityRootJobV94 struct {
 	InventoryVersion int `gorm:"not null;default:1;check:ck_secret_inventory_version,inventory_version = 1 OR inventory_version = 2 OR inventory_version = 3"`
@@ -74,7 +130,7 @@ func TestOIDCV94FrozenSchemaParity(t *testing.T) {
 		}
 		for _, field := range frozen.Fields {
 			actual := current.FieldsByDBName[field.DBName]
-			if actual == nil || actual.FieldType != field.FieldType || actual.Tag.Get("gorm") != field.Tag.Get("gorm") {
+			if actual == nil || actual.FieldType != field.FieldType || !legacyUpgradeGORMTagsEqual(t, frozen.Table, field, actual) {
 				t.Fatal("upgrade field differs", frozen.Table, field.DBName)
 			}
 		}

@@ -1,3 +1,7 @@
+import enGoogle from './locales/en/google'
+import zhGoogle from './locales/zh/google'
+import enGitHub from './locales/en/github'
+import zhGitHub from './locales/zh/github'
 import enSAML from './locales/en/saml'
 import zhSAML from './locales/zh/saml'
 import enLDAP from './locales/en/ldap'
@@ -109,6 +113,8 @@ void i18n.use(initReactI18next).init({
       oauth: enOAuth,
       ldap: enLDAP,
       saml: enSAML,
+      github: enGitHub,
+      google: enGoogle,
       modelCreation: enModelCreation,
       secrets: enSecrets,
       overview: enOverview,
@@ -145,6 +151,8 @@ void i18n.use(initReactI18next).init({
       oauth: zhOAuth,
       ldap: zhLDAP,
       saml: zhSAML,
+      github: zhGitHub,
+      google: zhGoogle,
       modelCreation: zhModelCreation,
       secrets: zhSecrets,
       overview: zhOverview,

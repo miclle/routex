@@ -45,7 +45,7 @@ var auditCategories = map[string][]string{
 	"limits":      {"key", "user", "user_default", "team", "team_member", "team_member_default", "project", "team_quota_request", "default_limit"},
 	"credentials": {"credential", "provider_credential", "provider", "connection"},
 	"pricing":     {"pricing"},
-	"identity":    {"user", "role", "session", "mfa", "installation", "registration", "offboarding_case", "teams", "oidc_provider", "oidc_binding", "oauth_provider", "oauth_binding", "ldap_provider", "ldap_binding", "saml_provider", "saml_binding"},
+	"identity":    {"user", "role", "session", "mfa", "installation", "registration", "offboarding_case", "teams", "oidc_provider", "oidc_binding", "oauth_provider", "oauth_binding", "ldap_provider", "ldap_binding", "saml_provider", "saml_binding", "named_identity_provider", "named_identity_binding"},
 	"site":        {"site", "announcement"},
 	"system":      {"system_instance", "secret_rotation"},
 }
@@ -96,6 +96,12 @@ func auditRecord(row entity.AuditEvent) AuditRecord {
 		changes = record
 	case "identity.ldap.config.update", "identity.ldap.status.update", "identity.ldap.verify", "account.ldap.bind", "account.ldap.unlink":
 		record, valid := ldapAuditProjection(row)
+		if !valid {
+			return result
+		}
+		changes = record
+	case "identity.google.config.update", "identity.google.status.update", "identity.google.verify", "account.google.bind", "account.google.unlink", "identity.github.config.update", "identity.github.status.update", "identity.github.verify", "account.github.bind", "account.github.unlink":
+		record, valid := namedIdentityAuditProjection(row)
 		if !valid {
 			return result
 		}

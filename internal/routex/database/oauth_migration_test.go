@@ -43,7 +43,7 @@ func TestOAuthV95FrozenSchemaParity(t *testing.T) {
 		}
 		for _, field := range frozen.Fields {
 			actual := current.FieldsByDBName[field.DBName]
-			if actual == nil || actual.FieldType != field.FieldType || actual.Tag.Get("gorm") != field.Tag.Get("gorm") {
+			if actual == nil || actual.FieldType != field.FieldType || !legacyUpgradeGORMTagsEqual(t, frozen.Table, field, actual) {
 				t.Fatal("upgrade field differs", frozen.Table, field.DBName)
 			}
 		}
@@ -279,15 +279,15 @@ func TestOAuthV95RootChecksPreserveV1V2V3(t *testing.T) {
 func TestMigrateThroughBoundsAndCurrentPrefix(t *testing.T) {
 	for _, dialect := range []string{"postgres", "mysql"} {
 		all := migrationSteps(dialect)
-		if len(all) != 97 || reflect.ValueOf(all[96]).Pointer() != reflect.ValueOf(samlMigration).Pointer() || reflect.ValueOf(all[95]).Pointer() != reflect.ValueOf(ldapMigration).Pointer() || reflect.ValueOf(all[93]).Pointer() != reflect.ValueOf(oidcMigration).Pointer() || reflect.ValueOf(all[94]).Pointer() != reflect.ValueOf(oauthMigration).Pointer() {
+		if len(all) != 99 || reflect.ValueOf(all[96]).Pointer() != reflect.ValueOf(samlMigration).Pointer() || reflect.ValueOf(all[95]).Pointer() != reflect.ValueOf(ldapMigration).Pointer() || reflect.ValueOf(all[93]).Pointer() != reflect.ValueOf(oidcMigration).Pointer() || reflect.ValueOf(all[94]).Pointer() != reflect.ValueOf(oauthMigration).Pointer() || reflect.ValueOf(all[97]).Pointer() != reflect.ValueOf(namedIdentityMigration).Pointer() || reflect.ValueOf(all[98]).Pointer() != reflect.ValueOf(googleIdentityMigration).Pointer() {
 			t.Fatal("current migration suffix changed", dialect)
 		}
-		for _, bound := range []int{-1, 0, 98} {
+		for _, bound := range []int{-1, 0, 100} {
 			if _, err := migrationPrefix(all, bound); err == nil {
 				t.Fatal("invalid bound accepted", bound)
 			}
 		}
-		for _, bound := range []int{1, 94, 95, 96, 97} {
+		for _, bound := range []int{1, 94, 95, 96, 97, 98, 99} {
 			got, err := migrationPrefix(all, bound)
 			if err != nil || len(got) != bound {
 				t.Fatal("valid bound rejected", bound, err)

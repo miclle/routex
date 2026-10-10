@@ -550,3 +550,113 @@ it('keeps an SAML event with unprojected details explicitly not recorded', async
   expect(drawer.textContent).not.toContain('verified successfully')
   expect(requests.every((request) => request.method === 'get')).toBe(true)
 })
+
+it('renders the typed GitHub reason in English and Chinese without invented before/after or markup', async () => {
+  await i18n.changeLanguage('en')
+  const reason = '<img src=x onerror=alert(1)> Review corporate access 原因'
+  entry = {
+    ...first,
+    action: 'account.github.bind',
+    resource_type: 'named_identity_binding',
+    resource_id: 'nib_retained',
+    changes: { kind: 'github_identity', reason },
+  }
+  await mount()
+  await until(() => expect(host.textContent).toContain(`Reason: ${reason}`))
+  await select('Audit category', 'identity')
+  await until(() => expect(audits().at(-1)?.params.category).toBe('identity'))
+  await click('Open audit event aud_2')
+  const drawer = document.querySelector('[role="dialog"]')!
+  expect(drawer.textContent).toContain(`Reason: ${reason}`)
+  expect(drawer.textContent).toContain('nib_retained')
+  expect(drawer.querySelector('pre')).toBeNull()
+  expect(drawer.textContent).not.toContain('undefined')
+  expect(drawer.textContent).not.toContain('github_identity')
+  expect(document.querySelector('img')).toBeNull()
+  expect(document.querySelector('script')).toBeNull()
+  const reads = audits().length
+  await act(async () => {
+    await i18n.changeLanguage('zh')
+  })
+  expect(drawer.textContent).toContain(`原因: ${reason}`)
+  expect(drawer.textContent).toContain('account.github.bind')
+  expect(drawer.querySelector('pre')).toBeNull()
+  expect(host.textContent).toContain(`原因: ${reason}`)
+  expect(audits()).toHaveLength(reads)
+  expect(requests.every((request) => request.method === 'get')).toBe(true)
+})
+
+it('keeps an GitHub event with unprojected details explicitly not recorded', async () => {
+  await i18n.changeLanguage('en')
+  entry = {
+    ...first,
+    action: 'identity.github.verify',
+    resource_type: 'named_identity_provider',
+    resource_id: 'github',
+    changes: null,
+  }
+  await mount()
+  await until(() => expect(host.textContent).toContain('identity.github.verify'))
+  await click('Open audit event aud_2')
+  const drawer = document.querySelector('[role="dialog"]')!
+  expect(drawer.textContent).toContain('Not recorded')
+  expect(drawer.querySelector('pre')).toBeNull()
+  expect(drawer.textContent).not.toContain('undefined')
+  expect(drawer.textContent).not.toContain('verified successfully')
+  expect(requests.every((request) => request.method === 'get')).toBe(true)
+})
+
+it('renders the typed Google reason in English and Chinese without invented before/after or markup', async () => {
+  await i18n.changeLanguage('en')
+  const reason = '<img src=x onerror=alert(1)> Review corporate access 原因'
+  entry = {
+    ...first,
+    action: 'account.google.bind',
+    resource_type: 'named_identity_binding',
+    resource_id: 'nib_retained',
+    changes: { kind: 'google_identity', reason },
+  }
+  await mount()
+  await until(() => expect(host.textContent).toContain(`Reason: ${reason}`))
+  await select('Audit category', 'identity')
+  await until(() => expect(audits().at(-1)?.params.category).toBe('identity'))
+  await click('Open audit event aud_2')
+  const drawer = document.querySelector('[role="dialog"]')!
+  expect(drawer.textContent).toContain(`Reason: ${reason}`)
+  expect(drawer.textContent).toContain('nib_retained')
+  expect(drawer.querySelector('pre')).toBeNull()
+  expect(drawer.textContent).not.toContain('undefined')
+  expect(drawer.textContent).not.toContain('google_identity')
+  expect(document.querySelector('img')).toBeNull()
+  expect(document.querySelector('script')).toBeNull()
+  const reads = audits().length
+  await act(async () => {
+    await i18n.changeLanguage('zh')
+  })
+  expect(drawer.textContent).toContain(`原因: ${reason}`)
+  expect(drawer.textContent).toContain('account.google.bind')
+  expect(drawer.querySelector('pre')).toBeNull()
+  expect(host.textContent).toContain(`原因: ${reason}`)
+  expect(audits()).toHaveLength(reads)
+  expect(requests.every((request) => request.method === 'get')).toBe(true)
+})
+
+it('keeps a Google event with unprojected details explicitly not recorded', async () => {
+  await i18n.changeLanguage('en')
+  entry = {
+    ...first,
+    action: 'identity.google.verify',
+    resource_type: 'named_identity_provider',
+    resource_id: 'google',
+    changes: null,
+  }
+  await mount()
+  await until(() => expect(host.textContent).toContain('identity.google.verify'))
+  await click('Open audit event aud_2')
+  const drawer = document.querySelector('[role="dialog"]')!
+  expect(drawer.textContent).toContain('Not recorded')
+  expect(drawer.querySelector('pre')).toBeNull()
+  expect(drawer.textContent).not.toContain('undefined')
+  expect(drawer.textContent).not.toContain('verified successfully')
+  expect(requests.every((request) => request.method === 'get')).toBe(true)
+})

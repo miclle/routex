@@ -68,13 +68,21 @@ beforeEach(async () => {
         'get /account/identity/oauth',
         'get /account/identity/ldap',
         'get /account/identity/saml',
+        'get /account/identity/github',
+        'get /account/identity/google',
       ].includes(route)
     ) {
       const etag = 'a'.repeat(64)
       response.headers.set('ETag', `"${etag}"`)
-      if (route === 'get /account/identity/ldap' || route === 'get /account/identity/saml') {
+      if (
+        route === 'get /account/identity/ldap' ||
+        route === 'get /account/identity/saml' ||
+        route === 'get /account/identity/github' ||
+        route === 'get /account/identity/google'
+      ) {
         response.headers.set('Cache-Control', 'private, no-store')
         response.headers.set('X-Content-Type-Options', 'nosniff')
+        response.headers.set('Referrer-Policy', 'no-referrer')
       }
       response.data = {
         available: false,

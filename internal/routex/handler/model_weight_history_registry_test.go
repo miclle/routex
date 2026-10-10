@@ -200,6 +200,14 @@ func TestModelWeightHistoryExact174RegistryPrefix(t *testing.T) {
 	for _, pair := range pairs {
 		currentIdentities = append(currentIdentities, pair[1]+":"+pair[2])
 	}
+	if !googleRegistry200Current(currentIdentities) {
+		t.Fatal("exact200 Google successor changed")
+	}
+	currentIdentities = currentIdentities[:197]
+	if !githubRegistry197Current(currentIdentities) {
+		t.Fatal("exact197 GitHub successor changed")
+	}
+	currentIdentities = currentIdentities[:194]
 	if !samlRegistry194Current(currentIdentities) {
 		t.Fatal("exact194 SAML successor changed")
 	}

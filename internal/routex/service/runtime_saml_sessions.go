@@ -61,6 +61,9 @@ func loadSAMLSessionRuntimeData(tx *gorm.DB, data *teamSessionRuntimeData) error
 }
 
 func samlRuntimePrimary(row entity.Session, p *entity.SAMLProvider, bindings map[string]entity.SAMLBinding, users map[string]entity.User) bool {
+	if !namedIdentityProofEmpty(row) {
+		return false
+	}
 	if row.PrimaryMethod == "" {
 		return row.SAMLBindingID == "" && row.SAMLBindingCreatedAt == nil && row.SAMLConfigRevision == "" && row.SAMLPolicyRevision == "" && row.SAMLUserCreatedAt == nil
 	}
@@ -74,6 +77,9 @@ func samlRuntimePrimary(row entity.Session, p *entity.SAMLProvider, bindings map
 
 // Existing dispatchers keep rejecting a SAML proof without its complete input.
 func primaryRuntimeSessionWithSAML(row entity.Session, op *entity.OIDCProvider, ob map[string]entity.OIDCBinding, p *entity.OAuthProvider, b map[string]entity.OAuthBinding, lp *entity.LDAPProvider, lb map[string]entity.LDAPBinding, sp *entity.SAMLProvider, sb map[string]entity.SAMLBinding, users map[string]entity.User) bool {
+	if !namedIdentityProofEmpty(row) {
+		return false
+	}
 	if row.PrimaryMethod != "saml" {
 		return primaryRuntimeSessionWithLDAP(row, op, ob, p, b, lp, lb, users)
 	}

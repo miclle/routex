@@ -29,6 +29,8 @@ import OIDCLoginButton from '@/views/oidc/login-button'
 import OAuthLoginButton from '@/views/oauth/login-button'
 import LDAPLoginButton from '@/views/ldap/login-button'
 import SAMLLoginButton from '@/views/saml/login-button'
+import GitHubLoginButton from '@/views/github/login-button'
+import GoogleLoginButton from '@/views/google/login-button'
 import type { LDAPLoginResult } from '@/types/ldap'
 
 export default function AuthPage({ mode }: { mode: 'login' | 'setup' | 'register' }) {
@@ -456,6 +458,8 @@ function Auth({ mode }: { mode: 'login' | 'setup' | 'register' }) {
               <OAuthLoginButton disabled={pending} acquire={acquireOIDC} />
               <LDAPLoginButton disabled={pending} acquire={acquireOIDC} />
               <SAMLLoginButton disabled={pending} acquire={acquireOIDC} />
+              <GitHubLoginButton disabled={pending} acquire={acquireOIDC} />
+              <GoogleLoginButton disabled={pending} acquire={acquireOIDC} />
             </>
           )}
         </div>

@@ -39,6 +39,8 @@ var (
 // the deployment's destination policy, without logging query or request secrets.
 // ClientSecret authentication is explicitly client_secret_basic; no probing occurs.
 type Config struct {
+	google bool // only NewGoogle can select the fixed Google profile
+
 	Issuer         string
 	ClientID       string
 	ClientSecret   string
@@ -195,8 +197,12 @@ func (c *Client) Exchange(ctx context.Context, callback Callback) (Identity, err
 }
 
 func (c *Client) oauthConfig() *oauth2.Config {
+	scopes := []string{"openid"}
+	if c.config.google {
+		scopes = []string{"openid", "profile"}
+	}
 	return &oauth2.Config{ClientID: c.config.ClientID, ClientSecret: c.config.ClientSecret,
-		RedirectURL: c.config.RedirectURL, Scopes: []string{"openid"},
+		RedirectURL: c.config.RedirectURL, Scopes: scopes,
 		Endpoint: oauth2.Endpoint{AuthURL: c.authorizationURL, TokenURL: c.tokenURL,
 			AuthStyle: oauth2.AuthStyleInHeader}}
 }

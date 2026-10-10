@@ -207,7 +207,7 @@ func TestVaultSavedAppRoleExactRegistry150(t *testing.T) {
 	for _, p := range regexp.MustCompile(`\{"([^"\n]+)", (test[A-Za-z0-9]+)\}`).FindAllStringSubmatch(string(raw), -1) {
 		names = append(names, p[1]+":"+p[2])
 	}
-	if !samlRegistry194Current(names) {
+	if !googleRegistry200Current(names) {
 		t.Fatal("exact194 SAML successor changed")
 	}
 	names = names[:181]
@@ -215,7 +215,7 @@ func TestVaultSavedAppRoleExactRegistry150(t *testing.T) {
 		t.Fatal("exact V93/181 successor changed")
 	}
 	names = names[:179]
-	if len(names) != 179 || !strings.Contains(string(raw), "versions != 97") {
+	if len(names) != 179 || !strings.Contains(string(raw), "versions != 99") {
 		t.Fatal("current exact172 registry/V89 ledger changed")
 	}
 	valid := func(values []string) bool {
@@ -241,7 +241,7 @@ func TestVaultSavedAppRoleExactRegistry150(t *testing.T) {
 			t.Fatal("changed/missing/reordered/extra registry accepted")
 		}
 	}
-	if !strings.Contains(string(raw), "versions != 97") {
+	if !strings.Contains(string(raw), "versions != 99") {
 		t.Fatal("current V78 harness not bound")
 	}
 }

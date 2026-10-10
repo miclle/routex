@@ -59,6 +59,9 @@ func loadOAuthSessionRuntimeData(tx *gorm.DB, data *teamSessionRuntimeData) erro
 }
 
 func oauthRuntimePrimary(row entity.Session, p *entity.OAuthProvider, bindings map[string]entity.OAuthBinding, users map[string]entity.User) bool {
+	if !namedIdentityProofEmpty(row) {
+		return false
+	}
 	if row.PrimaryMethod == "" {
 		return row.OAuthBindingID == "" && row.OAuthBindingCreatedAt == nil && row.OAuthConfigRevision == "" && row.OAuthPolicyRevision == "" && row.OAuthUserCreatedAt == nil
 	}
@@ -71,6 +74,9 @@ func oauthRuntimePrimary(row entity.Session, p *entity.OAuthProvider, bindings m
 }
 
 func primaryRuntimeSession(row entity.Session, op *entity.OIDCProvider, ob map[string]entity.OIDCBinding, p *entity.OAuthProvider, b map[string]entity.OAuthBinding, users map[string]entity.User) bool {
+	if !namedIdentityProofEmpty(row) {
+		return false
+	}
 	oe := primaryProofEmpty(row.OIDCBindingID, row.OIDCBindingCreatedAt, row.OIDCConfigRevision, row.OIDCPolicyRevision, row.OIDCUserCreatedAt)
 	ae := primaryProofEmpty(row.OAuthBindingID, row.OAuthBindingCreatedAt, row.OAuthConfigRevision, row.OAuthPolicyRevision, row.OAuthUserCreatedAt)
 	le := primaryProofEmpty(row.LDAPBindingID, row.LDAPBindingCreatedAt, row.LDAPConfigRevision, row.LDAPPolicyRevision, row.LDAPUserCreatedAt)
@@ -92,6 +98,9 @@ func primaryRuntimeSession(row entity.Session, op *entity.OIDCProvider, ob map[s
 // The old dispatcher remains available to existing callers and rejects LDAP
 // proof without its complete current publication input.
 func primaryRuntimeSessionWithLDAP(row entity.Session, op *entity.OIDCProvider, ob map[string]entity.OIDCBinding, p *entity.OAuthProvider, b map[string]entity.OAuthBinding, lp *entity.LDAPProvider, lb map[string]entity.LDAPBinding, users map[string]entity.User) bool {
+	if !namedIdentityProofEmpty(row) {
+		return false
+	}
 	if !primaryProofEmpty(row.SAMLBindingID, row.SAMLBindingCreatedAt, row.SAMLConfigRevision, row.SAMLPolicyRevision, row.SAMLUserCreatedAt) {
 		return false
 	}

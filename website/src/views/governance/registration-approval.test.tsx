@@ -113,7 +113,12 @@ beforeEach(async () => {
         })
       data = { permissions: ['registration.write'] }
     } else if (
-      ['/admin/auth/oidc', '/admin/auth/oauth'].includes(config.url ?? '') &&
+      [
+        '/admin/auth/oidc',
+        '/admin/auth/oauth',
+        '/admin/auth/github',
+        '/admin/auth/google',
+      ].includes(config.url ?? '') &&
       config.method === 'get'
     )
       return {

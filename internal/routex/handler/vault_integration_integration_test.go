@@ -72,9 +72,9 @@ func testVaultIntegrationMigration(t *testing.T, db *gorm.DB) {
 	}
 	remove := func() {
 		t.Helper()
-		r := db.Table("schema_migrations").Where("version IN ?", []int{72, 94, 95, 96, 97}).Delete(&struct{}{})
-		if r.Error != nil || r.RowsAffected != 5 {
-			t.Fatal("reconstruct V72 and additive V94/V95/V96/V97 ledgers independently", r.Error)
+		r := db.Table("schema_migrations").Where("version IN ?", []int{72, 94, 95, 96, 97, 98, 99}).Delete(&struct{}{})
+		if r.Error != nil || r.RowsAffected != 7 {
+			t.Fatal("reconstruct V72 and additive V94/V95/V96/V97/V98/V99 ledgers independently", r.Error, r.RowsAffected)
 		}
 	}
 	// Historical predecessor lacked inventory_version. Preserve the old sentinel.
@@ -118,7 +118,7 @@ func testVaultIntegrationMigration(t *testing.T, db *gorm.DB) {
 		t.Fatal(e)
 	}
 	assert()
-	for _, version := range []int{0, 6} {
+	for _, version := range []int{0, 8} {
 		if e := db.Model(&entity.SecretRotationJob{}).Where("id = ?", old.ID).Update("InventoryVersion", version).Error; e == nil {
 			t.Fatal("invalid inventory version persisted")
 		}
@@ -126,6 +126,7 @@ func testVaultIntegrationMigration(t *testing.T, db *gorm.DB) {
 	if e := db.Model(&entity.SecretRotationJob{}).Where("id = ?", old.ID).Update("Domain", 6).Error; e == nil {
 		t.Fatal("legacy sentinel silently became new domain")
 	}
+	assertRetainedRootInventoryV7(t, db, "v72", now)
 	if e := db.Create(&entity.VaultWriterAuth{ID: "vlr_01aaaaaaaaaaaaaaaaaaaaaaaa", SecretGeneration: "vag_orphan", AuthCiphertext: "unknown"}).Error; e == nil {
 		t.Fatal("orphan auth revision persisted")
 	}

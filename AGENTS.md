@@ -1622,3 +1622,24 @@ passwords, proofs and one-time results in transient component state, fence late
 responses by actor/Session lifetime, and settle the real Session after revoking
 writes. Explicit abandonment confirms cookie cleanup only. SAML does not satisfy
 the OIDC/LDAP-only enforced-SSO policy.
+
+
+GitHub uses the existing sign-in card, independent authentication settings drawer
+and Account Security card/dialogs, with paired `github` translations. Its fixed
+GitHub.com OAuth App profile links only existing members by exact numeric ID.
+Management and verification require both intrinsic administrator authority and
+fresh `registration.write`; member self-linking has its own reviewed local proof.
+Keep the clean completion route outside AuthGate, require explicit Continue after
+a fresh direct Session read, and preserve native MFA HTTP 202 as a challenge.
+The existing Session endpoint requires no-store/nosniff; GitHub endpoints also
+require private. Preserve exact uncertain intent until confirmed browser-cookie
+abandonment, which never proves durable cancellation. Secrets, proofs and remote
+tokens stay transient and out of query/mutation caches and browser storage.
+Actor/Session/permission changes fence stale responses. Root inventory V6 appends
+named-provider credentials while preserving V1–V5 meanings. GitHub does not satisfy
+the OIDC/LDAP-only enforced-SSO policy.
+
+
+Google uses the existing sign-in card, independent authentication settings drawer and Account Security composition with paired `google` translations. An internal finite GitHub/Google UI adapter may share identical state and authority handling, while each method retains exact endpoints, namespace, callback and transient state. Changing methods destroys obsolete state and fences late replies. Keep the Google setup guide, actual-origin copy, explicit saved-callback copy and separately confirmed enablement Switch. Never infer verification or enablement from saving.
+
+Google completion remains outside AuthGate and requires explicit Continue after a fresh direct Session read; native MFA HTTP 202 is a challenge. The exact existing Session endpoint requires no-store/nosniff; Google endpoints additionally require private. Secrets, proofs, remote tokens and uncertain intents remain component-local. Browser-cookie abandonment proves no durable cancellation. Root inventory V7 keeps eleven domains and preserves historical V6 GitHub coverage; Google does not satisfy the OIDC/LDAP-only enforced-SSO policy.

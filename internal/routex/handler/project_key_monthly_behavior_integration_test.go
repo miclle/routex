@@ -494,15 +494,19 @@ func TestProjectKeyMonthlyBehaviorRegistryTail(t *testing.T) {
 	for _, pair := range matches {
 		pairs = append(pairs, pair[1]+":"+pair[2])
 	}
-	if !samlRegistry194Current(pairs) {
-		t.Fatal("exact194 SAML successor changed")
+	if !googleRegistry200Current(pairs) {
+		t.Fatal("exact200 Google successor changed")
+	}
+	pairs = pairs[:197]
+	if !githubRegistry197Current(pairs) {
+		t.Fatal("exact197 GitHub successor changed")
 	}
 	pairs = pairs[:181]
 	if !credentialAttemptStatisticsRegistry181Current(pairs) {
 		t.Fatal("exact V93/181 successor changed")
 	}
 	pairs = pairs[:179]
-	if len(pairs) != 179 || !strings.Contains(string(raw), "versions != 97") {
+	if len(pairs) != 179 || !strings.Contains(string(raw), "versions != 99") {
 		t.Fatal("current exact172 registry/V89 ledger changed")
 	}
 	if !projectKeyMonthlyBehaviorRegistryMatches(pairs) {
