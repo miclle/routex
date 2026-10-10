@@ -770,7 +770,7 @@ func TestCredentialStorageUUIDResponseContainsOnlyOwnedBootstrap(t *testing.T) {
 }
 
 func TestCredentialStorageInventoryKeepsSevenDomainsAndRejectsEmptyInline(t *testing.T) {
-	if rootInventoryVersion != 7 || len(rootDomains) != 11 {
+	if rootInventoryVersion != 8 || len(rootDomains) != 11 {
 		t.Fatal("current root inventory must include the named identity value domain")
 	}
 	for _, inventory := range []struct {

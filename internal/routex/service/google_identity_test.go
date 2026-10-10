@@ -77,8 +77,8 @@ func TestGoogleFixedNamespaceDerivationAndRootCoverage(t *testing.T) {
 	if rootReference("named_identity_providers", "github", gen) != "named-identity:github.com.oauth-app.v1:github:"+gen || rootReference("named_identity_providers", "google", gen) != "named-identity:google.oidc.v1:google:"+gen || rootReference("named_identity_providers", "Google", gen) != "" {
 		t.Fatal("fixed AAD")
 	}
-	if rootInventoryVersion != 7 || len(rootDomains) != 11 || !reflect.DeepEqual(rootInventoryDomains(6), rootDomains) || !reflect.DeepEqual(rootInventoryDomains(7), rootDomains) {
-		t.Fatal("V6 history/V7 coverage")
+	if rootInventoryVersion != 8 || len(rootDomains) != 11 || !reflect.DeepEqual(rootInventoryDomains(6), rootDomains) || !reflect.DeepEqual(rootInventoryDomains(7), rootDomains) || !reflect.DeepEqual(rootInventoryDomains(8), rootDomains) {
+		t.Fatal("V6/V7 history and V8 coverage")
 	}
 	now := time.Now().UTC()
 	svc := &Service{rootNow: func() time.Time { return now }}
@@ -86,6 +86,10 @@ func TestGoogleFixedNamespaceDerivationAndRootCoverage(t *testing.T) {
 	proof := entity.SecretProcessVerification{InventoryVersion: 6}
 	if svc.rootObservationEligible(job, proof) {
 		t.Fatal("old GitHub-only observation relabeled Google-covered")
+	}
+	job.InventoryVersion, proof.InventoryVersion = 7, 7
+	if svc.rootObservationEligible(job, proof) {
+		t.Fatal("old Google-only observation relabeled Discord-covered")
 	}
 }
 func TestGoogleRuntimeExactSevenProofAndIndependentTombstones(t *testing.T) {

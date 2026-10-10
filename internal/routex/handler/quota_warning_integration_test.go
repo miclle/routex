@@ -577,6 +577,8 @@ func testPersonalMonthlyQuotaWarningLifecycle(t *testing.T, db *gorm.DB) {
 		}
 	}
 	// Current disabled lifecycle denies the existing recipient Session and observation.
+	// Establish the valid lease after pagination, before the unpublished disable.
+	refresh()
 	if err := db.Model(&entity.User{}).Where("id = ?", member.User.ID).UpdateColumn("disabled", true).Error; err != nil {
 		t.Fatal(err)
 	}

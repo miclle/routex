@@ -82,6 +82,8 @@ func testRootKeyRotationMigration(t *testing.T, db *gorm.DB) {
 		{&entity.SecretProcessVerification{}, []string{"ck_secret_process_epoch"}},
 	}
 	for prefix := range 3 {
+		// Rewind only pristine Discord before any historical root table is removed.
+		legacyDiscordBeforeV100(t, db)
 		t.Logf("V48 partial-DDL prefix %d", prefix)
 		for _, model := range models {
 			if err := db.Migrator().DropTable(model); err != nil {
@@ -89,7 +91,7 @@ func testRootKeyRotationMigration(t *testing.T, db *gorm.DB) {
 			}
 		}
 		if result := db.Table("schema_migrations").Where("version IN ?", []int{48, 72, 94, 95, 96, 97, 98, 99}).Delete(&struct{}{}); result.Error != nil || result.RowsAffected != 8 {
-			t.Fatal("reconstruct V48 and additive V72/V94/V95/V96/V97/V98/V99 ledgers independently", result.Error, result.RowsAffected)
+			t.Fatal("reconstruct V48 and additive V72/V94/V95/V96/V97/V98/V99 after guarded V101 rewind", result.Error, result.RowsAffected)
 		}
 		// Reconstruct the released operational code guard without touching its rows.
 		if err := db.Migrator().DropConstraint(&rootSystemJobCodeV47Fixture{}, "ck_system_jobs_code"); err != nil {
@@ -174,6 +176,7 @@ func testRootKeyRotationMigration(t *testing.T, db *gorm.DB) {
 		}
 	}
 	assertRetainedRootInventoryV7(t, db, "v48", stamp)
+	assertRetainedRootInventoryV8(t, db, "v48", stamp)
 	var adminPermissions, memberPermissions int64
 	if err := db.Table("role_permissions").Where("role_id = ? AND permission IN ?", "rol_admin", []string{"secrets.read", "secrets.rotate"}).Count(&adminPermissions).Error; err != nil {
 		t.Fatal(err)
@@ -280,7 +283,7 @@ func assertRetainedRootInventoryV7(t *testing.T, db *gorm.DB, label string, stam
 	if err := db.Take(&savedJob, "id = ?", job.ID).Error; err != nil || savedJob.InventoryVersion != 7 || savedJob.Domain != 11 {
 		t.Fatal("reconstructed current V7 job facts changed", label, err)
 	}
-	for _, change := range []map[string]any{{"Domain": -1}, {"Domain": 12}, {"InventoryVersion": 8}} {
+	for _, change := range []map[string]any{{"Domain": -1}, {"Domain": 12}, {"InventoryVersion": 9}} {
 		if err := db.Model(&entity.SecretRotationJob{}).Where("id = ?", job.ID).Updates(change).Error; err == nil {
 			t.Fatal("reconstructed current V7 job accepted invalid envelope", label, change)
 		}
@@ -297,7 +300,44 @@ func assertRetainedRootInventoryV7(t *testing.T, db *gorm.DB, label string, stam
 	if err := db.Take(&savedProof, "process_id = ?", proof.ProcessID).Error; err != nil || savedProof.InventoryVersion != 7 {
 		t.Fatal("reconstructed current V7 process facts changed", label, err)
 	}
-	if err := db.Model(&entity.SecretProcessVerification{}).Where("process_id = ?", proof.ProcessID).Update("InventoryVersion", 8).Error; err == nil {
+	if err := db.Model(&entity.SecretProcessVerification{}).Where("process_id = ?", proof.ProcessID).Update("InventoryVersion", 9).Error; err == nil {
+		t.Fatal("reconstructed process accepted unsupported future inventory", label)
+	}
+	var observed entity.SecretProcessVerification
+	if err := db.Take(&observed, "process_id = ?", proof.ProcessID).Error; err != nil || !reflect.DeepEqual(savedProof, observed) {
+		t.Fatal("rejected future inventory changed durable process proof", label, err)
+	}
+}
+
+// V8 is a separate current-envelope fixture; all retained V7 rows remain unchanged.
+func assertRetainedRootInventoryV8(t *testing.T, db *gorm.DB, label string, stamp time.Time) {
+	t.Helper()
+	job := entity.SecretRotationJob{ID: "srt_v8_" + label, InventoryVersion: 8, SourceKeyID: "source", TargetKeyID: "target", CutoverEpoch: 1, ScanGeneration: 1, ETag: strings.Repeat("f", 64), Status: "migrating", Phase: "migration", Domain: 11, CountsJSON: "{}", CreatedAt: stamp, UpdatedAt: stamp}
+	if err := db.Create(&job).Error; err != nil {
+		t.Fatal("reconstructed current V8 eleven-domain job rejected", label, err)
+	}
+	var savedJob entity.SecretRotationJob
+	if err := db.Take(&savedJob, "id = ?", job.ID).Error; err != nil || savedJob.InventoryVersion != 8 || savedJob.Domain != 11 {
+		t.Fatal("reconstructed current V8 job facts changed", label, err)
+	}
+	for _, change := range []map[string]any{{"Domain": -1}, {"Domain": 12}, {"InventoryVersion": 9}} {
+		if err := db.Model(&entity.SecretRotationJob{}).Where("id = ?", job.ID).Updates(change).Error; err == nil {
+			t.Fatal("reconstructed current V8 job accepted invalid envelope", label, change)
+		}
+		var observed entity.SecretRotationJob
+		if err := db.Take(&observed, "id = ?", job.ID).Error; err != nil || !reflect.DeepEqual(savedJob, observed) {
+			t.Fatal("rejected current inventory change altered durable job", label, err)
+		}
+	}
+	proof := entity.SecretProcessVerification{ProcessID: "ins_v8_" + label, InventoryVersion: 8, PolicyEpoch: 1, CryptoVersion: 2, KeyManifestDigest: strings.Repeat("d", 64), LeaseToken: "lck_v8_" + label, RuntimeSnapshotID: "cfg_v8_" + label, RuntimeSourceDigest: strings.Repeat("e", 64), VerifiedAt: stamp}
+	if err := db.Create(&proof).Error; err != nil {
+		t.Fatal("reconstructed current V8 process proof rejected", label, err)
+	}
+	var savedProof entity.SecretProcessVerification
+	if err := db.Take(&savedProof, "process_id = ?", proof.ProcessID).Error; err != nil || savedProof.InventoryVersion != 8 {
+		t.Fatal("reconstructed current V8 process facts changed", label, err)
+	}
+	if err := db.Model(&entity.SecretProcessVerification{}).Where("process_id = ?", proof.ProcessID).Update("InventoryVersion", 9).Error; err == nil {
 		t.Fatal("reconstructed process accepted unsupported future inventory", label)
 	}
 	var observed entity.SecretProcessVerification

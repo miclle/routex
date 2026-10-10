@@ -315,8 +315,57 @@ func testRuntimeInstallationLifecycle(t *testing.T, db *gorm.DB) {
 	if db.Model(&entity.ModelProviderBinding{}).Where("id = ?", binding).Update("weight", 100).Error != nil {
 		t.Fatal("restore valid routing")
 	}
+	// Ready operational metadata must not be admitted ahead of the committed
+	// combined evidence for this exact owned process and retained route snapshot.
+	callbackName := "test:installation-evidence-before-ready-metadata"
+	var readyMetadataSeen atomic.Int64
+	var readyMetadataEvidence atomic.Bool
+	if err := privateDB.Callback().Create().Before("gorm:create").Register(callbackName, func(tx *gorm.DB) {
+		if tx.Statement.Schema == nil || tx.Statement.Schema.Table != "runtime_publications" {
+			return
+		}
+		publication, ok := tx.Statement.Dest.(*entity.RuntimePublication)
+		if !ok || publication.Status != "ready" || publication.ErrorCode != "" || publication.SnapshotID != first.Items[0].SnapshotID {
+			return
+		}
+		readyMetadataSeen.Add(1)
+		status := svc.RuntimeStatus()
+		if !status.Ready || status.ErrorCode != "" || status.SnapshotID != publication.SnapshotID || status.LastRefreshAt == nil || !status.LastRefreshAt.Equal(publication.CreatedAt) {
+			return
+		}
+		// The independent harness connection can see only committed evidence.
+		// Its existing parent context is retained; no timing sleep or retry is used.
+		var observed []entity.RuntimeInstallationObservation
+		if db.WithContext(tx.Statement.Context).Session(&gorm.Session{QueryFields: true}).Where("instance_id = ? AND snapshot_id = ?", original[0].InstanceID, publication.SnapshotID).Order("id").Limit(3).Find(&observed).Error != nil || len(observed) != 2 {
+			return
+		}
+		oldUnchanged, newCommitted := false, false
+		for _, row := range observed {
+			if row.ID == original[0].ID {
+				oldUnchanged = reflect.DeepEqual(row, original[0])
+				continue
+			}
+			newCommitted = row.ID != "" && row.InstanceID == original[0].InstanceID && row.InstanceStartedAt.Equal(original[0].InstanceStartedAt) && row.SnapshotID == original[0].SnapshotID && row.RoutesPublishedAt.Equal(original[0].RoutesPublishedAt) && row.ProjectionVersion == original[0].ProjectionVersion && row.SourceDigest != "" && row.SourceDigest != original[0].SourceDigest && !row.FirstObservedAt.Before(publication.CreatedAt.UTC().Truncate(time.Microsecond))
+		}
+		readyMetadataEvidence.Store(oldUnchanged && newCommitted)
+	}); err != nil {
+		t.Fatal(err)
+	}
+	var removeOrderingOnce sync.Once
+	removeOrderingCallback := func() {
+		removeOrderingOnce.Do(func() {
+			if err := privateDB.Callback().Create().Remove(callbackName); err != nil {
+				t.Error(err)
+			}
+		})
+	}
+	defer removeOrderingCallback()
 	if err := svc.RefreshRuntime(ctx); err != nil {
 		t.Fatal(err)
+	}
+	removeOrderingCallback()
+	if readyMetadataSeen.Load() != 1 || !readyMetadataEvidence.Load() {
+		t.Fatal("ready operational metadata preceded committed exact installation evidence")
 	}
 	changed := page()
 	if len(changed.Items) != 2 {

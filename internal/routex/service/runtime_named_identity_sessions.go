@@ -52,7 +52,7 @@ func loadNamedIdentitySessionRuntimeData(tx *gorm.DB, data *teamSessionRuntimeDa
 			needed[r.PrimaryMethod] = true
 		}
 	}
-	for _, providerID := range []string{githubProviderID, googleProviderID} {
+	for _, providerID := range []string{githubProviderID, googleProviderID, discordProviderID} {
 		if !needed[providerID] {
 			continue
 		}

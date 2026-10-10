@@ -273,3 +273,13 @@ matching. Root inventory V7 keeps eleven domains while preserving historical V6
 coverage. Controlled qualification is `passed`; root-confirmed
 combined phase evidence is recorded in [Implementation](docs/IMPLEMENTATION.md).
 Bilingual browser and external-provider acceptance remain open.
+
+
+The [Discord profile](docs/DISCORD.md) adds an independent fixed
+existing-member method with exact string IDs, `identify`, S256 PKCE, explicit
+linking, clean manual completion and native MFA. Its V101/root-inventory V8 scope
+keeps eleven secret domains and preserves historical coverage. Controlled complete
+PostgreSQL/MySQL, application restart and authentication-lifecycle qualification
+pass; phase evidence is indexed in [Implementation](docs/IMPLEMENTATION.md).
+Bilingual browser and registered external-client acceptance remain pending.
+F03 remains Partial.

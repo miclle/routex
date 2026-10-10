@@ -11,7 +11,8 @@ import (
 )
 
 func TestGoogleV99FrozenCurrentParityAndAdditiveTail(t *testing.T) {
-	for _, pair := range [][2]any{{&googleNamedIdentityProviderV99{}, &entity.NamedIdentityProvider{}}, {&googleNamedIdentityBindingV99{}, &entity.NamedIdentityBinding{}}, {&googleNamedIdentityCeremonyV99{}, &entity.NamedIdentityCeremony{}}, {&googleIdentitySessionV99{}, &entity.Session{}}, {&googleIdentityMFAChallengeV99{}, &entity.MFAChallenge{}}, {&googleIdentitySessionProofV99{}, &entity.Session{}}, {&googleIdentityMFAChallengeProofV99{}, &entity.MFAChallenge{}}, {&googleIdentityRootJobV99{}, &entity.SecretRotationJob{}}, {&googleIdentityRootProcessV99{}, &entity.SecretProcessVerification{}}} {
+	// V99 is retained byte-exact in private pre-Discord snapshots; V101 owns current tags.
+	for _, pair := range [][2]any{{&googleNamedIdentityProviderV99{}, &discordHistoricalNamedIdentityProviderV99{}}, {&googleNamedIdentityBindingV99{}, &discordHistoricalNamedIdentityBindingV99{}}, {&googleNamedIdentityCeremonyV99{}, &discordHistoricalNamedIdentityCeremonyV99{}}, {&googleIdentitySessionV99{}, &discordHistoricalSessionV99{}}, {&googleIdentityMFAChallengeV99{}, &discordHistoricalMFAChallengeV99{}}, {&googleIdentitySessionProofV99{}, &discordHistoricalSessionV99{}}, {&googleIdentityMFAChallengeProofV99{}, &discordHistoricalMFAChallengeV99{}}, {&googleIdentityRootJobV99{}, &discordHistoricalSecretRotationJobV99{}}, {&googleIdentityRootProcessV99{}, &discordHistoricalSecretProcessVerificationV99{}}, {&discordNamedIdentityProviderV101{}, &entity.NamedIdentityProvider{}}, {&discordNamedIdentityBindingV101{}, &entity.NamedIdentityBinding{}}, {&discordNamedIdentityCeremonyV101{}, &entity.NamedIdentityCeremony{}}, {&discordIdentitySessionV101{}, &entity.Session{}}, {&discordIdentityMFAChallengeV101{}, &entity.MFAChallenge{}}, {&discordIdentitySessionProofV101{}, &entity.Session{}}, {&discordIdentityMFAChallengeProofV101{}, &entity.MFAChallenge{}}, {&discordIdentityRootJobV101{}, &entity.SecretRotationJob{}}, {&discordIdentityRootProcessV101{}, &entity.SecretProcessVerification{}}} {
 		f, c := oidcV94Schema(t, pair[0]), oidcV94Schema(t, pair[1])
 		if f.Table != c.Table || len(f.Relationships.Relations) != 0 {
 			t.Fatal("frozen table boundary")
@@ -25,7 +26,7 @@ func TestGoogleV99FrozenCurrentParityAndAdditiveTail(t *testing.T) {
 	}
 	for _, driver := range []string{"postgres", "mysql"} {
 		steps := migrationSteps(driver)
-		if len(steps) != 100 || reflect.ValueOf(steps[97]).Pointer() != reflect.ValueOf(namedIdentityMigration).Pointer() || reflect.ValueOf(steps[98]).Pointer() != reflect.ValueOf(googleIdentityMigration).Pointer() || reflect.ValueOf(steps[99]).Pointer() != reflect.ValueOf(runtimeInstallationMigration).Pointer() {
+		if len(steps) != 101 || reflect.ValueOf(steps[97]).Pointer() != reflect.ValueOf(namedIdentityMigration).Pointer() || reflect.ValueOf(steps[98]).Pointer() != reflect.ValueOf(googleIdentityMigration).Pointer() || reflect.ValueOf(steps[99]).Pointer() != reflect.ValueOf(runtimeInstallationMigration).Pointer() || reflect.ValueOf(steps[100]).Pointer() != reflect.ValueOf(discordIdentityMigration).Pointer() {
 			t.Fatal("released tail or new99 registration")
 		}
 	}

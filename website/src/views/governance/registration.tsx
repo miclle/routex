@@ -5,6 +5,7 @@ import LDAPConfiguration from '@/views/ldap/config'
 import SAMLConfiguration from '@/views/saml/config'
 import GitHubConfiguration from '@/views/github/config'
 import GoogleConfiguration from '@/views/google/config'
+import DiscordConfiguration from '@/views/discord/config'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { AxiosError } from 'axios'
@@ -279,6 +280,7 @@ function Policy({ actor }: { actor: string }) {
       <SAMLConfiguration />
       <GitHubConfiguration />
       <GoogleConfiguration />
+      <DiscordConfiguration />
       <Drawer
         open={open && !!page}
         onOpenChange={(value) => {

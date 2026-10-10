@@ -328,10 +328,13 @@ func (s *Service) RefreshRuntime(ctx context.Context) error {
 			closeRuntimeClients(current.Models)
 		}
 	}
-	s.setRuntimeStatus(ctx, started, "")
+	status := s.storeRuntimeStatus(started, "")
 	// Projection and both bounded recorders consume the same deadline. Route
 	// preparation can exhaust it; it never receives a renewed recording budget.
 	s.recordRuntimeObservations(evidenceCtx, runtime.routes.Load(), auth, generation)
+	// Operational reporting is best effort and follows the already bounded
+	// installation evidence. It must not consume that evidence's remaining time.
+	s.recordRuntimeStatusMetadata(ctx, started, "", status)
 	return nil
 }
 
@@ -366,6 +369,11 @@ func (s *Service) RuntimeStatus() RuntimeStatus {
 }
 
 func (s *Service) setRuntimeStatus(ctx context.Context, now time.Time, code string) {
+	status := s.storeRuntimeStatus(now, code)
+	s.recordRuntimeStatusMetadata(ctx, now, code, status)
+}
+
+func (s *Service) storeRuntimeStatus(now time.Time, code string) *RuntimeStatus {
 	runtime := s.runtime
 	status := &RuntimeStatus{Enabled: true, LastRefreshAt: &now, ErrorCode: code}
 	if auth := runtime.auth.Load(); auth != nil {
@@ -378,6 +386,11 @@ func (s *Service) setRuntimeStatus(ctx context.Context, now time.Time, code stri
 	}
 	status.Ready = status.SnapshotID != "" && status.AuthorizationValidUntil != nil && now.Before(*status.AuthorizationValidUntil)
 	runtime.status.Store(status)
+	return status
+}
+
+func (s *Service) recordRuntimeStatusMetadata(ctx context.Context, now time.Time, code string, status *RuntimeStatus) {
+	runtime := s.runtime
 	state := status.SnapshotID + ":" + code
 	if runtime.lastRecordedState == state {
 		return

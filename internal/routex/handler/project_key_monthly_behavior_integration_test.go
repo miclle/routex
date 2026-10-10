@@ -494,8 +494,8 @@ func TestProjectKeyMonthlyBehaviorRegistryTail(t *testing.T) {
 	for _, pair := range matches {
 		pairs = append(pairs, pair[1]+":"+pair[2])
 	}
-	if !installationRegistry203Current(pairs) {
-		t.Fatal("exact200 Google successor changed")
+	if !discordRegistry206Current(pairs) {
+		t.Fatal("exact206 ordered Discord successor required")
 	}
 	pairs = pairs[:197]
 	if !githubRegistry197Current(pairs) {
@@ -506,7 +506,7 @@ func TestProjectKeyMonthlyBehaviorRegistryTail(t *testing.T) {
 		t.Fatal("exact V93/181 successor changed")
 	}
 	pairs = pairs[:179]
-	if len(pairs) != 179 || !strings.Contains(string(raw), "versions != 100") {
+	if len(pairs) != 179 || !strings.Contains(string(raw), "versions != 101") {
 		t.Fatal("current exact172 registry/V89 ledger changed")
 	}
 	if !projectKeyMonthlyBehaviorRegistryMatches(pairs) {

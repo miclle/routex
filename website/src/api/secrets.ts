@@ -98,7 +98,8 @@ function rotation(value: unknown): SecretRotation {
     row.inventory_version !== 4 &&
     row.inventory_version !== 5 &&
     row.inventory_version !== 6 &&
-    row.inventory_version !== 7
+    row.inventory_version !== 7 &&
+    row.inventory_version !== 8
   )
     return fail()
   const codes =
@@ -214,9 +215,9 @@ export function parseSecretStore(value: unknown): SecretStore {
       policy.write_key_id === null)
   )
     return fail()
-  if (row.inventory_version !== 7 || row.mode !== 'internal' || row.can_read !== true) return fail()
+  if (row.inventory_version !== 8 || row.mode !== 'internal' || row.can_read !== true) return fail()
   return {
-    inventory_version: 7,
+    inventory_version: 8,
     mode: 'internal',
     observed_at: date(row.observed_at),
     review_etag: string(row.review_etag, etag),

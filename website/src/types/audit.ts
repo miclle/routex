@@ -50,6 +50,10 @@ export interface GoogleIdentityAuditChanges {
   kind: 'google_identity'
   reason: string
 }
+export interface DiscordIdentityAuditChanges {
+  kind: 'discord_identity'
+  reason: string
+}
 export type AuditChanges =
   | AuditBeforeAfterChanges
   | SystemInstanceCleanupAuditChanges
@@ -59,6 +63,7 @@ export type AuditChanges =
   | SAMLIdentityAuditChanges
   | GitHubIdentityAuditChanges
   | GoogleIdentityAuditChanges
+  | DiscordIdentityAuditChanges
 export interface AuditRecord {
   id: string
   actor_id: string

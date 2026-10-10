@@ -70,6 +70,7 @@ beforeEach(async () => {
         'get /account/identity/saml',
         'get /account/identity/github',
         'get /account/identity/google',
+        'get /account/identity/discord',
       ].includes(route)
     ) {
       const etag = 'a'.repeat(64)
@@ -78,7 +79,8 @@ beforeEach(async () => {
         route === 'get /account/identity/ldap' ||
         route === 'get /account/identity/saml' ||
         route === 'get /account/identity/github' ||
-        route === 'get /account/identity/google'
+        route === 'get /account/identity/google' ||
+        route === 'get /account/identity/discord'
       ) {
         response.headers.set('Cache-Control', 'private, no-store')
         response.headers.set('X-Content-Type-Options', 'nosniff')

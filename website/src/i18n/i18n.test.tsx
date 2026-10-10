@@ -145,10 +145,30 @@ describe('localization contract', () => {
       const sharedNamedMethod =
         /\/views\/github\/(account|config|complete|login-button)\.tsx$/.test(file) &&
         /useTranslation\((method|profile)\)/.test(source)
-      // Google contains every shared key; its setup-only keys stay inside the Google branch.
+      // Setup keys are present in both profiles that render the shared setup section.
       const namespace =
         source.match(/useTranslation\(['"]([^'"]+)['"]\)/)?.[1] ??
         (sharedNamedMethod ? 'google' : 'common')
+      if (sharedNamedMethod) {
+        for (const profile of ['github', 'google', 'discord']) {
+          for (const match of source.matchAll(/\bt\(['"]([^'"]+)['"]/g)) {
+            const setupOnly = [
+              'setupGuide',
+              'setupHelp',
+              'origin',
+              'copyOrigin',
+              'callbackHelp',
+              'switchLabel',
+            ].includes(match[1])
+            if (profile === 'github' && setupOnly) continue
+            for (const lng of ['en', 'zh'])
+              expect(
+                i18n.exists(match[1], { ns: profile, lng, count: 2 }),
+                `${file}: ${profile}:${match[1]}`,
+              ).toBe(true)
+          }
+        }
+      }
       for (const match of source.matchAll(/\bt\(['"]([^'"]+)['"]/g)) {
         expect(
           i18n.exists(match[1], { ns: namespace, lng: 'en', count: 2 }),

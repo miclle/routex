@@ -38,6 +38,8 @@ func testVaultIntegrationMigration(t *testing.T, db *gorm.DB) {
 			t.Fatal("unordered migration history")
 		}
 	}
+	// Capture the original full ledger first; rewind pristine Discord before root DDL.
+	legacyDiscordBeforeV100(t, db)
 	now := time.Now().UTC().Truncate(time.Microsecond)
 	old := entity.SecretRotationJob{ID: "srt_vault_history", InventoryVersion: 1, SourceKeyID: "old", TargetKeyID: "target", CutoverEpoch: 1, ScanGeneration: 1, ETag: strings.Repeat("a", 64), Status: "completed", Phase: "completed", Domain: 5, CountsJSON: `{"provider_credentials":{},"egresses":{},"smtp_settings":{},"storage_revisions":{},"user_mfa":{}}`, CreatedAt: now, UpdatedAt: now, CompletedAt: &now}
 	if e := db.Create(&old).Error; e != nil {
@@ -74,7 +76,7 @@ func testVaultIntegrationMigration(t *testing.T, db *gorm.DB) {
 		t.Helper()
 		r := db.Table("schema_migrations").Where("version IN ?", []int{72, 94, 95, 96, 97, 98, 99}).Delete(&struct{}{})
 		if r.Error != nil || r.RowsAffected != 7 {
-			t.Fatal("reconstruct V72 and additive V94/V95/V96/V97/V98/V99 ledgers independently", r.Error, r.RowsAffected)
+			t.Fatal("reconstruct V72 and additive V94/V95/V96/V97/V98/V99 after guarded V101 rewind", r.Error, r.RowsAffected)
 		}
 	}
 	// Historical predecessor lacked inventory_version. Preserve the old sentinel.
@@ -110,6 +112,8 @@ func testVaultIntegrationMigration(t *testing.T, db *gorm.DB) {
 	}
 	assert()
 	// A committed table/index with a missing constraint is repaired on replay.
+	// Full startup recreated Discord; prove and rewind it again before V99 replay.
+	legacyDiscordBeforeV100(t, db)
 	if e := db.Migrator().DropConstraint(&entity.VaultProbe{}, "ck_vault_probe_state"); e != nil {
 		t.Fatal(e)
 	}
@@ -118,7 +122,7 @@ func testVaultIntegrationMigration(t *testing.T, db *gorm.DB) {
 		t.Fatal(e)
 	}
 	assert()
-	for _, version := range []int{0, 8} {
+	for _, version := range []int{0, 9} {
 		if e := db.Model(&entity.SecretRotationJob{}).Where("id = ?", old.ID).Update("InventoryVersion", version).Error; e == nil {
 			t.Fatal("invalid inventory version persisted")
 		}
@@ -127,6 +131,7 @@ func testVaultIntegrationMigration(t *testing.T, db *gorm.DB) {
 		t.Fatal("legacy sentinel silently became new domain")
 	}
 	assertRetainedRootInventoryV7(t, db, "v72", now)
+	assertRetainedRootInventoryV8(t, db, "v72", now)
 	if e := db.Create(&entity.VaultWriterAuth{ID: "vlr_01aaaaaaaaaaaaaaaaaaaaaaaa", SecretGeneration: "vag_orphan", AuthCiphertext: "unknown"}).Error; e == nil {
 		t.Fatal("orphan auth revision persisted")
 	}

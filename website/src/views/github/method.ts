@@ -1,9 +1,10 @@
 import * as github from '@/api/github'
 import * as google from '@/api/google'
+import * as discord from '@/api/discord'
 
-export type NamedIdentityMethod = 'github' | 'google'
+export type NamedIdentityMethod = 'github' | 'google' | 'discord'
 
-// Only these two reviewed profiles share this view composition.
+// Only these reviewed fixed profiles share this view composition.
 export function namedIdentityMethod(method: NamedIdentityMethod) {
   switch (method) {
     case 'github':
@@ -40,5 +41,24 @@ export function namedIdentityMethod(method: NamedIdentityMethod) {
         abandon: google.abandonGoogle,
         RequestError: google.GoogleRequestError,
       }
+    case 'discord':
+      return {
+        getConfig: discord.getDiscordConfig,
+        saveConfig: discord.saveDiscordConfig,
+        setStatus: discord.setDiscordStatus,
+        beginProof: discord.beginDiscordProof,
+        validConfig: discord.validDiscordConfig,
+        validProof: discord.validDiscordProof,
+        getIdentity: discord.getDiscordIdentity,
+        unlink: discord.unlinkDiscord,
+        getMethod: discord.getDiscordMethod,
+        start: discord.startDiscord,
+        readSession: discord.readDiscordSession,
+        complete: discord.completeDiscord,
+        abandon: discord.abandonDiscord,
+        RequestError: discord.DiscordRequestError,
+      }
+    default:
+      throw new Error('Unsupported named identity method')
   }
 }

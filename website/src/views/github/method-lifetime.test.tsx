@@ -8,7 +8,7 @@ import client from '@/api/client'
 import i18n from '@/i18n'
 import GitHubComplete from './complete'
 import GitHubLoginButton from './login-button'
-import type { NamedIdentityMethod } from './method'
+import { namedIdentityMethod, type NamedIdentityMethod } from './method'
 import type { Session } from '@/types/auth'
 
 Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true })
@@ -45,10 +45,18 @@ beforeEach(async () => {
     if (request.url === '/auth/session') {
       status = 401
       data = null
-    } else if (request.url === '/auth/google' || request.url === '/auth/github')
+    } else if (
+      request.url === '/auth/google' ||
+      request.url === '/auth/github' ||
+      request.url === '/auth/discord'
+    )
       data = {
         available: true,
-        name: request.url.endsWith('google') ? 'Google sign-in' : 'GitHub sign-in',
+        name: request.url.endsWith('google')
+          ? 'Google sign-in'
+          : request.url.endsWith('discord')
+            ? 'Discord sign-in'
+            : 'GitHub sign-in',
       }
     else if (request.url?.endsWith('/complete')) data = structuredClone(returnedSession)
     else if (request.url?.endsWith('/start')) {
@@ -64,6 +72,17 @@ beforeEach(async () => {
           code_challenge_method: 'S256',
         })
         data = { authorization_url: `https://accounts.google.com/o/oauth2/v2/auth?${query}` }
+      } else if (request.url === '/auth/discord/start') {
+        const query = new URLSearchParams({
+          response_type: 'code',
+          client_id: '9007199254740993',
+          redirect_uri: 'https://routex.example.test/api/v1/auth/discord/callback',
+          scope: 'identify',
+          state: 'a'.repeat(43),
+          code_challenge: 'c'.repeat(43),
+          code_challenge_method: 'S256',
+        })
+        data = { authorization_url: `https://discord.com/oauth2/authorize?${query}` }
       } else status = 503
     } else if (request.url === '/site')
       data = {
@@ -205,4 +224,71 @@ describe('finite named identity method lifetime', () => {
     expect(cache.getQueryData(['auth', 'session'])).toBeNull()
     expect(cache.getMutationCache().getAll()).toHaveLength(0)
   })
+})
+
+describe('Discord method-keyed teardown', () => {
+  it.each(['read', 'complete'] as const)(
+    'discards a held old-method %s and requires a fresh new-method Continue',
+    async (phase) => {
+      const release = hold(phase === 'read' ? '/auth/session' : '/auth/discord/complete')
+      await render('discord', 'complete')
+      expect(writes()).toHaveLength(0)
+      await click('Continue')
+      await wait(() => requests.some((request) => request.url === held!.path))
+      const oldRequest = requests.find((request) => request.url === held!.path)!
+      await render('github', 'complete')
+      expect(oldRequest.signal?.aborted).toBe(true)
+      expect(host.textContent).toContain('GitHub')
+      await act(async () => release())
+      expect(cache.getQueryData(['auth', 'session'])).toBeNull()
+      expect(host.querySelector('[data-location]')?.textContent).toBe('/auth/identity/complete')
+      expect(writes().filter((request) => request.url === '/auth/discord/complete')).toHaveLength(
+        phase === 'read' ? 0 : 1,
+      )
+      expect(writes().filter((request) => request.url === '/auth/github/complete')).toHaveLength(0)
+      held = undefined
+      await click('Continue')
+      await wait(
+        () => cache.getQueryData<Session>(['auth', 'session'])?.csrf_token === 'fresh-result',
+      )
+      expect(writes().filter((request) => request.url === '/auth/github/complete')).toHaveLength(1)
+      expect(host.querySelector('[data-location]')?.textContent).toBe('/')
+      expect(cache.getMutationCache().getAll()).toHaveLength(0)
+    },
+  )
+  it('aborts a held old-method start and permits only a fresh new-method start', async () => {
+    const release = hold('/auth/discord/start')
+    await render('discord', 'start')
+    await wait(() => host.textContent!.includes('Continue with Discord sign-in'))
+    await click('Continue with Discord sign-in')
+    await wait(() => writes().length === 1)
+    const oldRequest = writes()[0]
+    await render('github', 'start')
+    expect(oldRequest.signal?.aborted).toBe(true)
+    await wait(() => host.textContent!.includes('Continue with GitHub sign-in'))
+    await act(async () => release())
+    expect(host.querySelector('[data-location]')?.textContent).toBe('/auth/identity/complete')
+    expect(writes().map((request) => request.url)).toEqual(['/auth/discord/start'])
+    expect(acquired).toBe(1)
+    expect(released).toBe(1)
+    held = undefined
+    await click('Continue with GitHub sign-in')
+    await wait(() => writes().length === 2 && released === 2)
+    expect(writes().map((request) => request.url)).toEqual([
+      '/auth/discord/start',
+      '/auth/github/start',
+    ])
+    expect(acquired).toBe(2)
+    expect(cache.getQueryData(['auth', 'session'])).toBeNull()
+    expect(cache.getMutationCache().getAll()).toHaveLength(0)
+  })
+})
+
+it('fails closed for an unknown named method without selecting another provider or dispatching', () => {
+  for (const unknown of ['other', '', 'Discord']) {
+    expect(() => namedIdentityMethod(unknown as NamedIdentityMethod)).toThrow(
+      'Unsupported named identity method',
+    )
+  }
+  expect(requests).toHaveLength(0)
 })

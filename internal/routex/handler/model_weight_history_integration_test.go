@@ -27,7 +27,7 @@ import (
 func testModelWeightHistoryMigration(t *testing.T, db *gorm.DB) {
 	t.Helper()
 	before := personalKeyBehaviorLedger(t, db)
-	if len(before) != 100 || before[99].Version != 100 || before[98].Version != 99 || before[97].Version != 98 || before[96].Version != 97 || before[95].Version != 96 || before[94].Version != 95 || before[93].Version != 94 || before[92].Version != 93 || before[91].Version != 92 || before[90].Version != 91 || before[89].Version != 90 {
+	if len(before) != 101 || before[100].Version != 101 || before[99].Version != 100 || before[98].Version != 99 || before[97].Version != 98 || before[96].Version != 97 || before[95].Version != 96 || before[94].Version != 95 || before[93].Version != 94 || before[92].Version != 93 || before[91].Version != 92 || before[90].Version != 91 || before[89].Version != 90 {
 		t.Fatal("exact current V90 ledger required")
 	}
 	for i, row := range before {
@@ -69,7 +69,7 @@ func testModelWeightHistoryMigration(t *testing.T, db *gorm.DB) {
 			t.Fatal(err)
 		}
 		got := personalKeyBehaviorLedger(t, db)
-		if len(got) != 100 || got[99].Version != 100 || got[98].Version != 99 || got[97].Version != 98 || got[96].Version != 97 || got[95].Version != 96 || got[94].Version != 95 || got[93].Version != 94 || got[92].Version != 93 || got[91].Version != 92 || got[90].Version != 91 || !personalKeyBehaviorLedgerPreserved(before, got, 90) {
+		if len(got) != 101 || got[100].Version != 101 || got[99].Version != 100 || got[98].Version != 99 || got[97].Version != 98 || got[96].Version != 97 || got[95].Version != 96 || got[94].Version != 95 || got[93].Version != 94 || got[92].Version != 93 || got[91].Version != 92 || got[90].Version != 91 || !personalKeyBehaviorLedgerPreserved(before, got, 90) {
 			t.Fatal("released 1..89 ledger/times changed")
 		}
 	}

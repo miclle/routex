@@ -109,6 +109,10 @@ func namedIdentityValidateConfigInputFor(providerID string, v *GitHubProviderInp
 	if !utf8.ValidString(v.Name) || utf8.RuneCountInString(v.Name) < 1 || utf8.RuneCountInString(v.Name) > 100 || strings.ContainsFunc(v.Name, unicode.IsControl) || !namedIdentityURLFor(providerID, v.CallbackURL, true) || !namedIdentityText(v.ClientID, 256) || strings.ContainsFunc(v.ClientID, unicode.IsSpace) || strings.ContainsFunc(v.ClientID, unicode.IsControl) || !validRegistrationReason(v.Reason) {
 		return apperrors.ErrBadRequest
 	}
+	// Discord application IDs are canonical uint64 strings, before any secret or DB I/O.
+	if providerID == discordProviderID && !discordCanonicalID(v.ClientID) {
+		return apperrors.ErrBadRequest
+	}
 	if v.SecretAction == "keep" {
 		if v.ClientSecret != "" {
 			return apperrors.ErrBadRequest

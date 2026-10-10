@@ -1650,9 +1650,26 @@ dual-database migration, constraints, runtime and rotation qualification is
 `passed`; root-confirmed combined phase evidence is recorded in
 [Implementation](IMPLEMENTATION.md).
 
-## Prepared Gateway installation observations (V100)
 
-The source-prepared frozen GORM V100 adds only
+## Discord profile and inventory V8 (V101)
+
+Frozen GORM V101 extends the existing named-identity checks with the exact
+`discord` / `discord.oauth2.v1` / `https://discord.com` / string-subject tuple
+and an empty disabled, unverified seed. It preserves V1–V100, the three shared
+tables, seven Session/MFA proof fields, exact finite ceremony purposes/states and
+all earlier correlated profile predicates. Retained validation precedes CHECK
+replacement; partial MySQL DDL recovery uses existing Migrator operations.
+Root inventory V8 keeps eleven domains and adds Discord coverage within the
+existing named-provider domain. Earlier epochs retain their original scope;
+V7 records do not prove Discord coverage. Controlled migration, original complete
+PostgreSQL/MySQL and genuine restart qualification pass under the exact phase
+evidence in [Implementation](IMPLEMENTATION.md). Browser and registered external
+client acceptance remain separate. See
+[Discord](DISCORD.md).
+
+## Gateway installation observations (V100)
+
+Frozen GORM V100 adds only
 `runtime_installation_observations`: an immutable first-observation ID, exact
 instance ID and birth, routing snapshot ID, projection version, private aggregate
 source digest, original route publication time and first observation time. The
@@ -1663,6 +1680,8 @@ A restarted process has a different generation and cannot reuse earlier proof.
 V1–V99 definitions and V87 routing-only records retain their original meaning;
 there is no backfill or promotion into combined installation proof. This phase
 adds no secret root-inventory domain or coverage epoch. Frozen-column/index/check
-validation and partial-DDL recovery are authored; complete PostgreSQL/MySQL
-migration, concurrency, restart and phase qualification remain pending.
+validation and partial-DDL recovery pass controlled complete PostgreSQL/MySQL,
+concurrency, genuine restart and authentication-lifecycle qualification in the
+separately delivered V100 phase. [Implementation](IMPLEMENTATION.md) records its
+source-bound evidence; browser and wider release acceptance remain separate.
 See [Gateway installation observations](RUNTIME_INSTALLATIONS.md).

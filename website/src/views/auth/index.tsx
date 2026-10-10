@@ -31,6 +31,7 @@ import LDAPLoginButton from '@/views/ldap/login-button'
 import SAMLLoginButton from '@/views/saml/login-button'
 import GitHubLoginButton from '@/views/github/login-button'
 import GoogleLoginButton from '@/views/google/login-button'
+import DiscordLoginButton from '@/views/discord/login-button'
 import type { LDAPLoginResult } from '@/types/ldap'
 
 export default function AuthPage({ mode }: { mode: 'login' | 'setup' | 'register' }) {
@@ -460,6 +461,7 @@ function Auth({ mode }: { mode: 'login' | 'setup' | 'register' }) {
               <SAMLLoginButton disabled={pending} acquire={acquireOIDC} />
               <GitHubLoginButton disabled={pending} acquire={acquireOIDC} />
               <GoogleLoginButton disabled={pending} acquire={acquireOIDC} />
+              <DiscordLoginButton disabled={pending} acquire={acquireOIDC} />
             </>
           )}
         </div>

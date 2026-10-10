@@ -17,6 +17,7 @@ func testRuntimeInstallationMigration(t *testing.T, db *gorm.DB) {
 	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 	defer cancel()
 	db = db.WithContext(ctx)
+	legacyDiscordBeforeV100(t, db)
 	original := personalKeyBehaviorLedger(t, db)
 	if len(original) != 100 {
 		t.Fatal("V100 current ledger required")
@@ -85,7 +86,7 @@ func testRuntimeInstallationMigration(t *testing.T, db *gorm.DB) {
 	}
 	migrate := func(stage string) {
 		t.Helper()
-		if err := database.Migrate(ctx, db); err != nil {
+		if err := database.MigrateThrough(ctx, db, 100); err != nil {
 			t.Fatalf("V100 migration failed: stage=%s schema_error=%s", stage, schemaError(err))
 		}
 		check()
@@ -109,7 +110,7 @@ func testRuntimeInstallationMigration(t *testing.T, db *gorm.DB) {
 	var wg sync.WaitGroup
 	failures := make(chan error, 2)
 	for range 2 {
-		wg.Go(func() { failures <- database.Migrate(ctx, db) })
+		wg.Go(func() { failures <- database.MigrateThrough(ctx, db, 100) })
 	}
 	wg.Wait()
 	close(failures)
@@ -153,7 +154,7 @@ func testRuntimeInstallationMigration(t *testing.T, db *gorm.DB) {
 		t.Fatal("construct invalid retained projection")
 	}
 	dropReceipt()
-	if database.Migrate(ctx, db) == nil {
+	if database.MigrateThrough(ctx, db, 100) == nil {
 		t.Fatal("invalid retained projection admitted")
 	}
 	var invalidReceipt int64
@@ -214,7 +215,7 @@ func testRuntimeInstallationMigration(t *testing.T, db *gorm.DB) {
 		if db.Table(model.TableName()).Migrator().CreateTable(changed) != nil {
 			t.Fatal("construct incompatible fixture", which)
 		}
-		if database.Migrate(ctx, db) == nil {
+		if database.MigrateThrough(ctx, db, 100) == nil {
 			t.Fatal("incompatible partial table admitted", which)
 		}
 		var ledgerCount int64
@@ -274,6 +275,31 @@ func testRuntimeInstallationMigration(t *testing.T, db *gorm.DB) {
 	}
 	if db.Model(model).Count(&count).Error != nil || count != 1 {
 		t.Fatal("partial index repair fabricated observations")
+	}
+	// Remove only the positively preserved owned partial-index observation before
+	// the original empty-table successor-restoration assertion.
+	removedPartial := db.Where("id = ?", row.ID).Delete(model)
+	if removedPartial.Error != nil || removedPartial.RowsAffected != 1 {
+		t.Fatal("remove exact owned partial-index observation before successor", removedPartial.Error, removedPartial.RowsAffected)
+	}
+	// Restore the current successor only after every bounded V100 replay check.
+	beforeSuccessor := personalKeyBehaviorLedger(t, db)
+	if len(beforeSuccessor) != 100 || beforeSuccessor[99].Version != 100 {
+		t.Fatal("exact V100 receipt required before successor restoration")
+	}
+	if err := database.Migrate(ctx, db); err != nil {
+		t.Fatal("restore current V101 after historical V100", err)
+	}
+	current := personalKeyBehaviorLedger(t, db)
+	if len(current) != 101 || current[100].Version != 101 || !reflect.DeepEqual(beforeSuccessor, current[:100]) {
+		t.Fatal("current V101 changed complete historical V100 receipts")
+	}
+	var retained []entity.RuntimeRoutingApplication
+	if db.Session(&gorm.Session{QueryFields: true}).Order("id").Find(&retained).Error != nil || !reflect.DeepEqual(retained, old) {
+		t.Fatal("successor changed retained routing-only history")
+	}
+	if db.Model(model).Count(&count).Error != nil || count != 0 {
+		t.Fatal("successor fabricated installation observations")
 	}
 }
 

@@ -128,7 +128,7 @@ export default {
     loadError: 'Storage policy unavailable. Refresh its authorized read.',
   },
   currentInventory:
-    'Current inventory V7 covers eleven secret domains, including GitHub and Google client secrets.',
+    'Current inventory V8 covers eleven secret domains, including GitHub, Google and Discord client secrets.',
   historicalInventory:
     'This historical rotation covers {{count}} domains and does not prove current inventory coverage.',
   originalIntent: 'Original uncertain intent',

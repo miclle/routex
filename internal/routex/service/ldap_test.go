@@ -110,20 +110,20 @@ func TestLDAPApplicationCaptureAndMixedPrimaryNeverDowngrade(t *testing.T) {
 func TestLDAPRootInventoryV5PreservesAllHistoricalScopes(t *testing.T) {
 	want := []string{"provider_credentials", "egresses", "smtp_settings", "storage_revisions", "user_mfa", "vault_writer_auth", "vault_reader_auth", "oidc_providers", "oauth_providers", "ldap_providers"}
 	current := append(append([]string(nil), want...), "named_identity_providers")
-	if rootInventoryVersion != 7 || !reflect.DeepEqual(rootDomains, current) {
-		t.Fatal("current V7 inventory")
+	if rootInventoryVersion != 8 || !reflect.DeepEqual(rootDomains, current) {
+		t.Fatal("current V8 inventory")
 	}
 	for v, n := range map[int]int{1: 5, 2: 7, 3: 8, 4: 9, 5: 10} {
 		if !reflect.DeepEqual(rootInventoryDomains(v), want[:n]) {
 			t.Fatal("historical scope", v)
 		}
 	}
-	for _, v := range []int{6, 7} {
+	for _, v := range []int{6, 7, 8} {
 		if !reflect.DeepEqual(rootInventoryDomains(v), current) {
 			t.Fatal("named identity scope", v)
 		}
 	}
-	if rootInventoryDomains(8) != nil {
+	if rootInventoryDomains(9) != nil {
 		t.Fatal("future scope")
 	}
 	spec, e := rootSpec("ldap_providers")

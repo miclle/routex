@@ -19,7 +19,7 @@ func testCredentialSourceDrainMigration(t *testing.T, db *gorm.DB) {
 	t.Helper()
 	ctx := context.Background()
 	before := personalKeyBehaviorLedger(t, db)
-	if len(before) != 100 || before[99].Version != 100 || before[98].Version != 99 || before[97].Version != 98 || before[96].Version != 97 || before[95].Version != 96 || before[94].Version != 95 || before[93].Version != 94 || before[92].Version != 93 || before[91].Version != 92 || before[90].Version != 91 || before[89].Version != 90 || before[88].Version != 89 || before[87].Version != 88 {
+	if len(before) != 101 || before[100].Version != 101 || before[99].Version != 100 || before[98].Version != 99 || before[97].Version != 98 || before[96].Version != 97 || before[95].Version != 96 || before[94].Version != 95 || before[93].Version != 94 || before[92].Version != 93 || before[91].Version != 92 || before[90].Version != 91 || before[89].Version != 90 || before[88].Version != 89 || before[87].Version != 88 {
 		t.Fatal("exact V88 ledger required")
 	}
 	for i, row := range before {
@@ -77,7 +77,7 @@ func testCredentialSourceDrainMigration(t *testing.T, db *gorm.DB) {
 			}
 		}
 		after := personalKeyBehaviorLedger(t, db)
-		if len(after) != 100 || after[99].Version != 100 || after[98].Version != 99 || after[97].Version != 98 || after[96].Version != 97 || after[95].Version != 96 || after[94].Version != 95 || after[93].Version != 94 || after[92].Version != 93 || after[91].Version != 92 || after[90].Version != 91 || after[89].Version != 90 || after[88].Version != 89 || after[87].Version != 88 || !reflect.DeepEqual(before[:87], after[:87]) {
+		if len(after) != 101 || after[100].Version != 101 || after[99].Version != 100 || after[98].Version != 99 || after[97].Version != 98 || after[96].Version != 97 || after[95].Version != 96 || after[94].Version != 95 || after[93].Version != 94 || after[92].Version != 93 || after[91].Version != 92 || after[90].Version != 91 || after[89].Version != 90 || after[88].Version != 89 || after[87].Version != 88 || !reflect.DeepEqual(before[:87], after[:87]) {
 			t.Fatal("released 1..87 changed")
 		}
 	}

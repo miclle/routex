@@ -594,7 +594,7 @@ it('shows historical V2 scope and its retirement blocker through live language c
   await mount(`/admin/secrets/rotations/${rotationId}`)
   await click('Root key rotation')
   expect(document.body.textContent).toContain(
-    'Current inventory V7 covers eleven secret domains, including GitHub and Google client secrets.',
+    'Current inventory V8 covers eleven secret domains, including GitHub, Google and Discord client secrets.',
   )
   expect(document.body.textContent).toContain('This historical rotation covers 7 domains')
   expect(document.body.textContent).toContain('does not prove current inventory coverage')
@@ -614,7 +614,7 @@ it('shows historical V2 scope and its retirement blocker through live language c
   const originalReads = [...reads]
   await act(async () => i18n.changeLanguage('zh'))
   expect(document.body.textContent).toContain(
-    '当前 V7 清单覆盖十一个密钥领域，包括 GitHub 和 Google 客户端密钥。',
+    '当前 V8 清单覆盖十一个密钥领域，包括 GitHub、Google 和 Discord 客户端密钥。',
   )
   expect(document.body.textContent).toContain('此历史轮换覆盖 7 个领域，不证明当前清单的覆盖情况。')
   expect(table.querySelectorAll('tbody tr')).toHaveLength(7)
@@ -722,18 +722,38 @@ it('shows V6 named identity coverage without upgrading a V5 historical job', asy
   expect(writes).toHaveLength(0)
 })
 
-it('shows current V7 eleven-domain coverage without promoting retained V6 retirement authority', async () => {
+it('shows retained V7 eleven-domain history without promoting it to current V8 coverage', async () => {
   view.rotation = job(7)
   await mount()
   await click('Root key rotation')
   expect(
     document.querySelector('table[aria-label="Secret domain"]')!.querySelectorAll('tbody tr'),
   ).toHaveLength(11)
-  expect(document.body.textContent).toContain('Current inventory V7 covers eleven secret domains')
+  expect(document.body.textContent).toContain('Current inventory V8 covers eleven secret domains')
+  expect(document.body.textContent).toContain('This historical rotation covers 11 domains')
+  const originalReads = [...reads]
+  await act(async () => i18n.changeLanguage('zh'))
+  expect(document.body.textContent).toContain('当前 V8 清单覆盖十一个密钥领域')
+  expect(reads).toEqual(originalReads)
+  expect(writes).toHaveLength(0)
+})
+
+it('shows current V8 without relabeling historical rotations or changing domain count', async () => {
+  view.rotation = job(8)
+  await mount()
+  await click('Root key rotation')
+  expect(
+    document.querySelector('table[aria-label="Secret domain"]')!.querySelectorAll('tbody tr'),
+  ).toHaveLength(11)
+  expect(document.body.textContent).toContain(
+    'Current inventory V8 covers eleven secret domains, including GitHub, Google and Discord client secrets.',
+  )
   expect(document.body.textContent).not.toContain('This historical rotation covers')
   const originalReads = [...reads]
   await act(async () => i18n.changeLanguage('zh'))
-  expect(document.body.textContent).toContain('当前 V7 清单覆盖十一个密钥领域')
+  expect(document.body.textContent).toContain(
+    '当前 V8 清单覆盖十一个密钥领域，包括 GitHub、Google 和 Discord 客户端密钥。',
+  )
   expect(reads).toEqual(originalReads)
   expect(writes).toHaveLength(0)
 })

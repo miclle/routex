@@ -228,7 +228,7 @@ it('rejects unknown/missing inventory versions and five/seven aliasing', () => {
   const value = store()
   Object.assign(value, { inventory_version: 1 })
   expect(() => parseSecretStore(value)).toThrow()
-  value.inventory_version = 7
+  value.inventory_version = 8
   value.rotation = job()
   value.rotation.inventory_version = 2
   expect(() => parseSecretStore(value)).toThrow()
@@ -237,7 +237,7 @@ it('rejects unknown/missing inventory versions and five/seven aliasing', () => {
   expect(() => parseSecretStore(value)).toThrow()
 })
 
-it.each([1, 2, 3, 4, 5, 6, 7] as const)(
+it.each([1, 2, 3, 4, 5, 6, 7, 8] as const)(
   'preserves the exact ordered domain scope of inventory V%s in status and receipts',
   (version) => {
     const value = store()
@@ -255,7 +255,7 @@ it.each([1, 2, 3, 4, 5, 6, 7] as const)(
       ...(version >= 6 ? ['named_identity_providers'] : []),
     ]
     const parsed = parseSecretStore(value)
-    expect(parsed.inventory_version).toBe(7)
+    expect(parsed.inventory_version).toBe(8)
     expect(parsed.rotation?.inventory_version).toBe(version)
     expect(parsed.rotation?.domains.map((domain) => domain.code)).toEqual(expected)
     expect(parsed.rotation?.domains[0].scanned).toBe('9007199254740993')
@@ -264,7 +264,7 @@ it.each([1, 2, 3, 4, 5, 6, 7] as const)(
     expect(parseSecretResult(result, intent).rotation).toEqual(value.rotation)
   },
 )
-it.each([1, 2, 3, 4, 5, 6, 8, null, undefined])(
+it.each([1, 2, 3, 4, 5, 6, 7, 9, null, undefined])(
   'rejects inventory %s as current process/status coverage',
   (version) => {
     const value = store()
@@ -289,7 +289,7 @@ it.each([
       value.rotation.domains[6],
     ]
   if (kind === 'duplicate-tail') value.rotation.domains[7] = value.rotation.domains[6]
-  if (kind === 'unknown-version') Object.assign(value.rotation, { inventory_version: 8 })
+  if (kind === 'unknown-version') Object.assign(value.rotation, { inventory_version: 9 })
   expect(() => parseSecretStore(value)).toThrow(SecretError)
   const result = receipt(intent)
   result.rotation = value.rotation
@@ -356,7 +356,7 @@ it('retains V3 blockers and actions without claiming OAuth coverage or retiremen
     allowed_actions: ['resume', 'rollback'],
   }
   const parsed = parseSecretStore(value)
-  expect(parsed.inventory_version).toBe(7)
+  expect(parsed.inventory_version).toBe(8)
   expect(parsed.rotation).toEqual(value.rotation)
   expect(parsed.rotation?.domains.map((row) => row.code)).not.toContain('oauth_providers')
   expect(parsed.rotation?.domains).toHaveLength(8)
@@ -459,7 +459,7 @@ it('preserves V5 ten-domain blocked history separately from current V6 unknown c
     allowed_actions: ['resume', 'rollback'],
   }
   const historical = parseSecretStore(value)
-  expect(historical.inventory_version).toBe(7)
+  expect(historical.inventory_version).toBe(8)
   expect(historical.rotation?.inventory_version).toBe(5)
   expect(historical.rotation?.domains).toHaveLength(10)
   expect(historical.rotation?.domains.map((row) => row.code)).not.toContain(
@@ -506,7 +506,7 @@ it.each(['blocked', 'completed', 'rolled_back'] as const)(
       allowed_actions: status === 'blocked' ? ['resume', 'rollback'] : [],
     }
     const parsed = parseSecretStore(value)
-    expect(parsed.inventory_version).toBe(7)
+    expect(parsed.inventory_version).toBe(8)
     expect(parsed.rotation).toEqual(value.rotation)
     expect(parsed.rotation?.inventory_version).toBe(6)
     expect(parsed.rotation?.domains).toHaveLength(11)
@@ -536,5 +536,41 @@ it('keeps V7 Google coverage in the existing eleven-domain scope and rejects fal
   expect(() => parseSecretStore(value)).toThrow(SecretError)
   value.rotation = job(7)
   value.rotation.domains.push(value.rotation.domains[10])
+  expect(() => parseSecretStore(value)).toThrow(SecretError)
+})
+
+it.each(['blocked', 'completed', 'rolled_back'] as const)(
+  'retains V7 eleven-domain %s history without promoting it to Discord V8 coverage',
+  (status) => {
+    const value = store()
+    value.rotation = {
+      ...job(7),
+      status,
+      phase: status === 'blocked' ? 'observation' : 'completed',
+      blocker_codes: status === 'blocked' ? ['inventory_scope_changed'] : [],
+      allowed_actions: status === 'blocked' ? ['resume', 'rollback'] : [],
+    }
+    const parsed = parseSecretStore(value)
+    expect(parsed.inventory_version).toBe(8)
+    expect(parsed.rotation).toEqual(value.rotation)
+    expect(parsed.rotation?.inventory_version).toBe(7)
+    expect(parsed.rotation?.domains).toHaveLength(11)
+    expect(parsed.rotation?.allowed_actions).not.toContain('retire')
+    const result = receipt(intent)
+    result.rotation = value.rotation
+    expect(parseSecretResult(result, intent).rotation).toEqual(value.rotation)
+  },
+)
+it('accepts new V8 coverage in the same eleven domains without inventing a twelfth domain', () => {
+  const value = store()
+  value.rotation = job(8)
+  const parsed = parseSecretStore(value)
+  expect(parsed.inventory_version).toBe(8)
+  expect(parsed.rotation?.inventory_version).toBe(8)
+  expect(parsed.rotation?.domains.map((domain) => domain.code)).toEqual(
+    job(7).domains.map((domain) => domain.code),
+  )
+  expect(parsed.rotation?.domains).toHaveLength(11)
+  Object.assign(value.rotation, { inventory_version: 9 })
   expect(() => parseSecretStore(value)).toThrow(SecretError)
 })

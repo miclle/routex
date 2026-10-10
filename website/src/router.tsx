@@ -10,6 +10,10 @@ const routes: RouteObject[] = [
     lazy: async () => ({ Component: (await import('@/views/google/complete')).default }),
   },
   {
+    path: '/auth/discord/complete',
+    lazy: async () => ({ Component: (await import('@/views/discord/complete')).default }),
+  },
+  {
     path: '/auth/github/complete',
     lazy: async () => ({ Component: (await import('@/views/github/complete')).default }),
   },

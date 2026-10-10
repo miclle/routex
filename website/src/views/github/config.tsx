@@ -478,7 +478,7 @@ function Configuration({ actor, method }: { actor: string; method: NamedIdentity
         busy={busy}
       >
         <div className="space-y-6">
-          {method === 'google' && (
+          {(method === 'google' || method === 'discord') && (
             <section className="space-y-3 rounded-lg border p-4" aria-label={t('setupGuide')}>
               <h2 className="font-semibold">{t('setupGuide')}</h2>
               <p className="text-sm text-muted-foreground">{t('setupHelp')}</p>
@@ -651,7 +651,7 @@ function Configuration({ actor, method }: { actor: string; method: NamedIdentity
                 disabled={busy || !!intent || stale || !review}
               />
             </FormField>
-            {method === 'google' ? (
+            {method === 'google' || method === 'discord' ? (
               <div className="flex items-center justify-between gap-6">
                 <p className="font-medium">{t('switchLabel')}</p>
                 <Switch

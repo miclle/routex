@@ -87,6 +87,13 @@ budget after projection, a database wait or the legacy recorder. Canonical work 
 bounded at 16 MiB and 262,144 visited entries. Exhaustion or late completion makes
 evidence unavailable; these are observation bounds, not resource capacity limits.
 
+A successful refresh stores its exact ready status before either recorder. It then
+records routing and installation evidence within that original shared deadline,
+followed by best-effort publication history and system-job reporting. Operational
+metadata cannot consume evidence time before recorder admission. Failure status
+reporting keeps its existing behavior and creates no combined success observation;
+none of this guarantees that best-effort evidence will be available.
+
 Synchronous sorting is bounded and its late result is rejected; context checks do
 not promise hard preemption. No maximum-size latency result is claimed without
 measurement. Evidence adds no remote calls, request replay, detached writer, lease

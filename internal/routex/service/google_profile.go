@@ -25,6 +25,8 @@ func namedIdentityDescriptor(providerID string) (namedIdentityFixedProfile, bool
 		return namedIdentityFixedProfile{githubProfileID, githubIdentityIssuer, "/api/v1/auth/github/callback"}, true
 	case googleProviderID:
 		return namedIdentityFixedProfile{googleProfileID, googleIdentityIssuer, "/api/v1/auth/google/callback"}, true
+	case discordProviderID:
+		return namedIdentityFixedProfile{discordProfileID, discordIdentityIssuer, "/api/v1/auth/discord/callback"}, true
 	default:
 		return namedIdentityFixedProfile{}, false
 	}
@@ -35,6 +37,9 @@ func namedIdentityProfileID(providerID string) string {
 }
 func namedIdentityMethod(method string) bool { _, ok := namedIdentityDescriptor(method); return ok }
 func namedIdentityProfileSubject(providerID, kind, value string) bool {
+	if providerID == discordProviderID {
+		return kind == string(oauthprotocol.SubjectString) && discordCanonicalID(value)
+	}
 	if providerID == githubProviderID {
 		return namedIdentitySubject(kind, value)
 	}
@@ -91,6 +96,9 @@ func (a googleProtocolAdapter) Exchange(ctx context.Context, in namedIdentityCal
 	return namedIdentityRemoteIdentity{Kind: "string", Subject: v.Subject}, nil
 }
 func (s *Service) namedIdentityProfileProtocol(ctx context.Context, p entity.NamedIdentityProvider) (namedIdentityProtocolClient, func() error, error) {
+	if p.ID == discordProviderID {
+		return s.discordProtocol(ctx, p)
+	}
 	if p.ID == githubProviderID {
 		c, close, e := s.namedIdentityProtocol(ctx, p)
 		return githubProtocolAdapter{c}, close, e

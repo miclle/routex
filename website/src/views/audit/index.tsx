@@ -16,6 +16,7 @@ import type {
   SAMLIdentityAuditChanges,
   GitHubIdentityAuditChanges,
   GoogleIdentityAuditChanges,
+  DiscordIdentityAuditChanges,
 } from '@/types/audit'
 import { Page, QueryState, ErrorNotice } from '@/components/app/CatalogUI'
 import { PermissionGate } from '@/components/app/PermissionGate'
@@ -45,7 +46,8 @@ function isIdentityChanges(
   | LDAPIdentityAuditChanges
   | SAMLIdentityAuditChanges
   | GitHubIdentityAuditChanges
-  | GoogleIdentityAuditChanges {
+  | GoogleIdentityAuditChanges
+  | DiscordIdentityAuditChanges {
   return (
     'kind' in changes &&
     (changes.kind === 'oidc_identity' ||
@@ -53,7 +55,8 @@ function isIdentityChanges(
       changes.kind === 'ldap_identity' ||
       changes.kind === 'saml_identity' ||
       changes.kind === 'github_identity' ||
-      changes.kind === 'google_identity')
+      changes.kind === 'google_identity' ||
+      changes.kind === 'discord_identity')
   )
 }
 export default function AuditPage() {

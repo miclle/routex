@@ -158,3 +158,18 @@ not satisfy enforced SSO. Controlled qualification is `passed`;
 root-confirmed combined phase evidence is recorded in
 [Implementation](IMPLEMENTATION.md). Bilingual browser and external-provider
 acceptance remain open.
+
+
+## Discord profile
+
+The independent [Discord profile](DISCORD.md) is implemented separately from custom
+OAuth, GitHub and Google. It uses fixed OAuth endpoints and exact canonical
+uint64 string subjects, with explicit existing-member linking and native MFA.
+Management requires intrinsic administrator authority plus `registration.write`;
+self linking retains its separate exact-Session/password/MFA boundary. Callback
+exchange stages proof only; clean manual completion and fresh authority remain
+mandatory. It adds no provisioning, email mapping or forced SSO. Controlled
+complete dual-driver, production-process restart and authentication-lifecycle
+qualification pass; [Implementation](IMPLEMENTATION.md) records the exact phase
+evidence. Bilingual browser and external-provider acceptance remain pending.
+Earlier named-profile checkpoints retain their original source scope.

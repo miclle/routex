@@ -660,3 +660,80 @@ it('keeps a Google event with unprojected details explicitly not recorded', asyn
   expect(drawer.textContent).not.toContain('verified successfully')
   expect(requests.every((request) => request.method === 'get')).toBe(true)
 })
+
+it('renders the typed Discord reason in English and Chinese without invented before/after or markup', async () => {
+  await i18n.changeLanguage('en')
+  const reason = '<img src=x onerror=alert(1)> Review corporate access 原因'
+  entry = {
+    ...first,
+    action: 'account.discord.bind',
+    resource_type: 'named_identity_binding',
+    resource_id: 'nib_retained',
+    changes: { kind: 'discord_identity', reason },
+  }
+  await mount()
+  await until(() => expect(host.textContent).toContain(`Reason: ${reason}`))
+  await select('Audit category', 'identity')
+  await until(() => expect(audits().at(-1)?.params.category).toBe('identity'))
+  await click('Open audit event aud_2')
+  const drawer = document.querySelector('[role="dialog"]')!
+  expect(drawer.textContent).toContain(`Reason: ${reason}`)
+  expect(drawer.textContent).toContain('nib_retained')
+  expect(drawer.querySelector('pre')).toBeNull()
+  expect(drawer.textContent).not.toContain('undefined')
+  expect(drawer.textContent).not.toContain('discord_identity')
+  expect(document.querySelector('img')).toBeNull()
+  expect(document.querySelector('script')).toBeNull()
+  const reads = audits().length
+  await act(async () => {
+    await i18n.changeLanguage('zh')
+  })
+  expect(drawer.textContent).toContain(`原因: ${reason}`)
+  expect(drawer.textContent).toContain('account.discord.bind')
+  expect(drawer.querySelector('pre')).toBeNull()
+  expect(host.textContent).toContain(`原因: ${reason}`)
+  expect(audits()).toHaveLength(reads)
+  expect(requests.every((request) => request.method === 'get')).toBe(true)
+})
+
+it('keeps a Discord event with unprojected details explicitly not recorded', async () => {
+  await i18n.changeLanguage('en')
+  entry = {
+    ...first,
+    action: 'identity.discord.verify',
+    resource_type: 'named_identity_provider',
+    resource_id: 'discord',
+    changes: null,
+  }
+  await mount()
+  await until(() => expect(host.textContent).toContain('identity.discord.verify'))
+  await click('Open audit event aud_2')
+  const drawer = document.querySelector('[role="dialog"]')!
+  expect(drawer.textContent).toContain('Not recorded')
+  expect(drawer.querySelector('pre')).toBeNull()
+  expect(drawer.textContent).not.toContain('undefined')
+  expect(drawer.textContent).not.toContain('verified successfully')
+  expect(requests.every((request) => request.method === 'get')).toBe(true)
+})
+
+it('does not render extra Discord identity fields beyond the typed reason', async () => {
+  const reason = 'Reviewed Discord link'
+  entry = {
+    ...first,
+    action: 'account.discord.bind',
+    resource_type: 'named_identity_binding',
+    resource_id: 'nib_retained',
+    changes: {
+      kind: 'discord_identity',
+      reason,
+      subject: 'private-remote-subject',
+      token: 'private-token',
+    } as unknown as AuditRecord['changes'],
+  }
+  await mount()
+  await until(() => expect(host.textContent).toContain(`Reason: ${reason}`))
+  await click('Open audit event aud_2')
+  expect(document.body.textContent).not.toContain('private-remote-subject')
+  expect(document.body.textContent).not.toContain('private-token')
+  expect(document.querySelector('[role="dialog"] pre')).toBeNull()
+})

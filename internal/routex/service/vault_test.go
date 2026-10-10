@@ -189,7 +189,7 @@ func TestVaultTypedAuditProjectsOnlySafeConfigurationFacts(t *testing.T) {
 }
 
 func TestVaultRootUnknownInventoryNeverGrantsActionsOrHistory(t *testing.T) {
-	for _, version := range []int{0, -1, 8} {
+	for _, version := range []int{0, -1, 9} {
 		job := entity.SecretRotationJob{InventoryVersion: version, CountsJSON: "{}", Status: "blocked"}
 		if _, err := rootCountsChecked(job); err == nil {
 			t.Fatal("unknown inventory accepted", version)
@@ -220,7 +220,7 @@ func TestVaultRootUnknownInventoryNeverGrantsActionsOrHistory(t *testing.T) {
 	}
 }
 func TestVaultRootWorkerRejectsUnknownInventoryWithoutRewrap(t *testing.T) {
-	for _, version := range []int{0, 8} {
+	for _, version := range []int{0, 9} {
 		svc, f := rootPublicationService(t)
 		f.job.InventoryVersion = version
 		before := f.egress.AuthCiphertext

@@ -1,3 +1,5 @@
+import enDiscord from './locales/en/discord'
+import zhDiscord from './locales/zh/discord'
 import enGoogle from './locales/en/google'
 import zhGoogle from './locales/zh/google'
 import enGitHub from './locales/en/github'
@@ -115,6 +117,7 @@ void i18n.use(initReactI18next).init({
       saml: enSAML,
       github: enGitHub,
       google: enGoogle,
+      discord: enDiscord,
       modelCreation: enModelCreation,
       secrets: enSecrets,
       overview: enOverview,
@@ -153,6 +156,7 @@ void i18n.use(initReactI18next).init({
       saml: zhSAML,
       github: zhGitHub,
       google: zhGoogle,
+      discord: zhDiscord,
       modelCreation: zhModelCreation,
       secrets: zhSecrets,
       overview: zhOverview,

@@ -39,6 +39,7 @@ func installationPristineV100(db *gorm.DB) error {
 // The caller must restore full-current startup before leaving its scenario.
 func legacyInstallationBeforeV99(t *testing.T, db *gorm.DB) {
 	t.Helper()
+	legacyDiscordBeforeV100(t, db)
 	if err := installationPristineV100(db); err != nil {
 		t.Fatal(err)
 	}
@@ -63,6 +64,7 @@ func legacyInstallationBeforeV99(t *testing.T, db *gorm.DB) {
 // row is a rollback-only schema guard fixture, never installed runtime evidence.
 func googleInstallationOverlayControls(t *testing.T, db *gorm.DB) {
 	t.Helper()
+	legacyDiscordBeforeV100(t, db)
 	if err := installationPristineV100(db); err != nil {
 		t.Fatal("positive V100 pristine prerequisite", err)
 	}

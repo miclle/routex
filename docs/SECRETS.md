@@ -272,3 +272,19 @@ V5 acceptance alone does not establish V6 or V7 retirement readiness.
 ## Current Google coverage in inventory V7
 
 Google reuses the named-provider credential domain with exact Google provider/profile/generation-bound references and AAD. Root inventory V7 has eleven domains, including both fixed named profiles; V6 retains its historical eleven-domain GitHub coverage. No twelfth domain is added. Old jobs and verified observations do not acquire Google coverage, and nonterminal old-version jobs cannot proceed under the expanded inventory. Disabled retained Google configurations remain covered; access tokens and ID tokens are transient rather than root inventory records. Controlled PostgreSQL/MySQL database, restart and root-rotation qualification passes in the combined GitHub and Google phase. Browser and external-provider acceptance remain open.
+
+
+## Discord coverage in inventory V8
+
+The Discord expansion advances named-provider coverage to inventory V8 while
+keeping the same eleven domains. Its encrypted client secret remains in
+`named_identity_providers`, with exact
+`named-identity:discord.oauth2.v1:discord:<generation>` associated data.
+Disabled retained configuration remains covered; access tokens and browser
+proofs are transient rather than inventory records. Historical V1–V7 jobs and
+verified observations keep their original meanings, and nonterminal old-epoch
+jobs cannot acquire expanded coverage. No twelfth domain or plaintext fallback
+is introduced. Controlled Discord rotation, runtime, complete dual-driver and
+production-process restart qualification pass under the separately recorded
+Discord phase evidence; browser and external-provider acceptance remain pending.
+The earlier Google V7 acceptance retains its original scope. See [Discord](DISCORD.md).

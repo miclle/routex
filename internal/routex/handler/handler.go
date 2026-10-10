@@ -25,7 +25,7 @@ func (ctrl *Ctrl) RegisterRoutes(r *fox.Engine) {
 	// Native query credentials must never be reflected by pre-middleware redirects.
 	r.RedirectTrailingSlash = false
 	r.RedirectFixedPath = false
-	r.Engine.Use(GeminiQueryCredentials, TeamNativeInputs, OIDCInputs, OAuthInputs, SAMLInputs, GitHubInputs, GoogleInputs)
+	r.Engine.Use(GeminiQueryCredentials, TeamNativeInputs, OIDCInputs, OAuthInputs, SAMLInputs, GitHubInputs, GoogleInputs, DiscordInputs)
 	// embed website assets
 	website.EmbedAssets(r)
 
@@ -107,6 +107,19 @@ func (ctrl *Ctrl) RegisterRoutes(r *fox.Engine) {
 	identity.GET("/account/identity/google", identityPrivate, ctrl.requireSession, ctrl.AccountGoogle)
 	identity.POST("/account/identity/google/bind", identityPrivate, sameOrigin, ctrl.requireSession, requireCSRF, jsonManagementRequest, ctrl.StartGoogleBinding)
 	identity.POST("/account/identity/google/unlink", identityPrivate, sameOrigin, ctrl.requireSession, requireCSRF, jsonManagementRequest, ctrl.UnlinkGoogle)
+
+	identity.GET("/auth/discord", identityPrivate, ctrl.PublicDiscord)
+	identity.POST("/auth/discord/start", identityPrivate, sameOrigin, jsonAuthRequest, ctrl.StartDiscordLogin)
+	identity.GET("/auth/discord/callback", identityPrivate, ctrl.DiscordCallback)
+	identity.POST("/auth/discord/complete", identityPrivate, sameOrigin, jsonAuthRequest, ctrl.CompleteDiscord)
+	identity.POST("/auth/discord/abandon", identityPrivate, sameOrigin, jsonAuthRequest, ctrl.AbandonDiscord)
+	identity.GET("/admin/auth/discord", identityPrivate, ctrl.requireSession, ctrl.GetDiscordProvider)
+	identity.PUT("/admin/auth/discord", identityPrivate, sameOrigin, ctrl.requireSession, requireCSRF, jsonManagementRequest, ctrl.SaveDiscordProvider)
+	identity.POST("/admin/auth/discord/verify", identityPrivate, sameOrigin, ctrl.requireSession, requireCSRF, jsonManagementRequest, ctrl.StartDiscordVerification)
+	identity.PUT("/admin/auth/discord/status", identityPrivate, sameOrigin, ctrl.requireSession, requireCSRF, jsonManagementRequest, ctrl.SetDiscordEnabled)
+	identity.GET("/account/identity/discord", identityPrivate, ctrl.requireSession, ctrl.AccountDiscord)
+	identity.POST("/account/identity/discord/bind", identityPrivate, sameOrigin, ctrl.requireSession, requireCSRF, jsonManagementRequest, ctrl.StartDiscordBinding)
+	identity.POST("/account/identity/discord/unlink", identityPrivate, sameOrigin, ctrl.requireSession, requireCSRF, jsonManagementRequest, ctrl.UnlinkDiscord)
 
 	identity.GET("/auth/saml", samlPrivate, ctrl.PublicSAML)
 	identity.POST("/auth/saml/start", samlPrivate, sameOrigin, jsonAuthRequest, ctrl.StartSAMLLogin)

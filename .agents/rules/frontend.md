@@ -1623,3 +1623,17 @@ The independent system.read gate, strict bounded wire validation, renewal/error/
 actor/target/unmount cancellation and late-response fences apply to both modes.
 Use paired systemStatus copy and the existing local Base UI Dialog/Table/Button
 composition; introduce no observation write or standalone configuration dashboard.
+
+Discord sign-in uses only the fixed reviewed named-method adapter and existing
+login card, authentication-settings drawer and account-security identity card.
+Keep its paired `discord` namespace, exact HTTPS callback and identify-only
+S256 guidance. Client IDs are canonical nonzero decimal uint64 strings, never
+JavaScript numbers; public safe DTOs reject unknown fields. Management requires
+fresh intrinsic administrator and independent registration.write authority;
+self-binding and unlink retain their independent exact Session, local password,
+native MFA and reviewed ETag gates. Keep verification and explicit enablement
+separate. Preserve method-keyed teardown, captured confirmation admission,
+transient proofs/secrets, manual clean completion, fresh Session settlement and
+identical uncertain intent retries. Unknown methods fail closed; Discord does
+not provision accounts, infer email ownership or satisfy enforced SSO. Typed
+Discord audit display renders only the server-projected reason as text.

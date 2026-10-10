@@ -43,7 +43,7 @@ func primaryValidateSession(tx *gorm.DB, row entity.Session) error {
 			return apperrors.ErrUnauthorized
 		}
 		return samlValidatePrimary(tx, row)
-	case "github", "google":
+	case "github", "google", "discord":
 		if !oidcEmpty || !oauthEmpty || !ldapEmpty || !samlEmpty {
 			return apperrors.ErrUnauthorized
 		}

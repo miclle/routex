@@ -100,7 +100,7 @@ func auditRecord(row entity.AuditEvent) AuditRecord {
 			return result
 		}
 		changes = record
-	case "identity.google.config.update", "identity.google.status.update", "identity.google.verify", "account.google.bind", "account.google.unlink", "identity.github.config.update", "identity.github.status.update", "identity.github.verify", "account.github.bind", "account.github.unlink":
+	case "identity.discord.config.update", "identity.discord.status.update", "identity.discord.verify", "account.discord.bind", "account.discord.unlink", "identity.google.config.update", "identity.google.status.update", "identity.google.verify", "account.google.bind", "account.google.unlink", "identity.github.config.update", "identity.github.status.update", "identity.github.verify", "account.github.bind", "account.github.unlink":
 		record, valid := namedIdentityAuditProjection(row)
 		if !valid {
 			return result

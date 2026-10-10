@@ -240,7 +240,7 @@ func TestGitHubInjectedTransportCannotChangeProfileEndpoints(t *testing.T) {
 	if rootReference("named_identity_providers", "GitHub", "generation") != "" || rootReference("named_identity_providers", "github", "generation") != "named-identity:github.com.oauth-app.v1:github:generation" {
 		t.Fatal("profile AAD")
 	}
-	if !reflect.DeepEqual(rootInventoryDomains(5), rootDomains[:10]) || rootInventoryVersion != 7 || rootDomains[10] != "named_identity_providers" {
+	if !reflect.DeepEqual(rootInventoryDomains(5), rootDomains[:10]) || rootInventoryVersion != 8 || rootDomains[10] != "named_identity_providers" {
 		t.Fatal("versioned root domain")
 	}
 }

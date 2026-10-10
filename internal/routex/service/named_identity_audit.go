@@ -29,7 +29,7 @@ func namedIdentityAuditProjection(row entity.AuditEvent) (namedIdentityIdentityA
 		return result, false
 	}
 	providerID := ""
-	for _, id := range []string{githubProviderID, googleProviderID} {
+	for _, id := range []string{githubProviderID, googleProviderID, discordProviderID} {
 		if strings.HasPrefix(row.Action, "identity."+id+".") || strings.HasPrefix(row.Action, "account."+id+".") {
 			providerID = id
 		}
@@ -39,16 +39,16 @@ func namedIdentityAuditProjection(row entity.AuditEvent) (namedIdentityIdentityA
 	}
 	needsBinding := false
 	switch row.Action {
-	case "identity.github.config.update", "identity.github.status.update", "identity.google.config.update", "identity.google.status.update":
+	case "identity.github.config.update", "identity.github.status.update", "identity.google.config.update", "identity.google.status.update", "identity.discord.config.update", "identity.discord.status.update":
 		if row.ResourceType != "named_identity_provider" || row.ResourceID != providerID {
 			return result, false
 		}
-	case "identity.github.verify", "identity.google.verify":
+	case "identity.github.verify", "identity.google.verify", "identity.discord.verify":
 		if row.ResourceType != "named_identity_provider" || row.ResourceID != providerID {
 			return result, false
 		}
 		needsBinding = true
-	case "account.github.bind", "account.github.unlink", "account.google.bind", "account.google.unlink":
+	case "account.github.bind", "account.github.unlink", "account.google.bind", "account.google.unlink", "account.discord.bind", "account.discord.unlink":
 		if row.ResourceType != "named_identity_binding" || !namedIdentityAuditStableID(row.ResourceID, "nib_") {
 			return result, false
 		}

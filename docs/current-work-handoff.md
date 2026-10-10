@@ -4,6 +4,51 @@ Updated: 2026-10-11. Status: resumed by explicit user instruction; prioritize pa
 
 ## Current execution status (2026-10-11)
 
+The current bounded phase implements existing-member Discord login, explicit
+linking/verification, native MFA, reviewed enablement, callback/manual completion,
+revocation/offboarding and root-inventory V8 coverage with frozen GORM V101.
+See [Discord](DISCORD.md). Mandatory checking and complete Task pass: 6,539
+frontend cases/240 files, Go race/coverage, development lifecycle and embedded
+production assets. Task SHA-256:
+`bab68e140bc93f61d1fa0fac7b263caaf35ae446b8dab7cd9416e0a8fb07a2a5`.
+
+The unchanged original complete PostgreSQL/MySQL matrix passes 206 business
+scenarios plus four constraints, 509/509 balanced names on each driver, 9,293
+ordinary passes/three intentional TLS helper skips and 32 genuine application
+starts. Independent acceptance SHA-256: `d338619d31f9ef738833378d48e8adc93f538e0872e30a007b13fbd6a29e3f8c`.
+Separate authentication lifecycle passes eight genuine starts and four success
+summaries; readback SHA-256: `9916d0160db9ebf3c0aa0c91576cb2429f29bdb7dd5d858499aac95c782e4f52`.
+All owned processes/groups/Compose resources are absent, captured database ports
+are refused/fresh-bindable, exact 2,395 qualified source paths/modes remain
+unchanged through acceptance and original development is preserved. Delivery
+documentation is then synchronized and mandatory checking renewed before commit.
+R9's two missing Account adapter failures remain retained failed history; the
+narrow test-only route correction preserves production and assertions.
+
+Original full R1 remains failed: both drivers rejected two historical fixture
+replays, and PostgreSQL also rejected quota reconciliation and a second
+installation observation. Guarded fixture rewinds preserve frozen migrations;
+the quota negative now starts from a freshly published baseline before its
+unpublished disable. Ready operational metadata follows the original bounded
+evidence writes. A separate race control proves the metadata-budget mechanism,
+and exact predecessor ordering assertions fail on both drivers before repair.
+The original two additional rejection branches remain unproven; diagnostic
+success does not erase the failed run or retroactively establish its cause.
+
+Browser acceptance remains pending because the user temporarily cannot unlock
+the screen; no further unlock request is needed. External registered-client
+acceptance remains separate. F03/A15 remain Partial; WeChat remains deferred.
+Current totals remain **15 Completed / 14 Partial / 1 Not started**. V100 Gateway
+installation observations are already delivered, with exact-head remote CI
+passing. API-Key delivery V102 and forced SSO/emergency recovery V103 remain
+private candidates awaiting their own complete gates, real-driver/application
+restart and browser acceptance. Their focused component tests do not establish
+application delivery. Preserve V101→V102→V103 order and original development;
+only one heavy qualification project runs at a time. The overall objective
+remains active. Earlier sections below are historical checkpoints.
+
+## Historical checkpoints
+
 ## Ambiguous remote storage recovery regression, 2026-10-10
 
 Two controlled normal-API recovery scenarios pass on real PostgreSQL and MySQL:

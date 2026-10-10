@@ -648,19 +648,19 @@ func testGoogleMigration(t *testing.T, db *gorm.DB) {
 		t.Fatal("historical V99 closure lost exact ledger")
 	}
 	if err := database.Migrate(ctx, db); err != nil {
-		t.Fatal("restore current V100 after historical V99", err)
+		t.Fatal("restore current V101 after historical V99", err)
 	}
 	current := personalKeyBehaviorLedger(t, db)
-	if len(current) != 100 || current[99].Version != 100 || !reflect.DeepEqual(beforeCurrent, current[:99]) {
-		t.Fatal("current V100 startup changed historical V99 ledger/version/time")
+	if len(current) != 101 || current[100].Version != 101 || current[99].Version != 100 || !reflect.DeepEqual(beforeCurrent, current[:99]) {
+		t.Fatal("current V101 startup changed historical V99 ledger/version/time")
 	}
 	var observations int64
 	if !db.Migrator().HasTable("runtime_installation_observations") || db.Table("runtime_installation_observations").Count(&observations).Error != nil || observations != 0 {
-		t.Fatal("current V100 fabricated installation observations")
+		t.Fatal("current V101 fabricated installation observations")
 	}
 	retained()
 	if !reflect.DeepEqual(googleBefore, readProvider("google")) || !reflect.DeepEqual(githubBefore, readProvider("github")) {
-		t.Fatal("current V100 changed retained identity configuration")
+		t.Fatal("current V101 changed retained identity configuration")
 	}
 }
 
