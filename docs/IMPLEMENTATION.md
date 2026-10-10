@@ -4,6 +4,19 @@ Updated: 2026-10-10. This document records engineering contracts, work packages 
 
 ## Current execution status (2026-10-10)
 
+Existing-member OIDC is delivered in
+`62c01baf77278b67a774d5777ee218c3a14c5ac6`, with exact remote-main parity.
+Final main mandatory checking and changed-workflow Actionlint pass. The separate
+bounded [generic OAuth component](OAUTH.md), delivered by the containing commit,
+passes 134 named race-test results including 31 independent public-API regressions.
+Mandatory project checking and complete Task pass, including Go race/coverage,
+6,032 frontend cases, development lifecycle and production assets. Its unchanged
+2,171-path source/mode floor is independently checked. This protocol-only phase
+establishes no member, binding, callback or Session and changes no schema. Its next
+application slice is prepared separately; new V95/runtime gates remain pending.
+F03/A15 remain Partial. The initial two lint failures remain recorded as failed
+history; the narrow successor and renewed tests pass.
+
 Previous feature delivery: `fd7157473d60837bf26ee333f3280ec4b22d951e` fixes saved-Egress
 Credential sources and native/Azure diagnostics, with exact remote-main parity.
 Fresh final mandatory checking passes. Actionlint and GolangCI-Lint pass; CI run

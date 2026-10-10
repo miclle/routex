@@ -135,6 +135,9 @@ Contributions are welcome. See [CONTRIBUTING.md](CONTRIBUTING.md) before submitt
 
 ## Product implementation
 
+The [generic OAuth protocol component](docs/OAUTH.md) provides bounded explicit
+endpoint exchange and exact typed subjects; application integration is separate.
+
 [Existing-member OIDC](docs/OIDC.md) supports one reviewed provider with explicit
 account linking, bounded callbacks, native MFA and revocable Sessions. Controlled
 automated acceptance passes; bilingual browser and real-provider acceptance, LDAP,
