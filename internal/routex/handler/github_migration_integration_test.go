@@ -303,7 +303,7 @@ func testGitHubMigration(t *testing.T, db *gorm.DB) {
 		}
 	}
 	assertDefault()
-	for _, bound := range []int{0, -1, 97, 100} {
+	for _, bound := range []int{0, -1, 97, 101} {
 		if database.MigrateThrough(ctx, db, bound) == nil || !reflect.DeepEqual(original, personalKeyBehaviorLedger(t, db)) {
 			t.Fatal("invalid/newer bound admitted", bound)
 		}
@@ -720,7 +720,7 @@ func testGitHubMigration(t *testing.T, db *gorm.DB) {
 		t.Fatal("restore current V99 after historical V98", err)
 	}
 	final := personalKeyBehaviorLedger(t, db)
-	if len(final) != 99 || final[98].Version != 99 || !reflect.DeepEqual(beforeSuccessor, final[:98]) {
+	if len(final) != 100 || final[99].Version != 100 || final[98].Version != 99 || !reflect.DeepEqual(beforeSuccessor, final[:98]) {
 		t.Fatal("historical V98 closure lost exact prefix or V99 suffix")
 	}
 

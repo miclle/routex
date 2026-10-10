@@ -164,6 +164,9 @@ func googlePristineV99(db *gorm.DB) error {
 
 func legacyMigrationBeforeV99(t *testing.T, db *gorm.DB) {
 	t.Helper()
+	if db.Migrator().HasTable("runtime_installation_observations") {
+		legacyInstallationBeforeV99(t, db)
+	}
 	if err := googlePristineV99(db); err != nil {
 		t.Fatal(err)
 	}
@@ -200,6 +203,8 @@ func testGoogleMigration(t *testing.T, db *gorm.DB) {
 	ctx, cancel := context.WithTimeout(context.Background(), 180*time.Second)
 	defer cancel()
 	db = db.WithContext(ctx)
+	googleInstallationOverlayControls(t, db)
+	legacyInstallationBeforeV99(t, db)
 	original := personalKeyBehaviorLedger(t, db)
 	if len(original) != 99 {
 		t.Fatal("exact V99 current ledger")
@@ -422,7 +427,7 @@ func testGoogleMigration(t *testing.T, db *gorm.DB) {
 	}
 	migrate := func() {
 		t.Helper()
-		if e := database.Migrate(ctx, db); e != nil {
+		if e := database.MigrateThrough(ctx, db, 99); e != nil {
 			t.Fatal("V99 startup", e)
 		}
 		ledger(true)
@@ -435,7 +440,7 @@ func testGoogleMigration(t *testing.T, db *gorm.DB) {
 	var wg sync.WaitGroup
 	results := make(chan error, 2)
 	for range 2 {
-		wg.Go(func() { results <- database.Migrate(ctx, db) })
+		wg.Go(func() { results <- database.MigrateThrough(ctx, db, 99) })
 	}
 	wg.Wait()
 	close(results)
@@ -470,7 +475,7 @@ func testGoogleMigration(t *testing.T, db *gorm.DB) {
 			t.Fatal("install incompatible shape", bad.field)
 		}
 		remove()
-		if database.Migrate(ctx, db) == nil {
+		if database.MigrateThrough(ctx, db, 99) == nil {
 			t.Fatal("V99 admitted incompatible shape", bad.field)
 		}
 		ledger(false)
@@ -485,7 +490,7 @@ func testGoogleMigration(t *testing.T, db *gorm.DB) {
 			t.Fatal("install incompatible index")
 		}
 		remove()
-		if database.Migrate(ctx, db) == nil {
+		if database.MigrateThrough(ctx, db, 99) == nil {
 			t.Fatal("V99 admitted incompatible owner index")
 		}
 		ledger(false)
@@ -638,6 +643,25 @@ func testGoogleMigration(t *testing.T, db *gorm.DB) {
 	}
 	migrate()
 	googleAssertRootInventoryV99(t, db)
+	beforeCurrent := personalKeyBehaviorLedger(t, db)
+	if len(beforeCurrent) != 99 {
+		t.Fatal("historical V99 closure lost exact ledger")
+	}
+	if err := database.Migrate(ctx, db); err != nil {
+		t.Fatal("restore current V100 after historical V99", err)
+	}
+	current := personalKeyBehaviorLedger(t, db)
+	if len(current) != 100 || current[99].Version != 100 || !reflect.DeepEqual(beforeCurrent, current[:99]) {
+		t.Fatal("current V100 startup changed historical V99 ledger/version/time")
+	}
+	var observations int64
+	if !db.Migrator().HasTable("runtime_installation_observations") || db.Table("runtime_installation_observations").Count(&observations).Error != nil || observations != 0 {
+		t.Fatal("current V100 fabricated installation observations")
+	}
+	retained()
+	if !reflect.DeepEqual(googleBefore, readProvider("google")) || !reflect.DeepEqual(githubBefore, readProvider("github")) {
+		t.Fatal("current V100 changed retained identity configuration")
+	}
 }
 
 // V7 adds Google coverage within the existing eleven-domain envelope; prior versions retain their own bounds.

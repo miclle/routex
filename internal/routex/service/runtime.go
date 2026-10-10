@@ -78,38 +78,39 @@ type runtimeConnectionProof struct {
 }
 
 type runtimeAuthorization struct {
-	publicationEpoch       uint64
-	Connections            map[string]runtimeConnectionProof
-	Providers              map[string]runtimeProviderProof
-	PersonalGrantStates    map[string]runtimePersonalGrantState
-	ModelEligibilityHashes map[string]string
-	PersonalKeyStates      map[string]runtimePersonalKeyState
-	UserAdmissions         map[string]runtimeAdmissionProof
-	UserProofs             map[string]runtimeUserProof
-	ProjectCreationStates  map[string]runtimeProjectCreationState
-	PersonalGrantSources   map[string]map[string]string
-	TeamGrantSources       map[string]map[string]string
-	TeamCreationGrants     map[string]map[string]runtimeTeamCreationGrant
-	SourceDigest           string
-	CredentialRevisions    map[string]string
-	ProviderModelRevisions map[string]string
-	Quota                  *runtimeQuotaData
-	ConnectionRevisions    map[string]string
-	ValidUntil             time.Time
-	LimitPolicies          map[string]limits.Policy
-	LimitRoots             map[string]string
-	PersonalLimitOwners    map[string]string
-	ProjectLimitOwners     map[string]projectKeyMonthlyIdentity
-	Keys                   map[string]runtimeKey
-	KeysByID               map[string]runtimeKey
-	Names                  map[string]entity.ModelName
-	Models                 map[string]bool
-	Credentials            map[string]bool
-	ProviderModels         map[string]bool
-	CredentialAccess       map[string]map[string]bool
-	ModelCreated           map[string]time.Time
-	TeamSessions           map[string]runtimeTeamSession
-	Teams                  map[string]runtimeTeam
+	installationProjectionDigest string
+	publicationEpoch             uint64
+	Connections                  map[string]runtimeConnectionProof
+	Providers                    map[string]runtimeProviderProof
+	PersonalGrantStates          map[string]runtimePersonalGrantState
+	ModelEligibilityHashes       map[string]string
+	PersonalKeyStates            map[string]runtimePersonalKeyState
+	UserAdmissions               map[string]runtimeAdmissionProof
+	UserProofs                   map[string]runtimeUserProof
+	ProjectCreationStates        map[string]runtimeProjectCreationState
+	PersonalGrantSources         map[string]map[string]string
+	TeamGrantSources             map[string]map[string]string
+	TeamCreationGrants           map[string]map[string]runtimeTeamCreationGrant
+	SourceDigest                 string
+	CredentialRevisions          map[string]string
+	ProviderModelRevisions       map[string]string
+	Quota                        *runtimeQuotaData
+	ConnectionRevisions          map[string]string
+	ValidUntil                   time.Time
+	LimitPolicies                map[string]limits.Policy
+	LimitRoots                   map[string]string
+	PersonalLimitOwners          map[string]string
+	ProjectLimitOwners           map[string]projectKeyMonthlyIdentity
+	Keys                         map[string]runtimeKey
+	KeysByID                     map[string]runtimeKey
+	Names                        map[string]entity.ModelName
+	Models                       map[string]bool
+	Credentials                  map[string]bool
+	ProviderModels               map[string]bool
+	CredentialAccess             map[string]map[string]bool
+	ModelCreated                 map[string]time.Time
+	TeamSessions                 map[string]runtimeTeamSession
+	Teams                        map[string]runtimeTeam
 }
 
 type runtimeKey struct {
@@ -264,6 +265,21 @@ func (s *Service) RefreshRuntime(ctx context.Context) error {
 	digest, digestErr := runtimeDigest(data)
 	auth.SourceDigest = digest
 	auth.publicationEpoch = generation
+	// Evidence work shares one original deadline, including projection. A failed
+	// projection never blocks installation of current denial/authorization facts.
+	evidenceCtx, evidenceCancel := runtimeInstallationEvidenceContext(ctx, auth)
+	defer evidenceCancel()
+	if projection, projectionErr := runtimeAuthorizationProjection(evidenceCtx, auth); projectionErr == nil && runtimeInstallationContextCurrent(evidenceCtx) {
+		auth.installationProjectionDigest = projection
+	}
+	if ctx.Err() != nil {
+		return runtimeUnavailable
+	}
+	select {
+	case <-runtime.done:
+		return runtimeUnavailable
+	default:
+	}
 	runtime.auth.Store(auth)
 	clearRuntimeTombstones(&runtime.deniedKeys, generation)
 	clearRuntimeTombstones(&runtime.deniedLimits, generation)
@@ -313,9 +329,9 @@ func (s *Service) RefreshRuntime(ctx context.Context) error {
 		}
 	}
 	s.setRuntimeStatus(ctx, started, "")
-	// Recording can add at most 250ms under the existing publication locks.
-	// Failure leaves evidence unknown and never changes runtime admission.
-	_ = s.recordRuntimeApplication(ctx, runtime.routes.Load(), auth, generation)
+	// Projection and both bounded recorders consume the same deadline. Route
+	// preparation can exhaust it; it never receives a renewed recording budget.
+	s.recordRuntimeObservations(evidenceCtx, runtime.routes.Load(), auth, generation)
 	return nil
 }
 
@@ -752,6 +768,17 @@ func runtimeDigest(data *runtimeData) (string, error) {
 		egresses[i].LastCheckedAt = nil
 		egresses[i].UpdatedAt = time.Time{}
 	}
+	// First accounting activation freezes calendar editing, not routing policy.
+	// Keep the complete setting in authorization/read facts, but exclude its
+	// activation marker and write timestamp from route identity. Copy before
+	// clearing them so an already published authorization remains immutable.
+	quota := data.Quota
+	if quota != nil {
+		copyQuota := *quota
+		copyQuota.Setting.AccountingStarted = false
+		copyQuota.Setting.UpdatedAt = time.Time{}
+		quota = &copyQuota
+	}
 	raw, err := json.Marshal(struct {
 		Quota             *runtimeQuotaData
 		Egresses          []entity.Egress
@@ -769,7 +796,7 @@ func runtimeDigest(data *runtimeData) (string, error) {
 		Bindings          []entity.ModelProviderBinding
 		Attestations      []entity.CredentialDeploymentAttestation
 		Access            []entity.CredentialModelAccess
-	}{data.Quota, egresses, ciphertexts, data.EgressSetting, data.EgressGeneration, data.Limits, data.Pricing, data.Providers, data.Connections, data.Credentials, credentialSecrets, coverageRevisions, data.ProviderModels, data.Bindings, data.Attestations, data.Access})
+	}{quota, egresses, ciphertexts, data.EgressSetting, data.EgressGeneration, data.Limits, data.Pricing, data.Providers, data.Connections, data.Credentials, credentialSecrets, coverageRevisions, data.ProviderModels, data.Bindings, data.Attestations, data.Access})
 	if err != nil {
 		return "", err
 	}

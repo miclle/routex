@@ -272,7 +272,7 @@ func testSAMLMigration(t *testing.T, db *gorm.DB) {
 		}
 	}
 	assertDefault()
-	for _, bound := range []int{0, -1, 96, 100} {
+	for _, bound := range []int{0, -1, 96, 101} {
 		before := personalKeyBehaviorLedger(t, db)
 		if database.MigrateThrough(ctx, db, bound) == nil || !reflect.DeepEqual(before, personalKeyBehaviorLedger(t, db)) {
 			t.Fatal("invalid/newer bound admitted", bound)
@@ -615,7 +615,7 @@ func testSAMLMigration(t *testing.T, db *gorm.DB) {
 		t.Fatal("restore full V98 after historical V97", err)
 	}
 	final := personalKeyBehaviorLedger(t, db)
-	if len(final) != 99 || final[98].Version != 99 || final[97].Version != 98 || !reflect.DeepEqual(beforeSuccessor, final[:97]) {
+	if len(final) != 100 || final[99].Version != 100 || final[98].Version != 99 || final[97].Version != 98 || !reflect.DeepEqual(beforeSuccessor, final[:97]) {
 		t.Fatal("historical V97 closure lost original rows or V98 suffix")
 	}
 }

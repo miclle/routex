@@ -88,6 +88,16 @@ export default {
   routingNewest: '最新记录',
   routingOlder: '较早记录',
   routingClose: '关闭',
+  installationRecordsAction: '网关安装记录',
+  installationRecordsTitle: '网关安装记录',
+  installationRecordsDescription:
+    '记录单个服务进程已安装的路由和网关准入状态。这些记录不证明数据库当前状态、管理会话撤销、操作完成或所有节点应用。',
+  installationRecordsFailed: '无法加载网关安装记录。',
+  installationRecordsEmpty: '暂无安装观测记录。缺少历史记录不表示配置从未安装。',
+  installationRecordsTable: '已记录的网关安装',
+  installationObserved: '首次记录观测',
+  installationMatch: '当前已安装来源匹配',
+  installationDifferent: '已安装来源不同',
   jobTypes: {
     runtime_publication: '运行时发布',
     call_record_delivery: '调用记录投递',

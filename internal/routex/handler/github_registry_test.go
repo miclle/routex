@@ -21,8 +21,8 @@ func TestGitHubRegistry197ExactPrefixAndSuffix(t *testing.T) {
 	for _, m := range matches {
 		names = append(names, m[1]+":"+m[2])
 	}
-	if !googleRegistry200Current(names) || !strings.Contains(string(raw), "versions != 99") {
-		t.Fatal("exact V99/200 current registry")
+	if !installationRegistry203Current(names) || !strings.Contains(string(raw), "versions != 100") {
+		t.Fatal("exact V100/203 current registry")
 	}
 	names = names[:197] // Exercise the unchanged historical V98 predicate below.
 	if !samlRegistry194Current(names[:194]) || githubRegistry197Current(names[:194]) {

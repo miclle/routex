@@ -141,6 +141,7 @@ export function SystemStatusWorkspace() {
   const [routingSelection, setRoutingSelection] = useState<{
     instanceID: string
     basis: string
+    mode: 'routing' | 'installation'
   } | null>(null)
   const [reviewed, setReviewed] = useState<SystemInstance[]>([])
   const [reviewedRemaining, setReviewedRemaining] = useState(0)
@@ -349,7 +350,7 @@ export function SystemStatusWorkspace() {
             {!!jobs.data?.items.length && (
               <JobsTable
                 rows={jobs.data.items}
-                onRecords={(job) => {
+                onRecords={(job, mode) => {
                   if (
                     !routingAuthority.isCurrent() ||
                     job.code !== 'runtime_publication' ||
@@ -358,6 +359,7 @@ export function SystemStatusWorkspace() {
                     return
                   setRoutingSelection({
                     instanceID: job.executor_id,
+                    mode,
                     basis: routingAuthority.basis,
                   })
                 }}
@@ -373,8 +375,9 @@ export function SystemStatusWorkspace() {
         routingAuthority.actorID &&
         routingSelection.basis === routingAuthority.basis && (
           <RoutingApplicationsDialog
-            key={`${routingSelection.instanceID}:${routingSelection.basis}`}
+            key={`${routingSelection.mode}:${routingSelection.instanceID}:${routingSelection.basis}`}
             instanceID={routingSelection.instanceID}
+            mode={routingSelection.mode}
             actorID={routingAuthority.actorID}
             authority={routingSelection.basis}
             isCurrent={routingAuthority.isCurrent}
@@ -586,7 +589,7 @@ function JobsTable({
   recordsReadable,
 }: {
   rows: SystemJob[]
-  onRecords: (job: SystemJob) => void
+  onRecords: (job: SystemJob, mode: 'routing' | 'installation') => void
   recordsReadable: boolean
 }) {
   const { t } = useTranslation('systemStatus')
@@ -638,14 +641,19 @@ function JobsTable({
             >
               {detail(job)}
               {job.code === 'runtime_publication' && canonicalRuntimeID(job.executor_id, 'ins') && (
-                <Button
-                  variant="ghost"
-                  className="mt-2 block h-auto p-0 text-xs text-primary underline"
-                  disabled={!recordsReadable}
-                  onClick={() => onRecords(job)}
-                >
-                  {t('routingRecordsAction')}
-                </Button>
+                <div className="mt-2 flex flex-col items-start gap-2">
+                  {(['routing', 'installation'] as const).map((mode) => (
+                    <Button
+                      key={mode}
+                      variant="ghost"
+                      className="h-auto p-0 text-xs text-primary underline"
+                      disabled={!recordsReadable}
+                      onClick={() => onRecords(job, mode)}
+                    >
+                      {t(`${mode}RecordsAction`)}
+                    </Button>
+                  ))}
+                </div>
               )}
             </td>
           </tr>

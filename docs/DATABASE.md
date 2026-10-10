@@ -1649,3 +1649,20 @@ their original meanings and cannot cover Google retrospectively. Controlled
 dual-database migration, constraints, runtime and rotation qualification is
 `passed`; root-confirmed combined phase evidence is recorded in
 [Implementation](IMPLEMENTATION.md).
+
+## Prepared Gateway installation observations (V100)
+
+The source-prepared frozen GORM V100 adds only
+`runtime_installation_observations`: an immutable first-observation ID, exact
+instance ID and birth, routing snapshot ID, projection version, private aggregate
+source digest, original route publication time and first observation time. The
+unique instance/source pair retains its first receipt; a changed installed
+authorization source can produce another row with the same routing snapshot.
+A restarted process has a different generation and cannot reuse earlier proof.
+
+V1–V99 definitions and V87 routing-only records retain their original meaning;
+there is no backfill or promotion into combined installation proof. This phase
+adds no secret root-inventory domain or coverage epoch. Frozen-column/index/check
+validation and partial-DDL recovery are authored; complete PostgreSQL/MySQL
+migration, concurrency, restart and phase qualification remain pending.
+See [Gateway installation observations](RUNTIME_INSTALLATIONS.md).

@@ -93,6 +93,17 @@ export default {
   routingNewest: 'Newest records',
   routingOlder: 'Older records',
   routingClose: 'Close',
+  installationRecordsAction: 'Gateway installation records',
+  installationRecordsTitle: 'Gateway installation records',
+  installationRecordsDescription:
+    'Observations of routing and Gateway admission installed in one serving process. These records do not prove current database state, management Session revocation, command completion or fleet application.',
+  installationRecordsFailed: 'Gateway installation records could not be loaded.',
+  installationRecordsEmpty:
+    'No installation observation recorded. Missing history does not prove that no configuration was installed.',
+  installationRecordsTable: 'Recorded Gateway installations',
+  installationObserved: 'First recorded observation',
+  installationMatch: 'Current installed source matches',
+  installationDifferent: 'Different installed source',
   jobTypes: {
     runtime_publication: 'Runtime publication',
     call_record_delivery: 'Call record delivery',

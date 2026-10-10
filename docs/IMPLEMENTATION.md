@@ -1,8 +1,8 @@
 # RouteX Implementation and Acceptance Index
 
-Updated: 2026-10-10. This document records engineering contracts, work packages and acceptance checks. Planned interfaces and metrics are not implementation evidence. The objective covers F01–F30 and A01–A20 through incremental P0–P6 delivery and is resumed by the user's explicit instruction, prioritizing partially completed capabilities.
+Updated: 2026-10-11. This document records engineering contracts, work packages and acceptance checks. Planned interfaces and metrics are not implementation evidence. The objective covers F01–F30 and A01–A20 through incremental P0–P6 delivery and is resumed by the user's explicit instruction, prioritizing partially completed capabilities.
 
-## Current execution status (2026-10-10)
+## Current execution status (2026-10-11)
 
 ## Ambiguous remote storage recovery regression, 2026-10-10
 
@@ -59,6 +59,45 @@ component qualification establishes no application, real-Vault, database, browse
 or external acceptance. WeChat remains deferred; enforced SSO/emergency recovery
 and other partially completed work remain open. The overall objective is active.
 Earlier checkpoints below retain their historical totals and evidence.
+
+## Gateway installation observations: controlled qualification, 2026-10-11
+
+The V100 phase records immutable first observations of routing and Gateway
+admission installed in one exact serving generation. Its closed projection covers
+30 source fields and ten native Team Session primary-proof fields, with a shared
+evidence deadline bounded by the caller, original authorization lease and 250 ms. Current
+matching remains nullable and separate from history. The existing System task
+Details actions expose separate routing and installation tables with independent
+permissions, request lifetimes and paired English/Chinese copy.
+See [Gateway installation observations](RUNTIME_INSTALLATIONS.md).
+
+Renewed mandatory checking and complete Task pass, including 6,439 frontend tests
+in 238 files, Go race/coverage, development lifecycle and embedded production assets.
+Complete Task SHA-256: `a3a0a4abbbec79f926832d0c400028dcb95b5e26e1fe86e8bdf8f60257a23e5d`.
+The unchanged original complete PostgreSQL/MySQL matrix passes 203 business
+scenarios plus four constraints and 494 balanced named results per driver,
+9,093 ordinary passes/three intentional TLS helper skips and 28 genuine restart
+application starts. Independent acceptance SHA-256: `2d87e43001af467e23aef7b1319783672935688a0044c72ab91d6cae54b4d1e0`.
+Separate authentication lifecycle accepts eight genuine starts and four native
+success summaries; readback SHA-256: `d58c52b756e8d01ac02d08388b3c56a226f89f1801a61e0921931ce5fa96e2a5`.
+All owned process groups and Compose resources are absent, captured ports refuse
+connections and are freshly bindable. All 2,370 qualified source paths/modes stayed
+unchanged through automated acceptance; delivery documentation was then synchronized.
+Original development is preserved.
+
+Earlier failed runs remain failed evidence. The deterministic first-accounting
+activation regression fails before the narrow route-digest repair and passes 25/25
+afterward; calendar and all other quota-policy controls still invalidate obsolete
+admission. That controlled mechanism does not establish the original full-run
+failure trigger. Migration partial-index repair retains frozen V100 schema and
+uses the existing database-layer index adapter.
+
+Real-window browser acceptance remains pending because the screen is unavailable;
+no further unlock request is needed until the user reports availability. External
+provider recovery, fleet acknowledgements, configuration commands and rollback
+are separate boundaries. F30 remains Partial and totals stay **15 Completed /
+14 Partial / 1 Not started**. This commit delivers the bounded observation phase;
+the overall objective remains active.
 
 ## GitHub and Google controlled application qualification, 2026-10-10
 

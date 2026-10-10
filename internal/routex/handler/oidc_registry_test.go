@@ -26,7 +26,7 @@ func TestOIDCRegistry185Preserves182AndRejectsIdentityDrift(t *testing.T) {
 	for _, match := range regexp.MustCompile(`\{"([^"\n]+)", (test[A-Za-z0-9]+)\}`).FindAllStringSubmatch(string(raw), -1) {
 		names = append(names, match[1]+":"+match[2])
 	}
-	if !googleRegistry200Current(names) {
+	if !installationRegistry203Current(names) {
 		t.Fatal("exact194 ordered SAML successor required")
 	}
 	names = names[:185]

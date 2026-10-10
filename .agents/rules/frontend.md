@@ -1611,3 +1611,15 @@ the OIDC/LDAP-only enforced-SSO policy.
 Google uses the existing sign-in card, independent authentication settings drawer and Account Security composition with paired `google` translations. An internal finite GitHub/Google UI adapter may share identical state and authority handling, while each method retains exact endpoints, namespace, callback and transient state. Changing methods destroys obsolete state and fences late replies. Keep the Google setup guide, actual-origin copy, explicit saved-callback copy and separately confirmed enablement Switch. Never infer verification or enablement from saving.
 
 Google completion remains outside AuthGate and requires explicit Continue after a fresh direct Session read; native MFA HTTP 202 is a challenge. The exact existing Session endpoint requires no-store/nosniff; Google endpoints additionally require private. Secrets, proofs, remote tokens and uncertain intents remain component-local. Browser-cookie abandonment proves no durable cancellation. Root inventory V7 keeps eleven domains and preserves historical V6 GitHub coverage; Google does not satisfy the OIDC/LDAP-only enforced-SSO policy.
+
+Gateway installation observations use the existing System task Details actions and
+runtime-record dialog with a separate actor-, authority-, instance- and mode-scoped
+read key. Keep legacy routing records independent. Installation records describe
+one serving process and Gateway routing/Key/grant/Team-native Session admission;
+they never prove current DB state, management Session revocation, command completion
+or fleet application. Render only server-confirmed true/false/null current matching,
+retain first-observed and process-birth dates, and keep missing history distinct.
+The independent system.read gate, strict bounded wire validation, renewal/error/
+actor/target/unmount cancellation and late-response fences apply to both modes.
+Use paired systemStatus copy and the existing local Base UI Dialog/Table/Button
+composition; introduce no observation write or standalone configuration dashboard.

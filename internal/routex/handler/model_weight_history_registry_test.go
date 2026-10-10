@@ -200,6 +200,10 @@ func TestModelWeightHistoryExact174RegistryPrefix(t *testing.T) {
 	for _, pair := range pairs {
 		currentIdentities = append(currentIdentities, pair[1]+":"+pair[2])
 	}
+	if !installationRegistry203Current(currentIdentities) {
+		t.Fatal("exact203 runtime installation successor changed")
+	}
+	currentIdentities = currentIdentities[:200]
 	if !googleRegistry200Current(currentIdentities) {
 		t.Fatal("exact200 Google successor changed")
 	}

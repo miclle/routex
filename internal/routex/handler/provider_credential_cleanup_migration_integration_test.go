@@ -27,7 +27,7 @@ func providerCleanupHistoricalLedger(t *testing.T, db *gorm.DB, maxVersion int) 
 func testProviderCredentialCleanupMigration(t *testing.T, db *gorm.DB) {
 	ctx := context.Background()
 	before := personalKeyBehaviorLedger(t, db)
-	if len(before) != 99 || before[98].Version != 99 || before[97].Version != 98 || before[96].Version != 97 || before[95].Version != 96 || before[94].Version != 95 || before[93].Version != 94 || before[92].Version != 93 || before[91].Version != 92 || before[90].Version != 91 || before[89].Version != 90 || before[88].Version != 89 || before[87].Version != 88 || before[86].Version != 87 || before[85].Version != 86 || before[84].Version != 85 || before[83].Version != 84 || before[82].Version != 83 || before[80].Version != 81 || before[81].Version != 82 {
+	if len(before) != 100 || before[99].Version != 100 || before[98].Version != 99 || before[97].Version != 98 || before[96].Version != 97 || before[95].Version != 96 || before[94].Version != 95 || before[93].Version != 94 || before[92].Version != 93 || before[91].Version != 92 || before[90].Version != 91 || before[89].Version != 90 || before[88].Version != 89 || before[87].Version != 88 || before[86].Version != 87 || before[85].Version != 86 || before[84].Version != 85 || before[83].Version != 84 || before[82].Version != 83 || before[80].Version != 81 || before[81].Version != 82 {
 		t.Fatal("exact current87 ledger required")
 	}
 	for i, row := range before {
@@ -93,7 +93,7 @@ func testProviderCredentialCleanupMigration(t *testing.T, db *gorm.DB) {
 		t.Fatal(e)
 	}
 	after := personalKeyBehaviorLedger(t, db)
-	if len(after) != 99 || after[98].Version != 99 || after[97].Version != 98 || after[96].Version != 97 || after[95].Version != 96 || after[94].Version != 95 || after[93].Version != 94 || after[92].Version != 93 || after[91].Version != 92 || after[90].Version != 91 || after[89].Version != 90 || after[88].Version != 89 || after[87].Version != 88 || after[86].Version != 87 || after[85].Version != 86 || after[84].Version != 85 || after[83].Version != 84 || after[82].Version != 83 || after[80].Version != 81 || after[81].Version != 82 || !reflect.DeepEqual(after[80:], before[80:]) || after[79].Version != 80 || !reflect.DeepEqual(after[:79], before[:79]) {
+	if len(after) != 100 || after[99].Version != 100 || after[98].Version != 99 || after[97].Version != 98 || after[96].Version != 97 || after[95].Version != 96 || after[94].Version != 95 || after[93].Version != 94 || after[92].Version != 93 || after[91].Version != 92 || after[90].Version != 91 || after[89].Version != 90 || after[88].Version != 89 || after[87].Version != 88 || after[86].Version != 87 || after[85].Version != 86 || after[84].Version != 85 || after[83].Version != 84 || after[82].Version != 83 || after[80].Version != 81 || after[81].Version != 82 || !reflect.DeepEqual(after[80:], before[80:]) || after[79].Version != 80 || !reflect.DeepEqual(after[:79], before[:79]) {
 		t.Fatal("V80 repeat/current ledger or original79 prefix changed")
 	}
 	var retained []entity.CredentialStorageOperation
@@ -152,7 +152,7 @@ func TestProviderCleanupExact154RegistryAnd152Prefix(t *testing.T) {
 	for _, m := range regexp.MustCompile(`\{"([^"\n]+)", (test[A-Za-z0-9]+)\}`).FindAllStringSubmatch(string(raw), -1) {
 		names = append(names, m[1]+":"+m[2])
 	}
-	if !googleRegistry200Current(names) {
+	if !installationRegistry203Current(names) {
 		t.Fatal("exact194 SAML successor changed")
 	}
 	names = names[:181]
@@ -160,7 +160,7 @@ func TestProviderCleanupExact154RegistryAnd152Prefix(t *testing.T) {
 		t.Fatal("exact V93/181 successor changed")
 	}
 	names = names[:179]
-	if len(names) != 179 || !strings.Contains(string(raw), "versions != 99") {
+	if len(names) != 179 || !strings.Contains(string(raw), "versions != 100") {
 		t.Fatal("current exact172 registry/V89 ledger changed")
 	}
 	if _, ok := providerCleanupRegistryParent(names); !ok {

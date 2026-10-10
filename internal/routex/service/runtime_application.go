@@ -28,7 +28,15 @@ var runtimeRouteDigest = regexp.MustCompile(`^[0-9a-f]{64}$`)
 // preparation. Bounded best-effort evidence cannot extend the authorization
 // lease or make failed publication succeed. No request hot path invokes this.
 func (s *Service) recordRuntimeApplication(ctx context.Context, routes *runtimeRoutes, auth *runtimeAuthorization, epoch uint64) error {
-	if !s.runtimeApplicationCaptureCurrent(routes, auth, epoch) {
+	ctx, cancel := runtimeInstallationEvidenceContext(ctx, auth)
+	defer cancel()
+	return s.recordRuntimeApplicationWithinBudget(ctx, routes, auth, epoch)
+}
+
+// The normal publisher supplies its already-running projection/evidence deadline.
+// The standalone wrapper retains V87's original bounded entry for existing callers.
+func (s *Service) recordRuntimeApplicationWithinBudget(ctx context.Context, routes *runtimeRoutes, auth *runtimeAuthorization, epoch uint64) error {
+	if !runtimeInstallationContextCurrent(ctx) || !s.runtimeApplicationCaptureCurrent(routes, auth, epoch) {
 		return runtimeUnavailable
 	}
 	if !s.instanceMu.TryRLock() {
@@ -39,20 +47,19 @@ func (s *Service) recordRuntimeApplication(ctx context.Context, routes *runtimeR
 	if lease == nil || lease.startedAt.IsZero() {
 		return runtimeUnavailable
 	}
-	budget := min(runtimeApplicationWriteBudget, time.Until(auth.ValidUntil))
-	if budget <= 0 {
+	if !runtimeInstallationEvidenceDeadline(ctx, auth) {
 		return runtimeUnavailable
 	}
-	ctx, cancel := context.WithTimeout(ctx, budget)
-	defer cancel()
-	applied := time.Now().UTC().Truncate(time.Microsecond)
-	return s.authDB(ctx).Transaction(func(tx *gorm.DB) error {
+	err := s.authDB(ctx).Transaction(func(tx *gorm.DB) error {
 		var instance entity.SystemInstance
 		err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).Where(database.ExactText(tx, clause.Column{Name: "id"}, lease.id)).Take(&instance).Error
 		if err != nil {
 			return err
 		}
-		if !runtimeApplicationInstanceMatches(instance, lease, applied) || !s.runtimeApplicationCaptureCurrent(routes, auth, epoch) {
+		// Read time only after the exact instance row lock, so a wait cannot
+		// retain a previously live lease or fabricate an earlier observation.
+		applied := time.Now().UTC().Truncate(time.Microsecond)
+		if !runtimeInstallationContextCurrent(ctx) || !runtimeApplicationInstanceMatches(instance, lease, time.Now()) || !s.runtimeApplicationCaptureCurrent(routes, auth, epoch) {
 			return runtimeUnavailable
 		}
 		var prior []entity.RuntimeRoutingApplication
@@ -63,7 +70,7 @@ func (s *Service) recordRuntimeApplication(ctx context.Context, routes *runtimeR
 			if len(prior) != 1 || !validRuntimeApplication(prior[0]) || prior[0].InstanceID != lease.id || !prior[0].InstanceStartedAt.Equal(lease.startedAt) || prior[0].SnapshotID != routes.ID || prior[0].RouteDigest != routes.Digest || !prior[0].PublishedAt.Equal(routes.PublishedAt.UTC().Truncate(time.Microsecond)) {
 				return runtimeUnavailable
 			}
-			if !s.runtimeApplicationCaptureCurrent(routes, auth, epoch) {
+			if !runtimeInstallationContextCurrent(ctx) || !runtimeApplicationInstanceMatches(instance, lease, time.Now()) || !s.runtimeApplicationCaptureCurrent(routes, auth, epoch) {
 				return runtimeUnavailable
 			}
 			return nil
@@ -81,11 +88,18 @@ func (s *Service) recordRuntimeApplication(ctx context.Context, routes *runtimeR
 		if err := tx.Create(&row).Error; err != nil {
 			return err
 		}
-		if !s.runtimeApplicationCaptureCurrent(routes, auth, epoch) {
+		if !runtimeInstallationContextCurrent(ctx) || !runtimeApplicationInstanceMatches(instance, lease, time.Now()) || !s.runtimeApplicationCaptureCurrent(routes, auth, epoch) {
 			return runtimeUnavailable
 		}
 		return nil
 	})
+	if err != nil {
+		return err
+	}
+	if !runtimeInstallationContextCurrent(ctx) || !s.runtimeApplicationCaptureCurrent(routes, auth, epoch) {
+		return runtimeUnavailable
+	}
+	return nil
 }
 
 func (s *Service) runtimeApplicationCaptureCurrent(routes *runtimeRoutes, auth *runtimeAuthorization, epoch uint64) bool {
