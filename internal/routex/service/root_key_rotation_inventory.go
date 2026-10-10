@@ -14,7 +14,9 @@ import (
 	"gorm.io/gorm/clause"
 )
 
-var rootDomains = []string{"provider_credentials", "egresses", "smtp_settings", "storage_revisions", "user_mfa", "vault_writer_auth", "vault_reader_auth"}
+const rootInventoryVersion = 3
+
+var rootDomains = []string{"provider_credentials", "egresses", "smtp_settings", "storage_revisions", "user_mfa", "vault_writer_auth", "vault_reader_auth", "oidc_providers"}
 
 type rootInventoryRow struct{ id, generation, reference, ciphertext string }
 type rootDomainSpec struct{ table, id, generation, ciphertext string }
@@ -23,7 +25,7 @@ func rootSpec(domain string) (rootDomainSpec, error) {
 	switch domain {
 	case "provider_credentials":
 		return rootDomainSpec{domain, "id", "", "ciphertext"}, nil
-	case "egresses", "storage_revisions", "vault_writer_auth", "vault_reader_auth":
+	case "egresses", "storage_revisions", "vault_writer_auth", "vault_reader_auth", "oidc_providers":
 		return rootDomainSpec{domain, "id", "secret_generation", "auth_ciphertext"}, nil
 	case "smtp_settings":
 		return rootDomainSpec{domain, "id", "secret_generation", "auth_ciphertext"}, nil
@@ -49,6 +51,8 @@ func rootReference(domain, id, generation string) string {
 		return "vault-writer:" + id + ":" + generation
 	case "vault_reader_auth":
 		return "vault-reader:" + id + ":" + generation
+	case "oidc_providers":
+		return "oidc:" + id + ":" + generation
 	}
 	return ""
 }

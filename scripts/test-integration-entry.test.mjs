@@ -193,9 +193,12 @@ test('CI preserves only explicit integration logs and lifecycle receipts after f
     'logs/mysql-port.log',
     'logs/mysql.log',
     'logs/nonmatrix.log',
+    'logs/oidc-build.log',
     'logs/owned-processes.jsonl',
     'logs/postgres-port.log',
     'logs/postgres.log',
     'logs/status.json',
+    'oidc-owners/mysql.json',
+    'oidc-owners/postgres.json',
   ])
 })

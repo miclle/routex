@@ -25,7 +25,7 @@ func (ctrl *Ctrl) RegisterRoutes(r *fox.Engine) {
 	// Native query credentials must never be reflected by pre-middleware redirects.
 	r.RedirectTrailingSlash = false
 	r.RedirectFixedPath = false
-	r.Engine.Use(GeminiQueryCredentials, TeamNativeInputs)
+	r.Engine.Use(GeminiQueryCredentials, TeamNativeInputs, OIDCInputs)
 	// embed website assets
 	website.EmbedAssets(r)
 
@@ -58,6 +58,19 @@ func (ctrl *Ctrl) RegisterRoutes(r *fox.Engine) {
 	identity.GET("/admin/prices/export.xlsx", memberMetadataResponseHeaders, ctrl.requireSession, ctrl.RequirePermission("prices.read"), ctrl.ExportPriceXLSX)
 	identity.POST("/auth/login", sameOrigin, jsonAuthRequest, ctrl.Login)
 	identity.POST("/auth/mfa/verify", sameOrigin, jsonAuthRequest, ctrl.CompleteMFALogin)
+
+	identity.GET("/auth/oidc", ctrl.PublicOIDC)
+	identity.POST("/auth/oidc/start", sameOrigin, jsonAuthRequest, ctrl.StartOIDCLogin)
+	identity.GET("/auth/oidc/callback", ctrl.OIDCCallback)
+	identity.POST("/auth/oidc/complete", sameOrigin, jsonAuthRequest, ctrl.CompleteOIDC)
+	identity.GET("/account/identity", ctrl.requireSession, ctrl.AccountOIDC)
+	identity.POST("/account/identity/bind", sameOrigin, ctrl.requireSession, requireCSRF, jsonManagementRequest, ctrl.StartOIDCBinding)
+	identity.POST("/account/identity/unlink", sameOrigin, ctrl.requireSession, requireCSRF, jsonManagementRequest, ctrl.UnlinkOIDC)
+	identity.GET("/admin/auth/oidc", ctrl.requireSession, ctrl.GetOIDCProvider)
+	identity.PUT("/admin/auth/oidc", sameOrigin, ctrl.requireSession, requireCSRF, jsonManagementRequest, ctrl.SaveOIDCProvider)
+	identity.POST("/admin/auth/oidc/verify", sameOrigin, ctrl.requireSession, requireCSRF, jsonManagementRequest, ctrl.StartOIDCVerification)
+	identity.PUT("/admin/auth/oidc/status", sameOrigin, ctrl.requireSession, requireCSRF, jsonManagementRequest, ctrl.SetOIDCEnabled)
+
 	identity.GET("/auth/session", ctrl.requireSession, ctrl.CurrentSession)
 	identity.GET("/overview/accounts", ctrl.requireSession, ctrl.MemberOverviewAccounts)
 	identity.GET("/overview/roles", ctrl.requireSession, ctrl.MemberOverviewRoles)

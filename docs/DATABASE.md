@@ -1502,3 +1502,23 @@ The transient Connection diagnostic adds no result/history schema and writes no
 catalogue, configuration, verification, discovery, enablement, routing or audit
 facts. Required existing Vault source-use/exposure and drain-safety bookkeeping
 still applies; this is not a zero-database-write guarantee.
+
+
+## Existing-member OIDC and root inventory V3 (V94 candidate)
+
+Frozen GORM V94 adds `oidc_providers`, `oidc_bindings` and `oidc_ceremonies` and six
+additive provenance fields on Sessions/MFA challenges. Their physical `oidc_*`
+names are explicit in both frozen migration and business models: GORM's initialism
+normalization must not select a different persisted contract. Independent literal
+name tests accompany model-to-schema parity checks. It uses private frozen schemas,
+GORM table/column/index/constraint operations and the existing database-layer ordered
+index metadata adapter. No business layer branches on PostgreSQL/MySQL dialect.
+Existing local authentication retains blank primary metadata and null identity births.
+
+Resumable DDL validates required/null columns, exact widths/types, microsecond timestamp
+precision, uninvented time defaults, primary keys and ordered complete unique indexes.
+The singleton and primary-method checks reject collation aliases. V94 appends root
+inventory V3/eight domains while preserving V1/five and V2/seven definitions and rows;
+released V48/V72 remain unchanged. A failed step must not acquire a version ledger row.
+Real dual-driver empty/upgrade/repeat/concurrent/partial-DDL acceptance is pending.
+See [OIDC](OIDC.md) for application contracts.

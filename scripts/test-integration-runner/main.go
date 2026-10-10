@@ -3,6 +3,8 @@ package main
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"flag"
 	"fmt"
@@ -21,6 +23,7 @@ const grace = 5 * time.Second
 const replayLimit = 1024 * 1024
 const totalBudget = 7300 * time.Second
 const cleanupReserve = 120 * time.Second
+const oidcBinaryLimit = 256 * 1024 * 1024
 
 func main() { os.Exit(run()) }
 
@@ -84,7 +87,10 @@ func runLifecycleWithOutputBudget(project, private string, outputBudget time.Dur
 		failure = true
 		ready = false
 	}
-	env := os.Environ()
+	env := withoutOIDCBinary(os.Environ())
+	binaryPath := filepath.Join(private, "oidc-routex")
+	binaryOwned := false
+	guardDir := ""
 	compose := func(name string, args ...string) job {
 		return job{name: name, command: "docker", args: append([]string{"compose", "-p", project, "-f", "compose.test.yaml"}, args...), env: env}
 	}
@@ -115,10 +121,49 @@ func runLifecycleWithOutputBudget(project, private string, outputBudget time.Dur
 					return job{name: name, command: "go", args: append(args, extra...), env: env}
 				}
 				batch(test("nonmatrix", "-skip", "^TestIdentityIntegration$", "./internal/routex/..."))
-				if ctx.Err() == nil {
-					batch(test("postgres", "-run", "^TestIdentityIntegration$/^postgres$", "./internal/routex/handler"), test("mysql", "-run", "^TestIdentityIntegration$/^mysql$", "./internal/routex/handler"))
+				if ctx.Err() == nil && allGone {
+					// Reserve only this fixed private output; inherited artifact paths
+					// never authorize reading or replacing a caller-supplied binary.
+					absolute, err := filepath.Abs(binaryPath)
+					if err == nil {
+						binaryPath = absolute
+						var file *os.File
+						file, err = os.OpenFile(binaryPath, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0700)
+						if err == nil {
+							binaryOwned = true
+							err = file.Close()
+						}
+					}
+					if err != nil {
+						failure = true
+						diagnostics = append(diagnostics, "could not reserve private OIDC binary")
+					} else if batch(job{name: "oidc-build", command: "go", args: []string{"build", "-trimpath", "-tags", "development", "-o", binaryPath, "./cmd/routex"}, env: env}) {
+						digest, ok := oidcBinaryDigest(binaryPath)
+						if !ok {
+							failure = true
+							diagnostics = append(diagnostics, "invalid private OIDC binary")
+						} else if ctx.Err() == nil && allGone {
+							guardDir = filepath.Join(filepath.Dir(binaryPath), "oidc-owners")
+							if err := os.Mkdir(guardDir, 0700); err != nil {
+								failure = true
+								allGone = false
+								diagnostics = append(diagnostics, "could not reserve private OIDC ownership guards")
+							} else {
+								postgresJob := test("postgres", "-run", "^TestIdentityIntegration$/^postgres$", "./internal/routex/handler")
+								mysqlJob := test("mysql", "-run", "^TestIdentityIntegration$/^mysql$", "./internal/routex/handler")
+								driverEnv := append(append([]string(nil), env...), "ROUTEX_TEST_OIDC_BINARY="+binaryPath, "ROUTEX_TEST_OIDC_BINARY_SHA256="+digest, "ROUTEX_TEST_OIDC_GUARD_DIR="+guardDir)
+								postgresJob.env, mysqlJob.env = driverEnv, driverEnv
+								batch(postgresJob, mysqlJob)
+							}
+						}
+					}
 				}
 			}
+		}
+		if guardDir != "" && !oidcGuardsClear(guardDir) {
+			allGone = false
+			failure = true
+			diagnostics = append(diagnostics, "OIDC child ownership remains unknown; dependencies and executables retained")
 		}
 		// Diagnostics remain private until every owned group and database cleanup
 		// has finished. A blocked terminal cannot prevent these cleanup operations.
@@ -140,6 +185,11 @@ func runLifecycleWithOutputBudget(project, private string, outputBudget time.Dur
 			cleanupCancel()
 			statuses = append(statuses, results...)
 			failure = failure || failed
+			for _, s := range results {
+				if s.Started && (!s.Joined || !s.GroupGone) {
+					allGone = false
+				}
+			}
 			if failed {
 				diagnostics = append(diagnostics, "could not clean up private integration project")
 			}
@@ -148,9 +198,27 @@ func runLifecycleWithOutputBudget(project, private string, outputBudget time.Dur
 			diagnostics = append(diagnostics, "database cleanup blocked by an unjoined owned process group")
 		}
 	}
-	if err := os.Remove(filepath.Join(private, "runner")); err != nil {
+	if allGone && guardDir != "" {
+		if err := os.Remove(guardDir); err != nil {
+			allGone = false
+			failure = true
+			diagnostics = append(diagnostics, "could not remove empty OIDC ownership directory")
+		}
+	}
+	if allGone {
+		if binaryOwned {
+			if err := os.Remove(binaryPath); err != nil && !os.IsNotExist(err) {
+				failure = true
+				diagnostics = append(diagnostics, "could not remove private OIDC binary")
+			}
+		}
+		if err := os.Remove(filepath.Join(private, "runner")); err != nil {
+			failure = true
+			diagnostics = append(diagnostics, "could not remove private helper")
+		}
+	} else {
 		failure = true
-		diagnostics = append(diagnostics, "could not remove private helper")
+		diagnostics = append(diagnostics, "private executables retained for an unjoined owned process group")
 	}
 	report := lifecycleReport{Statuses: statuses, Failed: failure, ExitCode: -1, TerminalOutput: "pending", Diagnostics: diagnostics}
 	// A pending receipt is explicitly incomplete; it is stored before any terminal
@@ -255,6 +323,58 @@ func readPort(path string) (string, bool) {
 		return "", false
 	}
 	return address, true
+}
+
+// Only the runner's fresh private build may supply these values to matrix jobs.
+func withoutOIDCBinary(env []string) []string {
+	result := make([]string, 0, len(env))
+	for _, value := range env {
+		if !strings.HasPrefix(value, "ROUTEX_TEST_OIDC_BINARY=") && !strings.HasPrefix(value, "ROUTEX_TEST_OIDC_BINARY_SHA256=") && !strings.HasPrefix(value, "ROUTEX_TEST_OIDC_GUARD_DIR=") {
+			result = append(result, value)
+		}
+	}
+	return result
+}
+
+// Any remaining descriptor or unreadable/missing directory denies dependency
+// cleanup, even after the owning Go worker itself has joined and disappeared.
+func oidcGuardsClear(path string) bool {
+	if !filepath.IsAbs(path) {
+		return false
+	}
+	info, err := os.Lstat(path)
+	if err != nil || !info.IsDir() || info.Mode()&os.ModeSymlink != 0 || info.Mode().Perm() != 0700 {
+		return false
+	}
+	entries, err := os.ReadDir(path)
+	return err == nil && len(entries) == 0
+}
+
+// Refuse symlinks, non-executables, empty or oversized outputs. Both stat and
+// streaming bounds apply, including a file that grows after its initial stat.
+func oidcBinaryDigest(path string) (string, bool) {
+	before, err := os.Lstat(path)
+	if err != nil || !before.Mode().IsRegular() || before.Mode().Perm()&0111 == 0 || before.Size() <= 0 || before.Size() > oidcBinaryLimit {
+		return "", false
+	}
+	file, err := os.Open(path)
+	if err != nil {
+		return "", false
+	}
+	opened, statErr := file.Stat()
+	if statErr != nil || !os.SameFile(before, opened) {
+		_ = file.Close()
+		return "", false
+	}
+	digest := sha256.New()
+	size, readErr := io.Copy(digest, io.LimitReader(file, oidcBinaryLimit+1))
+	after, afterErr := file.Stat()
+	closeErr := file.Close()
+	current, currentErr := os.Lstat(path)
+	if readErr != nil || afterErr != nil || closeErr != nil || currentErr != nil || size != before.Size() || size > oidcBinaryLimit || !os.SameFile(before, current) || after.Size() != before.Size() || current.Size() != before.Size() || !after.ModTime().Equal(before.ModTime()) || !current.ModTime().Equal(before.ModTime()) {
+		return "", false
+	}
+	return hex.EncodeToString(digest.Sum(nil)), true
 }
 
 func databaseEnv(env []string, postgres, mysql string) []string {

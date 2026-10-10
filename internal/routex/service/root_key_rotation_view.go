@@ -232,7 +232,7 @@ func (s *Service) getSecretStore(ctx context.Context, actorID, jobID string) (*S
 			}
 			jp = &job
 		}
-		view := &SecretStoreView{Mode: "internal", InventoryVersion: 2, ObservedAt: s.secretNow(), ReviewETag: rootReviewETag(actorID, p, jp), CanRead: true, CanRotate: rotate, Policy: SecretStorePolicyView{p.WriteKeyID, strconv.FormatUint(p.Epoch, 10)}, Keys: []SecretRootKeyView{}}
+		view := &SecretStoreView{Mode: "internal", InventoryVersion: rootInventoryVersion, ObservedAt: s.secretNow(), ReviewETag: rootReviewETag(actorID, p, jp), CanRead: true, CanRotate: rotate, Policy: SecretStorePolicyView{p.WriteKeyID, strconv.FormatUint(p.Epoch, 10)}, Keys: []SecretRootKeyView{}}
 		var configured []string
 		if s.secrets != nil {
 			configured = s.secrets.KeyIDs()
@@ -260,7 +260,7 @@ func (s *Service) getSecretStore(ctx context.Context, actorID, jobID string) (*S
 	return result, catalogError(err)
 }
 func (s *Service) rootObservationEligible(job entity.SecretRotationJob, proof entity.SecretProcessVerification) bool {
-	if job.InventoryVersion != 2 || proof.InventoryVersion != 2 || job.Domain != 7 {
+	if job.InventoryVersion != rootInventoryVersion || proof.InventoryVersion != rootInventoryVersion || job.Domain != len(rootDomains) {
 		return false
 	}
 	counts, err := rootCountsChecked(job)
@@ -281,6 +281,8 @@ func rootInventoryDomains(v int) []string {
 	case 1:
 		return rootDomains[:5]
 	case 2:
+		return rootDomains[:7]
+	case rootInventoryVersion:
 		return rootDomains
 	default:
 		return nil

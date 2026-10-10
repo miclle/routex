@@ -202,7 +202,7 @@ it('rejects an applied response without both application proofs', () => {
   expect(validSecretReason(null)).toBe(false)
 })
 
-it('keeps historical five-domain coverage independent from current seven-domain inventory', () => {
+it('keeps historical five-domain coverage independent from current eight-domain inventory', () => {
   const value = store()
   value.rotation = job()
   expect(parseSecretStore(value).rotation?.domains).toHaveLength(5)
@@ -228,11 +228,95 @@ it('rejects unknown/missing inventory versions and five/seven aliasing', () => {
   const value = store()
   Object.assign(value, { inventory_version: 1 })
   expect(() => parseSecretStore(value)).toThrow()
-  value.inventory_version = 2
+  value.inventory_version = 3
   value.rotation = job()
   value.rotation.inventory_version = 2
   expect(() => parseSecretStore(value)).toThrow()
   value.rotation.inventory_version = 1
   Object.assign(value.rotation.domains[0], { coverage: 'not_scanned' })
   expect(() => parseSecretStore(value)).toThrow()
+})
+
+it.each([1, 2, 3] as const)(
+  'preserves the exact ordered domain scope of inventory V%s in status and receipts',
+  (version) => {
+    const value = store()
+    value.rotation = job(version)
+    const expected = [
+      'provider_credentials',
+      'egresses',
+      'smtp_settings',
+      'storage_revisions',
+      'user_mfa',
+      ...(version >= 2 ? ['vault_writer_auth', 'vault_reader_auth'] : []),
+      ...(version === 3 ? ['oidc_providers'] : []),
+    ]
+    const parsed = parseSecretStore(value)
+    expect(parsed.inventory_version).toBe(3)
+    expect(parsed.rotation?.inventory_version).toBe(version)
+    expect(parsed.rotation?.domains.map((domain) => domain.code)).toEqual(expected)
+    expect(parsed.rotation?.domains[0].scanned).toBe('9007199254740993')
+    const result = receipt(intent)
+    result.rotation = job(version)
+    expect(parseSecretResult(result, intent).rotation).toEqual(value.rotation)
+  },
+)
+it.each([1, 2, 4, null, undefined])(
+  'rejects inventory %s as current process/status coverage',
+  (version) => {
+    const value = store()
+    Object.assign(value, { inventory_version: version })
+    expect(() => parseSecretStore(value)).toThrow(SecretError)
+  },
+)
+it.each([
+  'missing-oidc',
+  'extra-oidc-in-v2',
+  'reordered-tail',
+  'duplicate-tail',
+  'unknown-version',
+])('rejects historical/current inventory aliasing: %s', (kind) => {
+  const value = store()
+  value.rotation = job(3)
+  if (kind === 'missing-oidc') value.rotation.domains.pop()
+  if (kind === 'extra-oidc-in-v2') value.rotation.inventory_version = 2
+  if (kind === 'reordered-tail')
+    [value.rotation.domains[6], value.rotation.domains[7]] = [
+      value.rotation.domains[7],
+      value.rotation.domains[6],
+    ]
+  if (kind === 'duplicate-tail') value.rotation.domains[7] = value.rotation.domains[6]
+  if (kind === 'unknown-version') Object.assign(value.rotation, { inventory_version: 4 })
+  expect(() => parseSecretStore(value)).toThrow(SecretError)
+  const result = receipt(intent)
+  result.rotation = value.rotation
+  expect(() => parseSecretResult(result, intent)).toThrow(SecretError)
+})
+it('preserves historical V2 scope blockers and server actions without inventing current coverage', () => {
+  const value = store()
+  value.rotation = {
+    ...job(2),
+    status: 'blocked',
+    blocker_codes: ['inventory_scope_changed'],
+    allowed_actions: ['resume', 'rollback'],
+  }
+  expect(parseSecretStore(value).rotation).toEqual(value.rotation)
+  expect(parseSecretStore(value).rotation?.allowed_actions).not.toContain('retire')
+})
+
+it('keeps unscanned current OIDC coverage unknown instead of asserting zero work', () => {
+  const value = store()
+  value.rotation = job(3)
+  Object.assign(value.rotation.domains[7], {
+    coverage: 'not_scanned',
+    scanned: null,
+    rewrapped: null,
+    already_target: null,
+    deleted: null,
+    changed: null,
+    blocked: null,
+  })
+  expect(parseSecretStore(value).rotation?.domains[7]).toEqual(value.rotation.domains[7])
+  value.rotation.domains[7].scanned = '0'
+  expect(() => parseSecretStore(value)).toThrow(SecretError)
 })

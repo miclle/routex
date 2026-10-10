@@ -4,7 +4,7 @@ Updated: 2026-10-10. Status: resumed by explicit user instruction; prioritize pa
 
 ## Current execution status (2026-10-10)
 
-Latest feature delivery: `fd7157473d60837bf26ee333f3280ec4b22d951e` fixes saved-Egress
+Previous feature delivery: `fd7157473d60837bf26ee333f3280ec4b22d951e` fixes saved-Egress
 Credential sources and native/Azure diagnostics, with exact remote-main parity.
 Fresh final mandatory checking passes. Actionlint and GolangCI-Lint pass; CI run
 38003692213 ended cancelled, with Backend Checks successful and the remaining
@@ -12,14 +12,47 @@ jobs cancelled. Cancellation does not establish complete CI acceptance.
 F28 seven-flow browser acceptance still awaits an unlocked local screen; no new
 browser fixture has started. The F24 saved-report ownership/range question is open.
 
-The first F03 engineering phase adds the bounded `pkg/oidc` protocol component,
-with 119 controlled named race-test results and a faithful six-failure predecessor
-regression witness. Mandatory project checking and complete Task pass, including
-5,972 frontend cases, Go race/coverage, development lifecycle and production assets.
-It is not mounted into application authentication. Existing-member
-configuration/binding, single-use callbacks, MFA and Session revocation are being
-implemented privately in parallel. No enterprise sign-in or capability completion
-is claimed; capability totals remain unchanged. See [OIDC](OIDC.md).
+The first F03 engineering phase is delivered in
+`c86eedec5bd90526aa073b2f32b941c8fd84a9bf`, with exact remote-main parity. Its bounded
+`pkg/oidc` component passes 119 controlled named race-test results and a faithful
+six-failure predecessor witness. Mandatory project checking and complete Task pass,
+including 5,972 frontend cases, Go race/coverage, development lifecycle and production
+assets. CI run 38006991316, Actionlint and GolangCI-Lint all pass. That delivered
+phase does not mount application authentication.
+
+The existing-member OIDC implementation includes one reviewed provider, explicit
+existing-member binding, single-use callback/completion, native MFA, Session
+revocation, root inventory V3 and the existing bilingual authentication/account
+surfaces. Mandatory checking passes. The corrected complete Task passes Go
+race/coverage, all 6,032 frontend cases in 225 files, development lifecycle tests
+and production build/asset tests. Focused composition regressions pass all 67
+cases; 48 named runner regressions also pass.
+The third focused database run passes all seven selected business scenarios on
+each driver, including expanded in-flight configuration/MFA checks and genuine
+same-source process restarts. That overall run remains failed because one unit
+fixture used a non-private temporary directory; its correction additionally checks
+mode rejection. Independent readback confirms every owned worker/application group
+and Compose resource closed, unchanged source, and the original development service
+preserved. Earlier startup naming and two database-fixture failures remain recorded.
+The first complete Task attempt exposed stale V2/seven-domain assertions; the
+second exposed 20 old UI-composition fixture failures. All corrections retain
+historical V1/five and V2/seven semantics and original behavioral assertions. Failed
+logs remain retained; they are not relabeled as acceptance.
+The official complete matrix passes all 185 ordered business scenarios and four
+constraint checks on each driver: 447 named PostgreSQL and 447 named MySQL results,
+with no failures or skips. Its ordinary pass records 6,200 named results and one
+intentional process-helper skip. The separate real-process authentication lifecycle
+also passes both drivers, including initialization, persisted Sessions, revocation,
+encrypted Credentials, native gateway calls and restart. Independent readback
+confirms the unchanged 2,163-path source floor, joined owned processes and removed
+Compose resources; the original development service remains available.
+
+The containing commit delivers this existing-member OIDC engineering implementation.
+Bilingual browser interactions and real-provider deployment remain unaccepted;
+controlled TLS and process fixtures do not replace either gate. F03 and A15 remain
+Partial: LDAP, additional OAuth providers, enforced SSO and enterprise emergency
+recovery remain open. Capability totals are now **15 Completed / 13 Partial /
+2 Not started**. See [OIDC](OIDC.md).
 
 The full objective remains active. Credential inference-attempt statistics
 (GORM V93), Provider Overview attention and creation/navigation flows, and
@@ -29,7 +62,7 @@ Fresh main formatting, mandatory checking and complete Task pass, including
 5,924 frontend cases in 223 files. The official PostgreSQL/MySQL matrix and
 genuine bilingual production browser checks also pass. Configuration availability
 is not native health, and statistics do not automatically disable Credentials.
-Capability totals are **15 Completed / 12 Partial / 3 Not started**.
+At that preceding delivery, capability totals were **15 Completed / 12 Partial / 3 Not started**.
 
 F22 usage reports are reconciled as Completed at the capability level. Existing
 commits `598ffd17e00f8ef651b8a8a4f7bbfbae864f8c48` and

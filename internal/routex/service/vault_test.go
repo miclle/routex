@@ -189,7 +189,7 @@ func TestVaultTypedAuditProjectsOnlySafeConfigurationFacts(t *testing.T) {
 }
 
 func TestVaultRootUnknownInventoryNeverGrantsActionsOrHistory(t *testing.T) {
-	for _, version := range []int{0, -1, 3} {
+	for _, version := range []int{0, -1, 4} {
 		job := entity.SecretRotationJob{InventoryVersion: version, CountsJSON: "{}", Status: "blocked"}
 		if _, err := rootCountsChecked(job); err == nil {
 			t.Fatal("unknown inventory accepted", version)
@@ -198,15 +198,21 @@ func TestVaultRootUnknownInventoryNeverGrantsActionsOrHistory(t *testing.T) {
 			t.Fatal("unknown history or action authority", version)
 		}
 	}
-	for _, status := range []string{"completed", "rolled_back"} {
-		view := rootRotationView(entity.SecretRotationJob{InventoryVersion: 1, CountsJSON: "{}", Status: status, Domain: 5}, true, true)
-		if view == nil || view.InventoryVersion != 1 || len(view.Domains) != 5 || len(view.AllowedActions) != 0 {
-			t.Fatal("explicit legacy terminal history changed")
+	for _, inventory := range []struct{ version, domains int }{{1, 5}, {2, 7}, {3, 8}} {
+		for _, status := range []string{"completed", "rolled_back"} {
+			view := rootRotationView(entity.SecretRotationJob{InventoryVersion: inventory.version, CountsJSON: "{}", Status: status, Domain: inventory.domains}, true, true)
+			if view == nil || view.InventoryVersion != inventory.version || len(view.Domains) != inventory.domains || len(view.AllowedActions) != 0 {
+				t.Fatal("explicit versioned terminal history changed", inventory.version)
+			}
+		}
+		_, err := rootCountsChecked(entity.SecretRotationJob{InventoryVersion: inventory.version, CountsJSON: `{"oidc_providers":{}}`})
+		if (err == nil) != (inventory.version == 3) {
+			t.Fatal("OIDC domain coverage escaped its inventory version", inventory.version)
 		}
 	}
 }
 func TestVaultRootWorkerRejectsUnknownInventoryWithoutRewrap(t *testing.T) {
-	for _, version := range []int{0, 3} {
+	for _, version := range []int{0, 4} {
 		svc, f := rootPublicationService(t)
 		f.job.InventoryVersion = version
 		before := f.egress.AuthCiphertext

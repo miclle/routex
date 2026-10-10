@@ -1,4 +1,5 @@
 import { useLayoutEffect, useRef, useState } from 'react'
+import OIDCConfiguration from '@/views/oidc/config'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { AxiosError } from 'axios'
@@ -267,6 +268,7 @@ function Policy({ actor }: { actor: string }) {
           </Button>
         </section>
       )}
+      <OIDCConfiguration />
       <Drawer
         open={open && !!page}
         onOpenChange={(value) => {

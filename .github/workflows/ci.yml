@@ -97,6 +97,9 @@ jobs:
           path: |
             ${{ env.ROUTEX_TEST_RUNNER_PRIVATE_DIR }}/build.log
             ${{ env.ROUTEX_TEST_RUNNER_PRIVATE_DIR }}/logs/nonmatrix.log
+            ${{ env.ROUTEX_TEST_RUNNER_PRIVATE_DIR }}/logs/oidc-build.log
+            ${{ env.ROUTEX_TEST_RUNNER_PRIVATE_DIR }}/oidc-owners/postgres.json
+            ${{ env.ROUTEX_TEST_RUNNER_PRIVATE_DIR }}/oidc-owners/mysql.json
             ${{ env.ROUTEX_TEST_RUNNER_PRIVATE_DIR }}/logs/postgres.log
             ${{ env.ROUTEX_TEST_RUNNER_PRIVATE_DIR }}/logs/mysql.log
             ${{ env.ROUTEX_TEST_RUNNER_PRIVATE_DIR }}/logs/compose-up.log

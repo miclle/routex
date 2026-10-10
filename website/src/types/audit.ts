@@ -26,7 +26,12 @@ export interface AuditBeforeAfterChanges {
 export interface SystemInstanceCleanupAuditChanges {
   revision: number
 }
-export type AuditChanges = AuditBeforeAfterChanges | SystemInstanceCleanupAuditChanges
+export interface OIDCIdentityAuditChanges {
+  kind: 'oidc_identity'
+  reason: string
+}
+export type AuditChanges =
+  AuditBeforeAfterChanges | SystemInstanceCleanupAuditChanges | OIDCIdentityAuditChanges
 export interface AuditRecord {
   id: string
   actor_id: string

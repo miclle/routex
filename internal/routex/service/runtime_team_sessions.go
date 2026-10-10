@@ -15,20 +15,24 @@ import (
 // TeamSessionIdentity is an exact request-local Team invocation subject. Its
 // private proofs must never be projected into a response or durable call fact.
 type TeamSessionIdentity struct {
-	SessionID        string
-	UserID           string
-	TeamID           string
-	TeamMembershipID string
-	ModelIDs         []string
-	tokenHash        string
-	csrfProofHash    string
-	expiresAt        time.Time
-	teamCreatedAt    time.Time
+	SessionID          string
+	UserID             string
+	TeamID             string
+	TeamMembershipID   string
+	ModelIDs           []string
+	tokenHash          string
+	csrfProofHash      string
+	expiresAt          time.Time
+	teamCreatedAt      time.Time
+	oidcPolicyRevision string
+	oidcBindingKey     string
 }
 
 type runtimeTeamSession struct {
 	ID, UserID, TokenHash string
 	ExpiresAt             time.Time
+	OIDCPolicyRevision    string
+	OIDCBindingKey        string
 }
 
 type runtimeTeam struct {
@@ -38,10 +42,12 @@ type runtimeTeam struct {
 }
 
 type teamSessionRuntimeData struct {
-	Sessions    []entity.Session
-	Teams       []entity.Team
-	Memberships []entity.TeamMembership
-	Grants      []entity.TeamModelGrant
+	Sessions     []entity.Session
+	Teams        []entity.Team
+	Memberships  []entity.TeamMembership
+	Grants       []entity.TeamModelGrant
+	OIDCProvider *entity.OIDCProvider
+	OIDCBindings []entity.OIDCBinding
 }
 
 var teamSessionCookie = regexp.MustCompile(`^[A-Za-z0-9_-]{43}$`)
@@ -49,7 +55,10 @@ var teamSessionDigest = regexp.MustCompile(`^[a-f0-9]{64}$`)
 
 func loadTeamSessionRuntimeData(tx *gorm.DB) (*teamSessionRuntimeData, error) {
 	data := &teamSessionRuntimeData{}
-	if err := tx.Select("id", "user_id", "token_hash", "expires_at").Where("expires_at > ?", time.Now().UTC()).Find(&data.Sessions).Error; err != nil {
+	if err := tx.Select("id", "user_id", "token_hash", "expires_at", "primary_method", "oidc_binding_id", "oidc_binding_created_at", "oidc_config_revision", "oidc_policy_revision", "oidc_user_created_at").Where("expires_at > ?", time.Now().UTC()).Find(&data.Sessions).Error; err != nil {
+		return nil, err
+	}
+	if err := loadOIDCSessionRuntimeData(tx, data); err != nil {
 		return nil, err
 	}
 	for _, target := range []any{&data.Teams, &data.Memberships, &data.Grants} {
@@ -70,9 +79,20 @@ func addTeamSessionRuntimeAuthorization(auth *runtimeAuthorization, data *teamSe
 			enabledUsers[user.ID] = true
 		}
 	}
+	usersByID := map[string]entity.User{}
+	for _, u := range users {
+		usersByID[u.ID] = u
+	}
+	bindings := map[string]entity.OIDCBinding{}
+	for _, b := range data.OIDCBindings {
+		bindings[b.ID] = b
+	}
 	for _, session := range data.Sessions {
+		if !oidcRuntimePrimary(session, data.OIDCProvider, bindings, usersByID) {
+			continue
+		}
 		if safeTeamSessionID(session.ID) && enabledUsers[session.UserID] && teamSessionDigest.MatchString(session.TokenHash) {
-			auth.TeamSessions[session.TokenHash] = runtimeTeamSession{ID: session.ID, UserID: session.UserID, TokenHash: session.TokenHash, ExpiresAt: session.ExpiresAt}
+			auth.TeamSessions[session.TokenHash] = runtimeTeamSession{ID: session.ID, UserID: session.UserID, TokenHash: session.TokenHash, ExpiresAt: session.ExpiresAt, OIDCPolicyRevision: session.OIDCPolicyRevision, OIDCBindingKey: oidcRuntimeBindingKey(session.OIDCBindingID, session.OIDCBindingCreatedAt)}
 		}
 	}
 	auth.TeamCreationGrants = map[string]map[string]runtimeTeamCreationGrant{}
@@ -138,7 +158,7 @@ func (s *Service) RuntimeAuthenticateTeamSession(ctx context.Context, rawCookie,
 	}
 	hash := secret.SHA256Hex(rawCookie)
 	session, exists := auth.TeamSessions[hash]
-	if !exists || session.TokenHash != hash || !s.gatewayAttemptClock().Before(session.ExpiresAt) || runtimeDenied(&s.runtime.deniedSessions, session.ID) || runtimeDenied(&s.runtime.deniedSessionUsers, session.UserID) || runtimeDenied(&s.runtime.deniedUsers, session.UserID) {
+	if !exists || session.TokenHash != hash || !s.gatewayAttemptClock().Before(session.ExpiresAt) || runtimeDenied(&s.runtime.deniedSessions, session.ID) || runtimeDenied(&s.runtime.deniedSessionUsers, session.UserID) || runtimeDenied(&s.runtime.deniedUsers, session.UserID) || s.runtimeOIDCSessionDenied(session) {
 		return nil, teamSessionInvalid()
 	}
 	team, exists := auth.Teams[teamID]
@@ -152,7 +172,7 @@ func (s *Service) RuntimeAuthenticateTeamSession(ctx context.Context, rawCookie,
 		}
 	}
 	sort.Strings(models)
-	return &TeamSessionIdentity{SessionID: session.ID, UserID: session.UserID, TeamID: teamID, TeamMembershipID: team.Members[session.UserID], ModelIDs: models, tokenHash: hash, csrfProofHash: secret.SHA256Hex(secret.SHA256Hex("routex-csrf:" + rawCookie)), expiresAt: session.ExpiresAt, teamCreatedAt: team.CreatedAt}, nil
+	return &TeamSessionIdentity{SessionID: session.ID, UserID: session.UserID, TeamID: teamID, TeamMembershipID: team.Members[session.UserID], ModelIDs: models, tokenHash: hash, csrfProofHash: secret.SHA256Hex(secret.SHA256Hex("routex-csrf:" + rawCookie)), expiresAt: session.ExpiresAt, teamCreatedAt: team.CreatedAt, oidcPolicyRevision: session.OIDCPolicyRevision, oidcBindingKey: session.OIDCBindingKey}, nil
 }
 
 // ValidateTeamSessionCSRF preserves the existing cookie-derived CSRF contract.
@@ -175,7 +195,7 @@ func (s *Service) ReauthorizeTeamSession(ctx context.Context, identity *TeamSess
 		return err
 	}
 	session, exists := auth.TeamSessions[identity.tokenHash]
-	if !exists || session.ID != identity.SessionID || session.UserID != identity.UserID || session.TokenHash != identity.tokenHash || !session.ExpiresAt.Equal(identity.expiresAt) || !s.gatewayAttemptClock().Before(session.ExpiresAt) || runtimeDenied(&s.runtime.deniedSessions, session.ID) || runtimeDenied(&s.runtime.deniedSessionUsers, session.UserID) || runtimeDenied(&s.runtime.deniedUsers, session.UserID) {
+	if !exists || session.ID != identity.SessionID || session.UserID != identity.UserID || session.TokenHash != identity.tokenHash || session.OIDCPolicyRevision != identity.oidcPolicyRevision || session.OIDCBindingKey != identity.oidcBindingKey || !session.ExpiresAt.Equal(identity.expiresAt) || !s.gatewayAttemptClock().Before(session.ExpiresAt) || runtimeDenied(&s.runtime.deniedSessions, session.ID) || runtimeDenied(&s.runtime.deniedSessionUsers, session.UserID) || runtimeDenied(&s.runtime.deniedUsers, session.UserID) || s.runtimeOIDCSessionDenied(session) {
 		return teamSessionInvalid()
 	}
 	team, exists := auth.Teams[identity.TeamID]

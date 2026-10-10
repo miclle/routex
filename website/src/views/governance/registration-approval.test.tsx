@@ -1,6 +1,7 @@
 import { act } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { MemoryRouter } from 'react-router'
 import { AxiosError, AxiosHeaders, type InternalAxiosRequestConfig } from 'axios'
 import { afterEach, beforeEach, expect, it } from 'vitest'
 import i18n from '@/i18n'
@@ -35,7 +36,9 @@ async function mount() {
   await act(async () =>
     root.render(
       <QueryClientProvider client={cache}>
-        <RegistrationPage />
+        <MemoryRouter initialEntries={['/admin/auth']}>
+          <RegistrationPage />
+        </MemoryRouter>
       </QueryClientProvider>,
     ),
   )
@@ -107,7 +110,15 @@ beforeEach(async () => {
           data: {},
         })
       data = { permissions: ['registration.write'] }
-    } else if (config.url === '/admin/registration' && config.method === 'get') data = { ...policy }
+    } else if (config.url === '/admin/auth/oidc' && config.method === 'get')
+      return {
+        config,
+        status: 503,
+        statusText: '',
+        headers: new AxiosHeaders(),
+        data: {},
+      }
+    else if (config.url === '/admin/registration' && config.method === 'get') data = { ...policy }
     else if (config.url === '/admin/registration' && config.method === 'patch') {
       const failure = status
       await writePause

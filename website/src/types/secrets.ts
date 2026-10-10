@@ -6,13 +6,14 @@ export const legacySecretDomains = [
   'storage_revisions',
   'user_mfa',
 ] as const
-export const secretDomains = [
+export const v2SecretDomains = [
   ...legacySecretDomains,
   'vault_writer_auth',
   'vault_reader_auth',
 ] as const
+export const secretDomains = [...v2SecretDomains, 'oidc_providers'] as const
 export interface SecretRotation {
-  inventory_version: 1 | 2
+  inventory_version: 1 | 2 | 3
   id: string
   status: 'migrating' | 'blocked' | 'observing' | 'ready' | 'completed' | 'rolled_back'
   phase: 'migration' | 'verification' | 'observation' | 'completed'
@@ -34,7 +35,7 @@ export interface SecretRotation {
   allowed_actions: Exclude<SecretAction, 'start'>[]
 }
 export interface SecretStore {
-  inventory_version: 2
+  inventory_version: 3
   mode: 'internal'
   observed_at: string
   review_etag: string

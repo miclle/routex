@@ -1,5 +1,7 @@
 import {
   legacySecretDomains,
+  v2SecretDomains,
+  secretDomains,
   type SecretStore,
   type SecretIntent,
   type SecretResult,
@@ -7,7 +9,7 @@ import {
 export const rotationId = 'srt_01k00000000000000000000000'
 export function store(): SecretStore {
   return {
-    inventory_version: 2,
+    inventory_version: 3,
     mode: 'internal',
     observed_at: '2026-10-04T00:00:00Z',
     review_etag: 'a'.repeat(64),
@@ -29,15 +31,17 @@ export function store(): SecretStore {
     rotation: null,
   }
 }
-export function job(): NonNullable<SecretStore['rotation']> {
+export function job(version: 1 | 2 | 3 = 1): NonNullable<SecretStore['rotation']> {
+  const domains =
+    version === 1 ? legacySecretDomains : version === 2 ? v2SecretDomains : secretDomains
   return {
-    inventory_version: 1,
+    inventory_version: version,
     id: rotationId,
     status: 'observing',
     phase: 'observation',
     source_key_id: 'old',
     target_key_id: 'next',
-    domains: legacySecretDomains.map((code) => ({
+    domains: domains.map((code) => ({
       code,
       coverage: 'observed',
       scanned: '9007199254740993',

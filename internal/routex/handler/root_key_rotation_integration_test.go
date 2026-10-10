@@ -103,6 +103,20 @@ func rootRotationSeedLegacy(t *testing.T, db *gorm.DB, store *secretstore.Store)
 		create(&entity.VaultWriterAuth{ID: revisionID, SecretGeneration: writerGeneration, AuthCiphertext: seal("vault_writer_auth", "id", revisionID, "auth_ciphertext", "vault-writer:"+revisionID+":"+writerGeneration, "test-only-vault-writer")})
 		create(&entity.VaultReaderAuth{ID: revisionID, SecretGeneration: readerGeneration, AuthCiphertext: seal("vault_reader_auth", "id", revisionID, "auth_ciphertext", "vault-reader:"+revisionID+":"+readerGeneration, "test-only-vault-reader")})
 	}
+	// Disabled OIDC configuration retains a real encrypted client secret.
+	oidcID, oidcGeneration := "oidc", strings.Repeat("d", 64)
+	oidc := db.Model(&entity.OIDCProvider{}).Where("id = ?", oidcID).Updates(map[string]any{
+		"Name":             "Retained OIDC provider",
+		"Issuer":           "https://identity.example.invalid",
+		"ClientID":         "test-only-root-client",
+		"CallbackURL":      "https://routex.example.invalid/api/v1/auth/oidc/callback",
+		"Enabled":          false,
+		"SecretGeneration": oidcGeneration,
+		"AuthCiphertext":   seal("oidc_providers", "id", oidcID, "auth_ciphertext", "oidc:"+oidcID+":"+oidcGeneration, "test-only-retained-oidc-client-secret"),
+	})
+	if oidc.Error != nil || oidc.RowsAffected != 1 {
+		t.Fatal("seed retained OIDC singleton", oidc.Error, oidc.RowsAffected)
+	}
 	return result
 }
 
@@ -880,7 +894,7 @@ func testRootKeyRotationLifecycle(t *testing.T, db *gorm.DB) {
 	if observing.Rotation == nil || observing.Rotation.Status != "observing" || observing.Rotation.ObservationStartedAt == nil || observing.Rotation.ObservationEligibleAt == nil || observing.Rotation.ObservationEligibleAt.Sub(*observing.Rotation.ObservationStartedAt) != 300*time.Second || slices.Contains(observing.Rotation.AllowedActions, "retire") {
 		t.Fatalf("migration progress bypassed server observation: %+v", observing.Rotation)
 	}
-	expectedDomains := map[string]uint64{"provider_credentials": 2, "egresses": 1, "smtp_settings": 1, "storage_revisions": 25, "user_mfa": 4, "vault_writer_auth": 2, "vault_reader_auth": 2}
+	expectedDomains := map[string]uint64{"provider_credentials": 2, "egresses": 1, "smtp_settings": 1, "storage_revisions": 25, "user_mfa": 4, "vault_writer_auth": 2, "vault_reader_auth": 2, "oidc_providers": 1}
 	if len(observing.Rotation.Domains) != len(expectedDomains) {
 		t.Fatal("global observation omitted a retained encryption domain")
 	}
@@ -1006,7 +1020,7 @@ func testRootKeyRotationLifecycle(t *testing.T, db *gorm.DB) {
 	}
 	for range 50 {
 		if err := svc.RunSecretRotationOnce(ctx); err != nil {
-			t.Fatal("bounded reverse seven-domain pass", err)
+			t.Fatal("bounded reverse eight-domain pass", err)
 		}
 		if state := view(); state.Rotation != nil && state.Rotation.Status == "observing" {
 			break
@@ -1053,8 +1067,12 @@ func rootRotationCheckPrivacy(t *testing.T, response *httptest.ResponseRecorder,
 	if !strings.HasPrefix(response.Header().Get("Content-Type"), "application/json") {
 		t.Fatal("secret management returned a non-JSON envelope")
 	}
+	var body any
+	if err := json.Unmarshal(response.Body.Bytes(), &body); err != nil {
+		t.Fatal("secret management returned an invalid JSON envelope")
+	}
 	for _, secret := range retained.secrets {
-		if strings.Contains(response.Body.String(), secret.plaintext) || strings.Contains(response.Body.String(), secret.id) && secret.table != "smtp_settings" {
+		if strings.Contains(response.Body.String(), secret.plaintext) || rootRotationContainsPrivateSubject(body, secret.id) && secret.table != "smtp_settings" {
 			t.Fatal("secret management exposed private secret/subject")
 		}
 	}
@@ -1063,6 +1081,64 @@ func rootRotationCheckPrivacy(t *testing.T, response *httptest.ResponseRecorder,
 			t.Fatal("secret management exposed private proof field", name)
 		}
 	}
+}
+
+// Match complete JSON subjects rather than public inventory names that contain
+// them. Decoding also preserves checks for escaped strings and nested subjects.
+func rootRotationContainsPrivateSubject(value any, subject string) bool {
+	switch value := value.(type) {
+	case string:
+		return value == subject
+	case []any:
+		for _, item := range value {
+			if rootRotationContainsPrivateSubject(item, subject) {
+				return true
+			}
+		}
+	case map[string]any:
+		for key, item := range value {
+			if key == subject || rootRotationContainsPrivateSubject(item, subject) {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+func TestRootRotationPrivacyMatchesExactPrivateSubjects(t *testing.T) {
+	cases := []struct {
+		name string
+		body string
+		want bool
+	}{
+		{"public inventory domain", `{"domains":[{"code":"oidc_providers","scanned":"1"}]}`, false},
+		{"public name containing subject", `{"message":"oidc_providers inventory"}`, false},
+		{"exact private subject", `{"id":"oidc"}`, true},
+		{"escaped private subject", `{"id":"o\u0069dc"}`, true},
+		{"nested private subject", `{"detail":{"id":"oidc"}}`, true},
+		{"array private subject", `{"items":["other","oidc"]}`, true},
+		{"private subject key", `{"oidc":"redacted"}`, true},
+		{"different case", `{"id":"OIDC"}`, false},
+	}
+	for _, test := range cases {
+		var body any
+		if err := json.Unmarshal([]byte(test.body), &body); err != nil {
+			t.Fatal(test.name, err)
+		}
+		if got := rootRotationContainsPrivateSubject(body, "oidc"); got != test.want {
+			t.Errorf("%s: private subject match=%t want=%t", test.name, got, test.want)
+		}
+	}
+	// Exercise the real privacy helper with the public domain and a retained
+	// private subject whose raw substring appears in that domain.
+	response := httptest.NewRecorder()
+	response.Header().Set("Cache-Control", "private, no-store")
+	response.Header().Set("Content-Type", "application/json")
+	response.WriteHeader(http.StatusOK)
+	response.Body.WriteString(cases[0].body)
+	rootRotationCheckPrivacy(t, response, rootRotationRetainedFixture{secrets: []rootRotationCipherFixture{{
+		table: "oidc_providers", id: "oidc", plaintext: "test-only-retained-oidc-client-secret",
+	}}})
 }
 
 // Diagnostics contain only fixed stages/classes and a bounded public status.

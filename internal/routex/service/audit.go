@@ -45,7 +45,7 @@ var auditCategories = map[string][]string{
 	"limits":      {"key", "user", "user_default", "team", "team_member", "team_member_default", "project", "team_quota_request", "default_limit"},
 	"credentials": {"credential", "provider_credential", "provider", "connection"},
 	"pricing":     {"pricing"},
-	"identity":    {"user", "role", "session", "mfa", "installation", "registration", "offboarding_case", "teams"},
+	"identity":    {"user", "role", "session", "mfa", "installation", "registration", "offboarding_case", "teams", "oidc_provider", "oidc_binding"},
 	"site":        {"site", "announcement"},
 	"system":      {"system_instance", "secret_rotation"},
 }
@@ -82,6 +82,12 @@ func auditRecord(row entity.AuditEvent) AuditRecord {
 	// never become an accidental credential/request-body read API.
 	var changes any
 	switch row.Action {
+	case "identity.oidc.config.update", "identity.oidc.status.update", "identity.oidc.verify", "account.oidc.bind", "account.oidc.unlink":
+		record, valid := oidcAuditProjection(row)
+		if !valid {
+			return result
+		}
+		changes = record
 	case "model.weights.update", "model.weights.rollback":
 		record, valid := modelWeightAuditProjection(row)
 		if !valid {

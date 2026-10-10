@@ -127,9 +127,9 @@ export default {
     loading: 'Waiting for fresh storage authority and policy.',
     loadError: 'Storage policy unavailable. Refresh its authorized read.',
   },
-  currentInventory: 'Current inventory covers seven secret domains.',
+  currentInventory: 'Current inventory covers eight secret domains.',
   historicalInventory:
-    'This historical rotation covers five domains and does not prove current inventory coverage.',
+    'This historical rotation covers {{count}} domains and does not prove current inventory coverage.',
   originalIntent: 'Original uncertain intent',
   originalETag: 'Original reviewed ETag',
   processEpoch: 'Verified process epoch',
@@ -254,6 +254,7 @@ export default {
     'This historical rotation predates the current inventory. Resume requires a new verification of all current domains.',
   vault_writer_auth: 'Vault writer authentication',
   vault_reader_auth: 'Vault reader authentication',
+  oidc_providers: 'OIDC provider client secrets',
   vault: {
     historicalProbe: 'Historical revision observations',
     integration: 'Integration',

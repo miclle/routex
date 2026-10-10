@@ -1558,3 +1558,29 @@ stored configuration, never health or routing readiness. Hide status facts durin
 renewed or failed Session, permission or catalogue reads; keep Provider read
 independent of write and Model permissions. Preserve child counts, resource links
 and the existing Settings workflow without per-row reads or directory mutations.
+
+Enterprise OIDC uses the existing Authentication method cards/configuration drawer,
+sign-in card and Account Security identity card. Keep local password login and
+RouteX MFA available; no automatic creation, email linking, claim-derived roles or
+enforced SSO. Admin configuration requires independent fresh intrinsic-admin and
+registration.write authority. Self binding uses fresh exact Session authority and
+local password/MFA proof, independent of registration.write. Store client secrets,
+proofs, authorization URLs and completion results only in transient component
+operations, outside query/mutation caches and browser storage. Callback codes never
+enter the SPA. The clean /auth/oidc/complete route stays outside redirecting AuthGate
+branches and dispatches only after explicit Continue and a fresh Session read.
+Complete with original-Session CSRF when present; consume each ceremony once, retain
+MFA202 only as a transient challenge, and navigate only to fixed local destinations.
+Mask private facts on renewal/error, reject obsolete actor/Session/permission replies
+and keep synchronous duplicate/close fences. Security-field config changes require
+explicit revocation review; name-only edits preserve bindings and verification.
+Uncertain config/status/unlink operations retain the exact reviewed transient request;
+matching current facts never prove historical success. Start/exchange/completion are
+not automatically replayed. After unlink, refresh the real Session and clear private
+caches if its OIDC Session was revoked. Use paired oidc translations and existing
+Base UI wrappers, with no new settings dashboard.
+
+After administrative OIDC save/status writes, settle the real Session before
+showing success or releasing uncertain intent. Security changes can revoke the
+current OIDC Session; a confirmed missing Session clears private state and returns
+to sign-in. Obsolete settlement replies cannot clear another actor's caches.

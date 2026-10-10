@@ -4,7 +4,7 @@ Updated: 2026-10-10. This document records engineering contracts, work packages 
 
 ## Current execution status (2026-10-10)
 
-Latest feature delivery: `fd7157473d60837bf26ee333f3280ec4b22d951e` fixes saved-Egress
+Previous feature delivery: `fd7157473d60837bf26ee333f3280ec4b22d951e` fixes saved-Egress
 Credential sources and native/Azure diagnostics, with exact remote-main parity.
 Fresh final mandatory checking passes. Actionlint and GolangCI-Lint pass; CI run
 38003692213 ended cancelled, with Backend Checks successful and the remaining
@@ -12,14 +12,47 @@ jobs cancelled. Cancellation does not establish complete CI acceptance.
 F28 seven-flow browser acceptance still awaits an unlocked local screen; no new
 browser fixture has started. The F24 saved-report ownership/range question is open.
 
-The first F03 engineering phase adds the bounded `pkg/oidc` protocol component,
-with 119 controlled named race-test results and a faithful six-failure predecessor
-regression witness. Mandatory project checking and complete Task pass, including
-5,972 frontend cases, Go race/coverage, development lifecycle and production assets.
-It is not mounted into application authentication. Existing-member
-configuration/binding, single-use callbacks, MFA and Session revocation are being
-implemented privately in parallel. No enterprise sign-in or capability completion
-is claimed; capability totals remain unchanged. See [OIDC](OIDC.md).
+The first F03 engineering phase is delivered in
+`c86eedec5bd90526aa073b2f32b941c8fd84a9bf`, with exact remote-main parity. Its bounded
+`pkg/oidc` component passes 119 controlled named race-test results and a faithful
+six-failure predecessor witness. Mandatory project checking and complete Task pass,
+including 5,972 frontend cases, Go race/coverage, development lifecycle and production
+assets. CI run 38006991316, Actionlint and GolangCI-Lint all pass. That delivered
+phase does not mount application authentication.
+
+The existing-member OIDC implementation includes one reviewed provider, explicit
+existing-member binding, single-use callback/completion, native MFA, Session
+revocation, root inventory V3 and the existing bilingual authentication/account
+surfaces. Mandatory checking passes. The corrected complete Task passes Go
+race/coverage, all 6,032 frontend cases in 225 files, development lifecycle tests
+and production build/asset tests. Focused composition regressions pass all 67
+cases; 48 named runner regressions also pass.
+The third focused database run passes all seven selected business scenarios on
+each driver, including expanded in-flight configuration/MFA checks and genuine
+same-source process restarts. That overall run remains failed because one unit
+fixture used a non-private temporary directory; its correction additionally checks
+mode rejection. Independent readback confirms every owned worker/application group
+and Compose resource closed, unchanged source, and the original development service
+preserved. Earlier startup naming and two database-fixture failures remain recorded.
+The first complete Task attempt exposed stale V2/seven-domain assertions; the
+second exposed 20 old UI-composition fixture failures. All corrections retain
+historical V1/five and V2/seven semantics and original behavioral assertions. Failed
+logs remain retained; they are not relabeled as acceptance.
+The official complete matrix passes all 185 ordered business scenarios and four
+constraint checks on each driver: 447 named PostgreSQL and 447 named MySQL results,
+with no failures or skips. Its ordinary pass records 6,200 named results and one
+intentional process-helper skip. The separate real-process authentication lifecycle
+also passes both drivers, including initialization, persisted Sessions, revocation,
+encrypted Credentials, native gateway calls and restart. Independent readback
+confirms the unchanged 2,163-path source floor, joined owned processes and removed
+Compose resources; the original development service remains available.
+
+The containing commit delivers this existing-member OIDC engineering implementation.
+Bilingual browser interactions and real-provider deployment remain unaccepted;
+controlled TLS and process fixtures do not replace either gate. F03 and A15 remain
+Partial: LDAP, additional OAuth providers, enforced SSO and enterprise emergency
+recovery remain open. Capability totals are now **15 Completed / 13 Partial /
+2 Not started**. See [OIDC](OIDC.md).
 
 The full objective remains active. Credential inference-attempt statistics
 (GORM V93), Provider Overview attention and creation/navigation flows, and
@@ -29,7 +62,7 @@ Fresh main formatting, mandatory checking and complete Task pass, including
 5,924 frontend cases in 223 files. The official PostgreSQL/MySQL matrix and
 genuine bilingual production browser checks also pass. Configuration availability
 is not native health, and statistics do not automatically disable Credentials.
-Capability totals are **15 Completed / 12 Partial / 3 Not started**.
+At that preceding delivery, capability totals were **15 Completed / 12 Partial / 3 Not started**.
 
 F22 usage reports are reconciled as Completed at the capability level. Existing
 commits `598ffd17e00f8ef651b8a8a4f7bbfbae864f8c48` and
@@ -3438,13 +3471,13 @@ Status terms in this section are deliberately strict:
 - **Partially completed** means material implementation exists, but one or more required behaviors or acceptance gates remain open. It does not mean that work has not started.
 - **Not started** means no material implementation of the capability exists. A prerequisite or design note may still be present.
 
-The binary capability count is 15 completed, 12 partially completed, and 3 not started. F22 is reconciled as Completed from existing scoped implementation and controlled evidence. F15 now has complete controlled acceptance, including genuine browser downloads and original-Session restart. F06 initial Model access selection has passed its scoped acceptance. This is a completion count, not an effort percentage: several partially completed capabilities contain substantial delivered work. The user resumed implementation on 2026-10-02 and prioritized partially completed capabilities. Status changes require current implementation and acceptance evidence; a package delivery alone does not complete an entire capability.
+The binary capability count is 15 completed, 13 partially completed, and 2 not started. F22 is reconciled as Completed from existing scoped implementation and controlled evidence. F15 now has complete controlled acceptance, including genuine browser downloads and original-Session restart. F06 initial Model access selection has passed its scoped acceptance. This is a completion count, not an effort percentage: several partially completed capabilities contain substantial delivered work. The user resumed implementation on 2026-10-02 and prioritized partially completed capabilities. Status changes require current implementation and acceptance evidence; a package delivery alone does not complete an entire capability.
 
 | ID | Capability | Status | Delivered and remaining scope |
 |---|---|---|---|
 | F01 | Initialization, local identity, registration, and logout | Completed | Concurrent one-time setup, administrator creation, local login, registration control, durable sessions, and logout are implemented and tested. |
 | F02 | Profile, password, MFA, recovery codes, and session revocation | Completed | Profile and password changes, authenticator enrollment, single-use recovery codes, and individual-session revocation are implemented. |
-| F03 | Enterprise SSO, LDAP, OAuth, and emergency recovery | Not started | Provider configuration, callbacks, identity binding, enforced SSO, and enterprise recovery remain unimplemented. |
+| F03 | Enterprise SSO, LDAP, OAuth, and emergency recovery | Partially completed | One reviewed existing-member OIDC provider, explicit binding, bounded callback/completion, native MFA, provenance-fenced Sessions and frozen GORM V94 pass controlled source, complete dual-driver and process acceptance. Bilingual browser and real-provider acceptance, LDAP, additional OAuth providers, enforced SSO and enterprise emergency recovery remain open. |
 | F04 | Member administration, direct grants, roles, and resource policies | Completed | Authorized list/filter/detail, State, direct Model grants, current Roles, resource policies, Keys/Teams tabs and local creation/approval/offboarding interactions have controlled acceptance. Bilingual creation, validation, sensitive-draft cleanup and read-only denial are verified. The final modal focus repair passes main formatting/check/complete Task (5,630 frontend cases), six authority-lifetime regressions and real English/Chinese Escape/Close verification. Unchanged backend acceptance includes V91 full PostgreSQL/MySQL and exact-head CI. Enterprise identity remains F03; global enterprise continuity and later permission domains stay independent. |
 | F05 | Built-in and custom roles with composed permissions | Partially completed | Current-domain role and permission management, reviewed definitions/descriptions, and immutable Procurement/Finance/Operations templates with explicit assignment are implemented and accepted. Later enterprise and operations domains still require permission integration and negative acceptance. |
 | F06 | Team membership, ownership, models, quotas, and member rules | Completed | Membership, ownership, model relationships, finite aggregate/member policies, monthly requests and durable Team-assigned roles have dual-driver and controlled acceptance. Initial limits V63 is delivered as8f17d12. Initial Model access V66 passed complete121, main3,759 frontend cases, both auth/gateway lifecycles and controlled bilingual/original-Session restart with four native probes. Separate read-only review confirms exact grants, receipts and completed attempts; the original helper denial-oracle failure remains retained. Empty selection grants no Models. |
@@ -3493,7 +3526,7 @@ A01 and A13 are fully accepted across their defined controlled scope. Other case
 | A12 | IPv4, IPv6, CIDR, and forged forwarding headers | Partially completed | Controlled source-address enforcement exists; production proxy-topology acceptance remains open. |
 | A13 | Self, repeated, concurrent approval and Team overflow | Completed | Real PostgreSQL/MySQL controlled tests reject self/duplicate/stale decisions, serialize owner approve/approve and approve/reject competitors, retain one winner and audit, atomically raise Team/member caps, roll back exact audit failure, and preserve receipts/current use through restart. This is controlled single-process acceptance. |
 | A14 | Control Plane, Vault, analytics failure, invalid snapshots, and replay | Partially completed | Runtime and durable replay foundations exist. Bounded Vault write-response loss, retained-source changes and root retirement/restart have controlled evidence; the complete failure matrix remains open. |
-| A15 | SSO, OAuth, LDAP, MFA, and recovery | Partially completed | MFA is implemented; enterprise identity is not. |
+| A15 | SSO, OAuth, LDAP, MFA, and recovery | Partially completed | Native MFA and existing-member OIDC have controlled automated acceptance. Bilingual OIDC browser and real-provider acceptance, additional enterprise providers, enforced SSO and emergency recovery remain open. |
 | A16 | Vault compensation, rotation, and cleanup failure | Partially completed | Durable Provider write compensation, retained references, controlled root retirement/restart and saved writer/reader AppRole activation pass bounded dual-driver and real Vault workflows. Administrator-previewed, explicitly confirmed cleanup is under validation; previously published-object drain and the complete cleanup-failure matrix remain open. Automatic scheduled deletion is outside the approved initial workflow. |
 | A17 | Images/PDF, object authorization, and model comparison | Partially completed | Object backend, comparison, conservative route capability discovery, owner-bound user/Project byte reads, current-manager Project lifecycle, native inline rewriting, both Playground attachment interfaces, and attested token/TPM/money reservation with exact media occurrence settlement exist; external acceptance remains open. |
 | A18 | Call queries, CSV, reports, and hostile analysis inputs | Partially completed | Call queries, usage views, and safe scoped call-record CSV exports have controlled evidence; AI analysis, saved reports, and their hostile-input acceptance remain open. |

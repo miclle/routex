@@ -205,6 +205,9 @@ func (s *Service) Authenticate(ctx context.Context, token string) (*Authenticati
 	if err != nil {
 		return nil, keyServiceError(err)
 	}
+	if err := s.oidcValidatePrimary(s.authDB(ctx), session); err != nil {
+		return nil, keyServiceError(err)
+	}
 	return &Authentication{User: user, Session: session, Token: token}, nil
 }
 

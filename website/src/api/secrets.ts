@@ -3,6 +3,7 @@ import client from './client'
 import {
   secretDomains,
   legacySecretDomains,
+  v2SecretDomains,
   type SecretIntent,
   type SecretResult,
   type SecretRotation,
@@ -87,8 +88,14 @@ function rotation(value: unknown): SecretRotation {
     'observation_eligible_at',
     'allowed_actions',
   ])
-  if (row.inventory_version !== 1 && row.inventory_version !== 2) return fail()
-  const codes = row.inventory_version === 1 ? legacySecretDomains : secretDomains
+  if (row.inventory_version !== 1 && row.inventory_version !== 2 && row.inventory_version !== 3)
+    return fail()
+  const codes =
+    row.inventory_version === 1
+      ? legacySecretDomains
+      : row.inventory_version === 2
+        ? v2SecretDomains
+        : secretDomains
   const domains = array(
     row.domains,
     (value, index) => {
@@ -190,9 +197,9 @@ export function parseSecretStore(value: unknown): SecretStore {
       policy.write_key_id === null)
   )
     return fail()
-  if (row.inventory_version !== 2 || row.mode !== 'internal' || row.can_read !== true) return fail()
+  if (row.inventory_version !== 3 || row.mode !== 'internal' || row.can_read !== true) return fail()
   return {
-    inventory_version: 2,
+    inventory_version: 3,
     mode: 'internal',
     observed_at: date(row.observed_at),
     review_etag: string(row.review_etag, etag),

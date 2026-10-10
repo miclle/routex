@@ -10,6 +10,7 @@ import type {
   AuditRange,
   AuditRecord,
   SystemInstanceCleanupAuditChanges,
+  OIDCIdentityAuditChanges,
 } from '@/types/audit'
 import { Page, QueryState, ErrorNotice } from '@/components/app/CatalogUI'
 import { PermissionGate } from '@/components/app/PermissionGate'
@@ -30,6 +31,9 @@ const categories: AuditCategory[] = [
 ]
 function isCleanupChanges(changes: AuditChanges): changes is SystemInstanceCleanupAuditChanges {
   return 'revision' in changes
+}
+function isOIDCIdentityChanges(changes: AuditChanges): changes is OIDCIdentityAuditChanges {
+  return 'kind' in changes && changes.kind === 'oidc_identity'
 }
 export default function AuditPage() {
   return (
@@ -61,6 +65,7 @@ function AuditRecords() {
   }
   function summary(record: AuditRecord) {
     if (!record.changes) return missing
+    if (isOIDCIdentityChanges(record.changes)) return `${t('reason')}: ${record.changes.reason}`
     if (isCleanupChanges(record.changes)) return t('cleanupSummary', { count: 1 })
     return `${JSON.stringify(record.changes.before)} → ${JSON.stringify(record.changes.after)}`
   }
@@ -249,6 +254,10 @@ function AuditRecords() {
                       })}
                     </p>
                   </div>
+                ) : selectedChanges && isOIDCIdentityChanges(selectedChanges) ? (
+                  <p className="whitespace-pre-wrap break-all">
+                    {t('reason')}: {selectedChanges.reason}
+                  </p>
                 ) : selectedChanges ? (
                   <div className="space-y-3">
                     {(['before', 'after'] as const).map((field) => (

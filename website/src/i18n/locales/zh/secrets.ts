@@ -114,8 +114,8 @@ export default {
     loading: '正在等待最新的存储权限与策略。',
     loadError: '存储策略不可用，请刷新已授权的读取。',
   },
-  currentInventory: '当前清单覆盖七个密钥领域。',
-  historicalInventory: '此历史轮换覆盖五个领域，不证明当前清单的覆盖情况。',
+  currentInventory: '当前清单覆盖八个密钥领域。',
+  historicalInventory: '此历史轮换覆盖 {{count}} 个领域，不证明当前清单的覆盖情况。',
   originalIntent: '原始结果未知的意图',
   originalETag: '原始复核 ETag',
   processEpoch: '已验证进程代次',
@@ -231,6 +231,7 @@ export default {
   inventory_scope_changed: '此历史轮换早于当前清单。恢复前需要重新验证所有当前领域。',
   vault_writer_auth: 'Vault 写入身份认证',
   vault_reader_auth: 'Vault 读取身份认证',
+  oidc_providers: 'OIDC 提供方客户端密钥',
   vault: {
     historicalProbe: '历史修订的观测结果',
     integration: '集成',

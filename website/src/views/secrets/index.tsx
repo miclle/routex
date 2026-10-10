@@ -511,8 +511,10 @@ function SecretWorkspace({
                     )}
                   </span>
                 </div>
-                {view.rotation.inventory_version === 1 && (
-                  <p className="text-xs text-muted-foreground">{t('historicalInventory')}</p>
+                {view.rotation.inventory_version < view.inventory_version && (
+                  <p className="text-xs text-muted-foreground">
+                    {t('historicalInventory', { count: view.rotation.domains.length })}
+                  </p>
                 )}
                 <dl className="grid gap-3 text-sm sm:grid-cols-2">
                   <div>

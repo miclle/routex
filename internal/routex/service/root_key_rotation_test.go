@@ -13,8 +13,8 @@ func TestRootSecretObservationRequiresContinuousExactGeneration(t *testing.T) {
 	last := start.Add(300 * time.Second)
 	now := last
 	svc := &Service{rootNow: func() time.Time { return now }}
-	job := entity.SecretRotationJob{InventoryVersion: 2, Domain: 7, CountsJSON: `{"provider_credentials":{},"egresses":{},"smtp_settings":{},"storage_revisions":{},"user_mfa":{},"vault_writer_auth":{},"vault_reader_auth":{}}`, Status: "ready", ObservationStartedAt: &start, ObservationLastConfirmedAt: &last, VerifiedProcessID: "ins_current", VerifiedSnapshotID: "cfg_current"}
-	proof := entity.SecretProcessVerification{InventoryVersion: 2, ProcessID: "ins_current", RuntimeSnapshotID: "cfg_current"}
+	job := entity.SecretRotationJob{InventoryVersion: rootInventoryVersion, Domain: 8, CountsJSON: `{"provider_credentials":{},"egresses":{},"smtp_settings":{},"storage_revisions":{},"user_mfa":{},"vault_writer_auth":{},"vault_reader_auth":{},"oidc_providers":{}}`, Status: "ready", ObservationStartedAt: &start, ObservationLastConfirmedAt: &last, VerifiedProcessID: "ins_current", VerifiedSnapshotID: "cfg_current"}
+	proof := entity.SecretProcessVerification{InventoryVersion: rootInventoryVersion, ProcessID: "ins_current", RuntimeSnapshotID: "cfg_current"}
 	if !svc.rootObservationEligible(job, proof) {
 		t.Fatal("continuous300s not eligible")
 	}
@@ -82,7 +82,7 @@ func TestRootSecretJobProgressHasNoInventedDenominator(t *testing.T) {
 	}
 }
 func TestRootSecretAllHistoricalDomainsAndReferenceIdentity(t *testing.T) {
-	if len(rootDomains) != 7 {
+	if len(rootDomains) != 8 {
 		t.Fatal("partial-domain rotation")
 	}
 	for _, domain := range rootDomains {
@@ -147,5 +147,25 @@ func TestRootSecretTypedAuditNeverExposesArbitraryHistory(t *testing.T) {
 		if _, ok := rootRotationAuditProjection(copy); ok {
 			t.Fatal("unrecorded authority projected", mode)
 		}
+	}
+}
+
+func TestRootOIDCInventoryKeepsHistoricalScopesSeparate(t *testing.T) {
+	for _, tc := range []struct{ version, domains int }{{1, 5}, {2, 7}, {3, 8}} {
+		view := rootRotationView(entity.SecretRotationJob{InventoryVersion: tc.version, Domain: tc.domains, CountsJSON: "{}", Status: "blocked"}, true, false)
+		if len(view.Domains) != tc.domains {
+			t.Fatal("historical inventory scope changed", tc.version)
+		}
+	}
+	if rootReference("oidc_providers", "oidc", "generation") != "oidc:oidc:generation" {
+		t.Fatal("OIDC authenticated reference mismatch")
+	}
+	start := time.Now().UTC().Add(-300 * time.Second)
+	last := time.Now().UTC()
+	s := &Service{rootNow: func() time.Time { return last }}
+	job := entity.SecretRotationJob{InventoryVersion: 2, Domain: 7, Status: "ready", CountsJSON: "{}", ObservationStartedAt: &start, ObservationLastConfirmedAt: &last, VerifiedProcessID: "ins_same", VerifiedSnapshotID: "cfg_same"}
+	proof := entity.SecretProcessVerification{InventoryVersion: 2, ProcessID: "ins_same", RuntimeSnapshotID: "cfg_same"}
+	if s.rootObservationEligible(job, proof) {
+		t.Fatal("old seven-domain proof authorized eight-domain retirement")
 	}
 }

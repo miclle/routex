@@ -235,6 +235,11 @@ func (s *Service) CompleteMFALogin(ctx context.Context, token string, proof MFAP
 	var auth *Authentication
 	rejected := false
 	err := s.authDB(ctx).Transaction(func(tx *gorm.DB) error {
+		if before.PrimaryMethod == "oidc" {
+			if err := lockGovernance(tx); err != nil {
+				return err
+			}
+		}
 		user, err := mfaActiveUser(tx, before.UserID)
 		if err != nil {
 			return err
@@ -256,6 +261,12 @@ func (s *Service) CompleteMFALogin(ctx context.Context, token string, proof MFAP
 		}
 		if !mfaChallengeValid(challenge, user, state, now) {
 			return apperrors.ErrUnauthorized
+		}
+		if challenge.PrimaryMethod != before.PrimaryMethod {
+			return apperrors.ErrUnauthorized
+		}
+		if err := s.oidcValidateChallengePrimary(tx, challenge); err != nil {
+			return err
 		}
 		valid, err := s.consumeMFAProof(tx, &state, proof, now)
 		if err != nil {
@@ -279,6 +290,17 @@ func (s *Service) CompleteMFALogin(ctx context.Context, token string, proof MFAP
 		auth, err = createSession(tx, user)
 		if err != nil {
 			return err
+		}
+		if challenge.PrimaryMethod == "oidc" {
+			auth.Session.PrimaryMethod = challenge.PrimaryMethod
+			auth.Session.OIDCBindingID = challenge.OIDCBindingID
+			auth.Session.OIDCBindingCreatedAt = challenge.OIDCBindingCreatedAt
+			auth.Session.OIDCConfigRevision = challenge.OIDCConfigRevision
+			auth.Session.OIDCPolicyRevision = challenge.OIDCPolicyRevision
+			auth.Session.OIDCUserCreatedAt = challenge.OIDCUserCreatedAt
+			if err := tx.Save(&auth.Session).Error; err != nil {
+				return err
+			}
 		}
 		if err := recordSuccessfulLogin(tx, &auth.User); err != nil {
 			return err

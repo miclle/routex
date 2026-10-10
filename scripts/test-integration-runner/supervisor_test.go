@@ -256,6 +256,7 @@ func fakeLifecycle(t *testing.T, fail string) (*exec.Cmd, string, string) {
 	trace := filepath.Join(dir, "trace")
 	docker := `#!/bin/sh
 printf '%s\n' "$$" >> "$ROUTEX_RUNNER_PRIVATE/owned-pids"
+[ -z "$ROUTEX_TEST_OIDC_BINARY" ] && [ -z "$ROUTEX_TEST_OIDC_BINARY_SHA256" ] && [ -z "$ROUTEX_TEST_OIDC_GUARD_DIR" ] || exit 24
 case "$6" in
  up) printf 'up\n' >> "$ROUTEX_RUNNER_TRACE"
  printf 'owned' > "$ROUTEX_RUNNER_PRIVATE/resource"
@@ -275,10 +276,34 @@ printf '%s\n' "$$" >> "$ROUTEX_RUNNER_PRIVATE/owned-pids"
 [ "$ROUTEX_TEST_POSTGRES_DSN" = 'host=127.0.0.1 port=10001 user=routex password=routex-test dbname=routex_test sslmode=disable' ] || exit 14
 [ "$ROUTEX_TEST_MYSQL_DSN" = 'routex:routex-test@tcp(127.0.0.1:10002)/routex_test?charset=utf8mb4&parseTime=True&loc=UTC' ] || exit 15
 printf '%s\n' "$*" >> "$ROUTEX_RUNNER_TRACE"
+if [ "$1" = build ]; then
+ [ -z "$ROUTEX_TEST_OIDC_BINARY" ] && [ -z "$ROUTEX_TEST_OIDC_BINARY_SHA256" ] && [ -z "$ROUTEX_TEST_OIDC_GUARD_DIR" ] || exit 24
+ [ "$*" = "build -trimpath -tags development -o $ROUTEX_RUNNER_PRIVATE/oidc-routex ./cmd/routex" ] || exit 25
+ if [ "$ROUTEX_RUNNER_FAIL" = build-cancel ]; then
+  printf 'ready\n' >> "$ROUTEX_RUNNER_TRACE"
+  exec sleep 1000
+ fi
+ if [ "$ROUTEX_RUNNER_FAIL" = build ]; then printf 'partial' > "$6"; exit 19; fi
+ if [ "$ROUTEX_RUNNER_FAIL" = build-missing ]; then rm "$6"; exit 0; fi
+ printf 'private OIDC fixture\n' > "$6"
+ chmod 700 "$6"
+ exit 0
+fi
+case "$*" in
+ *-skip*) [ -z "$ROUTEX_TEST_OIDC_BINARY" ] && [ -z "$ROUTEX_TEST_OIDC_BINARY_SHA256" ] && [ -z "$ROUTEX_TEST_OIDC_GUARD_DIR" ] || exit 24;;
+ *) [ "$ROUTEX_TEST_OIDC_BINARY" = "$ROUTEX_RUNNER_PRIVATE/oidc-routex" ] && [ "$ROUTEX_TEST_OIDC_BINARY_SHA256" = "636bcee43aa96219a5c7f910c96e3c700fb31006e546047359d26e80eb0a7d10" ] && [ -x "$ROUTEX_TEST_OIDC_BINARY" ] && [ "$ROUTEX_TEST_OIDC_GUARD_DIR" = "$ROUTEX_RUNNER_PRIVATE/oidc-owners" ] && [ -d "$ROUTEX_TEST_OIDC_GUARD_DIR" ] || exit 26;;
+esac
 case "$*" in
  *-skip*) if [ "$ROUTEX_RUNNER_FAIL" = nonmatrix ]; then exit 6; fi;;
  *postgres*) if [ "$ROUTEX_RUNNER_FAIL" = postgres ]; then exit 7; fi;;
 esac
+if [ "$ROUTEX_RUNNER_FAIL" = guard ]; then
+ case "$*" in
+  *-skip*) ;;
+  *postgres*) printf 'unknown owned application' > "$ROUTEX_TEST_OIDC_GUARD_DIR/postgres.json";;
+  *) printf 'unknown owned application' > "$ROUTEX_TEST_OIDC_GUARD_DIR/mysql.json";;
+ esac
+fi
 if [ "$ROUTEX_RUNNER_FAIL" = cancel ]; then
  printf 'ready\n' >> "$ROUTEX_RUNNER_TRACE"
  exec sleep 1000
@@ -291,7 +316,7 @@ printf 'fake test result\n'
 		}
 	}
 	cmd := exec.Command(os.Args[0], "-test.run=^TestLifecycleHelper$")
-	cmd.Env = append(os.Environ(), "PATH="+bin+":"+os.Getenv("PATH"), "ROUTEX_RUNNER_LIFECYCLE=1", "ROUTEX_RUNNER_PRIVATE="+private, "ROUTEX_RUNNER_TRACE="+trace, "ROUTEX_RUNNER_FAIL="+fail, "GORACE=atexit_sleep_ms=0")
+	cmd.Env = append(os.Environ(), "PATH="+bin+":"+os.Getenv("PATH"), "ROUTEX_RUNNER_LIFECYCLE=1", "ROUTEX_RUNNER_PRIVATE="+private, "ROUTEX_RUNNER_TRACE="+trace, "ROUTEX_RUNNER_FAIL="+fail, "GORACE=atexit_sleep_ms=0", "ROUTEX_TEST_OIDC_BINARY=/unowned/old", "ROUTEX_TEST_OIDC_BINARY_SHA256=stale", "ROUTEX_TEST_OIDC_GUARD_DIR=/foreign/guards")
 	return cmd, trace, private
 }
 
@@ -308,14 +333,17 @@ func TestCompleteCommandPlanAndFailureAggregation(t *testing.T) {
 				t.Fatal(err)
 			}
 			lines := strings.Split(strings.TrimSpace(string(raw)), "\n")
-			if len(lines) != 5 || lines[0] != "up" || lines[4] != "down" {
+			if len(lines) != 6 || lines[0] != "up" || lines[5] != "down" {
 				t.Fatalf("incomplete lifecycle %q", lines)
 			}
 			common := "test -trimpath -race -count=1 -timeout 120m -tags development -v -json "
 			if lines[1] != common+"-skip ^TestIdentityIntegration$ ./internal/routex/..." {
 				t.Fatal(lines[1])
 			}
-			remaining := strings.Join(lines[2:4], "\n")
+			if lines[2] != "build -trimpath -tags development -o "+filepath.Join(private, "oidc-routex")+" ./cmd/routex" {
+				t.Fatal("same-source supervised binary build missing")
+			}
+			remaining := strings.Join(lines[3:5], "\n")
 			for _, driver := range []string{"postgres", "mysql"} {
 				if !strings.Contains(remaining, common+"-run ^TestIdentityIntegration$/^"+driver+"$ ./internal/routex/handler") {
 					t.Fatalf("missing complete driver: %s", remaining)
@@ -324,7 +352,11 @@ func TestCompleteCommandPlanAndFailureAggregation(t *testing.T) {
 			if _, err := os.Stat(filepath.Join(private, "runner")); !errors.Is(err, os.ErrNotExist) {
 				t.Fatal("compiled helper not removed")
 			}
+			if _, err := os.Stat(filepath.Join(private, "oidc-routex")); !errors.Is(err, os.ErrNotExist) {
+				t.Fatal("owned OIDC binary not removed")
+			}
 			var report struct {
+				Statuses          []status
 				ExitCode          int  `json:"exit_code"`
 				Failed            bool `json:"failed"`
 				RuntimeAcceptance any  `json:"runtime_acceptance"`
@@ -338,6 +370,9 @@ func TestCompleteCommandPlanAndFailureAggregation(t *testing.T) {
 			}
 			if report.Failed != (failure != "") || report.RuntimeAcceptance != nil {
 				t.Fatalf("untruthful report: %s", data)
+			}
+			if len(report.Statuses) < 8 || report.Statuses[4].Name != "oidc-build" || !report.Statuses[4].Started || !report.Statuses[4].IdentityRecorded || !report.Statuses[4].Joined || !report.Statuses[4].GroupGone || report.Statuses[4].ExitCode != 0 || report.Statuses[5].Name != "postgres" || report.Statuses[6].Name != "mysql" {
+				t.Fatal("matrix was not preceded by a successful joined owned build")
 			}
 		})
 	}
@@ -731,5 +766,185 @@ func TestIdentityLedgerCreationFailureJoinsBeforeRecoveredCleanup(t *testing.T) 
 	cleanup, failed := supervise(context.Background(), []job{fakeJob("cleanup", "ok", "")}, dir, 200*time.Millisecond)
 	if failed || !cleanup[0].IdentityRecorded || !cleanup[0].Joined || !cleanup[0].GroupGone {
 		t.Fatalf("recovered cleanup incomplete: %+v", cleanup)
+	}
+}
+
+func TestOIDCBinaryEnvironmentIsolation(t *testing.T) {
+	env := withoutOIDCBinary([]string{"ROUTEX_TEST_OIDC_BINARY=/foreign", "OTHER=keep", "ROUTEX_TEST_OIDC_BINARY_SHA256=foreign", "ROUTEX_TEST_OIDC_BINARY=/second", "ROUTEX_TEST_OIDC_GUARD_DIR=/foreign"})
+	if len(env) != 1 || env[0] != "OTHER=keep" {
+		t.Fatal("caller artifact override survived or unrelated environment was lost")
+	}
+}
+
+func TestOIDCBinaryDigestBounds(t *testing.T) {
+	dir := t.TempDir()
+	binary := filepath.Join(dir, "binary")
+	if err := os.WriteFile(binary, []byte("private OIDC fixture\n"), 0700); err != nil {
+		t.Fatal(err)
+	}
+	if digest, ok := oidcBinaryDigest(binary); !ok || digest != "636bcee43aa96219a5c7f910c96e3c700fb31006e546047359d26e80eb0a7d10" {
+		t.Fatal("regular executable did not retain exact SHA256")
+	}
+	for _, kind := range []string{"missing", "empty", "directory", "symlink", "nonexecutable", "oversized"} {
+		t.Run(kind, func(t *testing.T) {
+			target := filepath.Join(dir, kind)
+			var err error
+			switch kind {
+			case "missing":
+			case "directory":
+				err = os.Mkdir(target, 0700)
+			case "symlink":
+				err = os.Symlink(binary, target)
+			case "empty":
+				err = os.WriteFile(target, nil, 0700)
+			case "nonexecutable":
+				err = os.WriteFile(target, []byte("content"), 0600)
+			case "oversized":
+				err = os.WriteFile(target, nil, 0700)
+				if err == nil {
+					err = os.Truncate(target, oidcBinaryLimit+1)
+				}
+			}
+			if err != nil {
+				t.Fatal(err)
+			}
+			if digest, ok := oidcBinaryDigest(target); ok || digest != "" {
+				t.Fatal("invalid artifact admitted")
+			}
+		})
+	}
+}
+
+func TestOwnedOIDCBuildFailureBlocksMatrix(t *testing.T) {
+	for _, failure := range []string{"build", "build-missing", "build-existing"} {
+		t.Run(failure, func(t *testing.T) {
+			cmd, trace, private := fakeLifecycle(t, failure)
+			binary := filepath.Join(private, "oidc-routex")
+			if failure == "build-existing" {
+				if err := os.WriteFile(binary, []byte("foreign retained artifact"), 0700); err != nil {
+					t.Fatal(err)
+				}
+			}
+			if output, err := cmd.CombinedOutput(); err == nil {
+				t.Fatalf("invalid build succeeded: %s", output)
+			}
+			raw, err := os.ReadFile(trace)
+			if err != nil || !strings.HasPrefix(string(raw), "up\ntest ") || !strings.HasSuffix(string(raw), "down\n") || strings.Contains(string(raw), "-run ^TestIdentityIntegration") {
+				t.Fatalf("build failure changed nonmatrix/cleanup or dispatched matrix: %q", raw)
+			}
+			if failure == "build-existing" {
+				bytes, err := os.ReadFile(binary)
+				if err != nil || string(bytes) != "foreign retained artifact" {
+					t.Fatal("unowned artifact was replaced or removed")
+				}
+			} else if _, err := os.Stat(binary); !errors.Is(err, os.ErrNotExist) {
+				t.Fatal("partial owned artifact survived joined cleanup")
+			}
+			if _, err := os.Stat(filepath.Join(private, "resource")); !errors.Is(err, os.ErrNotExist) {
+				t.Fatal("build failure omitted Compose cleanup")
+			}
+		})
+	}
+}
+
+func TestOwnedOIDCBuildCancellationJoinsBeforeCleanup(t *testing.T) {
+	cmd, trace, private := fakeLifecycle(t, "build-cancel")
+	cmd.Stdout, cmd.Stderr = io.Discard, io.Discard
+	if err := cmd.Start(); err != nil {
+		t.Fatal(err)
+	}
+	deadline := time.Now().Add(5 * time.Second)
+	ready := false
+	for time.Now().Before(deadline) {
+		raw, _ := os.ReadFile(trace)
+		if strings.Contains(string(raw), "ready") {
+			ready = true
+			break
+		}
+		time.Sleep(5 * time.Millisecond)
+	}
+	if !ready {
+		cmd.Process.Kill()
+		cmd.Wait()
+		t.Fatal("owned build did not reach cancellation barrier")
+	}
+	if err := cmd.Process.Signal(syscall.SIGTERM); err != nil {
+		t.Fatal(err)
+	}
+	_ = waitFakeExit(t, cmd, 4*time.Second)
+	raw, err := os.ReadFile(filepath.Join(private, "logs", "status.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	var report lifecycleReport
+	if json.Unmarshal(raw, &report) != nil || report.ExitCode != 143 || !report.Failed {
+		t.Fatal("build cancellation lost original signal outcome")
+	}
+	found := false
+	for _, s := range report.Statuses {
+		if s.Name == "oidc-build" {
+			found = s.Started && s.IdentityRecorded && s.Joined && s.GroupGone
+		}
+		if s.Name == "postgres" || s.Name == "mysql" {
+			t.Fatal("matrix dispatched after canceled build")
+		}
+	}
+	if !found {
+		t.Fatal("build process/group was not joined")
+	}
+	for _, name := range []string{"resource", "oidc-routex", "runner"} {
+		if _, err := os.Stat(filepath.Join(private, name)); !errors.Is(err, os.ErrNotExist) {
+			t.Fatal("owned build cancellation cleanup incomplete")
+		}
+	}
+}
+
+func TestOIDCGuardDirectoryReadback(t *testing.T) {
+	dir := filepath.Join(t.TempDir(), "owners")
+	if oidcGuardsClear(dir) || oidcGuardsClear("relative") {
+		t.Fatal("missing or relative guard directory admitted")
+	}
+	if err := os.Mkdir(dir, 0700); err != nil {
+		t.Fatal(err)
+	}
+	if !oidcGuardsClear(dir) {
+		t.Fatal("owned empty guard directory rejected")
+	}
+	link := filepath.Join(t.TempDir(), "link")
+	if err := os.Symlink(dir, link); err != nil {
+		t.Fatal(err)
+	}
+	if oidcGuardsClear(link) {
+		t.Fatal("symlink guard directory admitted")
+	}
+	if err := os.WriteFile(filepath.Join(dir, "postgres.json"), []byte("unknown child"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	if oidcGuardsClear(dir) {
+		t.Fatal("retained child guard admitted cleanup")
+	}
+}
+
+func TestOIDCChildGuardRetainsDependenciesAndExecutables(t *testing.T) {
+	cmd, trace, private := fakeLifecycle(t, "guard")
+	if output, err := cmd.CombinedOutput(); err == nil {
+		t.Fatalf("unknown child ownership succeeded: %s", output)
+	}
+	raw, err := os.ReadFile(trace)
+	if err != nil || strings.Contains(string(raw), "down\n") {
+		t.Fatal("dependency down ran with retained OIDC child guards")
+	}
+	for _, name := range []string{"resource", "runner", "oidc-routex", "oidc-owners/postgres.json", "oidc-owners/mysql.json"} {
+		if _, err := os.Stat(filepath.Join(private, name)); err != nil {
+			t.Fatalf("unknown closure removed owned recovery fact %s", name)
+		}
+	}
+	data, err := os.ReadFile(filepath.Join(private, "logs", "status.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	var report lifecycleReport
+	if json.Unmarshal(data, &report) != nil || !report.Failed || report.ExitCode != 1 || report.RuntimeAcceptance != nil {
+		t.Fatal("guard failure reported acceptance")
 	}
 }

@@ -200,7 +200,7 @@ func (s *Service) rootAction(ctx context.Context, actor, jobID, action, etag, re
 			if p.ActiveJobID == nil || *p.ActiveJobID != job.ID || job.Status != "blocked" || p.Epoch != job.CutoverEpoch {
 				return catalogConflict
 			}
-			job.InventoryVersion = 2
+			job.InventoryVersion = rootInventoryVersion
 			job.Status = "migrating"
 			job.Phase = "migration"
 			job.Domain = 0
@@ -294,7 +294,7 @@ func newRootJob(source, target string, epoch uint64, now time.Time) (entity.Secr
 	if err != nil {
 		return entity.SecretRotationJob{}, err
 	}
-	job := entity.SecretRotationJob{ID: jobID, SourceKeyID: source, TargetKeyID: target, CutoverEpoch: epoch, Status: "migrating", Phase: "migration", InventoryVersion: 2, ScanGeneration: 1, CountsJSON: "{}", CreatedAt: now, UpdatedAt: now}
+	job := entity.SecretRotationJob{ID: jobID, SourceKeyID: source, TargetKeyID: target, CutoverEpoch: epoch, Status: "migrating", Phase: "migration", InventoryVersion: rootInventoryVersion, ScanGeneration: 1, CountsJSON: "{}", CreatedAt: now, UpdatedAt: now}
 	job.ETag = rootJobETag(job)
 	return job, nil
 }

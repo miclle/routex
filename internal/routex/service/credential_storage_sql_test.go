@@ -770,6 +770,21 @@ func TestCredentialStorageUUIDResponseContainsOnlyOwnedBootstrap(t *testing.T) {
 }
 
 func TestCredentialStorageInventoryKeepsSevenDomainsAndRejectsEmptyInline(t *testing.T) {
+	if rootInventoryVersion != 3 || len(rootDomains) != 8 {
+		t.Fatal("current root inventory must include the OIDC value domain")
+	}
+	for _, inventory := range []struct {
+		version int
+		domains []string
+	}{
+		{1, []string{"provider_credentials", "egresses", "smtp_settings", "storage_revisions", "user_mfa"}},
+		{2, []string{"provider_credentials", "egresses", "smtp_settings", "storage_revisions", "user_mfa", "vault_writer_auth", "vault_reader_auth"}},
+		{3, []string{"provider_credentials", "egresses", "smtp_settings", "storage_revisions", "user_mfa", "vault_writer_auth", "vault_reader_auth", "oidc_providers"}},
+	} {
+		if !slices.Equal(rootInventoryDomains(inventory.version), inventory.domains) {
+			t.Fatal("versioned inventory changed its exact domain prefix", inventory.version)
+		}
+	}
 	s, f, _ := credentialStorageSQLService(t)
 	i := credentialStorageFixtureIntent(t, s, f, "credential")
 	op, e := s.createVaultCredential(context.Background(), "usr_admin", "11111111-1111-4111-8111-111111111111", "private-value", i)
@@ -779,7 +794,7 @@ func TestCredentialStorageInventoryKeepsSevenDomainsAndRejectsEmptyInline(t *tes
 	inline := entity.ProviderCredential{ID: "crd_later", StorageSource: "inline", Ciphertext: "authenticated-envelope"}
 	f.data.credentials[inline.ID] = inline
 	rows, e := s.rootInventoryPage(context.Background(), "provider_credentials", "")
-	if e != nil || len(rows) != 1 || rows[0].id != inline.ID || len(rootDomains) != 7 {
+	if e != nil || len(rows) != 1 || rows[0].id != inline.ID || len(rootDomains) != 8 {
 		t.Fatal("valid external reference became value domain or hid inline inventory", e, rows)
 	}
 	for _, fault := range []string{"empty_inline", "unknown_source", "vault_cipher", "missing_ref"} {

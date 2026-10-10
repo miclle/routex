@@ -16,6 +16,13 @@ type UserMFA struct {
 func (UserMFA) TableName() string { return "user_mfa" }
 
 type MFAChallenge struct {
+	PrimaryMethod        string     `gorm:"size:20;not null;default:''" json:"-"`
+	OIDCBindingID        string     `gorm:"column:oidc_binding_id;size:30;not null;default:''" json:"-"`
+	OIDCBindingCreatedAt *time.Time `gorm:"column:oidc_binding_created_at;precision:6" json:"-"`
+	OIDCConfigRevision   string     `gorm:"column:oidc_config_revision;size:64;not null;default:''" json:"-"`
+	OIDCPolicyRevision   string     `gorm:"column:oidc_policy_revision;size:64;not null;default:''" json:"-"`
+	OIDCUserCreatedAt    *time.Time `gorm:"column:oidc_user_created_at;precision:6" json:"-"`
+
 	UserID         string    `gorm:"primaryKey;size:30"`
 	Purpose        string    `gorm:"primaryKey;size:20"`
 	TokenHash      string    `gorm:"size:64;not null;uniqueIndex"`

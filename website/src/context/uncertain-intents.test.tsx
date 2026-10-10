@@ -267,9 +267,15 @@ async function renewal(status: number) {
 // Importing the actual route declaration also proves the wrapper is private-only.
 describe('private AuthGate submitted-intent lifetime', () => {
   it('wraps only the private route while preserving setup/login gates', () => {
-    const setup = routes[0].element,
-      login = routes[1].element,
-      privateGate = routes[2].element
+    const setup = routes.find((route) =>
+        route.children?.some((child) => child.path === '/setup'),
+      )?.element,
+      login = routes.find((route) =>
+        route.children?.some((child) => child.path === '/login'),
+      )?.element,
+      privateGate = routes.find(
+        (route) => isValidElement(route.element) && route.element.type === UncertainIntentProvider,
+      )?.element
     if (
       !isValidElement(setup) ||
       !isValidElement(login) ||
@@ -282,6 +288,10 @@ describe('private AuthGate submitted-intent lifetime', () => {
     expect(privateGate.type).toBe(UncertainIntentProvider)
     expect(privateGate.props.children.type).toBe(AuthGate)
     expect(privateGate.props.children.props.mode).toBe('private')
+    const completion = routes.find((route) => route.path === '/auth/oidc/complete')
+    expect(completion?.lazy).toBeTypeOf('function')
+    expect(completion?.element).toBeUndefined()
+    expect(completion?.children).toBeUndefined()
   })
   it('preserves only the original submitted request through500 and fresh same-actor recovery', async () => {
     const storage = vi.spyOn(Storage.prototype, 'setItem')

@@ -1,3 +1,5 @@
+import enOIDC from './locales/en/oidc'
+import zhOIDC from './locales/zh/oidc'
 import zhModelCreation from './locales/zh/modelCreation'
 import enModelCreation from './locales/en/modelCreation'
 import enSecrets from './locales/en/secrets'
@@ -97,6 +99,7 @@ void i18n.use(initReactI18next).init({
   resources: {
     en: {
       common: en,
+      oidc: enOIDC,
       modelCreation: enModelCreation,
       secrets: enSecrets,
       overview: enOverview,
@@ -129,6 +132,7 @@ void i18n.use(initReactI18next).init({
     },
     zh: {
       common: zh,
+      oidc: zhOIDC,
       modelCreation: zhModelCreation,
       secrets: zhSecrets,
       overview: zhOverview,

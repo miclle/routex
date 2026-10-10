@@ -1,6 +1,6 @@
 # Local Identity, Sessions, and Initialization
 
-This phase implements first administrator creation, local login, persistent sessions, logout, and the minimum authorization boundary between `admin` and `member`. [Registration and role administration](GOVERNANCE.md) and [two-step verification](MFA.md) extend this foundation. Password recovery and enterprise identity providers remain separate work.
+This phase implements first administrator creation, local login, persistent sessions, logout, and the minimum authorization boundary between `admin` and `member`. [Registration and role administration](GOVERNANCE.md) and [two-step verification](MFA.md) extend this foundation. [Existing-member OIDC](OIDC.md) adds explicit external identity linking while preserving local authentication and native MFA. Password recovery and broader enterprise identity remain separate work.
 
 ## Data and Initialization
 
@@ -80,3 +80,14 @@ go tool task test-integration
 Database tests read `ROUTEX_TEST_POSTGRES_DSN` and `ROUTEX_TEST_MYSQL_DSN` and require the database name `routex_test`. They remove this phase's tables from that database, so these variables must point only to dedicated test databases. A single test package owns the shared database lifecycle to avoid cleanup conflicts between parallel packages.
 
 Coverage includes upgrades preserving existing `Example` data, concurrent and repeated migrations, rejection of future schema versions, foreign keys and indexes, concurrent initialization creating only one administrator, field validation, password hashing, bearer digests, sanitized errors, failed logins, persistent sessions, fixed expiration, logout revocation, member authorization failures, disabled accounts, CSRF, Origin, and TLS cookie behavior. The `test-auth-lifecycle` task separately verifies persistence across application process restarts. See the [implementation record](IMPLEMENTATION.md) for phase-level evidence and remaining scope.
+
+
+## Existing-member OpenID Connect candidate
+
+The OIDC integration adds explicit member linking and one reviewed provider, while
+preserving local passwords, registration admission and native RouteX MFA. Read
+[OIDC](OIDC.md) for ceremony, configuration, revocation and verification boundaries.
+No remote email/role claim grants local authority. Callback exchange alone never
+creates a Session; clean-page completion and any required MFA must succeed first.
+Application verification remains pending; the separately delivered protocol component
+is not full enterprise sign-in acceptance.

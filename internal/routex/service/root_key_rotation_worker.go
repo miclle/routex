@@ -69,7 +69,7 @@ func (s *Service) RunSecretRotationOnce(ctx context.Context) error {
 	if _, err := rootCountsChecked(job); err != nil {
 		return err
 	}
-	if job.Status != "completed" && job.Status != "rolled_back" && job.InventoryVersion != 2 {
+	if job.Status != "completed" && job.Status != "rolled_back" && job.InventoryVersion != rootInventoryVersion {
 		return s.rootBlock(ctx, p, &job, "inventory_scope_changed")
 	}
 	if job.Status == "blocked" || job.Status == "completed" || job.Status == "rolled_back" {

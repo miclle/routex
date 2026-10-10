@@ -79,7 +79,7 @@ func (s *Service) rootCurrentProofAdmission(tx *gorm.DB, p entity.SecretWritePol
 	if drained && !drainedViewCurrent() {
 		return proof, secretStoreUnavailable
 	}
-	proof = entity.SecretProcessVerification{ProcessID: lease.id, InventoryVersion: 2, PolicyEpoch: p.Epoch, KeyManifestDigest: rootHash(manifest), CryptoVersion: 2, LeaseToken: lease.token, RuntimeSnapshotID: routes.ID, RuntimeSourceDigest: routes.Digest, VerifiedAt: s.secretNow()}
+	proof = entity.SecretProcessVerification{ProcessID: lease.id, InventoryVersion: rootInventoryVersion, PolicyEpoch: p.Epoch, KeyManifestDigest: rootHash(manifest), CryptoVersion: 2, LeaseToken: lease.token, RuntimeSnapshotID: routes.ID, RuntimeSourceDigest: routes.Digest, VerifiedAt: s.secretNow()}
 	return proof, nil
 }
 func (s *Service) rootPersistProof(tx *gorm.DB, p entity.SecretWritePolicy) (entity.SecretProcessVerification, error) {

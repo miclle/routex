@@ -25,6 +25,7 @@ import type { Session, SetupInput } from '@/types/auth'
 import type { MFAChallenge, MFAProof } from '@/types/mfa'
 import { verifyMFALogin, MFARequestError } from '@/api/mfa'
 import MFAChallengeForm from './mfa-challenge'
+import OIDCLoginButton from '@/views/oidc/login-button'
 
 export default function AuthPage({ mode }: { mode: 'login' | 'setup' | 'register' }) {
   return <Auth key={mode} mode={mode} />
@@ -102,6 +103,21 @@ function Auth({ mode }: { mode: 'login' | 'setup' | 'register' }) {
     queryClient.setQueryData(sessionKey, session)
     setChallenge(null)
     navigate('/', { replace: true })
+  }
+  function acquireOIDC() {
+    if (locked.current) return null
+    locked.current = true
+    const turn = ++attempt.current
+    setPending(true)
+    return {
+      current: () => turn === attempt.current,
+      release: () => {
+        if (turn === attempt.current) {
+          locked.current = false
+          setPending(false)
+        }
+      },
+    }
   }
   function restart(expired = false) {
     attempt.current++
@@ -415,6 +431,9 @@ function Auth({ mode }: { mode: 'login' | 'setup' | 'register' }) {
                 {!pending && <ArrowRight className="size-4" aria-hidden="true" />}
               </Button>
             </form>
+          )}
+          {mode === 'login' && !challenge && (
+            <OIDCLoginButton disabled={pending} acquire={acquireOIDC} />
           )}
         </div>
         {!challenge && (

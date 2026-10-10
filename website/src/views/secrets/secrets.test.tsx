@@ -583,3 +583,61 @@ it.each(['completed', 'rolled_back'] as const)(
     expect(writes).toHaveLength(0)
   },
 )
+
+it('shows historical V2 scope and its retirement blocker through live language changes without adding OIDC coverage', async () => {
+  view.rotation = {
+    ...job(2),
+    status: 'blocked',
+    blocker_codes: ['inventory_scope_changed'],
+    allowed_actions: ['resume', 'rollback'],
+  }
+  await mount(`/admin/secrets/rotations/${rotationId}`)
+  await click('Root key rotation')
+  expect(document.body.textContent).toContain('Current inventory covers eight secret domains.')
+  expect(document.body.textContent).toContain('This historical rotation covers 7 domains')
+  expect(document.body.textContent).toContain('does not prove current inventory coverage')
+  expect(document.body.textContent).toContain(
+    'Resume requires a new verification of all current domains',
+  )
+  const table = document.querySelector('table[aria-label="Secret domain"]')!
+  expect(table.querySelectorAll('tbody tr')).toHaveLength(7)
+  expect(table.textContent).not.toContain('OIDC provider client secrets')
+  expect(button('Resume migration')).toBeDefined()
+  expect(button('Roll back write policy')).toBeDefined()
+  expect(
+    [...document.querySelectorAll('button')].some(
+      (item) => item.textContent === 'Retire source key',
+    ),
+  ).toBe(false)
+  const originalReads = [...reads]
+  await act(async () => i18n.changeLanguage('zh'))
+  expect(document.body.textContent).toContain('当前清单覆盖八个密钥领域。')
+  expect(document.body.textContent).toContain('此历史轮换覆盖 7 个领域，不证明当前清单的覆盖情况。')
+  expect(table.querySelectorAll('tbody tr')).toHaveLength(7)
+  expect(reads).toEqual(originalReads)
+  expect(writes).toHaveLength(0)
+})
+it('renders current V3 OIDC counts only after a fresh authorized read and clears them during renewal', async () => {
+  view.rotation = job(3)
+  await mount()
+  await click('Root key rotation')
+  const table = document.querySelector('table[aria-label="Secret domain"]')!
+  expect(table.querySelectorAll('tbody tr')).toHaveLength(8)
+  expect(table.textContent).toContain('OIDC provider client secrets')
+  expect(document.body.textContent).not.toContain('This historical rotation covers')
+  await act(async () => i18n.changeLanguage('zh'))
+  expect(table.textContent).toContain('OIDC 提供方客户端密钥')
+  readGate = deferred<void>()
+  await renew()
+  expect(document.body.textContent).not.toContain('OIDC 提供方客户端密钥')
+  expect(document.body.textContent).not.toContain('9007199254740993')
+  await act(async () => readGate!.resolve())
+  readGate = undefined
+  await settle()
+  await settle()
+  expect(document.body.textContent).toContain('OIDC 提供方客户端密钥')
+  expect(
+    document.querySelector('table[aria-label="秘密数据域"]')!.querySelectorAll('tbody tr'),
+  ).toHaveLength(8)
+  expect(writes).toHaveLength(0)
+})

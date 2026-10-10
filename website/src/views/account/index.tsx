@@ -1,4 +1,5 @@
 import AccountMFA from './mfa'
+import OIDCAccount from '@/views/oidc/account'
 import { useTranslation } from 'react-i18next'
 import { useRef, useState, type FormEvent } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
@@ -154,6 +155,7 @@ export default function AccountPage({ security = false }: { security?: boolean }
       )}
       {security && (
         <>
+          <OIDCAccount />
           <Card>
             <CardHeader>
               <CardTitle>{t('account.password')}</CardTitle>

@@ -601,7 +601,7 @@ func testProviderCredentialStorageLifecycle(t *testing.T, db *gorm.DB) {
 			t.Fatal("valid source inventory blocked", current.Rotation.BlockerCodes)
 		}
 		if current.Rotation.Status == "observing" && current.Rotation.Phase == "observation" {
-			if current.InventoryVersion != 2 || len(current.Rotation.Domains) != 7 {
+			if current.InventoryVersion != 3 || len(current.Rotation.Domains) != 8 {
 				t.Fatal("source created an extra/partial root domain")
 			}
 			for _, d := range current.Rotation.Domains {

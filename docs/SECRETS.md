@@ -71,7 +71,7 @@ and accessible names have paired English/Chinese translations.
 2. Start with a replacement key ID, one UUIDv4 intent and a required reason. The
    committed write-policy epoch fences every secret writer. A stale prepared
    operation rejects its whole transaction instead of replaying a secret write.
-3. The bounded durable worker scans all seven retained domains, uses exact
+3. The bounded durable worker scans all eight retained domains, uses exact
    ciphertext compare-and-swap, and performs a fresh complete verification.
    Every committed page publishes the actual current inventory after releasing
    its transactions and egress locks. A failed publication preserves the durable
@@ -101,10 +101,13 @@ failed refreshes. A committed receipt and current publication are distinct.
 | Authenticator factors | Pending, enabled, disabled and retained/orphan factor envelopes using their immutable user/generation reference |
 | Vault writer authentication | Every retained nonempty writer Token envelope, including superseded revisions |
 | Vault reader authentication | Every retained nonempty reader Token envelope, including superseded and removed-reader history |
+| OIDC client authentication | Every retained nonempty provider client-secret envelope, including disabled configuration, under its exact generation |
 
-Inventory version1 retains its historical five-domain meaning. Current jobs use
-version2 and all seven domains. Nonterminal version1 jobs require explicit reviewed
-Resume and a fresh complete scan; completed version1 history remains historical.
+Inventory version1 retains its historical five-domain meaning; version2 retains
+seven domains. The V94 candidate adds version3 and the eighth OIDC domain. Current
+candidate jobs use V3; nonterminal V1/V2 jobs require explicit reviewed Resume and a
+fresh complete scan. Completed historical jobs keep their original coverage. V3
+rotation and process-restart acceptance remain pending.
 Missing observations stay not_scanned with null counts. Unknown versions fail
 closed. Frozen GORM V72 appends the new inventory version and Vault domains without
 editing V48. Finite probe decrypt readers participate in root retirement draining.
