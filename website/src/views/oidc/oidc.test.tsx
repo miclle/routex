@@ -3,7 +3,7 @@ import { createRoot, type Root } from 'react-dom/client'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { createMemoryRouter, RouterProvider } from 'react-router'
 import { AxiosError, AxiosHeaders, type InternalAxiosRequestConfig } from 'axios'
-import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi, type MockInstance } from 'vitest'
 import client from '@/api/client'
 import i18n from '@/i18n'
 import routes from '@/router'
@@ -15,6 +15,7 @@ import type { Session } from '@/types/auth'
 import type { OIDCConfig, OIDCIdentity } from '@/types/oidc'
 Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true })
 const adapter = client.defaults.adapter
+let renderErrors: MockInstance<typeof console.error>
 const etag = 'a'.repeat(64)
 let host: HTMLDivElement,
   root: Root,
@@ -31,6 +32,7 @@ let requests: InternalAxiosRequestConfig[],
   completeStatus: number
 let held: { path: string; promise: Promise<void>; release: () => void } | undefined
 beforeEach(async () => {
+  renderErrors = vi.spyOn(console, 'error')
   await i18n.changeLanguage('en')
   host = document.createElement('div')
   document.body.append(host)
@@ -141,6 +143,7 @@ afterEach(async () => {
   host.remove()
   document.querySelectorAll('[data-base-ui-portal]').forEach((element) => element.remove())
   client.defaults.adapter = adapter
+  renderErrors.mockRestore()
 })
 async function mount(node: ReactNode, path = '/test') {
   router = createMemoryRouter(
@@ -376,6 +379,11 @@ describe('OIDC existing compositions and lifetimes', () => {
         .getAll()
         .some((query) => query.queryKey[0] === 'oidc' && query.state.data !== undefined),
     ).toBe(false)
+    expect(
+      renderErrors.mock.calls.filter(([message]) =>
+        String(message).includes('Cannot update a component'),
+      ),
+    ).toEqual([])
   })
   it('retains exact uncertain config after same-owner renewal and never accepts the late response as saved', async () => {
     const release = hold('/admin/auth/oidc')

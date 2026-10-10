@@ -25,7 +25,7 @@ func (ctrl *Ctrl) RegisterRoutes(r *fox.Engine) {
 	// Native query credentials must never be reflected by pre-middleware redirects.
 	r.RedirectTrailingSlash = false
 	r.RedirectFixedPath = false
-	r.Engine.Use(GeminiQueryCredentials, TeamNativeInputs, OIDCInputs)
+	r.Engine.Use(GeminiQueryCredentials, TeamNativeInputs, OIDCInputs, OAuthInputs)
 	// embed website assets
 	website.EmbedAssets(r)
 
@@ -64,12 +64,23 @@ func (ctrl *Ctrl) RegisterRoutes(r *fox.Engine) {
 	identity.GET("/auth/oidc/callback", ctrl.OIDCCallback)
 	identity.POST("/auth/oidc/complete", sameOrigin, jsonAuthRequest, ctrl.CompleteOIDC)
 	identity.GET("/account/identity", ctrl.requireSession, ctrl.AccountOIDC)
+	identity.GET("/account/identity/oauth", ctrl.requireSession, ctrl.AccountOAuth)
+	identity.POST("/account/identity/oauth/bind", sameOrigin, ctrl.requireSession, requireCSRF, jsonManagementRequest, ctrl.StartOAuthBinding)
+	identity.POST("/account/identity/oauth/unlink", sameOrigin, ctrl.requireSession, requireCSRF, jsonManagementRequest, ctrl.UnlinkOAuth)
 	identity.POST("/account/identity/bind", sameOrigin, ctrl.requireSession, requireCSRF, jsonManagementRequest, ctrl.StartOIDCBinding)
 	identity.POST("/account/identity/unlink", sameOrigin, ctrl.requireSession, requireCSRF, jsonManagementRequest, ctrl.UnlinkOIDC)
 	identity.GET("/admin/auth/oidc", ctrl.requireSession, ctrl.GetOIDCProvider)
 	identity.PUT("/admin/auth/oidc", sameOrigin, ctrl.requireSession, requireCSRF, jsonManagementRequest, ctrl.SaveOIDCProvider)
 	identity.POST("/admin/auth/oidc/verify", sameOrigin, ctrl.requireSession, requireCSRF, jsonManagementRequest, ctrl.StartOIDCVerification)
 	identity.PUT("/admin/auth/oidc/status", sameOrigin, ctrl.requireSession, requireCSRF, jsonManagementRequest, ctrl.SetOIDCEnabled)
+	identity.GET("/auth/oauth", ctrl.PublicOAuth)
+	identity.POST("/auth/oauth/start", sameOrigin, jsonAuthRequest, ctrl.StartOAuthLogin)
+	identity.GET("/auth/oauth/callback", ctrl.OAuthCallback)
+	identity.POST("/auth/oauth/complete", sameOrigin, jsonAuthRequest, ctrl.CompleteOAuth)
+	identity.GET("/admin/auth/oauth", ctrl.requireSession, ctrl.GetOAuthProvider)
+	identity.PUT("/admin/auth/oauth", sameOrigin, ctrl.requireSession, requireCSRF, jsonManagementRequest, ctrl.SaveOAuthProvider)
+	identity.POST("/admin/auth/oauth/verify", sameOrigin, ctrl.requireSession, requireCSRF, jsonManagementRequest, ctrl.StartOAuthVerification)
+	identity.PUT("/admin/auth/oauth/status", sameOrigin, ctrl.requireSession, requireCSRF, jsonManagementRequest, ctrl.SetOAuthEnabled)
 
 	identity.GET("/auth/session", ctrl.requireSession, ctrl.CurrentSession)
 	identity.GET("/overview/accounts", ctrl.requireSession, ctrl.MemberOverviewAccounts)

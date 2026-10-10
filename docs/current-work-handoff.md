@@ -4,16 +4,61 @@ Updated: 2026-10-10. Status: resumed by explicit user instruction; prioritize pa
 
 ## Current execution status (2026-10-10)
 
+This phase delivers an existing-member custom OAuth application with explicit
+endpoints, exact typed profile subjects, reviewed account binding and clean manual
+completion. Local and OIDC login remain available; OAuth uses native MFA and
+independently revocable primary provenance. Frozen GORM V95 adds its separate
+provider/binding/ceremony tables and Session/MFA proofs. Root inventory V4 covers
+nine domains while preserving historical V1/V2/V3 scopes and released migrations.
+No email linking, provisioning, provider presets or enforced SSO is introduced.
+
+Formatting and corrected mandatory checking pass. Focused Go race regressions
+record 1,284 named passes and two intentional process-helper skips; focused UI
+regressions pass 299 cases in 15 files. QueryCache subscriptions exclude render-time
+bookkeeping while preserving synchronous Session and permission invalidation.
+Complete Task passes Go race/coverage, all 6,104 frontend cases in 228 files,
+development lifecycle, production build and production asset tests.
+
+The official complete matrix passes all 188 ordered business scenarios and four
+constraints on each driver: 450 named PostgreSQL and 450 named MySQL passes, no failures
+or skips. Its ordinary pass has 6,895 named passes and two intentional TLS helper
+skips. Independent readback confirms the unchanged 2,204-path source/mode floor,
+eight same-source OIDC/OAuth application starts and closed owned worker/application
+groups, removed executables/guards, empty labelled Compose resources and refused,
+fresh-bindable database ports. The original development service remains available.
+Full-matrix readback SHA-256:
+`0c45025febfbf3cf4770b6cd3eca32d98b6ba3db82c689d10b6a8aef6338c844`.
+
+The separate real-process authentication lifecycle also passes both databases:
+initialization, persisted Sessions, logout/relogin, encrypted Credentials, native
+gateway calls, call facts and restart. Root independently confirms the joined Task
+and inherited group are absent, its Compose resources are removed and the source
+floor is unchanged. Its sampler incorrectly excluded application argv containing
+`-c`; no individual application PID census, port or fixture-path observation is
+claimed for that separate run. The unchanged lifecycle script awaits each real
+application exit. Readback SHA-256:
+`be78f25ebe1db18d4c59e65b5db97f5583613c9370229803612d3ee0014a6ac4`.
+
+Earlier missing-build-tag, lint and legacy-fixture failures remain failed history.
+The current root-schema fixture compares only reviewed additive V95 fields, keeping
+independent V94 literal parity and V1/V2/V3 assertions. Bilingual browser and
+real-provider deployment remain unaccepted; controlled TLS/process fixtures do not
+replace those gates. F03/A15 remain Partial and capability totals remain
+**15 Completed / 13 Partial / 2 Not started**. The overall objective continues.
+LDAP stable-identity component and independent TLS tests are prepared separately;
+their execution gates remain open. See [OAuth](OAUTH.md).
+
 Existing-member OIDC is delivered in
 `62c01baf77278b67a774d5777ee218c3a14c5ac6`, with exact remote-main parity.
 Final main mandatory checking and changed-workflow Actionlint pass. The separate
-bounded [generic OAuth component](OAUTH.md), delivered by the containing commit,
+bounded [generic OAuth component](OAUTH.md), delivered in
+`518323694c5fb505d1a9fd328bee32026c8fe43d`,
 passes 134 named race-test results including 31 independent public-API regressions.
 Mandatory project checking and complete Task pass, including Go race/coverage,
 6,032 frontend cases, development lifecycle and production assets. Its unchanged
 2,171-path source/mode floor is independently checked. This protocol-only phase
 establishes no member, binding, callback or Session and changes no schema. Its next
-application slice is prepared separately; new V95/runtime gates remain pending.
+application slice now has the separately recorded V95 acceptance above.
 F03/A15 remain Partial. The initial two lint failures remain recorded as failed
 history; the narrow successor and renewed tests pass.
 
@@ -60,7 +105,8 @@ encrypted Credentials, native gateway calls and restart. Independent readback
 confirms the unchanged 2,163-path source floor, joined owned processes and removed
 Compose resources; the original development service remains available.
 
-The containing commit delivers this existing-member OIDC engineering implementation.
+Commit `62c01baf77278b67a774d5777ee218c3a14c5ac6` delivers the existing-member
+OIDC engineering implementation.
 Bilingual browser interactions and real-provider deployment remain unaccepted;
 controlled TLS and process fixtures do not replace either gate. F03 and A15 remain
 Partial: LDAP, additional OAuth providers, enforced SSO and enterprise emergency

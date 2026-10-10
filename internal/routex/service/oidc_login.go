@@ -248,6 +248,3 @@ func (s *Service) CompleteOIDC(ctx context.Context, a *Authentication, cookie st
 func (s *Service) oidcValidatePrimary(tx *gorm.DB, row entity.Session) error {
 	return oidcValidatePrimary(tx, row)
 }
-func (s *Service) oidcValidateChallengePrimary(tx *gorm.DB, row entity.MFAChallenge) error {
-	return oidcValidateChallengePrimary(tx, row)
-}

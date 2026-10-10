@@ -102,13 +102,15 @@ failed refreshes. A committed receipt and current publication are distinct.
 | Vault writer authentication | Every retained nonempty writer Token envelope, including superseded revisions |
 | Vault reader authentication | Every retained nonempty reader Token envelope, including superseded and removed-reader history |
 | OIDC client authentication | Every retained nonempty provider client-secret envelope, including disabled configuration, under its exact generation |
+| Custom OAuth client authentication | Every retained nonempty independent OAuth client-secret envelope, including disabled configuration, under its exact generation |
 
 Inventory version1 retains its historical five-domain meaning; version2 retains
-seven domains. V94 adds version3 and the eighth OIDC domain. Current jobs use V3;
-nonterminal V1/V2 jobs require explicit reviewed Resume and a fresh complete scan.
-Completed historical jobs keep their original coverage. The complete dual-driver
-matrix passes the current root-rotation lifecycle with a retained encrypted OIDC
-secret; controlled same-source process restart acceptance also passes. Broader
+seven domains; version3 retains its eight-domain OIDC scope. V95 adds current
+version4 with OAuth as domain nine. Nonterminal V1/V2/V3
+jobs require explicit reviewed Resume and a fresh complete scan; completed history
+keeps its original coverage and cannot prove V4 retirement. The complete dual-driver
+matrix passes the current root-rotation lifecycle with retained encrypted OIDC
+and OAuth secrets; controlled same-source process restart acceptance also passes. Broader
 browser, external-provider and release acceptance remain independent open gates.
 Missing observations stay not_scanned with null counts. Unknown versions fail
 closed. Frozen GORM V72 appends the new inventory version and Vault domains without
@@ -220,3 +222,14 @@ Controlled Vault API R7 passes configuration, retained-auth Cleanup, persistent 
 Both Vault R7 and Personal R6 API runs use the original R3 artifact `19320f5e16792e790748feb0a69fd6f70d1c3fc4f571a5e27c6e70d8494b5df4` and source floor `1b78ece3a09c458141ceff256f702822c7e9f0b714766e8458a3b92520276101`. The later R4 parent-callback repair changes a test fixture only; its whole-source/backend-test hashes and gate receipts remain distinct even though production code is identical. API results do not become R4 whole-source acceptance. Expanded Focus18 and current Full141 belong to that later source; Full141 is still running.
 
 Browser, bilingual controls, AuthGate recovery and feature delivery remain pending for this phase. Desktop control reports a locked Mac and the in-app browser cannot attach a new webview; those observations do not prove a product cause or UI/download success. A bounded fresh normal-browser gate must verify the existing controls, independent authority and original-Session restart against an exact reviewed artifact. No complete F17/F28 or full-objective acceptance is claimed.
+
+## Custom OAuth inventory acceptance
+
+Every retained OAuth client secret uses `oauth:<provider-id>:<secret-generation>`
+for authenticated encryption and the existing root-epoch/CAS lifecycle. The current
+rotation fixture includes an actual encrypted disabled OAuth singleton beside OIDC,
+so renewed dual-driver acceptance must prove rewrap, immutable payload/reference,
+metadata preservation and privacy. Renewed V4 source, complete dual-driver and
+same-source process restart gates pass with the V4 nine-domain inventory. Prior
+V3 acceptance is not transferred to the expanded inventory. Browser, external
+provider and broader release acceptance remain open.

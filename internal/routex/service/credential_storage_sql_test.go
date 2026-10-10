@@ -770,8 +770,8 @@ func TestCredentialStorageUUIDResponseContainsOnlyOwnedBootstrap(t *testing.T) {
 }
 
 func TestCredentialStorageInventoryKeepsSevenDomainsAndRejectsEmptyInline(t *testing.T) {
-	if rootInventoryVersion != 3 || len(rootDomains) != 8 {
-		t.Fatal("current root inventory must include the OIDC value domain")
+	if rootInventoryVersion != 4 || len(rootDomains) != 9 {
+		t.Fatal("current root inventory must include the OAuth value domain")
 	}
 	for _, inventory := range []struct {
 		version int
@@ -780,6 +780,7 @@ func TestCredentialStorageInventoryKeepsSevenDomainsAndRejectsEmptyInline(t *tes
 		{1, []string{"provider_credentials", "egresses", "smtp_settings", "storage_revisions", "user_mfa"}},
 		{2, []string{"provider_credentials", "egresses", "smtp_settings", "storage_revisions", "user_mfa", "vault_writer_auth", "vault_reader_auth"}},
 		{3, []string{"provider_credentials", "egresses", "smtp_settings", "storage_revisions", "user_mfa", "vault_writer_auth", "vault_reader_auth", "oidc_providers"}},
+		{4, []string{"provider_credentials", "egresses", "smtp_settings", "storage_revisions", "user_mfa", "vault_writer_auth", "vault_reader_auth", "oidc_providers", "oauth_providers"}},
 	} {
 		if !slices.Equal(rootInventoryDomains(inventory.version), inventory.domains) {
 			t.Fatal("versioned inventory changed its exact domain prefix", inventory.version)
@@ -794,7 +795,7 @@ func TestCredentialStorageInventoryKeepsSevenDomainsAndRejectsEmptyInline(t *tes
 	inline := entity.ProviderCredential{ID: "crd_later", StorageSource: "inline", Ciphertext: "authenticated-envelope"}
 	f.data.credentials[inline.ID] = inline
 	rows, e := s.rootInventoryPage(context.Background(), "provider_credentials", "")
-	if e != nil || len(rows) != 1 || rows[0].id != inline.ID || len(rootDomains) != 8 {
+	if e != nil || len(rows) != 1 || rows[0].id != inline.ID || len(rootDomains) != 9 {
 		t.Fatal("valid external reference became value domain or hid inline inventory", e, rows)
 	}
 	for _, fault := range []string{"empty_inline", "unknown_source", "vault_cipher", "missing_ref"} {

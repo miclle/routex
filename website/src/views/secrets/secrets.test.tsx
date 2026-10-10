@@ -593,7 +593,7 @@ it('shows historical V2 scope and its retirement blocker through live language c
   }
   await mount(`/admin/secrets/rotations/${rotationId}`)
   await click('Root key rotation')
-  expect(document.body.textContent).toContain('Current inventory covers eight secret domains.')
+  expect(document.body.textContent).toContain('Current inventory covers nine secret domains.')
   expect(document.body.textContent).toContain('This historical rotation covers 7 domains')
   expect(document.body.textContent).toContain('does not prove current inventory coverage')
   expect(document.body.textContent).toContain(
@@ -611,25 +611,28 @@ it('shows historical V2 scope and its retirement blocker through live language c
   ).toBe(false)
   const originalReads = [...reads]
   await act(async () => i18n.changeLanguage('zh'))
-  expect(document.body.textContent).toContain('当前清单覆盖八个密钥领域。')
+  expect(document.body.textContent).toContain('当前清单覆盖九个密钥领域。')
   expect(document.body.textContent).toContain('此历史轮换覆盖 7 个领域，不证明当前清单的覆盖情况。')
   expect(table.querySelectorAll('tbody tr')).toHaveLength(7)
   expect(reads).toEqual(originalReads)
   expect(writes).toHaveLength(0)
 })
-it('renders current V3 OIDC counts only after a fresh authorized read and clears them during renewal', async () => {
-  view.rotation = job(3)
+it('renders current V4 OIDC and OAuth counts only after a fresh authorized read and clears them during renewal', async () => {
+  view.rotation = job(4)
   await mount()
   await click('Root key rotation')
   const table = document.querySelector('table[aria-label="Secret domain"]')!
-  expect(table.querySelectorAll('tbody tr')).toHaveLength(8)
+  expect(table.querySelectorAll('tbody tr')).toHaveLength(9)
   expect(table.textContent).toContain('OIDC provider client secrets')
+  expect(table.textContent).toContain('Custom OAuth provider client secrets')
   expect(document.body.textContent).not.toContain('This historical rotation covers')
   await act(async () => i18n.changeLanguage('zh'))
   expect(table.textContent).toContain('OIDC 提供方客户端密钥')
+  expect(table.textContent).toContain('自定义 OAuth 提供方客户端密钥')
   readGate = deferred<void>()
   await renew()
   expect(document.body.textContent).not.toContain('OIDC 提供方客户端密钥')
+  expect(document.body.textContent).not.toContain('自定义 OAuth 提供方客户端密钥')
   expect(document.body.textContent).not.toContain('9007199254740993')
   await act(async () => readGate!.resolve())
   readGate = undefined
@@ -638,6 +641,37 @@ it('renders current V3 OIDC counts only after a fresh authorized read and clears
   expect(document.body.textContent).toContain('OIDC 提供方客户端密钥')
   expect(
     document.querySelector('table[aria-label="秘密数据域"]')!.querySelectorAll('tbody tr'),
-  ).toHaveLength(8)
+  ).toHaveLength(9)
+  expect(writes).toHaveLength(0)
+})
+
+it('shows historical V3 scope and never substitutes current OAuth coverage or retire authority', async () => {
+  view.rotation = {
+    ...job(3),
+    status: 'blocked',
+    blocker_codes: ['inventory_scope_changed'],
+    allowed_actions: ['resume', 'rollback'],
+  }
+  await mount(`/admin/secrets/rotations/${rotationId}`)
+  await click('Root key rotation')
+  const table = document.querySelector('table[aria-label="Secret domain"]')!
+  expect(table.querySelectorAll('tbody tr')).toHaveLength(8)
+  expect(table.textContent).toContain('OIDC provider client secrets')
+  expect(table.textContent).not.toContain('Custom OAuth provider client secrets')
+  expect(document.body.textContent).toContain('This historical rotation covers 8 domains')
+  expect(document.body.textContent).toContain('does not prove current inventory coverage')
+  expect(button('Resume migration')).toBeDefined()
+  expect(button('Roll back write policy')).toBeDefined()
+  expect(
+    [...document.querySelectorAll('button')].some(
+      (item) => item.textContent === 'Retire source key',
+    ),
+  ).toBe(false)
+  const originalReads = [...reads]
+  await act(async () => i18n.changeLanguage('zh'))
+  expect(document.body.textContent).toContain('此历史轮换覆盖 8 个领域，不证明当前清单的覆盖情况。')
+  expect(table.querySelectorAll('tbody tr')).toHaveLength(8)
+  expect(table.textContent).not.toContain('自定义 OAuth 提供方客户端密钥')
+  expect(reads).toEqual(originalReads)
   expect(writes).toHaveLength(0)
 })

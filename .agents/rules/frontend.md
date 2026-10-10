@@ -1552,3 +1552,11 @@ After administrative OIDC save/status writes, settle the real Session before
 showing success or releasing uncertain intent. Security changes can revoke the
 current OIDC Session; a confirmed missing Session clears private state and returns
 to sign-in. Obsolete settlement replies cannot clear another actor's caches.
+
+Custom OAuth uses its own namespace and API routes beside local password and OIDC authentication. Keep explicit endpoint/client-auth/scopes/object-key-array configuration in the existing authentication drawer, self-binding in account security, and the clean completion route outside authentication gates. Preserve typed external identity without email linking or numeric/path coercion. Copy ordered arrays into reviewed and uncertain intents; retain exact requests across uncertainty and require fresh explicit review for a separate change. Callback verification and Enable remain separate. Secrets, passwords, MFA proofs and authorization results remain transient and outside shared query/mutation caches or browser storage. Manual completion fences the transient fresh Session read before POST; stale actor/Session replies cannot restore private state. Successful revoking writes refresh the real Session before settling local authentication. Current inventory V4 appends OAuth as the ninth domain while preserving historical V1/V2/V3 scopes and blockers.
+
+Custom QueryCache subscriptions that drive React state or authority snapshots must
+react only to actual `updated` and `removed` events for their exact scoped keys.
+Observer bookkeeping and pending query creation can occur during render and must
+not notify another component. Keep Session/permission invalidation, cancellation,
+and uncertain-intent fences synchronous for actual state transitions.

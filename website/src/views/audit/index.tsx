@@ -11,6 +11,7 @@ import type {
   AuditRecord,
   SystemInstanceCleanupAuditChanges,
   OIDCIdentityAuditChanges,
+  OAuthIdentityAuditChanges,
 } from '@/types/audit'
 import { Page, QueryState, ErrorNotice } from '@/components/app/CatalogUI'
 import { PermissionGate } from '@/components/app/PermissionGate'
@@ -32,8 +33,12 @@ const categories: AuditCategory[] = [
 function isCleanupChanges(changes: AuditChanges): changes is SystemInstanceCleanupAuditChanges {
   return 'revision' in changes
 }
-function isOIDCIdentityChanges(changes: AuditChanges): changes is OIDCIdentityAuditChanges {
-  return 'kind' in changes && changes.kind === 'oidc_identity'
+function isIdentityChanges(
+  changes: AuditChanges,
+): changes is OIDCIdentityAuditChanges | OAuthIdentityAuditChanges {
+  return (
+    'kind' in changes && (changes.kind === 'oidc_identity' || changes.kind === 'oauth_identity')
+  )
 }
 export default function AuditPage() {
   return (
@@ -65,7 +70,7 @@ function AuditRecords() {
   }
   function summary(record: AuditRecord) {
     if (!record.changes) return missing
-    if (isOIDCIdentityChanges(record.changes)) return `${t('reason')}: ${record.changes.reason}`
+    if (isIdentityChanges(record.changes)) return `${t('reason')}: ${record.changes.reason}`
     if (isCleanupChanges(record.changes)) return t('cleanupSummary', { count: 1 })
     return `${JSON.stringify(record.changes.before)} → ${JSON.stringify(record.changes.after)}`
   }
@@ -254,7 +259,7 @@ function AuditRecords() {
                       })}
                     </p>
                   </div>
-                ) : selectedChanges && isOIDCIdentityChanges(selectedChanges) ? (
+                ) : selectedChanges && isIdentityChanges(selectedChanges) ? (
                   <p className="whitespace-pre-wrap break-all">
                     {t('reason')}: {selectedChanges.reason}
                   </p>

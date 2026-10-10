@@ -127,7 +127,7 @@ export default {
     loading: 'Waiting for fresh storage authority and policy.',
     loadError: 'Storage policy unavailable. Refresh its authorized read.',
   },
-  currentInventory: 'Current inventory covers eight secret domains.',
+  currentInventory: 'Current inventory covers nine secret domains.',
   historicalInventory:
     'This historical rotation covers {{count}} domains and does not prove current inventory coverage.',
   originalIntent: 'Original uncertain intent',
@@ -255,6 +255,7 @@ export default {
   vault_writer_auth: 'Vault writer authentication',
   vault_reader_auth: 'Vault reader authentication',
   oidc_providers: 'OIDC provider client secrets',
+  oauth_providers: 'Custom OAuth provider client secrets',
   vault: {
     historicalProbe: 'Historical revision observations',
     integration: 'Integration',

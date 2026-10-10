@@ -34,7 +34,7 @@ these fields return null and interfaces display **Not recorded**. Do not infer
 an IP from current sessions or fabricate request IDs from event IDs. Price import
 source is returned only for the known `api`, `csv`, `xlsx` and `xls` values.
 
-Only known typed price, currency, limit, Credential lifecycle, Team request, OIDC
+Only known typed price, currency, limit, Credential lifecycle, Team request, OIDC/OAuth
 configuration/binding and system-instance cleanup schemas are projected into `changes`. Price, currency, and limit events use
 lowercase `before`/`after` and applicable `reason`/`etag`. Cleanup events expose
 one event per retired instance: `resource_id` is the exact process-generation ID
@@ -50,7 +50,7 @@ the historical event does not prove that a later quota revision is enforced.
 UTC deadline, and required reason. The row proves its database transaction;
 current non-callability or runtime publication is a separate review, and a
 matching target retry never creates an original-operation receipt.
-OIDC events project only a validated versioned reason. Provider configuration,
+OIDC and custom OAuth events project only a validated versioned reason. Provider configuration,
 claims, subjects, cookies, codes and tokens are never audit readback fields.
 Unknown detail fields, unknown action payloads, malformed JSON and oversized
 payloads are not exposed. Provider credentials, request bodies and arbitrary

@@ -141,6 +141,7 @@ function Configuration({ actor }: { actor: string }) {
   useLayoutEffect(() => {
     let previous = authoritySnapshot()
     return cache.getQueryCache().subscribe((event) => {
+      if (event.type !== 'updated' && event.type !== 'removed') return
       const key = event.query.queryKey
       const relevant =
         key.length === 2 &&

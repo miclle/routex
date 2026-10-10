@@ -50,6 +50,8 @@ type gatewayRuntime struct {
 	deniedProviders      sync.Map
 	deniedSessions       sync.Map
 	deniedOIDCPolicies   sync.Map
+	deniedOAuthPolicies  sync.Map
+	deniedOAuthBindings  sync.Map
 	deniedOIDCBindings   sync.Map
 	deniedSessionUsers   sync.Map
 	deniedTeams          sync.Map
@@ -272,6 +274,8 @@ func (s *Service) RefreshRuntime(ctx context.Context) error {
 	clearRuntimeTombstones(&runtime.deniedSessions, generation)
 	clearRuntimeTombstones(&runtime.deniedOIDCPolicies, generation)
 	clearRuntimeTombstones(&runtime.deniedOIDCBindings, generation)
+	clearRuntimeTombstones(&runtime.deniedOAuthPolicies, generation)
+	clearRuntimeTombstones(&runtime.deniedOAuthBindings, generation)
 	clearRuntimeTombstones(&runtime.deniedSessionUsers, generation)
 	clearRuntimeTombstones(&runtime.deniedTeams, generation)
 	clearRuntimeTombstones(&runtime.deniedTeamMembers, generation)

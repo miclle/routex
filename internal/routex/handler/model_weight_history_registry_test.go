@@ -200,8 +200,8 @@ func TestModelWeightHistoryExact174RegistryPrefix(t *testing.T) {
 	for _, pair := range pairs {
 		currentIdentities = append(currentIdentities, pair[1]+":"+pair[2])
 	}
-	if !oidcRegistry185Current(currentIdentities) {
-		t.Fatal("exact185 OIDC successor changed")
+	if !oauthRegistry188Current(currentIdentities) {
+		t.Fatal("exact188 OAuth successor changed")
 	}
 	currentIdentities = currentIdentities[:181]
 	if !credentialAttemptStatisticsRegistry181Current(currentIdentities) {

@@ -45,7 +45,7 @@ var auditCategories = map[string][]string{
 	"limits":      {"key", "user", "user_default", "team", "team_member", "team_member_default", "project", "team_quota_request", "default_limit"},
 	"credentials": {"credential", "provider_credential", "provider", "connection"},
 	"pricing":     {"pricing"},
-	"identity":    {"user", "role", "session", "mfa", "installation", "registration", "offboarding_case", "teams", "oidc_provider", "oidc_binding"},
+	"identity":    {"user", "role", "session", "mfa", "installation", "registration", "offboarding_case", "teams", "oidc_provider", "oidc_binding", "oauth_provider", "oauth_binding"},
 	"site":        {"site", "announcement"},
 	"system":      {"system_instance", "secret_rotation"},
 }
@@ -84,6 +84,12 @@ func auditRecord(row entity.AuditEvent) AuditRecord {
 	switch row.Action {
 	case "identity.oidc.config.update", "identity.oidc.status.update", "identity.oidc.verify", "account.oidc.bind", "account.oidc.unlink":
 		record, valid := oidcAuditProjection(row)
+		if !valid {
+			return result
+		}
+		changes = record
+	case "identity.oauth.config.update", "identity.oauth.status.update", "identity.oauth.verify", "account.oauth.bind", "account.oauth.unlink":
+		record, valid := oauthAuditProjection(row)
 		if !valid {
 			return result
 		}

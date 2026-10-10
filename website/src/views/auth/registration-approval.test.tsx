@@ -3,12 +3,13 @@ import { createRoot, type Root } from 'react-dom/client'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { createMemoryRouter, RouterProvider } from 'react-router'
 import { AxiosError, AxiosHeaders, type InternalAxiosRequestConfig } from 'axios'
-import { afterEach, beforeEach, expect, it } from 'vitest'
+import { afterEach, beforeEach, expect, it, vi, type MockInstance } from 'vitest'
 import client from '@/api/client'
 import i18n from '@/i18n'
 import AuthPage from './index'
 Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true })
 const old = client.defaults.adapter
+let renderErrors: MockInstance<typeof console.error>
 let root: Root,
   host: HTMLDivElement,
   cache: QueryClient,
@@ -61,6 +62,7 @@ async function submit() {
   await flush()
 }
 beforeEach(async () => {
+  renderErrors = vi.spyOn(console, 'error')
   await i18n.changeLanguage('en')
   host = document.createElement('div')
   document.body.append(host)
@@ -122,6 +124,7 @@ afterEach(async () => {
   cache.clear()
   host.remove()
   client.defaults.adapter = old
+  renderErrors.mockRestore()
 })
 it('shows confirmed anonymous pending in the existing card without Session, MFA, cache, navigation or polling', async () => {
   cache.setQueryData(['private', 'sentinel'], { unchanged: true })
@@ -179,6 +182,11 @@ it('preserves immediate registration201 Session completion when approval is not 
   expect(router.state.location.pathname).toBe('/')
   expect(cache.getQueryData(['auth', 'session'])).toEqual(response)
   expect(cache.getMutationCache().getAll()).toHaveLength(0)
+  expect(
+    renderErrors.mock.calls.filter(([message]) =>
+      String(message).includes('Cannot update a component'),
+    ),
+  ).toEqual([])
 })
 
 it('treats visible permitted domains as guidance while current POST403 remains a generic policy denial without admission', async () => {

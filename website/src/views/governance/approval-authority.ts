@@ -18,6 +18,7 @@ export function useApprovalCacheRevision(keys: readonly (readonly unknown[])[]) 
     (notify: () => void) =>
       cache.getQueryCache().subscribe((event) => {
         if (
+          (event.type === 'updated' || event.type === 'removed') &&
           JSON.parse(serialized).some(
             (key: unknown[]) => JSON.stringify(key) === JSON.stringify(event.query.queryKey),
           )

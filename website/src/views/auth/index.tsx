@@ -26,6 +26,7 @@ import type { MFAChallenge, MFAProof } from '@/types/mfa'
 import { verifyMFALogin, MFARequestError } from '@/api/mfa'
 import MFAChallengeForm from './mfa-challenge'
 import OIDCLoginButton from '@/views/oidc/login-button'
+import OAuthLoginButton from '@/views/oauth/login-button'
 
 export default function AuthPage({ mode }: { mode: 'login' | 'setup' | 'register' }) {
   return <Auth key={mode} mode={mode} />
@@ -59,7 +60,10 @@ function Auth({ mode }: { mode: 'login' | 'setup' | 'register' }) {
     useCallback(
       (notify: () => void) =>
         queryClient.getQueryCache().subscribe((event) => {
-          if (JSON.stringify(event.query.queryKey) === JSON.stringify(['auth', 'registration']))
+          if (
+            (event.type === 'updated' || event.type === 'removed') &&
+            JSON.stringify(event.query.queryKey) === JSON.stringify(['auth', 'registration'])
+          )
             notify()
         }),
       [queryClient],
@@ -433,7 +437,10 @@ function Auth({ mode }: { mode: 'login' | 'setup' | 'register' }) {
             </form>
           )}
           {mode === 'login' && !challenge && (
-            <OIDCLoginButton disabled={pending} acquire={acquireOIDC} />
+            <>
+              <OIDCLoginButton disabled={pending} acquire={acquireOIDC} />
+              <OAuthLoginButton disabled={pending} acquire={acquireOIDC} />
+            </>
           )}
         </div>
         {!challenge && (

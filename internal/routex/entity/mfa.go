@@ -16,12 +16,17 @@ type UserMFA struct {
 func (UserMFA) TableName() string { return "user_mfa" }
 
 type MFAChallenge struct {
-	PrimaryMethod        string     `gorm:"size:20;not null;default:''" json:"-"`
-	OIDCBindingID        string     `gorm:"column:oidc_binding_id;size:30;not null;default:''" json:"-"`
-	OIDCBindingCreatedAt *time.Time `gorm:"column:oidc_binding_created_at;precision:6" json:"-"`
-	OIDCConfigRevision   string     `gorm:"column:oidc_config_revision;size:64;not null;default:''" json:"-"`
-	OIDCPolicyRevision   string     `gorm:"column:oidc_policy_revision;size:64;not null;default:''" json:"-"`
-	OIDCUserCreatedAt    *time.Time `gorm:"column:oidc_user_created_at;precision:6" json:"-"`
+	OAuthBindingID        string     `gorm:"column:oauth_binding_id;size:30;not null;default:''" json:"-"`
+	OAuthBindingCreatedAt *time.Time `gorm:"column:oauth_binding_created_at;precision:6" json:"-"`
+	OAuthConfigRevision   string     `gorm:"column:oauth_config_revision;size:64;not null;default:''" json:"-"`
+	OAuthPolicyRevision   string     `gorm:"column:oauth_policy_revision;size:64;not null;default:''" json:"-"`
+	OAuthUserCreatedAt    *time.Time `gorm:"column:oauth_user_created_at;precision:6" json:"-"`
+	PrimaryMethod         string     `gorm:"size:20;not null;default:''" json:"-"`
+	OIDCBindingID         string     `gorm:"column:oidc_binding_id;size:30;not null;default:''" json:"-"`
+	OIDCBindingCreatedAt  *time.Time `gorm:"column:oidc_binding_created_at;precision:6" json:"-"`
+	OIDCConfigRevision    string     `gorm:"column:oidc_config_revision;size:64;not null;default:''" json:"-"`
+	OIDCPolicyRevision    string     `gorm:"column:oidc_policy_revision;size:64;not null;default:''" json:"-"`
+	OIDCUserCreatedAt     *time.Time `gorm:"column:oidc_user_created_at;precision:6" json:"-"`
 
 	UserID         string    `gorm:"primaryKey;size:30"`
 	Purpose        string    `gorm:"primaryKey;size:20"`

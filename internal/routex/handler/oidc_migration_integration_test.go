@@ -190,8 +190,89 @@ type oidcExtraOwnerIndexV94 struct {
 
 func (oidcExtraOwnerIndexV94) TableName() string { return "oidc_bindings" }
 
+type oidcHistoricalRootJobV94 struct {
+	InventoryVersion int `gorm:"not null;default:1;check:ck_secret_inventory_version,inventory_version = 1 OR inventory_version = 2 OR inventory_version = 3"`
+	Domain           int `gorm:"not null;check:ck_secret_rotation_domain,(inventory_version = 1 AND domain >= 0 AND domain <= 5) OR (inventory_version = 2 AND domain >= 0 AND domain <= 7) OR (inventory_version = 3 AND domain >= 0 AND domain <= 8)"`
+}
+
+func (oidcHistoricalRootJobV94) TableName() string { return "secret_rotation_jobs" }
+
+type oidcHistoricalRootItemV94 struct {
+	Domain string `gorm:"primaryKey;size:32;check:ck_secret_item_domain,((((CHAR_LENGTH(domain) = 20 AND ASCII(SUBSTRING(domain,1,1)) = 112 AND ASCII(SUBSTRING(domain,2,1)) = 114 AND ASCII(SUBSTRING(domain,3,1)) = 111 AND ASCII(SUBSTRING(domain,4,1)) = 118 AND ASCII(SUBSTRING(domain,5,1)) = 105 AND ASCII(SUBSTRING(domain,6,1)) = 100 AND ASCII(SUBSTRING(domain,7,1)) = 101 AND ASCII(SUBSTRING(domain,8,1)) = 114 AND ASCII(SUBSTRING(domain,9,1)) = 95 AND ASCII(SUBSTRING(domain,10,1)) = 99 AND ASCII(SUBSTRING(domain,11,1)) = 114 AND ASCII(SUBSTRING(domain,12,1)) = 101 AND ASCII(SUBSTRING(domain,13,1)) = 100 AND ASCII(SUBSTRING(domain,14,1)) = 101 AND ASCII(SUBSTRING(domain,15,1)) = 110 AND ASCII(SUBSTRING(domain,16,1)) = 116 AND ASCII(SUBSTRING(domain,17,1)) = 105 AND ASCII(SUBSTRING(domain,18,1)) = 97 AND ASCII(SUBSTRING(domain,19,1)) = 108 AND ASCII(SUBSTRING(domain,20,1)) = 115) OR (CHAR_LENGTH(domain) = 8 AND ASCII(SUBSTRING(domain,1,1)) = 101 AND ASCII(SUBSTRING(domain,2,1)) = 103 AND ASCII(SUBSTRING(domain,3,1)) = 114 AND ASCII(SUBSTRING(domain,4,1)) = 101 AND ASCII(SUBSTRING(domain,5,1)) = 115 AND ASCII(SUBSTRING(domain,6,1)) = 115 AND ASCII(SUBSTRING(domain,7,1)) = 101 AND ASCII(SUBSTRING(domain,8,1)) = 115) OR (CHAR_LENGTH(domain) = 13 AND ASCII(SUBSTRING(domain,1,1)) = 115 AND ASCII(SUBSTRING(domain,2,1)) = 109 AND ASCII(SUBSTRING(domain,3,1)) = 116 AND ASCII(SUBSTRING(domain,4,1)) = 112 AND ASCII(SUBSTRING(domain,5,1)) = 95 AND ASCII(SUBSTRING(domain,6,1)) = 115 AND ASCII(SUBSTRING(domain,7,1)) = 101 AND ASCII(SUBSTRING(domain,8,1)) = 116 AND ASCII(SUBSTRING(domain,9,1)) = 116 AND ASCII(SUBSTRING(domain,10,1)) = 105 AND ASCII(SUBSTRING(domain,11,1)) = 110 AND ASCII(SUBSTRING(domain,12,1)) = 103 AND ASCII(SUBSTRING(domain,13,1)) = 115) OR (CHAR_LENGTH(domain) = 17 AND ASCII(SUBSTRING(domain,1,1)) = 115 AND ASCII(SUBSTRING(domain,2,1)) = 116 AND ASCII(SUBSTRING(domain,3,1)) = 111 AND ASCII(SUBSTRING(domain,4,1)) = 114 AND ASCII(SUBSTRING(domain,5,1)) = 97 AND ASCII(SUBSTRING(domain,6,1)) = 103 AND ASCII(SUBSTRING(domain,7,1)) = 101 AND ASCII(SUBSTRING(domain,8,1)) = 95 AND ASCII(SUBSTRING(domain,9,1)) = 114 AND ASCII(SUBSTRING(domain,10,1)) = 101 AND ASCII(SUBSTRING(domain,11,1)) = 118 AND ASCII(SUBSTRING(domain,12,1)) = 105 AND ASCII(SUBSTRING(domain,13,1)) = 115 AND ASCII(SUBSTRING(domain,14,1)) = 105 AND ASCII(SUBSTRING(domain,15,1)) = 111 AND ASCII(SUBSTRING(domain,16,1)) = 110 AND ASCII(SUBSTRING(domain,17,1)) = 115) OR (CHAR_LENGTH(domain) = 8 AND ASCII(SUBSTRING(domain,1,1)) = 117 AND ASCII(SUBSTRING(domain,2,1)) = 115 AND ASCII(SUBSTRING(domain,3,1)) = 101 AND ASCII(SUBSTRING(domain,4,1)) = 114 AND ASCII(SUBSTRING(domain,5,1)) = 95 AND ASCII(SUBSTRING(domain,6,1)) = 109 AND ASCII(SUBSTRING(domain,7,1)) = 102 AND ASCII(SUBSTRING(domain,8,1)) = 97)) OR (OCTET_LENGTH(domain) = 17 AND ASCII(SUBSTRING(domain,1,1)) = 118 AND ASCII(SUBSTRING(domain,2,1)) = 97 AND ASCII(SUBSTRING(domain,3,1)) = 117 AND ASCII(SUBSTRING(domain,4,1)) = 108 AND ASCII(SUBSTRING(domain,5,1)) = 116 AND ASCII(SUBSTRING(domain,6,1)) = 95 AND ASCII(SUBSTRING(domain,7,1)) = 119 AND ASCII(SUBSTRING(domain,8,1)) = 114 AND ASCII(SUBSTRING(domain,9,1)) = 105 AND ASCII(SUBSTRING(domain,10,1)) = 116 AND ASCII(SUBSTRING(domain,11,1)) = 101 AND ASCII(SUBSTRING(domain,12,1)) = 114 AND ASCII(SUBSTRING(domain,13,1)) = 95 AND ASCII(SUBSTRING(domain,14,1)) = 97 AND ASCII(SUBSTRING(domain,15,1)) = 117 AND ASCII(SUBSTRING(domain,16,1)) = 116 AND ASCII(SUBSTRING(domain,17,1)) = 104) OR (OCTET_LENGTH(domain) = 17 AND ASCII(SUBSTRING(domain,1,1)) = 118 AND ASCII(SUBSTRING(domain,2,1)) = 97 AND ASCII(SUBSTRING(domain,3,1)) = 117 AND ASCII(SUBSTRING(domain,4,1)) = 108 AND ASCII(SUBSTRING(domain,5,1)) = 116 AND ASCII(SUBSTRING(domain,6,1)) = 95 AND ASCII(SUBSTRING(domain,7,1)) = 114 AND ASCII(SUBSTRING(domain,8,1)) = 101 AND ASCII(SUBSTRING(domain,9,1)) = 97 AND ASCII(SUBSTRING(domain,10,1)) = 100 AND ASCII(SUBSTRING(domain,11,1)) = 101 AND ASCII(SUBSTRING(domain,12,1)) = 114 AND ASCII(SUBSTRING(domain,13,1)) = 95 AND ASCII(SUBSTRING(domain,14,1)) = 97 AND ASCII(SUBSTRING(domain,15,1)) = 117 AND ASCII(SUBSTRING(domain,16,1)) = 116 AND ASCII(SUBSTRING(domain,17,1)) = 104))) OR (OCTET_LENGTH(domain) = 14 AND ASCII(SUBSTRING(domain,1,1)) = 111 AND ASCII(SUBSTRING(domain,2,1)) = 105 AND ASCII(SUBSTRING(domain,3,1)) = 100 AND ASCII(SUBSTRING(domain,4,1)) = 99 AND ASCII(SUBSTRING(domain,5,1)) = 95 AND ASCII(SUBSTRING(domain,6,1)) = 112 AND ASCII(SUBSTRING(domain,7,1)) = 114 AND ASCII(SUBSTRING(domain,8,1)) = 111 AND ASCII(SUBSTRING(domain,9,1)) = 118 AND ASCII(SUBSTRING(domain,10,1)) = 105 AND ASCII(SUBSTRING(domain,11,1)) = 100 AND ASCII(SUBSTRING(domain,12,1)) = 101 AND ASCII(SUBSTRING(domain,13,1)) = 114 AND ASCII(SUBSTRING(domain,14,1)) = 115)"`
+}
+
+func (oidcHistoricalRootItemV94) TableName() string { return "secret_rotation_items" }
+
+type oidcHistoricalRootProcessV94 struct {
+	InventoryVersion int `gorm:"not null;default:1;check:ck_secret_process_inventory_version,inventory_version = 1 OR inventory_version = 2 OR inventory_version = 3"`
+}
+
+func (oidcHistoricalRootProcessV94) TableName() string { return "secret_process_verifications" }
+
 func testOIDCMigration(t *testing.T, db *gorm.DB) {
 	ctx := context.Background()
+	// This historical fixture may reconstruct V94 only on an exclusively owned
+	// integration database with untouched, disabled V95 objects and no OAuth proof.
+	initialLedger := personalKeyBehaviorLedger(t, db)
+	if len(initialLedger) != 95 {
+		t.Fatal("historical V94 fixture requires exact current V95 ledger")
+	}
+	for i, row := range initialLedger {
+		if row.Version != i+1 {
+			t.Fatal("noncontiguous current ledger")
+		}
+	}
+	for table, want := range map[string]int64{"oauth_providers": 1, "oauth_bindings": 0, "oauth_ceremonies": 0} {
+		var count int64
+		if err := db.Table(table).Count(&count).Error; err != nil || count != want {
+			t.Fatal("historical fixture requires empty OAuth objects", table, count, err)
+		}
+	}
+	var oauthDefault entity.OAuthProvider
+	if err := db.Session(&gorm.Session{QueryFields: true}).Take(&oauthDefault, "id = ?", "oauth").Error; err != nil {
+		t.Fatal(err)
+	}
+	if oauthDefault.CreatedAt.IsZero() || oauthDefault.UpdatedAt.IsZero() {
+		t.Fatal("missing default OAuth birth")
+	}
+	oauthDefault.CreatedAt = time.Time{}
+	oauthDefault.UpdatedAt = time.Time{}
+	if !reflect.DeepEqual(oauthDefault, entity.OAuthProvider{ID: "oauth", ReviewRevision: strings.Repeat("0", 64), ConfigRevision: strings.Repeat("0", 64), PolicyRevision: strings.Repeat("0", 64), SecretGeneration: "0", ScopesJSON: "[]", SubjectPathJSON: "[]"}) {
+		t.Fatal("historical fixture cannot remove configured OAuth provenance")
+	}
+	for _, table := range []string{"sessions", "mfa_challenges"} {
+		var count int64
+		if err := db.Table(table).Where("oauth_binding_id <> '' OR oauth_binding_created_at IS NOT NULL OR oauth_config_revision <> '' OR oauth_policy_revision <> '' OR oauth_user_created_at IS NOT NULL OR primary_method = ?", "oauth").Count(&count).Error; err != nil || count != 0 {
+			t.Fatal("historical fixture contains OAuth primary", table, count, err)
+		}
+	}
+	if err := database.MigrateThrough(ctx, db, 94); err == nil {
+		t.Fatal("bounded migration accepted newer V95 ledger")
+	}
+	if !reflect.DeepEqual(initialLedger, personalKeyBehaviorLedger(t, db)) {
+		t.Fatal("rejected bound changed current ledger")
+	}
+	result := db.Table("schema_migrations").Where("version = ?", 95).Delete(&struct{}{})
+	if result.Error != nil || result.RowsAffected != 1 {
+		t.Fatal("remove only later V95 ledger in owned fixture", result.Error, result.RowsAffected)
+	}
+	for _, check := range []struct {
+		model any
+		name  string
+	}{
+		{&oidcFixtureSessionProofV94{}, "ck_sessions_oidc_primary"}, {&oidcFixtureMFAProofV94{}, "ck_mfa_challenges_oidc_primary"},
+		{&oidcHistoricalRootJobV94{}, "ck_secret_inventory_version"}, {&oidcHistoricalRootJobV94{}, "ck_secret_rotation_domain"},
+		{&oidcHistoricalRootItemV94{}, "ck_secret_item_domain"}, {&oidcHistoricalRootProcessV94{}, "ck_secret_process_inventory_version"},
+	} {
+		if db.Migrator().HasConstraint(check.model, check.name) {
+			if err := db.Migrator().DropConstraint(check.model, check.name); err != nil {
+				t.Fatal(err)
+			}
+		}
+		if err := db.Migrator().CreateConstraint(check.model, check.name); err != nil {
+			t.Fatal("restore exact frozen V94 constraint", check.name, err)
+		}
+	}
 	ledger := personalKeyBehaviorLedger(t, db)
 	if len(ledger) != 94 {
 		t.Fatal("OIDC requires the exact 94-version ledger")
@@ -222,7 +303,7 @@ func testOIDCMigration(t *testing.T, db *gorm.DB) {
 	}
 	migrate := func() {
 		t.Helper()
-		if err := database.Migrate(ctx, db); err != nil {
+		if err := database.MigrateThrough(ctx, db, 94); err != nil {
 			t.Fatal("restore V94", err)
 		}
 		assertLedger(true)
@@ -327,7 +408,7 @@ func testOIDCMigration(t *testing.T, db *gorm.DB) {
 	var wg sync.WaitGroup
 	results := make(chan error, 2)
 	for range 2 {
-		wg.Go(func() { results <- database.Migrate(ctx, db) })
+		wg.Go(func() { results <- database.MigrateThrough(ctx, db, 94) })
 	}
 	wg.Wait()
 	close(results)
@@ -404,7 +485,7 @@ func testOIDCMigration(t *testing.T, db *gorm.DB) {
 			t.Fatal("install incompatible fixture", bad.name, err)
 		}
 		remove94()
-		if err := database.Migrate(ctx, db); err == nil {
+		if err := database.MigrateThrough(ctx, db, 94); err == nil {
 			t.Fatal("incompatible OIDC column accepted", bad.name)
 		}
 		assertLedger(false)
@@ -432,7 +513,7 @@ func testOIDCMigration(t *testing.T, db *gorm.DB) {
 			t.Fatal(err)
 		}
 		remove94()
-		if err := database.Migrate(ctx, db); err == nil {
+		if err := database.MigrateThrough(ctx, db, 94); err == nil {
 			t.Fatal("wrong-shape OIDC index accepted", bad.name)
 		}
 		assertLedger(false)
@@ -560,4 +641,13 @@ func testOIDCMigration(t *testing.T, db *gorm.DB) {
 	if !reflect.DeepEqual(bindingBaseline, readBinding()) {
 		t.Fatal("V94 repeat changed exact binding subject/birth")
 	}
+	// Return the owned fixture to full current without changing any retained V1–V93 row.
+	if err := database.Migrate(ctx, db); err != nil {
+		t.Fatal("restore current after bounded historical fixture", err)
+	}
+	finalLedger := personalKeyBehaviorLedger(t, db)
+	if len(finalLedger) != 95 || !reflect.DeepEqual(ledger[:93], finalLedger[:93]) || finalLedger[94].Version != 95 {
+		t.Fatal("historical closure lost current suffix or retained prefix")
+	}
+
 }

@@ -5,7 +5,7 @@ import { createRoot, type Root } from 'react-dom/client'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { createMemoryRouter, RouterProvider } from 'react-router'
 import { AxiosError, AxiosHeaders, type InternalAxiosRequestConfig } from 'axios'
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi, type MockInstance } from 'vitest'
 import client from '@/api/client'
 import i18n, { languageStorageKey } from '@/i18n'
 import routes from '@/router'
@@ -27,8 +27,10 @@ let requests: InternalAxiosRequestConfig[]
 let fail: Record<string, number>
 let pendingLogin: Promise<void> | undefined
 const oldAdapter = client.defaults.adapter
+let renderErrors: MockInstance<typeof console.error>
 
 beforeEach(() => {
+  renderErrors = vi.spyOn(console, 'error')
   initialized = true
   authenticated = false
   registrationEnabled = false
@@ -75,6 +77,8 @@ beforeEach(() => {
         etag: 0,
       }
     if (key === 'get /announcements') response.data = { items: [] }
+    if (key === 'get /auth/oauth' || key === 'get /auth/oidc')
+      response.data = { available: false, name: '' }
     if (key === 'get /auth/registration')
       response.data = {
         enabled: registrationEnabled,
@@ -183,6 +187,11 @@ describe('authentication flows', () => {
     })
     await until(() => expect(document.title).toBe('Updated brand'))
     expect(container.querySelector('button[aria-label="Updated brand"]')).not.toBeNull()
+    expect(
+      renderErrors.mock.calls.filter(([message]) =>
+        String(message).includes('Cannot update a component'),
+      ),
+    ).toEqual([])
   })
 
   it('retains public branding while clearing anonymous private caches', async () => {

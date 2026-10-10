@@ -3,12 +3,13 @@ import { createRoot, type Root } from 'react-dom/client'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { MemoryRouter } from 'react-router'
 import { AxiosError, AxiosHeaders, type InternalAxiosRequestConfig } from 'axios'
-import { afterEach, beforeEach, expect, it } from 'vitest'
+import { afterEach, beforeEach, expect, it, vi, type MockInstance } from 'vitest'
 import i18n from '@/i18n'
 import client from '@/api/client'
 import RegistrationPage from './registration'
 Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true })
 const old = client.defaults.adapter
+let renderErrors: MockInstance<typeof console.error>
 let root: Root,
   host: HTMLDivElement,
   cache: QueryClient,
@@ -72,6 +73,7 @@ async function save() {
 }
 const writes = () => requests.filter((r) => r.method === 'patch')
 beforeEach(async () => {
+  renderErrors = vi.spyOn(console, 'error')
   await i18n.changeLanguage('en')
   host = document.createElement('div')
   document.body.append(host)
@@ -110,7 +112,10 @@ beforeEach(async () => {
           data: {},
         })
       data = { permissions: ['registration.write'] }
-    } else if (config.url === '/admin/auth/oidc' && config.method === 'get')
+    } else if (
+      ['/admin/auth/oidc', '/admin/auth/oauth'].includes(config.url ?? '') &&
+      config.method === 'get'
+    )
       return {
         config,
         status: 503,
@@ -160,6 +165,7 @@ afterEach(async () => {
   cache.clear()
   host.remove()
   client.defaults.adapter = old
+  renderErrors.mockRestore()
 })
 it('requires intrinsic administrator even when a non-admin has registration.write', async () => {
   role = 'member'
@@ -315,6 +321,11 @@ it('retains the exact uncertain policy through failed permission refetch and fre
         r.data === original.data && r.headers.get('If-Match') === original.headers.get('If-Match'),
     ),
   ).toBe(true)
+  expect(
+    renderErrors.mock.calls.filter(([message]) =>
+      String(message).includes('Cannot update a component'),
+    ),
+  ).toEqual([])
 })
 
 it.each([409, 412])(

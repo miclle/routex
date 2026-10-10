@@ -117,6 +117,25 @@ func rootRotationSeedLegacy(t *testing.T, db *gorm.DB, store *secretstore.Store)
 	if oidc.Error != nil || oidc.RowsAffected != 1 {
 		t.Fatal("seed retained OIDC singleton", oidc.Error, oidc.RowsAffected)
 	}
+	// Disabled custom OAuth configuration is independently retained and rewrapped.
+	oauthID, oauthGeneration := "oauth", strings.Repeat("e", 64)
+	oauth := db.Model(&entity.OAuthProvider{}).Where("id = ?", oauthID).Updates(map[string]any{
+		"Name":             "Retained OAuth provider",
+		"AuthorizationURL": "https://oauth.example.invalid/authorize",
+		"TokenURL":         "https://oauth.example.invalid/token",
+		"UserInfoURL":      "https://oauth.example.invalid/profile",
+		"ClientID":         "test-only-root-oauth-client",
+		"CallbackURL":      "https://routex.example.invalid/api/v1/auth/oauth/callback",
+		"ClientAuthMethod": "client_secret_basic",
+		"ScopesJSON":       `["profile"]`,
+		"SubjectPathJSON":  `["id"]`,
+		"Enabled":          false,
+		"SecretGeneration": oauthGeneration,
+		"AuthCiphertext":   seal("oauth_providers", "id", oauthID, "auth_ciphertext", "oauth:"+oauthID+":"+oauthGeneration, "test-only-retained-oauth-client-secret"),
+	})
+	if oauth.Error != nil || oauth.RowsAffected != 1 {
+		t.Fatal("seed retained OAuth singleton", oauth.Error, oauth.RowsAffected)
+	}
 	return result
 }
 
@@ -894,7 +913,7 @@ func testRootKeyRotationLifecycle(t *testing.T, db *gorm.DB) {
 	if observing.Rotation == nil || observing.Rotation.Status != "observing" || observing.Rotation.ObservationStartedAt == nil || observing.Rotation.ObservationEligibleAt == nil || observing.Rotation.ObservationEligibleAt.Sub(*observing.Rotation.ObservationStartedAt) != 300*time.Second || slices.Contains(observing.Rotation.AllowedActions, "retire") {
 		t.Fatalf("migration progress bypassed server observation: %+v", observing.Rotation)
 	}
-	expectedDomains := map[string]uint64{"provider_credentials": 2, "egresses": 1, "smtp_settings": 1, "storage_revisions": 25, "user_mfa": 4, "vault_writer_auth": 2, "vault_reader_auth": 2, "oidc_providers": 1}
+	expectedDomains := map[string]uint64{"provider_credentials": 2, "egresses": 1, "smtp_settings": 1, "storage_revisions": 25, "user_mfa": 4, "vault_writer_auth": 2, "vault_reader_auth": 2, "oidc_providers": 1, "oauth_providers": 1}
 	if len(observing.Rotation.Domains) != len(expectedDomains) {
 		t.Fatal("global observation omitted a retained encryption domain")
 	}

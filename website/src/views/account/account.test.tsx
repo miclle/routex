@@ -62,7 +62,7 @@ beforeEach(async () => {
     if (response.status >= 400) throw new AxiosError('Failure', '', config, undefined, response)
     if (route === 'get /auth/session') response.data = structuredClone(session)
     if (route === 'get /account/sessions') response.data = { items: structuredClone(sessions) }
-    if (route === 'get /account/identity') {
+    if (['get /account/identity', 'get /account/identity/oauth'].includes(route)) {
       const etag = 'a'.repeat(64)
       response.headers.set('ETag', `"${etag}"`)
       response.data = {

@@ -129,7 +129,7 @@ func oidcCurrentSession(tx *gorm.DB, a *Authentication, u entity.User, lock bool
 	if row.ID != a.Session.ID || row.UserID != u.ID || !row.CreatedAt.Equal(a.Session.CreatedAt) || row.TokenHash != secret.SHA256Hex(a.Token) || !row.ExpiresAt.After(time.Now().UTC()) {
 		return apperrors.ErrUnauthorized
 	}
-	return oidcValidatePrimary(tx, row)
+	return primaryValidateSession(tx, row)
 }
 func (s *Service) AccountOIDC(ctx context.Context, a *Authentication) (*OIDCAccountView, error) {
 	if a == nil {

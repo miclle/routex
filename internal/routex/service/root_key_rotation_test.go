@@ -13,7 +13,7 @@ func TestRootSecretObservationRequiresContinuousExactGeneration(t *testing.T) {
 	last := start.Add(300 * time.Second)
 	now := last
 	svc := &Service{rootNow: func() time.Time { return now }}
-	job := entity.SecretRotationJob{InventoryVersion: rootInventoryVersion, Domain: 8, CountsJSON: `{"provider_credentials":{},"egresses":{},"smtp_settings":{},"storage_revisions":{},"user_mfa":{},"vault_writer_auth":{},"vault_reader_auth":{},"oidc_providers":{}}`, Status: "ready", ObservationStartedAt: &start, ObservationLastConfirmedAt: &last, VerifiedProcessID: "ins_current", VerifiedSnapshotID: "cfg_current"}
+	job := entity.SecretRotationJob{InventoryVersion: rootInventoryVersion, Domain: 9, CountsJSON: `{"provider_credentials":{},"egresses":{},"smtp_settings":{},"storage_revisions":{},"user_mfa":{},"vault_writer_auth":{},"vault_reader_auth":{},"oidc_providers":{},"oauth_providers":{}}`, Status: "ready", ObservationStartedAt: &start, ObservationLastConfirmedAt: &last, VerifiedProcessID: "ins_current", VerifiedSnapshotID: "cfg_current"}
 	proof := entity.SecretProcessVerification{InventoryVersion: rootInventoryVersion, ProcessID: "ins_current", RuntimeSnapshotID: "cfg_current"}
 	if !svc.rootObservationEligible(job, proof) {
 		t.Fatal("continuous300s not eligible")
@@ -82,7 +82,7 @@ func TestRootSecretJobProgressHasNoInventedDenominator(t *testing.T) {
 	}
 }
 func TestRootSecretAllHistoricalDomainsAndReferenceIdentity(t *testing.T) {
-	if len(rootDomains) != 8 {
+	if len(rootDomains) != 9 {
 		t.Fatal("partial-domain rotation")
 	}
 	for _, domain := range rootDomains {
@@ -167,5 +167,11 @@ func TestRootOIDCInventoryKeepsHistoricalScopesSeparate(t *testing.T) {
 	proof := entity.SecretProcessVerification{InventoryVersion: 2, ProcessID: "ins_same", RuntimeSnapshotID: "cfg_same"}
 	if s.rootObservationEligible(job, proof) {
 		t.Fatal("old seven-domain proof authorized eight-domain retirement")
+	}
+	job.InventoryVersion = 3
+	job.Domain = 8
+	proof.InventoryVersion = 3
+	if s.rootObservationEligible(job, proof) {
+		t.Fatal("old eight-domain proof authorized nine-domain retirement")
 	}
 }

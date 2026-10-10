@@ -97,7 +97,7 @@ func oidcOriginalSession(tx *gorm.DB, c entity.OIDCCeremony) (entity.User, error
 	if row.ID != c.SessionID || row.UserID != u.ID || !row.CreatedAt.Equal(*c.SessionCreatedAt) || !row.ExpiresAt.After(time.Now().UTC()) {
 		return u, apperrors.ErrUnauthorized
 	}
-	if e = oidcValidatePrimary(tx, row); e != nil {
+	if e = primaryValidateSession(tx, row); e != nil {
 		return u, e
 	}
 	m, e := mfaState(tx, u.ID)

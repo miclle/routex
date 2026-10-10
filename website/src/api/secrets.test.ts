@@ -228,7 +228,7 @@ it('rejects unknown/missing inventory versions and five/seven aliasing', () => {
   const value = store()
   Object.assign(value, { inventory_version: 1 })
   expect(() => parseSecretStore(value)).toThrow()
-  value.inventory_version = 3
+  value.inventory_version = 4
   value.rotation = job()
   value.rotation.inventory_version = 2
   expect(() => parseSecretStore(value)).toThrow()
@@ -237,7 +237,7 @@ it('rejects unknown/missing inventory versions and five/seven aliasing', () => {
   expect(() => parseSecretStore(value)).toThrow()
 })
 
-it.each([1, 2, 3] as const)(
+it.each([1, 2, 3, 4] as const)(
   'preserves the exact ordered domain scope of inventory V%s in status and receipts',
   (version) => {
     const value = store()
@@ -249,10 +249,11 @@ it.each([1, 2, 3] as const)(
       'storage_revisions',
       'user_mfa',
       ...(version >= 2 ? ['vault_writer_auth', 'vault_reader_auth'] : []),
-      ...(version === 3 ? ['oidc_providers'] : []),
+      ...(version >= 3 ? ['oidc_providers'] : []),
+      ...(version === 4 ? ['oauth_providers'] : []),
     ]
     const parsed = parseSecretStore(value)
-    expect(parsed.inventory_version).toBe(3)
+    expect(parsed.inventory_version).toBe(4)
     expect(parsed.rotation?.inventory_version).toBe(version)
     expect(parsed.rotation?.domains.map((domain) => domain.code)).toEqual(expected)
     expect(parsed.rotation?.domains[0].scanned).toBe('9007199254740993')
@@ -261,7 +262,7 @@ it.each([1, 2, 3] as const)(
     expect(parseSecretResult(result, intent).rotation).toEqual(value.rotation)
   },
 )
-it.each([1, 2, 4, null, undefined])(
+it.each([1, 2, 3, 5, null, undefined])(
   'rejects inventory %s as current process/status coverage',
   (version) => {
     const value = store()
@@ -286,7 +287,7 @@ it.each([
       value.rotation.domains[6],
     ]
   if (kind === 'duplicate-tail') value.rotation.domains[7] = value.rotation.domains[6]
-  if (kind === 'unknown-version') Object.assign(value.rotation, { inventory_version: 4 })
+  if (kind === 'unknown-version') Object.assign(value.rotation, { inventory_version: 5 })
   expect(() => parseSecretStore(value)).toThrow(SecretError)
   const result = receipt(intent)
   result.rotation = value.rotation
@@ -318,5 +319,60 @@ it('keeps unscanned current OIDC coverage unknown instead of asserting zero work
   })
   expect(parseSecretStore(value).rotation?.domains[7]).toEqual(value.rotation.domains[7])
   value.rotation.domains[7].scanned = '0'
+  expect(() => parseSecretStore(value)).toThrow(SecretError)
+})
+
+it.each([
+  'missing-oauth',
+  'extra-oauth-in-v3',
+  'reordered-oauth',
+  'duplicate-oauth',
+  'null-oauth-count',
+])('rejects V4 aliasing without changing historical V3: %s', (kind) => {
+  const value = store()
+  value.rotation = job(4)
+  if (kind === 'missing-oauth') value.rotation.domains.pop()
+  if (kind === 'extra-oauth-in-v3') value.rotation.inventory_version = 3
+  if (kind === 'reordered-oauth')
+    [value.rotation.domains[7], value.rotation.domains[8]] = [
+      value.rotation.domains[8],
+      value.rotation.domains[7],
+    ]
+  if (kind === 'duplicate-oauth') value.rotation.domains[8] = value.rotation.domains[7]
+  if (kind === 'null-oauth-count') value.rotation.domains[8].scanned = null
+  expect(() => parseSecretStore(value)).toThrow(SecretError)
+  const result = receipt(intent)
+  result.rotation = value.rotation
+  expect(() => parseSecretResult(result, intent)).toThrow(SecretError)
+})
+it('retains V3 blockers and actions without claiming OAuth coverage or retirement', () => {
+  const value = store()
+  value.rotation = {
+    ...job(3),
+    status: 'blocked',
+    blocker_codes: ['inventory_scope_changed'],
+    allowed_actions: ['resume', 'rollback'],
+  }
+  const parsed = parseSecretStore(value)
+  expect(parsed.inventory_version).toBe(4)
+  expect(parsed.rotation).toEqual(value.rotation)
+  expect(parsed.rotation?.domains.map((row) => row.code)).not.toContain('oauth_providers')
+  expect(parsed.rotation?.domains).toHaveLength(8)
+  expect(parsed.rotation?.allowed_actions).not.toContain('retire')
+})
+it('keeps unscanned current OAuth counts unknown rather than zero', () => {
+  const value = store()
+  value.rotation = job(4)
+  Object.assign(value.rotation.domains[8], {
+    coverage: 'not_scanned',
+    scanned: null,
+    rewrapped: null,
+    already_target: null,
+    deleted: null,
+    changed: null,
+    blocked: null,
+  })
+  expect(parseSecretStore(value).rotation?.domains[8]).toEqual(value.rotation.domains[8])
+  value.rotation.domains[8].scanned = '0'
   expect(() => parseSecretStore(value)).toThrow(SecretError)
 })

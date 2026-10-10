@@ -1,0 +1,975 @@
+import { act, type ReactNode } from 'react'
+import { createRoot, type Root } from 'react-dom/client'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { createMemoryRouter, RouterProvider } from 'react-router'
+import { AxiosError, AxiosHeaders, type InternalAxiosRequestConfig } from 'axios'
+import { afterEach, beforeEach, describe, expect, it, vi, type MockInstance } from 'vitest'
+import client from '@/api/client'
+import i18n from '@/i18n'
+import routes from '@/router'
+import OAuthConfiguration from './config'
+import OAuthAccount from './account'
+import OAuthComplete from './complete'
+import OAuthLoginButton from './login-button'
+import AuthPage from '@/views/auth'
+import type { Session } from '@/types/auth'
+import type { OAuthConfig, OAuthIdentity } from '@/types/oauth'
+Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true })
+const adapter = client.defaults.adapter
+let renderErrors: MockInstance<typeof console.error>
+const etag = 'a'.repeat(64)
+let host: HTMLDivElement,
+  root: Root,
+  cache: QueryClient,
+  router: ReturnType<typeof createMemoryRouter>
+let session: Session | null, grants: string[], config: OAuthConfig, identity: OAuthIdentity
+let unlinkSessionLoss: boolean
+let configSessionLoss: 'save' | 'status' | null
+let sessionReplies: number
+let heldSession: { promise: Promise<void>; release: () => void } | undefined
+let requests: InternalAxiosRequestConfig[],
+  failures: Record<string, number>,
+  completeResult: unknown,
+  completeStatus: number
+let held: { path: string; promise: Promise<void>; release: () => void } | undefined
+beforeEach(async () => {
+  renderErrors = vi.spyOn(console, 'error')
+  await i18n.changeLanguage('en')
+  host = document.createElement('div')
+  document.body.append(host)
+  root = createRoot(host)
+  cache = new QueryClient({
+    defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+  })
+  session = {
+    user: { id: 'usr_alice', name: 'Alice', email: 'alice@example.test', role: 'admin' },
+    csrf_token: 'csrf-current',
+  }
+  grants = ['registration.write']
+  config = {
+    name: 'Enterprise',
+    authorization_url: 'https://identity.example.test/authorize',
+    token_url: 'https://identity.example.test/token',
+    user_info_url: 'https://identity.example.test/profile',
+    client_auth_method: 'client_secret_basic' as const,
+    scopes: ['profile'],
+    subject_path: ['account', 'id'],
+    client_id: 'routex',
+    callback_url: 'https://routex.example.test/api/v1/auth/oauth/callback',
+    secret_configured: true,
+    enabled: false,
+    verified: false,
+    mfa_required: false,
+    review_etag: etag,
+  }
+  identity = {
+    available: true,
+    name: 'Enterprise',
+    bound: false,
+    mfa_required: false,
+    review_etag: etag,
+  }
+  requests = []
+  failures = {}
+  unlinkSessionLoss = false
+  configSessionLoss = null
+  sessionReplies = 0
+  heldSession = undefined
+  completeResult = { kind: 'bound' }
+  completeStatus = 200
+  held = undefined
+  client.defaults.adapter = async (request) => {
+    requests.push(request)
+    const path = request.url!
+    if (held?.path === path && request.method !== 'get') await held.promise
+    let status = failures[path] ?? 200
+    let data: unknown = {}
+    if (path === '/auth/session') {
+      data = session ? structuredClone(session) : null
+      if (!data) status = 401
+      if (heldSession) await heldSession.promise
+      sessionReplies++
+    } else if (path === '/auth/permissions') data = { permissions: grants }
+    else if (path === '/site')
+      data = {
+        name: 'RouteX',
+        logo_url: '',
+        footer: '',
+        default_language: 'en',
+        service_url: '',
+        etag: '0',
+        updated_at: '2026-10-10T00:00:00Z',
+      }
+    else if (path === '/auth/registration')
+      data = { enabled: false, approval_required: false, allowed_email_domains: [] }
+    else if (path === '/auth/oidc') data = { available: true, name: 'Existing OIDC' }
+    else if (path === '/auth/oauth') data = { available: true, name: 'Enterprise' }
+    else if (path === '/admin/auth/oauth') {
+      if (request.method === 'put' && status === 200) {
+        const body = JSON.parse(request.data)
+        const security =
+          [
+            'authorization_url',
+            'token_url',
+            'user_info_url',
+            'client_id',
+            'callback_url',
+            'client_auth_method',
+          ].some((key) => body[key] !== config[key as keyof OAuthConfig]) ||
+          JSON.stringify(body.scopes) !== JSON.stringify(config.scopes) ||
+          JSON.stringify(body.subject_path) !== JSON.stringify(config.subject_path) ||
+          body.secret_action === 'replace'
+        config = {
+          ...config,
+          name: body.name,
+          authorization_url: body.authorization_url,
+          token_url: body.token_url,
+          user_info_url: body.user_info_url,
+          client_auth_method: body.client_auth_method,
+          scopes: [...body.scopes],
+          subject_path: [...body.subject_path],
+          client_id: body.client_id,
+          callback_url: body.callback_url,
+          review_etag: 'b'.repeat(64),
+          ...(security ? { enabled: false, verified: false } : {}),
+        }
+        if (configSessionLoss === 'save') session = null
+      }
+      data = { ...config }
+    } else if (path === '/account/identity/oauth') data = { ...identity }
+    else if (path === '/account/identity/oauth/unlink') {
+      identity = { ...identity, bound: false, review_etag: 'b'.repeat(64) }
+      data = identity
+      if (unlinkSessionLoss) session = null
+    } else if (path === '/admin/auth/oauth/status') {
+      const body = JSON.parse(request.data)
+      config = { ...config, enabled: body.enabled, review_etag: 'b'.repeat(64) }
+      data = config
+      if (configSessionLoss === 'status') session = null
+    } else if (path === '/auth/oauth/complete') {
+      data = completeResult
+      status = failures[path] ?? completeStatus
+    } else if (path === '/auth/mfa/verify')
+      data = session ?? {
+        user: { id: 'usr_alice', name: 'Alice', email: 'alice@example.test', role: 'member' },
+        csrf_token: 'new-csrf',
+      }
+    else if (
+      ['/auth/oauth/start', '/account/identity/oauth/bind', '/admin/auth/oauth/verify'].includes(
+        path,
+      )
+    )
+      data = { authorization_url: 'https://identity.example.test/authorize?state=server-state' }
+    const response = {
+      config: request,
+      status,
+      statusText: '',
+      data,
+      headers: new AxiosHeaders({
+        ETag: `"${path.startsWith('/account/') ? identity.review_etag : config.review_etag}"`,
+      }),
+    }
+    if (path === '/auth/session' && status >= 400)
+      throw new AxiosError('Session unavailable', undefined, request, undefined, response)
+    return response
+  }
+})
+afterEach(async () => {
+  held?.release()
+  heldSession?.release()
+  await act(async () => root.unmount())
+  cache.clear()
+  host.remove()
+  document.querySelectorAll('[data-base-ui-portal]').forEach((element) => element.remove())
+  client.defaults.adapter = adapter
+  renderErrors.mockRestore()
+})
+async function mount(node: ReactNode, path = '/test') {
+  router = createMemoryRouter(
+    [
+      { path, element: node },
+      { path: '/', element: <p>Workspace</p> },
+      { path: '/login', element: <p>Local sign-in</p> },
+      { path: '/account/security', element: <p>Security destination</p> },
+      { path: '/admin/auth', element: <p>Authentication destination</p> },
+    ],
+    { initialEntries: [path] },
+  )
+  await act(async () =>
+    root.render(
+      <QueryClientProvider client={cache}>
+        <RouterProvider router={router} />
+      </QueryClientProvider>,
+    ),
+  )
+}
+async function wait(check: () => boolean) {
+  for (let count = 0; count < 100; count++) {
+    if (check()) return
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 5))
+    })
+  }
+  expect(check()).toBe(true)
+}
+function button(text: string) {
+  const element = Array.from(document.querySelectorAll('button')).find(
+    (value) => value.textContent === text,
+  )
+  expect(element, text).toBeDefined()
+  return element!
+}
+async function click(text: string) {
+  await act(async () => button(text).click())
+}
+function input(label: string, value: string) {
+  const element = Array.from(document.querySelectorAll('label'))
+    .find((item) => item.textContent === label)
+    ?.querySelector('input')
+  expect(element, label).toBeDefined()
+  Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!.call(element, value)
+  element!.dispatchEvent(new Event('input', { bubbles: true }))
+}
+function hold(path: string) {
+  let release!: () => void
+  const promise = new Promise<void>((resolve) => {
+    release = resolve
+  })
+  held = { path, promise, release }
+  return release
+}
+const writes = () => requests.filter((request) => request.method !== 'get')
+async function openConfig() {
+  await wait(() => document.body.textContent!.includes('Configure custom OAuth'))
+  await click('Configure custom OAuth')
+}
+async function prepareNameSave() {
+  await openConfig()
+  await act(async () => {
+    input('Display name', 'Enterprise renamed')
+    input('Reason', 'Reviewed display name only')
+  })
+  await click('Review configuration')
+}
+describe('OAuth existing compositions and lifetimes', () => {
+  it('requires independent intrinsic administrator and fresh registration authority before configuration reads', async () => {
+    session!.user.role = 'member'
+    await mount(<OAuthConfiguration />)
+    await wait(() => requests.some((request) => request.url === '/auth/permissions'))
+    expect(requests.some((request) => request.url === '/admin/auth/oauth')).toBe(false)
+    expect(document.body.textContent).not.toContain('Configure custom OAuth')
+  })
+  it('requires registration.write even for an intrinsic administrator', async () => {
+    grants = []
+    await mount(<OAuthConfiguration />)
+    await wait(() => requests.some((request) => request.url === '/auth/permissions'))
+    expect(requests.some((request) => request.url === '/admin/auth/oauth')).toBe(false)
+    expect(writes()).toHaveLength(0)
+  })
+  it('confirms a name-only exact reviewed write without a secret, binding reset or automatic Enable/Verify', async () => {
+    config.verified = true
+    await mount(<OAuthConfiguration />)
+    await prepareNameSave()
+    expect(writes()).toHaveLength(0)
+    expect(document.body.textContent).toContain('Changing only the display name preserves')
+    await click('Confirm')
+    await wait(() => writes().length === 1)
+    const request = writes()[0]
+    expect(request.url).toBe('/admin/auth/oauth')
+    expect(request.headers.get('If-Match')).toBe(`"${etag}"`)
+    expect(request.headers.get('X-CSRF-Token')).toBe('csrf-current')
+    expect(JSON.parse(request.data)).toEqual({
+      name: 'Enterprise renamed',
+      authorization_url: config.authorization_url,
+      token_url: config.token_url,
+      user_info_url: config.user_info_url,
+      client_auth_method: config.client_auth_method,
+      scopes: [...config.scopes],
+      subject_path: [...config.subject_path],
+      client_id: config.client_id,
+      callback_url: config.callback_url,
+      secret_action: 'keep',
+      client_secret: '',
+      reason: 'Reviewed display name only',
+    })
+    await wait(() => document.body.textContent!.includes('Current configuration saved.'))
+    expect(config.verified).toBe(true)
+    expect(cache.getMutationCache().getAll()).toHaveLength(0)
+  })
+  it('retains unknown exact save intent across current review and refuses to substitute a new token on retry', async () => {
+    await mount(<OAuthConfiguration />)
+    await prepareNameSave()
+    failures['/admin/auth/oauth'] = 503
+    await click('Confirm')
+    await wait(() => document.body.textContent!.includes('The submitted outcome is unknown'))
+    config.review_etag = 'c'.repeat(64)
+    delete failures['/admin/auth/oauth']
+    await click('Read current facts')
+    await wait(() => document.body.textContent!.includes('Retry original request'))
+    failures['/admin/auth/oauth'] = 409
+    await click('Retry original request')
+    await wait(() => writes().length === 2)
+    expect(writes()[0].data).toBe(writes()[1].data)
+    expect(writes()[1].headers.get('If-Match')).toBe(`"${etag}"`)
+    expect(document.body.textContent).toContain(
+      'Reading matching current facts does not prove the original operation',
+    )
+  })
+  it('synchronously fences captured close and duplicate confirmation while the save is held', async () => {
+    const release = hold('/admin/auth/oauth')
+    await mount(<OAuthConfiguration />)
+    await prepareNameSave()
+    const confirm = button('Confirm')
+    const close = document.querySelector<HTMLButtonElement>('[aria-label="Close"]')!
+    await act(async () => {
+      confirm.click()
+      close.click()
+      confirm.click()
+    })
+    await wait(() => writes().length === 1)
+    expect(document.querySelector('[role="dialog"]')).not.toBeNull()
+    release()
+  })
+  it('rejects an ignored-abort late name response after actor change without resurrecting old private reads', async () => {
+    const release = hold('/admin/auth/oauth')
+    await mount(<OAuthConfiguration />)
+    await prepareNameSave()
+    await click('Confirm')
+    await wait(() => writes().length === 1)
+    await act(async () => {
+      session = { ...session!, user: { ...session!.user, id: 'usr_bob', role: 'member' } }
+      cache.setQueryData(['auth', 'session'], session)
+      cache.removeQueries({ queryKey: ['oauth'] })
+    })
+    release()
+    await act(async () => {
+      await Promise.resolve()
+    })
+    expect(document.body.textContent).not.toContain('Current configuration saved.')
+    expect(
+      cache
+        .getQueryCache()
+        .getAll()
+        .some(
+          (query) =>
+            query.queryKey[0] === 'oauth' &&
+            query.queryKey.includes('usr_alice') &&
+            query.state.data !== undefined,
+        ),
+    ).toBe(false)
+  })
+  it('lets a read-authorized ordinary member review self-binding without registration.write and changes language live', async () => {
+    session!.user.role = 'member'
+    grants = []
+    await mount(<OAuthAccount />)
+    await wait(() => document.body.textContent!.includes('Link identity'))
+    await click('Link identity')
+    expect(document.body.textContent).toContain('Email is not used to link accounts')
+    await act(async () => {
+      input('Current password', 'local password proof')
+      input('Reason', 'Explicit self link')
+      await i18n.changeLanguage('zh')
+    })
+    expect(document.body.textContent).toContain('关联身份')
+    expect(document.querySelector<HTMLInputElement>('input[type="password"]')?.value).toBe(
+      'local password proof',
+    )
+    expect(writes()).toHaveLength(0)
+  })
+  it('clears and hides self identity on expiry before a captured callback can dispatch', async () => {
+    await mount(<OAuthAccount />)
+    await wait(() => document.body.textContent!.includes('Link identity'))
+    await click('Link identity')
+    await act(async () => {
+      input('Current password', 'local password proof')
+      input('Reason', 'Explicit self link')
+    })
+    await click('Review change')
+    const confirm = button('Confirm')
+    await act(async () => {
+      window.dispatchEvent(new Event('routex:session-expired'))
+      confirm.click()
+    })
+    expect(writes()).toHaveLength(0)
+    expect(document.querySelector('input[type="password"]')).toBeNull()
+    expect(document.body.textContent).not.toContain('Not linked')
+  })
+  it('refreshes the real Session after unlink and signs out a revoked OAuth caller', async () => {
+    identity.bound = true
+    unlinkSessionLoss = true
+    await mount(<OAuthAccount />)
+    await wait(() => document.body.textContent!.includes('Unlink identity'))
+    await click('Unlink identity')
+    await act(async () => {
+      input('Current password', 'local password proof')
+      input('Reason', 'Remove this binding')
+    })
+    await click('Review change')
+    expect(writes()).toHaveLength(0)
+    await click('Confirm')
+    await wait(() => router.state.location.pathname === '/login')
+    expect(writes()).toHaveLength(1)
+    expect(writes()[0].url).toBe('/account/identity/oauth/unlink')
+    expect(writes()[0].headers.get('If-Match')).toBe(`"${etag}"`)
+    expect(JSON.parse(writes()[0].data)).toEqual({
+      password: 'local password proof',
+      proof: {},
+      reason: 'Remove this binding',
+    })
+    expect(cache.getQueryData(['auth', 'session'])).toBeNull()
+    expect(
+      cache
+        .getQueryCache()
+        .getAll()
+        .some((query) => query.queryKey[0] === 'oauth' && query.state.data !== undefined),
+    ).toBe(false)
+    expect(
+      renderErrors.mock.calls.filter(([message]) =>
+        String(message).includes('Cannot update a component'),
+      ),
+    ).toEqual([])
+  })
+  it('retains exact uncertain config after same-owner renewal and never accepts the late response as saved', async () => {
+    const release = hold('/admin/auth/oauth')
+    await mount(<OAuthConfiguration />)
+    await prepareNameSave()
+    await click('Confirm')
+    await wait(() => writes().length === 1)
+    await act(async () => {
+      session = { ...session!, csrf_token: 'renewed-csrf' }
+      cache.setQueryData(['auth', 'session'], session)
+    })
+    release()
+    await wait(() => document.body.textContent!.includes('Retry original request'))
+    expect(document.body.textContent).not.toContain('Current configuration saved.')
+    failures['/admin/auth/oauth'] = 409
+    await click('Retry original request')
+    await wait(() => writes().length === 2)
+    expect(writes()[1].data).toBe(writes()[0].data)
+    expect(writes()[1].headers.get('If-Match')).toBe(`"${etag}"`)
+    expect(writes()[1].headers.get('X-CSRF-Token')).toBe('renewed-csrf')
+  })
+  it('shows security-reset consequences only for security fields and translates the open confirmation', async () => {
+    await mount(<OAuthConfiguration />)
+    await openConfig()
+    await act(async () => {
+      input('Authorization endpoint', 'https://new-identity.example.test')
+      input('Reason', 'Change identity authority')
+    })
+    await click('Review configuration')
+    expect(document.body.textContent).toContain(
+      'removes existing bindings and revokes dependent OAuth Sessions',
+    )
+    await act(async () => i18n.changeLanguage('zh'))
+    expect(document.body.textContent).toContain('移除现有关联')
+    expect(document.body.textContent).toContain('确认身份变更')
+    expect(writes()).toHaveLength(0)
+  })
+  it('keeps the production completion route outside login/private redirect gates for an authenticated caller', async () => {
+    cache.setQueryData(['auth', 'session'], session)
+    router = createMemoryRouter(routes, { initialEntries: ['/auth/oauth/complete'] })
+    await act(async () =>
+      root.render(
+        <QueryClientProvider client={cache}>
+          <RouterProvider router={router} />
+        </QueryClientProvider>,
+      ),
+    )
+    await wait(() =>
+      Array.from(document.querySelectorAll('button')).some(
+        (element) => element.textContent === 'Continue',
+      ),
+    )
+    expect(router.state.location.pathname).toBe('/auth/oauth/complete')
+    expect(requests.some((request) => request.url === '/auth/session')).toBe(false)
+    expect(writes()).toHaveLength(0)
+  })
+  it('does not auto-consume completion and reauthorizes the original current Session before fixed bind navigation', async () => {
+    await mount(<OAuthComplete />, '/auth/oauth/complete')
+    expect(writes()).toHaveLength(0)
+    await click('Continue')
+    await wait(() => router.state.location.pathname === '/account/security')
+    expect(writes()).toHaveLength(1)
+    expect(writes()[0].url).toBe('/auth/oauth/complete')
+    expect(writes()[0].headers.get('X-CSRF-Token')).toBe('csrf-current')
+    expect(JSON.parse(writes()[0].data)).toEqual({})
+    expect(requests.findIndex((request) => request.url === '/auth/session')).toBeGreaterThanOrEqual(
+      0,
+    )
+    expect(requests.findIndex((request) => request.url === '/auth/session')).toBeLessThan(
+      requests.findIndex((request) => request.url === '/auth/oauth/complete'),
+    )
+    expect(cache.getMutationCache().getAll()).toHaveLength(0)
+  })
+  it('keeps MFA202 transient and never navigates or installs a Session before the real proof', async () => {
+    session = null
+    completeStatus = 202
+    completeResult = {
+      mfa_required: true,
+      challenge_token: 'a'.repeat(43),
+      expires_at: new Date(Date.now() + 60000).toISOString(),
+      methods: ['totp', 'recovery_code'],
+    }
+    cache.setQueryData(['auth', 'session'], null)
+    await mount(<OAuthComplete />, '/auth/oauth/complete')
+    await click('Continue')
+    await wait(() => document.querySelector('input[name="code"]') !== null)
+    expect(router.state.location.pathname).toBe('/auth/oauth/complete')
+    expect(cache.getQueryData(['auth', 'session'])).toBeNull()
+    expect(
+      JSON.stringify(
+        cache
+          .getQueryCache()
+          .getAll()
+          .map((query) => query.state.data),
+      ),
+    ).not.toContain('challenge_token')
+    await act(async () => {
+      const element = document.querySelector<HTMLInputElement>('input[name="code"]')!
+      Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!.call(
+        element,
+        '123456',
+      )
+      element.dispatchEvent(new Event('input', { bubbles: true }))
+    })
+    await act(async () =>
+      document
+        .querySelector('form')!
+        .dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })),
+    )
+    await wait(() => router.state.location.pathname === '/')
+    expect(requests.filter((request) => request.url === '/auth/mfa/verify')).toHaveLength(1)
+    expect(cache.getMutationCache().getAll()).toHaveLength(0)
+  })
+  it('rejects a completion response after same-owner Session renewal and never replays the consumed request', async () => {
+    const release = hold('/auth/oauth/complete')
+    await mount(<OAuthComplete />, '/auth/oauth/complete')
+    await click('Continue')
+    await wait(() => writes().length === 1)
+    await act(async () =>
+      cache.setQueryData(['auth', 'session'], { ...session!, csrf_token: 'renewed-csrf' }),
+    )
+    release()
+    await act(async () => {
+      await Promise.resolve()
+    })
+    expect(router.state.location.pathname).toBe('/auth/oauth/complete')
+    expect(document.body.textContent).toContain('Unable to confirm this completion')
+    expect(writes()).toHaveLength(1)
+    expect(
+      Array.from(document.querySelectorAll('button')).some(
+        (element) => element.textContent === 'Continue',
+      ),
+    ).toBe(false)
+  })
+  it('does not install or navigate from an unmounted completion response', async () => {
+    session = null
+    cache.setQueryData(['auth', 'session'], null)
+    completeResult = {
+      user: { id: 'usr_alice', name: 'Alice', email: 'alice@example.test', role: 'member' },
+      csrf_token: 'new-csrf',
+    }
+    const release = hold('/auth/oauth/complete')
+    await mount(<OAuthComplete />, '/auth/oauth/complete')
+    await click('Continue')
+    await wait(() => writes().length === 1)
+    await act(async () => router.navigate('/login'))
+    release()
+    await act(async () => {
+      await Promise.resolve()
+    })
+    expect(router.state.location.pathname).toBe('/login')
+    expect(cache.getQueryData(['auth', 'session'])).toBeNull()
+  })
+  it('prevents OAuth start when the existing password form owns the synchronous dispatch lock', async () => {
+    session = null
+    await mount(<OAuthLoginButton acquire={() => null} />)
+    await wait(() => document.body.textContent!.includes('Continue with Enterprise'))
+    await click('Continue with Enterprise')
+    expect(writes()).toHaveLength(0)
+    await act(async () => i18n.changeLanguage('zh'))
+    expect(document.body.textContent).toContain('使用 Enterprise 登录')
+  })
+})
+
+async function prepareStatusSave() {
+  await openConfig()
+  await act(async () => {
+    const section = Array.from(document.querySelectorAll('section')).find((element) =>
+      element.textContent?.includes('Sign-in availability'),
+    )!
+    const element = section.querySelector('input')!
+    Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!.call(
+      element,
+      'Explicit configuration disable',
+    )
+    element.dispatchEvent(new Event('input', { bubbles: true }))
+  })
+  await click('Review Disable')
+}
+function holdSessionRead() {
+  let release!: () => void
+  const promise = new Promise<void>((resolve) => {
+    release = resolve
+  })
+  heldSession = { promise, release }
+  return release
+}
+it.each(['save', 'status'] as const)(
+  'settles a revoked OAuth caller after successful %s without retaining private caches',
+  async (kind) => {
+    configSessionLoss = kind
+    config.enabled = true
+    config.verified = true
+    cache.setQueryData(['unrelated-private'], { recorded: true })
+    await mount(<OAuthConfiguration />)
+    if (kind === 'save') {
+      await openConfig()
+      await act(async () => {
+        input('Authorization endpoint', 'https://replacement.example.test')
+        input('Reason', 'Explicit authority replacement')
+      })
+      await click('Review configuration')
+    } else await prepareStatusSave()
+    await click('Confirm')
+    await wait(() => router.state.location.pathname === '/login')
+    expect(writes()).toHaveLength(1)
+    expect(writes()[0].url).toBe(kind === 'save' ? '/admin/auth/oauth' : '/admin/auth/oauth/status')
+    expect(writes()[0].headers.get('If-Match')).toBe(`"${etag}"`)
+    expect(requests.filter((request) => request.url === '/auth/session')).toHaveLength(2)
+    expect(cache.getQueryData(['auth', 'session'])).toBeNull()
+    expect(cache.getQueryData(['unrelated-private'])).toBeUndefined()
+    expect(
+      cache
+        .getQueryCache()
+        .getAll()
+        .some((query) => query.queryKey[0] === 'oauth' && query.state.data !== undefined),
+    ).toBe(false)
+    expect(cache.getMutationCache().getAll()).toHaveLength(0)
+    expect(document.body.textContent).not.toContain('Current configuration saved.')
+  },
+)
+it('keeps a retained local caller only after fresh Session settlement of the exact successful save', async () => {
+  await mount(<OAuthConfiguration />)
+  await prepareNameSave()
+  await click('Confirm')
+  await wait(() => document.body.textContent!.includes('Current configuration saved.'))
+  expect(router.state.location.pathname).toBe('/test')
+  expect(requests.filter((request) => request.url === '/auth/session')).toHaveLength(2)
+  expect(cache.getQueryData(['auth', 'session'])).toEqual(session)
+  expect(writes()).toHaveLength(1)
+  expect(JSON.parse(writes()[0].data).name).toBe('Enterprise renamed')
+  expect(document.body.textContent).not.toContain('Retry original request')
+})
+it('installs a fresh renewed local Session only after settling the acknowledged write and clearing old private facts', async () => {
+  await mount(<OAuthConfiguration />)
+  await prepareNameSave()
+  cache.setQueryData(['unrelated-private'], { recorded: true })
+  session = { ...session!, csrf_token: 'fresh-settled-csrf' }
+  await click('Confirm')
+  await wait(
+    () => cache.getQueryData<Session>(['auth', 'session'])?.csrf_token === 'fresh-settled-csrf',
+  )
+  expect(router.state.location.pathname).toBe('/test')
+  expect(cache.getQueryData(['unrelated-private'])).toBeUndefined()
+  expect(writes()).toHaveLength(1)
+  expect(writes()[0].headers.get('X-CSRF-Token')).toBe('csrf-current')
+  expect(document.body.textContent).not.toContain('The submitted outcome is unknown')
+  expect(document.body.textContent).not.toContain('Retry original request')
+})
+it.each(['actor', 'session', 'unmount'] as const)(
+  'ignores an obsolete null Session settlement after %s change without clearing current private state',
+  async (change) => {
+    configSessionLoss = 'save'
+    await mount(<OAuthConfiguration />)
+    await prepareNameSave()
+    const release = holdSessionRead()
+    await click('Confirm')
+    await wait(() => requests.filter((request) => request.url === '/auth/session').length === 2)
+    const next: Session = {
+      user: {
+        id: change === 'actor' ? 'usr_bob' : 'usr_alice',
+        name: 'Alice',
+        email: 'alice@example.test',
+        role: change === 'actor' ? 'member' : 'admin',
+      },
+      csrf_token: 'new-owner-csrf',
+    }
+    await act(async () => {
+      if (change === 'unmount') await router.navigate('/account/security')
+      else cache.setQueryData(['auth', 'session'], next)
+      cache.setQueryData(['current-private'], { current: true })
+    })
+    release()
+    await wait(() => sessionReplies === 2)
+    expect(router.state.location.pathname).toBe(
+      change === 'unmount' ? '/account/security' : '/test',
+    )
+    expect(cache.getQueryData(['current-private'])).toEqual({ current: true })
+    if (change !== 'unmount') expect(cache.getQueryData(['auth', 'session'])).toEqual(next)
+    expect(document.body.textContent).not.toContain('Current configuration saved.')
+    expect(writes()).toHaveLength(1)
+  },
+)
+it('retains the original intent when acknowledged write Session settlement is unavailable', async () => {
+  await mount(<OAuthConfiguration />)
+  await prepareNameSave()
+  failures['/auth/session'] = 503
+  await click('Confirm')
+  await wait(() => cache.getQueryState(['auth', 'session'])?.status === 'error')
+  expect(document.body.textContent).not.toContain('Configure custom OAuth')
+  expect(document.body.textContent).not.toContain('Current configuration saved.')
+  delete failures['/auth/session']
+  await act(async () => {
+    await cache.refetchQueries({ queryKey: ['auth', 'session'] })
+  })
+  await wait(() => document.body.textContent!.includes('Retry original request'))
+  expect(document.body.textContent).toContain('The submitted outcome is unknown')
+  expect(writes()).toHaveLength(1)
+  expect(writes()[0].headers.get('If-Match')).toBe(`"${etag}"`)
+})
+
+it.each(['actor', 'session', 'expiry', 'error', 'unmount'] as const)(
+  'discards a held initial completion Session read after %s without restoring shared identity or dispatching',
+  async (change) => {
+    const prior = structuredClone(session!)
+    cache.setQueryData(['auth', 'session'], prior)
+    const release = holdSessionRead()
+    await mount(<OAuthComplete />, '/auth/oauth/complete')
+    expect(requests.filter((request) => request.url?.startsWith('/auth/'))).toHaveLength(0)
+    await click('Continue')
+    await wait(() => requests.filter((request) => request.url === '/auth/session').length === 1)
+    const next: Session | null =
+      change === 'expiry'
+        ? null
+        : {
+            user: {
+              ...prior.user,
+              id: change === 'actor' ? 'usr_bob' : prior.user.id,
+              name: change === 'actor' ? 'Bob' : prior.user.name,
+            },
+            csrf_token: 'new-current-csrf',
+          }
+    await act(async () => {
+      if (change === 'unmount') await router.navigate('/account/security')
+      if (change === 'error') {
+        cache
+          .getQueryCache()
+          .find({ queryKey: ['auth', 'session'] })!
+          .setState({
+            status: 'error',
+            error: new Error('Session unavailable'),
+            errorUpdateCount: 1,
+          })
+      } else cache.setQueryData(['auth', 'session'], next)
+      if (change === 'expiry') window.dispatchEvent(new Event('routex:session-expired'))
+      cache.setQueryData(['current-private'], { current: true })
+    })
+    release()
+    await wait(() => sessionReplies === 1)
+    expect(writes()).toHaveLength(0)
+    expect(requests.filter((request) => request.url === '/auth/session')).toHaveLength(1)
+    expect(cache.getQueryData(['current-private'])).toEqual({ current: true })
+    expect(cache.getMutationCache().getAll()).toHaveLength(0)
+    if (change === 'error') {
+      expect(cache.getQueryData(['auth', 'session'])).toEqual(prior)
+      expect(cache.getQueryState(['auth', 'session'])?.status).toBe('error')
+    } else expect(cache.getQueryData(['auth', 'session'])).toEqual(next)
+    expect(router.state.location.pathname).toBe(
+      change === 'unmount' ? '/account/security' : '/auth/oauth/complete',
+    )
+    if (change !== 'unmount') {
+      expect(document.body.textContent).toContain('Unable to confirm this completion')
+      expect(
+        Array.from(document.querySelectorAll('button')).some(
+          (element) => element.textContent === 'Continue',
+        ),
+      ).toBe(false)
+    }
+  },
+)
+it('installs only the confirmed login Session after a transient fresh anonymous read', async () => {
+  session = null
+  const authenticated: Session = {
+    user: { id: 'usr_alice', name: 'Alice', email: 'alice@example.test', role: 'member' },
+    csrf_token: 'confirmed-login-csrf',
+  }
+  completeResult = authenticated
+  cache.setQueryData(['current-private'], { old: true })
+  await mount(<OAuthComplete />, '/auth/oauth/complete')
+  expect(requests.filter((request) => request.url?.startsWith('/auth/'))).toHaveLength(0)
+  expect(cache.getQueryData(['auth', 'session'])).toBeUndefined()
+  await click('Continue')
+  await wait(() => router.state.location.pathname === '/')
+  expect(requests.filter((request) => request.url === '/auth/session')).toHaveLength(1)
+  expect(writes()).toHaveLength(1)
+  expect(writes()[0].url).toBe('/auth/oauth/complete')
+  expect(writes()[0].headers.get('X-CSRF-Token')).toBeUndefined()
+  expect(JSON.parse(writes()[0].data)).toEqual({})
+  expect(cache.getQueryData(['auth', 'session'])).toEqual(authenticated)
+  expect(cache.getQueryData(['current-private'])).toBeUndefined()
+  expect(cache.getMutationCache().getAll()).toHaveLength(0)
+})
+it('uses fresh original binding authority without publishing the preliminary Session read', async () => {
+  cache.setQueryData(['current-private'], { current: true })
+  await mount(<OAuthComplete />, '/auth/oauth/complete')
+  expect(requests.filter((request) => request.url?.startsWith('/auth/'))).toHaveLength(0)
+  await click('Continue')
+  await wait(() => router.state.location.pathname === '/account/security')
+  expect(requests.filter((request) => request.url === '/auth/session')).toHaveLength(1)
+  expect(writes()).toHaveLength(1)
+  expect(writes()[0].headers.get('X-CSRF-Token')).toBe('csrf-current')
+  expect(JSON.parse(writes()[0].data)).toEqual({})
+  expect(cache.getQueryData(['auth', 'session'])).toBeUndefined()
+  expect(cache.getQueryData(['current-private'])).toEqual({ current: true })
+  expect(cache.getMutationCache().getAll()).toHaveLength(0)
+})
+
+it.each(['account.id', '["account",0]', 'null', '["account",]', '["\\ud800"]'])(
+  'keeps an invalid user ID path draft visible without preparing or dispatching: %s',
+  async (path) => {
+    await mount(<OAuthConfiguration />)
+    await openConfig()
+    await act(async () => {
+      input('User ID field path', path)
+      input('Reason', 'Review exact identity path')
+    })
+    await click('Review configuration')
+    expect(document.body.textContent).toContain('Check the required fields')
+    expect(document.querySelectorAll('[role="dialog"]')).toHaveLength(1)
+    const field = [...document.querySelectorAll('label')]
+      .find((label) => label.textContent === 'User ID field path')!
+      .querySelector('input')!
+    expect(field.value).toBe(path)
+    expect(writes()).toHaveLength(0)
+    await act(async () => i18n.changeLanguage('zh'))
+    expect(document.body.textContent).toContain('用户唯一标识字段路径')
+    expect(field.value).toBe(path)
+  },
+)
+it('reviews exact literal-key arrays and ordered scopes without inferring email identity or enabling sign-in', async () => {
+  await mount(<OAuthConfiguration />)
+  await openConfig()
+  await act(async () => {
+    input('User ID field path', '["account.id","0","身份"]')
+    input('Scopes', 'profile email')
+    input('Reason', 'Explicit exact object-key review')
+  })
+  await click('Review configuration')
+  expect(document.body.textContent).toContain('removes existing bindings')
+  expect(writes()).toHaveLength(0)
+  await click('Confirm')
+  await wait(() => writes().length === 1)
+  expect(writes()[0].url).toBe('/admin/auth/oauth')
+  expect(JSON.parse(writes()[0].data).subject_path).toEqual(['account.id', '0', '身份'])
+  expect(JSON.parse(writes()[0].data).scopes).toEqual(['profile', 'email'])
+  expect(writes()[0].headers.get('If-Match')).toBe(`"${etag}"`)
+  expect(cache.getMutationCache().getAll()).toHaveLength(0)
+})
+it('retains the exact security arrays through current-facts refresh and a same-owner Session renewal retry', async () => {
+  await mount(<OAuthConfiguration />)
+  await openConfig()
+  await act(async () => {
+    input('User ID field path', '["account.id","0"]')
+    input('Scopes', 'profile email')
+    input('Reason', 'Retain exact security request')
+  })
+  await click('Review configuration')
+  failures['/admin/auth/oauth'] = 503
+  await click('Confirm')
+  await wait(() => document.body.textContent!.includes('The submitted outcome is unknown'))
+  const original = writes()[0].data
+  config.scopes = ['changed']
+  config.subject_path = ['other']
+  config.review_etag = 'c'.repeat(64)
+  delete failures['/admin/auth/oauth']
+  await act(async () => {
+    session = { ...session!, csrf_token: 'renewed-csrf' }
+    cache.setQueryData(['auth', 'session'], session)
+  })
+  await wait(() => document.body.textContent!.includes('Retry original request'))
+  await click('Read current facts')
+  await wait(
+    () =>
+      requests.filter((request) => request.url === '/admin/auth/oauth' && request.method === 'get')
+        .length >= 3,
+  )
+  await wait(() =>
+    cache
+      .getQueryCache()
+      .findAll({ queryKey: ['oauth', 'config'] })
+      .some(
+        (query) =>
+          query.state.status === 'success' &&
+          query.state.fetchStatus === 'idle' &&
+          !query.state.isInvalidated &&
+          (query.state.data as OAuthConfig | undefined)?.review_etag === config.review_etag,
+      ),
+  )
+  failures['/admin/auth/oauth'] = 409
+  await click('Retry original request')
+  await wait(() => writes().length === 2)
+  expect(writes()[1].data).toBe(original)
+  expect(JSON.parse(writes()[1].data).subject_path).toEqual(['account.id', '0'])
+  expect(JSON.parse(writes()[1].data).scopes).toEqual(['profile', 'email'])
+  expect(writes()[1].headers.get('If-Match')).toBe(`"${etag}"`)
+  expect(writes()[1].headers.get('X-CSRF-Token')).toBe('renewed-csrf')
+  expect(document.body.textContent).not.toContain('Current configuration saved.')
+  expect(cache.getMutationCache().getAll()).toHaveLength(0)
+})
+it('preserves both independent clean completion routes outside authentication gates', () => {
+  for (const path of ['/auth/oidc/complete', '/auth/oauth/complete']) {
+    const route = routes.find((item) => item.path === path)
+    expect(route?.lazy).toBeTypeOf('function')
+    expect(route?.element).toBeUndefined()
+    expect(route?.children).toBeUndefined()
+  }
+})
+
+it('keeps OIDC and custom OAuth beside the existing password form without starting either method on reads', async () => {
+  session = null
+  cache.setQueryData(['auth', 'session'], null)
+  await mount(<AuthPage mode="login" />)
+  await wait(
+    () =>
+      document.body.textContent!.includes('Continue with Enterprise') &&
+      document.body.textContent!.includes('Continue with Existing OIDC'),
+  )
+  expect(document.querySelector('form[aria-label="Sign in"]')).not.toBeNull()
+  expect(requests.some((request) => request.url === '/auth/oidc')).toBe(true)
+  expect(requests.some((request) => request.url === '/auth/oauth')).toBe(true)
+  expect(writes()).toHaveLength(0)
+  await act(async () => i18n.changeLanguage('zh'))
+  expect(document.body.textContent).toContain('使用 Existing OIDC 登录')
+  expect(document.body.textContent).toContain('使用 Enterprise 登录')
+  expect(document.querySelector('form')).not.toBeNull()
+  expect(writes()).toHaveLength(0)
+})
+it('reviews an explicit client authentication change and displays only server-returned disabled verification facts', async () => {
+  config.enabled = true
+  config.verified = true
+  await mount(<OAuthConfiguration />)
+  await openConfig()
+  await act(async () => {
+    const select = document.querySelector<HTMLSelectElement>('select')!
+    expect(select.value).toBe('client_secret_basic')
+    Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value')!.set!.call(
+      select,
+      'client_secret_post',
+    )
+    select.dispatchEvent(new Event('change', { bubbles: true }))
+    input('Reason', 'Review token client authentication')
+  })
+  await click('Review configuration')
+  expect(document.body.textContent).toContain('resets verification')
+  expect(writes()).toHaveLength(0)
+  await click('Confirm')
+  await wait(() => document.body.textContent!.includes('Current configuration saved.'))
+  expect(writes()).toHaveLength(1)
+  expect(JSON.parse(writes()[0].data).client_auth_method).toBe('client_secret_post')
+  expect(config.enabled).toBe(false)
+  expect(config.verified).toBe(false)
+  expect(document.body.textContent).toContain('Callback not verified')
+  expect(requests.some((request) => request.url === '/admin/auth/oauth/verify')).toBe(false)
+  expect(requests.some((request) => request.url === '/admin/auth/oauth/status')).toBe(false)
+})

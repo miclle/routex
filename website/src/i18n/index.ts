@@ -1,3 +1,5 @@
+import enOAuth from './locales/en/oauth'
+import zhOAuth from './locales/zh/oauth'
 import enOIDC from './locales/en/oidc'
 import zhOIDC from './locales/zh/oidc'
 import zhModelCreation from './locales/zh/modelCreation'
@@ -100,6 +102,7 @@ void i18n.use(initReactI18next).init({
     en: {
       common: en,
       oidc: enOIDC,
+      oauth: enOAuth,
       modelCreation: enModelCreation,
       secrets: enSecrets,
       overview: enOverview,
@@ -133,6 +136,7 @@ void i18n.use(initReactI18next).init({
     zh: {
       common: zh,
       oidc: zhOIDC,
+      oauth: zhOAuth,
       modelCreation: zhModelCreation,
       secrets: zhSecrets,
       overview: zhOverview,

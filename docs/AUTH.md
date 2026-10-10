@@ -92,3 +92,13 @@ creates a Session; clean-page completion and any required MFA must succeed first
 The application is delivered in `62c01baf77278b67a774d5777ee218c3a14c5ac6`.
 Complete PostgreSQL/MySQL and real-process lifecycle acceptance pass. Bilingual
 browser and external-provider acceptance remain pending; F03/A15 remain Partial.
+
+## Existing-member custom OAuth
+
+The separate [custom OAuth application](OAUTH.md) preserves local and OIDC
+authentication. It uses explicit endpoints, exact typed profile subjects,
+reviewed existing-member binding, a separate correlation cookie and clean manual
+completion, native MFA and independently revocable primary provenance. It adds no
+provisioning, email linking, provider presets or enforced SSO. Complete Task,
+the 188-scenario PostgreSQL/MySQL matrix and real-process authentication lifecycle
+pass. Browser and external-provider acceptance remain open; F03/A15 stay Partial.

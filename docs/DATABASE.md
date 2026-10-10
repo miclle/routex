@@ -1524,3 +1524,34 @@ The official complete PostgreSQL/MySQL matrix passes the V94 creation, upgrade,
 repeat, concurrent, partial-DDL and constraint cases, along with authentication
 and same-source restart scenarios. Separate process lifecycle acceptance also
 passes. Browser and real-provider acceptance remain open; see [OIDC](OIDC.md).
+
+## Existing-member custom OAuth and root inventory V4 (V95)
+
+Frozen GORM V95 adds independent provider, typed-subject binding and hash-only
+ceremony tables, plus five explicit OAuth provenance fields on Sessions and MFA
+challenges. It replaces primary provenance and inventory checks through GORM,
+keeping released V1–V94 immutable. Nullable microsecond births are never backfilled;
+local/OIDC data retains blank/null nonmatching OAuth proof.
+
+Exact-empty checks use portable `OCTET_LENGTH(...)=0`; exact primary discriminants
+also validate byte lengths and ASCII values. MySQL padding semantics cannot turn
+whitespace-only required blanks or padded methods into valid proof. Retained bad
+rows fail migration rather than being silently rewritten. Valid rows are reviewed
+before CHECK replacement; interrupted MySQL DROP/CREATE can resume without a
+ledger row or assumed transactional-DDL rollback. Column/index/type/default/precision
+validation remains mandatory.
+
+`MigrateThrough(ctx, db, lastVersion)` shares the normal connection, advisory lock,
+timeout, ledger and apply loop. It accepts only a finite supported prefix, rejects
+zero/negative/above-current bounds, and rejects an existing newer/invalid ledger
+before schema DDL. It cannot downgrade or inject arbitrary steps. Historical V94
+tests use independent literal schema projections and this bounded tooling seam,
+then restore full-current migration. Business services still receive a ready DB.
+
+Inventory V4 appends OAuth as domain nine, preserving exact V1/V2/V3 history.
+The official complete PostgreSQL/MySQL matrix passes all 188 business scenarios
+and four constraints per driver (450 named passes each, no failures or skips),
+including V95 empty/upgrade/repeat/concurrent/partial-DDL, exact provenance checks,
+root-key rotation and same-source OAuth restart. Complete Task and the separate
+real-process authentication lifecycle pass. Browser and real-provider acceptance
+remain open. See [OAuth](OAUTH.md).

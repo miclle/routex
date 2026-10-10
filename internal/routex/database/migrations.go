@@ -14,6 +14,26 @@ import (
 // Migrate applies immutable, numbered schema steps. A dedicated connection owns
 // the advisory lock because MySQL DDL commits transactions implicitly.
 func Migrate(ctx context.Context, db *gorm.DB) error {
+	return migrateThrough(ctx, db, 0)
+}
+
+// MigrateThrough applies an exact immutable prefix for historical fixtures and
+// offline tooling. It never downgrades a newer ledger. Startup uses Migrate.
+func MigrateThrough(ctx context.Context, db *gorm.DB, lastVersion int) error {
+	if lastVersion < 1 {
+		return fmt.Errorf("invalid migration bound")
+	}
+	return migrateThrough(ctx, db, lastVersion)
+}
+
+func migrationPrefix(steps []func(*gorm.DB) error, lastVersion int) ([]func(*gorm.DB) error, error) {
+	if lastVersion < 1 || lastVersion > len(steps) {
+		return nil, fmt.Errorf("invalid migration bound")
+	}
+	return steps[:lastVersion], nil
+}
+
+func migrateThrough(ctx context.Context, db *gorm.DB, lastVersion int) error {
 	if db == nil {
 		return fmt.Errorf("db handle is nil")
 	}
@@ -58,10 +78,27 @@ func Migrate(ctx context.Context, db *gorm.DB) error {
 				}
 			}
 		}()
+		steps := migrationSteps(dialect)
+		if lastVersion != 0 {
+			var err error
+			steps, err = migrationPrefix(steps, lastVersion)
+			if err != nil {
+				return err
+			}
+			// Reject a newer ledger before any schema DDL, including ledger repair.
+			if conn.Migrator().HasTable(&migrationLedger{}) {
+				var newer int64
+				if err := conn.Table("schema_migrations").Where("version < 1 OR version > ?", lastVersion).Count(&newer).Error; err != nil {
+					return err
+				}
+				if newer != 0 {
+					return fmt.Errorf("database schema is newer than migration bound")
+				}
+			}
+		}
 		if err := migrateTables(conn, &migrationLedger{}); err != nil {
 			return err
 		}
-		steps := migrationSteps(dialect)
 		var unsupported int64
 		if err := conn.Table("schema_migrations").Where("version < 1 OR version > ?", len(steps)).Count(&unsupported).Error; err != nil {
 			return err
@@ -103,7 +140,7 @@ func migrationSteps(dialect string) []func(*gorm.DB) error {
 			return nil
 		})
 	}
-	return append(steps, callMigration, governanceMigration, runtimeMigration, resourcesMigration, projectKeyMigration, offboardingMigration, pricingMigration, projectRequestMigration, callPricingMigration, resourceLimitMigration, providerModelStateMigration, mfaMigration, siteMigration, egressMigration, quotaMigration, smtpMigration, storageMigration, providerModelCapabilitiesMigration, storageOwnerMigration, callMediaPricingMigration, callAttemptDiagnosticsMigration, callProviderAttributionMigration, systemInstanceMigration, systemJobMigration, notificationMigration, providerQualityMigration, credentialReplacementMigration, callCredentialAttributionMigration, callNativeCompletionMigration, credentialRetirementMigration, quotaNotificationMigration, projectQuotaRequestMigration, projectRateRequestMigration, callTeamAttributionMigration, teamResourceLimitMigration, teamQuotaRequestMigration, teamRoleMigration, defaultLimitMigration, personalModelRequestMigration, teamModelRequestMigration, projectCreationMigration, teamAttachmentMigration, teamQuotaNotificationMigration, rootKeyRotationMigration, repositoryPriceMigration, modelCreationBatchMigration, teamMemberQuotaNotificationMigration, memberKeyMigration, teamMembershipJoinedAtMigration, memberModelGrantMigration, memberRecentLoginMigration, memberRoleRevisionMigration, registrationApprovalMigration, registrationEmailDomainsMigration, quotaWarningMigration, teamQuotaWarningMigration, projectQuotaWarningMigration, teamMemberQuotaWarningMigration, teamCreationReceiptMigration, personalKeyQuotaWarningMigration, projectKeyQuotaWarningMigration, teamCreationModelsMigration, roleDescriptionMigration, dutyRoleMigration, providerModelBindingIndexMigration, personalMonthlyBehaviorMigration, teamMonthlyBehaviorMigration, vaultIntegrationMigration, personalKeyMonthlyBehaviorMigration, projectMonthlyBehaviorMigration, teamMemberMonthlyBehaviorMigration, migrateConnectionEnablementV76, credentialStorageMigration, vaultAppRoleMigration, azureDeploymentMigration, providerCredentialCleanupMigration, personalRollingQuotaWarningMigration, personalKeyRollingQuotaWarningMigration, projectRollingQuotaWarningMigration, teamRollingQuotaWarningMigration, projectKeyRollingQuotaWarningMigration, modelRecordedMetadataMigration, runtimeApplicationMigration, credentialSourceDrainMigration, credentialSourceClosedMigration, modelWeightHistoryMigration, providerEnablementMigration, connectionTransportMigration, credentialAttemptStatisticsMigration, oidcMigration)
+	return append(steps, callMigration, governanceMigration, runtimeMigration, resourcesMigration, projectKeyMigration, offboardingMigration, pricingMigration, projectRequestMigration, callPricingMigration, resourceLimitMigration, providerModelStateMigration, mfaMigration, siteMigration, egressMigration, quotaMigration, smtpMigration, storageMigration, providerModelCapabilitiesMigration, storageOwnerMigration, callMediaPricingMigration, callAttemptDiagnosticsMigration, callProviderAttributionMigration, systemInstanceMigration, systemJobMigration, notificationMigration, providerQualityMigration, credentialReplacementMigration, callCredentialAttributionMigration, callNativeCompletionMigration, credentialRetirementMigration, quotaNotificationMigration, projectQuotaRequestMigration, projectRateRequestMigration, callTeamAttributionMigration, teamResourceLimitMigration, teamQuotaRequestMigration, teamRoleMigration, defaultLimitMigration, personalModelRequestMigration, teamModelRequestMigration, projectCreationMigration, teamAttachmentMigration, teamQuotaNotificationMigration, rootKeyRotationMigration, repositoryPriceMigration, modelCreationBatchMigration, teamMemberQuotaNotificationMigration, memberKeyMigration, teamMembershipJoinedAtMigration, memberModelGrantMigration, memberRecentLoginMigration, memberRoleRevisionMigration, registrationApprovalMigration, registrationEmailDomainsMigration, quotaWarningMigration, teamQuotaWarningMigration, projectQuotaWarningMigration, teamMemberQuotaWarningMigration, teamCreationReceiptMigration, personalKeyQuotaWarningMigration, projectKeyQuotaWarningMigration, teamCreationModelsMigration, roleDescriptionMigration, dutyRoleMigration, providerModelBindingIndexMigration, personalMonthlyBehaviorMigration, teamMonthlyBehaviorMigration, vaultIntegrationMigration, personalKeyMonthlyBehaviorMigration, projectMonthlyBehaviorMigration, teamMemberMonthlyBehaviorMigration, migrateConnectionEnablementV76, credentialStorageMigration, vaultAppRoleMigration, azureDeploymentMigration, providerCredentialCleanupMigration, personalRollingQuotaWarningMigration, personalKeyRollingQuotaWarningMigration, projectRollingQuotaWarningMigration, teamRollingQuotaWarningMigration, projectKeyRollingQuotaWarningMigration, modelRecordedMetadataMigration, runtimeApplicationMigration, credentialSourceDrainMigration, credentialSourceClosedMigration, modelWeightHistoryMigration, providerEnablementMigration, connectionTransportMigration, credentialAttemptStatisticsMigration, oidcMigration, oauthMigration)
 }
 
 func legacyMigrationSQL(dialect string) [][]string {
