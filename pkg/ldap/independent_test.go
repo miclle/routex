@@ -490,11 +490,12 @@ func TestLDAPIndependentNoAnonymousBindOrRetry(t *testing.T) {
 				return ldapIndependentEOF(c)
 			})
 			identity, err := ldapIndependentClient(t, p.config()).Authenticate(p.ctx, "member", "private-user-password")
+			// The peer records denial after its response write; join before observing it.
+			p.joinedClosed(t)
 			if !errors.Is(err, routeldap.ErrAuthentication) || identity.DN != "" || identity.Attribute != "" || len(identity.Subject) != 0 || !rejected.Load() {
 				t.Error("bind denial lost", err)
 			}
 			ldapIndependentSafe(t, err, "private-directory-message", "private-user-password", " service-secret ")
-			p.joinedClosed(t)
 		})
 	}
 	var dials atomic.Int32

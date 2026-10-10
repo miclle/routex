@@ -4,6 +4,17 @@ Updated: 2026-10-10. Status: resumed by explicit user instruction; prioritize pa
 
 ## Current execution status (2026-10-10)
 
+A subsequent backend CI job `114134808054` passes standalone staticcheck but
+fails the service-bind denial test because the client can receive LDAP code49
+before the peer resumes and records its observation flag. The returned error is
+the expected authentication sentinel. The narrow test correction performs the
+existing bounded peer join before inspecting that flag, retaining exact error,
+empty identity, privacy, no-anonymous/no-retry and EOF assertions. Production
+behavior is unchanged. Mandatory checking passes, the affected denial test
+passes 100 uncached repetitions, and all 137 named LDAP race tests pass without
+failures or skips. The failed CI run remains unaccepted; replacement remote CI
+is not yet accepted.
+
 A CI parity correction retains the intentional negative test. Backend job `114126778345` of run
 `38022640877` rejected the intentional nil-Context LDAP negative test with SA1012;
 its existing annotation was recognized by GolangCI-Lint but not standalone
