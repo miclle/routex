@@ -135,6 +135,12 @@ Contributions are welcome. See [CONTRIBUTING.md](CONTRIBUTING.md) before submitt
 
 ## Product implementation
 
+The bounded [LDAP protocol component](docs/LDAP.md) requires an explicit
+`entryUUID` or `objectGUID`, performs verified LDAPS service bind, escaped
+search, user bind and an exact post-bind identity reread. Controlled race tests,
+mandatory checking and complete project tests pass. It adds no application login,
+account binding, provisioning or Session authority; that integration is in progress.
+
 The [generic OAuth protocol component](docs/OAUTH.md) provides bounded explicit
 endpoint exchange and exact typed subjects. Its existing-member application adds
 reviewed linking, native MFA and independent revocation. Automated, complete

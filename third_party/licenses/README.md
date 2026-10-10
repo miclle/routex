@@ -27,3 +27,16 @@ Its original license is retained in `go-oidc-APACHE-2.0.txt`; the module contain
 no separate NOTICE file. Signature parsing also uses the existing
 `github.com/go-jose/go-jose/v4` v4.1.4 dependency, and authorization-code requests
 use the existing `golang.org/x/oauth2` v0.36.0 dependency.
+
+## LDAP protocol decoding
+
+`github.com/go-ldap/ldap/v3` v3.4.15 and
+`github.com/go-asn1-ber/asn1-ber` v1.5.8 are used unmodified under MIT.
+Their exact original license texts are retained in `go-ldap-MIT.txt` and
+`asn1-ber-MIT.txt`. Keep these notices with redistributed RouteX binaries.
+RouteX adds bounded verified-LDAPS transport and response admission around the
+maintained protocol decoder; it does not vendor or modify either dependency.
+
+The LDAP module also links unmodified `github.com/Azure/go-ntlmssp` v0.1.1
+under MIT. Its original notice is retained in `go-ntlmssp-MIT.txt`. RouteX uses
+simple bind over verified LDAPS; it does not expose NTLM authentication.

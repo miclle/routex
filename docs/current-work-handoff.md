@@ -4,7 +4,26 @@ Updated: 2026-10-10. Status: resumed by explicit user instruction; prioritize pa
 
 ## Current execution status (2026-10-10)
 
-This phase delivers an existing-member custom OAuth application with explicit
+This phase adds the bounded [LDAP protocol component](LDAP.md). It requires
+explicit `entryUUID` or `objectGUID`, verified LDAPS service bind, one escaped
+subtree search, user bind and an exact-DN base-object reread before returning
+owned opaque identity bytes. It adds no application login, member binding,
+provisioning, roles or Session authority. Pinned dependency and license integration,
+formatting and mandatory checking pass. Focused race tests have 137 named passes
+across 20 parent tests with no failures or skips; complete Task passes Go
+race/coverage, all 6,104 frontend cases in 228 files, development lifecycle and
+production assets. LDAP statement coverage is 89.9%. The qualified 2,214-path
+source/mode floor remains unchanged during execution. Two initial lint failures
+remain failed history; equivalent predicates, fixture closure and an explicit
+nil-context negative-test suppression resolve them without weakening assertions.
+All four LDAP operations share ten-second bounded I/O; separate one-second cleanup
+observation does not prove dependency-private-worker joins. Application service,
+frozen GORM V96 and bilingual existing-surface work are being prepared in parallel;
+their execution and real-directory/browser acceptance remain open. F03/A15 and
+the overall objective remain Partial and active.
+
+Commit `df1e9a54ade733539603e283b6adb05a13723079` delivers the existing-member
+custom OAuth application with explicit
 endpoints, exact typed profile subjects, reviewed account binding and clean manual
 completion. Local and OIDC login remain available; OAuth uses native MFA and
 independently revocable primary provenance. Frozen GORM V95 adds its separate
@@ -45,8 +64,8 @@ independent V94 literal parity and V1/V2/V3 assertions. Bilingual browser and
 real-provider deployment remain unaccepted; controlled TLS/process fixtures do not
 replace those gates. F03/A15 remain Partial and capability totals remain
 **15 Completed / 13 Partial / 2 Not started**. The overall objective continues.
-LDAP stable-identity component and independent TLS tests are prepared separately;
-their execution gates remain open. See [OAuth](OAUTH.md).
+The separately qualified LDAP stable-identity component now has controlled
+protocol acceptance above; LDAP application and deployment gates remain open. See [OAuth](OAUTH.md).
 
 Existing-member OIDC is delivered in
 `62c01baf77278b67a774d5777ee218c3a14c5ac6`, with exact remote-main parity.
