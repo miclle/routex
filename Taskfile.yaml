@@ -128,6 +128,7 @@ tasks:
     cmds:
       - gofmt -l .
       - go vet -tags development $(./scripts/go-packages.sh)
+      - go tool staticcheck -tags development $(./scripts/go-packages.sh)
       - ./scripts/check-lint.sh
 
   check-frontend-style:

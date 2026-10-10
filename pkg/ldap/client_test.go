@@ -91,6 +91,7 @@ func TestLDAPInvalidInputDoesNotDispatch(t *testing.T) {
 	}
 	// Deliberately exercise the public nil-context rejection boundary.
 	//nolint:staticcheck // SA1012: this negative test must pass a nil context.
+	//lint:ignore SA1012 This negative test deliberately verifies public nil-context rejection.
 	if _, err := client.Authenticate(nil, "user", "password"); !errors.Is(err, ErrInvalidInput) {
 		t.Fatal("nil context admitted")
 	}

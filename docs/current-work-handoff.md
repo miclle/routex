@@ -4,6 +4,16 @@ Updated: 2026-10-10. Status: resumed by explicit user instruction; prioritize pa
 
 ## Current execution status (2026-10-10)
 
+A CI parity correction retains the intentional negative test. Backend job `114126778345` of run
+`38022640877` rejected the intentional nil-Context LDAP negative test with SA1012;
+its existing annotation was recognized by GolangCI-Lint but not standalone
+staticcheck. The narrow correction retains that test and adds the precise
+standalone annotation. `go tool task check` now also runs pinned standalone
+staticcheck, matching the workflow before GolangCI-Lint. Updated mandatory checking passes, including standalone staticcheck and
+GolangCI-Lint. All 137 named LDAP race results pass without failures or skips;
+development/integration-entry/module-check script regressions also pass. The
+original CI failure remains recorded; replacement remote CI is not yet accepted.
+
 This phase adds the bounded [LDAP protocol component](LDAP.md). It requires
 explicit `entryUUID` or `objectGUID`, verified LDAPS service bind, one escaped
 subtree search, user bind and an exact-DN base-object reread before returning
