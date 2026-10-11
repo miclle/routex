@@ -1136,6 +1136,11 @@ For this candidate, Guided Model creation selects one authorized Provider
 Connection and discovered Provider-model items or component-local manual names.
 The following candidate contracts extend the retained earlier guided workflow.
 
+The creation table displays only recorded image/PDF input declarations. An empty
+declaration array means no image/PDF input is declared; it does not classify the
+Provider-model as Text. Manual drafts retain Unknown until explicit declarations
+exist. These labels do not establish generic capability classes or readiness.
+
 ### Manual upstream-name drafts
 
 The existing guided table can add an exact upstream model or deployment name that

@@ -101,7 +101,7 @@ export default {
   count: '{{count}} selected (maximum 50)',
   upstream: 'ProviderModel',
   capabilities: 'Input capabilities',
-  text: 'Text',
+  noMediaInputDeclared: 'No image/PDF input declared',
   target: 'Addition and target',
   new: 'Create a new Model',
   existing: 'Link an existing Model',

@@ -93,7 +93,7 @@ export default {
   count: '已选择 {{count}} 个（最多 50 个）',
   upstream: '供应商模型',
   capabilities: '输入能力',
-  text: '文本',
+  noMediaInputDeclared: '未声明图片/PDF 输入',
   target: '添加方式与目标',
   new: '创建新模型',
   existing: '关联现有模型',

@@ -807,7 +807,7 @@ function BatchForm({
                         ? row.input_capabilities
                             .map((cap) => t(cap === 'image' ? 'imageInput' : 'pdfInput'))
                             .join(', ')
-                        : t('text')}
+                        : t('noMediaInputDeclared')}
                   </td>
                   <td>
                     {selected ? (

@@ -43,11 +43,12 @@ const connection = {
   base_url: 'https://example.invalid/v1',
 }
 let initialTargets: Record<string, ModelCreationInitialTarget | null> = {}
+let inputCapabilities: Record<string, string[]> = {}
 const pm = (id = 'pmd_one') => ({
   id,
   upstream_name: initialTargets[id]?.name ?? `Upstream ${id}`,
   disabled: false,
-  input_capabilities: ['image'],
+  input_capabilities: inputCapabilities[id] ?? ['image'],
   credential_ready: true,
   selectable: true,
   blocker_codes: [],
@@ -62,6 +63,7 @@ beforeEach(async () => {
   permissions = ['models.read_all', 'providers.read', 'models.write']
   requests = []
   initialTargets = {}
+  inputCapabilities = {}
   fail = {}
   holds = {}
   saved = null
@@ -303,6 +305,34 @@ function deferred() {
   }
 }
 describe('guided atomic batch creation', () => {
+  it.each([
+    { capabilities: [], keys: ['noMediaInputDeclared'] },
+    { capabilities: ['image'], keys: ['imageInput'] },
+    { capabilities: ['pdf'], keys: ['pdfInput'] },
+    { capabilities: ['image', 'pdf'], keys: ['imageInput', 'pdfInput'] },
+  ] as const)(
+    'renders only declared media inputs: $capabilities',
+    async ({ capabilities, keys }) => {
+      inputCapabilities.pmd_one = [...capabilities]
+      await mount()
+      const cell = () =>
+        document
+          .querySelector(
+            'input[aria-label="' +
+              i18n.t('modelCreation:selection', { name: 'Upstream pmd_one' }) +
+              '"]',
+          )
+          ?.closest('tr')
+          ?.querySelectorAll('td')[2]
+      expect(cell()?.textContent).toBe(keys.map((key) => en[key]).join(', '))
+      const reads = requests.length
+      await act(async () => i18n.changeLanguage('zh'))
+      expect(cell()?.textContent).toBe(keys.map((key) => zh[key]).join(', '))
+      expect(requests).toHaveLength(reads)
+      expect(requests.some((request) => request.method === 'post')).toBe(false)
+    },
+  )
+
   it('defaults to staged new access and explicitly switches to the bounded existing Connection picker', async () => {
     router = createMemoryRouter([{ path: '/admin/models/create', element: <CreateModelPage /> }], {
       initialEntries: ['/admin/models/create'],
@@ -1133,6 +1163,29 @@ async function addManual(name = 'not/discovered') {
   await change(document.querySelector('textarea')!, 'Reviewed manual configuration')
 }
 describe('manual Provider Model drafts', () => {
+  it('keeps manual input declarations Unknown in both languages without creating a record', async () => {
+    permissions.push('providers.write')
+    await mount()
+    await addManual()
+    const cell = () =>
+      document
+        .querySelector(
+          'input[aria-label="' +
+            i18n.t('modelCreation:selection', { name: 'not/discovered' }) +
+            '"]',
+        )
+        ?.closest('tr')
+        ?.querySelectorAll('td')[2]
+    expect(cell()?.textContent).toBe(en.unknownCapabilities)
+    expect(cell()?.textContent).not.toBe(en.noMediaInputDeclared)
+    const reads = requests.length
+    await act(async () => i18n.changeLanguage('zh'))
+    expect(cell()?.textContent).toBe(zh.unknownCapabilities)
+    expect(cell()?.textContent).not.toBe(zh.noMediaInputDeclared)
+    expect(requests).toHaveLength(reads)
+    expect(requests.some((request) => request.method === 'post')).toBe(false)
+  })
+
   it('requires providers.write independently and cancels without any write or preview', async () => {
     await mount()
     expect(button(en.manualAdd).disabled).toBe(true)
